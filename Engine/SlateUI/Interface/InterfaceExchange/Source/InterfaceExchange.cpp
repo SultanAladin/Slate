@@ -802,6 +802,42 @@ ModifierCondition InterfaceExchange::Modifiers() const
     return Current;
 }
 
+CameraCondition InterfaceExchange::CameraInput() const
+{
+    CameraCondition Current;
+
+    if (ContextSlot == nullptr || !TickOpen)
+        return Current;
+
+    ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
+
+    const ImGuiIO& Sampled = ImGui::GetIO();
+
+    // 🔴 The same capture guards the key roster uses: a run the artist is typing into keeps the
+    //    movement keys, and a hovered window that merely wants capture does not stop the fly-by.
+    if (Sampled.WantTextInput || Sampled.WantCaptureKeyboard)
+        return Current;
+
+    Current.ForwardHeld  = ImGui::IsKeyDown(ImGuiKey_W);
+    Current.BackwardHeld = ImGui::IsKeyDown(ImGuiKey_S);
+    Current.LeftHeld     = ImGui::IsKeyDown(ImGuiKey_A);
+    Current.RightHeld    = ImGui::IsKeyDown(ImGuiKey_D);
+    Current.UpHeld       = ImGui::IsKeyDown(ImGuiKey_E);
+    Current.DownHeld     = ImGui::IsKeyDown(ImGuiKey_Q);
+
+    // 📐 The look gesture is the right button held: while it stands, the pointer's travel is the
+    //    camera's turn, exactly as the reference fly-cams read it.
+    Current.LookHeld = ImGui::IsMouseDown(ImGuiMouseButton_Right);
+
+    if (Current.LookHeld)
+    {
+        Current.LookDeltaX = Sampled.MouseDelta.x;
+        Current.LookDeltaY = Sampled.MouseDelta.y;
+    }
+
+    return Current;
+}
+
 bool InterfaceExchange::AcceptTyped(char* Intake, std::uint32_t Ceiling) const
 {
     if (ContextSlot == nullptr || !TickOpen || Intake == nullptr || Ceiling == 0u)

@@ -27,6 +27,9 @@
 //      --shot=editor-after-drag  after one elevation drag: the sun rose in the
 //                                viewport, and exactly ONE history demand was
 //                                raised
+//      --shot=editor-camera-fly  after W + right-drag look: the camera moved
+//                                and yawed, the sun shifted across the viewport,
+//                                and the lag toggle changed the displacement
 //
 //    Build (repository root, after ApplyImGuiPatches.py):
 //      g++ -std=c++20 -O2 -DNDEBUG -DWIN32_LEAN_AND_MEAN -DNOMINMAX -DGLFW_DLL \
@@ -47,6 +50,7 @@
 //          Engine/SlateUI/Interface/ThemeSpecification/Source/ThemeSpecification.cpp \
 //          Engine/SlateUI/Interface/SymbolSpecification/Source/SymbolSpecification.cpp \
 //          Engine/SlateUI/Interface/TextComponent/Source/FontLoader.cpp \
+//          Engine/Application/EditorHost/Source/CameraRig.cpp \
 //          Engine/Application/EditorHost/Source/SkyImage.cpp \
 //          Engine/SlateCompute/Compute/AtmosphereIntegrator/Source/AtmosphereIntegrator.cpp \
 //          Engine/SlateMath/Numeric/QuadratureIntegrator/Source/QuadratureIntegrator.cpp \
@@ -61,6 +65,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "ExternalPackages/stb/stb_image_write.h"
 
+#include "Application/EditorHost/Api/CameraRig.h"
 #include "Application/EditorHost/Api/SkyImage.h"
 #include "Contract/DeliveryContract.h"
 #include "SlateCompute/Compute/AtmosphereIntegrator/Api/AtmosphereIntegrator.h"
@@ -330,14 +335,15 @@ struct SceneDriver
     SceneDirectoryContext Applied;
     FontLoader Fonts;
 
-    static constexpr EntityRow EditorEntities[6] =
+    static constexpr EntityRow EditorEntities[7] =
     {
-        { "Level_01_City",           EntitySubject::Level,      0u, 0xFFFFFFFFu, 2u },
+        { "Level_01_City",           EntitySubject::Level,      0u, 0xFFFFFFFFu, 3u },
         { "Lighting",                EntitySubject::Grouping,   1u,  0u,         2u },
         { "Directional Light (Sun)", EntitySubject::Sun,        2u,  1u,         0u },
         { "Sky Atmosphere",          EntitySubject::Sky,        2u,  1u,         0u },
         { "Environment",             EntitySubject::Grouping,   1u,  0u,         1u },
-        { "Post Process Volume",     EntitySubject::Actor,      2u,  4u,         0u }
+        { "Post Process Volume",     EntitySubject::Actor,      2u,  4u,         0u },
+        { "Editor Camera",           EntitySubject::Camera,     1u,  0u,         0u }
     };
 
     EntityRevision Revisions[8] = {};
@@ -352,6 +358,15 @@ struct SceneDriver
     SkyCamera SkyCam;
     bool SkyReady = false;
     bool SkyEverGenerated = false;
+
+    // 📝 The camera the host owns. The harness cannot run the seam, so it feeds the rig the same
+    //    CameraCondition the seam would deliver: the simulation flags below stand in for held keys
+    //    and the right-button look gesture.
+    CameraRig FlyRig;
+    bool  SimForwardHeld = false;
+    bool  SimLookHeld    = false;
+    float SimLookDeltaX  = 0.0f;
+    float SimLookDeltaY  = 0.0f;
 
     SceneDriver() : IO(ImGui::GetIO()) {}
 
@@ -395,6 +410,18 @@ struct SceneDriver
         Applied.Environment.AtmosphereScaleHeight = 1.0;
         Applied.EntityTaken = 2u;   // the sun, taken at bring-up
 
+        // 📝 The camera row's options and the rig, exactly as the host declares them.
+        Applied.DetailBits[6u] = 2u;
+        Applied.CameraSpeed = 50.0;
+        FlyRig.YawDegrees   = Applied.Environment.SunAzimuth - 20.0;
+        FlyRig.PitchDegrees = 15.0;
+        FlyRig.Snap();
+        Applied.CameraPosition[0] = 0.0;
+        Applied.CameraPosition[1] = 1.5;
+        Applied.CameraPosition[2] = 0.0;
+        Applied.CameraRotation[0] = FlyRig.YawDegrees;
+        Applied.CameraRotation[1] = FlyRig.PitchDegrees;
+
         Revisions[0] = { "Level created", "Bracket_Rev4", "09:12", "A. Marner", 0u, RevisionSubject::Start };
         Revisions[1] = { "Sun angle relocated", "Pitch 35 deg", "10:05", "A. Marner", 2u, RevisionSubject::Relocate };
         RevisionCount = 2u;
@@ -420,6 +447,31 @@ struct SceneDriver
         Ledger.Advance(Surface.Pointer(), TickMilliseconds);
         SceneDirectory.Advance(Surface.Pointer(), TickMilliseconds);
         Editor.Advance(Surface.Pointer(), TickMilliseconds);
+
+        // 📝 The fly camera — the host's own step, fed by the simulation flags instead of the seam.
+        {
+            CameraCondition FlyInput;
+            FlyInput.ForwardHeld  = SimForwardHeld;
+            FlyInput.LookHeld     = SimLookHeld;
+            FlyInput.LookDeltaX   = SimLookDeltaX;
+            FlyInput.LookDeltaY   = SimLookDeltaY;
+
+            CameraSettings FlySettings;
+            FlySettings.FlySpeed    = Applied.CameraSpeed;
+            FlySettings.LagEnabled  = (Applied.DetailBits[6u] & 2u) != 0u;
+            FlySettings.InvertPitch = (Applied.DetailBits[6u] & 4u) != 0u;
+
+            FlyRig.Advance(TickMilliseconds / 1000.0, FlyInput, FlySettings);
+
+            Applied.ViewportSkyCamera.AzimuthDegrees    = static_cast<float>(FlyRig.LaggedYawDegrees);
+            Applied.ViewportSkyCamera.ElevationDegrees  = static_cast<float>(FlyRig.LaggedPitchDegrees);
+            Applied.ViewportSkyCamera.FieldOfViewDegrees = 60.0f;
+            Applied.CameraPosition[0] = FlyRig.LaggedPosition[0];
+            Applied.CameraPosition[1] = FlyRig.LaggedPosition[1];
+            Applied.CameraPosition[2] = FlyRig.LaggedPosition[2];
+            Applied.CameraRotation[0] = FlyRig.LaggedYawDegrees;
+            Applied.CameraRotation[1] = FlyRig.LaggedPitchDegrees;
+        }
 
         // 📝 The host regenerates the sky when the environment changed (at most once per drag) and
         //    hands the identity to the scene directory; the viewport leaf draws it.
@@ -470,10 +522,10 @@ struct SceneDriver
                     SceneDirectory.RecordViewportSky(LeafBody, Applied);
                     break;
                 case PanelSubject::Outliner:
-                    SceneDirectory.RecordOutliner(LeafBody, Applied, EditorEntities, 6u);
+                    SceneDirectory.RecordOutliner(LeafBody, Applied, EditorEntities, 7u);
                     break;
                 case PanelSubject::Properties:
-                    SceneDirectory.RecordProperties(LeafBody, Applied, EditorEntities, 6u,
+                    SceneDirectory.RecordProperties(LeafBody, Applied, EditorEntities, 7u,
                                                     Revisions, RevisionCount);
                     break;
                 default:
@@ -570,6 +622,88 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
     {
         Driver.ApplyPartition(true);
         Driver.Settle(20);
+    }
+    else if (std::strcmp(Scenario, "editor-camera-fly") == 0)
+    {
+        Driver.ApplyPartition(false);
+        Driver.Settle(20);
+
+        const double YawBefore   = Driver.FlyRig.LaggedYawDegrees;
+        const double PitchBefore = Driver.FlyRig.LaggedPitchDegrees;
+        const double PositionBefore[3] = { Driver.FlyRig.LaggedPosition[0],
+                                           Driver.FlyRig.LaggedPosition[1],
+                                           Driver.FlyRig.LaggedPosition[2] };
+
+        // 📐 Forty ticks of W + right-drag look: the camera flies forward along its yaw and turns with
+        //    the look gesture. The drag is 2 px per tick rightward and 0.5 px per tick downward.
+        Driver.SimForwardHeld = true;
+        Driver.SimLookHeld    = true;
+        Driver.SimLookDeltaX  = 2.0f;
+        Driver.SimLookDeltaY  = 0.5f;
+        for (int Step = 0; Step < 40; ++Step)
+            Driver.Tick(640.0f, 450.0f, false, false, false);
+        Driver.SimForwardHeld = false;
+        Driver.SimLookHeld    = false;
+        Driver.SimLookDeltaX  = 0.0f;
+        Driver.SimLookDeltaY  = 0.0f;
+        Driver.Settle(10);
+
+        const double YawAfter   = Driver.FlyRig.LaggedYawDegrees;
+        const double PitchAfter = Driver.FlyRig.LaggedPitchDegrees;
+        const double PositionAfter[3] = { Driver.FlyRig.LaggedPosition[0],
+                                          Driver.FlyRig.LaggedPosition[1],
+                                          Driver.FlyRig.LaggedPosition[2] };
+        const double Travelled = std::sqrt((PositionAfter[0] - PositionBefore[0])
+                                         * (PositionAfter[0] - PositionBefore[0])
+                                         + (PositionAfter[1] - PositionBefore[1])
+                                         * (PositionAfter[1] - PositionBefore[1])
+                                         + (PositionAfter[2] - PositionBefore[2])
+                                         * (PositionAfter[2] - PositionBefore[2]));
+
+        std::fprintf(stderr, "[assert] yaw %.1f -> %.1f, pitch %.1f -> %.1f\n",
+                     YawBefore, YawAfter, PitchBefore, PitchAfter);
+        std::fprintf(stderr, "[assert] travelled %.1f m (lag on)\n", Travelled);
+
+        if (YawAfter <= YawBefore + 4.0)
+        {
+            std::fprintf(stderr, "[FAIL] the look gesture did not yaw the camera\n");
+            return false;
+        }
+        if (Travelled < 5.0)
+        {
+            std::fprintf(stderr, "[FAIL] W did not move the camera\n");
+            return false;
+        }
+
+        // 📐 The lag's own proof: with the lag DISABLED, the same forty ticks must travel further —
+        //    the lagged camera is still catching up, the unlagged one is at the target.
+        Driver.Applied.DetailBits[6u] &= ~2u;   // [-] - camera lag off
+        const double LaglessBefore[3] = { Driver.FlyRig.LaggedPosition[0],
+                                          Driver.FlyRig.LaggedPosition[1],
+                                          Driver.FlyRig.LaggedPosition[2] };
+
+        Driver.SimForwardHeld = true;
+        for (int Step = 0; Step < 40; ++Step)
+            Driver.Tick(640.0f, 450.0f, false, false, false);
+        Driver.SimForwardHeld = false;
+        Driver.Settle(10);
+
+        const double LaglessAfter[3] = { Driver.FlyRig.LaggedPosition[0],
+                                         Driver.FlyRig.LaggedPosition[1],
+                                         Driver.FlyRig.LaggedPosition[2] };
+        const double LaglessTravelled = std::sqrt((LaglessAfter[0] - LaglessBefore[0])
+                                                * (LaglessAfter[0] - LaglessBefore[0])
+                                                + (LaglessAfter[1] - LaglessBefore[1])
+                                                * (LaglessAfter[1] - LaglessBefore[1])
+                                                + (LaglessAfter[2] - LaglessBefore[2])
+                                                * (LaglessAfter[2] - LaglessBefore[2]));
+
+        std::fprintf(stderr, "[assert] travelled %.1f m (lag off)\n", LaglessTravelled);
+        if (LaglessTravelled <= Travelled)
+        {
+            std::fprintf(stderr, "[FAIL] the camera lag did not lag\n");
+            return false;
+        }
     }
     else if (std::strcmp(Scenario, "editor-after-drag") == 0)
     {
@@ -683,7 +817,7 @@ int main(int ArgumentCount, char** Arguments)
     IO.Fonts->TexData->SetTexID((ImTextureID)(intptr_t)1);
     IO.Fonts->TexRef._TexData = IO.Fonts->TexData;
 
-    const char* Shots[] = {"editor-overview", "editor-sun-props", "editor-after-drag"};
+    const char* Shots[] = {"editor-overview", "editor-sun-props", "editor-after-drag", "editor-camera-fly"};
 
     int Rendered = 0;
     for (const char* Shot : Shots)

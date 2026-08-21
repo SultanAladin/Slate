@@ -66,4 +66,22 @@ prototype of the WHOLE reference sheet                    the real editor layout
 | Editor leaf content (sky, outliner, properties) | `SceneDirectoryPanel` |
 | Sky GPU texture (upload, device rebuild) | `ViewportSkySurface` |
 | Sky evaluation (dome + sun disc) | `GenerateSkyImage` (`Application/EditorHost`) |
+| Fly camera (WASD + look + lag) | `CameraRig` (`Application/EditorHost`); input via `InterfaceExchange::CameraInput` |
 | Validation prototype shell | `GlobalShellPanel` — validation host only |
+
+## The editor camera
+
+- **Registered in the scene directory** as the "Editor Camera" row (last row, so
+  the Sun/Sky ordinals and their history ordinals never move). Its details pane
+  shows the pose (position, yaw/pitch, speed) and its toggles; its properties
+  leaf has a live **Fly Speed** slider (1–500 m/s) with a once-per-drag history
+  demand like the environment sliders.
+- **Movement is Unreal-fly**: W/S along the view direction (pitch included),
+  A/D strafe, E/Q world up/down; **hold the right mouse button and drag to
+  look**. Gated on keyboard capture, so typing in a field never flies.
+- **Camera lag**: the rig eases position and yaw/pitch toward the target with
+  an exponential time constant (0.18 s). Toggle it in the camera's details
+  (Camera Lag); Invert Pitch is the second toggle. The viewport crop reads the
+  LAGGED pose, so a fast turn visibly trails the input.
+- The sky dome is direction-indexed and camera-independent: looking around only
+  moves the crop, never regenerates the texture.

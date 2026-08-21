@@ -18,6 +18,7 @@
 //    stays black; the editor's sky lives in the viewport LEAF.
 
 #include "Contract/DeliveryContract.h"
+#include "Application/EditorHost/Api/CameraRig.h"
 #include "Application/EditorHost/Api/SkyImage.h"
 #include "SlateCompute/Compute/AtmosphereIntegrator/Api/AtmosphereIntegrator.h"
 #include "SlateUI/Interface/ContentBrowserPanel/Api/ContentBrowserPanel.h"
@@ -202,6 +203,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     InteractionIndex        SceneLedger;
     ViewportSkySurface      SkySurface;
     AtmosphereIntegrator    SkyIntegrator;
+    CameraRig               FlyRig;
     std::vector<std::uint8_t> SkyPixels;
     SkyCamera               SkyCam;
     EnvironmentConfiguration SkyPrevious;
@@ -212,14 +214,15 @@ int main(int ArgumentCount, char** ArgumentValues)
     // 📐 The editor's scene directory — the sun and sky the viewport renders, registered under the
     //    Lighting grouping. `Sun` and `Sky` are the two appended `EntitySubject` ordinals, so the
     //    inspector's slider cards branch on them while every reference entity keeps its g_NN identity.
-    static constexpr EntityRow EditorEntities[6] =
+    static constexpr EntityRow EditorEntities[7] =
     {
-        { "Level_01_City",           EntitySubject::Level,      0u, 0xFFFFFFFFu, 2u },
+        { "Level_01_City",           EntitySubject::Level,      0u, 0xFFFFFFFFu, 3u },
         { "Lighting",                EntitySubject::Grouping,   1u,  0u,         2u },
         { "Directional Light (Sun)", EntitySubject::Sun,        2u,  1u,         0u },
         { "Sky Atmosphere",          EntitySubject::Sky,        2u,  1u,         0u },
         { "Environment",             EntitySubject::Grouping,   1u,  0u,         1u },
-        { "Post Process Volume",     EntitySubject::Actor,      2u,  4u,         0u }
+        { "Post Process Volume",     EntitySubject::Actor,      2u,  4u,         0u },
+        { "Editor Camera",           EntitySubject::Camera,     1u,  0u,         0u }
     };
 
     // 📝 The editor's own history run, drained from the shell's one-slot demand at drag end.
@@ -333,6 +336,23 @@ int main(int ArgumentCount, char** ArgumentValues)
     SceneApplied.Environment.AtmosphereDensity = 1.0;
     SceneApplied.Environment.AtmosphereScaleHeight = 1.0;
     SceneApplied.EntityTaken = 2u;   // [-] - the sun, taken at bring-up
+
+    // 📝 The editor camera, registered as the seventh row. Its details' options are the camera's own:
+    //    bit 1 is the camera lag, bit 2 the inverted pitch — the lag arrives enabled so the camera
+    //    eases out of the gate, and the pitch arrives un-inverted (the standard fly-cam convention).
+    SceneApplied.DetailBits[6u] = 2u;
+    SceneApplied.CameraSpeed = 50.0;
+    FlyRig.YawDegrees   = SceneApplied.Environment.SunAzimuth - 20.0;
+    FlyRig.PitchDegrees = 15.0;
+    FlyRig.Position[0]  = 0.0;
+    FlyRig.Position[1]  = 1.5;
+    FlyRig.Position[2]  = 0.0;
+    FlyRig.Snap();
+    SceneApplied.CameraPosition[0] = 0.0;
+    SceneApplied.CameraPosition[1] = 1.5;
+    SceneApplied.CameraPosition[2] = 0.0;
+    SceneApplied.CameraRotation[0] = FlyRig.YawDegrees;
+    SceneApplied.CameraRotation[1] = FlyRig.PitchDegrees;
 
     if (!SceneLedger.Construct(Viewport.MotionSource()).Resolved)
     {
@@ -543,11 +563,11 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 break;
                             case PanelSubject::Outliner:
                                 SceneDirectory.RecordOutliner(LeafBody, SceneApplied,
-                                                              EditorEntities, 6u);
+                                                              EditorEntities, 7u);
                                 break;
                             case PanelSubject::Properties:
                                 SceneDirectory.RecordProperties(LeafBody, SceneApplied,
-                                                                EditorEntities, 6u,
+                                                                EditorEntities, 7u,
                                                                 EditorRevisions, EditorRevisionCount);
                                 break;
                             default:
@@ -612,6 +632,30 @@ int main(int ArgumentCount, char** ArgumentValues)
             SceneLedger.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
             SceneDirectory.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
 
+            // 📝 The fly camera: the seam's held keys and look gesture drive the rig, and the lagged
+            //    pose becomes the viewport crop. The sky dome is direction-indexed and camera-independent,
+            //    so looking around needs no regeneration — the crop alone moves, which is the whole
+            //    point of drawing the sky as a dome rather than as one pinhole image.
+            {
+                const CameraCondition FlyInput = Viewport.Seam().CameraInput();
+
+                CameraSettings FlySettings;
+                FlySettings.FlySpeed    = SceneApplied.CameraSpeed;
+                FlySettings.LagEnabled  = (SceneApplied.DetailBits[6u] & 2u) != 0u;
+                FlySettings.InvertPitch = (SceneApplied.DetailBits[6u] & 4u) != 0u;
+
+                FlyRig.Advance(Pass.ElapsedMilliseconds / 1000.0, FlyInput, FlySettings);
+
+                SceneApplied.ViewportSkyCamera.AzimuthDegrees    = static_cast<float>(FlyRig.LaggedYawDegrees);
+                SceneApplied.ViewportSkyCamera.ElevationDegrees  = static_cast<float>(FlyRig.LaggedPitchDegrees);
+                SceneApplied.ViewportSkyCamera.FieldOfViewDegrees = 60.0f;
+                SceneApplied.CameraPosition[0] = FlyRig.LaggedPosition[0];
+                SceneApplied.CameraPosition[1] = FlyRig.LaggedPosition[1];
+                SceneApplied.CameraPosition[2] = FlyRig.LaggedPosition[2];
+                SceneApplied.CameraRotation[0] = FlyRig.LaggedYawDegrees;
+                SceneApplied.CameraRotation[1] = FlyRig.LaggedPitchDegrees;
+            }
+
             // 📝 The sky image is regenerated and uploaded only when the environment actually changed
             //    (the sliders write at drag end, so this runs at most once per drag), and the identity
             //    is handed to the shell every tick so the viewport draws the texture.
@@ -639,9 +683,6 @@ int main(int ArgumentCount, char** ArgumentValues)
                     SkyEverGenerated = true;
                 }
                 SceneApplied.SkyTextureIdentity = SkyTextureIdentity;
-                SceneApplied.ViewportSkyCamera.AzimuthDegrees = static_cast<float>(SkyCam.AzimuthDegrees);
-                SceneApplied.ViewportSkyCamera.ElevationDegrees = static_cast<float>(SkyCam.ElevationDegrees);
-                SceneApplied.ViewportSkyCamera.FieldOfViewDegrees = static_cast<float>(SkyCam.FieldOfViewDegrees);
             }
             else
             {

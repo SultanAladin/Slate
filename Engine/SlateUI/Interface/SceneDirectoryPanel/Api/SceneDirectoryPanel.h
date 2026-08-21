@@ -81,8 +81,17 @@ struct SceneDirectoryContext
                                             true, true, true, true, true, true, true, true };
 
     // 📐 The detail pane's small option switches for the taken row: bit 0 Locked, bit 1 Cast Shadows.
-    //    `Visible` is `EntityPresent`, which the eye already owns.
+    //    `Visible` is `EntityPresent`, which the eye already owns. For the CAMERA row the bits read
+    //    differently: bit 1 is the camera lag, bit 2 the inverted pitch — the settings the camera's
+    //    details pane presents.
     std::uint32_t              DetailBits[EntityCeiling] = {};
+
+    // 📝 The camera's own ordinates, owned by the host and written every tick: the fly speed the
+    //    properties leaf's Fly Speed card edits (with a drag-end history demand, like the
+    //    environment), and the pose the details pane states.
+    double                     CameraSpeed = 50.0;      // [m/s] - the fly camera's rate
+    double                     CameraPosition[3] = { 0.0, 1.5, 0.0 };   // [m] - host-written
+    double                     CameraRotation[3] = { 100.0, 15.0, 0.0 }; // [deg] - yaw, pitch, roll
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -173,7 +182,7 @@ private:
     void RecordLeafHeader(const PlaneExtent& Extent, SymbolSubject Glyph, const ThemeToken& Hue,
                           const char* Titled, const char* Secondary);
     void RecordDetailOptions(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
-                             std::uint32_t Ordinal);
+                             std::uint32_t Ordinal, const EntityRow& Current);
     void RecordPropertyCards(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
                              const EntityRow* Rows, std::uint32_t RowCount);
     void RecordEnvironmentCard(SceneDirectoryContext& Applied,

@@ -1,0 +1,2146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Layer Stack & Properties Studio</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #050505;
+      color: #ededed;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .app-window {
+      width: 100%;
+      max-width: 480px;
+      height: 780px;
+      background-color: #0e0e0e;
+      border: 1px solid #1c1c1c;
+      border-radius: 12px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Carousel Container */
+    .carousel-container {
+      flex: 1;
+      display: flex;
+      width: 300%;
+      height: calc(100% - 44px);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .carousel-page {
+      width: 33.333333%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Header Bar */
+    .header-bar {
+      height: 44px;
+      background-color: #0e0e0e;
+      border-bottom: 1px solid #1c1c1c;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .header-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-nav-back {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #141414;
+      border: 1px solid #2a2a30;
+      color: #ededed;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-nav-back:hover {
+      background: #222225;
+      color: #fff;
+    }
+
+    .icon-badge {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background: #141414;
+      border: 1px solid #1c1c1c;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #8a8a8a;
+    }
+
+    .header-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #ededed;
+    }
+
+    .count-pill {
+      font-size: 10px;
+      font-family: monospace;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background-color: #1c1c1c;
+      color: #8a8a8a;
+      border: 1px solid #2a2a30;
+    }
+
+    .solo-badge {
+      font-size: 9.5px;
+      font-family: monospace;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #ffd24a;
+      color: #000;
+      cursor: pointer;
+      border: none;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-round {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: #1c1c1c;
+      border: 1px solid #2a2a30;
+      color: #ededed;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-round:hover {
+      background: #2a2a30;
+      color: #fff;
+    }
+
+    /* Toolbar / Search */
+    .toolbar-bar {
+      padding: 8px 12px;
+      background: #0a0a0a;
+      border-bottom: 1px solid #1c1c1c;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .search-box {
+      flex: 1;
+      height: 28px;
+      background: #141414;
+      border: 1px solid #1c1c1c;
+      border-radius: 999px;
+      padding: 0 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: border-color 0.15s;
+    }
+    .search-box:focus-within {
+      border-color: #2a2a30;
+    }
+    .search-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-size: 11.5px;
+      color: #ededed;
+    }
+    .search-input::placeholder {
+      color: #6a6a6a;
+    }
+
+    .btn-tool {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: #141414;
+      border: 1px solid #1c1c1c;
+      color: #8a8a8a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-tool:hover {
+      background: #1a1a1a;
+      color: #ededed;
+    }
+    .btn-tool.active {
+      background: #1a1a1a;
+      color: #f59e0b;
+      border-color: rgba(245, 158, 11, 0.4);
+    }
+
+    /* ── STACK LIST (STRICTLY RECTANGULAR, NO ROUNDING) ── */
+    .scroll-list {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background: #0e0e0e;
+    }
+
+    .scroll-list::-webkit-scrollbar {
+      width: 5px;
+    }
+    .scroll-list::-webkit-scrollbar-track {
+      background: #0e0e0e;
+    }
+    .scroll-list::-webkit-scrollbar-thumb {
+      background: #222;
+    }
+
+    .layer-row {
+      height: 46px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-right: 10px;
+      border-radius: 0px !important;
+      border-left: 3px solid transparent;
+      border-bottom: 1px solid rgba(24, 24, 24, 0.6);
+      background-color: #0d0d0d;
+      color: #ededed;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.12s;
+    }
+    .layer-row:hover {
+      background-color: #141414;
+    }
+    .layer-row.is-folder {
+      background-color: #121215;
+    }
+    .layer-row.is-folder:hover {
+      background-color: #18181c;
+    }
+    .layer-row.selected {
+      background-color: #1f1f1f !important;
+      border-left-color: #ffffff !important;
+    }
+    .layer-row.is-folder.selected {
+      background-color: #222225 !important;
+      border-left-color: #ffffff !important;
+    }
+    .layer-row.is-hidden {
+      opacity: 0.4;
+    }
+    .layer-row.is-dimmed {
+      opacity: 0.25;
+    }
+
+    .tree-guide {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      border-left: 1px solid #2a2a30;
+      pointer-events: none;
+    }
+
+    .btn-icon-subtle {
+      background: none;
+      border: none;
+      padding: 4px;
+      color: #8a8a8a;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0;
+    }
+    .btn-icon-subtle:hover {
+      color: #ededed;
+    }
+
+    .thumb-square {
+      width: 32px;
+      height: 32px;
+      border-radius: 0px !important;
+      border: 1px solid #2a2a30;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .layer-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .layer-name-line {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .layer-name {
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .layer-row.is-folder .layer-name {
+      font-weight: 600;
+    }
+
+    .items-count-badge {
+      font-size: 9px;
+      font-family: monospace;
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: #2a2a30;
+      color: #a0a0a0;
+      flex-shrink: 0;
+    }
+
+    .layer-meta-line {
+      font-size: 10px;
+      font-family: monospace;
+      color: #8a8a8a;
+      line-height: 1;
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .layer-right-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .channel-chip {
+      font-size: 9.5px;
+      font-family: monospace;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: #141414;
+      border: 1px solid #1c1c1c;
+      color: #8a8a8a;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .channel-chip:hover {
+      background: #222;
+      color: #fff;
+      border-color: #3b82f6;
+    }
+
+    .mask-badge {
+      font-size: 9.5px;
+      font-family: monospace;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #f59e0b;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .mask-badge:hover {
+      background: rgba(245, 158, 11, 0.3);
+    }
+
+    .mask-row {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-right: 10px;
+      border-radius: 0px !important;
+      border-left: 3px solid transparent;
+      background-color: #090909;
+      color: #8a8a8a;
+      cursor: pointer;
+      position: relative;
+      border-bottom: 1px solid rgba(24, 24, 24, 0.4);
+      transition: background 0.12s;
+    }
+    .mask-row:hover {
+      background-color: #121212;
+    }
+    .mask-row.selected {
+      background-color: #1a1815 !important;
+      border-left-color: #f59e0b !important;
+      color: #ededed;
+    }
+    .mask-row.is-hidden {
+      opacity: 0.4;
+    }
+
+    .mask-connector {
+      position: absolute;
+      top: 0;
+      bottom: 50%;
+      width: 10px;
+      border-left: 1px solid #2a2a30;
+      border-bottom: 1px solid #2a2a30;
+      pointer-events: none;
+    }
+
+    .mask-thumb {
+      width: 24px;
+      height: 24px;
+      border-radius: 0px !important;
+      background: #141414;
+      border: 1px solid #2a2a30;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #f59e0b;
+      flex-shrink: 0;
+    }
+
+    /* Footer Controls */
+    .footer-bar {
+      padding: 10px 12px;
+      border-top: 1px solid #1c1c1c;
+      background: #0a0a0a;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .footer-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10.5px;
+      font-family: monospace;
+      color: #6a6a6a;
+    }
+    .footer-meta-title {
+      color: #ededed;
+      font-weight: 600;
+    }
+
+    .footer-controls-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dropdown-btn {
+      height: 26px;
+      padding: 0 8px;
+      font-size: 11px;
+      font-family: monospace;
+      border-radius: 999px;
+      background: #141414;
+      border: 1px solid #1c1c1c;
+      color: #ededed;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .dropdown-btn:hover {
+      background: #1c1c1c;
+    }
+
+    .slider-box {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .range-input {
+      width: 100%;
+      height: 4px;
+      background: #1c1c1c;
+      border-radius: 2px;
+      outline: none;
+      accent-color: #4a90e2;
+      cursor: pointer;
+    }
+
+    .opacity-val {
+      font-size: 10.5px;
+      font-family: monospace;
+      font-weight: 600;
+      color: #8a8a8a;
+      width: 36px;
+      text-align: right;
+    }
+
+    .reorder-btns {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      border-left: 1px solid #1c1c1c;
+      padding-left: 8px;
+    }
+
+    .btn-small-icon {
+      padding: 4px;
+      background: none;
+      border: none;
+      border-radius: 4px;
+      color: #8a8a8a;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-small-icon:hover {
+      background: #1c1c1c;
+      color: #ededed;
+    }
+
+    /* ── CHANNEL & MASK PROPERTIES PANELS ── */
+    .panel-sub-header {
+      padding: 10px 14px;
+      background: #0d0d0f;
+      border-bottom: 1px solid #1c1c1c;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-size: 10px;
+      font-family: monospace;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #8a8a8a;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .channel-card {
+      background: #0d0d0f;
+      border-bottom: 1px solid #1a1a1e;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .channel-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .channel-label-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .channel-color-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      flex-shrink: 0;
+    }
+    .channel-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: #ededed;
+    }
+    .channel-placement-tag {
+      font-size: 9.5px;
+      font-family: monospace;
+      color: #6a6a6a;
+    }
+
+    .channel-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .color-picker-btn {
+      width: 32px;
+      height: 24px;
+      border-radius: 4px;
+      border: 1px solid #2a2a30;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    .color-picker-btn input[type="color"] {
+      position: absolute;
+      top: -10px;
+      left: -10px;
+      width: 50px;
+      height: 50px;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .mode-pill-group {
+      display: flex;
+      background: #141414;
+      border: 1px solid #1c1c1c;
+      border-radius: 999px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .mode-pill {
+      font-size: 9.5px;
+      font-family: monospace;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: none;
+      background: none;
+      color: #8a8a8a;
+      cursor: pointer;
+    }
+    .mode-pill.active {
+      background: #25252a;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* Mask Specifics */
+    .mask-source-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      padding: 12px 14px;
+      background: #0a0a0a;
+      border-bottom: 1px solid #1c1c1c;
+    }
+    .source-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: #121214;
+      border: 1px solid #1c1c1c;
+      color: #8a8a8a;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .source-btn:hover {
+      background: #18181c;
+      color: #ededed;
+    }
+    .source-btn.active {
+      background: #1e1b14;
+      border-color: #f59e0b;
+      color: #f59e0b;
+      font-weight: 600;
+    }
+
+    .param-group {
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-bottom: 1px solid #1a1a1e;
+    }
+    .param-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .param-label-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #a0a0a0;
+    }
+    .param-val {
+      font-family: monospace;
+      color: #ededed;
+    }
+
+    .tag-channel-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 10px 14px;
+    }
+    .tag-chip {
+      font-size: 10px;
+      font-family: monospace;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #141414;
+      border: 1px solid #222;
+      color: #6a6a6a;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tag-chip.active {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.4);
+      color: #f59e0b;
+      font-weight: 600;
+    }
+
+    /* Popover Menu */
+    .popover-menu {
+      position: absolute;
+      z-index: 100;
+      background: #141416;
+      border: 1px solid #2a2a30;
+      border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 11.5px;
+    }
+    .popover-header {
+      font-size: 9.5px;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: #6a6a6a;
+      padding: 4px 8px;
+    }
+    .popover-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      color: #ededed;
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-align: left;
+      width: 100%;
+      font-size: 11.5px;
+    }
+    .popover-item:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .popover-divider {
+      height: 1px;
+      background: #1c1c1c;
+      margin: 4px 0;
+    }
+
+    .rename-input {
+      background: #000;
+      border: 1px solid #fff;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 4px;
+      border-radius: 0;
+      outline: none;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-window" id="appWindow">
+    <div class="carousel-container" id="carouselTrack">
+      
+      <!-- ── PAGE 0: LAYER STACK ── -->
+      <div class="carousel-page" id="pageStack">
+        <!-- Header -->
+        <div class="header-bar">
+          <div class="header-title-group">
+            <div class="icon-badge">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            </div>
+            <span class="header-title">Layers</span>
+            <span class="count-pill" id="totalCountPill">0</span>
+            <button class="solo-badge" id="soloBadge" style="display: none;" onclick="clearSolo()">SOLO ON</button>
+          </div>
+
+          <div class="header-actions">
+            <button class="btn-round" onclick="groupSelected()" title="Group Selected / Folder (Cmd+G)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffd24a" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/><line x1="12" y1="10" x2="12" y2="16"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
+            </button>
+            <button class="btn-round" onclick="toggleAddMenu(event)" title="Add Layer">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar-bar">
+          <div class="search-box">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6a6a6a" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" class="search-input" placeholder="Filter layers & groups (/)" oninput="handleSearch(this.value)" />
+          </div>
+
+          <button class="btn-tool" onclick="groupSelected()" title="Group Selected (Cmd+G)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffd24a" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/><line x1="12" y1="10" x2="12" y2="16"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
+          </button>
+
+          <button class="btn-tool" id="btnMaskTool" onclick="toggleSelectedMask()" title="Toggle Mask (M)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 11a7 7 0 0 1 14-4.5A7 7 0 0 1 22 11c0 4-3 7-10 7s-10-3-10-7Z"/><path d="M6 11c0-1 1-2 2-2s2 1 2 2-1 2-2 2-2-1-2-2Z"/><path d="M14 11c0-1 1-2 2-2s2 1 2 2-1 2-2 2-2-1-2-2Z"/></svg>
+          </button>
+
+          <button class="btn-tool" onclick="navigateToChannelProps()" title="Inspect Channels (C)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          </button>
+
+          <button class="btn-tool" onclick="duplicateSelected()" title="Duplicate (Cmd+D)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+
+          <button class="btn-tool" onclick="deleteSelected()" title="Delete">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
+
+        <!-- Layer List -->
+        <div class="scroll-list" id="layerStackList"></div>
+
+        <!-- Footer -->
+        <div class="footer-bar">
+          <div class="footer-meta">
+            <div>
+              <span>Selected: </span>
+              <span class="footer-meta-title" id="selectedLayerTitle">None</span>
+            </div>
+            <button id="btnUngroup" onclick="ungroupSelected()" style="display: none; background: #141414; border: 1px solid #1c1c1c; color: #8a8a8a; font-size: 9.5px; padding: 2px 6px; border-radius: 4px; cursor: pointer;">
+              Ungroup
+            </button>
+          </div>
+
+          <div class="footer-controls-row">
+            <button class="dropdown-btn" onclick="toggleBlendMenu(event)">
+              <span id="blendVal">Normal</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+
+            <div class="slider-box">
+              <input type="range" min="0" max="100" value="100" class="range-input" id="opacitySlider" oninput="handleOpacityChange(this.value)" />
+              <span class="opacity-val" id="opacityLabel">100%</span>
+            </div>
+
+            <div class="reorder-btns">
+              <button class="btn-small-icon" onclick="moveSelectedDirection('up')" title="Move Up">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+              </button>
+              <button class="btn-small-icon" onclick="moveSelectedDirection('down')" title="Move Down">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PAGE 1: CHANNEL PROPERTIES ── -->
+      <div class="carousel-page" id="pageChannels">
+        <!-- Header -->
+        <div class="header-bar">
+          <div class="header-title-group">
+            <button class="btn-nav-back" onclick="navigateToPage(0)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+              <span>Layers</span>
+            </button>
+            <span class="header-title" id="channelPageTitle">Channels</span>
+          </div>
+
+          <div class="header-actions">
+            <button class="btn-round" onclick="toggleAddChannelMenu(event)" title="Enable / Add Channel">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-sub-header">
+          <span class="section-title">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span>Material Channel Slots</span>
+          </span>
+          <span class="count-pill" id="activeChannelsCount">0 Active</span>
+        </div>
+
+        <!-- Channels List -->
+        <div class="scroll-list" id="channelCardsList"></div>
+      </div>
+
+      <!-- ── PAGE 2: MASK PROPERTIES ── -->
+      <div class="carousel-page" id="pageMask">
+        <!-- Header -->
+        <div class="header-bar">
+          <div class="header-title-group">
+            <button class="btn-nav-back" onclick="navigateToPage(0)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+              <span>Layers</span>
+            </button>
+            <span class="header-title" style="color: #f59e0b;">Mask Inspector</span>
+          </div>
+
+          <div class="header-actions">
+            <button class="btn-round" onclick="toggleSelectedMask(); navigateToPage(0);" title="Remove Mask" style="color: #e05a5a;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="scroll-list" id="maskInspectorBody">
+          <!-- Mask Source Selector -->
+          <div class="mask-source-grid" id="maskSourceGrid"></div>
+
+          <!-- Mask Parameters Section -->
+          <div class="panel-sub-header">
+            <span class="section-title">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M2 11a7 7 0 0 1 14-4.5A7 7 0 0 1 22 11c0 4-3 7-10 7s-10-3-10-7Z"/></svg>
+              <span>Generator Parameters</span>
+            </span>
+          </div>
+          <div class="param-group" id="generatorParamsGroup"></div>
+
+          <!-- Adjustments & Density -->
+          <div class="panel-sub-header">
+            <span class="section-title">Adjustments & Targets</span>
+          </div>
+          <div class="param-group" id="maskAdjustmentsGroup"></div>
+
+          <!-- Target Channels -->
+          <div class="panel-sub-header">
+            <span class="section-title">Mask Target Channels</span>
+          </div>
+          <div class="tag-channel-chips" id="maskChannelChips"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Menus -->
+    <div id="addMenuPopover" class="popover-menu" style="display: none; right: 12px; top: 46px; width: 220px;">
+      <div class="popover-header">Add to Layer Stack</div>
+      <button class="popover-item" onclick="createFolder('New Group Folder'); closeMenus();" style="color: #ffd24a; font-weight: 600;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffd24a" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/><line x1="12" y1="10" x2="12" y2="16"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
+        <span>New Group Folder</span>
+      </button>
+      <div class="popover-divider"></div>
+      <button class="popover-item" onclick="addLayer('paint', 'Paint Layer'); closeMenus();">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><path d="m14 12 6-6-3-3-6 6"/><path d="m3 21 3.5-3.5a2.12 2.12 0 1 1 3 3L6 24l-3-3Z"/></svg>
+        <span>Paint Layer</span>
+      </button>
+      <button class="popover-item" onclick="addLayer('fill', 'Fill Layer'); closeMenus();">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/><path d="m5 2 5 5"/></svg>
+        <span>Fill Layer</span>
+      </button>
+      <button class="popover-item" onclick="addLayer('decal', '3D Decal Layer'); closeMenus();">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
+        <span>3D Decal Layer</span>
+      </button>
+    </div>
+
+    <!-- Blend Menu -->
+    <div id="blendMenuPopover" class="popover-menu" style="display: none; left: 12px; bottom: 48px; width: 160px; max-height: 240px; overflow-y: auto;">
+      <div class="popover-header">Blend Mode</div>
+      <div id="blendOptions"></div>
+    </div>
+
+    <!-- Add Channel Menu -->
+    <div id="addChannelPopover" class="popover-menu" style="display: none; right: 12px; top: 46px; width: 200px; max-height: 280px; overflow-y: auto;">
+      <div class="popover-header">Available Channels</div>
+      <div id="addChannelOptions"></div>
+    </div>
+  </div>
+
+  <script>
+    // ── DATA CATALOGUE & DEFINITIONS ──
+    const CHANNEL_SLOTS = {
+      baseColour: { label: 'Base Colour', hue: '#b87333', edit: 'colour', placement: 'Colour atlas · RGB' },
+      metallic: { label: 'Metallic', hue: '#8b5cf6', edit: 'scalar', min: 0, max: 1, step: 0.01, placement: 'Material atlas · R' },
+      roughness: { label: 'Roughness', hue: '#3b82f6', edit: 'scalar', min: 0, max: 1, step: 0.01, placement: 'Material atlas · G' },
+      height: { label: 'Height', hue: '#8a8a8a', edit: 'scalar', min: 0, max: 1, step: 0.01, placement: 'Material atlas · B' },
+      normal: { label: 'Normal', hue: '#10b981', edit: 'derived', placement: 'Derived normal atlas' },
+      ambientOcclusion: { label: 'Ambient Occlusion', hue: '#6b7280', edit: 'scalar', min: 0, max: 1, step: 0.01, placement: 'Emissive atlas · A' },
+      opacity: { label: 'Opacity', hue: '#94a3b8', edit: 'scalar', min: 0, max: 1, step: 0.01, placement: 'Material atlas · A' },
+      emission: { label: 'Emissive', hue: '#f59e0b', edit: 'colour', placement: 'Emissive atlas · RGB' },
+      anisotropy: { label: 'Anisotropy', hue: '#22d3ee', edit: 'scalar', min: 0, max: 1, step: 0.01, placement: 'Reflect atlas · R' },
+      anisotropyAngle: { label: 'Anisotropy Angle', hue: '#0ea5e9', edit: 'scalar', min: 0, max: 360, step: 1, unit: '°', placement: 'Reflect atlas · G' },
+      clearcoat: { label: 'Clearcoat', hue: '#e2e8f0', edit: 'scalar', min: 0, max: 1, step: 0.01, placement: 'Reflect atlas · B' }
+    };
+
+    const GENERATORS = {
+      CurvatureEdges: {
+        label: 'Curvature Edges',
+        params: [
+          { key: 'Balance', label: 'Balance', min: 0, max: 1, default: 0.5 },
+          { key: 'Contrast', label: 'Contrast', min: 0, max: 1, default: 0.7 },
+          { key: 'Radius', label: 'Radius', min: 0, max: 1, default: 0.25 },
+          { key: 'Blur', label: 'Blur', min: 0, max: 1, default: 0.1 }
+        ]
+      },
+      AmbientOcclusion: {
+        label: 'Cavity Dirt (AO)',
+        params: [
+          { key: 'Spread', label: 'Spread', min: 0, max: 1, default: 0.4 },
+          { key: 'Contrast', label: 'Contrast', min: 0, max: 1, default: 0.6 },
+          { key: 'Intensity', label: 'Intensity', min: 0, max: 1, default: 0.75 }
+        ]
+      },
+      PositionGradient: {
+        label: 'Position Gradient',
+        params: [
+          { key: 'Origin', label: 'Origin', min: 0, max: 1, default: 0.5 },
+          { key: 'Falloff', label: 'Falloff', min: 0, max: 1, default: 0.35 }
+        ]
+      },
+      WorldSpaceNormal: {
+        label: 'Top Weathering',
+        params: [
+          { key: 'Elevation', label: 'Elevation', min: 0, max: 1, default: 0.8 },
+          { key: 'Tightness', label: 'Tightness', min: 0, max: 1, default: 0.5 }
+        ]
+      }
+    };
+
+    const BLEND_MODES = [
+      'Normal', 'Passthrough', 'Multiply', 'Screen', 'Overlay',
+      'Darken', 'Lighten', 'Color Dodge', 'Linear Dodge', 'Difference'
+    ];
+
+    const TAG_COLORS = ['#4a90e2', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#f97316'];
+
+    // ── STATE ──
+    let state = {
+      currentPage: 0, // 0: stack, 1: channels, 2: mask
+      layers: [
+        {
+          id: 'f1',
+          name: 'Weathering & Surface Grime',
+          type: 'folder',
+          classification: 'Material',
+          color: '#10b981',
+          visible: true,
+          locked: false,
+          opacity: 100,
+          blend: 'Passthrough',
+          open: true,
+          mask: null,
+          channels: {
+            baseColour: { enabled: true, mode: 'Value', value: 1, colour: '#10b981' },
+            metallic: { enabled: true, mode: 'Value', value: 0.2, colour: '#8b5cf6' },
+            roughness: { enabled: true, mode: 'Value', value: 0.8, colour: '#3b82f6' },
+            height: { enabled: true, mode: 'Value', value: 0.5, colour: '#8a8a8a' },
+            normal: { enabled: true, mode: 'Derived', value: 1, colour: '#10b981' },
+            ambientOcclusion: { enabled: true, mode: 'Value', value: 1, colour: '#6b7280' }
+          },
+          children: [
+            {
+              id: 'l2',
+              name: 'Edge Oxidation & Patina',
+              type: 'paint',
+              classification: 'Brushwork',
+              color: '#10b981',
+              visible: true,
+              locked: false,
+              opacity: 85,
+              blend: 'Multiply',
+              channels: {
+                baseColour: { enabled: true, mode: 'Value', value: 1, colour: '#2dd4bf' },
+                metallic: { enabled: true, mode: 'Value', value: 0.1, colour: '#8b5cf6' },
+                roughness: { enabled: true, mode: 'Value', value: 0.9, colour: '#3b82f6' },
+                height: { enabled: true, mode: 'Value', value: 0.65, colour: '#8a8a8a' },
+                normal: { enabled: true, mode: 'Derived', value: 1, colour: '#10b981' }
+              },
+              mask: {
+                visible: true,
+                source: 'Generator',
+                generatorKey: 'CurvatureEdges',
+                generatorParams: { Balance: 0.65, Contrast: 0.82, Radius: 0.35, Blur: 0.08 },
+                density: 92,
+                blend: 'Multiply',
+                invert: false,
+                channels: ['baseColour', 'roughness', 'height']
+              }
+            },
+            {
+              id: 'l6',
+              name: 'Cavity Dirt & Dust',
+              type: 'fill',
+              classification: 'Flood',
+              color: '#78716c',
+              visible: true,
+              locked: false,
+              opacity: 70,
+              blend: 'Multiply',
+              channels: {
+                baseColour: { enabled: true, mode: 'Value', value: 1, colour: '#44403c' },
+                roughness: { enabled: true, mode: 'Value', value: 0.95, colour: '#3b82f6' },
+                ambientOcclusion: { enabled: true, mode: 'Value', value: 0.8, colour: '#6b7280' }
+              },
+              mask: {
+                visible: true,
+                source: 'Generator',
+                generatorKey: 'AmbientOcclusion',
+                generatorParams: { Spread: 0.5, Contrast: 0.7, Intensity: 0.8 },
+                density: 80,
+                blend: 'Multiply',
+                invert: false,
+                channels: ['baseColour', 'ambientOcclusion']
+              }
+            }
+          ]
+        },
+        {
+          id: 'l3',
+          name: 'Micro Surface Scratches',
+          type: 'paint',
+          classification: 'Detail',
+          color: '#3b82f6',
+          visible: true,
+          locked: false,
+          opacity: 90,
+          blend: 'Overlay',
+          channels: {
+            baseColour: { enabled: true, mode: 'Value', value: 1, colour: '#94a3b8' },
+            roughness: { enabled: true, mode: 'Value', value: 0.3, colour: '#3b82f6' },
+            height: { enabled: true, mode: 'Value', value: 0.4, colour: '#8a8a8a' }
+          },
+          mask: null
+        },
+        {
+          id: 'l1',
+          name: 'Brushed Copper Base',
+          type: 'fill',
+          classification: 'Material',
+          color: '#b87333',
+          visible: true,
+          locked: false,
+          opacity: 100,
+          blend: 'Normal',
+          channels: {
+            baseColour: { enabled: true, mode: 'Value', value: 1, colour: '#b87333' },
+            metallic: { enabled: true, mode: 'Value', value: 0.95, colour: '#8b5cf6' },
+            roughness: { enabled: true, mode: 'Value', value: 0.35, colour: '#3b82f6' },
+            height: { enabled: true, mode: 'Value', value: 0.5, colour: '#8a8a8a' },
+            normal: { enabled: true, mode: 'Derived', value: 1, colour: '#10b981' },
+            anisotropy: { enabled: true, mode: 'Value', value: 0.7, colour: '#22d3ee' },
+            anisotropyAngle: { enabled: true, mode: 'Value', value: 90, colour: '#0ea5e9' }
+          },
+          mask: null
+        }
+      ],
+      selectedId: 'l2',
+      selectedIsMask: false,
+      searchQuery: '',
+      soloId: null,
+      editingId: null
+    };
+
+    // ── TREE HELPERS ──
+    function findLayer(layers, id) {
+      for (const l of layers) {
+        if (l.id === id) return l;
+        if (l.children) {
+          const found = findLayer(l.children, id);
+          if (found) return found;
+        }
+      }
+      return null;
+    }
+
+    function findParent(layers, childId) {
+      for (const l of layers) {
+        if (l.children) {
+          if (l.children.some(c => c.id === childId)) return l;
+          const f = findParent(l.children, childId);
+          if (f) return f;
+        }
+      }
+      return null;
+    }
+
+    function flatten(layers) {
+      const res = [];
+      function trav(arr) {
+        for (const item of arr) {
+          res.push(item);
+          if (item.children) trav(item.children);
+        }
+      }
+      trav(layers);
+      return res;
+    }
+
+    function updateLayer(layers, id, updater) {
+      return layers.map(l => {
+        if (l.id === id) return updater(l);
+        if (l.children) return { ...l, children: updateLayer(l.children, id, updater) };
+        return l;
+      });
+    }
+
+    function deleteLayer(layers, id) {
+      return layers.filter(l => l.id !== id).map(l => {
+        if (l.children) return { ...l, children: deleteLayer(l.children, id) };
+        return l;
+      });
+    }
+
+    // ── CAROUSEL / PAGE NAVIGATION ──
+    function navigateToPage(pageIndex) {
+      state.currentPage = pageIndex;
+      const track = document.getElementById('carouselTrack');
+      track.style.transform = `translateX(-${pageIndex * 33.333333}%)`;
+      closeMenus();
+      render();
+    }
+
+    function navigateToChannelProps(layerId) {
+      if (layerId) state.selectedId = layerId;
+      state.selectedIsMask = false;
+      navigateToPage(1);
+    }
+
+    function navigateToMaskProps(layerId) {
+      if (layerId) state.selectedId = layerId;
+      state.selectedIsMask = true;
+      navigateToPage(2);
+    }
+
+    // ── ACTIONS ──
+    function selectItem(id, isMask = false) {
+      state.selectedId = id;
+      state.selectedIsMask = isMask;
+      render();
+    }
+
+    function toggleVisibility(id, e) {
+      e.stopPropagation();
+      if (e.altKey) {
+        state.soloId = (state.soloId === id) ? null : id;
+      } else {
+        state.layers = updateLayer(state.layers, id, l => ({ ...l, visible: !l.visible }));
+      }
+      render();
+    }
+
+    function toggleMaskVisibility(layerId, e) {
+      e.stopPropagation();
+      state.layers = updateLayer(state.layers, layerId, l => {
+        if (l.mask) return { ...l, mask: { ...l.mask, visible: !l.mask.visible } };
+        return l;
+      });
+      render();
+    }
+
+    function toggleLock(id, e) {
+      e.stopPropagation();
+      state.layers = updateLayer(state.layers, id, l => ({ ...l, locked: !l.locked }));
+      render();
+    }
+
+    function toggleFolderOpen(id, e) {
+      e.stopPropagation();
+      state.layers = updateLayer(state.layers, id, l => ({ ...l, open: !l.open }));
+      render();
+    }
+
+    function clearSolo() {
+      state.soloId = null;
+      render();
+    }
+
+    function addLayer(type, name) {
+      const newId = 'l_' + Date.now();
+      const newLayer = {
+        id: newId,
+        name: name,
+        type: type,
+        classification: type === 'paint' ? 'Brushwork' : 'Material',
+        color: TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)],
+        visible: true,
+        locked: false,
+        opacity: 100,
+        blend: type === 'folder' ? 'Passthrough' : 'Normal',
+        open: true,
+        channels: {
+          baseColour: { enabled: true, mode: 'Value', value: 1, colour: '#b87333' },
+          roughness: { enabled: true, mode: 'Value', value: 0.5, colour: '#3b82f6' },
+          metallic: { enabled: true, mode: 'Value', value: 0, colour: '#8b5cf6' }
+        },
+        children: type === 'folder' ? [] : undefined,
+        mask: null
+      };
+
+      const cur = findLayer(state.layers, state.selectedId);
+      if (cur && cur.type === 'folder') {
+        state.layers = updateLayer(state.layers, cur.id, f => ({
+          ...f,
+          open: true,
+          children: [newLayer, ...(f.children || [])]
+        }));
+      } else {
+        state.layers = [newLayer, ...state.layers];
+      }
+
+      state.selectedId = newId;
+      state.selectedIsMask = false;
+      render();
+    }
+
+    function createFolder(folderName = 'New Folder') {
+      const folderId = 'f_' + Date.now();
+      const newFolder = {
+        id: folderId,
+        name: folderName,
+        type: 'folder',
+        classification: 'Material',
+        color: TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)],
+        visible: true,
+        locked: false,
+        opacity: 100,
+        blend: 'Passthrough',
+        open: true,
+        channels: {},
+        children: [],
+        mask: null
+      };
+
+      state.layers = [newFolder, ...state.layers];
+      state.selectedId = folderId;
+      state.selectedIsMask = false;
+      render();
+    }
+
+    function groupSelected() {
+      const selected = findLayer(state.layers, state.selectedId);
+      if (!selected) {
+        createFolder('New Group');
+        return;
+      }
+
+      const folderId = 'f_' + Date.now();
+      const newFolder = {
+        id: folderId,
+        name: selected.type === 'folder' ? `${selected.name} Group` : `Group (${selected.name})`,
+        type: 'folder',
+        classification: 'Material',
+        color: TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)],
+        visible: true,
+        locked: false,
+        opacity: 100,
+        blend: 'Passthrough',
+        open: true,
+        channels: {},
+        children: [JSON.parse(JSON.stringify(selected))],
+        mask: null
+      };
+
+      function replaceInTree(items) {
+        return items.map(item => {
+          if (item.id === selected.id) return newFolder;
+          if (item.children) return { ...item, children: replaceInTree(item.children) };
+          return item;
+        });
+      }
+
+      state.layers = replaceInTree(state.layers);
+      state.selectedId = folderId;
+      state.selectedIsMask = false;
+      render();
+    }
+
+    function ungroupSelected() {
+      const selected = findLayer(state.layers, state.selectedId);
+      if (!selected || selected.type !== 'folder') return;
+
+      const children = selected.children || [];
+      function unwrap(items) {
+        const res = [];
+        for (const item of items) {
+          if (item.id === selected.id) {
+            res.push(...children);
+          } else {
+            res.push({
+              ...item,
+              children: item.children ? unwrap(item.children) : undefined
+            });
+          }
+        }
+        return res;
+      }
+
+      state.layers = unwrap(state.layers);
+      const all = flatten(state.layers);
+      if (all.length > 0) state.selectedId = all[0].id;
+      render();
+    }
+
+    function duplicateSelected() {
+      const selected = findLayer(state.layers, state.selectedId);
+      if (!selected) return;
+
+      const newId = 'l_' + Date.now();
+      const clone = JSON.parse(JSON.stringify(selected));
+      clone.id = newId;
+      clone.name = `${selected.name} Copy`;
+
+      function duplicateInList(items) {
+        const res = [];
+        for (const item of items) {
+          if (item.id === selected.id) {
+            res.push(clone);
+          } else if (item.children) {
+            item.children = duplicateInList(item.children);
+          }
+        }
+        return res;
+      }
+
+      state.layers = duplicateInList(state.layers);
+      state.selectedId = newId;
+      render();
+    }
+
+    function deleteSelected() {
+      const selected = findLayer(state.layers, state.selectedId);
+      if (!selected || selected.locked) return;
+
+      if (state.selectedIsMask && selected.mask) {
+        state.layers = updateLayer(state.layers, selected.id, l => ({ ...l, mask: null }));
+        state.selectedIsMask = false;
+        render();
+        return;
+      }
+
+      state.layers = deleteLayer(state.layers, selected.id);
+      const remaining = flatten(state.layers);
+      if (remaining.length > 0) {
+        state.selectedId = remaining[0].id;
+      } else {
+        state.selectedId = null;
+      }
+      render();
+    }
+
+    function toggleSelectedMask() {
+      const selected = findLayer(state.layers, state.selectedId);
+      if (!selected) return;
+
+      state.layers = updateLayer(state.layers, selected.id, l => {
+        if (l.mask) {
+          return { ...l, mask: null };
+        } else {
+          return {
+            ...l,
+            mask: {
+              visible: true,
+              source: 'Generator',
+              generatorKey: 'CurvatureEdges',
+              generatorParams: { Balance: 0.5, Contrast: 0.7, Radius: 0.25, Blur: 0.1 },
+              density: 100,
+              blend: 'Multiply',
+              invert: false,
+              channels: ['baseColour', 'roughness']
+            }
+          };
+        }
+      });
+      render();
+    }
+
+    function handleOpacityChange(val) {
+      const selected = findLayer(state.layers, state.selectedId);
+      if (!selected) return;
+
+      const num = parseInt(val, 10);
+      state.layers = updateLayer(state.layers, selected.id, l => {
+        if (state.selectedIsMask && l.mask) {
+          return { ...l, mask: { ...l.mask, density: num } };
+        }
+        return { ...l, opacity: num };
+      });
+      document.getElementById('opacityLabel').innerText = num + '%';
+    }
+
+    function moveSelectedDirection(dir) {
+      const selected = findLayer(state.layers, state.selectedId);
+      if (!selected) return;
+
+      function moveInList(items) {
+        const idx = items.findIndex(i => i.id === selected.id);
+        if (idx !== -1) {
+          const targetIdx = dir === 'up' ? idx - 1 : idx + 1;
+          if (targetIdx >= 0 && targetIdx < items.length) {
+            const copy = [...items];
+            const temp = copy[idx];
+            copy[idx] = copy[targetIdx];
+            copy[targetIdx] = temp;
+            return { items: copy, moved: true };
+          }
+          return { items, moved: false };
+        }
+
+        let any = false;
+        const newItems = items.map(item => {
+          if (item.children) {
+            const res = moveInList(item.children);
+            if (res.moved) {
+              any = true;
+              return { ...item, children: res.items };
+            }
+          }
+          return item;
+        });
+        return { items: newItems, moved: any };
+      }
+
+      state.layers = moveInList(state.layers).items;
+      render();
+    }
+
+    function handleSearch(q) {
+      state.searchQuery = q.toLowerCase();
+      render();
+    }
+
+    // ── CHANNEL EDITING ──
+    function setChannelValue(channelKey, val) {
+      const selected = findLayer(state.layers, state.selectedId);
+      if (!selected) return;
+
+      state.layers = updateLayer(state.layers, selected.id, l => ({
+        ...l,
+        channels: {
+          ...l.channels,
+          [channelKey]: {
+            ...l.channels[channelKey],
+            value: parseFloat(val)
+          }
+        }
+      }));
+      renderChannelsPage();
+    }
+
+    function setChannelColour(channelKey, col) {
+      const selected = findLayer(state.layers, state.selectedId);
+      if (!selected) return;
+
+      state.layers = updateLayer(state.layers, selected.id, l => ({
+        ...l,
+        channels: {
+          ...l.channels,
+          [channelKey]: {
+            ...l.channels[channelKey],
+            colour: col
+          }
+        }
+      }));
+      render();
+    }
+
+    function toggleChannelEnabled(channelKey) {
+      const selected = findLayer(state.layers, state.selectedId);
+      if (!selected) return;
+
+      state.layers = updateLayer(state.layers, selected.id, l => {
+        const cur = l.channels[channelKey];
+        const isEnabled = cur?.enabled ?? false;
+        return {
+          ...l,
+          channels: {
+            ...l.channels,
+            [channelKey]: {
+              ...cur,
+              enabled: !isEnabled,
+              mode: cur?.mode || 'Value',
+              value: cur?.value ?? (CHANNEL_SLOTS[channelKey]?.min ?? 0.5),
+              colour: cur?.colour ?? (CHANNEL_SLOTS[channelKey]?.hue ?? '#ffffff')
+            }
+          }
+        };
+      });
+      closeMenus();
+      render();
+    }
+
+    // ── MASK EDITING ──
+    function setMaskSource(source) {
+      const selected = findLayer(state.layers, state.selectedId);
+      if (!selected || !selected.mask) return;
+
+      state.layers = updateLayer(state.layers, selected.id, l => ({
+        ...l,
+        mask: {
+          ...l.mask,
+          source: source
+        }
+      }));
+      renderMaskPage();
+    }
+
+    function setMaskGenerator(genKey) {
+      const selected = findLayer(state.layers, state.selectedId);
+      if (!selected || !selected.mask) return;
+
+      const genDef = GENERATORS[genKey];
+      const defaultParams = {};
+      if (genDef) {
+        genDef.params.forEach(p => defaultParams[p.key] = p.default);
+      }
+
+      state.layers = updateLayer(state.layers, selected.id, l => ({
+        ...l,
+        mask: {
+          ...l.mask,
+          generatorKey: genKey,
+          generatorParams: defaultParams
+        }
+      }));
+      renderMaskPage();
+    }
+
+    function setMaskGenParam(paramKey, val) {
+      const selected = findLayer(state.layers, state.selectedId);
+      if (!selected || !selected.mask) return;
+
+      state.layers = updateLayer(state.layers, selected.id, l => ({
+        ...l,
+        mask: {
+          ...l.mask,
+          generatorParams: {
+            ...(l.mask.generatorParams || {}),
+            [paramKey]: parseFloat(val)
+          }
+        }
+      }));
+      renderMaskPage();
+    }
+
+    function toggleMaskChannelTarget(chKey) {
+      const selected = findLayer(state.layers, state.selectedId);
+      if (!selected || !selected.mask) return;
+
+      state.layers = updateLayer(state.layers, selected.id, l => {
+        const curChannels = l.mask.channels || [];
+        const updated = curChannels.includes(chKey)
+          ? curChannels.filter(k => k !== chKey)
+          : [...curChannels, chKey];
+        return {
+          ...l,
+          mask: { ...l.mask, channels: updated }
+        };
+      });
+      renderMaskPage();
+    }
+
+    function toggleMaskInvert() {
+      const selected = findLayer(state.layers, state.selectedId);
+      if (!selected || !selected.mask) return;
+
+      state.layers = updateLayer(state.layers, selected.id, l => ({
+        ...l,
+        mask: { ...l.mask, invert: !l.mask.invert }
+      }));
+      renderMaskPage();
+    }
+
+    // ── MENUS & RENDERING ──
+    function toggleAddMenu(e) {
+      e.stopPropagation();
+      const pop = document.getElementById('addMenuPopover');
+      pop.style.display = pop.style.display === 'none' ? 'flex' : 'none';
+      document.getElementById('blendMenuPopover').style.display = 'none';
+      document.getElementById('addChannelPopover').style.display = 'none';
+    }
+
+    function toggleAddChannelMenu(e) {
+      e.stopPropagation();
+      const pop = document.getElementById('addChannelPopover');
+      if (pop.style.display === 'none') {
+        const selected = findLayer(state.layers, state.selectedId);
+        let html = '';
+        Object.keys(CHANNEL_SLOTS).forEach(key => {
+          const slot = CHANNEL_SLOTS[key];
+          const isEnabled = selected?.channels?.[key]?.enabled;
+          html += `
+            <button class="popover-item" onclick="toggleChannelEnabled('${key}')" style="${isEnabled ? 'color: #3b82f6; font-weight: 600;' : ''}">
+              <div class="channel-color-dot" style="background: ${slot.hue}"></div>
+              <span>${slot.label}</span>
+              ${isEnabled ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="3" style="margin-left: auto;"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+            </button>
+          `;
+        });
+        document.getElementById('addChannelOptions').innerHTML = html;
+        pop.style.display = 'flex';
+      } else {
+        pop.style.display = 'none';
+      }
+      document.getElementById('addMenuPopover').style.display = 'none';
+      document.getElementById('blendMenuPopover').style.display = 'none';
+    }
+
+    function toggleBlendMenu(e) {
+      e.stopPropagation();
+      const pop = document.getElementById('blendMenuPopover');
+      if (pop.style.display === 'none') {
+        const selected = findLayer(state.layers, state.selectedId);
+        const currentBlend = state.selectedIsMask && selected?.mask ? selected.mask.blend : selected?.blend || 'Normal';
+        
+        let html = '';
+        BLEND_MODES.forEach(b => {
+          const isSelected = b === currentBlend;
+          html += `
+            <button class="popover-item" onclick="setBlendMode('${b}')" style="${isSelected ? 'background: #4a90e2; color: #fff; font-weight: 600;' : ''}">
+              <span>${b}</span>
+            </button>
+          `;
+        });
+        document.getElementById('blendOptions').innerHTML = html;
+        pop.style.display = 'flex';
+      } else {
+        pop.style.display = 'none';
+      }
+      document.getElementById('addMenuPopover').style.display = 'none';
+      document.getElementById('addChannelPopover').style.display = 'none';
+    }
+
+    function setBlendMode(blend) {
+      const selected = findLayer(state.layers, state.selectedId);
+      if (!selected) return;
+
+      state.layers = updateLayer(state.layers, selected.id, l => {
+        if (state.selectedIsMask && l.mask) {
+          return { ...l, mask: { ...l.mask, blend } };
+        }
+        return { ...l, blend };
+      });
+      closeMenus();
+      render();
+    }
+
+    function closeMenus() {
+      document.getElementById('addMenuPopover').style.display = 'none';
+      document.getElementById('blendMenuPopover').style.display = 'none';
+      document.getElementById('addChannelPopover').style.display = 'none';
+    }
+
+    document.addEventListener('click', closeMenus);
+
+    // ── RENDER STACK ──
+    function renderStackPage() {
+      const listEl = document.getElementById('layerStackList');
+      const all = flatten(state.layers);
+      document.getElementById('totalCountPill').innerText = all.length;
+
+      const soloBadge = document.getElementById('soloBadge');
+      soloBadge.style.display = state.soloId ? 'block' : 'none';
+
+      const selected = findLayer(state.layers, state.selectedId);
+      const isMask = state.selectedIsMask;
+
+      if (selected) {
+        document.getElementById('selectedLayerTitle').innerText = isMask ? `${selected.name} / Mask` : selected.name;
+        document.getElementById('btnUngroup').style.display = (!isMask && selected.type === 'folder') ? 'block' : 'none';
+
+        const blendVal = isMask && selected.mask ? selected.mask.blend : selected.blend;
+        document.getElementById('blendVal').innerText = blendVal;
+
+        const opacityVal = isMask && selected.mask ? selected.mask.density : selected.opacity;
+        document.getElementById('opacitySlider').value = opacityVal;
+        document.getElementById('opacityLabel').innerText = opacityVal + '%';
+
+        const btnMaskTool = document.getElementById('btnMaskTool');
+        if (selected.mask) btnMaskTool.classList.add('active');
+        else btnMaskTool.classList.remove('active');
+      }
+
+      let html = '';
+
+      function renderItems(items, depth = 0) {
+        for (const item of items) {
+          if (state.searchQuery && !item.name.toLowerCase().includes(state.searchQuery)) {
+            if (!item.children || !item.children.some(c => c.name.toLowerCase().includes(state.searchQuery))) {
+              continue;
+            }
+          }
+
+          const isFolder = item.type === 'folder';
+          const isSelected = state.selectedId === item.id && !state.selectedIsMask;
+          const isDimmed = state.soloId !== null && state.soloId !== item.id;
+          const paddingLeft = Math.max(10, depth * 22 + 10);
+          const childCount = item.children ? item.children.length : 0;
+          const isOpen = item.open !== false;
+
+          let iconSvg = '';
+          if (isFolder) {
+            iconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffd24a" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>`;
+          } else if (item.type === 'paint') {
+            iconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"><path d="m14 12 6-6-3-3-6 6"/><path d="m3 21 3.5-3.5a2.12 2.12 0 1 1 3 3L6 24l-3-3Z"/></svg>`;
+          } else {
+            iconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"><path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/></svg>`;
+          }
+
+          const enabledChannelsCount = item.channels ? Object.values(item.channels).filter(c => c.enabled).length : 0;
+
+          html += `
+            <div 
+              class="layer-row ${isFolder ? 'is-folder' : ''} ${isSelected ? 'selected' : ''} ${!item.visible ? 'is-hidden' : ''} ${isDimmed ? 'is-dimmed' : ''}" 
+              style="padding-left: ${paddingLeft}px; border-left-color: ${isSelected ? '#ffffff' : (item.color || '#4a90e2')};"
+              onclick="selectItem('${item.id}', false)"
+            >
+              ${depth > 0 ? `<div class="tree-guide" style="left: ${depth * 22 - 4}px;"></div>` : ''}
+
+              ${isFolder ? `
+                <button class="btn-icon-subtle" onclick="toggleFolderOpen('${item.id}', event)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    ${isOpen ? '<polyline points="6 9 12 15 18 9"/>' : '<polyline points="9 18 15 12 9 6"/>'}
+                  </svg>
+                </button>
+              ` : '<div style="width: 4px;"></div>'}
+
+              <button class="btn-icon-subtle" onclick="toggleVisibility('${item.id}', event)" title="Alt+click to Solo">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${!item.visible ? '#e05a5a' : 'currentColor'}" stroke-width="2">
+                  ${item.visible ? '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>' : '<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><line x1="2" y1="2" x2="22" y2="22"/>'}
+                </svg>
+              </button>
+
+              <div class="thumb-square" style="background-color: ${isFolder ? '#1c1c22' : (item.color || '#333')};">
+                ${iconSvg}
+              </div>
+
+              <div class="layer-info">
+                <div class="layer-name-line">
+                  <span class="layer-name">${item.name}</span>
+                  ${isFolder ? `<span class="items-count-badge">${childCount}</span>` : ''}
+                </div>
+                <div class="layer-meta-line">
+                  <span>${isFolder ? 'GROUP' : item.classification.toUpperCase()}</span>
+                  <span>·</span>
+                  <span>${item.blend}</span>
+                  <span>·</span>
+                  <span>${item.opacity}%</span>
+                </div>
+              </div>
+
+              <div class="layer-right-actions">
+                ${!isFolder ? `
+                  <button class="channel-chip" onclick="event.stopPropagation(); navigateToChannelProps('${item.id}')" title="Inspect channels">
+                    ${enabledChannelsCount} CH
+                  </button>
+                ` : ''}
+
+                ${item.mask ? `
+                  <span class="mask-badge" onclick="event.stopPropagation(); navigateToMaskProps('${item.id}')" title="Inspect mask">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 11a7 7 0 0 1 14-4.5A7 7 0 0 1 22 11c0 4-3 7-10 7s-10-3-10-7Z"/></svg>
+                    MASK
+                  </span>
+                ` : ''}
+
+                <button class="btn-icon-subtle" onclick="toggleLock('${item.id}', event)">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${item.locked ? '#e05a5a' : 'currentColor'}" stroke-width="2" style="opacity: ${item.locked ? 1 : 0.3}">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          `;
+
+          if (item.mask) {
+            const isMaskSelected = state.selectedId === item.id && state.selectedIsMask;
+            const maskPaddingLeft = Math.max(28, depth * 22 + 28);
+
+            html += `
+              <div 
+                class="mask-row ${isMaskSelected ? 'selected' : ''} ${!item.mask.visible ? 'is-hidden' : ''}" 
+                style="padding-left: ${maskPaddingLeft}px;"
+                onclick="selectItem('${item.id}', true); navigateToMaskProps('${item.id}');"
+              >
+                <div class="mask-connector" style="left: ${Math.max(14, depth * 22 + 14)}px;"></div>
+
+                <button class="btn-icon-subtle" onclick="toggleMaskVisibility('${item.id}', event)">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${!item.mask.visible ? '#e05a5a' : 'currentColor'}" stroke-width="2">
+                    ${item.mask.visible ? '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>' : '<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><line x1="2" y1="2" x2="22" y2="22"/>'}
+                  </svg>
+                </button>
+
+                <div class="mask-thumb">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M2 11a7 7 0 0 1 14-4.5A7 7 0 0 1 22 11c0 4-3 7-10 7s-10-3-10-7Z"/><path d="M6 11c0-1 1-2 2-2s2 1 2 2-1 2-2 2-2-1-2-2Z"/><path d="M14 11c0-1 1-2 2-2s2 1 2 2-1 2-2 2-2-1-2-2Z"/></svg>
+                </div>
+
+                <div class="layer-info">
+                  <div class="layer-name-line">
+                    <span style="font-size: 11px; font-family: monospace; font-weight: 700; color: #f59e0b;">MASK</span>
+                    <span style="font-size: 11px; color: #ededed;">${item.mask.generatorKey ? GENERATORS[item.mask.generatorKey]?.label || item.mask.generatorKey : item.mask.source}</span>
+                  </div>
+                  <div class="layer-meta-line">
+                    <span>${item.mask.density}% · ${item.mask.blend}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }
+
+          if (isFolder && isOpen && item.children && item.children.length > 0) {
+            renderItems(item.children, depth + 1);
+          }
+        }
+      }
+
+      renderItems(state.layers);
+      listEl.innerHTML = html;
+    }
+
+    // ── RENDER CHANNELS PAGE ──
+    function renderChannelsPage() {
+      const selected = findLayer(state.layers, state.selectedId);
+      if (!selected) return;
+
+      document.getElementById('channelPageTitle').innerText = selected.name;
+
+      const enabledCount = selected.channels ? Object.values(selected.channels).filter(c => c.enabled).length : 0;
+      document.getElementById('activeChannelsCount').innerText = `${enabledCount} Active`;
+
+      const listEl = document.getElementById('channelCardsList');
+      let html = '';
+
+      Object.keys(CHANNEL_SLOTS).forEach(key => {
+        const slot = CHANNEL_SLOTS[key];
+        const ch = selected.channels?.[key];
+        if (!ch || !ch.enabled) return;
+
+        const isColor = slot.edit === 'colour';
+        const isDerived = slot.edit === 'derived';
+        const val = ch.value ?? (slot.min ?? 0);
+        const col = ch.colour || slot.hue;
+
+        html += `
+          <div class="channel-card">
+            <div class="channel-card-top">
+              <div class="channel-label-group">
+                <div class="channel-color-dot" style="background: ${col};"></div>
+                <span class="channel-name">${slot.label}</span>
+                <span class="channel-placement-tag">${slot.placement}</span>
+              </div>
+
+              <button class="btn-icon-subtle" onclick="toggleChannelEnabled('${key}')" title="Disable channel" style="color: #8a8a8a;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+
+            <div class="channel-controls">
+              ${isColor ? `
+                <div class="color-picker-btn" style="background: ${col};" title="Choose color">
+                  <input type="color" value="${col}" onchange="setChannelColour('${key}', this.value)" />
+                </div>
+                <span style="font-family: monospace; font-size: 11px; color: #ededed;">${col}</span>
+              ` : isDerived ? `
+                <span style="font-size: 11px; color: #10b981; font-family: monospace;">Derived from Height Map (Normal Combine)</span>
+              ` : `
+                <div class="slider-box">
+                  <input 
+                    type="range" 
+                    min="${slot.min ?? 0}" 
+                    max="${slot.max ?? 1}" 
+                    step="${slot.step ?? 0.01}" 
+                    value="${val}" 
+                    class="range-input" 
+                    oninput="setChannelValue('${key}', this.value)" 
+                  />
+                  <span class="opacity-val" style="width: 44px;">${val}${slot.unit || ''}</span>
+                </div>
+              `}
+            </div>
+          </div>
+        `;
+      });
+
+      listEl.innerHTML = html || `
+        <div style="padding: 40px 20px; text-align: center; color: #6a6a6a; font-size: 12px;">
+          No channels active on this layer. Click + to enable channel slots.
+        </div>
+      `;
+    }
+
+    // ── RENDER MASK PAGE ──
+    function renderMaskPage() {
+      const selected = findLayer(state.layers, state.selectedId);
+      if (!selected || !selected.mask) return;
+
+      const mask = selected.mask;
+
+      // 1. Source grid
+      const sources = [
+        { id: 'Generator', label: 'Generator', icon: '<path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>' },
+        { id: 'Brush', label: 'Paintbrush', icon: '<path d="m14 12 6-6-3-3-6 6"/><path d="m3 21 3.5-3.5a2.12 2.12 0 1 1 3 3L6 24l-3-3Z"/>' },
+        { id: 'Bitmap', label: 'Bitmap Texture', icon: '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>' },
+        { id: 'ColorID', label: 'Color ID Mask', icon: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>' }
+      ];
+
+      let srcHtml = '';
+      sources.forEach(s => {
+        const isActive = mask.source === s.id;
+        srcHtml += `
+          <button class="source-btn ${isActive ? 'active' : ''}" onclick="setMaskSource('${s.id}')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${s.icon}</svg>
+            <span>${s.label}</span>
+          </button>
+        `;
+      });
+      document.getElementById('maskSourceGrid').innerHTML = srcHtml;
+
+      // 2. Generator parameters
+      const genKey = mask.generatorKey || 'CurvatureEdges';
+      const genDef = GENERATORS[genKey];
+      let paramHtml = `
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <select 
+            style="background: #141416; border: 1px solid #2a2a30; color: #ededed; font-size: 11px; padding: 4px 8px; border-radius: 6px; outline: none; width: 100%;"
+            onchange="setMaskGenerator(this.value)"
+          >
+            ${Object.keys(GENERATORS).map(k => `
+              <option value="${k}" ${k === genKey ? 'selected' : ''}>${GENERATORS[k].label}</option>
+            `).join('')}
+          </select>
+        </div>
+      `;
+
+      if (genDef) {
+        genDef.params.forEach(p => {
+          const curVal = mask.generatorParams?.[p.key] ?? p.default;
+          paramHtml += `
+            <div class="param-row">
+              <div class="param-label-line">
+                <span>${p.label}</span>
+                <span class="param-val">${curVal}</span>
+              </div>
+              <input 
+                type="range" 
+                min="${p.min}" 
+                max="${p.max}" 
+                step="0.01" 
+                value="${curVal}" 
+                class="range-input" 
+                oninput="setMaskGenParam('${p.key}', this.value)" 
+              />
+            </div>
+          `;
+        });
+      }
+      document.getElementById('generatorParamsGroup').innerHTML = paramHtml;
+
+      // 3. Density & Invert
+      document.getElementById('maskAdjustmentsGroup').innerHTML = `
+        <div class="param-row">
+          <div class="param-label-line">
+            <span>Mask Density</span>
+            <span class="param-val">${mask.density}%</span>
+          </div>
+          <input 
+            type="range" 
+            min="0" 
+            max="100" 
+            value="${mask.density}" 
+            class="range-input" 
+            oninput="handleOpacityChange(this.value)" 
+          />
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px;">
+          <span style="font-size: 11px; color: #a0a0a0;">Invert Mask</span>
+          <button 
+            class="tag-chip ${mask.invert ? 'active' : ''}" 
+            onclick="toggleMaskInvert()"
+          >
+            ${mask.invert ? 'INVERTED (ON)' : 'NORMAL (OFF)'}
+          </button>
+        </div>
+      `;
+
+      // 4. Target Channels
+      let chipsHtml = '';
+      const activeTargets = mask.channels || [];
+      Object.keys(CHANNEL_SLOTS).forEach(key => {
+        const slot = CHANNEL_SLOTS[key];
+        const isTargeted = activeTargets.includes(key);
+        chipsHtml += `
+          <button 
+            class="tag-chip ${isTargeted ? 'active' : ''}" 
+            onclick="toggleMaskChannelTarget('${key}')"
+          >
+            ${slot.label}
+          </button>
+        `;
+      });
+      document.getElementById('maskChannelChips').innerHTML = chipsHtml;
+    }
+
+    // ── MAIN RENDER ──
+    function render() {
+      renderStackPage();
+      if (state.currentPage === 1) renderChannelsPage();
+      if (state.currentPage === 2) renderMaskPage();
+    }
+
+    // Initialize
+    render();
+  </script>
+</body>
+</html>

@@ -654,15 +654,22 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
 
     RecordDetailOptions(Spanning(DetailBody.MinimumX, DetailSweep,
                                  DetailBody.Width(), DetailBody.MaximumY - DetailSweep),
-                        Applied, Ordinal);
+                        Applied, Ordinal, Current);
 
     Surface->Release();
 }
 
 void SceneDirectoryPanel::RecordDetailOptions(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
-                                              std::uint32_t Ordinal)
+                                              std::uint32_t Ordinal, const EntityRow& Current)
 {
-    const char* const Captions[3] = { "Visible", "Locked", "Cast Shadows" };
+    // 📐 The camera row's options are the camera's own settings: the lag and the pitch direction,
+    //    beside the visibility every row carries. Every other row keeps the reference's generic
+    //    options. The bits are the same slots — bit 1 is lag on the camera, Locked elsewhere.
+    const bool Camera = Current.Subject == EntitySubject::Camera;
+
+    const char* const CameraCaptions[3]    = { "Visible", "Camera Lag", "Invert Pitch" };
+    const char* const GenericCaptions[3]   = { "Visible", "Locked", "Cast Shadows" };
+    const char* const* const Captions = Camera ? CameraCaptions : GenericCaptions;
     const float RowY = Scaled.RowHeight;
 
     float Sweep = Extent.MinimumY;
@@ -720,6 +727,52 @@ void SceneDirectoryPanel::RecordDetailOptions(const PlaneExtent& Extent, SceneDi
                          OnRow ? Tinted.Primary : Tinted.Muted, Captions[Option], Scaled.RunPrimary);
 
         Sweep += RowY + Scaled.PanePad * 0.5f;
+    }
+
+    // 📐 The camera's small metadata: the pose the rig reports and the speed the artist set, stated
+    //    as plain stat rows beneath the options.
+    if (Camera)
+    {
+        Sweep += Scaled.PanePad * 0.5f;
+
+        const float StatY = Scaled.StatY;
+        const PlaneExtent Stats = Spanning(Extent.MinimumX, Sweep, Extent.Width(),
+                                           StatY * 3.0f + Scaled.PanePad);
+
+        if (Stats.MaximumY <= Extent.MaximumY)
+        {
+            Surface->Ground(Stats, Tinted.Tile, Scaled.FieldRadius, CornerAll);
+
+            const auto StateRow = [&](const char* Caption, const char* Value)
+            {
+                const PlaneExtent Row = Spanning(Stats.MinimumX, Sweep, Stats.Width(), StatY);
+
+                Surface->TextRun(Row.MinimumX + Scaled.PanePad * 2.0f,
+                                 Row.MinimumY + (Row.Height() - Scaled.RunFine) * 0.5f,
+                                 Tinted.Muted, Caption, Scaled.RunFine);
+
+                Surface->TextRun(Row.MaximumX - Scaled.PanePad * 2.0f
+                                 - Surface->MeasureRun(Value, Scaled.RunFine, 0.0f),
+                                 Row.MinimumY + (Row.Height() - Scaled.RunFine) * 0.5f,
+                                 Tinted.Primary, Value, Scaled.RunFine);
+
+                Sweep += StatY;
+            };
+
+            char Positioned[64] = {};
+            std::snprintf(Positioned, sizeof(Positioned), "%.0f, %.1f, %.0f m",
+                          Applied.CameraPosition[0], Applied.CameraPosition[1], Applied.CameraPosition[2]);
+            StateRow("Position", Positioned);
+
+            char Turned[64] = {};
+            std::snprintf(Turned, sizeof(Turned), "yaw %.0f\u00B0  pitch %.0f\u00B0",
+                          Applied.CameraRotation[0], Applied.CameraRotation[1]);
+            StateRow("Rotation", Turned);
+
+            char Stepped[64] = {};
+            std::snprintf(Stepped, sizeof(Stepped), "%.0f m/s", Applied.CameraSpeed);
+            StateRow("Speed", Stepped);
+        }
     }
 }
 
@@ -950,6 +1003,20 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
         {
             const char* const Fields[4] = { "Projection", "Field of View", "Near Clip", "Far Clip" };
             RecordCard(ComponentCaption, Fields, 4u);
+
+            // 📝 The camera's own card — the fly speed, a live slider exactly like the environment's,
+            //    with the same once-per-drag history demand against the camera row.
+            const char* const CameraCaptions[1] = { "Fly Speed" };
+            const char* const CameraUnits[1]    = { "m/s" };
+            const double CameraMinimums[1]      = { 1.0 };
+            const double CameraMaximums[1]      = { 500.0 };
+            double CameraValues[1]              = { Applied.CameraSpeed };
+
+            RecordEnvironmentCard(Applied, Extent, Sweep, CardOrdinal,
+                                  "Camera", CameraCaptions, CameraUnits, CameraMinimums,
+                                  CameraMaximums, CameraValues, 1u);
+
+            Applied.CameraSpeed = CameraValues[0];
             break;
         }
         case EntitySubject::Audio:

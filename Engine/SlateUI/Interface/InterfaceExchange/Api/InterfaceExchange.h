@@ -236,6 +236,16 @@ public:
     /// tag   api, nonallocating, nonthrowing
     ModifierCondition Modifiers() const;
 
+    /// 🧩 The editor camera's input this tick: the movement keys' HELD state and the look gesture.
+    /// note  🔴 Held, unlike `KeyPressed`'s edge-triggered arrivals — the camera integrates continuously
+    ///        while a key stands down. The look delta is the pointer's travel while the right button is
+    ///        held, in display pixels.
+    /// note  ⚠️ Valid only between `Advance` and `Seal`, on the same terms as `KeyPressed`. Gated on the
+    ///        keyboard capture, so a run the artist is typing into keeps the keys.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    CameraCondition CameraInput() const;
+
     /// 🧩 Appends this tick's typed characters to a caller-owned run, and reports whether any arrived.
     /// in    Intake     [-]  the run written into; always left terminated
     /// in    Ceiling    [-]  the run's full extent in bytes, terminator included

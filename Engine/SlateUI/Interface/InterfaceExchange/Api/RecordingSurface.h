@@ -102,6 +102,25 @@ struct DisplayCondition
     double  DisplayScale = 1.0;    // [-]  - what ThemeProfile was resolved against
 };
 
+/// 🧩 The editor camera's per-tick input: which movement keys are HELD (not edge-triggered), and the
+///    look gesture — the right button held while the pointer moves.
+/// note  🔴 Held, not pressed. Camera movement is continuous: a key that fired once per arrival would
+///        move the camera a step per press and stand still while the key is down. The look delta is
+///        pixels since the previous tick, positive rightward and downward, as the display reports it.
+/// tag   contract, nonallocating, nonthrowing
+struct CameraCondition
+{
+    bool    ForwardHeld  = false;   // [-] - W: along the view direction
+    bool    BackwardHeld = false;   // [-] - S
+    bool    LeftHeld     = false;   // [-] - A: strafe
+    bool    RightHeld    = false;   // [-] - D: strafe
+    bool    UpHeld       = false;   // [-] - E: world up
+    bool    DownHeld     = false;   // [-] - Q: world down
+    bool    LookHeld     = false;   // [-] - the right button, holding the look gesture
+    float   LookDeltaX   = 0.0f;    // [px] - the pointer's travel while the look gesture stood
+    float   LookDeltaY   = 0.0f;    // [px]
+};
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE KEY SUBJECTS
 //------------------------------------------------------------------------------------------------------------------------
