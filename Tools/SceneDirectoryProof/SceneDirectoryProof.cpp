@@ -39,6 +39,8 @@
 //          Tools/SceneDirectoryProof/SceneDirectoryProof.cpp \
 //          Engine/SlateUI/Interface/WorkspacePanel/Source/WorkspacePanel.cpp \
 //          Engine/SlateUI/Interface/EditorPanel/Source/EditorPanel.cpp \
+//          Engine/SlateUI/Interface/EditorPanel/Source/EditorLeafPanels.cpp \
+//          Engine/SlateUI/Interface/FacetPanel/Source/FacetPanel.cpp \
 //          Engine/SlateUI/Interface/PanelStructure/Source/PanelStructure.cpp \
 //          Engine/SlateUI/Interface/SceneDirectoryPanel/Source/SceneDirectoryPanel.cpp \
 //          Engine/SlateUI/Interface/TexturePaintPanel/Source/TexturePaintPanel.cpp \
@@ -451,45 +453,50 @@ struct SceneDriver
         "Height", "Ambient Occlusion", "Emissive", "Opacity"
     };
 
-    static constexpr TextureLayerRow StackRows[TexturePaintContext::TextureLayerCeiling] =
+    static constexpr TextureLayerRow StackSeed[TextureLayerCeiling] =
     {
         { "Surface Detail",  TextureLayerClassification::Folder,  "Passthrough", 100u, 0x9B8CF0u, 0x9B8CF0u,
-          false, 100u, false, "", "8 layers", { StackChannels[0], StackChannels[1], StackChannels[2] }, 3u,
-          0u, 0xFFFFFFFFu, 3u, true, "folder detail group" },
+          false, 100u, false, "", "4 layers", { StackChannels[0], StackChannels[1], StackChannels[2] }, 3u,
+          0u, 0xFFFFFFFFu, 4u, true, "folder detail group", false, "" },
         { "Levels",          TextureLayerClassification::Adjustment, "Overlay",   64u, 0x8B8D98u, 0x8B8D98u,
           false, 100u, false, "", "2048px \u00B7 RGBA 8", { StackChannels[0], StackChannels[3] }, 2u,
-          1u, 0u, 0u, true, "adjust levels" },
+          1u, 0u, 0u, true, "adjust levels", false, "" },
         { "Warning Stencil", TextureLayerClassification::Decal,   "Normal",    100u, 0xE5484Du, 0xE5484Du,
           true,  100u, false, "Bitmap", "Planar \u00B7 100%", { StackChannels[0] }, 1u,
-          1u, 0u, 0u, true, "decal stencil warning" },
+          1u, 0u, 0u, true, "decal stencil warning", false, "" },
         { "Scratches",       TextureLayerClassification::Paint,    "Screen",     38u, 0xB0E64Cu, 0xB0E64Cu,
           true,   88u, false, "Generator", "2048px \u00B7 RGBA 8", { StackChannels[0], StackChannels[2] }, 2u,
-          1u, 0u, 0u, true, "paint scratches grunge" },
+          1u, 0u, 0u, true, "paint scratches grunge", false, "Blur" },
         { "Edge Wear",       TextureLayerClassification::Fill,     "Multiply",   82u, 0xF76B15u, 0xF76B15u,
           true,  100u, false, "Generator", "2048px \u00B7 RGBA 8", { StackChannels[1], StackChannels[2] }, 2u,
-          1u, 0u, 0u, true, "fill edge wear rust" },
+          1u, 0u, 0u, true, "fill edge wear rust", false, "" },
         { "Emissive Trim",   TextureLayerClassification::Fill,     "Normal",    100u, 0xFFC53Du, 0xFFC53Du,
           true,  100u, false, "Paint", "2048px \u00B7 RGBA 8", { StackChannels[6] }, 1u,
-          0u, 0xFFFFFFFFu, 0u, true, "fill emissive trim" },
+          0u, 0xFFFFFFFFu, 0u, true, "fill emissive trim", false, "" },
         { "Hex Panelling",   TextureLayerClassification::Pattern,  "Normal",    100u, 0x8AB4D8u, 0x8AB4D8u,
           true,  100u, false, "Generator", "Hex Grid \u00B7 4\u00D74", { StackChannels[2], StackChannels[4] }, 2u,
-          0u, 0xFFFFFFFFu, 0u, true, "pattern hex panel" },
+          0u, 0xFFFFFFFFu, 0u, true, "pattern hex panel", false, "" },
         { "Base Materials",  TextureLayerClassification::Folder,   "Passthrough", 100u, 0x12A594u, 0x12A594u,
           false, 100u, false, "", "4 layers", { StackChannels[0], StackChannels[1] }, 2u,
-          0u, 0xFFFFFFFFu, 2u, true, "folder materials base" },
+          0u, 0xFFFFFFFFu, 4u, true, "folder materials base", false, "" },
         { "Brushed Steel",   TextureLayerClassification::Fill,     "Normal",    100u, 0x8AB4D8u, 0x8AB4D8u,
           true,  100u, false, "Generator", "4096px \u00B7 RGBA 8", { StackChannels[0], StackChannels[1] }, 2u,
-          1u, 7u, 0u, true, "fill brushed steel metal" },
+          1u, 7u, 0u, true, "fill brushed steel metal", false, "" },
         { "Gold Inlay",      TextureLayerClassification::Fill,     "Normal",    100u, 0xE5484Du, 0xE5484Du,
           true,   50u, true,  "Color Selection", "2048px \u00B7 RGBA 8", { StackChannels[0] }, 1u,
-          1u, 7u, 0u, true, "fill gold inlay" },
+          1u, 7u, 0u, true, "fill gold inlay", false, "Levels, HSL Shift" },
         { "Oak Panel",       TextureLayerClassification::Material, "Normal",    100u, 0xF76B15u, 0xF76B15u,
           false, 100u, false, "", "2048px \u00B7 RGBA 8", { StackChannels[0], StackChannels[2] }, 2u,
-          1u, 7u, 0u, true, "material oak wood" },
+          1u, 7u, 0u, true, "material oak wood", true, "" },
         { "Canvas Weave",    TextureLayerClassification::Material, "Normal",     90u, 0xE93D82u, 0xE93D82u,
           false, 100u, false, "", "2048px \u00B7 RGBA 8", { StackChannels[0], StackChannels[3] }, 2u,
-          1u, 7u, 0u, false, "material canvas fabric" }
+          1u, 7u, 0u, false, "material canvas fabric", false, "" }
     };
+
+    // 📝 The mutable row set the host owns: seeded from the reference tree at bring-up, and mutated
+    //    only through the shared `TexturePaintStack` helper when the panel raises a structural
+    //    request — the harness drives exactly what the editor host drives.
+    TexturePaintStack StackRows;
 
     // 📝 The sky texture the host would upload: generated from the environment, registered in the
     //    rasterizer under a fixed identity, and handed to the scene directory as its texture identity.
@@ -562,28 +569,19 @@ struct SceneDriver
         Applied.DetailBits[6u] = 2u;
         Applied.CameraSpeed = 50.0;
 
-        // 📝 The layer stack's seed — the same mock tree the host carries.
+        // 📝 The layer stack's seed — the same mock tree the host carries, through the shared stack
+        //    helper and its context seeding, exactly as the editor host does it.
+        StackRows.Seed(StackSeed, 12u);
         TexturePaintApplied.LayerTaken = 1u;
+        SeedPaintContextFromRows(TexturePaintApplied, StackRows.Rows, StackRows.Count);
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < TexturePaintContext::TextureLayerCeiling; ++Ordinal)
+        for (std::uint32_t Ordinal = 0u; Ordinal < TextureLayerCeiling; ++Ordinal)
         {
-            TexturePaintApplied.LayerPresent[Ordinal] = true;
-            TexturePaintApplied.LayerExpanded[Ordinal] = true;
-            TexturePaintApplied.ChannelTaken[Ordinal] = 0u;
-
-            for (std::uint32_t Channel = 0u; Channel < TexturePaintContext::TextureChannelCeiling; ++Channel)
-            {
-                TexturePaintApplied.ChannelOn[Ordinal][Channel] = Channel < 6u;
-                TexturePaintApplied.ChannelAmount[Ordinal][Channel] = 100u;
-                TexturePaintApplied.ChannelBlendTaken[Ordinal][Channel] = 0u;
-            }
-
-            TexturePaintApplied.MaskDensity[Ordinal] = 100u;
-            TexturePaintApplied.MaskSourceTaken[Ordinal] = 0u;
-            TexturePaintApplied.SettingAmount[Ordinal][0] = 100u;
-            TexturePaintApplied.SettingAmount[Ordinal][1] = 50u;
-            TexturePaintApplied.SettingAmount[Ordinal][2] = 50u;
-            TexturePaintApplied.SettingAmount[Ordinal][3] = 50u;
+            TexturePaintApplied.MaskSourceTaken[Ordinal] =
+                (Ordinal == 2u || Ordinal == 3u || Ordinal == 4u) ? 4u : 0u;
+            TexturePaintApplied.MaskDensity[Ordinal] =
+                (Ordinal == 3u) ? 88u : 100u;
+            TexturePaintApplied.MaskInverted[Ordinal] = (Ordinal == 9u);
         }
         FlyRig.YawDegrees   = Applied.Environment.SunAzimuth - 20.0;
         FlyRig.PitchDegrees = 15.0;
@@ -622,8 +620,8 @@ struct SceneDriver
         const bool TabArrived = SimTabPressed || SimLayersTab;
         SceneDirectory.Advance(Surface.Pointer(), TickMilliseconds, Applied,
                                TabArrived && !SimLayersTab);
-        TexturePaint.Advance(Surface.Pointer(), TickMilliseconds, TexturePaintApplied, StackRows, 12u,
-                           TabArrived && SimLayersTab);
+        TexturePaint.Advance(Surface.Pointer(), TickMilliseconds, TexturePaintApplied,
+                             StackRows.Rows, StackRows.Count, TabArrived && SimLayersTab);
         SimTabPressed = false;
         SimLayersTab = false;
         Editor.Advance(Surface.Pointer(), TickMilliseconds);
@@ -757,7 +755,8 @@ struct SceneDriver
                                                     Revisions, RevisionCount, Applied.InspectorTab);
                     break;
                 case PanelSubject::TexturePaint:
-                    TexturePaint.Record(LeafBody, TexturePaintApplied, StackRows, 12u);
+                    TexturePaint.Record(LeafBody, TexturePaintApplied, StackRows.Rows,
+                                        StackRows.Count);
                     break;
                 default:
                     break;
@@ -765,6 +764,10 @@ struct SceneDriver
         }
 
         Editor.RecordDeferredPopups(Partition, Configuration);
+
+        // 📝 The host drains the layer stack's structural requests exactly once per tick, through the
+        //    same shared helper the editor host calls.
+        StackRows.ApplyRequest(TexturePaintApplied);
 
         Surface.Retire();
 
@@ -1242,17 +1245,27 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
                                   * Resolved.ControlMeasure.ArtistFactor;
         const ShellMetric Scaled = ScaleShellLengths(AppliedFactor);
 
-        // 📐 The tools row: the Add button on the left, the search pill beside it.
+        // 📐 The reference's layout, in the panel's own metrics: the header, the tools row (the search
+        //    pill filling what the three tools leave), the filter card, the rows band, the page strip
+        //    and the footer (crumb + blend/opacity + the action bar).
         const float Pad = Scaled.PanePad;
         const float ToolY = Scaled.LayerToolHeight;
+        const float ToolBand = ToolY + Scaled.LayerFoldPad * 2.0f;
 
-        const float SearchX = (LeafBody.MinimumX + Pad + ToolY * 2.2f + Pad
-                               + LeafBody.MaximumX - Pad) * 0.5f;
-        const float SearchY = LeafBody.MinimumY + Scaled.HeaderHeight + Pad + ToolY * 0.5f;
+        const float HeaderTop = LeafBody.MinimumY;
+        const float HeaderBottom = HeaderTop + Scaled.HeaderHeight;
+        const float ToolsTop = HeaderBottom;
+        const float SearchRight = LeafBody.MaximumX - Pad - (ToolY * 3.0f + 10.0f * 2.0f + 6.0f) - 1.0f;
+        const float SearchX = (LeafBody.MinimumX + Pad + SearchRight) * 0.5f;
+        const float SearchY = ToolsTop + ToolBand * 0.5f;
 
-        // 📐 The rows band: from below the tools row to the page strip.
-        const float BandY0 = LeafBody.MinimumY + Scaled.HeaderHeight + ToolY + Pad;
-        const float BandY1 = LeafBody.MaximumY - Scaled.FooterHeight - Scaled.ComponentY - 8.0f;
+        const float StripY0 = LeafBody.MaximumY - Scaled.LayerFootCrumb - Scaled.LayerFootProp
+                            - Scaled.LayerFootBar - Scaled.ComponentY;
+        const float FooterY0 = StripY0 + Scaled.ComponentY;
+
+        // 📐 The rows band: exactly the extents the panel reported.
+        const float BandY0 = Driver.TexturePaint.RowExtent(0u).MinimumY;
+        const float BandY1 = StripY0;
 
         const auto Ink = [&](const char* Path) -> std::uint32_t
         {
@@ -1299,6 +1312,98 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
             return false;
         }
 
+        // ①b The reference's appearance, on real pixels: the entry's colour tag at the folder row's
+        //     left edge, the attached mask row's dashed border beneath Warning Stencil, and the
+        //     footer's blend pill + slider + action bar below the strip.
+        {
+            int ReadWidth = 0;
+            int ReadHeight = 0;
+            int ReadChannels = 0;
+            unsigned char* ReadPixels = stbi_load(StackPath.c_str(), &ReadWidth, &ReadHeight,
+                                                  &ReadChannels, 4);
+
+            if (ReadPixels == nullptr)
+                return false;
+
+            const auto Pixel = [&](int X, int Y, int& R, int& G, int& B)
+            {
+                const std::size_t Offset = (static_cast<std::size_t>(Y) * ReadWidth + X) * 4u;
+                R = ReadPixels[Offset + 0u];
+                G = ReadPixels[Offset + 1u];
+                B = ReadPixels[Offset + 2u];
+            };
+
+            // 📐 The 3 px colour tag of the Surface Detail folder — 0x9B8CF0 at 0.9 over the row.
+            const PlaneExtent TagRow0 = Driver.TexturePaint.RowExtent(0u);
+            int TagR = 0, TagG = 0, TagB = 0;
+            Pixel(static_cast<int>(TagRow0.MinimumX + 1.0f),
+                  static_cast<int>(TagRow0.MinimumY + 22.0f), TagR, TagG, TagB);
+
+            std::fprintf(stderr, "[assert] row 0 colour tag rgb: %d %d %d\n", TagR, TagG, TagB);
+            if (TagR < 110 || TagG < 90 || TagB < 170 || TagB <= TagR)
+            {
+                std::fprintf(stderr, "[FAIL] the row's 3 px colour tag did not draw its hue\n");
+                stbi_image_free(ReadPixels);
+                return false;
+            }
+
+            // 📐 The mask row under Warning Stencil: a dashed border, not a solid one — bright
+            //     segments alternating with gaps along the mask row's top edge.
+            const PlaneExtent Stencil = Driver.TexturePaint.RowExtent(2u);
+            const PlaneExtent MaskRow2 = Spanning(Stencil.MinimumX,
+                                                  Stencil.MinimumY + Scaled.LayerRowY,
+                                                  Stencil.Width(), Scaled.LayerMaskY);
+
+            std::uint32_t Dashed = 0u;
+            std::uint32_t Solid = 0u;
+
+            for (int X = static_cast<int>(MaskRow2.MinimumX + 2.0f);
+                 X < static_cast<int>(MaskRow2.MaximumX - 2.0f); ++X)
+            {
+                int R = 0, G = 0, B = 0;
+                Pixel(X, static_cast<int>(MaskRow2.MinimumY), R, G, B);
+
+                if (R > 40 && G > 40 && B > 40)
+                    ++Dashed;
+                else
+                    ++Solid;
+            }
+
+            std::fprintf(stderr, "[assert] mask row border dashes: %u solid-gap %u\n", Dashed, Solid);
+            if (Dashed < 6u || Solid < 6u)
+            {
+                std::fprintf(stderr, "[FAIL] the attached mask row did not draw its dashed border\n");
+                stbi_image_free(ReadPixels);
+                return false;
+            }
+
+            // 📐 The footer's action bar: bright icon ink below the strip's bottom edge.
+            std::uint32_t FooterInk = 0u;
+
+            for (int Y = static_cast<int>(FooterY0); Y < static_cast<int>(LeafBody.MaximumY); ++Y)
+            {
+                for (int X = static_cast<int>(LeafBody.MinimumX + 10.0f);
+                     X < static_cast<int>(LeafBody.MaximumX - 10.0f); ++X)
+                {
+                    int R = 0, G = 0, B = 0;
+                    Pixel(X, Y, R, G, B);
+
+                    if (R > 150 && G > 150 && B > 150)
+                        ++FooterInk;
+                }
+            }
+
+            std::fprintf(stderr, "[assert] footer ink: %u\n", FooterInk);
+            if (FooterInk < 120u)
+            {
+                std::fprintf(stderr, "[FAIL] the footer's blend/opacity/action bar did not draw\n");
+                stbi_image_free(ReadPixels);
+                return false;
+            }
+
+            stbi_image_free(ReadPixels);
+        }
+
         if (Driver.TexturePaint.DrawnRows() < 3u)
         {
             std::fprintf(stderr, "[FAIL] the layer stack did not draw enough rows\n");
@@ -1318,7 +1423,12 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
             Row2.MinimumY + Row2.Height() * 0.5f
         };
 
-        const float MaskRowY = Row2.MinimumY + Scaled.RowHeight + Scaled.RowHeight * 0.41f;
+        const float MaskRowY = Row2.MinimumY + Scaled.LayerRowY + Scaled.LayerMaskY * 0.5f;
+
+        const auto LayerMidY = [&](const PlaneExtent& Block)
+        {
+            return Block.MinimumY + Scaled.LayerRowY * 0.5f;
+        };
 
         // ② The search pill: type "decal" — only the Warning Stencil row remains.
         Driver.Tick(SearchX, SearchY, true, true, false);
@@ -1386,6 +1496,46 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
             return false;
         }
 
+        // 📐 The channel properties page draws: its search pill and channel rows carry real ink.
+        {
+            const std::string ChannelPath = "_AgentScratch/layer-channels.png";
+            if (!Driver.Capture(ChannelPath.c_str(), Atlas, AtlasWidth, AtlasHeight))
+                return false;
+
+            int ReadWidth = 0, ReadHeight = 0, ReadChannels = 0;
+            unsigned char* ReadPixels = stbi_load(ChannelPath.c_str(), &ReadWidth, &ReadHeight,
+                                                  &ReadChannels, 4);
+
+            if (ReadPixels == nullptr)
+                return false;
+
+            std::uint32_t ChannelInk = 0u;
+
+            for (int Y = 90; Y < ReadHeight - 40; ++Y)
+            {
+                for (int X = static_cast<int>(LeafBody.MinimumX + 30.0f);
+                     X < static_cast<int>(LeafBody.MaximumX - 30.0f); ++X)
+                {
+                    const std::size_t Offset = (static_cast<std::size_t>(Y) * ReadWidth + X) * 4u;
+                    const int R = ReadPixels[Offset + 0u];
+                    const int G = ReadPixels[Offset + 1u];
+                    const int B = ReadPixels[Offset + 2u];
+
+                    if (R > 110 || G > 110 || B > 110)
+                        ++ChannelInk;
+                }
+            }
+
+            stbi_image_free(ReadPixels);
+
+            std::fprintf(stderr, "[assert] channel properties ink: %u\n", ChannelInk);
+            if (ChannelInk < 200u)
+            {
+                std::fprintf(stderr, "[FAIL] the channel properties page did not draw\n");
+                return false;
+            }
+        }
+
         // ⑤ Back to the stack, then the mask row under Warning Stencil + Tab -> the mask panel.
         Driver.SimLayersTab = true;
         Driver.Tick(LeafX, RowY[2], false, false, false);
@@ -1405,7 +1555,8 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         Driver.Tick(LeafX, MaskRowY, false, false, false);
         Driver.Settle(2);
 
-        std::fprintf(stderr, "[assert] after mask+Tab: mask=%d page=%u tab=%u\n",
+        std::fprintf(stderr, "[assert] after mask+Tab: mask=%d page=%u tab=%u (the mask panel is the\n"
+                             "         selection's single tab, clamped to 0)\n",
                      Driver.TexturePaintApplied.MaskTaken ? 1 : 0,
                      Driver.TexturePaintApplied.StackPage, Driver.TexturePaintApplied.PropertyTab);
 
@@ -1415,11 +1566,356 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
             return false;
         }
 
-        // ⑥ Back to the stack, then the folder + Tab -> the combined stack properties.
+        // 📐 The mask panel draws: its density slider and source field carry real ink.
+        {
+            const std::string MaskPanelPath = "_AgentScratch/layer-mask-panel.png";
+            if (!Driver.Capture(MaskPanelPath.c_str(), Atlas, AtlasWidth, AtlasHeight))
+                return false;
+
+            int ReadWidth = 0, ReadHeight = 0, ReadChannels = 0;
+            unsigned char* ReadPixels = stbi_load(MaskPanelPath.c_str(), &ReadWidth, &ReadHeight,
+                                                  &ReadChannels, 4);
+
+            if (ReadPixels == nullptr)
+                return false;
+
+            std::uint32_t MaskInk = 0u;
+
+            for (int Y = 90; Y < ReadHeight - 40; ++Y)
+            {
+                for (int X = static_cast<int>(LeafBody.MinimumX + 30.0f);
+                     X < static_cast<int>(LeafBody.MaximumX - 30.0f); ++X)
+                {
+                    const std::size_t Offset = (static_cast<std::size_t>(Y) * ReadWidth + X) * 4u;
+                    const int R = ReadPixels[Offset + 0u];
+                    const int G = ReadPixels[Offset + 1u];
+                    const int B = ReadPixels[Offset + 2u];
+
+                    if (R > 110 || G > 110 || B > 110)
+                        ++MaskInk;
+                }
+            }
+
+            stbi_image_free(ReadPixels);
+
+            std::fprintf(stderr, "[assert] mask panel ink: %u\n", MaskInk);
+            if (MaskInk < 200u)
+            {
+                std::fprintf(stderr, "[FAIL] the mask panel did not draw\n");
+                return false;
+            }
+        }
+
+        // ⑥ The stack page's own interactions — the reference's gestures, asserted on the context
+        //    and on real pixels.
+
+        // ⑥a The details chevron on the Levels row travels to the channel properties, exactly like Tab.
         Driver.SimLayersTab = true;
-        Driver.Tick(LeafX, RowY[0], false, false, false);
+        Driver.Tick(LeafX, RowY[1], false, false, false);
         Driver.Settle(2);
 
+        const float DetailX = Row1.MaximumX - 56.0f + 11.5f;
+        const float MoreX = Row1.MaximumX - 29.0f + 11.5f;
+
+        Driver.Tick(DetailX, LayerMidY(Row1), true, true, false);
+        Driver.Tick(DetailX, LayerMidY(Row1), false, false, true);
+        Driver.Settle(2);
+
+        std::fprintf(stderr, "[assert] details chevron: page=%u tab=%u taken=%u\n",
+                     Driver.TexturePaintApplied.StackPage, Driver.TexturePaintApplied.PropertyTab,
+                     Driver.TexturePaintApplied.LayerTaken);
+
+        if (Driver.TexturePaintApplied.StackPage != 1u ||
+            Driver.TexturePaintApplied.LayerTaken != 1u)
+        {
+            std::fprintf(stderr, "[FAIL] the details chevron did not travel to the properties\n");
+            return false;
+        }
+
+        Driver.SimLayersTab = true;
+        Driver.Tick(DetailX, LayerMidY(Row1), false, false, false);
+        Driver.Settle(2);
+
+        // ⑥b The more button opens the layer menu; picking Duplicate raises the structural request
+        //     the shared stack helper applies — one new row stands, drawn and all.
+        Driver.Tick(MoreX, LayerMidY(Row1), true, true, false);
+        Driver.Tick(MoreX, LayerMidY(Row1), false, false, true);
+        Driver.Settle(2);
+
+        if (Driver.TexturePaintApplied.MenuOpen != 2u)
+        {
+            std::fprintf(stderr, "[FAIL] the more button did not open the layer menu\n");
+            return false;
+        }
+
+        const float MenuCardW = 206.0f;
+        const float MenuRowY = Scaled.LayerToolHeight + 2.0f;
+        const float LayerMenuX = Row1.MaximumX - 6.0f - MenuCardW;
+        const float LayerMenuY = Row1.MinimumY + Scaled.LayerRowY + 6.0f;
+        const float ItemTop = LayerMenuY + Scaled.PanePad + 20.0f;
+
+        const std::string MenuPath = "_AgentScratch/layer-menu.png";
+        if (!Driver.Capture(MenuPath.c_str(), Atlas, AtlasWidth, AtlasHeight))
+            return false;
+
+        // 📐 The menu card itself draws above the rows: its ground is the menu's near-black with the
+        //    1 px bright edge — assert the edge's ink inside the card's band.
+        {
+            int ReadWidth = 0, ReadHeight = 0, ReadChannels = 0;
+            unsigned char* ReadPixels = stbi_load(MenuPath.c_str(), &ReadWidth, &ReadHeight,
+                                                  &ReadChannels, 4);
+
+            if (ReadPixels == nullptr)
+                return false;
+
+            std::uint32_t CardInk = 0u;
+
+            for (int Y = static_cast<int>(LayerMenuY); Y < static_cast<int>(LayerMenuY + 300.0f); ++Y)
+            {
+                for (int X = static_cast<int>(LayerMenuX);
+                     X < static_cast<int>(LayerMenuX + MenuCardW); ++X)
+                {
+                    const std::size_t Offset = (static_cast<std::size_t>(Y) * ReadWidth + X) * 4u;
+                    const int R = ReadPixels[Offset + 0u];
+                    const int G = ReadPixels[Offset + 1u];
+                    const int B = ReadPixels[Offset + 2u];
+
+                    if (R > 120 && G > 120 && B > 120)
+                        ++CardInk;
+                }
+            }
+
+            std::fprintf(stderr, "[assert] layer menu card ink: %u\n", CardInk);
+            if (CardInk < 60u)
+            {
+                std::fprintf(stderr, "[FAIL] the layer menu card did not draw\n");
+                stbi_image_free(ReadPixels);
+                return false;
+            }
+
+            stbi_image_free(ReadPixels);
+        }
+
+        // 📐 Duplicate — the fourth item (Details, mask, lock, solo, DUPLICATE, group, delete).
+        const float DuplicateY = ItemTop + MenuRowY * 4.0f + MenuRowY * 0.5f;
+
+        Driver.Tick(LayerMenuX + MenuCardW * 0.5f, DuplicateY, true, true, false);
+        Driver.Tick(LayerMenuX + MenuCardW * 0.5f, DuplicateY, false, false, true);
+        Driver.Settle(2);
+
+        std::fprintf(stderr, "[assert] after duplicate: rows=%u taken=%u menu=%u\n",
+                     Driver.StackRows.Count, Driver.TexturePaintApplied.LayerTaken,
+                     Driver.TexturePaintApplied.MenuOpen);
+
+        if (Driver.StackRows.Count != 13u || Driver.TexturePaintApplied.MenuOpen != 0u)
+        {
+            std::fprintf(stderr, "[FAIL] the layer menu's Duplicate did not insert a row\n");
+            return false;
+        }
+
+        // 📐 Select the copy, then the trash button removes it again — the twelfth bar button.
+        Driver.Tick(LeafX, LayerMidY(Row1), true, true, false);
+        Driver.Tick(LeafX, LayerMidY(Row1), false, false, true);
+        Driver.Settle(2);
+
+        const float BarTop = FooterY0 + Scaled.LayerFootCrumb + Scaled.LayerFootProp
+                           + (Scaled.LayerFootBar - Scaled.LayerToolHeight) * 0.5f;
+        const float TrashX = LeafBody.MinimumX + Pad + 424.0f;
+
+        Driver.Tick(TrashX, BarTop + 14.0f, true, true, false);
+        Driver.Tick(TrashX, BarTop + 14.0f, false, false, true);
+        Driver.Settle(2);
+
+        std::fprintf(stderr, "[assert] after trash: rows=%u\n", Driver.StackRows.Count);
+        if (Driver.StackRows.Count != 12u)
+        {
+            std::fprintf(stderr, "[FAIL] the trash button did not delete the copied row\n");
+            return false;
+        }
+
+        // ⑥c The layer menu's Solo dims every row outside the solo set and stands the SOLO chip —
+        //     asserted on the yellow chip's pixels in the header band.
+        const PlaneExtent Row1Again = Driver.TexturePaint.RowExtent(1u);
+        const float MoreX2 = Row1Again.MaximumX - 29.0f + 11.5f;
+        const float LayerMenuY2 = Row1Again.MinimumY + Scaled.LayerRowY + 6.0f;
+        const float ItemTop2 = LayerMenuY2 + Scaled.PanePad + 20.0f;
+
+        Driver.Tick(MoreX2, LayerMidY(Row1Again), true, true, false);
+        Driver.Tick(MoreX2, LayerMidY(Row1Again), false, false, true);
+        Driver.Settle(2);
+
+        const float SoloY = ItemTop2 + MenuRowY * 3.0f + MenuRowY * 0.5f;
+
+        Driver.Tick(LayerMenuX + MenuCardW * 0.5f, SoloY, true, true, false);
+        Driver.Tick(LayerMenuX + MenuCardW * 0.5f, SoloY, false, false, true);
+        Driver.Settle(2);
+
+        if (Driver.TexturePaintApplied.SoloTaken != 1u)
+        {
+            std::fprintf(stderr, "[FAIL] the layer menu's Solo did not stand the solo\n");
+            return false;
+        }
+
+        const std::string SoloPath = "_AgentScratch/layer-solo.png";
+        if (!Driver.Capture(SoloPath.c_str(), Atlas, AtlasWidth, AtlasHeight))
+            return false;
+
+        {
+            int ReadWidth = 0, ReadHeight = 0, ReadChannels = 0;
+            unsigned char* ReadPixels = stbi_load(SoloPath.c_str(), &ReadWidth, &ReadHeight,
+                                                  &ReadChannels, 4);
+
+            if (ReadPixels == nullptr)
+                return false;
+
+            std::uint32_t SoloInk = 0u;
+
+            for (int Y = static_cast<int>(HeaderTop); Y < static_cast<int>(HeaderBottom); ++Y)
+            {
+                for (int X = static_cast<int>(LeafBody.MinimumX + 100.0f);
+                     X < static_cast<int>(LeafBody.MaximumX - 140.0f); ++X)
+                {
+                    const std::size_t Offset = (static_cast<std::size_t>(Y) * ReadWidth + X) * 4u;
+                    const int R = ReadPixels[Offset + 0u];
+                    const int G = ReadPixels[Offset + 1u];
+                    const int B = ReadPixels[Offset + 2u];
+
+                    if (R > 230 && G > 180 && B < 130)
+                        ++SoloInk;
+                }
+            }
+
+            std::fprintf(stderr, "[assert] SOLO chip yellow ink: %u\n", SoloInk);
+            if (SoloInk < 40u)
+            {
+                std::fprintf(stderr, "[FAIL] the SOLO chip did not stand in the header\n");
+                stbi_image_free(ReadPixels);
+                return false;
+            }
+
+            stbi_image_free(ReadPixels);
+        }
+
+        // 📐 Clear the solo through the same menu, then the blend pill: pick Screen (roster index 4).
+        Driver.Tick(MoreX2, LayerMidY(Row1Again), true, true, false);
+        Driver.Tick(MoreX2, LayerMidY(Row1Again), false, false, true);
+        Driver.Settle(2);
+
+        Driver.Tick(LayerMenuX + MenuCardW * 0.5f, SoloY, true, true, false);
+        Driver.Tick(LayerMenuX + MenuCardW * 0.5f, SoloY, false, false, true);
+        Driver.Settle(2);
+
+        if (Driver.TexturePaintApplied.SoloTaken != 0xFFFFFFFFu)
+        {
+            std::fprintf(stderr, "[FAIL] the layer menu's Clear solo did not stand down\n");
+            return false;
+        }
+
+        const float PillX = LeafBody.MinimumX + Pad;
+        const float PillW = std::min(LeafBody.Width() * 0.45f, 190.0f);
+        const float PillY = FooterY0 + Scaled.LayerFootCrumb
+                          + (Scaled.LayerFootProp - (Scaled.LayerToolHeight - 1.0f)) * 0.5f;
+        const float PillMidY = PillY + (Scaled.LayerToolHeight - 1.0f) * 0.5f;
+
+        Driver.Tick(PillX + PillW * 0.5f, PillMidY, true, true, false);
+        Driver.Tick(PillX + PillW * 0.5f, PillMidY, false, false, true);
+        Driver.Settle(2);
+
+        if (Driver.TexturePaintApplied.MenuOpen != 4u)
+        {
+            std::fprintf(stderr, "[FAIL] the blend pill did not open the blend menu\n");
+            return false;
+        }
+
+        const float BlendCardY0 = PillY + (Scaled.LayerToolHeight - 1.0f) + 6.0f;
+        const float BlendCardH = Scaled.PanePad * 2.0f + 20.0f + MenuRowY * 13.0f;
+        const float BlendMenuY = (BlendCardY0 + BlendCardH > LeafBody.MaximumY - 6.0f)
+                               ? PillY - BlendCardH - 6.0f : BlendCardY0;
+        const float BlendItemTop = BlendMenuY + Scaled.PanePad + 20.0f;
+        const float ScreenY = BlendItemTop + MenuRowY * 4.0f + MenuRowY * 0.5f;
+        const float BlendMenuX = std::max(LeafBody.MinimumX + 6.0f, PillX + PillW - MenuCardW);
+
+        Driver.Tick(BlendMenuX + MenuCardW * 0.5f, ScreenY, true, true, false);
+        Driver.Tick(BlendMenuX + MenuCardW * 0.5f, ScreenY, false, false, true);
+        Driver.Settle(2);
+
+        std::fprintf(stderr, "[assert] blend picked: %u (Screen=4) menu=%u\n",
+                     Driver.TexturePaintApplied.LayerBlendTaken[1u],
+                     Driver.TexturePaintApplied.MenuOpen);
+
+        if (Driver.TexturePaintApplied.LayerBlendTaken[1u] != 4u ||
+            Driver.TexturePaintApplied.MenuOpen != 0u)
+        {
+            std::fprintf(stderr, "[FAIL] the blend menu did not take Screen\n");
+            return false;
+        }
+
+        // ⑥d The footer's opacity slider: one drag writes the layer's working opacity.
+        const float TrackX0 = PillX + PillW + 12.0f;
+        const float TrackW = LeafBody.MaximumX - Pad - 46.0f - 8.0f - TrackX0;
+        const float DragX = TrackX0 + TrackW * 0.6f;
+
+        Driver.Tick(DragX, PillMidY, true, true, false);
+        Driver.Tick(DragX, PillMidY, true, false, false);
+        Driver.Tick(DragX, PillMidY, false, false, true);
+        Driver.Settle(2);
+
+        std::fprintf(stderr, "[assert] opacity after drag: %u\n",
+                     Driver.TexturePaintApplied.LayerOpacity[1u]);
+
+        if (Driver.TexturePaintApplied.LayerOpacity[1u] < 55u ||
+            Driver.TexturePaintApplied.LayerOpacity[1u] > 65u)
+        {
+            std::fprintf(stderr, "[FAIL] the footer opacity slider did not write the drag\n");
+            return false;
+        }
+
+        // ⑥e The lock button stands the row's L chip.
+        const float LockX = LeafBody.MinimumX + Pad + 286.0f + 14.0f;
+
+        Driver.Tick(LockX, BarTop + 14.0f, true, true, false);
+        Driver.Tick(LockX, BarTop + 14.0f, false, false, true);
+        Driver.Settle(2);
+
+        std::fprintf(stderr, "[assert] locked: %d\n",
+                     Driver.TexturePaintApplied.LayerLocked[1u] ? 1 : 0);
+
+        if (!Driver.TexturePaintApplied.LayerLocked[1u])
+        {
+            std::fprintf(stderr, "[FAIL] the lock button did not lock the taken row\n");
+            return false;
+        }
+
+        // ⑥f The header's expand toggle stands and retires the reference's wide columns.
+        const float AddX = LeafBody.MaximumX - Pad - Scaled.LayerToolHeight;
+        const float ExpandX = AddX - 34.0f + 14.0f;
+        const float HeaderMidY = HeaderTop + Scaled.HeaderHeight * 0.5f;
+
+        Driver.Tick(ExpandX, HeaderMidY, true, true, false);
+        Driver.Tick(ExpandX, HeaderMidY, false, false, true);
+        Driver.Settle(2);
+
+        std::fprintf(stderr, "[assert] wide rows after expand: %d\n",
+                     Driver.TexturePaintApplied.WideRows ? 1 : 0);
+
+        if (!Driver.TexturePaintApplied.WideRows)
+        {
+            std::fprintf(stderr, "[FAIL] the expand toggle did not stand the wide columns\n");
+            return false;
+        }
+
+        Driver.Tick(ExpandX, HeaderMidY, true, true, false);
+        Driver.Tick(ExpandX, HeaderMidY, false, false, true);
+        Driver.Settle(2);
+
+        if (Driver.TexturePaintApplied.WideRows)
+        {
+            std::fprintf(stderr, "[FAIL] the expand toggle did not retire the wide columns\n");
+            return false;
+        }
+
+        // ⑦ The stack still stands (the interactions above never left it); take the folder, then
+        //    Tab -> the combined stack properties.
         Driver.Tick(LeafX, RowY[0], true, true, false);
         Driver.Tick(LeafX, RowY[0], false, false, true);
         Driver.Settle(2);
@@ -1438,6 +1934,17 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
             return false;
         }
 
+        // 📐 The folder page is captured to scratch for its ink assert; the committed proof then
+        //    slides BACK to the stack page — the redesigned layer stack is the picture the user
+        //    asked to see.
+        const std::string FolderPath = "_AgentScratch/layer-folder.png";
+        if (!Driver.Capture(FolderPath.c_str(), Atlas, AtlasWidth, AtlasHeight))
+            return false;
+
+        Driver.SimLayersTab = true;
+        Driver.Tick(LeafX, RowY[0], false, false, false);
+        Driver.Settle(2);
+
         if (!Driver.Capture(OutputPath, Atlas, AtlasWidth, AtlasHeight))
             return false;
 
@@ -1446,7 +1953,7 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
             int ReadWidth = 0;
             int ReadHeight = 0;
             int ReadChannels = 0;
-            unsigned char* ReadPixels = stbi_load(OutputPath, &ReadWidth, &ReadHeight, &ReadChannels, 4);
+            unsigned char* ReadPixels = stbi_load(FolderPath.c_str(), &ReadWidth, &ReadHeight, &ReadChannels, 4);
 
             if (ReadPixels == nullptr)
             {

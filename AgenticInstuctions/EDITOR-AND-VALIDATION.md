@@ -105,12 +105,39 @@ The editor's layer stack is a DEDICATED class, `TexturePaintPanel`
 the validation host's `LayerStackPanel` (that one stays the prototype's, with
 its history spine; the editor's has none, exactly as the user asked).
 
-- **The flow**: the leaf is a two-page carousel. The STACK page shows every
-  layer's small details only — badge, name, blend, opacity mini-bar, MASK / n/8
-  CH chips, the attached mask row — plus the SAME filter pair as the scene
-  directory (a search pill + the FacetPanel of layer categories: Paint, Fill,
-  Decal, Pattern, Generator, Adjustment, Filter, Folder). Tab TOGGLES to the
-  PROPERTIES page, landing on the tab the selection names:
+- **The stack page IS the LayerstackV1 reference** — appearance and gestures
+  faithful to the HTML, not a simplified row list:
+  - HEADER: "LAYERS" + the "N · Mm" count chip + the SOLO chip (while a row is
+    solo'd) + undo/redo (drawn disabled — no history spine) + the expand
+    toggle (the reference's wide columns) + the solid Add button (rightmost).
+  - TOOLS: the search pill ("Filter layers…"), the separator, and the folder /
+    mask / collapse-all tools. The same FacetPanel filter card (layer
+    categories) sits below, as the user required.
+  - ROWS (45 px): the 3 px colour tag (dotted on a mask), the disclosure
+    chevron, the eye, the 35 px square thumb (checker + folder glyph for
+    folders; hue wash + the type badge for layers), name + the sub run
+    (Type · blend · op%, or "N items · blend" for a folder), the chips
+    (3D / L / MASK / n FX / x/8 CH), the details chevron and the "more" menu.
+  - MASKS: the attached 37 px row with the connector elbow, the dashed border,
+    the uppercase MASK name, "source · Gray 8 · density · INV", chips, the
+    details chevron and its menu.
+  - FOLDERS: children indented with the colour guide line.
+  - FOOTER: the crumb, the blend pill (its menu carries the 13-blend roster
+    with the check on the standing blend), the opacity slider + value pill,
+    and the action bar (paint / fill / adjustment / filter / decal / pattern ·
+    group / duplicate / lock · move up / move down · delete). The opacity
+    slider drives the layer's opacity, or the MASK's density while a mask is
+    taken, exactly as the reference's footer does.
+- **Menus are the reference's `.pop`**: a rounded card with pill options,
+  recorded ABOVE the whole page inside the leaf, opened from the Add button
+  (Paint/Fill/Adjustment/Filter/Decal/Pattern/Group), the row's more button
+  (Details / mask / lock / solo / duplicate / group / the ten colour swatches /
+  delete), the mask row's more button (Details / Invert / Delete mask) and the
+  blend pill. One menu stands at a time through the ledger's disclosure slot;
+  a contact outside the card withdraws it.
+- **The flow**: the leaf is a two-page carousel. The STACK page is the HTML's;
+  Tab (or a row's details chevron) TOGGLES to the PROPERTIES page, landing on
+  the tab the selection names:
   - a layer row → Channel Properties (per-channel dot / name / blend / opacity,
     with its own search pill + channel-group facets: Base, Maps, Output)
   - a mask row → the Mask panel (source dropdown, density, invert, applies-to
@@ -119,20 +146,33 @@ its history spine; the editor's has none, exactly as the user asked).
   - a FOLDER → the COMBINED stack properties (layer count, mask count, channel
     union, passthrough, opacity — one summary over the whole subtree)
   The property tabs are switched with the strip; Tab never cycles them.
+- **The per-row working copies** (opacity, blend, lock, mask, tag hue) are
+  context-owned and seeded from the rows by `SeedPaintContextFromRows`; the
+  structural operations (add / duplicate / group / move / delete) are one
+  request slot per tick (`TexturePaintRequest`), drained by the host through
+  the shared `TexturePaintStack` helper (`Seed` + `ApplyRequest`), which the
+  harness drives identically so the two can never drift.
 - **The editor's contract** is `TexturePaintContract.h` (`TextureLayerRow`,
-  `TextureLayerClassification`, tags, sources, detail runs). Do not merge it
-  with the validation `LayerStackPanel`'s types.
-- **The editor host** owns `TexturePaintPanel` + `TexturePaintContext` on the
-  shared scene ledger, seeds the reference's mock tree, feeds the search pill
-  gated on `SearchTaken`, and routes Tab to the texture-paint panel only when
-  the pointer is over one of its leaves (the scene directory keeps Tab
-  otherwise). `PanelSubject::TexturePaint` is the fifth panel type (appended,
-  so ordinals 0-4 never move); the vacant chooser and the subject menu offer
-  it, and `LeafPanel::LayerStack` is its chrome ground.
-- **The proof** (`editor-layerstack`): stack rows render, "decal" narrows the
-  search to one row, the Fill facet narrows to the fills, a layer + Tab opens
-  Channel Properties, a mask + Tab opens the mask panel, a folder + Tab opens
-  the combined stack page — all asserted on real pixels.
+  `TextureLayerClassification`, tags, sources, detail runs, the blend and mask
+  rosters, `TexturePaintStack`). Do not merge it with the validation
+  `LayerStackPanel`'s types.
+- **The editor host** owns `TexturePaintPanel` + `TexturePaintContext` + the
+  mutable `TexturePaintStack`, seeds the reference's mock tree, feeds the
+  search pill gated on `SearchTaken`, and routes Tab to the texture-paint panel
+  only when the pointer is over one of its leaves (the scene directory keeps
+  Tab otherwise). `PanelSubject::TexturePaint` is the fifth panel type
+  (appended, so ordinals 0-4 never move); the vacant chooser and the subject
+  menu offer it, and `LeafPanel::LayerStack` is its chrome ground.
+- **The proof** (`editor-layerstack`): stack rows render with their colour
+  tags (exact hue pixels), the attached mask row's dashed border stands, the
+  footer's blend/opacity/action bar draws, "decal" narrows the search to one
+  row, the Fill facet narrows to the fills, a layer + Tab opens Channel
+  Properties, a mask + Tab opens the mask panel, the details chevron travels,
+  the more menu opens and its Duplicate inserts a row (13 rows stand) and the
+  trash removes it again, the SOLO chip's yellow pixels stand in the header,
+  the blend menu takes Screen, the opacity drag writes 60 %, the lock button
+  locks, the expand toggle stands and retires the wide columns, and a folder +
+  Tab opens the combined stack page — all asserted on real pixels.
 
 ## The GPU overlay pass (grid, gizmo, wireframe)
 

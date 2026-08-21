@@ -34,7 +34,8 @@ enum class SymbolDiscipline : std::uint32_t
     Simulation           =  9u,   // [-] - cloth, fluid, rigid collision, particles
     Assembly             = 10u,   // [-] - layer merge, alpha masks, colour, junction graphs
     Measurement          = 11u,   // [-] - pulse traces, rulers, histograms, readouts
-    DisciplineCount      = 12u    // [-] - the closed count, never a discipline
+    LayerStack           = 12u,   // [-] - the texture-paint stack: undo, blend, mask, add actions
+    DisciplineCount      = 13u    // [-] - the closed count, never a discipline
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -139,7 +140,27 @@ enum class SymbolSubject : std::uint32_t
     StatisticReadout    = 65u,   // 🚧
 
     PlaceholderMark     = 66u,   // 🟢 what every unresolved subject above draws as
-    SubjectCount        = 67u    // [-] - the closed count, never a subject
+
+    // Layer stack -------------------------------------------------------------------------------------------
+    // 🟢 The LayerstackV1 reference's own icons, appended so every ordinal above stays put.
+    UndoArrow           = 67u,   // 🟢 lucide `undo-2`       — the header's undo
+    RedoArrow           = 68u,   // 🟢 lucide `redo-2`       — the header's redo
+    ExpandFrame         = 69u,   // 🟢 lucide `maximize-2`   — the header's wide/full toggle
+    CollapseFold        = 70u,   // 🟢 lucide `chevrons-up-down` — the collapse/expand-all tool
+    EllipsisDots        = 71u,   // 🟢 lucide `ellipsis`     — the row's "more" menu
+    DropletDrop         = 72u,   // 🟢 lucide `droplet`      — a fill layer
+    AdjustmentSliders   = 73u,   // 🟢 lucide `sliders-horizontal` — an adjustment layer
+    FilterFunnel        = 74u,   // 🟢 lucide `funnel`       — a filter layer
+    StencilDecal        = 75u,   // 🟢 the reference's decal — a decal layer
+    TiledPattern        = 76u,   // 🟢 lucide `layout-grid`  — a pattern layer
+    GeneratorSpark      = 77u,   // 🟢 the reference's spark — a generator layer
+    CopyDuplicate       = 78u,   // 🟢 lucide `copy`         — the duplicate action
+    LockClosed          = 79u,   // 🟢 lucide `lock`         — the lock action
+    LockOpen            = 80u,   // 🟢 lucide `unlock`       — the unlock action
+    ArrowUpLine         = 81u,   // 🟢 lucide `arrow-up`     — the move-up action
+    ArrowDownLine       = 82u,   // 🟢 lucide `arrow-down`   — the move-down action
+    HalfMask            = 83u,   // 🟢 the reference's mask  — a mask row, and the mask tool
+    SubjectCount        = 84u    // [-] - the closed count, never a subject
 };
 
 //------------------------------------------------------------------------------------------------------------------------

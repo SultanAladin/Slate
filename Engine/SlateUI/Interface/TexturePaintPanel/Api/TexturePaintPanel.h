@@ -2,13 +2,29 @@
 //                                                           TEXTUREPAINTPANEL.H
 //============================================================================================================================================
 // 🧩 The editor's texture-paint layer stack — a dedicated sibling of
-//    SceneDirectoryPanel, presenting the LayerstackV1 and
-//    ChannelPropertyPanel references inside a workspace leaf.
+//    SceneDirectoryPanel, presenting the LayerstackV1 reference inside a
+//    workspace leaf, appearance and interactions faithful to the HTML:
 //
-//    🔴 WHAT THIS PANEL IS. The stack page records every layer's SMALL details
-//       (badge, name, blend, opacity bar, chips, attached mask row) and nothing
-//       more; the full details live on the PROPERTIES page, reached with Tab
-//       exactly as the user's flow describes:
+//    HEADER   "LAYERS" + the "N · Mm" count chip + the SOLO chip (while a row
+//             is solo'd) + undo/redo (drawn disabled — no history spine) +
+//             the expand toggle + the solid Add button.
+//    TOOLS    the search pill ("Filter layers…") + the folder, mask and
+//             collapse-all tools, exactly the reference's tools row.
+//    ROWS     45 px entries with the 3 px colour tag (dotted on a mask), the
+//             disclosure chevron, the eye, the 35 px square thumb with the
+//             type badge, name + sub run, the chips (3D / L / MASK / n FX /
+//             x/8 CH), the details chevron and the "more" menu.
+//    MASKS    the attached 37 px mask row with the connector elbow, the
+//             dashed border, the uppercase MASK name, the source · Gray 8 ·
+//             density · INV sub run, chips and menu.
+//    FOLDERS  children indented with the colour guide line.
+//    FOOTER   the crumb, the blend pill + opacity slider, and the action bar
+//             (paint / fill / adjustment / filter / decal / pattern · group /
+//             duplicate / lock · move up / move down · delete).
+//
+//    🔴 WHAT THE PANEL IS. The stack page is the HTML's; the full details live
+//       on the PROPERTIES page, reached with Tab or with a row's details
+//       chevron exactly as the user's flow describes:
 //         - a layer row   + Tab  → Channel Properties (the per-channel
 //           panels of ChannelPropertyPanel.html: dot, name, blend, opacity)
 //         - a mask row    + Tab  → the Mask panel (source, density, invert,
@@ -19,10 +35,10 @@
 //         - a FOLDER      + Tab  → the COMBINED stack properties (counts,
 //           mask count, channel union, passthrough) — one summary, not per
 //           child, exactly as the user asked.
-//       The two pages slide as a carousel (the leaf is a 200 %-wide strip),
-//       and the properties page carries a strip of the tabs the selection
-//       offers. NO history panel — the reference's undo/redo spine is not
-//       ported; the properties page is where the details live.
+//       The two pages slide as a carousel, and the properties page carries a
+//       strip of the tabs the selection offers. NO history panel — the
+//       reference's undo/redo spine is not ported (the two header buttons
+//       draw disabled); the properties page is where the details live.
 //
 //    The SAME filter as the scene directory sits on both pages: a search pill
 //    and the reusable FacetPanel — layer categories on the stack page, channel
@@ -50,14 +66,15 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Every datum the texture-paint panel presents, owned by the host and written through by the panel.
+///    The per-row working copies (opacity, blend, lock, mask, tag hue) are seeded from the rows at
+///    bring-up and synchronised back through `TexturePaintStack::ApplyRequest` — the rows stay the model.
 /// tag   contract
 struct TexturePaintContext
 {
-    static constexpr std::uint32_t TextureLayerCeiling    = 16u;   // [-] - rows, folders included
-    static constexpr std::uint32_t TextureChannelCeiling  = 8u;    // [-] - matches TextureChannelCeiling
     static constexpr std::uint32_t TextureRetentionCeiling = 48u;  // [-] - the search run, terminator included
     static constexpr std::uint32_t TextureFacetCount      = 8u;    // [-] - Paint … Filter
     static constexpr std::uint32_t TextureChannelFacetCount = 3u;  // [-] - Base, Maps, Output
+    static constexpr std::uint32_t TextureSwatchCount     = 10u;   // [-] - the reference's COLORS run
 
     // 📐 The selection and the pages. `StackPage` is the carousel: 0 the stack, 1 the properties.
     //    `PropertyTab` is which properties panel the strip shows — 0 Channels, 1 Mask, 2 Settings
@@ -74,15 +91,34 @@ struct TexturePaintContext
     bool                       FacetEnabled[TextureFacetCount]     = {};  // [-] - layer categories
     bool                       ChannelFacet[TextureChannelFacetCount] = {};  // [-] - channel groups
 
-    // 📝 The rows' own conditions: disclosure, presence, the per-row detail card, and the channel
-    //    each layer is showing on the properties page.
+    // 📝 The rows' own conditions: disclosure, presence, the details chevron's page travel, and the
+    //    channel each layer is showing on the properties page.
     bool                       LayerExpanded[TextureLayerCeiling]  = {};
     bool                       LayerPresent[TextureLayerCeiling]   = {};
-    bool                       LayerUnfolded[TextureLayerCeiling]  = {};
     std::uint32_t              ChannelTaken[TextureLayerCeiling]   = {};
     bool                       ChannelFolded[TextureChannelCeiling] = {};
     bool                       MaskFolded    = false;       // [-] - the mask panel's sections
     bool                       SettingFolded = false;       // [-] - the settings panel's sections
+
+    // 📝 The per-row working copies — the fields the artist edits on the stack page itself, seeded
+    //    from the rows at bring-up and written back by `TexturePaintStack::ApplyRequest`.
+    std::uint32_t              LayerOpacity[TextureLayerCeiling]   = {};   // [%] - the footer slider
+    std::uint32_t              LayerBlendTaken[TextureLayerCeiling] = {};  // [-] - into the blend roster
+    bool                       LayerLocked[TextureLayerCeiling]    = {};
+    bool                       MaskAttached[TextureLayerCeiling]   = {};
+    bool                       MaskVisible[TextureLayerCeiling]    = {};
+    std::uint32_t              LayerTagHue[TextureLayerCeiling]    = {};   // [-] - 0xRRGGBB, the entry tag
+    std::uint32_t              SoloTaken     = 0xFFFFFFFFu;      // [-] - the solo'd row; absent for none
+    bool                       WideRows      = false;        // [-] - the expand toggle's wide columns
+
+    // 📝 The open menu. `MenuOpen` is 0 none, 1 the Add menu, 2 the layer menu, 3 the mask menu,
+    //    4 the blend menu; `MenuRow` is the row the layer/mask menu hangs from.
+    std::uint32_t              MenuOpen      = 0u;
+    std::uint32_t              MenuRow       = 0u;
+
+    // 📝 One structural request per tick — what the action bar asked for; the host drains it through
+    //    `TexturePaintStack::ApplyRequest` after the record.
+    std::uint32_t              Structural    = 0u;           // [-] - TexturePaintRequest
 
     // 📝 The properties page's editable scratch — the panel writes these, the host seeds them from
     //    the rows at bring-up. Per-layer channel state, mask state and the settings sliders.
@@ -110,15 +146,16 @@ public:
 
     /// 🧩 Exactly how many control identities `Construct` claims, stated where they are claimed.
     static constexpr std::uint32_t RegistrationDemand =
-          TexturePaintContext::TextureLayerCeiling * 4u    // [-] - contact, chevron, eye, unfold per row
-        + TexturePaintContext::TextureLayerCeiling         // [-] - one mask contact per row
-        + 4u                                               // [-] - the page strip, the property strip,
-                                                           //       the search field and the Add button
-        + FacetPanel::FacetCapacity + 2u                   // [-] - the stack page's filter card
-        + FacetPanel::FacetCapacity + 2u                   // [-] - the properties page's channel filter
-        + TexturePaintContext::TextureChannelCeiling * 4u  // [-] - fold, dot, blend, opacity per channel
-        + 6u;                                              // [-] - the mask panel's rows and toggles
-                                                           //       plus the settings panel's rows
+          TextureLayerCeiling * 5u          // [-] - contact, chevron, eye, details, more per row
+        + TextureLayerCeiling * 4u          // [-] - contact, eye, details, more per attached mask
+        + 9u                                // [-] - undo, redo, expand, add, solo, folder, mask, collapse, search
+        + 14u                               // [-] - the blend field, the opacity row and the twelve bar buttons
+        + 2u                                // [-] - the page strips
+        + (FacetPanel::FacetCapacity + 2u) * 2u   // [-] - the two filter cards
+        + TextureChannelCeiling * 4u        // [-] - fold, dot, blend, opacity per channel
+        + 8u                                // [-] - the mask card's rows and the settings card's rows
+        + 44u;                              // [-] - the four menu anchors plus menu items: add 7,
+                                            //       layer 7, swatches 10, mask 3, blend 13
 
     TexturePaintPanel()                                   = default;
     TexturePaintPanel(const TexturePaintPanel&)           = delete;
@@ -184,10 +221,20 @@ private:
 
     void RecordStackPage(const PlaneExtent& Extent, TexturePaintContext& Applied,
                          const TextureLayerRow* Rows, std::uint32_t RowCount);
+    void RecordStackHeader(const PlaneExtent& Header, TexturePaintContext& Applied,
+                           std::uint32_t RowCount);
+    void RecordStackTools(const PlaneExtent& Tools, TexturePaintContext& Applied);
     void RecordStackRow(const PlaneExtent& Row, TexturePaintContext& Applied,
+                        const TextureLayerRow* Rows, std::uint32_t RowCount,
                         const TextureLayerRow& Current, std::uint32_t Ordinal);
     void RecordMaskRow(const PlaneExtent& Row, TexturePaintContext& Applied,
+                       const TextureLayerRow* Rows, std::uint32_t RowCount,
                        const TextureLayerRow& Current, std::uint32_t Ordinal);
+    void RecordStackFooter(const PlaneExtent& Footer, TexturePaintContext& Applied,
+                           const TextureLayerRow* Rows, std::uint32_t RowCount);
+    void RecordBarButton(ControlIdentity Target, const PlaneExtent& Cell, SymbolSubject Glyph,
+                         TexturePaintContext& Applied, std::uint32_t Request,
+                         bool Dimmed = false);
     void RecordPropertiesPage(const PlaneExtent& Extent, TexturePaintContext& Applied,
                               const TextureLayerRow* Rows, std::uint32_t RowCount);
     void RecordSearchPill(const PlaneExtent& Extent, TexturePaintContext& Applied);
@@ -206,6 +253,15 @@ private:
     std::uint32_t PropertyTabCount(const TexturePaintContext& Applied,
                                    const TextureLayerRow& Current) const;
 
+    // 📝 The popup menus — the reference's `.pop`: a rounded card of pill items, recorded above the
+    //    whole page inside the leaf.
+    void RecordMenu(const PlaneExtent& Extent, TexturePaintContext& Applied,
+                    const TextureLayerRow* Rows, std::uint32_t RowCount);
+    void RecordMenuOptions(const PlaneExtent& Card, const char* const* Captions,
+                           const SymbolSubject* Glyphs, std::uint32_t OptionCount,
+                           const char* const* Shortcuts, ControlIdentity* Identities,
+                           TexturePaintContext& Applied, std::uint32_t* Writes);
+
     InteractionIndex*           Ledger = nullptr;        // [-] - borrowed; never owned
     MotionIntegrator*           Motion = nullptr;        // [-] - borrowed; never owned
     RecordingSurface*           Surface = nullptr;       // [-] - borrowed; never owned
@@ -220,24 +276,47 @@ private:
 
     PointerCondition            Sampled = {};            // [-] - this tick's contact
 
-    ControlIdentity LayerContacts[TexturePaintContext::TextureLayerCeiling]   = {};
-    ControlIdentity LayerChevrons[TexturePaintContext::TextureLayerCeiling]  = {};
-    ControlIdentity LayerEyes[TexturePaintContext::TextureLayerCeiling]      = {};
-    ControlIdentity LayerUnfolds[TexturePaintContext::TextureLayerCeiling]   = {};
-    ControlIdentity MaskContacts[TexturePaintContext::TextureLayerCeiling]   = {};
-    ControlIdentity StackStrip      = {};
-    ControlIdentity PropertyStrip   = {};
-    ControlIdentity SearchField     = {};
-    ControlIdentity AddLayer        = {};
-    ControlIdentity ChannelFolds[TexturePaintContext::TextureChannelCeiling] = {};
-    ControlIdentity ChannelDots[TexturePaintContext::TextureChannelCeiling]  = {};
-    ControlIdentity ChannelBlends[TexturePaintContext::TextureChannelCeiling] = {};
-    ControlIdentity ChannelOps[TexturePaintContext::TextureChannelCeiling]   = {};
-    ControlIdentity MaskRows[4]     = {};
-    ControlIdentity SettingRows[4]  = {};
+    ControlIdentity HeaderUndo    = {};
+    ControlIdentity HeaderRedo    = {};
+    ControlIdentity HeaderExpand  = {};
+    ControlIdentity HeaderAdd     = {};
+    ControlIdentity SoloChip      = {};
+    ControlIdentity ToolFolder    = {};
+    ControlIdentity ToolMask      = {};
+    ControlIdentity ToolCollapse  = {};
+    ControlIdentity SearchField   = {};
+    ControlIdentity BlendField    = {};
+    ControlIdentity OpacityRow    = {};
+    ControlIdentity BarButtons[12] = {};
+    ControlIdentity StackStrip    = {};
+    ControlIdentity PropertyStrip = {};
 
-    PlaneExtent RowRects[TexturePaintContext::TextureLayerCeiling] = {};   // [-] - the last Record's rows
-    std::uint32_t RowTally = 0u;                                          // [-] - how many stood
+    ControlIdentity LayerContacts[TextureLayerCeiling]   = {};
+    ControlIdentity LayerChevrons[TextureLayerCeiling]   = {};
+    ControlIdentity LayerEyes[TextureLayerCeiling]       = {};
+    ControlIdentity LayerDetails[TextureLayerCeiling]    = {};
+    ControlIdentity LayerMores[TextureLayerCeiling]      = {};
+    ControlIdentity MaskContacts[TextureLayerCeiling]    = {};
+    ControlIdentity MaskEyes[TextureLayerCeiling]        = {};
+    ControlIdentity MaskDetails[TextureLayerCeiling]     = {};
+    ControlIdentity MaskMores[TextureLayerCeiling]       = {};
+
+    ControlIdentity ChannelFolds[TextureChannelCeiling]  = {};
+    ControlIdentity ChannelDots[TextureChannelCeiling]   = {};
+    ControlIdentity ChannelBlends[TextureChannelCeiling] = {};
+    ControlIdentity ChannelOps[TextureChannelCeiling]    = {};
+    ControlIdentity MaskRows[4]                          = {};
+    ControlIdentity SettingRows[4]                       = {};
+
+    ControlIdentity MenuAdd    = {};
+    ControlIdentity MenuLayer  = {};
+    ControlIdentity MenuMask   = {};
+    ControlIdentity MenuBlend  = {};
+    ControlIdentity MenuIdentities[40] = {};             // [-] - the pooled menu item identities
+
+    PlaneExtent MenuAnchorExtent = {};                   // [px] - where the open menu hangs from
+    PlaneExtent RowRects[TextureLayerCeiling] = {};      // [-] - the last Record's rows
+    std::uint32_t RowTally = 0u;                         // [-] - how many stood
 };
 
 } // namespace Slate

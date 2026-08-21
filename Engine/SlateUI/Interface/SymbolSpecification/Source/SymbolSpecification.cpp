@@ -348,6 +348,244 @@ constexpr StrokeStep LayerMergeSteps[] =
     {  StrokeCommand::Segment, 22.0f, 17.0f }
 };
 
+// 📝 lucide `brush` — the paint-layer glyph, from the LayerstackV1 reference's own `brush` path.
+constexpr StrokeStep PaintBristleSteps[] =
+{
+    {  StrokeCommand::Origin,   9.5f, 14.5f },
+    {  StrokeCommand::Segment,  3.8f, 20.2f },
+    {  StrokeCommand::Origin,  14.0f,  4.5f },
+    {  StrokeCommand::Segment, 19.5f, 10.0f },
+    {  StrokeCommand::Segment, 13.3f, 16.2f },
+    {  StrokeCommand::Segment, 11.4f, 17.9f },
+    {  StrokeCommand::Segment,  9.1f, 17.9f },
+    {  StrokeCommand::Segment,  6.8f, 16.9f },
+    {  StrokeCommand::Segment,  5.8f, 15.9f },
+    {  StrokeCommand::Segment,  5.8f, 13.7f },
+    {  StrokeCommand::Segment,  6.9f, 12.5f },
+    {  StrokeCommand::Origin,  17.0f,  2.5f },
+    {  StrokeCommand::Segment, 21.5f,  7.0f }
+};
+
+// 📝 lucide `droplet` — the fill-layer glyph, from the reference's `drop` path.
+constexpr StrokeStep MaterialSphereSteps[] =
+{
+    {  StrokeCommand::Origin,  12.0f, 22.0f },
+    {  StrokeCommand::Segment, 17.8f, 18.6f },
+    {  StrokeCommand::Segment, 19.0f, 15.0f },
+    {  StrokeCommand::Segment, 17.6f, 11.4f },
+    {  StrokeCommand::Segment, 14.8f,  8.6f },
+    {  StrokeCommand::Segment, 12.6f,  5.4f },
+    {  StrokeCommand::Segment, 12.0f,  3.0f },
+    {  StrokeCommand::Segment, 11.4f,  5.4f },
+    {  StrokeCommand::Segment,  9.2f,  8.6f },
+    {  StrokeCommand::Segment,  6.4f, 11.4f },
+    {  StrokeCommand::Segment,  5.0f, 15.0f },
+    {  StrokeCommand::Segment,  6.2f, 18.6f },
+    {  StrokeCommand::Close,    0.0f,  0.0f }
+};
+
+// 📝 lucide `sliders-horizontal` — the adjustment-layer glyph, from the reference's `adj` path.
+constexpr StrokeStep ChannelSelectSteps[] =
+{
+    {  StrokeCommand::Origin,  14.0f,  4.0f },
+    {  StrokeCommand::Segment, 21.0f,  4.0f },
+    {  StrokeCommand::Origin,   3.0f,  4.0f },
+    {  StrokeCommand::Segment, 10.0f,  4.0f },
+    {  StrokeCommand::Origin,  14.0f,  2.0f },
+    {  StrokeCommand::Segment, 14.0f,  6.0f },
+    {  StrokeCommand::Origin,  12.0f, 12.0f },
+    {  StrokeCommand::Segment, 21.0f, 12.0f },
+    {  StrokeCommand::Origin,   3.0f, 12.0f },
+    {  StrokeCommand::Segment,  8.0f, 12.0f },
+    {  StrokeCommand::Origin,   8.0f, 10.0f },
+    {  StrokeCommand::Segment,  8.0f, 14.0f },
+    {  StrokeCommand::Origin,  16.0f, 20.0f },
+    {  StrokeCommand::Segment, 21.0f, 20.0f },
+    {  StrokeCommand::Origin,   3.0f, 20.0f },
+    {  StrokeCommand::Segment, 12.0f, 20.0f },
+    {  StrokeCommand::Origin,  16.0f, 18.0f },
+    {  StrokeCommand::Segment, 16.0f, 22.0f }
+};
+
+// 📝 The reference's `decal` path — the decal-layer glyph: a sheet with its corner turned and a disc.
+constexpr StrokeStep StencilProjectionSteps[] =
+{
+    {  StrokeCommand::Enclosure,  4.5f,  4.5f, 15.0f, 15.0f, 1.5f },
+    {  StrokeCommand::Origin,    15.0f,  4.5f },
+    {  StrokeCommand::Segment,   19.5f,  4.5f },
+    {  StrokeCommand::Segment,   19.5f,  9.0f },
+    {  StrokeCommand::Disc,      11.0f, 13.0f,  3.0f }
+};
+
+// 📝 lucide `mask` — the mask glyph, from the reference's `mask` path: a square with its right half.
+constexpr StrokeStep MaskStencilSteps[] =
+{
+    {  StrokeCommand::Enclosure,  3.5f,  3.5f, 17.0f, 17.0f, 1.5f },
+    {  StrokeCommand::Origin,    12.0f,  3.5f },
+    {  StrokeCommand::Segment,   12.0f, 20.5f }
+};
+
+// 📝 lucide `undo-2` — the header's undo, from the reference's `undo` path.
+constexpr StrokeStep UndoArrowSteps[] =
+{
+    {  StrokeCommand::Origin,   9.0f, 14.0f },
+    {  StrokeCommand::Segment,  4.0f,  9.0f },
+    {  StrokeCommand::Segment,  9.0f,  4.0f },
+    {  StrokeCommand::Origin,   4.0f,  9.0f },
+    {  StrokeCommand::Segment, 14.5f,  9.0f },
+    {  StrokeCommand::Segment, 18.5f, 10.2f },
+    {  StrokeCommand::Segment, 20.0f, 13.0f },
+    {  StrokeCommand::Segment, 20.0f, 14.5f },
+    {  StrokeCommand::Segment, 17.8f, 18.2f },
+    {  StrokeCommand::Segment, 13.5f, 20.0f }
+};
+
+// 📝 lucide `redo-2` — the header's redo, the undo mirrored.
+constexpr StrokeStep RedoArrowSteps[] =
+{
+    {  StrokeCommand::Origin,  15.0f, 14.0f },
+    {  StrokeCommand::Segment, 20.0f,  9.0f },
+    {  StrokeCommand::Segment, 15.0f,  4.0f },
+    {  StrokeCommand::Origin,  20.0f,  9.0f },
+    {  StrokeCommand::Segment,  9.5f,  9.0f },
+    {  StrokeCommand::Segment,  5.5f, 10.2f },
+    {  StrokeCommand::Segment,  4.0f, 13.0f },
+    {  StrokeCommand::Segment,  4.0f, 14.5f },
+    {  StrokeCommand::Segment,  6.2f, 18.2f },
+    {  StrokeCommand::Segment, 10.5f, 20.0f }
+};
+
+// 📝 lucide `maximize-2` — the header's expand toggle, from the reference's `max` path.
+constexpr StrokeStep ExpandFrameSteps[] =
+{
+    {  StrokeCommand::Origin,  15.0f,  3.0f },
+    {  StrokeCommand::Segment, 21.0f,  3.0f },
+    {  StrokeCommand::Segment, 21.0f,  9.0f },
+    {  StrokeCommand::Origin,   3.0f, 15.0f },
+    {  StrokeCommand::Segment,  3.0f, 21.0f },
+    {  StrokeCommand::Segment,  9.0f, 21.0f },
+    {  StrokeCommand::Origin,  21.0f,  3.0f },
+    {  StrokeCommand::Segment, 14.0f, 10.0f },
+    {  StrokeCommand::Origin,   3.0f, 21.0f },
+    {  StrokeCommand::Segment, 10.0f, 14.0f }
+};
+
+// 📝 lucide `chevrons-up-down` — the collapse-all tool, from the reference's `collapse` path.
+constexpr StrokeStep CollapseFoldSteps[] =
+{
+    {  StrokeCommand::Origin,   7.0f, 15.0f },
+    {  StrokeCommand::Segment, 12.0f, 20.0f },
+    {  StrokeCommand::Segment, 17.0f, 15.0f },
+    {  StrokeCommand::Origin,   7.0f,  9.0f },
+    {  StrokeCommand::Segment, 12.0f,  4.0f },
+    {  StrokeCommand::Segment, 17.0f,  9.0f }
+};
+
+// 📝 lucide `ellipsis` — the row's more button, from the reference's `more` path.
+constexpr StrokeStep EllipsisDotsSteps[] =
+{
+    {  StrokeCommand::Disc,  5.5f, 12.0f, 1.6f },
+    {  StrokeCommand::Disc, 12.0f, 12.0f, 1.6f },
+    {  StrokeCommand::Disc, 18.5f, 12.0f, 1.6f }
+};
+
+// 📝 The reference's `pattern` path — four rounded tiles.
+constexpr StrokeStep TiledPatternSteps[] =
+{
+    {  StrokeCommand::Enclosure,  3.5f,  3.5f,  7.0f,  7.0f, 1.5f },
+    {  StrokeCommand::Enclosure, 13.5f,  3.5f,  7.0f,  7.0f, 1.5f },
+    {  StrokeCommand::Enclosure,  3.5f, 13.5f,  7.0f,  7.0f, 1.5f },
+    {  StrokeCommand::Enclosure, 13.5f, 13.5f,  7.0f,  7.0f, 1.5f }
+};
+
+// 📝 The reference's `gen` path — a spark, the generator-layer glyph.
+constexpr StrokeStep GeneratorSparkSteps[] =
+{
+    {  StrokeCommand::Origin,  12.0f,  3.0f },
+    {  StrokeCommand::Segment, 13.8f, 10.2f },
+    {  StrokeCommand::Segment, 21.0f, 12.0f },
+    {  StrokeCommand::Segment, 13.8f, 13.8f },
+    {  StrokeCommand::Segment, 12.0f, 21.0f },
+    {  StrokeCommand::Segment, 10.2f, 13.8f },
+    {  StrokeCommand::Segment,  3.0f, 12.0f },
+    {  StrokeCommand::Segment, 10.2f, 10.2f },
+    {  StrokeCommand::Close,    0.0f,  0.0f },
+    {  StrokeCommand::Origin,  19.5f,  2.5f },
+    {  StrokeCommand::Segment, 19.5f,  6.5f },
+    {  StrokeCommand::Origin,  17.5f,  4.5f },
+    {  StrokeCommand::Segment, 21.5f,  4.5f }
+};
+
+// 📝 lucide `funnel` — the filter-layer glyph, from the reference's `filter` path.
+constexpr StrokeStep FilterFunnelSteps[] =
+{
+    {  StrokeCommand::Origin,   2.0f,  3.0f },
+    {  StrokeCommand::Segment, 22.0f,  3.0f },
+    {  StrokeCommand::Segment, 14.0f, 12.5f },
+    {  StrokeCommand::Segment, 14.0f, 21.0f },
+    {  StrokeCommand::Segment, 10.0f, 19.0f },
+    {  StrokeCommand::Segment, 10.0f, 12.5f },
+    {  StrokeCommand::Close,    0.0f,  0.0f }
+};
+
+// 📝 lucide `copy` — the duplicate action, from the reference's `copy` path.
+constexpr StrokeStep CopyDuplicateSteps[] =
+{
+    {  StrokeCommand::Origin,   9.0f,  9.0f },
+    {  StrokeCommand::Segment, 20.0f,  9.0f },
+    {  StrokeCommand::Segment, 20.0f, 20.0f },
+    {  StrokeCommand::Segment,  9.0f, 20.0f },
+    {  StrokeCommand::Close,    0.0f,  0.0f },
+    {  StrokeCommand::Origin,  15.0f,  5.0f },
+    {  StrokeCommand::Segment,  4.0f,  5.0f },
+    {  StrokeCommand::Segment,  4.0f, 16.0f }
+};
+
+// 📝 lucide `lock` — the locked action, from the reference's `lock` path.
+constexpr StrokeStep LockClosedSteps[] =
+{
+    {  StrokeCommand::Enclosure,  5.0f, 10.5f, 14.0f,  9.5f, 2.5f },
+    {  StrokeCommand::Origin,     8.5f, 10.5f },
+    {  StrokeCommand::Segment,    8.5f,  8.2f },
+    {  StrokeCommand::Segment,    9.6f,  6.6f },
+    {  StrokeCommand::Segment,   11.2f,  5.9f },
+    {  StrokeCommand::Segment,   12.8f,  5.9f },
+    {  StrokeCommand::Segment,   14.4f,  6.6f },
+    {  StrokeCommand::Segment,   15.5f,  8.2f },
+    {  StrokeCommand::Segment,   15.5f, 10.5f }
+};
+
+// 📝 lucide `unlock` — the open shackle, from the reference's `unlock` path.
+constexpr StrokeStep LockOpenSteps[] =
+{
+    {  StrokeCommand::Enclosure,  5.0f, 10.5f, 14.0f,  9.5f, 2.5f },
+    {  StrokeCommand::Origin,     8.5f, 10.5f },
+    {  StrokeCommand::Segment,    8.5f,  8.2f },
+    {  StrokeCommand::Segment,    9.6f,  6.6f },
+    {  StrokeCommand::Segment,   11.2f,  5.9f },
+    {  StrokeCommand::Segment,   12.8f,  5.9f }
+};
+
+// 📝 lucide `arrow-up` — the move-up action, from the reference's `up` path.
+constexpr StrokeStep ArrowUpLineSteps[] =
+{
+    {  StrokeCommand::Origin,  12.0f, 19.0f },
+    {  StrokeCommand::Segment, 12.0f,  5.0f },
+    {  StrokeCommand::Origin,   5.0f, 12.0f },
+    {  StrokeCommand::Segment, 12.0f,  5.0f },
+    {  StrokeCommand::Segment, 19.0f, 12.0f }
+};
+
+// 📝 lucide `arrow-down` — the move-down action, from the reference's `down` path.
+constexpr StrokeStep ArrowDownLineSteps[] =
+{
+    {  StrokeCommand::Origin,  12.0f,  5.0f },
+    {  StrokeCommand::Segment, 12.0f, 19.0f },
+    {  StrokeCommand::Origin,   5.0f, 12.0f },
+    {  StrokeCommand::Segment, 12.0f, 19.0f },
+    {  StrokeCommand::Segment, 19.0f, 12.0f }
+};
+
 // 📝 The one approved placeholder icon — the Lucide image SVG reduced to the engine's stroke stream. Every
 //    unresolved application symbol uses it until the discipline-specific icon sets are supplied.
 constexpr StrokeStep PlaceholderSteps[] =
@@ -417,14 +655,14 @@ constexpr SymbolFigure Roster[static_cast<std::uint32_t>(SymbolSubject::SubjectC
     /* BristleTip          */ Unresolved(SymbolDiscipline::Sculpting),
     /* InflatePush         */ Unresolved(SymbolDiscipline::Sculpting),
     /* SmoothRelax         */ Unresolved(SymbolDiscipline::Sculpting),
-    /* MaskStencil         */ Unresolved(SymbolDiscipline::Sculpting),
+    /* MaskStencil         */ { MaskStencilSteps,    2u, SymbolDiscipline::Sculpting, DeclaredWeight, true },
     /* RemeshDensity       */ Unresolved(SymbolDiscipline::Sculpting),
 
     /* UnwrapSeam          */ Unresolved(SymbolDiscipline::Texturing),
-    /* PaintBristle        */ Unresolved(SymbolDiscipline::Texturing),
-    /* MaterialSphere      */ Unresolved(SymbolDiscipline::Texturing),
-    /* ChannelSelect       */ Unresolved(SymbolDiscipline::Texturing),
-    /* StencilProjection   */ Unresolved(SymbolDiscipline::Texturing),
+    /* PaintBristle        */ { PaintBristleSteps,   13u, SymbolDiscipline::Texturing, DeclaredWeight, true },
+    /* MaterialSphere      */ { MaterialSphereSteps, 13u, SymbolDiscipline::Texturing, DeclaredWeight, true },
+    /* ChannelSelect       */ { ChannelSelectSteps, 18u, SymbolDiscipline::Texturing, DeclaredWeight, true },
+    /* StencilProjection   */ { StencilProjectionSteps, 5u, SymbolDiscipline::Texturing, DeclaredWeight, true },
 
     /* SunDirectional      */ Unresolved(SymbolDiscipline::Illumination),
     /* LampPoint           */ Unresolved(SymbolDiscipline::Illumination),
@@ -456,7 +694,25 @@ constexpr SymbolFigure Roster[static_cast<std::uint32_t>(SymbolSubject::SubjectC
     /* HistogramProfile    */ Unresolved(SymbolDiscipline::Measurement),
     /* StatisticReadout    */ Unresolved(SymbolDiscipline::Measurement),
 
-    /* PlaceholderMark     */ PlaceholderFigure
+    /* PlaceholderMark     */ PlaceholderFigure,
+
+    /* UndoArrow           */ { UndoArrowSteps,      10u, SymbolDiscipline::LayerStack, DeclaredWeight, true },
+    /* RedoArrow           */ { RedoArrowSteps,      10u, SymbolDiscipline::LayerStack, DeclaredWeight, true },
+    /* ExpandFrame         */ { ExpandFrameSteps,    10u, SymbolDiscipline::LayerStack, DeclaredWeight, true },
+    /* CollapseFold        */ { CollapseFoldSteps,    6u, SymbolDiscipline::LayerStack, DeclaredWeight, true },
+    /* EllipsisDots        */ { EllipsisDotsSteps,    3u, SymbolDiscipline::LayerStack, DeclaredWeight, true },
+    /* DropletDrop         */ { MaterialSphereSteps, 13u, SymbolDiscipline::LayerStack, DeclaredWeight, true },
+    /* AdjustmentSliders   */ { ChannelSelectSteps,  18u, SymbolDiscipline::LayerStack, DeclaredWeight, true },
+    /* FilterFunnel        */ { FilterFunnelSteps,    7u, SymbolDiscipline::LayerStack, DeclaredWeight, true },
+    /* StencilDecal        */ { StencilProjectionSteps, 5u, SymbolDiscipline::LayerStack, DeclaredWeight, true },
+    /* TiledPattern        */ { TiledPatternSteps,    4u, SymbolDiscipline::LayerStack, DeclaredWeight, true },
+    /* GeneratorSpark      */ { GeneratorSparkSteps, 13u, SymbolDiscipline::LayerStack, DeclaredWeight, true },
+    /* CopyDuplicate       */ { CopyDuplicateSteps,   8u, SymbolDiscipline::LayerStack, DeclaredWeight, true },
+    /* LockClosed          */ { LockClosedSteps,      8u, SymbolDiscipline::LayerStack, DeclaredWeight, true },
+    /* LockOpen            */ { LockOpenSteps,        6u, SymbolDiscipline::LayerStack, DeclaredWeight, true },
+    /* ArrowUpLine         */ { ArrowUpLineSteps,     5u, SymbolDiscipline::LayerStack, DeclaredWeight, true },
+    /* ArrowDownLine       */ { ArrowDownLineSteps,   5u, SymbolDiscipline::LayerStack, DeclaredWeight, true },
+    /* HalfMask            */ { MaskStencilSteps,     2u, SymbolDiscipline::LayerStack, DeclaredWeight, true }
 };
 
 // 📝 🔴 The roster is declared in discipline order and the registration spans below index into it. Two orderings
@@ -491,18 +747,24 @@ constexpr SymbolSubject DisciplineOrder[] =
     SymbolSubject::LayerMerge,          SymbolSubject::AlphaMask,           SymbolSubject::ColourWheel,
     SymbolSubject::GraphJunction,
     SymbolSubject::PulseTrace,          SymbolSubject::RulerSpan,           SymbolSubject::HistogramProfile,
-    SymbolSubject::StatisticReadout
+    SymbolSubject::StatisticReadout,
+    SymbolSubject::UndoArrow,           SymbolSubject::RedoArrow,           SymbolSubject::ExpandFrame,
+    SymbolSubject::CollapseFold,        SymbolSubject::EllipsisDots,
+    SymbolSubject::DropletDrop,         SymbolSubject::AdjustmentSliders,   SymbolSubject::FilterFunnel,
+    SymbolSubject::StencilDecal,        SymbolSubject::TiledPattern,        SymbolSubject::GeneratorSpark,
+    SymbolSubject::CopyDuplicate,       SymbolSubject::LockClosed,          SymbolSubject::LockOpen,
+    SymbolSubject::ArrowUpLine,         SymbolSubject::ArrowDownLine,       SymbolSubject::HalfMask
 };
 
 constexpr std::uint32_t DisciplineFirst[static_cast<std::uint32_t>(SymbolDiscipline::DisciplineCount) + 1u] =
 {
-    0u, 13u, 18u, 27u, 32u, 37u, 42u, 46u, 50u, 54u, 58u, 62u, 66u
+    0u, 13u, 18u, 27u, 32u, 37u, 42u, 46u, 50u, 54u, 58u, 62u, 66u, 83u
 };
 
-static_assert(sizeof(DisciplineOrder) / sizeof(SymbolSubject) == 66u,
+static_assert(sizeof(DisciplineOrder) / sizeof(SymbolSubject) == 83u,
               "The discipline ordering must register every subject except the placeholder mark.");
 
-static_assert(DisciplineFirst[static_cast<std::uint32_t>(SymbolDiscipline::DisciplineCount)] == 66u,
+static_assert(DisciplineFirst[static_cast<std::uint32_t>(SymbolDiscipline::DisciplineCount)] == 83u,
               "The final registration boundary must reach the end of the discipline ordering.");
 
 }   // namespace
@@ -557,6 +819,7 @@ const char* DisciplineText(SymbolDiscipline Discipline)
         case SymbolDiscipline::Simulation:          return "Simulation";
         case SymbolDiscipline::Assembly:            return "Assembly";
         case SymbolDiscipline::Measurement:         return "Measurement";
+        case SymbolDiscipline::LayerStack:          return "Layer stack";
         default:                                    return "";
     }
 }

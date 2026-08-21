@@ -83,6 +83,10 @@ enum class TextureLayerTarget : std::uint32_t
 //                                                       THE ROWS
 //------------------------------------------------------------------------------------------------------------------------
 
+/// 🧩 How many rows one stack may hold — folders included, matching the context's ceiling.
+/// tag   contract
+inline constexpr std::uint32_t TextureLayerCeiling = 16u;   // [-] - rows, folders included
+
 /// 🧩 The eight texture channels the ChannelPropertyPanel reference presents, in its own order.
 /// tag   contract
 inline constexpr std::uint32_t TextureChannelCeiling = 8u;   // [-] - Base Color … Opacity
@@ -113,6 +117,8 @@ struct TextureLayerRow
     std::uint32_t       EnclosedCount = 0u;                    // [-] - zero presents no disclosure mark
     bool                Expanded     = true;                   // [-] - a folder's disclosure
     const char*         Tagged       = "";                     // [-] - borrowed; search tags, space-separated
+    bool                Locked       = false;                  // [-] - the row is locked against editing
+    const char*         Effects      = "";                     // [-] - borrowed; comma-separated effect names, "" = none
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -132,5 +138,86 @@ std::uint32_t TextureChannelGroup(std::uint32_t Ordinal);
 /// 🧩 The group captions for the properties page's channel filter.
 /// tag   contract
 inline constexpr std::uint32_t TextureChannelGroupCount = 3u;   // [-] - Base, Maps, Output
+
+/// 🧩 How many blends the footer roster holds.
+/// tag   contract
+inline constexpr std::uint32_t TextureBlendCount = 13u;   // [-] - Normal … Exclusion
+
+/// 🧩 The footer's blend roster — the reference's `BLENDS` run, trimmed to the editor's list. Every blend
+///    the seeded rows carry is present, so the seeding always resolves.
+/// tag   contract
+inline constexpr const char* const TextureBlendNames[TextureBlendCount] =
+{
+    "Normal", "Passthrough", "Replace", "Multiply", "Screen", "Overlay",
+    "Soft Light", "Hard Light", "Linear Dodge (Add)", "Color Dodge", "Linear Burn",
+    "Difference", "Exclusion"
+};
+
+/// 🧩 The mask source roster the mask rows and the mask panel present — the reference's `SRCLIST`.
+/// tag   contract
+inline constexpr const char* const TextureMaskSourceNames[5] =
+{
+    "Paint", "Bitmap", "Baked Map", "Polygon Fill", "Generator"
+};
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE STRUCTURAL REQUESTS
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 What one structural operation the stack page's buttons asked for — a request slot the panel writes and
+///    the host drains once per tick through `TexturePaintStack::ApplyRequest`. Only operations that CHANGE the
+///    row set travel here; everything per-row (presence, lock, mask, opacity, blend, tag hue) is context-owned
+///    and never needs the host.
+/// tag   contract
+enum class TexturePaintRequest : std::uint32_t
+{
+    None          = 0u,   // [-] - nothing stood pressed
+    AddPaint      = 1u,   // [-] - a paint layer
+    AddFill       = 2u,   // [-] - a fill layer
+    AddAdjustment = 3u,   // [-] - an adjustment layer
+    AddFilter     = 4u,   // [-] - a filter layer
+    AddDecal      = 5u,   // [-] - a decal layer
+    AddPattern    = 6u,   // [-] - a pattern layer
+    AddFolder     = 7u,   // [-] - a new folder
+    Duplicate     = 8u,   // [-] - the taken row, copied beneath itself
+    Group         = 9u,   // [-] - the taken row wrapped in a folder
+    MoveUp        = 10u,  // [-] - the taken row one step earlier
+    MoveDown      = 11u,  // [-] - the taken row one step later
+    Delete        = 12u   // [-] - the taken row (or its mask) removed
+};
+
+/// 🧩 The host's own mutable copy of the stack — the row set the panel borrows every tick. The host seeds it
+///    from its data at bring-up and drains one structural request per tick through `ApplyRequest`; the
+///    harness drives the very same helper so the two can never drift.
+/// note  📐 Names of inserted rows are kept in `Names` (the seed rows keep their own borrowed runs). The
+///        helper is declared here and defined beside the panel, where `TexturePaintContext` is visible.
+/// tag   contract, nonallocating, nonthrowing
+struct TexturePaintStack
+{
+    TextureLayerRow   Rows[TextureLayerCeiling]  = {};
+    char              Names[TextureLayerCeiling][48] = {};
+    std::uint32_t     Count                        = 0u;   // [-] - how many rows stand
+
+    /// 🧩 Copies the declared seed rows into the mutable set. Runs the borrowed seed pointers stay borrowed.
+    /// cost  🚩
+    /// tag   api, nonallocating, nonthrowing
+    void Seed(const TextureLayerRow* Source, std::uint32_t SourceCount);
+
+    /// 🧩 Applies one structural request against the context's taken row, then synchronises every context
+    ///    working copy (opacity, blend, lock, mask, tag hue) back into the rows so the model never drifts.
+    /// cost  🚩
+    /// tag   api, nonallocating, nonthrowing
+    void ApplyRequest(struct TexturePaintContext& Applied);
+};
+
+/// 🧩 Seeds every per-row working copy of the context from the rows — the host and the harness both call
+///    this at bring-up and after every structural request, so the two can never drift.
+/// in    Applied    [-]  the context; every per-row working copy is written
+/// in    Rows       [-]  the row set the stack stands on; borrowed for the call
+/// in    RowCount   [-]  how many rows stand; the working copies beyond it reset to defaults
+/// cost  🚩
+/// tag   api, nonallocating, nonthrowing
+void SeedPaintContextFromRows(struct TexturePaintContext& Applied,
+                              const TextureLayerRow* Rows, std::uint32_t RowCount);
 
 } // namespace Slate

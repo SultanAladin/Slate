@@ -106,6 +106,19 @@ struct ShellMetric
     float  LayerSwitchX=  26.0f;   // [px] - the w-[26px] invert switch
     float  LayerSwitchHeight= 14.0f;   // [px] - h-[14px]
     float  LayerRadius     =   8.0f;   // [px] - rounded-[8px]
+
+    // 📐 The LayerstackV1 reference's own metrics, from `References/LayerstackV1.html`.
+    float  LayerRowY       =  45.0f;   // [px] - min-height:45px, one stack row
+    float  LayerMaskY      =  37.0f;   // [px] - min-height:37px, the attached mask row
+    float  LayerThumbY     =  35.0f;   // [px] - w-[35px] square preview
+    float  LayerBadgeY     =  15.0f;   // [px] - the w-[15px] badge on the thumb's corner
+    float  LayerChipY      =  18.0f;   // [px] - h-[18px], one chip on a row
+    float  LayerTagX       =   3.0f;   // [px] - the w-[3px] colour tag on the entry's edge
+    float  LayerKidsX      =  15.0f;   // [px] - the folder children's margin-left
+    float  LayerMaskIndent =  26.0f;   // [px] - padding-left of the attached mask row
+    float  LayerFootCrumb  =  18.0f;   // [px] - the footer's crumb line
+    float  LayerFootProp   =  35.0f;   // [px] - the footer's blend + opacity row
+    float  LayerFootBar    =  38.0f;   // [px] - the footer's action bar
 };
 
 // 📐 The slide travel, which is a duration and not a length and so is never scaled.

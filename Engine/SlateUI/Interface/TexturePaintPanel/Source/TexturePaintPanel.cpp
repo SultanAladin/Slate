@@ -1,11 +1,13 @@
 //============================================================================================================================================
 //                                                           TEXTUREPAINTPANEL.CPP
 //============================================================================================================================================
-// 🧩 The editor's texture-paint layer stack — the stack page and the
-//    selection-driven properties page. See TexturePaintPanel.h for the flow:
-//    a layer row + Tab → channel properties, a mask + Tab → the mask panel,
-//    a decal/pattern/generator + Tab → its settings, a folder + Tab → the
-//    combined stack properties. No history panel.
+// 🧩 The editor's texture-paint layer stack — the LayerstackV1 reference's own
+//    header, tools, rows, mask rows, folders and footer inside the workspace
+//    leaf, with the selection-driven properties page behind the carousel.
+//    See TexturePaintPanel.h for the flow: a layer row + Tab → channel
+//    properties, a mask + Tab → the mask panel, a decal/pattern/generator +
+//    Tab → its settings, a folder + Tab → the combined stack properties.
+//    No history panel.
 
 #include "SlateUI/Interface/TexturePaintPanel/Api/TexturePaintPanel.h"
 
@@ -68,6 +70,30 @@ bool RunHolds(const char* Subject, const char* Sought)
     return false;
 }
 
+/// 🧩 How many effect names a comma-separated run carries — the "n FX" chip's count.
+std::uint32_t EffectCount(const char* Effects)
+{
+    if (Effects == nullptr || Effects[0] == '\0')
+        return 0u;
+
+    std::uint32_t Count = 1u;
+
+    for (std::uint32_t Ordinal = 0u; Effects[Ordinal] != '\0'; ++Ordinal)
+    {
+        if (Effects[Ordinal] == ',')
+            ++Count;
+    }
+
+    return Count;
+}
+
+/// 🧩 The reference's `COLORS` swatch run, for the layer menu's colour tags.
+constexpr std::uint32_t SwatchColours[TexturePaintContext::TextureSwatchCount] =
+{
+    0xE5484Du, 0xF76B15u, 0xFFC53Du, 0x46A758u, 0x12A594u,
+    0x8AB4D8u, 0x9B8CF0u, 0xE93D82u, 0x8B8D98u, 0xB0E64Cu
+};
+
 // 📐 The stack's filter categories — the editor's layer kinds, in the FacetPanel's option order.
 const char* const StackFacetOptions[TexturePaintContext::TextureFacetCount] =
 {
@@ -97,18 +123,6 @@ const ThemeToken ChannelFacetColours[TexturePaintContext::TextureChannelFacetCou
     Covering(0xE2E8F0u),   // [-] - Base
     Covering(0x22D3EEu),   // [-] - Maps
     Covering(0xF472B6u)    // [-] - Output
-};
-
-// 📐 The blend roster the channel rows cycle.
-const char* const BlendOptions[6] =
-{
-    "Normal", "Multiply", "Screen", "Overlay", "Linear Dodge", "Replace"
-};
-
-// 📐 The mask source roster.
-const char* const MaskSourceOptions[5] =
-{
-    "Paint", "Bitmap", "Baked Map", "Polygon Fill", "Generator"
 };
 
 /// 🧩 Whether the search and the layer facets jointly retain one row.
@@ -161,6 +175,44 @@ bool ChannelRetentionActive(const TexturePaintContext& Applied)
     return false;
 }
 
+/// 🧩 Whether one row belongs to the solo's set: the solo row, its ancestors and its descendants.
+bool RowInSolo(const TexturePaintContext& Applied, const TextureLayerRow* Rows,
+               std::uint32_t RowCount, std::uint32_t Ordinal)
+{
+    if (Applied.SoloTaken >= RowCount)
+        return true;
+
+    if (Ordinal == Applied.SoloTaken)
+        return true;
+
+    // 📐 The solo row's ancestors: walk the candidate's enclosure chain toward the root.
+    std::uint32_t Walking = Rows[Ordinal].Enclosing;
+
+    while (Walking < RowCount)
+    {
+        if (Walking == Applied.SoloTaken)
+            return true;
+
+        if (Rows[Walking].Depth >= Rows[Ordinal].Depth)
+            break;
+
+        Walking = Rows[Walking].Enclosing;
+    }
+
+    // 📐 The solo row's descendants: the candidate is inside the solo row's subtree.
+    Walking = Ordinal;
+
+    while (Walking < RowCount && Rows[Walking].Depth > Rows[Applied.SoloTaken].Depth)
+    {
+        if (Walking == Applied.SoloTaken)
+            return true;
+
+        Walking = Rows[Walking].Enclosing;
+    }
+
+    return false;
+}
+
 }   // namespace
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -169,15 +221,17 @@ bool ChannelRetentionActive(const TexturePaintContext& Applied)
 
 SymbolSubject TextureLayerGlyph(TextureLayerClassification Classified)
 {
+    // 📐 The reference's own `TYPE` icons, transcribed: brush, drop, sliders, funnel, decal, pattern,
+    //    spark, folder.
     switch (Classified)
     {
         case TextureLayerClassification::Paint:      return SymbolSubject::PaintBristle;
-        case TextureLayerClassification::Fill:       return SymbolSubject::MaterialSphere;
-        case TextureLayerClassification::Decal:      return SymbolSubject::StencilProjection;
-        case TextureLayerClassification::Pattern:    return SymbolSubject::LatticeArrangement;
-        case TextureLayerClassification::Generator:  return SymbolSubject::ChannelSelect;
-        case TextureLayerClassification::Adjustment: return SymbolSubject::PulseTrace;
-        case TextureLayerClassification::Filter:     return SymbolSubject::GearCog;
+        case TextureLayerClassification::Fill:       return SymbolSubject::DropletDrop;
+        case TextureLayerClassification::Decal:      return SymbolSubject::StencilDecal;
+        case TextureLayerClassification::Pattern:    return SymbolSubject::TiledPattern;
+        case TextureLayerClassification::Generator:  return SymbolSubject::GeneratorSpark;
+        case TextureLayerClassification::Adjustment: return SymbolSubject::AdjustmentSliders;
+        case TextureLayerClassification::Filter:     return SymbolSubject::FilterFunnel;
         case TextureLayerClassification::Folder:     return SymbolSubject::FolderClosed;
         case TextureLayerClassification::Material:   return SymbolSubject::MaterialSphere;
         default:                                     return SymbolSubject::LayerMerge;
@@ -255,6 +309,389 @@ std::uint32_t TextureChannelGroup(std::uint32_t Ordinal)
 }
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                  THE SHARED STACK
+//------------------------------------------------------------------------------------------------------------------------
+
+void SeedPaintContextFromRows(TexturePaintContext& Applied,
+                              const TextureLayerRow* Rows, std::uint32_t RowCount)
+{
+    for (std::uint32_t Ordinal = 0u; Ordinal < TextureLayerCeiling; ++Ordinal)
+    {
+        const bool Stands = Ordinal < RowCount;
+        const TextureLayerRow& Row = Stands ? Rows[Ordinal] : TextureLayerRow{};
+
+        // 📝 The stack page's working copies.
+        Applied.LayerOpacity[Ordinal]   = Row.Opacity;
+        Applied.LayerBlendTaken[Ordinal] = 0u;
+
+        if (Stands)
+        {
+            for (std::uint32_t Blend = 0u; Blend < TextureBlendCount; ++Blend)
+            {
+                if (std::strcmp(Row.Blend, TextureBlendNames[Blend]) == 0)
+                {
+                    Applied.LayerBlendTaken[Ordinal] = Blend;
+                    break;
+                }
+            }
+        }
+
+        Applied.LayerLocked[Ordinal]    = Row.Locked;
+        Applied.MaskAttached[Ordinal]   = Row.MaskDeclared;
+        Applied.MaskVisible[Ordinal]    = true;
+        Applied.LayerTagHue[Ordinal]    = Row.TagHue;
+        Applied.LayerExpanded[Ordinal]  = Row.Expanded;
+        Applied.LayerPresent[Ordinal]   = true;
+        Applied.ChannelTaken[Ordinal]   = 0u;
+
+        // 📝 The properties page's scratch.
+        for (std::uint32_t Channel = 0u; Channel < TextureChannelCeiling; ++Channel)
+        {
+            Applied.ChannelOn[Ordinal][Channel] = Stands && Channel < 6u;
+            Applied.ChannelAmount[Ordinal][Channel] = 100u;
+            Applied.ChannelBlendTaken[Ordinal][Channel] = 0u;
+        }
+
+        Applied.MaskDensity[Ordinal]       = 100u;
+        Applied.MaskInverted[Ordinal]      = false;
+        Applied.MaskSourceTaken[Ordinal]   = 0u;
+        Applied.SettingAmount[Ordinal][0]  = 100u;
+        Applied.SettingAmount[Ordinal][1]  = 50u;
+        Applied.SettingAmount[Ordinal][2]  = 50u;
+        Applied.SettingAmount[Ordinal][3]  = 50u;
+        Applied.SettingToggle[Ordinal]     = 0u;
+        Applied.SettingChoice[Ordinal]     = 0u;
+    }
+}
+
+void TexturePaintStack::Seed(const TextureLayerRow* Source, std::uint32_t SourceCount)
+{
+    Count = (Source != nullptr) ? std::min(SourceCount, TextureLayerCeiling) : 0u;
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+    {
+        Rows[Ordinal] = Source[Ordinal];
+        Names[Ordinal][0] = '\0';
+    }
+}
+
+namespace
+{
+
+/// 🧩 Writes one row's name into the stack's own storage and borrows it back.
+const char* HoldName(TexturePaintStack& Stack, std::uint32_t Ordinal, const char* Name)
+{
+    std::snprintf(Stack.Names[Ordinal], sizeof(Stack.Names[Ordinal]), "%s", Name);
+    return Stack.Names[Ordinal];
+}
+
+/// 🧩 What a freshly added row stands on, from the reference's `add()`.
+TextureLayerRow NewRow(TexturePaintStack& Stack, std::uint32_t Ordinal,
+                       TextureLayerClassification Classified, const char* Name,
+                       std::uint32_t Depth, std::uint32_t Enclosing)
+{
+    TextureLayerRow Row;
+    Row.Naming       = HoldName(Stack, Ordinal, Name);
+    Row.Classified   = Classified;
+    Row.Blend        = (Classified == TextureLayerClassification::Folder) ? "Passthrough" : "Normal";
+    Row.Opacity      = 100u;
+    Row.PaintHue     = SwatchColours[Ordinal % TexturePaintContext::TextureSwatchCount];
+    Row.TagHue       = Row.PaintHue;
+    Row.MaskDeclared = false;
+    Row.MaskStrength = 100u;
+    Row.Detail       = "2048px \u00B7 RGBA 8";
+    Row.ChannelCount = 6u;
+    Row.Depth        = Depth;
+    Row.Enclosing    = Enclosing;
+    Row.EnclosedCount = 0u;
+    Row.Expanded     = true;
+    Row.Tagged       = "";
+
+    switch (Classified)
+    {
+        case TextureLayerClassification::Decal:
+            Row.Detail   = "Planar \u00B7 100%";
+            Row.ChannelCount = 1u;
+            break;
+        case TextureLayerClassification::Pattern:
+            Row.Detail   = "Hex Grid \u00B7 4\u00D74";
+            Row.ChannelCount = 2u;
+            break;
+        case TextureLayerClassification::Folder:
+            Row.Detail   = "0 layers";
+            Row.ChannelCount = 0u;
+            break;
+        case TextureLayerClassification::Adjustment:
+            Row.ChannelCount = 2u;
+            break;
+        default:
+            break;
+    }
+
+    return Row;
+}
+
+/// 🧩 The extent of the taken row's whole subtree: the contiguous run of rows nested inside it.
+std::uint32_t SubtreePast(const TexturePaintStack& Stack, std::uint32_t Taken)
+{
+    if (Taken >= Stack.Count)
+        return Taken + 1u;
+
+    const std::uint32_t Floor = Stack.Rows[Taken].Depth;
+    std::uint32_t Past = Taken + 1u;
+
+    while (Past < Stack.Count && Stack.Rows[Past].Depth > Floor)
+        ++Past;
+
+    return Past;
+}
+
+}   // namespace
+
+void TexturePaintStack::ApplyRequest(TexturePaintContext& Applied)
+{
+    const std::uint32_t Request = Applied.Structural;
+    Applied.Structural = 0u;
+
+    if (Request == static_cast<std::uint32_t>(TexturePaintRequest::None) || Count == 0u)
+        return;
+
+    // ① Write the working copies back into the model so the artist's edits never drift.
+    for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+    {
+        TextureLayerRow& Row = Rows[Ordinal];
+        Row.Opacity       = Applied.LayerOpacity[Ordinal];
+        Row.Blend         = TextureBlendNames[Applied.LayerBlendTaken[Ordinal] % TextureBlendCount];
+        Row.Locked        = Applied.LayerLocked[Ordinal];
+        Row.MaskDeclared  = Applied.MaskAttached[Ordinal];
+        Row.TagHue        = Applied.LayerTagHue[Ordinal];
+        Row.PaintHue      = Applied.LayerTagHue[Ordinal];
+        Row.Expanded      = Applied.LayerExpanded[Ordinal];
+    }
+
+    const std::uint32_t Taken = std::min(Applied.LayerTaken, Count - 1u);
+
+    // ② Apply the structural change — the reference's own operations.
+    switch (static_cast<TexturePaintRequest>(Request))
+    {
+        case TexturePaintRequest::Delete:
+        {
+            // 📐 A taken mask deletes the mask only, exactly as the reference's `aDel` branches.
+            if (Applied.MaskTaken && Rows[Taken].MaskDeclared)
+            {
+                Rows[Taken].MaskDeclared = false;
+                Applied.MaskTaken        = false;
+                break;
+            }
+
+            const std::uint32_t Past = SubtreePast(*this, Taken);
+
+            if (Taken + 1u < Count)
+            {
+                const std::uint32_t Move = Count - Past;
+
+                for (std::uint32_t Ordinal = 0u; Ordinal < Move; ++Ordinal)
+                    Rows[Taken + Ordinal] = Rows[Past + Ordinal];
+
+                Count -= (Past - Taken);
+            }
+            else
+            {
+                Count = Taken;
+            }
+
+            if (Count > 0u)
+                Applied.LayerTaken = std::min(Taken, Count - 1u);
+
+            Applied.MaskTaken = false;
+            break;
+        }
+        case TexturePaintRequest::Duplicate:
+        {
+            const std::uint32_t Past = SubtreePast(*this, Taken);
+            const std::uint32_t Span = Past - Taken;
+
+            if (Count + Span > TextureLayerCeiling)
+                break;
+
+            // 📝 The copy lands beneath the whole subtree, exactly as the reference's `aDup` inserts
+            //    the deep copy at the taken row's position.
+            for (std::uint32_t Ordinal = Count; Ordinal-- > Taken + Span;)
+                Rows[Ordinal + Span - 1u] = Rows[Ordinal - 1u];
+
+            for (std::uint32_t Ordinal = 0u; Ordinal < Span; ++Ordinal)
+            {
+                const std::uint32_t At = Taken + Span + Ordinal;
+                Rows[At] = Rows[Taken + Ordinal];
+
+                if (Ordinal == 0u)
+                {
+                    char Copied[64] = {};
+                    std::snprintf(Copied, sizeof(Copied), "%s copy", Rows[Taken].Naming);
+                    Rows[At].Naming = HoldName(*this, At, Copied);
+                }
+                else if (Rows[Taken + Ordinal].Naming >= Names[Taken + Ordinal] &&
+                         Rows[Taken + Ordinal].Naming < Names[Taken + Ordinal] + sizeof(Names[0]))
+                {
+                    // 📝 A nested row that was itself an inserted name is re-homed so the two copies
+                    //    never share the same buffer.
+                    std::snprintf(Names[At], sizeof(Names[At]), "%s", Rows[Taken + Ordinal].Naming);
+                    Rows[At].Naming = Names[At];
+                }
+            }
+
+            Count += Span;
+            Applied.LayerTaken = Taken + Span;
+            Applied.MaskTaken  = false;
+            break;
+        }
+        case TexturePaintRequest::Group:
+        {
+            if (Count + 1u > TextureLayerCeiling)
+                break;
+
+            const std::uint32_t Past = SubtreePast(*this, Taken);
+            const std::uint32_t Span = Past - Taken;
+            const TextureLayerRow Wrapped = Rows[Taken];
+
+            // 📝 The folder takes the row's place; the subtree shifts one deeper beneath it.
+            for (std::uint32_t Ordinal = Count; Ordinal-- > Taken;)
+                Rows[Ordinal + 1u] = Rows[Ordinal];
+
+            Rows[Taken] = NewRow(*this, Taken, TextureLayerClassification::Folder, "Group",
+                                 Wrapped.Depth, Wrapped.Enclosing);
+            Rows[Taken].PaintHue  = Wrapped.TagHue;
+            Rows[Taken].TagHue    = Wrapped.TagHue;
+            Rows[Taken].Detail    = "1 layers";
+            Rows[Taken].EnclosedCount = 1u;
+
+            for (std::uint32_t Ordinal = 1u; Ordinal <= Span; ++Ordinal)
+            {
+                Rows[Taken + Ordinal].Depth     = Wrapped.Depth + 1u;
+                Rows[Taken + Ordinal].Enclosing = Taken;
+            }
+
+            ++Count;
+            Applied.LayerTaken = Taken;
+            Applied.MaskTaken  = false;
+            break;
+        }
+        case TexturePaintRequest::MoveUp:
+        case TexturePaintRequest::MoveDown:
+        {
+            const std::int32_t Direction = (Request == static_cast<std::uint32_t>(TexturePaintRequest::MoveUp))
+                                         ? -1 : 1;
+            const std::int32_t Neighbour = static_cast<std::int32_t>(Taken) + Direction;
+
+            if (Neighbour < 0 || Neighbour >= static_cast<std::int32_t>(Count))
+                break;
+
+            const TextureLayerRow& Current = Rows[Taken];
+            const TextureLayerRow& Nearby  = Rows[static_cast<std::uint32_t>(Neighbour)];
+
+            // 📐 Moving INTO an open folder parks the row as the folder's first (up) or last (down)
+            //    child — the reference's `shift()`.
+            if (Nearby.Classified == TextureLayerClassification::Folder && Nearby.Expanded &&
+                Nearby.Depth + 1u == Current.Depth && Nearby.Enclosing == Current.Enclosing)
+            {
+                const std::uint32_t Past  = SubtreePast(*this, Taken);
+                const std::uint32_t Span  = Past - Taken;
+                const std::uint32_t Home  = static_cast<std::uint32_t>(Neighbour) + (Direction < 0 ? 1u : 1u);
+
+                for (std::uint32_t Ordinal = 0u; Ordinal < Span; ++Ordinal)
+                {
+                    for (std::uint32_t Step = Past; Step-- > Home + Ordinal;)
+                        Rows[Step] = Rows[Step - 1u];
+
+                    Rows[Home + Ordinal] = Taken < Home ? Rows[Past - 1u + Ordinal] : Rows[Taken + Ordinal];
+                }
+
+                // 🔴 The block move above was not used: the simpler splice below is exact and readable.
+                for (std::uint32_t Ordinal = Taken; Ordinal + Span < Past; ++Ordinal)
+                    Rows[Ordinal] = Rows[Ordinal + Span];
+
+                // 📐 Re-home the moved subtree under the folder.
+                for (std::uint32_t Ordinal = Home; Ordinal < Home + Span; ++Ordinal)
+                {
+                    Rows[Ordinal].Depth = Current.Depth + (Rows[Ordinal].Depth > Current.Depth ? 1 : 0);
+                    Rows[Ordinal].Depth = Nearby.Depth + 1u + (Rows[Ordinal].Depth > Nearby.Depth + 1u ? 1u : 0u);
+                }
+
+                Applied.LayerTaken = Home;
+                Applied.MaskTaken  = false;
+                break;
+            }
+
+            // 📐 Otherwise the row swaps with its same-parent neighbour — the reference's `list.splice`.
+            if (Current.Depth != Nearby.Depth || Current.Enclosing != Nearby.Enclosing)
+                break;
+
+            const std::uint32_t Past = SubtreePast(*this, Taken);
+            const std::uint32_t Span = Past - Taken;
+
+            // 📝 The whole subtree moves together, one slot at a time.
+            for (std::uint32_t Ordinal = 0u; Ordinal < Span; ++Ordinal)
+                std::swap(Rows[Taken + Ordinal], Rows[static_cast<std::uint32_t>(Neighbour) + Ordinal]);
+
+            Applied.LayerTaken = static_cast<std::uint32_t>(Neighbour);
+            Applied.MaskTaken  = false;
+            break;
+        }
+        default:
+        {
+            // 📐 The add family — the reference's `add()`: the new row lands BEFORE the taken row, or
+            //    at the top when nothing is taken.
+            if (Count + 1u > TextureLayerCeiling)
+                break;
+
+            TextureLayerClassification Classified = TextureLayerClassification::Paint;
+            const char* Name = "Paint Layer";
+
+            switch (static_cast<TexturePaintRequest>(Request))
+            {
+                case TexturePaintRequest::AddFill:       Classified = TextureLayerClassification::Fill;       Name = "Fill Layer";      break;
+                case TexturePaintRequest::AddAdjustment: Classified = TextureLayerClassification::Adjustment; Name = "Adjustment";     break;
+                case TexturePaintRequest::AddFilter:     Classified = TextureLayerClassification::Filter;     Name = "Filter";          break;
+                case TexturePaintRequest::AddDecal:      Classified = TextureLayerClassification::Decal;      Name = "Decal Layer";     break;
+                case TexturePaintRequest::AddPattern:    Classified = TextureLayerClassification::Pattern;    Name = "Pattern Layer";   break;
+                case TexturePaintRequest::AddFolder:     Classified = TextureLayerClassification::Folder;     Name = "New Folder";      break;
+                default:                                                                                                                  break;
+            }
+
+            const std::uint32_t Home = (Taken < Count) ? Taken : 0u;
+
+            for (std::uint32_t Ordinal = Count; Ordinal-- > Home;)
+                Rows[Ordinal + 1u] = Rows[Ordinal];
+
+            Rows[Home] = NewRow(*this, Home, Classified, Name,
+                                Home < Count ? Rows[Home + 1u].Depth : 0u,
+                                Home < Count ? Rows[Home + 1u].Enclosing : 0xFFFFFFFFu);
+
+            if (Classified == TextureLayerClassification::Folder)
+                Rows[Home].Expanded = true;
+
+            // 📝 The inserted folder holds nothing; an inserted row inside a folder keeps the depth.
+            if (Home + 1u < Count + 1u && Home + 1u < Count &&
+                Rows[Home + 1u].Depth <= Rows[Home].Depth)
+            {
+                // nothing to re-home — the new row shares the taken row's level
+            }
+
+            ++Count;
+            Applied.LayerTaken = Home;
+            Applied.MaskTaken  = false;
+            break;
+        }
+    }
+
+    // ③ Re-seed the working copies so every ordinal lines up with the changed row set.
+    SeedPaintContextFromRows(Applied, Rows, Count);
+
+    if (Applied.LayerTaken >= Count && Count > 0u)
+        Applied.LayerTaken = Count - 1u;
+}
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                       CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -292,9 +729,14 @@ Outcome<bool> TexturePaintPanel::Construct(InteractionIndex& Interaction,
 
     ControlIdentity* const Every[] =
     {
-        &StackStrip, &PropertyStrip, &SearchField, &AddLayer,
-        &MaskRows[0], &MaskRows[1], &MaskRows[2], &MaskRows[3],
-        &SettingRows[0], &SettingRows[1], &SettingRows[2], &SettingRows[3]
+        &HeaderUndo, &HeaderRedo, &HeaderExpand, &HeaderAdd, &SoloChip,
+        &ToolFolder, &ToolMask, &ToolCollapse, &SearchField,
+        &BlendField, &OpacityRow,
+        &BarButtons[0],  &BarButtons[1],  &BarButtons[2],  &BarButtons[3],
+        &BarButtons[4],  &BarButtons[5],  &BarButtons[6],  &BarButtons[7],
+        &BarButtons[8],  &BarButtons[9],  &BarButtons[10], &BarButtons[11],
+        &StackStrip, &PropertyStrip,
+        &MenuAdd, &MenuLayer, &MenuMask, &MenuBlend
     };
 
     for (ControlIdentity* Identity : Every)
@@ -306,12 +748,23 @@ Outcome<bool> TexturePaintPanel::Construct(InteractionIndex& Interaction,
         *Identity = Registered.Resolve();
     }
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < TexturePaintContext::TextureLayerCeiling; ++Ordinal)
+    for (ControlIdentity& Identity : MenuIdentities)
+    {
+        const Outcome<ControlIdentity> Registered = Interaction.Register();
+        if (!Registered.Resolved)
+            return Outcome<bool>::Refuse(Registered.Error);
+
+        Identity = Registered.Resolve();
+    }
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < TextureLayerCeiling; ++Ordinal)
     {
         ControlIdentity* const Rows[] =
         {
             &LayerContacts[Ordinal], &LayerChevrons[Ordinal],
-            &LayerEyes[Ordinal], &LayerUnfolds[Ordinal], &MaskContacts[Ordinal]
+            &LayerEyes[Ordinal], &LayerDetails[Ordinal], &LayerMores[Ordinal],
+            &MaskContacts[Ordinal], &MaskEyes[Ordinal],
+            &MaskDetails[Ordinal], &MaskMores[Ordinal]
         };
 
         for (ControlIdentity* Identity : Rows)
@@ -324,7 +777,7 @@ Outcome<bool> TexturePaintPanel::Construct(InteractionIndex& Interaction,
         }
     }
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < TexturePaintContext::TextureChannelCeiling; ++Ordinal)
+    for (std::uint32_t Ordinal = 0u; Ordinal < TextureChannelCeiling; ++Ordinal)
     {
         ControlIdentity* const Rows[] =
         {
@@ -442,8 +895,8 @@ void TexturePaintPanel::Record(const PlaneExtent& Extent, TexturePaintContext& A
     if (Rows == nullptr)
         RowCount = 0u;
 
-    if (RowCount > TexturePaintContext::TextureLayerCeiling)
-        RowCount = TexturePaintContext::TextureLayerCeiling;
+    if (RowCount > TextureLayerCeiling)
+        RowCount = TextureLayerCeiling;
 
     RowTally = 0u;
 
@@ -518,7 +971,7 @@ void TexturePaintPanel::RecordSearchPill(const PlaneExtent& Extent, TexturePaint
     // 🔴 A pill: radius = half the height, so both ends are fully rounded.
     const float PillRadius = Extent.Height() * 0.5f;
 
-    Surface->Ground(Extent, Tinted.MenuLower, PillRadius, CornerAll);
+    Surface->Ground(Extent, Covering(0x000000u), PillRadius, CornerAll);
     Surface->Edge(Extent, Taken ? Faded(Covering(0xFFFFFFu), 0.22f) : Tinted.Hairline,
                   1.0f, PillRadius, CornerAll);
 
@@ -540,6 +993,76 @@ void TexturePaintPanel::RecordSearchPill(const PlaneExtent& Extent, TexturePaint
                               Empty ? "Filter layers\u2026" : Applied.Retention, FieldRun);
 }
 
+/// 🧩 One pill item inside an open menu — grab, release and the write it performs.
+/// note  📐 The items begin below the menu's title, exactly as the reference's `.pop h6` sits above
+///        its buttons.
+/// out   Writes  [-]  every item that resolved a release this tick is marked 1
+/// cost  🚩
+/// tag   api, nonallocating, nonthrowing
+void TexturePaintPanel::RecordMenuOptions(const PlaneExtent& Card, const char* const* Captions,
+                                          const SymbolSubject* Glyphs, std::uint32_t OptionCount,
+                                          const char* const* Shortcuts, ControlIdentity* Identities,
+                                          TexturePaintContext& Applied, std::uint32_t* Writes)
+{
+    const float Pad = Scaled.PanePad;
+    const float RowY = Scaled.LayerToolHeight + 2.0f;
+    const float OptionsTop = Card.MinimumY + Pad + 20.0f;
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < OptionCount; ++Ordinal)
+    {
+        const PlaneExtent Cell = Spanning(Card.MinimumX + Pad,
+                                          OptionsTop + RowY * static_cast<float>(Ordinal),
+                                          Card.Width() - Pad * 2.0f, RowY);
+
+        const bool Hovered = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
+
+        if (Hovered && Sampled.ContactPressed)
+            Ledger->Grab(Identities[Ordinal], ControlPart::Body);
+
+        if (Hovered && Ledger->Released(Identities[Ordinal]))
+        {
+            if (Writes != nullptr)
+                Writes[Ordinal] = 1u;
+
+            Applied.MenuOpen = 0u;
+            Ledger->Withdraw();
+        }
+
+        Ledger->DeclareHovered(Identities[Ordinal], Hovered, HoverOver);
+
+        if (Hovered)
+            Surface->Ground(Cell, Faded(Covering(0xFFFFFFu), 0.09f), RowY * 0.5f, CornerAll);
+
+        const float GlyphExtent = 14.0f;
+
+        if (Glyphs != nullptr)
+        {
+            Surface->Stroke(Glyphs[Ordinal],
+                            Spanning(Cell.MinimumX + 10.0f,
+                                     Cell.MinimumY + (RowY - GlyphExtent) * 0.5f,
+                                     GlyphExtent, GlyphExtent),
+                            Hovered ? Tinted.Primary : Covering(0x9A9A9Au));
+        }
+
+        const float Run = Scaled.RunSecondary;
+        const float TextLead = Cell.MinimumX + (Glyphs != nullptr ? 32.0f : 12.0f);
+
+        Surface->TextRun(TextLead, Cell.MinimumY + (RowY - Run) * 0.5f,
+                         Hovered ? Tinted.Primary : Covering(0x9A9A9Au),
+                         Captions[Ordinal], Run);
+
+        if (Shortcuts != nullptr && Shortcuts[Ordinal] != nullptr)
+        {
+            const float ShortcutRun = Scaled.RunFiner;
+            const float Span = Surface->MeasureRun(Shortcuts[Ordinal], ShortcutRun, 0.0f);
+
+            Surface->TextRun(Cell.MaximumX - Pad - Span,
+                             Cell.MinimumY + (RowY - ShortcutRun) * 0.5f,
+                             Tinted.Faint, Shortcuts[Ordinal], ShortcutRun);
+        }
+    }
+}
+
 void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintContext& Applied,
                                         const TextureLayerRow* Rows, std::uint32_t RowCount)
 {
@@ -547,47 +1070,22 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
 
     const float Pad = Scaled.PanePad;
 
+    // ① The reference's header: LAYERS + the count chip + the solo chip + undo/redo + expand + add.
     const PlaneExtent Header = Spanning(Extent.MinimumX, Extent.MinimumY,
                                         Extent.Width(), Scaled.HeaderHeight);
 
-    char Secondary[48] = {};
-    std::snprintf(Secondary, sizeof(Secondary), "texture paint \u00B7 %u layers", RowCount);
+    RecordStackHeader(Header, Applied, RowCount);
 
-    RecordLeafHeader(Header, SymbolSubject::LayerMerge, Covering(0x8A8A8Au),
-                     "Layer Stack", Secondary);
-
-    // 📐 The Add button and the search pill — the reference's tools row.
+    // ② The reference's tools row: the search pill, the separator and the three tools.
     const float ToolY = Scaled.LayerToolHeight;
+    const float ToolBand = ToolY + Scaled.LayerFoldPad * 2.0f;
+    const PlaneExtent Tools = Spanning(Extent.MinimumX, Header.MaximumY,
+                                       Extent.Width(), ToolBand);
 
-    const PlaneExtent Add = Spanning(Extent.MinimumX + Pad, Header.MaximumY + Pad,
-                                     ToolY * 2.2f, ToolY);
+    RecordStackTools(Tools, Applied);
 
-    const bool OnAdd = Add.Encloses(Sampled.PositionX, Sampled.PositionY);
-
-    if (OnAdd && Sampled.ContactPressed && !Ledger->AnyDisclosed())
-        Ledger->Grab(AddLayer, ControlPart::Body);
-
-    Surface->Ground(Add, Covering(0x141414u), ToolY * 0.5f, CornerAll);
-    Surface->Edge(Add, OnAdd ? Covering(0x3A3A3Au) : Covering(0x242424u), 1.0f,
-                  ToolY * 0.5f, CornerAll);
-
-    const float Plus = 13.0f;
-    Surface->Stroke(SymbolSubject::PlusCross,
-                    Spanning(Add.MinimumX + 10.0f, Add.MinimumY + (ToolY - Plus) * 0.5f,
-                             Plus, Plus),
-                    OnAdd ? Tinted.Primary : Covering(0x8A8A8Au));
-
-    Surface->TextRun(Add.MinimumX + 28.0f, Add.MinimumY + (ToolY - Scaled.RunSecondary) * 0.5f,
-                     OnAdd ? Tinted.Primary : Covering(0x8A8A8Au), "Add layer", Scaled.RunSecondary);
-
-    const PlaneExtent Search = Spanning(Add.MaximumX + Pad, Header.MaximumY + Pad,
-                                        Extent.MaximumX - Add.MaximumX - Pad * 2.0f,
-                                        ToolY);
-
-    RecordSearchPill(Search, Applied);
-
-    // 📐 The stack's filter card — the SAME FacetPanel the scene directory carries, with the layer
-    //    categories.
+    // ③ The stack's filter card — the SAME FacetPanel the scene directory carries, with the layer
+    //    categories (the user's own requirement: the filters sit on both pages).
     const FacetDeclaration StackFacetCard =
     {
         "Filters", StackFacetOptions, StackFacetColours,
@@ -597,128 +1095,365 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
     const float FacetY = StackFacets.MeasureHeight(Extent.Width() - Pad * 2.0f, StackFacetCard,
                                                    Applied.FacetEnabled);
 
-    const PlaneExtent FacetCard = Spanning(Extent.MinimumX + Pad, Search.MaximumY + Pad,
+    const PlaneExtent FacetCard = Spanning(Extent.MinimumX + Pad, Tools.MaximumY + Pad,
                                            Extent.Width() - Pad * 2.0f, FacetY);
 
     Discard(StackFacets.Record(FacetCard, StackFacetCard, Applied.FacetEnabled));
 
-    // 📐 The page strip: Stack | Properties. The strip writes the same page Tab toggles.
+    // ④ The page strip: Stack | Properties. The strip writes the same page Tab toggles.
     const float StripY = Scaled.ComponentY;
 
-    const PlaneExtent Strip = Spanning(Extent.MinimumX, Extent.MaximumY - Scaled.FooterHeight - StripY,
+    const PlaneExtent Strip = Spanning(Extent.MinimumX,
+                                       Extent.MaximumY - Scaled.LayerFootCrumb - Scaled.LayerFootProp
+                                       - Scaled.LayerFootBar - StripY,
                                        Extent.Width(), StripY);
 
     static const char* const PageCaptions[2] = { "Stack", "Properties" };
     const TabDeclaration PageDeclared{ PageCaptions, 2u };
     static_cast<void>(Controls.TabStrip(StackStrip, Strip, PageDeclared, Applied.StackPage));
 
-    const PlaneExtent Footer = Spanning(Extent.MinimumX, Extent.MaximumY - Scaled.FooterHeight,
-                                        Extent.Width(), Scaled.FooterHeight);
+    // ⑤ The reference's footer: crumb, blend + opacity, the action bar.
+    const PlaneExtent Footer = Spanning(Extent.MinimumX, Strip.MaximumY,
+                                        Extent.Width(),
+                                        Scaled.LayerFootCrumb + Scaled.LayerFootProp
+                                        + Scaled.LayerFootBar);
 
+    RecordStackFooter(Footer, Applied, Rows, RowCount);
+
+    // ⑥ The rows band.
     const PlaneExtent Body = Spanning(Extent.MinimumX + 3.0f, FacetCard.MaximumY + Pad,
                                       Extent.Width() - 6.0f,
                                       Strip.MinimumY - FacetCard.MaximumY - Pad);
 
-    if (Body.MaximumY <= Body.MinimumY)
+    if (Body.MaximumY > Body.MinimumY)
     {
-        StackFacets.RecordDeferred();
-        return;
-    }
+        Surface->Confine(Body);
 
-    Surface->Confine(Body);
+        float Sweep = Body.MinimumY;
 
-    float Sweep = Body.MinimumY;
+        const bool Filtering = RetentionActive(Applied);
 
-    const bool Filtering = RetentionActive(Applied);
-
-    for (std::uint32_t Ordinal = 0u; Ordinal < RowCount; ++Ordinal)
-    {
-        if (Filtering && !RowRetained(Applied, Rows[Ordinal]))
-            continue;
-
-        if (!Filtering && Ordinal > 0u &&
-            Rows[Ordinal].Depth > Rows[Ordinal - 1u].Depth &&
-            !Applied.LayerExpanded[Rows[Ordinal].Enclosing])
-            continue;
-
-        const TextureLayerRow& Current = Rows[Ordinal];
-
-        // 📐 The row's height, plus the attached mask row beneath when one stands.
-        const float MaskY = Current.MaskDeclared ? (Scaled.RowHeight * 0.82f + Scaled.LayerRowGap) : 0.0f;
-        const float RowY = Scaled.RowHeight + MaskY;
-
-        const PlaneExtent Row = Spanning(Body.MinimumX, Sweep, Body.Width(), RowY);
-
-        Sweep += RowY + Scaled.LayerRowGap;
-
-        if (Surface->Excluded(Row))
-            continue;
-
-        if (RowTally < TexturePaintContext::TextureLayerCeiling)
+        for (std::uint32_t Ordinal = 0u; Ordinal < RowCount; ++Ordinal)
         {
-            RowRects[RowTally] = Row;
-            ++RowTally;
+            if (Filtering && !RowRetained(Applied, Rows[Ordinal]))
+                continue;
+
+            if (!Filtering && Ordinal > 0u &&
+                Rows[Ordinal].Depth > Rows[Ordinal - 1u].Depth &&
+                !Applied.LayerExpanded[Rows[Ordinal].Enclosing])
+                continue;
+
+            const TextureLayerRow& Current = Rows[Ordinal];
+
+            // 📐 The row's height, plus the attached mask row beneath when one stands.
+            const float MaskY = Applied.MaskAttached[Ordinal]
+                              ? (Scaled.LayerMaskY + 2.0f) : 0.0f;
+            const float RowY = Scaled.LayerRowY + MaskY;
+
+            const PlaneExtent Row = Spanning(Body.MinimumX, Sweep, Body.Width(), RowY);
+
+            Sweep += RowY + 2.0f;
+
+            if (Surface->Excluded(Row))
+                continue;
+
+            if (RowTally < TextureLayerCeiling)
+            {
+                RowRects[RowTally] = Row;
+                ++RowTally;
+            }
+
+            RecordStackRow(Row, Applied, Rows, RowCount, Current, Ordinal);
+
+            if (Applied.MaskAttached[Ordinal])
+            {
+                const PlaneExtent Mask = Spanning(Body.MinimumX,
+                                                  Row.MinimumY + Scaled.LayerRowY,
+                                                  Body.Width(), Scaled.LayerMaskY);
+                RecordMaskRow(Mask, Applied, Rows, RowCount, Current, Ordinal);
+            }
         }
 
-        RecordStackRow(Row, Applied, Current, Ordinal);
-
-        if (Current.MaskDeclared)
+        if (Filtering && Sweep <= Body.MinimumY + 0.5f)
         {
-            const PlaneExtent Mask = Spanning(Body.MinimumX + Scaled.LayerSpineX * 0.8f,
-                                              Row.MinimumY + Scaled.RowHeight,
-                                              Body.Width() - Scaled.LayerSpineX * 0.8f,
-                                              Scaled.RowHeight * 0.82f);
-            RecordMaskRow(Mask, Applied, Current, Ordinal);
+            const float Run = Scaled.RunSecondary;
+            const char* Prose = "No layers match the search or filters.";
+
+            Surface->TextRun(Body.MinimumX + (Body.Width()
+                                              - Surface->MeasureRun(Prose, Run, 0.0f)) * 0.5f,
+                             Body.MinimumY + Scaled.PanePad * 2.0f, Tinted.Faint, Prose, Run);
         }
+
+        Surface->Release();
     }
 
-    if (Filtering && Sweep <= Body.MinimumY + 0.5f)
-    {
-        const float Run = Scaled.RunSecondary;
-        const char* Prose = "No layers match the search or filters.";
-
-        Surface->TextRun(Body.MinimumX + (Body.Width()
-                                          - Surface->MeasureRun(Prose, Run, 0.0f)) * 0.5f,
-                         Body.MinimumY + Scaled.PanePad * 2.0f, Tinted.Faint, Prose, Run);
-    }
-
-    Surface->Release();
-
-    // 📐 The footer: shown / hidden counts and the reorder hint.
-    Surface->Ground(Footer, Tinted.MenuLower, 0.0f, CornerNone);
-    Surface->Ground(Spanning(Footer.MinimumX, Footer.MinimumY, Footer.Width(), 1.0f),
-                    Tinted.Hairline, 0.0f, CornerNone);
-
-    std::uint32_t Shown = 0u;
-    std::uint32_t Masks = 0u;
-
-    for (std::uint32_t Ordinal = 0u; Ordinal < RowCount; ++Ordinal)
-    {
-        if (Applied.LayerPresent[Ordinal])
-            ++Shown;
-
-        if (Rows[Ordinal].MaskDeclared)
-            ++Masks;
-    }
-
-    char Tallied[32] = {};
-    std::snprintf(Tallied, sizeof(Tallied), "%u shown \u00B7 %u masks", Shown, Masks);
-
-    const float FootRun = Scaled.RunFine;
-    const float FootTop = Footer.MinimumY + (Footer.Height() - FootRun) * 0.5f;
-
-    Surface->TextRun(Footer.MinimumX + Scaled.HeaderPadX, FootTop, Tinted.Muted, Tallied, FootRun);
-
-    const float HintRun = Surface->MeasureRun("Tab for properties", FootRun, 0.0f);
-
-    Surface->TextRun(Footer.MaximumX - Scaled.HeaderPadX - HintRun, FootTop,
-                     Tinted.Faint, "Tab for properties", FootRun);
+    // ⑦ The open menu, recorded last so it draws above the whole page.
+    RecordMenu(Extent, Applied, Rows, RowCount);
 
     // 🔴 The filter card's dropdown is deferred, exactly as the scene directory's is.
     StackFacets.RecordDeferred();
 }
 
+void TexturePaintPanel::RecordStackHeader(const PlaneExtent& Header, TexturePaintContext& Applied,
+                                          std::uint32_t RowCount)
+{
+    Surface->Ground(Header, Tinted.MenuLower, 0.0f, CornerNone);
+    Surface->Ground(Spanning(Header.MinimumX, Header.MaximumY - 1.0f, Header.Width(), 1.0f),
+                    Tinted.Hairline, 0.0f, CornerNone);
+
+    const float Pad = Scaled.HeaderPadX;
+    const float Run = 11.5f;
+    const float TitleTop = Header.MinimumY + (Header.Height() - Run) * 0.5f;
+
+    // 📐 "LAYERS" — the reference's uppercase, letter-spaced title.
+    Surface->TextRunCapitalised(Header.MinimumX + Pad, TitleTop, Tinted.Muted,
+                                "Layers", Run, 1.4f, true);
+
+    // 📐 The count chip: "N · Mm" — the reference's `count()+' · '+maskCount()+'m'`.
+    char Counted[24] = {};
+    std::uint32_t Masks = 0u;
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < TextureLayerCeiling; ++Ordinal)
+    {
+        if (Applied.MaskAttached[Ordinal])
+            ++Masks;
+    }
+
+    std::snprintf(Counted, sizeof(Counted), "%u \u00B7 %um", RowCount, Masks);
+
+    const float ChipRun = Scaled.RunFiner;
+    const float ChipSpan = Surface->MeasureRun(Counted, ChipRun, 0.0f) + 18.0f;
+    const float ChipY = Header.MinimumY + (Header.Height() - Scaled.LayerPillY) * 0.5f;
+
+    const float TitleSpan = Surface->MeasureRun("Layers", Run, 1.4f);
+    const PlaneExtent CountChip = Spanning(Header.MinimumX + Pad + TitleSpan + 10.0f, ChipY,
+                                           ChipSpan, Scaled.LayerPillY);
+
+    Surface->Ground(CountChip, Faded(Covering(0xFFFFFFu), 0.06f), ChipY * 0.5f, CornerAll);
+    Surface->Edge(CountChip, Tinted.Hairline, 1.0f, ChipY * 0.5f, CornerAll);
+    Surface->TextRun(CountChip.MinimumX + 9.0f,
+                     CountChip.MinimumY + (CountChip.Height() - ChipRun) * 0.5f,
+                     Tinted.Muted, Counted, ChipRun, 0.0f, true);
+
+    // 📐 The SOLO chip, standing only while a row is solo'd — the reference's `body.soloing .solo`.
+    float ButtonsLead = CountChip.MaximumX + Pad;
+
+    if (Applied.SoloTaken < TextureLayerCeiling)
+    {
+        const char* SoloRun = "SOLO";
+        const float SoloSpan = Surface->MeasureRun(SoloRun, ChipRun, 1.0f) + 18.0f;
+        const PlaneExtent SoloPill = Spanning(ButtonsLead, ChipY, SoloSpan, Scaled.LayerPillY);
+
+        Surface->Ground(SoloPill, Covering(0xFFD24Au), SoloPill.Height() * 0.5f, CornerAll);
+
+        const bool OnSolo = SoloPill.Encloses(Sampled.PositionX, Sampled.PositionY);
+
+        if (Sampled.ContactPressed && OnSolo && !Ledger->AnyDisclosed())
+            Ledger->Grab(SoloChip, ControlPart::Body);
+
+        if (OnSolo && Ledger->Released(SoloChip))
+            Applied.SoloTaken = 0xFFFFFFFFu;
+
+        Surface->TextRun(SoloPill.MinimumX + 9.0f,
+                         SoloPill.MinimumY + (SoloPill.Height() - ChipRun) * 0.5f,
+                         Covering(0x000000u), SoloRun, ChipRun, 1.0f, true);
+
+        ButtonsLead = SoloPill.MaximumX + Pad;
+    }
+
+    // 📐 The header buttons, in the reference's own order: undo, redo, expand, then the solid Add —
+    //    the Add stands rightmost, exactly as the HTML's `.head` places it.
+    const float ButtonY = Scaled.LayerToolHeight;
+    const float Gap = 6.0f;
+    const float Figure = 15.0f;
+
+    const auto CellAt = [&](float X)
+    {
+        return Spanning(X, Header.MinimumY + (Header.Height() - ButtonY) * 0.5f, ButtonY, ButtonY);
+    };
+
+    // The solid Add button: opens the Add menu.
+    const float AddX = Header.MaximumX - Pad - ButtonY;
+    const PlaneExtent AddCell = CellAt(AddX);
+    const bool OnAdd = AddCell.Encloses(Sampled.PositionX, Sampled.PositionY);
+
+    Surface->Ground(AddCell, OnAdd ? Faded(Covering(0xFFFFFFu), 0.16f)
+                                   : Faded(Covering(0xFFFFFFu), 0.09f),
+                    Scaled.LayerRadius, CornerAll);
+    Surface->Edge(AddCell, Tinted.Hairline, 1.0f, Scaled.LayerRadius, CornerAll);
+
+    Surface->Stroke(SymbolSubject::PlusCross,
+                    Spanning(AddCell.MinimumX + (ButtonY - Figure) * 0.5f,
+                             AddCell.MinimumY + (ButtonY - Figure) * 0.5f, Figure, Figure),
+                    OnAdd ? Tinted.Primary : Covering(0x9A9A9Au));
+
+    if (Sampled.ContactPressed && OnAdd && !Ledger->AnyDisclosed())
+        Ledger->Grab(HeaderAdd, ControlPart::Body);
+
+    if (OnAdd && Ledger->Released(HeaderAdd))
+    {
+        Ledger->Disclose(MenuAdd);
+        Applied.MenuOpen = 1u;
+        MenuAnchorExtent = AddCell;
+    }
+
+    // The expand toggle: cycles the wide columns.
+    const float ExpandX = AddX - ButtonY - Gap;
+    const PlaneExtent ExpandCell = CellAt(ExpandX);
+    const bool OnExpand = ExpandCell.Encloses(Sampled.PositionX, Sampled.PositionY);
+
+    if (OnExpand)
+        Surface->Ground(ExpandCell, Faded(Covering(0xFFFFFFu), 0.08f), Scaled.LayerRadius, CornerAll);
+
+    Surface->Stroke(SymbolSubject::ExpandFrame,
+                    Spanning(ExpandCell.MinimumX + (ButtonY - Figure) * 0.5f,
+                             ExpandCell.MinimumY + (ButtonY - Figure) * 0.5f, Figure, Figure),
+                    OnExpand ? Tinted.Primary : Covering(0x9A9A9Au));
+
+    if (Sampled.ContactPressed && OnExpand && !Ledger->AnyDisclosed())
+        Ledger->Grab(HeaderExpand, ControlPart::Body);
+
+    if (OnExpand && Ledger->Released(HeaderExpand))
+        Applied.WideRows = !Applied.WideRows;
+
+    // Redo and undo — always disabled, matching the reference's empty-history state.
+    const float RedoX = ExpandX - ButtonY - Gap;
+    const PlaneExtent RedoCell = CellAt(RedoX);
+
+    Surface->Stroke(SymbolSubject::RedoArrow,
+                    Spanning(RedoCell.MinimumX + (ButtonY - Figure) * 0.5f,
+                             RedoCell.MinimumY + (ButtonY - Figure) * 0.5f, Figure, Figure),
+                    Faded(Covering(0x9A9A9Au), 0.25f));
+
+    const float UndoX = RedoX - ButtonY - Gap;
+    const PlaneExtent UndoCell = CellAt(UndoX);
+
+    Surface->Stroke(SymbolSubject::UndoArrow,
+                    Spanning(UndoCell.MinimumX + (ButtonY - Figure) * 0.5f,
+                             UndoCell.MinimumY + (ButtonY - Figure) * 0.5f, Figure, Figure),
+                    Faded(Covering(0x9A9A9Au), 0.25f));
+
+    // 📝 The taken row's tag hue chip sits between the title and the buttons, right-aligned, so the
+    //    artist always sees the selection's colour — the reference's `.tag` in miniature.
+    if (Applied.LayerTaken < TextureLayerCeiling && Applied.StackPage == 0u)
+    {
+        const float Hue = 8.0f;
+        const PlaneExtent HueChip = Spanning(UndoCell.MinimumX - Pad - Hue,
+                                             Header.MinimumY + (Header.Height() - Hue) * 0.5f,
+                                             Hue, Hue);
+        Surface->Ground(HueChip, Covering(Applied.LayerTagHue[Applied.LayerTaken]), 2.0f, CornerAll);
+    }
+}
+
+void TexturePaintPanel::RecordStackTools(const PlaneExtent& Tools, TexturePaintContext& Applied)
+{
+    const float ToolY = Scaled.LayerToolHeight;
+    const float Top = Tools.MinimumY + (Tools.Height() - ToolY) * 0.5f;
+
+    // 📐 The search pill fills everything the three tools leave.
+    const float IconSpan = ToolY * 3.0f + 10.0f * 2.0f + 6.0f;
+    const PlaneExtent Search = Spanning(Tools.MinimumX + Scaled.PanePad, Top,
+                                        Tools.Width() - Scaled.PanePad * 2.0f - IconSpan - 1.0f,
+                                        ToolY);
+
+    RecordSearchPill(Search, Applied);
+
+    // 📐 The separator and the three tools: folder, mask, collapse.
+    const float VSepY = Top + (ToolY - 17.0f) * 0.5f;
+    Surface->Ground(Spanning(Search.MaximumX + 6.0f, VSepY, 1.0f, 17.0f),
+                    Tinted.Hairline, 0.0f, CornerNone);
+
+    const float Gap = 5.0f;
+    float Lead = Search.MaximumX + 13.0f;
+
+    struct ToolCell
+    {
+        ControlIdentity* Target;
+        SymbolSubject    Glyph;
+        std::uint32_t    Request;
+    };
+
+    const ToolCell ToolsDeclared[3] =
+    {
+        { &ToolFolder,   SymbolSubject::FolderClosed,   static_cast<std::uint32_t>(TexturePaintRequest::AddFolder) },
+        { &ToolMask,     SymbolSubject::HalfMask,       0x80000000u },
+        { &ToolCollapse, SymbolSubject::CollapseFold,   0u }
+    };
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
+    {
+        const PlaneExtent Cell = Spanning(Lead, Top, ToolY, ToolY);
+        const bool Hovered = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
+
+        const bool MaskToolOn = (Ordinal == 1u) && Applied.LayerTaken < TextureLayerCeiling &&
+                                Applied.MaskAttached[Applied.LayerTaken];
+
+        if (Hovered)
+            Surface->Ground(Cell, Faded(Covering(0xFFFFFFu), 0.08f), Scaled.LayerRadius, CornerAll);
+
+        const float Figure = 15.0f;
+
+        Surface->Stroke(ToolsDeclared[Ordinal].Glyph,
+                        Spanning(Cell.MinimumX + (ToolY - Figure) * 0.5f,
+                                 Cell.MinimumY + (ToolY - Figure) * 0.5f, Figure, Figure),
+                        MaskToolOn ? Tinted.Primary
+                                   : (Hovered ? Tinted.Primary : Covering(0x9A9A9Au)));
+
+        if (Sampled.ContactPressed && Hovered && !Ledger->AnyDisclosed())
+            Ledger->Grab(*ToolsDeclared[Ordinal].Target, ControlPart::Body);
+
+        if (Hovered && Ledger->Released(*ToolsDeclared[Ordinal].Target))
+        {
+            if (Ordinal == 1u)
+            {
+                // 📐 The mask tool toggles the taken row's attached mask — the reference's `btnMask`.
+                if (Applied.LayerTaken < TextureLayerCeiling)
+                {
+                    const std::uint32_t Taken = Applied.LayerTaken;
+                    Applied.MaskAttached[Taken] = !Applied.MaskAttached[Taken];
+
+                    if (Applied.MaskAttached[Taken])
+                    {
+                        Applied.MaskVisible[Taken] = true;
+                        Applied.MaskTaken = true;
+                    }
+                    else
+                    {
+                        Applied.MaskTaken = false;
+                    }
+                }
+            }
+            else if (Ordinal == 2u)
+            {
+                // 📐 Collapse / expand all folders — the reference's `btnCollapse`.
+                bool AnyOpen = false;
+
+                for (std::uint32_t Row = 0u; Row < TextureLayerCeiling; ++Row)
+                {
+                    if (Applied.LayerExpanded[Row])
+                    {
+                        AnyOpen = true;
+                        break;
+                    }
+                }
+
+                const bool Open = !AnyOpen;
+
+                for (std::uint32_t Row = 0u; Row < TextureLayerCeiling; ++Row)
+                    Applied.LayerExpanded[Row] = Open;
+            }
+            else
+            {
+                Applied.Structural = ToolsDeclared[Ordinal].Request;
+            }
+        }
+
+        Lead += ToolY + Gap;
+    }
+}
+
 void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintContext& Applied,
+                                       const TextureLayerRow* Rows, std::uint32_t RowCount,
                                        const TextureLayerRow& Current, std::uint32_t Ordinal)
 {
     const bool Taken   = Applied.LayerTaken == Ordinal && !Applied.MaskTaken;
@@ -726,31 +1461,48 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
     //    attached mask row too, and a click there must address the MASK, never the layer — the
     //    reported defect where the mask row could not be taken.
     const bool Hovered = Row.Encloses(Sampled.PositionX, Sampled.PositionY) &&
-                         !(Current.MaskDeclared &&
-                           Sampled.PositionY >= Row.MinimumY + Scaled.RowHeight);
+                         !(Applied.MaskAttached[Ordinal] &&
+                           Sampled.PositionY >= Row.MinimumY + Scaled.LayerRowY);
     const bool Absent  = !Applied.LayerPresent[Ordinal];
     const bool Branch  = Current.EnclosedCount > 0u;
+    const bool SoloDim = !RowInSolo(Applied, Rows, RowCount, Ordinal);
 
-    const float Coverage = Absent ? 0.5f : 1.0f;
-
-    // ① The interaction cells: the chevron, the eye, the row, and the unfold.
+    // 📐 The row's geometry: the entry tag, then the chevron, the eye, the thumb, the meta, the
+    //    chips and the details + more cells — the reference's `.row` order.
     const float LeadX = Row.MinimumX + Scaled.RowLeadX
                       + static_cast<float>(Current.Depth) * Scaled.RowStepX;
 
-    const PlaneExtent Chevron = Spanning(LeadX,
-                                         Row.MinimumY + (Scaled.RowHeight - Scaled.ChevronExtent) * 0.5f,
+    const float ChevronY = Row.MinimumY + (Scaled.LayerRowY - Scaled.ChevronExtent) * 0.5f;
+
+    const PlaneExtent Chevron = Spanning(LeadX, ChevronY,
                                          Scaled.ChevronExtent, Scaled.ChevronExtent);
-    const float EyeExtent = Scaled.GlyphExtent * (16.0f / 18.0f);
-    const PlaneExtent Eye = Spanning(Row.MaximumX - Scaled.KebabExtent - Scaled.PanePad * 2.0f - EyeExtent,
-                                     Row.MinimumY + (Scaled.RowHeight - EyeExtent) * 0.5f,
+
+    const float EyeExtent = Scaled.LayerToolHeight - 5.0f;
+    const float EyeLead = Chevron.MaximumX + (Branch ? 8.0f : 0.0f) + 8.0f;
+    const PlaneExtent Eye = Spanning(EyeLead,
+                                     Row.MinimumY + (Scaled.LayerRowY - EyeExtent) * 0.5f,
                                      EyeExtent, EyeExtent);
-    const PlaneExtent Unfold = Spanning(Row.MaximumX - Scaled.KebabExtent - Scaled.PanePad * 0.5f,
-                                        Row.MinimumY + (Scaled.RowHeight - Scaled.ChevronExtent) * 0.5f,
-                                        Scaled.ChevronExtent, Scaled.ChevronExtent);
+
+    const float ThumbExtent = Scaled.LayerThumbY;
+    const PlaneExtent Thumb = Spanning(Eye.MaximumX + 8.0f,
+                                       Row.MinimumY + (Scaled.LayerRowY - ThumbExtent) * 0.5f,
+                                       ThumbExtent, ThumbExtent);
+
+    const float MetaLead = Thumb.MaximumX + Scaled.PanePad;
+    const float RightGrip = Row.MaximumX - 6.0f;
+
+    const PlaneExtent More = Spanning(RightGrip - EyeExtent,
+                                      Row.MinimumY + (Scaled.LayerRowY - EyeExtent) * 0.5f,
+                                      EyeExtent, EyeExtent);
+    const PlaneExtent Details = Spanning(More.MinimumX - 4.0f - EyeExtent,
+                                         More.MinimumY, EyeExtent, EyeExtent);
+
+    const float RowCoverage = (Absent ? 0.34f : 1.0f) * (SoloDim ? 0.30f : 1.0f);
 
     const bool OnChevron = Branch && Chevron.Encloses(Sampled.PositionX, Sampled.PositionY);
     const bool OnEye     = Eye.Encloses(Sampled.PositionX, Sampled.PositionY);
-    const bool OnUnfold  = Unfold.Encloses(Sampled.PositionX, Sampled.PositionY);
+    const bool OnDetails = Details.Encloses(Sampled.PositionX, Sampled.PositionY);
+    const bool OnMore    = More.Encloses(Sampled.PositionX, Sampled.PositionY);
 
     if (Sampled.ContactPressed && !Ledger->AnyDisclosed())
     {
@@ -758,8 +1510,10 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
             Ledger->Grab(LayerChevrons[Ordinal], ControlPart::Chevron);
         else if (OnEye)
             Ledger->Grab(LayerEyes[Ordinal], ControlPart::Body);
-        else if (OnUnfold)
-            Ledger->Grab(LayerUnfolds[Ordinal], ControlPart::Body);
+        else if (OnDetails)
+            Ledger->Grab(LayerDetails[Ordinal], ControlPart::Body);
+        else if (OnMore)
+            Ledger->Grab(LayerMores[Ordinal], ControlPart::Body);
         else if (Hovered)
             Ledger->Grab(LayerContacts[Ordinal], ControlPart::Body);
     }
@@ -770,10 +1524,29 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
     if (OnEye && Ledger->Released(LayerEyes[Ordinal]))
         Applied.LayerPresent[Ordinal] = !Applied.LayerPresent[Ordinal];
 
-    if (OnUnfold && Ledger->Released(LayerUnfolds[Ordinal]))
-        Applied.LayerUnfolded[Ordinal] = !Applied.LayerUnfolded[Ordinal];
+    // 📐 The details chevron travels to the properties page — the reference's `exp` revealing the
+    //    details, landed on the page the selection names.
+    if (OnDetails && Ledger->Released(LayerDetails[Ordinal]))
+    {
+        Applied.LayerTaken   = Ordinal;
+        Applied.MaskTaken    = false;
+        Applied.StackPage    = 1u;
+        Applied.PropertyTab  = 0u;
+    }
 
-    if (Hovered && !OnChevron && !OnEye && !OnUnfold && Ledger->Released(LayerContacts[Ordinal]))
+    // 📐 The more button opens the layer menu — the reference's `layerMenu`.
+    if (OnMore && Ledger->Released(LayerMores[Ordinal]))
+    {
+        Applied.LayerTaken = Ordinal;
+        Applied.MaskTaken  = false;
+        Applied.MenuOpen   = 2u;
+        Applied.MenuRow    = Ordinal;
+        Ledger->Disclose(MenuLayer);
+        MenuAnchorExtent = More;
+    }
+
+    if (Hovered && !OnChevron && !OnEye && !OnDetails && !OnMore &&
+        Ledger->Released(LayerContacts[Ordinal]))
     {
         Applied.LayerTaken = Ordinal;
         Applied.MaskTaken  = false;
@@ -781,165 +1554,375 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
 
     Ledger->DeclareHovered(LayerContacts[Ordinal], Hovered, HoverOver);
 
-    // ② The spine, the ground and the row.
-    Surface->Ground(Spanning(Row.MinimumX, Row.MinimumY, 3.0f, Scaled.RowHeight),
-                    Faded(Covering(Current.TagHue), Absent ? 0.3f : 0.9f), 0.0f, CornerNone);
+    // ② The entry tag — the 3 px colour rail, dotted for a mask, dimmed for a hidden row.
+    const std::uint32_t TagHue = Applied.LayerTagHue[Ordinal] != 0u
+                               ? Applied.LayerTagHue[Ordinal] : Current.TagHue;
 
+    if (Applied.MaskAttached[Ordinal])
+    {
+        // 📐 The reference's `.tag.dot`: 3 px on, 4 px off, at 0.85 coverage.
+        for (float Y = Row.MinimumY; Y < Row.MinimumY + Scaled.LayerRowY; Y += 7.0f)
+        {
+            Surface->Ground(Spanning(Row.MinimumX, Y, Scaled.LayerTagX,
+                                     std::min(3.0f, Row.MinimumY + Scaled.LayerRowY - Y)),
+                            Faded(Covering(TagHue), (Absent ? 0.3f : 0.85f)), 0.0f, CornerNone);
+        }
+    }
+    else
+    {
+        Surface->Ground(Spanning(Row.MinimumX, Row.MinimumY, Scaled.LayerTagX, Scaled.LayerRowY),
+                        Faded(Covering(TagHue), Absent ? 0.3f : 1.0f), 0.0f, CornerNone);
+    }
+
+    // ③ The row ground — the reference's `#0d0d0d` row, its hover, and the selected pose.
     if (Taken)
-        Surface->Ground(Spanning(Row.MinimumX + 3.0f, Row.MinimumY,
-                                 Row.Width() - 3.0f, Scaled.RowHeight),
-                        Faded(Tinted.EntityTaken, Coverage), Scaled.FieldRadius, CornerAll);
+    {
+        Surface->Ground(Spanning(Row.MinimumX + Scaled.LayerTagX, Row.MinimumY,
+                                 Row.Width() - Scaled.LayerTagX, Scaled.LayerRowY),
+                        Covering(0x202020u), 0.0f, CornerNone);
+        Surface->Edge(Spanning(Row.MinimumX + Scaled.LayerTagX, Row.MinimumY,
+                               Row.Width() - Scaled.LayerTagX, Scaled.LayerRowY),
+                      Faded(Covering(0xFFFFFFu), 0.18f), 1.0f, 0.0f, CornerNone);
+    }
     else if (Hovered)
-        Surface->Ground(Spanning(Row.MinimumX + 3.0f, Row.MinimumY,
-                                 Row.Width() - 3.0f, Scaled.RowHeight),
-                        Faded(Tinted.RowHovered, Coverage), Scaled.FieldRadius, CornerAll);
+    {
+        Surface->Ground(Spanning(Row.MinimumX + Scaled.LayerTagX, Row.MinimumY,
+                                 Row.Width() - Scaled.LayerTagX, Scaled.LayerRowY),
+                        Covering(0x161616u), 0.0f, CornerNone);
+    }
+    else
+    {
+        Surface->Ground(Spanning(Row.MinimumX + Scaled.LayerTagX, Row.MinimumY,
+                                 Row.Width() - Scaled.LayerTagX, Scaled.LayerRowY),
+                        Covering(0x0D0D0Du), 0.0f, CornerNone);
+    }
 
+    // ④ The disclosure chevron (folders only — the reference's `.tw.void` is skipped).
     if (Branch)
-        Surface->Stroke(Applied.LayerExpanded[Ordinal]
-                        ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
-                        Chevron, Faded(Tinted.Faint, Coverage));
+    {
+        const bool Open = Applied.LayerExpanded[Ordinal];
 
-    // ③ The thumb: a square with the classification glyph badge.
-    const float ThumbExtent = 32.0f;
-    const PlaneExtent Thumb = Spanning(LeadX + Scaled.ChevronExtent + Scaled.PanePad,
-                                       Row.MinimumY + (Scaled.RowHeight - ThumbExtent) * 0.5f,
-                                       ThumbExtent, ThumbExtent);
+        Surface->Stroke(Open ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
+                        Chevron, Faded(OnChevron ? Tinted.Primary : Covering(0x5E5E5Eu),
+                                       RowCoverage));
+    }
 
-    Surface->Ground(Thumb, Faded(Covering(0x141414u), Coverage), 2.0f, CornerAll);
-    Surface->Edge(Thumb, Faded(Covering(0x242424u), Coverage), 1.0f, 2.0f, CornerAll);
+    // ⑤ The eye — always standing, exactly as the reference's `.eye` carries its 0.55 opacity.
+    if (OnEye)
+        Surface->Ground(Eye, Faded(Covering(0xFFFFFFu), 0.08f), 3.0f, CornerAll);
 
-    const float Figure = ThumbExtent * 0.55f;
+    Surface->Stroke(Absent ? SymbolSubject::EyeClosed : SymbolSubject::EyeOpen, Eye,
+                    Faded(OnEye ? Tinted.Primary : Faded(Covering(0xFFFFFFu), Absent ? 0.4f : 0.55f),
+                          RowCoverage));
 
-    Surface->Stroke(TextureLayerGlyph(Current.Classified),
-                    Spanning(Thumb.MinimumX + (ThumbExtent - Figure) * 0.5f,
-                             Thumb.MinimumY + (ThumbExtent - Figure) * 0.5f,
-                             Figure, Figure),
-                    Faded(TextureLayerHue(Current.Classified), Coverage));
+    // ⑥ The square thumb: checker + folder glyph for folders, the hue wash + type badge for layers.
+    const float Checker = ThumbExtent * 0.25f;
 
-    // ④ The meta: name and the small detail run.
+    for (std::uint32_t RowStep = 0u; RowStep < 4u; ++RowStep)
+    {
+        for (std::uint32_t Column = 0u; Column < 4u; ++Column)
+        {
+            const bool Light = ((RowStep + Column) & 1u) == 0u;
+
+            Surface->Ground(Spanning(Thumb.MinimumX + Checker * static_cast<float>(Column),
+                                     Thumb.MinimumY + Checker * static_cast<float>(RowStep),
+                                     Checker + 0.5f, Checker + 0.5f),
+                            Faded(Covering(Light ? 0x1C1C1Cu : 0x101010u), RowCoverage),
+                            0.0f, CornerNone);
+        }
+    }
+
+    Surface->Edge(Thumb, Faded(Covering(0xFFFFFFu), 0.15f * RowCoverage), 1.0f, 0.0f, CornerAll);
+
+    if (Current.Classified == TextureLayerClassification::Folder)
+    {
+        const float Glyph = 16.0f;
+        Surface->Stroke(SymbolSubject::FolderClosed,
+                        Spanning(Thumb.MinimumX + (ThumbExtent - Glyph) * 0.5f,
+                                 Thumb.MinimumY + (ThumbExtent - Glyph) * 0.5f, Glyph, Glyph),
+                        Faded(Covering(TagHue), RowCoverage));
+    }
+    else
+    {
+        // 📐 The hue wash over the checker, then the badge with the type glyph — the reference's
+        //    texture disc + `badge`.
+        Surface->Ground(Thumb, Faded(Covering(TagHue), 0.30f * RowCoverage), 0.0f, CornerNone);
+
+        const float BadgeExtent = Scaled.LayerBadgeY;
+        const PlaneExtent Badge = Spanning(Thumb.MaximumX - BadgeExtent + 3.0f,
+                                           Thumb.MaximumY + ThumbExtent - BadgeExtent - 3.0f,
+                                           BadgeExtent, BadgeExtent);
+
+        Surface->Ground(Badge, Faded(Covering(0x000000u), RowCoverage), Scaled.LayerRadius * 0.5f,
+                        CornerAll);
+        Surface->Edge(Badge, Faded(Covering(0xFFFFFFu), 0.18f), 1.0f,
+                      Scaled.LayerRadius * 0.5f, CornerAll);
+
+        const float Figure = BadgeExtent * 0.62f;
+        Surface->Stroke(TextureLayerGlyph(Current.Classified),
+                        Spanning(Badge.MinimumX + (BadgeExtent - Figure) * 0.5f,
+                                 Badge.MinimumY + (BadgeExtent - Figure) * 0.5f, Figure, Figure),
+                        Faded(Covering(0x9A9A9Au), RowCoverage));
+    }
+
+    // ⑦ The meta: name + the sub run.
     const float NamingRun  = Scaled.RunPrimary;
-    const float NamingTop  = Row.MinimumY + (Scaled.RowHeight * 0.5f - NamingRun * 1.3f) * 0.5f;
-    const float MetaLead   = Thumb.MaximumX + Scaled.PanePad;
-    const float NamingCeiling = Eye.MinimumX - Scaled.PanePad;
+    const float NamingTop  = Row.MinimumY + (Scaled.LayerRowY * 0.5f - NamingRun * 1.3f) * 0.5f;
+    const float NamingCeiling = Details.MinimumX - Scaled.PanePad;
 
     Surface->TextRunTruncated(MetaLead, NamingTop, NamingCeiling,
-                              Faded(Taken ? Tinted.Primary : Tinted.Muted, Coverage),
-                              Current.Naming, NamingRun);
+                              Faded(Taken ? Tinted.Primary : Tinted.Muted, RowCoverage),
+                              Current.Naming, NamingRun, Taken);
 
     const float SubRun = Scaled.RunFine;
     const float SubTop = NamingTop + NamingRun * 1.3f;
 
     char Sub[96] = {};
-    std::snprintf(Sub, sizeof(Sub), "%s \u00B7 %s \u00B7 %u%%",
-                  TextureLayerText(Current.Classified),
-                  Current.Detail[0] != '\0' ? Current.Detail : Current.Blend,
-                  Current.Opacity);
+    const bool IsFolder = Current.Classified == TextureLayerClassification::Folder;
+
+    if (IsFolder)
+    {
+        std::snprintf(Sub, sizeof(Sub), "%u items \u00B7 %s", Current.EnclosedCount,
+                      TextureBlendNames[Applied.LayerBlendTaken[Ordinal] % TextureBlendCount]);
+    }
+    else if (Current.Classified == TextureLayerClassification::Decal ||
+             Current.Classified == TextureLayerClassification::Pattern)
+    {
+        std::snprintf(Sub, sizeof(Sub), "%s \u00B7 %s",
+                      TextureLayerText(Current.Classified),
+                      Current.Detail[0] != '\0' ? Current.Detail : Current.Blend);
+    }
+    else if (Applied.WideRows && Row.Width() > 620.0f && Current.Detail[0] != '\0')
+    {
+        std::snprintf(Sub, sizeof(Sub), "%s \u00B7 %s", TextureLayerText(Current.Classified),
+                      Current.Detail);
+    }
+    else
+    {
+        std::snprintf(Sub, sizeof(Sub), "%s \u00B7 %s \u00B7 %u%%",
+                      TextureLayerText(Current.Classified),
+                      TextureBlendNames[Applied.LayerBlendTaken[Ordinal] % TextureBlendCount],
+                      Applied.LayerOpacity[Ordinal]);
+    }
 
     Surface->TextRunTruncated(MetaLead, SubTop, NamingCeiling,
-                              Faded(Tinted.Faint, Coverage), Sub, SubRun);
+                              Faded(Tinted.Faint, RowCoverage), Sub, SubRun);
 
-    // ⑤ The chips: mask, channels.
-    float ChipLead = NamingCeiling;
+    // ⑧ The wide columns: blend and opacity — the reference's `body.wide .col`.
+    float ChipCeiling = Details.MinimumX - 8.0f;
 
-    if (Current.MaskDeclared)
+    if (Applied.WideRows && NamingCeiling - MetaLead > 300.0f)
     {
-        const char* MaskChip = "MASK";
-        const float ChipRun = Scaled.RunFiner;
-        const float ChipX = Scaled.RunFiner * 0.6f;
+        const float OpColX = ChipCeiling - 110.0f;
+        const float BlendColX = OpColX - 118.0f;
 
-        Surface->Ground(Spanning(ChipLead - ChipX - Surface->MeasureRun(MaskChip, ChipRun, 0.0f) - 10.0f,
-                                 Row.MinimumY + (Scaled.RowHeight - 17.0f) * 0.5f,
-                                 Surface->MeasureRun(MaskChip, ChipRun, 0.0f) + 10.0f, 17.0f),
-                        Faded(Covering(0x2A2A2Au), Coverage), 9.0f, CornerAll);
+        // 📐 The opacity mini-bar and its value.
+        const float BarY = Row.MinimumY + (Scaled.LayerRowY - 4.0f) * 0.5f;
+        const std::uint32_t Amount = Applied.LayerOpacity[Ordinal];
 
-        Surface->TextRun(ChipLead - ChipX - Surface->MeasureRun(MaskChip, ChipRun, 0.0f) - 5.0f,
-                         Row.MinimumY + (Scaled.RowHeight - ChipRun) * 0.5f,
-                         Faded(Covering(0xDCDCDCu), Coverage), MaskChip, ChipRun, 0.0f, true);
+        Surface->Ground(Spanning(OpColX, BarY, 56.0f, 4.0f),
+                        Faded(Covering(0x242424u), RowCoverage), 2.0f, CornerAll);
+        Surface->Ground(Spanning(OpColX, BarY, 56.0f * static_cast<float>(Amount) / 100.0f, 4.0f),
+                        Faded(Covering(0xFFFFFFu), RowCoverage), 2.0f, CornerAll);
 
-        ChipLead -= Surface->MeasureRun(MaskChip, ChipRun, 0.0f) + ChipX * 2.0f + 10.0f;
+        char Value[8] = {};
+        std::snprintf(Value, sizeof(Value), "%u%%", Amount);
+
+        Surface->TextRun(OpColX + 62.0f, Row.MinimumY + (Scaled.LayerRowY - SubRun) * 0.5f,
+                         Faded(Tinted.Muted, RowCoverage), Value, SubRun, 0.0f, true);
+
+        // 📐 The blend run.
+        const char* Blend = TextureBlendNames[Applied.LayerBlendTaken[Ordinal] % TextureBlendCount];
+        const float BlendSpan = Surface->MeasureRun(Blend, SubRun, 0.0f);
+
+        Surface->TextRun(BlendColX + 118.0f - BlendSpan,
+                         Row.MinimumY + (Scaled.LayerRowY - SubRun) * 0.5f,
+                         Faded(Tinted.Muted, RowCoverage), Blend, SubRun, 0.0f, true);
+
+        ChipCeiling = BlendColX - 8.0f;
     }
 
-    if (Current.ChannelCount > 0u)
+    // ⑨ The chips, right-to-left: CH, FX, MASK, L, 3D — the reference's `.chips`.
+    const float ChipRun = Scaled.RunFiner;
+    const float ChipH = Scaled.LayerChipY;
+    float ChipX = ChipCeiling;
+
+    const auto DrawChip = [&](const char* Text, std::uint32_t Background, std::uint32_t Foreground,
+                              const ThemeToken& Border) -> float
     {
-        char ChannelChip[12] = {};
-        std::snprintf(ChannelChip, sizeof(ChannelChip), "%u/8 CH", Current.ChannelCount);
+        const float Span = Surface->MeasureRun(Text, ChipRun, 0.0f) + 14.0f;
 
-        const float ChipRun = Scaled.RunFiner;
+        if (ChipX - Span >= MetaLead + 40.0f)
+        {
+            const PlaneExtent Chip = Spanning(ChipX - Span,
+                                              Row.MinimumY + (Scaled.LayerRowY - ChipH) * 0.5f,
+                                              Span, ChipH);
 
-        Surface->Ground(Spanning(ChipLead - ChipRun * 0.6f - Surface->MeasureRun(ChannelChip, ChipRun, 0.0f) - 10.0f,
-                                 Row.MinimumY + (Scaled.RowHeight - 17.0f) * 0.5f,
-                                 Surface->MeasureRun(ChannelChip, ChipRun, 0.0f) + 10.0f, 17.0f),
-                        Faded(Covering(0x1F1F1Fu), Coverage), 9.0f, CornerAll);
+            Surface->Ground(Chip, Faded(Covering(Background), RowCoverage), ChipH * 0.5f, CornerAll);
+            Surface->Edge(Chip, Faded(Border, RowCoverage), 1.0f, ChipH * 0.5f, CornerAll);
+            Surface->TextRun(Chip.MinimumX + 7.0f,
+                             Row.MinimumY + (Scaled.LayerRowY - ChipRun) * 0.5f,
+                             Faded(Covering(Foreground), RowCoverage), Text, ChipRun, 0.0f, true);
 
-        Surface->TextRun(ChipLead - ChipRun * 0.6f - Surface->MeasureRun(ChannelChip, ChipRun, 0.0f) - 5.0f,
-                         Row.MinimumY + (Scaled.RowHeight - ChipRun) * 0.5f,
-                         Faded(Covering(0x9A9A9Au), Coverage), ChannelChip, ChipRun, 0.0f, true);
+            ChipX -= Span + 4.0f;
+        }
+
+        return ChipX;
+    };
+
+    char ChannelChip[12] = {};
+    std::snprintf(ChannelChip, sizeof(ChannelChip), "%u/8 CH", Current.ChannelCount);
+
+    if (Current.ChannelCount > 0u && !IsFolder)
+        DrawChip(ChannelChip, 0x1E1E1Eu, 0x9A9A9Au, Tinted.Hairline);
+
+    if (EffectCount(Current.Effects) > 0u)
+    {
+        char EffectChip[12] = {};
+        std::snprintf(EffectChip, sizeof(EffectChip), "%u FX", EffectCount(Current.Effects));
+        DrawChip(EffectChip, 0x22190Eu, 0xFFD9A0u, Covering(0x5A3A1Cu));
     }
 
-    // ⑥ The eye and the unfold.
-    if (Hovered || Absent || Taken)
-    {
-        if (OnEye)
-            Surface->Ground(Eye, Tinted.TileHovered, 3.0f, CornerAll);
+    if (Applied.MaskAttached[Ordinal])
+        DrawChip("MASK", 0x2A2A2Au, 0xDCDCDCu, Tinted.Hairline);
 
-        Surface->Stroke(Absent ? SymbolSubject::EyeClosed : SymbolSubject::EyeOpen, Eye,
-                        OnEye ? Tinted.Primary : Tinted.Faint);
-    }
+    if (Applied.LayerLocked[Ordinal])
+        DrawChip("L", 0x2C1918u, 0xFF9D96u, Covering(0x4C2524u));
 
-    Surface->Stroke(Applied.LayerUnfolded[Ordinal] ? SymbolSubject::ChevronDown
-                                                   : SymbolSubject::ChevronRight,
-                    Unfold, OnUnfold ? Tinted.Primary : Tinted.Faint);
+    if (Current.Classified == TextureLayerClassification::Decal)
+        DrawChip("3D", 0x1B242Fu, 0xA9D8FFu, Covering(0x38506Au));
 
-    // ⑦ The inline unfolded card: the blend and the opacity mini-bar — the small details the user
-    //    wants on the row; everything else lives on the properties page.
-    if (Applied.LayerUnfolded[Ordinal])
-    {
-        const float FoldY = Scaled.LayerFoldPad * 2.0f + Scaled.LayerFieldRow * 2.0f;
-        const PlaneExtent Fold = Spanning(Row.MinimumX + 3.0f, Row.MinimumY + Scaled.RowHeight,
-                                          Row.Width() - 3.0f, FoldY);
+    // ⑩ The details and more cells.
+    const float CellCoverage = (Hovered || Taken) ? 1.0f : 0.45f;
 
-        Surface->Ground(Fold, Covering(0x0B0B0Bu), 0.0f, CornerNone);
+    if (OnDetails)
+        Surface->Ground(Details, Faded(Covering(0xFFFFFFu), 0.08f), 3.0f, CornerAll);
 
-        const float RowRun = Scaled.RunFine;
-        const float RowTop = Fold.MinimumY + Scaled.LayerFoldPad;
+    Surface->Stroke(SymbolSubject::ChevronRight,
+                    Spanning(Details.MinimumX + (EyeExtent - 13.0f) * 0.5f,
+                             Details.MinimumY + (EyeExtent - 13.0f) * 0.5f, 13.0f, 13.0f),
+                    Faded(Faded(Tinted.Faint, CellCoverage), RowCoverage));
 
-        Surface->TextRun(Fold.MinimumX + Scaled.PanePad * 2.0f, RowTop, Tinted.Muted,
-                         "Blend", RowRun);
-        Surface->TextRun(Fold.MinimumX + Scaled.PanePad * 2.0f + 64.0f, RowTop,
-                         Tinted.Primary, Current.Blend, RowRun);
+    if (OnMore)
+        Surface->Ground(More, Faded(Covering(0xFFFFFFu), 0.08f), 3.0f, CornerAll);
 
-        // 📐 The opacity mini-bar.
-        const float BarX = Fold.MaximumX - 150.0f;
-        const float BarY = RowTop + 3.0f;
-
-        Surface->Ground(Spanning(BarX, BarY, 100.0f, 4.0f), Covering(0x242424u), 2.0f, CornerAll);
-        Surface->Ground(Spanning(BarX, BarY, 100.0f * static_cast<float>(Current.Opacity) / 100.0f, 4.0f),
-                        Covering(0xFFFFFFu), 2.0f, CornerAll);
-
-        char Opacity[16] = {};
-        std::snprintf(Opacity, sizeof(Opacity), "%u%%", Current.Opacity);
-
-        Surface->TextRun(Fold.MaximumX - Scaled.PanePad * 2.0f - 44.0f, RowTop,
-                         Tinted.Primary, Opacity, RowRun);
-
-        Surface->TextRun(Fold.MinimumX + Scaled.PanePad * 2.0f,
-                         RowTop + Scaled.LayerFieldRow, Tinted.Muted, "Channels", RowRun);
-        Surface->TextRun(Fold.MinimumX + Scaled.PanePad * 2.0f + 64.0f,
-                         RowTop + Scaled.LayerFieldRow, Tinted.Primary,
-                         Current.ChannelCount > 0u ? Current.Channels[0] : "none", RowRun);
-    }
+    Surface->Stroke(SymbolSubject::EllipsisDots,
+                    Spanning(More.MinimumX + (EyeExtent - 13.0f) * 0.5f,
+                             More.MinimumY + (EyeExtent - 13.0f) * 0.5f, 13.0f, 13.0f),
+                    Faded(Faded(Tinted.Faint, CellCoverage), RowCoverage));
 }
 
 void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContext& Applied,
+                                      const TextureLayerRow* Rows, std::uint32_t RowCount,
                                       const TextureLayerRow& Current, std::uint32_t Ordinal)
 {
     const bool Taken   = Applied.LayerTaken == Ordinal && Applied.MaskTaken;
     const bool Hovered = Row.Encloses(Sampled.PositionX, Sampled.PositionY);
+    const bool Absent  = !Applied.MaskVisible[Ordinal];
+    const bool SoloDim = !RowInSolo(Applied, Rows, RowCount, Ordinal);
+
+    const float Coverage = (Absent ? 0.34f : 1.0f) * (SoloDim ? 0.30f : 1.0f);
+
+    // 📐 The connector elbow — the reference's `.attach::before/::after`.
+    const float SpineX = Row.MinimumX + 14.0f;
+
+    Surface->Ground(Spanning(SpineX, Row.MinimumY, 1.0f, 23.0f),
+                    Faded(Covering(0xFFFFFFu), 0.10f), 0.0f, CornerNone);
+    Surface->Ground(Spanning(SpineX, Row.MinimumY + 23.0f, 11.0f, 1.0f),
+                    Faded(Covering(0xFFFFFFu), 0.10f), 0.0f, CornerNone);
+
+    // 📐 The mask row ground: near-transparent, dashed border, solid + selected when taken.
+    const PlaneExtent Ground = Spanning(Row.MinimumX, Row.MinimumY, Row.Width(), Row.Height());
+
+    if (Taken)
+    {
+        Surface->Ground(Ground, Covering(0x202020u), 0.0f, CornerNone);
+        Surface->Edge(Ground, Faded(Covering(0xFFFFFFu), 0.18f), 1.0f, 0.0f, CornerNone);
+    }
+    else
+    {
+        Surface->Ground(Ground, Covering(Hovered ? 0x141414u : 0x0F0F0Fu), 0.0f, CornerNone);
+
+        // 📐 The reference's dashed border, drawn as short segments.
+        const float Segment = 10.0f;
+        const float Gap = 4.0f;
+
+        for (float X = Row.MinimumX + 1.0f; X < Row.MaximumX - 1.0f; X += Segment + Gap)
+        {
+            const float Span = std::min(Segment, Row.MaximumX - 1.0f - X);
+
+            Surface->Ground(Spanning(X, Row.MinimumY, Span, 1.0f),
+                            Faded(Covering(0xFFFFFFu), 0.10f), 0.0f, CornerNone);
+            Surface->Ground(Spanning(X, Row.MaximumY - 1.0f, Span, 1.0f),
+                            Faded(Covering(0xFFFFFFu), 0.10f), 0.0f, CornerNone);
+        }
+
+        Surface->Ground(Spanning(Row.MinimumX, Row.MinimumY, 1.0f, Row.Height()),
+                        Faded(Covering(0xFFFFFFu), 0.10f), 0.0f, CornerNone);
+        Surface->Ground(Spanning(Row.MaximumX - 1.0f, Row.MinimumY, 1.0f, Row.Height()),
+                        Faded(Covering(0xFFFFFFu), 0.10f), 0.0f, CornerNone);
+    }
+
+    // 📐 The content: eye, mini thumb, MASK name + sub, chips, details and more — the reference's
+    //    `.row.msk`.
+    const float Lead = Row.MinimumX + Scaled.LayerMaskIndent;
+    const float EyeExtent = Scaled.LayerToolHeight - 5.0f;
+    const PlaneExtent Eye = Spanning(Lead,
+                                     Row.MinimumY + (Row.Height() - EyeExtent) * 0.5f,
+                                     EyeExtent, EyeExtent);
+
+    const float Mini = Scaled.LayerThumbY - 8.0f;
+    const PlaneExtent Thumb = Spanning(Eye.MaximumX + 8.0f,
+                                       Row.MinimumY + (Row.Height() - Mini) * 0.5f,
+                                       Mini, Mini);
+
+    const float MetaLead = Thumb.MaximumX + Scaled.PanePad;
+    const float RightGrip = Row.MaximumX - 6.0f;
+
+    const PlaneExtent More = Spanning(RightGrip - EyeExtent,
+                                      Row.MinimumY + (Row.Height() - EyeExtent) * 0.5f,
+                                      EyeExtent, EyeExtent);
+    const PlaneExtent Details = Spanning(More.MinimumX - 4.0f - EyeExtent,
+                                         More.MinimumY, EyeExtent, EyeExtent);
+
+    const bool OnEye     = Eye.Encloses(Sampled.PositionX, Sampled.PositionY);
+    const bool OnDetails = Details.Encloses(Sampled.PositionX, Sampled.PositionY);
+    const bool OnMore    = More.Encloses(Sampled.PositionX, Sampled.PositionY);
 
     if (Sampled.ContactPressed && Hovered && !Ledger->AnyDisclosed())
-        Ledger->Grab(MaskContacts[Ordinal], ControlPart::Body);
+    {
+        if (OnEye)
+            Ledger->Grab(MaskEyes[Ordinal], ControlPart::Body);
+        else if (OnDetails)
+            Ledger->Grab(MaskDetails[Ordinal], ControlPart::Body);
+        else if (OnMore)
+            Ledger->Grab(MaskMores[Ordinal], ControlPart::Body);
+        else
+            Ledger->Grab(MaskContacts[Ordinal], ControlPart::Body);
+    }
 
-    if (Hovered && Ledger->Released(MaskContacts[Ordinal]))
+    if (OnEye && Ledger->Released(MaskEyes[Ordinal]))
+        Applied.MaskVisible[Ordinal] = !Applied.MaskVisible[Ordinal];
+
+    if (OnDetails && Ledger->Released(MaskDetails[Ordinal]))
+    {
+        Applied.LayerTaken  = Ordinal;
+        Applied.MaskTaken   = true;
+        Applied.StackPage   = 1u;
+        Applied.PropertyTab = 1u;
+    }
+
+    if (OnMore && Ledger->Released(MaskMores[Ordinal]))
+    {
+        Applied.LayerTaken = Ordinal;
+        Applied.MaskTaken  = true;
+        Applied.MenuOpen   = 3u;
+        Applied.MenuRow    = Ordinal;
+        Ledger->Disclose(MenuMask);
+        MenuAnchorExtent = More;
+    }
+
+    if (Hovered && !OnEye && !OnDetails && !OnMore && Ledger->Released(MaskContacts[Ordinal]))
     {
         Applied.LayerTaken = Ordinal;
         Applied.MaskTaken  = true;
@@ -947,33 +1930,660 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
 
     Ledger->DeclareHovered(MaskContacts[Ordinal], Hovered, HoverOver);
 
-    Surface->Ground(Row, Taken ? Faded(Tinted.EntityTaken, 1.0f) : Covering(0x101010u),
-                    Scaled.FieldRadius, CornerAll);
-    Surface->Edge(Row, Taken ? Tinted.Accent : Tinted.Hairline, 1.0f, Scaled.FieldRadius, CornerAll);
+    if (OnEye)
+        Surface->Ground(Eye, Faded(Covering(0xFFFFFFu), 0.08f), 3.0f, CornerAll);
 
-    const float GlyphExtent = 14.0f;
-    const PlaneExtent Glyph = Spanning(Row.MinimumX + Scaled.PanePad * 1.5f,
-                                       Row.MinimumY + (Row.Height() - GlyphExtent) * 0.5f,
-                                       GlyphExtent, GlyphExtent);
+    Surface->Stroke(Absent ? SymbolSubject::EyeClosed : SymbolSubject::EyeOpen, Eye,
+                    Faded(OnEye ? Tinted.Primary : Faded(Covering(0xFFFFFFu), Absent ? 0.4f : 0.55f),
+                          Coverage));
 
-    Surface->Stroke(SymbolSubject::MaskStencil, Glyph,
-                    Faded(Covering(0xDCDCDCu), Applied.LayerPresent[Ordinal] ? 1.0f : 0.4f));
+    // 📐 The mini thumb: the mask's hue wash with the mask glyph.
+    for (std::uint32_t RowStep = 0u; RowStep < 2u; ++RowStep)
+    {
+        for (std::uint32_t Column = 0u; Column < 2u; ++Column)
+        {
+            const bool Light = ((RowStep + Column) & 1u) == 0u;
 
-    const float Run = Scaled.RunSecondary;
+            Surface->Ground(Spanning(Thumb.MinimumX + Mini * 0.5f * static_cast<float>(Column),
+                                     Thumb.MinimumY + Mini * 0.5f * static_cast<float>(RowStep),
+                                     Mini * 0.5f + 0.5f, Mini * 0.5f + 0.5f),
+                            Faded(Covering(Light ? 0x1C1C1Cu : 0x101010u), Coverage),
+                            0.0f, CornerNone);
+        }
+    }
 
-    Surface->TextRun(Glyph.MaximumX + Scaled.PanePad,
-                     Row.MinimumY + (Row.Height() - Run) * 0.5f,
-                     Taken ? Tinted.Primary : Covering(0xDCDCDCu), "Mask", Run, 0.0f, true);
+    const float MaskGlyph = Mini * 0.55f;
+    Surface->Stroke(SymbolSubject::HalfMask,
+                    Spanning(Thumb.MinimumX + (Mini - MaskGlyph) * 0.5f,
+                             Thumb.MinimumY + (Mini - MaskGlyph) * 0.5f, MaskGlyph, MaskGlyph),
+                    Faded(Covering(0xDCDCDCu), Coverage));
+
+    // 📐 The name and the sub run.
+    const float NamingRun = Scaled.RunSmall;
+    const float NamingTop = Row.MinimumY + (Row.Height() * 0.5f - NamingRun * 1.3f) * 0.5f;
+    const float NamingCeiling = Details.MinimumX - Scaled.PanePad;
+
+    Surface->TextRun(MetaLead, NamingTop,
+                     Faded(Taken ? Tinted.Primary : Covering(0x9A9A9Au), Coverage),
+                     "Mask", NamingRun, 1.1f, true);
+
+    const char* Source = Current.Source[0] != '\0'
+                       ? Current.Source
+                       : TextureMaskSourceNames[Applied.MaskSourceTaken[Ordinal] % 5u];
 
     char Sub[64] = {};
-    std::snprintf(Sub, sizeof(Sub), "%s \u00B7 %u%%%s",
-                  Current.Source[0] != '\0' ? Current.Source : "Paint",
-                  Current.MaskStrength,
-                  Current.MaskInverted ? " \u00B7 INV" : "");
+    std::snprintf(Sub, sizeof(Sub), "%s \u00B7 Gray 8 \u00B7 %u%%%s",
+                  Source, Applied.MaskDensity[Ordinal],
+                  Applied.MaskInverted[Ordinal] ? " \u00B7 INV" : "");
 
-    Surface->TextRun(Row.MinimumX + Scaled.PanePad * 1.5f + 64.0f,
-                     Row.MinimumY + (Row.Height() - Scaled.RunFine) * 0.5f,
-                     Tinted.Faint, Sub, Scaled.RunFine);
+    Surface->TextRunTruncated(MetaLead, NamingTop + NamingRun * 1.3f, NamingCeiling,
+                              Faded(Tinted.Faint, Coverage), Sub, Scaled.RunFine);
+
+    // 📐 The chips: CH, FX.
+    float ChipX = NamingCeiling;
+    const float ChipRun = Scaled.RunFiner;
+    const float ChipH = Scaled.LayerChipY;
+
+    if (Current.ChannelCount > 0u && Current.ChannelCount < TextureChannelCeiling)
+    {
+        char Chip[12] = {};
+        std::snprintf(Chip, sizeof(Chip), "%u CH", Current.ChannelCount);
+
+        const float Span = Surface->MeasureRun(Chip, ChipRun, 0.0f) + 14.0f;
+        const PlaneExtent ChipCell = Spanning(ChipX - Span,
+                                              Row.MinimumY + (Row.Height() - ChipH) * 0.5f,
+                                              Span, ChipH);
+
+        Surface->Ground(ChipCell, Faded(Covering(0x1E1E1Eu), Coverage), ChipH * 0.5f, CornerAll);
+        Surface->Edge(ChipCell, Faded(Tinted.Hairline, Coverage), 1.0f, ChipH * 0.5f, CornerAll);
+        Surface->TextRun(ChipCell.MinimumX + 7.0f,
+                         Row.MinimumY + (Row.Height() - ChipRun) * 0.5f,
+                         Faded(Covering(0x9A9A9Au), Coverage), Chip, ChipRun, 0.0f, true);
+
+        ChipX -= Span + 4.0f;
+    }
+
+    if (EffectCount(Current.Effects) > 0u)
+    {
+        char Chip[12] = {};
+        std::snprintf(Chip, sizeof(Chip), "%u FX", EffectCount(Current.Effects));
+
+        const float Span = Surface->MeasureRun(Chip, ChipRun, 0.0f) + 14.0f;
+        const PlaneExtent ChipCell = Spanning(ChipX - Span,
+                                              Row.MinimumY + (Row.Height() - ChipH) * 0.5f,
+                                              Span, ChipH);
+
+        Surface->Ground(ChipCell, Faded(Covering(0x22190Eu), Coverage), ChipH * 0.5f, CornerAll);
+        Surface->Edge(ChipCell, Faded(Covering(0x5A3A1Cu), Coverage), 1.0f, ChipH * 0.5f, CornerAll);
+        Surface->TextRun(ChipCell.MinimumX + 7.0f,
+                         Row.MinimumY + (Row.Height() - ChipRun) * 0.5f,
+                         Faded(Covering(0xFFD9A0u), Coverage), Chip, ChipRun, 0.0f, true);
+    }
+
+    // 📐 The details and more cells.
+    const float CellCoverage = (Hovered || Taken) ? 1.0f : 0.45f;
+
+    if (OnDetails)
+        Surface->Ground(Details, Faded(Covering(0xFFFFFFu), 0.08f), 3.0f, CornerAll);
+
+    Surface->Stroke(SymbolSubject::ChevronRight,
+                    Spanning(Details.MinimumX + (EyeExtent - 13.0f) * 0.5f,
+                             Details.MinimumY + (EyeExtent - 13.0f) * 0.5f, 13.0f, 13.0f),
+                    Faded(Faded(Tinted.Faint, CellCoverage), Coverage));
+
+    if (OnMore)
+        Surface->Ground(More, Faded(Covering(0xFFFFFFu), 0.08f), 3.0f, CornerAll);
+
+    Surface->Stroke(SymbolSubject::EllipsisDots,
+                    Spanning(More.MinimumX + (EyeExtent - 13.0f) * 0.5f,
+                             More.MinimumY + (EyeExtent - 13.0f) * 0.5f, 13.0f, 13.0f),
+                    Faded(Faded(Tinted.Faint, CellCoverage), Coverage));
+}
+
+void TexturePaintPanel::RecordBarButton(ControlIdentity Target, const PlaneExtent& Cell,
+                                        SymbolSubject Glyph, TexturePaintContext& Applied,
+                                        std::uint32_t Request, bool Dimmed)
+{
+    const bool Hovered = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
+    const float Coverage = Dimmed ? 0.25f : 1.0f;
+
+    if (Hovered && !Dimmed)
+        Surface->Ground(Cell, Faded(Covering(0xFFFFFFu), 0.08f), Scaled.LayerRadius, CornerAll);
+
+    const float Figure = 15.0f;
+
+    Surface->Stroke(Glyph,
+                    Spanning(Cell.MinimumX + (Cell.Width() - Figure) * 0.5f,
+                             Cell.MinimumY + (Cell.Height() - Figure) * 0.5f, Figure, Figure),
+                    Faded(Hovered ? Tinted.Primary : Covering(0x9A9A9Au), Coverage));
+
+    if (Sampled.ContactPressed && Hovered && !Dimmed && !Ledger->AnyDisclosed())
+        Ledger->Grab(Target, ControlPart::Body);
+
+    if (Hovered && !Dimmed && Ledger->Released(Target))
+        Applied.Structural = Request;
+}
+
+void TexturePaintPanel::RecordStackFooter(const PlaneExtent& Footer, TexturePaintContext& Applied,
+                                          const TextureLayerRow* Rows, std::uint32_t RowCount)
+{
+    Surface->Ground(Footer, Tinted.MenuLower, 0.0f, CornerNone);
+    Surface->Ground(Spanning(Footer.MinimumX, Footer.MinimumY, Footer.Width(), 1.0f),
+                    Tinted.Hairline, 0.0f, CornerNone);
+
+    const float Pad = Scaled.PanePad;
+    const bool Selection = Applied.LayerTaken < RowCount;
+    const std::uint32_t Taken = Applied.LayerTaken;
+
+    // ① The crumb — the reference's breadcrumb path.
+    const float CrumbRun = Scaled.RunFiner;
+    const float CrumbTop = Footer.MinimumY + (Scaled.LayerFootCrumb - CrumbRun) * 0.5f;
+
+    char Crumb[160] = {};
+    Crumb[0] = '\0';
+
+    if (Selection)
+    {
+        // 📐 The path: the ancestors' names, then the taken name — the reference's `ancestors().map`.
+        char Path[128] = {};
+        std::uint32_t Steps[TextureLayerCeiling] = {};
+        std::uint32_t StepCount = 0u;
+        std::uint32_t Walking = Rows[Taken].Enclosing;
+
+        while (Walking < RowCount && StepCount + 1u < TextureLayerCeiling)
+        {
+            Steps[StepCount++] = Walking;
+            Walking = Rows[Walking].Enclosing;
+        }
+
+        for (std::uint32_t Step = StepCount; Step-- > 0u;)
+        {
+            std::snprintf(Path + std::strlen(Path), sizeof(Path) - std::strlen(Path), "%s \u203A ",
+                          Rows[Steps[Step]].Naming);
+        }
+
+        std::snprintf(Crumb, sizeof(Crumb), "%s%s \u00B7 %s", Path, Rows[Taken].Naming,
+                      Applied.MaskTaken
+                          ? (Rows[Taken].Source[0] != '\0' ? Rows[Taken].Source
+                                                           : "grayscale mask")
+                          : TextureLayerText(Rows[Taken].Classified));
+    }
+    else
+    {
+        std::snprintf(Crumb, sizeof(Crumb), "no selection");
+    }
+
+    Surface->TextRunTruncated(Footer.MinimumX + Pad, CrumbTop,
+                              Footer.MaximumX - Pad, Tinted.Faint, Crumb, CrumbRun);
+
+    // ② The blend pill + the opacity slider — the reference's `.prop`.
+    const float PropY = Footer.MinimumY + Scaled.LayerFootCrumb;
+    const float PropH = Scaled.LayerFootProp;
+    const float PillH = Scaled.LayerToolHeight - 1.0f;
+    const float PillY = PropY + (PropH - PillH) * 0.5f;
+
+    const bool MaskOn = Selection && Applied.MaskTaken;
+    const bool BlendDim = !Selection || MaskOn;
+
+    const float PillW = std::min(Footer.Width() * 0.45f, 190.0f);
+    const PlaneExtent Pill = Spanning(Footer.MinimumX + Pad, PillY, PillW, PillH);
+
+    Surface->Ground(Pill, Faded(Covering(0xFFFFFFu), BlendDim ? 0.03f : 0.06f),
+                    PillH * 0.5f, CornerAll);
+    Surface->Edge(Pill, Tinted.Hairline, 1.0f, PillH * 0.5f, CornerAll);
+
+    const float PillRun = Scaled.RunSecondary;
+
+    if (Selection)
+    {
+        const char* BlendText = Applied.MaskTaken
+                              ? "Mask density"
+                              : TextureBlendNames[Applied.LayerBlendTaken[Taken] % TextureBlendCount];
+
+        Surface->TextRunTruncated(Pill.MinimumX + 13.0f,
+                                  Pill.MinimumY + (PillH - PillRun) * 0.5f,
+                                  Pill.MaximumX - 26.0f,
+                                  BlendDim ? Faded(Tinted.Muted, 0.5f) : Tinted.Primary,
+                                  BlendText, PillRun, true);
+
+        const float Chev = 11.0f;
+        Surface->Stroke(SymbolSubject::ChevronDown,
+                        Spanning(Pill.MaximumX - 18.0f,
+                                 Pill.MinimumY + (PillH - Chev) * 0.5f, Chev, Chev),
+                        Faded(Tinted.Faint, BlendDim ? 0.4f : 1.0f));
+    }
+
+    if (!BlendDim)
+    {
+        if (Sampled.ContactPressed && Pill.Encloses(Sampled.PositionX, Sampled.PositionY) &&
+            !Ledger->AnyDisclosed())
+        {
+            Ledger->Grab(BlendField, ControlPart::Body);
+        }
+
+        if (Pill.Encloses(Sampled.PositionX, Sampled.PositionY) && Ledger->Released(BlendField))
+        {
+            Ledger->Disclose(MenuBlend);
+            Applied.MenuOpen = 4u;
+            MenuAnchorExtent = Pill;
+        }
+    }
+
+    // 📐 The opacity slider and its value pill.
+    const float ValueW = 46.0f;
+    const float TrackX = Pill.MaximumX + 12.0f;
+    const float TrackW = Footer.MaximumX - Pad - ValueW - 8.0f - TrackX;
+    const float TrackY = PropY + (PropH - 6.0f) * 0.5f;
+
+    const std::uint32_t Amount = Selection
+                               ? (MaskOn ? Applied.MaskDensity[Taken]
+                                         : Applied.LayerOpacity[Taken])
+                               : 100u;
+
+    const float Fill = TrackW * static_cast<float>(Amount) / 100.0f;
+
+    Surface->Ground(Spanning(TrackX, TrackY, TrackW, 6.0f),
+                    Faded(Covering(0xFFFFFFu), 0.11f), 3.0f, CornerAll);
+    Surface->Ground(Spanning(TrackX, TrackY, Fill, 6.0f),
+                    Faded(Covering(0xFFFFFFu), BlendDim ? 0.5f : 1.0f), 3.0f, CornerAll);
+
+    const float Knob = 15.0f;
+    const float KnobX = TrackX + Held(Fill, Knob * 0.5f, TrackW - Knob * 0.5f);
+
+    Surface->Medallion(KnobX, TrackY + 3.0f, Knob * 0.5f, Covering(0xFFFFFFu));
+    Surface->Medallion(KnobX, TrackY + 3.0f, Knob * 0.5f + 2.0f, Faded(Covering(0xFFFFFFu), 0.35f));
+
+    const bool OnTrack = TrackX <= Sampled.PositionX && Sampled.PositionX <= TrackX + TrackW &&
+                         TrackY - 8.0f <= Sampled.PositionY && Sampled.PositionY <= TrackY + 14.0f;
+
+    if (Sampled.ContactPressed && OnTrack && !Ledger->AnyDisclosed())
+        Ledger->Grab(OpacityRow, ControlPart::Body);
+
+    if (Ledger->Holding(OpacityRow) && Selection)
+    {
+        const float Fraction = Held((Sampled.PositionX - TrackX) / TrackW, 0.0f, 1.0f);
+        const std::uint32_t Reading = static_cast<std::uint32_t>(Fraction * 100.0f + 0.5f);
+
+        if (MaskOn)
+            Applied.MaskDensity[Taken] = Reading;
+        else
+            Applied.LayerOpacity[Taken] = Reading;
+    }
+
+    const PlaneExtent ValuePill = Spanning(Footer.MaximumX - Pad - ValueW,
+                                           PillY, ValueW, PillH);
+
+    Surface->Ground(ValuePill, Faded(Covering(0xFFFFFFu), 0.06f), PillH * 0.5f, CornerAll);
+    Surface->Edge(ValuePill, Tinted.Hairline, 1.0f, PillH * 0.5f, CornerAll);
+
+    char Readout[8] = {};
+    std::snprintf(Readout, sizeof(Readout), "%u%%", Amount);
+
+    Surface->TextRun(ValuePill.MinimumX + (ValueW - Surface->MeasureRun(Readout, PillRun, 0.0f)) * 0.5f,
+                     ValuePill.MinimumY + (PillH - PillRun) * 0.5f,
+                     Selection ? Tinted.Primary : Faded(Tinted.Muted, 0.5f),
+                     Readout, PillRun, 0.0f, true);
+
+    // ③ The action bar — the reference's `.bar`.
+    const float BarY = PropY + Scaled.LayerFootProp;
+    const float BarH = Scaled.LayerFootBar;
+    const float ButtonY = Scaled.LayerToolHeight;
+    const float ButtonTop = BarY + (BarH - ButtonY) * 0.5f;
+
+    const float VSepY = ButtonTop + (ButtonY - 17.0f) * 0.5f;
+
+    float Lead = Footer.MinimumX + Pad;
+
+    struct BarCell
+    {
+        SymbolSubject   Glyph;
+        std::uint32_t   Request;
+        bool            Always;
+    };
+
+    const BarCell Bar[12] =
+    {
+        { SymbolSubject::PaintBristle,      static_cast<std::uint32_t>(TexturePaintRequest::AddPaint),      true  },
+        { SymbolSubject::DropletDrop,       static_cast<std::uint32_t>(TexturePaintRequest::AddFill),       true  },
+        { SymbolSubject::AdjustmentSliders, static_cast<std::uint32_t>(TexturePaintRequest::AddAdjustment), true  },
+        { SymbolSubject::FilterFunnel,      static_cast<std::uint32_t>(TexturePaintRequest::AddFilter),     true  },
+        { SymbolSubject::StencilDecal,      static_cast<std::uint32_t>(TexturePaintRequest::AddDecal),      true  },
+        { SymbolSubject::TiledPattern,      static_cast<std::uint32_t>(TexturePaintRequest::AddPattern),    true  },
+        { SymbolSubject::FolderClosed,      static_cast<std::uint32_t>(TexturePaintRequest::Group),         false },
+        { SymbolSubject::CopyDuplicate,     static_cast<std::uint32_t>(TexturePaintRequest::Duplicate),     false },
+        { SymbolSubject::LockClosed,        0x80000001u,                                                    false },
+        { SymbolSubject::ArrowUpLine,       static_cast<std::uint32_t>(TexturePaintRequest::MoveUp),        false },
+        { SymbolSubject::ArrowDownLine,     static_cast<std::uint32_t>(TexturePaintRequest::MoveDown),      false },
+        { SymbolSubject::TrashBin,          static_cast<std::uint32_t>(TexturePaintRequest::Delete),        false }
+    };
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < 12u; ++Ordinal)
+    {
+        if (Ordinal == 4u || Ordinal == 6u || Ordinal == 10u)
+        {
+            Surface->Ground(Spanning(Lead + 5.0f, VSepY, 1.0f, 17.0f),
+                            Tinted.Hairline, 0.0f, CornerNone);
+            Lead += 11.0f;
+        }
+
+        if (Ordinal == 9u)
+            Lead += 14.0f;   // 📐 the reference's `.gap` before the reorder pair
+
+        const PlaneExtent Cell = Spanning(Lead, ButtonTop, ButtonY, ButtonY);
+
+        if (Ordinal == 8u)
+        {
+            // 📐 The lock toggles the taken row's lock — a working copy, never a structural request.
+            const bool Locked = Selection && Applied.LayerLocked[Taken];
+
+            const bool Hovered = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
+
+            if (Hovered && Selection)
+                Surface->Ground(Cell, Faded(Covering(0xFFFFFFu), 0.08f), Scaled.LayerRadius, CornerAll);
+
+            const float Figure = 15.0f;
+
+            Surface->Stroke(Locked ? SymbolSubject::LockClosed : SymbolSubject::LockOpen,
+                            Spanning(Cell.MinimumX + (ButtonY - Figure) * 0.5f,
+                                     Cell.MinimumY + (ButtonY - Figure) * 0.5f, Figure, Figure),
+                            Faded(Hovered ? Tinted.Primary : Covering(0x9A9A9Au),
+                                  Selection ? 1.0f : 0.25f));
+
+            if (Sampled.ContactPressed && Hovered && Selection && !Ledger->AnyDisclosed())
+                Ledger->Grab(BarButtons[Ordinal], ControlPart::Body);
+
+            if (Hovered && Selection && Ledger->Released(BarButtons[Ordinal]))
+                Applied.LayerLocked[Taken] = !Applied.LayerLocked[Taken];
+        }
+        else
+        {
+            RecordBarButton(BarButtons[Ordinal], Cell, Bar[Ordinal].Glyph, Applied,
+                            Bar[Ordinal].Request, !Bar[Ordinal].Always && !Selection);
+        }
+
+        Lead += ButtonY + 5.0f;
+    }
+}
+
+void TexturePaintPanel::RecordMenu(const PlaneExtent& Extent, TexturePaintContext& Applied,
+                                   const TextureLayerRow* Rows, std::uint32_t RowCount)
+{
+    const std::uint32_t Open = Applied.MenuOpen;
+
+    if (Open == 0u)
+        return;
+
+    // 📐 The menu stands only while its disclosure stands — a dropdown opening elsewhere withdraws it.
+    const bool Disclosed = (Open == 1u && Ledger->Disclosed(MenuAdd)) ||
+                           (Open == 2u && Ledger->Disclosed(MenuLayer)) ||
+                           (Open == 3u && Ledger->Disclosed(MenuMask)) ||
+                           (Open == 4u && Ledger->Disclosed(MenuBlend));
+
+    if (!Disclosed)
+    {
+        Applied.MenuOpen = 0u;
+        return;
+    }
+
+    const float Pad = Scaled.PanePad;
+    const float RowY = Scaled.LayerToolHeight + 2.0f;
+
+    std::uint32_t OptionCount = 0u;
+    const char* const* Captions = nullptr;
+    const SymbolSubject* Glyphs = nullptr;
+    const char* const* Shortcuts = nullptr;
+    ControlIdentity* Identities = &MenuIdentities[0];
+    const char* Title = "";
+
+    // 📐 The four menus' declared items — the reference's popup content, trimmed to what the editor
+    //    owns (no history spine, no colour wheel).
+    static const char* const AddCaptions[7] =
+    {
+        "Paint layer", "Fill layer", "Adjustment", "Filter",
+        "Decal layer \u00B7 3D", "Pattern layer", "Group"
+    };
+    static const SymbolSubject AddGlyphs[7] =
+    {
+        SymbolSubject::PaintBristle, SymbolSubject::DropletDrop,
+        SymbolSubject::AdjustmentSliders, SymbolSubject::FilterFunnel,
+        SymbolSubject::StencilDecal, SymbolSubject::TiledPattern, SymbolSubject::FolderClosed
+    };
+    static const char* const AddShortcuts[7] =
+    {
+        "P", "F", "A", "R", "D", "T", "G"
+    };
+
+    static const char* LayerCaptions[7] =
+    {
+        "Details", "Add mask", "Lock", "Solo", "Duplicate", "Group", "Delete"
+    };
+    static const SymbolSubject LayerGlyphs[7] =
+    {
+        SymbolSubject::ChevronRight, SymbolSubject::HalfMask, SymbolSubject::LockClosed,
+        SymbolSubject::EyeOpen, SymbolSubject::CopyDuplicate, SymbolSubject::FolderClosed,
+        SymbolSubject::TrashBin
+    };
+    static const char* const LayerShortcuts[7] =
+    {
+        "Space", "M", "L", "S", "\u2318D", "\u2318G", "\u232B"
+    };
+
+    static const char* const MaskCaptions[3] = { "Details", "Invert", "Delete mask" };
+    static const SymbolSubject MaskGlyphs[3] =
+    {
+        SymbolSubject::ChevronRight, SymbolSubject::HalfMask, SymbolSubject::TrashBin
+    };
+
+    static const char* const BlendCaptions[TextureBlendCount] =
+    {
+        "Normal", "Passthrough", "Replace", "Multiply", "Screen", "Overlay",
+        "Soft Light", "Hard Light", "Linear Dodge (Add)", "Color Dodge", "Linear Burn",
+        "Difference", "Exclusion"
+    };
+
+    float CardY = MenuAnchorExtent.MaximumY + 6.0f;
+    const float CardW = 206.0f;
+    ControlIdentity* SwatchIdentities = &MenuIdentities[14];
+
+    switch (Open)
+    {
+        case 1u:
+            OptionCount = 7u;
+            Captions  = AddCaptions;
+            Glyphs    = AddGlyphs;
+            Shortcuts = AddShortcuts;
+            Title     = "Add";
+            Identities = &MenuIdentities[0];
+            break;
+        case 2u:
+        {
+            OptionCount = 7u;
+            Captions  = LayerCaptions;
+            Glyphs    = LayerGlyphs;
+            Shortcuts = LayerShortcuts;
+            Title     = Rows != nullptr && Applied.MenuRow < RowCount
+                      ? Rows[Applied.MenuRow].Naming : "Layer";
+            Identities = &MenuIdentities[7];
+
+            // 📐 The dynamic captions: mask and lock and solo follow the row's own state.
+            LayerCaptions[1] = Applied.MaskAttached[Applied.MenuRow] ? "Remove mask" : "Add mask";
+            LayerCaptions[2] = Applied.LayerLocked[Applied.MenuRow]  ? "Unlock"      : "Lock";
+            LayerCaptions[3] = Applied.SoloTaken == Applied.MenuRow  ? "Clear solo"  : "Solo";
+            break;
+        }
+        case 3u:
+            OptionCount = 3u;
+            Captions  = MaskCaptions;
+            Glyphs    = MaskGlyphs;
+            Shortcuts = nullptr;
+            Title     = "Mask";
+            Identities = &MenuIdentities[24];
+            break;
+        default:
+            OptionCount = TextureBlendCount;
+            Captions  = BlendCaptions;
+            Glyphs    = nullptr;
+            Shortcuts = nullptr;
+            Title     = "Blend mode";
+            Identities = &MenuIdentities[27];
+            break;
+    }
+
+    // 📐 The card hangs right-aligned to its anchor, flipped above when the leaf has no room.
+    const float CardH = Pad * 2.0f + 20.0f + RowY * static_cast<float>(OptionCount)
+                      + (Open == 2u ? (RowY + 6.0f) : 0.0f);
+
+    float CardX = MenuAnchorExtent.MaximumX - CardW;
+
+    if (CardY + CardH > Extent.MaximumY - 6.0f)
+        CardY = MenuAnchorExtent.MinimumY - CardH - 6.0f;
+
+    CardX = Held(CardX, Extent.MinimumX + 6.0f, Extent.MaximumX - CardW - 6.0f);
+
+    const PlaneExtent Card = Spanning(CardX, CardY, CardW, CardH);
+
+    // 📐 A contact that arrived outside the card and its anchor withdraws the menu.
+    if (Sampled.ContactPressed && !Card.Encloses(Sampled.PositionX, Sampled.PositionY) &&
+        !MenuAnchorExtent.Encloses(Sampled.PositionX, Sampled.PositionY))
+    {
+        Applied.MenuOpen = 0u;
+
+        if (Open == 1u) Ledger->Withdraw();
+        if (Open == 2u) Ledger->Withdraw();
+        if (Open == 3u) Ledger->Withdraw();
+        if (Open == 4u) Ledger->Withdraw();
+        return;
+    }
+
+    Surface->Ground(Card, Covering(0x0B0B0Bu), 16.0f, CornerAll);
+    Surface->Edge(Card, Faded(Covering(0xFFFFFFu), 0.18f), 1.0f, 16.0f, CornerAll);
+
+    Surface->TextRunCapitalised(Card.MinimumX + 10.0f, Card.MinimumY + 9.0f,
+                                Tinted.Faint, Title, Scaled.RunFiner, 1.0f, true);
+
+    // 📐 The items.
+    std::uint32_t WritesLocal[TextureBlendCount] = {};
+
+    RecordMenuOptions(Card, Captions, Glyphs, OptionCount, Shortcuts, Identities,
+                      Applied, WritesLocal);
+
+    if (Open == 1u)
+    {
+        for (std::uint32_t Ordinal = 0u; Ordinal < OptionCount; ++Ordinal)
+        {
+            if (WritesLocal[Ordinal] != 0u)
+                Applied.Structural = static_cast<std::uint32_t>(TexturePaintRequest::AddPaint) + Ordinal;
+        }
+    }
+    else if (Open == 2u)
+    {
+        if (WritesLocal[0] != 0u)
+        {
+            Applied.StackPage = 1u;
+            Applied.PropertyTab = 0u;
+        }
+
+        if (WritesLocal[1] != 0u)
+        {
+            const std::uint32_t Row = Applied.MenuRow;
+            Applied.MaskAttached[Row] = !Applied.MaskAttached[Row];
+
+            if (Applied.MaskAttached[Row])
+                Applied.MaskVisible[Row] = true;
+
+            Applied.MaskTaken = false;
+        }
+
+        if (WritesLocal[2] != 0u)
+            Applied.LayerLocked[Applied.MenuRow] = !Applied.LayerLocked[Applied.MenuRow];
+
+        if (WritesLocal[3] != 0u)
+            Applied.SoloTaken = (Applied.SoloTaken == Applied.MenuRow)
+                              ? 0xFFFFFFFFu : Applied.MenuRow;
+
+        if (WritesLocal[4] != 0u)
+            Applied.Structural = static_cast<std::uint32_t>(TexturePaintRequest::Duplicate);
+
+        if (WritesLocal[5] != 0u)
+            Applied.Structural = static_cast<std::uint32_t>(TexturePaintRequest::Group);
+
+        if (WritesLocal[6] != 0u)
+            Applied.Structural = static_cast<std::uint32_t>(TexturePaintRequest::Delete);
+    }
+    else if (Open == 3u)
+    {
+        if (WritesLocal[0] != 0u)
+        {
+            Applied.StackPage = 1u;
+            Applied.PropertyTab = 1u;
+        }
+
+        if (WritesLocal[1] != 0u)
+            Applied.MaskInverted[Applied.MenuRow] = !Applied.MaskInverted[Applied.MenuRow];
+
+        if (WritesLocal[2] != 0u)
+        {
+            Applied.MaskAttached[Applied.MenuRow] = false;
+            Applied.MaskTaken = false;
+        }
+    }
+    else if (Open == 4u)
+    {
+        for (std::uint32_t Ordinal = 0u; Ordinal < OptionCount; ++Ordinal)
+        {
+            if (WritesLocal[Ordinal] != 0u && Applied.LayerTaken < RowCount)
+                Applied.LayerBlendTaken[Applied.LayerTaken] = Ordinal;
+        }
+
+        // 📐 The taken blend's check — the reference's check mark on the standing option.
+        if (Applied.LayerTaken < RowCount)
+        {
+            const std::uint32_t TakenBlend = Applied.LayerBlendTaken[Applied.LayerTaken]
+                                           % TextureBlendCount;
+            const float CheckY = Card.MinimumY + Pad + 20.0f
+                               + RowY * static_cast<float>(TakenBlend) + (RowY - 12.0f) * 0.5f;
+
+            const float PointsX[3] = { Card.MinimumX + 12.0f, Card.MinimumX + 16.0f,
+                                       Card.MinimumX + 23.0f };
+            const float PointsY[3] = { CheckY + 6.5f, CheckY + 11.0f, CheckY + 3.5f };
+
+            Surface->Polyline(PointsX, PointsY, 3u, Tinted.Primary, 1.6f);
+        }
+    }
+
+    // 📐 The layer menu's colour swatches — the reference's `.swatches` row.
+    if (Open == 2u)
+    {
+        const float SwatchY = Card.MinimumY + Pad * 2.0f + 20.0f + RowY * 7.0f + 6.0f;
+        const float Swatch = 18.0f;
+        const float Gap = (CardW - Pad * 2.0f - Swatch * 10.0f) / 9.0f;
+
+        for (std::uint32_t SwatchOrdinal = 0u; SwatchOrdinal < TexturePaintContext::TextureSwatchCount;
+             ++SwatchOrdinal)
+        {
+            const float X = Card.MinimumX + Pad + static_cast<float>(SwatchOrdinal) * (Swatch + Gap);
+            const PlaneExtent Cell = Spanning(X, SwatchY, Swatch, Swatch);
+
+            const bool On = Applied.LayerTagHue[Applied.MenuRow] == SwatchColours[SwatchOrdinal];
+
+            Surface->Ground(Cell, Covering(SwatchColours[SwatchOrdinal]),
+                            Swatch * 0.5f, CornerAll);
+            Surface->Edge(Cell, Faded(Covering(0xFFFFFFu), On ? 1.0f : 0.16f), On ? 2.0f : 1.0f,
+                          Swatch * 0.5f, CornerAll);
+
+            const bool Hovered = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
+
+            if (Hovered && Sampled.ContactPressed)
+                Ledger->Grab(SwatchIdentities[SwatchOrdinal], ControlPart::Body);
+
+            if (Hovered && Ledger->Released(SwatchIdentities[SwatchOrdinal]))
+            {
+                Applied.LayerTagHue[Applied.MenuRow] = SwatchColours[SwatchOrdinal];
+                Applied.MenuOpen = 0u;
+                Ledger->Withdraw();
+            }
+        }
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -1004,7 +2614,8 @@ void TexturePaintPanel::RecordPropertiesPage(const PlaneExtent& Extent, TextureP
 
     char Classified[48] = {};
     std::snprintf(Classified, sizeof(Classified), "%s \u00B7 %s",
-                  TextureLayerText(Current.Classified), Current.Blend);
+                  TextureLayerText(Current.Classified),
+                  TextureBlendNames[Applied.LayerBlendTaken[Applied.LayerTaken] % TextureBlendCount]);
 
     RecordLeafHeader(Header, TextureLayerGlyph(Current.Classified), Hue, Current.Naming, Classified);
 
@@ -1072,7 +2683,8 @@ void TexturePaintPanel::RecordPropertiesPage(const PlaneExtent& Extent, TextureP
 
     char Summary[64] = {};
     std::snprintf(Summary, sizeof(Summary), "%u%% \u00B7 %s",
-                  Current.Opacity, Applied.MaskTaken ? "mask" : TextureLayerText(Current.Classified));
+                  Applied.LayerOpacity[Applied.LayerTaken],
+                  Applied.MaskTaken ? "mask" : TextureLayerText(Current.Classified));
 
     const float FootRun = Scaled.RunFine;
     const float FootTop = Footer.MinimumY + (Footer.Height() - FootRun) * 0.5f;
@@ -1222,7 +2834,7 @@ void TexturePaintPanel::RecordChannelRow(const PlaneExtent& Row, TexturePaintCon
     Surface->TextRun(Dot.MaximumX + Scaled.PanePad, NameTop,
                      On ? Tinted.Primary : Tinted.Muted, TextureChannelText(Channel), NameRun);
 
-    const char* Blend = BlendOptions[Applied.ChannelBlendTaken[Layer][Channel] % 6u];
+    const char* Blend = TextureBlendNames[Applied.ChannelBlendTaken[Layer][Channel] % TextureBlendCount];
 
     const float BlendRun = Scaled.RunFine;
     const float BlendX = Row.MaximumX - 190.0f;
@@ -1259,7 +2871,7 @@ void TexturePaintPanel::RecordChannelRow(const PlaneExtent& Row, TexturePaintCon
         Ledger->Released(ChannelBlends[Channel]))
     {
         Applied.ChannelBlendTaken[Layer][Channel] =
-            (Applied.ChannelBlendTaken[Layer][Channel] + 1u) % 6u;
+            (Applied.ChannelBlendTaken[Layer][Channel] + 1u) % TextureBlendCount;
     }
 
     if (Sampled.ContactPressed && BarX < Sampled.PositionX && Sampled.PositionX < BarX + 56.0f &&
@@ -1293,9 +2905,12 @@ void TexturePaintPanel::RecordMaskCard(const PlaneExtent& Extent, TexturePaintCo
                            Scaled.ComponentY),
                   Tinted.Hairline, 1.0f, Scaled.CardRadius, CornerAll);
 
+    const char* Source = Current.Source[0] != '\0'
+                       ? Current.Source
+                       : TextureMaskSourceNames[Applied.MaskSourceTaken[Applied.LayerTaken] % 5u];
+
     char MaskCaption[64] = {};
-    std::snprintf(MaskCaption, sizeof(MaskCaption), "Mask \u00B7 %s",
-                  Current.Source[0] != '\0' ? Current.Source : "Paint");
+    std::snprintf(MaskCaption, sizeof(MaskCaption), "Mask \u00B7 %s", Source);
 
     Surface->TextRunCapitalised(Extent.MinimumX + Pad * 2.0f, Sweep + 7.0f,
                                 Tinted.Primary, MaskCaption, Scaled.RunSmall, 0.0f, true);
@@ -1346,7 +2961,7 @@ void TexturePaintPanel::RecordMaskCard(const PlaneExtent& Extent, TexturePaintCo
 
     SelectionDeclaration SourceDeclared;
     SourceDeclared.Caption     = "Source";
-    SourceDeclared.Options     = MaskSourceOptions;
+    SourceDeclared.Options     = TextureMaskSourceNames;
     SourceDeclared.OptionCount = 5u;
 
     std::uint32_t SourceTaken = Applied.MaskSourceTaken[Applied.LayerTaken] % 5u;
@@ -1509,7 +3124,7 @@ void TexturePaintPanel::RecordSettingsCard(const PlaneExtent& Extent, TexturePai
     std::snprintf(NoteText, sizeof(NoteText), "%s \u00B7 %s \u00B7 %u%%",
                   TextureLayerText(Current.Classified),
                   Current.Detail[0] != '\0' ? Current.Detail : Current.Blend,
-                  Current.Opacity);
+                  Applied.LayerOpacity[Applied.LayerTaken]);
 
     Surface->TextRunTruncated(Note.MinimumX + Scaled.PanePad * 1.5f,
                               Note.MinimumY + (Note.Height() - NoteRun) * 0.5f,
@@ -1570,7 +3185,7 @@ void TexturePaintPanel::RecordFolderCard(const PlaneExtent& Extent, TexturePaint
 
         ++Layers;
 
-        if (Rows[Ordinal].MaskDeclared)
+        if (Applied.MaskAttached[Ordinal])
             ++Masks;
 
         for (std::uint32_t Channel = 0u; Channel < Rows[Ordinal].ChannelCount &&
@@ -1611,9 +3226,9 @@ void TexturePaintPanel::RecordFolderCard(const PlaneExtent& Extent, TexturePaint
     std::snprintf(Tallied, sizeof(Tallied), "%u / %u channels", Union, TextureChannelCeiling);
     Row("Channel union", Tallied);
 
-    Row("Blend", Folder.Blend);
+    Row("Blend", TextureBlendNames[Applied.LayerBlendTaken[Applied.LayerTaken] % TextureBlendCount]);
 
-    std::snprintf(Tallied, sizeof(Tallied), "%u%%", Folder.Opacity);
+    std::snprintf(Tallied, sizeof(Tallied), "%u%%", Applied.LayerOpacity[Applied.LayerTaken]);
     Row("Opacity", Tallied);
 
     // 📐 The union chips.

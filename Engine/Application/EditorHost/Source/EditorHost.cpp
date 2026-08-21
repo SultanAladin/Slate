@@ -222,6 +222,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     InteractionIndex        SceneLedger;
     TexturePaintPanel        TexturePaint;
     TexturePaintContext     TexturePaintApplied;
+    TexturePaintStack        StackRows;                 // [-] - the mutable row set; the panel borrows it
     ViewportSkySurface      SkySurface;
     AtmosphereIntegrator    SkyIntegrator;
     CameraRig               FlyRig;
@@ -384,67 +385,59 @@ int main(int ArgumentCount, char** ArgumentValues)
         "Height", "Ambient Occlusion", "Emissive", "Opacity"
     };
 
-    static TextureLayerRow StackRows[TexturePaintContext::TextureLayerCeiling] =
+    static TextureLayerRow StackSeed[TextureLayerCeiling] =
     {
         { "Surface Detail",  TextureLayerClassification::Folder,  "Passthrough", 100u, 0x9B8CF0u, 0x9B8CF0u,
-          false, 100u, false, "", "8 layers", { StackChannels[0], StackChannels[1], StackChannels[2] }, 3u,
-          0u, 0xFFFFFFFFu, 3u, true, "folder detail group" },
+          false, 100u, false, "", "4 layers", { StackChannels[0], StackChannels[1], StackChannels[2] }, 3u,
+          0u, 0xFFFFFFFFu, 4u, true, "folder detail group", false, "" },
         { "Levels",          TextureLayerClassification::Adjustment, "Overlay",   64u, 0x8B8D98u, 0x8B8D98u,
           false, 100u, false, "", "2048px \u00B7 RGBA 8", { StackChannels[0], StackChannels[3] }, 2u,
-          1u, 0u, 0u, true, "adjust levels" },
+          1u, 0u, 0u, true, "adjust levels", false, "" },
         { "Warning Stencil", TextureLayerClassification::Decal,   "Normal",    100u, 0xE5484Du, 0xE5484Du,
           true,  100u, false, "Bitmap", "Planar \u00B7 100%", { StackChannels[0] }, 1u,
-          1u, 0u, 0u, true, "decal stencil warning" },
+          1u, 0u, 0u, true, "decal stencil warning", false, "" },
         { "Scratches",       TextureLayerClassification::Paint,    "Screen",     38u, 0xB0E64Cu, 0xB0E64Cu,
           true,   88u, false, "Generator", "2048px \u00B7 RGBA 8", { StackChannels[0], StackChannels[2] }, 2u,
-          1u, 0u, 0u, true, "paint scratches grunge" },
+          1u, 0u, 0u, true, "paint scratches grunge", false, "Blur" },
         { "Edge Wear",       TextureLayerClassification::Fill,     "Multiply",   82u, 0xF76B15u, 0xF76B15u,
           true,  100u, false, "Generator", "2048px \u00B7 RGBA 8", { StackChannels[1], StackChannels[2] }, 2u,
-          1u, 0u, 0u, true, "fill edge wear rust" },
+          1u, 0u, 0u, true, "fill edge wear rust", false, "" },
         { "Emissive Trim",   TextureLayerClassification::Fill,     "Normal",    100u, 0xFFC53Du, 0xFFC53Du,
           true,  100u, false, "Paint", "2048px \u00B7 RGBA 8", { StackChannels[6] }, 1u,
-          0u, 0xFFFFFFFFu, 0u, true, "fill emissive trim" },
+          0u, 0xFFFFFFFFu, 0u, true, "fill emissive trim", false, "" },
         { "Hex Panelling",   TextureLayerClassification::Pattern,  "Normal",    100u, 0x8AB4D8u, 0x8AB4D8u,
           true,  100u, false, "Generator", "Hex Grid \u00B7 4\u00D74", { StackChannels[2], StackChannels[4] }, 2u,
-          0u, 0xFFFFFFFFu, 0u, true, "pattern hex panel" },
+          0u, 0xFFFFFFFFu, 0u, true, "pattern hex panel", false, "" },
         { "Base Materials",  TextureLayerClassification::Folder,   "Passthrough", 100u, 0x12A594u, 0x12A594u,
           false, 100u, false, "", "4 layers", { StackChannels[0], StackChannels[1] }, 2u,
-          0u, 0xFFFFFFFFu, 2u, true, "folder materials base" },
+          0u, 0xFFFFFFFFu, 4u, true, "folder materials base", false, "" },
         { "Brushed Steel",   TextureLayerClassification::Fill,     "Normal",    100u, 0x8AB4D8u, 0x8AB4D8u,
           true,  100u, false, "Generator", "4096px \u00B7 RGBA 8", { StackChannels[0], StackChannels[1] }, 2u,
-          1u, 7u, 0u, true, "fill brushed steel metal" },
+          1u, 7u, 0u, true, "fill brushed steel metal", false, "" },
         { "Gold Inlay",      TextureLayerClassification::Fill,     "Normal",    100u, 0xE5484Du, 0xE5484Du,
           true,   50u, true,  "Color Selection", "2048px \u00B7 RGBA 8", { StackChannels[0] }, 1u,
-          1u, 7u, 0u, true, "fill gold inlay" },
+          1u, 7u, 0u, true, "fill gold inlay", false, "Levels, HSL Shift" },
         { "Oak Panel",       TextureLayerClassification::Material, "Normal",    100u, 0xF76B15u, 0xF76B15u,
           false, 100u, false, "", "2048px \u00B7 RGBA 8", { StackChannels[0], StackChannels[2] }, 2u,
-          1u, 7u, 0u, true, "material oak wood" },
+          1u, 7u, 0u, true, "material oak wood", true, "" },
         { "Canvas Weave",    TextureLayerClassification::Material, "Normal",     90u, 0xE93D82u, 0xE93D82u,
           false, 100u, false, "", "2048px \u00B7 RGBA 8", { StackChannels[0], StackChannels[3] }, 2u,
-          1u, 7u, 0u, false, "material canvas fabric" }
+          1u, 7u, 0u, false, "material canvas fabric", false, "" }
     };
 
     TexturePaintApplied.LayerTaken = 1u;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < TexturePaintContext::TextureLayerCeiling; ++Ordinal)
+    // 📝 The shared stack helper seeds the mutable row set and every working copy, exactly as the
+    //    harness drives it — the two can never drift.
+    StackRows.Seed(StackSeed, 12u);
+    SeedPaintContextFromRows(TexturePaintApplied, StackRows.Rows, StackRows.Count);
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < TextureLayerCeiling; ++Ordinal)
     {
-        TexturePaintApplied.LayerPresent[Ordinal] = true;
-        TexturePaintApplied.LayerExpanded[Ordinal] = true;
-        TexturePaintApplied.ChannelTaken[Ordinal] = 0u;
-
-        for (std::uint32_t Channel = 0u; Channel < TexturePaintContext::TextureChannelCeiling; ++Channel)
-        {
-            TexturePaintApplied.ChannelOn[Ordinal][Channel] = Channel < 6u;
-            TexturePaintApplied.ChannelAmount[Ordinal][Channel] = 100u;
-            TexturePaintApplied.ChannelBlendTaken[Ordinal][Channel] = 0u;
-        }
-
-        TexturePaintApplied.MaskDensity[Ordinal] = 100u;
-        TexturePaintApplied.MaskSourceTaken[Ordinal] = 0u;
-        TexturePaintApplied.SettingAmount[Ordinal][0] = 100u;
-        TexturePaintApplied.SettingAmount[Ordinal][1] = 50u;
-        TexturePaintApplied.SettingAmount[Ordinal][2] = 50u;
-        TexturePaintApplied.SettingAmount[Ordinal][3] = 50u;
+        TexturePaintApplied.MaskSourceTaken[Ordinal] =
+            (Ordinal == 2u || Ordinal == 3u || Ordinal == 4u) ? 4u : 0u;
+        TexturePaintApplied.MaskDensity[Ordinal] = (Ordinal == 3u) ? 88u : 100u;
+        TexturePaintApplied.MaskInverted[Ordinal] = (Ordinal == 9u);
     }
 
     // 📝 The editor camera, registered as the seventh row. Its details' options are the camera's own:
@@ -747,7 +740,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                                 SceneApplied.InspectorTab);
                                 break;
                             case PanelSubject::TexturePaint:
-                                TexturePaint.Record(LeafBody, TexturePaintApplied, StackRows, 12u);
+                                TexturePaint.Record(LeafBody, TexturePaintApplied, StackRows.Rows, StackRows.Count);
 
                                 if (LayerLeafTally < PanelStructure::RecordCeiling)
                                 {
@@ -846,7 +839,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                                    SceneApplied,
                                    TabPressed && !PointerInLayers);
             TexturePaint.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds,
-                               TexturePaintApplied, StackRows, 12u,
+                               TexturePaintApplied, StackRows.Rows, StackRows.Count,
                                TabPressed && PointerInLayers);
 
             // 📝 The search field: while it holds the contact, the seam's typed run feeds the
@@ -961,6 +954,11 @@ int main(int ArgumentCount, char** ArgumentValues)
             {
                 SceneApplied.SkyTextureIdentity = 0u;
             }
+
+            // 📝 The layer stack's structural request is drained exactly once per tick, through the
+            //    same shared helper the harness drives — the row set and the working copies stay in
+            //    step with the panel's buttons and menus.
+            StackRows.ApplyRequest(TexturePaintApplied);
 
             // 📝 The history demand is drained ONCE per drag — the shell raises it at drag end, the host
             //    appends it to its own run and clears the slot, and no tick in between wrote a revision.
