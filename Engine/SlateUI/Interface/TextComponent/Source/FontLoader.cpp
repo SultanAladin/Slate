@@ -71,10 +71,15 @@ Outcome<bool> FontLoader::PreparePreviews(float DisplayScale)
     if (Root.empty() || ImGui::GetCurrentContext() == nullptr || ImGui::GetIO().Fonts == nullptr)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "font context is unavailable" });
 
+    const std::size_t StandingCount = PreviewFaces.size();
     for (const std::string& Family : Families)
         static_cast<void>(Preview(Family.c_str(), DisplayScale));
 
-    ImGui::GetIO().Fonts->Build();
+    // 📝 Build only when a new preview face entered the atlas. The validation host used to call this on
+    //    every resize and every theme change, and an unconditional Build re-packed every font in the
+    //    atlas each time — a full CPU re-rasterisation for a call that added nothing.
+    if (PreviewFaces.size() != StandingCount)
+        ImGui::GetIO().Fonts->Build();
     std::fprintf(stderr, "[Fonts] prepared %u preview faces before recording\n",
                  static_cast<unsigned>(PreviewFaces.size()));
     return Outcome<bool>::Result(true);
@@ -140,25 +145,37 @@ Outcome<bool> FontLoader::Load(const char* FontRoot, const FontProfile& Profile,
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "selected font family is not installed" });
 
     const float Size = 16.0f * ((DisplayScale > 0.0f) ? DisplayScale : 1.0f);
+
+    // 🔴 Retire the previous family's faces before adding the next. Without this every family switch
+    //    appended another set of faces to the same atlas, and every later Build re-packed the WHOLE
+    //    accumulated set — the atlas grew without bound, and with it the CPU time and RAM of each
+    //    switch. `RemoveFont` deletes the face and its baked output; the next Build repacks the rest.
+    //    The atlas is unlocked between frames, which is the only window Load is called in (hosts flush
+    //    pending loads at the top of the tick, before NewFrame).
+    for (ImFont* Loaded : LoadedFaces)
+        if (Loaded != nullptr)
+            ImGui::GetIO().Fonts->RemoveFont(Loaded);
+    LoadedFaces.clear();
+
     Faces.fill(nullptr);
     std::uint32_t LoadedCount = 0u;
     for (std::uint32_t Weight = 100u; Weight <= 900u; Weight += 100u)
     {
-        for (std::uint32_t Slant = 0u; Slant < 2u; ++Slant)
+        // 📝 Upright faces only. Nothing in the interface requests an italic face, and `Face()` already
+        //    falls back to the upright face for an italic request — loading italics would double the
+        //    rasterisation work for glyphs nothing draws.
+        const FontWeight FaceWeight = static_cast<FontWeight>(Weight);
+        for (const auto& Entry : std::filesystem::directory_iterator(Root))
         {
-            const FontWeight FaceWeight = static_cast<FontWeight>(Weight);
-            const FontSlant FaceSlant = static_cast<FontSlant>(Slant);
-            for (const auto& Entry : std::filesystem::directory_iterator(Root))
+            if (!Entry.is_regular_file() || !Matches(Entry.path().filename().string(), FaceWeight, FontSlant::Upright))
+                continue;
+            ImFont* Loaded = ImGui::GetIO().Fonts->AddFontFromFileTTF(Entry.path().string().c_str(), Size);
+            if (Loaded != nullptr)
             {
-                if (!Entry.is_regular_file() || !Matches(Entry.path().filename().string(), FaceWeight, FaceSlant))
-                    continue;
-                ImFont* Loaded = ImGui::GetIO().Fonts->AddFontFromFileTTF(Entry.path().string().c_str(), Size);
-                if (Loaded != nullptr)
-                {
-                    Faces[Slot(FaceWeight, FaceSlant)] = Loaded;
-                    ++LoadedCount;
-                    break;
-                }
+                Faces[Slot(FaceWeight, FontSlant::Upright)] = Loaded;
+                LoadedFaces.push_back(Loaded);
+                ++LoadedCount;
+                break;
             }
         }
     }
@@ -178,6 +195,7 @@ Outcome<bool> FontLoader::Load(const char* FontRoot, const FontProfile& Profile,
                 if (Loaded != nullptr)
                 {
                     Faces[Slot(FontWeight::Regular, FontSlant::Upright)] = Loaded;
+                    LoadedFaces.push_back(Loaded);
                     ++LoadedCount;
                     break;
                 }

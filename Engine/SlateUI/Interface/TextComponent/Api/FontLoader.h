@@ -37,6 +37,10 @@ private:
     };
     std::vector<std::string> Families;
     std::vector<PreviewFace> PreviewFaces;
+    // 📝 Every face `Load` added to the atlas, retired at the next `Load`. Without the retirement a
+    //    family switch appended another seventeen faces to the SAME atlas, and each later Build re-packed
+    //    the whole accumulated set — the CPU/RAM cost grew with every visit to the Fonts page.
+    std::vector<ImFont*> LoadedFaces;
     std::string Root;
     std::string PendingRoot;
     FontProfile PendingProfile = {};

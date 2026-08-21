@@ -510,6 +510,10 @@ int main(int ArgumentCount, char** ArgumentValues)
                 if (ControlCentreValues.Font < Fonts.FamilyCount() && Fonts.FamilyName(ControlCentreValues.Font) != nullptr)
                     std::strncpy(Chosen.FontFamily, Fonts.FamilyName(ControlCentreValues.Font), sizeof(Chosen.FontFamily) - 1u);
 
+                // 🔴 Only the family re-runs the font pipeline. The other members are colours and reach
+                //    every panel through the appearance; re-loading fonts for them would re-rasterise
+                //    the whole atlas on every theme or colour edit.
+                const bool FamilyAltered = std::strcmp(Chosen.FontFamily, InscribedSelection.FontFamily) != 0;
                 const bool Altered = Chosen.Current   != InscribedSelection.Current
                                   || Chosen.Primary     != InscribedSelection.Primary
                                   || Chosen.Secondary   != InscribedSelection.Secondary
@@ -533,6 +537,8 @@ int main(int ArgumentCount, char** ArgumentValues)
                         Viewport.Appearance().WorkspaceMeasure,
                         Viewport.Appearance().Workspace));
                     ContentBrowser.Reapply(Viewport.Appearance());
+                    if (FamilyAltered)
+                        Fonts.RequestLoad(FontRoot.c_str(), Viewport.Appearance().Fonts, 1.0f);
                 }
             }
             ControlCentre.Exclude(Viewport.Drawers());

@@ -54,6 +54,7 @@
 #include "SlateUI/Interface/TextComponent/Api/FontLoader.h"
 #include "SlateUI/Interface/ThemeSpecification/Api/ThemeSpecification.h"
 
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -601,6 +602,35 @@ bool RunShot(ProofDriver& Driver, const char* OutputPath, const char* Scenario,
         ImGui::Render();
         return Driver.Capture(OutputPath, Atlas, AtlasWidth, AtlasHeight);
     }
+    else if (std::strcmp(Scenario, "fonts-bench") == 0)
+    {
+        const auto Now = []() { return std::chrono::steady_clock::now(); };
+        const auto ElapsedMs = [](auto A, auto B)
+        {
+            return std::chrono::duration_cast<std::chrono::milliseconds>(B - A).count();
+        };
+        const char* BenchFamilies[] = {"Archivo", "Inter", "JetBrainsMono", "OpenSans", "Archivo"};
+        for (const char* Family : BenchFamilies)
+        {
+            FontProfile Profile;
+            std::strncpy(Profile.Family, Family, sizeof(Profile.Family) - 1u);
+            const auto T0 = Now();
+            Discard(Driver.Fonts.Load("EngineContent/FontArchives", Profile, 1.0f));
+            const auto T1 = Now();
+            std::fprintf(stderr, "[bench] Load(%-13s) %4lld ms  atlas fonts=%d  atlas %dx%d\n",
+                         Family, (long long)ElapsedMs(T0, T1),
+                         (int)Driver.IO.Fonts->Fonts.Size, Driver.IO.Fonts->TexData->Width, Driver.IO.Fonts->TexData->Height);
+        }
+        for (int Pass = 0; Pass < 3; ++Pass)
+        {
+            const auto T0 = Now();
+            Discard(Driver.Fonts.PreparePreviews(1.0f));
+            const auto T1 = Now();
+            std::fprintf(stderr, "[bench] PreparePreviews pass %d  %4lld ms  atlas fonts=%d\n",
+                         Pass, (long long)ElapsedMs(T0, T1), (int)Driver.IO.Fonts->Fonts.Size);
+        }
+        return Driver.Capture(OutputPath, Atlas, AtlasWidth, AtlasHeight);
+    }
     else if (std::strcmp(Scenario, "fonts-inter-default") == 0)
     {
         // The default bring-up: the appearance names Inter and the hosts seat the carousel on it.
@@ -713,7 +743,7 @@ int main(int ArgumentCount, char** Arguments)
 
     const char* Shots[] = {"fonts-archivo-carousels", "fonts-title-bold", "fonts-title-black-scrolled",
                            "fonts-mixed-weights", "fonts-scrolled-lower-rows", "settings-title-black",
-                           "fonts-inter-default"};
+                           "fonts-inter-default", "fonts-bench"};
 
     int Rendered = 0;
     for (const char* Shot : Shots)

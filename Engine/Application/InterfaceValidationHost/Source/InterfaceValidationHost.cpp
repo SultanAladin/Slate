@@ -478,6 +478,12 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    A write per frame would rewrite the whole appearance sixty times a second for as long as the
     //    Control Centre is open, which is a disk cost no artist asked for.
     ThemeSelection InscribedSelection;
+
+    // 🔴 The family whose faces currently stand in the atlas. The font pipeline (Discover, PreparePreviews,
+    //    RequestLoad) is only re-run when this changes — previously it ran on EVERY window resize and every
+    //    theme/colour change, and each run re-built the whole atlas: the CPU freeze and RAM spike that
+    //    accompanied any resize drag or colour edit.
+    char LoadedFontFamily[64] = {};
     InscribedSelection.Current   = ControlCentreValues.Theme;
     InscribedSelection.Primary     = ControlCentreValues.Primary;
     InscribedSelection.Secondary   = ControlCentreValues.Secondary;
@@ -560,6 +566,7 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
         }
 
     Discard(Fonts.Load(FontArchivesPath, Appearance.Fonts, 1.0f));
+    std::strncpy(LoadedFontFamily, Appearance.Fonts.Family, sizeof(LoadedFontFamily) - 1u);
 
     // Every construct refusal below is reported WITH its detail and flushed before the return. A refusal
     //    that printed only a headline and left the text in a buffered stdout was invisible: the window is
@@ -766,6 +773,11 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
         if (Pass.Current == TickCondition::Closed)
             break;
 
+        // 📝 The pending font load is applied here, between frames, where the atlas is unlocked and the
+        //    re-rasterisation does not hold up a recording. Inside the frame RemoveFont would trip the
+        //    vendor's locked-atlas assert.
+        Discard(Fonts.FlushPending());
+
         // 🔴 The DEVICE was rebuilt, so every device handle the interface holds names an object the vendor
         //    has returned. The interface alone is reconstructed: the ledger, the panel and the recording
         //    surface hold no device handle, so retiring them would discard interaction state — the grab
@@ -834,10 +846,14 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
             Discard(Interface.ApplyWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);
-    Discard(Fonts.Discover(FontArchivesPath));
-    Discard(Fonts.PreparePreviews(1.0f));
-    ControlCentre.SetFontFamilies(Fonts);
-    Fonts.RequestLoad(FontArchivesPath, Appearance.Fonts, 1.0f);
+    if (std::strcmp(Appearance.Fonts.Family, LoadedFontFamily) != 0)
+    {
+        Discard(Fonts.Discover(FontArchivesPath));
+        Discard(Fonts.PreparePreviews(1.0f));
+        ControlCentre.SetFontFamilies(Fonts);
+        Fonts.RequestLoad(FontArchivesPath, Appearance.Fonts, 1.0f);
+        std::strncpy(LoadedFontFamily, Appearance.Fonts.Family, sizeof(LoadedFontFamily) - 1u);
+    }
             ResolvedAgainst = Display.Width;
 
             // 🔴 The shell holds its own scaled extents, so a resolve it is not told about leaves it
@@ -1385,10 +1401,14 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
                 Discard(Interface.ApplyWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);
-    Discard(Fonts.Discover(FontArchivesPath));
-    Discard(Fonts.PreparePreviews(1.0f));
-    ControlCentre.SetFontFamilies(Fonts);
-    Fonts.RequestLoad(FontArchivesPath, Appearance.Fonts, 1.0f);
+    if (std::strcmp(Appearance.Fonts.Family, LoadedFontFamily) != 0)
+    {
+        Discard(Fonts.Discover(FontArchivesPath));
+        Discard(Fonts.PreparePreviews(1.0f));
+        ControlCentre.SetFontFamilies(Fonts);
+        Fonts.RequestLoad(FontArchivesPath, Appearance.Fonts, 1.0f);
+        std::strncpy(LoadedFontFamily, Appearance.Fonts.Family, sizeof(LoadedFontFamily) - 1u);
+    }
                 ContentBrowser.Reapply(Appearance);
                 LayerStack.Reapply(Appearance);
             }
