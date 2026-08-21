@@ -46,24 +46,24 @@ RWTexture2D<Real32x4>          TransmittanceOutput;    // [-] - RGBA16F, 256 × 
 [numthreads(8, 8, 1)]
 void IntegrateTransmittance(Unsigned32x3 TexelOrdinal : SV_DispatchThreadID)
 {
-    const Unsigned32 Along  = TexelOrdinal.x;
-    const Unsigned32 Across = TexelOrdinal.y;
+    const Unsigned32 X  = TexelOrdinal.x;
+    const Unsigned32 Y = TexelOrdinal.y;
 
-    if (Along >= TransmittanceExtentAlong || Across >= TransmittanceExtentAcross)
+    if (X >= TransmittanceExtentX || Y >= TransmittanceExtentY)
     {
         return;
     }
 
     const MediumProfile Profile = ResolveMediumProfile(Medium);
 
-    Real64 CoordinateAlong  = 0.0;
-    Real64 CoordinateAcross = 0.0;
-    ProjectTexelCoordinate(Along, Across, TransmittanceExtentAlong, TransmittanceExtentAcross,
-                           CoordinateAlong, CoordinateAcross);
+    Real64 CoordinateX  = 0.0;
+    Real64 CoordinateY = 0.0;
+    ProjectTexelCoordinate(X, Y, TransmittanceExtentX, TransmittanceExtentY,
+                           CoordinateX, CoordinateY);
 
     Real64 Radius       = 0.0;
     Real64 ZenithCosine = 0.0;
-    ProjectTransmittanceParameter(Profile, CoordinateAlong, CoordinateAcross, Radius, ZenithCosine);
+    ProjectTransmittanceParameter(Profile, CoordinateX, CoordinateY, Radius, ZenithCosine);
 
     const Real64 AtmosphereRadius = Profile.PlanetRadius + Profile.AtmosphereThickness;
     const Real64 Distance         = ProjectSphereDistance(Radius, ZenithCosine, AtmosphereRadius);
@@ -96,7 +96,7 @@ void IntegrateTransmittance(Unsigned32x3 TexelOrdinal : SV_DispatchThreadID)
     // 📝 Every length is in metres and every coefficient in reciprocal metres, so the exponent is dimensionless
     //    without a conversion. The donor formulation marches in kilometres and carries a factor of a thousand at
     //    exactly this line — the factor to look for first if a port of this comes out opaque or absent.
-    TransmittanceOutput[Unsigned32x2(Along, Across)] = Real32x4(Real32(Exponential(-DepthRed)),
+    TransmittanceOutput[Unsigned32x2(X, Y)] = Real32x4(Real32(Exponential(-DepthRed)),
                                                                 Real32(Exponential(-DepthGreen)),
                                                                 Real32(Exponential(-DepthBlue)),
                                                                 1.0f);

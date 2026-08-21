@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                         OCCLUSIONCULLING.SLANG
 //============================================================================================================================================
-// 🧩 `16` §2 ① and ③ — one invocation per partition, four texels of the chain, and the compaction the draw is issued from.
+// 🧩 `16` §2 ① and ③ — one invocation per partition, four texels of the chain, and the compaction the draw is registered from.
 
 #include "SlateCompute/Compute/VisibilityIndex/Shader/OcclusionUniform.slang"
 
@@ -26,36 +26,36 @@ static const uint LevelExtentStride = 3u;
 //                                                    THE FOUR TEXELS
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 The furthest ordinate recorded across the region one partition covers.
+/// 🧩 The furthest coordinate recorded across the region one partition covers.
 /// in    Tested  [-]  the classified partition, its origin and span in display texels
-/// out   Depth   [-]  the least ordinate of the four texels read; reversed, so the furthest point
+/// out   Depth   [-]  the least coordinate of the four texels read; reversed, so the furthest point
 /// note  📐 Four texels and no more, whatever the partition's projected extent. `SelectLevel` chooses the level
 ///        so that a two-by-two reading spans the whole extent, which is what makes the test one constant-cost
 ///        comparison per partition rather than a walk proportional to what it covers.
 /// note  🔴 The **origin** is read as well as the span, and both are needed. The level is chosen from the span
 ///        and the four texels are read at the origin; reading at nought instead compares every partition against
-///        the depth recorded in the display's first corner, which admits nothing and rejects everything.
+///        the depth recorded in the display's first corner, which accepts nothing and rejects everything.
 float FurthestOver(TestedPartition Tested)
 {
-    const uint Level = SelectLevel(Tested.ProjectedAlong, Tested.ProjectedAcross, Occluding.LevelCount);
+    const uint Level = SelectLevel(Tested.ProjectedX, Tested.ProjectedY, Occluding.LevelCount);
 
     const uint Offset = LevelExtents[Level * LevelExtentStride];
-    const uint Along  = LevelExtents[Level * LevelExtentStride + 1u];
-    const uint Across = LevelExtents[Level * LevelExtentStride + 2u];
+    const uint X  = LevelExtents[Level * LevelExtentStride + 1u];
+    const uint Y = LevelExtents[Level * LevelExtentStride + 2u];
 
     // 📐 The inverse of a round-up halving, for a **position**, is a floor division — so a display texel maps to
     //    its level texel by a shift. Rounding the origin up instead would read one texel past the region the
     //    partition covers and reject it against depth recorded beside it.
-    const uint OriginAlong  = min(Tested.OriginAlong  >> Level, Along  - 1u);
-    const uint OriginAcross = min(Tested.OriginAcross >> Level, Across - 1u);
+    const uint OriginX  = min(Tested.OriginX  >> Level, X  - 1u);
+    const uint OriginY = min(Tested.OriginY >> Level, Y - 1u);
 
-    const uint NextAlong  = min(OriginAlong  + 1u, Along  - 1u);
-    const uint NextAcross = min(OriginAcross + 1u, Across - 1u);
+    const uint NextX  = min(OriginX  + 1u, X  - 1u);
+    const uint NextY = min(OriginY + 1u, Y - 1u);
 
-    const float LowerLeft  = Chain[Offset + OriginAcross * Along + OriginAlong];
-    const float LowerRight = Chain[Offset + OriginAcross * Along + NextAlong];
-    const float UpperLeft  = Chain[Offset + NextAcross   * Along + OriginAlong];
-    const float UpperRight = Chain[Offset + NextAcross   * Along + NextAlong];
+    const float LowerLeft  = Chain[Offset + OriginY * X + OriginX];
+    const float LowerRight = Chain[Offset + OriginY * X + NextX];
+    const float UpperLeft  = Chain[Offset + NextY   * X + OriginX];
+    const float UpperRight = Chain[Offset + NextY   * X + NextX];
 
     return min(min(LowerLeft, LowerRight), min(UpperLeft, UpperRight));
 }
@@ -96,8 +96,8 @@ void Compact(TestedPartition Tested)
 
 // 🔴 The two phases differ in **which reduction they read** and in what they are permitted to admit, and in
 //    nothing else. ① reads the chain the previous rotation left standing and tests every partition the host
-//    admitted; ③ reads the chain this rotation reduced and tests only what ① rejected on depth. Without the
-//    second restriction ③ re-admits every one of ①'s survivors and the draw issues each of them twice.
+//    accepted; ③ reads the chain this rotation reduced and tests only what ① rejected on depth. Without the
+//    second restriction ③ re-accepts every one of ①'s survivors and the draw issues each of them twice.
 
 [shader("compute")]
 [numthreads(64, 1, 1)]
@@ -115,11 +115,11 @@ void main(uint3 Dispatched : SV_DispatchThreadID)
     // 📝 A partition the host rejected is dispatched and skipped rather than compacted away before the dispatch.
     //    Compacting on the host would make the classified run shorter than the partition count and the verdict
     //    run would then be indexed by something other than the partition's own ordinal.
-    if (Tested.Standing != PartitionAdmitted)
+    if (Tested.Current != PartitionAccepted)
     {
         if (Occluding.PhaseOrdinal == PhaseAgainstPrevious)
         {
-            Verdicts[PartitionOrdinal] = Tested.Standing;
+            Verdicts[PartitionOrdinal] = Tested.Current;
         }
 
         return;
@@ -128,7 +128,7 @@ void main(uint3 Dispatched : SV_DispatchThreadID)
     if (Occluding.PhaseOrdinal == PhaseAgainstCurrent && Verdicts[PartitionOrdinal] != PartitionDepthOccluded)
     {
         // 📝 Already drawn by ①, or already rejected by a predicate depth cannot overturn. Either way it is not
-        //    ③'s to admit, and admitting it is what draws a survivor twice.
+        //    ③'s to admit, and accepting it is what draws a survivor twice.
         return;
     }
 
@@ -146,7 +146,7 @@ void main(uint3 Dispatched : SV_DispatchThreadID)
 
     if (Occluding.PhaseOrdinal == PhaseAgainstPrevious)
     {
-        Verdicts[PartitionOrdinal] = PartitionAdmitted;
+        Verdicts[PartitionOrdinal] = PartitionAccepted;
     }
 
     Compact(Tested);

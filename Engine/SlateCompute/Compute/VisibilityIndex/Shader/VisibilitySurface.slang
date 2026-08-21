@@ -41,7 +41,7 @@ struct WrittenPixel
 ///         widened the target set at every pixel of the display extent, every rotation, for one consumer.
 /// note  ⚠️ 🚧 `16` §3.1's coverage test discards a cutout fragment below its material's threshold and is absent
 ///         here: it samples channel 8 at `20`'s coarsest guaranteed-resident level, and `20` is unbuilt. A cutout
-///         occupant therefore rasterises solid until it stands, which is the conservative reading of the two —
+///         owner therefore rasterises solid until it stands, which is the conservative reading of the two —
 ///         the hole appears late rather than the surface disappearing early.
 /// cost  ✔️
 /// tag   nonallocating, nonthrowing

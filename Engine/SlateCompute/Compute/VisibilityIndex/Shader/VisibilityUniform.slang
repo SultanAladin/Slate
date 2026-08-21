@@ -64,9 +64,9 @@ struct VisibilityUniform
     Real32      ComposedCoefficient13 ;   // [-]
     Real32      ComposedCoefficient14 ;   // [-]
     Real32      ComposedCoefficient15 ;   // [-]
-    Unsigned32  DisplayAlong          ;   // [px] - the extent this rotation is recorded against
-    Unsigned32  DisplayAcross         ;   // [px]
-    Unsigned32  EnrolmentBase         ;   // [-]  - the document-wide ordinal this enrolment's partitions start at
+    Unsigned32  DisplayX          ;   // [px] - the extent this rotation is recorded against
+    Unsigned32  DisplayY         ;   // [px]
+    Unsigned32  RegistrationBase         ;   // [-]  - the document-wide ordinal this registration's partitions start at
     Unsigned32  DrawnPartitionCount   ;   // [-]  - partitions the recording draws, from the base
 };
 
@@ -74,22 +74,22 @@ struct VisibilityUniform
 //                                                    WHAT IS RESOLVED
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 One vertex position in its occupant's own object space, narrowed at the upload.
+/// 🧩 One vertex position in its owner's own object space, narrowed at the upload.
 /// note  🔴 Object space and **not** rebased, which is what lets the span persist. `16` §1 makes the residency
 ///         survive every rotation and the view origin moves every rotation, so a span carrying view-relative
 ///         positions would have to be rewritten whenever the camera moved — the one cost `16` §1 exists to avoid.
 /// note  🔴 The rebasing is therefore in the **transform** rather than in the position. The host composes the
-///         occupant's placement with `46`'s projection at 64 bits, with `02`'s `Rebase` applied to the placement's
+///         owner's placement with `46`'s projection at 64 bits, with `02`'s `Rebase` applied to the placement's
 ///         translation before anything narrows, and only the composed coefficients cross at 32 bits. That ordering
 ///         is the whole point: subtracting the view origin after a truncation is what `02` calls jitter with a
 ///         plausible-looking cause, and folding it into the translation places the subtraction before the narrowing.
 /// note  ⚠️ Narrowing an object-space position is safe where narrowing a document one is not. An object extent is
-///         bounded by the occupant and a 32-bit real resolves it far below `38`'s welding tolerance; a document
+///         bounded by the owner and a 32-bit real resolves it far below `38`'s welding tolerance; a document
 ///         position carries the placement as well, and that is what exhausts the width.
 /// tag   contract
 struct ObjectPosition
 {
-    Real32  PositionX ;   // [mm] - in the occupant's own object space
+    Real32  PositionX ;   // [mm] - in the owner's own object space
     Real32  PositionY ;   // [mm]
     Real32  PositionZ ;   // [mm]
 };
@@ -132,12 +132,12 @@ struct ResolvedCorner
 
 /// 🧩 Projects one object-space position through the composed transform.
 /// in    Projecting  [-]   the uniform block, for its coefficients
-/// in    Positioned  [mm]  the position, in the occupant's own object space
+/// in    Positioned  [mm]  the position, in the owner's own object space
 /// out   Clipped     [-]   the clip position, the perspective divide not yet applied
 /// note  📐 Column-major, matching `02`'s `ProjectedTransform`. The fourth column is the translation and it is
-///         applied with an implicit unit fourth ordinate rather than with a stored one — the position is a point
+///         applied with an implicit unit fourth coordinate rather than with a stored one — the position is a point
 ///         and never a direction, so the alternative is a component that is unity at every call site.
-/// note  🔴 The transform carries the occupant's placement, the rebasing and `46`'s projection, composed at 64
+/// note  🔴 The transform carries the owner's placement, the rebasing and `46`'s projection, composed at 64
 ///         bits by the host and narrowed once. One product per corner and no second transform: a shader applying
 ///         a placement and then a projection has narrowed the intermediate, and that intermediate is the document
 ///         position whose width `02` rebases precisely to avoid spending.

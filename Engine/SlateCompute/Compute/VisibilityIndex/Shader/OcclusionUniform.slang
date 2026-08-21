@@ -7,7 +7,7 @@
 
 // 📐 🔴 Every declaration below is a **mirror**. Its host counterpart carries a static assertion on its width and
 //    on its member count, and a member inserted on one side alone shifts every later member of the other by four
-//    bytes — which the vendor accepts and the device then reads a triangle ordinal out of a depth ordinate for.
+//    bytes — which the vendor accepts and the device then reads a triangle ordinal out of a depth coordinate for.
 //
 // ⚠️ There is no shared declaration to reach for. `Shared/` compiles under both toolchains and this does not:
 //    the records below are read through resource declarations the host toolchain has no spelling for. The two
@@ -26,11 +26,11 @@ struct ReductionUniform
 {
     uint  WrittenLevel;       // [-]     - which level the dispatch writes
     uint  WrittenOffset;      // [texel] - where that level begins in the chain span
-    uint  WrittenAlong;       // [texel] - its extent
-    uint  WrittenAcross;      // [texel]
+    uint  WrittenX;       // [texel] - its extent
+    uint  WrittenY;      // [texel]
     uint  SourceOffset;       // [texel] - where the level above begins; unread when the target is read
-    uint  SourceAlong;        // [texel] - the source's extent
-    uint  SourceAcross;       // [texel]
+    uint  SourceX;        // [texel] - the source's extent
+    uint  SourceY;       // [texel]
     uint  SourceFromTarget;   // [-]     - non-zero for the finest level
 };
 
@@ -39,8 +39,8 @@ struct OcclusionUniform
 {
     uint  ClassifiedCount;   // [-]  - partitions the dispatch tests
     uint  LevelCount;        // [-]  - levels the chain carries
-    uint  DisplayAlong;      // [px] - the extent the finest level covers
-    uint  DisplayAcross;     // [px]
+    uint  DisplayX;      // [px] - the extent the finest level covers
+    uint  DisplayY;     // [px]
     uint  TriangleCeiling;   // [-]  - entries the surviving run can hold
     uint  PhaseOrdinal;      // [-]  - nought is ①, one is ③
     uint  Unoccupied1;       // [-]
@@ -53,21 +53,21 @@ struct OcclusionUniform
 ///        its first triangle and every other one is unreachable; the survivor writes its own run out instead.
 struct TestedPartition
 {
-    uint   PartitionOrdinal;   // [-]  - within the enrolment
-    uint   Standing;           // [-]  - the host's verdict; see the four ordinals below
+    uint   PartitionOrdinal;   // [-]  - within the registration
+    uint   Current;           // [-]  - the host's verdict; see the four ordinals below
     uint   FirstTriangle;      // [-]  - into the residency's fanned run
     uint   TriangleCount;      // [-]  - triangles of that run it spans
-    uint   OriginAlong;        // [px] - the first display texel it covers
-    uint   OriginAcross;       // [px]
-    uint   ProjectedAlong;     // [px] - conservative outward
-    uint   ProjectedAcross;    // [px]
-    float  NearestDepth;       // [-]  - reversed; the greatest ordinate of the eight corners
+    uint   OriginX;        // [px] - the first display texel it covers
+    uint   OriginY;       // [px]
+    uint   ProjectedX;     // [px] - conservative outward
+    uint   ProjectedY;    // [px]
+    float  NearestDepth;       // [-]  - reversed; the greatest coordinate of the eight corners
 };
 
-// 📝 `PartitionStanding`'s ordinals, spelled as constants because the host enumeration has no device counterpart.
+// 📝 `PartitionVerdict`'s ordinals, spelled as constants because the host enumeration has no device counterpart.
 //    An enumeration declared on both sides is two declarations that must agree; two constants compared by the
 //    same integer are one fact written twice at a width the compiler checks.
-static const uint PartitionAdmitted            = 0u;
+static const uint PartitionAccepted            = 0u;
 static const uint PartitionFrustumExcluded     = 1u;
 static const uint PartitionOrientationExcluded = 2u;
 static const uint PartitionDepthOccluded       = 3u;
@@ -80,8 +80,8 @@ static const uint PhaseAgainstCurrent  = 1u;
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 The coarsest level at which one projected extent is covered by a two-by-two reading.
-/// in    SpannedAlong   [px]  the extent the partition projects to, conservative outward
-/// in    SpannedAcross  [px]
+/// in    SpannedX   [px]  the extent the partition projects to, conservative outward
+/// in    SpannedY  [px]
 /// in    LevelCount     [-]   levels the chain carries
 /// out   Level          [-]   below LevelCount
 /// note  📐 The walk mirrors `DepthReduction::LevelOfExtent` step for step, halving with **round up** on both
@@ -91,18 +91,18 @@ static const uint PhaseAgainstCurrent  = 1u;
 /// note  ⚠️ An extent of nothing resolves to the finest level rather than refusing. A partition projecting to
 ///        nothing is sub-pixel and belongs to `16` §3's compute route; it is not an error and rejecting it here
 ///        would drop geometry no other route then draws.
-uint SelectLevel(uint SpannedAlong, uint SpannedAcross, uint LevelCount)
+uint SelectLevel(uint SpannedX, uint SpannedY, uint LevelCount)
 {
-    uint RemainingAlong  = SpannedAlong;
-    uint RemainingAcross = SpannedAcross;
+    uint RemainingX  = SpannedX;
+    uint RemainingY = SpannedY;
     uint Selected        = 0u;
 
     const uint Coarsest = LevelCount - 1u;
 
-    while ((RemainingAlong > 2u || RemainingAcross > 2u) && Selected < Coarsest)
+    while ((RemainingX > 2u || RemainingY > 2u) && Selected < Coarsest)
     {
-        RemainingAlong  = (RemainingAlong  + 1u) / 2u;
-        RemainingAcross = (RemainingAcross + 1u) / 2u;
+        RemainingX  = (RemainingX  + 1u) / 2u;
+        RemainingY = (RemainingY + 1u) / 2u;
 
         Selected += 1u;
     }
@@ -115,13 +115,13 @@ uint SelectLevel(uint SpannedAlong, uint SpannedAcross, uint LevelCount)
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Whether one partition stands wholly behind what the reduction recorded.
-/// in    NearestDepth  [-]  the partition's nearest ordinate; reversed, so the greatest of its eight corners
-/// in    ReducedDepth  [-]  the least ordinate the covered region carries; the furthest point recorded there
+/// in    NearestDepth  [-]  the partition's nearest coordinate; reversed, so the greatest of its eight corners
+/// in    ReducedDepth  [-]  the least coordinate the covered region carries; the furthest point recorded there
 /// out   Occluded      [-]  true only where nothing of the partition can reach in front of what stands
 /// note  📐 Reversed depth throughout — `NearPlaneDepth` is unity and `FarPlaneDepth` nought, per `Contract/`.
 ///        The conservative reduction is therefore the **minimum**, and a partition is occluded when its nearest
-///        ordinate is at or below the furthest ordinate recorded across the region it covers.
-/// note  🔴 Written the other way round, this rejects on every silhouette and admits inside every surface — the
+///        coordinate is at or below the furthest coordinate recorded across the region it covers.
+/// note  🔴 Written the other way round, this rejects on every silhouette and accepts inside every surface — the
 ///        artist meets it as an object flickering along its own edge rather than as a comparison inverted.
 bool DepthOccludes(float NearestDepth, float ReducedDepth)
 {

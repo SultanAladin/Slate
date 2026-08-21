@@ -95,13 +95,13 @@ MediumProfile ResolveMediumProfile(MediumUniform Uploaded)
 ///        everywhere — uniformly, so nothing looks broken and the horizon simply sits in the wrong place.
 /// cost  ✔️
 /// tag   nonallocating, nonthrowing
-void ProjectTexelCoordinate(Unsigned32 Along, Unsigned32 Across,
-                            Unsigned32 ExtentAlong, Unsigned32 ExtentAcross,
-                            SLATE_OUT(Real64) CoordinateAlong,
-                            SLATE_OUT(Real64) CoordinateAcross)
+void ProjectTexelCoordinate(Unsigned32 X, Unsigned32 Y,
+                            Unsigned32 Width, Unsigned32 Height,
+                            SLATE_OUT(Real64) CoordinateX,
+                            SLATE_OUT(Real64) CoordinateY)
 {
-    CoordinateAlong  = (Real64(Along)  + 0.5) / Real64(ExtentAlong);
-    CoordinateAcross = (Real64(Across) + 0.5) / Real64(ExtentAcross);
+    CoordinateX  = (Real64(X)  + 0.5) / Real64(Width);
+    CoordinateY = (Real64(Y) + 0.5) / Real64(Height);
 }
 
 }   // namespace Slate

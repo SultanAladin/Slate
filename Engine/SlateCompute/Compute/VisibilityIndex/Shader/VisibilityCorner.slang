@@ -37,11 +37,11 @@ StructuredBuffer<Unsigned32>       SurvivingTriangles  ;
 /// in    VertexOrdinal   [-]  the running corner ordinal; three per drawn triangle
 /// out   ResolvedCorner  [-]  the clip position and the two ordinals the fragment writes
 /// note  🔴 The corner is reached by division and remainder rather than through an index span, because the host
-///         has already fanned every n-gon into the triangle run. `10` admits faces of any corner count and `16`
+///         has already fanned every n-gon into the triangle run. `10` accepts faces of any corner count and `16`
 ///         §1 partitions them by the fan count, so a triangle here is a triangle and never a face — the two agree
 ///         only because `PartitionStructure` counts the fan triangles the spanned faces amount to.
 /// note  ⚠️ The vendor supplies no bound on either span read. A drawn count exceeding what the spans carry is
-///         refused by the host at the recording rather than clamped here, because a clamp resolves the wrong
+///         rejected by the host at the recording rather than clamped here, because a clamp resolves the wrong
 ///         triangle at every invocation past the end and reads as geometry rather than as the refusal it is.
 /// note  🔴 The **indirection** through the surviving run is what makes one program serve both the direct draw
 ///         and the indirect one. `16` §2's cull compacts the survivors and the host writes the whole run through

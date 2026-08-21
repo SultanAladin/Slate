@@ -9,7 +9,7 @@
 //    that reads the uploaded sun direction and camera altitude — which is exactly why it is the only one `28` §4
 //    rebuilds when either moves materially, and why the other two survive that movement untouched.
 //
-// ⚠️ The illuminant's own flux is **not** applied here. `44` §8 enrols the atmospheric source and the requester
+// ⚠️ The illuminant's own flux is **not** applied here. `44` §8 registers the atmospheric source and the requester
 //    supplies its direction; its magnitude scales this radiance uniformly, and applying it at this depth would
 //    bake one illuminant's brightness into a surface that `28` §4 rebuilds on direction alone. The donor
 //    formulation multiplies by its solar illuminance at the end of this entry point; that multiply is deliberately
@@ -42,12 +42,12 @@ RWTexture2D<Real32x4>          SkyViewOutput;          // [-] - RGBA16F, 192 × 
 void ResolveTransmittance(MediumProfile Profile, Real64 Radius, Real64 ZenithCosine,
                           SLATE_OUT(Real64) Red, SLATE_OUT(Real64) Green, SLATE_OUT(Real64) Blue)
 {
-    Real64 CoordinateAlong  = 0.0;
-    Real64 CoordinateAcross = 0.0;
-    ProjectTransmittanceCoordinate(Profile, Radius, ZenithCosine, CoordinateAlong, CoordinateAcross);
+    Real64 CoordinateX  = 0.0;
+    Real64 CoordinateY = 0.0;
+    ProjectTransmittanceCoordinate(Profile, Radius, ZenithCosine, CoordinateX, CoordinateY);
 
     const Real32x4 Sampled = TransmittanceSurface.SampleLevel(
-        SurfaceSampler, Real32x2(Real32(CoordinateAlong), Real32(CoordinateAcross)), 0.0f);
+        SurfaceSampler, Real32x2(Real32(CoordinateX), Real32(CoordinateY)), 0.0f);
 
     Red   = Real64(Sampled[0]);
     Green = Real64(Sampled[1]);
@@ -60,12 +60,12 @@ void ResolveTransmittance(MediumProfile Profile, Real64 Radius, Real64 ZenithCos
 void ResolveMultiScatter(MediumProfile Profile, Real64 Radius, Real64 SunZenithCosine,
                          SLATE_OUT(Real64) Red, SLATE_OUT(Real64) Green, SLATE_OUT(Real64) Blue)
 {
-    Real64 CoordinateAlong  = 0.0;
-    Real64 CoordinateAcross = 0.0;
-    ProjectMultiScatterCoordinate(Profile, Radius, SunZenithCosine, CoordinateAlong, CoordinateAcross);
+    Real64 CoordinateX  = 0.0;
+    Real64 CoordinateY = 0.0;
+    ProjectMultiScatterCoordinate(Profile, Radius, SunZenithCosine, CoordinateX, CoordinateY);
 
     const Real32x4 Sampled = MultiScatterSurface.SampleLevel(
-        SurfaceSampler, Real32x2(Real32(CoordinateAlong), Real32(CoordinateAcross)), 0.0f);
+        SurfaceSampler, Real32x2(Real32(CoordinateX), Real32(CoordinateY)), 0.0f);
 
     Red   = Real64(Sampled[0]);
     Green = Real64(Sampled[1]);
@@ -76,7 +76,7 @@ void ResolveMultiScatter(MediumProfile Profile, Real64 Radius, Real64 SunZenithC
 //                                                       THE BAKE
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Marches one texel's view ray and writes the radiance arriving along it.
+/// 🧩 Marches one texel's view ray and writes the radiance incoming along it.
 /// note  🔴 Rayleigh and Mie are phase-weighted **separately** and only then summed. Rayleigh is near-isotropic
 ///        and Mie is sharply forward, so weighting their sum by either one produces a sky with the sun's halo
 ///        spread across the whole dome or with no halo at all — and both look like a plausible atmosphere.
@@ -88,10 +88,10 @@ void ResolveMultiScatter(MediumProfile Profile, Real64 Radius, Real64 SunZenithC
 [numthreads(8, 8, 1)]
 void IntegrateSkyView(Unsigned32x3 TexelOrdinal : SV_DispatchThreadID)
 {
-    const Unsigned32 Along  = TexelOrdinal.x;
-    const Unsigned32 Across = TexelOrdinal.y;
+    const Unsigned32 X  = TexelOrdinal.x;
+    const Unsigned32 Y = TexelOrdinal.y;
 
-    if (Along >= SkyViewExtentAlong || Across >= SkyViewExtentAcross)
+    if (X >= SkyViewExtentX || Y >= SkyViewExtentY)
     {
         return;
     }
@@ -100,15 +100,15 @@ void IntegrateSkyView(Unsigned32x3 TexelOrdinal : SV_DispatchThreadID)
     const Real64        AtmosphereRadius = Profile.PlanetRadius + Profile.AtmosphereThickness;
     const Real64        StartRadius      = Profile.PlanetRadius + Profile.CameraAltitude;
 
-    Real64 CoordinateAlong  = 0.0;
-    Real64 CoordinateAcross = 0.0;
-    ProjectTexelCoordinate(Along, Across, SkyViewExtentAlong, SkyViewExtentAcross,
-                           CoordinateAlong, CoordinateAcross);
+    Real64 CoordinateX  = 0.0;
+    Real64 CoordinateY = 0.0;
+    ProjectTexelCoordinate(X, Y, SkyViewExtentX, SkyViewExtentY,
+                           CoordinateX, CoordinateY);
 
     Real64 ViewX = 0.0;
     Real64 ViewY = 0.0;
     Real64 ViewZ = 0.0;
-    ProjectSkyViewDirection(CoordinateAlong, CoordinateAcross, ViewX, ViewY, ViewZ);
+    ProjectSkyViewDirection(CoordinateX, CoordinateY, ViewX, ViewY, ViewZ);
 
     const Real64 ViewZenithCosine = ViewY;
     const Real64 Distance         = ProjectMarchDistance(StartRadius, ViewZenithCosine,
@@ -181,7 +181,7 @@ void IntegrateSkyView(Unsigned32x3 TexelOrdinal : SV_DispatchThreadID)
         }
     }
 
-    SkyViewOutput[Unsigned32x2(Along, Across)] = Real32x4(Real32(Radiance[0]),
+    SkyViewOutput[Unsigned32x2(X, Y)] = Real32x4(Real32(Radiance[0]),
                                                           Real32(Radiance[1]),
                                                           Real32(Radiance[2]),
                                                           1.0f);

@@ -47,7 +47,7 @@ static const Real64 SolarSurfaceDeparture = 0.5;   // [m] - above the planet sur
 //                                                      THE RESOLUTION
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 The radiance arriving along a view direction, disc included.
+/// 🧩 The radiance incoming along a view direction, disc included.
 /// in    Profile          [-]    the widened medium, its sun direction already unit in the local frame
 /// in    DirectionX       [-]    unit, atmosphere-local, zenith on the second axis
 /// in    DirectionY       [-]
@@ -75,12 +75,12 @@ void ResolveSkyRadiance(MediumProfile Profile,
                         Real64 SolarAngularRadius,
                         SLATE_OUT(Real64) Red, SLATE_OUT(Real64) Green, SLATE_OUT(Real64) Blue)
 {
-    Real64 CoordinateAlong  = 0.0;
-    Real64 CoordinateAcross = 0.0;
-    ProjectSkyViewCoordinate(DirectionX, DirectionY, DirectionZ, CoordinateAlong, CoordinateAcross);
+    Real64 CoordinateX  = 0.0;
+    Real64 CoordinateY = 0.0;
+    ProjectSkyViewCoordinate(DirectionX, DirectionY, DirectionZ, CoordinateX, CoordinateY);
 
     const Real32x4 Sampled = SkyViewSurface.SampleLevel(
-        SurfaceSampler, Real32x2(Real32(CoordinateAlong), Real32(CoordinateAcross)), 0.0f);
+        SurfaceSampler, Real32x2(Real32(CoordinateX), Real32(CoordinateY)), 0.0f);
 
     Red   = Real64(Sampled[0]);
     Green = Real64(Sampled[1]);
@@ -112,14 +112,14 @@ void ResolveSkyRadiance(MediumProfile Profile,
 
     const Real64 DiscRadius = Profile.PlanetRadius + SolarSurfaceDeparture;
 
-    Real64 DiscAlong  = 0.0;
-    Real64 DiscAcross = 0.0;
+    Real64 DiscX  = 0.0;
+    Real64 DiscY = 0.0;
     ProjectTransmittanceCoordinate(Profile, DiscRadius,
                                    BoundedMagnitude(Profile.SunDirectionY, -1.0, 1.0),
-                                   DiscAlong, DiscAcross);
+                                   DiscX, DiscY);
 
     const Real32x4 DiscTransmit = TransmittanceSurface.SampleLevel(
-        SurfaceSampler, Real32x2(Real32(DiscAlong), Real32(DiscAcross)), 0.0f);
+        SurfaceSampler, Real32x2(Real32(DiscX), Real32(DiscY)), 0.0f);
 
     Red   += Real64(DiscTransmit[0]) * Limb;
     Green += Real64(DiscTransmit[1]) * Limb;

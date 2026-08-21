@@ -20,17 +20,17 @@
 //                                                    ONE SOURCE TEXEL
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 One ordinate of the level above, or of the depth target at the finest level.
+/// 🧩 One coordinate of the level above, or of the depth target at the finest level.
 /// note  📝 The two sources are read through one routine so the reduction body is written once. Branching per
 ///        texel costs nothing measurable — the condition is uniform across the whole dispatch.
-float SourceAt(uint Along, uint Across)
+float SourceAt(uint X, uint Y)
 {
     if (Reducing.SourceFromTarget != 0u)
     {
-        return DepthTarget.Load(int3(int(Along), int(Across), 0)).x;
+        return DepthTarget.Load(int3(int(X), int(Y), 0)).x;
     }
 
-    return Chain[Reducing.SourceOffset + Across * Reducing.SourceAlong + Along];
+    return Chain[Reducing.SourceOffset + Y * Reducing.SourceX + X];
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -41,8 +41,8 @@ float SourceAt(uint Along, uint Across)
 //    five reduces to three: target nought reads {0,1}, one reads {2,3}, two reads {4} alone. Every source texel
 //    is covered by exactly one target texel, so no third tap is needed and none is taken.
 //
-// 🔴 The reduction is the **minimum**, because depth is reversed. The least ordinate across a region is its
-//    furthest point, and a partition whose nearest ordinate is below it cannot reach past anything recorded
+// 🔴 The reduction is the **minimum**, because depth is reversed. The least coordinate across a region is its
+//    furthest point, and a partition whose nearest coordinate is below it cannot reach past anything recorded
 //    there. Reducing by maximum instead is correct wherever the surface is flat and rejects visible geometry at
 //    every silhouette — which the artist meets as an object flickering along its own edge.
 
@@ -50,36 +50,36 @@ float SourceAt(uint Along, uint Across)
 [numthreads(8, 8, 1)]
 void main(uint3 Dispatched : SV_DispatchThreadID)
 {
-    const uint WrittenAlong  = Dispatched.x;
-    const uint WrittenAcross = Dispatched.y;
+    const uint WrittenX  = Dispatched.x;
+    const uint WrittenY = Dispatched.y;
 
     // 📝 The dispatch extent is rounded up, so the tail invocations of the last group address texels the level
     //    does not carry. Discarding them here is what lets one workgroup extent serve a level of one texel and a
     //    level of thousands.
-    if (WrittenAlong >= Reducing.WrittenAlong || WrittenAcross >= Reducing.WrittenAcross)
+    if (WrittenX >= Reducing.WrittenX || WrittenY >= Reducing.WrittenY)
     {
         return;
     }
 
-    const uint FirstAlong  = WrittenAlong  * 2u;
-    const uint FirstAcross = WrittenAcross * 2u;
+    const uint FirstX  = WrittenX  * 2u;
+    const uint FirstY = WrittenY * 2u;
 
-    float Reduced = SourceAt(FirstAlong, FirstAcross);
+    float Reduced = SourceAt(FirstX, FirstY);
 
-    if (FirstAlong + 1u < Reducing.SourceAlong)
+    if (FirstX + 1u < Reducing.SourceX)
     {
-        Reduced = min(Reduced, SourceAt(FirstAlong + 1u, FirstAcross));
+        Reduced = min(Reduced, SourceAt(FirstX + 1u, FirstY));
     }
 
-    if (FirstAcross + 1u < Reducing.SourceAcross)
+    if (FirstY + 1u < Reducing.SourceY)
     {
-        Reduced = min(Reduced, SourceAt(FirstAlong, FirstAcross + 1u));
+        Reduced = min(Reduced, SourceAt(FirstX, FirstY + 1u));
 
-        if (FirstAlong + 1u < Reducing.SourceAlong)
+        if (FirstX + 1u < Reducing.SourceX)
         {
-            Reduced = min(Reduced, SourceAt(FirstAlong + 1u, FirstAcross + 1u));
+            Reduced = min(Reduced, SourceAt(FirstX + 1u, FirstY + 1u));
         }
     }
 
-    Chain[Reducing.WrittenOffset + WrittenAcross * Reducing.WrittenAlong + WrittenAlong] = Reduced;
+    Chain[Reducing.WrittenOffset + WrittenY * Reducing.WrittenX + WrittenX] = Reduced;
 }

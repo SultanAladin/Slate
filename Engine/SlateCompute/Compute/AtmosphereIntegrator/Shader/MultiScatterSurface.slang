@@ -50,12 +50,12 @@ RWTexture2D<Real32x4>          MultiScatterOutput;     // [-] - RGBA16F, 32 × 3
 void ResolveTransmittance(MediumProfile Profile, Real64 Radius, Real64 ZenithCosine,
                           SLATE_OUT(Real64) Red, SLATE_OUT(Real64) Green, SLATE_OUT(Real64) Blue)
 {
-    Real64 CoordinateAlong  = 0.0;
-    Real64 CoordinateAcross = 0.0;
-    ProjectTransmittanceCoordinate(Profile, Radius, ZenithCosine, CoordinateAlong, CoordinateAcross);
+    Real64 CoordinateX  = 0.0;
+    Real64 CoordinateY = 0.0;
+    ProjectTransmittanceCoordinate(Profile, Radius, ZenithCosine, CoordinateX, CoordinateY);
 
     const Real32x4 Sampled = TransmittanceSurface.SampleLevel(
-        SurfaceSampler, Real32x2(Real32(CoordinateAlong), Real32(CoordinateAcross)), 0.0f);
+        SurfaceSampler, Real32x2(Real32(CoordinateX), Real32(CoordinateY)), 0.0f);
 
     Red   = Real64(Sampled[0]);
     Green = Real64(Sampled[1]);
@@ -82,10 +82,10 @@ void ResolveTransmittance(MediumProfile Profile, Real64 Radius, Real64 ZenithCos
 [numthreads(8, 8, 1)]
 void IntegrateMultiScatter(Unsigned32x3 TexelOrdinal : SV_DispatchThreadID)
 {
-    const Unsigned32 Along  = TexelOrdinal.x;
-    const Unsigned32 Across = TexelOrdinal.y;
+    const Unsigned32 X  = TexelOrdinal.x;
+    const Unsigned32 Y = TexelOrdinal.y;
 
-    if (Along >= MultiScatterExtentAlong || Across >= MultiScatterExtentAcross)
+    if (X >= MultiScatterExtentX || Y >= MultiScatterExtentY)
     {
         return;
     }
@@ -94,14 +94,14 @@ void IntegrateMultiScatter(Unsigned32x3 TexelOrdinal : SV_DispatchThreadID)
     const Real64        AtmosphereRadius = Profile.PlanetRadius + Profile.AtmosphereThickness;
     const Real64        Reciprocal       = 1.0 / Real64(MultiScatterDirectionCount);
 
-    Real64 CoordinateAlong  = 0.0;
-    Real64 CoordinateAcross = 0.0;
-    ProjectTexelCoordinate(Along, Across, MultiScatterExtentAlong, MultiScatterExtentAcross,
-                           CoordinateAlong, CoordinateAcross);
+    Real64 CoordinateX  = 0.0;
+    Real64 CoordinateY = 0.0;
+    ProjectTexelCoordinate(X, Y, MultiScatterExtentX, MultiScatterExtentY,
+                           CoordinateX, CoordinateY);
 
     Real64 StartRadius     = 0.0;
     Real64 SunZenithCosine = 0.0;
-    ProjectMultiScatterParameter(Profile, CoordinateAlong, CoordinateAcross, StartRadius, SunZenithCosine);
+    ProjectMultiScatterParameter(Profile, CoordinateX, CoordinateY, StartRadius, SunZenithCosine);
 
     // 📝 The sun in the plane the zenith cosine names — the surface's own parameter, never the uploaded direction.
     const Real64 SunAltitudeSine = SquareRoot(BoundedMagnitude(1.0 - SunZenithCosine * SunZenithCosine, 0.0, 1.0));
@@ -195,7 +195,7 @@ void IntegrateMultiScatter(Unsigned32x3 TexelOrdinal : SV_DispatchThreadID)
         Series[Component] = Order / Divisor;
     }
 
-    MultiScatterOutput[Unsigned32x2(Along, Across)] = Real32x4(Real32(Series[0]),
+    MultiScatterOutput[Unsigned32x2(X, Y)] = Real32x4(Real32(Series[0]),
                                                                Real32(Series[1]),
                                                                Real32(Series[2]),
                                                                1.0f);
