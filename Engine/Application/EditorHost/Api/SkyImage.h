@@ -17,7 +17,7 @@
 
 #include "Contract/DeliveryContract.h"
 #include "SlateCompute/Compute/AtmosphereIntegrator/Api/AtmosphereIntegrator.h"
-#include "SlateUI/Interface/GlobalShellPanel/Api/GlobalShellPanel.h"
+#include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectoryContract.h"
 
 #include <cstdint>
 #include <vector>

@@ -1,30 +1,43 @@
 //============================================================================================================================================
 //                                                          SCENEDIRECTORYPROOF.CPP
 //============================================================================================================================================
-// 🧩 Headless proof renderer for the editor's scene directory: the shell's
-//    viewport with the sun/sky/atmosphere, the outliner with the sun and sky
-//    registered, the inspector's environment slider cards, and the history
-//    demand that fires ONCE per slider drag (not per tick).
+// 🧩 Headless proof renderer for the EDITOR's scene directory — the editor's
+//    real layout: a workspace window split into viewport / outliner /
+//    properties leaves (WorkspacePanel + EditorPanel + PanelStructure), with
+//    the scene-directory content (the GPU sky in the viewport leaf, the
+//    outliner | details column, the properties | history pages) recorded by
+//    SceneDirectoryPanel, and the history demand that fires ONCE per slider
+//    drag (not per tick).
 //
-//    The harness drives the REAL GlobalShellPanel through the REAL
-//    RecordingSurface and rasterizes the recorded ImDrawList on the CPU,
-//    exactly like Tools/TypographyProof — same vendor, same atlas, same
-//    pixels the windowed hosts upload.
+//    The harness drives the REAL panels through the REAL RecordingSurface and
+//    rasterizes the recorded ImDrawList on the CPU, exactly like
+//    Tools/TypographyProof — same vendor, same atlas, same pixels the
+//    windowed hosts upload. The vendor dock is the one thing the harness
+//    cannot run (it lives in the Vulkan-facing InterfaceExchange), so the
+//    workspace tab strip is drawn as a static bar; everything below it is the
+//    same recording the windowed host makes.
 //
 //    Scenarios (each writes one PNG under VisualProof/EditorScene/):
-//      --shot=editor-overview    the editor: viewport with sky + sun, outliner
-//      --shot=editor-sun-props   the Sun row taken, inspector docked with the
-//                                four sun slider cards
-//      --shot=editor-after-drag  after one elevation drag: the sun moved, and
-//                                exactly ONE history demand was raised
+//      --shot=editor-overview    one workspace split into a viewport leaf (the
+//                                real sky) and an outliner leaf (the scene
+//                                directory with its details pane)
+//      --shot=editor-sun-props   the workspace split three ways: viewport,
+//                                outliner, and a properties leaf showing the
+//                                Sun/Sky/Atmosphere slider cards
+//      --shot=editor-after-drag  after one elevation drag: the sun rose in the
+//                                viewport, and exactly ONE history demand was
+//                                raised
 //
 //    Build (repository root, after ApplyImGuiPatches.py):
 //      g++ -std=c++20 -O2 -DNDEBUG -DWIN32_LEAN_AND_MEAN -DNOMINMAX -DGLFW_DLL \
 //          -DGLFW_INCLUDE_NONE -I Engine -I . -I ExternalPackages/imgui \
-//          -I _AgentScratch/Vulkan-Headers/include \
 //          -I ExternalPackages/glfw/include -I ExternalPackages/thorvg/inc \
+//          -I _AgentScratch/Vulkan-Headers/include \
 //          Tools/SceneDirectoryProof/SceneDirectoryProof.cpp \
-//          Engine/SlateUI/Interface/GlobalShellPanel/Source/GlobalShellPanel.cpp \
+//          Engine/SlateUI/Interface/WorkspacePanel/Source/WorkspacePanel.cpp \
+//          Engine/SlateUI/Interface/EditorPanel/Source/EditorPanel.cpp \
+//          Engine/SlateUI/Interface/PanelStructure/Source/PanelStructure.cpp \
+//          Engine/SlateUI/Interface/SceneDirectoryPanel/Source/SceneDirectoryPanel.cpp \
 //          Engine/SlateUI/Interface/ControlPanel/Source/ControlPanel.cpp \
 //          Engine/SlateUI/Interface/ComponentSpecification/Source/ComponentSpecification.cpp \
 //          Engine/SlateUI/Interface/InterfaceExchange/Source/RecordingSurface.cpp \
@@ -34,6 +47,11 @@
 //          Engine/SlateUI/Interface/ThemeSpecification/Source/ThemeSpecification.cpp \
 //          Engine/SlateUI/Interface/SymbolSpecification/Source/SymbolSpecification.cpp \
 //          Engine/SlateUI/Interface/TextComponent/Source/FontLoader.cpp \
+//          Engine/Application/EditorHost/Source/SkyImage.cpp \
+//          Engine/SlateCompute/Compute/AtmosphereIntegrator/Source/AtmosphereIntegrator.cpp \
+//          Engine/SlateMath/Numeric/QuadratureIntegrator/Source/QuadratureIntegrator.cpp \
+//          Engine/SlateMath/Numeric/ColourProjection/Source/ColourProjection.cpp \
+//          Engine/SlateMath/Numeric/SpectralProjection/Source/SpectralProjection.cpp \
 //          ExternalPackages/imgui/imgui.cpp ExternalPackages/imgui/imgui_draw.cpp \
 //          ExternalPackages/imgui/imgui_tables.cpp ExternalPackages/imgui/imgui_widgets.cpp \
 //          -o _AgentScratch/SceneDirectoryProof
@@ -49,8 +67,11 @@
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
 #include "SlateUI/Interface/ControlPanel/Api/ControlPanel.h"
-#include "SlateUI/Interface/GlobalShellPanel/Api/GlobalShellPanel.h"
+#include "SlateUI/Interface/EditorPanel/Api/EditorPanel.h"
 #include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
+#include "SlateUI/Interface/PanelStructure/Api/PanelStructure.h"
+#include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectoryPanel.h"
+#include "SlateUI/Interface/WorkspacePanel/Api/WorkspacePanel.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
 #include "SlateUI/Interface/SymbolSpecification/Api/SymbolSpecification.h"
@@ -290,6 +311,10 @@ struct Rasterizer
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE DRIVER
 //------------------------------------------------------------------------------------------------------------------------
+// The harness replicates the editor host's tick: the shared ledger advances once,
+// the scene directory samples it, the workspace panel records its strip and body,
+// the editor panel records the partition chrome, and the host's own content loop
+// fills each leaf body — sky in the viewport leaf, outliner, properties.
 
 struct SceneDriver
 {
@@ -297,8 +322,12 @@ struct SceneDriver
     MotionIntegrator Motion;
     InteractionIndex Ledger;
     RecordingSurface Surface;
-    GlobalShellPanel Shell;
-    ShellContext Applied;
+    WorkspacePanel Workspace;
+    EditorPanel Editor;
+    PanelStructure Partition;
+    EditorPanelConfiguration Configuration;
+    SceneDirectoryPanel SceneDirectory;
+    SceneDirectoryContext Applied;
     FontLoader Fonts;
 
     static constexpr EntityRow EditorEntities[6] =
@@ -315,7 +344,7 @@ struct SceneDriver
     std::uint32_t RevisionCount = 0u;
 
     // 📝 The sky texture the host would upload: generated from the environment, registered in the
-    //    rasterizer under a fixed identity, and handed to the shell as its texture identity.
+    //    rasterizer under a fixed identity, and handed to the scene directory as its texture identity.
     static constexpr std::uintptr_t SkyIdentity = 0x534B5931u;   // [-] - "SKY1", a fake descriptor handle
     AtmosphereIntegrator SkyIntegrator;
     std::vector<std::uint8_t> SkyPixels;
@@ -348,7 +377,11 @@ struct SceneDriver
 
         if (!Ledger.Construct(Motion).Resolved)
             return false;
-        if (!Shell.Construct(Ledger, Motion, Surface, Appearance).Resolved)
+        if (!SceneDirectory.Construct(Ledger, Motion, Surface, Appearance).Resolved)
+            return false;
+        if (!Editor.Construct(Motion, Surface, Appearance).Resolved)
+            return false;
+        if (!Workspace.Construct(Surface, Appearance).Resolved)
             return false;
 
         Applied.EnvironmentPresented = true;
@@ -385,18 +418,16 @@ struct SceneDriver
         Discard(Surface.Adopt(RecordingSurface::ShellLayer::Beneath));
         Motion.Advance(TickMilliseconds);
         Ledger.Advance(Surface.Pointer(), TickMilliseconds);
-        Shell.Advance(Surface.Pointer(), TickMilliseconds);
+        SceneDirectory.Advance(Surface.Pointer(), TickMilliseconds);
+        Editor.Advance(Surface.Pointer(), TickMilliseconds);
 
-        // 📝 The host regenerates and uploads the sky when the environment changed; the harness does
-        //    the same into its CPU texture map. The camera aims at the sun so the disc stays in frame
-        //    as the artist drags the sliders.
+        // 📝 The host regenerates the sky when the environment changed (at most once per drag) and
+        //    hands the identity to the scene directory; the viewport leaf draws it.
         if (Applied.EnvironmentPresented &&
             (!SkyEverGenerated ||
              std::memcmp(&SkyPrevious, &Applied.Environment, sizeof(EnvironmentConfiguration)) != 0))
         {
             SkyCam.AzimuthDegrees   = Applied.Environment.SunAzimuth - 20.0;
-            // 📐 The camera's elevation is fixed (as the host's), so a drag of the elevation slider
-            //    visibly moves the sun; a camera that rose with the sun would hold the disc still.
             SkyCam.ElevationDegrees = 15.0;
             if (GenerateSkyImage(SkyIntegrator, Applied.Environment, SkyCam,
                                  512u, 288u, SkyPixels).Resolved)
@@ -411,8 +442,45 @@ struct SceneDriver
             SkyEverGenerated = true;
         }
 
-        Discard(Shell.Record(Spanning(0.0f, 0.0f, ViewportWidth, ViewportHeight), Applied,
-                               EditorEntities, 6u, nullptr, 0u, Revisions, RevisionCount));
+        // 📝 The workspace: strip and body first, then the editor chrome, then the leaf content —
+        //    the same order the editor host records.
+        const PlaneExtent Whole = Spanning(0.0f, 0.0f, ViewportWidth, ViewportHeight);
+        Discard(Workspace.Record(Whole, "Workspace 1"));
+
+        // 📐 A static tab strip over the workspace's own strip, standing in for the vendor dock the
+        //    harness cannot run.
+        const PlaneExtent WorkspaceStrip = Workspace.Strip();
+        if (WorkspaceStrip.Height() > 0.0f)
+        {
+            Surface.TextRun(WorkspaceStrip.MinimumX + 12.0f,
+                             WorkspaceStrip.MinimumY + (WorkspaceStrip.Height()
+                                                        - 12.5f) * 0.5f,
+                             Covering(0xE6E6E6u), "Workspace 1", 12.5f, 0.0f, true);
+        }
+
+        Discard(Editor.Record(Workspace.Body(), Partition, Configuration, 0u));
+
+        for (std::uint32_t Leaf = 0u; Leaf < Editor.LeafCount(); ++Leaf)
+        {
+            const PlaneExtent LeafBody = Editor.LeafBody(Leaf);
+
+            switch (Editor.LeafSubject(Leaf))
+            {
+                case PanelSubject::Viewport:
+                    SceneDirectory.RecordViewportSky(LeafBody, Applied);
+                    break;
+                case PanelSubject::Outliner:
+                    SceneDirectory.RecordOutliner(LeafBody, Applied, EditorEntities, 6u);
+                    break;
+                case PanelSubject::Properties:
+                    SceneDirectory.RecordProperties(LeafBody, Applied, EditorEntities, 6u,
+                                                    Revisions, RevisionCount);
+                    break;
+                default:
+                    break;
+            }
+        }
+
         Surface.Retire();
 
         // 📝 The host drains the drag-end demand exactly once per drag.
@@ -442,6 +510,27 @@ struct SceneDriver
         Tick(MouseX, MouseY, true, true, false);
         Tick(MouseX, MouseY, true, false, false);
         Tick(MouseX, MouseY, false, false, true);
+    }
+
+    // 📐 The workspace partition each scenario presents:
+    //    overview  :  viewport | outliner
+    //    props     :  viewport | (outliner over properties)
+    void ApplyPartition(bool WithProperties)
+    {
+        Partition.Construct(PanelSubject::Viewport);
+        Discard(Partition.Divide(PanelStructure::RootOrdinal, PanelDivisionAxis::X,
+                                 PanelDivisionSide::Maximum));
+        const Outcome<PanelRecord> Right = Partition.Current(PanelStructure::RootOrdinal);
+        const std::uint32_t RightLeaf = Right.Resolved ? Right.Resolve().Maximum : 1u;
+        Discard(Partition.Assign(RightLeaf, PanelSubject::Outliner));
+
+        if (WithProperties)
+        {
+            Discard(Partition.Divide(RightLeaf, PanelDivisionAxis::Y, PanelDivisionSide::Maximum));
+            const Outcome<PanelRecord> RightRecord = Partition.Current(RightLeaf);
+            const std::uint32_t LowerLeaf = RightRecord.Resolved ? RightRecord.Resolve().Maximum : 3u;
+            Discard(Partition.Assign(LowerLeaf, PanelSubject::Properties));
+        }
     }
 
     bool Capture(const char* Path, const unsigned char* Atlas, int AtlasWidth, int AtlasHeight)
@@ -474,34 +563,60 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
 
     if (std::strcmp(Scenario, "editor-overview") == 0)
     {
-        Driver.Applied.InspectorDocked = false;
+        Driver.ApplyPartition(false);
         Driver.Settle(20);
     }
     else if (std::strcmp(Scenario, "editor-sun-props") == 0)
     {
-        Driver.Applied.InspectorDocked = true;
-        Driver.Applied.InspectorShown  = true;
-        Driver.Applied.InspectorTab    = 0u;   // [-] - Properties
+        Driver.ApplyPartition(true);
         Driver.Settle(20);
     }
     else if (std::strcmp(Scenario, "editor-after-drag") == 0)
     {
-        Driver.Applied.InspectorDocked = true;
-        Driver.Applied.InspectorShown  = true;
-        Driver.Applied.InspectorTab    = 0u;
+        Driver.ApplyPartition(true);
         Driver.Settle(20);
 
-        // 📐 Drag the elevation slider from 35° to ~70°: the first slider row of the Sun card sits at
-        //    y≈324 inside the docked inspector, its track spanning x≈650..1000.
-        const float SliderX0 = 660.0f;
-        const float SliderX1 = 960.0f;
-        const float SliderY  = 326.0f;
+        // 📐 The elevation slider: the first row of the Sun card inside the properties leaf. The
+        //    geometry is the panel's own — the leaf body, then the pane header, the tab strip, the
+        //    card header, and the row padding — so the drag lands on the real slider wherever the
+        //    partition placed it.
+        const PlaneExtent Body = Driver.Editor.LeafBody(2u);
+        ThemeSelection Sel;
+        Sel.Current = ThemeSubject::Oled;
+        const ThemeProfile Resolved = ResolveTinted(1.0, 1.0, ViewportWidth, Sel);
+        const float AppliedFactor = static_cast<float>(Resolved.Measure.DisplayScale)
+                                  * Resolved.ControlMeasure.ArtistFactor;
+        const ShellMetric Scaled = ScaleShellLengths(AppliedFactor);
+
+        const float Pad = Scaled.PanePad;
+
+        // 📐 The Sun card is the SECOND card: the Transform card (three rows) precedes it, so the
+        //    elevation row sits one card deeper than the naive layout suggests. The geometry below
+        //    walks the panel's own sweep: pages begin after the pane header and the tab strip, the
+        //    Transform card occupies one card height, then the Sun card's first row is the elevation.
+        const float PagesY = Body.MinimumY + Scaled.HeaderHeight + Scaled.ComponentY;
+        float Sweep = PagesY + Pad;
+        const float TransformBottom = Sweep + Scaled.ComponentY + (3.0f * Scaled.RowHeight + Pad * 2.0f);
+        Sweep = TransformBottom + Pad * 0.85f;
+
+        const float SliderY = Sweep + Scaled.ComponentY + Pad + Scaled.RowHeight * 0.5f;
+        const float TrackX0 = Body.MinimumX + Pad * 1.5f + 6.0f;
+        const float TrackX1 = Body.MaximumX - Pad * 1.5f - 6.0f;
+
+        // 📐 The press lands on the thumb's own position (elevation 35 of 0…90), so the drag reads as
+        //    a continuous move rather than a jump; the drag then runs to 80 % of the track.
+        const float ThumbX = TrackX0 + (35.0 / 90.0) * (TrackX1 - TrackX0);
+        const float ReleaseX = TrackX0 + 0.55f * (TrackX1 - TrackX0);
+
         const std::uint32_t Before = Driver.RevisionCount;
 
-        Driver.Tick(SliderX0, SliderY, true, true, false);
-        for (int Step = 0; Step < 30; ++Step)
-            Driver.Tick(SliderX0 + static_cast<float>(Step) * 10.0f, SliderY, true, false, false);
-        Driver.Tick(SliderX1, SliderY, false, false, true);
+        Driver.Tick(ThumbX, SliderY, true, true, false);
+        for (int Step = 0; Step < 40; ++Step)
+        {
+            const float T = static_cast<float>(Step) / 39.0f;
+            Driver.Tick(ThumbX + (ReleaseX - ThumbX) * T, SliderY, true, false, false);
+        }
+        Driver.Tick(ReleaseX, SliderY, false, false, true);
         Driver.Settle(10);
 
         std::fprintf(stderr, "[assert] revisions before=%u after=%u demand=%s\n",
@@ -512,6 +627,11 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         if (Driver.RevisionCount != Before + 1u)
         {
             std::fprintf(stderr, "[FAIL] expected exactly one revision per drag\n");
+            return false;
+        }
+        if (Driver.Applied.Environment.SunElevation < 50.0)
+        {
+            std::fprintf(stderr, "[FAIL] the elevation slider did not move the sun enough\n");
             return false;
         }
     }

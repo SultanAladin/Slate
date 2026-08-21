@@ -2,6 +2,20 @@
 //                                                             EDITORHOST.CPP
 //============================================================================================================================================
 // 🧩 The combined editor — every workspace subject in one host, with every device concern held by HostLifecycle.
+//
+// 🔴 LAYOUT RULE, READ BEFORE EDITING THIS HOST. The editor's layout is:
+//      workspace windows (WorkspacePanel + WorkspaceIndex + the vendor dock)
+//        → splittable panels (EditorPanel + PanelStructure: viewport | UV |
+//          outliner | properties leaves, each with chrome and a footer)
+//          → leaf content (SceneDirectoryPanel: the sky in a viewport leaf,
+//            the outliner | details column in an outliner leaf, the
+//            properties | history pages in a properties leaf).
+//    `GlobalShellPanel` is the VALIDATION PROTOTYPE (the full reference sheet:
+//    options rail, texture-paint layer stack, CAD drafting, fullscreen
+//    inspector). It is recorded ONLY by InterfaceValidationHost. NEVER record
+//    it here, and never port its rail/layer-stack/fullscreen strip into this
+//    host — that mistake was made once and reverted. The validation viewport
+//    stays black; the editor's sky lives in the viewport LEAF.
 
 #include "Contract/DeliveryContract.h"
 #include "Application/EditorHost/Api/SkyImage.h"
@@ -10,7 +24,7 @@
 #include "SlateUI/Interface/ControlCentrePanel/Api/ControlCentrePanel.h"
 #include "SlateUI/Interface/ThemeInterchange/Api/ThemeInterchange.h"
 #include "SlateUI/Interface/EditorPanel/Api/EditorPanel.h"
-#include "SlateUI/Interface/GlobalShellPanel/Api/GlobalShellPanel.h"
+#include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectoryPanel.h"
 #include "SlateUI/Interface/ViewportSequence/Api/ViewportSequence.h"
 #include "SlateUI/Interface/WorkspacePanel/Api/WorkspaceIndex.h"
 #include "SlateVulkan/Device/HostLifecycle/Api/HostLifecycle.h"
@@ -52,7 +66,7 @@ constexpr std::uint32_t EasesPerControl = 2u;
 constexpr std::uint32_t CentreControls  = ControlCentrePanel::ControlCapacity;
 constexpr std::uint32_t BrowserControls = ContentBrowserPanel::RegistrationDemand;
 constexpr std::uint32_t EditorControls  = PanelStructure::RecordCeiling * EditorPanel::ControlsPerRecord;
-constexpr std::uint32_t SceneControls   = GlobalShellPanel::RegistrationDemand;
+constexpr std::uint32_t SceneControls   = SceneDirectoryPanel::RegistrationDemand;
 constexpr std::uint32_t BareEases       = 9u + 1u + 1u;   // [-] - Control Centre motions, shell carousel
 
 constexpr std::uint32_t DemandedEases =
@@ -85,7 +99,8 @@ static_assert(sizeof(WorkspaceIndex) + sizeof(WorkspacePanel) + sizeof(EditorPan
               + sizeof(ControlCentrePanel)  + sizeof(ControlCentreConfiguration)
               + sizeof(InteractionIndex)    + sizeof(ContentBrowserPanel)
               + sizeof(ContentBrowserConfiguration) + sizeof(ContentLibrary)
-              + sizeof(InteractionIndex)    + sizeof(GlobalShellPanel) + sizeof(ShellContext) <= AutomaticCeiling,
+              + sizeof(InteractionIndex)    + sizeof(SceneDirectoryPanel)
+              + sizeof(SceneDirectoryContext) <= AutomaticCeiling,
               "this host's automatic UI members no longer fit a quarter of a Windows thread stack — the "
               "prologue's stack probe will fault before main runs a statement and the host will exit with "
               "no window and no log line; move the largest member to static storage");
@@ -182,8 +197,8 @@ int main(int ArgumentCount, char** ArgumentValues)
     EditorPanelConfiguration    PanelConfiguration[WorkspaceIndex::WorkspaceCeiling];
     ControlCentrePanel      ControlCentre;
     ControlCentreConfiguration  ControlCentreValues;
-    GlobalShellPanel        SceneDirectory;
-    ShellContext            SceneApplied;
+    SceneDirectoryPanel     SceneDirectory;
+    SceneDirectoryContext   SceneApplied;
     InteractionIndex        SceneLedger;
     ViewportSkySurface      SkySurface;
     AtmosphereIntegrator    SkyIntegrator;
@@ -510,6 +525,36 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                       PanelPartitions[Ordinal],
                                                       PanelConfiguration[Ordinal],
                                                       Ordinal));
+
+                    // 📝 The leaf content — the editor's scene directory inside the workspace's own
+                    //    panels. Recorded into the same window the panel chrome was, so it clips and
+                    //    orders with it: the sky fills a viewport leaf, the outliner | details fills
+                    //    an outliner leaf, and the properties | history fills a properties leaf.
+                    //    Panels draw their content only while they exist in the partition; there is
+                    //    no fullscreen scene directory in this host (see the header's layout rule).
+                    for (std::uint32_t Leaf = 0u; Leaf < WorkspacePanels.LeafCount(); ++Leaf)
+                    {
+                        const PlaneExtent LeafBody = WorkspacePanels.LeafBody(Leaf);
+
+                        switch (WorkspacePanels.LeafSubject(Leaf))
+                        {
+                            case PanelSubject::Viewport:
+                                SceneDirectory.RecordViewportSky(LeafBody, SceneApplied);
+                                break;
+                            case PanelSubject::Outliner:
+                                SceneDirectory.RecordOutliner(LeafBody, SceneApplied,
+                                                              EditorEntities, 6u);
+                                break;
+                            case PanelSubject::Properties:
+                                SceneDirectory.RecordProperties(LeafBody, SceneApplied,
+                                                                EditorEntities, 6u,
+                                                                EditorRevisions, EditorRevisionCount);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+
                     if (WorkspacePanels.PointerCaptured(Ordinal))
                         Viewport.Seam().WithholdPointer();
                 }
@@ -561,16 +606,9 @@ int main(int ArgumentCount, char** ArgumentValues)
             }
 
             // 📝 The drawers last, so they sit ABOVE the workspace as the sheet lays them.
-            // ④·b The scene directory — the shell's keymap first, then its tick, then the record over the
-            //      whole display. The shell's rail, viewport and summoned inspector sit ABOVE the
-            //      workspace; Tab summons the inspector and slides outliner → properties → history.
-            static_cast<void>(SceneDirectory.AdvanceSummoning(SceneApplied,
-                                                               Viewport.Seam().KeyPressed(KeySubject::Summon),
-                                                               Viewport.Seam().KeyPressed(KeySubject::Withdraw),
-                                                               Viewport.Seam().Modifiers().Shifted));
-            // 🔴 The ledger is advanced here, once, before the shell samples it — the shell's own
-            //    Advance only samples, and a second advance would retire the release before the
-            //    inspector reads it.
+            // ④·b The scene directory — the shared ledger is advanced here, once, before the panel
+            //      samples it; the panel's own Advance only samples, and a second advance would retire
+            //      the release before the leaves read it.
             SceneLedger.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
             SceneDirectory.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
 
@@ -623,11 +661,6 @@ int main(int ArgumentCount, char** ArgumentValues)
                 Written.Classified  = RevisionSubject::Parameter;
                 SceneApplied.RevisionDemandSlot = {};
             }
-
-            Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
-            Discard(SceneDirectory.Record(Whole, SceneApplied, EditorEntities, 6u,
-                                          nullptr, 0u, EditorRevisions, EditorRevisionCount));
-            Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Beneath));
 
             Viewport.RecordDrawers();
             Viewport.DrawerPanels();

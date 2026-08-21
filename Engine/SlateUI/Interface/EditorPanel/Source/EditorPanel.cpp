@@ -163,6 +163,7 @@ Outcome<bool> EditorPanel::Record(const PlaneExtent& Extent,
     DeferredBoundary     = {};
     DeferredRecord       = PanelStructure::RecordCeiling;
     DeferredRole         = ControlRole::RoleCount;
+    LeafTally            = 0u;
 
     Surface->Ground(Extent, Appearance->EditorPanel.WindowGround);
     RecordBranch(PanelStructure::RootOrdinal, Extent, Partition, Configuration);
@@ -317,6 +318,16 @@ void EditorPanel::RecordLeaf(std::uint32_t RecordOrdinal,
     const PlaneExtent Footer = Spanning(Extent.MinimumX, Extent.MaximumY - Measure.FooterHeight,
                                         Extent.Width(), Measure.FooterHeight);
     const PlaneExtent Body = { Extent.MinimumX, Header.MaximumY, Extent.MaximumX, Footer.MinimumY };
+
+    // 📝 The leaf is delivered to the host, which fills its body with the leaf's own content — the sky in
+    //    a viewport leaf, the scene directory in an outliner or properties leaf. The tally grows in
+    //    depth-first order and resets at the top of every `Record`.
+    if (LeafTally < PanelStructure::RecordCeiling)
+    {
+        LeafBodies[LeafTally]   = Body;
+        LeafSubjects[LeafTally] = Declared.Subject;
+        ++LeafTally;
+    }
 
     RecordHeader(RecordOrdinal, Declared.Subject, Header, Partition);
 

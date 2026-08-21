@@ -79,100 +79,6 @@ bool RunHolds(const char* Subject, const char* Sought)
 
 }   // namespace
 
-SymbolSubject EntityGlyph(EntitySubject Subject)
-{
-    switch (Subject)
-    {
-        case EntitySubject::Level:      return SymbolSubject::CubeSolid;
-        case EntitySubject::Grouping:   return SymbolSubject::FolderClosed;
-        case EntitySubject::Actor:      return SymbolSubject::CubeSolid;
-        case EntitySubject::Camera:     return SymbolSubject::CameraAperture;
-        case EntitySubject::Illuminant: return SymbolSubject::BulbFilament;
-        case EntitySubject::Audio:      return SymbolSubject::SpeakerCone;
-        case EntitySubject::Particle:   return SymbolSubject::ParticleEmit;
-        case EntitySubject::Trigger:    return SymbolSubject::CrosshairCentre;
-        case EntitySubject::Script:     return SymbolSubject::CodeBrackets;
-        case EntitySubject::Sun:        return SymbolSubject::SunDirectional;
-        case EntitySubject::Sky:        return SymbolSubject::SunDirectional;
-        default:                        return SymbolSubject::CubeSolid;
-    }
-}
-
-ThemeToken EntityHue(EntitySubject Subject)
-{
-    // 📐 The reference's `COLORS` record, transcribed verbatim from `components/GameOutliner.tsx`.
-    switch (Subject)
-    {
-        case EntitySubject::Level:      return Covering(0xEAB308u);
-        case EntitySubject::Grouping:   return Covering(0x8A8A8Au);
-        case EntitySubject::Actor:      return Covering(0x3B82F6u);
-        case EntitySubject::Camera:     return Covering(0xEC4899u);
-        case EntitySubject::Illuminant: return Covering(0xF59E0Bu);
-        case EntitySubject::Audio:      return Covering(0x8B5CF6u);
-        case EntitySubject::Particle:   return Covering(0x10B981u);
-        case EntitySubject::Trigger:    return Covering(0xEF4444u);
-        case EntitySubject::Script:     return Covering(0x06B6D4u);
-        case EntitySubject::Sun:        return Covering(0xF59E0Bu);
-        case EntitySubject::Sky:        return Covering(0x38BDF8u);
-        default:                        return Covering(0x8A8A8Au);
-    }
-}
-
-const char* EntityText(EntitySubject Subject)
-{
-    switch (Subject)
-    {
-        case EntitySubject::Level:      return "Level";
-        case EntitySubject::Grouping:   return "Folder";
-        case EntitySubject::Actor:      return "Actor";
-        case EntitySubject::Camera:     return "Camera";
-        case EntitySubject::Illuminant: return "Light";
-        case EntitySubject::Audio:      return "Audio";
-        case EntitySubject::Particle:   return "Particle";
-        case EntitySubject::Trigger:    return "Trigger";
-        case EntitySubject::Script:     return "Script";
-        case EntitySubject::Sun:        return "Sun";
-        case EntitySubject::Sky:        return "Sky";
-        default:                        return "Entity";
-    }
-}
-
-ThemeToken RevisionHue(RevisionSubject Classified)
-{
-    // 📐 The reference's `REVISION_HUE` record, transcribed verbatim from `components/Inspector.tsx`.
-    switch (Classified)
-    {
-        case RevisionSubject::Start:     return Covering(0x7EC8FFu);
-        case RevisionSubject::Feature:   return Covering(0xFFB24Du);
-        case RevisionSubject::Parameter: return Covering(0x4FD18Bu);
-        case RevisionSubject::Sketch:    return Covering(0x37D6D6u);
-        case RevisionSubject::Relocate:  return Covering(0x5B8CFFu);
-        case RevisionSubject::Grouped:   return Covering(0xB98BFFu);
-        case RevisionSubject::Created:   return Covering(0x7EC8FFu);
-        case RevisionSubject::Amended:   return Covering(0xC99B6Au);
-        case RevisionSubject::Dropped:   return Covering(0xFF6B6Bu);
-        default:                          return Covering(0xC99B6Au);
-    }
-}
-
-const char* RevisionText(RevisionSubject Classified)
-{
-    // 📐 The `label` of the reference's `REVISION_CLASS` record, verbatim.
-    switch (Classified)
-    {
-        case RevisionSubject::Start:     return "Start";
-        case RevisionSubject::Feature:   return "Feature";
-        case RevisionSubject::Parameter: return "Params";
-        case RevisionSubject::Sketch:    return "Sketch";
-        case RevisionSubject::Relocate:  return "Relocate";
-        case RevisionSubject::Grouped:   return "Group";
-        case RevisionSubject::Created:   return "Create";
-        case RevisionSubject::Amended:   return "Edit";
-        case RevisionSubject::Dropped:   return "Drop";
-        default:                          return "Edit";
-    }
-}
-
 ThemeToken ClassificationTint(LayerClassification Classified)
 {
     // 📐 The reference's `KINDS` record, transcribed verbatim from `components/TexturePaint.tsx`.
@@ -196,21 +102,6 @@ const char* ClassificationText(LayerClassification Classified)
     }
 }
 
-ShellMetric ScaleShellLengths(float Factor)
-{
-    const float Applied = (Factor > 0.0f) ? Factor : 1.0f;
-    ShellMetric Scaled;
-
-    // 📝 Every member is a length, so the whole record is scaled uniformly. The two run figures that are
-    //    durations live outside it precisely so that this stays true and no member has to be excepted.
-    float* const Lengths = &Scaled.TopBarHeight;
-    const std::uint32_t Count = static_cast<std::uint32_t>(sizeof(ShellMetric) / sizeof(float));
-
-    for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
-        Lengths[Ordinal] *= Applied;
-
-    return Scaled;
-}
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       BRING-UP

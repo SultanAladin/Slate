@@ -100,6 +100,33 @@ public:
     void WithdrawPresentation(std::uint32_t PresentationOrdinal);
     void Reset();
 
+    /// 🧩 How many leaves the last `Record` presented, for the host to fill their bodies with content.
+    /// note  ⚠️ Valid only until the next `Record`. Leaves are the partition's occupied, non-vacant slots,
+    ///        in depth-first order; a vacant panel is a chooser and carries no content of its own.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    std::uint32_t LeafCount() const { return LeafTally; }
+
+    /// 🧩 The body of one leaf the last `Record` left, between its header and its footer.
+    /// note  ⚠️ Valid only until the next `Record`, and empty when `LeafOrdinal` is out of range. The host
+    ///        records its content — the sky in a viewport leaf, the outliner, the properties — into this
+    ///        extent, on top of the leaf's own ground and caption, before the footer is drawn over it.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    PlaneExtent LeafBody(std::uint32_t LeafOrdinal) const
+    {
+        return LeafOrdinal < LeafTally ? LeafBodies[LeafOrdinal] : PlaneExtent{};
+    }
+
+    /// 🧩 What one leaf presents, so the host decides which content to record into its body.
+    /// note  ⚠️ Valid only until the next `Record`, and `Vacant` when `LeafOrdinal` is out of range.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    PanelSubject LeafSubject(std::uint32_t LeafOrdinal) const
+    {
+        return LeafOrdinal < LeafTally ? LeafSubjects[LeafOrdinal] : PanelSubject::Vacant;
+    }
+
 private:
 
     static constexpr std::uint32_t AbsentPresentation = 0xFFFFFFFFu;
@@ -193,6 +220,12 @@ private:
     std::uint32_t DisclosedPresentation = AbsentPresentation;
     std::uint32_t DraggedDivision = PanelStructure::RecordCeiling;
     PlaneExtent DraggedExtent = {};
+
+    // 📝 The leaves the last `Record` presented, for the host to fill. `LeafTally` resets at the top
+    //    of every `Record`; a vacant leaf is a chooser and is not counted.
+    PlaneExtent LeafBodies[PanelStructure::RecordCeiling] = {};
+    PanelSubject LeafSubjects[PanelStructure::RecordCeiling] = {};
+    std::uint32_t LeafTally = 0u;
 };
 
 }   // namespace Slate

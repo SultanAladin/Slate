@@ -1,0 +1,215 @@
+//============================================================================================================================================
+//                                                       SCENEDIRECTORYPANEL.H
+//============================================================================================================================================
+// 🧩 The editor's scene directory — the content drawn INSIDE the editor's workspace
+//    leaves, never over the whole display.
+//
+//    This is the editor twin of the validation shell's scene-directory strip. The
+//    difference is where the content lives: the shell records its own fullscreen
+//    rail + viewport + inspector over the display (it is a PROTOTYPE of the whole
+//    reference sheet), while this panel records only leaf content — the sky in a
+//    viewport leaf, the outliner | details in an outliner leaf, and the
+//    properties | history in a properties leaf — inside whatever partition the
+//    artist has built with the workspace machinery.
+//
+//    🔴 FUTURE AGENTS, READ THIS. `GlobalShellPanel` is the ValidationHost
+//       prototype and is NOT to be recorded by the editor host. The editor's
+//       layout is: workspace windows → splittable panels (EditorPanel +
+//       PanelStructure) → leaf content. This panel is where editor content is
+//       built. Do not port the shell's rail, layer stack, or fullscreen
+//       inspector into the editor; the validation host keeps them, its viewport
+//       stays black, and the editor never sees them.
+
+#pragma once
+
+#include "Contract/DeliveryContract.h"
+#include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
+#include "SlateUI/Interface/ControlPanel/Api/ControlPanel.h"
+#include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
+#include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
+#include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
+#include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectoryContract.h"
+#include "SlateUI/Interface/SymbolSpecification/Api/SymbolSpecification.h"
+
+#include <cstdint>
+
+namespace Slate
+{
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   WHAT THE HOST OWNS
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 Every datum the scene-directory panel presents, owned by the host and written through by the panel.
+/// note  🔴 `14` §1: the panel presents what it is handed and retains none of it. Every condition the artist
+///        can alter lives here, so the host — and only the host — is the home of the scene directory's
+///        content. This is the editor twin of the shell's `ShellContext`, holding only what the editor's
+///        leaves present.
+/// tag   contract
+struct SceneDirectoryContext
+{
+    static constexpr std::uint32_t EntityCeiling = 16u;   // [-] - outline rows, the reference declares fourteen
+    static constexpr std::uint32_t CardCeiling   =  4u;   // [-] - property cards, the reference states four
+
+    // 📐 The editor's environment. `EnvironmentPresented` gates every environment branch, so a host that
+    //    never sets it (the validation host) renders no environment anywhere.
+    bool                       EnvironmentPresented = false;   // [-] - the sun/sky/atmosphere is presented
+    EnvironmentConfiguration   Environment          = {};      // [-] - host-owned; the sliders write it
+    RevisionDemand             RevisionDemandSlot   = {};      // [-] - one drag-end history demand
+
+    std::uint32_t              EntityTaken = 2u;              // [-] - which outline row is taken (the Sun)
+
+    // 📝 The GPU sky texture the viewport leaf draws, uploaded by the host. Opaque on purpose: the panel
+    //    names no vendor, so the identity is an integer the recording surface resolves.
+    std::uintptr_t             SkyTextureIdentity = 0u;       // [-] - zero draws no sky at all
+
+    // 📝 The sky's own camera, declared by the host each tick it regenerates. The dome is
+    //    direction-indexed, and the viewport leaf crops it to this camera's field of view.
+    SkyViewCamera              ViewportSkyCamera  = {};       // [-] - the dome crop the viewport draws
+
+    // 📐 The Properties | History strip, and the folds the reference applies empty so every card and
+    //    every revision group arrives disclosed.
+    std::uint32_t              InspectorTab    = 0u;          // [-] - 0 Properties, 1 History
+    bool                       CardFolded[CardCeiling]       = {};
+    bool                       RevisionFolded[EntityCeiling] = {};
+
+    // 📝 The disclosure and presence conditions of the outline rows, exactly as the shell's own declare
+    //    them: the level, Lighting, Environment and Systems arrive expanded and everything else folded.
+    bool  EntityExpanded[EntityCeiling] = { true, true, false, false, false, false,
+                                            true, false, false, false, true, false, false, false };
+    bool  EntityPresent[EntityCeiling]  = { true, true, true, true, true, true,
+                                            true, true, true, true, true, true, true, true };
+
+    // 📐 The detail pane's small option switches for the taken row: bit 0 Locked, bit 1 Cast Shadows.
+    //    `Visible` is `EntityPresent`, which the eye already owns.
+    std::uint32_t              DetailBits[EntityCeiling] = {};
+};
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       THE PANEL
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 Records the scene directory's leaf content — the viewport sky, the outliner | details column and the
+///    properties | history pages — inside the extents the editor's panel chrome hands over.
+/// note  🔴 The panel draws ONLY leaf content. It never draws a rail, a top bar or a fullscreen shell; the
+///        workspace and the panel chrome belong to `WorkspacePanel` and `EditorPanel`, and this panel fills
+///        the leaves they leave.
+/// tag   owning
+class SceneDirectoryPanel
+{
+public:
+
+    /// 🧩 Exactly how many control identities `Construct` claims, stated where they are claimed.
+    /// note  🔴 The arithmetic lives beside the registrations it describes so the two can only disagree by
+    ///        an edit that touches both.
+    static constexpr std::uint32_t RegistrationDemand =
+          SceneDirectoryContext::EntityCeiling * 3u   // [-] - contact, disclosure and presence per outline row
+        + SceneDirectoryContext::EntityCeiling * 3u   // [-] - three detail option rows per outline row
+        + SceneDirectoryContext::CardCeiling          // [-] - one fold per property card
+        + SceneDirectoryContext::EntityCeiling        // [-] - one fold per grouped revision header
+        + 1u                                          // [-] - the Properties | History strip
+        + 6u;                                         // [-] - the six environment slider rows
+
+    SceneDirectoryPanel()                                   = default;
+    SceneDirectoryPanel(const SceneDirectoryPanel&)            = delete;
+    SceneDirectoryPanel& operator=(const SceneDirectoryPanel&) = delete;
+    ~SceneDirectoryPanel()                                  = default;
+
+    /// 🧩 Borrows the recording facilities and registers every identity and interpolant the panel needs.
+    /// out   Result  [-]  refuses with ContentUnsupported when a construction already stands, and with
+    ///                     ExtentExhausted when the ledger or the integrator declines an registration
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    Outcome<bool> Construct(InteractionIndex&              Interaction,
+                            MotionIntegrator&              Integrator,
+                            RecordingSurface&              Surface,
+                            const ThemeProfile& Resolved);
+
+    /// 🧩 Samples the contact for this tick, after the tick owner has advanced the shared ledger once.
+    /// note  🔴 This does not advance the ledger; several panels share it and the tick owner advances it once.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    void Advance(const PointerCondition& Sampled, double Elapsed);
+
+    /// 🧩 Re-applies every scaled extent after the appearance was resolved against a new display extent.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    void Reapply(const ThemeProfile& Resolved);
+
+    /// 🧩 Returns the panel to its unconstructed condition.
+    /// cost  ✔️
+    /// tag   api, nonthrowing
+    void Reset();
+
+    /// 🧩 Records the uploaded sky dome across one viewport leaf, cropped to the camera's field of view.
+    /// in    Extent   [px]  the leaf body the sky fills
+    /// in    Applied  [-]   the environment and the sky identity; written through only for the crop
+    /// note  🔴 The identity is the host's; a zero identity records nothing and the leaf's own ground shows.
+    /// cost  🚩
+    /// tag   api, nonallocating, nonthrowing
+    void RecordViewportSky(const PlaneExtent& Extent, const SceneDirectoryContext& Applied);
+
+    /// 🧩 Records the outliner column and its details pane across one outliner leaf.
+    /// in    Rows   [-]  the entity rows, borrowed for the tick
+    /// in    RowCount [-]  how many of them stand
+    /// cost  🚩
+    /// tag   api, nonallocating, nonthrowing
+    void RecordOutliner(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
+                        const EntityRow* Rows, std::uint32_t RowCount);
+
+    /// 🧩 Records the Properties | History pages across one properties leaf.
+    /// in    Rows        [-]  the entity rows, borrowed for the tick
+    /// in    RowCount    [-]  how many of them stand
+    /// in    Revisions   [-]  the host's revision run, borrowed for the tick
+    /// in    RevisionCount [-]  how many of them stand
+    /// cost  🚩
+    /// tag   api, nonallocating, nonthrowing
+    void RecordProperties(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
+                          const EntityRow* Rows, std::uint32_t RowCount,
+                          const EntityRevision* Revisions, std::uint32_t RevisionCount);
+
+private:
+
+    void RecordLeafHeader(const PlaneExtent& Extent, SymbolSubject Glyph, const ThemeToken& Hue,
+                          const char* Titled, const char* Secondary);
+    void RecordDetailOptions(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
+                             std::uint32_t Ordinal);
+    void RecordPropertyCards(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
+                             const EntityRow* Rows, std::uint32_t RowCount);
+    void RecordEnvironmentCard(SceneDirectoryContext& Applied,
+                               const PlaneExtent& Extent, float& Sweep, std::uint32_t& CardOrdinal,
+                               const char* Caption,
+                               const char* const* SliderCaptions,
+                               const char* const* UnitGlyphs,
+                               const double* Minimums, const double* Maximums,
+                               double* Values, std::uint32_t SliderCount);
+    void RecordRevisionSpine(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
+                             const EntityRow* Rows, std::uint32_t RowCount,
+                             const EntityRevision* Revisions, std::uint32_t RevisionCount);
+
+    InteractionIndex*           Ledger = nullptr;        // [-] - borrowed; never owned
+    MotionIntegrator*           Motion = nullptr;        // [-] - borrowed; never owned
+    RecordingSurface*           Surface = nullptr;       // [-] - borrowed; never owned
+    const ThemeProfile*         Appearance = nullptr;    // [-] - borrowed; never owned
+    ShellColour                 Tinted = {};             // [-] - the shell's own colour record
+    ShellMetric                 Scaled = {};             // [-] - re-applied on every appearance resolve
+
+    ControlPanel                Controls = {};           // [-] - tab strips, revision rows, fold animation
+    ComponentSpecification      EnvironmentControls = {};   // [-] - the environment slider rows
+
+    PointerCondition            Sampled = {};            // [-] - this tick's contact
+
+    ControlIdentity RowContacts[SceneDirectoryContext::EntityCeiling]    = {};
+    ControlIdentity RowDisclosures[SceneDirectoryContext::EntityCeiling] = {};
+    ControlIdentity RowPresences[SceneDirectoryContext::EntityCeiling]   = {};
+    ControlIdentity DetailOptions[SceneDirectoryContext::EntityCeiling][3] = {};
+    ControlIdentity CardFolds[SceneDirectoryContext::CardCeiling]        = {};
+    ControlIdentity RevisionGroups[SceneDirectoryContext::EntityCeiling] = {};
+    ControlIdentity InspectorStrip = {};
+    ControlIdentity EnvironmentSliders[6] = {};
+
+    bool   EnvironmentArmed[6] = {};   // [-] - drag-start latched per slider
+    double EnvironmentFrom[6]  = {};   // [-] - the value at drag start
+};
+
+} // namespace Slate
