@@ -446,6 +446,21 @@ void RecordingSurface::ApplyFontPreview(ImFont* Preview)
     FontOverride = Preview;
 }
 
+void RecordingSurface::Image(const PlaneExtent& Extent, std::uintptr_t Identity,
+                             float U0, float V0, float U1, float V1)
+{
+    if (CommandSlot == nullptr || Identity == 0u)
+        return;
+
+    // 📝 The vendor's texture reference is constructed from the opaque identity; the sampled rectangle
+    //    is the caller's crop, and the clip stack confines the quad to whatever confine stands.
+    Commands(CommandSlot)->AddImage(ImTextureRef(static_cast<ImTextureID>(Identity)),
+                                    ImVec2(Extent.MinimumX, Extent.MinimumY),
+                                    ImVec2(Extent.MaximumX, Extent.MaximumY),
+                                    ImVec2(U0, V0), ImVec2(U1, V1),
+                                    IM_COL32_WHITE);
+}
+
 void RecordingSurface::TextRun(float X, float Y, ThemeToken Colour, const char* Text,
                                float PointSize, float Tracking, bool Emphatic, FontWeight Weight)
 {

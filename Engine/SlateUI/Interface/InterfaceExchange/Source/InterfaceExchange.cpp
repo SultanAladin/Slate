@@ -841,4 +841,24 @@ bool InterfaceExchange::AcceptTyped(char* Intake, std::uint32_t Ceiling) const
     return Accepted;
 }
 
+// 📝 Defined here, in the exchange's own translation unit, and not in RecordingSurface.cpp: this is
+//    the unit that names the vendor's Vulkan attachment, and the harness proofs that compile the
+//    recording surface without the exchange must not pull the attachment's symbols in.
+std::uintptr_t RecordingSurface::RegisterSampledImage(VkSampler Sampler, VkImageView ImageView)
+{
+    // 🔴 The registration rides the CURRENT context, which is the exchange's own at the two call
+    //    sites (startup, after the interface context is constructed, and the device-recovery branch,
+    //    where the rebuilt exchange has just set it). Guarding on it here means a host that calls
+    //    outside that window gets a zero identity instead of a registration into a stranger's pool.
+    if (Sampler == VK_NULL_HANDLE || ImageView == VK_NULL_HANDLE || ImGui::GetCurrentContext() == nullptr)
+        return 0u;
+
+    // 📝 The identity is the vendor's descriptor set, carried opaque: the callers draw with it and
+    //    never see its type, and the descriptor pool that owns it is the interface's own — it dies
+    //    with this exchange, which is why a device rebuild re-registers the texture.
+    const VkDescriptorSet Set = ImGui_ImplVulkan_AddTexture(Sampler, ImageView,
+                                                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    return static_cast<std::uintptr_t>(reinterpret_cast<std::uint64_t>(Set));
+}
+
 }   // namespace Slate

@@ -4,6 +4,8 @@
 // 🧩 The combined editor — every workspace subject in one host, with every device concern held by HostLifecycle.
 
 #include "Contract/DeliveryContract.h"
+#include "Application/EditorHost/Api/SkyImage.h"
+#include "SlateCompute/Compute/AtmosphereIntegrator/Api/AtmosphereIntegrator.h"
 #include "SlateUI/Interface/ContentBrowserPanel/Api/ContentBrowserPanel.h"
 #include "SlateUI/Interface/ControlCentrePanel/Api/ControlCentrePanel.h"
 #include "SlateUI/Interface/ThemeInterchange/Api/ThemeInterchange.h"
@@ -12,7 +14,9 @@
 #include "SlateUI/Interface/ViewportSequence/Api/ViewportSequence.h"
 #include "SlateUI/Interface/WorkspacePanel/Api/WorkspaceIndex.h"
 #include "SlateVulkan/Device/HostLifecycle/Api/HostLifecycle.h"
+#include "SlateVulkan/Device/ViewportSkySurface/Api/ViewportSkySurface.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <filesystem>
 #include <cstring>
@@ -181,6 +185,14 @@ int main(int ArgumentCount, char** ArgumentValues)
     GlobalShellPanel        SceneDirectory;
     ShellContext            SceneApplied;
     InteractionIndex        SceneLedger;
+    ViewportSkySurface      SkySurface;
+    AtmosphereIntegrator    SkyIntegrator;
+    std::vector<std::uint8_t> SkyPixels;
+    SkyCamera               SkyCam;
+    EnvironmentConfiguration SkyPrevious;
+    bool                    SkyEverGenerated = false;
+    std::uintptr_t          SkyTextureIdentity = 0u;
+    bool                    SkyRegistered = false;
 
     // 📐 The editor's scene directory — the sun and sky the viewport renders, registered under the
     //    Lighting grouping. `Sun` and `Sky` are the two appended `EntitySubject` ordinals, so the
@@ -320,6 +332,24 @@ int main(int ArgumentCount, char** ArgumentValues)
         return 1;
     }
 
+    // 📝 The viewport's sky: one device texture, uploaded from the CPU atmosphere evaluation. The
+    //    texture identity is registered with the interface's own Vulkan backend, so the shell draws
+    //    it through the same sampled-image path the font atlas uses.
+    if (!SkySurface.Construct(Lifetime.DeviceExchange(), Lifetime.DiagnosticsExtension()).Resolved)
+    {
+        std::printf("%s \u2014 the viewport sky surface was rejected\n", HostName);
+        return 1;
+    }
+
+    {
+        // 🔴 The interface context is current after Viewport.Construct, and the backend is
+        //    initialised — this is the only window in which the texture may be registered. The
+        //    registration itself lives in the interface's own translation unit, which is the engine's
+        //    single place the vendor is spelled.
+        SkyTextureIdentity = Viewport.Surface().RegisterSampledImage(SkySurface.Sampler(), SkySurface.View());
+        SkyRegistered = SkyTextureIdentity != 0u;
+    }
+
     // 🔴 The browser carries its OWN ledger, as every panel here does, so its registration cannot exhaust the
     //    Control Centre's. Read — an registration refusal is silent at the call site and a browser that was
     //    rejected records nothing at all, which reads as a drawer that opens onto blank ground.
@@ -372,6 +402,9 @@ int main(int ArgumentCount, char** ArgumentValues)
         if (Pass.DeviceRetiring)
         {
             Viewport.Reclaim();
+            SkySurface.Reclaim();
+            SkyRegistered = false;
+            SkyTextureIdentity = 0u;
             continue;
         }
 
@@ -387,6 +420,16 @@ int main(int ArgumentCount, char** ArgumentValues)
             {
                 std::printf("%s \u2014 the interface could not be rebuilt on the recovered device\n", HostName);
                 break;
+            }
+
+            // 🔴 The sky texture's image, view and sampler died with the old device, and the interface's
+            //    own descriptor pool was rebuilt with it — so the texture is re-created and re-registered
+            //    against the fresh backend, exactly as the font atlas is.
+            if (SkySurface.Construct(Lifetime.DeviceExchange(), Lifetime.DiagnosticsExtension()).Resolved)
+            {
+                SkyTextureIdentity = Viewport.Surface().RegisterSampledImage(SkySurface.Sampler(), SkySurface.View());
+                SkyRegistered = SkyTextureIdentity != 0u;
+                SkyPrevious = {};   // [-] - the next tick regenerates and uploads
             }
 
             // 📝 The display recovery this rebuild also raised is consumed here. The reconstruction above
@@ -530,6 +573,42 @@ int main(int ArgumentCount, char** ArgumentValues)
             //    inspector reads it.
             SceneLedger.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
             SceneDirectory.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+
+            // 📝 The sky image is regenerated and uploaded only when the environment actually changed
+            //    (the sliders write at drag end, so this runs at most once per drag), and the identity
+            //    is handed to the shell every tick so the viewport draws the texture.
+            if (SkyRegistered && SceneApplied.EnvironmentPresented)
+            {
+                const bool SkyAltered = !SkyEverGenerated ||
+                                        std::memcmp(&SkyPrevious, &SceneApplied.Environment,
+                                                    sizeof(EnvironmentConfiguration)) != 0;
+                if (SkyAltered)
+                {
+                    // 📐 The viewport frames the lit side of the scene: the camera turns with the sun,
+                    //    which keeps the disc in frame as the artist drags the azimuth slider.
+                    SkyCam.AzimuthDegrees = SceneApplied.Environment.SunAzimuth - 20.0;
+                    // 📐 The camera's elevation is fixed, so the artist SEES the sun rise and set as the
+                    //    elevation slider moves; a camera that rose with the sun would hold the disc at
+                    //    one screen height and a drag would read as no change at all. The ground plane
+                    //    remains in the lower frame, and the shell's crop shifts to keep a sun above
+                    //    the camera's view pinned near the top edge.
+                    SkyCam.ElevationDegrees = 15.0;
+                    if (GenerateSkyImage(SkyIntegrator, SceneApplied.Environment, SkyCam,
+                                         ViewportSkySurface::SkyWidth, ViewportSkySurface::SkyHeight,
+                                         SkyPixels).Resolved)
+                        static_cast<void>(SkySurface.Upload(SkyPixels.data()));
+                    SkyPrevious = SceneApplied.Environment;
+                    SkyEverGenerated = true;
+                }
+                SceneApplied.SkyTextureIdentity = SkyTextureIdentity;
+                SceneApplied.ViewportSkyCamera.AzimuthDegrees = static_cast<float>(SkyCam.AzimuthDegrees);
+                SceneApplied.ViewportSkyCamera.ElevationDegrees = static_cast<float>(SkyCam.ElevationDegrees);
+                SceneApplied.ViewportSkyCamera.FieldOfViewDegrees = static_cast<float>(SkyCam.FieldOfViewDegrees);
+            }
+            else
+            {
+                SceneApplied.SkyTextureIdentity = 0u;
+            }
 
             // 📝 The history demand is drained ONCE per drag — the shell raises it at drag end, the host
             //    appends it to its own run and clears the slot, and no tick in between wrote a revision.

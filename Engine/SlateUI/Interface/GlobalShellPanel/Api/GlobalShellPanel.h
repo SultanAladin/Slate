@@ -325,6 +325,17 @@ struct EnvironmentConfiguration
     double AtmosphereScaleHeight = 1.0; // [-] - the density fall-off height, 0.2…3
 };
 
+/// 🧩 The sky dome's own camera, stated in plain numbers so the shell never names an Application type.
+/// note  📐 The dome is direction-indexed: azimuth across the width, elevation down the height. The
+///        viewport crops it to this camera's field of view.
+/// tag   contract, nonallocating, nonthrowing
+struct SkyViewCamera
+{
+    float AzimuthDegrees    = 0.0f;   // [deg] - the view direction's azimuth
+    float ElevationDegrees  = -6.0f;  // [deg] - above the horizon, negative looks down
+    float FieldOfViewDegrees = 60.0f; // [deg] - the vertical field of view
+};
+
 /// 🧩 One slider drag's history demand, written by the inspector at drag END and drained by the host.
 /// note  🔴 The demand is a single slot rather than an array because exactly one slider can end its drag in
 ///        one tick. The host appends it to its own revision run and clears the slot; the panel never owns
@@ -419,6 +430,15 @@ struct ShellContext
     bool                       EnvironmentPresented = false;   // [-] - the editor's sun/sky/atmosphere UI
     EnvironmentConfiguration   Environment          = {};      // [-] - host-owned; the inspector writes it
     RevisionDemand             RevisionDemandSlot   = {};      // [-] - one drag-end history demand
+
+    // 📝 The GPU sky texture the viewport draws, uploaded by the host. Opaque on purpose: the shell
+    //    names no vendor, so the identity is an integer the recording surface resolves.
+    std::uintptr_t             SkyTextureIdentity  = 0u;      // [-] - zero draws the stylised fallback
+
+    // 📝 The sky's own camera, declared by the host each tick it regenerates. The dome is
+    //    direction-indexed, and the viewport crops it to this camera's field of view — so the sun
+    //    stays in frame at any viewport aspect.
+    SkyViewCamera              ViewportSkyCamera   = {};      // [-] - the dome crop the viewport draws
 };
 
 //------------------------------------------------------------------------------------------------------------------------

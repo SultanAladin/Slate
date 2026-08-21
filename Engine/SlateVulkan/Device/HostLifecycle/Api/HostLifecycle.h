@@ -227,6 +227,20 @@ public:
     /// tag   api, nonallocating, nonthrowing
     DeviceOffering Offering() const;
 
+    /// 🧩 The diagnostic edge, for components the host constructs beside the device.
+    /// note  🔴 Read-only. The extension is constructed with the instance and lives for the device; a
+    ///        component borrowing it must outlive no more than one device rebuild.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    const DiagnosticExtension& DiagnosticsExtension() const;
+
+    /// 🧩 The device exchange, for components the host constructs beside the device.
+    /// note  🔴 Read-only. The exchange is re-constructed on a device rebuild, so a component borrowing
+    ///        it must be reconstructed in the same branch.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    const VulkanExchange& DeviceExchange() const;
+
     /// 🧩 The window, for a host that needs the native handle or the closure condition.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing

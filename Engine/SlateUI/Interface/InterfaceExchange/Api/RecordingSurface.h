@@ -10,6 +10,8 @@
 #include "SlateUI/Interface/TextComponent/Api/FontLoader.h"
 #include "SlateUI/Interface/SymbolSpecification/Api/SymbolSpecification.h"
 
+#include <vulkan/vulkan.h>
+
 #include <cstdint>
 
 namespace Slate
@@ -338,6 +340,38 @@ public:
     void ApplyCornerScale(float Scale);
     void ApplyFontLoader(FontLoader& Loader);
     void ApplyFontPreview(ImFont* Preview);
+
+    //--------------------------------------------------------------------------------------------------------
+    //                                                  IMAGES
+    //--------------------------------------------------------------------------------------------------------
+
+    /// 🧩 Records one sampled image across an extent, clipped by the standing confine.
+    /// in    Identity  [-]  an opaque texture identity from `RegisterSampledImage`; the vendor resolves
+    ///                      it to a sampled image (a `VkDescriptorSet` in the windowed hosts). Zero
+    ///                      records nothing.
+    /// in    U0/V0/U1/V1 [-]  the sampled rectangle in the image's own unit interval; the caller crops
+    ///                      with these so the presented aspect need not match the texture's
+    /// note  🔴 The image must already stand in a shader-readable layout; the host owns the transition
+    ///        and the upload. This records only the quad.
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    void Image(const PlaneExtent& Extent, std::uintptr_t Identity,
+               float U0 = 0.0f, float V0 = 0.0f, float U1 = 1.0f, float V1 = 1.0f);
+
+    /// 🧩 Registers a sampled image with the interface's Vulkan backend, for `Image` to draw.
+    /// in    Sampler    [-]  the Vulkan sampler the image is read with
+    /// in    ImageView  [-]  the Vulkan image view the image is read through
+    /// out   Result     [-]  a non-zero opaque identity, or zero when either handle is absent
+    /// note  🔴 The registration belongs here and not in a host: `00` §2.2 makes a host that names the
+    ///        vendor's ImGui attachment a defect, and this translation unit already owns the second and
+    ///        last spelling of ImGui in the engine. The descriptor is allocated from the interface's own
+    ///        pool, so it dies with the interface — a device rebuild re-creates and re-registers it, as
+    ///        the font atlas is.
+    /// note  📝 Valid outside the recording window as well as inside it: the backend's pool is
+    ///        constructed with the interface, and the registration only allocates from it.
+    /// cost  ✔️
+    /// tag   api, nonthrowing
+    std::uintptr_t RegisterSampledImage(VkSampler Sampler, VkImageView ImageView);
 
     /// 🧩 The baseline-to-baseline extent at one point size.
     /// cost  ✔️

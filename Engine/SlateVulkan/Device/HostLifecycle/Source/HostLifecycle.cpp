@@ -649,6 +649,17 @@ DeviceOffering HostLifecycle::Offering() const
     return Incoming;
 }
 
+
+const DiagnosticExtension& HostLifecycle::DiagnosticsExtension() const
+{
+    return DiagnosticEdge;
+}
+
+const VulkanExchange& HostLifecycle::DeviceExchange() const
+{
+    return DeviceEdge;
+}
+
 WindowInterchange&       HostLifecycle::Window()             { return Surface; }
 const WindowInterchange& HostLifecycle::Window() const       { return Surface; }
 const TickSequence&      HostLifecycle::Timeline() const     { return Clock; }

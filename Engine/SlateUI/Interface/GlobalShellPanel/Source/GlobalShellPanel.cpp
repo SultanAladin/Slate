@@ -801,6 +801,59 @@ void GlobalShellPanel::RecordViewport(const PlaneExtent& Extent, const ShellCont
     {
         const EnvironmentConfiguration& Sky = Applied.Environment;
 
+        // 📝 The uploaded sky dome, when the host has one: the real atmosphere evaluation, drawn
+        //    through the interface's sampled-image path. The dome is direction-indexed (azimuth across
+        //    the width, elevation down the height), so the viewport crops it to the camera's own field
+        //    of view — which keeps the sun in frame at any viewport aspect.
+        if (Applied.SkyTextureIdentity != 0u)
+        {
+            const float HalfV = Applied.ViewportSkyCamera.FieldOfViewDegrees * 0.5f;
+            const float HalfH = std::atan(std::tan(HalfV * 3.14159265f / 180.0f)
+                                          * (Extent.Width() / Extent.Height())) * 180.0f / 3.14159265f;
+
+            const float Azimuth = Applied.ViewportSkyCamera.AzimuthDegrees;
+            const float Elevation = Applied.ViewportSkyCamera.ElevationDegrees;
+
+            // 📐 Dome coordinates: U = (azimuth + 180) / 360, V = (90 − elevation) / 180. The crop is
+            //    the camera's frustum on the dome, clamped so it never leaves the texture.
+            float U0 = std::clamp((Azimuth - HalfH + 180.0f) / 360.0f, 0.0f, 1.0f);
+            float U1 = std::clamp((Azimuth + HalfH + 180.0f) / 360.0f, 0.0f, 1.0f);
+            float V0 = std::clamp((90.0f - (Elevation + HalfV)) / 180.0f, 0.0f, 1.0f);
+            float V1 = std::clamp((90.0f - (Elevation - HalfV)) / 180.0f, 0.0f, 1.0f);
+
+            // 📐 The sun stays in frame at any viewport aspect: the camera aims twenty degrees wide of
+            //    the sun, which a docked viewport's narrower frustum would otherwise crop out. When the
+            //    sun's dome coordinate falls outside the frustum, the crop shifts to contain it with a
+            //    small cushion — a few degrees of drift, only when the authored aim would lose the sun.
+            const float SunU = std::clamp(static_cast<float>(Sky.SunAzimuth + 180.0) / 360.0f, 0.0f, 1.0f);
+            const float SunV = std::clamp(static_cast<float>(90.0 - Sky.SunElevation) / 180.0f, 0.0f, 1.0f);
+            constexpr float CushionU = 0.012f;   // [-] - half a disc's width, so the disc is not glued to the edge
+            constexpr float CushionV = 0.012f;   // [-]
+
+            float ShiftU = 0.0f;
+            if (SunU < U0 + CushionU)
+                ShiftU = U0 + CushionU - SunU;
+            else if (SunU > U1 - CushionU)
+                ShiftU = U1 - CushionU - SunU;
+
+            float ShiftV = 0.0f;
+            if (SunV < V0 + CushionV)
+                ShiftV = V0 + CushionV - SunV;
+            else if (SunV > V1 - CushionV)
+                ShiftV = V1 - CushionV - SunV;
+
+            U0 = std::clamp(U0 - ShiftU, 0.0f, 1.0f);
+            U1 = std::clamp(U1 - ShiftU, 0.0f, 1.0f);
+            V0 = std::clamp(V0 - ShiftV, 0.0f, 1.0f);
+            V1 = std::clamp(V1 - ShiftV, 0.0f, 1.0f);
+
+            Surface->Image(Extent, Applied.SkyTextureIdentity, U0, V0, U1, V1);
+        }
+
+        // 📐 The stylised fallback is drawn only when no uploaded texture stands — the two would
+        //    otherwise stack, with the fallback's sun painted over the real one.
+        if (Applied.SkyTextureIdentity == 0u)
+        {
         // 📐 The dome: a zenith-to-horizon ramp, brightening with sky intensity and warming with turbidity.
         const float Intensity = static_cast<float>(Sky.SkyIntensity);
         const float Turbidity = static_cast<float>(Sky.SkyTurbidity / 10.0);
@@ -889,10 +942,16 @@ void GlobalShellPanel::RecordViewport(const PlaneExtent& Extent, const ShellCont
                 Surface->Ground(Spanning(Extent.MinimumX, Y, Extent.Width(), 1.0f),
                                 WeaveColours[Pass], 0.0f, CornerNone);
         }
-    }
-
-    // 📐 Two lattices, exactly as the reference declares: 28 px at 0.028 coverage, then 140 px at 0.055.
-    //    Each is one-pixel rules, which is what a `linear-gradient(… 1px, transparent 1px)` produces.
+        }   // [-] - the stylised fallback, only without an uploaded texture
+    }       // [-] - the presented environment's viewport: the uploaded dome or the stylised fallback
+    else
+    {
+    // 📐 The empty editor viewport, when no environment stands presented: the weave and the vignette
+    //    over the desk, and the centred hint. These are deliberately exclusive with the sky above —
+    //    drawing them over the uploaded dome would wash the atmosphere out to the desk's coverage.
+    //    The weave is two lattices, exactly as the reference declares: 28 px at 0.028 coverage, then
+    //    140 px at 0.055. Each is one-pixel rules, which is what a `linear-gradient(… 1px, transparent
+    //    1px)` produces.
     const float Steps[2]        = { Scaled.WeaveFineStep, Scaled.WeaveCoarseStep };
     const ThemeToken Colours[2]   = { Tinted.WeaveFine, Tinted.WeaveCoarse };
 
@@ -1030,6 +1089,8 @@ void GlobalShellPanel::RecordViewport(const PlaneExtent& Extent, const ShellCont
             Surface->TextRun(StatusLead, StatusTop, Tinted.Unit, "\u00B7", StatusRun);
             StatusLead += Surface->MeasureRun("\u00B7", StatusRun, 0.0f) + StatusGap;
         }
+    }
+
     }
 
     Surface->Release();

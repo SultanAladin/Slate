@@ -21,6 +21,7 @@
 //    Build (repository root, after ApplyImGuiPatches.py):
 //      g++ -std=c++20 -O2 -DNDEBUG -DWIN32_LEAN_AND_MEAN -DNOMINMAX -DGLFW_DLL \
 //          -DGLFW_INCLUDE_NONE -I Engine -I . -I ExternalPackages/imgui \
+//          -I _AgentScratch/Vulkan-Headers/include \
 //          -I ExternalPackages/glfw/include -I ExternalPackages/thorvg/inc \
 //          Tools/SceneDirectoryProof/SceneDirectoryProof.cpp \
 //          Engine/SlateUI/Interface/GlobalShellPanel/Source/GlobalShellPanel.cpp \
@@ -42,7 +43,9 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "ExternalPackages/stb/stb_image_write.h"
 
+#include "Application/EditorHost/Api/SkyImage.h"
 #include "Contract/DeliveryContract.h"
+#include "SlateCompute/Compute/AtmosphereIntegrator/Api/AtmosphereIntegrator.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
 #include "SlateUI/Interface/ControlPanel/Api/ControlPanel.h"
@@ -57,9 +60,11 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 using namespace Slate;
@@ -222,6 +227,10 @@ struct Rasterizer
         }
     }
 
+    // 📝 The harness's extra textures: identity -> RGBA8. The host registers the sky texture through
+    //    the interface's Vulkan backend; the rasterizer resolves the same identity here.
+    std::unordered_map<std::uintptr_t, std::vector<unsigned char>> ExtraTextures;
+
     bool Draw(const ImDrawList* List, const unsigned char* Atlas, int AtlasWidth, int AtlasHeight)
     {
         const ImDrawCmd* Commands = List->CmdBuffer.Data;
@@ -244,8 +253,21 @@ struct Rasterizer
             if (ClipX0 >= ClipX1 || ClipY0 >= ClipY1)
                 continue;
 
-            const bool Textured = (Command.GetTexID() != (ImTextureID)0);
+            const ImTextureID Identity = Command.GetTexID();
+            const bool Textured = (Identity != (ImTextureID)0);
             const std::uint32_t PrimitiveCount = Command.ElemCount / 3u;
+
+            // 🔴 Resolve the sampled texture: the font atlas by default, an extra texture by identity.
+            const unsigned char* CommandAtlas = Atlas;
+            int CommandAtlasWidth = AtlasWidth;
+            int CommandAtlasHeight = AtlasHeight;
+            const auto Extra = ExtraTextures.find(static_cast<std::uintptr_t>(Identity));
+            if (Extra != ExtraTextures.end())
+            {
+                CommandAtlas = Extra->second.data();
+                CommandAtlasWidth = 512;
+                CommandAtlasHeight = 288;
+            }
             for (std::uint32_t Primitive = 0u; Primitive < PrimitiveCount; ++Primitive)
             {
                 const ImDrawIdx I0 = Indices[static_cast<std::size_t>(Command.IdxOffset) +
@@ -257,7 +279,7 @@ struct Rasterizer
                 const ImDrawVert& A = Vertices[Command.VtxOffset + I0];
                 const ImDrawVert& B = Vertices[Command.VtxOffset + I1];
                 const ImDrawVert& C = Vertices[Command.VtxOffset + I2];
-                Triangle(A, B, C, Textured, Atlas, AtlasWidth, AtlasHeight,
+                Triangle(A, B, C, Textured, CommandAtlas, CommandAtlasWidth, CommandAtlasHeight,
                          ClipX0, ClipY0, ClipX1, ClipY1);
             }
         }
@@ -291,6 +313,16 @@ struct SceneDriver
 
     EntityRevision Revisions[8] = {};
     std::uint32_t RevisionCount = 0u;
+
+    // 📝 The sky texture the host would upload: generated from the environment, registered in the
+    //    rasterizer under a fixed identity, and handed to the shell as its texture identity.
+    static constexpr std::uintptr_t SkyIdentity = 0x534B5931u;   // [-] - "SKY1", a fake descriptor handle
+    AtmosphereIntegrator SkyIntegrator;
+    std::vector<std::uint8_t> SkyPixels;
+    EnvironmentConfiguration SkyPrevious;
+    SkyCamera SkyCam;
+    bool SkyReady = false;
+    bool SkyEverGenerated = false;
 
     SceneDriver() : IO(ImGui::GetIO()) {}
 
@@ -354,6 +386,31 @@ struct SceneDriver
         Motion.Advance(TickMilliseconds);
         Ledger.Advance(Surface.Pointer(), TickMilliseconds);
         Shell.Advance(Surface.Pointer(), TickMilliseconds);
+
+        // 📝 The host regenerates and uploads the sky when the environment changed; the harness does
+        //    the same into its CPU texture map. The camera aims at the sun so the disc stays in frame
+        //    as the artist drags the sliders.
+        if (Applied.EnvironmentPresented &&
+            (!SkyEverGenerated ||
+             std::memcmp(&SkyPrevious, &Applied.Environment, sizeof(EnvironmentConfiguration)) != 0))
+        {
+            SkyCam.AzimuthDegrees   = Applied.Environment.SunAzimuth - 20.0;
+            // 📐 The camera's elevation is fixed (as the host's), so a drag of the elevation slider
+            //    visibly moves the sun; a camera that rose with the sun would hold the disc still.
+            SkyCam.ElevationDegrees = 15.0;
+            if (GenerateSkyImage(SkyIntegrator, Applied.Environment, SkyCam,
+                                 512u, 288u, SkyPixels).Resolved)
+            {
+                Applied.SkyTextureIdentity = SkyIdentity;
+                Applied.ViewportSkyCamera.AzimuthDegrees = static_cast<float>(SkyCam.AzimuthDegrees);
+                Applied.ViewportSkyCamera.ElevationDegrees = static_cast<float>(SkyCam.ElevationDegrees);
+                Applied.ViewportSkyCamera.FieldOfViewDegrees = static_cast<float>(SkyCam.FieldOfViewDegrees);
+                SkyReady = true;
+            }
+            SkyPrevious = Applied.Environment;
+            SkyEverGenerated = true;
+        }
+
         Discard(Shell.Record(Spanning(0.0f, 0.0f, ViewportWidth, ViewportHeight), Applied,
                                EditorEntities, 6u, nullptr, 0u, Revisions, RevisionCount));
         Surface.Retire();
@@ -395,6 +452,8 @@ struct SceneDriver
 
         Rasterizer Out;
         Out.Begin(static_cast<int>(ViewportWidth), static_cast<int>(ViewportHeight));
+        if (SkyReady)
+            Out.ExtraTextures[SkyIdentity] = SkyPixels;
         const ImDrawData* Data = ImGui::GetDrawData();
         for (int ListOrdinal = 0; ListOrdinal < Data->CmdListsCount; ++ListOrdinal)
         {
@@ -403,7 +462,7 @@ struct SceneDriver
         }
         if (stbi_write_png(Path, Out.Width, Out.Height, 4, Out.Pixels.data(), Out.Width * 4) == 0)
             return false;
-        std::fprintf(stderr, "[proof] wrote %s (%dx%d)\\n", Path, Out.Width, Out.Height);
+        std::fprintf(stderr, "[proof] wrote %s (%dx%d)\n", Path, Out.Width, Out.Height);
         return true;
     }
 };
@@ -411,7 +470,7 @@ struct SceneDriver
 bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
              const unsigned char* Atlas, int AtlasWidth, int AtlasHeight)
 {
-    std::fprintf(stderr, "\\n== %s ==\\n", Scenario);
+    std::fprintf(stderr, "\n== %s ==\n", Scenario);
 
     if (std::strcmp(Scenario, "editor-overview") == 0)
     {
@@ -445,20 +504,20 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         Driver.Tick(SliderX1, SliderY, false, false, true);
         Driver.Settle(10);
 
-        std::fprintf(stderr, "[assert] revisions before=%u after=%u demand=%s\\n",
+        std::fprintf(stderr, "[assert] revisions before=%u after=%u demand=%s\n",
                      Before, Driver.RevisionCount,
                      Driver.Applied.RevisionDemandSlot.Standing ? "still standing" : "drained");
-        std::fprintf(stderr, "[assert] sun elevation after drag: %.1f\\n",
+        std::fprintf(stderr, "[assert] sun elevation after drag: %.1f\n",
                      Driver.Applied.Environment.SunElevation);
         if (Driver.RevisionCount != Before + 1u)
         {
-            std::fprintf(stderr, "[FAIL] expected exactly one revision per drag\\n");
+            std::fprintf(stderr, "[FAIL] expected exactly one revision per drag\n");
             return false;
         }
     }
     else
     {
-        std::fprintf(stderr, "unknown scenario %s\\n", Scenario);
+        std::fprintf(stderr, "unknown scenario %s\n", Scenario);
         return false;
     }
 
@@ -492,7 +551,7 @@ int main(int ArgumentCount, char** Arguments)
     SceneDriver Driver;
     if (!Driver.Construct())
     {
-        std::fprintf(stderr, "refused: harness construction\\n");
+        std::fprintf(stderr, "refused: harness construction\n");
         return 1;
     }
     IO.FontDefault = IO.Fonts->Fonts[0];
@@ -518,10 +577,10 @@ int main(int ArgumentCount, char** Arguments)
     }
     if (Rendered == 0)
     {
-        std::fprintf(stderr, "no scenario matched; pass --shot=<name>\\n");
+        std::fprintf(stderr, "no scenario matched; pass --shot=<name>\n");
         return 1;
     }
 
-    std::fprintf(stderr, "\\n[done] %d shot(s) rendered\\n", Rendered);
+    std::fprintf(stderr, "\n[done] %d shot(s) rendered\n", Rendered);
     return 0;
 }
