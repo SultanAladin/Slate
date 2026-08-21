@@ -25,6 +25,7 @@
 #include "Contract/DeliveryContract.h"
 #include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
 #include "SlateUI/Interface/ControlPanel/Api/ControlPanel.h"
+#include "Shared/OverlayGeometry.slang.h"
 #include "SlateUI/Interface/EditorPanel/Api/EditorPanel.h"
 #include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
@@ -100,6 +101,11 @@ struct SceneDirectoryContext
     double                     CameraSpeed = 50.0;      // [m/s] - the fly camera's rate
     double                     CameraPosition[3] = { 0.0, 1.5, 0.0 };   // [m] - host-written
     double                     CameraRotation[3] = { 100.0, 15.0, 0.0 }; // [deg] - yaw, pitch, roll
+
+    // 📝 The viewport's overlay record — the grid and the gizmo, filled by the panel and drawn by
+    //    the GPU overlay pass. The host uploads it when its generation changes; the pass draws it
+    //    in its own straight-alpha pass so the CPU never tessellates and the colours stay vivid.
+    OverlayGeometry            Overlay = {};             // [-] - the GPU pass's input
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -174,8 +180,18 @@ public:
     /// in    Applied  [-]   the camera's pose and position, as the host wrote them this tick
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
-    void RecordGroundGrid(const PlaneExtent& Extent, const SceneDirectoryContext& Applied,
+    void RecordGroundGrid(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
                           const EditorPanelConfiguration& Configuration);
+
+    /// 🧩 Records the world-origin translation gizmo — the three vivid axis arrows and the centre
+    ///    handle — into the overlay geometry, projected through the same pinhole as the grid.
+    /// in    Extent   [px]  the leaf body the gizmo is projected into
+    /// in    Applied  [-]   the camera's pose and position; the gizmo's overlay record is written here
+    /// note  🔴 The gizmo colours are FULL-OPACITY straight alpha — the whole reason the overlay has
+    ///        its own GPU pass is that the interface's premultiplied blend washed them out.
+    /// cost  🚩
+    /// tag   api, nonallocating, nonthrowing
+    void RecordGizmo(const PlaneExtent& Extent, SceneDirectoryContext& Applied);
 
     /// 🧩 Records the outliner column and its details pane across one outliner leaf.
     /// in    Rows   [-]  the entity rows, borrowed for the tick

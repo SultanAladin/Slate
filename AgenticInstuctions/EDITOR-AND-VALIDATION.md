@@ -97,6 +97,39 @@ prototype of the WHOLE reference sheet                    the real editor layout
   Lines / Dotted / Lines + Dots, cell Scale (m), Subdivisions (the half-extent
   in cells, 2-128), and the red/green/blue axis lines (X/Y/Z toggles). The
   dotted presentation draws a node at every intersection.
+
+## The GPU overlay pass (grid, gizmo, wireframe)
+
+The grid, the world-origin gizmo and (later) wireframe are NOT drawn through
+the interface's ImGui draw lists — they are drawn by `OverlayPass`
+(`SlateVulkan/Device/OverlayPass`), a dedicated graphics program recorded in
+its own pass inside the host's dynamic-rendering scope, AFTER the interface.
+
+- **The CPU never tessellates.** The panel fills `OverlayGeometry`
+  (`Shared/OverlayGeometry.slang.h`, reachable from every unit) — a few hundred
+  screen-space primitives with two points per line and one per dot. The host
+  uploads it when its generation changes, and the vertex shader
+  (`OverlayVertex.slang`) expands lines and dots from `SV_VertexID` into their
+  quads; triangles pass through. ImGui's polyline path tessellated every
+  segment on the CPU, which bogged the frame down on dense lattices and would
+  on high-poly wireframe.
+- **Vivid colours.** The pass blends STRAIGHT alpha (`src_alpha /
+  one_minus_src_alpha`) with no tone mapping, so a full-opacity gizmo stays
+  full-opacity — the interface's premultiplied blend washed the same hues out
+  over a bright sky.
+- **Lifecycle**: `Overlay.Reclaim()` on device-retiring, re-Construct on
+  device-recovered, `Overlay.Reclaim()` before `Lifetime.Reclaim()` at
+  shutdown. The pass refuses gracefully when the build lowered no shaders (the
+  sandbox) and the editor runs without the overlay.
+- **Shaders**: `OverlayVertex.slang` + `OverlayFragment.slang` under
+  `SlateVulkan/Device/OverlayPass/Shader/` are lowered by `Construct.ps1` to
+  `<Binary>/../Shader/SlateVulkan/<Stem>.spv`; `ShaderCodec` reads them at the
+  same directory the build writes.
+- **Proof**: the harness rasterizes the SAME `OverlayGeometry` record on the
+  CPU (its `RasterizeOverlay`) with the same straight-alpha blend, so the proof
+  pixels are the pass's input; `editor-grid-settings` asserts all three axes
+  (R/G/B at full opacity), the gizmo's white centre handle, and that
+  lines+dots carries ~6x the lattice ink of dots-only.
 - The sky dome is direction-indexed and camera-independent: looking around only
   moves the crop, never regenerates the texture. The viewport samples the dome
   through a PERSPECTIVE mesh (per-vertex UVs along the true pinhole ray), so

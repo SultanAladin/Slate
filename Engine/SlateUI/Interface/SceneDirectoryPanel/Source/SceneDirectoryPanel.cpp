@@ -404,7 +404,7 @@ void SceneDirectoryPanel::RecordViewportSky(const PlaneExtent& Extent, const Sce
 //                                                    THE GROUND GRID
 //------------------------------------------------------------------------------------------------------------------------
 
-void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, const SceneDirectoryContext& Applied,
+void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
                                               const EditorPanelConfiguration& Configuration)
 {
     // 📐 The world the camera travels: a lattice on the Y = 0 plane, projected through the same
@@ -487,11 +487,30 @@ void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, const Scen
         //    near plane never draws a segment across the viewport.
         const auto Flush = [&](std::uint32_t Count) -> void
         {
-            if (Count >= 2u)
+            // 🔴 The lattice is recorded into the OVERLAY GEOMETRY, not the interface: the GPU pass
+            //    draws it in its own pass, straight-alpha, and the CPU record is two points per
+            //    segment — the interface's ImGui path tessellated every segment on the CPU.
+            const std::uint32_t PackedFine   = PackOverlayColour(0x9A, 0xA6, 0xB8, 0x47u);
+            const std::uint32_t PackedCoarse = PackOverlayColour(0x9A, 0xA6, 0xB8, 0x8Cu);
+
+            for (std::uint32_t Ordinal = 1u; Ordinal < Count; ++Ordinal)
             {
-                const ThemeToken Ink = Coarse ? Faded(Covering(0x9AA6B8u), 0.55f)
-                                              : Faded(Covering(0x9AA6B8u), 0.28f);
-                Surface->Polyline(X, Y, Count, Ink, Coarse ? 1.5f : 1.0f);
+                // 🔴 Segments whose bounding box misses the leaf entirely are discarded here — a
+                //    camera looking up projects most of the lattice below the frame, and an
+                //    unbounded run of those off-screen segments would exhaust the overlay's line
+                //    ceiling and starve the axes and the gizmo (the reported missing gizmo).
+                const float AX = X[Ordinal - 1u], AY = Y[Ordinal - 1u];
+                const float BX = X[Ordinal],     BY = Y[Ordinal];
+
+                if ((AX < Extent.MinimumX && BX < Extent.MinimumX) ||
+                    (AX > Extent.MaximumX && BX > Extent.MaximumX) ||
+                    (AY < Extent.MinimumY && BY < Extent.MinimumY) ||
+                    (AY > Extent.MaximumY && BY > Extent.MaximumY))
+                    continue;
+
+                Applied.Overlay.AddLine(AX, AY, BX, BY,
+                                        Coarse ? PackedCoarse : PackedFine,
+                                        Coarse ? 1.5f : 1.0f);
             }
         };
 
@@ -551,10 +570,9 @@ void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, const Scen
 
             if (!Behind)
             {
-                const float Radius = Coarse ? 2.6f : 1.8f;
-                const ThemeToken Ink = Coarse ? Faded(Covering(0x9AA6B8u), 0.60f)
-                                              : Faded(Covering(0x9AA6B8u), 0.34f);
-                Surface->Medallion(ScreenX, ScreenY, Radius, Ink);
+                const std::uint32_t Packed = Coarse ? PackOverlayColour(0x9A, 0xA6, 0xB8, 0x99u)
+                                                 : PackOverlayColour(0x9A, 0xA6, 0xB8, 0x57u);
+                Applied.Overlay.AddDot(ScreenX, ScreenY, Packed, Coarse ? 2.6f : 1.8f);
             }
         }
     }
@@ -580,8 +598,23 @@ void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, const Scen
             //    missing axes. Sampling keeps the front run visible from anywhere.
             const auto Flush = [&](std::uint32_t Count) -> void
             {
-                if (Count >= 2u)
-                    Surface->Polyline(X, Y, Count, Covering(Packed), AxisWeight);
+                const std::uint32_t PackedColour = PackOverlayColour((Packed >> 16u) & 0xFFu,
+                                                                  (Packed >> 8u) & 0xFFu,
+                                                                  Packed & 0xFFu, 0xFFu);
+
+                for (std::uint32_t Ordinal = 1u; Ordinal < Count; ++Ordinal)
+                {
+                    const float AX = X[Ordinal - 1u], AY = Y[Ordinal - 1u];
+                    const float BX = X[Ordinal],     BY = Y[Ordinal];
+
+                    if ((AX < Extent.MinimumX && BX < Extent.MinimumX) ||
+                        (AX > Extent.MaximumX && BX > Extent.MaximumX) ||
+                        (AY < Extent.MinimumY && BY < Extent.MinimumY) ||
+                        (AY > Extent.MaximumY && BY > Extent.MaximumY))
+                        continue;
+
+                    Applied.Overlay.AddLine(AX, AY, BX, BY, PackedColour, AxisWeight);
+                }
             };
 
             for (std::uint32_t Sample = 0u; Sample <= AxisSamples; ++Sample)
@@ -1822,6 +1855,132 @@ void SceneDirectoryPanel::RecordRevisionSpine(const PlaneExtent& Extent, SceneDi
     }
 
     Surface->Release();
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       THE GIZMO
+//------------------------------------------------------------------------------------------------------------------------
+
+void SceneDirectoryPanel::RecordGizmo(const PlaneExtent& Extent, SceneDirectoryContext& Applied)
+{
+    // 📐 The world-origin translation gizmo — the reference fly-cam convention: X red, Y green (up),
+    //    Z blue, each an arrow with a filled head, and a centre handle. The colours are FULL-OPACITY
+    //    straight alpha: the overlay's own GPU pass blends them vivid, where the interface's
+    //    premultiplied read washed the same hues out over a bright sky.
+    const float CentreX = Extent.MinimumX + Extent.Width()  * 0.5f;
+    const float CentreY = Extent.MinimumY + Extent.Height() * 0.5f;
+
+    const double HalfV = Applied.ViewportSkyCamera.FieldOfViewDegrees * 0.5 * 3.14159265358979323846 / 180.0;
+    const double Aspect = static_cast<double>(Extent.Width()) / static_cast<double>(Extent.Height());
+    const double TanHalfV = std::tan(HalfV);
+    const double TanHalfH = TanHalfV * Aspect;
+
+    const double Yaw   = Applied.ViewportSkyCamera.AzimuthDegrees   * 3.14159265358979323846 / 180.0;
+    const double Pitch = Applied.ViewportSkyCamera.ElevationDegrees * 3.14159265358979323846 / 180.0;
+    const double CosP = std::cos(Pitch);
+    const double SinP = std::sin(Pitch);
+    const double SinY = std::sin(Yaw);
+    const double CosY = std::cos(Yaw);
+
+    const double Forward[3] = { CosP * SinY, SinP, CosP * CosY };
+    const double Right[3]   = { CosY, 0.0, -SinY };
+    const double Up[3]      = { -SinP * SinY, CosP, -SinP * CosY };
+
+    const double& CameraX = Applied.CameraPosition[0];
+    const double& CameraY = Applied.CameraPosition[1];
+    const double& CameraZ = Applied.CameraPosition[2];
+
+    const auto Project = [&](double WorldX, double WorldY, double WorldZ,
+                             float& ScreenX, float& ScreenY, bool& Behind) -> void
+    {
+        const double DX = WorldX - CameraX;
+        const double DY = WorldY - CameraY;
+        const double DZ = WorldZ - CameraZ;
+
+        const double CameraZDepth = DX * Forward[0] + DY * Forward[1] + DZ * Forward[2];
+
+        if (CameraZDepth < 0.25)
+        {
+            Behind = true;
+            return;
+        }
+
+        const double CameraXDepth = DX * Right[0] + DY * Right[1] + DZ * Right[2];
+        const double CameraYDepth = DX * Up[0]    + DY * Up[1]    + DZ * Up[2];
+
+        ScreenX = CentreX + static_cast<float>((CameraXDepth / CameraZDepth) / TanHalfH * (Extent.Width()  * 0.5));
+        ScreenY = CentreY - static_cast<float>((CameraYDepth / CameraZDepth) / TanHalfV * (Extent.Height() * 0.5));
+        Behind  = false;
+    };
+
+    constexpr double Reach = 40.0;   // [m] - the gizmo's extent along each axis
+    constexpr double Head  = 8.0;    // [m] - the arrowhead's length
+    constexpr double Wing  = 3.0;    // [m] - the arrowhead's half width
+
+    const std::uint32_t Red   = PackOverlayColour(0xE5u, 0x48u, 0x4Du, 0xFFu);
+    const std::uint32_t Green = PackOverlayColour(0x46u, 0xA7u, 0x58u, 0xFFu);
+    const std::uint32_t Blue  = PackOverlayColour(0x3Eu, 0x63u, 0xDDu, 0xFFu);
+
+    float OriginX = 0.0f, OriginY = 0.0f;
+    bool  OriginBehind = false;
+    Project(0.0, 0.0, 0.0, OriginX, OriginY, OriginBehind);
+
+    const auto RecordAxis = [&](double EndX, double EndY, double EndZ, std::uint32_t Packed)
+    {
+        float EndScreenX = 0.0f, EndScreenY = 0.0f;
+        bool  EndBehind  = false;
+        Project(EndX, EndY, EndZ, EndScreenX, EndScreenY, EndBehind);
+
+        if (EndBehind)
+            return;
+
+        // 📐 The shaft, then the head: a filled triangle whose base is `Head` back along the axis and
+        //    whose wings sit `Wing` either side, in screen space.
+        Applied.Overlay.AddLine(OriginX, OriginY, EndScreenX, EndScreenY, Packed, 2.0f);
+
+        if (!OriginBehind)
+        {
+            const float Length = std::sqrt((EndScreenX - OriginX) * (EndScreenX - OriginX)
+                                         + (EndScreenY - OriginY) * (EndScreenY - OriginY));
+
+            if (Length > 2.0f)
+            {
+                const float DirectionX = (EndScreenX - OriginX) / Length;
+                const float DirectionY = (EndScreenY - OriginY) / Length;
+
+                const float HeadLength = Head * Length / Reach;
+                const float WingSpan   = Wing * Length / Reach;
+
+                const float BaseX = EndScreenX - DirectionX * HeadLength;
+                const float BaseY = EndScreenY - DirectionY * HeadLength;
+                const float NormalX = -DirectionY;
+                const float NormalY =  DirectionX;
+
+                Applied.Overlay.AddTriangle(EndScreenX, EndScreenY,
+                                            BaseX + NormalX * WingSpan, BaseY + NormalY * WingSpan,
+                                            BaseX - NormalX * WingSpan, BaseY - NormalY * WingSpan,
+                                            Packed);
+            }
+        }
+    };
+
+    if (!OriginBehind)
+    {
+        RecordAxis(Reach, 0.0, 0.0, Red);
+        RecordAxis(0.0, Reach, 0.0, Green);
+        RecordAxis(0.0, 0.0, Reach, Blue);
+
+        // 📐 The centre handle: a small filled square, twice the shaft's width.
+        const float Handle = 5.0f;
+        const std::uint32_t White = PackOverlayColour(0xF0u, 0xF0u, 0xF0u, 0xFFu);
+
+        Applied.Overlay.AddTriangle(OriginX - Handle, OriginY - Handle,
+                                    OriginX + Handle, OriginY - Handle,
+                                    OriginX - Handle, OriginY + Handle, White);
+        Applied.Overlay.AddTriangle(OriginX + Handle, OriginY + Handle,
+                                    OriginX + Handle, OriginY - Handle,
+                                    OriginX - Handle, OriginY + Handle, White);
+    }
 }
 
 }   // namespace Slate

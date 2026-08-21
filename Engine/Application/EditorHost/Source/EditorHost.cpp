@@ -29,12 +29,15 @@
 #include "SlateUI/Interface/ViewportSequence/Api/ViewportSequence.h"
 #include "SlateUI/Interface/WorkspacePanel/Api/WorkspaceIndex.h"
 #include "SlateVulkan/Device/HostLifecycle/Api/HostLifecycle.h"
+#include "SlateVulkan/Device/OverlayPass/Api/OverlayPass.h"
+#include "SlateVulkan/Device/ShaderCodec/Api/ShaderCodec.h"
 #include "SlateVulkan/Device/ViewportSkySurface/Api/ViewportSkySurface.h"
 
 #include <algorithm>
 #include <cstdio>
 #include <filesystem>
 #include <cstring>
+#include <system_error>
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                          FIGURES
@@ -101,7 +104,8 @@ static_assert(sizeof(WorkspaceIndex) + sizeof(WorkspacePanel) + sizeof(EditorPan
               + sizeof(InteractionIndex)    + sizeof(ContentBrowserPanel)
               + sizeof(ContentBrowserConfiguration) + sizeof(ContentLibrary)
               + sizeof(InteractionIndex)    + sizeof(SceneDirectoryPanel)
-              + sizeof(SceneDirectoryContext) <= AutomaticCeiling,
+              + sizeof(SceneDirectoryContext) + sizeof(ShaderCodec) + sizeof(OverlayPass)
+              <= AutomaticCeiling,
               "this host's automatic UI members no longer fit a quarter of a Windows thread stack — the "
               "prologue's stack probe will fault before main runs a statement and the host will exit with "
               "no window and no log line; move the largest member to static storage");
@@ -112,6 +116,18 @@ constexpr float WorkspaceGround[4] = { 0.06f, 0.06f, 0.08f, 1.0f };   // [-]
 /// note  🔴 `SlateVulkan` cannot name `InterfaceAttachment` — it lives one layer above — so `HostLifecycle`
 ///        offers the same handles as `DeviceOffering` and the host performs the copy. The copy IS the seam:
 ///        it happens in the one translation unit that is allowed to see both sides.
+/// 🧩 Where the build lowered its shader streams, resolved from the run directory: the hosts run
+///    from `<OutputRoot>/Binary`, and the streams live at `<OutputRoot>/Shader` — one hop up.
+/// note  🔴 A build that never lowered shaders (the sandbox) leaves this directory absent; the
+///        overlay pass refuses on the missing streams and the editor runs without the overlay.
+std::string ShaderStreamDirectory()
+{
+    std::error_code Error;
+    const std::filesystem::path Binary = std::filesystem::current_path(Error);
+    const std::filesystem::path Shader = Binary / ".." / "Shader";
+    return Shader.lexically_normal().string();
+}
+
 InterfaceAttachment Attach(const DeviceOffering& Offered)
 {
     InterfaceAttachment Incoming = {};
@@ -204,6 +220,9 @@ int main(int ArgumentCount, char** ArgumentValues)
     ViewportSkySurface      SkySurface;
     AtmosphereIntegrator    SkyIntegrator;
     CameraRig               FlyRig;
+    ShaderCodec             OverlayCodec;
+    OverlayPass             Overlay;
+    std::uint32_t           OverlayGeneration = 0u;   // [-] - the last uploaded overlay generation
     std::vector<std::uint8_t> SkyPixels;
     SkyCamera               SkyCam;
     EnvironmentConfiguration SkyPrevious;
@@ -385,6 +404,21 @@ int main(int ArgumentCount, char** ArgumentValues)
         SkyRegistered = SkyTextureIdentity != 0u;
     }
 
+    // 📝 The overlay pass — the grid, the gizmo and the wireframe drawn on the GPU in their own
+    //    straight-alpha pass. The lowered streams live at `<Binary>/../Shader` (the build's output
+    //    root); a build that lowered nothing (the sandbox) refuses here and the editor runs without
+    //    the overlay rather than failing.
+    if (!OverlayCodec.Construct(Lifetime.DeviceExchange(), ShaderStreamDirectory()).Resolved)
+    {
+        std::printf("%s \u2014 the overlay shader streams were not found; the grid and gizmo are off\n",
+                    HostName);
+    }
+    else if (!Overlay.Construct(Lifetime.DeviceExchange(), Lifetime.DiagnosticsExtension(),
+                                OverlayCodec, Lifetime.Offering().ColourTargetFormat).Resolved)
+    {
+        std::printf("%s \u2014 the overlay pass was rejected; the grid and gizmo are off\n", HostName);
+    }
+
     // 🔴 The browser carries its OWN ledger, as every panel here does, so its registration cannot exhaust the
     //    Control Centre's. Read — an registration refusal is silent at the call site and a browser that was
     //    rejected records nothing at all, which reads as a drawer that opens onto blank ground.
@@ -440,6 +474,8 @@ int main(int ArgumentCount, char** ArgumentValues)
             SkySurface.Reclaim();
             SkyRegistered = false;
             SkyTextureIdentity = 0u;
+            Overlay.Reclaim();
+            OverlayCodec.Reclaim();
             continue;
         }
 
@@ -465,6 +501,17 @@ int main(int ArgumentCount, char** ArgumentValues)
                 SkyTextureIdentity = Viewport.Surface().RegisterSampledImage(SkySurface.Sampler(), SkySurface.View());
                 SkyRegistered = SkyTextureIdentity != 0u;
                 SkyPrevious = {};   // [-] - the next tick regenerates and uploads
+            }
+
+            // 🔴 The overlay's pipeline, buffers and descriptors died with the old device too — it is
+            //    reconstructed against the fresh handles, exactly as the sky surface is.
+            if (OverlayCodec.Construct(Lifetime.DeviceExchange(), ShaderStreamDirectory()).Resolved)
+            {
+                static_cast<void>(Overlay.Construct(Lifetime.DeviceExchange(),
+                                                    Lifetime.DiagnosticsExtension(),
+                                                    OverlayCodec,
+                                                    Lifetime.Offering().ColourTargetFormat));
+                OverlayGeneration = 0u;   // [-] - the next tick re-uploads
             }
 
             // 📝 The display recovery this rebuild also raised is consumed here. The reconstruction above
@@ -556,6 +603,11 @@ int main(int ArgumentCount, char** ArgumentValues)
                     //    an outliner leaf, and the properties | history fills a properties leaf.
                     //    Panels draw their content only while they exist in the partition; there is
                     //    no fullscreen scene directory in this host (see the header's layout rule).
+                    // 📝 The overlay record is rebuilt for this tick: the panel empties it and the
+                    //    viewport leaf refills it with the grid and the gizmo. The host uploads it
+                    //    when its generation changed and the GPU pass draws it after the interface.
+                    SceneApplied.Overlay.Reset();
+
                     for (std::uint32_t Leaf = 0u; Leaf < WorkspacePanels.LeafCount(); ++Leaf)
                     {
                         const PlaneExtent LeafBody = WorkspacePanels.LeafBody(Leaf);
@@ -566,6 +618,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 SceneDirectory.RecordViewportSky(LeafBody, SceneApplied);
                                 SceneDirectory.RecordGroundGrid(LeafBody, SceneApplied,
                                                                 PanelConfiguration[Ordinal]);
+                                SceneDirectory.RecordGizmo(LeafBody, SceneApplied);
                                 break;
                             case PanelSubject::Outliner:
                                 SceneDirectory.RecordOutliner(LeafBody, SceneApplied,
@@ -589,6 +642,15 @@ int main(int ArgumentCount, char** ArgumentValues)
 
                     if (WorkspacePanels.PointerCaptured(Ordinal))
                         Viewport.Seam().WithholdPointer();
+                }
+
+                // 📝 The overlay geometry is uploaded at most once per generation change — the grid
+                //    and the gizmo are static between camera or settings changes, so there is no
+                //    per-frame upload.
+                if (SceneApplied.Overlay.Generation != OverlayGeneration)
+                {
+                    Overlay.Upload(SceneApplied.Overlay);
+                    OverlayGeneration = SceneApplied.Overlay.Generation;
                 }
 
                 Viewport.Seam().LeaveWorkspaceWindow();
@@ -809,6 +871,11 @@ int main(int ArgumentCount, char** ArgumentValues)
                 {
                     std::printf("%s \u2014 the interface content was not recorded\n", HostName);
                 }
+
+                // 📝 The overlay pass records INSIDE the same dynamic-rendering scope, after the
+                //    interface: the grid, the gizmo and the wireframe draw on top of the sky and the
+                //    UI, in their own straight-alpha pass — no ImGui tessellation, vivid colours.
+                Overlay.Record(Pass.Recording, Pass.Width, Pass.Height);
             }
             else
             {
@@ -849,6 +916,8 @@ int main(int ArgumentCount, char** ArgumentValues)
     SkySurface.Reclaim();
     SkyRegistered = false;
     SkyTextureIdentity = 0u;
+    Overlay.Reclaim();
+    OverlayCodec.Reclaim();
 
     Lifetime.Reclaim();
 

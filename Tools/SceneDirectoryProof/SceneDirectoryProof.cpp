@@ -68,6 +68,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "ExternalPackages/stb/stb_image.h"
 
+#include "Shared/OverlayGeometry.slang.h"
 #include "Application/EditorHost/Api/CameraRig.h"
 #include "Application/EditorHost/Api/SkyImage.h"
 #include "Contract/DeliveryContract.h"
@@ -316,7 +317,80 @@ struct Rasterizer
                          ClipX0, ClipY0, ClipX1, ClipY1);
             }
         }
+
+
+
+
         return true;
+    }
+
+    // 📐 The CPU twin of the GPU overlay pass: rasterizes the SAME OverlayGeometry record the host
+    //    uploads, so the proof pixels are the proof of the pass's input. Straight-alpha source-over,
+    //    exactly as the pass's blend state declares.
+    void RasterizeOverlay(const OverlayGeometry& Overlay)
+    {
+        const auto Colour = [](std::uint32_t Packed) -> ImU32
+        {
+            const std::uint32_t A = (Packed >> 24u) & 0xFFu;
+            const std::uint32_t R = (Packed >> 16u) & 0xFFu;
+            const std::uint32_t G = (Packed >> 8u)  & 0xFFu;
+            const std::uint32_t B = Packed & 0xFFu;
+            return (A << 24u) | (B << 16u) | (G << 8u) | R;   // [-] - ImGui's 0xAABBGGRR spelling
+        };
+
+        const auto Fill = [&](float X0, float Y0, float X1, float Y1, float X2, float Y2, ImU32 Col)
+        {
+            const ImDrawVert A = { ImVec2(X0, Y0), ImVec2(0.0f, 0.0f), Col };
+            const ImDrawVert B = { ImVec2(X1, Y1), ImVec2(0.0f, 0.0f), Col };
+            const ImDrawVert C = { ImVec2(X2, Y2), ImVec2(0.0f, 0.0f), Col };
+            Triangle(A, B, C, false, false, nullptr, 0, 0, 0, 0, Width, Height);
+        };
+
+        for (std::uint32_t Ordinal = 0u; Ordinal < Overlay.TriangleCount; ++Ordinal)
+        {
+            const OverlayTriangle& T = Overlay.Triangles[Ordinal];
+            Fill(T.X0, T.Y0, T.X1, T.Y1, T.X2, T.Y2, Colour(T.Packed));
+        }
+
+        for (std::uint32_t Ordinal = 0u; Ordinal < Overlay.LineCount; ++Ordinal)
+        {
+            const OverlayLine& L = Overlay.Lines[Ordinal];
+            const float DX = L.X1 - L.X0;
+            const float DY = L.Y1 - L.Y0;
+            const float Length = std::sqrt(DX * DX + DY * DY);
+            if (Length < 0.0001f)
+                continue;
+
+            const float NX = -DY / Length;
+            const float NY =  DX / Length;
+            const float Half = L.Thickness * 0.5f;
+            const ImU32 Col = Colour(L.Packed);
+
+            Fill(L.X0 + NX * Half, L.Y0 + NY * Half,
+                 L.X1 + NX * Half, L.Y1 + NY * Half,
+                 L.X1 - NX * Half, L.Y1 - NY * Half, Col);
+            Fill(L.X0 + NX * Half, L.Y0 + NY * Half,
+                 L.X1 - NX * Half, L.Y1 - NY * Half,
+                 L.X0 - NX * Half, L.Y0 - NY * Half, Col);
+        }
+
+        for (std::uint32_t Ordinal = 0u; Ordinal < Overlay.DotCount; ++Ordinal)
+        {
+            const OverlayDot& D = Overlay.Dots[Ordinal];
+            const ImU32 Col = Colour(D.Packed);
+
+            // 📐 A 16-gon fan stands in for the fragment-discard disc; 16 sides is below the pixel
+            //    quantum at these radii, so no polygon edge reads.
+            constexpr float Turn = 6.2831853f / 16.0f;
+            for (std::uint32_t Segment = 0u; Segment < 16u; ++Segment)
+            {
+                const float A0 = Turn * static_cast<float>(Segment);
+                const float A1 = Turn * static_cast<float>(Segment + 1u);
+                Fill(D.X, D.Y,
+                     D.X + std::cos(A0) * D.Radius, D.Y + std::sin(A0) * D.Radius,
+                     D.X + std::cos(A1) * D.Radius, D.Y + std::sin(A1) * D.Radius, Col);
+            }
+        }
     }
 };
 
@@ -522,6 +596,9 @@ struct SceneDriver
         //    records beneath the split/subject menus instead of painting over them.
         Discard(Editor.Record(Workspace.Body(), Partition, Configuration, 0u, true));
 
+        // 📝 The overlay record is rebuilt for this tick, exactly as the host rebuilds it.
+        Applied.Overlay.Reset();
+
         for (std::uint32_t Leaf = 0u; Leaf < Editor.LeafCount(); ++Leaf)
         {
             const PlaneExtent LeafBody = Editor.LeafBody(Leaf);
@@ -531,6 +608,7 @@ struct SceneDriver
                 case PanelSubject::Viewport:
                     SceneDirectory.RecordViewportSky(LeafBody, Applied);
                     SceneDirectory.RecordGroundGrid(LeafBody, Applied, Configuration);
+                    SceneDirectory.RecordGizmo(LeafBody, Applied);
                     break;
                 case PanelSubject::Outliner:
                     SceneDirectory.RecordOutliner(LeafBody, Applied, EditorEntities, 7u,
@@ -610,11 +688,16 @@ struct SceneDriver
         if (SkyReady)
             Out.ExtraTextures[SkyIdentity] = SkyPixels;
         const ImDrawData* Data = ImGui::GetDrawData();
-for (int ListOrdinal = 0; ListOrdinal < Data->CmdListsCount; ++ListOrdinal)
+        for (int ListOrdinal = 0; ListOrdinal < Data->CmdListsCount; ++ListOrdinal)
         {
             if (!Out.Draw(Data->CmdLists[ListOrdinal], LiveAtlas, LiveAtlasWidth, LiveAtlasHeight))
                 return false;
         }
+
+        // 📝 The overlay record the host would upload to the GPU pass — rasterized here as the pass's
+        //    CPU twin, so the proof pixels ARE the pass's input.
+        Out.RasterizeOverlay(Applied.Overlay);
+
         if (stbi_write_png(Path, Out.Width, Out.Height, 4, Out.Pixels.data(), Out.Width * 4) == 0)
             return false;
         std::fprintf(stderr, "[proof] wrote %s (%dx%d)\n", Path, Out.Width, Out.Height);
@@ -642,10 +725,10 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         Driver.ApplyPartition(false);
         Driver.Settle(20);
 
-        // 📐 The footer's grid settings drive the ground lattice: presentation, cell scale,
-        //    subdivisions (extent) and the axis lines. First capture: Lines + Dots with all three
-        //    axes; second: Dots only — the axis hues must stand in both, and the combined capture
-        //    must carry more lattice ink than the dots-only one.
+        // 📐 PART ONE — the axes and the gizmo, from the OPPOSITE corner looking up at the origin
+        //    (yaw 45, pitch +24, position -40,-25,-40): all three POSITIVE axes point toward the
+        //    camera and the gizmo is in view, proving the full-opacity straight-alpha colours the
+        //    GPU pass blends (the interface's premultiplied read washed them out).
         Driver.Configuration.Lattice      = PanelLatticePresentation::LinesAndDots;
         Driver.Configuration.LatticeScale = 2u;
         Driver.Configuration.Subdivisions = 12u;
@@ -653,14 +736,11 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         Driver.Configuration.AxisY = true;
         Driver.Configuration.AxisZ = true;
 
-        // 📐 The camera sits elevated at the X/Z diagonal (yaw 225, pitch -24), so all three axes are
-        //    visible at once: at the default pose the +Z axis is behind the camera and the vertical Y
-        //    axis points straight up out of the frame — physically correct, but useless as a proof.
-        Driver.FlyRig.YawDegrees   = 225.0;
-        Driver.FlyRig.PitchDegrees = -24.0;
-        Driver.FlyRig.Position[0]  = 40.0;
-        Driver.FlyRig.Position[1]  = 25.0;
-        Driver.FlyRig.Position[2]  = 40.0;
+        Driver.FlyRig.YawDegrees   = 45.0;
+        Driver.FlyRig.PitchDegrees = 24.0;
+        Driver.FlyRig.Position[0]  = -40.0;
+        Driver.FlyRig.Position[1]  = -25.0;
+        Driver.FlyRig.Position[2]  = -40.0;
         Driver.FlyRig.Snap();
         Driver.Settle(10);
 
@@ -680,7 +760,7 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
 
             Red = Green = Blue = Lattice = 0u;
 
-            for (int Y = 0; Y < ReadHeight; ++Y)
+            for (int Y = 70; Y < ReadHeight; ++Y)
             {
                 for (int X = 0; X < 637; ++X)
                 {
@@ -712,8 +792,7 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
             return false;
         }
 
-        std::fprintf(stderr, "[assert] lines+dots: axis px R=%u G=%u B=%u lattice=%u\n",
-                     Red, Green, Blue, LatticeBoth);
+        std::fprintf(stderr, "[assert] axes+gizmo: axis px R=%u G=%u B=%u\n", Red, Green, Blue);
 
         if (Red < 20u || Blue < 20u || Green < 20u)
         {
@@ -721,25 +800,94 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
             return false;
         }
 
+        // 📐 The gizmo's own proof: its centre handle is a FULL-OPACITY white square at the origin's
+        //    projection — unique to the gizmo, unmistakable against the blue sky and the lattice.
+        {
+            int ReadWidth = 0;
+            int ReadHeight = 0;
+            int ReadChannels = 0;
+            unsigned char* ReadPixels = stbi_load(OutputPath, &ReadWidth, &ReadHeight, &ReadChannels, 4);
+
+            if (ReadPixels == nullptr)
+            {
+                std::fprintf(stderr, "[FAIL] the gizmo capture would not read back\n");
+                return false;
+            }
+
+            std::uint32_t HandlePixels = 0u;
+            for (int Y = 70; Y < ReadHeight; ++Y)
+            {
+                for (int X = 0; X < 637; ++X)
+                {
+                    const std::size_t Offset = (static_cast<std::size_t>(Y) * ReadWidth + X) * 4u;
+                    const int R = ReadPixels[Offset + 0u];
+                    const int G = ReadPixels[Offset + 1u];
+                    const int B = ReadPixels[Offset + 2u];
+
+                    if (R > 215 && G > 215 && B > 215 && std::abs(R - G) < 12 && std::abs(G - B) < 12)
+                        ++HandlePixels;
+                }
+            }
+
+            stbi_image_free(ReadPixels);
+
+            std::fprintf(stderr, "[assert] gizmo handle pixels: %u\n", HandlePixels);
+            if (HandlePixels < 12u)
+            {
+                std::fprintf(stderr, "[FAIL] the gizmo centre handle did not draw\n");
+                return false;
+            }
+        }
+
+        // 📐 PART TWO — the presentation modes over the GROUND, from the elevated corner looking
+        //    down (yaw 225, pitch -24, position 40,25,40), with the axes OFF so the lattice ink is
+        //    the only variable: Dots first, then Lines + Dots, at the same pose.
+        Driver.FlyRig.YawDegrees   = 225.0;
+        Driver.FlyRig.PitchDegrees = -24.0;
+        Driver.FlyRig.Position[0]  = 40.0;
+        Driver.FlyRig.Position[1]  = 25.0;
+        Driver.FlyRig.Position[2]  = 40.0;
+        Driver.FlyRig.Snap();
+
+        Driver.Configuration.AxisX = false;
+        Driver.Configuration.AxisY = false;
+        Driver.Configuration.AxisZ = false;
         Driver.Configuration.Lattice = PanelLatticePresentation::Dots;
         Driver.Settle(10);
 
-        if (!Driver.Capture(OutputPath, Atlas, AtlasWidth, AtlasHeight))
+        const std::string DotsPath = "_AgentScratch/grid-dots.png";
+
+        if (!Driver.Capture(DotsPath.c_str(), Atlas, AtlasWidth, AtlasHeight))
             return false;
 
         std::uint32_t DotsRed = 0u, DotsGreen = 0u, DotsBlue = 0u, LatticeDots = 0u;
-        if (!Scan(OutputPath, DotsRed, DotsGreen, DotsBlue, LatticeDots))
+        if (!Scan(DotsPath.c_str(), DotsRed, DotsGreen, DotsBlue, LatticeDots))
         {
             std::fprintf(stderr, "[FAIL] the dots capture would not read back\n");
             return false;
         }
 
-        std::fprintf(stderr, "[assert] dots-only: axis px R=%u G=%u B=%u lattice=%u\n",
-                     DotsRed, DotsGreen, DotsBlue, LatticeDots);
+        Driver.Configuration.Lattice = PanelLatticePresentation::LinesAndDots;
+        Driver.Settle(10);
 
-        if (LatticeBoth <= LatticeDots)
+        const std::string LinesPath = "_AgentScratch/grid-lines.png";
+
+        if (!Driver.Capture(LinesPath.c_str(), Atlas, AtlasWidth, AtlasHeight))
+            return false;
+
+        std::uint32_t LinesRed = 0u, LinesGreen = 0u, LinesBlue = 0u, LatticeLines = 0u;
+        if (!Scan(LinesPath.c_str(), LinesRed, LinesGreen, LinesBlue, LatticeLines))
         {
-            std::fprintf(stderr, "[FAIL] lines+dots did not carry more lattice ink than dots alone\n");
+            std::fprintf(stderr, "[FAIL] the lines capture would not read back\n");
+            return false;
+        }
+
+        std::fprintf(stderr, "[assert] lattice ink: dots-only=%u lines+dots=%u\n",
+                     LatticeDots, LatticeLines);
+
+        if (LatticeDots < 200u || LatticeLines <= LatticeDots)
+        {
+            std::fprintf(stderr, "[FAIL] the lattice presentation did not change the render\n");
             return false;
         }
     }
