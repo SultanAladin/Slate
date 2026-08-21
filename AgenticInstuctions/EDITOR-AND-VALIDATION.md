@@ -147,6 +147,13 @@ its own pass inside the host's dynamic-rendering scope, AFTER the interface.
   A stack local in `Construct` is use-after-scope the moment the struct grows:
   intermittent segfaults, flat dark-blue renders and "missing" axes/rows all
   came from exactly that, and ASAN caught it at `WorkspacePanel::Record`.
+- 🔴 SHADOWING LESSON (do not regress): in `FacetPanel::Arrange` and
+  `Record`, the local figures were named `ChipHeight` / `HeaderHeight`, the
+  SAME names as the anonymous-namespace constants they scale — a local
+  shadowing a global by the same name reads the global's uninitialised slot,
+  collapsing the whole card (the "squashed filters": zero-height chips,
+  zero-height header, clipped dropdown). The locals are `ChipRowY` /
+  `HeaderRowY` now.
 - The sky dome is direction-indexed and camera-independent: looking around only
   moves the crop, never regenerates the texture. The viewport samples the dome
   through a PERSPECTIVE mesh (per-vertex UVs along the true pinhole ray), so
@@ -178,7 +185,10 @@ its own pass inside the host's dynamic-rendering scope, AFTER the interface.
   contain the search run AND its category's facet is enabled; a row also
   shows when a descendant matches, and while the filter stands every branch
   is forced open. All facets off = no filtering; an empty run = no search.
-  The harness's `editor-search-filter` asserts the typed run lands, the tag
+  The Add-filter control is a compact PILL stuck to the card's left edge
+  (132 px, never full-width), and the chips wrap to new rows with the gap
+  between them — exactly the reference's flex-wrap. The harness's
+  `editor-search-filter` asserts the typed run lands, the tag
   "fly" finds the camera (tagged "camera fly view") even though no name
   contains it, the Lights facet narrows to two rows, and "zzz" reaches the
   empty state.

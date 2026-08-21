@@ -898,8 +898,9 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
     const TabDeclaration PageDeclared{ PageCaptions, 3u };
     static_cast<void>(Controls.TabStrip(OutlineStrip, Strip, PageDeclared, Applied.OutlinePage));
 
-    // 📝 The search field, between the header and the rows — the scene directory's own filter box.
-    //    The host feeds the typed run through the seam's `AcceptTyped` while `SearchTaken` stands
+    // 📝 The search field, between the header and the rows — the scene directory's own filter box,
+    //    drawn as a PILL: the radius is half the field's height, so both ends are fully rounded. The
+    //    host feeds the typed run through the seam's `AcceptTyped` while `SearchTaken` stands
     //    (reported by `Advance`), and Backspace/Escape clear it.
     const PlaneExtent Search = Spanning(Outlining.MinimumX + Pad, Header.MaximumY + Pad,
                                         Outlining.Width() - Pad * 2.0f, Scaled.SearchHeight);
@@ -912,9 +913,13 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
 
         const bool Taken = Ledger->Holding(SearchField) || Ledger->Disclosed(SearchField);
 
-        Surface->Ground(Search, Tinted.MenuLower, Scaled.FieldRadius, CornerAll);
+        // 🔴 A pill: `Search.Height() * 0.5f` corners, never the card radius — the reported render
+        //    showed the search box with the field's small radius, reading as a squashed input.
+        const float PillRadius = Search.Height() * 0.5f;
+
+        Surface->Ground(Search, Tinted.MenuLower, PillRadius, CornerAll);
         Surface->Edge(Search, Taken ? Faded(Covering(0xFFFFFFu), 0.22f) : Tinted.Hairline,
-                      1.0f, Scaled.FieldRadius, CornerAll);
+                      1.0f, PillRadius, CornerAll);
 
         const float GlyphExtent = 14.0f;
         const float GlyphLead   = Search.MinimumX + 10.0f;
@@ -931,7 +936,7 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
 
         Surface->TextRunTruncated(RunLead, RunTop, Search.MaximumX - RunLead - 8.0f,
                                   Empty ? Tinted.Faint : Tinted.Primary,
-                                  Empty ? "Filter Entities\u2026" : Applied.EntityRetention, FieldRun);
+                                  Empty ? "Search\u2026" : Applied.EntityRetention, FieldRun);
     }
 
     // 📝 The filter card — the validation UI's generic facet filter, ported to the editor: wrapped

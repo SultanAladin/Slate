@@ -27,6 +27,7 @@ constexpr float ChipRemoveGap    = 6.0f;    // [px] - caption to remove action
 constexpr float ChipPadTrailing  = 5.0f;    // [px] - remove action trailing inset
 constexpr float DropdownGap      = 10.0f;   // [px] - chips to dropdown
 constexpr float CardTrailingPad  = 10.0f;   // [px] - dropdown to card edge
+constexpr float DropdownPillX    = 132.0f;  // [px] - the left-stuck Add-filter pill's width
 constexpr float CountX       = 24.0f;   // [px] - active count badge floor
 constexpr float ClearX       = 48.0f;   // [px] - clear-all action
 
@@ -96,11 +97,15 @@ FacetPanel::Arrangement FacetPanel::Arrange(float X,
     const float InteriorX = (Width > Pad * 2.0f) ? Width - Pad * 2.0f : 0.0f;
     const float TextSize = (Appearance->ControlMeasure.RowText > 11.0f * Scale)
                          ? Appearance->ControlMeasure.RowText : 11.0f * Scale;
-    const float ChipHeight = ChipHeight * Scale;
+    // 🔴 These are LOCAL figures, named apart from the anonymous-namespace constants they scale —
+    //    a local shadowing the global by the same name read the global's uninitialised slot and
+    //    collapsed the whole card (the "squashed filters": a zero-height header, zero-height chips
+    //    and a negative card height that clipped every chip and dropdown).
+    const float ChipRowY = ChipHeight * Scale;
     const float Gap = ChipGap * Scale;
     float ChipX = 0.0f;
     float ChipCursorY = 0.0f;
-    float ChipsHeight = ChipHeight;
+    float ChipsHeight = ChipRowY;
     bool ActivePresent = false;
 
     const std::uint32_t Count = (Declared.OptionCount < FacetCapacity)
@@ -119,26 +124,29 @@ FacetPanel::Arrangement FacetPanel::Arrange(float X,
         if (ChipX > 0.0f && ChipX + RequiredX > InteriorX)
         {
             ChipX = 0.0f;
-            ChipCursorY += ChipHeight + Gap;
-            ChipsHeight += ChipHeight + Gap;
+            ChipCursorY += ChipRowY + Gap;
+            ChipsHeight += ChipRowY + Gap;
         }
 
         ChipX += RequiredX + Gap;
     }
 
     if (!ActivePresent)
-        ChipsHeight = ChipHeight;
+        ChipsHeight = ChipRowY;
 
-    const float HeaderHeight = HeaderHeight * Scale;
+    const float HeaderRowY = HeaderHeight * Scale;
     const float HeaderToChips = HeaderGap * Scale;
-    const float ChipsTop = Y + Pad + HeaderHeight + HeaderToChips;
+    const float ChipsTop = Y + Pad + HeaderRowY + HeaderToChips;
     const float DropdownTop = ChipsTop + ChipsHeight + DropdownGap * Scale;
     const float DropdownHeight = Appearance->ControlMeasure.FieldHeight;
 
-    Arranged.Header = Spanning(X + Pad, Y + Pad, InteriorX, HeaderHeight);
+    Arranged.Header = Spanning(X + Pad, Y + Pad, InteriorX, HeaderRowY);
     Arranged.Chips = Spanning(X + Pad, ChipsTop, InteriorX, ChipsHeight);
-    Arranged.Dropdown = Spanning(X + Pad, DropdownTop, InteriorX, DropdownHeight);
-    Arranged.TotalY = Pad + HeaderHeight + HeaderToChips + ChipsHeight + DropdownGap * Scale +
+    // 📐 The Add-filter control is a compact PILL stuck to the card's left edge — never a
+    //    full-width field, which read as a squashed bar across the card (the reported layout).
+    Arranged.Dropdown = Spanning(X + Pad, DropdownTop,
+                                 DropdownPillX * Scale, DropdownHeight);
+    Arranged.TotalY = Pad + HeaderRowY + HeaderToChips + ChipsHeight + DropdownGap * Scale +
                            DropdownHeight + CardTrailingPad * Scale;
     return Arranged;
 }
@@ -251,7 +259,10 @@ Outcome<bool> FacetPanel::Record(const PlaneExtent& Extent,
         }
     }
 
-    const float ChipHeight = ChipHeight * Scale;
+    // 🔴 The same shadowing discipline as Arrange: a local named after the global constant it
+    //    scales would read the global's uninitialised slot and draw every chip with a garbage height
+    //    and radius — the squashed chips of the reported render.
+    const float ChipRowY = ChipHeight * Scale;
     const float Gap = ChipGap * Scale;
     float CursorX = Arranged.Chips.MinimumX;
     float CursorY = Arranged.Chips.MinimumY;
@@ -268,20 +279,20 @@ Outcome<bool> FacetPanel::Record(const PlaneExtent& Extent,
         if (CursorX > Arranged.Chips.MinimumX && CursorX + RequiredX > Arranged.Chips.MaximumX)
         {
             CursorX = Arranged.Chips.MinimumX;
-            CursorY += ChipHeight + Gap;
+            CursorY += ChipRowY + Gap;
         }
 
-        const PlaneExtent Chip = Spanning(CursorX, CursorY, RequiredX, ChipHeight);
-        Surface->Ground(Chip, Colour.FieldGround, ChipHeight * 0.5f, CornerAll);
+        const PlaneExtent Chip = Spanning(CursorX, CursorY, RequiredX, ChipRowY);
+        Surface->Ground(Chip, Colour.FieldGround, ChipRowY * 0.5f, CornerAll);
         Surface->Edge(Chip, Colour.CardEdge, Appearance->ControlMeasure.CardEdgeWeight,
-                      ChipHeight * 0.5f, CornerAll);
+                      ChipRowY * 0.5f, CornerAll);
         Surface->Medallion(Chip.MinimumX + ChipPadLeading * Scale + ChipSwatch * Scale * 0.5f,
-                           Chip.MinimumY + ChipHeight * 0.5f,
+                           Chip.MinimumY + ChipRowY * 0.5f,
                            ChipSwatch * Scale * 0.5f,
                            FacetColour(Declared, Ordinal));
         const float CaptionTop = Chip.MinimumX + (ChipPadLeading + ChipSwatch + ChipSwatchGap) * Scale;
         Surface->TextRun(CaptionTop,
-                         Chip.MinimumY + (ChipHeight - TextSize) * 0.5f,
+                         Chip.MinimumY + (ChipRowY - TextSize) * 0.5f,
                          Colour.FieldColour,
                          Caption,
                          TextSize,
@@ -289,7 +300,7 @@ Outcome<bool> FacetPanel::Record(const PlaneExtent& Extent,
                          false);
 
         const PlaneExtent Remove = Spanning(Chip.MaximumX - (ChipRemove + ChipPadTrailing) * Scale,
-                                            Chip.MinimumY + (ChipHeight - ChipRemove * Scale) * 0.5f,
+                                            Chip.MinimumY + (ChipRowY - ChipRemove * Scale) * 0.5f,
                                             ChipRemove * Scale,
                                             ChipRemove * Scale);
         Surface->Ground(Remove, Colour.CellGround, Remove.Height() * 0.5f, CornerAll);
