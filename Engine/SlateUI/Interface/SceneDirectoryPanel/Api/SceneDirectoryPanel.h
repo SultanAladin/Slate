@@ -27,6 +27,7 @@
 #include "SlateUI/Interface/ControlPanel/Api/ControlPanel.h"
 #include "Shared/OverlayGeometry.slang.h"
 #include "SlateUI/Interface/EditorPanel/Api/EditorPanel.h"
+#include "SlateUI/Interface/FacetPanel/Api/FacetPanel.h"
 #include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
@@ -82,6 +83,19 @@ struct SceneDirectoryContext
     std::uint32_t              OutlinePage        = 0u;      // [-] - 0 Directory, 1 Properties, 2 History
     std::uint32_t              OutlineInspectorTab = 0u;     // [-] - 0 Properties, 1 History (page 1/2)
 
+    // 📝 The scene directory's own search and filter, placed between the outliner's header and its
+    //    rows. `EntityRetention` is the search run the host feeds through the seam's `AcceptTyped`
+    //    while `SearchTaken` stands; the facets are the editor's generic categories (objects, lights,
+    //    cameras, folders, audio, particles, triggers, environment, layers) and a row matches when
+    //    its NAME or its TAGS contain the search run AND its category's facet is enabled. All facets
+    //    off = no filtering; an empty run = no search.
+    static constexpr std::uint32_t RetentionCeiling = 48u;   // [-] - the search run, terminator included
+    static constexpr std::uint32_t FacetCount       =  9u;   // [-] - the editor's filter categories
+
+    char                       EntityRetention[RetentionCeiling] = {};   // [-] - the search run
+    bool                       SearchTaken   = false;   // [-] - the search field holds the contact
+    bool                       FacetEnabled[FacetCount] = {};   // [-] - active filter categories
+
     // 📝 The disclosure and presence conditions of the outline rows, exactly as the shell's own declare
     //    them: the level, Lighting, Environment and Systems arrive expanded and everything else folded.
     bool  EntityExpanded[EntityCeiling] = { true, true, false, false, false, false,
@@ -132,7 +146,9 @@ public:
         + SceneDirectoryContext::EntityCeiling        // [-] - one fold per grouped revision header
         + 1u                                          // [-] - the Properties | History strip
         + 2u                                          // [-] - the outliner's page strip and the Inspect call
-        + 6u;                                         // [-] - the six environment slider rows
+        + 6u                                          // [-] - the six environment slider rows
+        + 1u                                          // [-] - the search field
+        + FacetPanel::FacetCapacity + 2u;             // [-] - the filter card (chips, dropdown, clear)
 
     SceneDirectoryPanel()                                   = default;
     SceneDirectoryPanel(const SceneDirectoryPanel&)            = delete;
@@ -256,7 +272,11 @@ private:
     ControlIdentity InspectorStrip = {};
     ControlIdentity OutlineStrip    = {};
     ControlIdentity InspectCall     = {};
+    ControlIdentity SearchField     = {};
+    ControlIdentity FacetFold       = {};
     ControlIdentity EnvironmentSliders[6] = {};
+
+    FacetPanel                   Facets = {};         // [-] - the filter card
 
     bool   EnvironmentArmed[6] = {};   // [-] - drag-start latched per slider
     double EnvironmentFrom[6]  = {};   // [-] - the value at drag start

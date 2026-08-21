@@ -42,6 +42,117 @@ constexpr ThemeToken Faded(ThemeToken Declared, float Fraction)
     return Declared;
 }
 
+/// 🧩 Whether one run holds another as a case-insensitive subsequence — the reference's own
+///    `name.toLowerCase().includes(filterText.toLowerCase())`.
+bool RunHolds(const char* Subject, const char* Sought)
+{
+    if (Sought == nullptr || Sought[0] == '\0')
+        return true;
+
+    if (Subject == nullptr)
+        return false;
+
+    const auto Lowered = [](char Letter) -> char
+    {
+        return (Letter >= 'A' && Letter <= 'Z') ? static_cast<char>(Letter - 'A' + 'a') : Letter;
+    };
+
+    for (std::uint32_t Departure = 0u; Subject[Departure] != '\0'; ++Departure)
+    {
+        std::uint32_t Advanced = 0u;
+
+        while (Sought[Advanced] != '\0' &&
+               Lowered(Subject[Departure + Advanced]) == Lowered(Sought[Advanced]))
+        {
+            ++Advanced;
+        }
+
+        if (Sought[Advanced] == '\0')
+            return true;
+    }
+
+    return false;
+}
+
+// 📐 The editor's filter categories, and the subject each entity maps to. The category ordinals are
+//    the FacetPanel's option ordinals; `EditorFacetOf` is what makes a facet a filter rather than a
+//    label — a row is shown only when its category's facet is enabled.
+constexpr std::uint32_t EditorFacetCount = 9u;   // [-] - mirrors SceneDirectoryContext::FacetCount
+
+const char* const EditorFacetOptions[EditorFacetCount] =
+{
+    "Objects", "Lights", "Cameras", "Folders", "Audio",
+    "Particles", "Triggers", "Environment", "Layers"
+};
+
+const ThemeToken EditorFacetColours[EditorFacetCount] =
+{
+    Covering(0x3B82F6u),   // [-] - Objects, blue
+    Covering(0xF59E0Bu),   // [-] - Lights, amber
+    Covering(0xEC4899u),   // [-] - Cameras, pink
+    Covering(0x8A8A8Au),   // [-] - Folders, grey
+    Covering(0x8B5CF6u),   // [-] - Audio, violet
+    Covering(0x10B981u),   // [-] - Particles, green
+    Covering(0xEF4444u),   // [-] - Triggers, red
+    Covering(0x38BDF8u),   // [-] - Environment, cyan
+    Covering(0x14B8A6u)    // [-] - Layers, teal
+};
+
+std::uint32_t EditorFacetOf(EntitySubject Subject)
+{
+    switch (Subject)
+    {
+        case EntitySubject::Level:
+        case EntitySubject::Grouping: return 3u;   // [-] - Folders
+        case EntitySubject::Actor:
+        case EntitySubject::Script:   return 0u;   // [-] - Objects
+        case EntitySubject::Camera:   return 2u;   // [-] - Cameras
+        case EntitySubject::Illuminant:
+        case EntitySubject::Sun:      return 1u;   // [-] - Lights
+        case EntitySubject::Audio:    return 4u;   // [-] - Audio
+        case EntitySubject::Particle: return 5u;   // [-] - Particles
+        case EntitySubject::Trigger:  return 6u;   // [-] - Triggers
+        case EntitySubject::Sky:      return 7u;   // [-] - Environment
+        default:                      return 0u;
+    }
+}
+
+/// 🧩 Whether the search and the facets jointly retain one row.
+bool RowRetained(const SceneDirectoryContext& Applied, const EntityRow& Row)
+{
+    const bool Searching = Applied.EntityRetention[0] != '\0';
+
+    if (Searching)
+    {
+        if (!RunHolds(Row.Naming, Applied.EntityRetention) &&
+            !RunHolds(Row.Tagged, Applied.EntityRetention))
+            return false;
+    }
+
+    for (std::uint32_t Facet = 0u; Facet < SceneDirectoryContext::FacetCount; ++Facet)
+    {
+        if (Applied.FacetEnabled[Facet])
+            return Applied.FacetEnabled[EditorFacetOf(Row.Subject)];
+    }
+
+    return true;
+}
+
+/// 🧩 Whether the search or any facet is active at all.
+bool RetentionActive(const SceneDirectoryContext& Applied)
+{
+    if (Applied.EntityRetention[0] != '\0')
+        return true;
+
+    for (std::uint32_t Facet = 0u; Facet < SceneDirectoryContext::FacetCount; ++Facet)
+    {
+        if (Applied.FacetEnabled[Facet])
+            return true;
+    }
+
+    return false;
+}
+
 }   // namespace
 
 ShellMetric ScaleShellLengths(float Factor)
@@ -194,11 +305,19 @@ Outcome<bool> SceneDirectoryPanel::Construct(InteractionIndex& Interaction,
 
     // 🔴 Every identity is claimed here and none inside a tick. A control registered mid-tick receives a fresh
     //    fade and reads as though the pointer had just arrived over it, once per tick, forever.
+    if (!Facets.Construct(Integrator, Surface, Resolved).Resolved)
+    {
+        Reset();
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent,
+                                       "the scene directory filter was rejected" });
+    }
+
     ControlIdentity* const Every[] =
     {
         &InspectorStrip,
         &OutlineStrip,
         &InspectCall,
+        &SearchField,
         &EnvironmentSliders[0], &EnvironmentSliders[1], &EnvironmentSliders[2],
         &EnvironmentSliders[3], &EnvironmentSliders[4], &EnvironmentSliders[5],
         &CardFolds[0], &CardFolds[1], &CardFolds[2], &CardFolds[3]
@@ -245,16 +364,23 @@ void SceneDirectoryPanel::Advance(const PointerCondition& Contact, double Elapse
     // 📝 Sampled, never advanced: the tick owner advances the shared ledger exactly once, and a
     //    second advance would retire the release before the panel reads it.
     EnvironmentControls.Sample(Contact);
+    Facets.Advance(Contact, Elapsed);
 
     // 📐 Tab walks the outliner leaf's pages: Directory → Properties → History → Directory. The key
     //    is the seam's Summon (Tab), edge-triggered there and unrepeated, so one press is one page.
     if (TabPressed)
         Applied.OutlinePage = (Applied.OutlinePage + 1u) % 3u;
+
+    // 📝 The search field's taken state, reported to the host so it feeds the seam's typed run only
+    //    while the field actually holds the contact — the validation shell's filter captured every
+    //    keystroke unconditionally, which is the "search box not working" a gate fixes.
+    Applied.SearchTaken = Ledger->Holding(SearchField) || Ledger->Disclosed(SearchField);
 }
 
 void SceneDirectoryPanel::Reset()
 {
     Controls.Reset();
+    Facets.Reset();
 
     Ledger     = nullptr;
     Motion     = nullptr;
@@ -772,21 +898,119 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
     const TabDeclaration PageDeclared{ PageCaptions, 3u };
     static_cast<void>(Controls.TabStrip(OutlineStrip, Strip, PageDeclared, Applied.OutlinePage));
 
-    const PlaneExtent Body = Spanning(Outlining.MinimumX + Pad, Header.MaximumY + Pad,
+    // 📝 The search field, between the header and the rows — the scene directory's own filter box.
+    //    The host feeds the typed run through the seam's `AcceptTyped` while `SearchTaken` stands
+    //    (reported by `Advance`), and Backspace/Escape clear it.
+    const PlaneExtent Search = Spanning(Outlining.MinimumX + Pad, Header.MaximumY + Pad,
+                                        Outlining.Width() - Pad * 2.0f, Scaled.SearchHeight);
+
+    {
+        const bool Hovered = Search.Encloses(Sampled.PositionX, Sampled.PositionY);
+
+        if (Hovered && Sampled.ContactPressed && !Ledger->AnyDisclosed())
+            Ledger->Grab(SearchField, ControlPart::Body);
+
+        const bool Taken = Ledger->Holding(SearchField) || Ledger->Disclosed(SearchField);
+
+        Surface->Ground(Search, Tinted.MenuLower, Scaled.FieldRadius, CornerAll);
+        Surface->Edge(Search, Taken ? Faded(Covering(0xFFFFFFu), 0.22f) : Tinted.Hairline,
+                      1.0f, Scaled.FieldRadius, CornerAll);
+
+        const float GlyphExtent = 14.0f;
+        const float GlyphLead   = Search.MinimumX + 10.0f;
+        const float GlyphTop    = Search.MinimumY + (Search.Height() - GlyphExtent) * 0.5f;
+
+        Surface->Stroke(SymbolSubject::MagnifierLens,
+                        Spanning(GlyphLead, GlyphTop, GlyphExtent, GlyphExtent), Tinted.Faint);
+
+        const float RunLead = GlyphLead + GlyphExtent + 8.0f;
+        const float FieldRun = Scaled.RunSecondary * (12.0f / 11.5f);
+        const float RunTop   = Search.MinimumY + (Search.Height() - FieldRun) * 0.5f;
+
+        const bool Empty = Applied.EntityRetention[0] == '\0';
+
+        Surface->TextRunTruncated(RunLead, RunTop, Search.MaximumX - RunLead - 8.0f,
+                                  Empty ? Tinted.Faint : Tinted.Primary,
+                                  Empty ? "Filter Entities\u2026" : Applied.EntityRetention, FieldRun);
+    }
+
+    // 📝 The filter card — the validation UI's generic facet filter, ported to the editor: wrapped
+    //    category chips, individual removal, clear-all, and the shared dropdown. It sits after the
+    //    search box, and both together decide which rows the directory presents.
+    const FacetDeclaration EditorFacets =
+    {
+        "Filters",
+        EditorFacetOptions,
+        EditorFacetColours,
+        EditorFacetCount,
+        0xFFFFFFFFu   // [-] - no locked facet
+    };
+
+    const float FacetY = Facets.MeasureHeight(Outlining.Width() - Pad * 2.0f, EditorFacets,
+                                              Applied.FacetEnabled);
+
+    const PlaneExtent FacetCard = Spanning(Outlining.MinimumX + Pad, Search.MaximumY + Pad,
+                                           Outlining.Width() - Pad * 2.0f, FacetY);
+
+    Discard(Facets.Record(FacetCard, EditorFacets, Applied.FacetEnabled));
+
+    const PlaneExtent Body = Spanning(Outlining.MinimumX + Pad, FacetCard.MaximumY + Pad,
                                       Outlining.Width() - Pad * 2.0f,
-                                      Strip.MinimumY - Header.MaximumY - Pad);
+                                      Strip.MinimumY - FacetCard.MaximumY - Pad);
+
+    if (Body.MaximumY <= Body.MinimumY)
+        return;
 
     Surface->Confine(Body);
 
     float Sweep = Body.MinimumY;
 
+    // 📝 The search and the facets decide every row's presence: a row is presented when it matches
+    //    (name or tags, within an enabled category) or when any row it holds matches, and while the
+    //    filter stands every branch is forced open — the shell's own rule.
+    const bool Filtering = RetentionActive(Applied);
+
     for (std::uint32_t Ordinal = 0u; Ordinal < RowCount; ++Ordinal)
     {
-        const bool Expanded = Applied.EntityExpanded[Ordinal];
+        if (Filtering)
+        {
+            if (!RowRetained(Applied, Rows[Ordinal]))
+            {
+                bool DescendantRetained = false;
 
-        if (Ordinal > 0u && !Expanded && Rows[Ordinal].Depth > Rows[Ordinal - 1u].Depth &&
-            !Applied.EntityPresent[Ordinal])
-            continue;
+                for (std::uint32_t Inward = Ordinal + 1u; Inward < RowCount; ++Inward)
+                {
+                    if (Rows[Inward].Depth <= Rows[Ordinal].Depth)
+                        break;
+
+                    if (RowRetained(Applied, Rows[Inward]))
+                    {
+                        DescendantRetained = true;
+                        break;
+                    }
+                }
+
+                if (!DescendantRetained)
+                    continue;
+            }
+        }
+        else
+        {
+            // 📐 Walked outward: a row is presented only when every enclosure above it stands disclosed.
+            std::uint32_t Walking = Rows[Ordinal].Enclosing;
+            std::uint32_t Walked  = 0u;
+
+            while (Walking < RowCount && Walked++ <= RowCount)
+            {
+                if (!Applied.EntityExpanded[Walking])
+                    break;
+
+                Walking = Rows[Walking].Enclosing;
+            }
+
+            if (Walking < RowCount)
+                continue;
+        }
 
         const EntityRow&  EntryRow = Rows[Ordinal];
         const PlaneExtent Row      = Spanning(Body.MinimumX, Sweep, Body.Width(), Scaled.RowHeight);
@@ -871,7 +1095,7 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
         }
 
         if (Branch)
-            Surface->Stroke(Applied.EntityExpanded[Ordinal]
+            Surface->Stroke((Applied.EntityExpanded[Ordinal] || Filtering)
                             ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
                             Chevron, Faded(Tinted.Faint, Coverage));
 
@@ -922,6 +1146,17 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
             Surface->Stroke(Absent ? SymbolSubject::EyeClosed : SymbolSubject::EyeOpen, Eye,
                             OnPresence ? Tinted.Primary : Tinted.Faint);
         }
+    }
+
+    // 📝 The empty state: the filter stands but nothing matched.
+    if (Filtering && Sweep <= Body.MinimumY + 0.5f)
+    {
+        const float Run = Scaled.RunSecondary;
+        const char* Prose = "No records match the search or filters.";
+
+        Surface->TextRun(Body.MinimumX + (Body.Width()
+                                          - Surface->MeasureRun(Prose, Run, 0.0f)) * 0.5f,
+                         Body.MinimumY + Scaled.PanePad * 2.0f, Tinted.Faint, Prose, Run);
     }
 
     Surface->Release();
@@ -1027,6 +1262,10 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
                         Applied, Ordinal, Current);
 
     Surface->Release();
+
+    // 🔴 The filter card's dropdown is a deferred popup, exactly like the editor panel's menus: it
+    //    must record AFTER the rows and the details pane so it composites above them, never under.
+    Facets.RecordDeferred();
 }
 
 void SceneDirectoryPanel::RecordDetailOptions(const PlaneExtent& Extent, SceneDirectoryContext& Applied,

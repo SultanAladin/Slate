@@ -421,15 +421,21 @@ struct SceneDriver
     SceneDirectoryContext Applied;
     FontLoader Fonts;
 
+    // 🔴 The panels BORROW the appearance and read it on every tick — it must outlive them all, so
+    //    it is a member here and never a local of `Construct` (a stack local dies at the semicolon
+    //    and every later tick read use-after-scope memory: intermittent crashes and garbage theme
+    //    colours — the flat dark-blue renders — depending on what the stack reused the slot for).
+    ThemeProfile Appearance = {};
+
     static constexpr EntityRow EditorEntities[7] =
     {
-        { "Level_01_City",           EntitySubject::Level,      0u, 0xFFFFFFFFu, 3u },
-        { "Lighting",                EntitySubject::Grouping,   1u,  0u,         2u },
-        { "Directional Light (Sun)", EntitySubject::Sun,        2u,  1u,         0u },
-        { "Sky Atmosphere",          EntitySubject::Sky,        2u,  1u,         0u },
-        { "Environment",             EntitySubject::Grouping,   1u,  0u,         1u },
-        { "Post Process Volume",     EntitySubject::Actor,      2u,  4u,         0u },
-        { "Editor Camera",           EntitySubject::Camera,     1u,  0u,         0u }
+        { "Level_01_City",           EntitySubject::Level,      0u, 0xFFFFFFFFu, 3u, "city level main" },
+        { "Lighting",                EntitySubject::Grouping,   1u,  0u,         2u, "folder lighting" },
+        { "Directional Light (Sun)", EntitySubject::Sun,        2u,  1u,         0u, "sun light directional" },
+        { "Sky Atmosphere",          EntitySubject::Sky,        2u,  1u,         0u, "sky atmosphere dome" },
+        { "Environment",             EntitySubject::Grouping,   1u,  0u,         1u, "folder environment" },
+        { "Post Process Volume",     EntitySubject::Actor,      2u,  4u,         0u, "post volume effects" },
+        { "Editor Camera",           EntitySubject::Camera,     1u,  0u,         0u, "camera fly view" }
     };
 
     EntityRevision Revisions[8] = {};
@@ -455,6 +461,7 @@ struct SceneDriver
     float SimLookDeltaY  = 0.0f;
     bool  SimShiftHeld   = false;
     bool  SimTabPressed  = false;
+    char  SimTyped[16]   = {};   // [-] - the run the search field accepts this tick
 
     SceneDriver() : IO(ImGui::GetIO()) {}
 
@@ -473,7 +480,7 @@ struct SceneDriver
 
         ThemeSelection Selected;
         Selected.Current = ThemeSubject::Oled;
-        ThemeProfile Appearance = ResolveTinted(1.0, 1.0, ViewportWidth, Selected);
+        Appearance = ResolveTinted(1.0, 1.0, ViewportWidth, Selected);
         Surface.ApplyFontLoader(Fonts);
         Surface.ApplyTypographyScale(Appearance.TextScale);
         Surface.ApplyCornerScale(Appearance.CornerScale);
@@ -536,6 +543,28 @@ struct SceneDriver
         SceneDirectory.Advance(Surface.Pointer(), TickMilliseconds, Applied, SimTabPressed);
         SimTabPressed = false;
         Editor.Advance(Surface.Pointer(), TickMilliseconds);
+
+        // 📝 The host's search feed, simulated: while the field is taken, append the queued typed
+        //    characters exactly as the seam's AcceptTyped would.
+        if (Applied.SearchTaken && SimTyped[0] != '\0')
+        {
+            std::uint32_t Occupied = 0u;
+
+            while (Occupied + 1u < SceneDirectoryContext::RetentionCeiling &&
+                   Applied.EntityRetention[Occupied] != '\0')
+            {
+                ++Occupied;
+            }
+
+            for (std::uint32_t Ordinal = 0u; SimTyped[Ordinal] != '\0' &&
+                 Occupied + 1u < SceneDirectoryContext::RetentionCeiling; ++Ordinal)
+            {
+                Applied.EntityRetention[Occupied++] = SimTyped[Ordinal];
+            }
+
+            Applied.EntityRetention[Occupied] = '\0';
+            SimTyped[0] = '\0';
+        }
 
         // 📝 The fly camera — the host's own step, fed by the simulation flags instead of the seam.
         {
@@ -687,6 +716,7 @@ struct SceneDriver
         const unsigned char* LiveAtlas = static_cast<const unsigned char*>(IO.Fonts->TexData->Pixels);
         const int LiveAtlasWidth = IO.Fonts->TexData->Width;
         const int LiveAtlasHeight = IO.Fonts->TexData->Height;
+
 
         Rasterizer Out;
         Out.Begin(static_cast<int>(ViewportWidth), static_cast<int>(ViewportHeight));
@@ -948,6 +978,146 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
             std::fprintf(stderr, "[FAIL] the lattice presentation did not change the render\n");
             return false;
         }
+    }
+    else if (std::strcmp(Scenario, "editor-search-filter") == 0)
+    {
+        Driver.ApplyPartition(false);
+        Driver.Settle(20);
+
+        // 📐 The outliner column's geometry, exactly as the panel lays it out: the column is 350 px
+        //    (or 60% of the leaf), the header is `HeaderHeight`, and the search field sits below it.
+        const PlaneExtent OutlinerBody = Driver.Editor.LeafBody(1u);
+        const float OutlinerX = (350.0f < OutlinerBody.Width() * 0.6f)
+                              ? 350.0f : OutlinerBody.Width() * 0.6f;
+
+        ThemeSelection Sel;
+        Sel.Current = ThemeSubject::Oled;
+        const ThemeProfile Resolved = ResolveTinted(1.0, 1.0, ViewportWidth, Sel);
+        const float AppliedFactor = static_cast<float>(Resolved.Measure.DisplayScale)
+                                  * Resolved.ControlMeasure.ArtistFactor;
+        const ShellMetric Scaled = ScaleShellLengths(AppliedFactor);
+
+        const float Pad = Scaled.PanePad;
+        const float SearchX = OutlinerBody.MinimumX + OutlinerX * 0.5f;
+        const float SearchY = OutlinerBody.MinimumY + Scaled.HeaderHeight + Pad
+                            + Scaled.SearchHeight * 0.5f;
+
+        // 📐 The rows band the assertions count: the whole column below the outliner's own header,
+        //    above the page strip and the footer. The facet card and the search field sit inside it,
+        //    but their ink is small and constant compared with the rows they filter — the count is
+        //    dominated by how many rows are actually presented.
+        const float BandY0 = OutlinerBody.MinimumY + Scaled.HeaderHeight + 5.0f;
+        const float BandY1 = OutlinerBody.MaximumY - Scaled.FooterHeight - Scaled.ComponentY - 5.0f;
+        const float BandX0 = OutlinerBody.MinimumX + 10.0f;
+        const float BandX1 = OutlinerBody.MinimumX + OutlinerX - 10.0f;
+
+        // 📐 Counts the row-ink pixels in the band: row text and glyphs are brighter than the dark
+        //    column ground, so the count is proportional to the number of rows actually presented.
+
+        const auto RowsInk = [&](const char* Path) -> std::uint32_t
+        {
+            int ReadWidth = 0;
+            int ReadHeight = 0;
+            int ReadChannels = 0;
+            unsigned char* ReadPixels = stbi_load(Path, &ReadWidth, &ReadHeight, &ReadChannels, 4);
+
+            if (ReadPixels == nullptr)
+                return 0u;
+
+            std::uint32_t Ink = 0u;
+
+            for (int Y = static_cast<int>(BandY0); Y < static_cast<int>(BandY1); ++Y)
+            {
+                for (int X = static_cast<int>(BandX0); X < static_cast<int>(BandX1); ++X)
+                {
+                    const std::size_t Offset = (static_cast<std::size_t>(Y) * ReadWidth + X) * 4u;
+                    const int R = ReadPixels[Offset + 0u];
+                    const int G = ReadPixels[Offset + 1u];
+                    const int B = ReadPixels[Offset + 2u];
+
+                    if (R > 100 || G > 100 || B > 100)
+                        ++Ink;
+                }
+            }
+
+            stbi_image_free(ReadPixels);
+            return Ink;
+        };
+
+        // ① The search field: press, type "fly" while held (the tag on "Editor Camera" is
+        //    "camera fly view"), release. The run must land in the retention and the field must
+        //    report taken.
+        Driver.Tick(SearchX, SearchY, true, true, false);
+        std::strncpy(Driver.SimTyped, "fly", sizeof(Driver.SimTyped) - 1u);
+        Driver.Tick(SearchX, SearchY, true, false, false);
+        Driver.Tick(SearchX, SearchY, false, false, true);
+        Driver.Settle(2);
+
+        std::fprintf(stderr, "[assert] retention after typing 'fly': '%s' taken=%d\n",
+                     Driver.Applied.EntityRetention, Driver.Applied.SearchTaken ? 1 : 0);
+
+        if (std::strcmp(Driver.Applied.EntityRetention, "fly") != 0)
+        {
+            std::fprintf(stderr, "[FAIL] the search field did not accept the typed run\n");
+            return false;
+        }
+
+        const std::string FlyPath = "_AgentScratch/filter-fly.png";
+        if (!Driver.Capture(FlyPath.c_str(), Atlas, AtlasWidth, AtlasHeight))
+            return false;
+        const std::uint32_t InkFly = RowsInk(FlyPath.c_str());
+
+        // ② Clear the search; the full directory returns.
+        Driver.Applied.EntityRetention[0] = '\0';
+        Driver.Settle(2);
+
+        const std::string AllPath = "_AgentScratch/filter-all.png";
+        if (!Driver.Capture(AllPath.c_str(), Atlas, AtlasWidth, AtlasHeight))
+            return false;
+        const std::uint32_t InkAll = RowsInk(AllPath.c_str());
+
+        // ③ The Lights facet: only the Lighting folder and the Sun remain.
+        Driver.Applied.FacetEnabled[1u] = true;
+        Driver.Settle(2);
+
+        const std::string LightsPath = "_AgentScratch/filter-lights.png";
+        if (!Driver.Capture(LightsPath.c_str(), Atlas, AtlasWidth, AtlasHeight))
+            return false;
+        const std::uint32_t InkLights = RowsInk(LightsPath.c_str());
+
+        // ④ A run nothing matches: the empty state stands.
+        Driver.Applied.FacetEnabled[1u] = false;
+        Driver.Tick(SearchX, SearchY, true, true, false);
+        std::strncpy(Driver.SimTyped, "zzz", sizeof(Driver.SimTyped) - 1u);
+        Driver.Tick(SearchX, SearchY, true, false, false);
+        Driver.Tick(SearchX, SearchY, false, false, true);
+        Driver.Settle(2);
+
+        const std::string NonePath = "_AgentScratch/filter-none.png";
+        if (!Driver.Capture(NonePath.c_str(), Atlas, AtlasWidth, AtlasHeight))
+            return false;
+        const std::uint32_t InkNone = RowsInk(NonePath.c_str());
+
+        std::fprintf(stderr,
+                     "[assert] row ink: all=%u lights=%u fly=%u none=%u\n",
+                     InkAll, InkLights, InkFly, InkNone);
+
+        // 📐 The facet card and the search field add a constant ink floor to every phase; the ROW
+        //    count is what moves. Seven rows must out-ink two rows by a margin, two rows must
+        //    out-ink the empty state, and the empty state stays bounded.
+        if (InkAll < InkLights + 100u || InkLights < InkNone + 100u || InkFly < InkNone + 100u)
+        {
+            std::fprintf(stderr, "[FAIL] the search or the facets did not filter the rows\n");
+            return false;
+        }
+
+        if (InkNone > 900u)
+        {
+            std::fprintf(stderr, "[FAIL] the empty state still drew rows\n");
+            return false;
+        }
+
+        std::fprintf(stderr, "[assert] the tag 'fly' found the camera by tag, not by name\n");
     }
     else if (std::strcmp(Scenario, "editor-camera-fly") == 0)
     {
@@ -1354,7 +1524,7 @@ int main(int ArgumentCount, char** Arguments)
     IO.Fonts->TexRef._TexData = IO.Fonts->TexData;
 
     const char* Shots[] = {"editor-overview", "editor-sun-props", "editor-after-drag",
-                           "editor-camera-fly", "editor-grid-settings"};
+                           "editor-camera-fly", "editor-grid-settings", "editor-search-filter"};
 
     int Rendered = 0;
     for (const char* Shot : Shots)

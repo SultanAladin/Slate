@@ -142,6 +142,11 @@ its own pass inside the host's dynamic-rendering scope, AFTER the interface.
   pixels are the pass's input; `editor-grid-settings` asserts all three axes
   (R/G/B at full opacity), the gizmo's white centre handle, and that
   lines+dots carries ~6x the lattice ink of dots-only.
+- 🔴 HARNESS LESSON (do not regress): `SceneDriver` must own its
+  `ThemeProfile` as a MEMBER — the panels borrow it and read it every tick.
+  A stack local in `Construct` is use-after-scope the moment the struct grows:
+  intermittent segfaults, flat dark-blue renders and "missing" axes/rows all
+  came from exactly that, and ASAN caught it at `WorkspacePanel::Record`.
 - The sky dome is direction-indexed and camera-independent: looking around only
   moves the crop, never regenerates the texture. The viewport samples the dome
   through a PERSPECTIVE mesh (per-vertex UVs along the true pinhole ray), so
@@ -159,6 +164,24 @@ its own pass inside the host's dynamic-rendering scope, AFTER the interface.
   page, and the "Inspect" call in its header jumps to Properties. The
   properties leaf's own Properties | History strip is a separate tab state, so
   the two leaves never fight.
+- **Search + filter in the directory**: a search field sits between the
+  outliner's header and its rows (the reference's "Filter Entities…" box,
+  which the editor lacked). It is GATED: the panel reports `SearchTaken` and
+  the host feeds the seam's `AcceptTyped` only while the field holds the
+  contact — the validation shell captured every keystroke unconditionally,
+  which is the "search box not working" defect. Backspace deletes, Escape
+  clears. Below the search box sits the validation UI's generic FacetPanel
+  ("Filters"): wrapped category chips (Objects, Lights, Cameras, Folders,
+  Audio, Particles, Triggers, Environment, Layers), individual removal,
+  clear-all and a shared dropdown. Every `EntityRow` carries a `Tagged` run
+  (space-separated, borrowed) — a row matches when its NAME or its TAGS
+  contain the search run AND its category's facet is enabled; a row also
+  shows when a descendant matches, and while the filter stands every branch
+  is forced open. All facets off = no filtering; an empty run = no search.
+  The harness's `editor-search-filter` asserts the typed run lands, the tag
+  "fly" finds the camera (tagged "camera fly view") even though no name
+  contains it, the Lights facet narrows to two rows, and "zzz" reaches the
+  empty state.
 - **Shutdown order matters**: `SkySurface.Reclaim()` runs BEFORE
   `Lifetime.Reclaim()` — a surface left standing past the device reclaim waits
   on a dead fence and reports `vkWaitForFences: Invalid device` at exit.

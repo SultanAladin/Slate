@@ -171,6 +171,10 @@ struct EntityRow
     std::uint32_t  Depth            = 0u;                     // [-] - indentation steps from the level
     std::uint32_t  Enclosing        = 0xFFFFFFFFu;            // [-] - the row holding it; absent for the level
     std::uint32_t  EnclosedCount    = 0u;                     // [-] - zero presents no disclosure mark
+    // 📝 The row's search tags — a space-separated run, borrowed like `Naming`. The scene
+    //    directory's filter matches the name OR the tags, so an artist can find "the fly cam" by
+    //    searching "fly" even though the row is named "Editor Camera". The run is empty by default.
+    const char*    Tagged           = "";                     // [-] - borrowed; "sun light directional"
 };
 
 //------------------------------------------------------------------------------------------------------------------------

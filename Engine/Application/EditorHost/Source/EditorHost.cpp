@@ -242,13 +242,13 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    inspector's slider cards branch on them while every reference entity keeps its g_NN identity.
     static constexpr EntityRow EditorEntities[7] =
     {
-        { "Level_01_City",           EntitySubject::Level,      0u, 0xFFFFFFFFu, 3u },
-        { "Lighting",                EntitySubject::Grouping,   1u,  0u,         2u },
-        { "Directional Light (Sun)", EntitySubject::Sun,        2u,  1u,         0u },
-        { "Sky Atmosphere",          EntitySubject::Sky,        2u,  1u,         0u },
-        { "Environment",             EntitySubject::Grouping,   1u,  0u,         1u },
-        { "Post Process Volume",     EntitySubject::Actor,      2u,  4u,         0u },
-        { "Editor Camera",           EntitySubject::Camera,     1u,  0u,         0u }
+        { "Level_01_City",           EntitySubject::Level,      0u, 0xFFFFFFFFu, 3u, "city level main" },
+        { "Lighting",                EntitySubject::Grouping,   1u,  0u,         2u, "folder lighting" },
+        { "Directional Light (Sun)", EntitySubject::Sun,        2u,  1u,         0u, "sun light directional" },
+        { "Sky Atmosphere",          EntitySubject::Sky,        2u,  1u,         0u, "sky atmosphere dome" },
+        { "Environment",             EntitySubject::Grouping,   1u,  0u,         1u, "folder environment" },
+        { "Post Process Volume",     EntitySubject::Actor,      2u,  4u,         0u, "post volume effects" },
+        { "Editor Camera",           EntitySubject::Camera,     1u,  0u,         0u, "camera fly view" }
     };
 
     // 📝 The editor's own history run, drained from the shell's one-slot demand at drag end.
@@ -721,6 +721,33 @@ int main(int ArgumentCount, char** ArgumentValues)
             SceneDirectory.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds,
                                    SceneApplied,
                                    Viewport.Seam().KeyPressed(KeySubject::Summon));
+
+            // 📝 The search field: while it holds the contact, the seam's typed run feeds the
+            //    directory's retention run, and Backspace / Escape edit it. Gated on the panel's own
+            //    `SearchTaken` — the validation shell captured every keystroke unconditionally,
+            //    which is the "search box not working" a gate fixes.
+            if (SceneApplied.SearchTaken)
+            {
+                static_cast<void>(Viewport.Seam().AcceptTyped(SceneApplied.EntityRetention,
+                                                              SceneDirectoryContext::RetentionCeiling));
+
+                if (Viewport.Seam().KeyPressed(KeySubject::Retract))
+                {
+                    std::uint32_t Occupied = 0u;
+
+                    while (Occupied + 1u < SceneDirectoryContext::RetentionCeiling &&
+                           SceneApplied.EntityRetention[Occupied] != '\0')
+                    {
+                        ++Occupied;
+                    }
+
+                    if (Occupied > 0u)
+                        SceneApplied.EntityRetention[Occupied - 1u] = '\0';
+                }
+
+                if (Viewport.Seam().KeyPressed(KeySubject::Withdraw))
+                    SceneApplied.EntityRetention[0] = '\0';
+            }
 
             // 📝 The fly camera: the seam's held keys and look gesture drive the rig, and the lagged
             //    pose becomes the viewport crop. The sky dome is direction-indexed and camera-independent,
