@@ -8,6 +8,7 @@
 #include "SlateUI/Interface/ControlCentrePanel/Api/ControlCentrePanel.h"
 #include "SlateUI/Interface/ThemeInterchange/Api/ThemeInterchange.h"
 #include "SlateUI/Interface/EditorPanel/Api/EditorPanel.h"
+#include "SlateUI/Interface/GlobalShellPanel/Api/GlobalShellPanel.h"
 #include "SlateUI/Interface/ViewportSequence/Api/ViewportSequence.h"
 #include "SlateUI/Interface/WorkspacePanel/Api/WorkspaceIndex.h"
 #include "SlateVulkan/Device/HostLifecycle/Api/HostLifecycle.h"
@@ -47,10 +48,11 @@ constexpr std::uint32_t EasesPerControl = 2u;
 constexpr std::uint32_t CentreControls  = ControlCentrePanel::ControlCapacity;
 constexpr std::uint32_t BrowserControls = ContentBrowserPanel::RegistrationDemand;
 constexpr std::uint32_t EditorControls  = PanelStructure::RecordCeiling * EditorPanel::ControlsPerRecord;
-constexpr std::uint32_t BareEases       = 9u + 1u;   // [-] - the Control Centre's own motions
+constexpr std::uint32_t SceneControls   = GlobalShellPanel::RegistrationDemand;
+constexpr std::uint32_t BareEases       = 9u + 1u + 1u;   // [-] - Control Centre motions, shell carousel
 
 constexpr std::uint32_t DemandedEases =
-    ((CentreControls + BrowserControls + EditorControls) * EasesPerControl) + BareEases;
+    ((CentreControls + BrowserControls + EditorControls + SceneControls) * EasesPerControl) + BareEases;
 
 static_assert(DemandedEases <= MotionIntegrator::EaseCapacity,
               "this host's panels demand more eased interpolants than the integrator holds — the panel "
@@ -63,6 +65,10 @@ static_assert(BrowserControls <= InteractionIndex::ControlCapacity,
               "the content browser registers more controls than one InteractionIndex holds — Construct is "
               "rejected with \"no further control slot\" and the south drawer opens onto blank ground");
 
+static_assert(SceneControls <= InteractionIndex::ControlCapacity,
+              "the scene directory registers more controls than one InteractionIndex holds — Construct is "
+              "rejected with \"no further control slot\" and the editor opens without its scene directory");
+
 // ③ AUTOMATIC STORAGE. A Windows thread is given one megabyte and a refusal here is not a refusal at all:
 //    the guard page is touched in the prologue, so the process dies before a statement can report anything.
 //    Linux hands out eight megabytes, which is exactly why no gate here can catch it.
@@ -74,7 +80,8 @@ static_assert(sizeof(WorkspaceIndex) + sizeof(WorkspacePanel) + sizeof(EditorPan
               + (sizeof(EditorPanelConfiguration) * WorkspaceIndex::WorkspaceCeiling)
               + sizeof(ControlCentrePanel)  + sizeof(ControlCentreConfiguration)
               + sizeof(InteractionIndex)    + sizeof(ContentBrowserPanel)
-              + sizeof(ContentBrowserConfiguration) + sizeof(ContentLibrary) <= AutomaticCeiling,
+              + sizeof(ContentBrowserConfiguration) + sizeof(ContentLibrary)
+              + sizeof(InteractionIndex)    + sizeof(GlobalShellPanel) + sizeof(ShellContext) <= AutomaticCeiling,
               "this host's automatic UI members no longer fit a quarter of a Windows thread stack — the "
               "prologue's stack probe will fault before main runs a statement and the host will exit with "
               "no window and no log line; move the largest member to static storage");
@@ -171,6 +178,26 @@ int main(int ArgumentCount, char** ArgumentValues)
     EditorPanelConfiguration    PanelConfiguration[WorkspaceIndex::WorkspaceCeiling];
     ControlCentrePanel      ControlCentre;
     ControlCentreConfiguration  ControlCentreValues;
+    GlobalShellPanel        SceneDirectory;
+    ShellContext            SceneApplied;
+    InteractionIndex        SceneLedger;
+
+    // 📐 The editor's scene directory — the sun and sky the viewport renders, registered under the
+    //    Lighting grouping. `Sun` and `Sky` are the two appended `EntitySubject` ordinals, so the
+    //    inspector's slider cards branch on them while every reference entity keeps its g_NN identity.
+    static constexpr EntityRow EditorEntities[6] =
+    {
+        { "Level_01_City",           EntitySubject::Level,      0u, 0xFFFFFFFFu, 2u },
+        { "Lighting",                EntitySubject::Grouping,   1u,  0u,         2u },
+        { "Directional Light (Sun)", EntitySubject::Sun,        2u,  1u,         0u },
+        { "Sky Atmosphere",          EntitySubject::Sky,        2u,  1u,         0u },
+        { "Environment",             EntitySubject::Grouping,   1u,  0u,         1u },
+        { "Post Process Volume",     EntitySubject::Actor,      2u,  4u,         0u }
+    };
+
+    // 📝 The editor's own history run, drained from the shell's one-slot demand at drag end.
+    EntityRevision EditorRevisions[8] = {};
+    std::uint32_t  EditorRevisionCount = 0u;
     FontLoader                  Fonts;
 
     InteractionIndex         BrowserLedger;
@@ -264,6 +291,32 @@ int main(int ArgumentCount, char** ArgumentValues)
     if (!BrowserLedger.Construct(Viewport.MotionSource()).Resolved)
     {
         std::printf("%s \u2014 the content browser ledger was rejected\n", HostName);
+        return 1;
+    }
+
+    // 📝 The editor's sun and sky arrive presented, so the viewport draws the sky from the very first
+    //    frame and the inspector edits the same ordinates.
+    SceneApplied.EnvironmentPresented = true;
+    SceneApplied.Environment.SunElevation    = 35.0;
+    SceneApplied.Environment.SunAzimuth      = 120.0;
+    SceneApplied.Environment.SunIntensity    = 4.8;
+    SceneApplied.Environment.SunTemperature  = 5500.0;
+    SceneApplied.Environment.SkyIntensity    = 1.0;
+    SceneApplied.Environment.SkyTurbidity    = 2.0;
+    SceneApplied.Environment.AtmosphereDensity = 1.0;
+    SceneApplied.Environment.AtmosphereScaleHeight = 1.0;
+    SceneApplied.EntityTaken = 2u;   // [-] - the sun, taken at bring-up
+
+    if (!SceneLedger.Construct(Viewport.MotionSource()).Resolved)
+    {
+        std::printf("%s \u2014 the scene directory ledger was rejected\n", HostName);
+        return 1;
+    }
+
+    if (!SceneDirectory.Construct(SceneLedger, Viewport.MotionSource(), Viewport.Surface(),
+                                  Viewport.Appearance()).Resolved)
+    {
+        std::printf("%s \u2014 the scene directory was rejected\n", HostName);
         return 1;
     }
 
@@ -465,6 +518,38 @@ int main(int ArgumentCount, char** ArgumentValues)
             }
 
             // 📝 The drawers last, so they sit ABOVE the workspace as the sheet lays them.
+            // ④·b The scene directory — the shell's keymap first, then its tick, then the record over the
+            //      whole display. The shell's rail, viewport and summoned inspector sit ABOVE the
+            //      workspace; Tab summons the inspector and slides outliner → properties → history.
+            static_cast<void>(SceneDirectory.AdvanceSummoning(SceneApplied,
+                                                               Viewport.Seam().KeyPressed(KeySubject::Summon),
+                                                               Viewport.Seam().KeyPressed(KeySubject::Withdraw),
+                                                               Viewport.Seam().Modifiers().Shifted));
+            // 🔴 The ledger is advanced here, once, before the shell samples it — the shell's own
+            //    Advance only samples, and a second advance would retire the release before the
+            //    inspector reads it.
+            SceneLedger.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+            SceneDirectory.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+
+            // 📝 The history demand is drained ONCE per drag — the shell raises it at drag end, the host
+            //    appends it to its own run and clears the slot, and no tick in between wrote a revision.
+            if (SceneApplied.RevisionDemandSlot.Standing && EditorRevisionCount < 8u)
+            {
+                EntityRevision& Written = EditorRevisions[EditorRevisionCount++];
+                Written.Description = SceneApplied.RevisionDemandSlot.Caption;
+                Written.Secondary   = SceneApplied.RevisionDemandSlot.Secondary;
+                Written.TimeRun     = "now";
+                Written.Author      = "Artist";
+                Written.Against     = SceneApplied.RevisionDemandSlot.Against;
+                Written.Classified  = RevisionSubject::Parameter;
+                SceneApplied.RevisionDemandSlot = {};
+            }
+
+            Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
+            Discard(SceneDirectory.Record(Whole, SceneApplied, EditorEntities, 6u,
+                                          nullptr, 0u, EditorRevisions, EditorRevisionCount));
+            Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Beneath));
+
             Viewport.RecordDrawers();
             Viewport.DrawerPanels();
 

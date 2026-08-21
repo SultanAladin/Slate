@@ -8,6 +8,7 @@
 #include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
+#include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
 #include "SlateUI/Interface/ControlPanel/Api/ControlPanel.h"
 #include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
@@ -151,7 +152,12 @@ enum class EntitySubject : std::uint32_t
     Particle     = 6u,   // [-] - a visual effect
     Trigger      = 7u,   // [-] - a volume
     Script       = 8u,   // [-] - a behaviour
-    SubjectCount = 9u    // [-] - the closed count, never a subject
+    // 📐 The editor's environment, appended rather than inserted: the reference's ordinals above are the
+    //    validation sheet's g_NN identities, so they must not move. `Sun` and `Sky` are what the editor
+    //    registers under Lighting so the inspector can branch its cards on them.
+    Sun          = 9u,   // [-] - the directional illuminant the sky responds to
+    Sky          = 10u,  // [-] - the atmosphere shell and its aerial perspective
+    SubjectCount = 11u   // [-] - the closed count, never a subject
 };
 
 /// 🧩 The glyph one entity subject is drawn with, from the reference's own `ICONS` record.
@@ -297,6 +303,41 @@ struct EntityRevision
     RevisionSubject  Classified = RevisionSubject::Amended;   // [-] - rev.category
 };
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE ENVIRONMENT
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 Every parameter the editor's sun, sky and atmosphere present, owned by the host and written through
+///    by the inspector's slider cards.
+/// note  🔴 Phase 1 presents these as editable ordinates and renders a stylised sky from them. The values are
+///        exactly what the atmosphere shaders will read in phase 2, so the property surface does not move
+///        when the renderer stops being a placeholder.
+/// tag   contract, nonallocating, nonthrowing
+struct EnvironmentConfiguration
+{
+    double SunElevation = 35.0;       // [deg] - above the horizon, 0…90
+    double SunAzimuth   = 120.0;      // [deg] - clockwise from north, 0…360
+    double SunIntensity = 4.8;        // [lx]  - the directional illuminant's illuminance
+    double SunTemperature = 5500.0;   // [K]   - the sun's colour temperature, 1000…12000
+    double SkyIntensity = 1.0;        // [-]   - the sky dome's luminance scale, 0…3
+    double SkyTurbidity = 2.0;        // [-]   - the atmosphere's turbidity, 1…10
+    double AtmosphereDensity = 1.0;   // [-]   - the Rayleigh density scale, 0…3
+    double AtmosphereScaleHeight = 1.0; // [-] - the density fall-off height, 0.2…3
+};
+
+/// 🧩 One slider drag's history demand, written by the inspector at drag END and drained by the host.
+/// note  🔴 The demand is a single slot rather than an array because exactly one slider can end its drag in
+///        one tick. The host appends it to its own revision run and clears the slot; the panel never owns
+///        the run.
+/// tag   contract, nonallocating, nonthrowing
+struct RevisionDemand
+{
+    bool           Standing  = false;   // [-] - a drag ended and awaits the host's append
+    std::uint32_t  Against   = 0u;      // [-] - which outline row the revision belongs to
+    char           Caption[64] = {};    // [-] - the composed description, e.g. "Sun elevation"
+    char           Secondary[64] = {};  // [-] - the composed before→after, e.g. "35.0° → 42.0°"
+};
+
 /// 🧩 One row of the World Outliner, linearised and carrying its own depth.
 /// note  📝 The reference holds a nested graph and renders it recursively. A linear sequence carrying depth
 ///       records identically and needs no recursion inside a tick, which is what keeps the panel allocation
@@ -371,6 +412,13 @@ struct ShellContext
     bool  LayerUnfolded[LayerCeiling] = { true };          // [-] - expandedIds
     bool  LayerShown[LayerCeiling]    = { true, true, false, true, true, true,
                                           true, true, true, true, true, true };   // [-] - shown
+
+    // 📝 The editor's environment. `EnvironmentPresented` gates every environment branch in the shell, so
+    //    the validation host (which never sets it) renders byte-identically; the editor sets it and the
+    //    viewport draws the sun and sky from `Environment` while the inspector edits the same values.
+    bool                       EnvironmentPresented = false;   // [-] - the editor's sun/sky/atmosphere UI
+    EnvironmentConfiguration   Environment          = {};      // [-] - host-owned; the inspector writes it
+    RevisionDemand             RevisionDemandSlot   = {};      // [-] - one drag-end history demand
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -404,7 +452,8 @@ public:
         + ShellContext::CardCeiling               // [-] - one fold per property card
         + ShellContext::EntityCeiling             // [-] - one fold per grouped revision header
         + ShellContext::EntityCeiling * 4u        // [-] - contact, disclosure, presence and kebab per row
-        + ShellContext::LayerCeiling  * 6u;       // [-] - two halves and four actions per layer row
+        + ShellContext::LayerCeiling  * 6u        // [-] - two halves and four actions per layer row
+        + 6u;                                      // [-] - the six environment slider rows
 
     GlobalShellPanel()                                   = default;
     GlobalShellPanel(const GlobalShellPanel&)            = delete;
@@ -612,6 +661,15 @@ private:
     ControlIdentity  LayerRetires[LayerCeiling]     = {};   // [-] - one per bin
     ControlIdentity  LayerAdd                       = {};   // [-] - the Add layer button
     ControlIdentity  LayerRetention                 = {};   // [-] - the Filter layers run
+
+    // 📝 The environment slider cards — six rows: sun elevation, azimuth, intensity and temperature, then
+    //    sky intensity and atmosphere density. Each carries its own identity so a drag on one does not
+    //    hover another, and the drag-end history demand keys off the released identity.
+    ControlIdentity  EnvironmentSliders[6]          = {};   // [-] - one per environment slider row
+
+    ComponentSpecification         EnvironmentControls = {};  // [-] - the environment slider rows
+    bool                           EnvironmentArmed[6] = {};  // [-] - drag-start latched per slider
+    double                         EnvironmentFrom[6]  = {};  // [-] - the value at drag start
 };
 
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);

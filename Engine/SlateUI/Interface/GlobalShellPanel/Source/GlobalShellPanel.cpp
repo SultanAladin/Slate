@@ -5,6 +5,7 @@
 
 #include "SlateUI/Interface/GlobalShellPanel/Api/GlobalShellPanel.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 
@@ -91,6 +92,8 @@ SymbolSubject EntityGlyph(EntitySubject Subject)
         case EntitySubject::Particle:   return SymbolSubject::ParticleEmit;
         case EntitySubject::Trigger:    return SymbolSubject::CrosshairCentre;
         case EntitySubject::Script:     return SymbolSubject::CodeBrackets;
+        case EntitySubject::Sun:        return SymbolSubject::SunDirectional;
+        case EntitySubject::Sky:        return SymbolSubject::SunDirectional;
         default:                        return SymbolSubject::CubeSolid;
     }
 }
@@ -109,6 +112,8 @@ ThemeToken EntityHue(EntitySubject Subject)
         case EntitySubject::Particle:   return Covering(0x10B981u);
         case EntitySubject::Trigger:    return Covering(0xEF4444u);
         case EntitySubject::Script:     return Covering(0x06B6D4u);
+        case EntitySubject::Sun:        return Covering(0xF59E0Bu);
+        case EntitySubject::Sky:        return Covering(0x38BDF8u);
         default:                        return Covering(0x8A8A8Au);
     }
 }
@@ -126,6 +131,8 @@ const char* EntityText(EntitySubject Subject)
         case EntitySubject::Particle:   return "Particle";
         case EntitySubject::Trigger:    return "Trigger";
         case EntitySubject::Script:     return "Script";
+        case EntitySubject::Sun:        return "Sun";
+        case EntitySubject::Sky:        return "Sky";
         default:                        return "Entity";
     }
 }
@@ -232,6 +239,13 @@ Outcome<bool> GlobalShellPanel::Construct(InteractionIndex&              Interac
                                        "the shared inspector controls were rejected" });
     }
 
+    if (!EnvironmentControls.Construct(Interaction, Surface, Resolved).Resolved)
+    {
+        Reset();
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent,
+                                       "the environment slider controls were rejected" });
+    }
+
     // 🔴 Every identity is claimed here and none inside a tick. A control registered mid-tick receives a fresh
     //    fade and reads as though the pointer had just arrived over it, once per tick, forever.
     ControlIdentity* const Every[] =
@@ -305,6 +319,22 @@ Outcome<bool> GlobalShellPanel::Construct(InteractionIndex&              Interac
         }
     }
 
+    // 📝 The six environment slider rows. Registered always, drawn only while `EnvironmentPresented`,
+    //    on the same terms as every other control here — a control registered mid-tick would fade as
+    //    though the pointer had just arrived over it, once per tick, forever.
+    for (ControlIdentity& Slider : EnvironmentSliders)
+    {
+        const Outcome<ControlIdentity> Registered = Interaction.Register();
+
+        if (!Registered.Resolved)
+        {
+            Reset();
+            return Outcome<bool>::Refuse(Registered.Error);
+        }
+
+        Slider = Registered.Resolve();
+    }
+
     // 📐 The two-slide strip. The reference translates it by `-translate-x-1/2` over 300 ms on
     //    cubic-bezier(.5,.05,.2,1), which `EaseCurve::Carousel` already names exactly.
     const Outcome<std::uint32_t> Registered = Integrator.RegisterEased(0.0);
@@ -326,6 +356,9 @@ void GlobalShellPanel::Advance(const PointerCondition& Contact, double Elapsed)
 {
     Sampled = Contact;
     Controls.Advance(Contact, Elapsed);
+    // 📝 Sampled, never advanced: the tick owner advances the shared ledger exactly once, and a
+    //    second advance would retire the release before the inspector reads it.
+    EnvironmentControls.Sample(Contact);
 }
 
 void GlobalShellPanel::Reapply(const ThemeProfile& Resolved)
@@ -760,6 +793,103 @@ void GlobalShellPanel::RecordViewport(const PlaneExtent& Extent, const ShellCont
     // 🔴 Confined before the weave. The lattice is recorded as discrete rules and the last one before each
     //    bound would otherwise overhang the viewport into the rail and the inspector.
     Surface->Confine(Extent);
+
+    // 📝 The editor's sky, drawn in place of the weave while the environment stands presented. Phase 1
+    //    renders the sun and sky from the configuration as recording-surface primitives; phase 2 replaces
+    //    the dome with the atmosphere shaders reading the very same ordinates.
+    if (Applied.EnvironmentPresented)
+    {
+        const EnvironmentConfiguration& Sky = Applied.Environment;
+
+        // 📐 The dome: a zenith-to-horizon ramp, brightening with sky intensity and warming with turbidity.
+        const float Intensity = static_cast<float>(Sky.SkyIntensity);
+        const float Turbidity = static_cast<float>(Sky.SkyTurbidity / 10.0);
+        const float ZenithMix = 0.45f + 0.30f * Intensity;
+        const float HorizonMix = 0.55f + 0.30f * Intensity;
+
+        // 📐 The dome's blue is authored here rather than read from the theme, because the reference's
+        //    desk ground is deliberately dark and the sky must read as a sky in every appearance.
+        const ThemeToken Zenith =
+            Covering(static_cast<std::uint32_t>(
+                (static_cast<unsigned>(52u + 30u * ZenithMix) << 16) |
+                (static_cast<unsigned>(86u + 42u * ZenithMix) << 8) |
+                static_cast<unsigned>(138u + 46u * ZenithMix)));
+        const ThemeToken Horizon =
+            Covering(static_cast<std::uint32_t>(
+                (static_cast<unsigned>(128u + 60u * HorizonMix) << 16) |
+                (static_cast<unsigned>(152u + 52u * HorizonMix) << 8) |
+                static_cast<unsigned>(178u + 40u * HorizonMix)));
+
+        Surface->Scrim(Extent, Zenith, Horizon, ScrimAxis::Y);
+
+        // 📐 The sun disc, placed by elevation (height above the horizon) and azimuth (side along the
+        //    viewport). The temperature maps 1000 K → deep red and 12000 K → blue-white.
+        const float HorizonY = Extent.MinimumY + Extent.Height() * 0.62f;
+        const float Elevation = std::clamp(static_cast<float>(Sky.SunElevation), 0.0f, 90.0f);
+        const float Azimuth = static_cast<float>(Sky.SunAzimuth);
+        const float AlongFraction = 0.5f + 0.42f * std::sin(Azimuth * 3.14159265f / 180.0f);
+        const float SunX = Extent.MinimumX + Extent.Width() * AlongFraction;
+        const float SunY = HorizonY - (Elevation / 90.0f) * Extent.Height() * 0.52f;
+
+        const float Temperature = std::clamp(static_cast<float>(Sky.SunTemperature), 1000.0f, 12000.0f);
+        const float T = (Temperature - 1000.0f) / 11000.0f;
+        std::uint32_t SunRed = 0u;
+        std::uint32_t SunGreen = 0u;
+        std::uint32_t SunBlue = 0u;
+        if (T < 0.5f)
+        {
+            SunRed = 255u;
+            SunGreen = static_cast<std::uint32_t>(80.0f + T * 2.0f * 175.0f);
+            SunBlue = static_cast<std::uint32_t>(30.0f + T * 2.0f * 40.0f);
+        }
+        else
+        {
+            const float U = (T - 0.5f) * 2.0f;
+            SunRed = static_cast<std::uint32_t>(255.0f - U * 60.0f);
+            SunGreen = static_cast<std::uint32_t>(255.0f - U * 30.0f);
+            SunBlue = static_cast<std::uint32_t>(110.0f + U * 145.0f);
+        }
+        const ThemeToken SunColour = Covering((SunRed << 16) | (SunGreen << 8) | SunBlue);
+
+        // 📐 The glow: three concentric halos stepping the coverage down, then the disc itself. The halo
+        //    radius scales with intensity so a brighter sun reads larger.
+        const float Halo = 90.0f + 40.0f * static_cast<float>(Sky.SunIntensity / 5.0);
+        Surface->Medallion(SunX, SunY, Halo, Faded(SunColour, 0.10f));
+        Surface->Medallion(SunX, SunY, Halo * 0.6f, Faded(SunColour, 0.16f));
+        Surface->Medallion(SunX, SunY, Halo * 0.32f, Faded(SunColour, 0.30f));
+        Surface->Medallion(SunX, SunY, 26.0f, SunColour);
+
+        // 📐 The horizon line, where the ground meets the dome.
+        Surface->Ground(Spanning(Extent.MinimumX, HorizonY - 1.0f, Extent.Width(), 2.0f),
+                        Faded(Covering(0xFFFFFFu), 0.10f), 0.0f, CornerNone);
+        Surface->Ground(Spanning(Extent.MinimumX, HorizonY, Extent.Width(),
+                                 Extent.MaximumY - HorizonY),
+                        Covering(0x101418u), 0.0f, CornerNone);
+
+        // 📐 The atmosphere's aerial perspective: a band over the horizon that thickens with density.
+        const float HazeHeight = 60.0f * static_cast<float>(Sky.AtmosphereDensity);
+        Surface->Scrim(Spanning(Extent.MinimumX, HorizonY - HazeHeight, Extent.Width(), HazeHeight),
+                       Faded(Covering(0x000000u), 0.0f),
+                       Faded(Covering(0xC8D8E8u), 0.28f * static_cast<float>(Sky.AtmosphereDensity)),
+                       ScrimAxis::Y);
+
+        // 📐 The weave is retained faintly so the scene still reads as the editor's grid; it is what the
+        //    artist expects under a selection.
+        const float Steps[2] = { Scaled.WeaveFineStep, Scaled.WeaveCoarseStep };
+        const ThemeToken WeaveColours[2] = { Tinted.WeaveFine, Tinted.WeaveCoarse };
+        for (std::uint32_t Pass = 0u; Pass < 2u; ++Pass)
+        {
+            const float Step = Steps[Pass];
+            if (Step < 1.0f)
+                continue;
+            for (float X = Extent.MinimumX; X < Extent.MaximumX; X += Step)
+                Surface->Ground(Spanning(X, Extent.MinimumY, 1.0f, Extent.Height()),
+                                WeaveColours[Pass], 0.0f, CornerNone);
+            for (float Y = Extent.MinimumY; Y < Extent.MaximumY; Y += Step)
+                Surface->Ground(Spanning(Extent.MinimumX, Y, Extent.Width(), 1.0f),
+                                WeaveColours[Pass], 0.0f, CornerNone);
+        }
+    }
 
     // 📐 Two lattices, exactly as the reference declares: 28 px at 0.028 coverage, then 140 px at 0.055.
     //    Each is one-pixel rules, which is what a `linear-gradient(… 1px, transparent 1px)` produces.
@@ -2003,6 +2133,138 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellConte
         Sweep = Card.MaximumY + Pad * 0.85f;
     };
 
+    // 📝 The environment slider card — the same fold as `RecordCard`, but its rows are live magnitude
+    //    rows that write the configuration, and a drag that ENDS with a changed value raises the
+    //    host's revision demand ONCE. The demand is what makes history record on drag start/end rather
+    //    than on every tick the thumb moved.
+    const auto RecordEnvironmentCard = [&](const char* Caption,
+                                           const char* const* SliderCaptions,
+                                           const char* const* UnitGlyphs,
+                                           const double* Minimums, const double* Maximums,
+                                           double* Values, std::uint32_t SliderCount)
+    {
+        if (CardOrdinal >= CardCeiling)
+            return;
+
+        const std::uint32_t Target = CardOrdinal++;
+        const bool  Folded   = Applied.CardFolded[Target];
+        const float Current  = Controls.OutlineExpansion(CardFolds[Target], !Folded, true);
+
+        const float BodyHeight = (static_cast<float>(SliderCount) * Scaled.RowHeight + Pad * 2.0f) * Current;
+        const PlaneExtent Card = Spanning(Extent.MinimumX + Pad, Sweep,
+                                          Extent.Width() - Pad * 2.0f,
+                                          Scaled.ComponentY + BodyHeight);
+
+        Surface->Ground(Card, Covering(0x0A0A0Bu), Scaled.CardRadius, CornerAll);
+        Surface->Edge(Card, Tinted.Hairline, 1.0f, Scaled.CardRadius, CornerAll);
+
+        const PlaneExtent CardHeader = Spanning(Card.MinimumX, Card.MinimumY,
+                                                Card.Width(), Scaled.ComponentY);
+
+        Surface->Ground(CardHeader, Tinted.MenuLower, Scaled.CardRadius,
+                        CornerLeadingUpper | CornerTrailingUpper);
+
+        const bool OnHeader = CardHeader.Encloses(Sampled.PositionX, Sampled.PositionY);
+
+        if (Sampled.ContactPressed && OnHeader && !Ledger->AnyDisclosed())
+            Ledger->Grab(CardFolds[Target], ControlPart::Chevron);
+
+        if (OnHeader && Ledger->Released(CardFolds[Target]))
+            Applied.CardFolded[Target] = !Applied.CardFolded[Target];
+
+        if (Current > 0.0f)
+            Surface->Ground(Spanning(CardHeader.MinimumX, CardHeader.MaximumY - 1.0f,
+                                     CardHeader.Width(), 1.0f),
+                            Faded(Tinted.Hairline, Current), 0.0f, CornerNone);
+
+        const float Mark = Scaled.ActionGlyph;
+
+        Surface->Stroke(Folded ? SymbolSubject::ChevronRight : SymbolSubject::ChevronDown,
+                        Spanning(CardHeader.MinimumX + Scaled.HeaderPadX * 0.6f,
+                                 CardHeader.MinimumY + (CardHeader.Height() - Mark) * 0.5f,
+                                 Mark, Mark),
+                        Tinted.Faint);
+
+        const float CaptionRun = Scaled.RunSmall;
+
+        Surface->TextRunCapitalised(CardHeader.MinimumX + Scaled.HeaderPadX * 0.6f + Mark + Pad,
+                                    CardHeader.MinimumY + (CardHeader.Height() - CaptionRun) * 0.5f,
+                                    OnHeader ? Tinted.Primary : Tinted.Muted, Caption, CaptionRun,
+                                    0.025f, true);
+
+        char Tallied[8] = {};
+        std::snprintf(Tallied, sizeof(Tallied), "%u", static_cast<unsigned>(SliderCount));
+
+        const float TallyRun = Scaled.RunFiner;
+
+        Surface->TextRun(CardHeader.MaximumX - Scaled.HeaderPadX
+                         - Surface->MeasureRun(Tallied, TallyRun, 0.0f),
+                         CardHeader.MinimumY + (CardHeader.Height() - TallyRun) * 0.5f,
+                         Tinted.Faint, Tallied, TallyRun);
+
+        if (Current > 0.0f)
+        {
+            const PlaneExtent Opened = Spanning(Card.MinimumX, CardHeader.MaximumY,
+                                                Card.Width(), BodyHeight);
+
+            Surface->Confine(Opened);
+
+            float RowCursor = CardHeader.MaximumY + Pad;
+
+            for (std::uint32_t SliderOrdinal = 0u; SliderOrdinal < SliderCount; ++SliderOrdinal)
+            {
+                const PlaneExtent Row = Spanning(Card.MinimumX + Pad * 1.5f, RowCursor,
+                                                 Card.Width() - Pad * 3.0f, Scaled.RowHeight);
+
+                MagnitudeDeclaration Declared;
+                Declared.Caption     = SliderCaptions[SliderOrdinal];
+                Declared.UnitGlyph   = UnitGlyphs[SliderOrdinal];
+                Declared.Minimum     = Minimums[SliderOrdinal];
+                Declared.Maximum     = Maximums[SliderOrdinal];
+
+                double& Coordinate   = Values[SliderOrdinal];
+
+                static_cast<void>(EnvironmentControls.MagnitudeRow(EnvironmentSliders[SliderOrdinal],
+                                                                   Row, Declared, Coordinate, true));
+
+                // 🔴 The drag arm: latched the first tick the slider holds the contact, with the value
+                //    at that moment — the "start" the history entry describes. Released with a changed
+                //    value, one demand is raised; neither fires on the intermediate ticks.
+                if (Ledger->Holding(EnvironmentSliders[SliderOrdinal]) && !EnvironmentArmed[SliderOrdinal])
+                {
+                    EnvironmentArmed[SliderOrdinal] = true;
+                    EnvironmentFrom[SliderOrdinal]  = Coordinate;
+                }
+
+                if (Ledger->Released(EnvironmentSliders[SliderOrdinal]))
+                {
+                    if (EnvironmentArmed[SliderOrdinal])
+                    {
+
+                        if (std::abs(Coordinate - EnvironmentFrom[SliderOrdinal]) > 0.0005)
+                        {
+                            Applied.RevisionDemandSlot.Standing  = true;
+                            Applied.RevisionDemandSlot.Against   = Applied.EntityTaken;
+                            std::snprintf(Applied.RevisionDemandSlot.Caption,
+                                          sizeof(Applied.RevisionDemandSlot.Caption), "%s",
+                                          SliderCaptions[SliderOrdinal]);
+                            std::snprintf(Applied.RevisionDemandSlot.Secondary,
+                                          sizeof(Applied.RevisionDemandSlot.Secondary),
+                                          "%.1f \u2192 %.1f",
+                                          EnvironmentFrom[SliderOrdinal], Coordinate);
+                        }
+                    }
+                }
+
+                RowCursor += Scaled.RowHeight;
+            }
+
+            Surface->Release();
+        }
+
+        Sweep = Card.MaximumY + Pad * 0.85f;
+    };
+
     const bool Transforms = Current.Subject != EntitySubject::Level
                          && Current.Subject != EntitySubject::Grouping
                          && Current.Subject != EntitySubject::Script;
@@ -2066,6 +2328,74 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellConte
         {
             const char* const Fields[2] = { "Level Name", "World Partition" };
             RecordCard(ComponentCaption, Fields, 2u);
+            break;
+        }
+        case EntitySubject::Sun:
+        {
+            // 📝 The sun card — the four ordinates the sky renderer reads, each a live slider. The card
+            //    is drawn only while the host presents the environment; the validation host never sets
+            //    the flag and renders the reference's generic Illuminant card instead.
+            if (Applied.EnvironmentPresented)
+            {
+                const char* const SunCaptions[4] = { "Elevation", "Azimuth", "Intensity", "Temperature" };
+                const char* const SunUnits[4]    = { "\u00B0", "\u00B0", "lx", "K" };
+                const double SunMinimums[4]      = { 0.0, 0.0, 0.0, 1000.0 };
+                const double SunMaximums[4]      = { 90.0, 360.0, 10.0, 12000.0 };
+                double SunValues[4]              = { Applied.Environment.SunElevation,
+                                                     Applied.Environment.SunAzimuth,
+                                                     Applied.Environment.SunIntensity,
+                                                     Applied.Environment.SunTemperature };
+
+                RecordEnvironmentCard("Sun", SunCaptions, SunUnits, SunMinimums, SunMaximums,
+                                      SunValues, 4u);
+
+                Applied.Environment.SunElevation   = SunValues[0];
+                Applied.Environment.SunAzimuth     = SunValues[1];
+                Applied.Environment.SunIntensity   = SunValues[2];
+                Applied.Environment.SunTemperature = SunValues[3];
+            }
+            else
+            {
+                const char* const Fields[3] = { "Intensity", "Cast Shadows", "Light Color" };
+                RecordCard(ComponentCaption, Fields, 3u);
+            }
+            break;
+        }
+        case EntitySubject::Sky:
+        {
+            if (Applied.EnvironmentPresented)
+            {
+                const char* const SkyCaptions[2] = { "Sky Intensity", "Turbidity" };
+                const char* const SkyUnits[2]    = { "", "" };
+                const double SkyMinimums[2]      = { 0.0, 1.0 };
+                const double SkyMaximums[2]      = { 3.0, 10.0 };
+                double SkyValues[2]              = { Applied.Environment.SkyIntensity,
+                                                     Applied.Environment.SkyTurbidity };
+
+                RecordEnvironmentCard("Sky", SkyCaptions, SkyUnits, SkyMinimums, SkyMaximums,
+                                      SkyValues, 2u);
+
+                Applied.Environment.SkyIntensity = SkyValues[0];
+                Applied.Environment.SkyTurbidity = SkyValues[1];
+
+                const char* const AtmoCaptions[2] = { "Atmosphere Density", "Scale Height" };
+                const char* const AtmoUnits[2]    = { "", "" };
+                const double AtmoMinimums[2]      = { 0.0, 0.2 };
+                const double AtmoMaximums[2]      = { 3.0, 3.0 };
+                double AtmoValues[2]              = { Applied.Environment.AtmosphereDensity,
+                                                      Applied.Environment.AtmosphereScaleHeight };
+
+                RecordEnvironmentCard("Atmosphere", AtmoCaptions, AtmoUnits, AtmoMinimums,
+                                      AtmoMaximums, AtmoValues, 2u);
+
+                Applied.Environment.AtmosphereDensity     = AtmoValues[0];
+                Applied.Environment.AtmosphereScaleHeight = AtmoValues[1];
+            }
+            else
+            {
+                const char* const Fields[3] = { "Intensity", "Cast Shadows", "Light Color" };
+                RecordCard(ComponentCaption, Fields, 3u);
+            }
             break;
         }
         default:
