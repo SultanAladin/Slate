@@ -158,6 +158,14 @@ public:
     /// tag   api, nonallocating, nonthrowing
     void RecordViewportSky(const PlaneExtent& Extent, const SceneDirectoryContext& Applied);
 
+    /// 🧩 Records the world's ground lattice across one viewport leaf — the same pinhole the sky mesh
+    ///    uses, so the two align — giving the fly camera something to travel past.
+    /// in    Extent   [px]  the leaf body the lattice is projected into
+    /// in    Applied  [-]   the camera's pose and position, as the host wrote them this tick
+    /// cost  🚩
+    /// tag   api, nonallocating, nonthrowing
+    void RecordGroundGrid(const PlaneExtent& Extent, const SceneDirectoryContext& Applied);
+
     /// 🧩 Records the outliner column and its details pane across one outliner leaf.
     /// in    Rows   [-]  the entity rows, borrowed for the tick
     /// in    RowCount [-]  how many of them stand

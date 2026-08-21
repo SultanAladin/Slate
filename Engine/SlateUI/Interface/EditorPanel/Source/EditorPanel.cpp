@@ -150,7 +150,8 @@ void EditorPanel::Symbol(const PlaneExtent& Extent, ThemeToken Colour)
 Outcome<bool> EditorPanel::Record(const PlaneExtent& Extent,
                                   PanelStructure& Partition,
                                   EditorPanelConfiguration& Configuration,
-                                  std::uint32_t PresentationOrdinal)
+                                  std::uint32_t PresentationOrdinal,
+                                  bool DeferPopups)
 {
     if (Surface == nullptr || Appearance == nullptr || Motion == nullptr)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no editor panel construction stands" });
@@ -167,9 +168,19 @@ Outcome<bool> EditorPanel::Record(const PlaneExtent& Extent,
 
     Surface->Ground(Extent, Appearance->EditorPanel.WindowGround);
     RecordBranch(PanelStructure::RootOrdinal, Extent, Partition, Configuration);
-    RecordDeferred(Partition, Configuration);
+
+    // 🔴 The popups are deferred when the caller fills the leaves itself: recorded before the leaf
+    //    content, a split or subject menu is painted over by the caller's sky quad and becomes
+    //    unreadable. The host records its content between the two calls.
+    if (!DeferPopups)
+        RecordDeferred(Partition, Configuration);
 
     return Outcome<bool>::Result(true);
+}
+
+void EditorPanel::RecordDeferredPopups(PanelStructure& Partition, EditorPanelConfiguration& Configuration)
+{
+    RecordDeferred(Partition, Configuration);
 }
 
 bool EditorPanel::PointerCaptured(std::uint32_t PresentationOrdinal) const

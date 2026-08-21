@@ -95,7 +95,8 @@ public:
     Outcome<bool> Record(const PlaneExtent& Extent,
                          PanelStructure& Partition,
                          EditorPanelConfiguration& Configuration,
-                         std::uint32_t PresentationOrdinal = 0u);
+                         std::uint32_t PresentationOrdinal = 0u,
+                         bool DeferPopups = false);
     bool PointerCaptured(std::uint32_t PresentationOrdinal) const;
     void WithdrawPresentation(std::uint32_t PresentationOrdinal);
     void Reset();
@@ -126,6 +127,17 @@ public:
     {
         return LeafOrdinal < LeafTally ? LeafSubjects[LeafOrdinal] : PanelSubject::Vacant;
     }
+
+    /// 🧩 Records the deferred popups (subject, division, lattice, shading and gizmo menus) the last
+    ///    `Record` withheld when `DeferPopups` was declared.
+    /// note  🔴 The host calls this AFTER recording its leaf content: a popup recorded before the leaf
+    ///        content is painted over by the sky quad and the split menus become unreadable — which was
+    ///        the reported defect. Other hosts that never fill the leaves keep `Record`'s default and
+    ///        never call this.
+    /// note  ⚠️ Valid only between the `Record` that deferred and the next one.
+    /// cost  🚩
+    /// tag   api, nonallocating, nonthrowing
+    void RecordDeferredPopups(PanelStructure& Partition, EditorPanelConfiguration& Configuration);
 
 private:
 

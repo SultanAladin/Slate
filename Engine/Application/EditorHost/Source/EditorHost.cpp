@@ -541,10 +541,14 @@ int main(int ArgumentCount, char** ArgumentValues)
                 if (PanelExtent.Width() > 0.0f && PanelExtent.Height() > 0.0f)
                 {
                     Discard(Viewport.Surface().SwitchToWindow());
+                    // 🔴 The popups are deferred: the chrome's split/subject menus must record AFTER
+                    //    the leaf content, or the sky quad paints over them and the menus become
+                    //    unreadable — the reported defect when splitting a panel.
                     Discard(WorkspacePanels.Record(PanelExtent,
                                                       PanelPartitions[Ordinal],
                                                       PanelConfiguration[Ordinal],
-                                                      Ordinal));
+                                                      Ordinal,
+                                                      true));
 
                     // 📝 The leaf content — the editor's scene directory inside the workspace's own
                     //    panels. Recorded into the same window the panel chrome was, so it clips and
@@ -560,6 +564,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                         {
                             case PanelSubject::Viewport:
                                 SceneDirectory.RecordViewportSky(LeafBody, SceneApplied);
+                                SceneDirectory.RecordGroundGrid(LeafBody, SceneApplied);
                                 break;
                             case PanelSubject::Outliner:
                                 SceneDirectory.RecordOutliner(LeafBody, SceneApplied,
@@ -574,6 +579,10 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 break;
                         }
                     }
+
+                    // 🔴 The popups after the leaf content, so they composite above it.
+                    WorkspacePanels.RecordDeferredPopups(PanelPartitions[Ordinal],
+                                                         PanelConfiguration[Ordinal]);
 
                     if (WorkspacePanels.PointerCaptured(Ordinal))
                         Viewport.Seam().WithholdPointer();
@@ -823,6 +832,14 @@ int main(int ArgumentCount, char** ArgumentValues)
     Workspace.Reset();
     Workspaces.Reset();
     Viewport.Reclaim();
+
+    // 🔴 The sky surface is reclaimed BEFORE the device: its fence wait needs the device alive, and a
+    //    surface left standing past `Lifetime.Reclaim()` waited on a dead device in its destructor —
+    //    the "vkWaitForFences: Invalid device" reported at shutdown.
+    SkySurface.Reclaim();
+    SkyRegistered = false;
+    SkyTextureIdentity = 0u;
+
     Lifetime.Reclaim();
 
     std::printf("%s \u2014 exited cleanly\n", HostName);

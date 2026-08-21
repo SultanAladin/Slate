@@ -829,10 +829,31 @@ CameraCondition InterfaceExchange::CameraInput() const
     //    camera's turn, exactly as the reference fly-cams read it.
     Current.LookHeld = ImGui::IsMouseDown(ImGuiMouseButton_Right);
 
+    // 🔴 Unreal-style capture: while the gesture stands the OS cursor is warped back to the display
+    //    centre every tick, so the turn is UNBOUNDED — a cursor that reaches the window edge would
+    //    otherwise stop the yaw there, which is the "limited turn" a fly camera must never have. The
+    //    delta is read as the pointer's departure from the centre BEFORE the warp, which cancels the
+    //    warp's own jump: the backend reads the warped position as the new rest, and the next delta is
+    //    measured from it.
     if (Current.LookHeld)
     {
-        Current.LookDeltaX = Sampled.MouseDelta.x;
-        Current.LookDeltaY = Sampled.MouseDelta.y;
+        const ImVec2 Centre = ImVec2(Sampled.DisplaySize.x * 0.5f, Sampled.DisplaySize.y * 0.5f);
+
+        Current.LookDeltaX = Sampled.MousePos.x - Centre.x;
+        Current.LookDeltaY = Sampled.MousePos.y - Centre.y;
+
+        ImGuiIO& Mutable = ImGui::GetIO();
+        Mutable.WantSetMousePos = true;
+        Mutable.MousePos        = Centre;
+        ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+    }
+    else
+    {
+        // 📝 The capture is released with the gesture: the warp stops, the cursor reappears, and the
+        //    artist's next click lands where the pointer actually is.
+        ImGuiIO& Mutable = ImGui::GetIO();
+        Mutable.WantSetMousePos = false;
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
     }
 
     return Current;

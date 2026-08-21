@@ -349,6 +349,27 @@ void ViewportSkySurface::Reclaim()
 
     const VkDevice Active = DeviceEdge->ActiveDevice();
 
+    // 🔴 A device that was already reclaimed has no valid handle left — the host reclaims this surface
+    //    BEFORE it reclaims the device, so the only way to reach here with a dead device is a caller
+    //    that forgot the order. Clearing the edges without touching the driver is the safe landing: the
+    //    driver objects were already destroyed with the device.
+    if (Active == VK_NULL_HANDLE)
+    {
+        DeviceEdge    = nullptr;
+        NamingEdge    = nullptr;
+        ImageSlot     = VK_NULL_HANDLE;
+        ImageMemory   = VK_NULL_HANDLE;
+        ImageViewSlot = VK_NULL_HANDLE;
+        SamplerSlot   = VK_NULL_HANDLE;
+        StagingSlot   = VK_NULL_HANDLE;
+        StagingMemory = VK_NULL_HANDLE;
+        UploadPool    = VK_NULL_HANDLE;
+        UploadFence   = VK_NULL_HANDLE;
+        ExtentWidth   = 0u;
+        ExtentHeight  = 0u;
+        return;
+    }
+
     // 🔴 The upload is awaited before anything is destroyed: a submission still reading the staging
     //    extent or the image is a use-after-free the validation layer names only at the destroy.
     if (UploadFence != VK_NULL_HANDLE)

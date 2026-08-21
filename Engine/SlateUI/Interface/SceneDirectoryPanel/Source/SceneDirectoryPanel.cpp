@@ -289,48 +289,220 @@ void SceneDirectoryPanel::RecordViewportSky(const PlaneExtent& Extent, const Sce
     if (Applied.SkyTextureIdentity == 0u)
         return;
 
-    const EnvironmentConfiguration& Sky = Applied.Environment;
+    // 📐 The dome is direction-indexed, and the viewport reads it through a PERSPECTIVE mesh rather
+    //    than a single cropped quad: a quad maps azimuth and elevation linearly onto the leaf, which
+    //    stretches the sun into an ellipse the moment the leaf's aspect differs from the camera's and
+    //    compresses the horizon where perspective should widen it. The mesh samples the dome per
+    //    screen vertex along the true pinhole ray, so the sun stays round and the horizon reads at any
+    //    leaf aspect — the same projection the grid below uses, which is what keeps the two aligned.
+    constexpr std::uint32_t MeshColumns = 40u;
+    constexpr std::uint32_t MeshRows    = 24u;
+    constexpr std::uint32_t VertexCount = (MeshColumns + 1u) * (MeshRows + 1u);
+    constexpr std::uint32_t IndexCount  = MeshColumns * MeshRows * 6u;
 
-    const float HalfV = Applied.ViewportSkyCamera.FieldOfViewDegrees * 0.5f;
-    const float HalfH = std::atan(std::tan(HalfV * 3.14159265f / 180.0f)
-                                  * (Extent.Width() / Extent.Height())) * 180.0f / 3.14159265f;
+    const float CentreX = Extent.MinimumX + Extent.Width()  * 0.5f;
+    const float CentreY = Extent.MinimumY + Extent.Height() * 0.5f;
 
-    const float Azimuth   = Applied.ViewportSkyCamera.AzimuthDegrees;
-    const float Elevation = Applied.ViewportSkyCamera.ElevationDegrees;
+    const double HalfV = Applied.ViewportSkyCamera.FieldOfViewDegrees * 0.5 * 3.14159265358979323846 / 180.0;
+    const double Aspect = static_cast<double>(Extent.Width()) / static_cast<double>(Extent.Height());
+    const double TanHalfV = std::tan(HalfV);
+    const double TanHalfH = TanHalfV * Aspect;
 
-    // 📐 Dome coordinates: U = (azimuth + 180) / 360, V = (90 − elevation) / 180. The crop is the
-    //    camera's frustum on the dome, clamped so it never leaves the texture.
-    float U0 = std::clamp((Azimuth - HalfH + 180.0f) / 360.0f, 0.0f, 1.0f);
-    float U1 = std::clamp((Azimuth + HalfH + 180.0f) / 360.0f, 0.0f, 1.0f);
-    float V0 = std::clamp((90.0f - (Elevation + HalfV)) / 180.0f, 0.0f, 1.0f);
-    float V1 = std::clamp((90.0f - (Elevation - HalfV)) / 180.0f, 0.0f, 1.0f);
+    const double Yaw   = Applied.ViewportSkyCamera.AzimuthDegrees   * 3.14159265358979323846 / 180.0;
+    const double Pitch = Applied.ViewportSkyCamera.ElevationDegrees * 3.14159265358979323846 / 180.0;
+    const double CosP = std::cos(Pitch);
+    const double SinP = std::sin(Pitch);
+    const double SinY = std::sin(Yaw);
+    const double CosY = std::cos(Yaw);
 
-    // 📐 The sun stays in frame at any viewport aspect: the camera aims twenty degrees wide of the sun,
-    //    which a docked viewport's narrower frustum would otherwise crop out. When the sun's dome
-    //    coordinate falls outside the frustum, the crop shifts to contain it with a small cushion.
-    const float SunU = std::clamp(static_cast<float>(Sky.SunAzimuth + 180.0) / 360.0f, 0.0f, 1.0f);
-    const float SunV = std::clamp(static_cast<float>(90.0 - Sky.SunElevation) / 180.0f, 0.0f, 1.0f);
-    constexpr float CushionU = 0.012f;   // [-] - half a disc's width, so the disc is not glued to the edge
-    constexpr float CushionV = 0.012f;   // [-]
+    // 📐 The camera basis, the same convention the fly rig integrates: forward along the view, right
+    //    across it, up the cross product.
+    const double Forward[3] = { CosP * SinY, SinP, CosP * CosY };
+    const double Right[3]   = { CosY, 0.0, -SinY };
+    const double Up[3]      = { -SinP * SinY, CosP, -SinP * CosY };
 
-    float ShiftU = 0.0f;
-    if (SunU < U0 + CushionU)
-        ShiftU = U0 + CushionU - SunU;
-    else if (SunU > U1 - CushionU)
-        ShiftU = U1 - CushionU - SunU;
+    float Positions[VertexCount * 2u];
+    float UVs[VertexCount * 2u];
+    std::uint32_t Indices[IndexCount];
 
-    float ShiftV = 0.0f;
-    if (SunV < V0 + CushionV)
-        ShiftV = V0 + CushionV - SunV;
-    else if (SunV > V1 - CushionV)
-        ShiftV = V1 - CushionV - SunV;
+    std::uint32_t Vertex = 0u;
 
-    U0 = std::clamp(U0 - ShiftU, 0.0f, 1.0f);
-    U1 = std::clamp(U1 - ShiftU, 0.0f, 1.0f);
-    V0 = std::clamp(V0 - ShiftV, 0.0f, 1.0f);
-    V1 = std::clamp(V1 - ShiftV, 0.0f, 1.0f);
+    for (std::uint32_t Row = 0u; Row <= MeshRows; ++Row)
+    {
+        for (std::uint32_t Column = 0u; Column <= MeshColumns; ++Column)
+        {
+            const float ScreenX = Extent.MinimumX + static_cast<float>(Column) / static_cast<float>(MeshColumns)
+                                * Extent.Width();
+            const float ScreenY = Extent.MinimumY + static_cast<float>(Row) / static_cast<float>(MeshRows)
+                                * Extent.Height();
 
-    Surface->Image(Extent, Applied.SkyTextureIdentity, U0, V0, U1, V1);
+            const double NdcX = (static_cast<double>(ScreenX) - CentreX) / (Extent.Width()  * 0.5);
+            const double NdcY = (static_cast<double>(CentreY) - ScreenY) / (Extent.Height() * 0.5);
+
+            double Ray[3] = { NdcX * TanHalfH, NdcY * TanHalfV, 1.0 };
+            const double Length = std::sqrt(Ray[0] * Ray[0] + Ray[1] * Ray[1] + Ray[2] * Ray[2]);
+            Ray[0] /= Length;
+            Ray[1] /= Length;
+            Ray[2] /= Length;
+
+            const double DirectionX = Right[0] * Ray[0] + Up[0] * Ray[1] + Forward[0] * Ray[2];
+            const double DirectionY = Right[1] * Ray[0] + Up[1] * Ray[1] + Forward[1] * Ray[2];
+            const double DirectionZ = Right[2] * Ray[0] + Up[2] * Ray[1] + Forward[2] * Ray[2];
+
+            // 📐 Dome coordinates: U = azimuth/2π + 0.5 with azimuth measured from +Z toward +X (the
+            //    dome generator's own convention), V = (90 − elevation)/180.
+            const double Azimuth   = std::atan2(DirectionX, DirectionZ);
+            const double Elevation = std::asin(std::clamp(DirectionY, -1.0, 1.0));
+
+            Positions[Vertex * 2u]     = ScreenX;
+            Positions[Vertex * 2u + 1u] = ScreenY;
+            UVs[Vertex * 2u]     = static_cast<float>(std::clamp(Azimuth / (2.0 * 3.14159265358979323846) + 0.5, 0.0, 1.0));
+            UVs[Vertex * 2u + 1u] = static_cast<float>(std::clamp(0.5 - Elevation / 3.14159265358979323846, 0.0, 1.0));
+
+            ++Vertex;
+        }
+    }
+
+    std::uint32_t Index = 0u;
+
+    for (std::uint32_t Row = 0u; Row < MeshRows; ++Row)
+    {
+        for (std::uint32_t Column = 0u; Column < MeshColumns; ++Column)
+        {
+            const std::uint32_t A = Row * (MeshColumns + 1u) + Column;
+            const std::uint32_t B = A + 1u;
+            const std::uint32_t C = A + (MeshColumns + 1u);
+            const std::uint32_t D = C + 1u;
+
+            Indices[Index++] = A;
+            Indices[Index++] = C;
+            Indices[Index++] = B;
+            Indices[Index++] = B;
+            Indices[Index++] = C;
+            Indices[Index++] = D;
+        }
+    }
+
+    Surface->ImageMesh(Applied.SkyTextureIdentity, Positions, UVs, VertexCount, Indices, IndexCount);
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE GROUND GRID
+//------------------------------------------------------------------------------------------------------------------------
+
+void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, const SceneDirectoryContext& Applied)
+{
+    // 📐 The world the camera travels: a 20 m lattice on the Y = 0 plane, projected through the same
+    //    pinhole as the sky mesh. Without it a fly camera over a pure skybox reads as static — there is
+    //    nothing to move past — and the grid is what makes W/S/A/D/E/Q visibly travel the world, in
+    //    metres, exactly as the reference fly-cams present a floor.
+    constexpr double Cell = 20.0;        // [m] - one lattice cell
+    constexpr double Half = 400.0;       // [m] - the lattice's half extent
+    constexpr std::uint32_t Samples = 48u;
+
+    const float CentreX = Extent.MinimumX + Extent.Width()  * 0.5f;
+    const float CentreY = Extent.MinimumY + Extent.Height() * 0.5f;
+
+    const double HalfV = Applied.ViewportSkyCamera.FieldOfViewDegrees * 0.5 * 3.14159265358979323846 / 180.0;
+    const double Aspect = static_cast<double>(Extent.Width()) / static_cast<double>(Extent.Height());
+    const double TanHalfV = std::tan(HalfV);
+    const double TanHalfH = TanHalfV * Aspect;
+
+    const double Yaw   = Applied.ViewportSkyCamera.AzimuthDegrees   * 3.14159265358979323846 / 180.0;
+    const double Pitch = Applied.ViewportSkyCamera.ElevationDegrees * 3.14159265358979323846 / 180.0;
+    const double CosP = std::cos(Pitch);
+    const double SinP = std::sin(Pitch);
+    const double SinY = std::sin(Yaw);
+    const double CosY = std::cos(Yaw);
+
+    const double Forward[3] = { CosP * SinY, SinP, CosP * CosY };
+    const double Right[3]   = { CosY, 0.0, -SinY };
+    const double Up[3]      = { -SinP * SinY, CosP, -SinP * CosY };
+
+    const double& CameraX = Applied.CameraPosition[0];
+    const double& CameraY = Applied.CameraPosition[1];
+    const double& CameraZ = Applied.CameraPosition[2];
+
+    // 📐 The projector: a world point to screen, or "behind" when it sits on the wrong side of the
+    //    camera. Nearer than a quarter metre the division explodes, so the near plane is explicit.
+    const auto Project = [&](double WorldX, double WorldY, double WorldZ,
+                             float& ScreenX, float& ScreenY, bool& Behind) -> void
+    {
+        const double DX = WorldX - CameraX;
+        const double DY = WorldY - CameraY;
+        const double DZ = WorldZ - CameraZ;
+
+        const double CameraZDepth = DX * Forward[0] + DY * Forward[1] + DZ * Forward[2];
+
+        if (CameraZDepth < 0.25)
+        {
+            Behind = true;
+            return;
+        }
+
+        const double CameraXDepth = DX * Right[0] + DY * Right[1] + DZ * Right[2];
+        const double CameraYDepth = DX * Up[0]    + DY * Up[1]    + DZ * Up[2];
+
+        ScreenX = CentreX + static_cast<float>((CameraXDepth / CameraZDepth) / TanHalfH * (Extent.Width()  * 0.5));
+        ScreenY = CentreY - static_cast<float>((CameraYDepth / CameraZDepth) / TanHalfV * (Extent.Height() * 0.5));
+        Behind  = false;
+    };
+
+    const auto RecordLatticeLine = [&](bool AlongZ, double Offset, bool Coarse) -> void
+    {
+        float X[64];
+        float Y[64];
+        std::uint32_t Tally = 0u;
+
+        // 📐 One polyline per contiguous front-run: a line crossing behind the camera is split, so the
+        //    near plane never draws a segment across the viewport.
+        const auto Flush = [&](std::uint32_t Count) -> void
+        {
+            if (Count >= 2u)
+            {
+                const ThemeToken Ink = Coarse ? Faded(Covering(0x9AA6B8u), 0.55f)
+                                              : Faded(Covering(0x9AA6B8u), 0.28f);
+                Surface->Polyline(X, Y, Count, Ink, Coarse ? 1.5f : 1.0f);
+            }
+        };
+
+        for (std::uint32_t Sample = 0u; Sample <= Samples; ++Sample)
+        {
+            const double T = -Half + (2.0 * Half) * static_cast<double>(Sample) / static_cast<double>(Samples);
+            const double WorldX = AlongZ ? Offset : T;
+            const double WorldZ = AlongZ ? T : Offset;
+
+            float ScreenX = 0.0f;
+            float ScreenY = 0.0f;
+            bool  Behind  = false;
+
+            Project(WorldX, 0.0, WorldZ, ScreenX, ScreenY, Behind);
+
+            if (Behind)
+            {
+                Flush(Tally);
+                Tally = 0u;
+                continue;
+            }
+
+            X[Tally] = ScreenX;
+            Y[Tally] = ScreenY;
+            ++Tally;
+        }
+
+        Flush(Tally);
+    };
+
+    const int LineCount = static_cast<int>(Half / Cell);
+
+    for (int Ordinal = -LineCount; Ordinal <= LineCount; ++Ordinal)
+    {
+        const double Offset = static_cast<double>(Ordinal) * Cell;
+        const bool Coarse = (Ordinal % 5) == 0;
+
+        RecordLatticeLine(true,  Offset, Coarse);
+        RecordLatticeLine(false, Offset, Coarse);
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------

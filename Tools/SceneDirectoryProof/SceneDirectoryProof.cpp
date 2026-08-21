@@ -65,6 +65,9 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "ExternalPackages/stb/stb_image_write.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "ExternalPackages/stb/stb_image.h"
+
 #include "Application/EditorHost/Api/CameraRig.h"
 #include "Application/EditorHost/Api/SkyImage.h"
 #include "Contract/DeliveryContract.h"
@@ -291,8 +294,8 @@ struct Rasterizer
             if (Extra != ExtraTextures.end())
             {
                 CommandAtlas = Extra->second.data();
-                CommandAtlasWidth = 512;
-                CommandAtlasHeight = 288;
+                CommandAtlasWidth = 1024;
+                CommandAtlasHeight = 576;
             }
             for (std::uint32_t Primitive = 0u; Primitive < PrimitiveCount; ++Primitive)
             {
@@ -482,7 +485,7 @@ struct SceneDriver
             SkyCam.AzimuthDegrees   = Applied.Environment.SunAzimuth - 20.0;
             SkyCam.ElevationDegrees = 15.0;
             if (GenerateSkyImage(SkyIntegrator, Applied.Environment, SkyCam,
-                                 512u, 288u, SkyPixels).Resolved)
+                                 1024u, 576u, SkyPixels).Resolved)
             {
                 Applied.SkyTextureIdentity = SkyIdentity;
                 Applied.ViewportSkyCamera.AzimuthDegrees = static_cast<float>(SkyCam.AzimuthDegrees);
@@ -510,7 +513,9 @@ struct SceneDriver
                              Covering(0xE6E6E6u), "Workspace 1", 12.5f, 0.0f, true);
         }
 
-        Discard(Editor.Record(Workspace.Body(), Partition, Configuration, 0u));
+        // 🔴 The popups are deferred, exactly as the editor host defers them, so the leaf content
+        //    records beneath the split/subject menus instead of painting over them.
+        Discard(Editor.Record(Workspace.Body(), Partition, Configuration, 0u, true));
 
         for (std::uint32_t Leaf = 0u; Leaf < Editor.LeafCount(); ++Leaf)
         {
@@ -520,6 +525,7 @@ struct SceneDriver
             {
                 case PanelSubject::Viewport:
                     SceneDirectory.RecordViewportSky(LeafBody, Applied);
+                    SceneDirectory.RecordGroundGrid(LeafBody, Applied);
                     break;
                 case PanelSubject::Outliner:
                     SceneDirectory.RecordOutliner(LeafBody, Applied, EditorEntities, 7u);
@@ -532,6 +538,8 @@ struct SceneDriver
                     break;
             }
         }
+
+        Editor.RecordDeferredPopups(Partition, Configuration);
 
         Surface.Retire();
 
@@ -596,7 +604,7 @@ struct SceneDriver
         if (SkyReady)
             Out.ExtraTextures[SkyIdentity] = SkyPixels;
         const ImDrawData* Data = ImGui::GetDrawData();
-        for (int ListOrdinal = 0; ListOrdinal < Data->CmdListsCount; ++ListOrdinal)
+for (int ListOrdinal = 0; ListOrdinal < Data->CmdListsCount; ++ListOrdinal)
         {
             if (!Out.Draw(Data->CmdLists[ListOrdinal], LiveAtlas, LiveAtlasWidth, LiveAtlasHeight))
                 return false;
@@ -704,6 +712,48 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
             std::fprintf(stderr, "[FAIL] the camera lag did not lag\n");
             return false;
         }
+
+        // 📐 The ground grid's own proof: the rendered leaf must contain the lattice — light grey-blue
+        //    lines over the dark ground, drawn by the panel's perspective projector. The capture is
+        //    repeated here so the PNG stands for the check, and the PNG itself is scanned for the ink.
+        if (!Driver.Capture(OutputPath, Atlas, AtlasWidth, AtlasHeight))
+            return false;
+        {
+            int ReadWidth = 0;
+            int ReadHeight = 0;
+            int ReadChannels = 0;
+            unsigned char* ReadPixels = stbi_load(OutputPath, &ReadWidth, &ReadHeight, &ReadChannels, 4);
+
+            if (ReadPixels == nullptr)
+            {
+                std::fprintf(stderr, "[FAIL] the captured PNG would not read back\n");
+                return false;
+            }
+
+            // 📐 The lattice ink (0x9AA6B8 at 0.28/0.55 coverage over the (10,8,7) ground) resolves to
+            //    ~(50,52,56) fine and ~(89,95,104) coarse — grey-blue, brighter than the ground,
+            //    never confused with the sky's saturated blues or the panels' chrome.
+            std::uint32_t GridPixels = 0u;
+            for (int Ordinal = 0; Ordinal < ReadWidth * ReadHeight; ++Ordinal)
+            {
+                const int R = ReadPixels[Ordinal * 4u + 0u];
+                const int G = ReadPixels[Ordinal * 4u + 1u];
+                const int B = ReadPixels[Ordinal * 4u + 2u];
+
+                if (R > 38 && R < 130 && B > R && (B - R) < 22 &&
+                    std::abs(R - G) < 8 && std::abs(G - B) < 14)
+                    ++GridPixels;
+            }
+
+            stbi_image_free(ReadPixels);
+
+            std::fprintf(stderr, "[assert] grid pixels in render: %u\n", GridPixels);
+            if (GridPixels < 500u)
+            {
+                std::fprintf(stderr, "[FAIL] the ground grid did not draw\n");
+                return false;
+            }
+        }
     }
     else if (std::strcmp(Scenario, "editor-after-drag") == 0)
     {
@@ -767,6 +817,73 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         {
             std::fprintf(stderr, "[FAIL] the elevation slider did not move the sun enough\n");
             return false;
+        }
+
+        // 📐 The raised sun now stands ABOVE the camera's 60° frustum (61.4° vs the 15° pitch) — the
+        //    physically correct answer to a real fly camera. The artist looks up to see it: the look
+        //    gesture drags the pointer UP (negative Y) and the camera pitches up, bringing the sun
+        //    back into the viewport. This doubles as the look-gesture's own proof.
+        const double PitchBefore = Driver.FlyRig.LaggedPitchDegrees;
+
+        Driver.SimLookHeld = true;
+        Driver.SimLookDeltaX = 0.0f;
+        Driver.SimLookDeltaY = -6.0f;
+        for (int Step = 0; Step < 35; ++Step)
+            Driver.Tick(640.0f, 450.0f, false, false, false);
+        Driver.SimLookHeld = false;
+        Driver.SimLookDeltaY = 0.0f;
+        Driver.Settle(10);
+
+        const double PitchAfter = Driver.FlyRig.LaggedPitchDegrees;
+
+        std::fprintf(stderr, "[assert] look gesture pitched the camera %.1f -> %.1f\n",
+                     PitchBefore, PitchAfter);
+
+        if (PitchAfter <= PitchBefore + 15.0)
+        {
+            std::fprintf(stderr, "[FAIL] the look gesture did not pitch the camera up\n");
+            return false;
+        }
+
+        if (!Driver.Capture(OutputPath, Atlas, AtlasWidth, AtlasHeight))
+            return false;
+
+        // 📐 The sun must be back in the viewport leaf: warm, bright, in the upper sky.
+        {
+            int ReadWidth = 0;
+            int ReadHeight = 0;
+            int ReadChannels = 0;
+            unsigned char* ReadPixels = stbi_load(OutputPath, &ReadWidth, &ReadHeight, &ReadChannels, 4);
+
+            if (ReadPixels == nullptr)
+            {
+                std::fprintf(stderr, "[FAIL] the captured PNG would not read back\n");
+                return false;
+            }
+
+            std::uint32_t SunPixels = 0u;
+            for (int Y = 0; Y < ReadHeight; ++Y)
+            {
+                for (int X = 0; X < 637; ++X)
+                {
+                    const std::size_t Offset = (static_cast<std::size_t>(Y) * ReadWidth + X) * 4u;
+                    const int R = ReadPixels[Offset + 0u];
+                    const int G = ReadPixels[Offset + 1u];
+                    const int B = ReadPixels[Offset + 2u];
+
+                    if (R > 200 && G > 195 && B < 225 && (R - B) > 40)
+                        ++SunPixels;
+                }
+            }
+
+            stbi_image_free(ReadPixels);
+
+            std::fprintf(stderr, "[assert] sun pixels in viewport after look-up: %u\n", SunPixels);
+            if (SunPixels < 100u)
+            {
+                std::fprintf(stderr, "[FAIL] the sun is not in the viewport after looking up\n");
+                return false;
+            }
         }
     }
     else

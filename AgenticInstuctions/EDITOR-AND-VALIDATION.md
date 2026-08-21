@@ -78,10 +78,25 @@ prototype of the WHOLE reference sheet                    the real editor layout
   demand like the environment sliders.
 - **Movement is Unreal-fly**: W/S along the view direction (pitch included),
   A/D strafe, E/Q world up/down; **hold the right mouse button and drag to
-  look**. Gated on keyboard capture, so typing in a field never flies.
+  look**. The look gesture CAPTURES the cursor: while held, the OS cursor is
+  warped to the display centre every tick, so the turn is unbounded — it never
+  stops at the window edge. Gated on keyboard capture, so typing in a field
+  never flies.
 - **Camera lag**: the rig eases position and yaw/pitch toward the target with
   an exponential time constant (0.18 s). Toggle it in the camera's details
   (Camera Lag); Invert Pitch is the second toggle. The viewport crop reads the
   LAGGED pose, so a fast turn visibly trails the input.
+- **The world is visible**: the viewport leaf draws a 20 m ground lattice on
+  the Y=0 plane, projected through the same pinhole as the sky — so W/A/D/E/Q
+  visibly travel the scene and the look gesture visibly turns it, in metres.
 - The sky dome is direction-indexed and camera-independent: looking around only
-  moves the crop, never regenerates the texture.
+  moves the crop, never regenerates the texture. The viewport samples the dome
+  through a PERSPECTIVE mesh (per-vertex UVs along the true pinhole ray), so
+  the sun stays round at any leaf aspect — a plain cropped quad stretches it.
+- **Dropdowns composite above the viewport**: `EditorPanel::Record` can defer
+  its popups (`DeferPopups`), the host records leaf content between the two
+  calls, then `RecordDeferredPopups` records the menus on top. Never record the
+  leaf content AFTER the deferred call.
+- **Shutdown order matters**: `SkySurface.Reclaim()` runs BEFORE
+  `Lifetime.Reclaim()` — a surface left standing past the device reclaim waits
+  on a dead fence and reports `vkWaitForFences: Invalid device` at exit.

@@ -461,6 +461,63 @@ void RecordingSurface::Image(const PlaneExtent& Extent, std::uintptr_t Identity,
                                     IM_COL32_WHITE);
 }
 
+void RecordingSurface::ImageMesh(std::uintptr_t Identity,
+                                  const float* Positions, const float* UVs, std::uint32_t VertexCount,
+                                  const std::uint32_t* Indices, std::uint32_t IndexCount)
+{
+    if (CommandSlot == nullptr || Identity == 0u || Positions == nullptr || UVs == nullptr ||
+        Indices == nullptr || VertexCount == 0u || IndexCount < 3u || IndexCount % 3u != 0u)
+        return;
+
+    // 📝 The vendor's own texture switch, exactly as `AddImage` performs it: `PushTexture` states the
+    //    identity on the command header AND opens a new command when the standing one carries other
+    //    prims, so the mesh never inherits the font atlas's identity and the atlas text never inherits
+    //    the sky's. Writing the header directly would corrupt whichever command stood — the reported
+    //    defect where the viewport read the atlas as sky.
+    ImDrawList* Target = Commands(CommandSlot);
+
+    // 🔴 The indices a command list carries are ABSOLUTE positions in the list's vertex buffer, not
+    //    positions in the mesh: a mesh that wrote 0-based indices would reference the top bar's text
+    //    vertices and the viewport would read the atlas as sky. The base is the count of vertices the
+    //    list already holds, and every delivered index is offset by it.
+    const unsigned int Base = Target->_VtxCurrentIdx;
+
+    Target->PushTexture(ImTextureRef(static_cast<ImTextureID>(Identity)));
+    Target->PrimReserve(static_cast<int>(IndexCount), static_cast<int>(VertexCount));
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < VertexCount; ++Ordinal)
+    {
+        Target->PrimWriteVtx(ImVec2(Positions[Ordinal * 2u], Positions[Ordinal * 2u + 1u]),
+                             ImVec2(UVs[Ordinal * 2u], UVs[Ordinal * 2u + 1u]),
+                             IM_COL32_WHITE);
+    }
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < IndexCount; ++Ordinal)
+        Target->PrimWriteIdx(static_cast<ImDrawIdx>(Base + Indices[Ordinal]));
+
+    Target->PopTexture();
+}
+
+void RecordingSurface::Polyline(const float* PointsX, const float* PointsY, std::uint32_t Count,
+                                ThemeToken Colour, float Weight)
+{
+    if (CommandSlot == nullptr || PointsX == nullptr || PointsY == nullptr || Count < 2u ||
+        Colour.Opacity == 0u)
+        return;
+
+    // 📝 Bounded: a caller cannot allocate inside a tick, and a grid line needs far fewer than 64
+    //    samples. The clamp is stated here so a caller that grows its sampling never overruns silently.
+    if (Count > 64u)
+        Count = 64u;
+
+    ImVec2 Points[64];
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+        Points[Ordinal] = ImVec2(PointsX[Ordinal], PointsY[Ordinal]);
+
+    Commands(CommandSlot)->AddPolyline(Points, static_cast<int>(Count), Vendor(Colour), Weight);
+}
+
 void RecordingSurface::TextRun(float X, float Y, ThemeToken Colour, const char* Text,
                                float PointSize, float Tracking, bool Emphatic, FontWeight Weight)
 {
