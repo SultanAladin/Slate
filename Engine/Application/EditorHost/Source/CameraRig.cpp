@@ -106,7 +106,10 @@ void CameraRig::Advance(double Seconds, const CameraCondition& Input, const Came
 
     if (Speed > 0.0)
     {
-        const double Scale = Settings.FlySpeed * Seconds / Speed;
+        // 📐 Unreal's boost: Shift multiplies the fly speed (3x), so an artist can sprint across the
+        //    world or creep up to a detail without opening the settings.
+        const double Boost = Input.ShiftHeld ? 3.0 : 1.0;
+        const double Scale = Settings.FlySpeed * Boost * Seconds / Speed;
 
         Position[0] += Velocity[0] * Scale;
         Position[1] += Velocity[1] * Scale;

@@ -564,16 +564,19 @@ int main(int ArgumentCount, char** ArgumentValues)
                         {
                             case PanelSubject::Viewport:
                                 SceneDirectory.RecordViewportSky(LeafBody, SceneApplied);
-                                SceneDirectory.RecordGroundGrid(LeafBody, SceneApplied);
+                                SceneDirectory.RecordGroundGrid(LeafBody, SceneApplied,
+                                                                PanelConfiguration[Ordinal]);
                                 break;
                             case PanelSubject::Outliner:
                                 SceneDirectory.RecordOutliner(LeafBody, SceneApplied,
-                                                              EditorEntities, 7u);
+                                                              EditorEntities, 7u,
+                                                              EditorRevisions, EditorRevisionCount);
                                 break;
                             case PanelSubject::Properties:
                                 SceneDirectory.RecordProperties(LeafBody, SceneApplied,
                                                                 EditorEntities, 7u,
-                                                                EditorRevisions, EditorRevisionCount);
+                                                                EditorRevisions, EditorRevisionCount,
+                                                                SceneApplied.InspectorTab);
                                 break;
                             default:
                                 break;
@@ -639,7 +642,9 @@ int main(int ArgumentCount, char** ArgumentValues)
             //      samples it; the panel's own Advance only samples, and a second advance would retire
             //      the release before the leaves read it.
             SceneLedger.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
-            SceneDirectory.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+            SceneDirectory.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds,
+                                   SceneApplied,
+                                   Viewport.Seam().KeyPressed(KeySubject::Summon));
 
             // 📝 The fly camera: the seam's held keys and look gesture drive the rig, and the lagged
             //    pose becomes the viewport crop. The sky dome is direction-indexed and camera-independent,
@@ -690,8 +695,13 @@ int main(int ArgumentCount, char** ArgumentValues)
                         static_cast<void>(SkySurface.Upload(SkyPixels.data()));
                     SkyPrevious = SceneApplied.Environment;
                     SkyEverGenerated = true;
+                    // 📝 The camera is the fly rig's; `SkyCam` only frames the DOME's own generation
+                    //    (which is camera-independent) and never the viewport crop.
                 }
                 SceneApplied.SkyTextureIdentity = SkyTextureIdentity;
+                // 📝 The viewport crop is the fly camera's own, written by the camera step every tick;
+                //    the sky regeneration must NOT restate it — the old fixed `SkyCam` pose (pitch 15)
+                //    would snap the crop for the tick an environment change lands on.
             }
             else
             {

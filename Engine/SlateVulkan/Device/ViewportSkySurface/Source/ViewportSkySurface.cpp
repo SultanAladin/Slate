@@ -120,7 +120,11 @@ Outcome<bool> ViewportSkySurface::Construct(const VulkanExchange& Exchange, cons
     SamplerDeclaration.magFilter               = VK_FILTER_LINEAR;
     SamplerDeclaration.minFilter               = VK_FILTER_LINEAR;
     SamplerDeclaration.mipmapMode              = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-    SamplerDeclaration.addressModeU            = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    // 🔴 The U axis wraps (REPEAT): the dome's azimuth is periodic, and the viewport mesh spans the
+    //    seam whenever the fly camera's yaw crosses ±180° — a clamped sampler would smear the edge
+    //    texels across the seam as a stretched band. The V axis genuinely ends at the zenith and the
+    //    nadir, so it clamps.
+    SamplerDeclaration.addressModeU            = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     SamplerDeclaration.addressModeV            = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     SamplerDeclaration.addressModeW            = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     SamplerDeclaration.mipLodBias              = 0.0f;

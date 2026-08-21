@@ -813,17 +813,23 @@ CameraCondition InterfaceExchange::CameraInput() const
 
     const ImGuiIO& Sampled = ImGui::GetIO();
 
-    // 🔴 The same capture guards the key roster uses: a run the artist is typing into keeps the
-    //    movement keys, and a hovered window that merely wants capture does not stop the fly-by.
-    if (Sampled.WantTextInput || Sampled.WantCaptureKeyboard)
-        return Current;
+    // 🔴 The movement keys are gated on a run the artist is typing into — W inside a text field is a
+    //    letter, not a fly. The LOOK gesture is deliberately NOT gated: in this codebase a hovered
+    //    window raises `WantCaptureKeyboard`, and gating the look on it would stop the camera the
+    //    moment the pointer crossed a panel — the "turns then stops" defect. The fly camera owns the
+    //    right button; the panels own the left one.
+    const bool Typing = Sampled.WantTextInput;
 
-    Current.ForwardHeld  = ImGui::IsKeyDown(ImGuiKey_W);
-    Current.BackwardHeld = ImGui::IsKeyDown(ImGuiKey_S);
-    Current.LeftHeld     = ImGui::IsKeyDown(ImGuiKey_A);
-    Current.RightHeld    = ImGui::IsKeyDown(ImGuiKey_D);
-    Current.UpHeld       = ImGui::IsKeyDown(ImGuiKey_E);
-    Current.DownHeld     = ImGui::IsKeyDown(ImGuiKey_Q);
+    if (!Typing)
+    {
+        Current.ForwardHeld  = ImGui::IsKeyDown(ImGuiKey_W);
+        Current.BackwardHeld = ImGui::IsKeyDown(ImGuiKey_S);
+        Current.LeftHeld     = ImGui::IsKeyDown(ImGuiKey_A);
+        Current.RightHeld    = ImGui::IsKeyDown(ImGuiKey_D);
+        Current.UpHeld       = ImGui::IsKeyDown(ImGuiKey_E);
+        Current.DownHeld     = ImGui::IsKeyDown(ImGuiKey_Q);
+        Current.ShiftHeld    = ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift);
+    }
 
     // 📐 The look gesture is the right button held: while it stands, the pointer's travel is the
     //    camera's turn, exactly as the reference fly-cams read it.
@@ -831,20 +837,20 @@ CameraCondition InterfaceExchange::CameraInput() const
 
     // 🔴 Unreal-style capture: while the gesture stands the OS cursor is warped back to the display
     //    centre every tick, so the turn is UNBOUNDED — a cursor that reaches the window edge would
-    //    otherwise stop the yaw there, which is the "limited turn" a fly camera must never have. The
-    //    delta is read as the pointer's departure from the centre BEFORE the warp, which cancels the
-    //    warp's own jump: the backend reads the warped position as the new rest, and the next delta is
-    //    measured from it.
+    //    otherwise stop the yaw there, which is the "limited turn" a fly camera must never have.
+    //    🔴 The turn reads the vendor's ACCUMULATED delta, not the pointer's departure from the
+    //    centre: with the cursor warped to the centre each frame, the departure is non-zero only on
+    //    the frame the button went down, and the camera turns once and then stops — the reported
+    //    "turns then stops". The accumulated delta is the artist's motion from the centre every
+    //    frame, so holding the button and dragging turns continuously.
     if (Current.LookHeld)
     {
-        const ImVec2 Centre = ImVec2(Sampled.DisplaySize.x * 0.5f, Sampled.DisplaySize.y * 0.5f);
-
-        Current.LookDeltaX = Sampled.MousePos.x - Centre.x;
-        Current.LookDeltaY = Sampled.MousePos.y - Centre.y;
+        Current.LookDeltaX = Sampled.MouseDelta.x;
+        Current.LookDeltaY = Sampled.MouseDelta.y;
 
         ImGuiIO& Mutable = ImGui::GetIO();
         Mutable.WantSetMousePos = true;
-        Mutable.MousePos        = Centre;
+        Mutable.MousePos        = ImVec2(Sampled.DisplaySize.x * 0.5f, Sampled.DisplaySize.y * 0.5f);
         ImGui::SetMouseCursor(ImGuiMouseCursor_None);
     }
     else

@@ -148,7 +148,7 @@ struct Rasterizer
     }
 
     void Triangle(const ImDrawVert& A, const ImDrawVert& B, const ImDrawVert& C,
-                  bool Textured, const unsigned char* Atlas, int AtlasWidth, int AtlasHeight,
+                  bool Textured, bool WrapU, const unsigned char* Atlas, int AtlasWidth, int AtlasHeight,
                   int ClipX0, int ClipY0, int ClipX1, int ClipY1)
     {
         const float Ax = A.pos.x, Ay = A.pos.y;
@@ -210,10 +210,13 @@ struct Rasterizer
                     const int IY = static_cast<int>(std::floor(SY));
                     const float FX = SX - static_cast<float>(IX);
                     const float FY = SY - static_cast<float>(IY);
-                    const int PX0 = IX < 0 ? 0 : (IX > AtlasWidth - 2 ? AtlasWidth - 2 : IX);
+                    const int PX0 = WrapU ? (((IX % AtlasWidth) + AtlasWidth) % AtlasWidth)
+                                           : (IX < 0 ? 0 : (IX > AtlasWidth - 2 ? AtlasWidth - 2 : IX));
                     const int PY0 = IY < 0 ? 0 : (IY > AtlasHeight - 2 ? AtlasHeight - 2 : IY);
                     const auto Texel = [&](int TX, int TY) -> std::uint32_t
                     {
+                        if (WrapU)
+                            TX = ((TX % AtlasWidth) + AtlasWidth) % AtlasWidth;
                         const std::size_t Offset =
                             (static_cast<std::size_t>(TY) * static_cast<std::size_t>(AtlasWidth) +
                              static_cast<std::size_t>(TX)) * 4u;
@@ -308,7 +311,8 @@ struct Rasterizer
                 const ImDrawVert& A = Vertices[Command.VtxOffset + I0];
                 const ImDrawVert& B = Vertices[Command.VtxOffset + I1];
                 const ImDrawVert& C = Vertices[Command.VtxOffset + I2];
-                Triangle(A, B, C, Textured, CommandAtlas, CommandAtlasWidth, CommandAtlasHeight,
+                Triangle(A, B, C, Textured, Extra != ExtraTextures.end(),
+                         CommandAtlas, CommandAtlasWidth, CommandAtlasHeight,
                          ClipX0, ClipY0, ClipX1, ClipY1);
             }
         }
@@ -370,6 +374,8 @@ struct SceneDriver
     bool  SimLookHeld    = false;
     float SimLookDeltaX  = 0.0f;
     float SimLookDeltaY  = 0.0f;
+    bool  SimShiftHeld   = false;
+    bool  SimTabPressed  = false;
 
     SceneDriver() : IO(ImGui::GetIO()) {}
 
@@ -448,7 +454,8 @@ struct SceneDriver
         Discard(Surface.Adopt(RecordingSurface::ShellLayer::Beneath));
         Motion.Advance(TickMilliseconds);
         Ledger.Advance(Surface.Pointer(), TickMilliseconds);
-        SceneDirectory.Advance(Surface.Pointer(), TickMilliseconds);
+        SceneDirectory.Advance(Surface.Pointer(), TickMilliseconds, Applied, SimTabPressed);
+        SimTabPressed = false;
         Editor.Advance(Surface.Pointer(), TickMilliseconds);
 
         // 📝 The fly camera — the host's own step, fed by the simulation flags instead of the seam.
@@ -458,6 +465,7 @@ struct SceneDriver
             FlyInput.LookHeld     = SimLookHeld;
             FlyInput.LookDeltaX   = SimLookDeltaX;
             FlyInput.LookDeltaY   = SimLookDeltaY;
+            FlyInput.ShiftHeld    = SimShiftHeld;
 
             CameraSettings FlySettings;
             FlySettings.FlySpeed    = Applied.CameraSpeed;
@@ -488,9 +496,6 @@ struct SceneDriver
                                  1024u, 576u, SkyPixels).Resolved)
             {
                 Applied.SkyTextureIdentity = SkyIdentity;
-                Applied.ViewportSkyCamera.AzimuthDegrees = static_cast<float>(SkyCam.AzimuthDegrees);
-                Applied.ViewportSkyCamera.ElevationDegrees = static_cast<float>(SkyCam.ElevationDegrees);
-                Applied.ViewportSkyCamera.FieldOfViewDegrees = static_cast<float>(SkyCam.FieldOfViewDegrees);
                 SkyReady = true;
             }
             SkyPrevious = Applied.Environment;
@@ -525,14 +530,15 @@ struct SceneDriver
             {
                 case PanelSubject::Viewport:
                     SceneDirectory.RecordViewportSky(LeafBody, Applied);
-                    SceneDirectory.RecordGroundGrid(LeafBody, Applied);
+                    SceneDirectory.RecordGroundGrid(LeafBody, Applied, Configuration);
                     break;
                 case PanelSubject::Outliner:
-                    SceneDirectory.RecordOutliner(LeafBody, Applied, EditorEntities, 7u);
+                    SceneDirectory.RecordOutliner(LeafBody, Applied, EditorEntities, 7u,
+                                                  Revisions, RevisionCount);
                     break;
                 case PanelSubject::Properties:
                     SceneDirectory.RecordProperties(LeafBody, Applied, EditorEntities, 7u,
-                                                    Revisions, RevisionCount);
+                                                    Revisions, RevisionCount, Applied.InspectorTab);
                     break;
                 default:
                     break;
@@ -631,6 +637,112 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         Driver.ApplyPartition(true);
         Driver.Settle(20);
     }
+    else if (std::strcmp(Scenario, "editor-grid-settings") == 0)
+    {
+        Driver.ApplyPartition(false);
+        Driver.Settle(20);
+
+        // 📐 The footer's grid settings drive the ground lattice: presentation, cell scale,
+        //    subdivisions (extent) and the axis lines. First capture: Lines + Dots with all three
+        //    axes; second: Dots only — the axis hues must stand in both, and the combined capture
+        //    must carry more lattice ink than the dots-only one.
+        Driver.Configuration.Lattice      = PanelLatticePresentation::LinesAndDots;
+        Driver.Configuration.LatticeScale = 2u;
+        Driver.Configuration.Subdivisions = 12u;
+        Driver.Configuration.AxisX = true;
+        Driver.Configuration.AxisY = true;
+        Driver.Configuration.AxisZ = true;
+
+        // 📐 The camera sits elevated at the X/Z diagonal (yaw 225, pitch -24), so all three axes are
+        //    visible at once: at the default pose the +Z axis is behind the camera and the vertical Y
+        //    axis points straight up out of the frame — physically correct, but useless as a proof.
+        Driver.FlyRig.YawDegrees   = 225.0;
+        Driver.FlyRig.PitchDegrees = -24.0;
+        Driver.FlyRig.Position[0]  = 40.0;
+        Driver.FlyRig.Position[1]  = 25.0;
+        Driver.FlyRig.Position[2]  = 40.0;
+        Driver.FlyRig.Snap();
+        Driver.Settle(10);
+
+        if (!Driver.Capture(OutputPath, Atlas, AtlasWidth, AtlasHeight))
+            return false;
+
+        auto Scan = [&](const char* Path, std::uint32_t& Red, std::uint32_t& Green,
+                        std::uint32_t& Blue, std::uint32_t& Lattice) -> bool
+        {
+            int ReadWidth = 0;
+            int ReadHeight = 0;
+            int ReadChannels = 0;
+            unsigned char* ReadPixels = stbi_load(Path, &ReadWidth, &ReadHeight, &ReadChannels, 4);
+
+            if (ReadPixels == nullptr)
+                return false;
+
+            Red = Green = Blue = Lattice = 0u;
+
+            for (int Y = 0; Y < ReadHeight; ++Y)
+            {
+                for (int X = 0; X < 637; ++X)
+                {
+                    const std::size_t Offset = (static_cast<std::size_t>(Y) * ReadWidth + X) * 4u;
+                    const int R = ReadPixels[Offset + 0u];
+                    const int G = ReadPixels[Offset + 1u];
+                    const int B = ReadPixels[Offset + 2u];
+
+                    if (R > 160 && G < 110 && B < 110 && (R - G) > 60)
+                        ++Red;                                     // X axis, red
+                    else if (G > 110 && R < 110 && B < 110 && (G - R) > 40)
+                        ++Green;                                   // Y axis, green
+                    else if (R < 90 && G < 130 && B > 170 && (B - R) > 110)
+                        ++Blue;                                    // Z axis, blue (the sky is excluded: R >= 90)
+                    else if (R > 38 && R < 130 && B > R && (B - R) < 22 &&
+                             std::abs(R - G) < 8 && std::abs(G - B) < 14)
+                        ++Lattice;                                 // the grey-blue lattice ink
+                }
+            }
+
+            stbi_image_free(ReadPixels);
+            return true;
+        };
+
+        std::uint32_t Red = 0u, Green = 0u, Blue = 0u, LatticeBoth = 0u;
+        if (!Scan(OutputPath, Red, Green, Blue, LatticeBoth))
+        {
+            std::fprintf(stderr, "[FAIL] the grid capture would not read back\n");
+            return false;
+        }
+
+        std::fprintf(stderr, "[assert] lines+dots: axis px R=%u G=%u B=%u lattice=%u\n",
+                     Red, Green, Blue, LatticeBoth);
+
+        if (Red < 20u || Blue < 20u || Green < 20u)
+        {
+            std::fprintf(stderr, "[FAIL] an axis line did not draw\n");
+            return false;
+        }
+
+        Driver.Configuration.Lattice = PanelLatticePresentation::Dots;
+        Driver.Settle(10);
+
+        if (!Driver.Capture(OutputPath, Atlas, AtlasWidth, AtlasHeight))
+            return false;
+
+        std::uint32_t DotsRed = 0u, DotsGreen = 0u, DotsBlue = 0u, LatticeDots = 0u;
+        if (!Scan(OutputPath, DotsRed, DotsGreen, DotsBlue, LatticeDots))
+        {
+            std::fprintf(stderr, "[FAIL] the dots capture would not read back\n");
+            return false;
+        }
+
+        std::fprintf(stderr, "[assert] dots-only: axis px R=%u G=%u B=%u lattice=%u\n",
+                     DotsRed, DotsGreen, DotsBlue, LatticeDots);
+
+        if (LatticeBoth <= LatticeDots)
+        {
+            std::fprintf(stderr, "[FAIL] lines+dots did not carry more lattice ink than dots alone\n");
+            return false;
+        }
+    }
     else if (std::strcmp(Scenario, "editor-camera-fly") == 0)
     {
         Driver.ApplyPartition(false);
@@ -710,6 +822,51 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         if (LaglessTravelled <= Travelled)
         {
             std::fprintf(stderr, "[FAIL] the camera lag did not lag\n");
+            return false;
+        }
+
+        // 📐 Shift boosts the fly speed: the same 30 ticks travel ~3x further with Shift held.
+        Driver.SimForwardHeld = true;
+        const double PlainBefore[3] = { Driver.FlyRig.LaggedPosition[0],
+                                        Driver.FlyRig.LaggedPosition[1],
+                                        Driver.FlyRig.LaggedPosition[2] };
+        for (int Step = 0; Step < 30; ++Step)
+            Driver.Tick(640.0f, 450.0f, false, false, false);
+        const double PlainAfter[3] = { Driver.FlyRig.LaggedPosition[0],
+                                       Driver.FlyRig.LaggedPosition[1],
+                                       Driver.FlyRig.LaggedPosition[2] };
+        Driver.SimForwardHeld = false;
+        Driver.Settle(10);
+
+        Driver.SimShiftHeld = true;
+        Driver.SimForwardHeld = true;
+        const double ShiftBefore[3] = { Driver.FlyRig.LaggedPosition[0],
+                                        Driver.FlyRig.LaggedPosition[1],
+                                        Driver.FlyRig.LaggedPosition[2] };
+        for (int Step = 0; Step < 30; ++Step)
+            Driver.Tick(640.0f, 450.0f, false, false, false);
+        const double ShiftAfter[3] = { Driver.FlyRig.LaggedPosition[0],
+                                       Driver.FlyRig.LaggedPosition[1],
+                                       Driver.FlyRig.LaggedPosition[2] };
+        Driver.SimForwardHeld = false;
+        Driver.SimShiftHeld = false;
+        Driver.Settle(10);
+
+        const auto Distance = [](const double (&A)[3], const double (&B)[3]) -> double
+        {
+            return std::sqrt((B[0] - A[0]) * (B[0] - A[0])
+                           + (B[1] - A[1]) * (B[1] - A[1])
+                           + (B[2] - A[2]) * (B[2] - A[2]));
+        };
+
+        const double PlainMoved = Distance(PlainBefore, PlainAfter);
+        const double ShiftMoved = Distance(ShiftBefore, ShiftAfter);
+
+        std::fprintf(stderr, "[assert] shift boost: %.1f m plain, %.1f m with shift\n",
+                     PlainMoved, ShiftMoved);
+        if (ShiftMoved < PlainMoved * 2.0)
+        {
+            std::fprintf(stderr, "[FAIL] Shift did not boost the fly speed\n");
             return false;
         }
 
@@ -885,6 +1042,57 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
                 return false;
             }
         }
+
+        // 📐 Tab walks the outliner leaf's pages: Directory -> Properties -> History -> Directory.
+        Driver.SimTabPressed = true;
+        Driver.Tick(640.0f, 450.0f, false, false, false);
+        std::fprintf(stderr, "[assert] tab page after 1st press: %u\n", Driver.Applied.OutlinePage);
+        if (Driver.Applied.OutlinePage != 1u)
+        {
+            std::fprintf(stderr, "[FAIL] Tab did not advance to Properties\n");
+            return false;
+        }
+
+        Driver.SimTabPressed = true;
+        Driver.Tick(640.0f, 450.0f, false, false, false);
+        if (Driver.Applied.OutlinePage != 2u)
+        {
+            std::fprintf(stderr, "[FAIL] Tab did not advance to History\n");
+            return false;
+        }
+
+        Driver.SimTabPressed = true;
+        Driver.Tick(640.0f, 450.0f, false, false, false);
+        if (Driver.Applied.OutlinePage != 0u)
+        {
+            std::fprintf(stderr, "[FAIL] Tab did not wrap back to Directory\n");
+            return false;
+        }
+        std::fprintf(stderr, "[assert] tab cycle 0 -> 1 -> 2 -> 0 stands\n");
+
+        // 📐 The Inspect call jumps straight to Properties.
+        {
+            const PlaneExtent Body = Driver.Editor.LeafBody(1u);
+            const float OutlinerX = 350.0f < Body.Width() * 0.6f ? 350.0f : Body.Width() * 0.6f;
+            const float HeaderTop = Body.MinimumY;           // the directory header inside the leaf
+            const float HeaderRight = Body.MinimumX + OutlinerX;
+
+            const char* Caption = "Inspect";
+            const float PadX = 8.0f;
+            const float Run = 11.5f;
+            const float CallSpan = PadX * 2.0f + 35.0f;      // measured run approximated
+            const float CallX = HeaderRight - PadX - CallSpan + CallSpan * 0.5f;
+            const float CallY = HeaderTop + 46.0f * 0.5f;
+
+            Driver.Tap(CallX, CallY);
+            std::fprintf(stderr, "[assert] inspect pressed at (%.0f,%.0f) page=%u\n",
+                         CallX, CallY, Driver.Applied.OutlinePage);
+            if (Driver.Applied.OutlinePage != 1u)
+            {
+                std::fprintf(stderr, "[FAIL] the Inspect call did not open Properties\n");
+                return false;
+            }
+        }
     }
     else
     {
@@ -918,6 +1126,11 @@ int main(int ArgumentCount, char** Arguments)
     IO.IniFilename = nullptr;
     IO.LogFilename = nullptr;
     IO.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
+    // 🔴 The viewport's sky mesh carries ~2400 vertices, and the workspace list's total can cross the
+    //    16-bit index ceiling: without `RendererHasVtxOffset` ImGui cannot split commands at 64K and
+    //    the mesh's indices overflow — the "missing sun" in the harness renders. The windowed hosts'
+    //    Vulkan backend sets this flag; the harness must too.
+    IO.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
 
     SceneDriver Driver;
     if (!Driver.Construct())
@@ -934,7 +1147,8 @@ int main(int ArgumentCount, char** Arguments)
     IO.Fonts->TexData->SetTexID((ImTextureID)(intptr_t)1);
     IO.Fonts->TexRef._TexData = IO.Fonts->TexData;
 
-    const char* Shots[] = {"editor-overview", "editor-sun-props", "editor-after-drag", "editor-camera-fly"};
+    const char* Shots[] = {"editor-overview", "editor-sun-props", "editor-after-drag",
+                           "editor-camera-fly", "editor-grid-settings"};
 
     int Rendered = 0;
     for (const char* Shot : Shots)

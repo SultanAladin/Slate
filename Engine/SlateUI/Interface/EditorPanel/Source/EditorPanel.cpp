@@ -876,11 +876,11 @@ void EditorPanel::RecordLatticeMenu(std::uint32_t RecordOrdinal,
     Surface->Ground(Spanning(Menu.MinimumX + 20.0f, Menu.MinimumY + 44.0f,
                              Menu.Width() - 40.0f, 1.0f), Colour.Edge);
 
-    const char* LatticeOptions[3] = { "None", "Lines", "Dotted" };
+    const char* LatticeOptions[4] = { "None", "Lines", "Dotted", "Lines + Dots" };
     SelectionDeclaration LatticeDeclaration;
     LatticeDeclaration.Caption     = "Grid";
     LatticeDeclaration.Options     = LatticeOptions;
-    LatticeDeclaration.OptionCount = 3u;
+    LatticeDeclaration.OptionCount = 4u;
     std::uint32_t LatticeReading = static_cast<std::uint32_t>(Configuration.Lattice);
     SharedControls.SelectionField(Controls[ControlOrdinal(RecordOrdinal, ControlRole::LatticePresentation)],
                                   Spanning(Menu.MinimumX + 20.0f, Menu.MinimumY + 58.0f,

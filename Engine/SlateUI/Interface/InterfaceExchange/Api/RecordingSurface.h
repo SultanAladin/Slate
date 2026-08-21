@@ -119,8 +119,9 @@ struct CameraCondition
     bool    UpHeld       = false;   // [-] - E: world up
     bool    DownHeld     = false;   // [-] - Q: world down
     bool    LookHeld     = false;   // [-] - the right button, holding the look gesture
-    float   LookDeltaX   = 0.0f;    // [px] - the departure from the display centre, rightward positive
-    float   LookDeltaY   = 0.0f;    // [px] - the departure from the display centre, downward positive
+    float   LookDeltaX   = 0.0f;    // [px] - the pointer's travel while the gesture stood, rightward positive
+    float   LookDeltaY   = 0.0f;    // [px] - the pointer's travel while the gesture stood, downward positive
+    bool    ShiftHeld    = false;   // [-] - Shift: the fly speed's boost, Unreal-style
 };
 
 //------------------------------------------------------------------------------------------------------------------------

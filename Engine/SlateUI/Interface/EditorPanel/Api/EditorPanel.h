@@ -30,7 +30,8 @@ enum class PanelLatticePresentation : std::uint32_t
     None              = 0u,
     Lines             = 1u,
     Dots              = 2u,
-    PresentationCount = 3u
+    LinesAndDots      = 3u,
+    PresentationCount = 4u
 };
 
 /// 🧩 Scene shading selected for a viewport panel.

@@ -77,26 +77,43 @@ prototype of the WHOLE reference sheet                    the real editor layout
   leaf has a live **Fly Speed** slider (1–500 m/s) with a once-per-drag history
   demand like the environment sliders.
 - **Movement is Unreal-fly**: W/S along the view direction (pitch included),
-  A/D strafe, E/Q world up/down; **hold the right mouse button and drag to
-  look**. The look gesture CAPTURES the cursor: while held, the OS cursor is
-  warped to the display centre every tick, so the turn is unbounded — it never
-  stops at the window edge. Gated on keyboard capture, so typing in a field
-  never flies.
+  A/D strafe, E/Q world up/down, **Shift to boost the fly speed 3x**; **hold
+  the right mouse button and drag to look**. The look gesture CAPTURES the
+  cursor: while held, the OS cursor is warped to the display centre every tick,
+  so the turn is unbounded — it never stops at the window edge.
+  🔴 The look reads the vendor's ACCUMULATED mouse delta, never the pointer's
+  departure from the centre (with the warp in place the departure is non-zero
+  only on the press frame — the "turns then stops" defect), and it is NOT gated
+  on `WantCaptureKeyboard` (a hovered window raises it, which would stop the
+  camera over any panel). Only text input gates the movement keys.
 - **Camera lag**: the rig eases position and yaw/pitch toward the target with
   an exponential time constant (0.18 s). Toggle it in the camera's details
   (Camera Lag); Invert Pitch is the second toggle. The viewport crop reads the
   LAGGED pose, so a fast turn visibly trails the input.
-- **The world is visible**: the viewport leaf draws a 20 m ground lattice on
-  the Y=0 plane, projected through the same pinhole as the sky — so W/A/D/E/Q
+- **The world is visible**: the viewport leaf draws a ground lattice on the
+  Y=0 plane, projected through the same pinhole as the sky — so W/A/D/E/Q
   visibly travel the scene and the look gesture visibly turns it, in metres.
+  The lattice is driven by the viewport's footer "Grid settings" popup: None /
+  Lines / Dotted / Lines + Dots, cell Scale (m), Subdivisions (the half-extent
+  in cells, 2-128), and the red/green/blue axis lines (X/Y/Z toggles). The
+  dotted presentation draws a node at every intersection.
 - The sky dome is direction-indexed and camera-independent: looking around only
   moves the crop, never regenerates the texture. The viewport samples the dome
   through a PERSPECTIVE mesh (per-vertex UVs along the true pinhole ray), so
   the sun stays round at any leaf aspect — a plain cropped quad stretches it.
+  The mesh's U is ABSOLUTE and the sampler wraps U (REPEAT, V clamps): the
+  dome's azimuth is periodic, and a camera whose frustum crosses the seam must
+  wrap, not shift — a shift of yaw/2π is not a whole period and reads the
+  wrong texels (this was tried and reverted).
 - **Dropdowns composite above the viewport**: `EditorPanel::Record` can defer
   its popups (`DeferPopups`), the host records leaf content between the two
   calls, then `RecordDeferredPopups` records the menus on top. Never record the
   leaf content AFTER the deferred call.
+- **The outliner leaf has pages**: Tab (the seam's Summon) cycles Directory →
+  Properties → History → Directory; the leaf's bottom strip selects the same
+  page, and the "Inspect" call in its header jumps to Properties. The
+  properties leaf's own Properties | History strip is a separate tab state, so
+  the two leaves never fight.
 - **Shutdown order matters**: `SkySurface.Reclaim()` runs BEFORE
   `Lifetime.Reclaim()` — a surface left standing past the device reclaim waits
   on a dead fence and reports `vkWaitForFences: Invalid device` at exit.

@@ -25,6 +25,7 @@
 #include "Contract/DeliveryContract.h"
 #include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
 #include "SlateUI/Interface/ControlPanel/Api/ControlPanel.h"
+#include "SlateUI/Interface/EditorPanel/Api/EditorPanel.h"
 #include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
@@ -73,6 +74,13 @@ struct SceneDirectoryContext
     bool                       CardFolded[CardCeiling]       = {};
     bool                       RevisionFolded[EntityCeiling] = {};
 
+    // 📐 The OUTLINER leaf's own pages: 0 the directory (outliner | details), 1 the selected record's
+    //    properties, 2 its history. Tab cycles them; the Inspect button in the outliner header jumps
+    //    to 1. `OutlineInspectorTab` is the properties leaf's strip selection INSIDE the outliner, so
+    //    the two leaves never fight over one tab state.
+    std::uint32_t              OutlinePage        = 0u;      // [-] - 0 Directory, 1 Properties, 2 History
+    std::uint32_t              OutlineInspectorTab = 0u;     // [-] - 0 Properties, 1 History (page 1/2)
+
     // 📝 The disclosure and presence conditions of the outline rows, exactly as the shell's own declare
     //    them: the level, Lighting, Environment and Systems arrive expanded and everything else folded.
     bool  EntityExpanded[EntityCeiling] = { true, true, false, false, false, false,
@@ -117,6 +125,7 @@ public:
         + SceneDirectoryContext::CardCeiling          // [-] - one fold per property card
         + SceneDirectoryContext::EntityCeiling        // [-] - one fold per grouped revision header
         + 1u                                          // [-] - the Properties | History strip
+        + 2u                                          // [-] - the outliner's page strip and the Inspect call
         + 6u;                                         // [-] - the six environment slider rows
 
     SceneDirectoryPanel()                                   = default;
@@ -138,7 +147,8 @@ public:
     /// note  🔴 This does not advance the ledger; several panels share it and the tick owner advances it once.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Advance(const PointerCondition& Sampled, double Elapsed);
+    void Advance(const PointerCondition& Sampled, double Elapsed,
+                 SceneDirectoryContext& Applied, bool TabPressed = false);
 
     /// 🧩 Re-applies every scaled extent after the appearance was resolved against a new display extent.
     /// cost  ✔️
@@ -164,7 +174,8 @@ public:
     /// in    Applied  [-]   the camera's pose and position, as the host wrote them this tick
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
-    void RecordGroundGrid(const PlaneExtent& Extent, const SceneDirectoryContext& Applied);
+    void RecordGroundGrid(const PlaneExtent& Extent, const SceneDirectoryContext& Applied,
+                          const EditorPanelConfiguration& Configuration);
 
     /// 🧩 Records the outliner column and its details pane across one outliner leaf.
     /// in    Rows   [-]  the entity rows, borrowed for the tick
@@ -172,7 +183,8 @@ public:
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
     void RecordOutliner(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
-                        const EntityRow* Rows, std::uint32_t RowCount);
+                        const EntityRow* Rows, std::uint32_t RowCount,
+                        const EntityRevision* Revisions, std::uint32_t RevisionCount);
 
     /// 🧩 Records the Properties | History pages across one properties leaf.
     /// in    Rows        [-]  the entity rows, borrowed for the tick
@@ -183,7 +195,8 @@ public:
     /// tag   api, nonallocating, nonthrowing
     void RecordProperties(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
                           const EntityRow* Rows, std::uint32_t RowCount,
-                          const EntityRevision* Revisions, std::uint32_t RevisionCount);
+                          const EntityRevision* Revisions, std::uint32_t RevisionCount,
+                          std::uint32_t& InspectorTab);
 
 private:
 
@@ -223,6 +236,8 @@ private:
     ControlIdentity CardFolds[SceneDirectoryContext::CardCeiling]        = {};
     ControlIdentity RevisionGroups[SceneDirectoryContext::EntityCeiling] = {};
     ControlIdentity InspectorStrip = {};
+    ControlIdentity OutlineStrip    = {};
+    ControlIdentity InspectCall     = {};
     ControlIdentity EnvironmentSliders[6] = {};
 
     bool   EnvironmentArmed[6] = {};   // [-] - drag-start latched per slider

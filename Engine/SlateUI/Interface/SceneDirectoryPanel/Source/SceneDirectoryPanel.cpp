@@ -197,6 +197,8 @@ Outcome<bool> SceneDirectoryPanel::Construct(InteractionIndex& Interaction,
     ControlIdentity* const Every[] =
     {
         &InspectorStrip,
+        &OutlineStrip,
+        &InspectCall,
         &EnvironmentSliders[0], &EnvironmentSliders[1], &EnvironmentSliders[2],
         &EnvironmentSliders[3], &EnvironmentSliders[4], &EnvironmentSliders[5],
         &CardFolds[0], &CardFolds[1], &CardFolds[2], &CardFolds[3]
@@ -235,13 +237,19 @@ Outcome<bool> SceneDirectoryPanel::Construct(InteractionIndex& Interaction,
     return Outcome<bool>::Result(true);
 }
 
-void SceneDirectoryPanel::Advance(const PointerCondition& Contact, double Elapsed)
+void SceneDirectoryPanel::Advance(const PointerCondition& Contact, double Elapsed,
+                                   SceneDirectoryContext& Applied, bool TabPressed)
 {
     Sampled = Contact;
     Controls.Advance(Contact, Elapsed);
     // 📝 Sampled, never advanced: the tick owner advances the shared ledger exactly once, and a
     //    second advance would retire the release before the panel reads it.
     EnvironmentControls.Sample(Contact);
+
+    // 📐 Tab walks the outliner leaf's pages: Directory → Properties → History → Directory. The key
+    //    is the seam's Summon (Tab), edge-triggered there and unrepeated, so one press is one page.
+    if (TabPressed)
+        Applied.OutlinePage = (Applied.OutlinePage + 1u) % 3u;
 }
 
 void SceneDirectoryPanel::Reset()
@@ -295,8 +303,8 @@ void SceneDirectoryPanel::RecordViewportSky(const PlaneExtent& Extent, const Sce
     //    compresses the horizon where perspective should widen it. The mesh samples the dome per
     //    screen vertex along the true pinhole ray, so the sun stays round and the horizon reads at any
     //    leaf aspect — the same projection the grid below uses, which is what keeps the two aligned.
-    constexpr std::uint32_t MeshColumns = 40u;
-    constexpr std::uint32_t MeshRows    = 24u;
+    constexpr std::uint32_t MeshColumns = 64u;
+    constexpr std::uint32_t MeshRows    = 36u;
     constexpr std::uint32_t VertexCount = (MeshColumns + 1u) * (MeshRows + 1u);
     constexpr std::uint32_t IndexCount  = MeshColumns * MeshRows * 6u;
 
@@ -351,12 +359,18 @@ void SceneDirectoryPanel::RecordViewportSky(const PlaneExtent& Extent, const Sce
 
             // 📐 Dome coordinates: U = azimuth/2π + 0.5 with azimuth measured from +Z toward +X (the
             //    dome generator's own convention), V = (90 − elevation)/180.
+            // 🔴 U is ABSOLUTE and the sampler wraps it (REPEAT on U, clamp on V): the dome's azimuth
+            //    is periodic, and a camera whose frustum crosses the seam (yaw near ±180°) spans U
+            //    from ~0.93 to ~0.07 — with a clamped sampler the edge texels smear across the seam
+            //    as a stretched band, which was the reported pixelation. Shifting the mesh's U by the
+            //    yaw would break the texture content (a shift of yaw/2π is not a whole period), so the
+            //    wrap belongs to the sampler, not the coordinates.
             const double Azimuth   = std::atan2(DirectionX, DirectionZ);
             const double Elevation = std::asin(std::clamp(DirectionY, -1.0, 1.0));
 
             Positions[Vertex * 2u]     = ScreenX;
             Positions[Vertex * 2u + 1u] = ScreenY;
-            UVs[Vertex * 2u]     = static_cast<float>(std::clamp(Azimuth / (2.0 * 3.14159265358979323846) + 0.5, 0.0, 1.0));
+            UVs[Vertex * 2u]     = static_cast<float>(Azimuth / (2.0 * 3.14159265358979323846) + 0.5);
             UVs[Vertex * 2u + 1u] = static_cast<float>(std::clamp(0.5 - Elevation / 3.14159265358979323846, 0.0, 1.0));
 
             ++Vertex;
@@ -390,14 +404,24 @@ void SceneDirectoryPanel::RecordViewportSky(const PlaneExtent& Extent, const Sce
 //                                                    THE GROUND GRID
 //------------------------------------------------------------------------------------------------------------------------
 
-void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, const SceneDirectoryContext& Applied)
+void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, const SceneDirectoryContext& Applied,
+                                              const EditorPanelConfiguration& Configuration)
 {
-    // 📐 The world the camera travels: a 20 m lattice on the Y = 0 plane, projected through the same
-    //    pinhole as the sky mesh. Without it a fly camera over a pure skybox reads as static — there is
-    //    nothing to move past — and the grid is what makes W/S/A/D/E/Q visibly travel the world, in
-    //    metres, exactly as the reference fly-cams present a floor.
-    constexpr double Cell = 20.0;        // [m] - one lattice cell
-    constexpr double Half = 400.0;       // [m] - the lattice's half extent
+    // 📐 The world the camera travels: a lattice on the Y = 0 plane, projected through the same
+    //    pinhole as the sky mesh. Without it a fly camera over a pure skybox reads as static — there
+    //    is nothing to move past — and the grid is what makes W/S/A/D/E/Q visibly travel the world,
+    //    in metres. It is driven by the viewport's OWN grid settings (the footer's "Grid settings"
+    //    popup): the presentation (none / lines / dots / both), the cell size, the extent, and the
+    //    axis lines — the same configuration the skeletal lattice in the pre-editor viewport read.
+    const PanelLatticePresentation Presentation = Configuration.Lattice;
+
+    if (Presentation == PanelLatticePresentation::None)
+        return;
+
+    constexpr double BaseCell = 20.0;                       // [m] - one lattice cell at scale 1
+    const double Cell = BaseCell * static_cast<double>(Configuration.LatticeScale);
+    const std::uint32_t Cells = std::max(2u, std::min(128u, Configuration.Subdivisions));
+    const double Half = Cell * static_cast<double>(Cells);  // [m] - the lattice's half extent
     constexpr std::uint32_t Samples = 48u;
 
     const float CentreX = Extent.MinimumX + Extent.Width()  * 0.5f;
@@ -448,6 +472,11 @@ void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, const Scen
         Behind  = false;
     };
 
+    const bool DrawLines = Presentation == PanelLatticePresentation::Lines
+                        || Presentation == PanelLatticePresentation::LinesAndDots;
+    const bool DrawDots  = Presentation == PanelLatticePresentation::Dots
+                        || Presentation == PanelLatticePresentation::LinesAndDots;
+
     const auto RecordLatticeLine = [&](bool AlongZ, double Offset, bool Coarse) -> void
     {
         float X[64];
@@ -493,15 +522,99 @@ void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, const Scen
         Flush(Tally);
     };
 
-    const int LineCount = static_cast<int>(Half / Cell);
+    const std::uint32_t LineCount = std::max(2u, Cells);
 
-    for (int Ordinal = -LineCount; Ordinal <= LineCount; ++Ordinal)
+    for (std::uint32_t Ordinal = 0u; Ordinal <= LineCount; ++Ordinal)
     {
-        const double Offset = static_cast<double>(Ordinal) * Cell;
-        const bool Coarse = (Ordinal % 5) == 0;
+        const double Offset = -Half + Cell * static_cast<double>(Ordinal);
+        const bool Coarse = (Ordinal % 5u) == 0u;
 
-        RecordLatticeLine(true,  Offset, Coarse);
-        RecordLatticeLine(false, Offset, Coarse);
+        if (DrawLines)
+        {
+            RecordLatticeLine(true,  Offset, Coarse);
+            RecordLatticeLine(false, Offset, Coarse);
+        }
+
+        // 📐 The dotted presentation: a node at every intersection, drawn as a small disc. Only the
+        //    intersections that project in front of the camera are drawn, so a camera at the edge of
+        //    the lattice never fills the screen with the far half of it.
+        if (DrawDots && (Ordinal % 2u) == 0u)
+        {
+            const double WorldX = Offset;
+            const double WorldZ = Offset;
+
+            float ScreenX = 0.0f;
+            float ScreenY = 0.0f;
+            bool  Behind  = false;
+
+            Project(WorldX, 0.0, WorldZ, ScreenX, ScreenY, Behind);
+
+            if (!Behind)
+            {
+                const float Radius = Coarse ? 2.6f : 1.8f;
+                const ThemeToken Ink = Coarse ? Faded(Covering(0x9AA6B8u), 0.60f)
+                                              : Faded(Covering(0x9AA6B8u), 0.34f);
+                Surface->Medallion(ScreenX, ScreenY, Radius, Ink);
+            }
+        }
+    }
+
+    // 📐 The axis lines — the world's own X (red), Y (green, vertical) and Z (blue), each from the
+    //    origin to a declared reach. Toggled by the grid settings' axis switches; the vertical Y axis
+    //    is what makes the camera's up/down travel legible.
+    if (Configuration.AxisX || Configuration.AxisY || Configuration.AxisZ)
+    {
+        constexpr double AxisReach = 60.0;   // [m] - the axis lines' extent
+        constexpr std::uint32_t AxisSamples = 24u;
+        const float AxisWeight = 2.0f;
+
+        const auto RecordAxis = [&](bool AlongX, bool AlongY, bool AlongZ, std::uint32_t Packed)
+        {
+            float X[AxisSamples + 1u];
+            float Y[AxisSamples + 1u];
+            std::uint32_t Tally = 0u;
+
+            // 📐 The axis is SAMPLED and split at the near plane, exactly as the lattice lines are:
+            //    the origin sits a metre below the camera, so a line that required both endpoints in
+            //    front of the camera vanished the moment the camera left the origin — the reported
+            //    missing axes. Sampling keeps the front run visible from anywhere.
+            const auto Flush = [&](std::uint32_t Count) -> void
+            {
+                if (Count >= 2u)
+                    Surface->Polyline(X, Y, Count, Covering(Packed), AxisWeight);
+            };
+
+            for (std::uint32_t Sample = 0u; Sample <= AxisSamples; ++Sample)
+            {
+                const double T = AxisReach * static_cast<double>(Sample) / static_cast<double>(AxisSamples);
+
+                float ScreenX = 0.0f;
+                float ScreenY = 0.0f;
+                bool  Behind  = false;
+
+                Project(AlongX ? T : 0.0, AlongY ? T : 0.0, AlongZ ? T : 0.0, ScreenX, ScreenY, Behind);
+
+                if (Behind)
+                {
+                    Flush(Tally);
+                    Tally = 0u;
+                    continue;
+                }
+
+                X[Tally] = ScreenX;
+                Y[Tally] = ScreenY;
+                ++Tally;
+            }
+
+            Flush(Tally);
+        };
+
+        if (Configuration.AxisX)
+            RecordAxis(true,  false, false, 0xE5484Du);   // [-] - X, red
+        if (Configuration.AxisY)
+            RecordAxis(false, true,  false, 0x46A758u);   // [-] - Y, green (up)
+        if (Configuration.AxisZ)
+            RecordAxis(false, false, true,  0x3E63DDu);   // [-] - Z, blue
     }
 }
 
@@ -545,7 +658,8 @@ void SceneDirectoryPanel::RecordLeafHeader(const PlaneExtent& Extent, SymbolSubj
 }
 
 void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
-                                         const EntityRow* Rows, std::uint32_t RowCount)
+                                         const EntityRow* Rows, std::uint32_t RowCount,
+                                         const EntityRevision* Revisions, std::uint32_t RevisionCount)
 {
     if (Rows == nullptr)
         RowCount = 0u;
@@ -553,9 +667,22 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
     if (RowCount > SceneDirectoryContext::EntityCeiling)
         RowCount = SceneDirectoryContext::EntityCeiling;
 
+    if (Revisions == nullptr)
+        RevisionCount = 0u;
+
     Surface->Ground(Extent, Tinted.Menu, 0.0f, CornerNone);
 
     const float Pad = Scaled.PanePad;
+
+    // 📐 The outliner leaf's pages: 0 the directory (outliner | details), 1 the selected record's
+    //    properties, 2 its history. Tab cycles them, the strip below selects them, and the header's
+    //    Inspect call jumps to the properties.
+    if (Applied.OutlinePage != 0u)
+    {
+        RecordProperties(Extent, Applied, Rows, RowCount, Revisions, RevisionCount,
+                         Applied.OutlineInspectorTab);
+        return;
+    }
 
     // 📐 The outliner column and the details pane beside it — the same `350px_minmax(0,1fr)` split the
     //    shell's scene directory presents. The details pane is the small metadata/options card.
@@ -571,12 +698,51 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
     RecordLeafHeader(Header, SymbolSubject::GearCog, Tinted.EntityAccent, "Scene Directory",
                      "World Outliner");
 
+    // 📐 The Inspect call at the header's trailing edge — jumps the leaf to the selected record's
+    //    properties, the same travel Tab performs one step at a time.
+    {
+        const char* Caption = "Inspect";
+        const float Run     = Scaled.RunSecondary;
+        const float PadX    = Scaled.HeaderPadX * 0.8f;
+        const float CallSpan = PadX * 2.0f + Surface->MeasureRun(Caption, Run, 0.0f);
+
+        const PlaneExtent Call = Spanning(Header.MaximumX - PadX - CallSpan,
+                                          Header.MinimumY + (Header.Height() - 24.0f) * 0.5f,
+                                          CallSpan, 24.0f);
+
+        const bool OnCall = Call.Encloses(Sampled.PositionX, Sampled.PositionY);
+
+        if (Sampled.ContactPressed && OnCall && !Ledger->AnyDisclosed())
+            Ledger->Grab(InspectCall, ControlPart::Body);
+
+        if (OnCall && Ledger->Released(InspectCall))
+            Applied.OutlinePage = 1u;
+
+        Ledger->DeclareHovered(InspectCall, OnCall, HoverOver);
+
+        if (OnCall)
+            Surface->Ground(Call, Tinted.TileHovered, Scaled.FieldRadius, CornerAll);
+
+        Surface->TextRun(Call.MinimumX + PadX,
+                         Call.MinimumY + (Call.Height() - Run) * 0.5f,
+                         OnCall ? Tinted.Primary : Tinted.Muted, Caption, Run);
+    }
+
     const PlaneExtent Footer = Spanning(Outlining.MinimumX, Outlining.MaximumY - Scaled.FooterHeight,
                                         Outlining.Width(), Scaled.FooterHeight);
 
+    // 📐 The page strip between the body and the footer: Directory | Properties | History. The strip
+    //    writes the same `OutlinePage` Tab cycles, so the two can never disagree.
+    const PlaneExtent Strip = Spanning(Outlining.MinimumX, Footer.MinimumY - Scaled.ComponentY,
+                                       Outlining.Width(), Scaled.ComponentY);
+
+    static const char* const PageCaptions[3] = { "Directory", "Properties", "History" };
+    const TabDeclaration PageDeclared{ PageCaptions, 3u };
+    static_cast<void>(Controls.TabStrip(OutlineStrip, Strip, PageDeclared, Applied.OutlinePage));
+
     const PlaneExtent Body = Spanning(Outlining.MinimumX + Pad, Header.MaximumY + Pad,
                                       Outlining.Width() - Pad * 2.0f,
-                                      Footer.MinimumY - Header.MaximumY - Pad);
+                                      Strip.MinimumY - Header.MaximumY - Pad);
 
     Surface->Confine(Body);
 
@@ -954,7 +1120,8 @@ void SceneDirectoryPanel::RecordDetailOptions(const PlaneExtent& Extent, SceneDi
 
 void SceneDirectoryPanel::RecordProperties(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
                                            const EntityRow* Rows, std::uint32_t RowCount,
-                                           const EntityRevision* Revisions, std::uint32_t RevisionCount)
+                                           const EntityRevision* Revisions, std::uint32_t RevisionCount,
+                                           std::uint32_t& InspectorTab)
 {
     if (Rows == nullptr)
         RowCount = 0u;
@@ -993,14 +1160,14 @@ void SceneDirectoryPanel::RecordProperties(const PlaneExtent& Extent, SceneDirec
 
     const TabDeclaration Declared{ Captions, 2u };
 
-    static_cast<void>(Controls.TabStrip(InspectorStrip, Strip, Declared, Applied.InspectorTab));
+    static_cast<void>(Controls.TabStrip(InspectorStrip, Strip, Declared, InspectorTab));
 
     const PlaneExtent Pages = Spanning(Extent.MinimumX, Strip.MaximumY, Extent.Width(),
                                        Extent.MaximumY - Strip.MaximumY - Scaled.FooterHeight);
 
     // 📐 The two pages sit side by side and the strip travels between them, exactly as the shell's
     //    inspector does — the travel is one whole page extent.
-    const float Carried = (Applied.InspectorTab == 1u) ? -Pages.Width() : 0.0f;
+    const float Carried = (InspectorTab == 1u) ? -Pages.Width() : 0.0f;
 
     Surface->Confine(Pages);
 
@@ -1038,7 +1205,7 @@ void SceneDirectoryPanel::RecordProperties(const PlaneExtent& Extent, SceneDirec
 
         Surface->TextRun(Footer.MinimumX + Scaled.HeaderPadX + Scaled.ChipExtent
                          + Scaled.PanePad, FooterTop, Tinted.Muted,
-                         (Applied.InspectorTab == 0u) ? "Properties" : "History", FooterRun);
+                         (InspectorTab == 0u) ? "Properties" : "History", FooterRun);
     }
 }
 
