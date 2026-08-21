@@ -1333,16 +1333,6 @@ void TexturePaintPanel::RecordStackHeader(const PlaneExtent& Header, TexturePain
                              UndoCell.MinimumY + (ButtonY - Figure) * 0.5f, Figure, Figure),
                     Faded(Covering(0x9A9A9Au), 0.25f));
 
-    // 📝 The taken row's tag hue chip sits between the title and the buttons, right-aligned, so the
-    //    artist always sees the selection's colour — the reference's `.tag` in miniature.
-    if (Applied.LayerTaken < TextureLayerCeiling && Applied.StackPage == 0u)
-    {
-        const float Hue = 8.0f;
-        const PlaneExtent HueChip = Spanning(UndoCell.MinimumX - Pad - Hue,
-                                             Header.MinimumY + (Header.Height() - Hue) * 0.5f,
-                                             Hue, Hue);
-        Surface->Ground(HueChip, Covering(Applied.LayerTagHue[Applied.LayerTaken]), 2.0f, CornerAll);
-    }
 }
 
 void TexturePaintPanel::RecordStackTools(const PlaneExtent& Tools, TexturePaintContext& Applied)
@@ -1863,6 +1853,18 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
                         Faded(Covering(0xFFFFFFu), 0.10f), 0.0f, CornerNone);
     }
 
+    // 📐 The mask entry's own dotted colour tag — the reference's `.entry .tag.dot` on the attached
+    //    entry, in the layer's colour, recorded above the ground so it always stands.
+    const std::uint32_t TagHue = Applied.LayerTagHue[Ordinal] != 0u
+                               ? Applied.LayerTagHue[Ordinal] : Current.TagHue;
+
+    for (float Y = Row.MinimumY; Y < Row.MinimumY + Row.Height(); Y += 7.0f)
+    {
+        Surface->Ground(Spanning(Row.MinimumX, Y, Scaled.LayerTagX,
+                                 std::min(3.0f, Row.MinimumY + Row.Height() - Y)),
+                        Faded(Covering(TagHue), Absent ? 0.3f : 0.85f), 0.0f, CornerNone);
+    }
+
     // 📐 The content: eye, mini thumb, MASK name + sub, chips, details and more — the reference's
     //    `.row.msk`.
     const float Lead = Row.MinimumX + Scaled.LayerMaskIndent;
@@ -1963,9 +1965,9 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
     const float NamingTop = Row.MinimumY + (Row.Height() * 0.5f - NamingRun * 1.3f) * 0.5f;
     const float NamingCeiling = Details.MinimumX - Scaled.PanePad;
 
-    Surface->TextRun(MetaLead, NamingTop,
-                     Faded(Taken ? Tinted.Primary : Covering(0x9A9A9Au), Coverage),
-                     "Mask", NamingRun, 1.1f, true);
+    Surface->TextRunCapitalised(MetaLead, NamingTop,
+                                Faded(Taken ? Tinted.Primary : Covering(0x9A9A9Au), Coverage),
+                                "Mask", NamingRun, 1.1f, true);
 
     const char* Source = Current.Source[0] != '\0'
                        ? Current.Source
