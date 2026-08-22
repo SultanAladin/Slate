@@ -167,6 +167,9 @@ private:
         ChooseViewport,
         ChooseUv,
         ChooseOutliner,
+        // 🔴 Retained though no chooser now spends it: ControlRole ordinals are
+        //    the control identities, so deleting one renumbers every role after
+        //    it and moves the hover and contact state of unrelated controls.
         ChooseProperties,
         ChooseTexturePaint,
         LatticeMenu,

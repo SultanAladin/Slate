@@ -681,10 +681,13 @@ void EditorPanel::RecordVacant(std::uint32_t RecordOrdinal,
                      0.0f,
                      true);
 
+    // 🔴 This grid and the dropdown menu are two ways to reach the same choice,
+    //    so they must offer the same subjects. They had drifted: the grid listed
+    //    Properties and never listed the Layer Stack, while the menu listed both.
     const PanelSubject Subjects[4] = { PanelSubject::Viewport, PanelSubject::Uv,
-                                       PanelSubject::Outliner, PanelSubject::Properties };
+                                       PanelSubject::Outliner, PanelSubject::TexturePaint };
     const ControlRole Roles[4] = { ControlRole::ChooseViewport, ControlRole::ChooseUv,
-                                   ControlRole::ChooseOutliner, ControlRole::ChooseProperties };
+                                   ControlRole::ChooseOutliner, ControlRole::ChooseTexturePaint };
 
     for (std::uint32_t Ordinal = 0u; Ordinal < 4u; ++Ordinal)
     {
@@ -785,20 +788,24 @@ void EditorPanel::RecordSubjectMenu(std::uint32_t RecordOrdinal,
     const PlaneExtent Menu = Spanning(MenuTop,
                                       Anchor.MaximumY + Measure.MenuLift,
                                       MenuX,
-                                      Measure.MenuPadY * 2.0f + Measure.MenuRowHeight * 5.0f);
+                                      Measure.MenuPadY * 2.0f + Measure.MenuRowHeight * 4.0f);
     Surface->Ground(Menu, Colour.ChromeGround, Measure.MenuRadius, CornerAll);
     Surface->Edge(Menu, Colour.Edge, Measure.EdgeWeight, Measure.MenuRadius, CornerAll);
 
     // 📐 Ordered as the workspace reads: the two viewers, the scene tree, then
-    //    the paint stack and the inspector it feeds.
-    const PanelSubject Subjects[5] = { PanelSubject::Viewport, PanelSubject::Uv,
-                                       PanelSubject::Outliner, PanelSubject::TexturePaint,
-                                       PanelSubject::Properties };
-    const ControlRole Roles[5] = { ControlRole::ChooseViewport, ControlRole::ChooseUv,
-                                   ControlRole::ChooseOutliner, ControlRole::ChooseTexturePaint,
-                                   ControlRole::ChooseProperties };
+    //    the paint stack.
+    // 🔴 Properties is NOT offered here. It records the Drafting record
+    //    inspector, which belongs to the shell's Scene Directory and not to an
+    //    editor leaf; choosing it in the editor put a Drafting pane inside a
+    //    Texture Paint workspace. The subject and its host case remain so an
+    //    existing layout that already holds one still draws, but it can no
+    //    longer be newly chosen.
+    const PanelSubject Subjects[4] = { PanelSubject::Viewport, PanelSubject::Uv,
+                                       PanelSubject::Outliner, PanelSubject::TexturePaint };
+    const ControlRole Roles[4] = { ControlRole::ChooseViewport, ControlRole::ChooseUv,
+                                   ControlRole::ChooseOutliner, ControlRole::ChooseTexturePaint };
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 5u; ++Ordinal)
+    for (std::uint32_t Ordinal = 0u; Ordinal < 4u; ++Ordinal)
     {
         const PlaneExtent Row = Spanning(Menu.MinimumX + Measure.MenuPadY,
                                          Menu.MinimumY + Measure.MenuPadY +
