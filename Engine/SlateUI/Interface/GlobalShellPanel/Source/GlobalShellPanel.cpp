@@ -1994,7 +1994,7 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellConte
                                           Extent.Width() - Pad * 2.0f,
                                           Scaled.ComponentY + BodyHeight);
 
-        Surface->Ground(Card, Covering(0x0A0A0Bu), Scaled.CardRadius, CornerAll);
+        Surface->Ground(Card, Tinted.Desk, Scaled.CardRadius, CornerAll);
         Surface->Edge(Card, Tinted.Hairline, 1.0f, Scaled.CardRadius, CornerAll);
 
         const PlaneExtent CardHeader = Spanning(Card.MinimumX, Card.MinimumY,
@@ -2107,7 +2107,7 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellConte
                                           Extent.Width() - Pad * 2.0f,
                                           Scaled.ComponentY + BodyHeight);
 
-        Surface->Ground(Card, Covering(0x0A0A0Bu), Scaled.CardRadius, CornerAll);
+        Surface->Ground(Card, Tinted.Desk, Scaled.CardRadius, CornerAll);
         Surface->Edge(Card, Tinted.Hairline, 1.0f, Scaled.CardRadius, CornerAll);
 
         const PlaneExtent CardHeader = Spanning(Card.MinimumX, Card.MinimumY,

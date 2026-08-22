@@ -2902,7 +2902,7 @@ void TexturePaintPanel::RecordMaskCard(const PlaneExtent& Extent, TexturePaintCo
 
     Surface->Ground(Spanning(Extent.MinimumX + Pad, Sweep, Extent.Width() - Pad * 2.0f,
                              Scaled.ComponentY),
-                    Covering(0x0A0A0Bu), Scaled.CardRadius, CornerAll);
+                    Tinted.Desk, Scaled.CardRadius, CornerAll);
     Surface->Edge(Spanning(Extent.MinimumX + Pad, Sweep, Extent.Width() - Pad * 2.0f,
                            Scaled.ComponentY),
                   Tinted.Hairline, 1.0f, Scaled.CardRadius, CornerAll);
@@ -3044,7 +3044,7 @@ void TexturePaintPanel::RecordSettingsCard(const PlaneExtent& Extent, TexturePai
 
     Surface->Ground(Spanning(Extent.MinimumX + Pad, Sweep, Extent.Width() - Pad * 2.0f,
                              Scaled.ComponentY),
-                    Covering(0x0A0A0Bu), Scaled.CardRadius, CornerAll);
+                    Tinted.Desk, Scaled.CardRadius, CornerAll);
     Surface->Edge(Spanning(Extent.MinimumX + Pad, Sweep, Extent.Width() - Pad * 2.0f,
                            Scaled.ComponentY),
                   Tinted.Hairline, 1.0f, Scaled.CardRadius, CornerAll);

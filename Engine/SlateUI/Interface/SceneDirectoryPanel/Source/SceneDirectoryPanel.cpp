@@ -1511,7 +1511,12 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
                                           Extent.Width() - Pad * 2.0f,
                                           Scaled.ComponentY + BodyHeight);
 
-        Surface->Ground(Card, Covering(0x0A0A0Bu), Scaled.CardRadius, CornerAll);
+        // 🔴 The card ground was the literal 0x0A0A0B, which is exactly the value
+        //    behind Tinted.Desk. Spelling it as a hex pinned this one surface to
+        //    the dark palette while every neighbour — the header below, the
+        //    hairline around it — followed the theme, so on a light theme the card
+        //    stayed a black slab. Same value, taken from the record that owns it.
+        Surface->Ground(Card, Tinted.Desk, Scaled.CardRadius, CornerAll);
         Surface->Edge(Card, Tinted.Hairline, 1.0f, Scaled.CardRadius, CornerAll);
 
         const PlaneExtent CardHeader = Spanning(Card.MinimumX, Card.MinimumY,
@@ -1779,7 +1784,8 @@ void SceneDirectoryPanel::RecordEnvironmentCard(SceneDirectoryContext& Applied,
                                       Extent.Width() - Pad * 2.0f,
                                       Scaled.ComponentY + BodyHeight);
 
-    Surface->Ground(Card, Covering(0x0A0A0Bu), Scaled.CardRadius, CornerAll);
+    // 🔴 The second card ground; same literal, same defect as above.
+    Surface->Ground(Card, Tinted.Desk, Scaled.CardRadius, CornerAll);
     Surface->Edge(Card, Tinted.Hairline, 1.0f, Scaled.CardRadius, CornerAll);
 
     const PlaneExtent CardHeader = Spanning(Card.MinimumX, Card.MinimumY,
