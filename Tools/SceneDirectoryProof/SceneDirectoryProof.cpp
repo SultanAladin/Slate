@@ -72,6 +72,7 @@
 #include "ExternalPackages/stb/stb_image.h"
 
 #include "Shared/OverlayGeometry.slang.h"
+#include "Shared/OverlayTransform.slang.h"
 #include "Application/EditorHost/Api/CameraRig.h"
 #include "Application/EditorHost/Api/SkyImage.h"
 #include "Contract/DeliveryContract.h"
@@ -896,6 +897,38 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
     }
     else if (std::strcmp(Scenario, "editor-grid-settings") == 0)
     {
+        // 📐 🔴 THE OVERLAY'S NDC CONVENTION, asserted on real numbers BEFORE any capture: the GPU
+        //    pass's vertex shader and this harness compile the SAME `OverlayTransform.slang.h`, and
+        //    the transform must map screen y = 0 (the display's top edge) to NDC +1 — the
+        //    framebuffer's top row — exactly as the interface's own vertex shader does. The previous
+        //    spelling `−2y/h − 1` mapped every positive screen y BELOW NDC −1, clipping the whole
+        //    overlay off-screen: the grid, the axes and the gizmo silently drew nothing (the
+        //    recurring "the grid is not showing"), while the harness's CPU twin rasterized in
+        //    screen space and never exercised the math. These asserts pin the convention so a
+        //    reintroduced flip fails the scenario on the first line.
+        {
+            const float NdcX0  = OverlayNdcX(0.0f, 1280.0f);
+            const float NdcXMid = OverlayNdcX(640.0f, 1280.0f);
+            const float NdcX1  = OverlayNdcX(1280.0f, 1280.0f);
+            const float NdcY0  = OverlayNdcY(0.0f, 900.0f);
+            const float NdcYMid = OverlayNdcY(450.0f, 900.0f);
+            const float NdcY1  = OverlayNdcY(900.0f, 900.0f);
+
+            std::fprintf(stderr, "[assert] overlay NDC: x(0,mid,1)=(%.2f,%.2f,%.2f) "
+                                 "y(top,mid,bottom)=(%.2f,%.2f,%.2f)\n",
+                         NdcX0, NdcXMid, NdcX1, NdcY0, NdcYMid, NdcY1);
+
+            if (std::abs(NdcX0 + 1.0f) > 0.001f || std::abs(NdcXMid) > 0.001f ||
+                std::abs(NdcX1 - 1.0f) > 0.001f ||
+                std::abs(NdcY0 - 1.0f) > 0.001f || std::abs(NdcYMid) > 0.001f ||
+                std::abs(NdcY1 + 1.0f) > 0.001f)
+            {
+                std::fprintf(stderr, "[FAIL] the overlay NDC transform does not match the "
+                                     "interface's convention (top must be +1)\n");
+                return false;
+            }
+        }
+
         Driver.ApplyPartition(false);
         Driver.Settle(20);
 

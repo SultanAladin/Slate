@@ -211,6 +211,18 @@ its own pass inside the host's dynamic-rendering scope, AFTER the interface.
   device-recovered, `Overlay.Reclaim()` before `Lifetime.Reclaim()` at
   shutdown. The pass refuses gracefully when the build lowered no shaders (the
   sandbox) and the editor runs without the overlay.
+- 🔴 NDC CONVENTION LESSON (do not regress — this hid the grid three times): the
+  overlay pass draws AFTER the interface, so its vertex transform must match the
+  interface's own vertex shader to the pixel: screen y grows DOWNWARD and NDC
+  +1 is the framebuffer's TOP row, i.e. `NDC.y = 1 − 2y/h`. The transform
+  lives in `Shared/OverlayTransform.slang.h` (`OverlayNdcX` / `OverlayNdcY`),
+  compiled by BOTH the shader toolchain and the harness, and the harness's
+  `editor-grid-settings` asserts the convention on real numbers BEFORE any
+  capture (y=0 must land on +1; mid 0; bottom −1). The previous spelling
+  `−2y/h − 1` mapped every positive screen y BELOW NDC −1, clipping the whole
+  overlay off-screen — the grid, the axes and the gizmo silently drew nothing,
+  while the harness's CPU twin rasterized in screen space and never exercised
+  the math, so the defect shipped repeatedly.
 - **The overlay is clipped to the viewport leaf.** The pass's `Record` sets the
   scissor to the leaf's box (clamped to the display), and the host keeps ONE
   overlay record per viewport leaf (static storage) and draws each clipped to

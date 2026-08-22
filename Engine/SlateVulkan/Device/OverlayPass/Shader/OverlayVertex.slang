@@ -16,6 +16,7 @@
 //    high-poly wireframe never reaches the CPU's tessellator.
 
 #include "Shared/Prelude.slang.h"
+#include "Shared/OverlayTransform.slang.h"
 
 namespace Slate
 {
@@ -95,11 +96,13 @@ OverlayVertexOutput main(Unsigned32 VertexOrdinal : SV_VertexID)
 {
     OverlayVertexOutput Output;
 
-    // 📐 The viewport transform: NDC = (screen / size) * 2 - 1, Y flipped for the display's downward
-    //    axis — the same mapping the interface's own vertex shader applies.
-    const Real32x2 Scale = 2.0 / Real32x2(Push.DisplayWidth, Push.DisplayHeight);
-    const Real32x2 Flip  = Real32x2(1.0, -1.0);
-
+    // 📐 The viewport transform, SHARED with the harness: `OverlayNdcX/Y` live in
+    //    `Shared/OverlayTransform.slang.h`, compiled by both the shader toolchain and the host, and
+    //    the harness asserts the convention (screen y = 0 lands on NDC +1 — the framebuffer's top
+    //    row, exactly as the interface's own vertex shader maps it). 🔴 The previous spelling
+    //    `−2y/h − 1` mapped every positive screen y below NDC −1, clipping the whole overlay — the
+    //    "grid not showing" defect, which shipped repeatedly because the harness's CPU twin
+    //    rasterized in screen space and never exercised this math.
     Real32x2 Position = Real32x2(0.0, 0.0);
     Real32x4 Colour   = Real32x4(1.0, 1.0, 1.0, 1.0);
 
@@ -148,7 +151,9 @@ OverlayVertexOutput main(Unsigned32 VertexOrdinal : SV_VertexID)
         Colour   = Triangle.Colour;
     }
 
-    Output.Position = Real32x4(Position * Scale * Flip - Real32x2(1.0, 1.0), 0.0, 1.0);
+    Output.Position = Real32x4(OverlayNdcX(Position.x, Push.DisplayWidth),
+                               OverlayNdcY(Position.y, Push.DisplayHeight),
+                               0.0, 1.0);
     Output.Colour   = Colour;
 
     return Output;
