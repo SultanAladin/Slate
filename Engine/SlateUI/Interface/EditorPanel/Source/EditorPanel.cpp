@@ -882,10 +882,15 @@ void EditorPanel::RecordLatticeMenu(std::uint32_t RecordOrdinal,
                           ? DeferredBoundary.MaximumX - MenuX
                           : (DesiredMinimum < DeferredBoundary.MinimumX)
                           ? DeferredBoundary.MinimumX : DesiredMinimum;
+    // 📐 The popup grew four rows (cell size, line weight, dot radius, follow-camera),
+    //    so its box is taller. Each row is a shared MagnitudeRow/ToggleRow — no
+    //    new component. LatticeScale is retained for the skeletal lattice but the
+    //    ground grid reads LatticeCellMetres.
+    const float MenuHeight = 460.0f;
     const PlaneExtent Menu = Spanning(MenuTop,
-                                      Anchor.MinimumY - 316.0f,
+                                      Anchor.MinimumY - (MenuHeight + 12.0f),
                                       MenuX,
-                                      304.0f);
+                                      MenuHeight);
     Surface->Ground(Menu, Colour.ChromeGround, 12.0f, CornerAll);
     Surface->Edge(Menu, Colour.Edge, Measure.EdgeWeight, 12.0f, CornerAll);
     Surface->TextRun(Menu.MinimumX + 20.0f, Menu.MinimumY + 18.0f,
@@ -906,6 +911,22 @@ void EditorPanel::RecordLatticeMenu(std::uint32_t RecordOrdinal,
                                   LatticeReading);
     Configuration.Lattice = static_cast<PanelLatticePresentation>(LatticeReading);
 
+    const auto RowAt = [&](float FromTop) -> PlaneExtent
+    {
+        return Spanning(Menu.MinimumX + 20.0f, Menu.MinimumY + FromTop,
+                        Menu.Width() - 40.0f, 36.0f);
+    };
+
+    MagnitudeDeclaration CellDeclaration;
+    CellDeclaration.Caption   = "Cell size";
+    CellDeclaration.UnitGlyph = "m";
+    CellDeclaration.Minimum   = 0.5;
+    CellDeclaration.Maximum   = 200.0;
+    CellDeclaration.Decimals  = 1u;
+    SharedControls.MagnitudeRow(Controls[ControlOrdinal(RecordOrdinal, ControlRole::LatticeCell)],
+                                RowAt(106.0f), CellDeclaration,
+                                Configuration.LatticeCellMetres, true);
+
     MagnitudeDeclaration ScaleDeclaration;
     ScaleDeclaration.Caption     = "Scale";
     ScaleDeclaration.UnitGlyph   = "m";
@@ -913,26 +934,46 @@ void EditorPanel::RecordLatticeMenu(std::uint32_t RecordOrdinal,
     ScaleDeclaration.Maximum = 10.0;
     double ScaleReading = static_cast<double>(Configuration.LatticeScale);
     SharedControls.MagnitudeRow(Controls[ControlOrdinal(RecordOrdinal, ControlRole::LatticeScale)],
-                                Spanning(Menu.MinimumX + 20.0f, Menu.MinimumY + 106.0f,
-                                         Menu.Width() - 40.0f, 36.0f),
-                                ScaleDeclaration,
-                                ScaleReading,
-                                true);
+                                RowAt(150.0f), ScaleDeclaration, ScaleReading, true);
     Configuration.LatticeScale = static_cast<std::uint32_t>(std::round(ScaleReading));
 
     MagnitudeDeclaration SubdivisionDeclaration;
     SubdivisionDeclaration.Caption      = "Subdivisions";
     SubdivisionDeclaration.UnitGlyph    = "";
     SubdivisionDeclaration.Minimum = 1.0;
-    SubdivisionDeclaration.Maximum  = 100.0;
+    SubdivisionDeclaration.Maximum  = 128.0;
     double SubdivisionReading = static_cast<double>(Configuration.Subdivisions);
     SharedControls.MagnitudeRow(Controls[ControlOrdinal(RecordOrdinal, ControlRole::Subdivisions)],
-                                Spanning(Menu.MinimumX + 20.0f, Menu.MinimumY + 154.0f,
-                                         Menu.Width() - 40.0f, 36.0f),
-                                SubdivisionDeclaration,
-                                SubdivisionReading,
-                                true);
+                                RowAt(194.0f), SubdivisionDeclaration, SubdivisionReading, true);
     Configuration.Subdivisions = static_cast<std::uint32_t>(std::round(SubdivisionReading));
+
+    MagnitudeDeclaration WeightDeclaration;
+    WeightDeclaration.Caption   = "Line weight";
+    WeightDeclaration.UnitGlyph = "px";
+    WeightDeclaration.Minimum   = 0.5;
+    WeightDeclaration.Maximum   = 6.0;
+    WeightDeclaration.Decimals  = 1u;
+    double WeightReading = static_cast<double>(Configuration.LatticeLineWeight);
+    SharedControls.MagnitudeRow(Controls[ControlOrdinal(RecordOrdinal, ControlRole::LatticeLineWeight)],
+                                RowAt(238.0f), WeightDeclaration, WeightReading, true);
+    Configuration.LatticeLineWeight = static_cast<float>(std::max(0.5, WeightReading));
+
+    MagnitudeDeclaration DotDeclaration;
+    DotDeclaration.Caption   = "Dot radius";
+    DotDeclaration.UnitGlyph = "px";
+    DotDeclaration.Minimum   = 1.0;
+    DotDeclaration.Maximum   = 12.0;
+    DotDeclaration.Decimals  = 1u;
+    double DotReading = static_cast<double>(Configuration.LatticeDotRadius);
+    SharedControls.MagnitudeRow(Controls[ControlOrdinal(RecordOrdinal, ControlRole::LatticeDotRadius)],
+                                RowAt(282.0f), DotDeclaration, DotReading, true);
+    Configuration.LatticeDotRadius = static_cast<float>(std::max(1.0, DotReading));
+
+    ToggleDeclaration FollowDeclaration;
+    FollowDeclaration.Caption = "Follow camera";
+    SharedControls.ToggleRow(Controls[ControlOrdinal(RecordOrdinal, ControlRole::LatticeFollow)],
+                             RowAt(330.0f), FollowDeclaration,
+                             Configuration.LatticeFollowCamera);
 
     ToggleDeclaration AxisDeclarations[3];
     AxisDeclarations[0].Caption = "X axis";
@@ -944,7 +985,7 @@ void EditorPanel::RecordLatticeMenu(std::uint32_t RecordOrdinal,
     {
         SharedControls.ToggleRow(Controls[ControlOrdinal(RecordOrdinal, AxisRoles[Ordinal])],
                                  Spanning(Menu.MinimumX + 20.0f + static_cast<float>(Ordinal) * 106.0f,
-                                          Menu.MinimumY + 214.0f,
+                                          Menu.MinimumY + 376.0f,
                                           96.0f,
                                           44.0f),
                                  AxisDeclarations[Ordinal],

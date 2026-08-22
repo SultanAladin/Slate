@@ -67,11 +67,11 @@ public:
     void Snap();
 
     double YawDegrees   = 100.0;   // [deg] - the target yaw; the viewport crop reads the lagged one
-    double PitchDegrees = 15.0;    // [deg] - the target pitch, clamped to ±89°
+    double PitchDegrees = -15.0;   // [deg] - the target pitch, clamped to ±89°; looks slightly down
     double Position[3]  = { 0.0, 1.5, 0.0 };   // [m] - the target position; Y is up
 
     double LaggedYawDegrees   = 100.0;   // [deg] - what the viewport actually shows
-    double LaggedPitchDegrees = 15.0;    // [deg]
+    double LaggedPitchDegrees = -15.0;   // [deg]
     double LaggedPosition[3]  = { 0.0, 1.5, 0.0 };   // [m]
 
 private:

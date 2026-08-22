@@ -483,7 +483,10 @@ int main(int ArgumentCount, char** ArgumentValues)
     SceneApplied.DetailBits[6u] = 2u;
     SceneApplied.CameraSpeed = 50.0;
     FlyRig.YawDegrees   = SceneApplied.Environment.SunAzimuth - 20.0;
-    FlyRig.PitchDegrees = 15.0;
+    // 📐 The fly camera looks slightly DOWN at bring-up, matching the reference editors: the ground
+    //    lattice fills the lower frame rather than a sliver at the horizon. A +15 degree default
+    //    pointed above the horizon and crushed the perspective grid into the bottom ~100 px.
+    FlyRig.PitchDegrees = -15.0;
     FlyRig.Position[0]  = 0.0;
     FlyRig.Position[1]  = 1.5;
     FlyRig.Position[2]  = 0.0;
@@ -723,6 +726,32 @@ int main(int ArgumentCount, char** ArgumentValues)
 
             WorkspacePanels.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
 
+            // 📐 The fly camera is integrated BEFORE any leaf is recorded, so the sky mesh, the
+            //    ground lattice and the gizmo are all projected through the SAME current-tick pose.
+            //    The previous order advanced the camera AFTER recording, which left every overlay
+            //    one frame behind the artist's input — the lattice and axes trailed the camera while
+            //    panning or flying. The sky regeneration below depends only on the environment and is
+            //    intentionally left where it stands.
+            {
+                const CameraCondition FlyInput = Viewport.Seam().CameraInput();
+
+                CameraSettings FlySettings;
+                FlySettings.FlySpeed    = SceneApplied.CameraSpeed;
+                FlySettings.LagEnabled  = (SceneApplied.DetailBits[6u] & 2u) != 0u;
+                FlySettings.InvertPitch = (SceneApplied.DetailBits[6u] & 4u) != 0u;
+
+                FlyRig.Advance(Pass.ElapsedMilliseconds / 1000.0, FlyInput, FlySettings);
+
+                SceneApplied.ViewportSkyCamera.AzimuthDegrees    = static_cast<float>(FlyRig.LaggedYawDegrees);
+                SceneApplied.ViewportSkyCamera.ElevationDegrees  = static_cast<float>(FlyRig.LaggedPitchDegrees);
+                SceneApplied.ViewportSkyCamera.FieldOfViewDegrees = 60.0f;
+                SceneApplied.CameraPosition[0] = FlyRig.LaggedPosition[0];
+                SceneApplied.CameraPosition[1] = FlyRig.LaggedPosition[1];
+                SceneApplied.CameraPosition[2] = FlyRig.LaggedPosition[2];
+                SceneApplied.CameraRotation[0] = FlyRig.LaggedYawDegrees;
+                SceneApplied.CameraRotation[1] = FlyRig.LaggedPitchDegrees;
+            }
+
             for (std::uint32_t Ordinal = 0u; Ordinal < OpenCount; ++Ordinal)
             {
                 const char* Titled = Workspaces.Titled(Ordinal);
@@ -960,33 +989,10 @@ int main(int ArgumentCount, char** ArgumentValues)
                     TexturePaintApplied.Retention[0] = '\0';
             }
 
-            // 📝 The fly camera: the seam's held keys and look gesture drive the rig, and the lagged
-            //    pose becomes the viewport crop. The sky dome is direction-indexed and camera-independent,
-            //    so looking around needs no regeneration — the crop alone moves, which is the whole
-            //    point of drawing the sky as a dome rather than as one pinhole image.
-            {
-                const CameraCondition FlyInput = Viewport.Seam().CameraInput();
-
-                CameraSettings FlySettings;
-                FlySettings.FlySpeed    = SceneApplied.CameraSpeed;
-                FlySettings.LagEnabled  = (SceneApplied.DetailBits[6u] & 2u) != 0u;
-                FlySettings.InvertPitch = (SceneApplied.DetailBits[6u] & 4u) != 0u;
-
-                FlyRig.Advance(Pass.ElapsedMilliseconds / 1000.0, FlyInput, FlySettings);
-
-                SceneApplied.ViewportSkyCamera.AzimuthDegrees    = static_cast<float>(FlyRig.LaggedYawDegrees);
-                SceneApplied.ViewportSkyCamera.ElevationDegrees  = static_cast<float>(FlyRig.LaggedPitchDegrees);
-                SceneApplied.ViewportSkyCamera.FieldOfViewDegrees = 60.0f;
-                SceneApplied.CameraPosition[0] = FlyRig.LaggedPosition[0];
-                SceneApplied.CameraPosition[1] = FlyRig.LaggedPosition[1];
-                SceneApplied.CameraPosition[2] = FlyRig.LaggedPosition[2];
-                SceneApplied.CameraRotation[0] = FlyRig.LaggedYawDegrees;
-                SceneApplied.CameraRotation[1] = FlyRig.LaggedPitchDegrees;
-            }
-
             // 📝 The sky image is regenerated and uploaded only when the environment actually changed
             //    (the sliders write at drag end, so this runs at most once per drag), and the identity
-            //    is handed to the shell every tick so the viewport draws the texture.
+            //    is handed to the shell every tick so the viewport draws the texture. The fly camera was
+            //    integrated before the leaves were recorded, so the viewport crop already stands here.
             if (SkyRegistered && SceneApplied.EnvironmentPresented)
             {
                 const bool SkyAltered = !SkyEverGenerated ||

@@ -549,8 +549,12 @@ void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, SceneDirec
     //    axis lines — the same configuration the skeletal lattice in the pre-editor viewport read.
     const PanelLatticePresentation Presentation = Configuration.Lattice;
 
-    constexpr double BaseCell = 20.0;                       // [m] - one lattice cell at scale 1
-    const double Cell = BaseCell * static_cast<double>(Configuration.LatticeScale);
+    // 📐 The cell reads the popup's own cell size when it is positive; the
+    //    skeletal LatticeScale is retained for the skeleton and multiplies it,
+    //    matching the one-value contract the old code used.
+    const double DeclaredCell = Configuration.LatticeCellMetres > 0.0
+                              ? Configuration.LatticeCellMetres : 20.0;
+    const double Cell = DeclaredCell * static_cast<double>(Configuration.LatticeScale);
     const std::uint32_t Cells = std::max(2u, std::min(128u, Configuration.Subdivisions));
     const double Half = Cell * static_cast<double>(Cells);  // [m] - the lattice's half extent
     constexpr std::uint32_t Samples = 48u;
@@ -577,6 +581,17 @@ void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, SceneDirec
     const double& CameraX = Applied.CameraPosition[0];
     const double& CameraY = Applied.CameraPosition[1];
     const double& CameraZ = Applied.CameraPosition[2];
+
+    // 📐 Follow-camera: the lattice is centred on the eye's XZ, snapped to the
+    //    cell so lines do not swim while the camera moves. The world axes stay
+    //    pinned to the origin below; only the lattice window slides.
+    double LatticeOriginX = 0.0;
+    double LatticeOriginZ = 0.0;
+    if (Configuration.LatticeFollowCamera)
+    {
+        LatticeOriginX = std::round(CameraX / Cell) * Cell;
+        LatticeOriginZ = std::round(CameraZ / Cell) * Cell;
+    }
 
     // 📐 The projector: a world point to screen, or "behind" when it sits on the wrong side of the
     //    camera. Nearer than a quarter metre the division explodes, so the near plane is explicit.
@@ -639,17 +654,18 @@ void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, SceneDirec
                     (AY > Extent.MaximumY && BY > Extent.MaximumY))
                     continue;
 
+                const float FineWeight = std::max(0.25f, Configuration.LatticeLineWeight);
                 Overlay.AddLine(AX, AY, BX, BY,
                                 Coarse ? PackedCoarse : PackedFine,
-                                Coarse ? 1.5f : 1.0f);
+                                Coarse ? FineWeight * 1.5f : FineWeight);
             }
         };
 
         for (std::uint32_t Sample = 0u; Sample <= Samples; ++Sample)
         {
             const double T = -Half + (2.0 * Half) * static_cast<double>(Sample) / static_cast<double>(Samples);
-            const double WorldX = AlongZ ? Offset : T;
-            const double WorldZ = AlongZ ? T : Offset;
+            const double WorldX = LatticeOriginX + (AlongZ ? Offset : T);
+            const double WorldZ = LatticeOriginZ + (AlongZ ? T : Offset);
 
             float ScreenX = 0.0f;
             float ScreenY = 0.0f;
@@ -685,25 +701,34 @@ void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, SceneDirec
             RecordLatticeLine(false, Offset, Coarse);
         }
 
-        // 📐 The dotted presentation: a node at every intersection, drawn as a small disc. Only the
-        //    intersections that project in front of the camera are drawn, so a camera at the edge of
-        //    the lattice never fills the screen with the far half of it.
+        // 📐 The dotted presentation: a node at every intersection, drawn as a small disc. The
+        //    previous spelling set both WorldX and WorldZ to the same Offset, which plotted one point
+        //    per offset on the X == Z diagonal instead of a grid — six dots where the comment
+        //    promised an intersection field. A nested walk over the same offset list places one dot at
+        //    every crossing of this line with the perpendicular ones. Only the intersections that
+        //    project in front of the camera are drawn, so a camera at the edge of the lattice never
+        //    fills the screen with the far half of it.
         if (DrawDots && (Ordinal % 2u) == 0u)
         {
-            const double WorldX = Offset;
-            const double WorldZ = Offset;
+            const std::uint32_t Packed = Coarse ? PackOverlayColour(0x9A, 0xA6, 0xB8, 0x99u)
+                                             : PackOverlayColour(0x9A, 0xA6, 0xB8, 0x57u);
+            const float Radius = std::max(1.0f,
+                Coarse ? Configuration.LatticeDotRadius * 1.25f : Configuration.LatticeDotRadius);
 
-            float ScreenX = 0.0f;
-            float ScreenY = 0.0f;
-            bool  Behind  = false;
-
-            Project(WorldX, 0.0, WorldZ, ScreenX, ScreenY, Behind);
-
-            if (!Behind)
+            for (std::uint32_t Crossing = 0u; Crossing <= LineCount; Crossing += 2u)
             {
-                const std::uint32_t Packed = Coarse ? PackOverlayColour(0x9A, 0xA6, 0xB8, 0x99u)
-                                                 : PackOverlayColour(0x9A, 0xA6, 0xB8, 0x57u);
-                Overlay.AddDot(ScreenX, ScreenY, Packed, Coarse ? 2.6f : 1.8f);
+                const double CrossOffset = -Half + Cell * static_cast<double>(Crossing);
+                // 🔴 Both crossings of this (X = Offset) line with the perpendicular (Z = CrossOffset)
+                //    family are the intersection; plotting only one is the diagonal bug.
+                float ScreenX = 0.0f;
+                float ScreenY = 0.0f;
+                bool  Behind  = false;
+
+                Project(LatticeOriginX + Offset, 0.0, LatticeOriginZ + CrossOffset,
+                        ScreenX, ScreenY, Behind);
+
+                if (!Behind)
+                    Overlay.AddDot(ScreenX, ScreenY, Packed, Radius);
             }
         }
     }
@@ -1753,6 +1778,22 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
                 Applied.Environment.SunAzimuth     = SunValues[1];
                 Applied.Environment.SunIntensity   = SunValues[2];
                 Applied.Environment.SunTemperature = SunValues[3];
+
+                // 📐 The sun disc is the icon drawn over the atmosphere: its radius multiplier and
+                //    direct-term intensity. Same component as the other environment cards.
+                const char* const DiscCaptions[2] = { "Disc Radius", "Disc Intensity" };
+                const char* const DiscUnits[2]    = { "x", "" };
+                const double DiscMinimums[2]      = { 1.0, 0.0 };
+                const double DiscMaximums[2]      = { 32.0, 4.0 };
+                double DiscValues[2]              = { Applied.Environment.SunDiscRadius,
+                                                     Applied.Environment.SunDiscIntensity };
+
+                RecordEnvironmentCard(Applied, Extent, Sweep, CardOrdinal,
+                                      "Sun Disc", DiscCaptions, DiscUnits, DiscMinimums, DiscMaximums,
+                                      DiscValues, 2u);
+
+                Applied.Environment.SunDiscRadius    = DiscValues[0];
+                Applied.Environment.SunDiscIntensity = DiscValues[1];
             }
             else
             {
@@ -1779,19 +1820,23 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
                 Applied.Environment.SkyIntensity = SkyValues[0];
                 Applied.Environment.SkyTurbidity = SkyValues[1];
 
-                const char* const AtmoCaptions[2] = { "Atmosphere Density", "Scale Height" };
-                const char* const AtmoUnits[2]    = { "", "" };
-                const double AtmoMinimums[2]      = { 0.0, 0.2 };
-                const double AtmoMaximums[2]      = { 3.0, 3.0 };
-                double AtmoValues[2]              = { Applied.Environment.AtmosphereDensity,
-                                                      Applied.Environment.AtmosphereScaleHeight };
+                const char* const AtmoCaptions[4] = { "Atmosphere Density", "Scale Height", "Mie Density", "Mie Asymmetry" };
+                const char* const AtmoUnits[4]    = { "", "", "x", "" };
+                const double AtmoMinimums[4]      = { 0.0, 0.2, 0.0, -0.95 };
+                const double AtmoMaximums[4]      = { 3.0, 3.0, 4.0, 0.95 };
+                double AtmoValues[4]              = { Applied.Environment.AtmosphereDensity,
+                                                      Applied.Environment.AtmosphereScaleHeight,
+                                                      Applied.Environment.MieDensity,
+                                                      Applied.Environment.MieAsymmetry };
 
                 RecordEnvironmentCard(Applied, Extent, Sweep, CardOrdinal,
                                       "Atmosphere", AtmoCaptions, AtmoUnits, AtmoMinimums,
-                                      AtmoMaximums, AtmoValues, 2u);
+                                      AtmoMaximums, AtmoValues, 4u);
 
                 Applied.Environment.AtmosphereDensity     = AtmoValues[0];
                 Applied.Environment.AtmosphereScaleHeight = AtmoValues[1];
+                Applied.Environment.MieDensity            = AtmoValues[2];
+                Applied.Environment.MieAsymmetry          = AtmoValues[3];
             }
             else
             {

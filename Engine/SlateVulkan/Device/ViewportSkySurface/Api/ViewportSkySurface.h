@@ -30,8 +30,8 @@ class ViewportSkySurface
 {
 public:
 
-    static constexpr std::uint32_t SkyWidth  = 1024u;  // [px] - the sky's own resolution
-    static constexpr std::uint32_t SkyHeight = 576u;   // [px] - 16:9, matching the editor viewport; independent of the display
+    static constexpr std::uint32_t SkyWidth  = 2048u;  // [px] - the sky's own resolution (2x the viewport)
+    static constexpr std::uint32_t SkyHeight = 1152u;  // [px] - 16:9, matching the editor viewport; independent of the display
 
     ViewportSkySurface()                              = default;
     ViewportSkySurface(const ViewportSkySurface&)     = delete;

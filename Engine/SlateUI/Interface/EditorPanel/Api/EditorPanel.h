@@ -64,7 +64,7 @@ struct EditorPanelConfiguration
     PanelShading              Shading         = PanelShading::Solid;                // [-] - viewport shading
     PanelGizmo                Gizmo           = PanelGizmo::Blender;                // [-] - gizmo convention
     std::uint32_t             LatticeScale    = 1u;                                 // [-] - skeletal lattice scale
-    std::uint32_t             Subdivisions    = 10u;                                // [-] - lattice subdivisions
+    std::uint32_t             Subdivisions    = 16u;                                // [-] - lattice subdivisions per side
     bool                      AxisX           = true;                               // [-] - X or U axis visible
     bool                      AxisY           = false;                              // [-] - Y or V axis visible
     bool                      AxisZ           = true;                               // [-] - Z axis visible
@@ -72,6 +72,15 @@ struct EditorPanelConfiguration
     bool                      FpsOverlay      = false;                              // [-] - FPS overlay requested
     bool                      StorageOverlay  = false;                              // [-] - storage overlay requested
     bool                      RendererOverlay = false;                              // [-] - renderer overlay requested
+    // 📝 The extended lattice surface the footer popup edits. Cell metres folds the old skeletal
+    //    LatticeScale into the one value the ground lattice reads; the weights and radius carry the
+    //    line and dot presentation that used to be literals in RecordGroundGrid; LatticeFollowCamera
+    //    snaps the lattice origin to the eye each tick so the artist always has ground under them while
+    //    the world axes stay pinned to the origin.
+    double                    LatticeCellMetres = 20.0;                             // [m] - one lattice cell
+    float                     LatticeLineWeight  = 1.0f;                            // [px] - fine line thickness
+    float                     LatticeDotRadius   = 2.2f;                            // [px] - fine dot radius
+    bool                      LatticeFollowCamera = true;                            // [-] - snap origin to the eye
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -86,7 +95,7 @@ class EditorPanel
 {
 public:
 
-    static constexpr std::uint32_t ControlsPerRecord = 25u;
+    static constexpr std::uint32_t ControlsPerRecord = 26u;
     static constexpr std::uint32_t ControlCapacity = PanelStructure::RecordCeiling * ControlsPerRecord;
 
     Outcome<bool> Construct(MotionIntegrator& Motion,
@@ -178,6 +187,10 @@ private:
         LatticePresentation,
         LatticeScale,
         Subdivisions,
+        LatticeCell,
+        LatticeLineWeight,
+        LatticeDotRadius,
+        LatticeFollow,
         AxisX,
         AxisY,
         AxisZ,

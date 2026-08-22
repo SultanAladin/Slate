@@ -215,10 +215,15 @@ struct EnvironmentConfiguration
     double SunAzimuth   = 120.0;      // [deg] - clockwise from north, 0…360
     double SunIntensity = 4.8;        // [lx]  - the directional illuminant's illuminance
     double SunTemperature = 5500.0;   // [K]   - the sun's colour temperature, 1000…12000
+    double SunDiscRadius = 8.0;       // [-]   - multiplier on SunAngularRadius for the baked disc
+    double SunDiscIntensity = 0.95;   // [-]   - the direct term's strength, 0…4
     double SkyIntensity = 1.0;        // [-]   - the sky dome's luminance scale, 0…3
     double SkyTurbidity = 2.0;        // [-]   - the atmosphere's turbidity, 1…10
     double AtmosphereDensity = 1.0;   // [-]   - the Rayleigh density scale, 0…3
     double AtmosphereScaleHeight = 1.0; // [-] - the density fall-off height, 0.2…3
+    double MieDensity = 1.0;          // [-]   - the Mie scattering scale, 0…4
+    double MieAsymmetry = 0.80;       // [-]   - the Mie forward-scattering asymmetry, -0.95…0.95
+    double DomeResolution = 1.0;      // [-]   - 0 = 512, 1 = 1024, 2 = 2048; selects the bake extent
 };
 
 /// 🧩 The sky dome's own camera, stated in plain numbers so the panel never names an Application type.

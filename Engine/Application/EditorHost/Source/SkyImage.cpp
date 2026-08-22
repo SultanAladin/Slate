@@ -37,6 +37,12 @@ Outcome<bool> GenerateSkyImage(AtmosphereIntegrator& Atmosphere,
     MediumSpecification Earth;
     Earth.RayleighScaleHeight = 8000.0 * std::clamp(Environment.AtmosphereScaleHeight, 0.2, 3.0);
     Earth.MieScaleHeight      = 1200.0 / std::clamp(Environment.AtmosphereDensity, 0.2, 3.0);
+    // 📐 The Mie scattering and forward-scattering asymmetry are artist-facing:
+    //    density brightens the haze around the sun, asymmetry pulls the haze
+    //    into a tighter forward lobe. The defaults keep Earth's look at 1.0 / 0.8.
+    Earth.MieScattering       = 3.996e-6 * std::clamp(Environment.MieDensity, 0.0, 4.0);
+    Earth.MieExtinction       = 4.400e-6 * std::clamp(Environment.MieDensity, 0.0, 4.0);
+    Earth.MieAsymmetry        = std::clamp(Environment.MieAsymmetry, -0.95, 0.95);
 
     if (!Atmosphere.DeclareMedium(Earth).Resolved)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the sky medium was rejected" });
@@ -97,9 +103,10 @@ Outcome<bool> GenerateSkyImage(AtmosphereIntegrator& Atmosphere,
     static_cast<void>(Atmosphere.SampleTransmittance(1.0, std::sin(SunElevation),
                                                      SunTransmitRed, SunTransmitGreen, SunTransmitBlue));
 
-    const double DirectRed   = SunRed   * SunTransmitRed * 0.95;
-    const double DirectGreen = SunGreen * SunTransmitGreen * 0.95;
-    const double DirectBlue  = SunBlue  * SunTransmitBlue * 0.95;
+    const double DirectStrength = std::clamp(Environment.SunDiscIntensity, 0.0, 4.0);
+    const double DirectRed   = SunRed   * SunTransmitRed * DirectStrength;
+    const double DirectGreen = SunGreen * SunTransmitGreen * DirectStrength;
+    const double DirectBlue  = SunBlue  * SunTransmitBlue * DirectStrength;
 
     for (std::uint32_t Y = 0u; Y < Height; ++Y)
     {
@@ -140,11 +147,11 @@ Outcome<bool> GenerateSkyImage(AtmosphereIntegrator& Atmosphere,
             //    white texel. The strength is applied AFTER the tone curve, so the disc keeps the
             //    temperature's warm hue instead of saturating to white with the dome.
             const double DiscAngle = std::acos(std::clamp(SunCosineAngle, -1.0, 1.0));
-            // 📐 The disc is drawn wider than the 0.27° figure: three times the real angular radius is a
-//    disc of a handful of dome texels, and a disc of one texel reads as noise rather than a
-//    sun. The editor's sun is an icon of the real one, like the icons everywhere else in the
-//    surface, and its radius is declared here where the icon's size is decided.
-const double DiscRadius = SunAngularRadius * 8.0;
+            // 📐 The disc is drawn wider than the 0.27° figure so it reads as a sun rather than a
+            //    single white texel. The multiplier is artist-facing; 8 keeps the icon size the editor
+            //    shipped with, and a larger or smaller value grows the disc from there.
+            const double DiscRadius = SunAngularRadius
+                                   * std::clamp(Environment.SunDiscRadius, 1.0, 32.0);
             const double DiscStrength = (DiscAngle < DiscRadius)
                 ? (1.0 - DiscAngle / DiscRadius) * (1.0 - DiscAngle / DiscRadius) : 0.0;
 
