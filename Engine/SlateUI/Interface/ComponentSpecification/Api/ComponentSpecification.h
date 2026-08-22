@@ -81,6 +81,24 @@ struct MagnitudeDeclaration
     ///    the previous behaviour exactly, so the fifteen existing callers — all
     ///    of which work in whole degrees, percent or pixels — are untouched.
     std::uint32_t Decimals = 0u;    // [-] - fraction digits in the readout
+
+    /// 🧩 Which of the three arrangements the row lays its parts out in.
+    /// note  📐 `Trailing` and `Leading` were the only two, selected by a bool. Neither is the shape the
+    ///        environment rows were instructed to take — label, then TRACK, then the value and its unit:
+    ///
+    ///            Elevation   [-----O----]   [ 56 | ° ]
+    ///
+    ///        `Trailing` drops the label entirely, and `Leading` puts the readout BEFORE the track. The
+    ///        third arrangement is named rather than bolted on as a second bool, because two booleans
+    ///        would admit a fourth combination that means nothing.
+    enum class Arrange : std::uint32_t
+    {
+        Leading  = 0u,   // [-] - label · readout · track
+        Trailing = 1u,   // [-] - track · readout, no label
+        Measured = 2u    // [-] - label · track · readout, the reading last with its unit
+    };
+
+    Arrange Layout = Arrange::Leading;   // [-] - honoured when the caller passes no bool
 };
 
 /// 🧩 What the rotation ruler presents — its label and the unit its captions carry.
@@ -368,6 +386,38 @@ private:
         bool                Menu        = false;                         // [-] - a menu, or else a tooltip
     };
 
+    /// 🧩 How tall an open menu is allowed to stand before it scrolls.
+    /// note  📐 The blend roster is thirteen entries and the generator roster eleven; at the shipped option
+    ///        height both stand taller than an editor leaf, so an uncapped menu ran off the panel and its
+    ///        last entries could not be reached at all.
+    static constexpr float MenuCeilingY = 320.0f;   // [px] - max-height:330px in the reference
+
+    /// 🧩 The scroll one open menu carries, eased toward where the wheel put it.
+    /// note  📐 Kept per-field rather than singular: two fields may be disclosed across a tick boundary and
+    ///        a shared offset would make one menu jump to the other's place.
+    struct MenuScroll
+    {
+        ControlIdentity Target  = {};     // [-] - whose menu this offset belongs to
+        float           Shown   = 0.0f;   // [px] - where the menu is drawn this tick
+        float           Wanted  = 0.0f;   // [px] - where the wheel asked it to be
+    };
+
+    static constexpr std::uint32_t MenuScrollCeiling = 8u;
+
+    MenuScroll  MenuScrolls[MenuScrollCeiling] = {};
+
+    /// 🧩 Advances one menu's scroll toward where the wheel put it and answers where it stands now.
+    float MenuTravel(ControlIdentity Target, float Content, float Shown, bool Over);
+
+    /// 🧩 Where a menu is currently drawn, without advancing it — the arbitration's view.
+    float MenuShown(ControlIdentity Target) const;
+
+public:
+    /// 🧩 The same reading, reachable by a proof harness so the eased travel can be measured
+    ///    rather than asserted. Reads state; changes nothing.
+    float ProofMenuShown(ControlIdentity Target) const { return MenuShown(Target); }
+private:
+
     void RecordMenu(const DeferredRecording& Deferred);
     void RecordTooltip(const DeferredRecording& Deferred);
     void FoldMark(RedrawMark Incoming);
@@ -377,8 +427,11 @@ private:
     ///       is the one that was recorded last tick by construction, not by two computations agreeing.
     PlaneExtent MenuEnclosure(const PlaneExtent& Field, std::uint32_t OptionCount) const;
 
+    /// 🧩 How tall a menu's options stand in total, before the ceiling clips them.
+    float MenuContent(std::uint32_t OptionCount) const;
+
     /// 🧩 Which option the pointer stands over, or OptionCount when it stands over none.
-    std::uint32_t OptionUnder(const PlaneExtent& Field, std::uint32_t OptionCount) const;
+    std::uint32_t OptionUnder(ControlIdentity Target, const PlaneExtent& Field, std::uint32_t OptionCount) const;
 
     InteractionIndex*               Ledger                          = nullptr;   // [-] - borrowed
     RecordingSurface*               Surface                         = nullptr;   // [-] - borrowed

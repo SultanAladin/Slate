@@ -2173,11 +2173,21 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellConte
                 Declared.UnitGlyph   = UnitGlyphs[SliderOrdinal];
                 Declared.Minimum     = Minimums[SliderOrdinal];
                 Declared.Maximum     = Maximums[SliderOrdinal];
+                Declared.Layout      = MagnitudeDeclaration::Arrange::Measured;
 
                 double& Coordinate   = Values[SliderOrdinal];
 
+                // 🔴 `ReadoutTrailing = true` DROPS the leading label and puts the
+                //    readout at the trailing edge with the track filling the rest —
+                //    so the sun rows read as a bare slider with a number after it and
+                //    never said which property they were. The instructed shape is
+                //    label, then track, then the value and its unit:
+                //
+                //        Elevation   [-----O----]   [ 56 | ° ]
+                //
+                //    which is exactly what MagnitudeRow lays out with the flag FALSE.
                 static_cast<void>(EnvironmentControls.MagnitudeRow(EnvironmentSliders[SliderOrdinal],
-                                                                   Row, Declared, Coordinate, true));
+                                                                   Row, Declared, Coordinate, false));
 
                 // 🔴 The drag arm: latched the first tick the slider holds the contact, with the value
                 //    at that moment — the "start" the history entry describes. Released with a changed

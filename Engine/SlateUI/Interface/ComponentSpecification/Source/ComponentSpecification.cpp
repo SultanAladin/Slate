@@ -375,7 +375,7 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Target, co
         {
             // ③ An option was taken. The datum is written through the caller's own reference, here, in the
             //    call that presents it — the panel never holds it between two ticks.
-            const std::uint32_t Chosen = OptionUnder(Field, Declared.OptionCount);
+            const std::uint32_t Chosen = OptionUnder(Target, Field, Declared.OptionCount);
 
             if (Chosen < Declared.OptionCount && Chosen != TakenOrdinal)
             {
@@ -470,14 +470,24 @@ PlaneExtent ComponentSpecification::MenuEnclosure(const PlaneExtent& Field, std:
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
     const float OptionHeight = Measure.RowText * 1.5f + Measure.OptionPadY * 2.0f;
-    const float Interior     = OptionHeight * static_cast<float>(OptionCount)
+    float       Interior     = OptionHeight * static_cast<float>(OptionCount)
                              + Measure.MenuGapY * static_cast<float>(OptionCount - 1u);
+
+    // 🔴 The menu grew without bound with its option count. The blend roster is
+    //    thirteen entries and the generator roster eleven, so both ran off the
+    //    bottom of an editor leaf and their last entries could not be reached by
+    //    any means — there was no scroll. The enclosure is capped and the body
+    //    scrolls inside it.
+    const float Ceiling = MenuCeilingY - Measure.MenuPad * 2.0f;
+
+    if (Interior > Ceiling)
+        Interior = Ceiling;
 
     return Spanning(Field.MinimumX, Field.MaximumY + Measure.MenuLift,
                     Field.Width(), Interior + Measure.MenuPad * 2.0f);
 }
 
-std::uint32_t ComponentSpecification::OptionUnder(const PlaneExtent& Field, std::uint32_t OptionCount) const
+std::uint32_t ComponentSpecification::OptionUnder(ControlIdentity Target, const PlaneExtent& Field, std::uint32_t OptionCount) const
 {
     if (Appearance == nullptr || OptionCount == 0u)
         return OptionCount;
@@ -486,14 +496,21 @@ std::uint32_t ComponentSpecification::OptionUnder(const PlaneExtent& Field, std:
     const PlaneExtent    Menu    = MenuEnclosure(Field, OptionCount);
 
     const float OptionHeight = Measure.RowText * 1.5f + Measure.OptionPadY * 2.0f;
-    float       Cursor       = Menu.MinimumY + Measure.MenuPad;
+
+    // 🔴 Arbitration walked the options from the menu's top with NO regard for the
+    //    scroll offset, so once a menu scrolled, the entry the pointer answered was
+    //    not the entry under it. The same offset the record applies is applied here,
+    //    and a hit outside the menu's own extent is refused so a scrolled-away option
+    //    cannot be pressed through the card's edge.
+    float Cursor = Menu.MinimumY + Measure.MenuPad - MenuShown(Target);
 
     for (std::uint32_t Ordinal = 0u; Ordinal < OptionCount; ++Ordinal)
     {
         const PlaneExtent Option = Spanning(Menu.MinimumX + Measure.MenuPad, Cursor,
                                             Menu.Width() - Measure.MenuPad * 2.0f, OptionHeight);
 
-        if (Option.Encloses(Sampled.PositionX, Sampled.PositionY))
+        if (Option.Encloses(Sampled.PositionX, Sampled.PositionY) &&
+            Sampled.PositionY >= Menu.MinimumY && Sampled.PositionY <= Menu.MaximumY)
             return Ordinal;
 
         Cursor += OptionHeight + Measure.MenuGapY;
@@ -523,13 +540,35 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Target, cons
     PlaneExtent Readout;
     PlaneExtent Track;
 
-    if (ReadoutTrailing)
+    // 📐 The bool still selects Trailing, so every existing caller is untouched; a
+    //    caller that wants the third shape declares it on the declaration instead.
+    const MagnitudeDeclaration::Arrange Laid =
+        ReadoutTrailing ? MagnitudeDeclaration::Arrange::Trailing : Declared.Layout;
+
+    if (Laid == MagnitudeDeclaration::Arrange::Trailing)
     {
         Readout = Spanning(Row.MaximumX - Measure.ReadoutX, Row.MinimumY,
                            Measure.ReadoutX, Measure.FieldHeight);
         Track = Spanning(Row.MinimumX,
                          Row.MinimumY + (Row.Height() - Measure.SliderHeight) * 0.5f,
                          Readout.MinimumX - Row.MinimumX - Measure.RowGapX,
+                         Measure.SliderHeight);
+    }
+    else if (Laid == MagnitudeDeclaration::Arrange::Measured)
+    {
+        // 📐 Label · track · readout. The track takes whatever the label and the
+        //    readout leave, so the reading and its unit stay pinned to the trailing
+        //    edge and the tracks line up down the card however long the labels are.
+        Label = Spanning(Row.MinimumX, Row.MinimumY, Measure.LabelX, Row.Height());
+        Readout = Spanning(Row.MaximumX - Measure.ReadoutX, Row.MinimumY,
+                           Measure.ReadoutX, Measure.FieldHeight);
+
+        const float TrackLead = Label.MaximumX + Measure.RowGapX;
+        const float TrackSpan = Readout.MinimumX - Measure.RowGapX - TrackLead;
+
+        Track = Spanning(TrackLead,
+                         Row.MinimumY + (Row.Height() - Measure.SliderHeight) * 0.5f,
+                         (TrackSpan > 0.0f) ? TrackSpan : 0.0f,
                          Measure.SliderHeight);
     }
     else
@@ -588,7 +627,7 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Target, cons
     const double Fraction = MagnitudeFraction(Coordinate, Declared.Minimum, Declared.Maximum);
 
     // ③ The label, absent when the readout trails a full-width slider.
-    if (!ReadoutTrailing)
+    if (Laid != MagnitudeDeclaration::Arrange::Trailing)
         Surface->TextRun(Label.MinimumX, CentredY(Label, Measure.LabelText), Colour.LabelQuiet,
                          Declared.Caption, Measure.LabelText, 0.0f, false);
 
@@ -1286,6 +1325,90 @@ ControlVerdict ComponentSpecification::TooltipTrigger(ControlIdentity Target, co
 //                                                   THE DEFERRED SWEEP
 //------------------------------------------------------------------------------------------------------------------------
 
+float ComponentSpecification::MenuContent(std::uint32_t OptionCount) const
+{
+    if (Appearance == nullptr || OptionCount == 0u)
+        return 0.0f;
+
+    const ControlMetric& Measure = Appearance->ControlMeasure;
+    const float OptionHeight = Measure.RowText * 1.5f + Measure.OptionPadY * 2.0f;
+
+    return OptionHeight * static_cast<float>(OptionCount)
+         + Measure.MenuGapY * static_cast<float>(OptionCount - 1u);
+}
+
+float ComponentSpecification::MenuShown(ControlIdentity Target) const
+{
+    for (const MenuScroll& Held : MenuScrolls)
+        if (Held.Target.SlotOrdinal == Target.SlotOrdinal && Held.Target.SlotGeneration == Target.SlotGeneration)
+            return Held.Shown;
+
+    return 0.0f;
+}
+
+// 📐 The wheel moves `Wanted`; `Shown` chases it a fixed fraction of the remaining
+//    distance each tick. That is the lag: the list keeps travelling for a few ticks
+//    after the notch, instead of teleporting. A geometric approach settles visually
+//    in about a fifth of a second at the shipped tick rate and, unlike a duration
+//    ease, needs no clock and no integrator — which this component does not hold.
+float ComponentSpecification::MenuTravel(ControlIdentity Target, float Content, float Shown, bool Over)
+{
+    const float Travel = (Content > Shown) ? (Content - Shown) : 0.0f;
+
+    MenuScroll* Held = nullptr;
+
+    for (MenuScroll& Candidate : MenuScrolls)
+    {
+        if (Candidate.Target.SlotOrdinal == Target.SlotOrdinal &&
+            Candidate.Target.SlotGeneration == Target.SlotGeneration)
+        {
+            Held = &Candidate;
+            break;
+        }
+    }
+
+    if (Held == nullptr)
+    {
+        // 📝 Claim the quietest slot: one that has settled at rest. A menu that is
+        //    still travelling is never evicted mid-flight.
+        for (MenuScroll& Candidate : MenuScrolls)
+        {
+            if (Candidate.Target.SlotGeneration == 0u ||
+                (Candidate.Shown == 0.0f && Candidate.Wanted == 0.0f))
+            {
+                Held = &Candidate;
+                break;
+            }
+        }
+
+        if (Held == nullptr)
+            Held = &MenuScrolls[0];
+
+        *Held = MenuScroll{};
+        Held->Target = Target;
+    }
+
+    if (Over && Sampled.WheelY != 0.0f)
+        Held->Wanted -= Sampled.WheelY * 48.0f;
+
+    if (Held->Wanted < 0.0f)      Held->Wanted = 0.0f;
+    if (Held->Wanted > Travel)    Held->Wanted = Travel;
+
+    const float Remaining = Held->Wanted - Held->Shown;
+
+    if (Remaining > 0.35f || Remaining < -0.35f)
+    {
+        Held->Shown += Remaining * 0.28f;
+        FoldMark(RedrawMark::Rerecord);
+    }
+    else
+    {
+        Held->Shown = Held->Wanted;
+    }
+
+    return Held->Shown;
+}
+
 void ComponentSpecification::RecordMenu(const DeferredRecording& Holding)
 {
     const ControlColour&    Colour     = Appearance->Control;
@@ -1297,12 +1420,28 @@ void ComponentSpecification::RecordMenu(const DeferredRecording& Holding)
     Surface->Edge(Menu, Colour.MenuEdge, Measure.CardEdgeWeight, Measure.MenuRadius, CornerAll);
 
     const float OptionHeight = Measure.RowText * 1.5f + Measure.OptionPadY * 2.0f;
-    float       Cursor       = Menu.MinimumY + Measure.MenuPad;
+    const float Content      = MenuContent(Holding.OptionCount);
+    const float Interior     = Menu.Height() - Measure.MenuPad * 2.0f;
+    const bool  OverMenu     = Menu.Encloses(Sampled.PositionX, Sampled.PositionY);
+    const float Offset       = MenuTravel(Holding.Target, Content, Interior, OverMenu);
+
+    // 📐 Everything past the ceiling is clipped rather than drawn over the panel.
+    Surface->Confine(Menu);
+
+    float Cursor = Menu.MinimumY + Measure.MenuPad - Offset;
 
     for (std::uint32_t Ordinal = 0u; Ordinal < Holding.OptionCount; ++Ordinal)
     {
         const PlaneExtent Option = Spanning(Menu.MinimumX + Measure.MenuPad, Cursor,
                                             Menu.Width() - Measure.MenuPad * 2.0f, OptionHeight);
+
+        // 📝 A row entirely past either edge is skipped: a thirteen-entry roster
+        //    inside a capped menu would otherwise stroke text nothing can see.
+        if (Option.MaximumY < Menu.MinimumY || Option.MinimumY > Menu.MaximumY)
+        {
+            Cursor += OptionHeight + Measure.MenuGapY;
+            continue;
+        }
 
         const bool Over = Option.Encloses(Sampled.PositionX, Sampled.PositionY);
 
@@ -1317,13 +1456,44 @@ void ComponentSpecification::RecordMenu(const DeferredRecording& Holding)
         const char* Caption = (Holding.Options != nullptr) ? Holding.Options[Ordinal] : "";
         const bool  Taken   = Ordinal == Holding.TakenOption;
 
-        Surface->TextRunTruncated(Option.MinimumX + Measure.OptionPadX,
+        // 🔴 The standing option was marked by colour alone here, and elsewhere in the
+        //    editor by a tick or a chevron glyph — three vocabularies for one idea.
+        //    SubsetRow already states "this one is taken" with a rail down the leading
+        //    edge and the validation host shows it on Entry one … four. That is the
+        //    indicator the whole interface should spend, so the menu spends it too.
+        if (Taken)
+        {
+            Surface->Ground(Spanning(Option.MinimumX, Option.MinimumY + 3.0f,
+                                     Measure.SubsetRailX, Option.Height() - 6.0f),
+                            Colour.RowRailTaken, Measure.SubsetRailX * 0.5f, CornerAll);
+        }
+
+        const float CaptionLead = Option.MinimumX + Measure.OptionPadX;
+
+        Surface->TextRunTruncated(CaptionLead,
                                   CentredY(Option, Measure.RowText),
                                   Option.Width() - Measure.OptionPadX * 2.0f,
                                   (Over || Taken) ? Colour.OptionColourHovered : Colour.OptionColour,
                                   Caption, Measure.RowText, false);
 
         Cursor += OptionHeight + Measure.MenuGapY;
+    }
+
+    Surface->Release();
+
+    // 📐 A thumb, only while there is somewhere to travel — it is the only cue that
+    //    the roster continues past the ceiling.
+    if (Content > Interior)
+    {
+        const float Fraction = Interior / Content;
+        const float ThumbY   = Interior * Fraction;
+        const float Reach    = Content - Interior;
+        const float Along    = (Reach > 0.0f) ? (Offset / Reach) : 0.0f;
+
+        Surface->Ground(Spanning(Menu.MaximumX - 5.0f,
+                                 Menu.MinimumY + Measure.MenuPad + (Interior - ThumbY) * Along,
+                                 3.0f, ThumbY),
+                        Colour.OptionColour, 1.5f, CornerAll);
     }
 }
 

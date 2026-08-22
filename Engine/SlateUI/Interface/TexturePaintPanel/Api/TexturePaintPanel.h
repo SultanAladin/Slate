@@ -187,6 +187,24 @@ struct TexturePaintContext
     // 📝 The folder's own switch. The coverage view is computed from the rows
     //    every tick, so it is never stored.
     bool                       FolderIsolate[TextureLayerCeiling]  = {};
+
+    // 📝 THE TWO SCROLLS. They are different things and were conflated before:
+    //
+    //    ① The PAGE travel — the carousel sliding sideways from the stack to a
+    //       properties page and back. It had no travel at all: `StackPage` was
+    //       read as a hard ternary, so the slide teleported between two frames.
+    //
+    //    ② The LIST travel — scrolling DOWN a long list inside whichever page
+    //       stands. The layer stack runs past its viewport once a folder is
+    //       unfolded, and the channels page is fourteen cards; neither could be
+    //       scrolled by any means, so their tails were simply unreachable.
+    //
+    //    One offset per list, because each page keeps its own place: scrolling
+    //    the channels list must not move where the stack list sits.
+    float                      StackListShown   = 0.0f;   // [px] - the stack page's list
+    float                      StackListWanted  = 0.0f;
+    float                      PropertyListShown  = 0.0f; // [px] - the properties page's list
+    float                      PropertyListWanted = 0.0f;
     std::uint32_t              SettingAmount[TextureLayerCeiling][4] = {};
     std::uint32_t              SettingToggle[TextureLayerCeiling]  = {};
     std::uint32_t              SettingChoice[TextureLayerCeiling]  = {};
@@ -313,6 +331,21 @@ private:
                             std::uint32_t Channel);
     float RecordGeneratorBody(const PlaneExtent& Extent, TexturePaintContext& Applied,
                               std::uint32_t Channel);
+public:
+    /// 🧩 Which eased slot the carousel travels on, so a proof harness can read the
+    ///    fraction rather than guessing an ordinal. Reads state; changes nothing.
+    std::uint32_t ProofPageMotion() const { return PageMotion; }
+private:
+
+    /// 🧩 Advances one list's scroll toward where the wheel put it; answers where it stands.
+    /// note  📐 The drawn offset chases the wanted one rather than being written by the wheel, so a
+    ///        notch reads as travel and not as a jump. Called once per page, per tick.
+    float AdvanceListScroll(float& Shown, float& Wanted, float Content, float Viewport,
+                            const PlaneExtent& Over);
+
+    /// 🧩 The scrollbar thumb for a list that overflows, or nothing when it does not.
+    void RecordScrollThumb(const PlaneExtent& Viewport, float Content, float Offset);
+
     /// 🧩 One titled section of a properties page; answers the body extent to fill.
     PlaneExtent RecordSectionCard(const PlaneExtent& Extent, const char* Titled, float BodyHeight);
 
@@ -370,6 +403,10 @@ private:
     FacetPanel                  StackFacets = {};        // [-] - the stack page's filter card
     FacetPanel                  ChannelFacets = {};      // [-] - the properties page's channel filter
     FacetPanel                  MaskFacets    = {};      // [-] - the mask's target channels
+
+    std::uint32_t               PageMotion    = 0u;      // [-] - the carousel's eased travel
+    std::uint32_t               PageDeparted  = 0u;      // [-] - which page the travel began from
+    std::uint32_t               PageArriving  = 0u;      // [-] - which page it is bound for
 
     PointerCondition            Sampled = {};            // [-] - this tick's contact
 

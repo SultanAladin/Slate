@@ -1704,9 +1704,15 @@ bool LayerStackPanel::RecordPopupEntry(const PlaneExtent& Extent, const char* Ca
     const float Middle = (Extent.MinimumY + Extent.MaximumY) * 0.5f;
 
     // 📐 The check occupies its 14px cell whether or not it is drawn, so the captions align down the run.
+    // 🔴 The standing entry was marked with a ChevronRight glyph — a NAVIGATION
+    //    figure used to mean "this one is chosen", and a third vocabulary beside
+    //    the menu's colour-only mark and the facet card's tick. SubsetRow already
+    //    states taken-ness with a rail down the leading edge, which is what the
+    //    validation host shows on Entry one … four. One idea, one indicator.
     if (Marked)
-        Surface->Stroke(SymbolSubject::ChevronRight, Squared(Extent.MinimumX + 15.0f, Middle, 10.0f),
-                        Tinted.Accent);
+        Surface->Ground(Spanning(Extent.MinimumX + 2.0f, Extent.MinimumY + 3.0f,
+                                 4.0f, Extent.Height() - 6.0f),
+                        Tinted.Accent, 2.0f, CornerAll);
 
     Surface->TextRunTruncated(Extent.MinimumX + 26.0f, Middle - Surface->LineHeight(Scaled.RunSub) * 0.5f,
                               Extent.Width() - 34.0f - (Chord != nullptr ? 30.0f : 0.0f),
@@ -3678,16 +3684,31 @@ void LayerStackPanel::RecordDeferred(LayerArrangement& Arrangement, LayerStackCo
 
         if (Measured > Current && Card.Encloses(Sampled.PositionX, Sampled.PositionY))
         {
-            Applied.PopupOffset -= Sampled.WheelY * NotchHeight;
+            Applied.PopupWanted -= Sampled.WheelY * NotchHeight;
 
             const float Travel = Measured - Current;
 
-            if (Applied.PopupOffset < 0.0f)    Applied.PopupOffset = 0.0f;
-            if (Applied.PopupOffset > Travel)  Applied.PopupOffset = Travel;
+            if (Applied.PopupWanted < 0.0f)    Applied.PopupWanted = 0.0f;
+            if (Applied.PopupWanted > Travel)  Applied.PopupWanted = Travel;
         }
         else if (Measured <= Current)
         {
+            Applied.PopupWanted = 0.0f;
             Applied.PopupOffset = 0.0f;
+        }
+
+        // 📐 The drawn offset chases the wanted one by a fixed fraction of what is
+        //    left each tick — the list keeps travelling for a few ticks after the
+        //    notch instead of teleporting.
+        const float PopupRest = Applied.PopupWanted - Applied.PopupOffset;
+
+        if (PopupRest > 0.35f || PopupRest < -0.35f)
+        {
+            Applied.PopupOffset += PopupRest * 0.28f;
+        }
+        else
+        {
+            Applied.PopupOffset = Applied.PopupWanted;
         }
 
         Y -= Applied.PopupOffset;

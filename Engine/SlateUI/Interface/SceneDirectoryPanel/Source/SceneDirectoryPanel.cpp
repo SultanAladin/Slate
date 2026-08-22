@@ -1904,11 +1904,14 @@ void SceneDirectoryPanel::RecordEnvironmentCard(SceneDirectoryContext& Applied,
             Declared.UnitGlyph   = UnitGlyphs[SliderOrdinal];
             Declared.Minimum     = Minimums[SliderOrdinal];
             Declared.Maximum     = Maximums[SliderOrdinal];
+            // 🔴 The same defect as the shell's copy of this card: the rows were
+            //    laid out with no label at all. Label · track · readout.
+            Declared.Layout      = MagnitudeDeclaration::Arrange::Measured;
 
             double& Coordinate   = Values[SliderOrdinal];
 
             static_cast<void>(EnvironmentControls.MagnitudeRow(EnvironmentSliders[SliderOrdinal],
-                                                               Row, Declared, Coordinate, true));
+                                                               Row, Declared, Coordinate, false));
 
             // 🔴 The drag arm: latched the first tick the slider holds the contact, with the value at
             //    that moment — the "start" the history entry describes. Released with a changed value,

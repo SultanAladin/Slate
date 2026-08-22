@@ -949,6 +949,16 @@ Outcome<bool> TexturePaintPanel::Construct(InteractionIndex& Interaction,
         }
     }
 
+    // 📐 The carousel's own travel. Registered here, never mid-tick.
+    {
+        const Outcome<std::uint32_t> Registered = Integrator.RegisterEased(1.0);
+
+        if (!Registered.Resolved)
+            return Outcome<bool>::Refuse(Registered.Error);
+
+        PageMotion = Registered.Resolve();
+    }
+
     Reapply(Resolved);
 
     return Outcome<bool>::Result(true);
@@ -1058,7 +1068,24 @@ void TexturePaintPanel::Record(const PlaneExtent& Extent, TexturePaintContext& A
 
     // 📐 The carousel: a 200 %-wide strip, translated by one whole extent. Page 0 the stack, page 1
     //    the selection-driven properties — the same slide the shell's inspector uses.
-    const float Carried = (Applied.StackPage == 1u) ? -Extent.Width() : 0.0f;
+    //
+    // 🔴 SCROLL ① — THE PAGE TRAVEL. This was a hard ternary on `StackPage`, so the
+    //    slide the comment describes never happened: the carousel TELEPORTED between
+    //    two frames. The user asked for the travel from the stack to a mask's
+    //    properties and back to read as movement, and there was none to read. The
+    //    page now departs on an eased interpolant and the strip is carried by the
+    //    fraction, so the two pages genuinely slide past one another.
+    if (Applied.StackPage != PageArriving)
+    {
+        PageDeparted = PageArriving;
+        PageArriving = Applied.StackPage;
+        Motion->Eased(PageMotion).Depart(0.0, 1.0, 260.0, 0.0, EaseCurve::Standard);
+    }
+
+    const float Travelled = static_cast<float>(Motion->Eased(PageMotion).Current());
+    const float DepartedAt = (PageDeparted == 1u) ? -Extent.Width() : 0.0f;
+    const float ArrivingAt = (PageArriving == 1u) ? -Extent.Width() : 0.0f;
+    const float Carried    = DepartedAt + (ArrivingAt - DepartedAt) * Travelled;
 
     Surface->Confine(Extent);
 
@@ -1285,9 +1312,31 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
     {
         Surface->Confine(Body);
 
-        float Sweep = Body.MinimumY;
-
         const bool Filtering = RetentionActive(Applied);
+
+        // 📐 Measure the stack before drawing it. A folder's contents appear on
+        //    disclosure, so the list's height is a function of what is unfolded and
+        //    has to be re-measured every tick rather than cached.
+        float Content = 0.0f;
+
+        for (std::uint32_t Ordinal = 0u; Ordinal < RowCount; ++Ordinal)
+        {
+            if (Filtering && !RowRetained(Applied, Rows[Ordinal]))
+                continue;
+
+            if (!Filtering && Ordinal > 0u &&
+                Rows[Ordinal].Depth > Rows[Ordinal - 1u].Depth &&
+                !Applied.LayerExpanded[Rows[Ordinal].Enclosing])
+                continue;
+
+            Content += Scaled.LayerRowY + 2.0f
+                     + (Applied.MaskAttached[Ordinal] ? (Scaled.LayerMaskY + 2.0f) : 0.0f);
+        }
+
+        const float Rolled = AdvanceListScroll(Applied.StackListShown, Applied.StackListWanted,
+                                               Content, Body.Height(), Body);
+
+        float Sweep = Body.MinimumY - Rolled;
 
         for (std::uint32_t Ordinal = 0u; Ordinal < RowCount; ++Ordinal)
         {
@@ -1330,7 +1379,7 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
             }
         }
 
-        if (Filtering && Sweep <= Body.MinimumY + 0.5f)
+        if (Filtering && Sweep <= Body.MinimumY - Rolled + 0.5f)
         {
             const float Run = Scaled.RunSecondary;
             const char* Prose = "No layers match the search or filters.";
@@ -1341,6 +1390,8 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
         }
 
         Surface->Release();
+
+        RecordScrollThumb(Body, Content, Rolled);
     }
 
     // ⑦ The open menu, recorded last so it draws above the whole page.
@@ -2923,9 +2974,31 @@ void TexturePaintPanel::RecordChannelCard(const PlaneExtent& Extent, TexturePain
 
     Surface->Confine(Body);
 
-    float Sweep = Body.MinimumY;
-
     const bool Filtering = ChannelRetentionActive(Applied);
+
+    // 📐 Measure the list before drawing it, so the scroll knows how far it may
+    //    travel. Fourteen unfolded channel cards stand far past any editor leaf.
+    float Content = 0.0f;
+
+    for (std::uint32_t Channel = 0u; Channel < TextureChannelCeiling; ++Channel)
+    {
+        if (!Enabled[Channel])
+            continue;
+
+        if (Filtering && !RunHolds(TextureChannelText(Channel), Applied.Retention))
+            continue;
+
+        const float Opened = Ledger->TakenFraction(ChannelFolds[Channel]);
+
+        Content += Scaled.LayerHeadHeight * 0.82f
+                 + ChannelBodyHeight(Applied, Channel) * Opened
+                 + Scaled.LayerRowGap;
+    }
+
+    const float Rolled = AdvanceListScroll(Applied.PropertyListShown, Applied.PropertyListWanted,
+                                           Content, Body.Height(), Body);
+
+    float Sweep = Body.MinimumY - Rolled;
 
     for (std::uint32_t Channel = 0u; Channel < TextureChannelCeiling; ++Channel)
     {
@@ -2955,8 +3028,14 @@ void TexturePaintPanel::RecordChannelCard(const PlaneExtent& Extent, TexturePain
         const float BodyY = ChannelBodyHeight(Applied, Channel) * Opened;
         const PlaneExtent Card = Spanning(Body.MinimumX, Sweep, Body.Width(), RowY + BodyY);
 
-        if (Sweep + RowY > Body.MaximumY)
-            break;
+        // 📐 A card wholly past either edge is skipped rather than breaking the
+        //    loop: with the list scrolled, cards above the viewport still have to
+        //    be stepped over to reach the ones below it.
+        if (Sweep + RowY + BodyY < Body.MinimumY || Sweep > Body.MaximumY)
+        {
+            Sweep += RowY + BodyY + Scaled.LayerRowGap;
+            continue;
+        }
 
         Surface->Ground(Card, Tinted.Tile, Scaled.LayerRadius, CornerAll);
         Surface->Edge(Card, Tinted.Hairline, 1.0f, Scaled.LayerRadius, CornerAll);
@@ -2981,6 +3060,8 @@ void TexturePaintPanel::RecordChannelCard(const PlaneExtent& Extent, TexturePain
     }
 
     Surface->Release();
+
+    RecordScrollThumb(Body, Content, Rolled);
 }
 
 void TexturePaintPanel::RecordChannelRow(const PlaneExtent& Row, TexturePaintContext& Applied,
@@ -3185,6 +3266,65 @@ float TexturePaintPanel::ChannelBodyHeight(const TexturePaintContext& Applied,
     }
 
     return Height + Scaled.PanePad;
+}
+
+// 🧩 SCROLL ② — THE LIST TRAVEL. One list's wheel scroll, eased.
+// 🔴 Neither the stack list nor the channels list could be scrolled by any means.
+//    The stack runs past its viewport as soon as a folder unfolds and the channels
+//    page is fourteen cards deep, so in both cases the tail of the list was simply
+//    unreachable — not clipped-and-scrollable, but gone.
+float TexturePaintPanel::AdvanceListScroll(float& Shown, float& Wanted, float Content,
+                                           float Viewport, const PlaneExtent& Over)
+{
+    const float Travel = (Content > Viewport) ? (Content - Viewport) : 0.0f;
+
+    if (Travel <= 0.0f)
+    {
+        // 📐 A list that fits is parked at its head, so that shortening a list can
+        //    never leave it scrolled to somewhere that no longer exists.
+        Wanted = 0.0f;
+        Shown  = 0.0f;
+        return 0.0f;
+    }
+
+    if (Over.Encloses(Sampled.PositionX, Sampled.PositionY) && Sampled.WheelY != 0.0f &&
+        !Ledger->AnyDisclosed())
+    {
+        Wanted -= Sampled.WheelY * 56.0f;
+    }
+
+    if (Wanted < 0.0f)     Wanted = 0.0f;
+    if (Wanted > Travel)   Wanted = Travel;
+
+    // 📐 The drawn offset chases the wanted one by a fraction of what remains each
+    //    tick. That is the lag: the list keeps moving for a few ticks after the
+    //    notch rather than snapping to it.
+    const float Remaining = Wanted - Shown;
+
+    if (Remaining > 0.35f || Remaining < -0.35f)
+        Shown += Remaining * 0.26f;
+    else
+        Shown = Wanted;
+
+    return Shown;
+}
+
+// 🧩 The thumb, drawn only when there is somewhere to travel — it is the only cue
+//    that a list continues past its viewport.
+void TexturePaintPanel::RecordScrollThumb(const PlaneExtent& Viewport, float Content, float Offset)
+{
+    if (Content <= Viewport.Height() || Viewport.Height() <= 0.0f)
+        return;
+
+    const float Fraction = Viewport.Height() / Content;
+    const float ThumbY   = Viewport.Height() * Fraction;
+    const float Reach    = Content - Viewport.Height();
+    const float Along    = (Reach > 0.0f) ? (Offset / Reach) : 0.0f;
+
+    Surface->Ground(Spanning(Viewport.MaximumX - 5.0f,
+                             Viewport.MinimumY + (Viewport.Height() - ThumbY) * Along,
+                             3.0f, ThumbY),
+                    Faded(Tinted.Muted, 0.55f), 1.5f, CornerAll);
 }
 
 // 🧩 One titled section of a properties page: a ground, a hairline-separated

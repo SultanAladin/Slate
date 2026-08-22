@@ -210,7 +210,12 @@ struct LayerStackContext
     bool           PopupSettled    = false;
     std::uint32_t  PopupSubject   = LayerStackCeiling::AbsentOrdinal;   // [-] - the entry it addresses
     bool           PopupOnMask    = false;   // [-] - whether it addresses that entry's mask
-    float          PopupOffset    = 0.0f;    // [px] - how far a long popup is scrolled
+    float          PopupOffset    = 0.0f;    // [px] - how far a long popup is scrolled, as drawn
+    // 🔴 The wheel wrote the drawn offset directly, so a long roster JUMPED a notch
+    //    at a time with no travel between. The wheel writes the WANTED offset now and
+    //    the drawn one chases it, which is the lag every other scrolling surface has.
+    float          PopupWanted    = 0.0f;    // [px] - where the wheel asked it to be
+    float          StackWanted    = 0.0f;    // [px] - the same, for the stack itself
 
     // 📐 `colorWheel` — hue, saturation and luminance, retained while the wheel stands open.
     float          WheelHue        = 0.0f;    // [deg] - 0…360
