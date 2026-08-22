@@ -70,6 +70,20 @@ struct MagnitudeDeclaration
 
 /// 🧩 What the rotation ruler presents — its label and the unit its captions carry.
 /// tag   contract, nonallocating, nonthrowing
+/// 🧩 A three-axis reading — a position, a rotation or a scale — and its unit.
+/// note  📐 The scalar MagnitudeDeclaration states one figure against one unit. A transform row states
+///        three against one, so the readout is three value cells sharing a single trailing unit cell
+///        rather than three separate pills.
+/// tag   contract, nonallocating, nonthrowing
+struct VectorDeclaration
+{
+    const char*  Caption   = "";       // [-] - the leading label
+    const char*  UnitGlyph = "";       // [-] - one unit for all three axes
+    const char*  AxisRuns[3] = { "X", "Y", "Z" };   // [-] - the axis letters, in order
+    double       Minimum   = -1.0e9;   // [-] - the reading floor
+    double       Maximum   =  1.0e9;   // [-] - the reading ceiling
+};
+
 struct RulerDeclaration
 {
     const char*  Caption   = "";   // [-] - the leading label
@@ -232,6 +246,17 @@ public:
     ///        physical dial does and is the opposite of what an accumulated pointer delta would give.
     /// cost  🔴
     /// tag   api, nonthrowing
+    /// 🧩 Records one three-axis transform row: a label and an [X|Y|Z|unit] readout.
+    /// note  🔴 The scene directory drew Position, Rotation and Scale as a bare label with no reading at
+    ///        all — the row said "Position" and nothing else. A transform is three figures, so it needs
+    ///        three cells against one unit, in the same pill grammar MagnitudeRow already uses.
+    /// in    Coordinates  [-]  three readings, edited in place
+    /// out   ControlVerdict    ReadingAltered when any axis was dragged
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    ControlVerdict VectorRow(ControlIdentity Target, const PlaneExtent& Row,
+                             const VectorDeclaration& Declared, double* Coordinates);
+
     ControlVerdict RotationRuler(ControlIdentity Target, const PlaneExtent& Row,
                                  const RulerDeclaration& Declared, double& Degrees);
 

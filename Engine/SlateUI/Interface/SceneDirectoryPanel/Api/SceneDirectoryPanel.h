@@ -109,6 +109,15 @@ struct SceneDirectoryContext
     //    details pane presents.
     std::uint32_t              DetailBits[EntityCeiling] = {};
 
+    // 📝 Each record's transform, edited by the Transform card's three axis rows.
+    // 🔴 The card previously drew Position, Rotation and Scale as bare labels with
+    //    no reading at all, because there was nowhere to keep one. Seeded so a
+    //    fresh scene reads sensibly rather than all-zero scale.
+    double                     EntityPosition[EntityCeiling][3] = {};
+    double                     EntityRotation[EntityCeiling][3] = {};
+    double                     EntityScale[EntityCeiling][3] = {};
+    bool                       TransformSeeded = false;   // [-] - scale defaults applied once
+
     // 📝 The camera's own ordinates, owned by the host and written every tick: the fly speed the
     //    properties leaf's Fly Speed card edits (with a drag-end history demand, like the
     //    environment), and the pose the details pane states.
@@ -281,6 +290,8 @@ private:
     ControlIdentity RowPresences[SceneDirectoryContext::EntityCeiling]   = {};
     ControlIdentity DetailOptions[SceneDirectoryContext::EntityCeiling][3] = {};
     ControlIdentity CardFolds[SceneDirectoryContext::CardCeiling]        = {};
+    // 🧩 One identity per card row, so a transform axis can be dragged.
+    ControlIdentity CardFields[SceneDirectoryContext::CardCeiling][4]     = {};
     ControlIdentity RevisionGroups[SceneDirectoryContext::EntityCeiling] = {};
     ControlIdentity InspectorStrip = {};
     ControlIdentity OutlineStrip    = {};

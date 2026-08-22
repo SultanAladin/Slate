@@ -574,6 +574,144 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Target, cons
 //                                                    THE ROTATION RULER
 //------------------------------------------------------------------------------------------------------------------------
 
+ControlVerdict ComponentSpecification::VectorRow(ControlIdentity Target, const PlaneExtent& Row,
+                                                 const VectorDeclaration& Declared, double* Coordinates)
+{
+    ControlVerdict Reported;
+
+    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr ||
+        Coordinates == nullptr || !Ledger->Resolves(Target))
+        return Reported;
+
+    const ControlColour& Colour  = Appearance->Control;
+    const ControlMetric& Measure = Appearance->ControlMeasure;
+
+    // ① The row divides into a leading label and one readout that fills the rest.
+    const PlaneExtent Label = Spanning(Row.MinimumX, Row.MinimumY, Measure.LabelX, Row.Height());
+    const PlaneExtent Readout{ Label.MaximumX + Measure.RowGapX, Row.MinimumY,
+                               Row.MaximumX, Row.MinimumY + Measure.FieldHeight };
+
+    if (Readout.Width() <= 0.0f)
+        return Reported;
+
+    // 📐 One unit cell at the trailing end, exactly as the scalar pill has, and the
+    //    remainder split three ways. The axes therefore share the unit rather than
+    //    repeating it, which is what makes this one control and not three.
+    const PlaneExtent UnitCell{ Readout.MaximumX - Measure.UnitCellX, Readout.MinimumY,
+                                Readout.MaximumX, Readout.MaximumY };
+    const float AxisSpan = (UnitCell.MinimumX - Readout.MinimumX) / 3.0f;
+
+    // ② Arbitration. Each axis is its own drag zone; the identity is shared, so the
+    //    held axis is remembered as the part rather than as a separate control.
+    const float PointerX = Sampled.PositionX;
+    const float PointerY = Sampled.PositionY;
+
+    std::int32_t OverAxis = -1;
+    for (std::int32_t Axis = 0; Axis < 3; ++Axis)
+    {
+        const PlaneExtent Cell{ Readout.MinimumX + AxisSpan * static_cast<float>(Axis),
+                                Readout.MinimumY,
+                                Readout.MinimumX + AxisSpan * static_cast<float>(Axis + 1),
+                                Readout.MaximumY };
+        if (Cell.Encloses(PointerX, PointerY))
+            OverAxis = Axis;
+    }
+
+    if (Ledger->DeclareHovered(Target, OverAxis >= 0, HoverDuration))
+        FoldMark(RedrawMark::Recolour);
+
+    if (Sampled.ContactPressed && OverAxis >= 0)
+    {
+        if (Ledger->Grab(Target, ControlPart::Thumb))
+        {
+            ContactHeldByPanel = true;
+            Ledger->RecordInitial(Target, static_cast<float>(OverAxis));
+        }
+    }
+
+    // 📐 Dragged horizontally, a cell scrubs its own axis.
+    // 📝 MagnitudeRow projects from the pointer's ABSOLUTE abscissa because its
+    //    track has two ends to project between, and it notes that accumulating
+    //    per-tick travel drifts. A transform axis has no track and no ends — a
+    //    position is unbounded — so there is nothing to project onto and the
+    //    accumulation is the reading rather than an approximation of it. The
+    //    drift that comment warns about cannot arise here for the same reason:
+    //    there is no round figure at either end to fail to return to.
+    if (Ledger->Holding(Target) && AxisSpan > 0.0f)
+    {
+        const Outcome<float> Recorded = Ledger->InitialReading(Target);
+        const std::int32_t   Held = Recorded.Resolved
+                                  ? static_cast<std::int32_t>(Recorded.Resolve() + 0.5f) : -1;
+        if (Held >= 0 && Held < 3)
+        {
+            const double Span      = Declared.Maximum - Declared.Minimum;
+            const double Projected = Coordinates[Held] +
+                                     static_cast<double>(Sampled.TravelX) * Span /
+                                     static_cast<double>(AxisSpan) * 0.001;
+
+            const double Bounded = (Projected < Declared.Minimum) ? Declared.Minimum
+                                 : (Projected > Declared.Maximum) ? Declared.Maximum : Projected;
+
+            if (Bounded != Coordinates[Held])
+            {
+                Coordinates[Held]      = Bounded;
+                Reported.ReadingAltered = true;
+                FoldMark(RedrawMark::Rerecord);
+            }
+        }
+    }
+
+    // ③ The label.
+    Surface->TextRun(Label.MinimumX, CentredY(Label, Measure.LabelText), Colour.LabelQuiet,
+                     Declared.Caption, Measure.LabelText, 0.0f, false);
+
+    // ④ The readout: one pill, three value cells, one raised unit cell.
+    const float PillRadius = Readout.Height() * 0.5f;
+
+    Surface->Ground(Readout, Colour.FieldGround, PillRadius, CornerAll);
+    Surface->Ground(UnitCell, Colour.CellGround, PillRadius, CornerTrailingUpper | CornerTrailingLower);
+    Surface->Edge(Readout, Colour.CardEdge, Measure.CardEdgeWeight, PillRadius, CornerAll);
+
+    for (std::int32_t Axis = 0; Axis < 3; ++Axis)
+    {
+        const float CellLead = Readout.MinimumX + AxisSpan * static_cast<float>(Axis);
+
+        // 📐 A hairline between the axes, so three readings do not read as one run.
+        if (Axis > 0)
+            Surface->Ground(Spanning(CellLead, Readout.MinimumY + 4.0f, 1.0f, Readout.Height() - 8.0f),
+                            Colour.CardEdge, 0.0f, CornerNone);
+
+        const char* AxisRun = (Declared.AxisRuns[Axis] != nullptr) ? Declared.AxisRuns[Axis] : "";
+        const float AxisWide = Surface->MeasureRun(AxisRun, Measure.UnitText, 0.0f);
+
+        Surface->TextRun(CellLead + 8.0f, CentredY(Readout, Measure.UnitText),
+                         Colour.UnitColour, AxisRun, Measure.UnitText, 0.0f, false);
+
+        char Reading[24] = {};
+        IntegralRun(Reading, 24u,
+                    static_cast<long long>(Coordinates[Axis] +
+                                           (Coordinates[Axis] < 0.0 ? -0.5 : 0.5)));
+
+        const float ReadingRun = Surface->MeasureRun(Reading, Measure.ReadoutText,
+                                                     Measure.ReadoutTracking);
+        const float ReadingLead = CellLead + 8.0f + AxisWide;
+        const float ReadingRoom = AxisSpan - 8.0f - AxisWide - 8.0f;
+
+        Surface->TextRun(ReadingLead + (ReadingRoom - ReadingRun) * 0.5f,
+                         CentredY(Readout, Measure.ReadoutText),
+                         Colour.FieldColour, Reading, Measure.ReadoutText,
+                         Measure.ReadoutTracking, true);
+    }
+
+    const float UnitRun = Surface->MeasureRun(Declared.UnitGlyph, Measure.UnitText, 0.0f);
+
+    Surface->TextRun(UnitCell.MinimumX + (UnitCell.Width() - UnitRun) * 0.5f,
+                     CentredY(UnitCell, Measure.UnitText),
+                     Colour.UnitColour, Declared.UnitGlyph, Measure.UnitText, 0.0f, false);
+
+    return Reported;
+}
+
 ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Target, const PlaneExtent& Row,
                                            const RulerDeclaration& Declared, double& Degrees)
 {

@@ -320,7 +320,14 @@ Outcome<bool> SceneDirectoryPanel::Construct(InteractionIndex& Interaction,
         &SearchField,
         &EnvironmentSliders[0], &EnvironmentSliders[1], &EnvironmentSliders[2],
         &EnvironmentSliders[3], &EnvironmentSliders[4], &EnvironmentSliders[5],
-        &CardFolds[0], &CardFolds[1], &CardFolds[2], &CardFolds[3]
+        &CardFolds[0], &CardFolds[1], &CardFolds[2], &CardFolds[3],
+        // 🔴 A control that is never registered resolves to nothing, so its row
+        //    would draw but refuse every contact — the axis would look editable
+        //    and silently ignore the drag.
+        &CardFields[0][0], &CardFields[0][1], &CardFields[0][2], &CardFields[0][3],
+        &CardFields[1][0], &CardFields[1][1], &CardFields[1][2], &CardFields[1][3],
+        &CardFields[2][0], &CardFields[2][1], &CardFields[2][2], &CardFields[2][3],
+        &CardFields[3][0], &CardFields[3][1], &CardFields[3][2], &CardFields[3][3]
     };
 
     for (ControlIdentity* Identity : Every)
@@ -1495,9 +1502,12 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
     float       Sweep = Extent.MinimumY + Pad;
     std::uint32_t CardOrdinal = 0u;
 
-    // 📝 The property card — a folding card whose rows are inert labels, from the reference's generic
-    //    component cards.
-    const auto RecordCard = [&](const char* Caption, const char* const* Fields, std::uint32_t FieldCount)
+    // 📝 The property card — a folding card, from the reference's generic component cards.
+    // 🔴 Its rows used to be inert labels: the row said "Position" and drew no reading at all. A row
+    //    may now carry three ordinates and a unit, recorded through the shared VectorRow so a
+    //    transform reads as [X|Y|Z|unit] in the same pill grammar the scalar rows use.
+    const auto RecordCard = [&](const char* Caption, const char* const* Fields, std::uint32_t FieldCount,
+                                double (*Vectors)[3] = nullptr, const char* const* Units = nullptr)
     {
         if (CardOrdinal >= SceneDirectoryContext::CardCeiling)
             return;
@@ -1576,9 +1586,22 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
                 const PlaneExtent Row = Spanning(Card.MinimumX + Pad * 1.5f, RowCursor,
                                                  Card.Width() - Pad * 3.0f, Scaled.RowHeight);
 
-                Surface->TextRun(Row.MinimumX + 2.0f,
-                                 Row.MinimumY + (Row.Height() - Scaled.RunPrimary) * 0.5f,
-                                 Tinted.Muted, Fields[FieldOrdinal], Scaled.RunPrimary);
+                if (Vectors != nullptr)
+                {
+                    VectorDeclaration Axes;
+                    Axes.Caption   = Fields[FieldOrdinal];
+                    Axes.UnitGlyph = (Units != nullptr && Units[FieldOrdinal] != nullptr)
+                                   ? Units[FieldOrdinal] : "";
+
+                    static_cast<void>(EnvironmentControls.VectorRow(
+                        CardFields[Target][FieldOrdinal], Row, Axes, Vectors[FieldOrdinal]));
+                }
+                else
+                {
+                    Surface->TextRun(Row.MinimumX + 2.0f,
+                                     Row.MinimumY + (Row.Height() - Scaled.RunPrimary) * 0.5f,
+                                     Tinted.Muted, Fields[FieldOrdinal], Scaled.RunPrimary);
+                }
 
                 RowCursor += Scaled.RowHeight;
             }
@@ -1601,8 +1624,39 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
 
     if (Transforms)
     {
-        const char* const TransformRows[3] = { "Position", "Rotation", "Scale" };
-        RecordCard("Transform", TransformRows, 3u);
+        // 📐 One unit per row: metres, degrees, and a bare multiplier for scale.
+        const char* const TransformRows[3]  = { "Position", "Rotation", "Scale" };
+        const char* const TransformUnits[3] = { "m", "\xC2\xB0", "x" };
+
+        // 📐 Three rows, three ordinate triples, contiguous so one pointer serves
+        //    the loop. Scale is seeded to 1 once; a zero-scale default would read
+        //    as a collapsed object on a fresh scene.
+        if (!Applied.TransformSeeded)
+        {
+            for (std::uint32_t Each = 0u; Each < SceneDirectoryContext::EntityCeiling; ++Each)
+                for (std::uint32_t Axis = 0u; Axis < 3u; ++Axis)
+                    Applied.EntityScale[Each][Axis] = 1.0;
+
+            Applied.TransformSeeded = true;
+        }
+
+        double Ordinates[3][3] = {};
+        for (std::uint32_t Axis = 0u; Axis < 3u; ++Axis)
+        {
+            Ordinates[0][Axis] = Applied.EntityPosition[Taken][Axis];
+            Ordinates[1][Axis] = Applied.EntityRotation[Taken][Axis];
+            Ordinates[2][Axis] = Applied.EntityScale[Taken][Axis];
+        }
+
+        RecordCard("Transform", TransformRows, 3u, Ordinates, TransformUnits);
+
+        // the rows edit in place, so carry any drag back to the record
+        for (std::uint32_t Axis = 0u; Axis < 3u; ++Axis)
+        {
+            Applied.EntityPosition[Taken][Axis] = Ordinates[0][Axis];
+            Applied.EntityRotation[Taken][Axis] = Ordinates[1][Axis];
+            Applied.EntityScale[Taken][Axis]    = Ordinates[2][Axis];
+        }
     }
 
     char ComponentCaption[48] = {};
