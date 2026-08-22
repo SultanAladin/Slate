@@ -756,9 +756,7 @@ ControlVerdict ComponentSpecification::VectorRow(ControlIdentity Target, const P
                          Colour.UnitColour, AxisRun, Measure.UnitText, 0.0f, false);
 
         char Reading[24] = {};
-        IntegralRun(Reading, 24u,
-                    static_cast<long long>(Coordinates[Axis] +
-                                           (Coordinates[Axis] < 0.0 ? -0.5 : 0.5)));
+        DecimalRun(Reading, 24u, Coordinates[Axis], Declared.Decimals);
 
         const float ReadingRun = Surface->MeasureRun(Reading, Measure.ReadoutText,
                                                      Measure.ReadoutTracking);

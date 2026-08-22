@@ -95,6 +95,13 @@ struct VectorDeclaration
     const char*  Caption   = "";       // [-] - the leading label
     const char*  UnitGlyph = "";       // [-] - one unit for all three axes
     const char*  AxisRuns[3] = { "X", "Y", "Z" };   // [-] - the axis letters, in order
+
+    /// 🔴 The same defect MagnitudeDeclaration carried, in its sibling: VectorRow
+    ///    also wrote each axis through `IntegralRun`, so a UV position of 0.50
+    ///    rendered as "1" and a decal appeared pinned to a corner. Fixing one
+    ///    slider and leaving the other is how the pair drifts, so both take the
+    ///    same field with the same zero default.
+    std::uint32_t Decimals = 0u;   // [-] - fraction digits per axis
     double       Minimum   = -1.0e9;   // [-] - the reading floor
     double       Maximum   =  1.0e9;   // [-] - the reading ceiling
 };
@@ -261,6 +268,9 @@ public:
     ///        physical dial does and is the opposite of what an accumulated pointer delta would give.
     /// cost  🔴
     /// tag   api, nonthrowing
+    ControlVerdict RotationRuler(ControlIdentity Target, const PlaneExtent& Row,
+                                 const RulerDeclaration& Declared, double& Degrees);
+
     /// 🧩 Records one three-axis transform row: a label and an [X|Y|Z|unit] readout.
     /// note  🔴 The scene directory drew Position, Rotation and Scale as a bare label with no reading at
     ///        all — the row said "Position" and nothing else. A transform is three figures, so it needs
@@ -271,9 +281,6 @@ public:
     /// tag   api, nonallocating, nonthrowing
     ControlVerdict VectorRow(ControlIdentity Target, const PlaneExtent& Row,
                              const VectorDeclaration& Declared, double* Coordinates);
-
-    ControlVerdict RotationRuler(ControlIdentity Target, const PlaneExtent& Row,
-                                 const RulerDeclaration& Declared, double& Degrees);
 
     /// 🧩 One toggle row — a ring, a dot that scales in, and a label.
     /// in    Taken  [-]  written on the tick the row resolves a tap

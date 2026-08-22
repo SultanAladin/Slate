@@ -469,9 +469,36 @@ void SeedPaintContextFromRows(TexturePaintContext& Applied,
             Applied.ChannelBlendTaken[Ordinal][Channel] = 0u;
         }
 
-        Applied.MaskDensity[Ordinal]       = 100u;
-        Applied.MaskInverted[Ordinal]      = false;
+        // 🔴 These three were hardcoded to 100 / false / 0 while `TextureLayerRow`
+        //    carries `MaskStrength`, `MaskInverted` and `Source` right there. The
+        //    seed discarded all three, so a row declaring MaskStrength = 88
+        //    rendered 100 and the mask card looked as though it could not read
+        //    its own row. This function exists precisely to stop the row and the
+        //    working copy drifting apart, and on these fields it was the thing
+        //    causing the drift.
+        Applied.MaskDensity[Ordinal]       = Stands ? Row.MaskStrength : 100u;
+        Applied.MaskInverted[Ordinal]      = Stands && Row.MaskInverted;
         Applied.MaskSourceTaken[Ordinal]   = 0u;
+
+        // 📐 The mask source is a run on the row; the card holds an ordinal into
+        //    the roster. Resolve it the same way the blend above is resolved.
+        if (Stands && Row.Source != nullptr && Row.Source[0] != '\0')
+        {
+            for (std::uint32_t Source = 0u; Source < 5u; ++Source)
+            {
+                if (std::strcmp(Row.Source, TextureMaskSourceNames[Source]) == 0)
+                {
+                    Applied.MaskSourceTaken[Ordinal] = Source;
+                    break;
+                }
+            }
+        }
+
+        // 📐 The mask targets every channel the row declares, which is what the
+        //    reference's `mask.channels` holds.
+        for (std::uint32_t Channel = 0u; Channel < TextureChannelCeiling; ++Channel)
+            Applied.MaskChannel[Ordinal][Channel] = Stands && Channel < 4u;
+
         Applied.SettingAmount[Ordinal][0]  = 100u;
         Applied.SettingAmount[Ordinal][1]  = 50u;
         Applied.SettingAmount[Ordinal][2]  = 50u;
@@ -837,7 +864,8 @@ Outcome<bool> TexturePaintPanel::Construct(InteractionIndex& Interaction,
     }
 
     if (!StackFacets.Construct(Integrator, Surface, Resolved).Resolved ||
-        !ChannelFacets.Construct(Integrator, Surface, Resolved).Resolved)
+        !ChannelFacets.Construct(Integrator, Surface, Resolved).Resolved ||
+        !MaskFacets.Construct(Integrator, Surface, Resolved).Resolved)
     {
         Reset();
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent,
@@ -853,7 +881,14 @@ Outcome<bool> TexturePaintPanel::Construct(InteractionIndex& Interaction,
         &BarButtons[4],  &BarButtons[5],  &BarButtons[6],  &BarButtons[7],
         &BarButtons[8],  &BarButtons[9],  &BarButtons[10], &BarButtons[11],
         &StackStrip, &PropertyStrip,
-        &MenuAdd, &MenuLayer, &MenuMask, &MenuBlend
+        &MenuAdd, &MenuLayer, &MenuMask, &MenuBlend,
+        &MaskRows[0], &MaskRows[1], &MaskRows[2], &MaskRows[3], &MaskRows[4],
+        &MaskRows[5], &MaskRows[6], &MaskRows[7], &MaskRows[8],
+        &MaskParams[0], &MaskParams[1], &MaskParams[2],
+        &DecalRows[0], &DecalRows[1], &DecalRows[2], &DecalRows[3],
+        &DecalRows[4], &DecalRows[5], &DecalRows[6], &DecalRows[7],
+        &FolderRows[0], &FolderRows[1], &FolderRows[2],
+        &SettingRows[0], &SettingRows[1], &SettingRows[2], &SettingRows[3]
     };
 
     for (ControlIdentity* Identity : Every)
@@ -936,6 +971,7 @@ void TexturePaintPanel::Reset()
     SharedControls.Reset();
     StackFacets.Reset();
     ChannelFacets.Reset();
+    MaskFacets.Reset();
 
     Ledger     = nullptr;
     Motion     = nullptr;
@@ -981,6 +1017,7 @@ void TexturePaintPanel::Advance(const PointerCondition& Contact, double Elapsed,
     SharedControls.Sample(Contact);
     StackFacets.Advance(Contact, Elapsed);
     ChannelFacets.Advance(Contact, Elapsed);
+    MaskFacets.Advance(Contact, Elapsed);
 
     // 📝 The search pill's taken state, for the host's typed-run feed.
     Applied.SearchTaken = Ledger->Holding(SearchField) || Ledger->Disclosed(SearchField);
@@ -2752,6 +2789,14 @@ void TexturePaintPanel::RecordPropertiesPage(const PlaneExtent& Extent, TextureP
     if (Current.Classified == TextureLayerClassification::Folder)
         TabCaptions[0] = "Stack";
 
+    // 🔴 A decal was given the Channels tab and the channels card. PropertyTabCount
+    //    counted two tabs for it, but the caption array never named a decal one,
+    //    so selecting a decal opened a channel editor for a stencil that has no
+    //    channels to author — and the transform and projection it DOES have were
+    //    unreachable from anywhere in the UI.
+    if (Current.Classified == TextureLayerClassification::Decal)
+        TabCaptions[0] = "Decal";
+
     if (Applied.MaskTaken)
     {
         TabCaptions[0] = "Mask";
@@ -2787,6 +2832,8 @@ void TexturePaintPanel::RecordPropertiesPage(const PlaneExtent& Extent, TextureP
                 RecordFolderCard(Pages, Applied, Rows, RowCount);
             else if (Applied.MaskTaken)
                 RecordMaskCard(Pages, Applied, Current);
+            else if (Current.Classified == TextureLayerClassification::Decal)
+                RecordDecalCard(Pages, Applied, Current);
             else
                 RecordChannelCard(Pages, Applied, Current);
             break;
@@ -3138,6 +3185,31 @@ float TexturePaintPanel::ChannelBodyHeight(const TexturePaintContext& Applied,
     }
 
     return Height + Scaled.PanePad;
+}
+
+// 🧩 One titled section of a properties page: a ground, a hairline-separated
+//    heading, and the body the caller records inside it. Every card on the mask,
+//    decal and folder pages is one of these, so they cannot drift apart the way
+//    the four hand-rolled headers did.
+PlaneExtent TexturePaintPanel::RecordSectionCard(const PlaneExtent& Extent, const char* Titled,
+                                                 float BodyHeight)
+{
+    const float HeadY = Scaled.ComponentY;
+    const PlaneExtent Card = Spanning(Extent.MinimumX, Extent.MinimumY, Extent.Width(),
+                                      HeadY + BodyHeight + Scaled.PanePad);
+
+    Surface->Ground(Card, Tinted.Menu, Scaled.CardRadius, CornerAll);
+    Surface->Edge(Card, Tinted.Hairline, 1.0f, Scaled.CardRadius, CornerAll);
+
+    Surface->TextRunCapitalised(Card.MinimumX + Scaled.PanePad * 1.5f,
+                                Card.MinimumY + (HeadY - Scaled.RunFine) * 0.5f,
+                                Tinted.Muted, Titled, Scaled.RunFine, 0.08f, true);
+
+    Surface->Ground(Spanning(Card.MinimumX, Card.MinimumY + HeadY, Card.Width(), 1.0f),
+                    Tinted.Hairline, 0.0f, CornerNone);
+
+    return Spanning(Card.MinimumX + Scaled.PanePad * 1.5f, Card.MinimumY + HeadY + Scaled.PanePad * 0.5f,
+                    Card.Width() - Scaled.PanePad * 3.0f, BodyHeight);
 }
 
 // 🧩 The reference's `.iconbtn`: a small bordered square holding one figure,
@@ -3494,139 +3566,255 @@ float TexturePaintPanel::RecordChannelBody(const PlaneExtent& Extent, TexturePai
 void TexturePaintPanel::RecordMaskCard(const PlaneExtent& Extent, TexturePaintContext& Applied,
                                        const TextureLayerRow& Current)
 {
-    const float Pad = Scaled.PanePad;
-    const float RowY = Scaled.RowHeight * 0.82f;
-    float Sweep = Extent.MinimumY + Pad;
+    // 🔴 The old card was four flat rows — Density, Source, Invert, Applies-to —
+    //    with the density slider hand-rolled from two Grounds and raw pointer
+    //    arithmetic: no readout pill, no unit cell, no hover growth, no keyboard
+    //    path. Against References/TPPanel.html renderMaskProperties() it was also
+    //    missing the mask BLEND, the whole procedural generator section, and the
+    //    empty state. It now spends the shared controls and follows that record.
+    const std::uint32_t Layer = Applied.LayerTaken;
+    const float Pad  = Scaled.PanePad;
+    const float RowY = Appearance->ControlMeasure.FieldHeight + Pad * 0.5f;
 
-    Surface->Ground(Spanning(Extent.MinimumX + Pad, Sweep, Extent.Width() - Pad * 2.0f,
-                             Scaled.ComponentY),
-                    Tinted.Desk, Scaled.CardRadius, CornerAll);
-    Surface->Edge(Spanning(Extent.MinimumX + Pad, Sweep, Extent.Width() - Pad * 2.0f,
-                           Scaled.ComponentY),
-                  Tinted.Hairline, 1.0f, Scaled.CardRadius, CornerAll);
+    const PlaneExtent Body = Spanning(Extent.MinimumX + Pad, Extent.MinimumY + Pad,
+                                      Extent.Width() - Pad * 2.0f,
+                                      Extent.Height() - Pad * 2.0f);
 
-    const char* Source = Current.Source[0] != '\0'
-                       ? Current.Source
-                       : TextureMaskSourceNames[Applied.MaskSourceTaken[Applied.LayerTaken] % 5u];
-
-    char MaskCaption[64] = {};
-    std::snprintf(MaskCaption, sizeof(MaskCaption), "Mask \u00B7 %s", Source);
-
-    Surface->TextRunCapitalised(Extent.MinimumX + Pad * 2.0f, Sweep + 7.0f,
-                                Tinted.Primary, MaskCaption, Scaled.RunSmall, 0.0f, true);
-
-    Sweep += Scaled.ComponentY + Pad;
-
-    // ① The density slider.
-    const PlaneExtent DensityRow = Spanning(Extent.MinimumX + Pad, Sweep,
-                                            Extent.Width() - Pad * 2.0f, RowY);
-
-    Surface->TextRun(DensityRow.MinimumX + Scaled.PanePad, DensityRow.MinimumY,
-                     Tinted.Muted, "Density", Scaled.RunSecondary);
-
-    const float BarX = DensityRow.MinimumX + 90.0f;
-    const float BarY = DensityRow.MinimumY + (RowY - 4.0f) * 0.5f;
-    const std::uint32_t Density = Applied.MaskDensity[Applied.LayerTaken];
-
-    Surface->Ground(Spanning(BarX, BarY, 120.0f, 4.0f), Covering(0x242424u), 2.0f, CornerAll);
-    Surface->Ground(Spanning(BarX, BarY, 120.0f * static_cast<float>(Density) / 100.0f, 4.0f),
-                    Covering(0xFFFFFFu), 2.0f, CornerAll);
-
-    if (Sampled.ContactPressed && BarX < Sampled.PositionX && Sampled.PositionX < BarX + 120.0f &&
-        !Ledger->AnyDisclosed())
+    // ① No mask? The reference does not draw an empty inspector; it draws an offer.
+    if (!Current.MaskDeclared && !Applied.MaskAttached[Layer])
     {
-        Ledger->Grab(MaskRows[0], ControlPart::Body);
+        const float Run = Scaled.RunSecondary;
+        const float Span = Surface->MeasureRun("No mask attached to this layer.", Run, 0.0f);
+
+        Surface->TextRun(Body.MinimumX + (Body.Width() - Span) * 0.5f,
+                         Body.MinimumY + 40.0f, Tinted.Muted,
+                         "No mask attached to this layer.", Run);
+
+        const float MakeX = 110.0f, MakeY = 28.0f;
+        const PlaneExtent Make = Spanning(Body.MinimumX + (Body.Width() - MakeX) * 0.5f,
+                                          Body.MinimumY + 40.0f + Run * 2.4f, MakeX, MakeY);
+
+        if (RecordIconAction(MaskRows[0], Make, SymbolSubject::HalfMask, false))
+            Applied.MaskAttached[Layer] = true;
+
+        const float MakeRun = Surface->MeasureRun("Create Mask", Scaled.RunFine, 0.0f);
+        Surface->TextRun(Make.MinimumX + (MakeX - MakeRun) * 0.5f + 8.0f,
+                         Make.MinimumY + (MakeY - Scaled.RunFine) * 0.5f,
+                         Tinted.Primary, "Create Mask", Scaled.RunFine);
+        return;
     }
 
-    if (Ledger->Holding(MaskRows[0]))
+    Surface->Confine(Body);
+
+    float Sweep = Body.MinimumY;
+
+    // ② MASK CONFIGURATION — density, blend, and the invert/visible actions.
     {
-        const float Fraction = Held((Sampled.PositionX - BarX) / 120.0f, 0.0f, 1.0f);
-        Applied.MaskDensity[Applied.LayerTaken] = static_cast<std::uint32_t>(Fraction * 100.0f + 0.5f);
+        const float Inner = RowY * 2.0f;
+        const PlaneExtent Card = RecordSectionCard(Spanning(Body.MinimumX, Sweep,
+                                                            Body.Width(), 0.0f),
+                                                   "Mask configuration", Inner);
+
+        // 📐 The header's two actions sit on the card's own heading line.
+        const float Icon = 20.0f;
+        const PlaneExtent Eye = Spanning(Body.MaximumX - Pad * 1.5f - Icon,
+                                         Sweep + (Scaled.ComponentY - Icon) * 0.5f, Icon, Icon);
+        const PlaneExtent Flip = Spanning(Eye.MinimumX - Icon - 4.0f, Eye.MinimumY, Icon, Icon);
+
+        if (RecordIconAction(MaskRows[1], Eye,
+                             Applied.MaskVisible[Layer] ? SymbolSubject::EyeOpen
+                                                        : SymbolSubject::EyeClosed, false))
+        {
+            Applied.MaskVisible[Layer] = !Applied.MaskVisible[Layer];
+        }
+
+        if (RecordIconAction(MaskRows[2], Flip, SymbolSubject::AlphaMask,
+                             Applied.MaskInverted[Layer]))
+        {
+            Applied.MaskInverted[Layer] = !Applied.MaskInverted[Layer];
+        }
+
+        float Inside = Card.MinimumY;
+
+        // 📐 Density through the SHARED magnitude row, so it carries the same
+        //    readout pill and unit cell every other slider in the editor has.
+        MagnitudeDeclaration Density;
+        Density.Caption   = "Density";
+        Density.UnitGlyph = "%";
+        Density.Minimum   = 0.0;
+        Density.Maximum   = 100.0;
+
+        double Reading = static_cast<double>(Applied.MaskDensity[Layer]);
+
+        if (SharedControls.MagnitudeRow(MaskRows[3],
+                                        Spanning(Card.MinimumX, Inside, Card.Width(), RowY),
+                                        Density, Reading, false).ReadingAltered)
+        {
+            Applied.MaskDensity[Layer] = static_cast<std::uint32_t>(Reading + 0.5);
+        }
+
+        Inside += RowY;
+
+        // 📐 The mask's own blend — the reference offers four.
+        static const char* const MaskBlends[4] =
+            { "Multiply", "Replace", "Linear Dodge (Add)", "Subtract" };
+
+        SelectionDeclaration Blending;
+        Blending.Caption     = "Blend mode";
+        Blending.Options     = MaskBlends;
+        Blending.OptionCount = 4u;
+
+        std::uint32_t Taken = Applied.MaskBlendTaken[Layer] % 4u;
+
+        if (SharedControls.SelectionField(MaskRows[4],
+                                          Spanning(Card.MinimumX, Inside, Card.Width(), RowY),
+                                          Blending, Taken).ReadingAltered)
+        {
+            Applied.MaskBlendTaken[Layer] = Taken;
+        }
+
+        Sweep += Scaled.ComponentY + Inner + Pad + Scaled.LayerRowGap;
     }
 
-    char DensityText[8] = {};
-    std::snprintf(DensityText, sizeof(DensityText), "%u%%", Density);
-
-    Surface->TextRun(DensityRow.MaximumX - 44.0f, DensityRow.MinimumY,
-                     Tinted.Primary, DensityText, Scaled.RunSecondary);
-
-    Sweep += RowY + Scaled.LayerRowGap;
-
-    // ② The source selection.
-    const PlaneExtent SourceRow = Spanning(Extent.MinimumX + Pad, Sweep,
-                                           Extent.Width() - Pad * 2.0f, RowY);
-
-    Surface->TextRun(SourceRow.MinimumX + Scaled.PanePad, SourceRow.MinimumY,
-                     Tinted.Muted, "Source", Scaled.RunSecondary);
-
-    SelectionDeclaration SourceDeclared;
-    SourceDeclared.Caption     = "Source";
-    SourceDeclared.Options     = TextureMaskSourceNames;
-    SourceDeclared.OptionCount = 5u;
-
-    std::uint32_t SourceTaken = Applied.MaskSourceTaken[Applied.LayerTaken] % 5u;
-
-    SharedControls.SelectionField(MaskRows[1],
-                                  Spanning(SourceRow.MinimumX + 90.0f, SourceRow.MinimumY,
-                                           SourceRow.Width() - 90.0f, RowY),
-                                  SourceDeclared, SourceTaken);
-
-    Applied.MaskSourceTaken[Applied.LayerTaken] = SourceTaken;
-
-    Sweep += RowY + Scaled.LayerRowGap;
-
-    // ③ The invert toggle.
-    const PlaneExtent InvertRow = Spanning(Extent.MinimumX + Pad, Sweep,
-                                           Extent.Width() - Pad * 2.0f, RowY);
-
-    const bool OnInvert = InvertRow.Encloses(Sampled.PositionX, Sampled.PositionY);
-    const bool Inverted = Applied.MaskInverted[Applied.LayerTaken];
-
-    if (Sampled.ContactPressed && OnInvert && !Ledger->AnyDisclosed())
-        Ledger->Grab(MaskRows[2], ControlPart::Body);
-
-    if (OnInvert && Ledger->Released(MaskRows[2]))
-        Applied.MaskInverted[Applied.LayerTaken] = !Inverted;
-
-    const float Toggle = Scaled.ChipExtent * 2.5f;
-    const PlaneExtent Switch = Spanning(InvertRow.MaximumX - Toggle - Pad,
-                                        InvertRow.MinimumY + (RowY - Toggle * 0.5f) * 0.5f,
-                                        Toggle, Toggle * 0.5f);
-
-    // 🔴 Another hand-rolled copy of the pill; see ControlPanel::SwitchTrack.
-    Controls.SwitchTrack(MaskRows[2], Switch, Inverted,
-                         Tinted.EntityAccent, Tinted.Hairline, Covering(0xFFFFFFu));
-
-    Surface->TextRun(InvertRow.MinimumX + Scaled.PanePad, InvertRow.MinimumY,
-                     OnInvert ? Tinted.Primary : Tinted.Muted, "Invert", Scaled.RunSecondary);
-
-    Sweep += RowY + Scaled.LayerRowGap;
-
-    // ④ The applies-to channel chips.
-    const PlaneExtent ChipsRow = Spanning(Extent.MinimumX + Pad, Sweep,
-                                          Extent.Width() - Pad * 2.0f, RowY * 1.6f);
-
-    Surface->TextRun(ChipsRow.MinimumX + Scaled.PanePad, ChipsRow.MinimumY,
-                     Tinted.Muted, "Applies to", Scaled.RunSecondary);
-
-    float ChipX = ChipsRow.MinimumX + 90.0f;
-
-    for (std::uint32_t Channel = 0u; Channel < TextureChannelCeiling && ChipX < ChipsRow.MaximumX - 40.0f;
-         ++Channel)
+    // ③ SOURCE — a segmented control over the roster, not a dropdown.
     {
-        const bool On = Applied.ChannelOn[Applied.LayerTaken][Channel];
-        const char* Name = TextureChannelText(Channel);
-        const float ChipRun = Scaled.RunFiner;
-        const float ChipSpan = Surface->MeasureRun(Name, ChipRun, 0.0f) + 14.0f;
+        const float Inner = RowY;
+        const PlaneExtent Card = RecordSectionCard(Spanning(Body.MinimumX, Sweep,
+                                                            Body.Width(), 0.0f),
+                                                   "Source", Inner);
 
-        Surface->Ground(Spanning(ChipX, ChipsRow.MinimumY + 2.0f, ChipSpan, 17.0f),
-                        On ? Covering(0x2A2A2Au) : Covering(0x141414u), 9.0f, CornerAll);
+        SegmentDeclaration Sources;
+        Sources.Captions     = TextureMaskSourceNames;
+        Sources.CaptionCount = 5u;
 
-        Surface->TextRun(ChipX + 7.0f, ChipsRow.MinimumY + 4.0f,
-                         On ? Covering(0xDCDCDCu) : Covering(0x5E5E5Eu), Name, ChipRun);
+        std::uint32_t Taken = Applied.MaskSourceTaken[Layer] % 5u;
 
-        ChipX += ChipSpan + 4.0f;
+        if (Controls.SegmentedChoice(MaskRows[5],
+                                     Spanning(Card.MinimumX, Card.MinimumY, Card.Width(),
+                                              RowY - Pad * 0.5f),
+                                     Sources, Taken).ReadingAltered)
+        {
+            Applied.MaskSourceTaken[Layer] = Taken;
+        }
+
+        Sweep += Scaled.ComponentY + Inner + Pad + Scaled.LayerRowGap;
     }
+
+    // ④ PROCEDURAL GENERATOR — only when the source is one.
+    if ((Applied.MaskSourceTaken[Layer] % 5u) == 4u)
+    {
+        const std::uint32_t Standing = Applied.MaskGenerator[Layer];
+        const bool Chosen = Standing < TextureGeneratorCeiling;
+        const std::uint32_t Knobs = Chosen ? TextureGeneratorAt(Standing).ParamCount : 0u;
+
+        const float Inner = RowY + (Chosen ? (20.0f + Pad * 0.5f + RowY * float(Knobs)) : 0.0f);
+        const PlaneExtent Card = RecordSectionCard(Spanning(Body.MinimumX, Sweep,
+                                                            Body.Width(), 0.0f),
+                                                   "Procedural generator", Inner);
+
+        static const char* Options[TextureGeneratorCeiling + 1u] = {};
+        Options[0] = "Choose generator";
+        for (std::uint32_t Each = 0u; Each < TextureGeneratorCeiling; ++Each)
+            Options[Each + 1u] = TextureGeneratorAt(Each).Label;
+
+        SelectionDeclaration Preset;
+        Preset.Caption     = "Preset";
+        Preset.Options     = Options;
+        Preset.OptionCount = TextureGeneratorCeiling + 1u;
+
+        std::uint32_t Taken = Chosen ? (Standing + 1u) : 0u;
+
+        float Inside = Card.MinimumY;
+
+        if (SharedControls.SelectionField(MaskRows[6],
+                                          Spanning(Card.MinimumX, Inside, Card.Width(), RowY),
+                                          Preset, Taken).ReadingAltered)
+        {
+            if (Taken == 0u)
+            {
+                Applied.MaskGenerator[Layer] = TexturePaintContext::AbsentGenerator;
+            }
+            else
+            {
+                const std::uint32_t Picked = Taken - 1u;
+                Applied.MaskGenerator[Layer] = Picked;
+
+                const TextureGeneratorEntry& Fresh = TextureGeneratorAt(Picked);
+                for (std::uint32_t Each = 0u; Each < Fresh.ParamCount; ++Each)
+                    Applied.MaskGeneratorParam[Layer][Each] = Fresh.Parameters[Each].Default;
+            }
+        }
+
+        Inside += RowY;
+
+        if (Chosen)
+        {
+            const TextureGeneratorEntry& Entry = TextureGeneratorAt(Standing);
+
+            const float Icon = 20.0f;
+            const PlaneExtent Drop = Spanning(Card.MaximumX - Icon, Inside, Icon, Icon);
+            const PlaneExtent Wipe = Spanning(Drop.MinimumX - Icon - 4.0f, Inside, Icon, Icon);
+
+            if (RecordIconAction(MaskRows[7], Wipe, SymbolSubject::GearCog, false))
+            {
+                for (std::uint32_t Each = 0u; Each < Entry.ParamCount; ++Each)
+                    Applied.MaskGeneratorParam[Layer][Each] = Entry.Parameters[Each].Default;
+            }
+
+            if (RecordIconAction(MaskRows[8], Drop, SymbolSubject::TrashBin, true))
+                Applied.MaskGenerator[Layer] = TexturePaintContext::AbsentGenerator;
+
+            Surface->TextRunCapitalised(Card.MinimumX, Inside + (Icon - Scaled.RunFiner) * 0.5f,
+                                        Tinted.Faint, Entry.Note, Scaled.RunFiner, 0.06f, false);
+
+            Inside += Icon + Pad * 0.5f;
+
+            for (std::uint32_t Each = 0u; Each < Entry.ParamCount; ++Each)
+            {
+                const TextureGeneratorParameter& Knob = Entry.Parameters[Each];
+
+                MagnitudeDeclaration Declared;
+                Declared.Caption   = Knob.Label;
+                Declared.UnitGlyph = "";
+                Declared.Minimum   = Knob.Minimum;
+                Declared.Maximum   = Knob.Maximum;
+                Declared.Decimals  = 2u;
+
+                double Amount = Applied.MaskGeneratorParam[Layer][Each];
+
+                if (SharedControls.MagnitudeRow(MaskParams[Each],
+                                                Spanning(Card.MinimumX, Inside, Card.Width(), RowY),
+                                                Declared, Amount, false).ReadingAltered)
+                {
+                    Applied.MaskGeneratorParam[Layer][Each] = Amount;
+                }
+
+                Inside += RowY;
+            }
+        }
+
+        Sweep += Scaled.ComponentY + Inner + Pad + Scaled.LayerRowGap;
+    }
+
+    // ⑤ APPLIES TO CHANNELS — the same facet card the channel page spends, bound
+    //    to the mask's own target set rather than to ChannelOn.
+    {
+        const FacetDeclaration Targets =
+        {
+            "Applies to channels", ChannelFacetOptions(), ChannelFacetColours(),
+            TextureChannelCeiling, 0xFFFFFFFFu
+        };
+
+        bool* const Marks = Applied.MaskChannel[Layer];
+        const float FacetY = MaskFacets.MeasureHeight(Body.Width(), Targets, Marks);
+
+        Discard(MaskFacets.Record(Spanning(Body.MinimumX, Sweep, Body.Width(), FacetY),
+                                  Targets, Marks));
+    }
+
+    Surface->Release();
+
+    MaskFacets.RecordDeferred();
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -3733,128 +3921,594 @@ void TexturePaintPanel::RecordSettingsCard(const PlaneExtent& Extent, TexturePai
 //                                                  THE FOLDER (COMBINED) PROPERTIES
 //------------------------------------------------------------------------------------------------------------------------
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE DECAL PROPERTIES
+//------------------------------------------------------------------------------------------------------------------------
+
+void TexturePaintPanel::RecordDecalCard(const PlaneExtent& Extent, TexturePaintContext& Applied,
+                                        const TextureLayerRow& Current)
+{
+    // 🔴 This card did not exist. `grep -c RecordDecalCard` returned zero: a decal
+    //    row fell through to the CHANNELS page, so selecting one opened a channel
+    //    editor for a stencil that has no channels to author, and the transform
+    //    and projection a decal does have could not be reached from anywhere.
+    const std::uint32_t Layer = Applied.LayerTaken;
+    const float Pad  = Scaled.PanePad;
+    const float RowY = Appearance->ControlMeasure.FieldHeight + Pad * 0.5f;
+
+    // 📐 A decal seeds to the identity placement — centred, unrotated, unit scale —
+    //    rather than to zero, which would collapse it to nothing on first sight.
+    if (!Applied.DecalSeeded)
+    {
+        for (std::uint32_t Each = 0u; Each < TextureLayerCeiling; ++Each)
+        {
+            Applied.DecalPosition[Each][0]  = 0.5;
+            Applied.DecalPosition[Each][1]  = 0.5;
+            Applied.DecalScale[Each][0]     = 1.0;
+            Applied.DecalScale[Each][1]     = 1.0;
+            Applied.DecalFadeAngle[Each]    = 65.0;
+            Applied.DecalDepthRange[Each]   = 0.25;
+            Applied.DecalBackfaceCull[Each] = true;
+            Applied.DecalUniformScale[Each] = true;
+        }
+
+        Applied.DecalSeeded = true;
+    }
+
+    const PlaneExtent Body = Spanning(Extent.MinimumX + Pad, Extent.MinimumY + Pad,
+                                      Extent.Width() - Pad * 2.0f, Extent.Height() - Pad * 2.0f);
+
+    Surface->Confine(Body);
+
+    float Sweep = Body.MinimumY;
+
+    // ① PROJECTION — how the stencil is cast onto the surface.
+    {
+        const float Inner = RowY * 3.0f + Pad * 0.5f;
+        const PlaneExtent Card = RecordSectionCard(Spanning(Body.MinimumX, Sweep, Body.Width(), 0.0f),
+                                                   "Projection", Inner);
+
+        static const char* const Casts[3] = { "Planar", "Box", "Normal" };
+
+        SegmentDeclaration Cast;
+        Cast.Captions     = Casts;
+        Cast.CaptionCount = 3u;
+
+        std::uint32_t Taken = Applied.DecalProjection[Layer] % 3u;
+        float Inside = Card.MinimumY;
+
+        if (Controls.SegmentedChoice(DecalRows[0],
+                                     Spanning(Card.MinimumX, Inside, Card.Width(), RowY - Pad * 0.5f),
+                                     Cast, Taken).ReadingAltered)
+        {
+            Applied.DecalProjection[Layer] = Taken;
+        }
+
+        Inside += RowY;
+
+        MagnitudeDeclaration Fade;
+        Fade.Caption   = "Fade angle";
+        Fade.UnitGlyph = "\xC2\xB0";
+        Fade.Minimum   = 0.0;
+        Fade.Maximum   = 90.0;
+
+        double Angle = Applied.DecalFadeAngle[Layer];
+
+        if (SharedControls.MagnitudeRow(DecalRows[1],
+                                        Spanning(Card.MinimumX, Inside, Card.Width(), RowY),
+                                        Fade, Angle, false).ReadingAltered)
+        {
+            Applied.DecalFadeAngle[Layer] = Angle;
+        }
+
+        Inside += RowY;
+
+        MagnitudeDeclaration Depth;
+        Depth.Caption   = "Depth range";
+        Depth.UnitGlyph = "";
+        Depth.Minimum   = 0.0;
+        Depth.Maximum   = 1.0;
+        Depth.Decimals  = 2u;
+
+        double Range = Applied.DecalDepthRange[Layer];
+
+        if (SharedControls.MagnitudeRow(DecalRows[2],
+                                        Spanning(Card.MinimumX, Inside, Card.Width(), RowY),
+                                        Depth, Range, false).ReadingAltered)
+        {
+            Applied.DecalDepthRange[Layer] = Range;
+        }
+
+        Sweep += Scaled.ComponentY + Inner + Pad + Scaled.LayerRowGap;
+    }
+
+    // ② TRANSFORM — where the stencil sits in UV.
+    {
+        const float Inner = RowY * 3.0f + Pad * 0.5f;
+        const PlaneExtent Card = RecordSectionCard(Spanning(Body.MinimumX, Sweep, Body.Width(), 0.0f),
+                                                   "Transform", Inner);
+
+        float Inside = Card.MinimumY;
+
+        // 📐 VectorRow renders three axes and a decal is planar, so the third axis
+        //    is held at zero and captioned blank rather than adding an AxisCount
+        //    field to a shared control for one caller. Stated plainly because it
+        //    IS a compromise: the row shows an inert third cell.
+        VectorDeclaration Placement;
+        Placement.Caption     = "Position";
+        Placement.AxisRuns[0] = "U";
+        Placement.AxisRuns[1] = "V";
+        Placement.AxisRuns[2] = "";
+        Placement.Minimum     = 0.0;
+        Placement.Maximum     = 1.0;
+        Placement.Decimals    = 2u;
+
+        double Place[3] = { Applied.DecalPosition[Layer][0], Applied.DecalPosition[Layer][1], 0.0 };
+
+        if (SharedControls.VectorRow(DecalRows[3],
+                                     Spanning(Card.MinimumX, Inside, Card.Width(), RowY),
+                                     Placement, Place).ReadingAltered)
+        {
+            Applied.DecalPosition[Layer][0] = Place[0];
+            Applied.DecalPosition[Layer][1] = Place[1];
+        }
+
+        Inside += RowY;
+
+        MagnitudeDeclaration Turn;
+        Turn.Caption   = "Rotation";
+        Turn.UnitGlyph = "\xC2\xB0";
+        Turn.Minimum   = 0.0;
+        Turn.Maximum   = 360.0;
+
+        double Spun = Applied.DecalRotation[Layer];
+
+        if (SharedControls.MagnitudeRow(DecalRows[4],
+                                        Spanning(Card.MinimumX, Inside, Card.Width(), RowY),
+                                        Turn, Spun, false).ReadingAltered)
+        {
+            Applied.DecalRotation[Layer] = Spun;
+        }
+
+        Inside += RowY;
+
+        // 📐 The uniform-scale chain: a small action ahead of the row, so locking
+        //    is visible rather than implied.
+        const float Chain = 18.0f;
+        const PlaneExtent Link = Spanning(Card.MinimumX, Inside + (RowY - Chain) * 0.5f,
+                                          Chain, Chain);
+
+        if (RecordIconAction(DecalRows[5], Link,
+                             Applied.DecalUniformScale[Layer] ? SymbolSubject::LockClosed
+                                                              : SymbolSubject::LockOpen,
+                             false))
+        {
+            Applied.DecalUniformScale[Layer] = !Applied.DecalUniformScale[Layer];
+        }
+
+        VectorDeclaration Sizing;
+        Sizing.Caption     = "Scale";
+        Sizing.AxisRuns[0] = "U";
+        Sizing.AxisRuns[1] = "V";
+        Sizing.AxisRuns[2] = "";
+        Sizing.Minimum     = 0.0;
+        Sizing.Maximum     = 8.0;
+        Sizing.Decimals    = 2u;
+
+        double Sized[3] = { Applied.DecalScale[Layer][0], Applied.DecalScale[Layer][1], 0.0 };
+
+        if (SharedControls.VectorRow(DecalRows[6],
+                                     Spanning(Card.MinimumX + Chain + 4.0f, Inside,
+                                              Card.Width() - Chain - 4.0f, RowY),
+                                     Sizing, Sized).ReadingAltered)
+        {
+            // 📐 While the chain is closed the axis that MOVED drives the other,
+            //    so a uniform scale stays uniform whichever cell was dragged.
+            if (Applied.DecalUniformScale[Layer])
+            {
+                const bool AlongMoved = Sized[0] != Applied.DecalScale[Layer][0];
+                const double Driven = AlongMoved ? Sized[0] : Sized[1];
+
+                Applied.DecalScale[Layer][0] = Driven;
+                Applied.DecalScale[Layer][1] = Driven;
+            }
+            else
+            {
+                Applied.DecalScale[Layer][0] = Sized[0];
+                Applied.DecalScale[Layer][1] = Sized[1];
+            }
+        }
+
+        Sweep += Scaled.ComponentY + Inner + Pad + Scaled.LayerRowGap;
+    }
+
+    // ③ SURFACE — the backface rule and the stencil the decal projects.
+    {
+        const float SlotY = Scaled.LayerHeadHeight * 0.9f;
+        const float Inner = RowY + SlotY + Pad * 0.5f;
+        const PlaneExtent Card = RecordSectionCard(Spanning(Body.MinimumX, Sweep, Body.Width(), 0.0f),
+                                                   "Surface", Inner);
+
+        float Inside = Card.MinimumY;
+
+        SwitchDeclaration Cull;
+        Cull.Caption = "Backface cull";
+
+        bool Culling = Applied.DecalBackfaceCull[Layer];
+
+        if (Controls.SwitchToggle(DecalRows[7],
+                                  Spanning(Card.MinimumX, Inside, Card.Width(), RowY - Pad * 0.5f),
+                                  Cull, Culling).ReadingAltered)
+        {
+            Applied.DecalBackfaceCull[Layer] = Culling;
+        }
+
+        Inside += RowY;
+
+        const char* Naming = (Current.Detail != nullptr && Current.Detail[0] != '\0')
+                           ? Current.Detail : "No stencil imported";
+
+        RecordSlotRow(Spanning(Card.MinimumX, Inside, Card.Width(), SlotY),
+                      Covering(Current.PaintHue), SymbolSubject::StencilDecal,
+                      Current.Naming, Naming, true);
+
+        Sweep += Scaled.ComponentY + Inner + Pad;
+    }
+
+    Surface->Release();
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE FOLDER PROPERTIES
+//------------------------------------------------------------------------------------------------------------------------
+
 void TexturePaintPanel::RecordFolderCard(const PlaneExtent& Extent, TexturePaintContext& Applied,
                                          const TextureLayerRow* Rows, std::uint32_t RowCount)
 {
-    const float Pad = Scaled.PanePad;
-    const float RowY = Scaled.RowHeight * 0.82f;
-    float Sweep = Extent.MinimumY + Pad;
+    // 🔴 This was six flat label/value rows — Stack, Masks, Channel union, Blend,
+    //    Opacity, Channels — which is a summary of the folder, not a view of what
+    //    its contents jointly write. A folder is the one selection whose whole
+    //    point is the combination, and the card said nothing about it.
+    //
+    // 📐 COVERAGE IS TEXEL FRACTION. Of the atlas the folder's contents could
+    //    write on a channel, what share do they actually deposit on? It is a
+    //    statement about AREA and deliberately not about visibility: a layer at
+    //    5% opacity covering the whole surface reads 100% here, because it has
+    //    covered everything. The alternative — weighting each layer by its
+    //    opacity — answers "how much of this channel do I SEE from this folder",
+    //    which is a different question and would want a second bar rather than a
+    //    changed one. The heading says which is drawn so the figure is never
+    //    ambiguous on screen.
+    const std::uint32_t Layer = Applied.LayerTaken;
+    const float Pad  = Scaled.PanePad;
+    const float RowY = Appearance->ControlMeasure.FieldHeight + Pad * 0.5f;
 
-    const TextureLayerRow& Folder = Rows[Applied.LayerTaken];
+    const TextureLayerRow& Folder = Rows[Layer];
 
-    // 📐 The combined stack properties: one summary over the folder's whole subtree — the count,
-    //    the mask count, the channel union, and the folder's own blend and opacity. This is the
-    //    "Properties of combined layers in the entire stack" the user asked for.
+    // ① Walk the subtree once, gathering per-channel coverage and contributors.
+    float         Coverage[TextureChannelCeiling] = {};
+    std::uint32_t Contributors[TextureChannelCeiling] = {};
     std::uint32_t Layers = 0u;
     std::uint32_t Masks  = 0u;
-    bool ChannelUnion[TextureChannelCeiling] = {};
 
     for (std::uint32_t Ordinal = 0u; Ordinal < RowCount; ++Ordinal)
     {
-        if (Ordinal == Applied.LayerTaken)
+        if (Ordinal == Layer)
             continue;
 
-        const bool Inside = Rows[Ordinal].Enclosing == Applied.LayerTaken;
+        bool Inside = Rows[Ordinal].Enclosing == Layer;
 
         if (!Inside)
         {
-            // 📝 Also count grandchildren: a row inside a child of the folder is inside the folder.
-            bool Grandchild = false;
             std::uint32_t Walking = Rows[Ordinal].Enclosing;
 
             while (Walking < RowCount)
             {
-                if (Walking == Applied.LayerTaken)
-                {
-                    Grandchild = true;
-                    break;
-                }
-
-                if (Rows[Walking].Depth <= Folder.Depth)
-                    break;
-
+                if (Walking == Layer) { Inside = true; break; }
+                if (Rows[Walking].Depth <= Folder.Depth) break;
                 Walking = Rows[Walking].Enclosing;
             }
-
-            if (!Grandchild)
-                continue;
         }
+
+        if (!Inside)
+            continue;
 
         ++Layers;
 
         if (Applied.MaskAttached[Ordinal])
             ++Masks;
 
-        for (std::uint32_t Channel = 0u; Channel < Rows[Ordinal].ChannelCount &&
-             Channel < TextureChannelCeiling; ++Channel)
+        for (std::uint32_t Channel = 0u; Channel < TextureChannelCeiling; ++Channel)
         {
-            ChannelUnion[Channel] = true;
+            if (!Applied.ChannelOn[Ordinal][Channel])
+                continue;
+
+            ++Contributors[Channel];
+
+            // 📐 One layer's own deposit on this channel. A mask scales the area
+            //    it reaches — that is a statement about extent, not opacity, so
+            //    it belongs in a texel measure.
+            float Share = 1.0f;
+
+            if (Applied.MaskAttached[Ordinal])
+                Share *= static_cast<float>(Applied.MaskDensity[Ordinal]) / 100.0f;
+
+            // 📐 Coverage composites as union, not as a sum: two layers each
+            //    covering 60% of a channel cover 84% of it together, never 120%.
+            Coverage[Channel] = Coverage[Channel] + Share - Coverage[Channel] * Share;
         }
     }
 
-    const auto Row = [&](const char* Label, const char* Value)
+    const PlaneExtent Body = Spanning(Extent.MinimumX + Pad, Extent.MinimumY + Pad,
+                                      Extent.Width() - Pad * 2.0f, Extent.Height() - Pad * 2.0f);
+
+    Surface->Confine(Body);
+
+    float Sweep = Body.MinimumY;
+
+    // ② COMBINED CHANNEL COVERAGE — one bar per channel any content writes.
     {
-        const PlaneExtent ExtentRow = Spanning(Extent.MinimumX + Pad, Sweep,
-                                               Extent.Width() - Pad * 2.0f, RowY);
+        std::uint32_t Present = 0u;
+        for (std::uint32_t Channel = 0u; Channel < TextureChannelCeiling; ++Channel)
+            if (Contributors[Channel] > 0u) ++Present;
 
-        Surface->TextRun(ExtentRow.MinimumX + Scaled.PanePad, ExtentRow.MinimumY,
-                         Tinted.Muted, Label, Scaled.RunSecondary);
+        const float BarRowY = 20.0f;
+        const float Inner = (Present > 0u)
+                          ? (float(Present) * BarRowY + Scaled.RunFiner * 1.8f)
+                          : Scaled.RunSecondary * 2.0f;
 
-        Surface->TextRun(ExtentRow.MaximumX - Scaled.PanePad
-                         - Surface->MeasureRun(Value, Scaled.RunSecondary, 0.0f),
-                         ExtentRow.MinimumY, Tinted.Primary, Value, Scaled.RunSecondary);
+        const PlaneExtent Card = RecordSectionCard(Spanning(Body.MinimumX, Sweep, Body.Width(), 0.0f),
+                                                   "Combined channel coverage", Inner);
 
-        Sweep += RowY + Scaled.LayerRowGap;
-    };
+        float Inside = Card.MinimumY;
 
-    char Tallied[24] = {};
-    std::snprintf(Tallied, sizeof(Tallied), "%u layers", Layers);
-    Row("Stack", Tallied);
+        if (Present == 0u)
+        {
+            Surface->TextRun(Card.MinimumX, Inside, Tinted.Faint,
+                             "This folder's contents write no channels.", Scaled.RunSecondary);
+        }
 
-    std::snprintf(Tallied, sizeof(Tallied), "%u masks", Masks);
-    Row("Masks", Tallied);
+        // 📐 The label column and the tally column are fixed, so every bar starts
+        //    and ends on the same abscissa and the set reads as one chart.
+        const float LabelX = 108.0f;
+        const float TallyX = 74.0f;
+        bool Overlapped = false;
 
-    std::uint32_t Union = 0u;
-    for (std::uint32_t Channel = 0u; Channel < TextureChannelCeiling; ++Channel)
-    {
-        if (ChannelUnion[Channel])
-            ++Union;
+        for (std::uint32_t Channel = 0u; Channel < TextureChannelCeiling; ++Channel)
+        {
+            if (Contributors[Channel] == 0u)
+                continue;
+
+            const TextureChannelSlot& Slot = TextureChannelAt(Channel);
+            const bool Derived = Slot.Edit == TextureChannelEdit::Derived;
+
+            Surface->Medallion(Card.MinimumX + 4.0f, Inside + BarRowY * 0.5f, 3.5f,
+                               Covering(Slot.Hue));
+
+            Surface->TextRunTruncated(Card.MinimumX + 14.0f,
+                                      Inside + (BarRowY - Scaled.RunFiner) * 0.5f,
+                                      Card.MinimumX + LabelX, Tinted.Muted,
+                                      Slot.Label, Scaled.RunFiner, false);
+
+            const float TrackX = Card.MinimumX + LabelX;
+            const float TrackW = Card.Width() - LabelX - TallyX;
+
+            if (Derived)
+            {
+                // 📐 A derived channel has no storage, so it has no coverage to
+                //    state — saying 0% would be a lie about a channel that is
+                //    always present. It says what it is instead.
+                Surface->TextRun(TrackX, Inside + (BarRowY - Scaled.RunFiner) * 0.5f,
+                                 Tinted.Faint, "derived from height", Scaled.RunFiner);
+            }
+            else
+            {
+                const float BarY = 6.0f;
+                const PlaneExtent Track = Spanning(TrackX, Inside + (BarRowY - BarY) * 0.5f,
+                                                   TrackW, BarY);
+
+                Surface->Ground(Track, Tinted.Tile, BarY * 0.5f, CornerAll);
+
+                const float Taken = TrackW * Coverage[Channel];
+
+                if (Taken > 1.0f)
+                {
+                    Surface->Ground(Spanning(Track.MinimumX, Track.MinimumY, Taken, BarY),
+                                    Covering(Slot.Hue), BarY * 0.5f, CornerAll);
+                }
+
+                char Reading[16] = {};
+                std::snprintf(Reading, sizeof(Reading), "%u%%",
+                              static_cast<unsigned>(Coverage[Channel] * 100.0f + 0.5f));
+
+                Surface->TextRun(Card.MaximumX - TallyX + 4.0f,
+                                 Inside + (BarRowY - Scaled.RunFiner) * 0.5f,
+                                 Tinted.Primary, Reading, Scaled.RunFiner);
+            }
+
+            char Tally[16] = {};
+            std::snprintf(Tally, sizeof(Tally), "%u", static_cast<unsigned>(Contributors[Channel]));
+
+            const float TallySpan = Surface->MeasureRun(Tally, Scaled.RunFiner, 0.0f);
+
+            Surface->TextRun(Card.MaximumX - TallySpan - (Contributors[Channel] > 1u ? 12.0f : 0.0f),
+                             Inside + (BarRowY - Scaled.RunFiner) * 0.5f,
+                             Tinted.Muted, Tally, Scaled.RunFiner);
+
+            // 📐 More than one contributor means the layers overlap on this
+            //    channel, which is the thing worth knowing about a folder.
+            if (Contributors[Channel] > 1u)
+            {
+                Overlapped = true;
+                Surface->Stroke(SymbolSubject::LayerMerge,
+                                Spanning(Card.MaximumX - 10.0f, Inside + (BarRowY - 9.0f) * 0.5f,
+                                         9.0f, 9.0f),
+                                Tinted.Faint);
+            }
+
+            Inside += BarRowY;
+        }
+
+        if (Overlapped)
+        {
+            Surface->TextRun(Card.MinimumX, Inside + 3.0f, Tinted.Faint,
+                             "Stacked figures mark channels more than one layer writes.",
+                             Scaled.RunFiner);
+        }
+
+        Sweep += Scaled.ComponentY + Inner + Pad + Scaled.LayerRowGap;
     }
-    std::snprintf(Tallied, sizeof(Tallied), "%u / %u channels", Union, TextureChannelCeiling);
-    Row("Channel union", Tallied);
 
-    Row("Blend", TextureBlendNames[Applied.LayerBlendTaken[Applied.LayerTaken] % TextureBlendCount]);
-
-    std::snprintf(Tallied, sizeof(Tallied), "%u%%", Applied.LayerOpacity[Applied.LayerTaken]);
-    Row("Opacity", Tallied);
-
-    // 📐 The union chips.
-    const PlaneExtent Chips = Spanning(Extent.MinimumX + Pad, Sweep,
-                                       Extent.Width() - Pad * 2.0f, RowY * 1.6f);
-
-    Surface->TextRun(Chips.MinimumX + Scaled.PanePad, Chips.MinimumY,
-                     Tinted.Muted, "Channels", Scaled.RunSecondary);
-
-    float ChipX = Chips.MinimumX + 90.0f;
-
-    for (std::uint32_t Channel = 0u; Channel < TextureChannelCeiling && ChipX < Chips.MaximumX - 40.0f;
-         ++Channel)
+    // ③ CONTENTS — what is actually inside, with its channel presence.
     {
-        if (!ChannelUnion[Channel])
-            continue;
+        const float EntryY = 30.0f;
+        const float Inner = (Layers > 0u) ? float(Layers) * EntryY : Scaled.RunSecondary * 2.0f;
 
-        const char* Name = TextureChannelText(Channel);
-        const float ChipRun = Scaled.RunFiner;
-        const float ChipSpan = Surface->MeasureRun(Name, ChipRun, 0.0f) + 14.0f;
+        char Heading[40] = {};
+        std::snprintf(Heading, sizeof(Heading), "Contents \xC2\xB7 %u", static_cast<unsigned>(Layers));
 
-        Surface->Ground(Spanning(ChipX, Chips.MinimumY + 2.0f, ChipSpan, 17.0f),
-                        Covering(0x2A2A2Au), 9.0f, CornerAll);
+        const PlaneExtent Card = RecordSectionCard(Spanning(Body.MinimumX, Sweep, Body.Width(), 0.0f),
+                                                   Heading, Inner);
 
-        Surface->TextRun(ChipX + 7.0f, Chips.MinimumY + 4.0f,
-                         Covering(0xDCDCDCu), Name, ChipRun);
+        float Inside = Card.MinimumY;
 
-        ChipX += ChipSpan + 4.0f;
+        if (Layers == 0u)
+        {
+            Surface->TextRun(Card.MinimumX, Inside, Tinted.Faint, "This folder is empty.",
+                             Scaled.RunSecondary);
+        }
+
+        for (std::uint32_t Ordinal = 0u; Ordinal < RowCount; ++Ordinal)
+        {
+            if (Ordinal == Layer)
+                continue;
+
+            bool Inclusion = Rows[Ordinal].Enclosing == Layer;
+
+            if (!Inclusion)
+            {
+                std::uint32_t Walking = Rows[Ordinal].Enclosing;
+                while (Walking < RowCount)
+                {
+                    if (Walking == Layer) { Inclusion = true; break; }
+                    if (Rows[Walking].Depth <= Folder.Depth) break;
+                    Walking = Rows[Walking].Enclosing;
+                }
+            }
+
+            if (!Inclusion)
+                continue;
+
+            Surface->Ground(Spanning(Card.MinimumX, Inside, Card.Width(), EntryY - 3.0f),
+                            Tinted.Tile, 5.0f, CornerAll);
+
+            Surface->Ground(Spanning(Card.MinimumX, Inside + 4.0f, 3.0f, EntryY - 11.0f),
+                            Covering(Rows[Ordinal].TagHue), 1.5f, CornerAll);
+
+            Surface->TextRunTruncated(Card.MinimumX + 12.0f, Inside + 4.0f,
+                                      Card.MinimumX + 150.0f, Tinted.Primary,
+                                      Rows[Ordinal].Naming, Scaled.RunFiner, false);
+
+            char Detail[48] = {};
+            std::snprintf(Detail, sizeof(Detail), "%s \xC2\xB7 %u%%",
+                          TextureBlendNames[Applied.LayerBlendTaken[Ordinal] % TextureBlendCount],
+                          static_cast<unsigned>(Applied.LayerOpacity[Ordinal]));
+
+            Surface->TextRun(Card.MinimumX + 12.0f, Inside + 4.0f + Scaled.RunFiner * 1.35f,
+                             Tinted.Faint, Detail, Scaled.RunFiner);
+
+            // 📐 One dot per channel: filled where this row writes it. Reading the
+            //    column down tells the artist which layers stack on what.
+            float DotX = Card.MaximumX - 8.0f;
+
+            for (std::uint32_t Channel = TextureChannelCeiling; Channel-- > 0u; )
+            {
+                if (Contributors[Channel] == 0u)
+                    continue;
+
+                const bool Writes = Applied.ChannelOn[Ordinal][Channel];
+
+                Surface->Medallion(DotX, Inside + (EntryY - 3.0f) * 0.5f, 3.0f,
+                                   Writes ? Covering(TextureChannelAt(Channel).Hue)
+                                          : Tinted.HairlineFirm);
+
+                DotX -= 9.0f;
+            }
+
+            Inside += EntryY;
+        }
+
+        Sweep += Scaled.ComponentY + Inner + Pad + Scaled.LayerRowGap;
     }
+
+    // ④ FOLDER — the folder's own composite, which is what it contributes upward.
+    {
+        const float Inner = RowY * 3.0f + Pad * 0.5f;
+        const PlaneExtent Card = RecordSectionCard(Spanning(Body.MinimumX, Sweep, Body.Width(), 0.0f),
+                                                   "Folder", Inner);
+
+        float Inside = Card.MinimumY;
+
+        SelectionDeclaration Blending;
+        Blending.Caption     = "Blend";
+        Blending.Options     = TextureBlendNames;
+        Blending.OptionCount = TextureBlendCount;
+
+        std::uint32_t Taken = Applied.LayerBlendTaken[Layer] % TextureBlendCount;
+
+        if (SharedControls.SelectionField(FolderRows[0],
+                                          Spanning(Card.MinimumX, Inside, Card.Width(), RowY),
+                                          Blending, Taken).ReadingAltered)
+        {
+            Applied.LayerBlendTaken[Layer] = Taken;
+        }
+
+        Inside += RowY;
+
+        MagnitudeDeclaration Opacity;
+        Opacity.Caption   = "Opacity";
+        Opacity.UnitGlyph = "%";
+        Opacity.Minimum   = 0.0;
+        Opacity.Maximum   = 100.0;
+
+        double Reading = static_cast<double>(Applied.LayerOpacity[Layer]);
+
+        if (SharedControls.MagnitudeRow(FolderRows[1],
+                                        Spanning(Card.MinimumX, Inside, Card.Width(), RowY),
+                                        Opacity, Reading, false).ReadingAltered)
+        {
+            Applied.LayerOpacity[Layer] = static_cast<std::uint32_t>(Reading + 0.5);
+        }
+
+        Inside += RowY;
+
+        SwitchDeclaration Isolate;
+        Isolate.Caption = "Isolate";
+
+        bool Alone = Applied.FolderIsolate[Layer];
+
+        if (Controls.SwitchToggle(FolderRows[2],
+                                  Spanning(Card.MinimumX, Inside, Card.Width(), RowY - Pad * 0.5f),
+                                  Isolate, Alone).ReadingAltered)
+        {
+            Applied.FolderIsolate[Layer] = Alone;
+        }
+
+        Sweep += Scaled.ComponentY + Inner + Pad;
+    }
+
+    // 📐 The mask tally is stated where it belongs — beside the contents, not as
+    //    a row of its own.
+    if (Masks > 0u)
+    {
+        char Note[48] = {};
+        std::snprintf(Note, sizeof(Note), "%u of %u layers carry a mask.",
+                      static_cast<unsigned>(Masks), static_cast<unsigned>(Layers));
+
+        Surface->TextRun(Body.MinimumX, Sweep + 2.0f, Tinted.Faint, Note, Scaled.RunFiner);
+    }
+
+    Surface->Release();
 }
 
 } // namespace Slate

@@ -159,6 +159,34 @@ struct TexturePaintContext
     std::uint32_t              MaskDensity[TextureLayerCeiling]    = {};
     bool                       MaskInverted[TextureLayerCeiling]   = {};
     std::uint32_t              MaskSourceTaken[TextureLayerCeiling] = {};
+
+    // 📝 The rest of the reference's mask record (TPPanel.html `mask:`): the blend
+    //    the mask composites with, which channels it applies to, its generator
+    //    and that generator's knobs. None of this was held, so the mask card had
+    //    nothing to draw beyond four rows.
+    std::uint32_t              MaskBlendTaken[TextureLayerCeiling] = {};
+    bool                       MaskChannel[TextureLayerCeiling][TextureChannelCeiling] = {};
+    std::uint32_t              MaskGenerator[TextureLayerCeiling]  = {};
+    double                     MaskGeneratorParam[TextureLayerCeiling][TextureGeneratorParamMax] = {};
+    bool                       MaskFoldConfig  = false;   // [-] - the three mask sections
+    bool                       MaskFoldSource  = false;
+    bool                       MaskFoldTargets = false;
+
+    // 📝 The decal record. A decal had NO state at all and no card; it fell
+    //    through to the channels page.
+    double                     DecalPosition[TextureLayerCeiling][2] = {};
+    double                     DecalScale[TextureLayerCeiling][2]    = {};
+    double                     DecalRotation[TextureLayerCeiling]    = {};
+    double                     DecalFadeAngle[TextureLayerCeiling]   = {};
+    double                     DecalDepthRange[TextureLayerCeiling]  = {};
+    bool                       DecalBackfaceCull[TextureLayerCeiling] = {};
+    bool                       DecalUniformScale[TextureLayerCeiling] = {};
+    std::uint32_t              DecalProjection[TextureLayerCeiling]  = {};   // [-] - Planar/Box/Normal
+    bool                       DecalSeeded = false;
+
+    // 📝 The folder's own switch. The coverage view is computed from the rows
+    //    every tick, so it is never stored.
+    bool                       FolderIsolate[TextureLayerCeiling]  = {};
     std::uint32_t              SettingAmount[TextureLayerCeiling][4] = {};
     std::uint32_t              SettingToggle[TextureLayerCeiling]  = {};
     std::uint32_t              SettingChoice[TextureLayerCeiling]  = {};
@@ -185,7 +213,10 @@ public:
         + (FacetPanel::FacetCapacity + 2u) * 2u   // [-] - the two filter cards
         + TextureChannelCeiling * 8u        // [-] - fold, dot, source, amount, generator,
                                             //       its reset and remove, and three parameters
-        + 8u                                // [-] - the mask card's rows and the settings card's rows
+        + 9u + TextureGeneratorParamMax     // [-] - the mask card's rows and its generator knobs
+        + 8u                                // [-] - the decal card's projection and transform
+        + 3u                                // [-] - the folder card's blend, opacity and isolate
+        + 4u                                // [-] - the settings card's rows
         + 44u;                              // [-] - the four menu anchors plus menu items: add 7,
                                             //       layer 7, swatches 10, mask 3, blend 13
 
@@ -282,6 +313,13 @@ private:
                             std::uint32_t Channel);
     float RecordGeneratorBody(const PlaneExtent& Extent, TexturePaintContext& Applied,
                               std::uint32_t Channel);
+    /// 🧩 One titled section of a properties page; answers the body extent to fill.
+    PlaneExtent RecordSectionCard(const PlaneExtent& Extent, const char* Titled, float BodyHeight);
+
+    /// 🧩 The decal's transform and projection. Did not exist; a decal fell to the channels page.
+    void RecordDecalCard(const PlaneExtent& Extent, TexturePaintContext& Applied,
+                         const TextureLayerRow& Current);
+
     /// 🧩 The reference's `.chan-prev` — the resolved tile, the mode, and the atlas lane.
     float RecordChannelPreview(const PlaneExtent& Extent, const TexturePaintContext& Applied,
                                std::uint32_t Channel);
@@ -331,6 +369,7 @@ private:
     ComponentSpecification      SharedControls = {};     // [-] - magnitude rows, toggles, selection
     FacetPanel                  StackFacets = {};        // [-] - the stack page's filter card
     FacetPanel                  ChannelFacets = {};      // [-] - the properties page's channel filter
+    FacetPanel                  MaskFacets    = {};      // [-] - the mask's target channels
 
     PointerCondition            Sampled = {};            // [-] - this tick's contact
 
@@ -369,7 +408,10 @@ private:
     ControlIdentity ChannelGenReset[TextureChannelCeiling]   = {};
     ControlIdentity ChannelGenDrop[TextureChannelCeiling]    = {};
     ControlIdentity ChannelParams[TextureChannelCeiling][TextureGeneratorParamMax] = {};
-    ControlIdentity MaskRows[4]                          = {};
+    ControlIdentity MaskRows[9]                          = {};
+    ControlIdentity MaskParams[TextureGeneratorParamMax] = {};
+    ControlIdentity DecalRows[8]                         = {};
+    ControlIdentity FolderRows[3]                        = {};
     ControlIdentity SettingRows[4]                       = {};
 
     ControlIdentity MenuAdd    = {};
