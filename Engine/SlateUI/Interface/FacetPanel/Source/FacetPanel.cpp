@@ -27,13 +27,19 @@ constexpr float ChipRemoveGap    = 6.0f;    // [px] - caption to remove action
 constexpr float ChipPadTrailing  = 5.0f;    // [px] - remove action trailing inset
 constexpr float DropdownGap      = 10.0f;   // [px] - chips to dropdown
 constexpr float CardTrailingPad  = 10.0f;   // [px] - dropdown to card edge
-constexpr float DropdownPillX    = 132.0f;  // [px] - the left-stuck Add-filter pill's width
+// 🔴 132 px left only 132 - 60 (chevron) - 28 (padding) = 44 px for the caption,
+//    so "Choose filter..." rendered as "Choos". The pill is sized from its own
+//    longest caption now, so the text it exists to show always fits.
+constexpr float DropdownPillPad  = 24.0f;   // [px] - caption breathing room inside the pill
 // 🔴 The badge was 24 x 18 with r=9 — a rounded oblong, not a circle — placed at
 //    `caption width + 10`, so it sat against the title rather than the trailing
 //    edge. One diameter now drives width, height and radius together.
 constexpr float CountDiameter = 20.0f;   // [px] - active count badge, w == h
 constexpr float CountGap      =  8.0f;   // [px] - badge to the clear-all action
-constexpr float ClearX        = 48.0f;   // [px] - clear-all action
+// 🔴 ClearX was a fixed 48 px, but "Clear all" measures 67 px at the shipped
+//    LabelText, so the run overflowed its own extent and collided with the
+//    badge. The extent is measured from the run now.
+constexpr float ClearPad      =  8.0f;   // [px] - breathing room around the clear-all run
 
 float Scaled(float Figure, const ThemeProfile& Appearance)
 {
@@ -150,7 +156,12 @@ FacetPanel::Arrangement FacetPanel::Arrange(float X,
     //    full-width field, which read as a squashed bar across the card (the reported layout).
     //    🔴 The pill is clamped to the card's interior: a narrow leaf must shrink the pill, never
     //    let it overhang the card's rounded edge (the overflow read as a squashed control).
-    const float DropdownWidth = (DropdownPillX * Scale < InteriorX) ? DropdownPillX * Scale : InteriorX;
+    const float CaptionRun = Surface->MeasureRun("Choose filter...",
+                                                 Appearance->ControlMeasure.RowText, 0.0f);
+    const float PillWanted = CaptionRun + Appearance->ControlMeasure.ChevronCellX
+                           + Appearance->ControlMeasure.FieldPadX * 2.0f
+                           + DropdownPillPad * Scale;
+    const float DropdownWidth = (PillWanted < InteriorX) ? PillWanted : InteriorX;
     Arranged.Dropdown = Spanning(X + Pad, DropdownTop,
                                  DropdownWidth, DropdownHeight);
     Arranged.TotalY = Pad + HeaderRowY + HeaderToChips + ChipsHeight + DropdownGap * Scale +
@@ -255,10 +266,13 @@ Outcome<bool> FacetPanel::Record(const PlaneExtent& Extent,
     // ② The badge owns the trailing edge, so the clear-all action is pushed
     //    inboard by the badge's diameter plus one gap; both were pinned to
     //    MaximumX before and overlapped.
+    const float ClearRun = Surface->MeasureRun("Clear all",
+                                               Appearance->ControlMeasure.LabelText, 0.0f)
+                         + ClearPad * Scale;
     const PlaneExtent Clear = Spanning(Arranged.Header.MaximumX - Diameter - CountGap * Scale
-                                           - ClearX * Scale,
+                                           - ClearRun,
                                        Arranged.Header.MinimumY,
-                                       ClearX * Scale,
+                                       ClearRun,
                                        Arranged.Header.Height());
     if (ActiveCount > ((Declared.LockedOrdinal < Count && Enabled != nullptr &&
                         Enabled[Declared.LockedOrdinal]) ? 1u : 0u))
