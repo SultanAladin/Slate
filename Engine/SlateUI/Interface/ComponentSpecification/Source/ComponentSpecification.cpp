@@ -115,6 +115,74 @@ void IntegralRun(char* Staging, std::uint32_t StagingExtent, long long Reading)
     Staging[Written] = '\0';
 }
 
+/// 🧩 Writes a reading to a fixed number of fraction digits, without allocating.
+/// note  🔴 `IntegralRun` alone cannot state a reading on a 0…1 span: it takes a
+///       `long long`, so every such reading collapsed to 0 or 1 while the thumb
+///       travelled the whole track. This states the whole part through the same
+///       routine and then the fraction digit by digit, so the two runs can never
+///       disagree about a sign or a carry.
+/// in    Staging   [-]  receives the run; at least twenty-four characters
+/// in    Decimals  [-]  fraction digits; zero defers wholly to `IntegralRun`
+/// cost  ✔️
+void DecimalRun(char* Staging, std::uint32_t StagingExtent, double Reading, std::uint32_t Decimals)
+{
+    if (Staging == nullptr || StagingExtent < 2u)
+        return;
+
+    if (Decimals == 0u)
+    {
+        IntegralRun(Staging, StagingExtent,
+                    static_cast<long long>(Reading + (Reading < 0.0 ? -0.5 : 0.5)));
+        return;
+    }
+
+    if (Decimals > 6u)
+        Decimals = 6u;
+
+    // 📐 Round ONCE, at the printed precision, before the run is split. Rounding
+    //    the whole part and the fraction separately lets 0.999 print as "0.100".
+    double Scale = 1.0;
+    for (std::uint32_t Each = 0u; Each < Decimals; ++Each)
+        Scale *= 10.0;
+
+    const bool Negative = Reading < 0.0;
+    double Magnitude = Negative ? -Reading : Reading;
+
+    const long long Ticks = static_cast<long long>(Magnitude * Scale + 0.5);
+    const long long Whole = Ticks / static_cast<long long>(Scale);
+    long long       Fraction = Ticks - Whole * static_cast<long long>(Scale);
+
+    std::uint32_t Written = 0u;
+
+    if (Negative && Ticks != 0 && Written + 1u < StagingExtent)
+        Staging[Written++] = '-';
+
+    char WholeRun[24] = {};
+    IntegralRun(WholeRun, 24u, Whole);
+
+    for (std::uint32_t Each = 0u; WholeRun[Each] != '\0' && Written + 1u < StagingExtent; ++Each)
+        Staging[Written++] = WholeRun[Each];
+
+    if (Written + 1u < StagingExtent)
+        Staging[Written++] = '.';
+
+    // 📐 The fraction is written most-significant digit first, so a leading zero
+    //    survives: 0.05 must print "05" and not "5".
+    for (std::uint32_t Each = 0u; Each < Decimals && Written + 1u < StagingExtent; ++Each)
+    {
+        Scale /= 10.0;
+        const long long Divisor = static_cast<long long>(Scale);
+        const long long Digit   = (Divisor > 0) ? (Fraction / Divisor) : 0;
+
+        Staging[Written++] = static_cast<char>('0' + Digit);
+
+        if (Divisor > 0)
+            Fraction -= Digit * Divisor;
+    }
+
+    Staging[Written] = '\0';
+}
+
 }   // namespace
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -532,7 +600,7 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Target, cons
     Surface->Edge(Readout, Colour.CardEdge, Measure.CardEdgeWeight, PillRadius, CornerAll);
 
     char Reading[24] = {};
-    IntegralRun(Reading, 24u, static_cast<long long>(Coordinate + (Coordinate < 0.0 ? -0.5 : 0.5)));
+    DecimalRun(Reading, 24u, Coordinate, Declared.Decimals);
 
     const float ValueX = Readout.MinimumX;
     const float ValueSpan  = UnitCell.MinimumX - Readout.MinimumX;

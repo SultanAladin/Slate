@@ -112,18 +112,61 @@ const ThemeToken StackFacetColours[TexturePaintContext::TextureFacetCount] =
     Covering(0x8A8A8Au)    // [-] - Folder
 };
 
-// 📐 The properties page's channel-group facets.
-const char* const ChannelFacetOptions[TexturePaintContext::TextureChannelFacetCount] =
+// 📐 One tone travelling toward another, for a hover that grows rather than
+//    switching. Spelled here because the identical helper in ControlPanel.cpp
+//    lives in that translation unit's own anonymous namespace.
+constexpr std::uint8_t BlendChannel(std::uint8_t Previous, std::uint8_t Incoming, float Fraction)
 {
-    "Base", "Maps", "Output"
-};
+    return static_cast<std::uint8_t>(static_cast<float>(Previous) +
+                                     (static_cast<float>(Incoming) -
+                                      static_cast<float>(Previous)) * Fraction + 0.5f);
+}
 
-const ThemeToken ChannelFacetColours[TexturePaintContext::TextureChannelFacetCount] =
+constexpr ThemeToken Blend(ThemeToken Previous, ThemeToken Incoming, float Fraction)
 {
-    Covering(0xE2E8F0u),   // [-] - Base
-    Covering(0x22D3EEu),   // [-] - Maps
-    Covering(0xF472B6u)    // [-] - Output
-};
+    const float Held = (Fraction < 0.0f) ? 0.0f : (Fraction > 1.0f) ? 1.0f : Fraction;
+
+    return ThemeToken{ BlendChannel(Previous.Red,     Incoming.Red,     Held),
+                       BlendChannel(Previous.Green,   Incoming.Green,   Held),
+                       BlendChannel(Previous.Blue,    Incoming.Blue,    Held),
+                       BlendChannel(Previous.Opacity, Incoming.Opacity, Held) };
+}
+
+// 📐 The chips region's facets: ONE PER CHANNEL, captioned and coloured from the
+//    channel schema rather than from a hand-written list beside it. A chip's
+//    swatch is the channel's own hue, which is what makes the chip legible as
+//    that channel and not merely as a word.
+const char* const* ChannelFacetOptions()
+{
+    static const char* Captions[TextureChannelCeiling] = {};
+    static bool Filled = false;
+
+    if (!Filled)
+    {
+        for (std::uint32_t Each = 0u; Each < TextureChannelCeiling; ++Each)
+            Captions[Each] = TextureChannelAt(Each).Label;
+
+        Filled = true;
+    }
+
+    return Captions;
+}
+
+const ThemeToken* ChannelFacetColours()
+{
+    static ThemeToken Hues[TextureChannelCeiling] = {};
+    static bool Filled = false;
+
+    if (!Filled)
+    {
+        for (std::uint32_t Each = 0u; Each < TextureChannelCeiling; ++Each)
+            Hues[Each] = Covering(TextureChannelAt(Each).Hue);
+
+        Filled = true;
+    }
+
+    return Hues;
+}
 
 /// 🧩 Whether the search and the layer facets jointly retain one row.
 bool RowRetained(const TexturePaintContext& Applied, const TextureLayerRow& Row)
@@ -161,18 +204,16 @@ bool RetentionActive(const TexturePaintContext& Applied)
 }
 
 /// 🧩 Whether the channel search or any channel facet is active at all.
+// 🔴 This asked whether ANY facet stood and, if so, hid every channel outside it.
+//    With the chips now being the enabled set, that reading would hide every
+//    channel the layer has switched OFF — the artist could never switch one back
+//    on, because the card holding its switch would have vanished. The chips
+//    region and the search do different work now and are asked separately: the
+//    chips say which channels the layer HAS, the search narrows which of them the
+//    card lists.
 bool ChannelRetentionActive(const TexturePaintContext& Applied)
 {
-    if (Applied.Retention[0] != '\0')
-        return true;
-
-    for (std::uint32_t Facet = 0u; Facet < TexturePaintContext::TextureChannelFacetCount; ++Facet)
-    {
-        if (Applied.ChannelFacet[Facet])
-            return true;
-    }
-
-    return false;
+    return Applied.Retention[0] != '\0';
 }
 
 /// 🧩 Whether one row belongs to the solo's set: the solo row, its ancestors and its descendants.
@@ -859,7 +900,7 @@ Outcome<bool> TexturePaintPanel::Construct(InteractionIndex& Interaction,
         {
             &ChannelFolds[Ordinal], &ChannelDots[Ordinal],
             &ChannelBlends[Ordinal], &ChannelOps[Ordinal],
-            &ChannelGenerators[Ordinal],
+            &ChannelGenerators[Ordinal], &ChannelGenReset[Ordinal], &ChannelGenDrop[Ordinal],
             &ChannelParams[Ordinal][0], &ChannelParams[Ordinal][1], &ChannelParams[Ordinal][2]
         };
 
@@ -2801,19 +2842,28 @@ void TexturePaintPanel::RecordChannelCard(const PlaneExtent& Extent, TexturePain
 
     RecordSearchPill(Search, Applied);
 
+    // 🔴 The chips region is the reference's channel set, not a view filter. Its
+    //    enabled array IS `ChannelOn` for the taken layer, so a chip's cross
+    //    disables that channel and the add-menu re-admits it — the behaviour the
+    //    filter card already implements and this card was not spending.
+    //    📐 `baseColour` is the locked ordinal: the reference marks it `.locked`
+    //    and refuses to remove it, because a layer with no base colour has
+    //    nothing to composite.
     const FacetDeclaration ChannelFacetCard =
     {
-        "Channels", ChannelFacetOptions, ChannelFacetColours,
-        TexturePaintContext::TextureChannelFacetCount, 0xFFFFFFFFu
+        "Channels", ChannelFacetOptions(), ChannelFacetColours(),
+        TextureChannelCeiling, 0u
     };
 
+    bool* const Enabled = Applied.ChannelOn[Applied.LayerTaken];
+
     const float FacetY = ChannelFacets.MeasureHeight(Extent.Width() - Pad * 2.0f, ChannelFacetCard,
-                                                     Applied.ChannelFacet);
+                                                     Enabled);
 
     const PlaneExtent FacetCard = Spanning(Extent.MinimumX + Pad, Search.MaximumY + Pad,
                                            Extent.Width() - Pad * 2.0f, FacetY);
 
-    Discard(ChannelFacets.Record(FacetCard, ChannelFacetCard, Applied.ChannelFacet));
+    Discard(ChannelFacets.Record(FacetCard, ChannelFacetCard, Enabled));
 
     const float BodyTop = FacetCard.MaximumY + Pad;
 
@@ -2834,24 +2884,18 @@ void TexturePaintPanel::RecordChannelCard(const PlaneExtent& Extent, TexturePain
     {
         const char* Name = TextureChannelText(Channel);
 
-        if (Filtering)
-        {
-            const bool InSearch = Applied.Retention[0] == '\0' ||
-                                  RunHolds(Name, Applied.Retention);
+        // 🔴 The card listed all fourteen channels whatever the layer had
+        //    enabled, so the chips region above it and the card list below it
+        //    disagreed on every tick — nine chips over fourteen cards. The
+        //    reference lists exactly the enabled set:
+        //        CHANNEL_ORDER.filter(Key => Layer.Enabled.includes(Key))
+        //    A channel is admitted through the add-menu and removed through its
+        //    chip, which is the whole point of the chips region being here.
+        if (!Enabled[Channel])
+            continue;
 
-            bool InFacet = true;
-            for (std::uint32_t Facet = 0u; Facet < TexturePaintContext::TextureChannelFacetCount; ++Facet)
-            {
-                if (Applied.ChannelFacet[Facet])
-                {
-                    InFacet = Applied.ChannelFacet[TextureChannelGroup(Channel)];
-                    break;
-                }
-            }
-
-            if (!InSearch || !InFacet)
-                continue;
-        }
+        if (Filtering && !RunHolds(Name, Applied.Retention))
+            continue;
 
         const float RowY = Scaled.LayerHeadHeight * 0.82f;
 
@@ -2895,13 +2939,14 @@ void TexturePaintPanel::RecordChannelCard(const PlaneExtent& Extent, TexturePain
 void TexturePaintPanel::RecordChannelRow(const PlaneExtent& Row, TexturePaintContext& Applied,
                                          std::uint32_t Channel)
 {
-    // 🔴 This row hand-rolled every control it needed: a Medallion for the
-    //    on/off, a two-Ground mini-bar for the amount, and a click that CYCLED
-    //    the blend because there was no menu. None of it matched the reusable
-    //    set, so the same three controls looked and behaved differently here
-    //    than in every other card. It now spends SwitchTrack, MagnitudeRow and
-    //    SelectionField, and the row reads the channel's own schema rather than
-    //    assuming every channel is a 0..100 scalar.
+    // 🧩 `.chan-head`: chevron, the classification dot, the title, and the folded
+    //    summary — the mode the channel is authored in. That is the whole head.
+    // 🔴 It used to carry a trailing switch AND the atlas placement run. Both were
+    //    wrong here. The switch was a second way to say what the chip's cross
+    //    already says, and since the card list is now the enabled set, throwing
+    //    the switch removed the very card holding it — a control that deletes
+    //    itself on use. The placement belongs to the preview's second line, which
+    //    is where the reference states it (`prev-line2 = ATLAS_COMPONENT[Key]`).
     const std::uint32_t Layer = Applied.LayerTaken;
     const TextureChannelSlot& Slot = TextureChannelAt(Channel);
 
@@ -2924,46 +2969,121 @@ void TexturePaintPanel::RecordChannelRow(const PlaneExtent& Row, TexturePaintCon
     Surface->Stroke(Folded ? SymbolSubject::ChevronRight : SymbolSubject::ChevronDown,
                     Fold, Tinted.Faint);
 
-    // 📐 The swatch is the channel's own hue, as the reference's `.ch-dot` is.
-    const float Swatch = 9.0f;
-    Surface->Medallion(Fold.MaximumX + Scaled.PanePad + Swatch * 0.5f,
+    // 📐 `.ch-dot`: the classification dot shrinks and dims while folded —
+    //    `transform:scale(.72);opacity:.5`. It rides the same fold fraction the
+    //    body does, so head and body settle together rather than one snapping.
+    const float Opened = Ledger->TakenFraction(ChannelFolds[Channel]);
+    const float Swatch = 9.0f * (0.72f + 0.28f * Opened);
+
+    Surface->Medallion(Fold.MaximumX + Scaled.PanePad + 4.5f,
                        Row.MinimumY + Row.Height() * 0.5f, Swatch * 0.5f,
-                       Faded(Covering(Slot.Hue), On ? 1.0f : 0.35f));
+                       Faded(Covering(Slot.Hue), On ? (0.5f + 0.5f * Opened) : 0.35f));
 
-    const float NameRun = Scaled.RunPrimary;
+    const float NameRun = Scaled.RunSecondary;
 
-    Surface->TextRun(Fold.MaximumX + Scaled.PanePad * 2.0f + Swatch,
-                     Row.MinimumY + (Row.Height() - NameRun) * 0.5f,
-                     On ? Tinted.Primary : Tinted.Muted, Slot.Label, NameRun);
+    // 📐 `.ch-src`: the mode is the FOLDED SUMMARY — it is what the head says in
+    //    place of the body while shut, so a shut card still states how the
+    //    channel is authored. A derived channel says so and has no mode.
+    const char* const Modes[3] = { "Value", "Texture", "Generator" };
+    const char* Summary = (Slot.Edit == TextureChannelEdit::Derived)
+                        ? "Derived" : Modes[Applied.ChannelMode[Layer][Channel] % 3u];
 
-    // ② The trailing switch — the shared pill, not a bare medallion.
-    const float SwitchY = 14.0f;
-    const float SwitchX = SwitchY * (50.0f / 32.0f);
-    const PlaneExtent Switch = Spanning(Row.MaximumX - SwitchX,
-                                        Row.MinimumY + (Row.Height() - SwitchY) * 0.5f,
-                                        SwitchX, SwitchY);
+    const float SumRun  = Scaled.RunFiner;
+    const float SumSpan = Surface->MeasureRun(Summary, SumRun, 0.06f);
 
-    const bool OnSwitch = Switch.Encloses(Sampled.PositionX, Sampled.PositionY);
+    // 📐 `.chan-panel:not(.collapsed) .ch-src{opacity:.45;transform:translateX(3px)}`
+    //    — the tag fades and slides as the card opens, because an open card's
+    //    body already states the mode.
+    Surface->TextRunCapitalised(Row.MaximumX - SumSpan + 3.0f * Opened,
+                                Row.MinimumY + (Row.Height() - SumRun) * 0.5f,
+                                Faded(Tinted.Faint, 1.0f - 0.55f * Opened),
+                                Summary, SumRun, 0.06f, false);
 
-    if (Sampled.ContactPressed && OnSwitch && !Ledger->AnyDisclosed())
-        Ledger->Grab(ChannelDots[Channel], ControlPart::Body);
+    // 📐 The title is truncated against the summary tag rather than drawn over it.
+    Surface->TextRunTruncated(Fold.MaximumX + Scaled.PanePad * 2.0f + 9.0f,
+                              Row.MinimumY + (Row.Height() - NameRun) * 0.5f,
+                              Row.MaximumX - SumSpan - Scaled.PanePad,
+                              On ? Tinted.Primary : Tinted.Muted, Slot.Label, NameRun, false);
+}
 
-    if (OnSwitch && Ledger->Released(ChannelDots[Channel]))
-        Applied.ChannelOn[Layer][Channel] = !On;
+// 🧩 `.chan-prev`: the tile, the mode line, and the atlas lane the deposit lands
+//    in. This is what tells the artist what the channel will actually write, and
+//    the port carried none of it.
+float TexturePaintPanel::RecordChannelPreview(const PlaneExtent& Extent,
+                                              const TexturePaintContext& Applied,
+                                              std::uint32_t Channel)
+{
+    const std::uint32_t Layer = Applied.LayerTaken;
+    const TextureChannelSlot& Slot = TextureChannelAt(Channel);
 
-    Ledger->DeclareHovered(ChannelDots[Channel], OnSwitch, HoverOver);
+    const float Tile = 34.0f;
+    const float Y    = Tile + Scaled.PanePad * 0.5f;
 
-    Controls.SwitchTrack(ChannelDots[Channel], Switch, On,
-                         Covering(Slot.Hue), Tinted.Hairline, Covering(0xFFFFFFu));
+    const PlaneExtent Face = Spanning(Extent.MinimumX, Extent.MinimumY + Scaled.PanePad * 0.5f,
+                                      Tile, Tile);
 
-    // 📐 The placement run states which atlas lane the channel occupies, which is
-    //    what the reference puts under the title.
-    const float PlaceRun = Scaled.RunFiner;
-    const float PlaceSpan = Surface->MeasureRun(Slot.Placement, PlaceRun, 0.0f);
+    const bool Derived = Slot.Edit == TextureChannelEdit::Derived;
+    const std::uint32_t Mode = Derived ? 3u : (Applied.ChannelMode[Layer][Channel] % 3u);
 
-    Surface->TextRun(Switch.MinimumX - Scaled.PanePad - PlaceSpan,
-                     Row.MinimumY + (Row.Height() - PlaceRun) * 0.5f,
-                     Tinted.Faint, Slot.Placement, PlaceRun);
+    // 📐 A Value tile shows the value: the colour itself for a colour channel, or
+    //    the grey the scalar resolves to. Texture and Generator have nothing
+    //    resolved yet, so they keep the reference's chequer ground.
+    if (Mode == 0u && Slot.Edit == TextureChannelEdit::Colour)
+    {
+        Surface->Ground(Face, Covering(Slot.Hue), 7.0f, CornerAll);
+    }
+    else if (Mode == 0u)
+    {
+        // 📐 Normalised against the CHANNEL'S OWN span — refraction index starts
+        //    at 1 and the angle runs to 360, so a raw reading would clip both.
+        const double Span = Slot.Maximum - Slot.Minimum;
+        double Fraction = (Span > 0.0)
+                        ? (Applied.ChannelReading[Layer][Channel] - Slot.Minimum) / Span : 0.0;
+
+        Fraction = (Fraction < 0.0) ? 0.0 : (Fraction > 1.0) ? 1.0 : Fraction;
+
+        const std::uint32_t Level = static_cast<std::uint32_t>(Fraction * 255.0 + 0.5);
+
+        Surface->Ground(Face, Covering((Level << 16) | (Level << 8) | Level), 7.0f, CornerAll);
+    }
+    else
+    {
+        // 📐 The reference's 8 px chequer, which reads as "no resolved sample".
+        Surface->Ground(Face, Covering(0x0A0A0Au), 7.0f, CornerAll);
+
+        for (int Down = 0; Down < 4; ++Down)
+        {
+            for (int Along = 0; Along < 4; ++Along)
+            {
+                if (((Down + Along) & 1) != 0)
+                    continue;
+
+                Surface->Ground(Spanning(Face.MinimumX + 1.0f + static_cast<float>(Along) * 8.0f,
+                                         Face.MinimumY + 1.0f + static_cast<float>(Down) * 8.0f,
+                                         8.0f, 8.0f), Covering(0x1A1A1Au), 0.0f, CornerNone);
+            }
+        }
+    }
+
+    Surface->Edge(Face, Tinted.Hairline, 1.0f, 7.0f, CornerAll);
+
+    char Line[48] = {};
+    std::snprintf(Line, sizeof(Line), "%s preview",
+                  Derived ? "Central differences"
+                          : (Mode == 1u ? "Texture" : Mode == 2u ? "Generator" : "Value"));
+
+    const float FirstRun  = Scaled.RunSmall;
+    const float SecondRun = Scaled.RunFiner;
+    const float Pair      = FirstRun * 1.4f + SecondRun * 1.4f;
+    const float PairTop   = Face.MinimumY + (Tile - Pair) * 0.5f;
+    const float RunLead   = Face.MaximumX + Scaled.PanePad;
+
+    Surface->TextRunTruncated(RunLead, PairTop, Extent.MaximumX, Tinted.Muted,
+                              Line, FirstRun, false);
+    Surface->TextRunTruncated(RunLead, PairTop + FirstRun * 1.4f, Extent.MaximumX,
+                              Tinted.Faint, Slot.Placement, SecondRun, false);
+
+    return Y + Scaled.PanePad * 0.5f;
 }
 
 // 🧩 How tall an unfolded channel card stands, so the fold has a figure to
@@ -2978,10 +3098,17 @@ float TexturePaintPanel::ChannelBodyHeight(const TexturePaintContext& Applied,
     const TextureChannelSlot& Slot = TextureChannelAt(Channel);
     const float RowY = Appearance->ControlMeasure.FieldHeight + Scaled.PanePad * 0.5f;
 
-    if (Slot.Edit == TextureChannelEdit::Derived)
-        return RowY + Scaled.PanePad;
+    // 📐 The preview closes every body, so its 34 px tile and its two runs are
+    //    part of every measurement.
+    // 🔴 The measure and the record had drifted: the record now draws a preview
+    //    the measure never allowed for, and a body measured short is CLIPPED by
+    //    the confine rather than overflowing visibly — the failure is silent.
+    const float PreviewY = 34.0f + Scaled.PanePad;
 
-    float Height = RowY;   // the source segment
+    if (Slot.Edit == TextureChannelEdit::Derived)
+        return Scaled.RunFine * 1.6f + Scaled.PanePad + PreviewY + Scaled.PanePad;
+
+    float Height = RowY + PreviewY;   // the source segment and the preview
 
     switch (Applied.ChannelMode[Layer][Channel] % 3u)
     {
@@ -2999,7 +3126,8 @@ float TexturePaintPanel::ChannelBodyHeight(const TexturePaintContext& Applied,
             const std::uint32_t Standing = Applied.ChannelGenerator[Layer][Channel];
             if (Standing != TexturePaintContext::AbsentGenerator)
             {
-                Height += Scaled.RunFiner * 1.7f;
+                // the hairline, the note-and-actions header, then one row a knob
+                Height += 1.0f + Scaled.PanePad + 20.0f;
                 Height += RowY * static_cast<float>(TextureGeneratorAt(Standing).ParamCount);
             }
             break;
@@ -3010,6 +3138,39 @@ float TexturePaintPanel::ChannelBodyHeight(const TexturePaintContext& Applied,
     }
 
     return Height + Scaled.PanePad;
+}
+
+// 🧩 The reference's `.iconbtn`: a small bordered square holding one figure,
+//    hovering to a lifted tile and, when it is destructive, to the danger hue.
+bool TexturePaintPanel::RecordIconAction(ControlIdentity Target, const PlaneExtent& Cell,
+                                         SymbolSubject Glyph, bool Destructive)
+{
+    const bool Over = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
+
+    if (Sampled.ContactPressed && Over && !Ledger->AnyDisclosed())
+        Ledger->Grab(Target, ControlPart::Body);
+
+    const bool Fired = Over && Ledger->Released(Target);
+
+    Ledger->DeclareHovered(Target, Over, HoverOver);
+
+    const float Lit = Ledger->HoveredFraction(Target);
+    const ThemeToken Danger = Covering(0xE05A5Au);
+
+    Surface->Ground(Cell, Blend(Tinted.MenuLower,
+                                Destructive ? Faded(Danger, 0.16f) : Tinted.TileHovered, Lit),
+                    5.0f, CornerAll);
+    Surface->Edge(Cell, Blend(Tinted.Hairline, Destructive ? Danger : Tinted.HairlineFirm, Lit),
+                  1.0f, 5.0f, CornerAll);
+
+    const float Figure = Cell.Height() * 0.58f;
+
+    Surface->Stroke(Glyph, Spanning(Cell.MinimumX + (Cell.Width() - Figure) * 0.5f,
+                                    Cell.MinimumY + (Cell.Height() - Figure) * 0.5f,
+                                    Figure, Figure),
+                    Blend(Tinted.Muted, Destructive ? Danger : Tinted.Primary, Lit));
+
+    return Fired;
 }
 
 float TexturePaintPanel::RecordSlotRow(const PlaneExtent& Extent, ThemeToken Tint,
@@ -3087,6 +3248,10 @@ float TexturePaintPanel::RecordValueBody(const PlaneExtent& Extent, TexturePaint
     Amount.UnitGlyph = Slot.Unit;
     Amount.Minimum   = Slot.Minimum;
     Amount.Maximum   = Slot.Maximum;
+    // 📐 The reference's own rule: "A degree span reads as a whole number; a 0..1
+    //    span needs two decimals." The angle is the only channel with a unit and
+    //    the only one whose span is wide enough to read whole.
+    Amount.Decimals  = (Slot.Maximum - Slot.Minimum >= 10.0) ? 0u : 2u;
 
     double Reading = Applied.ChannelReading[Layer][Channel];
 
@@ -3194,10 +3359,42 @@ float TexturePaintPanel::RecordGeneratorBody(const PlaneExtent& Extent, TextureP
     const TextureGeneratorEntry& Entry =
         TextureGeneratorAt(Applied.ChannelGenerator[Layer][Channel]);
 
-    Surface->TextRunCapitalised(Extent.MinimumX, Sweep, Tinted.Faint, Entry.Note,
-                                Scaled.RunFiner, 0.06f, false);
+    // 📐 `.gen-params` header: a hairline, the note, and the two icon buttons the
+    //    reference gives it.
+    // 🔴 Neither action was ported. A generator could be chosen but never reset
+    //    and never removed — once assigned, the only escape was to change source
+    //    mode, which abandoned the parameters rather than clearing them.
+    Surface->Ground(Spanning(Extent.MinimumX, Sweep, Extent.Width(), 1.0f),
+                    Tinted.Hairline, 0.0f, CornerNone);
 
-    Sweep += Scaled.RunFiner * 1.7f;
+    Sweep += Scaled.PanePad * 0.5f;
+
+    const float Icon = 20.0f;
+    const float HeadY = Icon;
+
+    const PlaneExtent Drop = Spanning(Extent.MaximumX - Icon,
+                                      Sweep, Icon, Icon);
+    const PlaneExtent Wipe = Spanning(Drop.MinimumX - Icon - 4.0f, Sweep, Icon, Icon);
+
+    if (RecordIconAction(ChannelGenReset[Channel], Wipe, SymbolSubject::GearCog, false))
+    {
+        for (std::uint32_t Each = 0u; Each < Entry.ParamCount; ++Each)
+            Applied.ChannelGeneratorParam[Layer][Channel][Each] = Entry.Parameters[Each].Default;
+    }
+
+    if (RecordIconAction(ChannelGenDrop[Channel], Drop, SymbolSubject::TrashBin, true))
+    {
+        Applied.ChannelGenerator[Layer][Channel] = TexturePaintContext::AbsentGenerator;
+
+        for (std::uint32_t Each = 0u; Each < TextureGeneratorParamMax; ++Each)
+            Applied.ChannelGeneratorParam[Layer][Channel][Each] = 0.0;
+    }
+
+    Surface->TextRunTruncated(Extent.MinimumX, Sweep + (Icon - Scaled.RunFiner) * 0.5f,
+                              Wipe.MinimumX - Scaled.PanePad, Tinted.Faint,
+                              Entry.Note, Scaled.RunFiner, false);
+
+    Sweep += HeadY + Scaled.PanePad * 0.5f;
 
     for (std::uint32_t Each = 0u; Each < Entry.ParamCount; ++Each)
     {
@@ -3208,6 +3405,9 @@ float TexturePaintPanel::RecordGeneratorBody(const PlaneExtent& Extent, TextureP
         Declared.UnitGlyph = "";
         Declared.Minimum   = Knob.Minimum;
         Declared.Maximum   = Knob.Maximum;
+        // 📐 Every generator parameter in the catalogue spans 0..1, so every one
+        //    of them was unreadable at whole-number precision.
+        Declared.Decimals  = 2u;
 
         double Reading = Applied.ChannelGeneratorParam[Layer][Channel][Each];
 
@@ -3243,7 +3443,13 @@ float TexturePaintPanel::RecordChannelBody(const PlaneExtent& Extent, TexturePai
         Surface->TextRun(Extent.MinimumX, Sweep + Scaled.PanePad, Tinted.Faint,
                          "Derived from the painted height. No value to author.", Scaled.RunFine);
 
-        return RowY;
+        Sweep += Scaled.RunFine * 1.6f + Scaled.PanePad;
+
+        Sweep += RecordChannelPreview(Spanning(Extent.MinimumX, Sweep, Extent.Width(),
+                                               Extent.MaximumY - Sweep),
+                                      Applied, Channel);
+
+        return Sweep - Extent.MinimumY;
     }
 
     // ② Source — a SEGMENTED control, as the reference's `.segrow` is, not a
@@ -3270,6 +3476,13 @@ float TexturePaintPanel::RecordChannelBody(const PlaneExtent& Extent, TexturePai
     if (Mode == 1u)      Sweep += RecordTextureBody(Rest, Applied, Channel);
     else if (Mode == 2u) Sweep += RecordGeneratorBody(Rest, Applied, Channel);
     else                 Sweep += RecordValueBody(Rest, Applied, Channel);
+
+    // ③ The preview closes every body, derived or authored — it is the reference's
+    //    last element in ConstructChannelBody and the only place the atlas lane
+    //    is stated.
+    Sweep += RecordChannelPreview(Spanning(Extent.MinimumX, Sweep, Extent.Width(),
+                                           Extent.MaximumY - Sweep),
+                                  Applied, Channel);
 
     return Sweep - Extent.MinimumY;
 }

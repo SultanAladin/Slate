@@ -66,6 +66,21 @@ struct MagnitudeDeclaration
     const char*  UnitGlyph    = "";      // [-] - the trailing cell's run — the degree sign, percent, or px
     double       Minimum = 0.0;     // [-] - the domain's floor
     double       Maximum  = 255.0;   // [-] - the domain's ceiling; max="255"
+
+    /// 🔴 The readout was written through `IntegralRun`, which takes a `long long`.
+    ///    Every reading was therefore ROUNDED TO A WHOLE NUMBER before it was
+    ///    drawn. On a 0…1 span — which is what thirteen of the fourteen texture
+    ///    channels and every one of the twenty-four generator parameters use —
+    ///    that renders 0.00 for anything below a half and 1 for anything above,
+    ///    so the slider's thumb moved across the track while the figure beside
+    ///    it read "1" the whole way. The control was unreadable on any span
+    ///    narrower than a few units, which is why the channel card looked as
+    ///    though it had no sliders at all.
+    ///    The reference's own `FormatAmount` states the rule: a degree span
+    ///    reads as a whole number, a 0…1 span needs two decimals. Zero keeps
+    ///    the previous behaviour exactly, so the fifteen existing callers — all
+    ///    of which work in whole degrees, percent or pixels — are untouched.
+    std::uint32_t Decimals = 0u;    // [-] - fraction digits in the readout
 };
 
 /// 🧩 What the rotation ruler presents — its label and the unit its captions carry.

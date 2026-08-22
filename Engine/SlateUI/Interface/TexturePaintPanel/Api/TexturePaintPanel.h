@@ -73,7 +73,15 @@ struct TexturePaintContext
 {
     static constexpr std::uint32_t TextureRetentionCeiling = 48u;  // [-] - the search run, terminator included
     static constexpr std::uint32_t TextureFacetCount      = 8u;    // [-] - Paint … Filter
-    static constexpr std::uint32_t TextureChannelFacetCount = 3u;  // [-] - Base, Maps, Output
+    /// 🔴 This was 3 — "Base, Maps, Output" — a set of captions that appears
+    ///    nowhere in the schema, and the card used it only to HIDE rows. The
+    ///    reference's chips region is not a view filter at all: each chip is one
+    ///    ENABLED CHANNEL, its cross REMOVES that channel from the layer, and the
+    ///    add-menu re-admits it. The facet set is therefore one entry per
+    ///    channel, and the enabled array the card hands the facet panel is the
+    ///    layer's own `ChannelOn` row — so pressing a chip's cross disables the
+    ///    channel rather than merely hiding a card that stays enabled underneath.
+    static constexpr std::uint32_t TextureChannelFacetCount = TextureChannelCeiling;
     static constexpr std::uint32_t TextureSwatchCount     = 10u;   // [-] - the reference's COLORS run
 
     // 📐 The selection and the pages. `StackPage` is the carousel: 0 the stack, 1 the properties.
@@ -89,7 +97,13 @@ struct TexturePaintContext
     char                       Retention[TextureRetentionCeiling] = {};   // [-] - the search run
     bool                       SearchTaken   = false;       // [-] - the search pill holds the contact
     bool                       FacetEnabled[TextureFacetCount]     = {};  // [-] - layer categories
-    bool                       ChannelFacet[TextureChannelFacetCount] = {};  // [-] - channel groups
+    // 🔴 `ChannelFacet` was a THIRD copy of the channel's enabled state, beside
+    //    `ChannelOn` and the row's own channel run, and only the third of them
+    //    did anything: the facet array hid cards, `ChannelOn` dimmed a swatch,
+    //    and neither told the other. Pressing a chip's cross hid a channel that
+    //    stayed enabled; toggling the switch left the chip standing. The card
+    //    now hands `ChannelOn[LayerTaken]` straight to the facet panel, so the
+    //    chips ARE the enabled set and there is one datum to disagree with.
 
     // 📝 The rows' own conditions: disclosure, presence, the details chevron's page travel, and the
     //    channel each layer is showing on the properties page.
@@ -169,7 +183,8 @@ public:
         + 14u                               // [-] - the blend field, the opacity row and the twelve bar buttons
         + 2u                                // [-] - the page strips
         + (FacetPanel::FacetCapacity + 2u) * 2u   // [-] - the two filter cards
-        + TextureChannelCeiling * 4u        // [-] - fold, dot, blend, opacity per channel
+        + TextureChannelCeiling * 8u        // [-] - fold, dot, source, amount, generator,
+                                            //       its reset and remove, and three parameters
         + 8u                                // [-] - the mask card's rows and the settings card's rows
         + 44u;                              // [-] - the four menu anchors plus menu items: add 7,
                                             //       layer 7, swatches 10, mask 3, blend 13
@@ -267,6 +282,14 @@ private:
                             std::uint32_t Channel);
     float RecordGeneratorBody(const PlaneExtent& Extent, TexturePaintContext& Applied,
                               std::uint32_t Channel);
+    /// 🧩 The reference's `.chan-prev` — the resolved tile, the mode, and the atlas lane.
+    float RecordChannelPreview(const PlaneExtent& Extent, const TexturePaintContext& Applied,
+                               std::uint32_t Channel);
+
+    /// 🧩 The reference's `.iconbtn`. Answers whether it was pressed this tick.
+    bool RecordIconAction(ControlIdentity Target, const PlaneExtent& Cell,
+                          SymbolSubject Glyph, bool Destructive);
+
     /// 🧩 One slot row: thumbnail, two runs and its actions.
     float RecordSlotRow(const PlaneExtent& Extent, ThemeToken Tint, SymbolSubject Glyph,
                         const char* Naming, const char* Meta, bool Filled);
@@ -343,6 +366,8 @@ private:
     // 🧩 The generator picker and its knobs, one identity each: a control that is
     //    never registered draws but refuses every contact.
     ControlIdentity ChannelGenerators[TextureChannelCeiling] = {};
+    ControlIdentity ChannelGenReset[TextureChannelCeiling]   = {};
+    ControlIdentity ChannelGenDrop[TextureChannelCeiling]    = {};
     ControlIdentity ChannelParams[TextureChannelCeiling][TextureGeneratorParamMax] = {};
     ControlIdentity MaskRows[4]                          = {};
     ControlIdentity SettingRows[4]                       = {};
