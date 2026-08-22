@@ -114,6 +114,15 @@ struct ShellMetric
     float  LayerBadgeY     =  15.0f;   // [px] - the w-[15px] badge on the thumb's corner
     float  LayerChipY      =  18.0f;   // [px] - h-[18px], one chip on a row
     float  LayerTagX       =   3.0f;   // [px] - the w-[3px] colour tag on the entry's edge
+    // 📐 The attached mask entry's dotted rail — LayerstackV1.html `.tag.dot`:
+    //        repeating-linear-gradient(180deg, var(--c) 0 3px, transparent 3px 7px)
+    //    🔴 These were raw literals at the two call sites. Every OTHER length here is
+    //       multiplied by the display factor in ScaleShellLengths, so at any scale but
+    //       1.0 the rail grew while its dots kept their 1.0 rhythm — the dotting drifted
+    //       out of step with the row it marks, which is why it still looked wrong on a
+    //       scaled display while a 1.0 harness render measured correct.
+    float  LayerTagDotOn   =   3.0f;   // [px] - colour carried by each dot
+    float  LayerTagDotStep =   7.0f;   // [px] - the gradient's period
     float  LayerKidsX      =  15.0f;   // [px] - the folder children's margin-left
     float  LayerMaskIndent =  26.0f;   // [px] - padding-left of the attached mask row
     float  LayerFootCrumb  =  18.0f;   // [px] - the footer's crumb line

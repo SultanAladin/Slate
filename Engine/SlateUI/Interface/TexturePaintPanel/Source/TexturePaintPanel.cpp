@@ -2020,8 +2020,8 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
     //        repeating-linear-gradient(180deg, var(--c) 0 3px, transparent 3px 7px)
     //    — a 7 px period carrying 3 px of colour, the whole rail at 0.85 opacity.
     //    The figures are the sheet's, not retuned by eye.
-    const float DotPeriod = 7.0f;
-    const float DotLength = 3.0f;
+    const float DotPeriod = Scaled.LayerTagDotStep;
+    const float DotLength = Scaled.LayerTagDotOn;
 
     for (float Y = Row.MinimumY; Y < Row.MinimumY + Row.Height(); Y += DotPeriod)
     {
