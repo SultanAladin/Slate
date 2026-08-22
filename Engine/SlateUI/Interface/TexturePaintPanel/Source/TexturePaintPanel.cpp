@@ -1670,66 +1670,72 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
     char Sub[96] = {};
     const bool IsFolder = Current.Classified == TextureLayerClassification::Folder;
 
+    // 🔴 The sub-line used to restate the blend and the opacity, both of which
+    //    the details panel already owns as their own rows, and both of which the
+    //    wide columns draw again beside it. Blend appeared twice and opacity
+    //    three times on one row.
+    //    The stack answers "what is this and what is inside it"; the inspector
+    //    answers "how is it set". So the sub-line now carries only what the row
+    //    itself cannot: the classification, a folder's tally, and the resolution
+    //    or source that identifies the content.
     if (IsFolder)
     {
-        std::snprintf(Sub, sizeof(Sub), "%u items \u00B7 %s", Current.EnclosedCount,
-                      TextureBlendNames[Applied.LayerBlendTaken[Ordinal] % TextureBlendCount]);
+        std::snprintf(Sub, sizeof(Sub), "%u items", Current.EnclosedCount);
     }
-    else if (Current.Classified == TextureLayerClassification::Decal ||
-             Current.Classified == TextureLayerClassification::Pattern)
+    else if (Current.Source[0] != '\0')
     {
         std::snprintf(Sub, sizeof(Sub), "%s \u00B7 %s",
-                      TextureLayerText(Current.Classified),
-                      Current.Detail[0] != '\0' ? Current.Detail : Current.Blend);
+                      TextureLayerText(Current.Classified), Current.Source);
     }
-    else if (Applied.WideRows && Row.Width() > 620.0f && Current.Detail[0] != '\0')
+    else if (Current.Detail[0] != '\0')
     {
-        std::snprintf(Sub, sizeof(Sub), "%s \u00B7 %s", TextureLayerText(Current.Classified),
-                      Current.Detail);
+        std::snprintf(Sub, sizeof(Sub), "%s \u00B7 %s",
+                      TextureLayerText(Current.Classified), Current.Detail);
     }
     else
     {
-        std::snprintf(Sub, sizeof(Sub), "%s \u00B7 %s \u00B7 %u%%",
-                      TextureLayerText(Current.Classified),
-                      TextureBlendNames[Applied.LayerBlendTaken[Ordinal] % TextureBlendCount],
-                      Applied.LayerOpacity[Ordinal]);
+        std::snprintf(Sub, sizeof(Sub), "%s", TextureLayerText(Current.Classified));
     }
 
     Surface->TextRunTruncated(MetaLead, SubTop, NamingCeiling,
                               Faded(Tinted.Faint, RowCoverage), Sub, SubRun);
 
-    // ⑧ The wide columns: blend and opacity — the reference's `body.wide .col`.
+    // ⑧ The opacity column.
+    // 🔴 The opacity used to appear three times over — in the sub-line, as a
+    //    mini-bar, and as a value — and only when WideRows was toggled, so the
+    //    one figure an artist reads constantly was the one that could vanish.
+    //    A folder has no opacity of its own, so it states none.
     float ChipCeiling = Details.MinimumX - 8.0f;
 
-    if (Applied.WideRows && NamingCeiling - MetaLead > 300.0f)
+    if (!IsFolder && NamingCeiling - MetaLead > 160.0f)
     {
-        const float OpColX = ChipCeiling - 110.0f;
-        const float BlendColX = OpColX - 118.0f;
-
-        // 📐 The opacity mini-bar and its value.
-        const float BarY = Row.MinimumY + (Scaled.LayerRowY - 4.0f) * 0.5f;
         const std::uint32_t Amount = Applied.LayerOpacity[Ordinal];
-
-        Surface->Ground(Spanning(OpColX, BarY, 56.0f, 4.0f),
-                        Faded(Covering(0x242424u), RowCoverage), 2.0f, CornerAll);
-        Surface->Ground(Spanning(OpColX, BarY, 56.0f * static_cast<float>(Amount) / 100.0f, 4.0f),
-                        Faded(Covering(0xFFFFFFu), RowCoverage), 2.0f, CornerAll);
 
         char Value[8] = {};
         std::snprintf(Value, sizeof(Value), "%u%%", Amount);
 
-        Surface->TextRun(OpColX + 62.0f, Row.MinimumY + (Scaled.LayerRowY - SubRun) * 0.5f,
-                         Faded(Tinted.Muted, RowCoverage), Value, SubRun, 0.0f, true);
+        const float ValueSpan = Surface->MeasureRun(Value, SubRun, 0.0f);
+        const float ValueLead = ChipCeiling - ValueSpan;
 
-        // 📐 The blend run.
-        const char* Blend = TextureBlendNames[Applied.LayerBlendTaken[Ordinal] % TextureBlendCount];
-        const float BlendSpan = Surface->MeasureRun(Blend, SubRun, 0.0f);
+        Surface->TextRun(ValueLead, Row.MinimumY + (Scaled.LayerRowY - SubRun) * 0.5f,
+                         Faded(Taken ? Tinted.Primary : Tinted.Muted, RowCoverage),
+                         Value, SubRun, 0.0f, true);
 
-        Surface->TextRun(BlendColX + 118.0f - BlendSpan,
-                         Row.MinimumY + (Scaled.LayerRowY - SubRun) * 0.5f,
-                         Faded(Tinted.Muted, RowCoverage), Blend, SubRun, 0.0f, true);
+        ChipCeiling = ValueLead - 10.0f;
 
-        ChipCeiling = BlendColX - 8.0f;
+        // 📐 The blend run stays a wide-only column: it is a setting rather than
+        //    a reading, and the inspector states it in full.
+        if (Applied.WideRows && NamingCeiling - MetaLead > 300.0f)
+        {
+            const char* Blend = TextureBlendNames[Applied.LayerBlendTaken[Ordinal] % TextureBlendCount];
+            const float BlendSpan = Surface->MeasureRun(Blend, SubRun, 0.0f);
+
+            Surface->TextRun(ChipCeiling - BlendSpan,
+                             Row.MinimumY + (Scaled.LayerRowY - SubRun) * 0.5f,
+                             Faded(Tinted.Faint, RowCoverage), Blend, SubRun, 0.0f, true);
+
+            ChipCeiling = ChipCeiling - BlendSpan - 10.0f;
+        }
     }
 
     // ⑨ The chips, right-to-left: CH, FX, MASK, L, 3D — the reference's `.chips`.
