@@ -322,6 +322,48 @@ const TextureChannelSlot& TextureChannelAt(std::uint32_t Ordinal)
     return Ordinal < TextureChannelCeiling ? Slots[Ordinal] : Absent;
 }
 
+// 📐 GENERATOR_CATALOGUE from the reference, transcribed entry for entry with
+//    every parameter's own span and default. The port carried none of these:
+//    choosing a generator set a name and offered no knobs at all.
+const TextureGeneratorEntry& TextureGeneratorAt(std::uint32_t Ordinal)
+{
+    static const TextureGeneratorEntry Catalogue[TextureGeneratorCeiling] =
+    {
+        { "Curvature",         "Mask", "Convex edge wear", 3u,
+          { { "Balance", 0.0, 1.0, 0.50 }, { "Contrast", 0.0, 1.0, 0.70 }, { "Radius", 0.0, 1.0, 0.25 } } },
+
+        { "Ambient Occlusion", "Mask", "Cavity dirt", 2u,
+          { { "Spread", 0.0, 1.0, 0.40 }, { "Contrast", 0.0, 1.0, 0.60 } } },
+
+        { "Thickness",         "Mask", "Translucent falloff", 2u,
+          { { "Depth", 0.0, 1.0, 0.50 }, { "Contrast", 0.0, 1.0, 0.50 } } },
+
+        { "Position Gradient", "Mask", "World-axis ramp", 2u,
+          { { "Origin", 0.0, 1.0, 0.50 }, { "Falloff", 0.0, 1.0, 0.35 } } },
+
+        { "Metal Edge Wear",   "Wear", "Curvature + grunge", 3u,
+          { { "Intensity", 0.0, 1.0, 0.60 }, { "Softness", 0.0, 1.0, 0.30 }, { "Grain", 0.0, 1.0, 0.45 } } },
+
+        { "Dirt",              "Wear", "Occlusion-driven", 2u,
+          { { "Amount", 0.0, 1.0, 0.50 }, { "Scale", 0.0, 1.0, 0.30 } } },
+
+        { "Water Runoff",      "Wear", "Gravity streaks", 3u,
+          { { "Length", 0.0, 1.0, 0.55 }, { "Density", 0.0, 1.0, 0.40 }, { "Gravity", 0.0, 1.0, 0.80 } } },
+
+        { "Perlin Noise", "Procedural", "Fractal value noise", 3u,
+          { { "Scale", 0.0, 1.0, 0.40 }, { "Octaves", 0.0, 1.0, 0.50 }, { "Contrast", 0.0, 1.0, 0.50 } } },
+
+        { "Voronoi",      "Procedural", "Cellular partition", 2u,
+          { { "Density", 0.0, 1.0, 0.35 }, { "Jitter", 0.0, 1.0, 0.70 } } },
+
+        { "Brushed Metal","Procedural", "Anisotropic streaks", 2u,
+          { { "Angle", 0.0, 1.0, 0.00 }, { "Grain", 0.0, 1.0, 0.60 } } },
+    };
+
+    static const TextureGeneratorEntry Absent;
+    return Ordinal < TextureGeneratorCeiling ? Catalogue[Ordinal] : Absent;
+}
+
 const char* TextureChannelText(std::uint32_t Ordinal)
 {
     return TextureChannelAt(Ordinal).Label;
@@ -816,7 +858,9 @@ Outcome<bool> TexturePaintPanel::Construct(InteractionIndex& Interaction,
         ControlIdentity* const Rows[] =
         {
             &ChannelFolds[Ordinal], &ChannelDots[Ordinal],
-            &ChannelBlends[Ordinal], &ChannelOps[Ordinal]
+            &ChannelBlends[Ordinal], &ChannelOps[Ordinal],
+            &ChannelGenerators[Ordinal],
+            &ChannelParams[Ordinal][0], &ChannelParams[Ordinal][1], &ChannelParams[Ordinal][2]
         };
 
         for (ControlIdentity* Identity : Rows)
@@ -2927,83 +2971,305 @@ void TexturePaintPanel::RecordChannelRow(const PlaneExtent& Row, TexturePaintCon
 float TexturePaintPanel::ChannelBodyHeight(const TexturePaintContext& Applied,
                                            std::uint32_t Channel) const
 {
+    // 🔴 This returned one figure whichever mode stood, so a Generator card with
+    //    three knobs was given the same room as a bare Value row and its
+    //    parameters were clipped away by the confine.
+    const std::uint32_t Layer = Applied.LayerTaken;
     const TextureChannelSlot& Slot = TextureChannelAt(Channel);
     const float RowY = Appearance->ControlMeasure.FieldHeight + Scaled.PanePad * 0.5f;
 
-    // the source picker always stands; a scalar adds its amount row
-    float Height = RowY;
+    if (Slot.Edit == TextureChannelEdit::Derived)
+        return RowY + Scaled.PanePad;
 
-    if (Slot.Edit == TextureChannelEdit::Scalar)
-        Height += RowY;
-    else if (Slot.Edit == TextureChannelEdit::Derived)
-        Height += RowY;
+    float Height = RowY;   // the source segment
+
+    switch (Applied.ChannelMode[Layer][Channel] % 3u)
+    {
+        case 1u:
+        {
+            // two slot rows, the label between them
+            const float SlotY = Scaled.LayerHeadHeight * 0.9f;
+            Height += SlotY * 2.0f + Scaled.RunFiner * 1.6f + Scaled.PanePad * 0.5f;
+            break;
+        }
+        case 2u:
+        {
+            Height += RowY;   // the picker
+
+            const std::uint32_t Standing = Applied.ChannelGenerator[Layer][Channel];
+            if (Standing != TexturePaintContext::AbsentGenerator)
+            {
+                Height += Scaled.RunFiner * 1.7f;
+                Height += RowY * static_cast<float>(TextureGeneratorAt(Standing).ParamCount);
+            }
+            break;
+        }
+        default:
+            Height += RowY;   // the colour bar or the amount row
+            break;
+    }
 
     return Height + Scaled.PanePad;
+}
+
+float TexturePaintPanel::RecordSlotRow(const PlaneExtent& Extent, ThemeToken Tint,
+                                       SymbolSubject Glyph, const char* Naming,
+                                       const char* Meta, bool Filled)
+{
+    // 📐 The reference's `.slot`: a square thumbnail, two stacked runs, and the
+    //    actions at the trailing edge.
+    const float Thumb = Extent.Height() - 8.0f;
+
+    Surface->Ground(Extent, Tinted.MenuLower, Scaled.LayerRadius, CornerAll);
+    Surface->Edge(Extent, Tinted.Hairline, 1.0f, Scaled.LayerRadius, CornerAll);
+
+    const PlaneExtent Tile = Spanning(Extent.MinimumX + 4.0f, Extent.MinimumY + 4.0f, Thumb, Thumb);
+
+    Surface->Ground(Tile, Filled ? Faded(Tint, 0.30f) : Tinted.Menu, 3.0f, CornerAll);
+
+    const float Figure = Thumb * 0.55f;
+    Surface->Stroke(Glyph, Spanning(Tile.MinimumX + (Thumb - Figure) * 0.5f,
+                                    Tile.MinimumY + (Thumb - Figure) * 0.5f, Figure, Figure),
+                    Filled ? Tint : Tinted.Faint);
+
+    const float NameRun = Scaled.RunFine;
+    const float MetaRun = Scaled.RunFiner;
+    const float Pair    = NameRun * 1.35f + MetaRun * 1.35f;
+    const float PairTop = Extent.MinimumY + (Extent.Height() - Pair) * 0.5f;
+    const float RunLead = Tile.MaximumX + Scaled.PanePad;
+
+    Surface->TextRun(RunLead, PairTop, Filled ? Tinted.Primary : Tinted.Muted, Naming, NameRun);
+    Surface->TextRun(RunLead, PairTop + NameRun * 1.35f, Tinted.Faint, Meta, MetaRun);
+
+    return Extent.Height();
+}
+
+float TexturePaintPanel::RecordValueBody(const PlaneExtent& Extent, TexturePaintContext& Applied,
+                                         std::uint32_t Channel)
+{
+    // 🧩 Value: a colour field for a colour channel, a magnitude row for a scalar
+    //    over the channel's OWN span.
+    const std::uint32_t Layer = Applied.LayerTaken;
+    const TextureChannelSlot& Slot = TextureChannelAt(Channel);
+    const float RowY = Appearance->ControlMeasure.FieldHeight + Scaled.PanePad * 0.5f;
+
+    if (Slot.Edit == TextureChannelEdit::Colour)
+    {
+        // 📐 The reference's `.colorbar`: a round chip, the hex, and a caret.
+        const PlaneExtent Bar = Spanning(Extent.MinimumX, Extent.MinimumY,
+                                         Extent.Width(), RowY - Scaled.PanePad * 0.5f);
+
+        Surface->Ground(Bar, Tinted.MenuLower, Bar.Height() * 0.5f, CornerAll);
+        Surface->Edge(Bar, Tinted.Hairline, 1.0f, Bar.Height() * 0.5f, CornerAll);
+
+        const float Chip = Bar.Height() - 8.0f;
+        Surface->Medallion(Bar.MinimumX + 4.0f + Chip * 0.5f,
+                           Bar.MinimumY + Bar.Height() * 0.5f, Chip * 0.5f, Covering(Slot.Hue));
+
+        char Hex[10] = {};
+        std::snprintf(Hex, sizeof(Hex), "#%06X", static_cast<unsigned>(Slot.Hue));
+
+        Surface->TextRun(Bar.MinimumX + 8.0f + Chip,
+                         Bar.MinimumY + (Bar.Height() - Scaled.RunFine) * 0.5f,
+                         Tinted.Primary, Hex, Scaled.RunFine);
+
+        const float Mark = Scaled.ChevronExtent * 0.7f;
+        Surface->Stroke(SymbolSubject::ChevronDown,
+                        Spanning(Bar.MaximumX - Mark - 8.0f,
+                                 Bar.MinimumY + (Bar.Height() - Mark) * 0.5f, Mark, Mark),
+                        Tinted.Faint);
+
+        return RowY;
+    }
+
+    MagnitudeDeclaration Amount;
+    Amount.Caption   = "Amount";
+    Amount.UnitGlyph = Slot.Unit;
+    Amount.Minimum   = Slot.Minimum;
+    Amount.Maximum   = Slot.Maximum;
+
+    double Reading = Applied.ChannelReading[Layer][Channel];
+
+    if (SharedControls.MagnitudeRow(ChannelOps[Channel],
+                                    Spanning(Extent.MinimumX, Extent.MinimumY, Extent.Width(), RowY),
+                                    Amount, Reading, false).ReadingAltered)
+    {
+        Applied.ChannelReading[Layer][Channel] = Reading;
+    }
+
+    return RowY;
+}
+
+float TexturePaintPanel::RecordTextureBody(const PlaneExtent& Extent, TexturePaintContext& Applied,
+                                           std::uint32_t Channel)
+{
+    // 🧩 Texture: the painted-stroke slot, then the imported base beneath it.
+    const std::uint32_t Layer = Applied.LayerTaken;
+    const TextureChannelSlot& Slot = TextureChannelAt(Channel);
+
+    const std::uint32_t Strokes = Applied.ChannelStrokes[Layer][Channel];
+    const bool Painted  = Strokes > 0u;
+    const bool Imported = Applied.ChannelImported[Layer][Channel];
+
+    const float SlotY = Scaled.LayerHeadHeight * 0.9f;
+    float Sweep = Extent.MinimumY;
+
+    char PaintMeta[64] = {};
+    if (Painted)
+        std::snprintf(PaintMeta, sizeof(PaintMeta), "%u strokes \xC2\xB7 2048 \xC3\x97 2048 atlas",
+                      static_cast<unsigned>(Strokes));
+    else
+        std::snprintf(PaintMeta, sizeof(PaintMeta), "Atlas allocates on the first stroke");
+
+    Sweep += RecordSlotRow(Spanning(Extent.MinimumX, Sweep, Extent.Width(), SlotY),
+                           Covering(Slot.Hue),
+                           Painted ? SymbolSubject::PaintBristle : SymbolSubject::ExpandFrame,
+                           Painted ? "Painted strokes" : "No strokes yet", PaintMeta, Painted);
+
+    Sweep += Scaled.PanePad * 0.5f;
+
+    Surface->TextRunCapitalised(Extent.MinimumX, Sweep, Tinted.Faint,
+                                Imported ? "Imported base" : "Imported base \xE2\x80\x94 optional",
+                                Scaled.RunFiner, 0.06f, false);
+
+    Sweep += Scaled.RunFiner * 1.6f;
+
+    Sweep += RecordSlotRow(Spanning(Extent.MinimumX, Sweep, Extent.Width(), SlotY),
+                           Covering(Slot.Hue), SymbolSubject::ExpandFrame,
+                           Imported ? "albedo_2k.png" : "Import base texture",
+                           Imported ? "2048 \xC3\x97 2048 \xC2\xB7 RGBA 8" : "", Imported);
+
+    return Sweep - Extent.MinimumY;
+}
+
+float TexturePaintPanel::RecordGeneratorBody(const PlaneExtent& Extent, TexturePaintContext& Applied,
+                                             std::uint32_t Channel)
+{
+    // 🧩 Generator: the picker, then — once one stands — its note and its own
+    //    parameter rows, each a shared MagnitudeRow over the parameter's span.
+    const std::uint32_t Layer = Applied.LayerTaken;
+    const float RowY = Appearance->ControlMeasure.FieldHeight + Scaled.PanePad * 0.5f;
+
+    float Sweep = Extent.MinimumY;
+
+    static const char* Options[TextureGeneratorCeiling + 1u] = {};
+    Options[0] = "Choose generator";
+    for (std::uint32_t Each = 0u; Each < TextureGeneratorCeiling; ++Each)
+        Options[Each + 1u] = TextureGeneratorAt(Each).Label;
+
+    SelectionDeclaration Picker;
+    Picker.Caption       = "Generator";
+    Picker.Options       = Options;
+    Picker.OptionCount   = TextureGeneratorCeiling + 1u;
+
+    const std::uint32_t Standing = Applied.ChannelGenerator[Layer][Channel];
+    std::uint32_t Taken = (Standing == TexturePaintContext::AbsentGenerator)
+                        ? 0u : (Standing + 1u);
+
+    if (SharedControls.SelectionField(ChannelGenerators[Channel],
+                                      Spanning(Extent.MinimumX, Sweep, Extent.Width(), RowY),
+                                      Picker, Taken).ReadingAltered)
+    {
+        if (Taken == 0u)
+        {
+            Applied.ChannelGenerator[Layer][Channel] = TexturePaintContext::AbsentGenerator;
+        }
+        else
+        {
+            const std::uint32_t Chosen = Taken - 1u;
+            Applied.ChannelGenerator[Layer][Channel] = Chosen;
+
+            // 📐 A freshly assigned generator reads its own defaults, not zero.
+            const TextureGeneratorEntry& Entry = TextureGeneratorAt(Chosen);
+            for (std::uint32_t Each = 0u; Each < Entry.ParamCount; ++Each)
+                Applied.ChannelGeneratorParam[Layer][Channel][Each] = Entry.Parameters[Each].Default;
+        }
+    }
+
+    Sweep += RowY;
+
+    if (Applied.ChannelGenerator[Layer][Channel] == TexturePaintContext::AbsentGenerator)
+        return Sweep - Extent.MinimumY;
+
+    const TextureGeneratorEntry& Entry =
+        TextureGeneratorAt(Applied.ChannelGenerator[Layer][Channel]);
+
+    Surface->TextRunCapitalised(Extent.MinimumX, Sweep, Tinted.Faint, Entry.Note,
+                                Scaled.RunFiner, 0.06f, false);
+
+    Sweep += Scaled.RunFiner * 1.7f;
+
+    for (std::uint32_t Each = 0u; Each < Entry.ParamCount; ++Each)
+    {
+        const TextureGeneratorParameter& Knob = Entry.Parameters[Each];
+
+        MagnitudeDeclaration Declared;
+        Declared.Caption   = Knob.Label;
+        Declared.UnitGlyph = "";
+        Declared.Minimum   = Knob.Minimum;
+        Declared.Maximum   = Knob.Maximum;
+
+        double Reading = Applied.ChannelGeneratorParam[Layer][Channel][Each];
+
+        if (SharedControls.MagnitudeRow(ChannelParams[Channel][Each],
+                                        Spanning(Extent.MinimumX, Sweep, Extent.Width(), RowY),
+                                        Declared, Reading, false).ReadingAltered)
+        {
+            Applied.ChannelGeneratorParam[Layer][Channel][Each] = Reading;
+        }
+
+        Sweep += RowY;
+    }
+
+    return Sweep - Extent.MinimumY;
 }
 
 float TexturePaintPanel::RecordChannelBody(const PlaneExtent& Extent, TexturePaintContext& Applied,
                                            std::uint32_t Channel)
 {
-    // 🧩 The unfolded card: a source picker, then the field the edit kind calls
-    //    for. Every one is a shared component.
+    // 🔴 This used to draw a Source dropdown and, for a scalar, one Amount row —
+    //    the same body whichever mode stood. Texture and Generator offered
+    //    nothing at all, so two of the three modes were captions over an empty
+    //    card. Each mode now records its own body.
     const std::uint32_t Layer = Applied.LayerTaken;
     const TextureChannelSlot& Slot = TextureChannelAt(Channel);
     const float RowY = Appearance->ControlMeasure.FieldHeight + Scaled.PanePad * 0.5f;
 
     float Sweep = Extent.MinimumY;
 
-    // ① Source — Value, Texture or Generator, exactly the reference's picker.
+    // ① A derived channel has nothing to author, and says so.
+    if (Slot.Edit == TextureChannelEdit::Derived)
+    {
+        Surface->TextRun(Extent.MinimumX, Sweep + Scaled.PanePad, Tinted.Faint,
+                         "Derived from the painted height. No value to author.", Scaled.RunFine);
+
+        return RowY;
+    }
+
+    // ② Source — a SEGMENTED control, as the reference's `.segrow` is, not a
+    //    dropdown. Three modes, one visible choice.
     static const char* const Sources[3] = { "Value", "Texture", "Generator" };
 
-    SelectionDeclaration Source;
-    Source.Caption       = "Source";
-    Source.Options       = Sources;
-    Source.OptionCount   = 3u;
+    SegmentDeclaration Modes;
+    Modes.Captions     = Sources;
+    Modes.CaptionCount = 3u;
 
-    std::uint32_t Taken = Applied.ChannelMode[Layer][Channel] % 3u;
+    std::uint32_t Mode = Applied.ChannelMode[Layer][Channel] % 3u;
 
-    if (SharedControls.SelectionField(ChannelBlends[Channel],
-                                      Spanning(Extent.MinimumX, Sweep, Extent.Width(), RowY),
-                                      Source, Taken).ReadingAltered)
-    {
-        Applied.ChannelMode[Layer][Channel] = Taken;
-    }
+    const PlaneExtent Segment = Spanning(Extent.MinimumX, Sweep, Extent.Width(),
+                                         RowY - Scaled.PanePad * 0.5f);
+
+    if (Controls.SegmentedChoice(ChannelBlends[Channel], Segment, Modes, Mode).ReadingAltered)
+        Applied.ChannelMode[Layer][Channel] = Mode;
 
     Sweep += RowY;
 
-    // ② A derived channel has nothing to author, and says so rather than
-    //    offering a field that would not be read.
-    if (Slot.Edit == TextureChannelEdit::Derived)
-    {
-        Surface->TextRun(Extent.MinimumX, Sweep + Scaled.PanePad,
-                         Tinted.Faint,
-                         "Derived from the painted height. No value to author.",
-                         Scaled.RunFine);
+    const PlaneExtent Rest = Spanning(Extent.MinimumX, Sweep, Extent.Width(),
+                                      Extent.MaximumY - Sweep);
 
-        return Sweep + RowY - Extent.MinimumY;
-    }
-
-    // ③ Amount — over the channel's OWN span. Anisotropy Angle runs to 360 and
-    //    Refraction Index starts at 1; the old row put every channel on 0..100.
-    if (Slot.Edit == TextureChannelEdit::Scalar)
-    {
-        MagnitudeDeclaration Amount;
-        Amount.Caption   = "Amount";
-        Amount.UnitGlyph = Slot.Unit;
-        Amount.Minimum   = Slot.Minimum;
-        Amount.Maximum   = Slot.Maximum;
-
-        double Reading = Applied.ChannelReading[Layer][Channel];
-
-        if (SharedControls.MagnitudeRow(ChannelOps[Channel],
-                                        Spanning(Extent.MinimumX, Sweep, Extent.Width(), RowY),
-                                        Amount, Reading, false).ReadingAltered)
-        {
-            Applied.ChannelReading[Layer][Channel] = Reading;
-        }
-
-        Sweep += RowY;
-    }
+    if (Mode == 1u)      Sweep += RecordTextureBody(Rest, Applied, Channel);
+    else if (Mode == 2u) Sweep += RecordGeneratorBody(Rest, Applied, Channel);
+    else                 Sweep += RecordValueBody(Rest, Applied, Channel);
 
     return Sweep - Extent.MinimumY;
 }

@@ -130,6 +130,18 @@ struct TexturePaintContext
     //    span, so the reading is kept as the figure it actually is.
     double                     ChannelReading[TextureLayerCeiling][TextureChannelCeiling] = {};
     std::uint32_t              ChannelMode[TextureLayerCeiling][TextureChannelCeiling] = {};
+
+    // 📝 Texture mode: what the atlas holds and what has been imported over it.
+    std::uint32_t              ChannelStrokes[TextureLayerCeiling][TextureChannelCeiling] = {};
+    bool                       ChannelImported[TextureLayerCeiling][TextureChannelCeiling] = {};
+
+    // 📝 Generator mode: which catalogue entry stands, and its own knobs.
+    //    AbsentGenerator means the picker still reads "Choose generator".
+    static constexpr std::uint32_t AbsentGenerator = 0xFFFFFFFFu;
+    std::uint32_t              ChannelGenerator[TextureLayerCeiling][TextureChannelCeiling] = {};
+    double                     ChannelGeneratorParam[TextureLayerCeiling][TextureChannelCeiling]
+                                                    [TextureGeneratorParamMax] = {};
+    bool                       ChannelGeneratorSeeded = false;
     std::uint32_t              MaskDensity[TextureLayerCeiling]    = {};
     bool                       MaskInverted[TextureLayerCeiling]   = {};
     std::uint32_t              MaskSourceTaken[TextureLayerCeiling] = {};
@@ -248,6 +260,17 @@ private:
     /// 🧩 How tall an unfolded channel card stands.
     float ChannelBodyHeight(const TexturePaintContext& Applied, std::uint32_t Channel) const;
 
+    /// 🧩 The three source bodies, one per mode.
+    float RecordValueBody(const PlaneExtent& Extent, TexturePaintContext& Applied,
+                          std::uint32_t Channel);
+    float RecordTextureBody(const PlaneExtent& Extent, TexturePaintContext& Applied,
+                            std::uint32_t Channel);
+    float RecordGeneratorBody(const PlaneExtent& Extent, TexturePaintContext& Applied,
+                              std::uint32_t Channel);
+    /// 🧩 One slot row: thumbnail, two runs and its actions.
+    float RecordSlotRow(const PlaneExtent& Extent, ThemeToken Tint, SymbolSubject Glyph,
+                        const char* Naming, const char* Meta, bool Filled);
+
     /// 🧩 Records one unfolded channel card and returns the height it took.
     float RecordChannelBody(const PlaneExtent& Extent, TexturePaintContext& Applied,
                             std::uint32_t Channel);
@@ -317,6 +340,10 @@ private:
     ControlIdentity ChannelDots[TextureChannelCeiling]   = {};
     ControlIdentity ChannelBlends[TextureChannelCeiling] = {};
     ControlIdentity ChannelOps[TextureChannelCeiling]    = {};
+    // 🧩 The generator picker and its knobs, one identity each: a control that is
+    //    never registered draws but refuses every contact.
+    ControlIdentity ChannelGenerators[TextureChannelCeiling] = {};
+    ControlIdentity ChannelParams[TextureChannelCeiling][TextureGeneratorParamMax] = {};
     ControlIdentity MaskRows[4]                          = {};
     ControlIdentity SettingRows[4]                       = {};
 

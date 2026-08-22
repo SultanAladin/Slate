@@ -121,6 +121,37 @@ struct TextureChannelSlot
 /// 🧩 The fourteen channels, in the reference's own order.
 const TextureChannelSlot& TextureChannelAt(std::uint32_t Ordinal);
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE GENERATORS
+//------------------------------------------------------------------------------------------------------------------------
+
+inline constexpr std::uint32_t TextureGeneratorCeiling  = 10u;  // [-] - Curvature … Brushed Metal
+inline constexpr std::uint32_t TextureGeneratorParamMax =  3u;  // [-] - the widest parameter set
+
+/// 🧩 One knob a generator offers.
+/// tag   contract
+struct TextureGeneratorParameter
+{
+    const char* Label   = "";    // [-] - the row's caption
+    double      Minimum = 0.0;   // [-]
+    double      Maximum = 1.0;   // [-]
+    double      Default = 0.5;   // [-] - what a freshly assigned generator reads
+};
+
+/// 🧩 One entry of GENERATOR_CATALOGUE, transcribed from the reference.
+/// tag   contract
+struct TextureGeneratorEntry
+{
+    const char*               Label      = "";   // [-] - the picker's run
+    const char*               Group      = "";   // [-] - Mask, Wear, Procedural
+    const char*               Note       = "";   // [-] - the one-line description
+    std::uint32_t             ParamCount = 0u;   // [-]
+    TextureGeneratorParameter Parameters[TextureGeneratorParamMax] = {};
+};
+
+/// 🧩 The ten generators, in the reference's own order and grouping.
+const TextureGeneratorEntry& TextureGeneratorAt(std::uint32_t Ordinal);
+
 /// 🧩 One row of the layer stack — the editor's own shape, richer than the shell's: folders carry
 ///    depth and enclosure, layers carry a small detail run, tags feed the search, and the mask's
 ///    source and density are stated on the row.
