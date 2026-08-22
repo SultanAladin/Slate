@@ -1329,12 +1329,12 @@ void SceneDirectoryPanel::RecordDetailOptions(const PlaneExtent& Extent, SceneDi
                                             Row.MinimumY + (Row.Height() - Toggle * 0.5f) * 0.5f,
                                             Toggle, Toggle * 0.5f);
 
-        Surface->Ground(Switch, State ? Tinted.EntityAccent : Tinted.Hairline,
-                        Toggle * 0.25f, CornerAll);
-
-        const float Knob = Toggle * 0.5f - 2.0f;
-        Surface->Medallion(State ? Switch.MaximumX - Knob - 1.0f : Switch.MinimumX + Knob + 1.0f,
-                           Switch.MinimumY + Toggle * 0.25f, Knob, Covering(0xFFFFFFu));
+        // 🔴 This drew its own pill: the nub was placed by a ternary, so it
+        //    jumped between the two ends instead of travelling, and its radius
+        //    was Toggle*0.5-2 rather than the shared proportion. The same switch
+        //    animated in the validation host and snapped here.
+        Controls.SwitchTrack(DetailOptions[Ordinal][Option], Switch, State,
+                             Tinted.EntityAccent, Tinted.Hairline, Covering(0xFFFFFFu));
 
         Surface->TextRun(Row.MinimumX + Scaled.PanePad * 2.0f,
                          Row.MinimumY + (Row.Height() - Scaled.RunPrimary) * 0.5f,

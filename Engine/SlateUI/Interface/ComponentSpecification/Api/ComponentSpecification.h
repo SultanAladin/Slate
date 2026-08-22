@@ -239,6 +239,18 @@ public:
     /// in    Taken  [-]  written on the tick the row resolves a tap
     /// cost  🚩
     /// tag   api, nonthrowing
+    /// 🧩 Draws the pill switch alone, for a caller that owns its own arbitration.
+    /// note  🔴 Identical in shape and animation to ControlPanel::SwitchTrack.
+    ///        LayerStackPanel hand-rolled this twice with a ternary nub and a
+    ///        fixed 5 px radius, so the switch snapped there while the same
+    ///        control travelled elsewhere. This holds no ControlPanel, so the
+    ///        helper is offered here too rather than pulling a whole panel in.
+    /// in    Extent  [px]  the switch's own extent
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    void SwitchTrack(ControlIdentity Target, const PlaneExtent& Extent, bool Taken,
+                     ThemeToken TrackTaken, ThemeToken TrackQuiet, ThemeToken Nub);
+
     ControlVerdict ToggleRow(ControlIdentity Target, const PlaneExtent& Row,
                              const ToggleDeclaration& Declared, bool& Taken);
 

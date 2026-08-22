@@ -2995,12 +2995,9 @@ void TexturePaintPanel::RecordMaskCard(const PlaneExtent& Extent, TexturePaintCo
                                         InvertRow.MinimumY + (RowY - Toggle * 0.5f) * 0.5f,
                                         Toggle, Toggle * 0.5f);
 
-    Surface->Ground(Switch, Inverted ? Tinted.EntityAccent : Tinted.Hairline,
-                    Toggle * 0.25f, CornerAll);
-
-    const float Knob = Toggle * 0.5f - 2.0f;
-    Surface->Medallion(Inverted ? Switch.MaximumX - Knob - 1.0f : Switch.MinimumX + Knob + 1.0f,
-                       Switch.MinimumY + Toggle * 0.25f, Knob, Covering(0xFFFFFFu));
+    // 🔴 Another hand-rolled copy of the pill; see ControlPanel::SwitchTrack.
+    Controls.SwitchTrack(MaskRows[2], Switch, Inverted,
+                         Tinted.EntityAccent, Tinted.Hairline, Covering(0xFFFFFFu));
 
     Surface->TextRun(InvertRow.MinimumX + Scaled.PanePad, InvertRow.MinimumY,
                      OnInvert ? Tinted.Primary : Tinted.Muted, "Invert", Scaled.RunSecondary);

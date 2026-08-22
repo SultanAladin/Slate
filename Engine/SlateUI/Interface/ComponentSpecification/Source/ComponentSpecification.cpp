@@ -748,6 +748,32 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Target, con
 //                                                      THE TOGGLE ROW
 //------------------------------------------------------------------------------------------------------------------------
 
+// 📐 The pill's proportions, stated once and matching ControlPanel::SwitchTrack:
+//    the nub is 11/16 of the track's radius and grows 1/16 more while roused,
+//    which is exactly the reference 32 px track's 11 -> 12 px nub.
+void ComponentSpecification::SwitchTrack(ControlIdentity Target, const PlaneExtent& Extent, bool Taken,
+                                         ThemeToken TrackTaken, ThemeToken TrackQuiet, ThemeToken Nub)
+{
+    if (Ledger == nullptr || Surface == nullptr)
+        return;
+
+    Ledger->DeclareTaken(Target, Taken, HoverDuration);
+
+    const float TakenFraction = Ledger->TakenFraction(Target);
+    const float HoverFraction = Ledger->HoveredFraction(Target);
+
+    const float Radius    = Extent.Height() * 0.5f;
+    const float NubQuiet  = Radius * (11.0f / 16.0f);
+    const float NubRoused = Radius * (12.0f / 16.0f);
+
+    Surface->Ground(Extent, Blend(TrackQuiet, TrackTaken, TakenFraction), Radius, CornerAll);
+
+    const float NubX      = Between(Extent.MinimumX + Radius, Extent.MaximumX - Radius, TakenFraction);
+    const float NubRadius = Between(NubQuiet, NubRoused, HoverFraction);
+
+    Surface->Medallion(NubX, Extent.MinimumY + Radius, NubRadius, Nub);
+}
+
 ControlVerdict ComponentSpecification::ToggleRow(ControlIdentity Target, const PlaneExtent& Row,
                                        const ToggleDeclaration& Declared, bool& Taken)
 {

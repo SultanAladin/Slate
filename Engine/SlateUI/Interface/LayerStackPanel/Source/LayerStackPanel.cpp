@@ -2901,9 +2901,13 @@ void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, LayerArran
             Mask.Inverted = !Mask.Inverted;
         }
 
-        Surface->Ground(Switch, Mask.Inverted ? Tinted.Accent : Partial(0xFFFFFFu, 0.09), 7.0f);
-        Surface->Medallion(Mask.Inverted ? Switch.MaximumX - 6.0f : Switch.MinimumX + 6.0f,
-                           Middle, 5.0f, Mask.Inverted ? Covering(0x000000u) : Tinted.Secondary);
+        // 🔴 A hand-rolled pill: the nub was placed by a ternary so it snapped
+        //    between ends, its radius was a fixed 5 px against the shared
+        //    proportion, and the track corner was 7 px against the shared half
+        //    height. See ComponentSpecification::SwitchTrack.
+        CardComponents.SwitchTrack(RowCells[static_cast<std::uint32_t>(RowCell::Body)],
+                                   Switch, Mask.Inverted,
+                                   Tinted.Accent, Partial(0xFFFFFFu, 0.09), Covering(0xFFFFFFu));
 
         Y += Scaled.FieldHeight;
     }
@@ -2951,9 +2955,11 @@ void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, LayerArran
                     Parameter.Current = Current ? 0.0 : 1.0;
                 }
 
-                Surface->Ground(Switch, Current ? Tinted.Accent : Partial(0xFFFFFFu, 0.09), 7.0f);
-                Surface->Medallion(Current ? Switch.MaximumX - 6.0f : Switch.MinimumX + 6.0f,
-                                   Middle, 5.0f, Current ? Covering(0x000000u) : Tinted.Secondary);
+                // 🔴 The second hand-rolled copy; same defect as the mask switch.
+                CardComponents.SwitchTrack(
+                    RowCells[Cells + static_cast<std::uint32_t>(RowCell::Presence)],
+                    Switch, Current,
+                    Tinted.Accent, Partial(0xFFFFFFu, 0.09), Covering(0xFFFFFFu));
             }
             else
             {

@@ -18,6 +18,19 @@ namespace Slate
 namespace
 {
 
+// 🧩 The pill switch, stated once. The figures are the reference control's:
+//    50 x 32 is 25/16 of its height, the nub sits 5 px inside the track's radius
+//    (16 - 11), and it grows 1 px while roused. Expressing them as ratios lets a
+//    compact row use the same control instead of hand-rolling a smaller one.
+constexpr float TrackHeight = 32.0f;         // [px] - the reference row's track
+constexpr float TrackAspect = 50.0f / 32.0f; // [-]  - width per unit of height
+// 🔴 A FIXED 5 px inset does not scale: on a 14 px track the radius is 7, so the
+//    nub would be 2 px and read as a dot rather than a switch. Stated as a
+//    fraction of the radius it holds its proportion at every size — 11/16 of the
+//    radius is exactly the reference nub.
+constexpr float NubFraction = 11.0f / 16.0f; // [-]  - nub radius per track radius
+constexpr float NubGrowth   = 1.0f / 16.0f;  // [-]  - growth per track radius while roused
+
 constexpr ThemeToken PanelGround     = Covering(0x101012u);
 constexpr ThemeToken FieldGround     = Covering(0x0A0A0Bu);
 constexpr ThemeToken ValueGround     = Covering(0x232326u);
@@ -249,19 +262,57 @@ ControlVerdict ControlPanel::SwitchToggle(ControlIdentity Target, const PlaneExt
     const float TakenFraction = Interaction->TakenFraction(Target);
     const float HoverFraction = Interaction->HoveredFraction(Target);
     const float CaptionX  = Extent.MinimumX;
-    const float TrackX    = Extent.MaximumX - 50.0f;
-    const PlaneExtent Track   = Spanning(TrackX, Extent.MinimumY, 50.0f, 32.0f);
+
+    // 🔴 The track was a fixed 50 x 32 regardless of the extent handed in, so a
+    //    compact row could not use this control and four panels hand-rolled their
+    //    own pill instead — each one snapping its nub with a ternary rather than
+    //    travelling it, and each with a different nub radius and track corner.
+    //    The geometry is proportional now: TrackHeight is the row's height capped
+    //    at the reference 32 px, and every other figure derives from it, so one
+    //    implementation serves both a 32 px settings row and a compact 14 px one.
+    const float TrackY   = (Extent.Height() < TrackHeight) ? Extent.Height() : TrackHeight;
+    const float TrackX   = TrackY * TrackAspect;
+    const float TrackTop = Extent.MinimumY + (Extent.Height() - TrackY) * 0.5f;
+    const PlaneExtent Track = Spanning(Extent.MaximumX - TrackX, TrackTop, TrackX, TrackY);
+
+    const float Radius   = TrackY * 0.5f;
+    const float NubQuiet  = Radius * NubFraction;
+    const float NubRoused = Radius * (NubFraction + NubGrowth);
 
     Recording->TextRun(CaptionX, CentredY(Extent, ReferenceText),
                        Blend(MutedColour, PrimaryColour, HoverFraction), Declared.Caption, ReferenceText);
-    Recording->Ground(Track, Blend(FieldGround, TrackTakenColour, TakenFraction), 16.0f, CornerAll);
-    Recording->Edge(Track, Blend(HairColour, StrongHairColour, HoverFraction), 1.0f, 16.0f, CornerAll);
+    Recording->Ground(Track, Blend(FieldGround, TrackTakenColour, TakenFraction), Radius, CornerAll);
+    Recording->Edge(Track, Blend(HairColour, StrongHairColour, HoverFraction), 1.0f, Radius, CornerAll);
 
-    const float NubX = Between(Track.MinimumX + 16.0f, Track.MaximumX - 16.0f, TakenFraction);
-    const float NubRadius = Between(11.0f, 12.0f, HoverFraction);
-    Recording->Medallion(NubX, Track.MinimumY + 16.0f, NubRadius, WhiteColour);
+    const float NubX = Between(Track.MinimumX + Radius, Track.MaximumX - Radius, TakenFraction);
+    const float NubRadius = Between(NubQuiet, NubRoused, HoverFraction);
+    Recording->Medallion(NubX, Track.MinimumY + Radius, NubRadius, WhiteColour);
 
     return Verdict;
+}
+
+void ControlPanel::SwitchTrack(ControlIdentity Target, const PlaneExtent& Extent, bool Taken,
+                               ThemeToken TrackTaken, ThemeToken TrackQuiet, ThemeToken Nub)
+{
+    if (Interaction == nullptr || Recording == nullptr)
+        return;
+
+    Interaction->DeclareTaken(Target, Taken, TakeDuration);
+
+    const float TakenFraction = Interaction->TakenFraction(Target);
+    const float HoverFraction = Interaction->HoveredFraction(Target);
+
+    // 📐 The same proportions SwitchToggle uses, so the two are one control.
+    const float Radius    = Extent.Height() * 0.5f;
+    const float NubQuiet  = Radius * NubFraction;
+    const float NubRoused = Radius * (NubFraction + NubGrowth);
+
+    Recording->Ground(Extent, Blend(TrackQuiet, TrackTaken, TakenFraction), Radius, CornerAll);
+
+    const float NubX      = Between(Extent.MinimumX + Radius, Extent.MaximumX - Radius, TakenFraction);
+    const float NubRadius = Between(NubQuiet, NubRoused, HoverFraction);
+
+    Recording->Medallion(NubX, Extent.MinimumY + Radius, NubRadius, Nub);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

@@ -156,6 +156,20 @@ public:
     /// 🧩 Presents one mutually exclusive sequence and writes the selected ordinal.
     /// cost  🚩
     /// tag   api, nonthrowing
+    /// 🧩 Draws the pill switch alone, for a caller that owns its own arbitration.
+    /// note  🔴 Four panels hand-rolled this shape because SwitchToggle also does
+    ///        the hit-testing and they already had their own. Each copy snapped
+    ///        its nub with a ternary instead of travelling it on the taken
+    ///        fraction, and each chose a different nub radius, so the same switch
+    ///        animated in one pane and jumped in another. This draws exactly what
+    ///        SwitchToggle draws and decides nothing.
+    /// in    Extent  [px]  the switch's own extent, not the whole row
+    /// in    Taken   [-]   the reading to present
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    void SwitchTrack(ControlIdentity Target, const PlaneExtent& Extent, bool Taken,
+                     ThemeToken TrackTaken, ThemeToken TrackQuiet, ThemeToken Nub);
+
     ControlVerdict SegmentedChoice(ControlIdentity Target, const PlaneExtent& Extent,
                                    const SegmentDeclaration& Declared, std::uint32_t& TakenOrdinal);
 
