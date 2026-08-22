@@ -332,6 +332,14 @@ private:
     float RecordGeneratorBody(const PlaneExtent& Extent, TexturePaintContext& Applied,
                               std::uint32_t Channel);
 public:
+    /// 🧩 The action bar's cell extents as the panel actually laid them out this tick,
+    ///    so a proof harness presses the real geometry instead of recomputing it and
+    ///    testing its own arithmetic. Reads state; changes nothing.
+    static constexpr std::uint32_t BarCellCeiling = 13u;
+    PlaneExtent   ProofBarCell(std::uint32_t Ordinal) const
+    { return Ordinal < BarCellCeiling ? BarCells[Ordinal] : PlaneExtent{}; }
+    std::uint32_t ProofBarCellCount() const { return BarCellTally; }
+
     /// 🧩 Which eased slot the carousel travels on, so a proof harness can read the
     ///    fraction rather than guessing an ordinal. Reads state; changes nothing.
     std::uint32_t ProofPageMotion() const { return PageMotion; }
@@ -404,6 +412,8 @@ private:
     FacetPanel                  ChannelFacets = {};      // [-] - the properties page's channel filter
     FacetPanel                  MaskFacets    = {};      // [-] - the mask's target channels
 
+    PlaneExtent                 BarCells[13]  = {};      // [-] - where the bar drew its cells
+    std::uint32_t               BarCellTally  = 0u;      // [-] - how many stood this tick
     std::uint32_t               PageMotion    = 0u;      // [-] - the carousel's eased travel
     std::uint32_t               PageDeparted  = 0u;      // [-] - which page the travel began from
     std::uint32_t               PageArriving  = 0u;      // [-] - which page it is bound for

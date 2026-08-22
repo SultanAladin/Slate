@@ -1682,29 +1682,33 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
 
     Ledger->DeclareHovered(LayerContacts[Ordinal], Hovered, HoverOver);
 
-    // ② The entry tag — the 3 px colour rail, dotted for a mask, dimmed for a hidden row.
+    // ② The entry tag — the reference's `.tag`: a solid 3 px colour rail, dimmed to
+    //    0.3 while the row is withheld (`.entry.off .tag`).
     const std::uint32_t TagHue = Applied.LayerTagHue[Ordinal] != 0u
                                ? Applied.LayerTagHue[Ordinal] : Current.TagHue;
 
-    if (Applied.MaskAttached[Ordinal])
-    {
-        // 📐 The reference's `.tag.dot`.
-        // 🔴 3 px on / 4 px off drew a rail of stubby DASHES, not dots — at a 45 px
-        //    row that is six fat blocks and it read as a broken bar rather than as a
-        //    dotted one. 2 px on / 3 px off at the same coverage gives nine finer
-        //    marks over the same run, which is what a dotted rail should look like.
-        for (float Y = Row.MinimumY + 1.0f; Y < Row.MinimumY + Scaled.LayerRowY; Y += 5.0f)
-        {
-            Surface->Ground(Spanning(Row.MinimumX, Y, Scaled.LayerTagX,
-                                     std::min(2.0f, Row.MinimumY + Scaled.LayerRowY - Y)),
-                            Faded(Covering(TagHue), (Absent ? 0.3f : 0.85f)), 0.0f, CornerNone);
-        }
-    }
-    else
-    {
-        Surface->Ground(Spanning(Row.MinimumX, Row.MinimumY, Scaled.LayerTagX, Scaled.LayerRowY),
-                        Faded(Covering(TagHue), Absent ? 0.3f : 1.0f), 0.0f, CornerNone);
-    }
+    // 🔴 THE WRONG ENTRY WAS DOTTED. LayerstackV1.html gives every layer entry a
+    //    plain `<span class="tag">` and reserves `class="tag dot"` for the ATTACHED
+    //    MASK entry alone:
+    //
+    //        <div class="entry" …><span class="tag"></span>            ← layer, solid
+    //        <div class="attach"><div class="entry" …>
+    //            <span class="tag dot"></span>                          ← mask, dotted
+    //
+    //    This dotted the LAYER's rail whenever the layer happened to carry a mask,
+    //    so a masked layer lost its solid rail and the stack grew a column of broken
+    //    bars the reference does not have. The dotting says "this row is the mask",
+    //    not "this row has one" — and the mask row draws its own rail directly
+    //    beneath, which is where the reader is meant to see it.
+    //
+    //    🟡 And my previous pass made it worse rather than better: told the dots
+    //       looked wrong, I retuned them to 2 px on / 3 px off without re-reading
+    //       the sheet. The rhythm was never the defect — 3 px on / 4 px off is
+    //       exactly what `repeating-linear-gradient(180deg, var(--c) 0 3px,
+    //       transparent 3px 7px)` states. Guessing at a figure the reference
+    //       already gives is how a port drifts.
+    Surface->Ground(Spanning(Row.MinimumX, Row.MinimumY, Scaled.LayerTagX, Scaled.LayerRowY),
+                    Faded(Covering(TagHue), Absent ? 0.3f : 1.0f), 0.0f, CornerNone);
 
     // ③ The row ground — the reference's `#0d0d0d` row, its hover, and the selected pose.
     if (Taken)
@@ -2012,12 +2016,21 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
     const std::uint32_t TagHue = Applied.LayerTagHue[Ordinal] != 0u
                                ? Applied.LayerTagHue[Ordinal] : Current.TagHue;
 
-    // 📐 The same finer dotting as the layer rail above — the two must match, since
-    //    they are the same mark meaning the same thing on adjacent rows.
-    for (float Y = Row.MinimumY + 1.0f; Y < Row.MinimumY + Row.Height(); Y += 5.0f)
+    // 📐 The reference's `.tag.dot`, and the ONLY place it belongs:
+    //        repeating-linear-gradient(180deg, var(--c) 0 3px, transparent 3px 7px)
+    //    — a 7 px period carrying 3 px of colour, the whole rail at 0.85 opacity.
+    //    The figures are the sheet's, not retuned by eye.
+    const float DotPeriod = 7.0f;
+    const float DotLength = 3.0f;
+
+    for (float Y = Row.MinimumY; Y < Row.MinimumY + Row.Height(); Y += DotPeriod)
     {
-        Surface->Ground(Spanning(Row.MinimumX, Y, Scaled.LayerTagX,
-                                 std::min(2.0f, Row.MinimumY + Row.Height() - Y)),
+        const float Reach = std::min(DotLength, Row.MinimumY + Row.Height() - Y);
+
+        if (Reach <= 0.0f)
+            break;
+
+        Surface->Ground(Spanning(Row.MinimumX, Y, Scaled.LayerTagX, Reach),
                         Faded(Covering(TagHue), Absent ? 0.3f : 0.85f), 0.0f, CornerNone);
     }
 
@@ -2381,6 +2394,8 @@ void TexturePaintPanel::RecordStackFooter(const PlaneExtent& Footer, TexturePain
     //    layout no longer lays out.
     {
         const PlaneExtent AddCell = Spanning(Lead, ButtonTop, ButtonY, ButtonY);
+        BarCellTally = 0u;
+        BarCells[BarCellTally++] = AddCell;
         const bool OnAdd = AddCell.Encloses(Sampled.PositionX, Sampled.PositionY);
 
         Surface->Ground(AddCell, OnAdd ? Faded(Covering(0xFFFFFFu), 0.16f)
@@ -2420,14 +2435,22 @@ void TexturePaintPanel::RecordStackFooter(const PlaneExtent& Footer, TexturePain
         bool            Always;
     };
 
-    const BarCell Bar[12] =
+    // 🔴 THE BAR'S FIRST SIX CELLS WERE THE + MENU, SPELLED TWICE. Paint, Fill,
+    //    Adjustment, Filter, Decal and Pattern are exactly the six declarations the
+    //    Add menu offers — same requests, same glyphs, two places to press for one
+    //    outcome, and the menu names them in words while the bar left the artist to
+    //    infer six icons. Withdrawn: adding a layer is the + button's job.
+    //
+    //    📐 Measured before removing them, not assumed — proof/BarMain.cpp presses
+    //    every cell through the real pointer path and reports what the row set did:
+    //    all thirteen acted, so none of these were decorations. They were duplicates,
+    //    which is a different fault and the one worth fixing.
+    //
+    //    What remains is what the + menu does NOT offer, because it acts on the row
+    //    already taken rather than declaring a new one: group it, duplicate it, lock
+    //    it, reorder it, delete it.
+    const BarCell Bar[6] =
     {
-        { SymbolSubject::PaintBristle,      static_cast<std::uint32_t>(TexturePaintRequest::AddPaint),      true  },
-        { SymbolSubject::DropletDrop,       static_cast<std::uint32_t>(TexturePaintRequest::AddFill),       true  },
-        { SymbolSubject::AdjustmentSliders, static_cast<std::uint32_t>(TexturePaintRequest::AddAdjustment), true  },
-        { SymbolSubject::FilterFunnel,      static_cast<std::uint32_t>(TexturePaintRequest::AddFilter),     true  },
-        { SymbolSubject::StencilDecal,      static_cast<std::uint32_t>(TexturePaintRequest::AddDecal),      true  },
-        { SymbolSubject::TiledPattern,      static_cast<std::uint32_t>(TexturePaintRequest::AddPattern),    true  },
         { SymbolSubject::FolderClosed,      static_cast<std::uint32_t>(TexturePaintRequest::Group),         false },
         { SymbolSubject::CopyDuplicate,     static_cast<std::uint32_t>(TexturePaintRequest::Duplicate),     false },
         { SymbolSubject::LockClosed,        0x80000001u,                                                    false },
@@ -2436,21 +2459,23 @@ void TexturePaintPanel::RecordStackFooter(const PlaneExtent& Footer, TexturePain
         { SymbolSubject::TrashBin,          static_cast<std::uint32_t>(TexturePaintRequest::Delete),        false }
     };
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 12u; ++Ordinal)
+    for (std::uint32_t Ordinal = 0u; Ordinal < 6u; ++Ordinal)
     {
-        if (Ordinal == 4u || Ordinal == 6u || Ordinal == 10u)
+        // 📐 One separator before the reorder pair and one before the bin, so the
+        //    bar reads as three groups: shape it, move it, remove it.
+        if (Ordinal == 3u || Ordinal == 5u)
         {
             Surface->Ground(Spanning(Lead + 5.0f, VSepY, 1.0f, 17.0f),
                             Tinted.Hairline, 0.0f, CornerNone);
             Lead += 11.0f;
         }
 
-        if (Ordinal == 9u)
-            Lead += 14.0f;   // 📐 the reference's `.gap` before the reorder pair
-
         const PlaneExtent Cell = Spanning(Lead, ButtonTop, ButtonY, ButtonY);
 
-        if (Ordinal == 8u)
+        if (BarCellTally < 13u)
+            BarCells[BarCellTally++] = Cell;
+
+        if (Ordinal == 2u)
         {
             // 📐 The lock toggles the taken row's lock — a working copy, never a structural request.
             const bool Locked = Selection && Applied.LayerLocked[Taken];
