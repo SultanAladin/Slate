@@ -140,6 +140,17 @@ public:
     /// tag   api, nonallocating, nonthrowing
     void RecordDeferredPopups(PanelStructure& Partition, EditorPanelConfiguration& Configuration);
 
+    /// 🧩 Whether any popup (subject, division, lattice, shading or gizmo menu) stands right now.
+    /// note  🔴 The GPU overlay pass records AFTER the interface, so an open popup would be painted
+    ///        over by the grid and the axes — the reported "the lines draw on the menus". The host
+    ///        tests this and withholds the leaf overlays while a popup stands.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    bool AnyPopupStanding() const
+    {
+        return DisclosedPresentation != AbsentPresentation;
+    }
+
 private:
 
     static constexpr std::uint32_t AbsentPresentation = 0xFFFFFFFFu;

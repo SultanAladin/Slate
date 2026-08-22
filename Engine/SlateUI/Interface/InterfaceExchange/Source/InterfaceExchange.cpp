@@ -201,7 +201,6 @@ void InterfaceExchange::Reclaim()
     ImGui::DestroyContext(static_cast<ImGuiContext*>(ContextSlot));
 
     NativeWindow = nullptr;
-    LookCaptureStanding = false;
 
     if (DescriptorSlot != VK_NULL_HANDLE)
     {
@@ -252,22 +251,10 @@ Outcome<bool> InterfaceExchange::Seal()
     LeaveWorkspaceWindow();
     ImGui::Render();
 
-    // 📐 The look gesture's cursor warp, AFTER the frame ended. `ImGui::Render()` ended the frame and
-    //    captured `MousePosPrev` from the pre-warp position, so warping now — `glfwSetCursorPos`
-    //    synchronously fires the cursor callback, which sets `io.MousePos` to the centre — cannot
-    //    corrupt the NEXT frame's `io.MouseDelta`, which is `polled_position - MousePosPrev`. That is
-    //    the whole point of warping here and never through the backend's `WantSetMousePos` (see
-    //    `CameraInput`).
-    if (LookCaptureStanding && NativeWindow != nullptr)
-    {
-        GLFWwindow* const Window = static_cast<GLFWwindow*>(NativeWindow);
-        int WindowWidth  = 0;
-        int WindowHeight = 0;
-        glfwGetWindowSize(Window, &WindowWidth, &WindowHeight);
-        glfwSetCursorPos(Window, static_cast<double>(WindowWidth) * 0.5,
-                         static_cast<double>(WindowHeight) * 0.5);
-    }
-
+    // 📝 The look gesture's cursor warp is NOT here — it runs inside `CameraInput`, mid-frame,
+    //    before `Render()` captures `MousePosPrev` (see that function's lesson). A warp after
+    //    `Render()` makes the next frame's delta measure from the pre-warp position, not the centre,
+    //    and the camera stops turning.
     TickOpen         = false;
     ContentAssembled = true;
 
@@ -864,33 +851,54 @@ CameraCondition InterfaceExchange::CameraInput()
     //    camera's turn, exactly as the reference fly-cams read it.
     Current.LookHeld = ImGui::IsMouseDown(ImGuiMouseButton_Right);
 
-    // 🔴 Unreal-style capture: while the gesture stands the OS cursor is warped back to the window's
-    //    centre every tick, so the turn is UNBOUNDED — a cursor that reaches the window edge would
-    //    otherwise stop the yaw there, which is the "limited turn" a fly camera must never have.
-    //    🔴 The warp does NOT go through `WantSetMousePos` and never touches `io.MousePos` here. The
-    //    backend honours `WantSetMousePos` at the start of the NEXT `ImGui_ImplGlfw_NewFrame`, and
-    //    `glfwSetCursorPos` fires the cursor-position callback synchronously — so the warp would set
-    //    `io.MousePos` to the centre BEFORE `ImGui::NewFrame()` computes `io.MouseDelta`, making the
-    //    accumulated delta read ZERO on every held frame: the "the look does nothing" defect. The warp
-    //    instead runs in `Seal()`, AFTER the frame ended, when `MousePosPrev` is already captured —
-    //    the next frame's delta then measures the artist's motion from the centre, continuously.
-    //    🔴 The turn reads the vendor's ACCUMULATED delta: the artist's motion from the centre every
-    //    frame, so holding the button and dragging turns continuously — never the pointer's departure
-    //    from the centre, which with the warp in place is non-zero only on the press frame (the
-    //    "turns then stops" defect).
-    LookCaptureStanding = Current.LookHeld;
+    // 🔴 THE LOOK TRACKS THE OS CURSOR ITSELF and never reads `io.MouseDelta`. ImGui's delta is
+    //    computed at `NewFrame` from the position the backend's cursor callback reported at the last
+    //    `glfwPollEvents`, and ANY cursor warp — through the backend's `WantSetMousePos` (applied at
+    //    the next backend NewFrame, clobbering the just-polled motion) or from `Seal()` after
+    //    `Render()` (MousePosPrev is captured BEFORE the warp, so the next delta measures from the
+    //    pre-warp position, not the centre) — makes the delta read zero or alternating and the
+    //    camera "struggles to rotate" (the recurring defect). So the seam reads `glfwGetCursorPos`
+    //    directly, measures against its own previous sample, and warps the OS cursor to the window
+    //    centre mid-frame; `glfwSetCursorPos` synchronously fires the backend's callback, which
+    //    QUEUES the centre as the next mouse event — exactly what makes the artist's next motion
+    //    measure from the centre, continuously, while the panels never see a wrong pointer.
+    if (NativeWindow != nullptr)
+    {
+        GLFWwindow* const Window = static_cast<GLFWwindow*>(NativeWindow);
+        double CursorX = 0.0;
+        double CursorY = 0.0;
+        glfwGetCursorPos(Window, &CursorX, &CursorY);
 
-    if (Current.LookHeld)
-    {
-        Current.LookDeltaX = Sampled.MouseDelta.x;
-        Current.LookDeltaY = Sampled.MouseDelta.y;
-        ImGui::SetMouseCursor(ImGuiMouseCursor_None);
-    }
-    else
-    {
-        // 📝 The capture is released with the gesture: the warp stops, the cursor reappears, and the
-        //    artist's next click lands where the pointer actually is.
-        ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
+        if (Current.LookHeld)
+        {
+            Current.LookDeltaX = static_cast<float>(CursorX - LookLastX);
+            Current.LookDeltaY = static_cast<float>(CursorY - LookLastY);
+
+            int WindowWidth  = 0;
+            int WindowHeight = 0;
+            glfwGetWindowSize(Window, &WindowWidth, &WindowHeight);
+
+            const double CentreX = static_cast<double>(WindowWidth)  * 0.5;
+            const double CentreY = static_cast<double>(WindowHeight) * 0.5;
+
+            // 🔴 The warp runs HERE, mid-frame — after the panels recorded (they sample the pointer
+            //    through `io.MousePos`, which still holds the real position) and before `Render()`
+            //    captures `MousePosPrev` from it. The queued centre event is processed at the next
+            //    NewFrame AFTER the next poll's motion event, so the panels keep the true pointer.
+            glfwSetCursorPos(Window, CentreX, CentreY);
+            LookLastX = CentreX;
+            LookLastY = CentreY;
+
+            ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+        }
+        else
+        {
+            // 📝 The capture is released with the gesture: no warp, and the tracking follows the
+            //    cursor so the next press starts from where the pointer actually is.
+            LookLastX = CursorX;
+            LookLastY = CursorY;
+            ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
+        }
     }
 
     return Current;

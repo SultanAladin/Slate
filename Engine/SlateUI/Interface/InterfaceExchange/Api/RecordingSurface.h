@@ -103,13 +103,12 @@ struct DisplayCondition
 };
 
 /// 🧩 The editor camera's per-tick input: which movement keys are HELD (not edge-triggered), and the
-///    look gesture — the right button held, with the pointer warped to the display centre AFTER each
-///    frame ends (the warp never touches the vendor's delta; see `InterfaceExchange::CameraInput`).
+///    look gesture — the right button held, with the OS cursor warped to the window centre every
+///    tick by the seam's own tracking (see `InterfaceExchange::CameraInput`).
 /// note  🔴 Held, not pressed. Camera movement is continuous: a key that fired once per arrival would
 ///        move the camera a step per press and stand still while the key is down. The look delta is
-///        the vendor's ACCUMULATED per-frame mouse delta — the artist's motion from the centre each
-///        frame, positive rightward and downward — which is what makes the turn unbounded instead of
-///        stopping at the window edge.
+///        the seam's own cursor tracking — the artist's motion from the centre each frame, positive
+///        rightward and downward — never `io.MouseDelta`, which every cursor warp corrupts.
 /// tag   contract, nonallocating, nonthrowing
 struct CameraCondition
 {

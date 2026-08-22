@@ -270,11 +270,9 @@ private:
     void*                ContextSlot       = nullptr;          // [-] - opaque; the ImGui spelling stays in
                                                                //       the source file
     void*                NativeWindow      = nullptr;          // [-] - the window system's handle, retained for
-                                                               //       the look gesture's cursor warp at frame end
-    bool                 LookCaptureStanding = false;          // [-] - the right-button look gesture stood this
-                                                               //       tick; the warp runs AFTER the frame ends so
-                                                               //       the vendor's accumulated mouse delta is never
-                                                               //       clobbered before NewFrame reads it
+                                                               //       the look gesture's cursor warp
+    double               LookLastX         = 0.0;              // [-] - the look gesture's own cursor tracking,
+    double               LookLastY         = 0.0;              //       never ImGui's delta (see CameraInput)
     bool                 TickOpen          = false;            // [-] - Advance delivered, Seal has not
     bool                 ContentAssembled  = false;            // [-] - Seal delivered, Record has not
     bool                 WindowAttached    = false;            // [-] - the window system attachment stands

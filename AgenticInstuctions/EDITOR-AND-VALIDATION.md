@@ -81,20 +81,25 @@ prototype of the WHOLE reference sheet                    the real editor layout
   the right mouse button and drag to look**. The look gesture CAPTURES the
   cursor: while held, the OS cursor is warped to the display centre every tick,
   so the turn is unbounded — it never stops at the window edge.
-  🔴 The look reads the vendor's ACCUMULATED mouse delta, never the pointer's
-  departure from the centre (with the warp in place the departure is non-zero
-  only on the press frame — the "turns then stops" defect), and it is NOT gated
-  on `WantCaptureKeyboard` (a hovered window raises it, which would stop the
+  🔴 The look reads the SEAM'S OWN CURSOR TRACKING, never `io.MouseDelta` and
+  never the pointer's departure from the centre. It is NOT gated on
+  `WantCaptureKeyboard` (a hovered window raises it, which would stop the
   camera over any panel). Only text input gates the movement keys.
-  🔴 WARP TIMING LESSON (do not regress): the cursor warp must run AFTER the
-  frame ends — `InterfaceExchange::Seal()`, once `ImGui::Render()` has captured
-  `MousePosPrev`. Warping through the backend's `WantSetMousePos` fires
-  `glfwSetCursorPos` at the start of the NEXT `ImGui_ImplGlfw_NewFrame`, and
-  that call synchronously invokes the cursor callback, setting `io.MousePos` to
-  the centre BEFORE `ImGui::NewFrame()` computes `io.MouseDelta` — the
-  accumulated delta reads ZERO on every held frame and the look does nothing
-  (the recurring "camera movement is bugged"). The seam warps directly in
-  `Seal()` and never touches `io.MousePos` mid-tick.
+  🔴 WARP TIMING LESSON (do not regress — this has broken the camera three
+  times): the look gesture must NOT read `io.MouseDelta`, because EVERY cursor
+  warp corrupts it:
+    - through the backend's `WantSetMousePos`, the warp fires
+      `glfwSetCursorPos` at the start of the NEXT `ImGui_ImplGlfw_NewFrame`,
+      clobbering the just-polled motion — delta reads zero;
+    - from `Seal()` after `ImGui::Render()`, `MousePosPrev` is captured BEFORE
+      the warp, so the next delta measures from the pre-warp position, not the
+      centre — the camera turns once, then stops.
+  The correct pattern is in `InterfaceExchange::CameraInput`: read
+  `glfwGetCursorPos` directly, measure against the seam's own previous sample
+  (`LookLastX/LookLastY`), then warp to the window centre mid-frame (the
+  callback QUEUES the centre event, processed at the next NewFrame after the
+  next poll's motion — panels keep the true pointer, the camera turns
+  continuously, unbounded).
 - **Camera lag**: the rig eases position and yaw/pitch toward the target with
   an exponential time constant (0.18 s). Toggle it in the camera's details
   (Camera Lag); Invert Pitch is the second toggle. The viewport crop reads the
@@ -289,6 +294,16 @@ its own pass inside the host's dynamic-rendering scope, AFTER the interface.
   lose its overlay; the CPU cost is paid only when the GPU pass is absent. The
   harness's `editor-overlay-fallback` proves the fallback pixels (axes hues,
   lattice ink, the gizmo's white handle, zero bleed outside the leaf).
+  🔴 POPUP LESSON: the GPU overlay pass records AFTER the interface, so an open
+  editor popup (grid settings, subject menu, ...) would be painted over by the
+  grid and the axes — the reported "the lines draw on the ImGui menus". The
+  host tests `EditorPanel::AnyPopupStanding()` and withholds every leaf overlay
+  while a popup stands; the interface fallback never needs the gate (popups
+  record after it inside the same pass).
+  🔴 When the pass is off, the host now says WHY: the console prints the
+  refusal reason (shader streams not found / pass rejected) and that the
+  interface fallback is drawing; when the pass stands it prints "overlay pass
+  standing: the grid, the axes and the gizmo draw on the GPU".
 - 🔴 SHADER DIRECTORY LESSON: `ShaderStreamDirectory()` resolves from the
   EXECUTABLE's own location (`GetModuleFileNameW` / `/proc/self/exe`), never
   from `current_path()` — a host launched from a shortcut or a console at

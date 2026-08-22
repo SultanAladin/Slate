@@ -534,17 +534,39 @@ int main(int ArgumentCount, char** ArgumentValues)
 
     // 📝 The overlay pass — the grid, the gizmo and the wireframe drawn on the GPU in their own
     //    straight-alpha pass. The lowered streams live at `<Binary>/../Shader` (the build's output
-    //    root); a build that lowered nothing (the sandbox) refuses here and the editor runs without
-    //    the overlay rather than failing.
-    if (!OverlayCodec.Construct(Lifetime.DeviceExchange(), ShaderStreamDirectory()).Resolved)
+    //    root); a build that lowered nothing (the sandbox) refuses here and the editor draws the
+    //    SAME geometry through the interface instead (the fallback), so the grid is never absent.
+    const Outcome<bool> CodecOutcome =
+        OverlayCodec.Construct(Lifetime.DeviceExchange(), ShaderStreamDirectory());
+
+    if (!CodecOutcome.Resolved)
     {
-        std::printf("%s \u2014 the overlay shader streams were not found; the grid and gizmo are off\n",
-                    HostName);
+        std::printf("%s \u2014 the overlay shader streams were not found (reason %u: %s); "
+                    "drawing the grid and axes through the interface fallback\n",
+                    HostName,
+                    static_cast<unsigned>(CodecOutcome.Error.DeclaredReason),
+                    CodecOutcome.Error.Detail);
     }
-    else if (!Overlay.Construct(Lifetime.DeviceExchange(), Lifetime.DiagnosticsExtension(),
-                                OverlayCodec, Lifetime.Offering().ColourTargetFormat).Resolved)
+    else
     {
-        std::printf("%s \u2014 the overlay pass was rejected; the grid and gizmo are off\n", HostName);
+        const Outcome<bool> PassOutcome = Overlay.Construct(Lifetime.DeviceExchange(),
+                                                            Lifetime.DiagnosticsExtension(),
+                                                            OverlayCodec,
+                                                            Lifetime.Offering().ColourTargetFormat);
+
+        if (!PassOutcome.Resolved)
+        {
+            std::printf("%s \u2014 the overlay pass was rejected (reason %u: %s); "
+                        "drawing the grid and axes through the interface fallback\n",
+                        HostName,
+                        static_cast<unsigned>(PassOutcome.Error.DeclaredReason),
+                        PassOutcome.Error.Detail);
+        }
+        else
+        {
+            std::printf("%s \u2014 overlay pass standing: the grid, the axes and the gizmo draw on the GPU\n",
+                        HostName);
+        }
     }
 
     // 🔴 The browser carries its OWN ledger, as every panel here does, so its registration cannot exhaust the
@@ -1113,6 +1135,12 @@ int main(int ArgumentCount, char** ArgumentValues)
                 //    Each viewport leaf's geometry is uploaded at most once per generation change
                 //    and drawn with a scissor clipped to that leaf's box, so the overlay never
                 //    paints over the outliner, the properties or any other panel.
+                //    🔴 While an editor popup (the grid-settings menu, the subject menu, ...) stands,
+                //    the leaf overlays are withheld: the pass records AFTER the interface, so an
+                //    unwithheld overlay would paint the grid and the axes OVER the open menu — the
+                //    reported "the lines draw on the ImGui menus".
+                const bool OverlayWithheld = WorkspacePanels.AnyPopupStanding();
+
                 for (std::uint32_t ViewportOrdinal = 0u; ViewportOrdinal < ViewportLeafTally;
                      ++ViewportOrdinal)
                 {
@@ -1124,6 +1152,9 @@ int main(int ArgumentCount, char** ArgumentValues)
                         Overlay.Upload(LeafOverlay);
                         OverlayGeneration[LeafOrdinal] = LeafOverlay.Generation;
                     }
+
+                    if (OverlayWithheld)
+                        continue;
 
                     const PlaneExtent& LeafRect = ViewportLeafRects[ViewportOrdinal];
 

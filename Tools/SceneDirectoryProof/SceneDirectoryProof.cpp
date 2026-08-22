@@ -862,7 +862,10 @@ struct SceneDriver
             }
         }
 
-        if (!SkipOverlayRaster)
+        // 🔴 The GPU pass's CPU twin is withheld exactly as the host withholds the real pass: while an
+        //    editor popup stands, the overlay would paint the grid and the axes OVER the open menu —
+        //    the reported "the lines draw on the ImGui menus" (see the host's `OverlayWithheld`).
+        if (!SkipOverlayRaster && !Editor.AnyPopupStanding())
         {
             Out.RasterizeOverlay(Applied.Overlay,
                                  ViewportClip.MinimumX, ViewportClip.MinimumY,
@@ -1099,6 +1102,94 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         if (LatticeDots < 200u || LatticeLines <= LatticeDots)
         {
             std::fprintf(stderr, "[FAIL] the lattice presentation did not change the render\n");
+            return false;
+        }
+
+        // 📐 PART THREE — the popup gate: the GPU overlay records AFTER the interface, so an open
+        //    editor popup would be painted over by the grid and the axes (the reported "the lines
+        //    draw on the ImGui menus"). The host withholds every leaf overlay while any popup
+        //    stands; this asserts the same gate on the CPU twin: open the viewport footer's Grid
+        //    menu, and the captured render must carry NO overlay ink at all.
+        const PlaneExtent WorkspaceBody = Driver.Workspace.Body();
+        const float FooterY0 = WorkspaceBody.MaximumY - 48.0f;   // [-] - EditorPanelMeasure.FooterHeight
+        const float GridButtonX = WorkspaceBody.MinimumX + 16.0f + 92.0f + 12.0f + 36.0f;
+        const float GridButtonY = FooterY0 + 10.0f + 14.0f;
+
+        Driver.Tick(GridButtonX, GridButtonY, true, true, false);
+        Driver.Tick(GridButtonX, GridButtonY, false, false, true);
+        Driver.Settle(2);
+
+        std::fprintf(stderr, "[assert] grid menu open: %d\n",
+                     Driver.Editor.AnyPopupStanding() ? 1 : 0);
+
+        if (!Driver.Editor.AnyPopupStanding())
+        {
+            std::fprintf(stderr, "[FAIL] the Grid menu did not stand open\n");
+            return false;
+        }
+
+        const std::string MenuOpenPath = "_AgentScratch/grid-menu-open.png";
+        if (!Driver.Capture(MenuOpenPath.c_str(), Atlas, AtlasWidth, AtlasHeight))
+            return false;
+
+        {
+            int ReadWidth = 0;
+            int ReadHeight = 0;
+            int ReadChannels = 0;
+            unsigned char* ReadPixels = stbi_load(MenuOpenPath.c_str(), &ReadWidth, &ReadHeight,
+                                                  &ReadChannels, 4);
+
+            if (ReadPixels == nullptr)
+            {
+                std::fprintf(stderr, "[FAIL] the grid-menu capture would not read back\n");
+                return false;
+            }
+
+            std::uint32_t OverlayInk = 0u;
+
+            for (int Y = 70; Y < ReadHeight; ++Y)
+            {
+                for (int X = 0; X < 637; ++X)
+                {
+                    const std::size_t Offset = (static_cast<std::size_t>(Y) * ReadWidth + X) * 4u;
+                    const int R = ReadPixels[Offset + 0u];
+                    const int G = ReadPixels[Offset + 1u];
+                    const int B = ReadPixels[Offset + 2u];
+
+                    // 📐 Only the OVERLAY's unique hues count — the axes' full-opacity red/green/blue.
+                    //    The menu's own white knobs and text must not count, so the white handle
+                    //    predicate is deliberately absent here.
+                    const bool AxisRed   = R > 160 && G < 110 && B < 110 && (R - G) > 60;
+                    const bool AxisGreen = G > 110 && R < 110 && B < 110 && (G - R) > 40;
+                    const bool AxisBlue  = R < 90 && G < 130 && B > 170 && (B - R) > 110;
+
+                    if (AxisRed || AxisGreen || AxisBlue)
+                        ++OverlayInk;
+                }
+            }
+
+            stbi_image_free(ReadPixels);
+
+            std::fprintf(stderr, "[assert] overlay ink with the Grid menu open: %u\n", OverlayInk);
+
+            if (OverlayInk != 0u)
+            {
+                std::fprintf(stderr, "[FAIL] the grid drew over the open menu\n");
+                return false;
+            }
+        }
+
+        // 📐 Closing the menu restores the overlay — the gate is not a switch that stays off.
+        Driver.Tick(GridButtonX, GridButtonY, true, true, false);
+        Driver.Tick(GridButtonX, GridButtonY, false, false, true);
+        Driver.Settle(2);
+
+        std::fprintf(stderr, "[assert] grid menu closed: %d\n",
+                     Driver.Editor.AnyPopupStanding() ? 1 : 0);
+
+        if (Driver.Editor.AnyPopupStanding())
+        {
+            std::fprintf(stderr, "[FAIL] the Grid menu did not close\n");
             return false;
         }
     }
