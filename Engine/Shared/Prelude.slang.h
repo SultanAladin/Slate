@@ -28,12 +28,21 @@
 #define SLATE_INOUT(TypeName)                          inout TypeName
 #define SLATE_INOUT_SPAN(TypeName, SpanName, Capacity) inout TypeName SpanName[Capacity]
 
-// 📝 The two component spellings a resident surface is declared and sampled through, and the **only** ones. They
+// 📝 The component spellings a resident surface is declared and sampled through, and the **only** ones. They
 //    are device-side alone and deliberately have no host counterpart: everything under `Shared/` is scalar
 //    throughout, so a host form would be a spelling nothing in shared source is permitted to reach for. A surface
 //    of four components must say so at its declaration — `Texture2D<Real32>` samples one component and silently
 //    delivers red where three were meant, which reads as a monochrome sky rather than as a mistake.
+//
+// 📝 🔴 `Real32x3` was USED before it was DECLARED. `OverlayFragment.slang`'s analytic ground names it eight
+//    times — the eye, the camera basis, the pixel's ray and the lattice tone are all three-component — and this
+//    file declared only the two- and four-component widths, so slangc rejected the unit with eight
+//    `undefined identifier 'Real32x3'` at 30015 and the whole SlateVulkan shader stage threw. Nothing caught it
+//    earlier because the sandbox gate is `g++ -fsyntax-only` over the HOST toolchain, which never enters this
+//    branch of the file at all: the shader spellings are compiled by slangc alone, on Windows alone. A spelling
+//    added to one branch and not declared is invisible to every check that runs here.
 typedef float2   Real32x2;
+typedef float3   Real32x3;
 typedef float4   Real32x4;
 
 // 📝 🔴 The two ordinal widths, which share the component widths' reasoning above — device-side alone, with no

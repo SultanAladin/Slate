@@ -457,8 +457,11 @@ void OverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, std::uint
         Width == 0u || Height == 0u)
         return;
 
-    const VkDevice Active = DeviceEdge->ActiveDevice();
-
+    // 📝 🔴 The device handle is NOT resolved here and must not be. `Record` issues command-buffer calls
+    //    exclusively — bind, viewport, scissor, push, draw — and every one of them takes the recording rather
+    //    than the device. The handle was a leftover of the CPU lattice's own upload path, which `85a5331`
+    //    deleted; MSVC reported it as C4189 "initialized but not referenced" and it is removed rather than
+    //    cast to void, because there is nothing here that wants a device.
     vkCmdBindPipeline(Command, VK_PIPELINE_BIND_POINT_GRAPHICS, OverlayPipeline);
 
     const VkViewport Viewport = {
@@ -551,7 +554,13 @@ void OverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, std::uint
 
         vkCmdPushConstants(Command, OverlayPipelineLayout, Stages,
                            0u, OverlayPushConstantBytes, &Push);
-        vkCmdDraw(Command, 4u, 1u, 0u, 0u);
+
+        // 🔴 SIX, not four. The pipeline declares `VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST`, which consumes
+        //    vertices in consecutive non-overlapping triples — four vertices assemble ONE triangle and
+        //    drop the fourth, so the ground quad covered exactly half the leaf (measured: 60000 of
+        //    120000 px on a 400 × 300 transcription). `QuadCorner` in the vertex stage maps these six
+        //    onto the same four logical corners.
+        vkCmdDraw(Command, 6u, 1u, 0u, 0u);
     }
 
     const auto DrawMode = [&](std::uint32_t Mode, std::uint32_t Count, std::uint32_t VerticesPerRecord)
@@ -566,8 +575,12 @@ void OverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, std::uint
         vkCmdDraw(Command, Count * VerticesPerRecord, 1u, 0u, 0u);
     };
 
-    DrawMode(0u, OverlayLineCount, 4u);
-    DrawMode(1u, OverlayDotCount, 4u);
+    // 🔴 Six vertices per quad record and three per triangle record. Lines and dots asked for four and
+    //    the list topology then built every triangle from two records' corners: measured on three 300 px
+    //    lines the MIDDLE line vanished entirely and rows 82…217 held a diagonal smear, and three dots
+    //    covered 136 px where three whole dots are 192. That is the reported "lines render, dots don't".
+    DrawMode(0u, OverlayLineCount, 6u);
+    DrawMode(1u, OverlayDotCount, 6u);
     DrawMode(2u, OverlayTriangleCount, 3u);
 }
 

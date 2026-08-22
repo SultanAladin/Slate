@@ -9,9 +9,9 @@
 //      - dots:       { x, y, radius, padding, a, r, g, b }       (one point per dot)
 //      - triangles:  { x0, y0, x1, y1, x2, y2, a, r, g, b }      (three points)
 //    The push constant's `Mode` selects the region: 0 lines, 1 dots, 2 triangles.
-//    A line or dot draws 4 × count vertices (the four corners of the expanded
-//    quad, chosen by `SV_VertexID % 4`); a triangle draws 3 × count
-//    (`SV_VertexID % 3`). The screen-space expansion is the whole point: the CPU
+//    A line or dot draws 6 × count vertices — the expanded quad's two TRIANGLE_LIST
+//    triangles, whose logical corner is `QuadCorner(SV_VertexID)` — and a triangle
+//    draws 3 × count (`SV_VertexID % 3`). The screen-space expansion is the whole point: the CPU
 //    record is two points per line and one per dot, so a dense lattice or a
 //    high-poly wireframe never reaches the CPU's tessellator.
 
@@ -59,8 +59,8 @@ struct TriangleRecord
 //------------------------------------------------------------------------------------------------------------------------
 
 // 📐 What one draw reads: which region, and the display size for the screen -> NDC transform.
-//    🔴 Mode 0 and 1 draw 4 vertices per record (corner = VertexOrdinal % 4), mode 2 draws 3
-//       (corner = VertexOrdinal % 3). The record ordinal is VertexOrdinal / 4 (or / 3).
+//    🔴 Mode 0, 1 and 3 draw 6 vertices per record (corner = QuadCorner(VertexOrdinal)), mode 2
+//       draws 3 (corner = VertexOrdinal % 3). The record ordinal is VertexOrdinal / 6 (or / 3).
 struct OverlayPushConstant
 {
     Unsigned32 Mode;       // [-] - 0 lines, 1 dots, 2 triangles, 3 the analytic ground
@@ -89,6 +89,44 @@ struct OverlayPushConstant
 
 [[vk::push_constant]]
 ConstantBuffer<OverlayPushConstant> Push;
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE QUAD'S SIX VERTICES
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📐 🔴 A QUAD IS SIX VERTICES UNDER `VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST`, NOT FOUR.
+//    The pipeline declares TRIANGLE_LIST and the list topology consumes vertices in
+//    consecutive, non-overlapping triples — it has no notion of a shared corner. Every
+//    quad mode here emitted FOUR vertices per record and the draw issued `4 × count`,
+//    so the assembler took {0,1,2} as one triangle and then {3,4,5} — three of whose
+//    corners belong to the NEXT record. Measured on a faithful CPU transcription of
+//    this shader under that assembly:
+//
+//      mode 3, the ground   4 vertices -> 1 triangle, 1 vertex dropped, leaf 50.0% covered
+//      mode 1, three dots  12 vertices -> 4 triangles, 2 of them spanning two dots,
+//                                         136 px covered where three whole dots are 192
+//      mode 0, three lines 12 vertices -> the middle line ABSENT and rows 82…217 holding
+//                                         a diagonal smear built from two lines' corners
+//
+//    That is exactly the reported "lines render, dots don't" and the half-lit ground.
+//    A strip topology would also fix it but would break the triangle mode, which is a
+//    genuine list; the vertex count is what changes instead.
+//
+// 📝 The two triangles are {0,1,2} and {2,1,3} over the same four logical corners, so
+//    every mode below keeps its own corner arithmetic untouched and merely reaches it
+//    through this map. Corner 2 and corner 1 are repeated, which is what a list means.
+Unsigned32 QuadCorner(Unsigned32 VertexOrdinal)
+{
+    const Unsigned32 Within = VertexOrdinal % 6u;
+
+    if (Within == 0u) return 0u;
+    if (Within == 1u) return 1u;
+    if (Within == 2u) return 2u;
+    if (Within == 3u) return 2u;
+    if (Within == 4u) return 1u;
+
+    return 3u;
+}
 
 // 📝 The three record regions of the one vertex buffer, bound as structured pools.
 StructuredBuffer<LineRecord>     LinePool;      // [-] - region 0
@@ -128,8 +166,8 @@ OverlayVertexOutput main(Unsigned32 VertexOrdinal : SV_VertexID)
     {
         // 📐 The line's four corners are the endpoints widened by half the thickness along the
         //    segment's normal. The normal is computed here, keeping the CPU record at four floats.
-        const Unsigned32 Record = VertexOrdinal / 4u;
-        const Unsigned32 Corner = VertexOrdinal % 4u;
+        const Unsigned32 Record = VertexOrdinal / 6u;
+        const Unsigned32 Corner = QuadCorner(VertexOrdinal);
 
         const LineRecord Line = LinePool[Record];
         const Real32x2 Direction = Line.End - Line.Start;
@@ -147,8 +185,8 @@ OverlayVertexOutput main(Unsigned32 VertexOrdinal : SV_VertexID)
     else if (Push.Mode == 1u)
     {
         // 📐 The dot's four corners are the centre widened by the radius along both axes.
-        const Unsigned32 Record = VertexOrdinal / 4u;
-        const Unsigned32 Corner = VertexOrdinal % 4u;
+        const Unsigned32 Record = VertexOrdinal / 6u;
+        const Unsigned32 Corner = QuadCorner(VertexOrdinal);
 
         const DotRecord Dot = DotPool[Record];
         const Real32 X = ((Corner == 1u) || (Corner == 3u)) ?  1.0 : -1.0;
@@ -162,7 +200,7 @@ OverlayVertexOutput main(Unsigned32 VertexOrdinal : SV_VertexID)
         // 📐 The analytic ground is ONE quad over the whole leaf; the fragment
         //    stage decides what each pixel of it is. Four corners from the
         //    vertex ordinal alone, exactly as the line and dot modes do.
-        const Unsigned32 Corner = VertexOrdinal % 4u;
+        const Unsigned32 Corner = QuadCorner(VertexOrdinal);
         const Real32 X = ((Corner == 1u) || (Corner == 3u)) ? 1.0 : 0.0;
         const Real32 Y = (Corner >= 2u)                     ? 1.0 : 0.0;
 
