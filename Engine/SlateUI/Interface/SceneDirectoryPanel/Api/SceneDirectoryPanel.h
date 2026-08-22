@@ -199,14 +199,10 @@ public:
     /// tag   api, nonallocating, nonthrowing
     void RecordViewportSky(const PlaneExtent& Extent, const SceneDirectoryContext& Applied);
 
-    /// 🧩 Records the world's ground lattice across one viewport leaf — the same pinhole the sky mesh
-    ///    uses, so the two align — giving the fly camera something to travel past.
-    /// in    Extent   [px]  the leaf body the lattice is projected into
-    /// in    Applied  [-]   the camera's pose and position, as the host wrote them this tick
-    /// cost  🚩
-    /// tag   api, nonallocating, nonthrowing
-    void RecordGroundGrid(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
-                          const EditorPanelConfiguration& Configuration, OverlayGeometry& Overlay);
+    // 🔴 `RecordGroundGrid` is withdrawn. The ground lattice is solved per pixel
+    //    by `OverlayFragment.slang` mode 3 — see the note where its 1828 lines
+    //    were removed from the source. The host pushes the camera to the overlay
+    //    pass instead of handing it screen-space line segments.
 
     /// 🧩 Records the world-origin translation gizmo — the three vivid axis arrows and the centre
     ///    handle — into the overlay geometry, projected through the same pinhole as the grid.

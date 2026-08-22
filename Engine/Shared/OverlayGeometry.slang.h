@@ -91,8 +91,32 @@ SLATE_SHARED Unsigned32 PackOverlayColour(Unsigned32 Red, Unsigned32 Green,
 ///        record, and the host uploads only when it changed — the grid and gizmo are static between
 ///        camera or settings changes, so there is no per-frame upload.
 /// tag   contract, nonallocating, nonthrowing
+/// 🧩 The camera pose the analytic ground reads — mode 3 of the overlay pass.
+/// note  📐 This is what replaced 1828 lines of CPU line-marching: the host hands
+///        over ONE pose per leaf and the fragment stage solves the plane per
+///        pixel. There is no segment budget to exhaust and no extent to end.
+/// tag   contract, nonallocating, nonthrowing
+struct OverlayGroundPose
+{
+    Real32  EyeX = 0.0f, EyeY = 1.5f, EyeZ = 0.0f;          // [m]
+    Real32  ForwardX = 0.0f, ForwardY = 0.0f, ForwardZ = 1.0f;
+    Real32  RightX = 1.0f, RightY = 0.0f, RightZ = 0.0f;
+    Real32  UpX = 0.0f, UpY = 1.0f, UpZ = 0.0f;
+    Real32  TanHalfH = 1.0f;    // [-] - the frustum's tangents
+    Real32  TanHalfV = 0.577f;
+    Real32  Cell = 20.0f;       // [m] - the finest octave's cell
+    Real32  LineWeight = 1.0f;  // [px]
+    Real32  DotRadius = 1.5f;   // [px]
+    Unsigned32 Presentation = 1u;   // [-] - PanelLatticePresentation
+    bool    Standing = false;   // [-] - the leaf draws a ground at all
+};
+
 struct OverlayGeometry
 {
+    /// 📐 The analytic ground's pose. Reset does NOT clear it: the pose is the
+    ///    camera, written once per leaf per tick, not an accumulated record.
+    OverlayGroundPose Ground = {};
+
     static constexpr Unsigned32 LineCeiling     = 1024u;   // [-] - line segments; a 128-cell lattice is 514
     static constexpr Unsigned32 DotCeiling      = 2048u;   // [-] - dot markers
     static constexpr Unsigned32 TriangleCeiling =  512u;   // [-] - filled triangles

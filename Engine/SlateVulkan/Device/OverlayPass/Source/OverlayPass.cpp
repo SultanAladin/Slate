@@ -43,7 +43,9 @@ static_assert(sizeof(LineRecord)     % 16u == 0u, "the line record must align to
 static_assert(sizeof(DotRecord)      % 16u == 0u, "the dot record must align to 16 bytes");
 static_assert(sizeof(TriangleRecord) % 16u == 0u, "the triangle record must align to 16 bytes");
 
-constexpr std::uint32_t OverlayPushConstantBytes = 16u;   // [B] - mode, width, height, padding
+// 📐 16 bytes of mode/display plus six vec4 of camera for the analytic ground.
+//    🔴 Vulkan guarantees only 128 bytes of push constant; this is exactly 112.
+constexpr std::uint32_t OverlayPushConstantBytes = 112u;
 
 }   // namespace
 
@@ -247,7 +249,9 @@ Outcome<bool> OverlayPass::Construct(const VulkanExchange&      Exchange,
 
     // ⑤ The pipeline layout: the set and the 16-byte push constant (mode + display size).
     VkPushConstantRange PushRange = {};
-    PushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    // 🔴 The FRAGMENT stage reads the camera terms for mode 3, so the range must
+    //    cover both stages — a vertex-only range makes the fragment read garbage.
+    PushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     PushRange.offset     = 0u;
     PushRange.size       = OverlayPushConstantBytes;
 
@@ -367,6 +371,9 @@ Outcome<bool> OverlayPass::Construct(const VulkanExchange&      Exchange,
 
 void OverlayPass::Upload(const OverlayGeometry& Overlay)
 {
+    // 📐 The ground is a pose, not geometry: copied whole, never tessellated.
+    OverlayGround = Overlay.Ground;
+
     if (DeviceEdge == nullptr || MappedSlot == nullptr)
         return;
 
@@ -495,7 +502,57 @@ void OverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, std::uint
         float         DisplayWidth;
         float         DisplayHeight;
         float         Padding;
+
+        float EyeAndCell[4]     = {};
+        float ForwardAndTanH[4] = {};
+        float RightAndTanV[4]   = {};
+        float UpAndPresent[4]   = {};
+        float LatticeColour[4]  = {};
+        float WeightsAndDot[4]  = {};
     };
+
+    const auto Stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    // 📐 THE ANALYTIC GROUND, FIRST. It is the furthest thing in the scene, and the
+    //    pass blends in submission order with no depth buffer, so the lattice must
+    //    be laid down before the gizmo and the axes that stand on it.
+    if (OverlayGround.Standing)
+    {
+        PushBlock Push = { 3u, static_cast<float>(Width), static_cast<float>(Height), 0.0f };
+
+        Push.EyeAndCell[0] = OverlayGround.EyeX;
+        Push.EyeAndCell[1] = OverlayGround.EyeY;
+        Push.EyeAndCell[2] = OverlayGround.EyeZ;
+        Push.EyeAndCell[3] = OverlayGround.Cell;
+
+        Push.ForwardAndTanH[0] = OverlayGround.ForwardX;
+        Push.ForwardAndTanH[1] = OverlayGround.ForwardY;
+        Push.ForwardAndTanH[2] = OverlayGround.ForwardZ;
+        Push.ForwardAndTanH[3] = OverlayGround.TanHalfH;
+
+        Push.RightAndTanV[0] = OverlayGround.RightX;
+        Push.RightAndTanV[1] = OverlayGround.RightY;
+        Push.RightAndTanV[2] = OverlayGround.RightZ;
+        Push.RightAndTanV[3] = OverlayGround.TanHalfV;
+
+        Push.UpAndPresent[0] = OverlayGround.UpX;
+        Push.UpAndPresent[1] = OverlayGround.UpY;
+        Push.UpAndPresent[2] = OverlayGround.UpZ;
+        Push.UpAndPresent[3] = static_cast<float>(OverlayGround.Presentation);
+
+        // 📐 The reference's own lattice tone, straight alpha.
+        Push.LatticeColour[0] = 0.60f;
+        Push.LatticeColour[1] = 0.65f;
+        Push.LatticeColour[2] = 0.72f;
+        Push.LatticeColour[3] = 0.55f;
+
+        Push.WeightsAndDot[0] = OverlayGround.LineWeight;
+        Push.WeightsAndDot[1] = OverlayGround.DotRadius;
+
+        vkCmdPushConstants(Command, OverlayPipelineLayout, Stages,
+                           0u, OverlayPushConstantBytes, &Push);
+        vkCmdDraw(Command, 4u, 1u, 0u, 0u);
+    }
 
     const auto DrawMode = [&](std::uint32_t Mode, std::uint32_t Count, std::uint32_t VerticesPerRecord)
     {
@@ -504,7 +561,7 @@ void OverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, std::uint
 
         const PushBlock Push = { Mode, static_cast<float>(Width), static_cast<float>(Height), 0.0f };
 
-        vkCmdPushConstants(Command, OverlayPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,
+        vkCmdPushConstants(Command, OverlayPipelineLayout, Stages,
                            0u, OverlayPushConstantBytes, &Push);
         vkCmdDraw(Command, Count * VerticesPerRecord, 1u, 0u, 0u);
     };

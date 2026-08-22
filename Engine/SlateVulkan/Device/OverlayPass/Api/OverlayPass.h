@@ -132,6 +132,11 @@ private:
     std::uint32_t            DotBytes       = 0u;               // [B] - the dot region's extent
     std::uint32_t            TriangleBytes  = 0u;               // [B] - the triangle region's extent
 
+    // 📐 The analytic ground's pose, taken from the uploaded record. It is a
+    //    camera rather than a vertex count, so it lives beside the counts and not
+    //    in the vertex buffer.
+    OverlayGroundPose        OverlayGround        = {};
+
     std::uint32_t            OverlayLineCount     = 0u;         // [-] - the uploaded record's counts
     std::uint32_t            OverlayDotCount      = 0u;         // [-]
     std::uint32_t            OverlayTriangleCount = 0u;         // [-]

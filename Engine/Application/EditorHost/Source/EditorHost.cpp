@@ -803,10 +803,59 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 LeafOverlay.Reset();
 
                                 SceneDirectory.RecordViewportSky(LeafBody, SceneApplied);
-                                SceneDirectory.RecordGroundGrid(LeafBody, SceneApplied,
-                                                                PanelConfiguration[Ordinal],
-                                                                LeafOverlay);
+
+                                // 📐 The ground lattice is no longer recorded here. It is solved per
+                                //    pixel in the overlay pass's mode 3, from the camera pushed below,
+                                //    so the CPU hands over a pose rather than a thousand segments.
                                 SceneDirectory.RecordGizmo(LeafBody, SceneApplied, LeafOverlay);
+
+                                // 📐 The pose the analytic ground reads. Assembled here because the
+                                //    host owns the fly rig and the leaf's extent both.
+                                {
+                                    OverlayGroundPose& Pose = LeafOverlay.Ground;
+                                    const EditorPanelConfiguration& Declared = PanelConfiguration[Ordinal];
+
+                                    Pose.Standing = Declared.Lattice != PanelLatticePresentation::None;
+
+                                    const double Yaw   = SceneApplied.ViewportSkyCamera.AzimuthDegrees
+                                                       * 3.14159265358979323846 / 180.0;
+                                    const double Pitch = SceneApplied.ViewportSkyCamera.ElevationDegrees
+                                                       * 3.14159265358979323846 / 180.0;
+                                    const double CosP = std::cos(Pitch), SinP = std::sin(Pitch);
+                                    const double SinY = std::sin(Yaw),   CosY = std::cos(Yaw);
+
+                                    Pose.EyeX = static_cast<float>(SceneApplied.CameraPosition[0]);
+                                    Pose.EyeY = static_cast<float>(SceneApplied.CameraPosition[1]);
+                                    Pose.EyeZ = static_cast<float>(SceneApplied.CameraPosition[2]);
+
+                                    Pose.ForwardX = static_cast<float>(CosP * SinY);
+                                    Pose.ForwardY = static_cast<float>(SinP);
+                                    Pose.ForwardZ = static_cast<float>(CosP * CosY);
+                                    Pose.RightX   = static_cast<float>(CosY);
+                                    Pose.RightY   = 0.0f;
+                                    Pose.RightZ   = static_cast<float>(-SinY);
+                                    Pose.UpX      = static_cast<float>(-SinP * SinY);
+                                    Pose.UpY      = static_cast<float>(CosP);
+                                    Pose.UpZ      = static_cast<float>(-SinP * CosY);
+
+                                    const double HalfV = SceneApplied.ViewportSkyCamera.FieldOfViewDegrees
+                                                       * 0.5 * 3.14159265358979323846 / 180.0;
+                                    const double Aspect = (LeafBody.Height() > 0.0f)
+                                                        ? static_cast<double>(LeafBody.Width())
+                                                        / static_cast<double>(LeafBody.Height()) : 1.0;
+
+                                    Pose.TanHalfV = static_cast<float>(std::tan(HalfV));
+                                    Pose.TanHalfH = static_cast<float>(std::tan(HalfV) * Aspect);
+
+                                    const double DeclaredCell = Declared.LatticeCellMetres > 0.0
+                                                              ? Declared.LatticeCellMetres : 20.0;
+                                    Pose.Cell = static_cast<float>(DeclaredCell
+                                              * static_cast<double>(Declared.LatticeScale));
+
+                                    Pose.Presentation = static_cast<std::uint32_t>(Declared.Lattice);
+                                    Pose.LineWeight   = Declared.LatticeLineWeight;
+                                    Pose.DotRadius    = Declared.LatticeDotRadius;
+                                }
 
                                 // 🔴 When the GPU overlay pass could not stand (a build that lowered no
                                 //    shaders, or a device that refused it), the SAME record is drawn

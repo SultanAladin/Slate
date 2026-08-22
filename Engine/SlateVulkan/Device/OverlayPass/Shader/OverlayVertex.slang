@@ -63,10 +63,28 @@ struct TriangleRecord
 //       (corner = VertexOrdinal % 3). The record ordinal is VertexOrdinal / 4 (or / 3).
 struct OverlayPushConstant
 {
-    Unsigned32 Mode;       // [-] - 0 lines, 1 dots, 2 triangles
+    Unsigned32 Mode;       // [-] - 0 lines, 1 dots, 2 triangles, 3 the analytic ground
     Real32     DisplayWidth;   // [px]
     Real32     DisplayHeight;  // [px]
     Real32     Padding;        // [-] - 16-byte alignment
+
+    // 📐 MODE 3 — THE ANALYTIC GROUND. Everything the fragment stage needs to
+    //    solve the ground plane per pixel: the eye, the camera basis, the
+    //    frustum's tangents, and the lattice's own cell and presentation.
+    //
+    // 🔴 The previous grid marched line SEGMENTS on the CPU and handed them here
+    //    as screen-space records. That is why it carried a near-plane split, a
+    //    polyline buffer, an off-screen cull, a 1024-segment ceiling and a finite
+    //    extent whose edge moved with the eye — nineteen RED markers over 1828
+    //    lines, every one of them a consequence of tessellating a plane on a CPU.
+    //    Solved per pixel there is no tessellation, no budget and no extent, so
+    //    none of those questions exist to be answered wrongly.
+    Real32x4   EyeAndCell;       // [-] - xyz the eye in metres, w the base cell
+    Real32x4   ForwardAndTanH;   // [-] - xyz the view direction, w tan(halfH)
+    Real32x4   RightAndTanV;     // [-] - xyz the right axis,     w tan(halfV)
+    Real32x4   UpAndPresent;     // [-] - xyz the up axis,        w presentation
+    Real32x4   LatticeColour;    // [-] - straight alpha, the fine line's tone
+    Real32x4   WeightsAndDot;    // [-] - x line weight, y dot radius, zw spare
 };
 
 [[vk::push_constant]]
@@ -138,6 +156,18 @@ OverlayVertexOutput main(Unsigned32 VertexOrdinal : SV_VertexID)
 
         Position = Dot.Centre + Real32x2(X, Y) * Dot.Radius;
         Colour   = Dot.Colour;
+    }
+    else if (Push.Mode == 3u)
+    {
+        // 📐 The analytic ground is ONE quad over the whole leaf; the fragment
+        //    stage decides what each pixel of it is. Four corners from the
+        //    vertex ordinal alone, exactly as the line and dot modes do.
+        const Unsigned32 Corner = VertexOrdinal % 4u;
+        const Real32 X = ((Corner == 1u) || (Corner == 3u)) ? 1.0 : 0.0;
+        const Real32 Y = (Corner >= 2u)                     ? 1.0 : 0.0;
+
+        Position = Real32x2(X * Push.DisplayWidth, Y * Push.DisplayHeight);
+        Colour   = Real32x4(X, Y, 0.0, 1.0);   // the fragment stage reads the corner back
     }
     else
     {
