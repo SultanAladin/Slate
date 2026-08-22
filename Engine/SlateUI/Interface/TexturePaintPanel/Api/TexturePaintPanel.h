@@ -125,6 +125,11 @@ struct TexturePaintContext
     bool                       ChannelOn[TextureLayerCeiling][TextureChannelCeiling] = {};
     std::uint32_t              ChannelAmount[TextureLayerCeiling][TextureChannelCeiling] = {};
     std::uint32_t              ChannelBlendTaken[TextureLayerCeiling][TextureChannelCeiling] = {};
+    // 🔴 ChannelAmount is a 0..100 integer, which cannot hold an angle to 360 or
+    //    a refraction index from 1.0 to 3.0. The card reads the channel's own
+    //    span, so the reading is kept as the figure it actually is.
+    double                     ChannelReading[TextureLayerCeiling][TextureChannelCeiling] = {};
+    std::uint32_t              ChannelMode[TextureLayerCeiling][TextureChannelCeiling] = {};
     std::uint32_t              MaskDensity[TextureLayerCeiling]    = {};
     bool                       MaskInverted[TextureLayerCeiling]   = {};
     std::uint32_t              MaskSourceTaken[TextureLayerCeiling] = {};
@@ -240,6 +245,13 @@ private:
     void RecordSearchPill(const PlaneExtent& Extent, TexturePaintContext& Applied);
     void RecordChannelCard(const PlaneExtent& Extent, TexturePaintContext& Applied,
                            const TextureLayerRow& Current);
+    /// 🧩 How tall an unfolded channel card stands.
+    float ChannelBodyHeight(const TexturePaintContext& Applied, std::uint32_t Channel) const;
+
+    /// 🧩 Records one unfolded channel card and returns the height it took.
+    float RecordChannelBody(const PlaneExtent& Extent, TexturePaintContext& Applied,
+                            std::uint32_t Channel);
+
     void RecordChannelRow(const PlaneExtent& Row, TexturePaintContext& Applied,
                           std::uint32_t Channel);
     void RecordMaskCard(const PlaneExtent& Extent, TexturePaintContext& Applied,

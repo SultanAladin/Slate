@@ -89,7 +89,37 @@ inline constexpr std::uint32_t TextureLayerCeiling = 16u;   // [-] - rows, folde
 
 /// 🧩 The eight texture channels the ChannelPropertyPanel reference presents, in its own order.
 /// tag   contract
-inline constexpr std::uint32_t TextureChannelCeiling = 8u;   // [-] - Base Color … Opacity
+// 🔴 Was 8. `ChannelPropertyPanel.html` declares FOURTEEN channels across four
+//    groups; the port kept only the first eight and dropped Anisotropy,
+//    Anisotropy Angle, Clearcoat, Refraction Index, Sheen and Subsurface, along
+//    with the grouping that makes fourteen entries legible.
+inline constexpr std::uint32_t TextureChannelCeiling = 14u;  // [-] - Base Colour … Subsurface
+
+/// 🧩 How one channel is authored, which decides the field its card presents.
+/// tag   contract
+enum class TextureChannelEdit : std::uint32_t
+{
+    Colour  = 0u,   // [-] - a colour field
+    Scalar  = 1u,   // [-] - a magnitude row over the channel's own span
+    Derived = 2u,   // [-] - computed from another channel; nothing to author
+};
+
+/// 🧩 One channel's schema, transcribed from CHANNEL_SLOTS in the reference.
+/// tag   contract
+struct TextureChannelSlot
+{
+    const char*        Label     = "";       // [-] - the run the card heads with
+    const char*        Group     = "";       // [-] - Surface, Radiance, Reflectance, Scattering
+    const char*        Placement = "";       // [-] - which atlas and lane it occupies
+    const char*        Unit      = "";       // [-] - the readout's unit segment
+    std::uint32_t      Hue       = 0x8A8A8Au;// [-] - the swatch, 0xRRGGBB
+    TextureChannelEdit Edit      = TextureChannelEdit::Scalar;
+    double             Minimum   = 0.0;      // [-] - the span's floor
+    double             Maximum   = 1.0;      // [-] - the span's ceiling
+};
+
+/// 🧩 The fourteen channels, in the reference's own order.
+const TextureChannelSlot& TextureChannelAt(std::uint32_t Ordinal);
 
 /// 🧩 One row of the layer stack — the editor's own shape, richer than the shell's: folders carry
 ///    depth and enclosure, layers carry a small detail run, tags feed the search, and the mask's
@@ -137,7 +167,16 @@ std::uint32_t TextureChannelGroup(std::uint32_t Ordinal);
 
 /// 🧩 The group captions for the properties page's channel filter.
 /// tag   contract
-inline constexpr std::uint32_t TextureChannelGroupCount = 3u;   // [-] - Base, Maps, Output
+// 🔴 Was 3 — Base, Maps, Output — which is not the reference's grouping. The
+//    schema groups fourteen channels as Surface, Radiance, Reflectance and
+//    Scattering, and the filter reads from the same record the cards do.
+inline constexpr std::uint32_t TextureChannelGroupCount = 4u;   // [-] - Surface … Scattering
+
+/// 🧩 The four group captions, in the reference's order.
+inline constexpr const char* const TextureChannelGroupNames[TextureChannelGroupCount] =
+{
+    "Surface", "Radiance", "Reflectance", "Scattering"
+};
 
 /// 🧩 How many blends the footer roster holds.
 /// tag   contract

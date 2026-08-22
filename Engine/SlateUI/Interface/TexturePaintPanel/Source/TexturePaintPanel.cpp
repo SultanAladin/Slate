@@ -289,23 +289,57 @@ std::uint32_t TextureLayerFacetOf(TextureLayerClassification Classified)
     }
 }
 
-const char* TextureChannelText(std::uint32_t Ordinal)
+// 📐 CHANNEL_SLOTS from `References/ChannelPropertyPanel.html`, transcribed
+//    entry for entry: the group, the swatch, the edit kind, and the span each
+//    scalar is authored over. The eight-name run this replaced carried none of
+//    it, so every channel drew the same row over the same 0..100.
+const TextureChannelSlot& TextureChannelAt(std::uint32_t Ordinal)
 {
-    static const char* const Channels[TextureChannelCeiling] =
+    using Edit = TextureChannelEdit;
+
+    static const TextureChannelSlot Slots[TextureChannelCeiling] =
     {
-        "Base Color", "Metallic", "Roughness", "Normal",
-        "Height", "Ambient Occlusion", "Emissive", "Opacity"
+        { "Base Colour",       "Surface",     "Colour atlas \xC2\xB7 RGB",   "",  0xB87333u, Edit::Colour              },
+        { "Metallic",          "Surface",     "Material atlas \xC2\xB7 R",   "",  0x8B5CF6u, Edit::Scalar,  0.0, 1.0   },
+        { "Roughness",         "Surface",     "Material atlas \xC2\xB7 G",   "",  0x3B82F6u, Edit::Scalar,  0.0, 1.0   },
+        { "Height",            "Surface",     "Material atlas \xC2\xB7 B",   "",  0x8A8A8Au, Edit::Scalar,  0.0, 1.0   },
+        { "Normal",            "Surface",     "No storage \xC2\xB7 derived", "",  0x10B981u, Edit::Derived             },
+        { "Opacity",           "Surface",     "Material atlas \xC2\xB7 A",   "",  0x94A3B8u, Edit::Scalar,  0.0, 1.0   },
+
+        { "Emissive",          "Radiance",    "Emissive atlas \xC2\xB7 RGB", "",  0xF59E0Bu, Edit::Colour              },
+        { "Ambient Occlusion", "Radiance",    "Emissive atlas \xC2\xB7 A",   "",  0x6B7280u, Edit::Scalar,  0.0, 1.0   },
+
+        { "Anisotropy",        "Reflectance", "Reflect atlas \xC2\xB7 R",    "",  0x22D3EEu, Edit::Scalar,  0.0, 1.0   },
+        { "Anisotropy Angle",  "Reflectance", "Reflect atlas \xC2\xB7 G",    "\xC2\xB0", 0x0EA5E9u, Edit::Scalar, 0.0, 360.0 },
+        { "Clearcoat",         "Reflectance", "Reflect atlas \xC2\xB7 B",    "",  0xE2E8F0u, Edit::Scalar,  0.0, 1.0   },
+        { "Refraction Index",  "Reflectance", "Reflect atlas \xC2\xB7 A",    "",  0xA78BFAu, Edit::Scalar,  1.0, 3.0   },
+
+        { "Sheen",             "Scattering",  "Scatter atlas \xC2\xB7 RGB",  "",  0xF472B6u, Edit::Colour              },
+        { "Subsurface",        "Scattering",  "Sheen atlas \xC2\xB7 RGB",    "",  0xFB7185u, Edit::Colour              },
     };
 
-    return Ordinal < TextureChannelCeiling ? Channels[Ordinal] : "";
+    static const TextureChannelSlot Absent;
+    return Ordinal < TextureChannelCeiling ? Slots[Ordinal] : Absent;
+}
+
+const char* TextureChannelText(std::uint32_t Ordinal)
+{
+    return TextureChannelAt(Ordinal).Label;
 }
 
 std::uint32_t TextureChannelGroup(std::uint32_t Ordinal)
 {
-    // 📐 Base Color alone; Metallic..AO are maps; Emissive and Opacity are output.
-    if (Ordinal == 0u) return 0u;
-    if (Ordinal >= 6u) return 2u;
-    return 1u;
+    // 🔴 This used to bracket ordinals — "0 is Base, 6 and up are Output" — so a
+    //    channel's group was a property of its position in the list rather than
+    //    of the channel. Inserting one entry silently regrouped everything after
+    //    it. The group is read from the schema now.
+    const char* const Group = TextureChannelAt(Ordinal).Group;
+
+    for (std::uint32_t Each = 0u; Each < TextureChannelGroupCount; ++Each)
+        if (std::strcmp(Group, TextureChannelGroupNames[Each]) == 0)
+            return Each;
+
+    return 0u;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -2777,14 +2811,38 @@ void TexturePaintPanel::RecordChannelCard(const PlaneExtent& Extent, TexturePain
 
         const float RowY = Scaled.LayerHeadHeight * 0.82f;
 
-        const PlaneExtent Row = Spanning(Body.MinimumX, Sweep, Body.Width(), RowY);
+        // 📐 The card is a ground, its head, and — while unfolded — its body. The
+        //    fold animates on the shared expansion so it opens over 200 ms rather
+        //    than appearing between two frames.
+        const float Opened = Controls.OutlineExpansion(ChannelFolds[Channel],
+                                                       !Applied.ChannelFolded[Channel], true);
 
-        Sweep += RowY + Scaled.LayerRowGap;
+        const float BodyY = ChannelBodyHeight(Applied, Channel) * Opened;
+        const PlaneExtent Card = Spanning(Body.MinimumX, Sweep, Body.Width(), RowY + BodyY);
 
-        if (Sweep > Body.MaximumY)
+        if (Sweep + RowY > Body.MaximumY)
             break;
 
+        Surface->Ground(Card, Tinted.Tile, Scaled.LayerRadius, CornerAll);
+        Surface->Edge(Card, Tinted.Hairline, 1.0f, Scaled.LayerRadius, CornerAll);
+
+        const PlaneExtent Row = Spanning(Card.MinimumX + Scaled.PanePad, Sweep,
+                                         Card.Width() - Scaled.PanePad * 2.0f, RowY);
+
         RecordChannelRow(Row, Applied, Channel);
+
+        if (BodyY > 0.5f)
+        {
+            const PlaneExtent Inner = Spanning(Card.MinimumX + Scaled.PanePad * 1.5f,
+                                               Card.MinimumY + RowY,
+                                               Card.Width() - Scaled.PanePad * 3.0f, BodyY);
+
+            Surface->Confine(Inner);
+            static_cast<void>(RecordChannelBody(Inner, Applied, Channel));
+            Surface->Release();
+        }
+
+        Sweep += RowY + BodyY + Scaled.LayerRowGap;
     }
 
     Surface->Release();
@@ -2793,106 +2851,161 @@ void TexturePaintPanel::RecordChannelCard(const PlaneExtent& Extent, TexturePain
 void TexturePaintPanel::RecordChannelRow(const PlaneExtent& Row, TexturePaintContext& Applied,
                                          std::uint32_t Channel)
 {
+    // 🔴 This row hand-rolled every control it needed: a Medallion for the
+    //    on/off, a two-Ground mini-bar for the amount, and a click that CYCLED
+    //    the blend because there was no menu. None of it matched the reusable
+    //    set, so the same three controls looked and behaved differently here
+    //    than in every other card. It now spends SwitchTrack, MagnitudeRow and
+    //    SelectionField, and the row reads the channel's own schema rather than
+    //    assuming every channel is a 0..100 scalar.
     const std::uint32_t Layer = Applied.LayerTaken;
-    const bool On = Applied.ChannelOn[Layer][Channel];
+    const TextureChannelSlot& Slot = TextureChannelAt(Channel);
+
+    const bool On     = Applied.ChannelOn[Layer][Channel];
     const bool Folded = Applied.ChannelFolded[Channel];
 
-    // 📐 The fold: the row's leading chevron.
+    // ① The head: chevron, swatch, label, and the mode the card is authored in.
     const PlaneExtent Fold = Spanning(Row.MinimumX,
                                       Row.MinimumY + (Row.Height() - Scaled.ChevronExtent) * 0.5f,
                                       Scaled.ChevronExtent, Scaled.ChevronExtent);
 
-    if (Sampled.ContactPressed && Fold.Encloses(Sampled.PositionX, Sampled.PositionY) &&
-        !Ledger->AnyDisclosed())
-    {
-        Ledger->Grab(ChannelFolds[Channel], ControlPart::Chevron);
-    }
+    const bool OnFold = Fold.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Fold.Encloses(Sampled.PositionX, Sampled.PositionY) &&
-        Ledger->Released(ChannelFolds[Channel]))
-    {
+    if (Sampled.ContactPressed && OnFold && !Ledger->AnyDisclosed())
+        Ledger->Grab(ChannelFolds[Channel], ControlPart::Chevron);
+
+    if (OnFold && Ledger->Released(ChannelFolds[Channel]))
         Applied.ChannelFolded[Channel] = !Folded;
-    }
 
     Surface->Stroke(Folded ? SymbolSubject::ChevronRight : SymbolSubject::ChevronDown,
                     Fold, Tinted.Faint);
 
-    // 📐 The dot: the channel's on/off.
-    const float DotExtent = 18.0f;
-    const PlaneExtent Dot = Spanning(Fold.MaximumX + Scaled.PanePad,
-                                     Row.MinimumY + (Row.Height() - DotExtent) * 0.5f,
-                                     DotExtent, DotExtent);
+    // 📐 The swatch is the channel's own hue, as the reference's `.ch-dot` is.
+    const float Swatch = 9.0f;
+    Surface->Medallion(Fold.MaximumX + Scaled.PanePad + Swatch * 0.5f,
+                       Row.MinimumY + Row.Height() * 0.5f, Swatch * 0.5f,
+                       Faded(Covering(Slot.Hue), On ? 1.0f : 0.35f));
 
-    const bool OnDot = Dot.Encloses(Sampled.PositionX, Sampled.PositionY);
+    const float NameRun = Scaled.RunPrimary;
 
-    if (Sampled.ContactPressed && OnDot && !Ledger->AnyDisclosed())
+    Surface->TextRun(Fold.MaximumX + Scaled.PanePad * 2.0f + Swatch,
+                     Row.MinimumY + (Row.Height() - NameRun) * 0.5f,
+                     On ? Tinted.Primary : Tinted.Muted, Slot.Label, NameRun);
+
+    // ② The trailing switch — the shared pill, not a bare medallion.
+    const float SwitchY = 14.0f;
+    const float SwitchX = SwitchY * (50.0f / 32.0f);
+    const PlaneExtent Switch = Spanning(Row.MaximumX - SwitchX,
+                                        Row.MinimumY + (Row.Height() - SwitchY) * 0.5f,
+                                        SwitchX, SwitchY);
+
+    const bool OnSwitch = Switch.Encloses(Sampled.PositionX, Sampled.PositionY);
+
+    if (Sampled.ContactPressed && OnSwitch && !Ledger->AnyDisclosed())
         Ledger->Grab(ChannelDots[Channel], ControlPart::Body);
 
-    if (OnDot && Ledger->Released(ChannelDots[Channel]))
+    if (OnSwitch && Ledger->Released(ChannelDots[Channel]))
         Applied.ChannelOn[Layer][Channel] = !On;
 
-    Surface->Medallion(Dot.MinimumX + DotExtent * 0.5f, Dot.MinimumY + DotExtent * 0.5f,
-                       DotExtent * 0.5f,
-                       On ? Covering(0xFFFFFFu) : Covering(0x111111u));
+    Ledger->DeclareHovered(ChannelDots[Channel], OnSwitch, HoverOver);
 
-    // 📐 The name and the blend + opacity.
-    const float NameRun = Scaled.RunPrimary;
-    const float NameTop = Row.MinimumY + (Row.Height() - NameRun) * 0.5f;
+    Controls.SwitchTrack(ChannelDots[Channel], Switch, On,
+                         Covering(Slot.Hue), Tinted.Hairline, Covering(0xFFFFFFu));
 
-    Surface->TextRun(Dot.MaximumX + Scaled.PanePad, NameTop,
-                     On ? Tinted.Primary : Tinted.Muted, TextureChannelText(Channel), NameRun);
+    // 📐 The placement run states which atlas lane the channel occupies, which is
+    //    what the reference puts under the title.
+    const float PlaceRun = Scaled.RunFiner;
+    const float PlaceSpan = Surface->MeasureRun(Slot.Placement, PlaceRun, 0.0f);
 
-    const char* Blend = TextureBlendNames[Applied.ChannelBlendTaken[Layer][Channel] % TextureBlendCount];
+    Surface->TextRun(Switch.MinimumX - Scaled.PanePad - PlaceSpan,
+                     Row.MinimumY + (Row.Height() - PlaceRun) * 0.5f,
+                     Tinted.Faint, Slot.Placement, PlaceRun);
+}
 
-    const float BlendRun = Scaled.RunFine;
-    const float BlendX = Row.MaximumX - 190.0f;
+// 🧩 How tall an unfolded channel card stands, so the fold has a figure to
+//    animate toward rather than snapping open.
+float TexturePaintPanel::ChannelBodyHeight(const TexturePaintContext& Applied,
+                                           std::uint32_t Channel) const
+{
+    const TextureChannelSlot& Slot = TextureChannelAt(Channel);
+    const float RowY = Appearance->ControlMeasure.FieldHeight + Scaled.PanePad * 0.5f;
 
-    Surface->TextRun(BlendX, Row.MinimumY + (Row.Height() - BlendRun) * 0.5f,
-                     Tinted.Muted, Blend, BlendRun);
+    // the source picker always stands; a scalar adds its amount row
+    float Height = RowY;
 
-    // 📐 The opacity mini-bar and its value.
-    const float BarX = Row.MaximumX - 96.0f;
-    const float BarY = Row.MinimumY + (Row.Height() - 4.0f) * 0.5f;
-    const std::uint32_t Amount = Applied.ChannelAmount[Layer][Channel];
+    if (Slot.Edit == TextureChannelEdit::Scalar)
+        Height += RowY;
+    else if (Slot.Edit == TextureChannelEdit::Derived)
+        Height += RowY;
 
-    Surface->Ground(Spanning(BarX, BarY, 56.0f, 4.0f), Covering(0x242424u), 2.0f, CornerAll);
-    Surface->Ground(Spanning(BarX, BarY, 56.0f * static_cast<float>(Amount) / 100.0f, 4.0f),
-                    Covering(0xFFFFFFu), 2.0f, CornerAll);
+    return Height + Scaled.PanePad;
+}
 
-    char Value[8] = {};
-    std::snprintf(Value, sizeof(Value), "%u", Amount);
+float TexturePaintPanel::RecordChannelBody(const PlaneExtent& Extent, TexturePaintContext& Applied,
+                                           std::uint32_t Channel)
+{
+    // 🧩 The unfolded card: a source picker, then the field the edit kind calls
+    //    for. Every one is a shared component.
+    const std::uint32_t Layer = Applied.LayerTaken;
+    const TextureChannelSlot& Slot = TextureChannelAt(Channel);
+    const float RowY = Appearance->ControlMeasure.FieldHeight + Scaled.PanePad * 0.5f;
 
-    Surface->TextRun(Row.MaximumX - 34.0f, Row.MinimumY + (Row.Height() - BlendRun) * 0.5f,
-                     Tinted.Primary, Value, BlendRun);
+    float Sweep = Extent.MinimumY;
 
-    // 📐 The blend and amount interactions (dummy but live: click cycles the blend, drag arms set
-    //    the amount by press position).
-    const PlaneExtent BlendCell = Spanning(BlendX, Row.MinimumY, 86.0f, Row.Height());
+    // ① Source — Value, Texture or Generator, exactly the reference's picker.
+    static const char* const Sources[3] = { "Value", "Texture", "Generator" };
 
-    if (Sampled.ContactPressed && BlendCell.Encloses(Sampled.PositionX, Sampled.PositionY) &&
-        !Ledger->AnyDisclosed())
+    SelectionDeclaration Source;
+    Source.Caption       = "Source";
+    Source.Options       = Sources;
+    Source.OptionCount   = 3u;
+
+    std::uint32_t Taken = Applied.ChannelMode[Layer][Channel] % 3u;
+
+    if (SharedControls.SelectionField(ChannelBlends[Channel],
+                                      Spanning(Extent.MinimumX, Sweep, Extent.Width(), RowY),
+                                      Source, Taken).ReadingAltered)
     {
-        Ledger->Grab(ChannelBlends[Channel], ControlPart::Body);
+        Applied.ChannelMode[Layer][Channel] = Taken;
     }
 
-    if (BlendCell.Encloses(Sampled.PositionX, Sampled.PositionY) &&
-        Ledger->Released(ChannelBlends[Channel]))
+    Sweep += RowY;
+
+    // ② A derived channel has nothing to author, and says so rather than
+    //    offering a field that would not be read.
+    if (Slot.Edit == TextureChannelEdit::Derived)
     {
-        Applied.ChannelBlendTaken[Layer][Channel] =
-            (Applied.ChannelBlendTaken[Layer][Channel] + 1u) % TextureBlendCount;
+        Surface->TextRun(Extent.MinimumX, Sweep + Scaled.PanePad,
+                         Tinted.Faint,
+                         "Derived from the painted height. No value to author.",
+                         Scaled.RunFine);
+
+        return Sweep + RowY - Extent.MinimumY;
     }
 
-    if (Sampled.ContactPressed && BarX < Sampled.PositionX && Sampled.PositionX < BarX + 56.0f &&
-        !Ledger->AnyDisclosed())
+    // ③ Amount — over the channel's OWN span. Anisotropy Angle runs to 360 and
+    //    Refraction Index starts at 1; the old row put every channel on 0..100.
+    if (Slot.Edit == TextureChannelEdit::Scalar)
     {
-        Ledger->Grab(ChannelOps[Channel], ControlPart::Body);
+        MagnitudeDeclaration Amount;
+        Amount.Caption   = "Amount";
+        Amount.UnitGlyph = Slot.Unit;
+        Amount.Minimum   = Slot.Minimum;
+        Amount.Maximum   = Slot.Maximum;
+
+        double Reading = Applied.ChannelReading[Layer][Channel];
+
+        if (SharedControls.MagnitudeRow(ChannelOps[Channel],
+                                        Spanning(Extent.MinimumX, Sweep, Extent.Width(), RowY),
+                                        Amount, Reading, false).ReadingAltered)
+        {
+            Applied.ChannelReading[Layer][Channel] = Reading;
+        }
+
+        Sweep += RowY;
     }
 
-    if (Ledger->Holding(ChannelOps[Channel]))
-    {
-        const float Fraction = Held((Sampled.PositionX - BarX) / 56.0f, 0.0f, 1.0f);
-        Applied.ChannelAmount[Layer][Channel] = static_cast<std::uint32_t>(Fraction * 100.0f + 0.5f);
-    }
+    return Sweep - Extent.MinimumY;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
