@@ -887,6 +887,7 @@ Outcome<bool> TexturePaintPanel::Construct(InteractionIndex& Interaction,
         &MaskParams[0], &MaskParams[1], &MaskParams[2],
         &DecalRows[0], &DecalRows[1], &DecalRows[2], &DecalRows[3],
         &DecalRows[4], &DecalRows[5], &DecalRows[6], &DecalRows[7],
+        &DecalRows[8], &DecalRows[9],
         &FolderRows[0], &FolderRows[1], &FolderRows[2],
         &SettingRows[0], &SettingRows[1], &SettingRows[2], &SettingRows[3]
     };
@@ -1003,18 +1004,20 @@ std::uint32_t TexturePaintPanel::PropertyTabCount(const TexturePaintContext& App
     // 📐 The tabs the selection offers: a folder offers the combined stack page alone; a taken mask
     //    offers the mask page alone; a layer offers Channels, its Mask (when declared), and its
     //    Settings (decal / pattern / generator / the generic layer settings).
-    if (Current.Classified == TextureLayerClassification::Folder)
-        return 1u;
+    // 🔴 ONE SELECTION SHOWED TWO OR THREE PANELS. A layer offered Channels, Mask and
+    //    Settings; a decal offered Decal and Settings. Taking a paint layer is a
+    //    request to edit THAT layer's channels, and taking a mask is a request to
+    //    edit THAT mask — the strip then asked a second question the selection had
+    //    already answered, and the artist had to choose a tab to see the thing they
+    //    had just clicked on.
+    //
+    //    One selection, one panel. The mask is reached by taking the mask ROW, which
+    //    the stack already draws beneath its layer; the decal's settings are folded
+    //    into the decal card rather than parked behind a tab of their own.
+    static_cast<void>(Current);
+    static_cast<void>(Applied);
 
-    if (Applied.MaskTaken)
-        return 1u;
-
-    std::uint32_t Count = 2u;   // [-] - Channels + Settings
-
-    if (Current.MaskDeclared)
-        ++Count;
-
-    return Count;
+    return 1u;
 }
 
 void TexturePaintPanel::Advance(const PointerCondition& Contact, double Elapsed,
@@ -1325,13 +1328,16 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
             if (Filtering && !RowRetained(Applied, Rows[Ordinal]))
                 continue;
 
-            if (!Filtering && Ordinal > 0u &&
-                Rows[Ordinal].Depth > Rows[Ordinal - 1u].Depth &&
-                !Applied.LayerExpanded[Rows[Ordinal].Enclosing])
+            // 📐 An enclosed row's height is weighted by how far its folder has
+            //    opened, so the list's measure follows the fold rather than jumping
+            //    the moment the boolean flips.
+            const float Folded = EnclosureFraction(Applied, Rows, RowCount, Ordinal);
+
+            if (Folded <= 0.0f)
                 continue;
 
-            Content += Scaled.LayerRowY + 2.0f
-                     + (Applied.MaskAttached[Ordinal] ? (Scaled.LayerMaskY + 2.0f) : 0.0f);
+            Content += (Scaled.LayerRowY + 2.0f
+                     + (Applied.MaskAttached[Ordinal] ? (Scaled.LayerMaskY + 2.0f) : 0.0f)) * Folded;
         }
 
         const float Rolled = AdvanceListScroll(Applied.StackListShown, Applied.StackListWanted,
@@ -1344,9 +1350,15 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
             if (Filtering && !RowRetained(Applied, Rows[Ordinal]))
                 continue;
 
-            if (!Filtering && Ordinal > 0u &&
-                Rows[Ordinal].Depth > Rows[Ordinal - 1u].Depth &&
-                !Applied.LayerExpanded[Rows[Ordinal].Enclosing])
+            // 🔴 A FOLDER SNAPPED OPEN AND SHUT. Disclosure was a bare boolean read at
+            //    the top of the loop, so a folder's contents appeared and vanished
+            //    between two frames with no travel — while the channel cards beside
+            //    them animate their fold on OutlineExpansion. The enclosed rows now
+            //    ride the same eased fraction: they grow in height and fade in as the
+            //    folder opens.
+            const float Folded = EnclosureFraction(Applied, Rows, RowCount, Ordinal);
+
+            if (Folded <= 0.001f)
                 continue;
 
             const TextureLayerRow& Current = Rows[Ordinal];
@@ -1354,9 +1366,32 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
             // 📐 The row's height, plus the attached mask row beneath when one stands.
             const float MaskY = Applied.MaskAttached[Ordinal]
                               ? (Scaled.LayerMaskY + 2.0f) : 0.0f;
-            const float RowY = Scaled.LayerRowY + MaskY;
+            const float RowY = (Scaled.LayerRowY + MaskY) * Folded;
 
-            const PlaneExtent Row = Spanning(Body.MinimumX, Sweep, Body.Width(), RowY);
+            // 🔴 NESTED ROWS WERE NOT INDENTED. `LayerKidsX` (15 px, the reference's
+            //    `.kids>.kin{margin-left:15px}`) has sat in ShellMetric unused since the
+            //    port: every row was drawn at Body.MinimumX whatever its depth, so a
+            //    folder's contents sat flush with the folder and the tree read as a flat
+            //    list. LayerstackV1.html indents each level and draws a hairline down the
+            //    children's gutter; both are here now.
+            const float Indent = Scaled.LayerKidsX * static_cast<float>(Current.Depth);
+
+            const PlaneExtent Row = Spanning(Body.MinimumX + Indent, Sweep,
+                                             Body.Width() - Indent, RowY);
+
+            // 📐 The reference's `.kids>.kin::before` — a 1 px rail down the gutter each
+            //    nested row sits in, in the enclosing folder's own hue at 0.32.
+            for (std::uint32_t Level = 0u; Level < Current.Depth; ++Level)
+            {
+                const std::uint32_t Owner = Current.Enclosing < RowCount
+                                          ? Applied.LayerTagHue[Current.Enclosing] : 0x444444u;
+
+                Surface->Ground(Spanning(Body.MinimumX + Scaled.LayerKidsX
+                                         * static_cast<float>(Level) + 6.0f,
+                                         Sweep, 1.0f, RowY),
+                                Faded(Covering(Owner != 0u ? Owner : 0x444444u), 0.32f),
+                                0.0f, CornerNone);
+            }
 
             Sweep += RowY + 2.0f;
 
@@ -1400,6 +1435,36 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
 
     // 🔴 The filter card's dropdown is deferred, exactly as the scene directory's is.
     StackFacets.RecordDeferred();
+}
+
+// 🧩 How far the folder enclosing one row has opened — 1 for a top-level row, 0
+//    for a row inside a shut folder, and the eased fraction in between. Ancestors
+//    compound, so a row two folders deep is hidden while EITHER is shut.
+float TexturePaintPanel::EnclosureFraction(const TexturePaintContext& Applied,
+                                           const TextureLayerRow* Rows,
+                                           std::uint32_t RowCount, std::uint32_t Ordinal)
+{
+    if (Rows == nullptr || Ordinal >= RowCount)
+        return 1.0f;
+
+    float Reach = 1.0f;
+    std::uint32_t Walking = Rows[Ordinal].Enclosing;
+    std::uint32_t Guard = 0u;
+
+    while (Walking < RowCount && Guard++ < TextureLayerCeiling)
+    {
+        // 📐 The fold is DECLARED here rather than read, because OutlineExpansion is
+        //    what advances it; a folder never recorded would otherwise stay at 0.
+        Reach *= Controls.OutlineExpansion(LayerChevrons[Walking],
+                                           Applied.LayerExpanded[Walking], true);
+
+        if (Reach <= 0.0f)
+            return 0.0f;
+
+        Walking = Rows[Walking].Enclosing;
+    }
+
+    return Reach;
 }
 
 void TexturePaintPanel::RecordStackHeader(const PlaneExtent& Header, TexturePaintContext& Applied,
@@ -2823,26 +2888,20 @@ void TexturePaintPanel::RecordPropertiesPage(const PlaneExtent& Extent, TextureP
 
     RecordLeafHeader(Header, TextureLayerGlyph(Current.Classified), Hue, Current.Naming, Classified);
 
-    // 📐 The property strip — the tabs the selection offers.
-    const char* TabCaptions[3] = { "Channels", "Mask", "Settings" };
+    // 📐 The property strip names the ONE panel the selection opens. It is a heading
+    //    now rather than a chooser, because there is nothing left to choose between.
+    const char* TabCaptions[3] = { "Channels", nullptr, nullptr };
 
     if (Current.Classified == TextureLayerClassification::Folder)
         TabCaptions[0] = "Stack";
 
-    // 🔴 A decal was given the Channels tab and the channels card. PropertyTabCount
-    //    counted two tabs for it, but the caption array never named a decal one,
-    //    so selecting a decal opened a channel editor for a stencil that has no
-    //    channels to author — and the transform and projection it DOES have were
-    //    unreachable from anywhere in the UI.
+    // 🔴 A decal was given the Channels tab and the channels card, so selecting a
+    //    decal opened a channel editor for a stencil that has no channels to author.
     if (Current.Classified == TextureLayerClassification::Decal)
         TabCaptions[0] = "Decal";
 
     if (Applied.MaskTaken)
-    {
         TabCaptions[0] = "Mask";
-        TabCaptions[1] = nullptr;
-        TabCaptions[2] = nullptr;
-    }
 
     const std::uint32_t TabCount = PropertyTabCount(Applied, Current);
 
@@ -2865,25 +2924,16 @@ void TexturePaintPanel::RecordPropertiesPage(const PlaneExtent& Extent, TextureP
 
     Surface->Confine(Pages);
 
-    switch (Applied.PropertyTab)
-    {
-        case 0u:
-            if (Current.Classified == TextureLayerClassification::Folder)
-                RecordFolderCard(Pages, Applied, Rows, RowCount);
-            else if (Applied.MaskTaken)
-                RecordMaskCard(Pages, Applied, Current);
-            else if (Current.Classified == TextureLayerClassification::Decal)
-                RecordDecalCard(Pages, Applied, Current);
-            else
-                RecordChannelCard(Pages, Applied, Current);
-            break;
-        case 1u:
-            RecordMaskCard(Pages, Applied, Current);
-            break;
-        default:
-            RecordSettingsCard(Pages, Applied, Current);
-            break;
-    }
+    // 📐 One selection, one card. The classification and the mask flag decide it
+    //    outright; there is no tab left to disagree with them.
+    if (Current.Classified == TextureLayerClassification::Folder)
+        RecordFolderCard(Pages, Applied, Rows, RowCount);
+    else if (Applied.MaskTaken)
+        RecordMaskCard(Pages, Applied, Current);
+    else if (Current.Classified == TextureLayerClassification::Decal)
+        RecordDecalCard(Pages, Applied, Current);
+    else
+        RecordChannelCard(Pages, Applied, Current);
 
     Surface->Release();
 
@@ -3994,35 +4044,27 @@ void TexturePaintPanel::RecordSettingsCard(const PlaneExtent& Extent, TexturePai
         const PlaneExtent Row = Spanning(Extent.MinimumX + Pad, Sweep,
                                          Extent.Width() - Pad * 2.0f, RowY);
 
-        Surface->TextRun(Row.MinimumX + Scaled.PanePad, Row.MinimumY,
-                         Tinted.Muted, Labels[Ordinal], Scaled.RunSecondary);
+        // 🔴 A FIFTH HAND-ROLLED SLIDER. Two Grounds for the track, a hand-written hit
+        //    test against a bare 120 px span, and a raw run for the value — no readout
+        //    pill, no unit cell, no hover growth, no keyboard path, and a hit test
+        //    that ignored the pointer's ordinate entirely, so a press anywhere on the
+        //    row's horizontal band seized the slider. The shared row, in the same
+        //    Measured arrangement the sun rows and the footer opacity now spend.
+        MagnitudeDeclaration Declared;
+        Declared.Caption   = Labels[Ordinal];
+        Declared.UnitGlyph = "";
+        Declared.Minimum   = 0.0;
+        Declared.Maximum   = 100.0;
+        Declared.Layout    = MagnitudeDeclaration::Arrange::Measured;
 
-        const float BarX = Row.MinimumX + 90.0f;
-        const float BarY = Row.MinimumY + (RowY - 4.0f) * 0.5f;
-        const std::uint32_t Amount = Applied.SettingAmount[Applied.LayerTaken][Ordinal];
+        double Reading = static_cast<double>(Applied.SettingAmount[Applied.LayerTaken][Ordinal]);
 
-        Surface->Ground(Spanning(BarX, BarY, 120.0f, 4.0f), Covering(0x242424u), 2.0f, CornerAll);
-        Surface->Ground(Spanning(BarX, BarY, 120.0f * static_cast<float>(Amount) / 100.0f, 4.0f),
-                        Covering(0xFFFFFFu), 2.0f, CornerAll);
-
-        if (Sampled.ContactPressed && BarX < Sampled.PositionX && Sampled.PositionX < BarX + 120.0f &&
-            !Ledger->AnyDisclosed())
+        if (SharedControls.MagnitudeRow(SettingRows[Ordinal], Row, Declared, Reading,
+                                        false).ReadingAltered)
         {
-            Ledger->Grab(SettingRows[Ordinal], ControlPart::Body);
-        }
-
-        if (Ledger->Holding(SettingRows[Ordinal]))
-        {
-            const float Fraction = Held((Sampled.PositionX - BarX) / 120.0f, 0.0f, 1.0f);
             Applied.SettingAmount[Applied.LayerTaken][Ordinal] =
-                static_cast<std::uint32_t>(Fraction * 100.0f + 0.5f);
+                static_cast<std::uint32_t>(Reading + 0.5);
         }
-
-        char Value[8] = {};
-        std::snprintf(Value, sizeof(Value), "%u", Amount);
-
-        Surface->TextRun(Row.MaximumX - 44.0f, Row.MinimumY,
-                         Tinted.Primary, Value, Scaled.RunSecondary);
 
         Sweep += RowY + Scaled.LayerRowGap;
     }
@@ -4280,6 +4322,52 @@ void TexturePaintPanel::RecordDecalCard(const PlaneExtent& Extent, TexturePaintC
         RecordSlotRow(Spanning(Card.MinimumX, Inside, Card.Width(), SlotY),
                       Covering(Current.PaintHue), SymbolSubject::StencilDecal,
                       Current.Naming, Naming, true);
+
+        Sweep += Scaled.ComponentY + Inner + Pad + Scaled.LayerRowGap;
+    }
+
+    // ④ COMPOSITE — the decal's own blend and opacity, folded in here rather than
+    //    parked behind a Settings tab. 🔴 A decal used to offer two tabs, so its
+    //    placement and its compositing were two clicks apart for no reason; with one
+    //    panel per selection they belong on the same card.
+    {
+        const float Inner = RowY * 2.0f;
+        const PlaneExtent Card = RecordSectionCard(Spanning(Body.MinimumX, Sweep, Body.Width(), 0.0f),
+                                                   "Composite", Inner);
+
+        float Inside = Card.MinimumY;
+
+        SelectionDeclaration Blending;
+        Blending.Caption     = "Blend";
+        Blending.Options     = TextureBlendNames;
+        Blending.OptionCount = TextureBlendCount;
+
+        std::uint32_t Taken = Applied.LayerBlendTaken[Layer] % TextureBlendCount;
+
+        if (SharedControls.SelectionField(DecalRows[8],
+                                          Spanning(Card.MinimumX, Inside, Card.Width(), RowY),
+                                          Blending, Taken).ReadingAltered)
+        {
+            Applied.LayerBlendTaken[Layer] = Taken;
+        }
+
+        Inside += RowY;
+
+        MagnitudeDeclaration Opacity;
+        Opacity.Caption   = "Opacity";
+        Opacity.UnitGlyph = "%";
+        Opacity.Minimum   = 0.0;
+        Opacity.Maximum   = 100.0;
+        Opacity.Layout    = MagnitudeDeclaration::Arrange::Measured;
+
+        double Reading = static_cast<double>(Applied.LayerOpacity[Layer]);
+
+        if (SharedControls.MagnitudeRow(DecalRows[9],
+                                        Spanning(Card.MinimumX, Inside, Card.Width(), RowY),
+                                        Opacity, Reading, false).ReadingAltered)
+        {
+            Applied.LayerOpacity[Layer] = static_cast<std::uint32_t>(Reading + 0.5);
+        }
 
         Sweep += Scaled.ComponentY + Inner + Pad;
     }

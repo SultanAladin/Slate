@@ -125,6 +125,24 @@ Outcome<bool> InterfaceExchange::Construct(const InterfaceAttachment& Incoming)
     //    `HostLifecycle`'s five lifetimes and outside its resize and rebuild paths both.
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
+    // 🔴 A WORKSPACE COULD BE DRAGGED FROM ANYWHERE INSIDE IT. ImGui moves a window
+    //    when the press lands on any part of it that no widget claimed, and a Slate
+    //    leaf is drawn almost entirely through the recording surface — the vendor
+    //    sees empty client area under nearly all of it. So a press on a panel's
+    //    body, between two rows, or on a card's ground would pick the whole
+    //    workspace up and carry it, which reads as the layout coming apart under
+    //    the pointer.
+    //
+    //    `ConfigWindowsMoveFromTitleBarOnly` confines the move to the title bar —
+    //    and, for a docked window, to its TAB, which is the workspace strip at the
+    //    top. That is exactly the requirement: the header that houses the
+    //    workspaces drags; nothing in the body does.
+    //
+    //    📝 This is a configuration bit rather than a per-window `NoMove` because
+    //    `NoMove` on the workspace window would also forbid tearing a workspace out
+    //    by its tab, which is the one drag that must keep working.
+    ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
+
     // 📝 The window system attachment installs its own callbacks. `04`'s `InputExchange` keeps its arrival
     //    stamps regardless: the interface reads the accumulated window condition, and the stroke path reads
     //    the stamped arrival ordering. They observe the same device through two surfaces that never merge.

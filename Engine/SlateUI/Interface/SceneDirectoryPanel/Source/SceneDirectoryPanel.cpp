@@ -34,6 +34,24 @@ constexpr float Between(float Previous, float Incoming, float Fraction)
     return Previous + (Incoming - Previous) * Fraction;
 }
 
+/// 🧩 One tone travelling toward another, for a hover that grows rather than switching.
+constexpr std::uint8_t BlendChannel(std::uint8_t Previous, std::uint8_t Incoming, float Fraction)
+{
+    return static_cast<std::uint8_t>(static_cast<float>(Previous) +
+                                     (static_cast<float>(Incoming) -
+                                      static_cast<float>(Previous)) * Fraction + 0.5f);
+}
+
+constexpr ThemeToken Blend(ThemeToken Previous, ThemeToken Incoming, float Fraction)
+{
+    const float Bounded = (Fraction < 0.0f) ? 0.0f : (Fraction > 1.0f) ? 1.0f : Fraction;
+
+    return ThemeToken{ BlendChannel(Previous.Red,     Incoming.Red,     Bounded),
+                       BlendChannel(Previous.Green,   Incoming.Green,   Bounded),
+                       BlendChannel(Previous.Blue,    Incoming.Blue,    Bounded),
+                       BlendChannel(Previous.Opacity, Incoming.Opacity, Bounded) };
+}
+
 /// 🧩 The same colour at a declared fraction of its own coverage.
 constexpr ThemeToken Faded(ThemeToken Declared, float Fraction)
 {
@@ -337,6 +355,16 @@ Outcome<bool> SceneDirectoryPanel::Construct(InteractionIndex& Interaction,
             return Outcome<bool>::Refuse(Registered.Error);
 
         *Identity = Registered.Resolve();
+    }
+
+    // 📐 The leaf's page travel. Registered here, never mid-tick.
+    {
+        const Outcome<std::uint32_t> Eased = Integrator.RegisterEased(1.0);
+
+        if (!Eased.Resolved)
+            return Outcome<bool>::Refuse(Eased.Error);
+
+        OutlineMotion = Eased.Resolve();
     }
 
     for (std::uint32_t Ordinal = 0u; Ordinal < SceneDirectoryContext::EntityCeiling; ++Ordinal)
@@ -867,11 +895,51 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
     // 📐 The outliner leaf's pages: 0 the directory (outliner | details), 1 the selected record's
     //    properties, 2 its history. Tab cycles them, the strip below selects them, and the header's
     //    Inspect call jumps to the properties.
-    if (Applied.OutlinePage != 0u)
+    // 🔴 THE LEAF CUT BETWEEN ITS PAGES. This returned early the moment the page was
+    //    not the directory, so going to the properties or the history REPLACED the
+    //    leaf between two frames — no travel at all, while the inspector inside it
+    //    slides between its own two pages and the layer stack's carousel slides too.
+    //
+    //    The leaf is a carousel now: the directory and the inspector sit side by
+    //    side and the strip travels one whole extent between them, on the same eased
+    //    interpolant the layer stack spends.
+    if (Applied.OutlinePage != OutlineArriving)
+    {
+        OutlineDeparted = OutlineArriving;
+        OutlineArriving = Applied.OutlinePage;
+        Motion->Eased(OutlineMotion).Depart(0.0, 1.0, 260.0, 0.0, EaseCurve::Standard);
+    }
+
+    const float Travelled  = static_cast<float>(Motion->Eased(OutlineMotion).Current());
+    const float DepartedAt = (OutlineDeparted != 0u) ? -Extent.Width() : 0.0f;
+    const float ArrivingAt = (OutlineArriving != 0u) ? -Extent.Width() : 0.0f;
+    const float Carried    = DepartedAt + (ArrivingAt - DepartedAt) * Travelled;
+
+    // 📐 While the travel stands the directory must keep drawing, or the page being
+    //    left would be blank for the whole slide. Once it has settled on the
+    //    inspector the directory is skipped, which is what the early return did.
+    const bool Settled = (Travelled >= 0.999f);
+
+    if (Settled && OutlineArriving != 0u)
     {
         RecordProperties(Extent, Applied, Rows, RowCount, Revisions, RevisionCount,
                          Applied.OutlineInspectorTab);
         return;
+    }
+
+    if (!Settled)
+    {
+        Surface->Confine(Extent);
+
+        const PlaneExtent Sliding = Spanning(Extent.MinimumX + Carried
+                                             + ((OutlineArriving != 0u) ? Extent.Width() : 0.0f),
+                                             Extent.MinimumY, Extent.Width(), Extent.Height());
+
+        if (!Surface->Excluded(Sliding))
+            RecordProperties(Sliding, Applied, Rows, RowCount, Revisions, RevisionCount,
+                             Applied.OutlineInspectorTab);
+
+        Surface->Release();
     }
 
     // 📐 The outliner column and the details pane beside it — the same `350px_minmax(0,1fr)` split the
@@ -894,7 +962,7 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
         const char* Caption = "Inspect";
         const float Run     = Scaled.RunSecondary;
         const float PadX    = Scaled.HeaderPadX * 0.8f;
-        const float CallSpan = PadX * 2.0f + Surface->MeasureRun(Caption, Run, 0.0f);
+        const float CallSpan = PadX * 2.0f + Surface->MeasureRun(Caption, Run, 0.0f) + 12.0f;
 
         const PlaneExtent Call = Spanning(Header.MaximumX - PadX - CallSpan,
                                           Header.MinimumY + (Header.Height() - 24.0f) * 0.5f,
@@ -910,25 +978,41 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
 
         Ledger->DeclareHovered(InspectCall, OnCall, HoverOver);
 
-        if (OnCall)
-            Surface->Ground(Call, Tinted.TileHovered, Scaled.FieldRadius, CornerAll);
+        // 🔴 THIS DID NOT LOOK LIKE A BUTTON. It drew a bare run of text with a ground
+        //    only while hovered, so at rest it was indistinguishable from the header's
+        //    own labels — the artist had no way to know the thing was pressable, which
+        //    is why it read as decoration. It carries a ground, an edge and a chevron
+        //    at rest now, and lifts on hover like every other action in the shell.
+        const float Lit = Ledger->HoveredFraction(InspectCall);
+
+        Surface->Ground(Call, Blend(Tinted.Tile, Tinted.TileHovered, Lit),
+                        Call.Height() * 0.5f, CornerAll);
+        Surface->Edge(Call, Blend(Tinted.Hairline, Tinted.HairlineFirm, Lit), 1.0f,
+                      Call.Height() * 0.5f, CornerAll);
 
         Surface->TextRun(Call.MinimumX + PadX,
                          Call.MinimumY + (Call.Height() - Run) * 0.5f,
                          OnCall ? Tinted.Primary : Tinted.Muted, Caption, Run);
+
+        // 📐 A trailing chevron, so the button states that it travels somewhere.
+        const float Mark = 10.0f;
+
+        Surface->Stroke(SymbolSubject::ChevronRight,
+                        Spanning(Call.MaximumX - PadX - Mark * 0.6f,
+                                 Call.MinimumY + (Call.Height() - Mark) * 0.5f, Mark, Mark),
+                        OnCall ? Tinted.Primary : Tinted.Faint);
     }
 
     const PlaneExtent Footer = Spanning(Outlining.MinimumX, Outlining.MaximumY - Scaled.FooterHeight,
                                         Outlining.Width(), Scaled.FooterHeight);
 
-    // 📐 The page strip between the body and the footer: Directory | Properties | History. The strip
-    //    writes the same `OutlinePage` Tab cycles, so the two can never disagree.
-    const PlaneExtent Strip = Spanning(Outlining.MinimumX, Footer.MinimumY - Scaled.ComponentY,
-                                       Outlining.Width(), Scaled.ComponentY);
-
-    static const char* const PageCaptions[3] = { "Directory", "Properties", "History" };
-    const TabDeclaration PageDeclared{ PageCaptions, 3u };
-    static_cast<void>(Controls.TabStrip(OutlineStrip, Strip, PageDeclared, Applied.OutlinePage));
+    // 🔴 THE DIRECTORY | PROPERTIES | HISTORY STRIP IS WITHDRAWN, as asked. It was a
+    //    third route to a page that Tab already cycles and that the header's Inspect
+    //    call already jumps to, and it spent a whole band restating navigation the
+    //    leaf has twice over. The inspector's own Properties | History strip stays —
+    //    that one chooses between two pages nothing else reaches.
+    const PlaneExtent Strip = Spanning(Outlining.MinimumX, Footer.MinimumY,
+                                       Outlining.Width(), 0.0f);
 
     // 📝 The search field, between the header and the rows — the scene directory's own filter box,
     //    drawn as a PILL: the radius is half the field's height, so both ends are fully rounded. The
@@ -1356,10 +1440,16 @@ void SceneDirectoryPanel::RecordDetailOptions(const PlaneExtent& Extent, SceneDi
         if (OnRow)
             Surface->Ground(Row, Tinted.TileHovered, Scaled.FieldRadius, CornerAll);
 
-        const float Toggle = Scaled.ChipExtent * 2.5f;
-        const PlaneExtent Switch = Spanning(Row.MaximumX - Toggle - Scaled.PanePad * 1.5f,
-                                            Row.MinimumY + (Row.Height() - Toggle * 0.5f) * 0.5f,
-                                            Toggle, Toggle * 0.5f);
+        // 🔴 `ChipExtent * 2.5` is 8 * 2.5 = 20 px across and 10 px tall — barely half
+        //    the pill every other switch in the editor draws, so the three Options
+        //    toggles read as dots rather than as switches and did not match the layer
+        //    stack's or the channel card's. The shared pill is 14 px tall at the
+        //    reference's 50:32 ratio, which is what those spend; these spend it too.
+        const float ToggleY = 14.0f;
+        const float ToggleX = ToggleY * (50.0f / 32.0f);
+        const PlaneExtent Switch = Spanning(Row.MaximumX - ToggleX - Scaled.PanePad * 1.5f,
+                                            Row.MinimumY + (Row.Height() - ToggleY) * 0.5f,
+                                            ToggleX, ToggleY);
 
         // 🔴 This drew its own pill: the nub was placed by a ternary, so it
         //    jumped between the two ends instead of travelling, and its radius
@@ -1517,6 +1607,44 @@ void SceneDirectoryPanel::RecordProperties(const PlaneExtent& Extent, SceneDirec
     }
 }
 
+// 🧩 The properties column's wheel scroll, eased. Answers where it stands.
+float SceneDirectoryPanel::AdvanceOutlineScroll(SceneDirectoryContext& Applied,
+                                                const PlaneExtent& Viewport)
+{
+    // 📐 The content's height is not known until the cards have been laid out, so the
+    //    ceiling is taken from the PREVIOUS tick's sweep. A column whose height
+    //    changes settles in one tick, and a wheel notch never travels past content
+    //    that is no longer there.
+    const float Travel = (PropertyContent > Viewport.Height())
+                       ? (PropertyContent - Viewport.Height()) : 0.0f;
+
+    if (Travel <= 0.0f)
+    {
+        PropertyWanted = 0.0f;
+        PropertyShown  = 0.0f;
+        return 0.0f;
+    }
+
+    if (Viewport.Encloses(Sampled.PositionX, Sampled.PositionY) && Sampled.WheelY != 0.0f &&
+        !Ledger->AnyDisclosed())
+    {
+        PropertyWanted -= Sampled.WheelY * 56.0f;
+    }
+
+    if (PropertyWanted < 0.0f)     PropertyWanted = 0.0f;
+    if (PropertyWanted > Travel)   PropertyWanted = Travel;
+
+    const float Remaining = PropertyWanted - PropertyShown;
+
+    if (Remaining > 0.35f || Remaining < -0.35f)
+        PropertyShown += Remaining * 0.26f;
+    else
+        PropertyShown = PropertyWanted;
+
+    static_cast<void>(Applied);
+    return PropertyShown;
+}
+
 void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
                                               const EntityRow* Rows, std::uint32_t RowCount)
 {
@@ -1524,7 +1652,13 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
         return;
 
     const float Pad = Scaled.PanePad;
-    float       Sweep = Extent.MinimumY + Pad;
+    // 🔴 THE PROPERTIES PAGE COULD NOT BE SCROLLED. With the sun, sky, grid, sun-disc
+    //    and atmosphere cards all unfolded the column stands far past the leaf, and
+    //    there was no wheel path at all — the tail was unreachable. The page scrolls
+    //    on the same eased chase the layer stack's lists use.
+    const float Wheeled = AdvanceOutlineScroll(Applied, Extent);
+
+    float       Sweep = Extent.MinimumY + Pad - Wheeled;
     std::uint32_t CardOrdinal = 0u;
 
     // 📝 The property card — a folding card, from the reference's generic component cards.
@@ -1858,6 +1992,25 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
     //    before it, and the artist watches an unrelated card close.
     while (CardOrdinal < SceneDirectoryContext::CardCeiling)
         static_cast<void>(Controls.OutlineExpansion(CardFolds[CardOrdinal++], true, true));
+
+    // 📐 What the column actually came to, for next tick's scroll ceiling. Measured
+    //    from the sweep rather than predicted, so a card folding or a subject
+    //    changing the card set is accounted for without a second layout pass.
+    PropertyContent = (Sweep + Wheeled) - Extent.MinimumY + Pad;
+
+    // 📐 The thumb, only while there is somewhere to travel.
+    if (PropertyContent > Extent.Height() && Extent.Height() > 0.0f)
+    {
+        const float Fraction = Extent.Height() / PropertyContent;
+        const float ThumbY   = Extent.Height() * Fraction;
+        const float Reach    = PropertyContent - Extent.Height();
+        const float Along    = (Reach > 0.0f) ? (Wheeled / Reach) : 0.0f;
+
+        Surface->Ground(Spanning(Extent.MaximumX - 5.0f,
+                                 Extent.MinimumY + (Extent.Height() - ThumbY) * Along,
+                                 3.0f, ThumbY),
+                        Faded(Tinted.Muted, 0.55f), 1.5f, CornerAll);
+    }
 }
 
 void SceneDirectoryPanel::RecordEnvironmentCard(SceneDirectoryContext& Applied,

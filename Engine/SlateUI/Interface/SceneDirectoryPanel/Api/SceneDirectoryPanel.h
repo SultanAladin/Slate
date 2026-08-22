@@ -296,6 +296,20 @@ private:
     ControlIdentity InspectorStrip = {};
     ControlIdentity OutlineStrip    = {};
     ControlIdentity InspectCall     = {};
+
+    // 📐 The outliner leaf's own page travel. The leaf slides between the directory,
+    //    the properties and the history exactly as the layer stack's carousel does.
+    std::uint32_t   OutlineMotion   = 0u;   // [-] - the eased slot the travel rides
+    std::uint32_t   OutlineDeparted = 0u;   // [-] - the page it left
+    std::uint32_t   OutlineArriving = 0u;   // [-] - the page it is bound for
+
+    // 📐 The properties page's own list scroll, eased the same way the layer stack's is.
+    float           PropertyShown   = 0.0f;
+    float           PropertyWanted  = 0.0f;
+    float           PropertyContent = 0.0f;   // [px] - last tick's laid-out column height
+
+    /// 🧩 Advances the properties column's scroll and answers where it stands.
+    float AdvanceOutlineScroll(SceneDirectoryContext& Applied, const PlaneExtent& Viewport);
     ControlIdentity SearchField     = {};
     ControlIdentity FacetFold       = {};
     ControlIdentity EnvironmentSliders[6] = {};

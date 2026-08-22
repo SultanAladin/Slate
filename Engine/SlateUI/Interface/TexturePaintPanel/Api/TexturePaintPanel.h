@@ -345,6 +345,10 @@ public:
     std::uint32_t ProofPageMotion() const { return PageMotion; }
 private:
 
+    /// 🧩 How far the folder enclosing one row has opened; 1 when nothing encloses it.
+    float EnclosureFraction(const TexturePaintContext& Applied, const TextureLayerRow* Rows,
+                            std::uint32_t RowCount, std::uint32_t Ordinal);
+
     /// 🧩 Advances one list's scroll toward where the wheel put it; answers where it stands.
     /// note  📐 The drawn offset chases the wanted one rather than being written by the wheel, so a
     ///        notch reads as travel and not as a jump. Called once per page, per tick.
@@ -457,7 +461,7 @@ private:
     ControlIdentity ChannelParams[TextureChannelCeiling][TextureGeneratorParamMax] = {};
     ControlIdentity MaskRows[9]                          = {};
     ControlIdentity MaskParams[TextureGeneratorParamMax] = {};
-    ControlIdentity DecalRows[8]                         = {};
+    ControlIdentity DecalRows[10]                        = {};
     ControlIdentity FolderRows[3]                        = {};
     ControlIdentity SettingRows[4]                       = {};
 
