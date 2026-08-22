@@ -1253,9 +1253,12 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
 
     const float Pad = Scaled.PanePad;
 
-    // ① The reference's header: LAYERS + the count chip + the solo chip + undo/redo + expand + add.
+    // ① The header band. 🔴 It stood at the full 46 px pane-header height to carry a
+    //    second "LAYERS" title and four buttons; with the title withdrawn as redundant
+    //    and the buttons moved to the action bar, only the count and solo chips remain
+    //    and the band is sized to them.
     const PlaneExtent Header = Spanning(Extent.MinimumX, Extent.MinimumY,
-                                        Extent.Width(), Scaled.HeaderHeight);
+                                        Extent.Width(), Scaled.LayerPillY + 12.0f);
 
     RecordStackHeader(Header, Applied, RowCount);
 
@@ -1283,17 +1286,15 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
 
     Discard(StackFacets.Record(FacetCard, StackFacetCard, Applied.FacetEnabled));
 
-    // ④ The page strip: Stack | Properties. The strip writes the same page Tab toggles.
-    const float StripY = Scaled.ComponentY;
-
+    // ④ 🔴 THE PAGE STRIP IS WITHDRAWN. "Stack | Properties" was asked to be removed
+    //    once already and I left it standing. It was a third way to reach the page —
+    //    beside Tab and beside taking a row, both of which travel there on their own —
+    //    and it spent a whole 31 px band restating navigation the panel already has.
+    //    The carousel is unchanged; only this strip is gone.
     const PlaneExtent Strip = Spanning(Extent.MinimumX,
                                        Extent.MaximumY - Scaled.LayerFootCrumb - Scaled.LayerFootProp
-                                       - Scaled.LayerFootBar - StripY,
-                                       Extent.Width(), StripY);
-
-    static const char* const PageCaptions[2] = { "Stack", "Properties" };
-    const TabDeclaration PageDeclared{ PageCaptions, 2u };
-    static_cast<void>(Controls.TabStrip(StackStrip, Strip, PageDeclared, Applied.StackPage));
+                                       - Scaled.LayerFootBar,
+                                       Extent.Width(), 0.0f);
 
     // ⑤ The reference's footer: crumb, blend + opacity, the action bar.
     const PlaneExtent Footer = Spanning(Extent.MinimumX, Strip.MaximumY,
@@ -1404,17 +1405,23 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
 void TexturePaintPanel::RecordStackHeader(const PlaneExtent& Header, TexturePaintContext& Applied,
                                           std::uint32_t RowCount)
 {
+    // 🔴 THIS HEADER WAS REDUNDANT. The panel chrome already names the leaf "Layer
+    //    Stack" one band above; this drew a SECOND title — "L A Y E R S" at 1.4em
+    //    letter-spacing — that said the same thing again, and spent a whole 46 px
+    //    band doing it. It also carried undo and redo, which were hardcoded to the
+    //    disabled pose and did nothing at all, and an expand toggle whose wide
+    //    columns the row layout no longer uses.
+    //
+    //    What remains is the count and the solo chip: the two things the band says
+    //    that nothing else does. The Add action moves to the bottom action bar,
+    //    beside the other structural actions it belongs with.
+    static_cast<void>(Applied);
+
     Surface->Ground(Header, Tinted.MenuLower, 0.0f, CornerNone);
     Surface->Ground(Spanning(Header.MinimumX, Header.MaximumY - 1.0f, Header.Width(), 1.0f),
                     Tinted.Hairline, 0.0f, CornerNone);
 
     const float Pad = Scaled.HeaderPadX;
-    const float Run = 11.5f;
-    const float TitleTop = Header.MinimumY + (Header.Height() - Run) * 0.5f;
-
-    // 📐 "LAYERS" — the reference's uppercase, letter-spaced title.
-    Surface->TextRunCapitalised(Header.MinimumX + Pad, TitleTop, Tinted.Muted,
-                                "Layers", Run, 1.4f, true);
 
     // 📐 The count chip: "N · Mm" — the reference's `count()+' · '+maskCount()+'m'`.
     char Counted[24] = {};
@@ -1432,24 +1439,23 @@ void TexturePaintPanel::RecordStackHeader(const PlaneExtent& Header, TexturePain
     const float ChipSpan = Surface->MeasureRun(Counted, ChipRun, 0.0f) + 18.0f;
     const float ChipY = Header.MinimumY + (Header.Height() - Scaled.LayerPillY) * 0.5f;
 
-    const float TitleSpan = Surface->MeasureRun("Layers", Run, 1.4f);
-    const PlaneExtent CountChip = Spanning(Header.MinimumX + Pad + TitleSpan + 10.0f, ChipY,
+    const PlaneExtent CountChip = Spanning(Header.MinimumX + Pad, ChipY,
                                            ChipSpan, Scaled.LayerPillY);
 
-    Surface->Ground(CountChip, Faded(Covering(0xFFFFFFu), 0.06f), ChipY * 0.5f, CornerAll);
-    Surface->Edge(CountChip, Tinted.Hairline, 1.0f, ChipY * 0.5f, CornerAll);
+    Surface->Ground(CountChip, Faded(Covering(0xFFFFFFu), 0.06f),
+                    CountChip.Height() * 0.5f, CornerAll);
+    Surface->Edge(CountChip, Tinted.Hairline, 1.0f, CountChip.Height() * 0.5f, CornerAll);
     Surface->TextRun(CountChip.MinimumX + 9.0f,
                      CountChip.MinimumY + (CountChip.Height() - ChipRun) * 0.5f,
                      Tinted.Muted, Counted, ChipRun, 0.0f, true);
 
     // 📐 The SOLO chip, standing only while a row is solo'd — the reference's `body.soloing .solo`.
-    float ButtonsLead = CountChip.MaximumX + Pad;
-
     if (Applied.SoloTaken < TextureLayerCeiling)
     {
         const char* SoloRun = "SOLO";
         const float SoloSpan = Surface->MeasureRun(SoloRun, ChipRun, 1.0f) + 18.0f;
-        const PlaneExtent SoloPill = Spanning(ButtonsLead, ChipY, SoloSpan, Scaled.LayerPillY);
+        const PlaneExtent SoloPill = Spanning(CountChip.MaximumX + Pad, ChipY,
+                                              SoloSpan, Scaled.LayerPillY);
 
         Surface->Ground(SoloPill, Covering(0xFFD24Au), SoloPill.Height() * 0.5f, CornerAll);
 
@@ -1464,82 +1470,7 @@ void TexturePaintPanel::RecordStackHeader(const PlaneExtent& Header, TexturePain
         Surface->TextRun(SoloPill.MinimumX + 9.0f,
                          SoloPill.MinimumY + (SoloPill.Height() - ChipRun) * 0.5f,
                          Covering(0x000000u), SoloRun, ChipRun, 1.0f, true);
-
-        ButtonsLead = SoloPill.MaximumX + Pad;
     }
-
-    // 📐 The header buttons, in the reference's own order: undo, redo, expand, then the solid Add —
-    //    the Add stands rightmost, exactly as the HTML's `.head` places it.
-    const float ButtonY = Scaled.LayerToolHeight;
-    const float Gap = 6.0f;
-    const float Figure = 15.0f;
-
-    const auto CellAt = [&](float X)
-    {
-        return Spanning(X, Header.MinimumY + (Header.Height() - ButtonY) * 0.5f, ButtonY, ButtonY);
-    };
-
-    // The solid Add button: opens the Add menu.
-    const float AddX = Header.MaximumX - Pad - ButtonY;
-    const PlaneExtent AddCell = CellAt(AddX);
-    const bool OnAdd = AddCell.Encloses(Sampled.PositionX, Sampled.PositionY);
-
-    Surface->Ground(AddCell, OnAdd ? Faded(Covering(0xFFFFFFu), 0.16f)
-                                   : Faded(Covering(0xFFFFFFu), 0.09f),
-                    Scaled.LayerRadius, CornerAll);
-    Surface->Edge(AddCell, Tinted.Hairline, 1.0f, Scaled.LayerRadius, CornerAll);
-
-    Surface->Stroke(SymbolSubject::PlusCross,
-                    Spanning(AddCell.MinimumX + (ButtonY - Figure) * 0.5f,
-                             AddCell.MinimumY + (ButtonY - Figure) * 0.5f, Figure, Figure),
-                    OnAdd ? Tinted.Primary : Covering(0x9A9A9Au));
-
-    if (Sampled.ContactPressed && OnAdd && !Ledger->AnyDisclosed())
-        Ledger->Grab(HeaderAdd, ControlPart::Body);
-
-    if (OnAdd && Ledger->Released(HeaderAdd))
-    {
-        Ledger->Disclose(MenuAdd);
-        Applied.MenuOpen = 1u;
-        MenuAnchorExtent = AddCell;
-    }
-
-    // The expand toggle: cycles the wide columns.
-    const float ExpandX = AddX - ButtonY - Gap;
-    const PlaneExtent ExpandCell = CellAt(ExpandX);
-    const bool OnExpand = ExpandCell.Encloses(Sampled.PositionX, Sampled.PositionY);
-
-    if (OnExpand)
-        Surface->Ground(ExpandCell, Faded(Covering(0xFFFFFFu), 0.08f), Scaled.LayerRadius, CornerAll);
-
-    Surface->Stroke(SymbolSubject::ExpandFrame,
-                    Spanning(ExpandCell.MinimumX + (ButtonY - Figure) * 0.5f,
-                             ExpandCell.MinimumY + (ButtonY - Figure) * 0.5f, Figure, Figure),
-                    OnExpand ? Tinted.Primary : Covering(0x9A9A9Au));
-
-    if (Sampled.ContactPressed && OnExpand && !Ledger->AnyDisclosed())
-        Ledger->Grab(HeaderExpand, ControlPart::Body);
-
-    if (OnExpand && Ledger->Released(HeaderExpand))
-        Applied.WideRows = !Applied.WideRows;
-
-    // Redo and undo — always disabled, matching the reference's empty-history state.
-    const float RedoX = ExpandX - ButtonY - Gap;
-    const PlaneExtent RedoCell = CellAt(RedoX);
-
-    Surface->Stroke(SymbolSubject::RedoArrow,
-                    Spanning(RedoCell.MinimumX + (ButtonY - Figure) * 0.5f,
-                             RedoCell.MinimumY + (ButtonY - Figure) * 0.5f, Figure, Figure),
-                    Faded(Covering(0x9A9A9Au), 0.25f));
-
-    const float UndoX = RedoX - ButtonY - Gap;
-    const PlaneExtent UndoCell = CellAt(UndoX);
-
-    Surface->Stroke(SymbolSubject::UndoArrow,
-                    Spanning(UndoCell.MinimumX + (ButtonY - Figure) * 0.5f,
-                             UndoCell.MinimumY + (ButtonY - Figure) * 0.5f, Figure, Figure),
-                    Faded(Covering(0x9A9A9Au), 0.25f));
-
 }
 
 void TexturePaintPanel::RecordStackTools(const PlaneExtent& Tools, TexturePaintContext& Applied)
@@ -1757,11 +1688,15 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
 
     if (Applied.MaskAttached[Ordinal])
     {
-        // 📐 The reference's `.tag.dot`: 3 px on, 4 px off, at 0.85 coverage.
-        for (float Y = Row.MinimumY; Y < Row.MinimumY + Scaled.LayerRowY; Y += 7.0f)
+        // 📐 The reference's `.tag.dot`.
+        // 🔴 3 px on / 4 px off drew a rail of stubby DASHES, not dots — at a 45 px
+        //    row that is six fat blocks and it read as a broken bar rather than as a
+        //    dotted one. 2 px on / 3 px off at the same coverage gives nine finer
+        //    marks over the same run, which is what a dotted rail should look like.
+        for (float Y = Row.MinimumY + 1.0f; Y < Row.MinimumY + Scaled.LayerRowY; Y += 5.0f)
         {
             Surface->Ground(Spanning(Row.MinimumX, Y, Scaled.LayerTagX,
-                                     std::min(3.0f, Row.MinimumY + Scaled.LayerRowY - Y)),
+                                     std::min(2.0f, Row.MinimumY + Scaled.LayerRowY - Y)),
                             Faded(Covering(TagHue), (Absent ? 0.3f : 0.85f)), 0.0f, CornerNone);
         }
     }
@@ -1845,9 +1780,15 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
         //    texture disc + `badge`.
         Surface->Ground(Thumb, Faded(Covering(TagHue), 0.30f * RowCoverage), 0.0f, CornerNone);
 
+        // 🔴 `Thumb.MaximumY + ThumbExtent` added a SIZE to a COORDINATE that was
+        //    already the thumbnail's bottom edge, so the type badge was placed a
+        //    whole thumbnail below the row it belongs to — the loose icon floating
+        //    under the last entry. `Thumb` is an extent, not an origin: its trailing
+        //    edge is MaximumY, and the badge is inset up from it like every other
+        //    corner-pinned mark in this panel.
         const float BadgeExtent = Scaled.LayerBadgeY;
-        const PlaneExtent Badge = Spanning(Thumb.MaximumX - BadgeExtent + 3.0f,
-                                           Thumb.MaximumY + ThumbExtent - BadgeExtent - 3.0f,
+        const PlaneExtent Badge = Spanning(Thumb.MaximumX - BadgeExtent - 3.0f,
+                                           Thumb.MaximumY - BadgeExtent - 3.0f,
                                            BadgeExtent, BadgeExtent);
 
         Surface->Ground(Badge, Faded(Covering(0x000000u), RowCoverage), Scaled.LayerRadius * 0.5f,
@@ -2071,10 +2012,12 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
     const std::uint32_t TagHue = Applied.LayerTagHue[Ordinal] != 0u
                                ? Applied.LayerTagHue[Ordinal] : Current.TagHue;
 
-    for (float Y = Row.MinimumY; Y < Row.MinimumY + Row.Height(); Y += 7.0f)
+    // 📐 The same finer dotting as the layer rail above — the two must match, since
+    //    they are the same mark meaning the same thing on adjacent rows.
+    for (float Y = Row.MinimumY + 1.0f; Y < Row.MinimumY + Row.Height(); Y += 5.0f)
     {
         Surface->Ground(Spanning(Row.MinimumX, Y, Scaled.LayerTagX,
-                                 std::min(3.0f, Row.MinimumY + Row.Height() - Y)),
+                                 std::min(2.0f, Row.MinimumY + Row.Height() - Y)),
                         Faded(Covering(TagHue), Absent ? 0.3f : 0.85f), 0.0f, CornerNone);
     }
 
@@ -2384,60 +2327,43 @@ void TexturePaintPanel::RecordStackFooter(const PlaneExtent& Footer, TexturePain
         }
     }
 
-    // 📐 The opacity slider and its value pill.
-    const float ValueW = 46.0f;
-    const float TrackX = Pill.MaximumX + 12.0f;
-    const float TrackW = Footer.MaximumX - Pad - ValueW - 8.0f - TrackX;
-    const float TrackY = PropY + (PropH - 6.0f) * 0.5f;
-
+    // 📐 The opacity row.
+    // 🔴 THIS WAS A FOURTH HAND-ROLLED SLIDER. Two Grounds for the track, two
+    //    Medallions for the knob, a hand-written hit test with its own ad-hoc
+    //    ±8/±14 px cushion, and a separate value pill — none of it the shared
+    //    control, so it had no readout cell, no unit segment, no hover growth and
+    //    no keyboard path, and it drifted from every other slider in the editor.
+    //    It is MagnitudeRow now, in the Measured arrangement, exactly as the sun
+    //    rows are: caption, track, then the reading with its unit.
     const std::uint32_t Amount = Selection
                                ? (MaskOn ? Applied.MaskDensity[Taken]
                                          : Applied.LayerOpacity[Taken])
                                : 100u;
 
-    const float Fill = TrackW * static_cast<float>(Amount) / 100.0f;
+    MagnitudeDeclaration Opacity;
+    Opacity.Caption   = MaskOn ? "Density" : "Opacity";
+    Opacity.UnitGlyph = "%";
+    Opacity.Minimum   = 0.0;
+    Opacity.Maximum   = 100.0;
+    Opacity.Layout    = MagnitudeDeclaration::Arrange::Measured;
 
-    Surface->Ground(Spanning(TrackX, TrackY, TrackW, 6.0f),
-                    Faded(Covering(0xFFFFFFu), 0.11f), 3.0f, CornerAll);
-    Surface->Ground(Spanning(TrackX, TrackY, Fill, 6.0f),
-                    Faded(Covering(0xFFFFFFu), BlendDim ? 0.5f : 1.0f), 3.0f, CornerAll);
+    double Reading = static_cast<double>(Amount);
 
-    const float Knob = 15.0f;
-    const float KnobX = TrackX + Held(Fill, Knob * 0.5f, TrackW - Knob * 0.5f);
+    const PlaneExtent OpacityExtent = Spanning(Pill.MaximumX + 12.0f, PropY,
+                                               Footer.MaximumX - Pad - Pill.MaximumX - 12.0f,
+                                               PropH);
 
-    Surface->Medallion(KnobX, TrackY + 3.0f, Knob * 0.5f, Covering(0xFFFFFFu));
-    Surface->Medallion(KnobX, TrackY + 3.0f, Knob * 0.5f + 2.0f, Faded(Covering(0xFFFFFFu), 0.35f));
-
-    const bool OnTrack = TrackX <= Sampled.PositionX && Sampled.PositionX <= TrackX + TrackW &&
-                         TrackY - 8.0f <= Sampled.PositionY && Sampled.PositionY <= TrackY + 14.0f;
-
-    if (Sampled.ContactPressed && OnTrack && !Ledger->AnyDisclosed())
-        Ledger->Grab(OpacityRow, ControlPart::Body);
-
-    if (Ledger->Holding(OpacityRow) && Selection)
+    if (OpacityExtent.Width() > 0.0f &&
+        SharedControls.MagnitudeRow(OpacityRow, OpacityExtent, Opacity, Reading, false).ReadingAltered
+        && Selection)
     {
-        const float Fraction = Held((Sampled.PositionX - TrackX) / TrackW, 0.0f, 1.0f);
-        const std::uint32_t Reading = static_cast<std::uint32_t>(Fraction * 100.0f + 0.5f);
+        const std::uint32_t Written = static_cast<std::uint32_t>(Reading + 0.5);
 
         if (MaskOn)
-            Applied.MaskDensity[Taken] = Reading;
+            Applied.MaskDensity[Taken] = Written;
         else
-            Applied.LayerOpacity[Taken] = Reading;
+            Applied.LayerOpacity[Taken] = Written;
     }
-
-    const PlaneExtent ValuePill = Spanning(Footer.MaximumX - Pad - ValueW,
-                                           PillY, ValueW, PillH);
-
-    Surface->Ground(ValuePill, Faded(Covering(0xFFFFFFu), 0.06f), PillH * 0.5f, CornerAll);
-    Surface->Edge(ValuePill, Tinted.Hairline, 1.0f, PillH * 0.5f, CornerAll);
-
-    char Readout[8] = {};
-    std::snprintf(Readout, sizeof(Readout), "%u%%", Amount);
-
-    Surface->TextRun(ValuePill.MinimumX + (ValueW - Surface->MeasureRun(Readout, PillRun, 0.0f)) * 0.5f,
-                     ValuePill.MinimumY + (PillH - PillRun) * 0.5f,
-                     Selection ? Tinted.Primary : Faded(Tinted.Muted, 0.5f),
-                     Readout, PillRun, 0.0f, true);
 
     // ③ The action bar — the reference's `.bar`.
     const float BarY = PropY + Scaled.LayerFootProp;
@@ -2448,6 +2374,44 @@ void TexturePaintPanel::RecordStackFooter(const PlaneExtent& Footer, TexturePain
     const float VSepY = ButtonTop + (ButtonY - 17.0f) * 0.5f;
 
     float Lead = Footer.MinimumX + Pad;
+
+    // 📐 The Add action, moved down from the withdrawn header. It is the only one of
+    //    that header's four buttons that did anything: undo and redo were hardcoded
+    //    to the disabled pose, and the expand toggle drove wide columns the row
+    //    layout no longer lays out.
+    {
+        const PlaneExtent AddCell = Spanning(Lead, ButtonTop, ButtonY, ButtonY);
+        const bool OnAdd = AddCell.Encloses(Sampled.PositionX, Sampled.PositionY);
+
+        Surface->Ground(AddCell, OnAdd ? Faded(Covering(0xFFFFFFu), 0.16f)
+                                       : Faded(Covering(0xFFFFFFu), 0.09f),
+                        Scaled.LayerRadius, CornerAll);
+        Surface->Edge(AddCell, Tinted.Hairline, 1.0f, Scaled.LayerRadius, CornerAll);
+
+        const float AddFigure = 15.0f;
+
+        Surface->Stroke(SymbolSubject::PlusCross,
+                        Spanning(AddCell.MinimumX + (ButtonY - AddFigure) * 0.5f,
+                                 AddCell.MinimumY + (ButtonY - AddFigure) * 0.5f,
+                                 AddFigure, AddFigure),
+                        OnAdd ? Tinted.Primary : Covering(0x9A9A9Au));
+
+        if (Sampled.ContactPressed && OnAdd && !Ledger->AnyDisclosed())
+            Ledger->Grab(HeaderAdd, ControlPart::Body);
+
+        if (OnAdd && Ledger->Released(HeaderAdd))
+        {
+            Ledger->Disclose(MenuAdd);
+            Applied.MenuOpen = 1u;
+            MenuAnchorExtent = AddCell;
+        }
+
+        Lead = AddCell.MaximumX + 5.0f;
+
+        Surface->Ground(Spanning(Lead + 5.0f, VSepY, 1.0f, 17.0f),
+                        Tinted.Hairline, 0.0f, CornerNone);
+        Lead += 11.0f;
+    }
 
     struct BarCell
     {

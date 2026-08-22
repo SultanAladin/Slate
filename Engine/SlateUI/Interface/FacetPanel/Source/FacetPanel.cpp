@@ -15,8 +15,9 @@ namespace
 
 constexpr float CardRadius       = 12.0f;   // [px] - --r-tile
 constexpr float CardPad          = 10.0f;   // [px] - chips-region horizontal padding
-constexpr float HeaderHeight     = 22.0f;   // [px] - heading and count line
-constexpr float HeaderGap        = 8.0f;    // [px] - heading to chips
+// 📝 The heading band, its count badge and the clear-all run are withdrawn; the
+//    card is the dropdown and the chips beneath it. Their constants go with them
+//    rather than being left behind for a later reader to wonder about.
 constexpr float ChipHeight       = 27.0f;   // [px] - chip and add button height
 constexpr float ChipGap          = 6.0f;    // [px] - flex gap
 constexpr float ChipPadLeading   = 10.0f;   // [px] - caption leading inset
@@ -31,15 +32,6 @@ constexpr float CardTrailingPad  = 10.0f;   // [px] - dropdown to card edge
 //    so "Choose filter..." rendered as "Choos". The pill is sized from its own
 //    longest caption now, so the text it exists to show always fits.
 constexpr float DropdownPillPad  = 24.0f;   // [px] - caption breathing room inside the pill
-// 🔴 The badge was 24 x 18 with r=9 — a rounded oblong, not a circle — placed at
-//    `caption width + 10`, so it sat against the title rather than the trailing
-//    edge. One diameter now drives width, height and radius together.
-constexpr float CountDiameter = 20.0f;   // [px] - active count badge, w == h
-constexpr float CountGap      =  8.0f;   // [px] - badge to the clear-all action
-// 🔴 ClearX was a fixed 48 px, but "Clear all" measures 67 px at the shipped
-//    LabelText, so the run overflowed its own extent and collided with the
-//    badge. The extent is measured from the run now.
-constexpr float ClearPad      =  8.0f;   // [px] - breathing room around the clear-all run
 
 float Scaled(float Figure, const ThemeProfile& Appearance)
 {
@@ -141,14 +133,28 @@ FacetPanel::Arrangement FacetPanel::Arrange(float X,
         ChipX += RequiredX + Gap;
     }
 
+    // 🔴 THE CARD RESERVED A CHIP ROW EVEN WITH NO CHIPS. `ChipsHeight` was seeded to
+    //    one full row and, when nothing was active, RE-SET to that same full row — so
+    //    an empty filter card stood a header, an empty 27 px band and a dropdown, and
+    //    read on screen as a large vacuum. An empty card now collapses to its
+    //    dropdown alone.
     if (!ActivePresent)
-        ChipsHeight = ChipRowY;
+        ChipsHeight = 0.0f;
 
-    const float HeaderRowY = HeaderHeight * Scale;
-    const float HeaderToChips = HeaderGap * Scale;
-    const float ChipsTop = Y + Pad + HeaderRowY + HeaderToChips;
-    const float DropdownTop = ChipsTop + ChipsHeight + DropdownGap * Scale;
+    // 🔴 The heading band and its count badge are withdrawn. The card is inside a
+    //    panel that already names it, the chips below state exactly which filters
+    //    stand, and a count of things you can see and enumerate is not worth a band.
+    //    The shape asked for is: [ Choose filters (v) ] then the chips beneath it.
+    const float HeaderRowY = 0.0f;
+    const float HeaderToChips = 0.0f;
     const float DropdownHeight = Appearance->ControlMeasure.FieldHeight;
+
+    // 📐 The dropdown LEADS now and the chips follow it, which is the order requested
+    //    and also the order that keeps the card from moving under the pointer as
+    //    chips wrap onto a second row.
+    const float DropdownTop = Y + Pad;
+    const float ChipsTop = ActivePresent ? (DropdownTop + DropdownHeight + DropdownGap * Scale)
+                                         : DropdownTop + DropdownHeight;
 
     Arranged.Header = Spanning(X + Pad, Y + Pad, InteriorX, HeaderRowY);
     Arranged.Chips = Spanning(X + Pad, ChipsTop, InteriorX, ChipsHeight);
@@ -164,8 +170,10 @@ FacetPanel::Arrangement FacetPanel::Arrange(float X,
     const float DropdownWidth = (PillWanted < InteriorX) ? PillWanted : InteriorX;
     Arranged.Dropdown = Spanning(X + Pad, DropdownTop,
                                  DropdownWidth, DropdownHeight);
-    Arranged.TotalY = Pad + HeaderRowY + HeaderToChips + ChipsHeight + DropdownGap * Scale +
-                           DropdownHeight + CardTrailingPad * Scale;
+    // 📐 The gap between the dropdown and the chips is only spent when chips stand.
+    Arranged.TotalY = Pad + HeaderRowY + HeaderToChips + DropdownHeight
+                    + (ActivePresent ? (DropdownGap * Scale + ChipsHeight) : 0.0f)
+                    + CardTrailingPad * Scale;
     return Arranged;
 }
 
@@ -230,66 +238,13 @@ Outcome<bool> FacetPanel::Record(const PlaneExtent& Extent,
     for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
         if (Enabled != nullptr && Enabled[Ordinal]) ++ActiveCount;
 
-    Surface->TextRunCapitalised(Arranged.Header.MinimumX,
-                                Arranged.Header.MinimumY + 5.0f * Scale,
-                                Colour.LabelQuiet,
-                                Declared.Caption,
-                                Appearance->ControlMeasure.LabelText,
-                                0.08f,
-                                false);
-
-    char CountRun[12] = {};
-    std::snprintf(CountRun, sizeof(CountRun), "%u", static_cast<unsigned>(ActiveCount));
-    // ① A true circle: one diameter drives width, height and radius, so the shape
-    //    cannot drift back into an oblong at any display scale.
-    const float Diameter = CountDiameter * Scale;
-    const PlaneExtent CountBadge = Spanning(Arranged.Header.MaximumX - Diameter,
-                                            Arranged.Header.MinimumY +
-                                                (Arranged.Header.Height() - Diameter) * 0.5f,
-                                            Diameter,
-                                            Diameter);
-
-    Surface->Ground(CountBadge, Colour.StopTaken, Diameter * 0.5f, CornerAll);
-
-    // 🔴 The digit was drawn at LabelText — 30 px glyphs inside an 18 px badge, so
-    //    it overflowed the disc. Size the run to the circle and centre it on both
-    //    axes instead of offsetting by a hardcoded 4 px.
-    const float CountText = Diameter * 0.55f;
-    Surface->TextRun(CountBadge.MinimumX + Diameter * 0.5f,
-                     CountBadge.MinimumY + (Diameter - CountText) * 0.5f,
-                     Colour.StopTakenColour,
-                     CountRun,
-                     CountText,
-                     0.0f,
-                     true);
-
-    // ② The badge owns the trailing edge, so the clear-all action is pushed
-    //    inboard by the badge's diameter plus one gap; both were pinned to
-    //    MaximumX before and overlapped.
-    const float ClearRun = Surface->MeasureRun("Clear all",
-                                               Appearance->ControlMeasure.LabelText, 0.0f)
-                         + ClearPad * Scale;
-    const PlaneExtent Clear = Spanning(Arranged.Header.MaximumX - Diameter - CountGap * Scale
-                                           - ClearRun,
-                                       Arranged.Header.MinimumY,
-                                       ClearRun,
-                                       Arranged.Header.Height());
-    if (ActiveCount > ((Declared.LockedOrdinal < Count && Enabled != nullptr &&
-                        Enabled[Declared.LockedOrdinal]) ? 1u : 0u))
-    {
-        Surface->TextRun(Clear.MinimumX,
-                         Clear.MinimumY + 5.0f * Scale,
-                         Colour.LabelQuiet,
-                         "Clear all",
-                         Appearance->ControlMeasure.LabelText,
-                         0.0f,
-                         false);
-        if (Pressed(1u, Clear) && Enabled != nullptr)
-        {
-            for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
-                Enabled[Ordinal] = Ordinal == Declared.LockedOrdinal;
-        }
-    }
+    // 🔴 The heading run, the count badge and the "Clear all" action are withdrawn
+    //    with the header band. Each chip carries its own cross, so clearing is one
+    //    press per filter and never ambiguous about what it clears; the count was a
+    //    number for a set the eye can already count; and the caption repeated the
+    //    panel that encloses the card. What is left is the shape asked for: the
+    //    dropdown, then the chips.
+    static_cast<void>(ActiveCount);
 
     // 🔴 The same shadowing discipline as Arrange: a local named after the global constant it
     //    scales would read the global's uninitialised slot and draw every chip with a garbage height
