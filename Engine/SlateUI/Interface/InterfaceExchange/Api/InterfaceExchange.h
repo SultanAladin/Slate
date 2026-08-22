@@ -242,9 +242,10 @@ public:
     ///        held, in display pixels.
     /// note  ⚠️ Valid only between `Advance` and `Seal`, on the same terms as `KeyPressed`. Gated on the
     ///        keyboard capture, so a run the artist is typing into keeps the keys.
+    /// note  🔴 Not const: the look gesture's capture state stands here until `Seal` warps the cursor.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    CameraCondition CameraInput() const;
+    CameraCondition CameraInput();
 
     /// 🧩 Appends this tick's typed characters to a caller-owned run, and reports whether any arrived.
     /// in    Intake     [-]  the run written into; always left terminated
@@ -268,6 +269,12 @@ private:
     VkDescriptorPool     DescriptorSlot    = VK_NULL_HANDLE;   // [-] - sized for the interface's own imagery
     void*                ContextSlot       = nullptr;          // [-] - opaque; the ImGui spelling stays in
                                                                //       the source file
+    void*                NativeWindow      = nullptr;          // [-] - the window system's handle, retained for
+                                                               //       the look gesture's cursor warp at frame end
+    bool                 LookCaptureStanding = false;          // [-] - the right-button look gesture stood this
+                                                               //       tick; the warp runs AFTER the frame ends so
+                                                               //       the vendor's accumulated mouse delta is never
+                                                               //       clobbered before NewFrame reads it
     bool                 TickOpen          = false;            // [-] - Advance delivered, Seal has not
     bool                 ContentAssembled  = false;            // [-] - Seal delivered, Record has not
     bool                 WindowAttached    = false;            // [-] - the window system attachment stands

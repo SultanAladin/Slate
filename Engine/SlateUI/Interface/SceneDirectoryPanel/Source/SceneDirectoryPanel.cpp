@@ -2227,4 +2227,47 @@ void SceneDirectoryPanel::RecordGizmo(const PlaneExtent& Extent, SceneDirectoryC
     }
 }
 
+void SceneDirectoryPanel::RecordOverlayFallback(const PlaneExtent& Extent,
+                                                const OverlayGeometry& Overlay)
+{
+    if (Surface == nullptr)
+        return;
+
+    // 📐 The SAME record the GPU pass would draw, drawn through the interface instead — the fallback
+    //    when the pass could not stand. Everything is confined to the leaf, exactly as the pass's
+    //    scissor clips its own draw: the grid, the axes and the gizmo never paint over the panels.
+    Surface->Confine(Extent);
+
+    const auto Token = [](std::uint32_t Packed) -> ThemeToken
+    {
+        const float Alpha = static_cast<float>((Packed >> 24u) & 0xFFu) / 255.0f;
+        return Faded(Covering(Packed & 0xFFFFFFu), Alpha);
+    };
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < Overlay.LineCount; ++Ordinal)
+    {
+        const OverlayLine& Line = Overlay.Lines[Ordinal];
+        const float PointsX[2] = { Line.X0, Line.X1 };
+        const float PointsY[2] = { Line.Y0, Line.Y1 };
+        Surface->Polyline(PointsX, PointsY, 2u, Token(Line.Packed), Line.Thickness);
+    }
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < Overlay.DotCount; ++Ordinal)
+    {
+        const OverlayDot& Dot = Overlay.Dots[Ordinal];
+        Surface->Medallion(Dot.X, Dot.Y, Dot.Radius, Token(Dot.Packed));
+    }
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < Overlay.TriangleCount; ++Ordinal)
+    {
+        const OverlayTriangle& Triangle = Overlay.Triangles[Ordinal];
+        const float Corners[6] = { Triangle.X0, Triangle.Y0,
+                                   Triangle.X1, Triangle.Y1,
+                                   Triangle.X2, Triangle.Y2 };
+        Surface->Tongue(Corners, 3u, Token(Triangle.Packed));
+    }
+
+    Surface->Release();
+}
+
 }   // namespace Slate

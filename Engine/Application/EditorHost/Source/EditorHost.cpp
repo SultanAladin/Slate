@@ -37,6 +37,13 @@
 #include <algorithm>
 #include <cstdio>
 #include <filesystem>
+#include <vector>
+
+#if defined(_WIN32)
+    #include <windows.h>
+#else
+    #include <unistd.h>
+#endif
 #include <cstring>
 #include <system_error>
 
@@ -119,14 +126,44 @@ constexpr float WorkspaceGround[4] = { 0.06f, 0.06f, 0.08f, 1.0f };   // [-]
 /// note  🔴 `SlateVulkan` cannot name `InterfaceAttachment` — it lives one layer above — so `HostLifecycle`
 ///        offers the same handles as `DeviceOffering` and the host performs the copy. The copy IS the seam:
 ///        it happens in the one translation unit that is allowed to see both sides.
-/// 🧩 Where the build lowered its shader streams, resolved from the run directory: the hosts run
-///    from `<OutputRoot>/Binary`, and the streams live at `<OutputRoot>/Shader` — one hop up.
+/// 🧩 Where the build lowered its shader streams, resolved from the EXECUTABLE's own location: the
+///    hosts ship in `<OutputRoot>/Binary`, and the streams live at `<OutputRoot>/Shader` — one hop up
+///    from wherever the executable actually sits, not from the working directory. A host launched
+///    from a shortcut, a debugger or a console at another directory used to resolve `current_path()`,
+///    which pointed at the wrong `Shader` folder — the overlay pass refused on the missing streams
+///    and the grid, the axes and the gizmo silently never drew (the reported missing overlay).
 /// note  🔴 A build that never lowered shaders (the sandbox) leaves this directory absent; the
-///        overlay pass refuses on the missing streams and the editor runs without the overlay.
+///        overlay pass refuses on the missing streams and the editor runs without the GPU overlay —
+///        and now falls back to the interface-drawn overlay instead of drawing nothing.
 std::string ShaderStreamDirectory()
 {
     std::error_code Error;
-    const std::filesystem::path Binary = std::filesystem::current_path(Error);
+    std::filesystem::path Binary;
+
+#if defined(_WIN32)
+    {
+        wchar_t Executable[32768] = {};
+        const DWORD Written = GetModuleFileNameW(nullptr, Executable, 32768);
+
+        if (Written > 0u && Written < 32768u)
+            Binary = std::filesystem::path(Executable).parent_path();
+    }
+#endif
+
+    if (Binary.empty())
+    {
+#if !defined(_WIN32)
+        std::vector<char> Executable(32768, '\0');
+        const std::size_t Written = readlink("/proc/self/exe", Executable.data(), Executable.size());
+
+        if (Written > 0u && Written < Executable.size())
+            Binary = std::filesystem::path(std::string(Executable.data(), Written)).parent_path();
+#endif
+    }
+
+    if (Binary.empty())
+        Binary = std::filesystem::current_path(Error);
+
     const std::filesystem::path Shader = Binary / ".." / "Shader";
     return Shader.lexically_normal().string();
 }
@@ -719,6 +756,14 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                                 PanelConfiguration[Ordinal],
                                                                 LeafOverlay);
                                 SceneDirectory.RecordGizmo(LeafBody, SceneApplied, LeafOverlay);
+
+                                // 🔴 When the GPU overlay pass could not stand (a build that lowered no
+                                //    shaders, or a device that refused it), the SAME record is drawn
+                                //    through the interface so the grid, the axes and the gizmo are
+                                //    ALWAYS visible — the editor must never silently lose its overlay.
+                                //    The upload/record block below then has no pass to draw and skips.
+                                if (!Overlay.Standing())
+                                    SceneDirectory.RecordOverlayFallback(LeafBody, LeafOverlay);
 
                                 if (ViewportLeafTally < PanelStructure::RecordCeiling)
                                 {

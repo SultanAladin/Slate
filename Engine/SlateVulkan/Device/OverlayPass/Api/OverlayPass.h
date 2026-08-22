@@ -95,6 +95,18 @@ public:
     void Record(VkCommandBuffer Command, std::uint32_t Width, std::uint32_t Height,
                 float ClipX0, float ClipY0, float ClipX1, float ClipY1);
 
+    /// 🧩 Whether the pass stands — what the host tests before it records the GPU overlay, and what
+    ///    decides whether the interface-drawn fallback (same geometry, drawn through the recording
+    ///    surface) must stand in instead.
+    /// note  🔴 The pass refuses when the build lowered no shaders; the host then draws the fallback
+    ///        so the grid, the axes and the gizmo are visible even without the GPU pass.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    bool Standing() const
+    {
+        return DeviceEdge != nullptr && OverlayPipeline != VK_NULL_HANDLE;
+    }
+
     /// 🧩 Destroys every object and forgets the device handles, ahead of a device rebuild.
     /// cost  🔴
     /// tag   api, nonthrowing

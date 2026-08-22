@@ -211,6 +211,19 @@ public:
     /// tag   api, nonallocating, nonthrowing
     void RecordGizmo(const PlaneExtent& Extent, SceneDirectoryContext& Applied, OverlayGeometry& Overlay);
 
+    /// 🧩 Records the SAME overlay record through the interface — the grid, the axes and the gizmo —
+    ///    clipped to the viewport leaf. This is the host's fallback when the GPU overlay pass could
+    ///    not stand (a build that lowered no shaders): the geometry is identical, so the editor never
+    ///    silently loses its grid; the CPU cost is paid only when the pass is absent.
+    /// in    Extent   [px]  the viewport leaf; everything is confined to it, exactly as the GPU
+    ///                      pass's scissor clips its own draw
+    /// in    Overlay  [-]   the leaf's record, filled by RecordGroundGrid + RecordGizmo this tick
+    /// note  🔴 Lines draw through `Polyline`, dots through `Medallion`, triangles through `Tongue`;
+    ///        the packed straight-alpha colours convert to theme tokens at their declared coverage.
+    /// cost  🚩
+    /// tag   api, nonallocating, nonthrowing
+    void RecordOverlayFallback(const PlaneExtent& Extent, const OverlayGeometry& Overlay);
+
     /// 🧩 Records the outliner column and its details pane across one outliner leaf.
     /// in    Rows   [-]  the entity rows, borrowed for the tick
     /// in    RowCount [-]  how many of them stand

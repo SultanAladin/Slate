@@ -86,6 +86,15 @@ prototype of the WHOLE reference sheet                    the real editor layout
   only on the press frame — the "turns then stops" defect), and it is NOT gated
   on `WantCaptureKeyboard` (a hovered window raises it, which would stop the
   camera over any panel). Only text input gates the movement keys.
+  🔴 WARP TIMING LESSON (do not regress): the cursor warp must run AFTER the
+  frame ends — `InterfaceExchange::Seal()`, once `ImGui::Render()` has captured
+  `MousePosPrev`. Warping through the backend's `WantSetMousePos` fires
+  `glfwSetCursorPos` at the start of the NEXT `ImGui_ImplGlfw_NewFrame`, and
+  that call synchronously invokes the cursor callback, setting `io.MousePos` to
+  the centre BEFORE `ImGui::NewFrame()` computes `io.MouseDelta` — the
+  accumulated delta reads ZERO on every held frame and the look does nothing
+  (the recurring "camera movement is bugged"). The seam warps directly in
+  `Seal()` and never touches `io.MousePos` mid-tick.
 - **Camera lag**: the rig eases position and yaw/pitch toward the target with
   an exponential time constant (0.18 s). Toggle it in the camera's details
   (Camera Lag); Invert Pitch is the second toggle. The viewport crop reads the
@@ -271,3 +280,21 @@ its own pass inside the host's dynamic-rendering scope, AFTER the interface.
 - **Shutdown order matters**: `SkySurface.Reclaim()` runs BEFORE
   `Lifetime.Reclaim()` — a surface left standing past the device reclaim waits
   on a dead fence and reports `vkWaitForFences: Invalid device` at exit.
+- 🔴 FALLBACK LESSON (do not regress): when the overlay pass could not stand (a
+  build that lowered no shaders, or a device that refused it), the host draws
+  the SAME `OverlayGeometry` through the interface —
+  `SceneDirectoryPanel::RecordOverlayFallback` (lines via `Polyline`, dots via
+  `Medallion`, triangles via `Tongue`, all confined to the leaf) — so the grid,
+  the axes and the gizmo are ALWAYS visible. The editor must never silently
+  lose its overlay; the CPU cost is paid only when the GPU pass is absent. The
+  harness's `editor-overlay-fallback` proves the fallback pixels (axes hues,
+  lattice ink, the gizmo's white handle, zero bleed outside the leaf).
+- 🔴 SHADER DIRECTORY LESSON: `ShaderStreamDirectory()` resolves from the
+  EXECUTABLE's own location (`GetModuleFileNameW` / `/proc/self/exe`), never
+  from `current_path()` — a host launched from a shortcut or a console at
+  another directory used to point at the wrong `Shader` folder, the pass
+  refused on the missing streams, and the overlay silently never drew.
+- 🔴 FILTER DROPDOWN LESSON: the Add-filter pill is clamped to the card's
+  interior (`min(132 px, InteriorX)`); a narrow leaf shrinks the pill, it never
+  overhangs the card's rounded edge. The harness's `editor-search-filter`
+  asserts the card renders at its declared height (measured on real pixels).

@@ -144,8 +144,11 @@ FacetPanel::Arrangement FacetPanel::Arrange(float X,
     Arranged.Chips = Spanning(X + Pad, ChipsTop, InteriorX, ChipsHeight);
     // 📐 The Add-filter control is a compact PILL stuck to the card's left edge — never a
     //    full-width field, which read as a squashed bar across the card (the reported layout).
+    //    🔴 The pill is clamped to the card's interior: a narrow leaf must shrink the pill, never
+    //    let it overhang the card's rounded edge (the overflow read as a squashed control).
+    const float DropdownWidth = (DropdownPillX * Scale < InteriorX) ? DropdownPillX * Scale : InteriorX;
     Arranged.Dropdown = Spanning(X + Pad, DropdownTop,
-                                 DropdownPillX * Scale, DropdownHeight);
+                                 DropdownWidth, DropdownHeight);
     Arranged.TotalY = Pad + HeaderRowY + HeaderToChips + ChipsHeight + DropdownGap * Scale +
                            DropdownHeight + CardTrailingPad * Scale;
     return Arranged;

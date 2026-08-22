@@ -519,6 +519,10 @@ struct SceneDriver
     bool  SimShiftHeld   = false;
     bool  SimTabPressed  = false;
     bool  SimLayersTab   = false;   // [-] - Tab goes to the layer stack, not the scene directory
+    bool  OverlayFallbackSim = false;   // [-] - draw the overlay through the interface, as the host
+                                        //       does when the GPU overlay pass could not stand
+    bool  SkipOverlayRaster  = false;   // [-] - the capture skips the GPU pass's CPU twin (the
+                                        //       fallback scenario's PNG must show the fallback only)
     char  SimTyped[16]   = {};   // [-] - the run the search field accepts this tick
 
     SceneDriver() : IO(ImGui::GetIO()) {}
@@ -745,6 +749,12 @@ struct SceneDriver
                     SceneDirectory.RecordViewportSky(LeafBody, Applied);
                     SceneDirectory.RecordGroundGrid(LeafBody, Applied, Configuration, Applied.Overlay);
                     SceneDirectory.RecordGizmo(LeafBody, Applied, Applied.Overlay);
+
+                    // 📐 The host's fallback path: when the GPU overlay pass could not stand, the SAME
+                    //    record is drawn through the interface — the editor-overlay-fallback scenario
+                    //    proves those pixels.
+                    if (OverlayFallbackSim)
+                        SceneDirectory.RecordOverlayFallback(LeafBody, Applied.Overlay);
                     break;
                 case PanelSubject::Outliner:
                     SceneDirectory.RecordOutliner(LeafBody, Applied, EditorEntities, 7u,
@@ -852,9 +862,12 @@ struct SceneDriver
             }
         }
 
-        Out.RasterizeOverlay(Applied.Overlay,
-                             ViewportClip.MinimumX, ViewportClip.MinimumY,
-                             ViewportClip.MaximumX, ViewportClip.MaximumY);
+        if (!SkipOverlayRaster)
+        {
+            Out.RasterizeOverlay(Applied.Overlay,
+                                 ViewportClip.MinimumX, ViewportClip.MinimumY,
+                                 ViewportClip.MaximumX, ViewportClip.MaximumY);
+        }
 
         if (stbi_write_png(Path, Out.Width, Out.Height, 4, Out.Pixels.data(), Out.Width * 4) == 0)
             return false;
@@ -1089,6 +1102,104 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
             return false;
         }
     }
+    else if (std::strcmp(Scenario, "editor-overlay-fallback") == 0)
+    {
+        // 📐 The host's fallback path: when the GPU overlay pass could not stand (a build that
+        //    lowered no shaders), the SAME OverlayGeometry is drawn through the interface, clipped to
+        //    the viewport leaf. This scenario records the fallback INSTEAD of the GPU twin and
+        //    asserts the grid, the axes and the gizmo are visible through it — the editor must never
+        //    silently lose its overlay.
+        Driver.OverlayFallbackSim = true;
+        Driver.SkipOverlayRaster  = true;
+        Driver.ApplyPartition(false);
+        Driver.Settle(20);
+
+        Driver.Configuration.Lattice      = PanelLatticePresentation::LinesAndDots;
+        Driver.Configuration.LatticeScale = 2u;
+        Driver.Configuration.Subdivisions = 12u;
+        Driver.Configuration.AxisX = true;
+        Driver.Configuration.AxisY = true;
+        Driver.Configuration.AxisZ = true;
+
+        Driver.FlyRig.YawDegrees   = 45.0;
+        Driver.FlyRig.PitchDegrees = 24.0;
+        Driver.FlyRig.Position[0]  = -40.0;
+        Driver.FlyRig.Position[1]  = -25.0;
+        Driver.FlyRig.Position[2]  = -40.0;
+        Driver.FlyRig.Snap();
+        Driver.Settle(10);
+
+        if (!Driver.Capture(OutputPath, Atlas, AtlasWidth, AtlasHeight))
+            return false;
+
+        // 📐 The same colour scan the GPU-twin scenario uses: the axes' full-opacity hues and the
+        //    lattice's grey-blue ink, all inside the viewport leaf (x < 637).
+        std::uint32_t Red = 0u, Green = 0u, Blue = 0u, Lattice = 0u, Handle = 0u;
+        std::uint32_t RedOutside = 0u;
+        {
+            int ReadWidth = 0;
+            int ReadHeight = 0;
+            int ReadChannels = 0;
+            unsigned char* ReadPixels = stbi_load(OutputPath, &ReadWidth, &ReadHeight, &ReadChannels, 4);
+
+            if (ReadPixels == nullptr)
+            {
+                std::fprintf(stderr, "[FAIL] the fallback capture would not read back\n");
+                return false;
+            }
+
+            for (int Y = 70; Y < ReadHeight; ++Y)
+            {
+                for (int X = 0; X < ReadWidth; ++X)
+                {
+                    const std::size_t Offset = (static_cast<std::size_t>(Y) * ReadWidth + X) * 4u;
+                    const int R = ReadPixels[Offset + 0u];
+                    const int G = ReadPixels[Offset + 1u];
+                    const int B = ReadPixels[Offset + 2u];
+
+                    const bool AxisRed   = R > 160 && G < 110 && B < 110 && (R - G) > 60;
+                    const bool AxisGreen = G > 110 && R < 110 && B < 110 && (G - R) > 40;
+                    const bool AxisBlue  = R < 90 && G < 130 && B > 170 && (B - R) > 110;
+                    const bool LatticeInk = R > 38 && R < 130 && B > R && (B - R) < 22 &&
+                                            std::abs(R - G) < 8 && std::abs(G - B) < 14;
+                    const bool HandleWhite = R > 215 && G > 215 && B > 215 &&
+                                             std::abs(R - G) < 12 && std::abs(G - B) < 12;
+
+                    if (X < 637)
+                    {
+                        if (AxisRed)   ++Red;
+                        if (AxisGreen) ++Green;
+                        if (AxisBlue)  ++Blue;
+                        if (LatticeInk) ++Lattice;
+                        if (HandleWhite) ++Handle;
+                    }
+                    else if (AxisRed)
+                    {
+                        ++RedOutside;
+                    }
+                }
+            }
+
+            stbi_image_free(ReadPixels);
+        }
+
+        std::fprintf(stderr, "[assert] fallback overlay: axis R=%u G=%u B=%u lattice=%u handle=%u\n",
+                     Red, Green, Blue, Lattice, Handle);
+
+        if (Red < 20u || Green < 20u || Blue < 20u || Lattice < 200u || Handle < 12u)
+        {
+            std::fprintf(stderr, "[FAIL] the interface fallback did not draw the grid, the axes and the gizmo\n");
+            return false;
+        }
+
+        std::fprintf(stderr, "[assert] fallback axis-red outside the viewport leaf: %u\n", RedOutside);
+
+        if (RedOutside != 0u)
+        {
+            std::fprintf(stderr, "[FAIL] the fallback painted over the panels\n");
+            return false;
+        }
+    }
     else if (std::strcmp(Scenario, "editor-search-filter") == 0)
     {
         Driver.ApplyPartition(false);
@@ -1228,6 +1339,68 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         }
 
         std::fprintf(stderr, "[assert] the tag 'fly' found the camera by tag, not by name\n");
+
+        // 📐 The FILTER CARD's proportions, on real pixels: the FacetPanel's declared card height
+        //    (pad + header + gap + one chip row + gap + the dropdown field + trailing pad) must match
+        //    what actually rendered — the "squashed filter" regression was exactly a card that
+        //    collapsed to a sliver while the header and the dropdown fought for the same rows. The
+        //    card ground is `CardGround` (0x121212); its vertical extent in the directory column is
+        //    measured and compared with the panel's own arithmetic.
+        {
+            const float ExpectedHeight = 10.0f + 22.0f + 8.0f + 27.0f + 10.0f
+                                       + Resolved.ControlMeasure.FieldHeight + 10.0f;
+
+            int ReadWidth = 0;
+            int ReadHeight = 0;
+            int ReadChannels = 0;
+            unsigned char* ReadPixels = stbi_load(OutputPath, &ReadWidth, &ReadHeight, &ReadChannels, 4);
+
+            if (ReadPixels == nullptr)
+            {
+                std::fprintf(stderr, "[FAIL] the filter capture would not read back\n");
+                return false;
+            }
+
+            std::uint32_t FirstY = ReadHeight;
+            std::uint32_t LastY = 0u;
+
+            for (int Y = 60; Y < ReadHeight; ++Y)
+            {
+                std::uint32_t Ground = 0u;
+
+                for (int X = static_cast<int>(OutlinerBody.MinimumX + 30.0f);
+                     X < static_cast<int>(OutlinerBody.MinimumX + OutlinerX - 30.0f); ++X)
+                {
+                    const std::size_t Offset = (static_cast<std::size_t>(Y) * ReadWidth + X) * 4u;
+                    const int R = ReadPixels[Offset + 0u];
+                    const int G = ReadPixels[Offset + 1u];
+                    const int B = ReadPixels[Offset + 2u];
+
+                    if (R == 18 && G == 18 && B == 18)
+                        ++Ground;
+                }
+
+                if (Ground > 30u)
+                {
+                    if (FirstY == static_cast<std::uint32_t>(ReadHeight))
+                        FirstY = static_cast<std::uint32_t>(Y);
+                    LastY = static_cast<std::uint32_t>(Y);
+                }
+            }
+
+            stbi_image_free(ReadPixels);
+
+            const float MeasuredHeight = (LastY > FirstY) ? static_cast<float>(LastY - FirstY) : 0.0f;
+
+            std::fprintf(stderr, "[assert] filter card height: expected %.1f measured %.1f\n",
+                         ExpectedHeight, MeasuredHeight);
+
+            if (MeasuredHeight < ExpectedHeight - 8.0f || MeasuredHeight > ExpectedHeight + 8.0f)
+            {
+                std::fprintf(stderr, "[FAIL] the filter card did not render at its declared height\n");
+                return false;
+            }
+        }
     }
     else if (std::strcmp(Scenario, "editor-layerstack") == 0)
     {
@@ -2392,8 +2565,8 @@ int main(int ArgumentCount, char** Arguments)
     IO.Fonts->TexRef._TexData = IO.Fonts->TexData;
 
     const char* Shots[] = {"editor-overview", "editor-sun-props", "editor-after-drag",
-                           "editor-camera-fly", "editor-grid-settings", "editor-search-filter",
-                           "editor-layerstack"};
+                           "editor-camera-fly", "editor-grid-settings", "editor-overlay-fallback",
+                           "editor-search-filter", "editor-layerstack"};
 
     int Rendered = 0;
     for (const char* Shot : Shots)
