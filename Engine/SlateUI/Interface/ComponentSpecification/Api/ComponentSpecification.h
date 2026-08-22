@@ -46,6 +46,14 @@ struct SelectionDeclaration
     const char*         Caption     = "";        // [-] - the leading label
     const char* const*  Options     = nullptr;   // [-] - borrowed; outlives the tick
     std::uint32_t       OptionCount = 0u;        // [-] - zero records the field and no menu
+
+    /// 🔴 A caption-only dropdown had no way to say so. SelectionField always
+    ///    reserves `LabelX` (160 px) for a leading label plus `RowGapX` (32 px).
+    ///    The facet card sizes its pill at 132 px, which is NARROWER than that
+    ///    reserved strip, so the field came out 60 px INVERTED — MinimumX past
+    ///    MaximumX — with the caption drawn outside the pill entirely. Setting
+    ///    this true drops the strip and lets the field fill the row it is given.
+    bool CaptionInside = false;   // [-] - no leading label strip; caption sits in the field
 };
 
 /// 🧩 What one magnitude row presents — its label, its unit glyph, and the domain it spans.

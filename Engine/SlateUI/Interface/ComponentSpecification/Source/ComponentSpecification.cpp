@@ -266,8 +266,15 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Target, co
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
     // ① The row divides into a leading label and the field that fills what remains.
-    const PlaneExtent Label = Spanning(Row.MinimumX, Row.MinimumY, Measure.LabelX, Row.Height());
-    const float       FieldX = Label.MaximumX + Measure.RowGapX;
+    //    🔴 With `CaptionInside` the label strip is not reserved at all. Callers
+    //       that give this row less width than LabelX + RowGapX otherwise get a
+    //       field with MinimumX past MaximumX.
+    const PlaneExtent Label = Declared.CaptionInside
+                            ? Spanning(Row.MinimumX, Row.MinimumY, 0.0f, Row.Height())
+                            : Spanning(Row.MinimumX, Row.MinimumY, Measure.LabelX, Row.Height());
+    const float       FieldX = Declared.CaptionInside
+                             ? Row.MinimumX
+                             : Label.MaximumX + Measure.RowGapX;
     const PlaneExtent Field = PlaneExtent{ FieldX, Row.MinimumY, Row.MaximumX,
                                            Row.MinimumY + Measure.FieldHeight };
     const PlaneExtent Cell  = PlaneExtent{ Field.MaximumX - Measure.ChevronCellX, Field.MinimumY,
@@ -336,8 +343,11 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Target, co
     const float Hovered    = Ledger->HoveredFraction(Target);
 
     // ③ The label, then the field's two grounds.
-    Surface->TextRun(Label.MinimumX, CentredY(Label, Measure.LabelText), Colour.LabelQuiet,
-                     Declared.Caption, Measure.LabelText, 0.0f, false);
+    if (!Declared.CaptionInside)
+    {
+        Surface->TextRun(Label.MinimumX, CentredY(Label, Measure.LabelText), Colour.LabelQuiet,
+                         Declared.Caption, Measure.LabelText, 0.0f, false);
+    }
 
     const float Radius = Field.Height() * 0.5f;
 

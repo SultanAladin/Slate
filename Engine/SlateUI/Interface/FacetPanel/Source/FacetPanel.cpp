@@ -28,8 +28,12 @@ constexpr float ChipPadTrailing  = 5.0f;    // [px] - remove action trailing ins
 constexpr float DropdownGap      = 10.0f;   // [px] - chips to dropdown
 constexpr float CardTrailingPad  = 10.0f;   // [px] - dropdown to card edge
 constexpr float DropdownPillX    = 132.0f;  // [px] - the left-stuck Add-filter pill's width
-constexpr float CountX       = 24.0f;   // [px] - active count badge floor
-constexpr float ClearX       = 48.0f;   // [px] - clear-all action
+// 🔴 The badge was 24 x 18 with r=9 — a rounded oblong, not a circle — placed at
+//    `caption width + 10`, so it sat against the title rather than the trailing
+//    edge. One diameter now drives width, height and radius together.
+constexpr float CountDiameter = 20.0f;   // [px] - active count badge, w == h
+constexpr float CountGap      =  8.0f;   // [px] - badge to the clear-all action
+constexpr float ClearX        = 48.0f;   // [px] - clear-all action
 
 float Scaled(float Figure, const ThemeProfile& Appearance)
 {
@@ -225,23 +229,34 @@ Outcome<bool> FacetPanel::Record(const PlaneExtent& Extent,
 
     char CountRun[12] = {};
     std::snprintf(CountRun, sizeof(CountRun), "%u", static_cast<unsigned>(ActiveCount));
-    const PlaneExtent CountBadge = Spanning(Arranged.Header.MinimumX +
-                                               Surface->MeasureRun(Declared.Caption,
-                                                                   Appearance->ControlMeasure.LabelText,
-                                                                   0.08f) + 10.0f * Scale,
-                                           Arranged.Header.MinimumY + 2.0f * Scale,
-                                           CountX * Scale,
-                                           18.0f * Scale);
-    Surface->Ground(CountBadge, Colour.StopTaken, 9.0f * Scale, CornerAll);
-    Surface->TextRun(CountBadge.MinimumX + CountBadge.Width() * 0.5f,
-                     CountBadge.MinimumY + 4.0f * Scale,
+    // ① A true circle: one diameter drives width, height and radius, so the shape
+    //    cannot drift back into an oblong at any display scale.
+    const float Diameter = CountDiameter * Scale;
+    const PlaneExtent CountBadge = Spanning(Arranged.Header.MaximumX - Diameter,
+                                            Arranged.Header.MinimumY +
+                                                (Arranged.Header.Height() - Diameter) * 0.5f,
+                                            Diameter,
+                                            Diameter);
+
+    Surface->Ground(CountBadge, Colour.StopTaken, Diameter * 0.5f, CornerAll);
+
+    // 🔴 The digit was drawn at LabelText — 30 px glyphs inside an 18 px badge, so
+    //    it overflowed the disc. Size the run to the circle and centre it on both
+    //    axes instead of offsetting by a hardcoded 4 px.
+    const float CountText = Diameter * 0.55f;
+    Surface->TextRun(CountBadge.MinimumX + Diameter * 0.5f,
+                     CountBadge.MinimumY + (Diameter - CountText) * 0.5f,
                      Colour.StopTakenColour,
                      CountRun,
-                     Appearance->ControlMeasure.LabelText,
+                     CountText,
                      0.0f,
                      true);
 
-    const PlaneExtent Clear = Spanning(Arranged.Header.MaximumX - ClearX * Scale,
+    // ② The badge owns the trailing edge, so the clear-all action is pushed
+    //    inboard by the badge's diameter plus one gap; both were pinned to
+    //    MaximumX before and overlapped.
+    const PlaneExtent Clear = Spanning(Arranged.Header.MaximumX - Diameter - CountGap * Scale
+                                           - ClearX * Scale,
                                        Arranged.Header.MinimumY,
                                        ClearX * Scale,
                                        Arranged.Header.Height());
@@ -335,6 +350,11 @@ Outcome<bool> FacetPanel::Record(const PlaneExtent& Extent,
     Dropdown.Caption     = (AvailableCount > 1u) ? "Add filter" : "Filters";
     Dropdown.Options     = AvailableOptions;
     Dropdown.OptionCount = AvailableCount;
+    // 🔴 The pill is 132 px but SelectionField reserves LabelX (160) + RowGapX
+    //    (32) = 192 px for a leading label this caller never sets, so the field
+    //    was 60 px INVERTED and the caption fell outside the pill. The dropdown
+    //    is caption-only, so say so.
+    Dropdown.CaptionInside = true;
     if (PendingSelection >= AvailableCount)
         PendingSelection = 0u;
 
