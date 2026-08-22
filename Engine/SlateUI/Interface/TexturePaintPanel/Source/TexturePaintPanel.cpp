@@ -1408,9 +1408,18 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
 
             if (Applied.MaskAttached[Ordinal])
             {
-                const PlaneExtent Mask = Spanning(Body.MinimumX,
+                // 🔴 THE MASK ROW IGNORED BOTH INDENTS. It was placed at
+                //    `Body.MinimumX` with the body's full width, so it neither
+                //    followed its layer into a folder — a mask on a nested layer sat
+                //    flush with the top level while its own layer was inset — nor
+                //    carried the reference's own `.attach{padding-left:26px}`, which
+                //    is what sets a mask in from the entry it hangs off. It takes the
+                //    parent's indent AND the attach inset now, so it always reads as
+                //    belonging to the row directly above it.
+                const PlaneExtent Mask = Spanning(Row.MinimumX + Scaled.LayerMaskIndent,
                                                   Row.MinimumY + Scaled.LayerRowY,
-                                                  Body.Width(), Scaled.LayerMaskY);
+                                                  Row.Width() - Scaled.LayerMaskIndent,
+                                                  Scaled.LayerMaskY);
                 RecordMaskRow(Mask, Applied, Rows, RowCount, Current, Ordinal);
             }
         }
@@ -2036,13 +2045,50 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
 
     const float Coverage = (Absent ? 0.34f : 1.0f) * (SoloDim ? 0.30f : 1.0f);
 
-    // 📐 The connector elbow — the reference's `.attach::before/::after`.
-    const float SpineX = Row.MinimumX + 14.0f;
+    // 🔴 EVERY DASH ON THIS ROW WAS WHITE. The elbow, the border and the rail were
+    //    three different treatments in two different colours: the rail took the
+    //    layer's hue while the elbow and the border took flat white at 0.10. A mask
+    //    belongs to exactly one layer, and the only thing on the row that said so was
+    //    the 3 px rail. All of it carries the owning layer's hue now, so an Edge Wear
+    //    mask is Edge Wear's colour on every stroke that outlines it.
+    const std::uint32_t OwnerHue = Applied.LayerTagHue[Ordinal] != 0u
+                                 ? Applied.LayerTagHue[Ordinal] : Current.TagHue;
+    const ThemeToken    Owner    = Covering(OwnerHue);
 
-    Surface->Ground(Spanning(SpineX, Row.MinimumY, 1.0f, 23.0f),
-                    Faded(Covering(0xFFFFFFu), 0.10f), 0.0f, CornerNone);
-    Surface->Ground(Spanning(SpineX, Row.MinimumY + 23.0f, 11.0f, 1.0f),
-                    Faded(Covering(0xFFFFFFu), 0.10f), 0.0f, CornerNone);
+    // 📐 ONE dash rhythm for the whole OUTLINE. The border ran 10 px on / 4 px off —
+    //    a long heavy dash — while the elbow was solid and the rail ran 3/7. Three
+    //    treatments for one idea. The elbow and all four border strokes share one
+    //    figure now, 2 on / 4 off: finer and tighter than the rail's, because a rail
+    //    is read as a column of marks and an outline is read as a line.
+    const float DashOn   = Scaled.LayerDashOn;
+    const float DashStep = Scaled.LayerDashStep;
+    const float DashWeight = 1.0f;
+
+    // 📐 The connector elbow — the reference's `.attach::before/::after`, dashed on
+    //    the same beat and in the owner's hue so the join reads as part of the outline.
+    const float SpineX = Row.MinimumX - Scaled.LayerMaskIndent + 14.0f;
+
+    for (float Y = Row.MinimumY; Y < Row.MinimumY + 23.0f; Y += DashStep)
+    {
+        const float Reach = std::min(DashOn, Row.MinimumY + 23.0f - Y);
+
+        if (Reach <= 0.0f)
+            break;
+
+        Surface->Ground(Spanning(SpineX, Y, DashWeight, Reach),
+                        Faded(Owner, 0.55f * Coverage), 0.0f, CornerNone);
+    }
+
+    for (float X = SpineX; X < SpineX + 11.0f; X += DashStep)
+    {
+        const float Reach = std::min(DashOn, SpineX + 11.0f - X);
+
+        if (Reach <= 0.0f)
+            break;
+
+        Surface->Ground(Spanning(X, Row.MinimumY + 23.0f, Reach, DashWeight),
+                        Faded(Owner, 0.55f * Coverage), 0.0f, CornerNone);
+    }
 
     // 📐 The mask row ground: near-transparent, dashed border, solid + selected when taken.
     const PlaneExtent Ground = Spanning(Row.MinimumX, Row.MinimumY, Row.Width(), Row.Height());
@@ -2056,31 +2102,39 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
     {
         Surface->Ground(Ground, Covering(Hovered ? 0x141414u : 0x0F0F0Fu), 0.0f, CornerNone);
 
-        // 📐 The reference's dashed border, drawn as short segments.
-        const float Segment = 10.0f;
-        const float Gap = 4.0f;
+        // 📐 The dashed border, on the SAME beat as the rail and the elbow and in the
+        //    owner's hue. 🔴 The two side edges were drawn SOLID while the top and
+        //    bottom were dashed, so three of the four strokes disagreed with each
+        //    other; all four are dashed now.
+        const ThemeToken Stroke = Faded(Owner, 0.45f * Coverage);
 
-        for (float X = Row.MinimumX + 1.0f; X < Row.MaximumX - 1.0f; X += Segment + Gap)
+        for (float X = Row.MinimumX; X < Row.MaximumX; X += DashStep)
         {
-            const float Span = std::min(Segment, Row.MaximumX - 1.0f - X);
+            const float Reach = std::min(DashOn, Row.MaximumX - X);
 
-            Surface->Ground(Spanning(X, Row.MinimumY, Span, 1.0f),
-                            Faded(Covering(0xFFFFFFu), 0.10f), 0.0f, CornerNone);
-            Surface->Ground(Spanning(X, Row.MaximumY - 1.0f, Span, 1.0f),
-                            Faded(Covering(0xFFFFFFu), 0.10f), 0.0f, CornerNone);
+            if (Reach <= 0.0f)
+                break;
+
+            Surface->Ground(Spanning(X, Row.MinimumY, Reach, DashWeight), Stroke, 0.0f, CornerNone);
+            Surface->Ground(Spanning(X, Row.MaximumY - DashWeight, Reach, DashWeight),
+                            Stroke, 0.0f, CornerNone);
         }
 
-        Surface->Ground(Spanning(Row.MinimumX, Row.MinimumY, 1.0f, Row.Height()),
-                        Faded(Covering(0xFFFFFFu), 0.10f), 0.0f, CornerNone);
-        Surface->Ground(Spanning(Row.MaximumX - 1.0f, Row.MinimumY, 1.0f, Row.Height()),
-                        Faded(Covering(0xFFFFFFu), 0.10f), 0.0f, CornerNone);
+        for (float Y = Row.MinimumY; Y < Row.MaximumY; Y += DashStep)
+        {
+            const float Reach = std::min(DashOn, Row.MaximumY - Y);
+
+            if (Reach <= 0.0f)
+                break;
+
+            Surface->Ground(Spanning(Row.MinimumX, Y, DashWeight, Reach), Stroke, 0.0f, CornerNone);
+            Surface->Ground(Spanning(Row.MaximumX - DashWeight, Y, DashWeight, Reach),
+                            Stroke, 0.0f, CornerNone);
+        }
     }
 
     // 📐 The mask entry's own dotted colour tag — the reference's `.entry .tag.dot` on the attached
     //    entry, in the layer's colour, recorded above the ground so it always stands.
-    const std::uint32_t TagHue = Applied.LayerTagHue[Ordinal] != 0u
-                               ? Applied.LayerTagHue[Ordinal] : Current.TagHue;
-
     // 📐 The reference's `.tag.dot`, and the ONLY place it belongs:
     //        repeating-linear-gradient(180deg, var(--c) 0 3px, transparent 3px 7px)
     //    — a 7 px period carrying 3 px of colour, the whole rail at 0.85 opacity.
@@ -2096,7 +2150,7 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
             break;
 
         Surface->Ground(Spanning(Row.MinimumX, Y, Scaled.LayerTagX, Reach),
-                        Faded(Covering(TagHue), Absent ? 0.3f : 0.85f), 0.0f, CornerNone);
+                        Faded(Owner, Absent ? 0.3f : 0.85f), 0.0f, CornerNone);
     }
 
     // 📐 The content: eye, mini thumb, MASK name + sub, chips, details and more — the reference's

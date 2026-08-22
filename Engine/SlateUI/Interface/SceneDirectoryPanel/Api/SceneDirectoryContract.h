@@ -123,6 +123,15 @@ struct ShellMetric
     //       scaled display while a 1.0 harness render measured correct.
     float  LayerTagDotOn   =   3.0f;   // [px] - colour carried by each dot
     float  LayerTagDotStep =   7.0f;   // [px] - the gradient's period
+    // 📐 The attached mask's OUTLINE dash — its elbow and its four border strokes.
+    //    🔴 These first reused the rail's 3 on / 7 off. That figure is right for a
+    //       3 px-wide vertical RAIL, where the eye reads a column of marks, but as an
+    //       outline it is a sparse row of stubby blocks: over a 600 px border it draws
+    //       about sixty widely spaced dashes and reads as broken, not as dashed. An
+    //       outline wants a finer, tighter beat than a rail does, so it gets its own
+    //       pair rather than being forced to share.
+    float  LayerDashOn     =   2.0f;   // [px] - one dash of the mask outline
+    float  LayerDashStep   =   4.0f;   // [px] - its period
     float  LayerKidsX      =  15.0f;   // [px] - the folder children's margin-left
     float  LayerMaskIndent =  26.0f;   // [px] - padding-left of the attached mask row
     float  LayerFootCrumb  =  18.0f;   // [px] - the footer's crumb line
