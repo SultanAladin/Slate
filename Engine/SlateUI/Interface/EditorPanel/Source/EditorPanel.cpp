@@ -21,7 +21,13 @@ const char* SubjectTitle(PanelSubject Subject)
         case PanelSubject::Uv:         return "UV Editor";
         case PanelSubject::Outliner:   return "Outliner";
         case PanelSubject::Properties: return "Properties";
-        default:                       return "Choose Panel Type";
+        // 🔴 TexturePaint was appended to PanelSubject and listed in the chooser,
+        //    but never given a case here, so the menu's fifth row fell through to
+        //    the default and read "Choose Panel Type" — the chooser's own title,
+        //    not a panel name. Every subject the menu can list needs a case.
+        case PanelSubject::TexturePaint: return "Layer Stack";
+        case PanelSubject::Vacant:       return "Choose Panel Type";
+        default:                         return "Choose Panel Type";
     }
 }
 
@@ -783,12 +789,14 @@ void EditorPanel::RecordSubjectMenu(std::uint32_t RecordOrdinal,
     Surface->Ground(Menu, Colour.ChromeGround, Measure.MenuRadius, CornerAll);
     Surface->Edge(Menu, Colour.Edge, Measure.EdgeWeight, Measure.MenuRadius, CornerAll);
 
+    // 📐 Ordered as the workspace reads: the two viewers, the scene tree, then
+    //    the paint stack and the inspector it feeds.
     const PanelSubject Subjects[5] = { PanelSubject::Viewport, PanelSubject::Uv,
-                                       PanelSubject::Outliner, PanelSubject::Properties,
-                                       PanelSubject::TexturePaint };
+                                       PanelSubject::Outliner, PanelSubject::TexturePaint,
+                                       PanelSubject::Properties };
     const ControlRole Roles[5] = { ControlRole::ChooseViewport, ControlRole::ChooseUv,
-                                   ControlRole::ChooseOutliner, ControlRole::ChooseProperties,
-                                   ControlRole::ChooseTexturePaint };
+                                   ControlRole::ChooseOutliner, ControlRole::ChooseTexturePaint,
+                                   ControlRole::ChooseProperties };
 
     for (std::uint32_t Ordinal = 0u; Ordinal < 5u; ++Ordinal)
     {
