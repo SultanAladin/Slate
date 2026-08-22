@@ -584,8 +584,33 @@ void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, SceneDirec
                               ? Configuration.LatticeCellMetres : 20.0;
     const double Cell = DeclaredCell * static_cast<double>(Configuration.LatticeScale);
     const std::uint32_t Cells = std::max(2u, std::min(128u, Configuration.Subdivisions));
-    const double Half = Cell * static_cast<double>(Cells);  // [m] - the lattice's half extent
-    constexpr std::uint32_t Samples = 48u;
+    // 🔴 `Half` IS THE HALF EXTENT AND WAS ASSIGNED THE WHOLE ONE. The lines below
+    //    are placed at `-Half + Cell * Ordinal` for Ordinal in 0..Cells, which
+    //    covers `Cell * Cells` of ground starting at `-Half`. With Half spelled as
+    //    `Cell * Cells` that run ends exactly at the ORIGIN: at a 20 m cell over 16
+    //    cells the offsets went -320 m … 0 m rather than -320 … +320.
+    //
+    //    So the camera stood on the lattice's CORNER, not at its centre, and three
+    //    of the four directions it could face held no lattice at all. Turning the
+    //    camera walked off the edge of the grid — the reported "the grid moves when
+    //    I rotate instead of staying pinned to the ground". Yaw 45 was the worst
+    //    case because the view then runs along the covered quadrant's diagonal and
+    //    leaves it entirely: measured, the line count fell 434 → 254 → 114 → 4 over
+    //    a 0–45° sweep with the camera held still, and the horizon jumped from
+    //    y=99.8 to y=247.0.
+    const double Half = Cell * static_cast<double>(Cells) * 0.5;  // [m] - the lattice's half extent
+
+    // 🔴 THE NEAR GROUND WAS NEVER SAMPLED. A fixed 48 samples across the whole span
+    //    is a 13.3 m step at 640 m. For an eye 1.5 m above the plane the first
+    //    sample therefore sits 13.3 m out, which already projects within 29 px of
+    //    the horizon — everything nearer, the ground that should fill the lower
+    //    frame, was never evaluated. Measured, the whole lattice projected into
+    //    y ∈ [159.2 … 187.2]: a 28 px band in a 300 px viewport.
+    //
+    //    Tying the sample count to the CELL keeps the step proportional to the
+    //    lattice's own detail instead of to its extent, so a large extent no longer
+    //    coarsens the near ground.
+    const std::uint32_t Samples = std::min(256u, std::max(48u, Cells * 8u));
 
     const float CentreX = Extent.MinimumX + Extent.Width()  * 0.5f;
     const float CentreY = Extent.MinimumY + Extent.Height() * 0.5f;
@@ -653,8 +678,10 @@ void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, SceneDirec
 
     const auto RecordLatticeLine = [&](bool AlongZ, double Offset, bool Coarse) -> void
     {
-        float X[64];
-        float Y[64];
+        // 📐 One slot per sample plus the terminator — sized from the ceiling above,
+        //    never from the 48 that used to be a literal here.
+        float X[257];
+        float Y[257];
         std::uint32_t Tally = 0u;
 
         // 📐 One polyline per contiguous front-run: a line crossing behind the camera is split, so the

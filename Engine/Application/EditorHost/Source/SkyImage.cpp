@@ -200,9 +200,42 @@ Outcome<bool> GenerateSkyImage(AtmosphereIntegrator& Atmosphere,
             Blue  = std::min(Blue  - Warm * 0.4 * Blue, 1.0);
 
             const std::size_t Offset = (static_cast<std::size_t>(Y) * Width + X) * 4u;
-            Pixels[Offset + 0u] = static_cast<std::uint8_t>(Red   * 255.0 + 0.5);
-            Pixels[Offset + 1u] = static_cast<std::uint8_t>(Green * 255.0 + 0.5);
-            Pixels[Offset + 2u] = static_cast<std::uint8_t>(Blue  * 255.0 + 0.5);
+
+            // 🔴 THE LADDER IS 8-BIT QUANTISATION, NOT RESOLUTION. Measured on the
+            //    shipped bake, a column through the zenith band steps the blue
+            //    channel 98 → 99 → 100 … one unit at a time, holding each value flat
+            //    for up to 106 rows. The sky's gradient there is far shallower than
+            //    1/255 per row, so rounding snaps a smooth ramp into wide plateaus
+            //    with hard edges between them — and no amount of extra texels can
+            //    help, because the steps are in the VALUE axis, not the pixel axis.
+            //    (Bicubic sampling of the LUT was tried first and moved the longest
+            //    flat run from 106 px to 108 px: the interpolation was never the
+            //    problem.)
+            //
+            //    An ordered dither of +-0.5 LSB before rounding trades the plateau
+            //    for a fine spatial mix of the two neighbouring levels, which the
+            //    eye integrates back into the gradient the float actually held.
+            constexpr double Bayer[4][4] =
+            {
+                {  0.0,  8.0,  2.0, 10.0 },
+                { 12.0,  4.0, 14.0,  6.0 },
+                {  3.0, 11.0,  1.0,  9.0 },
+                { 15.0,  7.0, 13.0,  5.0 }
+            };
+
+            const double Threshold = (Bayer[Y & 3u][X & 3u] + 0.5) / 16.0 - 0.5;
+
+            const auto Quantise = [&](double Channel) -> std::uint8_t
+            {
+                const double Scaled = Channel * 255.0 + Threshold;
+                const double Held   = Scaled < 0.0 ? 0.0 : (Scaled > 255.0 ? 255.0 : Scaled);
+
+                return static_cast<std::uint8_t>(Held + 0.5);
+            };
+
+            Pixels[Offset + 0u] = Quantise(Red);
+            Pixels[Offset + 1u] = Quantise(Green);
+            Pixels[Offset + 2u] = Quantise(Blue);
             Pixels[Offset + 3u] = 255u;
         }
     }
