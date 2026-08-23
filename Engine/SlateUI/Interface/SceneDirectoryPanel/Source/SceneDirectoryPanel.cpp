@@ -336,6 +336,10 @@ Outcome<bool> SceneDirectoryPanel::Construct(InteractionIndex& Interaction,
         &OutlineStrip,
         &InspectCall,
         &DirectoryCall,
+        &TransferArrows[0], &TransferArrows[1],
+        &TransferChoices[0], &TransferChoices[1], &TransferChoices[2], &TransferChoices[3],
+        &TransferChoices[4], &TransferChoices[5], &TransferChoices[6], &TransferChoices[7],
+        &TransferChoices[8], &TransferChoices[9],
         &BookmarkSave,
         &BookmarkRecall,
         &BookmarkRetire,
@@ -377,6 +381,13 @@ Outcome<bool> SceneDirectoryPanel::Construct(InteractionIndex& Interaction,
             return Outcome<bool>::Refuse(Eased.Error);
 
         OutlineMotion = Eased.Resolve();
+    }
+
+    {
+        const Outcome<std::uint32_t> Eased = Integrator.RegisterEased(1.0);
+        if (!Eased.Resolved)
+            return Outcome<bool>::Refuse(Eased.Error);
+        TransferMotion = Eased.Resolve();
     }
 
     for (std::uint32_t Ordinal = 0u; Ordinal < 2u; ++Ordinal)
@@ -672,24 +683,70 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
     Surface->TextRun(Back.MinimumX + 18.0f, Back.MinimumY + 7.0f, Tinted.Primary, "Back", Scaled.RunSecondary);
 
     float Y = Back.MaximumY + 28.0f;
-    Surface->TextRun(Extent.MinimumX + Pad, Y, Tinted.Primary, "Format", Scaled.RunPrimary);
+    Surface->TextRun(Extent.MinimumX + Pad, Y, Tinted.Primary,
+                     Applied.TransferMode == 0u ? "Import format" : "Export format", Scaled.RunPrimary);
     Y += 28.0f;
-    const char* Formats[2] = { "FBX", "OBJ" };
-    for (std::uint32_t Ordinal = 0u; Ordinal < 2u; ++Ordinal)
-    {
-        const PlaneExtent Choice = Spanning(Extent.MinimumX + Pad + Ordinal * 112.0f, Y, 100.0f, 52.0f);
-        const bool On = Choice.Encloses(Sampled.PositionX, Sampled.PositionY);
-        if (Sampled.ContactPressed && On && !Ledger->AnyDisclosed()) Ledger->Grab((Ordinal == 0u ? OutlineStrip : InspectCall), ControlPart::Body);
-        if (On && Ledger->Released((Ordinal == 0u ? OutlineStrip : InspectCall))) Applied.TransferFormat = Ordinal;
-        Ledger->DeclareHovered((Ordinal == 0u ? OutlineStrip : InspectCall), On, HoverOver);
-        const bool Taken = Applied.TransferFormat == Ordinal;
-        Surface->Ground(Choice, Taken ? Tinted.RowTaken : (On ? Tinted.TileHovered : Tinted.Tile), 8.0f, CornerAll);
-        Surface->Edge(Choice, Taken ? Tinted.EntityAccent : Tinted.Hairline, 1.0f, 8.0f, CornerAll);
-        Surface->TextRun(Choice.MinimumX + 16.0f, Choice.MinimumY + 17.0f,
-                         Taken ? Tinted.Primary : Tinted.Muted, Formats[Ordinal], Scaled.RunPrimary);
-    }
 
-    Y += 80.0f;
+    static const char* const ImportFormats[] =
+        { "FBX", "glTF", "GLB", "OBJ", "USD", "USDZ", "DAE", "STL", "PLY", "ABC" };
+    static const char* const ExportFormats[] =
+        { "FBX", "glTF", "GLB", "OBJ", "USD", "USDZ", "DAE", "STL", "ABC" };
+    const char* const* Formats = Applied.TransferMode == 0u ? ImportFormats : ExportFormats;
+    const std::uint32_t FormatCount = Applied.TransferMode == 0u ? 10u : 9u;
+    if (Applied.TransferFormat >= FormatCount)
+        Applied.TransferFormat = FormatCount - 1u;
+
+    const PlaneExtent Left = Spanning(Extent.MinimumX + Pad, Y + 20.0f, 42.0f, 42.0f);
+    const PlaneExtent Right = Spanning(Extent.MaximumX - Pad - 42.0f, Y + 20.0f, 42.0f, 42.0f);
+    const PlaneExtent Rail = { Left.MaximumX + 12.0f, Y, Right.MinimumX - 12.0f, Y + 84.0f };
+    const double Fraction = Motion->Eased(TransferMotion).Current();
+    const double Scroll = TransferFrom + (TransferTarget - TransferFrom) * Fraction;
+
+    const auto Arrow = [&](std::uint32_t Ordinal, const PlaneExtent& Cell, const char* Mark)
+    {
+        const bool On = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
+        if (Sampled.ContactPressed && On && !Ledger->AnyDisclosed()) Ledger->Grab(TransferArrows[Ordinal], ControlPart::Body);
+        if (On && Ledger->Released(TransferArrows[Ordinal]))
+        {
+            if (Ordinal == 0u && Applied.TransferFormat > 0u) --Applied.TransferFormat;
+            if (Ordinal == 1u && Applied.TransferFormat + 1u < FormatCount) ++Applied.TransferFormat;
+            TransferFrom = Scroll;
+            TransferTarget = static_cast<double>(Applied.TransferFormat) * 144.0;
+            Motion->Eased(TransferMotion).Depart(0.0, 1.0, 250.0, 0.0, EaseCurve::Carousel);
+        }
+        Ledger->DeclareHovered(TransferArrows[Ordinal], On, HoverOver);
+        Surface->Ground(Cell, On ? Tinted.TileHovered : Tinted.Tile, 21.0f, CornerAll);
+        Surface->Edge(Cell, Tinted.HairlineFirm, 1.0f, 21.0f, CornerAll);
+        Surface->TextRun(Cell.MinimumX + 16.0f, Cell.MinimumY + 11.0f, Tinted.Primary, Mark, Scaled.RunPrimary);
+    };
+    Arrow(0u, Left, "<");
+    Arrow(1u, Right, ">");
+
+    Surface->Confine(Rail);
+    for (std::uint32_t Ordinal = 0u; Ordinal < FormatCount; ++Ordinal)
+    {
+        const PlaneExtent Choice = Spanning(Rail.MinimumX + 4.0f + Ordinal * 144.0f - static_cast<float>(Scroll),
+                                            Rail.MinimumY, 132.0f, 80.0f);
+        const bool On = Choice.Encloses(Sampled.PositionX, Sampled.PositionY);
+        if (Sampled.ContactPressed && On && !Ledger->AnyDisclosed()) Ledger->Grab(TransferChoices[Ordinal], ControlPart::Body);
+        if (On && Ledger->Released(TransferChoices[Ordinal]))
+        {
+            Applied.TransferFormat = Ordinal;
+            TransferFrom = Scroll;
+            TransferTarget = static_cast<double>(Ordinal) * 144.0;
+            Motion->Eased(TransferMotion).Depart(0.0, 1.0, 250.0, 0.0, EaseCurve::Carousel);
+        }
+        Ledger->DeclareHovered(TransferChoices[Ordinal], On, HoverOver);
+        const bool Taken = Applied.TransferFormat == Ordinal;
+        Surface->Ground(Choice, Taken ? Tinted.RowTaken : (On ? Tinted.TileHovered : Tinted.Tile), 12.0f, CornerAll);
+        Surface->Edge(Choice, Taken ? Tinted.EntityAccent : Tinted.Hairline, 1.0f, 12.0f, CornerAll);
+        Surface->TextRun(Choice.MinimumX + 16.0f, Choice.MinimumY + 16.0f, Tinted.Primary, Formats[Ordinal], Scaled.RunPrimary);
+        Surface->TextRun(Choice.MinimumX + 16.0f, Choice.MinimumY + 48.0f, Tinted.Muted,
+                         Applied.TransferMode == 0u ? "Scene input" : "Scene output", Scaled.RunFine);
+    }
+    Surface->Release();
+
+    Y += 112.0f;
     Surface->TextRun(Extent.MinimumX + Pad, Y, Tinted.Muted,
                      Applied.TransferMode == 0u ? "Choose a scene format to import." : "Choose a scene format to export.",
                      Scaled.RunSecondary);

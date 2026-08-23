@@ -61,7 +61,8 @@ enum class EditorFooterDemand : std::uint32_t
     None = 0u,
     SceneImport,
     SceneExport,
-    ExportFlattened
+    ExportFlattened,
+    LayerExport
 };
 
 /// 🧩 Visible preferences and one-tick modular footer requests retained by the host.

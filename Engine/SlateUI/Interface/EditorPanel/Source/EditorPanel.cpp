@@ -524,8 +524,11 @@ void EditorPanel::RecordFooter(std::uint32_t RecordOrdinal,
     if (Subject == PanelSubject::TexturePaint)
     {
         const PlaneExtent Flatten = Pill("Export Flattened", 146.0f);
+        const PlaneExtent Export = Pill("Export", 88.0f);
         if (Pressed(ControlOrdinal(RecordOrdinal, ControlRole::CameraMenu), Flatten))
             Configuration.FooterDemand = EditorFooterDemand::ExportFlattened;
+        if (Pressed(ControlOrdinal(RecordOrdinal, ControlRole::OverlayMenu), Export))
+            Configuration.FooterDemand = EditorFooterDemand::LayerExport;
         return;
     }
 

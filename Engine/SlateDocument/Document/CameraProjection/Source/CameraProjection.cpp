@@ -270,24 +270,27 @@ std::int32_t FrustumSpace::Classify(DocumentPosition Minimum, DocumentPosition M
     {
         const FrustumPlane& Held = Planes[PlaneOrdinal];
 
-        const double MaximumX = Held.NormalX >= 0.0 ? MaximumX : MinimumX;
-        const double MaximumY = Held.NormalY >= 0.0 ? MaximumY : MinimumY;
-        const double MaximumZ = Held.NormalZ >= 0.0 ? MaximumZ : MinimumZ;
+        // 🔴 Keep the selected support vertices distinct from the box bounds. The previous locals
+        //    shadowed `MaximumX`/`MinimumX` in their own initialisers and therefore read indeterminate
+        //    values, making camera and marquee classification depend on the stack contents.
+        const double PositiveX = Held.NormalX >= 0.0 ? MaximumX : MinimumX;
+        const double PositiveY = Held.NormalY >= 0.0 ? MaximumY : MinimumY;
+        const double PositiveZ = Held.NormalZ >= 0.0 ? MaximumZ : MinimumZ;
 
-        const double MinimumX = Held.NormalX >= 0.0 ? MinimumX : MaximumX;
-        const double MinimumY = Held.NormalY >= 0.0 ? MinimumY : MaximumY;
-        const double MinimumZ = Held.NormalZ >= 0.0 ? MinimumZ : MaximumZ;
+        const double NegativeX = Held.NormalX >= 0.0 ? MinimumX : MaximumX;
+        const double NegativeY = Held.NormalY >= 0.0 ? MinimumY : MaximumY;
+        const double NegativeZ = Held.NormalZ >= 0.0 ? MinimumZ : MaximumZ;
 
-        const double Furthest = Held.NormalX * MaximumX
-                              + Held.NormalY * MaximumY
-                              + Held.NormalZ * MaximumZ + Held.Constant;
+        const double Furthest = Held.NormalX * PositiveX
+                              + Held.NormalY * PositiveY
+                              + Held.NormalZ * PositiveZ + Held.Constant;
 
         if (Furthest < 0.0)
             return -1;
 
-        const double Nearest = Held.NormalX * MinimumX
-                             + Held.NormalY * MinimumY
-                             + Held.NormalZ * MinimumZ + Held.Constant;
+        const double Nearest = Held.NormalX * NegativeX
+                             + Held.NormalY * NegativeY
+                             + Held.NormalZ * NegativeZ + Held.Constant;
 
         if (Nearest < 0.0)
             Resolved = 0;

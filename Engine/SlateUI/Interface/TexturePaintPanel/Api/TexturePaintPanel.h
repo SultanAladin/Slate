@@ -93,7 +93,9 @@ struct TexturePaintContext
     bool                       MaskTaken     = false;        // [-] - the taken row's mask is taken
     std::uint32_t              StackPage     = 0u;           // [-] - 0 Stack, 1 Properties
     std::uint32_t              PropertyTab   = 0u;           // [-] - 0 Channels, 1 Mask, 2 Settings
-    std::uint32_t              FlattenFormat = 0u;           // [-] - 0 PNG, 1 TGA
+    std::uint32_t              ExportMode       = 0u;        // [-] - 0 flattened, 1 texture-set export
+    std::uint32_t              ExportFormat     = 0u;        // [-] - image format carousel
+    std::uint32_t              ExportResolution = 2u;        // [-] - 0 512, 1 1K, 2 2K, 3 4K, 4 8K
 
     // 📝 The search and the filters — the same pair the scene directory carries.
     char                       Retention[TextureRetentionCeiling] = {};   // [-] - the search run
@@ -231,21 +233,14 @@ public:
 
     /// 🧩 Exactly how many control identities `Construct` claims, stated where they are claimed.
     static constexpr std::uint32_t RegistrationDemand =
-          TextureLayerCeiling * 5u          // [-] - contact, chevron, eye, details, more per row
-        + TextureLayerCeiling * 4u          // [-] - contact, eye, details, more per attached mask
-        + 9u                                // [-] - undo, redo, expand, add, solo, folder, mask, collapse, search
-        + 14u                               // [-] - the blend field, the opacity row and the twelve bar buttons
-        + 2u                                // [-] - the page strips
-        + (FacetPanel::FacetCapacity + 2u) * 2u   // [-] - the two filter cards
-        + TextureChannelCeiling * 8u        // [-] - fold, dot, source, amount, generator,
-                                            //       its reset and remove, and three parameters
-        + 9u + TextureGeneratorParamMax     // [-] - the mask card's rows and its generator knobs
-        + 8u                                // [-] - the decal card's projection and transform
-        + 3u                                // [-] - the folder card's blend, opacity and isolate
-        + 4u                                // [-] - the settings card's rows
-        + 40u                               // [-] - one disclosed inline layer card's editable fields
-        + 44u;                              // [-] - the four menu anchors plus menu items: add 7,
-                                            //       layer 7, swatches 10, mask 3, blend 13
+          TextureLayerCeiling * 9u                    // [-] - five layer + four mask controls per row
+        + 54u                                         // [-] - every fixed header/tool/card control
+        + 40u                                         // [-] - pooled menu item identities
+        + 40u                                         // [-] - one disclosed inline card's editable fields
+        + TextureChannelCeiling * 10u                 // [-] - fold, dot, source, amount, generator,
+                                                      //       reset, remove, and three parameters
+        + (FacetPanel::FacetCapacity + 2u) * 3u       // [-] - stack, channel, and mask filter cards
+        + 24u;                                         // [-] - two export carousels, arrows plus choices
 
     TexturePaintPanel()                                   = default;
     TexturePaintPanel(const TexturePaintPanel&)           = delete;
@@ -434,6 +429,9 @@ private:
     std::uint32_t               PageMotion    = 0u;      // [-] - the carousel's eased travel
     std::uint32_t               PageDeparted  = 0u;      // [-] - which page the travel began from
     std::uint32_t               PageArriving  = 0u;      // [-] - which page it is bound for
+    std::uint32_t               ExportMotion[2] = {};    // [-] - format and resolution rail travel
+    double                      ExportFrom[2] = {};
+    double                      ExportTarget[2] = {};
 
     PointerCondition            Sampled = {};            // [-] - this tick's contact
 
@@ -447,6 +445,8 @@ private:
     ControlIdentity BarButtons[12] = {};
     ControlIdentity StackStrip    = {};
     ControlIdentity PropertyStrip = {};
+    ControlIdentity ExportArrows[2][2] = {};
+    ControlIdentity ExportChoices[2][10] = {};
 
     ControlIdentity LayerContacts[TextureLayerCeiling]   = {};
     ControlIdentity LayerChevrons[TextureLayerCeiling]   = {};

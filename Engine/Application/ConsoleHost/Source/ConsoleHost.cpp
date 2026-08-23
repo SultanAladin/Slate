@@ -63,6 +63,7 @@
 #include <cstring>
 #include <cmath>
 #include <atomic>
+#include <thread>
 #include <vector>
 
 namespace
@@ -584,6 +585,12 @@ void VerifyWork()
 
         for (const Slate::WorkCompletion& Held : Drained)
             Completed.push_back(Held);
+
+        // A tight bounded drain can consume its whole allowance before a worker receives a time slice,
+        // particularly on a single-core validation runner. Yielding an empty pass preserves non-blocking
+        // observation while allowing the declared work to make progress.
+        if (Drained.empty())
+            std::this_thread::yield();
     }
 
     Report("Every declaration completed", Completed.size() == 32u, "[-] each crossed back exactly once");

@@ -81,7 +81,7 @@ struct SceneDirectoryContext
     std::uint32_t              OutlinePage         = 0u;   // [-] - 0 Directory, 1 Inspector, 2 Import/Export
     std::uint32_t              OutlineInspectorTab = 0u;   // [-] - 0 Properties, 1 History
     std::uint32_t              TransferMode        = 0u;   // [-] - 0 Import, 1 Export
-    std::uint32_t              TransferFormat      = 0u;   // [-] - 0 FBX, 1 OBJ
+    std::uint32_t              TransferFormat      = 0u;   // [-] - format carousel selection
 
     // 📝 The scene directory's own search and filter, placed between the outliner's header and its
     //    rows. `EntityRetention` is the search run the host feeds through the seam's `AcceptTyped`
@@ -159,16 +159,11 @@ public:
     /// note  🔴 The arithmetic lives beside the registrations it describes so the two can only disagree by
     ///        an edit that touches both.
     static constexpr std::uint32_t RegistrationDemand =
-          SceneDirectoryContext::EntityCeiling * 3u   // [-] - contact, disclosure and presence per outline row
-        + SceneDirectoryContext::EntityCeiling * 3u   // [-] - three detail option rows per outline row
-        + SceneDirectoryContext::CardCeiling          // [-] - one fold per property card
-        + SceneDirectoryContext::EntityCeiling        // [-] - one fold per grouped revision header
-        + 1u                                          // [-] - the Properties | History strip
-        + 2u                                          // [-] - the outliner's page strip and the Inspect call
-        + 6u                                          // [-] - the six environment slider rows
-        + 1u                                          // [-] - the search field
-        + SceneDirectoryContext::CameraBookmarkCeiling + 3u // [-] - bookmark names, save, go-to, delete
-        + FacetPanel::FacetCapacity + 2u;             // [-] - the filter card (chips, dropdown, clear)
+          SceneDirectoryContext::EntityCeiling * 7u   // [-] - row, presence, fold, three options, revision
+        + 34u                                         // [-] - fixed navigation, fields, folds, and sliders
+        + SceneDirectoryContext::CameraBookmarkCeiling
+        + FacetPanel::FacetCapacity + 2u              // [-] - filter chips, dropdown, and clear
+        + 12u;                                         // [-] - transfer carousel arrows and ten formats
 
     SceneDirectoryPanel()                                   = default;
     SceneDirectoryPanel(const SceneDirectoryPanel&)            = delete;
@@ -306,6 +301,8 @@ private:
     ControlIdentity OutlineStrip    = {};
     ControlIdentity InspectCall     = {};
     ControlIdentity DirectoryCall   = {};
+    ControlIdentity TransferArrows[2] = {};
+    ControlIdentity TransferChoices[10] = {};
     ControlIdentity BookmarkNames[SceneDirectoryContext::CameraBookmarkCeiling] = {};
     ControlIdentity BookmarkSave    = {};
     ControlIdentity BookmarkRecall  = {};
@@ -316,6 +313,9 @@ private:
     std::uint32_t   OutlineMotion   = 0u;   // [-] - the eased slot the travel rides
     std::uint32_t   OutlineDeparted = 0u;   // [-] - the page it left
     std::uint32_t   OutlineArriving = 0u;   // [-] - the page it is bound for
+    std::uint32_t   TransferMotion  = 0u;   // [-] - format rail travel
+    double          TransferFrom    = 0.0;
+    double          TransferTarget  = 0.0;
 
     // 📐 Separate inner carousel slots for the outliner inspector and a dedicated properties leaf.
     std::uint32_t   InspectorMotion[2]   = {};   // [-] - eased Properties | History travel

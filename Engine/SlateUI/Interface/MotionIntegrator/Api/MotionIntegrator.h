@@ -94,10 +94,10 @@ public:
     //    `523aa61` the host's construct chain demanded 1100 eases against a shared 1024 and the shell — the
     //    last panel constructed — was rejected mid-registration, which retired the window before its first frame.
     static constexpr std::uint32_t SpringCapacity = 64u;     // [-] - four are drawn today; never allocated
-    // 🔴 Raised from 2048 when the layer stack's unfolded card was applied. The card lends one shared run of
-    //    44 controls, which is 88 further eases, and the host's chain stood at 1968 of 2048 — eight short.
-    //    The ceiling is a .bss reservation and not an allocation, so the margin costs bytes and never a tick.
-    static constexpr std::uint32_t EaseCapacity   = 2560u;   // [-] - 2056 are drawn today; never allocated
+    // 🔴 The editor's exact registration declarations now include all three texture filters, every channel
+    //    control, and the import/export rails. At 2560 the last owner (Content Browser) was rejected during
+    //    construction. The ceiling is a .bss reservation, so this safety margin costs bytes and never a tick.
+    static constexpr std::uint32_t EaseCapacity   = 3072u;   // [-] - host-wide control fades and page motions
 
     MotionIntegrator()                                   = default;
     MotionIntegrator(const MotionIntegrator&)            = delete;

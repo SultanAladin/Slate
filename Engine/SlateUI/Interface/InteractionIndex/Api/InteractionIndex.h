@@ -105,7 +105,7 @@ public:
     //    640 then applied every panel until the shell's Scene Directory card grew its two tab strips, its
     //    metadata actions, its per-row kebabs and its folding property cards: 618 of 640 claimed, twenty-two
     //    spare, which is fewer than one outline row's worth. 768 restores the margin. Each slot costs two
-    //    eased interpolants against MotionIntegrator::EaseCapacity, which is 2560.
+    //    eased interpolants against MotionIntegrator::EaseCapacity, which is 3072.
     static constexpr std::uint32_t ControlCapacity = 768u;   // [-] - registered controls; never allocated, never grown
 
     InteractionIndex()                                   = default;

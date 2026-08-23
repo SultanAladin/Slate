@@ -80,7 +80,7 @@ constexpr std::uint32_t BrowserControls = ContentBrowserPanel::RegistrationDeman
 constexpr std::uint32_t EditorControls  = PanelStructure::RecordCeiling * EditorPanel::ControlsPerRecord;
 constexpr std::uint32_t SceneControls   = SceneDirectoryPanel::RegistrationDemand
                                         + TexturePaintPanel::RegistrationDemand;
-constexpr std::uint32_t BareEases       = 9u + 1u + 1u;   // [-] - Control Centre motions, shell carousel
+constexpr std::uint32_t BareEases       = 9u + 1u + 1u + 3u; // [-] - centre, shell, and export rails
 
 constexpr std::uint32_t DemandedEases =
     ((CentreControls + BrowserControls + EditorControls + SceneControls) * EasesPerControl) + BareEases;
@@ -575,9 +575,11 @@ int main(int ArgumentCount, char** ArgumentValues)
     // 🔴 The browser carries its OWN ledger, as every panel here does, so its registration cannot exhaust the
     //    Control Centre's. Read — an registration refusal is silent at the call site and a browser that was
     //    rejected records nothing at all, which reads as a drawer that opens onto blank ground.
-    if (!ContentBrowser.Construct(BrowserLedger, Viewport.Surface()).Resolved)
+    const Outcome<bool> BrowserOutcome = ContentBrowser.Construct(BrowserLedger, Viewport.Surface());
+    if (!BrowserOutcome.Resolved)
     {
-        std::printf("%s \u2014 the content browser was rejected\n", HostName);
+        std::printf("%s \u2014 the content browser was rejected (reason %u: %s)\n", HostName,
+                    static_cast<unsigned>(BrowserOutcome.Error.DeclaredReason), BrowserOutcome.Error.Detail);
         return 1;
     }
 
@@ -901,8 +903,11 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                                 SceneApplied.InspectorTab);
                                 break;
                             case PanelSubject::TexturePaint:
-                                if (PanelConfiguration[Ordinal].FooterDemand == EditorFooterDemand::ExportFlattened)
+                                if (PanelConfiguration[Ordinal].FooterDemand == EditorFooterDemand::ExportFlattened ||
+                                    PanelConfiguration[Ordinal].FooterDemand == EditorFooterDemand::LayerExport)
                                 {
+                                    TexturePaintApplied.ExportMode =
+                                        PanelConfiguration[Ordinal].FooterDemand == EditorFooterDemand::LayerExport ? 1u : 0u;
                                     TexturePaintApplied.StackPage = 2u;
                                     PanelConfiguration[Ordinal].FooterDemand = EditorFooterDemand::None;
                                 }

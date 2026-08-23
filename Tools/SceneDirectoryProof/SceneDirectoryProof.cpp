@@ -776,8 +776,11 @@ struct SceneDriver
                                                     Revisions, RevisionCount, Applied.InspectorTab);
                     break;
                 case PanelSubject::TexturePaint:
-                    if (Configuration.FooterDemand == EditorFooterDemand::ExportFlattened)
+                    if (Configuration.FooterDemand == EditorFooterDemand::ExportFlattened ||
+                        Configuration.FooterDemand == EditorFooterDemand::LayerExport)
                     {
+                        TexturePaintApplied.ExportMode =
+                            Configuration.FooterDemand == EditorFooterDemand::LayerExport ? 1u : 0u;
                         TexturePaintApplied.StackPage = 2u;
                         Configuration.FooterDemand = EditorFooterDemand::None;
                     }
@@ -1613,6 +1616,51 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
             return false;
         }
         std::fprintf(stderr, "[assert] Scene Directory Import footer opened transfer page 2\n");
+    }
+    else if (std::strcmp(Scenario, "editor-scene-export") == 0)
+    {
+        Driver.Partition.Construct(PanelSubject::Outliner);
+        Driver.Settle(20);
+        const PlaneExtent Body = Driver.Editor.LeafBody(0u);
+        Driver.Tap(Body.MinimumX + 160.0f, Body.MaximumY + 19.0f); // real Export footer pill
+        Driver.Settle(28);
+        if (Driver.Applied.OutlinePage != 2u || Driver.Applied.TransferMode != 1u)
+        {
+            std::fprintf(stderr, "[FAIL] Scene Directory Export footer did not open export mode\n");
+            return false;
+        }
+        Driver.Tap(Body.MaximumX - 28.0f, Body.MinimumY + 177.0f);
+        Driver.Settle(20);
+        if (Driver.Applied.TransferFormat != 1u)
+        {
+            std::fprintf(stderr, "[FAIL] Scene export format carousel did not advance\n");
+            return false;
+        }
+        std::fprintf(stderr, "[assert] Scene Directory Export opened and advanced its format carousel\n");
+    }
+    else if (std::strcmp(Scenario, "editor-layer-export") == 0)
+    {
+        Driver.Partition.Construct(PanelSubject::TexturePaint);
+        Driver.Settle(20);
+        const PlaneExtent Body = Driver.Editor.LeafBody(0u);
+        Driver.Tap(Body.MinimumX + 218.0f, Body.MaximumY + 19.0f); // real Export footer pill
+        Driver.Settle(28);
+        if (Driver.TexturePaintApplied.StackPage != 2u || Driver.TexturePaintApplied.ExportMode != 1u)
+        {
+            std::fprintf(stderr, "[FAIL] Layer Stack Export footer did not open texture-set mode\n");
+            return false;
+        }
+        Driver.Tap(Body.MaximumX - 28.0f, Body.MinimumY + 177.0f);
+        Driver.Settle(20);
+        Driver.Tap(Body.MaximumX - 28.0f, Body.MinimumY + 309.0f);
+        Driver.Settle(20);
+        if (Driver.TexturePaintApplied.ExportFormat != 1u ||
+            Driver.TexturePaintApplied.ExportResolution != 3u)
+        {
+            std::fprintf(stderr, "[FAIL] one of the Layer Stack export carousels did not advance\n");
+            return false;
+        }
+        std::fprintf(stderr, "[assert] Layer Stack Export opened and advanced both output carousels\n");
     }
     else if (std::strcmp(Scenario, "editor-layer-flatten") == 0)
     {
@@ -2894,7 +2942,8 @@ int main(int ArgumentCount, char** Arguments)
                            "editor-sun-props",
                            "editor-after-drag",
                            "editor-camera-fly", "editor-grid-settings", "editor-overlay-fallback",
-                           "editor-search-filter", "editor-grid-dropdown", "editor-scene-transfer", "editor-layer-flatten",
+                           "editor-search-filter", "editor-grid-dropdown", "editor-scene-transfer", "editor-scene-export",
+                           "editor-layer-flatten", "editor-layer-export",
                            "editor-layerstack", "editor-layerstack-card"};
 
     int Rendered = 0;
