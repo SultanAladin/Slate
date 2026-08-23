@@ -148,6 +148,8 @@ public:
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     void ApplyTypographyWeights(const std::uint32_t Weights[8]);
+    /// Applies both semantic role sizes and weights to every TextRun and matching measurement.
+    void ApplyTypographyRoles(const std::uint32_t Sizes[8], const std::uint32_t Weights[8]);
 
     /// 🧩 The shared motion integrator, for panels whose interaction contributes to viewport wakefulness.
     /// cost  ✔️
@@ -192,13 +194,14 @@ public:
 private:
 
     /// 🧩 Applies the declared role weights to a freshly resolved appearance.
-    void RestateTypography(ThemeProfile& Profile) const;
+    void RestateTypography(ThemeProfile& Profile);
 
     InterfaceExchange        Interface         = {};   // [-] - the interface context and ImGui
     MotionIntegrator         Motion            = {};   // [-] - spring physics
     ThemeProfile  Resolved          = {};   // [-] - colours and metrics at the display and artist scales
     ThemeSelection           Chosen            = {};   // [-] - the theme every resolve is anchored onto
     double                   InterfaceScale    = 1.0;  // [-] - artist preference, independent of display DPI
+    std::uint32_t RoleSizes[8] = {24u, 20u, 16u, 14u, 12u, 10u, 14u, 14u};
     std::uint32_t RoleWeights[8] = {600u, 600u, 500u, 400u, 500u, 400u, 500u, 600u};   // [-] - the FontProfile defaults
     DrawerSpace              DrawersOwned      = {};   // [-] - the two drawers
     RedrawScheduler          MarksOwned        = {};   // [-] - per-panel redraw marks

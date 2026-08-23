@@ -21,15 +21,19 @@
 //    Build (from the repository root, after `python3 Scripts/ApplyImGuiPatches.py`):
 //      g++ -std=c++20 -O2 -DNDEBUG -DWIN32_LEAN_AND_MEAN -DNOMINMAX -DGLFW_DLL -DGLFW_INCLUDE_NONE \
 //          -I Engine -I . -I ExternalPackages/imgui -I ExternalPackages/glfw/include \
-//          -I ExternalPackages/thorvg/inc \
+//          -I ExternalPackages/thorvg/inc -I /tmp/Vulkan-Headers/Include \
 //          Tools/TypographyProof/TypographyProof.cpp \
 //          Engine/SlateUI/Interface/InterfaceExchange/Source/RecordingSurface.cpp \
 //          Engine/SlateUI/Interface/ControlCentrePanel/Source/ControlCentrePanel.cpp \
+//          Engine/SlateUI/Interface/NoticeDialog/Source/NoticeDialog.cpp \
+//          Engine/SlateUI/Interface/DrawerSpace/Source/DrawerSpace.cpp \
+//          Engine/SlateUI/Interface/GestureSequence/Source/GestureSequence.cpp \
 //          Engine/SlateUI/Interface/AppearanceSpecification/Source/AppearanceSpecification.cpp \
 //          Engine/SlateUI/Interface/TextComponent/Source/FontLoader.cpp \
 //          Engine/SlateUI/Interface/TextComponent/Source/TextComponent.cpp \
 //          Engine/SlateUI/Interface/ControlIndex/Source/ControlIndex.cpp \
 //          Engine/SlateUI/Interface/ComponentSpecification/Source/ComponentSpecification.cpp \
+//          Engine/SlateUI/Interface/ComponentSpecification/Source/MagnitudeExpression.cpp \
 //          Engine/SlateUI/Interface/MotionIntegrator/Source/MotionIntegrator.cpp \
 //          Engine/SlateUI/Interface/ShortcutSpecification/Source/ShortcutSpecification.cpp \
 //          Engine/SlateUI/Interface/SymbolSpecification/Source/SymbolSpecification.cpp \
@@ -400,6 +404,7 @@ struct ProofDriver
 
         Discard(Surface.Adopt(RecordingSurface::ShellLayer::Beneath));
         Motion.Advance(TickMilliseconds);
+        Surface.ApplyTypographyRoles(Values.TypographySize, Values.TypographyWeight);
         ControlCentre.Advance(Surface.Pointer(), TickMilliseconds);
         Discard(ControlCentre.Record(Spanning(0.0f, 0.0f, ViewportWidth, ViewportHeight), Values));
         Surface.Retire();
@@ -654,6 +659,21 @@ bool RunShot(ProofDriver& Driver, const char* OutputPath, const char* Scenario,
         ApplyFontWeights(Driver.Appearance, Driver.Values.TypographyWeight);
         Driver.Settle(20);
     }
+    else if (std::strcmp(Scenario, "settings-apply-footer") == 0)
+    {
+        Driver.Values.Page = ControlCentrePage::Settings;
+        Driver.Values.TypographySize[0u] = 32u;
+        Driver.Values.TypographySize[3u] = 18u;
+        Driver.Settle(20);
+    }
+    else if (std::strcmp(Scenario, "settings-apply-confirmation") == 0)
+    {
+        Driver.Values.Page = ControlCentrePage::Settings;
+        Driver.Values.TypographySize[0u] = 32u;
+        Driver.Settle(20);
+        Driver.Tap(1170.0f, 850.0f); // actual fixed Apply Settings footer control
+        Driver.Settle(12);
+    }
     else
     {
         std::fprintf(stderr, "unknown scenario %s\n", Scenario);
@@ -743,6 +763,7 @@ int main(int ArgumentCount, char** Arguments)
 
     const char* Shots[] = {"fonts-archivo-carousels", "fonts-title-bold", "fonts-title-black-scrolled",
                            "fonts-mixed-weights", "fonts-scrolled-lower-rows", "settings-title-black",
+                           "settings-apply-footer", "settings-apply-confirmation",
                            "fonts-inter-default", "fonts-bench"};
 
     int Rendered = 0;

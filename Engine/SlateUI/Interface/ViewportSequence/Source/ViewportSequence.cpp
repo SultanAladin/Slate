@@ -258,9 +258,21 @@ void ViewportSequence::ApplyTypographyWeights(const std::uint32_t Weights[8])
     RestateTypography(Resolved);
 }
 
-void ViewportSequence::RestateTypography(ThemeProfile& Profile) const
+void ViewportSequence::ApplyTypographyRoles(const std::uint32_t Sizes[8],
+                                            const std::uint32_t Weights[8])
+{
+    for (std::uint32_t Index = 0u; Index < 8u; ++Index)
+    {
+        RoleSizes[Index] = Sizes[Index];
+        RoleWeights[Index] = Weights[Index];
+    }
+    RestateTypography(Resolved);
+}
+
+void ViewportSequence::RestateTypography(ThemeProfile& Profile)
 {
     ApplyFontWeights(Profile, RoleWeights);
+    SurfaceOwned.ApplyTypographyRoles(RoleSizes, RoleWeights);
 }
 
 MotionIntegrator& ViewportSequence::MotionSource()

@@ -7,6 +7,7 @@
 
 #include "imgui.h"
 
+#include <algorithm>
 #include <cfloat>
 #include <cmath>
 
@@ -426,6 +427,21 @@ constexpr std::uint32_t StagingCapacity = 512u;
 //    preview) wins; otherwise the loader resolves the requested weight and falls back to the regular face
 //    when the family lacks it, exactly as `FontLoader::Face` already promises; with no loader at all the
 //    vendor's own standing font is what an unadorned run always drew.
+std::uint32_t TypographyRoleFor(float AuthoredSize)
+{
+    if (AuthoredSize <= -1.0f && AuthoredSize >= -8.0f)
+        return static_cast<std::uint32_t>(-AuthoredSize - 1.0f);
+    // Family specimens and large numeric readouts are intentionally literal; the ordinary interface
+    // ladder occupies 8–32 px and maps onto the six generally inferred semantic roles.
+    if (AuthoredSize > 32.0f) return 8u;
+    if (AuthoredSize >= 22.0f) return 0u; // Title
+    if (AuthoredSize >= 18.0f) return 1u; // Header
+    if (AuthoredSize >= 15.0f) return 2u; // Subheader
+    if (AuthoredSize >= 13.0f) return 3u; // Body
+    if (AuthoredSize >= 11.0f) return 4u; // Label
+    return 5u;                            // Caption
+}
+
 ImFont* ResolveRunFace(FontLoader* Fonts, ImFont* Override, FontWeight Weight)
 {
     if (Override != nullptr)
@@ -462,6 +478,26 @@ void Capitalise(const char* Text, char* Staging)
 void RecordingSurface::ApplyTypographyScale(float Scale)
 {
     TypographyScale = (Scale < 0.5f) ? 0.5f : ((Scale > 2.0f) ? 2.0f : Scale);
+}
+
+void RecordingSurface::ApplyTypographyRoles(const std::uint32_t Sizes[8],
+                                            const std::uint32_t Weights[8])
+{
+    if (Sizes == nullptr || Weights == nullptr) return;
+    const std::uint32_t Minimum[8] = {20u, 16u, 12u, 10u, 8u, 8u, 10u, 10u};
+    const std::uint32_t Maximum[8] = {64u, 40u, 32u, 24u, 20u, 16u, 24u, 24u};
+    for (std::uint32_t Index = 0u; Index < 8u; ++Index)
+    {
+        TypographySizes[Index] = static_cast<float>(std::clamp(Sizes[Index], Minimum[Index], Maximum[Index]));
+        TypographyWeights[Index] = static_cast<FontWeight>(std::clamp(Weights[Index], 100u, 900u));
+    }
+}
+
+float RecordingSurface::ResolveTypographySize(float AuthoredSize) const
+{
+    const std::uint32_t Role = TypographyRoleFor(AuthoredSize);
+    const float Semantic = Role < 8u ? TypographySizes[Role] : AuthoredSize;
+    return Semantic * TypographyScale;
 }
 
 void RecordingSurface::ApplyCornerScale(float Scale)
@@ -558,6 +594,15 @@ void RecordingSurface::TextRun(float X, float Y, ThemeToken Colour, const char* 
     if (CommandSlot == nullptr || Text == nullptr || Text[0] == '\0' || Colour.Opacity == 0u)
         return;
 
+    const std::uint32_t Role = TypographyRoleFor(PointSize);
+    if (Role < 8u)
+    {
+        PointSize = TypographySizes[Role];
+        if (Weight == FontWeight::Regular)
+            Weight = TypographyWeights[Role];
+    }
+    if (Weight != FontWeight::Regular)
+        Emphatic = false;
     ImDrawList*   Target   = Commands(CommandSlot);
     ImFont*       Typeface = ResolveRunFace(Fonts, FontOverride, Weight);
     const ImU32   Vendored = Vendor(Colour);
@@ -615,6 +660,21 @@ void RecordingSurface::TextRun(float X, float Y, ThemeToken Colour, const char* 
         Emit(X + EmphaticOffset, Y);
 }
 
+void RecordingSurface::TextRunRole(float X, float Y, ThemeToken Colour, const char* Text,
+                                   TypographyRole Role, float Tracking)
+{
+    const std::uint32_t Index = static_cast<std::uint32_t>(Role);
+    TextRun(X, Y, Colour, Text, -1.0f - static_cast<float>(Index), Tracking, false,
+            Index < 8u ? TypographyWeights[Index] : FontWeight::Regular);
+}
+
+float RecordingSurface::MeasureRunRole(const char* Text, TypographyRole Role, float Tracking) const
+{
+    const std::uint32_t Index = static_cast<std::uint32_t>(Role);
+    return MeasureRun(Text, -1.0f - static_cast<float>(Index), Tracking,
+                      Index < 8u ? TypographyWeights[Index] : FontWeight::Regular);
+}
+
 void RecordingSurface::TextRunCapitalised(float X, float Y, ThemeToken Colour, const char* Text,
                                           float PointSize, float Tracking, bool Emphatic, FontWeight Weight)
 {
@@ -639,8 +699,12 @@ void RecordingSurface::TextRunTruncated(float X, float Y, float LimitX, ThemeTok
         return;
     }
 
+    const std::uint32_t Role = TypographyRoleFor(PointSize);
+    if (Role < 8u && Weight == FontWeight::Regular)
+        Weight = TypographyWeights[Role];
+    const float EffectivePointSize = ResolveTypographySize(PointSize);
     ImFont*       Typeface     = ResolveRunFace(Fonts, FontOverride, Weight);
-    const float   EllipsisSpan = Typeface->CalcTextSizeA(PointSize, FLT_MAX, 0.0f, "...").x;
+    const float   EllipsisSpan = Typeface->CalcTextSizeA(EffectivePointSize, FLT_MAX, 0.0f, "...").x;
     const float   Admissible   = LimitX - EllipsisSpan;
 
     char          Staging[StagingCapacity];
@@ -650,7 +714,7 @@ void RecordingSurface::TextRunTruncated(float X, float Y, float LimitX, ThemeTok
     while (Text[Kept] != '\0' && Kept + 4u < StagingCapacity)
     {
         const char Glyph[2] = { Text[Kept], '\0' };
-        const float Advance = Typeface->CalcTextSizeA(PointSize, FLT_MAX, 0.0f, Glyph, Glyph + 1).x;
+        const float Advance = Typeface->CalcTextSizeA(EffectivePointSize, FLT_MAX, 0.0f, Glyph, Glyph + 1).x;
 
         if (Pen + Advance > Admissible)
             break;
@@ -673,6 +737,13 @@ float RecordingSurface::MeasureRun(const char* Text, float PointSize, float Trac
     if (Text == nullptr || Text[0] == '\0' || ImGui::GetCurrentContext() == nullptr)
         return 0.0f;
 
+    const std::uint32_t Role = TypographyRoleFor(PointSize);
+    if (Role < 8u)
+    {
+        PointSize = TypographySizes[Role];
+        if (Weight == FontWeight::Regular)
+            Weight = TypographyWeights[Role];
+    }
     ImFont*       Typeface = ResolveRunFace(Fonts, FontOverride, Weight);
     PointSize *= TypographyScale;
     const float   Measured = Typeface->CalcTextSizeA(PointSize, FLT_MAX, 0.0f, Text).x;
@@ -695,7 +766,7 @@ float RecordingSurface::LineHeight(float PointSize) const
     // 📐 The source's `leading-normal` is 1.5 for body text; the two captions declare `leading-none`, which the
     //    caller states by asking for the point size itself. 1.5 is the figure a run occupies when nothing
     //    overrides it, so it is what this reports.
-    return PointSize * 1.5f;
+    return ResolveTypographySize(PointSize) * 1.5f;
 }
 
 //------------------------------------------------------------------------------------------------------------------------

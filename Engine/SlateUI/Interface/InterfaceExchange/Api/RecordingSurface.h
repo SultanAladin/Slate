@@ -326,6 +326,12 @@ public:
     //                                                  TEXT
     //--------------------------------------------------------------------------------------------------------
 
+    enum class TypographyRole : std::uint32_t
+    {
+        Title = 0u, Header = 1u, Subheader = 2u, Body = 3u,
+        Label = 4u, Caption = 5u, Warning = 6u, Alert = 7u
+    };
+
     /// 🧩 Records a run of text at a declared size and tracking.
     /// in    Tracking  [em] added to every advance; zero records the run in one command
     /// in    Emphatic  [-]  approximates a heavier weight by recording the run twice, offset by a third pixel
@@ -338,6 +344,11 @@ public:
     void TextRun(float X, float Y, ThemeToken Colour, const char* Text,
                  float PointSize, float Tracking = 0.0f, bool Emphatic = false,
                  FontWeight Weight = FontWeight::Regular);
+    /// Records a run with an explicit semantic role, including Warning and Alert which cannot be
+    /// inferred reliably from an authored numeric size.
+    void TextRunRole(float X, float Y, ThemeToken Colour, const char* Text, TypographyRole Role,
+                     float Tracking = 0.0f);
+    float MeasureRunRole(const char* Text, TypographyRole Role, float Tracking = 0.0f) const;
 
     /// 🧩 Records a run in capitals, for the two small-capital captions the source declares.
     /// note  ⚠️ ASCII only. A capital of a codepoint outside ASCII is a locale question, not a formatting one.
@@ -366,6 +377,11 @@ public:
 
     /// Sets the shared typography scale for all text measurement and drawing on this surface.
     void ApplyTypographyScale(float Scale);
+    /// Applies the eight semantic text roles configured in the Control Centre. Existing panel runs are
+    /// classified from their authored size, so drawing and measurement resolve through the same role.
+    void ApplyTypographyRoles(const std::uint32_t Sizes[8], const std::uint32_t Weights[8]);
+    /// Returns the effective size used by TextRun and MeasureRun for an authored size.
+    float ResolveTypographySize(float AuthoredSize) const;
     void ApplyCornerScale(float Scale);
     void ApplyFontLoader(FontLoader& Loader);
     void ApplyFontPreview(ImFont* Preview);
@@ -495,6 +511,11 @@ private:
     TextInputCondition SampledText    = {};       // [-] - sampled once, at Adopt
     DisplayCondition  SampledDisplay = {};       // [-] - sampled once, at Adopt
     float             TypographyScale = 1.0f;    // [-] - shared text scale
+    float             TypographySizes[8] = {24.0f, 20.0f, 16.0f, 14.0f, 12.0f, 10.0f, 14.0f, 14.0f};
+    FontWeight        TypographyWeights[8] = {FontWeight::Semibold, FontWeight::Semibold,
+                                               FontWeight::Medium, FontWeight::Regular,
+                                               FontWeight::Medium, FontWeight::Regular,
+                                               FontWeight::Medium, FontWeight::Semibold};
     float             CornerScale = 1.0f;        // [-] - shared corner scale
     FontLoader*       Fonts = nullptr;           // [-] - borrowed active font loader
     ImFont*           FontOverride = nullptr;    // [-] - one preview face for the current card

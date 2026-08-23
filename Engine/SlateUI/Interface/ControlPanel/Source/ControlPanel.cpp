@@ -155,9 +155,9 @@ PickerColour FromHsv(const HsvCoordinate& Hsv, std::uint8_t Opacity)
     return Converted;
 }
 
-constexpr float CentredY(const PlaneExtent& Extent, float PointSize)
+float CentredY(RecordingSurface& Surface, const PlaneExtent& Extent, float PointSize)
 {
-    return Extent.MinimumY + (Extent.Height() - PointSize) * 0.5f;
+    return Extent.MinimumY + (Extent.Height() - Surface.ResolveTypographySize(PointSize)) * 0.5f;
 }
 
 void UnsignedRun(char* Delivered, std::uint32_t Extent, std::uint32_t Reading)
@@ -277,7 +277,7 @@ ControlVerdict ControlPanel::SwitchToggle(ControlIdentity Target, const PlaneExt
     const float NubQuiet  = Radius * NubFraction;
     const float NubRoused = Radius * (NubFraction + NubGrowth);
 
-    Recording->TextRun(CaptionX, CentredY(Extent, ReferenceText),
+    Recording->TextRun(CaptionX, CentredY(*Recording, Extent, ReferenceText),
                        Blend(MutedColour, PrimaryColour, HoverFraction), Declared.Caption, ReferenceText);
     Recording->Ground(Track, Blend(FieldGround, TrackTakenColour, TakenFraction), Radius, CornerAll);
     Recording->Edge(Track, Blend(HairColour, StrongHairColour, HoverFraction), 1.0f, Radius, CornerAll);
@@ -379,7 +379,7 @@ ControlVerdict ControlPanel::SegmentedSelection(ControlIdentity Target, const Pl
 
         const float RunX = Recording->MeasureRun(Declared.Captions[Index], ReferenceText);
         Recording->TextRun(Segment.MinimumX + (Segment.Width() - RunX) * 0.5f,
-                           CentredY(Segment, ReferenceText), Taken ? PrimaryColour : MutedColour,
+                           CentredY(*Recording, Segment, ReferenceText), Taken ? PrimaryColour : MutedColour,
                            Declared.Captions[Index], ReferenceText, 0.0f, Taken);
     }
 
@@ -441,7 +441,7 @@ ControlVerdict ControlPanel::TabStrip(ControlIdentity Target, const PlaneExtent&
             Recording->Ground(Tab, Blend(PanelGround, TileHovered, HoverFraction), 0.0f, CornerNone);
 
         Recording->TextRun(Tab.MinimumX + (Tab.Width() - RunX) * 0.5f,
-                           CentredY(Tab, ReferenceText),
+                           CentredY(*Recording, Tab, ReferenceText),
                            Taken ? PrimaryColour : Blend(MutedColour, PrimaryColour,
                                                       (Index == HoveredIndex) ? HoverFraction : 0.0f),
                            Declared.Captions[Index], ReferenceText, 0.0f, Taken);
@@ -499,7 +499,7 @@ ControlVerdict ControlPanel::CarouselPages(ControlIdentity Target, const PlaneEx
             Recording->Edge(Card, HairColour, 1.0f, 7.0f, CornerAll);
             Recording->Stroke(SymbolSubject::ChevronRight,
                               Spanning(Card.MinimumX + 8.0f, Card.MinimumY + 9.0f, 13.0f, 13.0f), FaintColour);
-            Recording->TextRunTruncated(Card.MinimumX + 29.0f, CentredY(Card, ReferenceText),
+            Recording->TextRunTruncated(Card.MinimumX + 29.0f, CentredY(*Recording, Card, ReferenceText),
                                         Card.MaximumX - 10.0f, PrimaryColour,
                                         Declared.LeadingRuns[Index], ReferenceText, true);
         }
@@ -528,7 +528,7 @@ ControlVerdict ControlPanel::CarouselPages(ControlIdentity Target, const PlaneEx
                                               Page.Width() - 39.0f, 32.0f);
             Recording->Ground(Card, Index == 0u ? AccentSoftColour : PanelGround, 7.0f, CornerAll);
             Recording->Edge(Card, Index == 0u ? AccentColour : HairColour, 1.0f, 7.0f, CornerAll);
-            Recording->TextRunTruncated(Card.MinimumX + 9.0f, CentredY(Card, ReferenceText),
+            Recording->TextRunTruncated(Card.MinimumX + 9.0f, CentredY(*Recording, Card, ReferenceText),
                                         Card.MaximumX - 9.0f, PrimaryColour,
                                         Declared.TrailingRuns[Index], ReferenceText, Index == 0u);
         }
@@ -576,13 +576,13 @@ ControlVerdict ControlPanel::CollapsibleCard(ControlIdentity Target, const Plane
     const PlaneExtent SymbolExtent = Spanning(Header.MinimumX + 8.0f, Header.MinimumY + 8.0f, 14.0f, 14.0f);
     Recording->Stroke((Disclosure > 0.5f) ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
                       SymbolExtent, Blend(FaintColour, PrimaryColour, Interaction->HoveredFraction(Target)));
-    Recording->TextRun(Header.MinimumX + 30.0f, CentredY(Header, SmallText), MutedColour,
+    Recording->TextRun(Header.MinimumX + 30.0f, CentredY(*Recording, Header, SmallText), MutedColour,
                        Declared.Caption, SmallText, 0.08f, true);
 
     char CountRun[12] = {};
     UnsignedRun(CountRun, 12u, Declared.BodyCount);
     const float CountX = Recording->MeasureRun(CountRun, SmallText);
-    Recording->TextRun(Header.MaximumX - CountX - 10.0f, CentredY(Header, SmallText),
+    Recording->TextRun(Header.MaximumX - CountX - 10.0f, CentredY(*Recording, Header, SmallText),
                        FaintColour, CountRun, SmallText);
 
     if (Disclosure > 0.0f && Declared.BodyRuns != nullptr)
@@ -597,9 +597,9 @@ ControlVerdict ControlPanel::CollapsibleCard(ControlIdentity Target, const Plane
                                              Header.MaximumY + 4.0f + FoldRowHeight * static_cast<float>(Index),
                                              Extent.Width() - 16.0f, FoldRowHeight - 4.0f);
             Recording->Ground(Row, FieldGround, 7.0f, CornerAll);
-            Recording->TextRun(Row.MinimumX + 10.0f, CentredY(Row, ReferenceText), MutedColour,
+            Recording->TextRun(Row.MinimumX + 10.0f, CentredY(*Recording, Row, ReferenceText), MutedColour,
                                Declared.BodyRuns[Index], ReferenceText);
-            Recording->TextRun(Row.MaximumX - 52.0f, CentredY(Row, ReferenceText), PrimaryColour,
+            Recording->TextRun(Row.MaximumX - 52.0f, CentredY(*Recording, Row, ReferenceText), PrimaryColour,
                                (Index == 0u) ? "0.00" : (Index == 1u) ? "0.0" : "1.00", ReferenceText);
         }
 
@@ -713,7 +713,7 @@ ControlVerdict ControlPanel::ColourPicker(ControlIdentity Target, const PlaneExt
     std::snprintf(RgbaRun, sizeof(RgbaRun), "rgba(%u, %u, %u, %.2f)",
                   static_cast<unsigned>(Colour.Red), static_cast<unsigned>(Colour.Green),
                   static_cast<unsigned>(Colour.Blue), static_cast<double>(Colour.Opacity) / 255.0);
-    Recording->TextRunTruncated(Head.MinimumX + 47.0f, CentredY(Head, ReferenceText),
+    Recording->TextRunTruncated(Head.MinimumX + 47.0f, CentredY(*Recording, Head, ReferenceText),
                                 Caret.MinimumX - 8.0f, PrimaryColour, RgbaRun, ReferenceText);
     Recording->Stroke(Disclosure > 0.5f ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
                       Spanning(Caret.MinimumX + 13.0f, Caret.MinimumY + 13.0f, 14.0f, 14.0f), MutedColour);
@@ -790,14 +790,14 @@ ControlVerdict ControlPanel::ColourPicker(ControlIdentity Target, const PlaneExt
         std::snprintf(HexRun, sizeof(HexRun), "#%02X%02X%02X",
                       static_cast<unsigned>(Colour.Red), static_cast<unsigned>(Colour.Green),
                       static_cast<unsigned>(Colour.Blue));
-        Recording->TextRun(HexField.MinimumX + 10.0f, CentredY(HexField, 14.0f),
+        Recording->TextRun(HexField.MinimumX + 10.0f, CentredY(*Recording, HexField, 14.0f),
                            PrimaryColour, HexRun, 14.0f);
 
         char AlphaRun[16] = {};
         std::snprintf(AlphaRun, sizeof(AlphaRun), "A %u%%",
                       static_cast<unsigned>(std::round(static_cast<double>(Colour.Opacity) / 255.0 * 100.0)));
         const float AlphaX = Recording->MeasureRun(AlphaRun, ReferenceText);
-        Recording->TextRun(Picker.MaximumX - AlphaX - 13.0f, CentredY(HexField, ReferenceText),
+        Recording->TextRun(Picker.MaximumX - AlphaX - 13.0f, CentredY(*Recording, HexField, ReferenceText),
                            MutedColour, AlphaRun, ReferenceText);
         Recording->Release();
     }
@@ -926,7 +926,7 @@ ControlVerdict ControlPanel::OutlineRow(ControlIdentity Target, const PlaneExten
     Recording->Stroke(SymbolSubject::PlaceholderMark,
                       Spanning(Extent.MinimumX + Indent + 17.0f, Extent.MinimumY + 5.0f, 16.0f, 16.0f),
                       PresenceEnabled ? AccentColour : FaintColour);
-    Recording->TextRunTruncated(Extent.MinimumX + Indent + 39.0f, CentredY(Extent, ReferenceText),
+    Recording->TextRunTruncated(Extent.MinimumX + Indent + 39.0f, CentredY(*Recording, Extent, ReferenceText),
                                 Extent.MaximumX - 34.0f, PresenceEnabled ? PrimaryColour : FaintColour,
                                 Declared.Caption, ReferenceText, Selected);
 

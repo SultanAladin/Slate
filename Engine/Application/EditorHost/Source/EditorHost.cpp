@@ -1255,7 +1255,8 @@ int main(int ArgumentCount, char** ArgumentValues)
             ControlCentre.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
             // 📝 The artist's per-role weights are declared every tick so the workspace's panels read the
             //    current choice; the viewport re-states them after each resolve.
-            Viewport.ApplyTypographyWeights(ControlCentreValues.TypographyWeight);
+            Viewport.ApplyTypographyRoles(ControlCentreValues.TypographySize,
+                                          ControlCentreValues.TypographyWeight);
             Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
             if (ControlInterior.Width() > 0.0f && ControlInterior.Height() > 0.0f)
                 Viewport.Surface().Ground(ControlInterior, Viewport.Appearance().Colour.SurfaceCurrent,

@@ -14,6 +14,7 @@
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/InterfacePreferences/Api/InterfacePreferences.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
+#include "SlateUI/Interface/NoticeDialog/Api/NoticeDialog.h"
 #include "SlateUI/Interface/ShortcutSpecification/Api/ShortcutSpecification.h"
 #include "SlateUI/Interface/ThemeSpecification/Api/ThemeSpecification.h"
 
@@ -137,6 +138,8 @@ private:
                    ThemeToken Accent);
     void DisplayHardwarePage(const PlaneExtent& Extent, ControlCentreConfiguration& Configuration,
                              const ThemeDeclaration& Theme, ThemeToken Accent);
+    void RecordSettingsFooter(const PlaneExtent& Extent, ControlCentreConfiguration& Configuration,
+                              const ThemeDeclaration& Theme, ThemeToken Accent);
     void Navigate(ControlCentrePage Incoming);
 
     MotionIntegrator* Motion = nullptr;
@@ -145,6 +148,7 @@ private:
     FontLoader* FontArchive = nullptr;
     ControlIndex Interaction = {};
     ComponentSpecification SharedControls = {};
+    NoticeDialog SettingsNotice = {};
     ControlIdentity Controls[ControlCapacity] = {};
     PlaneExtent Exclusions[ControlCapacity] = {};
     std::uint32_t ExclusionCount = 0u;
@@ -178,6 +182,9 @@ private:
     float RoleFontTarget[8] = {};
     std::uint32_t OpenPalette = 5u;
     bool InputPresetOpen = false;
+    bool WorkingConfigurationReady = false;
+    ControlCentreConfiguration WorkingConfiguration = {};
+    ControlCentreConfiguration AppliedConfiguration = {};
 };
 
 } // namespace Slate

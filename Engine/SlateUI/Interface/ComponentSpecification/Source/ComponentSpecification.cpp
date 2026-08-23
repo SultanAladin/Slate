@@ -75,9 +75,9 @@ constexpr double Held(double Coordinate, double Minimum, double Maximum)
 ///        its row. Deriving the upper edge here rather than at nineteen call sites is what keeps a run from
 ///        sitting a pixel high in one control and correct in the next.
 /// cost  ✔️
-constexpr float CentredY(const PlaneExtent& Extent, float PointSize)
+float CentredY(RecordingSurface& Surface, const PlaneExtent& Extent, float PointSize)
 {
-    return Extent.MinimumY + (Extent.Height() - PointSize) * 0.5f;
+    return Extent.MinimumY + (Extent.Height() - Surface.ResolveTypographySize(PointSize)) * 0.5f;
 }
 
 /// 🧩 Rounds an integral reading to its decimal run, without allocating.
@@ -431,7 +431,7 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Target, co
     // ③ The label, then the field's two grounds.
     if (!Declared.CaptionInside)
     {
-        Surface->TextRun(Label.MinimumX, CentredY(Label, Measure.LabelText), Colour.LabelQuiet,
+        Surface->TextRun(Label.MinimumX, CentredY(*Surface, Label, Measure.LabelText), Colour.LabelQuiet,
                          Declared.Caption, Measure.LabelText, 0.0f, false);
     }
 
@@ -448,7 +448,7 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Target, co
                           : "";
 
     Surface->TextRunTruncated(Field.MinimumX + Measure.FieldPadX,
-                              CentredY(Field, Measure.RowText),
+                              CentredY(*Surface, Field, Measure.RowText),
                               Cell.MinimumX - Field.MinimumX - Measure.FieldPadX * 2.0f,
                               Colour.FieldColour, OptionCaption, Measure.RowText, false);
 
@@ -786,7 +786,7 @@ void ComponentSpecification::RecordEditableRun(const PlaneExtent& Extent,
                             Partial(0x4A90E2u, 0.55), 2.0f, CornerAll);
     }
 
-    Surface->TextRunTruncated(Lead, CentredY(Extent, Measure.ReadoutText), Limit,
+    Surface->TextRunTruncated(Lead, CentredY(*Surface, Extent, Measure.ReadoutText), Limit,
                               Ink, Shown, Measure.ReadoutText, true);
 
     const float Prefix = static_cast<float>(Surface->MeasureRun(PrefixRun, Measure.ReadoutText, 0.0f));
@@ -850,7 +850,7 @@ EditableTextVerdict ComponentSpecification::EditableText(ControlIdentity Target,
         Surface->Ground(Extent, Colour.FieldGround, Radius, CornerAll);
         Surface->Edge(Extent, Colour.CardEdge, Measure.CardEdgeWeight, Radius, CornerAll);
         Surface->TextRunTruncated(Extent.MinimumX + 10.0f,
-                                  CentredY(Extent, Measure.ReadoutText),
+                                  CentredY(*Surface, Extent, Measure.ReadoutText),
                                   Extent.MaximumX - 10.0f, Ink, Shown,
                                   Measure.ReadoutText, true);
         Interaction->DeclareHovered(Target, Extent.Encloses(Sampled.PositionX, Sampled.PositionY),
@@ -1130,7 +1130,7 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Target, cons
 
     // ③ The label, absent when the readout trails a full-width slider.
     if (Laid != MagnitudeDeclaration::Arrange::Trailing)
-        Surface->TextRun(Label.MinimumX, CentredY(Label, Measure.LabelText), Colour.LabelQuiet,
+        Surface->TextRun(Label.MinimumX, CentredY(*Surface, Label, Measure.LabelText), Colour.LabelQuiet,
                          Declared.Caption, Measure.LabelText, 0.0f, false);
 
     // ④ The readout pill — a black value cell and a raised unit cell, rounded at the ends only.
@@ -1156,7 +1156,7 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Target, cons
     else
     {
         Surface->TextRun(ValueX + (ValueSpan - ReadingRun) * 0.5f,
-                         CentredY(Readout, Measure.ReadoutText),
+                         CentredY(*Surface, Readout, Measure.ReadoutText),
                          Colour.FieldColour, Reading, Measure.ReadoutText,
                          Measure.ReadoutTracking, true);
     }
@@ -1164,7 +1164,7 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Target, cons
     const float UnitRun = Surface->MeasureRun(Declared.UnitGlyph, Measure.UnitText, 0.0f);
 
     Surface->TextRun(UnitCell.MinimumX + (UnitCell.Width() - UnitRun) * 0.5f,
-                     CentredY(UnitCell, Measure.UnitText),
+                     CentredY(*Surface, UnitCell, Measure.UnitText),
                      Colour.UnitColour, Declared.UnitGlyph, Measure.UnitText, 0.0f, false);
 
     // ⑤ The track — taken below the fraction, quiet above it, and the thumb centred on the division.
@@ -1377,7 +1377,7 @@ ControlVerdict ComponentSpecification::VectorRow(ControlIdentity Target, const P
     }
 
     // ③ The label.
-    Surface->TextRun(Label.MinimumX, CentredY(Label, Measure.LabelText), Colour.LabelQuiet,
+    Surface->TextRun(Label.MinimumX, CentredY(*Surface, Label, Measure.LabelText), Colour.LabelQuiet,
                      Declared.Caption, Measure.LabelText, 0.0f, false);
 
     // ④ The readout: one pill, three value cells, one raised unit cell.
@@ -1399,7 +1399,7 @@ ControlVerdict ComponentSpecification::VectorRow(ControlIdentity Target, const P
         const char* AxisRun = (Declared.AxisRuns[Axis] != nullptr) ? Declared.AxisRuns[Axis] : "";
         const float AxisWide = Surface->MeasureRun(AxisRun, Measure.UnitText, 0.0f);
 
-        Surface->TextRun(CellLead + 8.0f, CentredY(Readout, Measure.UnitText),
+        Surface->TextRun(CellLead + 8.0f, CentredY(*Surface, Readout, Measure.UnitText),
                          Colour.UnitColour, AxisRun, Measure.UnitText, 0.0f, false);
 
         char Reading[24] = {};
@@ -1419,7 +1419,7 @@ ControlVerdict ComponentSpecification::VectorRow(ControlIdentity Target, const P
         else
         {
             Surface->TextRun(ReadingLead + (ReadingRoom - ReadingRun) * 0.5f,
-                             CentredY(Readout, Measure.ReadoutText),
+                             CentredY(*Surface, Readout, Measure.ReadoutText),
                              Colour.FieldColour, Reading, Measure.ReadoutText,
                              Measure.ReadoutTracking, true);
         }
@@ -1428,7 +1428,7 @@ ControlVerdict ComponentSpecification::VectorRow(ControlIdentity Target, const P
     const float UnitRun = Surface->MeasureRun(Declared.UnitGlyph, Measure.UnitText, 0.0f);
 
     Surface->TextRun(UnitCell.MinimumX + (UnitCell.Width() - UnitRun) * 0.5f,
-                     CentredY(UnitCell, Measure.UnitText),
+                     CentredY(*Surface, UnitCell, Measure.UnitText),
                      Colour.UnitColour, Declared.UnitGlyph, Measure.UnitText, 0.0f, false);
 
     Reported.ContactTaken = Interaction->Holding(Target) || VectorEditing;
@@ -1491,7 +1491,7 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Target, con
     }
 
     // ③ The label and the readout pill.
-    Surface->TextRun(Label.MinimumX, CentredY(Label, Measure.LabelText), Colour.LabelQuiet,
+    Surface->TextRun(Label.MinimumX, CentredY(*Surface, Label, Measure.LabelText), Colour.LabelQuiet,
                      Declared.Caption, Measure.LabelText, 0.0f, false);
 
     const float PillRadius = Readout.Height() * 0.5f;
@@ -1509,13 +1509,13 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Target, con
     const float ReadingRun = Surface->MeasureRun(Reading, Measure.ReadoutText, Measure.ReadoutTracking);
 
     Surface->TextRun(Readout.MinimumX + (ValueSpan - ReadingRun) * 0.5f,
-                     CentredY(Readout, Measure.ReadoutText),
+                     CentredY(*Surface, Readout, Measure.ReadoutText),
                      Colour.FieldColour, Reading, Measure.ReadoutText, Measure.ReadoutTracking, true);
 
     const float UnitRun = Surface->MeasureRun(Declared.UnitGlyph, Measure.UnitText, 0.0f);
 
     Surface->TextRun(UnitCell.MinimumX + (UnitCell.Width() - UnitRun) * 0.5f,
-                     CentredY(UnitCell, Measure.UnitText),
+                     CentredY(*Surface, UnitCell, Measure.UnitText),
                      Colour.UnitColour, Declared.UnitGlyph, Measure.UnitText, 0.0f, false);
 
     // ④ The strip's ground, and every tick inside it, confined so nothing escapes the rounded extent.
@@ -1695,7 +1695,7 @@ ControlVerdict ComponentSpecification::ToggleRow(ControlIdentity Target, const P
     const ThemeToken QuietLabel = Blend(Colour.LabelQuiet, Colour.LabelHovered, Hovered);
     const ThemeToken LabelColour   = Blend(QuietLabel, Colour.LabelTaken, Held);
 
-    Surface->TextRun(Ring.MaximumX + Measure.ToggleGapX, CentredY(Row, Measure.RowText),
+    Surface->TextRun(Ring.MaximumX + Measure.ToggleGapX, CentredY(*Surface, Row, Measure.RowText),
                      LabelColour, Declared.Caption, Measure.RowText, 0.0f, false);
 
     Reported.ContactTaken = Interaction->Holding(Target);
@@ -1760,7 +1760,7 @@ ControlVerdict ComponentSpecification::SubsetRow(ControlIdentity Target, const P
     // ③ The label.
     const ThemeToken LabelColour = Blend(Colour.LabelQuiet, Colour.LabelTaken, Held);
 
-    Surface->TextRun(Row.MinimumX + Measure.SubsetRowPadX, CentredY(Row, Measure.RowText),
+    Surface->TextRun(Row.MinimumX + Measure.SubsetRowPadX, CentredY(*Surface, Row, Measure.RowText),
                      LabelColour, Declared.Caption, Measure.RowText, 0.0f, false);
 
     Reported.ContactTaken = Interaction->Holding(Target);
@@ -1798,7 +1798,7 @@ ControlVerdict ComponentSpecification::MagnitudeStops(ControlIdentity Target, co
     //    why the declaration refuses a count below two rather than dividing by zero here.
     const float Division = StripWidth / static_cast<float>(Declared.StopCount - 1u);
 
-    Surface->TextRun(Label.MinimumX, CentredY(Label, Measure.LabelText), Colour.LabelQuiet,
+    Surface->TextRun(Label.MinimumX, CentredY(*Surface, Label, Measure.LabelText), Colour.LabelQuiet,
                      Declared.Caption, Measure.LabelText, 0.0f, false);
 
     std::uint32_t HoveredIndex = Declared.StopCount;
@@ -2122,7 +2122,7 @@ void ComponentSpecification::RecordMenu(const DeferredRecording& Holding)
         const float MarkerSpace = Marked ? Measure.OptionPadX * 2.0f : 0.0f;
 
         Surface->TextRunTruncated(CaptionLead,
-                                  CentredY(Option, Measure.RowText),
+                                  CentredY(*Surface, Option, Measure.RowText),
                                   Option.Width() - Measure.OptionPadX * 2.0f - MarkerSpace,
                                   (Over || Taken) ? Colour.OptionColourHovered : Colour.OptionColour,
                                   Caption, Measure.RowText, false);
