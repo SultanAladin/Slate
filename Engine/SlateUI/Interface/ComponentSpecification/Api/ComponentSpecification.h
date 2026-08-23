@@ -334,7 +334,7 @@ public:
     /// tag   api, nonthrowing
     /// 🧩 Draws the pill switch alone, for a caller that owns its own arbitration.
     /// note  🔴 Identical in shape and animation to ControlPanel::SwitchTrack.
-    ///        LayerStackPanel hand-rolled this twice with a ternary nub and a
+    ///        the retired validation stack once hand-rolled this twice with a ternary nub and a
     ///        fixed 5 px radius, so the switch snapped there while the same
     ///        control travelled elsewhere. This holds no ControlPanel, so the
     ///        helper is offered here too rather than pulling a whole panel in.

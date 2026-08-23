@@ -13,10 +13,8 @@
 //    for those kinds, and the combined stack properties for a folder. No
 //    history panel: the properties page is where the details live.
 //
-//    🔴 The validation shell keeps its OWN layer stack in LayerStackPanel.h —
-//    this guarantee is the editor's, deliberately richer (folders, tags,
-//    sources, per-row detail runs). Do not merge the two; the validation
-//    layer stack is the prototype and this is the editor's home.
+//    This is the standing texture-stack model. The former validation-only stack
+//    was retired rather than maintained as a second implementation.
 
 #pragma once
 

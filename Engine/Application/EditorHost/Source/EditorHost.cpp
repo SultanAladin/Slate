@@ -10,12 +10,10 @@
 //          → leaf content (SceneDirectoryPanel: the sky in a viewport leaf,
 //            the outliner | details column in an outliner leaf, the
 //            properties / camera-bookmark pages in a properties leaf).
-//    `GlobalShellPanel` is the VALIDATION PROTOTYPE (the full reference sheet:
-//    options rail, texture-paint layer stack, CAD drafting, fullscreen
-//    inspector). It is recorded ONLY by InterfaceValidationHost. NEVER record
-//    it here, and never port its rail/layer-stack/fullscreen strip into this
-//    host — that mistake was made once and reverted. The validation viewport
-//    stays black; the editor's sky lives in the viewport LEAF.
+//    The retired validation-shell prototype once duplicated the options rail,
+//    texture-paint stack, drafting directory, and inspector. Runtime UI belongs
+//    only to the standing panels named above; the editor's sky lives in the
+//    viewport LEAF.
 
 #include "Foundation/DeliveryOutcome.h"
 #include "SlateScene/Scene/EditorCameraComponent/Api/EditorCameraComponent.h"

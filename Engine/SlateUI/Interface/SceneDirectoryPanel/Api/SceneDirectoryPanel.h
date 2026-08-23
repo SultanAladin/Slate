@@ -1,24 +1,13 @@
 //============================================================================================================================================
 //                                                       SCENEDIRECTORYPANEL.H
 //============================================================================================================================================
-// 🧩 The editor's scene directory — the content drawn INSIDE the editor's workspace
-//    leaves, never over the whole display.
+// 🧩 The editor's scene directory — content drawn INSIDE workspace leaves, never
+//    over the whole display. It records the sky in viewport leaves, the directory
+//    in outliner leaves, and details/bookmarks in properties leaves.
 //
-//    This is the editor twin of the validation shell's scene-directory strip. The
-//    difference is where the content lives: the shell records its own fullscreen
-//    rail + viewport + inspector over the display (it is a PROTOTYPE of the whole
-//    reference sheet), while this panel records only leaf content — the sky in a
-//    viewport leaf, the outliner | details in an outliner leaf, and the
-//    properties | history in a properties leaf — inside whatever partition the
-//    artist has built with the workspace machinery.
-//
-//    🔴 FUTURE AGENTS, READ THIS. `GlobalShellPanel` is the ValidationHost
-//       prototype and is NOT to be recorded by the editor host. The editor's
-//       layout is: workspace windows → splittable panels (EditorPanel +
-//       PanelStructure) → leaf content. This panel is where editor content is
-//       built. Do not port the shell's rail, layer stack, or fullscreen
-//       inspector into the editor; the validation host keeps them, its viewport
-//       stays black, and the editor never sees them.
+//    🔴 FUTURE AGENTS, READ THIS. The retired validation-shell prototype is not a
+//       second implementation. The runtime layout is workspace windows →
+//       splittable panels (EditorPanel + PanelStructure) → this leaf content.
 
 #pragma once
 

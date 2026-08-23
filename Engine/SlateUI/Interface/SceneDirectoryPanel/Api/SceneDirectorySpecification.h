@@ -1,18 +1,9 @@
 //============================================================================================================================================
 //                                                     SCENEDIRECTORYGUARANTEE.H
 //============================================================================================================================================
-// 🧩 The shared scene-directory guarantees: what an entity is, what the environment is,
-//    and what one revision is. Owned here — beside the editor's scene-directory panel —
-//    so the validation shell and the editor's outliner/properties leaves describe the
-//    same things with the same names.
-//
-//    🔴 THESE LIVE OUTSIDE THE SHELL ON PURPOSE. The validation shell
-//       (`GlobalShellPanel`) is a PROTOTYPE: it presents the full reference sheet
-//       (options rail, texture-paint layer stack, CAD drafting) and must NEVER be
-//       recorded by the editor host. The editor presents workspaces and their
-//       panels; it shares only the scene-directory data with the shell. Future
-//       agents: build editor content in SceneDirectoryPanel, never by porting the
-//       shell into the editor.
+// 🧩 Shared scene-directory data: entity presentation, camera roles, environment
+//    settings, and scene rows. Owned beside SceneDirectoryPanel so runtime hosts
+//    depend on one domain vocabulary rather than a copied validation fixture.
 
 #pragma once
 
