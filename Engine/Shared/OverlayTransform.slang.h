@@ -35,18 +35,18 @@ SLATE_SHARED float OverlayNdcX(float ScreenX, float DisplayWidth)
     return 2.0f * ScreenX / DisplayWidth - 1.0f;
 }
 
-/// 🧩 Projects one screen ordinate into NDC, matching the interface's own vertex shader.
+/// 🧩 Projects one screen ordinate into NDC, matching Vulkan's viewport convention.
 /// in    ScreenY       [px] the display ordinate, 0 at the TOP edge (the interface's convention)
 /// in    DisplayHeight [px] the display the pass's viewport is set against
-/// out   [-] the NDC ordinate, +1 at the top, −1 at the bottom
-/// note  🔴 Screen y grows downward, and NDC +1 is the framebuffer's top row: the correct spelling
-///        is `1 − 2y/h`. A `−2y/h − 1` spelling maps every positive y below NDC −1 and the whole
-///        overlay is clipped — the "grid not showing" defect.
+/// out   [-] the NDC ordinate, −1 at the top, +1 at the bottom
+/// note  🔴 Screen y grows downward, and in Vulkan NDC −1 is the top row and +1 is the bottom row:
+///        the correct spelling is `2y/h − 1`, matching ImGui's Vulkan backend `aPos.y * (2/H) − 1`.
+///        A `1 − 2y/h` spelling inverted the entire Y axis, flipping the grid and gizmo upside down.
 /// cost  ✔️
 /// tag   shared, nonallocating, nonthrowing
 SLATE_SHARED float OverlayNdcY(float ScreenY, float DisplayHeight)
 {
-    return 1.0f - 2.0f * ScreenY / DisplayHeight;
+    return 2.0f * ScreenY / DisplayHeight - 1.0f;
 }
 
 }   // namespace Slate

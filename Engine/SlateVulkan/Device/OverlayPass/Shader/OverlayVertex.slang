@@ -85,6 +85,7 @@ struct OverlayPushConstant
     Real32x4   UpAndPresent;     // [-] - xyz the up axis,        w presentation
     Real32x4   LatticeColour;    // [-] - straight alpha, the fine line's tone
     Real32x4   WeightsAndDot;    // [-] - x line weight, y dot radius, zw spare
+    Real32x4   LeafRect;         // [px] - x minX, y minY, z maxX, w maxY
 };
 
 [[vk::push_constant]]
@@ -153,12 +154,7 @@ OverlayVertexOutput main(Unsigned32 VertexOrdinal : SV_VertexID)
     OverlayVertexOutput Output;
 
     // 📐 The viewport transform, SHARED with the harness: `OverlayNdcX/Y` live in
-    //    `Shared/OverlayTransform.slang.h`, compiled by both the shader toolchain and the host, and
-    //    the harness asserts the convention (screen y = 0 lands on NDC +1 — the framebuffer's top
-    //    row, exactly as the interface's own vertex shader maps it). 🔴 The previous spelling
-    //    `−2y/h − 1` mapped every positive screen y below NDC −1, clipping the whole overlay — the
-    //    "grid not showing" defect, which shipped repeatedly because the harness's CPU twin
-    //    rasterized in screen space and never exercised this math.
+    //    `Shared/OverlayTransform.slang.h`, compiled by both the shader toolchain and the host.
     Real32x2 Position = Real32x2(0.0, 0.0);
     Real32x4 Colour   = Real32x4(1.0, 1.0, 1.0, 1.0);
 
@@ -197,15 +193,18 @@ OverlayVertexOutput main(Unsigned32 VertexOrdinal : SV_VertexID)
     }
     else if (Push.Mode == 3u)
     {
-        // 📐 The analytic ground is ONE quad over the whole leaf; the fragment
+        // 📐 The analytic ground is ONE quad over the viewport leaf; the fragment
         //    stage decides what each pixel of it is. Four corners from the
-        //    vertex ordinal alone, exactly as the line and dot modes do.
+        //    vertex ordinal alone, spanning LeafRect.
         const Unsigned32 Corner = QuadCorner(VertexOrdinal);
         const Real32 X = ((Corner == 1u) || (Corner == 3u)) ? 1.0 : 0.0;
         const Real32 Y = (Corner >= 2u)                     ? 1.0 : 0.0;
 
-        Position = Real32x2(X * Push.DisplayWidth, Y * Push.DisplayHeight);
-        Colour   = Real32x4(X, Y, 0.0, 1.0);   // the fragment stage reads the corner back
+        const Real32 ScreenX = lerp(Push.LeafRect.x, Push.LeafRect.z, X);
+        const Real32 ScreenY = lerp(Push.LeafRect.y, Push.LeafRect.w, Y);
+
+        Position = Real32x2(ScreenX, ScreenY);
+        Colour   = Real32x4(X, Y, 0.0, 1.0);   // the fragment stage reads the leaf corner (0..1)
     }
     else
     {

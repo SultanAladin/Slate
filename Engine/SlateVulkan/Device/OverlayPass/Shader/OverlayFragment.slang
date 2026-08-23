@@ -37,6 +37,7 @@ struct OverlayPushConstant
     Real32x4   UpAndPresent;
     Real32x4   LatticeColour;
     Real32x4   WeightsAndDot;
+    Real32x4   LeafRect;
 };
 
 [[vk::push_constant]]
@@ -163,11 +164,15 @@ Real32x4 ResolveGround(Real32x2 Corner)
         Coverage = max(Coverage, Node * Fade);
     }
 
-    // ⑤ The world axes, in their own hues, drawn wider than a lattice line.
+    // ⑤ The world axes, in their own hues, drawn with exact pixel width.
     Real32x3 Tone = Push.LatticeColour.rgb;
 
-    const Real32 AxisZ = LatticeCoverage(Ground.x, 1.0e9, Weight * 1.6);
-    const Real32 AxisX = LatticeCoverage(Ground.y, 1.0e9, Weight * 1.6);
+    const Real32 SpanX = fwidth(Ground.x);
+    const Real32 SpanZ = fwidth(Ground.y);
+    const Real32 PixelDistZ = abs(Ground.x) / max(SpanX, 1e-6);
+    const Real32 PixelDistX = abs(Ground.y) / max(SpanZ, 1e-6);
+    const Real32 AxisZ = 1.0 - min(PixelDistZ / max(Weight * 1.6, 0.25), 1.0);
+    const Real32 AxisX = 1.0 - min(PixelDistX / max(Weight * 1.6, 0.25), 1.0);
 
     if (AxisZ > Coverage) { Coverage = AxisZ; Tone = Real32x3(0.32, 0.44, 0.92); }
     if (AxisX > Coverage) { Coverage = AxisX; Tone = Real32x3(0.90, 0.28, 0.32); }

@@ -43,9 +43,9 @@ static_assert(sizeof(LineRecord)     % 16u == 0u, "the line record must align to
 static_assert(sizeof(DotRecord)      % 16u == 0u, "the dot record must align to 16 bytes");
 static_assert(sizeof(TriangleRecord) % 16u == 0u, "the triangle record must align to 16 bytes");
 
-// 📐 16 bytes of mode/display plus six vec4 of camera for the analytic ground.
-//    🔴 Vulkan guarantees only 128 bytes of push constant; this is exactly 112.
-constexpr std::uint32_t OverlayPushConstantBytes = 112u;
+// 📐 16 bytes of mode/display plus six vec4 of camera plus one vec4 of leaf rect.
+//    🔴 Vulkan guarantees at least 128 bytes of push constant; this is exactly 128.
+constexpr std::uint32_t OverlayPushConstantBytes = 128u;
 
 }   // namespace
 
@@ -497,8 +497,8 @@ void OverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, std::uint
     vkCmdBindDescriptorSets(Command, VK_PIPELINE_BIND_POINT_GRAPHICS, OverlayPipelineLayout,
                             0u, 1u, &OverlaySet, 0u, nullptr);
 
-    // 📐 The push constant rides the draw: mode 0 lines, 1 dots, 2 triangles; the display size in the
-    //    same block is what the vertex stage transforms against.
+    // 📐 The push constant rides the draw: mode 0 lines, 1 dots, 2 triangles, 3 ground; the display
+    //    size and leaf rect in the same block are what the vertex stage transforms against.
     struct PushBlock
     {
         std::uint32_t Mode;
@@ -512,6 +512,7 @@ void OverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, std::uint
         float UpAndPresent[4]   = {};
         float LatticeColour[4]  = {};
         float WeightsAndDot[4]  = {};
+        float LeafRect[4]       = {};
     };
 
     const auto Stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -552,6 +553,11 @@ void OverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, std::uint
         Push.WeightsAndDot[0] = OverlayGround.LineWeight;
         Push.WeightsAndDot[1] = OverlayGround.DotRadius;
 
+        Push.LeafRect[0] = ClipX0;
+        Push.LeafRect[1] = ClipY0;
+        Push.LeafRect[2] = ClipX1;
+        Push.LeafRect[3] = ClipY1;
+
         vkCmdPushConstants(Command, OverlayPipelineLayout, Stages,
                            0u, OverlayPushConstantBytes, &Push);
 
@@ -568,7 +574,11 @@ void OverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, std::uint
         if (Count == 0u)
             return;
 
-        const PushBlock Push = { Mode, static_cast<float>(Width), static_cast<float>(Height), 0.0f };
+        PushBlock Push = { Mode, static_cast<float>(Width), static_cast<float>(Height), 0.0f };
+        Push.LeafRect[0] = ClipX0;
+        Push.LeafRect[1] = ClipY0;
+        Push.LeafRect[2] = ClipX1;
+        Push.LeafRect[3] = ClipY1;
 
         vkCmdPushConstants(Command, OverlayPipelineLayout, Stages,
                            0u, OverlayPushConstantBytes, &Push);
