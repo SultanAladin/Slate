@@ -76,12 +76,10 @@ struct SceneDirectoryContext
     bool                       CardFolded[CardCeiling]       = {};
     bool                       RevisionFolded[EntityCeiling] = {};
 
-    // 📐 The OUTLINER leaf's own pages: 0 the directory (outliner | details), 1 the selected record's
-    //    properties, 2 its history. Tab cycles them; the Inspect button in the outliner header jumps
-    //    to 1. `OutlineInspectorTab` is the properties leaf's strip selection INSIDE the outliner, so
-    //    the two leaves never fight over one tab state.
-    std::uint32_t              OutlinePage        = 0u;      // [-] - 0 Directory, 1 Properties, 2 History
-    std::uint32_t              OutlineInspectorTab = 0u;     // [-] - 0 Properties, 1 History (page 1/2)
+    // 📐 The outliner leaf has two OUTER slides: Directory + Details, then Inspector. Properties and
+    //    History are inner pages of the inspector, never duplicate outer destinations.
+    std::uint32_t              OutlinePage         = 0u;   // [-] - 0 Directory + Details, 1 Inspector
+    std::uint32_t              OutlineInspectorTab = 0u;   // [-] - 0 Properties, 1 History
 
     // 📝 The scene directory's own search and filter, placed between the outliner's header and its
     //    rows. `EntityRetention` is the search run the host feeds through the seam's `AcceptTyped`
@@ -248,7 +246,7 @@ public:
     void RecordProperties(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
                           const EntityRow* Rows, std::uint32_t RowCount,
                           const EntityRevision* Revisions, std::uint32_t RevisionCount,
-                          std::uint32_t& InspectorTab);
+                          std::uint32_t& InspectorTab, bool OutlinePresentation = false);
 
 private:
 
@@ -292,12 +290,18 @@ private:
     ControlIdentity InspectorStrip = {};
     ControlIdentity OutlineStrip    = {};
     ControlIdentity InspectCall     = {};
+    ControlIdentity DirectoryCall   = {};
 
     // 📐 The outliner leaf's own page travel. The leaf slides between the directory,
     //    the properties and the history exactly as the layer stack's carousel does.
     std::uint32_t   OutlineMotion   = 0u;   // [-] - the eased slot the travel rides
     std::uint32_t   OutlineDeparted = 0u;   // [-] - the page it left
     std::uint32_t   OutlineArriving = 0u;   // [-] - the page it is bound for
+
+    // 📐 Separate inner carousel slots for the outliner inspector and a dedicated properties leaf.
+    std::uint32_t   InspectorMotion[2]   = {};   // [-] - eased Properties | History travel
+    std::uint32_t   InspectorDeparted[2] = {};   // [-] - inner page left
+    std::uint32_t   InspectorArriving[2] = {};   // [-] - inner page arriving
 
     // 📐 The properties page's own list scroll, eased the same way the layer stack's is.
     float           PropertyShown   = 0.0f;

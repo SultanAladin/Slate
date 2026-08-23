@@ -335,6 +335,7 @@ Outcome<bool> SceneDirectoryPanel::Construct(InteractionIndex& Interaction,
         &InspectorStrip,
         &OutlineStrip,
         &InspectCall,
+        &DirectoryCall,
         &SearchField,
         &EnvironmentSliders[0], &EnvironmentSliders[1], &EnvironmentSliders[2],
         &EnvironmentSliders[3], &EnvironmentSliders[4], &EnvironmentSliders[5],
@@ -365,6 +366,16 @@ Outcome<bool> SceneDirectoryPanel::Construct(InteractionIndex& Interaction,
             return Outcome<bool>::Refuse(Eased.Error);
 
         OutlineMotion = Eased.Resolve();
+    }
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < 2u; ++Ordinal)
+    {
+        const Outcome<std::uint32_t> Eased = Integrator.RegisterEased(1.0);
+
+        if (!Eased.Resolved)
+            return Outcome<bool>::Refuse(Eased.Error);
+
+        InspectorMotion[Ordinal] = Eased.Resolve();
     }
 
     for (std::uint32_t Ordinal = 0u; Ordinal < SceneDirectoryContext::EntityCeiling; ++Ordinal)
@@ -401,10 +412,26 @@ void SceneDirectoryPanel::Advance(const PointerCondition& Contact, double Elapse
     EnvironmentControls.Sample(Contact);
     Facets.Advance(Contact, Elapsed);
 
-    // 📐 Tab walks the outliner leaf's pages: Directory → Properties → History → Directory. The key
-    //    is the seam's Summon (Tab), edge-triggered there and unrepeated, so one press is one page.
+    // 📐 Two outer slides, with Properties and History nested inside the inspector. The old three-page
+    //    outer state mapped both inspector destinations to the same -width coordinate, so its second
+    //    transition had zero distance and appeared broken.
     if (TabPressed)
-        Applied.OutlinePage = (Applied.OutlinePage + 1u) % 3u;
+    {
+        if (Applied.OutlinePage == 0u)
+        {
+            Applied.OutlinePage = 1u;
+            Applied.OutlineInspectorTab = 0u;
+        }
+        else if (Applied.OutlineInspectorTab == 0u)
+        {
+            Applied.OutlineInspectorTab = 1u;
+        }
+        else
+        {
+            Applied.OutlinePage = 0u;
+            Applied.OutlineInspectorTab = 0u;
+        }
+    }
 
     // 📝 The search field's taken state, reported to the host so it feeds the seam's typed run only
     //    while the field actually holds the contact — the validation shell's filter captured every
@@ -632,69 +659,52 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
 
     const float Pad = Scaled.PanePad;
 
-    // 📐 The outliner leaf's pages: 0 the directory (outliner | details), 1 the selected record's
-    //    properties, 2 its history. Tab cycles them, the strip below selects them, and the header's
-    //    Inspect call jumps to the properties.
-    // 🔴 THE LEAF CUT BETWEEN ITS PAGES. This returned early the moment the page was
-    //    not the directory, so going to the properties or the history REPLACED the
-    //    leaf between two frames — no travel at all, while the inspector inside it
-    //    slides between its own two pages and the layer stack's carousel slides too.
-    //
-    //    The leaf is a carousel now: the directory and the inspector sit side by
-    //    side and the strip travels one whole extent between them, on the same eased
-    //    interpolant the layer stack spends.
+    // 📐 One 200%-wide carousel: Directory + Details leads, the Properties | History inspector trails.
+    //    Both pages are always positioned from the same carried coordinate, so departure and arrival
+    //    remain visible throughout travel in either direction.
     if (Applied.OutlinePage != OutlineArriving)
     {
         OutlineDeparted = OutlineArriving;
         OutlineArriving = Applied.OutlinePage;
-        Motion->Eased(OutlineMotion).Depart(0.0, 1.0, 260.0, 0.0, EaseCurve::Standard);
+        Motion->Eased(OutlineMotion).Depart(0.0, 1.0, 260.0, 0.0, EaseCurve::Carousel);
     }
 
     const float Travelled  = static_cast<float>(Motion->Eased(OutlineMotion).Current());
-    const float DepartedAt = (OutlineDeparted != 0u) ? -Extent.Width() : 0.0f;
-    const float ArrivingAt = (OutlineArriving != 0u) ? -Extent.Width() : 0.0f;
+    const float DepartedAt = (OutlineDeparted == 1u) ? -Extent.Width() : 0.0f;
+    const float ArrivingAt = (OutlineArriving == 1u) ? -Extent.Width() : 0.0f;
     const float Carried    = DepartedAt + (ArrivingAt - DepartedAt) * Travelled;
 
-    // 📐 While the travel stands the directory must keep drawing, or the page being
-    //    left would be blank for the whole slide. Once it has settled on the
-    //    inspector the directory is skipped, which is what the early return did.
-    const bool Settled = (Travelled >= 0.999f);
+    const PlaneExtent DirectoryExtent = Spanning(Extent.MinimumX + Carried, Extent.MinimumY,
+                                                  Extent.Width(), Extent.Height());
+    const PlaneExtent InspectorExtent = Spanning(DirectoryExtent.MaximumX, Extent.MinimumY,
+                                                  Extent.Width(), Extent.Height());
 
-    if (Settled && OutlineArriving != 0u)
-    {
-        RecordProperties(Extent, Applied, Rows, RowCount, Revisions, RevisionCount,
-                         Applied.OutlineInspectorTab);
-        return;
-    }
-
-    if (!Settled)
+    if (!Surface->Excluded(InspectorExtent))
     {
         Surface->Confine(Extent);
-
-        const PlaneExtent Sliding = Spanning(Extent.MinimumX + Carried
-                                             + ((OutlineArriving != 0u) ? Extent.Width() : 0.0f),
-                                             Extent.MinimumY, Extent.Width(), Extent.Height());
-
-        if (!Surface->Excluded(Sliding))
-            RecordProperties(Sliding, Applied, Rows, RowCount, Revisions, RevisionCount,
-                             Applied.OutlineInspectorTab);
-
+        RecordProperties(InspectorExtent, Applied, Rows, RowCount, Revisions, RevisionCount,
+                         Applied.OutlineInspectorTab, true);
         Surface->Release();
     }
 
-    // 📐 The outliner column and the details pane beside it — the same `350px_minmax(0,1fr)` split the
-    //    shell's scene directory presents. The details pane is the small metadata/options card.
-    const float OutlinerX = (Scaled.OutlinerX < Extent.Width() * 0.6f)
-                          ? Scaled.OutlinerX : Extent.Width() * 0.6f;
+    if (Surface->Excluded(DirectoryExtent))
+        return;
 
-    const PlaneExtent Outlining = Spanning(Extent.MinimumX, Extent.MinimumY,
-                                           OutlinerX, Extent.Height());
+    Surface->Confine(Extent);
+
+    // 📐 The directory and its immediate details use the validation drafting split, constrained to 60%
+    //    on narrow leaves so both panes remain readable.
+    const float OutlinerX = (Scaled.OutlinerX < DirectoryExtent.Width() * 0.6f)
+                          ? Scaled.OutlinerX : DirectoryExtent.Width() * 0.6f;
+
+    const PlaneExtent Outlining = Spanning(DirectoryExtent.MinimumX, DirectoryExtent.MinimumY,
+                                           OutlinerX, DirectoryExtent.Height());
 
     const PlaneExtent Header = Spanning(Outlining.MinimumX, Outlining.MinimumY,
                                         Outlining.Width(), Scaled.HeaderHeight);
 
     RecordLeafHeader(Header, SymbolSubject::GearCog, Tinted.EntityAccent, "Scene Directory",
-                     "World Outliner");
+                     "Document Directory");
 
     // 📐 The Inspect call at the header's trailing edge — jumps the leaf to the selected record's
     //    properties, the same travel Tab performs one step at a time.
@@ -792,7 +802,7 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
 
         Surface->TextRunTruncated(RunLead, RunTop, Search.MaximumX - RunLead - 8.0f,
                                   Empty ? Tinted.Faint : Tinted.Primary,
-                                  Empty ? "Search\u2026" : Applied.EntityRetention, FieldRun);
+                                  Empty ? "Filter records\u2026" : Applied.EntityRetention, FieldRun);
     }
 
     // 📝 The filter card — the validation UI's generic facet filter, ported to the editor: wrapped
@@ -820,7 +830,10 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
                                       Strip.MinimumY - FacetCard.MaximumY - Pad);
 
     if (Body.MaximumY <= Body.MinimumY)
+    {
+        Surface->Release();
         return;
+    }
 
     Surface->Confine(Body);
 
@@ -1036,11 +1049,12 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
 
     Surface->TextRun(FooterLead, FooterTop, Tinted.Primary, Counted, FooterRun, 0.0f, true);
     Surface->TextRun(FooterLead + Surface->MeasureRun(Counted, FooterRun, 0.0f) + 4.0f, FooterTop,
-                     Tinted.Muted, " entities", FooterRun);
+                     Tinted.Muted, " records", FooterRun);
 
     // ⑤ The details pane — the small metadata and options card for the taken row.
-    const PlaneExtent Detailing = Spanning(Outlining.MaximumX, Extent.MinimumY,
-                                           Extent.MaximumX - Outlining.MaximumX, Extent.Height());
+    const PlaneExtent Detailing = Spanning(Outlining.MaximumX, DirectoryExtent.MinimumY,
+                                           DirectoryExtent.MaximumX - Outlining.MaximumX,
+                                           DirectoryExtent.Height());
 
     if (RowCount == 0u || Applied.EntityTaken >= RowCount)
     {
@@ -1056,6 +1070,7 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
                                                   - Surface->MeasureRun(Prose, Run, 0.0f)) * 0.5f,
                          Detailing.MinimumY + Scaled.HeaderHeight + Scaled.PanePad * 3.0f,
                          Tinted.Faint, Prose, Run);
+        Surface->Release();
         return;
     }
 
@@ -1122,6 +1137,7 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
                                  DetailBody.Width(), DetailBody.MaximumY - DetailSweep),
                         Applied, Ordinal, Current);
 
+    Surface->Release();
     Surface->Release();
 
     // 🔴 The filter card's dropdown is a deferred popup, exactly like the editor panel's menus: it
@@ -1259,7 +1275,7 @@ void SceneDirectoryPanel::RecordDetailOptions(const PlaneExtent& Extent, SceneDi
 void SceneDirectoryPanel::RecordProperties(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
                                            const EntityRow* Rows, std::uint32_t RowCount,
                                            const EntityRevision* Revisions, std::uint32_t RevisionCount,
-                                           std::uint32_t& InspectorTab)
+                                           std::uint32_t& InspectorTab, bool OutlinePresentation)
 {
     if (Rows == nullptr)
         RowCount = 0u;
@@ -1284,10 +1300,40 @@ void SceneDirectoryPanel::RecordProperties(const PlaneExtent& Extent, SceneDirec
         const EntityRow&  Current = Rows[Applied.EntityTaken];
         const ThemeToken Hue     = EntityHue(Current.Subject);
 
-        char Classified[48] = {};
-        std::snprintf(Classified, sizeof(Classified), "%s Entity", EntityText(Current.Subject));
+        RecordLeafHeader(Header, EntityGlyph(Current.Subject), Hue,
+                         Current.Naming, EntityText(Current.Subject));
+    }
 
-        RecordLeafHeader(Header, EntityGlyph(Current.Subject), Hue, Current.Naming, Classified);
+    if (OutlinePresentation)
+    {
+        const char* Caption = "Directory";
+        const float Run = Scaled.RunSecondary;
+        const float PadX = 10.0f;
+        const float CallSpan = PadX * 2.0f + Surface->MeasureRun(Caption, Run, 0.0f) + 12.0f;
+        const PlaneExtent Call = Spanning(Header.MaximumX - Scaled.HeaderPadX - CallSpan,
+                                          Header.MinimumY + (Header.Height() - 24.0f) * 0.5f,
+                                          CallSpan, 24.0f);
+        const bool OnCall = Call.Encloses(Sampled.PositionX, Sampled.PositionY);
+
+        if (Sampled.ContactPressed && OnCall && !Ledger->AnyDisclosed())
+            Ledger->Grab(DirectoryCall, ControlPart::Body);
+
+        if (OnCall && Ledger->Released(DirectoryCall))
+            Applied.OutlinePage = 0u;
+
+        Ledger->DeclareHovered(DirectoryCall, OnCall, HoverOver);
+        const float Lit = Ledger->HoveredFraction(DirectoryCall);
+
+        Surface->Ground(Call, Blend(Tinted.Tile, Tinted.TileHovered, Lit),
+                        Call.Height() * 0.5f, CornerAll);
+        Surface->Edge(Call, Blend(Tinted.Hairline, Tinted.HairlineFirm, Lit), 1.0f,
+                      Call.Height() * 0.5f, CornerAll);
+        Surface->TextRun(Call.MinimumX + PadX * 0.7f,
+                         Call.MinimumY + (Call.Height() - Run) * 0.5f,
+                         OnCall ? Tinted.Primary : Tinted.Faint, "<", Run, 0.0f, true);
+        Surface->TextRun(Call.MinimumX + PadX + 12.0f,
+                         Call.MinimumY + (Call.Height() - Run) * 0.5f,
+                         OnCall ? Tinted.Primary : Tinted.Muted, Caption, Run);
     }
 
     // ① The strip, and the inner pages it drives.
@@ -1303,9 +1349,22 @@ void SceneDirectoryPanel::RecordProperties(const PlaneExtent& Extent, SceneDirec
     const PlaneExtent Pages = Spanning(Extent.MinimumX, Strip.MaximumY, Extent.Width(),
                                        Extent.MaximumY - Strip.MaximumY - Scaled.FooterHeight);
 
-    // 📐 The two pages sit side by side and the strip travels between them, exactly as the shell's
-    //    inspector does — the travel is one whole page extent.
-    const float Carried = (InspectorTab == 1u) ? -Pages.Width() : 0.0f;
+    // 📐 The two pages sit side by side and travel on an eased interpolant. A hard ternary here was
+    //    the broken carousel: it teleported between Properties and History despite drawing both pages.
+    const std::uint32_t MotionOrdinal = OutlinePresentation ? 0u : 1u;
+
+    if (InspectorTab != InspectorArriving[MotionOrdinal])
+    {
+        InspectorDeparted[MotionOrdinal] = InspectorArriving[MotionOrdinal];
+        InspectorArriving[MotionOrdinal] = InspectorTab;
+        Motion->Eased(InspectorMotion[MotionOrdinal]).Depart(0.0, 1.0, 240.0, 0.0,
+                                                             EaseCurve::Carousel);
+    }
+
+    const float Travelled = static_cast<float>(Motion->Eased(InspectorMotion[MotionOrdinal]).Current());
+    const float DepartedAt = (InspectorDeparted[MotionOrdinal] == 1u) ? -Pages.Width() : 0.0f;
+    const float ArrivingAt = (InspectorArriving[MotionOrdinal] == 1u) ? -Pages.Width() : 0.0f;
+    const float Carried = DepartedAt + (ArrivingAt - DepartedAt) * Travelled;
 
     Surface->Confine(Pages);
 

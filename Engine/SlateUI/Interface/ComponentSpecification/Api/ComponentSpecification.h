@@ -463,7 +463,7 @@ private:
 
     static constexpr std::uint32_t EditableRunCeiling = 128u;
 
-    void BeginEditing(ControlIdentity Target, const char* Standing);
+    void BeginEditing(ControlIdentity Target, const char* Standing, std::uint32_t Ordinal = 0u);
     void AdvanceEditing();
     bool Editing(ControlIdentity Target) const;
     void FinishEditing();
@@ -480,6 +480,7 @@ private:
     ControlIdentity                 EditingTarget                   = {};        // [-] - one active field
     char                            EditingRun[EditableRunCeiling]  = {};        // [-] - interaction copy
     std::uint32_t                   EditingCursor                   = 0u;         // [-] - byte insertion point
+    std::uint32_t                   EditingOrdinal                  = 0u;         // [-] - vector axis being edited
     bool                            EditingInvalid                  = false;      // [-] - last acceptance refused
 };
 

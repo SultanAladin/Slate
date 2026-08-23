@@ -21,6 +21,7 @@
 //      --shot=editor-overview    one workspace split into a viewport leaf (the
 //                                real sky) and an outliner leaf (the scene
 //                                directory with its details pane)
+//      --shot=editor-outliner-inspector  the outliner leaf settled at its real Inspector slide
 //      --shot=editor-sun-props   the workspace split three ways: viewport,
 //                                outliner, and a properties leaf showing the
 //                                Sun/Sky/Atmosphere slider cards
@@ -46,6 +47,7 @@
 //          Engine/SlateUI/Interface/TexturePaintPanel/Source/TexturePaintPanel.cpp \
 //          Engine/SlateUI/Interface/ControlPanel/Source/ControlPanel.cpp \
 //          Engine/SlateUI/Interface/ComponentSpecification/Source/ComponentSpecification.cpp \
+//          Engine/SlateUI/Interface/ComponentSpecification/Source/MagnitudeExpression.cpp \
 //          Engine/SlateUI/Interface/InterfaceExchange/Source/RecordingSurface.cpp \
 //          Engine/SlateUI/Interface/AppearanceSpecification/Source/AppearanceSpecification.cpp \
 //          Engine/SlateUI/Interface/InteractionIndex/Source/InteractionIndex.cpp \
@@ -748,7 +750,8 @@ struct SceneDriver
             {
                 case PanelSubject::Viewport:
                     SceneDirectory.RecordViewportSky(LeafBody, Applied);
-                    SceneDirectory.RecordGroundGrid(LeafBody, Applied, Configuration, Applied.Overlay);
+                    // Grid geometry is emitted by the editor's overlay pass now; the directory panel
+                    // records only the leaf content it owns.
                     SceneDirectory.RecordGizmo(LeafBody, Applied, Applied.Overlay);
 
                     // 📐 The host's fallback path: when the GPU overlay pass could not stand, the SAME
@@ -889,6 +892,13 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
     {
         Driver.ApplyPartition(false);
         Driver.Settle(20);
+    }
+    else if (std::strcmp(Scenario, "editor-outliner-inspector") == 0)
+    {
+        Driver.ApplyPartition(false);
+        Driver.Settle(20);
+        Driver.Applied.OutlinePage = 1u;
+        Driver.Settle(24);
     }
     else if (std::strcmp(Scenario, "editor-sun-props") == 0)
     {
@@ -2596,20 +2606,20 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
 
         Driver.SimTabPressed = true;
         Driver.Tick(640.0f, 450.0f, false, false, false);
-        if (Driver.Applied.OutlinePage != 2u)
+        if (Driver.Applied.OutlinePage != 1u || Driver.Applied.OutlineInspectorTab != 1u)
         {
-            std::fprintf(stderr, "[FAIL] Tab did not advance to History\n");
+            std::fprintf(stderr, "[FAIL] Tab did not advance the inspector to History\n");
             return false;
         }
 
         Driver.SimTabPressed = true;
         Driver.Tick(640.0f, 450.0f, false, false, false);
-        if (Driver.Applied.OutlinePage != 0u)
+        if (Driver.Applied.OutlinePage != 0u || Driver.Applied.OutlineInspectorTab != 0u)
         {
             std::fprintf(stderr, "[FAIL] Tab did not wrap back to Directory\n");
             return false;
         }
-        std::fprintf(stderr, "[assert] tab cycle 0 -> 1 -> 2 -> 0 stands\n");
+        std::fprintf(stderr, "[assert] Directory -> Properties -> History -> Directory stands\n");
 
         // 📐 The Inspect call jumps straight to Properties.
         {
@@ -2688,7 +2698,8 @@ int main(int ArgumentCount, char** Arguments)
     IO.Fonts->TexData->SetTexID((ImTextureID)(intptr_t)1);
     IO.Fonts->TexRef._TexData = IO.Fonts->TexData;
 
-    const char* Shots[] = {"editor-overview", "editor-sun-props", "editor-after-drag",
+    const char* Shots[] = {"editor-overview", "editor-outliner-inspector", "editor-sun-props",
+                           "editor-after-drag",
                            "editor-camera-fly", "editor-grid-settings", "editor-overlay-fallback",
                            "editor-search-filter", "editor-layerstack"};
 

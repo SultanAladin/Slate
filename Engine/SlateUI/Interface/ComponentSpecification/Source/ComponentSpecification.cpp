@@ -277,6 +277,7 @@ void ComponentSpecification::Reset()
     EditingTarget      = {};
     EditingRun[0]      = '\0';
     EditingCursor      = 0u;
+    EditingOrdinal     = 0u;
     EditingInvalid     = false;
 }
 
@@ -530,25 +531,34 @@ std::uint32_t ComponentSpecification::OptionUnder(ControlIdentity Target, const 
 //                                                    EDITABLE TEXT
 //------------------------------------------------------------------------------------------------------------------------
 
-void ComponentSpecification::BeginEditing(ControlIdentity Target, const char* Standing)
+void ComponentSpecification::BeginEditing(ControlIdentity Target, const char* Standing,
+                                            std::uint32_t Ordinal)
 {
     if (Ledger == nullptr || !Ledger->Disclose(Target))
         return;
 
     EditingTarget  = Target;
     EditingCursor  = 0u;
+    EditingOrdinal = Ordinal;
     EditingInvalid = false;
+
+    std::uint32_t Length = 0u;
 
     if (Standing != nullptr)
     {
-        while (EditingCursor + 1u < EditableRunCeiling && Standing[EditingCursor] != '\0')
+        while (Length + 1u < EditableRunCeiling && Standing[Length] != '\0')
         {
-            EditingRun[EditingCursor] = Standing[EditingCursor];
-            ++EditingCursor;
+            EditingRun[Length] = Standing[Length];
+            ++Length;
         }
     }
 
-    EditingRun[EditingCursor] = '\0';
+    EditingRun[Length] = '\0';
+
+    // 📝 Editing starts at the most significant character. Numeric correction commonly changes the
+    //    leading digit or sign, and beginning at the run's trailing edge made every double contact
+    //    require an extra Home press before the intended edit could begin.
+    EditingCursor = 0u;
 }
 
 bool ComponentSpecification::Editing(ControlIdentity Target) const
@@ -564,6 +574,7 @@ void ComponentSpecification::FinishEditing()
     EditingTarget  = {};
     EditingRun[0]  = '\0';
     EditingCursor  = 0u;
+    EditingOrdinal = 0u;
     EditingInvalid = false;
 }
 
@@ -999,10 +1010,55 @@ ControlVerdict ComponentSpecification::VectorRow(ControlIdentity Target, const P
             OverAxis = Axis;
     }
 
+    if (Sampled.ContactDoublePressed && OverAxis >= 0)
+    {
+        char Standing[24] = {};
+        DecimalRun(Standing, 24u, Coordinates[OverAxis], Declared.Decimals);
+        BeginEditing(Target, Standing, static_cast<std::uint32_t>(OverAxis));
+    }
+
+    bool VectorEditing = Editing(Target) && EditingOrdinal < 3u;
+
+    if (VectorEditing)
+    {
+        AdvanceEditing();
+        const TextInputCondition& Text = Surface->TextInput();
+
+        if (Text.CancelPressed)
+        {
+            FinishEditing();
+            VectorEditing = false;
+        }
+        else if (Text.AcceptPressed)
+        {
+            const Outcome<double> Resolved = ResolveMagnitudeExpression(EditingRun);
+
+            if (!Resolved.Resolved)
+            {
+                EditingInvalid = true;
+            }
+            else
+            {
+                const double Incoming = Resolved.Resolve();
+                const double Bounded = (Incoming < Declared.Minimum) ? Declared.Minimum
+                                     : (Incoming > Declared.Maximum) ? Declared.Maximum : Incoming;
+
+                if (Bounded != Coordinates[EditingOrdinal])
+                {
+                    Coordinates[EditingOrdinal] = Bounded;
+                    Reported.ReadingAltered = true;
+                }
+
+                FinishEditing();
+                VectorEditing = false;
+            }
+        }
+    }
+
     if (Ledger->DeclareHovered(Target, OverAxis >= 0, HoverDuration))
         FoldMark(RedrawMark::Recolour);
 
-    if (Sampled.ContactPressed && OverAxis >= 0)
+    if (!VectorEditing && Sampled.ContactPressed && OverAxis >= 0)
     {
         if (Ledger->Grab(Target, ControlPart::Thumb))
         {
@@ -1077,10 +1133,19 @@ ControlVerdict ComponentSpecification::VectorRow(ControlIdentity Target, const P
         const float ReadingLead = CellLead + 8.0f + AxisWide;
         const float ReadingRoom = AxisSpan - 8.0f - AxisWide - 8.0f;
 
-        Surface->TextRun(ReadingLead + (ReadingRoom - ReadingRun) * 0.5f,
-                         CentredY(Readout, Measure.ReadoutText),
-                         Colour.FieldColour, Reading, Measure.ReadoutText,
-                         Measure.ReadoutTracking, true);
+        if (VectorEditing && EditingOrdinal == static_cast<std::uint32_t>(Axis))
+        {
+            const PlaneExtent EditingCell = { ReadingLead, Readout.MinimumY,
+                                              CellLead + AxisSpan, Readout.MaximumY };
+            RecordEditableRun(EditingCell, "Value", EditingInvalid);
+        }
+        else
+        {
+            Surface->TextRun(ReadingLead + (ReadingRoom - ReadingRun) * 0.5f,
+                             CentredY(Readout, Measure.ReadoutText),
+                             Colour.FieldColour, Reading, Measure.ReadoutText,
+                             Measure.ReadoutTracking, true);
+        }
     }
 
     const float UnitRun = Surface->MeasureRun(Declared.UnitGlyph, Measure.UnitText, 0.0f);
@@ -1089,6 +1154,8 @@ ControlVerdict ComponentSpecification::VectorRow(ControlIdentity Target, const P
                      CentredY(UnitCell, Measure.UnitText),
                      Colour.UnitColour, Declared.UnitGlyph, Measure.UnitText, 0.0f, false);
 
+    Reported.ContactTaken = Ledger->Holding(Target) || VectorEditing;
+    Reported.Mark = VectorEditing ? Dearer(Current, RedrawMark::Rerecord) : Current;
     return Reported;
 }
 
