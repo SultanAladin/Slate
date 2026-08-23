@@ -330,6 +330,10 @@ public:
     ControlVerdict TooltipTrigger(ControlIdentity Target, const PlaneExtent& Trigger,
                                   const TooltipDeclaration& Declared);
 
+    /// 🧩 Adds the shared deferred tooltip to a control another component has already rendered.
+    ControlVerdict TooltipHint(ControlIdentity Target, const PlaneExtent& Anchor,
+                               const TooltipDeclaration& Declared);
+
     //--------------------------------------------------------------------------------------------------------
     //                                             THE DEFERRED SWEEP
     //--------------------------------------------------------------------------------------------------------

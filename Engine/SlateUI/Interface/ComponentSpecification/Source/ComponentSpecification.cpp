@@ -1940,6 +1940,34 @@ ControlVerdict ComponentSpecification::TooltipTrigger(ControlIdentity Target, co
     return Reported;
 }
 
+ControlVerdict ComponentSpecification::TooltipHint(ControlIdentity Target, const PlaneExtent& Anchor,
+                                                     const TooltipDeclaration& Declared)
+{
+    ControlVerdict Reported;
+
+    if (Interaction == nullptr || Surface == nullptr || Appearance == nullptr || !Interaction->Resolves(Target))
+        return Reported;
+
+    const bool Over = Anchor.Encloses(Sampled.PositionX, Sampled.PositionY);
+    if (Interaction->DeclareTaken(Target, Over, TooltipDuration))
+        FoldMark(RedrawMark::Recolour);
+
+    const float Disclosed = Interaction->TakenFraction(Target);
+    if (Disclosed > 0.0f && DeferredCount < DeferredLimit)
+    {
+        DeferredRecording& Holding = Deferred[DeferredCount++];
+        Holding.Target     = Target;
+        Holding.Anchor     = Anchor;
+        Holding.Title      = Declared.Title;
+        Holding.Body       = Declared.Body;
+        Holding.Appearance = Declared.Appearance;
+        Holding.Menu       = false;
+    }
+
+    Reported.Mark = Current;
+    return Reported;
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE DEFERRED SWEEP
 //------------------------------------------------------------------------------------------------------------------------

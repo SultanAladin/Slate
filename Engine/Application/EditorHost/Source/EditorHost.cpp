@@ -578,7 +578,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     // 🔴 The browser carries its OWN index, as every panel here does, so its registration cannot exhaust the
     //    Control Centre's. Read — an registration refusal is silent at the call site and a browser that was
     //    rejected records nothing at all, which reads as a drawer that opens onto blank ground.
-    const Outcome<bool> BrowserOutcome = ContentBrowser.ConstructContentBrowserPanel(BrowserInteraction, Viewport.Surface());
+    const Outcome<bool> BrowserOutcome = ContentBrowser.ConstructContentBrowserPanel(BrowserInteraction, Viewport.Surface(), Viewport.Appearance());
     if (!BrowserOutcome.Resolved)
     {
         std::printf("%s \u2014 the content browser was rejected (reason %u: %s)\n", HostName,
@@ -1218,7 +1218,7 @@ int main(int ArgumentCount, char** ArgumentValues)
             {
                 Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
                 ContentBrowser.RecordBrowser(BrowserInterior, ContentApplied, ContentBrowserApplied);
-                ContentBrowser.RecordDeferred(ContentBrowserApplied);
+                ContentBrowser.RecordDeferred();
 
                 // 🔴 Declared every tick or lost. Without it the drawer owns every contact inside its own
                 //    body, so taking a record or dragging the lattice slides the drawer instead.

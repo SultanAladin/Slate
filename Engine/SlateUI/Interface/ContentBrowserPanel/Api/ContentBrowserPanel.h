@@ -7,6 +7,7 @@
 
 #include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
+#include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
 #include "SlateUI/Interface/DrawerSpace/Api/DrawerSpace.h"
 #include "SlateUI/Interface/ControlIndex/Api/ControlIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
@@ -132,9 +133,6 @@ struct ContentBrowserConfiguration
     float          AsideOffset       = 0.0f;    // [px] - how far the sources column is scrolled
     float          AsideSpan         = 0.0f;    // [px] - what the sources column measured last tick
     std::uint32_t  InspectorTongue   = 0u;      // [-] - 0 Details, 1 Create
-    const char*    Tooltip           = nullptr; // [-] - borrowed; recorded in the deferred sweep
-    float          TooltipX      = 0.0f;    // [px]
-    float          TooltipHeight     = 0.0f;    // [px]
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -165,7 +163,8 @@ public:
     /// err   a refusal leaves nothing registered; the panel records nothing until Construct is delivered
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> ConstructContentBrowserPanel(ControlIndex& IncomingInteraction, RecordingSurface& Recording);
+    Outcome<bool> ConstructContentBrowserPanel(ControlIndex& IncomingInteraction, RecordingSurface& Recording,
+                                               const ThemeProfile& Appearance);
 
     /// 🧩 Samples the tick's pointer before anything is recorded against it.
     /// in    Incoming [-]  this tick's pointer, as the host built it
@@ -182,11 +181,8 @@ public:
     /// tag   api, nonallocating, nonthrowing
     void RecordBrowser(const PlaneExtent& Extent, ContentLibrary& Library, ContentBrowserConfiguration& Applied);
 
-    /// 🧩 Records the tooltip above everything the tick has already recorded.
-    /// in    Applied  [-]  read for the tooltip the hover applied, then cleared
-    /// cost  ✔️
-    /// tag   api, nonallocating, nonthrowing
-    void RecordDeferred(ContentBrowserConfiguration& Applied);
+    /// 🧩 Records deferred shared tooltips above the browser.
+    void RecordDeferred();
 
     /// 🧩 Accepts a typed octet into the seek run when the seek field holds the keyboard.
     /// in    Incoming [-]  the octet, as the interface reported it
@@ -250,8 +246,9 @@ private:
     bool  Retained(const ContentRecord& Record, const ContentLibrary& Library,
                    const ContentBrowserConfiguration& Applied) const;
 
-    ControlIndex*  Interaction  = nullptr;   // [-] - borrowed, never owned
-    RecordingSurface*  Surface = nullptr;   // [-] - borrowed, never owned
+    ControlIndex*          Interaction = nullptr;   // [-] - borrowed, never owned
+    RecordingSurface*      Surface     = nullptr;   // [-] - borrowed, never owned
+    ComponentSpecification SharedControls = {};
 
     ControlIdentity  SourceRows[SourceLimit]    = {};   // [-] - one per source row
     ControlIdentity  LatticeCards[LatticeLimit] = {};   // [-] - one per lattice record

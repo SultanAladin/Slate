@@ -158,7 +158,8 @@ void ContentBrowserPanel::Reapply(const ThemeProfile& Resolved)
     Colour = Resolved.ContentBrowser;
 }
 
-Outcome<bool> ContentBrowserPanel::ConstructContentBrowserPanel(ControlIndex& IncomingInteraction, RecordingSurface& Recording)
+Outcome<bool> ContentBrowserPanel::ConstructContentBrowserPanel(ControlIndex& IncomingInteraction, RecordingSurface& Recording,
+                                                               const ThemeProfile& Appearance)
 {
     if (Interaction != nullptr)
     {
@@ -166,8 +167,12 @@ Outcome<bool> ContentBrowserPanel::ConstructContentBrowserPanel(ControlIndex& In
                                        "the content browser panel is already constructed" });
     }
 
-    Interaction  = &IncomingInteraction;
-    Surface = &Recording;
+    const Outcome<bool> SharedOutcome = SharedControls.ConstructComponents(IncomingInteraction, Recording, Appearance);
+    if (!SharedOutcome.Resolved)
+        return SharedOutcome;
+
+    Interaction = &IncomingInteraction;
+    Surface     = &Recording;
 
     // 🔴 Every identity claimed here and none inside a tick. A refusal partway through retires the whole
     //    construction rather than leaving half a panel registered against a index it cannot fill.
@@ -205,12 +210,14 @@ void ContentBrowserPanel::Advance(const PointerCondition& Incoming, double Elaps
 {
     static_cast<void>(Elapsed);
     Sampled = Incoming;
+    SharedControls.Sample(Incoming);
 }
 
 void ContentBrowserPanel::Reset()
 {
-    Interaction  = nullptr;
-    Surface = nullptr;
+    SharedControls.Reset();
+    Interaction = nullptr;
+    Surface     = nullptr;
 
     for (auto& Written : SourceRows)   Written = ControlIdentity{};
     for (auto& Written : LatticeCards) Written = ControlIdentity{};
@@ -249,12 +256,10 @@ bool ContentBrowserPanel::Pressed(ControlIdentity Target, const PlaneExtent& Ext
 
     const bool Over = Hovered(Extent);
 
-    if (Over && Tooltip != nullptr)
-    {
-        Applied.Tooltip       = Tooltip;
-        Applied.TooltipX  = (Extent.MinimumX + Extent.MaximumX) * 0.5f;
-        Applied.TooltipHeight = Extent.MinimumY;
-    }
+    static_cast<void>(Applied);
+
+    if (Tooltip != nullptr)
+        SharedControls.TooltipHint(Target, Extent, TooltipDeclaration{ Tooltip, "" });
 
     if (Over && Sampled.ContactPressed && !Interaction->AnyDisclosed())
         Interaction->Grab(Target, ControlPart::Body);
@@ -1190,23 +1195,9 @@ void ContentBrowserPanel::RecordBrowser(const PlaneExtent& Extent, ContentLibrar
     RecordInspector(Inspector, Library, Applied);
 }
 
-void ContentBrowserPanel::RecordDeferred(ContentBrowserConfiguration& Applied)
+void ContentBrowserPanel::RecordDeferred()
 {
-    if (Surface == nullptr || Applied.Tooltip == nullptr)
-        return;
-
-    // 📐 The tooltip card, above everything the tick recorded, applied at the hovered control's upper edge.
-    const float Span = Surface->MeasureRun(Applied.Tooltip, Measure.RunCaption);
-
-    const PlaneExtent Card = Spanning(Applied.TooltipX - (Span + 16.0f) * 0.5f,
-                                      Applied.TooltipHeight - 30.0f, Span + 16.0f, 24.0f);
-
-    Surface->Ground(Card, Colour.Medallion, Measure.RadiusSoft);
-    Surface->Edge(Card, Colour.Stroke, 1.0f, Measure.RadiusSoft);
-    Surface->TextRun(Card.MinimumX + 8.0f, Card.MinimumY + 6.0f, Colour.Secondary,
-                     Applied.Tooltip, Measure.RunCaption);
-
-    Applied.Tooltip = nullptr;
+    SharedControls.RecordDeferred();
 }
 
 }   // namespace Slate
