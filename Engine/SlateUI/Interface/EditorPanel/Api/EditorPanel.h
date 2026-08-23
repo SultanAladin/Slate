@@ -77,9 +77,9 @@ struct EditorPanelConfiguration
     //    line and dot presentation that used to be literals in RecordGroundGrid; LatticeFollowCamera
     //    snaps the lattice origin to the eye each tick so the artist always has ground under them while
     //    the world axes stay pinned to the origin.
-    double                    LatticeCellMetres = 20.0;                             // [m] - one lattice cell
+    double                    LatticeCellMetres = 1.0;                              // [m] - one lattice cell
     float                     LatticeLineWeight  = 1.0f;                            // [px] - fine line thickness
-    float                     LatticeDotRadius   = 2.2f;                            // [px] - fine dot radius
+    float                     LatticeDotRadius   = 2.0f;                            // [px] - fine dot radius
     bool                      LatticeFollowCamera = true;                            // [-] - snap origin to the eye
 };
 

@@ -91,9 +91,8 @@ Real32 OctaveCoverage(Real32x2 Ground, Real32 Cell, Real32 Weight)
     return max(Along, Cross) * Fade;
 }
 
-/// 🧩 The ground plane at one pixel: the ray/plane intersection, three octaves of
-///    lattice, the two world axes, and the distance haze that replaces the CPU
-///    lattice's hard far edge.
+/// 🧩 The ground plane at one pixel: the ray/plane intersection, major and minor
+///    subdivisions of lattice, the world axes, and the distance haze.
 Real32x4 ResolveGround(Real32x2 Corner)
 {
     const Real32x3 Eye     = Push.EyeAndCell.xyz;
@@ -104,6 +103,8 @@ Real32x4 ResolveGround(Real32x2 Corner)
     const Real32   TanH    = Push.ForwardAndTanH.w;
     const Real32   TanV    = Push.RightAndTanV.w;
     const Real32   Weight  = max(Push.WeightsAndDot.x, 0.25);
+    const Real32   DotRadius = max(Push.WeightsAndDot.y, 0.25);
+    const Real32   MajorStep = max(Push.WeightsAndDot.z, 2.0);
     const Unsigned32 Present = Unsigned32(Push.UpAndPresent.w + 0.5);
 
     // ① The pixel's ray, through the same pinhole the sky mesh uses.
@@ -114,13 +115,9 @@ Real32x4 ResolveGround(Real32x2 Corner)
                                  + Up    * (NdcY * TanV)
                                  + Forward);
 
-    // ② The ground is Y = 0. A ray that does not descend never meets it, so the
-    //    horizon falls out of the arithmetic rather than being a drawn edge.
-    // 🔴 This is what the CPU path could not express: it had a FINITE patch, so
-    //    its far boundary was a visible line that moved with the eye height —
-    //    the reported "the grid tilts when I look up/down" and "Q/E moves the
-    //    grid the opposite way". An infinite plane has no boundary to move.
-    if (Ray.y >= -0.00001 || Eye.y <= 0.0)
+    // ② The ground is Y = 0. A ray meets the plane from above (Eye.y > 0, Ray.y < 0)
+    //    or from below (Eye.y < 0, Ray.y > 0).
+    if (abs(Ray.y) <= 1e-6 || (Eye.y * Ray.y >= 0.0))
         return Real32x4(0.0, 0.0, 0.0, 0.0);
 
     const Real32 Distance = -Eye.y / Ray.y;
@@ -131,29 +128,26 @@ Real32x4 ResolveGround(Real32x2 Corner)
     const Real32x2 Ground = Real32x2(Eye.x + Ray.x * Distance,
                                      Eye.z + Ray.z * Distance);
 
-    // ③ Three octaves, each eight times the last. The fine one carries the
-    //    ground at the artist's feet, the coarse one runs to the horizon, and
-    //    the derivative fade hands over between them without a seam.
+    // ③ Dynamic grid levels: Minor cells, Major cells, and SuperMajor cells.
+    const Real32 MinorCell = Cell;
+    const Real32 MajorCell = Cell * MajorStep;
+    const Real32 SuperCell = MajorCell * MajorStep;
+
     Real32 Coverage = 0.0;
 
     if (Present == 1u || Present == 3u)
     {
-        // 🔴 The octaves run FINER than the declared cell, not coarser. At a 1.5 m
-        //    eye the whole lower screen sees ground inside 25 m — measured, screen
-        //    row 285 of 300 is 2.0 m away — so a finest octave AT the 20 m cell
-        //    puts at most one line in the near field and the artist's feet are
-        //    bare. 1/8 · 1 · 8 covers 2.5 m to 160 m; 1 · 8 · 64 covered 20 m to
-        //    1280 m and left everything near the camera empty.
-        Coverage = max(Coverage, OctaveCoverage(Ground, Cell * 0.125, Weight) * 0.45);
-        Coverage = max(Coverage, OctaveCoverage(Ground, Cell,         Weight) * 0.75);
-        Coverage = max(Coverage, OctaveCoverage(Ground, Cell * 8.0,   Weight) * 1.00);
+        const Real32 MinorCov = OctaveCoverage(Ground, MinorCell, Weight);
+        const Real32 MajorCov = OctaveCoverage(Ground, MajorCell, Weight * 1.35);
+        const Real32 SuperCov = OctaveCoverage(Ground, SuperCell, Weight * 1.70);
+
+        Coverage = max(MinorCov * 0.35, max(MajorCov * 0.75, SuperCov * 1.00));
     }
 
-    // ④ The dotted presentation: a node at each intersection rather than a line.
+    // ④ The dotted presentation: nodes at grid intersections.
     if (Present == 2u || Present == 3u)
     {
-        const Real32 DotRadius = max(Push.WeightsAndDot.y, 0.25);
-        const Real32 Coarse    = Cell * 8.0;
+        const Real32 Coarse    = MajorCell;
         const Real32x2 Scaled  = Ground / Coarse;
         const Real32x2 Span    = Real32x2(fwidth(Scaled.x), fwidth(Scaled.y));
         const Real32x2 Nearest = abs(frac(Scaled - 0.5) - 0.5) / max(Span, Real32x2(1e-6, 1e-6));
@@ -161,7 +155,8 @@ Real32x4 ResolveGround(Real32x2 Corner)
         const Real32   Node    = 1.0 - min(Radial / DotRadius, 1.0);
         const Real32   Fade    = 1.0 - smoothstep(0.25, 0.5, max(Span.x, Span.y));
 
-        Coverage = max(Coverage, Node * Fade);
+        const Real32 DotCov = Node * Fade;
+        Coverage = max(Coverage, DotCov);
     }
 
     // ⑤ The world axes, in their own hues, drawn with exact pixel width.
@@ -180,10 +175,8 @@ Real32x4 ResolveGround(Real32x2 Corner)
     if (Coverage <= 0.0)
         return Real32x4(0.0, 0.0, 0.0, 0.0);
 
-    // ⑥ The distance haze. The lattice is infinite, so without this it would
-    //    alias into a shimmering mat at the horizon; fading it out is what makes
-    //    an infinite plane read as ground rather than as noise.
-    const Real32 Horizon = 1.0 - smoothstep(0.0, 1.0, Distance / (max(Eye.y, 1.0) * 900.0));
+    // ⑥ The distance haze fading to the horizon from above or below.
+    const Real32 Horizon = 1.0 - smoothstep(0.0, 1.0, Distance / (max(abs(Eye.y), 1.0) * 900.0));
 
     return Real32x4(Tone, Coverage * Push.LatticeColour.a * Horizon);
 }

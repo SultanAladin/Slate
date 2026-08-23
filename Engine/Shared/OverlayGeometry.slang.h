@@ -104,9 +104,10 @@ struct OverlayGroundPose
     Real32  UpX = 0.0f, UpY = 1.0f, UpZ = 0.0f;
     Real32  TanHalfH = 1.0f;    // [-] - the frustum's tangents
     Real32  TanHalfV = 0.577f;
-    Real32  Cell = 20.0f;       // [m] - the finest octave's cell
+    Real32  Cell = 1.0f;        // [m] - the minor grid cell
     Real32  LineWeight = 1.0f;  // [px]
-    Real32  DotRadius = 1.5f;   // [px]
+    Real32  DotRadius = 2.0f;   // [px]
+    Real32  Subdivisions = 10.0f; // [-] - major line every N minor cells
     Unsigned32 Presentation = 1u;   // [-] - PanelLatticePresentation
     bool    Standing = false;   // [-] - the leaf draws a ground at all
 };

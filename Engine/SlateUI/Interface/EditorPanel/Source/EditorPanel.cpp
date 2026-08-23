@@ -918,18 +918,18 @@ void EditorPanel::RecordLatticeMenu(std::uint32_t RecordOrdinal,
     };
 
     MagnitudeDeclaration CellDeclaration;
-    CellDeclaration.Caption   = "Cell size";
+    CellDeclaration.Caption   = "Minor cell";
     CellDeclaration.UnitGlyph = "m";
-    CellDeclaration.Minimum   = 0.5;
-    CellDeclaration.Maximum   = 200.0;
-    CellDeclaration.Decimals  = 1u;
+    CellDeclaration.Minimum   = 0.1;
+    CellDeclaration.Maximum   = 100.0;
+    CellDeclaration.Decimals  = 2u;
     SharedControls.MagnitudeRow(Controls[ControlOrdinal(RecordOrdinal, ControlRole::LatticeCell)],
                                 RowAt(106.0f), CellDeclaration,
                                 Configuration.LatticeCellMetres, true);
 
     MagnitudeDeclaration ScaleDeclaration;
     ScaleDeclaration.Caption     = "Scale";
-    ScaleDeclaration.UnitGlyph   = "m";
+    ScaleDeclaration.UnitGlyph   = "x";
     ScaleDeclaration.Minimum= 1.0;
     ScaleDeclaration.Maximum = 10.0;
     double ScaleReading = static_cast<double>(Configuration.LatticeScale);
@@ -938,10 +938,10 @@ void EditorPanel::RecordLatticeMenu(std::uint32_t RecordOrdinal,
     Configuration.LatticeScale = static_cast<std::uint32_t>(std::round(ScaleReading));
 
     MagnitudeDeclaration SubdivisionDeclaration;
-    SubdivisionDeclaration.Caption      = "Subdivisions";
-    SubdivisionDeclaration.UnitGlyph    = "";
-    SubdivisionDeclaration.Minimum = 1.0;
-    SubdivisionDeclaration.Maximum  = 128.0;
+    SubdivisionDeclaration.Caption   = "Major step";
+    SubdivisionDeclaration.UnitGlyph = "";
+    SubdivisionDeclaration.Minimum   = 2.0;
+    SubdivisionDeclaration.Maximum   = 64.0;
     double SubdivisionReading = static_cast<double>(Configuration.Subdivisions);
     SharedControls.MagnitudeRow(Controls[ControlOrdinal(RecordOrdinal, ControlRole::Subdivisions)],
                                 RowAt(194.0f), SubdivisionDeclaration, SubdivisionReading, true);

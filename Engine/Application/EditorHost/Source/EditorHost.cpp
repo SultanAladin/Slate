@@ -848,13 +848,15 @@ int main(int ArgumentCount, char** ArgumentValues)
                                     Pose.TanHalfH = static_cast<float>(std::tan(HalfV) * Aspect);
 
                                     const double DeclaredCell = Declared.LatticeCellMetres > 0.0
-                                                              ? Declared.LatticeCellMetres : 20.0;
+                                                              ? Declared.LatticeCellMetres : 1.0;
                                     Pose.Cell = static_cast<float>(DeclaredCell
                                               * static_cast<double>(Declared.LatticeScale));
 
                                     Pose.Presentation = static_cast<std::uint32_t>(Declared.Lattice);
                                     Pose.LineWeight   = Declared.LatticeLineWeight;
                                     Pose.DotRadius    = Declared.LatticeDotRadius;
+                                    Pose.Subdivisions = Declared.Subdivisions > 0u
+                                                      ? static_cast<float>(Declared.Subdivisions) : 10.0f;
                                 }
 
                                 // 🔴 When the GPU overlay pass could not stand (a build that lowered no
