@@ -857,6 +857,12 @@ int main(int ArgumentCount, char** ArgumentValues)
                                     Pose.DotRadius    = Declared.LatticeDotRadius;
                                     Pose.Subdivisions = Declared.Subdivisions > 0u
                                                       ? static_cast<float>(Declared.Subdivisions) : 10.0f;
+
+                                    std::uint32_t Mask = 0u;
+                                    if (Declared.AxisX) Mask |= 1u;
+                                    if (Declared.AxisY) Mask |= 2u;
+                                    if (Declared.AxisZ) Mask |= 4u;
+                                    Pose.AxisMask = Mask;
                                 }
 
                                 // 🔴 When the GPU overlay pass could not stand (a build that lowered no

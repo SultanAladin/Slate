@@ -105,6 +105,10 @@ Real32x4 ResolveGround(Real32x2 Corner)
     const Real32   Weight    = max(Push.WeightsAndDot.x, 0.25);
     const Real32   DotRadius = max(Push.WeightsAndDot.y, 0.25);
     const Real32   MajorStep = max(Push.WeightsAndDot.z, 2.0);
+    const Unsigned32 AxisMask = Unsigned32(Push.WeightsAndDot.w + 0.5);
+    const bool ShowAxisX = (AxisMask & 1u) != 0u;
+    const bool ShowAxisY = (AxisMask & 2u) != 0u;
+    const bool ShowAxisZ = (AxisMask & 4u) != 0u;
     const Unsigned32 Present = Unsigned32(Push.UpAndPresent.w + 0.5);
 
     // ① The pixel's ray through the pinhole camera.
@@ -171,14 +175,14 @@ Real32x4 ResolveGround(Real32x2 Corner)
             const Real32 AxisZ = 1.0 - min(PixelDistZ / max(Weight * 1.8, 0.5), 1.0);
             const Real32 AxisX = 1.0 - min(PixelDistX / max(Weight * 1.8, 0.5), 1.0);
 
-            if (AxisZ > 0.0)
+            if (ShowAxisZ && AxisZ > 0.0)
             {
                 const Real32x3 BlueAxis = Real32x3(0.24, 0.44, 0.95);
                 FinalTone  = lerp(FinalTone, BlueAxis, AxisZ);
                 FinalAlpha = max(FinalAlpha, AxisZ * 0.95 * Horizon);
             }
 
-            if (AxisX > 0.0)
+            if (ShowAxisX && AxisX > 0.0)
             {
                 const Real32x3 RedAxis  = Real32x3(0.95, 0.24, 0.28);
                 FinalTone  = lerp(FinalTone, RedAxis, AxisX);
@@ -188,27 +192,30 @@ Real32x4 ResolveGround(Real32x2 Corner)
     }
 
     // ③ 3D Vertical Green Y Axis: solved analytically on the GPU.
-    const Real32 RayXZ2 = Ray.x * Ray.x + Ray.z * Ray.z;
-    if (RayXZ2 > 1e-7)
+    if (ShowAxisY)
     {
-        const Real32 TClosest = -(Eye.x * Ray.x + Eye.z * Ray.z) / RayXZ2;
-        if (TClosest > 0.05)
+        const Real32 RayXZ2 = Ray.x * Ray.x + Ray.z * Ray.z;
+        if (RayXZ2 > 1e-7)
         {
-            const Real32 ClosestX = Eye.x + Ray.x * TClosest;
-            const Real32 ClosestZ = Eye.z + Ray.z * TClosest;
-            const Real32 DistPerp = sqrt(ClosestX * ClosestX + ClosestZ * ClosestZ);
-
-            const Real32 PixelWorldSize = TClosest * (2.0 * TanH / max(Push.DisplayWidth, 1.0));
-            const Real32 PixelDist = DistPerp / max(PixelWorldSize, 1e-6);
-
-            Real32 AxisY = 1.0 - min(PixelDist / max(Weight * 1.8, 0.5), 1.0);
-            AxisY *= (1.0 - smoothstep(0.05, 1.0, TClosest / GridRadius));
-
-            if (AxisY > 0.0)
+            const Real32 TClosest = -(Eye.x * Ray.x + Eye.z * Ray.z) / RayXZ2;
+            if (TClosest > 0.05)
             {
-                const Real32x3 GreenAxis = Real32x3(0.19, 0.82, 0.35);
-                FinalTone  = lerp(FinalTone, GreenAxis, AxisY);
-                FinalAlpha = max(FinalAlpha, AxisY * 0.95);
+                const Real32 ClosestX = Eye.x + Ray.x * TClosest;
+                const Real32 ClosestZ = Eye.z + Ray.z * TClosest;
+                const Real32 DistPerp = sqrt(ClosestX * ClosestX + ClosestZ * ClosestZ);
+
+                const Real32 PixelWorldSize = TClosest * (2.0 * TanH / max(Push.DisplayWidth, 1.0));
+                const Real32 PixelDist = DistPerp / max(PixelWorldSize, 1e-6);
+
+                Real32 AxisY = 1.0 - min(PixelDist / max(Weight * 1.8, 0.5), 1.0);
+                AxisY *= (1.0 - smoothstep(0.05, 1.0, TClosest / GridRadius));
+
+                if (AxisY > 0.0)
+                {
+                    const Real32x3 GreenAxis = Real32x3(0.19, 0.82, 0.35);
+                    FinalTone  = lerp(FinalTone, GreenAxis, AxisY);
+                    FinalAlpha = max(FinalAlpha, AxisY * 0.95);
+                }
             }
         }
     }

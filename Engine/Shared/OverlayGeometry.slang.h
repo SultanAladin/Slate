@@ -108,6 +108,7 @@ struct OverlayGroundPose
     Real32  LineWeight = 1.0f;  // [px]
     Real32  DotRadius = 2.0f;   // [px]
     Real32  Subdivisions = 10.0f; // [-] - major line every N minor cells
+    Unsigned32 AxisMask = 7u;   // [-] - bit 0: X, bit 1: Y, bit 2: Z
     Unsigned32 Presentation = 1u;   // [-] - PanelLatticePresentation
     bool    Standing = false;   // [-] - the leaf draws a ground at all
 };

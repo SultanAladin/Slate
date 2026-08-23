@@ -553,7 +553,7 @@ void OverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, std::uint
         Push.WeightsAndDot[0] = OverlayGround.LineWeight;
         Push.WeightsAndDot[1] = OverlayGround.DotRadius;
         Push.WeightsAndDot[2] = OverlayGround.Subdivisions;
-        Push.WeightsAndDot[3] = 0.0f;
+        Push.WeightsAndDot[3] = static_cast<float>(OverlayGround.AxisMask);
 
         Push.LeafRect[0] = ClipX0;
         Push.LeafRect[1] = ClipY0;
