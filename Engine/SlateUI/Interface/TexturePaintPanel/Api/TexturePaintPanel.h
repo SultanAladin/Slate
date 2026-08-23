@@ -89,7 +89,9 @@ struct TexturePaintContext
     //    `PropertyTab` is which properties panel the strip shows — 0 Channels, 1 Mask, 2 Settings
     //    (decal / pattern / generator / the folder's combined stack). Tab toggles the stack page,
     //    then the property tabs the selection offers.
-    std::uint32_t              LayerTaken    = 0u;           // [-] - which row is taken
+    std::uint32_t              LayerTaken    = 0u;           // [-] - primary row
+    bool                       LayerSelected[TextureLayerLimit] = { true }; // [-] - persistent membership
+    std::uint32_t              LayerSelectionAnchor = 0u;     // [-] - visible-range origin
     bool                       MaskTaken     = false;        // [-] - the taken row's mask is taken
     std::uint32_t              StackPage     = 0u;           // [-] - 0 Stack, 1 Properties
     std::uint32_t              PropertyTab   = 0u;           // [-] - 0 Channels, 1 Mask, 2 Settings
@@ -281,7 +283,7 @@ public:
     void Advance(const PointerCondition& Sampled, double Elapsed,
                  TexturePaintContext& Applied,
                  const TextureLayerRow* Rows, std::uint32_t RowCount,
-                 bool TabPressed);
+                 bool TabPressed, const ModifierCondition& Modifiers = {});
 
     /// 🧩 Re-applies every scaled extent after the appearance was resolved against a new display.
     /// cost  ✔️
@@ -449,6 +451,7 @@ private:
     double                      ExportTarget[3] = {};
 
     PointerCondition            Sampled = {};            // [-] - this tick's contact
+    ModifierCondition           Modified = {};           // [-] - Command/Ctrl and Shift selection intent
 
     ControlIdentity HeaderAdd     = {};
     ControlIdentity ToolFolder    = {};

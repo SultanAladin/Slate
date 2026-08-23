@@ -886,7 +886,7 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
         Facets.Advance(Surface.Pointer(), ElapsedMs);
         EditorPanels.Advance(Surface.Pointer(), ElapsedMs);
         ControlCentre.Advance(Surface.Pointer(), ElapsedMs);
-        LayerStack.Advance(Surface.Pointer(), ElapsedMs);
+        LayerStack.Advance(Surface.Pointer(), ElapsedMs, Interface.Modifiers());
         ContentBrowser.Advance(Surface.Pointer(), ElapsedMs);
 
         // 🔴 The layer stack's chords are applied BEFORE anything is arranged, on the same grounds as the

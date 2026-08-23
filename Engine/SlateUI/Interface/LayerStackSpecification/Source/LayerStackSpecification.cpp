@@ -491,6 +491,8 @@ Outcome<bool> ApplyReferenceArrangement(LayerArrangement& Arrangement)
 
     // 📝 The reference applies `sel` on its second outermost entry — Emissive Trim — and unfolds it.
     Arrangement.Taken     = 5u;
+    Arrangement.SelectionAnchor = 5u;
+    Arrangement.Entries[5u].Selected = true;
     Arrangement.TakenHalf = LayerTaken::Layer;
     Arrangement.Entries[5].Unfolded = true;
 

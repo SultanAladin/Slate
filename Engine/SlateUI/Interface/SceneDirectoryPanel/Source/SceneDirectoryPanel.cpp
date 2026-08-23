@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 namespace Slate
@@ -404,9 +405,11 @@ Outcome<bool> SceneDirectoryPanel::ConstructSceneDirectoryPanel(ControlIndex& In
 }
 
 void SceneDirectoryPanel::Advance(const PointerCondition& Contact, double Elapsed,
-                                   SceneDirectoryContext& Applied, bool TabPressed)
+                                   SceneDirectoryContext& Applied, bool TabPressed,
+                                   const ModifierCondition& Modifiers)
 {
     Sampled = Contact;
+    Modified = Modifiers;
     Controls.Advance(Contact, Elapsed);
     // 📝 Sampled, never advanced: the tick owner advances the shared index exactly once, and a
     //    second advance would retire the release before the panel reads it.
@@ -621,14 +624,16 @@ void SceneDirectoryPanel::RecordLeafHeader(const PlaneExtent& Extent, SymbolSubj
 
     const float Run        = Scaled.RunPrimary;
     const float SecondaryRun = Scaled.RunFine;
-    const float PairHeight = Run * RunLeading + SecondaryRun * RunLeading;
+    const bool HasSecondary = Secondary != nullptr && Secondary[0] != '\0';
+    const float PairHeight = HasSecondary ? (Run * RunLeading + SecondaryRun * RunLeading) : Run;
     const float PairLead   = Extent.MinimumY + (Extent.Height() - PairHeight) * 0.5f;
     const float RunLead    = Crest.MaximumX + Pad;
 
     Surface->TextRunTruncated(RunLead, PairLead, Extent.MaximumX - RunLead - Pad,
                               Tinted.Primary, Titled, Run, true);
-    Surface->TextRunTruncated(RunLead, PairLead + Run * RunLeading,
-                              Extent.MaximumX - RunLead - Pad, Hue, Secondary, SecondaryRun, false);
+    if (HasSecondary)
+        Surface->TextRunTruncated(RunLead, PairLead + Run * RunLeading,
+                                  Extent.MaximumX - RunLead - Pad, Hue, Secondary, SecondaryRun, false);
 }
 
 void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirectoryContext& Applied)
@@ -747,37 +752,39 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
           "Location", "Project/Scenes", Applied.TransferLocation, 96u);
     Y += 46.0f;
 
-    const auto OptionRun = [&](const char* Label, const char* const* Options, std::uint32_t Count,
-                               std::uint32_t FirstControl, std::uint32_t& Taken, float CellWidth)
+    // Scale uses the same reusable editable form as Name and Location, with the established
+    // calculator grammar (`10 exp 5`, `10^5`, `3.5*320`) enabled.
     {
-        Surface->TextRun(Extent.MinimumX + Pad, Y + 8.0f, Tinted.Muted, Label, Scaled.RunSecondary);
-        for (std::uint32_t Index = 0u; Index < Count; ++Index)
-        {
-            const PlaneExtent Cell = Spanning(Extent.MinimumX + Pad + 92.0f + Index * (CellWidth + 8.0f),
-                                              Y, CellWidth, 30.0f);
-            const bool On = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
-            ControlIdentity Target = TransferOptions[FirstControl + Index];
-            if (Sampled.ContactPressed && On && !Interaction->AnyDisclosed()) Interaction->Grab(Target, ControlPart::Body);
-            if (On && Interaction->Released(Target)) Taken = Index;
-            Interaction->DeclareHovered(Target, On, HoverOver);
-            const bool Selected = Taken == Index;
-            Surface->Ground(Cell, Selected ? Tinted.RowTaken : (On ? Tinted.TileHovered : Tinted.Tile), 15.0f, CornerAll);
-            Surface->Edge(Cell, Selected ? Tinted.EntityAccent : Tinted.Hairline, 1.0f, 15.0f, CornerAll);
-            Surface->TextRun(Cell.MinimumX + 12.0f, Cell.MinimumY + 7.0f, Tinted.Primary, Options[Index], Scaled.RunFine);
-        }
-        Y += 38.0f;
-    };
+        const PlaneExtent Row = Spanning(Extent.MinimumX + Pad, Y,
+                                         Extent.Width() - Pad * 2.0f, 34.0f);
+        Surface->TextRun(Row.MinimumX, Row.MinimumY + 9.0f, Tinted.Muted,
+                         "Scale", Scaled.RunSecondary);
+        const EditableTextVerdict Verdict = EnvironmentControls.EditableText(
+            TransferFields[3u],
+            Spanning(Row.MinimumX + 84.0f, Row.MinimumY, Row.Width() - 84.0f, 34.0f),
+            EditableTextDeclaration{ "1.0", false, true },
+            Applied.TransferScaleRun, sizeof(Applied.TransferScaleRun));
+        if (Verdict.Accepted)
+            Applied.TransferScale = std::strtod(Applied.TransferScaleRun, nullptr);
+        Y += 42.0f;
+    }
 
-    static const char* const Scales[] = { "0.01", "1.0", "100" };
-    std::uint32_t ScaleTaken = Applied.TransferScale == 0.01 ? 0u : Applied.TransferScale == 100.0 ? 2u : 1u;
-    OptionRun("Scale", Scales, 3u, 0u, ScaleTaken, 72.0f);
-    Applied.TransferScale = ScaleTaken == 0u ? 0.01 : ScaleTaken == 2u ? 100.0 : 1.0;
     static const char* const Forward[] = { "-Z", "+Z", "+X", "-X" };
-    OptionRun("Forward", Forward, 4u, 3u, Applied.TransferForwardAxis, 58.0f);
     static const char* const Up[] = { "+Y", "+Z" };
-    OptionRun("Up axis", Up, 2u, 7u, Applied.TransferUpAxis, 58.0f);
     static const char* const Normals[] = { "Custom", "Calculate", "Face" };
-    OptionRun("Normals", Normals, 3u, 9u, Applied.TransferNormalMode, 86.0f);
+
+    EnvironmentControls.SelectionField(
+        TransferOptions[0u], Spanning(Extent.MinimumX + Pad, Y, Extent.Width() - Pad * 2.0f, 34.0f),
+        SelectionDeclaration{ "Forward", Forward, 4u }, Applied.TransferForwardAxis);
+    Y += 42.0f;
+    EnvironmentControls.SelectionField(
+        TransferOptions[1u], Spanning(Extent.MinimumX + Pad, Y, Extent.Width() - Pad * 2.0f, 34.0f),
+        SelectionDeclaration{ "Up Axis", Up, 2u }, Applied.TransferUpAxis);
+    Y += 42.0f;
+    EnvironmentControls.SelectionField(
+        TransferOptions[2u], Spanning(Extent.MinimumX + Pad, Y, Extent.Width() - Pad * 2.0f, 34.0f),
+        SelectionDeclaration{ "Normals", Normals, 3u }, Applied.TransferNormalMode);
+    Y += 42.0f;
 
     bool* Flags[6] = { &Applied.TransferApplyTransform, &Applied.TransferMaterials,
                        &Applied.TransferAnimation, &Applied.TransferVertexColours,
@@ -826,6 +833,8 @@ bool ParentEntityRows(EntityRow* Rows, std::uint32_t RowCount, SceneDirectoryCon
     EntityRow OldRows[SceneDirectoryContext::EntityLimit] = {};
     bool OldExpanded[SceneDirectoryContext::EntityLimit] = {};
     bool OldPresent[SceneDirectoryContext::EntityLimit] = {};
+    bool OldSelected[SceneDirectoryContext::EntityLimit] = {};
+    const std::uint32_t OldAnchor = Applied.EntitySelectionAnchor;
     std::uint32_t OldDetailBits[SceneDirectoryContext::EntityLimit] = {};
     double OldPosition[SceneDirectoryContext::EntityLimit][3] = {};
     double OldRotation[SceneDirectoryContext::EntityLimit][3] = {};
@@ -836,6 +845,7 @@ bool ParentEntityRows(EntityRow* Rows, std::uint32_t RowCount, SceneDirectoryCon
         OldRows[Index] = Rows[Index];
         OldExpanded[Index] = Applied.EntityExpanded[Index];
         OldPresent[Index] = Applied.EntityPresent[Index];
+        OldSelected[Index] = Applied.EntitySelected[Index];
         OldDetailBits[Index] = Applied.DetailBits[Index];
         for (std::uint32_t Axis = 0u; Axis < 3u; ++Axis)
         {
@@ -875,6 +885,7 @@ bool ParentEntityRows(EntityRow* Rows, std::uint32_t RowCount, SceneDirectoryCon
         return false;
 
     std::uint32_t NewTaken = Applied.EntityTaken;
+    std::uint32_t NewAnchor = Applied.EntitySelectionAnchor;
 
     for (std::uint32_t Index = 0u; Index < RowCount; ++Index)
     {
@@ -885,6 +896,7 @@ bool ParentEntityRows(EntityRow* Rows, std::uint32_t RowCount, SceneDirectoryCon
 
         Applied.EntityExpanded[Index] = OldExpanded[Old];
         Applied.EntityPresent[Index] = OldPresent[Old];
+        Applied.EntitySelected[Index] = OldSelected[Old];
         Applied.DetailBits[Index] = OldDetailBits[Old];
         for (std::uint32_t Axis = 0u; Axis < 3u; ++Axis)
         {
@@ -894,6 +906,8 @@ bool ParentEntityRows(EntityRow* Rows, std::uint32_t RowCount, SceneDirectoryCon
         }
         if (Old == Applied.EntityTaken)
             NewTaken = Index;
+        if (Old == OldAnchor)
+            NewAnchor = Index;
     }
 
     std::uint32_t Ancestors[SceneDirectoryContext::EntityLimit] = {};
@@ -908,6 +922,7 @@ bool ParentEntityRows(EntityRow* Rows, std::uint32_t RowCount, SceneDirectoryCon
             ++Rows[Rows[Index].Enclosing].EnclosedCount;
 
     Applied.EntityTaken = NewTaken;
+    Applied.EntitySelectionAnchor = NewAnchor;
     return true;
 }
 
@@ -979,55 +994,7 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
     const PlaneExtent Header = Spanning(Outlining.MinimumX, Outlining.MinimumY,
                                         Outlining.Width(), Scaled.HeaderHeight);
 
-    RecordLeafHeader(Header, SymbolSubject::GearCog, Tinted.EntityAccent, "Scene Directory",
-                     "Document Directory");
-
-    // 📐 The Inspect call at the header's trailing edge — jumps the leaf to the selected record's
-    //    properties, the same travel Tab performs one step at a time.
-    {
-        const char* Caption = "Inspect";
-        const float Run     = Scaled.RunSecondary;
-        const float PadX    = Scaled.HeaderPadX * 0.8f;
-        const float CallSpan = PadX * 2.0f + Surface->MeasureRun(Caption, Run, 0.0f) + 12.0f;
-
-        const PlaneExtent Call = Spanning(Header.MaximumX - PadX - CallSpan,
-                                          Header.MinimumY + (Header.Height() - 24.0f) * 0.5f,
-                                          CallSpan, 24.0f);
-
-        const bool OnCall = Call.Encloses(Sampled.PositionX, Sampled.PositionY);
-
-        if (Sampled.ContactPressed && OnCall && !Interaction->AnyDisclosed())
-            Interaction->Grab(InspectCall, ControlPart::Body);
-
-        if (OnCall && Interaction->Released(InspectCall))
-            Applied.OutlinePage = 1u;
-
-        Interaction->DeclareHovered(InspectCall, OnCall, HoverOver);
-
-        // 🔴 THIS DID NOT LOOK LIKE A BUTTON. It drew a bare run of text with a ground
-        //    only while hovered, so at rest it was indistinguishable from the header's
-        //    own labels — the artist had no way to know the thing was pressable, which
-        //    is why it read as decoration. It carries a ground, an edge and a chevron
-        //    at rest now, and lifts on hover like every other action in the shell.
-        const float Lit = Interaction->HoveredFraction(InspectCall);
-
-        Surface->Ground(Call, Blend(Tinted.Tile, Tinted.TileHovered, Lit),
-                        Call.Height() * 0.5f, CornerAll);
-        Surface->Edge(Call, Blend(Tinted.Hairline, Tinted.HairlineFirm, Lit), 1.0f,
-                      Call.Height() * 0.5f, CornerAll);
-
-        Surface->TextRun(Call.MinimumX + PadX,
-                         Call.MinimumY + (Call.Height() - Run) * 0.5f,
-                         OnCall ? Tinted.Primary : Tinted.Muted, Caption, Run);
-
-        // 📐 A trailing chevron, so the button states that it travels somewhere.
-        const float Mark = 10.0f;
-
-        Surface->Stroke(SymbolSubject::ChevronRight,
-                        Spanning(Call.MaximumX - PadX - Mark * 0.6f,
-                                 Call.MinimumY + (Call.Height() - Mark) * 0.5f, Mark, Mark),
-                        OnCall ? Tinted.Primary : Tinted.Faint);
-    }
+    RecordLeafHeader(Header, SymbolSubject::GearCog, Tinted.EntityAccent, "Document Directory", "");
 
     // 📐 One footer belongs to the whole Directory destination, not only to its outliner column. The
     //    details pane now terminates above the same band, so the page has a complete baseline before
@@ -1129,58 +1096,65 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
                           std::abs(Sampled.PositionY - Applied.DragOriginY) >= 5.0f;
     Applied.DragDestination = SceneDirectoryContext::EntityLimit;
 
-    for (std::uint32_t Index = 0u; Index < RowCount; ++Index)
+    // 📝 Selection ranges follow the presented tree, not storage ordinals: folded descendants and
+    // filtered-out records do not become selected merely because they stand between the anchor and target.
+    bool Presented[SceneDirectoryContext::EntityLimit] = {};
+    float PresentedFraction[SceneDirectoryContext::EntityLimit] = {};
+    for (std::uint32_t Candidate = 0u; Candidate < RowCount; ++Candidate)
     {
         if (Filtering)
         {
-            if (!RowRetained(Applied, Rows[Index]))
+            PresentedFraction[Candidate] = 1.0f;
+            Presented[Candidate] = RowRetained(Applied, Rows[Candidate]);
+            if (!Presented[Candidate])
             {
-                bool DescendantRetained = false;
-
-                for (std::uint32_t Inward = Index + 1u; Inward < RowCount; ++Inward)
+                for (std::uint32_t Inward = Candidate + 1u; Inward < RowCount; ++Inward)
                 {
-                    if (Rows[Inward].Depth <= Rows[Index].Depth)
+                    if (Rows[Inward].Depth <= Rows[Candidate].Depth)
                         break;
-
                     if (RowRetained(Applied, Rows[Inward]))
                     {
-                        DescendantRetained = true;
+                        Presented[Candidate] = true;
                         break;
                     }
                 }
-
-                if (!DescendantRetained)
-                    continue;
             }
         }
         else
         {
-            // 📐 Walked outward: a row is presented only when every enclosure above it stands disclosed.
-            std::uint32_t Walking = Rows[Index].Enclosing;
-            std::uint32_t Walked  = 0u;
-
+            float Reach = 1.0f;
+            std::uint32_t Walking = Rows[Candidate].Enclosing;
+            std::uint32_t Walked = 0u;
             while (Walking < RowCount && Walked++ <= RowCount)
             {
-                if (!Applied.EntityExpanded[Walking])
-                    break;
-
+                Reach *= Controls.OutlineExpansion(RowDisclosures[Walking],
+                                                   Applied.EntityExpanded[Walking], true);
                 Walking = Rows[Walking].Enclosing;
             }
-
-            if (Walking < RowCount)
-                continue;
+            PresentedFraction[Candidate] = Reach;
+            Presented[Candidate] = Reach > 0.001f;
         }
+    }
+
+    for (std::uint32_t Index = 0u; Index < RowCount; ++Index)
+    {
+        if (!Presented[Index])
+            continue;
 
         const EntityRow&  EntryRow = Rows[Index];
+        const float       Folded   = PresentedFraction[Index];
         const PlaneExtent Row      = Spanning(Body.MinimumX, Sweep, Body.Width(), Scaled.RowHeight);
-
-        Sweep += Scaled.RowHeight;
+        const PlaneExtent RowClip  = Spanning(Body.MinimumX, Sweep, Body.Width(),
+                                              Scaled.RowHeight * Folded);
 
         if (Sweep > Body.MaximumY)
             break;
+        Sweep += RowClip.Height();
 
-        const bool Taken   = Applied.EntityTaken == Index;
-        const bool Hovered = Row.Encloses(Sampled.PositionX, Sampled.PositionY);
+        Surface->Confine(RowClip);
+
+        const bool Taken   = Applied.EntitySelected[Index];
+        const bool Hovered = RowClip.Encloses(Sampled.PositionX, Sampled.PositionY);
         const bool Absent  = !Applied.EntityPresent[Index];
 
         if (Dragging && Hovered && Index != Applied.DragSource)
@@ -1245,7 +1219,35 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
         }
 
         if (Hovered && !OnChevron && !OnPresence && Interaction->Released(RowContacts[Index]))
+        {
+            if (Modified.Shifted && Applied.EntitySelectionAnchor < RowCount)
+            {
+                for (std::uint32_t Candidate = 0u; Candidate < RowCount; ++Candidate)
+                    Applied.EntitySelected[Candidate] = false;
+
+                const std::uint32_t First = Applied.EntitySelectionAnchor < Index
+                                          ? Applied.EntitySelectionAnchor : Index;
+                const std::uint32_t Past  = (Applied.EntitySelectionAnchor > Index
+                                           ? Applied.EntitySelectionAnchor : Index) + 1u;
+                for (std::uint32_t Candidate = First; Candidate < Past; ++Candidate)
+                    if (Presented[Candidate])
+                        Applied.EntitySelected[Candidate] = true;
+            }
+            else if (Modified.Commanded)
+            {
+                Applied.EntitySelected[Index] = !Applied.EntitySelected[Index];
+                Applied.EntitySelectionAnchor = Index;
+            }
+            else
+            {
+                for (std::uint32_t Candidate = 0u; Candidate < RowCount; ++Candidate)
+                    Applied.EntitySelected[Candidate] = Candidate == Index;
+                Applied.EntitySelectionAnchor = Index;
+            }
+
+            // The latest range endpoint remains the primary record shown by Details and Inspect.
             Applied.EntityTaken = Index;
+        }
 
         Interaction->DeclareHovered(RowContacts[Index], Hovered, HoverOver);
 
@@ -1322,6 +1324,8 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
             Surface->Stroke(Absent ? SymbolSubject::EyeClosed : SymbolSubject::EyeOpen, Eye,
                             OnPresence ? Tinted.Primary : Tinted.Faint);
         }
+
+        Surface->Release();
     }
 
     if (Carrying && !Sampled.ContactHeld)
@@ -1392,8 +1396,23 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
     const PlaneExtent DetailsHeader = Spanning(Detailing.MinimumX, Detailing.MinimumY,
                                                Detailing.Width(), Scaled.HeaderHeight);
 
+    // The complete selected-component header is the Inspect action: icon, name and type travel together.
+    const bool OnDetailsHeader = DetailsHeader.Encloses(Sampled.PositionX, Sampled.PositionY);
+    if (Sampled.ContactPressed && OnDetailsHeader && !Interaction->AnyDisclosed())
+        Interaction->Grab(InspectCall, ControlPart::Body);
+    if (OnDetailsHeader && Interaction->Released(InspectCall))
+        Applied.OutlinePage = 1u;
+    Interaction->DeclareHovered(InspectCall, OnDetailsHeader, HoverOver);
+
     RecordLeafHeader(DetailsHeader, EntityGlyph(Current.Subject), Hue,
                      Current.Naming, EntityText(Current.Subject));
+    if (OnDetailsHeader)
+        Surface->Ground(DetailsHeader, Faded(Tinted.TileHovered, 0.18f), 0.0f, CornerNone);
+    Surface->Stroke(SymbolSubject::ChevronRight,
+                    Spanning(DetailsHeader.MaximumX - Scaled.HeaderPadX - 12.0f,
+                             DetailsHeader.MinimumY + (DetailsHeader.Height() - 12.0f) * 0.5f,
+                             12.0f, 12.0f),
+                    OnDetailsHeader ? Tinted.Primary : Tinted.Faint);
 
     const float DetailPad = Scaled.PanePad * 1.5f;
     const PlaneExtent DetailBody = Spanning(Detailing.MinimumX + DetailPad,
@@ -1507,13 +1526,9 @@ void SceneDirectoryPanel::RecordDetailOptions(const PlaneExtent& Extent, SceneDi
         if (OnRow)
             Surface->Ground(Row, Tinted.TileHovered, Scaled.FieldRadius, CornerAll);
 
-        // 🔴 `ChipExtent * 2.5` is 8 * 2.5 = 20 px across and 10 px tall — barely half
-        //    the pill every other switch in the editor draws, so the three Options
-        //    toggles read as dots rather than as switches and did not match the layer
-        //    stack's or the channel card's. The shared pill is 14 px tall at the
-        //    reference's 50:32 ratio, which is what those spend; these spend it too.
-        const float ToggleY = 14.0f;
-        const float ToggleX = ToggleY * (50.0f / 32.0f);
+        // 📐 Match the shared component switch's reference dimensions rather than a reduced mini-pill.
+        const float ToggleY = 32.0f;
+        const float ToggleX = 50.0f;
         const PlaneExtent Switch = Spanning(Row.MaximumX - ToggleX - Scaled.PanePad * 1.5f,
                                             Row.MinimumY + (Row.Height() - ToggleY) * 0.5f,
                                             ToggleX, ToggleY);

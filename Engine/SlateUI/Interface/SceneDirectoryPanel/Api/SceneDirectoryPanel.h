@@ -58,7 +58,9 @@ struct SceneDirectoryContext
     //    never sets it (the validation host) renders no environment anywhere.
     bool                       EnvironmentPresented = false;   // [-] - the sun/sky/atmosphere is presented
     EnvironmentConfiguration   Environment          = {};      // [-] - host-owned; the sliders write it
-    std::uint32_t              EntityTaken = 2u;              // [-] - which outline row is taken (the Sun)
+    std::uint32_t              EntityTaken = 2u;              // [-] - primary outline row (the Sun)
+    bool                       EntitySelected[EntityLimit] = { false, false, true }; // [-] - persistent membership
+    std::uint32_t              EntitySelectionAnchor = 2u;     // [-] - visible-range origin for Shift selection
 
     // 📝 Left-contact parenting. Scene rows do not reorder freely: dropping onto an entity parents to it,
     //    and dropping onto a grouping row adds the carried subtree to that folder.
@@ -89,6 +91,7 @@ struct SceneDirectoryContext
     char                       TransferTags[96] = "scene, dcc";
     char                       TransferLocation[96] = "Project/Scenes";
     double                     TransferScale = 1.0;
+    char                       TransferScaleRun[32] = "1.0"; // [-] - expression-capable authored scale
     std::uint32_t              TransferForwardAxis = 0u;   // [-] - 0 -Z, 1 +Z, 2 +X, 3 -X
     std::uint32_t              TransferUpAxis = 0u;        // [-] - 0 +Y, 1 +Z
     std::uint32_t              TransferNormalMode = 0u;    // [-] - 0 import/export, 1 calculate, 2 face
@@ -204,7 +207,8 @@ public:
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     void Advance(const PointerCondition& Sampled, double Elapsed,
-                 SceneDirectoryContext& Applied, bool TabPressed = false);
+                 SceneDirectoryContext& Applied, bool TabPressed = false,
+                 const ModifierCondition& Modifiers = {});
 
     /// 🧩 Re-applies every scaled extent after the appearance was resolved against a new display extent.
     /// cost  ✔️
@@ -297,6 +301,7 @@ private:
     ComponentSpecification      EnvironmentControls = {};   // [-] - the environment slider rows
 
     PointerCondition            Sampled = {};            // [-] - this tick's contact
+    ModifierCondition           Modified = {};           // [-] - Command/Ctrl and Shift selection intent
 
     ControlIdentity RowContacts[SceneDirectoryContext::EntityLimit]    = {};
     ControlIdentity RowDisclosures[SceneDirectoryContext::EntityLimit] = {};

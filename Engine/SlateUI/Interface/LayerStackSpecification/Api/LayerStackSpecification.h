@@ -175,6 +175,7 @@ struct LayerEntry
     bool           Secured     = false;                  // [-] - lock
     bool           Unfolded    = false;                  // [-] - its own card stands open
     bool           Opened      = true;                   // [-] - a folder presenting what it encloses
+    bool           Selected    = false;                  // [-] - persistent multi-selection membership
     std::uint32_t  Depth       = 0u;                     // [-] - nesting steps from the outermost
     std::uint32_t  Enclosing   = 0xFFFFFFFFu;            // [-] - the folder holding it; absent when outermost
     std::uint32_t  Resolution  = 2048u;                  // [px] - square
@@ -228,7 +229,8 @@ struct LayerArrangement
     PlacementRun   Placements[LayerStackLimit::PlacementRecords];   // [-] - reached by ordinal
     std::uint32_t  PlacementCount = 0u;                               // [-] - how many stand
 
-    std::uint32_t  Taken       = 0u;                      // [-] - which entry the artist has taken
+    std::uint32_t  Taken       = 0u;                      // [-] - primary entry the artist has taken
+    std::uint32_t  SelectionAnchor = 0u;                  // [-] - visible-range origin for Shift selection
     LayerTaken     TakenHalf   = LayerTaken::Layer;       // [-] - which half of it
     std::uint32_t  Soloed      = 0xFFFFFFFFu;             // [-] - absent when nothing is soloed
 };

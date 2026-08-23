@@ -650,6 +650,7 @@ void TexturePaintStack::ApplyRequest(TexturePaintContext& Applied)
         Row.TagHue        = Applied.LayerTagHue[Index];
         Row.PaintHue      = Applied.LayerTagHue[Index];
         Row.Expanded      = Applied.LayerExpanded[Index];
+        Row.Selected      = Applied.LayerSelected[Index];
     }
 
     const std::uint32_t Taken = std::min(Applied.LayerTaken, Count - 1u);
@@ -935,9 +936,12 @@ void TexturePaintStack::ApplyRequest(TexturePaintContext& Applied)
 
     // ③ Re-seed the working copies so every index lines up with the changed row set.
     SeedPaintContextFromRows(Applied, Rows, Count);
+    for (std::uint32_t Index = 0u; Index < TextureLayerLimit; ++Index)
+        Applied.LayerSelected[Index] = Index < Count && Rows[Index].Selected;
 
     if (Applied.LayerTaken >= Count && Count > 0u)
         Applied.LayerTaken = Count - 1u;
+    Applied.LayerSelectionAnchor = Applied.LayerTaken;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -1161,9 +1165,10 @@ std::uint32_t TexturePaintPanel::PropertyTabCount(const TexturePaintContext& App
 void TexturePaintPanel::Advance(const PointerCondition& Contact, double Elapsed,
                                 TexturePaintContext& Applied,
                                 const TextureLayerRow* Rows, std::uint32_t RowCount,
-                                bool TabPressed)
+                                bool TabPressed, const ModifierCondition& Modifiers)
 {
     Sampled = Contact;
+    Modified = Modifiers;
     Controls.Advance(Contact, Elapsed);
     SharedControls.Sample(Contact);
     StackFacets.Advance(Contact, Elapsed);
@@ -2000,7 +2005,7 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
                                        const TextureLayerRow* Rows, std::uint32_t RowCount,
                                        const TextureLayerRow& Current, std::uint32_t Index)
 {
-    const bool Taken   = Applied.LayerTaken == Index && !Applied.MaskTaken;
+    const bool Taken   = Applied.LayerSelected[Index];
     // 🔴 The layer row's own hover excludes the mask strip beneath it: the row's extent carries the
     //    attached mask row too, and a click there must address the MASK, never the layer — the
     //    reported defect where the mask row could not be taken.
@@ -2117,6 +2122,41 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
     if (Hovered && !OnChevron && !OnEye && !OnDetails && !OnMore &&
         Interaction->Released(LayerContacts[Index]))
     {
+        if (Modified.Shifted && Applied.LayerSelectionAnchor < RowCount)
+        {
+            for (std::uint32_t Candidate = 0u; Candidate < RowCount; ++Candidate)
+                Applied.LayerSelected[Candidate] = false;
+
+            const std::uint32_t First = Applied.LayerSelectionAnchor < Index
+                                      ? Applied.LayerSelectionAnchor : Index;
+            const std::uint32_t Past  = (Applied.LayerSelectionAnchor > Index
+                                       ? Applied.LayerSelectionAnchor : Index) + 1u;
+            for (std::uint32_t Candidate = First; Candidate < Past; ++Candidate)
+            {
+                bool Presented = !RetentionActive(Applied) || RowRetained(Applied, Rows[Candidate]);
+                std::uint32_t Parent = Rows[Candidate].Enclosing;
+                std::uint32_t Guard = 0u;
+                while (Presented && Parent < RowCount && Guard++ < TextureLayerLimit)
+                {
+                    Presented = Applied.LayerExpanded[Parent];
+                    Parent = Rows[Parent].Enclosing;
+                }
+                if (Presented)
+                    Applied.LayerSelected[Candidate] = true;
+            }
+        }
+        else if (Modified.Commanded)
+        {
+            Applied.LayerSelected[Index] = !Applied.LayerSelected[Index];
+            Applied.LayerSelectionAnchor = Index;
+        }
+        else
+        {
+            for (std::uint32_t Candidate = 0u; Candidate < RowCount; ++Candidate)
+                Applied.LayerSelected[Candidate] = Candidate == Index;
+            Applied.LayerSelectionAnchor = Index;
+        }
+
         Applied.LayerTaken = Index;
         Applied.MaskTaken  = false;
     }

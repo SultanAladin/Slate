@@ -172,6 +172,8 @@ struct LayerStackContext
     //    nothing to transition from. `CardPending` carries that one-frame stage.
     EasedInterpolant  CardFold[LayerStackLimit::Entries] = {};   // [-] - 0…1, how far each card is open
     EasedInterpolant  MaskFold[LayerStackLimit::Entries] = {};   // [-] - 0…1, its mask card
+    EasedInterpolant  FolderFold[LayerStackLimit::Entries] = {}; // [-] - descendant occupancy by folder
+    bool              FolderFoldsSeeded = false;
     std::uint32_t     CardPending   = LayerStackLimit::AbsentIndex;   // [-] - staged; opens next tick
     bool              PendingOnMask = false;                              // [-] - whether it is the mask
 
@@ -328,7 +330,8 @@ public:
     /// note  ⚠️ Called once per tick, after `ControlIndex::Advance` and before `RecordStack`.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Advance(const PointerCondition& Contact, double Elapsed);
+    void Advance(const PointerCondition& Contact, double Elapsed,
+                 const ModifierCondition& Modifiers = {});
 
     /// 🧩 Applies one arbitrated chord to the arrangement, recording a revision when it amends one.
     /// in    Subject     [-]  which of the closed roster arrived
@@ -555,6 +558,7 @@ private:
     LayerStackColour      Tinted;              // [-] - the applied colours
     LayerStackMetric   Scaled;              // [-] - the applied lengths
     PointerCondition   Sampled = {};        // [-] - this tick's contact, taken at Advance
+    ModifierCondition  Modified = {};       // [-] - Command/Ctrl and Shift selection intent
 
     ControlIdentity    RowCells[RowLimit * CellsPerRow] = {};   // [-] - one per row, one per cell
     ControlIdentity    ChromeCells[ChromeLimit]         = {};   // [-] - the panel's own chrome

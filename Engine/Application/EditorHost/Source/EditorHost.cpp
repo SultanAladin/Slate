@@ -1049,10 +1049,11 @@ int main(int ArgumentCount, char** ArgumentValues)
 
             SceneDirectory.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds,
                                    SceneApplied,
-                                   TabPressed && !PointerInLayers);
+                                   TabPressed && !PointerInLayers,
+                                   Viewport.Seam().Modifiers());
             TexturePaint.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds,
                                TexturePaintApplied, StackRows.Rows, StackRows.Count,
-                               TabPressed && PointerInLayers);
+                               TabPressed && PointerInLayers, Viewport.Seam().Modifiers());
 
             // 📝 The search field: while it holds the contact, the seam's typed run feeds the
             //    directory's retention run, and Backspace / Escape edit it. Gated on the panel's own

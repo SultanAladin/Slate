@@ -120,9 +120,11 @@ Outcome<bool> LayerStackPanel::ConstructLayerStackPanel(ControlIndex& IncomingIn
     return Outcome<bool>::Result(true);
 }
 
-void LayerStackPanel::Advance(const PointerCondition& Contact, double)
+void LayerStackPanel::Advance(const PointerCondition& Contact, double,
+                              const ModifierCondition& Modifiers)
 {
     Sampled = Contact;
+    Modified = Modifiers;
 
     // 🔴 `Sample` and never `Advance`. The component's own `Advance` would advance the SHARED index a
     //    second time, which retires a release before the rows that grabbed on it have observed it.
@@ -2174,12 +2176,43 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
     //    take, on the row body's shared identity — a reduction, not a defect.
     std::uint32_t ShownCount = 0u;
 
+    // Folder disclosure uses the same 280 ms standard accordion curve as cards. Descendant rows remain
+    // recorded while closing so their clipped occupancy can travel all the way back to zero.
+    if (!Applied.FolderFoldsSeeded)
+    {
+        for (std::uint32_t Index = 0u; Index < Arrangement.EntryCount; ++Index)
+            Applied.FolderFold[Index].Place(Arrangement.Entries[Index].Opened ? 1.0 : 0.0);
+        Applied.FolderFoldsSeeded = true;
+    }
+    for (std::uint32_t Index = 0u; Index < Arrangement.EntryCount; ++Index)
+    {
+        if (Arrangement.Entries[Index].Content != LayerContent::Folder)
+            continue;
+        EasedInterpolant& Fold = Applied.FolderFold[Index];
+        const double Heading = Arrangement.Entries[Index].Opened ? 1.0 : 0.0;
+        if (Fold.Incoming != Heading)
+            Fold.Depart(Fold.Current(), Heading, CardOver, 0.0, EaseCurve::Standard);
+        if (!Fold.Settled)
+            Fold.Advance(Elapsed);
+    }
+
     for (std::uint32_t Index = 0u; Index < Arrangement.EntryCount; ++Index)
     {
         // 📐 A retention run opens every folder it reaches into, so it is asked instead of the disclosure.
         const bool Retaining = Applied.Retention[0] != '\0';
-        const bool Shown  = Retaining ? EntryRetained(Arrangement, Index, Applied.Retention)
-                                         : EntryCurrent(Arrangement, Index);
+        float EnclosureOpening = 1.0f;
+        if (!Retaining)
+        {
+            std::uint32_t Parent = Arrangement.Entries[Index].Enclosing;
+            std::uint32_t Guard = 0u;
+            while (Parent < Arrangement.EntryCount && Guard++ < LayerStackLimit::Depth)
+            {
+                EnclosureOpening *= static_cast<float>(Applied.FolderFold[Parent].Current());
+                Parent = Arrangement.Entries[Parent].Enclosing;
+            }
+        }
+        const bool Shown = Retaining ? EntryRetained(Arrangement, Index, Applied.Retention)
+                                     : EnclosureOpening > 0.001f;
 
         if (!Shown)
             continue;
@@ -2193,10 +2226,13 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
 
         const PlaneExtent Row = Spanning(Stack.MinimumX + Scaled.StackPadX + Indent, Y,
                                          RowX - Indent, Scaled.RowHeight);
+        const PlaneExtent RowClip = Spanning(Row.MinimumX, Row.MinimumY, Row.Width(),
+                                             Row.Height() * EnclosureOpening);
 
-        if (!Surface->Excluded(Row))
+        if (!Surface->Excluded(RowClip))
         {
-            const bool Over = Row.Encloses(PointerAt, Pointer) && Stack.Encloses(PointerAt, Pointer);
+            Surface->Confine(RowClip);
+            const bool Over = RowClip.Encloses(PointerAt, Pointer) && Stack.Encloses(PointerAt, Pointer);
 
             if (Over)
             {
@@ -2217,7 +2253,7 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                             : ((Fraction < 0.5f) ? DropIntent::Prior : DropIntent::Trailing);
             }
 
-            const bool TakenRow = Arrangement.Taken == Index && Arrangement.TakenHalf == LayerTaken::Layer;
+            const bool TakenRow = Entry.Selected;
 
             RecordEntryRow(Row, Arrangement, Index, TakenRow, Over);
 
@@ -2289,9 +2325,10 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                     Interaction->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
                 }
             }
+            Surface->Release();
         }
 
-        Y += Scaled.RowHeight + 4.0f;
+        Y += (Scaled.RowHeight + 4.0f) * EnclosureOpening;
 
         // ⓓ `cardHTML(n)` — the unfolded card, which drops down beneath its own row.
         // 🔴 Recorded whenever the fold is OFF ITS SEAT and not merely while the flag stands, so the
@@ -2308,7 +2345,7 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                 const PlaneExtent Measuring = Spanning(Stack.MinimumX + Scaled.StackPadX + Indent,
                                                        Y, RowX - Indent, 0.0f);
                 const float Full = RecordEntryCard(Measuring, Arrangement, Index, Applied, Revisions, false);
-                const float Open = Full * Opening;
+                const float Open = Full * Opening * EnclosureOpening;
 
                 const PlaneExtent Card = Spanning(Stack.MinimumX + Scaled.StackPadX + Indent,
                                                   Y, RowX - Indent, Open);
@@ -2327,7 +2364,7 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                     Surface->Edge(Card, Tinted.Stroke, 1.0f, Scaled.RadiusStandard);
                 }
 
-                Y += Open + 4.0f;
+                Y += Open + 4.0f * EnclosureOpening;
             }
         }
 
@@ -2337,10 +2374,13 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
             const PlaneExtent MaskRow = Spanning(Stack.MinimumX + Scaled.StackPadX + Indent +
                                                  Scaled.MaskLeadX, Y,
                                                  RowX - Indent - Scaled.MaskLeadX, Scaled.MaskRowHeight);
+            const PlaneExtent MaskClip = Spanning(MaskRow.MinimumX, MaskRow.MinimumY, MaskRow.Width(),
+                                                  MaskRow.Height() * EnclosureOpening);
 
-            if (!Surface->Excluded(MaskRow))
+            if (!Surface->Excluded(MaskClip))
             {
-                const bool Over = MaskRow.Encloses(PointerAt, Pointer) && Stack.Encloses(PointerAt, Pointer);
+                Surface->Confine(MaskClip);
+                const bool Over = MaskClip.Encloses(PointerAt, Pointer) && Stack.Encloses(PointerAt, Pointer);
 
                 if (Over)
                 {
@@ -2396,9 +2436,10 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                         Interaction->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
                     }
                 }
+                Surface->Release();
             }
 
-            Y += Scaled.MaskRowHeight + 4.0f;
+            Y += (Scaled.MaskRowHeight + 4.0f) * EnclosureOpening;
 
             // ⓔ `maskCard(n)` — the mask's own card, on the same fold as the entry's.
             const bool  MaskStaged  = (Staging == Index) && Applied.PendingOnMask;
@@ -2411,7 +2452,7 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                 const PlaneExtent Measuring = Spanning(Stack.MinimumX + Scaled.StackPadX + MaskLead,
                                                        Y, RowX - MaskLead, 0.0f);
                 const float Full = RecordMaskCard(Measuring, Arrangement, Index, Applied, Revisions, false);
-                const float Open = Full * MaskOpening;
+                const float Open = Full * MaskOpening * EnclosureOpening;
 
                 const PlaneExtent Card = Spanning(Stack.MinimumX + Scaled.StackPadX + MaskLead,
                                                   Y, RowX - MaskLead, Open);
@@ -2428,7 +2469,7 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                     Surface->Edge(Card, Tinted.Stroke, 1.0f, Scaled.RadiusStandard);
                 }
 
-                Y += Open + 4.0f;
+                Y += Open + 4.0f * EnclosureOpening;
             }
         }
 
@@ -2502,6 +2543,41 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
     {
         Arrangement.Taken     = HoveredIndex;
         Arrangement.TakenHalf = HoveredMask ? LayerTaken::Mask : LayerTaken::Layer;
+
+        if (!HoveredMask)
+        {
+            const bool Retaining = Applied.Retention[0] != '\0';
+            if (Modified.Shifted && Arrangement.SelectionAnchor < Arrangement.EntryCount)
+            {
+                for (std::uint32_t Candidate = 0u; Candidate < Arrangement.EntryCount; ++Candidate)
+                    Arrangement.Entries[Candidate].Selected = false;
+
+                const std::uint32_t First = Arrangement.SelectionAnchor < HoveredIndex
+                                          ? Arrangement.SelectionAnchor : HoveredIndex;
+                const std::uint32_t Past  = (Arrangement.SelectionAnchor > HoveredIndex
+                                           ? Arrangement.SelectionAnchor : HoveredIndex) + 1u;
+                for (std::uint32_t Candidate = First; Candidate < Past; ++Candidate)
+                {
+                    const bool Presented = Retaining
+                        ? EntryRetained(Arrangement, Candidate, Applied.Retention)
+                        : EntryCurrent(Arrangement, Candidate);
+                    if (Presented)
+                        Arrangement.Entries[Candidate].Selected = true;
+                }
+            }
+            else if (Modified.Commanded)
+            {
+                Arrangement.Entries[HoveredIndex].Selected =
+                    !Arrangement.Entries[HoveredIndex].Selected;
+                Arrangement.SelectionAnchor = HoveredIndex;
+            }
+            else
+            {
+                for (std::uint32_t Candidate = 0u; Candidate < Arrangement.EntryCount; ++Candidate)
+                    Arrangement.Entries[Candidate].Selected = Candidate == HoveredIndex;
+                Arrangement.SelectionAnchor = HoveredIndex;
+            }
+        }
 
         // 📐 A secured entry refuses to be carried — `draggable="${n.lock?'false':'true'}"`.
         if (!HoveredMask && !Arrangement.Entries[HoveredIndex].Secured)

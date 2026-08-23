@@ -180,6 +180,7 @@ struct TextureLayerRow
     const char*         Tagged       = "";                     // [-] - borrowed; search tags, space-separated
     bool                Locked       = false;                  // [-] - the row is locked against editing
     const char*         Effects      = "";                     // [-] - borrowed; comma-separated effect names, "" = none
+    bool                Selected     = false;                  // [-] - selection membership carried through moves
 };
 
 //------------------------------------------------------------------------------------------------------------------------

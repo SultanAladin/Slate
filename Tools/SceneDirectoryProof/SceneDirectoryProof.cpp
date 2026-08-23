@@ -56,6 +56,8 @@
 //          Engine/SlateUI/Interface/SymbolSpecification/Source/SymbolSpecification.cpp \
 //          Engine/SlateUI/Interface/TextComponent/Source/FontLoader.cpp \
 //          Engine/SlateScene/Scene/CameraComponent/Source/CameraComponent.cpp \
+//          Engine/SlateScene/Scene/EditorCameraComponent/Source/EditorCameraComponent.cpp \
+//          Engine/SlateScene/Scene/TransformComponent/Source/TransformComponent.cpp \
 //          Engine/Application/EditorHost/Source/SkyImage.cpp \
 //          Engine/SlateCompute/Compute/AtmosphereIntegrator/Source/AtmosphereIntegrator.cpp \
 //          Engine/SlateMath/Numeric/QuadratureIntegrator/Source/QuadratureIntegrator.cpp \
@@ -898,6 +900,18 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
     if (std::strcmp(Scenario, "editor-overview") == 0)
     {
         Driver.ApplyPartition(false);
+        Driver.Settle(20);
+    }
+    else if (std::strcmp(Scenario, "editor-directory-multiselect") == 0)
+    {
+        Driver.ApplyPartition(false);
+        for (std::uint32_t Index = 0u; Index < SceneDirectoryContext::EntityLimit; ++Index)
+            Driver.Applied.EntitySelected[Index] = false;
+        Driver.Applied.EntitySelected[2u] = true;
+        Driver.Applied.EntitySelected[3u] = true;
+        Driver.Applied.EntitySelected[6u] = true;
+        Driver.Applied.EntityTaken = 6u;
+        Driver.Applied.EntitySelectionAnchor = 2u;
         Driver.Settle(20);
     }
     else if (std::strcmp(Scenario, "editor-outliner-inspector") == 0)
@@ -1850,6 +1864,18 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         }
 
         std::fprintf(stderr, "[assert] Layer Stack wheel recovered after Outliner and Viewport travel\n");
+    }
+    else if (std::strcmp(Scenario, "editor-layer-multiselect") == 0)
+    {
+        Driver.Partition.ConstructPanelPartition(PanelSubject::TexturePaint);
+        for (std::uint32_t Index = 0u; Index < TextureLayerLimit; ++Index)
+            Driver.TexturePaintApplied.LayerSelected[Index] = false;
+        Driver.TexturePaintApplied.LayerSelected[1u] = true;
+        Driver.TexturePaintApplied.LayerSelected[2u] = true;
+        Driver.TexturePaintApplied.LayerSelected[4u] = true;
+        Driver.TexturePaintApplied.LayerTaken = 4u;
+        Driver.TexturePaintApplied.LayerSelectionAnchor = 1u;
+        Driver.Settle(20);
     }
     else if (std::strcmp(Scenario, "editor-layerstack") == 0)
     {
@@ -3012,14 +3038,15 @@ int main(int ArgumentCount, char** Arguments)
     IO.Fonts->TexData->SetTexID((ImTextureID)(intptr_t)1);
     IO.Fonts->TexRef._TexData = IO.Fonts->TexData;
 
-    const char* Shots[] = {"editor-overview", "editor-outliner-inspector", "editor-camera-properties",
+    const char* Shots[] = {"editor-overview", "editor-directory-multiselect",
+                           "editor-outliner-inspector", "editor-camera-properties",
                            "editor-camera-bookmarks",
                            "editor-sun-props",
                            "editor-after-drag",
                            "editor-camera-fly", "editor-grid-settings", "editor-overlay-fallback",
                            "editor-search-filter", "editor-grid-dropdown", "editor-scene-transfer", "editor-scene-export",
                            "editor-layer-flatten", "editor-layer-export", "editor-layer-scroll-return",
-                           "editor-layerstack", "editor-layerstack-card"};
+                           "editor-layer-multiselect", "editor-layerstack", "editor-layerstack-card"};
 
     int Rendered = 0;
     for (const char* Shot : Shots)
