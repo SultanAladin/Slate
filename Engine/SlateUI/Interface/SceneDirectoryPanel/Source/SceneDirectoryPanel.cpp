@@ -312,6 +312,10 @@ Outcome<bool> SceneDirectoryPanel::ConstructSceneDirectoryPanel(ControlIndex& In
         &TransferOptions[8], &TransferOptions[9], &TransferOptions[10], &TransferOptions[11],
         &TransferOptions[12], &TransferOptions[13], &TransferOptions[14],
         &TransferOptions[15], &TransferOptions[16], &TransferOptions[17],
+        &TransferCardFolds[0], &TransferCardFolds[1], &TransferCardFolds[2],
+        &TransferCardFolds[3], &TransferCardFolds[4], &TransferCardFolds[5],
+        &TransferCardFields[0], &TransferCardFields[1], &TransferCardFields[2],
+        &TransferCardFields[3], &TransferCardFields[4],
         &BookmarkSave,
         &BookmarkRecall,
         &BookmarkRetire,
@@ -773,42 +777,189 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
     static const char* const Up[] = { "+Y", "+Z" };
     static const char* const Normals[] = { "Custom", "Calculate", "Face" };
 
-    EnvironmentControls.SelectionField(
-        TransferOptions[0u], Spanning(Extent.MinimumX + Pad, Y, Extent.Width() - Pad * 2.0f, 34.0f),
+    // 📐 Every axis field spends the same compact width. The two columns are anchored to opposite
+    // sides of the page, so a wide transfer leaf does not stretch a three-word roster across 1200 px.
+    const float ColumnGap = Pad * 2.0f;
+    const float CompactX = std::min(420.0f, (Extent.Width() - Pad * 2.0f - ColumnGap) * 0.5f);
+    const float LeftX = Extent.MinimumX + Pad;
+    const float RightX = Extent.MaximumX - Pad - CompactX;
+    const PlaneExtent ForwardRow = Spanning(LeftX, Y, CompactX, 34.0f);
+    const PlaneExtent UpRow = Spanning(RightX, Y, CompactX, 34.0f);
+    EnvironmentControls.SelectionField(TransferOptions[0u], ForwardRow,
         SelectionDeclaration{ "Forward", Forward, 4u }, Applied.TransferForwardAxis);
-    Y += 42.0f;
-    EnvironmentControls.SelectionField(
-        TransferOptions[1u], Spanning(Extent.MinimumX + Pad, Y, Extent.Width() - Pad * 2.0f, 34.0f),
+    EnvironmentControls.SelectionField(TransferOptions[1u], UpRow,
         SelectionDeclaration{ "Up Axis", Up, 2u }, Applied.TransferUpAxis);
     Y += 42.0f;
-    EnvironmentControls.SelectionField(
-        TransferOptions[2u], Spanning(Extent.MinimumX + Pad, Y, Extent.Width() - Pad * 2.0f, 34.0f),
-        SelectionDeclaration{ "Normals", Normals, 3u }, Applied.TransferNormalMode);
-    Y += 42.0f;
 
-    bool* Flags[6] = { &Applied.TransferApplyTransform, &Applied.TransferMaterials,
-                       &Applied.TransferAnimation, &Applied.TransferVertexColours,
-                       &Applied.TransferTriangulate, &Applied.TransferCustomProperties };
-    const char* ImportFlagNames[6] = { "Apply transform", "Materials", "Animation", "Vertex colours",
-                                       "Triangulate", "Custom properties" };
-    const char* ExportFlagNames[6] = { "Apply modifiers", "Materials", "Bake animation", "Tangent space",
-                                       "Triangulate", "Custom properties" };
-    const char* const* FlagNames = Applied.TransferMode == 0u ? ImportFlagNames : ExportFlagNames;
-    for (std::uint32_t Index = 0u; Index < 6u; ++Index)
+    const PlaneExtent NormalRow = Spanning(LeftX, Y, CompactX, 34.0f);
+    EnvironmentControls.SelectionField(TransferOptions[2u], NormalRow,
+        SelectionDeclaration{ "Normals", Normals, 3u }, Applied.TransferNormalMode);
+
+    const auto ToggleLine = [&](ControlIdentity Target, const PlaneExtent& Row,
+                                const char* Caption, bool& Reading)
     {
-        const std::uint32_t Column = Index % 3u;
-        const std::uint32_t Row = Index / 3u;
-        const PlaneExtent Cell = Spanning(Extent.MinimumX + Pad + Column * 178.0f,
-                                          Y + Row * 36.0f, 168.0f, 28.0f);
-        const bool On = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
-        ControlIdentity Target = TransferOptions[12u + Index];
-        if (Sampled.ContactPressed && On && !Interaction->AnyDisclosed()) Interaction->Grab(Target, ControlPart::Body);
-        if (On && Interaction->Released(Target)) *Flags[Index] = !*Flags[Index];
+        const bool On = Row.Encloses(Sampled.PositionX, Sampled.PositionY);
+        if (Sampled.ContactPressed && On && !Interaction->AnyDisclosed())
+            Interaction->Grab(Target, ControlPart::Body);
+        if (On && Interaction->Released(Target))
+            Reading = !Reading;
         Interaction->DeclareHovered(Target, On, HoverOver);
-        Surface->Ground(Cell, *Flags[Index] ? Tinted.RowTaken : Tinted.Tile, 14.0f, CornerAll);
-        Surface->Edge(Cell, *Flags[Index] ? Tinted.EntityAccent : Tinted.Hairline, 1.0f, 14.0f, CornerAll);
-        Surface->TextRun(Cell.MinimumX + 12.0f, Cell.MinimumY + 6.0f, Tinted.Primary, FlagNames[Index], Scaled.RunFine);
-    }
+        if (On)
+            Surface->Ground(Row, Tinted.TileHovered, Scaled.FieldRadius, CornerAll);
+        Surface->TextRun(Row.MinimumX + 10.0f,
+                         Row.MinimumY + (Row.Height() - Scaled.RunSecondary) * 0.5f,
+                         On ? Tinted.Primary : Tinted.Muted, Caption, Scaled.RunSecondary);
+        const PlaneExtent Switch = Spanning(Row.MaximumX - 58.0f,
+                                            Row.MinimumY + (Row.Height() - 32.0f) * 0.5f,
+                                            50.0f, 32.0f);
+        EnvironmentControls.SwitchTrack(Target, Switch, Reading,
+                                        Tinted.EntityAccent, Tinted.Hairline, Covering(0xFFFFFFu));
+    };
+
+    ToggleLine(TransferOptions[3u], Spanning(RightX, Y, CompactX, 34.0f),
+               "Triangulate", Applied.TransferTriangulate);
+    Y += 44.0f;
+
+    static const char* const TransformModes[] = { "Bake transform", "Preserve hierarchy", "Geometry only" };
+    static const char* const MaterialModes[] = { "Create materials", "Reuse matching", "Link source" };
+    static const char* const TexturePaths[] = { "Relative paths", "Copy textures", "Embed textures" };
+    static const char* const VertexModes[] = { "Replace", "Multiply", "Ignore" };
+    static const char* const ColourSpaces[] = { "Source", "sRGB", "Linear" };
+    static const char* const PropertyModes[] = { "All properties", "Supported only", "None" };
+    static const char* const AnimationModes[] = { "All animation", "Active action", "Current take" };
+    static const char* const PrimaryAxes[] = { "+Y", "+X", "+Z" };
+    static const char* const SecondaryAxes[] = { "+X", "+Z", "+Y" };
+
+    float ColumnY[2] = { Y, Y };
+    const float CardGap = 8.0f;
+    const float CardX = (Extent.Width() - Pad * 2.0f - CardGap) * 0.5f;
+
+    const auto Card = [&](std::uint32_t Index, std::uint32_t Column, const char* Caption,
+                          float BodyHeight, const auto& RecordBody)
+    {
+        const float X = Extent.MinimumX + Pad + static_cast<float>(Column) * (CardX + CardGap);
+        const float Top = ColumnY[Column];
+        const PlaneExtent Head = Spanning(X, Top, CardX, 34.0f);
+        const bool OnHead = Head.Encloses(Sampled.PositionX, Sampled.PositionY);
+        if (Sampled.ContactPressed && OnHead && !Interaction->AnyDisclosed())
+            Interaction->Grab(TransferCardFolds[Index], ControlPart::Chevron);
+        if (OnHead && Interaction->Released(TransferCardFolds[Index]))
+        {
+            const bool Opening = !Applied.TransferCardExpanded[Index];
+            for (bool& Expanded : Applied.TransferCardExpanded)
+                Expanded = false;
+            Applied.TransferCardExpanded[Index] = Opening;
+        }
+        Interaction->DeclareHovered(TransferCardFolds[Index], OnHead, HoverOver);
+
+        const float Opening = Controls.OutlineExpansion(TransferCardFolds[Index],
+                                                        Applied.TransferCardExpanded[Index], true);
+        const float OpenBody = BodyHeight * Opening;
+        const PlaneExtent Whole = Spanning(X, Top, CardX, Head.Height() + OpenBody);
+        Surface->Ground(Whole, Tinted.Tile, Scaled.CardRadius, CornerAll);
+        Surface->Edge(Whole, OnHead ? Tinted.HairlineFirm : Tinted.Hairline,
+                      1.0f, Scaled.CardRadius, CornerAll);
+        Surface->TextRun(Head.MinimumX + 12.0f,
+                         Head.MinimumY + (Head.Height() - Scaled.RunSecondary) * 0.5f,
+                         OnHead ? Tinted.Primary : Tinted.Muted, Caption, Scaled.RunSecondary, 0.0f, true);
+        Surface->Stroke(Applied.TransferCardExpanded[Index]
+                        ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
+                        Spanning(Head.MaximumX - 24.0f, Head.MinimumY + 9.0f, 14.0f, 14.0f),
+                        OnHead ? Tinted.Primary : Tinted.Faint);
+
+        if (OpenBody > 0.5f)
+        {
+            const PlaneExtent Clip = Spanning(X, Head.MaximumY, CardX, OpenBody);
+            Surface->Confine(Clip);
+            RecordBody(Spanning(X + 10.0f, Head.MaximumY + 6.0f,
+                                CardX - 20.0f, BodyHeight - 10.0f));
+            Surface->Release();
+        }
+        ColumnY[Column] += Head.Height() + OpenBody + CardGap;
+    };
+
+    const auto BodyRow = [](const PlaneExtent& Body, std::uint32_t Index) -> PlaneExtent
+    {
+        return Spanning(Body.MinimumX, Body.MinimumY + static_cast<float>(Index) * 34.0f,
+                        Body.Width(), 32.0f);
+    };
+    const auto CardSelection = [&](ControlIdentity Target, const PlaneExtent& Row,
+                                   const char* Caption, const char* const* Options,
+                                   std::uint32_t OptionCount, std::uint32_t& Taken)
+    {
+        const float Width = std::min(420.0f, Row.Width());
+        EnvironmentControls.SelectionField(Target,
+            Spanning(Row.MinimumX, Row.MinimumY, Width, Row.Height()),
+            SelectionDeclaration{ Caption, Options, OptionCount }, Taken);
+    };
+
+    Card(0u, 0u, Applied.TransferMode == 0u ? "Transform" : "Transform output", 112.0f,
+         [&](const PlaneExtent& Body)
+    {
+        ToggleLine(TransferCardFields[0], BodyRow(Body, 0u),
+                   Applied.TransferMode == 0u ? "Apply transform" : "Apply modifiers",
+                   Applied.TransferApplyTransform);
+        CardSelection(TransferCardFields[1], BodyRow(Body, 1u),
+                      "Mode", TransformModes, 3u, Applied.TransferTransformMode);
+        const float HalfRow = (Body.Width() - 6.0f) * 0.5f;
+        ToggleLine(TransferCardFields[2], Spanning(Body.MinimumX, BodyRow(Body, 2u).MinimumY,
+                                                  HalfRow, 32.0f),
+                   "Apply units", Applied.TransferApplyUnits);
+        ToggleLine(TransferCardFields[3], Spanning(Body.MaximumX - HalfRow, BodyRow(Body, 2u).MinimumY,
+                                                  HalfRow, 32.0f),
+                   "Keep pivots", Applied.TransferPreservePivots);
+    });
+
+    Card(1u, 1u, "Materials", 112.0f, [&](const PlaneExtent& Body)
+    {
+        ToggleLine(TransferCardFields[0], BodyRow(Body, 0u), "Include materials", Applied.TransferMaterials);
+        CardSelection(TransferCardFields[1], BodyRow(Body, 1u),
+                      "Material mode", MaterialModes, 3u, Applied.TransferMaterialMode);
+        CardSelection(TransferCardFields[2], BodyRow(Body, 2u),
+                      "Textures", TexturePaths, 3u, Applied.TransferTexturePathMode);
+    });
+
+    Card(2u, 0u, "Vertex colours", 112.0f, [&](const PlaneExtent& Body)
+    {
+        ToggleLine(TransferCardFields[0], BodyRow(Body, 0u), "Include colours", Applied.TransferVertexColours);
+        CardSelection(TransferCardFields[1], BodyRow(Body, 1u),
+                      "Mode", VertexModes, 3u, Applied.TransferVertexColourMode);
+        CardSelection(TransferCardFields[2], BodyRow(Body, 2u),
+                      "Colour space", ColourSpaces, 3u, Applied.TransferVertexColourSpace);
+    });
+
+    Card(3u, 1u, "Custom properties", 112.0f, [&](const PlaneExtent& Body)
+    {
+        ToggleLine(TransferCardFields[0], BodyRow(Body, 0u),
+                   "Include properties", Applied.TransferCustomProperties);
+        CardSelection(TransferCardFields[1], BodyRow(Body, 1u),
+                      "Properties", PropertyModes, 3u, Applied.TransferCustomPropertyMode);
+        ToggleLine(TransferCardFields[2], BodyRow(Body, 2u),
+                   "Keep namespaces", Applied.TransferPreserveNamespaces);
+    });
+
+    Card(4u, 0u, "Armature", 180.0f, [&](const PlaneExtent& Body)
+    {
+        ToggleLine(TransferCardFields[0], BodyRow(Body, 0u), "Include armature", Applied.TransferArmatures);
+        CardSelection(TransferCardFields[1], BodyRow(Body, 1u),
+                      "Primary axis", PrimaryAxes, 3u, Applied.TransferPrimaryBoneAxis);
+        CardSelection(TransferCardFields[2], BodyRow(Body, 2u),
+                      "Secondary axis", SecondaryAxes, 3u, Applied.TransferSecondaryBoneAxis);
+        ToggleLine(TransferCardFields[3], BodyRow(Body, 3u), "Include leaf bones", Applied.TransferLeafBones);
+        ToggleLine(TransferCardFields[4], BodyRow(Body, 4u), "Deform bones only", Applied.TransferDeformBonesOnly);
+    });
+
+    Card(5u, 1u, Applied.TransferMode == 0u ? "Animation" : "Bake animation", 112.0f,
+         [&](const PlaneExtent& Body)
+    {
+        ToggleLine(TransferCardFields[0], BodyRow(Body, 0u),
+                   Applied.TransferMode == 0u ? "Include animation" : "Bake animation",
+                   Applied.TransferAnimation);
+        CardSelection(TransferCardFields[1], BodyRow(Body, 1u),
+                      "Range", AnimationModes, 3u, Applied.TransferAnimationMode);
+        ToggleLine(TransferCardFields[2], BodyRow(Body, 2u),
+                   "Resample curves", Applied.TransferResampleAnimation);
+    });
 
     EnvironmentControls.RecordDeferred();
 }

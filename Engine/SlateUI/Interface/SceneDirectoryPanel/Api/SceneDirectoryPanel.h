@@ -96,11 +96,28 @@ struct SceneDirectoryContext
     std::uint32_t              TransferUpAxis = 0u;        // [-] - 0 +Y, 1 +Z
     std::uint32_t              TransferNormalMode = 0u;    // [-] - 0 import/export, 1 calculate, 2 face
     bool                       TransferApplyTransform = true;
+    bool                       TransferApplyUnits = true;
+    bool                       TransferPreservePivots = true;
+    std::uint32_t              TransferTransformMode = 0u;       // [-] - bake, preserve, or geometry only
     bool                       TransferMaterials = true;
+    std::uint32_t              TransferMaterialMode = 0u;        // [-] - create, reuse, or link
+    std::uint32_t              TransferTexturePathMode = 0u;     // [-] - relative, copy, or embed
     bool                       TransferAnimation = true;
+    std::uint32_t              TransferAnimationMode = 0u;      // [-] - all, active action, or current take
+    bool                       TransferResampleAnimation = true;
     bool                       TransferVertexColours = true;
+    std::uint32_t              TransferVertexColourMode = 0u;    // [-] - replace, multiply, or ignore
+    std::uint32_t              TransferVertexColourSpace = 0u;   // [-] - source, sRGB, or linear
     bool                       TransferTriangulate = false;
     bool                       TransferCustomProperties = false;
+    std::uint32_t              TransferCustomPropertyMode = 0u;  // [-] - all, supported, or none
+    bool                       TransferPreserveNamespaces = true;
+    bool                       TransferArmatures = true;
+    bool                       TransferLeafBones = false;
+    bool                       TransferDeformBonesOnly = false;
+    std::uint32_t              TransferPrimaryBoneAxis = 0u;     // [-] - Y, X, or Z
+    std::uint32_t              TransferSecondaryBoneAxis = 0u;   // [-] - X, Z, or Y
+    bool                       TransferCardExpanded[6] = {};      // [-] - animated option cards
 
     // 📝 The scene directory's own search and filter, placed between the outliner's header and its
     //    rows. `EntityRetention` is the search run the host feeds through the seam's `AcceptTyped`
@@ -185,7 +202,7 @@ public:
         + 52u                                         // [-] - fixed navigation, fields, folds, and per-card sliders
         + SceneDirectoryContext::CameraBookmarkLimit
         + FacetPanel::FacetCapacity + 2u              // [-] - filter chips, dropdown, and clear
-        + 34u;                                         // [-] - transfer carousel, fields, and DCC options
+        + 45u;                                         // [-] - transfer carousel, fields, and animated option cards
 
     SceneDirectoryPanel()                                   = default;
     SceneDirectoryPanel(const SceneDirectoryPanel&)            = delete;
@@ -319,6 +336,9 @@ private:
     ControlIdentity TransferFormatOptions[10] = {};
     ControlIdentity TransferFields[4] = {};
     ControlIdentity TransferOptions[18] = {};
+    ControlIdentity TransferCardFolds[6] = {};
+    // Only one option card opens at once, so its five visible rows safely share this identity run.
+    ControlIdentity TransferCardFields[5] = {};
     ControlIdentity BookmarkNames[SceneDirectoryContext::CameraBookmarkLimit] = {};
     ControlIdentity BookmarkSave    = {};
     ControlIdentity BookmarkRecall  = {};

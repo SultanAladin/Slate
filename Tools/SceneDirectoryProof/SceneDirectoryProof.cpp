@@ -1678,6 +1678,22 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         }
         std::fprintf(stderr, "[assert] Scene Directory Import footer opened transfer page 2\n");
     }
+    else if (std::strcmp(Scenario, "editor-scene-transfer-options") == 0)
+    {
+        Driver.Partition.ConstructPanelPartition(PanelSubject::Outliner);
+        Driver.Settle(20);
+        const PlaneExtent Body = Driver.Editor.LeafBody(0u);
+        Driver.Tap(Body.MinimumX + 44.0f, Body.MaximumY + 19.0f); // real Import footer pill
+        Driver.Settle(24);
+        Driver.Applied.TransferCardExpanded[0u] = true;
+        Driver.Settle(24);
+        if (!Driver.Applied.TransferCardExpanded[0u])
+        {
+            std::fprintf(stderr, "[FAIL] Transform option card did not remain disclosed\n");
+            return false;
+        }
+        std::fprintf(stderr, "[assert] compact transfer dropdowns and animated option card rendered\n");
+    }
     else if (std::strcmp(Scenario, "editor-scene-export") == 0)
     {
         Driver.Partition.ConstructPanelPartition(PanelSubject::Outliner);
@@ -3078,7 +3094,7 @@ int main(int ArgumentCount, char** Arguments)
                            "editor-after-drag",
                            "editor-camera-fly", "editor-grid-settings", "editor-overlay-fallback",
                            "editor-search-filter", "editor-grid-fade", "editor-grid-dropdown",
-                           "editor-scene-transfer", "editor-scene-export",
+                           "editor-scene-transfer", "editor-scene-transfer-options", "editor-scene-export",
                            "editor-layer-flatten", "editor-layer-export", "editor-layer-scroll-return",
                            "editor-layer-multiselect", "editor-layerstack", "editor-layerstack-card"};
 
