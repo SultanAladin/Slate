@@ -900,11 +900,10 @@ void EditorPanel::RecordLatticeMenu(std::uint32_t RecordIndex,
                           ? DeferredDivider.MaximumX - MenuX
                           : (DesiredMinimum < DeferredDivider.MinimumX)
                           ? DeferredDivider.MinimumX : DesiredMinimum;
-    // 📐 The popup grew four rows (cell size, line weight, dot radius, follow-camera),
-    //    so its box is taller. Each row is a shared MagnitudeRow/ToggleRow — no
-    //    new component. LatticeScale is retained for the skeletal lattice but the
-    //    ground grid reads LatticeCellMetres.
-    const float MenuHeight = 460.0f;
+    // 📐 The finite world extent and camera fade radius are ordinary shared magnitude rows.
+    //    LatticeScale is retained for the skeletal lattice but the analytic ground reads the
+    //    authored metre values directly.
+    const float MenuHeight = 510.0f;
     const PlaneExtent Menu = Spanning(MenuTop,
                                       Anchor.MinimumY - (MenuHeight + 12.0f),
                                       MenuX,
@@ -942,18 +941,20 @@ void EditorPanel::RecordLatticeMenu(std::uint32_t RecordIndex,
     CellDeclaration.Minimum   = 0.1;
     CellDeclaration.Maximum   = 100.0;
     CellDeclaration.Decimals  = 2u;
+    CellDeclaration.Layout    = MagnitudeDeclaration::Arrange::Measured;
     SharedControls.MagnitudeRow(Controls[ResolveControlIndex(RecordIndex, ControlRole::LatticeCell)],
                                 RowAt(106.0f), CellDeclaration,
-                                Configuration.LatticeCellMetres, true);
+                                Configuration.LatticeCellMetres, false);
 
     MagnitudeDeclaration ScaleDeclaration;
     ScaleDeclaration.Caption     = "Scale";
     ScaleDeclaration.UnitGlyph   = "x";
     ScaleDeclaration.Minimum= 1.0;
     ScaleDeclaration.Maximum = 10.0;
+    ScaleDeclaration.Layout  = MagnitudeDeclaration::Arrange::Measured;
     double ScaleReading = static_cast<double>(Configuration.LatticeScale);
     SharedControls.MagnitudeRow(Controls[ResolveControlIndex(RecordIndex, ControlRole::LatticeScale)],
-                                RowAt(150.0f), ScaleDeclaration, ScaleReading, true);
+                                RowAt(150.0f), ScaleDeclaration, ScaleReading, false);
     Configuration.LatticeScale = static_cast<std::uint32_t>(std::round(ScaleReading));
 
     MagnitudeDeclaration SubdivisionDeclaration;
@@ -961,9 +962,10 @@ void EditorPanel::RecordLatticeMenu(std::uint32_t RecordIndex,
     SubdivisionDeclaration.UnitGlyph = "";
     SubdivisionDeclaration.Minimum   = 2.0;
     SubdivisionDeclaration.Maximum   = 64.0;
+    SubdivisionDeclaration.Layout    = MagnitudeDeclaration::Arrange::Measured;
     double SubdivisionReading = static_cast<double>(Configuration.Subdivisions);
     SharedControls.MagnitudeRow(Controls[ResolveControlIndex(RecordIndex, ControlRole::Subdivisions)],
-                                RowAt(194.0f), SubdivisionDeclaration, SubdivisionReading, true);
+                                RowAt(194.0f), SubdivisionDeclaration, SubdivisionReading, false);
     Configuration.Subdivisions = static_cast<std::uint32_t>(std::round(SubdivisionReading));
 
     MagnitudeDeclaration WeightDeclaration;
@@ -972,9 +974,10 @@ void EditorPanel::RecordLatticeMenu(std::uint32_t RecordIndex,
     WeightDeclaration.Minimum   = 0.5;
     WeightDeclaration.Maximum   = 6.0;
     WeightDeclaration.Decimals  = 1u;
+    WeightDeclaration.Layout    = MagnitudeDeclaration::Arrange::Measured;
     double WeightReading = static_cast<double>(Configuration.LatticeLineWeight);
     SharedControls.MagnitudeRow(Controls[ResolveControlIndex(RecordIndex, ControlRole::LatticeLineWeight)],
-                                RowAt(238.0f), WeightDeclaration, WeightReading, true);
+                                RowAt(238.0f), WeightDeclaration, WeightReading, false);
     Configuration.LatticeLineWeight = static_cast<float>(std::max(0.5, WeightReading));
 
     MagnitudeDeclaration DotDeclaration;
@@ -983,16 +986,33 @@ void EditorPanel::RecordLatticeMenu(std::uint32_t RecordIndex,
     DotDeclaration.Minimum   = 1.0;
     DotDeclaration.Maximum   = 12.0;
     DotDeclaration.Decimals  = 1u;
+    DotDeclaration.Layout    = MagnitudeDeclaration::Arrange::Measured;
     double DotReading = static_cast<double>(Configuration.LatticeDotRadius);
     SharedControls.MagnitudeRow(Controls[ResolveControlIndex(RecordIndex, ControlRole::LatticeDotRadius)],
-                                RowAt(282.0f), DotDeclaration, DotReading, true);
+                                RowAt(282.0f), DotDeclaration, DotReading, false);
     Configuration.LatticeDotRadius = static_cast<float>(std::max(1.0, DotReading));
 
-    ToggleDeclaration FollowDeclaration;
-    FollowDeclaration.Caption = "Follow camera";
-    SharedControls.ToggleRow(Controls[ResolveControlIndex(RecordIndex, ControlRole::LatticeFollow)],
-                             RowAt(330.0f), FollowDeclaration,
-                             Configuration.LatticeFollowCamera);
+    MagnitudeDeclaration ExtentDeclaration;
+    ExtentDeclaration.Caption   = "World extent";
+    ExtentDeclaration.UnitGlyph = "m";
+    ExtentDeclaration.Minimum   = 1.0;
+    ExtentDeclaration.Maximum   = 100000.0;
+    ExtentDeclaration.Decimals  = 1u;
+    ExtentDeclaration.Layout    = MagnitudeDeclaration::Arrange::Measured;
+    SharedControls.MagnitudeRow(Controls[ResolveControlIndex(RecordIndex, ControlRole::LatticeExtent)],
+                                RowAt(326.0f), ExtentDeclaration,
+                                Configuration.LatticeExtentMetres, false);
+
+    MagnitudeDeclaration FadeDeclaration;
+    FadeDeclaration.Caption   = "Camera fade";
+    FadeDeclaration.UnitGlyph = "m";
+    FadeDeclaration.Minimum   = 1.0;
+    FadeDeclaration.Maximum   = 100000.0;
+    FadeDeclaration.Decimals  = 1u;
+    FadeDeclaration.Layout    = MagnitudeDeclaration::Arrange::Measured;
+    SharedControls.MagnitudeRow(Controls[ResolveControlIndex(RecordIndex, ControlRole::LatticeFadeRadius)],
+                                RowAt(370.0f), FadeDeclaration,
+                                Configuration.LatticeFadeRadiusMetres, false);
 
     ToggleDeclaration AxisDeclarations[3];
     AxisDeclarations[0].Caption = "X axis";
@@ -1004,7 +1024,7 @@ void EditorPanel::RecordLatticeMenu(std::uint32_t RecordIndex,
     {
         SharedControls.ToggleRow(Controls[ResolveControlIndex(RecordIndex, AxisRoles[Index])],
                                  Spanning(Menu.MinimumX + 20.0f + static_cast<float>(Index) * 106.0f,
-                                          Menu.MinimumY + 376.0f,
+                                          Menu.MinimumY + 424.0f,
                                           96.0f,
                                           44.0f),
                                  AxisDeclarations[Index],

@@ -81,15 +81,14 @@ struct EditorPanelConfiguration
     bool                      FpsOverlay      = false;                              // [-] - FPS overlay requested
     bool                      StorageOverlay  = false;                              // [-] - storage overlay requested
     bool                      RendererOverlay = false;                              // [-] - renderer overlay requested
-    // 📝 The extended lattice surface the footer popup edits. Cell metres folds the old skeletal
-    //    LatticeScale into the one value the ground lattice reads; the weights and radius carry the
-    //    line and dot presentation that used to be literals in RecordGroundGrid; LatticeFollowCamera
-    //    snaps the lattice origin to the eye each tick so the artist always has ground under them while
-    //    the world axes stay pinned to the origin.
+    // 📝 The extended lattice surface the footer popup edits. Extent limits the grid around world
+    //    centre; fade radius independently limits what remains sharp around the moving camera. The
+    //    fragment stage combines both, so the analytic grid remains finite without CPU tessellation.
     double                    LatticeCellMetres = 1.0;                              // [m] - one lattice cell
     float                     LatticeLineWeight  = 1.0f;                            // [px] - fine line thickness
     float                     LatticeDotRadius   = 2.0f;                            // [px] - fine dot radius
-    bool                      LatticeFollowCamera = true;                            // [-] - snap origin to the eye
+    double                    LatticeExtentMetres = 100.0;                          // [m] - radius from world centre
+    double                    LatticeFadeRadiusMetres = 40.0;                       // [m] - sharp-to-absent camera radius
     EditorFooterDemand        FooterDemand = EditorFooterDemand::None;               // [-] - one-tick panel action
 };
 
@@ -200,7 +199,8 @@ private:
         LatticeCell,
         LatticeLineWeight,
         LatticeDotRadius,
-        LatticeFollow,
+        LatticeExtent,
+        LatticeFadeRadius,
         AxisX,
         AxisY,
         AxisZ,

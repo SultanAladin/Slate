@@ -1,8 +1,9 @@
 //============================================================================================================================================
-//                                                         VIEWPORTSKYSURFACE.H
+//                                                         ATMOSPHEREPRESENTATIONSURFACE.H
 //============================================================================================================================================
-// 🧩 A persistent device-local dynamic sky surface. Compute writes it in the frame command stream and the
-//    interface samples it later in that same stream: no CPU dome, staging copy, queue submit or fence wait.
+// 🧩 A persistent device-local atmosphere radiance presentation. Compute writes it in the frame command
+//    stream and the interface samples it later in that stream: no viewport ownership, CPU dome, staging
+//    copy, queue submit, or fence wait.
 
 #pragma once
 
@@ -37,7 +38,7 @@ struct DynamicSkyParameters
     float CameraAltitudeKilometres = 0.0015f;
 };
 
-class ViewportSkySurface
+class AtmospherePresentationSurface
 {
 public:
     // A direction-indexed radiance surface, independent of viewport extent. It is deliberately far smaller
@@ -45,14 +46,14 @@ public:
     static constexpr std::uint32_t SkyWidth  = 1024u;
     static constexpr std::uint32_t SkyHeight = 512u;
 
-    ViewportSkySurface() = default;
-    ViewportSkySurface(const ViewportSkySurface&) = delete;
-    ViewportSkySurface& operator=(const ViewportSkySurface&) = delete;
-    ~ViewportSkySurface();
+    AtmospherePresentationSurface() = default;
+    AtmospherePresentationSurface(const AtmospherePresentationSurface&) = delete;
+    AtmospherePresentationSurface& operator=(const AtmospherePresentationSurface&) = delete;
+    ~AtmospherePresentationSurface();
 
-    Outcome<bool> ConstructSkySurface(const VulkanExchange& Exchange,
-                                      const DiagnosticExtension& Naming,
-                                      ShaderCodec& Streams);
+    Outcome<bool> ConstructAtmosphereSurface(const VulkanExchange& Exchange,
+                                             const DiagnosticExtension& Naming,
+                                             ShaderCodec& Streams);
 
     /// Records a compute refresh only when Dirty is true. The surface is transitioned back to sampled layout
     /// before the interface records its image mesh.

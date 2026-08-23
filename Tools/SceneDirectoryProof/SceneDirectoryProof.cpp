@@ -995,11 +995,11 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
 
             if (std::abs(NdcX0 + 1.0f) > 0.001f || std::abs(NdcXMid) > 0.001f ||
                 std::abs(NdcX1 - 1.0f) > 0.001f ||
-                std::abs(NdcY0 - 1.0f) > 0.001f || std::abs(NdcYMid) > 0.001f ||
-                std::abs(NdcY1 + 1.0f) > 0.001f)
+                std::abs(NdcY0 + 1.0f) > 0.001f || std::abs(NdcYMid) > 0.001f ||
+                std::abs(NdcY1 - 1.0f) > 0.001f)
             {
                 std::fprintf(stderr, "[FAIL] the overlay NDC transform does not match the "
-                                     "interface's convention (top must be +1)\n");
+                                     "Vulkan viewport convention (top must be -1)\n");
                 return false;
             }
         }
@@ -1601,6 +1601,39 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
             }
         }
     }
+    else if (std::strcmp(Scenario, "editor-grid-fade") == 0)
+    {
+        Driver.Partition.ConstructPanelPartition(PanelSubject::Viewport);
+        Driver.Configuration.LatticeExtentMetres = 100.0;
+        Driver.Configuration.LatticeFadeRadiusMetres = 40.0;
+        Driver.Settle(20);
+        const PlaneExtent Body = Driver.Editor.LeafBody(0u);
+        Driver.Tap(Body.MinimumX + 36.0f, Body.MaximumY + 19.0f); // real Grid footer pill
+        Driver.Settle(8);
+        if (!Driver.Editor.AnyPopupStanding())
+        {
+            std::fprintf(stderr, "[FAIL] Grid footer did not open finite-grid settings\n");
+            return false;
+        }
+        const auto FadeAt = [](double Distance, double Begin, double End) -> double
+        {
+            if (Distance <= Begin) return 1.0;
+            if (Distance >= End) return 0.0;
+            const double T = (Distance - Begin) / (End - Begin);
+            return 1.0 - T * T * (3.0 - 2.0 * T);
+        };
+        const double Extent = Driver.Configuration.LatticeExtentMetres;
+        const double Radius = Driver.Configuration.LatticeFadeRadiusMetres;
+        if (FadeAt(0.0, Extent * 0.82, Extent) != 1.0 ||
+            FadeAt(Extent, Extent * 0.82, Extent) != 0.0 ||
+            FadeAt(Radius, Radius * 0.62, Radius) != 0.0)
+        {
+            std::fprintf(stderr, "[FAIL] finite-grid fade endpoints are not sharp/absent\n");
+            return false;
+        }
+        std::fprintf(stderr, "[assert] finite grid extent=%.1fm camera fade=%.1fm\n",
+                     Extent, Radius);
+    }
     else if (std::strcmp(Scenario, "editor-grid-dropdown") == 0)
     {
         Driver.Partition.ConstructPanelPartition(PanelSubject::Viewport);
@@ -1608,7 +1641,7 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         const PlaneExtent Body = Driver.Editor.LeafBody(0u);
         Driver.Tap(Body.MinimumX + 36.0f, Body.MaximumY + 19.0f); // Grid pill
         Driver.Settle(4);
-        const float MenuTop = Body.MaximumY - 472.0f;
+        const float MenuTop = Body.MaximumY - 522.0f;
         Driver.Tap(Body.MinimumX + 280.0f, MenuTop + 76.0f); // real Grid Type selection field
         Driver.Settle(4);
         if (!Driver.Editor.AnyPopupStanding())
@@ -3044,7 +3077,8 @@ int main(int ArgumentCount, char** Arguments)
                            "editor-sun-props",
                            "editor-after-drag",
                            "editor-camera-fly", "editor-grid-settings", "editor-overlay-fallback",
-                           "editor-search-filter", "editor-grid-dropdown", "editor-scene-transfer", "editor-scene-export",
+                           "editor-search-filter", "editor-grid-fade", "editor-grid-dropdown",
+                           "editor-scene-transfer", "editor-scene-export",
                            "editor-layer-flatten", "editor-layer-export", "editor-layer-scroll-return",
                            "editor-layer-multiselect", "editor-layerstack", "editor-layerstack-card"};
 

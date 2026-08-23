@@ -94,7 +94,7 @@ SLATE_SHARED Unsigned32 PackOverlayColour(Unsigned32 Red, Unsigned32 Green,
 /// 🧩 The camera pose the analytic ground reads — mode 3 of the overlay pass.
 /// note  📐 This is what replaced 1828 lines of CPU line-marching: the host hands
 ///        over ONE pose per leaf and the fragment stage solves the plane per
-///        pixel. There is no segment budget to exhaust and no extent to end.
+///        pixel. There is no segment budget to exhaust; an authored radial fade bounds presentation.
 /// tag   guarantee, nonallocating, nonthrowing
 struct OverlayGroundPose
 {
@@ -108,6 +108,8 @@ struct OverlayGroundPose
     Real32  LineWeight = 1.0f;  // [px]
     Real32  DotRadius = 2.0f;   // [px]
     Real32  Subdivisions = 10.0f; // [-] - major line every N minor cells
+    Real32  ExtentMetres = 100.0f; // [m] - finite radius around world centre
+    Real32  FadeRadiusMetres = 40.0f; // [m] - camera-relative sharp-to-absent radius
     Unsigned32 AxisMask = 7u;   // [-] - bit 0: X, bit 1: Y, bit 2: Z
     Unsigned32 Presentation = 1u;   // [-] - PanelLatticePresentation
     bool    Standing = false;   // [-] - the leaf draws a ground at all

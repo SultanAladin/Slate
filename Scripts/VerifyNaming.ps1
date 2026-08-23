@@ -9,11 +9,22 @@ $Retired = @('Ceiling', 'Ordinal', 'Choice', 'Boundary', 'Region',
 $VendorBindingTokens = @('VkDescriptorSetLayoutBinding', 'pBindings', 'dstBinding')
 $Failures = [System.Collections.Generic.List[string]]::new()
 
+# Windows PowerShell 5.1 runs on .NET Framework, where Path.GetRelativePath does not exist.
+# Resolve once and use a guarded substring so the same script works under powershell.exe and pwsh.
+$RepositoryPrefix = [System.IO.Path]::GetFullPath($RepositoryRoot).TrimEnd([char[]]@('\', '/')) + [System.IO.Path]::DirectorySeparatorChar
+function Get-RepositoryRelativePath([string]$Path) {
+    $FullPath = [System.IO.Path]::GetFullPath($Path)
+    if (-not $FullPath.StartsWith($RepositoryPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "path is outside the repository: $FullPath"
+    }
+    return $FullPath.Substring($RepositoryPrefix.Length).Replace('\', '/')
+}
+
 Get-ChildItem $EngineRoot -File -Recurse |
     Where-Object { $Extensions -contains $_.Extension } |
     ForEach-Object {
         $Path = $_.FullName
-        $Relative = [System.IO.Path]::GetRelativePath($RepositoryRoot, $Path).Replace('\', '/')
+        $Relative = Get-RepositoryRelativePath $Path
         $LineNumber = 0
         Get-Content $Path | ForEach-Object {
             $LineNumber++
@@ -36,7 +47,7 @@ Get-ChildItem $EngineRoot -File -Recurse |
 Get-ChildItem $EngineRoot -Recurse | ForEach-Object {
     foreach ($Word in $Retired) {
         if ($_.Name.Contains($Word)) {
-            $Relative = [System.IO.Path]::GetRelativePath($RepositoryRoot, $_.FullName).Replace('\', '/')
+            $Relative = Get-RepositoryRelativePath $_.FullName
             $Failures.Add("${Relative}: $Word in path")
         }
     }

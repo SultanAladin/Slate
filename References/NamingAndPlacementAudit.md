@@ -218,7 +218,7 @@ Do not replace `Construct` with a new generic synonym such as `Initialize`, `Set
 
 | Current owner | Suggested method |
 |---|---|
-| `ViewportSkySurface::Construct` | `ConstructSkySurface` |
+| `AtmospherePresentationSurface::Construct` | `ConstructAtmosphereSurface` |
 | `SpanSpace::Construct` | `ConstructSpanSpace` |
 | `ShaderCodec::Construct` | `AttachShaderStreams` |
 | `ProgramIndex::Construct` | `ConstructProgramIndex` |

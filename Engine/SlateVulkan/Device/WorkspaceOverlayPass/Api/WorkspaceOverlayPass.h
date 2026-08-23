@@ -17,7 +17,7 @@
 //    The pass records INSIDE the host's dynamic-rendering scope, after the
 //    interface: the host calls `Record` between `BeginRendering` and `Complete`.
 //    It is self-contained — its own pipeline, layout, descriptor set and buffer —
-//    following `ViewportSkySurface`'s precedent of owning its objects directly.
+//    following `AtmospherePresentationSurface`'s precedent of owning its objects directly.
 
 #pragma once
 

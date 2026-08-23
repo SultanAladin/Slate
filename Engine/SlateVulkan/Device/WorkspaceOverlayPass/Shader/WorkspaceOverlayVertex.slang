@@ -71,7 +71,7 @@ struct OverlayPushConstant
     Unsigned32 Kind;       // [-] - 0 lines, 1 dots, 2 triangles, 3 the analytic ground
     Real32     DisplayWidth;   // [px]
     Real32     DisplayHeight;  // [px]
-    Real32     Padding;        // [-] - 16-byte alignment
+    Real32     FadeRadiusMetres; // [m] - ground visibility radius around the camera
 
     // 📐 GROUND-GRID KIND — THE ANALYTIC GROUND. Everything the fragment stage needs to
     //    solve the ground plane per pixel: the eye, the camera basis, the
@@ -82,14 +82,14 @@ struct OverlayPushConstant
     //    polyline buffer, an off-screen cull, a 1024-segment ceiling and a finite
     //    extent whose edge moved with the eye — nineteen RED markers over 1828
     //    lines, every one of them a consequence of tessellating a plane on a CPU.
-    //    Solved per pixel there is no tessellation, no budget and no extent, so
-    //    none of those questions exist to be answered wrongly.
+    //    Solved per pixel there is no tessellation or segment budget. Its authored
+    //    world extent and camera fade are analytic coverage, never generated geometry.
     Real32x4   EyeAndCell;       // [-] - xyz the eye in metres, w the base cell
     Real32x4   ForwardAndTanH;   // [-] - xyz the view direction, w tan(halfH)
     Real32x4   RightAndTanV;     // [-] - xyz the right axis,     w tan(halfV)
     Real32x4   UpAndPresent;     // [-] - xyz the up axis,        w presentation
-    Real32x4   LatticeColour;    // [-] - straight alpha, the fine line's tone
-    Real32x4   WeightsAndDot;    // [-] - x line weight, y dot radius, zw spare
+    Real32x4   LatticeColour;    // [-] - rgb fine-line tone, w finite world extent in metres
+    Real32x4   WeightsAndDot;    // [-] - x line weight, y dot radius, z major step, w axis mask
     Real32x4   LeafRect;         // [px] - x minX, y minY, z maxX, w maxY
 };
 

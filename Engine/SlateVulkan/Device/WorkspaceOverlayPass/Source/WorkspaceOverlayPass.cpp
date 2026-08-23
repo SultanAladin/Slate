@@ -517,7 +517,7 @@ void WorkspaceOverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, 
         std::uint32_t Kind;
         float         DisplayWidth;
         float         DisplayHeight;
-        float         Padding;
+        float         FadeRadiusMetres;
 
         float EyeAndCell[4]     = {};
         float ForwardAndTanH[4] = {};
@@ -535,8 +535,11 @@ void WorkspaceOverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, 
     //    be laid down before the gizmo and the axes that stand on it.
     if (OverlayGround.Standing)
     {
+        // The spare scalar and lattice-alpha lane carry the two finite-grid distances without
+        // increasing Vulkan's guaranteed-minimum 128-byte push-constant footprint.
         PushBlock Push = { KindValue(WorkspaceOverlayKind::GroundGrid),
-                           static_cast<float>(Width), static_cast<float>(Height), 0.0f };
+                           static_cast<float>(Width), static_cast<float>(Height),
+                           OverlayGround.FadeRadiusMetres };
 
         Push.EyeAndCell[0] = OverlayGround.EyeX;
         Push.EyeAndCell[1] = OverlayGround.EyeY;
@@ -562,7 +565,7 @@ void WorkspaceOverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, 
         Push.LatticeColour[0] = 0.60f;
         Push.LatticeColour[1] = 0.65f;
         Push.LatticeColour[2] = 0.72f;
-        Push.LatticeColour[3] = 0.55f;
+        Push.LatticeColour[3] = OverlayGround.ExtentMetres;
 
         Push.WeightsAndDot[0] = OverlayGround.LineWeight;
         Push.WeightsAndDot[1] = OverlayGround.DotRadius;

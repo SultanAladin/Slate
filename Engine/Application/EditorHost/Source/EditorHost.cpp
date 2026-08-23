@@ -32,7 +32,7 @@
 #include "SlateVulkan/Device/HostLifecycle/Api/HostLifecycle.h"
 #include "SlateVulkan/Device/WorkspaceOverlayPass/Api/WorkspaceOverlayPass.h"
 #include "SlateVulkan/Device/ShaderCodec/Api/ShaderCodec.h"
-#include "SlateVulkan/Device/ViewportSkySurface/Api/ViewportSkySurface.h"
+#include "SlateVulkan/Device/AtmospherePresentationSurface/Api/AtmospherePresentationSurface.h"
 
 #include <algorithm>
 #include <cmath>
@@ -261,7 +261,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     TexturePaintPanel        TexturePaint;
     TexturePaintContext     TexturePaintApplied;
     TexturePaintStack        StackRows;                 // [-] - the mutable row set; the panel borrows it
-    ViewportSkySurface       SkySurface;
+    AtmospherePresentationSurface AtmosphereSurface;
     AtmosphereComponent       DynamicAtmosphere;
     DirectionalLightComponent SunLight;
     EditorCameraComponent     EditorCamera;
@@ -527,17 +527,19 @@ int main(int ArgumentCount, char** ArgumentValues)
 
     if (CodecOutcome.Resolved)
     {
-        const Outcome<bool> SkyOutcome = SkySurface.ConstructSkySurface(
+        const Outcome<bool> AtmosphereOutcome = AtmosphereSurface.ConstructAtmosphereSurface(
             Lifetime.DeviceExchange(), Lifetime.DiagnosticsExtension(), OverlayCodec);
-        if (SkyOutcome.Resolved)
+        if (AtmosphereOutcome.Resolved)
         {
-            SkyTextureIdentity = Viewport.Surface().RegisterSampledImage(SkySurface.Sampler(), SkySurface.View());
+            SkyTextureIdentity = Viewport.Surface().RegisterSampledImage(
+                AtmosphereSurface.Sampler(), AtmosphereSurface.View());
             SkyRegistered = SkyTextureIdentity != 0u;
         }
         else
         {
-            std::printf("%s \u2014 the GPU atmosphere pass was rejected (reason %u: %s)\n", HostName,
-                        static_cast<unsigned>(SkyOutcome.Error.DeclaredReason), SkyOutcome.Error.Detail);
+            std::printf("%s \u2014 the GPU atmosphere presentation was rejected (reason %u: %s)\n", HostName,
+                        static_cast<unsigned>(AtmosphereOutcome.Error.DeclaredReason),
+                        AtmosphereOutcome.Error.Detail);
         }
     }
 
@@ -629,7 +631,7 @@ int main(int ArgumentCount, char** ArgumentValues)
         if (Pass.DeviceRetiring)
         {
             Viewport.Reclaim();
-            SkySurface.Reclaim();
+            AtmosphereSurface.Reclaim();
             SkyRegistered = false;
             SkyTextureIdentity = 0u;
             Overlay.Reclaim();
@@ -655,10 +657,11 @@ int main(int ArgumentCount, char** ArgumentValues)
             // Reattach streams first because both passes resolve their modules from that index.
             if (OverlayCodec.AttachShaderStreams(Lifetime.DeviceExchange(), ShaderStreamDirectory()).Resolved)
             {
-                if (SkySurface.ConstructSkySurface(Lifetime.DeviceExchange(), Lifetime.DiagnosticsExtension(),
+                if (AtmosphereSurface.ConstructAtmosphereSurface(Lifetime.DeviceExchange(), Lifetime.DiagnosticsExtension(),
                                                    OverlayCodec).Resolved)
                 {
-                    SkyTextureIdentity = Viewport.Surface().RegisterSampledImage(SkySurface.Sampler(), SkySurface.View());
+                    SkyTextureIdentity = Viewport.Surface().RegisterSampledImage(
+                        AtmosphereSurface.Sampler(), AtmosphereSurface.View());
                     SkyRegistered = SkyTextureIdentity != 0u;
                     SkyEverGenerated = false;
                 }
@@ -904,6 +907,10 @@ int main(int ArgumentCount, char** ArgumentValues)
                                     Pose.DotRadius    = Declared.LatticeDotRadius;
                                     Pose.Subdivisions = Declared.Subdivisions > 0u
                                                       ? static_cast<float>(Declared.Subdivisions) : 10.0f;
+                                    Pose.ExtentMetres = static_cast<float>(
+                                        std::max(Declared.LatticeExtentMetres, DeclaredCell));
+                                    Pose.FadeRadiusMetres = static_cast<float>(
+                                        std::max(Declared.LatticeFadeRadiusMetres, DeclaredCell));
 
                                     std::uint32_t Mask = 0u;
                                     if (Declared.AxisX) Mask |= 1u;
@@ -1169,7 +1176,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                 GPU.CameraAltitudeKilometres = static_cast<float>(Authored.CameraAltitudeKilometres);
 
                 const bool Refresh = !SkyEverGenerated || Dirty != AtmosphereDirty::None;
-                if (SkySurface.Record(Pass.Recording, GPU, Refresh).Resolved)
+                if (AtmosphereSurface.Record(Pass.Recording, GPU, Refresh).Resolved)
                     SkyEverGenerated = true;
                 SceneApplied.SkyTextureIdentity = SkyTextureIdentity;
             }
@@ -1343,10 +1350,10 @@ int main(int ArgumentCount, char** ArgumentValues)
     Workspaces.Reset();
     Viewport.Reclaim();
 
-    // 🔴 The sky surface is reclaimed BEFORE the device: its fence wait needs the device alive, and a
-    //    surface left standing past `Lifetime.Reclaim()` waited on a dead device in its destructor —
+    // 🔴 The atmosphere presentation is reclaimed BEFORE the device: its fence wait needs the device alive,
+    //    and a surface left standing past `Lifetime.Reclaim()` waited on a dead device in its destructor —
     //    the "vkWaitForFences: Invalid device" reported at shutdown.
-    SkySurface.Reclaim();
+    AtmosphereSurface.Reclaim();
     SkyRegistered = false;
     SkyTextureIdentity = 0u;
     Overlay.Reclaim();

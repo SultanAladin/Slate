@@ -1,8 +1,8 @@
 //============================================================================================================================================
-//                                                        VIEWPORTSKYSURFACE.CPP
+//                                                        ATMOSPHEREPRESENTATIONSURFACE.CPP
 //============================================================================================================================================
 
-#include "SlateVulkan/Device/ViewportSkySurface/Api/ViewportSkySurface.h"
+#include "SlateVulkan/Device/AtmospherePresentationSurface/Api/AtmospherePresentationSurface.h"
 
 namespace Slate
 {
@@ -24,11 +24,11 @@ std::uint32_t FindMemory(const VulkanExchange& Exchange, std::uint32_t Allowed, 
 }
 }
 
-ViewportSkySurface::~ViewportSkySurface() { Reclaim(); }
+AtmospherePresentationSurface::~AtmospherePresentationSurface() { Reclaim(); }
 
-Outcome<bool> ViewportSkySurface::ConstructSkySurface(const VulkanExchange& Exchange,
-                                                       const DiagnosticExtension& Naming,
-                                                       ShaderCodec& Streams)
+Outcome<bool> AtmospherePresentationSurface::ConstructAtmosphereSurface(const VulkanExchange& Exchange,
+                                                                         const DiagnosticExtension& Naming,
+                                                                         ShaderCodec& Streams)
 {
     if (DeviceEdge != nullptr)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a dynamic sky already stands" });
@@ -212,7 +212,7 @@ Outcome<bool> ViewportSkySurface::ConstructSkySurface(const VulkanExchange& Exch
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> ViewportSkySurface::Record(VkCommandBuffer Command,
+Outcome<bool> AtmospherePresentationSurface::Record(VkCommandBuffer Command,
                                          const DynamicSkyParameters& Parameters, bool Dirty)
 {
     if (!Standing() || Command == VK_NULL_HANDLE)
@@ -257,7 +257,7 @@ Outcome<bool> ViewportSkySurface::Record(VkCommandBuffer Command,
     return Outcome<bool>::Result(true);
 }
 
-void ViewportSkySurface::Reclaim()
+void AtmospherePresentationSurface::Reclaim()
 {
     if (DeviceEdge != nullptr && DeviceEdge->ActiveDevice() != VK_NULL_HANDLE)
     {

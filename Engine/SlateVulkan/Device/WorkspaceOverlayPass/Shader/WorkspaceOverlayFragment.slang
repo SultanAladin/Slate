@@ -34,7 +34,7 @@ struct OverlayPushConstant
     Unsigned32 Kind;
     Real32     DisplayWidth;
     Real32     DisplayHeight;
-    Real32     Padding;
+    Real32     FadeRadiusMetres;
 
     Real32x4   EyeAndCell;
     Real32x4   ForwardAndTanH;
@@ -124,7 +124,11 @@ Real32x4 ResolveGround(Real32x2 Corner)
                                  + Up    * (NdcY * TanV)
                                  + Forward);
 
-    const Real32 GridRadius = max(abs(Eye.y), 1.0) * 350.0;
+    // 📐 Two independent authored limits: one bounds the lattice around world centre, the other
+    //    follows the camera and softens nearby detail into nothing at its radius.
+    const Real32 WorldExtent = max(Push.LatticeColour.a, Cell);
+    const Real32 FadeRadius  = max(Push.FadeRadiusMetres, Cell);
+    const Real32 LatticeAlpha = 0.55;
 
     Real32x3 FinalTone  = Push.LatticeColour.rgb;
     Real32   FinalAlpha = 0.0;
@@ -168,8 +172,14 @@ Real32x4 ResolveGround(Real32x2 Corner)
                 GridCoverage = max(GridCoverage, Node);
             }
 
-            const Real32 Horizon = 1.0 - smoothstep(0.05, 1.0, Distance / GridRadius);
-            FinalAlpha = GridCoverage * Push.LatticeColour.a * Horizon;
+            const Real32 FromWorldCentre = length(Ground);
+            const Real32 FromCamera = length(Ground - Eye.xz);
+            const Real32 CentreFade = 1.0 - smoothstep(WorldExtent * 0.82, WorldExtent,
+                                                       FromWorldCentre);
+            const Real32 CameraFade = 1.0 - smoothstep(FadeRadius * 0.62, FadeRadius,
+                                                       FromCamera);
+            const Real32 SpatialFade = CentreFade * CameraFade;
+            FinalAlpha = GridCoverage * LatticeAlpha * SpatialFade;
 
             // World axes on ground plane: Red for X (Z=0), Blue for Z (X=0)
             const Real32 SpanX = fwidth(Ground.x);
@@ -184,14 +194,14 @@ Real32x4 ResolveGround(Real32x2 Corner)
             {
                 const Real32x3 BlueAxis = Real32x3(0.24, 0.44, 0.95);
                 FinalTone  = lerp(FinalTone, BlueAxis, AxisZ);
-                FinalAlpha = max(FinalAlpha, AxisZ * 0.95 * Horizon);
+                FinalAlpha = max(FinalAlpha, AxisZ * 0.95 * SpatialFade);
             }
 
             if (ShowAxisX && AxisX > 0.0)
             {
                 const Real32x3 RedAxis  = Real32x3(0.95, 0.24, 0.28);
                 FinalTone  = lerp(FinalTone, RedAxis, AxisX);
-                FinalAlpha = max(FinalAlpha, AxisX * 0.95 * Horizon);
+                FinalAlpha = max(FinalAlpha, AxisX * 0.95 * SpatialFade);
             }
         }
     }
@@ -213,7 +223,12 @@ Real32x4 ResolveGround(Real32x2 Corner)
                 const Real32 PixelDist = DistPerp / max(PixelWorldSize, 1e-6);
 
                 Real32 AxisY = 1.0 - min(PixelDist / max(Weight * 1.8, 0.5), 1.0);
-                AxisY *= (1.0 - smoothstep(0.05, 1.0, TClosest / GridRadius));
+                const Real32 ClosestY = Eye.y + Ray.y * TClosest;
+                const Real32 CentreFadeY = 1.0 - smoothstep(WorldExtent * 0.82, WorldExtent,
+                                                            abs(ClosestY));
+                const Real32 CameraFadeY = 1.0 - smoothstep(FadeRadius * 0.62, FadeRadius,
+                                                            TClosest);
+                AxisY *= CentreFadeY * CameraFadeY;
 
                 if (AxisY > 0.0)
                 {

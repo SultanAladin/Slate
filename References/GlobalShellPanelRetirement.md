@@ -17,7 +17,7 @@ This plan records the retirement only. No `GlobalShellPanel` source is removed d
 | Texture-paint rows, masks, properties, and menus | `TexturePaintPanel` |
 | Reusable leaf chrome, split, and withdrawal | `EditorPanel` and planned reusable chrome declarations |
 | Workspace windows and tabs | `WorkspacePanel` and `WorkspaceIndex` |
-| Real viewport content and overlays | Editor viewport leaf, `ViewportSkySurface`, and `OverlayPass` |
+| Real viewport content and overlays | Editor viewport leaf, `AtmospherePresentationSurface`, and `OverlayPass` |
 
 The retirement must not copy `GlobalShellPanel` into either replacement. Approved behaviour is re-expressed through
 the runtime panels' own guarantees, host-owned data, reusable controls, and request slots.

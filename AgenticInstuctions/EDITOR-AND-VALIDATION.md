@@ -64,7 +64,7 @@ prototype of the WHOLE reference sheet                    the real editor layout
 | Workspace windows, tabs, dock | `WorkspacePanel`, `WorkspaceIndex` |
 | Split/resize/withdraw chrome | `EditorPanel`, `PanelStructure`, `LeafPanel` |
 | Editor leaf content (sky, outliner, properties) | `SceneDirectoryPanel` |
-| Sky GPU texture (upload, device rebuild) | `ViewportSkySurface` |
+| Sky GPU texture (upload, device rebuild) | `AtmospherePresentationSurface` |
 | Sky evaluation (dome + sun disc) | `GenerateSkyImage` (`Application/EditorHost`) |
 | Camera pose and movement | Base `CameraComponent` (`Application/CameraComponent`), editor identity `EditorCameraComponent`; input via `InterfaceExchange::CameraInput` |
 | Validation prototype shell | `GlobalShellPanel` — validation host only |
