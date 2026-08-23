@@ -131,6 +131,15 @@ public:
     /// tag   api, nonallocating, nonthrowing
     void Retint(const ThemeSelection& Selected);
 
+    /// 🧩 Applies the artist's interface-scale preference to every later appearance resolution.
+    /// in    Percentage  [%]  clamped to the same 75–200 range as AppearanceSpecification
+    /// out   Altered     [-]  true only when the effective scale changed
+    /// note  The display scale remains independent: high-DPI scaling and the artist preference multiply once.
+    /// post  Appearance() immediately reports the newly scaled metrics
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    bool ApplyInterfaceScale(std::uint32_t Percentage);
+
     /// 🧩 Declares the per-role typeface weights every later resolution folds into the appearance.
     /// in    Weights  [-]  the eight `ControlCentreConfiguration::TypographyWeight` figures — Title, Header,
     ///                     Subheader, Body, Label, Caption, Warning, Alert, as `FontWeight` values
@@ -187,8 +196,9 @@ private:
 
     InterfaceExchange        Interface         = {};   // [-] - the interface context and ImGui
     MotionIntegrator         Motion            = {};   // [-] - spring physics
-    ThemeProfile  Resolved          = {};   // [-] - colours and metrics at the display scale
+    ThemeProfile  Resolved          = {};   // [-] - colours and metrics at the display and artist scales
     ThemeSelection           Chosen            = {};   // [-] - the theme every resolve is anchored onto
+    double                   InterfaceScale    = 1.0;  // [-] - artist preference, independent of display DPI
     std::uint32_t RoleWeights[8] = {600u, 600u, 500u, 400u, 500u, 400u, 500u, 600u};   // [-] - the FontProfile defaults
     DrawerSpace              DrawersOwned      = {};   // [-] - the two drawers
     RedrawScheduler          MarksOwned        = {};   // [-] - per-panel redraw marks

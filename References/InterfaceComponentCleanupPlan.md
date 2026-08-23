@@ -4,7 +4,7 @@
 
 Make SlateUI a composition of small mechanisms and domain panels rather than a set of deep panel hierarchies that each redraw the same controls. A component receives caller-owned state, interaction identity, geometry, and theme roles; it reports user intent. Domain panels decide what the intent means.
 
-This is a plan. Apart from the validation-host cleanup and retirement of its dead shell prototype, it does not yet migrate the standing editor or paint interfaces.
+This is the migration plan and progress record. The validation-host cleanup and dead-prototype retirement are complete. The first preference increment is also implemented: Control Centre UI Scaling now drives `ViewportSequence` and the resolved appearance in EditorHost and PaintHost. Dropdown, tree, SVG generation, and typed antialiasing migrations remain planned.
 
 ## Cleanup completed before this plan
 
@@ -164,6 +164,112 @@ Several panels then add their own popup and filtering variants.
 `ThemeProfile` is already the intended source, but large panels still contain local colour structures, copied metrics, and static pixel values. `ContentBrowserMetric`, `LayerStackMetric`, and `ShellMetric` overlap with global layout roles, while some panels copy theme colours through `Reapply` and others retain a borrowed `ThemeProfile`.
 
 The result is not one reliable theme per component; it is a mixture of borrowed roles, copied roles, and private constants.
+
+## UI scale, antialiasing, and vector symbols
+
+### UI scale
+
+Display DPI and artist-selected UI scale are separate inputs and multiply exactly once. The Control Centre's `UI Scaling` value must drive the resolved `ThemeProfile`; it must not remain a decorative percentage.
+
+Rules:
+
+- accepted artist range is 75–200%;
+- every component metric, corner, icon extent, hit target, spacing, and text size derives from the resolved appearance;
+- no panel reads the Control Centre configuration directly;
+- panels that cache derived metrics must expose one explicit theme/metric reseat until those caches are removed;
+- changing UI scale must not change document coordinates, viewport camera units, texture resolution, or render resolution;
+- display DPI changes and artist scale changes use the same appearance-resolution path;
+- Interface Validation needs 75%, 100%, 150%, and 200% layout proofs at narrow and wide extents.
+
+The first implementation increment connects this preference through `ViewportSequence`; later cleanup removes local fixed pixels that still prevent complete scaling.
+
+### Antialiasing
+
+The existing Control Centre `Antialiasing` value is currently presentation-only and its page labels it as font antialiasing. It must be replaced by typed preferences with clear scopes:
+
+1. **Interface geometry antialiasing** — lines and filled vector geometry recorded by the interface backend.
+2. **Font rasterisation** — font atlas sampling/rasterisation profile; changing it triggers an atlas rebuild between frames.
+3. **Viewport antialiasing** — TSAA/MSAA/postprocess policy owned by the renderer, not SlateUI.
+4. **SVG tessellation quality** — curve flattening tolerance for generated or runtime vector geometry.
+
+Do not use one integer named `Antialiasing` to control all four. The Control Centre may present them together, but each writes a typed preference to its owning subsystem. `None` must remain an explicit accessibility/performance choice, while the normal interface default uses antialiased lines and fills.
+
+### SVG symbol library
+
+`References/Icons.svg` is currently an HTML/JavaScript icon gallery that emits 36 standalone 120×120 SVGs; it is not yet a directly consumable SVG sprite. `EngineContent/GraphicArchives` contains separate crest SVG assets. External-package SVGs are examples/vendor assets and must never be imported into Slate's symbol roster accidentally.
+
+The SVG sources should be authoritative and generated C++ should be derived output:
+
+```text
+authored SVG packs + symbol manifest
+                ↓
+      build-time SVG normaliser
+                ↓
+ validated paths, transforms, paint layers, view boxes
+                ↓
+ generated C++ vector archive + diagnostics
+                ↓
+ SymbolSpecification lookup
+                ↓
+ RecordingSurface vector draw
+```
+
+#### Pack organisation
+
+Keep one stable semantic `SymbolSubject` roster and organise authored artwork into packs rather than separate widget APIs:
+
+- General and workspace;
+- Navigation;
+- CAD and drafting;
+- Geometry and topology;
+- Sculpting;
+- Texturing and materials;
+- Lighting and rendering;
+- Animation and rigging;
+- Physics and simulation;
+- Audio and measurement;
+- Layer/composition operations.
+
+A subject has one semantic identity regardless of pack file, theme, or where it is drawn. Panels request `FolderClosed`, `RigidCollide`, or `ConstraintDimension`; they never request a filename or icon-set brand.
+
+#### Appearance variants
+
+Each symbol may provide named paint layers rather than three unrelated drawings:
+
+- **Monotone** maps every visible layer to the requested foreground role;
+- **Duotone** maps primary and secondary layers to two theme roles and retains declared opacity;
+- **Coloured** maps semantic layers to theme-controlled colour roles, never hard-coded product colours unless the artwork explicitly requires them.
+
+Stroke weight and nominal icon size are independent preferences. The generator preserves stroke/fill intent, joins, caps, fill rule, and view box, then normalises geometry into the engine's canonical coordinate space.
+
+#### Conversion tool
+
+Add a deterministic build tool, not hand transcription:
+
+- accept individual SVG files or extracted gallery entries;
+- reject scripts, external URLs, text, filters, unsupported masks, and unbounded recursion;
+- expand transforms and `<use>` references;
+- support path, line, polyline, polygon, circle, ellipse, and rounded rectangle primitives;
+- preserve primary/secondary/semantic layer names from the manifest;
+- flatten cubic/quadratic curves at a declared quality tolerance;
+- emit generated C++ arrays, source hashes, bounds, and diagnostics;
+- produce identical output on Windows and Linux;
+- never rewrite the authored SVG;
+- fail naming verification when two subjects or pack entries collide.
+
+The generated archive should be split by pack so changing one CAD icon does not rebuild all interface artwork. A small index maps `SymbolSubject` to pack and generated entry.
+
+#### Placeholder policy
+
+Missing artwork must not silently draw a generic image glyph. During migration:
+
+- explicitly declared temporary SVG artwork may render and is reported as temporary in the manifest;
+- a subject with no SVG entry renders nothing in release builds and a diagnostic missing-symbol box only in validation/debug builds;
+- call sites must not request `PlaceholderMark` as ordinary decoration;
+- remove the current fallback substitution only after the manifest identifies every standing call site, so deleting a fallback cannot silently erase a required action;
+- Interface Validation presents missing, monotone, duotone, coloured, disabled, hovered, and selected states.
+
+This policy removes fake completeness while keeping missing artwork observable during development.
 
 ## Target component architecture
 
@@ -344,7 +450,15 @@ Do not seed full content-browser libraries, full texture stacks, full scene dire
 - Add interaction assertions for selection, rename, disclosure, drag, outside-click dismissal, Escape, and interrupted carousel travel.
 - Record current control-capacity and motion-capacity demand per panel.
 
-### Phase 2 — dropdown and tooltip consolidation
+### Phase 2 — scale and preference plumbing
+
+- Connect UI Scaling to `ViewportSequence` and the resolved appearance.
+- Inventory and remove local unscaled pixels panel by panel.
+- Split interface geometry, font, viewport, and SVG antialiasing preferences.
+- Route each typed preference to its owning subsystem.
+- Add scale and antialiasing validation matrices.
+
+### Phase 3 — dropdown and tooltip consolidation
 
 - Introduce the shared Dropdown with marked-selection and plain-filter modes.
 - Match the existing Selection Field shape and colours.
@@ -353,7 +467,7 @@ Do not seed full content-browser libraries, full texture stacks, full scene dire
 - Replace local panel tooltip drawing with the existing shared Tooltip.
 - Delete `DropdownCard` only after no call site remains.
 
-### Phase 3 — sliding pages
+### Phase 4 — sliding pages
 
 - Introduce `SlidingPages` with deterministic geometry tests.
 - Migrate the smallest two-page inspector sample first.
@@ -361,20 +475,29 @@ Do not seed full content-browser libraries, full texture stacks, full scene dire
 - Migrate Control Centre page travel and its specialised rails last.
 - Remove private previous/current/direction/motion implementations after each owner is migrated.
 
-### Phase 4 — shared selection and tree mechanics
+### Phase 5 — shared selection and tree mechanics
 
 - Extract stable row IDs, `SelectionSet`, visible-tree traversal, and disclosure occupancy.
 - Migrate Scene Directory using `SceneTreePolicy` without changing its parenting-only drag rule.
 - Migrate Texture Paint using `TextureStackPolicy` without weakening compositing-order and mask rules.
 
-### Phase 5 — history separation
+### Phase 6 — history separation
 
 - Separate `RevisionList` presentation from `RevisionSequence` storage.
 - Keep domain-specific undo state outside UI panels.
 - Remove stale Scene Directory revision remnants.
 - Reuse one revision row/card visual implementation where history is actually required.
 
-### Phase 6 — split giant files by responsibility
+### Phase 7 — SVG symbol generation
+
+- Extract the 36 authored gallery entries into deterministic standalone SVG sources and a semantic manifest.
+- Implement the normaliser and generated pack output with source hashes and diagnostics.
+- Add monotone first, then duotone and coloured layer mapping.
+- Migrate standing symbol call sites pack by pack.
+- Remove ordinary `PlaceholderMark` requests and then disable fallback substitution.
+- Connect icon appearance, weight, size, and SVG tessellation quality to typed preferences.
+
+### Phase 8 — split giant files by responsibility
 
 Priority sources currently exceeding roughly 2,000 lines:
 
@@ -384,7 +507,7 @@ Priority sources currently exceeding roughly 2,000 lines:
 
 Split by coherent responsibility after shared mechanisms exist. Do not merely move identical private code into several new files.
 
-### Phase 7 — theme normalization and dead-code sweep
+### Phase 9 — theme normalization and dead-code sweep
 
 - Move remaining local colours and metrics into semantic theme roles.
 - Remove obsolete copied structs and `Reapply` paths.

@@ -1234,6 +1234,19 @@ int main(int ArgumentCount, char** ArgumentValues)
             Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
             Discard(ControlCentre.Record(ControlInterior, ControlCentreValues));
 
+            // UI Scaling was previously only a displayed Control Centre value. It now re-resolves the shared
+            // appearance, while display DPI remains an independent multiplier. Panels that cache derived
+            // metrics are explicitly reseated; borrowed-theme panels observe the same profile immediately.
+            if (Viewport.ApplyInterfaceScale(ControlCentreValues.Scaling))
+            {
+                Discard(Viewport.Seam().ApplyWorkspaceStyle(
+                    Viewport.Appearance().WorkspaceMeasure,
+                    Viewport.Appearance().Workspace));
+                ContentBrowser.Reapply(Viewport.Appearance());
+                SceneDirectory.Reapply(Viewport.Appearance());
+                TexturePaint.Reapply(Viewport.Appearance());
+            }
+
             // 📝 Compared rather than watched. The Control Centre writes the artist's choice straight into the
             //    ordinates, so the change is visible here as a difference and needs no callback to report it.
             {

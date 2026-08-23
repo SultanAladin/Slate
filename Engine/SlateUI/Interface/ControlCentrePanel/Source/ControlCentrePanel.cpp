@@ -733,7 +733,7 @@ void ControlCentrePanel::DisplayHardwarePage(const PlaneExtent& Extent, ControlC
                          Configuration.Resolution == Index ? White : Theme.Secondary, Res[Index], 13.0f);
         if (Pressed(60u + Index, Button)) Configuration.Resolution = Index;
     }
-    Slider(63u, Spanning(Card.MinimumX + 28.0f, Card.MinimumY + 165.0f, Card.Width() - 56.0f, 24.0f), 100u,
+    Slider(63u, Spanning(Card.MinimumX + 28.0f, Card.MinimumY + 165.0f, Card.Width() - 56.0f, 24.0f), 75u,
            200u, Configuration.Scaling, "%", Theme.Edge, Accent);
     const char* Rates[3] = {"60Hz", "120Hz", "144Hz"};
     const char* Modes[3] = {"Mirror", "Extend", "Second Only"};

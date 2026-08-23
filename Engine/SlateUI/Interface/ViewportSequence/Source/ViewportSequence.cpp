@@ -24,7 +24,7 @@ Outcome<bool> ViewportSequence::ConstructViewportSequence(const InterfaceAttachm
 
     NorthDeclared = North;
     SouthDeclared = South;
-    Resolved      = ResolveTinted(1.0, 1.0, 0.0f, Chosen);
+    Resolved      = ResolveTinted(1.0, InterfaceScale, 0.0f, Chosen);
     RestateTypography(Resolved);
 
     return Outcome<bool>::Result(true);
@@ -55,7 +55,7 @@ Outcome<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
 
     // ③ Resolve the appearance against the arrived display scale.
     const DisplayCondition& Display = SurfaceOwned.Display();
-    Resolved = ResolveTinted(static_cast<double>(Display.DisplayScale), 1.0, 0.0f, Chosen);
+    Resolved = ResolveTinted(static_cast<double>(Display.DisplayScale), InterfaceScale, 0.0f, Chosen);
     RestateTypography(Resolved);
 
     // ④ Construct the drawers on the first tick, when the display extent is known.
@@ -225,10 +225,26 @@ void ViewportSequence::Retint(const ThemeSelection& Selected)
     // 🔴 Re-resolved here and not left for the next tick. A host reseats its panels from Appearance() on the
     //    line after it retints, and those panels COPY the colours — so an appearance that still held the old
     //    theme would be copied into them and then never copied again, leaving the browser and the stack one
-    //    theme behind for as long as the artist does not change colour twice.
-    //    The scale is read back off the record rather than re-derived, so a retint cannot move a length.
-    Resolved = ResolveTinted(Resolved.Measure.DisplayScale, 1.0, 0.0f, Chosen);
+    //    theme behind for as long as the artist does not change colour twice. The retained interface scale
+    //    is reapplied unchanged, so a colour edit cannot move a length.
+    Resolved = ResolveTinted(Resolved.Measure.DisplayScale, InterfaceScale, 0.0f, Chosen);
     RestateTypography(Resolved);
+}
+
+bool ViewportSequence::ApplyInterfaceScale(std::uint32_t Percentage)
+{
+    if (Percentage < 75u)  Percentage = 75u;
+    if (Percentage > 200u) Percentage = 200u;
+
+    const double Requested = static_cast<double>(Percentage) * 0.01;
+    const double Apart = Requested - InterfaceScale;
+    if (Apart < 0.0001 && Apart > -0.0001)
+        return false;
+
+    InterfaceScale = Requested;
+    Resolved = ResolveTinted(Resolved.Measure.DisplayScale, InterfaceScale, 0.0f, Chosen);
+    RestateTypography(Resolved);
+    return true;
 }
 
 void ViewportSequence::ApplyTypographyWeights(const std::uint32_t Weights[8])
@@ -298,7 +314,8 @@ void ViewportSequence::Reclaim()
     MarksOwned.~RedrawScheduler();
     ::new (&MarksOwned) RedrawScheduler{};
 
-    Resolved = ThemeProfile{};
+    Resolved       = ThemeProfile{};
+    InterfaceScale = 1.0;
 
     DrawersConstructed = false;
     PanelsOpen         = false;

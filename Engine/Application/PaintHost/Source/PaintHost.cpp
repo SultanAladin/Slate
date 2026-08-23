@@ -495,6 +495,16 @@ int main(int ArgumentCount, char** ArgumentValues)
             Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
             Discard(ControlCentre.Record(ControlInterior, ControlCentreValues));
 
+            // Apply the Control Centre preference to the shared appearance instead of displaying a
+            // disconnected percentage. Content Browser caches derived metrics and is reseated explicitly.
+            if (Viewport.ApplyInterfaceScale(ControlCentreValues.Scaling))
+            {
+                Discard(Viewport.Seam().ApplyWorkspaceStyle(
+                    Viewport.Appearance().WorkspaceMeasure,
+                    Viewport.Appearance().Workspace));
+                ContentBrowser.Reapply(Viewport.Appearance());
+            }
+
             // 📝 Compared rather than watched. The Control Centre writes the artist's choice straight into the
             //    ordinates, so the change is visible here as a difference and needs no callback to report it.
             {
