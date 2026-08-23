@@ -55,6 +55,7 @@
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
 #include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectorySpecification.h"
+#include "SlateUI/Interface/SlidingPages/Api/SlidingPages.h"
 #include "SlateUI/Interface/TexturePaintPanel/Api/TexturePaintSpecification.h"
 
 #include <cstdint>
@@ -367,7 +368,7 @@ public:
 
     /// 🧩 Which eased slot the carousel travels on, so a proof harness can read the
     ///    fraction rather than guessing an ordinal. Reads state; changes nothing.
-    std::uint32_t ProofPageMotion() const { return PageMotion; }
+    std::uint32_t ProofPageMotion() const { return StackPages.MotionSlot(); }
 private:
 
     /// 🧩 How far the folder enclosing one row has opened; 1 when nothing encloses it.
@@ -443,9 +444,7 @@ private:
 
     PlaneExtent                 BarCells[13]  = {};      // [-] - where the bar drew its cells
     std::uint32_t               BarCellTally  = 0u;      // [-] - how many stood this tick
-    std::uint32_t               PageMotion    = 0u;      // [-] - the carousel's eased travel
-    std::uint32_t               PageDeparted  = 0u;      // [-] - which page the travel began from
-    std::uint32_t               PageArriving  = 0u;      // [-] - which page it is bound for
+    SlidingPages                StackPages    = {};      // [-] - shared stack/properties/export travel
     std::uint32_t               ExportMotion[3] = {};    // [-] - format, resolution, and preset rails
     double                      ExportFrom[3] = {};
     double                      ExportTarget[3] = {};

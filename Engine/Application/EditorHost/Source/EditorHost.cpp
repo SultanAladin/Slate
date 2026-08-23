@@ -287,13 +287,13 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    inspector's slider cards branch on them while every reference entity keeps its g_NN identity.
     static EntityRow EditorEntities[7] =
     {
-        { "Level_01_City",           EntitySubject::Level,      0u, 0xFFFFFFFFu, 3u, "city level main" },
-        { "Lighting",                EntitySubject::Grouping,   1u,  0u,         2u, "folder lighting" },
-        { "Directional Light (Sun)", EntitySubject::Sun,        2u,  1u,         0u, "sun light directional" },
-        { "Sky Atmosphere",          EntitySubject::Sky,        2u,  1u,         0u, "sky atmosphere dome" },
-        { "Environment",             EntitySubject::Grouping,   1u,  0u,         1u, "folder environment" },
-        { "Post Process Volume",     EntitySubject::Actor,      2u,  4u,         0u, "post volume effects" },
-        { "Editor Camera",           EntitySubject::Camera,     1u,  0u,         0u, "camera fly view", CameraRole::Editor }
+        { "Level_01_City",           EntitySubject::Level,      0u, 0xFFFFFFFFu, 3u, "city level main", CameraRole::Absent, 1001u },
+        { "Lighting",                EntitySubject::Grouping,   1u,  0u,         2u, "folder lighting", CameraRole::Absent, 1002u },
+        { "Directional Light (Sun)", EntitySubject::Sun,        2u,  1u,         0u, "sun light directional", CameraRole::Absent, 1003u },
+        { "Sky Atmosphere",          EntitySubject::Sky,        2u,  1u,         0u, "sky atmosphere dome", CameraRole::Absent, 1004u },
+        { "Environment",             EntitySubject::Grouping,   1u,  0u,         1u, "folder environment", CameraRole::Absent, 1005u },
+        { "Post Process Volume",     EntitySubject::Actor,      2u,  4u,         0u, "post volume effects", CameraRole::Absent, 1006u },
+        { "Editor Camera",           EntitySubject::Camera,     1u,  0u,         0u, "camera fly view", CameraRole::Editor, 1007u }
     };
 
     FontLoader                  Fonts;
@@ -420,40 +420,40 @@ int main(int ArgumentCount, char** ArgumentValues)
     {
         { "Surface Detail",  TextureLayerClassification::Folder,  "Passthrough", 100u, 0x9B8CF0u, 0x9B8CF0u,
           false, 100u, false, "", "4 layers", { StackChannels[0], StackChannels[1], StackChannels[2] }, 3u,
-          0u, 0xFFFFFFFFu, 4u, true, "folder detail group", false, "" },
+          0u, 0xFFFFFFFFu, 4u, true, "folder detail group", false, "", false, 2001u },
         { "Levels",          TextureLayerClassification::Adjustment, "Overlay",   64u, 0x8B8D98u, 0x8B8D98u,
           false, 100u, false, "", "2048px \u00B7 RGBA 8", { StackChannels[0], StackChannels[3] }, 2u,
-          1u, 0u, 0u, true, "adjust levels", false, "" },
+          1u, 0u, 0u, true, "adjust levels", false, "", false, 2002u },
         { "Warning Stencil", TextureLayerClassification::Decal,   "Normal",    100u, 0xE5484Du, 0xE5484Du,
           true,  100u, false, "Bitmap", "Planar \u00B7 100%", { StackChannels[0] }, 1u,
-          1u, 0u, 0u, true, "decal stencil warning", false, "" },
+          1u, 0u, 0u, true, "decal stencil warning", false, "", false, 2003u },
         { "Scratches",       TextureLayerClassification::Paint,    "Screen",     38u, 0xB0E64Cu, 0xB0E64Cu,
           true,   88u, false, "Generator", "2048px \u00B7 RGBA 8", { StackChannels[0], StackChannels[2] }, 2u,
-          1u, 0u, 0u, true, "paint scratches grunge", false, "Blur" },
+          1u, 0u, 0u, true, "paint scratches grunge", false, "Blur", false, 2004u },
         { "Edge Wear",       TextureLayerClassification::Fill,     "Multiply",   82u, 0xF76B15u, 0xF76B15u,
           true,  100u, false, "Generator", "2048px \u00B7 RGBA 8", { StackChannels[1], StackChannels[2] }, 2u,
-          1u, 0u, 0u, true, "fill edge wear rust", false, "" },
+          1u, 0u, 0u, true, "fill edge wear rust", false, "", false, 2005u },
         { "Emissive Trim",   TextureLayerClassification::Fill,     "Normal",    100u, 0xFFC53Du, 0xFFC53Du,
           true,  100u, false, "Paint", "2048px \u00B7 RGBA 8", { StackChannels[6] }, 1u,
-          0u, 0xFFFFFFFFu, 0u, true, "fill emissive trim", false, "" },
+          0u, 0xFFFFFFFFu, 0u, true, "fill emissive trim", false, "", false, 2006u },
         { "Hex Panelling",   TextureLayerClassification::Pattern,  "Normal",    100u, 0x8AB4D8u, 0x8AB4D8u,
           true,  100u, false, "Generator", "Hex Grid \u00B7 4\u00D74", { StackChannels[2], StackChannels[4] }, 2u,
-          0u, 0xFFFFFFFFu, 0u, true, "pattern hex panel", false, "" },
+          0u, 0xFFFFFFFFu, 0u, true, "pattern hex panel", false, "", false, 2007u },
         { "Base Materials",  TextureLayerClassification::Folder,   "Passthrough", 100u, 0x12A594u, 0x12A594u,
           false, 100u, false, "", "4 layers", { StackChannels[0], StackChannels[1] }, 2u,
-          0u, 0xFFFFFFFFu, 4u, true, "folder materials base", false, "" },
+          0u, 0xFFFFFFFFu, 4u, true, "folder materials base", false, "", false, 2008u },
         { "Brushed Steel",   TextureLayerClassification::Fill,     "Normal",    100u, 0x8AB4D8u, 0x8AB4D8u,
           true,  100u, false, "Generator", "4096px \u00B7 RGBA 8", { StackChannels[0], StackChannels[1] }, 2u,
-          1u, 7u, 0u, true, "fill brushed steel metal", false, "" },
+          1u, 7u, 0u, true, "fill brushed steel metal", false, "", false, 2009u },
         { "Gold Inlay",      TextureLayerClassification::Fill,     "Normal",    100u, 0xE5484Du, 0xE5484Du,
           true,   50u, true,  "Color Selection", "2048px \u00B7 RGBA 8", { StackChannels[0] }, 1u,
-          1u, 7u, 0u, true, "fill gold inlay", false, "Levels, HSL Shift" },
+          1u, 7u, 0u, true, "fill gold inlay", false, "Levels, HSL Shift", false, 2010u },
         { "Oak Panel",       TextureLayerClassification::Material, "Normal",    100u, 0xF76B15u, 0xF76B15u,
           false, 100u, false, "", "2048px \u00B7 RGBA 8", { StackChannels[0], StackChannels[2] }, 2u,
-          1u, 7u, 0u, true, "material oak wood", true, "" },
+          1u, 7u, 0u, true, "material oak wood", true, "", false, 2011u },
         { "Canvas Weave",    TextureLayerClassification::Material, "Normal",     90u, 0xE93D82u, 0xE93D82u,
           false, 100u, false, "", "2048px \u00B7 RGBA 8", { StackChannels[0], StackChannels[3] }, 2u,
-          1u, 7u, 0u, false, "material canvas fabric", false, "" }
+          1u, 7u, 0u, false, "material canvas fabric", false, "", false, 2012u }
     };
 
     TexturePaintApplied.LayerTaken = 1u;

@@ -21,6 +21,8 @@
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/SymbolSpecification/Api/SymbolSpecification.h"
 
+#include "SlateUI/Interface/TreeMechanics/Api/TreeMechanics.h"
+
 #include <cstdint>
 
 namespace Slate
@@ -179,6 +181,7 @@ struct TextureLayerRow
     bool                Locked       = false;                  // [-] - the row is locked against editing
     const char*         Effects      = "";                     // [-] - borrowed; comma-separated effect names, "" = none
     bool                Selected     = false;                  // [-] - selection membership carried through moves
+    StableRowIdentity   Identity     = 0u;                     // [-] - host-stable identity across reordering
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -267,6 +270,7 @@ struct TexturePaintStack
     TextureLayerRow   Rows[TextureLayerLimit]  = {};
     char              Names[TextureLayerLimit][48] = {};
     std::uint32_t     Count                        = 0u;   // [-] - how many rows stand
+    StableRowIdentity NextIdentity                 = 1u;   // [-] - never reused by inserted rows
 
     /// 🧩 Copies the declared seed rows into the mutable set. Runs the borrowed seed pointers stay borrowed.
     /// cost  🚩

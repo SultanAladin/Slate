@@ -4,7 +4,7 @@
 
 Make SlateUI a composition of small mechanisms and domain panels rather than a set of deep panel hierarchies that each redraw the same controls. A component receives caller-owned state, interaction identity, geometry, and theme roles; it reports user intent. Domain panels decide what the intent means.
 
-This is the migration plan and progress record. The validation-host cleanup and dead-prototype retirement are complete. Control Centre UI Scaling drives `ViewportSequence` in EditorHost and PaintHost. Interface geometry antialiasing is typed and functional; font, viewport, and future SVG tessellation quality remain separate typed domains. Dropdown consolidation is complete: the duplicate `DropdownCard` path is removed, declarations have their own header, marked selections use trailing state dots, and filter menus use a plain mode. Content Browser now delegates its deferred tooltip timing, placement, wrapping, appearance, and recording to the shared component mechanism. Tree, sliding-page, and SVG-generation migrations remain planned.
+This is the migration plan and progress record. The validation-host cleanup and dead-prototype retirement are complete. Control Centre UI Scaling drives `ViewportSequence` in EditorHost and PaintHost. Interface geometry antialiasing is typed and functional; font, viewport, and future SVG tessellation quality remain separate typed domains. Dropdown consolidation is complete: the duplicate `DropdownCard` path is removed, declarations have their own header, marked selections use trailing state dots, and filter menus use a plain mode. Content Browser now delegates its deferred tooltip timing, placement, wrapping, appearance, and recording to the shared component mechanism. Scene Directory and Texture Paint now share sliding-page state, stable row identity, selection, visible-tree occupancy, and domain-specific drop policies. Control Centre travel and SVG generation remain planned.
 
 ## Cleanup completed before this plan
 
@@ -471,15 +471,15 @@ Do not seed full content-browser libraries, full texture stacks, full scene dire
 
 - Introduce `SlidingPages` with deterministic geometry tests. Complete.
 - Migrate the smallest two-page inspector sample first. Complete: `ControlPanel::CarouselPages` now delegates page placement.
-- Migrate Scene Directory and Texture Paint.
+- Migrate Scene Directory and Texture Paint. Complete: both now use one shared strip state, eased travel, and page placement.
 - Migrate Control Centre page travel and its specialised rails last.
-- Remove private previous/current/direction/motion implementations after each owner is migrated.
+- Remove private previous/current/direction/motion implementations after each owner is migrated. Complete for Scene Directory and Texture Paint.
 
 ### Phase 5 — shared selection and tree mechanics
 
-- Extract stable row IDs, `SelectionSet`, visible-tree traversal, and disclosure occupancy.
-- Migrate Scene Directory using `SceneTreePolicy` without changing its parenting-only drag rule.
-- Migrate Texture Paint using `TextureStackPolicy` without weakening compositing-order and mask rules.
+- Extract stable row IDs, `SelectionSet`, visible-tree traversal, and disclosure occupancy. Complete in `TreeMechanics`.
+- Migrate Scene Directory using `SceneTreePolicy` without changing its parenting-only drag rule. Complete.
+- Migrate Texture Paint using `TextureStackPolicy` without weakening compositing-order and mask rules. Complete.
 
 ### Phase 6 — history separation
 

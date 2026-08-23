@@ -7,6 +7,7 @@
 //    never draws the validation shell's rail, top bar or layer stack.
 
 #include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectoryPanel.h"
+#include "SlateUI/Interface/TreeMechanics/Api/TreeMechanics.h"
 
 #include <algorithm>
 #include <cmath>
@@ -359,14 +360,9 @@ Outcome<bool> SceneDirectoryPanel::ConstructSceneDirectoryPanel(ControlIndex& In
     }
 
     // 📐 The leaf's page travel. Registered here, never mid-tick.
-    {
-        const Outcome<std::uint32_t> Eased = Integrator.RegisterEased(1.0);
-
-        if (!Eased.Resolved)
-            return Outcome<bool>::Refuse(Eased.Error);
-
-        OutlineMotion = Eased.Resolve();
-    }
+    if (const Outcome<bool> Pages = OutlinePages.ConstructSlidingPages(Integrator, 0u);
+        !Pages.Resolved)
+        return Pages;
 
     {
         const Outcome<std::uint32_t> Eased = Integrator.RegisterEased(1.0);
@@ -438,6 +434,7 @@ void SceneDirectoryPanel::Reset()
 {
     Controls.Reset();
     Facets.Reset();
+    OutlinePages.Reset();
 
     Interaction     = nullptr;
     Motion     = nullptr;
@@ -1095,24 +1092,11 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
     // 📐 One three-page carousel: Directory + Details leads, the Properties / Bookmarks inspector trails.
     //    Both pages are always positioned from the same carried coordinate, so departure and arrival
     //    remain visible throughout travel in either direction.
-    if (Applied.OutlinePage != OutlineArriving)
-    {
-        OutlineDeparted = OutlineArriving;
-        OutlineArriving = Applied.OutlinePage;
-        Motion->Eased(OutlineMotion).Depart(0.0, 1.0, 260.0, 0.0, EaseCurve::Carousel);
-    }
+    OutlinePages.Navigate(Applied.OutlinePage);
 
-    const float Travelled  = static_cast<float>(Motion->Eased(OutlineMotion).Current());
-    const float DepartedAt = -static_cast<float>(OutlineDeparted) * Extent.Width();
-    const float ArrivingAt = -static_cast<float>(OutlineArriving) * Extent.Width();
-    const float Carried    = DepartedAt + (ArrivingAt - DepartedAt) * Travelled;
-
-    const PlaneExtent DirectoryExtent = Spanning(Extent.MinimumX + Carried, Extent.MinimumY,
-                                                  Extent.Width(), Extent.Height());
-    const PlaneExtent InspectorExtent = Spanning(DirectoryExtent.MaximumX, Extent.MinimumY,
-                                                  Extent.Width(), Extent.Height());
-    const PlaneExtent TransferExtent = Spanning(InspectorExtent.MaximumX, Extent.MinimumY,
-                                                 Extent.Width(), Extent.Height());
+    const PlaneExtent DirectoryExtent = OutlinePages.Page(Extent, 0u);
+    const PlaneExtent InspectorExtent = OutlinePages.Page(Extent, 1u);
+    const PlaneExtent TransferExtent  = OutlinePages.Page(Extent, 2u);
 
     if (!Surface->Excluded(TransferExtent))
     {
@@ -1250,42 +1234,23 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
     // 📝 Selection ranges follow the presented tree, not storage ordinals: folded descendants and
     // filtered-out records do not become selected merely because they stand between the anchor and target.
     bool Presented[SceneDirectoryContext::EntityLimit] = {};
+    bool Retained[SceneDirectoryContext::EntityLimit] = {};
     float PresentedFraction[SceneDirectoryContext::EntityLimit] = {};
+    float Expansion[SceneDirectoryContext::EntityLimit] = {};
+    std::uint32_t Parents[SceneDirectoryContext::EntityLimit] = {};
+    std::uint32_t Depths[SceneDirectoryContext::EntityLimit] = {};
     for (std::uint32_t Candidate = 0u; Candidate < RowCount; ++Candidate)
     {
-        if (Filtering)
-        {
-            PresentedFraction[Candidate] = 1.0f;
-            Presented[Candidate] = RowRetained(Applied, Rows[Candidate]);
-            if (!Presented[Candidate])
-            {
-                for (std::uint32_t Inward = Candidate + 1u; Inward < RowCount; ++Inward)
-                {
-                    if (Rows[Inward].Depth <= Rows[Candidate].Depth)
-                        break;
-                    if (RowRetained(Applied, Rows[Inward]))
-                    {
-                        Presented[Candidate] = true;
-                        break;
-                    }
-                }
-            }
-        }
-        else
-        {
-            float Reach = 1.0f;
-            std::uint32_t Walking = Rows[Candidate].Enclosing;
-            std::uint32_t Walked = 0u;
-            while (Walking < RowCount && Walked++ <= RowCount)
-            {
-                Reach *= Controls.OutlineExpansion(RowDisclosures[Walking],
-                                                   Applied.EntityExpanded[Walking], true);
-                Walking = Rows[Walking].Enclosing;
-            }
-            PresentedFraction[Candidate] = Reach;
-            Presented[Candidate] = Reach > 0.001f;
-        }
+        Parents[Candidate] = Rows[Candidate].Enclosing;
+        Depths[Candidate] = Rows[Candidate].Depth;
+        Retained[Candidate] = RowRetained(Applied, Rows[Candidate]);
+        Expansion[Candidate] = Rows[Candidate].EnclosedCount > 0u
+                             ? Controls.OutlineExpansion(RowDisclosures[Candidate],
+                                                         Applied.EntityExpanded[Candidate], true)
+                             : 1.0f;
     }
+    VisibleTree::Resolve(Parents, Expansion, Retained, RowCount, Filtering, true,
+                         Presented, PresentedFraction);
 
     for (std::uint32_t Index = 0u; Index < RowCount; ++Index)
     {
@@ -1308,14 +1273,9 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
         const bool Hovered = RowClip.Encloses(Sampled.PositionX, Sampled.PositionY);
         const bool Absent  = !Applied.EntityPresent[Index];
 
-        if (Dragging && Hovered && Index != Applied.DragSource)
-        {
-            std::uint32_t SourcePast = Applied.DragSource + 1u;
-            while (SourcePast < RowCount && Rows[SourcePast].Depth > Rows[Applied.DragSource].Depth)
-                ++SourcePast;
-            if (Index < Applied.DragSource || Index >= SourcePast)
-                Applied.DragDestination = Index;
-        }
+        if (Dragging && Hovered &&
+            SceneTreePolicy::AllowsParent(Applied.DragSource, Index, Depths, RowCount))
+            Applied.DragDestination = Index;
         const bool Branch  = EntryRow.EnclosedCount > 0u;
 
         const float LeadX = Row.MinimumX + Scaled.RowLeadX
@@ -1371,30 +1331,9 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
 
         if (Hovered && !OnChevron && !OnPresence && Interaction->Released(RowContacts[Index]))
         {
-            if (Modified.Shifted && Applied.EntitySelectionAnchor < RowCount)
-            {
-                for (std::uint32_t Candidate = 0u; Candidate < RowCount; ++Candidate)
-                    Applied.EntitySelected[Candidate] = false;
-
-                const std::uint32_t First = Applied.EntitySelectionAnchor < Index
-                                          ? Applied.EntitySelectionAnchor : Index;
-                const std::uint32_t Past  = (Applied.EntitySelectionAnchor > Index
-                                           ? Applied.EntitySelectionAnchor : Index) + 1u;
-                for (std::uint32_t Candidate = First; Candidate < Past; ++Candidate)
-                    if (Presented[Candidate])
-                        Applied.EntitySelected[Candidate] = true;
-            }
-            else if (Modified.Commanded)
-            {
-                Applied.EntitySelected[Index] = !Applied.EntitySelected[Index];
-                Applied.EntitySelectionAnchor = Index;
-            }
-            else
-            {
-                for (std::uint32_t Candidate = 0u; Candidate < RowCount; ++Candidate)
-                    Applied.EntitySelected[Candidate] = Candidate == Index;
-                Applied.EntitySelectionAnchor = Index;
-            }
+            SelectionSet::Apply(Applied.EntitySelected, RowCount, Applied.EntitySelectionAnchor,
+                                Index, Presented,
+                                SelectionGesture{ Modified.Shifted, Modified.Commanded });
 
             // The latest range endpoint remains the primary record shown by Details and Inspect.
             Applied.EntityTaken = Index;

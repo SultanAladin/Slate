@@ -10,6 +10,8 @@
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/SymbolSpecification/Api/SymbolSpecification.h"
 
+#include "SlateUI/Interface/TreeMechanics/Api/TreeMechanics.h"
+
 #include <cstdint>
 
 namespace Slate
@@ -195,6 +197,7 @@ struct EntityRow
     //    searching "fly" even though the row is named "Editor Camera". The run is empty by default.
     const char*    Tagged           = "";                     // [-] - borrowed; "sun light directional"
     CameraRole     Camera           = CameraRole::Absent;      // [-] - camera specialisation, when applicable
+    StableRowIdentity Identity      = 0u;                      // [-] - host-stable identity across reordering
 };
 
 //------------------------------------------------------------------------------------------------------------------------

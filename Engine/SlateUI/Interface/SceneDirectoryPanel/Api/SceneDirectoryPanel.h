@@ -21,6 +21,7 @@
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
 #include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectorySpecification.h"
+#include "SlateUI/Interface/SlidingPages/Api/SlidingPages.h"
 #include "SlateUI/Interface/SymbolSpecification/Api/SymbolSpecification.h"
 
 #include <cstdint>
@@ -333,11 +334,8 @@ private:
     ControlIdentity BookmarkRecall  = {};
     ControlIdentity BookmarkRetire  = {};
 
-    // 📐 The outliner leaf's own page travel. The leaf slides between the directory,
-    //    the properties and the history exactly as the layer stack's carousel does.
-    std::uint32_t   OutlineMotion   = 0u;   // [-] - the eased slot the travel rides
-    std::uint32_t   OutlineDeparted = 0u;   // [-] - the page it left
-    std::uint32_t   OutlineArriving = 0u;   // [-] - the page it is bound for
+    // 📐 Shared travel for Directory, Properties, and Transfer pages.
+    SlidingPages    OutlinePages    = {};
     std::uint32_t   TransferMotion  = 0u;   // [-] - format rail travel
     double          TransferFrom    = 0.0;
     double          TransferTarget  = 0.0;

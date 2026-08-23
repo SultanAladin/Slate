@@ -5,7 +5,9 @@
 
 #pragma once
 
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
+#include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
 
 namespace Slate
 {
@@ -23,6 +25,26 @@ struct SlidingPagePlacement
 class SlidingPages
 {
 public:
+
+    /// 🧩 Reserves one eased travel and seats the strip at its initial page.
+    Outcome<bool> ConstructSlidingPages(MotionIntegrator& IncomingMotion, std::uint32_t InitialPage,
+                                        double Duration = 260.0,
+                                        EaseCurve Shape = EaseCurve::Carousel);
+
+    /// 🧩 Starts travel toward a page when it differs from the current destination.
+    void Navigate(std::uint32_t IncomingPage);
+
+    /// 🧩 Places one member of an arbitrary-length page strip for the current travel.
+    PlaneExtent Page(const PlaneExtent& Viewport, std::uint32_t PageIndex) const;
+
+    /// 🧩 Whether the shared eased travel has not reached its destination.
+    bool Travelling() const;
+
+    std::uint32_t CurrentPage() const { return ArrivingPage; }
+    std::uint32_t PreviousPage() const { return DepartingPage; }
+    std::uint32_t MotionSlot() const { return TravelMotion; }
+
+    void Reset();
 
     /// 🧩 Places the departing and incoming pages across one viewport.
     /// in    Progress [-]  zero at the old page, one at the new page; values outside are clamped
@@ -43,6 +65,15 @@ public:
             Travel > 0.0f && Travel < 1.0f
         };
     }
+
+private:
+
+    MotionIntegrator* Motion        = nullptr;
+    std::uint32_t     TravelMotion  = 0u;
+    std::uint32_t     DepartingPage = 0u;
+    std::uint32_t     ArrivingPage  = 0u;
+    double            TravelDuration = 260.0;
+    EaseCurve         TravelShape    = EaseCurve::Carousel;
 };
 
 }   // namespace Slate

@@ -10,6 +10,7 @@
 //    No history panel.
 
 #include "SlateUI/Interface/TexturePaintPanel/Api/TexturePaintPanel.h"
+#include "SlateUI/Interface/TreeMechanics/Api/TreeMechanics.h"
 
 #include <algorithm>
 #include <cmath>
@@ -529,10 +530,15 @@ void SeedPaintContextFromRows(TexturePaintContext& Applied,
 void TexturePaintStack::Seed(const TextureLayerRow* Source, std::uint32_t SourceCount)
 {
     Count = (Source != nullptr) ? std::min(SourceCount, TextureLayerLimit) : 0u;
+    NextIdentity = 1u;
 
     for (std::uint32_t Index = 0u; Index < Count; ++Index)
     {
         Rows[Index] = Source[Index];
+        if (Rows[Index].Identity == 0u)
+            Rows[Index].Identity = NextIdentity;
+        if (Rows[Index].Identity >= NextIdentity)
+            NextIdentity = Rows[Index].Identity + 1u;
         Names[Index][0] = '\0';
     }
 }
@@ -568,6 +574,7 @@ TextureLayerRow NewRow(TexturePaintStack& Stack, std::uint32_t Index,
     Row.EnclosedCount = 0u;
     Row.Expanded     = true;
     Row.Tagged       = "";
+    Row.Identity     = Stack.NextIdentity++;
 
     switch (Classified)
     {
@@ -769,6 +776,7 @@ void TexturePaintStack::ApplyRequest(TexturePaintContext& Applied)
             {
                 const std::uint32_t At = Taken + Span + Index;
                 Rows[At] = Rows[Taken + Index];
+                Rows[At].Identity = NextIdentity++;
 
                 if (Index == 0u)
                 {
@@ -1084,14 +1092,10 @@ Outcome<bool> TexturePaintPanel::ConstructTexturePaintPanel(ControlIndex& Incomi
     }
 
     // 📐 The carousel's own travel. Registered here, never mid-tick.
-    {
-        const Outcome<std::uint32_t> Registered = Integrator.RegisterEased(1.0);
-
-        if (!Registered.Resolved)
-            return Outcome<bool>::Refuse(Registered.Error);
-
-        PageMotion = Registered.Resolve();
-    }
+    if (const Outcome<bool> Pages = StackPages.ConstructSlidingPages(Integrator, 0u, 260.0,
+                                                                    EaseCurve::Standard);
+        !Pages.Resolved)
+        return Pages;
 
     for (std::uint32_t Index = 0u; Index < 3u; ++Index)
     {
@@ -1121,6 +1125,7 @@ void TexturePaintPanel::Reset()
 {
     Controls.Reset();
     SharedControls.Reset();
+    StackPages.Reset();
     StackFacets.Reset();
     ChannelFacets.Reset();
     MaskFacets.Reset();
@@ -1222,26 +1227,13 @@ void TexturePaintPanel::Record(const PlaneExtent& Extent, TexturePaintContext& A
     //    properties and back to read as movement, and there was none to read. The
     //    page now departs on an eased interpolant and the strip is carried by the
     //    fraction, so the two pages genuinely slide past one another.
-    if (Applied.StackPage != PageArriving)
-    {
-        PageDeparted = PageArriving;
-        PageArriving = Applied.StackPage;
-        Motion->Eased(PageMotion).Depart(0.0, 1.0, 260.0, 0.0, EaseCurve::Standard);
-    }
-
-    const float Travelled = static_cast<float>(Motion->Eased(PageMotion).Current());
-    const float DepartedAt = -static_cast<float>(PageDeparted) * Extent.Width();
-    const float ArrivingAt = -static_cast<float>(PageArriving) * Extent.Width();
-    const float Carried    = DepartedAt + (ArrivingAt - DepartedAt) * Travelled;
+    StackPages.Navigate(Applied.StackPage);
 
     Surface->Confine(Extent);
 
-    const PlaneExtent Leading = Spanning(Extent.MinimumX + Carried, Extent.MinimumY,
-                                         Extent.Width(), Extent.Height());
-    const PlaneExtent Trailing = Spanning(Leading.MaximumX, Extent.MinimumY,
-                                          Extent.Width(), Extent.Height());
-    const PlaneExtent Flatten = Spanning(Trailing.MaximumX, Extent.MinimumY,
-                                         Extent.Width(), Extent.Height());
+    const PlaneExtent Leading  = StackPages.Page(Extent, 0u);
+    const PlaneExtent Trailing = StackPages.Page(Extent, 1u);
+    const PlaneExtent Flatten  = StackPages.Page(Extent, 2u);
 
     if (!Surface->Excluded(Leading))
         RecordStackPage(Leading, Applied, Rows, RowCount);
@@ -1674,6 +1666,10 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
         Applied.DragDestination = TextureLayerLimit;
         Applied.DragPlacement = 0u;
 
+        std::uint32_t Depths[TextureLayerLimit] = {};
+        for (std::uint32_t Index = 0u; Index < RowCount; ++Index)
+            Depths[Index] = Rows[Index].Depth;
+
         for (std::uint32_t Index = 0u; Index < RowCount; ++Index)
         {
             if (Filtering && !RowRetained(Applied, Rows[Index]))
@@ -1708,22 +1704,15 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
             const PlaneExtent Row = Spanning(Body.MinimumX + Indent, Sweep,
                                              Body.Width() - Indent, RowY);
 
-            if (Dragging && Index != Applied.DragSource &&
-                Row.Encloses(Sampled.PositionX, Sampled.PositionY) &&
-                Body.Encloses(Sampled.PositionX, Sampled.PositionY))
+            if (Dragging && Row.Encloses(Sampled.PositionX, Sampled.PositionY) &&
+                Body.Encloses(Sampled.PositionX, Sampled.PositionY) &&
+                TextureStackPolicy::AllowsPlacement(Applied.DragSource, Index, Depths, RowCount))
             {
-                std::uint32_t SourcePast = Applied.DragSource + 1u;
-                while (SourcePast < RowCount && Rows[SourcePast].Depth > Rows[Applied.DragSource].Depth)
-                    ++SourcePast;
-
-                if (Index < Applied.DragSource || Index >= SourcePast)
-                {
-                    const float Fraction = (Sampled.PositionY - Row.MinimumY) / Row.Height();
-                    Applied.DragDestination = Index;
-                    Applied.DragPlacement = (Current.Classified == TextureLayerClassification::Folder &&
-                                             Fraction > 0.30f && Fraction < 0.70f)
-                                          ? 3u : (Fraction < 0.5f ? 1u : 2u);
-                }
+                const float Fraction = (Sampled.PositionY - Row.MinimumY) / Row.Height();
+                Applied.DragDestination = Index;
+                Applied.DragPlacement = (Current.Classified == TextureLayerClassification::Folder &&
+                                         Fraction > 0.30f && Fraction < 0.70f)
+                                      ? 3u : (Fraction < 0.5f ? 1u : 2u);
             }
 
             // 📐 The reference's `.kids>.kin::before` — a 1 px rail down the gutter each
@@ -1874,24 +1863,18 @@ float TexturePaintPanel::EnclosureFraction(const TexturePaintContext& Applied,
     if (Rows == nullptr || Index >= RowCount)
         return 1.0f;
 
-    float Reach = 1.0f;
-    std::uint32_t Walking = Rows[Index].Enclosing;
-    std::uint32_t Guard = 0u;
-
-    while (Walking < RowCount && Guard++ < TextureLayerLimit)
+    std::uint32_t Parents[TextureLayerLimit] = {};
+    float Expansion[TextureLayerLimit] = {};
+    for (std::uint32_t Candidate = 0u; Candidate < RowCount; ++Candidate)
     {
-        // 📐 The fold is DECLARED here rather than read, because OutlineExpansion is
-        //    what advances it; a folder never recorded would otherwise stay at 0.
-        Reach *= Controls.OutlineExpansion(LayerChevrons[Walking],
-                                           Applied.LayerExpanded[Walking], true);
-
-        if (Reach <= 0.0f)
-            return 0.0f;
-
-        Walking = Rows[Walking].Enclosing;
+        Parents[Candidate] = Rows[Candidate].Enclosing;
+        Expansion[Candidate] = Rows[Candidate].EnclosedCount > 0u
+                             ? Controls.OutlineExpansion(LayerChevrons[Candidate],
+                                                         Applied.LayerExpanded[Candidate], true)
+                             : 1.0f;
     }
 
-    return Reach;
+    return VisibleTree::AncestorOccupancy(Parents, Expansion, RowCount, Index);
 }
 
 void TexturePaintPanel::RecordStackTools(const PlaneExtent& Tools, TexturePaintContext& Applied)
@@ -2122,40 +2105,21 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
     if (Hovered && !OnChevron && !OnEye && !OnDetails && !OnMore &&
         Interaction->Released(LayerContacts[Index]))
     {
-        if (Modified.Shifted && Applied.LayerSelectionAnchor < RowCount)
+        bool Presented[TextureLayerLimit] = {};
+        for (std::uint32_t Candidate = 0u; Candidate < RowCount; ++Candidate)
         {
-            for (std::uint32_t Candidate = 0u; Candidate < RowCount; ++Candidate)
-                Applied.LayerSelected[Candidate] = false;
-
-            const std::uint32_t First = Applied.LayerSelectionAnchor < Index
-                                      ? Applied.LayerSelectionAnchor : Index;
-            const std::uint32_t Past  = (Applied.LayerSelectionAnchor > Index
-                                       ? Applied.LayerSelectionAnchor : Index) + 1u;
-            for (std::uint32_t Candidate = First; Candidate < Past; ++Candidate)
+            Presented[Candidate] = !RetentionActive(Applied) || RowRetained(Applied, Rows[Candidate]);
+            std::uint32_t Parent = Rows[Candidate].Enclosing;
+            std::uint32_t Guard = 0u;
+            while (Presented[Candidate] && Parent < RowCount && Guard++ < TextureLayerLimit)
             {
-                bool Presented = !RetentionActive(Applied) || RowRetained(Applied, Rows[Candidate]);
-                std::uint32_t Parent = Rows[Candidate].Enclosing;
-                std::uint32_t Guard = 0u;
-                while (Presented && Parent < RowCount && Guard++ < TextureLayerLimit)
-                {
-                    Presented = Applied.LayerExpanded[Parent];
-                    Parent = Rows[Parent].Enclosing;
-                }
-                if (Presented)
-                    Applied.LayerSelected[Candidate] = true;
+                Presented[Candidate] = Applied.LayerExpanded[Parent];
+                Parent = Rows[Parent].Enclosing;
             }
         }
-        else if (Modified.Commanded)
-        {
-            Applied.LayerSelected[Index] = !Applied.LayerSelected[Index];
-            Applied.LayerSelectionAnchor = Index;
-        }
-        else
-        {
-            for (std::uint32_t Candidate = 0u; Candidate < RowCount; ++Candidate)
-                Applied.LayerSelected[Candidate] = Candidate == Index;
-            Applied.LayerSelectionAnchor = Index;
-        }
+        SelectionSet::Apply(Applied.LayerSelected, RowCount, Applied.LayerSelectionAnchor,
+                            Index, Presented,
+                            SelectionGesture{ Modified.Shifted, Modified.Commanded });
 
         Applied.LayerTaken = Index;
         Applied.MaskTaken  = false;

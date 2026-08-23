@@ -7,6 +7,61 @@
 
 namespace Slate
 {
+
+Outcome<bool> SlidingPages::ConstructSlidingPages(MotionIntegrator& IncomingMotion, std::uint32_t InitialPage,
+                                                  double Duration, EaseCurve Shape)
+{
+    if (Motion != nullptr)
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "sliding pages are already constructed" });
+
+    const Outcome<std::uint32_t> Registered = IncomingMotion.RegisterEased(1.0);
+    if (!Registered.Resolved)
+        return Outcome<bool>::Refuse(Registered.Error);
+
+    Motion         = &IncomingMotion;
+    TravelMotion   = Registered.Resolve();
+    DepartingPage  = InitialPage;
+    ArrivingPage   = InitialPage;
+    TravelDuration = Duration;
+    TravelShape    = Shape;
+    return Outcome<bool>::Result(true);
+}
+
+void SlidingPages::Navigate(std::uint32_t IncomingPage)
+{
+    if (Motion == nullptr || IncomingPage == ArrivingPage)
+        return;
+
+    DepartingPage = ArrivingPage;
+    ArrivingPage  = IncomingPage;
+    Motion->Eased(TravelMotion).Depart(0.0, 1.0, TravelDuration, 0.0, TravelShape);
+}
+
+PlaneExtent SlidingPages::Page(const PlaneExtent& Viewport, std::uint32_t PageIndex) const
+{
+    const float Progress = Motion != nullptr ? static_cast<float>(Motion->Eased(TravelMotion).Current()) : 1.0f;
+    const float Departing = static_cast<float>(DepartingPage);
+    const float Arriving  = static_cast<float>(ArrivingPage);
+    const float StripPosition = Departing + (Arriving - Departing) * Progress;
+    return Spanning(Viewport.MinimumX + (static_cast<float>(PageIndex) - StripPosition) * Viewport.Width(),
+                    Viewport.MinimumY, Viewport.Width(), Viewport.Height());
+}
+
+bool SlidingPages::Travelling() const
+{
+    return Motion != nullptr && !Motion->Eased(TravelMotion).Settled;
+}
+
+void SlidingPages::Reset()
+{
+    Motion          = nullptr;
+    TravelMotion    = 0u;
+    DepartingPage   = 0u;
+    ArrivingPage    = 0u;
+    TravelDuration  = 260.0;
+    TravelShape     = EaseCurve::Carousel;
+}
+
 namespace
 {
 
