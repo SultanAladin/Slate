@@ -56,7 +56,15 @@ enum class PanelGizmo : std::uint32_t
     GizmoCount = 2u
 };
 
-/// 🧩 Visible stub preferences retained by the host, never by `EditorPanel`.
+enum class EditorFooterDemand : std::uint32_t
+{
+    None = 0u,
+    SceneImport,
+    SceneExport,
+    ExportFlattened
+};
+
+/// 🧩 Visible preferences and one-tick modular footer requests retained by the host.
 /// tag   contract, nonallocating, nonthrowing
 struct EditorPanelConfiguration
 {
@@ -81,6 +89,7 @@ struct EditorPanelConfiguration
     float                     LatticeLineWeight  = 1.0f;                            // [px] - fine line thickness
     float                     LatticeDotRadius   = 2.0f;                            // [px] - fine dot radius
     bool                      LatticeFollowCamera = true;                            // [-] - snap origin to the eye
+    EditorFooterDemand        FooterDemand = EditorFooterDemand::None;               // [-] - one-tick panel action
 };
 
 //------------------------------------------------------------------------------------------------------------------------

@@ -486,15 +486,11 @@ void EditorPanel::RecordFooter(std::uint32_t RecordOrdinal,
     Surface->Ground(Spanning(Extent.MinimumX, Extent.MinimumY,
                              Extent.Width(), Measure.EdgeWeight), Colour.Edge);
 
-    if (Subject == PanelSubject::Outliner || Subject == PanelSubject::Properties)
+    if (Subject == PanelSubject::Properties)
     {
         Surface->TextRun(Extent.MinimumX + Measure.FooterPadX,
-                         Extent.MinimumY + 18.0f,
-                         Colour.ColourFaint,
-                         Subject == PanelSubject::Outliner ? "0 items" : "No active object",
-                         Measure.TextSmall,
-                         0.0f,
-                         false);
+                         Extent.MinimumY + 18.0f, Colour.ColourFaint,
+                         "No active object", Measure.TextSmall, 0.0f, false);
         return;
     }
 
@@ -512,18 +508,53 @@ void EditorPanel::RecordFooter(std::uint32_t RecordOrdinal,
         return Button;
     };
 
+    // 📐 One footer grammar, specialised by leaf subject. These actions only raise requests; the
+    //    owning content panel decides which carousel destination to present.
+    if (Subject == PanelSubject::Outliner)
+    {
+        const PlaneExtent Import = Pill("Import", 88.0f);
+        const PlaneExtent Export = Pill("Export", 88.0f);
+        if (Pressed(ControlOrdinal(RecordOrdinal, ControlRole::CameraMenu), Import))
+            Configuration.FooterDemand = EditorFooterDemand::SceneImport;
+        if (Pressed(ControlOrdinal(RecordOrdinal, ControlRole::OverlayMenu), Export))
+            Configuration.FooterDemand = EditorFooterDemand::SceneExport;
+        return;
+    }
+
+    if (Subject == PanelSubject::TexturePaint)
+    {
+        const PlaneExtent Flatten = Pill("Export Flattened", 146.0f);
+        if (Pressed(ControlOrdinal(RecordOrdinal, ControlRole::CameraMenu), Flatten))
+            Configuration.FooterDemand = EditorFooterDemand::ExportFlattened;
+        return;
+    }
+
+    if (Subject != PanelSubject::Viewport)
+        return;
+
     const PlaneExtent LatticeButton = Pill("Grid", 72.0f);
     const std::uint32_t LatticeControl = ControlOrdinal(RecordOrdinal, ControlRole::LatticeMenu);
-    const bool LatticeOpen = Disclosed(Controls[LatticeControl]);
+    const std::uint32_t LatticeTypeControl = ControlOrdinal(RecordOrdinal, ControlRole::LatticePresentation);
+    // 🔴 SelectionField owns the disclosure while its type roster stands. Treat that child disclosure
+    //    as keeping the Grid card alive; otherwise opening the roster replaced its parent and both
+    //    vanished on the next frame.
+    bool LatticeOpen = Disclosed(Controls[LatticeControl]) ||
+                       Disclosed(Controls[LatticeTypeControl]);
     if (Pressed(LatticeControl, LatticeButton, true))
     {
         if (LatticeOpen)
+        {
             CloseDisclosure();
+            LatticeOpen = false;
+        }
         else
+        {
             Disclose(Controls[LatticeControl]);
+            LatticeOpen = true;
+        }
     }
 
-    if (Disclosed(Controls[LatticeControl]))
+    if (LatticeOpen)
     {
         DeferredAnchor   = LatticeButton;
         DeferredBoundary = CurrentLeafExtent;
@@ -747,6 +778,11 @@ void EditorPanel::RecordDeferred(PanelStructure& Partition, EditorPanelConfigura
             break;
     }
 
+    // Component controls inside an editor popup (notably Grid Type) defer their own roster until
+    // their parent card has been painted. Without this pass the field could disclose but no choices
+    // were ever recorded.
+    SharedControls.RecordDeferred();
+
     if (BoundaryPresent)
         Surface->Release();
 }
@@ -877,7 +913,8 @@ void EditorPanel::RecordLatticeMenu(std::uint32_t RecordOrdinal,
     Surface->Ground(Spanning(Menu.MinimumX + 20.0f, Menu.MinimumY + 44.0f,
                              Menu.Width() - 40.0f, 1.0f), Colour.Edge);
 
-    const char* LatticeOptions[4] = { "None", "Lines", "Dotted", "Lines + Dots" };
+    // Deferred selection rendering borrows this roster after this function returns.
+    static const char* const LatticeOptions[4] = { "None", "Lines", "Dotted", "Lines + Dots" };
     SelectionDeclaration LatticeDeclaration;
     LatticeDeclaration.Caption     = "Grid";
     LatticeDeclaration.Options     = LatticeOptions;

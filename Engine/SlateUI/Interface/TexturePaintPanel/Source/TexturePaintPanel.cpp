@@ -1094,7 +1094,7 @@ void TexturePaintPanel::Record(const PlaneExtent& Extent, TexturePaintContext& A
     RowTally = 0u;
     InlineControlsSpent = 0u;
 
-    // 📐 The carousel: a 200 %-wide strip, translated by one whole extent. Page 0 the stack, page 1
+    // 📐 The carousel: a three-page strip, translated by one whole extent. Page 0 the stack, page 1
     //    the selection-driven properties — the same slide the shell's inspector uses.
     //
     // 🔴 SCROLL ① — THE PAGE TRAVEL. This was a hard ternary on `StackPage`, so the
@@ -1111,8 +1111,8 @@ void TexturePaintPanel::Record(const PlaneExtent& Extent, TexturePaintContext& A
     }
 
     const float Travelled = static_cast<float>(Motion->Eased(PageMotion).Current());
-    const float DepartedAt = (PageDeparted == 1u) ? -Extent.Width() : 0.0f;
-    const float ArrivingAt = (PageArriving == 1u) ? -Extent.Width() : 0.0f;
+    const float DepartedAt = -static_cast<float>(PageDeparted) * Extent.Width();
+    const float ArrivingAt = -static_cast<float>(PageArriving) * Extent.Width();
     const float Carried    = DepartedAt + (ArrivingAt - DepartedAt) * Travelled;
 
     Surface->Confine(Extent);
@@ -1121,6 +1121,8 @@ void TexturePaintPanel::Record(const PlaneExtent& Extent, TexturePaintContext& A
                                          Extent.Width(), Extent.Height());
     const PlaneExtent Trailing = Spanning(Leading.MaximumX, Extent.MinimumY,
                                           Extent.Width(), Extent.Height());
+    const PlaneExtent Flatten = Spanning(Trailing.MaximumX, Extent.MinimumY,
+                                         Extent.Width(), Extent.Height());
 
     if (!Surface->Excluded(Leading))
         RecordStackPage(Leading, Applied, Rows, RowCount);
@@ -1128,8 +1130,57 @@ void TexturePaintPanel::Record(const PlaneExtent& Extent, TexturePaintContext& A
     if (!Surface->Excluded(Trailing))
         RecordPropertiesPage(Trailing, Applied, Rows, RowCount);
 
+    if (!Surface->Excluded(Flatten))
+        RecordFlattenPage(Flatten, Applied);
+
     Surface->Release();
     SharedControls.RecordDeferred();
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   FLATTENED EXPORT
+//------------------------------------------------------------------------------------------------------------------------
+
+void TexturePaintPanel::RecordFlattenPage(const PlaneExtent& Extent, TexturePaintContext& Applied)
+{
+    Surface->Ground(Extent, Tinted.Menu, 0.0f, CornerNone);
+    const float Pad = Scaled.PanePad;
+    const PlaneExtent Header = Spanning(Extent.MinimumX, Extent.MinimumY, Extent.Width(), Scaled.HeaderHeight);
+    RecordLeafHeader(Header, SymbolSubject::LayerMerge, Tinted.Accent,
+                     "Export Flattened", "Non-destructive output setup");
+
+    const PlaneExtent Back = Spanning(Extent.MinimumX + Pad, Header.MaximumY + Pad, 82.0f, 28.0f);
+    const bool OnBack = Back.Encloses(Sampled.PositionX, Sampled.PositionY);
+    if (Sampled.ContactPressed && OnBack && !Ledger->AnyDisclosed()) Ledger->Grab(StackStrip, ControlPart::Body);
+    if (OnBack && Ledger->Released(StackStrip)) Applied.StackPage = 0u;
+    Ledger->DeclareHovered(StackStrip, OnBack, HoverOver);
+    Surface->Ground(Back, OnBack ? Tinted.TileHovered : Tinted.Tile, 14.0f, CornerAll);
+    Surface->Edge(Back, Tinted.HairlineFirm, 1.0f, 14.0f, CornerAll);
+    Surface->TextRun(Back.MinimumX + 18.0f, Back.MinimumY + 7.0f, Tinted.Primary, "Back", Scaled.RunSecondary);
+
+    float Y = Back.MaximumY + 28.0f;
+    Surface->TextRun(Extent.MinimumX + Pad, Y, Tinted.Primary, "Output format", Scaled.RunPrimary);
+    Y += 28.0f;
+    const char* Formats[2] = { "PNG", "TGA" };
+    for (std::uint32_t Ordinal = 0u; Ordinal < 2u; ++Ordinal)
+    {
+        const PlaneExtent Choice = Spanning(Extent.MinimumX + Pad + Ordinal * 112.0f, Y, 100.0f, 52.0f);
+        const bool On = Choice.Encloses(Sampled.PositionX, Sampled.PositionY);
+        if (Sampled.ContactPressed && On && !Ledger->AnyDisclosed()) Ledger->Grab((Ordinal == 0u ? PropertyStrip : HeaderAdd), ControlPart::Body);
+        if (On && Ledger->Released((Ordinal == 0u ? PropertyStrip : HeaderAdd))) Applied.FlattenFormat = Ordinal;
+        Ledger->DeclareHovered((Ordinal == 0u ? PropertyStrip : HeaderAdd), On, HoverOver);
+        const bool Taken = Applied.FlattenFormat == Ordinal;
+        Surface->Ground(Choice, Taken ? Tinted.RowTaken : (On ? Tinted.TileHovered : Tinted.Tile), 8.0f, CornerAll);
+        Surface->Edge(Choice, Taken ? Tinted.Accent : Tinted.Hairline, 1.0f, 8.0f, CornerAll);
+        Surface->TextRun(Choice.MinimumX + 16.0f, Choice.MinimumY + 17.0f,
+                         Taken ? Tinted.Primary : Tinted.Muted, Formats[Ordinal], Scaled.RunPrimary);
+    }
+
+    Y += 80.0f;
+    Surface->TextRun(Extent.MinimumX + Pad, Y, Tinted.Muted,
+                     "Layer structure remains unchanged. The output is a flattened copy.", Scaled.RunSecondary);
+    Surface->TextRun(Extent.MinimumX + Pad, Y + 24.0f, Tinted.Faint,
+                     "File export will be connected in a later increment.", Scaled.RunFine);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

@@ -882,6 +882,14 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 break;
                             }
                             case PanelSubject::Outliner:
+                                if (PanelConfiguration[Ordinal].FooterDemand == EditorFooterDemand::SceneImport ||
+                                    PanelConfiguration[Ordinal].FooterDemand == EditorFooterDemand::SceneExport)
+                                {
+                                    SceneApplied.TransferMode =
+                                        PanelConfiguration[Ordinal].FooterDemand == EditorFooterDemand::SceneExport ? 1u : 0u;
+                                    SceneApplied.OutlinePage = 2u;
+                                    PanelConfiguration[Ordinal].FooterDemand = EditorFooterDemand::None;
+                                }
                                 SceneDirectory.RecordOutliner(LeafBody, SceneApplied,
                                                               EditorEntities, 7u,
                                                               EditorRevisions, EditorRevisionCount);
@@ -893,6 +901,11 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                                 SceneApplied.InspectorTab);
                                 break;
                             case PanelSubject::TexturePaint:
+                                if (PanelConfiguration[Ordinal].FooterDemand == EditorFooterDemand::ExportFlattened)
+                                {
+                                    TexturePaintApplied.StackPage = 2u;
+                                    PanelConfiguration[Ordinal].FooterDemand = EditorFooterDemand::None;
+                                }
                                 TexturePaint.Record(LeafBody, TexturePaintApplied, StackRows.Rows, StackRows.Count);
 
                                 if (LayerLeafTally < PanelStructure::RecordCeiling)

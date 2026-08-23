@@ -36,7 +36,7 @@
 //         - a FOLDER      + Tab  → the COMBINED stack properties (counts,
 //           mask count, channel union, passthrough) — one summary, not per
 //           child, exactly as the user asked.
-//       The two pages slide as a carousel, and the properties page carries a
+//       The outer pages slide as a carousel, and the properties page carries a
 //       strip of the tabs the selection offers. NO history panel — the
 //       reference's undo/redo spine is not ported (the two header buttons
 //       draw disabled); the properties page is where the details live.
@@ -93,6 +93,7 @@ struct TexturePaintContext
     bool                       MaskTaken     = false;        // [-] - the taken row's mask is taken
     std::uint32_t              StackPage     = 0u;           // [-] - 0 Stack, 1 Properties
     std::uint32_t              PropertyTab   = 0u;           // [-] - 0 Channels, 1 Mask, 2 Settings
+    std::uint32_t              FlattenFormat = 0u;           // [-] - 0 PNG, 1 TGA
 
     // 📝 The search and the filters — the same pair the scene directory carries.
     char                       Retention[TextureRetentionCeiling] = {};   // [-] - the search run
@@ -277,7 +278,7 @@ public:
     /// tag   api, nonallocating, nonthrowing
     void Reapply(const ThemeProfile& Resolved);
 
-    /// 🧩 Records the whole leaf: the carousel's two pages, the stack and the properties.
+    /// 🧩 Records the whole leaf: Stack, Properties, and the outer Export Flattened destination.
     /// in    Rows     [-]  the layer rows, borrowed for the tick
     /// in    RowCount [-]  how many stand
     /// cost  🚩
@@ -327,6 +328,7 @@ private:
     void RecordBarButton(ControlIdentity Target, const PlaneExtent& Cell, SymbolSubject Glyph,
                          TexturePaintContext& Applied, std::uint32_t Request,
                          bool Dimmed = false);
+    void RecordFlattenPage(const PlaneExtent& Extent, TexturePaintContext& Applied);
     void RecordPropertiesPage(const PlaneExtent& Extent, TexturePaintContext& Applied,
                               const TextureLayerRow* Rows, std::uint32_t RowCount);
     void RecordSearchPill(const PlaneExtent& Extent, TexturePaintContext& Applied);

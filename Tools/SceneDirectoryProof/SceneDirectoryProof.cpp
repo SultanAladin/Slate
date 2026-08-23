@@ -761,6 +761,13 @@ struct SceneDriver
                         SceneDirectory.RecordOverlayFallback(LeafBody, Applied.Overlay);
                     break;
                 case PanelSubject::Outliner:
+                    if (Configuration.FooterDemand == EditorFooterDemand::SceneImport ||
+                        Configuration.FooterDemand == EditorFooterDemand::SceneExport)
+                    {
+                        Applied.TransferMode = Configuration.FooterDemand == EditorFooterDemand::SceneExport ? 1u : 0u;
+                        Applied.OutlinePage = 2u;
+                        Configuration.FooterDemand = EditorFooterDemand::None;
+                    }
                     SceneDirectory.RecordOutliner(LeafBody, Applied, EditorEntities, 7u,
                                                   Revisions, RevisionCount);
                     break;
@@ -769,6 +776,11 @@ struct SceneDriver
                                                     Revisions, RevisionCount, Applied.InspectorTab);
                     break;
                 case PanelSubject::TexturePaint:
+                    if (Configuration.FooterDemand == EditorFooterDemand::ExportFlattened)
+                    {
+                        TexturePaintApplied.StackPage = 2u;
+                        Configuration.FooterDemand = EditorFooterDemand::None;
+                    }
                     TexturePaint.Record(LeafBody, TexturePaintApplied, StackRows.Rows,
                                         StackRows.Count);
                     break;
@@ -1557,6 +1569,69 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
                 return false;
             }
         }
+    }
+    else if (std::strcmp(Scenario, "editor-grid-dropdown") == 0)
+    {
+        Driver.Partition.Construct(PanelSubject::Viewport);
+        Driver.Settle(20);
+        const PlaneExtent Body = Driver.Editor.LeafBody(0u);
+        Driver.Tap(Body.MinimumX + 36.0f, Body.MaximumY + 19.0f); // Grid pill
+        Driver.Settle(4);
+        const float MenuTop = Body.MaximumY - 472.0f;
+        Driver.Tap(Body.MinimumX + 280.0f, MenuTop + 76.0f); // real Grid Type selection field
+        Driver.Settle(4);
+        if (!Driver.Editor.AnyPopupStanding())
+        {
+            std::fprintf(stderr, "[FAIL] opening Grid Type withdrew its parent popup\n");
+            return false;
+        }
+        Driver.Tap(Body.MinimumX + 280.0f, MenuTop + 180.0f); // Dotted roster row
+        Driver.Settle(4);
+        if (Driver.Configuration.Lattice != PanelLatticePresentation::Dots)
+        {
+            std::fprintf(stderr, "[FAIL] Grid Type roster did not apply the Dotted option (reading=%u)\n",
+                         static_cast<unsigned>(Driver.Configuration.Lattice));
+            return false;
+        }
+        std::fprintf(stderr, "[assert] nested Grid Type roster stayed open and selected Dotted\n");
+    }
+    else if (std::strcmp(Scenario, "editor-scene-transfer") == 0)
+    {
+        Driver.Partition.Construct(PanelSubject::Outliner);
+        Driver.Settle(20);
+        const PlaneExtent Body = Driver.Editor.LeafBody(0u);
+        Driver.Tap(Body.MinimumX + 44.0f, Body.MaximumY + 19.0f); // real Import footer pill
+        Driver.Settle(28);
+        if (Driver.Applied.OutlinePage != 2u || Driver.Applied.TransferMode != 0u)
+        {
+            std::fprintf(stderr, "[FAIL] Scene Directory Import footer did not open its outer dialogue\n");
+            return false;
+        }
+        if (Driver.TexturePaintApplied.StackPage != 0u)
+        {
+            std::fprintf(stderr, "[FAIL] Scene transfer changed Layer Stack navigation\n");
+            return false;
+        }
+        std::fprintf(stderr, "[assert] Scene Directory Import footer opened transfer page 2\n");
+    }
+    else if (std::strcmp(Scenario, "editor-layer-flatten") == 0)
+    {
+        Driver.Partition.Construct(PanelSubject::TexturePaint);
+        Driver.Settle(20);
+        const PlaneExtent Body = Driver.Editor.LeafBody(0u);
+        Driver.Tap(Body.MinimumX + 73.0f, Body.MaximumY + 19.0f); // real Export Flattened footer pill
+        Driver.Settle(28);
+        if (Driver.TexturePaintApplied.StackPage != 2u)
+        {
+            std::fprintf(stderr, "[FAIL] Export Flattened footer did not open its outer dialogue\n");
+            return false;
+        }
+        if (Driver.TexturePaintApplied.PropertyTab != 0u)
+        {
+            std::fprintf(stderr, "[FAIL] flattened export conflated outer and property navigation\n");
+            return false;
+        }
+        std::fprintf(stderr, "[assert] Layer Stack Export Flattened footer opened page 2\n");
     }
     else if (std::strcmp(Scenario, "editor-layerstack-card") == 0)
     {
@@ -2819,7 +2894,8 @@ int main(int ArgumentCount, char** Arguments)
                            "editor-sun-props",
                            "editor-after-drag",
                            "editor-camera-fly", "editor-grid-settings", "editor-overlay-fallback",
-                           "editor-search-filter", "editor-layerstack", "editor-layerstack-card"};
+                           "editor-search-filter", "editor-grid-dropdown", "editor-scene-transfer", "editor-layer-flatten",
+                           "editor-layerstack", "editor-layerstack-card"};
 
     int Rendered = 0;
     for (const char* Shot : Shots)

@@ -653,6 +653,50 @@ void SceneDirectoryPanel::RecordLeafHeader(const PlaneExtent& Extent, SymbolSubj
                               Extent.MaximumX - RunLead - Pad, Hue, Secondary, SecondaryRun, false);
 }
 
+void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirectoryContext& Applied)
+{
+    Surface->Ground(Extent, Tinted.Menu, 0.0f, CornerNone);
+    const float Pad = Scaled.PanePad;
+    const PlaneExtent Header = Spanning(Extent.MinimumX, Extent.MinimumY, Extent.Width(), Scaled.HeaderHeight);
+    RecordLeafHeader(Header, SymbolSubject::FolderClosed, Tinted.EntityAccent,
+                     Applied.TransferMode == 0u ? "Import Scene" : "Export Scene",
+                     "Scene transfer setup");
+
+    const PlaneExtent Back = Spanning(Extent.MinimumX + Pad, Header.MaximumY + Pad, 82.0f, 28.0f);
+    const bool OnBack = Back.Encloses(Sampled.PositionX, Sampled.PositionY);
+    if (Sampled.ContactPressed && OnBack && !Ledger->AnyDisclosed()) Ledger->Grab(DirectoryCall, ControlPart::Body);
+    if (OnBack && Ledger->Released(DirectoryCall)) Applied.OutlinePage = 0u;
+    Ledger->DeclareHovered(DirectoryCall, OnBack, HoverOver);
+    Surface->Ground(Back, OnBack ? Tinted.TileHovered : Tinted.Tile, 14.0f, CornerAll);
+    Surface->Edge(Back, Tinted.HairlineFirm, 1.0f, 14.0f, CornerAll);
+    Surface->TextRun(Back.MinimumX + 18.0f, Back.MinimumY + 7.0f, Tinted.Primary, "Back", Scaled.RunSecondary);
+
+    float Y = Back.MaximumY + 28.0f;
+    Surface->TextRun(Extent.MinimumX + Pad, Y, Tinted.Primary, "Format", Scaled.RunPrimary);
+    Y += 28.0f;
+    const char* Formats[2] = { "FBX", "OBJ" };
+    for (std::uint32_t Ordinal = 0u; Ordinal < 2u; ++Ordinal)
+    {
+        const PlaneExtent Choice = Spanning(Extent.MinimumX + Pad + Ordinal * 112.0f, Y, 100.0f, 52.0f);
+        const bool On = Choice.Encloses(Sampled.PositionX, Sampled.PositionY);
+        if (Sampled.ContactPressed && On && !Ledger->AnyDisclosed()) Ledger->Grab((Ordinal == 0u ? OutlineStrip : InspectCall), ControlPart::Body);
+        if (On && Ledger->Released((Ordinal == 0u ? OutlineStrip : InspectCall))) Applied.TransferFormat = Ordinal;
+        Ledger->DeclareHovered((Ordinal == 0u ? OutlineStrip : InspectCall), On, HoverOver);
+        const bool Taken = Applied.TransferFormat == Ordinal;
+        Surface->Ground(Choice, Taken ? Tinted.RowTaken : (On ? Tinted.TileHovered : Tinted.Tile), 8.0f, CornerAll);
+        Surface->Edge(Choice, Taken ? Tinted.EntityAccent : Tinted.Hairline, 1.0f, 8.0f, CornerAll);
+        Surface->TextRun(Choice.MinimumX + 16.0f, Choice.MinimumY + 17.0f,
+                         Taken ? Tinted.Primary : Tinted.Muted, Formats[Ordinal], Scaled.RunPrimary);
+    }
+
+    Y += 80.0f;
+    Surface->TextRun(Extent.MinimumX + Pad, Y, Tinted.Muted,
+                     Applied.TransferMode == 0u ? "Choose a scene format to import." : "Choose a scene format to export.",
+                     Scaled.RunSecondary);
+    Surface->TextRun(Extent.MinimumX + Pad, Y + 24.0f, Tinted.Faint,
+                     "File selection and transfer will be connected in a later increment.", Scaled.RunFine);
+}
+
 void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
                                          const EntityRow* Rows, std::uint32_t RowCount,
                                          const EntityRevision* Revisions, std::uint32_t RevisionCount)
@@ -670,7 +714,7 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
 
     const float Pad = Scaled.PanePad;
 
-    // 📐 One 200%-wide carousel: Directory + Details leads, the Properties | History inspector trails.
+    // 📐 One three-page carousel: Directory + Details leads, the Properties | History inspector trails.
     //    Both pages are always positioned from the same carried coordinate, so departure and arrival
     //    remain visible throughout travel in either direction.
     if (Applied.OutlinePage != OutlineArriving)
@@ -681,14 +725,23 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
     }
 
     const float Travelled  = static_cast<float>(Motion->Eased(OutlineMotion).Current());
-    const float DepartedAt = (OutlineDeparted == 1u) ? -Extent.Width() : 0.0f;
-    const float ArrivingAt = (OutlineArriving == 1u) ? -Extent.Width() : 0.0f;
+    const float DepartedAt = -static_cast<float>(OutlineDeparted) * Extent.Width();
+    const float ArrivingAt = -static_cast<float>(OutlineArriving) * Extent.Width();
     const float Carried    = DepartedAt + (ArrivingAt - DepartedAt) * Travelled;
 
     const PlaneExtent DirectoryExtent = Spanning(Extent.MinimumX + Carried, Extent.MinimumY,
                                                   Extent.Width(), Extent.Height());
     const PlaneExtent InspectorExtent = Spanning(DirectoryExtent.MaximumX, Extent.MinimumY,
                                                   Extent.Width(), Extent.Height());
+    const PlaneExtent TransferExtent = Spanning(InspectorExtent.MaximumX, Extent.MinimumY,
+                                                 Extent.Width(), Extent.Height());
+
+    if (!Surface->Excluded(TransferExtent))
+    {
+        Surface->Confine(Extent);
+        RecordTransfer(TransferExtent, Applied);
+        Surface->Release();
+    }
 
     if (!Surface->Excluded(InspectorExtent))
     {

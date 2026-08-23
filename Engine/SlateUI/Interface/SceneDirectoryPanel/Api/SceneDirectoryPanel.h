@@ -76,10 +76,12 @@ struct SceneDirectoryContext
     bool                       CardFolded[CardCeiling]       = {};
     bool                       RevisionFolded[EntityCeiling] = {};
 
-    // 📐 The outliner leaf has two OUTER slides: Directory + Details, then Inspector. Properties and
-    //    History are inner pages of the inspector, never duplicate outer destinations.
-    std::uint32_t              OutlinePage         = 0u;   // [-] - 0 Directory + Details, 1 Inspector
+    // 📐 The outliner leaf has three OUTER slides: Directory + Details, Inspector, and scene transfer.
+    //    Properties and History are inner pages of the inspector, never duplicate outer destinations.
+    std::uint32_t              OutlinePage         = 0u;   // [-] - 0 Directory, 1 Inspector, 2 Import/Export
     std::uint32_t              OutlineInspectorTab = 0u;   // [-] - 0 Properties, 1 History
+    std::uint32_t              TransferMode        = 0u;   // [-] - 0 Import, 1 Export
+    std::uint32_t              TransferFormat      = 0u;   // [-] - 0 FBX, 1 OBJ
 
     // 📝 The scene directory's own search and filter, placed between the outliner's header and its
     //    rows. `EntityRetention` is the search run the host feeds through the seam's `AcceptTyped`
@@ -263,6 +265,7 @@ private:
 
     void RecordLeafHeader(const PlaneExtent& Extent, SymbolSubject Glyph, const ThemeToken& Hue,
                           const char* Titled, const char* Secondary);
+    void RecordTransfer(const PlaneExtent& Extent, SceneDirectoryContext& Applied);
     void RecordDetailOptions(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
                              std::uint32_t Ordinal, const EntityRow& Current);
     void RecordPropertyCards(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
