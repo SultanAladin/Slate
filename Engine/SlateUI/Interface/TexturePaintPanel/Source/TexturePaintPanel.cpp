@@ -458,6 +458,19 @@ void SeedPaintContextFromRows(TexturePaintContext& Applied,
         Applied.MaskVisible[Ordinal]    = true;
         Applied.LayerTagHue[Ordinal]    = Row.TagHue;
         Applied.LayerExpanded[Ordinal]  = Row.Expanded;
+        Applied.LayerCardExpanded[Ordinal] = false;
+        Applied.LayerResolution[Ordinal] = 2048.0;
+        Applied.LayerHeightIntegrated[Ordinal] = false;
+        Applied.LayerHeightBlendTaken[Ordinal] = 0u;
+        Applied.LayerEffectTaken[Ordinal] = (Row.Effects != nullptr && Row.Effects[0] != '\0') ? 1u : 0u;
+
+        if (Stands && Row.Detail != nullptr)
+        {
+            double Parsed = 0.0;
+            if (std::sscanf(Row.Detail, "%lf", &Parsed) == 1 && Parsed >= 16.0)
+                Applied.LayerResolution[Ordinal] = Parsed;
+        }
+
         Applied.LayerPresent[Ordinal]   = true;
         Applied.ChannelTaken[Ordinal]   = 0u;
 
@@ -910,6 +923,15 @@ Outcome<bool> TexturePaintPanel::Construct(InteractionIndex& Interaction,
         Identity = Registered.Resolve();
     }
 
+    for (ControlIdentity& Identity : InlineControls)
+    {
+        const Outcome<ControlIdentity> Registered = Interaction.Register();
+        if (!Registered.Resolved)
+            return Outcome<bool>::Refuse(Registered.Error);
+
+        Identity = Registered.Resolve();
+    }
+
     for (std::uint32_t Ordinal = 0u; Ordinal < TextureLayerCeiling; ++Ordinal)
     {
         ControlIdentity* const Rows[] =
@@ -1068,6 +1090,7 @@ void TexturePaintPanel::Record(const PlaneExtent& Extent, TexturePaintContext& A
         RowCount = TextureLayerCeiling;
 
     RowTally = 0u;
+    InlineControlsSpent = 0u;
 
     // 📐 The carousel: a 200 %-wide strip, translated by one whole extent. Page 0 the stack, page 1
     //    the selection-driven properties — the same slide the shell's inspector uses.
@@ -1104,6 +1127,7 @@ void TexturePaintPanel::Record(const PlaneExtent& Extent, TexturePaintContext& A
         RecordPropertiesPage(Trailing, Applied, Rows, RowCount);
 
     Surface->Release();
+    SharedControls.RecordDeferred();
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -1300,8 +1324,8 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
     RecordStackFooter(Footer, Applied, Rows, RowCount);
 
     // ⑥ The rows band.
-    const PlaneExtent Body = Spanning(Extent.MinimumX + 3.0f, FacetCard.MaximumY + Pad,
-                                      Extent.Width() - 6.0f,
+    const PlaneExtent Body = Spanning(Extent.MinimumX + 10.0f, FacetCard.MaximumY + Pad,
+                                      Extent.Width() - 20.0f,
                                       Strip.MinimumY - FacetCard.MaximumY - Pad);
 
     if (Body.MaximumY > Body.MinimumY)
@@ -1664,7 +1688,7 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
                                        ThumbExtent, ThumbExtent);
 
     const float MetaLead = Thumb.MaximumX + Scaled.PanePad;
-    const float RightGrip = Row.MaximumX - 6.0f;
+    const float RightGrip = Row.MaximumX - 14.0f;
 
     const PlaneExtent More = Spanning(RightGrip - EyeExtent,
                                       Row.MinimumY + (Scaled.LayerRowY - EyeExtent) * 0.5f,
@@ -1705,7 +1729,13 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
     {
         Applied.LayerTaken = Ordinal;
         Applied.MaskTaken = false;
-        Applied.LayerCardExpanded[Ordinal] = !Applied.LayerCardExpanded[Ordinal];
+        const bool Incoming = !Applied.LayerCardExpanded[Ordinal];
+
+        if (Incoming)
+            for (std::uint32_t Other = 0u; Other < TextureLayerCeiling; ++Other)
+                Applied.LayerCardExpanded[Other] = false;
+
+        Applied.LayerCardExpanded[Ordinal] = Incoming;
     }
 
     // 📐 A double contact on the row is the pointer equivalent of Tab: it selects the layer and sends
@@ -2018,17 +2048,22 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
                     Faded(Faded(Tinted.Faint, CellCoverage), RowCoverage));
 }
 
+ControlIdentity TexturePaintPanel::NextInlineControl()
+{
+    return (InlineControlsSpent < 40u) ? InlineControls[InlineControlsSpent++] : ControlIdentity{};
+}
+
 float TexturePaintPanel::RecordInlineLayerCard(const PlaneExtent& Extent,
                                                 TexturePaintContext& Applied,
                                                 const TextureLayerRow& Current,
                                                 std::uint32_t Ordinal, bool Recording)
 {
     const float Pad = Scaled.PanePad;
-    const float HeadY = 27.0f;
-    const float RowY = 23.0f;
+    const float HeadY = 29.0f;
+    const float FieldY = Scaled.ComponentY;
     const float Left = Extent.MinimumX + Pad * 1.5f;
     const float Right = Extent.MaximumX - Pad * 1.5f;
-    float Sweep = Extent.MinimumY + 6.0f;
+    float Sweep = Extent.MinimumY + 8.0f;
 
     if (Recording)
     {
@@ -2044,64 +2079,100 @@ float TexturePaintPanel::RecordInlineLayerCard(const PlaneExtent& Extent,
             Surface->Ground(Head, Tinted.Tile, 0.0f, CornerNone);
             Surface->Ground(Spanning(Head.MinimumX, Head.MaximumY - 1.0f, Head.Width(), 1.0f),
                             Tinted.Hairline, 0.0f, CornerNone);
-            Surface->TextRunCapitalised(Left, Sweep + (HeadY - Scaled.RunFiner) * 0.5f,
-                                        Tinted.Muted, Caption, Scaled.RunFiner, 0.8f, true);
+            Surface->TextRun(Left, Sweep + (HeadY - Scaled.RunSmall) * 0.5f,
+                             Tinted.Primary, Caption, Scaled.RunSmall, 0.0f, true);
 
             if (Summary != nullptr && Summary[0] != '\0')
             {
-                const float Wide = Surface->MeasureRun(Summary, Scaled.RunFiner, 0.0f);
-                Surface->TextRun(Right - Wide, Sweep + (HeadY - Scaled.RunFiner) * 0.5f,
-                                 Tinted.Faint, Summary, Scaled.RunFiner);
+                const float Wide = Surface->MeasureRun(Summary, Scaled.RunFine, 0.0f);
+                Surface->TextRun(Right - Wide, Sweep + (HeadY - Scaled.RunFine) * 0.5f,
+                                 Tinted.Faint, Summary, Scaled.RunFine);
             }
         }
 
-        Sweep += HeadY;
+        Sweep += HeadY + 4.0f;
     };
 
-    const auto Reading = [&](const char* Caption, const char* Value)
+    const auto Field = [&]()
     {
-        if (Recording)
-        {
-            Surface->TextRun(Left, Sweep + (RowY - Scaled.RunFine) * 0.5f,
-                             Tinted.Faint, Caption, Scaled.RunFine);
-            const char* Written = (Value != nullptr && Value[0] != '\0') ? Value : "none";
-            const float Wide = Surface->MeasureRun(Written, Scaled.RunFine, 0.0f);
-            Surface->TextRun(Right - Wide, Sweep + (RowY - Scaled.RunFine) * 0.5f,
-                             Tinted.Muted, Written, Scaled.RunFine, 0.0f, true);
-        }
-
-        Sweep += RowY;
+        const PlaneExtent Row = Spanning(Left, Sweep, Right - Left, FieldY);
+        Sweep += FieldY + 4.0f;
+        return Row;
     };
+
+    static const char* const TagNames[] = { "Violet", "Orange", "Green", "Blue", "Rose" };
+    static constexpr std::uint32_t TagHues[] =
+    {
+        0x9B8CF0u, 0xF97316u, 0x84CC16u, 0x38BDF8u, 0xFB7185u
+    };
+    static const char* const HeightModes[] = { "Normal Map Detail", "Replace", "Add", "Overlay" };
+    static const char* const Effects[] = { "None", "Levels", "Blur", "Sharpen", "Edge Wear" };
 
     Section("Info", TextureLayerText(Current.Classified));
-    Reading("Type", TextureLayerText(Current.Classified));
-    Reading("Source", Current.Source);
-    Reading("Detail", Current.Detail);
 
-    bool HeightOn = false;
-    bool NormalOn = false;
-    for (std::uint32_t Channel = 0u; Channel < Current.ChannelCount; ++Channel)
+    const PlaneExtent ResolutionRow = Field();
+    if (Recording)
+        SharedControls.MagnitudeRow(
+            NextInlineControl(), ResolutionRow,
+            MagnitudeDeclaration{ "Resolution", "px", 16.0, 16384.0, 0u,
+                                  MagnitudeDeclaration::Arrange::Measured },
+            Applied.LayerResolution[Ordinal]);
+
+    std::uint32_t TagTaken = 0u;
+    for (std::uint32_t Tag = 0u; Tag < 5u; ++Tag)
+        if (Applied.LayerTagHue[Ordinal] == TagHues[Tag])
+            TagTaken = Tag;
+
+    const PlaneExtent TagRow = Field();
+    if (Recording && SharedControls.SelectionField(NextInlineControl(), TagRow,
+                                                   SelectionDeclaration{ "Tag Colour", TagNames, 5u },
+                                                   TagTaken).ReadingAltered)
     {
-        const char* Naming = Current.Channels[Channel];
-        if (Naming == nullptr)
-            continue;
-        HeightOn = HeightOn || std::strcmp(Naming, "Height") == 0;
-        NormalOn = NormalOn || std::strcmp(Naming, "Normal") == 0;
+        Applied.LayerTagHue[Ordinal] = TagHues[TagTaken];
     }
 
-    Section("Height -> Normal", (HeightOn && NormalOn) ? "integrated" : "off");
-    Reading("Height", HeightOn ? "enabled" : "absent");
-    Reading("Normal", NormalOn ? "receiving" : "absent");
+    Section("Height to Normal", Applied.LayerHeightIntegrated[Ordinal] ? "Enabled" : "Off");
 
-    Section("Effects", (Current.Effects != nullptr && Current.Effects[0] != '\0')
-                       ? Current.Effects : "none");
-    Reading("Applied", Current.Effects);
+    const PlaneExtent HeightToggle = Field();
+    if (Recording)
+        SharedControls.ToggleRow(NextInlineControl(), HeightToggle,
+                                 ToggleDeclaration{ "Re-integrate height into normal" },
+                                 Applied.LayerHeightIntegrated[Ordinal]);
 
-    char Opacity[16] = {};
-    std::snprintf(Opacity, sizeof Opacity, "%u%%", Applied.LayerOpacity[Ordinal]);
-    Section("Colour Blending", Current.Blend);
-    Reading("Blend", TextureBlendNames[Applied.LayerBlendTaken[Ordinal] % TextureBlendCount]);
-    Reading("Opacity", Opacity);
+    const PlaneExtent HeightMode = Field();
+    if (Recording)
+    {
+        SharedControls.SelectionField(NextInlineControl(), HeightMode,
+                                      SelectionDeclaration{ "Blend Mode", HeightModes, 4u },
+                                      Applied.LayerHeightBlendTaken[Ordinal]);
+    }
+
+    Section("Effects", Effects[Applied.LayerEffectTaken[Ordinal] % 5u]);
+    const PlaneExtent EffectRow = Field();
+    if (Recording)
+        SharedControls.SelectionField(NextInlineControl(), EffectRow,
+                                      SelectionDeclaration{ "Effect", Effects, 5u },
+                                      Applied.LayerEffectTaken[Ordinal]);
+
+    Section("Colour Blending",
+            TextureBlendNames[Applied.LayerBlendTaken[Ordinal] % TextureBlendCount]);
+    const PlaneExtent BlendRow = Field();
+    if (Recording)
+        SharedControls.SelectionField(NextInlineControl(), BlendRow,
+                                      SelectionDeclaration{ "Blend", TextureBlendNames,
+                                                            TextureBlendCount },
+                                      Applied.LayerBlendTaken[Ordinal]);
+
+    double Opacity = static_cast<double>(Applied.LayerOpacity[Ordinal]);
+    const PlaneExtent OpacityField = Field();
+    if (Recording && SharedControls.MagnitudeRow(
+                             NextInlineControl(), OpacityField,
+                             MagnitudeDeclaration{ "Opacity", "%", 0.0, 100.0, 0u,
+                                                   MagnitudeDeclaration::Arrange::Measured },
+                             Opacity).ReadingAltered)
+    {
+        Applied.LayerOpacity[Ordinal] = static_cast<std::uint32_t>(Opacity + 0.5);
+    }
 
     char Active[20] = {};
     std::snprintf(Active, sizeof Active, "%u active", Current.ChannelCount);
@@ -2111,11 +2182,25 @@ float TexturePaintPanel::RecordInlineLayerCard(const PlaneExtent& Extent,
                                      ? Current.ChannelCount : TextureChannelCeiling;
     for (std::uint32_t Channel = 0u; Channel < ChannelCount; ++Channel)
     {
-        char Value[48] = {};
-        std::snprintf(Value, sizeof Value, "%s · %u%%",
-                      TextureBlendNames[Applied.ChannelBlendTaken[Ordinal][Channel] % TextureBlendCount],
-                      Applied.ChannelAmount[Ordinal][Channel]);
-        Reading(Current.Channels[Channel], Value);
+        const char* Caption = (Current.Channels[Channel] != nullptr)
+                            ? Current.Channels[Channel] : TextureChannelText(Channel);
+        const PlaneExtent ChannelBlend = Field();
+        if (Recording)
+            SharedControls.SelectionField(NextInlineControl(), ChannelBlend,
+                                          SelectionDeclaration{ Caption, TextureBlendNames,
+                                                                TextureBlendCount },
+                                          Applied.ChannelBlendTaken[Ordinal][Channel]);
+
+        double Amount = static_cast<double>(Applied.ChannelAmount[Ordinal][Channel]);
+        const PlaneExtent ChannelAmount = Field();
+        if (Recording && SharedControls.MagnitudeRow(
+                                 NextInlineControl(), ChannelAmount,
+                                 MagnitudeDeclaration{ "Opacity", "%", 0.0, 100.0, 0u,
+                                                       MagnitudeDeclaration::Arrange::Measured },
+                                 Amount).ReadingAltered)
+        {
+            Applied.ChannelAmount[Ordinal][Channel] = static_cast<std::uint32_t>(Amount + 0.5);
+        }
     }
 
     Sweep += 6.0f;

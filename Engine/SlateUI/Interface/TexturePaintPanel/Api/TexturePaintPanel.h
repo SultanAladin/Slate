@@ -110,6 +110,10 @@ struct TexturePaintContext
     //    channel each layer is showing on the properties page.
     bool                       LayerExpanded[TextureLayerCeiling]  = {};
     bool                       LayerCardExpanded[TextureLayerCeiling] = {}; // [-] - inline detail card beneath row
+    double                     LayerResolution[TextureLayerCeiling] = {};   // [px] - editable inline Info field
+    bool                       LayerHeightIntegrated[TextureLayerCeiling] = {}; // [-] - Height → Normal toggle
+    std::uint32_t              LayerHeightBlendTaken[TextureLayerCeiling] = {}; // [-] - height blend roster
+    std::uint32_t              LayerEffectTaken[TextureLayerCeiling] = {}; // [-] - compact effect roster
     bool                       LayerPresent[TextureLayerCeiling]   = {};
     std::uint32_t              ChannelTaken[TextureLayerCeiling]   = {};
     bool                       ChannelFolded[TextureChannelCeiling] = {};
@@ -237,6 +241,7 @@ public:
         + 8u                                // [-] - the decal card's projection and transform
         + 3u                                // [-] - the folder card's blend, opacity and isolate
         + 4u                                // [-] - the settings card's rows
+        + 40u                               // [-] - one disclosed inline layer card's editable fields
         + 44u;                              // [-] - the four menu anchors plus menu items: add 7,
                                             //       layer 7, swatches 10, mask 3, blend 13
 
@@ -312,6 +317,7 @@ private:
     float RecordInlineLayerCard(const PlaneExtent& Extent, TexturePaintContext& Applied,
                                 const TextureLayerRow& Current, std::uint32_t Ordinal,
                                 bool Recording);
+    ControlIdentity NextInlineControl();
     void RecordMaskRow(const PlaneExtent& Row, TexturePaintContext& Applied,
                        const TextureLayerRow* Rows, std::uint32_t RowCount,
                        const TextureLayerRow& Current, std::uint32_t Ordinal);
@@ -444,6 +450,8 @@ private:
     ControlIdentity LayerEyes[TextureLayerCeiling]       = {};
     ControlIdentity LayerDetails[TextureLayerCeiling]    = {};
     ControlIdentity LayerMores[TextureLayerCeiling]      = {};
+    ControlIdentity InlineControls[40]                   = {};
+    std::uint32_t   InlineControlsSpent                  = 0u;
     ControlIdentity MaskContacts[TextureLayerCeiling]    = {};
     ControlIdentity MaskEyes[TextureLayerCeiling]        = {};
     ControlIdentity MaskDetails[TextureLayerCeiling]     = {};

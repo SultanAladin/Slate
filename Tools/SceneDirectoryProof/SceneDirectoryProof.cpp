@@ -1548,7 +1548,7 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
                                                      * Profile.ControlMeasure.ArtistFactor);
         const PlaneExtent Row = Driver.TexturePaint.RowExtent(1u);
         const float Action = Metric.LayerToolHeight - 5.0f;
-        const float DisclosureX = Row.MaximumX - 6.0f - Action * 1.5f - 4.0f;
+        const float DisclosureX = Row.MaximumX - 14.0f - Action * 1.5f - 4.0f;
         const float DisclosureY = Row.MinimumY + Metric.LayerRowY * 0.5f;
 
         Driver.Tap(DisclosureX, DisclosureY);
@@ -1586,7 +1586,7 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         Driver.Settle(20);
 
         const PlaneExtent Returned = Driver.TexturePaint.RowExtent(1u);
-        const float ReturnedX = Returned.MaximumX - 6.0f - Action * 1.5f - 4.0f;
+        const float ReturnedX = Returned.MaximumX - 14.0f - Action * 1.5f - 4.0f;
         const float ReturnedY = Returned.MinimumY + Metric.LayerRowY * 0.5f;
         Driver.Tap(ReturnedX, ReturnedY);
         Driver.Settle(28);
