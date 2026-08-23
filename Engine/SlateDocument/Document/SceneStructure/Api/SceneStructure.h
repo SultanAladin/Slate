@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "Contract/IdentityContract.h"
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/Identity.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "Shared/ContainmentClassifier.slang.h"
 #include "SlateMath/Numeric/TransformProjection/Api/TransformProjection.h"
 
@@ -33,14 +33,14 @@ struct IntervalLabel
 
 // 📝 The label line is 2⁶⁰ wide rather than the full 64-bit range so that a relabel escalating to the root
 //    can still be expressed, and so that arithmetic on a span never approaches overflow.
-inline constexpr std::uint64_t RootLabelCeiling  = 1ull << 60;   // [-] - the span the root ordering divides
+inline constexpr std::uint64_t RootLabelLimit  = 1ull << 60;   // [-] - the span the root ordering divides
 inline constexpr std::uint64_t EnclosureLabelGap = 1024ull;      // [-] - narrowest interval that accepts content
 
 // 📝 The gap is sized to expected enclosure width — an enclosure of a thousand owners inserts without a
 //    relabel, and one deeper than that relabels its own span only. `12` §10 leaves the figure open and blocks
-//    tuning alone, so it is declared here rather than in `Contract/`: no second unit reads it. `16` and `26`
+//    tuning alone, so it is declared here rather than in `Foundation/`: no second unit reads it. `16` and `26`
 //    read the labels, never the gap that produced them.
-inline constexpr std::uint32_t EnclosureDepthCeiling = 64u;         // [-] - deepest enclosure the relation accepts
+inline constexpr std::uint32_t EnclosureDepthLimit = 64u;         // [-] - deepest enclosure the relation accepts
 inline constexpr std::uint32_t AbsentSlot            = 0xFFFFFFFFu; // [-] - no slot; never a valid ordinal
 
 /// 🧩 Whether Outer encloses Inner at any depth, by integer comparison alone.
@@ -69,7 +69,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact, PrecisionGuarantee::Exact);
 /// 🧩 Which of the two relations a declared change addresses.
 /// note  🔴 They are separately stored and separately reconciled. Deriving either from the other terminates
 ///       in a transform override, and that override is a rewrite rather than a patch.
-/// tag   contract
+/// tag   guarantee
 enum class RelationSubject : std::uint32_t
 {
     EnclosureContains = 0u,   // [-] - organisational; row order, visibility inheritance, grouping
@@ -234,22 +234,22 @@ public:
     /// 🧩 Next owner of the same enclosure ordering, or AbsentSlot at its end.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t NextInOrder(std::uint32_t SlotOrdinal) const;
+    std::uint32_t NextInOrder(std::uint32_t SlotIndex) const;
 
     /// 🧩 First owner enclosed by this one, or AbsentSlot when it encloses nothing.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t FirstEnclosed(std::uint32_t SlotOrdinal) const;
+    std::uint32_t FirstEnclosed(std::uint32_t SlotIndex) const;
 
     /// 🧩 How many enclosures stand between this owner and the root ordering.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t EnclosureDepth(std::uint32_t SlotOrdinal) const;
+    std::uint32_t EnclosureDepth(std::uint32_t SlotIndex) const;
 
     /// 🧩 The identity occupying one slot, undeclared when the slot is vacant here.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    OwnerIdentity OwnerAt(std::uint32_t SlotOrdinal) const;
+    OwnerIdentity OwnerAt(std::uint32_t SlotIndex) const;
 
     /// 🧩 How many slots both relations span, occupied or not.
     /// cost  ✔️
@@ -274,13 +274,13 @@ public:
 private:
 
     std::uint32_t Resolved(OwnerIdentity Subject) const;
-    void          Unlink(std::uint32_t SlotOrdinal);
-    void          Link(std::uint32_t SlotOrdinal, std::uint32_t EnclosureSlot, std::uint32_t OrderWithinEnclosure);
+    void          Unlink(std::uint32_t SlotIndex);
+    void          Link(std::uint32_t SlotIndex, std::uint32_t EnclosureSlot, std::uint32_t OrderWithinEnclosure);
     IntervalLabel EnclosureInterval(std::uint32_t EnclosureSlot) const;
-    bool          LabelBetween(std::uint32_t SlotOrdinal);
+    bool          LabelBetween(std::uint32_t SlotIndex);
     Outcome<bool> AssignLabels(std::uint32_t EnclosureSlot, IntervalLabel Available, std::uint32_t Depth);
     void          DeclareExhausted(std::uint32_t EnclosureSlot);
-    Outcome<bool> CompoundFrom(std::uint32_t SlotOrdinal, std::uint32_t Depth);
+    Outcome<bool> CompoundFrom(std::uint32_t SlotIndex, std::uint32_t Depth);
 
     std::vector<EnclosureRecord>      Enclosures;                 // [-] - indexed by slot ordinal
     std::vector<AttachmentRecord>     Attachments;                // [-] - indexed by slot ordinal

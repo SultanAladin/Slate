@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateVulkan/Device/ImageSpace/Api/ImageSpace.h"
 #include "SlateVulkan/Device/RenderSchedule/Api/RenderSchedule.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
@@ -94,7 +94,7 @@ public:
     /// post  no construct is declared
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange& Exchange, const TargetSpace& Reserved);
+    Outcome<bool> ConstructAttachmentIndex(const VulkanExchange& Exchange, const TargetSpace& Reserved);
 
     /// 🧩 Declares one render construct, returning the ordinal every later resolution names it by.
     /// in    Declaring  [-]  the colour targets in output order, and the depth target or its absence
@@ -123,12 +123,12 @@ public:
     Outcome<bool> Derive(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight);
 
     /// 🧩 The construct and the span one ordinal names, for the recording that opens it.
-    /// in    ConstructOrdinal  [-]  an ordinal this component registered
+    /// in    ConstructIndex  [-]  an ordinal this component registered
     /// out   Result           [-]  refuses with ContentUnsupported for an ordinal naming no construct, and
     ///                              with ExtentExhausted before Derive has covered it
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<ConstructedSpan> Resolve(std::uint32_t ConstructOrdinal) const;
+    Outcome<ConstructedSpan> Resolve(std::uint32_t ConstructIndex) const;
 
     /// 🧩 The construct alone, for `ProgramIndex` constructing a program before any span is derived.
     /// out   Result  [-]  refuses with ContentUnsupported for an ordinal naming no construct
@@ -137,7 +137,7 @@ public:
     ///       program would order the two the wrong way round.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<VkRenderPass> ConstructOf(std::uint32_t ConstructOrdinal) const;
+    Outcome<VkRenderPass> ConstructOf(std::uint32_t ConstructIndex) const;
 
     /// 🧩 Destroys every span and leaves the constructs standing, ahead of a re-claim at a new extent.
     /// pre   the device is idle

@@ -30,11 +30,11 @@ const char* const RecordingSubstitution = "hardware rasterisation for every part
 
 }   // namespace
 
-Outcome<bool> VisibilityIndex::Construct(std::uint32_t DisplayX, std::uint32_t DisplayY)
+Outcome<bool> VisibilityIndex::ConstructVisibilityIndex(std::uint32_t DisplayX, std::uint32_t DisplayY)
 {
     // 📝 Forwarded whole. The chain's refusals already name the extent that was rejected and restating them here
     //    would give one condition two spellings, which is the case `00` §2 makes against a number read twice.
-    return Reduced.Construct(DisplayX, DisplayY);
+    return Reduced.ConstructDepthReduction(DisplayX, DisplayY);
 }
 
 void VisibilityIndex::Reclaim()
@@ -122,9 +122,9 @@ Outcome<std::uint32_t> VisibilityIndex::Register(OwnerIdentity            Owner,
     std::vector<PartitionIdentity> Incoming;
     Incoming.reserve(Current->PartitionCount());
 
-    for (std::uint32_t PartitionOrdinal = 0u; PartitionOrdinal < Current->PartitionCount(); ++PartitionOrdinal)
+    for (std::uint32_t PartitionIndex = 0u; PartitionIndex < Current->PartitionCount(); ++PartitionIndex)
     {
-        const Outcome<PartitionIdentity> Named = Current->IdentityOf(PartitionOrdinal);
+        const Outcome<PartitionIdentity> Named = Current->IdentityOf(PartitionIndex);
 
         if (!Named.Resolved)
             return Outcome<std::uint32_t>::Refuse(Named.Error);
@@ -137,7 +137,7 @@ Outcome<std::uint32_t> VisibilityIndex::Register(OwnerIdentity            Owner,
     //    owner's first partition follows the first owner's last rather than restarting at nought.
     DeclaredIdentity.insert(DeclaredIdentity.end(), Incoming.begin(), Incoming.end());
 
-    const std::uint32_t RegistrationOrdinal = static_cast<std::uint32_t>(Registrations.size());
+    const std::uint32_t RegistrationIndex = static_cast<std::uint32_t>(Registrations.size());
 
     Registrations.push_back(std::move(Current));
 
@@ -145,7 +145,7 @@ Outcome<std::uint32_t> VisibilityIndex::Register(OwnerIdentity            Owner,
     //    ahead of the issuing is one `Resolve` compares against and refuses every identity this registration holds.
     ResolvedRevision = Resolutions.Revision();
 
-    return Outcome<std::uint32_t>::Result(RegistrationOrdinal);
+    return Outcome<std::uint32_t>::Result(RegistrationIndex);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -157,13 +157,13 @@ Outcome<ResolvedPartition> VisibilityIndex::Resolve(VisibilityWord              
 {
     // 📝 An unoccupied pixel is rejected rather than delivered empty. `16` §5 dispatches it as a class of its own
     //    and every consumer that reaches here instead has read a pixel it already classified as carrying nothing.
-    if (Written.PartitionOrdinal == AbsentPartition)
+    if (Written.PartitionIndex == AbsentPartition)
     {
         return Outcome<ResolvedPartition>::Refuse(
             { RefusalReason::ContentUnsupported, "an unoccupied pixel names no partition" });
     }
 
-    if (Written.PartitionOrdinal >= static_cast<std::uint32_t>(DeclaredIdentity.size()))
+    if (Written.PartitionIndex >= static_cast<std::uint32_t>(DeclaredIdentity.size()))
         return Outcome<ResolvedPartition>::Refuse({ RefusalReason::ContentUnsupported, "no such declared partition" });
 
     // 🔴 The revision comparison is what makes a pixel written before a rebuild discoverably stale. `42` reuses
@@ -175,19 +175,19 @@ Outcome<ResolvedPartition> VisibilityIndex::Resolve(VisibilityWord              
             { RefusalReason::IdentityStale, "the resolution was rebuilt since these partitions were declared" });
     }
 
-    return Resolutions.Resolve(DeclaredIdentity[Written.PartitionOrdinal]);
+    return Resolutions.Resolve(DeclaredIdentity[Written.PartitionIndex]);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE READS
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<const PartitionStructure*> VisibilityIndex::Registered(std::uint32_t RegistrationOrdinal) const
+Outcome<const PartitionStructure*> VisibilityIndex::Registered(std::uint32_t RegistrationIndex) const
 {
-    if (RegistrationOrdinal >= static_cast<std::uint32_t>(Registrations.size()))
+    if (RegistrationIndex >= static_cast<std::uint32_t>(Registrations.size()))
         return Outcome<const PartitionStructure*>::Refuse({ RefusalReason::ContentUnsupported, "no such registration" });
 
-    return Outcome<const PartitionStructure*>::Result(Registrations[RegistrationOrdinal].get());
+    return Outcome<const PartitionStructure*>::Result(Registrations[RegistrationIndex].get());
 }
 
 const DepthReduction& VisibilityIndex::Reduction() const

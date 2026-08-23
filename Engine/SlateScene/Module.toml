@@ -1,0 +1,17 @@
+# SlateScene — host-independent scene behaviour shared by editor, player and spectator applications.
+
+[unit]
+name    = "SlateScene"
+product = "StaticLibrary"
+subject = [ "Scene" ]
+
+[requires]
+unit = []
+
+[external]
+include = []
+declare = []
+
+[link]
+unit    = []
+library = []

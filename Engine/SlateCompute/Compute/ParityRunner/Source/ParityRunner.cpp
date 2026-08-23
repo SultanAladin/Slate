@@ -5,7 +5,7 @@
 
 #include "SlateCompute/Compute/ParityRunner/Api/ParityRunner.h"
 
-#include "Contract/ToleranceContract.h"
+#include "Foundation/NumericTolerance.h"
 #include "Shared/AtmosphereProjection.slang.h"
 #include "Shared/ContainmentClassifier.slang.h"
 #include "Shared/IncircleClassifier.slang.h"
@@ -201,9 +201,9 @@ const std::vector<ParityReport>& ParityRunner::Compare()
             const std::uint32_t SampleSpan =
                 static_cast<std::uint32_t>(sizeof(OrientationSampleSet) / sizeof(OrientationSampleSet[0]));
 
-            for (std::uint32_t Ordinal = 0u; Ordinal < SampleSpan; ++Ordinal)
+            for (std::uint32_t Index = 0u; Index < SampleSpan; ++Index)
             {
-                const OrientationSample& Sample = OrientationSampleSet[Ordinal];
+                const OrientationSample& Sample = OrientationSampleSet[Index];
 
                 const Signed32 Classified = ClassifyOrientation(Sample.AlphaX, Sample.AlphaY,
                                                                 Sample.BetaX,  Sample.BetaY,
@@ -228,9 +228,9 @@ const std::vector<ParityReport>& ParityRunner::Compare()
             const std::uint32_t SampleSpan =
                 static_cast<std::uint32_t>(sizeof(IncircleSampleSet) / sizeof(IncircleSampleSet[0]));
 
-            for (std::uint32_t Ordinal = 0u; Ordinal < SampleSpan; ++Ordinal)
+            for (std::uint32_t Index = 0u; Index < SampleSpan; ++Index)
             {
-                const IncircleSample& Sample = IncircleSampleSet[Ordinal];
+                const IncircleSample& Sample = IncircleSampleSet[Index];
 
                 const Signed32 Classified = ClassifyIncircle(Sample.AlphaX, Sample.AlphaY,
                                                              Sample.BetaX,  Sample.BetaY,
@@ -266,9 +266,9 @@ const std::vector<ParityReport>& ParityRunner::Compare()
             const std::uint32_t SampleSpan =
                 static_cast<std::uint32_t>(sizeof(SegmentSampleSet) / sizeof(SegmentSampleSet[0]));
 
-            for (std::uint32_t Ordinal = 0u; Ordinal < SampleSpan; ++Ordinal)
+            for (std::uint32_t Index = 0u; Index < SampleSpan; ++Index)
             {
-                const SegmentSample& Sample = SegmentSampleSet[Ordinal];
+                const SegmentSample& Sample = SegmentSampleSet[Index];
 
                 const Signed32 Classified = ClassifySegmentIntersection(Sample.AlphaX, Sample.AlphaY,
                                                                         Sample.BetaX,  Sample.BetaY,
@@ -299,9 +299,9 @@ const std::vector<ParityReport>& ParityRunner::Compare()
             const std::uint32_t SampleSpan =
                 static_cast<std::uint32_t>(sizeof(IntervalSampleSet) / sizeof(IntervalSampleSet[0]));
 
-            for (std::uint32_t Ordinal = 0u; Ordinal < SampleSpan; ++Ordinal)
+            for (std::uint32_t Index = 0u; Index < SampleSpan; ++Index)
             {
-                const IntervalSample& Sample = IntervalSampleSet[Ordinal];
+                const IntervalSample& Sample = IntervalSampleSet[Index];
 
                 const Signed32 Classified = ClassifyIntervalContainment(Sample.OuterBegin, Sample.OuterEnd,
                                                                         Sample.InnerBegin, Sample.InnerEnd);
@@ -337,9 +337,9 @@ const std::vector<ParityReport>& ParityRunner::Compare()
             const std::uint32_t SampleSpan =
                 static_cast<std::uint32_t>(sizeof(LatticeSampleSet) / sizeof(LatticeSampleSet[0]));
 
-            for (std::uint32_t Ordinal = 0u; Ordinal < SampleSpan; ++Ordinal)
+            for (std::uint32_t Index = 0u; Index < SampleSpan; ++Index)
             {
-                const LatticeSample& Sample = LatticeSampleSet[Ordinal];
+                const LatticeSample& Sample = LatticeSampleSet[Index];
 
                 Signed32 CellX    = 0;
                 Signed32 CellY   = 0;
@@ -381,7 +381,7 @@ const std::vector<ParityReport>& ParityRunner::Compare()
                 // 📐 Flooring, never truncation toward zero. The ordinal is never above the coordinate it was
                 //    floored from, which is the statement that separates the two below the origin and the one
                 //    a truncating device form would break by exactly one cell.
-                if (FlooredOrdinal(Sample.PositionX) > Sample.PositionX)
+                if (FlooredIndex(Sample.PositionX) > Sample.PositionX)
                     ++Report.DisagreeingCount;
 
                 Real64 ProjectedX  = 0.0;
@@ -428,8 +428,8 @@ const std::vector<ParityReport>& ParityRunner::Compare()
                 // 📐 The zigzag is a bijection onto the unsigned ordinals: a non-negative ordinal lands on an
                 //    even one and a negative ordinal on an odd one, so no two cells either side of the origin
                 //    can fold onto one variation. `54` §1's variation is a function of the fold alone.
-                if ((ZigzagOrdinal(CellX)  & 1u) != (CellX  < 0 ? 1u : 0u)
-                 || (ZigzagOrdinal(CellY) & 1u) != (CellY < 0 ? 1u : 0u))
+                if ((ZigzagIndex(CellX)  & 1u) != (CellX  < 0 ? 1u : 0u)
+                 || (ZigzagIndex(CellY) & 1u) != (CellY < 0 ? 1u : 0u))
                 {
                     ++Report.DisagreeingCount;
                 }
@@ -437,8 +437,8 @@ const std::vector<ParityReport>& ParityRunner::Compare()
                 // 📐 A cell never shares a variation with the cell beside it. `54` §1 concedes that the fold
                 //    cannot be injective and that two distant cells eventually collide; a collision between
                 //    neighbours is a different matter, and reads as two adjacent tiles carrying one variation.
-                if (FoldedCellOrdinal(CellX, CellY) == FoldedCellOrdinal(CellX + 1, CellY)
-                 || FoldedCellOrdinal(CellX, CellY) == FoldedCellOrdinal(CellX, CellY + 1))
+                if (FoldedCellIndex(CellX, CellY) == FoldedCellIndex(CellX + 1, CellY)
+                 || FoldedCellIndex(CellX, CellY) == FoldedCellIndex(CellX, CellY + 1))
                 {
                     ++Report.DisagreeingCount;
                 }
@@ -447,7 +447,7 @@ const std::vector<ParityReport>& ParityRunner::Compare()
             // 📐 The two ordinals the zigzag is defined by, stated rather than derived. Zero lands on zero and
             //    minus one on one; a form negating the most negative ordinal directly is undefined and is why
             //    the negative branch is written against the successor.
-            if (ZigzagOrdinal(0) != 0u || ZigzagOrdinal(-1) != 1u || ZigzagOrdinal(1) != 2u)
+            if (ZigzagIndex(0) != 0u || ZigzagIndex(-1) != 1u || ZigzagIndex(1) != 2u)
                 ++Report.DisagreeingCount;
 
             Report.SampleCount = SampleSpan;
@@ -456,11 +456,11 @@ const std::vector<ParityReport>& ParityRunner::Compare()
         {
             constexpr std::uint32_t SampleSpan = 4096u;
 
-            for (std::uint32_t Ordinal = 0u; Ordinal < SampleSpan; ++Ordinal)
+            for (std::uint32_t Index = 0u; Index < SampleSpan; ++Index)
             {
                 Real64 FirstCoordinate  = 0.0;
                 Real64 SecondCoordinate = 0.0;
-                ProjectPlanarSample(Ordinal, FirstCoordinate, SecondCoordinate);
+                ProjectPlanarSample(Index, FirstCoordinate, SecondCoordinate);
 
                 if (FirstCoordinate < 0.0 || FirstCoordinate >= 1.0
                  || SecondCoordinate < 0.0 || SecondCoordinate >= 1.0)
@@ -471,9 +471,9 @@ const std::vector<ParityReport>& ParityRunner::Compare()
                 // 📐 Reversing the bits of an even ordinal and of its successor differ in the highest bit
                 //    alone, so the base-two inverses differ by exactly one half. Exactly, in binary, with no
                 //    tolerance — which is the strongest statement available about any sample in the engine.
-                if ((Ordinal & 1u) == 0u)
+                if ((Index & 1u) == 0u)
                 {
-                    if (ProjectRadicalTwo(Ordinal + 1u) - ProjectRadicalTwo(Ordinal) != 0.5)
+                    if (ProjectRadicalTwo(Index + 1u) - ProjectRadicalTwo(Index) != 0.5)
                         ++Report.DisagreeingCount;
                 }
             }
@@ -488,11 +488,11 @@ const std::vector<ParityReport>& ParityRunner::Compare()
             //    that disagreed with the workspace's converges to a different image than the one on screen.
             constexpr std::uint32_t SampleSpan = 2048u;
 
-            for (std::uint32_t Ordinal = 0u; Ordinal < SampleSpan; ++Ordinal)
+            for (std::uint32_t Index = 0u; Index < SampleSpan; ++Index)
             {
                 Real64 OffsetX = 0.0;
                 Real64 OffsetY = 0.0;
-                ProjectSubPixelOffset(Ordinal, OffsetX, OffsetY);
+                ProjectSubPixelOffset(Index, OffsetX, OffsetY);
 
                 if (OffsetX <= -0.5 || OffsetX >= 0.5 || OffsetY <= -0.5 || OffsetY >= 0.5)
                     ++Report.DisagreeingCount;
@@ -502,7 +502,7 @@ const std::vector<ParityReport>& ParityRunner::Compare()
                 //    same arithmetic on the same ordinal and any difference is a lapse, never a rounding.
                 Real64 WrappedX = 0.0;
                 Real64 WrappedY = 0.0;
-                ProjectSubPixelOffset(Ordinal + Unsigned32(SubPixelSequenceLength), WrappedX, WrappedY);
+                ProjectSubPixelOffset(Index + Unsigned32(SubPixelSequenceLength), WrappedX, WrappedY);
 
                 if (WrappedX != OffsetX || WrappedY != OffsetY)
                     ++Report.DisagreeingCount;
@@ -520,11 +520,11 @@ const std::vector<ParityReport>& ParityRunner::Compare()
         {
             constexpr std::uint32_t SampleSpan = 1024u;
 
-            for (std::uint32_t Ordinal = 0u; Ordinal < SampleSpan; ++Ordinal)
+            for (std::uint32_t Index = 0u; Index < SampleSpan; ++Index)
             {
                 Real64 FirstCoordinate  = 0.0;
                 Real64 SecondCoordinate = 0.0;
-                ProjectPlanarSample(Ordinal, FirstCoordinate, SecondCoordinate);
+                ProjectPlanarSample(Index, FirstCoordinate, SecondCoordinate);
 
                 Real64 DirectionX = 0.0;
                 Real64 DirectionY = 0.0;
@@ -562,12 +562,12 @@ const std::vector<ParityReport>& ParityRunner::Compare()
             Profile.PlanetRadius        = 6360000.0;
             Profile.AtmosphereThickness = 100000.0;
 
-            for (std::uint32_t XOrdinal = 0u; XOrdinal < AxisSpan; ++XOrdinal)
+            for (std::uint32_t XIndex = 0u; XIndex < AxisSpan; ++XIndex)
             {
-                for (std::uint32_t YOrdinal = 0u; YOrdinal < AxisSpan; ++YOrdinal)
+                for (std::uint32_t YIndex = 0u; YIndex < AxisSpan; ++YIndex)
                 {
-                    const Real64 CoordinateX  = (static_cast<Real64>(XOrdinal)  + 0.5) / AxisSpan;
-                    const Real64 CoordinateY = (static_cast<Real64>(YOrdinal) + 0.5) / AxisSpan;
+                    const Real64 CoordinateX  = (static_cast<Real64>(XIndex)  + 0.5) / AxisSpan;
+                    const Real64 CoordinateY = (static_cast<Real64>(YIndex) + 0.5) / AxisSpan;
 
                     Real64 Radius       = 0.0;
                     Real64 ZenithCosine = 0.0;
@@ -604,12 +604,12 @@ const std::vector<ParityReport>& ParityRunner::Compare()
             //    assumes and what a mis-set quadratic branch would break immediately.
             constexpr std::uint32_t AxisSpan = 64u;
 
-            for (std::uint32_t XOrdinal = 0u; XOrdinal < AxisSpan; ++XOrdinal)
+            for (std::uint32_t XIndex = 0u; XIndex < AxisSpan; ++XIndex)
             {
-                for (std::uint32_t YOrdinal = 0u; YOrdinal < AxisSpan; ++YOrdinal)
+                for (std::uint32_t YIndex = 0u; YIndex < AxisSpan; ++YIndex)
                 {
-                    const Real64 CoordinateX  = (static_cast<Real64>(XOrdinal)  + 0.5) / AxisSpan;
-                    const Real64 CoordinateY = (static_cast<Real64>(YOrdinal) + 0.5) / AxisSpan;
+                    const Real64 CoordinateX  = (static_cast<Real64>(XIndex)  + 0.5) / AxisSpan;
+                    const Real64 CoordinateY = (static_cast<Real64>(YIndex) + 0.5) / AxisSpan;
 
                     Real64 DirectionX = 0.0;
                     Real64 DirectionY = 0.0;
@@ -645,13 +645,13 @@ const std::vector<ParityReport>& ParityRunner::Compare()
             //    lapse in either lets two coplanar panes swap between rotations.
             constexpr std::uint32_t SampleSpan = 512u;
 
-            for (std::uint32_t Ordinal = 0u; Ordinal < SampleSpan; ++Ordinal)
+            for (std::uint32_t Index = 0u; Index < SampleSpan; ++Index)
             {
-                const std::uint32_t EarlierKey     = ProjectTransmissionKey(static_cast<double>(Ordinal) / SampleSpan);
-                const std::uint32_t LaterKey       = ProjectTransmissionKey(static_cast<double>(SampleSpan - Ordinal)
+                const std::uint32_t EarlierKey     = ProjectTransmissionKey(static_cast<double>(Index) / SampleSpan);
+                const std::uint32_t LaterKey       = ProjectTransmissionKey(static_cast<double>(SampleSpan - Index)
                                                                           / SampleSpan);
-                const std::uint32_t EarlierSurface = PackTransmissionSurface(Ordinal, Ordinal & 0x7Fu);
-                const std::uint32_t LaterSurface   = PackTransmissionSurface(SampleSpan - Ordinal, 3u);
+                const std::uint32_t EarlierSurface = PackTransmissionSurface(Index, Index & 0x7Fu);
+                const std::uint32_t LaterSurface   = PackTransmissionSurface(SampleSpan - Index, 3u);
 
                 if (TransmissionPrecedes(EarlierKey, EarlierSurface, EarlierKey, EarlierSurface))
                     ++Report.DisagreeingCount;
@@ -666,8 +666,8 @@ const std::vector<ParityReport>& ParityRunner::Compare()
 
                 // 📐 The packing round-trips exactly, or the pixel resolves to another triangle of the same
                 //    partition — which shades as a surface that is very nearly the right one.
-                if (UnpackTransmissionPartition(EarlierSurface) != Ordinal
-                 || UnpackTransmissionTriangle(EarlierSurface) != (Ordinal & 0x7Fu))
+                if (UnpackTransmissionPartition(EarlierSurface) != Index
+                 || UnpackTransmissionTriangle(EarlierSurface) != (Index & 0x7Fu))
                 {
                     ++Report.DisagreeingCount;
                 }
@@ -677,18 +677,18 @@ const std::vector<ParityReport>& ParityRunner::Compare()
         }
         else if (std::strcmp(Held.EntryName, "ResolveExactComposite") == 0)
         {
-            // 🔴 `30` §1's whole contract, as two identities. At a weight of nothing the composite is the
+            // 🔴 `30` §1's whole guarantee, as two identities. At a weight of nothing the composite is the
             //    identity on the standing radiance — which is what makes every failure free and invisible — and
             //    at a weight of one it has swapped the pre-added contribution for the traced one exactly.
             constexpr std::uint32_t SampleSpan = 1024u;
 
-            for (std::uint32_t Ordinal = 0u; Ordinal < SampleSpan; ++Ordinal)
+            for (std::uint32_t Index = 0u; Index < SampleSpan; ++Index)
             {
                 double Current = 0.0;
                 double PreAdded = 0.0;
-                ProjectPlanarSample(Ordinal + 1u, Current, PreAdded);
+                ProjectPlanarSample(Index + 1u, Current, PreAdded);
 
-                const double Traced = ProjectRadicalThree(Ordinal + 7u) * 4.0;
+                const double Traced = ProjectRadicalThree(Index + 7u) * 4.0;
 
                 if (ResolveExactComposite(Current, PreAdded, Traced, 0.0) != Current)
                     ++Report.DisagreeingCount;
@@ -717,9 +717,9 @@ const std::vector<ParityReport>& ParityRunner::Compare()
             if (Preceding != 0.0)
                 ++Report.DisagreeingCount;
 
-            for (std::uint32_t Ordinal = 1u; Ordinal <= SampleSpan; ++Ordinal)
+            for (std::uint32_t Index = 1u; Index <= SampleSpan; ++Index)
             {
-                const double Magnitude  = static_cast<double>(Ordinal) / SampleSpan * White * 4.0;
+                const double Magnitude  = static_cast<double>(Index) / SampleSpan * White * 4.0;
                 const double Compressed = ProjectToneCompressed(Magnitude, White);
 
                 if (Compressed < Preceding)
@@ -742,22 +742,22 @@ const std::vector<ParityReport>& ParityRunner::Compare()
             //    constant once the ceiling saturates. The third is what keeps a still workspace responsive, and
             //    it is the one an implementation forgets.
             constexpr std::uint32_t SampleSpan   = 256u;
-            constexpr std::uint32_t CountCeiling = 64u;
+            constexpr std::uint32_t CountLimit = 64u;
 
-            if (ProjectAccumulationWeight(0u, CountCeiling) != 1.0)
+            if (ProjectAccumulationWeight(0u, CountLimit) != 1.0)
                 ++Report.DisagreeingCount;
 
-            for (std::uint32_t Ordinal = 1u; Ordinal < SampleSpan; ++Ordinal)
+            for (std::uint32_t Index = 1u; Index < SampleSpan; ++Index)
             {
-                const double Earlier = ProjectAccumulationWeight(Ordinal - 1u, CountCeiling);
-                const double Later   = ProjectAccumulationWeight(Ordinal, CountCeiling);
+                const double Earlier = ProjectAccumulationWeight(Index - 1u, CountLimit);
+                const double Later   = ProjectAccumulationWeight(Index, CountLimit);
 
-                const bool Saturated = Ordinal > CountCeiling;
+                const bool Saturated = Index > CountLimit;
 
                 if (Saturated ? Later != Earlier : Later >= Earlier)
                     ++Report.DisagreeingCount;
 
-                if (ProjectAccumulatedCount(CountCeiling, CountCeiling) != CountCeiling)
+                if (ProjectAccumulatedCount(CountLimit, CountLimit) != CountLimit)
                     ++Report.DisagreeingCount;
             }
 
@@ -774,7 +774,7 @@ const std::vector<ParityReport>& ParityRunner::Compare()
         //    Without this clause a Bounded registration would hold on the strength of an equality comparison
         //    it never performed, which is the vacant pass in a different disguise.
         const bool DeviationHeld = Held.Reserved != PrecisionGuarantee::Bounded
-                                || Report.LargestDeviation <= SampleUnitPlaceCeiling;
+                                || Report.LargestDeviation <= SampleUnitPlaceLimit;
 
         Report.AgreementHeld = Report.SampleCount > 0u && Report.DisagreeingCount == 0u && DeviationHeld;
 

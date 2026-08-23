@@ -13,14 +13,14 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
 #include "SlateUI/Interface/ControlPanel/Api/ControlPanel.h"
-#include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
+#include "SlateUI/Interface/ControlIndex/Api/ControlIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
-#include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectoryContract.h"
+#include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectorySpecification.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
 #include "SlateUI/Interface/SymbolSpecification/Api/SymbolSpecification.h"
 
@@ -28,6 +28,28 @@
 
 namespace Slate
 {
+
+// Legacy validation-prototype data. SceneDirectoryPanel no longer exposes or records history.
+enum class RevisionSubject : std::uint32_t
+{
+    Start, Feature, Parameter, Sketch, Relocate, Grouped, Created, Amended, Dropped, SubjectCount
+};
+struct EntityRevision
+{
+    const char* Description = "";
+    const char* Secondary = "";
+    const char* TimeRun = "";
+    const char* Author = "System";
+    std::uint32_t Against = 0u;
+    RevisionSubject Classified = RevisionSubject::Amended;
+};
+struct RevisionDemand
+{
+    bool Standing = false;
+    std::uint32_t Against = 0u;
+    char Caption[64] = {};
+    char Secondary[64] = {};
+};
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE REFERENCE INKS
@@ -49,7 +71,7 @@ inline constexpr double CarouselTravelOver = 300.0;   // [ms] - duration-300 on 
 
 /// 🧩 Which of the three workspaces the Options rail has selected.
 /// note  The reference's `workspaceMode` union, verbatim and in its own ordinal order.
-/// tag   contract
+/// tag   guarantee
 enum class WorkspaceMode : std::uint32_t
 {
     Drafting     = 0u,   // [-] - the scene directory and its metadata pane
@@ -62,7 +84,7 @@ enum class WorkspaceMode : std::uint32_t
 /// note  📐 The reference's `KINDS` record from `components/TexturePaint.tsx`, in its own ordinal order. It
 ///        spells the discriminator `kind`, which is a banned spelling; `ChannelPropertyPanel` in the same
 ///        file already calls the same property `Classification`, so the reference's own second name is used.
-/// tag   contract
+/// tag   guarantee
 enum class LayerClassification : std::uint32_t
 {
     Paint               = 0u,   // [-] - accepts brush strokes
@@ -72,7 +94,7 @@ enum class LayerClassification : std::uint32_t
 };
 
 /// 🧩 Which half of a layer row the artist has taken — the reference's `activeTarget`.
-/// tag   contract
+/// tag   guarantee
 enum class LayerTarget : std::uint32_t
 {
     Layer = 0u,   // [-] - the left half; its blend, opacity and channels
@@ -93,10 +115,10 @@ const char* ClassificationText(LayerClassification Classified);
 /// note  📝 Held flat and borrowed for the tick, on the same terms as `EntityRow`. The reference keeps its
 ///        channel names in a JavaScript array; a bounded run of borrowed pointers records identically and
 ///        keeps the panel allocation free.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct LayerRow
 {
-    static constexpr std::uint32_t ChannelCeiling = 6u;   // [-] - the reference declares at most four
+    static constexpr std::uint32_t ChannelLimit = 6u;   // [-] - the reference declares at most four
 
     const char*          Naming        = "";                          // [-] - borrowed; outlives the tick
     LayerClassification  Classified    = LayerClassification::Paint;   // [-] - kind
@@ -107,7 +129,7 @@ struct LayerRow
     bool                 MaskDeclared  = false;                        // [-] - mask.enabled
     std::uint32_t        MaskStrength  = 100u;                         // [%] - mask.strength
     bool                 MaskInverted  = false;                        // [-] - mask.invert
-    const char*          Channels[ChannelCeiling] = {};                // [-] - borrowed; the channel pills
+    const char*          Channels[ChannelLimit] = {};                // [-] - borrowed; the channel pills
     std::uint32_t        ChannelCount  = 0u;                           // [-] - how many are declared
 };
 
@@ -119,7 +141,7 @@ struct LayerRow
 /// note  🔴 Lives beside the artist's other conditions in `ShellContext` and NOT in `EntityRow`, because
 ///        the inspector writes to it. `EntityRow` is the borrowed description of what a row IS; this is the
 ///        mutable record of what the artist has made it.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct EntityProfile
 {
     double         Position[3]        = { 0.0, 0.0, 0.0 };   // [mm]  - profile.Position
@@ -149,13 +171,13 @@ struct EntityProfile
 /// 🧩 Every datum the shell presents, owned by the host and written through by the panel.
 /// note  🔴 `14` §1: the panel presents what it is handed and retains none of it. Every condition the artist
 ///        can alter lives here, so the host — and only the host — is the home of the shell's content.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct ShellContext
 {
-    static constexpr std::uint32_t EntityCeiling    = 16u;   // [-] - the reference declares fourteen
-    static constexpr std::uint32_t RetentionCeiling = 48u;   // [-] - the retention run, terminator included
-    static constexpr std::uint32_t LayerCeiling     = 12u;   // [-] - the reference declares four
-    static constexpr std::uint32_t CardCeiling      =  4u;   // [-] - the reference states at most four
+    static constexpr std::uint32_t EntityLimit    = 16u;   // [-] - the reference declares fourteen
+    static constexpr std::uint32_t RetentionLimit = 48u;   // [-] - the retention run, terminator included
+    static constexpr std::uint32_t LayerLimit     = 12u;   // [-] - the reference declares four
+    static constexpr std::uint32_t CardLimit      =  4u;   // [-] - the reference states at most four
 
     bool           InspectorDocked = false;                        // [-] - isDocked; the reference begins undocked
     bool           MenuOpened      = false;                        // [-] - menuOpen
@@ -168,30 +190,30 @@ struct ShellContext
     std::uint32_t  InspectorTab    = 0u;                           // [-] - 0 Properties, 1 History
 
     // 📝 The floating context card the per-row kebab raises. `ContextRaised` is the row it was raised
-    //    from and `EntityCeiling` is the closed count standing for "no card"; the two ordinates are where
+    //    from and `EntityLimit` is the closed count standing for "no card"; the two ordinates are where
     //    the kebab was, before the reference's own clamp against the trailing edge is applied.
-    std::uint32_t  ContextRaised   = EntityCeiling;                // [-] - contextMenu.id
+    std::uint32_t  ContextRaised   = EntityLimit;                // [-] - contextMenu.id
     float          ContextX    = 0.0f;                         // [px] - contextMenu.x
     float          ContextY   = 0.0f;                         // [px] - contextMenu.y
     WorkspaceMode  Mode            = WorkspaceMode::WorldEditor;   // [-] - the reference begins on 'game'
     std::uint32_t  EntityTaken     = 2u;                           // [-] - activeGameId, applied at 'g_03'
-    char           EntityRetention[RetentionCeiling] = {};         // [-] - filterText
+    char           EntityRetention[RetentionLimit] = {};         // [-] - filterText
 
     // 📝 The disclosure conditions the reference's own graph declares: the level, Lighting, Environment and
     //    Systems arrive expanded and nothing else does.
-    bool  EntityExpanded[EntityCeiling] = { true, true, false, false, false, false,
+    bool  EntityExpanded[EntityLimit] = { true, true, false, false, false, false,
                                             true, false, false, false, true, false, false, false };
-    bool  EntityPresent[EntityCeiling]  = { true, true, true, true, true, true,
+    bool  EntityPresent[EntityLimit]  = { true, true, true, true, true, true,
                                             true, true, true, true, true, true, true, true };
 
     // 📝 What the metadata pane states and the property cards write back through. Applied at the reference's
     //    own defaults and amended by the artist; the panel reads and writes it and retains none of it.
-    EntityProfile  EntityProfiles[EntityCeiling] = {};
+    EntityProfile  EntityProfiles[EntityLimit] = {};
 
     // 📐 `collapsedCards` and `collapsedHistory`. The reference applies both empty, so every card and every
     //    revision group arrives disclosed and the artist folds what they do not want.
-    bool  CardFolded[CardCeiling]        = {};
-    bool  RevisionFolded[EntityCeiling]  = {};
+    bool  CardFolded[CardLimit]        = {};
+    bool  RevisionFolded[EntityLimit]  = {};
 
     // 📝 The Layer Stack's own conditions. `activeLayerId` is an ordinal here rather than the reference's
     //    minted identifier, on the same terms as `EntityTaken`; the reference applies it on its first layer.
@@ -199,8 +221,8 @@ struct ShellContext
     LayerTarget    TargetTaken  = LayerTarget::Layer;      // [-] - activeTarget
 
     // 🔴 The reference applies `expandedIds` to `[activeLayerId]` — the taken layer alone arrives unfolded.
-    bool  LayerUnfolded[LayerCeiling] = { true };          // [-] - expandedIds
-    bool  LayerShown[LayerCeiling]    = { true, true, false, true, true, true,
+    bool  LayerUnfolded[LayerLimit] = { true };          // [-] - expandedIds
+    bool  LayerShown[LayerLimit]    = { true, true, false, true, true, true,
                                           true, true, true, true, true, true };   // [-] - shown
 
     // 📝 The editor's environment. `EnvironmentPresented` gates every environment branch in the shell, so
@@ -240,7 +262,7 @@ public:
 
     /// 🧩 Exactly how many control identities `Construct` claims, stated where they are claimed.
     /// note  🔴 A host counted these by hand and the count went stale the first time the shell grew a
-    ///        button; the ledger then rejected whichever panel was constructed after it, at bring-up, with
+    ///        button; the index then rejected whichever panel was constructed after it, at bring-up, with
     ///        a message naming the wrong panel. The arithmetic lives beside the registrations it describes so
     ///        the two can only disagree by an edit that touches both.
     static constexpr std::uint32_t RegistrationDemand =
@@ -248,10 +270,10 @@ public:
                                                     //       veil, the stack's two, the call and five actions
         + 13u                                       // [-] - both strips, six tints, the clear, Rename,
                                                     //       Delete, the context veil and the Back call
-        + ShellContext::CardCeiling               // [-] - one fold per property card
-        + ShellContext::EntityCeiling             // [-] - one fold per grouped revision header
-        + ShellContext::EntityCeiling * 4u        // [-] - contact, disclosure, presence and kebab per row
-        + ShellContext::LayerCeiling  * 6u        // [-] - two halves and four actions per layer row
+        + ShellContext::CardLimit               // [-] - one fold per property card
+        + ShellContext::EntityLimit             // [-] - one fold per grouped revision header
+        + ShellContext::EntityLimit * 4u        // [-] - contact, disclosure, presence and kebab per row
+        + ShellContext::LayerLimit  * 6u        // [-] - two halves and four actions per layer row
         + 6u;                                      // [-] - the six environment slider rows
 
     GlobalShellPanel()                                   = default;
@@ -261,16 +283,16 @@ public:
 
     /// 🧩 Borrows the recording facilities and registers every identity and interpolant the shell needs.
     /// out   Result  [-]  refuses with ContentUnsupported when a construction already stands, and with
-    ///                     ExtentExhausted when the ledger or the integrator declines an registration
+    ///                     ExtentExhausted when the index or the integrator declines an registration
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(InteractionIndex&              Interaction,
+    Outcome<bool> ConstructGlobalShellPanel(ControlIndex&              IncomingInteraction,
                             MotionIntegrator&              Integrator,
                             RecordingSurface&              Surface,
                             const ThemeProfile& Resolved);
 
-    /// 🧩 Samples the contact for this tick, after the tick owner has advanced the shared ledger once.
-    /// note  🔴 This does not advance the ledger; several panels share it and the tick owner advances it once.
+    /// 🧩 Samples the contact for this tick, after the tick owner has advanced the shared index once.
+    /// note  🔴 This does not advance the index; several panels share it and the tick owner advances it once.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     void Advance(const PointerCondition& Sampled, double Elapsed);
@@ -327,9 +349,9 @@ public:
 
 private:
 
-    static constexpr std::uint32_t RowCeiling   = ShellContext::EntityCeiling;
-    static constexpr std::uint32_t LayerCeiling = ShellContext::LayerCeiling;
-    static constexpr std::uint32_t CardCeiling  = ShellContext::CardCeiling;
+    static constexpr std::uint32_t RowLimit   = ShellContext::EntityLimit;
+    static constexpr std::uint32_t LayerLimit = ShellContext::LayerLimit;
+    static constexpr std::uint32_t CardLimit  = ShellContext::CardLimit;
 
     void RecordTopBar(const PlaneExtent& Extent, const ShellContext& Applied);
     void RecordOptionsRail(const PlaneExtent& Extent, ShellContext& Applied);
@@ -395,7 +417,7 @@ private:
     /// 🧩 One layer row — its spine, its two halves and, when unfolded, its two property columns.
     /// out   Consumed  [px]  what the row actually spanned across, folded or unfolded
     float RecordLayerRow(const PlaneExtent& Extent, ShellContext& Applied, const LayerRow& Current,
-                         std::uint32_t Ordinal, std::uint32_t LayerCount, bool Trailing);
+                         std::uint32_t Index, std::uint32_t LayerCount, bool Trailing);
 
     /// 🧩 Slide two in Texture Paint — the reference's `LayerInspectorPane` and the panel it delegates to.
     void RecordLayerInspector(const PlaneExtent& Extent, const ShellContext& Applied,
@@ -406,9 +428,9 @@ private:
 
     /// 🧩 Whether a row is presented, given the filter and every enclosure's disclosure.
     bool RowCurrent(const ShellContext& Applied, const EntityRow* Rows,
-                      std::uint32_t RowCount, std::uint32_t Ordinal) const;
+                      std::uint32_t RowCount, std::uint32_t Index) const;
 
-    InteractionIndex*              Ledger     = nullptr;   // [-] - borrowed; never owned
+    ControlIndex*              Interaction     = nullptr;   // [-] - borrowed; never owned
     MotionIntegrator*              Motion     = nullptr;   // [-] - borrowed; never owned
     RecordingSurface*              Surface    = nullptr;   // [-] - borrowed; never owned
     const ThemeProfile* Appearance = nullptr;   // [-] - borrowed; never owned
@@ -437,27 +459,27 @@ private:
     // 📝 Slide two's own strip, its Back call, and the fold each property card and revision group carries.
     ControlIdentity  InspectorStrip             = {};   // [-] - the Properties / History strip
     ControlIdentity  BackCall                   = {};   // [-] - "Back to scene directory"
-    ControlIdentity  CardFolds[CardCeiling]     = {};   // [-] - one per property card
-    ControlIdentity  RevisionGroups[RowCeiling] = {};   // [-] - one per grouped revision header
+    ControlIdentity  CardFolds[CardLimit]     = {};   // [-] - one per property card
+    ControlIdentity  RevisionGroups[RowLimit] = {};   // [-] - one per grouped revision header
 
     ControlIdentity  OutlineStrip             = {};   // [-] - the Outliner / Context Menu strip
     ControlIdentity  ContextTints[7]            = {};   // [-] - six hues and the one that clears them
     ControlIdentity  ContextActions[2]          = {};   // [-] - Rename and Delete
     ControlIdentity  ContextVeil                = {};   // [-] - the fixed inset the card dismisses against
-    ControlIdentity  RowKebabs[RowCeiling]      = {};   // [-] - one per outline row
+    ControlIdentity  RowKebabs[RowLimit]      = {};   // [-] - one per outline row
 
-    ControlIdentity  RowContacts[RowCeiling]    = {};   // [-] - one per outline row
-    ControlIdentity  RowDisclosures[RowCeiling] = {};   // [-] - one per disclosure cell
-    ControlIdentity  RowPresences[RowCeiling]   = {};   // [-] - one per presence action
+    ControlIdentity  RowContacts[RowLimit]    = {};   // [-] - one per outline row
+    ControlIdentity  RowDisclosures[RowLimit] = {};   // [-] - one per disclosure cell
+    ControlIdentity  RowPresences[RowLimit]   = {};   // [-] - one per presence action
 
     // 📝 The Layer Stack's own contacts. Its rows carry two takeable halves and three actions apiece, so
     //    they are registered as their own run rather than shared with the outliner's — a shared identity
     //    would let a contact on an outline row hover a layer row that is not even presented this tick.
-    ControlIdentity  LayerHalves[LayerCeiling * 2u] = {};   // [-] - the layer half and the mask half
-    ControlIdentity  LayerFolds[LayerCeiling]       = {};   // [-] - one per disclosure chevron
-    ControlIdentity  LayerPresences[LayerCeiling]   = {};   // [-] - one per eye
-    ControlIdentity  LayerMaskEyes[LayerCeiling]    = {};   // [-] - one per mask eye
-    ControlIdentity  LayerRetires[LayerCeiling]     = {};   // [-] - one per bin
+    ControlIdentity  LayerHalves[LayerLimit * 2u] = {};   // [-] - the layer half and the mask half
+    ControlIdentity  LayerFolds[LayerLimit]       = {};   // [-] - one per disclosure chevron
+    ControlIdentity  LayerPresences[LayerLimit]   = {};   // [-] - one per eye
+    ControlIdentity  LayerMaskEyes[LayerLimit]    = {};   // [-] - one per mask eye
+    ControlIdentity  LayerRetires[LayerLimit]     = {};   // [-] - one per bin
     ControlIdentity  LayerAdd                       = {};   // [-] - the Add layer button
     ControlIdentity  LayerRetention                 = {};   // [-] - the Filter layers run
 

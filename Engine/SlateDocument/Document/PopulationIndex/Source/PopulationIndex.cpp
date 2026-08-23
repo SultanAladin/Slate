@@ -12,38 +12,38 @@ namespace Slate
 //                                                      OCCUPANCY
 //------------------------------------------------------------------------------------------------------------------------
 
-void OccupancyIndex::Occupy(std::uint32_t SlotOrdinal)
+void OccupancyIndex::Occupy(std::uint32_t SlotIndex)
 {
-    const std::size_t WordOrdinal = SlotOrdinal / 64u;
-    const std::uint64_t BitMask   = 1ull << (SlotOrdinal % 64u);
+    const std::size_t WordIndex = SlotIndex / 64u;
+    const std::uint64_t BitMask   = 1ull << (SlotIndex % 64u);
 
-    if (WordOrdinal >= OccupancyWords.size())
-        OccupancyWords.resize(WordOrdinal + 1u, 0ull);
+    if (WordIndex >= OccupancyWords.size())
+        OccupancyWords.resize(WordIndex + 1u, 0ull);
 
-    OccupancyWords[WordOrdinal] |= BitMask;
+    OccupancyWords[WordIndex] |= BitMask;
 
-    if (SlotOrdinal + 1u > SpannedSlots)
-        SpannedSlots = SlotOrdinal + 1u;
+    if (SlotIndex + 1u > SpannedSlots)
+        SpannedSlots = SlotIndex + 1u;
 }
 
-void OccupancyIndex::Release(std::uint32_t SlotOrdinal)
+void OccupancyIndex::Release(std::uint32_t SlotIndex)
 {
-    const std::size_t WordOrdinal = SlotOrdinal / 64u;
+    const std::size_t WordIndex = SlotIndex / 64u;
 
-    if (WordOrdinal >= OccupancyWords.size())
+    if (WordIndex >= OccupancyWords.size())
         return;
 
-    OccupancyWords[WordOrdinal] &= ~(1ull << (SlotOrdinal % 64u));
+    OccupancyWords[WordIndex] &= ~(1ull << (SlotIndex % 64u));
 }
 
-bool OccupancyIndex::Occupied(std::uint32_t SlotOrdinal) const
+bool OccupancyIndex::Occupied(std::uint32_t SlotIndex) const
 {
-    const std::size_t WordOrdinal = SlotOrdinal / 64u;
+    const std::size_t WordIndex = SlotIndex / 64u;
 
-    if (WordOrdinal >= OccupancyWords.size())
+    if (WordIndex >= OccupancyWords.size())
         return false;
 
-    return (OccupancyWords[WordOrdinal] & (1ull << (SlotOrdinal % 64u))) != 0ull;
+    return (OccupancyWords[WordIndex] & (1ull << (SlotIndex % 64u))) != 0ull;
 }
 
 std::uint32_t OccupancyIndex::SpannedCount() const
@@ -57,33 +57,33 @@ std::uint32_t OccupancyIndex::SpannedCount() const
 
 Outcome<OwnerIdentity> PopulationIndex::Register()
 {
-    std::uint32_t SlotOrdinal = 0u;
+    std::uint32_t SlotIndex = 0u;
 
-    if (!ReleasedOrdinals.empty())
+    if (!ReleasedIndexs.empty())
     {
         // 📝 A released slot is reused with its generation already advanced by Withdraw, so the identity
         //    registered here can never equal one registered for the slot's previous owner.
-        SlotOrdinal = ReleasedOrdinals.back();
-        ReleasedOrdinals.pop_back();
+        SlotIndex = ReleasedIndexs.back();
+        ReleasedIndexs.pop_back();
     }
     else
     {
-        if (SlotGenerations.size() >= PopulationCeiling)
+        if (SlotGenerations.size() >= PopulationLimit)
         {
             return Outcome<OwnerIdentity>::Refuse(
                 { RefusalReason::ExtentExhausted, "the population reached its declared ceiling" });
         }
 
-        SlotOrdinal = static_cast<std::uint32_t>(SlotGenerations.size());
+        SlotIndex = static_cast<std::uint32_t>(SlotGenerations.size());
         SlotGenerations.push_back(1u);
     }
 
-    Occupancy.Occupy(SlotOrdinal);
+    Occupancy.Occupy(SlotIndex);
     ++OccupiedCount;
 
     OwnerIdentity Registered;
-    Registered.SlotOrdinal    = SlotOrdinal;
-    Registered.SlotGeneration = SlotGenerations[SlotOrdinal];
+    Registered.SlotIndex    = SlotIndex;
+    Registered.SlotGeneration = SlotGenerations[SlotIndex];
 
     return Outcome<OwnerIdentity>::Result(Registered);
 }
@@ -97,13 +97,13 @@ Outcome<bool> PopulationIndex::Withdraw(OwnerIdentity Subject)
     if (!Resolve(Subject))
         return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the identity no longer resolves" });
 
-    Occupancy.Release(Subject.SlotOrdinal);
+    Occupancy.Release(Subject.SlotIndex);
 
     // 📝 The generation advances on withdrawal, not on reuse. Every reference carrying the prior generation
     //    resolves to absent from this point, whether or not the slot is ever occupied again.
-    ++SlotGenerations[Subject.SlotOrdinal];
+    ++SlotGenerations[Subject.SlotIndex];
 
-    ReleasedOrdinals.push_back(Subject.SlotOrdinal);
+    ReleasedIndexs.push_back(Subject.SlotIndex);
     --OccupiedCount;
 
     return Outcome<bool>::Result(true);
@@ -118,13 +118,13 @@ bool PopulationIndex::Resolve(OwnerIdentity Subject) const
     if (!Subject.IdentityDeclared())
         return false;
 
-    if (Subject.SlotOrdinal >= SlotGenerations.size())
+    if (Subject.SlotIndex >= SlotGenerations.size())
         return false;
 
-    if (!Occupancy.Occupied(Subject.SlotOrdinal))
+    if (!Occupancy.Occupied(Subject.SlotIndex))
         return false;
 
-    return SlotGenerations[Subject.SlotOrdinal] == Subject.SlotGeneration;
+    return SlotGenerations[Subject.SlotIndex] == Subject.SlotGeneration;
 }
 
 std::uint32_t PopulationIndex::RegisteredCount() const

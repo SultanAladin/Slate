@@ -107,30 +107,30 @@ const char* ClassificationText(LayerClassification Classified)
 //                                                       BRING-UP
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> GlobalShellPanel::Construct(InteractionIndex&              Interaction,
+Outcome<bool> GlobalShellPanel::ConstructGlobalShellPanel(ControlIndex&              IncomingInteraction,
                                           MotionIntegrator&              Integrator,
-                                          RecordingSurface&              Surface,
+                                          RecordingSurface&              IncomingSurface,
                                           const ThemeProfile& Resolved)
 {
-    if (Ledger != nullptr)
+    if (Interaction != nullptr)
     {
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported,
                                        "the shell panel is already constructed" });
     }
 
-    Ledger     = &Interaction;
+    Interaction     = &IncomingInteraction;
     Motion     = &Integrator;
-    this->Surface = &Surface;
+    this->Surface = &IncomingSurface;
     Appearance = &Resolved;
 
-    if (!Controls.Construct(Interaction, Surface, Resolved).Resolved)
+    if (!Controls.ConstructControlPanel(IncomingInteraction, IncomingSurface, Resolved).Resolved)
     {
         Reset();
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent,
                                        "the shared inspector controls were rejected" });
     }
 
-    if (!EnvironmentControls.Construct(Interaction, Surface, Resolved).Resolved)
+    if (!EnvironmentControls.ConstructComponents(IncomingInteraction, IncomingSurface, Resolved).Resolved)
     {
         Reset();
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent,
@@ -153,7 +153,7 @@ Outcome<bool> GlobalShellPanel::Construct(InteractionIndex&              Interac
 
     for (ControlIdentity* Target : Every)
     {
-        const Outcome<ControlIdentity> Registered = Interaction.Register();
+        const Outcome<ControlIdentity> Registered = IncomingInteraction.Register();
 
         if (!Registered.Resolved)
         {
@@ -164,17 +164,17 @@ Outcome<bool> GlobalShellPanel::Construct(InteractionIndex&              Interac
         *Target = Registered.Resolve();
     }
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < RowCeiling; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < RowLimit; ++Index)
     {
         ControlIdentity* const PerRow[] =
         {
-            &RowContacts[Ordinal], &RowDisclosures[Ordinal], &RowPresences[Ordinal],
-            &RowKebabs[Ordinal]
+            &RowContacts[Index], &RowDisclosures[Index], &RowPresences[Index],
+            &RowKebabs[Index]
         };
 
         for (ControlIdentity* Target : PerRow)
         {
-            const Outcome<ControlIdentity> Registered = Interaction.Register();
+            const Outcome<ControlIdentity> Registered = IncomingInteraction.Register();
 
             if (!Registered.Resolved)
             {
@@ -188,17 +188,17 @@ Outcome<bool> GlobalShellPanel::Construct(InteractionIndex&              Interac
 
     // 📝 The Layer Stack's rows. Each carries two takeable halves and four actions, all registered here so
     //    that nothing is claimed inside a tick.
-    for (std::uint32_t Ordinal = 0u; Ordinal < LayerCeiling; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < LayerLimit; ++Index)
     {
         ControlIdentity* const PerLayer[] =
         {
-            &LayerHalves[Ordinal * 2u], &LayerHalves[Ordinal * 2u + 1u], &LayerFolds[Ordinal],
-            &LayerPresences[Ordinal],   &LayerMaskEyes[Ordinal],         &LayerRetires[Ordinal]
+            &LayerHalves[Index * 2u], &LayerHalves[Index * 2u + 1u], &LayerFolds[Index],
+            &LayerPresences[Index],   &LayerMaskEyes[Index],         &LayerRetires[Index]
         };
 
         for (ControlIdentity* Target : PerLayer)
         {
-            const Outcome<ControlIdentity> Registered = Interaction.Register();
+            const Outcome<ControlIdentity> Registered = IncomingInteraction.Register();
 
             if (!Registered.Resolved)
             {
@@ -215,7 +215,7 @@ Outcome<bool> GlobalShellPanel::Construct(InteractionIndex&              Interac
     //    though the pointer had just arrived over it, once per tick, forever.
     for (ControlIdentity& Slider : EnvironmentSliders)
     {
-        const Outcome<ControlIdentity> Registered = Interaction.Register();
+        const Outcome<ControlIdentity> Registered = IncomingInteraction.Register();
 
         if (!Registered.Resolved)
         {
@@ -247,7 +247,7 @@ void GlobalShellPanel::Advance(const PointerCondition& Contact, double Elapsed)
 {
     Sampled = Contact;
     Controls.Advance(Contact, Elapsed);
-    // 📝 Sampled, never advanced: the tick owner advances the shared ledger exactly once, and a
+    // 📝 Sampled, never advanced: the tick owner advances the shared index exactly once, and a
     //    second advance would retire the release before the inspector reads it.
     EnvironmentControls.Sample(Contact);
 }
@@ -273,7 +273,7 @@ void GlobalShellPanel::Reset()
 {
     Controls.Reset();
 
-    Ledger        = nullptr;
+    Interaction        = nullptr;
     Motion        = nullptr;
     Surface       = nullptr;
     Appearance    = nullptr;
@@ -304,23 +304,23 @@ void GlobalShellPanel::Reset()
         Target = {};
 
     // 🔴 The layer runs were left applied by an earlier reset, so a reconstructed panel drew its stack with
-    //    identities the ledger had already reissued to the outliner. Every run the panel claims is cleared.
-    for (std::uint32_t Ordinal = 0u; Ordinal < LayerCeiling; ++Ordinal)
+    //    identities the index had already reissued to the outliner. Every run the panel claims is cleared.
+    for (std::uint32_t Index = 0u; Index < LayerLimit; ++Index)
     {
-        LayerHalves[Ordinal * 2u]      = {};
-        LayerHalves[Ordinal * 2u + 1u] = {};
-        LayerFolds[Ordinal]            = {};
-        LayerPresences[Ordinal]        = {};
-        LayerMaskEyes[Ordinal]         = {};
-        LayerRetires[Ordinal]          = {};
+        LayerHalves[Index * 2u]      = {};
+        LayerHalves[Index * 2u + 1u] = {};
+        LayerFolds[Index]            = {};
+        LayerPresences[Index]        = {};
+        LayerMaskEyes[Index]         = {};
+        LayerRetires[Index]          = {};
     }
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < RowCeiling; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < RowLimit; ++Index)
     {
-        RowContacts[Ordinal]    = {};
-        RowDisclosures[Ordinal] = {};
-        RowPresences[Ordinal]   = {};
-        RowKebabs[Ordinal]      = {};
+        RowContacts[Index]    = {};
+        RowDisclosures[Index] = {};
+        RowPresences[Index]   = {};
+        RowKebabs[Index]      = {};
     }
 }
 
@@ -351,30 +351,30 @@ bool GlobalShellPanel::AdvanceSummoning(ShellContext& Applied, bool Summoned, bo
     {
         constexpr std::uint32_t StationCount = 5u;   // [-] - the withdrawn station and the four presented
 
-        std::uint32_t StationOrdinal = 0u;
+        std::uint32_t StationIndex = 0u;
 
         if (Applied.InspectorDocked || Applied.MenuOpened)
         {
-            StationOrdinal = Applied.InspectorShown ? (3u + Applied.InspectorTab)
+            StationIndex = Applied.InspectorShown ? (3u + Applied.InspectorTab)
                                              : (1u + Applied.OutlineTab);
         }
 
-        std::uint32_t IncomingStation = StationOrdinal;
+        std::uint32_t IncomingStation = StationIndex;
 
         if (!Reversed)
         {
             // 📐 Four onward, then wrap to one. Zero is left behind on the first press and never re-entered.
-            IncomingStation = (StationOrdinal >= 4u) ? 1u : (StationOrdinal + 1u);
+            IncomingStation = (StationIndex >= 4u) ? 1u : (StationIndex + 1u);
         }
-        else if (StationOrdinal <= 1u)
+        else if (StationIndex <= 1u)
         {
             // 📐 The strict reverse of the opening step withdraws the card, and only while undocked; a
             //    docked card has no withdrawn station, so it wraps to the far end of its own four instead.
-            IncomingStation = (StationOrdinal == 1u && !Applied.InspectorDocked) ? 0u : 4u;
+            IncomingStation = (StationIndex == 1u && !Applied.InspectorDocked) ? 0u : 4u;
         }
         else
         {
-            IncomingStation = StationOrdinal - 1u;
+            IncomingStation = StationIndex - 1u;
         }
 
         if (Applied.InspectorDocked && IncomingStation == 0u)
@@ -614,8 +614,8 @@ void GlobalShellPanel::RecordOptionsRail(const PlaneExtent& Extent, ShellContext
         const bool Whole = Walk[Accepted] == '\0';
         const std::uint32_t Taken = Whole ? Accepted : (Breaking > 0u ? Breaking : Accepted);
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < Taken; ++Ordinal)
-            Measured[Ordinal] = Walk[Ordinal];
+        for (std::uint32_t Index = 0u; Index < Taken; ++Index)
+            Measured[Index] = Walk[Index];
 
         Measured[Taken] = '\0';
 
@@ -640,21 +640,21 @@ void GlobalShellPanel::RecordOptionsRail(const PlaneExtent& Extent, ShellContext
     const float ButtonY = 32.0f * (Scaled.RowHeight / 32.0f);
     const float ButtonGap    = 8.0f  * (Scaled.RowHeight / 32.0f);
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 3u; ++Index)
     {
         const PlaneExtent Button = Spanning(Extent.MinimumX + BodyPad, Sweep,
                                             Extent.Width() - BodyPad * 2.0f, ButtonY);
 
-        const bool Taken  = static_cast<std::uint32_t>(Applied.Mode) == Ordinal;
+        const bool Taken  = static_cast<std::uint32_t>(Applied.Mode) == Index;
         const bool Hovered = Button.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        if (Hovered && Sampled.ContactPressed && !Ledger->AnyDisclosed())
-            Ledger->Grab(ModeButtons[Ordinal], ControlPart::Body);
+        if (Hovered && Sampled.ContactPressed && !Interaction->AnyDisclosed())
+            Interaction->Grab(ModeButtons[Index], ControlPart::Body);
 
-        if (Hovered && Ledger->Released(ModeButtons[Ordinal]))
-            Applied.Mode = static_cast<WorkspaceMode>(Ordinal);
+        if (Hovered && Interaction->Released(ModeButtons[Index]))
+            Applied.Mode = static_cast<WorkspaceMode>(Index);
 
-        Ledger->DeclareHovered(ModeButtons[Ordinal], Hovered, HoverOver);
+        Interaction->DeclareHovered(ModeButtons[Index], Hovered, HoverOver);
 
         Surface->Ground(Button, Taken ? Tinted.AccentSoft : Tinted.Tile, Scaled.FieldRadius, CornerAll);
         Surface->Edge(Button, Taken ? Tinted.Accent
@@ -662,12 +662,12 @@ void GlobalShellPanel::RecordOptionsRail(const PlaneExtent& Extent, ShellContext
                       1.0f, Scaled.FieldRadius, CornerAll);
 
         const float ButtonRun = Scaled.RunSecondary * (11.0f / 11.5f);
-        const float RunX  = Surface->MeasureRun(ModeCaptions[Ordinal], ButtonRun, 0.0f);
+        const float RunX  = Surface->MeasureRun(ModeCaptions[Index], ButtonRun, 0.0f);
 
         Surface->TextRun(Button.MinimumX + (Button.Width() - RunX) * 0.5f,
                          Button.MinimumY + (Button.Height() - ButtonRun) * 0.5f,
                          Taken ? Tinted.Primary : Tinted.Muted,
-                         ModeCaptions[Ordinal], ButtonRun, 0.0f, true);
+                         ModeCaptions[Index], ButtonRun, 0.0f, true);
 
         Sweep += ButtonY + ButtonGap;
     }
@@ -747,7 +747,6 @@ void GlobalShellPanel::RecordViewport(const PlaneExtent& Extent, const ShellCont
         {
         // 📐 The dome: a zenith-to-horizon ramp, brightening with sky intensity and warming with turbidity.
         const float Intensity = static_cast<float>(Sky.SkyIntensity);
-        const float Turbidity = static_cast<float>(Sky.SkyTurbidity / 10.0);
         const float ZenithMix = 0.45f + 0.30f * Intensity;
         const float HorizonMix = 0.55f + 0.30f * Intensity;
 
@@ -970,12 +969,12 @@ void GlobalShellPanel::RecordViewport(const PlaneExtent& Extent, const ShellCont
     const float StatusGap = 9.0f * (Scaled.RowHeight / 32.0f);
     float       StatusLead = Strip.MinimumX + 13.0f * (Scaled.RowHeight / 32.0f);
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 4u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 4u; ++Index)
     {
-        Surface->TextRun(StatusLead, StatusTop, Tinted.Faint, Navigating[Ordinal], StatusRun);
-        StatusLead += Surface->MeasureRun(Navigating[Ordinal], StatusRun, 0.0f) + StatusGap;
+        Surface->TextRun(StatusLead, StatusTop, Tinted.Faint, Navigating[Index], StatusRun);
+        StatusLead += Surface->MeasureRun(Navigating[Index], StatusRun, 0.0f) + StatusGap;
 
-        if (Ordinal < 3u)
+        if (Index < 3u)
         {
             Surface->TextRun(StatusLead, StatusTop, Tinted.Unit, "\u00B7", StatusRun);
             StatusLead += Surface->MeasureRun("\u00B7", StatusRun, 0.0f) + StatusGap;
@@ -992,9 +991,9 @@ void GlobalShellPanel::RecordViewport(const PlaneExtent& Extent, const ShellCont
 //------------------------------------------------------------------------------------------------------------------------
 
 bool GlobalShellPanel::RowCurrent(const ShellContext& Applied, const EntityRow* Rows,
-                                    std::uint32_t RowCount, std::uint32_t Ordinal) const
+                                    std::uint32_t RowCount, std::uint32_t Index) const
 {
-    if (Ordinal >= RowCount)
+    if (Index >= RowCount)
         return false;
 
     const bool Retaining = Applied.EntityRetention[0] != '\0';
@@ -1004,12 +1003,12 @@ bool GlobalShellPanel::RowCurrent(const ShellContext& Applied, const EntityRow* 
     //    consulted at all while a filter stands.
     if (Retaining)
     {
-        if (RunHolds(Rows[Ordinal].Naming, Applied.EntityRetention))
+        if (RunHolds(Rows[Index].Naming, Applied.EntityRetention))
             return true;
 
         for (std::uint32_t Enclosed = 0u; Enclosed < RowCount; ++Enclosed)
         {
-            if (Rows[Enclosed].Enclosing == Ordinal && RowCurrent(Applied, Rows, RowCount, Enclosed))
+            if (Rows[Enclosed].Enclosing == Index && RowCurrent(Applied, Rows, RowCount, Enclosed))
                 return true;
         }
 
@@ -1018,7 +1017,7 @@ bool GlobalShellPanel::RowCurrent(const ShellContext& Applied, const EntityRow* 
 
     // 📝 Walked outward rather than recursed inward, and bounded by the row count so a malformed enclosure
     //    cannot spin. A row is presented only when every enclosure above it stands disclosed.
-    std::uint32_t Walking = Rows[Ordinal].Enclosing;
+    std::uint32_t Walking = Rows[Index].Enclosing;
     std::uint32_t Walked  = 0u;
 
     while (Walking < RowCount && Walked++ <= RowCount)
@@ -1037,9 +1036,9 @@ void GlobalShellPanel::RecordRetentionField(const PlaneExtent& Extent, ShellCont
     const bool Hovered = Extent.Encloses(Sampled.PositionX, Sampled.PositionY);
 
     if (Hovered && Sampled.ContactPressed)
-        Ledger->Grab(RetentionField, ControlPart::Body);
+        Interaction->Grab(RetentionField, ControlPart::Body);
 
-    const bool Taken = Ledger->Holding(RetentionField) || Ledger->Disclosed(RetentionField);
+    const bool Taken = Interaction->Holding(RetentionField) || Interaction->Disclosed(RetentionField);
 
     Surface->Ground(Extent, Tinted.MenuLower, Scaled.FieldRadius, CornerAll);
     Surface->Edge(Extent, Taken ? Partial(0xFFFFFFu, 0.22) : Tinted.Hairline,
@@ -1123,12 +1122,12 @@ void GlobalShellPanel::RecordOutliner(const PlaneExtent& Extent, ShellContext& A
 
     float Sweep = Body.MinimumY;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < RowCount && Ordinal < RowCeiling; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < RowCount && Index < RowLimit; ++Index)
     {
-        if (!RowCurrent(Applied, Rows, RowCount, Ordinal))
+        if (!RowCurrent(Applied, Rows, RowCount, Index))
             continue;
 
-        const EntityRow&  EntryRow = Rows[Ordinal];
+        const EntityRow&  EntryRow = Rows[Index];
         const PlaneExtent Row       = Spanning(Body.MinimumX, Sweep,
                                                Body.Width(), Scaled.RowHeight);
 
@@ -1137,9 +1136,9 @@ void GlobalShellPanel::RecordOutliner(const PlaneExtent& Extent, ShellContext& A
         if (Surface->Excluded(Row))
             continue;
 
-        const bool Taken  = Applied.EntityTaken == Ordinal;
+        const bool Taken  = Applied.EntityTaken == Index;
         const bool Hovered = Row.Encloses(Sampled.PositionX, Sampled.PositionY);
-        const bool Absent = !Applied.EntityPresent[Ordinal];
+        const bool Absent = !Applied.EntityPresent[Index];
         const bool Branch = EntryRow.EnclosedCount > 0u;
 
         const float LeadX = Row.MinimumX + Scaled.RowLeadX
@@ -1167,29 +1166,29 @@ void GlobalShellPanel::RecordOutliner(const PlaneExtent& Extent, ShellContext& A
 
         const bool OnPresence = Presence.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        if (Sampled.ContactPressed && !Ledger->AnyDisclosed())
+        if (Sampled.ContactPressed && !Interaction->AnyDisclosed())
         {
             if (OnChevron)
-                Ledger->Grab(RowDisclosures[Ordinal], ControlPart::Chevron);
+                Interaction->Grab(RowDisclosures[Index], ControlPart::Chevron);
             else if (OnKebab)
-                Ledger->Grab(RowKebabs[Ordinal], ControlPart::Body);
+                Interaction->Grab(RowKebabs[Index], ControlPart::Body);
             else if (OnPresence)
-                Ledger->Grab(RowPresences[Ordinal], ControlPart::Body);
+                Interaction->Grab(RowPresences[Index], ControlPart::Body);
             else if (Hovered)
-                Ledger->Grab(RowContacts[Ordinal], ControlPart::Body);
+                Interaction->Grab(RowContacts[Index], ControlPart::Body);
         }
 
-        if (OnChevron && Ledger->Released(RowDisclosures[Ordinal]))
-            Applied.EntityExpanded[Ordinal] = !Applied.EntityExpanded[Ordinal];
+        if (OnChevron && Interaction->Released(RowDisclosures[Index]))
+            Applied.EntityExpanded[Index] = !Applied.EntityExpanded[Index];
 
-        if (OnPresence && Ledger->Released(RowPresences[Ordinal]))
+        if (OnPresence && Interaction->Released(RowPresences[Index]))
         {
             // 📐 The reference applies the new presence to the row AND everything it holds, walking inward.
-            const bool Incoming = !Applied.EntityPresent[Ordinal];
+            const bool Incoming = !Applied.EntityPresent[Index];
 
-            Applied.EntityPresent[Ordinal] = Incoming;
+            Applied.EntityPresent[Index] = Incoming;
 
-            for (std::uint32_t Inward = Ordinal + 1u; Inward < RowCount && Inward < RowCeiling; ++Inward)
+            for (std::uint32_t Inward = Index + 1u; Inward < RowCount && Inward < RowLimit; ++Inward)
             {
                 if (Rows[Inward].Depth <= EntryRow.Depth)
                     break;
@@ -1198,10 +1197,10 @@ void GlobalShellPanel::RecordOutliner(const PlaneExtent& Extent, ShellContext& A
             }
         }
 
-        if (Hovered && !OnChevron && !OnPresence && !OnKebab && Ledger->Released(RowContacts[Ordinal]))
-            Applied.EntityTaken = Ordinal;
+        if (Hovered && !OnChevron && !OnPresence && !OnKebab && Interaction->Released(RowContacts[Index]))
+            Applied.EntityTaken = Index;
 
-        Ledger->DeclareHovered(RowContacts[Ordinal], Hovered, HoverOver);
+        Interaction->DeclareHovered(RowContacts[Index], Hovered, HoverOver);
 
         // ③ The row ground, then its rail. `opacity-50` for a withheld row is applied to every colour it draws.
         const float Coverage = Absent ? 0.5f : 1.0f;
@@ -1224,7 +1223,7 @@ void GlobalShellPanel::RecordOutliner(const PlaneExtent& Extent, ShellContext& A
         if (Branch)
         {
             // 📐 `-rotate-90` while collapsed, which is the chevron-right figure rather than a turned one.
-            Surface->Stroke(Applied.EntityExpanded[Ordinal] || Applied.EntityRetention[0] != '\0'
+            Surface->Stroke(Applied.EntityExpanded[Index] || Applied.EntityRetention[0] != '\0'
                             ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
                             Chevron, Faded(Tinted.Faint, Coverage));
         }
@@ -1243,7 +1242,7 @@ void GlobalShellPanel::RecordOutliner(const PlaneExtent& Extent, ShellContext& A
 
         // 📝 The count and the presence action both sit to the trailing side, so the naming run is truncated
         //    against whichever of them stands.
-        float NamingCeiling = Presence.MinimumX - Scaled.PanePad;
+        float NamingLimit = Presence.MinimumX - Scaled.PanePad;
 
         if (Branch)
         {
@@ -1252,15 +1251,15 @@ void GlobalShellPanel::RecordOutliner(const PlaneExtent& Extent, ShellContext& A
                           static_cast<unsigned>(EntryRow.EnclosedCount));
 
             const float CountRun  = Scaled.RunFine;
-            const float CountLead = NamingCeiling - Surface->MeasureRun(Counted, CountRun, 0.0f);
+            const float CountLead = NamingLimit - Surface->MeasureRun(Counted, CountRun, 0.0f);
 
             Surface->TextRun(CountLead, Row.MinimumY + (Row.Height() - CountRun) * 0.5f,
                              Faded(Tinted.Faint, Coverage), Counted, CountRun);
 
-            NamingCeiling = CountLead - Scaled.PanePad;
+            NamingLimit = CountLead - Scaled.PanePad;
         }
 
-        Surface->TextRunTruncated(NamingLead, NamingTop, NamingCeiling,
+        Surface->TextRunTruncated(NamingLead, NamingTop, NamingLimit,
                                   Faded(Taken ? Tinted.Primary : (Hovered ? Tinted.Primary : Tinted.Muted),
                                         Coverage),
                                   EntryRow.Naming, NamingRun);
@@ -1283,12 +1282,12 @@ void GlobalShellPanel::RecordOutliner(const PlaneExtent& Extent, ShellContext& A
         // ⑤ The kebab, which raises the floating options card over the whole shell. 🔴 Its identity is
         //    spent whether or not the dots are drawn: a row that skips the call shifts every later row's
         //    hover onto the wrong identity and the whole column re-fades on the next scroll.
-        if (RecordKebab(Kebab, RowKebabs[Ordinal], Hovered))
+        if (RecordKebab(Kebab, RowKebabs[Index], Hovered))
         {
-            Applied.ContextRaised = Ordinal;
+            Applied.ContextRaised = Index;
             Applied.ContextX  = Kebab.MinimumX;
             Applied.ContextY = Kebab.MaximumY;
-            Applied.EntityTaken   = Ordinal;
+            Applied.EntityTaken   = Index;
         }
     }
 
@@ -1331,12 +1330,12 @@ bool GlobalShellPanel::RecordKebab(const PlaneExtent& Extent, ControlIdentity Ta
 {
     const bool Over = Extent.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Sampled.ContactPressed && Over && !Ledger->AnyDisclosed())
-        Ledger->Grab(Target, ControlPart::Body);
+    if (Sampled.ContactPressed && Over && !Interaction->AnyDisclosed())
+        Interaction->Grab(Target, ControlPart::Body);
 
-    const bool Taken = Over && Ledger->Released(Target);
+    const bool Taken = Over && Interaction->Released(Target);
 
-    Ledger->DeclareHovered(Target, Over, HoverOver);
+    Interaction->DeclareHovered(Target, Over, HoverOver);
 
     // 📐 `opacity-0` until the row is hovered, exactly as the eye beside it is.
     if (!Hovered && !Over)
@@ -1369,7 +1368,7 @@ void GlobalShellPanel::RecordContextPage(const PlaneExtent& Extent, ShellContext
     const float Pad = Scaled.PanePad;
 
     if (Rows == nullptr || RowCount == 0u || Applied.EntityTaken >= RowCount ||
-        Applied.EntityTaken >= RowCeiling)
+        Applied.EntityTaken >= RowLimit)
     {
         const float Run   = Scaled.RunSecondary;
         const char* Prose = "Select a record to view its options.";
@@ -1381,8 +1380,8 @@ void GlobalShellPanel::RecordContextPage(const PlaneExtent& Extent, ShellContext
         return;
     }
 
-    const std::uint32_t Ordinal   = Applied.EntityTaken;
-    const EntityRow&    Current = Rows[Ordinal];
+    const std::uint32_t Index   = Applied.EntityTaken;
+    const EntityRow&    Current = Rows[Index];
     const bool          Grouped   = Current.Subject == EntitySubject::Grouping;
 
     float Sweep = Extent.MinimumY + Pad;
@@ -1419,12 +1418,12 @@ void GlobalShellPanel::RecordContextPage(const PlaneExtent& Extent, ShellContext
             const PlaneExtent Disc = Spanning(Lead, Sweep, Scaled.ContextSwatch, Scaled.ContextSwatch);
             const bool        Over = Disc.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-            if (Sampled.ContactPressed && Over && !Ledger->AnyDisclosed())
-                Ledger->Grab(ContextTints[Tint], ControlPart::Body);
+            if (Sampled.ContactPressed && Over && !Interaction->AnyDisclosed())
+                Interaction->Grab(ContextTints[Tint], ControlPart::Body);
 
-            static_cast<void>(Over && Ledger->Released(ContextTints[Tint]));
+            static_cast<void>(Over && Interaction->Released(ContextTints[Tint]));
 
-            Ledger->DeclareHovered(ContextTints[Tint], Over, HoverOver);
+            Interaction->DeclareHovered(ContextTints[Tint], Over, HoverOver);
 
             // 📐 `hover:scale-110`, which is a tenth added about the disc's own centre.
             const float Grown  = Over ? Scaled.ContextSwatch * 0.10f : 0.0f;
@@ -1470,28 +1469,28 @@ void GlobalShellPanel::RecordContextPage(const PlaneExtent& Extent, ShellContext
     {
         // 📝 The row is presented rather than removed, because the outliner's run is the host's and is
         //    borrowed for the tick. Withholding it is the strongest answer a panel may give here.
-        Applied.EntityPresent[Ordinal] = false;
+        Applied.EntityPresent[Index] = false;
     }
 }
 
 void GlobalShellPanel::RecordContextOverlay(const PlaneExtent& Extent, ShellContext& Applied,
                                             const EntityRow* Rows, std::uint32_t RowCount)
 {
-    if (Applied.ContextRaised >= RowCeiling)
+    if (Applied.ContextRaised >= RowLimit)
         return;
 
     if (Rows == nullptr || Applied.ContextRaised >= RowCount)
     {
-        Applied.ContextRaised = ShellContext::EntityCeiling;
+        Applied.ContextRaised = ShellContext::EntityLimit;
         return;
     }
 
     // 📐 `fixed inset-0 z-[100]`, which dismisses the card wherever it is tapped. Recorded first so the
     //    card itself, written after it, stands over it.
-    if (Sampled.ContactPressed && !Ledger->AnyDisclosed())
-        Ledger->Grab(ContextVeil, ControlPart::Body);
+    if (Sampled.ContactPressed && !Interaction->AnyDisclosed())
+        Interaction->Grab(ContextVeil, ControlPart::Body);
 
-    const bool Dismissed = Ledger->Released(ContextVeil);
+    const bool Dismissed = Interaction->Released(ContextVeil);
 
     const EntityRow& Current = Rows[Applied.ContextRaised];
     const bool       Grouped   = Current.Subject == EntitySubject::Grouping;
@@ -1515,9 +1514,9 @@ void GlobalShellPanel::RecordContextOverlay(const PlaneExtent& Extent, ShellCont
     // 🔴 The veil's own hover traverse carries the arrival, declared standing for as long as the card is
     //    raised. Read without being declared it reports zero every tick and the card records invisibly —
     //    a fade that never departs is indistinguishable from a card that was never recorded.
-    Ledger->DeclareHovered(ContextVeil, true, ContextArriveOver);
+    Interaction->DeclareHovered(ContextVeil, true, ContextArriveOver);
 
-    const float Incoming = Ledger->HoveredFraction(ContextVeil);
+    const float Incoming = Interaction->HoveredFraction(ContextVeil);
     const float Coverage = Held(Incoming, 0.0f, 1.0f);
     const float Grown    = Between(0.95f, 1.0f, Coverage);
 
@@ -1537,7 +1536,7 @@ void GlobalShellPanel::RecordContextOverlay(const PlaneExtent& Extent, ShellCont
 
     // 📝 Dismissed last, so the card the artist tapped is the one they saw this tick.
     if (Dismissed && !Card.Encloses(Sampled.PositionX, Sampled.PositionY))
-        Applied.ContextRaised = ShellContext::EntityCeiling;
+        Applied.ContextRaised = ShellContext::EntityLimit;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -1568,12 +1567,12 @@ bool GlobalShellPanel::RecordActionRow(const PlaneExtent& Extent, ControlIdentit
 {
     const bool Hovered = Extent.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Sampled.ContactPressed && Hovered && !Ledger->AnyDisclosed())
-        Ledger->Grab(Target, ControlPart::Body);
+    if (Sampled.ContactPressed && Hovered && !Interaction->AnyDisclosed())
+        Interaction->Grab(Target, ControlPart::Body);
 
-    const bool Taken = Hovered && Ledger->Released(Target);
+    const bool Taken = Hovered && Interaction->Released(Target);
 
-    Ledger->DeclareHovered(Target, Hovered, HoverOver);
+    Interaction->DeclareHovered(Target, Hovered, HoverOver);
 
     // 📐 `hover:bg-[var(--tile-hi)]`, save for Delete which rouses to its own alert wash instead.
     if (Hovered)
@@ -1591,21 +1590,21 @@ bool GlobalShellPanel::RecordActionRow(const PlaneExtent& Extent, ControlIdentit
     const float RunY = Extent.MinimumY + (Extent.Height() - Run) * 0.5f;
     const float RunLead = Cell.MaximumX + Scaled.PanePad;
 
-    float RunCeiling = Extent.MaximumX - Scaled.PanePad;
+    float RunLimit = Extent.MaximumX - Scaled.PanePad;
 
     if (Chord != nullptr && Chord[0] != '\0')
     {
         // 📐 `ml-auto text-[9.5px] text-[var(--faint)] font-mono`, hard against the trailing edge.
         const float ChordRun  = Scaled.RunFiner;
-        const float ChordLead = RunCeiling - Surface->MeasureRun(Chord, ChordRun, 0.0f);
+        const float ChordLead = RunLimit - Surface->MeasureRun(Chord, ChordRun, 0.0f);
 
         Surface->TextRun(ChordLead, Extent.MinimumY + (Extent.Height() - ChordRun) * 0.5f,
                          Tinted.Faint, Chord, ChordRun);
 
-        RunCeiling = ChordLead - Scaled.PanePad;
+        RunLimit = ChordLead - Scaled.PanePad;
     }
 
-    Surface->TextRunTruncated(RunLead, RunY, RunCeiling, Colour, Caption, Run);
+    Surface->TextRunTruncated(RunLead, RunY, RunLimit, Colour, Caption, Run);
 
     return Taken;
 }
@@ -1619,7 +1618,7 @@ void GlobalShellPanel::RecordMetadata(const PlaneExtent& Extent, ShellContext& A
 
     // ① Nothing taken. 📐 The reference centres a 48 px crosshair tile, a heading and one wrapped line.
     if (Rows == nullptr || RowCount == 0u || Applied.EntityTaken >= RowCount ||
-        Applied.EntityTaken >= RowCeiling)
+        Applied.EntityTaken >= RowLimit)
     {
         const float TileExtent = Scaled.HeroCrest * (48.0f / 34.0f);
         const float Run        = Scaled.RunPrimary;
@@ -1657,15 +1656,15 @@ void GlobalShellPanel::RecordMetadata(const PlaneExtent& Extent, ShellContext& A
         return;
     }
 
-    const std::uint32_t Ordinal   = Applied.EntityTaken;
-    const EntityRow&    Current = Rows[Ordinal];
-    const EntityProfile& Profiled = Applied.EntityProfiles[Ordinal];
+    const std::uint32_t Index   = Applied.EntityTaken;
+    const EntityRow&    Current = Rows[Index];
+    const EntityProfile& Profiled = Applied.EntityProfiles[Index];
     const ThemeToken   Hue       = EntityHue(Current.Subject);
-    const bool          Absent    = !Applied.EntityPresent[Ordinal];
+    const bool          Absent    = !Applied.EntityPresent[Index];
 
     // 📐 The reference mints `g_NN`; the ordinal is that identity here, so the two read side by side.
     char Token[12] = {};
-    std::snprintf(Token, sizeof(Token), "g_%02u", static_cast<unsigned>(Ordinal + 1u));
+    std::snprintf(Token, sizeof(Token), "g_%02u", static_cast<unsigned>(Index + 1u));
 
     const PlaneExtent Footer = Spanning(Extent.MinimumX, Extent.MaximumY - Scaled.FooterHeight,
                                         Extent.Width(), Scaled.FooterHeight);
@@ -1805,10 +1804,10 @@ void GlobalShellPanel::RecordMetadata(const PlaneExtent& Extent, ShellContext& A
         const PlaneExtent Call = Spanning(Body.MinimumX, Sweep, Body.Width(), Scaled.AdvanceY);
         const bool        Over = Call.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        if (Sampled.ContactPressed && Over && !Ledger->AnyDisclosed())
-            Ledger->Grab(AdvanceCall, ControlPart::Body);
+        if (Sampled.ContactPressed && Over && !Interaction->AnyDisclosed())
+            Interaction->Grab(AdvanceCall, ControlPart::Body);
 
-        if (Over && Ledger->Released(AdvanceCall))
+        if (Over && Interaction->Released(AdvanceCall))
         {
             Applied.InspectorShown = true;
 
@@ -1820,7 +1819,7 @@ void GlobalShellPanel::RecordMetadata(const PlaneExtent& Extent, ShellContext& A
             }
         }
 
-        Ledger->DeclareHovered(AdvanceCall, Over, HoverOver);
+        Interaction->DeclareHovered(AdvanceCall, Over, HoverOver);
 
         // 📐 `bg-[rgba(91,140,255,.13)] border-[var(--accent)]`, rousing to `.2` of the same accent.
         Surface->Ground(Call, Over ? Faded(Tinted.Accent, 0.20f) : Tinted.AccentSoft,
@@ -1903,9 +1902,9 @@ void GlobalShellPanel::RecordMetadata(const PlaneExtent& Extent, ShellContext& A
         {
             const bool Incoming = Absent;
 
-            Applied.EntityPresent[Ordinal] = Incoming;
+            Applied.EntityPresent[Index] = Incoming;
 
-            for (std::uint32_t Inward = Ordinal + 1u; Inward < RowCount && Inward < RowCeiling; ++Inward)
+            for (std::uint32_t Inward = Index + 1u; Inward < RowCount && Inward < RowLimit; ++Inward)
             {
                 if (Rows[Inward].Depth <= Current.Depth)
                     break;
@@ -1953,7 +1952,7 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellConte
 {
     Surface->Ground(Extent, Tinted.MenuLower, 0.0f, CornerNone);
 
-    if (Applied.EntityTaken >= RowCount || Applied.EntityTaken >= RowCeiling)
+    if (Applied.EntityTaken >= RowCount || Applied.EntityTaken >= RowLimit)
     {
         const float ProseRun = Scaled.RunSecondary;
         const char* Prose    = "Select a record to inspect its properties.";
@@ -1971,25 +1970,25 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellConte
 
     Surface->Confine(Extent);
 
-    // 📐 One card per component, each folding over 200 ms. `CardOrdinal` is the fold identity the card
+    // 📐 One card per component, each folding over 200 ms. `CardIndex` is the fold identity the card
     //    claims; the reference keys its `collapsedCards` record by the card's own title, and the ordinal is
     //    that key here so the artist's fold survives a change of subject the way the reference's does.
-    std::uint32_t CardOrdinal = 0u;
+    std::uint32_t CardIndex = 0u;
 
     const auto RecordCard = [&](const char* Caption, const char* const* Rows2, std::uint32_t RowCount2)
     {
-        if (CardOrdinal >= CardCeiling)
+        if (CardIndex >= CardLimit)
             return;
 
-        const std::uint32_t Target = CardOrdinal++;
+        const std::uint32_t Target = CardIndex++;
 
         // 🔴 The fold is a fraction and not a flag, so the body's extent is what animates. Folded to a
         //    flag, the card would vanish between two frames and the 200 ms the reference states would be
         //    visible nowhere.
         const bool  Folded   = Applied.CardFolded[Target];
-        const float Current = Controls.OutlineExpansion(CardFolds[Target], !Folded, true);
+        const float Opening = Controls.OutlineExpansion(CardFolds[Target], !Folded, true);
 
-        const float BodyHeight = (static_cast<float>(RowCount2) * Scaled.RowHeight + Pad * 2.0f) * Current;
+        const float BodyHeight = (static_cast<float>(RowCount2) * Scaled.RowHeight + Pad * 2.0f) * Opening;
         const PlaneExtent Card = Spanning(Extent.MinimumX + Pad, Sweep,
                                           Extent.Width() - Pad * 2.0f,
                                           Scaled.ComponentY + BodyHeight);
@@ -2005,18 +2004,18 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellConte
 
         const bool OnHeader = CardHeader.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        if (Sampled.ContactPressed && OnHeader && !Ledger->AnyDisclosed())
-            Ledger->Grab(CardFolds[Target], ControlPart::Chevron);
+        if (Sampled.ContactPressed && OnHeader && !Interaction->AnyDisclosed())
+            Interaction->Grab(CardFolds[Target], ControlPart::Chevron);
 
-        if (OnHeader && Ledger->Released(CardFolds[Target]))
+        if (OnHeader && Interaction->Released(CardFolds[Target]))
             Applied.CardFolded[Target] = !Applied.CardFolded[Target];
 
         // 📐 `border-b border-transparent` while folded, and the hairline only once disclosed.
-        if (Current > 0.0f)
+        if (Opening > 0.0f)
         {
             Surface->Ground(Spanning(CardHeader.MinimumX, CardHeader.MaximumY - 1.0f,
                                      CardHeader.Width(), 1.0f),
-                            Faded(Tinted.Hairline, Current), 0.0f, CornerNone);
+                            Faded(Tinted.Hairline, Opening), 0.0f, CornerNone);
         }
 
         // 📐 The chevron turns `-rotate-90` while folded; the two figures are the turn.
@@ -2049,7 +2048,7 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellConte
 
         // 🔴 The body is confined to whatever the fold has opened, so a row half way through the travel
         //    is clipped rather than drawn over the card beneath it.
-        if (Current > 0.0f)
+        if (Opening > 0.0f)
         {
             const PlaneExtent Opened = Spanning(Card.MinimumX, CardHeader.MaximumY,
                                                 Card.Width(), BodyHeight);
@@ -2058,13 +2057,13 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellConte
 
             float RowCursor = CardHeader.MaximumY + Pad;
 
-            for (std::uint32_t Ordinal = 0u; Ordinal < RowCount2; ++Ordinal)
+            for (std::uint32_t Index = 0u; Index < RowCount2; ++Index)
             {
                 const float LabelRun = Scaled.RunSecondary;
                 const float LabelTop = RowCursor + (Scaled.RowHeight - LabelRun) * 0.5f;
 
                 Surface->TextRun(Card.MinimumX + Pad * 1.5f, LabelTop, Tinted.Muted,
-                                 Rows2[Ordinal], LabelRun);
+                                 Rows2[Index], LabelRun);
 
                 // 📝 The value cell, `--value-bg` at `--value-radius`, presented but not yet editable —
                 //    the reference's own handlers are `onChange={()=>{}}` for every component field.
@@ -2095,14 +2094,14 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellConte
                                            const double* Minimums, const double* Maximums,
                                            double* Values, std::uint32_t SliderCount)
     {
-        if (CardOrdinal >= CardCeiling)
+        if (CardIndex >= CardLimit)
             return;
 
-        const std::uint32_t Target = CardOrdinal++;
+        const std::uint32_t Target = CardIndex++;
         const bool  Folded   = Applied.CardFolded[Target];
-        const float Current  = Controls.OutlineExpansion(CardFolds[Target], !Folded, true);
+        const float Opening = Controls.OutlineExpansion(CardFolds[Target], !Folded, true);
 
-        const float BodyHeight = (static_cast<float>(SliderCount) * Scaled.RowHeight + Pad * 2.0f) * Current;
+        const float BodyHeight = (static_cast<float>(SliderCount) * Scaled.RowHeight + Pad * 2.0f) * Opening;
         const PlaneExtent Card = Spanning(Extent.MinimumX + Pad, Sweep,
                                           Extent.Width() - Pad * 2.0f,
                                           Scaled.ComponentY + BodyHeight);
@@ -2118,16 +2117,16 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellConte
 
         const bool OnHeader = CardHeader.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        if (Sampled.ContactPressed && OnHeader && !Ledger->AnyDisclosed())
-            Ledger->Grab(CardFolds[Target], ControlPart::Chevron);
+        if (Sampled.ContactPressed && OnHeader && !Interaction->AnyDisclosed())
+            Interaction->Grab(CardFolds[Target], ControlPart::Chevron);
 
-        if (OnHeader && Ledger->Released(CardFolds[Target]))
+        if (OnHeader && Interaction->Released(CardFolds[Target]))
             Applied.CardFolded[Target] = !Applied.CardFolded[Target];
 
-        if (Current > 0.0f)
+        if (Opening > 0.0f)
             Surface->Ground(Spanning(CardHeader.MinimumX, CardHeader.MaximumY - 1.0f,
                                      CardHeader.Width(), 1.0f),
-                            Faded(Tinted.Hairline, Current), 0.0f, CornerNone);
+                            Faded(Tinted.Hairline, Opening), 0.0f, CornerNone);
 
         const float Mark = Scaled.ActionGlyph;
 
@@ -2154,7 +2153,7 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellConte
                          CardHeader.MinimumY + (CardHeader.Height() - TallyRun) * 0.5f,
                          Tinted.Faint, Tallied, TallyRun);
 
-        if (Current > 0.0f)
+        if (Opening > 0.0f)
         {
             const PlaneExtent Opened = Spanning(Card.MinimumX, CardHeader.MaximumY,
                                                 Card.Width(), BodyHeight);
@@ -2163,19 +2162,19 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellConte
 
             float RowCursor = CardHeader.MaximumY + Pad;
 
-            for (std::uint32_t SliderOrdinal = 0u; SliderOrdinal < SliderCount; ++SliderOrdinal)
+            for (std::uint32_t SliderIndex = 0u; SliderIndex < SliderCount; ++SliderIndex)
             {
                 const PlaneExtent Row = Spanning(Card.MinimumX + Pad * 1.5f, RowCursor,
                                                  Card.Width() - Pad * 3.0f, Scaled.RowHeight);
 
                 MagnitudeDeclaration Declared;
-                Declared.Caption     = SliderCaptions[SliderOrdinal];
-                Declared.UnitGlyph   = UnitGlyphs[SliderOrdinal];
-                Declared.Minimum     = Minimums[SliderOrdinal];
-                Declared.Maximum     = Maximums[SliderOrdinal];
+                Declared.Caption     = SliderCaptions[SliderIndex];
+                Declared.UnitGlyph   = UnitGlyphs[SliderIndex];
+                Declared.Minimum     = Minimums[SliderIndex];
+                Declared.Maximum     = Maximums[SliderIndex];
                 Declared.Layout      = MagnitudeDeclaration::Arrange::Measured;
 
-                double& Coordinate   = Values[SliderOrdinal];
+                double& Coordinate   = Values[SliderIndex];
 
                 // 🔴 `ReadoutTrailing = true` DROPS the leading label and puts the
                 //    readout at the trailing edge with the track filling the rest —
@@ -2186,34 +2185,34 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellConte
                 //        Elevation   [-----O----]   [ 56 | ° ]
                 //
                 //    which is exactly what MagnitudeRow lays out with the flag FALSE.
-                static_cast<void>(EnvironmentControls.MagnitudeRow(EnvironmentSliders[SliderOrdinal],
+                static_cast<void>(EnvironmentControls.MagnitudeRow(EnvironmentSliders[SliderIndex],
                                                                    Row, Declared, Coordinate, false));
 
                 // 🔴 The drag arm: latched the first tick the slider holds the contact, with the value
                 //    at that moment — the "start" the history entry describes. Released with a changed
                 //    value, one demand is raised; neither fires on the intermediate ticks.
-                if (Ledger->Holding(EnvironmentSliders[SliderOrdinal]) && !EnvironmentArmed[SliderOrdinal])
+                if (Interaction->Holding(EnvironmentSliders[SliderIndex]) && !EnvironmentArmed[SliderIndex])
                 {
-                    EnvironmentArmed[SliderOrdinal] = true;
-                    EnvironmentFrom[SliderOrdinal]  = Coordinate;
+                    EnvironmentArmed[SliderIndex] = true;
+                    EnvironmentFrom[SliderIndex]  = Coordinate;
                 }
 
-                if (Ledger->Released(EnvironmentSliders[SliderOrdinal]))
+                if (Interaction->Released(EnvironmentSliders[SliderIndex]))
                 {
-                    if (EnvironmentArmed[SliderOrdinal])
+                    if (EnvironmentArmed[SliderIndex])
                     {
 
-                        if (std::abs(Coordinate - EnvironmentFrom[SliderOrdinal]) > 0.0005)
+                        if (std::abs(Coordinate - EnvironmentFrom[SliderIndex]) > 0.0005)
                         {
                             Applied.RevisionDemandSlot.Standing  = true;
                             Applied.RevisionDemandSlot.Against   = Applied.EntityTaken;
                             std::snprintf(Applied.RevisionDemandSlot.Caption,
                                           sizeof(Applied.RevisionDemandSlot.Caption), "%s",
-                                          SliderCaptions[SliderOrdinal]);
+                                          SliderCaptions[SliderIndex]);
                             std::snprintf(Applied.RevisionDemandSlot.Secondary,
                                           sizeof(Applied.RevisionDemandSlot.Secondary),
                                           "%.1f \u2192 %.1f",
-                                          EnvironmentFrom[SliderOrdinal], Coordinate);
+                                          EnvironmentFrom[SliderIndex], Coordinate);
                         }
                     }
                 }
@@ -2371,8 +2370,8 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellConte
     // 🔴 Every card ordinal is spent whether the subject presented it or not. Skipped, a card that
     //    appears for one subject and not the next inherits the fold of whichever card held that ordinal
     //    before it, and the artist watches an unrelated card close.
-    while (CardOrdinal < CardCeiling)
-        static_cast<void>(Controls.OutlineExpansion(CardFolds[CardOrdinal++], true, true));
+    while (CardIndex < CardLimit)
+        static_cast<void>(Controls.OutlineExpansion(CardFolds[CardIndex++], true, true));
 
     Surface->Release();
 }
@@ -2390,7 +2389,7 @@ void GlobalShellPanel::RecordRevisionSpine(const PlaneExtent& Extent, ShellConte
     if (Revisions == nullptr)
         RevisionCount = 0u;
 
-    const bool Selected = Applied.EntityTaken < RowCount && Applied.EntityTaken < RowCeiling;
+    const bool Selected = Applied.EntityTaken < RowCount && Applied.EntityTaken < RowLimit;
 
     // 📐 The reference gathers the taken record AND everything nested inside it, so a folder presents
     //    its children's revisions too. The run is linear and carries depth, so the descent is the span of
@@ -2400,7 +2399,7 @@ void GlobalShellPanel::RecordRevisionSpine(const PlaneExtent& Extent, ShellConte
 
     if (Selected)
     {
-        for (std::uint32_t Inward = Applied.EntityTaken + 1u; Inward < RowCount && Inward < RowCeiling;
+        for (std::uint32_t Inward = Applied.EntityTaken + 1u; Inward < RowCount && Inward < RowLimit;
              ++Inward)
         {
             if (Rows[Inward].Depth <= Rows[Applied.EntityTaken].Depth)
@@ -2414,9 +2413,9 @@ void GlobalShellPanel::RecordRevisionSpine(const PlaneExtent& Extent, ShellConte
 
     if (Selected)
     {
-        for (std::uint32_t Ordinal = 0u; Ordinal < RevisionCount; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < RevisionCount; ++Index)
         {
-            if (Revisions[Ordinal].Against >= Minimum && Revisions[Ordinal].Against <= Maximum)
+            if (Revisions[Index].Against >= Minimum && Revisions[Index].Against <= Maximum)
                 ++Current;
         }
     }
@@ -2438,13 +2437,13 @@ void GlobalShellPanel::RecordRevisionSpine(const PlaneExtent& Extent, ShellConte
     Surface->Confine(Extent);
 
     // 📐 One group per record that carries a revision, in the run's own order.
-    for (std::uint32_t Against = Minimum; Against <= Maximum && Against < RowCeiling; ++Against)
+    for (std::uint32_t Against = Minimum; Against <= Maximum && Against < RowLimit; ++Against)
     {
         std::uint32_t Held = 0u;
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < RevisionCount; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < RevisionCount; ++Index)
         {
-            if (Revisions[Ordinal].Against == Against)
+            if (Revisions[Index].Against == Against)
                 ++Held;
         }
 
@@ -2460,10 +2459,10 @@ void GlobalShellPanel::RecordRevisionSpine(const PlaneExtent& Extent, ShellConte
 
         const bool OnHead = GroupHead.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        if (Sampled.ContactPressed && OnHead && !Ledger->AnyDisclosed())
-            Ledger->Grab(RevisionGroups[Against], ControlPart::Chevron);
+        if (Sampled.ContactPressed && OnHead && !Interaction->AnyDisclosed())
+            Interaction->Grab(RevisionGroups[Against], ControlPart::Chevron);
 
-        if (OnHead && Ledger->Released(RevisionGroups[Against]))
+        if (OnHead && Interaction->Released(RevisionGroups[Against]))
             Applied.RevisionFolded[Against] = !Applied.RevisionFolded[Against];
 
         const bool  GroupFolded = Applied.RevisionFolded[Against];
@@ -2525,9 +2524,9 @@ void GlobalShellPanel::RecordRevisionSpine(const PlaneExtent& Extent, ShellConte
         float         X     = Sweep;
         std::uint32_t Numbered  = 0u;
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < RevisionCount; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < RevisionCount; ++Index)
         {
-            const EntityRevision& Revised = Revisions[Ordinal];
+            const EntityRevision& Revised = Revisions[Index];
 
             if (Revised.Against != Against)
                 continue;
@@ -2604,7 +2603,7 @@ void GlobalShellPanel::RecordComponents(const PlaneExtent& Extent, ShellContext&
 {
     Surface->Ground(Extent, Tinted.MenuLower, 0.0f, CornerNone);
 
-    const bool Selected = Applied.EntityTaken < RowCount && Applied.EntityTaken < RowCeiling;
+    const bool Selected = Applied.EntityTaken < RowCount && Applied.EntityTaken < RowLimit;
 
     const PlaneExtent Header = Spanning(Extent.MinimumX, Extent.MinimumY,
                                         Extent.Width(), Scaled.HeaderHeight);
@@ -2655,10 +2654,10 @@ void GlobalShellPanel::RecordComponents(const PlaneExtent& Extent, ShellContext&
 
         const bool OnCall = Call.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        if (Sampled.ContactPressed && OnCall && !Ledger->AnyDisclosed())
-            Ledger->Grab(BackCall, ControlPart::Body);
+        if (Sampled.ContactPressed && OnCall && !Interaction->AnyDisclosed())
+            Interaction->Grab(BackCall, ControlPart::Body);
 
-        if (OnCall && Ledger->Released(BackCall))
+        if (OnCall && Interaction->Released(BackCall))
         {
             Applied.InspectorShown = false;
 
@@ -2670,7 +2669,7 @@ void GlobalShellPanel::RecordComponents(const PlaneExtent& Extent, ShellContext&
             }
         }
 
-        Ledger->DeclareHovered(BackCall, OnCall, HoverOver);
+        Interaction->DeclareHovered(BackCall, OnCall, HoverOver);
 
         if (OnCall)
             Surface->Ground(Call, Tinted.TileHovered, Scaled.FieldRadius, CornerAll);
@@ -2747,18 +2746,18 @@ void GlobalShellPanel::RecordComponents(const PlaneExtent& Extent, ShellContext&
 //------------------------------------------------------------------------------------------------------------------------
 
 float GlobalShellPanel::RecordLayerRow(const PlaneExtent& Extent, ShellContext& Applied,
-                                       const LayerRow& Current, std::uint32_t Ordinal,
+                                       const LayerRow& Current, std::uint32_t Index,
                                        std::uint32_t LayerCount, bool Trailing)
 {
-    const bool Unfolded = Applied.LayerUnfolded[Ordinal];
-    const bool Shown    = Applied.LayerShown[Ordinal];
-    const bool Taken    = Applied.LayerTaken == Ordinal;
+    const bool Unfolded = Applied.LayerUnfolded[Index];
+    const bool Shown    = Applied.LayerShown[Index];
+    const bool Taken    = Applied.LayerTaken == Index;
 
     // ① The spine gutter, `w-[30px]`, and the coloured rail running through it. The reference stops the
     //    rail half way at the first and last rows so the run reads as a bracket rather than a full column.
     const float SpineMid   = Extent.MinimumX + Scaled.LayerSpineX * 0.5f;
     const float BadgeMid   = Extent.MinimumY + Scaled.LayerHeadHeight * 0.5f;
-    const bool  First      = Ordinal == 0u;
+    const bool  First      = Index == 0u;
     const float SpineTop   = First ? BadgeMid : Extent.MinimumY;
     const float SpineFoot  = Trailing ? BadgeMid : Extent.MaximumY;
 
@@ -2777,7 +2776,7 @@ float GlobalShellPanel::RecordLayerRow(const PlaneExtent& Extent, ShellContext& 
                        Shown ? Covering(Current.TagHue) : Covering(0x2A2A2Au));
 
     char Badge[3] = { '0', '0', '\0' };
-    const std::uint32_t Counted = (LayerCount > Ordinal) ? (LayerCount - Ordinal) : 0u;
+    const std::uint32_t Counted = (LayerCount > Index) ? (LayerCount - Index) : 0u;
 
     Badge[0] = static_cast<char>('0' + ((Counted / 10u) % 10u));
     Badge[1] = static_cast<char>('0' + (Counted % 10u));
@@ -2989,39 +2988,39 @@ float GlobalShellPanel::RecordLayerRow(const PlaneExtent& Extent, ShellContext& 
 
     // ⑤ Every contact for this row, resolved in the reference's own precedence: the actions outrank the
     //    halves, and the halves outrank nothing else because the card takes no contact of its own.
-    if (Sampled.ContactPressed && !Ledger->AnyDisclosed())
+    if (Sampled.ContactPressed && !Interaction->AnyDisclosed())
     {
         if (OnChevron)
-            Ledger->Grab(LayerFolds[Ordinal], ControlPart::Chevron);
+            Interaction->Grab(LayerFolds[Index], ControlPart::Chevron);
         else if (OnPresence)
-            Ledger->Grab(LayerPresences[Ordinal], ControlPart::Body);
+            Interaction->Grab(LayerPresences[Index], ControlPart::Body);
         else if (OnRetire)
-            Ledger->Grab(LayerRetires[Ordinal], ControlPart::Body);
+            Interaction->Grab(LayerRetires[Index], ControlPart::Body);
         else if (OnMaskEye)
-            Ledger->Grab(LayerMaskEyes[Ordinal], ControlPart::Body);
+            Interaction->Grab(LayerMaskEyes[Index], ControlPart::Body);
         else if (LayerHalf.Encloses(Sampled.PositionX, Sampled.PositionY))
-            Ledger->Grab(LayerHalves[Ordinal * 2u], ControlPart::Body);
+            Interaction->Grab(LayerHalves[Index * 2u], ControlPart::Body);
         else if (MaskHalf.Encloses(Sampled.PositionX, Sampled.PositionY))
-            Ledger->Grab(LayerHalves[Ordinal * 2u + 1u], ControlPart::Body);
+            Interaction->Grab(LayerHalves[Index * 2u + 1u], ControlPart::Body);
     }
 
-    if (OnChevron && Ledger->Released(LayerFolds[Ordinal]))
-        Applied.LayerUnfolded[Ordinal] = !Applied.LayerUnfolded[Ordinal];
+    if (OnChevron && Interaction->Released(LayerFolds[Index]))
+        Applied.LayerUnfolded[Index] = !Applied.LayerUnfolded[Index];
 
-    if (OnPresence && Ledger->Released(LayerPresences[Ordinal]))
-        Applied.LayerShown[Ordinal] = !Applied.LayerShown[Ordinal];
+    if (OnPresence && Interaction->Released(LayerPresences[Index]))
+        Applied.LayerShown[Index] = !Applied.LayerShown[Index];
 
-    if (Ledger->Released(LayerHalves[Ordinal * 2u])
+    if (Interaction->Released(LayerHalves[Index * 2u])
         && LayerHalf.Encloses(Sampled.PositionX, Sampled.PositionY))
     {
-        Applied.LayerTaken  = Ordinal;
+        Applied.LayerTaken  = Index;
         Applied.TargetTaken = LayerTarget::Layer;
     }
 
-    if (Ledger->Released(LayerHalves[Ordinal * 2u + 1u])
+    if (Interaction->Released(LayerHalves[Index * 2u + 1u])
         && MaskHalf.Encloses(Sampled.PositionX, Sampled.PositionY))
     {
-        Applied.LayerTaken  = Ordinal;
+        Applied.LayerTaken  = Index;
         Applied.TargetTaken = LayerTarget::Mask;
     }
 
@@ -3089,7 +3088,7 @@ float GlobalShellPanel::RecordLayerRow(const PlaneExtent& Extent, ShellContext& 
     float PillX = Folded.MinimumX + Scaled.LayerFoldPad;
 
     for (std::uint32_t Channel = 0u;
-         Channel < Current.ChannelCount && Channel < LayerRow::ChannelCeiling; ++Channel)
+         Channel < Current.ChannelCount && Channel < LayerRow::ChannelLimit; ++Channel)
     {
         const char* Naming = Current.Channels[Channel];
 
@@ -3200,7 +3199,7 @@ void GlobalShellPanel::RecordLayerStack(const PlaneExtent& Extent, ShellContext&
     Surface->Ground(Spanning(Extent.MaximumX - 1.0f, Extent.MinimumY, 1.0f, Extent.Height()),
                     Tinted.Hairline, 0.0f, CornerNone);
 
-    const std::uint32_t VisibleCount = (LayerCount < LayerCeiling) ? LayerCount : LayerCeiling;
+    const std::uint32_t VisibleCount = (LayerCount < LayerLimit) ? LayerCount : LayerLimit;
 
     // ① The header — a medallion, "Layer Stack", its subtitle, and the count pill at the trailing edge.
     const PlaneExtent Header = Spanning(Extent.MinimumX, Extent.MinimumY,
@@ -3236,8 +3235,8 @@ void GlobalShellPanel::RecordLayerStack(const PlaneExtent& Extent, ShellContext&
 
     const bool OnAdd = Add.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (OnAdd && Sampled.ContactPressed && !Ledger->AnyDisclosed())
-        Ledger->Grab(LayerAdd, ControlPart::Body);
+    if (OnAdd && Sampled.ContactPressed && !Interaction->AnyDisclosed())
+        Interaction->Grab(LayerAdd, ControlPart::Body);
 
     Surface->Ground(Add, Covering(0x141414u), 7.0f, CornerAll);
     Surface->Edge(Add, OnAdd ? Covering(0x3A3A3Au) : Covering(0x242424u), 1.0f, 7.0f, CornerAll);
@@ -3260,9 +3259,9 @@ void GlobalShellPanel::RecordLayerStack(const PlaneExtent& Extent, ShellContext&
     const bool OnRetaining = Retaining.Encloses(Sampled.PositionX, Sampled.PositionY);
 
     if (OnRetaining && Sampled.ContactPressed)
-        Ledger->Grab(LayerRetention, ControlPart::Body);
+        Interaction->Grab(LayerRetention, ControlPart::Body);
 
-    const bool Retained = Ledger->Holding(LayerRetention) || Ledger->Disclosed(LayerRetention);
+    const bool Retained = Interaction->Holding(LayerRetention) || Interaction->Disclosed(LayerRetention);
 
     if (OnRetaining || Retained)
     {
@@ -3294,12 +3293,12 @@ void GlobalShellPanel::RecordLayerStack(const PlaneExtent& Extent, ShellContext&
 
     float Sweep = Body.MinimumY;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < VisibleCount && Layers != nullptr; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < VisibleCount && Layers != nullptr; ++Index)
     {
 
         // 📐 An unfolded row stands taller by its two property columns. The reference sizes that half by
         //    its content; the tallest arrangement is the mask column's four stated rows.
-        const float FoldedY = Applied.LayerUnfolded[Ordinal]
+        const float FoldedY = Applied.LayerUnfolded[Index]
                                  ? (Scaled.LayerFoldPad * 2.0f + Scaled.LayerFieldRow * 2.0f
                                     + Scaled.LayerGap * 2.0f + Scaled.RunFine * 1.6f
                                     + Scaled.LayerPillY + 8.0f)
@@ -3313,8 +3312,8 @@ void GlobalShellPanel::RecordLayerStack(const PlaneExtent& Extent, ShellContext&
         if (Surface->Excluded(Row))
             continue;
 
-        static_cast<void>(RecordLayerRow(Row, Applied, Layers[Ordinal], Ordinal, VisibleCount,
-                                         Ordinal + 1u == VisibleCount));
+        static_cast<void>(RecordLayerRow(Row, Applied, Layers[Index], Index, VisibleCount,
+                                         Index + 1u == VisibleCount));
     }
 
     Surface->Release();
@@ -3326,9 +3325,9 @@ void GlobalShellPanel::RecordLayerStack(const PlaneExtent& Extent, ShellContext&
 
     std::uint32_t Current = 0u;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Current; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Current; ++Index)
     {
-        if (Applied.LayerShown[Ordinal])
+        if (Applied.LayerShown[Index])
             ++Current;
     }
 
@@ -3377,7 +3376,7 @@ void GlobalShellPanel::RecordLayerInspector(const PlaneExtent& Extent, const She
 {
     Surface->Ground(Extent, Tinted.MenuLower, 0.0f, CornerNone);
 
-    const std::uint32_t VisibleCount = (LayerCount < LayerCeiling) ? LayerCount : LayerCeiling;
+    const std::uint32_t VisibleCount = (LayerCount < LayerLimit) ? LayerCount : LayerLimit;
     const bool          TakenWithin  = (Layers != nullptr) && (Applied.LayerTaken < VisibleCount);
 
     // 📐 `LayerInspectorPane` delegates by `target`: a mask target presents `MaskPropertyPanel`, and every
@@ -3463,7 +3462,7 @@ void GlobalShellPanel::RecordLayerInspector(const PlaneExtent& Extent, const She
         Sweep += Scaled.RunFine * 1.8f;
 
         for (std::uint32_t Channel = 0u;
-             Channel < Taken.ChannelCount && Channel < LayerRow::ChannelCeiling; ++Channel)
+             Channel < Taken.ChannelCount && Channel < LayerRow::ChannelLimit; ++Channel)
         {
             if (Taken.Channels[Channel] == nullptr)
                 continue;
@@ -3605,7 +3604,7 @@ Outcome<bool> GlobalShellPanel::Record(const PlaneExtent&     Extent,
                                        const EntityRevision*  Revisions,
                                        std::uint32_t          RevisionCount)
 {
-    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr)
+    if (Interaction == nullptr || Surface == nullptr || Appearance == nullptr)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "the shell panel is unconstructed" });
 
     if (!Surface->Recording())
@@ -3614,14 +3613,14 @@ Outcome<bool> GlobalShellPanel::Record(const PlaneExtent&     Extent,
     if (Rows == nullptr)
         RowCount = 0u;
 
-    if (RowCount > RowCeiling)
-        RowCount = RowCeiling;
+    if (RowCount > RowLimit)
+        RowCount = RowLimit;
 
     if (Layers == nullptr)
         LayerCount = 0u;
 
-    if (LayerCount > LayerCeiling)
-        LayerCount = LayerCeiling;
+    if (LayerCount > LayerLimit)
+        LayerCount = LayerLimit;
 
     if (Revisions == nullptr)
         RevisionCount = 0u;
@@ -3703,7 +3702,7 @@ Outcome<bool> GlobalShellPanel::Record(const PlaneExtent&     Extent,
         const bool OnVeil = Extent.Encloses(Sampled.PositionX, Sampled.PositionY);
 
         if (OnVeil && Sampled.ContactPressed)
-            Ledger->Grab(VeilContact, ControlPart::Body);
+            Interaction->Grab(VeilContact, ControlPart::Body);
 
         const float CardX  = (Scaled.InspectorX < Extent.Width() - Scaled.OptionsX)
                                ? Scaled.InspectorX : Extent.Width() * 0.75f;
@@ -3717,7 +3716,7 @@ Outcome<bool> GlobalShellPanel::Record(const PlaneExtent&     Extent,
         // 📝 The veil dismisses the menu only when the contact was NOT inside the card. The reference relies
         //    on the card being a later sibling that stops the click; one list has no bubbling, so the test
         //    is stated here.
-        if (Ledger->Released(VeilContact) &&
+        if (Interaction->Released(VeilContact) &&
             !Card.Encloses(Sampled.PositionX, Sampled.PositionY))
         {
             Applied.MenuOpened = false;

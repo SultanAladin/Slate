@@ -190,10 +190,10 @@ ManipulatorBasis ProjectBasis(RotationQuaternion Orientation)
     Derived.AxisSpan[1] = RotateSpan(Orientation, DirectionSpan{ 0.0, 1.0, 0.0 });
     Derived.AxisSpan[2] = RotateSpan(Orientation, DirectionSpan{ 0.0, 0.0, 1.0 });
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 3u; ++Index)
     {
-        Derived.FirstPairSpan[Ordinal]  = Derived.AxisSpan[(Ordinal + 1u) % 3u];
-        Derived.SecondPairSpan[Ordinal] = Derived.AxisSpan[(Ordinal + 2u) % 3u];
+        Derived.FirstPairSpan[Index]  = Derived.AxisSpan[(Index + 1u) % 3u];
+        Derived.SecondPairSpan[Index] = Derived.AxisSpan[(Index + 2u) % 3u];
     }
 
     return Derived;
@@ -224,17 +224,17 @@ ColourSpecification DeclareOverlayColour(double RedByte, double GreenByte, doubl
     return Declaring;
 }
 
-ColourSpecification AxisColour(std::uint32_t AxisOrdinal)
+ColourSpecification AxisColour(std::uint32_t AxisIndex)
 {
-    if (AxisOrdinal == 0u)  return DeclareOverlayColour(224.0,  20.0,  20.0);   // [-] - the first axis
-    if (AxisOrdinal == 1u)  return DeclareOverlayColour( 18.0, 212.0,  10.0);   // [-] - the second
+    if (AxisIndex == 0u)  return DeclareOverlayColour(224.0,  20.0,  20.0);   // [-] - the first axis
+    if (AxisIndex == 1u)  return DeclareOverlayColour( 18.0, 212.0,  10.0);   // [-] - the second
     return DeclareOverlayColour(21.0, 96.0, 224.0);                            // [-] - the third
 }
 
-ColourSpecification PlaneColour(std::uint32_t AxisOrdinal)
+ColourSpecification PlaneColour(std::uint32_t AxisIndex)
 {
-    if (AxisOrdinal == 0u)  return DeclareOverlayColour( 31.0, 199.0, 199.0);   // [-] - the plane about the first axis
-    if (AxisOrdinal == 1u)  return DeclareOverlayColour(200.0,  30.0, 200.0);   // [-] - about the second
+    if (AxisIndex == 0u)  return DeclareOverlayColour( 31.0, 199.0, 199.0);   // [-] - the plane about the first axis
+    if (AxisIndex == 1u)  return DeclareOverlayColour(200.0,  30.0, 200.0);   // [-] - about the second
     return DeclareOverlayColour(224.0, 205.0, 18.0);                           // [-] - about the third
 }
 
@@ -404,7 +404,7 @@ DirectionSpan CarryToDocument(const DirectionSpan&  Local,
 // 📝 A grip's drawn solid and an authored primitive are one generation, so a modelled cone and a translate cone are
 //    the same triangles under the same parameters. `78` §4 asks for the manipulator to be drawn in `80`'s recording
 //    and this is what it hands over — a specification and a placement, not a second geometry.
-ManipulationGrip DeclareConeGrip(std::uint32_t        AxisOrdinal,
+ManipulationGrip DeclareConeGrip(std::uint32_t        AxisIndex,
                                  const DirectionSpan& AxisLocal,
                                  const DirectionSpan& FirstPair,
                                  const DirectionSpan& SecondPair)
@@ -412,8 +412,8 @@ ManipulationGrip DeclareConeGrip(std::uint32_t        AxisOrdinal,
     ManipulationGrip Declaring;
 
     Declaring.Edits      = ManipulationSubject::Translate;
-    Declaring.Addressed  = static_cast<ManipulationAxis>(AxisOrdinal);
-    Declaring.GripColour = AxisColour(AxisOrdinal);
+    Declaring.Addressed  = static_cast<ManipulationAxis>(AxisIndex);
+    Declaring.GripColour = AxisColour(AxisIndex);
 
     Declaring.Generated.Generated        = PrimitiveSubject::Cone;
     Declaring.Generated.HalfExtentX  = GripConeRadius;
@@ -435,7 +435,7 @@ ManipulationGrip DeclareConeGrip(std::uint32_t        AxisOrdinal,
     return Declaring;
 }
 
-ManipulationGrip DeclareScaleGrip(std::uint32_t        AxisOrdinal,
+ManipulationGrip DeclareScaleGrip(std::uint32_t        AxisIndex,
                                   const DirectionSpan& AxisLocal,
                                   const DirectionSpan& FirstPair,
                                   const DirectionSpan& SecondPair)
@@ -443,8 +443,8 @@ ManipulationGrip DeclareScaleGrip(std::uint32_t        AxisOrdinal,
     ManipulationGrip Declaring;
 
     Declaring.Edits      = ManipulationSubject::Scale;
-    Declaring.Addressed  = static_cast<ManipulationAxis>(AxisOrdinal);
-    Declaring.GripColour = AxisColour(AxisOrdinal);
+    Declaring.Addressed  = static_cast<ManipulationAxis>(AxisIndex);
+    Declaring.GripColour = AxisColour(AxisIndex);
 
     Declaring.Generated.Generated        = PrimitiveSubject::Cylinder;
     Declaring.Generated.HalfExtentX  = GripConeRadius;
@@ -465,7 +465,7 @@ ManipulationGrip DeclareScaleGrip(std::uint32_t        AxisOrdinal,
     return Declaring;
 }
 
-ManipulationGrip DeclarePlaneGrip(std::uint32_t        AxisOrdinal,
+ManipulationGrip DeclarePlaneGrip(std::uint32_t        AxisIndex,
                                   const DirectionSpan& AxisLocal,
                                   const DirectionSpan& FirstPair,
                                   const DirectionSpan& SecondPair)
@@ -473,8 +473,8 @@ ManipulationGrip DeclarePlaneGrip(std::uint32_t        AxisOrdinal,
     ManipulationGrip Declaring;
 
     Declaring.Edits      = ManipulationSubject::PlaneTranslate;
-    Declaring.Addressed  = static_cast<ManipulationAxis>(AxisOrdinal);
-    Declaring.GripColour = PlaneColour(AxisOrdinal);
+    Declaring.Addressed  = static_cast<ManipulationAxis>(AxisIndex);
+    Declaring.GripColour = PlaneColour(AxisIndex);
 
     Declaring.Generated.Generated        = PrimitiveSubject::Plane;
     Declaring.Generated.HalfExtentX  = GripPlaneHalfExtent;
@@ -502,7 +502,7 @@ ManipulationGrip DeclarePlaneGrip(std::uint32_t        AxisOrdinal,
     return Declaring;
 }
 
-ManipulationGrip DeclareRotationGrip(std::uint32_t        AxisOrdinal,
+ManipulationGrip DeclareRotationGrip(std::uint32_t        AxisIndex,
                                      const DirectionSpan& AxisLocal,
                                      const DirectionSpan& FirstPair,
                                      const DirectionSpan& SecondPair)
@@ -510,8 +510,8 @@ ManipulationGrip DeclareRotationGrip(std::uint32_t        AxisOrdinal,
     ManipulationGrip Declaring;
 
     Declaring.Edits      = ManipulationSubject::Rotate;
-    Declaring.Addressed  = static_cast<ManipulationAxis>(AxisOrdinal);
-    Declaring.GripColour = AxisColour(AxisOrdinal);
+    Declaring.Addressed  = static_cast<ManipulationAxis>(AxisIndex);
+    Declaring.GripColour = AxisColour(AxisIndex);
 
     Declaring.Generated.Generated        = PrimitiveSubject::AnnularSector;
     Declaring.Generated.HalfExtentX  = GripArcRadius;
@@ -620,44 +620,44 @@ Outcome<bool> ManipulationLayout::Layout(DocumentPosition        Origin,
     const ManipulatorBasis Local = LocalBasis();
 
     Declared.clear();
-    Declared.reserve(GripCeiling);
+    Declared.reserve(GripLimit);
 
     // 📝 Grasp precedence is the declaration order — cones, then scale grips, then planes, then arcs, then the
     //    ring. `78` §4 gives ties to the lower ordinal, so a pointer over the overlap of a cone and an arc grasps
     //    the cone, which is the smaller target and therefore the one that was aimed at.
-    for (std::uint32_t AxisOrdinal = 0u; AxisOrdinal < 3u; ++AxisOrdinal)
+    for (std::uint32_t AxisIndex = 0u; AxisIndex < 3u; ++AxisIndex)
     {
-        Declared.push_back(DeclareConeGrip(AxisOrdinal,
-                                           Local.AxisSpan[AxisOrdinal],
-                                           Local.FirstPairSpan[AxisOrdinal],
-                                           Local.SecondPairSpan[AxisOrdinal]));
+        Declared.push_back(DeclareConeGrip(AxisIndex,
+                                           Local.AxisSpan[AxisIndex],
+                                           Local.FirstPairSpan[AxisIndex],
+                                           Local.SecondPairSpan[AxisIndex]));
     }
 
     if (ScaleOffered)
     {
-        for (std::uint32_t AxisOrdinal = 0u; AxisOrdinal < 3u; ++AxisOrdinal)
+        for (std::uint32_t AxisIndex = 0u; AxisIndex < 3u; ++AxisIndex)
         {
-            Declared.push_back(DeclareScaleGrip(AxisOrdinal,
-                                                Local.AxisSpan[AxisOrdinal],
-                                                Local.FirstPairSpan[AxisOrdinal],
-                                                Local.SecondPairSpan[AxisOrdinal]));
+            Declared.push_back(DeclareScaleGrip(AxisIndex,
+                                                Local.AxisSpan[AxisIndex],
+                                                Local.FirstPairSpan[AxisIndex],
+                                                Local.SecondPairSpan[AxisIndex]));
         }
     }
 
-    for (std::uint32_t AxisOrdinal = 0u; AxisOrdinal < 3u; ++AxisOrdinal)
+    for (std::uint32_t AxisIndex = 0u; AxisIndex < 3u; ++AxisIndex)
     {
-        Declared.push_back(DeclarePlaneGrip(AxisOrdinal,
-                                            Local.AxisSpan[AxisOrdinal],
-                                            Local.FirstPairSpan[AxisOrdinal],
-                                            Local.SecondPairSpan[AxisOrdinal]));
+        Declared.push_back(DeclarePlaneGrip(AxisIndex,
+                                            Local.AxisSpan[AxisIndex],
+                                            Local.FirstPairSpan[AxisIndex],
+                                            Local.SecondPairSpan[AxisIndex]));
     }
 
-    for (std::uint32_t AxisOrdinal = 0u; AxisOrdinal < 3u; ++AxisOrdinal)
+    for (std::uint32_t AxisIndex = 0u; AxisIndex < 3u; ++AxisIndex)
     {
-        Declared.push_back(DeclareRotationGrip(AxisOrdinal,
-                                               Local.AxisSpan[AxisOrdinal],
-                                               Local.FirstPairSpan[AxisOrdinal],
-                                               Local.SecondPairSpan[AxisOrdinal]));
+        Declared.push_back(DeclareRotationGrip(AxisIndex,
+                                               Local.AxisSpan[AxisIndex],
+                                               Local.FirstPairSpan[AxisIndex],
+                                               Local.SecondPairSpan[AxisIndex]));
     }
 
     // 🔴 The central ring is drawn and is **not** grasped — its half-extent is zero, and `Grasp` never reports a
@@ -741,13 +741,13 @@ Outcome<std::uint32_t> ManipulationLayout::Grasp(const CameraProjection& Camera,
     const DirectionSpan RayOrigin    = SpanOfPosition(Pointing.Origin);
     const DirectionSpan RayDirection = { Pointing.DirectionX, Pointing.DirectionY, Pointing.DirectionZ };
 
-    std::uint32_t GraspedOrdinal = 0u;
+    std::uint32_t GraspedIndex = 0u;
     double        NearestReach   = 0.0;
     bool          GraspDeclared  = false;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < static_cast<std::uint32_t>(Declared.size()); ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < static_cast<std::uint32_t>(Declared.size()); ++Index)
     {
-        const ManipulationGrip& Testing = Declared[Ordinal];
+        const ManipulationGrip& Testing = Declared[Index];
 
         if (!Testing.GripDeclared)
             continue;
@@ -769,7 +769,7 @@ Outcome<std::uint32_t> ManipulationLayout::Grasp(const CameraProjection& Camera,
         //    walk is in declaration order and `78` §4 declares that order to be the precedence.
         if (!GraspDeclared || Reach < NearestReach)
         {
-            GraspedOrdinal = Ordinal;
+            GraspedIndex = Index;
             NearestReach   = Reach;
             GraspDeclared  = true;
         }
@@ -781,24 +781,24 @@ Outcome<std::uint32_t> ManipulationLayout::Grasp(const CameraProjection& Camera,
             { RefusalReason::ContentUnsupported, "the pointer grasps no grip of the standing layout" });
     }
 
-    return Outcome<std::uint32_t>::Result(GraspedOrdinal);
+    return Outcome<std::uint32_t>::Result(GraspedIndex);
 }
 
-Outcome<const ManipulationGrip*> ManipulationLayout::Resolve(std::uint32_t GripOrdinal) const
+Outcome<const ManipulationGrip*> ManipulationLayout::Resolve(std::uint32_t GripIndex) const
 {
-    if (GripOrdinal >= static_cast<std::uint32_t>(Declared.size()))
+    if (GripIndex >= static_cast<std::uint32_t>(Declared.size()))
     {
         return Outcome<const ManipulationGrip*>::Refuse(
             { RefusalReason::ContentUnsupported, "the ordinal is outside the standing layout" });
     }
 
-    if (!Declared[GripOrdinal].GripDeclared)
+    if (!Declared[GripIndex].GripDeclared)
     {
         return Outcome<const ManipulationGrip*>::Refuse(
             { RefusalReason::ContentUnsupported, "this target offers no grip at that ordinal" });
     }
 
-    return Outcome<const ManipulationGrip*>::Result(&Declared[GripOrdinal]);
+    return Outcome<const ManipulationGrip*>::Result(&Declared[GripIndex]);
 }
 
 const std::vector<ManipulationGrip>& ManipulationLayout::Grips() const
@@ -875,17 +875,17 @@ Outcome<bool> ManipulationSequence::Open(const ManipulationGrip&   Grasping,
 
     const ManipulatorBasis Basis        = ProjectBasis(Laid.Orientation());
     const DirectionSpan    OriginSpan   = SpanOfPosition(Laid.Origin());
-    const std::uint32_t    AxisOrdinal  = static_cast<std::uint32_t>(Grasping.Addressed);
+    const std::uint32_t    AxisIndex  = static_cast<std::uint32_t>(Grasping.Addressed);
 
-    if (AxisOrdinal >= 3u)
+    if (AxisIndex >= 3u)
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the grip addresses no axis of the reference orientation" });
     }
 
-    const DirectionSpan AxisSpan   = Basis.AxisSpan[AxisOrdinal];
-    const DirectionSpan FirstSpan  = Basis.FirstPairSpan[AxisOrdinal];
-    const DirectionSpan SecondSpan = Basis.SecondPairSpan[AxisOrdinal];
+    const DirectionSpan AxisSpan   = Basis.AxisSpan[AxisIndex];
+    const DirectionSpan FirstSpan  = Basis.FirstPairSpan[AxisIndex];
+    const DirectionSpan SecondSpan = Basis.SecondPairSpan[AxisIndex];
 
     if (Grasping.Edits == ManipulationSubject::PlaneTranslate)
     {
@@ -1092,11 +1092,11 @@ Outcome<bool> ManipulationSequence::Amend(double        PointerX,
             if (Factor < ScaleFactorMinimum)
                 Factor = ScaleFactorMinimum;
 
-            const std::uint32_t AxisOrdinal = static_cast<std::uint32_t>(GraspedGrip.Addressed);
+            const std::uint32_t AxisIndex = static_cast<std::uint32_t>(GraspedGrip.Addressed);
 
-            if (AxisOrdinal == 0u)  Amending.ScaleX  = Factor;
-            if (AxisOrdinal == 1u)  Amending.ScaleUp     = Factor;
-            if (AxisOrdinal == 2u)  Amending.ScaleY = Factor;
+            if (AxisIndex == 0u)  Amending.ScaleX  = Factor;
+            if (AxisIndex == 1u)  Amending.ScaleUp     = Factor;
+            if (AxisIndex == 2u)  Amending.ScaleY = Factor;
         }
         else
         {

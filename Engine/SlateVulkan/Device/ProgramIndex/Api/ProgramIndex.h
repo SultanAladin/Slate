@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateVulkan/Device/DescriptorIndex/Api/DescriptorIndex.h"
 #include "SlateVulkan/Device/DiagnosticExtension/Api/DiagnosticExtension.h"
 #include "SlateVulkan/Device/ShaderCodec/Api/ShaderCodec.h"
@@ -28,7 +28,7 @@ namespace Slate
 inline constexpr std::uint32_t AbsentProgram = 0xFFFFFFFFu;   // [-] - the resolution names no program
 
 /// 🧩 How one graphics program resolves depth — tested, written, and against which comparison.
-/// note  🔴 The comparison defaults to `VK_COMPARE_OP_GREATER` because `Contract/`'s `NearPlaneDepth` is unity
+/// note  🔴 The comparison defaults to `VK_COMPARE_OP_GREATER` because `Foundation/`'s `NearPlaneDepth` is unity
 ///       and `FarPlaneDepth` is nought. A program declaring the ordinary less-than comparison against a
 ///       reversed target resolves the furthest surface at every pixel, and the image is the inside of the
 ///       object rather than an image that sorts wrongly — which is the failure `02` §6 declares the two
@@ -56,7 +56,7 @@ struct GraphicsDeclaration
 {
     std::uint32_t                     VertexModule          = AbsentModule;   // [-] - a module `ShaderCodec` resolved
     std::uint32_t                     FragmentModule        = AbsentModule;   // [-] - likewise
-    std::vector<std::uint32_t>        LayoutOrdinals        = {};             // [-] - declared layouts, in set order
+    std::vector<std::uint32_t>        LayoutIndexs        = {};             // [-] - declared layouts, in set order
     std::vector<SpecialisedConstant>  VertexFixed           = {};             // [-] - empty declares no specialisation
     std::vector<SpecialisedConstant>  FragmentFixed         = {};             // [-] - likewise
     VkRenderPass                      RenderConstruct       = VK_NULL_HANDLE; // [-] - what `AttachmentIndex` declared
@@ -74,8 +74,8 @@ struct GraphicsDeclaration
 /// tag   owning
 struct ComputeDeclaration
 {
-    std::uint32_t                     ModuleOrdinal   = AbsentModule;   // [-] - a module `ShaderCodec` resolved
-    std::vector<std::uint32_t>        LayoutOrdinals  = {};             // [-] - declared layouts, in set order
+    std::uint32_t                     ModuleIndex   = AbsentModule;   // [-] - a module `ShaderCodec` resolved
+    std::vector<std::uint32_t>        LayoutIndexs  = {};             // [-] - declared layouts, in set order
     std::vector<SpecialisedConstant>  Fixed           = {};             // [-] - empty declares no specialisation
     std::uint32_t                     ConstantBytes   = 0u;             // [B] - the recorded constant run
 };
@@ -133,7 +133,7 @@ public:
     ///        after the other — and the errors the two raise read alike until the objects are told apart.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange&      Exchange,
+    Outcome<bool> ConstructProgramIndex(const VulkanExchange&      Exchange,
                             ShaderCodec&               Modules,
                             const DescriptorIndex&     Descriptors,
                             const DiagnosticExtension& Naming);
@@ -158,11 +158,11 @@ public:
     Outcome<std::uint32_t> DeclareCompute(const ComputeDeclaration& Declaring);
 
     /// 🧩 The program one ordinal names, for the recording that records against it.
-    /// in    ProgramOrdinal  [-]  an ordinal this component registered
+    /// in    ProgramIndex  [-]  an ordinal this component registered
     /// out   Result         [-]  refuses with ContentUnsupported for an ordinal naming no program
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<ConstructedProgram> Resolve(std::uint32_t ProgramOrdinal) const;
+    Outcome<ConstructedProgram> Resolve(std::uint32_t ProgramIndex) const;
 
     /// 🧩 Destroys every program and every layout constructed for one.
     /// pre   the device is idle and no recording that reads them is still executing
@@ -182,11 +182,11 @@ private:
     };
 
     /// 🧩 Constructs the layout one program reaches its declared sets and its constant run through.
-    /// in    LayoutOrdinals  [-]  declared layouts, in set order; an empty run declares no set
+    /// in    LayoutIndexs  [-]  declared layouts, in set order; an empty run declares no set
     /// in    ConstantBytes   [B]  the recorded constant run; nought declares none
     /// in    ReachingStages  [-]  which stages read the constant run, as the vendor spells them
     /// out   Result         [-]  refuses with ContentUnsupported for an undeclared layout ordinal
-    Outcome<VkPipelineLayout> ReachLayout(const std::vector<std::uint32_t>&  LayoutOrdinals,
+    Outcome<VkPipelineLayout> ReachLayout(const std::vector<std::uint32_t>&  LayoutIndexs,
                                           std::uint32_t                     ConstantBytes,
                                           VkShaderStageFlags                ReachingStages);
 

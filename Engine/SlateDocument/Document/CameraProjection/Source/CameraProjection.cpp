@@ -138,8 +138,8 @@ Outcome<ViewProjection> Derive(const CameraSpecification& Declaring)
 
     ProjectedTransform Projecting;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 16u; ++Ordinal)
-        Projecting.Coefficient[Ordinal] = 0.0;
+    for (std::uint32_t Index = 0u; Index < 16u; ++Index)
+        Projecting.Coefficient[Index] = 0.0;
 
     if (Declaring.Projected == ProjectionSubject::Perspective)
     {
@@ -186,7 +186,7 @@ Outcome<ViewProjection> Derive(const CameraSpecification& Declaring)
 //                                                   PLANE EXTRACTION
 //------------------------------------------------------------------------------------------------------------------------
 
-void FrustumSpace::Construct(const ViewProjection& Projected)
+void FrustumSpace::DeriveFrustumPlanes(const ViewProjection& Projected)
 {
     RebasingOrigin = Projected.ViewOrigin;
 
@@ -204,46 +204,46 @@ void FrustumSpace::Construct(const ViewProjection& Projected)
 
     double Derived[PlaneCount][4];
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 4u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 4u; ++Index)
     {
-        Derived[0][Ordinal] = Rows[3][Ordinal] + Rows[0][Ordinal];   // leftward
-        Derived[1][Ordinal] = Rows[3][Ordinal] - Rows[0][Ordinal];   // rightward
-        Derived[2][Ordinal] = Rows[3][Ordinal] + Rows[1][Ordinal];   // lower
-        Derived[3][Ordinal] = Rows[3][Ordinal] - Rows[1][Ordinal];   // upper
+        Derived[0][Index] = Rows[3][Index] + Rows[0][Index];   // leftward
+        Derived[1][Index] = Rows[3][Index] - Rows[0][Index];   // rightward
+        Derived[2][Index] = Rows[3][Index] + Rows[1][Index];   // lower
+        Derived[3][Index] = Rows[3][Index] - Rows[1][Index];   // upper
 
         // 📝 🔴 With reversed depth the two depth planes exchange roles: the constraint that clip depth stays
         //    non-negative is the **furthest** plane, and the constraint that it does not exceed w is the nearest.
         //    Naming them by the row they came from would name them backwards for every reader.
-        Derived[4][Ordinal] = Rows[2][Ordinal];                      // furthest
-        Derived[5][Ordinal] = Rows[3][Ordinal] - Rows[2][Ordinal];   // nearest
+        Derived[4][Index] = Rows[2][Index];                      // furthest
+        Derived[5][Index] = Rows[3][Index] - Rows[2][Index];   // nearest
     }
 
-    for (std::uint32_t PlaneOrdinal = 0u; PlaneOrdinal < PlaneCount; ++PlaneOrdinal)
+    for (std::uint32_t PlaneIndex = 0u; PlaneIndex < PlaneCount; ++PlaneIndex)
     {
-        const double NormalX = Derived[PlaneOrdinal][0];
-        const double NormalY = Derived[PlaneOrdinal][1];
-        const double NormalZ = Derived[PlaneOrdinal][2];
+        const double NormalX = Derived[PlaneIndex][0];
+        const double NormalY = Derived[PlaneIndex][1];
+        const double NormalZ = Derived[PlaneIndex][2];
 
         const double Length = std::sqrt(NormalX * NormalX + NormalY * NormalY + NormalZ * NormalZ);
 
         if (Length <= 0.0)
         {
-            Planes[PlaneOrdinal] = FrustumPlane{};
+            Planes[PlaneIndex] = FrustumPlane{};
             continue;
         }
 
         const double Reciprocal = 1.0 / Length;
 
-        Planes[PlaneOrdinal].NormalX  = NormalX * Reciprocal;
-        Planes[PlaneOrdinal].NormalY  = NormalY * Reciprocal;
-        Planes[PlaneOrdinal].NormalZ  = NormalZ * Reciprocal;
+        Planes[PlaneIndex].NormalX  = NormalX * Reciprocal;
+        Planes[PlaneIndex].NormalY  = NormalY * Reciprocal;
+        Planes[PlaneIndex].NormalZ  = NormalZ * Reciprocal;
 
         // 🔴 Pushed outward, never inward. The margin is relative to the plane's own distance so it stays
         //    meaningful at every scene scale, with an absolute floor so a plane through the origin still moves.
-        const double Distance = Derived[PlaneOrdinal][3] * Reciprocal;
+        const double Distance = Derived[PlaneIndex][3] * Reciprocal;
         const double Margin   = FrustumOutwardMargin * (std::fabs(Distance) + 1.0);
 
-        Planes[PlaneOrdinal].Constant = Distance + Margin;
+        Planes[PlaneIndex].Constant = Distance + Margin;
     }
 
     PlanesDerived = true;
@@ -266,9 +266,9 @@ std::int32_t FrustumSpace::Classify(DocumentPosition Minimum, DocumentPosition M
 
     std::int32_t Resolved = 1;
 
-    for (std::uint32_t PlaneOrdinal = 0u; PlaneOrdinal < PlaneCount; ++PlaneOrdinal)
+    for (std::uint32_t PlaneIndex = 0u; PlaneIndex < PlaneCount; ++PlaneIndex)
     {
-        const FrustumPlane& Held = Planes[PlaneOrdinal];
+        const FrustumPlane& Held = Planes[PlaneIndex];
 
         // 🔴 Keep the selected support vertices distinct from the box bounds. The previous locals
         //    shadowed `MaximumX`/`MinimumX` in their own initialisers and therefore read indeterminate
@@ -304,9 +304,9 @@ bool FrustumSpace::Contains(DocumentPosition Subject) const
     return Classify(Subject, Subject) >= 0;
 }
 
-const FrustumPlane& FrustumSpace::Plane(std::uint32_t PlaneOrdinal) const
+const FrustumPlane& FrustumSpace::Plane(std::uint32_t PlaneIndex) const
 {
-    return Planes[PlaneOrdinal < PlaneCount ? PlaneOrdinal : 0u];
+    return Planes[PlaneIndex < PlaneCount ? PlaneIndex : 0u];
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -511,9 +511,9 @@ Outcome<DecomposedTransform> Frame(const CameraSpecification& Current,
     {
         // 📐 The extent is contained on both axes, so the lesser of the two half-angles decides. Solving against
         //    the vertical alone frames correctly on a tall display and cuts the extent off on a wide one.
-        const double HalfY = Current.ExtentParameter * 0.5 * Pi / 180.0;
-        const double HalfX  = std::atan(std::tan(HalfY) * Current.SensorProportion);
-        const double HalfLesser = HalfX < HalfY ? HalfX : HalfY;
+        const double HalfVerticalAngle = Current.ExtentParameter * 0.5 * Pi / 180.0;
+        const double HalfHorizontalAngle = std::atan(std::tan(HalfVerticalAngle) * Current.SensorProportion);
+        const double HalfLesser = HalfHorizontalAngle < HalfVerticalAngle ? HalfHorizontalAngle : HalfVerticalAngle;
 
         const double Sine = std::sin(HalfLesser);
 
@@ -581,7 +581,7 @@ Outcome<bool> CameraProjection::Reconcile()
         return Outcome<bool>::Refuse(Derived.Error);
 
     DerivedView = Derived.Resolve();
-    DerivedFrustum.Construct(DerivedView);
+    DerivedFrustum.DeriveFrustumPlanes(DerivedView);
 
     ReconcileOwed = false;
 

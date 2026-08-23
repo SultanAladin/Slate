@@ -5,15 +5,15 @@
 
 #pragma once
 
-#include "Contract/ToolchainContract.h"
+#include "Foundation/Toolchain.h"
 
 // 📝 Everything under Shared/ is compiled once by the C++ toolchain and once by the shader toolchain. This
 //    file is the only place the two spellings are reconciled. A Shared/ entry point that reaches for a
 //    toolchain-specific spelling directly has stopped being shared source, and ParityRunner cannot cover it.
 //
-// 📝 🔴 The scalar widths and the constant spelling are **not** declared here. `Contract/` declares its capacities
+// 📝 🔴 The scalar widths and the constant spelling are **not** declared here. `Foundation/` declares its capacities
 //    in those widths and depends on nothing, so it cannot read them from this file; they live in
-//    `Contract/ToolchainContract.h` and are included from there. What remains below is what only shared *source*
+//    `Foundation/Toolchain.h` and are included from there. What remains below is what only shared *source*
 //    needs — parameter directions, the component widths, and the intrinsics whose spellings differ.
 
 #if defined(SLATE_SHADER_TOOLCHAIN)
@@ -34,7 +34,7 @@
 //    of four components must say so at its declaration — `Texture2D<Real32>` samples one component and silently
 //    delivers red where three were meant, which reads as a monochrome sky rather than as a mistake.
 //
-// 📝 🔴 `Real32x3` was USED before it was DECLARED. `OverlayFragment.slang`'s analytic ground names it eight
+// 📝 🔴 `Real32x3` was USED before it was DECLARED. `WorkspaceOverlayFragment.slang`'s analytic ground names it eight
 //    times — the eye, the camera basis, the pixel's ray and the lattice tone are all three-component — and this
 //    file declared only the two- and four-component widths, so slangc rejected the unit with eight
 //    `undefined identifier 'Real32x3'` at 30015 and the whole SlateVulkan shader stage threw. Nothing caught it

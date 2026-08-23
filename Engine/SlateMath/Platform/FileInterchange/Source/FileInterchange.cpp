@@ -178,7 +178,7 @@ Outcome<std::vector<std::uint8_t>> FileInterchange::ReadStream(const std::string
     if (Reading.Content != PathContent::Stream)
         return StreamDelivery::Refuse({ RefusalReason::HostDenied, "the path names no readable stream" });
 
-    if (Reading.SpannedBytes > StreamCeiling)
+    if (Reading.SpannedBytes > StreamLimit)
         return StreamDelivery::Refuse({ RefusalReason::ExtentExhausted, "the stream spans beyond the read ceiling" });
 
     std::vector<std::uint8_t> Content(static_cast<std::size_t>(Reading.SpannedBytes));
@@ -374,16 +374,16 @@ Outcome<bool> FileInterchange::DeclareDirectory(const std::string& Path)
 
     // 📝 Every absent directory above the leaf is created in turn. Creating only the leaf refuses on the first
     //    run of an installation whose retained directory does not exist yet, which is the run that matters.
-    for (std::size_t Ordinal = 0u; Ordinal <= Path.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index <= Path.size(); ++Index)
     {
-        const bool Separated = Ordinal == Path.size()
-                            || Path[Ordinal] == '\\'
-                            || Path[Ordinal] == '/';
+        const bool Separated = Index == Path.size()
+                            || Path[Index] == '\\'
+                            || Path[Index] == '/';
 
-        if (!Separated || Ordinal == 0u)
+        if (!Separated || Index == 0u)
             continue;
 
-        const std::string Leading = Path.substr(0u, Ordinal);
+        const std::string Leading = Path.substr(0u, Index);
 
         const Outcome<PathReport> Located = Resolve(Leading);
 

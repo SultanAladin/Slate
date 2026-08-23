@@ -32,7 +32,7 @@ Outcome<bool> RecoverySequence::DeclareDocument(const std::string& DeclaredDocum
 //                                                      THE APPENDING
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> RecoverySequence::Append(const CommittedTransaction& Sealing, std::uint64_t RevisionOrdinal)
+Outcome<bool> RecoverySequence::Append(const CommittedTransaction& Sealing, std::uint64_t RevisionIndex)
 {
     if (DocumentPath.empty())
     {
@@ -43,12 +43,12 @@ Outcome<bool> RecoverySequence::Append(const CommittedTransaction& Sealing, std:
     JournalEntry Appending;
     Appending.Description     = Sealing.Description;
     Appending.OperationName   = Sealing.OperationName;
-    Appending.RevisionOrdinal = RevisionOrdinal;
+    Appending.RevisionIndex = RevisionIndex;
     Appending.SealedAt        = Sealing.SealedAt;
 
     Entries.push_back(Appending);
 
-    if (Entries.size() > static_cast<std::size_t>(EntryCeiling))
+    if (Entries.size() > static_cast<std::size_t>(EntryLimit))
     {
         // ⚠️ The oldest entry leaves and the discard is counted rather than forgotten. A journal that silently
         //    dropped its first entries would offer a replay that begins mid-session, and the artist would read
@@ -68,7 +68,7 @@ void RecoverySequence::Retire(std::uint64_t SavedThrough)
 {
     std::size_t Retiring = 0u;
 
-    while (Retiring < Entries.size() && Entries[Retiring].RevisionOrdinal <= SavedThrough)
+    while (Retiring < Entries.size() && Entries[Retiring].RevisionIndex <= SavedThrough)
     {
         ++Retiring;
     }
@@ -79,10 +79,10 @@ void RecoverySequence::Retire(std::uint64_t SavedThrough)
 
     // 📝 An unreadable ordinal addresses a position in the retained entries, so retiring from the front moves
     //    it. Left unmoved it would exclude entries that are perfectly readable and are past the save.
-    if (UnreadableOrdinal != EntryCeiling)
+    if (UnreadableIndex != EntryLimit)
     {
-        UnreadableOrdinal = UnreadableOrdinal > static_cast<std::uint32_t>(Retiring)
-                          ? UnreadableOrdinal - static_cast<std::uint32_t>(Retiring)
+        UnreadableIndex = UnreadableIndex > static_cast<std::uint32_t>(Retiring)
+                          ? UnreadableIndex - static_cast<std::uint32_t>(Retiring)
                           : 0u;
     }
 }
@@ -95,9 +95,9 @@ RecoveryOffer RecoverySequence::OfferReplay(std::uint64_t SavedAt, std::uint64_t
 {
     RecoveryOffer Stating;
     Stating.SavedAt        = SavedAt;
-    Stating.UnreadableFrom = UnreadableOrdinal;
+    Stating.UnreadableFrom = UnreadableIndex;
 
-    if (UnreadableOrdinal == 0u)
+    if (UnreadableIndex == 0u)
     {
         // 🔴 Nothing of the journal was readable. `48` §4 reports it and offers nothing, because an offer of
         //    zero transactions presented as a recovery teaches the artist that recovery does nothing.
@@ -108,13 +108,13 @@ RecoveryOffer RecoverySequence::OfferReplay(std::uint64_t SavedAt, std::uint64_t
     std::uint32_t  Offering    = 0u;
     std::uint64_t  LastReadable = 0u;
 
-    for (std::size_t Ordinal = 0u; Ordinal < Entries.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < Entries.size(); ++Index)
     {
-        if (Ordinal >= static_cast<std::size_t>(UnreadableOrdinal)) { break; }
-        if (Entries[Ordinal].RevisionOrdinal <= SavedThrough)       { continue; }
+        if (Index >= static_cast<std::size_t>(UnreadableIndex)) { break; }
+        if (Entries[Index].RevisionIndex <= SavedThrough)       { continue; }
 
         ++Offering;
-        LastReadable = Entries[Ordinal].SealedAt;
+        LastReadable = Entries[Index].SealedAt;
     }
 
     Stating.OfferedCount = Offering;
@@ -128,18 +128,18 @@ RecoveryOffer RecoverySequence::OfferReplay(std::uint64_t SavedAt, std::uint64_t
 
     // ⚠️ Partial for either reason — an entry that could not be read, or entries the ceiling discarded before
     //    the save. Both leave a gap between the file and the offer, and the artist is told which they have.
-    const bool GapCurrent = UnreadableOrdinal != EntryCeiling || DiscardedTotal > 0u;
+    const bool GapCurrent = UnreadableIndex != EntryLimit || DiscardedTotal > 0u;
 
     Stating.Current = GapCurrent ? RecoveryCurrent::PartlyOffered : RecoveryCurrent::Offered;
 
     return Stating;
 }
 
-void RecoverySequence::DeclareUnreadable(std::uint32_t EntryOrdinal)
+void RecoverySequence::DeclareUnreadable(std::uint32_t EntryIndex)
 {
-    if (EntryOrdinal < UnreadableOrdinal)
+    if (EntryIndex < UnreadableIndex)
     {
-        UnreadableOrdinal = EntryOrdinal;
+        UnreadableIndex = EntryIndex;
     }
 }
 
@@ -147,12 +147,12 @@ std::vector<JournalEntry> RecoverySequence::Offered(std::uint64_t SavedThrough) 
 {
     std::vector<JournalEntry> Offering;
 
-    for (std::size_t Ordinal = 0u; Ordinal < Entries.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < Entries.size(); ++Index)
     {
-        if (Ordinal >= static_cast<std::size_t>(UnreadableOrdinal)) { break; }
-        if (Entries[Ordinal].RevisionOrdinal <= SavedThrough)       { continue; }
+        if (Index >= static_cast<std::size_t>(UnreadableIndex)) { break; }
+        if (Entries[Index].RevisionIndex <= SavedThrough)       { continue; }
 
-        Offering.push_back(Entries[Ordinal]);
+        Offering.push_back(Entries[Index]);
     }
 
     return Offering;
@@ -185,7 +185,7 @@ std::uint32_t RecoverySequence::DiscardedCount() const
 void RecoverySequence::Reclaim()
 {
     Entries.clear();
-    UnreadableOrdinal = EntryCeiling;
+    UnreadableIndex = EntryLimit;
     DiscardedTotal    = 0u;
 }
 

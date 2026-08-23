@@ -33,7 +33,7 @@ bool PrecedesInEviction(EvictionOrdering         Declared,
     // 📝 The cell ordinal breaks the last tie, so the ordering is total and the same two candidates resolve the
     //    same way on every rotation and every machine. Leaving them incomparable would let the walk order
     //    decide, and the walk order is storage rather than policy.
-    return Earlier.CellOrdinal < Later.CellOrdinal;
+    return Earlier.CellIndex < Later.CellIndex;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -104,16 +104,16 @@ void PromotionScheduler::DeclareOrdering(EvictionOrdering Declaring)
         DeclaredOrder = Declaring;
 }
 
-Outcome<bool> PromotionScheduler::OpenRecording(std::uint64_t RecordingOrdinal)
+Outcome<bool> PromotionScheduler::OpenRecording(std::uint64_t RecordingIndex)
 {
-    if (RecordingCurrent && RecordingOrdinal <= RecordingOpened)
+    if (RecordingCurrent && RecordingIndex <= RecordingOpened)
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::HostDenied, "the rotation is not later than the one already open" });
     }
 
     RemainingBudget  = DeclaredBudget;
-    RecordingOpened   = RecordingOrdinal;
+    RecordingOpened   = RecordingIndex;
     RecordingCurrent = true;
     PromotedThis     = 0u;
     DeferredThis     = 0u;

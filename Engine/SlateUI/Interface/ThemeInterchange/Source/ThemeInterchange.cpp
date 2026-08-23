@@ -51,7 +51,7 @@ namespace
 //    an inscribed file guaranteed to transcribe back into the archive it came from.
 // 🔴 The order matches ThemeDeclaration's declaration order, and the offsets are taken from the struct
 //    rather than counted by hand — a member reordered in the header cannot desynchronise this table.
-struct ColourBinding
+struct ColourAssignment
 {
     const char*  Key;      // [-] - the spelling in the file
     std::size_t  Displacement;   // [B] - byte offset of the colour within ThemeDeclaration
@@ -59,7 +59,7 @@ struct ColourBinding
 
 #define SLATE_COLOUR_BINDING(Member) { #Member, offsetof(ThemeDeclaration, Member) }
 
-constexpr ColourBinding ColourBindings[] = {
+constexpr ColourAssignment ColourAssignments[] = {
     SLATE_COLOUR_BINDING(Ground),               SLATE_COLOUR_BINDING(Panel),
     SLATE_COLOUR_BINDING(Primary),              SLATE_COLOUR_BINDING(Secondary),
     SLATE_COLOUR_BINDING(Edge),                 SLATE_COLOUR_BINDING(Card),
@@ -70,14 +70,14 @@ constexpr ColourBinding ColourBindings[] = {
 
 #undef SLATE_COLOUR_BINDING
 
-constexpr std::uint32_t ColourBindingCount = static_cast<std::uint32_t>(sizeof(ColourBindings) / sizeof(ColourBindings[0]));
+constexpr std::uint32_t ColourAssignmentCount = static_cast<std::uint32_t>(sizeof(ColourAssignments) / sizeof(ColourAssignments[0]));
 
 // 📝 The section stem each appearance and accent is written under. Stable spellings — renaming one would
 //    orphan every file already on disk — so they are declared here rather than derived from the caption.
-constexpr const char* ThemeStems[ThemeCeiling] = {"oled", "dark", "clean-white", "desert-sand",
+constexpr const char* ThemeStems[ThemeLimit] = {"oled", "dark", "clean-white", "desert-sand",
                                                   "lavender", "blue"};
 
-constexpr const char* AccentStems[AccentCeiling] = {"blue", "cyan", "teal", "emerald",
+constexpr const char* AccentStems[AccentLimit] = {"blue", "cyan", "teal", "emerald",
                                                     "amber", "orange", "rose", "violet"};
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -145,13 +145,13 @@ bool ReadColour(const char* Text, ThemeToken& Produced)
 
 // 📝 Quotes are stripped rather than required. A caption written bare is unambiguous in this form, and
 //    refusing it would fail a file a reader had every reason to thcolour was correct.
-void ReadCaption(const char* Text, char* Produced, std::uint32_t Ceiling)
+void ReadCaption(const char* Text, char* Produced, std::uint32_t Limit)
 {
     std::uint32_t Written = 0u;
 
     if (*Text == '"' || *Text == '\'') ++Text;
 
-    while (*Text != '\0' && Written + 1u < Ceiling)
+    while (*Text != '\0' && Written + 1u < Limit)
     {
         if ((*Text == '"' || *Text == '\'') && Text[1] == '\0') break;
 
@@ -187,11 +187,11 @@ bool Matched(const char* Named, const char* Against)
 
 // 📝 Written lower case so the whole file reads in one convention, and folded back on read so a file already
 //    on disk in the earlier mixed form still transcribes.
-void LowerInto(const char* Named, char* Produced, std::uint32_t Ceiling)
+void LowerInto(const char* Named, char* Produced, std::uint32_t Limit)
 {
     std::uint32_t Written = 0u;
 
-    while (Named[Written] != '\0' && Written + 1u < Ceiling)
+    while (Named[Written] != '\0' && Written + 1u < Limit)
     {
         Produced[Written] = Lowered(Named[Written]);
         ++Written;
@@ -200,11 +200,11 @@ void LowerInto(const char* Named, char* Produced, std::uint32_t Ceiling)
     Produced[Written] = '\0';
 }
 
-std::uint32_t StemOrdinal(const char* const* Stems, std::uint32_t Counted, const char* Named)
+std::uint32_t StemIndex(const char* const* Stems, std::uint32_t Counted, const char* Named)
 {
-    for (std::uint32_t Ordinal = 0u; Ordinal < Counted; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Counted; ++Index)
     {
-        if (Matched(Stems[Ordinal], Named)) return Ordinal;
+        if (Matched(Stems[Index], Named)) return Index;
     }
 
     return Counted;   // [-] - unmatched; the caller refuses rather than defaulting to the first
@@ -249,9 +249,9 @@ Outcome<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
     //    transparent panel.
     ThemeArchive Produced = ThemeSpecification::Current(ThemeSelection{});
 
-    static char Content[ArchiveCeiling];
+    static char Content[ArchiveLimit];
 
-    const std::size_t Read = std::fread(Content, 1u, ArchiveCeiling - 1u, Stream);
+    const std::size_t Read = std::fread(Content, 1u, ArchiveLimit - 1u, Stream);
     const bool        Whole = std::feof(Stream) != 0 && std::ferror(Stream) == 0;
 
     std::fclose(Stream);
@@ -259,7 +259,7 @@ Outcome<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
     if (!Whole)
     {
         return Outcome<ThemeArchive>::Refuse(
-            {RefusalReason::ContentUnsupported, "the appearance file exceeded ArchiveCeiling or could not be read whole"});
+            {RefusalReason::ContentUnsupported, "the appearance file exceeded ArchiveLimit or could not be read whole"});
     }
 
     Content[Read] = '\0';
@@ -319,9 +319,9 @@ Outcome<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
             if (Matched(Named, "theme"))
             {
-                Subject = StemOrdinal(ThemeStems, ThemeCeiling, Stem);
+                Subject = StemIndex(ThemeStems, ThemeLimit, Stem);
 
-                if (Subject >= ThemeCeiling)
+                if (Subject >= ThemeLimit)
                 {
                     return Outcome<ThemeArchive>::Refuse(
                         {RefusalReason::ContentUnsupported, "the appearance file names a theme this build does not declare"});
@@ -333,9 +333,9 @@ Outcome<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
             if (Matched(Named, "accent"))
             {
-                Subject = StemOrdinal(AccentStems, AccentCeiling, Stem);
+                Subject = StemIndex(AccentStems, AccentLimit, Stem);
 
-                if (Subject >= AccentCeiling)
+                if (Subject >= AccentLimit)
                 {
                     return Outcome<ThemeArchive>::Refuse(
                         {RefusalReason::ContentUnsupported, "the appearance file names an accent this build does not declare"});
@@ -370,20 +370,20 @@ Outcome<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
         if (Section == SectionSubject::Selection)
         {
-            char Named[CaptionCeiling] = {};
-            ReadCaption(Reading, Named, CaptionCeiling);
+            char Named[CaptionLimit] = {};
+            ReadCaption(Reading, Named, CaptionLimit);
 
             if (Matched(Key, "theme"))
             {
-                const std::uint32_t Ordinal = StemOrdinal(ThemeStems, ThemeCeiling, Named);
+                const std::uint32_t Index = StemIndex(ThemeStems, ThemeLimit, Named);
 
-                if (Ordinal >= ThemeCeiling)
+                if (Index >= ThemeLimit)
                 {
                     return Outcome<ThemeArchive>::Refuse(
                         {RefusalReason::ContentUnsupported, "the selected theme is not one this build declares"});
                 }
 
-                Produced.Selected.Current = static_cast<ThemeSubject>(Ordinal);
+                Produced.Selected.Current = static_cast<ThemeSubject>(Index);
                 continue;
             }
 
@@ -394,15 +394,15 @@ Outcome<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
                 continue;
             }
 
-            const std::uint32_t Ordinal = StemOrdinal(AccentStems, AccentCeiling, Named);
+            const std::uint32_t Index = StemIndex(AccentStems, AccentLimit, Named);
 
-            if (Ordinal >= AccentCeiling)
+            if (Index >= AccentLimit)
             {
                 return Outcome<ThemeArchive>::Refuse(
                     {RefusalReason::ContentUnsupported, "a selected accent is not one this build declares"});
             }
 
-            const AccentSubject Chosen = static_cast<AccentSubject>(Ordinal);
+            const AccentSubject Chosen = static_cast<AccentSubject>(Index);
 
             if      (Matched(Key, "primary")) Produced.Selected.Primary     = Chosen;
             else if (Matched(Key, "secondary")) Produced.Selected.Secondary   = Chosen;
@@ -429,7 +429,7 @@ Outcome<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
             if (Matched(Key, "caption"))
             {
-                ReadCaption(Reading, Declared.Caption, CaptionCeiling);
+                ReadCaption(Reading, Declared.Caption, CaptionLimit);
                 continue;
             }
 
@@ -452,20 +452,20 @@ Outcome<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
         if (std::strcmp(Key, "caption") == 0)
         {
-            ReadCaption(Reading, Declared.Caption, CaptionCeiling);
+            ReadCaption(Reading, Declared.Caption, CaptionLimit);
             continue;
         }
 
         bool Bound = false;
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < ColourBindingCount && !Bound; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < ColourAssignmentCount && !Bound; ++Index)
         {
-            if (!Matched(ColourBindings[Ordinal].Key, Key)) continue;
+            if (!Matched(ColourAssignments[Index].Key, Key)) continue;
 
             // 📝 The offset comes from offsetof on the struct itself, so the write lands on the named member
             //    whatever order the header declares them in.
             ThemeToken* Placed = reinterpret_cast<ThemeToken*>(
-                reinterpret_cast<char*>(&Declared) + ColourBindings[Ordinal].Displacement);
+                reinterpret_cast<char*>(&Declared) + ColourAssignments[Index].Displacement);
 
             if (!ReadColour(Reading, *Placed))
             {
@@ -497,13 +497,13 @@ Outcome<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& R
         return Outcome<bool>::Refuse({RefusalReason::HostDenied, "the appearance path is empty"});
     }
 
-    char Staged[PathCeiling] = {};
+    char Staged[PathLimit] = {};
 
     const std::size_t Spanned = std::strlen(Path);
 
-    if (Spanned + 5u >= PathCeiling)
+    if (Spanned + 5u >= PathLimit)
     {
-        return Outcome<bool>::Refuse({RefusalReason::ExtentExhausted, "the appearance path exceeds PathCeiling"});
+        return Outcome<bool>::Refuse({RefusalReason::ExtentExhausted, "the appearance path exceeds PathLimit"});
     }
 
     std::memcpy(Staged, Path, Spanned);
@@ -522,36 +522,36 @@ Outcome<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& R
 
     std::fprintf(Stream, "[selection]\n");
     std::fprintf(Stream, "theme       = \"%s\"\n",
-                 ThemeStems[static_cast<std::uint32_t>(Recorded.Selected.Current) % ThemeCeiling]);
+                 ThemeStems[static_cast<std::uint32_t>(Recorded.Selected.Current) % ThemeLimit]);
     std::fprintf(Stream, "primary     = \"%s\"\n",
-                 AccentStems[static_cast<std::uint32_t>(Recorded.Selected.Primary) % AccentCeiling]);
+                 AccentStems[static_cast<std::uint32_t>(Recorded.Selected.Primary) % AccentLimit]);
     std::fprintf(Stream, "secondary   = \"%s\"\n",
-                 AccentStems[static_cast<std::uint32_t>(Recorded.Selected.Secondary) % AccentCeiling]);
+                 AccentStems[static_cast<std::uint32_t>(Recorded.Selected.Secondary) % AccentLimit]);
     std::fprintf(Stream, "information = \"%s\"\n",
-                 AccentStems[static_cast<std::uint32_t>(Recorded.Selected.Information) % AccentCeiling]);
+                 AccentStems[static_cast<std::uint32_t>(Recorded.Selected.Information) % AccentLimit]);
     std::fprintf(Stream, "warning     = \"%s\"\n",
-                 AccentStems[static_cast<std::uint32_t>(Recorded.Selected.Warning) % AccentCeiling]);
+                 AccentStems[static_cast<std::uint32_t>(Recorded.Selected.Warning) % AccentLimit]);
     std::fprintf(Stream, "alert       = \"%s\"\n",
-                 AccentStems[static_cast<std::uint32_t>(Recorded.Selected.Alert) % AccentCeiling]);
+                 AccentStems[static_cast<std::uint32_t>(Recorded.Selected.Alert) % AccentLimit]);
     std::fprintf(Stream, "font        = \"%s\"\n", Recorded.Selected.FontFamily);
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < ThemeCeiling; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < ThemeLimit; ++Index)
     {
-        const ThemeDeclaration& Declared = Recorded.Themes[Ordinal];
+        const ThemeDeclaration& Declared = Recorded.Themes[Index];
 
-        std::fprintf(Stream, "\n[theme.%s]\n", ThemeStems[Ordinal]);
+        std::fprintf(Stream, "\n[theme.%s]\n", ThemeStems[Index]);
         std::fprintf(Stream, "caption               = \"%s\"\n", Declared.Caption);
 
-        for (std::uint32_t Bound = 0u; Bound < ColourBindingCount; ++Bound)
+        for (std::uint32_t Bound = 0u; Bound < ColourAssignmentCount; ++Bound)
         {
             const ThemeToken* Placed = reinterpret_cast<const ThemeToken*>(
-                reinterpret_cast<const char*>(&Declared) + ColourBindings[Bound].Displacement);
+                reinterpret_cast<const char*>(&Declared) + ColourAssignments[Bound].Displacement);
 
             // 📝 The opacity place is written only when the colour is not fully covering. Six places is the form
             //    a reader expects, and printing `FF` on every opaque colour would bury the handful that
             //    genuinely carry coverage.
-            char Named[CaptionCeiling] = {};
-            LowerInto(ColourBindings[Bound].Key, Named, CaptionCeiling);
+            char Named[CaptionLimit] = {};
+            LowerInto(ColourAssignments[Bound].Key, Named, CaptionLimit);
 
             if (Placed->Opacity == 255u)
             {
@@ -566,11 +566,11 @@ Outcome<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& R
         }
     }
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < AccentCeiling; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < AccentLimit; ++Index)
     {
-        const AccentDeclaration& Declared = Recorded.Accents[Ordinal];
+        const AccentDeclaration& Declared = Recorded.Accents[Index];
 
-        std::fprintf(Stream, "\n[accent.%s]\n", AccentStems[Ordinal]);
+        std::fprintf(Stream, "\n[accent.%s]\n", AccentStems[Index]);
         std::fprintf(Stream, "caption = \"%s\"\n", Declared.Caption);
 
         if (Declared.Colour.Opacity == 255u)
@@ -615,9 +615,9 @@ Outcome<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& R
 Outcome<bool> ThemeInterchange::Beside(const char*   ExecutablePath,
                                        const char*   Leaf,
                                        char*         Produced,
-                                       std::uint32_t Ceiling)
+                                       std::uint32_t Limit)
 {
-    if (Produced == nullptr || Ceiling == 0u || Leaf == nullptr)
+    if (Produced == nullptr || Limit == 0u || Leaf == nullptr)
     {
         return Outcome<bool>::Refuse({RefusalReason::ExtentExhausted, "no extent was offered for the resolved path"});
     }
@@ -646,7 +646,7 @@ Outcome<bool> ThemeInterchange::Beside(const char*   ExecutablePath,
 
     const std::size_t Named = std::strlen(Leaf);
 
-    if (Folder + Named + 1u > static_cast<std::size_t>(Ceiling))
+    if (Folder + Named + 1u > static_cast<std::size_t>(Limit))
     {
         return Outcome<bool>::Refuse({RefusalReason::ExtentExhausted, "the resolved appearance path exceeds the offered extent"});
     }
@@ -665,9 +665,9 @@ const char* ThemeInterchange::CurrentLeaf()
 
 Outcome<bool> ThemeInterchange::AdoptBeside(const char* ExecutablePath, ThemeSelection& Produced)
 {
-    char Path[PathCeiling] = {};
+    char Path[PathLimit] = {};
 
-    const Outcome<bool> Resolved = Beside(ExecutablePath, CurrentLeaf(), Path, PathCeiling);
+    const Outcome<bool> Resolved = Beside(ExecutablePath, CurrentLeaf(), Path, PathLimit);
 
     if (!Resolved) return Resolved;
 
@@ -683,9 +683,9 @@ Outcome<bool> ThemeInterchange::AdoptBeside(const char* ExecutablePath, ThemeSel
 
 Outcome<bool> ThemeInterchange::RecordBeside(const char* ExecutablePath, const ThemeSelection& Selected)
 {
-    char Path[PathCeiling] = {};
+    char Path[PathLimit] = {};
 
-    const Outcome<bool> Resolved = Beside(ExecutablePath, CurrentLeaf(), Path, PathCeiling);
+    const Outcome<bool> Resolved = Beside(ExecutablePath, CurrentLeaf(), Path, PathLimit);
 
     if (!Resolved) return Resolved;
 

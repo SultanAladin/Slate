@@ -37,38 +37,38 @@ Outcome<std::uint32_t> ToolIndex::Declare(const ToolSpecification& Declaring)
         }
     }
 
-    if (Declared.size() >= ToolCeiling)
+    if (Declared.size() >= ToolLimit)
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "the tool ceiling was reached" });
 
-    const std::uint32_t ToolOrdinal = static_cast<std::uint32_t>(Declared.size());
+    const std::uint32_t ToolIndex = static_cast<std::uint32_t>(Declared.size());
 
     Declared.push_back(Declaring);
 
-    return Outcome<std::uint32_t>::Result(ToolOrdinal);
+    return Outcome<std::uint32_t>::Result(ToolIndex);
 }
 
-Outcome<const ToolSpecification*> ToolIndex::Resolve(std::uint32_t ToolOrdinal) const
+Outcome<const ToolSpecification*> ToolIndex::Resolve(std::uint32_t ToolIndex) const
 {
-    if (ToolOrdinal >= Declared.size())
+    if (ToolIndex >= Declared.size())
         return Outcome<const ToolSpecification*>::Refuse({ RefusalReason::ContentUnsupported, "no such tool" });
 
-    return Outcome<const ToolSpecification*>::Result(&Declared[ToolOrdinal]);
+    return Outcome<const ToolSpecification*>::Result(&Declared[ToolIndex]);
 }
 
-Outcome<ToolSpecification*> ToolIndex::Amend(std::uint32_t ToolOrdinal)
+Outcome<ToolSpecification*> ToolIndex::Amend(std::uint32_t ToolIndex)
 {
-    if (ToolOrdinal >= Declared.size())
+    if (ToolIndex >= Declared.size())
         return Outcome<ToolSpecification*>::Refuse({ RefusalReason::ContentUnsupported, "no such tool" });
 
-    return Outcome<ToolSpecification*>::Result(&Declared[ToolOrdinal]);
+    return Outcome<ToolSpecification*>::Result(&Declared[ToolIndex]);
 }
 
 Outcome<std::uint32_t> ToolIndex::Located(const std::string& Identity) const
 {
-    for (std::size_t Ordinal = 0u; Ordinal < Declared.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < Declared.size(); ++Index)
     {
-        if (Declared[Ordinal].Identity == Identity)
-            return Outcome<std::uint32_t>::Result(static_cast<std::uint32_t>(Ordinal));
+        if (Declared[Index].Identity == Identity)
+            return Outcome<std::uint32_t>::Result(static_cast<std::uint32_t>(Index));
     }
 
     return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "nothing declares that tool" });
@@ -88,22 +88,22 @@ const ToolIndex&  ToolSequence::Tools() const   { return DeclaredTools;   }
 BrushIndex&       ToolSequence::Brushes()       { return DeclaredBrushes; }
 const BrushIndex& ToolSequence::Brushes() const { return DeclaredBrushes; }
 
-Outcome<bool> ToolSequence::DeclareTool(std::uint32_t ToolOrdinal_)
+Outcome<bool> ToolSequence::DeclareTool(std::uint32_t ToolIndex_)
 {
-    if (!DeclaredTools.Resolve(ToolOrdinal_).Resolved)
+    if (!DeclaredTools.Resolve(ToolIndex_).Resolved)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such tool" });
 
-    ToolOrdinal = ToolOrdinal_;
+    SelectedToolIndex = ToolIndex_;
 
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> ToolSequence::DeclareBrush(std::uint32_t BrushOrdinal_)
+Outcome<bool> ToolSequence::DeclareBrush(std::uint32_t BrushIndex_)
 {
-    if (!DeclaredBrushes.Resolve(BrushOrdinal_).Resolved)
+    if (!DeclaredBrushes.Resolve(BrushIndex_).Resolved)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such brush" });
 
-    BrushOrdinal = BrushOrdinal_;
+    SelectedBrushIndex = BrushIndex_;
 
     return Outcome<bool>::Result(true);
 }
@@ -213,28 +213,28 @@ const PointerCapture&      ToolSequence::Capture() const { return CurrentCapture
 
 Outcome<const ToolSpecification*> ToolSequence::ActiveTool() const
 {
-    if (ToolOrdinal == AbsentTool)
+    if (SelectedToolIndex == AbsentTool)
     {
         return Outcome<const ToolSpecification*>::Refuse(
             { RefusalReason::ContentUnsupported, "no tool is active" });
     }
 
-    return DeclaredTools.Resolve(ToolOrdinal);
+    return DeclaredTools.Resolve(SelectedToolIndex);
 }
 
 Outcome<const BrushSpecification*> ToolSequence::ActiveBrush() const
 {
-    if (BrushOrdinal == AbsentTool)
+    if (SelectedBrushIndex == AbsentTool)
     {
         return Outcome<const BrushSpecification*>::Refuse(
             { RefusalReason::ContentUnsupported, "no brush is active" });
     }
 
-    return DeclaredBrushes.Resolve(BrushOrdinal);
+    return DeclaredBrushes.Resolve(SelectedBrushIndex);
 }
 
-std::uint32_t  ToolSequence::ActiveToolOrdinal() const  { return ToolOrdinal;      }
-std::uint32_t  ToolSequence::ActiveBrushOrdinal() const { return BrushOrdinal;     }
+std::uint32_t  ToolSequence::ActiveToolIndex() const  { return SelectedToolIndex;      }
+std::uint32_t  ToolSequence::ActiveBrushIndex() const { return SelectedBrushIndex;     }
 DisplaySubject ToolSequence::Display() const            { return CurrentDisplay; }
 ChannelSubject ToolSequence::IsolatedChannel() const    { return CurrentChannel; }
 

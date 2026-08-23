@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateMath/Platform/TickSequence/Api/TickSequence.h"
 #include "SlateMath/Platform/WindowInterchange/Api/WindowInterchange.h"
 #include "SlateVulkan/Device/CommandSequence/Api/CommandSequence.h"
@@ -35,7 +35,7 @@ namespace Slate
 ///        layer reports as a destroyed-object access, several frames after the call that caused it.
 /// note  A recovery reclaims a suffix of this enumeration and never a subset from the middle. Device loss
 ///        retires Device and everything after it; a resize retires Display and everything after it.
-/// tag   contract
+/// tag   guarantee
 enum class ResourceLifetime : std::uint32_t
 {
     Host          = 0u,   // [-] - the window, the instance, the timeline; retired only at exit
@@ -51,7 +51,7 @@ enum class ResourceLifetime : std::uint32_t
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Everything a host states once, before anything is constructed.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct HostDeclaration
 {
     const char*    Naming        = "Host";     // [-]  - static text; names this host in every report
@@ -73,14 +73,14 @@ struct HostDeclaration
 ///        working. A host copies the eight members across; the copy is the seam.
 /// note  ⚠️ The image counts are restated on every display recovery, so a reader that took a copy before a
 ///        resize holds two figures the chain no longer has.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct DeviceOffering
 {
     VkInstance        Instance                 = VK_NULL_HANDLE;         // [-]
     VkPhysicalDevice  ScoredDevice             = VK_NULL_HANDLE;         // [-]
     VkDevice          ActiveDevice             = VK_NULL_HANDLE;         // [-]
     VkQueue           GraphicsQueue            = VK_NULL_HANDLE;         // [-]
-    std::uint32_t     GraphicsFamilyOrdinal    = 0u;                     // [-]
+    std::uint32_t     GraphicsFamilyIndex    = 0u;                     // [-]
     VkFormat          ColourTargetFormat       = VK_FORMAT_UNDEFINED;    // [-]
     std::uint32_t     MinimumDisplayImageCount = 0u;                     // [-]
     std::uint32_t     DisplayImageCount        = 0u;                     // [-]
@@ -100,11 +100,11 @@ struct DeviceOffering
 ///        figure would resolve it here, one layer below where §5 declares that decision.
 /// note  ⚠️ `Received` and `Retained` differ by two mechanisms, and the difference is load-bearing.
 ///        `ReportSequence` coalesces a recurrence into one entry with a count, and it discards the oldest
-///        at `RetainedCeiling`. A reader that sees `Retained` alone cannot tell a clean run from one whose
+///        at `RetainedLimit`. A reader that sees `Retained` alone cannot tell a clean run from one whose
 ///        first error was discarded four thousand arrivals ago, which is why `Discarded` is stated.
 /// note  📝 A run in a configuration that negotiated no diagnostic reports `Negotiated == false` and zeroes
 ///        throughout. That is not a clean run and a reader must be able to tell the two apart.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct DiagnosticVerdict
 {
     bool           Negotiated = false;   // [-] - the sink attached; without it every figure below is meaningless
@@ -119,7 +119,7 @@ struct DiagnosticVerdict
 /// note  🔴 A host reads `Current` and nothing else to decide whether to record. `Idle` is not an
 ///        error — it is the ordinary answer on a minimised window, a resized chain, or a tick the vendor
 ///        rejected — and a host that treats it as one exits on the first resize.
-/// tag   contract
+/// tag   guarantee
 enum class TickCondition : std::uint32_t
 {
     Recording     = 0u,   // [-] - an image is acquired and a recording is open; the host must record
@@ -131,7 +131,7 @@ enum class TickCondition : std::uint32_t
 /// 🧩 One tick's arrangement, valid only until `Complete` or the next `Await`.
 /// note  ⚠️ `Recording` is a vendor handle and is deliberately the only one that crosses. A host records
 ///        into it through the interface seam; nothing here hands out the device, the chain or the slots.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct TickPass
 {
     TickCondition     Current        = TickCondition::Idle;   // [-]
@@ -174,7 +174,7 @@ public:
     // 🔴 A device lost more than twice in one session is a driver that is not coming back. Rebuilding
     //    without a ceiling presents the artist with a window that never draws, which is strictly worse
     //    than one that reports the loss and exits.
-    static constexpr std::uint32_t DeviceRecoveryCeiling = 2u;   // [-] - rebuilds accepted per session
+    static constexpr std::uint32_t DeviceRecoveryLimit = 2u;   // [-] - rebuilds accepted per session
 
     HostLifecycle()                                = default;
     HostLifecycle(const HostLifecycle&)            = delete;
@@ -190,7 +190,7 @@ public:
     /// post  on delivery, `Interface` carries every handle the interface seam needs
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const HostDeclaration& Declared);
+    Outcome<bool> ConstructHost(const HostDeclaration& Declared);
 
     /// 🧩 Opens one tick — drains input, recovers the display if it moved, acquires an image, and opens a
     ///    recording inside a rendering scope over it.
@@ -268,7 +268,7 @@ public:
     void AskDeviceRebuild();
 
     /// 🧩 Retires the device tier and rebuilds it, counting against nothing.
-    /// note  🔴 Distinct from `RecoverDevice` deliberately. `DeviceRecoveryCeiling` bounds LOSSES, because a
+    /// note  🔴 Distinct from `RecoverDevice` deliberately. `DeviceRecoveryLimit` bounds LOSSES, because a
     ///        device the driver keeps losing is one that is not coming back; a rebuild the artist asked for
     ///        is evidence of nothing and must not spend that budget. Spamming the diagnostic key otherwise
     ///        closed the host on the third press, which reads as the rebuild having crashed it.
@@ -349,7 +349,7 @@ private:
     VkSurfaceKHR         PresentationSurface = VK_NULL_HANDLE; // [-] - Host lifetime, after the instance
     TickPoint            PreviousTick      = {};               // [-]
     AcquiredImage         TickImage         = {};               // [-] - valid only while a tick records
-    std::uint32_t        SlotOrdinal       = 0u;               // [-] - the cycle slot this tick took
+    std::uint32_t        SlotIndex       = 0u;               // [-] - the cycle slot this tick took
     VkCommandBuffer      OpenRecording     = VK_NULL_HANDLE;   // [-] - non-null only between Await and Complete
     bool                 TickRecording     = false;            // [-] - a tick stands at TickCondition::Recording
     bool                 DisplayAltered    = false;            // [-] - a recovery the host has not adopted

@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 namespace Slate
@@ -78,9 +79,9 @@ std::uint32_t EffectCount(const char* Effects)
 
     std::uint32_t Count = 1u;
 
-    for (std::uint32_t Ordinal = 0u; Effects[Ordinal] != '\0'; ++Ordinal)
+    for (std::uint32_t Index = 0u; Effects[Index] != '\0'; ++Index)
     {
-        if (Effects[Ordinal] == ',')
+        if (Effects[Index] == ',')
             ++Count;
     }
 
@@ -138,12 +139,12 @@ constexpr ThemeToken Blend(ThemeToken Previous, ThemeToken Incoming, float Fract
 //    that channel and not merely as a word.
 const char* const* ChannelFacetOptions()
 {
-    static const char* Captions[TextureChannelCeiling] = {};
+    static const char* Captions[TextureChannelLimit] = {};
     static bool Filled = false;
 
     if (!Filled)
     {
-        for (std::uint32_t Each = 0u; Each < TextureChannelCeiling; ++Each)
+        for (std::uint32_t Each = 0u; Each < TextureChannelLimit; ++Each)
             Captions[Each] = TextureChannelAt(Each).Label;
 
         Filled = true;
@@ -154,12 +155,12 @@ const char* const* ChannelFacetOptions()
 
 const ThemeToken* ChannelFacetColours()
 {
-    static ThemeToken Hues[TextureChannelCeiling] = {};
+    static ThemeToken Hues[TextureChannelLimit] = {};
     static bool Filled = false;
 
     if (!Filled)
     {
-        for (std::uint32_t Each = 0u; Each < TextureChannelCeiling; ++Each)
+        for (std::uint32_t Each = 0u; Each < TextureChannelLimit; ++Each)
             Hues[Each] = Covering(TextureChannelAt(Each).Hue);
 
         Filled = true;
@@ -218,30 +219,30 @@ bool ChannelRetentionActive(const TexturePaintContext& Applied)
 
 /// 🧩 Whether one row belongs to the solo's set: the solo row, its ancestors and its descendants.
 bool RowInSolo(const TexturePaintContext& Applied, const TextureLayerRow* Rows,
-               std::uint32_t RowCount, std::uint32_t Ordinal)
+               std::uint32_t RowCount, std::uint32_t Index)
 {
     if (Applied.SoloTaken >= RowCount)
         return true;
 
-    if (Ordinal == Applied.SoloTaken)
+    if (Index == Applied.SoloTaken)
         return true;
 
     // 📐 The solo row's ancestors: walk the candidate's enclosure chain toward the root.
-    std::uint32_t Walking = Rows[Ordinal].Enclosing;
+    std::uint32_t Walking = Rows[Index].Enclosing;
 
     while (Walking < RowCount)
     {
         if (Walking == Applied.SoloTaken)
             return true;
 
-        if (Rows[Walking].Depth >= Rows[Ordinal].Depth)
+        if (Rows[Walking].Depth >= Rows[Index].Depth)
             break;
 
         Walking = Rows[Walking].Enclosing;
     }
 
     // 📐 The solo row's descendants: the candidate is inside the solo row's subtree.
-    Walking = Ordinal;
+    Walking = Index;
 
     while (Walking < RowCount && Rows[Walking].Depth > Rows[Applied.SoloTaken].Depth)
     {
@@ -334,11 +335,11 @@ std::uint32_t TextureLayerFacetOf(TextureLayerClassification Classified)
 //    entry for entry: the group, the swatch, the edit kind, and the span each
 //    scalar is authored over. The eight-name run this replaced carried none of
 //    it, so every channel drew the same row over the same 0..100.
-const TextureChannelSlot& TextureChannelAt(std::uint32_t Ordinal)
+const TextureChannelSlot& TextureChannelAt(std::uint32_t Index)
 {
     using Edit = TextureChannelEdit;
 
-    static const TextureChannelSlot Slots[TextureChannelCeiling] =
+    static const TextureChannelSlot Slots[TextureChannelLimit] =
     {
         { "Base Colour",       "Surface",     "Colour atlas \xC2\xB7 RGB",   "",  0xB87333u, Edit::Colour              },
         { "Metallic",          "Surface",     "Material atlas \xC2\xB7 R",   "",  0x8B5CF6u, Edit::Scalar,  0.0, 1.0   },
@@ -360,15 +361,15 @@ const TextureChannelSlot& TextureChannelAt(std::uint32_t Ordinal)
     };
 
     static const TextureChannelSlot Absent;
-    return Ordinal < TextureChannelCeiling ? Slots[Ordinal] : Absent;
+    return Index < TextureChannelLimit ? Slots[Index] : Absent;
 }
 
 // 📐 GENERATOR_CATALOGUE from the reference, transcribed entry for entry with
 //    every parameter's own span and default. The port carried none of these:
 //    choosing a generator set a name and offered no knobs at all.
-const TextureGeneratorEntry& TextureGeneratorAt(std::uint32_t Ordinal)
+const TextureGeneratorEntry& TextureGeneratorAt(std::uint32_t Index)
 {
-    static const TextureGeneratorEntry Catalogue[TextureGeneratorCeiling] =
+    static const TextureGeneratorEntry Catalogue[TextureGeneratorLimit] =
     {
         { "Curvature",         "Mask", "Convex edge wear", 3u,
           { { "Balance", 0.0, 1.0, 0.50 }, { "Contrast", 0.0, 1.0, 0.70 }, { "Radius", 0.0, 1.0, 0.25 } } },
@@ -402,21 +403,21 @@ const TextureGeneratorEntry& TextureGeneratorAt(std::uint32_t Ordinal)
     };
 
     static const TextureGeneratorEntry Absent;
-    return Ordinal < TextureGeneratorCeiling ? Catalogue[Ordinal] : Absent;
+    return Index < TextureGeneratorLimit ? Catalogue[Index] : Absent;
 }
 
-const char* TextureChannelText(std::uint32_t Ordinal)
+const char* TextureChannelText(std::uint32_t Index)
 {
-    return TextureChannelAt(Ordinal).Label;
+    return TextureChannelAt(Index).Label;
 }
 
-std::uint32_t TextureChannelGroup(std::uint32_t Ordinal)
+std::uint32_t TextureChannelGroup(std::uint32_t Index)
 {
     // 🔴 This used to bracket ordinals — "0 is Base, 6 and up are Output" — so a
     //    channel's group was a property of its position in the list rather than
     //    of the channel. Inserting one entry silently regrouped everything after
     //    it. The group is read from the schema now.
-    const char* const Group = TextureChannelAt(Ordinal).Group;
+    const char* const Group = TextureChannelAt(Index).Group;
 
     for (std::uint32_t Each = 0u; Each < TextureChannelGroupCount; ++Each)
         if (std::strcmp(Group, TextureChannelGroupNames[Each]) == 0)
@@ -432,14 +433,14 @@ std::uint32_t TextureChannelGroup(std::uint32_t Ordinal)
 void SeedPaintContextFromRows(TexturePaintContext& Applied,
                               const TextureLayerRow* Rows, std::uint32_t RowCount)
 {
-    for (std::uint32_t Ordinal = 0u; Ordinal < TextureLayerCeiling; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < TextureLayerLimit; ++Index)
     {
-        const bool Stands = Ordinal < RowCount;
-        const TextureLayerRow& Row = Stands ? Rows[Ordinal] : TextureLayerRow{};
+        const bool Stands = Index < RowCount;
+        const TextureLayerRow& Row = Stands ? Rows[Index] : TextureLayerRow{};
 
         // 📝 The stack page's working copies.
-        Applied.LayerOpacity[Ordinal]   = Row.Opacity;
-        Applied.LayerBlendTaken[Ordinal] = 0u;
+        Applied.LayerOpacity[Index]   = Row.Opacity;
+        Applied.LayerBlendTaken[Index] = 0u;
 
         if (Stands)
         {
@@ -447,41 +448,43 @@ void SeedPaintContextFromRows(TexturePaintContext& Applied,
             {
                 if (std::strcmp(Row.Blend, TextureBlendNames[Blend]) == 0)
                 {
-                    Applied.LayerBlendTaken[Ordinal] = Blend;
+                    Applied.LayerBlendTaken[Index] = Blend;
                     break;
                 }
             }
         }
 
-        Applied.LayerLocked[Ordinal]    = Row.Locked;
-        Applied.MaskAttached[Ordinal]   = Row.MaskDeclared;
-        Applied.MaskVisible[Ordinal]    = true;
-        Applied.LayerTagHue[Ordinal]    = Row.TagHue;
-        Applied.LayerExpanded[Ordinal]  = Row.Expanded;
-        Applied.LayerCardExpanded[Ordinal] = false;
+        Applied.LayerLocked[Index]    = Row.Locked;
+        Applied.MaskAttached[Index]   = Row.MaskDeclared;
+        Applied.MaskVisible[Index]    = true;
+        Applied.LayerTagHue[Index]    = Row.TagHue;
+        Applied.LayerExpanded[Index]  = Row.Expanded;
+        Applied.LayerCardExpanded[Index] = false;
         for (std::uint32_t Section = 0u; Section < 5u; ++Section)
-            Applied.LayerCardSection[Ordinal][Section] = true;
-        Applied.LayerResolution[Ordinal] = 2048.0;
-        Applied.LayerHeightIntegrated[Ordinal] = false;
-        Applied.LayerHeightBlendTaken[Ordinal] = 0u;
-        Applied.LayerEffectTaken[Ordinal] = (Row.Effects != nullptr && Row.Effects[0] != '\0') ? 1u : 0u;
+            Applied.LayerCardSection[Index][Section] = true;
+        Applied.LayerResolution[Index] = 2048.0;
+        Applied.LayerHeightIntegrated[Index] = false;
+        Applied.LayerHeightBlendTaken[Index] = 0u;
+        Applied.LayerEffectTaken[Index] = (Row.Effects != nullptr && Row.Effects[0] != '\0') ? 1u : 0u;
 
         if (Stands && Row.Detail != nullptr)
         {
             double Parsed = 0.0;
-            if (std::sscanf(Row.Detail, "%lf", &Parsed) == 1 && Parsed >= 16.0)
-                Applied.LayerResolution[Ordinal] = Parsed;
+            char* ParsedPast = nullptr;
+            Parsed = std::strtod(Row.Detail, &ParsedPast);
+            if (ParsedPast != Row.Detail && Parsed >= 16.0)
+                Applied.LayerResolution[Index] = Parsed;
         }
 
-        Applied.LayerPresent[Ordinal]   = true;
-        Applied.ChannelTaken[Ordinal]   = 0u;
+        Applied.LayerPresent[Index]   = true;
+        Applied.ChannelTaken[Index]   = 0u;
 
         // 📝 The properties page's scratch.
-        for (std::uint32_t Channel = 0u; Channel < TextureChannelCeiling; ++Channel)
+        for (std::uint32_t Channel = 0u; Channel < TextureChannelLimit; ++Channel)
         {
-            Applied.ChannelOn[Ordinal][Channel] = Stands && Channel < 6u;
-            Applied.ChannelAmount[Ordinal][Channel] = 100u;
-            Applied.ChannelBlendTaken[Ordinal][Channel] = 0u;
+            Applied.ChannelOn[Index][Channel] = Stands && Channel < 6u;
+            Applied.ChannelAmount[Index][Channel] = 100u;
+            Applied.ChannelBlendTaken[Index][Channel] = 0u;
         }
 
         // 🔴 These three were hardcoded to 100 / false / 0 while `TextureLayerRow`
@@ -491,9 +494,9 @@ void SeedPaintContextFromRows(TexturePaintContext& Applied,
         //    its own row. This function exists precisely to stop the row and the
         //    working copy drifting apart, and on these fields it was the thing
         //    causing the drift.
-        Applied.MaskDensity[Ordinal]       = Stands ? Row.MaskStrength : 100u;
-        Applied.MaskInverted[Ordinal]      = Stands && Row.MaskInverted;
-        Applied.MaskSourceTaken[Ordinal]   = 0u;
+        Applied.MaskDensity[Index]       = Stands ? Row.MaskStrength : 100u;
+        Applied.MaskInverted[Index]      = Stands && Row.MaskInverted;
+        Applied.MaskSourceTaken[Index]   = 0u;
 
         // 📐 The mask source is a run on the row; the card holds an ordinal into
         //    the roster. Resolve it the same way the blend above is resolved.
@@ -503,7 +506,7 @@ void SeedPaintContextFromRows(TexturePaintContext& Applied,
             {
                 if (std::strcmp(Row.Source, TextureMaskSourceNames[Source]) == 0)
                 {
-                    Applied.MaskSourceTaken[Ordinal] = Source;
+                    Applied.MaskSourceTaken[Index] = Source;
                     break;
                 }
             }
@@ -511,26 +514,26 @@ void SeedPaintContextFromRows(TexturePaintContext& Applied,
 
         // 📐 The mask targets every channel the row declares, which is what the
         //    reference's `mask.channels` holds.
-        for (std::uint32_t Channel = 0u; Channel < TextureChannelCeiling; ++Channel)
-            Applied.MaskChannel[Ordinal][Channel] = Stands && Channel < 4u;
+        for (std::uint32_t Channel = 0u; Channel < TextureChannelLimit; ++Channel)
+            Applied.MaskChannel[Index][Channel] = Stands && Channel < 4u;
 
-        Applied.SettingAmount[Ordinal][0]  = 100u;
-        Applied.SettingAmount[Ordinal][1]  = 50u;
-        Applied.SettingAmount[Ordinal][2]  = 50u;
-        Applied.SettingAmount[Ordinal][3]  = 50u;
-        Applied.SettingToggle[Ordinal]     = 0u;
-        Applied.SettingChoice[Ordinal]     = 0u;
+        Applied.SettingAmount[Index][0]  = 100u;
+        Applied.SettingAmount[Index][1]  = 50u;
+        Applied.SettingAmount[Index][2]  = 50u;
+        Applied.SettingAmount[Index][3]  = 50u;
+        Applied.SettingToggle[Index]     = 0u;
+        Applied.SettingSelection[Index]     = 0u;
     }
 }
 
 void TexturePaintStack::Seed(const TextureLayerRow* Source, std::uint32_t SourceCount)
 {
-    Count = (Source != nullptr) ? std::min(SourceCount, TextureLayerCeiling) : 0u;
+    Count = (Source != nullptr) ? std::min(SourceCount, TextureLayerLimit) : 0u;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Count; ++Index)
     {
-        Rows[Ordinal] = Source[Ordinal];
-        Names[Ordinal][0] = '\0';
+        Rows[Index] = Source[Index];
+        Names[Index][0] = '\0';
     }
 }
 
@@ -538,23 +541,23 @@ namespace
 {
 
 /// 🧩 Writes one row's name into the stack's own storage and borrows it back.
-const char* HoldName(TexturePaintStack& Stack, std::uint32_t Ordinal, const char* Name)
+const char* HoldName(TexturePaintStack& Stack, std::uint32_t Index, const char* Name)
 {
-    std::snprintf(Stack.Names[Ordinal], sizeof(Stack.Names[Ordinal]), "%s", Name);
-    return Stack.Names[Ordinal];
+    std::snprintf(Stack.Names[Index], sizeof(Stack.Names[Index]), "%s", Name);
+    return Stack.Names[Index];
 }
 
 /// 🧩 What a freshly added row stands on, from the reference's `add()`.
-TextureLayerRow NewRow(TexturePaintStack& Stack, std::uint32_t Ordinal,
+TextureLayerRow NewRow(TexturePaintStack& Stack, std::uint32_t Index,
                        TextureLayerClassification Classified, const char* Name,
                        std::uint32_t Depth, std::uint32_t Enclosing)
 {
     TextureLayerRow Row;
-    Row.Naming       = HoldName(Stack, Ordinal, Name);
+    Row.Naming       = HoldName(Stack, Index, Name);
     Row.Classified   = Classified;
     Row.Blend        = (Classified == TextureLayerClassification::Folder) ? "Passthrough" : "Normal";
     Row.Opacity      = 100u;
-    Row.PaintHue     = SwatchColours[Ordinal % TexturePaintContext::TextureSwatchCount];
+    Row.PaintHue     = SwatchColours[Index % TexturePaintContext::TextureSwatchCount];
     Row.TagHue       = Row.PaintHue;
     Row.MaskDeclared = false;
     Row.MaskStrength = 100u;
@@ -605,6 +608,27 @@ std::uint32_t SubtreePast(const TexturePaintStack& Stack, std::uint32_t Taken)
     return Past;
 }
 
+void RebuildTextureHierarchy(TexturePaintStack& Stack)
+{
+    std::uint32_t Ancestors[TextureLayerLimit] = {};
+
+    for (std::uint32_t Index = 0u; Index < Stack.Count; ++Index)
+    {
+        TextureLayerRow& Row = Stack.Rows[Index];
+        if (Row.Depth == 0u)
+            Row.Enclosing = 0xFFFFFFFFu;
+        else
+            Row.Enclosing = Ancestors[Row.Depth - 1u];
+
+        Ancestors[Row.Depth] = Index;
+        Row.EnclosedCount = 0u;
+    }
+
+    for (std::uint32_t Index = 0u; Index < Stack.Count; ++Index)
+        if (Stack.Rows[Index].Enclosing < Stack.Count)
+            ++Stack.Rows[Stack.Rows[Index].Enclosing].EnclosedCount;
+}
+
 }   // namespace
 
 void TexturePaintStack::ApplyRequest(TexturePaintContext& Applied)
@@ -616,16 +640,16 @@ void TexturePaintStack::ApplyRequest(TexturePaintContext& Applied)
         return;
 
     // ① Write the working copies back into the model so the artist's edits never drift.
-    for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Count; ++Index)
     {
-        TextureLayerRow& Row = Rows[Ordinal];
-        Row.Opacity       = Applied.LayerOpacity[Ordinal];
-        Row.Blend         = TextureBlendNames[Applied.LayerBlendTaken[Ordinal] % TextureBlendCount];
-        Row.Locked        = Applied.LayerLocked[Ordinal];
-        Row.MaskDeclared  = Applied.MaskAttached[Ordinal];
-        Row.TagHue        = Applied.LayerTagHue[Ordinal];
-        Row.PaintHue      = Applied.LayerTagHue[Ordinal];
-        Row.Expanded      = Applied.LayerExpanded[Ordinal];
+        TextureLayerRow& Row = Rows[Index];
+        Row.Opacity       = Applied.LayerOpacity[Index];
+        Row.Blend         = TextureBlendNames[Applied.LayerBlendTaken[Index] % TextureBlendCount];
+        Row.Locked        = Applied.LayerLocked[Index];
+        Row.MaskDeclared  = Applied.MaskAttached[Index];
+        Row.TagHue        = Applied.LayerTagHue[Index];
+        Row.PaintHue      = Applied.LayerTagHue[Index];
+        Row.Expanded      = Applied.LayerExpanded[Index];
     }
 
     const std::uint32_t Taken = std::min(Applied.LayerTaken, Count - 1u);
@@ -633,6 +657,68 @@ void TexturePaintStack::ApplyRequest(TexturePaintContext& Applied)
     // ② Apply the structural change — the reference's own operations.
     switch (static_cast<TexturePaintRequest>(Request))
     {
+        case TexturePaintRequest::Relocate:
+        {
+            const std::uint32_t Source = Applied.DragSource;
+            const std::uint32_t Destination = Applied.DragDestination;
+            const std::uint32_t Placement = Applied.DragPlacement;
+
+            if (Source >= Count || Destination >= Count || Source == Destination || Placement == 0u)
+                break;
+
+            const std::uint32_t SourcePast = SubtreePast(*this, Source);
+            if (Destination >= Source && Destination < SourcePast)
+                break;
+
+            if (Placement == 3u && Rows[Destination].Classified != TextureLayerClassification::Folder)
+                break;
+
+            const std::uint32_t IncomingDepth = Rows[Destination].Depth + (Placement == 3u ? 1u : 0u);
+            const std::int32_t DepthDelta = static_cast<std::int32_t>(IncomingDepth)
+                                          - static_cast<std::int32_t>(Rows[Source].Depth);
+            const std::int32_t Deepest = static_cast<std::int32_t>(Rows[SourcePast - 1u].Depth) + DepthDelta;
+            if (Deepest < 0 || Deepest >= static_cast<std::int32_t>(TextureLayerLimit))
+                break;
+
+            const std::uint32_t Span = SourcePast - Source;
+            TextureLayerRow Carried[TextureLayerLimit] = {};
+            for (std::uint32_t Index = 0u; Index < Span; ++Index)
+                Carried[Index] = Rows[Source + Index];
+
+            for (std::uint32_t Index = Source; Index + Span < Count; ++Index)
+                Rows[Index] = Rows[Index + Span];
+
+            const std::uint32_t ReducedDestination = Destination > Source
+                                                   ? Destination - Span : Destination;
+            const std::uint32_t DestinationDepth = Rows[ReducedDestination].Depth;
+            std::uint32_t Home = ReducedDestination;
+
+            if (Placement == 1u)
+            {
+                Home = ReducedDestination;
+            }
+            else
+            {
+                Home = ReducedDestination + 1u;
+                while (Home < Count - Span && Rows[Home].Depth > DestinationDepth)
+                    ++Home;
+            }
+
+            for (std::uint32_t Index = Count - Span; Index-- > Home;)
+                Rows[Index + Span] = Rows[Index];
+
+            for (std::uint32_t Index = 0u; Index < Span; ++Index)
+            {
+                Rows[Home + Index] = Carried[Index];
+                Rows[Home + Index].Depth = static_cast<std::uint32_t>(
+                    static_cast<std::int32_t>(Carried[Index].Depth) + DepthDelta);
+            }
+
+            RebuildTextureHierarchy(*this);
+            Applied.LayerTaken = Home;
+            Applied.MaskTaken = false;
+            break;
+        }
         case TexturePaintRequest::Delete:
         {
             // 📐 A taken mask deletes the mask only, exactly as the reference's `aDel` branches.
@@ -649,8 +735,8 @@ void TexturePaintStack::ApplyRequest(TexturePaintContext& Applied)
             {
                 const std::uint32_t Move = Count - Past;
 
-                for (std::uint32_t Ordinal = 0u; Ordinal < Move; ++Ordinal)
-                    Rows[Taken + Ordinal] = Rows[Past + Ordinal];
+                for (std::uint32_t Index = 0u; Index < Move; ++Index)
+                    Rows[Taken + Index] = Rows[Past + Index];
 
                 Count -= (Past - Taken);
             }
@@ -670,31 +756,31 @@ void TexturePaintStack::ApplyRequest(TexturePaintContext& Applied)
             const std::uint32_t Past = SubtreePast(*this, Taken);
             const std::uint32_t Span = Past - Taken;
 
-            if (Count + Span > TextureLayerCeiling)
+            if (Count + Span > TextureLayerLimit)
                 break;
 
             // 📝 The copy lands beneath the whole subtree, exactly as the reference's `aDup` inserts
             //    the deep copy at the taken row's position.
-            for (std::uint32_t Ordinal = Count; Ordinal-- > Taken + Span;)
-                Rows[Ordinal + Span - 1u] = Rows[Ordinal - 1u];
+            for (std::uint32_t Index = Count; Index-- > Taken + Span;)
+                Rows[Index + Span - 1u] = Rows[Index - 1u];
 
-            for (std::uint32_t Ordinal = 0u; Ordinal < Span; ++Ordinal)
+            for (std::uint32_t Index = 0u; Index < Span; ++Index)
             {
-                const std::uint32_t At = Taken + Span + Ordinal;
-                Rows[At] = Rows[Taken + Ordinal];
+                const std::uint32_t At = Taken + Span + Index;
+                Rows[At] = Rows[Taken + Index];
 
-                if (Ordinal == 0u)
+                if (Index == 0u)
                 {
                     char Copied[64] = {};
                     std::snprintf(Copied, sizeof(Copied), "%s copy", Rows[Taken].Naming);
                     Rows[At].Naming = HoldName(*this, At, Copied);
                 }
-                else if (Rows[Taken + Ordinal].Naming >= Names[Taken + Ordinal] &&
-                         Rows[Taken + Ordinal].Naming < Names[Taken + Ordinal] + sizeof(Names[0]))
+                else if (Rows[Taken + Index].Naming >= Names[Taken + Index] &&
+                         Rows[Taken + Index].Naming < Names[Taken + Index] + sizeof(Names[0]))
                 {
                     // 📝 A nested row that was itself an inserted name is re-homed so the two copies
                     //    never share the same buffer.
-                    std::snprintf(Names[At], sizeof(Names[At]), "%s", Rows[Taken + Ordinal].Naming);
+                    std::snprintf(Names[At], sizeof(Names[At]), "%s", Rows[Taken + Index].Naming);
                     Rows[At].Naming = Names[At];
                 }
             }
@@ -706,7 +792,7 @@ void TexturePaintStack::ApplyRequest(TexturePaintContext& Applied)
         }
         case TexturePaintRequest::Group:
         {
-            if (Count + 1u > TextureLayerCeiling)
+            if (Count + 1u > TextureLayerLimit)
                 break;
 
             const std::uint32_t Past = SubtreePast(*this, Taken);
@@ -714,8 +800,8 @@ void TexturePaintStack::ApplyRequest(TexturePaintContext& Applied)
             const TextureLayerRow Wrapped = Rows[Taken];
 
             // 📝 The folder takes the row's place; the subtree shifts one deeper beneath it.
-            for (std::uint32_t Ordinal = Count; Ordinal-- > Taken;)
-                Rows[Ordinal + 1u] = Rows[Ordinal];
+            for (std::uint32_t Index = Count; Index-- > Taken;)
+                Rows[Index + 1u] = Rows[Index];
 
             Rows[Taken] = NewRow(*this, Taken, TextureLayerClassification::Folder, "Group",
                                  Wrapped.Depth, Wrapped.Enclosing);
@@ -724,10 +810,10 @@ void TexturePaintStack::ApplyRequest(TexturePaintContext& Applied)
             Rows[Taken].Detail    = "1 layers";
             Rows[Taken].EnclosedCount = 1u;
 
-            for (std::uint32_t Ordinal = 1u; Ordinal <= Span; ++Ordinal)
+            for (std::uint32_t Index = 1u; Index <= Span; ++Index)
             {
-                Rows[Taken + Ordinal].Depth     = Wrapped.Depth + 1u;
-                Rows[Taken + Ordinal].Enclosing = Taken;
+                Rows[Taken + Index].Depth     = Wrapped.Depth + 1u;
+                Rows[Taken + Index].Enclosing = Taken;
             }
 
             ++Count;
@@ -757,23 +843,23 @@ void TexturePaintStack::ApplyRequest(TexturePaintContext& Applied)
                 const std::uint32_t Span  = Past - Taken;
                 const std::uint32_t Home  = static_cast<std::uint32_t>(Neighbour) + (Direction < 0 ? 1u : 1u);
 
-                for (std::uint32_t Ordinal = 0u; Ordinal < Span; ++Ordinal)
+                for (std::uint32_t Index = 0u; Index < Span; ++Index)
                 {
-                    for (std::uint32_t Step = Past; Step-- > Home + Ordinal;)
+                    for (std::uint32_t Step = Past; Step-- > Home + Index;)
                         Rows[Step] = Rows[Step - 1u];
 
-                    Rows[Home + Ordinal] = Taken < Home ? Rows[Past - 1u + Ordinal] : Rows[Taken + Ordinal];
+                    Rows[Home + Index] = Taken < Home ? Rows[Past - 1u + Index] : Rows[Taken + Index];
                 }
 
                 // 🔴 The block move above was not used: the simpler splice below is exact and readable.
-                for (std::uint32_t Ordinal = Taken; Ordinal + Span < Past; ++Ordinal)
-                    Rows[Ordinal] = Rows[Ordinal + Span];
+                for (std::uint32_t Index = Taken; Index + Span < Past; ++Index)
+                    Rows[Index] = Rows[Index + Span];
 
                 // 📐 Re-home the moved subtree under the folder.
-                for (std::uint32_t Ordinal = Home; Ordinal < Home + Span; ++Ordinal)
+                for (std::uint32_t Index = Home; Index < Home + Span; ++Index)
                 {
-                    Rows[Ordinal].Depth = Current.Depth + (Rows[Ordinal].Depth > Current.Depth ? 1 : 0);
-                    Rows[Ordinal].Depth = Nearby.Depth + 1u + (Rows[Ordinal].Depth > Nearby.Depth + 1u ? 1u : 0u);
+                    Rows[Index].Depth = Current.Depth + (Rows[Index].Depth > Current.Depth ? 1 : 0);
+                    Rows[Index].Depth = Nearby.Depth + 1u + (Rows[Index].Depth > Nearby.Depth + 1u ? 1u : 0u);
                 }
 
                 Applied.LayerTaken = Home;
@@ -789,8 +875,8 @@ void TexturePaintStack::ApplyRequest(TexturePaintContext& Applied)
             const std::uint32_t Span = Past - Taken;
 
             // 📝 The whole subtree moves together, one slot at a time.
-            for (std::uint32_t Ordinal = 0u; Ordinal < Span; ++Ordinal)
-                std::swap(Rows[Taken + Ordinal], Rows[static_cast<std::uint32_t>(Neighbour) + Ordinal]);
+            for (std::uint32_t Index = 0u; Index < Span; ++Index)
+                std::swap(Rows[Taken + Index], Rows[static_cast<std::uint32_t>(Neighbour) + Index]);
 
             Applied.LayerTaken = static_cast<std::uint32_t>(Neighbour);
             Applied.MaskTaken  = false;
@@ -800,7 +886,7 @@ void TexturePaintStack::ApplyRequest(TexturePaintContext& Applied)
         {
             // 📐 The add family — the reference's `add()`: the new row lands BEFORE the taken row, or
             //    at the top when nothing is taken.
-            if (Count + 1u > TextureLayerCeiling)
+            if (Count + 1u > TextureLayerLimit)
                 break;
 
             TextureLayerClassification Classified = TextureLayerClassification::Paint;
@@ -819,8 +905,8 @@ void TexturePaintStack::ApplyRequest(TexturePaintContext& Applied)
 
             const std::uint32_t Home = (Taken < Count) ? Taken : 0u;
 
-            for (std::uint32_t Ordinal = Count; Ordinal-- > Home;)
-                Rows[Ordinal + 1u] = Rows[Ordinal];
+            for (std::uint32_t Index = Count; Index-- > Home;)
+                Rows[Index + 1u] = Rows[Index];
 
             Rows[Home] = NewRow(*this, Home, Classified, Name,
                                 Home < Count ? Rows[Home + 1u].Depth : 0u,
@@ -843,7 +929,11 @@ void TexturePaintStack::ApplyRequest(TexturePaintContext& Applied)
         }
     }
 
-    // ③ Re-seed the working copies so every ordinal lines up with the changed row set.
+    Applied.DragSource = TextureLayerLimit;
+    Applied.DragDestination = TextureLayerLimit;
+    Applied.DragPlacement = 0u;
+
+    // ③ Re-seed the working copies so every index lines up with the changed row set.
     SeedPaintContextFromRows(Applied, Rows, Count);
 
     if (Applied.LayerTaken >= Count && Count > 0u)
@@ -854,33 +944,33 @@ void TexturePaintStack::ApplyRequest(TexturePaintContext& Applied)
 //                                                       CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> TexturePaintPanel::Construct(InteractionIndex& Interaction,
+Outcome<bool> TexturePaintPanel::ConstructTexturePaintPanel(ControlIndex& IncomingInteraction,
                                            MotionIntegrator& Integrator,
-                                           RecordingSurface& Surface,
+                                           RecordingSurface& IncomingSurface,
                                            const ThemeProfile& Resolved)
 {
-    if (Ledger != nullptr)
+    if (Interaction != nullptr)
     {
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported,
                                        "the texture paint panel is already constructed" });
     }
 
-    Ledger     = &Interaction;
+    Interaction     = &IncomingInteraction;
     Motion     = &Integrator;
-    this->Surface = &Surface;
+    this->Surface = &IncomingSurface;
     Appearance = &Resolved;
 
-    if (!Controls.Construct(Interaction, Surface, Resolved).Resolved ||
-        !SharedControls.Construct(Interaction, Surface, Resolved).Resolved)
+    if (!Controls.ConstructControlPanel(IncomingInteraction, IncomingSurface, Resolved).Resolved ||
+        !SharedControls.ConstructComponents(IncomingInteraction, IncomingSurface, Resolved).Resolved)
     {
         Reset();
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent,
                                        "the texture paint controls were rejected" });
     }
 
-    if (!StackFacets.Construct(Integrator, Surface, Resolved).Resolved ||
-        !ChannelFacets.Construct(Integrator, Surface, Resolved).Resolved ||
-        !MaskFacets.Construct(Integrator, Surface, Resolved).Resolved)
+    if (!StackFacets.ConstructFacetPanel(Integrator, IncomingSurface, Resolved).Resolved ||
+        !ChannelFacets.ConstructFacetPanel(Integrator, IncomingSurface, Resolved).Resolved ||
+        !MaskFacets.ConstructFacetPanel(Integrator, IncomingSurface, Resolved).Resolved)
     {
         Reset();
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent,
@@ -896,17 +986,18 @@ Outcome<bool> TexturePaintPanel::Construct(InteractionIndex& Interaction,
         &BarButtons[4],  &BarButtons[5],  &BarButtons[6],  &BarButtons[7],
         &BarButtons[8],  &BarButtons[9],  &BarButtons[10], &BarButtons[11],
         &StackStrip, &PropertyStrip,
+        &ExportBack,
         &ExportArrows[0][0], &ExportArrows[0][1], &ExportArrows[1][0], &ExportArrows[1][1],
         &ExportArrows[2][0], &ExportArrows[2][1],
-        &ExportChoices[0][0], &ExportChoices[0][1], &ExportChoices[0][2], &ExportChoices[0][3],
-        &ExportChoices[0][4], &ExportChoices[0][5], &ExportChoices[0][6], &ExportChoices[0][7],
-        &ExportChoices[0][8], &ExportChoices[0][9],
-        &ExportChoices[1][0], &ExportChoices[1][1], &ExportChoices[1][2], &ExportChoices[1][3],
-        &ExportChoices[1][4], &ExportChoices[1][5], &ExportChoices[1][6], &ExportChoices[1][7],
-        &ExportChoices[1][8], &ExportChoices[1][9],
-        &ExportChoices[2][0], &ExportChoices[2][1], &ExportChoices[2][2], &ExportChoices[2][3],
-        &ExportChoices[2][4], &ExportChoices[2][5], &ExportChoices[2][6], &ExportChoices[2][7],
-        &ExportChoices[2][8], &ExportChoices[2][9],
+        &ExportCarouselOptions[0][0], &ExportCarouselOptions[0][1], &ExportCarouselOptions[0][2], &ExportCarouselOptions[0][3],
+        &ExportCarouselOptions[0][4], &ExportCarouselOptions[0][5], &ExportCarouselOptions[0][6], &ExportCarouselOptions[0][7],
+        &ExportCarouselOptions[0][8], &ExportCarouselOptions[0][9],
+        &ExportCarouselOptions[1][0], &ExportCarouselOptions[1][1], &ExportCarouselOptions[1][2], &ExportCarouselOptions[1][3],
+        &ExportCarouselOptions[1][4], &ExportCarouselOptions[1][5], &ExportCarouselOptions[1][6], &ExportCarouselOptions[1][7],
+        &ExportCarouselOptions[1][8], &ExportCarouselOptions[1][9],
+        &ExportCarouselOptions[2][0], &ExportCarouselOptions[2][1], &ExportCarouselOptions[2][2], &ExportCarouselOptions[2][3],
+        &ExportCarouselOptions[2][4], &ExportCarouselOptions[2][5], &ExportCarouselOptions[2][6], &ExportCarouselOptions[2][7],
+        &ExportCarouselOptions[2][8], &ExportCarouselOptions[2][9],
         &ExportFields[0], &ExportFields[1], &ExportFields[2],
         &ExportOptions[0], &ExportOptions[1], &ExportOptions[2],
         &ExportOptions[3], &ExportOptions[4], &ExportOptions[5],
@@ -923,7 +1014,7 @@ Outcome<bool> TexturePaintPanel::Construct(InteractionIndex& Interaction,
 
     for (ControlIdentity* Identity : Every)
     {
-        const Outcome<ControlIdentity> Registered = Interaction.Register();
+        const Outcome<ControlIdentity> Registered = IncomingInteraction.Register();
         if (!Registered.Resolved)
             return Outcome<bool>::Refuse(Registered.Error);
 
@@ -932,7 +1023,7 @@ Outcome<bool> TexturePaintPanel::Construct(InteractionIndex& Interaction,
 
     for (ControlIdentity& Identity : MenuIdentities)
     {
-        const Outcome<ControlIdentity> Registered = Interaction.Register();
+        const Outcome<ControlIdentity> Registered = IncomingInteraction.Register();
         if (!Registered.Resolved)
             return Outcome<bool>::Refuse(Registered.Error);
 
@@ -941,26 +1032,26 @@ Outcome<bool> TexturePaintPanel::Construct(InteractionIndex& Interaction,
 
     for (ControlIdentity& Identity : InlineControls)
     {
-        const Outcome<ControlIdentity> Registered = Interaction.Register();
+        const Outcome<ControlIdentity> Registered = IncomingInteraction.Register();
         if (!Registered.Resolved)
             return Outcome<bool>::Refuse(Registered.Error);
 
         Identity = Registered.Resolve();
     }
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < TextureLayerCeiling; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < TextureLayerLimit; ++Index)
     {
         ControlIdentity* const Rows[] =
         {
-            &LayerContacts[Ordinal], &LayerChevrons[Ordinal],
-            &LayerEyes[Ordinal], &LayerDetails[Ordinal], &LayerMores[Ordinal],
-            &MaskContacts[Ordinal], &MaskEyes[Ordinal],
-            &MaskDetails[Ordinal], &MaskMores[Ordinal]
+            &LayerContacts[Index], &LayerChevrons[Index],
+            &LayerEyes[Index], &LayerDetails[Index], &LayerMores[Index],
+            &MaskContacts[Index], &MaskEyes[Index],
+            &MaskDetails[Index], &MaskMores[Index]
         };
 
         for (ControlIdentity* Identity : Rows)
         {
-            const Outcome<ControlIdentity> Registered = Interaction.Register();
+            const Outcome<ControlIdentity> Registered = IncomingInteraction.Register();
             if (!Registered.Resolved)
                 return Outcome<bool>::Refuse(Registered.Error);
 
@@ -968,19 +1059,19 @@ Outcome<bool> TexturePaintPanel::Construct(InteractionIndex& Interaction,
         }
     }
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < TextureChannelCeiling; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < TextureChannelLimit; ++Index)
     {
         ControlIdentity* const Rows[] =
         {
-            &ChannelFolds[Ordinal], &ChannelDots[Ordinal],
-            &ChannelBlends[Ordinal], &ChannelOps[Ordinal],
-            &ChannelGenerators[Ordinal], &ChannelGenReset[Ordinal], &ChannelGenDrop[Ordinal],
-            &ChannelParams[Ordinal][0], &ChannelParams[Ordinal][1], &ChannelParams[Ordinal][2]
+            &ChannelFolds[Index], &ChannelDots[Index],
+            &ChannelBlends[Index], &ChannelOps[Index],
+            &ChannelGenerators[Index], &ChannelGenReset[Index], &ChannelGenDrop[Index],
+            &ChannelParams[Index][0], &ChannelParams[Index][1], &ChannelParams[Index][2]
         };
 
         for (ControlIdentity* Identity : Rows)
         {
-            const Outcome<ControlIdentity> Registered = Interaction.Register();
+            const Outcome<ControlIdentity> Registered = IncomingInteraction.Register();
             if (!Registered.Resolved)
                 return Outcome<bool>::Refuse(Registered.Error);
 
@@ -998,12 +1089,12 @@ Outcome<bool> TexturePaintPanel::Construct(InteractionIndex& Interaction,
         PageMotion = Registered.Resolve();
     }
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 3u; ++Index)
     {
         const Outcome<std::uint32_t> Registered = Integrator.RegisterEased(1.0);
         if (!Registered.Resolved)
             return Outcome<bool>::Refuse(Registered.Error);
-        ExportMotion[Ordinal] = Registered.Resolve();
+        ExportMotion[Index] = Registered.Resolve();
     }
 
     Reapply(Resolved);
@@ -1030,7 +1121,7 @@ void TexturePaintPanel::Reset()
     ChannelFacets.Reset();
     MaskFacets.Reset();
 
-    Ledger     = nullptr;
+    Interaction     = nullptr;
     Motion     = nullptr;
     Surface    = nullptr;
     Appearance = nullptr;
@@ -1038,6 +1129,7 @@ void TexturePaintPanel::Reset()
     Tinted     = {};
     Scaled     = {};
     RowTally   = 0u;
+    MenuPresented = 0u;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -1079,7 +1171,7 @@ void TexturePaintPanel::Advance(const PointerCondition& Contact, double Elapsed,
     MaskFacets.Advance(Contact, Elapsed);
 
     // 📝 The search pill's taken state, for the host's typed-run feed.
-    Applied.SearchTaken = Ledger->Holding(SearchField) || Ledger->Disclosed(SearchField);
+    Applied.SearchTaken = Interaction->Holding(SearchField) || Interaction->Disclosed(SearchField);
 
     // 📐 Tab TOGGLES the carousel: from the stack to the properties — landing on the tab the
     //    selection names (Channels for a layer, Mask for a mask, Stack for a folder) — and back.
@@ -1110,8 +1202,8 @@ void TexturePaintPanel::Record(const PlaneExtent& Extent, TexturePaintContext& A
     if (Rows == nullptr)
         RowCount = 0u;
 
-    if (RowCount > TextureLayerCeiling)
-        RowCount = TextureLayerCeiling;
+    if (RowCount > TextureLayerLimit)
+        RowCount = TextureLayerLimit;
 
     RowTally = 0u;
     InlineControlsSpent = 0u;
@@ -1174,9 +1266,12 @@ void TexturePaintPanel::RecordFlattenPage(const PlaneExtent& Extent, TexturePain
 
     const PlaneExtent Back = Spanning(Extent.MinimumX + Pad, Header.MaximumY + Pad, 82.0f, 28.0f);
     const bool OnBack = Back.Encloses(Sampled.PositionX, Sampled.PositionY);
-    if (Sampled.ContactPressed && OnBack && !Ledger->AnyDisclosed()) Ledger->Grab(StackStrip, ControlPart::Body);
-    if (OnBack && Ledger->Released(StackStrip)) Applied.StackPage = 0u;
-    Ledger->DeclareHovered(StackStrip, OnBack, HoverOver);
+    if (Sampled.ContactPressed && OnBack)
+    {
+        Interaction->Withdraw();
+        Applied.StackPage = 0u;
+    }
+    Interaction->DeclareHovered(ExportBack, OnBack, HoverOver);
     Surface->Ground(Back, OnBack ? Tinted.TileHovered : Tinted.Tile, 14.0f, CornerAll);
     Surface->Edge(Back, Tinted.HairlineFirm, 1.0f, 14.0f, CornerAll);
     Surface->TextRun(Back.MinimumX + 18.0f, Back.MinimumY + 7.0f, Tinted.Primary, "Back", Scaled.RunSecondary);
@@ -1188,7 +1283,7 @@ void TexturePaintPanel::RecordFlattenPage(const PlaneExtent& Extent, TexturePain
         { "Generic PBR", "Unreal ORM", "Unity HDRP", "Unity URP", "glTF 2.0",
           "Godot 4", "Blender", "Maya / Arnold", "V-Ray" };
 
-    const auto RecordRail = [&](std::uint32_t RailOrdinal, float Y, const char* Caption,
+    const auto RecordRail = [&](std::uint32_t RailIndex, float Y, const char* Caption,
                                 const char* const* Options, std::uint32_t OptionCount,
                                 std::uint32_t& Taken)
     {
@@ -1198,24 +1293,24 @@ void TexturePaintPanel::RecordFlattenPage(const PlaneExtent& Extent, TexturePain
         const PlaneExtent Left = Spanning(Extent.MinimumX + Pad, Y + 13.0f, 38.0f, 38.0f);
         const PlaneExtent Right = Spanning(Extent.MaximumX - Pad - 38.0f, Y + 13.0f, 38.0f, 38.0f);
         const PlaneExtent Rail = { Left.MaximumX + 12.0f, Y, Right.MinimumX - 12.0f, Y + 64.0f };
-        const double Fraction = Motion->Eased(ExportMotion[RailOrdinal]).Current();
-        const double Scroll = ExportFrom[RailOrdinal] +
-                              (ExportTarget[RailOrdinal] - ExportFrom[RailOrdinal]) * Fraction;
+        const double Fraction = Motion->Eased(ExportMotion[RailIndex]).Current();
+        const double Scroll = ExportFrom[RailIndex] +
+                              (ExportTarget[RailIndex] - ExportFrom[RailIndex]) * Fraction;
 
         for (std::uint32_t Side = 0u; Side < 2u; ++Side)
         {
             const PlaneExtent Cell = Side == 0u ? Left : Right;
             const bool On = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
-            if (Sampled.ContactPressed && On && !Ledger->AnyDisclosed()) Ledger->Grab(ExportArrows[RailOrdinal][Side], ControlPart::Body);
-            if (On && Ledger->Released(ExportArrows[RailOrdinal][Side]))
+            if (Sampled.ContactPressed && On)
             {
+                Interaction->Withdraw();
                 if (Side == 0u && Taken > 0u) --Taken;
                 if (Side == 1u && Taken + 1u < OptionCount) ++Taken;
-                ExportFrom[RailOrdinal] = Scroll;
-                ExportTarget[RailOrdinal] = static_cast<double>(Taken) * 144.0;
-                Motion->Eased(ExportMotion[RailOrdinal]).Depart(0.0, 1.0, 250.0, 0.0, EaseCurve::Carousel);
+                ExportFrom[RailIndex] = Scroll;
+                ExportTarget[RailIndex] = static_cast<double>(Taken) * 144.0;
+                Motion->Eased(ExportMotion[RailIndex]).Depart(0.0, 1.0, 250.0, 0.0, EaseCurve::Carousel);
             }
-            Ledger->DeclareHovered(ExportArrows[RailOrdinal][Side], On, HoverOver);
+            Interaction->DeclareHovered(ExportArrows[RailIndex][Side], On, HoverOver);
             Surface->Ground(Cell, On ? Tinted.TileHovered : Tinted.Tile, 21.0f, CornerAll);
             Surface->Edge(Cell, Tinted.HairlineFirm, 1.0f, 21.0f, CornerAll);
             Surface->TextRun(Cell.MinimumX + 16.0f, Cell.MinimumY + 11.0f, Tinted.Primary,
@@ -1223,28 +1318,29 @@ void TexturePaintPanel::RecordFlattenPage(const PlaneExtent& Extent, TexturePain
         }
 
         Surface->Confine(Rail);
-        for (std::uint32_t Ordinal = 0u; Ordinal < OptionCount; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < OptionCount; ++Index)
         {
-            const PlaneExtent Choice = Spanning(Rail.MinimumX + 4.0f + Ordinal * 144.0f - static_cast<float>(Scroll),
+            const PlaneExtent OptionTile = Spanning(Rail.MinimumX + 4.0f + Index * 144.0f - static_cast<float>(Scroll),
                                                 Rail.MinimumY, 132.0f, 60.0f);
-            const bool On = Choice.Encloses(Sampled.PositionX, Sampled.PositionY);
-            if (Sampled.ContactPressed && On && !Ledger->AnyDisclosed()) Ledger->Grab(ExportChoices[RailOrdinal][Ordinal], ControlPart::Body);
-            if (On && Ledger->Released(ExportChoices[RailOrdinal][Ordinal]))
+            const bool On = Rail.Encloses(Sampled.PositionX, Sampled.PositionY) &&
+                            OptionTile.Encloses(Sampled.PositionX, Sampled.PositionY);
+            if (Sampled.ContactPressed && On)
             {
-                Taken = Ordinal;
-                ExportFrom[RailOrdinal] = Scroll;
-                ExportTarget[RailOrdinal] = static_cast<double>(Ordinal) * 144.0;
-                Motion->Eased(ExportMotion[RailOrdinal]).Depart(0.0, 1.0, 250.0, 0.0, EaseCurve::Carousel);
+                Interaction->Withdraw();
+                Taken = Index;
+                ExportFrom[RailIndex] = Scroll;
+                ExportTarget[RailIndex] = static_cast<double>(Index) * 144.0;
+                Motion->Eased(ExportMotion[RailIndex]).Depart(0.0, 1.0, 250.0, 0.0, EaseCurve::Carousel);
             }
-            Ledger->DeclareHovered(ExportChoices[RailOrdinal][Ordinal], On, HoverOver);
-            const bool Selected = Taken == Ordinal;
-            Surface->Ground(Choice, Selected ? Tinted.RowTaken : (On ? Tinted.TileHovered : Tinted.Tile), 12.0f, CornerAll);
-            Surface->Edge(Choice, Selected ? Tinted.Accent : Tinted.Hairline, 1.0f, 12.0f, CornerAll);
-            Surface->TextRun(Choice.MinimumX + 14.0f, Choice.MinimumY + 10.0f, Tinted.Primary,
-                             Options[Ordinal], Scaled.RunPrimary);
-            Surface->TextRun(Choice.MinimumX + 14.0f, Choice.MinimumY + 36.0f, Tinted.Muted,
-                             RailOrdinal == 0u ? "Image format" :
-                             RailOrdinal == 1u ? "Square output" : "Packing preset", Scaled.RunFine);
+            Interaction->DeclareHovered(ExportCarouselOptions[RailIndex][Index], On, HoverOver);
+            const bool Selected = Taken == Index;
+            Surface->Ground(OptionTile, Selected ? Tinted.RowTaken : (On ? Tinted.TileHovered : Tinted.Tile), 12.0f, CornerAll);
+            Surface->Edge(OptionTile, Selected ? Tinted.Accent : Tinted.Hairline, 1.0f, 12.0f, CornerAll);
+            Surface->TextRun(OptionTile.MinimumX + 14.0f, OptionTile.MinimumY + 10.0f, Tinted.Primary,
+                             Options[Index], Scaled.RunPrimary);
+            Surface->TextRun(OptionTile.MinimumX + 14.0f, OptionTile.MinimumY + 36.0f, Tinted.Muted,
+                             RailIndex == 0u ? "Image format" :
+                             RailIndex == 1u ? "Square output" : "Packing preset", Scaled.RunFine);
         }
         Surface->Release();
     };
@@ -1257,15 +1353,15 @@ void TexturePaintPanel::RecordFlattenPage(const PlaneExtent& Extent, TexturePain
     RecordRail(2u, Y, "DCC / engine preset", Presets, 9u, Applied.ExportPreset);
     Y += 96.0f;
 
-    const auto Field = [&](std::uint32_t Ordinal, const PlaneExtent& Row, const char* Label,
-                           const char* Placeholder, char* Run, std::uint32_t Ceiling)
+    const auto Field = [&](std::uint32_t Index, const PlaneExtent& Row, const char* Label,
+                           const char* Placeholder, char* Run, std::uint32_t Limit)
     {
         Surface->TextRun(Row.MinimumX, Row.MinimumY + 9.0f, Tinted.Muted, Label, Scaled.RunSecondary);
         EditableTextDeclaration Declared;
         Declared.Placeholder = Placeholder;
-        SharedControls.EditableText(ExportFields[Ordinal],
+        SharedControls.EditableText(ExportFields[Index],
                                     Spanning(Row.MinimumX + 92.0f, Row.MinimumY, Row.Width() - 92.0f, 34.0f),
-                                    Declared, Run, Ceiling);
+                                    Declared, Run, Limit);
     };
 
     const float Half = (Extent.Width() - Pad * 3.0f) * 0.5f;
@@ -1281,40 +1377,40 @@ void TexturePaintPanel::RecordFlattenPage(const PlaneExtent& Extent, TexturePain
     const char* Packing[] =
         { "Separate PBR maps", "AO:R  Rough:G  Metal:B", "Metal:R  AO:G  Detail:B  Smooth:A",
           "Metallic RGB + Smoothness A", "R:AO  G:Rough  B:Metal" };
-    const std::uint32_t PackingOrdinal = Applied.ExportPreset < 5u ? Applied.ExportPreset : 0u;
+    const std::uint32_t PackingIndex = Applied.ExportPreset < 5u ? Applied.ExportPreset : 0u;
     Surface->TextRun(Extent.MinimumX + Pad, Y, Tinted.Primary, "Packing", Scaled.RunSecondary);
     Surface->TextRun(Extent.MinimumX + Pad + 92.0f, Y, Tinted.Muted,
-                     Packing[PackingOrdinal], Scaled.RunSecondary);
+                     Packing[PackingIndex], Scaled.RunSecondary);
     Y += 30.0f;
 
     static const char* const Depths[3] = { "8-bit", "16-bit", "32-bit float" };
     Surface->TextRun(Extent.MinimumX + Pad, Y + 8.0f, Tinted.Muted, "Bit depth", Scaled.RunSecondary);
-    for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 3u; ++Index)
     {
-        const PlaneExtent Cell = Spanning(Extent.MinimumX + Pad + 92.0f + Ordinal * 116.0f, Y, 106.0f, 32.0f);
+        const PlaneExtent Cell = Spanning(Extent.MinimumX + Pad + 92.0f + Index * 116.0f, Y, 106.0f, 32.0f);
         const bool On = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
-        if (Sampled.ContactPressed && On && !Ledger->AnyDisclosed()) Ledger->Grab(ExportOptions[Ordinal], ControlPart::Body);
-        if (On && Ledger->Released(ExportOptions[Ordinal])) Applied.ExportBitDepth = Ordinal;
-        Ledger->DeclareHovered(ExportOptions[Ordinal], On, HoverOver);
-        const bool Taken = Applied.ExportBitDepth == Ordinal;
+        if (Sampled.ContactPressed && On && !Interaction->AnyDisclosed()) Interaction->Grab(ExportOptions[Index], ControlPart::Body);
+        if (On && Interaction->Released(ExportOptions[Index])) Applied.ExportBitDepth = Index;
+        Interaction->DeclareHovered(ExportOptions[Index], On, HoverOver);
+        const bool Taken = Applied.ExportBitDepth == Index;
         Surface->Ground(Cell, Taken ? Tinted.RowTaken : (On ? Tinted.TileHovered : Tinted.Tile), 16.0f, CornerAll);
         Surface->Edge(Cell, Taken ? Tinted.Accent : Tinted.Hairline, 1.0f, 16.0f, CornerAll);
-        Surface->TextRun(Cell.MinimumX + 14.0f, Cell.MinimumY + 8.0f, Tinted.Primary, Depths[Ordinal], Scaled.RunFine);
+        Surface->TextRun(Cell.MinimumX + 14.0f, Cell.MinimumY + 8.0f, Tinted.Primary, Depths[Index], Scaled.RunFine);
     }
     Y += 42.0f;
 
     bool* Switches[3] = { &Applied.ExportDirectXNormals, &Applied.ExportDilation, &Applied.ExportBaseColourSrgb };
     const char* SwitchNames[3] = { "DirectX normals", "Infinite dilation", "sRGB base colour" };
-    for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 3u; ++Index)
     {
-        const PlaneExtent Cell = Spanning(Extent.MinimumX + Pad + Ordinal * 172.0f, Y, 162.0f, 30.0f);
+        const PlaneExtent Cell = Spanning(Extent.MinimumX + Pad + Index * 172.0f, Y, 162.0f, 30.0f);
         const bool On = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
-        if (Sampled.ContactPressed && On && !Ledger->AnyDisclosed()) Ledger->Grab(ExportOptions[3u + Ordinal], ControlPart::Body);
-        if (On && Ledger->Released(ExportOptions[3u + Ordinal])) *Switches[Ordinal] = !*Switches[Ordinal];
-        Ledger->DeclareHovered(ExportOptions[3u + Ordinal], On, HoverOver);
-        Surface->Ground(Cell, *Switches[Ordinal] ? Tinted.RowTaken : Tinted.Tile, 15.0f, CornerAll);
-        Surface->Edge(Cell, *Switches[Ordinal] ? Tinted.Accent : Tinted.Hairline, 1.0f, 15.0f, CornerAll);
-        Surface->TextRun(Cell.MinimumX + 12.0f, Cell.MinimumY + 7.0f, Tinted.Primary, SwitchNames[Ordinal], Scaled.RunFine);
+        if (Sampled.ContactPressed && On && !Interaction->AnyDisclosed()) Interaction->Grab(ExportOptions[3u + Index], ControlPart::Body);
+        if (On && Interaction->Released(ExportOptions[3u + Index])) *Switches[Index] = !*Switches[Index];
+        Interaction->DeclareHovered(ExportOptions[3u + Index], On, HoverOver);
+        Surface->Ground(Cell, *Switches[Index] ? Tinted.RowTaken : Tinted.Tile, 15.0f, CornerAll);
+        Surface->Edge(Cell, *Switches[Index] ? Tinted.Accent : Tinted.Hairline, 1.0f, 15.0f, CornerAll);
+        Surface->TextRun(Cell.MinimumX + 12.0f, Cell.MinimumY + 7.0f, Tinted.Primary, SwitchNames[Index], Scaled.RunFine);
     }
 
     Surface->TextRun(Extent.MinimumX + Pad, Y + 42.0f, Tinted.Faint,
@@ -1366,10 +1462,10 @@ void TexturePaintPanel::RecordSearchPill(const PlaneExtent& Extent, TexturePaint
 {
     const bool Hovered = Extent.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Hovered && Sampled.ContactPressed && !Ledger->AnyDisclosed())
-        Ledger->Grab(SearchField, ControlPart::Body);
+    if (Hovered && Sampled.ContactPressed && !Interaction->AnyDisclosed())
+        Interaction->Grab(SearchField, ControlPart::Body);
 
-    const bool Taken = Ledger->Holding(SearchField) || Ledger->Disclosed(SearchField);
+    const bool Taken = Interaction->Holding(SearchField) || Interaction->Disclosed(SearchField);
 
     // 🔴 A pill: radius = half the height, so both ends are fully rounded.
     const float PillRadius = Extent.Height() * 0.5f;
@@ -1405,33 +1501,34 @@ void TexturePaintPanel::RecordSearchPill(const PlaneExtent& Extent, TexturePaint
 void TexturePaintPanel::RecordMenuOptions(const PlaneExtent& Card, const char* const* Captions,
                                           const SymbolSubject* Glyphs, std::uint32_t OptionCount,
                                           const char* const* Shortcuts, ControlIdentity* Identities,
-                                          TexturePaintContext& Applied, std::uint32_t* Writes)
+                                          TexturePaintContext& Applied, std::uint32_t* Writes,
+                                          bool Interactive)
 {
     const float Pad = Scaled.PanePad;
     const float RowY = Scaled.LayerToolHeight + 2.0f;
     const float OptionsTop = Card.MinimumY + Pad + 20.0f;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < OptionCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < OptionCount; ++Index)
     {
         const PlaneExtent Cell = Spanning(Card.MinimumX + Pad,
-                                          OptionsTop + RowY * static_cast<float>(Ordinal),
+                                          OptionsTop + RowY * static_cast<float>(Index),
                                           Card.Width() - Pad * 2.0f, RowY);
 
         const bool Hovered = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        if (Hovered && Sampled.ContactPressed)
-            Ledger->Grab(Identities[Ordinal], ControlPart::Body);
+        if (Interactive && Hovered && Sampled.ContactPressed)
+            Interaction->Grab(Identities[Index], ControlPart::Body);
 
-        if (Hovered && Ledger->Released(Identities[Ordinal]))
+        if (Interactive && Hovered && Interaction->Released(Identities[Index]))
         {
             if (Writes != nullptr)
-                Writes[Ordinal] = 1u;
+                Writes[Index] = 1u;
 
             Applied.MenuOpen = 0u;
-            Ledger->Withdraw();
+            Interaction->Withdraw();
         }
 
-        Ledger->DeclareHovered(Identities[Ordinal], Hovered, HoverOver);
+        Interaction->DeclareHovered(Identities[Index], Hovered, HoverOver);
 
         if (Hovered)
             Surface->Ground(Cell, Faded(Covering(0xFFFFFFu), 0.09f), RowY * 0.5f, CornerAll);
@@ -1440,7 +1537,7 @@ void TexturePaintPanel::RecordMenuOptions(const PlaneExtent& Card, const char* c
 
         if (Glyphs != nullptr)
         {
-            Surface->Stroke(Glyphs[Ordinal],
+            Surface->Stroke(Glyphs[Index],
                             Spanning(Cell.MinimumX + 10.0f,
                                      Cell.MinimumY + (RowY - GlyphExtent) * 0.5f,
                                      GlyphExtent, GlyphExtent),
@@ -1452,16 +1549,16 @@ void TexturePaintPanel::RecordMenuOptions(const PlaneExtent& Card, const char* c
 
         Surface->TextRun(TextLead, Cell.MinimumY + (RowY - Run) * 0.5f,
                          Hovered ? Tinted.Primary : Covering(0x9A9A9Au),
-                         Captions[Ordinal], Run);
+                         Captions[Index], Run);
 
-        if (Shortcuts != nullptr && Shortcuts[Ordinal] != nullptr)
+        if (Shortcuts != nullptr && Shortcuts[Index] != nullptr)
         {
             const float ShortcutRun = Scaled.RunFiner;
-            const float Span = Surface->MeasureRun(Shortcuts[Ordinal], ShortcutRun, 0.0f);
+            const float Span = Surface->MeasureRun(Shortcuts[Index], ShortcutRun, 0.0f);
 
             Surface->TextRun(Cell.MaximumX - Pad - Span,
                              Cell.MinimumY + (RowY - ShortcutRun) * 0.5f,
-                             Tinted.Faint, Shortcuts[Ordinal], ShortcutRun);
+                             Tinted.Faint, Shortcuts[Index], ShortcutRun);
         }
     }
 }
@@ -1531,31 +1628,31 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
         //    disclosure, so the list's height is a function of what is unfolded and
         //    has to be re-measured every tick rather than cached.
         float Content = 0.0f;
-        float CardOpen[TextureLayerCeiling] = {};
+        float CardOpen[TextureLayerLimit] = {};
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < RowCount; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < RowCount; ++Index)
         {
-            if (Filtering && !RowRetained(Applied, Rows[Ordinal]))
+            if (Filtering && !RowRetained(Applied, Rows[Index]))
                 continue;
 
             // 📐 An enclosed row's height is weighted by how far its folder has
             //    opened, so the list's measure follows the fold rather than jumping
             //    the moment the boolean flips.
-            const float Folded = EnclosureFraction(Applied, Rows, RowCount, Ordinal);
+            const float Folded = EnclosureFraction(Applied, Rows, RowCount, Index);
 
             if (Folded <= 0.0f)
                 continue;
 
-            CardOpen[Ordinal] = Controls.OutlineExpansion(LayerDetails[Ordinal],
-                                                          Applied.LayerCardExpanded[Ordinal], true);
+            CardOpen[Index] = Controls.OutlineExpansion(LayerDetails[Index],
+                                                          Applied.LayerCardExpanded[Index], true);
 
             const PlaneExtent Measuring = Spanning(Body.MinimumX, 0.0f, Body.Width(), 0.0f);
-            const float CardHeight = RecordInlineLayerCard(Measuring, Applied, Rows[Ordinal],
-                                                           Ordinal, false);
+            const float CardHeight = RecordInlineLayerCard(Measuring, Applied, Rows[Index],
+                                                           Index, false);
 
             Content += (Scaled.LayerRowY + 2.0f
-                     + (Applied.MaskAttached[Ordinal] ? (Scaled.LayerMaskY + 2.0f) : 0.0f)
-                     + (CardHeight + 2.0f) * CardOpen[Ordinal]) * Folded;
+                     + (Applied.MaskAttached[Index] ? (Scaled.LayerMaskY + 2.0f) : 0.0f)
+                     + (CardHeight + 2.0f) * CardOpen[Index]) * Folded;
         }
 
         const float Rolled = AdvanceListScroll(Applied.StackListShown, Applied.StackListWanted,
@@ -1563,9 +1660,18 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
 
         float Sweep = Body.MinimumY - Rolled;
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < RowCount; ++Ordinal)
+        const std::uint32_t PriorDragDestination = Applied.DragDestination;
+        const std::uint32_t PriorDragPlacement = Applied.DragPlacement;
+        const bool Carrying = Applied.DragSource < RowCount;
+        const float DragTravel = Carrying
+            ? std::abs(Sampled.PositionY - Applied.DragOriginY) : 0.0f;
+        const bool Dragging = Carrying && Sampled.ContactHeld && DragTravel >= 5.0f;
+        Applied.DragDestination = TextureLayerLimit;
+        Applied.DragPlacement = 0u;
+
+        for (std::uint32_t Index = 0u; Index < RowCount; ++Index)
         {
-            if (Filtering && !RowRetained(Applied, Rows[Ordinal]))
+            if (Filtering && !RowRetained(Applied, Rows[Index]))
                 continue;
 
             // 🔴 A FOLDER SNAPPED OPEN AND SHUT. Disclosure was a bare boolean read at
@@ -1574,15 +1680,15 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
             //    them animate their fold on OutlineExpansion. The enclosed rows now
             //    ride the same eased fraction: they grow in height and fade in as the
             //    folder opens.
-            const float Folded = EnclosureFraction(Applied, Rows, RowCount, Ordinal);
+            const float Folded = EnclosureFraction(Applied, Rows, RowCount, Index);
 
             if (Folded <= 0.001f)
                 continue;
 
-            const TextureLayerRow& Current = Rows[Ordinal];
+            const TextureLayerRow& Current = Rows[Index];
 
             // 📐 The row's height, plus the attached mask row beneath when one stands.
-            const float MaskY = Applied.MaskAttached[Ordinal]
+            const float MaskY = Applied.MaskAttached[Index]
                               ? (Scaled.LayerMaskY + 2.0f) : 0.0f;
             const float RowY = (Scaled.LayerRowY + MaskY) * Folded;
 
@@ -1596,6 +1702,24 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
 
             const PlaneExtent Row = Spanning(Body.MinimumX + Indent, Sweep,
                                              Body.Width() - Indent, RowY);
+
+            if (Dragging && Index != Applied.DragSource &&
+                Row.Encloses(Sampled.PositionX, Sampled.PositionY) &&
+                Body.Encloses(Sampled.PositionX, Sampled.PositionY))
+            {
+                std::uint32_t SourcePast = Applied.DragSource + 1u;
+                while (SourcePast < RowCount && Rows[SourcePast].Depth > Rows[Applied.DragSource].Depth)
+                    ++SourcePast;
+
+                if (Index < Applied.DragSource || Index >= SourcePast)
+                {
+                    const float Fraction = (Sampled.PositionY - Row.MinimumY) / Row.Height();
+                    Applied.DragDestination = Index;
+                    Applied.DragPlacement = (Current.Classified == TextureLayerClassification::Folder &&
+                                             Fraction > 0.30f && Fraction < 0.70f)
+                                          ? 3u : (Fraction < 0.5f ? 1u : 2u);
+                }
+            }
 
             // 📐 The reference's `.kids>.kin::before` — a 1 px rail down the gutter each
             //    nested row sits in, in the enclosing folder's own hue at 0.32.
@@ -1615,11 +1739,11 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
 
             if (Surface->Excluded(Row))
             {
-                if (CardOpen[Ordinal] > 0.001f)
+                if (CardOpen[Index] > 0.001f)
                 {
                     const PlaneExtent Measuring = Spanning(Row.MinimumX, Sweep, Row.Width(), 0.0f);
-                    const float Full = RecordInlineLayerCard(Measuring, Applied, Current, Ordinal, false);
-                    const float Open = Full * CardOpen[Ordinal] * Folded;
+                    const float Full = RecordInlineLayerCard(Measuring, Applied, Current, Index, false);
+                    const float Open = Full * CardOpen[Index] * Folded;
                     const PlaneExtent Card = Spanning(Row.MinimumX, Sweep, Row.Width(), Open);
 
                     if (!Surface->Excluded(Card))
@@ -1627,7 +1751,7 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
                         Surface->Confine(Card);
                         RecordInlineLayerCard(Spanning(Card.MinimumX, Card.MinimumY,
                                                        Card.Width(), Full),
-                                              Applied, Current, Ordinal, true);
+                                              Applied, Current, Index, true);
                         Surface->Release();
                     }
 
@@ -1637,15 +1761,27 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
                 continue;
             }
 
-            if (RowTally < TextureLayerCeiling)
+            if (RowTally < TextureLayerLimit)
             {
                 RowRects[RowTally] = Row;
                 ++RowTally;
             }
 
-            RecordStackRow(Row, Applied, Rows, RowCount, Current, Ordinal);
+            RecordStackRow(Row, Applied, Rows, RowCount, Current, Index);
 
-            if (Applied.MaskAttached[Ordinal])
+            if (Applied.DragDestination == Index)
+            {
+                if (Applied.DragPlacement == 3u)
+                    Surface->Edge(Row, Tinted.Accent, 2.0f, Scaled.FieldRadius, CornerAll);
+                else
+                {
+                    const float MarkY = Applied.DragPlacement == 1u ? Row.MinimumY : Row.MaximumY - 2.0f;
+                    Surface->Ground(Spanning(Row.MinimumX, MarkY, Row.Width(), 2.0f),
+                                    Tinted.Accent, 1.0f, CornerAll);
+                }
+            }
+
+            if (Applied.MaskAttached[Index])
             {
                 // 🔴 THE MASK ROW IGNORED BOTH INDENTS. It was placed at
                 //    `Body.MinimumX` with the body's full width, so it neither
@@ -1659,17 +1795,17 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
                                                   Row.MinimumY + Scaled.LayerRowY,
                                                   Row.Width() - Scaled.LayerMaskIndent,
                                                   Scaled.LayerMaskY);
-                RecordMaskRow(Mask, Applied, Rows, RowCount, Current, Ordinal);
+                RecordMaskRow(Mask, Applied, Rows, RowCount, Current, Index);
             }
 
             // 📐 Independent of the leftward page carousel: the trailing V discloses this card in the
             //    stack itself. The full body is recorded and clipped to the eased opening, so it reads
             //    as a dropdown rather than as navigation to Channels / Mask / Properties.
-            if (CardOpen[Ordinal] > 0.001f)
+            if (CardOpen[Index] > 0.001f)
             {
                 const PlaneExtent Measuring = Spanning(Row.MinimumX, Sweep, Row.Width(), 0.0f);
-                const float Full = RecordInlineLayerCard(Measuring, Applied, Current, Ordinal, false);
-                const float Open = Full * CardOpen[Ordinal] * Folded;
+                const float Full = RecordInlineLayerCard(Measuring, Applied, Current, Index, false);
+                const float Open = Full * CardOpen[Index] * Folded;
                 const PlaneExtent Card = Spanning(Row.MinimumX, Sweep, Row.Width(), Open);
 
                 if (!Surface->Excluded(Card))
@@ -1677,11 +1813,27 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
                     Surface->Confine(Card);
                     RecordInlineLayerCard(Spanning(Card.MinimumX, Card.MinimumY,
                                                    Card.Width(), Full),
-                                          Applied, Current, Ordinal, true);
+                                          Applied, Current, Index, true);
                     Surface->Release();
                 }
 
                 Sweep += Open + 2.0f;
+            }
+        }
+
+        if (Carrying && !Sampled.ContactHeld)
+        {
+            if (PriorDragDestination < RowCount && PriorDragPlacement != 0u)
+            {
+                Applied.DragDestination = PriorDragDestination;
+                Applied.DragPlacement = PriorDragPlacement;
+                Applied.Structural = static_cast<std::uint32_t>(TexturePaintRequest::Relocate);
+            }
+            else
+            {
+                Applied.DragSource = TextureLayerLimit;
+                Applied.DragDestination = TextureLayerLimit;
+                Applied.DragPlacement = 0u;
             }
         }
 
@@ -1712,16 +1864,16 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
 //    compound, so a row two folders deep is hidden while EITHER is shut.
 float TexturePaintPanel::EnclosureFraction(const TexturePaintContext& Applied,
                                            const TextureLayerRow* Rows,
-                                           std::uint32_t RowCount, std::uint32_t Ordinal)
+                                           std::uint32_t RowCount, std::uint32_t Index)
 {
-    if (Rows == nullptr || Ordinal >= RowCount)
+    if (Rows == nullptr || Index >= RowCount)
         return 1.0f;
 
     float Reach = 1.0f;
-    std::uint32_t Walking = Rows[Ordinal].Enclosing;
+    std::uint32_t Walking = Rows[Index].Enclosing;
     std::uint32_t Guard = 0u;
 
-    while (Walking < RowCount && Guard++ < TextureLayerCeiling)
+    while (Walking < RowCount && Guard++ < TextureLayerLimit)
     {
         // 📐 The fold is DECLARED here rather than read, because OutlineExpansion is
         //    what advances it; a folder never recorded would otherwise stay at 0.
@@ -1772,12 +1924,12 @@ void TexturePaintPanel::RecordStackTools(const PlaneExtent& Tools, TexturePaintC
         { &ToolCollapse, SymbolSubject::CollapseFold,   0u }
     };
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 3u; ++Index)
     {
         const PlaneExtent Cell = Spanning(Lead, Top, ToolY, ToolY);
         const bool Hovered = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        const bool MaskToolOn = (Ordinal == 1u) && Applied.LayerTaken < TextureLayerCeiling &&
+        const bool MaskToolOn = (Index == 1u) && Applied.LayerTaken < TextureLayerLimit &&
                                 Applied.MaskAttached[Applied.LayerTaken];
 
         if (Hovered)
@@ -1785,21 +1937,21 @@ void TexturePaintPanel::RecordStackTools(const PlaneExtent& Tools, TexturePaintC
 
         const float Figure = 15.0f;
 
-        Surface->Stroke(ToolsDeclared[Ordinal].Glyph,
+        Surface->Stroke(ToolsDeclared[Index].Glyph,
                         Spanning(Cell.MinimumX + (ToolY - Figure) * 0.5f,
                                  Cell.MinimumY + (ToolY - Figure) * 0.5f, Figure, Figure),
                         MaskToolOn ? Tinted.Primary
                                    : (Hovered ? Tinted.Primary : Covering(0x9A9A9Au)));
 
-        if (Sampled.ContactPressed && Hovered && !Ledger->AnyDisclosed())
-            Ledger->Grab(*ToolsDeclared[Ordinal].Target, ControlPart::Body);
+        if (Sampled.ContactPressed && Hovered && !Interaction->AnyDisclosed())
+            Interaction->Grab(*ToolsDeclared[Index].Target, ControlPart::Body);
 
-        if (Hovered && Ledger->Released(*ToolsDeclared[Ordinal].Target))
+        if (Hovered && Interaction->Released(*ToolsDeclared[Index].Target))
         {
-            if (Ordinal == 1u)
+            if (Index == 1u)
             {
                 // 📐 The mask tool toggles the taken row's attached mask — the reference's `btnMask`.
-                if (Applied.LayerTaken < TextureLayerCeiling)
+                if (Applied.LayerTaken < TextureLayerLimit)
                 {
                     const std::uint32_t Taken = Applied.LayerTaken;
                     Applied.MaskAttached[Taken] = !Applied.MaskAttached[Taken];
@@ -1815,12 +1967,12 @@ void TexturePaintPanel::RecordStackTools(const PlaneExtent& Tools, TexturePaintC
                     }
                 }
             }
-            else if (Ordinal == 2u)
+            else if (Index == 2u)
             {
                 // 📐 Collapse / expand all folders — the reference's `btnCollapse`.
                 bool AnyOpen = false;
 
-                for (std::uint32_t Row = 0u; Row < TextureLayerCeiling; ++Row)
+                for (std::uint32_t Row = 0u; Row < TextureLayerLimit; ++Row)
                 {
                     if (Applied.LayerExpanded[Row])
                     {
@@ -1831,12 +1983,12 @@ void TexturePaintPanel::RecordStackTools(const PlaneExtent& Tools, TexturePaintC
 
                 const bool Open = !AnyOpen;
 
-                for (std::uint32_t Row = 0u; Row < TextureLayerCeiling; ++Row)
+                for (std::uint32_t Row = 0u; Row < TextureLayerLimit; ++Row)
                     Applied.LayerExpanded[Row] = Open;
             }
             else
             {
-                Applied.Structural = ToolsDeclared[Ordinal].Request;
+                Applied.Structural = ToolsDeclared[Index].Request;
             }
         }
 
@@ -1846,18 +1998,18 @@ void TexturePaintPanel::RecordStackTools(const PlaneExtent& Tools, TexturePaintC
 
 void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintContext& Applied,
                                        const TextureLayerRow* Rows, std::uint32_t RowCount,
-                                       const TextureLayerRow& Current, std::uint32_t Ordinal)
+                                       const TextureLayerRow& Current, std::uint32_t Index)
 {
-    const bool Taken   = Applied.LayerTaken == Ordinal && !Applied.MaskTaken;
+    const bool Taken   = Applied.LayerTaken == Index && !Applied.MaskTaken;
     // 🔴 The layer row's own hover excludes the mask strip beneath it: the row's extent carries the
     //    attached mask row too, and a click there must address the MASK, never the layer — the
     //    reported defect where the mask row could not be taken.
     const bool Hovered = Row.Encloses(Sampled.PositionX, Sampled.PositionY) &&
-                         !(Applied.MaskAttached[Ordinal] &&
+                         !(Applied.MaskAttached[Index] &&
                            Sampled.PositionY >= Row.MinimumY + Scaled.LayerRowY);
-    const bool Absent  = !Applied.LayerPresent[Ordinal];
+    const bool Absent  = !Applied.LayerPresent[Index];
     const bool Branch  = Current.EnclosedCount > 0u;
-    const bool SoloDim = !RowInSolo(Applied, Rows, RowCount, Ordinal);
+    const bool SoloDim = !RowInSolo(Applied, Rows, RowCount, Index);
 
     // 📐 The row's geometry: the entry tag, then the chevron, the eye, the thumb, the meta, the
     //    chips and the details + more cells — the reference's `.row` order.
@@ -1896,39 +2048,48 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
     const bool OnDetails = Details.Encloses(Sampled.PositionX, Sampled.PositionY);
     const bool OnMore    = More.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Sampled.ContactPressed && !Ledger->AnyDisclosed())
+    if (Sampled.ContactPressed && !Interaction->AnyDisclosed())
     {
         if (OnChevron)
-            Ledger->Grab(LayerChevrons[Ordinal], ControlPart::Chevron);
+            Interaction->Grab(LayerChevrons[Index], ControlPart::Chevron);
         else if (OnEye)
-            Ledger->Grab(LayerEyes[Ordinal], ControlPart::Body);
+            Interaction->Grab(LayerEyes[Index], ControlPart::Body);
         else if (OnDetails)
-            Ledger->Grab(LayerDetails[Ordinal], ControlPart::Body);
+            Interaction->Grab(LayerDetails[Index], ControlPart::Body);
         else if (OnMore)
-            Ledger->Grab(LayerMores[Ordinal], ControlPart::Body);
+            Interaction->Grab(LayerMores[Index], ControlPart::Body);
         else if (Hovered)
-            Ledger->Grab(LayerContacts[Ordinal], ControlPart::Body);
+        {
+            Interaction->Grab(LayerContacts[Index], ControlPart::Body);
+            if (!Applied.LayerLocked[Index])
+            {
+                Applied.DragSource = Index;
+                Applied.DragDestination = TextureLayerLimit;
+                Applied.DragPlacement = 0u;
+                Applied.DragOriginY = Sampled.PositionY;
+            }
+        }
     }
 
-    if (OnChevron && Ledger->Released(LayerChevrons[Ordinal]))
-        Applied.LayerExpanded[Ordinal] = !Applied.LayerExpanded[Ordinal];
+    if (OnChevron && Interaction->Released(LayerChevrons[Index]))
+        Applied.LayerExpanded[Index] = !Applied.LayerExpanded[Index];
 
-    if (OnEye && Ledger->Released(LayerEyes[Ordinal]))
-        Applied.LayerPresent[Ordinal] = !Applied.LayerPresent[Ordinal];
+    if (OnEye && Interaction->Released(LayerEyes[Index]))
+        Applied.LayerPresent[Index] = !Applied.LayerPresent[Index];
 
     // 📐 The V is disclosure, not navigation. It opens the entry's card down inside the stack while
     //    the page carousel remains where it stands.
-    if (OnDetails && Ledger->Released(LayerDetails[Ordinal]))
+    if (OnDetails && Interaction->Released(LayerDetails[Index]))
     {
-        Applied.LayerTaken = Ordinal;
+        Applied.LayerTaken = Index;
         Applied.MaskTaken = false;
-        const bool Incoming = !Applied.LayerCardExpanded[Ordinal];
+        const bool Incoming = !Applied.LayerCardExpanded[Index];
 
         if (Incoming)
-            for (std::uint32_t Other = 0u; Other < TextureLayerCeiling; ++Other)
+            for (std::uint32_t Other = 0u; Other < TextureLayerLimit; ++Other)
                 Applied.LayerCardExpanded[Other] = false;
 
-        Applied.LayerCardExpanded[Ordinal] = Incoming;
+        Applied.LayerCardExpanded[Index] = Incoming;
     }
 
     // 📐 A double contact on the row is the pointer equivalent of Tab: it selects the layer and sends
@@ -1936,36 +2097,36 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
     //    row action, especially the independent disclosure V above.
     if (Sampled.ContactDoublePressed && Hovered && !OnChevron && !OnEye && !OnDetails && !OnMore)
     {
-        Applied.LayerTaken = Ordinal;
+        Applied.LayerTaken = Index;
         Applied.MaskTaken = false;
         Applied.StackPage = 1u;
         Applied.PropertyTab = 0u;
     }
 
     // 📐 The more button opens the layer menu — the reference's `layerMenu`.
-    if (OnMore && Ledger->Released(LayerMores[Ordinal]))
+    if (OnMore && Interaction->Released(LayerMores[Index]))
     {
-        Applied.LayerTaken = Ordinal;
+        Applied.LayerTaken = Index;
         Applied.MaskTaken  = false;
         Applied.MenuOpen   = 2u;
-        Applied.MenuRow    = Ordinal;
-        Ledger->Disclose(MenuLayer);
+        Applied.MenuRow    = Index;
+        Interaction->Disclose(MenuLayer);
         MenuAnchorExtent = More;
     }
 
     if (Hovered && !OnChevron && !OnEye && !OnDetails && !OnMore &&
-        Ledger->Released(LayerContacts[Ordinal]))
+        Interaction->Released(LayerContacts[Index]))
     {
-        Applied.LayerTaken = Ordinal;
+        Applied.LayerTaken = Index;
         Applied.MaskTaken  = false;
     }
 
-    Ledger->DeclareHovered(LayerContacts[Ordinal], Hovered, HoverOver);
+    Interaction->DeclareHovered(LayerContacts[Index], Hovered, HoverOver);
 
     // ② The entry tag — the reference's `.tag`: a solid 3 px colour rail, dimmed to
     //    0.3 while the row is withheld (`.entry.off .tag`).
-    const std::uint32_t TagHue = Applied.LayerTagHue[Ordinal] != 0u
-                               ? Applied.LayerTagHue[Ordinal] : Current.TagHue;
+    const std::uint32_t TagHue = Applied.LayerTagHue[Index] != 0u
+                               ? Applied.LayerTagHue[Index] : Current.TagHue;
 
     // 🔴 THE WRONG ENTRY WAS DOTTED. LayerstackV1.html gives every layer entry a
     //    plain `<span class="tag">` and reserves `class="tag dot"` for the ATTACHED
@@ -2016,7 +2177,7 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
     // ④ The disclosure chevron (folders only — the reference's `.tw.void` is skipped).
     if (Branch)
     {
-        const bool Open = Applied.LayerExpanded[Ordinal];
+        const bool Open = Applied.LayerExpanded[Index];
 
         Surface->Stroke(Open ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
                         Chevron, Faded(OnChevron ? Tinted.Primary : Covering(0x5E5E5Eu),
@@ -2090,9 +2251,9 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
     // ⑦ The meta: name + the sub run.
     const float NamingRun  = Scaled.RunPrimary;
     const float NamingTop  = Row.MinimumY + (Scaled.LayerRowY * 0.5f - NamingRun * 1.3f) * 0.5f;
-    const float NamingCeiling = Details.MinimumX - Scaled.PanePad;
+    const float NamingLimit = Details.MinimumX - Scaled.PanePad;
 
-    Surface->TextRunTruncated(MetaLead, NamingTop, NamingCeiling,
+    Surface->TextRunTruncated(MetaLead, NamingTop, NamingLimit,
                               Faded(Taken ? Tinted.Primary : Tinted.Muted, RowCoverage),
                               Current.Naming, NamingRun, Taken);
 
@@ -2129,7 +2290,7 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
         std::snprintf(Sub, sizeof(Sub), "%s", TextureLayerText(Current.Classified));
     }
 
-    Surface->TextRunTruncated(MetaLead, SubTop, NamingCeiling,
+    Surface->TextRunTruncated(MetaLead, SubTop, NamingLimit,
                               Faded(Tinted.Faint, RowCoverage), Sub, SubRun);
 
     // ⑧ The opacity column.
@@ -2137,43 +2298,43 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
     //    mini-bar, and as a value — and only when WideRows was toggled, so the
     //    one figure an artist reads constantly was the one that could vanish.
     //    A folder has no opacity of its own, so it states none.
-    float ChipCeiling = Details.MinimumX - 8.0f;
+    float ChipLimit = Details.MinimumX - 8.0f;
 
-    if (!IsFolder && NamingCeiling - MetaLead > 160.0f)
+    if (!IsFolder && NamingLimit - MetaLead > 160.0f)
     {
-        const std::uint32_t Amount = Applied.LayerOpacity[Ordinal];
+        const std::uint32_t Amount = Applied.LayerOpacity[Index];
 
         char Value[8] = {};
         std::snprintf(Value, sizeof(Value), "%u%%", Amount);
 
         const float ValueSpan = Surface->MeasureRun(Value, SubRun, 0.0f);
-        const float ValueLead = ChipCeiling - ValueSpan;
+        const float ValueLead = ChipLimit - ValueSpan;
 
         Surface->TextRun(ValueLead, Row.MinimumY + (Scaled.LayerRowY - SubRun) * 0.5f,
                          Faded(Taken ? Tinted.Primary : Tinted.Muted, RowCoverage),
                          Value, SubRun, 0.0f, true);
 
-        ChipCeiling = ValueLead - 10.0f;
+        ChipLimit = ValueLead - 10.0f;
 
         // 📐 The blend run stays a wide-only column: it is a setting rather than
         //    a reading, and the inspector states it in full.
-        if (Applied.WideRows && NamingCeiling - MetaLead > 300.0f)
+        if (Applied.WideRows && NamingLimit - MetaLead > 300.0f)
         {
-            const char* Blend = TextureBlendNames[Applied.LayerBlendTaken[Ordinal] % TextureBlendCount];
+            const char* Blend = TextureBlendNames[Applied.LayerBlendTaken[Index] % TextureBlendCount];
             const float BlendSpan = Surface->MeasureRun(Blend, SubRun, 0.0f);
 
-            Surface->TextRun(ChipCeiling - BlendSpan,
+            Surface->TextRun(ChipLimit - BlendSpan,
                              Row.MinimumY + (Scaled.LayerRowY - SubRun) * 0.5f,
                              Faded(Tinted.Faint, RowCoverage), Blend, SubRun, 0.0f, true);
 
-            ChipCeiling = ChipCeiling - BlendSpan - 10.0f;
+            ChipLimit = ChipLimit - BlendSpan - 10.0f;
         }
     }
 
     // ⑨ The chips, right-to-left: CH, FX, MASK, L, 3D — the reference's `.chips`.
     const float ChipRun = Scaled.RunFiner;
     const float ChipH = Scaled.LayerChipY;
-    float ChipX = ChipCeiling;
+    float ChipX = ChipLimit;
 
     const auto DrawChip = [&](const char* Text, std::uint32_t Background, std::uint32_t Foreground,
                               const ThemeToken& Border) -> float
@@ -2211,10 +2372,10 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
         DrawChip(EffectChip, 0x22190Eu, 0xFFD9A0u, Covering(0x5A3A1Cu));
     }
 
-    if (Applied.MaskAttached[Ordinal])
+    if (Applied.MaskAttached[Index])
         DrawChip("MASK", 0x2A2A2Au, 0xDCDCDCu, Tinted.Hairline);
 
-    if (Applied.LayerLocked[Ordinal])
+    if (Applied.LayerLocked[Index])
         DrawChip("L", 0x2C1918u, 0xFF9D96u, Covering(0x4C2524u));
 
     if (Current.Classified == TextureLayerClassification::Decal)
@@ -2226,7 +2387,7 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
     if (OnDetails)
         Surface->Ground(Details, Faded(Covering(0xFFFFFFu), 0.08f), 3.0f, CornerAll);
 
-    Surface->Stroke(Applied.LayerCardExpanded[Ordinal]
+    Surface->Stroke(Applied.LayerCardExpanded[Index]
                     ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
                     Spanning(Details.MinimumX + (EyeExtent - 13.0f) * 0.5f,
                              Details.MinimumY + (EyeExtent - 13.0f) * 0.5f, 13.0f, 13.0f),
@@ -2249,7 +2410,7 @@ ControlIdentity TexturePaintPanel::NextInlineControl()
 float TexturePaintPanel::RecordInlineLayerCard(const PlaneExtent& Extent,
                                                 TexturePaintContext& Applied,
                                                 const TextureLayerRow& Current,
-                                                std::uint32_t Ordinal, bool Recording)
+                                                std::uint32_t Index, bool Recording)
 {
     const float Pad = Scaled.PanePad;
     const float HeadY = 29.0f;
@@ -2264,21 +2425,21 @@ float TexturePaintPanel::RecordInlineLayerCard(const PlaneExtent& Extent,
         Surface->Edge(Extent, Tinted.Hairline, 1.0f, Scaled.LayerRadius, CornerAll);
     }
 
-    const auto Section = [&](std::uint32_t SectionOrdinal, const char* Caption,
+    const auto Section = [&](std::uint32_t SectionIndex, const char* Caption,
                              const char* Summary) -> bool
     {
         const PlaneExtent Head = Spanning(Extent.MinimumX, Sweep, Extent.Width(), HeadY);
-        bool& Opened = Applied.LayerCardSection[Ordinal][SectionOrdinal];
+        bool& Opened = Applied.LayerCardSection[Index][SectionIndex];
 
         if (Recording)
         {
             const ControlIdentity Disclosure = NextInlineControl();
             const bool Over = Head.Encloses(Sampled.PositionX, Sampled.PositionY);
-            if (Sampled.ContactPressed && Over && !Ledger->AnyDisclosed())
-                Ledger->Grab(Disclosure, ControlPart::Body);
-            if (Over && Ledger->Released(Disclosure))
+            if (Sampled.ContactPressed && Over && !Interaction->AnyDisclosed())
+                Interaction->Grab(Disclosure, ControlPart::Body);
+            if (Over && Interaction->Released(Disclosure))
                 Opened = !Opened;
-            Ledger->DeclareHovered(Disclosure, Over, HoverOver);
+            Interaction->DeclareHovered(Disclosure, Over, HoverOver);
 
             Surface->Ground(Head, Over ? Tinted.TileHovered : Tinted.Tile,
                             0.0f, CornerNone);
@@ -2305,7 +2466,7 @@ float TexturePaintPanel::RecordInlineLayerCard(const PlaneExtent& Extent,
     const auto SkipFields = [&](std::uint32_t Count)
     {
         if (Recording)
-            for (std::uint32_t FieldOrdinal = 0u; FieldOrdinal < Count; ++FieldOrdinal)
+            for (std::uint32_t FieldIndex = 0u; FieldIndex < Count; ++FieldIndex)
                 (void) NextInlineControl();
     };
 
@@ -2333,18 +2494,18 @@ float TexturePaintPanel::RecordInlineLayerCard(const PlaneExtent& Extent,
                 NextInlineControl(), ResolutionRow,
                 MagnitudeDeclaration{ "Resolution", "px", 16.0, 16384.0, 0u,
                                       MagnitudeDeclaration::Arrange::Measured },
-                Applied.LayerResolution[Ordinal]);
+                Applied.LayerResolution[Index]);
 
         std::uint32_t TagTaken = 0u;
         for (std::uint32_t Tag = 0u; Tag < 5u; ++Tag)
-            if (Applied.LayerTagHue[Ordinal] == TagHues[Tag])
+            if (Applied.LayerTagHue[Index] == TagHues[Tag])
                 TagTaken = Tag;
 
         const PlaneExtent TagRow = Field();
         if (Recording && SharedControls.SelectionField(NextInlineControl(), TagRow,
                                                        SelectionDeclaration{ "Tag Colour", TagNames, 5u },
                                                        TagTaken).ReadingAltered)
-            Applied.LayerTagHue[Ordinal] = TagHues[TagTaken];
+            Applied.LayerTagHue[Index] = TagHues[TagTaken];
     }
     else
     {
@@ -2352,34 +2513,34 @@ float TexturePaintPanel::RecordInlineLayerCard(const PlaneExtent& Extent,
     }
 
     const bool HeightOpen = Section(1u, "Height to Normal",
-                                    Applied.LayerHeightIntegrated[Ordinal] ? "Enabled" : "Off");
+                                    Applied.LayerHeightIntegrated[Index] ? "Enabled" : "Off");
     if (HeightOpen)
     {
         const PlaneExtent HeightToggle = Field();
         if (Recording)
             SharedControls.ToggleRow(NextInlineControl(), HeightToggle,
                                      ToggleDeclaration{ "Re-integrate height into normal" },
-                                     Applied.LayerHeightIntegrated[Ordinal]);
+                                     Applied.LayerHeightIntegrated[Index]);
 
         const PlaneExtent HeightMode = Field();
         if (Recording)
             SharedControls.SelectionField(NextInlineControl(), HeightMode,
                                           SelectionDeclaration{ "Blend Mode", HeightModes, 4u },
-                                          Applied.LayerHeightBlendTaken[Ordinal]);
+                                          Applied.LayerHeightBlendTaken[Index]);
     }
     else
     {
         SkipFields(2u);
     }
 
-    const bool EffectsOpen = Section(2u, "Effects", Effects[Applied.LayerEffectTaken[Ordinal] % 5u]);
+    const bool EffectsOpen = Section(2u, "Effects", Effects[Applied.LayerEffectTaken[Index] % 5u]);
     if (EffectsOpen)
     {
         const PlaneExtent EffectRow = Field();
         if (Recording)
             SharedControls.SelectionField(NextInlineControl(), EffectRow,
                                           SelectionDeclaration{ "Effect", Effects, 5u },
-                                          Applied.LayerEffectTaken[Ordinal]);
+                                          Applied.LayerEffectTaken[Index]);
     }
     else
     {
@@ -2387,7 +2548,7 @@ float TexturePaintPanel::RecordInlineLayerCard(const PlaneExtent& Extent,
     }
 
     const bool ColourOpen = Section(3u, "Colour Blending",
-                                    TextureBlendNames[Applied.LayerBlendTaken[Ordinal]
+                                    TextureBlendNames[Applied.LayerBlendTaken[Index]
                                                       % TextureBlendCount]);
     if (ColourOpen)
     {
@@ -2396,16 +2557,16 @@ float TexturePaintPanel::RecordInlineLayerCard(const PlaneExtent& Extent,
             SharedControls.SelectionField(NextInlineControl(), BlendRow,
                                           SelectionDeclaration{ "Blend", TextureBlendNames,
                                                                 TextureBlendCount },
-                                          Applied.LayerBlendTaken[Ordinal]);
+                                          Applied.LayerBlendTaken[Index]);
 
-        double Opacity = static_cast<double>(Applied.LayerOpacity[Ordinal]);
+        double Opacity = static_cast<double>(Applied.LayerOpacity[Index]);
         const PlaneExtent OpacityField = Field();
         if (Recording && SharedControls.MagnitudeRow(
                                  NextInlineControl(), OpacityField,
                                  MagnitudeDeclaration{ "Opacity", "%", 0.0, 100.0, 0u,
                                                        MagnitudeDeclaration::Arrange::Measured },
                                  Opacity).ReadingAltered)
-            Applied.LayerOpacity[Ordinal] = static_cast<std::uint32_t>(Opacity + 0.5);
+            Applied.LayerOpacity[Index] = static_cast<std::uint32_t>(Opacity + 0.5);
     }
     else
     {
@@ -2415,8 +2576,8 @@ float TexturePaintPanel::RecordInlineLayerCard(const PlaneExtent& Extent,
     char Active[20] = {};
     std::snprintf(Active, sizeof Active, "%u active", Current.ChannelCount);
     const bool ChannelsOpen = Section(4u, "Channel Blending", Active);
-    const std::uint32_t ChannelCount = Current.ChannelCount < TextureChannelCeiling
-                                     ? Current.ChannelCount : TextureChannelCeiling;
+    const std::uint32_t ChannelCount = Current.ChannelCount < TextureChannelLimit
+                                     ? Current.ChannelCount : TextureChannelLimit;
 
     if (ChannelsOpen)
     {
@@ -2429,16 +2590,16 @@ float TexturePaintPanel::RecordInlineLayerCard(const PlaneExtent& Extent,
                 SharedControls.SelectionField(NextInlineControl(), ChannelBlend,
                                               SelectionDeclaration{ Caption, TextureBlendNames,
                                                                     TextureBlendCount },
-                                              Applied.ChannelBlendTaken[Ordinal][Channel]);
+                                              Applied.ChannelBlendTaken[Index][Channel]);
 
-            double Amount = static_cast<double>(Applied.ChannelAmount[Ordinal][Channel]);
+            double Amount = static_cast<double>(Applied.ChannelAmount[Index][Channel]);
             const PlaneExtent ChannelAmount = Field();
             if (Recording && SharedControls.MagnitudeRow(
                                      NextInlineControl(), ChannelAmount,
                                      MagnitudeDeclaration{ "Opacity", "%", 0.0, 100.0, 0u,
                                                            MagnitudeDeclaration::Arrange::Measured },
                                      Amount).ReadingAltered)
-                Applied.ChannelAmount[Ordinal][Channel] = static_cast<std::uint32_t>(Amount + 0.5);
+                Applied.ChannelAmount[Index][Channel] = static_cast<std::uint32_t>(Amount + 0.5);
         }
     }
     else
@@ -2452,12 +2613,12 @@ float TexturePaintPanel::RecordInlineLayerCard(const PlaneExtent& Extent,
 
 void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContext& Applied,
                                       const TextureLayerRow* Rows, std::uint32_t RowCount,
-                                      const TextureLayerRow& Current, std::uint32_t Ordinal)
+                                      const TextureLayerRow& Current, std::uint32_t Index)
 {
-    const bool Taken   = Applied.LayerTaken == Ordinal && Applied.MaskTaken;
+    const bool Taken   = Applied.LayerTaken == Index && Applied.MaskTaken;
     const bool Hovered = Row.Encloses(Sampled.PositionX, Sampled.PositionY);
-    const bool Absent  = !Applied.MaskVisible[Ordinal];
-    const bool SoloDim = !RowInSolo(Applied, Rows, RowCount, Ordinal);
+    const bool Absent  = !Applied.MaskVisible[Index];
+    const bool SoloDim = !RowInSolo(Applied, Rows, RowCount, Index);
 
     const float Coverage = (Absent ? 0.34f : 1.0f) * (SoloDim ? 0.30f : 1.0f);
 
@@ -2467,8 +2628,8 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
     //    belongs to exactly one layer, and the only thing on the row that said so was
     //    the 3 px rail. All of it carries the owning layer's hue now, so an Edge Wear
     //    mask is Edge Wear's colour on every stroke that outlines it.
-    const std::uint32_t OwnerHue = Applied.LayerTagHue[Ordinal] != 0u
-                                 ? Applied.LayerTagHue[Ordinal] : Current.TagHue;
+    const std::uint32_t OwnerHue = Applied.LayerTagHue[Index] != 0u
+                                 ? Applied.LayerTagHue[Index] : Current.TagHue;
     const ThemeToken    Owner    = Covering(OwnerHue);
 
     // 📐 ONE dash rhythm for the whole OUTLINE. The border ran 10 px on / 4 px off —
@@ -2588,24 +2749,24 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
     const bool OnDetails = Details.Encloses(Sampled.PositionX, Sampled.PositionY);
     const bool OnMore    = More.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Sampled.ContactPressed && Hovered && !Ledger->AnyDisclosed())
+    if (Sampled.ContactPressed && Hovered && !Interaction->AnyDisclosed())
     {
         if (OnEye)
-            Ledger->Grab(MaskEyes[Ordinal], ControlPart::Body);
+            Interaction->Grab(MaskEyes[Index], ControlPart::Body);
         else if (OnDetails)
-            Ledger->Grab(MaskDetails[Ordinal], ControlPart::Body);
+            Interaction->Grab(MaskDetails[Index], ControlPart::Body);
         else if (OnMore)
-            Ledger->Grab(MaskMores[Ordinal], ControlPart::Body);
+            Interaction->Grab(MaskMores[Index], ControlPart::Body);
         else
-            Ledger->Grab(MaskContacts[Ordinal], ControlPart::Body);
+            Interaction->Grab(MaskContacts[Index], ControlPart::Body);
     }
 
-    if (OnEye && Ledger->Released(MaskEyes[Ordinal]))
-        Applied.MaskVisible[Ordinal] = !Applied.MaskVisible[Ordinal];
+    if (OnEye && Interaction->Released(MaskEyes[Index]))
+        Applied.MaskVisible[Index] = !Applied.MaskVisible[Index];
 
-    if (OnDetails && Ledger->Released(MaskDetails[Ordinal]))
+    if (OnDetails && Interaction->Released(MaskDetails[Index]))
     {
-        Applied.LayerTaken  = Ordinal;
+        Applied.LayerTaken  = Index;
         Applied.MaskTaken   = true;
         Applied.StackPage   = 1u;
         Applied.PropertyTab = 1u;
@@ -2613,29 +2774,29 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
 
     if (Sampled.ContactDoublePressed && Hovered && !OnEye && !OnDetails && !OnMore)
     {
-        Applied.LayerTaken = Ordinal;
+        Applied.LayerTaken = Index;
         Applied.MaskTaken = true;
         Applied.StackPage = 1u;
         Applied.PropertyTab = 1u;
     }
 
-    if (OnMore && Ledger->Released(MaskMores[Ordinal]))
+    if (OnMore && Interaction->Released(MaskMores[Index]))
     {
-        Applied.LayerTaken = Ordinal;
+        Applied.LayerTaken = Index;
         Applied.MaskTaken  = true;
         Applied.MenuOpen   = 3u;
-        Applied.MenuRow    = Ordinal;
-        Ledger->Disclose(MenuMask);
+        Applied.MenuRow    = Index;
+        Interaction->Disclose(MenuMask);
         MenuAnchorExtent = More;
     }
 
-    if (Hovered && !OnEye && !OnDetails && !OnMore && Ledger->Released(MaskContacts[Ordinal]))
+    if (Hovered && !OnEye && !OnDetails && !OnMore && Interaction->Released(MaskContacts[Index]))
     {
-        Applied.LayerTaken = Ordinal;
+        Applied.LayerTaken = Index;
         Applied.MaskTaken  = true;
     }
 
-    Ledger->DeclareHovered(MaskContacts[Ordinal], Hovered, HoverOver);
+    Interaction->DeclareHovered(MaskContacts[Index], Hovered, HoverOver);
 
     if (OnEye)
         Surface->Ground(Eye, Faded(Covering(0xFFFFFFu), 0.08f), 3.0f, CornerAll);
@@ -2668,7 +2829,7 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
     // 📐 The name and the sub run.
     const float NamingRun = Scaled.RunSmall;
     const float NamingTop = Row.MinimumY + (Row.Height() * 0.5f - NamingRun * 1.3f) * 0.5f;
-    const float NamingCeiling = Details.MinimumX - Scaled.PanePad;
+    const float NamingLimit = Details.MinimumX - Scaled.PanePad;
 
     // 📝 The mask is an entry name, not an acronym. Natural title case and ordinary tracking keep it
     //    legible beside the compact uppercase capability chips.
@@ -2678,22 +2839,22 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
 
     const char* Source = Current.Source[0] != '\0'
                        ? Current.Source
-                       : TextureMaskSourceNames[Applied.MaskSourceTaken[Ordinal] % 5u];
+                       : TextureMaskSourceNames[Applied.MaskSourceTaken[Index] % 5u];
 
     char Sub[64] = {};
     std::snprintf(Sub, sizeof(Sub), "%s \u00B7 Gray 8 \u00B7 %u%%%s",
-                  Source, Applied.MaskDensity[Ordinal],
-                  Applied.MaskInverted[Ordinal] ? " \u00B7 INV" : "");
+                  Source, Applied.MaskDensity[Index],
+                  Applied.MaskInverted[Index] ? " \u00B7 INV" : "");
 
-    Surface->TextRunTruncated(MetaLead, NamingTop + NamingRun * 1.3f, NamingCeiling,
+    Surface->TextRunTruncated(MetaLead, NamingTop + NamingRun * 1.3f, NamingLimit,
                               Faded(Tinted.Faint, Coverage), Sub, Scaled.RunFine);
 
     // 📐 The chips: CH, FX.
-    float ChipX = NamingCeiling;
+    float ChipX = NamingLimit;
     const float ChipRun = Scaled.RunFiner;
     const float ChipH = Scaled.LayerChipY;
 
-    if (Current.ChannelCount > 0u && Current.ChannelCount < TextureChannelCeiling)
+    if (Current.ChannelCount > 0u && Current.ChannelCount < TextureChannelLimit)
     {
         char Chip[12] = {};
         std::snprintf(Chip, sizeof(Chip), "%u CH", Current.ChannelCount);
@@ -2766,10 +2927,10 @@ void TexturePaintPanel::RecordBarButton(ControlIdentity Target, const PlaneExten
                              Cell.MinimumY + (Cell.Height() - Figure) * 0.5f, Figure, Figure),
                     Faded(Hovered ? Tinted.Primary : Covering(0x9A9A9Au), Coverage));
 
-    if (Sampled.ContactPressed && Hovered && !Dimmed && !Ledger->AnyDisclosed())
-        Ledger->Grab(Target, ControlPart::Body);
+    if (Sampled.ContactPressed && Hovered && !Dimmed && !Interaction->AnyDisclosed())
+        Interaction->Grab(Target, ControlPart::Body);
 
-    if (Hovered && !Dimmed && Ledger->Released(Target))
+    if (Hovered && !Dimmed && Interaction->Released(Target))
         Applied.Structural = Request;
 }
 
@@ -2795,11 +2956,11 @@ void TexturePaintPanel::RecordStackFooter(const PlaneExtent& Footer, TexturePain
     {
         // 📐 The path: the ancestors' names, then the taken name — the reference's `ancestors().map`.
         char Path[128] = {};
-        std::uint32_t Steps[TextureLayerCeiling] = {};
+        std::uint32_t Steps[TextureLayerLimit] = {};
         std::uint32_t StepCount = 0u;
         std::uint32_t Walking = Rows[Taken].Enclosing;
 
-        while (Walking < RowCount && StepCount + 1u < TextureLayerCeiling)
+        while (Walking < RowCount && StepCount + 1u < TextureLayerLimit)
         {
             Steps[StepCount++] = Walking;
             Walking = Rows[Walking].Enclosing;
@@ -2865,14 +3026,14 @@ void TexturePaintPanel::RecordStackFooter(const PlaneExtent& Footer, TexturePain
     if (!BlendDim)
     {
         if (Sampled.ContactPressed && Pill.Encloses(Sampled.PositionX, Sampled.PositionY) &&
-            !Ledger->AnyDisclosed())
+            !Interaction->AnyDisclosed())
         {
-            Ledger->Grab(BlendField, ControlPart::Body);
+            Interaction->Grab(BlendField, ControlPart::Body);
         }
 
-        if (Pill.Encloses(Sampled.PositionX, Sampled.PositionY) && Ledger->Released(BlendField))
+        if (Pill.Encloses(Sampled.PositionX, Sampled.PositionY) && Interaction->Released(BlendField))
         {
-            Ledger->Disclose(MenuBlend);
+            Interaction->Disclose(MenuBlend);
             Applied.MenuOpen = 4u;
             MenuAnchorExtent = Pill;
         }
@@ -2949,12 +3110,12 @@ void TexturePaintPanel::RecordStackFooter(const PlaneExtent& Footer, TexturePain
                                  AddFigure, AddFigure),
                         OnAdd ? Tinted.Primary : Covering(0x9A9A9Au));
 
-        if (Sampled.ContactPressed && OnAdd && !Ledger->AnyDisclosed())
-            Ledger->Grab(HeaderAdd, ControlPart::Body);
+        if (Sampled.ContactPressed && OnAdd && !Interaction->AnyDisclosed())
+            Interaction->Grab(HeaderAdd, ControlPart::Body);
 
-        if (OnAdd && Ledger->Released(HeaderAdd))
+        if (OnAdd && Interaction->Released(HeaderAdd))
         {
-            Ledger->Disclose(MenuAdd);
+            Interaction->Disclose(MenuAdd);
             Applied.MenuOpen = 1u;
             MenuAnchorExtent = AddCell;
         }
@@ -2997,11 +3158,11 @@ void TexturePaintPanel::RecordStackFooter(const PlaneExtent& Footer, TexturePain
         { SymbolSubject::TrashBin,          static_cast<std::uint32_t>(TexturePaintRequest::Delete),        false }
     };
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 6u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 6u; ++Index)
     {
         // 📐 One separator before the reorder pair and one before the bin, so the
         //    bar reads as three groups: shape it, move it, remove it.
-        if (Ordinal == 3u || Ordinal == 5u)
+        if (Index == 3u || Index == 5u)
         {
             Surface->Ground(Spanning(Lead + 5.0f, VSepY, 1.0f, 17.0f),
                             Tinted.Hairline, 0.0f, CornerNone);
@@ -3013,7 +3174,7 @@ void TexturePaintPanel::RecordStackFooter(const PlaneExtent& Footer, TexturePain
         if (BarCellTally < 13u)
             BarCells[BarCellTally++] = Cell;
 
-        if (Ordinal == 2u)
+        if (Index == 2u)
         {
             // 📐 The lock toggles the taken row's lock — a working copy, never a structural request.
             const bool Locked = Selection && Applied.LayerLocked[Taken];
@@ -3031,16 +3192,16 @@ void TexturePaintPanel::RecordStackFooter(const PlaneExtent& Footer, TexturePain
                             Faded(Hovered ? Tinted.Primary : Covering(0x9A9A9Au),
                                   Selection ? 1.0f : 0.25f));
 
-            if (Sampled.ContactPressed && Hovered && Selection && !Ledger->AnyDisclosed())
-                Ledger->Grab(BarButtons[Ordinal], ControlPart::Body);
+            if (Sampled.ContactPressed && Hovered && Selection && !Interaction->AnyDisclosed())
+                Interaction->Grab(BarButtons[Index], ControlPart::Body);
 
-            if (Hovered && Selection && Ledger->Released(BarButtons[Ordinal]))
+            if (Hovered && Selection && Interaction->Released(BarButtons[Index]))
                 Applied.LayerLocked[Taken] = !Applied.LayerLocked[Taken];
         }
         else
         {
-            RecordBarButton(BarButtons[Ordinal], Cell, Bar[Ordinal].Glyph, Applied,
-                            Bar[Ordinal].Request, !Bar[Ordinal].Always && !Selection);
+            RecordBarButton(BarButtons[Index], Cell, Bar[Index].Glyph, Applied,
+                            Bar[Index].Request, !Bar[Index].Always && !Selection);
         }
 
         Lead += ButtonY + 5.0f;
@@ -3050,20 +3211,30 @@ void TexturePaintPanel::RecordStackFooter(const PlaneExtent& Footer, TexturePain
 void TexturePaintPanel::RecordMenu(const PlaneExtent& Extent, TexturePaintContext& Applied,
                                    const TextureLayerRow* Rows, std::uint32_t RowCount)
 {
-    const std::uint32_t Open = Applied.MenuOpen;
+    if (Applied.MenuOpen != 0u)
+        MenuPresented = Applied.MenuOpen;
+
+    const std::uint32_t Open = MenuPresented;
 
     if (Open == 0u)
         return;
 
-    // 📐 The menu stands only while its disclosure stands — a dropdown opening elsewhere withdraws it.
-    const bool Disclosed = (Open == 1u && Ledger->Disclosed(MenuAdd)) ||
-                           (Open == 2u && Ledger->Disclosed(MenuLayer)) ||
-                           (Open == 3u && Ledger->Disclosed(MenuMask)) ||
-                           (Open == 4u && Ledger->Disclosed(MenuBlend));
+    ControlIdentity MenuTarget = (Open == 1u) ? MenuAdd
+                               : (Open == 2u) ? MenuLayer
+                               : (Open == 3u) ? MenuMask : MenuBlend;
+
+    // 📐 A menu remains presented while its taken fade returns to zero. This is what gives closing the
+    //    same visible travel as opening instead of deleting the card on the withdrawal tick.
+    const bool Disclosed = Applied.MenuOpen == Open && Interaction->Disclosed(MenuTarget);
+    Interaction->DeclareTaken(MenuTarget, Disclosed, 160.0, EaseCurve::CssEase);
+    const float Disclosure = Interaction->TakenFraction(MenuTarget);
 
     if (!Disclosed)
-    {
         Applied.MenuOpen = 0u;
+
+    if (Disclosure <= 0.0f)
+    {
+        MenuPresented = 0u;
         return;
     }
 
@@ -3176,29 +3347,33 @@ void TexturePaintPanel::RecordMenu(const PlaneExtent& Extent, TexturePaintContex
                       + (Open == 2u ? (RowY + 6.0f) : 0.0f);
 
     float CardX = MenuAnchorExtent.MaximumX - CardW;
+    bool OpensAbove = false;
 
     if (CardY + CardH > Extent.MaximumY - 6.0f)
+    {
         CardY = MenuAnchorExtent.MinimumY - CardH - 6.0f;
+        OpensAbove = true;
+    }
 
     CardX = Held(CardX, Extent.MinimumX + 6.0f, Extent.MaximumX - CardW - 6.0f);
 
     const PlaneExtent Card = Spanning(CardX, CardY, CardW, CardH);
+    const float RevealedHeight = Card.Height() * Disclosure;
+    const PlaneExtent Revealed = OpensAbove
+        ? PlaneExtent{ Card.MinimumX, Card.MaximumY - RevealedHeight, Card.MaximumX, Card.MaximumY }
+        : PlaneExtent{ Card.MinimumX, Card.MinimumY, Card.MaximumX, Card.MinimumY + RevealedHeight };
 
     // 📐 A contact that arrived outside the card and its anchor withdraws the menu.
     if (Sampled.ContactPressed && !Card.Encloses(Sampled.PositionX, Sampled.PositionY) &&
         !MenuAnchorExtent.Encloses(Sampled.PositionX, Sampled.PositionY))
     {
         Applied.MenuOpen = 0u;
-
-        if (Open == 1u) Ledger->Withdraw();
-        if (Open == 2u) Ledger->Withdraw();
-        if (Open == 3u) Ledger->Withdraw();
-        if (Open == 4u) Ledger->Withdraw();
-        return;
+        Interaction->Withdraw();
     }
 
-    Surface->Ground(Card, Covering(0x0B0B0Bu), 16.0f, CornerAll);
-    Surface->Edge(Card, Faded(Covering(0xFFFFFFu), 0.18f), 1.0f, 16.0f, CornerAll);
+    Surface->Ground(Revealed, Covering(0x0B0B0Bu), 16.0f, CornerAll);
+    Surface->Edge(Revealed, Faded(Covering(0xFFFFFFu), 0.18f), 1.0f, 16.0f, CornerAll);
+    Surface->Confine(Revealed);
 
     Surface->TextRunCapitalised(Card.MinimumX + 10.0f, Card.MinimumY + 9.0f,
                                 Tinted.Faint, Title, Scaled.RunFiner, 1.0f, true);
@@ -3207,14 +3382,14 @@ void TexturePaintPanel::RecordMenu(const PlaneExtent& Extent, TexturePaintContex
     std::uint32_t WritesLocal[TextureBlendCount] = {};
 
     RecordMenuOptions(Card, Captions, Glyphs, OptionCount, Shortcuts, Identities,
-                      Applied, WritesLocal);
+                      Applied, WritesLocal, Disclosed);
 
     if (Open == 1u)
     {
-        for (std::uint32_t Ordinal = 0u; Ordinal < OptionCount; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < OptionCount; ++Index)
         {
-            if (WritesLocal[Ordinal] != 0u)
-                Applied.Structural = static_cast<std::uint32_t>(TexturePaintRequest::AddPaint) + Ordinal;
+            if (WritesLocal[Index] != 0u)
+                Applied.Structural = static_cast<std::uint32_t>(TexturePaintRequest::AddPaint) + Index;
         }
     }
     else if (Open == 2u)
@@ -3271,10 +3446,10 @@ void TexturePaintPanel::RecordMenu(const PlaneExtent& Extent, TexturePaintContex
     }
     else if (Open == 4u)
     {
-        for (std::uint32_t Ordinal = 0u; Ordinal < OptionCount; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < OptionCount; ++Index)
         {
-            if (WritesLocal[Ordinal] != 0u && Applied.LayerTaken < RowCount)
-                Applied.LayerBlendTaken[Applied.LayerTaken] = Ordinal;
+            if (WritesLocal[Index] != 0u && Applied.LayerTaken < RowCount)
+                Applied.LayerBlendTaken[Applied.LayerTaken] = Index;
         }
 
         // 📐 The taken blend's check — the reference's check mark on the standing option.
@@ -3300,32 +3475,34 @@ void TexturePaintPanel::RecordMenu(const PlaneExtent& Extent, TexturePaintContex
         const float Swatch = 18.0f;
         const float Gap = (CardW - Pad * 2.0f - Swatch * 10.0f) / 9.0f;
 
-        for (std::uint32_t SwatchOrdinal = 0u; SwatchOrdinal < TexturePaintContext::TextureSwatchCount;
-             ++SwatchOrdinal)
+        for (std::uint32_t SwatchIndex = 0u; SwatchIndex < TexturePaintContext::TextureSwatchCount;
+             ++SwatchIndex)
         {
-            const float X = Card.MinimumX + Pad + static_cast<float>(SwatchOrdinal) * (Swatch + Gap);
+            const float X = Card.MinimumX + Pad + static_cast<float>(SwatchIndex) * (Swatch + Gap);
             const PlaneExtent Cell = Spanning(X, SwatchY, Swatch, Swatch);
 
-            const bool On = Applied.LayerTagHue[Applied.MenuRow] == SwatchColours[SwatchOrdinal];
+            const bool On = Applied.LayerTagHue[Applied.MenuRow] == SwatchColours[SwatchIndex];
 
-            Surface->Ground(Cell, Covering(SwatchColours[SwatchOrdinal]),
+            Surface->Ground(Cell, Covering(SwatchColours[SwatchIndex]),
                             Swatch * 0.5f, CornerAll);
             Surface->Edge(Cell, Faded(Covering(0xFFFFFFu), On ? 1.0f : 0.16f), On ? 2.0f : 1.0f,
                           Swatch * 0.5f, CornerAll);
 
             const bool Hovered = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-            if (Hovered && Sampled.ContactPressed)
-                Ledger->Grab(SwatchIdentities[SwatchOrdinal], ControlPart::Body);
+            if (Disclosed && Hovered && Sampled.ContactPressed)
+                Interaction->Grab(SwatchIdentities[SwatchIndex], ControlPart::Body);
 
-            if (Hovered && Ledger->Released(SwatchIdentities[SwatchOrdinal]))
+            if (Disclosed && Hovered && Interaction->Released(SwatchIdentities[SwatchIndex]))
             {
-                Applied.LayerTagHue[Applied.MenuRow] = SwatchColours[SwatchOrdinal];
+                Applied.LayerTagHue[Applied.MenuRow] = SwatchColours[SwatchIndex];
                 Applied.MenuOpen = 0u;
-                Ledger->Withdraw();
+                Interaction->Withdraw();
             }
         }
     }
+
+    Surface->Release();
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -3441,7 +3618,7 @@ void TexturePaintPanel::RecordPropertiesPage(const PlaneExtent& Extent, TextureP
 //------------------------------------------------------------------------------------------------------------------------
 
 void TexturePaintPanel::RecordChannelCard(const PlaneExtent& Extent, TexturePaintContext& Applied,
-                                          const TextureLayerRow& Current)
+                                          const TextureLayerRow& /*Current*/)
 {
     const float Pad = Scaled.PanePad;
 
@@ -3462,7 +3639,7 @@ void TexturePaintPanel::RecordChannelCard(const PlaneExtent& Extent, TexturePain
     const FacetDeclaration ChannelFacetCard =
     {
         "Channels", ChannelFacetOptions(), ChannelFacetColours(),
-        TextureChannelCeiling, 0u
+        TextureChannelLimit, 0u
     };
 
     bool* const Enabled = Applied.ChannelOn[Applied.LayerTaken];
@@ -3492,7 +3669,7 @@ void TexturePaintPanel::RecordChannelCard(const PlaneExtent& Extent, TexturePain
     //    travel. Fourteen unfolded channel cards stand far past any editor leaf.
     float Content = 0.0f;
 
-    for (std::uint32_t Channel = 0u; Channel < TextureChannelCeiling; ++Channel)
+    for (std::uint32_t Channel = 0u; Channel < TextureChannelLimit; ++Channel)
     {
         if (!Enabled[Channel])
             continue;
@@ -3500,7 +3677,7 @@ void TexturePaintPanel::RecordChannelCard(const PlaneExtent& Extent, TexturePain
         if (Filtering && !RunHolds(TextureChannelText(Channel), Applied.Retention))
             continue;
 
-        const float Opened = Ledger->TakenFraction(ChannelFolds[Channel]);
+        const float Opened = Interaction->TakenFraction(ChannelFolds[Channel]);
 
         Content += Scaled.LayerHeadHeight * 0.82f
                  + ChannelBodyHeight(Applied, Channel) * Opened
@@ -3512,7 +3689,7 @@ void TexturePaintPanel::RecordChannelCard(const PlaneExtent& Extent, TexturePain
 
     float Sweep = Body.MinimumY - Rolled;
 
-    for (std::uint32_t Channel = 0u; Channel < TextureChannelCeiling; ++Channel)
+    for (std::uint32_t Channel = 0u; Channel < TextureChannelLimit; ++Channel)
     {
         const char* Name = TextureChannelText(Channel);
 
@@ -3600,10 +3777,10 @@ void TexturePaintPanel::RecordChannelRow(const PlaneExtent& Row, TexturePaintCon
 
     const bool OnFold = Fold.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Sampled.ContactPressed && OnFold && !Ledger->AnyDisclosed())
-        Ledger->Grab(ChannelFolds[Channel], ControlPart::Chevron);
+    if (Sampled.ContactPressed && OnFold && !Interaction->AnyDisclosed())
+        Interaction->Grab(ChannelFolds[Channel], ControlPart::Chevron);
 
-    if (OnFold && Ledger->Released(ChannelFolds[Channel]))
+    if (OnFold && Interaction->Released(ChannelFolds[Channel]))
         Applied.ChannelFolded[Channel] = !Folded;
 
     Surface->Stroke(Folded ? SymbolSubject::ChevronRight : SymbolSubject::ChevronDown,
@@ -3612,7 +3789,7 @@ void TexturePaintPanel::RecordChannelRow(const PlaneExtent& Row, TexturePaintCon
     // 📐 `.ch-dot`: the classification dot shrinks and dims while folded —
     //    `transform:scale(.72);opacity:.5`. It rides the same fold fraction the
     //    body does, so head and body settle together rather than one snapping.
-    const float Opened = Ledger->TakenFraction(ChannelFolds[Channel]);
+    const float Opened = Interaction->TakenFraction(ChannelFolds[Channel]);
     const float Swatch = 9.0f * (0.72f + 0.28f * Opened);
 
     Surface->Medallion(Fold.MaximumX + Scaled.PanePad + 4.5f,
@@ -3799,9 +3976,14 @@ float TexturePaintPanel::AdvanceListScroll(float& Shown, float& Wanted, float Co
         return 0.0f;
     }
 
-    if (Over.Encloses(Sampled.PositionX, Sampled.PositionY) && Sampled.WheelY != 0.0f &&
-        !Ledger->AnyDisclosed())
+    if (Over.Encloses(Sampled.PositionX, Sampled.PositionY) && Sampled.WheelY != 0.0f)
     {
+        // 🔴 A disclosure owned by a panel that previously occupied this leaf can survive the subject
+        //    change because all editor panels share the interaction index. Treating ANY disclosure as a
+        //    reason to reject the wheel therefore made the Layer Stack permanently unscrollable after a
+        //    visit to the viewport or Scene Directory. A wheel over this list owns the gesture: it closes
+        //    whichever transient popup remains and scrolls the visible list in the same tick.
+        Interaction->Withdraw();
         Wanted -= Sampled.WheelY * 56.0f;
     }
 
@@ -3871,14 +4053,14 @@ bool TexturePaintPanel::RecordIconAction(ControlIdentity Target, const PlaneExte
 {
     const bool Over = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Sampled.ContactPressed && Over && !Ledger->AnyDisclosed())
-        Ledger->Grab(Target, ControlPart::Body);
+    if (Sampled.ContactPressed && Over && !Interaction->AnyDisclosed())
+        Interaction->Grab(Target, ControlPart::Body);
 
-    const bool Fired = Over && Ledger->Released(Target);
+    const bool Fired = Over && Interaction->Released(Target);
 
-    Ledger->DeclareHovered(Target, Over, HoverOver);
+    Interaction->DeclareHovered(Target, Over, HoverOver);
 
-    const float Lit = Ledger->HoveredFraction(Target);
+    const float Lit = Interaction->HoveredFraction(Target);
     const ThemeToken Danger = Covering(0xE05A5Au);
 
     Surface->Ground(Cell, Blend(Tinted.MenuLower,
@@ -4041,15 +4223,15 @@ float TexturePaintPanel::RecordGeneratorBody(const PlaneExtent& Extent, TextureP
 
     float Sweep = Extent.MinimumY;
 
-    static const char* Options[TextureGeneratorCeiling + 1u] = {};
+    static const char* Options[TextureGeneratorLimit + 1u] = {};
     Options[0] = "Choose generator";
-    for (std::uint32_t Each = 0u; Each < TextureGeneratorCeiling; ++Each)
+    for (std::uint32_t Each = 0u; Each < TextureGeneratorLimit; ++Each)
         Options[Each + 1u] = TextureGeneratorAt(Each).Label;
 
     SelectionDeclaration Picker;
     Picker.Caption       = "Generator";
     Picker.Options       = Options;
-    Picker.OptionCount   = TextureGeneratorCeiling + 1u;
+    Picker.OptionCount   = TextureGeneratorLimit + 1u;
 
     const std::uint32_t Standing = Applied.ChannelGenerator[Layer][Channel];
     std::uint32_t Taken = (Standing == TexturePaintContext::AbsentGenerator)
@@ -4189,7 +4371,7 @@ float TexturePaintPanel::RecordChannelBody(const PlaneExtent& Extent, TexturePai
     const PlaneExtent Segment = Spanning(Extent.MinimumX, Sweep, Extent.Width(),
                                          RowY - Scaled.PanePad * 0.5f);
 
-    if (Controls.SegmentedChoice(ChannelBlends[Channel], Segment, Modes, Mode).ReadingAltered)
+    if (Controls.SegmentedSelection(ChannelBlends[Channel], Segment, Modes, Mode).ReadingAltered)
         Applied.ChannelMode[Layer][Channel] = Mode;
 
     Sweep += RowY;
@@ -4341,7 +4523,7 @@ void TexturePaintPanel::RecordMaskCard(const PlaneExtent& Extent, TexturePaintCo
 
         std::uint32_t Taken = Applied.MaskSourceTaken[Layer] % 5u;
 
-        if (Controls.SegmentedChoice(MaskRows[5],
+        if (Controls.SegmentedSelection(MaskRows[5],
                                      Spanning(Card.MinimumX, Card.MinimumY, Card.Width(),
                                               RowY - Pad * 0.5f),
                                      Sources, Taken).ReadingAltered)
@@ -4356,7 +4538,7 @@ void TexturePaintPanel::RecordMaskCard(const PlaneExtent& Extent, TexturePaintCo
     if ((Applied.MaskSourceTaken[Layer] % 5u) == 4u)
     {
         const std::uint32_t Standing = Applied.MaskGenerator[Layer];
-        const bool Chosen = Standing < TextureGeneratorCeiling;
+        const bool Chosen = Standing < TextureGeneratorLimit;
         const std::uint32_t Knobs = Chosen ? TextureGeneratorAt(Standing).ParamCount : 0u;
 
         const float Inner = RowY + (Chosen ? (20.0f + Pad * 0.5f + RowY * float(Knobs)) : 0.0f);
@@ -4364,15 +4546,15 @@ void TexturePaintPanel::RecordMaskCard(const PlaneExtent& Extent, TexturePaintCo
                                                             Body.Width(), 0.0f),
                                                    "Procedural generator", Inner);
 
-        static const char* Options[TextureGeneratorCeiling + 1u] = {};
+        static const char* Options[TextureGeneratorLimit + 1u] = {};
         Options[0] = "Choose generator";
-        for (std::uint32_t Each = 0u; Each < TextureGeneratorCeiling; ++Each)
+        for (std::uint32_t Each = 0u; Each < TextureGeneratorLimit; ++Each)
             Options[Each + 1u] = TextureGeneratorAt(Each).Label;
 
         SelectionDeclaration Preset;
         Preset.Caption     = "Preset";
         Preset.Options     = Options;
-        Preset.OptionCount = TextureGeneratorCeiling + 1u;
+        Preset.OptionCount = TextureGeneratorLimit + 1u;
 
         std::uint32_t Taken = Chosen ? (Standing + 1u) : 0u;
 
@@ -4454,7 +4636,7 @@ void TexturePaintPanel::RecordMaskCard(const PlaneExtent& Extent, TexturePaintCo
         const FacetDeclaration Targets =
         {
             "Applies to channels", ChannelFacetOptions(), ChannelFacetColours(),
-            TextureChannelCeiling, 0xFFFFFFFFu
+            TextureChannelLimit, 0xFFFFFFFFu
         };
 
         bool* const Marks = Applied.MaskChannel[Layer];
@@ -4512,7 +4694,7 @@ void TexturePaintPanel::RecordSettingsCard(const PlaneExtent& Extent, TexturePai
         "Resolution"
     };
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 4u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 4u; ++Index)
     {
         const PlaneExtent Row = Spanning(Extent.MinimumX + Pad, Sweep,
                                          Extent.Width() - Pad * 2.0f, RowY);
@@ -4524,18 +4706,18 @@ void TexturePaintPanel::RecordSettingsCard(const PlaneExtent& Extent, TexturePai
         //    row's horizontal band seized the slider. The shared row, in the same
         //    Measured arrangement the sun rows and the footer opacity now spend.
         MagnitudeDeclaration Declared;
-        Declared.Caption   = Labels[Ordinal];
+        Declared.Caption   = Labels[Index];
         Declared.UnitGlyph = "";
         Declared.Minimum   = 0.0;
         Declared.Maximum   = 100.0;
         Declared.Layout    = MagnitudeDeclaration::Arrange::Measured;
 
-        double Reading = static_cast<double>(Applied.SettingAmount[Applied.LayerTaken][Ordinal]);
+        double Reading = static_cast<double>(Applied.SettingAmount[Applied.LayerTaken][Index]);
 
-        if (SharedControls.MagnitudeRow(SettingRows[Ordinal], Row, Declared, Reading,
+        if (SharedControls.MagnitudeRow(SettingRows[Index], Row, Declared, Reading,
                                         false).ReadingAltered)
         {
-            Applied.SettingAmount[Applied.LayerTaken][Ordinal] =
+            Applied.SettingAmount[Applied.LayerTaken][Index] =
                 static_cast<std::uint32_t>(Reading + 0.5);
         }
 
@@ -4584,7 +4766,7 @@ void TexturePaintPanel::RecordDecalCard(const PlaneExtent& Extent, TexturePaintC
     //    rather than to zero, which would collapse it to nothing on first sight.
     if (!Applied.DecalSeeded)
     {
-        for (std::uint32_t Each = 0u; Each < TextureLayerCeiling; ++Each)
+        for (std::uint32_t Each = 0u; Each < TextureLayerLimit; ++Each)
         {
             Applied.DecalPosition[Each][0]  = 0.5;
             Applied.DecalPosition[Each][1]  = 0.5;
@@ -4621,7 +4803,7 @@ void TexturePaintPanel::RecordDecalCard(const PlaneExtent& Extent, TexturePaintC
         std::uint32_t Taken = Applied.DecalProjection[Layer] % 3u;
         float Inside = Card.MinimumY;
 
-        if (Controls.SegmentedChoice(DecalRows[0],
+        if (Controls.SegmentedSelection(DecalRows[0],
                                      Spanning(Card.MinimumX, Inside, Card.Width(), RowY - Pad * 0.5f),
                                      Cast, Taken).ReadingAltered)
         {
@@ -4876,21 +5058,21 @@ void TexturePaintPanel::RecordFolderCard(const PlaneExtent& Extent, TexturePaint
     const TextureLayerRow& Folder = Rows[Layer];
 
     // ① Walk the subtree once, gathering per-channel coverage and contributors.
-    float         Coverage[TextureChannelCeiling] = {};
-    std::uint32_t Contributors[TextureChannelCeiling] = {};
+    float         Coverage[TextureChannelLimit] = {};
+    std::uint32_t Contributors[TextureChannelLimit] = {};
     std::uint32_t Layers = 0u;
     std::uint32_t Masks  = 0u;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < RowCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < RowCount; ++Index)
     {
-        if (Ordinal == Layer)
+        if (Index == Layer)
             continue;
 
-        bool Inside = Rows[Ordinal].Enclosing == Layer;
+        bool Inside = Rows[Index].Enclosing == Layer;
 
         if (!Inside)
         {
-            std::uint32_t Walking = Rows[Ordinal].Enclosing;
+            std::uint32_t Walking = Rows[Index].Enclosing;
 
             while (Walking < RowCount)
             {
@@ -4905,12 +5087,12 @@ void TexturePaintPanel::RecordFolderCard(const PlaneExtent& Extent, TexturePaint
 
         ++Layers;
 
-        if (Applied.MaskAttached[Ordinal])
+        if (Applied.MaskAttached[Index])
             ++Masks;
 
-        for (std::uint32_t Channel = 0u; Channel < TextureChannelCeiling; ++Channel)
+        for (std::uint32_t Channel = 0u; Channel < TextureChannelLimit; ++Channel)
         {
-            if (!Applied.ChannelOn[Ordinal][Channel])
+            if (!Applied.ChannelOn[Index][Channel])
                 continue;
 
             ++Contributors[Channel];
@@ -4920,8 +5102,8 @@ void TexturePaintPanel::RecordFolderCard(const PlaneExtent& Extent, TexturePaint
             //    it belongs in a texel measure.
             float Share = 1.0f;
 
-            if (Applied.MaskAttached[Ordinal])
-                Share *= static_cast<float>(Applied.MaskDensity[Ordinal]) / 100.0f;
+            if (Applied.MaskAttached[Index])
+                Share *= static_cast<float>(Applied.MaskDensity[Index]) / 100.0f;
 
             // 📐 Coverage composites as union, not as a sum: two layers each
             //    covering 60% of a channel cover 84% of it together, never 120%.
@@ -4939,7 +5121,7 @@ void TexturePaintPanel::RecordFolderCard(const PlaneExtent& Extent, TexturePaint
     // ② COMBINED CHANNEL COVERAGE — one bar per channel any content writes.
     {
         std::uint32_t Present = 0u;
-        for (std::uint32_t Channel = 0u; Channel < TextureChannelCeiling; ++Channel)
+        for (std::uint32_t Channel = 0u; Channel < TextureChannelLimit; ++Channel)
             if (Contributors[Channel] > 0u) ++Present;
 
         const float BarRowY = 20.0f;
@@ -4964,7 +5146,7 @@ void TexturePaintPanel::RecordFolderCard(const PlaneExtent& Extent, TexturePaint
         const float TallyX = 74.0f;
         bool Overlapped = false;
 
-        for (std::uint32_t Channel = 0u; Channel < TextureChannelCeiling; ++Channel)
+        for (std::uint32_t Channel = 0u; Channel < TextureChannelLimit; ++Channel)
         {
             if (Contributors[Channel] == 0u)
                 continue;
@@ -5068,16 +5250,16 @@ void TexturePaintPanel::RecordFolderCard(const PlaneExtent& Extent, TexturePaint
                              Scaled.RunSecondary);
         }
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < RowCount; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < RowCount; ++Index)
         {
-            if (Ordinal == Layer)
+            if (Index == Layer)
                 continue;
 
-            bool Inclusion = Rows[Ordinal].Enclosing == Layer;
+            bool Inclusion = Rows[Index].Enclosing == Layer;
 
             if (!Inclusion)
             {
-                std::uint32_t Walking = Rows[Ordinal].Enclosing;
+                std::uint32_t Walking = Rows[Index].Enclosing;
                 while (Walking < RowCount)
                 {
                     if (Walking == Layer) { Inclusion = true; break; }
@@ -5093,16 +5275,16 @@ void TexturePaintPanel::RecordFolderCard(const PlaneExtent& Extent, TexturePaint
                             Tinted.Tile, 5.0f, CornerAll);
 
             Surface->Ground(Spanning(Card.MinimumX, Inside + 4.0f, 3.0f, EntryY - 11.0f),
-                            Covering(Rows[Ordinal].TagHue), 1.5f, CornerAll);
+                            Covering(Rows[Index].TagHue), 1.5f, CornerAll);
 
             Surface->TextRunTruncated(Card.MinimumX + 12.0f, Inside + 4.0f,
                                       Card.MinimumX + 150.0f, Tinted.Primary,
-                                      Rows[Ordinal].Naming, Scaled.RunFiner, false);
+                                      Rows[Index].Naming, Scaled.RunFiner, false);
 
             char Detail[48] = {};
             std::snprintf(Detail, sizeof(Detail), "%s \xC2\xB7 %u%%",
-                          TextureBlendNames[Applied.LayerBlendTaken[Ordinal] % TextureBlendCount],
-                          static_cast<unsigned>(Applied.LayerOpacity[Ordinal]));
+                          TextureBlendNames[Applied.LayerBlendTaken[Index] % TextureBlendCount],
+                          static_cast<unsigned>(Applied.LayerOpacity[Index]));
 
             Surface->TextRun(Card.MinimumX + 12.0f, Inside + 4.0f + Scaled.RunFiner * 1.35f,
                              Tinted.Faint, Detail, Scaled.RunFiner);
@@ -5111,12 +5293,12 @@ void TexturePaintPanel::RecordFolderCard(const PlaneExtent& Extent, TexturePaint
             //    column down tells the artist which layers stack on what.
             float DotX = Card.MaximumX - 8.0f;
 
-            for (std::uint32_t Channel = TextureChannelCeiling; Channel-- > 0u; )
+            for (std::uint32_t Channel = TextureChannelLimit; Channel-- > 0u; )
             {
                 if (Contributors[Channel] == 0u)
                     continue;
 
-                const bool Writes = Applied.ChannelOn[Ordinal][Channel];
+                const bool Writes = Applied.ChannelOn[Index][Channel];
 
                 Surface->Medallion(DotX, Inside + (EntryY - 3.0f) * 0.5f, 3.0f,
                                    Writes ? Covering(TextureChannelAt(Channel).Hue)

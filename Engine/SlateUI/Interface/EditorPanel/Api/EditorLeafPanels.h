@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 
@@ -44,7 +44,7 @@ public:
     /// in    IncomingSubject     [-]  which leaf this instance presents
     /// out   Outcome<bool>       [-]  refuses when a construction already stands
     /// cost  ✔️
-    Outcome<bool> Construct(RecordingSurface& IncomingSurface,
+    Outcome<bool> ConstructLeafPanel(RecordingSurface& IncomingSurface,
                             const ThemeProfile& IncomingAppearance,
                             LeafSubject IncomingSubject);
 

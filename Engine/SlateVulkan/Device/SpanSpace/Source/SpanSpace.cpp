@@ -19,7 +19,7 @@ SpanSpace::~SpanSpace()
     Reclaim();
 }
 
-Outcome<bool> SpanSpace::Construct(const VulkanExchange&      Exchange,
+Outcome<bool> SpanSpace::ConstructSpanSpace(const VulkanExchange&      Exchange,
                                    ByteSpace&                 BackingSpace,
                                    const DiagnosticExtension& Naming)
 {
@@ -147,21 +147,21 @@ Outcome<SpanReservation> SpanSpace::Reserve(const SpanShape& Declared)
 
     // 📝 A released slot is reused rather than erased, so that an ordinal a contributing document recorded
     //    keeps naming what it named. Erasing renumbers every claim above it and nothing observes that.
-    std::uint32_t SpanOrdinal = AbsentSpan;
+    std::uint32_t SpanIndex = AbsentSpan;
 
     for (std::size_t Candidate = 0u; Candidate < Spans.size(); ++Candidate)
     {
         if (!Spans[Candidate].SlotOccupied)
         {
             Spans[Candidate] = Taken;
-            SpanOrdinal      = static_cast<std::uint32_t>(Candidate);
+            SpanIndex      = static_cast<std::uint32_t>(Candidate);
             break;
         }
     }
 
-    if (SpanOrdinal == AbsentSpan)
+    if (SpanIndex == AbsentSpan)
     {
-        SpanOrdinal = static_cast<std::uint32_t>(Spans.size());
+        SpanIndex = static_cast<std::uint32_t>(Spans.size());
         Spans.push_back(Taken);
     }
 
@@ -171,13 +171,13 @@ Outcome<SpanReservation> SpanSpace::Reserve(const SpanShape& Declared)
     Discard(NamingEdge->Declare(VK_OBJECT_TYPE_BUFFER,
                         reinterpret_cast<std::uint64_t>(Incoming),
                         NameOf(Declared.Intent),
-                        SpanOrdinal));
+                        SpanIndex));
 
     SpanReservation Reserved;
     Reserved.Extent      = Incoming;
     Reserved.SpanBytes   = Declared.SpanBytes;
     Reserved.HostAddress = Sliced.HostAddress;
-    Reserved.SpanOrdinal = SpanOrdinal;
+    Reserved.SpanIndex = SpanIndex;
 
     return Outcome<SpanReservation>::Result(Reserved);
 }
@@ -186,15 +186,15 @@ Outcome<SpanReservation> SpanSpace::Reserve(const SpanShape& Declared)
 //                                                       THE WRITES
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> SpanSpace::Amend(std::uint32_t  SpanOrdinal,
+Outcome<bool> SpanSpace::Amend(std::uint32_t  SpanIndex,
                                const void*    Incoming,
                                VkDeviceSize   IncomingBytes,
                                VkDeviceSize   ByteOffset)
 {
-    if (static_cast<std::size_t>(SpanOrdinal) >= Spans.size() || !Spans[SpanOrdinal].SlotOccupied)
+    if (static_cast<std::size_t>(SpanIndex) >= Spans.size() || !Spans[SpanIndex].SlotOccupied)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no span stands at that ordinal" });
 
-    HeldSpan& Held = Spans[SpanOrdinal];
+    HeldSpan& Held = Spans[SpanIndex];
 
     if (Held.Backing.HostAddress == nullptr)
     {
@@ -216,21 +216,21 @@ Outcome<bool> SpanSpace::Amend(std::uint32_t  SpanOrdinal,
 }
 
 Outcome<bool> SpanSpace::Transfer(VkCommandBuffer  Recorded,
-                                  std::uint32_t    SourceOrdinal,
-                                  std::uint32_t    TargetOrdinal,
+                                  std::uint32_t    SourceIndex,
+                                  std::uint32_t    TargetIndex,
                                   VkDeviceSize     TransferBytes)
 {
     if (Recorded == VK_NULL_HANDLE)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no recording was supplied" });
 
-    if (static_cast<std::size_t>(SourceOrdinal) >= Spans.size() || !Spans[SourceOrdinal].SlotOccupied)
+    if (static_cast<std::size_t>(SourceIndex) >= Spans.size() || !Spans[SourceIndex].SlotOccupied)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no source span stands at that ordinal" });
 
-    if (static_cast<std::size_t>(TargetOrdinal) >= Spans.size() || !Spans[TargetOrdinal].SlotOccupied)
+    if (static_cast<std::size_t>(TargetIndex) >= Spans.size() || !Spans[TargetIndex].SlotOccupied)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no target span stands at that ordinal" });
 
-    const HeldSpan& Source = Spans[SourceOrdinal];
-    const HeldSpan& Target = Spans[TargetOrdinal];
+    const HeldSpan& Source = Spans[SourceIndex];
+    const HeldSpan& Target = Spans[TargetIndex];
 
     // 📝 Zero reads as the whole of the source, which is what every staging site means. Spelling the source's
     //    own extent at each call site is one more place the two can disagree after a shape is amended.
@@ -253,18 +253,18 @@ Outcome<bool> SpanSpace::Transfer(VkCommandBuffer  Recorded,
 //                                                       THE READS
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<SpanReservation> SpanSpace::Current(std::uint32_t SpanOrdinal) const
+Outcome<SpanReservation> SpanSpace::Current(std::uint32_t SpanIndex) const
 {
-    if (static_cast<std::size_t>(SpanOrdinal) >= Spans.size() || !Spans[SpanOrdinal].SlotOccupied)
+    if (static_cast<std::size_t>(SpanIndex) >= Spans.size() || !Spans[SpanIndex].SlotOccupied)
         return Outcome<SpanReservation>::Refuse({ RefusalReason::ContentUnsupported, "no span stands at that ordinal" });
 
-    const HeldSpan& Held = Spans[SpanOrdinal];
+    const HeldSpan& Held = Spans[SpanIndex];
 
     SpanReservation Current;
     Current.Extent      = Held.Extent;
     Current.SpanBytes   = Held.Shape.SpanBytes;
     Current.HostAddress = Held.Backing.HostAddress;
-    Current.SpanOrdinal = SpanOrdinal;
+    Current.SpanIndex = SpanIndex;
 
     return Outcome<SpanReservation>::Result(Current);
 }
@@ -299,12 +299,12 @@ VkDeviceSize SpanSpace::ReservedBytes() const
 //                                                    THE RECLAMATION
 //------------------------------------------------------------------------------------------------------------------------
 
-void SpanSpace::Release(std::uint32_t SpanOrdinal)
+void SpanSpace::Release(std::uint32_t SpanIndex)
 {
-    if (DeviceEdge == nullptr || static_cast<std::size_t>(SpanOrdinal) >= Spans.size())
+    if (DeviceEdge == nullptr || static_cast<std::size_t>(SpanIndex) >= Spans.size())
         return;
 
-    HeldSpan& Held = Spans[SpanOrdinal];
+    HeldSpan& Held = Spans[SpanIndex];
 
     if (!Held.SlotOccupied)
         return;
@@ -320,8 +320,8 @@ void SpanSpace::Release(std::uint32_t SpanOrdinal)
 
 void SpanSpace::Reclaim()
 {
-    for (std::size_t SpanOrdinal = 0u; SpanOrdinal < Spans.size(); ++SpanOrdinal)
-        Release(static_cast<std::uint32_t>(SpanOrdinal));
+    for (std::size_t SpanIndex = 0u; SpanIndex < Spans.size(); ++SpanIndex)
+        Release(static_cast<std::uint32_t>(SpanIndex));
 
     Spans.clear();
 }

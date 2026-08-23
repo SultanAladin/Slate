@@ -775,12 +775,12 @@ static_assert(DisciplineFirst[static_cast<std::uint32_t>(SymbolDiscipline::Disci
 
 const SymbolFigure& Figure(SymbolSubject Subject)
 {
-    const std::uint32_t Ordinal = static_cast<std::uint32_t>(Subject);
+    const std::uint32_t Index = static_cast<std::uint32_t>(Subject);
 
-    if (Ordinal >= static_cast<std::uint32_t>(SymbolSubject::SubjectCount))
+    if (Index >= static_cast<std::uint32_t>(SymbolSubject::SubjectCount))
         return PlaceholderFigure;
 
-    return Roster[Ordinal];
+    return Roster[Index];
 }
 
 SymbolDiscipline Registration(SymbolSubject Subject)
@@ -790,13 +790,13 @@ SymbolDiscipline Registration(SymbolSubject Subject)
 
 std::uint32_t RegisteredIn(SymbolDiscipline Discipline, const SymbolSubject** Delivered)
 {
-    const std::uint32_t Ordinal = static_cast<std::uint32_t>(Discipline);
+    const std::uint32_t Index = static_cast<std::uint32_t>(Discipline);
 
-    if (Ordinal >= static_cast<std::uint32_t>(SymbolDiscipline::DisciplineCount) || Delivered == nullptr)
+    if (Index >= static_cast<std::uint32_t>(SymbolDiscipline::DisciplineCount) || Delivered == nullptr)
         return 0u;
 
-    const std::uint32_t First = DisciplineFirst[Ordinal];
-    const std::uint32_t Past  = DisciplineFirst[Ordinal + 1u];
+    const std::uint32_t First = DisciplineFirst[Index];
+    const std::uint32_t Past  = DisciplineFirst[Index + 1u];
 
     *Delivered = &DisciplineOrder[First];
 

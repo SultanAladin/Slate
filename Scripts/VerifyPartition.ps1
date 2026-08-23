@@ -176,9 +176,9 @@ function Test-ShellEncoding
 
             $Wide = 0
 
-            for ($Ordinal = $(if ($Marked) { 3 } else { 0 }); $Ordinal -lt $Bytes.Length; ++$Ordinal)
+            for ($Index = $(if ($Marked) { 3 } else { 0 }); $Index -lt $Bytes.Length; ++$Index)
             {
-                if ($Bytes[$Ordinal] -gt 127) { ++$Wide }
+                if ($Bytes[$Index] -gt 127) { ++$Wide }
             }
 
             if ($Shell.Extension -eq '.bat')
@@ -225,7 +225,7 @@ if ($Mistyped.Count -gt 0)
 $Refusals = @()
 $Refusals += Test-Acyclic $Declared
 
-# 🔴 Every include of the form "SlateX/..." is a unit reference. Contract/ and Shared/ are reachable from
+# 🔴 Every include of the form "SlateX/..." is a unit reference. Foundation/ and Shared/ are reachable from
 #    everywhere by declaration — they are the shared seam, not a unit — and a vendored header is neither.
 foreach ($UnitName in ($Declared.Keys | Sort-Object))
 {
@@ -235,11 +235,11 @@ foreach ($UnitName in ($Declared.Keys | Sort-Object))
 
     foreach ($Source in $Sources)
     {
-        $Ordinal = 0
+        $Index = 0
 
         foreach ($Line in [System.IO.File]::ReadAllLines($Source.FullName))
         {
-            ++$Ordinal
+            ++$Index
 
             if ($Line -notmatch '^\s*#include\s+"([^"]+)"')
             {
@@ -256,7 +256,7 @@ foreach ($UnitName in ($Declared.Keys | Sort-Object))
                 if ($Named -eq $UnitName)                { continue }
                 if ($Reachable.ContainsKey($Named))      { continue }
 
-                $Refusals += "$Relative($Ordinal): $UnitName includes $Named, which it does not require"
+                $Refusals += "$Relative($Index): $UnitName includes $Named, which it does not require"
                 continue
             }
 
@@ -264,7 +264,7 @@ foreach ($UnitName in ($Declared.Keys | Sort-Object))
             #    imgui.h is a defect regardless of whether it links.
             if ($Included -match '^(imgui|backends/imgui)' -and $UnitName -ne 'SlateUI')
             {
-                $Refusals += "$Relative($Ordinal): $UnitName names an ImGui header; only SlateUI may"
+                $Refusals += "$Relative($Index): $UnitName names an ImGui header; only SlateUI may"
                 continue
             }
 
@@ -272,7 +272,7 @@ foreach ($UnitName in ($Declared.Keys | Sort-Object))
             #    so exactly one copy of each implementation exists in the process.
             if ($Included -match '^(stb|fast_obj|cgltf|ufbx)' -and $UnitName -ne 'SlateDocument')
             {
-                $Refusals += "$Relative($Ordinal): $UnitName names a vendored reader; only SlateDocument may"
+                $Refusals += "$Relative($Index): $UnitName names a vendored reader; only SlateDocument may"
             }
         }
     }

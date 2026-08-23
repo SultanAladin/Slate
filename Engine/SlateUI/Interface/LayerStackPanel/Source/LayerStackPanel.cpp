@@ -61,25 +61,25 @@ void LayerStackPanel::Reapply(const ThemeProfile& Resolved)
     Tinted = Resolved.LayerStack;
 }
 
-Outcome<bool> LayerStackPanel::Construct(InteractionIndex& Interaction, RecordingSurface& Recording,
+Outcome<bool> LayerStackPanel::ConstructLayerStackPanel(ControlIndex& IncomingInteraction, RecordingSurface& Recording,
                                         const ThemeProfile& Appearance)
 {
-    if (Ledger != nullptr)
+    if (Interaction != nullptr)
     {
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported,
                                        "the layer stack panel is already constructed" });
     }
 
-    Ledger  = &Interaction;
+    Interaction  = &IncomingInteraction;
     Surface = &Recording;
 
     // 🔴 Every identity claimed here and none inside a tick. The three runs are claimed in one pass so a
     //    refusal partway through retires the whole construction rather than leaving half a panel registered.
     const auto Reserve = [&](ControlIdentity* Written, std::uint32_t Count) -> Outcome<bool>
     {
-        for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < Count; ++Index)
         {
-            const Outcome<ControlIdentity> Registered = Interaction.Register();
+            const Outcome<ControlIdentity> Registered = IncomingInteraction.Register();
 
             if (!Registered.Resolved)
             {
@@ -87,30 +87,30 @@ Outcome<bool> LayerStackPanel::Construct(InteractionIndex& Interaction, Recordin
                 return Outcome<bool>::Refuse(Registered.Error);
             }
 
-            Written[Ordinal] = Registered.Resolve();
+            Written[Index] = Registered.Resolve();
         }
 
         return Outcome<bool>::Result(true);
     };
 
-    if (const auto Verdict = Reserve(RowCells, RowCeiling * CellsPerRow); !Verdict.Resolved)
+    if (const auto Verdict = Reserve(RowCells, RowLimit * CellsPerRow); !Verdict.Resolved)
         return Verdict;
 
-    if (const auto Verdict = Reserve(ChromeCells, ChromeCeiling); !Verdict.Resolved)
+    if (const auto Verdict = Reserve(ChromeCells, ChromeLimit); !Verdict.Resolved)
         return Verdict;
 
-    if (const auto Verdict = Reserve(PopupEntries, PopupEntryCeiling); !Verdict.Resolved)
+    if (const auto Verdict = Reserve(PopupEntries, PopupEntryLimit); !Verdict.Resolved)
         return Verdict;
 
-    if (const auto Verdict = Reserve(RevisionCells, RevisionCellCeiling); !Verdict.Resolved)
+    if (const auto Verdict = Reserve(RevisionCells, RevisionCellLimit); !Verdict.Resolved)
         return Verdict;
 
-    if (const auto Verdict = Reserve(CardControls, CardControlCeiling); !Verdict.Resolved)
+    if (const auto Verdict = Reserve(CardControls, CardControlLimit); !Verdict.Resolved)
         return Verdict;
 
     // 🔴 Constructed AFTER the claims above, so a refusal partway through the runs retires the whole panel
-    //    before a component is bound to a ledger it will outlive.
-    if (const auto Verdict = CardComponents.Construct(Interaction, Recording, Appearance);
+    //    before a component is bound to a index it will outlive.
+    if (const auto Verdict = CardComponents.ConstructComponents(IncomingInteraction, Recording, Appearance);
         !Verdict.Resolved)
     {
         Reset();
@@ -124,14 +124,14 @@ void LayerStackPanel::Advance(const PointerCondition& Contact, double)
 {
     Sampled = Contact;
 
-    // 🔴 `Sample` and never `Advance`. The component's own `Advance` would advance the SHARED ledger a
+    // 🔴 `Sample` and never `Advance`. The component's own `Advance` would advance the SHARED index a
     //    second time, which retires a release before the rows that grabbed on it have observed it.
     CardComponents.Sample(Contact);
 }
 
 ControlIdentity LayerStackPanel::NextCardControl()
 {
-    if (CardControlsSpent >= CardControlCeiling)
+    if (CardControlsSpent >= CardControlLimit)
         return ControlIdentity{};
 
     return CardControls[CardControlsSpent++];
@@ -139,7 +139,7 @@ ControlIdentity LayerStackPanel::NextCardControl()
 
 void LayerStackPanel::Reset()
 {
-    Ledger  = nullptr;
+    Interaction  = nullptr;
     Surface = nullptr;
     Sampled = {};
 
@@ -182,7 +182,7 @@ bool LayerStackPanel::Hovered(const PlaneExtent& Extent) const
 bool LayerStackPanel::Pressed(ControlIdentity Target, const PlaneExtent& Extent,
                               LayerStackContext& Applied, const char* Tooltip)
 {
-    if (Ledger == nullptr)
+    if (Interaction == nullptr)
         return false;
 
     const bool Over = Hovered(Extent);
@@ -198,30 +198,30 @@ bool LayerStackPanel::Pressed(ControlIdentity Target, const PlaneExtent& Extent,
 
     // 🔴 A standing popup outranks every row beneath it. Without this the same contact that dismisses a
     //    menu also presses whatever the menu was covering.
-    if (Over && Sampled.ContactPressed && !Ledger->AnyDisclosed())
-        Ledger->Grab(Target, ControlPart::Body);
+    if (Over && Sampled.ContactPressed && !Interaction->AnyDisclosed())
+        Interaction->Grab(Target, ControlPart::Body);
 
-    Ledger->DeclareHovered(Target, Over, HoverOver);
+    Interaction->DeclareHovered(Target, Over, HoverOver);
 
-    return Over && Ledger->Released(Target);
+    return Over && Interaction->Released(Target);
 }
 
 bool LayerStackPanel::Dragged(ControlIdentity Target, const PlaneExtent& Extent, std::uint32_t& Reading)
 {
-    if (Ledger == nullptr || Extent.Width() <= 0.0f)
+    if (Interaction == nullptr || Extent.Width() <= 0.0f)
         return false;
 
     const bool Over = Hovered(Extent);
 
-    if (Over && Sampled.ContactPressed && !Ledger->AnyDisclosed())
+    if (Over && Sampled.ContactPressed && !Interaction->AnyDisclosed())
     {
-        Ledger->Grab(Target, ControlPart::Track);
-        Ledger->RecordInitial(Target, static_cast<float>(Reading));
+        Interaction->Grab(Target, ControlPart::Track);
+        Interaction->RecordInitial(Target, static_cast<float>(Reading));
     }
 
-    Ledger->DeclareHovered(Target, Over, HoverOver);
+    Interaction->DeclareHovered(Target, Over, HoverOver);
 
-    if (!Ledger->Holding(Target))
+    if (!Interaction->Holding(Target))
         return false;
 
     // 📐 The reading follows the pointer's ABSOLUTE position along the track rather than an accumulated
@@ -347,11 +347,11 @@ float LayerStackPanel::CardOpening(EasedInterpolant& Fold, bool Unfolded, bool S
 }
 
 bool LayerStackPanel::RecordCardSection(const PlaneExtent& Extent, const char* Caption, const char* Reading,
-                                        CardSection Section, std::uint32_t Ordinal,
+                                        CardSection Section, std::uint32_t Index,
                                         LayerStackContext& Applied, bool Recording, float& Y)
 {
     const std::uint32_t Bit    = 1u << static_cast<std::uint32_t>(Section);
-    const bool          Opened = (Applied.Sections[Ordinal] & Bit) != 0u;
+    const bool          Opened = (Applied.Sections[Index] & Bit) != 0u;
 
     const PlaneExtent Head = Spanning(Extent.MinimumX, Y, Extent.Width(), Scaled.SectionHeight);
 
@@ -361,7 +361,7 @@ bool LayerStackPanel::RecordCardSection(const PlaneExtent& Extent, const char* C
 
         // 📐 `.sech` — the whole head is the control, exactly as the reference's own `<button class="sech">`.
         if (Pressed(NextCardControl(), Head, Applied, nullptr))
-            Applied.Sections[Ordinal] ^= Bit;
+            Applied.Sections[Index] ^= Bit;
     }
     else if (Recording)
     {
@@ -472,9 +472,9 @@ float LayerStackPanel::RecordParameterRun(const PlaneExtent& Extent, float Y,
     const float MinimumX = Extent.MinimumX + Scaled.CardPadX;
     const float Width  = Extent.Width() - Scaled.CardPadX * 2.0f;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Count; ++Index)
     {
-        ParameterCoordinate& Parameter = Parameters[Ordinal];
+        ParameterCoordinate& Parameter = Parameters[Index];
         const PlaneExtent  Row       = Spanning(MinimumX, Y, Width, CardRowHeight);
 
         if (!Recording || Surface->Excluded(Row))
@@ -579,10 +579,10 @@ bool LayerStackPanel::RecordCardAction(const PlaneExtent& Extent, const char* Ca
 }
 
 float LayerStackPanel::RecordEntryCard(const PlaneExtent& Extent, LayerArrangement& Arrangement,
-                                       std::uint32_t Ordinal, LayerStackContext& Applied,
+                                       std::uint32_t Index, LayerStackContext& Applied,
                                        RevisionSequence& Revisions, bool Recording)
 {
-    LayerEntry& Entry  = Arrangement.Entries[Ordinal];
+    LayerEntry& Entry  = Arrangement.Entries[Index];
     const bool  Folder = (Entry.Content == LayerContent::Folder);
 
     const float MinimumX = Extent.MinimumX + Scaled.CardPadX;
@@ -594,7 +594,7 @@ float LayerStackPanel::RecordEntryCard(const PlaneExtent& Extent, LayerArrangeme
     // ① Info — `sec(n,'info','Info','',info,false)`, the reference's own twelve fields.
     std::snprintf(Reading, sizeof Reading, "%s \xC2\xB7 %u%%", Entry.Blend, Entry.Opacity);
 
-    if (RecordCardSection(Extent, "Info", nullptr, CardSection::Info, Ordinal, Applied, Recording, Y))
+    if (RecordCardSection(Extent, "Info", nullptr, CardSection::Info, Index, Applied, Recording, Y))
     {
         const auto Field = [&](const char* Caption, const char* Written)
         {
@@ -616,7 +616,7 @@ float LayerStackPanel::RecordEntryCard(const PlaneExtent& Extent, LayerArrangeme
 
         if (Folder)
         {
-            std::snprintf(Written, sizeof Written, "%u", EnclosedCount(Arrangement, Ordinal));
+            std::snprintf(Written, sizeof Written, "%u", EnclosedCount(Arrangement, Index));
             Field("Children", Written);
         }
         else
@@ -630,7 +630,7 @@ float LayerStackPanel::RecordEntryCard(const PlaneExtent& Extent, LayerArrangeme
         Field("Mask", Entry.Mask.Declared ? SourceNaming(Entry.Mask.Source) : "none");
 
         std::snprintf(Written, sizeof Written, "%u / %u active", ChannelsEnabled(Entry),
-                      LayerStackCeiling::Channels);
+                      LayerStackLimit::Channels);
         Field("Channels", Written);
 
         Field("Height -> Normal", Entry.HeightIntegrated ? Entry.HeightBlend : "off");
@@ -639,7 +639,7 @@ float LayerStackPanel::RecordEntryCard(const PlaneExtent& Extent, LayerArrangeme
     }
 
     // ② Properties — `sec(n,'props','Properties',blend · op,props,true)`, open by default.
-    if (RecordCardSection(Extent, "Properties", Reading, CardSection::Properties, Ordinal, Applied,
+    if (RecordCardSection(Extent, "Properties", Reading, CardSection::Properties, Index, Applied,
                           Recording, Y))
     {
         // 📐 `.frow` — the blend pill over the opacity range, then the three actions.
@@ -720,11 +720,11 @@ float LayerStackPanel::RecordEntryCard(const PlaneExtent& Extent, LayerArrangeme
                 Entry.Mask.Declared = !Entry.Mask.Declared;
             }
 
-            if (RecordCardAction(Solo, (Arrangement.Soloed == Ordinal) ? "Clear solo" : "Solo",
-                                 Arrangement.Soloed == Ordinal, false, Applied))
+            if (RecordCardAction(Solo, (Arrangement.Soloed == Index) ? "Clear solo" : "Solo",
+                                 Arrangement.Soloed == Index, false, Applied))
             {
-                Arrangement.Soloed = (Arrangement.Soloed == Ordinal)
-                                   ? LayerStackCeiling::AbsentOrdinal : Ordinal;
+                Arrangement.Soloed = (Arrangement.Soloed == Index)
+                                   ? LayerStackLimit::AbsentIndex : Index;
             }
         }
         else if (Recording)
@@ -742,10 +742,10 @@ float LayerStackPanel::RecordEntryCard(const PlaneExtent& Extent, LayerArrangeme
     {
         std::snprintf(Reading, sizeof Reading, "%u active", ChannelsEnabled(Entry));
 
-        if (RecordCardSection(Extent, "Channel Blending", Reading, CardSection::Channels, Ordinal,
+        if (RecordCardSection(Extent, "Channel Blending", Reading, CardSection::Channels, Index,
                               Applied, Recording, Y))
         {
-            for (std::uint32_t Channel = 0u; Channel < LayerStackCeiling::Channels; ++Channel)
+            for (std::uint32_t Channel = 0u; Channel < LayerStackLimit::Channels; ++Channel)
             {
                 ChannelCoordinate&  Reading8 = Entry.Channels[Channel];
                 const PlaneExtent Row      = Spanning(MinimumX, Y, Width, 28.0f);
@@ -827,7 +827,7 @@ float LayerStackPanel::RecordEntryCard(const PlaneExtent& Extent, LayerArrangeme
         // ④ Height -> Normal — `sec(n,'h2n',…)`, the re-integration and its note.
         if (RecordCardSection(Extent, "Height -> Normal",
                               Entry.HeightIntegrated ? Entry.HeightBlend : "off",
-                              CardSection::Height, Ordinal, Applied, Recording, Y))
+                              CardSection::Height, Index, Applied, Recording, Y))
         {
             const PlaneExtent OnRow = Spanning(MinimumX, Y, Width, CardRowHeight);
 
@@ -945,7 +945,7 @@ float LayerStackPanel::RecordEntryCard(const PlaneExtent& Extent, LayerArrangeme
 
         if (RecordCardSection(Extent, IsDecal ? "Placement \xC2\xB7 3D Decal" : "Pattern Generator",
                               (Run.ParameterCount > 0u) ? Run.Parameters[0].Selected : nullptr,
-                              CardSection::Placement, Ordinal, Applied, Recording, Y))
+                              CardSection::Placement, Index, Applied, Recording, Y))
         {
             Y = RecordParameterRun(Extent, Y, Run.Parameters, Run.ParameterCount,
                                         Options, OptionCount, Arrangement, Revisions, Recording);
@@ -963,7 +963,7 @@ float LayerStackPanel::RecordEntryCard(const PlaneExtent& Extent, LayerArrangeme
         std::snprintf(Reading, sizeof Reading, "%u active", Entry.EffectCount);
 
     if (RecordCardSection(Extent, "Effects", (Entry.EffectCount > 0u) ? Reading : "none",
-                          CardSection::Effects, Ordinal, Applied, Recording, Y))
+                          CardSection::Effects, Index, Applied, Recording, Y))
     {
         float ChipX = MinimumX;
         float ChipRow   = Y;
@@ -1006,15 +1006,15 @@ float LayerStackPanel::RecordEntryCard(const PlaneExtent& Extent, LayerArrangeme
 
             if (RecordCardAction(Add, "Add effect", false, false, Applied))
             {
-                Arrangement.Taken     = Ordinal;
+                Arrangement.Taken     = Index;
                 Arrangement.TakenHalf = LayerTaken::Layer;
                 Applied.Popup          = StackPopup::EffectMenu;
-                Applied.PopupSubject   = Ordinal;
+                Applied.PopupSubject   = Index;
                 Applied.PopupOnMask    = false;
                 Applied.PopupX     = Add.MaximumX;
                 Applied.PopupHeight    = Add.MaximumY + 6.0f;
                 Applied.PopupOffset    = 0.0f;
-                Ledger->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
+                Interaction->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
             }
         }
         else if (Recording)
@@ -1026,7 +1026,7 @@ float LayerStackPanel::RecordEntryCard(const PlaneExtent& Extent, LayerArrangeme
     }
 
     // ⑦ Colour Tag — `sec(n,'col',…)`, the ten swatches and the custom wheel.
-    if (RecordCardSection(Extent, "Colour Tag", nullptr, CardSection::ColourTag, Ordinal, Applied,
+    if (RecordCardSection(Extent, "Colour Tag", nullptr, CardSection::ColourTag, Index, Applied,
                           Recording, Y))
     {
         const PlaneExtent Swatches = Spanning(MinimumX, Y, Width, CardActionRow);
@@ -1035,7 +1035,7 @@ float LayerStackPanel::RecordEntryCard(const PlaneExtent& Extent, LayerArrangeme
         {
             const std::uint32_t* Tags = AppliedColourTags();
 
-            for (std::uint32_t Tag = 0u; Tag < LayerStackCeiling::ColourTags; ++Tag)
+            for (std::uint32_t Tag = 0u; Tag < LayerStackLimit::ColourTags; ++Tag)
             {
                 const PlaneExtent Swatch = Squared(MinimumX + 9.0f + static_cast<float>(Tag) * 22.0f,
                                                    Y + CardActionRow * 0.5f, 16.0f);
@@ -1053,24 +1053,24 @@ float LayerStackPanel::RecordEntryCard(const PlaneExtent& Extent, LayerArrangeme
             }
 
             const PlaneExtent Custom = Spanning(MinimumX + 9.0f +
-                                                static_cast<float>(LayerStackCeiling::ColourTags) * 22.0f,
+                                                static_cast<float>(LayerStackLimit::ColourTags) * 22.0f,
                                                 Y, 74.0f, CardActionRow);
 
             if (RecordCardAction(Custom, "Custom...", false, false, Applied))
             {
-                Arrangement.Taken     = Ordinal;
+                Arrangement.Taken     = Index;
                 Arrangement.TakenHalf = LayerTaken::Layer;
                 Applied.Popup          = StackPopup::ColourWheel;
-                Applied.PopupSubject   = Ordinal;
+                Applied.PopupSubject   = Index;
                 Applied.PopupOnMask    = false;
                 Applied.PopupX     = Custom.MaximumX;
                 Applied.PopupHeight    = Custom.MaximumY + 6.0f;
-                Ledger->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
+                Interaction->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
             }
         }
         else if (Recording)
         {
-            for (std::uint32_t Tag = 0u; Tag <= LayerStackCeiling::ColourTags; ++Tag)
+            for (std::uint32_t Tag = 0u; Tag <= LayerStackLimit::ColourTags; ++Tag)
                 (void) NextCardControl();
         }
 
@@ -1089,10 +1089,10 @@ float LayerStackPanel::RecordEntryCard(const PlaneExtent& Extent, LayerArrangeme
 }
 
 float LayerStackPanel::RecordMaskCard(const PlaneExtent& Extent, LayerArrangement& Arrangement,
-                                      std::uint32_t Ordinal, LayerStackContext& Applied,
+                                      std::uint32_t Index, LayerStackContext& Applied,
                                       RevisionSequence& Revisions, bool Recording)
 {
-    LayerEntry&   Entry = Arrangement.Entries[Ordinal];
+    LayerEntry&   Entry = Arrangement.Entries[Index];
     MaskCoordinate& Mask  = Entry.Mask;
 
     const float MinimumX = Extent.MinimumX + Scaled.CardPadX;
@@ -1102,7 +1102,7 @@ float LayerStackPanel::RecordMaskCard(const PlaneExtent& Extent, LayerArrangemen
     char  Reading[48] = {};
 
     // ① Info — `sec(m,'info','Info','',info,false)`.
-    if (RecordCardSection(Extent, "Info", nullptr, CardSection::MaskInfo, Ordinal, Applied,
+    if (RecordCardSection(Extent, "Info", nullptr, CardSection::MaskInfo, Index, Applied,
                           Recording, Y))
     {
         const auto Field = [&](const char* Caption, const char* Written)
@@ -1137,7 +1137,7 @@ float LayerStackPanel::RecordMaskCard(const PlaneExtent& Extent, LayerArrangemen
 
     // ② Source — `sec(m,'src','Source',…,true)`, open by default.
     if (RecordCardSection(Extent, "Source", SourceNaming(Mask.Source), CardSection::MaskSource,
-                          Ordinal, Applied, Recording, Y))
+                          Index, Applied, Recording, Y))
     {
         const PlaneExtent DensityRow = Spanning(MinimumX, Y, Width, CardRowHeight);
 
@@ -1197,7 +1197,7 @@ float LayerStackPanel::RecordMaskCard(const PlaneExtent& Extent, LayerArrangemen
     if (RecordCardSection(Extent,
                           (Mask.Source == MaskSource::Generator) ? "Generator Parameters"
                                                                  : "Source Parameters",
-                          Reading, CardSection::MaskParams, Ordinal, Applied, Recording, Y))
+                          Reading, CardSection::MaskParams, Index, Applied, Recording, Y))
     {
         Y = RecordParameterRun(Extent, Y, Mask.Parameters, Mask.ParameterCount,
                                     nullptr, 0u, Arrangement, Revisions, Recording);
@@ -1208,7 +1208,7 @@ float LayerStackPanel::RecordMaskCard(const PlaneExtent& Extent, LayerArrangemen
         std::snprintf(Reading, sizeof Reading, "%u required", Mask.MeshMapCount);
 
     if (RecordCardSection(Extent, "Mesh Map Inputs", (Mask.MeshMapCount > 0u) ? Reading : "none",
-                          CardSection::MaskMaps, Ordinal, Applied, Recording, Y))
+                          CardSection::MaskMaps, Index, Applied, Recording, Y))
     {
         float ChipX = MinimumX;
         float ChipRow   = Y;
@@ -1250,19 +1250,21 @@ float LayerStackPanel::RecordMaskCard(const PlaneExtent& Extent, LayerArrangemen
     // ⑤ Applies To Channels — `sec(m,'chan',…,false)`, the eight toggle chips.
     std::uint32_t AppliedChannels = 0u;
 
-    for (std::uint32_t Channel = 0u; Channel < LayerStackCeiling::Channels; ++Channel)
+    for (std::uint32_t Channel = 0u; Channel < LayerStackLimit::Channels; ++Channel)
         if (Mask.ChannelApplied[Channel])
             ++AppliedChannels;
 
-    std::snprintf(Reading, sizeof Reading, "%u / %u", Applied, LayerStackCeiling::Channels);
+    std::snprintf(Reading, sizeof Reading, "%u / %u",
+                  static_cast<unsigned>(AppliedChannels),
+                  static_cast<unsigned>(LayerStackLimit::Channels));
 
-    if (RecordCardSection(Extent, "Applies To Channels", Reading, CardSection::MaskApplies, Ordinal,
+    if (RecordCardSection(Extent, "Applies To Channels", Reading, CardSection::MaskApplies, Index,
                           Applied, Recording, Y))
     {
         float ChipX = MinimumX;
         float ChipRow   = Y;
 
-        for (std::uint32_t Channel = 0u; Channel < LayerStackCeiling::Channels; ++Channel)
+        for (std::uint32_t Channel = 0u; Channel < LayerStackLimit::Channels; ++Channel)
         {
             const char* Caption = ChannelNaming()[Channel];
             const float X   = (Surface != nullptr)
@@ -1309,7 +1311,7 @@ float LayerStackPanel::RecordMaskCard(const PlaneExtent& Extent, LayerArrangemen
         std::snprintf(Reading, sizeof Reading, "%u active", Mask.EffectCount);
 
     if (RecordCardSection(Extent, "Mask Effects", (Mask.EffectCount > 0u) ? Reading : "none",
-                          CardSection::MaskEffects, Ordinal, Applied, Recording, Y))
+                          CardSection::MaskEffects, Index, Applied, Recording, Y))
     {
         float ChipX = MinimumX;
         float ChipRow   = Y;
@@ -1357,15 +1359,15 @@ float LayerStackPanel::RecordMaskCard(const PlaneExtent& Extent, LayerArrangemen
 //------------------------------------------------------------------------------------------------------------------------
 
 void LayerStackPanel::RecordEntryRow(const PlaneExtent& Extent, const LayerArrangement& Arrangement,
-                                     std::uint32_t Ordinal, bool Taken, bool HoveredOrdinal)
+                                     std::uint32_t Index, bool Taken, bool HoveredIndex)
 {
-    const LayerEntry& Entry  = Arrangement.Entries[Ordinal];
+    const LayerEntry& Entry  = Arrangement.Entries[Index];
     const bool        Folder = (Entry.Content == LayerContent::Folder);
     const float       Middle = (Extent.MinimumY + Extent.MaximumY) * 0.5f;
 
     // ① The ground, which the reference tints by taken, then hovered, then standing.
     // 📐 `/* ── ROW (square) ── */` — the entry row carries no radius at all.
-    const ThemeToken Ground = Taken ? Tinted.RowTaken : (HoveredOrdinal ? Tinted.RowHovered : Tinted.Row);
+    const ThemeToken Ground = Taken ? Tinted.RowTaken : (HoveredIndex ? Tinted.RowHovered : Tinted.Row);
     Surface->Ground(Extent, Ground, 0.0f);
 
     if (Taken)
@@ -1448,7 +1450,7 @@ void LayerStackPanel::RecordEntryRow(const PlaneExtent& Extent, const LayerArran
     {
         const std::uint32_t Enabled = ChannelsEnabled(Entry);
 
-        if (Enabled != LayerStackCeiling::Channels)
+        if (Enabled != LayerStackLimit::Channels)
         {
             char Counted[16] = {};
             std::snprintf(Counted, sizeof Counted, "%u/8 CH", Enabled);
@@ -1468,11 +1470,11 @@ void LayerStackPanel::RecordEntryRow(const PlaneExtent& Extent, const LayerArran
     const float ColumnsY = ChipsY - ColumnsSpan;
 
     // ⑧ `.meta` — the naming over its reading line, both truncated to whatever extent is left.
-    const float MetaCeiling = ColumnsY - X - Scaled.RowGapX;
+    const float MetaLimit = ColumnsY - X - Scaled.RowGapX;
 
-    if (MetaCeiling > 8.0f)
+    if (MetaLimit > 8.0f)
     {
-        Surface->TextRunTruncated(X, Middle - Surface->LineHeight(Scaled.RunRow) - 1.0f, MetaCeiling,
+        Surface->TextRunTruncated(X, Middle - Surface->LineHeight(Scaled.RunRow) - 1.0f, MetaLimit,
                                   Entry.Shown ? Tinted.Primary : Tinted.Faint, Entry.Naming,
                                   Scaled.RunRow, true);
 
@@ -1481,7 +1483,7 @@ void LayerStackPanel::RecordEntryRow(const PlaneExtent& Extent, const LayerArran
         // 📝 `rowSub` reads the resolution and format once the columns carry blend and opacity instead.
         if (Folder)
             std::snprintf(Reading, sizeof Reading, "%u items  %s",
-                          EnclosedCount(Arrangement, Ordinal), Entry.Blend);
+                          EnclosedCount(Arrangement, Index), Entry.Blend);
         else if (Columns)
             std::snprintf(Reading, sizeof Reading, "%s  %upx  %s",
                           ContentNaming(Entry.Content), Entry.Resolution, Entry.Format);
@@ -1489,7 +1491,7 @@ void LayerStackPanel::RecordEntryRow(const PlaneExtent& Extent, const LayerArran
             std::snprintf(Reading, sizeof Reading, "%s  %s  %u%%",
                           ContentNaming(Entry.Content), Entry.Blend, Entry.Opacity);
 
-        Surface->TextRunTruncated(X, Middle + 1.0f, MetaCeiling, Tinted.Faint, Reading, Scaled.RunSub);
+        Surface->TextRunTruncated(X, Middle + 1.0f, MetaLimit, Tinted.Faint, Reading, Scaled.RunSub);
     }
 
     if (Columns)
@@ -1532,13 +1534,13 @@ void LayerStackPanel::RecordEntryRow(const PlaneExtent& Extent, const LayerArran
     Surface->Medallion(Extent.MaximumX - Scaled.ActionExtent * 0.5f, Middle + 4.0f, 1.3f, Tinted.Faint);
 }
 
-void LayerStackPanel::RecordMaskRow(const PlaneExtent& Extent, const LayerEntry& Entry, bool Taken, bool HoveredOrdinal)
+void LayerStackPanel::RecordMaskRow(const PlaneExtent& Extent, const LayerEntry& Entry, bool Taken, bool HoveredIndex)
 {
     // 📐 `.row.msk` — attached beneath its entry, indented, shorter, and without a colour tag or twisty.
     const MaskCoordinate& Mask = Entry.Mask;
     const float      Middle = (Extent.MinimumY + Extent.MaximumY) * 0.5f;
 
-    const ThemeToken Ground = Taken ? Tinted.RowTaken : (HoveredOrdinal ? Tinted.RowHovered : Tinted.Detail);
+    const ThemeToken Ground = Taken ? Tinted.RowTaken : (HoveredIndex ? Tinted.RowHovered : Tinted.Detail);
     Surface->Ground(Extent, Ground, 0.0f);
     Surface->Edge(Extent, Taken ? Tinted.StrokeStrong : Tinted.Stroke, 1.0f, 0.0f);
 
@@ -1583,10 +1585,10 @@ void LayerStackPanel::RecordMaskRow(const PlaneExtent& Extent, const LayerEntry&
     const float ColumnsSpan = Columns ? Scaled.BlendColumnX + Scaled.OpacityColumnX : 0.0f;
     const float ChipsY   = Extent.MaximumX - Scaled.ActionExtent * 2.0f - ChipsX;
     const float ColumnsY = ChipsY - ColumnsSpan;
-    const float MetaCeiling = ColumnsY - X - Scaled.RowGapX;
+    const float MetaLimit = ColumnsY - X - Scaled.RowGapX;
 
-    if (MetaCeiling > 8.0f)
-        Surface->TextRunTruncated(X, Middle + 1.0f, MetaCeiling, Tinted.Faint, Reading, Scaled.RunFine);
+    if (MetaLimit > 8.0f)
+        Surface->TextRunTruncated(X, Middle + 1.0f, MetaLimit, Tinted.Faint, Reading, Scaled.RunFine);
 
     if (Columns)
     {
@@ -1733,8 +1735,8 @@ bool LayerStackPanel::RecordPopupEntry(const PlaneExtent& Extent, const char* Ca
     {
         Applied.Popup = StackPopup::Absent;
 
-        if (Ledger != nullptr)
-            Ledger->Withdraw();
+        if (Interaction != nullptr)
+            Interaction->Withdraw();
     }
 
     return Taken;
@@ -1751,7 +1753,7 @@ bool LayerStackPanel::AcceptChord(KeySubject Subject, const ModifierCondition& M
     // 🔴 The reference's own first line — `if(e.target.tagName==='INPUT'||…)return`. A chord that reached
     //    the arrangement while the artist was typing would declare a paint layer out of the letter `p`.
     //    The revision card's comment and value fields are `INPUT` and `TEXTAREA` on exactly those grounds.
-    if (Applied.RetentionHovered || Applied.Renaming != LayerStackCeiling::AbsentOrdinal ||
+    if (Applied.RetentionHovered || Applied.Renaming != LayerStackLimit::AbsentIndex ||
         Applied.RevisionField != 0u)
     {
         return false;
@@ -1877,7 +1879,7 @@ bool LayerStackPanel::AcceptChord(KeySubject Subject, const ModifierCondition& M
         case KeySubject::Solo:
             if (!Taken) return true;
             Arrangement.Soloed = (Arrangement.Soloed == Arrangement.Taken)
-                               ? LayerStackCeiling::AbsentOrdinal : Arrangement.Taken;
+                               ? LayerStackLimit::AbsentIndex : Arrangement.Taken;
             return true;
 
         case KeySubject::Unfold:
@@ -1924,9 +1926,9 @@ bool LayerStackPanel::AcceptChord(KeySubject Subject, const ModifierCondition& M
         case KeySubject::StepPrior:
         case KeySubject::StepNext:
         {
-            CurrentHalf Halves[LayerStackCeiling::Entries * 2u];
+            CurrentHalf Halves[LayerStackLimit::Entries * 2u];
             const std::uint32_t Count = CurrentHalves(Arrangement, Applied.Retention, Halves,
-                                                        LayerStackCeiling::Entries * 2u);
+                                                        LayerStackLimit::Entries * 2u);
 
             if (Count == 0u)
                 return true;
@@ -1934,7 +1936,7 @@ bool LayerStackPanel::AcceptChord(KeySubject Subject, const ModifierCondition& M
             std::uint32_t Current = 0u;
 
             for (std::uint32_t Walk = 0u; Walk < Count; ++Walk)
-                if (Halves[Walk].Ordinal == Arrangement.Taken && Halves[Walk].Half == Arrangement.TakenHalf)
+                if (Halves[Walk].Index == Arrangement.Taken && Halves[Walk].Half == Arrangement.TakenHalf)
                 {
                     Current = Walk;
                     break;
@@ -1949,7 +1951,7 @@ bool LayerStackPanel::AcceptChord(KeySubject Subject, const ModifierCondition& M
 
             const std::uint32_t Stepped = (Subject == KeySubject::StepNext) ? Current + 1u : Current - 1u;
 
-            Arrangement.Taken     = Halves[Stepped].Ordinal;
+            Arrangement.Taken     = Halves[Stepped].Index;
             Arrangement.TakenHalf = Halves[Stepped].Half;
             return true;
         }
@@ -1959,7 +1961,7 @@ bool LayerStackPanel::AcceptChord(KeySubject Subject, const ModifierCondition& M
             if (Applied.Popup != StackPopup::Absent)
             {
                 Applied.Popup = StackPopup::Absent;
-                if (Ledger != nullptr) Ledger->Withdraw();
+                if (Interaction != nullptr) Interaction->Withdraw();
                 return true;
             }
 
@@ -1978,7 +1980,7 @@ bool LayerStackPanel::AcceptChord(KeySubject Subject, const ModifierCondition& M
 void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& Arrangement,
                                   LayerStackContext& Applied, RevisionSequence& Revisions)
 {
-    if (Surface == nullptr || Ledger == nullptr || !Surface->Recording())
+    if (Surface == nullptr || Interaction == nullptr || !Surface->Recording())
         return;
 
     // 📝 The tooltip is resolved fresh every tick. A retained one outlives the control it named and hangs
@@ -1996,8 +1998,8 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
     //    seeded once so a card the artist has folded stays folded.
     if (!Applied.SectionsSeeded)
     {
-        for (std::uint32_t Ordinal = 0u; Ordinal < LayerStackCeiling::Entries; ++Ordinal)
-            Applied.Sections[Ordinal] = AppliedSections;
+        for (std::uint32_t Index = 0u; Index < LayerStackLimit::Entries; ++Index)
+            Applied.Sections[Index] = AppliedSections;
 
         Applied.SectionsSeeded = true;
     }
@@ -2006,7 +2008,7 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
     //    card renders closed for exactly one frame and departs on the next — the reference's `pendingOpen`
     //    set, which it clears at the top of its own `render`.
     const std::uint32_t Staging = Applied.CardPending;
-    Applied.CardPending = LayerStackCeiling::AbsentOrdinal;
+    Applied.CardPending = LayerStackLimit::AbsentIndex;
 
     Surface->Ground(Extent, Tinted.Panel);
     Surface->Confine(Extent);
@@ -2024,8 +2026,8 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
     // 📐 `$('#count').textContent=count()+' · '+maskCount()+'m'` — entries and masks, in one chip.
     std::uint32_t MaskCount = 0u;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Arrangement.EntryCount; ++Ordinal)
-        if (Arrangement.Entries[Ordinal].Mask.Declared)
+    for (std::uint32_t Index = 0u; Index < Arrangement.EntryCount; ++Index)
+        if (Arrangement.Entries[Index].Mask.Declared)
             ++MaskCount;
 
     char Counted[24] = {};
@@ -2113,7 +2115,7 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
         Applied.PopupX  = AddButton.MaximumX;
         Applied.PopupHeight = AddButton.MaximumY + 6.0f;
         Applied.PopupOffset = 0.0f;
-        Ledger->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
+        Interaction->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
     }
 
     if (Action(ChromeCell::FolderButton, FolderButton, SymbolSubject::LayerMerge, "Group", Tinted.Secondary))
@@ -2144,11 +2146,11 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
     const float Pointer   = Sampled.PositionY;
     const float PointerAt = Sampled.PositionX;
 
-    std::uint32_t HoveredOrdinal = LayerStackCeiling::AbsentOrdinal;
+    std::uint32_t HoveredIndex = LayerStackLimit::AbsentIndex;
     bool          HoveredMask = false;
 
     // 📐 What one drop would do, resolved fresh each tick against whatever the carried entry stands over.
-    std::uint32_t Destination = LayerStackCeiling::AbsentOrdinal;
+    std::uint32_t Destination = LayerStackLimit::AbsentIndex;
     DropIntent    Intent      = DropIntent::Absent;
 
     const bool Carrying = Applied.Carried < Arrangement.EntryCount;
@@ -2168,24 +2170,24 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
     const std::uint32_t PriorDestination = Applied.Destination;
     const DropIntent    PriorIntent      = Applied.Intent;
 
-    // 📐 One presented row per registered run of cells. Beyond `RowCeiling` the rows still record and still
+    // 📐 One presented row per registered run of cells. Beyond `RowLimit` the rows still record and still
     //    take, on the row body's shared identity — a reduction, not a defect.
     std::uint32_t ShownCount = 0u;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Arrangement.EntryCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Arrangement.EntryCount; ++Index)
     {
         // 📐 A retention run opens every folder it reaches into, so it is asked instead of the disclosure.
         const bool Retaining = Applied.Retention[0] != '\0';
-        const bool Shown  = Retaining ? EntryRetained(Arrangement, Ordinal, Applied.Retention)
-                                         : EntryCurrent(Arrangement, Ordinal);
+        const bool Shown  = Retaining ? EntryRetained(Arrangement, Index, Applied.Retention)
+                                         : EntryCurrent(Arrangement, Index);
 
         if (!Shown)
             continue;
 
-        const LayerEntry& Entry  = Arrangement.Entries[Ordinal];
+        const LayerEntry& Entry  = Arrangement.Entries[Index];
         const float       Indent = static_cast<float>(Entry.Depth) * Scaled.RowStepX;
-        const std::uint32_t Cells = (ShownCount < RowCeiling) ? (ShownCount * CellsPerRow) : 0u;
-        const bool          Registered = ShownCount < RowCeiling;
+        const std::uint32_t Cells = (ShownCount < RowLimit) ? (ShownCount * CellsPerRow) : 0u;
+        const bool          Registered = ShownCount < RowLimit;
 
         ++ShownCount;
 
@@ -2198,30 +2200,30 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
 
             if (Over)
             {
-                HoveredOrdinal = Ordinal;
+                HoveredIndex = Index;
                 HoveredMask = false;
             }
 
             // 📐 A carried entry resolves its drop against whichever row it stands over. A folder crossed
             //    through its middle third is entered rather than passed — `y>.32&&y<.68`, verbatim.
-            if (Travelled && Over && Applied.Carried != Ordinal &&
-                !EntryWithin(Arrangement, Applied.Carried, Ordinal))
+            if (Travelled && Over && Applied.Carried != Index &&
+                !EntryWithin(Arrangement, Applied.Carried, Index))
             {
                 const float Fraction = (Pointer - Row.MinimumY) / Row.Height();
 
-                Destination = Ordinal;
+                Destination = Index;
                 Intent      = (Entry.Content == LayerContent::Folder && Fraction > 0.32f && Fraction < 0.68f)
                             ? DropIntent::Enclosed
                             : ((Fraction < 0.5f) ? DropIntent::Prior : DropIntent::Trailing);
             }
 
-            const bool TakenRow = Arrangement.Taken == Ordinal && Arrangement.TakenHalf == LayerTaken::Layer;
+            const bool TakenRow = Arrangement.Taken == Index && Arrangement.TakenHalf == LayerTaken::Layer;
 
-            RecordEntryRow(Row, Arrangement, Ordinal, TakenRow, Over);
+            RecordEntryRow(Row, Arrangement, Index, TakenRow, Over);
 
             // 📐 A carried entry is drawn at half coverage in place, which is what `.dragging{opacity:.4}`
             //    states, rather than being lifted to the pointer.
-            if (Travelled && Applied.Carried == Ordinal)
+            if (Travelled && Applied.Carried == Index)
                 Surface->Ground(Row, Partial(0x000000u, 0.55), 0.0f);
 
             if (Registered)
@@ -2237,7 +2239,7 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                     if (Pressed(RowCells[Cells + static_cast<std::uint32_t>(RowCell::Disclosure)],
                                 Twisty, Applied, Entry.Opened ? "Collapse" : "Expand"))
                     {
-                        Arrangement.Entries[Ordinal].Opened = !Entry.Opened;
+                        Arrangement.Entries[Index].Opened = !Entry.Opened;
                     }
                 }
 
@@ -2250,7 +2252,7 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                             Entry.Shown ? "Hide \xC2\xB7 Alt = solo" : "Show \xC2\xB7 Alt = solo"))
                 {
                     Revisions.Record(Arrangement, "Presence amended");
-                    Arrangement.Entries[Ordinal].Shown = !Entry.Shown;
+                    Arrangement.Entries[Index].Shown = !Entry.Shown;
                 }
 
                 // ⓒ The card chevron and the ellipsis, on the trailing edge.
@@ -2262,13 +2264,13 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                 if (Pressed(RowCells[Cells + static_cast<std::uint32_t>(RowCell::Unfolding)], Unfolding,
                             Applied, Entry.Unfolded ? "Hide details" : "Show details"))
                 {
-                    Arrangement.Entries[Ordinal].Unfolded = !Entry.Unfolded;
+                    Arrangement.Entries[Index].Unfolded = !Entry.Unfolded;
 
                     // 📐 `toggleCard` — opening STAGES the card so it renders closed for one frame and
                     //    departs on the next. Closing needs no stage: the fold already stands at one.
-                    if (Arrangement.Entries[Ordinal].Unfolded)
+                    if (Arrangement.Entries[Index].Unfolded)
                     {
-                        Applied.CardPending   = Ordinal;
+                        Applied.CardPending   = Index;
                         Applied.PendingOnMask = false;
                     }
                 }
@@ -2276,15 +2278,15 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                 if (Pressed(RowCells[Cells + static_cast<std::uint32_t>(RowCell::Menu)], Menu, Applied,
                             "Layer menu"))
                 {
-                    Arrangement.Taken     = Ordinal;
+                    Arrangement.Taken     = Index;
                     Arrangement.TakenHalf = LayerTaken::Layer;
                     Applied.Popup          = StackPopup::LayerMenu;
-                    Applied.PopupSubject   = Ordinal;
+                    Applied.PopupSubject   = Index;
                     Applied.PopupOnMask    = false;
                     Applied.PopupX     = Menu.MaximumX;
                     Applied.PopupHeight    = Menu.MaximumY + 6.0f;
                     Applied.PopupOffset    = 0.0f;
-                    Ledger->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
+                    Interaction->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
                 }
             }
         }
@@ -2296,8 +2298,8 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
         //    closing traverse is drawn to its end. A card recorded only while unfolded vanishes on the
         //    tick the flag clears and never animates shut.
         {
-            const bool  Staged  = (Staging == Ordinal) && !Applied.PendingOnMask;
-            const float Opening = CardOpening(Applied.CardFold[Ordinal], Entry.Unfolded, Staged, Elapsed);
+            const bool  Staged  = (Staging == Index) && !Applied.PendingOnMask;
+            const float Opening = CardOpening(Applied.CardFold[Index], Entry.Unfolded, Staged, Elapsed);
 
             if (Opening > 0.0f)
             {
@@ -2305,7 +2307,7 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                 //    extent the fold multiplies is the extent the content actually occupies.
                 const PlaneExtent Measuring = Spanning(Stack.MinimumX + Scaled.StackPadX + Indent,
                                                        Y, RowX - Indent, 0.0f);
-                const float Full = RecordEntryCard(Measuring, Arrangement, Ordinal, Applied, Revisions, false);
+                const float Full = RecordEntryCard(Measuring, Arrangement, Index, Applied, Revisions, false);
                 const float Open = Full * Opening;
 
                 const PlaneExtent Card = Spanning(Stack.MinimumX + Scaled.StackPadX + Indent,
@@ -2319,7 +2321,7 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                     Surface->Confine(Card);
 
                     const PlaneExtent Whole = Spanning(Card.MinimumX, Y, Card.Width(), Full);
-                    (void) RecordEntryCard(Whole, Arrangement, Ordinal, Applied, Revisions, true);
+                    (void) RecordEntryCard(Whole, Arrangement, Index, Applied, Revisions, true);
 
                     Surface->Release();
                     Surface->Edge(Card, Tinted.Stroke, 1.0f, Scaled.RadiusStandard);
@@ -2342,12 +2344,12 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
 
                 if (Over)
                 {
-                    HoveredOrdinal = Ordinal;
+                    HoveredIndex = Index;
                     HoveredMask = true;
                 }
 
                 RecordMaskRow(MaskRow, Entry,
-                              Arrangement.Taken == Ordinal && Arrangement.TakenHalf == LayerTaken::Mask, Over);
+                              Arrangement.Taken == Index && Arrangement.TakenHalf == LayerTaken::Mask, Over);
 
                 if (Registered)
                 {
@@ -2360,7 +2362,7 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                                 MaskEye, Applied, Entry.Mask.Shown ? "Disable mask" : "Enable mask"))
                     {
                         Revisions.Record(Arrangement, "Mask presence amended");
-                        Arrangement.Entries[Ordinal].Mask.Shown = !Entry.Mask.Shown;
+                        Arrangement.Entries[Index].Mask.Shown = !Entry.Mask.Shown;
                     }
 
                     const PlaneExtent MaskUnfold = Squared(MaskRow.MaximumX - Scaled.ActionExtent * 1.5f,
@@ -2371,11 +2373,11 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                     if (Pressed(RowCells[Cells + static_cast<std::uint32_t>(RowCell::MaskUnfold)],
                                 MaskUnfold, Applied, "Mask details"))
                     {
-                        Arrangement.Entries[Ordinal].Mask.Unfolded = !Entry.Mask.Unfolded;
+                        Arrangement.Entries[Index].Mask.Unfolded = !Entry.Mask.Unfolded;
 
-                        if (Arrangement.Entries[Ordinal].Mask.Unfolded)
+                        if (Arrangement.Entries[Index].Mask.Unfolded)
                         {
-                            Applied.CardPending   = Ordinal;
+                            Applied.CardPending   = Index;
                             Applied.PendingOnMask = true;
                         }
                     }
@@ -2383,15 +2385,15 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                     if (Pressed(RowCells[Cells + static_cast<std::uint32_t>(RowCell::MaskMenu)],
                                 MaskMenu, Applied, "Mask menu"))
                     {
-                        Arrangement.Taken     = Ordinal;
+                        Arrangement.Taken     = Index;
                         Arrangement.TakenHalf = LayerTaken::Mask;
                         Applied.Popup          = StackPopup::MaskMenu;
-                        Applied.PopupSubject   = Ordinal;
+                        Applied.PopupSubject   = Index;
                         Applied.PopupOnMask    = true;
                         Applied.PopupX     = MaskMenu.MaximumX;
                         Applied.PopupHeight    = MaskMenu.MaximumY + 6.0f;
                         Applied.PopupOffset    = 0.0f;
-                        Ledger->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
+                        Interaction->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
                     }
                 }
             }
@@ -2399,8 +2401,8 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
             Y += Scaled.MaskRowHeight + 4.0f;
 
             // ⓔ `maskCard(n)` — the mask's own card, on the same fold as the entry's.
-            const bool  MaskStaged  = (Staging == Ordinal) && Applied.PendingOnMask;
-            const float MaskOpening = CardOpening(Applied.MaskFold[Ordinal], Entry.Mask.Unfolded,
+            const bool  MaskStaged  = (Staging == Index) && Applied.PendingOnMask;
+            const float MaskOpening = CardOpening(Applied.MaskFold[Index], Entry.Mask.Unfolded,
                                                   MaskStaged, Elapsed);
 
             if (MaskOpening > 0.0f)
@@ -2408,7 +2410,7 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                 const float MaskLead = Indent + Scaled.MaskLeadX;
                 const PlaneExtent Measuring = Spanning(Stack.MinimumX + Scaled.StackPadX + MaskLead,
                                                        Y, RowX - MaskLead, 0.0f);
-                const float Full = RecordMaskCard(Measuring, Arrangement, Ordinal, Applied, Revisions, false);
+                const float Full = RecordMaskCard(Measuring, Arrangement, Index, Applied, Revisions, false);
                 const float Open = Full * MaskOpening;
 
                 const PlaneExtent Card = Spanning(Stack.MinimumX + Scaled.StackPadX + MaskLead,
@@ -2420,7 +2422,7 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                     Surface->Confine(Card);
 
                     const PlaneExtent Whole = Spanning(Card.MinimumX, Y, Card.Width(), Full);
-                    (void) RecordMaskCard(Whole, Arrangement, Ordinal, Applied, Revisions, true);
+                    (void) RecordMaskCard(Whole, Arrangement, Index, Applied, Revisions, true);
 
                     Surface->Release();
                     Surface->Edge(Card, Tinted.Stroke, 1.0f, Scaled.RadiusStandard);
@@ -2431,12 +2433,12 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
         }
 
         // 📐 The drop rule is recorded AFTER its row so it lies over the row's own ground.
-        if (Destination == Ordinal && Intent != DropIntent::Absent)
+        if (Destination == Index && Intent != DropIntent::Absent)
             RecordDropMark(Row, Intent);
     }
 
     Applied.StackSpan   = (Y + Applied.StackOffset) - (Stack.MinimumY + Scaled.StackPadY);
-    Applied.Hovered     = HoveredOrdinal;
+    Applied.Hovered     = HoveredIndex;
     Applied.HoveredMask = HoveredMask;
     Applied.Destination = Destination;
     Applied.Intent      = Intent;
@@ -2445,14 +2447,14 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
 
     // ⑤ The scroll bar, recorded only when the run overflows its extent, and draggable in place.
     const float Visible = Stack.Height();
-    const float Ceiling = (Applied.StackSpan > Visible) ? (Applied.StackSpan - Visible) : 0.0f;
+    const float Limit = (Applied.StackSpan > Visible) ? (Applied.StackSpan - Visible) : 0.0f;
 
-    if (Ceiling > 0.0f && Visible > 0.0f)
+    if (Limit > 0.0f && Visible > 0.0f)
     {
         const float Fraction    = Visible / Applied.StackSpan;
         const float ThumbHeight = (Visible * Fraction < 28.0f) ? 28.0f : Visible * Fraction;
         const float Travel      = Visible - ThumbHeight;
-        const float Advanced    = Applied.StackOffset / Ceiling;
+        const float Advanced    = Applied.StackOffset / Limit;
 
         const PlaneExtent Bar   = Spanning(Stack.MaximumX - Scaled.ScrollX, Stack.MinimumY,
                                            Scaled.ScrollX, Visible);
@@ -2461,28 +2463,28 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
 
         ControlIdentity& Target = ChromeCells[static_cast<std::uint32_t>(ChromeCell::ScrollThumb)];
 
-        if (Hovered(Bar) && Sampled.ContactPressed && !Ledger->AnyDisclosed())
+        if (Hovered(Bar) && Sampled.ContactPressed && !Interaction->AnyDisclosed())
         {
-            Ledger->Grab(Target, ControlPart::Thumb);
-            Ledger->RecordInitial(Target, Applied.StackOffset);
+            Interaction->Grab(Target, ControlPart::Thumb);
+            Interaction->RecordInitial(Target, Applied.StackOffset);
         }
 
-        Ledger->DeclareHovered(Target, Hovered(Bar), HoverOver);
+        Interaction->DeclareHovered(Target, Hovered(Bar), HoverOver);
 
-        // 📐 The bar travels `Travel` pixels while the run travels `Ceiling`, so the pointer's own travel
+        // 📐 The bar travels `Travel` pixels while the run travels `Limit`, so the pointer's own travel
         //    is scaled by their ratio rather than applied to the offset directly.
-        if (Ledger->Holding(Target) && Travel > 0.0f)
+        if (Interaction->Holding(Target) && Travel > 0.0f)
         {
-            const Outcome<float> Previous = Ledger->InitialReading(Target);
+            const Outcome<float> Previous = Interaction->InitialReading(Target);
 
             if (Previous.Resolved)
             {
-                const float Moved = Sampled.PositionY - Ledger->OriginY();
-                Applied.StackOffset = Previous.Resolve() + Moved * (Ceiling / Travel);
+                const float Moved = Sampled.PositionY - Interaction->OriginY();
+                Applied.StackOffset = Previous.Resolve() + Moved * (Limit / Travel);
             }
         }
 
-        Surface->Ground(Thumb, Partial(0xFFFFFFu, Ledger->Holding(Target) ? 0.30 : 0.15), 2.0f);
+        Surface->Ground(Thumb, Partial(0xFFFFFFu, Interaction->Holding(Target) ? 0.30 : 0.15), 2.0f);
     }
 
     // ⑥ The wheel, which the stack answers itself because the seam carries no scrolling primitive.
@@ -2490,21 +2492,21 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
         Applied.StackOffset -= Sampled.WheelY * NotchHeight;
 
     if (Applied.StackOffset < 0.0f)      Applied.StackOffset = 0.0f;
-    if (Applied.StackOffset > Ceiling)   Applied.StackOffset = Ceiling;
+    if (Applied.StackOffset > Limit)   Applied.StackOffset = Limit;
 
     // ⑦ What the artist takes, and what the artist carries. Both resolve off the SAME contact: a contact
     //    that arrived over a row and travelled beyond the carry floor is a drag, and one that did not is a
     //    take — which is exactly the separation `GestureTolerance` states and the reference gets from the
     //    window system's own drag threshold.
-    if (Sampled.ContactPressed && HoveredOrdinal < Arrangement.EntryCount && !Ledger->AnyDisclosed())
+    if (Sampled.ContactPressed && HoveredIndex < Arrangement.EntryCount && !Interaction->AnyDisclosed())
     {
-        Arrangement.Taken     = HoveredOrdinal;
+        Arrangement.Taken     = HoveredIndex;
         Arrangement.TakenHalf = HoveredMask ? LayerTaken::Mask : LayerTaken::Layer;
 
         // 📐 A secured entry refuses to be carried — `draggable="${n.lock?'false':'true'}"`.
-        if (!HoveredMask && !Arrangement.Entries[HoveredOrdinal].Secured)
+        if (!HoveredMask && !Arrangement.Entries[HoveredIndex].Secured)
         {
-            Applied.Carried     = HoveredOrdinal;
+            Applied.Carried     = HoveredIndex;
             Applied.CarryOrigin = Pointer;
         }
     }
@@ -2525,8 +2527,8 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                 Revisions.Revert(Arrangement);
         }
 
-        Applied.Carried     = LayerStackCeiling::AbsentOrdinal;
-        Applied.Destination = LayerStackCeiling::AbsentOrdinal;
+        Applied.Carried     = LayerStackLimit::AbsentIndex;
+        Applied.Destination = LayerStackLimit::AbsentIndex;
         Applied.Intent      = DropIntent::Absent;
     }
 
@@ -2562,7 +2564,7 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
             Applied.PopupX   = Blend.MinimumX;
             Applied.PopupHeight  = Blend.MinimumY - 6.0f;
             Applied.PopupOffset  = 0.0f;
-            Ledger->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
+            Interaction->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
         }
 
         const bool BlendHovered = Hovered(Blend);
@@ -2593,7 +2595,7 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
 
             // 📐 One revision per drag and not one per tick — recorded on the incoming edge alone, which
             //    is what `pointerdown → snap()` states and what keeps the ring from filling in a second.
-            if (Hovered(Track) && Sampled.ContactPressed && !Ledger->AnyDisclosed())
+            if (Hovered(Track) && Sampled.ContactPressed && !Interaction->AnyDisclosed())
                 Revisions.Record(Arrangement, OnMask ? "Mask density moved" : "Opacity amended");
 
             if (Dragged(Target, Track, Reading) && Reading == Prior)
@@ -2604,7 +2606,7 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
 
             // 📐 The thumb, drawn only while the run is hovered or held, as `.rng::-webkit-slider-thumb`
             //    is scaled from zero on hover.
-            if (Hovered(Track) || Ledger->Holding(Target))
+            if (Hovered(Track) || Interaction->Holding(Target))
             {
                 const float Bounds = MeterTop + (MeterMaximum - MeterTop) *
                                    static_cast<float>(Reading) * 0.01f;
@@ -2631,7 +2633,7 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
 void LayerStackPanel::RecordChannelProperties(const PlaneExtent& Extent, LayerArrangement& Arrangement,
                                               LayerStackContext& Applied, RevisionSequence& Revisions)
 {
-    if (Surface == nullptr || Ledger == nullptr || !Surface->Recording())
+    if (Surface == nullptr || Interaction == nullptr || !Surface->Recording())
         return;
 
     Surface->Ground(Extent, Tinted.Panel);
@@ -2669,7 +2671,7 @@ void LayerStackPanel::RecordChannelProperties(const PlaneExtent& Extent, LayerAr
 
     float ChipX = Extent.MinimumX + Scaled.CardPadX;
 
-    for (std::uint32_t Channel = 0u; Channel < LayerStackCeiling::Channels; ++Channel)
+    for (std::uint32_t Channel = 0u; Channel < LayerStackLimit::Channels; ++Channel)
     {
         if (!Entry.Channels[Channel].Enabled)
             continue;
@@ -2700,7 +2702,7 @@ void LayerStackPanel::RecordChannelProperties(const PlaneExtent& Extent, LayerAr
     RecordSectionHead(Inset(BlendingHead, Scaled.CardPadX, 0.0f), "Channel Blending", nullptr, true);
     Y += Scaled.SectionHeight + 2.0f;
 
-    for (std::uint32_t Channel = 0u; Channel < LayerStackCeiling::Channels; ++Channel)
+    for (std::uint32_t Channel = 0u; Channel < LayerStackLimit::Channels; ++Channel)
     {
         ChannelCoordinate&  Reading8 = Entry.Channels[Channel];
         const PlaneExtent Row      = Spanning(Extent.MinimumX + Scaled.CardPadX, Y,
@@ -2754,7 +2756,7 @@ void LayerStackPanel::RecordChannelProperties(const PlaneExtent& Extent, LayerAr
             Applied.PopupX   = BlendRun.MaximumX;
             Applied.PopupHeight  = BlendRun.MaximumY + 6.0f;
             Applied.PopupOffset  = 0.0f;
-            Ledger->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
+            Interaction->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
         }
 
         if (Hovered(BlendRun))
@@ -2772,7 +2774,7 @@ void LayerStackPanel::RecordChannelProperties(const PlaneExtent& Extent, LayerAr
             ControlIdentity& Target =
                 RowCells[Channel * CellsPerRow + static_cast<std::uint32_t>(RowCell::Opacity)];
 
-            if (Hovered(Track) && Sampled.ContactPressed && !Ledger->AnyDisclosed())
+            if (Hovered(Track) && Sampled.ContactPressed && !Interaction->AnyDisclosed())
                 Revisions.Record(Arrangement, "Channel opacity amended");
 
             Dragged(Target, Track, Reading8.Opacity);
@@ -2797,7 +2799,7 @@ void LayerStackPanel::RecordChannelProperties(const PlaneExtent& Extent, LayerAr
 
     char Footing[48] = {};
     std::snprintf(Footing, sizeof Footing, "%u channels  \xC2\xB7  %u atlases",
-                  ChannelsEnabled(Entry), LayerStackCeiling::AtlasTotal);
+                  ChannelsEnabled(Entry), LayerStackLimit::AtlasTotal);
     Surface->TextRun(Foot.MinimumX + Scaled.FootPadX,
                      Foot.MinimumY + (26.0f - Surface->LineHeight(Scaled.RunFine)) * 0.5f,
                      Tinted.Faint, Footing, Scaled.RunFine);
@@ -2812,7 +2814,7 @@ void LayerStackPanel::RecordChannelProperties(const PlaneExtent& Extent, LayerAr
 void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, LayerArrangement& Arrangement,
                                            LayerStackContext& Applied, RevisionSequence& Revisions)
 {
-    if (Surface == nullptr || Ledger == nullptr || !Surface->Recording())
+    if (Surface == nullptr || Interaction == nullptr || !Surface->Recording())
         return;
 
     Surface->Ground(Extent, Tinted.Panel);
@@ -2881,12 +2883,10 @@ void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, LayerArran
     Y = RecordReadingRow(PlaneExtent{ Body.MinimumX, Y, Body.MaximumX,
                                            Y + Scaled.FieldHeight }, "Blend", Mask.Blend);
 
-    const PlaneExtent DensityRow = PlaneExtent{ Body.MinimumX, Y, Body.MaximumX,
-                                                Y + Scaled.FieldHeight };
     Surface->TextRun(Body.MinimumX, Y + 8.0f, Tinted.Faint, "Density", Scaled.RunSub);
     const PlaneExtent DensityTrack = PlaneExtent{ Body.MinimumX + 96.0f, Y + 4.0f,
                                                   Body.MaximumX - 44.0f, Y + Scaled.FieldHeight - 4.0f };
-    if (Hovered(DensityTrack) && Sampled.ContactPressed && !Ledger->AnyDisclosed())
+    if (Hovered(DensityTrack) && Sampled.ContactPressed && !Interaction->AnyDisclosed())
         Revisions.Record(Arrangement, "Mask density amended");
     Dragged(RowCells[static_cast<std::uint32_t>(RowCell::Opacity)], DensityTrack, Mask.Density);
     RecordMeter(DensityTrack, Mask.Density, Tinted.Accent);
@@ -2929,14 +2929,14 @@ void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, LayerArran
                           ParameterReading, true);
         Y += Scaled.SectionHeight + 4.0f;
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < Mask.ParameterCount; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < Mask.ParameterCount; ++Index)
         {
-            ParameterCoordinate& Parameter = Mask.Parameters[Ordinal];
+            ParameterCoordinate& Parameter = Mask.Parameters[Index];
             const float        Middle    = Y + Scaled.FieldHeight * 0.5f;
 
             // 📐 One registered run of cells per parameter, beyond the eight the channel rows take.
-            const std::uint32_t Cells = (LayerStackCeiling::Channels + Ordinal < RowCeiling)
-                                      ? (LayerStackCeiling::Channels + Ordinal) * CellsPerRow
+            const std::uint32_t Cells = (LayerStackLimit::Channels + Index < RowLimit)
+                                      ? (LayerStackLimit::Channels + Index) * CellsPerRow
                                       : 0u;
 
             Surface->TextRunTruncated(Body.MinimumX, Middle - Surface->LineHeight(Scaled.RunSub) * 0.5f,
@@ -2977,18 +2977,18 @@ void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, LayerArran
                     const PlaneExtent Track = PlaneExtent{ Body.MinimumX + 104.0f, Y + 3.0f,
                                                            Body.MaximumX - 44.0f, Y + Scaled.FieldHeight - 3.0f };
 
-                    auto Reading = (Span > 0.0)
+                    auto SliderPercent = (Span > 0.0)
                                  ? static_cast<std::uint32_t>((Parameter.Current - Parameter.Minimum) / Span * 100.0)
                                  : 0u;
 
                     ControlIdentity& Target =
                         RowCells[Cells + static_cast<std::uint32_t>(RowCell::Opacity)];
 
-                    if (Hovered(Track) && Sampled.ContactPressed && !Ledger->AnyDisclosed())
+                    if (Hovered(Track) && Sampled.ContactPressed && !Interaction->AnyDisclosed())
                         Revisions.Record(Arrangement, "Parameter amended");
 
-                    if (Dragged(Target, Track, Reading))
-                        Parameter.Current = Parameter.Minimum + Span * static_cast<double>(Reading) * 0.01;
+                    if (Dragged(Target, Track, SliderPercent))
+                        Parameter.Current = Parameter.Minimum + Span * static_cast<double>(SliderPercent) * 0.01;
                 }
 
                 const double Fraction = (Span > 0.0) ? ((Parameter.Current - Parameter.Minimum) / Span) : 0.0;
@@ -3019,10 +3019,10 @@ void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, LayerArran
         float ChipX  = Body.MinimumX;
         bool  AnyAbsent  = false;
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < Mask.MeshMapCount; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < Mask.MeshMapCount; ++Index)
         {
-            const bool  Transferred = Mask.MeshMapTransferred[Ordinal];
-            const char* Caption     = Mask.MeshMaps[Ordinal];
+            const bool  Transferred = Mask.MeshMapTransferred[Index];
+            const char* Caption     = Mask.MeshMaps[Index];
             const float X       = Surface->MeasureRun(Caption, Scaled.RunFine) + 24.0f;
 
             if (!Transferred)
@@ -3039,12 +3039,12 @@ void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, LayerArran
             // 📐 `data-dact="bake"` — a contact on an untransferred chip transfers that one map. The
             //    reference offers only "transfer all missing"; per-chip is the same command at the
             //    granularity the chip already presents, and the row's own chip is where an artist aims.
-            if (Pressed(RowCells[(LayerStackCeiling::Channels + Ordinal) % RowCeiling * CellsPerRow +
+            if (Pressed(RowCells[(LayerStackLimit::Channels + Index) % RowLimit * CellsPerRow +
                                  static_cast<std::uint32_t>(RowCell::MaskBody)], Chip, Applied,
                         Transferred ? "Transferred" : "Transfer this mesh map"))
             {
                 Revisions.Record(Arrangement, "Mesh map transferred");
-                Mask.MeshMapTransferred[Ordinal] = !Transferred;
+                Mask.MeshMapTransferred[Index] = !Transferred;
             }
 
             Surface->Ground(Chip, Partial(0xFFFFFFu, Hovered(Chip) ? 0.11 : 0.05), 9.0f);
@@ -3076,7 +3076,7 @@ void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, LayerArran
 
     float AppliesX = Body.MinimumX;
 
-    for (std::uint32_t Channel = 0u; Channel < LayerStackCeiling::Channels; ++Channel)
+    for (std::uint32_t Channel = 0u; Channel < LayerStackLimit::Channels; ++Channel)
     {
         const bool  Reached = Mask.ChannelApplied[Channel];
         const char* Caption = ChannelNaming()[Channel];
@@ -3117,7 +3117,7 @@ void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, LayerArran
 void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, LayerArrangement& Arrangement,
                                      LayerStackContext& Applied, RevisionSequence& Revisions)
 {
-    if (Surface == nullptr || !Surface->Recording() || Ledger == nullptr)
+    if (Surface == nullptr || !Surface->Recording() || Interaction == nullptr)
         return;
 
     Surface->Ground(Extent, Tinted.Panel);
@@ -3209,7 +3209,7 @@ void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, LayerArrangemen
                        Revisions.RecordedCount() > 0u, "Revert the last amendment"))
         {
             Revisions.Revert(Arrangement);
-            Applied.RevisionShown = LayerStackCeiling::AbsentOrdinal;
+            Applied.RevisionShown = LayerStackLimit::AbsentIndex;
             Applied.RevisionField = 0u;
         }
 
@@ -3217,7 +3217,7 @@ void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, LayerArrangemen
                        Revisions.ReinstatableCount() > 0u, "Reinstate what was reverted"))
         {
             Revisions.Reinstate(Arrangement);
-            Applied.RevisionShown = LayerStackCeiling::AbsentOrdinal;
+            Applied.RevisionShown = LayerStackLimit::AbsentIndex;
             Applied.RevisionField = 0u;
         }
     }
@@ -3254,10 +3254,10 @@ void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, LayerArrangemen
 
     // 📐 One card, recorded the same way whether its reading came from the ring or from the applied
     //    reference run. The reference draws both out of one `tokenRevisions.map`, so they share a body.
-    const auto RecordCard = [&](std::uint32_t Ordinal, const char* Naming, const char* Moment,
+    const auto RecordCard = [&](std::uint32_t Index, const char* Naming, const char* Moment,
                                 const char* Detail, bool SecondCurrent) -> void
     {
-        const bool  Shown = Applied.RevisionShown == Ordinal;
+        const bool  Shown = Applied.RevisionShown == Index;
         const float Folded = Shown ? RevisionFoldHeight : 0.0f;
         const float Whole  = RevisionCardHeight + Folded;
 
@@ -3273,8 +3273,8 @@ void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, LayerArrangemen
 
         if (!Surface->Excluded(Whole2))
         {
-            const bool First = Ordinal == 0u;
-            const bool Last  = Ordinal + 1u == Current;
+            const bool First = Index == 0u;
+            const bool Last  = Index + 1u == Current;
 
             // 📐 The spine is its own flex column and runs the WHOLE row, the card's trailing padding
             //    included — so the gap between two cards carries spine and not ground. It starts at the
@@ -3297,8 +3297,8 @@ void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, LayerArrangemen
             const PlaneExtent Medallion = Squared(Run.MinimumX + 16.0f, Y + 19.0f, 25.0f);
             Surface->Ground(Medallion, SecondCurrent ? Tinted.Accent : Partial(0xFFFFFFu, 0.16), 12.5f);
 
-            char Numbered[4] = { static_cast<char>('0' + static_cast<char>((Ordinal / 10u) % 10u)),
-                                 static_cast<char>('0' + static_cast<char>(Ordinal % 10u)), '\0', '\0' };
+            char Numbered[4] = { static_cast<char>('0' + static_cast<char>((Index / 10u) % 10u)),
+                                 static_cast<char>('0' + static_cast<char>(Index % 10u)), '\0', '\0' };
 
             Surface->TextRun(Medallion.MinimumX +
                              (25.0f - Surface->MeasureRun(Numbered, Scaled.RunFine)) * 0.5f,
@@ -3307,11 +3307,11 @@ void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, LayerArrangemen
                              0.0f, true);
         }
 
-        // 📐 The card itself, pressed to unfold. Only the first `RevisionCeiling` entries carry a cell;
+        // 📐 The card itself, pressed to unfold. Only the first `RevisionLimit` entries carry a cell;
         //    beyond that the pane still draws but no longer arbitrates, which is what a ceiling is for.
         bool Taken = false;
 
-        if (Registered < RevisionCellCeiling)
+        if (Registered < RevisionCellLimit)
         {
             Taken = Pressed(RevisionCells[Registered], Card, Applied,
                             Shown ? "Fold this revision" : "Unfold this revision");
@@ -3320,7 +3320,7 @@ void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, LayerArrangemen
 
         if (Taken)
         {
-            Applied.RevisionShown = Shown ? LayerStackCeiling::AbsentOrdinal : Ordinal;
+            Applied.RevisionShown = Shown ? LayerStackLimit::AbsentIndex : Index;
             Applied.RevisionField = 0u;
         }
 
@@ -3393,7 +3393,7 @@ void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, LayerArrangemen
         {
             const bool Holding = Applied.RevisionField == Which;
 
-            if (Registered < RevisionCellCeiling &&
+            if (Registered < RevisionCellLimit &&
                 Pressed(RevisionCells[Registered], Bounds, Applied, nullptr))
             {
                 Applied.RevisionField = Holding ? 0u : Which;
@@ -3404,7 +3404,7 @@ void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, LayerArrangemen
                 Applied.RevisionField = 0u;
             }
 
-            if (Registered < RevisionCellCeiling)
+            if (Registered < RevisionCellLimit)
                 ++Registered;
 
             Surface->Ground(Bounds, Tinted.PanelRaised, Scaled.RadiusSmall);
@@ -3431,8 +3431,8 @@ void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, LayerArrangemen
 
         // 📐 The retained run is the field's key as well as its seat, so a card beyond the ceiling folds
         //    into the last retained pair rather than writing past the end of either run.
-        const std::uint32_t Held = (Ordinal < LayerStackContext::RevisionCeiling)
-                                 ? Ordinal : (LayerStackContext::RevisionCeiling - 1u);
+        const std::uint32_t Held = (Index < LayerStackContext::RevisionLimit)
+                                 ? Index : (LayerStackContext::RevisionLimit - 1u);
 
         const PlaneExtent Remark = Spanning(Fold.MinimumX + 7.0f, Fold.MinimumY + 24.0f,
                                             Fold.Width() - 14.0f, 36.0f);
@@ -3453,17 +3453,17 @@ void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, LayerArrangemen
         Y += Whole + RevisionGapY;
     };
 
-    std::uint32_t Ordinal = 0u;
+    std::uint32_t Index = 0u;
 
     // 📐 What the artist has actually amended this session stands above the applied reference run, newest
     //    first, so the pane reads as one continuous record rather than as two.
-    for (std::uint32_t Recorded = 0u; Recorded < Revisions.RecordedCount(); ++Recorded, ++Ordinal)
-        RecordCard(Ordinal, Revisions.RevisionNaming(Recorded), "this session", nullptr, Ordinal == 0u);
+    for (std::uint32_t Recorded = 0u; Recorded < Revisions.RecordedCount(); ++Recorded, ++Index)
+        RecordCard(Index, Revisions.RevisionNaming(Recorded), "this session", nullptr, Index == 0u);
 
-    for (std::uint32_t Bounds = 0u; Bounds < Count; ++Bounds, ++Ordinal)
+    for (std::uint32_t Bounds = 0u; Bounds < Count; ++Bounds, ++Index)
     {
-        RecordCard(Ordinal, Reference[Bounds].Naming, Reference[Bounds].Moment, Reference[Bounds].Detail,
-                   Ordinal == 0u);
+        RecordCard(Index, Reference[Bounds].Naming, Reference[Bounds].Moment, Reference[Bounds].Detail,
+                   Index == 0u);
     }
 
     Applied.RevisionSpan = (Y + Applied.RevisionOffset) - (Run.MinimumY + Scaled.StackPadY);
@@ -3473,14 +3473,14 @@ void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, LayerArrangemen
     // ④ The pane's own bar and wheel, on the same terms the stack's are — the seam carries no scrolling
     //    primitive, so a pane that overflows answers for itself.
     const float Visible = Run.Height();
-    const float Ceiling = (Applied.RevisionSpan > Visible) ? (Applied.RevisionSpan - Visible) : 0.0f;
+    const float Limit = (Applied.RevisionSpan > Visible) ? (Applied.RevisionSpan - Visible) : 0.0f;
 
-    if (Ceiling > 0.0f && Visible > 0.0f)
+    if (Limit > 0.0f && Visible > 0.0f)
     {
         const float Fraction    = Visible / Applied.RevisionSpan;
         const float ThumbHeight = (Visible * Fraction < 28.0f) ? 28.0f : Visible * Fraction;
         const float Travel      = Visible - ThumbHeight;
-        const float Advanced    = Applied.RevisionOffset / Ceiling;
+        const float Advanced    = Applied.RevisionOffset / Limit;
 
         const PlaneExtent Track = Spanning(Run.MaximumX - Scaled.ScrollX, Run.MinimumY,
                                            Scaled.ScrollX, Visible);
@@ -3489,33 +3489,33 @@ void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, LayerArrangemen
 
         ControlIdentity& Target = ChromeCells[static_cast<std::uint32_t>(ChromeCell::RevisionBar)];
 
-        if (Hovered(Track) && Sampled.ContactPressed && !Ledger->AnyDisclosed())
+        if (Hovered(Track) && Sampled.ContactPressed && !Interaction->AnyDisclosed())
         {
-            Ledger->Grab(Target, ControlPart::Thumb);
-            Ledger->RecordInitial(Target, Applied.RevisionOffset);
+            Interaction->Grab(Target, ControlPart::Thumb);
+            Interaction->RecordInitial(Target, Applied.RevisionOffset);
         }
 
-        Ledger->DeclareHovered(Target, Hovered(Track), HoverOver);
+        Interaction->DeclareHovered(Target, Hovered(Track), HoverOver);
 
-        if (Ledger->Holding(Target) && Travel > 0.0f)
+        if (Interaction->Holding(Target) && Travel > 0.0f)
         {
-            const Outcome<float> Previous = Ledger->InitialReading(Target);
+            const Outcome<float> Previous = Interaction->InitialReading(Target);
 
             if (Previous.Resolved)
             {
-                const float Moved  = Sampled.PositionY - Ledger->OriginY();
-                Applied.RevisionOffset = Previous.Resolve() + Moved * (Ceiling / Travel);
+                const float Moved  = Sampled.PositionY - Interaction->OriginY();
+                Applied.RevisionOffset = Previous.Resolve() + Moved * (Limit / Travel);
             }
         }
 
-        Surface->Ground(Thumb, Partial(0xFFFFFFu, Ledger->Holding(Target) ? 0.30 : 0.15), 2.0f);
+        Surface->Ground(Thumb, Partial(0xFFFFFFu, Interaction->Holding(Target) ? 0.30 : 0.15), 2.0f);
     }
 
     if (Run.Encloses(Sampled.PositionX, Sampled.PositionY) && Applied.Popup == StackPopup::Absent)
         Applied.RevisionOffset -= Sampled.WheelY * NotchHeight;
 
     if (Applied.RevisionOffset < 0.0f)      Applied.RevisionOffset = 0.0f;
-    if (Applied.RevisionOffset > Ceiling)   Applied.RevisionOffset = Ceiling;
+    if (Applied.RevisionOffset > Limit)   Applied.RevisionOffset = Limit;
 
     Surface->Release();
 }
@@ -3583,7 +3583,7 @@ static std::uint32_t CombineTint(float Hue, float Saturation, float Luminance)
 void LayerStackPanel::RecordDeferred(LayerArrangement& Arrangement, LayerStackContext& Applied,
                                      RevisionSequence& Revisions)
 {
-    if (Surface == nullptr || Ledger == nullptr || !Surface->Recording())
+    if (Surface == nullptr || Interaction == nullptr || !Surface->Recording())
         return;
 
     // ① The veil. A contact anywhere outside the standing popup dismisses it, exactly as the reference's
@@ -3597,7 +3597,7 @@ void LayerStackPanel::RecordDeferred(LayerArrangement& Arrangement, LayerStackCo
         if (!Card.Encloses(Sampled.PositionX, Sampled.PositionY))
         {
             Applied.Popup = StackPopup::Absent;
-            Ledger->Withdraw();
+            Interaction->Withdraw();
         }
     }
 
@@ -3643,8 +3643,8 @@ void LayerStackPanel::RecordDeferred(LayerArrangement& Arrangement, LayerStackCo
         //    what the twenty-nine blend modes need on a short display.
         const float DisplayY = (Surface->Display().Height > 0.0f)
                                   ? Surface->Display().Height : 1080.0f;
-        const float Ceiling       = DisplayY - 16.0f;
-        const float Current      = (Measured < Ceiling) ? Measured : ((Ceiling > 80.0f) ? Ceiling : 80.0f);
+        const float Limit       = DisplayY - 16.0f;
+        const float Current      = (Measured < Limit) ? Measured : ((Limit > 80.0f) ? Limit : 80.0f);
 
         const PlaneExtent Anchored = RecordPopupGround(Applied, Applied.PopupX, Applied.PopupHeight,
                                                        Current);
@@ -3739,15 +3739,15 @@ void LayerStackPanel::RecordDeferred(LayerArrangement& Arrangement, LayerStackCo
 
                 Caption("Add");
 
-                for (std::uint32_t Ordinal = 0u; Ordinal < 7u; ++Ordinal)
+                for (std::uint32_t Index = 0u; Index < 7u; ++Index)
                 {
-                    if (Ordinal == 4u || Ordinal == 6u)
+                    if (Index == 4u || Index == 6u)
                         Rule();
 
-                    if (Entry(Offered[Ordinal].Naming, Offered[Ordinal].Chord, false, false))
+                    if (Entry(Offered[Index].Naming, Offered[Index].Chord, false, false))
                     {
                         Revisions.Record(Arrangement, "Entry declared");
-                        DeclareEntry(Arrangement, Offered[Ordinal].Content, Declared[Ordinal]);
+                        DeclareEntry(Arrangement, Offered[Index].Content, Declared[Index]);
                     }
                 }
 
@@ -3769,16 +3769,16 @@ void LayerStackPanel::RecordDeferred(LayerArrangement& Arrangement, LayerStackCo
 
                 Caption("Blend mode");
 
-                for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+                for (std::uint32_t Index = 0u; Index < Count; ++Index)
                 {
-                    const bool Marked = std::strcmp(Offered[Ordinal], CurrentBlend) == 0;
+                    const bool Marked = std::strcmp(Offered[Index], CurrentBlend) == 0;
 
-                    if (Entry(Offered[Ordinal], nullptr, Marked, false))
+                    if (Entry(Offered[Index], nullptr, Marked, false))
                     {
                         Revisions.Record(Arrangement, "Blend restated");
 
-                        if (OnMask) Arrangement.Entries[Subject].Mask.Blend = Offered[Ordinal];
-                        else        Arrangement.Entries[Subject].Blend      = Offered[Ordinal];
+                        if (OnMask) Arrangement.Entries[Subject].Mask.Blend = Offered[Index];
+                        else        Arrangement.Entries[Subject].Blend      = Offered[Index];
                     }
                 }
 
@@ -3822,7 +3822,7 @@ void LayerStackPanel::RecordDeferred(LayerArrangement& Arrangement, LayerStackCo
                 if (Entry(Arrangement.Soloed == Subject ? "Clear solo" : "Solo", "S", false, false))
                 {
                     Arrangement.Soloed = (Arrangement.Soloed == Subject)
-                                       ? LayerStackCeiling::AbsentOrdinal : Subject;
+                                       ? LayerStackLimit::AbsentIndex : Subject;
                 }
 
                 if (Entry("Duplicate", "Cmd D", false, false))
@@ -3850,26 +3850,26 @@ void LayerStackPanel::RecordDeferred(LayerArrangement& Arrangement, LayerStackCo
                 {
                     const std::uint32_t* const Offered = AppliedColourTags();
                     const float Step = (PopupLeft - PopupPad * 2.0f - 12.0f) /
-                                       static_cast<float>(LayerStackCeiling::ColourTags);
+                                       static_cast<float>(LayerStackLimit::ColourTags);
 
-                    for (std::uint32_t Ordinal = 0u; Ordinal < LayerStackCeiling::ColourTags; ++Ordinal)
+                    for (std::uint32_t Index = 0u; Index < LayerStackLimit::ColourTags; ++Index)
                     {
                         const PlaneExtent Swatch = Spanning(Anchored.MinimumX + PopupPad + 6.0f +
-                                                            Step * static_cast<float>(Ordinal),
+                                                            Step * static_cast<float>(Index),
                                                             Y + 4.0f, Step - 2.0f, 18.0f);
 
-                        Surface->Ground(Swatch, Covering(Offered[Ordinal]), 4.0f);
+                        Surface->Ground(Swatch, Covering(Offered[Index]), 4.0f);
 
-                        if (Taken.ColourTag == Offered[Ordinal])
+                        if (Taken.ColourTag == Offered[Index])
                             Surface->Edge(Swatch, Tinted.Accent, 1.5f, 4.0f);
 
                         if (Swatch.Encloses(Sampled.PositionX, Sampled.PositionY) &&
                             Sampled.ContactReleased)
                         {
                             Revisions.Record(Arrangement, "Colour tag amended");
-                            Arrangement.Entries[Subject].ColourTag = Offered[Ordinal];
+                            Arrangement.Entries[Subject].ColourTag = Offered[Index];
                             Applied.Popup = StackPopup::Absent;
-                            Ledger->Withdraw();
+                            Interaction->Withdraw();
                         }
                     }
 
@@ -3884,7 +3884,7 @@ void LayerStackPanel::RecordDeferred(LayerArrangement& Arrangement, LayerStackCo
                     Applied.Popup        = StackPopup::ColourWheel;
                     Applied.PopupSubject = Subject;
                     Applied.PopupOffset  = 0.0f;
-                    Ledger->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
+                    Interaction->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
                 }
 
                 Rule();
@@ -3925,9 +3925,9 @@ void LayerStackPanel::RecordDeferred(LayerArrangement& Arrangement, LayerStackCo
                 Caption("Source");
 
                 // 📐 `SRCLIST.filter(s=>s!=='Generator')` — the generator reaches the run below instead.
-                for (std::uint32_t Ordinal = 0u; Ordinal < 6u; ++Ordinal)
+                for (std::uint32_t Index = 0u; Index < 6u; ++Index)
                 {
-                    const auto Offered = static_cast<MaskSource>(Ordinal);
+                    const auto Offered = static_cast<MaskSource>(Index);
 
                     if (Entry(SourceNaming(Offered), nullptr, Mask.Source == Offered, false))
                     {
@@ -3989,9 +3989,9 @@ void LayerStackPanel::RecordDeferred(LayerArrangement& Arrangement, LayerStackCo
 
                 Caption("Add effect");
 
-                for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+                for (std::uint32_t Index = 0u; Index < Count; ++Index)
                 {
-                    if (!Entry(Offered[Ordinal], nullptr, false, false))
+                    if (!Entry(Offered[Index], nullptr, false, false))
                         continue;
 
                     Revisions.Record(Arrangement, "Effect declared");
@@ -4000,8 +4000,8 @@ void LayerStackPanel::RecordDeferred(LayerArrangement& Arrangement, LayerStackCo
                     {
                         MaskCoordinate& Mask = Arrangement.Entries[Subject].Mask;
 
-                        if (Mask.EffectCount < LayerStackCeiling::Effects)
-                            Mask.Effects[Mask.EffectCount++] = Offered[Ordinal];
+                        if (Mask.EffectCount < LayerStackLimit::Effects)
+                            Mask.Effects[Mask.EffectCount++] = Offered[Index];
                         else
                             Revisions.Revert(Arrangement);
                     }
@@ -4009,8 +4009,8 @@ void LayerStackPanel::RecordDeferred(LayerArrangement& Arrangement, LayerStackCo
                     {
                         LayerEntry& Taken = Arrangement.Entries[Subject];
 
-                        if (Taken.EffectCount < LayerStackCeiling::Effects)
-                            Taken.Effects[Taken.EffectCount++] = Offered[Ordinal];
+                        if (Taken.EffectCount < LayerStackLimit::Effects)
+                            Taken.Effects[Taken.EffectCount++] = Offered[Index];
                         else
                             Revisions.Revert(Arrangement);
                     }
@@ -4057,7 +4057,7 @@ void LayerStackPanel::RecordDeferred(LayerArrangement& Arrangement, LayerStackCo
                         };
 
                         const std::uint32_t Step  = Spoke;                       // 6 degrees each
-                        const std::uint32_t Ordinal = Step % 60u;
+                        const std::uint32_t Index = Step % 60u;
                         const auto Sines = [&](std::uint32_t Which) -> float
                         {
                             const std::uint32_t Folded = Which % 60u;
@@ -4068,8 +4068,8 @@ void LayerStackPanel::RecordDeferred(LayerArrangement& Arrangement, LayerStackCo
                             return                    -Quarter[60u - Folded];
                         };
 
-                        const float X  = Centre + Sines((Ordinal + 15u) % 60u) * (Radius - 9.0f) * Away;
-                        const float Y0 = Middle + Sines(Ordinal) * (Radius - 9.0f) * Away;
+                        const float X  = Centre + Sines((Index + 15u) % 60u) * (Radius - 9.0f) * Away;
+                        const float Y0 = Middle + Sines(Index) * (Radius - 9.0f) * Away;
 
                         Surface->Medallion(X, Y0, 5.0f, Covering(Tint));
                     }
@@ -4214,7 +4214,7 @@ void LayerStackPanel::RecordDeferred(LayerArrangement& Arrangement, LayerStackCo
                         Revisions.Record(Arrangement, "Colour tag amended");
                         Arrangement.Entries[Subject].ColourTag = Tint;
                         Applied.Popup = StackPopup::Absent;
-                        Ledger->Withdraw();
+                        Interaction->Withdraw();
                     }
 
                     Y += 32.0f;

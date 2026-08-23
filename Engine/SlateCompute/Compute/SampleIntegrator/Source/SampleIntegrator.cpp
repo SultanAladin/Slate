@@ -27,7 +27,7 @@ Outcome<bool> SampleIntegrator::Declare(const RejectionSpecification& Declaring)
             { RefusalReason::ContentUnsupported, "a depth bound of nothing refuses every history" });
     }
 
-    if (Declaring.CountCeiling == 0u)
+    if (Declaring.CountLimit == 0u)
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a ceiling of nothing accumulates nothing" });
@@ -59,7 +59,7 @@ Outcome<bool> SampleIntegrator::Contribute(RenderSchedule& Schedule) const
     Declared.CapabilityRequired = false;
     Declared.Substitution       = "";
     Declared.DisplayReferred    = false;
-    Declared.AmendmentOrdinal   = AmendmentOrdinal;
+    Declared.AmendmentIndex   = AmendmentIndex;
 
     return Schedule.Contribute(Declared);
 }
@@ -68,12 +68,12 @@ Outcome<bool> SampleIntegrator::Contribute(RenderSchedule& Schedule) const
 //                                                      THE OFFSET
 //------------------------------------------------------------------------------------------------------------------------
 
-void SampleIntegrator::OffsetOf(std::uint64_t RecordingOrdinal, double& OffsetX, double& OffsetY) const
+void SampleIntegrator::OffsetOf(std::uint64_t RecordingIndex, double& OffsetX, double& OffsetY) const
 {
     // 🔴 `02` §6's sequence and nothing invented here. `46` applies the same offset when it builds the
     //    projection and `82` replays it when it resolves a preview, so all three read one routine — a preview
     //    that converged to a different image than the workspace would be attributed to the preview.
-    ProjectSubPixelOffset(static_cast<std::uint32_t>(RecordingOrdinal % SubPixelSequenceLength), OffsetX, OffsetY);
+    ProjectSubPixelOffset(static_cast<std::uint32_t>(RecordingIndex % SubPixelSequenceLength), OffsetX, OffsetY);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -126,7 +126,7 @@ void SampleIntegrator::Accumulate(AccumulatedSample& Held,
         return;
     }
 
-    const double Weight = ProjectAccumulationWeight(Held.SampleCount, Specification.CountCeiling);
+    const double Weight = ProjectAccumulationWeight(Held.SampleCount, Specification.CountLimit);
 
     for (std::uint32_t Component = 0u; Component < 3u; ++Component)
     {
@@ -145,7 +145,7 @@ void SampleIntegrator::Accumulate(AccumulatedSample& Held,
         Held.Component[Component] = Bounded + (Incoming[Component] - Bounded) * Weight;
     }
 
-    Held.SampleCount = ProjectAccumulatedCount(Held.SampleCount, Specification.CountCeiling);
+    Held.SampleCount = ProjectAccumulatedCount(Held.SampleCount, Specification.CountLimit);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/PrecisionContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/PrecisionGuarantee.h"
+#include "Foundation/NumericTolerance.h"
 
 namespace Slate
 {

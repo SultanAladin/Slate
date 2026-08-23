@@ -159,7 +159,7 @@ void RotateSpan(RotationQuaternion Rotation,
 //                                                THE INNER SUBDIVISION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> BoundingStructure::Construct(const TopologyStructure& Imported, const TopologyConditioning& Conditioned)
+Outcome<bool> BoundingStructure::ConstructSubdivision(const TopologyStructure& Imported, const TopologyConditioning& Conditioned)
 {
     if (!Imported.Sealed())
     {
@@ -184,28 +184,28 @@ Outcome<bool> BoundingStructure::Construct(const TopologyStructure& Imported, co
     FaceFirstCorners.assign(FaceSpan, 0u);
     FaceCornerCounts.assign(FaceSpan, 0u);
 
-    for (std::uint32_t FaceOrdinal = 0u; FaceOrdinal < FaceSpan; ++FaceOrdinal)
+    for (std::uint32_t FaceIndex = 0u; FaceIndex < FaceSpan; ++FaceIndex)
     {
-        FaceFirstCorners[FaceOrdinal] = Imported.FaceFirstCorner(FaceOrdinal);
-        FaceCornerCounts[FaceOrdinal] = Imported.FaceCornerCount(FaceOrdinal);
+        FaceFirstCorners[FaceIndex] = Imported.FaceFirstCorner(FaceIndex);
+        FaceCornerCounts[FaceIndex] = Imported.FaceCornerCount(FaceIndex);
     }
 
     CornerVertices.assign(Imported.CornerCount(), 0u);
 
-    for (std::uint32_t CornerOrdinal = 0u; CornerOrdinal < Imported.CornerCount(); ++CornerOrdinal)
-        CornerVertices[CornerOrdinal] = Imported.CornerVertex(CornerOrdinal);
+    for (std::uint32_t CornerIndex = 0u; CornerIndex < Imported.CornerCount(); ++CornerIndex)
+        CornerVertices[CornerIndex] = Imported.CornerVertex(CornerIndex);
 
     // 📝 A face registered as zero-extent is excluded from the ordering rather than from the arrays. `38` §3
     //    excludes and never renumbers, so the face ordinal a hit reports is still the artist's own.
     FaceOrder.clear();
     FaceOrder.reserve(FaceSpan);
 
-    for (std::uint32_t FaceOrdinal = 0u; FaceOrdinal < FaceSpan; ++FaceOrdinal)
+    for (std::uint32_t FaceIndex = 0u; FaceIndex < FaceSpan; ++FaceIndex)
     {
-        if (Conditioned.FaceRegistered(FaceOrdinal, DegeneracySubject::ZeroExtentFace))
+        if (Conditioned.FaceRegistered(FaceIndex, DegeneracySubject::ZeroExtentFace))
             continue;
 
-        FaceOrder.push_back(FaceOrdinal);
+        FaceOrder.push_back(FaceIndex);
     }
 
     Records.clear();
@@ -215,8 +215,8 @@ Outcome<bool> BoundingStructure::Construct(const TopologyStructure& Imported, co
     Root.FaceCount = static_cast<std::uint32_t>(FaceOrder.size());
     Root.Extent    = EmptyExtent();
 
-    for (const std::uint32_t FaceOrdinal : FaceOrder)
-        Widen(Root.Extent, FaceExtents[FaceOrdinal]);
+    for (const std::uint32_t FaceIndex : FaceOrder)
+        Widen(Root.Extent, FaceExtents[FaceIndex]);
 
     Records.push_back(Root);
 
@@ -228,17 +228,17 @@ Outcome<bool> BoundingStructure::Construct(const TopologyStructure& Imported, co
     return Outcome<bool>::Result(true);
 }
 
-void BoundingStructure::Divide(std::uint32_t RecordOrdinal, std::uint32_t Depth)
+void BoundingStructure::Divide(std::uint32_t RecordIndex, std::uint32_t Depth)
 {
-    if (Depth >= SubdivisionDepthCeiling)
+    if (Depth >= SubdivisionDepthLimit)
         return;
 
-    if (Records[RecordOrdinal].FaceCount <= SubdivisionLeafCeiling)
+    if (Records[RecordIndex].FaceCount <= SubdivisionLeafLimit)
         return;
 
-    const ConditionedExtent Held      = Records[RecordOrdinal].Extent;
-    const std::uint32_t     FirstFace = Records[RecordOrdinal].FirstFace;
-    const std::uint32_t     FaceSpan  = Records[RecordOrdinal].FaceCount;
+    const ConditionedExtent Held      = Records[RecordIndex].Extent;
+    const std::uint32_t     FirstFace = Records[RecordIndex].FirstFace;
+    const std::uint32_t     FaceSpan  = Records[RecordIndex].FaceCount;
 
     const double MiddleX = (Held.Minimum.PositionX + Held.Maximum.PositionX) * 0.5;
     const double MiddleY = (Held.Minimum.PositionY + Held.Maximum.PositionY) * 0.5;
@@ -319,7 +319,7 @@ void BoundingStructure::Divide(std::uint32_t RecordOrdinal, std::uint32_t Depth)
         Records.push_back(Dividing);
     }
 
-    Records[RecordOrdinal].FirstDivided = FirstDivided;
+    Records[RecordIndex].FirstDivided = FirstDivided;
 
     for (std::uint32_t Octant = 0u; Octant < 8u; ++Octant)
     {
@@ -450,7 +450,7 @@ bool ClassifyRayTriangle(DocumentPosition Alpha, DocumentPosition Beta, Document
 
 }   // namespace
 
-void BoundingStructure::Descend(std::uint32_t     RecordOrdinal,
+void BoundingStructure::Descend(std::uint32_t     RecordIndex,
                                 DocumentPosition  Origin,
                                 double            ReciprocalX,
                                 double            ReciprocalY,
@@ -460,7 +460,7 @@ void BoundingStructure::Descend(std::uint32_t     RecordOrdinal,
                                 double            DirectionZ,
                                 FaceIntersection& Nearest) const
 {
-    const BoundingRecord& Held = Records[RecordOrdinal];
+    const BoundingRecord& Held = Records[RecordIndex];
 
     double Entering = 0.0;
     double Leaving  = 0.0;
@@ -477,9 +477,9 @@ void BoundingStructure::Descend(std::uint32_t     RecordOrdinal,
     {
         for (std::uint32_t Passed = 0u; Passed < Held.FaceCount; ++Passed)
         {
-            const std::uint32_t FaceOrdinal = FaceOrder[Held.FirstFace + Passed];
-            const std::uint32_t FirstCorner = FaceFirstCorners[FaceOrdinal];
-            const std::uint32_t CornerSpan  = FaceCornerCounts[FaceOrdinal];
+            const std::uint32_t FaceIndex = FaceOrder[Held.FirstFace + Passed];
+            const std::uint32_t FirstCorner = FaceFirstCorners[FaceIndex];
+            const std::uint32_t CornerSpan  = FaceCornerCounts[FaceIndex];
 
             // 📝 Fan-triangulated from the first corner, matching `38` §4's convention. Two triangulations of one
             //    n-gon classify its interior differently along the diagonal, and picking would then disagree with
@@ -505,10 +505,10 @@ void BoundingStructure::Descend(std::uint32_t     RecordOrdinal,
                 if (Nearest.Resolved && Distance >= Nearest.Distance)
                     continue;
 
-                Nearest.FaceOrdinal       = FaceOrdinal;
-                Nearest.CornerOrdinals[0] = AlphaCorner;
-                Nearest.CornerOrdinals[1] = BetaCorner;
-                Nearest.CornerOrdinals[2] = GammaCorner;
+                Nearest.FaceIndex       = FaceIndex;
+                Nearest.CornerIndexs[0] = AlphaCorner;
+                Nearest.CornerIndexs[1] = BetaCorner;
+                Nearest.CornerIndexs[2] = GammaCorner;
                 Nearest.Weights[0]        = Weights[0];
                 Nearest.Weights[1]        = Weights[1];
                 Nearest.Weights[2]        = Weights[2];
@@ -612,10 +612,10 @@ bool          BoundingStructure::Constructed() const { return StructureBuilt; }
 
 std::size_t OctantSpace::Located(OwnerIdentity Subject) const
 {
-    for (std::size_t Ordinal = 0u; Ordinal < Accepted.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < Accepted.size(); ++Index)
     {
-        if (Accepted[Ordinal].Owner == Subject)
-            return Ordinal;
+        if (Accepted[Index].Owner == Subject)
+            return Index;
     }
 
     return Accepted.size();
@@ -671,13 +671,13 @@ Outcome<bool> OctantSpace::Refit(OwnerIdentity           Subject,
     //    far the shape has drifted from the extents it was built for.
     const double Before = ExtentVolume(Records[0].Extent);
 
-    for (std::size_t RecordOrdinal = 0u; RecordOrdinal < Records.size(); ++RecordOrdinal)
+    for (std::size_t RecordIndex = 0u; RecordIndex < Records.size(); ++RecordIndex)
     {
         bool Holds = false;
 
-        for (std::uint32_t Passed = 0u; Passed < Records[RecordOrdinal].EntryCount; ++Passed)
+        for (std::uint32_t Passed = 0u; Passed < Records[RecordIndex].EntryCount; ++Passed)
         {
-            if (EntryOrder[Records[RecordOrdinal].FirstEntry + Passed] == static_cast<std::uint32_t>(Located_))
+            if (EntryOrder[Records[RecordIndex].FirstEntry + Passed] == static_cast<std::uint32_t>(Located_))
             {
                 Holds = true;
                 break;
@@ -685,7 +685,7 @@ Outcome<bool> OctantSpace::Refit(OwnerIdentity           Subject,
         }
 
         if (Holds)
-            Widen(Records[RecordOrdinal].Extent, Extent);
+            Widen(Records[RecordIndex].Extent, Extent);
     }
 
     Widen(Records[0].Extent, Extent);
@@ -708,14 +708,14 @@ Outcome<AcceptedOwner> OctantSpace::Current(OwnerIdentity Subject) const
     return Outcome<AcceptedOwner>::Result(Accepted[Located_]);
 }
 
-Outcome<bool> OctantSpace::Construct()
+Outcome<bool> OctantSpace::ConstructOctants()
 {
     Records.clear();
     EntryOrder.clear();
     EntryOrder.reserve(Accepted.size());
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Accepted.size(); ++Ordinal)
-        EntryOrder.push_back(Ordinal);
+    for (std::uint32_t Index = 0u; Index < Accepted.size(); ++Index)
+        EntryOrder.push_back(Index);
 
     OctantRecord Root;
     Root.FirstEntry = 0u;
@@ -737,14 +737,14 @@ Outcome<bool> OctantSpace::Construct()
     return Outcome<bool>::Result(true);
 }
 
-void OctantSpace::Divide(std::uint32_t RecordOrdinal, std::uint32_t Depth)
+void OctantSpace::Divide(std::uint32_t RecordIndex, std::uint32_t Depth)
 {
-    if (Depth >= SubdivisionDepthCeiling || Records[RecordOrdinal].EntryCount <= SubdivisionLeafCeiling)
+    if (Depth >= SubdivisionDepthLimit || Records[RecordIndex].EntryCount <= SubdivisionLeafLimit)
         return;
 
-    const ConditionedExtent Held       = Records[RecordOrdinal].Extent;
-    const std::uint32_t     FirstEntry = Records[RecordOrdinal].FirstEntry;
-    const std::uint32_t     EntrySpan  = Records[RecordOrdinal].EntryCount;
+    const ConditionedExtent Held       = Records[RecordIndex].Extent;
+    const std::uint32_t     FirstEntry = Records[RecordIndex].FirstEntry;
+    const std::uint32_t     EntrySpan  = Records[RecordIndex].EntryCount;
 
     const double MiddleX = (Held.Minimum.PositionX + Held.Maximum.PositionX) * 0.5;
     const double MiddleY = (Held.Minimum.PositionY + Held.Maximum.PositionY) * 0.5;
@@ -818,7 +818,7 @@ void OctantSpace::Divide(std::uint32_t RecordOrdinal, std::uint32_t Depth)
         Records.push_back(Dividing);
     }
 
-    Records[RecordOrdinal].FirstDivided = FirstDivided;
+    Records[RecordIndex].FirstDivided = FirstDivided;
 
     for (std::uint32_t Octant = 0u; Octant < 8u; ++Octant)
     {
@@ -844,7 +844,7 @@ bool Traversable(const RegistrationIndex& Subsets, OwnerIdentity Subject)
 
 }   // namespace
 
-void OctantSpace::Descend(std::uint32_t          RecordOrdinal,
+void OctantSpace::Descend(std::uint32_t          RecordIndex,
                           DocumentPosition       Origin,
                           double                 DirectionX,
                           double                 DirectionY,
@@ -852,7 +852,7 @@ void OctantSpace::Descend(std::uint32_t          RecordOrdinal,
                           const RegistrationIndex& Subsets,
                           ResolvedIntersection&  Nearest) const
 {
-    const OctantRecord& Held = Records[RecordOrdinal];
+    const OctantRecord& Held = Records[RecordIndex];
 
     const double ReciprocalX = DirectionX != 0.0 ? 1.0 / DirectionX : HUGE_VAL;
     const double ReciprocalY = DirectionY != 0.0 ? 1.0 / DirectionY : HUGE_VAL;
@@ -936,10 +936,10 @@ void OctantSpace::Descend(std::uint32_t          RecordOrdinal,
                 continue;
 
             Nearest.Owner          = Occupying.Owner;
-            Nearest.FaceOrdinal       = Met.FaceOrdinal;
-            Nearest.CornerOrdinals[0] = Met.CornerOrdinals[0];
-            Nearest.CornerOrdinals[1] = Met.CornerOrdinals[1];
-            Nearest.CornerOrdinals[2] = Met.CornerOrdinals[2];
+            Nearest.FaceIndex       = Met.FaceIndex;
+            Nearest.CornerIndexs[0] = Met.CornerIndexs[0];
+            Nearest.CornerIndexs[1] = Met.CornerIndexs[1];
+            Nearest.CornerIndexs[2] = Met.CornerIndexs[2];
             Nearest.Weights[0]        = Met.Weights[0];
             Nearest.Weights[1]        = Met.Weights[1];
             Nearest.Weights[2]        = Met.Weights[2];
@@ -1033,10 +1033,10 @@ std::vector<OwnerIdentity> OctantSpace::IntersectExtent(ConditionedExtent      E
 
     while (!Pending.empty())
     {
-        const std::uint32_t RecordOrdinal = Pending.back();
+        const std::uint32_t RecordIndex = Pending.back();
         Pending.pop_back();
 
-        const OctantRecord& Held = Records[RecordOrdinal];
+        const OctantRecord& Held = Records[RecordIndex];
 
         if (!ExtentsOverlap(Held.Extent, Extent))
             continue;
@@ -1091,20 +1091,20 @@ bool          OctantSpace::ConstructionOwed() const { return BuildOwed; }
 //                                                THE DOMAIN SUBDIVISION
 //------------------------------------------------------------------------------------------------------------------------
 
-void AxisSpace::Construct(const std::vector<DomainExtent>& Declaring)
+void AxisSpace::ConstructAxes(const std::vector<DomainExtent>& Declaring)
 {
     Extents = Declaring;
 }
 
-Outcome<bool> AxisSpace::Refit(std::uint32_t PlacementOrdinal, DomainExtent Amending)
+Outcome<bool> AxisSpace::Refit(std::uint32_t PlacementIndex, DomainExtent Amending)
 {
     for (DomainExtent& Held : Extents)
     {
-        if (Held.PlacementOrdinal != PlacementOrdinal)
+        if (Held.PlacementIndex != PlacementIndex)
             continue;
 
         Held = Amending;
-        Held.PlacementOrdinal = PlacementOrdinal;
+        Held.PlacementIndex = PlacementIndex;
 
         return Outcome<bool>::Result(true);
     }
@@ -1129,11 +1129,11 @@ Outcome<std::uint32_t> AxisSpace::Resolve(double PositionX, double PositionY) co
         // 🔴 The topmost containing placement wins, by `56` sequence order. Resolving the first found would make
         //    picking depend on declaration order, and the artist would select whichever decal happened to be
         //    declared first rather than the one they can see.
-        if (!Found || Held.SequenceOrdinal >= Topmost)
+        if (!Found || Held.SequenceIndex >= Topmost)
         {
             Found    = true;
-            Topmost  = Held.SequenceOrdinal;
-            Resolved = Held.PlacementOrdinal;
+            Topmost  = Held.SequenceIndex;
+            Resolved = Held.PlacementIndex;
         }
     }
 
@@ -1154,7 +1154,7 @@ std::vector<std::uint32_t> AxisSpace::Overlapping(DomainExtent Extent) const
                                   Extent.MinimumX,    Extent.MinimumY,
                                   Extent.MaximumX, Extent.MaximumY) >= 0)
         {
-            Overlapped.push_back(Held.PlacementOrdinal);
+            Overlapped.push_back(Held.PlacementIndex);
         }
     }
 

@@ -5,11 +5,11 @@
 
 #pragma once
 
-#include "Contract/CombineContract.h"
-#include "Contract/IdentityContract.h"
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/Combination.h"
+#include "Foundation/Identity.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
+#include "Foundation/NumericTolerance.h"
 #include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
 #include "SlateMath/Numeric/ReportSequence/Api/ReportSequence.h"
 
@@ -27,7 +27,7 @@ namespace Slate
 /// 🧩 Where an entry's content comes from — `56` §3's four sources.
 /// note  🔴 Only the first stores texels. The other three store a **description** that `70` resolves at whatever
 ///        reduction level was promoted, which is what `20` §2.1's third reconstruction source reads.
-/// tag   contract
+/// tag   guarantee
 enum class LayerContentSource : std::uint32_t
 {
     PaintedImpressions = 0u,   // [-] - the texels are the authored thing — `22`
@@ -83,7 +83,7 @@ struct PaintedContent
 struct ChannelPlacement
 {
     ChannelSubject  Channel          = ChannelSubject::ChannelCount;   // [-] - which of `42`'s twenty
-    std::uint32_t   ComponentOrdinal = 0u;                             // [-] - first component within the entry
+    std::uint32_t   ComponentIndex = 0u;                             // [-] - first component within the entry
     std::uint32_t   ComponentSpan    = 1u;                             // [-] - one for a scalar, three for a colour
 };
 
@@ -101,7 +101,7 @@ struct ChannelPlacement
 struct CoverageSpecification
 {
     LayerContentSource  Source          = LayerContentSource::AnalyticResolution;
-    std::uint32_t       SourceOrdinal   = 0u;      // [-] - into `54`, `52` or `50`
+    std::uint32_t       SourceIndex   = 0u;      // [-] - into `54`, `52` or `50`
     PaintedContent      Painted         = {};      // [-] - read at PaintedImpressions
     double              UniformStrength = 1.0;     // [-] - applied to whatever the source resolves
     bool                CoverageDeclared = false;  // [-] - false applies the entry everywhere at full strength
@@ -125,8 +125,8 @@ struct LayerSpecification
 {
     LayerIdentity         Identity        = {};                            // [-] - `10` §2.1's integer pair
     LayerContentSource    Source          = LayerContentSource::PaintedImpressions;
-    std::uint32_t         SourceOrdinal   = 0u;                            // [-] - into `54`, `72`, `52` or `50`
-    std::uint32_t         NestedOrdinal   = 0u;                            // [-] - read at NestedSequence
+    std::uint32_t         SourceIndex   = 0u;                            // [-] - into `54`, `72`, `52` or `50`
+    std::uint32_t         NestedIndex   = 0u;                            // [-] - read at NestedSequence
     std::uint32_t         ChannelMask     = 0u;                            // [-] - one bit per `42` channel
     CombineSpecification  Combination     = CombineSpecification::Over;    // [-] - `22` §3's, unamended
     CoverageSpecification Coverage        = {};                            // [-]
@@ -210,7 +210,7 @@ public:
 
     /// 🧩 Nests one sequence inside this one as a single entry.
     /// out   Result  [-]  the registered ordinal, into this surface's own nested sequences; refuses with
-    ///                     ExtentExhausted beyond `LayerNestingCeiling`
+    ///                     ExtentExhausted beyond `LayerNestingLimit`
     /// note  🔴 §4.1: the nested content combines **internally first**, and the enclosing entry's combination and
     ///        coverage are each applied **once**, to the nested result. Applying the enclosing coverage per entry
     ///        instead is the defect that makes a partly covered nested sequence darken at its own internal
@@ -270,13 +270,13 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported outside the nested count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<const SurfaceLayerSequence*> Nested(std::uint32_t NestedOrdinal) const;
+    Outcome<const SurfaceLayerSequence*> Nested(std::uint32_t NestedIndex) const;
 
     /// 🧩 One nested sequence, for amending.
     /// out   Result  [-]  refuses with ContentUnsupported outside the nested count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<SurfaceLayerSequence*> AmendNested(std::uint32_t NestedOrdinal);
+    Outcome<SurfaceLayerSequence*> AmendNested(std::uint32_t NestedIndex);
 
     /// 🧩 Which sequence position one entry sits at.
     /// out   Result  [-]  refuses with IdentityStale
@@ -311,13 +311,13 @@ public:
 
 private:
 
-    static constexpr std::uint32_t EntryCeiling = 4096u;   // [-] - entries one sequence may hold
+    static constexpr std::uint32_t EntryLimit = 4096u;   // [-] - entries one sequence may hold
 
     // 🚧 `56` §6 leaves the nesting depth open and records that it blocks interface presentation alone. A bound
     //    is declared here rather than left absent, because unbounded nesting makes `WrittenChannels` and
     //    `AuthoredContentHeld` recurse to a depth no declaration states. Read by this sequence only, so `00` §2
-    //    keeps it here rather than in `Contract/`.
-    static constexpr std::uint32_t LayerNestingCeiling = 8u;   // [-] - levels a sequence may nest
+    //    keeps it here rather than in `Foundation/`.
+    static constexpr std::uint32_t LayerNestingLimit = 8u;   // [-] - levels a sequence may nest
 
     std::size_t Located(LayerIdentity Subject) const;
 

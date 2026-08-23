@@ -16,18 +16,18 @@ void PageQueue::Accept(const CellDemand& Incoming)
 {
     // 📝 Searched newest first. A sample walking a surface demands the same cell for a run of adjacent pixels,
     //    so the coalescing terminates on its first comparison for the case that dominates.
-    for (std::size_t Ordinal = ArrivalOrder.size(); Ordinal-- > 0u;)
+    for (std::size_t Index = ArrivalOrder.size(); Index-- > 0u;)
     {
-        CellDemand& Held = ArrivalOrder[Ordinal];
+        CellDemand& Held = ArrivalOrder[Index];
 
-        if (Held.SurfaceOrdinal == Incoming.SurfaceOrdinal && Held.CellOrdinal == Incoming.CellOrdinal)
+        if (Held.SurfaceIndex == Incoming.SurfaceIndex && Held.CellIndex == Incoming.CellIndex)
         {
             Held.OccurrenceCount += Incoming.OccurrenceCount;
             return;
         }
     }
 
-    if (ArrivalOrder.size() >= ArrivalCeiling)
+    if (ArrivalOrder.size() >= ArrivalLimit)
     {
         ++DiscardedDemands;
         return;
@@ -55,24 +55,24 @@ std::uint32_t PageQueue::DiscardedCount() const { return DiscardedDemands; }
 //                                                      THE DEMANDS
 //------------------------------------------------------------------------------------------------------------------------
 
-void RequestQueue::Demand(std::uint32_t SurfaceOrdinal, std::uint32_t CellOrdinal, std::uint64_t RecordingOrdinal)
+void RequestQueue::Demand(std::uint32_t SurfaceIndex, std::uint32_t CellIndex, std::uint64_t RecordingIndex)
 {
     CellDemand Incoming;
-    Incoming.SurfaceOrdinal = SurfaceOrdinal;
-    Incoming.CellOrdinal    = CellOrdinal;
+    Incoming.SurfaceIndex = SurfaceIndex;
+    Incoming.CellIndex    = CellIndex;
 
-    CycleSlots[RecordingOrdinal % SlotCount].Accept(Incoming);
+    CycleSlots[RecordingIndex % SlotCount].Accept(Incoming);
     ++RecordedDemands;
 }
 
-PageQueue& RequestQueue::SlotAt(std::uint64_t RecordingOrdinal)
+PageQueue& RequestQueue::SlotAt(std::uint64_t RecordingIndex)
 {
-    return CycleSlots[RecordingOrdinal % SlotCount];
+    return CycleSlots[RecordingIndex % SlotCount];
 }
 
-const PageQueue& RequestQueue::SlotAt(std::uint64_t RecordingOrdinal) const
+const PageQueue& RequestQueue::SlotAt(std::uint64_t RecordingIndex) const
 {
-    return CycleSlots[RecordingOrdinal % SlotCount];
+    return CycleSlots[RecordingIndex % SlotCount];
 }
 
 std::uint64_t RequestQueue::RecordedCount() const { return RecordedDemands; }
@@ -91,17 +91,17 @@ std::uint64_t RequestQueue::DiscardedCount() const
 //                                                     THE READBACK
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<const PageQueue*> ReturnIndex::Drain(RequestQueue& Requesting, std::uint64_t RecordingOrdinal)
+Outcome<const PageQueue*> ReturnIndex::Drain(RequestQueue& Requesting, std::uint64_t RecordingIndex)
 {
     // 📝 The first rotations of a session have nothing recorded a depth ago. Refusing is honest: the caller
     //    promotes nothing, and the coarsest levels are permanently resident so every sample still resolves.
-    if (RecordingOrdinal < RecordingSlotCount)
+    if (RecordingIndex < RecordingSlotCount)
     {
         return Outcome<const PageQueue*>::Refuse(
             { RefusalReason::ExtentExhausted, "the readback latency has not yet elapsed" });
     }
 
-    if (DrainCurrent && RecordingOrdinal <= LastDrained)
+    if (DrainCurrent && RecordingIndex <= LastDrained)
     {
         return Outcome<const PageQueue*>::Refuse(
             { RefusalReason::HostDenied, "this rotation has already been drained" });
@@ -110,9 +110,9 @@ Outcome<const PageQueue*> ReturnIndex::Drain(RequestQueue& Requesting, std::uint
     // 🔴 Exactly one depth behind. `20` §2.1 ②'s latency is not an approximation of the device's readback — it
     //    **is** the readback, and a drain that read the current slot would present demands the device has not
     //    finished writing.
-    PageQueue& Drained = Requesting.SlotAt(RecordingOrdinal - RecordingSlotCount);
+    PageQueue& Drained = Requesting.SlotAt(RecordingIndex - RecordingSlotCount);
 
-    LastDrained   = RecordingOrdinal;
+    LastDrained   = RecordingIndex;
     DrainCurrent = true;
     ++DrainCount;
 

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 
 #include <cstdint>
 #include <vector>
@@ -17,7 +17,7 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 One bounded RGBA byte extent the codec resolves into, eight bits per component.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct PixelSpace
 {
     std::uint32_t           XExtent  = 0u;    // [px]
@@ -26,7 +26,7 @@ struct PixelSpace
 };
 
 /// 🧩 One applied picture the codec resolves identities against — a depot glyph.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct PictureDeclaration
 {
     void*            Identity     = nullptr;   // [-] - the vendor picture identity
@@ -42,7 +42,7 @@ struct PictureDeclaration
 /// 🧩 The software raster translation: clip-rect-scissored, textured, alpha-blended triangles into a pixel extent.
 /// note  The one rendering path the standalone hosts use headlessly; a windowed host would hand the same
 ///       recorded draw data to a platform renderer instead, unchanged.
-/// tag   contract, nonthrowing
+/// tag   guarantee, nonthrowing
 class RasterCodec
 {
 public:

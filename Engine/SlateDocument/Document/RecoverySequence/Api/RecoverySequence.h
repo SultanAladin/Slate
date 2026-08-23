@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateDocument/Document/RevisionSequence/Api/RevisionSequence.h"
 
 #include <cstdint>
@@ -28,7 +28,7 @@ struct JournalEntry
 {
     std::string    Description     = {};   // [-] - what `84` presents; carried verbatim from the transaction
     std::string    OperationName   = {};   // [-] - the mechanism's spelling
-    std::uint64_t  RevisionOrdinal = 0u;   // [-] - which transaction of the document sequence this is
+    std::uint64_t  RevisionIndex = 0u;   // [-] - which transaction of the document sequence this is
     std::uint64_t  SealedAt        = 0u;   // [ns] - the arrival stamp the transaction sealed at
 };
 
@@ -37,7 +37,7 @@ struct JournalEntry
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 The four situations `48` §4 tabulates, decided on read and never inferred later.
-/// tag   contract
+/// tag   guarantee
 enum class RecoveryCurrent : std::uint32_t
 {
     NothingOffered = 0u,   // [-] - the journal is empty; the application exited cleanly
@@ -81,7 +81,7 @@ public:
     // 📝 The journal's write interval is `48` §10's open row and is tuning only. Entries are appended per sealed
     //    transaction here, which is the bound that loses the least; batching them is a change to when Persist
     //    runs and not to what an entry is.
-    static constexpr std::uint32_t EntryCeiling = 65536u;   // [-] - entries retained before the oldest is retired
+    static constexpr std::uint32_t EntryLimit = 65536u;   // [-] - entries retained before the oldest is retired
 
     /// 🧩 Names the document this journal belongs to, and the journal's own storage location.
     /// in    DeclaredDocument  [-]  UTF-8; the document the journal is offered against
@@ -95,15 +95,15 @@ public:
 
     /// 🧩 Appends one sealed transaction to the journal.
     /// in    Sealing  [-]  the transaction as `RevisionSequence` sealed it
-    /// in    RevisionOrdinal  [-]  where it sits in the document's committed order
+    /// in    RevisionIndex  [-]  where it sits in the document's committed order
     /// out   Result  [-]  refuses with ContentUnsupported when no document is declared
-    /// post  the retained count never exceeds EntryCeiling; the oldest entry leaves when it would
+    /// post  the retained count never exceeds EntryLimit; the oldest entry leaves when it would
     /// note  ⚠️ An entry leaving at the ceiling makes the journal a **suffix** rather than a tail, and a suffix
     ///        cannot be replayed from the saved file. OfferReplay reports that as PartlyOffered, so the artist
     ///        is told the recovery is partial rather than handed a document assembled from a gap.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Append(const CommittedTransaction& Sealing, std::uint64_t RevisionOrdinal);
+    Outcome<bool> Append(const CommittedTransaction& Sealing, std::uint64_t RevisionIndex);
 
     /// 🧩 Retires every entry a completed save subsumes — `48` §3 ④.
     /// in    SavedThrough  [-]  the revision ordinal the saved document carries
@@ -125,14 +125,14 @@ public:
     RecoveryOffer OfferReplay(std::uint64_t SavedAt, std::uint64_t SavedThrough) const;
 
     /// 🧩 Declares one entry unreadable, so the offer stops at it rather than past it.
-    /// in    EntryOrdinal  [-]  the first entry that could not be read
+    /// in    EntryIndex  [-]  the first entry that could not be read
     /// post  every entry from this ordinal on is excluded from the offer — `48` §4
     /// note  🔴 Entries up to the failure are offered and the rest is reported. Offering past a gap would
     ///        replay transactions against a document that is missing the ones before them, and the result is a
     ///        document that never existed at any moment of the artist's session.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void DeclareUnreadable(std::uint32_t EntryOrdinal);
+    void DeclareUnreadable(std::uint32_t EntryIndex);
 
     /// 🧩 The entries an accepted offer would replay, in sealing order.
     /// in    SavedThrough  [-]  the revision ordinal the saved document carries
@@ -174,7 +174,7 @@ private:
     std::vector<JournalEntry>  Entries;                          // [-] - in sealing order
     std::string                DocumentPath      = {};           // [-] - UTF-8; the document offered against
     std::string                JournalPath       = {};           // [-] - UTF-8; where the journal is written
-    std::uint32_t              UnreadableOrdinal = EntryCeiling; // [-] - first unreadable entry; the ceiling for none
+    std::uint32_t              UnreadableIndex = EntryLimit; // [-] - first unreadable entry; the ceiling for none
     std::uint32_t              DiscardedTotal    = 0u;           // [-] - entries the ceiling retired
 };
 

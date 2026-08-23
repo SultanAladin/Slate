@@ -191,7 +191,7 @@ void UnsignedRun(char* Delivered, std::uint32_t Extent, std::uint32_t Reading)
 //                                                       CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ControlPanel::Construct(InteractionIndex&              IncomingInteraction,
+Outcome<bool> ControlPanel::ConstructControlPanel(ControlIndex&              IncomingInteraction,
                                       RecordingSurface&              IncomingRecording,
                                       const ThemeProfile& IncomingAppearance)
 {
@@ -319,8 +319,8 @@ void ControlPanel::SwitchTrack(ControlIdentity Target, const PlaneExtent& Extent
 //                                                    SEGMENTED CHOICE
 //------------------------------------------------------------------------------------------------------------------------
 
-ControlVerdict ControlPanel::SegmentedChoice(ControlIdentity Target, const PlaneExtent& Extent,
-                                             const SegmentDeclaration& Declared, std::uint32_t& TakenOrdinal)
+ControlVerdict ControlPanel::SegmentedSelection(ControlIdentity Target, const PlaneExtent& Extent,
+                                             const SegmentDeclaration& Declared, std::uint32_t& TakenIndex)
 {
     ControlVerdict Verdict;
 
@@ -328,49 +328,49 @@ ControlVerdict ControlPanel::SegmentedChoice(ControlIdentity Target, const Plane
         return Verdict;
 
     const float SegmentX = Extent.Width() / static_cast<float>(Declared.CaptionCount);
-    std::uint32_t HoveredOrdinal = Declared.CaptionCount;
+    std::uint32_t HoveredIndex = Declared.CaptionCount;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Declared.CaptionCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Declared.CaptionCount; ++Index)
     {
-        const PlaneExtent Segment = Spanning(Extent.MinimumX + SegmentX * static_cast<float>(Ordinal),
+        const PlaneExtent Segment = Spanning(Extent.MinimumX + SegmentX * static_cast<float>(Index),
                                              Extent.MinimumY, SegmentX, Extent.Height());
 
         if (Segment.Encloses(Sampled.PositionX, Sampled.PositionY))
-            HoveredOrdinal = Ordinal;
+            HoveredIndex = Index;
     }
 
-    const bool Hovered = HoveredOrdinal < Declared.CaptionCount;
+    const bool Hovered = HoveredIndex < Declared.CaptionCount;
 
     if (Hovered && Sampled.ContactPressed)
     {
         Interaction->Grab(Target, ControlPart::Body);
-        Interaction->RecordInitial(Target, static_cast<float>(HoveredOrdinal));
+        Interaction->RecordInitial(Target, static_cast<float>(HoveredIndex));
     }
 
     if ((Interaction->Released(Target) && Hovered) ||
         (Sampled.ContactPressed && Sampled.ContactReleased && Hovered))
     {
-        TakenOrdinal             = HoveredOrdinal;
+        TakenIndex             = HoveredIndex;
         Verdict.ReadingAltered = true;
     }
 
     Interaction->DeclareHovered(Target, Hovered, HoverDuration);
-    Interaction->DeclareTaken(Target, TakenOrdinal < Declared.CaptionCount, TakeDuration);
+    Interaction->DeclareTaken(Target, TakenIndex < Declared.CaptionCount, TakeDuration);
 
     const float HoverFraction = Interaction->HoveredFraction(Target);
 
     Recording->Ground(Extent, FieldGround, ControlRadius, CornerAll);
     Recording->Edge(Extent, HairColour, 1.0f, ControlRadius, CornerAll);
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Declared.CaptionCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Declared.CaptionCount; ++Index)
     {
-        const PlaneExtent Segment = Spanning(Extent.MinimumX + SegmentX * static_cast<float>(Ordinal),
+        const PlaneExtent Segment = Spanning(Extent.MinimumX + SegmentX * static_cast<float>(Index),
                                              Extent.MinimumY, SegmentX, Extent.Height());
-        const bool Taken = Ordinal == TakenOrdinal;
+        const bool Taken = Index == TakenIndex;
         const PlaneExtent Inset = { Segment.MinimumX + 3.0f, Segment.MinimumY + 3.0f,
                                     Segment.MaximumX - 3.0f, Segment.MaximumY - 3.0f };
 
-        if (Ordinal == HoveredOrdinal && !Taken)
+        if (Index == HoveredIndex && !Taken)
             Recording->Ground(Inset, Blend(FieldGround, TileHovered, HoverFraction), 6.0f, CornerAll);
 
         if (Taken)
@@ -379,10 +379,10 @@ ControlVerdict ControlPanel::SegmentedChoice(ControlIdentity Target, const Plane
             Recording->Edge(Inset, Blend(StrongHairColour, AccentColour, 0.65f), 1.0f, 6.0f, CornerAll);
         }
 
-        const float RunX = Recording->MeasureRun(Declared.Captions[Ordinal], ReferenceText);
+        const float RunX = Recording->MeasureRun(Declared.Captions[Index], ReferenceText);
         Recording->TextRun(Segment.MinimumX + (Segment.Width() - RunX) * 0.5f,
                            CentredY(Segment, ReferenceText), Taken ? PrimaryColour : MutedColour,
-                           Declared.Captions[Ordinal], ReferenceText, 0.0f, Taken);
+                           Declared.Captions[Index], ReferenceText, 0.0f, Taken);
     }
 
     Verdict.ContactTaken = Interaction->Holding(Target);
@@ -396,7 +396,7 @@ ControlVerdict ControlPanel::SegmentedChoice(ControlIdentity Target, const Plane
 //------------------------------------------------------------------------------------------------------------------------
 
 ControlVerdict ControlPanel::TabStrip(ControlIdentity Target, const PlaneExtent& Extent,
-                                      const TabDeclaration& Declared, std::uint32_t& TakenOrdinal)
+                                      const TabDeclaration& Declared, std::uint32_t& TakenIndex)
 {
     ControlVerdict Verdict;
 
@@ -404,17 +404,17 @@ ControlVerdict ControlPanel::TabStrip(ControlIdentity Target, const PlaneExtent&
         return Verdict;
 
     const float TabX = Extent.Width() / static_cast<float>(Declared.CaptionCount);
-    std::uint32_t HoveredOrdinal = Declared.CaptionCount;
+    std::uint32_t HoveredIndex = Declared.CaptionCount;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Declared.CaptionCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Declared.CaptionCount; ++Index)
     {
-        const PlaneExtent Tab = Spanning(Extent.MinimumX + TabX * static_cast<float>(Ordinal),
+        const PlaneExtent Tab = Spanning(Extent.MinimumX + TabX * static_cast<float>(Index),
                                          Extent.MinimumY, TabX, Extent.Height());
         if (Tab.Encloses(Sampled.PositionX, Sampled.PositionY))
-            HoveredOrdinal = Ordinal;
+            HoveredIndex = Index;
     }
 
-    const bool Hovered = HoveredOrdinal < Declared.CaptionCount;
+    const bool Hovered = HoveredIndex < Declared.CaptionCount;
 
     if (Hovered && Sampled.ContactPressed)
         Interaction->Grab(Target, ControlPart::Body);
@@ -422,7 +422,7 @@ ControlVerdict ControlPanel::TabStrip(ControlIdentity Target, const PlaneExtent&
     if ((Interaction->Released(Target) && Hovered) ||
         (Sampled.ContactPressed && Sampled.ContactReleased && Hovered))
     {
-        TakenOrdinal             = HoveredOrdinal;
+        TakenIndex             = HoveredIndex;
         Verdict.ReadingAltered = true;
     }
 
@@ -432,21 +432,21 @@ ControlVerdict ControlPanel::TabStrip(ControlIdentity Target, const PlaneExtent&
     Recording->Ground(Extent, PanelGround, 0.0f, CornerNone);
     Recording->Ground(Spanning(Extent.MinimumX, Extent.MaximumY - 1.0f, Extent.Width(), 1.0f), HairColour, 0.0f, CornerNone);
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Declared.CaptionCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Declared.CaptionCount; ++Index)
     {
-        const PlaneExtent Tab = Spanning(Extent.MinimumX + TabX * static_cast<float>(Ordinal),
+        const PlaneExtent Tab = Spanning(Extent.MinimumX + TabX * static_cast<float>(Index),
                                          Extent.MinimumY, TabX, Extent.Height());
-        const bool Taken = Ordinal == TakenOrdinal;
-        const float RunX = Recording->MeasureRun(Declared.Captions[Ordinal], ReferenceText);
+        const bool Taken = Index == TakenIndex;
+        const float RunX = Recording->MeasureRun(Declared.Captions[Index], ReferenceText);
 
-        if (Ordinal == HoveredOrdinal && !Taken)
+        if (Index == HoveredIndex && !Taken)
             Recording->Ground(Tab, Blend(PanelGround, TileHovered, HoverFraction), 0.0f, CornerNone);
 
         Recording->TextRun(Tab.MinimumX + (Tab.Width() - RunX) * 0.5f,
                            CentredY(Tab, ReferenceText),
                            Taken ? PrimaryColour : Blend(MutedColour, PrimaryColour,
-                                                      (Ordinal == HoveredOrdinal) ? HoverFraction : 0.0f),
-                           Declared.Captions[Ordinal], ReferenceText, 0.0f, Taken);
+                                                      (Index == HoveredIndex) ? HoverFraction : 0.0f),
+                           Declared.Captions[Index], ReferenceText, 0.0f, Taken);
 
         if (Taken)
         {
@@ -467,14 +467,14 @@ ControlVerdict ControlPanel::TabStrip(ControlIdentity Target, const PlaneExtent&
 //------------------------------------------------------------------------------------------------------------------------
 
 ControlVerdict ControlPanel::CarouselPages(ControlIdentity Target, const PlaneExtent& Extent,
-                                           const CarouselDeclaration& Declared, std::uint32_t TakenOrdinal)
+                                           const CarouselDeclaration& Declared, std::uint32_t TakenIndex)
 {
     ControlVerdict Verdict;
 
     if (Interaction == nullptr || Recording == nullptr)
         return Verdict;
 
-    const bool TrailingTaken = TakenOrdinal == 1u;
+    const bool TrailingTaken = TakenIndex == 1u;
     Interaction->DeclareTaken(Target, TrailingTaken, CarouselDuration, EaseCurve::Carousel);
 
     const float Travel = Interaction->TakenFraction(Target);
@@ -495,10 +495,10 @@ ControlVerdict ControlPanel::CarouselPages(ControlIdentity Target, const PlaneEx
         if (Declared.LeadingRuns == nullptr)
             return;
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < Declared.LeadingCount; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < Declared.LeadingCount; ++Index)
         {
             const PlaneExtent Card = Spanning(Page.MinimumX + 8.0f,
-                                              Page.MinimumY + 30.0f + 38.0f * static_cast<float>(Ordinal),
+                                              Page.MinimumY + 30.0f + 38.0f * static_cast<float>(Index),
                                               Page.Width() - 16.0f, 32.0f);
             Recording->Ground(Card, PanelGround, 7.0f, CornerAll);
             Recording->Edge(Card, HairColour, 1.0f, 7.0f, CornerAll);
@@ -506,7 +506,7 @@ ControlVerdict ControlPanel::CarouselPages(ControlIdentity Target, const PlaneEx
                               Spanning(Card.MinimumX + 8.0f, Card.MinimumY + 9.0f, 13.0f, 13.0f), FaintColour);
             Recording->TextRunTruncated(Card.MinimumX + 29.0f, CentredY(Card, ReferenceText),
                                         Card.MaximumX - 10.0f, PrimaryColour,
-                                        Declared.LeadingRuns[Ordinal], ReferenceText, true);
+                                        Declared.LeadingRuns[Index], ReferenceText, true);
         }
     };
 
@@ -524,19 +524,19 @@ ControlVerdict ControlPanel::CarouselPages(ControlIdentity Target, const PlaneEx
                                    38.0f * static_cast<float>(Declared.TrailingCount)), HairColour,
                           0.0f, CornerNone);
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < Declared.TrailingCount; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < Declared.TrailingCount; ++Index)
         {
-            const float Y = Page.MinimumY + 30.0f + 38.0f * static_cast<float>(Ordinal);
-            Recording->Medallion(MarkerX, Y + 16.0f, Ordinal == 0u ? 4.0f : 3.0f,
-                                 Ordinal == 0u ? AccentColour : FaintColour);
+            const float Y = Page.MinimumY + 30.0f + 38.0f * static_cast<float>(Index);
+            Recording->Medallion(MarkerX, Y + 16.0f, Index == 0u ? 4.0f : 3.0f,
+                                 Index == 0u ? AccentColour : FaintColour);
 
             const PlaneExtent Card = Spanning(Page.MinimumX + 31.0f, Y,
                                               Page.Width() - 39.0f, 32.0f);
-            Recording->Ground(Card, Ordinal == 0u ? AccentSoftColour : PanelGround, 7.0f, CornerAll);
-            Recording->Edge(Card, Ordinal == 0u ? AccentColour : HairColour, 1.0f, 7.0f, CornerAll);
+            Recording->Ground(Card, Index == 0u ? AccentSoftColour : PanelGround, 7.0f, CornerAll);
+            Recording->Edge(Card, Index == 0u ? AccentColour : HairColour, 1.0f, 7.0f, CornerAll);
             Recording->TextRunTruncated(Card.MinimumX + 9.0f, CentredY(Card, ReferenceText),
                                         Card.MaximumX - 9.0f, PrimaryColour,
-                                        Declared.TrailingRuns[Ordinal], ReferenceText, Ordinal == 0u);
+                                        Declared.TrailingRuns[Index], ReferenceText, Index == 0u);
         }
     };
 
@@ -597,16 +597,16 @@ ControlVerdict ControlPanel::CollapsibleCard(ControlIdentity Target, const Plane
                                        Extent.MaximumX, Header.MaximumY + BodyHeight * Disclosure };
         Recording->Confine(Revealed);
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < Declared.BodyCount; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < Declared.BodyCount; ++Index)
         {
             const PlaneExtent Row = Spanning(Extent.MinimumX + 8.0f,
-                                             Header.MaximumY + 4.0f + FoldRowHeight * static_cast<float>(Ordinal),
+                                             Header.MaximumY + 4.0f + FoldRowHeight * static_cast<float>(Index),
                                              Extent.Width() - 16.0f, FoldRowHeight - 4.0f);
             Recording->Ground(Row, FieldGround, 7.0f, CornerAll);
             Recording->TextRun(Row.MinimumX + 10.0f, CentredY(Row, ReferenceText), MutedColour,
-                               Declared.BodyRuns[Ordinal], ReferenceText);
+                               Declared.BodyRuns[Index], ReferenceText);
             Recording->TextRun(Row.MaximumX - 52.0f, CentredY(Row, ReferenceText), PrimaryColour,
-                               (Ordinal == 0u) ? "0.00" : (Ordinal == 1u) ? "0.0" : "1.00", ReferenceText);
+                               (Index == 0u) ? "0.00" : (Index == 1u) ? "0.0" : "1.00", ReferenceText);
         }
 
         Recording->Release();
@@ -621,15 +621,15 @@ ControlVerdict ControlPanel::CollapsibleCard(ControlIdentity Target, const Plane
 //------------------------------------------------------------------------------------------------------------------------
 
 ControlVerdict ControlPanel::DropdownCard(ControlIdentity Target, const PlaneExtent& Extent,
-                                          const DropdownDeclaration& Declared, std::uint32_t& TakenOrdinal)
+                                          const DropdownDeclaration& Declared, std::uint32_t& TakenIndex)
 {
     ControlVerdict Verdict;
 
     if (Interaction == nullptr || Recording == nullptr || Declared.Options == nullptr || Declared.OptionCount == 0u)
         return Verdict;
 
-    if (TakenOrdinal >= Declared.OptionCount)
-        TakenOrdinal = 0u;
+    if (TakenIndex >= Declared.OptionCount)
+        TakenIndex = 0u;
 
     const PlaneExtent Head = { Extent.MinimumX, Extent.MinimumY,
                                Extent.MaximumX, Extent.MinimumY + DropdownHeadHeight };
@@ -637,12 +637,12 @@ ControlVerdict ControlPanel::DropdownCard(ControlIdentity Target, const PlaneExt
     const float MenuTop = Head.MaximumY + DropdownGapY;
     std::uint32_t HoveredOption = Declared.OptionCount;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Declared.OptionCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Declared.OptionCount; ++Index)
     {
-        const PlaneExtent Option = Spanning(Extent.MinimumX, MenuTop + DropdownOptionHeight * static_cast<float>(Ordinal),
+        const PlaneExtent Option = Spanning(Extent.MinimumX, MenuTop + DropdownOptionHeight * static_cast<float>(Index),
                                             Extent.Width(), DropdownOptionHeight);
         if (Open && Option.Encloses(Sampled.PositionX, Sampled.PositionY))
-            HoveredOption = Ordinal;
+            HoveredOption = Index;
     }
 
     const bool HeadHovered = Head.Encloses(Sampled.PositionX, Sampled.PositionY);
@@ -659,7 +659,7 @@ ControlVerdict ControlPanel::DropdownCard(ControlIdentity Target, const PlaneExt
     {
         if (MenuHovered)
         {
-            TakenOrdinal             = HoveredOption;
+            TakenIndex             = HoveredOption;
             Verdict.ReadingAltered = true;
             Interaction->Withdraw();
         }
@@ -686,7 +686,7 @@ ControlVerdict ControlPanel::DropdownCard(ControlIdentity Target, const PlaneExt
     Recording->Edge(Field, Blend(HairColour, StrongHairColour, HoverFraction), 1.0f, 16.0f, CornerAll);
     Recording->TextRunTruncated(Field.MinimumX + 12.0f, CentredY(Field, ReferenceText),
                                 Field.MaximumX - 35.0f, PrimaryColour,
-                                Declared.Options[TakenOrdinal], ReferenceText);
+                                Declared.Options[TakenIndex], ReferenceText);
     Recording->Stroke(Disclosure > 0.5f ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
                       Spanning(Field.MaximumX - 25.0f, Field.MinimumY + 9.0f, 13.0f, 13.0f), MutedColour);
 
@@ -699,13 +699,13 @@ ControlVerdict ControlPanel::DropdownCard(ControlIdentity Target, const PlaneExt
         Recording->Edge(Menu, StrongHairColour, 1.0f, 9.0f, CornerAll);
         Recording->Confine(Menu);
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < Declared.OptionCount; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < Declared.OptionCount; ++Index)
         {
             const PlaneExtent Option = Spanning(Menu.MinimumX + 4.0f,
-                                                Menu.MinimumY + 4.0f + DropdownOptionHeight * static_cast<float>(Ordinal),
+                                                Menu.MinimumY + 4.0f + DropdownOptionHeight * static_cast<float>(Index),
                                                 Menu.Width() - 8.0f, DropdownOptionHeight);
-            const bool Taken = Ordinal == TakenOrdinal;
-            const bool Hovered = Ordinal == HoveredOption;
+            const bool Taken = Index == TakenIndex;
+            const bool Hovered = Index == HoveredOption;
 
             if (Hovered)
             {
@@ -716,7 +716,7 @@ ControlVerdict ControlPanel::DropdownCard(ControlIdentity Target, const PlaneExt
 
             Recording->TextRunTruncated(Option.MinimumX + 10.0f, CentredY(Option, SmallText),
                                         Option.MaximumX - 26.0f, Taken ? PrimaryColour : MutedColour,
-                                        Declared.Options[Ordinal], SmallText, Taken);
+                                        Declared.Options[Index], SmallText, Taken);
             Recording->Medallion(Option.MaximumX - 11.0f,
                                  Option.MinimumY + Option.Height() * 0.5f,
                                  Taken ? 4.0f : 3.0f, Taken ? AccentColour : FaintColour);
@@ -863,11 +863,11 @@ ControlVerdict ControlPanel::ColourPicker(ControlIdentity Target, const PlaneExt
         };
         const float HueSegment = HueRail.Width() / 6.0f;
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < 6u; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < 6u; ++Index)
         {
-            Recording->Scrim(Spanning(HueRail.MinimumX + HueSegment * static_cast<float>(Ordinal),
+            Recording->Scrim(Spanning(HueRail.MinimumX + HueSegment * static_cast<float>(Index),
                                       HueRail.MinimumY, HueSegment + 1.0f, HueRail.Height()),
-                             HueStops[Ordinal], HueStops[Ordinal + 1u], ScrimAxis::X);
+                             HueStops[Index], HueStops[Index + 1u], ScrimAxis::X);
         }
         Recording->MaskCorners(HueRail, ValueGround, ColourBarY * 0.5f);
 
@@ -882,14 +882,14 @@ ControlVerdict ControlPanel::ColourPicker(ControlIdentity Target, const PlaneExt
             std::ceil(OpacityRail.Height() / CheckExtent));
         Recording->Confine(OpacityRail);
 
-        for (std::uint32_t YOrdinal = 0u; YOrdinal < YCount; ++YOrdinal)
+        for (std::uint32_t YIndex = 0u; YIndex < YCount; ++YIndex)
         {
-            for (std::uint32_t XOrdinal = 0u; XOrdinal < XCount; ++XOrdinal)
+            for (std::uint32_t XIndex = 0u; XIndex < XCount; ++XIndex)
             {
-                const ThemeToken CheckColour = ((XOrdinal + YOrdinal) % 2u == 0u)
+                const ThemeToken CheckColour = ((XIndex + YIndex) % 2u == 0u)
                                             ? Covering(0x808080u) : Covering(0xC0C0C0u);
-                Recording->Ground(Spanning(OpacityRail.MinimumX + CheckExtent * static_cast<float>(XOrdinal),
-                                           OpacityRail.MinimumY + CheckExtent * static_cast<float>(YOrdinal),
+                Recording->Ground(Spanning(OpacityRail.MinimumX + CheckExtent * static_cast<float>(XIndex),
+                                           OpacityRail.MinimumY + CheckExtent * static_cast<float>(YIndex),
                                            CheckExtent, CheckExtent), CheckColour, 0.0f, CornerNone);
             }
         }

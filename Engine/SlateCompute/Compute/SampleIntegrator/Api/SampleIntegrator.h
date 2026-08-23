@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
+#include "Foundation/NumericTolerance.h"
 #include "Shared/AccumulationProjection.slang.h"
 #include "Shared/SampleProjection.slang.h"
 #include "SlateMath/Numeric/ReportSequence/Api/ReportSequence.h"
@@ -26,7 +26,7 @@ namespace Slate
 /// note  🔴 On refusal the history is discarded and the count resets to one. It **resets rather than decays** —
 ///        `64` §4 — because a partial history of a surface that is no longer there is a coloured ghost, and a
 ///        ghost fading over ten rotations is more visible than one that is never drawn.
-/// tag   contract
+/// tag   guarantee
 enum class RejectionSubject : std::uint32_t
 {
     Accepted        = 0u,   // [-] - the history describes the same surface
@@ -44,7 +44,7 @@ struct RejectionSpecification
 {
     double         DepthBound         = 0.02;   // [-] - relative departure a reprojected depth may carry
     double         NeighbourhoodBound = 1.0;    // [-] - how far the neighbourhood is widened before bounding
-    std::uint32_t  CountCeiling       = 64u;    // [-] - samples before the weight stops falling
+    std::uint32_t  CountLimit       = 64u;    // [-] - samples before the weight stops falling
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -93,7 +93,7 @@ class SampleIntegrator
 {
 public:
 
-    static constexpr std::uint32_t AmendmentOrdinal = 40u;   // [-] - `08` §3 ⑦, after `30`
+    static constexpr std::uint32_t AmendmentIndex = 40u;   // [-] - `08` §3 ⑦, after `30`
 
     /// 🧩 Declares what a history is rejected for.
     /// out   Result  [-]  refuses with ContentUnsupported for a non-positive depth bound or a ceiling of nothing
@@ -110,7 +110,7 @@ public:
     Outcome<bool> Contribute(RenderSchedule& Schedule) const;
 
     /// 🧩 The sub-pixel offset one rotation carries, from `02` §6's sequence.
-    /// in    RecordingOrdinal  [-]  the rotation, counted from bring-up
+    /// in    RecordingIndex  [-]  the rotation, counted from bring-up
     /// out   OffsetX/Y        [px] within the pixel, never at its corner
     /// note  🔴 `64` §3.1: the offset is applied to `46`'s **projection** and never to a resolved position. An
     ///        offset applied after resolution shifts an already-resolved image, which resamples rather than
@@ -120,7 +120,7 @@ public:
     ///        the workspace does — `64` §7's Tier A row.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void OffsetOf(std::uint64_t RecordingOrdinal, double& OffsetX, double& OffsetY) const;
+    void OffsetOf(std::uint64_t RecordingIndex, double& OffsetX, double& OffsetY) const;
 
     /// 🧩 Classifies whether one reprojected history may be accumulated into.
     /// in    ReprojectedX  [-]  where the pixel was last rotation

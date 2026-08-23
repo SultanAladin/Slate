@@ -34,7 +34,7 @@ namespace Slate
 /// in    PointY          [-]
 /// out   WindingCount    [-]  raised or lowered by one where the edge crosses the ray
 /// out   CrossingCount   [-]  raised by one where the edge crosses the ray, in either direction
-/// out   BoundaryTouched [-]  set where the position lies exactly on this edge
+/// out   DividerTouched [-]  set where the position lies exactly on this edge
 /// err   never refuses; every finite input contributes
 /// cost  🚩
 /// note  📐 The ray is taken along increasing abscissa, and the half-open coordinate test — first inclusive, second
@@ -47,7 +47,7 @@ SLATE_SHARED void AccumulateWinding(Real64 AlphaX, Real64 AlphaY,
                                     Real64 PointX, Real64 PointY,
                                     SLATE_INOUT(Signed32) WindingCount,
                                     SLATE_INOUT(Signed32) CrossingCount,
-                                    SLATE_INOUT(Signed32) BoundaryTouched)
+                                    SLATE_INOUT(Signed32) DividerTouched)
 {
     const Signed32 Orientation = ClassifyOrientation(AlphaX, AlphaY, BetaX, BetaY, PointX, PointY);
 
@@ -62,7 +62,7 @@ SLATE_SHARED void AccumulateWinding(Real64 AlphaX, Real64 AlphaY,
 
         if (PointX >= MinimumX && PointX <= MaximumX && PointY >= MinimumY && PointY <= MaximumY)
         {
-            BoundaryTouched = 1;
+            DividerTouched = 1;
             return;
         }
     }
@@ -86,7 +86,7 @@ SLATE_SHARED void AccumulateWinding(Real64 AlphaX, Real64 AlphaY,
 /// 🧩 Resolves accumulated counts into a containment classification.
 /// in    WindingCount    [-]  as accumulated over every edge
 /// in    CrossingCount   [-]  as accumulated over every edge
-/// in    BoundaryTouched [-]  non-zero where any edge held the position
+/// in    DividerTouched [-]  non-zero where any edge held the position
 /// in    EvenOddDeclared [-]  non-zero selects the even-odd rule, zero the non-zero rule
 /// out   Containment     [-]  +1 inside, 0 exactly on the boundary, −1 outside
 /// cost  ✔️
@@ -99,10 +99,10 @@ SLATE_SHARED void AccumulateWinding(Real64 AlphaX, Real64 AlphaY,
 /// tag   shared, parity, nonallocating, nonthrowing
 SLATE_SHARED Signed32 ResolveContainment(Signed32 WindingCount,
                                          Signed32 CrossingCount,
-                                         Signed32 BoundaryTouched,
+                                         Signed32 DividerTouched,
                                          Signed32 EvenOddDeclared)
 {
-    if (BoundaryTouched != 0)
+    if (DividerTouched != 0)
     {
         return 0;
     }

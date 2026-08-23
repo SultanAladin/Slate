@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
+#include "Foundation/NumericTolerance.h"
 #include "SlateCompute/Compute/PromotionScheduler/Api/PromotionScheduler.h"
 #include "SlateCompute/Compute/RequestQueue/Api/RequestQueue.h"
 #include "SlateCompute/Compute/SurfaceDepot/Api/SurfaceDepot.h"
@@ -60,7 +60,7 @@ constexpr std::uint32_t CellsPerEdgeAt(std::uint32_t Level)
 ///        rather than a search, and `70` §2's per-tile counter comparison costs one comparison.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-constexpr std::uint32_t LevelBaseOrdinal(std::uint32_t Level)
+constexpr std::uint32_t LevelBaseIndex(std::uint32_t Level)
 {
     std::uint32_t Base = 0u;
 
@@ -73,7 +73,7 @@ constexpr std::uint32_t LevelBaseOrdinal(std::uint32_t Level)
     return Base;
 }
 
-inline constexpr std::uint32_t CellOrdinalSpan = LevelBaseOrdinal(ReductionLevelCount);   // [-] - 5461
+inline constexpr std::uint32_t CellIndexSpan = LevelBaseIndex(ReductionLevelCount);   // [-] - 5461
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    ONE CELL ADDRESS
@@ -92,13 +92,13 @@ struct CellAddress
 /// out   Result  [-]  refuses with ContentUnsupported outside the level or its cell span
 /// cost  ✔️
 /// tag   api, nonthrowing
-Outcome<std::uint32_t> OrdinalOf(CellAddress Addressed);
+Outcome<std::uint32_t> IndexOf(CellAddress Addressed);
 
 /// 🧩 The address one ordinal names.
 /// out   Result  [-]  refuses with ContentUnsupported outside the span
 /// cost  ✔️
 /// tag   api, nonthrowing
-Outcome<CellAddress> AddressOf(std::uint32_t CellOrdinal);
+Outcome<CellAddress> AddressOf(std::uint32_t CellIndex);
 
 /// 🧩 The cell one domain position falls in, at a declared level.
 /// in    PositionX   [-]  the domain's first axis, in the unit square
@@ -109,7 +109,7 @@ Outcome<CellAddress> AddressOf(std::uint32_t CellOrdinal);
 ///        and the edge cell is the right answer for it.
 /// cost  ✔️
 /// tag   api, nonthrowing
-Outcome<std::uint32_t> OrdinalAt(std::uint32_t Level, double PositionX, double PositionY);
+Outcome<std::uint32_t> IndexAt(std::uint32_t Level, double PositionX, double PositionY);
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     ONE CELL
@@ -123,7 +123,7 @@ Outcome<std::uint32_t> OrdinalAt(std::uint32_t Level, double PositionX, double P
 /// tag   nonallocating, nonthrowing
 struct CellRecord
 {
-    std::uint32_t  SlotOrdinal      = AbsentTile;   // [-] - into `TileSpace`; AbsentTile when not resident
+    std::uint32_t  SlotIndex      = AbsentTile;   // [-] - into `TileSpace`; AbsentTile when not resident
     std::uint64_t  ResolvedRevision = 0u;           // [-] - the content revision the tile was resolved from
     std::uint64_t  DemandedAt       = 0u;           // [-] - the last rotation a demand named it
     std::uint64_t  PromotedAt       = 0u;           // [-] - the rotation it became resident
@@ -145,19 +145,19 @@ public:
     /// post  every record is absent; the permanent ones are marked and await their promotion
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Construct();
+    void ConstructCells();
 
     /// 🧩 One record, for reading.
     /// out   Result  [-]  refuses with ContentUnsupported outside the span
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<const CellRecord*> Held(std::uint32_t CellOrdinal) const;
+    Outcome<const CellRecord*> Held(std::uint32_t CellIndex) const;
 
     /// 🧩 One record, for amending.
     /// out   Result  [-]  refuses with ContentUnsupported outside the span
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<CellRecord*> Amend(std::uint32_t CellOrdinal);
+    Outcome<CellRecord*> Amend(std::uint32_t CellIndex);
 
     /// 🧩 Every record, in ordinal order.
     /// cost  ✔️
@@ -170,16 +170,16 @@ public:
     /// 🧩 Declares one cell resident against a claimed slot.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void DeclareResident(std::uint32_t CellOrdinal, std::uint32_t SlotOrdinal, std::uint64_t RecordingOrdinal);
+    void DeclareResident(std::uint32_t CellIndex, std::uint32_t SlotIndex, std::uint64_t RecordingIndex);
 
     /// 🧩 Declares one cell absent, surrendering its slot ordinal to the caller.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void DeclareAbsent(std::uint32_t CellOrdinal);
+    void DeclareAbsent(std::uint32_t CellIndex);
 
 private:
 
-    std::vector<CellRecord>  CellRecords;              // [-] - dense, CellOrdinalSpan entries
+    std::vector<CellRecord>  CellRecords;              // [-] - dense, CellIndexSpan entries
     std::uint32_t            ResidentCells    = 0u;    // [-]
     std::uint32_t            UncommittedCells = 0u;    // [-]
 
@@ -197,8 +197,8 @@ private:
 /// tag   nonallocating, nonthrowing
 struct SampledCell
 {
-    std::uint32_t  CellOrdinal    = 0u;           // [-] - the cell resolved
-    std::uint32_t  SlotOrdinal    = AbsentTile;   // [-] - the tile backing it
+    std::uint32_t  CellIndex    = 0u;           // [-] - the cell resolved
+    std::uint32_t  SlotIndex    = AbsentTile;   // [-] - the tile backing it
     std::uint32_t  ResolvedLevel  = 0u;           // [-] - coarser than or equal to the level asked for
     std::uint32_t  RequestedLevel = 0u;           // [-] - what the caller asked for
     bool           DemandRecorded = false;        // [-] - the finer level was demanded
@@ -223,9 +223,9 @@ class SurfaceTileSpace
 public:
 
     /// 🧩 Constructs one surface's residency.
-    /// in    SurfaceOrdinal  [-]  which surface demands name
+    /// in    SurfaceIndex  [-]  which surface demands name
     /// in    BytesPerTexel   [B]  the channel set this surface writes, as a width
-    /// in    SlotCeiling     [-]  tiles the backing extent holds
+    /// in    SlotLimit     [-]  tiles the backing extent holds
     /// out   Result         [-]  refuses with ContentUnsupported for a width of zero, and with ExtentExhausted
     ///                            when the ceiling cannot hold the permanently resident levels
     /// post  the permanent levels are resident and their aprons are owed
@@ -234,13 +234,13 @@ public:
     ///        is the only place that failure can still be attributed to its cause.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(std::uint32_t SurfaceOrdinal, std::uint32_t BytesPerTexel, std::uint32_t SlotCeiling);
+    Outcome<bool> ConstructSurfaceTiles(std::uint32_t SurfaceIndex, std::uint32_t BytesPerTexel, std::uint32_t SlotLimit);
 
     /// 🧩 Resolves a domain position at a declared level, demanding what is not resident.
     /// in    Level            [-]  the level wanted; zero is finest
     /// in    PositionX    [-]  the domain's first axis
     /// in    PositionY   [-]  its second
-    /// in    RecordingOrdinal  [-]  the rotation sampling
+    /// in    RecordingIndex  [-]  the rotation sampling
     /// in    Requesting       [-]  where the demand is recorded
     /// out   Result          [-]  refuses with ContentUnsupported outside the level count, and with
     ///                             HostDenied before Construct has delivered
@@ -253,7 +253,7 @@ public:
     Outcome<SampledCell> Sample(std::uint32_t Level,
                                 double        PositionX,
                                 double        PositionY,
-                                std::uint64_t RecordingOrdinal,
+                                std::uint64_t RecordingIndex,
                                 RequestQueue& Requesting);
 
     /// 🧩 Resolves a domain position from the permanently resident levels alone, demanding nothing.
@@ -276,14 +276,14 @@ public:
     ///        there being exactly one door and `82` not walking through it.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareUncommitted(std::uint32_t CellOrdinal, bool UncommittedDeclared);
+    Outcome<bool> DeclareUncommitted(std::uint32_t CellIndex, bool UncommittedDeclared);
 
     /// 🧩 Considers one demanded cell for promotion, against the rotation's budget.
-    /// in    CellOrdinal      [-]  the cell
+    /// in    CellIndex      [-]  the cell
     /// in    Costing          [-]  what promoting it would cost, from `Estimate`
     /// in    ContentRevision  [-]  the revision the tile would be resolved from
     /// in    Scheduling       [-]  the rotation's budget and eviction ordering
-    /// in    RecordingOrdinal  [-]  the rotation promoting
+    /// in    RecordingIndex  [-]  the rotation promoting
     /// out   Result          [-]  refuses with ContentUnsupported outside the span, and with HostDenied
     ///                             before Construct has delivered
     /// post  a promoted or re-resolved cell owes its apron; the caller writes it and declares it
@@ -296,11 +296,11 @@ public:
     ///        §2.2: deferral is normal operation, and `86` §5 keeps it a measure rather than a report.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<PromotionVerdict> Promote(std::uint32_t       CellOrdinal,
+    Outcome<PromotionVerdict> Promote(std::uint32_t       CellIndex,
                                           const PromotionCost& Costing,
                                           std::uint64_t        ContentRevision,
                                           PromotionScheduler&  Scheduling,
-                                          std::uint64_t        RecordingOrdinal);
+                                          std::uint64_t        RecordingIndex);
 
     /// 🧩 Declares one promoted cell's apron written.
     /// out   Result  [-]  refuses with ContentUnsupported outside the span, and with HostDenied for a
@@ -310,21 +310,21 @@ public:
     ///        finding a seam in a painted result.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareApronWritten(std::uint32_t CellOrdinal);
+    Outcome<bool> DeclareApronWritten(std::uint32_t CellIndex);
 
     /// 🧩 Evicts one resident cell, releasing its slot into quarantine.
     /// out   Result  [-]  refuses with ContentUnsupported for a permanent, uncommitted or absent cell
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Evict(std::uint32_t CellOrdinal, std::uint64_t RecordingOrdinal);
+    Outcome<bool> Evict(std::uint32_t CellIndex, std::uint64_t RecordingIndex);
 
     /// 🧩 Reclaims quarantined slots whose release is older than the recording slot count.
     /// out   Reclaimed  [-]  how many slots became free
     /// note  Called once per rotation, on the tick, before anything is promoted. Reclaiming after promotion
-    ///        would make the rotation's first promotions evict against a ledger that is about to free itself.
+    ///        would make the rotation's first promotions evict against a index that is about to free itself.
     /// cost  🚩
     /// tag   api, nonthrowing
-    std::uint32_t Reconcile(std::uint64_t RecordingOrdinal);
+    std::uint32_t Reconcile(std::uint64_t RecordingIndex);
 
     /// 🧩 Declares this surface's residency measures — never a report.
     /// note  🔴 `86` §5: promotion deferred against budget is a **Measure** and discretionary exhaustion is not
@@ -339,7 +339,7 @@ public:
     SurfaceDepot&       Depot();
     const SurfaceDepot& Depot() const;
 
-    std::uint32_t SurfaceOrdinal() const;
+    std::uint32_t SurfaceIndex() const;
     std::uint64_t StoredBytesPerTile() const;
 
     /// 🧩 🔍 Whether every invariant `20` §5 states holds right now.
@@ -347,16 +347,16 @@ public:
     ///        uncommitted cell is absent, and that a tile promoted before this rotation carries its apron.
     /// cost  🔴
     /// tag   api, nonallocating, nonthrowing
-    bool ResidencyValid(std::uint64_t RecordingOrdinal) const;
+    bool ResidencyValid(std::uint64_t RecordingIndex) const;
 
 private:
 
-    Outcome<std::uint32_t> ReserveOrEvict(PromotionScheduler& Scheduling, std::uint64_t RecordingOrdinal);
+    Outcome<std::uint32_t> ReserveOrEvict(PromotionScheduler& Scheduling, std::uint64_t RecordingIndex);
 
     CellSpace      Cells_;                       // [-] - one record per cell of every level
-    TileSpace      Tiles_;                       // [-] - the slot ledger behind them
+    TileSpace      Tiles_;                       // [-] - the slot index behind them
     SurfaceDepot   Depot_;                       // [-] - the evictable derived artefacts
-    std::uint32_t  Ordinal        = 0u;          // [-] - which surface demands name
+    std::uint32_t  Index        = 0u;          // [-] - which surface demands name
     bool           Constructed    = false;       // [-] - Construct has delivered
 };
 

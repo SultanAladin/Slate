@@ -4,7 +4,7 @@
 // 🧩 Eight corners through a projective transform, one cone against one bounding sphere, and the standing the two amount to.
 
 #include "SlateCompute/Compute/VisibilityIndex/Api/PartitionClassifier.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/NumericTolerance.h"
 
 #include <cmath>
 
@@ -217,13 +217,13 @@ ClassifiedPartition ClassifyPartition(const MicroSurfacePartition&  Partitioned,
                                       const ViewProjection&         Viewing,
                                       const FrustumSpace&           Bounding,
                                       const ProjectedTransform&     Composed,
-                                      std::uint32_t                 PartitionOrdinal,
+                                      std::uint32_t                 PartitionIndex,
                                       std::uint32_t                 FirstTriangle,
                                       std::uint32_t                 DisplayX,
                                       std::uint32_t                 DisplayY)
 {
     ClassifiedPartition Classified;
-    Classified.PartitionOrdinal = PartitionOrdinal;
+    Classified.PartitionIndex = PartitionIndex;
     Classified.FirstTriangle    = FirstTriangle;
     Classified.TriangleCount    = Partitioned.TriangleCount;
 
@@ -247,7 +247,7 @@ ClassifiedPartition ClassifyPartition(const MicroSurfacePartition&  Partitioned,
     //    answers about the extent alone and knows nothing of the fan, so what it returns carries no run at all.
     ClassifiedPartition Accepted = ProjectPartitionExtent(Composed, Partitioned.Extent, DisplayX, DisplayY);
     Accepted.Current         = PartitionVerdict::Accepted;
-    Accepted.PartitionOrdinal = Classified.PartitionOrdinal;
+    Accepted.PartitionIndex = Classified.PartitionIndex;
     Accepted.FirstTriangle    = Classified.FirstTriangle;
     Accepted.TriangleCount    = Classified.TriangleCount;
 

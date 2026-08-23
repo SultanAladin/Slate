@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/DrawerSpace/Api/DrawerSpace.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/InterfaceExchange.h"
@@ -51,7 +51,7 @@ public:
     /// post  both drawers stand Closed and settled; nothing moves until a pointer arrives
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const InterfaceAttachment& Incoming,
+    Outcome<bool> ConstructViewportSequence(const InterfaceAttachment& Incoming,
                             const DrawerDeclaration&   North,
                             const DrawerDeclaration&   South);
 

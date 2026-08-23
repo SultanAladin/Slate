@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 
 #include <vulkan/vulkan.h>
 
@@ -29,7 +29,7 @@ struct CapabilitySet
     bool           TimestampQueryAvailable    = false;   // [-]  - `HardwareMetrics` may measure at all
     bool           DynamicRecordingAvailable  = false;   // [-]  - a recording may open a rendering scope with
                                                          //         no attachment construct declared for it
-    std::uint32_t  GraphicsFamilyOrdinal      = 0u;      // [-]  - the one queue family taken
+    std::uint32_t  GraphicsFamilyIndex      = 0u;      // [-]  - the one queue family taken
     std::uint64_t  LargestExtentReservation         = 0u;      // [B]  - largest single allocation the device allows
     double         TimestampToMilliseconds    = 0.0;     // [ms] - carried by one timestamp increment
 };

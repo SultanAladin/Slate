@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateDocument/Document/ToolSequence/Api/ToolSequence.h"
 #include "SlateMath/Numeric/ColourProjection/Api/ColourProjection.h"
 #include "SlateMath/Numeric/ReportSequence/Api/ReportSequence.h"
@@ -27,7 +27,7 @@ namespace Slate
 ///        property of the overlay and never a parameter beside it. A ground lattice that ignores depth is drawn over
 ///        the object standing on it; a manipulator that respects depth disappears inside the object it manipulates.
 ///        Both behaviours are correct and they are opposite, which is exactly why one recording cannot carry both.
-/// tag   contract
+/// tag   guarantee
 enum class DepthSubject : std::uint32_t
 {
     DepthTested = 0u,   // [-] - `08` §3 ⑩ — occludes and is occluded, and amends the depth it tested against
@@ -96,8 +96,8 @@ public:
 
     // 📝 `08` §3 ⑩ and ⑪, both above `26`'s 60. Everything ordered here is display-referred by construction, and
     //    the two ordinals are apart so that a depth-tested overlay can never be recorded after a depth-free one.
-    static constexpr std::uint32_t DepthTestedOrdinal = 70u;   // [-] - `08` §3 ⑩
-    static constexpr std::uint32_t DepthFreeOrdinal   = 80u;   // [-] - `08` §3 ⑪
+    static constexpr std::uint32_t DepthTestedIndex = 70u;   // [-] - `08` §3 ⑩
+    static constexpr std::uint32_t DepthFreeIndex   = 80u;   // [-] - `08` §3 ⑪
 
     /// 🧩 Declares how one overlay is drawn.
     /// in    Current  [-]  which of `80` §3's seven overlays

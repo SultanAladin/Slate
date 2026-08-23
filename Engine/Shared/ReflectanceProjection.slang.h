@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Shared/Prelude.slang.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/NumericTolerance.h"
 
 // 📐 🔴 Every routine below is read by `18`'s shading dispatch on the device and by `82`'s host preview of the
 //    same surface — `82` §5 resolves a preview on the host and `00` §11 gates the agreement at Tier B. Where the
@@ -34,7 +34,7 @@ namespace Slate
 //
 // 📝 A floor under the parameter, because a perfectly smooth surface concentrates the whole lobe onto a
 //    direction of no solid extent and the distribution's magnitude then diverges along it. The floor is the same
-//    order as the tolerance `Contract/` already declares for a vanishing quantity.
+//    order as the tolerance `Foundation/` already declares for a vanishing quantity.
 SLATE_SHARED SLATE_CONSTEXPR Real64 DistributionParameterFloor() { return 1.0e-4; }
 
 /// 🧩 The GGX microfacet distribution at one half-direction.

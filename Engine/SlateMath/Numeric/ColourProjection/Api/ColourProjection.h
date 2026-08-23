@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
+#include "Foundation/NumericTolerance.h"
 
 #include <cstdint>
 
@@ -22,7 +22,7 @@ namespace Slate
 /// note  🔴 `66` §4 applies the output transfer exactly once in the whole engine. A space that declares
 ///        `Linear` here carries no transfer, which is what lets a working space be wide and linear while a
 ///        display space is neither.
-/// tag   contract
+/// tag   guarantee
 enum class TransferSubject : std::uint32_t
 {
     Linear        = 0u,   // [-] - no transfer; the working space

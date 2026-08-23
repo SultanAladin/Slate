@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "Shared/ReflectionProjection.slang.h"
 #include "SlateCompute/Compute/TransmissionSequence/Api/TransmissionSequence.h"
 #include "SlateMath/Numeric/ReportSequence/Api/ReportSequence.h"
@@ -23,15 +23,15 @@ namespace Slate
 
 /// 🧩 What the trace is bounded by.
 /// note  🚧 Every figure below is one of `30` §7's open rows and each blocks tuning alone. They are declared
-///        here rather than in `Contract/` because no second unit reads one — `00` §2's rule, applied to a
+///        here rather than in `Foundation/` because no second unit reads one — `00` §2's rule, applied to a
 ///        number that is a measurement waiting to happen rather than an agreement.
 /// tag   nonallocating, nonthrowing
 struct ReflectionSpecification
 {
-    std::uint32_t  MarchCeiling      = 48u;    // [-] - steps before the ray gives up
+    std::uint32_t  MarchLimit      = 48u;    // [-] - steps before the ray gives up
     std::uint32_t  RefineCount       = 6u;     // [-] - binary-search steps refining a crossing
     double         ThicknessBound    = 0.004;  // [-] - in reversed depth; a crossing deeper is not a hit
-    double         RoughnessCeiling  = 0.55;   // [-] - above this the trace is skipped entirely
+    double         RoughnessLimit  = 0.55;   // [-] - above this the trace is skipped entirely
     std::uint32_t  ExtentDivisor     = 2u;     // [-] - `08` §2's half extent
     bool           JitterDeclared    = true;   // [-] - `30` §7's row; `64` owns the resolve either way
 };
@@ -82,7 +82,7 @@ public:
 
     // 📝 Above `62`'s resolution ordinal, so the schedule places this after it. `30` §5 requires the ordering
     //    and `08` §2's amendment list declares it; the ordinal is that declaration expressed as a number.
-    static constexpr std::uint32_t AmendmentOrdinal = 30u;   // [-] - `08` §3 ⑥
+    static constexpr std::uint32_t AmendmentIndex = 30u;   // [-] - `08` §3 ⑥
 
     /// 🧩 Declares what the trace is bounded by.
     /// out   Result  [-]  refuses with ContentUnsupported for a march ceiling of nothing, a non-positive
@@ -197,7 +197,7 @@ TracedReflection SpecularProjection::March(double         OriginX,
     double WalkingY = OriginY;
     double WalkingDepth  = OriginDepth;
 
-    for (std::uint32_t Step = 0u; Step < Specification.MarchCeiling; ++Step)
+    for (std::uint32_t Step = 0u; Step < Specification.MarchLimit; ++Step)
     {
         const double PriorX  = WalkingX;
         const double PriorY = WalkingY;
@@ -266,7 +266,7 @@ TracedReflection SpecularProjection::March(double         OriginX,
         return Traced;
     }
 
-    // 📝 The ceiling was reached with no crossing. Weight stays at nothing and `30` §1's contract makes that a
+    // 📝 The ceiling was reached with no crossing. Weight stays at nothing and `30` §1's guarantee makes that a
     //    no-op, which is why the ceiling can be tuned freely without a fallback path changing behaviour.
     return Traced;
 }

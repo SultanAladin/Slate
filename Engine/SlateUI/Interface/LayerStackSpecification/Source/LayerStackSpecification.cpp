@@ -17,14 +17,14 @@ namespace Slate
 
 // 📝 `CHANNELS` from the reference, in its own order. The Channel panel presents these eight; the
 //    fourteen-slot arrangement the property panel states is a superset presented there, not here.
-static const char* const AppliedChannels[LayerStackCeiling::Channels] =
+static const char* const AppliedChannels[LayerStackLimit::Channels] =
 {
     "Base Color", "Metallic", "Roughness", "Normal",
     "Height", "Ambient Occlusion", "Emissive", "Opacity"
 };
 
 // 📝 One tint per channel, matching the property panel's own `CHANNEL_SLOTS` hues.
-static const std::uint32_t AppliedChannelTints[LayerStackCeiling::Channels] =
+static const std::uint32_t AppliedChannelTints[LayerStackLimit::Channels] =
 {
     0xB87333u, 0x8B5CF6u, 0x3B82F6u, 0x10B981u,
     0x8A8A8Au, 0x6B7280u, 0xF59E0Bu, 0x94A3B8u
@@ -35,9 +35,9 @@ const char* const* ChannelNaming()
     return AppliedChannels;
 }
 
-ThemeToken ChannelTint(std::uint32_t Ordinal)
+ThemeToken ChannelTint(std::uint32_t Index)
 {
-    const std::uint32_t Resolved = (Ordinal < LayerStackCeiling::Channels) ? Ordinal : 0u;
+    const std::uint32_t Resolved = (Index < LayerStackLimit::Channels) ? Index : 0u;
     return Covering(AppliedChannelTints[Resolved]);
 }
 
@@ -67,16 +67,16 @@ static const char* const AppliedHeightBlends[] =
     "Darken (Min)", "Lighten (Max)", "Replace", "Disable"
 };
 
-const char* const* BlendNaming(std::uint32_t ChannelOrdinal, std::uint32_t& Count)
+const char* const* BlendNaming(std::uint32_t ChannelIndex, std::uint32_t& Count)
 {
-    // 📐 Ordinal three is Normal and ordinal four is Height, per `AppliedChannels`.
-    if (ChannelOrdinal == 3u)
+    // 📐 Index three is Normal and ordinal four is Height, per `AppliedChannels`.
+    if (ChannelIndex == 3u)
     {
         Count = static_cast<std::uint32_t>(sizeof AppliedNormalBlends / sizeof AppliedNormalBlends[0]);
         return AppliedNormalBlends;
     }
 
-    if (ChannelOrdinal == 4u)
+    if (ChannelIndex == 4u)
     {
         Count = static_cast<std::uint32_t>(sizeof AppliedHeightBlends / sizeof AppliedHeightBlends[0]);
         return AppliedHeightBlends;
@@ -154,17 +154,17 @@ const char* SourceNaming(MaskSource Source)
 //                                                   WALKING THE NESTING
 //------------------------------------------------------------------------------------------------------------------------
 
-bool EntryCurrent(const LayerArrangement& Arrangement, std::uint32_t Ordinal)
+bool EntryCurrent(const LayerArrangement& Arrangement, std::uint32_t Index)
 {
-    if (Ordinal >= Arrangement.EntryCount)
+    if (Index >= Arrangement.EntryCount)
         return false;
 
     // 📐 Walk outward through the enclosing folders; one closed folder hides everything within it. The walk
     //    is bounded by the nesting ceiling so a malformed enclosing ordinal cannot spin.
-    std::uint32_t Enclosing = Arrangement.Entries[Ordinal].Enclosing;
+    std::uint32_t Enclosing = Arrangement.Entries[Index].Enclosing;
     std::uint32_t Steps     = 0u;
 
-    while (Enclosing < Arrangement.EntryCount && Steps < LayerStackCeiling::Depth)
+    while (Enclosing < Arrangement.EntryCount && Steps < LayerStackLimit::Depth)
     {
         if (!Arrangement.Entries[Enclosing].Opened)
             return false;
@@ -176,17 +176,17 @@ bool EntryCurrent(const LayerArrangement& Arrangement, std::uint32_t Ordinal)
     return true;
 }
 
-std::uint32_t EnclosedCount(const LayerArrangement& Arrangement, std::uint32_t Ordinal)
+std::uint32_t EnclosedCount(const LayerArrangement& Arrangement, std::uint32_t Index)
 {
-    if (Ordinal >= Arrangement.EntryCount)
+    if (Index >= Arrangement.EntryCount)
         return 0u;
 
     // 📐 The run is held outermost-first with everything a folder encloses laid immediately after it, so the
     //    enclosed extent ends at the first entry no deeper than the folder itself.
-    const std::uint32_t Depth   = Arrangement.Entries[Ordinal].Depth;
+    const std::uint32_t Depth   = Arrangement.Entries[Index].Depth;
     std::uint32_t       Counted = 0u;
 
-    for (std::uint32_t Walk = Ordinal + 1u; Walk < Arrangement.EntryCount; ++Walk)
+    for (std::uint32_t Walk = Index + 1u; Walk < Arrangement.EntryCount; ++Walk)
     {
         if (Arrangement.Entries[Walk].Depth <= Depth)
             break;
@@ -201,7 +201,7 @@ std::uint32_t ChannelsEnabled(const LayerEntry& Entry)
 {
     std::uint32_t Counted = 0u;
 
-    for (std::uint32_t Channel = 0u; Channel < LayerStackCeiling::Channels; ++Channel)
+    for (std::uint32_t Channel = 0u; Channel < LayerStackLimit::Channels; ++Channel)
         if (Entry.Channels[Channel].Enabled)
             ++Counted;
 
@@ -216,7 +216,7 @@ std::uint32_t ChannelsEnabled(const LayerEntry& Entry)
 //    Height arrives adding, which is what makes the height-into-normal note on the card true.
 static void ApplyChannels(LayerEntry& Entry)
 {
-    for (std::uint32_t Channel = 0u; Channel < LayerStackCeiling::Channels; ++Channel)
+    for (std::uint32_t Channel = 0u; Channel < LayerStackLimit::Channels; ++Channel)
     {
         Entry.Channels[Channel].Enabled = (Channel != 6u) && (Channel != 7u);
         Entry.Channels[Channel].Opacity = 100u;
@@ -229,8 +229,8 @@ static void ApplyChannels(LayerEntry& Entry)
 
 static void ApplyNaming(LayerEntry& Entry, const char* Naming)
 {
-    std::strncpy(Entry.Naming, Naming, LayerStackCeiling::NamingCeiling - 1u);
-    Entry.Naming[LayerStackCeiling::NamingCeiling - 1u] = '\0';
+    std::strncpy(Entry.Naming, Naming, LayerStackLimit::NamingLimit - 1u);
+    Entry.Naming[LayerStackLimit::NamingLimit - 1u] = '\0';
 }
 
 // 📝 One paint-sourced mask, the reference's simplest `MASK()`.
@@ -284,7 +284,7 @@ static void ApplyGeneratorMask(LayerEntry& Entry, const char* Generator, std::ui
 //    no record and leaves `Placement` absent, which records every other section and omits this one.
 static PlacementRun* OpenPlacement(LayerArrangement& Arrangement, LayerEntry& Entry)
 {
-    if (Arrangement.PlacementCount >= LayerStackCeiling::PlacementRecords)
+    if (Arrangement.PlacementCount >= LayerStackLimit::PlacementRecords)
         return nullptr;
 
     Entry.Placement = Arrangement.PlacementCount;
@@ -358,7 +358,7 @@ Outcome<bool> ApplyReferenceArrangement(LayerArrangement& Arrangement)
     //    so a later edit to the declared run refuses rather than writing past the extent.
     static constexpr std::uint32_t Declared = 13u;
 
-    if (Declared > LayerStackCeiling::Entries)
+    if (Declared > LayerStackLimit::Entries)
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted,
                                        "the declared arrangement exceeds the entry ceiling" });
 
@@ -450,17 +450,17 @@ Outcome<bool> ApplyReferenceArrangement(LayerArrangement& Arrangement)
         Folder.Opened = true;
     }
 
-    const std::uint32_t BaseOrdinal = Arrangement.EntryCount - 1u;
+    const std::uint32_t BaseIndex = Arrangement.EntryCount - 1u;
 
     {
-        LayerEntry& Steel = Open(LayerContent::Fill, "Brushed Steel", 1u, BaseOrdinal, 0x8AB4D8u);
+        LayerEntry& Steel = Open(LayerContent::Fill, "Brushed Steel", 1u, BaseIndex, 0x8AB4D8u);
         ApplyGeneratorMask(Steel, "Mask Editor", 100u);
         Steel.Mask.Effects[0]  = "Warp";
         Steel.Mask.EffectCount = 1u;
     }
 
     {
-        LayerEntry& Gold = Open(LayerContent::Fill, "Gold Inlay", 1u, BaseOrdinal, 0xE5484Du);
+        LayerEntry& Gold = Open(LayerContent::Fill, "Gold Inlay", 1u, BaseIndex, 0xE5484Du);
         Gold.Effects[0]  = "Levels";
         Gold.Effects[1]  = "HSL Shift";
         Gold.EffectCount = 2u;
@@ -473,12 +473,12 @@ Outcome<bool> ApplyReferenceArrangement(LayerArrangement& Arrangement)
     }
 
     {
-        LayerEntry& Oak = Open(LayerContent::Fill, "Oak Panel", 1u, BaseOrdinal, 0xF76B15u);
+        LayerEntry& Oak = Open(LayerContent::Fill, "Oak Panel", 1u, BaseIndex, 0xF76B15u);
         Oak.Secured = true;
     }
 
     {
-        LayerEntry& Canvas = Open(LayerContent::Fill, "Canvas Weave", 1u, BaseOrdinal, 0xE93D82u);
+        LayerEntry& Canvas = Open(LayerContent::Fill, "Canvas Weave", 1u, BaseIndex, 0xE93D82u);
         Canvas.Opacity = 90u;
         Canvas.Shown   = false;
     }
@@ -523,7 +523,7 @@ void ApplyReferenceRevisions(const RevisionCoordinate*& Revisions, std::uint32_t
 const std::uint32_t* AppliedColourTags()
 {
     // 📝 `COLORS`, verbatim and in the reference's own order.
-    static const std::uint32_t Applied[LayerStackCeiling::ColourTags] =
+    static const std::uint32_t Applied[LayerStackLimit::ColourTags] =
     {
         0xE5484Du, 0xF76B15u, 0xFFC53Du, 0x46A758u, 0x12A594u,
         0x8AB4D8u, 0x9B8CF0u, 0xE93D82u, 0x8B8D98u, 0xB0E64Cu
@@ -590,11 +590,11 @@ static bool RunCarries(const char* Within, const char* Sought)
         return (Written >= 'A' && Written <= 'Z') ? static_cast<char>(Written - 'A' + 'a') : Written;
     };
 
-    for (std::uint32_t Ordinal = 0u; Within[Ordinal] != '\0'; ++Ordinal)
+    for (std::uint32_t Index = 0u; Within[Index] != '\0'; ++Index)
     {
         std::uint32_t Walk = 0u;
 
-        while (Sought[Walk] != '\0' && Lowered(Within[Ordinal + Walk]) == Lowered(Sought[Walk]))
+        while (Sought[Walk] != '\0' && Lowered(Within[Index + Walk]) == Lowered(Sought[Walk]))
             ++Walk;
 
         if (Sought[Walk] == '\0')
@@ -604,21 +604,21 @@ static bool RunCarries(const char* Within, const char* Sought)
     return false;
 }
 
-bool EntryRetained(const LayerArrangement& Arrangement, std::uint32_t Ordinal, const char* Retention)
+bool EntryRetained(const LayerArrangement& Arrangement, std::uint32_t Index, const char* Retention)
 {
-    if (Ordinal >= Arrangement.EntryCount)
+    if (Index >= Arrangement.EntryCount)
         return false;
 
     if (Retention == nullptr || Retention[0] == '\0')
         return true;
 
-    if (RunCarries(Arrangement.Entries[Ordinal].Naming, Retention))
+    if (RunCarries(Arrangement.Entries[Index].Naming, Retention))
         return true;
 
     // 📐 A folder is retained by whatever it encloses, exactly as `match` recurses into `kids`.
-    const std::uint32_t Enclosed = EnclosedCount(Arrangement, Ordinal);
+    const std::uint32_t Enclosed = EnclosedCount(Arrangement, Index);
 
-    for (std::uint32_t Walk = Ordinal + 1u; Walk <= Ordinal + Enclosed; ++Walk)
+    for (std::uint32_t Walk = Index + 1u; Walk <= Index + Enclosed; ++Walk)
         if (RunCarries(Arrangement.Entries[Walk].Naming, Retention))
             return true;
 
@@ -626,9 +626,9 @@ bool EntryRetained(const LayerArrangement& Arrangement, std::uint32_t Ordinal, c
 }
 
 std::uint32_t CurrentHalves(const LayerArrangement& Arrangement, const char* Retention,
-                              CurrentHalf* Written, std::uint32_t Ceiling)
+                              CurrentHalf* Written, std::uint32_t Limit)
 {
-    if (Written == nullptr || Ceiling == 0u)
+    if (Written == nullptr || Limit == 0u)
         return 0u;
 
     // 📐 A retention run opens every folder it reaches into — `const kOpen=(n.open||q)`. Without one the
@@ -636,24 +636,24 @@ std::uint32_t CurrentHalves(const LayerArrangement& Arrangement, const char* Ret
     const bool    Retaining = (Retention != nullptr) && (Retention[0] != '\0');
     std::uint32_t Occupied  = 0u;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Arrangement.EntryCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Arrangement.EntryCount; ++Index)
     {
-        const bool Current = Retaining ? EntryRetained(Arrangement, Ordinal, Retention)
-                                         : EntryCurrent(Arrangement, Ordinal);
+        const bool Current = Retaining ? EntryRetained(Arrangement, Index, Retention)
+                                         : EntryCurrent(Arrangement, Index);
 
         if (!Current)
             continue;
 
-        if (Occupied >= Ceiling)
+        if (Occupied >= Limit)
             break;
 
-        Written[Occupied].Ordinal = Ordinal;
+        Written[Occupied].Index = Index;
         Written[Occupied].Half    = LayerTaken::Layer;
         ++Occupied;
 
-        if (Arrangement.Entries[Ordinal].Mask.Declared && Occupied < Ceiling)
+        if (Arrangement.Entries[Index].Mask.Declared && Occupied < Limit)
         {
-            Written[Occupied].Ordinal = Ordinal;
+            Written[Occupied].Index = Index;
             Written[Occupied].Half    = LayerTaken::Mask;
             ++Occupied;
         }
@@ -672,16 +672,16 @@ std::uint32_t CurrentHalves(const LayerArrangement& Arrangement, const char* Ret
 //    defect where a splice fixes the ordinals it can see and silently breaks the ones it cannot.
 static void ResolveEnclosing(LayerArrangement& Arrangement)
 {
-    for (std::uint32_t Ordinal = 0u; Ordinal < Arrangement.EntryCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Arrangement.EntryCount; ++Index)
     {
-        LayerEntry& Entry = Arrangement.Entries[Ordinal];
+        LayerEntry& Entry = Arrangement.Entries[Index];
 
-        Entry.Enclosing = LayerStackCeiling::AbsentOrdinal;
+        Entry.Enclosing = LayerStackLimit::AbsentIndex;
 
         if (Entry.Depth == 0u)
             continue;
 
-        for (std::uint32_t Walk = Ordinal; Walk > 0u; --Walk)
+        for (std::uint32_t Walk = Index; Walk > 0u; --Walk)
         {
             if (Arrangement.Entries[Walk - 1u].Depth + 1u == Entry.Depth)
             {
@@ -693,9 +693,9 @@ static void ResolveEnclosing(LayerArrangement& Arrangement)
 }
 
 // 📐 How many records one entry occupies — itself and everything it encloses, contiguously.
-static std::uint32_t SubrunSpan(const LayerArrangement& Arrangement, std::uint32_t Ordinal)
+static std::uint32_t SubrunSpan(const LayerArrangement& Arrangement, std::uint32_t Index)
 {
-    return 1u + EnclosedCount(Arrangement, Ordinal);
+    return 1u + EnclosedCount(Arrangement, Index);
 }
 
 static void ReverseRun(LayerArrangement& Arrangement, std::uint32_t Minimum, std::uint32_t Maximum)
@@ -735,12 +735,12 @@ static void CarrySubrun(LayerArrangement& Arrangement, std::uint32_t From, std::
 }
 
 // 📐 The deepest nesting one subrun reaches, so a move can refuse before it exceeds the depth ceiling.
-static std::uint32_t DeepestWithin(const LayerArrangement& Arrangement, std::uint32_t Ordinal,
+static std::uint32_t DeepestWithin(const LayerArrangement& Arrangement, std::uint32_t Index,
                                    std::uint32_t Span)
 {
     std::uint32_t Deepest = 0u;
 
-    for (std::uint32_t Walk = Ordinal; Walk < Ordinal + Span; ++Walk)
+    for (std::uint32_t Walk = Index; Walk < Index + Span; ++Walk)
         if (Arrangement.Entries[Walk].Depth > Deepest)
             Deepest = Arrangement.Entries[Walk].Depth;
 
@@ -757,18 +757,18 @@ bool EntryWithin(const LayerArrangement& Arrangement, std::uint32_t Enclosing, s
 
 bool DeclareEntry(LayerArrangement& Arrangement, LayerContent Content, const char* Naming)
 {
-    if (Arrangement.EntryCount >= LayerStackCeiling::Entries)
+    if (Arrangement.EntryCount >= LayerStackLimit::Entries)
         return false;
 
     // 📐 `s.list.splice(s.i,0,n)` — the fresh entry is applied immediately above whatever stands taken, at
     //    that entry's own nesting, so an addition inside an open folder stays inside it.
-    const std::uint32_t Ordinal  = (Arrangement.Taken < Arrangement.EntryCount) ? Arrangement.Taken : 0u;
-    const std::uint32_t Depth = (Arrangement.EntryCount > 0u) ? Arrangement.Entries[Ordinal].Depth : 0u;
+    const std::uint32_t Index  = (Arrangement.Taken < Arrangement.EntryCount) ? Arrangement.Taken : 0u;
+    const std::uint32_t Depth = (Arrangement.EntryCount > 0u) ? Arrangement.Entries[Index].Depth : 0u;
 
-    for (std::uint32_t Walk = Arrangement.EntryCount; Walk > Ordinal; --Walk)
+    for (std::uint32_t Walk = Arrangement.EntryCount; Walk > Index; --Walk)
         Arrangement.Entries[Walk] = Arrangement.Entries[Walk - 1u];
 
-    LayerEntry& Declared = Arrangement.Entries[Ordinal];
+    LayerEntry& Declared = Arrangement.Entries[Index];
 
     Declared         = LayerEntry{};
     Declared.Content = Content;
@@ -785,7 +785,7 @@ bool DeclareEntry(LayerArrangement& Arrangement, LayerContent Content, const cha
 
     ++Arrangement.EntryCount;
 
-    Arrangement.Taken     = Ordinal;
+    Arrangement.Taken     = Index;
     Arrangement.TakenHalf = LayerTaken::Layer;
 
     ResolveEnclosing(Arrangement);
@@ -805,19 +805,19 @@ bool RetireTaken(LayerArrangement& Arrangement)
         return true;
     }
 
-    const std::uint32_t Ordinal = Arrangement.Taken;
-    const std::uint32_t Span = SubrunSpan(Arrangement, Ordinal);
+    const std::uint32_t Index = Arrangement.Taken;
+    const std::uint32_t Span = SubrunSpan(Arrangement, Index);
 
-    for (std::uint32_t Walk = Ordinal; Walk + Span < Arrangement.EntryCount; ++Walk)
+    for (std::uint32_t Walk = Index; Walk + Span < Arrangement.EntryCount; ++Walk)
         Arrangement.Entries[Walk] = Arrangement.Entries[Walk + Span];
 
     Arrangement.EntryCount -= Span;
 
     if (Arrangement.Soloed >= Arrangement.EntryCount)
-        Arrangement.Soloed = LayerStackCeiling::AbsentOrdinal;
+        Arrangement.Soloed = LayerStackLimit::AbsentIndex;
 
     Arrangement.Taken     = (Arrangement.EntryCount == 0u) ? 0u
-                          : ((Ordinal < Arrangement.EntryCount) ? Ordinal : Arrangement.EntryCount - 1u);
+                          : ((Index < Arrangement.EntryCount) ? Index : Arrangement.EntryCount - 1u);
     Arrangement.TakenHalf = LayerTaken::Layer;
 
     ResolveEnclosing(Arrangement);
@@ -829,26 +829,26 @@ bool DuplicateTaken(LayerArrangement& Arrangement)
     if (Arrangement.Taken >= Arrangement.EntryCount)
         return false;
 
-    const std::uint32_t Ordinal = Arrangement.Taken;
-    const std::uint32_t Span = SubrunSpan(Arrangement, Ordinal);
+    const std::uint32_t Index = Arrangement.Taken;
+    const std::uint32_t Span = SubrunSpan(Arrangement, Index);
 
-    if (Arrangement.EntryCount + Span > LayerStackCeiling::Entries)
+    if (Arrangement.EntryCount + Span > LayerStackLimit::Entries)
         return false;
 
-    for (std::uint32_t Walk = Arrangement.EntryCount; Walk > Ordinal; --Walk)
+    for (std::uint32_t Walk = Arrangement.EntryCount; Walk > Index; --Walk)
         Arrangement.Entries[Walk + Span - 1u] = Arrangement.Entries[Walk - 1u];
 
     for (std::uint32_t Walk = 0u; Walk < Span; ++Walk)
-        Arrangement.Entries[Ordinal + Walk] = Arrangement.Entries[Ordinal + Span + Walk];
+        Arrangement.Entries[Index + Walk] = Arrangement.Entries[Index + Span + Walk];
 
     // 📐 `c.name=s.node.name+' copy'` — only the copied head is renamed, never what it encloses.
-    char Copied[LayerStackCeiling::NamingCeiling] = {};
+    char Copied[LayerStackLimit::NamingLimit] = {};
     std::snprintf(Copied, sizeof Copied, "%.*s copy",
-                  static_cast<int>(LayerStackCeiling::NamingCeiling - 7u), Arrangement.Entries[Ordinal].Naming);
-    ApplyNaming(Arrangement.Entries[Ordinal], Copied);
+                  static_cast<int>(LayerStackLimit::NamingLimit - 7u), Arrangement.Entries[Index].Naming);
+    ApplyNaming(Arrangement.Entries[Index], Copied);
 
     Arrangement.EntryCount += Span;
-    Arrangement.Taken       = Ordinal;
+    Arrangement.Taken       = Index;
     Arrangement.TakenHalf   = LayerTaken::Layer;
 
     ResolveEnclosing(Arrangement);
@@ -860,38 +860,38 @@ bool EncloseTaken(LayerArrangement& Arrangement)
     if (Arrangement.Taken >= Arrangement.EntryCount)
         return false;
 
-    if (Arrangement.EntryCount >= LayerStackCeiling::Entries)
+    if (Arrangement.EntryCount >= LayerStackLimit::Entries)
         return false;
 
-    const std::uint32_t Ordinal = Arrangement.Taken;
-    const std::uint32_t Span = SubrunSpan(Arrangement, Ordinal);
+    const std::uint32_t Index = Arrangement.Taken;
+    const std::uint32_t Span = SubrunSpan(Arrangement, Index);
 
-    if (DeepestWithin(Arrangement, Ordinal, Span) + 1u >= LayerStackCeiling::Depth)
+    if (DeepestWithin(Arrangement, Index, Span) + 1u >= LayerStackLimit::Depth)
         return false;
 
-    const std::uint32_t Depth = Arrangement.Entries[Ordinal].Depth;
+    const std::uint32_t Depth = Arrangement.Entries[Index].Depth;
 
-    for (std::uint32_t Walk = Arrangement.EntryCount; Walk > Ordinal; --Walk)
+    for (std::uint32_t Walk = Arrangement.EntryCount; Walk > Index; --Walk)
         Arrangement.Entries[Walk] = Arrangement.Entries[Walk - 1u];
 
     ++Arrangement.EntryCount;
 
-    for (std::uint32_t Walk = Ordinal + 1u; Walk <= Ordinal + Span; ++Walk)
+    for (std::uint32_t Walk = Index + 1u; Walk <= Index + Span; ++Walk)
         ++Arrangement.Entries[Walk].Depth;
 
-    LayerEntry& Folder = Arrangement.Entries[Ordinal];
+    LayerEntry& Folder = Arrangement.Entries[Index];
 
     Folder           = LayerEntry{};
     Folder.Content   = LayerContent::Folder;
     Folder.Blend     = "Passthrough";
     Folder.Opened    = true;
     Folder.Depth     = Depth;
-    Folder.ColourTag = Arrangement.Entries[Ordinal + 1u].ColourTag;
+    Folder.ColourTag = Arrangement.Entries[Index + 1u].ColourTag;
 
     ApplyNaming(Folder, "Group");
     ApplyChannels(Folder);
 
-    Arrangement.Taken     = Ordinal;
+    Arrangement.Taken     = Index;
     Arrangement.TakenHalf = LayerTaken::Layer;
 
     ResolveEnclosing(Arrangement);
@@ -903,13 +903,13 @@ bool CarryTaken(LayerArrangement& Arrangement, bool Downward)
     if (Arrangement.Taken >= Arrangement.EntryCount)
         return false;
 
-    const std::uint32_t Ordinal  = Arrangement.Taken;
-    const std::uint32_t Span  = SubrunSpan(Arrangement, Ordinal);
-    const std::uint32_t Depth = Arrangement.Entries[Ordinal].Depth;
+    const std::uint32_t Index  = Arrangement.Taken;
+    const std::uint32_t Span  = SubrunSpan(Arrangement, Index);
+    const std::uint32_t Depth = Arrangement.Entries[Index].Depth;
 
     if (Downward)
     {
-        const std::uint32_t Neighbour = Ordinal + Span;
+        const std::uint32_t Neighbour = Index + Span;
 
         // 📐 Nothing follows at this nesting, so the entry steps OUT of whatever encloses it.
         if (Neighbour >= Arrangement.EntryCount || Arrangement.Entries[Neighbour].Depth < Depth)
@@ -917,7 +917,7 @@ bool CarryTaken(LayerArrangement& Arrangement, bool Downward)
             if (Depth == 0u)
                 return false;
 
-            for (std::uint32_t Walk = Ordinal; Walk < Ordinal + Span; ++Walk)
+            for (std::uint32_t Walk = Index; Walk < Index + Span; ++Walk)
                 --Arrangement.Entries[Walk].Depth;
 
             ResolveEnclosing(Arrangement);
@@ -931,30 +931,30 @@ bool CarryTaken(LayerArrangement& Arrangement, bool Downward)
         if (Arrangement.Entries[Neighbour].Content == LayerContent::Folder &&
             Arrangement.Entries[Neighbour].Opened)
         {
-            if (DeepestWithin(Arrangement, Ordinal, Span) + 1u >= LayerStackCeiling::Depth)
+            if (DeepestWithin(Arrangement, Index, Span) + 1u >= LayerStackLimit::Depth)
                 return false;
 
-            CarrySubrun(Arrangement, Ordinal, Span, Ordinal + 1u);
+            CarrySubrun(Arrangement, Index, Span, Index + 1u);
 
-            for (std::uint32_t Walk = Ordinal + 1u; Walk < Ordinal + 1u + Span; ++Walk)
+            for (std::uint32_t Walk = Index + 1u; Walk < Index + 1u + Span; ++Walk)
                 ++Arrangement.Entries[Walk].Depth;
 
-            Arrangement.Taken = Ordinal + 1u;
+            Arrangement.Taken = Index + 1u;
             ResolveEnclosing(Arrangement);
             return true;
         }
 
-        CarrySubrun(Arrangement, Ordinal, Span, Ordinal + NeighbourSpan);
-        Arrangement.Taken = Ordinal + NeighbourSpan;
+        CarrySubrun(Arrangement, Index, Span, Index + NeighbourSpan);
+        Arrangement.Taken = Index + NeighbourSpan;
         ResolveEnclosing(Arrangement);
         return true;
     }
 
     // 📐 Upward. The preceding neighbour is found by walking back to the nearest entry at this nesting.
-    if (Ordinal == 0u)
+    if (Index == 0u)
         return false;
 
-    std::uint32_t Preceding = Ordinal;
+    std::uint32_t Preceding = Index;
 
     while (Preceding > 0u && Arrangement.Entries[Preceding - 1u].Depth > Depth)
         --Preceding;
@@ -967,10 +967,10 @@ bool CarryTaken(LayerArrangement& Arrangement, bool Downward)
         // 📐 Stepping out of the enclosing folder, which now sits immediately before this subrun.
         const std::uint32_t Enclosing = Preceding - 1u;
 
-        for (std::uint32_t Walk = Ordinal; Walk < Ordinal + Span; ++Walk)
+        for (std::uint32_t Walk = Index; Walk < Index + Span; ++Walk)
             --Arrangement.Entries[Walk].Depth;
 
-        CarrySubrun(Arrangement, Ordinal, Span, Enclosing);
+        CarrySubrun(Arrangement, Index, Span, Enclosing);
 
         Arrangement.Taken = Enclosing;
         ResolveEnclosing(Arrangement);
@@ -982,18 +982,18 @@ bool CarryTaken(LayerArrangement& Arrangement, bool Downward)
     if (Arrangement.Entries[Neighbour].Content == LayerContent::Folder &&
         Arrangement.Entries[Neighbour].Opened)
     {
-        if (DeepestWithin(Arrangement, Ordinal, Span) + 1u >= LayerStackCeiling::Depth)
+        if (DeepestWithin(Arrangement, Index, Span) + 1u >= LayerStackLimit::Depth)
             return false;
 
         // 📐 `nb.kids.push(n)` — stepping up into an open folder lands at its END, not its beginning.
-        for (std::uint32_t Walk = Ordinal; Walk < Ordinal + Span; ++Walk)
+        for (std::uint32_t Walk = Index; Walk < Index + Span; ++Walk)
             ++Arrangement.Entries[Walk].Depth;
 
         ResolveEnclosing(Arrangement);
         return true;
     }
 
-    CarrySubrun(Arrangement, Ordinal, Span, Neighbour);
+    CarrySubrun(Arrangement, Index, Span, Neighbour);
     Arrangement.Taken = Neighbour;
     ResolveEnclosing(Arrangement);
     return true;
@@ -1025,17 +1025,17 @@ void ToggleEveryFolder(LayerArrangement& Arrangement)
     //    also folds every card, which is what makes the button read as "collapse everything".
     bool AnyOpened = false;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Arrangement.EntryCount; ++Ordinal)
-        if (Arrangement.Entries[Ordinal].Content == LayerContent::Folder &&
-            Arrangement.Entries[Ordinal].Opened)
+    for (std::uint32_t Index = 0u; Index < Arrangement.EntryCount; ++Index)
+        if (Arrangement.Entries[Index].Content == LayerContent::Folder &&
+            Arrangement.Entries[Index].Opened)
         {
             AnyOpened = true;
             break;
         }
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Arrangement.EntryCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Arrangement.EntryCount; ++Index)
     {
-        LayerEntry& Entry = Arrangement.Entries[Ordinal];
+        LayerEntry& Entry = Arrangement.Entries[Index];
 
         if (Entry.Content == LayerContent::Folder)
             Entry.Opened = !AnyOpened;
@@ -1060,7 +1060,7 @@ bool CarryEntry(LayerArrangement& Arrangement, std::uint32_t Carried, std::uint3
     const std::uint32_t Deepest  = DeepestWithin(Arrangement, Carried, Span);
     const std::uint32_t Current = Arrangement.Entries[Carried].Depth;
 
-    std::uint32_t Ordinal  = 0u;
+    std::uint32_t Index  = 0u;
     std::uint32_t Depth = 0u;
 
     if (Enclosed)
@@ -1069,22 +1069,22 @@ bool CarryEntry(LayerArrangement& Arrangement, std::uint32_t Carried, std::uint3
             return false;
 
         Depth = Arrangement.Entries[Destined].Depth + 1u;
-        Ordinal  = Destined + 1u;
+        Index  = Destined + 1u;
 
         Arrangement.Entries[Destined].Opened = true;
     }
     else
     {
         Depth = Arrangement.Entries[Destined].Depth;
-        Ordinal  = Trailing ? (Destined + SubrunSpan(Arrangement, Destined)) : Destined;
+        Index  = Trailing ? (Destined + SubrunSpan(Arrangement, Destined)) : Destined;
     }
 
-    if (Deepest - Current + Depth >= LayerStackCeiling::Depth)
+    if (Deepest - Current + Depth >= LayerStackLimit::Depth)
         return false;
 
     // 📐 A seat beyond the carried subrun is measured against a run that still holds it, so it steps back
     //    by the span the removal will take out from under it.
-    const std::uint32_t Resolved = (Ordinal > Carried) ? (Ordinal - Span) : Ordinal;
+    const std::uint32_t Resolved = (Index > Carried) ? (Index - Span) : Index;
 
     CarrySubrun(Arrangement, Carried, Span, Resolved);
 
@@ -1106,9 +1106,9 @@ void RevisionSequence::Record(const LayerArrangement& Current, const char* Namin
 {
     // 📐 `snap()` — the recorded run drops its oldest reading once it is full, and every reinstatable
     //    reading is abandoned, because a fresh amendment makes the branch they belonged to unreachable.
-    if (Recorded == RevisionCeiling)
+    if (Recorded == RevisionLimit)
     {
-        for (std::uint32_t Walk = 0u; Walk + 1u < RevisionCeiling; ++Walk)
+        for (std::uint32_t Walk = 0u; Walk + 1u < RevisionLimit; ++Walk)
         {
             Reverting[Walk] = Reverting[Walk + 1u];
             Namings[Walk]   = Namings[Walk + 1u];
@@ -1129,7 +1129,7 @@ bool RevisionSequence::Revert(LayerArrangement& Current)
     if (Recorded == 0u)
         return false;
 
-    if (Reinstatable < RevisionCeiling)
+    if (Reinstatable < RevisionLimit)
     {
         Reinstating[Reinstatable]      = Current;
         ReinstateNamings[Reinstatable] = Namings[Recorded - 1u];
@@ -1146,7 +1146,7 @@ bool RevisionSequence::Reinstate(LayerArrangement& Current)
     if (Reinstatable == 0u)
         return false;
 
-    if (Recorded < RevisionCeiling)
+    if (Recorded < RevisionLimit)
     {
         Reverting[Recorded] = Current;
         Namings[Recorded]   = ReinstateNamings[Reinstatable - 1u];
@@ -1158,13 +1158,13 @@ bool RevisionSequence::Reinstate(LayerArrangement& Current)
     return true;
 }
 
-const char* RevisionSequence::RevisionNaming(std::uint32_t Ordinal) const
+const char* RevisionSequence::RevisionNaming(std::uint32_t Index) const
 {
-    if (Ordinal >= Recorded)
+    if (Index >= Recorded)
         return "";
 
     // 📐 Newest first, which is the order the pane presents.
-    const char* const Written = Namings[Recorded - 1u - Ordinal];
+    const char* const Written = Namings[Recorded - 1u - Index];
     return (Written != nullptr) ? Written : "";
 }
 

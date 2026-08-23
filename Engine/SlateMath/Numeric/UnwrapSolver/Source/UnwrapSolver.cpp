@@ -5,7 +5,7 @@
 
 #include "SlateMath/Numeric/UnwrapSolver/Api/UnwrapSolver.h"
 
-#include "Contract/ToleranceContract.h"
+#include "Foundation/NumericTolerance.h"
 
 #include <cmath>
 
@@ -123,32 +123,32 @@ Outcome<ConvergentResult<std::vector<PlanarPosition>>> Solve(const UnwrapSpecifi
             return Outcome<Result>::Refuse({ RefusalReason::ContentUnsupported, "a corner addresses no position" });
     }
 
-    if (Declaring.BoundaryLoop.size() < 3u)
+    if (Declaring.ContourLoop.size() < 3u)
         return Outcome<Result>::Refuse({ RefusalReason::ContentUnsupported, "the boundary loop is not a loop" });
 
-    std::vector<bool> BoundaryHeld(VertexSpan, false);
+    std::vector<bool> DividerHeld(VertexSpan, false);
 
-    for (const std::uint32_t Ordinal : Declaring.BoundaryLoop)
+    for (const std::uint32_t Index : Declaring.ContourLoop)
     {
-        if (Ordinal >= VertexSpan)
+        if (Index >= VertexSpan)
             return Outcome<Result>::Refuse({ RefusalReason::ContentUnsupported, "the boundary addresses no position" });
 
-        BoundaryHeld[Ordinal] = true;
+        DividerHeld[Index] = true;
     }
 
     // 📐 The boundary is mapped by chord length rather than by equal steps, so a long edge occupies a
     //    proportionate arc. Equal steps compress every long edge into the same arc a short one gets, and the
     //    compression is visible as the artist's texel density changing along a single straight boundary.
-    const std::size_t LoopSpan = Declaring.BoundaryLoop.size();
+    const std::size_t LoopSpan = Declaring.ContourLoop.size();
 
     std::vector<double> Accumulated(LoopSpan + 1u, 0.0);
 
-    for (std::size_t Ordinal = 0u; Ordinal < LoopSpan; ++Ordinal)
+    for (std::size_t Index = 0u; Index < LoopSpan; ++Index)
     {
-        const DocumentPosition& Earlier = Declaring.Positions[Declaring.BoundaryLoop[Ordinal]];
-        const DocumentPosition& Later   = Declaring.Positions[Declaring.BoundaryLoop[(Ordinal + 1u) % LoopSpan]];
+        const DocumentPosition& Earlier = Declaring.Positions[Declaring.ContourLoop[Index]];
+        const DocumentPosition& Later   = Declaring.Positions[Declaring.ContourLoop[(Index + 1u) % LoopSpan]];
 
-        Accumulated[Ordinal + 1u] = Accumulated[Ordinal] + SpatialDistance(Earlier, Later);
+        Accumulated[Index + 1u] = Accumulated[Index] + SpatialDistance(Earlier, Later);
     }
 
     const double Perimeter = Accumulated[LoopSpan];
@@ -160,12 +160,12 @@ Outcome<ConvergentResult<std::vector<PlanarPosition>>> Solve(const UnwrapSpecifi
 
     const double Radius = 0.5;
 
-    for (std::size_t Ordinal = 0u; Ordinal < LoopSpan; ++Ordinal)
+    for (std::size_t Index = 0u; Index < LoopSpan; ++Index)
     {
-        const double Angle = 2.0 * Pi * Accumulated[Ordinal] / Perimeter;
+        const double Angle = 2.0 * Pi * Accumulated[Index] / Perimeter;
 
-        Flattened[Declaring.BoundaryLoop[Ordinal]].PositionX = 0.5 + Radius * std::cos(Angle);
-        Flattened[Declaring.BoundaryLoop[Ordinal]].PositionY = 0.5 + Radius * std::sin(Angle);
+        Flattened[Declaring.ContourLoop[Index]].PositionX = 0.5 + Radius * std::cos(Angle);
+        Flattened[Declaring.ContourLoop[Index]].PositionY = 0.5 + Radius * std::sin(Angle);
     }
 
     // 📐 Mean-value weights: w(i,j) accumulates (tan(θ/2) / ‖e(i,j)‖) for each triangle corner θ at i whose
@@ -176,20 +176,20 @@ Outcome<ConvergentResult<std::vector<PlanarPosition>>> Solve(const UnwrapSpecifi
 
     const std::size_t TriangleSpan = Declaring.TriangleCorners.size() / 3u;
 
-    for (std::size_t TriangleOrdinal = 0u; TriangleOrdinal < TriangleSpan; ++TriangleOrdinal)
+    for (std::size_t TriangleIndex = 0u; TriangleIndex < TriangleSpan; ++TriangleIndex)
     {
         const std::uint32_t Corners[3] =
         {
-            Declaring.TriangleCorners[TriangleOrdinal * 3u],
-            Declaring.TriangleCorners[TriangleOrdinal * 3u + 1u],
-            Declaring.TriangleCorners[TriangleOrdinal * 3u + 2u]
+            Declaring.TriangleCorners[TriangleIndex * 3u],
+            Declaring.TriangleCorners[TriangleIndex * 3u + 1u],
+            Declaring.TriangleCorners[TriangleIndex * 3u + 2u]
         };
 
         for (std::uint32_t Passed = 0u; Passed < 3u; ++Passed)
         {
             const std::uint32_t Subject = Corners[Passed];
 
-            if (BoundaryHeld[Subject])
+            if (DividerHeld[Subject])
                 continue;
 
             const std::uint32_t Earlier = Corners[(Passed + 2u) % 3u];
@@ -215,11 +215,11 @@ Outcome<ConvergentResult<std::vector<PlanarPosition>>> Solve(const UnwrapSpecifi
 
                 std::size_t Located = Neighbours[Subject].size();
 
-                for (std::size_t Ordinal = 0u; Ordinal < Neighbours[Subject].size(); ++Ordinal)
+                for (std::size_t Index = 0u; Index < Neighbours[Subject].size(); ++Index)
                 {
-                    if (Neighbours[Subject][Ordinal] == Reached[Side])
+                    if (Neighbours[Subject][Index] == Reached[Side])
                     {
-                        Located = Ordinal;
+                        Located = Index;
                         break;
                     }
                 }
@@ -239,13 +239,13 @@ Outcome<ConvergentResult<std::vector<PlanarPosition>>> Solve(const UnwrapSpecifi
 
     // 📝 Interior positions begin at the boundary's centre rather than at the origin, so the first relaxation
     //    step is already inside the disc and the residual falls monotonically from the outset.
-    for (std::size_t Ordinal = 0u; Ordinal < VertexSpan; ++Ordinal)
+    for (std::size_t Index = 0u; Index < VertexSpan; ++Index)
     {
-        if (BoundaryHeld[Ordinal])
+        if (DividerHeld[Index])
             continue;
 
-        Flattened[Ordinal].PositionX = 0.5;
-        Flattened[Ordinal].PositionY = 0.5;
+        Flattened[Index].PositionX = 0.5;
+        Flattened[Index].PositionY = 0.5;
     }
 
     Result Produced;
@@ -253,28 +253,28 @@ Outcome<ConvergentResult<std::vector<PlanarPosition>>> Solve(const UnwrapSpecifi
 
     const double Threshold = Declaring.ConvergenceCriterion * Radius;
 
-    std::uint32_t IterationOrdinal = 0u;
+    std::uint32_t IterationIndex = 0u;
     double        Residual         = 0.0;
 
-    for (; IterationOrdinal < Declaring.IterationCeiling; ++IterationOrdinal)
+    for (; IterationIndex < Declaring.IterationLimit; ++IterationIndex)
     {
         Residual = 0.0;
 
-        for (std::size_t Ordinal = 0u; Ordinal < VertexSpan; ++Ordinal)
+        for (std::size_t Index = 0u; Index < VertexSpan; ++Index)
         {
-            if (BoundaryHeld[Ordinal] || Neighbours[Ordinal].empty())
+            if (DividerHeld[Index] || Neighbours[Index].empty())
                 continue;
 
             double AccumulatedX = 0.0;
             double AccumulatedY = 0.0;
             double AccumulatedW = 0.0;
 
-            for (std::size_t Reached = 0u; Reached < Neighbours[Ordinal].size(); ++Reached)
+            for (std::size_t Reached = 0u; Reached < Neighbours[Index].size(); ++Reached)
             {
-                const double Weight = Weights[Ordinal][Reached];
+                const double Weight = Weights[Index][Reached];
 
-                AccumulatedX += Weight * Flattened[Neighbours[Ordinal][Reached]].PositionX;
-                AccumulatedY += Weight * Flattened[Neighbours[Ordinal][Reached]].PositionY;
+                AccumulatedX += Weight * Flattened[Neighbours[Index][Reached]].PositionX;
+                AccumulatedY += Weight * Flattened[Neighbours[Index][Reached]].PositionY;
                 AccumulatedW += Weight;
             }
 
@@ -283,11 +283,11 @@ Outcome<ConvergentResult<std::vector<PlanarPosition>>> Solve(const UnwrapSpecifi
 
             const double SolvedX     = AccumulatedX / AccumulatedW;
             const double SolvedY     = AccumulatedY / AccumulatedW;
-            const double Displaced   = std::fabs(SolvedX - Flattened[Ordinal].PositionX)
-                                     + std::fabs(SolvedY - Flattened[Ordinal].PositionY);
+            const double Displaced   = std::fabs(SolvedX - Flattened[Index].PositionX)
+                                     + std::fabs(SolvedY - Flattened[Index].PositionY);
 
-            Flattened[Ordinal].PositionX = SolvedX;
-            Flattened[Ordinal].PositionY = SolvedY;
+            Flattened[Index].PositionX = SolvedX;
+            Flattened[Index].PositionY = SolvedY;
 
             if (Displaced > Residual)
                 Residual = Displaced;
@@ -300,12 +300,12 @@ Outcome<ConvergentResult<std::vector<PlanarPosition>>> Solve(const UnwrapSpecifi
     // 🔴 The ceiling is reported and never silently accepted. `02` §5 states the general reason and `68` §4 the
     //    specific one: the last iterate is the best available result, not a converged one, and the difference
     //    is the difference between a measured distortion and an unmeasured one.
-    if (IterationOrdinal >= Declaring.IterationCeiling && Residual > Threshold)
-        Produced.Cause = TerminationCause::CeilingReached;
+    if (IterationIndex >= Declaring.IterationLimit && Residual > Threshold)
+        Produced.Cause = TerminationCause::LimitReached;
 
     Produced.Approximation  = Flattened;
     Produced.ResidualNorm   = Residual;
-    Produced.IterationCount = IterationOrdinal;
+    Produced.IterationCount = IterationIndex;
 
     return Outcome<Result>::Result(Produced);
 }
@@ -328,11 +328,11 @@ DistortionMeasure Measure(const std::vector<DocumentPosition>&  Positions,
     double AccumulatedSpatial = 0.0;
     double AccumulatedPlanar  = 0.0;
 
-    for (std::size_t TriangleOrdinal = 0u; TriangleOrdinal < TriangleSpan; ++TriangleOrdinal)
+    for (std::size_t TriangleIndex = 0u; TriangleIndex < TriangleSpan; ++TriangleIndex)
     {
-        const std::uint32_t Alpha = TriangleCorners[TriangleOrdinal * 3u];
-        const std::uint32_t Beta  = TriangleCorners[TriangleOrdinal * 3u + 1u];
-        const std::uint32_t Gamma = TriangleCorners[TriangleOrdinal * 3u + 2u];
+        const std::uint32_t Alpha = TriangleCorners[TriangleIndex * 3u];
+        const std::uint32_t Beta  = TriangleCorners[TriangleIndex * 3u + 1u];
+        const std::uint32_t Gamma = TriangleCorners[TriangleIndex * 3u + 2u];
 
         AccumulatedSpatial += SpatialArea(Positions[Alpha], Positions[Beta], Positions[Gamma]);
         AccumulatedPlanar  += PlanarArea(Flattened[Alpha], Flattened[Beta], Flattened[Gamma]);
@@ -346,13 +346,13 @@ DistortionMeasure Measure(const std::vector<DocumentPosition>&  Positions,
     //    distorted purely because it was packed small.
     const double MeanRatio = AccumulatedPlanar / AccumulatedSpatial;
 
-    for (std::size_t TriangleOrdinal = 0u; TriangleOrdinal < TriangleSpan; ++TriangleOrdinal)
+    for (std::size_t TriangleIndex = 0u; TriangleIndex < TriangleSpan; ++TriangleIndex)
     {
         const std::uint32_t Corners[3] =
         {
-            TriangleCorners[TriangleOrdinal * 3u],
-            TriangleCorners[TriangleOrdinal * 3u + 1u],
-            TriangleCorners[TriangleOrdinal * 3u + 2u]
+            TriangleCorners[TriangleIndex * 3u],
+            TriangleCorners[TriangleIndex * 3u + 1u],
+            TriangleCorners[TriangleIndex * 3u + 2u]
         };
 
         const double Spatial = SpatialArea(Positions[Corners[0]], Positions[Corners[1]], Positions[Corners[2]]);
@@ -367,7 +367,7 @@ DistortionMeasure Measure(const std::vector<DocumentPosition>&  Positions,
         if (!Measured.MeasureDeclared || Departure > Measured.MaximumAreaRatio)
         {
             Measured.MaximumAreaRatio = Departure;
-            Measured.WorstAreaTriangle = static_cast<std::uint32_t>(TriangleOrdinal);
+            Measured.WorstAreaTriangle = static_cast<std::uint32_t>(TriangleIndex);
         }
 
         for (std::uint32_t Passed = 0u; Passed < 3u; ++Passed)
@@ -384,7 +384,7 @@ DistortionMeasure Measure(const std::vector<DocumentPosition>&  Positions,
             if (!Measured.MeasureDeclared || Deviation > Measured.MaximumAngleDeviation)
             {
                 Measured.MaximumAngleDeviation = Deviation;
-                Measured.WorstAngleTriangle     = static_cast<std::uint32_t>(TriangleOrdinal);
+                Measured.WorstAngleTriangle     = static_cast<std::uint32_t>(TriangleIndex);
             }
         }
 

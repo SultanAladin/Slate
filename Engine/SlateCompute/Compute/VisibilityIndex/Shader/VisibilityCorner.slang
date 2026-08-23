@@ -34,7 +34,7 @@ StructuredBuffer<Unsigned32>       SurvivingTriangles  ;
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Resolves one triangle corner from the declared spans and projects it.
-/// in    VertexOrdinal   [-]  the running corner ordinal; three per drawn triangle
+/// in    VertexIndex   [-]  the running corner ordinal; three per drawn triangle
 /// out   ResolvedCorner  [-]  the clip position and the two ordinals the fragment writes
 /// note  🔴 The corner is reached by division and remainder rather than through an index span, because the host
 ///         has already fanned every n-gon into the triangle run. `10` accepts faces of any corner count and `16`
@@ -50,10 +50,10 @@ StructuredBuffer<Unsigned32>       SurvivingTriangles  ;
 /// cost  ✔️
 /// tag   nonallocating, nonthrowing
 [shader("vertex")]
-ResolvedCorner ResolveVisibilityCorner(Unsigned32 VertexOrdinal : SV_VertexID)
+ResolvedCorner ResolveVisibilityCorner(Unsigned32 VertexIndex : SV_VertexID)
 {
-    const Unsigned32 SurvivingEntry = VertexOrdinal / 3u;
-    const Unsigned32 CornerEntry    = VertexOrdinal % 3u;
+    const Unsigned32 SurvivingEntry = VertexIndex / 3u;
+    const Unsigned32 CornerEntry    = VertexIndex % 3u;
 
     const DrawnTriangle Drawn = DrawnTriangles[SurvivingTriangles[SurvivingEntry]];
 
@@ -67,8 +67,8 @@ ResolvedCorner ResolveVisibilityCorner(Unsigned32 VertexOrdinal : SV_VertexID)
     ResolvedCorner Resolved;
 
     Resolved.ClipPosition     = ProjectObjectPosition(Projecting, ObjectPositions[VertexEntry]);
-    Resolved.PartitionOrdinal = Drawn.PartitionOrdinal;
-    Resolved.TriangleOrdinal  = Drawn.TriangleOrdinal;
+    Resolved.PartitionIndex = Drawn.PartitionIndex;
+    Resolved.TriangleIndex  = Drawn.TriangleIndex;
 
     return Resolved;
 }

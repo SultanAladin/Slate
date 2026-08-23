@@ -34,7 +34,7 @@ std::vector<ChannelPlacement> ProjectPlacements(const EmittedImage& Arranged)
         //    walk scatter `70`'s dense resolution into the declared slots by position alone.
         ChannelPlacement Placing;
         Placing.Channel          = Arranged.Occupying[Slot];
-        Placing.ComponentOrdinal = static_cast<std::uint32_t>(Slot);
+        Placing.ComponentIndex = static_cast<std::uint32_t>(Slot);
         Placing.ComponentSpan    = 1u;
 
         Derived.push_back(Placing);
@@ -47,7 +47,7 @@ std::vector<ChannelPlacement> ProjectPlacements(const EmittedImage& Arranged)
 //                                                     WHAT IT READS
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> EmissionSequence::Construct(const EmissionSources& Supplied)
+Outcome<bool> EmissionSequence::ConstructEmissionSequence(const EmissionSources& Supplied)
 {
     // 🔴 The same `70` a promotion reads and `82` previews through. An absent resolver is not an export that
     //    degrades to something simpler — it is an export that would have to invent a second implementation, and
@@ -70,7 +70,7 @@ Outcome<bool> EmissionSequence::Construct(const EmissionSources& Supplied)
 
 Outcome<bool> EmissionSequence::Open(const EmissionSpecification& Declaring,
                                      const MaterialIndex&         Materials,
-                                     std::uint32_t                ImageOrdinal)
+                                     std::uint32_t                ImageIndex)
 {
     if (!SourcesDeclared)
     {
@@ -93,15 +93,15 @@ Outcome<bool> EmissionSequence::Open(const EmissionSpecification& Declaring,
         return Validated;
     }
 
-    if (ImageOrdinal >= Declaring.Images.size())
+    if (ImageIndex >= Declaring.Images.size())
     {
         return Outcome<bool>::Refuse({RefusalReason::ContentUnsupported,
                                       "no such image in the emission specification"});
     }
 
-    const EmittedImage& Arranged = Declaring.Images[ImageOrdinal];
+    const EmittedImage& Arranged = Declaring.Images[ImageIndex];
 
-    if (Arranged.ExtentTexels > EmissionExtentCeiling)
+    if (Arranged.ExtentTexels > EmissionExtentLimit)
     {
         return Outcome<bool>::Refuse({RefusalReason::ContentUnsupported,
                                       "the declared extent exceeds what one emission may produce"});
@@ -191,7 +191,7 @@ Outcome<std::uint32_t> EmissionSequence::ResolveBand(const SurfaceLayerSequence&
             if (!Sampled.SampleResolved)
                 continue;
 
-            const std::size_t TexelOrdinal = (static_cast<std::size_t>(Row) * static_cast<std::size_t>(Extent) +
+            const std::size_t TexelIndex = (static_cast<std::size_t>(Row) * static_cast<std::size_t>(Extent) +
                                               static_cast<std::size_t>(Column)) * ComponentSpan;
 
             // 🚧 The scatter. `70` resolves **densely** — its 𝑘th component belongs to the 𝑘th entry of the
@@ -199,12 +199,12 @@ Outcome<std::uint32_t> EmissionSequence::ResolveBand(const SurfaceLayerSequence&
             //    run without reading it. The arrangement is ascending by construction, so the 𝑘th entry names
             //    the slot the 𝑘th component occupies. When `00` §12 is answered and `70` places by the run,
             //    this becomes the identity and is deleted; nothing above it changes.
-            for (std::size_t Entry = 0u; Entry < Arrangement.size() && Entry < ResolvedComponentCeiling; ++Entry)
+            for (std::size_t Entry = 0u; Entry < Arrangement.size() && Entry < ResolvedComponentLimit; ++Entry)
             {
-                const std::size_t Slot = static_cast<std::size_t>(Arrangement[Entry].ComponentOrdinal);
+                const std::size_t Slot = static_cast<std::size_t>(Arrangement[Entry].ComponentIndex);
 
                 if (Slot < ComponentSpan)
-                    Producing.Texels[TexelOrdinal + Slot] = static_cast<float>(Sampled.Component[Entry]);
+                    Producing.Texels[TexelIndex + Slot] = static_cast<float>(Sampled.Component[Entry]);
             }
         }
     }

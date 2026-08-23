@@ -172,8 +172,8 @@ void PlatformInterchange::DeclareThreadName(const char* ThreadName)
     //    Truncating here is what makes a long name a shortened name rather than no name at all.
     char Bounded[16] = {};
 
-    for (int Ordinal = 0; Ordinal < 15 && ThreadName[Ordinal] != '\0'; ++Ordinal)
-        Bounded[Ordinal] = ThreadName[Ordinal];
+    for (int Index = 0; Index < 15 && ThreadName[Index] != '\0'; ++Index)
+        Bounded[Index] = ThreadName[Index];
 
     pthread_setname_np(pthread_self(), Bounded);
 

@@ -63,10 +63,10 @@ Outcome<bool> OverlayProjection::Declare(OverlaySubject Current, const OverlaySp
             { RefusalReason::ContentUnsupported, "a depth-free overlay tests no depth to offset — `80` §1" });
     }
 
-    const std::size_t Ordinal = static_cast<std::size_t>(Current);
+    const std::size_t Index = static_cast<std::size_t>(Current);
 
-    Declared[Ordinal]            = Declaring;
-    DeclarationCurrent[Ordinal] = true;
+    Declared[Index]            = Declaring;
+    DeclarationCurrent[Index] = true;
     OverlayDeclared              = true;
 
     return Outcome<bool>::Result(true);
@@ -99,7 +99,7 @@ Outcome<bool> OverlayProjection::Contribute(RenderSchedule& Schedule) const
     Tested.CapabilityRequired = false;
     Tested.Substitution       = "";
     Tested.DisplayReferred    = true;
-    Tested.AmendmentOrdinal   = DepthTestedOrdinal;
+    Tested.AmendmentIndex   = DepthTestedIndex;
 
     const Outcome<bool> TestedContributed = Schedule.Contribute(Tested);
 
@@ -120,7 +120,7 @@ Outcome<bool> OverlayProjection::Contribute(RenderSchedule& Schedule) const
     Free.CapabilityRequired = false;
     Free.Substitution       = "";
     Free.DisplayReferred    = true;
-    Free.AmendmentOrdinal   = DepthFreeOrdinal;
+    Free.AmendmentIndex   = DepthFreeIndex;
 
     return Schedule.Contribute(Free);
 }
@@ -145,11 +145,11 @@ bool OverlayProjection::OverlayActive(const ToolSequence& Tooling, OverlaySubjec
 
 bool OverlayProjection::RecordingOccupied(const ToolSequence& Tooling, DepthSubject Behaviour) const
 {
-    for (std::uint32_t Ordinal = 0u;
-         Ordinal < static_cast<std::uint32_t>(OverlaySubject::OverlayCount);
-         ++Ordinal)
+    for (std::uint32_t Index = 0u;
+         Index < static_cast<std::uint32_t>(OverlaySubject::OverlayCount);
+         ++Index)
     {
-        const OverlaySubject Current = static_cast<OverlaySubject>(Ordinal);
+        const OverlaySubject Current = static_cast<OverlaySubject>(Index);
 
         if (DepthOfOverlay(Current) == Behaviour && OverlayActive(Tooling, Current))
         {
@@ -168,15 +168,15 @@ Outcome<const OverlaySpecification*> OverlayProjection::Specification(OverlaySub
             { RefusalReason::ContentUnsupported, "the closed count is not an overlay" });
     }
 
-    const std::size_t Ordinal = static_cast<std::size_t>(Current);
+    const std::size_t Index = static_cast<std::size_t>(Current);
 
-    if (!DeclarationCurrent[Ordinal])
+    if (!DeclarationCurrent[Index])
     {
         return Outcome<const OverlaySpecification*>::Refuse(
             { RefusalReason::ContentUnsupported, "that overlay was never declared" });
     }
 
-    return Outcome<const OverlaySpecification*>::Result(&Declared[Ordinal]);
+    return Outcome<const OverlaySpecification*>::Result(&Declared[Index]);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -188,11 +188,11 @@ void OverlayProjection::Report(const ToolSequence& Tooling, MeasureIndex& Measur
     std::uint64_t TestedCount = 0u;
     std::uint64_t FreeCount   = 0u;
 
-    for (std::uint32_t Ordinal = 0u;
-         Ordinal < static_cast<std::uint32_t>(OverlaySubject::OverlayCount);
-         ++Ordinal)
+    for (std::uint32_t Index = 0u;
+         Index < static_cast<std::uint32_t>(OverlaySubject::OverlayCount);
+         ++Index)
     {
-        const OverlaySubject Current = static_cast<OverlaySubject>(Ordinal);
+        const OverlaySubject Current = static_cast<OverlaySubject>(Index);
 
         if (!OverlayActive(Tooling, Current))
         {

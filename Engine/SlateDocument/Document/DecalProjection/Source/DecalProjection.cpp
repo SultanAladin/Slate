@@ -144,8 +144,8 @@ bool ProjectIntoSource(const PlacementSpecification& Placed,
 //------------------------------------------------------------------------------------------------------------------------
 
 Outcome<DomainExtent> ProjectPlacementExtent(const PlacementSpecification&         Placed,
-                                             std::uint32_t                         PlacementOrdinal,
-                                             std::uint32_t                         SequenceOrdinal,
+                                             std::uint32_t                         PlacementIndex,
+                                             std::uint32_t                         SequenceIndex,
                                              const TopologyStructure&              Imported,
                                              const std::vector<DomainCoordinate>&  CornerCoordinates)
 {
@@ -162,8 +162,8 @@ Outcome<DomainExtent> ProjectPlacementExtent(const PlacementSpecification&      
     }
 
     DomainExtent Derived;
-    Derived.PlacementOrdinal = PlacementOrdinal;
-    Derived.SequenceOrdinal  = SequenceOrdinal;
+    Derived.PlacementIndex = PlacementIndex;
+    Derived.SequenceIndex  = SequenceIndex;
 
     bool FirstAdmission = true;
 
@@ -196,9 +196,9 @@ Outcome<DomainExtent> ProjectPlacementExtent(const PlacementSpecification&      
     const RotationQuaternion    Inverse   = Conjugated(Placed.PlacingTransform.Rotation);
     const std::vector<DocumentPosition>& Positions = Imported.Positions();
 
-    for (std::uint32_t CornerOrdinal = 0u; CornerOrdinal < Imported.CornerCount(); ++CornerOrdinal)
+    for (std::uint32_t CornerIndex = 0u; CornerIndex < Imported.CornerCount(); ++CornerIndex)
     {
-        const DocumentPosition& Held = Positions[Imported.CornerVertex(CornerOrdinal)];
+        const DocumentPosition& Held = Positions[Imported.CornerVertex(CornerIndex)];
 
         const double SpanX = Held.PositionX - Placed.PlacingTransform.Translation.PositionX;
         const double SpanY = Held.PositionY - Placed.PlacingTransform.Translation.PositionY;
@@ -233,10 +233,10 @@ Outcome<DomainExtent> ProjectPlacementExtent(const PlacementSpecification&      
             //    component's — so facing is judged by the corner's own displacement along the projection axis
             //    relative to the face's first corner. That is coarse and it is conservative in the accepting
             //    direction, which is the direction §6's note declares safe.
-            const std::uint32_t FaceOrdinal = Imported.CornerFace(CornerOrdinal);
-            const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceOrdinal);
+            const std::uint32_t FaceIndex = Imported.CornerFace(CornerIndex);
+            const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceIndex);
 
-            if (CornerOrdinal != FirstCorner)
+            if (CornerIndex != FirstCorner)
             {
                 const DocumentPosition& Leading = Positions[Imported.CornerVertex(FirstCorner)];
 
@@ -255,8 +255,8 @@ Outcome<DomainExtent> ProjectPlacementExtent(const PlacementSpecification&      
         }
 
         AcceptPosition(Derived,
-                      static_cast<double>(CornerCoordinates[CornerOrdinal].CoordinateX),
-                      static_cast<double>(CornerCoordinates[CornerOrdinal].CoordinateY),
+                      static_cast<double>(CornerCoordinates[CornerIndex].CoordinateX),
+                      static_cast<double>(CornerCoordinates[CornerIndex].CoordinateY),
                       FirstAdmission);
     }
 
@@ -303,26 +303,26 @@ Outcome<std::uint32_t> PlacementIndex::Declare(const PlacementSpecification& Dec
             { RefusalReason::ContentUnsupported, "a placement scaled to nothing covers nothing" });
     }
 
-    std::uint32_t PlacementOrdinal = AbsentPlacement;
+    std::uint32_t PlacementIndex = AbsentPlacement;
 
-    if (!ReleasedOrdinals.empty())
+    if (!ReleasedIndexs.empty())
     {
-        PlacementOrdinal = ReleasedOrdinals.back();
-        ReleasedOrdinals.pop_back();
+        PlacementIndex = ReleasedIndexs.back();
+        ReleasedIndexs.pop_back();
     }
     else
     {
-        if (Placements.size() >= PlacementCeiling)
+        if (Placements.size() >= PlacementLimit)
         {
             return Outcome<std::uint32_t>::Refuse(
                 { RefusalReason::ExtentExhausted, "the document reached its placement ceiling" });
         }
 
-        PlacementOrdinal = static_cast<std::uint32_t>(Placements.size());
+        PlacementIndex = static_cast<std::uint32_t>(Placements.size());
         Placements.push_back(HeldPlacement{});
     }
 
-    HeldPlacement& Incoming = Placements[PlacementOrdinal];
+    HeldPlacement& Incoming = Placements[PlacementIndex];
 
     // 📝 The revision carries across a slot's reuse rather than restarting at one. A resident tile that recorded
     //    the previous owner's revision would otherwise match the new one's and stand unresolved, which is a
@@ -335,21 +335,21 @@ Outcome<std::uint32_t> PlacementIndex::Declare(const PlacementSpecification& Dec
 
     ++OccupiedCount;
 
-    return Outcome<std::uint32_t>::Result(PlacementOrdinal);
+    return Outcome<std::uint32_t>::Result(PlacementIndex);
 }
 
-Outcome<bool> PlacementIndex::Amend(std::uint32_t PlacementOrdinal, const PlacementSpecification& Amending)
+Outcome<bool> PlacementIndex::Amend(std::uint32_t PlacementIndex, const PlacementSpecification& Amending)
 {
-    if (PlacementOrdinal >= Placements.size() || !Placements[PlacementOrdinal].SlotOccupied)
+    if (PlacementIndex >= Placements.size() || !Placements[PlacementIndex].SlotOccupied)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no placement stands at that ordinal" });
 
-    HeldPlacement& Held = Placements[PlacementOrdinal];
+    HeldPlacement& Held = Placements[PlacementIndex];
 
     // 🔴 `00` §10.1 ②'s third row and nothing else. A combination change amends how the resolved value reads
     //    against what is beneath it and does not change the value, so advancing the revision for one would
     //    re-resolve a tile to the number it already holds — and would do it for every tile the placement covers.
     const bool SourceMoved = Held.Declared.Source              != Amending.Source
-                          || Held.Declared.SourceOrdinal       != Amending.SourceOrdinal
+                          || Held.Declared.SourceIndex       != Amending.SourceIndex
                           || Held.Declared.Mode                != Amending.Mode
                           || Held.Declared.ChannelMask         != Amending.ChannelMask
                           || Held.Declared.ProjectedHalfX  != Amending.ProjectedHalfX
@@ -381,28 +381,28 @@ Outcome<bool> PlacementIndex::Amend(std::uint32_t PlacementOrdinal, const Placem
     return Outcome<bool>::Result(true);
 }
 
-Outcome<const PlacementSpecification*> PlacementIndex::Resolve(std::uint32_t PlacementOrdinal) const
+Outcome<const PlacementSpecification*> PlacementIndex::Resolve(std::uint32_t PlacementIndex) const
 {
-    if (PlacementOrdinal >= Placements.size() || !Placements[PlacementOrdinal].SlotOccupied)
+    if (PlacementIndex >= Placements.size() || !Placements[PlacementIndex].SlotOccupied)
     {
         return Outcome<const PlacementSpecification*>::Refuse(
             { RefusalReason::ContentUnsupported, "no placement stands at that ordinal" });
     }
 
-    return Outcome<const PlacementSpecification*>::Result(&Placements[PlacementOrdinal].Declared);
+    return Outcome<const PlacementSpecification*>::Result(&Placements[PlacementIndex].Declared);
 }
 
-Outcome<bool> PlacementIndex::Withdraw(std::uint32_t PlacementOrdinal)
+Outcome<bool> PlacementIndex::Withdraw(std::uint32_t PlacementIndex)
 {
-    if (PlacementOrdinal >= Placements.size() || !Placements[PlacementOrdinal].SlotOccupied)
+    if (PlacementIndex >= Placements.size() || !Placements[PlacementIndex].SlotOccupied)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no placement stands at that ordinal" });
 
-    Placements[PlacementOrdinal].SlotOccupied = false;
+    Placements[PlacementIndex].SlotOccupied = false;
 
     // 📝 The specification is retained and the slot is marked free. `56` §6 retains a withdrawn entry's
     //    description so the inverse can restore it, and a slot whose specification was cleared here would leave
     //    that inverse with nothing to restore.
-    ReleasedOrdinals.push_back(PlacementOrdinal);
+    ReleasedIndexs.push_back(PlacementIndex);
 
     if (OccupiedCount != 0u)
         --OccupiedCount;
@@ -410,12 +410,12 @@ Outcome<bool> PlacementIndex::Withdraw(std::uint32_t PlacementOrdinal)
     return Outcome<bool>::Result(true);
 }
 
-std::uint64_t PlacementIndex::Revision(std::uint32_t PlacementOrdinal) const
+std::uint64_t PlacementIndex::Revision(std::uint32_t PlacementIndex) const
 {
-    if (PlacementOrdinal >= Placements.size() || !Placements[PlacementOrdinal].SlotOccupied)
+    if (PlacementIndex >= Placements.size() || !Placements[PlacementIndex].SlotOccupied)
         return 0u;
 
-    return Placements[PlacementOrdinal].Declared.RevisionCounter;
+    return Placements[PlacementIndex].Declared.RevisionCounter;
 }
 
 std::uint32_t PlacementIndex::DeclaredCount() const
@@ -427,7 +427,7 @@ std::uint32_t PlacementIndex::DeclaredCount() const
 //                                                   THE POSITIONING DRAG
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> PlacementSequence::Open(std::uint32_t                 PlacementOrdinal,
+Outcome<bool> PlacementSequence::Open(std::uint32_t                 PlacementIndex,
                                       const PlacementSpecification& Current,
                                       bool                          CameraFollowed_)
 {
@@ -436,7 +436,7 @@ Outcome<bool> PlacementSequence::Open(std::uint32_t                 PlacementOrd
 
     PriorPlacement   = Current;
     AmendedPlacement = Current;
-    SubjectOrdinal   = PlacementOrdinal;
+    SubjectIndex   = PlacementIndex;
     CameraFollowed   = CameraFollowed_;
     OpenDeclared     = true;
 
@@ -464,7 +464,7 @@ Outcome<PlacementSpecification> PlacementSequence::Abandon()
     const PlacementSpecification Restored = PriorPlacement;
 
     AmendedPlacement = PriorPlacement;
-    SubjectOrdinal   = AbsentPlacement;
+    SubjectIndex   = AbsentPlacement;
     OpenDeclared     = false;
     CameraFollowed   = false;
 
@@ -488,7 +488,7 @@ Outcome<PlacementSpecification> PlacementSequence::Seal()
     // 📝 The camera stops being followed by the drag ending, not by a freezing step. `00` §10.1 ① requires the
     //    screen gesture to resolve into a projected placement on release; the last transform `78` computed is
     //    already that placement, so there is nothing here to forget.
-    SubjectOrdinal = AbsentPlacement;
+    SubjectIndex = AbsentPlacement;
     OpenDeclared   = false;
     CameraFollowed = false;
 
@@ -496,7 +496,7 @@ Outcome<PlacementSpecification> PlacementSequence::Seal()
 }
 
 const PlacementSpecification& PlacementSequence::Amended() const  { return AmendedPlacement; }
-std::uint32_t                 PlacementSequence::Subject() const  { return SubjectOrdinal;   }
+std::uint32_t                 PlacementSequence::Subject() const  { return SubjectIndex;   }
 bool                          PlacementSequence::GestureOpen() const   { return OpenDeclared;   }
 bool                          PlacementSequence::CameraFollowing() const { return CameraFollowed; }
 

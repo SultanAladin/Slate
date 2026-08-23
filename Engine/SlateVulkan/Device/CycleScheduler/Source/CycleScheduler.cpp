@@ -12,7 +12,7 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> CycleScheduler::Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming)
+Outcome<bool> CycleScheduler::ConstructCycleScheduler(const VulkanExchange& Exchange, const DiagnosticExtension& Naming)
 {
     if (Exchange.ActiveDevice() == VK_NULL_HANDLE)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
@@ -35,10 +35,10 @@ Outcome<bool> CycleScheduler::Construct(const VulkanExchange& Exchange, const Di
     Slots.assign(RecordingSlotCount, CycleSlot{});
 
     // 📝 Walked by ordinal rather than by reference, because the cycle slot is what each of the three points
-    //    is named by, and it is the same ordinal `CurrentOrdinal` reports the stall against.
-    for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < RecordingSlotCount; ++SlotOrdinal)
+    //    is named by, and it is the same ordinal `CurrentIndex` reports the stall against.
+    for (std::uint32_t SlotIndex = 0u; SlotIndex < RecordingSlotCount; ++SlotIndex)
     {
-        CycleSlot& Slot = Slots[SlotOrdinal];
+        CycleSlot& Slot = Slots[SlotIndex];
 
         const bool Constructed =
             vkCreateFence(Active, &CompletionDeclaration, nullptr, &Slot.Completion)        == VK_SUCCESS &&
@@ -62,17 +62,17 @@ Outcome<bool> CycleScheduler::Construct(const VulkanExchange& Exchange, const Di
         Discard(NamingEdge->Declare(VK_OBJECT_TYPE_FENCE,
                             reinterpret_cast<std::uint64_t>(Slot.Completion),
                             "CycleScheduler cycle completion",
-                            SlotOrdinal));
+                            SlotIndex));
 
         Discard(NamingEdge->Declare(VK_OBJECT_TYPE_SEMAPHORE,
                             reinterpret_cast<std::uint64_t>(Slot.ImageAvailable),
                             "CycleScheduler cycle image arrival",
-                            SlotOrdinal));
+                            SlotIndex));
 
         Discard(NamingEdge->Declare(VK_OBJECT_TYPE_SEMAPHORE,
                             reinterpret_cast<std::uint64_t>(Slot.RecordingDone),
                             "CycleScheduler cycle recording completion",
-                            SlotOrdinal));
+                            SlotIndex));
     }
 
     SlotCurrent = 0u;
@@ -94,7 +94,7 @@ Outcome<bool> CycleScheduler::Await()
                                              1u,
                                              &Slots[SlotCurrent].Completion,
                                              VK_TRUE,
-                                             CompletionCeilingNanoseconds);
+                                             CompletionLimitNanoseconds);
 
     if (Reached == VK_TIMEOUT)
     {
@@ -149,7 +149,7 @@ Outcome<CycleSlot> CycleScheduler::Current() const
     return Outcome<CycleSlot>::Result(Slots[SlotCurrent]);
 }
 
-std::uint32_t CycleScheduler::CurrentOrdinal() const
+std::uint32_t CycleScheduler::CurrentIndex() const
 {
     return SlotCurrent;
 }

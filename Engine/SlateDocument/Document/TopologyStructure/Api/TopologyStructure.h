@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/IdentityContract.h"
-#include "Contract/DeliveryContract.h"
+#include "Foundation/Identity.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateMath/Numeric/TransformProjection/Api/TransformProjection.h"
 
 #include <cstdint>
@@ -141,18 +141,18 @@ public:
     /// 🧩 The first corner ordinal of one face, and how many corners it carries.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t FaceFirstCorner(std::uint32_t FaceOrdinal) const;
-    std::uint32_t FaceCornerCount(std::uint32_t FaceOrdinal) const;
+    std::uint32_t FaceFirstCorner(std::uint32_t FaceIndex) const;
+    std::uint32_t FaceCornerCount(std::uint32_t FaceIndex) const;
 
     /// 🧩 The vertex one corner addresses.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t CornerVertex(std::uint32_t CornerOrdinal) const;
+    std::uint32_t CornerVertex(std::uint32_t CornerIndex) const;
 
     /// 🧩 Which face one corner belongs to.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t CornerFace(std::uint32_t CornerOrdinal) const;
+    std::uint32_t CornerFace(std::uint32_t CornerIndex) const;
 
     const std::vector<DocumentPosition>&  Positions() const;
     const std::vector<DomainCoordinate>&  Coordinates() const;
@@ -167,14 +167,14 @@ public:
 private:
 
     std::vector<DocumentPosition>  VertexPositions;                  // [mm] - as supplied, at 64-bit
-    std::vector<std::uint32_t>     CornerVertexOrdinals;             // [-]  - vertex per corner
-    std::vector<std::uint32_t>     CornerFaceOrdinals;               // [-]  - face per corner
+    std::vector<std::uint32_t>     CornerVertexIndexs;             // [-]  - vertex per corner
+    std::vector<std::uint32_t>     CornerFaceIndexs;               // [-]  - face per corner
     std::vector<std::uint32_t>     FaceFirstCorners;                 // [-]  - first corner per face
     std::vector<std::uint32_t>     FaceCornerCounts;                 // [-]  - corners per face
     std::vector<DomainCoordinate>  CornerCoordinates;                // [-]  - per corner where supplied
     std::vector<SurfaceDirection>  VertexPerpendiculars;             // [-]  - per vertex where supplied
     std::vector<TangentBasis>      VertexTangentBases;               // [-]  - per vertex where supplied
-    std::vector<std::uint32_t>     FaceMaterialOrdinals;             // [-]  - material enrollment per face
+    std::vector<std::uint32_t>     FaceMaterialIndexs;             // [-]  - material enrollment per face
     std::uint64_t                  SealedRevision      = 0u;         // [-]  - registered at Seal, process-wide
     bool                           SealDeclared        = false;      // [-]  - no further declaration is accepted
 };

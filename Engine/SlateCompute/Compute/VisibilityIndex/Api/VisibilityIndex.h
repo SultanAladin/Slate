@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateCompute/Compute/VisibilityIndex/Api/DepthReduction.h"
 #include "SlateCompute/Compute/VisibilityIndex/Api/PartitionStructure.h"
 #include "SlateVulkan/Device/RenderSchedule/Api/RenderSchedule.h"
@@ -35,8 +35,8 @@ namespace Slate
 /// tag   nonallocating, nonthrowing
 struct VisibilityWord
 {
-    std::uint32_t  PartitionOrdinal = AbsentPartition;   // [-] - document-wide, in declaration order
-    std::uint32_t  TriangleOrdinal  = 0u;                // [-] - within the partition, never within the document
+    std::uint32_t  PartitionIndex = AbsentPartition;   // [-] - document-wide, in declaration order
+    std::uint32_t  TriangleIndex  = 0u;                // [-] - within the partition, never within the document
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -44,7 +44,7 @@ struct VisibilityWord
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Which of `16` §3's two rasterisers a partition is routed to.
-/// tag   contract
+/// tag   guarantee
 enum class RasterRoute : std::uint32_t
 {
     HardwareRaster = 0u,   // [-] - projected triangles exceed a few pixels
@@ -55,7 +55,7 @@ enum class RasterRoute : std::uint32_t
 //    pixels per edge is the placeholder the routing is written against — below it a hardware triangle costs more
 //    in setup and in quad overshading than a compute lane costs outright, and above it the fixed-function path
 //    wins on everything. It blocks throughput alone and no gate depends on the number, so it stands here in
-//    `SlateCompute` rather than in `Contract/`: nothing else reads it, and moving it would announce an agreement
+//    `SlateCompute` rather than in `Foundation/`: nothing else reads it, and moving it would announce an agreement
 //    between two units that does not exist.
 inline constexpr std::uint32_t ProjectedExtentThreshold = 16u;   // [px] - per edge, below which the compute path runs
 
@@ -108,7 +108,7 @@ public:
     ///        are in object space and `16` §1 forbids rebuilding them per rotation, let alone per resize.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(std::uint32_t DisplayX, std::uint32_t DisplayY);
+    Outcome<bool> ConstructVisibilityIndex(std::uint32_t DisplayX, std::uint32_t DisplayY);
 
     /// 🧩 Contributes `08` §3 ②'s recording — the one that produces all four targets.
     /// in    Schedule  [-]  the schedule being assembled at bring-up
@@ -154,7 +154,7 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported outside the registered count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<const PartitionStructure*> Registered(std::uint32_t RegistrationOrdinal) const;
+    Outcome<const PartitionStructure*> Registered(std::uint32_t RegistrationIndex) const;
 
     /// 🧩 The reduction chain the culling tests against.
     /// cost  ✔️

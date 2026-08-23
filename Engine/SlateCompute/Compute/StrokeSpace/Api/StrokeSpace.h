@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "Contract/CombineContract.h"
-#include "Contract/DeliveryContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/Combination.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/NumericTolerance.h"
 #include "SlateCompute/Compute/SurfaceTileSpace/Api/SurfaceTileSpace.h"
 
 #include <cstdint>
@@ -31,7 +31,7 @@ inline constexpr std::uint32_t CoverageTileTexels = MaximumWorkingEdge / Virtual
 
 // 💾 One tile is 128² floats — 64 KiB. Tiles are claimed as cells are touched, so an ordinary stroke costs a
 //    handful; the ceiling below is every cell of the finest level, which is the most a stroke can touch at all.
-inline constexpr std::uint32_t CoverageTileCeiling = VirtualCellsPerEdge * VirtualCellsPerEdge;   // [-] - 4096
+inline constexpr std::uint32_t CoverageTileLimit = VirtualCellsPerEdge * VirtualCellsPerEdge;   // [-] - 4096
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE ACCUMULATION
@@ -58,10 +58,10 @@ public:
     /// post  every cell is unclaimed and the touched count is zero
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Construct();
+    void ConstructStrokeSpace();
 
     /// 🧩 Reservations the coverage tile backing one cell, or resolves the one already claimed.
-    /// in    CellOrdinal  [-]  into `20` §1's single ordinal span
+    /// in    CellIndex  [-]  into `20` §1's single ordinal span
     /// out   Result      [-]  refuses with ContentUnsupported outside the span, and with ExtentExhausted at
     ///                         the declared tile ceiling
     /// note  📝 Exhaustion is structurally unreachable at the finest level, where the ceiling equals the cell
@@ -69,16 +69,16 @@ public:
     ///        refuses rather than growing so that a defect there is a refusal instead of an allocation storm.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Reserve(std::uint32_t CellOrdinal);
+    Outcome<std::uint32_t> Reserve(std::uint32_t CellIndex);
 
     /// 🧩 The tile backing one cell, if one is claimed.
     /// out   Result  [-]  refuses with ExtentExhausted when the cell is untouched
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Located(std::uint32_t CellOrdinal) const;
+    Outcome<std::uint32_t> Located(std::uint32_t CellIndex) const;
 
     /// 🧩 Accumulates one impression's coverage at one texel of one claimed tile.
-    /// in    TileOrdinal  [-]  as `Reserve` delivered it
+    /// in    TileIndex  [-]  as `Reserve` delivered it
     /// in    X        [px] within the tile
     /// in    Y       [px] within the tile
     /// in    Incoming     [-]  the impression's coverage there, in the closed unit interval
@@ -86,12 +86,12 @@ public:
     ///        impressions overlap, and the excess is invisible in the accumulation and abrupt at the apply.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Accumulate(std::uint32_t TileOrdinal, std::uint32_t X, std::uint32_t Y, double Incoming);
+    void Accumulate(std::uint32_t TileIndex, std::uint32_t X, std::uint32_t Y, double Incoming);
 
     /// 🧩 The coverage standing at one texel.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    double Coverage(std::uint32_t TileOrdinal, std::uint32_t X, std::uint32_t Y) const;
+    double Coverage(std::uint32_t TileIndex, std::uint32_t X, std::uint32_t Y) const;
 
     /// 🧩 The cells this stroke has touched, in claim order.
     /// cost  ✔️

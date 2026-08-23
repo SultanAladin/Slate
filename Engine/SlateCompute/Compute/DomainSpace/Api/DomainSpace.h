@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
+#include "Foundation/NumericTolerance.h"
 
 #include <cstdint>
 #include <vector>
@@ -23,7 +23,7 @@ namespace Slate
 /// note  🔴 `68` §5: at least `20` §1's `PhysicalTileApron`, measured at the maximum working extent. A gap
 ///        narrower than the apron means a tile's duplicated border reads texels belonging to a different chart,
 ///        and every chart edge in the painted result carries a fringe of a neighbouring chart's content.
-/// note  🔴 Both constants are read from `Contract/` as numbers. Nothing here consults `20`'s subdivision, its
+/// note  🔴 Both constants are read from `Foundation/` as numbers. Nothing here consults `20`'s subdivision, its
 ///        residency or its promotion — that is the whole content of `00` §10 conflict 30's resolution, and it is
 ///        what makes this document precede `20` rather than depend on it.
 /// cost  ✔️
@@ -43,7 +43,7 @@ struct ChartExtent
 {
     double         Width        = 0.0;   // [-] - in the chart's own flattened units
     double         Height       = 0.0;   // [-] - in the chart's own flattened units
-    std::uint32_t  ChartOrdinal = 0u;    // [-] - what the caller resolves the placement back to
+    std::uint32_t  ChartIndex = 0u;    // [-] - what the caller resolves the placement back to
 };
 
 /// 🧩 Where one chart sits in the unit domain, and at what scale.
@@ -53,7 +53,7 @@ struct ChartPlacement
     double         MinimumX   = 0.0;   // [-] - the domain's first axis
     double         MinimumY  = 0.0;   // [-] - its second
     double         Scale        = 1.0;   // [-] - applied to the chart's own flattened units
-    std::uint32_t  ChartOrdinal = 0u;    // [-] - as supplied
+    std::uint32_t  ChartIndex = 0u;    // [-] - as supplied
     bool           Placed       = false; // [-] - the arrangement accepted it
 };
 

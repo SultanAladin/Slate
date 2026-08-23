@@ -14,7 +14,7 @@ namespace Slate
 //                                                       THE SUBJECTS
 //------------------------------------------------------------------------------------------------------------------------
 
-// 📝 Defined beside the ledger and not beside the panel. The stem is a property of the SUBJECT, which
+// 📝 Defined beside the index and not beside the panel. The stem is a property of the SUBJECT, which
 //    this component owns; the panel merely draws whatever title it is handed.
 const char* WorkspaceStem(WorkspaceSubject Subject)
 {
@@ -33,15 +33,15 @@ const char* WorkspaceStem(WorkspaceSubject Subject)
 
 Outcome<std::uint32_t> WorkspaceIndex::Register(WorkspaceSubject Subject)
 {
-    if (OpenOccupancy >= WorkspaceCeiling)
+    if (OpenOccupancy >= WorkspaceLimit)
     {
         return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "no more workspaces may be opened at once" });
     }
 
-    const std::uint32_t SubjectOrdinal = static_cast<std::uint32_t>(Subject);
+    const std::uint32_t SubjectIndex = static_cast<std::uint32_t>(Subject);
 
-    if (SubjectOrdinal >= static_cast<std::uint32_t>(WorkspaceSubject::SubjectCount))
+    if (SubjectIndex >= static_cast<std::uint32_t>(WorkspaceSubject::SubjectCount))
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such workspace subject" });
 
     WorkspaceEntry& Registered = Open[OpenOccupancy];
@@ -50,14 +50,14 @@ Outcome<std::uint32_t> WorkspaceIndex::Register(WorkspaceSubject Subject)
 
     // 🔴 Never reused. Closing the second canvas and opening another yields a third, because two tabs that
     //    had carried one title within a session make an artist's account of what they were doing ambiguous.
-    Registered.SubjectOrdinal = ++RegisteredPerSubject[SubjectOrdinal];
+    Registered.SubjectIndex = ++RegisteredPerSubject[SubjectIndex];
 
     // 🔴 Composed HERE and never again. The sheet titles a tab by stem and ordinal, and composing that per
     //    tick would write into storage the recording is still reading, sixty times a second.
     // 📝 The truncation is not checked: the stems are three known literals and the ordinal is bounded by
     //    the ceiling, so the longest run this can compose is well inside the extent.
     std::snprintf(Registered.Titled, sizeof(Registered.Titled), "%s %u",
-                  WorkspaceStem(Subject), Registered.SubjectOrdinal);
+                  WorkspaceStem(Subject), Registered.SubjectIndex);
 
     Active = OpenOccupancy;
     ++OpenOccupancy;
@@ -69,14 +69,14 @@ Outcome<std::uint32_t> WorkspaceIndex::Register(WorkspaceSubject Subject)
 //                                                     THE WITHDRAWAL
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> WorkspaceIndex::Withdraw(std::uint32_t Ordinal)
+Outcome<bool> WorkspaceIndex::Withdraw(std::uint32_t Index)
 {
-    if (Ordinal >= OpenOccupancy)
+    if (Index >= OpenOccupancy)
         return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "that ordinal names no open workspace" });
 
     // 📝 The order is preserved rather than the last entry being swapped in. The sheet presents its tabs in
     //    the order they were opened, and a swap would move an unrelated tab under the artist's pointer.
-    for (std::uint32_t Moving = Ordinal; Moving + 1u < OpenOccupancy; ++Moving)
+    for (std::uint32_t Moving = Index; Moving + 1u < OpenOccupancy; ++Moving)
         Open[Moving] = Open[Moving + 1u];
 
     --OpenOccupancy;
@@ -88,7 +88,7 @@ Outcome<bool> WorkspaceIndex::Withdraw(std::uint32_t Ordinal)
     {
         Active = AbsentWorkspace;
     }
-    else if (Active > Ordinal || Active >= OpenOccupancy)
+    else if (Active > Index || Active >= OpenOccupancy)
     {
         Active = (Active == 0u) ? 0u : Active - 1u;
     }
@@ -96,12 +96,12 @@ Outcome<bool> WorkspaceIndex::Withdraw(std::uint32_t Ordinal)
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> WorkspaceIndex::Present(std::uint32_t Ordinal)
+Outcome<bool> WorkspaceIndex::Present(std::uint32_t Index)
 {
-    if (Ordinal >= OpenOccupancy)
+    if (Index >= OpenOccupancy)
         return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "that ordinal names no open workspace" });
 
-    Active = Ordinal;
+    Active = Index;
 
     return Outcome<bool>::Result(true);
 }
@@ -115,39 +115,39 @@ std::uint32_t WorkspaceIndex::OpenCount() const
     return OpenOccupancy;
 }
 
-Outcome<WorkspaceEntry> WorkspaceIndex::Current(std::uint32_t Ordinal) const
+Outcome<WorkspaceEntry> WorkspaceIndex::Current(std::uint32_t Index) const
 {
-    if (Ordinal >= OpenOccupancy)
+    if (Index >= OpenOccupancy)
     {
         return Outcome<WorkspaceEntry>::Refuse(
             { RefusalReason::IdentityStale, "that ordinal names no open workspace" });
     }
 
-    return Outcome<WorkspaceEntry>::Result(Open[Ordinal]);
+    return Outcome<WorkspaceEntry>::Result(Open[Index]);
 }
 
-bool WorkspaceIndex::Applied(std::uint32_t Ordinal) const
+bool WorkspaceIndex::Applied(std::uint32_t Index) const
 {
-    return (Ordinal < OpenOccupancy) && Open[Ordinal].DockApplied;
+    return (Index < OpenOccupancy) && Open[Index].DockApplied;
 }
 
-void WorkspaceIndex::Apply(std::uint32_t Ordinal)
+void WorkspaceIndex::Apply(std::uint32_t Index)
 {
-    if (Ordinal < OpenOccupancy)
-        Open[Ordinal].DockApplied = true;
+    if (Index < OpenOccupancy)
+        Open[Index].DockApplied = true;
 }
 
-const char* WorkspaceIndex::Titled(std::uint32_t Ordinal) const
+const char* WorkspaceIndex::Titled(std::uint32_t Index) const
 {
-    if (Ordinal >= OpenOccupancy)
+    if (Index >= OpenOccupancy)
         return nullptr;
 
-    // 📝 Points into the ledger's own storage, which outlives the tick. The delivered form cannot: it
+    // 📝 Points into the index's own storage, which outlives the tick. The delivered form cannot: it
     //    copies the entry, and a pointer taken from that copy dies with the temporary.
-    return Open[Ordinal].Titled;
+    return Open[Index].Titled;
 }
 
-std::uint32_t WorkspaceIndex::ActiveOrdinal() const
+std::uint32_t WorkspaceIndex::ActiveIndex() const
 {
     return Active;
 }
@@ -162,8 +162,8 @@ const char* WorkspaceIndex::ActiveTitle() const
 
 void WorkspaceIndex::Reset()
 {
-    for (std::uint32_t Ordinal = 0u; Ordinal < WorkspaceCeiling; ++Ordinal)
-        Open[Ordinal] = WorkspaceEntry{};
+    for (std::uint32_t Index = 0u; Index < WorkspaceLimit; ++Index)
+        Open[Index] = WorkspaceEntry{};
 
     OpenOccupancy = 0u;
     Active        = AbsentWorkspace;

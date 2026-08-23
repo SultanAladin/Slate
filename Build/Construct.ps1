@@ -278,7 +278,7 @@ function Resolve-VulkanRoot
 #---
 
 # 🔴 /fp:precise is not decoration. The exact orientation predicate relies on round-to-nearest and on the
-#    absence of contraction; /fp:fast reassociates the filtered determinant and its sign stops being exact.
+#    absence of guaranteeion; /fp:fast reassociates the filtered determinant and its sign stops being exact.
 function Get-CompilationFlags([string] $Selection)
 {
     $Common = @(
@@ -320,7 +320,7 @@ function Get-CompilationFlags([string] $Selection)
 
 function Get-IncludePath([hashtable] $UnitEntry, [string] $VulkanRoot)
 {
-    # 📝 Contract/ and Shared/ are reachable from every unit through the engine root, and so is every other
+    # 📝 Foundation/ and Shared/ are reachable from every unit through the engine root, and so is every other
     #    unit's Api/ folder. The partition is not enforced by hiding headers — it is enforced by the link:
     #    SlateDocument is never handed SlateVulkan.lib, so a device reference fails to resolve.
     $Paths  = @($EngineRoot)
@@ -643,7 +643,7 @@ function Invoke-Translation([hashtable] $UnitEntry, [string] $Selection, [string
 #---
 
 # 📝 🔴 The second half of the dual-toolchain arrangement. Everything under Shared/ and every constant in
-#    Contract/ToleranceContract.h is compiled once by cl.exe above and once by slangc here, from one source,
+#    Foundation/NumericTolerance.h is compiled once by cl.exe above and once by slangc here, from one source,
 #    with SLATE_SHADER_TOOLCHAIN selecting the spellings. A shader authored but lowered by nothing is a
 #    translation that has never been checked — all three atmosphere entry points carried a signature no
 #    toolchain accepts for as long as this stage was absent.
@@ -677,13 +677,13 @@ function Get-ShaderSource([hashtable] $UnitEntry)
              ForEach-Object { $_.FullName })
 }
 
-# 📝 An entry point reaches Contract/ and Shared/ through its includes, and a timestamp comparison against
+# 📝 An entry point reaches Foundation/ and Shared/ through its includes, and a timestamp comparison against
 #    the .slang alone would hold a stale SPIR-V after either was amended — which is the one staleness this
 #    stage exists to catch, since those two folders are precisely what the shader toolchain and the host
 #    toolchain share. The newest write across both is folded into every comparison below. It is coarser than
 #    a real include scan and deliberately so: it can only ever lower more than necessary, never less.
 # 📝 The shader path is guarded coarsely rather than by a per-entry-point include closure: the newest write
-#    anywhere under Contract/ or Shared/ invalidates every lowered stream. That over-lowers — a change to one
+#    anywhere under Foundation/ or Shared/ invalidates every lowered stream. That over-lowers — a change to one
 #    shared header re-lowers shaders that never included it — and it is left that way deliberately, because
 #    the error is in the safe direction and slangc's dependency output is not the same shape as cl.exe's.
 #    The C++ path cannot afford the same coarseness: it would retranslate the whole engine on every edit.
@@ -695,7 +695,7 @@ function Get-SeamTimestamp
         return $script:SeamTimestamp
     }
 
-    $Newest = @('Contract', 'Shared') |
+    $Newest = @('Foundation', 'Shared') |
               ForEach-Object { Join-Path $EngineRoot $_ } |
               Where-Object   { Test-Path $_ } |
               ForEach-Object { Get-ChildItem $_ -Recurse -File } |
@@ -1050,6 +1050,13 @@ if ($LASTEXITCODE -ne 0)
 if ($LASTEXITCODE -ne 0)
 {
     throw 'VerifyPartition.ps1 rejected; a unit reaches past what it declares'
+}
+
+& powershell -File (Join-Path $ScriptRoot 'VerifyNaming.ps1')
+
+if ($LASTEXITCODE -ne 0)
+{
+    throw 'VerifyNaming.ps1 rejected; retired vocabulary remains'
 }
 
 Write-Host ''

@@ -96,7 +96,7 @@ Outcome<bool> TransmissionSequence::ContributeCollection(RenderSchedule& Schedul
     Declared.CapabilityRequired = false;
     Declared.Substitution       = "";
     Declared.DisplayReferred    = false;
-    Declared.AmendmentOrdinal   = CollectAmendmentOrdinal;
+    Declared.AmendmentIndex   = CollectAmendmentIndex;
 
     return Schedule.Contribute(Declared);
 }
@@ -118,7 +118,7 @@ Outcome<bool> TransmissionSequence::ContributeResolution(RenderSchedule& Schedul
     Declared.CapabilityRequired = false;
     Declared.Substitution       = "";
     Declared.DisplayReferred    = false;
-    Declared.AmendmentOrdinal   = ResolveAmendmentOrdinal;
+    Declared.AmendmentIndex   = ResolveAmendmentIndex;
 
     return Schedule.Contribute(Declared);
 }
@@ -140,10 +140,10 @@ bool TransmissionSequence::Insert(TransmissionColumn&         Column,
     std::uint32_t HeldKey[TransmissionDepth]     = {};
     std::uint32_t HeldSurface[TransmissionDepth] = {};
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Column.HeldCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Column.HeldCount; ++Index)
     {
-        HeldKey[Ordinal]     = Column.Held[Ordinal].DepthKey;
-        HeldSurface[Ordinal] = Column.Held[Ordinal].SurfaceWord;
+        HeldKey[Index]     = Column.Held[Index].DepthKey;
+        HeldSurface[Index] = Column.Held[Index].SurfaceWord;
     }
 
     const std::uint32_t Slot = ProjectTransmissionSlot(HeldKey,
@@ -168,8 +168,8 @@ bool TransmissionSequence::Insert(TransmissionColumn&         Column,
 
     const std::uint32_t Last = Column.HeldCount < TransmissionDepth ? Column.HeldCount : TransmissionDepth - 1u;
 
-    for (std::uint32_t Ordinal = Last; Ordinal > Slot; --Ordinal)
-        Column.Held[Ordinal] = Column.Held[Ordinal - 1u];
+    for (std::uint32_t Index = Last; Index > Slot; --Index)
+        Column.Held[Index] = Column.Held[Index - 1u];
 
     Column.Held[Slot] = Incoming;
 
@@ -261,9 +261,9 @@ void TransmissionSequence::Report(ReportSequence& Reporting, MeasureIndex& Measu
     {
         ReportSpecification Truncated;
         Truncated.Origin         = "62 §3.1 TransmissionSequence";
-        Truncated.Subject        = "ColumnCeiling";
+        Truncated.Subject        = "ColumnLimit";
         Truncated.Detail         = "transmissive layers beyond the per-pixel ceiling were discarded, farthest first";
-        Truncated.SubjectOrdinal = TransmissionDepth;
+        Truncated.SubjectIndex = TransmissionDepth;
         Truncated.Verdict    = ReportVerdict::Truncated;
         Truncated.Arrival        = Sampled;
 

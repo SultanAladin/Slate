@@ -19,7 +19,7 @@ Outcome<bool> QuadratureRule::Derive(std::uint32_t Requested)
     if (Requested == 0u)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a rule of no abscissa integrates nothing" });
 
-    if (Requested > AbscissaCeiling)
+    if (Requested > AbscissaLimit)
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the abscissa ceiling was reached" });
 
     DeclaredAbscissae.assign(Requested, 0.0);
@@ -28,17 +28,17 @@ Outcome<bool> QuadratureRule::Derive(std::uint32_t Requested)
     const double      Order = static_cast<double>(Requested);
     const std::uint32_t Half = (Requested + 1u) / 2u;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Half; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Half; ++Index)
     {
-        // 📐 The standard initial estimate for the Ordinal-th root of the Legendre polynomial, accurate to within
+        // 📐 The standard initial estimate for the Index-th root of the Legendre polynomial, accurate to within
         //    a few thousandths. Newton's quadratic convergence then reaches the last representable bit in four or
         //    five iterations; a poorer estimate would still converge but to whichever root it fell nearest, and
         //    two roots found for one ordinal is a rule with a duplicated abscissa and a doubled weight.
-        double Root = std::cos(Pi * (static_cast<double>(Ordinal) + 0.75) / (Order + 0.5));
+        double Root = std::cos(Pi * (static_cast<double>(Index) + 0.75) / (Order + 0.5));
 
         double Derivative = 1.0;
 
-        for (std::uint32_t Passed = 0u; Passed < QuadratureIterationCeiling; ++Passed)
+        for (std::uint32_t Passed = 0u; Passed < QuadratureIterationLimit; ++Passed)
         {
             // 📐 The three-term recurrence (j+1)P₍ⱼ₊₁₎ = (2j+1)xPⱼ − jP₍ⱼ₋₁₎, walked up to the declared order.
             //    Evaluating the closed form instead would need the binomial coefficients, which overflow long
@@ -69,13 +69,13 @@ Outcome<bool> QuadratureRule::Derive(std::uint32_t Requested)
         }
 
         // 📝 Mirrored rather than solved twice. The weight is even in the root, so both halves take the same one.
-        DeclaredAbscissae[Ordinal]                 = -Root;
-        DeclaredAbscissae[Requested - 1u - Ordinal] =  Root;
+        DeclaredAbscissae[Index]                 = -Root;
+        DeclaredAbscissae[Requested - 1u - Index] =  Root;
 
         const double Weighting = 2.0 / ((1.0 - Root * Root) * Derivative * Derivative);
 
-        DeclaredWeights[Ordinal]                 = Weighting;
-        DeclaredWeights[Requested - 1u - Ordinal] = Weighting;
+        DeclaredWeights[Index]                 = Weighting;
+        DeclaredWeights[Requested - 1u - Index] = Weighting;
     }
 
     RuleDerived = true;
@@ -87,17 +87,17 @@ Outcome<bool> QuadratureRule::Derive(std::uint32_t Requested)
 //                                                     WHAT IS READ
 //------------------------------------------------------------------------------------------------------------------------
 
-double QuadratureRule::Abscissa(std::uint32_t Ordinal) const
+double QuadratureRule::Abscissa(std::uint32_t Index) const
 {
-    return Ordinal < DeclaredAbscissae.size() ? DeclaredAbscissae[Ordinal] : 0.0;
+    return Index < DeclaredAbscissae.size() ? DeclaredAbscissae[Index] : 0.0;
 }
 
-double QuadratureRule::Weight(std::uint32_t Ordinal) const
+double QuadratureRule::Weight(std::uint32_t Index) const
 {
-    return Ordinal < DeclaredWeights.size() ? DeclaredWeights[Ordinal] : 0.0;
+    return Index < DeclaredWeights.size() ? DeclaredWeights[Index] : 0.0;
 }
 
-Outcome<bool> QuadratureRule::Project(std::uint32_t Ordinal,
+Outcome<bool> QuadratureRule::Project(std::uint32_t Index,
                                       double        Lower,
                                       double        Upper,
                                       double&       Position,
@@ -106,14 +106,14 @@ Outcome<bool> QuadratureRule::Project(std::uint32_t Ordinal,
     if (!RuleDerived)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rule has not been derived" });
 
-    if (Ordinal >= DeclaredAbscissae.size())
+    if (Index >= DeclaredAbscissae.size())
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "no such abscissa" });
 
     const double HalfSpan = (Upper - Lower) * 0.5;
     const double Middle   = (Upper + Lower) * 0.5;
 
-    Position  = Middle + HalfSpan * DeclaredAbscissae[Ordinal];
-    Weighting = HalfSpan * DeclaredWeights[Ordinal];
+    Position  = Middle + HalfSpan * DeclaredAbscissae[Index];
+    Weighting = HalfSpan * DeclaredWeights[Index];
 
     return Outcome<bool>::Result(true);
 }

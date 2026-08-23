@@ -120,15 +120,15 @@ void RasterCodec::Rasterize(const void* RecordedDrawData, PixelSpace& Extent)
         return { nullptr, 1u, 1u, false };
     };
 
-    for (int ListOrdinal = 0; ListOrdinal < Recorded->CmdListsCount; ++ListOrdinal)
+    for (int ListIndex = 0; ListIndex < Recorded->CmdListsCount; ++ListIndex)
     {
-        const ImDrawList* List = Recorded->CmdLists[ListOrdinal];
+        const ImDrawList* List = Recorded->CmdLists[ListIndex];
         const ImDrawVert* VertexRun = List->VtxBuffer.Data;
         const ImDrawIdx*  IndexRun  = List->IdxBuffer.Data;
 
-        for (int CommandOrdinal = 0; CommandOrdinal < List->CmdBuffer.Size; ++CommandOrdinal)
+        for (int CommandIndex = 0; CommandIndex < List->CmdBuffer.Size; ++CommandIndex)
         {
-            const ImDrawCmd& Command = List->CmdBuffer[CommandOrdinal];
+            const ImDrawCmd& Command = List->CmdBuffer[CommandIndex];
             if (Command.UserCallback != nullptr)
                 continue;
 
@@ -263,18 +263,18 @@ std::uint32_t CyclicRedundancyCheck(const std::uint8_t* Run, std::size_t Extent)
     static bool Applied = false;
     if (!Applied)
     {
-        for (std::uint32_t Ordinal = 0u; Ordinal < 256u; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < 256u; ++Index)
         {
-            std::uint32_t Remainder = Ordinal;
+            std::uint32_t Remainder = Index;
             for (int Cycle = 0; Cycle < 8; ++Cycle)
                 Remainder = (Remainder & 1u) ? (Remainder >> 1) ^ 0xEDB88320u : (Remainder >> 1);
-            Current[Ordinal] = Remainder;
+            Current[Index] = Remainder;
         }
         Applied = true;
     }
     std::uint32_t Check = 0xFFFFFFFFu;
-    for (std::size_t Ordinal = 0u; Ordinal < Extent; ++Ordinal)
-        Check = Current[(Check ^ Run[Ordinal]) & 0xFFu] ^ (Check >> 8);
+    for (std::size_t Index = 0u; Index < Extent; ++Index)
+        Check = Current[(Check ^ Run[Index]) & 0xFFu] ^ (Check >> 8);
     return Check ^ 0xFFFFFFFFu;
 }
 
@@ -284,9 +284,9 @@ std::uint32_t AdlerThirtyTwo(const std::uint8_t* Run, std::size_t Extent)
 {
     std::uint32_t Lower = 1u;
     std::uint32_t Upper = 0u;
-    for (std::size_t Ordinal = 0u; Ordinal < Extent; ++Ordinal)
+    for (std::size_t Index = 0u; Index < Extent; ++Index)
     {
-        Lower = (Lower + Run[Ordinal]) % 65521u;
+        Lower = (Lower + Run[Index]) % 65521u;
         Upper = (Upper + Lower) % 65521u;
     }
     return (Upper << 16) | Lower;

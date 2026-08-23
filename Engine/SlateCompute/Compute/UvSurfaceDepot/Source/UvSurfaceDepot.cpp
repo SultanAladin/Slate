@@ -38,12 +38,12 @@ struct FaceExtent
 // 📐 One face's bound and centre from its corners, in the source's own ordering. Derived per search rather than
 //    held, because the source is immutable for the whole run and a second copy of a bound is a second thing that
 //    can describe a revision the topology has left.
-FaceExtent ExtentOfFace(const TopologyStructure& Source, std::uint32_t FaceOrdinal)
+FaceExtent ExtentOfFace(const TopologyStructure& Source, std::uint32_t FaceIndex)
 {
     FaceExtent Bounded;
 
-    const std::uint32_t FirstCorner = Source.FaceFirstCorner(FaceOrdinal);
-    const std::uint32_t CornerSpan  = Source.FaceCornerCount(FaceOrdinal);
+    const std::uint32_t FirstCorner = Source.FaceFirstCorner(FaceIndex);
+    const std::uint32_t CornerSpan  = Source.FaceCornerCount(FaceIndex);
 
     if (CornerSpan == 0u)
     {
@@ -90,7 +90,7 @@ FaceExtent ExtentOfFace(const TopologyStructure& Source, std::uint32_t FaceOrdin
 
 // 📐 The face's orientation as the mean of its corners' own, unnormalised. The angular rule compares magnitudes
 //    against one another and never against an absolute bound, so the normalisation the mean omits cancels.
-SurfaceDirection OrientationOfFace(const TopologyStructure& Source, std::uint32_t FaceOrdinal)
+SurfaceDirection OrientationOfFace(const TopologyStructure& Source, std::uint32_t FaceIndex)
 {
     SurfaceDirection Averaged;
 
@@ -101,8 +101,8 @@ SurfaceDirection OrientationOfFace(const TopologyStructure& Source, std::uint32_
 
     const std::vector<SurfaceDirection>& Perpendiculars = Source.Perpendiculars();
 
-    const std::uint32_t FirstCorner = Source.FaceFirstCorner(FaceOrdinal);
-    const std::uint32_t CornerSpan  = Source.FaceCornerCount(FaceOrdinal);
+    const std::uint32_t FirstCorner = Source.FaceFirstCorner(FaceIndex);
+    const std::uint32_t CornerSpan  = Source.FaceCornerCount(FaceIndex);
 
     for (std::uint32_t Walked = 0u; Walked < CornerSpan; ++Walked)
     {
@@ -166,7 +166,7 @@ Outcome<bool> UvSurfaceDepot::Declare(const TransferSpecification& Transferring_
             { RefusalReason::ContentUnsupported, "the convergence criterion lies outside the unit interval" });
     }
 
-    if (Transferring_.IterationCeiling == 0u)
+    if (Transferring_.IterationLimit == 0u)
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "an iteration ceiling of nothing accepts no sweep at all" });
@@ -216,7 +216,7 @@ Outcome<ContentKey> UvSurfaceDepot::KeyOf(const TopologyStructure& Source,
     Keyed.SourceRevision       = Source.Revision();
     Keyed.WorkingRevision      = Working.Revision();
     Keyed.PartitionRevision    = Partitioning.Revision();
-    Keyed.SpecificationOrdinal = Transferring.SpecificationOrdinal;
+    Keyed.SpecificationIndex = Transferring.SpecificationIndex;
     Keyed.ExtentTexels         = Transferring.DomainExtent;
     Keyed.ChannelMask          = Transferring.ChannelMask;
 
@@ -240,16 +240,16 @@ Outcome<SourceCorrespondence> UvSurfaceDepot::Correspond(DocumentPosition       
     const double Extent = Transferring.SearchExtent;
 
     SourceCorrespondence Chosen;
-    Chosen.FaceOrdinal = AbsentCorrespondence;
+    Chosen.FaceIndex = AbsentCorrespondence;
 
     double MinimumDeparture   = 0.0;
     double MaximumAligning = 0.0;
 
     const std::uint32_t FaceSpan = Source.FaceCount();
 
-    for (std::uint32_t FaceOrdinal = 0u; FaceOrdinal < FaceSpan; ++FaceOrdinal)
+    for (std::uint32_t FaceIndex = 0u; FaceIndex < FaceSpan; ++FaceIndex)
     {
-        const FaceExtent Bounded = ExtentOfFace(Source, FaceOrdinal);
+        const FaceExtent Bounded = ExtentOfFace(Source, FaceIndex);
 
         // 🔴 Tier A admission — `24` §2 and §5's second gate. The working position is grown into a volume of the
         //    declared extent and the two volumes are classified by `Shared/`'s own routine, so the host and the
@@ -276,9 +276,9 @@ Outcome<SourceCorrespondence> UvSurfaceDepot::Correspond(DocumentPosition       
             continue;
         }
 
-        const double Aligning = AlignmentBetween(WorkingOrientation, OrientationOfFace(Source, FaceOrdinal));
+        const double Aligning = AlignmentBetween(WorkingOrientation, OrientationOfFace(Source, FaceIndex));
 
-        bool Preferred = Chosen.FaceOrdinal == AbsentCorrespondence;
+        bool Preferred = Chosen.FaceIndex == AbsentCorrespondence;
 
         if (!Preferred && Transferring.Correspondence == CorrespondenceSubject::MinimumAngularDeparture)
         {
@@ -292,14 +292,14 @@ Outcome<SourceCorrespondence> UvSurfaceDepot::Correspond(DocumentPosition       
 
         if (Preferred)
         {
-            Chosen.FaceOrdinal = FaceOrdinal;
+            Chosen.FaceIndex = FaceIndex;
             Chosen.Departure   = Departure;
             MinimumDeparture     = Departure;
             MaximumAligning   = Aligning;
         }
     }
 
-    if (Chosen.FaceOrdinal == AbsentCorrespondence)
+    if (Chosen.FaceIndex == AbsentCorrespondence)
     {
         return Outcome<SourceCorrespondence>::Refuse(
             { RefusalReason::ExtentExhausted, "no source surface stands within the declared search extent" });
@@ -344,13 +344,13 @@ ConvergentResult<TransferMetrics> UvSurfaceDepot::Transfer(const TopologyStructu
     // 📐 The sweep spreads: an unresolved position is retried against the faces its own topology's resolved
     //    positions found, which is what makes the transfer converge rather than terminate at a fixed cost. The
     //    retry passes the same extent test, so propagation never reaches a face the direct search would not.
-    for (std::uint32_t Swept = 0u; Swept < Transferring.IterationCeiling; ++Swept)
+    for (std::uint32_t Swept = 0u; Swept < Transferring.IterationLimit; ++Swept)
     {
         std::uint32_t ResolvedThisSweep = 0u;
 
-        for (std::uint32_t VertexOrdinal = 0u; VertexOrdinal < DomainSpan; ++VertexOrdinal)
+        for (std::uint32_t VertexIndex = 0u; VertexIndex < DomainSpan; ++VertexIndex)
         {
-            if (Corresponded[VertexOrdinal] != AbsentCorrespondence)
+            if (Corresponded[VertexIndex] != AbsentCorrespondence)
             {
                 continue;
             }
@@ -359,15 +359,15 @@ ConvergentResult<TransferMetrics> UvSurfaceDepot::Transfer(const TopologyStructu
 
             if (!WorkingOrientations.empty())
             {
-                Orientation = WorkingOrientations[VertexOrdinal];
+                Orientation = WorkingOrientations[VertexIndex];
             }
 
             const Outcome<SourceCorrespondence> Found =
-                Correspond(WorkingPositions[VertexOrdinal], Orientation, Source);
+                Correspond(WorkingPositions[VertexIndex], Orientation, Source);
 
             if (Found.Resolved)
             {
-                Corresponded[VertexOrdinal] = Found.Resolve().FaceOrdinal;
+                Corresponded[VertexIndex] = Found.Resolve().FaceIndex;
                 ++ResolvedThisSweep;
             }
         }
@@ -385,31 +385,31 @@ ConvergentResult<TransferMetrics> UvSurfaceDepot::Transfer(const TopologyStructu
             break;
         }
 
-        Produced.Cause = TerminationCause::CeilingReached;
+        Produced.Cause = TerminationCause::LimitReached;
     }
 
     // 🔴 `24` §2: whatever remains unresolved is recorded as a miss — never as zero, never as the nearest value
     //    found beyond the extent. A channel the corresponding source face does not itself carry is a miss too,
     //    for the same reason: it was asked for and not delivered.
-    for (std::uint32_t VertexOrdinal = 0u; VertexOrdinal < DomainSpan; ++VertexOrdinal)
+    for (std::uint32_t VertexIndex = 0u; VertexIndex < DomainSpan; ++VertexIndex)
     {
-        const std::uint32_t FaceOrdinal = Corresponded[VertexOrdinal];
+        const std::uint32_t FaceIndex = Corresponded[VertexIndex];
 
-        if (FaceOrdinal != AbsentCorrespondence)
+        if (FaceIndex != AbsentCorrespondence)
         {
             ++Produced.Approximation.ResolvedCount;
         }
 
-        const std::uint32_t SourceCarries = FaceOrdinal != AbsentCorrespondence
-                                         && FaceOrdinal < SourceChannelMasks.size()
-                                          ? SourceChannelMasks[FaceOrdinal]
+        const std::uint32_t SourceCarries = FaceIndex != AbsentCorrespondence
+                                         && FaceIndex < SourceChannelMasks.size()
+                                          ? SourceChannelMasks[FaceIndex]
                                           : 0u;
 
-        for (std::uint32_t ChannelOrdinal = 0u;
-             ChannelOrdinal < static_cast<std::uint32_t>(ChannelSubject::ChannelCount);
-             ++ChannelOrdinal)
+        for (std::uint32_t ChannelIndex = 0u;
+             ChannelIndex < static_cast<std::uint32_t>(ChannelSubject::ChannelCount);
+             ++ChannelIndex)
         {
-            const std::uint32_t ChannelBit = 1u << ChannelOrdinal;
+            const std::uint32_t ChannelBit = 1u << ChannelIndex;
 
             if ((Transferring.ChannelMask & ChannelBit) == 0u)
             {
@@ -418,7 +418,7 @@ ConvergentResult<TransferMetrics> UvSurfaceDepot::Transfer(const TopologyStructu
 
             if ((SourceCarries & ChannelBit) == 0u)
             {
-                ++Produced.Approximation.ChannelMisses[ChannelOrdinal];
+                ++Produced.Approximation.ChannelMisses[ChannelIndex];
             }
         }
     }
@@ -433,12 +433,12 @@ ConvergentResult<TransferMetrics> UvSurfaceDepot::Transfer(const TopologyStructu
 Outcome<bool> UvSurfaceDepot::Accept(SurfaceDepot&     Depot,
                                     const ContentKey& Keyed,
                                     std::uint64_t     ByteExtent,
-                                    std::uint64_t     RecordingOrdinal) const
+                                    std::uint64_t     RecordingIndex) const
 {
     // 🔴 Declared an analytic resolution, which `56` §3 classifies as reconstructible — so the depot accepts it as
     //    evictable. Nothing painted is ever declared here: paint is a layer above the transfer in `56`'s sequence
     //    and stays there, rather than the transfer mutating into authored content underneath it.
-    return Depot.Declare(Keyed, LayerContentSource::AnalyticResolution, ByteExtent, RecordingOrdinal);
+    return Depot.Declare(Keyed, LayerContentSource::AnalyticResolution, ByteExtent, RecordingIndex);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -450,13 +450,13 @@ void UvSurfaceDepot::Report(const ConvergentResult<TransferMetrics>& Produced,
                             MeasureIndex&                            Measured,
                             TickPoint                                Sampled) const
 {
-    if (Produced.Cause == TerminationCause::CeilingReached)
+    if (Produced.Cause == TerminationCause::LimitReached)
     {
         ReportSpecification Terminated;
         Terminated.Origin         = TransferOrigin;
         Terminated.Subject        = "Transfer";
         Terminated.Detail         = "the iteration ceiling terminated the transfer; positions remain unresolved";
-        Terminated.SubjectOrdinal = Produced.Approximation.SweepCount;
+        Terminated.SubjectIndex = Produced.Approximation.SweepCount;
         Terminated.Verdict    = ReportVerdict::Terminated;
         Terminated.Arrival        = Sampled;
 
@@ -466,11 +466,11 @@ void UvSurfaceDepot::Report(const ConvergentResult<TransferMetrics>& Produced,
     // 🔴 `24` §4: the miss count is per channel and each missed channel appends its own report. One total says
     //    nothing about which attribute is wrong, and a transfer that missed a tenth of the domain in one channel
     //    looks like one that missed nothing everywhere the transfer succeeded.
-    for (std::uint32_t ChannelOrdinal = 0u;
-         ChannelOrdinal < static_cast<std::uint32_t>(ChannelSubject::ChannelCount);
-         ++ChannelOrdinal)
+    for (std::uint32_t ChannelIndex = 0u;
+         ChannelIndex < static_cast<std::uint32_t>(ChannelSubject::ChannelCount);
+         ++ChannelIndex)
     {
-        if (Produced.Approximation.ChannelMisses[ChannelOrdinal] == 0u)
+        if (Produced.Approximation.ChannelMisses[ChannelIndex] == 0u)
         {
             continue;
         }
@@ -479,8 +479,8 @@ void UvSurfaceDepot::Report(const ConvergentResult<TransferMetrics>& Produced,
         Missed.Origin         = TransferOrigin;
         Missed.Subject        = "ChannelMiss";
         Missed.Detail         = "no source surface within the extent carried this channel; the domain position is a miss";
-        Missed.SubjectOrdinal = (static_cast<std::uint64_t>(ChannelOrdinal) << 32)
-                              | Produced.Approximation.ChannelMisses[ChannelOrdinal];
+        Missed.SubjectIndex = (static_cast<std::uint64_t>(ChannelIndex) << 32)
+                              | Produced.Approximation.ChannelMisses[ChannelIndex];
         Missed.Verdict    = ReportVerdict::Truncated;
         Missed.Arrival        = Sampled;
 

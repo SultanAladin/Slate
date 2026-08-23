@@ -12,7 +12,7 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ProgramIndex::Construct(const VulkanExchange&      Exchange,
+Outcome<bool> ProgramIndex::ConstructProgramIndex(const VulkanExchange&      Exchange,
                                       ShaderCodec&               Modules,
                                       const DescriptorIndex&     Descriptors,
                                       const DiagnosticExtension& Naming)
@@ -32,19 +32,19 @@ Outcome<bool> ProgramIndex::Construct(const VulkanExchange&      Exchange,
 //                                                     THE REACH
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<VkPipelineLayout> ProgramIndex::ReachLayout(const std::vector<std::uint32_t>&  LayoutOrdinals,
+Outcome<VkPipelineLayout> ProgramIndex::ReachLayout(const std::vector<std::uint32_t>&  LayoutIndexs,
                                                     std::uint32_t                     ConstantBytes,
                                                     VkShaderStageFlags                ReachingStages)
 {
     std::vector<VkDescriptorSetLayout> Reached;
-    Reached.reserve(LayoutOrdinals.size());
+    Reached.reserve(LayoutIndexs.size());
 
     // 📝 Resolved in the order given, because the position in this run **is** the set ordinal the shader
     //    declares. Sorting them or skipping an unresolved one would leave every later set addressed one
     //    position from where the shader reads it, which the vendor reports as a set that was never written.
-    for (const std::uint32_t LayoutOrdinal : LayoutOrdinals)
+    for (const std::uint32_t LayoutIndex : LayoutIndexs)
     {
-        const Outcome<VkDescriptorSetLayout> Declared = DescriptorEdge->Layout(LayoutOrdinal);
+        const Outcome<VkDescriptorSetLayout> Declared = DescriptorEdge->Layout(LayoutIndex);
 
         if (!Declared.Resolved)
             return Outcome<VkPipelineLayout>::Refuse(Declared.Error);
@@ -102,7 +102,7 @@ Outcome<std::uint32_t> ProgramIndex::DeclareGraphics(const GraphicsDeclaration& 
     const VkPipelineShaderStageCreateInfo Reading[2] = { VertexRead.Resolve(), FragmentRead.Resolve() };
 
     const Outcome<VkPipelineLayout> Reached =
-        ReachLayout(Declaring.LayoutOrdinals,
+        ReachLayout(Declaring.LayoutIndexs,
                     Declaring.ConstantBytes,
                     VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 
@@ -215,7 +215,7 @@ Outcome<std::uint32_t> ProgramIndex::DeclareGraphics(const GraphicsDeclaration& 
     Held.ReachedLayout = ReachedLayout;
     Held.RecordedAs    = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
-    const std::uint32_t ProgramOrdinal = static_cast<std::uint32_t>(Programs.size());
+    const std::uint32_t ProgramIndex = static_cast<std::uint32_t>(Programs.size());
 
     Programs.push_back(Held);
 
@@ -225,14 +225,14 @@ Outcome<std::uint32_t> ProgramIndex::DeclareGraphics(const GraphicsDeclaration& 
     Discard(NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE,
                         reinterpret_cast<std::uint64_t>(Constructed),
                         "ProgramIndex graphics program",
-                        ProgramOrdinal));
+                        ProgramIndex));
 
     Discard(NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE_LAYOUT,
                         reinterpret_cast<std::uint64_t>(ReachedLayout),
                         "ProgramIndex graphics reach",
-                        ProgramOrdinal));
+                        ProgramIndex));
 
-    return Outcome<std::uint32_t>::Result(ProgramOrdinal);
+    return Outcome<std::uint32_t>::Result(ProgramIndex);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -245,13 +245,13 @@ Outcome<std::uint32_t> ProgramIndex::DeclareCompute(const ComputeDeclaration& De
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::CapabilityAbsent, "no device was taken" });
 
     const Outcome<VkPipelineShaderStageCreateInfo> Reading =
-        ModuleEdge->Stage(Declaring.ModuleOrdinal, VK_SHADER_STAGE_COMPUTE_BIT, Declaring.Fixed);
+        ModuleEdge->Stage(Declaring.ModuleIndex, VK_SHADER_STAGE_COMPUTE_BIT, Declaring.Fixed);
 
     if (!Reading.Resolved)
         return Outcome<std::uint32_t>::Refuse(Reading.Error);
 
     const Outcome<VkPipelineLayout> Reached =
-        ReachLayout(Declaring.LayoutOrdinals, Declaring.ConstantBytes, VK_SHADER_STAGE_COMPUTE_BIT);
+        ReachLayout(Declaring.LayoutIndexs, Declaring.ConstantBytes, VK_SHADER_STAGE_COMPUTE_BIT);
 
     if (!Reached.Resolved)
         return Outcome<std::uint32_t>::Refuse(Reached.Error);
@@ -279,7 +279,7 @@ Outcome<std::uint32_t> ProgramIndex::DeclareCompute(const ComputeDeclaration& De
     Held.ReachedLayout = ReachedLayout;
     Held.RecordedAs    = VK_PIPELINE_BIND_POINT_COMPUTE;
 
-    const std::uint32_t ProgramOrdinal = static_cast<std::uint32_t>(Programs.size());
+    const std::uint32_t ProgramIndex = static_cast<std::uint32_t>(Programs.size());
 
     Programs.push_back(Held);
 
@@ -288,29 +288,29 @@ Outcome<std::uint32_t> ProgramIndex::DeclareCompute(const ComputeDeclaration& De
     Discard(NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE,
                         reinterpret_cast<std::uint64_t>(Constructed),
                         "ProgramIndex compute program",
-                        ProgramOrdinal));
+                        ProgramIndex));
 
     Discard(NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE_LAYOUT,
                         reinterpret_cast<std::uint64_t>(ReachedLayout),
                         "ProgramIndex compute reach",
-                        ProgramOrdinal));
+                        ProgramIndex));
 
-    return Outcome<std::uint32_t>::Result(ProgramOrdinal);
+    return Outcome<std::uint32_t>::Result(ProgramIndex);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE RESOLUTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<ConstructedProgram> ProgramIndex::Resolve(std::uint32_t ProgramOrdinal) const
+Outcome<ConstructedProgram> ProgramIndex::Resolve(std::uint32_t ProgramIndex) const
 {
-    if (static_cast<std::size_t>(ProgramOrdinal) >= Programs.size())
+    if (static_cast<std::size_t>(ProgramIndex) >= Programs.size())
     {
         return Outcome<ConstructedProgram>::Refuse(
             { RefusalReason::ContentUnsupported, "no program stands at that ordinal" });
     }
 
-    const HeldProgram& Held = Programs[ProgramOrdinal];
+    const HeldProgram& Held = Programs[ProgramIndex];
 
     ConstructedProgram Resolved;
     Resolved.Constructed   = Held.Constructed;

@@ -2,7 +2,7 @@
 //                                                          OVERLAYTRANSFORM.SLANG.H
 //============================================================================================================================================
 // 🧩 The overlay pass's screen → NDC transform, shared by the vertex shader
-//    (`OverlayVertex.slang`) and the harness that proofs the pass.
+//    (`WorkspaceOverlayVertex.slang`) and the harness that proofs the pass.
 //
 //    🔴 WHY THIS EXISTS. The overlay pass draws AFTER the interface, so its
 //    vertex transform must agree with the interface's own vertex shader to the

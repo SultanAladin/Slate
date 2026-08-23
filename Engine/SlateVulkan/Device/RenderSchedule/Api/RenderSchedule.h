@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/IdentityContract.h"
-#include "Contract/DeliveryContract.h"
+#include "Foundation/Identity.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateVulkan/Device/ImageSpace/Api/ImageSpace.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
 
@@ -22,7 +22,7 @@ namespace Slate
 
 /// 🧩 Every shared target the schedule declares. Nothing invents a target another already produces.
 /// note  Declared as one closed enumeration so that the producer and amender lists below are total.
-/// tag   contract
+/// tag   guarantee
 enum class SharedTarget : std::uint32_t
 {
     DepthSurface           = 0u,   // [-] - D32, display extent
@@ -46,7 +46,7 @@ enum class SharedTarget : std::uint32_t
 /// 🧩 How a target's extent relates to the display extent.
 /// note  ⚠️ A display-relative target is reclaimed and re-claimed on every extent change; an absolute one
 ///       is never touched by a resize. `06` §4.1 gates that both ways.
-/// tag   contract
+/// tag   guarantee
 enum class ExtentRelation : std::uint32_t
 {
     DisplayRelative  = 0u,   // [-] - exactly the display extent
@@ -119,7 +119,7 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported when the target is unclaimed
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<std::uint32_t> OrdinalOf(SharedTarget Target) const;
+    Outcome<std::uint32_t> IndexOf(SharedTarget Target) const;
 
     /// 🧩 Releases every claimed target and forgets the display extent they were claimed against.
     /// pre   the device is idle
@@ -146,7 +146,7 @@ private:
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 What a recording contributes. Authored once by the contributing document, consulted by the orderer.
-/// tag   contract
+/// tag   guarantee
 enum class RecordingCommand : std::uint32_t
 {
     GraphicsRecording = 0u,   // [-] - a graphics recording
@@ -176,7 +176,7 @@ struct DeclaredRecording
     //    contribution accident deciding it is a reflection that does not show a pane of glass, on some builds.
     // 📝 Zero for a recording that amends nothing. Ties fall back to contribution order, which is what every
     //    recording contributed before this field existed relied on.
-    std::uint32_t              AmendmentOrdinal    = 0u;                              // [-] - lower records first
+    std::uint32_t              AmendmentIndex    = 0u;                              // [-] - lower records first
 };
 
 //------------------------------------------------------------------------------------------------------------------------

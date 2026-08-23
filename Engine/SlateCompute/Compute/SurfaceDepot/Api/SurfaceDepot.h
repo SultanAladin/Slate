@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateDocument/Document/SurfaceLayerSequence/Api/SurfaceLayerSequence.h"
 
 #include <cstdint>
@@ -30,7 +30,7 @@ struct ContentKey
     std::uint64_t  SourceRevision       = 0u;   // [-] - the dense topology the transfer read
     std::uint64_t  WorkingRevision      = 0u;   // [-] - the sparse topology it wrote onto
     std::uint64_t  PartitionRevision    = 0u;   // [-] - `68`'s; every domain position moves with it
-    std::uint64_t  SpecificationOrdinal = 0u;   // [-] - which transfer or resolution produced it
+    std::uint64_t  SpecificationIndex = 0u;   // [-] - which transfer or resolution produced it
     std::uint32_t  ExtentTexels         = 0u;   // [px] - the extent it was written at
     std::uint32_t  ChannelMask          = 0u;   // [-]  - which of `42`'s channels it carries
 };
@@ -45,7 +45,7 @@ constexpr bool KeysAgree(const ContentKey& Left, const ContentKey& Right)
     return Left.SourceRevision       == Right.SourceRevision
         && Left.WorkingRevision      == Right.WorkingRevision
         && Left.PartitionRevision    == Right.PartitionRevision
-        && Left.SpecificationOrdinal == Right.SpecificationOrdinal
+        && Left.SpecificationIndex == Right.SpecificationIndex
         && Left.ExtentTexels         == Right.ExtentTexels
         && Left.ChannelMask          == Right.ChannelMask;
 }
@@ -88,13 +88,13 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported for a ceiling of zero
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(std::uint64_t ByteCeiling);
+    Outcome<bool> ReserveSurfaceStorage(std::uint64_t ByteLimit);
 
     /// 🧩 Accepts one derived artefact, evicting to make room for it.
     /// in    Keyed       [-]  what it was derived from
     /// in    Source      [-]  which of `56` §3's four sources produced it
     /// in    ByteExtent  [B]  what it occupies
-    /// in    RecordingOrdinal [-]  the rotation it was derived on
+    /// in    RecordingIndex [-]  the rotation it was derived on
     /// out   Result     [-]  refuses with ContentUnsupported for an unreconstructible source, and with
     ///                        ExtentExhausted when the artefact alone exceeds the whole ceiling
     /// note  🔴 A painted source is rejected. `20` §4: painted texels are authored content and live in `56`'s
@@ -105,7 +105,7 @@ public:
     Outcome<bool> Declare(const ContentKey&  Keyed,
                           LayerContentSource Source,
                           std::uint64_t      ByteExtent,
-                          std::uint64_t      RecordingOrdinal);
+                          std::uint64_t      RecordingIndex);
 
     /// 🧩 Resolves one artefact by its content key, marking it recently read.
     /// out   Result  [-]  refuses with ExtentExhausted when nothing matching is held
@@ -114,7 +114,7 @@ public:
     ///        through to the third — which is correct, and slower, and visible only as one deferred tile.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<DepotArtefact> Resolve(const ContentKey& Keyed, std::uint64_t RecordingOrdinal);
+    Outcome<DepotArtefact> Resolve(const ContentKey& Keyed, std::uint64_t RecordingIndex);
 
     /// 🧩 Evicts least-recently-resolved artefacts until the declared extent is free.
     /// out   Evicted  [-]  how many artefacts left
@@ -133,7 +133,7 @@ public:
     std::uint32_t Supersede(std::uint64_t PartitionRevision);
 
     std::uint64_t OccupiedBytes() const;
-    std::uint64_t ByteCeiling() const;
+    std::uint64_t ByteLimit() const;
     std::uint32_t HeldCount() const;
     std::uint64_t ResolvedCount() const;
     std::uint64_t EvictedCount() const;
@@ -146,7 +146,7 @@ public:
 private:
 
     std::vector<DepotArtefact>  Held;                     // [-] - in admission order
-    std::uint64_t               Ceiling        = 0u;      // [B]
+    std::uint64_t               Limit        = 0u;      // [B]
     std::uint64_t               Occupied       = 0u;      // [B]
     std::uint64_t               ResolvedTotal  = 0u;      // [-]
     std::uint64_t               EvictedTotal   = 0u;      // [-]

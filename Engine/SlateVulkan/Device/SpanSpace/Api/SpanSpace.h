@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateVulkan/Device/ByteSpace/Api/ByteSpace.h"
 #include "SlateVulkan/Device/DiagnosticExtension/Api/DiagnosticExtension.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
@@ -32,7 +32,7 @@ inline constexpr std::uint32_t AbsentSpan = 0xFFFFFFFFu;   // [-] - the claim na
 /// note  ⚠️ Every intent below accepts a transfer into the span, because a device-local span is written no other
 ///       way. The transfer **out** is declared only where something reads it back, since `06` §3 sizes the
 ///       host-writable extent against what is staged rather than against what is claimed.
-/// tag   contract
+/// tag   guarantee
 enum class SpanIntent : std::uint32_t
 {
     StorageRead    = 0u,   // [-] - read by a shader through a declared descriptor slot
@@ -65,7 +65,7 @@ struct SpanReservation
     VkBuffer       Extent      = VK_NULL_HANDLE;   // [-] - the vendor span; the vendor spelling
     VkDeviceSize   SpanBytes   = 0u;               // [B] - as claimed, never as re-queried
     void*          HostAddress = nullptr;          // [-] - null for every DeviceLocal claim
-    std::uint32_t  SpanOrdinal = AbsentSpan;       // [-] - which slot Release returns it to
+    std::uint32_t  SpanIndex = AbsentSpan;       // [-] - which slot Release returns it to
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -100,7 +100,7 @@ public:
     ///        storage span the engine holds, and the driver's text would then name a set rather than a span.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange&      Exchange,
+    Outcome<bool> ConstructSpanSpace(const VulkanExchange&      Exchange,
                             ByteSpace&                 BackingSpace,
                             const DiagnosticExtension& Naming);
 
@@ -116,7 +116,7 @@ public:
     Outcome<SpanReservation> Reserve(const SpanShape& Declared);
 
     /// 🧩 Writes host-supplied bytes into one host-writable span.
-    /// in    SpanOrdinal    [-]  a claim this component registered
+    /// in    SpanIndex    [-]  a claim this component registered
     /// in    Incoming       [-]  what is written; read for IncomingBytes and never retained
     /// in    IncomingBytes  [B]  how far the write runs
     /// in    ByteOffset     [B]  where in the span the write begins
@@ -126,15 +126,15 @@ public:
     ///        extent as coherent precisely so that a caller cannot forget the flush at one of its write sites.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Amend(std::uint32_t  SpanOrdinal,
+    Outcome<bool> Amend(std::uint32_t  SpanIndex,
                         const void*    Incoming,
                         VkDeviceSize   IncomingBytes,
                         VkDeviceSize   ByteOffset);
 
     /// 🧩 Records the transfer that carries one span's bytes into another.
     /// in    Recorded      [-]  the recording being written into
-    /// in    SourceOrdinal [-]  a claim this component registered, declared as a transfer source
-    /// in    TargetOrdinal [-]  a claim this component registered
+    /// in    SourceIndex [-]  a claim this component registered, declared as a transfer source
+    /// in    TargetIndex [-]  a claim this component registered
     /// in    TransferBytes [B]  how far the transfer runs; zero reads as the whole of the source
     /// out   Result       [-]  refuses with ContentUnsupported for an unclaimed ordinal and with
     ///                          ExtentExhausted when the transfer would run past either span
@@ -144,23 +144,23 @@ public:
     /// cost  ✔️
     /// tag   api, nonthrowing
     Outcome<bool> Transfer(VkCommandBuffer  Recorded,
-                           std::uint32_t    SourceOrdinal,
-                           std::uint32_t    TargetOrdinal,
+                           std::uint32_t    SourceIndex,
+                           std::uint32_t    TargetIndex,
                            VkDeviceSize     TransferBytes);
 
     /// 🧩 The current record for one claimed span.
-    /// in    SpanOrdinal  [-]  a claim this component registered
+    /// in    SpanIndex  [-]  a claim this component registered
     /// out   Result      [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<SpanReservation> Current(std::uint32_t SpanOrdinal) const;
+    Outcome<SpanReservation> Current(std::uint32_t SpanIndex) const;
 
     /// 🧩 Destroys one span and returns its bytes.
-    /// in    SpanOrdinal  [-]  a claim this component registered; an unclaimed ordinal is a no-op
+    /// in    SpanIndex  [-]  a claim this component registered; an unclaimed ordinal is a no-op
     /// pre   the device is idle, or no recording still in the rotation reads it
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Release(std::uint32_t SpanOrdinal);
+    void Release(std::uint32_t SpanIndex);
 
     /// 🧩 Releases every claimed span.
     /// pre   the device is idle

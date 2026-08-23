@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
+#include "Foundation/NumericTolerance.h"
 #include "Shared/ToneProjection.slang.h"
 #include "SlateMath/Numeric/ColourProjection/Api/ColourProjection.h"
 #include "SlateMath/Numeric/ReportSequence/Api/ReportSequence.h"
@@ -26,7 +26,7 @@ namespace Slate
 /// note  🔴 `66` §2: the two are alternatives and never a sum. An authored exposure that the metering also
 ///        adapts is one the artist sets and watches drift back, and nothing on the display says which of the
 ///        two moved it.
-/// tag   contract
+/// tag   guarantee
 enum class ExposureSubject : std::uint32_t
 {
     Declared      = 0u,   // [-] - the artist's own value, held exactly as authored
@@ -36,14 +36,14 @@ enum class ExposureSubject : std::uint32_t
 
 /// 🧩 What the exposure is, and — where it is metered — how fast it may move.
 /// note  🚧 The interval and the ceiling are `66` §9's open rows and each blocks tuning alone. They are declared
-///        here rather than in `Contract/` because no second unit reads either — `00` §2's rule.
+///        here rather than in `Foundation/` because no second unit reads either — `00` §2's rule.
 /// tag   nonallocating, nonthrowing
 struct ExposureSpecification
 {
     ExposureSubject  Source            = ExposureSubject::Declared;   // [-]  - which of the two drives it
     double           DeclaredExposure  = 0.0;                         // [EV] - the artist's value; a doubling per stop
     double           AdaptationSeconds = 0.4;                         // [s]  - the metered adaptation's time constant
-    double           MeteredCeiling    = 8.0;                         // [EV] - how far the metering may travel either way
+    double           MeteredLimit    = 8.0;                         // [EV] - how far the metering may travel either way
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -102,7 +102,7 @@ public:
 
     // 📝 `08` §3 ⑧, after `64`'s accumulation at 40. The recording is the tone line itself, so nothing
     //    scene-referred may be ordered after it and everything display-referred must be.
-    static constexpr std::uint32_t AmendmentOrdinal = 50u;   // [-] - `08` §3 ⑧
+    static constexpr std::uint32_t AmendmentIndex = 50u;   // [-] - `08` §3 ⑧
 
     /// 🧩 Declares the exposure, the compression and the two spaces as one admission.
     /// in    Exposing_  [-]  which of the two subjects drives the exposure, and its bounds

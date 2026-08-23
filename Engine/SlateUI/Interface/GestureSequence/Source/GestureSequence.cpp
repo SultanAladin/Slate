@@ -71,7 +71,7 @@ const ContactTravel& GestureSequence::Advance(const PointerCondition& Sampled, d
         ContactLive          = false;
         Reported.Phase       = ContactPhase::Released;
         Reported.TapResolved = !Reported.TravelExceeded
-                             && Reported.HeldDuration <= Tolerance.TapDurationCeiling;
+                             && Reported.HeldDuration <= Tolerance.TapDurationLimit;
         return Reported;
     }
 
@@ -117,7 +117,7 @@ const ContactTravel& GestureSequence::Advance(const PointerCondition& Sampled, d
     const double Reach = std::sqrt(Reported.TravelX  * Reported.TravelX
                                  + Reported.TravelY * Reported.TravelY);
 
-    if (Reach > static_cast<double>(Tolerance.TapTravelCeiling))
+    if (Reach > static_cast<double>(Tolerance.TapTravelLimit))
         Reported.TravelExceeded = true;
 
     if (Sampled.ContactReleased || !Sampled.ContactHeld)
@@ -125,7 +125,7 @@ const ContactTravel& GestureSequence::Advance(const PointerCondition& Sampled, d
         ContactLive            = false;
         Reported.Phase         = ContactPhase::Released;
         Reported.TapResolved   = !Reported.TravelExceeded
-                               && Reported.HeldDuration <= Tolerance.TapDurationCeiling;
+                               && Reported.HeldDuration <= Tolerance.TapDurationLimit;
         Reported.FlingResolved = std::fabs(Reported.RateY) > Tolerance.FlingRateFloor;
         return Reported;
     }

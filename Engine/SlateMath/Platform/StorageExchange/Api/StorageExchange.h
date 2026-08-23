@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 
 #include <cstdint>
 #include <string>
@@ -30,7 +30,7 @@ struct RangeRequest
 /// note  ⚠️ Truncated is delivered and not rejected. A range that reached the end of the stream carries fewer
 ///       bytes than were asked for and every one of them is good; a codec reading the last range of a stream
 ///       asks for its own read extent and is handed what remains.
-/// tag   contract
+/// tag   guarantee
 enum class RangeConclusion : std::uint32_t
 {
     Pending   = 0u,   // [-] - declared; the storage device has not answered
@@ -120,7 +120,7 @@ public:
 
     // 📝 A single range beyond this refuses. A reader wanting more than this wants the whole stream, and
     //    `FileInterchange::ReadStream` is the surface that says so.
-    static constexpr std::uint64_t RangeCeiling = 256ull * 1024ull * 1024ull;   // [B] - largest declared range
+    static constexpr std::uint64_t RangeLimit = 256ull * 1024ull * 1024ull;   // [B] - largest declared range
 
 private:
 
@@ -128,7 +128,7 @@ private:
     std::uint64_t              StreamSpanned  = 0u;        // [B] - the whole extent, read once at Open
     std::uint32_t              DeclaredCount  = 0u;        // [-] - ordinals registered over this stream's lifetime
     std::vector<RangeRequest>  PendingOrder   = {};        // [-] - declared, undrained, in declaration order
-    std::vector<std::uint32_t> PendingOrdinal = {};        // [-] - the ordinal each pending range was registered
+    std::vector<std::uint32_t> PendingIndex = {};        // [-] - the ordinal each pending range was registered
     std::vector<RangeArrival>  DrainedRanges  = {};        // [-] - what the last Drain delivered
 };
 

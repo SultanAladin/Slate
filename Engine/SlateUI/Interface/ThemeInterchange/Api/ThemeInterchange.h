@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/ThemeSpecification/Api/ThemeSpecification.h"
 
 #include <cstdint>
@@ -20,8 +20,8 @@ namespace Slate
 // 📝 The file is a fixed shape — six appearances and eight accents — so its extent is known rather than
 //    discovered. The ceiling is generous against that shape: the inscribed form runs near four kilobytes,
 //    and anything an order of magnitude larger is not this file and is rejected rather than parsed.
-inline constexpr std::uint32_t ArchiveCeiling = 65536u;   // [B] - largest appearance stream accepted
-inline constexpr std::uint32_t PathCeiling    = 512u;     // [-] - longest resolved path, NUL included
+inline constexpr std::uint32_t ArchiveLimit = 65536u;   // [B] - largest appearance stream accepted
+inline constexpr std::uint32_t PathLimit    = 512u;     // [-] - longest resolved path, NUL included
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE TRANSLATION
@@ -44,7 +44,7 @@ public:
     /// in    Path      [-]  NUL-terminated, UTF-8
     /// out   ThemeArchive  [-]  every appearance the file did not mention keeps its compiled-in declaration
     /// err   HostDenied          the path could not be opened, or was not read whole
-    /// err   ContentUnsupported  the stream exceeded ArchiveCeiling, or a line was not understood
+    /// err   ContentUnsupported  the stream exceeded ArchiveLimit, or a line was not understood
     /// note  A file that names only `[selection]` is valid and common: it records which appearance the artist
     ///       chose while leaving what that appearance contains to the build.
     /// cost  🔴
@@ -64,15 +64,15 @@ public:
     /// in    ExecutablePath  [-]  argv[0] as the host received it
     /// in    Leaf            [-]  the file name to place beside it
     /// out   Produced        [-]  NUL-terminated; written only when delivered
-    /// in    Ceiling         [-]  extent of Produced, NUL included
-    /// err   ExtentExhausted  the assembled path would not fit within Ceiling
+    /// in    Limit         [-]  extent of Produced, NUL included
+    /// err   ExtentExhausted  the assembled path would not fit within Limit
     /// note  An executable path carrying no separator resolves to the bare leaf, which reads the working
     ///       directory — the right answer when a host is launched from the folder it lives in.
     /// cost  ✔️
     static Outcome<bool> Beside(const char*   ExecutablePath,
                                 const char*   Leaf,
                                 char*         Produced,
-                                std::uint32_t Ceiling);
+                                std::uint32_t Limit);
 
     /// 🧩 The leaf name every host reads its appearance from.
     /// cost  ✔️
@@ -94,7 +94,7 @@ public:
     /// in    ExecutablePath  [-]  argv[0] as the host received it
     /// in    Selected        [-]  what the Control Centre currently has chosen
     /// err   HostDenied       the file could not be written or moved into place
-    /// err   ExtentExhausted  the resolved path exceeds PathCeiling
+    /// err   ExtentExhausted  the resolved path exceeds PathLimit
     /// use   Called when the artist changes a colour, not every tick.
     /// cost  🔴
     static Outcome<bool> RecordBeside(const char* ExecutablePath, const ThemeSelection& Selected);

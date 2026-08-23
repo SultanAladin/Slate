@@ -6,11 +6,11 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
 #include "SlateUI/Interface/DrawerSpace/Api/DrawerSpace.h"
-#include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
+#include "SlateUI/Interface/ControlIndex/Api/ControlIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
 #include "SlateUI/Interface/ShortcutSpecification/Api/ShortcutSpecification.h"
@@ -103,7 +103,7 @@ public:
     //    and were not. 256 applies the eight strips with the rest of the panel's controls intact.
     static constexpr std::uint32_t ControlCapacity = 256u;
 
-    Outcome<bool> Construct(MotionIntegrator& Motion, RecordingSurface& Surface,
+    Outcome<bool> ConstructControlCentrePanel(MotionIntegrator& Motion, RecordingSurface& Surface,
                             const ThemeProfile& Appearance);
     void Advance(const PointerCondition& Sampled, double Elapsed);
     Outcome<bool> Record(const PlaneExtent& Interior, ControlCentreConfiguration& Configuration);
@@ -113,10 +113,10 @@ public:
 
 private:
     void RetainExclusion(const PlaneExtent& Extent);
-    bool Pressed(std::uint32_t Ordinal, const PlaneExtent& Extent);
-    bool Slider(std::uint32_t Ordinal, const PlaneExtent& Extent, std::uint32_t Minimum, std::uint32_t Maximum,
+    bool Pressed(std::uint32_t Index, const PlaneExtent& Extent);
+    bool Slider(std::uint32_t Index, const PlaneExtent& Extent, std::uint32_t Minimum, std::uint32_t Maximum,
                 std::uint32_t& Reading, const char* UnitGlyph, ThemeToken Rail, ThemeToken Accent);
-    void Toggle(std::uint32_t Ordinal, const PlaneExtent& Extent, bool& Enabled, ThemeToken Quiet, ThemeToken Accent);
+    void Toggle(std::uint32_t Index, const PlaneExtent& Extent, bool& Enabled, ThemeToken Quiet, ThemeToken Accent);
     void Symbol(const PlaneExtent& Extent, ThemeToken Colour);
     void DashboardPage(const PlaneExtent& Extent, ControlCentreConfiguration& Configuration, const ThemeDeclaration& Theme,
                        ThemeToken Accent);
@@ -140,7 +140,7 @@ private:
     RecordingSurface* Surface = nullptr;
     const ThemeProfile* Appearance = nullptr;
     FontLoader* FontArchive = nullptr;
-    InteractionIndex Interaction = {};
+    ControlIndex Interaction = {};
     ComponentSpecification SharedControls = {};
     ControlIdentity Controls[ControlCapacity] = {};
     PlaneExtent Exclusions[ControlCapacity] = {};

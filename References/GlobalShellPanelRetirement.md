@@ -20,7 +20,7 @@ This plan records the retirement only. No `GlobalShellPanel` source is removed d
 | Real viewport content and overlays | Editor viewport leaf, `ViewportSkySurface`, and `OverlayPass` |
 
 The retirement must not copy `GlobalShellPanel` into either replacement. Approved behaviour is re-expressed through
-the runtime panels' own contracts, host-owned data, reusable controls, and request slots.
+the runtime panels' own guarantees, host-owned data, reusable controls, and request slots.
 
 ## Gates before retirement
 
@@ -69,8 +69,8 @@ the runtime panels' own contracts, host-owned data, reusable controls, and reque
 
 The retirement must not remove:
 
-- `SceneDirectoryContract.h` records still consumed by runtime panels;
-- `TexturePaintPanel` or its contract;
+- `SceneDirectoryFoundation.h` records still consumed by runtime panels;
+- `TexturePaintPanel` or its guarantee;
 - shared control, appearance, symbol, motion, interaction, or recording facilities;
 - real editor workspace, panel, viewport, overlay, or host behaviour;
 - historical proof images required to explain an approved migration.

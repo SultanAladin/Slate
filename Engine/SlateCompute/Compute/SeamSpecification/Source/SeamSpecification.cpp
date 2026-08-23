@@ -17,12 +17,12 @@ namespace
 
 std::size_t Located(const std::vector<SeamEdge>& Held, SeamEdge Sought)
 {
-    for (std::size_t Ordinal = 0u; Ordinal < Held.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < Held.size(); ++Index)
     {
-        if (Held[Ordinal].MinimumVertex == Sought.MinimumVertex
-         && Held[Ordinal].MaximumVertex == Sought.MaximumVertex)
+        if (Held[Index].MinimumVertex == Sought.MinimumVertex
+         && Held[Index].MaximumVertex == Sought.MaximumVertex)
         {
-            return Ordinal;
+            return Index;
         }
     }
 

@@ -60,7 +60,7 @@ struct ChartLocality
     std::vector<std::uint32_t>     TriangleCorners = {};   // [-]  - three per triangle, chart-local
     std::vector<std::uint32_t>     Corners         = {};   // [-]  - imported corner ordinals
     std::vector<std::uint32_t>     CornerLocals    = {};   // [-]  - parallel; chart-local ordinal per corner
-    std::vector<std::uint32_t>     BoundaryLoop    = {};   // [-]  - ordered, chart-local
+    std::vector<std::uint32_t>     ContourLoop    = {};   // [-]  - ordered, chart-local
     std::uint32_t                  LoopCount       = 0u;   // [-]  - boundary loops chained
 };
 
@@ -87,25 +87,25 @@ ChartLocality BuildLocality(const TopologyStructure&           Imported,
 {
     ChartLocality Built;
 
-    for (const std::uint32_t FaceOrdinal : Faces)
+    for (const std::uint32_t FaceIndex : Faces)
     {
-        const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceOrdinal);
-        const std::uint32_t CornerSpan  = Imported.FaceCornerCount(FaceOrdinal);
+        const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceIndex);
+        const std::uint32_t CornerSpan  = Imported.FaceCornerCount(FaceIndex);
 
         for (std::uint32_t Passed = 0u; Passed < CornerSpan; ++Passed)
         {
-            const std::uint32_t CornerOrdinal = FirstCorner + Passed;
+            const std::uint32_t CornerIndex = FirstCorner + Passed;
             const std::uint32_t Welded        =
-                Conditioned.WeldedPosition(Imported.CornerVertex(CornerOrdinal)).Resolve();
+                Conditioned.WeldedPosition(Imported.CornerVertex(CornerIndex)).Resolve();
 
             if (StampOfWelded[Welded] != Stamp)
             {
                 StampOfWelded[Welded] = Stamp;
                 LocalOfWelded[Welded] = static_cast<std::uint32_t>(Built.Positions.size());
-                Built.Positions.push_back(Imported.Positions()[Imported.CornerVertex(CornerOrdinal)]);
+                Built.Positions.push_back(Imported.Positions()[Imported.CornerVertex(CornerIndex)]);
             }
 
-            Built.Corners.push_back(CornerOrdinal);
+            Built.Corners.push_back(CornerIndex);
             Built.CornerLocals.push_back(LocalOfWelded[Welded]);
         }
     }
@@ -115,9 +115,9 @@ ChartLocality BuildLocality(const TopologyStructure&           Imported,
     //    and the picking would then disagree about which side of a quad a position is on.
     std::size_t CornerWalk = 0u;
 
-    for (const std::uint32_t FaceOrdinal : Faces)
+    for (const std::uint32_t FaceIndex : Faces)
     {
-        const std::uint32_t CornerSpan = Imported.FaceCornerCount(FaceOrdinal);
+        const std::uint32_t CornerSpan = Imported.FaceCornerCount(FaceIndex);
 
         for (std::uint32_t Fan = 1u; Fan + 1u < CornerSpan; ++Fan)
         {
@@ -136,34 +136,34 @@ ChartLocality BuildLocality(const TopologyStructure&           Imported,
 
     CornerWalk = 0u;
 
-    for (const std::uint32_t FaceOrdinal : Faces)
+    for (const std::uint32_t FaceIndex : Faces)
     {
-        const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceOrdinal);
-        const std::uint32_t CornerSpan  = Imported.FaceCornerCount(FaceOrdinal);
+        const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceIndex);
+        const std::uint32_t CornerSpan  = Imported.FaceCornerCount(FaceIndex);
 
         for (std::uint32_t Passed = 0u; Passed < CornerSpan; ++Passed)
         {
-            const std::uint32_t CornerOrdinal = FirstCorner + Passed;
+            const std::uint32_t CornerIndex = FirstCorner + Passed;
             const std::uint32_t Following     = FirstCorner + (Passed + 1u) % CornerSpan;
 
             const std::uint32_t OpeningWelded =
-                Conditioned.WeldedPosition(Imported.CornerVertex(CornerOrdinal)).Resolve();
+                Conditioned.WeldedPosition(Imported.CornerVertex(CornerIndex)).Resolve();
             const std::uint32_t ClosingWelded =
                 Conditioned.WeldedPosition(Imported.CornerVertex(Following)).Resolve();
 
-            bool BoundaryHere = KeyHeld(SeamKeys, EdgeKey(OpeningWelded, ClosingWelded));
+            bool DividerHere = KeyHeld(SeamKeys, EdgeKey(OpeningWelded, ClosingWelded));
 
-            if (!BoundaryHere)
+            if (!DividerHere)
             {
-                const Outcome<std::uint32_t> Adjacent = Conditioned.AdjacentCorner(CornerOrdinal);
+                const Outcome<std::uint32_t> Adjacent = Conditioned.AdjacentCorner(CornerIndex);
 
                 if (!Adjacent.Resolved)
-                    BoundaryHere = true;
+                    DividerHere = true;
                 else
-                    BoundaryHere = FaceOfEachFace[Imported.CornerFace(Adjacent.Resolve())] != FaceOfEachFace[FaceOrdinal];
+                    DividerHere = FaceOfEachFace[Imported.CornerFace(Adjacent.Resolve())] != FaceOfEachFace[FaceIndex];
             }
 
-            if (BoundaryHere)
+            if (DividerHere)
             {
                 Opening.push_back(LocalOfWelded[OpeningWelded]);
                 Closing.push_back(LocalOfWelded[ClosingWelded]);
@@ -175,16 +175,16 @@ ChartLocality BuildLocality(const TopologyStructure&           Imported,
 
     std::vector<bool> Walked(Opening.size(), false);
 
-    for (std::size_t Ordinal = 0u; Ordinal < Opening.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < Opening.size(); ++Index)
     {
-        if (Walked[Ordinal])
+        if (Walked[Index])
             continue;
 
         ++Built.LoopCount;
 
         std::vector<std::uint32_t> Loop;
 
-        std::size_t Walking = Ordinal;
+        std::size_t Walking = Index;
 
         for (std::size_t Passed = 0u; Passed <= Opening.size(); ++Passed)
         {
@@ -215,8 +215,8 @@ ChartLocality BuildLocality(const TopologyStructure&           Imported,
 
         // 📝 The longest loop is the outer boundary. A chart with more than one is not a disc and is subdivided
         //    by the caller rather than flattened against whichever loop happened to be chained first.
-        if (Loop.size() > Built.BoundaryLoop.size())
-            Built.BoundaryLoop = Loop;
+        if (Loop.size() > Built.ContourLoop.size())
+            Built.ContourLoop = Loop;
     }
 
     return Built;
@@ -234,11 +234,11 @@ bool FoldDetected(const ChartLocality& Local, const std::vector<PlanarPosition>&
 
     const std::size_t TriangleSpan = Local.TriangleCorners.size() / 3u;
 
-    for (std::size_t TriangleOrdinal = 0u; TriangleOrdinal < TriangleSpan; ++TriangleOrdinal)
+    for (std::size_t TriangleIndex = 0u; TriangleIndex < TriangleSpan; ++TriangleIndex)
     {
-        const PlanarPosition& Alpha = Flattened[Local.TriangleCorners[TriangleOrdinal * 3u]];
-        const PlanarPosition& Beta  = Flattened[Local.TriangleCorners[TriangleOrdinal * 3u + 1u]];
-        const PlanarPosition& Gamma = Flattened[Local.TriangleCorners[TriangleOrdinal * 3u + 2u]];
+        const PlanarPosition& Alpha = Flattened[Local.TriangleCorners[TriangleIndex * 3u]];
+        const PlanarPosition& Beta  = Flattened[Local.TriangleCorners[TriangleIndex * 3u + 1u]];
+        const PlanarPosition& Gamma = Flattened[Local.TriangleCorners[TriangleIndex * 3u + 2u]];
 
         const Signed32 Winding = ClassifyOrientation(Alpha.PositionX, Alpha.PositionY,
                                                      Beta.PositionX,  Beta.PositionY,
@@ -256,20 +256,20 @@ bool FoldDetected(const ChartLocality& Local, const std::vector<PlanarPosition>&
     // 📐 Consistent winding does not exclude a boundary that crosses itself, so the boundary is tested too.
     //    `02` §4's exact classification decides it: an approximate overlap test finds folds sometimes, which is
     //    worse than not testing, because the failures that survive are the subtle ones.
-    const std::size_t LoopSpan = Local.BoundaryLoop.size();
+    const std::size_t LoopSpan = Local.ContourLoop.size();
 
     for (std::size_t Earlier = 0u; Earlier + 1u < LoopSpan; ++Earlier)
     {
-        const PlanarPosition& AlphaFirst  = Flattened[Local.BoundaryLoop[Earlier]];
-        const PlanarPosition& AlphaSecond = Flattened[Local.BoundaryLoop[(Earlier + 1u) % LoopSpan]];
+        const PlanarPosition& AlphaFirst  = Flattened[Local.ContourLoop[Earlier]];
+        const PlanarPosition& AlphaSecond = Flattened[Local.ContourLoop[(Earlier + 1u) % LoopSpan]];
 
         for (std::size_t Later = Earlier + 2u; Later < LoopSpan; ++Later)
         {
             if (Earlier == 0u && Later + 1u == LoopSpan)
                 continue;
 
-            const PlanarPosition& BetaFirst  = Flattened[Local.BoundaryLoop[Later]];
-            const PlanarPosition& BetaSecond = Flattened[Local.BoundaryLoop[(Later + 1u) % LoopSpan]];
+            const PlanarPosition& BetaFirst  = Flattened[Local.ContourLoop[Later]];
+            const PlanarPosition& BetaSecond = Flattened[Local.ContourLoop[(Later + 1u) % LoopSpan]];
 
             if (ClassifySegmentIntersection(AlphaFirst.PositionX,  AlphaFirst.PositionY,
                                             AlphaSecond.PositionX, AlphaSecond.PositionY,
@@ -302,26 +302,26 @@ void Subdivide(const TopologyStructure&           Imported,
 
     double MinimumX = 0.0, MaximumX = 0.0, MinimumY = 0.0, MaximumY = 0.0, MinimumZ = 0.0, MaximumZ = 0.0;
 
-    for (std::size_t Ordinal = 0u; Ordinal < Faces.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < Faces.size(); ++Index)
     {
-        const std::uint32_t FaceOrdinal = Faces[Ordinal];
-        const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceOrdinal);
-        const std::uint32_t CornerSpan  = Imported.FaceCornerCount(FaceOrdinal);
+        const std::uint32_t FaceIndex = Faces[Index];
+        const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceIndex);
+        const std::uint32_t CornerSpan  = Imported.FaceCornerCount(FaceIndex);
 
         for (std::uint32_t Passed = 0u; Passed < CornerSpan; ++Passed)
         {
             const DocumentPosition& Held = Imported.Positions()[Imported.CornerVertex(FirstCorner + Passed)];
 
-            CentroidX[Ordinal] += Held.PositionX;
-            CentroidY[Ordinal] += Held.PositionY;
-            CentroidZ[Ordinal] += Held.PositionZ;
+            CentroidX[Index] += Held.PositionX;
+            CentroidY[Index] += Held.PositionY;
+            CentroidZ[Index] += Held.PositionZ;
         }
 
-        CentroidX[Ordinal] /= static_cast<double>(CornerSpan);
-        CentroidY[Ordinal] /= static_cast<double>(CornerSpan);
-        CentroidZ[Ordinal] /= static_cast<double>(CornerSpan);
+        CentroidX[Index] /= static_cast<double>(CornerSpan);
+        CentroidY[Index] /= static_cast<double>(CornerSpan);
+        CentroidZ[Index] /= static_cast<double>(CornerSpan);
 
-        if (Ordinal == 0u)
+        if (Index == 0u)
         {
             MinimumX = MaximumX = CentroidX[0];
             MinimumY = MaximumY = CentroidY[0];
@@ -329,12 +329,12 @@ void Subdivide(const TopologyStructure&           Imported,
             continue;
         }
 
-        MinimumX    = CentroidX[Ordinal] < MinimumX    ? CentroidX[Ordinal] : MinimumX;
-        MaximumX = CentroidX[Ordinal] > MaximumX ? CentroidX[Ordinal] : MaximumX;
-        MinimumY    = CentroidY[Ordinal] < MinimumY    ? CentroidY[Ordinal] : MinimumY;
-        MaximumY = CentroidY[Ordinal] > MaximumY ? CentroidY[Ordinal] : MaximumY;
-        MinimumZ    = CentroidZ[Ordinal] < MinimumZ    ? CentroidZ[Ordinal] : MinimumZ;
-        MaximumZ = CentroidZ[Ordinal] > MaximumZ ? CentroidZ[Ordinal] : MaximumZ;
+        MinimumX    = CentroidX[Index] < MinimumX    ? CentroidX[Index] : MinimumX;
+        MaximumX = CentroidX[Index] > MaximumX ? CentroidX[Index] : MaximumX;
+        MinimumY    = CentroidY[Index] < MinimumY    ? CentroidY[Index] : MinimumY;
+        MaximumY = CentroidY[Index] > MaximumY ? CentroidY[Index] : MaximumY;
+        MinimumZ    = CentroidZ[Index] < MinimumZ    ? CentroidZ[Index] : MinimumZ;
+        MaximumZ = CentroidZ[Index] > MaximumZ ? CentroidZ[Index] : MaximumZ;
     }
 
     const double SpanX = MaximumX - MinimumX;
@@ -355,12 +355,12 @@ void Subdivide(const TopologyStructure&           Imported,
         Middle   = (MinimumZ + MaximumZ) * 0.5;
     }
 
-    for (std::size_t Ordinal = 0u; Ordinal < Faces.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < Faces.size(); ++Index)
     {
-        if ((*Measured)[Ordinal] < Middle)
-            FirstHalf.push_back(Faces[Ordinal]);
+        if ((*Measured)[Index] < Middle)
+            FirstHalf.push_back(Faces[Index]);
         else
-            SecondHalf.push_back(Faces[Ordinal]);
+            SecondHalf.push_back(Faces[Index]);
     }
 
     // 📝 A degenerate split — every centroid on one side — is broken by ordinal so the recursion still shrinks.
@@ -370,12 +370,12 @@ void Subdivide(const TopologyStructure&           Imported,
         FirstHalf.clear();
         SecondHalf.clear();
 
-        for (std::size_t Ordinal = 0u; Ordinal < Faces.size(); ++Ordinal)
+        for (std::size_t Index = 0u; Index < Faces.size(); ++Index)
         {
-            if (Ordinal * 2u < Faces.size())
-                FirstHalf.push_back(Faces[Ordinal]);
+            if (Index * 2u < Faces.size())
+                FirstHalf.push_back(Faces[Index]);
             else
-                SecondHalf.push_back(Faces[Ordinal]);
+                SecondHalf.push_back(Faces[Index]);
         }
     }
 }
@@ -437,38 +437,38 @@ Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
         if (ChartOfFace[Seed] != AbsentFace)
             continue;
 
-        const std::uint32_t ChartOrdinal = static_cast<std::uint32_t>(Pending.size());
+        const std::uint32_t ChartIndex = static_cast<std::uint32_t>(Pending.size());
 
         PendingChart Growing;
 
         std::vector<std::uint32_t> Frontier;
         Frontier.push_back(Seed);
-        ChartOfFace[Seed] = ChartOrdinal;
+        ChartOfFace[Seed] = ChartIndex;
 
         while (!Frontier.empty())
         {
-            const std::uint32_t FaceOrdinal = Frontier.back();
+            const std::uint32_t FaceIndex = Frontier.back();
             Frontier.pop_back();
 
-            Growing.Faces.push_back(FaceOrdinal);
+            Growing.Faces.push_back(FaceIndex);
 
-            const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceOrdinal);
-            const std::uint32_t CornerSpan  = Imported.FaceCornerCount(FaceOrdinal);
+            const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceIndex);
+            const std::uint32_t CornerSpan  = Imported.FaceCornerCount(FaceIndex);
 
             for (std::uint32_t Passed = 0u; Passed < CornerSpan; ++Passed)
             {
-                const std::uint32_t CornerOrdinal = FirstCorner + Passed;
+                const std::uint32_t CornerIndex = FirstCorner + Passed;
                 const std::uint32_t Following     = FirstCorner + (Passed + 1u) % CornerSpan;
 
                 const std::uint32_t OpeningWelded =
-                    Conditioned.WeldedPosition(Imported.CornerVertex(CornerOrdinal)).Resolve();
+                    Conditioned.WeldedPosition(Imported.CornerVertex(CornerIndex)).Resolve();
                 const std::uint32_t ClosingWelded =
                     Conditioned.WeldedPosition(Imported.CornerVertex(Following)).Resolve();
 
                 if (KeyHeld(SeamKeys, EdgeKey(OpeningWelded, ClosingWelded)))
                     continue;
 
-                const Outcome<std::uint32_t> Adjacent = Conditioned.AdjacentCorner(CornerOrdinal);
+                const Outcome<std::uint32_t> Adjacent = Conditioned.AdjacentCorner(CornerIndex);
 
                 if (!Adjacent.Resolved)
                     continue;
@@ -478,7 +478,7 @@ Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
                 if (ChartOfFace[AdjacentFace] != AbsentFace)
                     continue;
 
-                ChartOfFace[AdjacentFace] = ChartOrdinal;
+                ChartOfFace[AdjacentFace] = ChartIndex;
                 Frontier.push_back(AdjacentFace);
             }
         }
@@ -512,13 +512,13 @@ Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
             continue;
 
         // 📝 The chart identity is the least imported face ordinal it holds — stable where the chart is unchanged.
-        std::uint32_t IdentityOrdinal = Considering.Faces[0];
+        std::uint32_t IdentityIndex = Considering.Faces[0];
 
-        for (const std::uint32_t FaceOrdinal : Considering.Faces)
-            IdentityOrdinal = FaceOrdinal < IdentityOrdinal ? FaceOrdinal : IdentityOrdinal;
+        for (const std::uint32_t FaceIndex : Considering.Faces)
+            IdentityIndex = FaceIndex < IdentityIndex ? FaceIndex : IdentityIndex;
 
-        for (const std::uint32_t FaceOrdinal : Considering.Faces)
-            ChartOfFace[FaceOrdinal] = IdentityOrdinal;
+        for (const std::uint32_t FaceIndex : Considering.Faces)
+            ChartOfFace[FaceIndex] = IdentityIndex;
 
         ++Stamp;
 
@@ -526,9 +526,9 @@ Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
                                             SeamKeys, LocalOfWelded, StampOfWelded, Stamp);
 
         const bool SubdivisionReachable = Considering.Faces.size() > 1u
-                                       && Considering.Attempts < Declaring.SubdivisionCeiling;
+                                       && Considering.Attempts < Declaring.SubdivisionLimit;
 
-        const bool NotADisc = Local.LoopCount != 1u || Local.BoundaryLoop.size() < 3u;
+        const bool NotADisc = Local.LoopCount != 1u || Local.ContourLoop.size() < 3u;
 
         // 🔴 A chart with no boundary at all — a closed surface — and a chart with several loops are the same
         //    failure: it is not a disc, so no boundary-first parameterisation exists for it. `68` §4.1's
@@ -549,9 +549,9 @@ Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
         UnwrapSpecification Solving;
         Solving.Positions            = Local.Positions;
         Solving.TriangleCorners      = Local.TriangleCorners;
-        Solving.BoundaryLoop         = Local.BoundaryLoop;
+        Solving.ContourLoop         = Local.ContourLoop;
         Solving.ConvergenceCriterion = Declaring.ConvergenceCriterion;
-        Solving.IterationCeiling     = Declaring.IterationCeiling;
+        Solving.IterationLimit     = Declaring.IterationLimit;
 
         const Outcome<ConvergentResult<std::vector<PlanarPosition>>> Solved = Solve(Solving);
 
@@ -589,7 +589,7 @@ Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
         }
 
         Chart Accepting;
-        Accepting.IdentityOrdinal  = IdentityOrdinal;
+        Accepting.IdentityIndex  = IdentityIndex;
         Accepting.Faces            = Considering.Faces;
         Accepting.Cause            = Solved.Resolve().Cause;
         Accepting.ResidualNorm     = Solved.Resolve().ResidualNorm;
@@ -597,8 +597,8 @@ Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
         Accepting.SubdivisionCount = Considering.Attempts;
         Accepting.Distortion       = Measure(Local.Positions, Local.TriangleCorners, Flattened);
 
-        if (Accepting.Cause == TerminationCause::CeilingReached)
-            ++Produced.Metrics.CeilingTerminationCount;
+        if (Accepting.Cause == TerminationCause::LimitReached)
+            ++Produced.Metrics.LimitTerminationCount;
 
         Accepted.push_back(Accepting);
         AcceptedFlattened.push_back(Flattened);
@@ -611,27 +611,27 @@ Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
     // 📝 Every adjacency crossing two accepted charts is a cut. The authored ones are already declared, so what
     //    remains is exactly the set the partitioner added — which is what `86` reports and what `68` §2 requires
     //    to be reported rather than applied silently.
-    for (std::uint32_t FaceOrdinal = 0u; FaceOrdinal < FaceSpan; ++FaceOrdinal)
+    for (std::uint32_t FaceIndex = 0u; FaceIndex < FaceSpan; ++FaceIndex)
     {
-        const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceOrdinal);
-        const std::uint32_t CornerSpan  = Imported.FaceCornerCount(FaceOrdinal);
+        const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceIndex);
+        const std::uint32_t CornerSpan  = Imported.FaceCornerCount(FaceIndex);
 
         for (std::uint32_t Passed = 0u; Passed < CornerSpan; ++Passed)
         {
-            const std::uint32_t CornerOrdinal = FirstCorner + Passed;
+            const std::uint32_t CornerIndex = FirstCorner + Passed;
             const std::uint32_t Following     = FirstCorner + (Passed + 1u) % CornerSpan;
 
-            const Outcome<std::uint32_t> Adjacent = Conditioned.AdjacentCorner(CornerOrdinal);
+            const Outcome<std::uint32_t> Adjacent = Conditioned.AdjacentCorner(CornerIndex);
 
             if (!Adjacent.Resolved)
                 continue;
 
             const std::uint32_t AdjacentFace = Imported.CornerFace(Adjacent.Resolve());
 
-            if (ChartOfFace[AdjacentFace] == ChartOfFace[FaceOrdinal])
+            if (ChartOfFace[AdjacentFace] == ChartOfFace[FaceIndex])
                 continue;
 
-            const std::uint32_t OpeningVertex = Imported.CornerVertex(CornerOrdinal);
+            const std::uint32_t OpeningVertex = Imported.CornerVertex(CornerIndex);
             const std::uint32_t ClosingVertex = Imported.CornerVertex(Following);
 
             const std::uint32_t OpeningWelded = Conditioned.WeldedPosition(OpeningVertex).Resolve();
@@ -664,27 +664,27 @@ Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
     std::vector<double>      MinimumX(Accepted.size(), 0.0);
     std::vector<double>      MinimumY(Accepted.size(), 0.0);
 
-    for (std::size_t Ordinal = 0u; Ordinal < Accepted.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < Accepted.size(); ++Index)
     {
-        const std::vector<PlanarPosition>& Flattened = AcceptedFlattened[Ordinal];
+        const std::vector<PlanarPosition>& Flattened = AcceptedFlattened[Index];
 
         double MaximumX  = Flattened[0].PositionX;
         double MaximumY = Flattened[0].PositionY;
 
-        MinimumX[Ordinal]  = Flattened[0].PositionX;
-        MinimumY[Ordinal] = Flattened[0].PositionY;
+        MinimumX[Index]  = Flattened[0].PositionX;
+        MinimumY[Index] = Flattened[0].PositionY;
 
         for (const PlanarPosition& Held : Flattened)
         {
-            MinimumX[Ordinal]  = Held.PositionX < MinimumX[Ordinal]  ? Held.PositionX : MinimumX[Ordinal];
-            MinimumY[Ordinal] = Held.PositionY < MinimumY[Ordinal] ? Held.PositionY : MinimumY[Ordinal];
+            MinimumX[Index]  = Held.PositionX < MinimumX[Index]  ? Held.PositionX : MinimumX[Index];
+            MinimumY[Index] = Held.PositionY < MinimumY[Index] ? Held.PositionY : MinimumY[Index];
             MaximumX            = Held.PositionX > MaximumX            ? Held.PositionX : MaximumX;
             MaximumY           = Held.PositionY > MaximumY           ? Held.PositionY : MaximumY;
         }
 
-        Extents[Ordinal].Width        = MaximumX  - MinimumX[Ordinal];
-        Extents[Ordinal].Height       = MaximumY - MinimumY[Ordinal];
-        Extents[Ordinal].ChartOrdinal = Accepted[Ordinal].IdentityOrdinal;
+        Extents[Index].Width        = MaximumX  - MinimumX[Index];
+        Extents[Index].Height       = MaximumY - MinimumY[Index];
+        Extents[Index].ChartIndex = Accepted[Index].IdentityIndex;
     }
 
     DomainSpace Arranged;
@@ -694,11 +694,11 @@ Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
     if (!Packed.Resolved)
         return Outcome<DerivedPartition>::Refuse(Packed.Error);
 
-    for (std::size_t Ordinal = 0u; Ordinal < Accepted.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < Accepted.size(); ++Index)
     {
-        const ChartPlacement&              Placement = Arranged.Placements()[Ordinal];
-        const ChartLocality&               Local     = AcceptedLocality[Ordinal];
-        const std::vector<PlanarPosition>& Flattened = AcceptedFlattened[Ordinal];
+        const ChartPlacement&              Placement = Arranged.Placements()[Index];
+        const ChartLocality&               Local     = AcceptedLocality[Index];
+        const std::vector<PlanarPosition>& Flattened = AcceptedFlattened[Index];
 
         for (std::size_t Passed = 0u; Passed < Local.Corners.size(); ++Passed)
         {
@@ -706,20 +706,20 @@ Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
 
             DomainCoordinate Writing;
             Writing.CoordinateX  = static_cast<float>(Placement.MinimumX
-                                                        + (Held.PositionX - MinimumX[Ordinal]) * Placement.Scale);
+                                                        + (Held.PositionX - MinimumX[Index]) * Placement.Scale);
             Writing.CoordinateY = static_cast<float>(Placement.MinimumY
-                                                        + (Held.PositionY - MinimumY[Ordinal]) * Placement.Scale);
+                                                        + (Held.PositionY - MinimumY[Index]) * Placement.Scale);
 
             Produced.CornerCoordinates[Local.Corners[Passed]] = Writing;
         }
 
-        if (Accepted[Ordinal].Distortion.MeasureDeclared)
+        if (Accepted[Index].Distortion.MeasureDeclared)
         {
-            if (Accepted[Ordinal].Distortion.MaximumAreaRatio > Produced.Metrics.MaximumAreaRatio)
-                Produced.Metrics.MaximumAreaRatio = Accepted[Ordinal].Distortion.MaximumAreaRatio;
+            if (Accepted[Index].Distortion.MaximumAreaRatio > Produced.Metrics.MaximumAreaRatio)
+                Produced.Metrics.MaximumAreaRatio = Accepted[Index].Distortion.MaximumAreaRatio;
 
-            if (Accepted[Ordinal].Distortion.MaximumAngleDeviation > Produced.Metrics.MaximumAngleDeviation)
-                Produced.Metrics.MaximumAngleDeviation = Accepted[Ordinal].Distortion.MaximumAngleDeviation;
+            if (Accepted[Index].Distortion.MaximumAngleDeviation > Produced.Metrics.MaximumAngleDeviation)
+                Produced.Metrics.MaximumAngleDeviation = Accepted[Index].Distortion.MaximumAngleDeviation;
         }
     }
 
@@ -754,7 +754,7 @@ Outcome<bool> ChartPartition::Adopt(const DerivedPartition& Incoming)
 
 const DerivedPartition& ChartPartition::Current() const { return CurrentPartition; }
 
-Outcome<DomainCoordinate> ChartPartition::Coordinate(std::uint32_t CornerOrdinal) const
+Outcome<DomainCoordinate> ChartPartition::Coordinate(std::uint32_t CornerIndex) const
 {
     if (PartitionRevision == 0u)
     {
@@ -762,10 +762,10 @@ Outcome<DomainCoordinate> ChartPartition::Coordinate(std::uint32_t CornerOrdinal
             { RefusalReason::ContentUnsupported, "no partition stands for this surface" });
     }
 
-    if (CornerOrdinal >= CurrentPartition.CornerCoordinates.size())
+    if (CornerIndex >= CurrentPartition.CornerCoordinates.size())
         return Outcome<DomainCoordinate>::Refuse({ RefusalReason::ExtentExhausted, "no such corner" });
 
-    return Outcome<DomainCoordinate>::Result(CurrentPartition.CornerCoordinates[CornerOrdinal]);
+    return Outcome<DomainCoordinate>::Result(CurrentPartition.CornerCoordinates[CornerIndex]);
 }
 
 bool          ChartPartition::PartitionCurrent() const { return PartitionRevision != 0u; }
@@ -784,14 +784,14 @@ void ChartPartition::Report(ReportSequence& Reporting, MeasureIndex& Measured, T
     //    well as by origin, so twelve distinct cuts present as twelve entries rather than as one with a count.
     for (const Chart& Held : CurrentPartition.Charts)
     {
-        if (Held.Cause != TerminationCause::CeilingReached)
+        if (Held.Cause != TerminationCause::LimitReached)
             continue;
 
         ReportSpecification Terminated;
         Terminated.Origin         = "68 §4 ChartPartition";
         Terminated.Subject        = "Flattening";
         Terminated.Detail         = "the iteration ceiling terminated the solve; the result is the last iterate";
-        Terminated.SubjectOrdinal = Held.IdentityOrdinal;
+        Terminated.SubjectIndex = Held.IdentityIndex;
         Terminated.Verdict    = ReportVerdict::Terminated;
         Terminated.Arrival        = Sampled;
 
@@ -804,7 +804,7 @@ void ChartPartition::Report(ReportSequence& Reporting, MeasureIndex& Measured, T
         Amended.Origin         = "68 §2 ChartPartition";
         Amended.Subject        = "DerivedSeam";
         Amended.Detail         = "the authored seams did not admit a flattening; this edge was cut here";
-        Amended.SubjectOrdinal = (static_cast<std::uint64_t>(Held.MinimumVertex) << 32) | Held.MaximumVertex;
+        Amended.SubjectIndex = (static_cast<std::uint64_t>(Held.MinimumVertex) << 32) | Held.MaximumVertex;
         Amended.Verdict    = ReportVerdict::Amended;
         Amended.Arrival        = Sampled;
 

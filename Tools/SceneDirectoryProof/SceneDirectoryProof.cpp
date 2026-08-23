@@ -5,7 +5,7 @@
 //    real layout: a workspace window split into viewport / outliner /
 //    properties leaves (WorkspacePanel + EditorPanel + PanelStructure), with
 //    the scene-directory content (the GPU sky in the viewport leaf, the
-//    outliner | details column, the properties | history pages) recorded by
+//    outliner | details column, the properties / camera-bookmark pages) recorded by
 //    SceneDirectoryPanel, and the history demand that fires ONCE per slider
 //    drag (not per tick).
 //
@@ -50,12 +50,12 @@
 //          Engine/SlateUI/Interface/ComponentSpecification/Source/MagnitudeExpression.cpp \
 //          Engine/SlateUI/Interface/InterfaceExchange/Source/RecordingSurface.cpp \
 //          Engine/SlateUI/Interface/AppearanceSpecification/Source/AppearanceSpecification.cpp \
-//          Engine/SlateUI/Interface/InteractionIndex/Source/InteractionIndex.cpp \
+//          Engine/SlateUI/Interface/ControlIndex/Source/ControlIndex.cpp \
 //          Engine/SlateUI/Interface/MotionIntegrator/Source/MotionIntegrator.cpp \
 //          Engine/SlateUI/Interface/ThemeSpecification/Source/ThemeSpecification.cpp \
 //          Engine/SlateUI/Interface/SymbolSpecification/Source/SymbolSpecification.cpp \
 //          Engine/SlateUI/Interface/TextComponent/Source/FontLoader.cpp \
-//          Engine/Application/EditorHost/Source/CameraComponent.cpp \
+//          Engine/SlateScene/Scene/CameraComponent/Source/CameraComponent.cpp \
 //          Engine/Application/EditorHost/Source/SkyImage.cpp \
 //          Engine/SlateCompute/Compute/AtmosphereIntegrator/Source/AtmosphereIntegrator.cpp \
 //          Engine/SlateMath/Numeric/QuadratureIntegrator/Source/QuadratureIntegrator.cpp \
@@ -75,15 +75,15 @@
 
 #include "Shared/OverlayGeometry.slang.h"
 #include "Shared/OverlayTransform.slang.h"
-#include "Application/EditorHost/Api/EditorCameraComponent.h"
+#include "SlateScene/Scene/EditorCameraComponent/Api/EditorCameraComponent.h"
 #include "Application/EditorHost/Api/SkyImage.h"
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateCompute/Compute/AtmosphereIntegrator/Api/AtmosphereIntegrator.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
 #include "SlateUI/Interface/ControlPanel/Api/ControlPanel.h"
 #include "SlateUI/Interface/EditorPanel/Api/EditorPanel.h"
-#include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
+#include "SlateUI/Interface/ControlIndex/Api/ControlIndex.h"
 #include "SlateUI/Interface/TexturePaintPanel/Api/TexturePaintPanel.h"
 #include "SlateUI/Interface/PanelStructure/Api/PanelStructure.h"
 #include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectoryPanel.h"
@@ -278,9 +278,9 @@ struct Rasterizer
         const ImDrawVert* Vertices = List->VtxBuffer.Data;
         const ImDrawIdx* Indices = List->IdxBuffer.Data;
 
-        for (int CommandOrdinal = 0; CommandOrdinal < CommandCount; ++CommandOrdinal)
+        for (int CommandIndex = 0; CommandIndex < CommandCount; ++CommandIndex)
         {
-            const ImDrawCmd& Command = Commands[CommandOrdinal];
+            const ImDrawCmd& Command = Commands[CommandIndex];
             if (Command.UserCallback != nullptr)
                 continue;
 
@@ -358,15 +358,15 @@ struct Rasterizer
                      static_cast<int>(ClipX1), static_cast<int>(ClipY1));
         };
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < Overlay.TriangleCount; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < Overlay.TriangleCount; ++Index)
         {
-            const OverlayTriangle& T = Overlay.Triangles[Ordinal];
+            const OverlayTriangle& T = Overlay.Triangles[Index];
             Fill(T.X0, T.Y0, T.X1, T.Y1, T.X2, T.Y2, Colour(T.Packed));
         }
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < Overlay.LineCount; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < Overlay.LineCount; ++Index)
         {
-            const OverlayLine& L = Overlay.Lines[Ordinal];
+            const OverlayLine& L = Overlay.Lines[Index];
             const float DX = L.X1 - L.X0;
             const float DY = L.Y1 - L.Y0;
             const float Length = std::sqrt(DX * DX + DY * DY);
@@ -386,9 +386,9 @@ struct Rasterizer
                  L.X0 - NX * Half, L.Y0 - NY * Half, Col);
         }
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < Overlay.DotCount; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < Overlay.DotCount; ++Index)
         {
-            const OverlayDot& D = Overlay.Dots[Ordinal];
+            const OverlayDot& D = Overlay.Dots[Index];
             const ImU32 Col = Colour(D.Packed);
 
             // 📐 A 16-gon fan stands in for the fragment-discard disc; 16 sides is below the pixel
@@ -409,7 +409,7 @@ struct Rasterizer
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE DRIVER
 //------------------------------------------------------------------------------------------------------------------------
-// The harness replicates the editor host's tick: the shared ledger advances once,
+// The harness replicates the editor host's tick: the shared index advances once,
 // the scene directory samples it, the workspace panel records its strip and body,
 // the editor panel records the partition chrome, and the host's own content loop
 // fills each leaf body — sky in the viewport leaf, outliner, properties.
@@ -418,7 +418,7 @@ struct SceneDriver
 {
     ImGuiIO& IO;
     MotionIntegrator Motion;
-    InteractionIndex Ledger;
+    ControlIndex Interaction;
     RecordingSurface Surface;
     WorkspacePanel Workspace;
     EditorPanel Editor;
@@ -436,7 +436,7 @@ struct SceneDriver
     //    colours — the flat dark-blue renders — depending on what the stack reused the slot for).
     ThemeProfile Appearance = {};
 
-    static constexpr EntityRow EditorEntities[7] =
+    inline static EntityRow EditorEntities[7] =
     {
         { "Level_01_City",           EntitySubject::Level,      0u, 0xFFFFFFFFu, 3u, "city level main" },
         { "Lighting",                EntitySubject::Grouping,   1u,  0u,         2u, "folder lighting" },
@@ -444,19 +444,17 @@ struct SceneDriver
         { "Sky Atmosphere",          EntitySubject::Sky,        2u,  1u,         0u, "sky atmosphere dome" },
         { "Environment",             EntitySubject::Grouping,   1u,  0u,         1u, "folder environment" },
         { "Post Process Volume",     EntitySubject::Actor,      2u,  4u,         0u, "post volume effects" },
-        { "Editor Camera",           EntitySubject::Camera,     1u,  0u,         0u, "camera fly view" }
+        { "Editor Camera",           EntitySubject::Camera,     1u,  0u,         0u, "camera fly view", CameraRole::Editor }
     };
 
-    EntityRevision Revisions[8] = {};
-    std::uint32_t RevisionCount = 0u;
 
-    static constexpr const char* const StackChannels[TextureChannelCeiling] =
+    static constexpr const char* const StackChannels[TextureChannelLimit] =
     {
         "Base Color", "Metallic", "Roughness", "Normal",
         "Height", "Ambient Occlusion", "Emissive", "Opacity"
     };
 
-    static constexpr TextureLayerRow StackSeed[TextureLayerCeiling] =
+    static constexpr TextureLayerRow StackSeed[TextureLayerLimit] =
     {
         { "Surface Detail",  TextureLayerClassification::Folder,  "Passthrough", 100u, 0x9B8CF0u, 0x9B8CF0u,
           false, 100u, false, "", "4 layers", { StackChannels[0], StackChannels[1], StackChannels[2] }, 3u,
@@ -530,7 +528,7 @@ struct SceneDriver
 
     SceneDriver() : IO(ImGui::GetIO()) {}
 
-    bool Construct()
+    bool ConstructSceneProof()
     {
         const char* FontRoot = "EngineContent/FontArchives";
         if (!Fonts.Discover(FontRoot).Resolved)
@@ -550,15 +548,15 @@ struct SceneDriver
         Surface.ApplyTypographyScale(Appearance.TextScale);
         Surface.ApplyCornerScale(Appearance.CornerScale);
 
-        if (!Ledger.Construct(Motion).Resolved)
+        if (!Interaction.AttachMotion(Motion).Resolved)
             return false;
-        if (!SceneDirectory.Construct(Ledger, Motion, Surface, Appearance).Resolved)
+        if (!SceneDirectory.ConstructSceneDirectoryPanel(Interaction, Motion, Surface, Appearance).Resolved)
             return false;
-        if (!TexturePaint.Construct(Ledger, Motion, Surface, Appearance).Resolved)
+        if (!TexturePaint.ConstructTexturePaintPanel(Interaction, Motion, Surface, Appearance).Resolved)
             return false;
-        if (!Editor.Construct(Motion, Surface, Appearance).Resolved)
+        if (!Editor.ConstructEditorPanel(Motion, Surface, Appearance).Resolved)
             return false;
-        if (!Workspace.Construct(Surface, Appearance).Resolved)
+        if (!Workspace.ConstructWorkspacePanel(Surface, Appearance).Resolved)
             return false;
 
         Applied.EnvironmentPresented = true;
@@ -582,13 +580,13 @@ struct SceneDriver
         TexturePaintApplied.LayerTaken = 1u;
         SeedPaintContextFromRows(TexturePaintApplied, StackRows.Rows, StackRows.Count);
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < TextureLayerCeiling; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < TextureLayerLimit; ++Index)
         {
-            TexturePaintApplied.MaskSourceTaken[Ordinal] =
-                (Ordinal == 2u || Ordinal == 3u || Ordinal == 4u) ? 4u : 0u;
-            TexturePaintApplied.MaskDensity[Ordinal] =
-                (Ordinal == 3u) ? 88u : 100u;
-            TexturePaintApplied.MaskInverted[Ordinal] = (Ordinal == 9u);
+            TexturePaintApplied.MaskSourceTaken[Index] =
+                (Index == 2u || Index == 3u || Index == 4u) ? 4u : 0u;
+            TexturePaintApplied.MaskDensity[Index] =
+                (Index == 3u) ? 88u : 100u;
+            TexturePaintApplied.MaskInverted[Index] = (Index == 9u);
         }
         EditorCamera.YawDegrees   = Applied.Environment.SunAzimuth - 20.0;
         EditorCamera.PitchDegrees = 15.0;
@@ -598,19 +596,22 @@ struct SceneDriver
         Applied.CameraPosition[2] = 0.0;
         Applied.CameraRotation[0] = EditorCamera.YawDegrees;
         Applied.CameraRotation[1] = EditorCamera.PitchDegrees;
-
-        Revisions[0] = { "Level created", "Bracket_Rev4", "09:12", "A. Marner", 0u, RevisionSubject::Start };
-        Revisions[1] = { "Sun angle relocated", "Pitch 35 deg", "10:05", "A. Marner", 2u, RevisionSubject::Relocate };
-        RevisionCount = 2u;
+        for (std::uint32_t Axis = 0u; Axis < 3u; ++Axis)
+        {
+            Applied.EntityPosition[6u][Axis] = Applied.CameraPosition[Axis];
+            Applied.EntityRotation[6u][Axis] = Applied.CameraRotation[Axis];
+        }
+        EditorCamera.PublishTransform(Applied.EntityPosition[6u], Applied.EntityRotation[6u]);
 
         return true;
     }
 
-    void Tick(float MouseX, float MouseY, bool Held, bool Arrived, bool Released)
+    void Tick(float MouseX, float MouseY, bool Held, bool Arrived, bool Released,
+              float Wheel = 0.0f)
     {
         IO.MousePos = ImVec2(MouseX, MouseY);
         IO.MouseDelta = ImVec2(0.0f, 0.0f);
-        IO.MouseWheel = 0.0f;
+        IO.MouseWheel = Wheel;
         IO.DeltaTime = static_cast<float>(TickMilliseconds / 1000.0);
         if (Arrived)
             IO.AddMouseButtonEvent(0, true);
@@ -621,7 +622,7 @@ struct SceneDriver
 
         Discard(Surface.Adopt(RecordingSurface::ShellLayer::Beneath));
         Motion.Advance(TickMilliseconds);
-        Ledger.Advance(Surface.Pointer(), TickMilliseconds);
+        Interaction.Advance(Surface.Pointer(), TickMilliseconds);
         // 📐 Tab is routed: to the layer stack when the simulation says so, else to the scene
         //    directory — the host's pointer arbitration, simulated.
         const bool TabArrived = SimTabPressed || SimLayersTab;
@@ -639,16 +640,16 @@ struct SceneDriver
         {
             std::uint32_t Occupied = 0u;
 
-            while (Occupied + 1u < TexturePaintContext::TextureRetentionCeiling &&
+            while (Occupied + 1u < TexturePaintContext::TextureRetentionLimit &&
                    TexturePaintApplied.Retention[Occupied] != '\0')
             {
                 ++Occupied;
             }
 
-            for (std::uint32_t Ordinal = 0u; SimTyped[Ordinal] != '\0' &&
-                 Occupied + 1u < TexturePaintContext::TextureRetentionCeiling; ++Ordinal)
+            for (std::uint32_t Index = 0u; SimTyped[Index] != '\0' &&
+                 Occupied + 1u < TexturePaintContext::TextureRetentionLimit; ++Index)
             {
-                TexturePaintApplied.Retention[Occupied++] = SimTyped[Ordinal];
+                TexturePaintApplied.Retention[Occupied++] = SimTyped[Index];
             }
 
             TexturePaintApplied.Retention[Occupied] = '\0';
@@ -659,16 +660,16 @@ struct SceneDriver
         {
             std::uint32_t Occupied = 0u;
 
-            while (Occupied + 1u < SceneDirectoryContext::RetentionCeiling &&
+            while (Occupied + 1u < SceneDirectoryContext::RetentionLimit &&
                    Applied.EntityRetention[Occupied] != '\0')
             {
                 ++Occupied;
             }
 
-            for (std::uint32_t Ordinal = 0u; SimTyped[Ordinal] != '\0' &&
-                 Occupied + 1u < SceneDirectoryContext::RetentionCeiling; ++Ordinal)
+            for (std::uint32_t Index = 0u; SimTyped[Index] != '\0' &&
+                 Occupied + 1u < SceneDirectoryContext::RetentionLimit; ++Index)
             {
-                Applied.EntityRetention[Occupied++] = SimTyped[Ordinal];
+                Applied.EntityRetention[Occupied++] = SimTyped[Index];
             }
 
             Applied.EntityRetention[Occupied] = '\0';
@@ -683,6 +684,9 @@ struct SceneDriver
             FlyInput.LookDeltaX   = SimLookDeltaX;
             FlyInput.LookDeltaY   = SimLookDeltaY;
             FlyInput.ShiftHeld    = SimShiftHeld;
+
+            static_cast<void>(EditorCamera.ConsumeTransform(Applied.EntityPosition[6u],
+                                                            Applied.EntityRotation[6u]));
 
             CameraSettings FlySettings;
             FlySettings.FlySpeed    = Applied.CameraSpeed;
@@ -699,6 +703,8 @@ struct SceneDriver
             Applied.CameraPosition[2] = EditorCamera.LaggedPosition[2];
             Applied.CameraRotation[0] = EditorCamera.LaggedYawDegrees;
             Applied.CameraRotation[1] = EditorCamera.LaggedPitchDegrees;
+            Applied.CameraRotation[2] = 0.0;
+            EditorCamera.PublishTransform(Applied.EntityPosition[6u], Applied.EntityRotation[6u]);
         }
 
         // 📝 The host regenerates the sky when the environment changed (at most once per drag) and
@@ -768,12 +774,11 @@ struct SceneDriver
                         Applied.OutlinePage = 2u;
                         Configuration.FooterDemand = EditorFooterDemand::None;
                     }
-                    SceneDirectory.RecordOutliner(LeafBody, Applied, EditorEntities, 7u,
-                                                  Revisions, RevisionCount);
+                    SceneDirectory.RecordOutliner(LeafBody, Applied, EditorEntities, 7u);
                     break;
                 case PanelSubject::Properties:
                     SceneDirectory.RecordProperties(LeafBody, Applied, EditorEntities, 7u,
-                                                    Revisions, RevisionCount, Applied.InspectorTab);
+                                                    Applied.InspectorTab);
                     break;
                 case PanelSubject::TexturePaint:
                     if (Configuration.FooterDemand == EditorFooterDemand::ExportFlattened ||
@@ -800,25 +805,12 @@ struct SceneDriver
 
         Surface.Retire();
 
-        // 📝 The host drains the drag-end demand exactly once per drag.
-        if (Applied.RevisionDemandSlot.Standing && RevisionCount < 8u)
-        {
-            EntityRevision& Written = Revisions[RevisionCount++];
-            Written.Description = Applied.RevisionDemandSlot.Caption;
-            Written.Secondary   = Applied.RevisionDemandSlot.Secondary;
-            Written.TimeRun     = "now";
-            Written.Author      = "Artist";
-            Written.Against     = Applied.RevisionDemandSlot.Against;
-            Written.Classified  = RevisionSubject::Parameter;
-            Applied.RevisionDemandSlot = {};
-        }
-
         ImGui::Render();
     }
 
     void Settle(int Frames)
     {
-        for (int Ordinal = 0; Ordinal < Frames; ++Ordinal)
+        for (int Index = 0; Index < Frames; ++Index)
             Tick(640.0f, 450.0f, false, false, false);
     }
 
@@ -834,10 +826,10 @@ struct SceneDriver
     //    props     :  viewport | (outliner over properties)
     void ApplyPartition(bool WithProperties)
     {
-        Partition.Construct(PanelSubject::Viewport);
-        Discard(Partition.Divide(PanelStructure::RootOrdinal, PanelDivisionAxis::X,
+        Partition.ConstructPanelPartition(PanelSubject::Viewport);
+        Discard(Partition.Divide(PanelStructure::RootIndex, PanelDivisionAxis::X,
                                  PanelDivisionSide::Maximum));
-        const Outcome<PanelRecord> Right = Partition.Current(PanelStructure::RootOrdinal);
+        const Outcome<PanelRecord> Right = Partition.Current(PanelStructure::RootIndex);
         const std::uint32_t RightLeaf = Right.Resolved ? Right.Resolve().Maximum : 1u;
         Discard(Partition.Assign(RightLeaf, PanelSubject::Outliner));
 
@@ -862,9 +854,9 @@ struct SceneDriver
         if (SkyReady)
             Out.ExtraTextures[SkyIdentity] = SkyPixels;
         const ImDrawData* Data = ImGui::GetDrawData();
-        for (int ListOrdinal = 0; ListOrdinal < Data->CmdListsCount; ++ListOrdinal)
+        for (int ListIndex = 0; ListIndex < Data->CmdListsCount; ++ListIndex)
         {
-            if (!Out.Draw(Data->CmdLists[ListOrdinal], LiveAtlas, LiveAtlasWidth, LiveAtlasHeight))
+            if (!Out.Draw(Data->CmdLists[ListIndex], LiveAtlas, LiveAtlasWidth, LiveAtlasHeight))
                 return false;
         }
 
@@ -914,6 +906,28 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         Driver.Settle(20);
         Driver.Applied.OutlinePage = 1u;
         Driver.Settle(24);
+    }
+    else if (std::strcmp(Scenario, "editor-camera-properties") == 0)
+    {
+        Driver.ApplyPartition(false);
+        Driver.Applied.EntityTaken = 6u; // Editor Camera
+        Driver.Applied.OutlinePage = 1u;
+        Driver.Applied.OutlineInspectorTab = 0u;
+        Driver.Applied.CameraSpeed = 78.125;
+        Driver.Applied.CameraFieldOfView = 72.0;
+        Driver.Applied.CameraNearClip = 0.05;
+        Driver.Applied.CameraFarClip = 25000.0;
+
+        Driver.EditorCamera.FlySpeed = 50.0;
+        Driver.EditorCamera.AdjustFlySpeed(2.0);
+        if (std::abs(Driver.EditorCamera.FlySpeed - 78.125) > 0.001)
+        {
+            std::fprintf(stderr, "[FAIL] Editor Camera wheel gearing did not persist two speed steps\n");
+            return false;
+        }
+
+        Driver.Settle(28);
+        std::fprintf(stderr, "[assert] Editor Camera lens, clipping, and fly-speed controls rendered\n");
     }
     else if (std::strcmp(Scenario, "editor-camera-bookmarks") == 0)
     {
@@ -1575,7 +1589,7 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
     }
     else if (std::strcmp(Scenario, "editor-grid-dropdown") == 0)
     {
-        Driver.Partition.Construct(PanelSubject::Viewport);
+        Driver.Partition.ConstructPanelPartition(PanelSubject::Viewport);
         Driver.Settle(20);
         const PlaneExtent Body = Driver.Editor.LeafBody(0u);
         Driver.Tap(Body.MinimumX + 36.0f, Body.MaximumY + 19.0f); // Grid pill
@@ -1600,7 +1614,7 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
     }
     else if (std::strcmp(Scenario, "editor-scene-transfer") == 0)
     {
-        Driver.Partition.Construct(PanelSubject::Outliner);
+        Driver.Partition.ConstructPanelPartition(PanelSubject::Outliner);
         Driver.Settle(20);
         const PlaneExtent Body = Driver.Editor.LeafBody(0u);
         Driver.Tap(Body.MinimumX + 44.0f, Body.MaximumY + 19.0f); // real Import footer pill
@@ -1619,7 +1633,7 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
     }
     else if (std::strcmp(Scenario, "editor-scene-export") == 0)
     {
-        Driver.Partition.Construct(PanelSubject::Outliner);
+        Driver.Partition.ConstructPanelPartition(PanelSubject::Outliner);
         Driver.Settle(20);
         const PlaneExtent Body = Driver.Editor.LeafBody(0u);
         Driver.Tap(Body.MinimumX + 160.0f, Body.MaximumY + 19.0f); // real Export footer pill
@@ -1636,11 +1650,30 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
             std::fprintf(stderr, "[FAIL] Scene export format carousel did not advance\n");
             return false;
         }
-        std::fprintf(stderr, "[assert] Scene Directory Export opened and advanced its format carousel\n");
+        Driver.Tap(Body.MinimumX + 275.0f, Body.MinimumY + 177.0f); // visible GLB option tile
+        Driver.Settle(20);
+        if (Driver.Applied.TransferFormat != 2u)
+        {
+            std::fprintf(stderr, "[FAIL] Scene export format tile did not select GLB\n");
+            return false;
+        }
+        Driver.Tap(Body.MinimumX + 48.0f, Body.MinimumY + 68.0f); // dedicated Back control
+        Driver.Settle(20);
+        if (Driver.Applied.OutlinePage != 0u)
+        {
+            std::fprintf(stderr, "[FAIL] Scene transfer Back did not return to the directory\n");
+            return false;
+        }
+        Driver.Tap(Body.MinimumX + 160.0f, Body.MaximumY + 19.0f); // reopen for the raster
+        Driver.Settle(28);
+        Driver.Tap(Body.MinimumX + 220.0f, Body.MinimumY + 323.0f); // Name field first contact
+        Driver.Tap(Body.MinimumX + 220.0f, Body.MinimumY + 323.0f); // double-contact selects its run
+        Driver.Settle(2);
+        std::fprintf(stderr, "[assert] Scene Directory arrows, tiles, and Back all responded\n");
     }
     else if (std::strcmp(Scenario, "editor-layer-export") == 0)
     {
-        Driver.Partition.Construct(PanelSubject::TexturePaint);
+        Driver.Partition.ConstructPanelPartition(PanelSubject::TexturePaint);
         Driver.Settle(20);
         const PlaneExtent Body = Driver.Editor.LeafBody(0u);
         Driver.Tap(Body.MinimumX + 218.0f, Body.MaximumY + 19.0f); // real Export footer pill
@@ -1663,11 +1696,27 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
             std::fprintf(stderr, "[FAIL] one of the Layer Stack export carousels did not advance\n");
             return false;
         }
-        std::fprintf(stderr, "[assert] Layer Stack Export opened and advanced all three output carousels\n");
+        Driver.Tap(Body.MinimumX + 275.0f, Body.MinimumY + 177.0f); // visible TGA option tile
+        Driver.Settle(20);
+        if (Driver.TexturePaintApplied.ExportFormat != 2u)
+        {
+            std::fprintf(stderr, "[FAIL] Layer Stack export format tile did not select TGA\n");
+            return false;
+        }
+        Driver.Tap(Body.MinimumX + 48.0f, Body.MinimumY + 68.0f); // dedicated Back control
+        Driver.Settle(20);
+        if (Driver.TexturePaintApplied.StackPage != 0u)
+        {
+            std::fprintf(stderr, "[FAIL] Layer Stack export Back did not return to the stack\n");
+            return false;
+        }
+        Driver.Tap(Body.MinimumX + 218.0f, Body.MaximumY + 19.0f); // reopen for the raster
+        Driver.Settle(28);
+        std::fprintf(stderr, "[assert] Layer Stack arrows, tiles, and Back all responded\n");
     }
     else if (std::strcmp(Scenario, "editor-layer-flatten") == 0)
     {
-        Driver.Partition.Construct(PanelSubject::TexturePaint);
+        Driver.Partition.ConstructPanelPartition(PanelSubject::TexturePaint);
         Driver.Settle(20);
         const PlaneExtent Body = Driver.Editor.LeafBody(0u);
         Driver.Tap(Body.MinimumX + 73.0f, Body.MaximumY + 19.0f); // real Export Flattened footer pill
@@ -1686,7 +1735,7 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
     }
     else if (std::strcmp(Scenario, "editor-layerstack-card") == 0)
     {
-        Driver.Partition.Construct(PanelSubject::TexturePaint);
+        Driver.Partition.ConstructPanelPartition(PanelSubject::TexturePaint);
         Driver.Settle(20);
 
         ThemeSelection Selection;
@@ -1761,10 +1810,51 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
 
         std::fprintf(stderr, "[assert] V-card and double-contact carousel remain independent\n");
     }
+    else if (std::strcmp(Scenario, "editor-layer-scroll-return") == 0)
+    {
+        // 🔴 Regression: a disclosure from the Scene Directory survived a leaf subject change. The old
+        //    global AnyDisclosed gate then rejected every Layer Stack wheel forever after returning.
+        Driver.Partition.ConstructPanelPartition(PanelSubject::Outliner);
+        Driver.Settle(12);
+
+        const Outcome<ControlIdentity> Foreign = Driver.Interaction.Register();
+        if (!Foreign.Resolved || !Driver.Interaction.Disclose(Foreign.Resolve()))
+        {
+            std::fprintf(stderr, "[FAIL] could not stage the foreign disclosure\n");
+            return false;
+        }
+
+        Driver.Partition.ConstructPanelPartition(PanelSubject::Viewport);
+        Driver.Settle(8);
+        Driver.Partition.ConstructPanelPartition(PanelSubject::TexturePaint);
+
+        for (std::uint32_t Index = 0u; Index < 8u; ++Index)
+            Driver.TexturePaintApplied.LayerCardExpanded[Index] = true;
+
+        Driver.Settle(28);
+        const PlaneExtent Body = Driver.Editor.LeafBody(0u);
+        Driver.Tick(Body.MinimumX + Body.Width() * 0.5f,
+                    Body.MinimumY + Body.Height() * 0.55f,
+                    false, false, false, -1.0f);
+        Driver.Settle(12);
+
+        if (Driver.TexturePaintApplied.StackListWanted <= 0.0f)
+        {
+            std::fprintf(stderr, "[FAIL] Layer Stack wheel remained blocked after panel return\n");
+            return false;
+        }
+        if (Driver.Interaction.AnyDisclosed())
+        {
+            std::fprintf(stderr, "[FAIL] Layer Stack wheel did not retire the stale disclosure\n");
+            return false;
+        }
+
+        std::fprintf(stderr, "[assert] Layer Stack wheel recovered after Outliner and Viewport travel\n");
+    }
     else if (std::strcmp(Scenario, "editor-layerstack") == 0)
     {
         // 📐 A single TexturePaint leaf: the whole workspace body is the layer stack.
-        Driver.Partition.Construct(PanelSubject::TexturePaint);
+        Driver.Partition.ConstructPanelPartition(PanelSubject::TexturePaint);
         Driver.Settle(20);
 
         const PlaneExtent LeafBody = Driver.Editor.LeafBody(0u);
@@ -2685,11 +2775,11 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
             //    ~(50,52,56) fine and ~(89,95,104) coarse — grey-blue, brighter than the ground,
             //    never confused with the sky's saturated blues or the panels' chrome.
             std::uint32_t GridPixels = 0u;
-            for (int Ordinal = 0; Ordinal < ReadWidth * ReadHeight; ++Ordinal)
+            for (int Index = 0; Index < ReadWidth * ReadHeight; ++Index)
             {
-                const int R = ReadPixels[Ordinal * 4u + 0u];
-                const int G = ReadPixels[Ordinal * 4u + 1u];
-                const int B = ReadPixels[Ordinal * 4u + 2u];
+                const int R = ReadPixels[Index * 4u + 0u];
+                const int G = ReadPixels[Index * 4u + 1u];
+                const int B = ReadPixels[Index * 4u + 2u];
 
                 if (R > 38 && R < 130 && B > R && (B - R) < 22 &&
                     std::abs(R - G) < 8 && std::abs(G - B) < 14)
@@ -2743,8 +2833,6 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         const float ThumbX = TrackX0 + (35.0 / 90.0) * (TrackX1 - TrackX0);
         const float ReleaseX = TrackX0 + 0.55f * (TrackX1 - TrackX0);
 
-        const std::uint32_t Before = Driver.RevisionCount;
-
         Driver.Tick(ThumbX, SliderY, true, true, false);
         for (int Step = 0; Step < 40; ++Step)
         {
@@ -2754,16 +2842,8 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         Driver.Tick(ReleaseX, SliderY, false, false, true);
         Driver.Settle(10);
 
-        std::fprintf(stderr, "[assert] revisions before=%u after=%u demand=%s\n",
-                     Before, Driver.RevisionCount,
-                     Driver.Applied.RevisionDemandSlot.Standing ? "still standing" : "drained");
         std::fprintf(stderr, "[assert] sun elevation after drag: %.1f\n",
                      Driver.Applied.Environment.SunElevation);
-        if (Driver.RevisionCount != Before + 1u)
-        {
-            std::fprintf(stderr, "[FAIL] expected exactly one revision per drag\n");
-            return false;
-        }
         if (Driver.Applied.Environment.SunElevation < 50.0)
         {
             std::fprintf(stderr, "[FAIL] the elevation slider did not move the sun enough\n");
@@ -2837,10 +2917,9 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
             }
         }
 
-        // 📐 Tab walks the outliner leaf's pages: Directory -> Properties -> History -> Directory.
+        // Tab now alternates Directory and Properties; History is intentionally absent.
         Driver.SimTabPressed = true;
         Driver.Tick(640.0f, 450.0f, false, false, false);
-        std::fprintf(stderr, "[assert] tab page after 1st press: %u\n", Driver.Applied.OutlinePage);
         if (Driver.Applied.OutlinePage != 1u)
         {
             std::fprintf(stderr, "[FAIL] Tab did not advance to Properties\n");
@@ -2849,20 +2928,12 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
 
         Driver.SimTabPressed = true;
         Driver.Tick(640.0f, 450.0f, false, false, false);
-        if (Driver.Applied.OutlinePage != 1u || Driver.Applied.OutlineInspectorTab != 1u)
+        if (Driver.Applied.OutlinePage != 0u)
         {
-            std::fprintf(stderr, "[FAIL] Tab did not advance the inspector to History\n");
+            std::fprintf(stderr, "[FAIL] Tab did not return to Directory\n");
             return false;
         }
-
-        Driver.SimTabPressed = true;
-        Driver.Tick(640.0f, 450.0f, false, false, false);
-        if (Driver.Applied.OutlinePage != 0u || Driver.Applied.OutlineInspectorTab != 0u)
-        {
-            std::fprintf(stderr, "[FAIL] Tab did not wrap back to Directory\n");
-            return false;
-        }
-        std::fprintf(stderr, "[assert] Directory -> Properties -> History -> Directory stands\n");
+        std::fprintf(stderr, "[assert] Directory -> Properties -> Directory stands\n");
 
         // 📐 The Inspect call jumps straight to Properties.
         {
@@ -2904,11 +2975,11 @@ int main(int ArgumentCount, char** Arguments)
     std::string OutputDirectory = "VisualProof/EditorScene";
     std::string Scenario = "";
 
-    for (int Ordinal = 1; Ordinal < ArgumentCount; ++Ordinal)
+    for (int Index = 1; Index < ArgumentCount; ++Index)
     {
-        const std::string Arg = Arguments[Ordinal];
-        if (Arg == "--out" && Ordinal + 1 < ArgumentCount)
-            OutputDirectory = Arguments[++Ordinal];
+        const std::string Arg = Arguments[Index];
+        if (Arg == "--out" && Index + 1 < ArgumentCount)
+            OutputDirectory = Arguments[++Index];
         else if (Arg.rfind("--shot=", 0) == 0)
             Scenario = Arg.substr(7);
     }
@@ -2927,7 +2998,7 @@ int main(int ArgumentCount, char** Arguments)
     IO.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
 
     SceneDriver Driver;
-    if (!Driver.Construct())
+    if (!Driver.ConstructSceneProof())
     {
         std::fprintf(stderr, "refused: harness construction\n");
         return 1;
@@ -2941,12 +3012,13 @@ int main(int ArgumentCount, char** Arguments)
     IO.Fonts->TexData->SetTexID((ImTextureID)(intptr_t)1);
     IO.Fonts->TexRef._TexData = IO.Fonts->TexData;
 
-    const char* Shots[] = {"editor-overview", "editor-outliner-inspector", "editor-camera-bookmarks",
+    const char* Shots[] = {"editor-overview", "editor-outliner-inspector", "editor-camera-properties",
+                           "editor-camera-bookmarks",
                            "editor-sun-props",
                            "editor-after-drag",
                            "editor-camera-fly", "editor-grid-settings", "editor-overlay-fallback",
                            "editor-search-filter", "editor-grid-dropdown", "editor-scene-transfer", "editor-scene-export",
-                           "editor-layer-flatten", "editor-layer-export",
+                           "editor-layer-flatten", "editor-layer-export", "editor-layer-scroll-return",
                            "editor-layerstack", "editor-layerstack-card"};
 
     int Rendered = 0;

@@ -50,7 +50,7 @@ InterfaceExchange::~InterfaceExchange()
     Reclaim();
 }
 
-Outcome<bool> InterfaceExchange::Construct(const InterfaceAttachment& Incoming)
+Outcome<bool> InterfaceExchange::AttachInterface(const InterfaceAttachment& Incoming)
 {
     if (ContextSlot != nullptr)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the interface context already exists" });
@@ -172,7 +172,7 @@ Outcome<bool> InterfaceExchange::Construct(const InterfaceAttachment& Incoming)
     VendorAttachment.Instance                                       = Attached.Instance;
     VendorAttachment.PhysicalDevice                                 = Attached.ScoredDevice;
     VendorAttachment.Device                                         = Attached.ActiveDevice;
-    VendorAttachment.QueueFamily                                    = Attached.GraphicsFamilyOrdinal;
+    VendorAttachment.QueueFamily                                    = Attached.GraphicsFamilyIndex;
     VendorAttachment.Queue                                          = Attached.GraphicsQueue;
     VendorAttachment.DescriptorPool                                 = DescriptorSlot;
     VendorAttachment.MinImageCount                                  = Attached.MinimumDisplayImageCount;
@@ -428,9 +428,9 @@ bool InterfaceExchange::RecordWorkspaceAddition(const PlaneExtent&  Extent,
     //    added the workspace to another window.
     bool Pressed = false;
 
-    for (int Ordinal = 0; Ordinal < Current.DockContext.Nodes.Data.Size; ++Ordinal)
+    for (int Index = 0; Index < Current.DockContext.Nodes.Data.Size; ++Index)
     {
-        ImGuiDockNode* Node = static_cast<ImGuiDockNode*>(Current.DockContext.Nodes.Data[Ordinal].val_p);
+        ImGuiDockNode* Node = static_cast<ImGuiDockNode*>(Current.DockContext.Nodes.Data[Index].val_p);
 
         // ⚠️ Only a leaf that actually laid out a tab bar this tick. A split node holds no tabs, and a
         //    node whose bar was never built has nothing to amend.
@@ -868,6 +868,7 @@ CameraCondition InterfaceExchange::CameraInput()
     // 📐 The look gesture is the right button held: while it stands, the pointer's travel is the
     //    camera's turn, exactly as the reference fly-cams read it.
     Current.LookHeld = ImGui::IsMouseDown(ImGuiMouseButton_Right);
+    Current.SpeedSteps = Current.LookHeld ? Sampled.MouseWheel : 0.0f;
 
     // 🔴 THE LOOK TRACKS THE OS CURSOR ITSELF and never reads `io.MouseDelta`. ImGui's delta is
     //    computed at `NewFrame` from the position the backend's cursor callback reported at the last
@@ -929,9 +930,9 @@ CameraCondition InterfaceExchange::CameraInput()
     return Current;
 }
 
-bool InterfaceExchange::AcceptTyped(char* Intake, std::uint32_t Ceiling) const
+bool InterfaceExchange::AcceptTyped(char* Intake, std::uint32_t Limit) const
 {
-    if (ContextSlot == nullptr || !TickOpen || Intake == nullptr || Ceiling == 0u)
+    if (ContextSlot == nullptr || !TickOpen || Intake == nullptr || Limit == 0u)
         return false;
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
@@ -942,21 +943,21 @@ bool InterfaceExchange::AcceptTyped(char* Intake, std::uint32_t Ceiling) const
     //    literal and never has to keep a length beside it.
     std::uint32_t Occupied = 0u;
 
-    while (Occupied + 1u < Ceiling && Intake[Occupied] != '\0')
+    while (Occupied + 1u < Limit && Intake[Occupied] != '\0')
         ++Occupied;
 
     bool Accepted = false;
 
-    for (int Ordinal = 0; Ordinal < Sampled.InputQueueCharacters.Size; ++Ordinal)
+    for (int Index = 0; Index < Sampled.InputQueueCharacters.Size; ++Index)
     {
-        const ImWchar Typed = Sampled.InputQueueCharacters[Ordinal];
+        const ImWchar Typed = Sampled.InputQueueCharacters[Index];
 
         // 🔴 Printable ASCII only, and the terminator's byte is reserved before the test — a run written
         //    to its very last byte with no room for the terminator is the classic off-by-one this avoids.
         if (Typed < 0x20 || Typed > 0x7E)
             continue;
 
-        if (Occupied + 1u >= Ceiling)
+        if (Occupied + 1u >= Limit)
             break;
 
         Intake[Occupied++] = static_cast<char>(Typed);

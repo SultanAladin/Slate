@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "Contract/CombineContract.h"
-#include "Contract/IdentityContract.h"
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/Combination.h"
+#include "Foundation/Identity.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateDocument/Document/SpatialSubdivision/Api/SpatialSubdivision.h"
 #include "SlateDocument/Document/TopologyStructure/Api/TopologyStructure.h"
 #include "SlateMath/Numeric/TransformProjection/Api/TransformProjection.h"
@@ -32,7 +32,7 @@ namespace Slate
 /// note  🔴 A domain placement cannot cross a chart seam and a projected placement crosses them freely. That is
 ///        why both exist rather than one being the general case: a projected placement crossing a seam is
 ///        continuous on the surface and discontinuous in the domain, and a domain placement is the reverse.
-/// tag   contract
+/// tag   guarantee
 enum class PlacementMode : std::uint32_t
 {
     DomainPlaced    = 0u,   // [-] - positioned directly in the parametric domain; one chart only
@@ -45,7 +45,7 @@ enum class PlacementMode : std::uint32_t
 ///        a glyph sequence beside its characters, and the positioning walk over advances and pair adjustments is
 ///        the placement's rather than the outline's — a text placement resolves several outlines at offsets the
 ///        typeface declares, and a vector placement resolves one.
-/// tag   contract
+/// tag   guarantee
 enum class PlacedSource : std::uint32_t
 {
     VectorOutline = 0u,   // [-] - an `OutlineSpecification` from `52`
@@ -76,7 +76,7 @@ enum class PlacedSource : std::uint32_t
 struct PlacementSpecification
 {
     PlacedSource          Source              = PlacedSource::VectorOutline;   // [-]  - which library
-    std::uint32_t         SourceOrdinal       = 0u;                            // [-]  - into `52`, `50` or `54`
+    std::uint32_t         SourceIndex       = 0u;                            // [-]  - into `52`, `50` or `54`
     PlacementMode         Mode                = PlacementMode::DomainPlaced;   // [-]
     DecomposedTransform   PlacingTransform    = {};                            // [-]  - relative to the surface
     OwnerIdentity      Owner            = {};                            // [-]  - what it is attached to
@@ -92,9 +92,9 @@ struct PlacementSpecification
 /// 🧩 Whether a placement writes one of `42`'s channels.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-constexpr bool PlacementWritesChannel(const PlacementSpecification& Placed, std::uint32_t ChannelOrdinal)
+constexpr bool PlacementWritesChannel(const PlacementSpecification& Placed, std::uint32_t ChannelIndex)
 {
-    return (Placed.ChannelMask & (1u << ChannelOrdinal)) != 0u;
+    return (Placed.ChannelMask & (1u << ChannelIndex)) != 0u;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -103,8 +103,8 @@ constexpr bool PlacementWritesChannel(const PlacementSpecification& Placed, std:
 
 /// 🧩 Derives the domain extent one placement covers on a surface.
 /// in    Placed            [-]   the placement
-/// in    PlacementOrdinal  [-]   an ordinal `PlacementIndex` registered; carried into the extent
-/// in    SequenceOrdinal   [-]   the placement's position in `56`'s sequence — `00` §10.1 ③'s one ordinal
+/// in    PlacementIndex  [-]   an ordinal `PlacementIndex` registered; carried into the extent
+/// in    SequenceIndex   [-]   the placement's position in `56`'s sequence — `00` §10.1 ③'s one ordinal
 /// in    Imported          [-]   the sealed topology the surface carries
 /// in    CornerCoordinates [-]   one domain coordinate per imported corner
 /// out   Result           [-]   refuses with ContentUnsupported for an unsealed topology, a coordinate run
@@ -126,8 +126,8 @@ constexpr bool PlacementWritesChannel(const PlacementSpecification& Placed, std:
 /// cost  🔴
 /// tag   api, nonthrowing
 Outcome<DomainExtent> ProjectPlacementExtent(const PlacementSpecification&         Placed,
-                                             std::uint32_t                         PlacementOrdinal,
-                                             std::uint32_t                         SequenceOrdinal,
+                                             std::uint32_t                         PlacementIndex,
+                                             std::uint32_t                         SequenceIndex,
                                              const TopologyStructure&              Imported,
                                              const std::vector<DomainCoordinate>&  CornerCoordinates);
 
@@ -185,7 +185,7 @@ public:
     Outcome<std::uint32_t> Declare(const PlacementSpecification& Declaring);
 
     /// 🧩 Amends one placement, advancing its revision only where `00` §10.1 ② requires it.
-    /// in    PlacementOrdinal  [-]  an ordinal this component registered
+    /// in    PlacementIndex  [-]  an ordinal this component registered
     /// in    Amending          [-]  the amended specification
     /// out   Result           [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// note  🔴 The revision advances when the placing transform, the source or the channel mask changed, and
@@ -194,13 +194,13 @@ public:
     ///        applied to afterwards.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Amend(std::uint32_t PlacementOrdinal, const PlacementSpecification& Amending);
+    Outcome<bool> Amend(std::uint32_t PlacementIndex, const PlacementSpecification& Amending);
 
     /// 🧩 One declared placement.
     /// out   Result  [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<const PlacementSpecification*> Resolve(std::uint32_t PlacementOrdinal) const;
+    Outcome<const PlacementSpecification*> Resolve(std::uint32_t PlacementIndex) const;
 
     /// 🧩 Withdraws one placement, returning its slot for reuse.
     /// note  🔴 Called from `12` §12's retirement cascade, inside that cascade's single transaction. A placement
@@ -208,13 +208,13 @@ public:
     ///        rather than surviving it as an orphaned reference `56` still names.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Withdraw(std::uint32_t PlacementOrdinal);
+    Outcome<bool> Withdraw(std::uint32_t PlacementIndex);
 
     /// 🧩 One placement's revision, for `70` §2's per-tile comparison.
     /// out   Revision  [-]  zero for an unclaimed ordinal, which no resolved tile ever recorded
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint64_t Revision(std::uint32_t PlacementOrdinal) const;
+    std::uint64_t Revision(std::uint32_t PlacementIndex) const;
 
     std::uint32_t DeclaredCount() const;
 
@@ -226,10 +226,10 @@ private:
         bool                    SlotOccupied = false;   // [-] - false once withdrawn
     };
 
-    static constexpr std::uint32_t PlacementCeiling = 65536u;   // [-] - placements one document may hold
+    static constexpr std::uint32_t PlacementLimit = 65536u;   // [-] - placements one document may hold
 
     std::vector<HeldPlacement>  Placements       = {};   // [-] - released slots are reused, never erased
-    std::vector<std::uint32_t>  ReleasedOrdinals = {};   // [-] - slots free for reuse
+    std::vector<std::uint32_t>  ReleasedIndexs = {};   // [-] - slots free for reuse
     std::uint32_t               OccupiedCount    = 0u;   // [-] - placements currently declared
 };
 
@@ -259,14 +259,14 @@ class PlacementSequence
 public:
 
     /// 🧩 Opens a positioning drag against a declared placement.
-    /// in    PlacementOrdinal  [-]  the placement being positioned
+    /// in    PlacementIndex  [-]  the placement being positioned
     /// in    Current          [-]  its specification as it stands; restored by Abandon
     /// in    CameraFollowed    [-]  true for the screen gesture, false for a domain or projected drag
     /// out   Result           [-]  refuses with HostDenied when a drag is already open
     /// post  nothing is recorded; the placement stands unamended until Seal
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Open(std::uint32_t PlacementOrdinal, const PlacementSpecification& Current, bool CameraFollowed);
+    Outcome<bool> Open(std::uint32_t PlacementIndex, const PlacementSpecification& Current, bool CameraFollowed);
 
     /// 🧩 Amends the open drag's placing transform.
     /// out   Result  [-]  refuses with HostDenied when no drag is open
@@ -300,7 +300,7 @@ private:
 
     PlacementSpecification  PriorPlacement   = {};                 // [-] - held at Open, restored at Abandon
     PlacementSpecification  AmendedPlacement = {};                 // [-] - what Amend writes
-    std::uint32_t           SubjectOrdinal   = AbsentPlacement;    // [-] - the placement being positioned
+    std::uint32_t           SubjectIndex   = AbsentPlacement;    // [-] - the placement being positioned
     bool                    OpenDeclared     = false;              // [-] - Open delivered, Seal has not
     bool                    CameraFollowed   = false;              // [-] - the screen gesture is open
 };

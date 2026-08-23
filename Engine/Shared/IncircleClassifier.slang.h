@@ -15,7 +15,7 @@
 //        | βₓ−δₓ   β_y−δ_y   ‖β−δ‖² |
 //        | γₓ−δₓ   γ_y−δ_y   ‖γ−δ‖² |
 //
-//    and only its **sign** is contracted. The sign is positive for a Delta inside the circle when Alpha, Beta
+//    and only its **sign** is guaranteeed. The sign is positive for a Delta inside the circle when Alpha, Beta
 //    and Gamma wind counter-clockwise, and negates with their winding — which is why every consumer classifies
 //    the winding first rather than assuming it.
 //
@@ -54,11 +54,11 @@ SLATE_SHARED void AccumulateIncircle(SLATE_INOUT_SPAN(Real64, Arena, SlateIncirc
     Real64   Carried  = Incoming;
     Signed32 Occupied = 0;
 
-    for (Signed32 TermOrdinal = 0; TermOrdinal < TermCount; ++TermOrdinal)
+    for (Signed32 TermIndex = 0; TermIndex < TermCount; ++TermIndex)
     {
         Real64 Leading = 0.0;
         Real64 Residue = 0.0;
-        SumExactly(Arena[TermOrdinal], Carried, Leading, Residue);
+        SumExactly(Arena[TermIndex], Carried, Leading, Residue);
         Carried = Leading;
 
         if (Residue != 0.0)
@@ -94,13 +94,13 @@ SLATE_SHARED void AccumulateLifted(SLATE_INOUT_SPAN(Real64, Arena, SlateIncircle
                                    SLATE_INOUT_SPAN(Real64, Cross, SlateExpansionCapacity),
                                    Signed32              CrossCount)
 {
-    for (Signed32 LiftOrdinal = 0; LiftOrdinal < LiftCount; ++LiftOrdinal)
+    for (Signed32 LiftIndex = 0; LiftIndex < LiftCount; ++LiftIndex)
     {
-        for (Signed32 CrossOrdinal = 0; CrossOrdinal < CrossCount; ++CrossOrdinal)
+        for (Signed32 CrossIndex = 0; CrossIndex < CrossCount; ++CrossIndex)
         {
             Real64 Leading = 0.0;
             Real64 Residue = 0.0;
-            ProductExactly(Lift[LiftOrdinal], Cross[CrossOrdinal], Leading, Residue);
+            ProductExactly(Lift[LiftIndex], Cross[CrossIndex], Leading, Residue);
 
             AccumulateIncircle(Arena, TermCount, Residue);
             AccumulateIncircle(Arena, TermCount, Leading);
@@ -161,7 +161,7 @@ SLATE_SHARED Signed32 ClassifyIncircle(Real64 AlphaX, Real64 AlphaY,
 
     // 📐 The permanent is the same expression with every subtraction replaced by an addition of magnitudes. It
     //    bounds the accumulated rounding of the filtered evaluation from above, so a filtered sign exceeding it
-    //    is contracted and nothing else is.
+    //    is guaranteeed and nothing else is.
     const Real64 Permanent = (Magnitude(BetaGammaLeft)  + Magnitude(BetaGammaRight))  * AlphaLift
                            + (Magnitude(GammaAlphaLeft) + Magnitude(GammaAlphaRight)) * BetaLift
                            + (Magnitude(AlphaBetaLeft)  + Magnitude(AlphaBetaRight))  * GammaLift;

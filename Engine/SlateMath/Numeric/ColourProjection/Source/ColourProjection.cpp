@@ -199,8 +199,8 @@ void AdaptWhite(double IncomingWhiteX, double IncomingWhiteY,
     //    DeriveProjection's single solve: one inversion has one place to be wrong.
     TristimulusProjection Cone;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 9u; ++Ordinal)
-        Cone.Coefficient[Ordinal] = ConeForward[Ordinal];
+    for (std::uint32_t Index = 0u; Index < 9u; ++Index)
+        Cone.Coefficient[Index] = ConeForward[Index];
 
     Cone.Derived = true;
 
@@ -237,10 +237,10 @@ void AdaptWhite(double IncomingWhiteX, double IncomingWhiteY,
         ConeForward[6] * TristimulusX + ConeForward[7] * TristimulusY + ConeForward[8] * TristimulusZ
     };
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 3u; ++Index)
     {
-        if (IncomingCone[Ordinal] != 0.0)
-            SubjectCone[Ordinal] *= TargetCone[Ordinal] / IncomingCone[Ordinal];
+        if (IncomingCone[Index] != 0.0)
+            SubjectCone[Index] *= TargetCone[Index] / IncomingCone[Index];
     }
 
     TristimulusX = ConeInverse[0] * SubjectCone[0] + ConeInverse[1] * SubjectCone[1]

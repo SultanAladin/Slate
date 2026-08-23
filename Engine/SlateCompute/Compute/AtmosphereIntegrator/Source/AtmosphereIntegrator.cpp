@@ -306,7 +306,7 @@ Outcome<MediumCoefficient> Resolve(const MediumSpecification&      Declared,
 //                                                 ONE RESIDENT SURFACE
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ResidentSurface::Construct(std::uint32_t Width_,
+Outcome<bool> ResidentSurface::ConstructResidentSurface(std::uint32_t Width_,
                                          std::uint32_t Height_,
                                          bool          WrapXDeclared)
 {
@@ -590,7 +590,7 @@ Outcome<bool> AtmosphereIntegrator::BuildTransmittance(const QuadratureRule& Rul
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rule is not derived" });
 
     const Outcome<bool> Reserved =
-        TransmittanceSurface.Construct(TransmittanceExtentX, TransmittanceExtentY, false);
+        TransmittanceSurface.ConstructResidentSurface(TransmittanceExtentX, TransmittanceExtentY, false);
 
     if (!Reserved.Resolved)
         return Reserved;
@@ -635,12 +635,12 @@ Outcome<bool> AtmosphereIntegrator::BuildTransmittance(const QuadratureRule& Rul
             //    evaluate the same two density profiles three times and would accumulate in three orders.
             if (Distance > 0.0)
             {
-                for (std::uint32_t Ordinal = 0u; Ordinal < Rule.DeclaredCount(); ++Ordinal)
+                for (std::uint32_t Index = 0u; Index < Rule.DeclaredCount(); ++Index)
                 {
                     double Position  = 0.0;
                     double Weighting = 0.0;
 
-                    if (!Rule.Project(Ordinal, 0.0, Distance, Position, Weighting).Resolved)
+                    if (!Rule.Project(Index, 0.0, Distance, Position, Weighting).Resolved)
                         continue;
 
                     const double SampleRadius = AdvanceRadius(Radius, ZenithCosine, Position);
@@ -700,7 +700,7 @@ Outcome<bool> AtmosphereIntegrator::BuildMultiScatter()
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the transmittance surface does not stand" });
 
     const Outcome<bool> Reserved =
-        MultiScatterSurface.Construct(MultiScatterExtentX, MultiScatterExtentY, false);
+        MultiScatterSurface.ConstructResidentSurface(MultiScatterExtentX, MultiScatterExtentY, false);
 
     if (!Reserved.Resolved)
         return Reserved;
@@ -853,7 +853,7 @@ Outcome<bool> AtmosphereIntegrator::BuildSkyView()
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "① or ② does not stand" });
 
     // 🔴 The azimuth is the one periodic axis in the whole component — finding ② above.
-    const Outcome<bool> Reserved = SkyViewSurface.Construct(SkyViewExtentX, SkyViewExtentY, true);
+    const Outcome<bool> Reserved = SkyViewSurface.ConstructResidentSurface(SkyViewExtentX, SkyViewExtentY, true);
 
     if (!Reserved.Resolved)
         return Reserved;
@@ -973,11 +973,11 @@ void AtmosphereIntegrator::DeriveIrradiance()
     //    directions are distributed uniformly in solid angle rather than importance-weighted toward the sky.
     const double SolidAngleShare = 4.0 * Pi / static_cast<double>(IrradianceSampleCount);
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < IrradianceSampleCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < IrradianceSampleCount; ++Index)
     {
         double FirstCoordinate  = 0.0;
         double SecondCoordinate = 0.0;
-        ProjectPlanarSample(Ordinal + 1u, FirstCoordinate, SecondCoordinate);
+        ProjectPlanarSample(Index + 1u, FirstCoordinate, SecondCoordinate);
 
         double SampleX = 0.0;
         double SampleY = 0.0;
@@ -1170,12 +1170,12 @@ Outcome<bool> AtmosphereIntegrator::AerialTransmittance(double Altitude,
     double DepthGreen = 0.0;
     double DepthBlue  = 0.0;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Rule.DeclaredCount(); ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Rule.DeclaredCount(); ++Index)
     {
         double Position  = 0.0;
         double Weighting = 0.0;
 
-        if (!Rule.Project(Ordinal, 0.0, Distance, Position, Weighting).Resolved)
+        if (!Rule.Project(Index, 0.0, Distance, Position, Weighting).Resolved)
             continue;
 
         const double SampleRadius = AdvanceRadius(Radius, ZenithCosine, Position);   // now `Shared/`'s

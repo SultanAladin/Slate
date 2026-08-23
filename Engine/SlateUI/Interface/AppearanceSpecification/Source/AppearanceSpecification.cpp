@@ -69,7 +69,7 @@ void ScaleLengths(MetricScale& Measure, float AppliedScale)
     Measure.ContentHeadGap          *= AppliedScale;
     Measure.ContentTrailingPad      *= AppliedScale;
     Measure.ContentScrollPad        *= AppliedScale;
-    Measure.EntryXCeiling       *= AppliedScale;
+    Measure.EntryXLimit       *= AppliedScale;
     Measure.EntryPadX           *= AppliedScale;
     Measure.EntryPadY          *= AppliedScale;
     Measure.TogglePad               *= AppliedScale;
@@ -85,7 +85,7 @@ void ScaleLengths(MetricScale& Measure, float AppliedScale)
     Measure.PreviewGap              *= AppliedScale;
     Measure.PreviewPad              *= AppliedScale;
     Measure.PreviewBoxFloor         *= AppliedScale;
-    Measure.PreviewBoxCeiling       *= AppliedScale;
+    Measure.PreviewBoxLimit       *= AppliedScale;
     Measure.SkeletonGapUpper        *= AppliedScale;
     Measure.SkeletonGapLower        *= AppliedScale;
     Measure.SkeletonLeading         *= AppliedScale;
@@ -95,7 +95,7 @@ void ScaleLengths(MetricScale& Measure, float AppliedScale)
 }
 
 /// 🧩 Scales only the control members measured in display pixels.
-/// note  🔴 Four members are deliberately absent — ReadoutTracking is em, MagnitudeCeiling is a domain bound,
+/// note  🔴 Four members are deliberately absent — ReadoutTracking is em, MagnitudeLimit is a domain bound,
 ///       RulerDegreesPerPixel is a rate, and TickReach is a count. Multiplying the domain bound would move the
 ///       slider's own maximum with the display, and multiplying the rate would make the ruler turn at a
 ///       different speed on a second monitor.
@@ -229,7 +229,7 @@ void ScaleWorkspaceLengths(WorkspaceMetric& Measure, float AppliedScale)
     Measure.TabOverlap       *= AppliedScale;
     Measure.TabPadX      *= AppliedScale;
     Measure.TabXFloor    *= AppliedScale;
-    Measure.TabXCeiling  *= AppliedScale;
+    Measure.TabXLimit  *= AppliedScale;
     Measure.TabRadius        *= AppliedScale;
     Measure.TabEdgeWeight    *= AppliedScale;
     Measure.StripY      *= AppliedScale;
@@ -314,7 +314,7 @@ ThemeProfile Resolve(double DisplayScale, double ArtistScale, float Width)
     // 📝 The preference is clamped and never rejected — a preference outside the bounds is a settings file to
     //    survive, not a reason to bring the interface up at an extent nothing can be read at.
     const double Preferred    = (ArtistScale < ArtistScaleFloor)   ? ArtistScaleFloor
-                              : (ArtistScale > ArtistScaleCeiling) ? ArtistScaleCeiling
+                              : (ArtistScale > ArtistScaleLimit) ? ArtistScaleLimit
                                                                    : ArtistScale;
     const float  ArtistFactor = static_cast<float>(Preferred);
 

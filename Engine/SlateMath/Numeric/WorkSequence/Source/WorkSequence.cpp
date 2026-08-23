@@ -22,7 +22,7 @@ struct WorkSequence::WorkRecord
     WorkDeclaration    Declared          = {};        // [-] - as the requester handed it over
     WorkProgress       Progressed        = {};        // [-] - written by the resolution, sampled by the tick
     std::atomic<bool>  CancellationPosed   { false };   // [-] - read at the resolution's declared points
-    std::uint64_t      DeclaredOrdinal   = 0u;        // [-] - declaration order across the session
+    std::uint64_t      DeclaredIndex   = 0u;        // [-] - declaration order across the session
     std::uint32_t      SlotGeneration    = 0u;        // [-] - advanced at every conclusion
     bool               ResolutionOpen    = false;     // [-] - a worker holds it now
     bool               SupersessionPosed = false;     // [-] - the cancellation was a supersession
@@ -33,18 +33,18 @@ struct WorkSequence::WorkRecord
 //                                                      ONE QUEUE
 //------------------------------------------------------------------------------------------------------------------------
 
-void WorkQueue::Accept(std::uint32_t RecordOrdinal)
+void WorkQueue::Accept(std::uint32_t RecordIndex)
 {
-    PendingOrder.push_back(RecordOrdinal);
+    PendingOrder.push_back(RecordIndex);
     ++PendingHeld;
 }
 
 Outcome<std::uint32_t> WorkQueue::Reserve()
 {
-    while (ReservationOrdinal < PendingOrder.size())
+    while (ReservationIndex < PendingOrder.size())
     {
-        const std::uint32_t Reserved = PendingOrder[ReservationOrdinal];
-        ++ReservationOrdinal;
+        const std::uint32_t Reserved = PendingOrder[ReservationIndex];
+        ++ReservationIndex;
 
         if (Reserved == AbsentWork)
             continue;
@@ -53,29 +53,29 @@ Outcome<std::uint32_t> WorkQueue::Reserve()
 
         // 📝 Emptied rather than shifted. The order is walked once and discarded, so compacting it at the end
         //    keeps a queue that has served a thousand declarations from carrying a thousand struck entries.
-        if (ReservationOrdinal == PendingOrder.size())
+        if (ReservationIndex == PendingOrder.size())
         {
             PendingOrder.clear();
-            ReservationOrdinal = 0u;
+            ReservationIndex = 0u;
         }
 
         return Outcome<std::uint32_t>::Result(Reserved);
     }
 
     PendingOrder.clear();
-    ReservationOrdinal = 0u;
+    ReservationIndex = 0u;
 
     return Outcome<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "nothing is pending at this priority" });
 }
 
-void WorkQueue::Withdraw(std::uint32_t RecordOrdinal)
+void WorkQueue::Withdraw(std::uint32_t RecordIndex)
 {
-    for (std::size_t Ordinal = ReservationOrdinal; Ordinal < PendingOrder.size(); ++Ordinal)
+    for (std::size_t Index = ReservationIndex; Index < PendingOrder.size(); ++Index)
     {
-        if (PendingOrder[Ordinal] != RecordOrdinal)
+        if (PendingOrder[Index] != RecordIndex)
             continue;
 
-        PendingOrder[Ordinal] = AbsentWork;
+        PendingOrder[Index] = AbsentWork;
 
         if (PendingHeld != 0u)
             --PendingHeld;
@@ -98,7 +98,7 @@ std::uint32_t WorkQueue::PendingCount() const
 //    header forward-declares it, so the constructor must be compiled where the definition is visible.
 WorkSequence::WorkSequence() = default;
 
-Outcome<bool> WorkSequence::Construct(std::uint32_t       RequestedWorkers,
+Outcome<bool> WorkSequence::ConstructWorkerSequence(std::uint32_t       RequestedWorkers,
                                       const TickSequence& HostTimeline,
                                       ReportSequence&     ReportingInto)
 {
@@ -125,8 +125,8 @@ Outcome<bool> WorkSequence::Construct(std::uint32_t       RequestedWorkers,
                 Constructing = 2u;
         }
 
-        if (Constructing > WorkerCeiling)
-            Constructing = WorkerCeiling;
+        if (Constructing > WorkerLimit)
+            Constructing = WorkerLimit;
 
         Timeline         = &HostTimeline;
         Reporting        = &ReportingInto;
@@ -134,8 +134,8 @@ Outcome<bool> WorkSequence::Construct(std::uint32_t       RequestedWorkers,
         SpannedWorkers   = Constructing;
     }
 
-    for (std::uint32_t WorkerOrdinal = 0u; WorkerOrdinal < SpannedWorkers; ++WorkerOrdinal)
-        Workers.emplace_back(&WorkSequence::Serve, this, WorkerOrdinal);
+    for (std::uint32_t WorkerIndex = 0u; WorkerIndex < SpannedWorkers; ++WorkerIndex)
+        Workers.emplace_back(&WorkSequence::Serve, this, WorkerIndex);
 
     return Outcome<bool>::Result(true);
 }
@@ -149,14 +149,14 @@ WorkSequence::~WorkSequence()
 //                                                    THE WORKERS
 //------------------------------------------------------------------------------------------------------------------------
 
-bool WorkSequence::Reservable(std::uint32_t WorkerOrdinal) const
+bool WorkSequence::Reservable(std::uint32_t WorkerIndex) const
 {
     if (PendingByPriority[static_cast<std::size_t>(WorkPriority::Interactive)].PendingCount() != 0u)
         return true;
 
     // 🔴 `34` §4: one worker takes nothing but Interactive work while more than one stands. Without it a
     //    whole-document export occupies every worker and the promotion under the cursor waits behind it.
-    if (WorkerOrdinal == InteractiveReservedOrdinal && SpannedWorkers > 1u)
+    if (WorkerIndex == InteractiveReservedIndex && SpannedWorkers > 1u)
         return false;
 
     for (std::size_t Priority = 1u; Priority < PrioritySpan; ++Priority)
@@ -168,9 +168,9 @@ bool WorkSequence::Reservable(std::uint32_t WorkerOrdinal) const
     return false;
 }
 
-std::uint32_t WorkSequence::Reserve(std::uint32_t WorkerOrdinal)
+std::uint32_t WorkSequence::Reserve(std::uint32_t WorkerIndex)
 {
-    const bool InteractiveOnly = WorkerOrdinal == InteractiveReservedOrdinal && SpannedWorkers > 1u;
+    const bool InteractiveOnly = WorkerIndex == InteractiveReservedIndex && SpannedWorkers > 1u;
 
     for (std::size_t Priority = 0u; Priority < PrioritySpan; ++Priority)
     {
@@ -186,26 +186,26 @@ std::uint32_t WorkSequence::Reserve(std::uint32_t WorkerOrdinal)
     return AbsentWork;
 }
 
-void WorkSequence::Serve(std::uint32_t WorkerOrdinal)
+void WorkSequence::Serve(std::uint32_t WorkerIndex)
 {
     for (;;)
     {
         std::unique_lock<std::mutex> Holding(WorkGuard);
 
-        ArrivalDeclared.wait(Holding, [this, WorkerOrdinal]
+        ArrivalDeclared.wait(Holding, [this, WorkerIndex]
         {
-            return TeardownDeclared || Reservable(WorkerOrdinal);
+            return TeardownDeclared || Reservable(WorkerIndex);
         });
 
         if (TeardownDeclared)
             return;
 
-        const std::uint32_t RecordOrdinal = Reserve(WorkerOrdinal);
+        const std::uint32_t RecordIndex = Reserve(WorkerIndex);
 
-        if (RecordOrdinal == AbsentWork)
+        if (RecordIndex == AbsentWork)
             continue;
 
-        WorkRecord& Serving = *Records[RecordOrdinal];
+        WorkRecord& Serving = *Records[RecordIndex];
 
         Serving.ResolutionOpen = true;
         ++OccupiedWorkerCount;
@@ -230,7 +230,7 @@ void WorkSequence::Serve(std::uint32_t WorkerOrdinal)
         if (OccupiedWorkerCount != 0u)
             --OccupiedWorkerCount;
 
-        Seal(RecordOrdinal, Resolved);
+        Seal(RecordIndex, Resolved);
     }
 }
 
@@ -254,36 +254,36 @@ Outcome<WorkIdentity> WorkSequence::Declare(const WorkDeclaration& Incoming)
     if (SpannedWorkers == 0u || TeardownDeclared)
         return Outcome<WorkIdentity>::Refuse({ RefusalReason::HostDenied, "no worker stands to resolve it" });
 
-    std::uint32_t RecordOrdinal = AbsentWork;
+    std::uint32_t RecordIndex = AbsentWork;
 
-    if (!ReleasedOrdinals.empty())
+    if (!ReleasedIndexs.empty())
     {
         // 📝 A released slot is reused with its generation already advanced by Seal, so the identity registered here
         //    can never equal one registered for the slot's previous declaration — `10` §2.1's scheme, unchanged.
-        RecordOrdinal = ReleasedOrdinals.back();
-        ReleasedOrdinals.pop_back();
-        Records[RecordOrdinal]->Progressed.Reclaim();
+        RecordIndex = ReleasedIndexs.back();
+        ReleasedIndexs.pop_back();
+        Records[RecordIndex]->Progressed.Reclaim();
     }
     else
     {
-        RecordOrdinal = static_cast<std::uint32_t>(Records.size());
+        RecordIndex = static_cast<std::uint32_t>(Records.size());
         Records.push_back(std::make_unique<WorkRecord>());
-        Records[RecordOrdinal]->SlotGeneration = 1u;
+        Records[RecordIndex]->SlotGeneration = 1u;
     }
 
-    WorkRecord& Sampled = *Records[RecordOrdinal];
+    WorkRecord& Sampled = *Records[RecordIndex];
 
     Sampled.Declared        = Incoming;
-    Sampled.DeclaredOrdinal = ++DeclaredCount;
+    Sampled.DeclaredIndex = ++DeclaredCount;
     Sampled.ResolutionOpen  = false;
     Sampled.SupersessionPosed = false;
     Sampled.Occupied        = true;
     Sampled.CancellationPosed.store(false, std::memory_order_relaxed);
 
-    PendingByPriority[static_cast<std::size_t>(Incoming.Priority)].Accept(RecordOrdinal);
+    PendingByPriority[static_cast<std::size_t>(Incoming.Priority)].Accept(RecordIndex);
 
     WorkIdentity Registered;
-    Registered.SlotOrdinal    = RecordOrdinal;
+    Registered.SlotIndex    = RecordIndex;
     Registered.SlotGeneration = Sampled.SlotGeneration;
 
     ArrivalDeclared.notify_all();
@@ -297,27 +297,27 @@ Outcome<WorkIdentity> WorkSequence::Declare(const WorkDeclaration& Incoming)
 
 std::uint32_t WorkSequence::Resolved(WorkIdentity Subject) const
 {
-    if (!Subject.IdentityDeclared() || Subject.SlotOrdinal >= Records.size())
+    if (!Subject.IdentityDeclared() || Subject.SlotIndex >= Records.size())
         return AbsentWork;
 
-    const WorkRecord& Held = *Records[Subject.SlotOrdinal];
+    const WorkRecord& Held = *Records[Subject.SlotIndex];
 
     if (!Held.Occupied || Held.SlotGeneration != Subject.SlotGeneration)
         return AbsentWork;
 
-    return Subject.SlotOrdinal;
+    return Subject.SlotIndex;
 }
 
 Outcome<bool> WorkSequence::Cancel(WorkIdentity Subject, bool SupersessionPosed)
 {
     std::lock_guard<std::mutex> Holding(WorkGuard);
 
-    const std::uint32_t RecordOrdinal = Resolved(Subject);
+    const std::uint32_t RecordIndex = Resolved(Subject);
 
-    if (RecordOrdinal == AbsentWork)
+    if (RecordIndex == AbsentWork)
         return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the declaration has already completed" });
 
-    WorkRecord& Cancelling = *Records[RecordOrdinal];
+    WorkRecord& Cancelling = *Records[RecordIndex];
 
     Cancelling.SupersessionPosed = SupersessionPosed;
     Cancelling.CancellationPosed.store(true, std::memory_order_relaxed);
@@ -327,9 +327,9 @@ Outcome<bool> WorkSequence::Cancel(WorkIdentity Subject, bool SupersessionPosed)
     if (Cancelling.ResolutionOpen)
         return Outcome<bool>::Result(true);
 
-    PendingByPriority[static_cast<std::size_t>(Cancelling.Declared.Priority)].Withdraw(RecordOrdinal);
+    PendingByPriority[static_cast<std::size_t>(Cancelling.Declared.Priority)].Withdraw(RecordIndex);
 
-    Seal(RecordOrdinal, Outcome<bool>::Refuse({ RefusalReason::HostDenied, "cancelled before it was claimed" }));
+    Seal(RecordIndex, Outcome<bool>::Refuse({ RefusalReason::HostDenied, "cancelled before it was claimed" }));
 
     return Outcome<bool>::Result(true);
 }
@@ -348,15 +348,15 @@ Outcome<bool> WorkSequence::Supersede(WorkIdentity Subject)
 //                                                     CONCLUSION
 //------------------------------------------------------------------------------------------------------------------------
 
-void WorkSequence::Seal(std::uint32_t RecordOrdinal, const Outcome<bool>& Resolved_)
+void WorkSequence::Seal(std::uint32_t RecordIndex, const Outcome<bool>& Resolved_)
 {
-    WorkRecord& Sealing = *Records[RecordOrdinal];
+    WorkRecord& Sealing = *Records[RecordIndex];
 
     WorkCompletion Completing;
-    Completing.Declared.SlotOrdinal    = RecordOrdinal;
+    Completing.Declared.SlotIndex    = RecordIndex;
     Completing.Declared.SlotGeneration = Sealing.SlotGeneration;
     Completing.Origin                  = Sealing.Declared.Origin;
-    Completing.DeclaredOrdinal         = Sealing.DeclaredOrdinal;
+    Completing.DeclaredIndex         = Sealing.DeclaredIndex;
     Completing.Sealed                  = Timeline != nullptr ? Timeline->Advance() : TickPoint{};
 
     if (Sealing.CancellationPosed.load(std::memory_order_relaxed))
@@ -381,7 +381,7 @@ void WorkSequence::Seal(std::uint32_t RecordOrdinal, const Outcome<bool>& Resolv
             Reported.Origin         = "34 §5 WorkSequence";
             Reported.Subject        = Sealing.Declared.Origin;
             Reported.Detail         = Resolved_.Error.Detail;
-            Reported.SubjectOrdinal = Sealing.DeclaredOrdinal;
+            Reported.SubjectIndex = Sealing.DeclaredIndex;
             Reported.Verdict    = ReportVerdict::Failed;
             Reported.Arrival        = Completing.Sealed;
 
@@ -399,7 +399,7 @@ void WorkSequence::Seal(std::uint32_t RecordOrdinal, const Outcome<bool>& Resolv
     Sealing.SupersessionPosed = false;
     Sealing.Declared.Resolve  = nullptr;
 
-    ReleasedOrdinals.push_back(RecordOrdinal);
+    ReleasedIndexs.push_back(RecordIndex);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -420,7 +420,7 @@ const std::vector<WorkCompletion>& WorkSequence::Drain()
               DrainedCompletions.end(),
               [](const WorkCompletion& Earlier, const WorkCompletion& Later)
               {
-                  return Earlier.DeclaredOrdinal < Later.DeclaredOrdinal;
+                  return Earlier.DeclaredIndex < Later.DeclaredIndex;
               });
 
     return DrainedCompletions;
@@ -434,27 +434,27 @@ Outcome<double> WorkSequence::Progress(WorkIdentity Subject) const
 {
     std::lock_guard<std::mutex> Holding(WorkGuard);
 
-    const std::uint32_t RecordOrdinal = Resolved(Subject);
+    const std::uint32_t RecordIndex = Resolved(Subject);
 
-    if (RecordOrdinal == AbsentWork)
+    if (RecordIndex == AbsentWork)
         return Outcome<double>::Refuse({ RefusalReason::IdentityStale, "the declaration has already completed" });
 
-    return Outcome<double>::Result(Records[RecordOrdinal]->Progressed.Fraction());
+    return Outcome<double>::Result(Records[RecordIndex]->Progressed.Fraction());
 }
 
 Outcome<std::uint64_t> WorkSequence::ProgressCount(WorkIdentity Subject) const
 {
     std::lock_guard<std::mutex> Holding(WorkGuard);
 
-    const std::uint32_t RecordOrdinal = Resolved(Subject);
+    const std::uint32_t RecordIndex = Resolved(Subject);
 
-    if (RecordOrdinal == AbsentWork)
+    if (RecordIndex == AbsentWork)
     {
         return Outcome<std::uint64_t>::Refuse(
             { RefusalReason::IdentityStale, "the declaration has already completed" });
     }
 
-    return Outcome<std::uint64_t>::Result(Records[RecordOrdinal]->Progressed.ResolvedCount());
+    return Outcome<std::uint64_t>::Result(Records[RecordIndex]->Progressed.ResolvedCount());
 }
 
 std::uint32_t WorkSequence::WorkerCount() const
@@ -518,15 +518,15 @@ void WorkSequence::Reclaim()
 
     // 📝 What no worker reached is completed here, so a requester waiting on a drain is told the declaration
     //    was withdrawn rather than left waiting for a conclusion that will never arrive — `34` §5.
-    for (std::uint32_t RecordOrdinal = 0u; RecordOrdinal < Records.size(); ++RecordOrdinal)
+    for (std::uint32_t RecordIndex = 0u; RecordIndex < Records.size(); ++RecordIndex)
     {
-        if (!Records[RecordOrdinal]->Occupied)
+        if (!Records[RecordIndex]->Occupied)
             continue;
 
-        PendingByPriority[static_cast<std::size_t>(Records[RecordOrdinal]->Declared.Priority)]
-            .Withdraw(RecordOrdinal);
+        PendingByPriority[static_cast<std::size_t>(Records[RecordIndex]->Declared.Priority)]
+            .Withdraw(RecordIndex);
 
-        Seal(RecordOrdinal, Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the sequence was reclaimed" }));
+        Seal(RecordIndex, Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the sequence was reclaimed" }));
     }
 
     SpannedWorkers      = 0u;

@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "Contract/IdentityContract.h"
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/Identity.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateMath/Numeric/ColourProjection/Api/ColourProjection.h"
 
 #include <cstdint>
@@ -26,9 +26,9 @@ namespace Slate
 ///        `00` §8.2's substitutions — `Base` is banned as a prefix, and a bare `Reflectance` collides with the
 ///        measure of the same name in §3 below.
 /// note  ⚠️ Channel 19 is spelled `RefractionRatio` rather than an index of refraction. `Index` is a closed role
-///        suffix meaning a slot ledger, and a refractive index is a ratio of propagation speeds — which states
-///        the mechanism and avoids reading as a ledger.
-/// tag   contract
+///        suffix meaning a slot index, and a refractive index is a ratio of propagation speeds — which states
+///        the mechanism and avoids reading as a index.
+/// tag   guarantee
 enum class ChannelSubject : std::uint32_t
 {
     AlbedoColour               = 0u,    // [-]  - diffuse albedo, or conductor reflectance at normal incidence
@@ -62,7 +62,7 @@ enum class ChannelSubject : std::uint32_t
 /// 🧩 One of `18` §3's eight reflectance specifications, selected per material.
 /// note  ⚠️ `00` §8.2's substitution: `Model` is banned structurally, so what `18` §3 calls a shading model is a
 ///        `ReflectanceSpecification` and a material's choice of one is a `ReflectanceSelection`.
-/// tag   contract
+/// tag   guarantee
 enum class ReflectanceSelection : std::uint32_t
 {
     Standard          = 0u,   // [-] - channels 1–8
@@ -93,7 +93,7 @@ bool ChannelConsumed(ReflectanceSelection Selected, ChannelSubject Channel);
 /// 🧩 Where a channel's value comes from.
 /// note  ⚠️ Layered and Analytic are not alternatives at the material level — `56` is where they interleave. The
 ///        distinction survives to here only because `70` resolves one of them and `20` transfers the other.
-/// tag   contract
+/// tag   guarantee
 enum class ChannelSource : std::uint32_t
 {
     Constant    = 0u,   // [-] - one value over the whole surface
@@ -108,7 +108,7 @@ enum class ChannelSource : std::uint32_t
 /// note  🔴 `36` §4 reads this declaration **and nothing else**. Not the image's encoding, not its channel count,
 ///        and not its file name. A roughness value put through a transfer function is a wrong number that still
 ///        looks like a plausible surface, which is why the mistake survives review.
-/// tag   contract
+/// tag   guarantee
 enum class ChannelMeasure : std::uint32_t
 {
     Reflectance  = 0u,   // [-] - colour-carrying, bounded to the unit interval
@@ -245,20 +245,20 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported outside the declared count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<const MaterialSpecification*> Resolve(std::uint32_t MaterialOrdinal) const;
+    Outcome<const MaterialSpecification*> Resolve(std::uint32_t MaterialIndex) const;
 
     /// 🧩 One declared material, for amending.
     /// out   Result  [-]  refuses with ContentUnsupported outside the declared count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<MaterialSpecification*> Amend(std::uint32_t MaterialOrdinal);
+    Outcome<MaterialSpecification*> Amend(std::uint32_t MaterialIndex);
 
-    const std::string& DeclaredName(std::uint32_t MaterialOrdinal) const;
+    const std::string& DeclaredName(std::uint32_t MaterialIndex) const;
     std::uint32_t      DeclaredCount() const;
 
 private:
 
-    static constexpr std::uint32_t MaterialCeiling = 65536u;   // [-] - materials one document may declare
+    static constexpr std::uint32_t MaterialLimit = 65536u;   // [-] - materials one document may declare
 
     std::vector<MaterialSpecification>  Declared;       // [-] - by material ordinal
     std::vector<std::string>            DeclaredNames;  // [-] - parallel to it
@@ -277,7 +277,7 @@ private:
 struct ResolvedPartition
 {
     OwnerIdentity  Owner        = {};   // [-] - `26` outlining, `18` transform
-    std::uint32_t     MaterialOrdinal = 0u;   // [-] - `18` reflectance and channel selection
+    std::uint32_t     MaterialIndex = 0u;   // [-] - `18` reflectance and channel selection
     std::uint32_t     FirstFace       = 0u;   // [-] - domain reconstruction at the pixel
     std::uint32_t     FaceCount       = 0u;   // [-] - faces the partition covers
 };
@@ -322,7 +322,7 @@ public:
 
 private:
 
-    static constexpr std::uint32_t PartitionCeiling = 1048576u;   // [-] - partitions one document may hold
+    static constexpr std::uint32_t PartitionLimit = 1048576u;   // [-] - partitions one document may hold
 
     std::vector<ResolvedPartition>  Resolutions;         // [-] - by partition ordinal
     std::uint64_t                   DerivedRevision = 1u; // [-] - advanced by Reclaim

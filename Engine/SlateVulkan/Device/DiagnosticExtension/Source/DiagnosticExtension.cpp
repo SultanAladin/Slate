@@ -14,7 +14,7 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> DiagnosticExtension::Construct(const VulkanExchange&  Exchange,
+Outcome<bool> DiagnosticExtension::AttachDiagnostics(const VulkanExchange&  Exchange,
                                              ReportSequence&        Register,
                                              const TickSequence&    Timeline)
 {
@@ -54,7 +54,7 @@ Outcome<bool> DiagnosticExtension::Construct(const VulkanExchange&  Exchange,
     SinkDeclaration.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 
     // 🔴 Errors and warnings alone. Information and verbose arrivals are thousands per rotation, and
-    //    `ReportSequence::RetainedCeiling` is four thousand entries — subscribing to them is a register in
+    //    `ReportSequence::RetainedLimit` is four thousand entries — subscribing to them is a register in
     //    which the one error that mattered has already been discarded by the time anybody reads it.
     SinkDeclaration.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
                                     | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
@@ -117,7 +117,7 @@ VkBool32 DiagnosticExtension::Arrival(VkDebugUtilsMessageSeverityFlagBitsEXT    
     //    forbids outright. What survives the call is the identifier and the ordinal; the text is read by a
     //    presenter attached to the same run, which is when it is still standing.
     Appended.Detail         = (Incoming->pMessage != nullptr) ? Incoming->pMessage : "";
-    Appended.SubjectOrdinal = static_cast<std::uint64_t>(Incoming->messageIdNumber);
+    Appended.SubjectIndex = static_cast<std::uint64_t>(Incoming->messageIdNumber);
 
     if (Destination->Timeline != nullptr)
         Appended.Arrival = Destination->Timeline->Advance();
@@ -163,7 +163,7 @@ Outcome<bool> DiagnosticExtension::Declare(VkObjectType Subject, std::uint64_t V
 Outcome<bool> DiagnosticExtension::Declare(VkObjectType   Subject,
                                            std::uint64_t  VendorHandle,
                                            const char*    DeclaredPrefix,
-                                           std::uint32_t  Ordinal) const
+                                           std::uint32_t  Index) const
 {
     // 📝 Left before the composition rather than after it. A configuration that negotiated nothing composes
     //    no text at all, so the whole ordinal path costs a claim site nothing where it cannot be read.
@@ -177,7 +177,7 @@ Outcome<bool> DiagnosticExtension::Declare(VkObjectType   Subject,
     //    extent because the driver copies the text inside the call below and nothing outlives it.
     char ComposedName[128] = {};
 
-    const int Composed = std::snprintf(ComposedName, sizeof(ComposedName), "%s %u", DeclaredPrefix, Ordinal);
+    const int Composed = std::snprintf(ComposedName, sizeof(ComposedName), "%s %u", DeclaredPrefix, Index);
 
     // 🔴 A truncated name is rejected rather than declared. Two objects whose prefixes agree for the first
     //    hundred and twenty-seven characters would carry one name between them, and the driver's text would

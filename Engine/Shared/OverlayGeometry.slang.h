@@ -35,7 +35,7 @@ namespace Slate
 /// note  📐 The colour is packed 0xAARRGGBB with STRAIGHT alpha: the GPU pass blends
 ///        `src_alpha / one_minus_src_alpha`, so a low-alpha line over a bright sky
 ///        keeps its hue instead of the washed-out premultiplied read.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct OverlayLine
 {
     float          X0 = 0.0f;        // [px] - leading endpoint
@@ -47,7 +47,7 @@ struct OverlayLine
 };
 
 /// 🧩 One dot marker, in display pixels, with its colour and radius.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct OverlayDot
 {
     float          X = 0.0f;         // [px]
@@ -57,7 +57,7 @@ struct OverlayDot
 };
 
 /// 🧩 One filled triangle, in display pixels, with its colour.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct OverlayTriangle
 {
     float          X0 = 0.0f;        // [px] - first vertex
@@ -90,12 +90,12 @@ SLATE_SHARED Unsigned32 PackOverlayColour(Unsigned32 Red, Unsigned32 Green,
 /// note  📝 `Generation` is the host's upload key: the panel increments it whenever it fills the
 ///        record, and the host uploads only when it changed — the grid and gizmo are static between
 ///        camera or settings changes, so there is no per-frame upload.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 /// 🧩 The camera pose the analytic ground reads — mode 3 of the overlay pass.
 /// note  📐 This is what replaced 1828 lines of CPU line-marching: the host hands
 ///        over ONE pose per leaf and the fragment stage solves the plane per
 ///        pixel. There is no segment budget to exhaust and no extent to end.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct OverlayGroundPose
 {
     Real32  EyeX = 0.0f, EyeY = 1.5f, EyeZ = 0.0f;          // [m]
@@ -119,15 +119,15 @@ struct OverlayGeometry
     ///    camera, written once per leaf per tick, not an accumulated record.
     OverlayGroundPose Ground = {};
 
-    static constexpr Unsigned32 LineCeiling     = 1024u;   // [-] - line segments; a 128-cell lattice is 514
-    static constexpr Unsigned32 DotCeiling      = 2048u;   // [-] - dot markers
-    static constexpr Unsigned32 TriangleCeiling =  512u;   // [-] - filled triangles
+    static constexpr Unsigned32 LineLimit     = 1024u;   // [-] - line segments; a 128-cell lattice is 514
+    static constexpr Unsigned32 DotLimit      = 2048u;   // [-] - dot markers
+    static constexpr Unsigned32 TriangleLimit =  512u;   // [-] - filled triangles
 
-    OverlayLine     Lines[LineCeiling]         = {};
+    OverlayLine     Lines[LineLimit]         = {};
     Unsigned32   LineCount                  = 0u;
-    OverlayDot      Dots[DotCeiling]           = {};
+    OverlayDot      Dots[DotLimit]           = {};
     Unsigned32   DotCount                   = 0u;
-    OverlayTriangle Triangles[TriangleCeiling] = {};
+    OverlayTriangle Triangles[TriangleLimit] = {};
     Unsigned32   TriangleCount              = 0u;
     Unsigned32   Generation                 = 0u;         // [-] - the host's upload key
 
@@ -147,7 +147,7 @@ struct OverlayGeometry
     /// tag   api, nonallocating, nonthrowing
     void AddLine(float X0, float Y0, float X1, float Y1, Unsigned32 Packed, float Thickness = 1.0f)
     {
-        if (LineCount >= LineCeiling)
+        if (LineCount >= LineLimit)
             return;
 
         OverlayLine& Written = Lines[LineCount++];
@@ -165,7 +165,7 @@ struct OverlayGeometry
     /// tag   api, nonallocating, nonthrowing
     void AddDot(float X, float Y, Unsigned32 Packed, float Radius = 1.0f)
     {
-        if (DotCount >= DotCeiling)
+        if (DotCount >= DotLimit)
             return;
 
         OverlayDot& Written = Dots[DotCount++];
@@ -181,7 +181,7 @@ struct OverlayGeometry
     /// tag   api, nonallocating, nonthrowing
     void AddTriangle(float X0, float Y0, float X1, float Y1, float X2, float Y2, Unsigned32 Packed)
     {
-        if (TriangleCount >= TriangleCeiling)
+        if (TriangleCount >= TriangleLimit)
             return;
 
         OverlayTriangle& Written = Triangles[TriangleCount++];

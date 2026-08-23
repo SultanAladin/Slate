@@ -12,13 +12,13 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> SurfaceDepot::Construct(std::uint64_t ByteCeiling_)
+Outcome<bool> SurfaceDepot::ReserveSurfaceStorage(std::uint64_t ByteLimit_)
 {
-    if (ByteCeiling_ == 0u)
+    if (ByteLimit_ == 0u)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a depot of no extent holds nothing" });
 
     Held.clear();
-    Ceiling  = ByteCeiling_;
+    Limit  = ByteLimit_;
     Occupied = 0u;
 
     return Outcome<bool>::Result(true);
@@ -31,7 +31,7 @@ Outcome<bool> SurfaceDepot::Construct(std::uint64_t ByteCeiling_)
 Outcome<bool> SurfaceDepot::Declare(const ContentKey&  Keyed,
                                     LayerContentSource Source,
                                     std::uint64_t      ByteExtent,
-                                    std::uint64_t      RecordingOrdinal)
+                                    std::uint64_t      RecordingIndex)
 {
     // 🔴 `20` §5's gate, enforced at the one door into the depot. `56` §3's own predicate decides it, so the
     //    classification lives with the document that owns the content rather than with the residency that
@@ -45,7 +45,7 @@ Outcome<bool> SurfaceDepot::Declare(const ContentKey&  Keyed,
     if (ByteExtent == 0u)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "an artefact of no extent" });
 
-    if (ByteExtent > Ceiling)
+    if (ByteExtent > Limit)
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::ExtentExhausted, "the artefact alone exceeds the whole depot" });
@@ -53,24 +53,24 @@ Outcome<bool> SurfaceDepot::Declare(const ContentKey&  Keyed,
 
     // 📝 A re-declaration of the same key replaces what stood. Two artefacts under one key would both be
     //    resolvable and the resolution would take whichever was accepted first, which is the older of the two.
-    for (std::size_t Ordinal = 0u; Ordinal < Held.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < Held.size(); ++Index)
     {
-        if (!KeysAgree(Held[Ordinal].Keyed, Keyed))
+        if (!KeysAgree(Held[Index].Keyed, Keyed))
             continue;
 
-        Occupied -= Held[Ordinal].ByteExtent;
-        Held.erase(Held.begin() + static_cast<std::ptrdiff_t>(Ordinal));
+        Occupied -= Held[Index].ByteExtent;
+        Held.erase(Held.begin() + static_cast<std::ptrdiff_t>(Index));
         break;
     }
 
-    if (Occupied + ByteExtent > Ceiling)
-        Evict((Occupied + ByteExtent) - Ceiling);
+    if (Occupied + ByteExtent > Limit)
+        Evict((Occupied + ByteExtent) - Limit);
 
     DepotArtefact Accepting;
     Accepting.Keyed      = Keyed;
     Accepting.Source     = Source;
     Accepting.ByteExtent = ByteExtent;
-    Accepting.ResolvedAt = RecordingOrdinal;
+    Accepting.ResolvedAt = RecordingIndex;
 
     Held.push_back(Accepting);
     Occupied += ByteExtent;
@@ -82,7 +82,7 @@ Outcome<bool> SurfaceDepot::Declare(const ContentKey&  Keyed,
 //                                                     RESOLUTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<DepotArtefact> SurfaceDepot::Resolve(const ContentKey& Keyed, std::uint64_t RecordingOrdinal)
+Outcome<DepotArtefact> SurfaceDepot::Resolve(const ContentKey& Keyed, std::uint64_t RecordingIndex)
 {
     for (DepotArtefact& Current : Held)
     {
@@ -92,7 +92,7 @@ Outcome<DepotArtefact> SurfaceDepot::Resolve(const ContentKey& Keyed, std::uint6
         // 📝 Marked here rather than by a separate call, because an artefact resolved and not marked is one the
         //    eviction ordering believes is unused — and the tile being promoted from it right now is the one
         //    that gets evicted.
-        Current.ResolvedAt = RecordingOrdinal;
+        Current.ResolvedAt = RecordingIndex;
         ++ResolvedTotal;
 
         return Outcome<DepotArtefact>::Result(Current);
@@ -116,10 +116,10 @@ std::uint32_t SurfaceDepot::Evict(std::uint64_t ByteExtent)
         //    evicting it to make room for the promotion that is reading it is the one ordering that cannot work.
         std::size_t Oldest = 0u;
 
-        for (std::size_t Ordinal = 1u; Ordinal < Held.size(); ++Ordinal)
+        for (std::size_t Index = 1u; Index < Held.size(); ++Index)
         {
-            if (Held[Ordinal].ResolvedAt < Held[Oldest].ResolvedAt)
-                Oldest = Ordinal;
+            if (Held[Index].ResolvedAt < Held[Oldest].ResolvedAt)
+                Oldest = Index;
         }
 
         Freed    += Held[Oldest].ByteExtent;
@@ -138,13 +138,13 @@ std::uint32_t SurfaceDepot::Supersede(std::uint64_t PartitionRevision)
 {
     std::uint32_t Discarded = 0u;
 
-    for (std::size_t Ordinal = Held.size(); Ordinal-- > 0u;)
+    for (std::size_t Index = Held.size(); Index-- > 0u;)
     {
-        if (Held[Ordinal].Keyed.PartitionRevision >= PartitionRevision)
+        if (Held[Index].Keyed.PartitionRevision >= PartitionRevision)
             continue;
 
-        Occupied -= Held[Ordinal].ByteExtent;
-        Held.erase(Held.begin() + static_cast<std::ptrdiff_t>(Ordinal));
+        Occupied -= Held[Index].ByteExtent;
+        Held.erase(Held.begin() + static_cast<std::ptrdiff_t>(Index));
 
         ++Discarded;
         ++EvictedTotal;
@@ -158,7 +158,7 @@ std::uint32_t SurfaceDepot::Supersede(std::uint64_t PartitionRevision)
 //------------------------------------------------------------------------------------------------------------------------
 
 std::uint64_t SurfaceDepot::OccupiedBytes() const { return Occupied;      }
-std::uint64_t SurfaceDepot::ByteCeiling() const   { return Ceiling;       }
+std::uint64_t SurfaceDepot::ByteLimit() const   { return Limit;       }
 std::uint64_t SurfaceDepot::ResolvedCount() const { return ResolvedTotal; }
 std::uint64_t SurfaceDepot::EvictedCount() const  { return EvictedTotal;  }
 
@@ -179,7 +179,7 @@ bool SurfaceDepot::DepotConsistent() const
         Accumulated += Current.ByteExtent;
     }
 
-    return Accumulated == Occupied && Occupied <= Ceiling;
+    return Accumulated == Occupied && Occupied <= Limit;
 }
 
 }   // namespace Slate

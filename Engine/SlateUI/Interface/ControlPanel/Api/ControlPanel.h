@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
-#include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
+#include "SlateUI/Interface/ControlIndex/Api/ControlIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/SymbolSpecification/Api/SymbolSpecification.h"
 
@@ -22,14 +22,14 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 One labelled switch whose track and nub reproduce `.switch` and `.nub` from the reference.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct SwitchDeclaration
 {
     const char*  Caption = "";   // [-] - borrowed; outlives the tick
 };
 
 /// 🧩 One mutually exclusive caption sequence.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct SegmentDeclaration
 {
     const char* const*  Captions    = nullptr;   // [-] - borrowed; outlives the tick
@@ -37,7 +37,7 @@ struct SegmentDeclaration
 };
 
 /// 🧩 One tab strip whose selected caption carries the accent underline.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct TabDeclaration
 {
     const char* const*  Captions     = nullptr;   // [-] - borrowed; outlives the tick
@@ -45,7 +45,7 @@ struct TabDeclaration
 };
 
 /// 🧩 The two inspector pages carried horizontally beneath a two-caption tab strip.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct CarouselDeclaration
 {
     const char* const*  LeadingRuns   = nullptr;   // [-] - borrowed property summaries
@@ -55,7 +55,7 @@ struct CarouselDeclaration
 };
 
 /// 🧩 One folding card header and the count displayed at its trailing edge.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct FoldDeclaration
 {
     const char*         Caption     = "";        // [-] - borrowed; outlives the tick
@@ -64,7 +64,7 @@ struct FoldDeclaration
 };
 
 /// 🧩 One caption field and the menu rows it discloses beneath itself.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct DropdownDeclaration
 {
     const char*         Caption     = "";        // [-] - leading field label
@@ -73,7 +73,7 @@ struct DropdownDeclaration
 };
 
 /// 🧩 Four display-referred colour ordinates edited by the HSV picker.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct PickerColour
 {
     std::uint8_t  Red     = 255u;   // [-] - display-referred red
@@ -83,14 +83,14 @@ struct PickerColour
 };
 
 /// 🧩 The caption carried by one colour field and HSV disclosure.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct ColourPickerDeclaration
 {
     const char*  Caption = "";   // [-] - borrowed; outlives the tick
 };
 
 /// 🧩 Where a released outline row is placed against the row beneath the pointer.
-/// tag   contract
+/// tag   guarantee
 enum class OutlineDropPlacement : std::uint32_t
 {
     Absent         = 0u,   // [-] - no drop target
@@ -101,7 +101,7 @@ enum class OutlineDropPlacement : std::uint32_t
 };
 
 /// 🧩 One linearised outline row, including its depth and visibility condition.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct OutlineDeclaration
 {
     const char*    Caption          = "";    // [-] - borrowed; outlives the tick
@@ -113,7 +113,7 @@ struct OutlineDeclaration
 };
 
 /// 🧩 One revision marker with its description and secondary run.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct RevisionDeclaration
 {
     const char*  Description = "";   // [-] - borrowed; outlives the tick
@@ -137,7 +137,7 @@ public:
     /// out   Result  [-]  refuses when a construction already stands
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Construct(InteractionIndex&              Interaction,
+    Outcome<bool> ConstructControlPanel(ControlIndex&              IncomingInteraction,
                             RecordingSurface&              Recording,
                             const ThemeProfile& Appearance);
 
@@ -170,21 +170,21 @@ public:
     void SwitchTrack(ControlIdentity Target, const PlaneExtent& Extent, bool Taken,
                      ThemeToken TrackTaken, ThemeToken TrackQuiet, ThemeToken Nub);
 
-    ControlVerdict SegmentedChoice(ControlIdentity Target, const PlaneExtent& Extent,
-                                   const SegmentDeclaration& Declared, std::uint32_t& TakenOrdinal);
+    ControlVerdict SegmentedSelection(ControlIdentity Target, const PlaneExtent& Extent,
+                                   const SegmentDeclaration& Declared, std::uint32_t& TakenIndex);
 
     /// 🧩 Presents one tab strip and writes the selected ordinal.
     /// cost  🚩
     /// tag   api, nonthrowing
     ControlVerdict TabStrip(ControlIdentity Target, const PlaneExtent& Extent,
-                            const TabDeclaration& Declared, std::uint32_t& TakenOrdinal);
+                            const TabDeclaration& Declared, std::uint32_t& TakenIndex);
 
     /// 🧩 Slides the leading and trailing inspector pages beneath their tab strip.
     /// note  The same identity is passed to TabStrip, so selection and page travel remain one interaction.
     /// cost  🚩
     /// tag   api, nonthrowing
     ControlVerdict CarouselPages(ControlIdentity Target, const PlaneExtent& Extent,
-                                 const CarouselDeclaration& Declared, std::uint32_t TakenOrdinal);
+                                 const CarouselDeclaration& Declared, std::uint32_t TakenIndex);
 
     /// 🧩 Presents one folding card header and writes its expanded condition.
     /// cost  🚩
@@ -196,7 +196,7 @@ public:
     /// cost  🚩
     /// tag   api, nonthrowing
     ControlVerdict DropdownCard(ControlIdentity Target, const PlaneExtent& Extent,
-                                const DropdownDeclaration& Declared, std::uint32_t& TakenOrdinal);
+                                const DropdownDeclaration& Declared, std::uint32_t& TakenIndex);
 
     /// 🧩 Presents the CAD reference's HSV colour field, disclosure and three draggable areas.
     /// cost  🔴
@@ -233,7 +233,7 @@ private:
 
     ControlVerdict ResolveTap(ControlIdentity Target, const PlaneExtent& Extent, bool& Altered);
 
-    InteractionIndex*              Interaction = nullptr;   // [-] - borrowed; never owned
+    ControlIndex*              Interaction = nullptr;   // [-] - borrowed; never owned
     RecordingSurface*              Recording   = nullptr;   // [-] - borrowed; never owned
     const ThemeProfile* Appearance  = nullptr;   // [-] - borrowed; never owned
     PointerCondition               Sampled     = {};        // [-] - current tick sample

@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateDocument/Format/FormatCodec/Api/FormatCodec.h"
 #include "SlateMath/Platform/FileInterchange/Api/FileInterchange.h"
 
@@ -25,7 +25,7 @@ namespace Slate
 /// note  🔴 The step matters to the artist, not just to the reporter. A refusal at ① or ② means their previous
 ///        save is untouched and nothing is lost; a refusal at ③ means the replacement exists beside the target
 ///        and can be recovered by hand. Reporting all three as "the save failed" throws that away.
-/// tag   contract
+/// tag   guarantee
 enum class PersistenceStep : std::uint32_t
 {
     Unbegun     = 0u,   // [-] - ① has not run

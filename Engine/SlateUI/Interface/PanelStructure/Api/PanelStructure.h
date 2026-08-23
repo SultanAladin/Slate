@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 
 #include <cstdint>
 
@@ -17,7 +17,7 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 What one leaf panel presents.
-/// tag   contract
+/// tag   guarantee
 enum class PanelSubject : std::uint32_t
 {
     Viewport     = 0u,   // [-] - three-dimensional scene presentation
@@ -30,7 +30,7 @@ enum class PanelSubject : std::uint32_t
 };
 
 /// 🧩 Which display axis a division partitions.
-/// tag   contract
+/// tag   guarantee
 enum class PanelDivisionAxis : std::uint32_t
 {
     X     = 0u,   // [-] - left and right leaves
@@ -39,7 +39,7 @@ enum class PanelDivisionAxis : std::uint32_t
 };
 
 /// 🧩 Which side of a division receives a newly created vacant panel.
-/// tag   contract
+/// tag   guarantee
 enum class PanelDivisionSide : std::uint32_t
 {
     Minimum     = 0u,   // [-] - left or upper side
@@ -48,7 +48,7 @@ enum class PanelDivisionSide : std::uint32_t
 };
 
 /// 🧩 One occupied slot in the binary workspace partition.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct PanelRecord
 {
     bool               Occupied       = false;                      // [-] - this slot participates in the partition
@@ -70,19 +70,19 @@ class PanelStructure
 {
 public:
 
-    static constexpr std::uint32_t RecordCeiling = 11u;   // [-] - five simultaneous divisions; never allocated
-    static constexpr std::uint32_t RootOrdinal   = 0u;    // [-] - stable root slot
+    static constexpr std::uint32_t RecordLimit = 11u;   // [-] - five simultaneous divisions; never allocated
+    static constexpr std::uint32_t RootIndex   = 0u;    // [-] - stable root slot
 
     /// 🧩 Returns the partition to one leaf carrying the declared subject.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Construct(PanelSubject InitialSubject = PanelSubject::Viewport);
+    void ConstructPanelPartition(PanelSubject InitialSubject = PanelSubject::Viewport);
 
     /// 🧩 Replaces one leaf by an equal binary division and applies a vacant leaf on the requested side.
     /// out   Result  [-]  refuses for a stale or divided ordinal, or when two slots are unavailable
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Divide(std::uint32_t LeafOrdinal,
+    Outcome<bool> Divide(std::uint32_t LeafIndex,
                          PanelDivisionAxis Axis,
                          PanelDivisionSide VacantSide);
 
@@ -90,24 +90,24 @@ public:
     /// out   Result  [-]  refuses for a stale ordinal and for the sole root leaf
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Withdraw(std::uint32_t LeafOrdinal);
+    Outcome<bool> Withdraw(std::uint32_t LeafIndex);
 
     /// 🧩 Changes what one leaf presents.
     /// out   Result  [-]  refuses for a stale or divided ordinal and an unsupported subject
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Assign(std::uint32_t LeafOrdinal, PanelSubject Subject);
+    Outcome<bool> Assign(std::uint32_t LeafIndex, PanelSubject Subject);
 
     /// 🧩 Changes one division's least-side fraction, clamped to the reference's five-percent limits.
     /// out   Result  [-]  refuses for a stale leaf ordinal
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Proportion(std::uint32_t DivisionOrdinal, float MinimumFraction);
+    Outcome<bool> Proportion(std::uint32_t DivisionIndex, float MinimumFraction);
 
     /// 🧩 Reads one occupied record; an unoccupied ordinal refuses as stale.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<PanelRecord> Current(std::uint32_t Ordinal) const;
+    Outcome<PanelRecord> Current(std::uint32_t Index) const;
 
     /// 🧩 Whether the partition contains more than its sole root leaf.
     /// cost  ✔️
@@ -121,13 +121,13 @@ public:
 
 private:
 
-    bool Encloses(std::uint32_t BranchOrdinal,
-                  std::uint32_t SeekingOrdinal,
-                  std::uint32_t& EnclosingOrdinal,
+    bool Encloses(std::uint32_t BranchIndex,
+                  std::uint32_t SeekingIndex,
+                  std::uint32_t& EnclosingIndex,
                   bool& MinimumSide) const;
     std::uint32_t TakeVacant();
 
-    PanelRecord Records[RecordCeiling] = {};   // [-] - bounded partition storage
+    PanelRecord Records[RecordLimit] = {};   // [-] - bounded partition storage
 };
 
 }   // namespace Slate

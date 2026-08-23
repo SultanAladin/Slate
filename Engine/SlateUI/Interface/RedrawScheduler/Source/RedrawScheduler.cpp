@@ -23,30 +23,30 @@ Outcome<std::uint32_t> RedrawScheduler::Register(const char* Naming)
     return Outcome<std::uint32_t>::Result(Registered++);
 }
 
-void RedrawScheduler::Mark(std::uint32_t PanelOrdinal, RedrawMark Declared)
+void RedrawScheduler::Mark(std::uint32_t PanelIndex, RedrawMark Declared)
 {
-    if (PanelOrdinal >= Registered)
+    if (PanelIndex >= Registered)
         return;
 
-    Marks[PanelOrdinal] = Dearer(Marks[PanelOrdinal], Declared);
+    Marks[PanelIndex] = Dearer(Marks[PanelIndex], Declared);
 }
 
 void RedrawScheduler::MarkEvery(RedrawMark Declared)
 {
-    for (std::uint32_t PanelOrdinal = 0u; PanelOrdinal < Registered; ++PanelOrdinal)
-        Marks[PanelOrdinal] = Dearer(Marks[PanelOrdinal], Declared);
+    for (std::uint32_t PanelIndex = 0u; PanelIndex < Registered; ++PanelIndex)
+        Marks[PanelIndex] = Dearer(Marks[PanelIndex], Declared);
 }
 
-RedrawMark RedrawScheduler::Current(std::uint32_t PanelOrdinal) const
+RedrawMark RedrawScheduler::Current(std::uint32_t PanelIndex) const
 {
-    return (PanelOrdinal < Registered) ? Marks[PanelOrdinal] : RedrawMark::Quiet;
+    return (PanelIndex < Registered) ? Marks[PanelIndex] : RedrawMark::Quiet;
 }
 
 bool RedrawScheduler::Marked() const
 {
-    for (std::uint32_t PanelOrdinal = 0u; PanelOrdinal < Registered; ++PanelOrdinal)
+    for (std::uint32_t PanelIndex = 0u; PanelIndex < Registered; ++PanelIndex)
     {
-        if (Marks[PanelOrdinal] != RedrawMark::Quiet)
+        if (Marks[PanelIndex] != RedrawMark::Quiet)
             return true;
     }
 
@@ -76,14 +76,14 @@ void RedrawScheduler::Retire()
     else
         ++QuietCount;
 
-    for (std::uint32_t PanelOrdinal = 0u; PanelOrdinal < Registered; ++PanelOrdinal)
-        Marks[PanelOrdinal] = RedrawMark::Quiet;
+    for (std::uint32_t PanelIndex = 0u; PanelIndex < Registered; ++PanelIndex)
+        Marks[PanelIndex] = RedrawMark::Quiet;
 }
 
-void RedrawScheduler::Retire(std::uint32_t PanelOrdinal)
+void RedrawScheduler::Retire(std::uint32_t PanelIndex)
 {
-    if (PanelOrdinal < Registered)
-        Marks[PanelOrdinal] = RedrawMark::Quiet;
+    if (PanelIndex < Registered)
+        Marks[PanelIndex] = RedrawMark::Quiet;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -95,9 +95,9 @@ std::uint32_t RedrawScheduler::RegisteredCount() const
     return Registered;
 }
 
-const char* RedrawScheduler::Naming(std::uint32_t PanelOrdinal) const
+const char* RedrawScheduler::Naming(std::uint32_t PanelIndex) const
 {
-    return (PanelOrdinal < Registered) ? Namings[PanelOrdinal] : "";
+    return (PanelIndex < Registered) ? Namings[PanelIndex] : "";
 }
 
 std::uint64_t RedrawScheduler::QuietTicks() const

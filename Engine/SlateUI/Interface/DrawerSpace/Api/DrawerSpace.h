@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/GestureSequence/Api/GestureSequence.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
@@ -20,7 +20,7 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Which edge a drawer is anchored to and travels from.
-/// tag   contract
+/// tag   guarantee
 enum class DrawerBearing : std::uint32_t
 {
     North        = 0u,   // [-] - enters from the upper edge; the Control Centre
@@ -31,7 +31,7 @@ enum class DrawerBearing : std::uint32_t
 /// 🧩 Where a drawer rests when nothing is dragging it.
 /// note  🔴 The north drawer takes `Closed` and `Open` only. The south drawer takes all three, and its
 ///       `Open` is the source's "full": the drawer covering the whole display extent.
-/// tag   contract
+/// tag   guarantee
 enum class DrawerPose : std::uint32_t
 {
     Closed    = 0u,   // [-] - wholly outside the display extent
@@ -44,7 +44,7 @@ enum class DrawerPose : std::uint32_t
 /// note  🔴 The subject is decided once, at arrival, and never re-decided while the contact stands. A
 ///       subject re-derived every tick changes underneath a drag the moment the extent it was tested
 ///       against moves — which is the drag moving it.
-/// tag   contract
+/// tag   guarantee
 enum class GrabSubject : std::uint32_t
 {
     Nothing      = 0u,   // [-] - the contact grabbed no drawer
@@ -56,7 +56,7 @@ enum class GrabSubject : std::uint32_t
 };
 
 /// 🧩 What one drawer is declared with at bring-up.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct DrawerDeclaration
 {
     const char*    Caption       = "";                           // [-] - the tongue's run, in small capitals
@@ -100,7 +100,7 @@ public:
     /// post  both drawers stand Closed and settled; nothing moves until a contact arrives
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Construct(MotionIntegrator&              Motion,
+    Outcome<bool> ConstructDrawerSpace(MotionIntegrator&              Motion,
                             const ThemeProfile& Appearance,
                             const DrawerDeclaration&       North,
                             const DrawerDeclaration&       South,

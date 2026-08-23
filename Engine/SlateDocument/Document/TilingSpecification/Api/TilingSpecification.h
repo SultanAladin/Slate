@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "Contract/CombineContract.h"
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/Combination.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
+#include "Foundation/NumericTolerance.h"
 #include "Shared/LatticeProjection.slang.h"
 #include "SlateMath/Numeric/ColourProjection/Api/ColourProjection.h"
 
@@ -56,7 +56,7 @@ struct LatticeSpecification
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Where one cell element's content comes from — `54` §3's four sources.
-/// tag   contract
+/// tag   guarantee
 enum class CellContentSource : std::uint32_t
 {
     VectorOutline = 0u,   // [-] - an outline from `52`, re-resolved at every reduction level
@@ -76,7 +76,7 @@ enum class CellContentSource : std::uint32_t
 struct CellContent
 {
     CellContentSource     Source           = CellContentSource::DeclaredColour;
-    std::uint32_t         SourceOrdinal    = 0u;                             // [-] - into `52`, `50` or the index below
+    std::uint32_t         SourceIndex    = 0u;                             // [-] - into `52`, `50` or the index below
     double                PlacedX      = 0.0;                            // [-] - within the cell's unit square
     double                PlacedY     = 0.0;                            // [-]
     double                PlacedScale      = 1.0;                            // [-] - strictly positive
@@ -94,7 +94,7 @@ struct CellContent
 ///        third row is the one most likely to be implemented as noise and is the one that must not be: a
 ///        permutation of the cell ordinal is reproducible, and sampled noise makes the same document reopen
 ///        looking different.
-/// tag   contract
+/// tag   guarantee
 enum class VariationSubject : std::uint32_t
 {
     Uniform        = 0u,   // [-] - every cell identical; no variation is declared
@@ -128,7 +128,7 @@ struct ClassifiedCell
     std::int32_t   CellY       = 0;     // [-] - the cell ordinal across, signed
     double         WithinX      = 0.0;   // [-] - after the declared reflections and turns
     double         WithinY     = 0.0;   // [-] - likewise
-    std::uint32_t  VariationOrdinal = 0u;    // [-] - below the declared span; zero when Uniform
+    std::uint32_t  VariationIndex = 0u;    // [-] - below the declared span; zero when Uniform
     double         VariationScale   = 1.0;   // [-] - within the declared interval
 };
 
@@ -154,7 +154,7 @@ public:
     /// 🧩 Appends one content element to the cell, at the end of the ordering.
     /// out   Result  [-]  refuses with ContentUnsupported for a non-positive scale, for a colour declaring no
     ///                     space, and for a nested source in a tiling that is already nested
-    /// note  🔴 `54` §3: nesting is bounded at `TilingNestingCeiling`. A weave whose thread is itself a weave is
+    /// note  🔴 `54` §3: nesting is bounded at `TilingNestingLimit`. A weave whose thread is itself a weave is
     ///        where the complexity artists want lives; unbounded nesting makes resolution cost unbounded, and
     ///        `20` §2.2's evaluation-cost budget cannot bound what it cannot predict.
     /// cost  🚩
@@ -232,29 +232,29 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported outside the declared count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<const TilingSpecification*> Resolve(std::uint32_t TilingOrdinal) const;
+    Outcome<const TilingSpecification*> Resolve(std::uint32_t TilingIndex) const;
 
     /// 🧩 One declared tiling, for amending.
     /// out   Result  [-]  refuses with ContentUnsupported outside the declared count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<TilingSpecification*> Amend(std::uint32_t TilingOrdinal);
+    Outcome<TilingSpecification*> Amend(std::uint32_t TilingIndex);
 
     /// 🧩 Nests one tiling inside a cell of another, at the declared bound.
-    /// in    EnclosingOrdinal  [-]  the tiling whose cell carries it
-    /// in    NestedOrdinal     [-]  the tiling being nested
+    /// in    EnclosingIndex  [-]  the tiling whose cell carries it
+    /// in    NestedIndex     [-]  the tiling being nested
     /// out   Result           [-]  refuses with ContentUnsupported for an unknown ordinal, for a tiling nested
-    ///                              inside itself, and for a nesting that would exceed `TilingNestingCeiling`
+    ///                              inside itself, and for a nesting that would exceed `TilingNestingLimit`
     /// post  the nested tiling refuses a nested element of its own from this point
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Nest(std::uint32_t EnclosingOrdinal, std::uint32_t NestedOrdinal);
+    Outcome<bool> Nest(std::uint32_t EnclosingIndex, std::uint32_t NestedIndex);
 
     std::uint32_t DeclaredCount() const;
 
 private:
 
-    static constexpr std::uint32_t TilingCeiling = 4096u;   // [-] - tilings one document may declare
+    static constexpr std::uint32_t TilingLimit = 4096u;   // [-] - tilings one document may declare
 
     std::vector<TilingSpecification>  Declared;   // [-] - by tiling ordinal
 };

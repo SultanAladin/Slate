@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 
 #include <cstdint>
 #include <string>
@@ -32,7 +32,7 @@ extern "C"
 /// note  🔴 Foreign code never releases an extent this process reserved, and this process never releases one the
 ///        foreign code reserved. Two allocators exist — one per toolchain — and an extent returned to the wrong
 ///        one corrupts a structure neither side can attribute afterwards.
-/// tag   contract, nonallocating
+/// tag   guarantee, nonallocating
 struct SlateExtentExchange
 {
     void*  (*Reserve)(void* Current, std::uint64_t WantedBytes);   // [-] - null when the reservation is rejected
@@ -47,7 +47,7 @@ struct SlateExtentExchange
 /// note  ⚠️ Fixed-width members and a fixed order. Adding a member anywhere but the end changes the offsets a
 ///        module compiled against the previous spelling reads at, and a module that verified its hash and then
 ///        read the wrong offsets is worse than one that failed to load.
-/// tag   contract, nonallocating
+/// tag   guarantee, nonallocating
 struct SlateModuleReport
 {
     std::uint32_t         InterfaceMajor;   // [-] - incompatible when it differs from the host's
@@ -118,28 +118,28 @@ public:
     Outcome<std::uint32_t> Acquire(const std::string& ModulePath, ForeignRequirement Required);
 
     /// 🧩 The verified entry table of a standing module.
-    /// in    ModuleOrdinal [-]  a module this component acquired
+    /// in    ModuleIndex [-]  a module this component acquired
     /// out   Result       [-]  refuses with IdentityStale for an ordinal no module stands at
     /// note  🔴 Read as an opaque address and given its shape by the caller, which is the only side that knows
     ///        what the verified hash covered. Declaring the shape here would make this component depend on
     ///        every interface any consumer ever loads.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<const void*> EntryTable(std::uint32_t ModuleOrdinal) const;
+    Outcome<const void*> EntryTable(std::uint32_t ModuleIndex) const;
 
     /// 🧩 What a standing module reported about itself.
-    /// in    ModuleOrdinal [-]  a module this component acquired
+    /// in    ModuleIndex [-]  a module this component acquired
     /// out   Result       [-]  refuses with IdentityStale for an ordinal no module stands at
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<const SlateModuleReport*> Report(std::uint32_t ModuleOrdinal) const;
+    Outcome<const SlateModuleReport*> Report(std::uint32_t ModuleIndex) const;
 
     /// 🧩 Releases one standing module.
-    /// in    ModuleOrdinal [-]  a module this component acquired
+    /// in    ModuleIndex [-]  a module this component acquired
     /// pre   nothing this process holds points into the module's code or its extents
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Release(std::uint32_t ModuleOrdinal);
+    void Release(std::uint32_t ModuleIndex);
 
     /// 🧩 Releases every standing module. Called by the destructor as well.
     /// cost  🚩

@@ -21,7 +21,7 @@ namespace Slate
 ///        between this projection and the previous rotation's and no previous projection has crossed the device
 ///        edge yet. `16` §4.2 places it in this recording and `64` §8 depends on it; it lands with the second
 ///        transform, and the recording declares three attachments until it does.
-/// tag   contract
+/// tag   guarantee
 struct WrittenPixel
 {
     Unsigned32x2  Written    : SV_Target0 ;   // [-] - the partition ordinal and the triangle ordinal
@@ -50,7 +50,7 @@ WrittenPixel ResolveVisibilityPixel(ResolvedCorner Resolved)
 {
     WrittenPixel Written;
 
-    Written.Written   = Unsigned32x2(Resolved.PartitionOrdinal, Resolved.TriangleOrdinal);
+    Written.Written   = Unsigned32x2(Resolved.PartitionIndex, Resolved.TriangleIndex);
     Written.Occupancy = 1.0f;
 
     return Written;

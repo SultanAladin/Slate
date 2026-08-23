@@ -164,7 +164,7 @@ def ResolveTranslationOrder(Declared):
 #                                                       PATH ASSEMBLY
 #------------------------------------------------------------------------------------------------------------------------
 
-# 📝 The mirror of Get-IncludePath. Contract/ and Shared/ are reachable from every unit through the engine
+# 📝 The mirror of Get-IncludePath. Foundation/ and Shared/ are reachable from every unit through the engine
 #    root; the partition is enforced by the link and by VerifyPartition, not by hiding headers.
 def GetIncludePath(UnitEntry, VulkanInclude):
     Paths = [EngineRoot, RepositoryRoot,
@@ -387,6 +387,12 @@ def Main(Arguments):
 
     if VerifyPartition.Main([]) != 0:
         WriteRejected('VerifyPartition rejected; a unit reaches past what it declares')
+        return 1
+
+    Naming = subprocess.run([sys.executable, os.path.join(RepositoryRoot, 'Scripts', 'VerifyNaming.py')],
+                            cwd=RepositoryRoot)
+    if Naming.returncode != 0:
+        WriteRejected('VerifyNaming rejected; retired vocabulary remains')
         return 1
 
     print('')

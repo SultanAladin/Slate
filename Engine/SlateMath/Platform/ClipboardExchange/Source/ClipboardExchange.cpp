@@ -37,12 +37,12 @@ class ClipboardHolder
 {
 public:
 
-    explicit ClipboardHolder(std::uint32_t AttemptCeiling)
+    explicit ClipboardHolder(std::uint32_t AttemptLimit)
     {
         // 📝 Retried rather than rejected on the first denial. Another process holds the clipboard for the length
         //    of its own read, and the artist pressing paste while a browser is still closing it is the ordinary
         //    case — a single attempt reports a failure the artist resolves by pressing paste again.
-        for (std::uint32_t Attempt = 0u; Attempt < AttemptCeiling; ++Attempt)
+        for (std::uint32_t Attempt = 0u; Attempt < AttemptLimit; ++Attempt)
         {
             if (OpenClipboard(nullptr) != 0)
             {
@@ -73,7 +73,7 @@ private:
     bool  Opened = false;   // [-] - the host granted the exclusive open
 };
 
-constexpr std::uint32_t OpenAttemptCeiling = 16u;   // [-] - attempts before the host is called denied
+constexpr std::uint32_t OpenAttemptLimit = 16u;   // [-] - attempts before the host is called denied
 
 std::string Narrow(const wchar_t* Widened)
 {
@@ -127,7 +127,7 @@ Outcome<std::string> ClipboardExchange::ReadText()
     if (IsClipboardFormatAvailable(CF_UNICODETEXT) == 0)
         return Outcome<std::string>::Refuse({ RefusalReason::CapabilityAbsent, "the clipboard carries no text" });
 
-    const ClipboardHolder Holding(OpenAttemptCeiling);
+    const ClipboardHolder Holding(OpenAttemptLimit);
 
     if (!Holding.Held())
         return Outcome<std::string>::Refuse({ RefusalReason::HostDenied, "the clipboard could not be opened" });
@@ -162,7 +162,7 @@ Outcome<bool> ClipboardExchange::WriteText(const std::string& Supplied)
 {
 #if defined(_WIN32)
 
-    const ClipboardHolder Holding(OpenAttemptCeiling);
+    const ClipboardHolder Holding(OpenAttemptLimit);
 
     if (!Holding.Held())
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the clipboard could not be opened" });
@@ -191,8 +191,8 @@ Outcome<bool> ClipboardExchange::WriteText(const std::string& Supplied)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the clipboard extent could not be written" });
     }
 
-    for (std::size_t Ordinal = 0u; Ordinal < Widened.size(); ++Ordinal)
-        Writing[Ordinal] = Widened[Ordinal];
+    for (std::size_t Index = 0u; Index < Widened.size(); ++Index)
+        Writing[Index] = Widened[Index];
 
     Writing[Widened.size()] = L'\0';
 
@@ -227,7 +227,7 @@ Outcome<ClipboardImage> ClipboardExchange::ReadImage()
     if (IsClipboardFormatAvailable(CF_DIB) == 0)
         return Outcome<ClipboardImage>::Refuse({ RefusalReason::CapabilityAbsent, "the clipboard carries no imagery" });
 
-    const ClipboardHolder Holding(OpenAttemptCeiling);
+    const ClipboardHolder Holding(OpenAttemptLimit);
 
     if (!Holding.Held())
         return Outcome<ClipboardImage>::Refuse({ RefusalReason::HostDenied, "the clipboard could not be opened" });
@@ -263,8 +263,8 @@ Outcome<ClipboardImage> ClipboardExchange::ReadImage()
     //    structure read, and the declaration is small enough that copying it costs nothing measurable.
     std::uint8_t* Landing = reinterpret_cast<std::uint8_t*>(&Declared);
 
-    for (std::size_t Ordinal = 0u; Ordinal < sizeof(BITMAPINFOHEADER); ++Ordinal)
-        Landing[Ordinal] = Reading[Ordinal];
+    for (std::size_t Index = 0u; Index < sizeof(BITMAPINFOHEADER); ++Index)
+        Landing[Index] = Reading[Index];
 
     // 🔴 A negative height means the host stored its rows top-down; a positive one means bottom-up. `52`'s
     //    intake and `14`'s paste both read top-down, so the sign is resolved here — a reader ignoring it
@@ -282,7 +282,7 @@ Outcome<ClipboardImage> ClipboardExchange::ReadImage()
             { RefusalReason::ContentUnsupported, "the clipboard imagery declares no extent" });
     }
 
-    if (static_cast<std::uint64_t>(ColumnCount) * static_cast<std::uint64_t>(RowCount) > ImageTexelCeiling)
+    if (static_cast<std::uint64_t>(ColumnCount) * static_cast<std::uint64_t>(RowCount) > ImageTexelLimit)
     {
         GlobalUnlock(Carried);
         return Outcome<ClipboardImage>::Refuse(
@@ -355,8 +355,8 @@ Outcome<ClipboardImage> ClipboardExchange::ReadImage()
     //    and is delivered opaque; it is also an image carrying no visible content either way.
     if (!AlphaCarried)
     {
-        for (std::size_t Ordinal = 3u; Ordinal < Received.Texels.size(); Ordinal += 4u)
-            Received.Texels[Ordinal] = 255u;
+        for (std::size_t Index = 3u; Index < Received.Texels.size(); Index += 4u)
+            Received.Texels[Index] = 255u;
     }
 
     GlobalUnlock(Carried);
@@ -387,7 +387,7 @@ Outcome<bool> ClipboardExchange::WriteImage(const ClipboardImage& Supplied)
             { RefusalReason::ContentUnsupported, "the texel extent is not the declared extent" });
     }
 
-    const ClipboardHolder Holding(OpenAttemptCeiling);
+    const ClipboardHolder Holding(OpenAttemptLimit);
 
     if (!Holding.Held())
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the clipboard could not be opened" });
@@ -426,17 +426,17 @@ Outcome<bool> ClipboardExchange::WriteImage(const ClipboardImage& Supplied)
 
     const std::uint8_t* const Declared = reinterpret_cast<const std::uint8_t*>(&Declaring);
 
-    for (std::size_t Ordinal = 0u; Ordinal < sizeof(BITMAPINFOHEADER); ++Ordinal)
-        Writing[Ordinal] = Declared[Ordinal];
+    for (std::size_t Index = 0u; Index < sizeof(BITMAPINFOHEADER); ++Index)
+        Writing[Index] = Declared[Index];
 
     std::uint8_t* const Landing = Writing + sizeof(BITMAPINFOHEADER);
 
-    for (std::size_t Ordinal = 0u; Ordinal < static_cast<std::size_t>(Supplied.Width) * Supplied.Height; ++Ordinal)
+    for (std::size_t Index = 0u; Index < static_cast<std::size_t>(Supplied.Width) * Supplied.Height; ++Index)
     {
-        Landing[Ordinal * 4u]      = Supplied.Texels[Ordinal * 4u + 2u];
-        Landing[Ordinal * 4u + 1u] = Supplied.Texels[Ordinal * 4u + 1u];
-        Landing[Ordinal * 4u + 2u] = Supplied.Texels[Ordinal * 4u];
-        Landing[Ordinal * 4u + 3u] = Supplied.Texels[Ordinal * 4u + 3u];
+        Landing[Index * 4u]      = Supplied.Texels[Index * 4u + 2u];
+        Landing[Index * 4u + 1u] = Supplied.Texels[Index * 4u + 1u];
+        Landing[Index * 4u + 2u] = Supplied.Texels[Index * 4u];
+        Landing[Index * 4u + 3u] = Supplied.Texels[Index * 4u + 3u];
     }
 
     GlobalUnlock(Reserved);

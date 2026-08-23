@@ -110,23 +110,23 @@ double Bounded(double Magnitude, double Lower, double Upper)
     return Magnitude < Lower ? Lower : (Magnitude > Upper ? Upper : Magnitude);
 }
 
-constexpr std::size_t ChannelOrdinal(ChannelSubject Channel)
+constexpr std::size_t ChannelIndex(ChannelSubject Channel)
 {
     return static_cast<std::size_t>(Channel);
 }
 
 double ScalarOf(const ResolvedChannelSet& Resolved, ChannelSubject Channel)
 {
-    return Resolved.Component[ChannelOrdinal(Channel)][0];
+    return Resolved.Component[ChannelIndex(Channel)][0];
 }
 
 SpatialSpan TripleOf(const ResolvedChannelSet& Resolved, ChannelSubject Channel)
 {
-    const std::size_t Ordinal = ChannelOrdinal(Channel);
+    const std::size_t Index = ChannelIndex(Channel);
 
-    return Spanned(Resolved.Component[Ordinal][0],
-                   Resolved.Component[Ordinal][1],
-                   Resolved.Component[Ordinal][2]);
+    return Spanned(Resolved.Component[Index][0],
+                   Resolved.Component[Index][1],
+                   Resolved.Component[Index][2]);
 }
 
 }   // namespace
@@ -135,7 +135,7 @@ SpatialSpan TripleOf(const ResolvedChannelSet& Resolved, ChannelSubject Channel)
 //                                                THE ALBEDO LOOKUP STORAGE
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> DirectionalAlbedoSurface::Construct(std::uint32_t Width_, std::uint32_t Height_)
+Outcome<bool> DirectionalAlbedoSurface::ConstructDirectionalAlbedoSurface(std::uint32_t Width_, std::uint32_t Height_)
 {
     if (Width_ == 0u || Height_ == 0u)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a lookup of no extent resolves nothing" });
@@ -462,7 +462,7 @@ Outcome<bool> ReflectanceIntegrator::DeriveDirectionalAlbedo(const QuadratureRul
     if (!Rule.Derived())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rule has not been derived" });
 
-    const Outcome<bool> Constructed = AlbedoLookup.Construct(AlbedoExtentX, AlbedoExtentY);
+    const Outcome<bool> Constructed = AlbedoLookup.ConstructDirectionalAlbedoSurface(AlbedoExtentX, AlbedoExtentY);
 
     if (!Constructed.Resolved)
         return Constructed;
@@ -493,11 +493,11 @@ Outcome<bool> ReflectanceIntegrator::DeriveDirectionalAlbedo(const QuadratureRul
             //    fixed rule. GGX carries a lobe that narrows without bound as the roughness vanishes, and a rule
             //    that spends its abscissae evenly over the hemisphere places almost none of them inside it —
             //    which reads as a smooth metal whose reflection is a handful of bright specks.
-            for (std::uint32_t Ordinal = 0u; Ordinal < AlbedoSampleCount; ++Ordinal)
+            for (std::uint32_t Index = 0u; Index < AlbedoSampleCount; ++Index)
             {
                 double FirstCoordinate  = 0.0;
                 double SecondCoordinate = 0.0;
-                ProjectPlanarSample(Ordinal, FirstCoordinate, SecondCoordinate);
+                ProjectPlanarSample(Index, FirstCoordinate, SecondCoordinate);
 
                 const double Denominator = 1.0 + (Parameter * Parameter - 1.0) * FirstCoordinate;
 
@@ -541,22 +541,22 @@ Outcome<bool> ReflectanceIntegrator::DeriveDirectionalAlbedo(const QuadratureRul
             //    a rule of a few dozen abscissae per axis resolves it where the same count would starve GGX.
             double Fibre = 0.0;
 
-            for (std::uint32_t CosineOrdinal = 0u; CosineOrdinal < Rule.DeclaredCount(); ++CosineOrdinal)
+            for (std::uint32_t CosineIndex = 0u; CosineIndex < Rule.DeclaredCount(); ++CosineIndex)
             {
                 double IncidentCosine = 0.0;
                 double CosineWeight   = 0.0;
 
-                if (!Rule.Project(CosineOrdinal, 0.0, 1.0, IncidentCosine, CosineWeight).Resolved)
+                if (!Rule.Project(CosineIndex, 0.0, 1.0, IncidentCosine, CosineWeight).Resolved)
                     continue;
 
                 const double IncidentSine = std::sqrt(Bounded(1.0 - IncidentCosine * IncidentCosine, 0.0, 1.0));
 
-                for (std::uint32_t AzimuthOrdinal = 0u; AzimuthOrdinal < Rule.DeclaredCount(); ++AzimuthOrdinal)
+                for (std::uint32_t AzimuthIndex = 0u; AzimuthIndex < Rule.DeclaredCount(); ++AzimuthIndex)
                 {
                     double Azimuth       = 0.0;
                     double AzimuthWeight = 0.0;
 
-                    if (!Rule.Project(AzimuthOrdinal, 0.0, 2.0 * Pi, Azimuth, AzimuthWeight).Resolved)
+                    if (!Rule.Project(AzimuthIndex, 0.0, 2.0 * Pi, Azimuth, AzimuthWeight).Resolved)
                         continue;
 
                     const SpatialSpan Incident = Spanned(IncidentSine * std::cos(Azimuth),
@@ -611,7 +611,7 @@ namespace
 //    the default is declared per channel rather than assumed once for all twenty.
 void DeclareDefault(ResolvedChannelSet& Resolved, ChannelSubject Channel, const ChannelSpecification& Held)
 {
-    const std::size_t Ordinal = ChannelOrdinal(Channel);
+    const std::size_t Index = ChannelIndex(Channel);
 
     if (MeasureCarriesColour(Held.Measured))
     {
@@ -619,9 +619,9 @@ void DeclareDefault(ResolvedChannelSet& Resolved, ChannelSubject Channel, const 
                                             ? Held.ConstantColour
                                             : Held.DefaultColour;
 
-        Resolved.Component[Ordinal][0] = Current.RedCoordinate;
-        Resolved.Component[Ordinal][1] = Current.GreenCoordinate;
-        Resolved.Component[Ordinal][2] = Current.BlueCoordinate;
+        Resolved.Component[Index][0] = Current.RedCoordinate;
+        Resolved.Component[Index][1] = Current.GreenCoordinate;
+        Resolved.Component[Index][2] = Current.BlueCoordinate;
 
         return;
     }
@@ -631,18 +631,18 @@ void DeclareDefault(ResolvedChannelSet& Resolved, ChannelSubject Channel, const 
         // 📝 The unperturbed tangent-space direction, which is the orientation itself. A direction channel
         //    defaulted to a repeated scalar is a direction pointing along the diagonal of tangent space, and
         //    every surface that never wrote one would then be lit as though it were creased.
-        Resolved.Component[Ordinal][0] = 0.0;
-        Resolved.Component[Ordinal][1] = 0.0;
-        Resolved.Component[Ordinal][2] = 1.0;
+        Resolved.Component[Index][0] = 0.0;
+        Resolved.Component[Index][1] = 0.0;
+        Resolved.Component[Index][2] = 1.0;
 
         return;
     }
 
     const double Magnitude = Held.Source == ChannelSource::Constant ? Held.ConstantScalar : Held.DefaultScalar;
 
-    Resolved.Component[Ordinal][0] = Magnitude;
-    Resolved.Component[Ordinal][1] = Magnitude;
-    Resolved.Component[Ordinal][2] = Magnitude;
+    Resolved.Component[Index][0] = Magnitude;
+    Resolved.Component[Index][1] = Magnitude;
+    Resolved.Component[Index][2] = Magnitude;
 }
 
 // 📝 Whether a channel is tangent-space and therefore withheld where the basis is absent — `18` §1.1.
@@ -677,9 +677,9 @@ Outcome<ResolvedChannelSet> ReflectanceIntegrator::ResolveChannels(
 
     bool ResolutionOwed = false;
 
-    for (std::size_t Ordinal = 0u; Ordinal < ChannelSpan; ++Ordinal)
+    for (std::size_t Index = 0u; Index < ChannelSpan; ++Index)
     {
-        const ChannelSubject        Channel = static_cast<ChannelSubject>(Ordinal);
+        const ChannelSubject        Channel = static_cast<ChannelSubject>(Index);
         const ChannelSpecification& Held    = Declared.Channel(Channel);
 
         DeclareDefault(Resolved, Channel, Held);
@@ -711,7 +711,7 @@ Outcome<ResolvedChannelSet> ReflectanceIntegrator::ResolveChannels(
                                                                 Reconstructed.DomainX,
                                                                 Reconstructed.DomainY,
                                                                 Tolerance,
-                                                                ResolvedComponentCeiling);
+                                                                ResolvedComponentLimit);
 
     if (!Sampled.Resolved)
         return Outcome<ResolvedChannelSet>::Refuse(Sampled.Error);
@@ -732,20 +732,20 @@ Outcome<ResolvedChannelSet> ReflectanceIntegrator::ResolveChannels(
         if (ChannelReadsBasis(Placing.Channel) && !Reconstructed.BasisDeclared)
             continue;
 
-        if (Placing.ComponentOrdinal + Placing.ComponentSpan > ResolvedComponentCeiling)
+        if (Placing.ComponentIndex + Placing.ComponentSpan > ResolvedComponentLimit)
             continue;
 
-        const std::size_t Ordinal = ChannelOrdinal(Placing.Channel);
+        const std::size_t Index = ChannelIndex(Placing.Channel);
 
         for (std::uint32_t Component = 0u; Component < Placing.ComponentSpan && Component < 3u; ++Component)
-            Resolved.Component[Ordinal][Component] = Current.Component[Placing.ComponentOrdinal + Component];
+            Resolved.Component[Index][Component] = Current.Component[Placing.ComponentIndex + Component];
 
         // 📝 A one-component placement carrying a scalar fills all three, so a reader that takes the triple form
         //    of a scalar channel reads the scalar rather than two zeros beside it.
         if (Placing.ComponentSpan == 1u)
         {
-            Resolved.Component[Ordinal][1] = Resolved.Component[Ordinal][0];
-            Resolved.Component[Ordinal][2] = Resolved.Component[Ordinal][0];
+            Resolved.Component[Index][1] = Resolved.Component[Index][0];
+            Resolved.Component[Index][2] = Resolved.Component[Index][0];
         }
 
         Resolved.SampledMask |= 1u << static_cast<std::uint32_t>(Placing.Channel);

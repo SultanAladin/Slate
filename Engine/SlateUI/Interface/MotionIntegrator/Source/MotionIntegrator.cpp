@@ -27,7 +27,7 @@ constexpr double RateCriterion         = 0.001;    // [px/ms] - one pixel per se
 //    driver reset. Integrating it whole gives the spring one step of eighty pixels and the drawer arrives
 //    somewhere it was never travelling toward. The interval is clamped rather than subdivided because a
 //    subdivided stall spends the recovery tick integrating the stall.
-constexpr double IntervalCeiling = 64.0;   // [ms]
+constexpr double IntervalLimit = 64.0;   // [ms]
 
 /// 🧩 The abscissa of a cubic Bézier whose endpoints are the origin and unity.
 constexpr double CurveX(double Parameter, double FirstControl, double SecondControl)
@@ -78,13 +78,13 @@ double CurveCoordinate(double Fraction, EaseCurve Declared)
     if (Fraction <= 0.0) return 0.0;
     if (Fraction >= 1.0) return 1.0;
 
-    const std::uint32_t Ordinal = static_cast<std::uint32_t>(Declared);
-    const CurveControl& Shape   = DeclaredCurves[(Ordinal < static_cast<std::uint32_t>(EaseCurve::CurveCount))
-                                               ? Ordinal : 0u];
+    const std::uint32_t Index = static_cast<std::uint32_t>(Declared);
+    const CurveControl& Shape   = DeclaredCurves[(Index < static_cast<std::uint32_t>(EaseCurve::CurveCount))
+                                               ? Index : 0u];
 
     double Parameter = Fraction;
 
-    for (std::uint32_t StepOrdinal = 0u; StepOrdinal < SolveSteps; ++StepOrdinal)
+    for (std::uint32_t StepIndex = 0u; StepIndex < SolveSteps; ++StepIndex)
     {
         const double Residue = CurveX(Parameter, Shape.FirstX, Shape.SecondX) - Fraction;
         const double Slope   = CurveSlope(Parameter, Shape.FirstX, Shape.SecondX);
@@ -116,7 +116,7 @@ bool SpringInterpolant::Advance(double Elapsed)
     if (Settled)
         return false;
 
-    const double Interval = (Elapsed > IntervalCeiling) ? IntervalCeiling
+    const double Interval = (Elapsed > IntervalLimit) ? IntervalLimit
                           : (Elapsed > 0.0)             ? Elapsed
                                                         : 0.0;
 
@@ -161,7 +161,7 @@ bool EasedInterpolant::Advance(double Interval)
     if (Settled)
         return false;
 
-    const double Accepted = (Interval > IntervalCeiling) ? IntervalCeiling
+    const double Accepted = (Interval > IntervalLimit) ? IntervalLimit
                           : (Interval > 0.0)             ? Interval
                                                          : 0.0;
 
@@ -241,24 +241,24 @@ Outcome<std::uint32_t> MotionIntegrator::RegisterEased(double Applied)
     return Outcome<std::uint32_t>::Result(EaseCount++);
 }
 
-SpringInterpolant& MotionIntegrator::Spring(std::uint32_t Ordinal)
+SpringInterpolant& MotionIntegrator::Spring(std::uint32_t Index)
 {
-    return Springs[(Ordinal < SpringCount) ? Ordinal : 0u];
+    return Springs[(Index < SpringCount) ? Index : 0u];
 }
 
-const SpringInterpolant& MotionIntegrator::Spring(std::uint32_t Ordinal) const
+const SpringInterpolant& MotionIntegrator::Spring(std::uint32_t Index) const
 {
-    return Springs[(Ordinal < SpringCount) ? Ordinal : 0u];
+    return Springs[(Index < SpringCount) ? Index : 0u];
 }
 
-EasedInterpolant& MotionIntegrator::Eased(std::uint32_t Ordinal)
+EasedInterpolant& MotionIntegrator::Eased(std::uint32_t Index)
 {
-    return Eases[(Ordinal < EaseCount) ? Ordinal : 0u];
+    return Eases[(Index < EaseCount) ? Index : 0u];
 }
 
-const EasedInterpolant& MotionIntegrator::Eased(std::uint32_t Ordinal) const
+const EasedInterpolant& MotionIntegrator::Eased(std::uint32_t Index) const
 {
-    return Eases[(Ordinal < EaseCount) ? Ordinal : 0u];
+    return Eases[(Index < EaseCount) ? Index : 0u];
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -269,11 +269,11 @@ bool MotionIntegrator::Advance(double Elapsed)
 {
     bool Moving = false;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < SpringCount; ++Ordinal)
-        Moving = Springs[Ordinal].Advance(Elapsed) || Moving;
+    for (std::uint32_t Index = 0u; Index < SpringCount; ++Index)
+        Moving = Springs[Index].Advance(Elapsed) || Moving;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < EaseCount; ++Ordinal)
-        Moving = Eases[Ordinal].Advance(Elapsed) || Moving;
+    for (std::uint32_t Index = 0u; Index < EaseCount; ++Index)
+        Moving = Eases[Index].Advance(Elapsed) || Moving;
 
     AnythingMoving = Moving;
 

@@ -17,10 +17,10 @@ std::size_t SurfaceLayerSequence::Located(LayerIdentity Subject) const
     if (!Subject.IdentityDeclared())
         return Sequenced.size();
 
-    for (std::size_t Ordinal = 0u; Ordinal < Sequenced.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < Sequenced.size(); ++Index)
     {
-        if (Sequenced[Ordinal].Identity == Subject)
-            return Ordinal;
+        if (Sequenced[Index].Identity == Subject)
+            return Index;
     }
 
     return Sequenced.size();
@@ -32,11 +32,11 @@ std::size_t SurfaceLayerSequence::Located(LayerIdentity Subject) const
 
 Outcome<LayerIdentity> SurfaceLayerSequence::Append(const LayerSpecification& Declaring)
 {
-    if (Sequenced.size() >= EntryCeiling)
+    if (Sequenced.size() >= EntryLimit)
         return Outcome<LayerIdentity>::Refuse({ RefusalReason::ExtentExhausted, "the entry ceiling was reached" });
 
     if (Declaring.Source == LayerContentSource::NestedSequence
-     && Declaring.NestedOrdinal >= NestedSequences.size())
+     && Declaring.NestedIndex >= NestedSequences.size())
     {
         return Outcome<LayerIdentity>::Refuse({ RefusalReason::ContentUnsupported, "no such nested sequence" });
     }
@@ -64,7 +64,7 @@ Outcome<LayerIdentity> SurfaceLayerSequence::Append(const LayerSpecification& De
 
     LayerSpecification Incoming = Declaring;
 
-    Incoming.Identity.SlotOrdinal    = static_cast<std::uint32_t>(Sequenced.size());
+    Incoming.Identity.SlotIndex    = static_cast<std::uint32_t>(Sequenced.size());
     Incoming.Identity.SlotGeneration = RegisteredGeneration;
 
     Sequenced.push_back(Incoming);
@@ -165,18 +165,18 @@ Outcome<LayerSpecification> SurfaceLayerSequence::Withdraw(LayerIdentity Subject
 
 Outcome<std::uint32_t> SurfaceLayerSequence::Nest()
 {
-    if (Depth + 1u > LayerNestingCeiling)
+    if (Depth + 1u > LayerNestingLimit)
     {
         return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "the declared nesting ceiling was reached" });
     }
 
-    const std::uint32_t NestedOrdinal = static_cast<std::uint32_t>(NestedSequences.size());
+    const std::uint32_t NestedIndex = static_cast<std::uint32_t>(NestedSequences.size());
 
     NestedSequences.push_back(SurfaceLayerSequence{});
     NestedSequences.back().Depth = Depth + 1u;
 
-    return Outcome<std::uint32_t>::Result(NestedOrdinal);
+    return Outcome<std::uint32_t>::Result(NestedIndex);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -316,7 +316,7 @@ Outcome<bool> SurfaceLayerSequence::Resample(
         Amended.Origin         = "56 §3.1 SurfaceLayerSequence";
         Amended.Subject        = "PaintedResampling";
         Amended.Detail         = "a re-partition moved the domain; painted texels were resampled into it";
-        Amended.SubjectOrdinal = IncomingRevision;
+        Amended.SubjectIndex = IncomingRevision;
         Amended.Verdict    = ReportVerdict::Amended;
         Amended.Arrival        = Sampled;
 
@@ -370,26 +370,26 @@ const std::vector<LayerSpecification>& SurfaceLayerSequence::Entries() const
     return Sequenced;
 }
 
-Outcome<const SurfaceLayerSequence*> SurfaceLayerSequence::Nested(std::uint32_t NestedOrdinal) const
+Outcome<const SurfaceLayerSequence*> SurfaceLayerSequence::Nested(std::uint32_t NestedIndex) const
 {
-    if (NestedOrdinal >= NestedSequences.size())
+    if (NestedIndex >= NestedSequences.size())
     {
         return Outcome<const SurfaceLayerSequence*>::Refuse(
             { RefusalReason::ContentUnsupported, "no such nested sequence" });
     }
 
-    return Outcome<const SurfaceLayerSequence*>::Result(&NestedSequences[NestedOrdinal]);
+    return Outcome<const SurfaceLayerSequence*>::Result(&NestedSequences[NestedIndex]);
 }
 
-Outcome<SurfaceLayerSequence*> SurfaceLayerSequence::AmendNested(std::uint32_t NestedOrdinal)
+Outcome<SurfaceLayerSequence*> SurfaceLayerSequence::AmendNested(std::uint32_t NestedIndex)
 {
-    if (NestedOrdinal >= NestedSequences.size())
+    if (NestedIndex >= NestedSequences.size())
     {
         return Outcome<SurfaceLayerSequence*>::Refuse(
             { RefusalReason::ContentUnsupported, "no such nested sequence" });
     }
 
-    return Outcome<SurfaceLayerSequence*>::Result(&NestedSequences[NestedOrdinal]);
+    return Outcome<SurfaceLayerSequence*>::Result(&NestedSequences[NestedIndex]);
 }
 
 Outcome<std::uint32_t> SurfaceLayerSequence::PositionOf(LayerIdentity Subject) const
@@ -412,8 +412,8 @@ std::uint32_t SurfaceLayerSequence::WrittenChannels() const
             continue;
 
         // 📝 §4.1: a nested entry writes the union of what its own entries write, restricted by its own set.
-        if (Held.Source == LayerContentSource::NestedSequence && Held.NestedOrdinal < NestedSequences.size())
-            Written |= NestedSequences[Held.NestedOrdinal].WrittenChannels() & Held.ChannelMask;
+        if (Held.Source == LayerContentSource::NestedSequence && Held.NestedIndex < NestedSequences.size())
+            Written |= NestedSequences[Held.NestedIndex].WrittenChannels() & Held.ChannelMask;
         else
             Written |= Held.ChannelMask;
     }
@@ -468,9 +468,9 @@ Outcome<const LayerSpecification*> LayerIndex::Locate(const SurfaceLayerSequence
     if (Held.Resolved)
         return Held;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Sequence.NestedCount(); ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Sequence.NestedCount(); ++Index)
     {
-        const Outcome<const SurfaceLayerSequence*> Nesting = Sequence.Nested(Ordinal);
+        const Outcome<const SurfaceLayerSequence*> Nesting = Sequence.Nested(Index);
 
         if (!Nesting.Resolved)
             continue;
@@ -489,9 +489,9 @@ std::uint32_t LayerIndex::SpannedCount(const SurfaceLayerSequence& Sequence)
 {
     std::uint32_t Spanned = Sequence.EntryCount();
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Sequence.NestedCount(); ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Sequence.NestedCount(); ++Index)
     {
-        const Outcome<const SurfaceLayerSequence*> Nesting = Sequence.Nested(Ordinal);
+        const Outcome<const SurfaceLayerSequence*> Nesting = Sequence.Nested(Index);
 
         if (Nesting.Resolved)
             Spanned += SpannedCount(*Nesting.Resolve());

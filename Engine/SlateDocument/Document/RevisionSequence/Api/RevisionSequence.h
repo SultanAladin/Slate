@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 
 #include <cstdint>
 #include <string>
@@ -21,7 +21,7 @@ namespace Slate
 /// 🧩 Where an interactive edit stands. Every edit in the engine is a drag and passes through these four.
 /// note  🔴 An open transaction is absent from the sequence and is not scrubbable. A drag recording one
 ///       transaction per pointer sample fills the sequence with positions the artist never meant to stop at.
-/// tag   contract
+/// tag   guarantee
 enum class TransactionPhase : std::uint32_t
 {
     Open     = 0u,   // [-] - the edit began; the prior content of the extent it will touch is held
@@ -43,8 +43,8 @@ struct CommittedTransaction
     std::string    Description    = {};     // [-]  - supplied at Open; what `84` presents to the artist
     std::string    OperationName  = {};     // [-]  - the mechanism's own spelling, presented when no
                                             //        description was supplied
-    std::uint64_t  ForwardOrdinal = 0u;     // [-]  - where the forward operation's record begins
-    std::uint64_t  InverseOrdinal = 0u;     // [-]  - where its inverse begins
+    std::uint64_t  ForwardIndex = 0u;     // [-]  - where the forward operation's record begins
+    std::uint64_t  InverseIndex = 0u;     // [-]  - where its inverse begins
     std::uint64_t  SealedAt       = 0u;     // [ns] - arrival stamp at Seal, for the merge interval
     bool           MergeDeclared  = false;  // [-]  - this operation declares itself mergeable
 };
@@ -116,7 +116,7 @@ private:
 
     std::vector<CommittedTransaction>  CommittedOrder;              // [-] - the sequence itself
     CommittedTransaction               OpenTransaction   = {};      // [-] - held outside the sequence
-    std::uint64_t                      ScrubOrdinal      = 0u;      // [-] - transactions currently applied
+    std::uint64_t                      ScrubIndex      = 0u;      // [-] - transactions currently applied
     bool                               OpenDeclared      = false;   // [-] - a transaction is open
 };
 

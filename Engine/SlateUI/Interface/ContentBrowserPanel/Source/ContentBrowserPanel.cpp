@@ -53,15 +53,15 @@ bool Within(const char* Subject, const char* Sought)
 
     for (std::uint32_t Origin = 0u; Subject[Origin] != '\0'; ++Origin)
     {
-        std::uint32_t Ordinal = 0u;
+        std::uint32_t Index = 0u;
 
-        while (Sought[Ordinal] != '\0' &&
-               Folded(Subject[Origin + Ordinal]) == Folded(Sought[Ordinal]))
+        while (Sought[Index] != '\0' &&
+               Folded(Subject[Origin + Index]) == Folded(Sought[Index]))
         {
-            ++Ordinal;
+            ++Index;
         }
 
-        if (Sought[Ordinal] == '\0')
+        if (Sought[Index] == '\0')
             return true;
     }
 
@@ -115,7 +115,7 @@ void ApplyReferenceContent(ContentLibrary& Applying)
                           const char* FirstTag, const char* SecondTag,
                           ContentArchive Archive, const char* Subheading)
     {
-        if (Applying.RecordCount >= ContentLibrary::RecordCeiling)
+        if (Applying.RecordCount >= ContentLibrary::RecordLimit)
             return;
 
         ContentRecord& Written = Applying.Records[Applying.RecordCount];
@@ -158,24 +158,24 @@ void ContentBrowserPanel::Reapply(const ThemeProfile& Resolved)
     Colour = Resolved.ContentBrowser;
 }
 
-Outcome<bool> ContentBrowserPanel::Construct(InteractionIndex& Interaction, RecordingSurface& Recording)
+Outcome<bool> ContentBrowserPanel::ConstructContentBrowserPanel(ControlIndex& IncomingInteraction, RecordingSurface& Recording)
 {
-    if (Ledger != nullptr)
+    if (Interaction != nullptr)
     {
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported,
                                        "the content browser panel is already constructed" });
     }
 
-    Ledger  = &Interaction;
+    Interaction  = &IncomingInteraction;
     Surface = &Recording;
 
     // 🔴 Every identity claimed here and none inside a tick. A refusal partway through retires the whole
-    //    construction rather than leaving half a panel registered against a ledger it cannot fill.
+    //    construction rather than leaving half a panel registered against a index it cannot fill.
     const auto Reserve = [&](ControlIdentity* Written, std::uint32_t Count) -> Outcome<bool>
     {
-        for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < Count; ++Index)
         {
-            const Outcome<ControlIdentity> Registered = Interaction.Register();
+            const Outcome<ControlIdentity> Registered = IncomingInteraction.Register();
 
             if (!Registered.Resolved)
             {
@@ -183,19 +183,19 @@ Outcome<bool> ContentBrowserPanel::Construct(InteractionIndex& Interaction, Reco
                 return Outcome<bool>::Refuse(Registered.Error);
             }
 
-            Written[Ordinal] = Registered.Resolve();
+            Written[Index] = Registered.Resolve();
         }
 
         return Outcome<bool>::Result(true);
     };
 
-    if (const auto Verdict = Reserve(SourceRows, SourceCeiling); !Verdict.Resolved)
+    if (const auto Verdict = Reserve(SourceRows, SourceLimit); !Verdict.Resolved)
         return Verdict;
 
-    if (const auto Verdict = Reserve(LatticeCards, LatticeCeiling); !Verdict.Resolved)
+    if (const auto Verdict = Reserve(LatticeCards, LatticeLimit); !Verdict.Resolved)
         return Verdict;
 
-    if (const auto Verdict = Reserve(ChromeCells, ChromeCeiling); !Verdict.Resolved)
+    if (const auto Verdict = Reserve(ChromeCells, ChromeLimit); !Verdict.Resolved)
         return Verdict;
 
     return Outcome<bool>::Result(true);
@@ -209,7 +209,7 @@ void ContentBrowserPanel::Advance(const PointerCondition& Incoming, double Elaps
 
 void ContentBrowserPanel::Reset()
 {
-    Ledger  = nullptr;
+    Interaction  = nullptr;
     Surface = nullptr;
 
     for (auto& Written : SourceRows)   Written = ControlIdentity{};
@@ -235,14 +235,14 @@ void ContentBrowserPanel::RetainExclusion(const PlaneExtent& Extent)
 
 void ContentBrowserPanel::Exclude(DrawerSpace& Drawers, DrawerBearing Bearing) const
 {
-    for (std::uint32_t Ordinal = 0u; Ordinal < ExclusionCount; ++Ordinal)
-        Drawers.Exclude(Bearing, Exclusions[Ordinal]);
+    for (std::uint32_t Index = 0u; Index < ExclusionCount; ++Index)
+        Drawers.Exclude(Bearing, Exclusions[Index]);
 }
 
 bool ContentBrowserPanel::Pressed(ControlIdentity Target, const PlaneExtent& Extent,
                                   ContentBrowserConfiguration& Applied, const char* Tooltip)
 {
-    if (Ledger == nullptr)
+    if (Interaction == nullptr)
         return false;
 
     RetainExclusion(Extent);
@@ -256,28 +256,28 @@ bool ContentBrowserPanel::Pressed(ControlIdentity Target, const PlaneExtent& Ext
         Applied.TooltipHeight = Extent.MinimumY;
     }
 
-    if (Over && Sampled.ContactPressed && !Ledger->AnyDisclosed())
-        Ledger->Grab(Target, ControlPart::Body);
+    if (Over && Sampled.ContactPressed && !Interaction->AnyDisclosed())
+        Interaction->Grab(Target, ControlPart::Body);
 
-    Ledger->DeclareHovered(Target, Over, HoverOver);
+    Interaction->DeclareHovered(Target, Over, HoverOver);
 
-    return Over && Ledger->Released(Target);
+    return Over && Interaction->Released(Target);
 }
 
-bool ContentBrowserPanel::AcceptTyped(char Sampled, ContentBrowserConfiguration& Applied)
+bool ContentBrowserPanel::AcceptTyped(char Arrived, ContentBrowserConfiguration& Applied)
 {
-    if (!Applied.SeekHolding || Sampled < 0x20)
+    if (!Applied.SeekHolding || Arrived < 0x20)
         return false;
 
     std::uint32_t Occupied = 0u;
 
-    while (Occupied + 1u < ContentBrowserConfiguration::SeekCeiling && Applied.Seek[Occupied] != '\0')
+    while (Occupied + 1u < ContentBrowserConfiguration::SeekLimit && Applied.Seek[Occupied] != '\0')
         ++Occupied;
 
-    if (Occupied + 1u >= ContentBrowserConfiguration::SeekCeiling)
+    if (Occupied + 1u >= ContentBrowserConfiguration::SeekLimit)
         return false;
 
-    Applied.Seek[Occupied]      = Sampled;
+    Applied.Seek[Occupied]      = Arrived;
     Applied.Seek[Occupied + 1u] = '\0';
 
     return true;
@@ -290,7 +290,7 @@ bool ContentBrowserPanel::RetractTyped(ContentBrowserConfiguration& Applied)
 
     std::uint32_t Occupied = 0u;
 
-    while (Occupied + 1u < ContentBrowserConfiguration::SeekCeiling && Applied.Seek[Occupied] != '\0')
+    while (Occupied + 1u < ContentBrowserConfiguration::SeekLimit && Applied.Seek[Occupied] != '\0')
         ++Occupied;
 
     if (Occupied == 0u)
@@ -305,7 +305,7 @@ bool ContentBrowserPanel::Retained(const ContentRecord& Record, const ContentLib
 {
     // 📐 `renderGrid` narrows by archive, then by subheading, then by the seek run — in that order, and
     //    each against the run the previous one left rather than against the whole library.
-    if (Library.TraversedArchive != ContentLibrary::AbsentOrdinal &&
+    if (Library.TraversedArchive != ContentLibrary::AbsentIndex &&
         static_cast<std::uint32_t>(Record.Archive) != Library.TraversedArchive)
     {
         return false;
@@ -386,7 +386,7 @@ void ContentBrowserPanel::RecordScrollbar(const PlaneExtent& Extent, ControlIden
         return;
     }
 
-    const float Ceiling     = Span - Visible;
+    const float Limit     = Span - Visible;
     const float ThumbHeight = (Visible * Visible / Span < 28.0f) ? 28.0f : (Visible * Visible / Span);
     const float Travel      = Visible - ThumbHeight;
 
@@ -394,38 +394,38 @@ void ContentBrowserPanel::RecordScrollbar(const PlaneExtent& Extent, ControlIden
     //    anywhere over it, so a drag begun over a card in a drawer must not slide the drawer instead.
     RetainExclusion(Extent);
 
-    const bool Holding = Ledger->Holding(Target);
+    const bool Holding = Interaction->Holding(Target);
 
     // 📐 The wheel reaches the run whenever the pointer is over the extent, whether or not the bar itself
     //    is hovered — the reference scrolls the container and not its scrollbar.
-    if (Hovered(Extent) && !Ledger->AnyDisclosed() && Sampled.WheelY != 0.0f)
+    if (Hovered(Extent) && !Interaction->AnyDisclosed() && Sampled.WheelY != 0.0f)
         Offset -= Sampled.WheelY * NotchHeight;
 
     const PlaneExtent Trough = Spanning(Extent.MaximumX - 6.0f, Extent.MinimumY, 6.0f, Visible);
 
-    if (Hovered(Trough) && Sampled.ContactPressed && !Ledger->AnyDisclosed())
+    if (Hovered(Trough) && Sampled.ContactPressed && !Interaction->AnyDisclosed())
     {
-        Ledger->Grab(Target, ControlPart::Thumb);
-        Ledger->RecordInitial(Target, Offset);
+        Interaction->Grab(Target, ControlPart::Thumb);
+        Interaction->RecordInitial(Target, Offset);
     }
 
     if (Holding && Travel > 0.0f)
     {
-        const Outcome<float> Previous = Ledger->InitialReading(Target);
+        const Outcome<float> Previous = Interaction->InitialReading(Target);
 
         if (Previous.Resolved)
         {
-            const float Moved = Sampled.PositionY - Ledger->OriginY();
-            Offset = Previous.Resolve() + Moved * (Ceiling / Travel);
+            const float Moved = Sampled.PositionY - Interaction->OriginY();
+            Offset = Previous.Resolve() + Moved * (Limit / Travel);
         }
     }
 
     // 🔴 Clamped last and always. Every reach above may carry the offset past either end, and a run
     //    recorded from a past-the-end offset presents an empty extent that reads as a panel that failed.
     if (Offset < 0.0f)       Offset = 0.0f;
-    if (Offset > Ceiling)    Offset = Ceiling;
+    if (Offset > Limit)    Offset = Limit;
 
-    const float ThumbY = Extent.MinimumY + (Ceiling > 0.0f ? (Offset / Ceiling) * Travel : 0.0f);
+    const float ThumbY = Extent.MinimumY + (Limit > 0.0f ? (Offset / Limit) * Travel : 0.0f);
 
     Surface->Ground(Spanning(Extent.MaximumX - 6.0f + 3.0f, ThumbY, 3.0f, ThumbHeight),
                     Holding ? Colour.EdgeHovered : Colour.GripQuiet, 2.0f);
@@ -461,7 +461,7 @@ void ContentBrowserPanel::RecordSources(const PlaneExtent& Extent, ContentLibrar
     const auto SourceRow = [&](const char* Naming, std::uint32_t Count, float Step,
                                bool Current, SymbolSubject Crest, bool Crested)
     {
-        if (Target >= SourceCeiling)
+        if (Target >= SourceLimit)
             return false;
 
         const PlaneExtent Row = Spanning(Extent.MinimumX + 8.0f + Step, Cursor,
@@ -513,23 +513,23 @@ void ContentBrowserPanel::RecordSources(const PlaneExtent& Extent, ContentLibrar
 
     // 📐 `Project Library` — standing whenever no archive is traversed, as `!state.cat` decides it.
     if (SourceRow("Project Library", Library.RecordCount, 0.0f,
-                  Library.TraversedArchive == ContentLibrary::AbsentOrdinal,
+                  Library.TraversedArchive == ContentLibrary::AbsentIndex,
                   SymbolSubject::FolderClosed, true))
     {
-        Library.TraversedArchive    = ContentLibrary::AbsentOrdinal;
+        Library.TraversedArchive    = ContentLibrary::AbsentIndex;
         Library.TraversedSubheading = nullptr;
-        Library.Taken               = ContentLibrary::AbsentOrdinal;
+        Library.Taken               = ContentLibrary::AbsentIndex;
     }
 
     // 📐 The archives, in the order the library first presents them, exactly as `Array.from(new Set(...))`
     //    yields them rather than in the enum's own order.
-    constexpr std::uint32_t ArchiveCeiling = static_cast<std::uint32_t>(ContentArchive::ArchiveCount);
+    constexpr std::uint32_t ArchiveLimit = static_cast<std::uint32_t>(ContentArchive::ArchiveCount);
 
-    bool Current[ArchiveCeiling] = {};
+    bool Current[ArchiveLimit] = {};
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Library.RecordCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Library.RecordCount; ++Index)
     {
-        const auto Archive = static_cast<std::uint32_t>(Library.Records[Ordinal].Archive);
+        const auto Archive = static_cast<std::uint32_t>(Library.Records[Index].Archive);
 
         if (Archive >= static_cast<std::uint32_t>(ContentArchive::ArchiveCount) || Current[Archive])
             continue;
@@ -556,15 +556,15 @@ void ContentBrowserPanel::RecordSources(const PlaneExtent& Extent, ContentLibrar
             }
         }
 
-        const bool Current = Library.TraversedArchive == Archive &&
+        const bool ArchiveCurrent = Library.TraversedArchive == Archive &&
                               Library.TraversedSubheading == nullptr;
 
         if (SourceRow(ArchiveNaming(static_cast<ContentArchive>(Archive)), Beneath,
-                      Measure.SourceStepX, Current, SymbolSubject::ChevronDown, Subheaded))
+                      Measure.SourceStepX, ArchiveCurrent, SymbolSubject::ChevronDown, Subheaded))
         {
             Library.TraversedArchive    = Archive;
             Library.TraversedSubheading = nullptr;
-            Library.Taken               = ContentLibrary::AbsentOrdinal;
+            Library.Taken               = ContentLibrary::AbsentIndex;
         }
 
         if (!Subheaded)
@@ -619,7 +619,7 @@ void ContentBrowserPanel::RecordSources(const PlaneExtent& Extent, ContentLibrar
             {
                 Library.TraversedArchive    = Archive;
                 Library.TraversedSubheading = Record.Subheading;
-                Library.Taken               = ContentLibrary::AbsentOrdinal;
+                Library.Taken               = ContentLibrary::AbsentIndex;
             }
         }
     }
@@ -777,7 +777,7 @@ void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrar
     Surface->TextRun(Crumb, Rail.MinimumY + 14.0f, Colour.Faint, "/", Measure.RunBody);
     Crumb += Surface->MeasureRun("/", Measure.RunBody) + 8.0f;
 
-    if (Library.TraversedArchive == ContentLibrary::AbsentOrdinal)
+    if (Library.TraversedArchive == ContentLibrary::AbsentIndex)
     {
         Surface->TextRun(Crumb, Rail.MinimumY + 14.0f, Colour.Primary, "Project Library",
                          Measure.RunBody, 0.0f, true);
@@ -821,9 +821,9 @@ void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrar
     std::uint32_t Count    = 0u;
     std::uint32_t Target = 0u;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Library.RecordCount && Target < LatticeCeiling; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Library.RecordCount && Target < LatticeLimit; ++Index)
     {
-        const ContentRecord& Record = Library.Records[Ordinal];
+        const ContentRecord& Record = Library.Records[Index];
 
         if (!Retained(Record, Library, Applied))
             continue;
@@ -839,11 +839,11 @@ void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrar
 
         const PlaneExtent Card = Spanning(X, Y, CardX, CardHeight);
 
-        const bool Current = Library.Taken == Ordinal;
+        const bool Current = Library.Taken == Index;
         const bool Over     = Hovered(Card);
 
         if (Pressed(LatticeCards[Target], Card, Applied))
-            Library.Taken = Ordinal;
+            Library.Taken = Index;
 
         // 📐 `hover:-translate-y-0.5` — the hovered card lifts two pixels, which is the whole of the
         //    reference's hover motion apart from its shadow.
@@ -963,16 +963,16 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
     const char*         TongueNaming[2] = { "Details", "Create" };
     const SymbolSubject TongueCrest[2]  = { SymbolSubject::BulbFilament, SymbolSubject::PlusCross };
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 2u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 2u; ++Index)
     {
         const PlaneExtent Tongue = Spanning(Tongues.MinimumX + 8.0f +
-                                            static_cast<float>(Ordinal) * (TongueX + 4.0f),
+                                            static_cast<float>(Index) * (TongueX + 4.0f),
                                             Tongues.MinimumY + 8.0f, TongueX, 32.0f);
 
-        if (Pressed(ChromeCells[3u + Ordinal], Tongue, Applied))
-            Applied.InspectorTongue = Ordinal;
+        if (Pressed(ChromeCells[3u + Index], Tongue, Applied))
+            Applied.InspectorTongue = Index;
 
-        const bool Current = Applied.InspectorTongue == Ordinal;
+        const bool Current = Applied.InspectorTongue == Index;
 
         if (Current)
             Surface->Ground(Tongue, Colour.Taken, Measure.RadiusSoft);
@@ -980,13 +980,13 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
         const ThemeToken Run = Current ? Colour.Primary
                                          : (Hovered(Tongue) ? Colour.Secondary : Colour.Faint);
 
-        const float Titled = Surface->MeasureRun(TongueNaming[Ordinal], Measure.RunBody);
+        const float Titled = Surface->MeasureRun(TongueNaming[Index], Measure.RunBody);
         const float Origin = Tongue.MinimumX + (TongueX - Titled - 20.0f) * 0.5f;
 
-        Surface->Stroke(TongueCrest[Ordinal],
+        Surface->Stroke(TongueCrest[Index],
                         Spanning(Origin, Tongue.MinimumY + 9.0f, 14.0f, 14.0f), Run);
         Surface->TextRun(Origin + 20.0f, Tongue.MinimumY + 10.0f, Run,
-                         TongueNaming[Ordinal], Measure.RunBody);
+                         TongueNaming[Index], Measure.RunBody);
     }
 
     // 📐 The preview — `h-48`, always presented, whether or not a record stands taken.
@@ -997,7 +997,7 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
     Surface->Ground(Spanning(Preview.MinimumX, Preview.MaximumY - 1.0f, Preview.Width(), 1.0f),
                     Colour.Stroke);
 
-    const bool Taken = Library.Taken != ContentLibrary::AbsentOrdinal &&
+    const bool Taken = Library.Taken != ContentLibrary::AbsentIndex &&
                        Library.Taken < Library.RecordCount;
 
     if (!Taken)
@@ -1071,16 +1071,16 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
 
     float TagX = Plate.MaximumX + 12.0f;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Record.TagCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Record.TagCount; ++Index)
     {
-        const float Span = Surface->MeasureRun(Record.Tags[Ordinal], Measure.RunCaption) + 12.0f;
+        const float Span = Surface->MeasureRun(Record.Tags[Index], Measure.RunCaption) + 12.0f;
 
         const PlaneExtent Tag = Spanning(TagX, Crest.MinimumY + 34.0f, Span, Measure.ChipHeight);
 
         Surface->Ground(Tag, Colour.Hatch, 4.0f);
         Surface->Edge(Tag, Colour.Stroke, 1.0f, 4.0f);
         Surface->TextRun(Tag.MinimumX + 6.0f, Tag.MinimumY + 5.0f, Colour.Secondary,
-                         Record.Tags[Ordinal], Measure.RunCaption);
+                         Record.Tags[Index], Measure.RunCaption);
 
         TagX += Span + 4.0f;
     }
@@ -1159,7 +1159,7 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
 void ContentBrowserPanel::RecordBrowser(const PlaneExtent& Extent, ContentLibrary& Library,
                                         ContentBrowserConfiguration& Applied)
 {
-    if (Ledger == nullptr || Surface == nullptr)
+    if (Interaction == nullptr || Surface == nullptr)
         return;
 
     // ⚠️ Cleared here and nowhere else. The set is per tick, and a host that reads it after RecordBrowser

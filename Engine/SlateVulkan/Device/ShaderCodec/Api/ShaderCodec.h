@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
 
 #include <vulkan/vulkan.h>
@@ -37,7 +37,7 @@ inline constexpr std::uint32_t SpirvStreamMarker = 0x07230203u;   // [-] - the m
 /// tag   nonallocating, nonthrowing
 struct SpecialisedConstant
 {
-    std::uint32_t  ConstantOrdinal = 0u;   // [-] - the shader's constant_id
+    std::uint32_t  ConstantIndex = 0u;   // [-] - the shader's constant_id
     std::uint32_t  Fixed           = 0u;   // [-] - what it is fixed to; widths above 32 bits are declared as two
 };
 
@@ -67,7 +67,7 @@ public:
     /// out   Result         [-]  refuses with CapabilityAbsent when no device is active
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange& Exchange, const std::string& StreamDirectory);
+    Outcome<bool> AttachShaderStreams(const VulkanExchange& Exchange, const std::string& StreamDirectory);
 
     /// 🧩 Reads one lowered stream, verifies it, and constructs the vendor module from it.
     /// in    UnitName    [-]  the unit the stream was lowered under, for example "SlateVulkan"
@@ -80,7 +80,7 @@ public:
     Outcome<std::uint32_t> Resolve(const std::string& UnitName, const std::string& StreamStem);
 
     /// 🧩 The stage declaration one module supplies to a program, with its specialisation folded in.
-    /// in    ModuleOrdinal [-]  a module this component resolved
+    /// in    ModuleIndex [-]  a module this component resolved
     /// in    Reading       [-]  which stage the module is read as
     /// in    Fixed         [-]  the constants; empty declares no specialisation
     /// out   Result       [-]  refuses with ContentUnsupported for an unresolved ordinal
@@ -89,7 +89,7 @@ public:
     ///       produced it has already surrendered its stack.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<VkPipelineShaderStageCreateInfo> Stage(std::uint32_t                             ModuleOrdinal,
+    Outcome<VkPipelineShaderStageCreateInfo> Stage(std::uint32_t                             ModuleIndex,
                                                    VkShaderStageFlagBits                     Reading,
                                                    const std::vector<SpecialisedConstant>&   Fixed);
 

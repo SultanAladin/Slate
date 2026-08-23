@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
+#include "Foundation/NumericTolerance.h"
 #include "Shared/OcclusionProjection.slang.h"
 #include "SlateDocument/Document/CameraProjection/Api/CameraProjection.h"
 #include "SlateDocument/Document/IlluminantPopulation/Api/IlluminantPopulation.h"
@@ -29,7 +29,7 @@ inline constexpr std::uint32_t AbsentProjection = 0xFFFFFFFFu;   // [-] - the il
 //    directional projection against "the camera's resolved depth range" and its §4 rebuilds that subdivision
 //    when the camera moves, so the body reads `46` while the block does not declare it. Two closures were
 //    available and neither is free: deriving a reversed-depth projection locally would be `46` §3's derivation
-//    written a second time, which is `00` §2's case and the exact shape of the defect `Contract/`'s two depth
+//    written a second time, which is `00` §2's case and the exact shape of the defect `Foundation/`'s two depth
 //    constants exist to prevent. The edge is therefore declared and read, and the omission is recorded as an
 //    addition to `00` §10 rather than worked around silently.
 
@@ -45,7 +45,7 @@ inline constexpr std::uint32_t AbsentProjection = 0xFFFFFFFFu;   // [-] - the il
 /// note  🔴 Both are **scalar**. `18` §7 declares that no bent orientation is produced and that nothing consumes
 ///        one; this component is the producer that declaration binds, and a bent orientation's only consumer was
 ///        indirect lighting, which `00` §5.1 declares absent.
-/// tag   contract
+/// tag   guarantee
 enum class OcclusionTerm : std::uint32_t
 {
     Direct    = 0u,   // [-] - is *this illuminant* visible here — `DirectOcclusionSurface`
@@ -61,7 +61,7 @@ enum class OcclusionTerm : std::uint32_t
 /// note  📝 Derived from `44` §3's shape rather than declared beside it. A projection shape declared separately
 ///        is a second answer to a question the illuminant already answered, and the two disagree the moment an
 ///        artist changes a point illuminant into a spot.
-/// tag   contract
+/// tag   guarantee
 enum class ProjectionShape : std::uint32_t
 {
     SixFaces      = 0u,   // [-] - a point illuminant; six faces about its position
@@ -88,7 +88,7 @@ constexpr ProjectionShape ShapeOfEmission(EmissionShape Emission)
 
 // 📝 🚧 `60` §9 carries the projection extents and the directional subdivision count as open, and records that
 //    the first blocks memory and the second quality against memory. Both are declared here rather than in
-//    `Contract/` because no second unit reads either — `00` §2's rule, applied to a number that is a tuning
+//    `Foundation/` because no second unit reads either — `00` §2's rule, applied to a number that is a tuning
 //    figure rather than an agreement.
 inline constexpr std::uint32_t ProjectionExtentTexels      = 1024u;   // [px] - per edge, per face
 inline constexpr std::uint32_t DirectionalSubdivisionCount = 4u;      // [-]  - slices of the camera's range
@@ -97,7 +97,7 @@ inline constexpr std::uint32_t PenumbraSampleCount         = 16u;     // [-]  - 
 /// 🧩 One face of one illuminant's projection.
 /// note  🔴 A `ViewProjection` and not a matrix. `46` §3 derives the reversed-depth arrangement and extracts the
 ///        six planes from it; a projection carrying a matrix alone would have to extract them again, and the two
-///        extractions are what `Contract/`'s `NearPlaneDepth` exists to keep from disagreeing.
+///        extractions are what `Foundation/`'s `NearPlaneDepth` exists to keep from disagreeing.
 /// tag   owning
 struct ProjectionFace
 {
@@ -133,7 +133,7 @@ struct DerivedProjection
 ///        otherwise. A camera move rebuilds nothing but the directional subdivision, and a paint stroke rebuilds
 ///        nothing at all — these are the two things the artist does constantly, and a projection set that
 ///        rebuilt on either is a workspace that stutters while being used rather than while being changed.
-/// tag   contract
+/// tag   guarantee
 enum class InvalidationSubject : std::uint32_t
 {
     IlluminantAmended  = 0u,   // [-] - moved or resized; its own projection only
@@ -183,18 +183,18 @@ public:
     ///        contributes its whole direct term unattenuated, and `18` must know which.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> SlotOf(std::uint32_t PartitionOrdinal, OwnerIdentity Illuminant) const;
+    Outcome<std::uint32_t> SlotOf(std::uint32_t PartitionIndex, OwnerIdentity Illuminant) const;
 
     /// 🧩 The illuminant one packed component carries in one partition.
     /// out   Result  [-]  refuses with ExtentExhausted where the slot is unoccupied
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<OwnerIdentity> IlluminantAt(std::uint32_t PartitionOrdinal, std::uint32_t Slot) const;
+    Outcome<OwnerIdentity> IlluminantAt(std::uint32_t PartitionIndex, std::uint32_t Slot) const;
 
     /// 🧩 How many illuminants one partition could not pack — the excess `18` integrates unattenuated.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t TruncatedCount(std::uint32_t PartitionOrdinal) const;
+    std::uint32_t TruncatedCount(std::uint32_t PartitionIndex) const;
 
     std::uint32_t TruncatedTotal() const;
     std::uint32_t SpannedCount() const;
@@ -347,7 +347,7 @@ public:
 
     /// 🧩 Rebuilds whatever the declared conditions owe, and nothing else.
     /// in    Illuminants      [-]  the population; every occlusion-registered member is projected
-    /// in    RecordingOrdinal  [-]  the rotation rebuilding
+    /// in    RecordingIndex  [-]  the rotation rebuilding
     /// out   Result          [-]  refuses with ContentUnsupported before a camera is declared, and carries a
     ///                             face derivation's own refusal
     /// post  🔴 with nothing owed, nothing is rebuilt and nothing is recorded
@@ -356,7 +356,7 @@ public:
     ///        disabled occlusion on their key light six months ago has no other way to find out.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Rebuild(const IlluminantPopulation& Illuminants, std::uint64_t RecordingOrdinal);
+    Outcome<bool> Rebuild(const IlluminantPopulation& Illuminants, std::uint64_t RecordingIndex);
 
     /// 🧩 One illuminant's standing projection.
     /// out   Result  [-]  refuses with ExtentExhausted where the illuminant carries none
@@ -394,7 +394,7 @@ private:
 
     Outcome<DerivedProjection> Derive(const IlluminantSpecification& Declared,
                                       OwnerIdentity               Illuminant,
-                                      std::uint64_t                  RecordingOrdinal) const;
+                                      std::uint64_t                  RecordingIndex) const;
 
     std::size_t Located(OwnerIdentity Illuminant) const;
 

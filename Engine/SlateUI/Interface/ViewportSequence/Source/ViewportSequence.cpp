@@ -14,11 +14,11 @@ namespace Slate
 //                                                      CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ViewportSequence::Construct(const InterfaceAttachment& Incoming,
+Outcome<bool> ViewportSequence::ConstructViewportSequence(const InterfaceAttachment& Incoming,
                                           const DrawerDeclaration&   North,
                                           const DrawerDeclaration&   South)
 {
-    const Outcome<bool> InterfaceBuilt = Interface.Construct(Incoming);
+    const Outcome<bool> InterfaceBuilt = Interface.AttachInterface(Incoming);
     if (!InterfaceBuilt.Resolved)
         return InterfaceBuilt;
 
@@ -62,7 +62,7 @@ Outcome<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
     if (!DrawersConstructed)
     {
         const Outcome<bool> DrawersBuilt =
-            DrawersOwned.Construct(Motion, Resolved, NorthDeclared, SouthDeclared, Display);
+            DrawersOwned.ConstructDrawerSpace(Motion, Resolved, NorthDeclared, SouthDeclared, Display);
 
         if (!DrawersBuilt.Resolved)
         {
@@ -233,8 +233,8 @@ void ViewportSequence::Retint(const ThemeSelection& Selected)
 
 void ViewportSequence::ApplyTypographyWeights(const std::uint32_t Weights[8])
 {
-    for (std::uint32_t Ordinal = 0u; Ordinal < 8u; ++Ordinal)
-        RoleWeights[Ordinal] = Weights[Ordinal];
+    for (std::uint32_t Index = 0u; Index < 8u; ++Index)
+        RoleWeights[Index] = Weights[Index];
 
     // 📝 Re-stated immediately rather than on the next tick. The strips write the weights every frame the
     //    Fonts page is open, and a panel that read the previous tick's figures would lag the choice by one

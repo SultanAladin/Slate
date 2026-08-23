@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
-#include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
+#include "SlateUI/Interface/ControlIndex/Api/ControlIndex.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/LayerStackSpecification/Api/LayerStackSpecification.h"
@@ -27,7 +27,7 @@ namespace Slate
 //    Control Centre cannot theme. The spellings are unchanged.
 
 /// 🧩 Every length `LayerstackV1` states, at the artist's own scale.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct LayerStackMetric
 {
     float  PanelX       = 392.0f;   // [px] - --w, the panel's own extent
@@ -79,10 +79,10 @@ struct LayerStackMetric
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Which popup, if any, the stack has standing.
-/// note  🔴 One popup at a time, which `InteractionIndex` already enforces for the CONTACT. This states
-///        *which kind* stands, because the ledger records only that one is disclosed and the panel must
+/// note  🔴 One popup at a time, which `ControlIndex` already enforces for the CONTACT. This states
+///        *which kind* stands, because the index records only that one is disclosed and the panel must
 ///        know whether to draw a blend run, a colour wheel or a layer menu into it.
-/// tag   contract
+/// tag   guarantee
 enum class StackPopup : std::uint32_t
 {
     Absent      = 0u,   // [-] - nothing stands open
@@ -96,7 +96,7 @@ enum class StackPopup : std::uint32_t
 };
 
 /// 🧩 What one drop would do to the arrangement — the reference's `dropM`.
-/// tag   contract
+/// tag   guarantee
 enum class DropIntent : std::uint32_t
 {
     Absent   = 0u,   // [-] - the carried entry stands over nothing droppable
@@ -109,12 +109,12 @@ enum class DropIntent : std::uint32_t
 /// note  🔴 Held by the HOST and not by the panel, on `14` §1's terms: a panel stores none of what it
 ///        presents. Every reading here is interaction — where the stack is scrolled, what is hovered, what
 ///        is being carried — and none of it is a datum the artist edits.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 /// 🧩 Which section of one unfolded card stands open — the reference's `secOpen(o,key,def)` roster.
 /// note  📐 `cardHTML` states seven sections and `maskCard` six, each keyed by name and each carrying its
 ///        own default. They are held as one bitmask per entry rather than as a per-section record, because
 ///        the whole state is thirteen bits and a record per section would be 128 × 13 pointers to nothing.
-/// tag   contract
+/// tag   guarantee
 enum class CardSection : std::uint32_t
 {
     Info        =  0u,   // [-] - `sec(n,'info',…,false)`
@@ -145,19 +145,19 @@ inline constexpr std::uint32_t AppliedSections =
 
 struct LayerStackContext
 {
-    static constexpr std::uint32_t RetentionCeiling = 48u;   // [-] - characters the search run retains
-    static constexpr std::uint32_t NamingCeiling    = LayerStackCeiling::NamingCeiling;
+    static constexpr std::uint32_t RetentionLimit = 48u;   // [-] - characters the search run retains
+    static constexpr std::uint32_t NamingLimit    = LayerStackLimit::NamingLimit;
 
     float          StackOffset   = 0.0f;    // [px] - how far the stack is scrolled
     float          StackSpan     = 0.0f;    // [px] - the recorded extent, resolved each tick
-    std::uint32_t  Hovered       = LayerStackCeiling::AbsentOrdinal;   // [-] - which entry is hovered
+    std::uint32_t  Hovered       = LayerStackLimit::AbsentIndex;   // [-] - which entry is hovered
     bool           HoveredMask   = false;   // [-] - whether it is that entry's mask row
     bool           ContactPrior  = false;   // [-] - the previous tick's contact, for edge detection
 
     // 📐 `secOpen(o,key,def)` — which sections stand open, one mask per entry and one per attached mask.
     //    Seeded to `AppliedSections` at bring-up, so a card that has never been touched opens exactly the
     //    sections the reference's own `def` arguments state.
-    std::uint32_t  Sections[LayerStackCeiling::Entries] = {};   // [-] - a CardSection bit each
+    std::uint32_t  Sections[LayerStackLimit::Entries] = {};   // [-] - a CardSection bit each
     bool           SectionsSeeded = false;                      // [-] - whether the run above was seeded
 
     // 📐 `.card{grid-template-rows:0fr;opacity:0}` → `.card.open{1fr;opacity:1}`, over `.28s var(--ease)`.
@@ -170,22 +170,22 @@ struct LayerStackContext
     // 🔴 The ENTER animation needs the reference's own `pendingOpen` staging: a card added to the set is
     //    rendered CLOSED for one frame and opened on the next, because a card that appears already open has
     //    nothing to transition from. `CardPending` carries that one-frame stage.
-    EasedInterpolant  CardFold[LayerStackCeiling::Entries] = {};   // [-] - 0…1, how far each card is open
-    EasedInterpolant  MaskFold[LayerStackCeiling::Entries] = {};   // [-] - 0…1, its mask card
-    std::uint32_t     CardPending   = LayerStackCeiling::AbsentOrdinal;   // [-] - staged; opens next tick
+    EasedInterpolant  CardFold[LayerStackLimit::Entries] = {};   // [-] - 0…1, how far each card is open
+    EasedInterpolant  MaskFold[LayerStackLimit::Entries] = {};   // [-] - 0…1, its mask card
+    std::uint32_t     CardPending   = LayerStackLimit::AbsentIndex;   // [-] - staged; opens next tick
     bool              PendingOnMask = false;                              // [-] - whether it is the mask
 
     // 📐 `$('#q')` — the search run, and whether it holds text entry.
-    char           Retention[RetentionCeiling] = {};   // [-] - what the artist typed
+    char           Retention[RetentionLimit] = {};   // [-] - what the artist typed
     bool           RetentionHovered = false;            // [-] - the field has the keyboard
 
     // 📐 `renameRow` — the in-place naming field, which is the only other text entry the panel has.
-    std::uint32_t  Renaming        = LayerStackCeiling::AbsentOrdinal;   // [-] - which entry is renaming
-    char           RenamingRun[NamingCeiling] = {};                      // [-] - what stands typed
+    std::uint32_t  Renaming        = LayerStackLimit::AbsentIndex;   // [-] - which entry is renaming
+    char           RenamingRun[NamingLimit] = {};                      // [-] - what stands typed
 
     // 📐 The reference's `drag`, `dropT` and `dropM`.
-    std::uint32_t  Carried      = LayerStackCeiling::AbsentOrdinal;   // [-] - which entry is being dragged
-    std::uint32_t  Destination  = LayerStackCeiling::AbsentOrdinal;   // [-] - what it stands over
+    std::uint32_t  Carried      = LayerStackLimit::AbsentIndex;   // [-] - which entry is being dragged
+    std::uint32_t  Destination  = LayerStackLimit::AbsentIndex;   // [-] - what it stands over
     DropIntent     Intent       = DropIntent::Absent;                 // [-] - what the drop would do
     float          CarryOrigin  = 0.0f;   // [px] - where the contact arrived, to separate a drag from a tap
 
@@ -208,7 +208,7 @@ struct LayerStackContext
     //    immediately — so opening the footer's blend run instantly restated the blend to whatever entry
     //    the pill was sitting under. An entry resolves only once the popup has settled.
     bool           PopupSettled    = false;
-    std::uint32_t  PopupSubject   = LayerStackCeiling::AbsentOrdinal;   // [-] - the entry it addresses
+    std::uint32_t  PopupSubject   = LayerStackLimit::AbsentIndex;   // [-] - the entry it addresses
     bool           PopupOnMask    = false;   // [-] - whether it addresses that entry's mask
     float          PopupOffset    = 0.0f;    // [px] - how far a long popup is scrolled, as drawn
     // 🔴 The wheel wrote the drawn offset directly, so a long roster JUMPED a notch
@@ -230,11 +230,11 @@ struct LayerStackContext
     // 📐 `Inspector.tsx` `renderHistory()` — the revision pane's own interaction. The reference retains
     //    `collapsedHistory` per token and `expandedRevisions` per revision; the pane here presents one
     //    token, so the run is folded by a single reading and each entry unfolds on its own.
-    static constexpr std::uint32_t RevisionCeiling = 16u;   // [-] - entries carrying registered cells
-    static constexpr std::uint32_t RemarkCeiling   = 64u;   // [-] - characters one comment retains
+    static constexpr std::uint32_t RevisionLimit = 16u;   // [-] - entries carrying registered cells
+    static constexpr std::uint32_t RemarkLimit   = 64u;   // [-] - characters one comment retains
 
     bool           RevisionsFolded = false;   // [-] - `collapsedHistory[token]`, the head's own chevron
-    std::uint32_t  RevisionShown   = LayerStackCeiling::AbsentOrdinal;   // [-] - `expandedRevisions[rev.id]`
+    std::uint32_t  RevisionShown   = LayerStackLimit::AbsentIndex;   // [-] - `expandedRevisions[rev.id]`
     float          RevisionOffset  = 0.0f;    // [px] - how far the pane is scrolled
     float          RevisionSpan    = 0.0f;    // [px] - the recorded extent, resolved each tick
 
@@ -242,8 +242,8 @@ struct LayerStackContext
     //    {comment})` — so what is typed lives here until the keyboard leaves the field, and only then is
     //    it the revision's own reading.
     std::uint32_t  RevisionField   = 0u;      // [-] - 0 none, 1 the comment, 2 the value
-    char           RevisionRemark[RevisionCeiling][RemarkCeiling] = {};   // [-] - `rev.comment`
-    char           RevisionReading[RevisionCeiling][RemarkCeiling] = {};  // [-] - `rev.editValue`
+    char           RevisionRemark[RevisionLimit][RemarkLimit] = {};   // [-] - `rev.comment`
+    char           RevisionReading[RevisionLimit][RemarkLimit] = {};  // [-] - `rev.editValue`
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -264,40 +264,40 @@ public:
     //    graceful reduction and not a defect.
     // 🔴 The three runs together claim
     //        16 × 12  +  16  +  32  =  240
-    //    slots from the ledger. The reference's own arrangement presents thirteen entries, so sixteen rows
+    //    slots from the index. The reference's own arrangement presents thirteen entries, so sixteen rows
     //    covers it with slack. A run sized past the ceiling refuses at `Construct` and the panel never
     //    records at all.
-    // 🔴 The ledger is SHARED with every other panel the host constructs, so the assertion below is
+    // 🔴 The index is SHARED with every other panel the host constructs, so the assertion below is
     //    necessary and NOT sufficient — it weighs this panel alone. It once passed at 240 ≤ 256 while the
     //    host had already spent 159 slots on the sheet and the shell, and the layer stack was rejected at
     //    bring-up. The host states the whole-host total in its own budget; keep both in step.
-    static constexpr std::uint32_t RowCeiling      = 16u;   // [-] - rows carrying registered cells
+    static constexpr std::uint32_t RowLimit      = 16u;   // [-] - rows carrying registered cells
     static constexpr std::uint32_t CellsPerRow     = 12u;   // [-] - see RowCell
-    static constexpr std::uint32_t ChromeCeiling   = 20u;   // [-] - the head, the tools, the footer, the revision pane
-    static constexpr std::uint32_t PopupEntryCeiling = 32u; // [-] - the longest popup is BLENDS, at 29
+    static constexpr std::uint32_t ChromeLimit   = 20u;   // [-] - the head, the tools, the footer, the revision pane
+    static constexpr std::uint32_t PopupEntryLimit = 32u; // [-] - the longest popup is BLENDS, at 29
 
     // 📐 One cell per revision entry, so an entry unfolds under its own contact rather than under the
-    //    pane's. `LayerStackContext::RevisionCeiling` states how many the pane presents.
-    static constexpr std::uint32_t RevisionCellCeiling = LayerStackContext::RevisionCeiling;
+    //    pane's. `LayerStackContext::RevisionLimit` states how many the pane presents.
+    static constexpr std::uint32_t RevisionCellLimit = LayerStackContext::RevisionLimit;
 
     // 🔴 The unfolded card's own controls, registered ONCE and lent to whichever card is being recorded.
     //    The reference lets every row unfold at the same time, so a run per row would be 16 × 40 = 640
-    //    slots — the whole ledger, for cards that are almost never all open. Instead one run is claimed
+    //    slots — the whole index, for cards that are almost never all open. Instead one run is claimed
     //    and re-used: the FIRST card recorded this tick takes it, and a second unfolded card records its
     //    sections with the same identities. The cost of the sharing is that two cards open at once hover
     //    together on the same row ordinal; the cost of not sharing is a panel that cannot be constructed.
     // 📐 Sized against the widest card `cardHTML` states — a decal's, at one selection and eleven ranges
     //    of placement over the properties, height and colour rows the every card carries.
-    static constexpr std::uint32_t CardControlCeiling = 44u;   // [-] - controls one unfolded card lends
+    static constexpr std::uint32_t CardControlLimit = 44u;   // [-] - controls one unfolded card lends
 
-    /// 🧩 How many ledger slots one panel claims, so a host may weigh it without re-deriving the sum.
+    /// 🧩 How many index slots one panel claims, so a host may weigh it without re-deriving the sum.
     static constexpr std::uint32_t RegistrationDemand =
-        RowCeiling * CellsPerRow + ChromeCeiling + PopupEntryCeiling + RevisionCellCeiling +
-        CardControlCeiling;
+        RowLimit * CellsPerRow + ChromeLimit + PopupEntryLimit + RevisionCellLimit +
+        CardControlLimit;
 
-    static_assert(RegistrationDemand <= InteractionIndex::ControlCapacity,
-                  "the layer stack's registrations exceed the interaction ledger's capacity — Construct would "
-                  "refuse and the panel would record nothing; reduce RowCeiling or raise ControlCapacity");
+    static_assert(RegistrationDemand <= ControlIndex::ControlCapacity,
+                  "the layer stack's registrations exceed the interaction index's capacity — Construct would "
+                  "refuse and the panel would record nothing; reduce RowLimit or raise ControlCapacity");
 
     LayerStackPanel()                                  = default;
     LayerStackPanel(const LayerStackPanel&)            = delete;
@@ -306,12 +306,12 @@ public:
 
     /// 🧩 Binds the panel to one recording surface and claims every identity its controls are arbitrated
     ///    under, once, at bring-up.
-    /// in    Interaction  [-]  borrowed; the ledger every control is registered into
+    /// in    Interaction  [-]  borrowed; the index every control is registered into
     /// in    Recording    [-]  borrowed; must outlive the panel
     /// in    Appearance   [-]  borrowed; the resolved appearance the card's controls are drawn from, and
     ///                         which must outlive the panel — the host's own, not a temporary
     /// out   Result      [-]  refuses with ContentUnsupported when a construction already stands, and
-    ///                         with whatever the ledger rejected when an registration was rejected
+    ///                         with whatever the index rejected when an registration was rejected
     /// note  🔴 Registration happens HERE and never inside a tick. A control registered mid-tick receives a
     ///        fresh fade and reads as though the pointer had only just arrived over it, every tick.
     /// note  ⚠️ The appearance is BORROWED and read on every tick the card records, so a host must pass the
@@ -319,13 +319,13 @@ public:
     ///        the component reads this reference directly and sees the host's re-resolution without one.
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Construct(InteractionIndex& Interaction, RecordingSurface& Recording,
+    Outcome<bool> ConstructLayerStackPanel(ControlIndex& IncomingInteraction, RecordingSurface& Recording,
                             const ThemeProfile& Appearance);
 
     /// 🧩 Samples this tick's contact, before any extent is recorded against it.
     /// in    Contact  [-]  what `RecordingSurface::Pointer` reported
     /// in    Elapsed  [ms] what the same tick's display condition measured
-    /// note  ⚠️ Called once per tick, after `InteractionIndex::Advance` and before `RecordStack`.
+    /// note  ⚠️ Called once per tick, after `ControlIndex::Advance` and before `RecordStack`.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     void Advance(const PointerCondition& Contact, double Elapsed);
@@ -477,7 +477,7 @@ private:
     bool Dragged(ControlIdentity Target, const PlaneExtent& Extent, std::uint32_t& Reading);
 
     void RecordEntryRow(const PlaneExtent& Extent, const LayerArrangement& Arrangement,
-                        std::uint32_t Ordinal, bool Taken, bool Hovered);
+                        std::uint32_t Index, bool Taken, bool Hovered);
 
     void RecordMaskRow(const PlaneExtent& Extent, const LayerEntry& Entry, bool Taken, bool Hovered);
 
@@ -501,18 +501,18 @@ private:
     /// note  🔴 The fold multiplies what this returns. Measuring by a second, separate walk is the defect
     ///        where a card animates to an extent its own content does not occupy.
     /// cost  🔴
-    float RecordEntryCard(const PlaneExtent& Extent, LayerArrangement& Arrangement, std::uint32_t Ordinal,
+    float RecordEntryCard(const PlaneExtent& Extent, LayerArrangement& Arrangement, std::uint32_t Index,
                           LayerStackContext& Applied, RevisionSequence& Revisions, bool Recording);
 
     /// 🧩 Records one mask's unfolded card — `maskCard(n)`, section for section.
     /// cost  🔴
-    float RecordMaskCard(const PlaneExtent& Extent, LayerArrangement& Arrangement, std::uint32_t Ordinal,
+    float RecordMaskCard(const PlaneExtent& Extent, LayerArrangement& Arrangement, std::uint32_t Index,
                          LayerStackContext& Applied, RevisionSequence& Revisions, bool Recording);
 
     /// 🧩 Records one section head and reports whether its body should be walked, folding it on a press.
     /// out   Opened  [-]  whether the section stands open
     bool RecordCardSection(const PlaneExtent& Extent, const char* Caption, const char* Reading,
-                           CardSection Section, std::uint32_t Ordinal, LayerStackContext& Applied,
+                           CardSection Section, std::uint32_t Index, LayerStackContext& Applied,
                            bool Recording, float& Y);
 
     /// 🧩 Records one `paramsHTML` run — a range, a selection or a switch per parameter.
@@ -551,20 +551,20 @@ private:
                           bool Marked, bool Dangerous, LayerStackContext& Applied);
 
     RecordingSurface*  Surface = nullptr;   // [-] - borrowed
-    InteractionIndex*  Ledger  = nullptr;   // [-] - borrowed; never owned
+    ControlIndex*  Interaction  = nullptr;   // [-] - borrowed; never owned
     LayerStackColour      Tinted;              // [-] - the applied colours
     LayerStackMetric   Scaled;              // [-] - the applied lengths
     PointerCondition   Sampled = {};        // [-] - this tick's contact, taken at Advance
 
-    ControlIdentity    RowCells[RowCeiling * CellsPerRow] = {};   // [-] - one per row, one per cell
-    ControlIdentity    ChromeCells[ChromeCeiling]         = {};   // [-] - the panel's own chrome
-    ControlIdentity    PopupEntries[PopupEntryCeiling]    = {};   // [-] - one per open popup entry
-    ControlIdentity    RevisionCells[RevisionCellCeiling] = {};   // [-] - one per revision entry
-    ControlIdentity    CardControls[CardControlCeiling]   = {};   // [-] - lent to the recorded card
+    ControlIdentity    RowCells[RowLimit * CellsPerRow] = {};   // [-] - one per row, one per cell
+    ControlIdentity    ChromeCells[ChromeLimit]         = {};   // [-] - the panel's own chrome
+    ControlIdentity    PopupEntries[PopupEntryLimit]    = {};   // [-] - one per open popup entry
+    ControlIdentity    RevisionCells[RevisionCellLimit] = {};   // [-] - one per revision entry
+    ControlIdentity    CardControls[CardControlLimit]   = {};   // [-] - lent to the recorded card
 
     // 🔴 The card's sliders, switches and selections are recorded THROUGH this rather than open-coded, so
     //    the whole interface draws one slider and not two that drift apart. It is constructed against the
-    //    same ledger and surface the panel holds, and reapplied whenever the panel is.
+    //    same index and surface the panel holds, and reapplied whenever the panel is.
     ComponentSpecification  CardComponents;   // [-] - the eight declared controls, for the unfolded card
 
     // 🔴 How many of `CardControls` the card being recorded has spent this tick. Reset at the head of every

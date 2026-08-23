@@ -164,7 +164,7 @@ Outcome<bool> VulkanExchange::ConstructDevice(VkSurfaceKHR PresentationSurface)
 
     VkDeviceQueueCreateInfo QueueDeclaration = {};
     QueueDeclaration.sType                   = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    QueueDeclaration.queueFamilyIndex        = Winner.Scored.GraphicsFamilyOrdinal;
+    QueueDeclaration.queueFamilyIndex        = Winner.Scored.GraphicsFamilyIndex;
     QueueDeclaration.queueCount              = 1u;
     QueueDeclaration.pQueuePriorities        = &QueuePriority;
 
@@ -197,7 +197,7 @@ Outcome<bool> VulkanExchange::ConstructDevice(VkSurfaceKHR PresentationSurface)
     ScoredDeviceSlot = Winner.Candidate;
     ScoredCapability = Winner.Scored;
 
-    vkGetDeviceQueue(ActiveDeviceSlot, ScoredCapability.GraphicsFamilyOrdinal, 0u, &GraphicsQueueSlot);
+    vkGetDeviceQueue(ActiveDeviceSlot, ScoredCapability.GraphicsFamilyIndex, 0u, &GraphicsQueueSlot);
 
     return Outcome<bool>::Result(true);
 }

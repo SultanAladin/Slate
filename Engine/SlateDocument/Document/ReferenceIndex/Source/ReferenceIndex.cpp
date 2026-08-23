@@ -58,14 +58,14 @@ Outcome<std::uint32_t> ReferenceIndex::Declare(const DeclaredReference& Incoming
 //                                                     THE STANDINGS
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ReferenceIndex::DeclareRetention(std::uint32_t ReferenceOrdinal, ReferenceRetention Declaring)
+Outcome<bool> ReferenceIndex::DeclareRetention(std::uint32_t ReferenceIndex, ReferenceRetention Declaring)
 {
-    if (ReferenceOrdinal >= Declarations.size())
+    if (ReferenceIndex >= Declarations.size())
     {
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "no reference is declared at that ordinal" });
     }
 
-    DeclaredReference& Amending = Declarations[ReferenceOrdinal];
+    DeclaredReference& Amending = Declarations[ReferenceIndex];
 
     if (Declaring == ReferenceRetention::Referenced && Amending.OriginPath.empty())
     {
@@ -78,14 +78,14 @@ Outcome<bool> ReferenceIndex::DeclareRetention(std::uint32_t ReferenceOrdinal, R
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> ReferenceIndex::DeclareResolved(std::uint32_t ReferenceOrdinal, std::uint64_t SpannedBytes)
+Outcome<bool> ReferenceIndex::DeclareResolved(std::uint32_t ReferenceIndex, std::uint64_t SpannedBytes)
 {
-    if (ReferenceOrdinal >= Declarations.size())
+    if (ReferenceIndex >= Declarations.size())
     {
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "no reference is declared at that ordinal" });
     }
 
-    DeclaredReference& Amending = Declarations[ReferenceOrdinal];
+    DeclaredReference& Amending = Declarations[ReferenceIndex];
 
     // 📝 A reference that was absent and is now found leaves the absent count. The report already appended for
     //    it stays in the register, because it happened — `86` §2.2 appends at the occurrence and never retracts.
@@ -97,14 +97,14 @@ Outcome<bool> ReferenceIndex::DeclareResolved(std::uint32_t ReferenceOrdinal, st
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> ReferenceIndex::DeclareAbsent(std::uint32_t ReferenceOrdinal)
+Outcome<bool> ReferenceIndex::DeclareAbsent(std::uint32_t ReferenceIndex)
 {
-    if (ReferenceOrdinal >= Declarations.size())
+    if (ReferenceIndex >= Declarations.size())
     {
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "no reference is declared at that ordinal" });
     }
 
-    DeclaredReference& Amending = Declarations[ReferenceOrdinal];
+    DeclaredReference& Amending = Declarations[ReferenceIndex];
 
     if (Amending.Condition != ReferenceCondition::Absent) { ++AbsentTotal; }
 
@@ -122,22 +122,22 @@ Outcome<bool> ReferenceIndex::DeclareAbsent(std::uint32_t ReferenceOrdinal)
 
 void ReferenceIndex::Report(ReportSequence& Reporting, TickPoint Sampled)
 {
-    for (std::size_t Ordinal = 0u; Ordinal < Declarations.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < Declarations.size(); ++Index)
     {
-        if (Declarations[Ordinal].Condition != ReferenceCondition::Absent) { continue; }
-        if (AbsenceReported[Ordinal])                                    { continue; }
+        if (Declarations[Index].Condition != ReferenceCondition::Absent) { continue; }
+        if (AbsenceReported[Index])                                    { continue; }
 
         ReportSpecification Appending;
         Appending.Origin         = AbsenceOrigin;
-        Appending.Subject        = SubjectSpelling(Declarations[Ordinal].Subject);
+        Appending.Subject        = SubjectSpelling(Declarations[Index].Subject);
         Appending.Detail         = AbsenceDetail;
-        Appending.SubjectOrdinal = static_cast<std::uint64_t>(Declarations[Ordinal].Registered.SlotOrdinal);
+        Appending.SubjectIndex = static_cast<std::uint64_t>(Declarations[Index].Registered.SlotIndex);
         Appending.Verdict    = ReportVerdict::Rejected;
         Appending.Arrival        = Sampled;
 
         Reporting.Append(Appending);
 
-        AbsenceReported[Ordinal] = true;
+        AbsenceReported[Index] = true;
     }
 }
 

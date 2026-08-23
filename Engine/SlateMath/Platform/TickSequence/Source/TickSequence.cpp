@@ -66,7 +66,7 @@ TickPoint TickSequence::Advance() const
     QueryPerformanceCounter(&CurrentCount);
 
     const std::uint64_t Elapsed = static_cast<std::uint64_t>(CurrentCount.QuadPart) - OriginCount;
-    Reading.Ordinal = static_cast<std::uint64_t>(static_cast<double>(Elapsed) * CountToSeconds * 1.0e9);
+    Reading.Index = static_cast<std::uint64_t>(static_cast<double>(Elapsed) * CountToSeconds * 1.0e9);
 
 #else
 
@@ -75,7 +75,7 @@ TickPoint TickSequence::Advance() const
 
     const std::uint64_t CurrentCount = static_cast<std::uint64_t>(Current.tv_sec) * 1000000000ull
                                      + static_cast<std::uint64_t>(Current.tv_nsec);
-    Reading.Ordinal = CurrentCount - OriginCount;
+    Reading.Index = CurrentCount - OriginCount;
 
 #endif
 
@@ -97,13 +97,13 @@ TickPoint TickSequence::Project(std::uint64_t HostCount) const
 
 #if defined(_WIN32)
 
-    Reading.Ordinal = static_cast<std::uint64_t>(static_cast<double>(Elapsed) * CountToSeconds * 1.0e9);
+    Reading.Index = static_cast<std::uint64_t>(static_cast<double>(Elapsed) * CountToSeconds * 1.0e9);
 
 #else
 
     // 📝 The counter is already nanoseconds under the monotonic clock, so the conversion is the identity and
     //    is written as one rather than as a multiply by unity that rounds through a double on the way.
-    Reading.Ordinal = Elapsed;
+    Reading.Index = Elapsed;
 
 #endif
 
@@ -116,10 +116,10 @@ TickPoint TickSequence::Project(std::uint64_t HostCount) const
 
 double TickSequence::Span(TickPoint Earlier, TickPoint Later)
 {
-    if (Later.Ordinal <= Earlier.Ordinal)
+    if (Later.Index <= Earlier.Index)
         return 0.0;
 
-    return static_cast<double>(Later.Ordinal - Earlier.Ordinal) * 1.0e-6;
+    return static_cast<double>(Later.Index - Earlier.Index) * 1.0e-6;
 }
 
 }   // namespace Slate

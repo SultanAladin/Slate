@@ -28,7 +28,7 @@
 //          Engine/SlateUI/Interface/AppearanceSpecification/Source/AppearanceSpecification.cpp \
 //          Engine/SlateUI/Interface/TextComponent/Source/FontLoader.cpp \
 //          Engine/SlateUI/Interface/TextComponent/Source/TextComponent.cpp \
-//          Engine/SlateUI/Interface/InteractionIndex/Source/InteractionIndex.cpp \
+//          Engine/SlateUI/Interface/ControlIndex/Source/ControlIndex.cpp \
 //          Engine/SlateUI/Interface/ComponentSpecification/Source/ComponentSpecification.cpp \
 //          Engine/SlateUI/Interface/MotionIntegrator/Source/MotionIntegrator.cpp \
 //          Engine/SlateUI/Interface/ShortcutSpecification/Source/ShortcutSpecification.cpp \
@@ -46,7 +46,7 @@
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
 #include "SlateUI/Interface/ControlCentrePanel/Api/ControlCentrePanel.h"
-#include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
+#include "SlateUI/Interface/ControlIndex/Api/ControlIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
 #include "SlateUI/Interface/ShortcutSpecification/Api/ShortcutSpecification.h"
@@ -248,9 +248,9 @@ struct Rasterizer
         const ImDrawVert* Vertices = List->VtxBuffer.Data;
         const ImDrawIdx* Indices = List->IdxBuffer.Data;
 
-        for (int CommandOrdinal = 0; CommandOrdinal < CommandCount; ++CommandOrdinal)
+        for (int CommandIndex = 0; CommandIndex < CommandCount; ++CommandIndex)
         {
-            const ImDrawCmd& Command = Commands[CommandOrdinal];
+            const ImDrawCmd& Command = Commands[CommandIndex];
             if (Command.UserCallback != nullptr)
                 continue;
 
@@ -300,7 +300,7 @@ struct ProofDriver
     ImGuiIO& IO;
     FontLoader Fonts;                       // [-] - owned here: the surface borrows it for the process
     MotionIntegrator Motion;
-    InteractionIndex Ledger;
+    ControlIndex Interaction;
     RecordingSurface Surface;
     ComponentSpecification Shared;
     ControlCentrePanel ControlCentre;
@@ -315,7 +315,7 @@ struct ProofDriver
         Values.DisplayPage = DisplayPreferencePage::Fonts;
     }
 
-    bool Construct(const char* FontRoot, const char* Family)
+    bool ConstructTypographyProof(const char* FontRoot, const char* Family)
     {
         if (!Fonts.Discover(FontRoot).Resolved)
         {
@@ -340,11 +340,11 @@ struct ProofDriver
 
         // 📝 The hosts seat the carousel on the family the appearance names; mirror it here so the
         //    highlighted tile and the loaded faces agree.
-        for (std::uint32_t Ordinal = 0u; Ordinal < Fonts.FamilyCount(); ++Ordinal)
-            if (Fonts.FamilyName(Ordinal) != nullptr &&
-                std::strcmp(Fonts.FamilyName(Ordinal), Profile.Family) == 0)
+        for (std::uint32_t Index = 0u; Index < Fonts.FamilyCount(); ++Index)
+            if (Fonts.FamilyName(Index) != nullptr &&
+                std::strcmp(Fonts.FamilyName(Index), Profile.Family) == 0)
             {
-                Values.Font = Ordinal;
+                Values.Font = Index;
                 break;
             }
 
@@ -364,17 +364,17 @@ struct ProofDriver
         Surface.ApplyTypographyScale(Appearance.TextScale);
         Surface.ApplyCornerScale(Appearance.CornerScale);
 
-        if (!Ledger.Construct(Motion).Resolved)
+        if (!Interaction.AttachMotion(Motion).Resolved)
         {
-            std::fprintf(stderr, "rejected: interaction ledger\n");
+            std::fprintf(stderr, "rejected: interaction index\n");
             return false;
         }
-        if (!Shared.Construct(Ledger, Surface, Appearance).Resolved)
+        if (!Shared.ConstructComponents(Interaction, Surface, Appearance).Resolved)
         {
             std::fprintf(stderr, "rejected: shared controls\n");
             return false;
         }
-        if (!ControlCentre.Construct(Motion, Surface, Appearance).Resolved)
+        if (!ControlCentre.ConstructControlCentrePanel(Motion, Surface, Appearance).Resolved)
         {
             std::fprintf(stderr, "rejected: Control Centre\n");
             return false;
@@ -409,7 +409,7 @@ struct ProofDriver
 
     void Settle(int Frames)
     {
-        for (int Ordinal = 0; Ordinal < Frames; ++Ordinal)
+        for (int Index = 0; Index < Frames; ++Index)
             Tick(640.0f, 450.0f, false, false, false);
     }
 
@@ -457,9 +457,9 @@ struct ProofDriver
         Rasterizer Out;
         Out.Begin(static_cast<int>(ViewportWidth), static_cast<int>(ViewportHeight));
         const ImDrawData* Data = ImGui::GetDrawData();
-        for (int ListOrdinal = 0; ListOrdinal < Data->CmdListsCount; ++ListOrdinal)
+        for (int ListIndex = 0; ListIndex < Data->CmdListsCount; ++ListIndex)
         {
-            if (!Out.Draw(Data->CmdLists[ListOrdinal], LiveAtlas, LiveAtlasWidth, LiveAtlasHeight))
+            if (!Out.Draw(Data->CmdLists[ListIndex], LiveAtlas, LiveAtlasWidth, LiveAtlasHeight))
                 return false;
         }
         if (Data->CmdListsCount == 0)
@@ -494,9 +494,9 @@ constexpr float TileStep = 132.0f;
 constexpr float TileHalf = 60.0f;
 constexpr float TitleRightArrowX = 1173.0f;  // [px] - the right arrow's centre
 
-float TileCentreX(std::uint32_t TileOrdinal, float Scroll)
+float TileCentreX(std::uint32_t TileIndex, float Scroll)
 {
-    return TitleRailMinimum + 4.0f + TileStep * static_cast<float>(TileOrdinal) - Scroll + TileHalf;
+    return TitleRailMinimum + 4.0f + TileStep * static_cast<float>(TileIndex) - Scroll + TileHalf;
 }
 
 bool RunShot(ProofDriver& Driver, const char* OutputPath, const char* Scenario,
@@ -505,11 +505,11 @@ bool RunShot(ProofDriver& Driver, const char* OutputPath, const char* Scenario,
     Driver.Values = {};
     Driver.Values.Page = ControlCentrePage::Display;
     Driver.Values.DisplayPage = DisplayPreferencePage::Fonts;
-    for (std::uint32_t Ordinal = 0u; Ordinal < Driver.Fonts.FamilyCount(); ++Ordinal)
-        if (Driver.Fonts.FamilyName(Ordinal) != nullptr &&
-            std::strcmp(Driver.Fonts.FamilyName(Ordinal), Driver.ActiveFamily) == 0)
+    for (std::uint32_t Index = 0u; Index < Driver.Fonts.FamilyCount(); ++Index)
+        if (Driver.Fonts.FamilyName(Index) != nullptr &&
+            std::strcmp(Driver.Fonts.FamilyName(Index), Driver.ActiveFamily) == 0)
         {
-            Driver.Values.Font = Ordinal;
+            Driver.Values.Font = Index;
             break;
         }
 
@@ -566,13 +566,13 @@ bool RunShot(ProofDriver& Driver, const char* OutputPath, const char* Scenario,
             Driver.Fonts.Preview("OpenSans", 1.0f),
             Driver.Fonts.Face(Slate::FontWeight::Regular, Slate::FontSlant::Upright)
         };
-        for (int Ordinal = 0; Ordinal < 5; ++Ordinal)
+        for (int Index = 0; Index < 5; ++Index)
         {
-            Driver.Surface.ApplyFontPreview(Faces[Ordinal]);
-            Driver.Surface.TextRun(80.0f, DebugTop + 60.0f * static_cast<float>(Ordinal),
+            Driver.Surface.ApplyFontPreview(Faces[Index]);
+            Driver.Surface.TextRun(80.0f, DebugTop + 60.0f * static_cast<float>(Index),
                                    Covering(0xFFFFFFu), "Aa The quick brown fox", 30.0f);
-            Driver.Surface.TextRun(620.0f, DebugTop + 60.0f * static_cast<float>(Ordinal),
-                                   Covering(0xFFFFFFu), Names[Ordinal], 20.0f);
+            Driver.Surface.TextRun(620.0f, DebugTop + 60.0f * static_cast<float>(Index),
+                                   Covering(0xFFFFFFu), Names[Index], 20.0f);
             Driver.Surface.ApplyFontPreview(nullptr);
         }
         return Driver.Capture(OutputPath, Atlas, AtlasWidth, AtlasHeight);
@@ -672,19 +672,19 @@ int main(int ArgumentCount, char** Arguments)
     std::string OutputDirectory = "VisualProof/Typography";
     std::string Scenario = "";
 
-    for (int Ordinal = 1; Ordinal < ArgumentCount; ++Ordinal)
+    for (int Index = 1; Index < ArgumentCount; ++Index)
     {
-        const std::string Arg = Arguments[Ordinal];
-        if (Arg == "--font-root" && Ordinal + 1 < ArgumentCount)
-            FontRoot = Arguments[++Ordinal];
-        else if (Arg == "--out" && Ordinal + 1 < ArgumentCount)
-            OutputDirectory = Arguments[++Ordinal];
-        else if (Arg == "--family" && Ordinal + 1 < ArgumentCount)
-            Family = Arguments[++Ordinal];
+        const std::string Arg = Arguments[Index];
+        if (Arg == "--font-root" && Index + 1 < ArgumentCount)
+            FontRoot = Arguments[++Index];
+        else if (Arg == "--out" && Index + 1 < ArgumentCount)
+            OutputDirectory = Arguments[++Index];
+        else if (Arg == "--family" && Index + 1 < ArgumentCount)
+            Family = Arguments[++Index];
         else if (Arg.rfind("--shot=", 0) == 0)
             Scenario = Arg.substr(7);
-        else if (Arg.rfind("--shot ", 0) == 0 && Ordinal + 1 < ArgumentCount)
-            Scenario = Arguments[++Ordinal];
+        else if (Arg.rfind("--shot ", 0) == 0 && Index + 1 < ArgumentCount)
+            Scenario = Arguments[++Index];
     }
 
     ImGui::CreateContext();
@@ -701,7 +701,7 @@ int main(int ArgumentCount, char** Arguments)
     IO.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
 
     ProofDriver Driver;
-    if (!Driver.Construct(FontRoot, Family))
+    if (!Driver.ConstructTypographyProof(FontRoot, Family))
         return 1;
     if (IO.Fonts->Fonts.empty())
     {

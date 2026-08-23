@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateVulkan/Device/ByteSpace/Api/ByteSpace.h"
 #include "SlateVulkan/Device/DiagnosticExtension/Api/DiagnosticExtension.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
@@ -29,7 +29,7 @@ inline constexpr std::uint32_t AbsentImage = 0xFFFFFFFFu;   // [-] - the claim n
 /// note  🔴 Declared rather than derived from the format. D32 is a depth attachment for `16` and a sampled
 ///        source for `60`, and an image claimed for one and used for the other is a validation error at the
 ///        recording site rather than at the claim — a long way from the declaration that caused it.
-/// tag   contract
+/// tag   guarantee
 enum class ImageIntent : std::uint32_t
 {
     ColourTarget    = 0u,   // [-] - written by a graphics recording, then sampled
@@ -68,11 +68,11 @@ struct ImageReservation
     VkImageView    WholeView      = VK_NULL_HANDLE;              // [-] - every level, every layer
     VkImageLayout  CurrentLayout = VK_IMAGE_LAYOUT_UNDEFINED;   // [-] - what the last transition left it in
     ImageShape     Shape          = {};                          // [-] - as claimed, never as re-queried
-    std::uint32_t  ImageOrdinal   = AbsentImage;                 // [-] - which slot Release returns it to
+    std::uint32_t  ImageIndex   = AbsentImage;                 // [-] - which slot Release returns it to
 };
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                                   THE IMAGE LEDGER
+//                                                   THE IMAGE INDEX
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Every device image the engine holds, each sliced out of `ByteSpace` and each carrying its own layout.
@@ -101,7 +101,7 @@ public:
     ///        view under a named image reports as an address beside a name, which reads as two objects.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange&      Exchange,
+    Outcome<bool> ConstructImageSpace(const VulkanExchange&      Exchange,
                             ByteSpace&                 BackingSpace,
                             const DiagnosticExtension& Naming);
 
@@ -118,7 +118,7 @@ public:
 
     /// 🧩 Records the barrier that carries one image from where it stands to where it is next read.
     /// in    Recorded    [-]  the command being recorded into
-    /// in    ImageOrdinal[-]  the claim's ordinal; the record is amended, not the caller's copy
+    /// in    ImageIndex[-]  the claim's ordinal; the record is amended, not the caller's copy
     /// in    Incoming    [-]  the layout the next recording requires
     /// out   Result     [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// post  the recorded layout is the incoming one; a repeat transition to the same layout is a no-op
@@ -126,29 +126,29 @@ public:
     ///        derived from the declared reads and writes, and this is the one place it is recorded.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Transition(VkCommandBuffer Recorded, std::uint32_t ImageOrdinal, VkImageLayout Incoming);
+    Outcome<bool> Transition(VkCommandBuffer Recorded, std::uint32_t ImageIndex, VkImageLayout Incoming);
 
     /// 🧩 The current record for one claimed image, including the layout the last transition left it in.
     /// out   Result  [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<ImageReservation> Current(std::uint32_t ImageOrdinal) const;
+    Outcome<ImageReservation> Current(std::uint32_t ImageIndex) const;
 
     /// 🧩 Constructs a view over one reduction level, for the chain `16` §2 walks a level at a time.
-    /// in    ImageOrdinal [-]  a claimed image whose LevelCount accepts the level
-    /// in    LevelOrdinal [-]  the level; zero is the full extent
+    /// in    ImageIndex [-]  a claimed image whose LevelCount accepts the level
+    /// in    LevelIndex [-]  the level; zero is the full extent
     /// out   Result      [-]  refuses with ContentUnsupported outside the declared level count
-    /// note  The view is owned here and reclaimed with the image. A caller destroying one leaves the ledger
+    /// note  The view is owned here and reclaimed with the image. A caller destroying one leaves the index
     ///        holding a handle the vendor has already reused.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<VkImageView> LevelView(std::uint32_t ImageOrdinal, std::uint32_t LevelOrdinal);
+    Outcome<VkImageView> LevelView(std::uint32_t ImageIndex, std::uint32_t LevelIndex);
 
     /// 🧩 Destroys one image, every view over it, and returns its bytes.
     /// pre   the device is idle, or no recording still in the rotation reads it
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Release(std::uint32_t ImageOrdinal);
+    void Release(std::uint32_t ImageIndex);
 
     /// 🧩 Releases every claimed image.
     /// pre   the device is idle

@@ -44,26 +44,26 @@ Outcome<bool> EmissionSpecification::Validate(const MaterialIndex& Materials) co
 
             AnyOccupied = true;
 
-            const std::size_t ChannelOrdinal = static_cast<std::size_t>(Held.Occupying[Slot]);
+            const std::size_t ChannelIndex = static_cast<std::size_t>(Held.Occupying[Slot]);
 
-            if (ChannelOrdinal >= ChannelSpan)
+            if (ChannelIndex >= ChannelSpan)
                 return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such channel" });
 
-            if (ChannelEmitted[ChannelOrdinal])
+            if (ChannelEmitted[ChannelIndex])
                 return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a channel is emitted twice" });
 
-            ChannelEmitted[ChannelOrdinal] = true;
+            ChannelEmitted[ChannelIndex] = true;
 
             // 🔴 A colour-carrying channel needs a declared space in the image that carries it — `36` §1 and
             //    `50` §5. An image written with no space is one the consumer decodes by guessing, and the guess
             //    that renders plausibly is the one that ships.
             bool ColourCarried = false;
 
-            for (std::uint32_t MaterialOrdinal = 0u;
-                 MaterialOrdinal < Materials.DeclaredCount() && !ColourCarried;
-                 ++MaterialOrdinal)
+            for (std::uint32_t MaterialIndex = 0u;
+                 MaterialIndex < Materials.DeclaredCount() && !ColourCarried;
+                 ++MaterialIndex)
             {
-                const Outcome<const MaterialSpecification*> Resolved = Materials.Resolve(MaterialOrdinal);
+                const Outcome<const MaterialSpecification*> Resolved = Materials.Resolve(MaterialIndex);
 
                 if (!Resolved.Resolved)
                     continue;
@@ -106,23 +106,23 @@ std::string ResolveName(const std::string& Pattern,
     std::string Resolved;
     Resolved.reserve(Pattern.size());
 
-    for (std::size_t Ordinal = 0u; Ordinal < Pattern.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < Pattern.size(); ++Index)
     {
-        if (Pattern[Ordinal] != '{')
+        if (Pattern[Index] != '{')
         {
-            Resolved.push_back(Pattern[Ordinal]);
+            Resolved.push_back(Pattern[Index]);
             continue;
         }
 
-        const std::size_t Closing = Pattern.find('}', Ordinal);
+        const std::size_t Closing = Pattern.find('}', Index);
 
         if (Closing == std::string::npos)
         {
-            Resolved.push_back(Pattern[Ordinal]);
+            Resolved.push_back(Pattern[Index]);
             continue;
         }
 
-        const std::string Named = Pattern.substr(Ordinal + 1u, Closing - Ordinal - 1u);
+        const std::string Named = Pattern.substr(Index + 1u, Closing - Index - 1u);
 
         if (Named == "Owner")
             Resolved += OwnerName;
@@ -136,10 +136,10 @@ std::string ResolveName(const std::string& Pattern,
         {
             // 📝 Left verbatim rather than emptied. A name that silently lost a field collides with every other
             //    name that lost the same one, and the export then overwrites itself one image at a time.
-            Resolved += Pattern.substr(Ordinal, Closing - Ordinal + 1u);
+            Resolved += Pattern.substr(Index, Closing - Index + 1u);
         }
 
-        Ordinal = Closing;
+        Index = Closing;
     }
 
     return Resolved;
@@ -168,9 +168,9 @@ Outcome<bool> AssetInterchange::IntakeTopology(const DecodedTopology& Decoded,
         if (Face.size() < 3u)
             return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a run of fewer than three corners" });
 
-        for (const std::uint32_t VertexOrdinal : Face)
+        for (const std::uint32_t VertexIndex : Face)
         {
-            if (VertexOrdinal >= Decoded.Positions.size())
+            if (VertexIndex >= Decoded.Positions.size())
             {
                 return Outcome<bool>::Refuse(
                     { RefusalReason::ContentUnsupported, "a corner addresses a position the source did not declare" });
@@ -290,12 +290,12 @@ Outcome<bool> AssetInterchange::IntakeImage(const DecodedImage& Decoded, IntakeI
     if (!Decoded.SpaceDeclared)
     {
         Recording.Assumed        = AssumedSubject::ContentSpace;
-        Recording.AssumedOrdinal = WorkingSpaceIdentity;
+        Recording.AssumedIndex = WorkingSpaceIdentity;
         Recording.AssumptionMade = true;
     }
     else
     {
-        Recording.AssumedOrdinal = Decoded.SpaceIdentity;
+        Recording.AssumedIndex = Decoded.SpaceIdentity;
     }
 
     Recorded.Record(Recording);
@@ -333,7 +333,7 @@ void AssetInterchange::Report(ReportSequence& Reporting, TickPoint Sampled)
         Rejected.Origin         = "50 §6 AssetInterchange";
         Rejected.Subject        = "UnsupportedConstruct";
         Rejected.Detail         = "the source carries a construct that will not survive an emission";
-        Rejected.SubjectOrdinal = UnsupportedReported;
+        Rejected.SubjectIndex = UnsupportedReported;
         Rejected.Verdict    = ReportVerdict::Rejected;
         Rejected.Arrival        = Sampled;
 

@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Shared/Prelude.slang.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/NumericTolerance.h"
 
 // 📐 Every sample in the engine is placed by projecting a **sample ordinal** into a domain, and never by drawing
 //    from a source of randomness. `02` §6 requires the device and the host to place samples identically, and
@@ -22,7 +22,7 @@
 
 // 📝 Twenty digits of base three cover every ordinal below 3²⁰, and 3²⁰ is exactly representable, so the ratio
 //    below is one correctly-rounded division rather than an accumulation of twenty of them.
-#define SlateRadicalDigitCeiling 20
+#define SlateRadicalDigitLimit 20
 
 namespace Slate
 {
@@ -32,7 +32,7 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 The radical inverse of one ordinal in base two.
-/// in    Ordinal  [-]  the sample ordinal
+/// in    Index  [-]  the sample ordinal
 /// out   Fraction [-]  in the half-open unit interval
 /// note  📐 Reversing the bits of the ordinal and scaling by a power of two is exact in binary: no bit is lost
 ///        and the scale is a change of exponent alone. This is the strongest determinism available anywhere in
@@ -40,15 +40,15 @@ namespace Slate
 /// cost  ✔️
 /// note  Exact — bit for bit between the host form and the device form.
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED Real64 ProjectRadicalTwo(Unsigned32 Ordinal)
+SLATE_SHARED Real64 ProjectRadicalTwo(Unsigned32 Index)
 {
     const Real64 ReciprocalSpan = 2.3283064365386963e-10;   // [-] - 2⁻³², exact
 
-    return Real64(ReversedBits(Ordinal)) * ReciprocalSpan;
+    return Real64(ReversedBits(Index)) * ReciprocalSpan;
 }
 
 /// 🧩 The radical inverse of one ordinal in base three.
-/// in    Ordinal  [-]  the sample ordinal
+/// in    Index  [-]  the sample ordinal
 /// out   Fraction [-]  in the half-open unit interval
 /// note  📐 The digits are accumulated as an exact integer numerator over an exact integer denominator, and the
 ///        single division at the end is correctly rounded. Accumulating a fraction digit by digit instead would
@@ -58,13 +58,13 @@ SLATE_SHARED Real64 ProjectRadicalTwo(Unsigned32 Ordinal)
 /// cost  🚩
 /// note  Exact — bit for bit between the host form and the device form.
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED Real64 ProjectRadicalThree(Unsigned32 Ordinal)
+SLATE_SHARED Real64 ProjectRadicalThree(Unsigned32 Index)
 {
     Unsigned64 Numerator   = 0;
     Unsigned64 Denominator = 1;
-    Unsigned64 Remaining   = Unsigned64(Ordinal);
+    Unsigned64 Remaining   = Unsigned64(Index);
 
-    for (Signed32 DigitOrdinal = 0; DigitOrdinal < SlateRadicalDigitCeiling; ++DigitOrdinal)
+    for (Signed32 DigitIndex = 0; DigitIndex < SlateRadicalDigitLimit; ++DigitIndex)
     {
         if (Remaining == 0)
         {
@@ -81,7 +81,7 @@ SLATE_SHARED Real64 ProjectRadicalThree(Unsigned32 Ordinal)
 }
 
 /// 🧩 Projects one sample ordinal onto the unit square, progressively.
-/// in    Ordinal           [-]  the sample ordinal
+/// in    Index           [-]  the sample ordinal
 /// out   FirstCoordinate   [-]  in the half-open unit interval
 /// out   SecondCoordinate  [-]  in the half-open unit interval
 /// note  🔴 Progressive — `02` §6 requires it and `60` §3.2 gives the reason from the consuming side: `64`
@@ -90,12 +90,12 @@ SLATE_SHARED Real64 ProjectRadicalThree(Unsigned32 Ordinal)
 /// cost  🚩
 /// note  Exact — both coordinates are exact, so the pattern is identical everywhere.
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED void ProjectPlanarSample(Unsigned32 Ordinal,
+SLATE_SHARED void ProjectPlanarSample(Unsigned32 Index,
                                       SLATE_OUT(Real64) FirstCoordinate,
                                       SLATE_OUT(Real64) SecondCoordinate)
 {
-    FirstCoordinate  = ProjectRadicalTwo(Ordinal);
-    SecondCoordinate = ProjectRadicalThree(Ordinal);
+    FirstCoordinate  = ProjectRadicalTwo(Index);
+    SecondCoordinate = ProjectRadicalThree(Index);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -103,7 +103,7 @@ SLATE_SHARED void ProjectPlanarSample(Unsigned32 Ordinal,
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Permutes one ordinal against a declared seed.
-/// in    Ordinal  [-]  the cell ordinal of `54` §1, or the impression ordinal of `58` §6
+/// in    Index  [-]  the cell ordinal of `54` §1, or the impression ordinal of `58` §6
 /// in    Seed     [-]  the pattern seed or the stroke seed; stored with the declaration, never drawn
 /// out   Permuted [-]  the ordinal's image under the permutation the seed selects
 /// note  🔴 A **permutation**, never a sample — `00` §5 declares continuous stochastic sources absent and this is
@@ -117,9 +117,9 @@ SLATE_SHARED void ProjectPlanarSample(Unsigned32 Ordinal,
 /// cost  ✔️
 /// note  Exact — wrapping integer arithmetic alone; bit for bit between the host form and the device form.
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED Unsigned32 ProjectPermutedOrdinal(Unsigned32 Ordinal, Unsigned32 Seed)
+SLATE_SHARED Unsigned32 ProjectPermutedIndex(Unsigned32 Index, Unsigned32 Seed)
 {
-    Unsigned32 Permuted = Ordinal + Seed * 0x9E3779B9u;
+    Unsigned32 Permuted = Index + Seed * 0x9E3779B9u;
 
     Permuted = (Permuted ^ (Permuted >> 16)) * 0x21F0AAADu;
     Permuted = (Permuted ^ (Permuted >> 15)) * 0x735A2D97u;
@@ -128,7 +128,7 @@ SLATE_SHARED Unsigned32 ProjectPermutedOrdinal(Unsigned32 Ordinal, Unsigned32 Se
 }
 
 /// 🧩 Projects one ordinal onto the unit interval, through the permutation its seed selects.
-/// in    Ordinal   [-]  the cell ordinal, or the impression ordinal
+/// in    Index   [-]  the cell ordinal, or the impression ordinal
 /// in    Seed      [-]  the pattern seed or the stroke seed
 /// out   Fraction  [-]  in the half-open unit interval
 /// note  🔴 `58` §6 records the stroke seed with the transaction for the reason `54` §1 stores the pattern seed
@@ -141,11 +141,11 @@ SLATE_SHARED Unsigned32 ProjectPermutedOrdinal(Unsigned32 Ordinal, Unsigned32 Se
 /// cost  ✔️
 /// note  Exact — the permutation is integral and the scale is a change of exponent alone.
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED Real64 ProjectVariation(Unsigned32 Ordinal, Unsigned32 Seed)
+SLATE_SHARED Real64 ProjectVariation(Unsigned32 Index, Unsigned32 Seed)
 {
     const Real64 ReciprocalSpan = 2.3283064365386963e-10;   // [-] - 2⁻³², exact
 
-    return Real64(ProjectPermutedOrdinal(Ordinal, Seed)) * ReciprocalSpan;
+    return Real64(ProjectPermutedIndex(Index, Seed)) * ReciprocalSpan;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -153,7 +153,7 @@ SLATE_SHARED Real64 ProjectVariation(Unsigned32 Ordinal, Unsigned32 Seed)
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 The sub-pixel offset one cycle slot carries.
-/// in    RecordingOrdinal  [-]  the rotation, counted from bring-up
+/// in    RecordingIndex  [-]  the rotation, counted from bring-up
 /// out   OffsetX          [-]  in the half-open interval about zero, in pixels
 /// out   OffsetY          [-]  in the half-open interval about zero, in pixels
 /// note  🔴 `64` §3.1 applies this to `46`'s **projection** and never to a resolved position. An offset applied
@@ -166,15 +166,15 @@ SLATE_SHARED Real64 ProjectVariation(Unsigned32 Ordinal, Unsigned32 Seed)
 /// cost  🚩
 /// note  Exact — the offsets are exact, so a preview converges to the workspace's image and not beside it.
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED void ProjectSubPixelOffset(Unsigned32 RecordingOrdinal,
+SLATE_SHARED void ProjectSubPixelOffset(Unsigned32 RecordingIndex,
                                         SLATE_OUT(Real64) OffsetX,
                                         SLATE_OUT(Real64) OffsetY)
 {
-    const Unsigned32 Ordinal = (RecordingOrdinal % Unsigned32(SubPixelSequenceLength)) + 1u;
+    const Unsigned32 Index = (RecordingIndex % Unsigned32(SubPixelSequenceLength)) + 1u;
 
     Real64 FirstCoordinate  = 0.0;
     Real64 SecondCoordinate = 0.0;
-    ProjectPlanarSample(Ordinal, FirstCoordinate, SecondCoordinate);
+    ProjectPlanarSample(Index, FirstCoordinate, SecondCoordinate);
 
     OffsetX = FirstCoordinate  - 0.5;
     OffsetY = SecondCoordinate - 0.5;

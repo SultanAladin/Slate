@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/IdentityContract.h"
-#include "Contract/DeliveryContract.h"
+#include "Foundation/Identity.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateDocument/Document/RegistrationIndex/Api/RegistrationIndex.h"
 #include "SlateDocument/Document/PopulationIndex/Api/PopulationIndex.h"
 #include "SlateDocument/Document/RevisionSequence/Api/RevisionSequence.h"
@@ -30,7 +30,7 @@ namespace Slate
 /// note  🔴 `12` §7: reordering rows is a transaction against the enclosure relation, committed through
 ///        `RevisionSequence` like any other edit. Drag-reordering that mutated the relation directly would
 ///        bypass undo, and its absence from the sequence is discovered by the artist rather than by a test.
-/// tag   contract
+/// tag   guarantee
 enum class OutlinerIntent : std::uint32_t
 {
     Enclose           = 0u,   // [-] - place an owner in an enclosure at a position in its ordering
@@ -208,7 +208,7 @@ private:
     Outcome<bool> RetireCascade(const DeclaredIntent& Applying, std::uint64_t SealedAt);
     void          Reject(const DeclaredIntent& Rejected, const Refusal& Declining);
 
-    PopulationIndex                Population;                   // [-] - `10`'s slot ledger, reconciled at ②
+    PopulationIndex                Population;                   // [-] - `10`'s slot index, reconciled at ②
     SceneStructure                 NestingRelations;             // [-] - both relations, reconciled at ③ and ④
     RowSequence                    Linearisation;                // [-] - rebuilt at ⑤
     RegistrationIndex                Subsets;                      // [-] - re-derived at ⑥

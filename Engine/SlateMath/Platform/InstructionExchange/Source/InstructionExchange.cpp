@@ -42,8 +42,8 @@ void QueryHost(std::uint32_t Leaf, std::uint32_t Subleaf, std::uint32_t Reported
     int Landing[4] = { 0, 0, 0, 0 };
     __cpuidex(Landing, static_cast<int>(Leaf), static_cast<int>(Subleaf));
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 4u; ++Ordinal)
-        Reported[Ordinal] = static_cast<std::uint32_t>(Landing[Ordinal]);
+    for (std::uint32_t Index = 0u; Index < 4u; ++Index)
+        Reported[Index] = static_cast<std::uint32_t>(Landing[Index]);
 #else
     __cpuid_count(Leaf, Subleaf, Reported[0], Reported[1], Reported[2], Reported[3]);
 #endif

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateDocument/Document/SurfaceLayerSequence/Api/SurfaceLayerSequence.h"
 
 #include <cstdint>
@@ -53,13 +53,13 @@ inline constexpr std::uint64_t EvaluationUnitsPerEntry = 1u;   // [-] - one anal
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 How one considered promotion ended.
-/// tag   contract
+/// tag   guarantee
 enum class PromotionVerdict : std::uint32_t
 {
     Promoted         = 0u,   // [-] - a tile was claimed and the cost charged
     ReResolved       = 1u,   // [-] - already resident at a stale revision; resolved again into its own slot
     AlreadyResident  = 2u,   // [-] - resident at the current revision; nothing was done — `70` §2
-    Deferred         = 3u,   // [-] - the budget or the ledger could not admit it this rotation
+    Deferred         = 3u,   // [-] - the budget or the index could not admit it this rotation
     VerdictCount = 4u    // [-] - the closed count, never a verdict
 };
 
@@ -71,7 +71,7 @@ enum class PromotionVerdict : std::uint32_t
 /// tag   nonallocating, nonthrowing
 struct EvictionCandidate
 {
-    std::uint32_t  CellOrdinal = 0u;   // [-] - the cell holding the slot
+    std::uint32_t  CellIndex = 0u;   // [-] - the cell holding the slot
     std::uint32_t  Level       = 0u;   // [-] - its reduction level; zero is finest
     std::uint64_t  DemandedAt  = 0u;   // [-] - the last rotation a demand named it
     std::uint64_t  PromotedAt  = 0u;   // [-] - the rotation it became resident
@@ -82,7 +82,7 @@ struct EvictionCandidate
 ///        edge to `46` that `20` does not declare, and `00` §11 gates that a declared edge is a real read, so
 ///        acquiring one to answer a tuning question would be paying a build-order cost for a constant. Minimum
 ///        recently demanded ships; the row stays open.
-/// tag   contract
+/// tag   guarantee
 enum class EvictionOrdering : std::uint32_t
 {
     OldestDemanded = 0u,   // [-] - the cell nothing has sampled for longest
@@ -157,7 +157,7 @@ public:
     ///        exists to prevent.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> OpenRecording(std::uint64_t RecordingOrdinal);
+    Outcome<bool> OpenRecording(std::uint64_t RecordingIndex);
 
     /// 🧩 Whether a cost fits what remains of this rotation.
     /// cost  ✔️

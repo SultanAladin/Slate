@@ -27,9 +27,9 @@ Outcome<bool> Validate(const PropertyDeclaration& Declared, const PropertyValue&
         case PropertyMeasure::Truth:
             return Outcome<bool>::Result(true);
 
-        case PropertyMeasure::Ordinal:
+        case PropertyMeasure::Index:
         {
-            if (Declared.UpperOrdinal != 0u && Offered.OrdinalHeld > Declared.UpperOrdinal)
+            if (Declared.UpperIndex != 0u && Offered.IndexHeld > Declared.UpperIndex)
                 return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the ordinal exceeds its ceiling" });
 
             return Outcome<bool>::Result(true);
@@ -96,7 +96,7 @@ Outcome<bool> Validate(const PropertyDeclaration& Declared, const PropertyValue&
 
         case PropertyMeasure::Registration:
         {
-            if (Offered.OrdinalHeld >= Declared.RegisteredOptions.size())
+            if (Offered.IndexHeld >= Declared.RegisteredOptions.size())
                 return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such declared option" });
 
             return Outcome<bool>::Result(true);
@@ -158,10 +158,10 @@ Outcome<PropertyValue> Bounded(const PropertyDeclaration& Declared, const Proper
         else if (Bounding.SignedHeld > Declared.UpperSigned)
             Bounding.SignedHeld = Declared.UpperSigned;
     }
-    else if (Declared.Measured == PropertyMeasure::Ordinal && Declared.UpperOrdinal != 0u)
+    else if (Declared.Measured == PropertyMeasure::Index && Declared.UpperIndex != 0u)
     {
-        if (Bounding.OrdinalHeld > Declared.UpperOrdinal)
-            Bounding.OrdinalHeld = Declared.UpperOrdinal;
+        if (Bounding.IndexHeld > Declared.UpperIndex)
+            Bounding.IndexHeld = Declared.UpperIndex;
     }
 
     return Outcome<PropertyValue>::Result(Bounding);
@@ -173,10 +173,10 @@ Outcome<PropertyValue> Bounded(const PropertyDeclaration& Declared, const Proper
 
 std::size_t PropertyIndex::Located(const std::string& Identity) const
 {
-    for (std::size_t Ordinal = 0u; Ordinal < DeclaredProperties.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < DeclaredProperties.size(); ++Index)
     {
-        if (DeclaredProperties[Ordinal].Identity == Identity)
-            return Ordinal;
+        if (DeclaredProperties[Index].Identity == Identity)
+            return Index;
     }
 
     return DeclaredProperties.size();
@@ -286,9 +286,9 @@ Outcome<bool> PropertyIndex::Reclaim(const std::string& Identity)
 
 bool PropertyIndex::ValuesValid() const
 {
-    for (std::size_t Ordinal = 0u; Ordinal < DeclaredProperties.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < DeclaredProperties.size(); ++Index)
     {
-        if (!Validate(DeclaredProperties[Ordinal], HeldValues[Ordinal]).Resolved)
+        if (!Validate(DeclaredProperties[Index], HeldValues[Index]).Resolved)
             return false;
     }
 

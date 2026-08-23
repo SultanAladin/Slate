@@ -5,7 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/CameraCondition.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/TextComponent/Api/FontLoader.h"
 #include "SlateUI/Interface/SymbolSpecification/Api/SymbolSpecification.h"
@@ -23,8 +24,8 @@ namespace Slate
 
 /// 🧩 One axis-aligned extent in display pixels, stated as its two corners.
 /// note  The coordinate increases **downward**, as the display does. Nothing in the interface uses the
-///       upward convention `ToleranceContract.h` declares for clip space; the two never meet.
-/// tag   contract, nonallocating, nonthrowing
+///       upward convention `NumericTolerance.h` declares for clip space; the two never meet.
+/// tag   guarantee, nonallocating, nonthrowing
 struct PlaneExtent
 {
     float  MinimumX  = 0.0f;   // [px] - leading edge
@@ -51,7 +52,7 @@ constexpr PlaneExtent Spanning(float X, float Y, float Width, float Height)
 /// 🧩 Which axis a scrim's colour varies along.
 /// note  The coordinate axis is declared first and carries the ordinal zero, so the enumeration's default and
 ///       the scrim's default are the same statement rather than two that must be kept agreeing.
-/// tag   contract
+/// tag   guarantee
 enum class ScrimAxis : std::uint32_t
 {
     Y    = 0u,   // [-] - varies from MinimumY to MaximumY; the card's caption scrim
@@ -78,7 +79,7 @@ inline constexpr std::uint32_t CornerAll          = 0x0Fu;
 ///        `InputExchange`. The two observe the same device through two surfaces that never merge: the stroke
 ///        path needs arrival stamps at device rate, the interface needs one resolved position per tick, and
 ///        merging them would give the canvas the interface's rate.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct PointerCondition
 {
     float   PositionX   = 0.0f;    // [px] - in the display's drawable extent
@@ -90,17 +91,20 @@ struct PointerCondition
     bool    ContactPressed       = false;   // [-]  - it went down during this tick
     bool    ContactDoublePressed = false;   // [-]  - the second press of a double contact arrived
     bool    ContactReleased      = false;   // [-]  - it came up during this tick
-    double  HeldDuration         = 0.0;     // [ms] - how long it has been down; zero while it is not
+    bool    SecondaryHeld        = false;   // [-]  - the secondary contact is down now
+    bool    SecondaryPressed     = false;   // [-]  - the secondary contact arrived this tick
+    bool    SecondaryReleased    = false;   // [-]  - the secondary contact ended this tick
+    double  HeldDuration         = 0.0;     // [ms] - how long the primary contact has been down; zero while it is not
 };
 
 /// 🧩 Text and editing-key arrivals sampled with the pointer for one interface tick.
 /// note  Printable ASCII is carried because the standing font surface does not yet provide shaped IME runs.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct TextInputCondition
 {
-    static constexpr std::uint32_t IntakeCeiling = 32u;
+    static constexpr std::uint32_t IntakeLimit = 32u;
 
-    char          Intake[IntakeCeiling] = {};   // [-] - printable characters, terminated
+    char          Intake[IntakeLimit] = {};   // [-] - printable characters, terminated
     std::uint32_t IntakeCount            = 0u;  // [-] - bytes preceding the terminator
     bool          AcceptPressed          = false;   // [-] - Enter
     bool          CancelPressed          = false;   // [-] - Escape
@@ -113,35 +117,13 @@ struct TextInputCondition
 };
 
 /// 🧩 What the display reported for this tick.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct DisplayCondition
 {
     float   Width  = 0.0f;   // [px] - the drawable extent
     float   Height = 0.0f;   // [px]
     double  Elapsed      = 0.0;    // [ms] - since the previous tick; what every interpolant is advanced by
     double  DisplayScale = 1.0;    // [-]  - what ThemeProfile was resolved against
-};
-
-/// 🧩 The editor camera's per-tick input: which movement keys are HELD (not edge-triggered), and the
-///    look gesture — the right button held, with the OS cursor warped to the window centre every
-///    tick by the seam's own tracking (see `InterfaceExchange::CameraInput`).
-/// note  🔴 Held, not pressed. Camera movement is continuous: a key that fired once per arrival would
-///        move the camera a step per press and stand still while the key is down. The look delta is
-///        the seam's own cursor tracking — the artist's motion from the centre each frame, positive
-///        rightward and downward — never `io.MouseDelta`, which every cursor warp corrupts.
-/// tag   contract, nonallocating, nonthrowing
-struct CameraCondition
-{
-    bool    ForwardHeld  = false;   // [-] - W: along the view direction
-    bool    BackwardHeld = false;   // [-] - S
-    bool    LeftHeld     = false;   // [-] - A: strafe
-    bool    RightHeld    = false;   // [-] - D: strafe
-    bool    UpHeld       = false;   // [-] - E: world up
-    bool    DownHeld     = false;   // [-] - Q: world down
-    bool    LookHeld     = false;   // [-] - the right button, holding the look gesture
-    float   LookDeltaX   = 0.0f;    // [px] - the pointer's travel while the gesture stood, rightward positive
-    float   LookDeltaY   = 0.0f;    // [px] - the pointer's travel while the gesture stood, downward positive
-    bool    ShiftHeld    = false;   // [-] - Shift: the fly speed's boost, Unreal-style
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -154,7 +136,7 @@ struct CameraCondition
 ///        key is adding a line here and a line in the source's translation, and nothing else moves.
 /// note  ⚠️ Every arrival is edge-triggered and unrepeated — the shell's summon must not fire sixty times
 ///        while the key is held down.
-/// tag   contract
+/// tag   guarantee
 enum class KeySubject : std::uint32_t
 {
     Summon       = 0u,   // [-] - Tab; carries the inspector between its two presentations
@@ -191,7 +173,7 @@ enum class KeySubject : std::uint32_t
 /// note  🔴 Read alongside `KeyPressed` rather than folded into it. The reference branches on the SAME key
 ///        by modifier — `d` declares a decal, `⌘d` copies the taken entry — so a seam that reported only
 ///        "D arrived" would make both branches fire from one press.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct ModifierCondition
 {
     bool  Commanded = false;   // [-] - Control on Windows and Linux, Command on macOS
@@ -231,7 +213,7 @@ public:
     ///        ground belongs beneath, so a docked panel sits on it; the drawers belong above, because
     ///        `DockWorkspace.html` overlays them on everything and a window docked full-width would
     ///        otherwise bury the control centre and the asset browser.
-    /// tag   contract
+    /// tag   guarantee
     enum class ShellLayer : std::uint32_t
     {
         Beneath   = 0u,   // [-] - behind every window; the workspace ground
@@ -370,7 +352,7 @@ public:
     /// note  The ellipsis is three full stops rather than U+2026, which the default typeface does not carry.
     /// cost  🚩
     /// tag   api, nonthrowing
-    void TextRunTruncated(float X, float Y, float CeilingX, ThemeToken Colour,
+    void TextRunTruncated(float X, float Y, float LimitX, ThemeToken Colour,
                           const char* Text, float PointSize, bool Emphatic = false,
                           FontWeight Weight = FontWeight::Regular);
 

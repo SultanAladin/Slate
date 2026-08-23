@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateDocument/Document/TopologyStructure/Api/TopologyStructure.h"
 #include "SlateMath/Numeric/TransformProjection/Api/TransformProjection.h"
 
@@ -27,7 +27,7 @@ namespace Slate
 /// note  📝 The cone, the cylinder and the sphere are what the manipulator's grips are built from — `78` §4's
 ///        cone tip, its scale grip and the central ring. They are declared here rather than beside the
 ///        manipulator so that a modelled cone and a grip cone are one generation and cannot come to differ.
-/// tag   contract
+/// tag   guarantee
 enum class PrimitiveSubject : std::uint32_t
 {
     Box            = 0u,   // [-] - six quadrilateral faces about the origin
@@ -70,7 +70,7 @@ struct PrimitiveSpecification
 //    exhausts the host while the artist is dragging a parameter slider that has no reason to reach it.
 inline constexpr std::uint32_t RadialCountMinimum    = 3u;        // [-] - fewer closes no surface of revolution
 inline constexpr std::uint32_t AxialCountMinimum     = 1u;        // [-] - one span is a single ring of faces
-inline constexpr std::uint32_t SubdivisionCeiling  = 4096u;     // [-] - on either count, per primitive
+inline constexpr std::uint32_t SubdivisionLimit  = 4096u;     // [-] - on either count, per primitive
 
 /// 🧩 Whether a specification generates a surface at all.
 /// note  📝 Asked before generation rather than reported after it. A degenerate extent generates a solid with
@@ -82,9 +82,9 @@ constexpr bool PrimitiveGenerable(const PrimitiveSpecification& Declaring)
 {
     return Declaring.Generated       != PrimitiveSubject::SubjectCount
         && Declaring.RadialCount     >= RadialCountMinimum
-        && Declaring.RadialCount     <= SubdivisionCeiling
+        && Declaring.RadialCount     <= SubdivisionLimit
         && Declaring.AxialCount      >= AxialCountMinimum
-        && Declaring.AxialCount      <= SubdivisionCeiling
+        && Declaring.AxialCount      <= SubdivisionLimit
         && Declaring.HalfExtentX  > 0.0
         && Declaring.HalfExtentUp     > 0.0
         && Declaring.HalfExtentY > 0.0;
@@ -147,7 +147,7 @@ class PrimitiveIndex
 {
 public:
 
-    static constexpr std::uint32_t PrimitiveCeiling = 65536u;   // [-] - parametric primitives in one document
+    static constexpr std::uint32_t PrimitiveLimit = 65536u;   // [-] - parametric primitives in one document
 
     /// 🧩 Declares one primitive's parameters and issues the ordinal it is addressed by.
     /// in    Declaring  [-]  the parameters
@@ -158,7 +158,7 @@ public:
     Outcome<std::uint32_t> Declare(const PrimitiveSpecification& Declaring);
 
     /// 🧩 Amends one primitive's parameters, advancing its revision where the generated surface would differ.
-    /// in    PrimitiveOrdinal  [-]  an ordinal this component registered
+    /// in    PrimitiveIndex  [-]  an ordinal this component registered
     /// in    Amending          [-]  the amended parameters
     /// out   Result           [-]  refuses with ContentUnsupported for an unclaimed ordinal or a specification
     ///                              `PrimitiveGenerable` rejects
@@ -167,13 +167,13 @@ public:
     ///        keeps a later member that does *not* from silently forcing a re-generation of every owner.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Amend(std::uint32_t PrimitiveOrdinal, const PrimitiveSpecification& Amending);
+    Outcome<bool> Amend(std::uint32_t PrimitiveIndex, const PrimitiveSpecification& Amending);
 
     /// 🧩 One declared primitive's parameters.
     /// out   Result  [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<const PrimitiveSpecification*> Resolve(std::uint32_t PrimitiveOrdinal) const;
+    Outcome<const PrimitiveSpecification*> Resolve(std::uint32_t PrimitiveIndex) const;
 
     /// 🧩 Withdraws one primitive, returning its slot for reuse.
     /// out   Result  [-]  refuses with ContentUnsupported for an unclaimed ordinal
@@ -181,13 +181,13 @@ public:
     ///        every ordinal above it and every owner naming one would name a different primitive.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Withdraw(std::uint32_t PrimitiveOrdinal);
+    Outcome<bool> Withdraw(std::uint32_t PrimitiveIndex);
 
     /// 🧩 One primitive's revision, so a consumer knows whether its generated surface is still current.
     /// out   Revision  [-]  zero for an unclaimed ordinal, which no generated surface ever recorded
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint64_t Revision(std::uint32_t PrimitiveOrdinal) const;
+    std::uint64_t Revision(std::uint32_t PrimitiveIndex) const;
 
     /// 🧩 How many primitives stand declared.
     /// cost  ✔️
@@ -214,7 +214,7 @@ private:
     };
 
     std::vector<HeldPrimitive>  Primitives;         // [-] - by primitive ordinal
-    std::vector<std::uint32_t>  ReleasedOrdinals;   // [-] - withdrawn slots, reused before the span grows
+    std::vector<std::uint32_t>  ReleasedIndexs;   // [-] - withdrawn slots, reused before the span grows
     std::uint64_t               LatestRevision = 0u;// [-] - the last revision any primitive was advanced to
     std::uint32_t               OccupiedCount  = 0u;// [-] - primitives currently declared
 };

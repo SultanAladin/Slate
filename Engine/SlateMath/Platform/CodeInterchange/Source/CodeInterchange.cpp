@@ -126,11 +126,11 @@ Outcome<std::uint32_t> CodeInterchange::Acquire(const std::string& ModulePath, F
 
     std::uint32_t Vacant = AbsentForeignModule;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < ModuleCapacity; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < ModuleCapacity; ++Index)
     {
-        if (Current[Ordinal].HostToken == nullptr)
+        if (Current[Index].HostToken == nullptr)
         {
-            Vacant = Ordinal;
+            Vacant = Index;
             break;
         }
     }
@@ -217,32 +217,32 @@ Outcome<std::uint32_t> CodeInterchange::Acquire(const std::string& ModulePath, F
 //                                                      WHAT IS READ
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<const void*> CodeInterchange::EntryTable(std::uint32_t ModuleOrdinal) const
+Outcome<const void*> CodeInterchange::EntryTable(std::uint32_t ModuleIndex) const
 {
-    if (ModuleOrdinal >= ModuleCapacity || Current[ModuleOrdinal].HostToken == nullptr)
+    if (ModuleIndex >= ModuleCapacity || Current[ModuleIndex].HostToken == nullptr)
         return Outcome<const void*>::Refuse({ RefusalReason::IdentityStale, "no module stands at that ordinal" });
 
-    return Outcome<const void*>::Result(Current[ModuleOrdinal].Reported->EntryTable);
+    return Outcome<const void*>::Result(Current[ModuleIndex].Reported->EntryTable);
 }
 
-Outcome<const SlateModuleReport*> CodeInterchange::Report(std::uint32_t ModuleOrdinal) const
+Outcome<const SlateModuleReport*> CodeInterchange::Report(std::uint32_t ModuleIndex) const
 {
-    if (ModuleOrdinal >= ModuleCapacity || Current[ModuleOrdinal].HostToken == nullptr)
+    if (ModuleIndex >= ModuleCapacity || Current[ModuleIndex].HostToken == nullptr)
     {
         return Outcome<const SlateModuleReport*>::Refuse(
             { RefusalReason::IdentityStale, "no module stands at that ordinal" });
     }
 
-    return Outcome<const SlateModuleReport*>::Result(Current[ModuleOrdinal].Reported);
+    return Outcome<const SlateModuleReport*>::Result(Current[ModuleIndex].Reported);
 }
 
 std::uint32_t CodeInterchange::CurrentCount() const
 {
     std::uint32_t Counted = 0u;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < ModuleCapacity; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < ModuleCapacity; ++Index)
     {
-        if (Current[Ordinal].HostToken != nullptr)
+        if (Current[Index].HostToken != nullptr)
             ++Counted;
     }
 
@@ -253,24 +253,24 @@ std::uint32_t CodeInterchange::CurrentCount() const
 //                                                      RECLAMATION
 //------------------------------------------------------------------------------------------------------------------------
 
-void CodeInterchange::Release(std::uint32_t ModuleOrdinal)
+void CodeInterchange::Release(std::uint32_t ModuleIndex)
 {
-    if (ModuleOrdinal >= ModuleCapacity || Current[ModuleOrdinal].HostToken == nullptr)
+    if (ModuleIndex >= ModuleCapacity || Current[ModuleIndex].HostToken == nullptr)
         return;
 
     // 📝 The report is dropped before the module is unloaded. It points into the module's own read-only extent,
     //    so a reference retained across the unload names an address the host has reassigned.
-    Current[ModuleOrdinal].Reported = nullptr;
+    Current[ModuleIndex].Reported = nullptr;
 
-    UnloadModule(Current[ModuleOrdinal].HostToken);
+    UnloadModule(Current[ModuleIndex].HostToken);
 
-    Current[ModuleOrdinal].HostToken = nullptr;
+    Current[ModuleIndex].HostToken = nullptr;
 }
 
 void CodeInterchange::Reclaim()
 {
-    for (std::uint32_t Ordinal = 0u; Ordinal < ModuleCapacity; ++Ordinal)
-        Release(Ordinal);
+    for (std::uint32_t Index = 0u; Index < ModuleCapacity; ++Index)
+        Release(Index);
 }
 
 CodeInterchange::~CodeInterchange()

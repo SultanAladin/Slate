@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 
 #include <cstdint>
@@ -21,8 +21,8 @@ namespace Slate
 /// note  📝 The arrangement is nested, so it is held as one flat run of records carrying an enclosing
 ///        ordinal rather than as lcoloured storage. Nothing in the stack allocates: the whole schema is one
 ///        fixed extent the host owns, which is what keeps a tick free of `new`.
-/// tag   contract
-struct LayerStackCeiling
+/// tag   guarantee
+struct LayerStackLimit
 {
     static constexpr std::uint32_t Entries        = 128u;   // [-] - layers plus folders, whole arrangement
     static constexpr std::uint32_t Depth          =   8u;   // [-] - how deep folders may nest
@@ -43,14 +43,14 @@ struct LayerStackCeiling
     //    pool records its other sections and simply presents no placement section.
     static constexpr std::uint32_t PlacementRecords = 16u;   // [-] - entries carrying a placement run
     static constexpr std::uint32_t MeshMaps       =   6u;   // [-] - mesh maps one generator reads
-    static constexpr std::uint32_t NamingCeiling  =  48u;   // [-] - characters retained for one naming
+    static constexpr std::uint32_t NamingLimit  =  48u;   // [-] - characters retained for one naming
     static constexpr std::uint32_t Revisions      =  64u;   // [-] - the revision run the inspector presents
     static constexpr std::uint32_t AtlasTotal     =   5u;   // [-] - ATLAS_TOTAL, what the channel panel foots
     static constexpr std::uint32_t ColourTags     =  10u;   // [-] - COLORS, the tag swatches a menu offers
 
     // 🔴 The ordinal that names no entry. Stated once so every caller compares against the same reading
     //    rather than writing `0xFFFFFFFFu` at thirty call sites, one of which will eventually be `-1`.
-    static constexpr std::uint32_t AbsentOrdinal  = 0xFFFFFFFFu;   // [-] - names no entry, ever
+    static constexpr std::uint32_t AbsentIndex  = 0xFFFFFFFFu;   // [-] - names no entry, ever
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -61,7 +61,7 @@ struct LayerStackCeiling
 /// note  📐 `LayerstackV1`'s own `TYPE` record. The reference spells the discriminator `type`, which is a
 ///        banned spelling; the discriminating mechanism is what the entry *contains*, so it is spelled
 ///        `LayerContent` here and the enumerators keep the reference's own words.
-/// tag   contract
+/// tag   guarantee
 enum class LayerContent : std::uint32_t
 {
     Folder       = 0u,   // [-] - encloses further entries; blends passthrough
@@ -75,7 +75,7 @@ enum class LayerContent : std::uint32_t
 };
 
 /// 🧩 Which half of one entry the artist has taken — the reference's `selMask`.
-/// tag   contract
+/// tag   guarantee
 enum class LayerTaken : std::uint32_t
 {
     Layer = 0u,   // [-] - the entry itself; its channels reach the Channel panel
@@ -83,7 +83,7 @@ enum class LayerTaken : std::uint32_t
 };
 
 /// 🧩 Where one mask draws its coverage from — the reference's `SRC` record.
-/// tag   contract
+/// tag   guarantee
 enum class MaskSource : std::uint32_t
 {
     Paint          = 0u,   // [-] - brush deposits
@@ -97,7 +97,7 @@ enum class MaskSource : std::uint32_t
 };
 
 /// 🧩 One channel's own arrangement within an entry — the reference's `defCh()` record.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct ChannelCoordinate
 {
     bool           Enabled = true;        // [-] - the dot; a disabled channel ignores this entry
@@ -108,7 +108,7 @@ struct ChannelCoordinate
 /// 🧩 One parameter a source or generator states, resolved for presentation.
 /// note  📝 The reference carries three parameter shapes — a range, a toggle and a selection. One record
 ///        with a discriminating extent states all three without a variant, which keeps the run flat.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct ParameterCoordinate
 {
     const char*    Naming    = "";       // [-] - borrowed; the parameter's presented label
@@ -121,7 +121,7 @@ struct ParameterCoordinate
 };
 
 /// 🧩 One mask attached to one entry, exactly as the reference's `MASK()` declares it.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct MaskCoordinate
 {
     bool           Declared    = false;                // [-] - whether a mask stands at all
@@ -135,17 +135,17 @@ struct MaskCoordinate
     std::uint32_t  Resolution  = 2048u;                // [px] - square
     bool           BaseWhite   = true;                 // [-] - the base coverage; false applies black
 
-    const char*        Effects[LayerStackCeiling::Effects] = {};      // [-] - borrowed
+    const char*        Effects[LayerStackLimit::Effects] = {};      // [-] - borrowed
     std::uint32_t      EffectCount = 0u;                              // [-] - how many stand
 
-    ParameterCoordinate  Parameters[LayerStackCeiling::Parameters] = {};   // [-] - the source's own
+    ParameterCoordinate  Parameters[LayerStackLimit::Parameters] = {};   // [-] - the source's own
     std::uint32_t      ParameterCount = 0u;                              // [-] - how many stand
 
-    const char*        MeshMaps[LayerStackCeiling::MeshMaps] = {};     // [-] - borrowed; required inputs
-    bool               MeshMapTransferred[LayerStackCeiling::MeshMaps] = {};   // [-] - whether each stands
+    const char*        MeshMaps[LayerStackLimit::MeshMaps] = {};     // [-] - borrowed; required inputs
+    bool               MeshMapTransferred[LayerStackLimit::MeshMaps] = {};   // [-] - whether each stands
     std::uint32_t      MeshMapCount = 0u;                              // [-] - how many are required
 
-    bool           ChannelApplied[LayerStackCeiling::Channels] = { true, true, true, true,
+    bool           ChannelApplied[LayerStackLimit::Channels] = { true, true, true, true,
                                                                    true, true, true, true };   // [-] - chan
 };
 
@@ -153,20 +153,20 @@ struct MaskCoordinate
 /// note  📐 The reference keeps `n.decal.p` and `n.pattern.p` on the node itself. They are held in the
 ///        arrangement's own pool here and reached by ordinal, because only two of the seven contents
 ///        declare one and applying the widest run on every entry costs 143 KB to serve two of them.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct PlacementRun
 {
-    ParameterCoordinate  Parameters[LayerStackCeiling::EntryParameters] = {};   // [-] - ranges, then switches
+    ParameterCoordinate  Parameters[LayerStackLimit::EntryParameters] = {};   // [-] - ranges, then switches
     std::uint32_t      ParameterCount = 0u;                                   // [-] - how many stand
 };
 
 /// 🧩 One entry of the arrangement — a layer or a folder — with its mask and its channels.
 /// note  📝 The nesting is carried by `Enclosing` and `Depth` rather than by held storage, so the whole
 ///        arrangement is one flat run a recorder walks in order.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct LayerEntry
 {
-    char           Naming[LayerStackCeiling::NamingCeiling] = {};   // [-] - retained, not borrowed
+    char           Naming[LayerStackLimit::NamingLimit] = {};   // [-] - retained, not borrowed
     LayerContent   Content     = LayerContent::Paint;    // [-] - what the entry holds
     const char*    Blend       = "Normal";               // [-] - borrowed; the blend mode's own name
     std::uint32_t  Opacity     = 100u;                   // [%] - 0…100
@@ -181,9 +181,9 @@ struct LayerEntry
     const char*    Format      = "RGBA 8";               // [-] - borrowed; bit depth's own name
     const char*    Modified    = "2026-08-19 14:02";     // [-] - borrowed; presented in the info section
 
-    ChannelCoordinate  Channels[LayerStackCeiling::Channels] = {};    // [-] - one per declared channel
+    ChannelCoordinate  Channels[LayerStackLimit::Channels] = {};    // [-] - one per declared channel
 
-    const char*      Effects[LayerStackCeiling::Effects] = {};      // [-] - borrowed
+    const char*      Effects[LayerStackLimit::Effects] = {};      // [-] - borrowed
     std::uint32_t    EffectCount = 0u;                              // [-] - how many stand
 
     MaskCoordinate     Mask;                                          // [-] - attached; Declared gates it
@@ -203,7 +203,7 @@ struct LayerEntry
 /// note  📐 `Inspector.tsx` calls these `revisions`; the naming record retires `HistoryStack` to
 ///        `RevisionSequence`, so the same spelling is used here. The pane's visible caption stays as the
 ///        reference draws it.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct RevisionCoordinate
 {
     const char*    Naming   = "";   // [-] - borrowed; what changed
@@ -218,14 +218,14 @@ struct RevisionCoordinate
 /// 🧩 The whole layer arrangement the host owns and every recorder borrows for one tick.
 /// note  💾 Pointer-free and fixed in extent, so it copies by assignment — which is exactly how the
 ///        revision ring retains a restorable reading without allocating.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct LayerArrangement
 {
-    LayerEntry     Entries[LayerStackCeiling::Entries];   // [-] - the flat run, outermost first
+    LayerEntry     Entries[LayerStackLimit::Entries];   // [-] - the flat run, outermost first
     std::uint32_t  EntryCount = 0u;                       // [-] - how many stand
 
     // 📐 The placement runs the decal and pattern entries point into by `LayerEntry::Placement`.
-    PlacementRun   Placements[LayerStackCeiling::PlacementRecords];   // [-] - reached by ordinal
+    PlacementRun   Placements[LayerStackLimit::PlacementRecords];   // [-] - reached by ordinal
     std::uint32_t  PlacementCount = 0u;                               // [-] - how many stand
 
     std::uint32_t  Taken       = 0u;                      // [-] - which entry the artist has taken
@@ -238,16 +238,16 @@ struct LayerArrangement
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 The channel naming run, in the reference's own order.
-/// out   const char* const*  [-]  borrowed; exactly LayerStackCeiling::Channels entries
+/// out   const char* const*  [-]  borrowed; exactly LayerStackLimit::Channels entries
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
 const char* const* ChannelNaming();
 
 /// 🧩 The tint one channel carries, from the reference's own record.
-/// in    Ordinal  [-]  0…LayerStackCeiling::Channels-1; out of range resolves to the first
+/// in    Index  [-]  0…LayerStackLimit::Channels-1; out of range resolves to the first
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-ThemeToken ChannelTint(std::uint32_t Ordinal);
+ThemeToken ChannelTint(std::uint32_t Index);
 
 /// 🧩 The tint one content carries, from `LayerstackV1`'s own `TYPE` record.
 /// cost  ✔️
@@ -270,11 +270,11 @@ const char* ContentBadge(LayerContent Content);
 const char* SourceNaming(MaskSource Source);
 
 /// 🧩 The blend-mode run one channel accepts — Normal and Height state their own shorter runs.
-/// in    ChannelOrdinal  [-]  which channel is asking
+/// in    ChannelIndex  [-]  which channel is asking
 /// out   Count           [-]  how many entries the returned run carries
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-const char* const* BlendNaming(std::uint32_t ChannelOrdinal, std::uint32_t& Count);
+const char* const* BlendNaming(std::uint32_t ChannelIndex, std::uint32_t& Count);
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   WALKING THE NESTING
@@ -282,16 +282,16 @@ const char* const* BlendNaming(std::uint32_t ChannelOrdinal, std::uint32_t& Coun
 
 /// 🧩 Whether one entry stands presented — every folder enclosing it is open.
 /// in    Arrangement  [-]  the whole run
-/// in    Ordinal      [-]  which entry
+/// in    Index      [-]  which entry
 /// out   bool         [-]  false when any enclosing folder is closed
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-bool EntryCurrent(const LayerArrangement& Arrangement, std::uint32_t Ordinal);
+bool EntryCurrent(const LayerArrangement& Arrangement, std::uint32_t Index);
 
 /// 🧩 How many entries one folder encloses, at every depth beneath it.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-std::uint32_t EnclosedCount(const LayerArrangement& Arrangement, std::uint32_t Ordinal);
+std::uint32_t EnclosedCount(const LayerArrangement& Arrangement, std::uint32_t Index);
 
 /// 🧩 How many channels of one entry stand enabled.
 /// cost  ✔️
@@ -311,7 +311,7 @@ Outcome<bool> ApplyReferenceArrangement(LayerArrangement& Arrangement);
 void ApplyReferenceRevisions(const RevisionCoordinate*& Revisions, std::uint32_t& Count);
 
 /// 🧩 The colour tags a tag menu offers — the reference's `COLORS`, in its own order.
-/// out   const std::uint32_t*  [-]  borrowed; exactly LayerStackCeiling::ColourTags readings
+/// out   const std::uint32_t*  [-]  borrowed; exactly LayerStackLimit::ColourTags readings
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
 const std::uint32_t* AppliedColourTags();
@@ -337,10 +337,10 @@ const char* const* EffectNaming(std::uint32_t& Count);
 /// note  📐 The reference's own `flat`, which it rebuilds inside `render` and then indexes for its arrow
 ///        keys. It is rebuilt here rather than retained, because a retained copy goes stale the instant a
 ///        folder closes and the arrow key then selects a row nobody can see.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct CurrentHalf
 {
-    std::uint32_t  Ordinal = 0u;                    // [-] - which entry
+    std::uint32_t  Index = 0u;                    // [-] - which entry
     LayerTaken     Half    = LayerTaken::Layer;     // [-] - which half of it
 };
 
@@ -351,12 +351,12 @@ struct CurrentHalf
 /// cost  🚩
 /// tag   api, nonallocating, nonthrowing
 std::uint32_t CurrentHalves(const LayerArrangement& Arrangement, const char* Retention,
-                              CurrentHalf* Written, std::uint32_t Ceiling);
+                              CurrentHalf* Written, std::uint32_t Limit);
 
 /// 🧩 Whether one entry stands presented under a retention run as well as its enclosing folders.
 /// cost  🚩
 /// tag   api, nonallocating, nonthrowing
-bool EntryRetained(const LayerArrangement& Arrangement, std::uint32_t Ordinal, const char* Retention);
+bool EntryRetained(const LayerArrangement& Arrangement, std::uint32_t Index, const char* Retention);
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 AMENDING THE ARRANGEMENT
@@ -444,7 +444,7 @@ class RevisionSequence
 {
 public:
 
-    static constexpr std::uint32_t RevisionCeiling = 8u;   // [-] - retained arrangements; never allocated
+    static constexpr std::uint32_t RevisionLimit = 8u;   // [-] - retained arrangements; never allocated
 
     RevisionSequence()                                   = default;
     RevisionSequence(const RevisionSequence&)            = delete;
@@ -479,7 +479,7 @@ public:
     /// 🧩 The naming of one recorded revision, newest first; empty beyond the recorded count.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    const char* RevisionNaming(std::uint32_t Ordinal) const;
+    const char* RevisionNaming(std::uint32_t Index) const;
 
     /// 🧩 Returns the rings to their constructed condition.
     /// cost  ✔️
@@ -488,10 +488,10 @@ public:
 
 private:
 
-    LayerArrangement  Reverting[RevisionCeiling]    = {};        // [-] - newest at Recorded - 1
-    const char*       Namings[RevisionCeiling]      = {};        // [-] - borrowed, one per recorded
-    LayerArrangement  Reinstating[RevisionCeiling]  = {};        // [-] - newest at Reinstatable - 1
-    const char*       ReinstateNamings[RevisionCeiling] = {};    // [-] - borrowed
+    LayerArrangement  Reverting[RevisionLimit]    = {};        // [-] - newest at Recorded - 1
+    const char*       Namings[RevisionLimit]      = {};        // [-] - borrowed, one per recorded
+    LayerArrangement  Reinstating[RevisionLimit]  = {};        // [-] - newest at Reinstatable - 1
+    const char*       ReinstateNamings[RevisionLimit] = {};    // [-] - borrowed
     std::uint32_t     Recorded                      = 0u;        // [-] - how many stand revertable
     std::uint32_t     Reinstatable                  = 0u;        // [-] - how many stand reinstatable
 };

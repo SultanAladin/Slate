@@ -41,8 +41,8 @@ void RotateSpan(RotationQuaternion Rotation,
 //    reused. `IlluminantPopulation` orders its own storage the same way and for the same reason.
 bool PrecedesInIdentity(OwnerIdentity Earlier, OwnerIdentity Later)
 {
-    if (Earlier.SlotOrdinal != Later.SlotOrdinal)
-        return Earlier.SlotOrdinal < Later.SlotOrdinal;
+    if (Earlier.SlotIndex != Later.SlotIndex)
+        return Earlier.SlotIndex < Later.SlotIndex;
 
     return Earlier.SlotGeneration < Later.SlotGeneration;
 }
@@ -229,10 +229,10 @@ ResolvedPointer PointerIntersection::Resolve(const ProjectedRay&    Projected,
         return Pointed;
 
     Pointed.Owner          = Met.Owner;
-    Pointed.FaceOrdinal       = Met.FaceOrdinal;
-    Pointed.CornerOrdinals[0] = Met.CornerOrdinals[0];
-    Pointed.CornerOrdinals[1] = Met.CornerOrdinals[1];
-    Pointed.CornerOrdinals[2] = Met.CornerOrdinals[2];
+    Pointed.FaceIndex       = Met.FaceIndex;
+    Pointed.CornerIndexs[0] = Met.CornerIndexs[0];
+    Pointed.CornerIndexs[1] = Met.CornerIndexs[1];
+    Pointed.CornerIndexs[2] = Met.CornerIndexs[2];
     Pointed.Weights[0]        = Met.Weights[0];
     Pointed.Weights[1]        = Met.Weights[1];
     Pointed.Weights[2]        = Met.Weights[2];
@@ -253,9 +253,9 @@ ResolvedPointer PointerIntersection::Resolve(const ProjectedRay&    Projected,
     //    plane that follows shading curvature slides under the manipulator as the pointer moves across it.
     const std::vector<DocumentPosition>& Positions = Imported.Positions();
 
-    const DocumentPosition& Alpha = Positions[Imported.CornerVertex(Met.CornerOrdinals[0])];
-    const DocumentPosition& Beta  = Positions[Imported.CornerVertex(Met.CornerOrdinals[1])];
-    const DocumentPosition& Gamma = Positions[Imported.CornerVertex(Met.CornerOrdinals[2])];
+    const DocumentPosition& Alpha = Positions[Imported.CornerVertex(Met.CornerIndexs[0])];
+    const DocumentPosition& Beta  = Positions[Imported.CornerVertex(Met.CornerIndexs[1])];
+    const DocumentPosition& Gamma = Positions[Imported.CornerVertex(Met.CornerIndexs[2])];
 
     const double FirstX  = Beta.PositionX  - Alpha.PositionX;
     const double FirstY  = Beta.PositionY  - Alpha.PositionY;
@@ -294,12 +294,12 @@ ResolvedPointer PointerIntersection::Resolve(const ProjectedRay&    Projected,
     // 📐 The barycentric weights the traversal produced, applied to the corners' own domain coordinates. `40`
     //    fan-triangulates from a face's first corner and so does `38` §4, so the three corners named here index
     //    the same run the conditioning and the unwrap both addressed.
-    for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 3u; ++Index)
     {
-        const DomainCoordinate& Held = Coordinates[Met.CornerOrdinals[Ordinal]];
+        const DomainCoordinate& Held = Coordinates[Met.CornerIndexs[Index]];
 
-        Pointed.DomainX  += Met.Weights[Ordinal] * static_cast<double>(Held.CoordinateX);
-        Pointed.DomainY += Met.Weights[Ordinal] * static_cast<double>(Held.CoordinateY);
+        Pointed.DomainX  += Met.Weights[Index] * static_cast<double>(Held.CoordinateX);
+        Pointed.DomainY += Met.Weights[Index] * static_cast<double>(Held.CoordinateY);
     }
 
     Pointed.DomainResolved = true;
@@ -332,7 +332,7 @@ ResolvedPointer PointerIntersection::Resolve(const ProjectedRay&    Projected,
         return Pointed;
     }
 
-    Pointed.PlacementOrdinal  = Contained.Resolve();
+    Pointed.PlacementIndex  = Contained.Resolve();
     Pointed.PlacementResolved = true;
 
     return Pointed;
@@ -409,7 +409,7 @@ std::vector<OwnerIdentity> PointerIntersection::ResolveExtent(const CameraProjec
     }
 
     FrustumSpace Marquee;
-    Marquee.Construct(Narrowed);
+    Marquee.DeriveFrustumPlanes(Narrowed);
 
     // 📐 The eight sub-frustum corners, at the two clipping planes, taken in the camera's own frame and carried
     //    into document space. `40` subdivides extents rather than frusta, so the axis-aligned bound is what

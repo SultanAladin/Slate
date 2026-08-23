@@ -86,10 +86,10 @@ void ResolveMultiScatter(MediumProfile Profile, Real64 Radius, Real64 SunZenithC
 /// tag   api, nonallocating, nonthrowing
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void IntegrateSkyView(Unsigned32x3 TexelOrdinal : SV_DispatchThreadID)
+void IntegrateSkyView(Unsigned32x3 TexelIndex : SV_DispatchThreadID)
 {
-    const Unsigned32 X  = TexelOrdinal.x;
-    const Unsigned32 Y = TexelOrdinal.y;
+    const Unsigned32 X  = TexelIndex.x;
+    const Unsigned32 Y = TexelIndex.y;
 
     if (X >= SkyViewExtentX || Y >= SkyViewExtentY)
     {

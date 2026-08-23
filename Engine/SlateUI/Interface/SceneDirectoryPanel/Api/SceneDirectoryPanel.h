@@ -22,16 +22,16 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
 #include "SlateUI/Interface/ControlPanel/Api/ControlPanel.h"
 #include "Shared/OverlayGeometry.slang.h"
 #include "SlateUI/Interface/EditorPanel/Api/EditorPanel.h"
 #include "SlateUI/Interface/FacetPanel/Api/FacetPanel.h"
-#include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
+#include "SlateUI/Interface/ControlIndex/Api/ControlIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
-#include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectoryContract.h"
+#include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectorySpecification.h"
 #include "SlateUI/Interface/SymbolSpecification/Api/SymbolSpecification.h"
 
 #include <cstdint>
@@ -48,21 +48,25 @@ namespace Slate
 ///        can alter lives here, so the host — and only the host — is the home of the scene directory's
 ///        content. This is the editor twin of the shell's `ShellContext`, holding only what the editor's
 ///        leaves present.
-/// tag   contract
+/// tag   guarantee
 struct SceneDirectoryContext
 {
-    static constexpr std::uint32_t EntityCeiling = 16u;   // [-] - outline rows, the reference declares fourteen
-    static constexpr std::uint32_t CardCeiling   =  4u;   // [-] - property cards, the reference states four
+    static constexpr std::uint32_t EntityLimit = 16u;   // [-] - outline rows, the reference declares fourteen
+    static constexpr std::uint32_t CardLimit   =  4u;   // [-] - property cards, the reference states four
 
     // 📐 The editor's environment. `EnvironmentPresented` gates every environment branch, so a host that
     //    never sets it (the validation host) renders no environment anywhere.
     bool                       EnvironmentPresented = false;   // [-] - the sun/sky/atmosphere is presented
     EnvironmentConfiguration   Environment          = {};      // [-] - host-owned; the sliders write it
-    RevisionDemand             RevisionDemandSlot   = {};      // [-] - one drag-end history demand
-
     std::uint32_t              EntityTaken = 2u;              // [-] - which outline row is taken (the Sun)
 
-    // 📝 The GPU sky texture the viewport leaf draws, uploaded by the host. Opaque on purpose: the panel
+    // 📝 Left-contact parenting. Scene rows do not reorder freely: dropping onto an entity parents to it,
+    //    and dropping onto a grouping row adds the carried subtree to that folder.
+    std::uint32_t              DragSource      = EntityLimit;
+    std::uint32_t              DragDestination = EntityLimit;
+    float                      DragOriginY      = 0.0f;
+
+    // 📝 The device-local GPU atmosphere surface the viewport leaf draws. Opaque on purpose: the panel
     //    names no vendor, so the identity is an integer the recording surface resolves.
     std::uintptr_t             SkyTextureIdentity = 0u;       // [-] - zero draws no sky at all
 
@@ -70,16 +74,15 @@ struct SceneDirectoryContext
     //    direction-indexed, and the viewport leaf crops it to this camera's field of view.
     SkyViewCamera              ViewportSkyCamera  = {};       // [-] - the dome crop the viewport draws
 
-    // 📐 The Properties | History strip, and the folds the reference applies empty so every card and
+    // 📐 The Properties / Bookmarks strip, and the folds the reference applies empty so every card and
     //    every revision group arrives disclosed.
-    std::uint32_t              InspectorTab    = 0u;          // [-] - 0 Properties, 1 History
-    bool                       CardFolded[CardCeiling]       = {};
-    bool                       RevisionFolded[EntityCeiling] = {};
+    std::uint32_t              InspectorTab    = 0u;          // [-] - 0 Properties, 1 Bookmarks (Editor Camera only)
+    bool                       CardFolded[CardLimit]       = {};
 
     // 📐 The outliner leaf has three OUTER slides: Directory + Details, Inspector, and scene transfer.
-    //    Properties and History are inner pages of the inspector, never duplicate outer destinations.
+    //    Editor Camera bookmarks are an inner inspector page, never a duplicate outer destination.
     std::uint32_t              OutlinePage         = 0u;   // [-] - 0 Directory, 1 Inspector, 2 Import/Export
-    std::uint32_t              OutlineInspectorTab = 0u;   // [-] - 0 Properties, 1 History
+    std::uint32_t              OutlineInspectorTab = 0u;   // [-] - 0 Properties, 1 Bookmarks (Editor Camera only)
     std::uint32_t              TransferMode        = 0u;   // [-] - 0 Import, 1 Export
     std::uint32_t              TransferFormat      = 0u;   // [-] - format carousel selection
     char                       TransferName[64] = "Untitled Scene";
@@ -102,48 +105,51 @@ struct SceneDirectoryContext
     //    cameras, folders, audio, particles, triggers, environment, layers) and a row matches when
     //    its NAME or its TAGS contain the search run AND its category's facet is enabled. All facets
     //    off = no filtering; an empty run = no search.
-    static constexpr std::uint32_t RetentionCeiling = 48u;   // [-] - the search run, terminator included
+    static constexpr std::uint32_t RetentionLimit = 48u;   // [-] - the search run, terminator included
     static constexpr std::uint32_t FacetCount       =  9u;   // [-] - the editor's filter categories
 
-    char                       EntityRetention[RetentionCeiling] = {};   // [-] - the search run
+    char                       EntityRetention[RetentionLimit] = {};   // [-] - the search run
     bool                       SearchTaken   = false;   // [-] - the search field holds the contact
     bool                       FacetEnabled[FacetCount] = {};   // [-] - active filter categories
 
     // 📝 The disclosure and presence conditions of the outline rows, exactly as the shell's own declare
     //    them: the level, Lighting, Environment and Systems arrive expanded and everything else folded.
-    bool  EntityExpanded[EntityCeiling] = { true, true, false, false, false, false,
+    bool  EntityExpanded[EntityLimit] = { true, true, false, false, false, false,
                                             true, false, false, false, true, false, false, false };
-    bool  EntityPresent[EntityCeiling]  = { true, true, true, true, true, true,
+    bool  EntityPresent[EntityLimit]  = { true, true, true, true, true, true,
                                             true, true, true, true, true, true, true, true };
 
     // 📐 The detail pane's small option switches for the taken row: bit 0 Locked, bit 1 Cast Shadows.
     //    `Visible` is `EntityPresent`, which the eye already owns. For the CAMERA row the bits read
     //    differently: bit 1 is the camera lag, bit 2 the inverted pitch — the settings the camera's
     //    details pane presents.
-    std::uint32_t              DetailBits[EntityCeiling] = {};
+    std::uint32_t              DetailBits[EntityLimit] = {};
 
     // 📝 Each record's transform, edited by the Transform card's three axis rows.
     // 🔴 The card previously drew Position, Rotation and Scale as bare labels with
     //    no reading at all, because there was nowhere to keep one. Seeded so a
     //    fresh scene reads sensibly rather than all-zero scale.
-    double                     EntityPosition[EntityCeiling][3] = {};
-    double                     EntityRotation[EntityCeiling][3] = {};
-    double                     EntityScale[EntityCeiling][3] = {};
+    double                     EntityPosition[EntityLimit][3] = {};
+    double                     EntityRotation[EntityLimit][3] = {};
+    double                     EntityScale[EntityLimit][3] = {};
     bool                       TransformSeeded = false;   // [-] - scale defaults applied once
 
     // 📝 The camera's own ordinates, owned by the host and written every tick: the fly speed the
     //    properties leaf's Fly Speed card edits (with a drag-end history demand, like the
     //    environment), and the pose the details pane states.
     double                     CameraSpeed = 50.0;      // [m/s] - the fly camera's rate
+    double                     CameraFieldOfView = 60.0; // [deg] - editor perspective vertical field
+    double                     CameraNearClip = 0.1;     // [m] - nearest presented geometry
+    double                     CameraFarClip = 10000.0;  // [m] - furthest presented geometry
     double                     CameraPosition[3] = { 0.0, 1.5, 0.0 };   // [m] - host-written
     double                     CameraRotation[3] = { 100.0, 15.0, 0.0 }; // [deg] - yaw, pitch, roll
 
     // 📝 Editor-camera bookmarks are authored here rather than in a viewport popup. Each captures a
     //    pose, carries an editable name, and can request that the host restore its camera component.
-    static constexpr std::uint32_t CameraBookmarkCeiling = 8u;
-    char                       CameraBookmarkNames[CameraBookmarkCeiling][32] = {};
-    double                     CameraBookmarkPosition[CameraBookmarkCeiling][3] = {};
-    double                     CameraBookmarkRotation[CameraBookmarkCeiling][3] = {};
+    static constexpr std::uint32_t CameraBookmarkLimit = 8u;
+    char                       CameraBookmarkNames[CameraBookmarkLimit][32] = {};
+    double                     CameraBookmarkPosition[CameraBookmarkLimit][3] = {};
+    double                     CameraBookmarkRotation[CameraBookmarkLimit][3] = {};
     std::uint32_t              CameraBookmarkCount = 0u;
     std::uint32_t              CameraBookmarkTaken = 0u;
     bool                       CameraBookmarkRecallRequested = false;
@@ -172,9 +178,9 @@ public:
     /// note  🔴 The arithmetic lives beside the registrations it describes so the two can only disagree by
     ///        an edit that touches both.
     static constexpr std::uint32_t RegistrationDemand =
-          SceneDirectoryContext::EntityCeiling * 7u   // [-] - row, presence, fold, three options, revision
-        + 34u                                         // [-] - fixed navigation, fields, folds, and sliders
-        + SceneDirectoryContext::CameraBookmarkCeiling
+          SceneDirectoryContext::EntityLimit * 6u   // [-] - row, presence, fold, and three detail options
+        + 52u                                         // [-] - fixed navigation, fields, folds, and per-card sliders
+        + SceneDirectoryContext::CameraBookmarkLimit
         + FacetPanel::FacetCapacity + 2u              // [-] - filter chips, dropdown, and clear
         + 34u;                                         // [-] - transfer carousel, fields, and DCC options
 
@@ -185,16 +191,16 @@ public:
 
     /// 🧩 Borrows the recording facilities and registers every identity and interpolant the panel needs.
     /// out   Result  [-]  refuses with ContentUnsupported when a construction already stands, and with
-    ///                     ExtentExhausted when the ledger or the integrator declines an registration
+    ///                     ExtentExhausted when the index or the integrator declines an registration
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(InteractionIndex&              Interaction,
+    Outcome<bool> ConstructSceneDirectoryPanel(ControlIndex&              IncomingInteraction,
                             MotionIntegrator&              Integrator,
                             RecordingSurface&              Surface,
                             const ThemeProfile& Resolved);
 
-    /// 🧩 Samples the contact for this tick, after the tick owner has advanced the shared ledger once.
-    /// note  🔴 This does not advance the ledger; several panels share it and the tick owner advances it once.
+    /// 🧩 Samples the contact for this tick, after the tick owner has advanced the shared index once.
+    /// note  🔴 This does not advance the index; several panels share it and the tick owner advances it once.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     void Advance(const PointerCondition& Sampled, double Elapsed,
@@ -210,7 +216,7 @@ public:
     /// tag   api, nonthrowing
     void Reset();
 
-    /// 🧩 Records the uploaded sky dome across one viewport leaf, cropped to the camera's field of view.
+    /// 🧩 Records the GPU-generated sky dome across one viewport leaf, cropped to the camera's field of view.
     /// in    Extent   [px]  the leaf body the sky fills
     /// in    Applied  [-]   the environment and the sky identity; written through only for the crop
     /// note  🔴 The identity is the host's; a zero identity records nothing and the leaf's own ground shows.
@@ -219,7 +225,7 @@ public:
     void RecordViewportSky(const PlaneExtent& Extent, const SceneDirectoryContext& Applied);
 
     // 🔴 `RecordGroundGrid` is withdrawn. The ground lattice is solved per pixel
-    //    by `OverlayFragment.slang` mode 3 — see the note where its 1828 lines
+    //    by `WorkspaceOverlayFragment.slang` mode 3 — see the note where its 1828 lines
     //    were removed from the source. The host pushes the camera to the overlay
     //    pass instead of handing it screen-space line segments.
 
@@ -254,19 +260,11 @@ public:
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
     void RecordOutliner(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
-                        const EntityRow* Rows, std::uint32_t RowCount,
-                        const EntityRevision* Revisions, std::uint32_t RevisionCount);
+                        EntityRow* Rows, std::uint32_t RowCount);
 
-    /// 🧩 Records the Properties | History pages across one properties leaf.
-    /// in    Rows        [-]  the entity rows, borrowed for the tick
-    /// in    RowCount    [-]  how many of them stand
-    /// in    Revisions   [-]  the host's revision run, borrowed for the tick
-    /// in    RevisionCount [-]  how many of them stand
-    /// cost  🚩
-    /// tag   api, nonallocating, nonthrowing
+    /// 🧩 Records entity properties and, for the Editor Camera only, its bookmark page.
     void RecordProperties(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
                           const EntityRow* Rows, std::uint32_t RowCount,
-                          const EntityRevision* Revisions, std::uint32_t RevisionCount,
                           std::uint32_t& InspectorTab, bool OutlinePresentation = false);
 
 private:
@@ -275,22 +273,20 @@ private:
                           const char* Titled, const char* Secondary);
     void RecordTransfer(const PlaneExtent& Extent, SceneDirectoryContext& Applied);
     void RecordDetailOptions(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
-                             std::uint32_t Ordinal, const EntityRow& Current);
+                             std::uint32_t Index, const EntityRow& Current);
     void RecordPropertyCards(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
                              const EntityRow* Rows, std::uint32_t RowCount);
     void RecordEnvironmentCard(SceneDirectoryContext& Applied,
-                               const PlaneExtent& Extent, float& Sweep, std::uint32_t& CardOrdinal,
+                               const PlaneExtent& Extent, float& Sweep, std::uint32_t& CardIndex,
                                const char* Caption,
                                const char* const* SliderCaptions,
                                const char* const* UnitGlyphs,
                                const double* Minimums, const double* Maximums,
-                               double* Values, std::uint32_t SliderCount);
-    void RecordRevisionSpine(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
-                             const EntityRow* Rows, std::uint32_t RowCount,
-                             const EntityRevision* Revisions, std::uint32_t RevisionCount);
+                               double* Values, std::uint32_t SliderCount,
+                               const std::uint32_t* DecimalPlaces = nullptr);
     void RecordCameraBookmarks(const PlaneExtent& Extent, SceneDirectoryContext& Applied);
 
-    InteractionIndex*           Ledger = nullptr;        // [-] - borrowed; never owned
+    ControlIndex*           Interaction = nullptr;        // [-] - borrowed; never owned
     MotionIntegrator*           Motion = nullptr;        // [-] - borrowed; never owned
     RecordingSurface*           Surface = nullptr;       // [-] - borrowed; never owned
     const ThemeProfile*         Appearance = nullptr;    // [-] - borrowed; never owned
@@ -302,23 +298,23 @@ private:
 
     PointerCondition            Sampled = {};            // [-] - this tick's contact
 
-    ControlIdentity RowContacts[SceneDirectoryContext::EntityCeiling]    = {};
-    ControlIdentity RowDisclosures[SceneDirectoryContext::EntityCeiling] = {};
-    ControlIdentity RowPresences[SceneDirectoryContext::EntityCeiling]   = {};
-    ControlIdentity DetailOptions[SceneDirectoryContext::EntityCeiling][3] = {};
-    ControlIdentity CardFolds[SceneDirectoryContext::CardCeiling]        = {};
+    ControlIdentity RowContacts[SceneDirectoryContext::EntityLimit]    = {};
+    ControlIdentity RowDisclosures[SceneDirectoryContext::EntityLimit] = {};
+    ControlIdentity RowPresences[SceneDirectoryContext::EntityLimit]   = {};
+    ControlIdentity DetailOptions[SceneDirectoryContext::EntityLimit][3] = {};
+    ControlIdentity CardFolds[SceneDirectoryContext::CardLimit]        = {};
     // 🧩 One identity per card row, so a transform axis can be dragged.
-    ControlIdentity CardFields[SceneDirectoryContext::CardCeiling][4]     = {};
-    ControlIdentity RevisionGroups[SceneDirectoryContext::EntityCeiling] = {};
+    ControlIdentity CardFields[SceneDirectoryContext::CardLimit][4]     = {};
     ControlIdentity InspectorStrip = {};
     ControlIdentity OutlineStrip    = {};
     ControlIdentity InspectCall     = {};
     ControlIdentity DirectoryCall   = {};
+    ControlIdentity TransferBack    = {};
     ControlIdentity TransferArrows[2] = {};
-    ControlIdentity TransferChoices[10] = {};
+    ControlIdentity TransferFormatOptions[10] = {};
     ControlIdentity TransferFields[4] = {};
     ControlIdentity TransferOptions[18] = {};
-    ControlIdentity BookmarkNames[SceneDirectoryContext::CameraBookmarkCeiling] = {};
+    ControlIdentity BookmarkNames[SceneDirectoryContext::CameraBookmarkLimit] = {};
     ControlIdentity BookmarkSave    = {};
     ControlIdentity BookmarkRecall  = {};
     ControlIdentity BookmarkRetire  = {};
@@ -333,7 +329,7 @@ private:
     double          TransferTarget  = 0.0;
 
     // 📐 Separate inner carousel slots for the outliner inspector and a dedicated properties leaf.
-    std::uint32_t   InspectorMotion[2]   = {};   // [-] - eased Properties | History travel
+    std::uint32_t   InspectorMotion[2]   = {};   // [-] - eased Properties / Bookmarks travel
     std::uint32_t   InspectorDeparted[2] = {};   // [-] - inner page left
     std::uint32_t   InspectorArriving[2] = {};   // [-] - inner page arriving
 
@@ -346,12 +342,13 @@ private:
     float AdvanceOutlineScroll(SceneDirectoryContext& Applied, const PlaneExtent& Viewport);
     ControlIdentity SearchField     = {};
     ControlIdentity FacetFold       = {};
-    ControlIdentity EnvironmentSliders[6] = {};
+    static constexpr std::uint32_t EnvironmentFieldLimit = 6u;
+    ControlIdentity EnvironmentSliders[SceneDirectoryContext::CardLimit][EnvironmentFieldLimit] = {};
 
     FacetPanel                   Facets = {};         // [-] - the filter card
 
-    bool   EnvironmentArmed[6] = {};   // [-] - drag-start latched per slider
-    double EnvironmentFrom[6]  = {};   // [-] - the value at drag start
+    bool   EnvironmentArmed[SceneDirectoryContext::CardLimit][EnvironmentFieldLimit] = {};
+    double EnvironmentFrom[SceneDirectoryContext::CardLimit][EnvironmentFieldLimit]  = {};
 };
 
 } // namespace Slate

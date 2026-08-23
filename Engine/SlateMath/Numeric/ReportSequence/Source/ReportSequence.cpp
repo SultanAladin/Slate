@@ -38,7 +38,7 @@ bool Coalesces(const ReportSpecification& Held, const ReportSpecification& Incom
     if (Held.Verdict != Incoming.Verdict)
         return false;
 
-    if (Held.SubjectOrdinal != Incoming.SubjectOrdinal)
+    if (Held.SubjectIndex != Incoming.SubjectIndex)
         return false;
 
     return TextAgrees(Held.Origin, Incoming.Origin) && TextAgrees(Held.Subject, Incoming.Subject);
@@ -55,7 +55,7 @@ void ReportSequence::Append(const ReportSpecification& Incoming)
     std::lock_guard<std::mutex> Holding(ReportGuard);
 
     if (RetainedOrder.empty())
-        RetainedOrder.resize(RetainedCeiling);
+        RetainedOrder.resize(RetainedLimit);
 
     ++AppendedReports;
 
@@ -63,28 +63,28 @@ void ReportSequence::Append(const ReportSpecification& Incoming)
     //    terminates on its first comparison for the case that recurs.
     for (std::uint32_t Passed = OccupiedCount; Passed-- > 0u;)
     {
-        const std::uint32_t Ordinal = (OldestOrdinal + Passed) % RetainedCeiling;
+        const std::uint32_t Index = (OldestIndex + Passed) % RetainedLimit;
 
-        if (!Coalesces(RetainedOrder[Ordinal], Incoming))
+        if (!Coalesces(RetainedOrder[Index], Incoming))
             continue;
 
-        ++RetainedOrder[Ordinal].OccurrenceCount;
-        RetainedOrder[Ordinal].Arrival = Incoming.Arrival;
-        RetainedOrder[Ordinal].Detail  = Incoming.Detail;
+        ++RetainedOrder[Index].OccurrenceCount;
+        RetainedOrder[Index].Arrival = Incoming.Arrival;
+        RetainedOrder[Index].Detail  = Incoming.Detail;
 
         return;
     }
 
-    const std::uint32_t WriteOrdinal = (OldestOrdinal + OccupiedCount) % RetainedCeiling;
+    const std::uint32_t WriteIndex = (OldestIndex + OccupiedCount) % RetainedLimit;
 
-    RetainedOrder[WriteOrdinal]                 = Incoming;
-    RetainedOrder[WriteOrdinal].OccurrenceCount = 1u;
+    RetainedOrder[WriteIndex]                 = Incoming;
+    RetainedOrder[WriteIndex].OccurrenceCount = 1u;
 
-    if (OccupiedCount == RetainedCeiling)
+    if (OccupiedCount == RetainedLimit)
     {
         // 📝 The write above overwrote the oldest retained report. Advancing the oldest ordinal is what makes
         //    that a discard rather than a corruption of the retention order, exactly as `04`'s arrivals do.
-        OldestOrdinal = (OldestOrdinal + 1u) % RetainedCeiling;
+        OldestIndex = (OldestIndex + 1u) % RetainedLimit;
         ++DiscardedReports;
     }
     else
@@ -105,7 +105,7 @@ std::vector<ReportSpecification> ReportSequence::Retained() const
     Current.reserve(OccupiedCount);
 
     for (std::uint32_t Passed = 0u; Passed < OccupiedCount; ++Passed)
-        Current.push_back(RetainedOrder[(OldestOrdinal + Passed) % RetainedCeiling]);
+        Current.push_back(RetainedOrder[(OldestIndex + Passed) % RetainedLimit]);
 
     return Current;
 }
@@ -133,7 +133,7 @@ void ReportSequence::Reclaim()
     std::lock_guard<std::mutex> Holding(ReportGuard);
 
     RetainedOrder.clear();
-    OldestOrdinal    = 0u;
+    OldestIndex    = 0u;
     OccupiedCount    = 0u;
     AppendedReports  = 0u;
     DiscardedReports = 0u;
@@ -145,12 +145,12 @@ void ReportSequence::Reclaim()
 
 std::size_t MeasureIndex::Located(const char* Origin, const char* Measured) const
 {
-    for (std::size_t Ordinal = 0u; Ordinal < SampledMeasures.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < SampledMeasures.size(); ++Index)
     {
-        if (TextAgrees(SampledMeasures[Ordinal].Origin, Origin)
-         && TextAgrees(SampledMeasures[Ordinal].Measured, Measured))
+        if (TextAgrees(SampledMeasures[Index].Origin, Origin)
+         && TextAgrees(SampledMeasures[Index].Measured, Measured))
         {
-            return Ordinal;
+            return Index;
         }
     }
 

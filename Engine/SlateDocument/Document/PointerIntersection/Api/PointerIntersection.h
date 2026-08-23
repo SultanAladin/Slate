@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "Contract/IdentityContract.h"
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/Identity.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateDocument/Document/CameraProjection/Api/CameraProjection.h"
 #include "SlateDocument/Document/DecalProjection/Api/DecalProjection.h"
 #include "SlateDocument/Document/RegistrationIndex/Api/RegistrationIndex.h"
@@ -103,15 +103,15 @@ struct AcceptedSurface
 struct ResolvedPointer
 {
     OwnerIdentity  Owner          = {};                 // [-]  - `12` registration, `78` manipulation
-    std::uint32_t     FaceOrdinal       = 0u;                 // [-]  - component selection
-    std::uint32_t     CornerOrdinals[3] = { 0u, 0u, 0u };     // [-]  - the fan triangle's corners
+    std::uint32_t     FaceIndex       = 0u;                 // [-]  - component selection
+    std::uint32_t     CornerIndexs[3] = { 0u, 0u, 0u };     // [-]  - the fan triangle's corners
     double            Weights[3]        = { 0.0, 0.0, 0.0 };  // [-]  - barycentric, summing to one
     double            Distance          = 0.0;                // [mm] - along the supplied direction
     DocumentPosition  Position          = {};                 // [mm] - `78`'s manipulator plane
     SurfaceDirection  Orientation       = {};                 // [-]  - the hit face's own, in document space
     double            DomainX       = 0.0;                // [-]  - `22`'s stroke position
     double            DomainY      = 0.0;                // [-]
-    std::uint32_t     PlacementOrdinal  = AbsentPlacement;    // [-]  - `72`'s ordinal where one was hit
+    std::uint32_t     PlacementIndex  = AbsentPlacement;    // [-]  - `72`'s ordinal where one was hit
     bool              DomainResolved    = false;              // [-]  - the owner accepted a coordinate run
     bool              PlacementResolved = false;              // [-]  - a placement contains the domain position
     bool              Resolved          = false;              // [-]  - anything was met at all

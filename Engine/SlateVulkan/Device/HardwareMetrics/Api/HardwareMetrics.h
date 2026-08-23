@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/NumericTolerance.h"
 #include "SlateMath/Numeric/ReportSequence/Api/ReportSequence.h"
 #include "SlateMath/Platform/TickSequence/Api/TickSequence.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
@@ -62,12 +62,12 @@ public:
     // 📝 Spans one rotation may declare. Sixteen carries `08` §3's thirteen recordings, the presentation and
     //    the whole-rotation span with room for one more, and the extent is sized against this once at bring-up
     //    rather than grown — a query extent that reallocated would invalidate a reading a rotation still writes.
-    static constexpr std::uint32_t SpanCeiling = 16u;   // [-] - declared spans per rotation
+    static constexpr std::uint32_t SpanLimit = 16u;   // [-] - declared spans per rotation
 
     // 📝 🔴 Two timestamps per span, one at each end, and the whole set is sized against the recording slot count —
     //    `06` §7's gate, arithmetic rather than a remark. A single rotation's worth would be read back while
     //    the next rotation was already overwriting it.
-    static constexpr std::uint32_t TimestampsPerSlot = SpanCeiling * 2u;   // [-]
+    static constexpr std::uint32_t TimestampsPerSlot = SpanLimit * 2u;   // [-]
 
     HardwareMetrics()                                  = default;
     HardwareMetrics(const HardwareMetrics&)            = delete;
@@ -83,11 +83,11 @@ public:
     ///        fail on a device that can draw everything Slate draws.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange& Exchange);
+    Outcome<bool> InspectHardware(const VulkanExchange& Exchange);
 
     /// 🧩 Declares one span of device execution by name, returning the ordinal that opens and closes it.
     /// in    SpanName  [-]  static text; the recording's own identity, so a reading names what it timed
-    /// out   Result   [-]  refuses with ExtentExhausted above `SpanCeiling`, and with ContentUnsupported for
+    /// out   Result   [-]  refuses with ExtentExhausted above `SpanLimit`, and with ContentUnsupported for
     ///                      a name already declared — two spans of one name make one unreadable reading
     /// pre   no rotation is recording; every span is declared at bring-up
     /// note  🔴 Declared at bring-up like the recordings themselves. A span declared mid-run would have to grow
@@ -98,15 +98,15 @@ public:
 
     /// 🧩 Records the timestamp that opens one declared span, and enters it on the nesting depth.
     /// in    Recorded      [-]  the recording being written into
-    /// in    SlotOrdinal  [-]  which slot of the depth is standing
-    /// in    SpanOrdinal   [-]  what `Declare` returned
+    /// in    SlotIndex  [-]  which slot of the depth is standing
+    /// in    SpanIndex   [-]  what `Declare` returned
     /// out   Result       [-]  refuses with ContentUnsupported for an undeclared ordinal or an excessive slot,
     ///                          and with RelationCyclic when the span is already open in this rotation
     /// post  the span's nesting depth is the count of spans standing open around it
     /// note  ⚠️ Delivers as a no-op without the capability, so the recording site is unconditional.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Open(VkCommandBuffer Recorded, std::uint32_t SlotOrdinal, std::uint32_t SpanOrdinal);
+    Outcome<bool> Open(VkCommandBuffer Recorded, std::uint32_t SlotIndex, std::uint32_t SpanIndex);
 
     /// 🧩 Records the timestamp that closes one declared span, and leaves it on the nesting depth.
     /// out   Result  [-]  refuses with ContentUnsupported for an undeclared ordinal or an excessive slot, and
@@ -115,7 +115,7 @@ public:
     ///        standing has crossed the nesting, and the depth it reports then belongs to neither of them.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Close(VkCommandBuffer Recorded, std::uint32_t SlotOrdinal, std::uint32_t SpanOrdinal);
+    Outcome<bool> Close(VkCommandBuffer Recorded, std::uint32_t SlotIndex, std::uint32_t SpanIndex);
 
     /// 🧩 Clears one cycle slot's timestamps, immediately before the recording that writes them.
     /// out   Result  [-]  refuses with ContentUnsupported for an excessive slot
@@ -125,10 +125,10 @@ public:
     ///        rotation — the one failure a metric cannot be caught in, because nothing about it looks wrong.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Clear(VkCommandBuffer Recorded, std::uint32_t SlotOrdinal);
+    Outcome<bool> Clear(VkCommandBuffer Recorded, std::uint32_t SlotIndex);
 
     /// 🧩 Reads back one completed rotation's timestamps and resolves each declared span's duration.
-    /// in    SlotOrdinal   [-]  a slot whose completion has been awaited
+    /// in    SlotIndex   [-]  a slot whose completion has been awaited
     /// in    CompletedCount [-]  which rotation the readings belong to, for the lag the reading carries
     /// out   Result        [-]  refuses with ContentUnsupported for an excessive slot, HostDenied when the
     ///                           device declines the readback, and DeviceLost when the device was lost — a
@@ -139,7 +139,7 @@ public:
     ///        would report the rebuild as free rather than as absent.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Resolve(std::uint32_t SlotOrdinal, std::uint64_t CompletedCount);
+    Outcome<bool> Resolve(std::uint32_t SlotIndex, std::uint64_t CompletedCount);
 
     /// 🧩 One declared span's last resolved reading.
     /// out   Result  [-]  refuses with ContentUnsupported for an undeclared ordinal
@@ -147,7 +147,7 @@ public:
     ///       member says it was declared and has no reading — two different facts, and `86` presents both.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<MeasuredSpan> Current(std::uint32_t SpanOrdinal) const;
+    Outcome<MeasuredSpan> Current(std::uint32_t SpanIndex) const;
 
     /// 🧩 Declares every resolved reading into the register the tick samples.
     /// in    Sampled   [-]  where the readings are declared; borrowed for the call alone
@@ -188,17 +188,17 @@ private:
     /// 🧩 What one cycle slot recorded — which spans were opened and closed in it.
     struct RecordedSlot
     {
-        bool  SpanOpened[SpanCeiling] = {};   // [-] - the opening timestamp was recorded
-        bool  SpanClosed[SpanCeiling] = {};   // [-] - the closing timestamp was recorded
+        bool  SpanOpened[SpanLimit] = {};   // [-] - the opening timestamp was recorded
+        bool  SpanClosed[SpanLimit] = {};   // [-] - the closing timestamp was recorded
     };
 
     /// 🧩 Where one span's opening timestamp sits in the extent, for one cycle slot.
     /// note  Both timestamps of one span are adjacent, so the readback reads one rotation's whole run at once.
-    static std::uint32_t TimestampOrdinalOf(std::uint32_t SlotOrdinal, std::uint32_t SpanOrdinal);
+    static std::uint32_t TimestampIndexOf(std::uint32_t SlotIndex, std::uint32_t SpanIndex);
 
     const VulkanExchange*          DeviceEdge          = nullptr;         // [-]  - borrowed; never owned
     VkQueryPool                    TimestampExtent     = VK_NULL_HANDLE;  // [-]  - the vendor spelling, verbatim
-    std::vector<DeclaredSpan>      DeclaredSpans       = {};              // [-]  - at most SpanCeiling entries
+    std::vector<DeclaredSpan>      DeclaredSpans       = {};              // [-]  - at most SpanLimit entries
     std::vector<RecordedSlot>  RecordedSlots           = {};              // [-]  - RecordingSlotCount entries
     std::uint32_t                  CurrentNesting     = 0u;              // [-]  - spans open in the recording now
     double                         TimestampToDuration = 0.0;             // [ms] - carried by one increment

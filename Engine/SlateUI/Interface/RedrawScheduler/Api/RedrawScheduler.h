@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 
 #include <cstdint>
 
@@ -22,7 +22,7 @@ namespace Slate
 ///       resolution, and the defect appears as a panel that recolours where it should have re-solved.
 /// note  The three are separated because they cost three different amounts. Conflating them means paying
 ///       the dearest one every time something hovers, which is the whole expense the mechanism removes.
-/// tag   contract
+/// tag   guarantee
 enum class RedrawMark : std::uint32_t
 {
     Quiet     = 0u,   // [-] - nothing changed; the recorded content of the previous tick still stands
@@ -89,12 +89,12 @@ public:
     Outcome<std::uint32_t> Register(const char* Naming);
 
     /// 🧩 Raises one panel's mark to the dearer of what it carries and what is declared.
-    /// in    PanelOrdinal  [-]  what Register delivered; an unenrolled ordinal marks nothing
+    /// in    PanelIndex  [-]  what Register delivered; an unenrolled ordinal marks nothing
     /// note  Never lowers. A panel that already stands at Rearrange is not reduced to Recolour by a hover
     ///       incoming in the same tick, which is the ordering the enumeration's numbering encodes.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Mark(std::uint32_t PanelOrdinal, RedrawMark Declared);
+    void Mark(std::uint32_t PanelIndex, RedrawMark Declared);
 
     /// 🧩 Raises every registered panel's mark — a display resize, or an appearance resolved afresh.
     /// cost  ✔️
@@ -105,7 +105,7 @@ public:
     /// out   RedrawMark  [-]  Quiet for an unenrolled ordinal
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    RedrawMark Current(std::uint32_t PanelOrdinal) const;
+    RedrawMark Current(std::uint32_t PanelIndex) const;
 
     /// 🧩 Whether anything at all stands above Quiet.
     /// cost  ✔️
@@ -134,7 +134,7 @@ public:
     /// 🧩 Returns one panel to Quiet, for a caller that records panels independently.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Retire(std::uint32_t PanelOrdinal);
+    void Retire(std::uint32_t PanelIndex);
 
     /// 🧩 How many panels are registered.
     /// cost  ✔️
@@ -144,7 +144,7 @@ public:
     /// 🧩 The static text one registered panel was named with.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    const char* Naming(std::uint32_t PanelOrdinal) const;
+    const char* Naming(std::uint32_t PanelIndex) const;
 
     /// 🧩 How many ticks have retired with nothing marked — the figure the idle gate is measured by.
     /// cost  ✔️

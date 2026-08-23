@@ -77,7 +77,7 @@ VkPresentModeKHR DisplayScheduler::ScorePacing(VkSurfaceKHR Surface, LatencyInte
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> DisplayScheduler::Construct(const VulkanExchange&       Exchange,
+Outcome<bool> DisplayScheduler::ConstructDisplayScheduler(const VulkanExchange&       Exchange,
                                           const DiagnosticExtension&  Naming,
                                           VkSurfaceKHR                Surface,
                                           std::uint32_t               DisplayWidth,
@@ -130,8 +130,8 @@ Outcome<bool> DisplayScheduler::Establish()
             { RefusalReason::ContentUnsupported, "a zero extent was asked for; a minimised window reports one" });
     }
 
-    if (ChainWidth > DisplayExtentCeiling || ChainHeight > DisplayExtentCeiling)
-        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the extent exceeds DisplayExtentCeiling" });
+    if (ChainWidth > DisplayExtentLimit || ChainHeight > DisplayExtentLimit)
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the extent exceeds DisplayExtentLimit" });
 
     VkSurfaceCapabilitiesKHR Accepted = {};
 
@@ -215,12 +215,12 @@ Outcome<bool> DisplayScheduler::Establish()
     //    holds, because a resize retires one chain and stands another under the same member — and the two are
     //    told apart in the driver's text only by which establishment named them. Raised before the name is
     //    declared so that the first chain is the nought-th. The refusal is discarded for `ByteSpace`'s reason.
-    const std::uint32_t ChainOrdinal = EstablishedCount++;
+    const std::uint32_t ChainIndex = EstablishedCount++;
 
     Discard(NamingEdge->Declare(VK_OBJECT_TYPE_SWAPCHAIN_KHR,
                         reinterpret_cast<std::uint64_t>(DisplayChain),
                         "DisplayScheduler presentation chain",
-                        ChainOrdinal));
+                        ChainIndex));
 
     std::uint32_t ImageCount = 0u;
     vkGetSwapchainImagesKHR(DeviceEdge->ActiveDevice(), DisplayChain, &ImageCount, nullptr);
@@ -238,18 +238,18 @@ Outcome<bool> DisplayScheduler::Establish()
 
     ChainViews.assign(ImageCount, VK_NULL_HANDLE);
 
-    for (std::uint32_t ImageOrdinal = 0u; ImageOrdinal < ImageCount; ++ImageOrdinal)
+    for (std::uint32_t ImageIndex = 0u; ImageIndex < ImageCount; ++ImageIndex)
     {
         VkImageViewCreateInfo ViewDeclaration = {};
         ViewDeclaration.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        ViewDeclaration.image                           = ChainImages[ImageOrdinal];
+        ViewDeclaration.image                           = ChainImages[ImageIndex];
         ViewDeclaration.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
         ViewDeclaration.format                          = SurfaceCarries;
         ViewDeclaration.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
         ViewDeclaration.subresourceRange.levelCount     = 1u;
         ViewDeclaration.subresourceRange.layerCount     = 1u;
 
-        if (vkCreateImageView(DeviceEdge->ActiveDevice(), &ViewDeclaration, nullptr, &ChainViews[ImageOrdinal])
+        if (vkCreateImageView(DeviceEdge->ActiveDevice(), &ViewDeclaration, nullptr, &ChainViews[ImageIndex])
             != VK_SUCCESS)
         {
             // 🔴 Rejected in full. A chain half-viewed is one where `08` §3 ⑬ presents an image whose view the
@@ -263,20 +263,20 @@ Outcome<bool> DisplayScheduler::Establish()
         //    display releases — so a name carrying only one of the two cannot say which chain a stale view came
         //    from after a resize.
         Discard(NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE_VIEW,
-                            reinterpret_cast<std::uint64_t>(ChainViews[ImageOrdinal]),
+                            reinterpret_cast<std::uint64_t>(ChainViews[ImageIndex]),
                             "DisplayScheduler chain view",
-                            ChainOrdinal * ImageCount + ImageOrdinal));
+                            ChainIndex * ImageCount + ImageIndex));
 
         // 📝 The image is named although Slate did not create it, which is past what the gate asks. Every layout
         //    transition `08` §3 ⑬ records is reported against the image and never against the view, so an unnamed
         //    one leaves the single most frequent presentation error the one report that carries no name.
         Discard(NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE,
-                            reinterpret_cast<std::uint64_t>(ChainImages[ImageOrdinal]),
+                            reinterpret_cast<std::uint64_t>(ChainImages[ImageIndex]),
                             "DisplayScheduler chain image",
-                            ChainOrdinal * ImageCount + ImageOrdinal));
+                            ChainIndex * ImageCount + ImageIndex));
     }
 
-    TakenOrdinal     = AbsentDisplayImage;
+    TakenIndex     = AbsentDisplayImage;
     LastArrival      = {};
     ArrivalInterval  = 0.0;
 
@@ -292,7 +292,7 @@ Outcome<AcquiredImage> DisplayScheduler::Await(const CycleSlot& Current, const T
     if (DeviceEdge == nullptr || DisplayChain == VK_NULL_HANDLE)
         return Outcome<AcquiredImage>::Refuse({ RefusalReason::CapabilityAbsent, "no chain is established" });
 
-    if (TakenOrdinal != AbsentDisplayImage)
+    if (TakenIndex != AbsentDisplayImage)
     {
         return Outcome<AcquiredImage>::Refuse(
             { RefusalReason::RelationCyclic, "an image is already taken and has not been presented" });
@@ -309,7 +309,7 @@ Outcome<AcquiredImage> DisplayScheduler::Await(const CycleSlot& Current, const T
     //    rejected as the display having neither delivered nor reported, which is what an unresponsive one is.
     const VkResult Reached = vkAcquireNextImageKHR(DeviceEdge->ActiveDevice(),
                                                   DisplayChain,
-                                                  ArrivalCeilingNanoseconds,
+                                                  ArrivalLimitNanoseconds,
                                                   Current.ImageAvailable,
                                                   VK_NULL_HANDLE,
                                                   &Sampled);
@@ -317,7 +317,7 @@ Outcome<AcquiredImage> DisplayScheduler::Await(const CycleSlot& Current, const T
     // ⚠️ `VK_ERROR_OUT_OF_DATE_KHR` delivers **no** image — nothing was taken, and the arrived ordinal names
     //    nothing. `VK_SUBOPTIMAL_KHR` delivers one that is usable this rotation. The two are reported through
     //    one member because both mean the chain no longer matches the display, and they differ in whether this
-    //    rotation may proceed — which is what `ImageOrdinal` says.
+    //    rotation may proceed — which is what `ImageIndex` says.
     if (Reached == VK_ERROR_OUT_OF_DATE_KHR)
     {
         AcquiredImage Outgrown;
@@ -351,14 +351,14 @@ Outcome<AcquiredImage> DisplayScheduler::Await(const CycleSlot& Current, const T
     // 📝 Measured on the host between two arrivals, which is what the artist waited — the quantity the latency
     //    intent was chosen against. `HardwareMetrics` measures what the device spent, and the two answer
     //    different questions; a report carrying only the second one says a stalled display is running fast.
-    if (LastArrival.Ordinal != 0u)
+    if (LastArrival.Index != 0u)
         ArrivalInterval = TickSequence::Span(LastArrival, AcquiredAt);
 
     LastArrival  = AcquiredAt;
-    TakenOrdinal = Sampled;
+    TakenIndex = Sampled;
 
     AcquiredImage Delivered;
-    Delivered.ImageOrdinal  = Sampled;
+    Delivered.ImageIndex  = Sampled;
     Delivered.Extent        = ChainImages[Sampled];
     Delivered.WholeView     = ChainViews[Sampled];
     Delivered.PacedInterval = ArrivalInterval;
@@ -371,12 +371,12 @@ Outcome<AcquiredImage> DisplayScheduler::Await(const CycleSlot& Current, const T
 //                                                    THE SURRENDER
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> DisplayScheduler::Present(const CycleSlot& Current, std::uint32_t ImageOrdinal)
+Outcome<bool> DisplayScheduler::Present(const CycleSlot& Current, std::uint32_t ImageIndex)
 {
     if (DeviceEdge == nullptr || DisplayChain == VK_NULL_HANDLE)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no chain is established" });
 
-    if (ImageOrdinal == AbsentDisplayImage || ImageOrdinal != TakenOrdinal)
+    if (ImageIndex == AbsentDisplayImage || ImageIndex != TakenIndex)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "that image was not the one taken" });
 
     VkPresentInfoKHR ReturnDeclaration = {};
@@ -389,14 +389,14 @@ Outcome<bool> DisplayScheduler::Present(const CycleSlot& Current, std::uint32_t 
     ReturnDeclaration.pWaitSemaphores    = &Current.RecordingDone;
     ReturnDeclaration.swapchainCount     = 1u;
     ReturnDeclaration.pSwapchains        = &DisplayChain;
-    ReturnDeclaration.pImageIndices      = &ImageOrdinal;
+    ReturnDeclaration.pImageIndices      = &ImageIndex;
 
     const VkResult PresentResult = vkQueuePresentKHR(DeviceEdge->GraphicsQueue(), &ReturnDeclaration);
 
     // 📝 The ordinal is released before the result is read. The display owns the image either way — an outgrown
     //    chain has still consumed it — and retaining the ordinal would make the next arrival refuse for a
     //    presentation that did in fact happen.
-    TakenOrdinal = AbsentDisplayImage;
+    TakenIndex = AbsentDisplayImage;
     ++ReturnedCount;
 
     // ⚠️ An outgrown chain delivers rather than refuses. The image was presented, and refusing would make the
@@ -470,7 +470,7 @@ void DisplayScheduler::Return()
     ChainImages.clear();
     ChainViews.clear();
     MinimumChainImages = 0u;
-    TakenOrdinal       = AbsentDisplayImage;
+    TakenIndex       = AbsentDisplayImage;
 }
 
 DisplayScheduler::~DisplayScheduler()

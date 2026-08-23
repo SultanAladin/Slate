@@ -12,7 +12,7 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> CommandSequence::Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming)
+Outcome<bool> CommandSequence::ConstructCommandSequence(const VulkanExchange& Exchange, const DiagnosticExtension& Naming)
 {
     if (Exchange.ActiveDevice() == VK_NULL_HANDLE)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
@@ -24,7 +24,7 @@ Outcome<bool> CommandSequence::Construct(const VulkanExchange& Exchange, const D
 
     VkCommandPoolCreateInfo ExtentDeclaration = {};
     ExtentDeclaration.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    ExtentDeclaration.queueFamilyIndex        = Exchange.Capability().GraphicsFamilyOrdinal;
+    ExtentDeclaration.queueFamilyIndex        = Exchange.Capability().GraphicsFamilyIndex;
 
     // 📝 Transient rather than individually resettable. Every recording of a slot is rewritten from nothing
     //    each rotation, which is what the vendor's transient arrangement is for; the resettable one asks it to
@@ -35,9 +35,9 @@ Outcome<bool> CommandSequence::Construct(const VulkanExchange& Exchange, const D
 
     // 📝 Walked by ordinal rather than by reference, because the cycle slot is what each object is named by
     //    and it is the same ordinal every later call addresses the slot with.
-    for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < RecordingSlotCount; ++SlotOrdinal)
+    for (std::uint32_t SlotIndex = 0u; SlotIndex < RecordingSlotCount; ++SlotIndex)
     {
-        RecordingSlot& Slot = Slots[SlotOrdinal];
+        RecordingSlot& Slot = Slots[SlotIndex];
 
         if (vkCreateCommandPool(Active, &ExtentDeclaration, nullptr, &Slot.RecordingExtent) != VK_SUCCESS)
         {
@@ -64,12 +64,12 @@ Outcome<bool> CommandSequence::Construct(const VulkanExchange& Exchange, const D
         Discard(NamingEdge->Declare(VK_OBJECT_TYPE_COMMAND_POOL,
                             reinterpret_cast<std::uint64_t>(Slot.RecordingExtent),
                             "CommandSequence rotation extent",
-                            SlotOrdinal));
+                            SlotIndex));
 
         Discard(NamingEdge->Declare(VK_OBJECT_TYPE_COMMAND_BUFFER,
                             reinterpret_cast<std::uint64_t>(Slot.Primary),
                             "CommandSequence rotation recording",
-                            SlotOrdinal));
+                            SlotIndex));
     }
 
     // 📝 The immediate extent is reset per use and therefore declares the resettable arrangement its slots do
@@ -96,15 +96,15 @@ Outcome<bool> CommandSequence::Construct(const VulkanExchange& Exchange, const D
 //                                                     THE OPENING
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<VkCommandBuffer> CommandSequence::Open(std::uint32_t SlotOrdinal)
+Outcome<VkCommandBuffer> CommandSequence::Open(std::uint32_t SlotIndex)
 {
-    if (DeviceEdge == nullptr || static_cast<std::size_t>(SlotOrdinal) >= Slots.size())
+    if (DeviceEdge == nullptr || static_cast<std::size_t>(SlotIndex) >= Slots.size())
     {
         return Outcome<VkCommandBuffer>::Refuse(
             { RefusalReason::ContentUnsupported, "the cycle slot is outside the depth" });
     }
 
-    RecordingSlot& Slot = Slots[SlotOrdinal];
+    RecordingSlot& Slot = Slots[SlotIndex];
 
     if (Slot.SlotOpen)
         return Outcome<VkCommandBuffer>::Refuse({ RefusalReason::RelationCyclic, "the slot is already open" });
@@ -132,30 +132,30 @@ Outcome<VkCommandBuffer> CommandSequence::Open(std::uint32_t SlotOrdinal)
     return Outcome<VkCommandBuffer>::Result(Slot.Primary);
 }
 
-Outcome<VkCommandBuffer> CommandSequence::Recording(std::uint32_t SlotOrdinal) const
+Outcome<VkCommandBuffer> CommandSequence::Recording(std::uint32_t SlotIndex) const
 {
-    if (static_cast<std::size_t>(SlotOrdinal) >= Slots.size())
+    if (static_cast<std::size_t>(SlotIndex) >= Slots.size())
     {
         return Outcome<VkCommandBuffer>::Refuse(
             { RefusalReason::ContentUnsupported, "the cycle slot is outside the depth" });
     }
 
-    if (!Slots[SlotOrdinal].SlotOpen)
+    if (!Slots[SlotIndex].SlotOpen)
         return Outcome<VkCommandBuffer>::Refuse({ RefusalReason::ContentUnsupported, "the slot is not open" });
 
-    return Outcome<VkCommandBuffer>::Result(Slots[SlotOrdinal].Primary);
+    return Outcome<VkCommandBuffer>::Result(Slots[SlotIndex].Primary);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE SURRENDER
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> CommandSequence::Submit(std::uint32_t SlotOrdinal, const SubmitOrdering& Ordering)
+Outcome<bool> CommandSequence::Submit(std::uint32_t SlotIndex, const SubmitOrdering& Ordering)
 {
-    if (DeviceEdge == nullptr || static_cast<std::size_t>(SlotOrdinal) >= Slots.size())
+    if (DeviceEdge == nullptr || static_cast<std::size_t>(SlotIndex) >= Slots.size())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the cycle slot is outside the depth" });
 
-    RecordingSlot& Slot = Slots[SlotOrdinal];
+    RecordingSlot& Slot = Slots[SlotIndex];
 
     if (!Slot.SlotOpen)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the slot is not open" });
@@ -293,7 +293,7 @@ Outcome<bool> CommandSequence::SubmitImmediate(VkCommandBuffer Recorded)
     VkResult Reached = Accepted;
 
     if (Accepted == VK_SUCCESS)
-        Reached = vkWaitForFences(Active, 1u, &Completion, VK_TRUE, CompletionCeilingNanoseconds);
+        Reached = vkWaitForFences(Active, 1u, &Completion, VK_TRUE, CompletionLimitNanoseconds);
 
     vkDestroyFence(Active, Completion, nullptr);
     vkFreeCommandBuffers(Active, ImmediateExtent, 1u, &Recorded);

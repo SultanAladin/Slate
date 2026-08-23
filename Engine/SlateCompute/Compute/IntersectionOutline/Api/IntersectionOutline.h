@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateCompute/Compute/VisibilityIndex/Api/VisibilityIndex.h"
 #include "SlateDocument/Document/RegistrationIndex/Api/RegistrationIndex.h"
 #include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
@@ -63,7 +63,7 @@ public:
 
     // 📝 `08` §3 ⑨, after `66`'s tone line at 50. Everything ordered here is display-referred by construction,
     //    and `80`'s two recordings take the ordinals above it.
-    static constexpr std::uint32_t AmendmentOrdinal = 60u;   // [-] - `08` §3 ⑨
+    static constexpr std::uint32_t AmendmentIndex = 60u;   // [-] - `08` §3 ⑨
 
     /// 🧩 Declares the width and the two renderings as one admission.
     /// in    Outlining_  [-]  the display-pixel width, the dash extent, and the two display-space colours

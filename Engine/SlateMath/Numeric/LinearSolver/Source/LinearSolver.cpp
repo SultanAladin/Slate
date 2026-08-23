@@ -5,7 +5,7 @@
 
 #include "SlateMath/Numeric/LinearSolver/Api/LinearSolver.h"
 
-#include "Contract/ToleranceContract.h"
+#include "Foundation/NumericTolerance.h"
 
 #include <cmath>
 

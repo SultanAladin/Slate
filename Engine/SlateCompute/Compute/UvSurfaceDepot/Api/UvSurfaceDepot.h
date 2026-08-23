@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateCompute/Compute/ChartPartition/Api/ChartPartition.h"
 #include "SlateCompute/Compute/SurfaceDepot/Api/SurfaceDepot.h"
 #include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
@@ -27,7 +27,7 @@ namespace Slate
 /// note  🔴 `24` §2 names the rule as a declared field rather than as a convention, because the two rules
 ///        disagree exactly where a dense source folds back on itself — and that is the region an artist notices,
 ///        not the region where every rule agrees.
-/// tag   contract
+/// tag   guarantee
 enum class CorrespondenceSubject : std::uint32_t
 {
     MinimumDeparture        = 0u,   // [-] - the nearest source surface, by distance alone
@@ -44,7 +44,7 @@ enum class CorrespondenceSubject : std::uint32_t
 ///        beyond it: `24` §2 requires a miss to be recorded as a miss, and a value found past the extent is the
 ///        fabricated value that section refuses by name.
 /// note  🔴 Tier C — the sweep converges against the criterion below and stops at the ceiling. Both figures are
-///        declared here rather than in `Contract/` because no second unit reads either; `00` §2's rule.
+///        declared here rather than in `Foundation/` because no second unit reads either; `00` §2's rule.
 /// note  ⚠️ `Bake` is banned and this is not a euphemism for it. The operation is transfer, and its parameters
 ///        are these — `24`'s opening paragraph.
 /// tag   nonallocating, nonthrowing
@@ -55,8 +55,8 @@ struct TransferSpecification
     std::uint32_t          ChannelMask          = 0u;    // [-]  - one bit per `42` channel transferred
     std::uint32_t          DomainExtent         = 1024u; // [px] - the extent the result is written at
     double                 ConvergenceCriterion = 0.001; // [-]  - the sweep's residual below which it has converged
-    std::uint32_t          IterationCeiling     = 8u;    // [-]  - sweeps taken before termination is declared
-    std::uint64_t          SpecificationOrdinal = 0u;    // [-]  - which transfer this is, for the content key
+    std::uint32_t          IterationLimit     = 8u;    // [-]  - sweeps taken before termination is declared
+    std::uint64_t          SpecificationIndex = 0u;    // [-]  - which transfer this is, for the content key
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -70,7 +70,7 @@ struct TransferSpecification
 /// tag   nonallocating, nonthrowing
 struct SourceCorrespondence
 {
-    std::uint32_t  FaceOrdinal = 0u;    // [-]  - within the source topology, in its own ordering
+    std::uint32_t  FaceIndex = 0u;    // [-]  - within the source topology, in its own ordering
     double         Departure   = 0.0;   // [mm] - from the working position to the corresponding face
 };
 
@@ -180,7 +180,7 @@ public:
     /// in    Depot            [-]  where derived artefacts live and are evicted from
     /// in    Keyed            [-]  as KeyOf produced it
     /// in    ByteExtent       [B]  what the result occupies
-    /// in    RecordingOrdinal  [-]  the rotation it was derived on
+    /// in    RecordingIndex  [-]  the rotation it was derived on
     /// out   Result          [-]  refuses with whatever the depot rejected
     /// note  🔴 Declared as an analytic resolution and therefore reconstructible and evictable — `24` §5's last
     ///        gate. Nothing painted is ever stored here: a transferred result that has been painted over is a
@@ -190,7 +190,7 @@ public:
     Outcome<bool> Accept(SurfaceDepot&     Depot,
                         const ContentKey& Keyed,
                         std::uint64_t     ByteExtent,
-                        std::uint64_t     RecordingOrdinal) const;
+                        std::uint64_t     RecordingIndex) const;
 
     /// 🧩 Appends the transfer's obligations to the register, and its measures beside them.
     /// in    Produced   [-]  as Transfer returned it

@@ -1,12 +1,12 @@
 //============================================================================================================================================
 //                                                           ASSETINTERCHANGE.H
 //============================================================================================================================================
-// 🧩 Topology and imagery in, painted channels out — one contract, and intake that never repairs.
+// 🧩 Topology and imagery in, painted channels out — one guarantee, and intake that never repairs.
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateDocument/Document/IntakeIndex/Api/IntakeIndex.h"
 #include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
 #include "SlateDocument/Document/TopologyStructure/Api/TopologyStructure.h"
@@ -68,7 +68,7 @@ struct DecodedImage
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 One component of an emitted image.
-/// tag   contract
+/// tag   guarantee
 enum class ComponentSlot : std::uint32_t
 {
     Red            = 0u,   // [-]
@@ -138,7 +138,7 @@ std::string ResolveName(const std::string& Pattern,
 //                                                    THE INTERCHANGE
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Intake and emission as one contract, in both directions.
+/// 🧩 Intake and emission as one guarantee, in both directions.
 /// note  🔴 `50` §2: intake is three steps and they are separate. ① decodes faithfully — the codec's. ② registers
 ///        owners — this document's. ③ derives companions — `38`'s, through `34`, and where the cost lives.
 /// note  🔴 `50` §8: a partially failed intake **registers nothing**. Half a topology registered as an owner is an

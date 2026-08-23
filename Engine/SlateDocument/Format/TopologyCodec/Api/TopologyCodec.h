@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateDocument/Document/AssetInterchange/Api/AssetInterchange.h"
 
 #include <cstdint>
@@ -26,7 +26,7 @@ namespace Slate
 ///        thing and whose content says another is rejected by the translation, not by the classification.
 /// note  🚧 `10` §5 leaves the shipped set open. A second layout is an entry here and a branch in the
 ///        translation; `DecodedTopology` does not change, because it is the handover shape for all of them.
-/// tag   contract
+/// tag   guarantee
 enum class TopologyContentSubject : std::uint32_t
 {
     Unrecognised = 0u,   // [-] - the origin names no layout below

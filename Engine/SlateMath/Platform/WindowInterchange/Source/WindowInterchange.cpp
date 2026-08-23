@@ -113,21 +113,21 @@ void WindowInterchange::Drain()
     // ⚠️ F11 is not among them: the window manager takes it for fullscreen before the process is asked.
     static constexpr int DiagnosticKeyCodes[4] = { GLFW_KEY_F6, GLFW_KEY_F7, GLFW_KEY_F8, GLFW_KEY_F9 };
 
-    for (std::uint32_t KeyOrdinal = 0u; KeyOrdinal < 4u; ++KeyOrdinal)
+    for (std::uint32_t KeyIndex = 0u; KeyIndex < 4u; ++KeyIndex)
     {
-        KeyWas[KeyOrdinal]  = KeyDown[KeyOrdinal];
-        KeyDown[KeyOrdinal] = glfwGetKey(OpenedWindow, DiagnosticKeyCodes[KeyOrdinal]) == GLFW_PRESS;
+        KeyWas[KeyIndex]  = KeyDown[KeyIndex];
+        KeyDown[KeyIndex] = glfwGetKey(OpenedWindow, DiagnosticKeyCodes[KeyIndex]) == GLFW_PRESS;
     }
 }
 
 bool WindowInterchange::KeyDescended(DiagnosticKey Declared) const
 {
-    const std::uint32_t KeyOrdinal = static_cast<std::uint32_t>(Declared);
+    const std::uint32_t KeyIndex = static_cast<std::uint32_t>(Declared);
 
-    if (KeyOrdinal >= static_cast<std::uint32_t>(DiagnosticKey::KeyCount))
+    if (KeyIndex >= static_cast<std::uint32_t>(DiagnosticKey::KeyCount))
         return false;
 
-    return KeyDown[KeyOrdinal] && !KeyWas[KeyOrdinal];
+    return KeyDown[KeyIndex] && !KeyWas[KeyIndex];
 }
 
 void* WindowInterchange::NativeHandle() const

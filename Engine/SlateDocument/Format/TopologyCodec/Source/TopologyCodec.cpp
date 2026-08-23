@@ -99,16 +99,16 @@ bool SuffixMatches(const std::string& OriginPath, const char* Suffix)
 
     const std::size_t Beginning = OriginPath.size() - Spanned;
 
-    for (std::size_t Ordinal = 0u; Ordinal < Spanned; ++Ordinal)
+    for (std::size_t Index = 0u; Index < Spanned; ++Index)
     {
-        char Carried = OriginPath[Beginning + Ordinal];
+        char Carried = OriginPath[Beginning + Index];
 
         if (Carried >= 'A' && Carried <= 'Z')
         {
             Carried = static_cast<char>(Carried - 'A' + 'a');
         }
 
-        if (Carried != Suffix[Ordinal]) { return false; }
+        if (Carried != Suffix[Index]) { return false; }
     }
 
     return true;
@@ -176,12 +176,12 @@ Outcome<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, cons
     //    positions below begin at one and every index read from a corner is compared against zero first.
     Produced.Positions.reserve(Parsed->position_count > 0u ? Parsed->position_count - 1u : 0u);
 
-    for (unsigned int Ordinal = 1u; Ordinal < Parsed->position_count; ++Ordinal)
+    for (unsigned int Index = 1u; Index < Parsed->position_count; ++Index)
     {
         DocumentPosition Placed;
-        Placed.PositionX = static_cast<double>(Parsed->positions[Ordinal * 3u + 0u]);
-        Placed.PositionY = static_cast<double>(Parsed->positions[Ordinal * 3u + 1u]);
-        Placed.PositionZ = static_cast<double>(Parsed->positions[Ordinal * 3u + 2u]);
+        Placed.PositionX = static_cast<double>(Parsed->positions[Index * 3u + 0u]);
+        Placed.PositionY = static_cast<double>(Parsed->positions[Index * 3u + 1u]);
+        Placed.PositionZ = static_cast<double>(Parsed->positions[Index * 3u + 2u]);
 
         Produced.Positions.push_back(Placed);
     }
@@ -206,18 +206,18 @@ Outcome<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, cons
         PerpendicularOccupied.resize(Produced.Positions.size(), false);
     }
 
-    unsigned int CornerOrdinal = 0u;
+    unsigned int CornerIndex = 0u;
 
-    for (unsigned int FaceOrdinal = 0u; FaceOrdinal < Parsed->face_count; ++FaceOrdinal)
+    for (unsigned int FaceIndex = 0u; FaceIndex < Parsed->face_count; ++FaceIndex)
     {
-        const unsigned int CornerCount = Parsed->face_vertices[FaceOrdinal];
+        const unsigned int CornerCount = Parsed->face_vertices[FaceIndex];
 
         std::vector<std::uint32_t> CornerVertices;
         CornerVertices.reserve(CornerCount);
 
         for (unsigned int Within = 0u; Within < CornerCount; ++Within)
         {
-            const fastObjIndex Addressed = Parsed->indices[CornerOrdinal + Within];
+            const fastObjIndex Addressed = Parsed->indices[CornerIndex + Within];
 
             CornerVertices.push_back(Addressed.p > 0u ? static_cast<std::uint32_t>(Addressed.p - 1u) : 0u);
 
@@ -241,23 +241,23 @@ Outcome<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, cons
             //    disagree, none survives and the construct is named for `86` to report.
             if (Addressed.n > 0u && Addressed.n < Parsed->normal_count && !PerVertexPerpendiculars.empty())
             {
-                const std::uint32_t  VertexOrdinal = CornerVertices.back();
+                const std::uint32_t  VertexIndex = CornerVertices.back();
 
-                if (VertexOrdinal < PerVertexPerpendiculars.size())
+                if (VertexIndex < PerVertexPerpendiculars.size())
                 {
                     SurfaceDirection Incoming;
                     Incoming.DirectionX = Parsed->normals[Addressed.n * 3u + 0u];
                     Incoming.DirectionY = Parsed->normals[Addressed.n * 3u + 1u];
                     Incoming.DirectionZ = Parsed->normals[Addressed.n * 3u + 2u];
 
-                    if (!PerpendicularOccupied[VertexOrdinal])
+                    if (!PerpendicularOccupied[VertexIndex])
                     {
-                        PerVertexPerpendiculars[VertexOrdinal] = Incoming;
-                        PerpendicularOccupied[VertexOrdinal]   = true;
+                        PerVertexPerpendiculars[VertexIndex] = Incoming;
+                        PerpendicularOccupied[VertexIndex]   = true;
                     }
                     else
                     {
-                        const SurfaceDirection Held = PerVertexPerpendiculars[VertexOrdinal];
+                        const SurfaceDirection Held = PerVertexPerpendiculars[VertexIndex];
 
                         if (Held.DirectionX != Incoming.DirectionX
                          || Held.DirectionY != Incoming.DirectionY
@@ -271,9 +271,9 @@ Outcome<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, cons
         }
 
         Produced.Faces.push_back(CornerVertices);
-        Produced.MaterialRegistration.push_back(static_cast<std::uint32_t>(Parsed->face_materials[FaceOrdinal]));
+        Produced.MaterialRegistration.push_back(static_cast<std::uint32_t>(Parsed->face_materials[FaceIndex]));
 
-        CornerOrdinal += CornerCount;
+        CornerIndex += CornerCount;
     }
 
     if (!CoordinatesComplete)
@@ -287,9 +287,9 @@ Outcome<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, cons
     }
     else
     {
-        for (std::size_t Ordinal = 0u; Ordinal < PerVertexPerpendiculars.size(); ++Ordinal)
+        for (std::size_t Index = 0u; Index < PerVertexPerpendiculars.size(); ++Index)
         {
-            if (!PerpendicularOccupied[Ordinal])
+            if (!PerpendicularOccupied[Index])
             {
                 PerVertexPerpendiculars.clear();
                 break;

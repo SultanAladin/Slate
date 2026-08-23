@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/NumericTolerance.h"
 
 #include <vulkan/vulkan.h>
 
@@ -33,7 +33,7 @@ struct InterfaceAttachment
     VkPhysicalDevice  ScoredDevice          = VK_NULL_HANDLE;          // [-]  - the device VendorClassifier won
     VkDevice          ActiveDevice          = VK_NULL_HANDLE;          // [-]  - the created device
     VkQueue           GraphicsQueue         = VK_NULL_HANDLE;          // [-]  - the one queue taken
-    std::uint32_t     GraphicsFamilyOrdinal = 0u;                      // [-]  - the family that queue sits in
+    std::uint32_t     GraphicsFamilyIndex = 0u;                      // [-]  - the family that queue sits in
     VkFormat          ColourTargetFormat       = VK_FORMAT_UNDEFINED;  // [-] - format of DisplaySurface
     std::uint32_t     MinimumDisplayImageCount = 0u;                   // [-] - minimum requested of the chain
     std::uint32_t     DisplayImageCount        = 0u;                   // [-] - actual images the chain holds
@@ -68,7 +68,7 @@ public:
     ///       recording into a target the device never agreed to.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const InterfaceAttachment& Incoming);
+    Outcome<bool> AttachInterface(const InterfaceAttachment& Incoming);
 
     /// 🧩 Destroys the interface context and both vendor attachments.
     /// cost  🚩
@@ -249,7 +249,7 @@ public:
 
     /// 🧩 Appends this tick's typed characters to a caller-owned run, and reports whether any arrived.
     /// in    Intake     [-]  the run written into; always left terminated
-    /// in    Ceiling    [-]  the run's full extent in bytes, terminator included
+    /// in    Limit    [-]  the run's full extent in bytes, terminator included
     /// out   Accepted   [-]  true when at least one character was appended
     /// note  🔴 The filter fields are recorded as PRIMITIVES and not as vendor widgets. A vendor `InputText`
     ///        opens its own window draw list, which composites above every shell layer — that is precisely
@@ -261,7 +261,7 @@ public:
     ///        stroked as replacement marks.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool AcceptTyped(char* Intake, std::uint32_t Ceiling) const;
+    bool AcceptTyped(char* Intake, std::uint32_t Limit) const;
 
 private:
 

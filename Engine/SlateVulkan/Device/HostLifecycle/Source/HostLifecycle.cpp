@@ -33,7 +33,7 @@ void Report(const char* Naming, const char* Stage)
 //                                                        CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> HostLifecycle::Construct(const HostDeclaration& Incoming)
+Outcome<bool> HostLifecycle::ConstructHost(const HostDeclaration& Incoming)
 {
     Declared = Incoming;
 
@@ -69,7 +69,7 @@ Outcome<bool> HostLifecycle::Construct(const HostDeclaration& Incoming)
 
     // ⑤ The diagnostic extension — after the instance, before the device. Not fatal when absent: a machine
     //    without the validation layers installed still runs, it simply reports less.
-    if (!DiagnosticEdge.Construct(DeviceEdge, DiagnosticRegister, Clock).Resolved)
+    if (!DiagnosticEdge.AttachDiagnostics(DeviceEdge, DiagnosticRegister, Clock).Resolved)
         Report(Declared.Naming, "the diagnostic extension was not negotiated");
 
     // ⑥ The device — Device lifetime begins here.
@@ -95,8 +95,8 @@ Outcome<bool> HostLifecycle::Construct(const HostDeclaration& Incoming)
     Constructed = ResourceLifetime::Display;
 
     // ⑧ The cyclic slots and the recordings — Recording lifetime begins here.
-    if (!Cycle.Construct(DeviceEdge, DiagnosticEdge).Resolved ||
-        !Commands.Construct(DeviceEdge, DiagnosticEdge).Resolved)
+    if (!Cycle.ConstructCycleScheduler(DeviceEdge, DiagnosticEdge).Resolved ||
+        !Commands.ConstructCommandSequence(DeviceEdge, DiagnosticEdge).Resolved)
     {
         Report(Declared.Naming, "the recording rotation was rejected");
         Reclaim();
@@ -113,7 +113,7 @@ Outcome<bool> HostLifecycle::Construct(const HostDeclaration& Incoming)
 
 Outcome<bool> HostLifecycle::EstablishDisplay(std::uint32_t Width, std::uint32_t Height)
 {
-    return DisplayChain.Construct(DeviceEdge, DiagnosticEdge, PresentationSurface,
+    return DisplayChain.ConstructDisplayScheduler(DeviceEdge, DiagnosticEdge, PresentationSurface,
                                   Width, Height, Declared.Pacing);
 }
 
@@ -204,7 +204,7 @@ Outcome<bool> HostLifecycle::RecoverDevice()
 {
     // 🔴 Bounded. A device that is lost twice is a driver that is not coming back, and rebuilding forever
     //    presents the artist with a window that never draws instead of one that reports and exits.
-    if (DeviceRecoveries >= DeviceRecoveryCeiling)
+    if (DeviceRecoveries >= DeviceRecoveryLimit)
     {
         Report(Declared.Naming, "the device was lost more times than the ceiling accepts");
         LoopActive = false;
@@ -250,8 +250,8 @@ Outcome<bool> HostLifecycle::RebuildDevice()
     Constructed = ResourceLifetime::Display;
     Surface.AdoptExtent();
 
-    if (!Cycle.Construct(DeviceEdge, DiagnosticEdge).Resolved ||
-        !Commands.Construct(DeviceEdge, DiagnosticEdge).Resolved)
+    if (!Cycle.ConstructCycleScheduler(DeviceEdge, DiagnosticEdge).Resolved ||
+        !Commands.ConstructCommandSequence(DeviceEdge, DiagnosticEdge).Resolved)
     {
         Report(Declared.Naming, "the recording rotation was rejected on a rebuilt device");
         LoopActive = false;
@@ -421,7 +421,7 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
         return Pass;
     }
 
-    SlotOrdinal = Cycle.CurrentOrdinal();
+    SlotIndex = Cycle.CurrentIndex();
 
     const Outcome<CycleSlot> Slot = Cycle.Current();
 
@@ -485,7 +485,7 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
     TickImage = Received.Resolve();
 
     // ⑦ Open the recording and the rendering scope.
-    const Outcome<VkCommandBuffer> Opened = Commands.Open(SlotOrdinal);
+    const Outcome<VkCommandBuffer> Opened = Commands.Open(SlotIndex);
 
     if (!Opened.Resolved)
     {
@@ -571,7 +571,7 @@ Outcome<bool> HostLifecycle::Complete()
         return Outcome<bool>::Refuse(Refusal{ RefusalReason::DeviceLost, "the rotation could not be armed" });
     }
 
-    const Outcome<bool> Submitted = Commands.Submit(SlotOrdinal, SubmitOrdering{
+    const Outcome<bool> Submitted = Commands.Submit(SlotIndex, SubmitOrdering{
         .Awaited      = Slot.Resolve().ImageAvailable,
         .AwaitedStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
         .Signalled    = Slot.Resolve().RecordingDone,
@@ -611,7 +611,7 @@ Outcome<bool> HostLifecycle::Complete()
     //    chain the display has outgrown as a delivered `false`, and reading only `Resolved` — which
     //    this did — made this branch unreachable on a resize: the chain was then rebuilt a tick later by
     //    the extent test, or never, when the display outgrew a chain the window extent had not moved.
-    const Outcome<bool> Presentation = DisplayChain.Present(Slot.Resolve(), TickImage.ImageOrdinal);
+    const Outcome<bool> Presentation = DisplayChain.Present(Slot.Resolve(), TickImage.ImageIndex);
 
     if (!Presentation.Resolved || !Presentation.Resolve())
     {
@@ -640,7 +640,7 @@ DeviceOffering HostLifecycle::Offering() const
     Incoming.ScoredDevice             = DeviceEdge.ScoredDevice();
     Incoming.ActiveDevice             = DeviceEdge.ActiveDevice();
     Incoming.GraphicsQueue            = DeviceEdge.GraphicsQueue();
-    Incoming.GraphicsFamilyOrdinal    = DeviceEdge.Capability().GraphicsFamilyOrdinal;
+    Incoming.GraphicsFamilyIndex    = DeviceEdge.Capability().GraphicsFamilyIndex;
     Incoming.ColourTargetFormat       = DisplayChain.Carries();
     Incoming.MinimumDisplayImageCount = DisplayChain.MinimumChainImageCount();
     Incoming.DisplayImageCount        = DisplayChain.ChainImageCount();
@@ -748,7 +748,7 @@ std::uint32_t HostLifecycle::StateDiagnostics() const
                     (Declared.Naming != nullptr) ? Declared.Naming : "Host",
                     Spelling(Entry.Verdict),
                     Entry.Subject,
-                    static_cast<unsigned long long>(Entry.SubjectOrdinal),
+                    static_cast<unsigned long long>(Entry.SubjectIndex),
                     Entry.OccurrenceCount,
                     Entry.Detail);
     }

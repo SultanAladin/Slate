@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 
 #include <cstdint>
@@ -20,7 +20,7 @@ namespace Slate
 /// 🧩 A damped spring toward a declared target — the drawer snap and the tongue release.
 /// note  📐 Integrated semi-implicitly rather than by the analytic solution, because the target moves while
 ///       a drag is live and the analytic form would have to be re-derived on every tick it moved.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct SpringInterpolant
 {
     double  Current   = 0.0;     // [px] - where it is now
@@ -46,9 +46,9 @@ struct SpringInterpolant
 /// 🧩 A cubic-eased traverse from one coordinate to another over a declared duration.
 /// note  The source's default easing is the cubic Bézier (0.4, 0, 0.2, 1) — Material's standard curve — and
 ///       every `transition-colors` and accordion height uses it at 150 ms.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 // 🧩 Which cubic the traverse is shaped by. Two, because the source declares two and no more.
-/// tag   contract
+/// tag   guarantee
 enum class EaseCurve : std::uint32_t
 {
     Standard   = 0u,   // [-] - cubic-bezier(0.4, 0, 0.2, 1); colour and accordion transitions
@@ -89,7 +89,7 @@ class MotionIntegrator
 public:
 
     // 🔴 Springs and eases are counted apart because they are drawn at wildly different rates. Every
-    //    `InteractionIndex::Register` burns TWO eases (a hover fade and a take fade) and no spring at all, so
+    //    `ControlIndex::Register` burns TWO eases (a hover fade and a take fade) and no spring at all, so
     //    one shared ceiling sized for springs starves the eases long before the springs are touched. At
     //    `523aa61` the host's construct chain demanded 1100 eases against a shared 1024 and the shell — the
     //    last panel constructed — was rejected mid-registration, which retired the window before its first frame.
@@ -120,7 +120,7 @@ public:
     /// pre   the ordinal was delivered by RegisterSpring
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    SpringInterpolant& Spring(std::uint32_t Ordinal);
+    SpringInterpolant& Spring(std::uint32_t Index);
 
     /// 🧩 The registered spring at one ordinal, for a caller that only reads it.
     /// note  🔴 Exists so that `DrawerSpace::CurrentY` and `Moving` — both const, both read-only —
@@ -128,14 +128,14 @@ public:
     ///       be copied to reach a write.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    const SpringInterpolant& Spring(std::uint32_t Ordinal) const;
+    const SpringInterpolant& Spring(std::uint32_t Index) const;
 
     /// 🧩 The registered eased traverse at one ordinal.
     /// pre   the ordinal was delivered by RegisterEased
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    EasedInterpolant& Eased(std::uint32_t Ordinal);
-    const EasedInterpolant& Eased(std::uint32_t Ordinal) const;
+    EasedInterpolant& Eased(std::uint32_t Index);
+    const EasedInterpolant& Eased(std::uint32_t Index) const;
 
     /// 🧩 Advances every registered interpolant by one host interval.
     /// in    Elapsed  [ms]  what `TickSequence::Span` measured between this tick and the last

@@ -25,7 +25,7 @@ constexpr float PagePad = 32.0f;
 constexpr float HeaderHeight = 64.0f;
 constexpr float CardGap = 16.0f;
 constexpr float RowHeight = 76.0f;
-constexpr float TileHeight = 130.0f;
+constexpr float FontTileHeight = 130.0f;
 constexpr float DragDuration = 300.0f;
 
 float CentreText(RecordingSurface& Surface, const PlaneExtent& Extent, const char* Text, float Size)
@@ -56,11 +56,11 @@ std::uint32_t WrappedText(RecordingSurface& Surface, const PlaneExtent& Extent, 
 
         char Candidate[256] = {};
         std::uint32_t CandidateLength = 0u;
-        for (std::uint32_t Ordinal = 0u; Ordinal < LineLength && CandidateLength + 1u < 256u; ++Ordinal)
-            Candidate[CandidateLength++] = Line[Ordinal];
+        for (std::uint32_t Index = 0u; Index < LineLength && CandidateLength + 1u < 256u; ++Index)
+            Candidate[CandidateLength++] = Line[Index];
         if (CandidateLength > 0u && CandidateLength + 1u < 256u) Candidate[CandidateLength++] = ' ';
-        for (std::uint32_t Ordinal = 0u; Ordinal < WordLength && CandidateLength + 1u < 256u; ++Ordinal)
-            Candidate[CandidateLength++] = Text[WordBegin + Ordinal];
+        for (std::uint32_t Index = 0u; Index < WordLength && CandidateLength + 1u < 256u; ++Index)
+            Candidate[CandidateLength++] = Text[WordBegin + Index];
         Candidate[CandidateLength] = '\0';
 
         if (LineLength > 0u && Surface.MeasureRun(Candidate, Size) > Extent.Width())
@@ -74,8 +74,8 @@ std::uint32_t WrappedText(RecordingSurface& Surface, const PlaneExtent& Extent, 
         }
 
         if (LineLength > 0u && LineLength + 1u < 256u) Line[LineLength++] = ' ';
-        for (std::uint32_t Ordinal = 0u; Ordinal < WordLength && LineLength + 1u < 256u; ++Ordinal)
-            Line[LineLength++] = Text[WordBegin + Ordinal];
+        for (std::uint32_t Index = 0u; Index < WordLength && LineLength + 1u < 256u; ++Index)
+            Line[LineLength++] = Text[WordBegin + Index];
         Line[LineLength] = '\0';
     }
 
@@ -151,7 +151,7 @@ constexpr std::uint32_t RoleTilePositions = 8u;
 
 } // namespace
 
-Outcome<bool> ControlCentrePanel::Construct(MotionIntegrator& IncomingMotion, RecordingSurface& IncomingSurface,
+Outcome<bool> ControlCentrePanel::ConstructControlCentrePanel(MotionIntegrator& IncomingMotion, RecordingSurface& IncomingSurface,
                                             const ThemeProfile& IncomingAppearance)
 {
     if (Motion != nullptr)
@@ -162,19 +162,19 @@ Outcome<bool> ControlCentrePanel::Construct(MotionIntegrator& IncomingMotion, Re
     Surface = &IncomingSurface;
     Appearance = &IncomingAppearance;
 
-    if (!Interaction.Construct(IncomingMotion).Resolved)
+    if (!Interaction.AttachMotion(IncomingMotion).Resolved)
         return Outcome<bool>::Refuse(
             {RefusalReason::ExtentExhausted, "the Control Centre interaction index was rejected"});
 
-    if (!SharedControls.Construct(Interaction, IncomingSurface, IncomingAppearance).Resolved)
+    if (!SharedControls.ConstructComponents(Interaction, IncomingSurface, IncomingAppearance).Resolved)
         return Outcome<bool>::Refuse(
             {RefusalReason::ContentUnsupported, "the shared Control Centre controls were rejected"});
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < ControlCapacity; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < ControlCapacity; ++Index)
     {
         const Outcome<ControlIdentity> Registered = Interaction.Register();
         if (!Registered.Resolved) return Outcome<bool>::Refuse(Registered.Error);
-        Controls[Ordinal] = Registered.Resolve();
+        Controls[Index] = Registered.Resolve();
     }
 
     const Outcome<std::uint32_t> PageRegistered = IncomingMotion.RegisterEased(1.0);
@@ -190,23 +190,23 @@ Outcome<bool> ControlCentrePanel::Construct(MotionIntegrator& IncomingMotion, Re
     ThemeMotion = ThemeRegistered.Resolve();
     FontMotion = FontRegistered.Resolve();
 
-    for (std::uint32_t Ordinal = 0u;
-         Ordinal < static_cast<std::uint32_t>(ControlCentrePage::PageCount); ++Ordinal)
+    for (std::uint32_t Index = 0u;
+         Index < static_cast<std::uint32_t>(ControlCentrePage::PageCount); ++Index)
     {
         const Outcome<std::uint32_t> ScrollRegistered = IncomingMotion.RegisterEased(1.0);
         if (!ScrollRegistered.Resolved)
             return Outcome<bool>::Refuse({RefusalReason::ExtentExhausted,
                                           "the Control Centre scroll motion was rejected"});
-        ScrollMotion[Ordinal] = ScrollRegistered.Resolve();
+        ScrollMotion[Index] = ScrollRegistered.Resolve();
     }
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 8u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 8u; ++Index)
     {
         const Outcome<std::uint32_t> RoleRegistered = IncomingMotion.RegisterEased(1.0);
         if (!RoleRegistered.Resolved)
             return Outcome<bool>::Refuse({RefusalReason::ExtentExhausted,
                                           "the typography strip motion was rejected"});
-        RoleFontMotion[Ordinal] = RoleRegistered.Resolve();
+        RoleFontMotion[Index] = RoleRegistered.Resolve();
     }
 
     return Outcome<bool>::Result(true);
@@ -227,16 +227,16 @@ void ControlCentrePanel::RetainExclusion(const PlaneExtent& Extent)
 
 void ControlCentrePanel::Exclude(DrawerSpace& Drawers) const
 {
-    for (std::uint32_t Ordinal = 0u; Ordinal < ExclusionCount; ++Ordinal)
-        Drawers.Exclude(DrawerBearing::North, Exclusions[Ordinal]);
+    for (std::uint32_t Index = 0u; Index < ExclusionCount; ++Index)
+        Drawers.Exclude(DrawerBearing::North, Exclusions[Index]);
 }
 
-bool ControlCentrePanel::Pressed(std::uint32_t Ordinal, const PlaneExtent& Extent)
+bool ControlCentrePanel::Pressed(std::uint32_t Index, const PlaneExtent& Extent)
 {
-    if (Ordinal >= ControlCapacity) return false;
+    if (Index >= ControlCapacity) return false;
 
     RetainExclusion(Extent);
-    const ControlIdentity Target = Controls[Ordinal];
+    const ControlIdentity Target = Controls[Index];
     const bool Hovered = Extent.Encloses(Pointer.PositionX, Pointer.PositionY);
     if (Hovered && Pointer.ContactPressed && !Interaction.AnyDisclosed()) Interaction.Grab(Target, ControlPart::Body);
 
@@ -245,11 +245,11 @@ bool ControlCentrePanel::Pressed(std::uint32_t Ordinal, const PlaneExtent& Exten
     return (Interaction.Released(Target) && Hovered) || Quick;
 }
 
-bool ControlCentrePanel::Slider(std::uint32_t Ordinal, const PlaneExtent& Extent, std::uint32_t Minimum,
+bool ControlCentrePanel::Slider(std::uint32_t Index, const PlaneExtent& Extent, std::uint32_t Minimum,
                                 std::uint32_t Maximum, std::uint32_t& Reading, const char* UnitGlyph,
                                 ThemeToken Rail, ThemeToken Accent)
 {
-    if (Ordinal >= ControlCapacity || Maximum <= Minimum) return false;
+    if (Index >= ControlCapacity || Maximum <= Minimum) return false;
 
     RetainExclusion(Extent);
     MagnitudeDeclaration Declared;
@@ -259,20 +259,20 @@ bool ControlCentrePanel::Slider(std::uint32_t Ordinal, const PlaneExtent& Extent
     Declared.Maximum = static_cast<double>(Maximum);
 
     double Coordinate = static_cast<double>(Reading);
-    const ControlVerdict Verdict = SharedControls.MagnitudeRow(Controls[Ordinal], Extent, Declared, Coordinate, true);
+    const ControlVerdict Verdict = SharedControls.MagnitudeRow(Controls[Index], Extent, Declared, Coordinate, true);
     Reading = static_cast<std::uint32_t>(std::round(Coordinate));
     static_cast<void>(Rail);
     static_cast<void>(Accent);
     return Verdict.ReadingAltered;
 }
 
-void ControlCentrePanel::Toggle(std::uint32_t Ordinal, const PlaneExtent& Extent, bool& Enabled, ThemeToken Quiet,
+void ControlCentrePanel::Toggle(std::uint32_t Index, const PlaneExtent& Extent, bool& Enabled, ThemeToken Quiet,
                                 ThemeToken Accent)
 {
-    if (Pressed(Ordinal, Extent)) Enabled = !Enabled;
+    if (Pressed(Index, Extent)) Enabled = !Enabled;
 
-    Interaction.DeclareTaken(Controls[Ordinal], Enabled, 150.0);
-    const float Fraction = Interaction.TakenFraction(Controls[Ordinal]);
+    Interaction.DeclareTaken(Controls[Index], Enabled, 150.0);
+    const float Fraction = Interaction.TakenFraction(Controls[Index]);
     Surface->Ground(Extent, Enabled ? Accent : Quiet, Extent.Height() * .5f, CornerAll);
     Surface->Medallion(Extent.MinimumX + 12.0f + (Extent.Width() - 24.0f) * Fraction,
                        Extent.MinimumY + Extent.Height() * .5f, 8.0f, White);
@@ -336,23 +336,23 @@ Outcome<bool> ControlCentrePanel::Record(const PlaneExtent& Interior, ControlCen
 
     const PlaneExtent PageExtent = {Interior.MinimumX + PagePad, Interior.MinimumY + 88.0f,
                                     Interior.MaximumX - PagePad, Interior.MaximumY - 24.0f};
-    const std::uint32_t PageOrdinal = static_cast<std::uint32_t>(CurrentPage);
+    const std::uint32_t PageIndex = static_cast<std::uint32_t>(CurrentPage);
     // 📝 The Fonts page ceiling follows the page's own content: the eight role strips and the sections
     //    below them stand about 1700px past the viewport, and a ceiling shorter than the content parks
     //    the wheel short of the antialiasing section at the foot.
-    const float ScrollCeiling[5] = {120.0f, 80.0f, 260.0f, 1900.0f, 520.0f};
-    const float ScrollFraction = static_cast<float>(Motion->Eased(ScrollMotion[PageOrdinal]).Current());
-    Scroll[PageOrdinal] = ScrollFrom[PageOrdinal] +
-                          (ScrollTarget[PageOrdinal] - ScrollFrom[PageOrdinal]) * ScrollFraction;
+    const float ScrollLimit[5] = {120.0f, 80.0f, 260.0f, 1900.0f, 520.0f};
+    const float ScrollFraction = static_cast<float>(Motion->Eased(ScrollMotion[PageIndex]).Current());
+    Scroll[PageIndex] = ScrollFrom[PageIndex] +
+                          (ScrollTarget[PageIndex] - ScrollFrom[PageIndex]) * ScrollFraction;
 
     if (PageExtent.Encloses(Pointer.PositionX, Pointer.PositionY) && Pointer.WheelY != 0.0f)
     {
-        ScrollFrom[PageOrdinal] = Scroll[PageOrdinal];
-        ScrollTarget[PageOrdinal] -= Pointer.WheelY * 72.0f;
-        if (ScrollTarget[PageOrdinal] < 0.0f) ScrollTarget[PageOrdinal] = 0.0f;
-        if (ScrollTarget[PageOrdinal] > ScrollCeiling[PageOrdinal])
-            ScrollTarget[PageOrdinal] = ScrollCeiling[PageOrdinal];
-        Motion->Eased(ScrollMotion[PageOrdinal]).Depart(0.0, 1.0, 180.0, 0.0, EaseCurve::CssEase);
+        ScrollFrom[PageIndex] = Scroll[PageIndex];
+        ScrollTarget[PageIndex] -= Pointer.WheelY * 72.0f;
+        if (ScrollTarget[PageIndex] < 0.0f) ScrollTarget[PageIndex] = 0.0f;
+        if (ScrollTarget[PageIndex] > ScrollLimit[PageIndex])
+            ScrollTarget[PageIndex] = ScrollLimit[PageIndex];
+        Motion->Eased(ScrollMotion[PageIndex]).Depart(0.0, 1.0, 180.0, 0.0, EaseCurve::CssEase);
     }
     const double Travel = Motion->Eased(PageMotion).Current();
 
@@ -427,36 +427,36 @@ void ControlCentrePanel::DashboardPage(const PlaneExtent& Extent, ControlCentreC
     std::snprintf(LabelRuns[3], sizeof(LabelRuns[3]), "Notifications: %s",
                   Configuration.NotificationsEnabled ? "ON" : "OFF");
     std::snprintf(LabelRuns[4], sizeof(LabelRuns[4]), "AA: %s", AntialiasNames[Configuration.Antialiasing % 3u]);
-    for (std::uint32_t Ordinal = 0u; Ordinal < 5u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 5u; ++Index)
     {
-        const float Column = static_cast<float>(Ordinal % 2u);
-        const float Row = static_cast<float>(Ordinal / 2u);
+        const float Column = static_cast<float>(Index % 2u);
+        const float Row = static_cast<float>(Index / 2u);
         const PlaneExtent Tile =
             Spanning(Left.MinimumX + Column * (Left.Width() * .5f + 4.0f),
-                     Left.MinimumY + 42.0f + Row * (TileHeight + 16.0f), Left.Width() * .5f - 8.0f, TileHeight);
-        const bool Active = Ordinal == 0u ||
-                            (Ordinal == 1u && Configuration.VsyncEnabled) ||
-                            (Ordinal == 2u && Configuration.IlluminationEnabled) ||
-                            (Ordinal == 3u && Configuration.NotificationsEnabled) ||
-                            (Ordinal == 4u && Configuration.Antialiasing != 2u);
+                     Left.MinimumY + 42.0f + Row * (FontTileHeight + 16.0f), Left.Width() * .5f - 8.0f, FontTileHeight);
+        const bool Active = Index == 0u ||
+                            (Index == 1u && Configuration.VsyncEnabled) ||
+                            (Index == 2u && Configuration.IlluminationEnabled) ||
+                            (Index == 3u && Configuration.NotificationsEnabled) ||
+                            (Index == 4u && Configuration.Antialiasing != 2u);
         Surface->Ground(Tile, Active ? Accent : Theme.Card, static_cast<float>(Configuration.Radius), CornerAll);
         Surface->Edge(Tile, Theme.Edge, 1.0f, static_cast<float>(Configuration.Radius), CornerAll);
         Symbol(Spanning(Tile.MinimumX + Tile.Width() * .5f - 18.0f, Tile.MinimumY + 24.0f, 36.0f, 36.0f),
                Active ? White : Theme.Secondary);
         Surface->TextRunTruncated(Tile.MinimumX + 10.0f, Tile.MaximumY - 32.0f, Tile.MaximumX - 10.0f,
-                                  Active ? White : Theme.Secondary, LabelRuns[Ordinal], 12.0f, true);
-        if (Pressed(10u + Ordinal, Tile))
+                                  Active ? White : Theme.Secondary, LabelRuns[Index], 12.0f, true);
+        if (Pressed(10u + Index, Tile))
         {
-            if (Ordinal == 0u) Configuration.Quality = (Configuration.Quality + 1u) % 5u;
-            if (Ordinal == 1u) Configuration.VsyncEnabled = !Configuration.VsyncEnabled;
-            if (Ordinal == 2u) Configuration.IlluminationEnabled = !Configuration.IlluminationEnabled;
-            if (Ordinal == 3u) Configuration.NotificationsEnabled = !Configuration.NotificationsEnabled;
-            if (Ordinal == 4u) Configuration.Antialiasing = (Configuration.Antialiasing + 1u) % 3u;
+            if (Index == 0u) Configuration.Quality = (Configuration.Quality + 1u) % 5u;
+            if (Index == 1u) Configuration.VsyncEnabled = !Configuration.VsyncEnabled;
+            if (Index == 2u) Configuration.IlluminationEnabled = !Configuration.IlluminationEnabled;
+            if (Index == 3u) Configuration.NotificationsEnabled = !Configuration.NotificationsEnabled;
+            if (Index == 4u) Configuration.Antialiasing = (Configuration.Antialiasing + 1u) % 3u;
         }
     }
 
     const PlaneExtent Monitor =
-        Spanning(Left.MinimumX, Left.MinimumY + 42.0f + 3.0f * (TileHeight + 16.0f), Left.Width(), 64.0f);
+        Spanning(Left.MinimumX, Left.MinimumY + 42.0f + 3.0f * (FontTileHeight + 16.0f), Left.Width(), 64.0f);
     Surface->Ground(Monitor, Theme.Card, static_cast<float>(Configuration.Radius), CornerAll);
     Symbol(Spanning(Monitor.MinimumX + 22.0f, Monitor.MinimumY + 22.0f, 20.0f, 20.0f), Theme.Secondary);
     Slider(21u, Spanning(Monitor.MinimumX + 58.0f, Monitor.MinimumY + 12.0f,
@@ -488,12 +488,12 @@ void ControlCentrePanel::DashboardPage(const PlaneExtent& Extent, ControlCentreC
                                    "Hey, are we still on for the design review tomorrow? I have some new "
                                    "mockups to share."};
     float NotificationCursor = Right.MinimumY + 42.0f;
-    for (std::uint32_t Ordinal = 0u; Ordinal < 4u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 4u; ++Index)
     {
         const PlaneExtent DescriptionMeasure = {Right.MinimumX + 76.0f, 0.0f,
                                                 Right.MaximumX - 20.0f, 0.0f};
         const std::uint32_t DescriptionLines = WrappedText(*Surface, DescriptionMeasure, Theme.Secondary,
-                                                           Descriptions[Ordinal], 13.0f, false);
+                                                           Descriptions[Index], 13.0f, false);
         const float RequiredHeight = 71.0f + static_cast<float>(DescriptionLines) * 17.0f;
         const float CardHeight = RequiredHeight > 102.0f ? RequiredHeight : 102.0f;
         const PlaneExtent Card = Spanning(Right.MinimumX, NotificationCursor, Right.Width(), CardHeight);
@@ -502,17 +502,17 @@ void ControlCentrePanel::DashboardPage(const PlaneExtent& Extent, ControlCentreC
         Surface->Medallion(Card.MinimumX + 36.0f, Card.MinimumY + 38.0f, 24.0f, WithOpacity(Accent, .12f));
         Symbol(Spanning(Card.MinimumX + 24.0f, Card.MinimumY + 26.0f, 24.0f, 24.0f), Accent);
 
-        const float TimeX = Surface->MeasureRun(Times[Ordinal], 12.0f);
+        const float TimeX = Surface->MeasureRun(Times[Index], 12.0f);
         Surface->TextRunTruncated(Card.MinimumX + 76.0f, Card.MinimumY + 18.0f,
                                   Card.MaximumX - TimeX - 36.0f,
-                                  Ordinal < 3u ? Accent : Theme.Primary, Titles[Ordinal], 16.0f, true);
+                                  Index < 3u ? Accent : Theme.Primary, Titles[Index], 16.0f, true);
         Surface->TextRun(Card.MaximumX - TimeX - 20.0f, Card.MinimumY + 20.0f,
-                         Theme.Secondary, Times[Ordinal], 12.0f);
+                         Theme.Secondary, Times[Index], 12.0f);
 
         const PlaneExtent DescriptionClip = {Card.MinimumX + 76.0f, Card.MinimumY + 51.0f,
                                              Card.MaximumX - 20.0f, Card.MaximumY - 16.0f};
         Surface->Confine(DescriptionClip);
-        WrappedText(*Surface, DescriptionClip, Theme.Secondary, Descriptions[Ordinal], 13.0f, true);
+        WrappedText(*Surface, DescriptionClip, Theme.Secondary, Descriptions[Index], 13.0f, true);
         Surface->Release();
         NotificationCursor = Card.MaximumY + 16.0f;
     }
@@ -542,31 +542,31 @@ void ControlCentrePanel::SettingsPage(const PlaneExtent& Extent, ControlCentreCo
     const char* Subs[5] = {"Appearance, theme, fonts, and system colors", "Resolution, scaling, multiple displays",
                            "Keyboard, mouse, and touch settings", "Permissions, camera access, firewall",
                            "Do not disturb, app permissions"};
-    for (std::uint32_t Ordinal = 0u; Ordinal < 5u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 5u; ++Index)
     {
-        const PlaneExtent Row = Spanning(Card.MinimumX, Card.MinimumY + RowHeight * static_cast<float>(Ordinal),
+        const PlaneExtent Row = Spanning(Card.MinimumX, Card.MinimumY + RowHeight * static_cast<float>(Index),
                                          Card.Width(), RowHeight);
-        if (Ordinal < 4u)
+        if (Index < 4u)
             Surface->Ground(Spanning(Row.MinimumX + 20.0f, Row.MaximumY - 1.0f, Row.Width() - 40.0f, 1.0f),
                             Theme.Edge, 0.0f, CornerNone);
         Surface->Medallion(Row.MinimumX + 44.0f, Row.MinimumY + 38.0f, 24.0f, Theme.Ground);
         Symbol(Spanning(Row.MinimumX + 32.0f, Row.MinimumY + 26.0f, 24.0f, 24.0f),
-               Ordinal == 0u ? Accent : Theme.Secondary);
-        Surface->TextRun(Row.MinimumX + 82.0f, Row.MinimumY + 18.0f, Theme.Primary, Titles[Ordinal], 16.0f, 0.0f,
+               Index == 0u ? Accent : Theme.Secondary);
+        Surface->TextRun(Row.MinimumX + 82.0f, Row.MinimumY + 18.0f, Theme.Primary, Titles[Index], 16.0f, 0.0f,
                          true);
-        Surface->TextRun(Row.MinimumX + 82.0f, Row.MinimumY + 43.0f, Theme.Secondary, Subs[Ordinal], 13.0f);
+        Surface->TextRun(Row.MinimumX + 82.0f, Row.MinimumY + 43.0f, Theme.Secondary, Subs[Index], 13.0f);
         Symbol(Spanning(Row.MaximumX - 40.0f, Row.MinimumY + 28.0f, 20.0f, 20.0f),
                WithOpacity(Theme.Secondary, .5f));
-        if (Pressed(31u + Ordinal, Row))
+        if (Pressed(31u + Index, Row))
         {
-            if (Ordinal <= 1u)
+            if (Index <= 1u)
             {
                 Configuration.Page = ControlCentrePage::Display;
-                Configuration.DisplayPage = Ordinal == 0u ? DisplayPreferencePage::Theme : DisplayPreferencePage::Display;
+                Configuration.DisplayPage = Index == 0u ? DisplayPreferencePage::Theme : DisplayPreferencePage::Display;
             }
-            else if (Ordinal == 2u)
+            else if (Index == 2u)
                 Configuration.Page = ControlCentrePage::Input;
-            else if (Ordinal == 4u)
+            else if (Index == 4u)
                 Configuration.Page = ControlCentrePage::Notifications;
             Navigate(Configuration.Page);
         }
@@ -596,18 +596,18 @@ void ControlCentrePanel::NotificationsPage(const PlaneExtent& Extent, ControlCen
     const char* Titles[2] = {"Do Not Disturb", "Notification Sounds"};
     const char* Subs[2] = {"Silence all notifications and alerts", "Play sounds for incoming alerts"};
     bool* Conditions[2] = {&Configuration.DisturbanceWithheld, &Configuration.SoundEnabled};
-    for (std::uint32_t Ordinal = 0u; Ordinal < 2u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 2u; ++Index)
     {
         const PlaneExtent Row =
-            Spanning(Global.MinimumX + 24.0f, Global.MinimumY + 12.0f + 80.0f * static_cast<float>(Ordinal),
+            Spanning(Global.MinimumX + 24.0f, Global.MinimumY + 12.0f + 80.0f * static_cast<float>(Index),
                      Global.Width() - 48.0f, 72.0f);
         Surface->Medallion(Row.MinimumX + 24.0f, Row.MinimumY + 36.0f, 20.0f, WithOpacity(Accent, .10f));
         Symbol(Spanning(Row.MinimumX + 14.0f, Row.MinimumY + 26.0f, 20.0f, 20.0f), Accent);
-        Surface->TextRun(Row.MinimumX + 62.0f, Row.MinimumY + 17.0f, Theme.Primary, Titles[Ordinal], 18.0f, 0.0f,
+        Surface->TextRun(Row.MinimumX + 62.0f, Row.MinimumY + 17.0f, Theme.Primary, Titles[Index], 18.0f, 0.0f,
                          true);
-        Surface->TextRun(Row.MinimumX + 62.0f, Row.MinimumY + 43.0f, Theme.Secondary, Subs[Ordinal], 13.0f);
-        Toggle(41u + Ordinal, Spanning(Row.MaximumX - 48.0f, Row.MinimumY + 24.0f, 48.0f, 24.0f),
-               *Conditions[Ordinal], Theme.Edge, Accent);
+        Surface->TextRun(Row.MinimumX + 62.0f, Row.MinimumY + 43.0f, Theme.Secondary, Subs[Index], 13.0f);
+        Toggle(41u + Index, Spanning(Row.MaximumX - 48.0f, Row.MinimumY + 24.0f, 48.0f, 24.0f),
+               *Conditions[Index], Theme.Edge, Accent);
     }
 
     Surface->TextRun(X + 8.0f, Global.MaximumY + 36.0f, Theme.Primary, "App Permissions", 24.0f, 0.0f,
@@ -621,17 +621,17 @@ void ControlCentrePanel::NotificationsPage(const PlaneExtent& Extent, ControlCen
     const char* AppTitles[4] = {"Mail", "Calendar", "Messages", "System Alerts"};
     const char* AppSubs[4] = {"New emails and calendar invites", "Upcoming events and reminders",
                               "Direct messages and mentions", "Critical system and security updates"};
-    for (std::uint32_t Ordinal = 0u; Ordinal < 4u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 4u; ++Index)
     {
         const PlaneExtent Row =
-            Spanning(Apps.MinimumX + 20.0f, Apps.MinimumY + RowHeight * static_cast<float>(Ordinal),
+            Spanning(Apps.MinimumX + 20.0f, Apps.MinimumY + RowHeight * static_cast<float>(Index),
                      Apps.Width() - 40.0f, RowHeight);
         Symbol(Spanning(Row.MinimumX + 8.0f, Row.MinimumY + 26.0f, 24.0f, 24.0f), Theme.Secondary);
-        Surface->TextRun(Row.MinimumX + 52.0f, Row.MinimumY + 17.0f, Theme.Primary, AppTitles[Ordinal], 16.0f,
+        Surface->TextRun(Row.MinimumX + 52.0f, Row.MinimumY + 17.0f, Theme.Primary, AppTitles[Index], 16.0f,
                          0.0f, true);
-        Surface->TextRun(Row.MinimumX + 52.0f, Row.MinimumY + 43.0f, Theme.Secondary, AppSubs[Ordinal], 13.0f);
-        Toggle(45u + Ordinal, Spanning(Row.MaximumX - 48.0f, Row.MinimumY + 26.0f, 48.0f, 24.0f),
-               Configuration.AppNotifications[Ordinal], Theme.Edge, Accent);
+        Surface->TextRun(Row.MinimumX + 52.0f, Row.MinimumY + 43.0f, Theme.Secondary, AppSubs[Index], 13.0f);
+        Toggle(45u + Index, Spanning(Row.MaximumX - 48.0f, Row.MinimumY + 26.0f, 48.0f, 24.0f),
+               Configuration.AppNotifications[Index], Theme.Edge, Accent);
     }
 }
 
@@ -662,18 +662,18 @@ void ControlCentrePanel::DisplayPage(const PlaneExtent& Extent, ControlCentreCon
 
     const char* Tabs[3] = {"Display", "Fonts", "Theme"};
     float TabX = Extent.MinimumX + 58.0f;
-    for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 3u; ++Index)
     {
-        const float Width = Surface->MeasureRun(Tabs[Ordinal], 24.0f) + 8.0f;
+        const float Width = Surface->MeasureRun(Tabs[Index], 24.0f) + 8.0f;
         const PlaneExtent Tab = Spanning(TabX, Extent.MinimumY + 78.0f, Width, 42.0f);
         Surface->TextRun(Tab.MinimumX + 4.0f, Tab.MinimumY + 4.0f,
-                         Configuration.DisplayPage == static_cast<DisplayPreferencePage>(Ordinal) ? Theme.Primary
+                         Configuration.DisplayPage == static_cast<DisplayPreferencePage>(Index) ? Theme.Primary
                                                                                               : Theme.Secondary,
-                         Tabs[Ordinal], 24.0f, 0.0f, false, RoleWeightOf(Configuration.TypographyWeight, 2u));
-        if (Configuration.DisplayPage == static_cast<DisplayPreferencePage>(Ordinal))
+                         Tabs[Index], 24.0f, 0.0f, false, RoleWeightOf(Configuration.TypographyWeight, 2u));
+        if (Configuration.DisplayPage == static_cast<DisplayPreferencePage>(Index))
             Surface->Ground(Spanning(Tab.MinimumX, Tab.MaximumY - 3.0f, Tab.Width(), 3.0f), Accent, 1.5f,
                             CornerAll);
-        if (Pressed(51u + Ordinal, Tab)) Configuration.DisplayPage = static_cast<DisplayPreferencePage>(Ordinal);
+        if (Pressed(51u + Index, Tab)) Configuration.DisplayPage = static_cast<DisplayPreferencePage>(Index);
         TabX += Width + 24.0f;
     }
 
@@ -719,41 +719,41 @@ void ControlCentrePanel::DisplayHardwarePage(const PlaneExtent& Extent, ControlC
     Surface->Ground(Card, Theme.Card, static_cast<float>(Configuration.Radius < 16u ? 16u : Configuration.Radius), CornerAll);
     Surface->Edge(Card, Theme.Edge, 1.0f, 20.0f, CornerAll);
     const char* Headings[4] = {"Resolution", "UI Scaling", "Refresh Rate", "Multiple Displays"};
-    for (std::uint32_t Ordinal = 0u; Ordinal < 4u; ++Ordinal)
-        Surface->TextRun(Card.MinimumX + 28.0f, Card.MinimumY + 25.0f + 105.0f * static_cast<float>(Ordinal),
-                         Theme.Primary, Headings[Ordinal], 22.0f, 0.0f, true);
+    for (std::uint32_t Index = 0u; Index < 4u; ++Index)
+        Surface->TextRun(Card.MinimumX + 28.0f, Card.MinimumY + 25.0f + 105.0f * static_cast<float>(Index),
+                         Theme.Primary, Headings[Index], 22.0f, 0.0f, true);
     const char* Res[3] = {"1920x1080", "2560x1440", "3840x2160"};
-    for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 3u; ++Index)
     {
-        const PlaneExtent Button = Spanning(Card.MinimumX + 28.0f + 125.0f * static_cast<float>(Ordinal),
+        const PlaneExtent Button = Spanning(Card.MinimumX + 28.0f + 125.0f * static_cast<float>(Index),
                                             Card.MinimumY + 58.0f, 114.0f, 38.0f);
-        Surface->Ground(Button, Configuration.Resolution == Ordinal ? Accent : Theme.Panel, 12.0f, CornerAll);
+        Surface->Ground(Button, Configuration.Resolution == Index ? Accent : Theme.Panel, 12.0f, CornerAll);
         Surface->Edge(Button, Theme.Edge, 1.0f, 12.0f, CornerAll);
-        Surface->TextRun(CentreText(*Surface, Button, Res[Ordinal], 13.0f), CentredY(Button, 13.0f),
-                         Configuration.Resolution == Ordinal ? White : Theme.Secondary, Res[Ordinal], 13.0f);
-        if (Pressed(60u + Ordinal, Button)) Configuration.Resolution = Ordinal;
+        Surface->TextRun(CentreText(*Surface, Button, Res[Index], 13.0f), CentredY(Button, 13.0f),
+                         Configuration.Resolution == Index ? White : Theme.Secondary, Res[Index], 13.0f);
+        if (Pressed(60u + Index, Button)) Configuration.Resolution = Index;
     }
     Slider(63u, Spanning(Card.MinimumX + 28.0f, Card.MinimumY + 165.0f, Card.Width() - 56.0f, 24.0f), 100u,
            200u, Configuration.Scaling, "%", Theme.Edge, Accent);
     const char* Rates[3] = {"60Hz", "120Hz", "144Hz"};
     const char* Modes[3] = {"Mirror", "Extend", "Second Only"};
-    for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 3u; ++Index)
     {
-        const PlaneExtent Rate = Spanning(Card.MinimumX + 28.0f + 92.0f * static_cast<float>(Ordinal),
+        const PlaneExtent Rate = Spanning(Card.MinimumX + 28.0f + 92.0f * static_cast<float>(Index),
                                           Card.MinimumY + 270.0f, 82.0f, 38.0f);
-        Surface->Ground(Rate, Configuration.RefreshRate == Ordinal ? QuietDark : Theme.Panel, 12.0f, CornerAll);
+        Surface->Ground(Rate, Configuration.RefreshRate == Index ? QuietDark : Theme.Panel, 12.0f, CornerAll);
         Surface->Edge(Rate, Theme.Edge, 1.0f, 12.0f, CornerAll);
-        Surface->TextRun(CentreText(*Surface, Rate, Rates[Ordinal], 13.0f), CentredY(Rate, 13.0f), Theme.Primary,
-                         Rates[Ordinal], 13.0f);
-        if (Pressed(64u + Ordinal, Rate)) Configuration.RefreshRate = Ordinal;
+        Surface->TextRun(CentreText(*Surface, Rate, Rates[Index], 13.0f), CentredY(Rate, 13.0f), Theme.Primary,
+                         Rates[Index], 13.0f);
+        if (Pressed(64u + Index, Rate)) Configuration.RefreshRate = Index;
         const PlaneExtent Mode =
-            Spanning(Card.MinimumX + 28.0f + (Card.Width() - 56.0f) / 3.0f * static_cast<float>(Ordinal),
+            Spanning(Card.MinimumX + 28.0f + (Card.Width() - 56.0f) / 3.0f * static_cast<float>(Index),
                      Card.MinimumY + 375.0f, (Card.Width() - 56.0f) / 3.0f, 42.0f);
-        Surface->Ground(Mode, Configuration.MultipleDisplays == Ordinal ? Theme.Card : QuietDark, 12.0f, CornerAll);
-        Surface->TextRun(CentreText(*Surface, Mode, Modes[Ordinal], 13.0f), CentredY(Mode, 13.0f),
-                         Configuration.MultipleDisplays == Ordinal ? Theme.Primary : Theme.Secondary, Modes[Ordinal],
+        Surface->Ground(Mode, Configuration.MultipleDisplays == Index ? Theme.Card : QuietDark, 12.0f, CornerAll);
+        Surface->TextRun(CentreText(*Surface, Mode, Modes[Index], 13.0f), CentredY(Mode, 13.0f),
+                         Configuration.MultipleDisplays == Index ? Theme.Primary : Theme.Secondary, Modes[Index],
                          13.0f);
-        if (Pressed(67u + Ordinal, Mode)) Configuration.MultipleDisplays = Ordinal;
+        if (Pressed(67u + Index, Mode)) Configuration.MultipleDisplays = Index;
     }
 }
 
@@ -770,29 +770,29 @@ void ControlCentrePanel::ThemePage(const PlaneExtent& Extent, ControlCentreConfi
     Surface->TextRun(ContentLeft, Extent.MinimumY + Inset + 32.0f, Theme.Secondary, "Customize UI colors", 14.0f);
     const float AvailableTileWidth = (ContentRight - ContentLeft - 40.0f) / 3.0f;
     const float TileWidth = AvailableTileWidth < 300.0f ? AvailableTileWidth : 300.0f;
-    const float TileHeight = TileWidth * (250.0f / 300.0f);
+    const float PreviewTileHeight = TileWidth * (250.0f / 300.0f);
     const float GridWidth = TileWidth * 3.0f + 40.0f;
     const float GridTop = ContentLeft + (ContentRight - ContentLeft - GridWidth) * 0.5f;
     const ThemeToken SelectionColour = Covering(0x7B42F6u);
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 6u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 6u; ++Index)
     {
-        const ThemeSubject PreviewSubject = static_cast<ThemeSubject>(Ordinal);
+        const ThemeSubject PreviewSubject = static_cast<ThemeSubject>(Index);
         const ThemeDeclaration& Preview = ThemeSpecification::Theme(PreviewSubject);
         const bool WhitePreview = PreviewSubject == ThemeSubject::CleanWhite;
         const ThemeToken SidebarQuiet = WhitePreview ? Covering(0xDADAE0u) : Preview.PreviewSidebarQuiet;
         const ThemeToken SidebarStrong = WhitePreview ? Covering(0xC8C8CEu) : Preview.PreviewSidebarStrong;
         const ThemeToken MainQuiet = WhitePreview ? Covering(0xF0F0F0u) : Preview.PreviewQuiet;
         const ThemeToken MainStrong = WhitePreview ? Covering(0xE0E0E0u) : Preview.PreviewStrong;
-        const float Column = static_cast<float>(Ordinal % 3u);
-        const float Row = static_cast<float>(Ordinal / 3u);
+        const float Column = static_cast<float>(Index % 3u);
+        const float Row = static_cast<float>(Index / 3u);
         const PlaneExtent Tile = Spanning(GridTop + Column * (TileWidth + 20.0f),
-                                          Extent.MinimumY + Inset + 64.0f + Row * (TileHeight + 20.0f),
-                                          TileWidth, TileHeight);
+                                          Extent.MinimumY + Inset + 64.0f + Row * (PreviewTileHeight + 20.0f),
+                                          TileWidth, PreviewTileHeight);
         const float XScale = TileWidth / 300.0f;
-        const float YScale = TileHeight / 250.0f;
+        const float YScale = PreviewTileHeight / 250.0f;
         const float OuterRadius = static_cast<float>(Configuration.Radius) * (18.0f / 24.0f) * XScale;
-        const bool Selected = Configuration.Theme == static_cast<ThemeSubject>(Ordinal);
+        const bool Selected = Configuration.Theme == static_cast<ThemeSubject>(Index);
         const PlaneExtent Outer = Spanning(Tile.MinimumX + 15.0f * XScale,
                                            Tile.MinimumY + 15.0f * YScale,
                                            270.0f * XScale, 195.0f * YScale);
@@ -860,10 +860,10 @@ void ControlCentrePanel::ThemePage(const PlaneExtent& Extent, ControlCentreConfi
                          Tile.MinimumY + 222.0f * YScale,
                          Selected ? Theme.Primary : Theme.Secondary,
                          Preview.Caption, 13.0f * XScale, .04f, true);
-        if (Pressed(75u + Ordinal, Tile)) Configuration.Theme = static_cast<ThemeSubject>(Ordinal);
+        if (Pressed(75u + Index, Tile)) Configuration.Theme = static_cast<ThemeSubject>(Index);
     }
 
-    const float Below = Extent.MinimumY + Inset + 64.0f + 2.0f * (TileHeight + 20.0f) + 16.0f;
+    const float Below = Extent.MinimumY + Inset + 64.0f + 2.0f * (PreviewTileHeight + 20.0f) + 16.0f;
     Surface->TextRun(ContentLeft, Below, Theme.Primary, "Corner Radius", 22.0f, 0.0f, true);
     Slider(82u, Spanning(ContentLeft, Below + 48.0f, ContentRight - ContentLeft, 40.0f), 0u, 48u,
            Configuration.Radius, "px", Theme.Edge, Accent);
@@ -880,25 +880,25 @@ void ControlCentrePanel::ThemePage(const PlaneExtent& Extent, ControlCentreConfi
                                    "Informational messages and badges", "Non-critical alerts and warnings",
                                    "Critical errors and destructive actions"};
     float Cursor = ColoursTop + 70.0f;
-    for (std::uint32_t Ordinal = 0u; Ordinal < 5u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 5u; ++Index)
     {
-        bool Open = OpenPalette == Ordinal;
+        bool Open = OpenPalette == Index;
         const PlaneExtent Header = Spanning(ContentLeft, Cursor, ContentRight - ContentLeft, 58.0f);
-        if (Pressed(84u + Ordinal, Header))
+        if (Pressed(84u + Index, Header))
         {
-            OpenPalette = Open ? 5u : Ordinal;
-            Open = OpenPalette == Ordinal;
+            OpenPalette = Open ? 5u : Index;
+            Open = OpenPalette == Index;
         }
 
-        Interaction.DeclareTaken(Controls[84u + Ordinal], Open, 220.0, EaseCurve::CssEase);
-        const float Disclosure = Interaction.TakenFraction(Controls[84u + Ordinal]);
+        Interaction.DeclareTaken(Controls[84u + Index], Open, 220.0, EaseCurve::CssEase);
+        const float Disclosure = Interaction.TakenFraction(Controls[84u + Index]);
         const float Height = 58.0f + 68.0f * Disclosure;
         const PlaneExtent Row = Spanning(ContentLeft, Cursor, ContentRight - ContentLeft, Height);
-        Surface->Ground(Row, Theme.Card, Ordinal == 0u || Ordinal == 4u ? 16.0f : 0.0f, CornerAll);
-        Surface->TextRun(Header.MinimumX + 20.0f, Header.MinimumY + 20.0f, Theme.Primary, Names[Ordinal],
+        Surface->Ground(Row, Theme.Card, Index == 0u || Index == 4u ? 16.0f : 0.0f, CornerAll);
+        Surface->TextRun(Header.MinimumX + 20.0f, Header.MinimumY + 20.0f, Theme.Primary, Names[Index],
                          14.0f, 0.0f, true);
         Surface->Medallion(Header.MaximumX - 48.0f, Header.MinimumY + 28.0f, 10.0f,
-                           ThemeSpecification::Accent(Configuration.SemanticColours[Ordinal]).Colour);
+                           ThemeSpecification::Accent(Configuration.SemanticColours[Index]).Colour);
         Symbol(Spanning(Header.MaximumX - 26.0f, Header.MinimumY + 20.0f, 16.0f, 16.0f), Theme.Secondary);
 
         if (Disclosure > 0.0f)
@@ -907,20 +907,20 @@ void ControlCentrePanel::ThemePage(const PlaneExtent& Extent, ControlCentreConfi
                                           Row.MaximumX, Header.MaximumY + 68.0f * Disclosure};
             Surface->Confine(Revealed);
             Surface->TextRun(Row.MinimumX + 20.0f, Header.MaximumY + 6.0f, Theme.Secondary,
-                             Descriptions[Ordinal], 12.0f);
+                             Descriptions[Index], 12.0f);
             for (std::uint32_t Colour = 0u; Colour < 8u; ++Colour)
             {
                 const PlaneExtent Swatch = Spanning(Row.MinimumX + 22.0f + 44.0f * static_cast<float>(Colour),
                                                     Header.MaximumY + 26.0f, 32.0f, 32.0f);
                 Surface->Ground(Swatch, ThemeSpecification::Accent(static_cast<AccentSubject>(Colour)).Colour,
                                 16.0f, CornerAll);
-                if (Configuration.SemanticColours[Ordinal] == static_cast<AccentSubject>(Colour))
+                if (Configuration.SemanticColours[Index] == static_cast<AccentSubject>(Colour))
                     Surface->Edge(Spanning(Swatch.MinimumX - 3.0f, Swatch.MinimumY - 3.0f, 38.0f, 38.0f),
                                   WithOpacity(White, .55f), 2.0f, 19.0f, CornerAll);
-                if (Disclosure > .95f && Pressed(90u + Ordinal * 8u + Colour, Swatch))
+                if (Disclosure > .95f && Pressed(90u + Index * 8u + Colour, Swatch))
                 {
-                    Configuration.SemanticColours[Ordinal] = static_cast<AccentSubject>(Colour);
-                    if (Ordinal == 0u) Configuration.Primary = static_cast<AccentSubject>(Colour);
+                    Configuration.SemanticColours[Index] = static_cast<AccentSubject>(Colour);
+                    if (Index == 0u) Configuration.Primary = static_cast<AccentSubject>(Colour);
                 }
             }
             Surface->Release();
@@ -940,10 +940,10 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
     const char* DefaultFamily = "Inter";
     const std::uint32_t FontCount = (FontArchive != nullptr && FontArchive->FamilyCount() > 0u)
                                   ? FontArchive->FamilyCount() : 1u;
-    const auto FamilyAt = [&](std::uint32_t Ordinal) -> const char*
+    const auto FamilyAt = [&](std::uint32_t Index) -> const char*
     {
         return (FontArchive != nullptr && FontArchive->FamilyCount() > 0u)
-             ? FontArchive->FamilyName(Ordinal)
+             ? FontArchive->FamilyName(Index)
              : DefaultFamily;
     };
     const float Inset = 28.0f;
@@ -961,8 +961,8 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
         return (Sample + 180.0f > 190.0f) ? Sample + 180.0f : 190.0f;
     };
     float ContentBottom = SpecimenTop + 176.0f + 30.0f;
-    for (std::uint32_t Ordinal = 0u; Ordinal < 8u; ++Ordinal)
-        ContentBottom += EntryHeightOf(Configuration.TypographySize[Ordinal]) + 12.0f;
+    for (std::uint32_t Index = 0u; Index < 8u; ++Index)
+        ContentBottom += EntryHeightOf(Configuration.TypographySize[Index]) + 12.0f;
     ContentBottom += 340.0f;   // the icon style, icon font and antialiasing sections below the roles
 
     const PlaneExtent Section = Spanning(Extent.MinimumX, Extent.MinimumY, Extent.Width(),
@@ -984,17 +984,17 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
     const float FontFraction = static_cast<float>(Motion->Eased(FontMotion).Current());
     FontScroll = FontFrom + (FontTarget - FontFrom) * FontFraction;
     Surface->Confine(FontRail);
-    for (std::uint32_t Ordinal = 0u; Ordinal < FontCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < FontCount; ++Index)
     {
         const PlaneExtent Tile = Spanning(FontRail.MinimumX + 4.0f +
-                                              208.0f * static_cast<float>(Ordinal) - FontScroll,
+                                              208.0f * static_cast<float>(Index) - FontScroll,
                                           RailY, 192.0f, 132.0f);
-        Surface->ApplyFontPreview(FontArchive != nullptr ? FontArchive->Preview(FamilyAt(Ordinal), 1.0f) : nullptr);
-        Surface->Ground(Tile, Configuration.Font == Ordinal ? Theme.Card : Theme.Panel, 16.0f, CornerAll);
-        Surface->Edge(Tile, Configuration.Font == Ordinal ? Theme.Edge : WithOpacity(Theme.Edge, 0.0f), 1.0f,
+        Surface->ApplyFontPreview(FontArchive != nullptr ? FontArchive->Preview(FamilyAt(Index), 1.0f) : nullptr);
+        Surface->Ground(Tile, Configuration.Font == Index ? Theme.Card : Theme.Panel, 16.0f, CornerAll);
+        Surface->Edge(Tile, Configuration.Font == Index ? Theme.Edge : WithOpacity(Theme.Edge, 0.0f), 1.0f,
                       16.0f, CornerAll);
         Surface->TextRun(Tile.MinimumX + 18.0f, Tile.MinimumY + 18.0f, Theme.Primary, "Aa", 30.0f);
-        Surface->TextRun(Tile.MinimumX + 18.0f, Tile.MinimumY + 66.0f, Theme.Primary, FamilyAt(Ordinal),
+        Surface->TextRun(Tile.MinimumX + 18.0f, Tile.MinimumY + 66.0f, Theme.Primary, FamilyAt(Index),
                          14.0f, 0.0f, true);
         Surface->TextRun(Tile.MinimumX + 18.0f, Tile.MinimumY + 92.0f, Theme.Secondary,
                          "The quick brown fox", 12.0f);
@@ -1004,9 +1004,9 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
             Tile.MaximumX < FontRail.MaximumX ? Tile.MaximumX : FontRail.MaximumX,
             Tile.MaximumY
         };
-        if (TileContact.MaximumX > TileContact.MinimumX && 130u + Ordinal < ControlCapacity &&
-            Pressed(130u + Ordinal, TileContact))
-            Configuration.Font = Ordinal;
+        if (TileContact.MaximumX > TileContact.MinimumX && 130u + Index < ControlCapacity &&
+            Pressed(130u + Index, TileContact))
+            Configuration.Font = Index;
     }
     Surface->Release();
     Surface->ApplyFontPreview(nullptr);
@@ -1054,20 +1054,20 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
     static const std::uint32_t Minimum[8] = {20u, 16u, 12u, 10u, 8u, 8u, 10u, 10u};
     static const std::uint32_t Maximum[8] = {64u, 40u, 32u, 24u, 20u, 16u, 24u, 24u};
     float Cursor = Specimen.MaximumY + 30.0f;
-    for (std::uint32_t Ordinal = 0u; Ordinal < 8u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 8u; ++Index)
     {
-        const float PreviewText = static_cast<float>(Configuration.TypographySize[Ordinal]);
-        const float EntryHeight = EntryHeightOf(Configuration.TypographySize[Ordinal]);
+        const float PreviewText = static_cast<float>(Configuration.TypographySize[Index]);
+        const float EntryHeight = EntryHeightOf(Configuration.TypographySize[Index]);
         const PlaneExtent Entry = Spanning(ContentLeft, Cursor, ContentRight - ContentLeft, EntryHeight);
         Surface->Ground(Entry, Theme.Card, 16.0f, CornerAll);
         Surface->Edge(Entry, Theme.Edge, 1.0f, 16.0f, CornerAll);
 
         // 📝 The role name is drawn in the role's own face, so the strip's choice is legible in the label
         //    that owns it — a Title row whose strip applied Black names itself in Black.
-        const FontWeight RoleWeight = RoleWeightOf(Configuration.TypographyWeight, Ordinal);
-        Surface->TextRun(Entry.MinimumX + 18.0f, Entry.MinimumY + 12.0f, Theme.Primary, Roles[Ordinal],
+        const FontWeight RoleWeight = RoleWeightOf(Configuration.TypographyWeight, Index);
+        Surface->TextRun(Entry.MinimumX + 18.0f, Entry.MinimumY + 12.0f, Theme.Primary, Roles[Index],
                          16.0f, 0.0f, false, RoleWeight);
-        const float LabelWidth = Surface->MeasureRun(Roles[Ordinal], 16.0f, 0.0f, RoleWeight);
+        const float LabelWidth = Surface->MeasureRun(Roles[Index], 16.0f, 0.0f, RoleWeight);
         Surface->TextRun(Entry.MinimumX + 18.0f + LabelWidth + 14.0f, Entry.MinimumY + 17.0f,
                          Theme.Secondary, FamilyAt(Configuration.Font), 12.0f);
 
@@ -1096,23 +1096,23 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
         const float RoleMaximum = (static_cast<float>(WeightCount) * TileStep > RoleRail.Width())
                                 ? static_cast<float>(WeightCount) * TileStep - RoleRail.Width() : 0.0f;
 
-        const float RoleFraction = static_cast<float>(Motion->Eased(RoleFontMotion[Ordinal]).Current());
-        RoleFontScroll[Ordinal] = RoleFontFrom[Ordinal] +
-                                  (RoleFontTarget[Ordinal] - RoleFontFrom[Ordinal]) * RoleFraction;
+        const float RoleFraction = static_cast<float>(Motion->Eased(RoleFontMotion[Index]).Current());
+        RoleFontScroll[Index] = RoleFontFrom[Index] +
+                                  (RoleFontTarget[Index] - RoleFontFrom[Index]) * RoleFraction;
 
-        if (Pressed(RoleArrowBase + Ordinal * 2u, LeftArrow) && RoleFontTarget[Ordinal] > 0.0f)
+        if (Pressed(RoleArrowBase + Index * 2u, LeftArrow) && RoleFontTarget[Index] > 0.0f)
         {
-            RoleFontFrom[Ordinal] = RoleFontScroll[Ordinal];
-            RoleFontTarget[Ordinal] = RoleFontScroll[Ordinal] - TileStep;
-            if (RoleFontTarget[Ordinal] < 0.0f) RoleFontTarget[Ordinal] = 0.0f;
-            Motion->Eased(RoleFontMotion[Ordinal]).Depart(0.0, 1.0, 250.0, 0.0, EaseCurve::Carousel);
+            RoleFontFrom[Index] = RoleFontScroll[Index];
+            RoleFontTarget[Index] = RoleFontScroll[Index] - TileStep;
+            if (RoleFontTarget[Index] < 0.0f) RoleFontTarget[Index] = 0.0f;
+            Motion->Eased(RoleFontMotion[Index]).Depart(0.0, 1.0, 250.0, 0.0, EaseCurve::Carousel);
         }
-        if (Pressed(RoleArrowBase + Ordinal * 2u + 1u, RightArrow) && RoleFontTarget[Ordinal] < RoleMaximum)
+        if (Pressed(RoleArrowBase + Index * 2u + 1u, RightArrow) && RoleFontTarget[Index] < RoleMaximum)
         {
-            RoleFontFrom[Ordinal] = RoleFontScroll[Ordinal];
-            RoleFontTarget[Ordinal] = RoleFontScroll[Ordinal] + TileStep;
-            if (RoleFontTarget[Ordinal] > RoleMaximum) RoleFontTarget[Ordinal] = RoleMaximum;
-            Motion->Eased(RoleFontMotion[Ordinal]).Depart(0.0, 1.0, 250.0, 0.0, EaseCurve::Carousel);
+            RoleFontFrom[Index] = RoleFontScroll[Index];
+            RoleFontTarget[Index] = RoleFontScroll[Index] + TileStep;
+            if (RoleFontTarget[Index] > RoleMaximum) RoleFontTarget[Index] = RoleMaximum;
+            Motion->Eased(RoleFontMotion[Index]).Depart(0.0, 1.0, 250.0, 0.0, EaseCurve::Carousel);
         }
 
         Surface->Ground(LeftArrow, Theme.Card, 15.0f, CornerAll);
@@ -1125,15 +1125,15 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
                          Theme.Primary, ">", 14.0f, 0.0f, true);
 
         Surface->Confine(RoleRail);
-        std::uint32_t FaceOrdinal = 0u;
+        std::uint32_t FaceIndex = 0u;
         for (std::uint32_t Candidate = 0u; Candidate < 9u; ++Candidate)
         {
             if (FontArchive != nullptr && !FontArchive->HasFace(CandidateFaces[Candidate], FontSlant::Upright))
                 continue;
             const float FaceX = RoleRail.MinimumX + 4.0f +
-                                    TileStep * static_cast<float>(FaceOrdinal) - RoleFontScroll[Ordinal];
+                                    TileStep * static_cast<float>(FaceIndex) - RoleFontScroll[Index];
             const PlaneExtent Tile = Spanning(FaceX, StripY, TileSpan, 72.0f);
-            const bool Selected = Configuration.TypographyWeight[Ordinal] ==
+            const bool Selected = Configuration.TypographyWeight[Index] ==
                                   static_cast<std::uint32_t>(CandidateFaces[Candidate]);
             const PlaneExtent TileContact = {
                 Tile.MinimumX > RoleRail.MinimumX ? Tile.MinimumX : RoleRail.MinimumX,
@@ -1155,21 +1155,21 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
                 // 📝 The ordinal is the tile's VISIBLE slot, not its index in the face run: the strip scrolls
                 //    a whole tile at a time, so slot arithmetic is exact, and a slot's identity must not move
                 //    when the run beneath it changes.
-                const std::uint32_t Slot = FaceOrdinal -
-                                           static_cast<std::uint32_t>(RoleFontScroll[Ordinal] / TileStep + 0.5f);
+                const std::uint32_t Slot = FaceIndex -
+                                           static_cast<std::uint32_t>(RoleFontScroll[Index] / TileStep + 0.5f);
                 if (Slot < RoleTilePositions &&
-                    Pressed(RoleTileBase + Ordinal * RoleTilePositions + Slot, TileContact))
-                    Configuration.TypographyWeight[Ordinal] = static_cast<std::uint32_t>(CandidateFaces[Candidate]);
+                    Pressed(RoleTileBase + Index * RoleTilePositions + Slot, TileContact))
+                    Configuration.TypographyWeight[Index] = static_cast<std::uint32_t>(CandidateFaces[Candidate]);
                 Surface->ApplyFontPreview(nullptr);
             }
-            ++FaceOrdinal;
+            ++FaceIndex;
         }
         Surface->Release();
 
-        Slider(144u + Ordinal,
+        Slider(144u + Index,
                Spanning(Entry.MinimumX + 18.0f, Entry.MinimumY + 130.0f,
                         420.0f, 34.0f),
-               Minimum[Ordinal], Maximum[Ordinal], Configuration.TypographySize[Ordinal], "px", Theme.Edge, Accent);
+               Minimum[Index], Maximum[Index], Configuration.TypographySize[Index], "px", Theme.Edge, Accent);
 
         const PlaneExtent PreviewClip = {Entry.MinimumX + 18.0f, Entry.MinimumY + 170.0f,
                                          Entry.MaximumX - 18.0f, Entry.MaximumY - 10.0f};
@@ -1177,11 +1177,11 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
                                     (PreviewClip.Height() - PreviewText) * 0.5f;
         Surface->Confine(PreviewClip);
         Surface->TextRunTruncated(PreviewClip.MinimumX, PreviewHeight, PreviewClip.MaximumX,
-                                  Ordinal == 6u   ? ThemeSpecification::Accent(Configuration.Warning).Colour
-                                  : Ordinal == 7u ? ThemeSpecification::Accent(Configuration.Alert).Colour
+                                  Index == 6u   ? ThemeSpecification::Accent(Configuration.Warning).Colour
+                                  : Index == 7u ? ThemeSpecification::Accent(Configuration.Alert).Colour
                                                   : Theme.Primary,
-                                  Ordinal == 4u   ? "METADATA · 10:42 AM · SYSTEM"
-                                  : Ordinal == 5u ? "* This is a small caption text"
+                                  Index == 4u   ? "METADATA · 10:42 AM · SYSTEM"
+                                  : Index == 5u ? "* This is a small caption text"
                                                   : "The quick brown fox jumps over the lazy dog",
                                   PreviewText, false, RoleWeight);
         Surface->Release();
@@ -1195,16 +1195,16 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
     Surface->TextRun(IconSection.MinimumX + 20.0f, Cursor + 10.0f, Theme.Primary,
                      "Icon Style", 24.0f, 0.0f, false, RoleWeightOf(Configuration.TypographyWeight, 1u));
     const char* Styles[3] = {"Monotone", "Duotone", "Coloured"};
-    for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 3u; ++Index)
     {
         const PlaneExtent B = Spanning(IconSection.MinimumX + 20.0f +
-                                           (IconSection.Width() - 40.0f) / 3.0f * Ordinal,
+                                           (IconSection.Width() - 40.0f) / 3.0f * Index,
                                        Cursor + 52.0f, (IconSection.Width() - 40.0f) / 3.0f, 42.0f);
-        Surface->Ground(B, Configuration.Icons == static_cast<IconAppearance>(Ordinal) ? Theme.Card : QuietDark, 12.0f,
+        Surface->Ground(B, Configuration.Icons == static_cast<IconAppearance>(Index) ? Theme.Card : QuietDark, 12.0f,
                         CornerAll);
-        Surface->TextRun(CentreText(*Surface, B, Styles[Ordinal], 13.0f), CentredY(B, 13.0f), Theme.Primary,
-                         Styles[Ordinal], 13.0f);
-        if (Pressed(160u + Ordinal, B)) Configuration.Icons = static_cast<IconAppearance>(Ordinal);
+        Surface->TextRun(CentreText(*Surface, B, Styles[Index], 13.0f), CentredY(B, 13.0f), Theme.Primary,
+                         Styles[Index], 13.0f);
+        if (Pressed(160u + Index, B)) Configuration.Icons = static_cast<IconAppearance>(Index);
     }
     Cursor += 118.0f;
     Surface->TextRun(IconSection.MinimumX + 20.0f, Cursor, Theme.Primary, "Icon Font", 24.0f, 0.0f,
@@ -1223,15 +1223,15 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
     Surface->TextRun(AntialiasSection.MinimumX + 20.0f, Cursor, Theme.Primary,
                      "Font Antialiasing", 24.0f, 0.0f, false, RoleWeightOf(Configuration.TypographyWeight, 1u));
     const char* Aa[3] = {"Subpixel (Auto)", "Grayscale", "None"};
-    for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 3u; ++Index)
     {
         const PlaneExtent B = Spanning(AntialiasSection.MinimumX + 20.0f +
-                                           (AntialiasSection.Width() - 40.0f) / 3.0f * Ordinal,
+                                           (AntialiasSection.Width() - 40.0f) / 3.0f * Index,
                                        Cursor + 45.0f, (AntialiasSection.Width() - 40.0f) / 3.0f, 42.0f);
-        Surface->Ground(B, Configuration.Antialiasing == Ordinal ? Theme.Card : QuietDark, 12.0f, CornerAll);
-        Surface->TextRun(CentreText(*Surface, B, Aa[Ordinal], 13.0f), CentredY(B, 13.0f), Theme.Primary,
-                         Aa[Ordinal], 13.0f);
-        if (Pressed(168u + Ordinal, B)) Configuration.Antialiasing = Ordinal;
+        Surface->Ground(B, Configuration.Antialiasing == Index ? Theme.Card : QuietDark, 12.0f, CornerAll);
+        Surface->TextRun(CentreText(*Surface, B, Aa[Index], 13.0f), CentredY(B, 13.0f), Theme.Primary,
+                         Aa[Index], 13.0f);
+        if (Pressed(168u + Index, B)) Configuration.Antialiasing = Index;
     }
 }
 
@@ -1265,18 +1265,18 @@ void ControlCentrePanel::InputPage(const PlaneExtent& Extent, ControlCentreConfi
     if (Pressed(173u, Preset)) InputPresetOpen = !InputPresetOpen;
     std::uint32_t Count = 0u;
     const ShortcutDeclaration* Shortcuts = ShortcutSpecification::Shortcuts(Configuration.InputPreset, Count);
-    for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Count; ++Index)
     {
-        const PlaneExtent Row = Spanning(Hotkeys.MinimumX + 24.0f, Hotkeys.MinimumY + 76.0f + 62.0f * Ordinal,
+        const PlaneExtent Row = Spanning(Hotkeys.MinimumX + 24.0f, Hotkeys.MinimumY + 76.0f + 62.0f * Index,
                                          Hotkeys.Width() - 48.0f, 54.0f);
         Surface->Ground(Row, Partial(0xFFFFFFu, .02), 12.0f, CornerAll);
         Surface->Edge(Row, Theme.Edge, 1.0f, 12.0f, CornerAll);
-        Surface->TextRun(Row.MinimumX + 14.0f, Row.MinimumY + 10.0f, Theme.Primary, Shortcuts[Ordinal].Action,
+        Surface->TextRun(Row.MinimumX + 14.0f, Row.MinimumY + 10.0f, Theme.Primary, Shortcuts[Index].Action,
                          14.0f, 0.0f, true);
-        Surface->TextRun(Row.MinimumX + 14.0f, Row.MinimumY + 31.0f, Theme.Secondary, Shortcuts[Ordinal].Grouping,
+        Surface->TextRun(Row.MinimumX + 14.0f, Row.MinimumY + 31.0f, Theme.Secondary, Shortcuts[Index].Grouping,
                          11.0f);
         float KeyX = Row.MaximumX - 160.0f;
-        if (Shortcuts[Ordinal].Chord.ControlEnabled)
+        if (Shortcuts[Index].Chord.ControlEnabled)
         {
             Surface->Ground(Spanning(KeyX, Row.MinimumY + 11.0f, 38.0f, 32.0f), QuietDark, 8.0f, CornerAll);
             Surface->TextRun(KeyX + 7.0f, Row.MinimumY + 21.0f, Theme.Secondary, "Ctrl", 11.0f);
@@ -1287,11 +1287,11 @@ void ControlCentrePanel::InputPage(const PlaneExtent& Extent, ControlCentreConfi
         Surface->Edge(Key, Theme.Edge, 1.0f, 8.0f, CornerAll);
         Surface->TextRun(
             CentreText(*Surface, Key,
-                       Configuration.ListeningShortcut == Ordinal ? "Listening..." : Shortcuts[Ordinal].Chord.Key, 11.0f),
+                       Configuration.ListeningShortcut == Index ? "Listening..." : Shortcuts[Index].Chord.Key, 11.0f),
             CentredY(Key, 11.0f), Theme.Primary,
-            Configuration.ListeningShortcut == Ordinal ? "Listening..." : Shortcuts[Ordinal].Chord.Key, 11.0f);
-        if (!InputPresetOpen && Pressed(174u + Ordinal, Key))
-            Configuration.ListeningShortcut = Configuration.ListeningShortcut == Ordinal ? 0xFFFFFFFFu : Ordinal;
+            Configuration.ListeningShortcut == Index ? "Listening..." : Shortcuts[Index].Chord.Key, 11.0f);
+        if (!InputPresetOpen && Pressed(174u + Index, Key))
+            Configuration.ListeningShortcut = Configuration.ListeningShortcut == Index ? 0xFFFFFFFFu : Index;
     }
     const float MouseTop = Hotkeys.MaximumY + 24.0f;
     const PlaneExtent Mouse = Spanning(X, MouseTop, Width, 150.0f);
@@ -1318,14 +1318,14 @@ void ControlCentrePanel::InputPage(const PlaneExtent& Extent, ControlCentreConfi
     Toggle(187u, Spanning(Touch.MaximumX - 76.0f, Touch.MinimumY + 106.0f, 48.0f, 24.0f), Configuration.PressureEnabled,
            Theme.Edge, Accent);
     const char* Actions[3] = {"Orbit", "Pan", "Select"};
-    for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 3u; ++Index)
     {
         const PlaneExtent B =
-            Spanning(Touch.MaximumX - 260.0f + 78.0f * Ordinal, Touch.MinimumY + 146.0f, 72.0f, 32.0f);
-        Surface->Ground(B, Configuration.TouchAction == Ordinal ? Theme.Card : QuietDark, 8.0f, CornerAll);
-        Surface->TextRun(CentreText(*Surface, B, Actions[Ordinal], 11.0f), CentredY(B, 11.0f), Theme.Primary,
-                         Actions[Ordinal], 11.0f);
-        if (Pressed(188u + Ordinal, B)) Configuration.TouchAction = Ordinal;
+            Spanning(Touch.MaximumX - 260.0f + 78.0f * Index, Touch.MinimumY + 146.0f, 72.0f, 32.0f);
+        Surface->Ground(B, Configuration.TouchAction == Index ? Theme.Card : QuietDark, 8.0f, CornerAll);
+        Surface->TextRun(CentreText(*Surface, B, Actions[Index], 11.0f), CentredY(B, 11.0f), Theme.Primary,
+                         Actions[Index], 11.0f);
+        if (Pressed(188u + Index, B)) Configuration.TouchAction = Index;
     }
 
     if (InputPresetOpen)
@@ -1333,17 +1333,17 @@ void ControlCentrePanel::InputPage(const PlaneExtent& Extent, ControlCentreConfi
         const PlaneExtent Menu = Spanning(Preset.MinimumX, Preset.MaximumY + 6.0f, Preset.Width(), 108.0f);
         Surface->Ground(Menu, Theme.Card, 10.0f, CornerAll);
         Surface->Edge(Menu, Theme.Edge, 1.0f, 10.0f, CornerAll);
-        for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < 3u; ++Index)
         {
-            const PlaneExtent Option = Spanning(Menu.MinimumX + 4.0f, Menu.MinimumY + 4.0f + 34.0f * Ordinal,
+            const PlaneExtent Option = Spanning(Menu.MinimumX + 4.0f, Menu.MinimumY + 4.0f + 34.0f * Index,
                                                 Menu.Width() - 8.0f, 32.0f);
-            if (Configuration.InputPreset == static_cast<ShortcutPreset>(Ordinal))
+            if (Configuration.InputPreset == static_cast<ShortcutPreset>(Index))
                 Surface->Ground(Option, QuietDark, 7.0f, CornerAll);
             Surface->TextRun(Option.MinimumX + 10.0f, CentredY(Option, 11.0f), Theme.Primary,
-                             ShortcutSpecification::Caption(static_cast<ShortcutPreset>(Ordinal)), 11.0f);
-            if (Pressed(120u + Ordinal, Option))
+                             ShortcutSpecification::Caption(static_cast<ShortcutPreset>(Index)), 11.0f);
+            if (Pressed(120u + Index, Option))
             {
-                Configuration.InputPreset = static_cast<ShortcutPreset>(Ordinal);
+                Configuration.InputPreset = static_cast<ShortcutPreset>(Index);
                 InputPresetOpen = false;
             }
         }
@@ -1365,23 +1365,23 @@ void ControlCentrePanel::Reset()
     FontMotion = 0u;
     CurrentTheme = ThemeSubject::Oled;
     PreviousTheme = ThemeSubject::Oled;
-    for (std::uint32_t Ordinal = 0u;
-         Ordinal < static_cast<std::uint32_t>(ControlCentrePage::PageCount); ++Ordinal)
+    for (std::uint32_t Index = 0u;
+         Index < static_cast<std::uint32_t>(ControlCentrePage::PageCount); ++Index)
     {
-        ScrollMotion[Ordinal] = 0u;
-        Scroll[Ordinal] = 0.0f;
-        ScrollFrom[Ordinal] = 0.0f;
-        ScrollTarget[Ordinal] = 0.0f;
+        ScrollMotion[Index] = 0u;
+        Scroll[Index] = 0.0f;
+        ScrollFrom[Index] = 0.0f;
+        ScrollTarget[Index] = 0.0f;
     }
     FontScroll = 0.0f;
     FontFrom = 0.0f;
     FontTarget = 0.0f;
-    for (std::uint32_t Ordinal = 0u; Ordinal < 8u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 8u; ++Index)
     {
-        RoleFontMotion[Ordinal] = 0u;
-        RoleFontScroll[Ordinal] = 0.0f;
-        RoleFontFrom[Ordinal] = 0.0f;
-        RoleFontTarget[Ordinal] = 0.0f;
+        RoleFontMotion[Index] = 0u;
+        RoleFontScroll[Index] = 0.0f;
+        RoleFontFrom[Index] = 0.0f;
+        RoleFontTarget[Index] = 0.0f;
     }
     OpenPalette = 5u;
     InputPresetOpen = false;

@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 
 #include <cstdint>
 #include <vector>
@@ -35,7 +35,7 @@ struct PlanarPosition
 /// 🧩 What a path segment's geometry is, which fixes which control positions below are read.
 /// note  ⚠️ `52` §2's accepted subset and nothing beyond it. A construct outside this enumeration is rejected at
 ///        intake with its position named, never approximated by the nearest member.
-/// tag   contract
+/// tag   guarantee
 enum class SegmentSubject : std::uint32_t
 {
     Line         = 0u,   // [-] - straight to the terminus

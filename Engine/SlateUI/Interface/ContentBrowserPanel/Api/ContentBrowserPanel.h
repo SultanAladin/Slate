@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/DrawerSpace/Api/DrawerSpace.h"
-#include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
+#include "SlateUI/Interface/ControlIndex/Api/ControlIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 
 #include <cstdint>
@@ -25,7 +25,7 @@ namespace Slate
 //    Control Centre cannot theme. The spellings are unchanged.
 
 /// 🧩 Every length `AsstbrowsrBasic` states, at the artist's own scale.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct ContentBrowserMetric
 {
     float  AsideX        = 240.0f;   // [px] - w-60, the sources column
@@ -60,7 +60,7 @@ struct ContentBrowserMetric
 /// 🧩 What a content record is classed under. The reference's `CAT_INFO` run, in its own order.
 /// note  📐 The spelling is `Archive` rather than the reference's `cat`, because the drawn caption is a
 ///        heading over a run of records and the identifier must state what it discriminates.
-/// tag   contract
+/// tag   guarantee
 enum class ContentArchive : std::uint32_t
 {
     Topology     = 0u,   // [-] - CAT_INFO.mesh, "Meshes"
@@ -73,7 +73,7 @@ enum class ContentArchive : std::uint32_t
 };
 
 /// 🧩 One record in the library, as `ASSETS` declares it.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct ContentRecord
 {
     const char*     Naming      = nullptr;                      // [-] - borrowed; `name`, without its extension
@@ -86,18 +86,18 @@ struct ContentRecord
 };
 
 /// 🧩 The applied library and what the artist has taken from it.
-/// note  🔴 `AbsentOrdinal` and not a signed ordinal. Every ordinal in this unit is unsigned, so an absent
+/// note  🔴 `AbsentIndex` and not a signed ordinal. Every ordinal in this unit is unsigned, so an absent
 ///        take must be a stated sentinel rather than a negative that cannot be represented.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct ContentLibrary
 {
-    static constexpr std::uint32_t RecordCeiling  = 64u;          // [-] - applied records; never allocated
-    static constexpr std::uint32_t AbsentOrdinal  = 0xFFFFFFFFu;  // [-] - nothing taken, nothing traversed
+    static constexpr std::uint32_t RecordLimit  = 64u;          // [-] - applied records; never allocated
+    static constexpr std::uint32_t AbsentIndex  = 0xFFFFFFFFu;  // [-] - nothing taken, nothing traversed
 
-    ContentRecord   Records[RecordCeiling] = {};                  // [-] - the library in its declared order
+    ContentRecord   Records[RecordLimit] = {};                  // [-] - the library in its declared order
     std::uint32_t   RecordCount            = 0u;                  // [-] - how many of Records stand
-    std::uint32_t   Taken                  = AbsentOrdinal;       // [-] - `state.selectedId`
-    std::uint32_t   TraversedArchive       = AbsentOrdinal;       // [-] - `state.cat`
+    std::uint32_t   Taken                  = AbsentIndex;       // [-] - `state.selectedId`
+    std::uint32_t   TraversedArchive       = AbsentIndex;       // [-] - `state.cat`
     const char*     TraversedSubheading    = nullptr;             // [-] - `state.subcat`, borrowed
 };
 
@@ -120,12 +120,12 @@ SymbolSubject ArchiveCrest(ContentArchive Archive);
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Everything the panel carries between ticks that is not the library itself.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct ContentBrowserConfiguration
 {
-    static constexpr std::uint32_t SeekCeiling = 64u;   // [-] - the seek run, in octets
+    static constexpr std::uint32_t SeekLimit = 64u;   // [-] - the seek run, in octets
 
-    char           Seek[SeekCeiling] = {};      // [-] - `state.search`, NUL-terminated
+    char           Seek[SeekLimit] = {};      // [-] - `state.search`, NUL-terminated
     bool           SeekHolding       = false;   // [-] - the seek field holds the keyboard
     float          LatticeOffset     = 0.0f;    // [px] - how far the lattice is scrolled
     float          LatticeSpan       = 0.0f;    // [px] - what the lattice measured last tick
@@ -142,30 +142,30 @@ struct ContentBrowserConfiguration
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Records the content browser and arbitrates every contact it presents.
-/// note  🔴 The panel registers into a ledger it does not own. The host that constructs it must weigh
-///        `RegistrationDemand` against the ledger's remaining capacity before it constructs anything else.
+/// note  🔴 The panel registers into a index it does not own. The host that constructs it must weigh
+///        `RegistrationDemand` against the index's remaining capacity before it constructs anything else.
 /// tag   api, nonallocating, nonthrowing
 class ContentBrowserPanel
 {
 public:
 
-    static constexpr std::uint32_t SourceCeiling  = 24u;   // [-] - source rows, archives and subheadings
-    static constexpr std::uint32_t LatticeCeiling = 64u;   // [-] - lattice records, one control each
-    static constexpr std::uint32_t ChromeCeiling  = 12u;   // [-] - seek, both actions, both tongues, import, thumbs
+    static constexpr std::uint32_t SourceLimit  = 24u;   // [-] - source rows, archives and subheadings
+    static constexpr std::uint32_t LatticeLimit = 64u;   // [-] - lattice records, one control each
+    static constexpr std::uint32_t ChromeLimit  = 12u;   // [-] - seek, both actions, both tongues, import, thumbs
 
-    /// 🔴 What this panel takes out of the shared ledger. The host's own static_assert weighs the page's
-    ///    whole demand against the ledger's capacity; this constant is the panel's contribution to it.
-    static constexpr std::uint32_t RegistrationDemand = SourceCeiling + LatticeCeiling + ChromeCeiling;
+    /// 🔴 What this panel takes out of the shared index. The host's own static_assert weighs the page's
+    ///    whole demand against the index's capacity; this constant is the panel's contribution to it.
+    static constexpr std::uint32_t RegistrationDemand = SourceLimit + LatticeLimit + ChromeLimit;
 
     /// 🧩 Reservations every identity the panel will ever arbitrate, once, before the first tick.
     /// in    Interaction  [-]  borrowed; must outlive the panel
     /// in    Recording    [-]  borrowed; must outlive the panel
     /// out   Result      [-]  refuses with ContentUnsupported when a construction already stands, and
-    ///                          carries the ledger's own refusal when a slot cannot be claimed
+    ///                          carries the index's own refusal when a slot cannot be claimed
     /// err   a refusal leaves nothing registered; the panel records nothing until Construct is delivered
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Construct(InteractionIndex& Interaction, RecordingSurface& Recording);
+    Outcome<bool> ConstructContentBrowserPanel(ControlIndex& IncomingInteraction, RecordingSurface& Recording);
 
     /// 🧩 Samples the tick's pointer before anything is recorded against it.
     /// in    Incoming [-]  this tick's pointer, as the host built it
@@ -250,12 +250,12 @@ private:
     bool  Retained(const ContentRecord& Record, const ContentLibrary& Library,
                    const ContentBrowserConfiguration& Applied) const;
 
-    InteractionIndex*  Ledger  = nullptr;   // [-] - borrowed, never owned
+    ControlIndex*  Interaction  = nullptr;   // [-] - borrowed, never owned
     RecordingSurface*  Surface = nullptr;   // [-] - borrowed, never owned
 
-    ControlIdentity  SourceRows[SourceCeiling]    = {};   // [-] - one per source row
-    ControlIdentity  LatticeCards[LatticeCeiling] = {};   // [-] - one per lattice record
-    ControlIdentity  ChromeCells[ChromeCeiling]   = {};   // [-] - the rail, the tongues, both thumbs
+    ControlIdentity  SourceRows[SourceLimit]    = {};   // [-] - one per source row
+    ControlIdentity  LatticeCards[LatticeLimit] = {};   // [-] - one per lattice record
+    ControlIdentity  ChromeCells[ChromeLimit]   = {};   // [-] - the rail, the tongues, both thumbs
 
     PointerCondition  Sampled;                            // [-] - this tick's pointer
 

@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/NumericTolerance.h"
 #include "SlateMath/Platform/TickSequence/Api/TickSequence.h"
 #include "SlateVulkan/Device/CycleScheduler/Api/CycleScheduler.h"
 #include "SlateVulkan/Device/DiagnosticExtension/Api/DiagnosticExtension.h"
@@ -34,7 +34,7 @@ inline constexpr std::uint32_t AbsentDisplayImage = 0xFFFFFFFFu;   // [-] - noth
 ///        a caller naming one directly has named something a second machine declines.
 /// note  ⚠️ `Immediate` is not offered. A painting application shows the artist a surface with a torn edge
 ///        halfway down it, and the tear is read as a defect in the brush rather than as an absent wait.
-/// tag   contract
+/// tag   guarantee
 enum class LatencyIntent : std::uint32_t
 {
     LowestLatency  = 0u,   // [-] - the stroke reaches the display as early as the device accepts
@@ -49,7 +49,7 @@ enum class LatencyIntent : std::uint32_t
 /// tag   nonallocating, nonthrowing
 struct AcquiredImage
 {
-    std::uint32_t  ImageOrdinal   = AbsentDisplayImage;   // [-]  - which chain image this rotation writes
+    std::uint32_t  ImageIndex   = AbsentDisplayImage;   // [-]  - which chain image this rotation writes
     VkImage        Extent         = VK_NULL_HANDLE;       // [-]  - the vendor image, owned by the chain
     VkImageView    WholeView      = VK_NULL_HANDLE;       // [-]  - constructed here, reclaimed with the chain
     double         PacedInterval  = 0.0;                  // [ms] - measured between this arrival and the last
@@ -109,7 +109,7 @@ public:
     ///        the incoming one is constructed — and a report against either would otherwise read alike.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange&       Exchange,
+    Outcome<bool> ConstructDisplayScheduler(const VulkanExchange&       Exchange,
                             const DiagnosticExtension&  Naming,
                             VkSurfaceKHR                Surface,
                             std::uint32_t               DisplayWidth,
@@ -140,11 +140,11 @@ public:
     ///                      the chain outgrown within the arrival ceiling, and DeviceLost when the device was
     ///                      lost; the chain is left standing for the recovery to reclaim
     /// post  the delivered ordinal is the caller's until `Present` returns it
-    /// note  🔴 The arrival is ordered on `SlotOrdinal::ImageAvailable`, which the recording waits on before it
+    /// note  🔴 The arrival is ordered on `SlotIndex::ImageAvailable`, which the recording waits on before it
     ///        writes colour. An arrival ordered on nothing is a recording that writes an image the display is
     ///        still reading, and the artist sees the previous rotation's stroke tear through this one's.
     /// note  🔴 `Reclaimed` is delivered in two cases that differ in whether this rotation may proceed, and
-    ///        `ImageOrdinal` is what says which. A chain the display has merely outgrown delivers a usable
+    ///        `ImageIndex` is what says which. A chain the display has merely outgrown delivers a usable
     ///        image — present it, then re-establish. A chain it has retired delivers `AbsentDisplayImage` and no
     ///        view: there is nothing to record into, so the caller re-establishes and skips the rotation. A
     ///        caller reading `Reclaimed` alone would record into a null view on the second of the two.
@@ -154,7 +154,7 @@ public:
 
     /// 🧩 Returns one taken image back to the display, ordered behind the recording that wrote it.
     /// in    Current      [-]  the same slot `Await` was given; its `RecordingDone` is awaited
-    /// in    ImageOrdinal  [-]  what `Await` delivered
+    /// in    ImageIndex  [-]  what `Await` delivered
     /// out   Result       [-]  refuses with ContentUnsupported for an ordinal `Await` did not deliver, with
     ///                          HostDenied when the display declines it, and with DeviceLost when the device
     ///                          was lost; the ordinal is released to the display either way
@@ -172,7 +172,7 @@ public:
     ///        unreachable, so a resize was rebuilt one tick late by the extent test or not at all.
     /// cost  🚩
     /// tag   api, nonthrowing
-    [[nodiscard]] Outcome<bool> Present(const CycleSlot& Current, std::uint32_t ImageOrdinal);
+    [[nodiscard]] Outcome<bool> Present(const CycleSlot& Current, std::uint32_t ImageIndex);
 
     /// 🧩 What the surface carries, which is the format every display-relative target is claimed at.
     /// out   Format  [-]  VK_FORMAT_UNDEFINED before Construct delivered
@@ -223,10 +223,10 @@ public:
 private:
 
     // 📝 🔴 About two seconds, in the nanoseconds the vendor counts in, and deliberately the same figure
-    //    `CycleScheduler::CompletionCeilingNanoseconds` carries. The two bound the same failure from two sides —
+    //    `CycleScheduler::CompletionLimitNanoseconds` carries. The two bound the same failure from two sides —
     //    a device that stopped completing and a display that stopped delivering — and one of them longer than
     //    the other only decides which of the two reports it first.
-    static constexpr std::uint64_t ArrivalCeilingNanoseconds = 2000000000ull;   // [ns]
+    static constexpr std::uint64_t ArrivalLimitNanoseconds = 2000000000ull;   // [ns]
 
     /// 🧩 Scores the surface's declared formats and takes the one `08` §2's display target is claimed at.
     /// note  🔴 An unsigned-normalised format is taken over a sRGB-encoded one. `66` applies the OETF itself —
@@ -256,7 +256,7 @@ private:
     std::uint32_t              ChainWidth         = 0u;                   // [px] - the extent the chain stands at
     std::uint32_t              ChainHeight        = 0u;                   // [px]
     std::uint32_t              MinimumChainImages = 0u;                   // [-]  - requested through minImageCount
-    std::uint32_t              TakenOrdinal       = AbsentDisplayImage;   // [-]  - the image `Await` delivered
+    std::uint32_t              TakenIndex       = AbsentDisplayImage;   // [-]  - the image `Await` delivered
     std::uint32_t              EstablishedCount = 0u;                   // [-]  - chains stood so far; names this one
     TickPoint                  LastArrival      = {};                   // [ns] - when the previous image arrived
     double                     ArrivalInterval  = 0.0;                  // [ms] - between the last two arrivals

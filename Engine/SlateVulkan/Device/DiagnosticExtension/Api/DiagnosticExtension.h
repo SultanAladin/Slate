@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateMath/Numeric/ReportSequence/Api/ReportSequence.h"
 #include "SlateMath/Platform/TickSequence/Api/TickSequence.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
@@ -56,7 +56,7 @@ public:
     ///        loader does not carry it — and a link-time reference makes the whole executable unloadable there.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange& Exchange, ReportSequence& Register, const TickSequence& Timeline);
+    Outcome<bool> AttachDiagnostics(const VulkanExchange& Exchange, ReportSequence& Register, const TickSequence& Timeline);
 
     /// 🧩 Names one vendor object, so the driver's text names the object rather than an address.
     /// in    Subject       [-]  which vendor structure the handle names, as the vendor spells it
@@ -85,21 +85,21 @@ public:
     /// in    Subject        [-]  which vendor structure the handle names, as the vendor spells it
     /// in    VendorHandle   [-]  the object, widened to the vendor's own naming width
     /// in    DeclaredPrefix [-]  static text naming what the object is; the ordinal is appended to it
-    /// in    Ordinal        [-]  the slot the owning component resolves the object by
+    /// in    Index        [-]  the slot the owning component resolves the object by
     /// out   Result        [-]  refuses as the two-operand form does, and with ContentUnsupported when the
     ///                           composed text does not fit the extent it is composed in
     /// note  🔴 The composition is here rather than at each claim site. Eight components name objects by their
     ///        own ordinal, and eight separate compositions is eight places where one of them formats the
     ///        ordinal differently and the driver's text stops sorting alongside the rest.
     /// note  ⚠️ Composed into an automatic extent and read by the driver before this returns, which is what
-    ///        the two-operand form's contract already accepts — the driver copies the text and nothing is
+    ///        the two-operand form's guarantee already accepts — the driver copies the text and nothing is
     ///        retained here.
     /// cost  ✔️
     /// tag   api, nonthrowing
     Outcome<bool> Declare(VkObjectType   Subject,
                           std::uint64_t  VendorHandle,
                           const char*    DeclaredPrefix,
-                          std::uint32_t  Ordinal) const;
+                          std::uint32_t  Index) const;
 
     /// 🧩 Whether the capability was negotiated, for a claim site reporting what it could not name.
     /// out   Negotiated  [-]  false in every configuration that did not request the diagnostic

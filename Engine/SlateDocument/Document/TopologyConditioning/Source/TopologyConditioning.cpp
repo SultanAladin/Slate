@@ -6,7 +6,7 @@
 #include "SlateDocument/Document/TopologyConditioning/Api/TopologyConditioning.h"
 
 #include "Shared/OrientationClassifier.slang.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/NumericTolerance.h"
 
 #include <cmath>
 
@@ -46,7 +46,7 @@ LatticeCell Quantise(DocumentPosition Subject, double Spacing)
     return Cell;
 }
 
-std::uint64_t CellOrdinal(LatticeCell Cell)
+std::uint64_t CellIndex(LatticeCell Cell)
 {
     // 📐 A mixing of the three lattice ordinals into one search ordinal. Exact equality of the ordinals is
     //    confirmed after a candidate is found, so a collision costs a comparison and never a wrong weld.
@@ -118,16 +118,16 @@ void TopologyConditioning::DeriveWelding(const TopologyStructure& Imported)
     // 📝 One search run per mixed ordinal, holding the imported vertices already welded there. A vertex is
     //    compared against the twenty-seven cells around its own, so a position sitting just across a cell
     //    boundary from its twin still finds it.
-    // 📝 ⚠️ DeriveWelding scans RunOrdinals linearly for each neighbour cell (quadratic in run count).
+    // 📝 ⚠️ DeriveWelding scans RunIndexs linearly for each neighbour cell (quadratic in run count).
     //    Recorded per `38` §5 for large models.
-    std::vector<std::uint64_t>                 RunOrdinals;
+    std::vector<std::uint64_t>                 RunIndexs;
     std::vector<std::vector<std::uint32_t>>    RunVertices;
     std::vector<LatticeCell>                   CellOfVertex(Positions.size());
 
-    for (std::uint32_t VertexOrdinal = 0u; VertexOrdinal < Positions.size(); ++VertexOrdinal)
+    for (std::uint32_t VertexIndex = 0u; VertexIndex < Positions.size(); ++VertexIndex)
     {
-        const LatticeCell Cell = Quantise(Positions[VertexOrdinal], Spacing);
-        CellOfVertex[VertexOrdinal] = Cell;
+        const LatticeCell Cell = Quantise(Positions[VertexIndex], Spacing);
+        CellOfVertex[VertexIndex] = Cell;
 
         std::uint32_t Welded = AbsentCorner;
 
@@ -142,14 +142,14 @@ void TopologyConditioning::DeriveWelding(const TopologyStructure& Imported)
                     Sought.CellY = Cell.CellY + Y;
                     Sought.CellDeep   = Cell.CellDeep   + Deep;
 
-                    const std::uint64_t Ordinal = CellOrdinal(Sought);
+                    const std::uint64_t Index = CellIndex(Sought);
 
-                    for (std::size_t RunOrdinal = 0u; RunOrdinal < RunOrdinals.size(); ++RunOrdinal)
+                    for (std::size_t RunIndex = 0u; RunIndex < RunIndexs.size(); ++RunIndex)
                     {
-                        if (RunOrdinals[RunOrdinal] != Ordinal)
+                        if (RunIndexs[RunIndex] != Index)
                             continue;
 
-                        for (const std::uint32_t Candidate : RunVertices[RunOrdinal])
+                        for (const std::uint32_t Candidate : RunVertices[RunIndex])
                         {
                             const LatticeCell Held = CellOfVertex[Candidate];
 
@@ -174,27 +174,27 @@ void TopologyConditioning::DeriveWelding(const TopologyStructure& Imported)
             ++DistinctPositionCount;
         }
 
-        WeldedPositionOfVertex[VertexOrdinal] = Welded;
+        WeldedPositionOfVertex[VertexIndex] = Welded;
 
-        const std::uint64_t OwnOrdinal = CellOrdinal(Cell);
-        std::size_t         Located     = RunOrdinals.size();
+        const std::uint64_t OwnIndex = CellIndex(Cell);
+        std::size_t         Located     = RunIndexs.size();
 
-        for (std::size_t RunOrdinal = 0u; RunOrdinal < RunOrdinals.size(); ++RunOrdinal)
+        for (std::size_t RunIndex = 0u; RunIndex < RunIndexs.size(); ++RunIndex)
         {
-            if (RunOrdinals[RunOrdinal] == OwnOrdinal)
+            if (RunIndexs[RunIndex] == OwnIndex)
             {
-                Located = RunOrdinal;
+                Located = RunIndex;
                 break;
             }
         }
 
-        if (Located == RunOrdinals.size())
+        if (Located == RunIndexs.size())
         {
-            RunOrdinals.push_back(OwnOrdinal);
+            RunIndexs.push_back(OwnIndex);
             RunVertices.push_back({});
         }
 
-        RunVertices[Located].push_back(VertexOrdinal);
+        RunVertices[Located].push_back(VertexIndex);
     }
 }
 
@@ -213,12 +213,12 @@ void TopologyConditioning::DeriveAdjacency(const TopologyStructure& Imported)
     // 📝 Incidence is over **welded positions**, not over imported vertices. A traversal that followed imported
     //    vertices would stop at every coordinate seam, which is precisely the discontinuity welding exists to
     //    see through.
-    for (std::uint32_t CornerOrdinal = 0u; CornerOrdinal < CornerSpan; ++CornerOrdinal)
+    for (std::uint32_t CornerIndex = 0u; CornerIndex < CornerSpan; ++CornerIndex)
     {
-        const std::uint32_t Position = WeldedPositionOfVertex[Imported.CornerVertex(CornerOrdinal)];
+        const std::uint32_t Position = WeldedPositionOfVertex[Imported.CornerVertex(CornerIndex)];
 
-        NextCornerOfPosition[CornerOrdinal] = FirstCornerOfPosition[Position];
-        FirstCornerOfPosition[Position]     = CornerOrdinal;
+        NextCornerOfPosition[CornerIndex] = FirstCornerOfPosition[Position];
+        FirstCornerOfPosition[Position]     = CornerIndex;
     }
 
     std::vector<std::uint32_t> IncidenceCountOfEdge;
@@ -227,17 +227,17 @@ void TopologyConditioning::DeriveAdjacency(const TopologyStructure& Imported)
     std::vector<std::uint32_t> FirstCornerOfEdge;
     std::vector<std::uint32_t> SecondCornerOfEdge;
 
-    for (std::uint32_t FaceOrdinal = 0u; FaceOrdinal < Imported.FaceCount(); ++FaceOrdinal)
+    for (std::uint32_t FaceIndex = 0u; FaceIndex < Imported.FaceCount(); ++FaceIndex)
     {
-        const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceOrdinal);
-        const std::uint32_t CornerSpan_ = Imported.FaceCornerCount(FaceOrdinal);
+        const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceIndex);
+        const std::uint32_t CornerSpan_ = Imported.FaceCornerCount(FaceIndex);
 
         for (std::uint32_t Passed = 0u; Passed < CornerSpan_; ++Passed)
         {
-            const std::uint32_t CornerOrdinal = FirstCorner + Passed;
+            const std::uint32_t CornerIndex = FirstCorner + Passed;
             const std::uint32_t Following     = FirstCorner + (Passed + 1u) % CornerSpan_;
 
-            const std::uint32_t Opening = WeldedPositionOfVertex[Imported.CornerVertex(CornerOrdinal)];
+            const std::uint32_t Opening = WeldedPositionOfVertex[Imported.CornerVertex(CornerIndex)];
             const std::uint32_t Closing = WeldedPositionOfVertex[Imported.CornerVertex(Following)];
 
             const std::uint32_t Minimum    = Opening < Closing ? Opening : Closing;
@@ -245,11 +245,11 @@ void TopologyConditioning::DeriveAdjacency(const TopologyStructure& Imported)
 
             std::size_t Located = MinimumOfEdge.size();
 
-            for (std::size_t EdgeOrdinal = 0u; EdgeOrdinal < MinimumOfEdge.size(); ++EdgeOrdinal)
+            for (std::size_t EdgeIndex = 0u; EdgeIndex < MinimumOfEdge.size(); ++EdgeIndex)
             {
-                if (MinimumOfEdge[EdgeOrdinal] == Minimum && MaximumOfEdge[EdgeOrdinal] == Maximum)
+                if (MinimumOfEdge[EdgeIndex] == Minimum && MaximumOfEdge[EdgeIndex] == Maximum)
                 {
-                    Located = EdgeOrdinal;
+                    Located = EdgeIndex;
                     break;
                 }
             }
@@ -259,7 +259,7 @@ void TopologyConditioning::DeriveAdjacency(const TopologyStructure& Imported)
                 MinimumOfEdge.push_back(Minimum);
                 MaximumOfEdge.push_back(Maximum);
                 IncidenceCountOfEdge.push_back(1u);
-                FirstCornerOfEdge.push_back(CornerOrdinal);
+                FirstCornerOfEdge.push_back(CornerIndex);
                 SecondCornerOfEdge.push_back(AbsentCorner);
             }
             else
@@ -267,33 +267,33 @@ void TopologyConditioning::DeriveAdjacency(const TopologyStructure& Imported)
                 ++IncidenceCountOfEdge[Located];
 
                 if (SecondCornerOfEdge[Located] == AbsentCorner)
-                    SecondCornerOfEdge[Located] = CornerOrdinal;
+                    SecondCornerOfEdge[Located] = CornerIndex;
             }
         }
     }
 
-    for (std::size_t EdgeOrdinal = 0u; EdgeOrdinal < MinimumOfEdge.size(); ++EdgeOrdinal)
+    for (std::size_t EdgeIndex = 0u; EdgeIndex < MinimumOfEdge.size(); ++EdgeIndex)
     {
         // 🔴 Only an edge with exactly two incidences yields an adjacency. An edge with more is non-manifold and
         //    every face it touches is registered, because `68` §4.1 cuts a chart boundary there rather than
         //    choosing one of several continuations arbitrarily.
-        if (IncidenceCountOfEdge[EdgeOrdinal] == 2u)
+        if (IncidenceCountOfEdge[EdgeIndex] == 2u)
         {
-            const std::uint32_t First  = FirstCornerOfEdge[EdgeOrdinal];
-            const std::uint32_t Second = SecondCornerOfEdge[EdgeOrdinal];
+            const std::uint32_t First  = FirstCornerOfEdge[EdgeIndex];
+            const std::uint32_t Second = SecondCornerOfEdge[EdgeIndex];
 
             AdjacentCornerOfCorner[First]  = Second;
             AdjacentCornerOfCorner[Second] = First;
         }
-        else if (IncidenceCountOfEdge[EdgeOrdinal] > 2u)
+        else if (IncidenceCountOfEdge[EdgeIndex] > 2u)
         {
             RegisterInterval(RegisteredConditions[static_cast<std::size_t>(DegeneracySubject::NonManifoldEdge)],
-                          Imported.CornerFace(FirstCornerOfEdge[EdgeOrdinal]));
+                          Imported.CornerFace(FirstCornerOfEdge[EdgeIndex]));
 
-            if (SecondCornerOfEdge[EdgeOrdinal] != AbsentCorner)
+            if (SecondCornerOfEdge[EdgeIndex] != AbsentCorner)
             {
                 RegisterInterval(RegisteredConditions[static_cast<std::size_t>(DegeneracySubject::NonManifoldEdge)],
-                              Imported.CornerFace(SecondCornerOfEdge[EdgeOrdinal]));
+                              Imported.CornerFace(SecondCornerOfEdge[EdgeIndex]));
             }
         }
     }
@@ -315,10 +315,10 @@ void TopologyConditioning::DeriveOrientation(const TopologyStructure& Imported)
 
     UnorientedFaceCount = 0u;
 
-    for (std::uint32_t FaceOrdinal = 0u; FaceOrdinal < Imported.FaceCount(); ++FaceOrdinal)
+    for (std::uint32_t FaceIndex = 0u; FaceIndex < Imported.FaceCount(); ++FaceIndex)
     {
-        const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceOrdinal);
-        const std::uint32_t CornerSpan  = Imported.FaceCornerCount(FaceOrdinal);
+        const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceIndex);
+        const std::uint32_t CornerSpan  = Imported.FaceCornerCount(FaceIndex);
 
         // 📐 The Newell accumulation gives the face's own perpendicular without assuming planarity, and its
         //    dominant axis names the plane the face projects onto without degenerating.
@@ -352,7 +352,7 @@ void TopologyConditioning::DeriveOrientation(const TopologyStructure& Imported)
         if (CornerRepeated)
         {
             RegisterInterval(RegisteredConditions[static_cast<std::size_t>(DegeneracySubject::RepeatedCorner)],
-                          FaceOrdinal);
+                          FaceIndex);
         }
 
         const double XMagnitude  = std::fabs(NewellX);
@@ -400,23 +400,23 @@ void TopologyConditioning::DeriveOrientation(const TopologyStructure& Imported)
         if (OrientationSignum == 0)
         {
             RegisterInterval(RegisteredConditions[static_cast<std::size_t>(DegeneracySubject::ZeroExtentFace)],
-                          FaceOrdinal);
+                          FaceIndex);
         }
     }
 
     // 📝 Consistency is a second pass, because it compares a face against an adjacency the first pass had not
     //    finished deriving. Two faces are consistent when they traverse their shared edge in opposite directions.
-    for (std::uint32_t CornerOrdinal = 0u; CornerOrdinal < Imported.CornerCount(); ++CornerOrdinal)
+    for (std::uint32_t CornerIndex = 0u; CornerIndex < Imported.CornerCount(); ++CornerIndex)
     {
-        const std::uint32_t Adjacent = AdjacentCornerOfCorner[CornerOrdinal];
+        const std::uint32_t Adjacent = AdjacentCornerOfCorner[CornerIndex];
 
         if (Adjacent == AbsentCorner)
             continue;
 
-        const std::uint32_t FaceOrdinal     = Imported.CornerFace(CornerOrdinal);
+        const std::uint32_t FaceIndex     = Imported.CornerFace(CornerIndex);
         const std::uint32_t AdjacentFace    = Imported.CornerFace(Adjacent);
 
-        const std::uint32_t Opening         = WeldedPositionOfVertex[Imported.CornerVertex(CornerOrdinal)];
+        const std::uint32_t Opening         = WeldedPositionOfVertex[Imported.CornerVertex(CornerIndex)];
         const std::uint32_t AdjacentOpening = WeldedPositionOfVertex[Imported.CornerVertex(Adjacent)];
 
         if (Opening == AdjacentOpening)
@@ -426,7 +426,7 @@ void TopologyConditioning::DeriveOrientation(const TopologyStructure& Imported)
             //    reversing the artist's winding.
             const std::size_t Condition = static_cast<std::size_t>(DegeneracySubject::Unoriented);
 
-            if (RegisterInterval(RegisteredConditions[Condition], FaceOrdinal))
+            if (RegisterInterval(RegisteredConditions[Condition], FaceIndex))
                 ++UnorientedFaceCount;
 
             if (RegisterInterval(RegisteredConditions[Condition], AdjacentFace))
@@ -455,13 +455,13 @@ void TopologyConditioning::DerivePerpendiculars(const TopologyStructure& Importe
     std::vector<double> AccumulatedY(DistinctPositionCount, 0.0);
     std::vector<double> AccumulatedZ(DistinctPositionCount, 0.0);
 
-    for (std::uint32_t FaceOrdinal = 0u; FaceOrdinal < Imported.FaceCount(); ++FaceOrdinal)
+    for (std::uint32_t FaceIndex = 0u; FaceIndex < Imported.FaceCount(); ++FaceIndex)
     {
-        if (FaceRegistered(FaceOrdinal, DegeneracySubject::ZeroExtentFace))
+        if (FaceRegistered(FaceIndex, DegeneracySubject::ZeroExtentFace))
             continue;
 
-        const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceOrdinal);
-        const std::uint32_t CornerSpan  = Imported.FaceCornerCount(FaceOrdinal);
+        const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceIndex);
+        const std::uint32_t CornerSpan  = Imported.FaceCornerCount(FaceIndex);
 
         double NewellX = 0.0;
         double NewellY = 0.0;
@@ -495,11 +495,11 @@ void TopologyConditioning::DerivePerpendiculars(const TopologyStructure& Importe
 
     DerivedPerpendiculars.assign(Positions.size(), SurfaceDirection{});
 
-    for (std::uint32_t VertexOrdinal = 0u; VertexOrdinal < Positions.size(); ++VertexOrdinal)
+    for (std::uint32_t VertexIndex = 0u; VertexIndex < Positions.size(); ++VertexIndex)
     {
-        const std::uint32_t Position = WeldedPositionOfVertex[VertexOrdinal];
+        const std::uint32_t Position = WeldedPositionOfVertex[VertexIndex];
 
-        DerivedPerpendiculars[VertexOrdinal] = Normalise(AccumulatedX[Position],
+        DerivedPerpendiculars[VertexIndex] = Normalise(AccumulatedX[Position],
                                                          AccumulatedY[Position],
                                                          AccumulatedZ[Position]);
     }
@@ -532,13 +532,13 @@ void TopologyConditioning::DeriveTangentBases(const TopologyStructure& Imported)
     std::vector<double> AccumulatedZ(Imported.VertexCount(), 0.0);
     std::vector<double> AccumulatedHandedness(Imported.VertexCount(), 0.0);
 
-    for (std::uint32_t FaceOrdinal = 0u; FaceOrdinal < Imported.FaceCount(); ++FaceOrdinal)
+    for (std::uint32_t FaceIndex = 0u; FaceIndex < Imported.FaceCount(); ++FaceIndex)
     {
-        if (FaceRegistered(FaceOrdinal, DegeneracySubject::ZeroExtentFace))
+        if (FaceRegistered(FaceIndex, DegeneracySubject::ZeroExtentFace))
             continue;
 
-        const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceOrdinal);
-        const std::uint32_t CornerSpan  = Imported.FaceCornerCount(FaceOrdinal);
+        const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceIndex);
+        const std::uint32_t CornerSpan  = Imported.FaceCornerCount(FaceIndex);
 
         for (std::uint32_t Passed = 1u; Passed + 1u < CornerSpan; ++Passed)
         {
@@ -586,18 +586,18 @@ void TopologyConditioning::DeriveTangentBases(const TopologyStructure& Imported)
 
             const std::uint32_t Corners[3] = { AlphaCorner, BetaCorner, GammaCorner };
 
-            for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
+            for (std::uint32_t Index = 0u; Index < 3u; ++Index)
             {
-                const std::uint32_t VertexOrdinal = Imported.CornerVertex(Corners[Ordinal]);
+                const std::uint32_t VertexIndex = Imported.CornerVertex(Corners[Index]);
 
-                AccumulatedX[VertexOrdinal] += TangentX;
-                AccumulatedY[VertexOrdinal] += TangentY;
-                AccumulatedZ[VertexOrdinal] += TangentZ;
+                AccumulatedX[VertexIndex] += TangentX;
+                AccumulatedY[VertexIndex] += TangentY;
+                AccumulatedZ[VertexIndex] += TangentZ;
 
                 // 📐 The handedness is the sign of the across-direction against the perpendicular crossed with
                 //    the tangent. It is accumulated and then taken by sign, so a domain that mirrors across a
                 //    seam records the inversion on the side it happens rather than averaging the two away.
-                const SurfaceDirection& Perpendicular = DerivedPerpendiculars[VertexOrdinal];
+                const SurfaceDirection& Perpendicular = DerivedPerpendiculars[VertexIndex];
 
                 const double CrossX = static_cast<double>(Perpendicular.DirectionY) * TangentZ
                                     - static_cast<double>(Perpendicular.DirectionZ) * TangentY;
@@ -606,25 +606,25 @@ void TopologyConditioning::DeriveTangentBases(const TopologyStructure& Imported)
                 const double CrossZ = static_cast<double>(Perpendicular.DirectionX) * TangentY
                                     - static_cast<double>(Perpendicular.DirectionY) * TangentX;
 
-                AccumulatedHandedness[VertexOrdinal] += CrossX * YX + CrossY * YY + CrossZ * YZ;
+                AccumulatedHandedness[VertexIndex] += CrossX * YX + CrossY * YY + CrossZ * YZ;
             }
         }
     }
 
-    for (std::uint32_t VertexOrdinal = 0u; VertexOrdinal < Imported.VertexCount(); ++VertexOrdinal)
+    for (std::uint32_t VertexIndex = 0u; VertexIndex < Imported.VertexCount(); ++VertexIndex)
     {
-        const SurfaceDirection Tangent = Normalise(AccumulatedX[VertexOrdinal],
-                                                   AccumulatedY[VertexOrdinal],
-                                                   AccumulatedZ[VertexOrdinal]);
+        const SurfaceDirection Tangent = Normalise(AccumulatedX[VertexIndex],
+                                                   AccumulatedY[VertexIndex],
+                                                   AccumulatedZ[VertexIndex]);
 
         const bool Degenerate = Tangent.DirectionX == 0.0f
                              && Tangent.DirectionY == 0.0f
                              && Tangent.DirectionZ == 0.0f;
 
-        DerivedTangentBases[VertexOrdinal].Tangent          = Tangent;
-        DerivedTangentBases[VertexOrdinal].HandednessSignum =
-            AccumulatedHandedness[VertexOrdinal] < 0.0 ? -1.0f : 1.0f;
-        DerivedTangentBases[VertexOrdinal].BasisDeclared    = !Degenerate;
+        DerivedTangentBases[VertexIndex].Tangent          = Tangent;
+        DerivedTangentBases[VertexIndex].HandednessSignum =
+            AccumulatedHandedness[VertexIndex] < 0.0 ? -1.0f : 1.0f;
+        DerivedTangentBases[VertexIndex].BasisDeclared    = !Degenerate;
     }
 }
 
@@ -640,10 +640,10 @@ void TopologyConditioning::DeriveExtents(const TopologyStructure& Imported)
 
     bool WholeDeclared = false;
 
-    for (std::uint32_t FaceOrdinal = 0u; FaceOrdinal < Imported.FaceCount(); ++FaceOrdinal)
+    for (std::uint32_t FaceIndex = 0u; FaceIndex < Imported.FaceCount(); ++FaceIndex)
     {
-        const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceOrdinal);
-        const std::uint32_t CornerSpan  = Imported.FaceCornerCount(FaceOrdinal);
+        const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceIndex);
+        const std::uint32_t CornerSpan  = Imported.FaceCornerCount(FaceIndex);
 
         DocumentPosition Minimum    = Positions[Imported.CornerVertex(FirstCorner)];
         DocumentPosition Maximum = Minimum;
@@ -670,12 +670,12 @@ void TopologyConditioning::DeriveExtents(const TopologyStructure& Imported)
         Maximum.PositionY = std::nextafter(Maximum.PositionY,  HUGE_VAL);
         Maximum.PositionZ = std::nextafter(Maximum.PositionZ,  HUGE_VAL);
 
-        DerivedFaceExtents[FaceOrdinal].Minimum    = Minimum;
-        DerivedFaceExtents[FaceOrdinal].Maximum = Maximum;
+        DerivedFaceExtents[FaceIndex].Minimum    = Minimum;
+        DerivedFaceExtents[FaceIndex].Maximum = Maximum;
 
         if (!WholeDeclared)
         {
-            WholeExtent   = DerivedFaceExtents[FaceOrdinal];
+            WholeExtent   = DerivedFaceExtents[FaceIndex];
             WholeDeclared = true;
             continue;
         }
@@ -730,44 +730,44 @@ Outcome<bool> TopologyConditioning::Condition(const TopologyStructure& Imported)
 //                                                     WHAT IS READ
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<std::uint32_t> TopologyConditioning::WeldedPosition(std::uint32_t VertexOrdinal) const
+Outcome<std::uint32_t> TopologyConditioning::WeldedPosition(std::uint32_t VertexIndex) const
 {
-    if (VertexOrdinal >= WeldedPositionOfVertex.size())
+    if (VertexIndex >= WeldedPositionOfVertex.size())
     {
         return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ContentUnsupported, "no such imported vertex" });
     }
 
-    return Outcome<std::uint32_t>::Result(WeldedPositionOfVertex[VertexOrdinal]);
+    return Outcome<std::uint32_t>::Result(WeldedPositionOfVertex[VertexIndex]);
 }
 
-Outcome<std::uint32_t> TopologyConditioning::AdjacentCorner(std::uint32_t CornerOrdinal) const
+Outcome<std::uint32_t> TopologyConditioning::AdjacentCorner(std::uint32_t CornerIndex) const
 {
-    if (CornerOrdinal >= AdjacentCornerOfCorner.size())
+    if (CornerIndex >= AdjacentCornerOfCorner.size())
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such corner" });
 
-    if (AdjacentCornerOfCorner[CornerOrdinal] == AbsentCorner)
+    if (AdjacentCornerOfCorner[CornerIndex] == AbsentCorner)
     {
         return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ContentUnsupported, "the edge is a boundary or is non-manifold" });
     }
 
-    return Outcome<std::uint32_t>::Result(AdjacentCornerOfCorner[CornerOrdinal]);
+    return Outcome<std::uint32_t>::Result(AdjacentCornerOfCorner[CornerIndex]);
 }
 
-bool TopologyConditioning::FaceRegistered(std::uint32_t FaceOrdinal, DegeneracySubject Condition) const
+bool TopologyConditioning::FaceRegistered(std::uint32_t FaceIndex, DegeneracySubject Condition) const
 {
-    return IntervalRegistered(RegisteredConditions[static_cast<std::size_t>(Condition)], FaceOrdinal);
+    return IntervalRegistered(RegisteredConditions[static_cast<std::size_t>(Condition)], FaceIndex);
 }
 
-bool TopologyConditioning::VertexIsolated(std::uint32_t VertexOrdinal) const
+bool TopologyConditioning::VertexIsolated(std::uint32_t VertexIndex) const
 {
-    if (VertexOrdinal >= WeldedPositionOfVertex.size())
+    if (VertexIndex >= WeldedPositionOfVertex.size())
         return false;
 
     const std::size_t Condition = static_cast<std::size_t>(DegeneracySubject::IsolatedVertex);
 
-    return IntervalRegistered(RegisteredConditions[Condition], WeldedPositionOfVertex[VertexOrdinal]);
+    return IntervalRegistered(RegisteredConditions[Condition], WeldedPositionOfVertex[VertexIndex]);
 }
 
 const std::vector<RegisteredInterval>& TopologyConditioning::Registered(DegeneracySubject Condition) const

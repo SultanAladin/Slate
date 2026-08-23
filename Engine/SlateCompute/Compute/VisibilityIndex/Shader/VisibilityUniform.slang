@@ -45,7 +45,7 @@ namespace Slate
 /// note  🔴 The coefficients are column-major, as `02` declares `ProjectedTransform`. The projection is applied
 ///        as a column-major product below and nowhere else, so the convention is read at one site rather than
 ///        transposed at whichever site last needed it the other way round.
-/// tag   contract
+/// tag   guarantee
 struct VisibilityUniform
 {
     Real32      ComposedCoefficient00 ;   // [-]  - `46`'s Composed, column-major, first column
@@ -86,7 +86,7 @@ struct VisibilityUniform
 /// note  ⚠️ Narrowing an object-space position is safe where narrowing a document one is not. An object extent is
 ///         bounded by the owner and a 32-bit real resolves it far below `38`'s welding tolerance; a document
 ///         position carries the placement as well, and that is what exhausts the width.
-/// tag   contract
+/// tag   guarantee
 struct ObjectPosition
 {
     Real32  PositionX ;   // [mm] - in the owner's own object space
@@ -99,14 +99,14 @@ struct ObjectPosition
 ///        A partition carries 64 to 128 triangles, so the ordinal fits a narrow range and the pair fits the two
 ///        components `08` §2 claims `VisibilityIndex` as. Counting document-wide would exhaust the component on
 ///        a document of a few million triangles and leave nothing for the partition.
-/// tag   contract
+/// tag   guarantee
 struct DrawnTriangle
 {
     Unsigned32  CornerVertex0    ;   // [-] - into the object-space positions
     Unsigned32  CornerVertex1    ;   // [-]
     Unsigned32  CornerVertex2    ;   // [-]
-    Unsigned32  PartitionOrdinal ;   // [-] - document-wide, as `16` §4's first component
-    Unsigned32  TriangleOrdinal  ;   // [-] - within the partition
+    Unsigned32  PartitionIndex ;   // [-] - document-wide, as `16` §4's first component
+    Unsigned32  TriangleIndex  ;   // [-] - within the partition
     Unsigned32  Unoccupied       ;   // [-] - pads the record to an even word count; never read
 };
 
@@ -118,12 +118,12 @@ struct DrawnTriangle
 /// note  🔴 Both ordinals are carried **flat**. They are ordinals and not quantities: interpolating a partition
 ///        ordinal across a triangle produces a fractional ordinal at every pixel but the corners, which resolves
 ///        to whichever partition the rounding reaches and reads as an image speckled with a neighbour's surface.
-/// tag   contract
+/// tag   guarantee
 struct ResolvedCorner
 {
     Real32x4                     ClipPosition      : SV_Position ;   // [-] - the projection's own output
-    nointerpolation  Unsigned32  PartitionOrdinal  : PARTITION    ;   // [-] - document-wide, flat
-    nointerpolation  Unsigned32  TriangleOrdinal   : TRIANGLE     ;   // [-] - within the partition, flat
+    nointerpolation  Unsigned32  PartitionIndex  : PARTITION    ;   // [-] - document-wide, flat
+    nointerpolation  Unsigned32  TriangleIndex   : TRIANGLE     ;   // [-] - within the partition, flat
 };
 
 //------------------------------------------------------------------------------------------------------------------------
