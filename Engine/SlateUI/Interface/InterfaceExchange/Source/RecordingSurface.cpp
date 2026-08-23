@@ -81,12 +81,37 @@ Outcome<bool> RecordingSurface::Adopt(ShellLayer Layer)
     SampledPointer.TravelX     = Sampled.MouseDelta.x;
     SampledPointer.TravelY    = Sampled.MouseDelta.y;
     SampledPointer.WheelY     = Sampled.MouseWheel;
-    SampledPointer.ContactHeld     = ImGui::IsMouseDown(ImGuiMouseButton_Left);
-    SampledPointer.ContactPressed  = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
-    SampledPointer.ContactReleased = ImGui::IsMouseReleased(ImGuiMouseButton_Left);
-    SampledPointer.HeldDuration    = SampledPointer.ContactHeld
-                                   ? static_cast<double>(Sampled.MouseDownDuration[0]) * 1000.0
-                                   : 0.0;
+    SampledPointer.ContactHeld          = ImGui::IsMouseDown(ImGuiMouseButton_Left);
+    SampledPointer.ContactPressed       = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
+    SampledPointer.ContactDoublePressed = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
+    SampledPointer.ContactReleased      = ImGui::IsMouseReleased(ImGuiMouseButton_Left);
+    SampledPointer.HeldDuration         = SampledPointer.ContactHeld
+                                        ? static_cast<double>(Sampled.MouseDownDuration[0]) * 1000.0
+                                        : 0.0;
+
+    SampledText = {};
+
+    for (int Ordinal = 0; Ordinal < Sampled.InputQueueCharacters.Size; ++Ordinal)
+    {
+        const ImWchar Typed = Sampled.InputQueueCharacters[Ordinal];
+
+        if (Typed < 0x20 || Typed > 0x7E ||
+            SampledText.IntakeCount + 1u >= TextInputCondition::IntakeCeiling)
+            continue;
+
+        SampledText.Intake[SampledText.IntakeCount++] = static_cast<char>(Typed);
+    }
+
+    SampledText.Intake[SampledText.IntakeCount] = '\0';
+    SampledText.AcceptPressed    = ImGui::IsKeyPressed(ImGuiKey_Enter, false)
+                                || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter, false);
+    SampledText.CancelPressed    = ImGui::IsKeyPressed(ImGuiKey_Escape, false);
+    SampledText.BackspacePressed = ImGui::IsKeyPressed(ImGuiKey_Backspace, true);
+    SampledText.DeletePressed    = ImGui::IsKeyPressed(ImGuiKey_Delete, true);
+    SampledText.HomePressed      = ImGui::IsKeyPressed(ImGuiKey_Home, true);
+    SampledText.EndPressed       = ImGui::IsKeyPressed(ImGuiKey_End, true);
+    SampledText.LeftPressed      = ImGui::IsKeyPressed(ImGuiKey_LeftArrow, true);
+    SampledText.RightPressed     = ImGui::IsKeyPressed(ImGuiKey_RightArrow, true);
 
     SampledDisplay.Width  = Sampled.DisplaySize.x;
     SampledDisplay.Height = Sampled.DisplaySize.y;
@@ -155,6 +180,7 @@ void RecordingSurface::Reset()
     //    this surface's reckoning of the depth is dropped here.
     CommandSlot    = nullptr;
     SampledPointer = {};
+    SampledText    = {};
     SampledDisplay = {};
     ConfineDepth   = 0u;
 }
@@ -162,6 +188,11 @@ void RecordingSurface::Reset()
 const PointerCondition& RecordingSurface::Pointer() const
 {
     return SampledPointer;
+}
+
+const TextInputCondition& RecordingSurface::TextInput() const
+{
+    return SampledText;
 }
 
 const DisplayCondition& RecordingSurface::Display() const

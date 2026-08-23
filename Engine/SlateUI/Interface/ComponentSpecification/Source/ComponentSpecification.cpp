@@ -1,9 +1,12 @@
 //============================================================================================================================================
 //                                                         COMPONENTSPECIFICATION.CPP
 //============================================================================================================================================
-// 🧩 The eight controls, arranged and recorded from the sheet's own figures, arbitrated against the ledger's one grab.
+// 🧩 The shared controls, arranged and recorded from the sheet's own figures, arbitrated against the ledger's one grab.
 
 #include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
+
+#include <cstdio>
+#include <cstring>
 
 namespace Slate
 {
@@ -269,8 +272,12 @@ void ComponentSpecification::Reset()
     Appearance         = nullptr;
     Sampled            = {};
     DeferredCount      = 0u;
-    Current           = RedrawMark::Quiet;
+    Current            = RedrawMark::Quiet;
     ContactHeldByPanel = false;
+    EditingTarget      = {};
+    EditingRun[0]      = '\0';
+    EditingCursor      = 0u;
+    EditingInvalid     = false;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -520,6 +527,218 @@ std::uint32_t ComponentSpecification::OptionUnder(ControlIdentity Target, const 
 }
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                    EDITABLE TEXT
+//------------------------------------------------------------------------------------------------------------------------
+
+void ComponentSpecification::BeginEditing(ControlIdentity Target, const char* Standing)
+{
+    if (Ledger == nullptr || !Ledger->Disclose(Target))
+        return;
+
+    EditingTarget  = Target;
+    EditingCursor  = 0u;
+    EditingInvalid = false;
+
+    if (Standing != nullptr)
+    {
+        while (EditingCursor + 1u < EditableRunCeiling && Standing[EditingCursor] != '\0')
+        {
+            EditingRun[EditingCursor] = Standing[EditingCursor];
+            ++EditingCursor;
+        }
+    }
+
+    EditingRun[EditingCursor] = '\0';
+}
+
+bool ComponentSpecification::Editing(ControlIdentity Target) const
+{
+    return Ledger != nullptr && EditingTarget == Target && Ledger->Disclosed(Target);
+}
+
+void ComponentSpecification::FinishEditing()
+{
+    if (Ledger != nullptr && EditingTarget.IdentityDeclared())
+        Ledger->Withdraw();
+
+    EditingTarget  = {};
+    EditingRun[0]  = '\0';
+    EditingCursor  = 0u;
+    EditingInvalid = false;
+}
+
+void ComponentSpecification::AdvanceEditing()
+{
+    if (Surface == nullptr)
+        return;
+
+    const TextInputCondition& Text = Surface->TextInput();
+    std::uint32_t Length = 0u;
+
+    while (Length + 1u < EditableRunCeiling && EditingRun[Length] != '\0')
+        ++Length;
+
+    if (Text.HomePressed)
+        EditingCursor = 0u;
+    else if (Text.EndPressed)
+        EditingCursor = Length;
+    else if (Text.LeftPressed && EditingCursor > 0u)
+        --EditingCursor;
+    else if (Text.RightPressed && EditingCursor < Length)
+        ++EditingCursor;
+
+    if (Text.BackspacePressed && EditingCursor > 0u)
+    {
+        std::memmove(EditingRun + EditingCursor - 1u, EditingRun + EditingCursor,
+                     static_cast<std::size_t>(Length - EditingCursor + 1u));
+        --EditingCursor;
+        --Length;
+        EditingInvalid = false;
+    }
+
+    if (Text.DeletePressed && EditingCursor < Length)
+    {
+        std::memmove(EditingRun + EditingCursor, EditingRun + EditingCursor + 1u,
+                     static_cast<std::size_t>(Length - EditingCursor));
+        --Length;
+        EditingInvalid = false;
+    }
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < Text.IntakeCount; ++Ordinal)
+    {
+        if (Length + 1u >= EditableRunCeiling)
+            break;
+
+        std::memmove(EditingRun + EditingCursor + 1u, EditingRun + EditingCursor,
+                     static_cast<std::size_t>(Length - EditingCursor + 1u));
+        EditingRun[EditingCursor++] = Text.Intake[Ordinal];
+        ++Length;
+        EditingInvalid = false;
+    }
+}
+
+void ComponentSpecification::RecordEditableRun(const PlaneExtent& Extent,
+                                                const char* Placeholder, bool Invalid)
+{
+    if (Surface == nullptr || Appearance == nullptr)
+        return;
+
+    const ControlColour& Colour = Appearance->Control;
+    const ControlMetric& Measure = Appearance->ControlMeasure;
+    const float Radius = Extent.Height() * 0.5f;
+
+    Surface->Ground(Extent, Colour.FieldGround, Radius, CornerAll);
+    Surface->Edge(Extent, Invalid ? Covering(0xE5484Du) : Colour.CardEdge,
+                  Measure.CardEdgeWeight, Radius, CornerAll);
+
+    const char* Shown = EditingRun[0] != '\0' ? EditingRun : Placeholder;
+    const ThemeToken Ink = EditingRun[0] != '\0' ? Colour.FieldColour : Colour.LabelQuiet;
+    const float Lead = Extent.MinimumX + 10.0f;
+    const float Ceiling = Extent.MaximumX - 10.0f;
+
+    Surface->TextRunTruncated(Lead, CentredY(Extent, Measure.ReadoutText), Ceiling,
+                              Ink, Shown, Measure.ReadoutText, true);
+
+    char PrefixRun[EditableRunCeiling] = {};
+    const std::uint32_t PrefixCount = (EditingCursor < EditableRunCeiling - 1u)
+                                    ? EditingCursor : EditableRunCeiling - 1u;
+    std::memcpy(PrefixRun, EditingRun, PrefixCount);
+    PrefixRun[PrefixCount] = '\0';
+
+    const float Prefix = Surface->MeasureRun(PrefixRun, Measure.ReadoutText, 0.0f);
+    const float CaretX = Held(Lead + Prefix, Lead, Ceiling);
+
+    Surface->Ground(Spanning(CaretX, Extent.MinimumY + 5.0f, 1.0f, Extent.Height() - 10.0f),
+                    Colour.FieldColour, 0.0f, CornerNone);
+}
+
+EditableTextVerdict ComponentSpecification::EditableText(ControlIdentity Target,
+                                                           const PlaneExtent& Extent,
+                                                           const EditableTextDeclaration& Declared,
+                                                           char* Run, std::uint32_t RunCeiling)
+{
+    EditableTextVerdict Verdict;
+
+    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || Run == nullptr ||
+        RunCeiling == 0u || !Ledger->Resolves(Target))
+        return Verdict;
+
+    if (Sampled.ContactPressed && Extent.Encloses(Sampled.PositionX, Sampled.PositionY))
+        BeginEditing(Target, Run);
+
+    if (!Editing(Target))
+    {
+        const ControlColour& Colour = Appearance->Control;
+        const ControlMetric& Measure = Appearance->ControlMeasure;
+        const float Radius = Extent.Height() * 0.5f;
+        const char* Shown = Run[0] != '\0' ? Run : Declared.Placeholder;
+        const ThemeToken Ink = Run[0] != '\0' ? Colour.FieldColour : Colour.LabelQuiet;
+
+        Surface->Ground(Extent, Colour.FieldGround, Radius, CornerAll);
+        Surface->Edge(Extent, Colour.CardEdge, Measure.CardEdgeWeight, Radius, CornerAll);
+        Surface->TextRunTruncated(Extent.MinimumX + 10.0f,
+                                  CentredY(Extent, Measure.ReadoutText),
+                                  Extent.MaximumX - 10.0f, Ink, Shown,
+                                  Measure.ReadoutText, true);
+        Ledger->DeclareHovered(Target, Extent.Encloses(Sampled.PositionX, Sampled.PositionY),
+                               HoverDuration);
+        return Verdict;
+    }
+
+    AdvanceEditing();
+    const TextInputCondition& Text = Surface->TextInput();
+
+    if (Text.CancelPressed)
+    {
+        FinishEditing();
+        Verdict.Cancelled = true;
+        Verdict.Mark = RedrawMark::Rerecord;
+        return Verdict;
+    }
+
+    if (Text.AcceptPressed)
+    {
+        char AcceptedRun[EditableRunCeiling] = {};
+        const char* Accepted = EditingRun;
+
+        if (!Declared.EmptyAccepted && EditingRun[0] == '\0')
+        {
+            EditingInvalid = true;
+        }
+        else if (Declared.ExpressionInput)
+        {
+            const Outcome<double> Resolved = ResolveMagnitudeExpression(EditingRun);
+
+            if (!Resolved.Resolved)
+            {
+                EditingInvalid = true;
+            }
+            else
+            {
+                std::snprintf(AcceptedRun, sizeof AcceptedRun, "%.15g", Resolved.Resolve());
+                Accepted = AcceptedRun;
+            }
+        }
+
+        if (!EditingInvalid)
+        {
+            std::snprintf(Run, RunCeiling, "%s", Accepted);
+            FinishEditing();
+            Verdict.Accepted = true;
+            Verdict.Mark = RedrawMark::Rerecord;
+            return Verdict;
+        }
+    }
+
+    RecordEditableRun(Extent, Declared.Placeholder, EditingInvalid);
+    Verdict.Editing = true;
+    Verdict.Invalid = EditingInvalid;
+    Verdict.Mark = RedrawMark::Rerecord;
+    FoldMark(RedrawMark::Rerecord);
+    return Verdict;
+}
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                    THE MAGNITUDE ROW
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -591,12 +810,58 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Target, cons
     const float TravelRight  = Track.MaximumX  - Radius;
     const float TravelWidth  = (TravelRight > TravelLeft) ? (TravelRight - TravelLeft) : 0.0f;
 
-    const bool OverTrack = Track.Encloses(Sampled.PositionX, Sampled.PositionY);
+    const bool OverTrack   = Track.Encloses(Sampled.PositionX, Sampled.PositionY);
+    const bool OverReadout = Readout.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Ledger->DeclareHovered(Target, OverTrack, HoverDuration))
+    if (Sampled.ContactDoublePressed && OverReadout)
+    {
+        char Standing[24] = {};
+        DecimalRun(Standing, 24u, Coordinate, Declared.Decimals);
+        BeginEditing(Target, Standing);
+    }
+
+    bool MagnitudeEditing = Editing(Target);
+
+    if (MagnitudeEditing)
+    {
+        AdvanceEditing();
+        const TextInputCondition& Text = Surface->TextInput();
+
+        if (Text.CancelPressed)
+        {
+            FinishEditing();
+            MagnitudeEditing = false;
+        }
+        else if (Text.AcceptPressed)
+        {
+            const Outcome<double> Resolved = ResolveMagnitudeExpression(EditingRun);
+
+            if (!Resolved.Resolved)
+            {
+                EditingInvalid = true;
+            }
+            else
+            {
+                const double Incoming = Resolved.Resolve();
+                const double Bounded = (Incoming < Declared.Minimum) ? Declared.Minimum
+                                     : (Incoming > Declared.Maximum) ? Declared.Maximum : Incoming;
+
+                if (Bounded != Coordinate)
+                {
+                    Coordinate = Bounded;
+                    Reported.ReadingAltered = true;
+                }
+
+                FinishEditing();
+                MagnitudeEditing = false;
+            }
+        }
+    }
+
+    if (Ledger->DeclareHovered(Target, OverTrack || OverReadout, HoverDuration))
         FoldMark(RedrawMark::Recolour);
 
-    if (Sampled.ContactPressed && OverTrack)
+    if (!MagnitudeEditing && Sampled.ContactPressed && OverTrack)
     {
         if (Ledger->Grab(Target, ControlPart::Thumb))
         {
@@ -645,9 +910,19 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Target, cons
     const float ValueSpan  = UnitCell.MinimumX - Readout.MinimumX;
     const float ReadingRun = Surface->MeasureRun(Reading, Measure.ReadoutText, Measure.ReadoutTracking);
 
-    Surface->TextRun(ValueX + (ValueSpan - ReadingRun) * 0.5f,
-                     CentredY(Readout, Measure.ReadoutText),
-                     Colour.FieldColour, Reading, Measure.ReadoutText, Measure.ReadoutTracking, true);
+    if (MagnitudeEditing)
+    {
+        const PlaneExtent ValueCell = { Readout.MinimumX, Readout.MinimumY,
+                                        UnitCell.MinimumX, Readout.MaximumY };
+        RecordEditableRun(ValueCell, "Value", EditingInvalid);
+    }
+    else
+    {
+        Surface->TextRun(ValueX + (ValueSpan - ReadingRun) * 0.5f,
+                         CentredY(Readout, Measure.ReadoutText),
+                         Colour.FieldColour, Reading, Measure.ReadoutText,
+                         Measure.ReadoutTracking, true);
+    }
 
     const float UnitRun = Surface->MeasureRun(Declared.UnitGlyph, Measure.UnitText, 0.0f);
 
@@ -671,8 +946,8 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Target, cons
     Surface->Edge(Track, Colour.TrackEdge, Measure.CardEdgeWeight, TrackRadius, CornerAll);
     Surface->Medallion(Division, Track.MinimumY + Track.Height() * 0.5f, Radius, Colour.ThumbGround);
 
-    Reported.ContactTaken = Ledger->Holding(Target);
-    Reported.Mark         = Current;
+    Reported.ContactTaken = Ledger->Holding(Target) || MagnitudeEditing;
+    Reported.Mark = MagnitudeEditing ? Dearer(Current, RedrawMark::Rerecord) : Current;
 
     return Reported;
 }

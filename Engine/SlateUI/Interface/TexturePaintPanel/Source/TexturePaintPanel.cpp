@@ -874,7 +874,7 @@ Outcome<bool> TexturePaintPanel::Construct(InteractionIndex& Interaction,
 
     ControlIdentity* const Every[] =
     {
-        &HeaderUndo, &HeaderRedo, &HeaderExpand, &HeaderAdd, &SoloChip,
+        &HeaderAdd,
         &ToolFolder, &ToolMask, &ToolCollapse, &SearchField,
         &BlendField, &OpacityRow,
         &BarButtons[0],  &BarButtons[1],  &BarButtons[2],  &BarButtons[3],
@@ -1256,19 +1256,11 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
 
     const float Pad = Scaled.PanePad;
 
-    // ① The header band. 🔴 It stood at the full 46 px pane-header height to carry a
-    //    second "LAYERS" title and four buttons; with the title withdrawn as redundant
-    //    and the buttons moved to the action bar, only the count and solo chips remain
-    //    and the band is sized to them.
-    const PlaneExtent Header = Spanning(Extent.MinimumX, Extent.MinimumY,
-                                        Extent.Width(), Scaled.LayerPillY + 12.0f);
-
-    RecordStackHeader(Header, Applied, RowCount);
-
-    // ② The reference's tools row: the search pill, the separator and the three tools.
+    // ① The tools begin directly beneath the editor's leaf header. The former count band repeated
+    //    chrome the leaf already owns and spent a whole row on an unexplained layer/mask tally.
     const float ToolY = Scaled.LayerToolHeight;
     const float ToolBand = ToolY + Scaled.LayerFoldPad * 2.0f;
-    const PlaneExtent Tools = Spanning(Extent.MinimumX, Header.MaximumY,
+    const PlaneExtent Tools = Spanning(Extent.MinimumX, Extent.MinimumY,
                                        Extent.Width(), ToolBand);
 
     RecordStackTools(Tools, Applied);
@@ -1474,77 +1466,6 @@ float TexturePaintPanel::EnclosureFraction(const TexturePaintContext& Applied,
     }
 
     return Reach;
-}
-
-void TexturePaintPanel::RecordStackHeader(const PlaneExtent& Header, TexturePaintContext& Applied,
-                                          std::uint32_t RowCount)
-{
-    // 🔴 THIS HEADER WAS REDUNDANT. The panel chrome already names the leaf "Layer
-    //    Stack" one band above; this drew a SECOND title — "L A Y E R S" at 1.4em
-    //    letter-spacing — that said the same thing again, and spent a whole 46 px
-    //    band doing it. It also carried undo and redo, which were hardcoded to the
-    //    disabled pose and did nothing at all, and an expand toggle whose wide
-    //    columns the row layout no longer uses.
-    //
-    //    What remains is the count and the solo chip: the two things the band says
-    //    that nothing else does. The Add action moves to the bottom action bar,
-    //    beside the other structural actions it belongs with.
-    static_cast<void>(Applied);
-
-    Surface->Ground(Header, Tinted.MenuLower, 0.0f, CornerNone);
-    Surface->Ground(Spanning(Header.MinimumX, Header.MaximumY - 1.0f, Header.Width(), 1.0f),
-                    Tinted.Hairline, 0.0f, CornerNone);
-
-    const float Pad = Scaled.HeaderPadX;
-
-    // 📐 The count chip: "N · Mm" — the reference's `count()+' · '+maskCount()+'m'`.
-    char Counted[24] = {};
-    std::uint32_t Masks = 0u;
-
-    for (std::uint32_t Ordinal = 0u; Ordinal < TextureLayerCeiling; ++Ordinal)
-    {
-        if (Applied.MaskAttached[Ordinal])
-            ++Masks;
-    }
-
-    std::snprintf(Counted, sizeof(Counted), "%u \u00B7 %um", RowCount, Masks);
-
-    const float ChipRun = Scaled.RunFiner;
-    const float ChipSpan = Surface->MeasureRun(Counted, ChipRun, 0.0f) + 18.0f;
-    const float ChipY = Header.MinimumY + (Header.Height() - Scaled.LayerPillY) * 0.5f;
-
-    const PlaneExtent CountChip = Spanning(Header.MinimumX + Pad, ChipY,
-                                           ChipSpan, Scaled.LayerPillY);
-
-    Surface->Ground(CountChip, Faded(Covering(0xFFFFFFu), 0.06f),
-                    CountChip.Height() * 0.5f, CornerAll);
-    Surface->Edge(CountChip, Tinted.Hairline, 1.0f, CountChip.Height() * 0.5f, CornerAll);
-    Surface->TextRun(CountChip.MinimumX + 9.0f,
-                     CountChip.MinimumY + (CountChip.Height() - ChipRun) * 0.5f,
-                     Tinted.Muted, Counted, ChipRun, 0.0f, true);
-
-    // 📐 The SOLO chip, standing only while a row is solo'd — the reference's `body.soloing .solo`.
-    if (Applied.SoloTaken < TextureLayerCeiling)
-    {
-        const char* SoloRun = "SOLO";
-        const float SoloSpan = Surface->MeasureRun(SoloRun, ChipRun, 1.0f) + 18.0f;
-        const PlaneExtent SoloPill = Spanning(CountChip.MaximumX + Pad, ChipY,
-                                              SoloSpan, Scaled.LayerPillY);
-
-        Surface->Ground(SoloPill, Covering(0xFFD24Au), SoloPill.Height() * 0.5f, CornerAll);
-
-        const bool OnSolo = SoloPill.Encloses(Sampled.PositionX, Sampled.PositionY);
-
-        if (Sampled.ContactPressed && OnSolo && !Ledger->AnyDisclosed())
-            Ledger->Grab(SoloChip, ControlPart::Body);
-
-        if (OnSolo && Ledger->Released(SoloChip))
-            Applied.SoloTaken = 0xFFFFFFFFu;
-
-        Surface->TextRun(SoloPill.MinimumX + 9.0f,
-                         SoloPill.MinimumY + (SoloPill.Height() - ChipRun) * 0.5f,
-                         Covering(0x000000u), SoloRun, ChipRun, 1.0f, true);
-    }
 }
 
 void TexturePaintPanel::RecordStackTools(const PlaneExtent& Tools, TexturePaintContext& Applied)
@@ -2133,23 +2054,16 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
         }
     }
 
-    // 📐 The mask entry's own dotted colour tag — the reference's `.entry .tag.dot` on the attached
-    //    entry, in the layer's colour, recorded above the ground so it always stands.
-    // 📐 The reference's `.tag.dot`, and the ONLY place it belongs:
-    //        repeating-linear-gradient(180deg, var(--c) 0 3px, transparent 3px 7px)
-    //    — a 7 px period carrying 3 px of colour, the whole rail at 0.85 opacity.
-    //    The figures are the sheet's, not retuned by eye.
-    const float DotPeriod = Scaled.LayerTagDotStep;
-    const float DotLength = Scaled.LayerTagDotOn;
-
-    for (float Y = Row.MinimumY; Y < Row.MinimumY + Row.Height(); Y += DotPeriod)
+    // 📐 The mask entry's colour rail shares the outline's rhythm and one-pixel cross-axis weight.
+    //    Its 1 × 2 px marks remain vertical without appearing heavier than the 2 × 1 px border marks.
+    for (float Y = Row.MinimumY; Y < Row.MinimumY + Row.Height(); Y += DashStep)
     {
-        const float Reach = std::min(DotLength, Row.MinimumY + Row.Height() - Y);
+        const float Reach = std::min(DashOn, Row.MinimumY + Row.Height() - Y);
 
         if (Reach <= 0.0f)
             break;
 
-        Surface->Ground(Spanning(Row.MinimumX, Y, Scaled.LayerTagX, Reach),
+        Surface->Ground(Spanning(Row.MinimumX, Y, DashWeight, Reach),
                         Faded(Owner, Absent ? 0.3f : 0.85f), 0.0f, CornerNone);
     }
 
@@ -2253,9 +2167,11 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
     const float NamingTop = Row.MinimumY + (Row.Height() * 0.5f - NamingRun * 1.3f) * 0.5f;
     const float NamingCeiling = Details.MinimumX - Scaled.PanePad;
 
-    Surface->TextRunCapitalised(MetaLead, NamingTop,
-                                Faded(Taken ? Tinted.Primary : Covering(0x9A9A9Au), Coverage),
-                                "Mask", NamingRun, 1.1f, true);
+    // 📝 The mask is an entry name, not an acronym. Natural title case and ordinary tracking keep it
+    //    legible beside the compact uppercase capability chips.
+    Surface->TextRun(MetaLead, NamingTop,
+                     Faded(Taken ? Tinted.Primary : Covering(0x9A9A9Au), Coverage),
+                     "Mask", NamingRun, 0.0f, true);
 
     const char* Source = Current.Source[0] != '\0'
                        ? Current.Source

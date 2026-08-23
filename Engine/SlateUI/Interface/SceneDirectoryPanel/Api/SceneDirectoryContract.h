@@ -114,24 +114,11 @@ struct ShellMetric
     float  LayerBadgeY     =  15.0f;   // [px] - the w-[15px] badge on the thumb's corner
     float  LayerChipY      =  18.0f;   // [px] - h-[18px], one chip on a row
     float  LayerTagX       =   3.0f;   // [px] - the w-[3px] colour tag on the entry's edge
-    // 📐 The attached mask entry's dotted rail — LayerstackV1.html `.tag.dot`:
-    //        repeating-linear-gradient(180deg, var(--c) 0 3px, transparent 3px 7px)
-    //    🔴 These were raw literals at the two call sites. Every OTHER length here is
-    //       multiplied by the display factor in ScaleShellLengths, so at any scale but
-    //       1.0 the rail grew while its dots kept their 1.0 rhythm — the dotting drifted
-    //       out of step with the row it marks, which is why it still looked wrong on a
-    //       scaled display while a 1.0 harness render measured correct.
-    float  LayerTagDotOn   =   3.0f;   // [px] - colour carried by each dot
-    float  LayerTagDotStep =   7.0f;   // [px] - the gradient's period
-    // 📐 The attached mask's OUTLINE dash — its elbow and its four border strokes.
-    //    🔴 These first reused the rail's 3 on / 7 off. That figure is right for a
-    //       3 px-wide vertical RAIL, where the eye reads a column of marks, but as an
-    //       outline it is a sparse row of stubby blocks: over a 600 px border it draws
-    //       about sixty widely spaced dashes and reads as broken, not as dashed. An
-    //       outline wants a finer, tighter beat than a rail does, so it gets its own
-    //       pair rather than being forced to share.
-    float  LayerDashOn     =   2.0f;   // [px] - one dash of the mask outline
-    float  LayerDashStep   =   4.0f;   // [px] - its period
+    // 📐 One figure serves the attached mask entry's vertical rail, connector elbow and outline.
+    //    Horizontal marks are 2 × 1 px and vertical marks are 1 × 2 px: their axes differ while their
+    //    cross-axis weight and 2 px on / 2 px off rhythm remain identical.
+    float  LayerDashOn     =   2.0f;   // [px] - length of every mask-entry dash
+    float  LayerDashStep   =   4.0f;   // [px] - period of every mask-entry dash
     float  LayerKidsX      =  15.0f;   // [px] - the folder children's margin-left
     float  LayerMaskIndent =  26.0f;   // [px] - padding-left of the attached mask row
     float  LayerFootCrumb  =  18.0f;   // [px] - the footer's crumb line

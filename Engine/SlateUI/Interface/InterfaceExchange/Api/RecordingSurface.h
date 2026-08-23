@@ -87,9 +87,29 @@ struct PointerCondition
     float   TravelY    = 0.0f;    // [px]
     float   WheelY     = 0.0f;    // [-]  - notches; positive is away from the artist
     bool    ContactHeld     = false;   // [-]  - the primary contact is down now
-    bool    ContactPressed  = false;   // [-]  - it went down during this tick
-    bool    ContactReleased = false;   // [-]  - it came up during this tick
-    double  HeldDuration    = 0.0;     // [ms] - how long it has been down; zero while it is not
+    bool    ContactPressed       = false;   // [-]  - it went down during this tick
+    bool    ContactDoublePressed = false;   // [-]  - the second press of a double contact arrived
+    bool    ContactReleased      = false;   // [-]  - it came up during this tick
+    double  HeldDuration         = 0.0;     // [ms] - how long it has been down; zero while it is not
+};
+
+/// 🧩 Text and editing-key arrivals sampled with the pointer for one interface tick.
+/// note  Printable ASCII is carried because the standing font surface does not yet provide shaped IME runs.
+/// tag   contract, nonallocating, nonthrowing
+struct TextInputCondition
+{
+    static constexpr std::uint32_t IntakeCeiling = 32u;
+
+    char          Intake[IntakeCeiling] = {};   // [-] - printable characters, terminated
+    std::uint32_t IntakeCount            = 0u;  // [-] - bytes preceding the terminator
+    bool          AcceptPressed          = false;   // [-] - Enter
+    bool          CancelPressed          = false;   // [-] - Escape
+    bool          BackspacePressed       = false;   // [-] - remove preceding character
+    bool          DeletePressed          = false;   // [-] - remove following character
+    bool          HomePressed            = false;   // [-] - move to the run's leading edge
+    bool          EndPressed             = false;   // [-] - move to the run's trailing edge
+    bool          LeftPressed            = false;   // [-] - move one character toward the leading edge
+    bool          RightPressed           = false;   // [-] - move one character toward the trailing edge
 };
 
 /// 🧩 What the display reported for this tick.
@@ -248,6 +268,11 @@ public:
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     const PointerCondition& Pointer() const;
+
+    /// 🧩 What text and editing keys arrived during this tick.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    const TextInputCondition& TextInput() const;
 
     /// 🧩 What the display reported this tick.
     /// cost  ✔️
@@ -485,6 +510,7 @@ private:
     //    only symptom a panel that silently failed to appear.
     void*             CommandSlot   = nullptr;   // [-] - opaque; the ImGui spelling stays in the source file
     PointerCondition  SampledPointer = {};       // [-] - sampled once, at Adopt
+    TextInputCondition SampledText    = {};       // [-] - sampled once, at Adopt
     DisplayCondition  SampledDisplay = {};       // [-] - sampled once, at Adopt
     float             TypographyScale = 1.0f;    // [-] - shared text scale
     float             CornerScale = 1.0f;        // [-] - shared corner scale

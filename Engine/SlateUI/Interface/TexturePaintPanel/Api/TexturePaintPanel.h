@@ -302,8 +302,6 @@ private:
 
     void RecordStackPage(const PlaneExtent& Extent, TexturePaintContext& Applied,
                          const TextureLayerRow* Rows, std::uint32_t RowCount);
-    void RecordStackHeader(const PlaneExtent& Header, TexturePaintContext& Applied,
-                           std::uint32_t RowCount);
     void RecordStackTools(const PlaneExtent& Tools, TexturePaintContext& Applied);
     void RecordStackRow(const PlaneExtent& Row, TexturePaintContext& Applied,
                         const TextureLayerRow* Rows, std::uint32_t RowCount,
@@ -424,11 +422,7 @@ private:
 
     PointerCondition            Sampled = {};            // [-] - this tick's contact
 
-    ControlIdentity HeaderUndo    = {};
-    ControlIdentity HeaderRedo    = {};
-    ControlIdentity HeaderExpand  = {};
     ControlIdentity HeaderAdd     = {};
-    ControlIdentity SoloChip      = {};
     ControlIdentity ToolFolder    = {};
     ControlIdentity ToolMask      = {};
     ControlIdentity ToolCollapse  = {};

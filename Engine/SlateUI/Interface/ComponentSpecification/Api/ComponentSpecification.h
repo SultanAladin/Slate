@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                          COMPONENTSPECIFICATION.H
 //============================================================================================================================================
-// 🧩 The eight declared controls — one contact arbitrated across them, one appearance read, and not one datum owned.
+// 🧩 The shared declared controls — one contact arbitrated across them, one appearance read, and not one datum owned.
 
 #pragma once
 
@@ -60,6 +60,26 @@ struct SelectionDeclaration
 /// note  📐 The domain is stated rather than assumed. The sheet declares 0 … 255 for all three of its rows,
 ///        but a percentage that ran to 255 would be a defect the sheet cannot report and a caller can.
 /// tag   contract, nonallocating, nonthrowing
+/// 🧩 One reusable single-line editable run.
+/// tag   contract, nonallocating, nonthrowing
+struct EditableTextDeclaration
+{
+    const char* Placeholder     = "";    // [-] - shown only while the accepted run is empty
+    bool        EmptyAccepted   = true;  // [-] - whether Enter may accept an empty run
+    bool        ExpressionInput = false; // [-] - arithmetic grammar instead of unrestricted text
+};
+
+/// 🧩 What one editable field decided during this tick.
+/// tag   contract, nonallocating, nonthrowing
+struct EditableTextVerdict
+{
+    bool        Accepted = false;             // [-] - the caller-owned run was replaced
+    bool        Cancelled = false;            // [-] - the working run was discarded
+    bool        Editing = false;              // [-] - this identity owns the active editor
+    bool        Invalid = false;              // [-] - acceptance was refused by validation
+    RedrawMark  Mark = RedrawMark::Quiet;     // [-] - recording cost requested by the field
+};
+
 struct MagnitudeDeclaration
 {
     const char*  Caption      = "";      // [-] - the leading label
@@ -181,13 +201,13 @@ struct TooltipDeclaration
 //                                                          THE PANEL
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Records the eight controls `References/Controls.html` declares, and arbitrates one contact across them.
+/// 🧩 Records the shared controls `References/Controls.html` declares, and arbitrates one contact across them.
 /// note  🔴 Stores **no** artist-visible datum. Every value arrives by reference and is written back through
 ///        that same reference in the same call, so `14` §1's "a panel presents state owned elsewhere and
 ///        stores none of it" is a property of the signatures rather than a discipline. What is stored —
 ///        which control is grabbed, which menu stands open, what is fading — lives in `InteractionIndex`,
 ///        which is `14` §4.1's sanctioned home for it.
-/// note  🔴 Two phases, never interleaved. `Advance` arbitrates and records nothing; the eight recording
+/// note  🔴 Two phases, never interleaved. `Advance` arbitrates and records nothing; the shared recording
 ///        methods draw and mutate no interaction. The separation is what lets every popup be recorded in a
 ///        second sweep after every row, which is how the sheet's z-20 and z-50 stacking is reproduced
 ///        without a layering mechanism nobody asked for.
@@ -252,7 +272,7 @@ public:
     void RecordCard(const CardArrangement& Arranged);
 
     //--------------------------------------------------------------------------------------------------------
-    //                                            THE EIGHT CONTROLS
+    //                                            THE SHARED CONTROLS
     //--------------------------------------------------------------------------------------------------------
 
     /// 🧩 The selection field — a black field, a chevron cell, and a menu that discloses beneath it.
@@ -266,6 +286,14 @@ public:
     /// tag   api, nonthrowing
     ControlVerdict SelectionField(ControlIdentity Target, const PlaneExtent& Row,
                                   const SelectionDeclaration& Declared, std::uint32_t& TakenOrdinal);
+
+    /// 🧩 Records one reusable single-line editor and writes the caller's run only when accepted.
+    /// note  Contact begins editing; Enter accepts and Escape restores the standing run.
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    EditableTextVerdict EditableText(ControlIdentity Target, const PlaneExtent& Extent,
+                                     const EditableTextDeclaration& Declared,
+                                     char* Run, std::uint32_t RunCeiling);
 
     /// 🧩 One magnitude row — a numeric readout, a unit cell, and a slider spanning the declared domain.
     /// in    Coordinate         [-]  the presented magnitude; written while the thumb or track is held
@@ -433,6 +461,14 @@ private:
     /// 🧩 Which option the pointer stands over, or OptionCount when it stands over none.
     std::uint32_t OptionUnder(ControlIdentity Target, const PlaneExtent& Field, std::uint32_t OptionCount) const;
 
+    static constexpr std::uint32_t EditableRunCeiling = 128u;
+
+    void BeginEditing(ControlIdentity Target, const char* Standing);
+    void AdvanceEditing();
+    bool Editing(ControlIdentity Target) const;
+    void FinishEditing();
+    void RecordEditableRun(const PlaneExtent& Extent, const char* Placeholder, bool Invalid);
+
     InteractionIndex*               Ledger                          = nullptr;   // [-] - borrowed
     RecordingSurface*               Surface                         = nullptr;   // [-] - borrowed
     const ThemeProfile*  Appearance                      = nullptr;   // [-] - borrowed
@@ -441,7 +477,21 @@ private:
     std::uint32_t                   DeferredCount                   = 0u;        // [-]
     RedrawMark                      Current                        = RedrawMark::Quiet;   // [-]
     bool                            ContactHeldByPanel              = false;     // [-]
+    ControlIdentity                 EditingTarget                   = {};        // [-] - one active field
+    char                            EditingRun[EditableRunCeiling]  = {};        // [-] - interaction copy
+    std::uint32_t                   EditingCursor                   = 0u;         // [-] - byte insertion point
+    bool                            EditingInvalid                  = false;      // [-] - last acceptance refused
 };
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 MAGNITUDE EXPRESSIONS
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 Resolves one arithmetic run using +, −, ×, ÷, parentheses and right-associative `^` or `exp` powers.
+/// out   Reading  [-]  the finite arithmetic result, or ContentUnsupported for malformed/non-finite input
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+Outcome<double> ResolveMagnitudeExpression(const char* Expression);
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE TWO PROJECTIONS
