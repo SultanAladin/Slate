@@ -1652,15 +1652,18 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         }
         Driver.Tap(Body.MaximumX - 28.0f, Body.MinimumY + 177.0f);
         Driver.Settle(20);
-        Driver.Tap(Body.MaximumX - 28.0f, Body.MinimumY + 309.0f);
+        Driver.Tap(Body.MaximumX - 28.0f, Body.MinimumY + 259.0f);
+        Driver.Settle(20);
+        Driver.Tap(Body.MaximumX - 28.0f, Body.MinimumY + 355.0f);
         Driver.Settle(20);
         if (Driver.TexturePaintApplied.ExportFormat != 1u ||
-            Driver.TexturePaintApplied.ExportResolution != 3u)
+            Driver.TexturePaintApplied.ExportResolution != 5u ||
+            Driver.TexturePaintApplied.ExportPreset != 1u)
         {
             std::fprintf(stderr, "[FAIL] one of the Layer Stack export carousels did not advance\n");
             return false;
         }
-        std::fprintf(stderr, "[assert] Layer Stack Export opened and advanced both output carousels\n");
+        std::fprintf(stderr, "[assert] Layer Stack Export opened and advanced all three output carousels\n");
     }
     else if (std::strcmp(Scenario, "editor-layer-flatten") == 0)
     {

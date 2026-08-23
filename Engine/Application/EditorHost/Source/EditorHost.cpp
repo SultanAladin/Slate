@@ -80,7 +80,7 @@ constexpr std::uint32_t BrowserControls = ContentBrowserPanel::RegistrationDeman
 constexpr std::uint32_t EditorControls  = PanelStructure::RecordCeiling * EditorPanel::ControlsPerRecord;
 constexpr std::uint32_t SceneControls   = SceneDirectoryPanel::RegistrationDemand
                                         + TexturePaintPanel::RegistrationDemand;
-constexpr std::uint32_t BareEases       = 9u + 1u + 1u + 3u; // [-] - centre, shell, and export rails
+constexpr std::uint32_t BareEases       = 9u + 1u + 1u + 4u; // [-] - centre, shell, and transfer/export rails
 
 constexpr std::uint32_t DemandedEases =
     ((CentreControls + BrowserControls + EditorControls + SceneControls) * EasesPerControl) + BareEases;

@@ -82,6 +82,19 @@ struct SceneDirectoryContext
     std::uint32_t              OutlineInspectorTab = 0u;   // [-] - 0 Properties, 1 History
     std::uint32_t              TransferMode        = 0u;   // [-] - 0 Import, 1 Export
     std::uint32_t              TransferFormat      = 0u;   // [-] - format carousel selection
+    char                       TransferName[64] = "Untitled Scene";
+    char                       TransferTags[96] = "scene, dcc";
+    char                       TransferLocation[96] = "Project/Scenes";
+    double                     TransferScale = 1.0;
+    std::uint32_t              TransferForwardAxis = 0u;   // [-] - 0 -Z, 1 +Z, 2 +X, 3 -X
+    std::uint32_t              TransferUpAxis = 0u;        // [-] - 0 +Y, 1 +Z
+    std::uint32_t              TransferNormalMode = 0u;    // [-] - 0 import/export, 1 calculate, 2 face
+    bool                       TransferApplyTransform = true;
+    bool                       TransferMaterials = true;
+    bool                       TransferAnimation = true;
+    bool                       TransferVertexColours = true;
+    bool                       TransferTriangulate = false;
+    bool                       TransferCustomProperties = false;
 
     // 📝 The scene directory's own search and filter, placed between the outliner's header and its
     //    rows. `EntityRetention` is the search run the host feeds through the seam's `AcceptTyped`
@@ -163,7 +176,7 @@ public:
         + 34u                                         // [-] - fixed navigation, fields, folds, and sliders
         + SceneDirectoryContext::CameraBookmarkCeiling
         + FacetPanel::FacetCapacity + 2u              // [-] - filter chips, dropdown, and clear
-        + 12u;                                         // [-] - transfer carousel arrows and ten formats
+        + 34u;                                         // [-] - transfer carousel, fields, and DCC options
 
     SceneDirectoryPanel()                                   = default;
     SceneDirectoryPanel(const SceneDirectoryPanel&)            = delete;
@@ -303,6 +316,8 @@ private:
     ControlIdentity DirectoryCall   = {};
     ControlIdentity TransferArrows[2] = {};
     ControlIdentity TransferChoices[10] = {};
+    ControlIdentity TransferFields[4] = {};
+    ControlIdentity TransferOptions[18] = {};
     ControlIdentity BookmarkNames[SceneDirectoryContext::CameraBookmarkCeiling] = {};
     ControlIdentity BookmarkSave    = {};
     ControlIdentity BookmarkRecall  = {};

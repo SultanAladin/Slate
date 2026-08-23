@@ -95,7 +95,15 @@ struct TexturePaintContext
     std::uint32_t              PropertyTab   = 0u;           // [-] - 0 Channels, 1 Mask, 2 Settings
     std::uint32_t              ExportMode       = 0u;        // [-] - 0 flattened, 1 texture-set export
     std::uint32_t              ExportFormat     = 0u;        // [-] - image format carousel
-    std::uint32_t              ExportResolution = 2u;        // [-] - 0 512, 1 1K, 2 2K, 3 4K, 4 8K
+    std::uint32_t              ExportResolution = 4u;        // [-] - 128 through 16K
+    std::uint32_t              ExportPreset     = 0u;        // [-] - target DCC / engine packing
+    std::uint32_t              ExportBitDepth   = 0u;        // [-] - 0 8-bit, 1 16-bit, 2 32-float
+    char                       ExportName[64] = "Untitled Material";
+    char                       ExportTags[96] = "material, pbr";
+    char                       ExportLocation[96] = "Project/Textures";
+    bool                       ExportDirectXNormals = true;
+    bool                       ExportDilation = true;
+    bool                       ExportBaseColourSrgb = true;
 
     // 📝 The search and the filters — the same pair the scene directory carries.
     char                       Retention[TextureRetentionCeiling] = {};   // [-] - the search run
@@ -240,7 +248,7 @@ public:
         + TextureChannelCeiling * 10u                 // [-] - fold, dot, source, amount, generator,
                                                       //       reset, remove, and three parameters
         + (FacetPanel::FacetCapacity + 2u) * 3u       // [-] - stack, channel, and mask filter cards
-        + 24u;                                         // [-] - two export carousels, arrows plus choices
+        + 45u;                                         // [-] - three export rails, fields, and output options
 
     TexturePaintPanel()                                   = default;
     TexturePaintPanel(const TexturePaintPanel&)           = delete;
@@ -429,9 +437,9 @@ private:
     std::uint32_t               PageMotion    = 0u;      // [-] - the carousel's eased travel
     std::uint32_t               PageDeparted  = 0u;      // [-] - which page the travel began from
     std::uint32_t               PageArriving  = 0u;      // [-] - which page it is bound for
-    std::uint32_t               ExportMotion[2] = {};    // [-] - format and resolution rail travel
-    double                      ExportFrom[2] = {};
-    double                      ExportTarget[2] = {};
+    std::uint32_t               ExportMotion[3] = {};    // [-] - format, resolution, and preset rails
+    double                      ExportFrom[3] = {};
+    double                      ExportTarget[3] = {};
 
     PointerCondition            Sampled = {};            // [-] - this tick's contact
 
@@ -445,8 +453,10 @@ private:
     ControlIdentity BarButtons[12] = {};
     ControlIdentity StackStrip    = {};
     ControlIdentity PropertyStrip = {};
-    ControlIdentity ExportArrows[2][2] = {};
-    ControlIdentity ExportChoices[2][10] = {};
+    ControlIdentity ExportArrows[3][2] = {};
+    ControlIdentity ExportChoices[3][10] = {};
+    ControlIdentity ExportFields[3] = {};
+    ControlIdentity ExportOptions[6] = {};
 
     ControlIdentity LayerContacts[TextureLayerCeiling]   = {};
     ControlIdentity LayerChevrons[TextureLayerCeiling]   = {};

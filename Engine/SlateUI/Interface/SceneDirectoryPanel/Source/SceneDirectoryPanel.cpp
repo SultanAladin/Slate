@@ -340,6 +340,12 @@ Outcome<bool> SceneDirectoryPanel::Construct(InteractionIndex& Interaction,
         &TransferChoices[0], &TransferChoices[1], &TransferChoices[2], &TransferChoices[3],
         &TransferChoices[4], &TransferChoices[5], &TransferChoices[6], &TransferChoices[7],
         &TransferChoices[8], &TransferChoices[9],
+        &TransferFields[0], &TransferFields[1], &TransferFields[2], &TransferFields[3],
+        &TransferOptions[0], &TransferOptions[1], &TransferOptions[2], &TransferOptions[3],
+        &TransferOptions[4], &TransferOptions[5], &TransferOptions[6], &TransferOptions[7],
+        &TransferOptions[8], &TransferOptions[9], &TransferOptions[10], &TransferOptions[11],
+        &TransferOptions[12], &TransferOptions[13], &TransferOptions[14],
+        &TransferOptions[15], &TransferOptions[16], &TransferOptions[17],
         &BookmarkSave,
         &BookmarkRecall,
         &BookmarkRetire,
@@ -752,6 +758,87 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
                      Scaled.RunSecondary);
     Surface->TextRun(Extent.MinimumX + Pad, Y + 24.0f, Tinted.Faint,
                      "File selection and transfer will be connected in a later increment.", Scaled.RunFine);
+    Y += 56.0f;
+
+    const auto Field = [&](std::uint32_t Ordinal, const PlaneExtent& Row, const char* Label,
+                           const char* Placeholder, char* Run, std::uint32_t Ceiling)
+    {
+        Surface->TextRun(Row.MinimumX, Row.MinimumY + 9.0f, Tinted.Muted, Label, Scaled.RunSecondary);
+        EditableTextDeclaration Declared;
+        Declared.Placeholder = Placeholder;
+        EnvironmentControls.EditableText(TransferFields[Ordinal],
+                                         Spanning(Row.MinimumX + 84.0f, Row.MinimumY,
+                                                  Row.Width() - 84.0f, 34.0f),
+                                         Declared, Run, Ceiling);
+    };
+
+    const float Half = (Extent.Width() - Pad * 3.0f) * 0.5f;
+    Field(0u, Spanning(Extent.MinimumX + Pad, Y, Half, 34.0f), "Name", "Scene name",
+          Applied.TransferName, 64u);
+    Field(1u, Spanning(Extent.MinimumX + Pad * 2.0f + Half, Y, Half, 34.0f), "Tags", "tag, tag",
+          Applied.TransferTags, 96u);
+    Y += 42.0f;
+    Field(2u, Spanning(Extent.MinimumX + Pad, Y, Extent.Width() - Pad * 2.0f, 34.0f),
+          "Location", "Project/Scenes", Applied.TransferLocation, 96u);
+    Y += 46.0f;
+
+    const auto OptionRun = [&](const char* Label, const char* const* Options, std::uint32_t Count,
+                               std::uint32_t FirstControl, std::uint32_t& Taken, float CellWidth)
+    {
+        Surface->TextRun(Extent.MinimumX + Pad, Y + 8.0f, Tinted.Muted, Label, Scaled.RunSecondary);
+        for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+        {
+            const PlaneExtent Cell = Spanning(Extent.MinimumX + Pad + 92.0f + Ordinal * (CellWidth + 8.0f),
+                                              Y, CellWidth, 30.0f);
+            const bool On = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
+            ControlIdentity Target = TransferOptions[FirstControl + Ordinal];
+            if (Sampled.ContactPressed && On && !Ledger->AnyDisclosed()) Ledger->Grab(Target, ControlPart::Body);
+            if (On && Ledger->Released(Target)) Taken = Ordinal;
+            Ledger->DeclareHovered(Target, On, HoverOver);
+            const bool Selected = Taken == Ordinal;
+            Surface->Ground(Cell, Selected ? Tinted.RowTaken : (On ? Tinted.TileHovered : Tinted.Tile), 15.0f, CornerAll);
+            Surface->Edge(Cell, Selected ? Tinted.EntityAccent : Tinted.Hairline, 1.0f, 15.0f, CornerAll);
+            Surface->TextRun(Cell.MinimumX + 12.0f, Cell.MinimumY + 7.0f, Tinted.Primary, Options[Ordinal], Scaled.RunFine);
+        }
+        Y += 38.0f;
+    };
+
+    static const char* const Scales[] = { "0.01", "1.0", "100" };
+    std::uint32_t ScaleTaken = Applied.TransferScale == 0.01 ? 0u : Applied.TransferScale == 100.0 ? 2u : 1u;
+    OptionRun("Scale", Scales, 3u, 0u, ScaleTaken, 72.0f);
+    Applied.TransferScale = ScaleTaken == 0u ? 0.01 : ScaleTaken == 2u ? 100.0 : 1.0;
+    static const char* const Forward[] = { "-Z", "+Z", "+X", "-X" };
+    OptionRun("Forward", Forward, 4u, 3u, Applied.TransferForwardAxis, 58.0f);
+    static const char* const Up[] = { "+Y", "+Z" };
+    OptionRun("Up axis", Up, 2u, 7u, Applied.TransferUpAxis, 58.0f);
+    static const char* const Normals[] = { "Custom", "Calculate", "Face" };
+    OptionRun("Normals", Normals, 3u, 9u, Applied.TransferNormalMode, 86.0f);
+
+    bool* Flags[6] = { &Applied.TransferApplyTransform, &Applied.TransferMaterials,
+                       &Applied.TransferAnimation, &Applied.TransferVertexColours,
+                       &Applied.TransferTriangulate, &Applied.TransferCustomProperties };
+    const char* ImportFlagNames[6] = { "Apply transform", "Materials", "Animation", "Vertex colours",
+                                       "Triangulate", "Custom properties" };
+    const char* ExportFlagNames[6] = { "Apply modifiers", "Materials", "Bake animation", "Tangent space",
+                                       "Triangulate", "Custom properties" };
+    const char* const* FlagNames = Applied.TransferMode == 0u ? ImportFlagNames : ExportFlagNames;
+    for (std::uint32_t Ordinal = 0u; Ordinal < 6u; ++Ordinal)
+    {
+        const std::uint32_t Column = Ordinal % 3u;
+        const std::uint32_t Row = Ordinal / 3u;
+        const PlaneExtent Cell = Spanning(Extent.MinimumX + Pad + Column * 178.0f,
+                                          Y + Row * 36.0f, 168.0f, 28.0f);
+        const bool On = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
+        ControlIdentity Target = TransferOptions[12u + Ordinal];
+        if (Sampled.ContactPressed && On && !Ledger->AnyDisclosed()) Ledger->Grab(Target, ControlPart::Body);
+        if (On && Ledger->Released(Target)) *Flags[Ordinal] = !*Flags[Ordinal];
+        Ledger->DeclareHovered(Target, On, HoverOver);
+        Surface->Ground(Cell, *Flags[Ordinal] ? Tinted.RowTaken : Tinted.Tile, 14.0f, CornerAll);
+        Surface->Edge(Cell, *Flags[Ordinal] ? Tinted.EntityAccent : Tinted.Hairline, 1.0f, 14.0f, CornerAll);
+        Surface->TextRun(Cell.MinimumX + 12.0f, Cell.MinimumY + 6.0f, Tinted.Primary, FlagNames[Ordinal], Scaled.RunFine);
+    }
+
+    EnvironmentControls.RecordDeferred();
 }
 
 void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirectoryContext& Applied,

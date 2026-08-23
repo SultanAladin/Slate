@@ -897,12 +897,19 @@ Outcome<bool> TexturePaintPanel::Construct(InteractionIndex& Interaction,
         &BarButtons[8],  &BarButtons[9],  &BarButtons[10], &BarButtons[11],
         &StackStrip, &PropertyStrip,
         &ExportArrows[0][0], &ExportArrows[0][1], &ExportArrows[1][0], &ExportArrows[1][1],
+        &ExportArrows[2][0], &ExportArrows[2][1],
         &ExportChoices[0][0], &ExportChoices[0][1], &ExportChoices[0][2], &ExportChoices[0][3],
         &ExportChoices[0][4], &ExportChoices[0][5], &ExportChoices[0][6], &ExportChoices[0][7],
         &ExportChoices[0][8], &ExportChoices[0][9],
         &ExportChoices[1][0], &ExportChoices[1][1], &ExportChoices[1][2], &ExportChoices[1][3],
         &ExportChoices[1][4], &ExportChoices[1][5], &ExportChoices[1][6], &ExportChoices[1][7],
         &ExportChoices[1][8], &ExportChoices[1][9],
+        &ExportChoices[2][0], &ExportChoices[2][1], &ExportChoices[2][2], &ExportChoices[2][3],
+        &ExportChoices[2][4], &ExportChoices[2][5], &ExportChoices[2][6], &ExportChoices[2][7],
+        &ExportChoices[2][8], &ExportChoices[2][9],
+        &ExportFields[0], &ExportFields[1], &ExportFields[2],
+        &ExportOptions[0], &ExportOptions[1], &ExportOptions[2],
+        &ExportOptions[3], &ExportOptions[4], &ExportOptions[5],
         &MenuAdd, &MenuLayer, &MenuMask, &MenuBlend,
         &MaskRows[0], &MaskRows[1], &MaskRows[2], &MaskRows[3], &MaskRows[4],
         &MaskRows[5], &MaskRows[6], &MaskRows[7], &MaskRows[8],
@@ -991,7 +998,7 @@ Outcome<bool> TexturePaintPanel::Construct(InteractionIndex& Interaction,
         PageMotion = Registered.Resolve();
     }
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 2u; ++Ordinal)
+    for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
     {
         const Outcome<std::uint32_t> Registered = Integrator.RegisterEased(1.0);
         if (!Registered.Resolved)
@@ -1176,7 +1183,10 @@ void TexturePaintPanel::RecordFlattenPage(const PlaneExtent& Extent, TexturePain
 
     static const char* const Formats[] =
         { "PNG", "JPEG", "TGA", "TIFF", "OpenEXR", "HDR", "WebP", "DDS", "KTX2" };
-    static const char* const Resolutions[] = { "512", "1K", "2K", "4K", "8K" };
+    static const char* const Resolutions[] = { "128", "256", "512", "1K", "2K", "4K", "8K", "16K" };
+    static const char* const Presets[] =
+        { "Generic PBR", "Unreal ORM", "Unity HDRP", "Unity URP", "glTF 2.0",
+          "Godot 4", "Blender", "Maya / Arnold", "V-Ray" };
 
     const auto RecordRail = [&](std::uint32_t RailOrdinal, float Y, const char* Caption,
                                 const char* const* Options, std::uint32_t OptionCount,
@@ -1185,9 +1195,9 @@ void TexturePaintPanel::RecordFlattenPage(const PlaneExtent& Extent, TexturePain
         if (Taken >= OptionCount) Taken = OptionCount - 1u;
         Surface->TextRun(Extent.MinimumX + Pad, Y, Tinted.Primary, Caption, Scaled.RunPrimary);
         Y += 28.0f;
-        const PlaneExtent Left = Spanning(Extent.MinimumX + Pad, Y + 20.0f, 42.0f, 42.0f);
-        const PlaneExtent Right = Spanning(Extent.MaximumX - Pad - 42.0f, Y + 20.0f, 42.0f, 42.0f);
-        const PlaneExtent Rail = { Left.MaximumX + 12.0f, Y, Right.MinimumX - 12.0f, Y + 84.0f };
+        const PlaneExtent Left = Spanning(Extent.MinimumX + Pad, Y + 13.0f, 38.0f, 38.0f);
+        const PlaneExtent Right = Spanning(Extent.MaximumX - Pad - 38.0f, Y + 13.0f, 38.0f, 38.0f);
+        const PlaneExtent Rail = { Left.MaximumX + 12.0f, Y, Right.MinimumX - 12.0f, Y + 64.0f };
         const double Fraction = Motion->Eased(ExportMotion[RailOrdinal]).Current();
         const double Scroll = ExportFrom[RailOrdinal] +
                               (ExportTarget[RailOrdinal] - ExportFrom[RailOrdinal]) * Fraction;
@@ -1216,7 +1226,7 @@ void TexturePaintPanel::RecordFlattenPage(const PlaneExtent& Extent, TexturePain
         for (std::uint32_t Ordinal = 0u; Ordinal < OptionCount; ++Ordinal)
         {
             const PlaneExtent Choice = Spanning(Rail.MinimumX + 4.0f + Ordinal * 144.0f - static_cast<float>(Scroll),
-                                                Rail.MinimumY, 132.0f, 80.0f);
+                                                Rail.MinimumY, 132.0f, 60.0f);
             const bool On = Choice.Encloses(Sampled.PositionX, Sampled.PositionY);
             if (Sampled.ContactPressed && On && !Ledger->AnyDisclosed()) Ledger->Grab(ExportChoices[RailOrdinal][Ordinal], ControlPart::Body);
             if (On && Ledger->Released(ExportChoices[RailOrdinal][Ordinal]))
@@ -1230,26 +1240,87 @@ void TexturePaintPanel::RecordFlattenPage(const PlaneExtent& Extent, TexturePain
             const bool Selected = Taken == Ordinal;
             Surface->Ground(Choice, Selected ? Tinted.RowTaken : (On ? Tinted.TileHovered : Tinted.Tile), 12.0f, CornerAll);
             Surface->Edge(Choice, Selected ? Tinted.Accent : Tinted.Hairline, 1.0f, 12.0f, CornerAll);
-            Surface->TextRun(Choice.MinimumX + 16.0f, Choice.MinimumY + 16.0f, Tinted.Primary,
+            Surface->TextRun(Choice.MinimumX + 14.0f, Choice.MinimumY + 10.0f, Tinted.Primary,
                              Options[Ordinal], Scaled.RunPrimary);
-            Surface->TextRun(Choice.MinimumX + 16.0f, Choice.MinimumY + 48.0f, Tinted.Muted,
-                             RailOrdinal == 0u ? "Image format" : "Square output", Scaled.RunFine);
+            Surface->TextRun(Choice.MinimumX + 14.0f, Choice.MinimumY + 36.0f, Tinted.Muted,
+                             RailOrdinal == 0u ? "Image format" :
+                             RailOrdinal == 1u ? "Square output" : "Packing preset", Scaled.RunFine);
         }
         Surface->Release();
     };
 
-    float Y = Back.MaximumY + 28.0f;
+    float Y = Back.MaximumY + 22.0f;
     RecordRail(0u, Y, "Output format", Formats, 9u, Applied.ExportFormat);
-    Y += 132.0f;
-    RecordRail(1u, Y, "Resolution", Resolutions, 5u, Applied.ExportResolution);
-    Y += 132.0f;
-    Surface->TextRun(Extent.MinimumX + Pad, Y, Tinted.Muted,
-                     Applied.ExportMode == 0u
-                         ? "Layer structure remains unchanged. The output is a flattened copy."
-                         : "Exports the texture set without flattening the authored stack.",
-                     Scaled.RunSecondary);
-    Surface->TextRun(Extent.MinimumX + Pad, Y + 24.0f, Tinted.Faint,
-                     "File export will be connected in a later increment.", Scaled.RunFine);
+    Y += 96.0f;
+    RecordRail(1u, Y, "Resolution", Resolutions, 8u, Applied.ExportResolution);
+    Y += 96.0f;
+    RecordRail(2u, Y, "DCC / engine preset", Presets, 9u, Applied.ExportPreset);
+    Y += 96.0f;
+
+    const auto Field = [&](std::uint32_t Ordinal, const PlaneExtent& Row, const char* Label,
+                           const char* Placeholder, char* Run, std::uint32_t Ceiling)
+    {
+        Surface->TextRun(Row.MinimumX, Row.MinimumY + 9.0f, Tinted.Muted, Label, Scaled.RunSecondary);
+        EditableTextDeclaration Declared;
+        Declared.Placeholder = Placeholder;
+        SharedControls.EditableText(ExportFields[Ordinal],
+                                    Spanning(Row.MinimumX + 92.0f, Row.MinimumY, Row.Width() - 92.0f, 34.0f),
+                                    Declared, Run, Ceiling);
+    };
+
+    const float Half = (Extent.Width() - Pad * 3.0f) * 0.5f;
+    Field(0u, Spanning(Extent.MinimumX + Pad, Y, Half, 34.0f), "Name", "Export name",
+          Applied.ExportName, 64u);
+    Field(1u, Spanning(Extent.MinimumX + Pad * 2.0f + Half, Y, Half, 34.0f), "Tags", "tag, tag",
+          Applied.ExportTags, 96u);
+    Y += 42.0f;
+    Field(2u, Spanning(Extent.MinimumX + Pad, Y, Extent.Width() - Pad * 2.0f, 34.0f),
+          "Location", "Project/Textures", Applied.ExportLocation, 96u);
+    Y += 48.0f;
+
+    const char* Packing[] =
+        { "Separate PBR maps", "AO:R  Rough:G  Metal:B", "Metal:R  AO:G  Detail:B  Smooth:A",
+          "Metallic RGB + Smoothness A", "R:AO  G:Rough  B:Metal" };
+    const std::uint32_t PackingOrdinal = Applied.ExportPreset < 5u ? Applied.ExportPreset : 0u;
+    Surface->TextRun(Extent.MinimumX + Pad, Y, Tinted.Primary, "Packing", Scaled.RunSecondary);
+    Surface->TextRun(Extent.MinimumX + Pad + 92.0f, Y, Tinted.Muted,
+                     Packing[PackingOrdinal], Scaled.RunSecondary);
+    Y += 30.0f;
+
+    static const char* const Depths[3] = { "8-bit", "16-bit", "32-bit float" };
+    Surface->TextRun(Extent.MinimumX + Pad, Y + 8.0f, Tinted.Muted, "Bit depth", Scaled.RunSecondary);
+    for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
+    {
+        const PlaneExtent Cell = Spanning(Extent.MinimumX + Pad + 92.0f + Ordinal * 116.0f, Y, 106.0f, 32.0f);
+        const bool On = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
+        if (Sampled.ContactPressed && On && !Ledger->AnyDisclosed()) Ledger->Grab(ExportOptions[Ordinal], ControlPart::Body);
+        if (On && Ledger->Released(ExportOptions[Ordinal])) Applied.ExportBitDepth = Ordinal;
+        Ledger->DeclareHovered(ExportOptions[Ordinal], On, HoverOver);
+        const bool Taken = Applied.ExportBitDepth == Ordinal;
+        Surface->Ground(Cell, Taken ? Tinted.RowTaken : (On ? Tinted.TileHovered : Tinted.Tile), 16.0f, CornerAll);
+        Surface->Edge(Cell, Taken ? Tinted.Accent : Tinted.Hairline, 1.0f, 16.0f, CornerAll);
+        Surface->TextRun(Cell.MinimumX + 14.0f, Cell.MinimumY + 8.0f, Tinted.Primary, Depths[Ordinal], Scaled.RunFine);
+    }
+    Y += 42.0f;
+
+    bool* Switches[3] = { &Applied.ExportDirectXNormals, &Applied.ExportDilation, &Applied.ExportBaseColourSrgb };
+    const char* SwitchNames[3] = { "DirectX normals", "Infinite dilation", "sRGB base colour" };
+    for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
+    {
+        const PlaneExtent Cell = Spanning(Extent.MinimumX + Pad + Ordinal * 172.0f, Y, 162.0f, 30.0f);
+        const bool On = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
+        if (Sampled.ContactPressed && On && !Ledger->AnyDisclosed()) Ledger->Grab(ExportOptions[3u + Ordinal], ControlPart::Body);
+        if (On && Ledger->Released(ExportOptions[3u + Ordinal])) *Switches[Ordinal] = !*Switches[Ordinal];
+        Ledger->DeclareHovered(ExportOptions[3u + Ordinal], On, HoverOver);
+        Surface->Ground(Cell, *Switches[Ordinal] ? Tinted.RowTaken : Tinted.Tile, 15.0f, CornerAll);
+        Surface->Edge(Cell, *Switches[Ordinal] ? Tinted.Accent : Tinted.Hairline, 1.0f, 15.0f, CornerAll);
+        Surface->TextRun(Cell.MinimumX + 12.0f, Cell.MinimumY + 7.0f, Tinted.Primary, SwitchNames[Ordinal], Scaled.RunFine);
+    }
+
+    Surface->TextRun(Extent.MinimumX + Pad, Y + 42.0f, Tinted.Faint,
+                     Applied.ExportMode == 0u ? "Non-destructive flattened copy; authored layers remain intact."
+                                               : "Texture-set export; authored layers and channels remain intact.",
+                     Scaled.RunFine);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
