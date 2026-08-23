@@ -1,10 +1,8 @@
 # Finite grid fade proof
 
-`editor-grid-fade.png` is recorded by `Tools/SceneDirectoryProof` from the real viewport `EditorPanel` footer and its real shared Grid settings controls.
+These rasters come from `Tools/SceneDirectoryProof` and record the real viewport/editor panels.
 
-The two new authored metre values are visible in the footer popup:
+- `before/editor-grid-settings.png` — previous unbounded ground presentation, with no authored extent or camera-fade controls.
+- `after/editor-grid-fade.png` — the real Grid footer popup now exposes **World extent** and **Camera fade** in metres using shared magnitude controls.
 
-- **World extent** — finite radial boundary around world centre.
-- **Camera fade** — camera-relative radius over which grid and axis coverage soften to zero.
-
-The GPU implementation remains analytic in `WorkspaceOverlayFragment.slang`; it does not generate a large CPU line set. The two fades multiply, so a fragment must be inside both the finite world extent and the camera visibility radius.
+The GPU implementation remains analytic in `WorkspaceOverlayFragment.slang`; it does not generate a large CPU line set. World-centre and camera-relative fades multiply, so a fragment must be inside both limits. The headless proof environment has no Vulkan shader execution, so the after raster proves the real authored controls while the shader implementation and 128-byte CPU/GPU push layout are validated structurally and by the full translation-unit build.
