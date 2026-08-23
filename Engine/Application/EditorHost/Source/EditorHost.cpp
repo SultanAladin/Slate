@@ -1183,21 +1183,15 @@ int main(int ArgumentCount, char** ArgumentValues)
                 //    indistinguishable from a panel that drew nothing, so the refusal is named here.
                 if (!Viewport.Record(Pass.Recording))
                 {
-                    std::printf("%s \u2014 the interface content was not recorded\n", HostName);
+                    std::printf("%s — the interface content was not recorded\n", HostName);
                 }
 
                 // 📝 The overlay pass records INSIDE the same dynamic-rendering scope, after the
-                //    interface: the grid, the axes and the gizmo draw on top of the sky and the UI,
-                //    in their own straight-alpha pass — no ImGui tessellation, vivid colours.
+                //    interface: the grid and axes draw directly on top of the sky and viewport,
+                //    in their own straight-alpha GPU pass — no ImGui tessellation, vivid colours.
                 //    Each viewport leaf's geometry is uploaded at most once per generation change
                 //    and drawn with a scissor clipped to that leaf's box, so the overlay never
                 //    paints over the outliner, the properties or any other panel.
-                //    🔴 While an editor popup (the grid-settings menu, the subject menu, ...) stands,
-                //    the leaf overlays are withheld: the pass records AFTER the interface, so an
-                //    unwithheld overlay would paint the grid and the axes OVER the open menu — the
-                //    reported "the lines draw on the ImGui menus".
-                const bool OverlayWithheld = WorkspacePanels.AnyPopupStanding();
-
                 for (std::uint32_t ViewportOrdinal = 0u; ViewportOrdinal < ViewportLeafTally;
                      ++ViewportOrdinal)
                 {
@@ -1209,9 +1203,6 @@ int main(int ArgumentCount, char** ArgumentValues)
                         Overlay.Upload(LeafOverlay);
                         OverlayGeneration[LeafOrdinal] = LeafOverlay.Generation;
                     }
-
-                    if (OverlayWithheld)
-                        continue;
 
                     const PlaneExtent& LeafRect = ViewportLeafRects[ViewportOrdinal];
 
