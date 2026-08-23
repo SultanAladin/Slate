@@ -753,8 +753,12 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
                         OnCall ? Tinted.Primary : Tinted.Faint);
     }
 
-    const PlaneExtent Footer = Spanning(Outlining.MinimumX, Outlining.MaximumY - Scaled.FooterHeight,
-                                        Outlining.Width(), Scaled.FooterHeight);
+    // 📐 One footer belongs to the whole Directory destination, not only to its outliner column. The
+    //    details pane now terminates above the same band, so the page has a complete baseline before
+    //    it slides to Properties / History.
+    const PlaneExtent Footer = Spanning(DirectoryExtent.MinimumX,
+                                        DirectoryExtent.MaximumY - Scaled.FooterHeight,
+                                        DirectoryExtent.Width(), Scaled.FooterHeight);
 
     // 🔴 THE DIRECTORY | PROPERTIES | HISTORY STRIP IS WITHDRAWN, as asked. It was a
     //    third route to a page that Tab already cycles and that the header's Inspect
@@ -1054,7 +1058,7 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
     // ⑤ The details pane — the small metadata and options card for the taken row.
     const PlaneExtent Detailing = Spanning(Outlining.MaximumX, DirectoryExtent.MinimumY,
                                            DirectoryExtent.MaximumX - Outlining.MaximumX,
-                                           DirectoryExtent.Height());
+                                           Footer.MinimumY - DirectoryExtent.MinimumY);
 
     if (RowCount == 0u || Applied.EntityTaken >= RowCount)
     {

@@ -13,7 +13,7 @@
 //    ROWS     45 px entries with the 3 px colour tag (dotted on a mask), the
 //             disclosure chevron, the eye, the 35 px square thumb with the
 //             type badge, name + sub run, the chips (3D / L / MASK / n FX /
-//             x/8 CH), the details chevron and the "more" menu.
+//             x/8 CH), the inline-card disclosure V and the "more" menu.
 //    MASKS    the attached 37 px mask row with the connector elbow, the
 //             dashed border, the uppercase MASK name, the source · Gray 8 ·
 //             density · INV sub run, chips and menu.
@@ -22,9 +22,10 @@
 //             (paint / fill / adjustment / filter / decal / pattern · group /
 //             duplicate / lock · move up / move down · delete).
 //
-//    🔴 WHAT THE PANEL IS. The stack page is the HTML's; the full details live
-//       on the PROPERTIES page, reached with Tab or with a row's details
-//       chevron exactly as the user's flow describes:
+//    🔴 WHAT THE PANEL IS. The stack page is the HTML's. A row's trailing V
+//       independently discloses its compact Info / Height → Normal / Effects /
+//       Colour Blending / Channel Blending card beneath the row. Full authoring
+//       lives on the PROPERTIES page, reached with Tab or a row double-contact:
 //         - a layer row   + Tab  → Channel Properties (the per-channel
 //           panels of ChannelPropertyPanel.html: dot, name, blend, opacity)
 //         - a mask row    + Tab  → the Mask panel (source, density, invert,
@@ -105,9 +106,10 @@ struct TexturePaintContext
     //    now hands `ChannelOn[LayerTaken]` straight to the facet panel, so the
     //    chips ARE the enabled set and there is one datum to disagree with.
 
-    // 📝 The rows' own conditions: disclosure, presence, the details chevron's page travel, and the
+    // 📝 The rows' own conditions: hierarchy disclosure, inline-card disclosure, presence, and the
     //    channel each layer is showing on the properties page.
     bool                       LayerExpanded[TextureLayerCeiling]  = {};
+    bool                       LayerCardExpanded[TextureLayerCeiling] = {}; // [-] - inline detail card beneath row
     bool                       LayerPresent[TextureLayerCeiling]   = {};
     std::uint32_t              ChannelTaken[TextureLayerCeiling]   = {};
     bool                       ChannelFolded[TextureChannelCeiling] = {};
@@ -306,6 +308,10 @@ private:
     void RecordStackRow(const PlaneExtent& Row, TexturePaintContext& Applied,
                         const TextureLayerRow* Rows, std::uint32_t RowCount,
                         const TextureLayerRow& Current, std::uint32_t Ordinal);
+    /// 🧩 Records the independently disclosed card beneath one layer row and answers its full height.
+    float RecordInlineLayerCard(const PlaneExtent& Extent, TexturePaintContext& Applied,
+                                const TextureLayerRow& Current, std::uint32_t Ordinal,
+                                bool Recording);
     void RecordMaskRow(const PlaneExtent& Row, TexturePaintContext& Applied,
                        const TextureLayerRow* Rows, std::uint32_t RowCount,
                        const TextureLayerRow& Current, std::uint32_t Ordinal);

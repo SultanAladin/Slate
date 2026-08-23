@@ -1536,6 +1536,70 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
             }
         }
     }
+    else if (std::strcmp(Scenario, "editor-layerstack-card") == 0)
+    {
+        Driver.Partition.Construct(PanelSubject::TexturePaint);
+        Driver.Settle(20);
+
+        ThemeSelection Selection;
+        Selection.Current = ThemeSubject::Oled;
+        const ThemeProfile Profile = ResolveTinted(1.0, 1.0, ViewportWidth, Selection);
+        const ShellMetric Metric = ScaleShellLengths(static_cast<float>(Profile.Measure.DisplayScale)
+                                                     * Profile.ControlMeasure.ArtistFactor);
+        const PlaneExtent Row = Driver.TexturePaint.RowExtent(1u);
+        const float Action = Metric.LayerToolHeight - 5.0f;
+        const float DisclosureX = Row.MaximumX - 6.0f - Action * 1.5f - 4.0f;
+        const float DisclosureY = Row.MinimumY + Metric.LayerRowY * 0.5f;
+
+        Driver.Tap(DisclosureX, DisclosureY);
+        Driver.Settle(28);
+
+        if (!Driver.TexturePaintApplied.LayerCardExpanded[1u])
+        {
+            std::fprintf(stderr, "[FAIL] the layer disclosure V did not open its inline card\n");
+            return false;
+        }
+
+        if (Driver.TexturePaintApplied.StackPage != 0u)
+        {
+            std::fprintf(stderr, "[FAIL] inline disclosure changed the carousel page\n");
+            return false;
+        }
+
+        // 📐 The two gestures remain independent: close the V-card, double-contact the row body to
+        //    travel to Channels, return with Tab, then reopen the V-card for the captured raster.
+        Driver.Tap(DisclosureX, DisclosureY);
+        Driver.Settle(4);
+        const float BodyX = Row.MinimumX + Row.Width() * 0.45f;
+        Driver.Tap(BodyX, DisclosureY);
+        Driver.Tap(BodyX, DisclosureY);
+        Driver.Settle(4);
+
+        if (Driver.TexturePaintApplied.StackPage != 1u)
+        {
+            std::fprintf(stderr, "[FAIL] a double contact did not open the layer properties carousel\n");
+            return false;
+        }
+
+        Driver.SimLayersTab = true;
+        Driver.Tick(BodyX, DisclosureY, false, false, false);
+        Driver.Settle(20);
+
+        const PlaneExtent Returned = Driver.TexturePaint.RowExtent(1u);
+        const float ReturnedX = Returned.MaximumX - 6.0f - Action * 1.5f - 4.0f;
+        const float ReturnedY = Returned.MinimumY + Metric.LayerRowY * 0.5f;
+        Driver.Tap(ReturnedX, ReturnedY);
+        Driver.Settle(28);
+
+        if (!Driver.TexturePaintApplied.LayerCardExpanded[1u] ||
+            Driver.TexturePaintApplied.StackPage != 0u)
+        {
+            std::fprintf(stderr, "[FAIL] the inline card did not reopen independently after carousel travel\n");
+            return false;
+        }
+
+        std::fprintf(stderr, "[assert] V-card and double-contact carousel remain independent\n");
+    }
     else if (std::strcmp(Scenario, "editor-layerstack") == 0)
     {
         // 📐 A single TexturePaint leaf: the whole workspace body is the layer stack.
@@ -2701,7 +2765,7 @@ int main(int ArgumentCount, char** Arguments)
     const char* Shots[] = {"editor-overview", "editor-outliner-inspector", "editor-sun-props",
                            "editor-after-drag",
                            "editor-camera-fly", "editor-grid-settings", "editor-overlay-fallback",
-                           "editor-search-filter", "editor-layerstack"};
+                           "editor-search-filter", "editor-layerstack", "editor-layerstack-card"};
 
     int Rendered = 0;
     for (const char* Shot : Shots)

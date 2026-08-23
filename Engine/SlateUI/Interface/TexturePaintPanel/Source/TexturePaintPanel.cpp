@@ -1314,6 +1314,7 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
         //    disclosure, so the list's height is a function of what is unfolded and
         //    has to be re-measured every tick rather than cached.
         float Content = 0.0f;
+        float CardOpen[TextureLayerCeiling] = {};
 
         for (std::uint32_t Ordinal = 0u; Ordinal < RowCount; ++Ordinal)
         {
@@ -1328,8 +1329,16 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
             if (Folded <= 0.0f)
                 continue;
 
+            CardOpen[Ordinal] = Controls.OutlineExpansion(LayerDetails[Ordinal],
+                                                          Applied.LayerCardExpanded[Ordinal], true);
+
+            const PlaneExtent Measuring = Spanning(Body.MinimumX, 0.0f, Body.Width(), 0.0f);
+            const float CardHeight = RecordInlineLayerCard(Measuring, Applied, Rows[Ordinal],
+                                                           Ordinal, false);
+
             Content += (Scaled.LayerRowY + 2.0f
-                     + (Applied.MaskAttached[Ordinal] ? (Scaled.LayerMaskY + 2.0f) : 0.0f)) * Folded;
+                     + (Applied.MaskAttached[Ordinal] ? (Scaled.LayerMaskY + 2.0f) : 0.0f)
+                     + (CardHeight + 2.0f) * CardOpen[Ordinal]) * Folded;
         }
 
         const float Rolled = AdvanceListScroll(Applied.StackListShown, Applied.StackListWanted,
@@ -1388,7 +1397,28 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
             Sweep += RowY + 2.0f;
 
             if (Surface->Excluded(Row))
+            {
+                if (CardOpen[Ordinal] > 0.001f)
+                {
+                    const PlaneExtent Measuring = Spanning(Row.MinimumX, Sweep, Row.Width(), 0.0f);
+                    const float Full = RecordInlineLayerCard(Measuring, Applied, Current, Ordinal, false);
+                    const float Open = Full * CardOpen[Ordinal] * Folded;
+                    const PlaneExtent Card = Spanning(Row.MinimumX, Sweep, Row.Width(), Open);
+
+                    if (!Surface->Excluded(Card))
+                    {
+                        Surface->Confine(Card);
+                        RecordInlineLayerCard(Spanning(Card.MinimumX, Card.MinimumY,
+                                                       Card.Width(), Full),
+                                              Applied, Current, Ordinal, true);
+                        Surface->Release();
+                    }
+
+                    Sweep += Open + 2.0f;
+                }
+
                 continue;
+            }
 
             if (RowTally < TextureLayerCeiling)
             {
@@ -1413,6 +1443,28 @@ void TexturePaintPanel::RecordStackPage(const PlaneExtent& Extent, TexturePaintC
                                                   Row.Width() - Scaled.LayerMaskIndent,
                                                   Scaled.LayerMaskY);
                 RecordMaskRow(Mask, Applied, Rows, RowCount, Current, Ordinal);
+            }
+
+            // 📐 Independent of the leftward page carousel: the trailing V discloses this card in the
+            //    stack itself. The full body is recorded and clipped to the eased opening, so it reads
+            //    as a dropdown rather than as navigation to Channels / Mask / Properties.
+            if (CardOpen[Ordinal] > 0.001f)
+            {
+                const PlaneExtent Measuring = Spanning(Row.MinimumX, Sweep, Row.Width(), 0.0f);
+                const float Full = RecordInlineLayerCard(Measuring, Applied, Current, Ordinal, false);
+                const float Open = Full * CardOpen[Ordinal] * Folded;
+                const PlaneExtent Card = Spanning(Row.MinimumX, Sweep, Row.Width(), Open);
+
+                if (!Surface->Excluded(Card))
+                {
+                    Surface->Confine(Card);
+                    RecordInlineLayerCard(Spanning(Card.MinimumX, Card.MinimumY,
+                                                   Card.Width(), Full),
+                                          Applied, Current, Ordinal, true);
+                    Surface->Release();
+                }
+
+                Sweep += Open + 2.0f;
             }
         }
 
@@ -1647,14 +1699,24 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
     if (OnEye && Ledger->Released(LayerEyes[Ordinal]))
         Applied.LayerPresent[Ordinal] = !Applied.LayerPresent[Ordinal];
 
-    // 📐 The details chevron travels to the properties page — the reference's `exp` revealing the
-    //    details, landed on the page the selection names.
+    // 📐 The V is disclosure, not navigation. It opens the entry's card down inside the stack while
+    //    the page carousel remains where it stands.
     if (OnDetails && Ledger->Released(LayerDetails[Ordinal]))
     {
-        Applied.LayerTaken   = Ordinal;
-        Applied.MaskTaken    = false;
-        Applied.StackPage    = 1u;
-        Applied.PropertyTab  = 0u;
+        Applied.LayerTaken = Ordinal;
+        Applied.MaskTaken = false;
+        Applied.LayerCardExpanded[Ordinal] = !Applied.LayerCardExpanded[Ordinal];
+    }
+
+    // 📐 A double contact on the row is the pointer equivalent of Tab: it selects the layer and sends
+    //    the carousel left to Channels / Mask / Properties. This path deliberately excludes every
+    //    row action, especially the independent disclosure V above.
+    if (Sampled.ContactDoublePressed && Hovered && !OnChevron && !OnEye && !OnDetails && !OnMore)
+    {
+        Applied.LayerTaken = Ordinal;
+        Applied.MaskTaken = false;
+        Applied.StackPage = 1u;
+        Applied.PropertyTab = 0u;
     }
 
     // 📐 The more button opens the layer menu — the reference's `layerMenu`.
@@ -1941,7 +2003,8 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
     if (OnDetails)
         Surface->Ground(Details, Faded(Covering(0xFFFFFFu), 0.08f), 3.0f, CornerAll);
 
-    Surface->Stroke(SymbolSubject::ChevronRight,
+    Surface->Stroke(Applied.LayerCardExpanded[Ordinal]
+                    ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
                     Spanning(Details.MinimumX + (EyeExtent - 13.0f) * 0.5f,
                              Details.MinimumY + (EyeExtent - 13.0f) * 0.5f, 13.0f, 13.0f),
                     Faded(Faded(Tinted.Faint, CellCoverage), RowCoverage));
@@ -1953,6 +2016,110 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
                     Spanning(More.MinimumX + (EyeExtent - 13.0f) * 0.5f,
                              More.MinimumY + (EyeExtent - 13.0f) * 0.5f, 13.0f, 13.0f),
                     Faded(Faded(Tinted.Faint, CellCoverage), RowCoverage));
+}
+
+float TexturePaintPanel::RecordInlineLayerCard(const PlaneExtent& Extent,
+                                                TexturePaintContext& Applied,
+                                                const TextureLayerRow& Current,
+                                                std::uint32_t Ordinal, bool Recording)
+{
+    const float Pad = Scaled.PanePad;
+    const float HeadY = 27.0f;
+    const float RowY = 23.0f;
+    const float Left = Extent.MinimumX + Pad * 1.5f;
+    const float Right = Extent.MaximumX - Pad * 1.5f;
+    float Sweep = Extent.MinimumY + 6.0f;
+
+    if (Recording)
+    {
+        Surface->Ground(Extent, Tinted.MenuLower, Scaled.LayerRadius, CornerAll);
+        Surface->Edge(Extent, Tinted.Hairline, 1.0f, Scaled.LayerRadius, CornerAll);
+    }
+
+    const auto Section = [&](const char* Caption, const char* Summary)
+    {
+        if (Recording)
+        {
+            const PlaneExtent Head = Spanning(Extent.MinimumX, Sweep, Extent.Width(), HeadY);
+            Surface->Ground(Head, Tinted.Tile, 0.0f, CornerNone);
+            Surface->Ground(Spanning(Head.MinimumX, Head.MaximumY - 1.0f, Head.Width(), 1.0f),
+                            Tinted.Hairline, 0.0f, CornerNone);
+            Surface->TextRunCapitalised(Left, Sweep + (HeadY - Scaled.RunFiner) * 0.5f,
+                                        Tinted.Muted, Caption, Scaled.RunFiner, 0.8f, true);
+
+            if (Summary != nullptr && Summary[0] != '\0')
+            {
+                const float Wide = Surface->MeasureRun(Summary, Scaled.RunFiner, 0.0f);
+                Surface->TextRun(Right - Wide, Sweep + (HeadY - Scaled.RunFiner) * 0.5f,
+                                 Tinted.Faint, Summary, Scaled.RunFiner);
+            }
+        }
+
+        Sweep += HeadY;
+    };
+
+    const auto Reading = [&](const char* Caption, const char* Value)
+    {
+        if (Recording)
+        {
+            Surface->TextRun(Left, Sweep + (RowY - Scaled.RunFine) * 0.5f,
+                             Tinted.Faint, Caption, Scaled.RunFine);
+            const char* Written = (Value != nullptr && Value[0] != '\0') ? Value : "none";
+            const float Wide = Surface->MeasureRun(Written, Scaled.RunFine, 0.0f);
+            Surface->TextRun(Right - Wide, Sweep + (RowY - Scaled.RunFine) * 0.5f,
+                             Tinted.Muted, Written, Scaled.RunFine, 0.0f, true);
+        }
+
+        Sweep += RowY;
+    };
+
+    Section("Info", TextureLayerText(Current.Classified));
+    Reading("Type", TextureLayerText(Current.Classified));
+    Reading("Source", Current.Source);
+    Reading("Detail", Current.Detail);
+
+    bool HeightOn = false;
+    bool NormalOn = false;
+    for (std::uint32_t Channel = 0u; Channel < Current.ChannelCount; ++Channel)
+    {
+        const char* Naming = Current.Channels[Channel];
+        if (Naming == nullptr)
+            continue;
+        HeightOn = HeightOn || std::strcmp(Naming, "Height") == 0;
+        NormalOn = NormalOn || std::strcmp(Naming, "Normal") == 0;
+    }
+
+    Section("Height -> Normal", (HeightOn && NormalOn) ? "integrated" : "off");
+    Reading("Height", HeightOn ? "enabled" : "absent");
+    Reading("Normal", NormalOn ? "receiving" : "absent");
+
+    Section("Effects", (Current.Effects != nullptr && Current.Effects[0] != '\0')
+                       ? Current.Effects : "none");
+    Reading("Applied", Current.Effects);
+
+    char Opacity[16] = {};
+    std::snprintf(Opacity, sizeof Opacity, "%u%%", Applied.LayerOpacity[Ordinal]);
+    Section("Colour Blending", Current.Blend);
+    Reading("Blend", TextureBlendNames[Applied.LayerBlendTaken[Ordinal] % TextureBlendCount]);
+    Reading("Opacity", Opacity);
+
+    char Active[20] = {};
+    std::snprintf(Active, sizeof Active, "%u active", Current.ChannelCount);
+    Section("Channel Blending", Active);
+
+    const std::uint32_t ChannelCount = Current.ChannelCount < TextureChannelCeiling
+                                     ? Current.ChannelCount : TextureChannelCeiling;
+    for (std::uint32_t Channel = 0u; Channel < ChannelCount; ++Channel)
+    {
+        char Value[48] = {};
+        std::snprintf(Value, sizeof Value, "%s · %u%%",
+                      TextureBlendNames[Applied.ChannelBlendTaken[Ordinal][Channel] % TextureBlendCount],
+                      Applied.ChannelAmount[Ordinal][Channel]);
+        Reading(Current.Channels[Channel], Value);
+    }
+
+    Sweep += 6.0f;
+    return Sweep - Extent.MinimumY;
 }
 
 void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContext& Applied,
@@ -2113,6 +2280,14 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
         Applied.LayerTaken  = Ordinal;
         Applied.MaskTaken   = true;
         Applied.StackPage   = 1u;
+        Applied.PropertyTab = 1u;
+    }
+
+    if (Sampled.ContactDoublePressed && Hovered && !OnEye && !OnDetails && !OnMore)
+    {
+        Applied.LayerTaken = Ordinal;
+        Applied.MaskTaken = true;
+        Applied.StackPage = 1u;
         Applied.PropertyTab = 1u;
     }
 
