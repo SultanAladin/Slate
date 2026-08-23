@@ -9,8 +9,10 @@
 #include "Foundation/PrecisionGuarantee.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/ControlIndex/Api/ControlIndex.h"
+#include "SlateUI/Interface/Dropdown/Api/Dropdown.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/SymbolSpecification/Api/SymbolSpecification.h"
+#include "SlateUI/Interface/Tooltip/Api/Tooltip.h"
 
 #include <cstdint>
 
@@ -36,25 +38,6 @@ struct CardArrangement
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    WHAT EACH CONTROL TAKES
 //------------------------------------------------------------------------------------------------------------------------
-
-/// 🧩 What one selection field presents — its label, its options, and how many there are.
-/// note  🔴 The options are borrowed, never copied. `14` §1 forbids a panel storing what it presents, and an
-///       array of captions copied into the panel is exactly that defect at its smallest.
-/// tag   guarantee, nonallocating, nonthrowing
-struct SelectionDeclaration
-{
-    const char*         Caption     = "";        // [-] - the leading label
-    const char* const*  Options     = nullptr;   // [-] - borrowed; outlives the tick
-    std::uint32_t       OptionCount = 0u;        // [-] - zero records the field and no menu
-
-    /// 🔴 A caption-only dropdown had no way to say so. SelectionField always
-    ///    reserves `LabelX` (160 px) for a leading label plus `RowGapX` (32 px).
-    ///    The facet card sizes its pill at 132 px, which is NARROWER than that
-    ///    reserved strip, so the field came out 60 px INVERTED — MinimumX past
-    ///    MaximumX — with the caption drawn outside the pill entirely. Setting
-    ///    this true drops the strip and lets the field fill the row it is given.
-    bool CaptionInside = false;   // [-] - no leading label strip; caption sits in the field
-};
 
 /// 🧩 What one magnitude row presents — its label, its unit glyph, and the domain it spans.
 /// note  📐 The domain is stated rather than assumed. The sheet declares 0 … 255 for all three of its rows,
@@ -174,27 +157,6 @@ struct StopDeclaration
     const char*         Caption   = "";        // [-] - the leading label
     const char* const*  Stops     = nullptr;   // [-] - borrowed; the letter each stop carries
     std::uint32_t       StopCount = 0u;        // [-] - two to StopLimit
-};
-
-/// 🧩 Which of the sheet's two tooltip appearances one trigger carries.
-/// tag   guarantee
-enum class TooltipAppearance : std::uint32_t
-{
-    Light           = 0u,   // [-] - the white card and the white trigger
-    Dark            = 1u,   // [-] - the near-black card and the near-black trigger
-    AppearanceCount = 2u    // [-] - the closed count, never an appearance
-};
-
-/// 🧩 What one tooltip trigger presents — its figure, and the card that discloses above it.
-/// note  The body is borrowed and wrapped at record time against the card's stated extent. Nothing is
-///       measured into storage, so a caller may change the run between two ticks.
-/// tag   guarantee, nonallocating, nonthrowing
-struct TooltipDeclaration
-{
-    const char*        Title      = "";                            // [-] - the card's heading
-    const char*        Body       = "";                            // [-] - wrapped inside the card
-    SymbolSubject      Figure     = SymbolSubject::BulbFilament;   // [-] - the trigger's own figure
-    TooltipAppearance  Appearance = TooltipAppearance::Light;      // [-]
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -408,6 +370,7 @@ private:
         const char* const*  Options     = nullptr;                       // [-] - borrowed, for a menu
         std::uint32_t       OptionCount = 0u;                            // [-]
         std::uint32_t       TakenOption = 0u;                            // [-] - which option stands taken
+        SelectionIndicator  Indicator   = SelectionIndicator::Marked;
         float               Disclosure  = 0.0f;                          // [-] - animated open fraction
         const char*         Title       = nullptr;                       // [-] - borrowed, for a tooltip
         const char*         Body        = nullptr;                       // [-] - borrowed, for a tooltip

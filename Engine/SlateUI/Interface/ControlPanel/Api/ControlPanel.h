@@ -63,15 +63,6 @@ struct FoldDeclaration
     std::uint32_t       BodyCount   = 0u;        // [-] - rows held by the card
 };
 
-/// 🧩 One caption field and the menu rows it discloses beneath itself.
-/// tag   guarantee, nonallocating, nonthrowing
-struct DropdownDeclaration
-{
-    const char*         Caption     = "";        // [-] - leading field label
-    const char* const*  Options     = nullptr;   // [-] - borrowed; outlives the tick
-    std::uint32_t       OptionCount = 0u;        // [-] - menu rows presented
-};
-
 /// 🧩 Four display-referred colour ordinates edited by the HSV picker.
 /// tag   guarantee, nonallocating, nonthrowing
 struct PickerColour
@@ -191,12 +182,6 @@ public:
     /// tag   api, nonthrowing
     ControlVerdict CollapsibleCard(ControlIdentity Target, const PlaneExtent& Extent,
                                    const FoldDeclaration& Declared, bool& ExpansionEnabled);
-
-    /// 🧩 Presents one selection field and an animated menu card beneath it.
-    /// cost  🚩
-    /// tag   api, nonthrowing
-    ControlVerdict DropdownCard(ControlIdentity Target, const PlaneExtent& Extent,
-                                const DropdownDeclaration& Declared, std::uint32_t& TakenIndex);
 
     /// 🧩 Presents the CAD reference's HSV colour field, disclosure and three draggable areas.
     /// cost  🔴

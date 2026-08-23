@@ -4,7 +4,7 @@
 
 Make SlateUI a composition of small mechanisms and domain panels rather than a set of deep panel hierarchies that each redraw the same controls. A component receives caller-owned state, interaction identity, geometry, and theme roles; it reports user intent. Domain panels decide what the intent means.
 
-This is the migration plan and progress record. The validation-host cleanup and dead-prototype retirement are complete. The first preference increment is also implemented: Control Centre UI Scaling now drives `ViewportSequence` and the resolved appearance in EditorHost and PaintHost. Dropdown, tree, SVG generation, and typed antialiasing migrations remain planned.
+This is the migration plan and progress record. The validation-host cleanup and dead-prototype retirement are complete. Control Centre UI Scaling drives `ViewportSequence` in EditorHost and PaintHost. Interface geometry antialiasing is typed and functional; font, viewport, and future SVG tessellation quality remain separate typed domains. Dropdown consolidation has started: the duplicate `DropdownCard` path is removed, declarations have their own header, marked selections use trailing state dots, and filter menus use a plain mode. Tooltip, tree, and SVG-generation migrations remain planned.
 
 ## Cleanup completed before this plan
 

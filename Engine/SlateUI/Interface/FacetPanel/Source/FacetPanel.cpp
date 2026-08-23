@@ -324,6 +324,7 @@ Outcome<bool> FacetPanel::Record(const PlaneExtent& Extent,
     //    was 60 px INVERTED and the caption fell outside the pill. The dropdown
     //    is caption-only, so say so.
     Dropdown.CaptionInside = true;
+    Dropdown.Indicator = SelectionIndicator::Plain;
     if (PendingSelection >= AvailableCount)
         PendingSelection = 0u;
 

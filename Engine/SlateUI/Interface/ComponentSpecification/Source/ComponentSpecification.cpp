@@ -472,6 +472,7 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Target, co
         Holding.Options     = Declared.Options;
         Holding.OptionCount = Declared.OptionCount;
         Holding.TakenOption = TakenIndex;
+        Holding.Indicator   = Declared.Indicator;
         Holding.Disclosure  = Disclosure;
         Holding.Menu        = true;
     }
@@ -2078,23 +2079,23 @@ void ComponentSpecification::RecordMenu(const DeferredRecording& Holding)
         const char* Caption = (Holding.Options != nullptr) ? Holding.Options[Index] : "";
         const bool  Taken   = Index == Holding.TakenOption;
 
-        // 🔴 The standing option was marked by colour alone here, and elsewhere in the
-        //    editor by a tick or a chevron glyph — three vocabularies for one idea.
-        //    SubsetRow already states "this one is taken" with a rail down the leading
-        //    edge and the validation host shows it on Entry one … four. That is the
-        //    indicator the whole interface should spend, so the menu spends it too.
-        if (Taken)
+        // Selection and shading menus use one trailing-dot vocabulary. Plain filter menus omit it because
+        // the roster narrows content rather than choosing one persistent presentation value.
+        const bool Marked = Holding.Indicator == SelectionIndicator::Marked;
+        if (Marked)
         {
-            Surface->Ground(Spanning(Option.MinimumX, Option.MinimumY + 3.0f,
-                                     Measure.SubsetRailX, Option.Height() - 6.0f),
-                            Colour.RowRailTaken, Measure.SubsetRailX * 0.5f, CornerAll);
+            Surface->Medallion(Option.MaximumX - Measure.OptionPadX,
+                               Option.MinimumY + Option.Height() * 0.5f,
+                               Taken ? 4.0f : 3.0f,
+                               Taken ? Colour.RowRailTaken : Colour.LabelQuiet);
         }
 
         const float CaptionLead = Option.MinimumX + Measure.OptionPadX;
+        const float MarkerSpace = Marked ? Measure.OptionPadX * 2.0f : 0.0f;
 
         Surface->TextRunTruncated(CaptionLead,
                                   CentredY(Option, Measure.RowText),
-                                  Option.Width() - Measure.OptionPadX * 2.0f,
+                                  Option.Width() - Measure.OptionPadX * 2.0f - MarkerSpace,
                                   (Over || Taken) ? Colour.OptionColourHovered : Colour.OptionColour,
                                   Caption, Measure.RowText, false);
 

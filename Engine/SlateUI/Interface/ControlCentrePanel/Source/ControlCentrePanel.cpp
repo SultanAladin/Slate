@@ -418,7 +418,8 @@ void ControlCentrePanel::DashboardPage(const PlaneExtent& Extent, ControlCentreC
     Surface->TextRun(Left.MinimumX + 8.0f, Left.MinimumY, Theme.Primary, "Control Center", 20.0f, 0.0f, true);
 
     const char* QualityNames[5] = {"Low", "Medium", "High", "Epic", "Cinematic"};
-    const char* AntialiasNames[3] = {"TSAA", "Basic", "None"};
+    const char* AntialiasNames[3] = {"Refined", "Basic", "None"};
+    const std::uint32_t Antialiasing = static_cast<std::uint32_t>(Configuration.GeometryAntialiasing);
     char LabelRuns[5][64] = {};
     std::snprintf(LabelRuns[0], sizeof(LabelRuns[0]), "Quality: %s", QualityNames[Configuration.Quality % 5u]);
     std::snprintf(LabelRuns[1], sizeof(LabelRuns[1]), "VSync: %s", Configuration.VsyncEnabled ? "ON" : "OFF");
@@ -426,7 +427,7 @@ void ControlCentrePanel::DashboardPage(const PlaneExtent& Extent, ControlCentreC
                   Configuration.IlluminationEnabled ? "ON" : "OFF");
     std::snprintf(LabelRuns[3], sizeof(LabelRuns[3]), "Notifications: %s",
                   Configuration.NotificationsEnabled ? "ON" : "OFF");
-    std::snprintf(LabelRuns[4], sizeof(LabelRuns[4]), "AA: %s", AntialiasNames[Configuration.Antialiasing % 3u]);
+    std::snprintf(LabelRuns[4], sizeof(LabelRuns[4]), "Interface AA: %s", AntialiasNames[Antialiasing % 3u]);
     for (std::uint32_t Index = 0u; Index < 5u; ++Index)
     {
         const float Column = static_cast<float>(Index % 2u);
@@ -438,7 +439,7 @@ void ControlCentrePanel::DashboardPage(const PlaneExtent& Extent, ControlCentreC
                             (Index == 1u && Configuration.VsyncEnabled) ||
                             (Index == 2u && Configuration.IlluminationEnabled) ||
                             (Index == 3u && Configuration.NotificationsEnabled) ||
-                            (Index == 4u && Configuration.Antialiasing != 2u);
+                            (Index == 4u && Configuration.GeometryAntialiasing != InterfaceAntialiasing::None);
         Surface->Ground(Tile, Active ? Accent : Theme.Card, static_cast<float>(Configuration.Radius), CornerAll);
         Surface->Edge(Tile, Theme.Edge, 1.0f, static_cast<float>(Configuration.Radius), CornerAll);
         Symbol(Spanning(Tile.MinimumX + Tile.Width() * .5f - 18.0f, Tile.MinimumY + 24.0f, 36.0f, 36.0f),
@@ -451,7 +452,8 @@ void ControlCentrePanel::DashboardPage(const PlaneExtent& Extent, ControlCentreC
             if (Index == 1u) Configuration.VsyncEnabled = !Configuration.VsyncEnabled;
             if (Index == 2u) Configuration.IlluminationEnabled = !Configuration.IlluminationEnabled;
             if (Index == 3u) Configuration.NotificationsEnabled = !Configuration.NotificationsEnabled;
-            if (Index == 4u) Configuration.Antialiasing = (Configuration.Antialiasing + 1u) % 3u;
+            if (Index == 4u)
+                Configuration.GeometryAntialiasing = static_cast<InterfaceAntialiasing>((Antialiasing + 1u) % 3u);
         }
     }
 
@@ -1221,17 +1223,19 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
     Surface->Ground(AntialiasSection, Theme.Card, 20.0f, CornerAll);
     Surface->Edge(AntialiasSection, Theme.Edge, 1.0f, 20.0f, CornerAll);
     Surface->TextRun(AntialiasSection.MinimumX + 20.0f, Cursor, Theme.Primary,
-                     "Font Antialiasing", 24.0f, 0.0f, false, RoleWeightOf(Configuration.TypographyWeight, 1u));
-    const char* Aa[3] = {"Subpixel (Auto)", "Grayscale", "None"};
+                     "Interface Antialiasing", 24.0f, 0.0f, false, RoleWeightOf(Configuration.TypographyWeight, 1u));
+    const char* Aa[3] = {"Refined", "Basic", "None"};
     for (std::uint32_t Index = 0u; Index < 3u; ++Index)
     {
         const PlaneExtent B = Spanning(AntialiasSection.MinimumX + 20.0f +
                                            (AntialiasSection.Width() - 40.0f) / 3.0f * Index,
                                        Cursor + 45.0f, (AntialiasSection.Width() - 40.0f) / 3.0f, 42.0f);
-        Surface->Ground(B, Configuration.Antialiasing == Index ? Theme.Card : QuietDark, 12.0f, CornerAll);
+        Surface->Ground(B, static_cast<std::uint32_t>(Configuration.GeometryAntialiasing) == Index
+                           ? Theme.Card : QuietDark, 12.0f, CornerAll);
         Surface->TextRun(CentreText(*Surface, B, Aa[Index], 13.0f), CentredY(B, 13.0f), Theme.Primary,
                          Aa[Index], 13.0f);
-        if (Pressed(168u + Index, B)) Configuration.Antialiasing = Index;
+        if (Pressed(168u + Index, B))
+            Configuration.GeometryAntialiasing = static_cast<InterfaceAntialiasing>(Index);
     }
 }
 

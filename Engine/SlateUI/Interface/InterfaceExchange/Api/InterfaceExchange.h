@@ -8,6 +8,7 @@
 #include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
+#include "SlateUI/Interface/InterfacePreferences/Api/InterfacePreferences.h"
 #include "Foundation/NumericTolerance.h"
 
 #include <vulkan/vulkan.h>
@@ -122,6 +123,13 @@ public:
     ///        `StyleColorsDark` — so a style applied once at bring-up was silently lost on every rebuild
     ///        and the trapezoidal tabs reverted to stock rectangles with nothing reporting it.
     Outcome<bool> ApplyWorkspaceStyle(const WorkspaceMetric& Measure, const WorkspaceColour& Tinted);
+
+    /// 🧩 Applies interface-geometry antialiasing and curve quality to the vendor draw lists.
+    /// note  Retained across device/context rebuilds and latched by the vendor at the next frame boundary.
+    /// note  This does not alter viewport rendering, font rasterisation, or future SVG flattening quality.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    Outcome<bool> ApplyInterfaceAntialiasing(InterfaceAntialiasing Preference);
 
     /// 🧩 Opens the dock space the workspace body is docked into, filling the declared extent.
     /// note  🔴 One dock space per host, over the body alone. `DockingEnable` makes panels dockable; a dock
@@ -279,6 +287,7 @@ private:
     bool                 WindowAttached    = false;            // [-] - the window system attachment stands
     bool                 VendorAttached    = false;            // [-] - the vendor attachment stands
     bool                 StyleApplied       = false;            // [-] - a workspace style was applied once
+    InterfaceAntialiasing Antialiasing      = InterfaceAntialiasing::Refined;
     bool                 WorkspaceEntered  = false;            // [-] - between workspace entry and leave
     WorkspaceMetric      AppliedMeasure     = {};               // [-] - retained, so Construct re-applies it
     WorkspaceColour         AppliedColour         = {};               // [-] - retained, so Construct re-applies it

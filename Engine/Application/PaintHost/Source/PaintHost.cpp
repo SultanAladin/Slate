@@ -504,6 +504,8 @@ int main(int ArgumentCount, char** ArgumentValues)
                     Viewport.Appearance().Workspace));
                 ContentBrowser.Reapply(Viewport.Appearance());
             }
+            Discard(Viewport.Seam().ApplyInterfaceAntialiasing(
+                ControlCentreValues.GeometryAntialiasing));
 
             // 📝 Compared rather than watched. The Control Centre writes the artist's choice straight into the
             //    ordinates, so the change is visible here as a difference and needs no callback to report it.

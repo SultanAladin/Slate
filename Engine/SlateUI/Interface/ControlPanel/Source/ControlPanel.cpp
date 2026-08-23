@@ -58,9 +58,6 @@ constexpr double DiscloseDuration     = 200.0;   // [ms] - card and menu disclos
 constexpr double CarouselDuration     = 300.0;   // [ms] - inspector page transition duration
 constexpr float FoldHeaderHeight      = 31.0f;   // [px] - folding card header
 constexpr float FoldRowHeight         = 30.0f;   // [px] - one disclosed property row
-constexpr float DropdownHeadHeight    = 32.0f;   // [px] - selection field
-constexpr float DropdownOptionHeight  = 26.0f;   // [px] - one menu option
-constexpr float DropdownGapY     = 6.0f;    // [px] - field to menu separation
 constexpr float ColourHeadHeight      = 40.0f;   // [px] - colour field
 constexpr float ColourGapY       = 9.0f;    // [px] - field to picker separation
 constexpr float ColourPickerY    = 269.0f;  // [px] - picker card including its padding
@@ -618,120 +615,6 @@ ControlVerdict ControlPanel::CollapsibleCard(ControlIdentity Target, const Plane
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       DROPDOWN CARD
-//------------------------------------------------------------------------------------------------------------------------
-
-ControlVerdict ControlPanel::DropdownCard(ControlIdentity Target, const PlaneExtent& Extent,
-                                          const DropdownDeclaration& Declared, std::uint32_t& TakenIndex)
-{
-    ControlVerdict Verdict;
-
-    if (Interaction == nullptr || Recording == nullptr || Declared.Options == nullptr || Declared.OptionCount == 0u)
-        return Verdict;
-
-    if (TakenIndex >= Declared.OptionCount)
-        TakenIndex = 0u;
-
-    const PlaneExtent Head = { Extent.MinimumX, Extent.MinimumY,
-                               Extent.MaximumX, Extent.MinimumY + DropdownHeadHeight };
-    const bool Open = Interaction->Disclosed(Target);
-    const float MenuTop = Head.MaximumY + DropdownGapY;
-    std::uint32_t HoveredOption = Declared.OptionCount;
-
-    for (std::uint32_t Index = 0u; Index < Declared.OptionCount; ++Index)
-    {
-        const PlaneExtent Option = Spanning(Extent.MinimumX, MenuTop + DropdownOptionHeight * static_cast<float>(Index),
-                                            Extent.Width(), DropdownOptionHeight);
-        if (Open && Option.Encloses(Sampled.PositionX, Sampled.PositionY))
-            HoveredOption = Index;
-    }
-
-    const bool HeadHovered = Head.Encloses(Sampled.PositionX, Sampled.PositionY);
-    const bool MenuHovered = HoveredOption < Declared.OptionCount;
-
-    if ((HeadHovered || MenuHovered) && Sampled.ContactPressed)
-        Interaction->Grab(Target, MenuHovered ? ControlPart::Option : ControlPart::Body);
-    else if (Open && Sampled.ContactPressed && !Extent.Encloses(Sampled.PositionX, Sampled.PositionY))
-        Interaction->Withdraw();
-
-    const bool QuickTap = Sampled.ContactPressed && Sampled.ContactReleased && (HeadHovered || MenuHovered);
-
-    if (Interaction->Released(Target) || QuickTap)
-    {
-        if (MenuHovered)
-        {
-            TakenIndex             = HoveredOption;
-            Verdict.ReadingAltered = true;
-            Interaction->Withdraw();
-        }
-        else if (HeadHovered)
-        {
-            if (Open) Interaction->Withdraw();
-            else      Interaction->Disclose(Target);
-        }
-    }
-
-    const bool DisclosureOpen = Interaction->Disclosed(Target);
-    Interaction->DeclareHovered(Target, HeadHovered || MenuHovered, HoverDuration);
-    Interaction->DeclareTaken(Target, DisclosureOpen, DiscloseDuration);
-
-    const float HoverFraction = Interaction->HoveredFraction(Target);
-    const float Disclosure = Interaction->TakenFraction(Target);
-    const float CaptionX = 92.0f;
-    const PlaneExtent Field = { Head.MinimumX + CaptionX, Head.MinimumY, Head.MaximumX, Head.MaximumY };
-
-    Recording->TextRun(Head.MinimumX, CentredY(Head, ReferenceText),
-                       Blend(MutedColour, PrimaryColour, HeadHovered ? HoverFraction : 0.0f),
-                       Declared.Caption, ReferenceText);
-    Recording->Ground(Field, FieldGround, 16.0f, CornerAll);
-    Recording->Edge(Field, Blend(HairColour, StrongHairColour, HoverFraction), 1.0f, 16.0f, CornerAll);
-    Recording->TextRunTruncated(Field.MinimumX + 12.0f, CentredY(Field, ReferenceText),
-                                Field.MaximumX - 35.0f, PrimaryColour,
-                                Declared.Options[TakenIndex], ReferenceText);
-    Recording->Stroke(Disclosure > 0.5f ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
-                      Spanning(Field.MaximumX - 25.0f, Field.MinimumY + 9.0f, 13.0f, 13.0f), MutedColour);
-
-    if (Disclosure > 0.0f)
-    {
-        const float MenuHeight = DropdownOptionHeight * static_cast<float>(Declared.OptionCount) + 8.0f;
-        const PlaneExtent Menu = { Field.MinimumX, MenuTop, Field.MaximumX,
-                                   MenuTop + MenuHeight * Disclosure };
-        Recording->Ground(Menu, PanelGround, 9.0f, CornerAll);
-        Recording->Edge(Menu, StrongHairColour, 1.0f, 9.0f, CornerAll);
-        Recording->Confine(Menu);
-
-        for (std::uint32_t Index = 0u; Index < Declared.OptionCount; ++Index)
-        {
-            const PlaneExtent Option = Spanning(Menu.MinimumX + 4.0f,
-                                                Menu.MinimumY + 4.0f + DropdownOptionHeight * static_cast<float>(Index),
-                                                Menu.Width() - 8.0f, DropdownOptionHeight);
-            const bool Taken = Index == TakenIndex;
-            const bool Hovered = Index == HoveredOption;
-
-            if (Hovered)
-            {
-                Recording->Ground(Option, TileHovered, 5.0f, CornerAll);
-                Recording->Ground(Spanning(Option.MinimumX, Option.MinimumY, 3.0f, Option.Height()),
-                                  AccentColour, 1.0f, CornerAll);
-            }
-
-            Recording->TextRunTruncated(Option.MinimumX + 10.0f, CentredY(Option, SmallText),
-                                        Option.MaximumX - 26.0f, Taken ? PrimaryColour : MutedColour,
-                                        Declared.Options[Index], SmallText, Taken);
-            Recording->Medallion(Option.MaximumX - 11.0f,
-                                 Option.MinimumY + Option.Height() * 0.5f,
-                                 Taken ? 4.0f : 3.0f, Taken ? AccentColour : FaintColour);
-        }
-
-        Recording->Release();
-    }
-
-    Verdict.ContactTaken = Interaction->Holding(Target);
-    Verdict.Mark = (Disclosure > 0.0f && Disclosure < 1.0f) ? RedrawMark::Rearrange
-                                                            : (HeadHovered || MenuHovered) ? RedrawMark::Recolour
-                                                                                         : RedrawMark::Quiet;
-    return Verdict;
-}
-
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        COLOUR PICKER
 //------------------------------------------------------------------------------------------------------------------------

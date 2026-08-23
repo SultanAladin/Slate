@@ -12,6 +12,7 @@
 #include "SlateUI/Interface/DrawerSpace/Api/DrawerSpace.h"
 #include "SlateUI/Interface/ControlIndex/Api/ControlIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
+#include "SlateUI/Interface/InterfacePreferences/Api/InterfacePreferences.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
 #include "SlateUI/Interface/ShortcutSpecification/Api/ShortcutSpecification.h"
 #include "SlateUI/Interface/ThemeSpecification/Api/ThemeSpecification.h"
@@ -62,7 +63,9 @@ struct ControlCentreConfiguration
     AccentSubject SemanticColours[5] = {AccentSubject::Blue, AccentSubject::Violet, AccentSubject::Cyan,
                                         AccentSubject::Amber, AccentSubject::Rose};
     std::uint32_t Quality = 2u;
-    std::uint32_t Antialiasing = 1u;
+    InterfaceAntialiasing GeometryAntialiasing = InterfaceAntialiasing::Refined;
+    FontRasterisation FontAntialiasing = FontRasterisation::Automatic;
+    VectorTessellation VectorQuality = VectorTessellation::Balanced;
     std::uint32_t Resolution = 0u;
     std::uint32_t Scaling = 100u;
     std::uint32_t RefreshRate = 0u;

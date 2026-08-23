@@ -193,6 +193,7 @@ Outcome<bool> InterfaceExchange::AttachInterface(const InterfaceAttachment& Inco
     //    every device rebuild, and the trapezoidal tabs reverted to stock rectangles.
     if (StyleApplied)
         Discard(ApplyWorkspaceStyle(AppliedMeasure, AppliedColour));
+    Discard(ApplyInterfaceAntialiasing(Antialiasing));
 
     return Outcome<bool>::Result(true);
 }
@@ -495,6 +496,47 @@ bool InterfaceExchange::VacantPressed(const PlaneExtent& Extent)
     ImGui::PopStyleVar();
 
     return Pressed;
+}
+
+Outcome<bool> InterfaceExchange::ApplyInterfaceAntialiasing(InterfaceAntialiasing Preference)
+{
+    Antialiasing = Preference;
+
+    if (ContextSlot == nullptr)
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no interface context stands" });
+
+    ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
+    ImGuiStyle& Applied = ImGui::GetStyle();
+
+    switch (Preference)
+    {
+        case InterfaceAntialiasing::Refined:
+            Applied.AntiAliasedLines       = true;
+            Applied.AntiAliasedLinesUseTex = true;
+            Applied.AntiAliasedFill        = true;
+            Applied.CurveTessellationMaxError  = 0.50f;
+            Applied.CircleTessellationMaxError = 0.20f;
+            break;
+        case InterfaceAntialiasing::Basic:
+            Applied.AntiAliasedLines       = true;
+            Applied.AntiAliasedLinesUseTex = false;
+            Applied.AntiAliasedFill        = true;
+            Applied.CurveTessellationMaxError  = 1.25f;
+            Applied.CircleTessellationMaxError = 0.50f;
+            break;
+        case InterfaceAntialiasing::None:
+            Applied.AntiAliasedLines       = false;
+            Applied.AntiAliasedLinesUseTex = false;
+            Applied.AntiAliasedFill        = false;
+            Applied.CurveTessellationMaxError  = 2.00f;
+            Applied.CircleTessellationMaxError = 1.00f;
+            break;
+        default:
+            Antialiasing = InterfaceAntialiasing::Refined;
+            return ApplyInterfaceAntialiasing(Antialiasing);
+    }
+
+    return Outcome<bool>::Result(true);
 }
 
 void InterfaceExchange::RecordDockSpace(const PlaneExtent& Extent)

@@ -491,10 +491,11 @@ int main(int ArgumentCount, char** ArgumentValues)
     TransformFold.BodyRuns  = TransformRuns;
     TransformFold.BodyCount = 3u;
 
-    DropdownDeclaration ShadingMenu;
+    SelectionDeclaration ShadingMenu;
     ShadingMenu.Caption     = "Shading";
     ShadingMenu.Options     = ShadingOptions;
     ShadingMenu.OptionCount = 3u;
+    ShadingMenu.Indicator   = SelectionIndicator::Marked;
 
     ColourPickerDeclaration AlbedoPicker;
     AlbedoPicker.Caption = "Albedo";
@@ -810,8 +811,8 @@ int main(int ArgumentCount, char** ArgumentValues)
                                         InspectorCarousel, Applied.InspectorTaken);
         ReferenceControls.CollapsibleCard(Target.TransformFold, RowAt(ReferenceCard, ReferenceRows, 4u),
                                           TransformFold, Applied.TransformOpen);
-        ReferenceControls.DropdownCard(Target.ShadingMenu, RowAt(ReferenceCard, ReferenceRows, 5u),
-                                       ShadingMenu, Applied.ShadingTaken);
+        Panel.SelectionField(Target.ShadingMenu, RowAt(ReferenceCard, ReferenceRows, 5u),
+                             ShadingMenu, Applied.ShadingTaken);
         ReferenceControls.ColourPicker(Target.AlbedoPicker, RowAt(ReferenceCard, ReferenceRows, 6u),
                                        AlbedoPicker, Applied.Albedo);
 
