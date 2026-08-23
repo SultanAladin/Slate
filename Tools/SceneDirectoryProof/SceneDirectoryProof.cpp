@@ -920,6 +920,15 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         Driver.Settle(20);
         Driver.Applied.OutlinePage = 1u;
         Driver.Settle(24);
+        Driver.Applied.OutlinePage = 0u;
+        Driver.Settle(24);
+        Driver.Tap(820.0f, 315.0f); // Sky Atmosphere after the inspector slid away
+        if (Driver.Applied.EntityTaken != 3u || !Driver.Applied.EntitySelected[3u])
+        {
+            std::fprintf(stderr, "[FAIL] directory selection stopped responding after a page slide\n");
+            return false;
+        }
+        std::fprintf(stderr, "[assert] directory selection remains live after a page slide\n");
     }
     else if (std::strcmp(Scenario, "editor-camera-properties") == 0)
     {
@@ -968,6 +977,18 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
     else if (std::strcmp(Scenario, "editor-sun-props") == 0)
     {
         Driver.ApplyPartition(true);
+        Driver.Settle(20);
+    }
+    else if (std::strcmp(Scenario, "editor-sky-quality") == 0)
+    {
+        Driver.ApplyPartition(true);
+        for (std::uint32_t Index = 0u; Index < SceneDirectoryContext::EntityLimit; ++Index)
+            Driver.Applied.EntitySelected[Index] = false;
+        Driver.Applied.EntityTaken = 3u; // Sky Atmosphere
+        Driver.Applied.EntitySelected[3u] = true;
+        Driver.Settle(20);
+        for (std::uint32_t Index = 0u; Index < 10u; ++Index)
+            Driver.Tick(1050.0f, 760.0f, false, false, false, -3.0f);
         Driver.Settle(20);
     }
     else if (std::strcmp(Scenario, "editor-grid-settings") == 0)
@@ -3090,7 +3111,7 @@ int main(int ArgumentCount, char** Arguments)
     const char* Shots[] = {"editor-overview", "editor-directory-multiselect",
                            "editor-outliner-inspector", "editor-camera-properties",
                            "editor-camera-bookmarks",
-                           "editor-sun-props",
+                           "editor-sun-props", "editor-sky-quality",
                            "editor-after-drag",
                            "editor-camera-fly", "editor-grid-settings", "editor-overlay-fallback",
                            "editor-search-filter", "editor-grid-fade", "editor-grid-dropdown",

@@ -573,8 +573,9 @@ void EditorPanel::RecordFooter(std::uint32_t RecordIndex,
         const PlaneExtent Button = Spanning(Trailing, Extent.MinimumY + 10.0f, X, Measure.PillY);
         Surface->Ground(Button, Colour.BodyGround, Measure.PillRadius, CornerAll);
         Surface->Edge(Button, Accent, Measure.EdgeWeight, Measure.PillRadius, CornerAll);
-        Surface->TextRun(Button.MinimumX + Button.Width() * 0.5f,
-                         Button.MinimumY + 8.0f,
+        const float CaptionWidth = Surface->MeasureRun(Caption, Measure.TextSmall);
+        Surface->TextRun(Button.MinimumX + (Button.Width() - CaptionWidth) * 0.5f,
+                         Button.MinimumY + (Button.Height() - Measure.TextSmall) * 0.5f,
                          Colour.ColourQuiet,
                          Caption,
                          Measure.TextSmall,
@@ -908,6 +909,12 @@ void EditorPanel::RecordLatticeMenu(std::uint32_t RecordIndex,
                                       Anchor.MinimumY - (MenuHeight + 12.0f),
                                       MenuX,
                                       MenuHeight);
+    if (Pointer.ContactPressed && !Menu.Encloses(Pointer.PositionX, Pointer.PositionY) &&
+        !Anchor.Encloses(Pointer.PositionX, Pointer.PositionY))
+    {
+        CloseDisclosure();
+        return;
+    }
     Surface->Ground(Menu, Colour.ChromeGround, 12.0f, CornerAll);
     Surface->Edge(Menu, Colour.Edge, Measure.EdgeWeight, 12.0f, CornerAll);
     Surface->TextRun(Menu.MinimumX + 20.0f, Menu.MinimumY + 18.0f,
@@ -1039,6 +1046,14 @@ void EditorPanel::RecordFooterMenu(std::uint32_t RecordIndex,
 {
     const EditorPanelMetric& Measure = Appearance->EditorPanelMeasure;
     const EditorPanelColour&    Colour     = Appearance->EditorPanel;
+    const auto Dismissed = [&](const PlaneExtent& Menu) -> bool
+    {
+        if (!Pointer.ContactPressed || Menu.Encloses(Pointer.PositionX, Pointer.PositionY) ||
+            Anchor.Encloses(Pointer.PositionX, Pointer.PositionY))
+            return false;
+        CloseDisclosure();
+        return true;
+    };
     const auto FitExtent = [&](float DesiredMinimum,
                                float DesiredX,
                                float MinimumY,
@@ -1056,6 +1071,7 @@ void EditorPanel::RecordFooterMenu(std::uint32_t RecordIndex,
     if (Role == ControlRole::CameraMenu)
     {
         const PlaneExtent Menu = FitExtent(Anchor.MinimumX, 240.0f, Anchor.MinimumY - 116.0f, 104.0f);
+        if (Dismissed(Menu)) return;
         Surface->Ground(Menu, Colour.ChromeGround, 12.0f, CornerAll);
         Surface->Edge(Menu, Colour.Edge, Measure.EdgeWeight, 12.0f, CornerAll);
         Surface->TextRun(Menu.MinimumX + 12.0f, Menu.MinimumY + 14.0f,
@@ -1075,6 +1091,7 @@ void EditorPanel::RecordFooterMenu(std::uint32_t RecordIndex,
                                            200.0f,
                                            Anchor.MinimumY - 132.0f,
                                            120.0f);
+        if (Dismissed(Menu)) return;
         Surface->Ground(Menu, Colour.ChromeGround, 12.0f, CornerAll);
         Surface->Edge(Menu, Colour.Edge, Measure.EdgeWeight, 12.0f, CornerAll);
 
@@ -1105,6 +1122,7 @@ void EditorPanel::RecordFooterMenu(std::uint32_t RecordIndex,
                                            Measure.MenuRowHeight * static_cast<float>(OptionCount) - 12.0f,
                                        Measure.MenuPadY * 2.0f +
                                            Measure.MenuRowHeight * static_cast<float>(OptionCount));
+    if (Dismissed(Menu)) return;
     Surface->Ground(Menu, Colour.ChromeGround, Measure.MenuRadius, CornerAll);
     Surface->Edge(Menu, Colour.Edge, Measure.EdgeWeight, Measure.MenuRadius, CornerAll);
 

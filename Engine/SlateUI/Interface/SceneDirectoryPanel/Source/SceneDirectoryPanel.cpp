@@ -321,6 +321,7 @@ Outcome<bool> SceneDirectoryPanel::ConstructSceneDirectoryPanel(ControlIndex& In
         &BookmarkRecall,
         &BookmarkRetire,
         &SearchField,
+        &EnvironmentQuality,
         &CardFolds[0], &CardFolds[1], &CardFolds[2], &CardFolds[3],
         // 🔴 A control that is never registered resolves to nothing, so its row
         //    would draw but refuse every contact — the axis would look editable
@@ -1097,9 +1098,29 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
     const PlaneExtent DirectoryExtent = OutlinePages.Page(Extent, 0u);
     const PlaneExtent InspectorExtent = OutlinePages.Page(Extent, 1u);
     const PlaneExtent TransferExtent  = OutlinePages.Page(Extent, 2u);
+    const PointerCondition LivePointer = Sampled;
+    struct PointerRestore
+    {
+        PointerCondition& Slot;
+        PointerCondition  Saved;
+        ~PointerRestore() { Slot = Saved; }
+    } RestorePointer{ Sampled, LivePointer };
+    const auto SeatPagePointer = [&](std::uint32_t Page)
+    {
+        Sampled = LivePointer;
+        if (OutlinePages.CurrentPage() != Page)
+        {
+            Sampled.PositionX = -1000000.0f;
+            Sampled.PositionY = -1000000.0f;
+            Sampled.ContactHeld = Sampled.ContactPressed = Sampled.ContactReleased = false;
+            Sampled.ContactDoublePressed = false;
+            Sampled.WheelY = 0.0f;
+        }
+    };
 
     if (!Surface->Excluded(TransferExtent))
     {
+        SeatPagePointer(2u);
         Surface->Confine(Extent);
         RecordTransfer(TransferExtent, Applied);
         Surface->Release();
@@ -1107,6 +1128,7 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
 
     if (!Surface->Excluded(InspectorExtent))
     {
+        SeatPagePointer(1u);
         Surface->Confine(Extent);
         RecordProperties(InspectorExtent, Applied, Rows, RowCount,
                          Applied.OutlineInspectorTab, true);
@@ -1114,8 +1136,12 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
     }
 
     if (Surface->Excluded(DirectoryExtent))
+    {
+        Sampled = LivePointer;
         return;
+    }
 
+    SeatPagePointer(0u);
     Surface->Confine(Extent);
 
     // 📐 The directory and its immediate details use the validation drafting split, constrained to 60%
@@ -2044,6 +2070,28 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
     std::snprintf(ComponentCaption, sizeof(ComponentCaption), "%s Component",
                   EntityText(Current.Subject));
 
+    const auto RecordEnvironmentQuality = [&]()
+    {
+        static const char* const Options[4] = { "Preview", "Balanced", "High", "Ultra" };
+        SelectionDeclaration Declaration;
+        Declaration.Caption = "Quality";
+        Declaration.Options = Options;
+        Declaration.OptionCount = 4u;
+        Declaration.Indicator = SelectionIndicator::Marked;
+        Applied.Environment.AtmosphereQuality = std::min(Applied.Environment.AtmosphereQuality, 3u);
+        const PlaneExtent Card = Spanning(Extent.MinimumX + Scaled.PanePad, Sweep,
+                                          Extent.Width() - Scaled.PanePad * 2.0f,
+                                          Scaled.RowHeight + Scaled.PanePad * 2.0f);
+        Surface->Ground(Card, Tinted.Desk, Scaled.CardRadius, CornerAll);
+        Surface->Edge(Card, Tinted.Hairline, 1.0f, Scaled.CardRadius, CornerAll);
+        EnvironmentControls.SelectionField(
+            EnvironmentQuality,
+            Spanning(Card.MinimumX + Scaled.PanePad, Card.MinimumY + Scaled.PanePad,
+                     Card.Width() - Scaled.PanePad * 2.0f, Scaled.RowHeight),
+            Declaration, Applied.Environment.AtmosphereQuality);
+        Sweep = Card.MaximumY + Scaled.PanePad * 0.85f;
+    };
+
     // 📐 The per-subject field sets, and the environment cards where the subject is the sun or the sky
     //    while the environment is presented.
     switch (Current.Subject)
@@ -2174,6 +2222,7 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
 
                 Applied.Environment.SunDiscRadius    = DiscValues[0];
                 Applied.Environment.SunDiscIntensity = DiscValues[1];
+                RecordEnvironmentQuality();
             }
             else
             {
@@ -2228,6 +2277,7 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
                 Applied.Environment.MieScaleHeightKilometres = AtmoValues[3];
                 Applied.Environment.MieAsymmetry = AtmoValues[4];
                 Applied.Environment.OzoneDensity = AtmoValues[5];
+                RecordEnvironmentQuality();
             }
             else
             {

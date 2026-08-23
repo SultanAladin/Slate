@@ -230,7 +230,7 @@ struct EnvironmentConfiguration
     double MieScaleHeightKilometres = 1.2; // [km] - aerosol scale height, 0.1…8
     double MieAsymmetry = 0.80;       // [-]   - the Mie forward-scattering asymmetry, -0.95…0.95
     double OzoneDensity = 1.0;        // [-]   - Chappuis absorption multiplier, 0…3
-    double DomeResolution = 1.0;      // [-]   - retained document quality preference
+    std::uint32_t AtmosphereQuality = 2u; // [-] - 0 Preview, 1 Balanced, 2 High, 3 Ultra
 };
 
 /// 🧩 The sky dome's own camera, stated in plain numbers so the panel never names an Application type.

@@ -7,8 +7,8 @@
 namespace Slate
 {
 
-static_assert(sizeof(DynamicSkyParameters) == 64u,
-              "the dynamic sky push constants must match the shader's sixteen FP32 fields");
+static_assert(sizeof(DynamicSkyParameters) == 68u,
+              "the dynamic sky push constants must match the shader's sixteen FP32 fields and quality field");
 
 namespace
 {

@@ -369,6 +369,23 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                static_cast<float>(Pass.Width),
                                                static_cast<float>(Pass.Height));
 
+            const PointerCondition& ForegroundPointer = Viewport.Surface().Pointer();
+            const PlaneExtent NorthInterior = Viewport.Drawers().Interior(DrawerBearing::North);
+            const PlaneExtent SouthInterior = Viewport.Drawers().Interior(DrawerBearing::South);
+            const bool PointerBehindDrawer =
+                NorthInterior.Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY) ||
+                SouthInterior.Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY);
+            PointerCondition BackgroundPointer = ForegroundPointer;
+            if (PointerBehindDrawer)
+            {
+                BackgroundPointer.PositionX = BackgroundPointer.PositionY = -1000000.0f;
+                BackgroundPointer.TravelX = BackgroundPointer.TravelY = BackgroundPointer.WheelY = 0.0f;
+                BackgroundPointer.ContactHeld = BackgroundPointer.ContactPressed = false;
+                BackgroundPointer.ContactDoublePressed = BackgroundPointer.ContactReleased = false;
+                BackgroundPointer.SecondaryHeld = BackgroundPointer.SecondaryPressed = false;
+                BackgroundPointer.SecondaryReleased = false;
+            }
+
             Discard(Workspace.Record(Whole, Workspaces.ActiveTitle()));
 
             // 🔴 The dock space FIRST, over the whole panel. Every workspace below docks into it, and the
@@ -390,7 +407,7 @@ int main(int ArgumentCount, char** ArgumentValues)
 
             RegisterIntoNode = 0u;
 
-            WorkspacePanels.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+            WorkspacePanels.Advance(BackgroundPointer, Pass.ElapsedMilliseconds);
 
             for (std::uint32_t Index = 0u; Index < OpenCount; ++Index)
             {
@@ -478,6 +495,8 @@ int main(int ArgumentCount, char** ArgumentValues)
             if (BrowserInterior.Width() > 0.0f && BrowserInterior.Height() > 0.0f)
             {
                 Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
+                Viewport.Surface().Ground(BrowserInterior, Viewport.Appearance().Colour.SurfaceCurrent,
+                                          0.0f, CornerNone);
                 ContentBrowser.RecordBrowser(BrowserInterior, ContentApplied, ContentBrowserApplied);
                 ContentBrowser.RecordDeferred();
 
@@ -493,6 +512,9 @@ int main(int ArgumentCount, char** ArgumentValues)
             //    current choice; the viewport re-states them after each resolve.
             Viewport.ApplyTypographyWeights(ControlCentreValues.TypographyWeight);
             Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
+            if (ControlInterior.Width() > 0.0f && ControlInterior.Height() > 0.0f)
+                Viewport.Surface().Ground(ControlInterior, Viewport.Appearance().Colour.SurfaceCurrent,
+                                          0.0f, CornerNone);
             Discard(ControlCentre.Record(ControlInterior, ControlCentreValues));
 
             // Apply the Control Centre preference to the shared appearance instead of displaying a

@@ -166,6 +166,10 @@ private:
     float Scroll[static_cast<std::uint32_t>(ControlCentrePage::PageCount)] = {};
     float ScrollFrom[static_cast<std::uint32_t>(ControlCentrePage::PageCount)] = {};
     float ScrollTarget[static_cast<std::uint32_t>(ControlCentrePage::PageCount)] = {};
+    std::uint32_t DisplayScrollMotion[3] = {};
+    float DisplayScroll[3] = {};
+    float DisplayScrollFrom[3] = {};
+    float DisplayScrollTarget[3] = {};
     float FontScroll = 0.0f;
     float FontFrom = 0.0f;
     float FontTarget = 0.0f;

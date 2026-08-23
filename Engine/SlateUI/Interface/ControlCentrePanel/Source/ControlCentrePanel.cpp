@@ -8,6 +8,7 @@
 
 #include "SlateUI/Interface/SymbolSpecification/Api/SymbolSpecification.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 
@@ -198,6 +199,15 @@ Outcome<bool> ControlCentrePanel::ConstructControlCentrePanel(MotionIntegrator& 
             return Outcome<bool>::Refuse({RefusalReason::ExtentExhausted,
                                           "the Control Centre scroll motion was rejected"});
         ScrollMotion[Index] = ScrollRegistered.Resolve();
+    }
+
+    for (std::uint32_t Index = 0u; Index < 3u; ++Index)
+    {
+        const Outcome<std::uint32_t> ScrollRegistered = IncomingMotion.RegisterEased(1.0);
+        if (!ScrollRegistered.Resolved)
+            return Outcome<bool>::Refuse({RefusalReason::ExtentExhausted,
+                                          "the display tab scroll motion was rejected"});
+        DisplayScrollMotion[Index] = ScrollRegistered.Resolve();
     }
 
     for (std::uint32_t Index = 0u; Index < 8u; ++Index)
@@ -681,10 +691,28 @@ void ControlCentrePanel::DisplayPage(const PlaneExtent& Extent, ControlCentreCon
 
     const PlaneExtent Viewport = {Extent.MinimumX + 58.0f, Extent.MinimumY + 136.0f, Extent.MaximumX - 16.0f,
                                   Extent.MaximumY};
+    const std::uint32_t ActiveTab = static_cast<std::uint32_t>(CurrentTab);
+    const float TabContentHeight[3] = { 180.0f, 2300.0f, 1340.0f };
+    for (std::uint32_t Index = 0u; Index < 3u; ++Index)
+    {
+        const float Fraction = static_cast<float>(Motion->Eased(DisplayScrollMotion[Index]).Current());
+        DisplayScroll[Index] = DisplayScrollFrom[Index] +
+                             (DisplayScrollTarget[Index] - DisplayScrollFrom[Index]) * Fraction;
+    }
+    if (Viewport.Encloses(Pointer.PositionX, Pointer.PositionY) && Pointer.WheelY != 0.0f)
+    {
+        const float Limit = std::max(TabContentHeight[ActiveTab] - Viewport.Height(), 0.0f);
+        DisplayScrollFrom[ActiveTab] = DisplayScroll[ActiveTab];
+        DisplayScrollTarget[ActiveTab] = std::clamp(DisplayScrollTarget[ActiveTab] - Pointer.WheelY * 72.0f,
+                                                    0.0f, Limit);
+        Motion->Eased(DisplayScrollMotion[ActiveTab]).Depart(0.0, 1.0, 180.0, 0.0,
+                                                            EaseCurve::CssEase);
+    }
     const auto RenderTab = [&](DisplayPreferencePage Page, PlaneExtent Content)
     {
-        Content.MinimumY -= Scroll[static_cast<std::uint32_t>(ControlCentrePage::Display)];
-        Content.MaximumY -= Scroll[static_cast<std::uint32_t>(ControlCentrePage::Display)];
+        const float Offset = DisplayScroll[static_cast<std::uint32_t>(Page)];
+        Content.MinimumY -= Offset;
+        Content.MaximumY -= Offset;
         if (Page == DisplayPreferencePage::Display)
             DisplayHardwarePage(Content, Configuration, Theme, Accent);
         else if (Page == DisplayPreferencePage::Theme)
@@ -717,46 +745,19 @@ void ControlCentrePanel::DisplayPage(const PlaneExtent& Extent, ControlCentreCon
 void ControlCentrePanel::DisplayHardwarePage(const PlaneExtent& Extent, ControlCentreConfiguration& Configuration,
                                              const ThemeDeclaration& Theme, ThemeToken Accent)
 {
-    const PlaneExtent Card = Spanning(Extent.MinimumX, Extent.MinimumY, Extent.Width(), 440.0f);
-    Surface->Ground(Card, Theme.Card, static_cast<float>(Configuration.Radius < 16u ? 16u : Configuration.Radius), CornerAll);
+    const PlaneExtent Card = Spanning(Extent.MinimumX, Extent.MinimumY, Extent.Width(), 156.0f);
+    Surface->Ground(Card, Theme.Card,
+                    static_cast<float>(Configuration.Radius < 16u ? 16u : Configuration.Radius), CornerAll);
     Surface->Edge(Card, Theme.Edge, 1.0f, 20.0f, CornerAll);
-    const char* Headings[4] = {"Resolution", "UI Scaling", "Refresh Rate", "Multiple Displays"};
-    for (std::uint32_t Index = 0u; Index < 4u; ++Index)
-        Surface->TextRun(Card.MinimumX + 28.0f, Card.MinimumY + 25.0f + 105.0f * static_cast<float>(Index),
-                         Theme.Primary, Headings[Index], 22.0f, 0.0f, true);
-    const char* Res[3] = {"1920x1080", "2560x1440", "3840x2160"};
-    for (std::uint32_t Index = 0u; Index < 3u; ++Index)
-    {
-        const PlaneExtent Button = Spanning(Card.MinimumX + 28.0f + 125.0f * static_cast<float>(Index),
-                                            Card.MinimumY + 58.0f, 114.0f, 38.0f);
-        Surface->Ground(Button, Configuration.Resolution == Index ? Accent : Theme.Panel, 12.0f, CornerAll);
-        Surface->Edge(Button, Theme.Edge, 1.0f, 12.0f, CornerAll);
-        Surface->TextRun(CentreText(*Surface, Button, Res[Index], 13.0f), CentredY(Button, 13.0f),
-                         Configuration.Resolution == Index ? White : Theme.Secondary, Res[Index], 13.0f);
-        if (Pressed(60u + Index, Button)) Configuration.Resolution = Index;
-    }
-    Slider(63u, Spanning(Card.MinimumX + 28.0f, Card.MinimumY + 165.0f, Card.Width() - 56.0f, 24.0f), 75u,
-           200u, Configuration.Scaling, "%", Theme.Edge, Accent);
-    const char* Rates[3] = {"60Hz", "120Hz", "144Hz"};
-    const char* Modes[3] = {"Mirror", "Extend", "Second Only"};
-    for (std::uint32_t Index = 0u; Index < 3u; ++Index)
-    {
-        const PlaneExtent Rate = Spanning(Card.MinimumX + 28.0f + 92.0f * static_cast<float>(Index),
-                                          Card.MinimumY + 270.0f, 82.0f, 38.0f);
-        Surface->Ground(Rate, Configuration.RefreshRate == Index ? QuietDark : Theme.Panel, 12.0f, CornerAll);
-        Surface->Edge(Rate, Theme.Edge, 1.0f, 12.0f, CornerAll);
-        Surface->TextRun(CentreText(*Surface, Rate, Rates[Index], 13.0f), CentredY(Rate, 13.0f), Theme.Primary,
-                         Rates[Index], 13.0f);
-        if (Pressed(64u + Index, Rate)) Configuration.RefreshRate = Index;
-        const PlaneExtent Mode =
-            Spanning(Card.MinimumX + 28.0f + (Card.Width() - 56.0f) / 3.0f * static_cast<float>(Index),
-                     Card.MinimumY + 375.0f, (Card.Width() - 56.0f) / 3.0f, 42.0f);
-        Surface->Ground(Mode, Configuration.MultipleDisplays == Index ? Theme.Card : QuietDark, 12.0f, CornerAll);
-        Surface->TextRun(CentreText(*Surface, Mode, Modes[Index], 13.0f), CentredY(Mode, 13.0f),
-                         Configuration.MultipleDisplays == Index ? Theme.Primary : Theme.Secondary, Modes[Index],
-                         13.0f);
-        if (Pressed(67u + Index, Mode)) Configuration.MultipleDisplays = Index;
-    }
+    Surface->TextRun(Card.MinimumX + 28.0f, Card.MinimumY + 25.0f,
+                     Theme.Primary, "Interface Scaling", 22.0f, 0.0f, true);
+    Surface->TextRun(Card.MinimumX + 28.0f, Card.MinimumY + 56.0f,
+                     Theme.Secondary,
+                     "Resolution, refresh rate, and monitor topology follow the operating system.",
+                     13.0f);
+    Slider(63u, Spanning(Card.MinimumX + 28.0f, Card.MinimumY + 101.0f,
+                         Card.Width() - 56.0f, 24.0f),
+           75u, 200u, Configuration.Scaling, "%", Theme.Edge, Accent);
 }
 
 void ControlCentrePanel::ThemePage(const PlaneExtent& Extent, ControlCentreConfiguration& Configuration,
@@ -1376,6 +1377,13 @@ void ControlCentrePanel::Reset()
         Scroll[Index] = 0.0f;
         ScrollFrom[Index] = 0.0f;
         ScrollTarget[Index] = 0.0f;
+    }
+    for (std::uint32_t Index = 0u; Index < 3u; ++Index)
+    {
+        DisplayScrollMotion[Index] = 0u;
+        DisplayScroll[Index] = 0.0f;
+        DisplayScrollFrom[Index] = 0.0f;
+        DisplayScrollTarget[Index] = 0.0f;
     }
     FontScroll = 0.0f;
     FontFrom = 0.0f;

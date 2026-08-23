@@ -1234,15 +1234,38 @@ void TexturePaintPanel::Record(const PlaneExtent& Extent, TexturePaintContext& A
     const PlaneExtent Leading  = StackPages.Page(Extent, 0u);
     const PlaneExtent Trailing = StackPages.Page(Extent, 1u);
     const PlaneExtent Flatten  = StackPages.Page(Extent, 2u);
+    const PointerCondition LivePointer = Sampled;
+    const auto SeatPagePointer = [&](std::uint32_t Page)
+    {
+        Sampled = LivePointer;
+        if (StackPages.CurrentPage() != Page)
+        {
+            Sampled.PositionX = -1000000.0f;
+            Sampled.PositionY = -1000000.0f;
+            Sampled.ContactHeld = Sampled.ContactPressed = Sampled.ContactReleased = false;
+            Sampled.ContactDoublePressed = false;
+            Sampled.WheelY = 0.0f;
+        }
+    };
 
     if (!Surface->Excluded(Leading))
+    {
+        SeatPagePointer(0u);
         RecordStackPage(Leading, Applied, Rows, RowCount);
+    }
 
     if (!Surface->Excluded(Trailing))
+    {
+        SeatPagePointer(1u);
         RecordPropertiesPage(Trailing, Applied, Rows, RowCount);
+    }
 
     if (!Surface->Excluded(Flatten))
+    {
+        SeatPagePointer(2u);
         RecordFlattenPage(Flatten, Applied);
+    }
+    Sampled = LivePointer;
 
     Surface->Release();
     SharedControls.RecordDeferred();

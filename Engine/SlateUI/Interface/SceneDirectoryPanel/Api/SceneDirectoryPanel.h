@@ -356,6 +356,7 @@ private:
     ControlIdentity FacetFold       = {};
     static constexpr std::uint32_t EnvironmentFieldLimit = 6u;
     ControlIdentity EnvironmentSliders[SceneDirectoryContext::CardLimit][EnvironmentFieldLimit] = {};
+    ControlIdentity EnvironmentQuality = {};
 
     FacetPanel                   Facets = {};         // [-] - the filter card
 

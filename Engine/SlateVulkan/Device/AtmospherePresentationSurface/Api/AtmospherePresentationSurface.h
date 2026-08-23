@@ -36,6 +36,7 @@ struct DynamicSkyParameters
     float MieAsymmetry = 0.8f;
     float OzoneDensity = 1.0f;
     float CameraAltitudeKilometres = 0.0015f;
+    std::uint32_t Quality = 2u;
 };
 
 class AtmospherePresentationSurface

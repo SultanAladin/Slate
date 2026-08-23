@@ -65,7 +65,9 @@ Outcome<bool> GenerateSkyImage(AtmosphereIntegrator& Atmosphere,
     // 📝 `02` §5's Gauss–Legendre rule, derived on the recurrence — the same rule the ConsoleHost's
     //    atmosphere verification derives before it rebuilds.
     QuadratureRule Rule;
-    if (!Rule.Derive(32u).Resolved)
+    const std::uint32_t Quality = std::min(Environment.AtmosphereQuality, 3u);
+    const std::uint32_t QuadratureOrders[4] = { 8u, 16u, 32u, 48u };
+    if (!Rule.Derive(QuadratureOrders[Quality]).Resolved)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the sky rule would not derive" });
 
     if (!Atmosphere.Rebuild(DeclaredWorkingSpace(), Rule).Resolved)

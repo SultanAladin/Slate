@@ -279,6 +279,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     PlaneExtent              LayerLeafRects[PanelStructure::RecordLimit] = {};
     std::uint32_t            LayerLeafTally = 0u;
     bool                    SkyEverGenerated = false;
+    std::uint32_t           SkyQuality = 0xFFFFFFFFu;
     std::uintptr_t          SkyTextureIdentity = 0u;
     bool                    SkyRegistered = false;
 
@@ -707,6 +708,24 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                static_cast<float>(Pass.Width),
                                                static_cast<float>(Pass.Height));
 
+            const PointerCondition& ForegroundPointer = Viewport.Surface().Pointer();
+            const PlaneExtent NorthInterior = Viewport.Drawers().Interior(DrawerBearing::North);
+            const PlaneExtent SouthInterior = Viewport.Drawers().Interior(DrawerBearing::South);
+            const bool PointerBehindDrawer =
+                NorthInterior.Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY) ||
+                SouthInterior.Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY);
+            PointerCondition BackgroundPointer = ForegroundPointer;
+            if (PointerBehindDrawer)
+            {
+                BackgroundPointer.PositionX = -1000000.0f;
+                BackgroundPointer.PositionY = -1000000.0f;
+                BackgroundPointer.TravelX = BackgroundPointer.TravelY = BackgroundPointer.WheelY = 0.0f;
+                BackgroundPointer.ContactHeld = BackgroundPointer.ContactPressed = false;
+                BackgroundPointer.ContactDoublePressed = BackgroundPointer.ContactReleased = false;
+                BackgroundPointer.SecondaryHeld = BackgroundPointer.SecondaryPressed = false;
+                BackgroundPointer.SecondaryReleased = false;
+            }
+
             Discard(Workspace.Record(Whole, Workspaces.ActiveTitle()));
 
             // 🔴 The dock space FIRST, over the whole panel. Every workspace below docks into it, and the
@@ -728,7 +747,7 @@ int main(int ArgumentCount, char** ArgumentValues)
 
             RegisterIntoNode = 0u;
 
-            WorkspacePanels.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+            WorkspacePanels.Advance(BackgroundPointer, Pass.ElapsedMilliseconds);
 
             // 📐 The fly camera is integrated BEFORE any leaf is recorded, so the sky mesh, the
             //    ground lattice and the gizmo are all projected through the SAME current-tick pose.
@@ -750,7 +769,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                     }
                 }
 
-                CameraCondition FlyInput = Viewport.Seam().CameraInput(PointerOverViewport);
+                CameraCondition FlyInput = Viewport.Seam().CameraInput(PointerOverViewport && !PointerBehindDrawer);
 
                 // A direct XYZ edit in the Editor Camera's Transform card is consumed before navigation.
                 // The transform synchronizer distinguishes it from the values the camera published last tick,
@@ -1050,13 +1069,14 @@ int main(int ArgumentCount, char** ArgumentValues)
                 }
             }
 
-            SceneDirectory.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds,
+            SceneDirectory.Advance(BackgroundPointer, Pass.ElapsedMilliseconds,
                                    SceneApplied,
-                                   TabPressed && !PointerInLayers,
+                                   TabPressed && !PointerInLayers && !PointerBehindDrawer,
                                    Viewport.Seam().Modifiers());
-            TexturePaint.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds,
+            TexturePaint.Advance(BackgroundPointer, Pass.ElapsedMilliseconds,
                                TexturePaintApplied, StackRows.Rows, StackRows.Count,
-                               TabPressed && PointerInLayers, Viewport.Seam().Modifiers());
+                               TabPressed && PointerInLayers && !PointerBehindDrawer,
+                               Viewport.Seam().Modifiers());
 
             // 📝 The search field: while it holds the contact, the seam's typed run feeds the
             //    directory's retention run, and Backspace / Escape edit it. Gated on the panel's own
@@ -1170,10 +1190,15 @@ int main(int ArgumentCount, char** ArgumentValues)
                 GPU.MieAsymmetry = static_cast<float>(Authored.MieAsymmetry);
                 GPU.OzoneDensity = static_cast<float>(Authored.OzoneDensity);
                 GPU.CameraAltitudeKilometres = static_cast<float>(Authored.CameraAltitudeKilometres);
+                GPU.Quality = std::min(SceneApplied.Environment.AtmosphereQuality, 3u);
 
-                const bool Refresh = !SkyEverGenerated || Dirty != AtmosphereDirty::None;
+                const bool Refresh = !SkyEverGenerated || Dirty != AtmosphereDirty::None ||
+                                     SkyQuality != GPU.Quality;
                 if (AtmosphereSurface.Record(Pass.Recording, GPU, Refresh).Resolved)
+                {
                     SkyEverGenerated = true;
+                    SkyQuality = GPU.Quality;
+                }
                 SceneApplied.SkyTextureIdentity = SkyTextureIdentity;
             }
             else
@@ -1215,6 +1240,8 @@ int main(int ArgumentCount, char** ArgumentValues)
             if (BrowserInterior.Width() > 0.0f && BrowserInterior.Height() > 0.0f)
             {
                 Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
+                Viewport.Surface().Ground(BrowserInterior, Viewport.Appearance().Colour.SurfaceCurrent,
+                                          0.0f, CornerNone);
                 ContentBrowser.RecordBrowser(BrowserInterior, ContentApplied, ContentBrowserApplied);
                 ContentBrowser.RecordDeferred();
 
@@ -1230,6 +1257,9 @@ int main(int ArgumentCount, char** ArgumentValues)
             //    current choice; the viewport re-states them after each resolve.
             Viewport.ApplyTypographyWeights(ControlCentreValues.TypographyWeight);
             Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
+            if (ControlInterior.Width() > 0.0f && ControlInterior.Height() > 0.0f)
+                Viewport.Surface().Ground(ControlInterior, Viewport.Appearance().Colour.SurfaceCurrent,
+                                          0.0f, CornerNone);
             Discard(ControlCentre.Record(ControlInterior, ControlCentreValues));
 
             // UI Scaling was previously only a displayed Control Centre value. It now re-resolves the shared

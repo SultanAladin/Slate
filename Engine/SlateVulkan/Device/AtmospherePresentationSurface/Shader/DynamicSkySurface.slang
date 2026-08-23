@@ -22,6 +22,7 @@ struct SkyPush
     float MieAsymmetry;
     float OzoneDensity;
     float CameraAltitudeKilometres;
+    uint Quality;
 };
 
 [[vk::push_constant]] ConstantBuffer<SkyPush> Sky;
@@ -66,7 +67,9 @@ void main(uint3 index : SV_DispatchThreadID)
     float miePhase = 0.1193662f * (1.0f - g * g) * (1.0f + mu * mu) /
                      ((2.0f + g * g) * mieBase * sqrt(mieBase));
 
-    float aboveHorizon = smoothstep(-0.025f, 0.015f, view.y);
+    float quality = clamp(float(Sky.Quality), 0.0f, 3.0f);
+    float horizonSoftness = lerp(0.055f, 0.025f, quality / 3.0f);
+    float aboveHorizon = smoothstep(-horizonSoftness, horizonSoftness * 0.6f, view.y);
     float horizonMass = 1.0f / max(0.08f, view.y + 0.13f);
     float solarMass = 1.0f / max(0.08f, sun.y + 0.13f);
     float altitudeFade = exp(-max(Sky.CameraAltitudeKilometres, 0.0f) /
@@ -94,7 +97,13 @@ void main(uint3 index : SV_DispatchThreadID)
     float zenith = clamp(view.y * 0.5f + 0.5f, 0.0f, 1.0f);
     float3 nightSky = lerp(float3(0.0012f, 0.0018f, 0.0040f),
                            float3(0.0025f, 0.0050f, 0.0120f), zenith) * nightAmount;
-    float3 scattered = daylightScatter + sunsetScatter + nightSky;
+    // Higher modes retain a small multiple-scattering approximation around the horizon. Preview
+    // omits it; Ultra carries the full term, making the preference affect actual shader work.
+    float multipleScatter = quality >= 2.0f
+                          ? (quality - 1.0f) * 0.035f * exp(-abs(view.y) * 5.0f) * daylight
+                          : 0.0f;
+    float3 scattered = daylightScatter + sunsetScatter + nightSky +
+                       float3(0.36f, 0.48f, 0.72f) * multipleScatter;
 
     float3 groundDay = float3(0.006f, 0.007f, 0.008f) +
                        Sky.GroundAlbedo * float3(0.018f, 0.016f, 0.013f) * daylight;
@@ -103,7 +112,8 @@ void main(uint3 index : SV_DispatchThreadID)
 
     float discRadius = max(Sky.SunAngularRadiusDegrees, 0.001f) * Pi / 180.0f;
     float discCosine = cos(discRadius);
-    float disc = smoothstep(discCosine, min(1.0f, discCosine + (1.0f - discCosine) * 0.55f), mu);
+    float discEdge = lerp(0.28f, 0.70f, quality / 3.0f);
+    float disc = smoothstep(discCosine, min(1.0f, discCosine + (1.0f - discCosine) * discEdge), mu);
     float discAboveHorizon = smoothstep(-sin(discRadius), sin(discRadius), sun.y) * aboveHorizon;
     radiance += TemperatureColour(Sky.SunTemperatureKelvin) * disc * discAboveHorizon *
                 Sky.SunDiscIntensity * max(Sky.SunIlluminance, 0.0f) * 2.5f;
