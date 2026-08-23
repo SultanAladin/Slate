@@ -469,8 +469,8 @@ Do not seed full content-browser libraries, full texture stacks, full scene dire
 
 ### Phase 4 — sliding pages
 
-- Introduce `SlidingPages` with deterministic geometry tests.
-- Migrate the smallest two-page inspector sample first.
+- Introduce `SlidingPages` with deterministic geometry tests. Complete.
+- Migrate the smallest two-page inspector sample first. Complete: `ControlPanel::CarouselPages` now delegates page placement.
 - Migrate Scene Directory and Texture Paint.
 - Migrate Control Centre page travel and its specialised rails last.
 - Remove private previous/current/direction/motion implementations after each owner is migrated.

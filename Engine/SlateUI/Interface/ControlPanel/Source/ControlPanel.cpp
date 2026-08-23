@@ -4,6 +4,7 @@
 // 🧩 Reference inspector controls recorded from fixed figures and arbitrated through one interaction index.
 
 #include "SlateUI/Interface/ControlPanel/Api/ControlPanel.h"
+#include "SlateUI/Interface/SlidingPages/Api/SlidingPages.h"
 
 #include <cmath>
 #include <cstdio>
@@ -475,17 +476,14 @@ ControlVerdict ControlPanel::CarouselPages(ControlIdentity Target, const PlaneEx
     Interaction->DeclareTaken(Target, TrailingTaken, CarouselDuration, EaseCurve::Carousel);
 
     const float Travel = Interaction->TakenFraction(Target);
-    const float PageX = Extent.Width();
-    const float LeadingX = Extent.MinimumX - PageX * Travel;
-    const float TrailingX = Extent.MinimumX + PageX * (1.0f - Travel);
+    const SlidingPagePlacement Pages = SlidingPages::Place(Extent, Travel, true);
 
     Recording->Ground(Extent, FieldGround, ControlRadius, CornerAll);
     Recording->Edge(Extent, HairColour, 1.0f, ControlRadius, CornerAll);
     Recording->Confine(Extent);
 
-    const auto RecordLeading = [&](float X)
+    const auto RecordLeading = [&](const PlaneExtent& Page)
     {
-        const PlaneExtent Page = Spanning(X, Extent.MinimumY, PageX, Extent.Height());
         Recording->TextRunCapitalised(Page.MinimumX + 10.0f, Page.MinimumY + 9.0f,
                                       FaintColour, "Property cards", SmallText, 0.08f, true);
 
@@ -507,9 +505,8 @@ ControlVerdict ControlPanel::CarouselPages(ControlIdentity Target, const PlaneEx
         }
     };
 
-    const auto RecordTrailing = [&](float X)
+    const auto RecordTrailing = [&](const PlaneExtent& Page)
     {
-        const PlaneExtent Page = Spanning(X, Extent.MinimumY, PageX, Extent.Height());
         Recording->TextRunCapitalised(Page.MinimumX + 10.0f, Page.MinimumY + 9.0f,
                                       FaintColour, "Revision sequence", SmallText, 0.08f, true);
 
@@ -537,11 +534,11 @@ ControlVerdict ControlPanel::CarouselPages(ControlIdentity Target, const PlaneEx
         }
     };
 
-    RecordLeading(LeadingX);
-    RecordTrailing(TrailingX);
+    RecordLeading(Pages.Departing);
+    RecordTrailing(Pages.Incoming);
     Recording->Release();
 
-    Verdict.Mark = (Travel > 0.0f && Travel < 1.0f) ? RedrawMark::Rerecord : RedrawMark::Quiet;
+    Verdict.Mark = Pages.Travelling ? RedrawMark::Rerecord : RedrawMark::Quiet;
     return Verdict;
 }
 
