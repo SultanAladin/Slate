@@ -1,17 +1,19 @@
 //============================================================================================================================================
-//                                                             CAMERARIG.H
+//                                                          CAMERACOMPONENT.H
 //============================================================================================================================================
-// 🧩 The editor's fly camera — WASD + QE movement with Unreal-style right-button
-//    look, exponential camera lag, and the settings the artist toggles.
+// 🧩 The common camera component: pose, movement integration and positional lag shared by editor,
+//    player and spectator camera specialisations. EditorCameraComponent supplies the editor's WASD +
+//    QE movement and Unreal-style right-button look today; future camera types can build on the same
+//    pose component without inheriting editor-only UI.
 //
-//    The rig is a plain state machine, owned by the host and advanced once per
+//    The component is a plain state machine, owned by the host and advanced once per
 //    tick with the seam's `CameraCondition` and the artist's `CameraSettings`.
 //    It knows no device and no vendor: the host maps keys to the condition, and
 //    the harness proofs synthesise the same condition to render the same motion.
 //
 //    Convention: the second axis is up (the atmosphere's own), yaw is clockwise
 //    from north, pitch is above the horizon — the same frame the sky dome's
-//    azimuth/elevation use, so the rig's yaw and pitch ARE the viewport crop.
+//    azimuth/elevation use, so the component's yaw and pitch ARE the viewport crop.
 
 #pragma once
 
@@ -33,28 +35,29 @@ struct CameraSettings
     double LookSensitivity = 0.12; // [deg/px] - the look gesture's turn rate
 };
 
-/// 🧩 The fly camera itself: the target the artist drives and the lagged position
-///    that lags behind it while `LagEnabled` stands.
+/// 🧩 The reusable base camera pose: the target a controller drives and the presented position that
+///    follows it. Rotation is immediate; camera lag is positional only, so taking the right mouse
+///    button without moving it can never tilt the view.
 /// tag   owning, nonallocating, nonthrowing
-class CameraRig
+class CameraComponent
 {
 public:
 
-    CameraRig()  = default;
-    ~CameraRig() = default;
+    CameraComponent()  = default;
+    ~CameraComponent() = default;
 
-    CameraRig(const CameraRig&)            = delete;
-    CameraRig& operator=(const CameraRig&) = delete;
+    CameraComponent(const CameraComponent&)            = delete;
+    CameraComponent& operator=(const CameraComponent&) = delete;
 
-    /// 🧩 Advances the rig by one tick: the look gesture turns the target yaw and pitch, the held
+    /// 🧩 Advances the component by one tick: the look gesture turns the target yaw and pitch, the held
     ///    movement keys drive the target position along the camera's own frame, and the lagged
     ///    presentation eases toward the target.
     /// in    Seconds   [s]   how long this tick lasted
     /// in    Input     [-]   the seam's camera condition
     /// in    Settings  [-]   the artist's camera settings
     /// note  📐 Movement is Unreal-fly: W/S along the view direction (pitch included), A/D strafing
-    ///        across it, E/Q along world up. The yaw's lag is wrapped to the shortest turn so a camera
-    ///        that spins past north eases through the few degrees, not the three hundred.
+    ///        across it and E/Q along world up. Yaw and pitch are presented immediately; only position
+    ///        is allowed to lag.
     /// cost  🚩
     /// tag   api, nonthrowing
     void Advance(double Seconds, const CameraCondition& Input, const CameraSettings& Settings);

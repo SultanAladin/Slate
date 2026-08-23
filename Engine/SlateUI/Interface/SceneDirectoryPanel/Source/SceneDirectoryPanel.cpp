@@ -336,6 +336,9 @@ Outcome<bool> SceneDirectoryPanel::Construct(InteractionIndex& Interaction,
         &OutlineStrip,
         &InspectCall,
         &DirectoryCall,
+        &BookmarkSave,
+        &BookmarkRecall,
+        &BookmarkRetire,
         &SearchField,
         &EnvironmentSliders[0], &EnvironmentSliders[1], &EnvironmentSliders[2],
         &EnvironmentSliders[3], &EnvironmentSliders[4], &EnvironmentSliders[5],
@@ -356,6 +359,14 @@ Outcome<bool> SceneDirectoryPanel::Construct(InteractionIndex& Interaction,
             return Outcome<bool>::Refuse(Registered.Error);
 
         *Identity = Registered.Resolve();
+    }
+
+    for (ControlIdentity& Identity : BookmarkNames)
+    {
+        const Outcome<ControlIdentity> Registered = Interaction.Register();
+        if (!Registered.Resolved)
+            return Outcome<bool>::Refuse(Registered.Error);
+        Identity = Registered.Resolve();
     }
 
     // 📐 The leaf's page travel. Registered here, never mid-tick.
@@ -512,7 +523,7 @@ void SceneDirectoryPanel::RecordViewportSky(const PlaneExtent& Extent, const Sce
     const double SinY = std::sin(Yaw);
     const double CosY = std::cos(Yaw);
 
-    // 📐 The camera basis, the same convention the fly rig integrates: forward along the view, right
+    // 📐 The camera basis, the same convention CameraComponent integrates: forward along the view, right
     //    across it, up the cross product.
     const double Forward[3] = { CosP * SinY, SinP, CosP * CosY };
     const double Right[3]   = { CosY, 0.0, -SinY };
@@ -1157,7 +1168,7 @@ void SceneDirectoryPanel::RecordDetailOptions(const PlaneExtent& Extent, SceneDi
     //    options. The bits are the same slots — bit 1 is lag on the camera, Locked elsewhere.
     const bool Camera = Current.Subject == EntitySubject::Camera;
 
-    const char* const CameraCaptions[3]    = { "Visible", "Camera Lag", "Invert Pitch" };
+    const char* const CameraCaptions[3]    = { "Visible", "Position Lag", "Invert Pitch" };
     const char* const GenericCaptions[3]   = { "Visible", "Locked", "Cast Shadows" };
     const char* const* const Captions = Camera ? CameraCaptions : GenericCaptions;
     const float RowY = Scaled.RowHeight;
@@ -1340,8 +1351,10 @@ void SceneDirectoryPanel::RecordProperties(const PlaneExtent& Extent, SceneDirec
                          OnCall ? Tinted.Primary : Tinted.Muted, Caption, Run);
     }
 
-    // ① The strip, and the inner pages it drives.
-    static const char* const Captions[2] = { "Properties", "History" };
+    // ① The strip, and the inner pages it drives. Cameras own bookmarks rather than revisions:
+    //    saved viewpoints are camera data, while History remains meaningful for every other entity.
+    const bool CameraSelected = Selected && Rows[Applied.EntityTaken].Subject == EntitySubject::Camera;
+    const char* const Captions[2] = { "Properties", CameraSelected ? "Bookmarks" : "History" };
 
     const PlaneExtent Strip = Spanning(Extent.MinimumX, Header.MaximumY,
                                        Extent.Width(), Scaled.ComponentY);
@@ -1381,7 +1394,12 @@ void SceneDirectoryPanel::RecordProperties(const PlaneExtent& Extent, SceneDirec
         RecordPropertyCards(Leading, Applied, Rows, RowCount);
 
     if (!Surface->Excluded(Trailing))
-        RecordRevisionSpine(Trailing, Applied, Rows, RowCount, Revisions, RevisionCount);
+    {
+        if (CameraSelected)
+            RecordCameraBookmarks(Trailing, Applied);
+        else
+            RecordRevisionSpine(Trailing, Applied, Rows, RowCount, Revisions, RevisionCount);
+    }
 
     Surface->Release();
 
@@ -1406,8 +1424,11 @@ void SceneDirectoryPanel::RecordProperties(const PlaneExtent& Extent, SceneDirec
 
         Surface->TextRun(Footer.MinimumX + Scaled.HeaderPadX + Scaled.ChipExtent
                          + Scaled.PanePad, FooterTop, Tinted.Muted,
-                         (InspectorTab == 0u) ? "Properties" : "History", FooterRun);
+                         (InspectorTab == 0u) ? "Properties"
+                                              : (CameraSelected ? "Bookmarks" : "History"), FooterRun);
     }
+
+    EnvironmentControls.RecordDeferred();
 }
 
 // 🧩 The properties column's wheel scroll, eased. Answers where it stands.
@@ -1951,6 +1972,131 @@ void SceneDirectoryPanel::RecordEnvironmentCard(SceneDirectoryContext& Applied,
     }
 
     Sweep = Card.MaximumY + Pad * 0.85f;
+}
+
+void SceneDirectoryPanel::RecordCameraBookmarks(const PlaneExtent& Extent,
+                                                    SceneDirectoryContext& Applied)
+{
+    Surface->Ground(Extent, Tinted.MenuLower, 0.0f, CornerNone);
+
+    const float Pad = Scaled.PanePad * 1.5f;
+    const float ButtonY = 26.0f;
+    const float Top = Extent.MinimumY + Pad;
+    const float ButtonGap = 8.0f;
+    const float ButtonWidth = 108.0f;
+
+    const PlaneExtent Save = Spanning(Extent.MaximumX - Pad - ButtonWidth, Top,
+                                      ButtonWidth, ButtonY);
+    const PlaneExtent Recall = Spanning(Save.MinimumX - ButtonGap - ButtonWidth, Top,
+                                        ButtonWidth, ButtonY);
+    const PlaneExtent Retire = Spanning(Recall.MinimumX - ButtonGap - ButtonWidth, Top,
+                                        ButtonWidth, ButtonY);
+
+    const auto Pill = [&](ControlIdentity Target, const PlaneExtent& Bounds,
+                          const char* Caption, bool Enabled) -> bool
+    {
+        const bool Over = Enabled && Bounds.Encloses(Sampled.PositionX, Sampled.PositionY);
+        if (Sampled.ContactPressed && Over && !Ledger->AnyDisclosed())
+            Ledger->Grab(Target, ControlPart::Body);
+
+        Surface->Ground(Bounds, Over ? Tinted.TileHovered : Tinted.Tile,
+                        Bounds.Height() * 0.5f, CornerAll);
+        Surface->Edge(Bounds, Enabled ? Tinted.HairlineFirm : Tinted.Hairline, 1.0f,
+                      Bounds.Height() * 0.5f, CornerAll);
+        const float Run = Scaled.RunFine;
+        Surface->TextRun(Bounds.MinimumX + (Bounds.Width() - Surface->MeasureRun(Caption, Run, 0.0f)) * 0.5f,
+                         Bounds.MinimumY + (Bounds.Height() - Run) * 0.5f,
+                         Enabled ? Tinted.Primary : Tinted.Faint, Caption, Run);
+        return Over && Ledger->Released(Target);
+    };
+
+    if (Pill(BookmarkSave, Save, "Save Current", true) &&
+        Applied.CameraBookmarkCount < SceneDirectoryContext::CameraBookmarkCeiling)
+    {
+        const std::uint32_t Bookmark = Applied.CameraBookmarkCount++;
+        Applied.CameraBookmarkTaken = Bookmark;
+        std::snprintf(Applied.CameraBookmarkNames[Bookmark], 32u, "Bookmark %u",
+                      static_cast<unsigned>(Bookmark + 1u));
+        for (std::uint32_t Axis = 0u; Axis < 3u; ++Axis)
+        {
+            Applied.CameraBookmarkPosition[Bookmark][Axis] = Applied.CameraPosition[Axis];
+            Applied.CameraBookmarkRotation[Bookmark][Axis] = Applied.CameraRotation[Axis];
+        }
+    }
+
+    if (Pill(BookmarkRecall, Recall, "Go To", Applied.CameraBookmarkCount > 0u))
+        Applied.CameraBookmarkRecallRequested = true;
+
+    if (Pill(BookmarkRetire, Retire, "Delete", Applied.CameraBookmarkCount > 0u))
+    {
+        const std::uint32_t Retiring = Applied.CameraBookmarkTaken;
+        for (std::uint32_t Bookmark = Retiring; Bookmark + 1u < Applied.CameraBookmarkCount; ++Bookmark)
+        {
+            std::memcpy(Applied.CameraBookmarkNames[Bookmark],
+                        Applied.CameraBookmarkNames[Bookmark + 1u], 32u);
+            for (std::uint32_t Axis = 0u; Axis < 3u; ++Axis)
+            {
+                Applied.CameraBookmarkPosition[Bookmark][Axis] =
+                    Applied.CameraBookmarkPosition[Bookmark + 1u][Axis];
+                Applied.CameraBookmarkRotation[Bookmark][Axis] =
+                    Applied.CameraBookmarkRotation[Bookmark + 1u][Axis];
+            }
+        }
+        --Applied.CameraBookmarkCount;
+        if (Applied.CameraBookmarkCount == 0u)
+            Applied.CameraBookmarkTaken = 0u;
+        else if (Applied.CameraBookmarkTaken >= Applied.CameraBookmarkCount)
+            Applied.CameraBookmarkTaken = Applied.CameraBookmarkCount - 1u;
+    }
+
+    Surface->TextRun(Extent.MinimumX + Pad, Top + (ButtonY - Scaled.RunSecondary) * 0.5f,
+                     Tinted.Primary, "Camera Bookmarks", Scaled.RunSecondary, 0.0f, true);
+
+    float Sweep = Top + ButtonY + Pad;
+    if (Applied.CameraBookmarkCount == 0u)
+    {
+        const char* Empty = "Move the Editor Camera, then save the current viewpoint.";
+        Surface->TextRun(Extent.MinimumX + Pad, Sweep + Pad, Tinted.Faint,
+                         Empty, Scaled.RunFine);
+        return;
+    }
+
+    for (std::uint32_t Bookmark = 0u; Bookmark < Applied.CameraBookmarkCount; ++Bookmark)
+    {
+        const PlaneExtent Card = Spanning(Extent.MinimumX + Pad, Sweep,
+                                          Extent.Width() - Pad * 2.0f, 58.0f);
+        const bool Selected = Applied.CameraBookmarkTaken == Bookmark;
+        const bool Over = Card.Encloses(Sampled.PositionX, Sampled.PositionY);
+
+        Surface->Ground(Card, Selected ? Tinted.EntityTaken : Tinted.Tile,
+                        Scaled.CardRadius, CornerAll);
+        Surface->Edge(Card, Selected ? Tinted.HairlineFirm : Tinted.Hairline, 1.0f,
+                      Scaled.CardRadius, CornerAll);
+
+        if (Sampled.ContactPressed && Over)
+            Applied.CameraBookmarkTaken = Bookmark;
+
+        const PlaneExtent Name = Spanning(Card.MinimumX + 8.0f, Card.MinimumY + 5.0f,
+                                          Card.Width() - 16.0f, 25.0f);
+        EnvironmentControls.EditableText(
+            BookmarkNames[Bookmark], Name,
+            EditableTextDeclaration{ "Bookmark name", false, false },
+            Applied.CameraBookmarkNames[Bookmark], 32u);
+
+        char Pose[96] = {};
+        std::snprintf(Pose, sizeof Pose, "%.1f, %.1f, %.1f m   ·   yaw %.1f°   pitch %.1f°",
+                      Applied.CameraBookmarkPosition[Bookmark][0],
+                      Applied.CameraBookmarkPosition[Bookmark][1],
+                      Applied.CameraBookmarkPosition[Bookmark][2],
+                      Applied.CameraBookmarkRotation[Bookmark][0],
+                      Applied.CameraBookmarkRotation[Bookmark][1]);
+        Surface->TextRun(Card.MinimumX + 10.0f, Card.MinimumY + 36.0f,
+                         Tinted.Faint, Pose, Scaled.RunFiner);
+
+        Sweep += Card.Height() + 8.0f;
+        if (Sweep >= Extent.MaximumY)
+            break;
+    }
 }
 
 void SceneDirectoryPanel::RecordRevisionSpine(const PlaneExtent& Extent, SceneDirectoryContext& Applied,

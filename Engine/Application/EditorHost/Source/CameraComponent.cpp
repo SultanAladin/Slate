@@ -1,8 +1,8 @@
 //============================================================================================================================================
-//                                                             CAMERARIG.CPP
+//                                                         CAMERACOMPONENT.CPP
 //============================================================================================================================================
 
-#include "Application/EditorHost/Api/CameraRig.h"
+#include "Application/CameraComponent/Api/CameraComponent.h"
 
 #include <algorithm>
 #include <cmath>
@@ -17,7 +17,7 @@ constexpr double HalfTurn = 3.14159265358979323846;
 
 }   // namespace
 
-void CameraRig::Ease(double& Lagged, double Target, double Seconds, const CameraSettings& Settings)
+void CameraComponent::Ease(double& Lagged, double Target, double Seconds, const CameraSettings& Settings)
 {
     if (!Settings.LagEnabled || Settings.LagSeconds <= 0.0 || Seconds <= 0.0)
     {
@@ -32,7 +32,7 @@ void CameraRig::Ease(double& Lagged, double Target, double Seconds, const Camera
     Lagged += (Target - Lagged) * Fraction;
 }
 
-void CameraRig::Advance(double Seconds, const CameraCondition& Input, const CameraSettings& Settings)
+void CameraComponent::Advance(double Seconds, const CameraCondition& Input, const CameraSettings& Settings)
 {
     if (Seconds <= 0.0)
         return;
@@ -116,22 +116,17 @@ void CameraRig::Advance(double Seconds, const CameraCondition& Input, const Came
         Position[2] += Velocity[2] * Scale;
     }
 
-    // ③ The lagged presentation eases toward the target. The yaw is wrapped so the lag never takes the
-    //    long way around the compass.
-    double WrappedYaw = YawDegrees;
-    while (WrappedYaw - LaggedYawDegrees > 180.0)
-        WrappedYaw -= 360.0;
-    while (WrappedYaw - LaggedYawDegrees < -180.0)
-        WrappedYaw += 360.0;
-
-    Ease(LaggedYawDegrees, WrappedYaw, Seconds, Settings);
-    Ease(LaggedPitchDegrees, PitchDegrees, Seconds, Settings);
+    // ③ Rotation is immediate. Easing yaw or pitch after the pointer stops makes a stationary right-click
+    //    continue to turn the viewport as the old angular lag catches up — perceived as an unexplained
+    //    upward pitch. Camera lag is positional only; holding Look with zero travel is therefore invariant.
+    LaggedYawDegrees = YawDegrees;
+    LaggedPitchDegrees = PitchDegrees;
 
     for (std::uint32_t Axis = 0u; Axis < 3u; ++Axis)
         Ease(LaggedPosition[Axis], Position[Axis], Seconds, Settings);
 }
 
-void CameraRig::Snap()
+void CameraComponent::Snap()
 {
     LaggedYawDegrees   = YawDegrees;
     LaggedPitchDegrees = PitchDegrees;

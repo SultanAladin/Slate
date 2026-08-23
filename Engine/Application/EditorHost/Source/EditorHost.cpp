@@ -18,7 +18,7 @@
 //    stays black; the editor's sky lives in the viewport LEAF.
 
 #include "Contract/DeliveryContract.h"
-#include "Application/EditorHost/Api/CameraRig.h"
+#include "Application/EditorHost/Api/EditorCameraComponent.h"
 #include "Application/EditorHost/Api/SkyImage.h"
 #include "SlateCompute/Compute/AtmosphereIntegrator/Api/AtmosphereIntegrator.h"
 #include "SlateUI/Interface/ContentBrowserPanel/Api/ContentBrowserPanel.h"
@@ -262,7 +262,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     TexturePaintStack        StackRows;                 // [-] - the mutable row set; the panel borrows it
     ViewportSkySurface      SkySurface;
     AtmosphereIntegrator    SkyIntegrator;
-    CameraRig               FlyRig;
+    EditorCameraComponent    EditorCamera;
     ShaderCodec             OverlayCodec;
     OverlayPass             Overlay;
     std::uint32_t           OverlayGeneration[PanelStructure::RecordCeiling] = {};   // [-] - per viewport leaf
@@ -482,20 +482,20 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    eases out of the gate, and the pitch arrives un-inverted (the standard fly-cam convention).
     SceneApplied.DetailBits[6u] = 2u;
     SceneApplied.CameraSpeed = 50.0;
-    FlyRig.YawDegrees   = SceneApplied.Environment.SunAzimuth - 20.0;
+    EditorCamera.YawDegrees   = SceneApplied.Environment.SunAzimuth - 20.0;
     // 📐 The fly camera looks slightly DOWN at bring-up, matching the reference editors: the ground
     //    lattice fills the lower frame rather than a sliver at the horizon. A +15 degree default
     //    pointed above the horizon and crushed the perspective grid into the bottom ~100 px.
-    FlyRig.PitchDegrees = -15.0;
-    FlyRig.Position[0]  = 0.0;
-    FlyRig.Position[1]  = 1.5;
-    FlyRig.Position[2]  = 0.0;
-    FlyRig.Snap();
+    EditorCamera.PitchDegrees = -15.0;
+    EditorCamera.Position[0]  = 0.0;
+    EditorCamera.Position[1]  = 1.5;
+    EditorCamera.Position[2]  = 0.0;
+    EditorCamera.Snap();
     SceneApplied.CameraPosition[0] = 0.0;
     SceneApplied.CameraPosition[1] = 1.5;
     SceneApplied.CameraPosition[2] = 0.0;
-    SceneApplied.CameraRotation[0] = FlyRig.YawDegrees;
-    SceneApplied.CameraRotation[1] = FlyRig.PitchDegrees;
+    SceneApplied.CameraRotation[0] = EditorCamera.YawDegrees;
+    SceneApplied.CameraRotation[1] = EditorCamera.PitchDegrees;
 
     if (!SceneLedger.Construct(Viewport.MotionSource()).Resolved)
     {
@@ -740,16 +740,16 @@ int main(int ArgumentCount, char** ArgumentValues)
                 FlySettings.LagEnabled  = (SceneApplied.DetailBits[6u] & 2u) != 0u;
                 FlySettings.InvertPitch = (SceneApplied.DetailBits[6u] & 4u) != 0u;
 
-                FlyRig.Advance(Pass.ElapsedMilliseconds / 1000.0, FlyInput, FlySettings);
+                EditorCamera.Advance(Pass.ElapsedMilliseconds / 1000.0, FlyInput, FlySettings);
 
-                SceneApplied.ViewportSkyCamera.AzimuthDegrees    = static_cast<float>(FlyRig.LaggedYawDegrees);
-                SceneApplied.ViewportSkyCamera.ElevationDegrees  = static_cast<float>(FlyRig.LaggedPitchDegrees);
+                SceneApplied.ViewportSkyCamera.AzimuthDegrees    = static_cast<float>(EditorCamera.LaggedYawDegrees);
+                SceneApplied.ViewportSkyCamera.ElevationDegrees  = static_cast<float>(EditorCamera.LaggedPitchDegrees);
                 SceneApplied.ViewportSkyCamera.FieldOfViewDegrees = 60.0f;
-                SceneApplied.CameraPosition[0] = FlyRig.LaggedPosition[0];
-                SceneApplied.CameraPosition[1] = FlyRig.LaggedPosition[1];
-                SceneApplied.CameraPosition[2] = FlyRig.LaggedPosition[2];
-                SceneApplied.CameraRotation[0] = FlyRig.LaggedYawDegrees;
-                SceneApplied.CameraRotation[1] = FlyRig.LaggedPitchDegrees;
+                SceneApplied.CameraPosition[0] = EditorCamera.LaggedPosition[0];
+                SceneApplied.CameraPosition[1] = EditorCamera.LaggedPosition[1];
+                SceneApplied.CameraPosition[2] = EditorCamera.LaggedPosition[2];
+                SceneApplied.CameraRotation[0] = EditorCamera.LaggedYawDegrees;
+                SceneApplied.CameraRotation[1] = EditorCamera.LaggedPitchDegrees;
             }
 
             for (std::uint32_t Ordinal = 0u; Ordinal < OpenCount; ++Ordinal)
@@ -810,7 +810,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 SceneDirectory.RecordGizmo(LeafBody, SceneApplied, LeafOverlay);
 
                                 // 📐 The pose the analytic ground reads. Assembled here because the
-                                //    host owns the fly rig and the leaf's extent both.
+                                //    host owns the EditorCameraComponent and the leaf's extent both.
                                 {
                                     OverlayGroundPose& Pose = LeafOverlay.Ground;
                                     const EditorPanelConfiguration& Declared = PanelConfiguration[Ordinal];
@@ -1072,7 +1072,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                         static_cast<void>(SkySurface.Upload(SkyPixels.data()));
                     SkyPrevious = SceneApplied.Environment;
                     SkyEverGenerated = true;
-                    // 📝 The camera is the fly rig's; `SkyCam` only frames the DOME's own generation
+                    // 📝 The camera is the EditorCameraComponent's; `SkyCam` only frames the DOME's generation
                     //    (which is camera-independent) and never the viewport crop.
                 }
                 SceneApplied.SkyTextureIdentity = SkyTextureIdentity;
@@ -1089,6 +1089,22 @@ int main(int ArgumentCount, char** ArgumentValues)
             //    same shared helper the harness drives — the row set and the working copies stay in
             //    step with the panel's buttons and menus.
             StackRows.ApplyRequest(TexturePaintApplied);
+
+            // 📝 Bookmark recall is a request to the owning EditorCameraComponent, not a temporary write
+            //    into the panel's mirrored pose (which the next camera tick would overwrite).
+            if (SceneApplied.CameraBookmarkRecallRequested)
+            {
+                const std::uint32_t Bookmark = SceneApplied.CameraBookmarkTaken;
+                if (Bookmark < SceneApplied.CameraBookmarkCount)
+                {
+                    for (std::uint32_t Axis = 0u; Axis < 3u; ++Axis)
+                        EditorCamera.Position[Axis] = SceneApplied.CameraBookmarkPosition[Bookmark][Axis];
+                    EditorCamera.YawDegrees = SceneApplied.CameraBookmarkRotation[Bookmark][0];
+                    EditorCamera.PitchDegrees = SceneApplied.CameraBookmarkRotation[Bookmark][1];
+                    EditorCamera.Snap();
+                }
+                SceneApplied.CameraBookmarkRecallRequested = false;
+            }
 
             // 📝 The history demand is drained ONCE per drag — the shell raises it at drag end, the host
             //    appends it to its own run and clears the slot, and no tick in between wrote a revision.

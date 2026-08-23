@@ -273,6 +273,7 @@ private:
                                                                //       the look gesture's cursor warp
     double               LookLastX         = 0.0;              // [-] - the look gesture's own cursor tracking,
     double               LookLastY         = 0.0;              //       never ImGui's delta (see CameraInput)
+    bool                 LookWasHeld       = false;            // [-] - suppresses the capture frame's cursor jump
     bool                 TickOpen          = false;            // [-] - Advance delivered, Seal has not
     bool                 ContentAssembled  = false;            // [-] - Seal delivered, Record has not
     bool                 WindowAttached    = false;            // [-] - the window system attachment stands

@@ -459,6 +459,8 @@ void SeedPaintContextFromRows(TexturePaintContext& Applied,
         Applied.LayerTagHue[Ordinal]    = Row.TagHue;
         Applied.LayerExpanded[Ordinal]  = Row.Expanded;
         Applied.LayerCardExpanded[Ordinal] = false;
+        for (std::uint32_t Section = 0u; Section < 5u; ++Section)
+            Applied.LayerCardSection[Ordinal][Section] = true;
         Applied.LayerResolution[Ordinal] = 2048.0;
         Applied.LayerHeightIntegrated[Ordinal] = false;
         Applied.LayerHeightBlendTaken[Ordinal] = 0u;
@@ -2071,15 +2073,30 @@ float TexturePaintPanel::RecordInlineLayerCard(const PlaneExtent& Extent,
         Surface->Edge(Extent, Tinted.Hairline, 1.0f, Scaled.LayerRadius, CornerAll);
     }
 
-    const auto Section = [&](const char* Caption, const char* Summary)
+    const auto Section = [&](std::uint32_t SectionOrdinal, const char* Caption,
+                             const char* Summary) -> bool
     {
+        const PlaneExtent Head = Spanning(Extent.MinimumX, Sweep, Extent.Width(), HeadY);
+        bool& Opened = Applied.LayerCardSection[Ordinal][SectionOrdinal];
+
         if (Recording)
         {
-            const PlaneExtent Head = Spanning(Extent.MinimumX, Sweep, Extent.Width(), HeadY);
-            Surface->Ground(Head, Tinted.Tile, 0.0f, CornerNone);
+            const ControlIdentity Disclosure = NextInlineControl();
+            const bool Over = Head.Encloses(Sampled.PositionX, Sampled.PositionY);
+            if (Sampled.ContactPressed && Over && !Ledger->AnyDisclosed())
+                Ledger->Grab(Disclosure, ControlPart::Body);
+            if (Over && Ledger->Released(Disclosure))
+                Opened = !Opened;
+            Ledger->DeclareHovered(Disclosure, Over, HoverOver);
+
+            Surface->Ground(Head, Over ? Tinted.TileHovered : Tinted.Tile,
+                            0.0f, CornerNone);
             Surface->Ground(Spanning(Head.MinimumX, Head.MaximumY - 1.0f, Head.Width(), 1.0f),
                             Tinted.Hairline, 0.0f, CornerNone);
-            Surface->TextRun(Left, Sweep + (HeadY - Scaled.RunSmall) * 0.5f,
+            Surface->Stroke(Opened ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
+                            Spanning(Left, Sweep + (HeadY - 12.0f) * 0.5f, 12.0f, 12.0f),
+                            Tinted.Faint);
+            Surface->TextRun(Left + 18.0f, Sweep + (HeadY - Scaled.RunSmall) * 0.5f,
                              Tinted.Primary, Caption, Scaled.RunSmall, 0.0f, true);
 
             if (Summary != nullptr && Summary[0] != '\0')
@@ -2090,7 +2107,15 @@ float TexturePaintPanel::RecordInlineLayerCard(const PlaneExtent& Extent,
             }
         }
 
-        Sweep += HeadY + 4.0f;
+        Sweep += HeadY + (Opened ? 4.0f : 2.0f);
+        return Opened;
+    };
+
+    const auto SkipFields = [&](std::uint32_t Count)
+    {
+        if (Recording)
+            for (std::uint32_t FieldOrdinal = 0u; FieldOrdinal < Count; ++FieldOrdinal)
+                (void) NextInlineControl();
     };
 
     const auto Field = [&]()
@@ -2108,99 +2133,126 @@ float TexturePaintPanel::RecordInlineLayerCard(const PlaneExtent& Extent,
     static const char* const HeightModes[] = { "Normal Map Detail", "Replace", "Add", "Overlay" };
     static const char* const Effects[] = { "None", "Levels", "Blur", "Sharpen", "Edge Wear" };
 
-    Section("Info", TextureLayerText(Current.Classified));
-
-    const PlaneExtent ResolutionRow = Field();
-    if (Recording)
-        SharedControls.MagnitudeRow(
-            NextInlineControl(), ResolutionRow,
-            MagnitudeDeclaration{ "Resolution", "px", 16.0, 16384.0, 0u,
-                                  MagnitudeDeclaration::Arrange::Measured },
-            Applied.LayerResolution[Ordinal]);
-
-    std::uint32_t TagTaken = 0u;
-    for (std::uint32_t Tag = 0u; Tag < 5u; ++Tag)
-        if (Applied.LayerTagHue[Ordinal] == TagHues[Tag])
-            TagTaken = Tag;
-
-    const PlaneExtent TagRow = Field();
-    if (Recording && SharedControls.SelectionField(NextInlineControl(), TagRow,
-                                                   SelectionDeclaration{ "Tag Colour", TagNames, 5u },
-                                                   TagTaken).ReadingAltered)
+    const bool InfoOpen = Section(0u, "Info", TextureLayerText(Current.Classified));
+    if (InfoOpen)
     {
-        Applied.LayerTagHue[Ordinal] = TagHues[TagTaken];
+        const PlaneExtent ResolutionRow = Field();
+        if (Recording)
+            SharedControls.MagnitudeRow(
+                NextInlineControl(), ResolutionRow,
+                MagnitudeDeclaration{ "Resolution", "px", 16.0, 16384.0, 0u,
+                                      MagnitudeDeclaration::Arrange::Measured },
+                Applied.LayerResolution[Ordinal]);
+
+        std::uint32_t TagTaken = 0u;
+        for (std::uint32_t Tag = 0u; Tag < 5u; ++Tag)
+            if (Applied.LayerTagHue[Ordinal] == TagHues[Tag])
+                TagTaken = Tag;
+
+        const PlaneExtent TagRow = Field();
+        if (Recording && SharedControls.SelectionField(NextInlineControl(), TagRow,
+                                                       SelectionDeclaration{ "Tag Colour", TagNames, 5u },
+                                                       TagTaken).ReadingAltered)
+            Applied.LayerTagHue[Ordinal] = TagHues[TagTaken];
+    }
+    else
+    {
+        SkipFields(2u);
     }
 
-    Section("Height to Normal", Applied.LayerHeightIntegrated[Ordinal] ? "Enabled" : "Off");
-
-    const PlaneExtent HeightToggle = Field();
-    if (Recording)
-        SharedControls.ToggleRow(NextInlineControl(), HeightToggle,
-                                 ToggleDeclaration{ "Re-integrate height into normal" },
-                                 Applied.LayerHeightIntegrated[Ordinal]);
-
-    const PlaneExtent HeightMode = Field();
-    if (Recording)
+    const bool HeightOpen = Section(1u, "Height to Normal",
+                                    Applied.LayerHeightIntegrated[Ordinal] ? "Enabled" : "Off");
+    if (HeightOpen)
     {
-        SharedControls.SelectionField(NextInlineControl(), HeightMode,
-                                      SelectionDeclaration{ "Blend Mode", HeightModes, 4u },
-                                      Applied.LayerHeightBlendTaken[Ordinal]);
+        const PlaneExtent HeightToggle = Field();
+        if (Recording)
+            SharedControls.ToggleRow(NextInlineControl(), HeightToggle,
+                                     ToggleDeclaration{ "Re-integrate height into normal" },
+                                     Applied.LayerHeightIntegrated[Ordinal]);
+
+        const PlaneExtent HeightMode = Field();
+        if (Recording)
+            SharedControls.SelectionField(NextInlineControl(), HeightMode,
+                                          SelectionDeclaration{ "Blend Mode", HeightModes, 4u },
+                                          Applied.LayerHeightBlendTaken[Ordinal]);
+    }
+    else
+    {
+        SkipFields(2u);
     }
 
-    Section("Effects", Effects[Applied.LayerEffectTaken[Ordinal] % 5u]);
-    const PlaneExtent EffectRow = Field();
-    if (Recording)
-        SharedControls.SelectionField(NextInlineControl(), EffectRow,
-                                      SelectionDeclaration{ "Effect", Effects, 5u },
-                                      Applied.LayerEffectTaken[Ordinal]);
-
-    Section("Colour Blending",
-            TextureBlendNames[Applied.LayerBlendTaken[Ordinal] % TextureBlendCount]);
-    const PlaneExtent BlendRow = Field();
-    if (Recording)
-        SharedControls.SelectionField(NextInlineControl(), BlendRow,
-                                      SelectionDeclaration{ "Blend", TextureBlendNames,
-                                                            TextureBlendCount },
-                                      Applied.LayerBlendTaken[Ordinal]);
-
-    double Opacity = static_cast<double>(Applied.LayerOpacity[Ordinal]);
-    const PlaneExtent OpacityField = Field();
-    if (Recording && SharedControls.MagnitudeRow(
-                             NextInlineControl(), OpacityField,
-                             MagnitudeDeclaration{ "Opacity", "%", 0.0, 100.0, 0u,
-                                                   MagnitudeDeclaration::Arrange::Measured },
-                             Opacity).ReadingAltered)
+    const bool EffectsOpen = Section(2u, "Effects", Effects[Applied.LayerEffectTaken[Ordinal] % 5u]);
+    if (EffectsOpen)
     {
-        Applied.LayerOpacity[Ordinal] = static_cast<std::uint32_t>(Opacity + 0.5);
+        const PlaneExtent EffectRow = Field();
+        if (Recording)
+            SharedControls.SelectionField(NextInlineControl(), EffectRow,
+                                          SelectionDeclaration{ "Effect", Effects, 5u },
+                                          Applied.LayerEffectTaken[Ordinal]);
+    }
+    else
+    {
+        SkipFields(1u);
+    }
+
+    const bool ColourOpen = Section(3u, "Colour Blending",
+                                    TextureBlendNames[Applied.LayerBlendTaken[Ordinal]
+                                                      % TextureBlendCount]);
+    if (ColourOpen)
+    {
+        const PlaneExtent BlendRow = Field();
+        if (Recording)
+            SharedControls.SelectionField(NextInlineControl(), BlendRow,
+                                          SelectionDeclaration{ "Blend", TextureBlendNames,
+                                                                TextureBlendCount },
+                                          Applied.LayerBlendTaken[Ordinal]);
+
+        double Opacity = static_cast<double>(Applied.LayerOpacity[Ordinal]);
+        const PlaneExtent OpacityField = Field();
+        if (Recording && SharedControls.MagnitudeRow(
+                                 NextInlineControl(), OpacityField,
+                                 MagnitudeDeclaration{ "Opacity", "%", 0.0, 100.0, 0u,
+                                                       MagnitudeDeclaration::Arrange::Measured },
+                                 Opacity).ReadingAltered)
+            Applied.LayerOpacity[Ordinal] = static_cast<std::uint32_t>(Opacity + 0.5);
+    }
+    else
+    {
+        SkipFields(2u);
     }
 
     char Active[20] = {};
     std::snprintf(Active, sizeof Active, "%u active", Current.ChannelCount);
-    Section("Channel Blending", Active);
-
+    const bool ChannelsOpen = Section(4u, "Channel Blending", Active);
     const std::uint32_t ChannelCount = Current.ChannelCount < TextureChannelCeiling
                                      ? Current.ChannelCount : TextureChannelCeiling;
-    for (std::uint32_t Channel = 0u; Channel < ChannelCount; ++Channel)
-    {
-        const char* Caption = (Current.Channels[Channel] != nullptr)
-                            ? Current.Channels[Channel] : TextureChannelText(Channel);
-        const PlaneExtent ChannelBlend = Field();
-        if (Recording)
-            SharedControls.SelectionField(NextInlineControl(), ChannelBlend,
-                                          SelectionDeclaration{ Caption, TextureBlendNames,
-                                                                TextureBlendCount },
-                                          Applied.ChannelBlendTaken[Ordinal][Channel]);
 
-        double Amount = static_cast<double>(Applied.ChannelAmount[Ordinal][Channel]);
-        const PlaneExtent ChannelAmount = Field();
-        if (Recording && SharedControls.MagnitudeRow(
-                                 NextInlineControl(), ChannelAmount,
-                                 MagnitudeDeclaration{ "Opacity", "%", 0.0, 100.0, 0u,
-                                                       MagnitudeDeclaration::Arrange::Measured },
-                                 Amount).ReadingAltered)
+    if (ChannelsOpen)
+    {
+        for (std::uint32_t Channel = 0u; Channel < ChannelCount; ++Channel)
         {
-            Applied.ChannelAmount[Ordinal][Channel] = static_cast<std::uint32_t>(Amount + 0.5);
+            const char* Caption = (Current.Channels[Channel] != nullptr)
+                                ? Current.Channels[Channel] : TextureChannelText(Channel);
+            const PlaneExtent ChannelBlend = Field();
+            if (Recording)
+                SharedControls.SelectionField(NextInlineControl(), ChannelBlend,
+                                              SelectionDeclaration{ Caption, TextureBlendNames,
+                                                                    TextureBlendCount },
+                                              Applied.ChannelBlendTaken[Ordinal][Channel]);
+
+            double Amount = static_cast<double>(Applied.ChannelAmount[Ordinal][Channel]);
+            const PlaneExtent ChannelAmount = Field();
+            if (Recording && SharedControls.MagnitudeRow(
+                                     NextInlineControl(), ChannelAmount,
+                                     MagnitudeDeclaration{ "Opacity", "%", 0.0, 100.0, 0u,
+                                                           MagnitudeDeclaration::Arrange::Measured },
+                                     Amount).ReadingAltered)
+                Applied.ChannelAmount[Ordinal][Channel] = static_cast<std::uint32_t>(Amount + 0.5);
         }
+    }
+    else
+    {
+        SkipFields(ChannelCount * 2u);
     }
 
     Sweep += 6.0f;

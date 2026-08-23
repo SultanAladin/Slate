@@ -110,6 +110,7 @@ struct TexturePaintContext
     //    channel each layer is showing on the properties page.
     bool                       LayerExpanded[TextureLayerCeiling]  = {};
     bool                       LayerCardExpanded[TextureLayerCeiling] = {}; // [-] - inline detail card beneath row
+    bool                       LayerCardSection[TextureLayerCeiling][5] = {}; // [-] - Info … Channel Blending folds
     double                     LayerResolution[TextureLayerCeiling] = {};   // [px] - editable inline Info field
     bool                       LayerHeightIntegrated[TextureLayerCeiling] = {}; // [-] - Height → Normal toggle
     std::uint32_t              LayerHeightBlendTaken[TextureLayerCeiling] = {}; // [-] - height blend roster

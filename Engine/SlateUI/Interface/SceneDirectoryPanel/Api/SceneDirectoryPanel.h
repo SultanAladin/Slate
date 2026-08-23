@@ -123,6 +123,16 @@ struct SceneDirectoryContext
     double                     CameraPosition[3] = { 0.0, 1.5, 0.0 };   // [m] - host-written
     double                     CameraRotation[3] = { 100.0, 15.0, 0.0 }; // [deg] - yaw, pitch, roll
 
+    // 📝 Editor-camera bookmarks are authored here rather than in a viewport popup. Each captures a
+    //    pose, carries an editable name, and can request that the host restore its camera component.
+    static constexpr std::uint32_t CameraBookmarkCeiling = 8u;
+    char                       CameraBookmarkNames[CameraBookmarkCeiling][32] = {};
+    double                     CameraBookmarkPosition[CameraBookmarkCeiling][3] = {};
+    double                     CameraBookmarkRotation[CameraBookmarkCeiling][3] = {};
+    std::uint32_t              CameraBookmarkCount = 0u;
+    std::uint32_t              CameraBookmarkTaken = 0u;
+    bool                       CameraBookmarkRecallRequested = false;
+
     // 📝 The viewport's overlay record — the grid and the gizmo, filled by the panel and drawn by
     //    the GPU overlay pass. The host uploads it when its generation changes; the pass draws it
     //    in its own straight-alpha pass so the CPU never tessellates and the colours stay vivid.
@@ -155,6 +165,7 @@ public:
         + 2u                                          // [-] - the outliner's page strip and the Inspect call
         + 6u                                          // [-] - the six environment slider rows
         + 1u                                          // [-] - the search field
+        + SceneDirectoryContext::CameraBookmarkCeiling + 3u // [-] - bookmark names, save, go-to, delete
         + FacetPanel::FacetCapacity + 2u;             // [-] - the filter card (chips, dropdown, clear)
 
     SceneDirectoryPanel()                                   = default;
@@ -266,6 +277,7 @@ private:
     void RecordRevisionSpine(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
                              const EntityRow* Rows, std::uint32_t RowCount,
                              const EntityRevision* Revisions, std::uint32_t RevisionCount);
+    void RecordCameraBookmarks(const PlaneExtent& Extent, SceneDirectoryContext& Applied);
 
     InteractionIndex*           Ledger = nullptr;        // [-] - borrowed; never owned
     MotionIntegrator*           Motion = nullptr;        // [-] - borrowed; never owned
@@ -291,6 +303,10 @@ private:
     ControlIdentity OutlineStrip    = {};
     ControlIdentity InspectCall     = {};
     ControlIdentity DirectoryCall   = {};
+    ControlIdentity BookmarkNames[SceneDirectoryContext::CameraBookmarkCeiling] = {};
+    ControlIdentity BookmarkSave    = {};
+    ControlIdentity BookmarkRecall  = {};
+    ControlIdentity BookmarkRetire  = {};
 
     // 📐 The outliner leaf's own page travel. The leaf slides between the directory,
     //    the properties and the history exactly as the layer stack's carousel does.

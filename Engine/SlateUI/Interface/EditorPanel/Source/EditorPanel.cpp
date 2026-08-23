@@ -512,27 +512,6 @@ void EditorPanel::RecordFooter(std::uint32_t RecordOrdinal,
         return Button;
     };
 
-    if (Subject == PanelSubject::Viewport)
-    {
-        const PlaneExtent Cameras = Pill("Cameras", 92.0f);
-        const std::uint32_t CameraControl = ControlOrdinal(RecordOrdinal, ControlRole::CameraMenu);
-        const bool CameraOpen = Disclosed(Controls[CameraControl]);
-        if (Pressed(CameraControl, Cameras, true))
-        {
-            if (CameraOpen)
-                CloseDisclosure();
-            else
-                Disclose(Controls[CameraControl]);
-        }
-        if (Disclosed(Controls[CameraControl]))
-        {
-            DeferredAnchor   = Cameras;
-        DeferredBoundary = CurrentLeafExtent;
-            DeferredRecord = RecordOrdinal;
-            DeferredRole   = ControlRole::CameraMenu;
-        }
-    }
-
     const PlaneExtent LatticeButton = Pill("Grid", 72.0f);
     const std::uint32_t LatticeControl = ControlOrdinal(RecordOrdinal, ControlRole::LatticeMenu);
     const bool LatticeOpen = Disclosed(Controls[LatticeControl]);

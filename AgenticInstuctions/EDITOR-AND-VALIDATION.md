@@ -66,7 +66,7 @@ prototype of the WHOLE reference sheet                    the real editor layout
 | Editor leaf content (sky, outliner, properties) | `SceneDirectoryPanel` |
 | Sky GPU texture (upload, device rebuild) | `ViewportSkySurface` |
 | Sky evaluation (dome + sun disc) | `GenerateSkyImage` (`Application/EditorHost`) |
-| Fly camera (WASD + look + lag) | `CameraRig` (`Application/EditorHost`); input via `InterfaceExchange::CameraInput` |
+| Camera pose and movement | Base `CameraComponent` (`Application/CameraComponent`), editor identity `EditorCameraComponent`; input via `InterfaceExchange::CameraInput` |
 | Validation prototype shell | `GlobalShellPanel` — validation host only |
 
 ## The editor camera

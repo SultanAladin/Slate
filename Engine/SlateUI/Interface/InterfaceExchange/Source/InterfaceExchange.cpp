@@ -889,8 +889,13 @@ CameraCondition InterfaceExchange::CameraInput()
 
         if (Current.LookHeld)
         {
-            Current.LookDeltaX = static_cast<float>(CursorX - LookLastX);
-            Current.LookDeltaY = static_cast<float>(CursorY - LookLastY);
+            // 🔴 The arrival frame establishes capture; it is not motion. Measuring it against the
+            //    previous free cursor sample turns a plain right-click into one synthetic look step.
+            if (LookWasHeld)
+            {
+                Current.LookDeltaX = static_cast<float>(CursorX - LookLastX);
+                Current.LookDeltaY = static_cast<float>(CursorY - LookLastY);
+            }
 
             int WindowWidth  = 0;
             int WindowHeight = 0;
@@ -906,6 +911,7 @@ CameraCondition InterfaceExchange::CameraInput()
             glfwSetCursorPos(Window, CentreX, CentreY);
             LookLastX = CentreX;
             LookLastY = CentreY;
+            LookWasHeld = true;
 
             ImGui::SetMouseCursor(ImGuiMouseCursor_None);
         }
@@ -915,6 +921,7 @@ CameraCondition InterfaceExchange::CameraInput()
             //    cursor so the next press starts from where the pointer actually is.
             LookLastX = CursorX;
             LookLastY = CursorY;
+            LookWasHeld = false;
             ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
         }
     }
