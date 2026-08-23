@@ -64,9 +64,9 @@ struct EditorPanelConfiguration
     PanelShading              Shading         = PanelShading::Solid;                // [-] - viewport shading
     PanelGizmo                Gizmo           = PanelGizmo::Blender;                // [-] - gizmo convention
     std::uint32_t             LatticeScale    = 1u;                                 // [-] - skeletal lattice scale
-    std::uint32_t             Subdivisions    = 16u;                                // [-] - lattice subdivisions per side
+    std::uint32_t             Subdivisions    = 10u;                                // [-] - major line every N cells
     bool                      AxisX           = true;                               // [-] - X or U axis visible
-    bool                      AxisY           = false;                              // [-] - Y or V axis visible
+    bool                      AxisY           = true;                               // [-] - Y or V axis visible
     bool                      AxisZ           = true;                               // [-] - Z axis visible
     bool                      Perspective     = true;                               // [-] - perspective projection
     bool                      FpsOverlay      = false;                              // [-] - FPS overlay requested

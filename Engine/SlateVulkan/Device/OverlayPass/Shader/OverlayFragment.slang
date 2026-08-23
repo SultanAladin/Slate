@@ -91,18 +91,18 @@ Real32 OctaveCoverage(Real32x2 Ground, Real32 Cell, Real32 Weight)
     return max(Along, Cross) * Fade;
 }
 
-/// 🧩 The ground plane at one pixel: the ray/plane intersection, major and minor
-///    subdivisions of lattice, the world axes, and the distance haze.
+/// 🧩 The ground plane at one pixel: the ray/plane intersection, unified major and minor
+///    grid lines, the world axes drawn ON TOP, and the distance haze.
 Real32x4 ResolveGround(Real32x2 Corner)
 {
-    const Real32x3 Eye     = Push.EyeAndCell.xyz;
-    const Real32   Cell    = max(Push.EyeAndCell.w, 0.0001);
-    const Real32x3 Forward = Push.ForwardAndTanH.xyz;
-    const Real32x3 Right   = Push.RightAndTanV.xyz;
-    const Real32x3 Up      = Push.UpAndPresent.xyz;
-    const Real32   TanH    = Push.ForwardAndTanH.w;
-    const Real32   TanV    = Push.RightAndTanV.w;
-    const Real32   Weight  = max(Push.WeightsAndDot.x, 0.25);
+    const Real32x3 Eye       = Push.EyeAndCell.xyz;
+    const Real32   Cell      = max(Push.EyeAndCell.w, 0.0001);
+    const Real32x3 Forward   = Push.ForwardAndTanH.xyz;
+    const Real32x3 Right     = Push.RightAndTanV.xyz;
+    const Real32x3 Up        = Push.UpAndPresent.xyz;
+    const Real32   TanH      = Push.ForwardAndTanH.w;
+    const Real32   TanV      = Push.RightAndTanV.w;
+    const Real32   Weight    = max(Push.WeightsAndDot.x, 0.25);
     const Real32   DotRadius = max(Push.WeightsAndDot.y, 0.25);
     const Real32   MajorStep = max(Push.WeightsAndDot.z, 2.0);
     const Unsigned32 Present = Unsigned32(Push.UpAndPresent.w + 0.5);
@@ -128,20 +128,32 @@ Real32x4 ResolveGround(Real32x2 Corner)
     const Real32x2 Ground = Real32x2(Eye.x + Ray.x * Distance,
                                      Eye.z + Ray.z * Distance);
 
-    // ③ Dynamic grid levels: Minor cells, Major cells, and SuperMajor cells.
+    // ③ Unified Grid: Minor and Major lines belong to one single consistent unit.
     const Real32 MinorCell = Cell;
     const Real32 MajorCell = Cell * MajorStep;
-    const Real32 SuperCell = MajorCell * MajorStep;
 
-    Real32 Coverage = 0.0;
+    Real32 GridCoverage = 0.0;
 
     if (Present == 1u || Present == 3u)
     {
-        const Real32 MinorCov = OctaveCoverage(Ground, MinorCell, Weight);
-        const Real32 MajorCov = OctaveCoverage(Ground, MajorCell, Weight * 1.35);
-        const Real32 SuperCov = OctaveCoverage(Ground, SuperCell, Weight * 1.70);
+        // Minor lines (subtle, fine detail)
+        const Real32 MinorAlong = LatticeCoverage(Ground.x, MinorCell, Weight);
+        const Real32 MinorCross = LatticeCoverage(Ground.y, MinorCell, Weight);
+        const Real32 MinorGrid  = max(MinorAlong, MinorCross);
 
-        Coverage = max(MinorCov * 0.35, max(MajorCov * 0.75, SuperCov * 1.00));
+        // Major lines (prominent, bold structure)
+        const Real32 MajorAlong = LatticeCoverage(Ground.x, MajorCell, Weight * 1.5);
+        const Real32 MajorCross = LatticeCoverage(Ground.y, MajorCell, Weight * 1.5);
+        const Real32 MajorGrid  = max(MajorAlong, MajorCross);
+
+        // Continuous LOD: As the camera zooms out, minor lines smoothly merge into major lines
+        // without harsh concentric cutoff rings.
+        const Real32 SpanX = fwidth(Ground.x / MinorCell);
+        const Real32 SpanY = fwidth(Ground.y / MinorCell);
+        const Real32 Span  = max(SpanX, SpanY);
+        const Real32 MinorFade = 1.0 - smoothstep(0.12, 0.45, Span);
+
+        GridCoverage = max(MajorGrid * 0.85, MinorGrid * 0.35 * MinorFade);
     }
 
     // ④ The dotted presentation: nodes at grid intersections.
@@ -155,30 +167,42 @@ Real32x4 ResolveGround(Real32x2 Corner)
         const Real32   Node    = 1.0 - min(Radial / DotRadius, 1.0);
         const Real32   Fade    = 1.0 - smoothstep(0.25, 0.5, max(Span.x, Span.y));
 
-        const Real32 DotCov = Node * Fade;
-        Coverage = max(Coverage, DotCov);
+        GridCoverage = max(GridCoverage, Node * Fade);
     }
 
-    // ⑤ The world axes, in their own hues, drawn with exact pixel width.
-    Real32x3 Tone = Push.LatticeColour.rgb;
+    // ⑤ Distance haze fading the ENTIRE grid together towards the horizon.
+    const Real32 Horizon = 1.0 - smoothstep(0.0, 1.0, Distance / (max(abs(Eye.y), 1.0) * 1200.0));
 
+    Real32x3 FinalTone  = Push.LatticeColour.rgb;
+    Real32   FinalAlpha = GridCoverage * Push.LatticeColour.a;
+
+    // ⑥ World axes ON TOP: Red for X (at Z=0), Blue for Z (at X=0).
     const Real32 SpanX = fwidth(Ground.x);
     const Real32 SpanZ = fwidth(Ground.y);
-    const Real32 PixelDistZ = abs(Ground.x) / max(SpanX, 1e-6);
-    const Real32 PixelDistX = abs(Ground.y) / max(SpanZ, 1e-6);
-    const Real32 AxisZ = 1.0 - min(PixelDistZ / max(Weight * 1.6, 0.25), 1.0);
-    const Real32 AxisX = 1.0 - min(PixelDistX / max(Weight * 1.6, 0.25), 1.0);
+    const Real32 PixelDistZ = abs(Ground.x) / max(SpanX, 1e-6); // Distance in pixels to X=0 (Z axis)
+    const Real32 PixelDistX = abs(Ground.y) / max(SpanZ, 1e-6); // Distance in pixels to Z=0 (X axis)
 
-    if (AxisZ > Coverage) { Coverage = AxisZ; Tone = Real32x3(0.32, 0.44, 0.92); }
-    if (AxisX > Coverage) { Coverage = AxisX; Tone = Real32x3(0.90, 0.28, 0.32); }
+    const Real32 AxisZ = 1.0 - min(PixelDistZ / max(Weight * 1.8, 0.5), 1.0); // Blue Z axis
+    const Real32 AxisX = 1.0 - min(PixelDistX / max(Weight * 1.8, 0.5), 1.0); // Red X axis
 
-    if (Coverage <= 0.0)
+    if (AxisZ > 0.0)
+    {
+        const Real32x3 BlueAxis = Real32x3(0.24, 0.44, 0.95);
+        FinalTone  = lerp(FinalTone, BlueAxis, AxisZ);
+        FinalAlpha = max(FinalAlpha, AxisZ * 0.95);
+    }
+
+    if (AxisX > 0.0)
+    {
+        const Real32x3 RedAxis  = Real32x3(0.95, 0.24, 0.28);
+        FinalTone  = lerp(FinalTone, RedAxis, AxisX);
+        FinalAlpha = max(FinalAlpha, AxisX * 0.95);
+    }
+
+    if (FinalAlpha <= 0.0)
         return Real32x4(0.0, 0.0, 0.0, 0.0);
 
-    // ⑥ The distance haze fading to the horizon from above or below.
-    const Real32 Horizon = 1.0 - smoothstep(0.0, 1.0, Distance / (max(abs(Eye.y), 1.0) * 900.0));
-
-    return Real32x4(Tone, Coverage * Push.LatticeColour.a * Horizon);
+    return Real32x4(FinalTone, FinalAlpha * Horizon);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

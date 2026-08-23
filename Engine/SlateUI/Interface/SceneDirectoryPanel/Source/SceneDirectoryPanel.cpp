@@ -2167,6 +2167,53 @@ void SceneDirectoryPanel::RecordGizmo(const PlaneExtent& Extent, SceneDirectoryC
     const std::uint32_t Green = PackOverlayColour(0x46u, 0xA7u, 0x58u, 0xFFu);
     const std::uint32_t Blue  = PackOverlayColour(0x3Eu, 0x63u, 0xDDu, 0xFFu);
 
+    const auto Draw3DLine = [&](double X0, double Y0, double Z0,
+                                double X1, double Y1, double Z1,
+                                std::uint32_t PackedColor, float Thickness)
+    {
+        const double DX0 = X0 - CameraX, DY0 = Y0 - CameraY, DZ0 = Z0 - CameraZ;
+        const double DX1 = X1 - CameraX, DY1 = Y1 - CameraY, DZ1 = Z1 - CameraZ;
+
+        const double ZDepth0 = DX0 * Forward[0] + DY0 * Forward[1] + DZ0 * Forward[2];
+        const double ZDepth1 = DX1 * Forward[0] + DY1 * Forward[1] + DZ1 * Forward[2];
+
+        if (ZDepth0 < 0.25 && ZDepth1 < 0.25)
+            return;
+
+        double P0X = X0, P0Y = Y0, P0Z = Z0;
+        double P1X = X1, P1Y = Y1, P1Z = Z1;
+
+        if (ZDepth0 < 0.25)
+        {
+            const double T = (0.25 - ZDepth0) / (ZDepth1 - ZDepth0);
+            P0X = X0 + T * (X1 - X0);
+            P0Y = Y0 + T * (Y1 - Y0);
+            P0Z = Z0 + T * (Z1 - Z0);
+        }
+        else if (ZDepth1 < 0.25)
+        {
+            const double T = (0.25 - ZDepth0) / (ZDepth1 - ZDepth0);
+            P1X = X0 + T * (X1 - X0);
+            P1Y = Y0 + T * (Y1 - Y0);
+            P1Z = Z0 + T * (Z1 - Z0);
+        }
+
+        float ScreenX0 = 0.0f, ScreenY0 = 0.0f;
+        float ScreenX1 = 0.0f, ScreenY1 = 0.0f;
+        bool Behind0 = false, Behind1 = false;
+
+        Project(P0X, P0Y, P0Z, ScreenX0, ScreenY0, Behind0);
+        Project(P1X, P1Y, P1Z, ScreenX1, ScreenY1, Behind1);
+
+        if (!Behind0 && !Behind1)
+        {
+            Overlay.AddLine(ScreenX0, ScreenY0, ScreenX1, ScreenY1, PackedColor, Thickness);
+        }
+    };
+
+    // 📐 Draw the vertical Y-axis line (Green) through origin
+    Draw3DLine(0.0, -10000.0, 0.0, 0.0, 10000.0, 0.0, Green, 1.8f);
+
     float OriginX = 0.0f, OriginY = 0.0f;
     bool  OriginBehind = false;
     Project(0.0, 0.0, 0.0, OriginX, OriginY, OriginBehind);
@@ -2194,8 +2241,8 @@ void SceneDirectoryPanel::RecordGizmo(const PlaneExtent& Extent, SceneDirectoryC
                 const float DirectionX = (EndScreenX - OriginX) / Length;
                 const float DirectionY = (EndScreenY - OriginY) / Length;
 
-                const float HeadLength = Head * Length / Reach;
-                const float WingSpan   = Wing * Length / Reach;
+                const float HeadLength = static_cast<float>(Head * Length / Reach);
+                const float WingSpan   = static_cast<float>(Wing * Length / Reach);
 
                 const float BaseX = EndScreenX - DirectionX * HeadLength;
                 const float BaseY = EndScreenY - DirectionY * HeadLength;
