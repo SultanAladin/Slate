@@ -466,8 +466,9 @@ void SceneDirectoryPanel::RecordViewportSky(const PlaneExtent& Extent, const Sce
     //    leaf aspect — the same projection the grid below uses, which is what keeps the two aligned.
     constexpr std::uint32_t MeshColumns = 64u;
     constexpr std::uint32_t MeshRows    = 36u;
-    constexpr std::uint32_t VertexCount = (MeshColumns + 1u) * (MeshRows + 1u);
-    constexpr std::uint32_t IndexCount  = MeshColumns * MeshRows * 6u;
+    constexpr std::uint32_t QuadCount   = MeshColumns * MeshRows;
+    constexpr std::uint32_t VertexCount = QuadCount * 4u;
+    constexpr std::uint32_t IndexCount  = QuadCount * 6u;
 
     const float CentreX = Extent.MinimumX + Extent.Width()  * 0.5f;
     const float CentreY = Extent.MinimumY + Extent.Height() * 0.5f;
@@ -494,67 +495,75 @@ void SceneDirectoryPanel::RecordViewportSky(const PlaneExtent& Extent, const Sce
     float UVs[VertexCount * 2u];
     std::uint32_t Indices[IndexCount];
 
-    std::uint32_t Vertex = 0u;
-
-    for (std::uint32_t Row = 0u; Row <= MeshRows; ++Row)
-    {
-        for (std::uint32_t Column = 0u; Column <= MeshColumns; ++Column)
-        {
-            const float ScreenX = Extent.MinimumX + static_cast<float>(Column) / static_cast<float>(MeshColumns)
-                                * Extent.Width();
-            const float ScreenY = Extent.MinimumY + static_cast<float>(Row) / static_cast<float>(MeshRows)
-                                * Extent.Height();
-
-            const double NdcX = (static_cast<double>(ScreenX) - CentreX) / (Extent.Width()  * 0.5);
-            const double NdcY = (static_cast<double>(CentreY) - ScreenY) / (Extent.Height() * 0.5);
-
-            double Ray[3] = { NdcX * TanHalfH, NdcY * TanHalfV, 1.0 };
-            const double Length = std::sqrt(Ray[0] * Ray[0] + Ray[1] * Ray[1] + Ray[2] * Ray[2]);
-            Ray[0] /= Length;
-            Ray[1] /= Length;
-            Ray[2] /= Length;
-
-            const double DirectionX = Right[0] * Ray[0] + Up[0] * Ray[1] + Forward[0] * Ray[2];
-            const double DirectionY = Right[1] * Ray[0] + Up[1] * Ray[1] + Forward[1] * Ray[2];
-            const double DirectionZ = Right[2] * Ray[0] + Up[2] * Ray[1] + Forward[2] * Ray[2];
-
-            // 📐 Dome coordinates: U = azimuth/2π + 0.5 with azimuth measured from +Z toward +X (the
-            //    dome generator's own convention), V = (90 − elevation)/180.
-            // 🔴 U is ABSOLUTE and the sampler wraps it (REPEAT on U, clamp on V): the dome's azimuth
-            //    is periodic, and a camera whose frustum crosses the seam (yaw near ±180°) spans U
-            //    from ~0.93 to ~0.07 — with a clamped sampler the edge texels smear across the seam
-            //    as a stretched band, which was the reported pixelation. Shifting the mesh's U by the
-            //    yaw would break the texture content (a shift of yaw/2π is not a whole period), so the
-            //    wrap belongs to the sampler, not the coordinates.
-            const double Azimuth   = std::atan2(DirectionX, DirectionZ);
-            const double Elevation = std::asin(std::clamp(DirectionY, -1.0, 1.0));
-
-            Positions[Vertex * 2u]     = ScreenX;
-            Positions[Vertex * 2u + 1u] = ScreenY;
-            UVs[Vertex * 2u]     = static_cast<float>(Azimuth / (2.0 * 3.14159265358979323846) + 0.5);
-            UVs[Vertex * 2u + 1u] = static_cast<float>(std::clamp(0.5 - Elevation / 3.14159265358979323846, 0.0, 1.0));
-
-            ++Vertex;
-        }
-    }
-
-    std::uint32_t Index = 0u;
+    std::uint32_t VertexOffset = 0u;
+    std::uint32_t IndexOffset  = 0u;
 
     for (std::uint32_t Row = 0u; Row < MeshRows; ++Row)
     {
+        const float RowY0 = Extent.MinimumY + static_cast<float>(Row)       / static_cast<float>(MeshRows) * Extent.Height();
+        const float RowY1 = Extent.MinimumY + static_cast<float>(Row + 1u)  / static_cast<float>(MeshRows) * Extent.Height();
+
         for (std::uint32_t Column = 0u; Column < MeshColumns; ++Column)
         {
-            const std::uint32_t A = Row * (MeshColumns + 1u) + Column;
-            const std::uint32_t B = A + 1u;
-            const std::uint32_t C = A + (MeshColumns + 1u);
-            const std::uint32_t D = C + 1u;
+            const float ColX0 = Extent.MinimumX + static_cast<float>(Column)      / static_cast<float>(MeshColumns) * Extent.Width();
+            const float ColX1 = Extent.MinimumX + static_cast<float>(Column + 1u) / static_cast<float>(MeshColumns) * Extent.Width();
 
-            Indices[Index++] = A;
-            Indices[Index++] = C;
-            Indices[Index++] = B;
-            Indices[Index++] = B;
-            Indices[Index++] = C;
-            Indices[Index++] = D;
+            const float CornerScreenX[4] = { ColX0, ColX1, ColX0, ColX1 };
+            const float CornerScreenY[4] = { RowY0, RowY0, RowY1, RowY1 };
+
+            float CornerU[4];
+            float CornerV[4];
+
+            for (std::uint32_t Corner = 0u; Corner < 4u; ++Corner)
+            {
+                const double NdcX = (static_cast<double>(CornerScreenX[Corner]) - CentreX) / (Extent.Width()  * 0.5);
+                const double NdcY = (static_cast<double>(CentreY) - CornerScreenY[Corner]) / (Extent.Height() * 0.5);
+
+                double Ray[3] = { NdcX * TanHalfH, NdcY * TanHalfV, 1.0 };
+                const double Length = std::sqrt(Ray[0] * Ray[0] + Ray[1] * Ray[1] + Ray[2] * Ray[2]);
+                Ray[0] /= Length;
+                Ray[1] /= Length;
+                Ray[2] /= Length;
+
+                const double DirectionX = Right[0] * Ray[0] + Up[0] * Ray[1] + Forward[0] * Ray[2];
+                const double DirectionY = Right[1] * Ray[0] + Up[1] * Ray[1] + Forward[1] * Ray[2];
+                const double DirectionZ = Right[2] * Ray[0] + Up[2] * Ray[1] + Forward[2] * Ray[2];
+
+                const double Azimuth   = std::atan2(DirectionX, DirectionZ);
+                const double Elevation = std::asin(std::clamp(DirectionY, -1.0, 1.0));
+
+                CornerU[Corner] = static_cast<float>(Azimuth / (2.0 * 3.14159265358979323846) + 0.5);
+                CornerV[Corner] = static_cast<float>(std::clamp(0.5 - Elevation / 3.14159265358979323846, 0.0, 1.0));
+            }
+
+            // 📐 Locally unwrap U coordinates for this quad relative to Corner 0 so that no quad
+            //    interpolates across the ±180° azimuth seam backwards. Being per-quad local, this
+            //    completely prevents branch-cut line artifacts near the zenith / pole.
+            for (std::uint32_t Corner = 1u; Corner < 4u; ++Corner)
+            {
+                while (CornerU[Corner] - CornerU[0] > 0.5f)
+                    CornerU[Corner] -= 1.0f;
+                while (CornerU[Corner] - CornerU[0] < -0.5f)
+                    CornerU[Corner] += 1.0f;
+            }
+
+            const std::uint32_t Base = VertexOffset;
+
+            for (std::uint32_t Corner = 0u; Corner < 4u; ++Corner)
+            {
+                Positions[(VertexOffset + Corner) * 2u]      = CornerScreenX[Corner];
+                Positions[(VertexOffset + Corner) * 2u + 1u]  = CornerScreenY[Corner];
+                UVs[(VertexOffset + Corner) * 2u]            = CornerU[Corner];
+                UVs[(VertexOffset + Corner) * 2u + 1u]        = CornerV[Corner];
+            }
+            VertexOffset += 4u;
+
+            Indices[IndexOffset++] = Base + 0u;
+            Indices[IndexOffset++] = Base + 2u;
+            Indices[IndexOffset++] = Base + 1u;
+            Indices[IndexOffset++] = Base + 1u;
+            Indices[IndexOffset++] = Base + 2u;
+            Indices[IndexOffset++] = Base + 3u;
         }
     }
 
