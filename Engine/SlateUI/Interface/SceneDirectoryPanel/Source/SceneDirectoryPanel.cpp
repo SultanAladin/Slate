@@ -1166,7 +1166,7 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
         const float PillRadius = Search.Height() * 0.5f;
 
         Surface->Ground(Search, Tinted.MenuLower, PillRadius, CornerAll);
-        Surface->Edge(Search, Taken ? Faded(Covering(0xFFFFFFu), 0.22f) : Tinted.Hairline,
+        Surface->Edge(Search, Taken ? Faded(Tinted.Primary, 0.22f) : Tinted.Hairline,
                       1.0f, PillRadius, CornerAll);
 
         const float GlyphExtent = 14.0f;
@@ -1335,8 +1335,9 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
                                 Index, Presented,
                                 SelectionGesture{ Modified.Shifted, Modified.Commanded });
 
-            // The latest range endpoint remains the primary record shown by Details and Inspect.
-            Applied.EntityTaken = Index;
+            // Details always follows a member of the persistent set, including after a toggle removes
+            // the clicked endpoint. An empty set is not representable while a details pane stands.
+            Applied.EntityTaken = SelectionSet::Primary(Applied.EntitySelected, RowCount, Index);
         }
 
         Interaction->DeclareHovered(RowContacts[Index], Hovered, HoverOver);

@@ -38,6 +38,23 @@ void SelectionSet::Apply(bool* Membership, std::uint32_t Count, std::uint32_t& A
     Anchor = Target;
 }
 
+std::uint32_t SelectionSet::Primary(bool* Membership, std::uint32_t Count, std::uint32_t Fallback)
+{
+    if (Membership == nullptr || Count == 0u)
+        return 0u;
+
+    if (Fallback < Count && Membership[Fallback])
+        return Fallback;
+
+    for (std::uint32_t Index = 0u; Index < Count; ++Index)
+        if (Membership[Index])
+            return Index;
+
+    const std::uint32_t Restored = Fallback < Count ? Fallback : 0u;
+    Membership[Restored] = true;
+    return Restored;
+}
+
 namespace
 {
 

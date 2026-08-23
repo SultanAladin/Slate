@@ -253,7 +253,7 @@ public:
     /// note  🔴 Not const: the look gesture's capture state stands here until `Seal` warps the cursor.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    CameraCondition CameraInput();
+    CameraCondition CameraInput(bool LookPermitted);
 
     /// 🧩 Appends this tick's typed characters to a caller-owned run, and reports whether any arrived.
     /// in    Intake     [-]  the run written into; always left terminated

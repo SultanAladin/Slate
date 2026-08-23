@@ -66,7 +66,7 @@ void main(uint3 index : SV_DispatchThreadID)
     float miePhase = 0.1193662f * (1.0f - g * g) * (1.0f + mu * mu) /
                      ((2.0f + g * g) * mieBase * sqrt(mieBase));
 
-    float aboveHorizon = smoothstep(-0.035f, 0.02f, view.y);
+    float aboveHorizon = smoothstep(-0.025f, 0.015f, view.y);
     float horizonMass = 1.0f / max(0.08f, view.y + 0.13f);
     float solarMass = 1.0f / max(0.08f, sun.y + 0.13f);
     float altitudeFade = exp(-max(Sky.CameraAltitudeKilometres, 0.0f) /
@@ -75,21 +75,38 @@ void main(uint3 index : SV_DispatchThreadID)
     float mie = Sky.MieDensity * exp(-max(Sky.CameraAltitudeKilometres, 0.0f) /
                                      max(Sky.MieScaleHeightKilometres, 0.05f)) * horizonMass;
 
+    // Civil twilight ends at roughly six degrees below the horizon and astronomical twilight at
+    // eighteen. These gates stop a below-horizon sun from illuminating the dome as if it were noon.
+    float daylight = smoothstep(-0.105f, 0.035f, sun.y);
+    float twilight = smoothstep(-0.31f, -0.035f, sun.y) * (1.0f - smoothstep(0.04f, 0.28f, sun.y));
     float3 wavelengths = float3(0.34f, 0.58f, 1.0f);
     float3 ozone = exp(-Sky.OzoneDensity * solarMass * float3(0.06f, 0.13f, 0.035f));
-    float twilight = smoothstep(-0.18f, 0.08f, sun.y);
-    float3 scattered = wavelengths * (rayleighPhase * rayleigh) +
-                       float3(1.0f, 0.78f, 0.56f) * (miePhase * mie * 0.18f);
-    scattered *= ozone * lerp(float3(0.18f, 0.035f, 0.12f), float3(1.0f, 1.0f, 1.0f), twilight);
-    scattered *= max(Sky.SunIlluminance, 0.0f) * 0.75f * max(Sky.SkyIntensity, 0.0f);
+    float3 daylightScatter = wavelengths * (rayleighPhase * rayleigh) +
+                             float3(1.0f, 0.78f, 0.56f) * (miePhase * mie * 0.18f);
+    daylightScatter *= ozone * max(Sky.SunIlluminance, 0.0f) * 0.75f *
+                       max(Sky.SkyIntensity, 0.0f) * daylight;
 
-    float3 ground = float3(0.018f, 0.021f, 0.025f) + Sky.GroundAlbedo * float3(0.035f, 0.03f, 0.025f);
-    float3 radiance = lerp(ground, scattered, aboveHorizon);
+    // Sunset is a warm horizon-localised term, not a magenta tint over the entire hemisphere.
+    float horizonGlow = exp(-abs(view.y) * 18.0f) * pow(max(mu, 0.0f), 3.0f) * twilight;
+    float3 sunsetScatter = float3(1.0f, 0.24f, 0.035f) * horizonGlow *
+                           max(Sky.SunIlluminance, 0.0f) * 0.32f * max(Sky.SkyIntensity, 0.0f);
+    float nightAmount = 1.0f - smoothstep(-0.31f, -0.105f, sun.y);
+    float zenith = clamp(view.y * 0.5f + 0.5f, 0.0f, 1.0f);
+    float3 nightSky = lerp(float3(0.0012f, 0.0018f, 0.0040f),
+                           float3(0.0025f, 0.0050f, 0.0120f), zenith) * nightAmount;
+    float3 scattered = daylightScatter + sunsetScatter + nightSky;
 
-    float discCosine = cos(max(Sky.SunAngularRadiusDegrees, 0.001f) * Pi / 180.0f);
+    float3 groundDay = float3(0.006f, 0.007f, 0.008f) +
+                       Sky.GroundAlbedo * float3(0.018f, 0.016f, 0.013f) * daylight;
+    float3 groundNight = float3(0.0007f, 0.0009f, 0.0013f) * nightAmount;
+    float3 radiance = lerp(groundDay + groundNight, scattered, aboveHorizon);
+
+    float discRadius = max(Sky.SunAngularRadiusDegrees, 0.001f) * Pi / 180.0f;
+    float discCosine = cos(discRadius);
     float disc = smoothstep(discCosine, min(1.0f, discCosine + (1.0f - discCosine) * 0.55f), mu);
-    radiance += TemperatureColour(Sky.SunTemperatureKelvin) * disc * Sky.SunDiscIntensity *
-                max(Sky.SunIlluminance, 0.0f) * 2.5f;
+    float discAboveHorizon = smoothstep(-sin(discRadius), sin(discRadius), sun.y) * aboveHorizon;
+    radiance += TemperatureColour(Sky.SunTemperatureKelvin) * disc * discAboveHorizon *
+                Sky.SunDiscIntensity * max(Sky.SunIlluminance, 0.0f) * 2.5f;
 
     radiance *= exp2(Sky.ExposureCompensation);
     radiance = radiance / (1.0f + radiance);

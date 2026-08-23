@@ -1467,8 +1467,8 @@ void TexturePaintPanel::RecordSearchPill(const PlaneExtent& Extent, TexturePaint
     // 🔴 A pill: radius = half the height, so both ends are fully rounded.
     const float PillRadius = Extent.Height() * 0.5f;
 
-    Surface->Ground(Extent, Covering(0x000000u), PillRadius, CornerAll);
-    Surface->Edge(Extent, Taken ? Faded(Covering(0xFFFFFFu), 0.22f) : Tinted.Hairline,
+    Surface->Ground(Extent, Tinted.MenuLower, PillRadius, CornerAll);
+    Surface->Edge(Extent, Taken ? Faded(Tinted.Primary, 0.22f) : Tinted.Hairline,
                   1.0f, PillRadius, CornerAll);
 
     const float GlyphExtent = 13.0f;
@@ -1528,7 +1528,7 @@ void TexturePaintPanel::RecordMenuOptions(const PlaneExtent& Card, const char* c
         Interaction->DeclareHovered(Identities[Index], Hovered, HoverOver);
 
         if (Hovered)
-            Surface->Ground(Cell, Faded(Covering(0xFFFFFFu), 0.09f), RowY * 0.5f, CornerAll);
+            Surface->Ground(Cell, Faded(Tinted.Primary, 0.09f), RowY * 0.5f, CornerAll);
 
         const float GlyphExtent = 14.0f;
 
@@ -1538,14 +1538,14 @@ void TexturePaintPanel::RecordMenuOptions(const PlaneExtent& Card, const char* c
                             Spanning(Cell.MinimumX + 10.0f,
                                      Cell.MinimumY + (RowY - GlyphExtent) * 0.5f,
                                      GlyphExtent, GlyphExtent),
-                            Hovered ? Tinted.Primary : Covering(0x9A9A9Au));
+                            Hovered ? Tinted.Primary : Tinted.Muted);
         }
 
         const float Run = Scaled.RunSecondary;
         const float TextLead = Cell.MinimumX + (Glyphs != nullptr ? 32.0f : 12.0f);
 
         Surface->TextRun(TextLead, Cell.MinimumY + (RowY - Run) * 0.5f,
-                         Hovered ? Tinted.Primary : Covering(0x9A9A9Au),
+                         Hovered ? Tinted.Primary : Tinted.Muted,
                          Captions[Index], Run);
 
         if (Shortcuts != nullptr && Shortcuts[Index] != nullptr)
@@ -1921,7 +1921,7 @@ void TexturePaintPanel::RecordStackTools(const PlaneExtent& Tools, TexturePaintC
                                 Applied.MaskAttached[Applied.LayerTaken];
 
         if (Hovered)
-            Surface->Ground(Cell, Faded(Covering(0xFFFFFFu), 0.08f), Scaled.LayerRadius, CornerAll);
+            Surface->Ground(Cell, Faded(Tinted.Primary, 0.08f), Scaled.LayerRadius, CornerAll);
 
         const float Figure = 15.0f;
 
@@ -1929,7 +1929,7 @@ void TexturePaintPanel::RecordStackTools(const PlaneExtent& Tools, TexturePaintC
                         Spanning(Cell.MinimumX + (ToolY - Figure) * 0.5f,
                                  Cell.MinimumY + (ToolY - Figure) * 0.5f, Figure, Figure),
                         MaskToolOn ? Tinted.Primary
-                                   : (Hovered ? Tinted.Primary : Covering(0x9A9A9Au)));
+                                   : (Hovered ? Tinted.Primary : Tinted.Muted));
 
         if (Sampled.ContactPressed && Hovered && !Interaction->AnyDisclosed())
             Interaction->Grab(*ToolsDeclared[Index].Target, ControlPart::Body);
@@ -2121,7 +2121,7 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
                             Index, Presented,
                             SelectionGesture{ Modified.Shifted, Modified.Commanded });
 
-        Applied.LayerTaken = Index;
+        Applied.LayerTaken = SelectionSet::Primary(Applied.LayerSelected, RowCount, Index);
         Applied.MaskTaken  = false;
     }
 
@@ -2160,10 +2160,10 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
     {
         Surface->Ground(Spanning(Row.MinimumX + Scaled.LayerTagX, Row.MinimumY,
                                  Row.Width() - Scaled.LayerTagX, Scaled.LayerRowY),
-                        Covering(0x202020u), 0.0f, CornerNone);
+                        Tinted.RowTaken, 0.0f, CornerNone);
         Surface->Edge(Spanning(Row.MinimumX + Scaled.LayerTagX, Row.MinimumY,
                                Row.Width() - Scaled.LayerTagX, Scaled.LayerRowY),
-                      Faded(Covering(0xFFFFFFu), 0.18f), 1.0f, 0.0f, CornerNone);
+                      Faded(Tinted.Primary, 0.18f), 1.0f, 0.0f, CornerNone);
     }
     else if (Hovered)
     {
@@ -2184,16 +2184,16 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
         const bool Open = Applied.LayerExpanded[Index];
 
         Surface->Stroke(Open ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
-                        Chevron, Faded(OnChevron ? Tinted.Primary : Covering(0x5E5E5Eu),
+                        Chevron, Faded(OnChevron ? Tinted.Primary : Tinted.Faint,
                                        RowCoverage));
     }
 
     // ⑤ The eye — always standing, exactly as the reference's `.eye` carries its 0.55 opacity.
     if (OnEye)
-        Surface->Ground(Eye, Faded(Covering(0xFFFFFFu), 0.08f), 3.0f, CornerAll);
+        Surface->Ground(Eye, Faded(Tinted.Primary, 0.08f), 3.0f, CornerAll);
 
     Surface->Stroke(Absent ? SymbolSubject::EyeClosed : SymbolSubject::EyeOpen, Eye,
-                    Faded(OnEye ? Tinted.Primary : Faded(Covering(0xFFFFFFu), Absent ? 0.4f : 0.55f),
+                    Faded(OnEye ? Tinted.Primary : Faded(Tinted.Primary, Absent ? 0.4f : 0.55f),
                           RowCoverage));
 
     // ⑥ The square thumb: checker + folder glyph for folders, the hue wash + type badge for layers.
@@ -2213,7 +2213,7 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
         }
     }
 
-    Surface->Edge(Thumb, Faded(Covering(0xFFFFFFu), 0.15f * RowCoverage), 1.0f, 0.0f, CornerAll);
+    Surface->Edge(Thumb, Faded(Tinted.Primary, 0.15f * RowCoverage), 1.0f, 0.0f, CornerAll);
 
     if (Current.Classified == TextureLayerClassification::Folder)
     {
@@ -2242,14 +2242,14 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
 
         Surface->Ground(Badge, Faded(Covering(0x000000u), RowCoverage), Scaled.LayerRadius * 0.5f,
                         CornerAll);
-        Surface->Edge(Badge, Faded(Covering(0xFFFFFFu), 0.18f), 1.0f,
+        Surface->Edge(Badge, Faded(Tinted.Primary, 0.18f), 1.0f,
                       Scaled.LayerRadius * 0.5f, CornerAll);
 
         const float Figure = BadgeExtent * 0.62f;
         Surface->Stroke(TextureLayerGlyph(Current.Classified),
                         Spanning(Badge.MinimumX + (BadgeExtent - Figure) * 0.5f,
                                  Badge.MinimumY + (BadgeExtent - Figure) * 0.5f, Figure, Figure),
-                        Faded(Covering(0x9A9A9Au), RowCoverage));
+                        Faded(Tinted.Muted, RowCoverage));
     }
 
     // ⑦ The meta: name + the sub run.
@@ -2389,7 +2389,7 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
     const float CellCoverage = (Hovered || Taken) ? 1.0f : 0.45f;
 
     if (OnDetails)
-        Surface->Ground(Details, Faded(Covering(0xFFFFFFu), 0.08f), 3.0f, CornerAll);
+        Surface->Ground(Details, Faded(Tinted.Primary, 0.08f), 3.0f, CornerAll);
 
     Surface->Stroke(Applied.LayerCardExpanded[Index]
                     ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
@@ -2398,7 +2398,7 @@ void TexturePaintPanel::RecordStackRow(const PlaneExtent& Row, TexturePaintConte
                     Faded(Faded(Tinted.Faint, CellCoverage), RowCoverage));
 
     if (OnMore)
-        Surface->Ground(More, Faded(Covering(0xFFFFFFu), 0.08f), 3.0f, CornerAll);
+        Surface->Ground(More, Faded(Tinted.Primary, 0.08f), 3.0f, CornerAll);
 
     Surface->Stroke(SymbolSubject::EllipsisDots,
                     Spanning(More.MinimumX + (EyeExtent - 13.0f) * 0.5f,
@@ -2676,12 +2676,12 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
 
     if (Taken)
     {
-        Surface->Ground(Ground, Covering(0x202020u), 0.0f, CornerNone);
-        Surface->Edge(Ground, Faded(Covering(0xFFFFFFu), 0.18f), 1.0f, 0.0f, CornerNone);
+        Surface->Ground(Ground, Tinted.RowTaken, 0.0f, CornerNone);
+        Surface->Edge(Ground, Tinted.HairlineFirm, 1.0f, 0.0f, CornerNone);
     }
     else
     {
-        Surface->Ground(Ground, Covering(Hovered ? 0x141414u : 0x0F0F0Fu), 0.0f, CornerNone);
+        Surface->Ground(Ground, Hovered ? Tinted.TileHovered : Tinted.MenuLower, 0.0f, CornerNone);
 
         // 📐 The dashed border, on the SAME beat as the rail and the elbow and in the
         //    owner's hue. 🔴 The two side edges were drawn SOLID while the top and
@@ -2803,10 +2803,10 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
     Interaction->DeclareHovered(MaskContacts[Index], Hovered, HoverOver);
 
     if (OnEye)
-        Surface->Ground(Eye, Faded(Covering(0xFFFFFFu), 0.08f), 3.0f, CornerAll);
+        Surface->Ground(Eye, Faded(Tinted.Primary, 0.08f), 3.0f, CornerAll);
 
     Surface->Stroke(Absent ? SymbolSubject::EyeClosed : SymbolSubject::EyeOpen, Eye,
-                    Faded(OnEye ? Tinted.Primary : Faded(Covering(0xFFFFFFu), Absent ? 0.4f : 0.55f),
+                    Faded(OnEye ? Tinted.Primary : Faded(Tinted.Primary, Absent ? 0.4f : 0.55f),
                           Coverage));
 
     // 📐 The mini thumb: the mask's hue wash with the mask glyph.
@@ -2838,7 +2838,7 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
     // 📝 The mask is an entry name, not an acronym. Natural title case and ordinary tracking keep it
     //    legible beside the compact uppercase capability chips.
     Surface->TextRun(MetaLead, NamingTop,
-                     Faded(Taken ? Tinted.Primary : Covering(0x9A9A9Au), Coverage),
+                     Faded(Taken ? Tinted.Primary : Tinted.Muted, Coverage),
                      "Mask", NamingRun, 0.0f, true);
 
     const char* Source = Current.Source[0] != '\0'
@@ -2868,11 +2868,11 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
                                               Row.MinimumY + (Row.Height() - ChipH) * 0.5f,
                                               Span, ChipH);
 
-        Surface->Ground(ChipCell, Faded(Covering(0x1E1E1Eu), Coverage), ChipH * 0.5f, CornerAll);
+        Surface->Ground(ChipCell, Faded(Tinted.Tile, Coverage), ChipH * 0.5f, CornerAll);
         Surface->Edge(ChipCell, Faded(Tinted.Hairline, Coverage), 1.0f, ChipH * 0.5f, CornerAll);
         Surface->TextRun(ChipCell.MinimumX + 7.0f,
                          Row.MinimumY + (Row.Height() - ChipRun) * 0.5f,
-                         Faded(Covering(0x9A9A9Au), Coverage), Chip, ChipRun, 0.0f, true);
+                         Faded(Tinted.Muted, Coverage), Chip, ChipRun, 0.0f, true);
 
         ChipX -= Span + 4.0f;
     }
@@ -2898,7 +2898,7 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
     const float CellCoverage = (Hovered || Taken) ? 1.0f : 0.45f;
 
     if (OnDetails)
-        Surface->Ground(Details, Faded(Covering(0xFFFFFFu), 0.08f), 3.0f, CornerAll);
+        Surface->Ground(Details, Faded(Tinted.Primary, 0.08f), 3.0f, CornerAll);
 
     Surface->Stroke(SymbolSubject::ChevronRight,
                     Spanning(Details.MinimumX + (EyeExtent - 13.0f) * 0.5f,
@@ -2906,7 +2906,7 @@ void TexturePaintPanel::RecordMaskRow(const PlaneExtent& Row, TexturePaintContex
                     Faded(Faded(Tinted.Faint, CellCoverage), Coverage));
 
     if (OnMore)
-        Surface->Ground(More, Faded(Covering(0xFFFFFFu), 0.08f), 3.0f, CornerAll);
+        Surface->Ground(More, Faded(Tinted.Primary, 0.08f), 3.0f, CornerAll);
 
     Surface->Stroke(SymbolSubject::EllipsisDots,
                     Spanning(More.MinimumX + (EyeExtent - 13.0f) * 0.5f,
@@ -2922,14 +2922,14 @@ void TexturePaintPanel::RecordBarButton(ControlIdentity Target, const PlaneExten
     const float Coverage = Dimmed ? 0.25f : 1.0f;
 
     if (Hovered && !Dimmed)
-        Surface->Ground(Cell, Faded(Covering(0xFFFFFFu), 0.08f), Scaled.LayerRadius, CornerAll);
+        Surface->Ground(Cell, Faded(Tinted.Primary, 0.08f), Scaled.LayerRadius, CornerAll);
 
     const float Figure = 15.0f;
 
     Surface->Stroke(Glyph,
                     Spanning(Cell.MinimumX + (Cell.Width() - Figure) * 0.5f,
                              Cell.MinimumY + (Cell.Height() - Figure) * 0.5f, Figure, Figure),
-                    Faded(Hovered ? Tinted.Primary : Covering(0x9A9A9Au), Coverage));
+                    Faded(Hovered ? Tinted.Primary : Tinted.Muted, Coverage));
 
     if (Sampled.ContactPressed && Hovered && !Dimmed && !Interaction->AnyDisclosed())
         Interaction->Grab(Target, ControlPart::Body);
@@ -3002,7 +3002,7 @@ void TexturePaintPanel::RecordStackFooter(const PlaneExtent& Footer, TexturePain
     const float PillW = std::min(Footer.Width() * 0.45f, 190.0f);
     const PlaneExtent Pill = Spanning(Footer.MinimumX + Pad, PillY, PillW, PillH);
 
-    Surface->Ground(Pill, Faded(Covering(0xFFFFFFu), BlendDim ? 0.03f : 0.06f),
+    Surface->Ground(Pill, Faded(Tinted.Primary, BlendDim ? 0.03f : 0.06f),
                     PillH * 0.5f, CornerAll);
     Surface->Edge(Pill, Tinted.Hairline, 1.0f, PillH * 0.5f, CornerAll);
 
@@ -3101,8 +3101,8 @@ void TexturePaintPanel::RecordStackFooter(const PlaneExtent& Footer, TexturePain
         BarCells[BarCellTally++] = AddCell;
         const bool OnAdd = AddCell.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        Surface->Ground(AddCell, OnAdd ? Faded(Covering(0xFFFFFFu), 0.16f)
-                                       : Faded(Covering(0xFFFFFFu), 0.09f),
+        Surface->Ground(AddCell, OnAdd ? Faded(Tinted.Primary, 0.16f)
+                                       : Faded(Tinted.Primary, 0.09f),
                         Scaled.LayerRadius, CornerAll);
         Surface->Edge(AddCell, Tinted.Hairline, 1.0f, Scaled.LayerRadius, CornerAll);
 
@@ -3112,7 +3112,7 @@ void TexturePaintPanel::RecordStackFooter(const PlaneExtent& Footer, TexturePain
                         Spanning(AddCell.MinimumX + (ButtonY - AddFigure) * 0.5f,
                                  AddCell.MinimumY + (ButtonY - AddFigure) * 0.5f,
                                  AddFigure, AddFigure),
-                        OnAdd ? Tinted.Primary : Covering(0x9A9A9Au));
+                        OnAdd ? Tinted.Primary : Tinted.Muted);
 
         if (Sampled.ContactPressed && OnAdd && !Interaction->AnyDisclosed())
             Interaction->Grab(HeaderAdd, ControlPart::Body);
@@ -3186,14 +3186,14 @@ void TexturePaintPanel::RecordStackFooter(const PlaneExtent& Footer, TexturePain
             const bool Hovered = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
 
             if (Hovered && Selection)
-                Surface->Ground(Cell, Faded(Covering(0xFFFFFFu), 0.08f), Scaled.LayerRadius, CornerAll);
+                Surface->Ground(Cell, Faded(Tinted.Primary, 0.08f), Scaled.LayerRadius, CornerAll);
 
             const float Figure = 15.0f;
 
             Surface->Stroke(Locked ? SymbolSubject::LockClosed : SymbolSubject::LockOpen,
                             Spanning(Cell.MinimumX + (ButtonY - Figure) * 0.5f,
                                      Cell.MinimumY + (ButtonY - Figure) * 0.5f, Figure, Figure),
-                            Faded(Hovered ? Tinted.Primary : Covering(0x9A9A9Au),
+                            Faded(Hovered ? Tinted.Primary : Tinted.Muted,
                                   Selection ? 1.0f : 0.25f));
 
             if (Sampled.ContactPressed && Hovered && Selection && !Interaction->AnyDisclosed())
@@ -3375,8 +3375,8 @@ void TexturePaintPanel::RecordMenu(const PlaneExtent& Extent, TexturePaintContex
         Interaction->Withdraw();
     }
 
-    Surface->Ground(Revealed, Covering(0x0B0B0Bu), 16.0f, CornerAll);
-    Surface->Edge(Revealed, Faded(Covering(0xFFFFFFu), 0.18f), 1.0f, 16.0f, CornerAll);
+    Surface->Ground(Revealed, Tinted.Menu, 16.0f, CornerAll);
+    Surface->Edge(Revealed, Tinted.HairlineFirm, 1.0f, 16.0f, CornerAll);
     Surface->Confine(Revealed);
 
     Surface->TextRunCapitalised(Card.MinimumX + 10.0f, Card.MinimumY + 9.0f,
@@ -3489,7 +3489,7 @@ void TexturePaintPanel::RecordMenu(const PlaneExtent& Extent, TexturePaintContex
 
             Surface->Ground(Cell, Covering(SwatchColours[SwatchIndex]),
                             Swatch * 0.5f, CornerAll);
-            Surface->Edge(Cell, Faded(Covering(0xFFFFFFu), On ? 1.0f : 0.16f), On ? 2.0f : 1.0f,
+            Surface->Edge(Cell, Faded(Tinted.Primary, On ? 1.0f : 0.16f), On ? 2.0f : 1.0f,
                           Swatch * 0.5f, CornerAll);
 
             const bool Hovered = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
@@ -3870,7 +3870,7 @@ float TexturePaintPanel::RecordChannelPreview(const PlaneExtent& Extent,
     else
     {
         // 📐 The reference's 8 px chequer, which reads as "no resolved sample".
-        Surface->Ground(Face, Covering(0x0A0A0Au), 7.0f, CornerAll);
+        Surface->Ground(Face, Tinted.Desk, 7.0f, CornerAll);
 
         for (int Down = 0; Down < 4; ++Down)
         {
@@ -4733,7 +4733,7 @@ void TexturePaintPanel::RecordSettingsCard(const PlaneExtent& Extent, TexturePai
     const PlaneExtent Note = Spanning(Extent.MinimumX + Pad, Sweep,
                                       Extent.Width() - Pad * 2.0f, RowY * 1.4f);
 
-    Surface->Ground(Note, Covering(0x0D0D0Du), Scaled.FieldRadius, CornerAll);
+    Surface->Ground(Note, Tinted.MenuLower, Scaled.FieldRadius, CornerAll);
 
     char NoteText[96] = {};
     std::snprintf(NoteText, sizeof(NoteText), "%s \u00B7 %s \u00B7 %u%%",

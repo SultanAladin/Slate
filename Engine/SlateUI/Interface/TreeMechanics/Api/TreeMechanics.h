@@ -25,6 +25,9 @@ class SelectionSet
 public:
     static void Apply(bool* Membership, std::uint32_t Count, std::uint32_t& Anchor,
                       std::uint32_t Target, const bool* Presented, SelectionGesture Gesture);
+
+    /// 🧩 Resolves a selected primary after a toggle; restores Fallback when the set would be empty.
+    static std::uint32_t Primary(bool* Membership, std::uint32_t Count, std::uint32_t Fallback);
 };
 
 /// 🧩 Resolves occupancy and filtering for a flattened tree whose domain model remains caller-owned.

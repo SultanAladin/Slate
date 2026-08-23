@@ -878,7 +878,7 @@ ModifierCondition InterfaceExchange::Modifiers() const
     return Current;
 }
 
-CameraCondition InterfaceExchange::CameraInput()
+CameraCondition InterfaceExchange::CameraInput(bool LookPermitted)
 {
     CameraCondition Current;
 
@@ -909,7 +909,7 @@ CameraCondition InterfaceExchange::CameraInput()
 
     // 📐 The look gesture is the right button held: while it stands, the pointer's travel is the
     //    camera's turn, exactly as the reference fly-cams read it.
-    Current.LookHeld = ImGui::IsMouseDown(ImGuiMouseButton_Right);
+    Current.LookHeld = LookPermitted && ImGui::IsMouseDown(ImGuiMouseButton_Right);
     Current.SpeedSteps = Current.LookHeld ? Sampled.MouseWheel : 0.0f;
 
     // 🔴 THE LOOK TRACKS THE OS CURSOR ITSELF and never reads `io.MouseDelta`. ImGui's delta is
@@ -952,8 +952,9 @@ CameraCondition InterfaceExchange::CameraInput()
             //    captures `MousePosPrev` from it. The queued centre event is processed at the next
             //    NewFrame AFTER the next poll's motion event, so the panels keep the true pointer.
             glfwSetCursorPos(Window, CentreX, CentreY);
-            LookLastX = CentreX;
-            LookLastY = CentreY;
+            // Window systems may quantise a half-pixel centre. Retaining the requested coordinate
+            // produces the same fractional delta every frame and pitches a motionless camera.
+            glfwGetCursorPos(Window, &LookLastX, &LookLastY);
             LookWasHeld = true;
 
             ImGui::SetMouseCursor(ImGuiMouseCursor_None);

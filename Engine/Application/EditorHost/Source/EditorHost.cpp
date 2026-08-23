@@ -737,7 +737,6 @@ int main(int ArgumentCount, char** ArgumentValues)
             //    panning or flying. The sky regeneration below depends only on the environment and is
             //    intentionally left where it stands.
             {
-                CameraCondition FlyInput = Viewport.Seam().CameraInput();
                 bool PointerOverViewport = false;
                 const PointerCondition& Pointer = Viewport.Surface().Pointer();
 
@@ -751,8 +750,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                     }
                 }
 
-                if (!PointerOverViewport)
-                    FlyInput.SpeedSteps = 0.0f;
+                CameraCondition FlyInput = Viewport.Seam().CameraInput(PointerOverViewport);
 
                 // A direct XYZ edit in the Editor Camera's Transform card is consumed before navigation.
                 // The transform synchronizer distinguishes it from the values the camera published last tick,
@@ -1289,6 +1287,8 @@ int main(int ArgumentCount, char** ArgumentValues)
                         Viewport.Appearance().WorkspaceMeasure,
                         Viewport.Appearance().Workspace));
                     ContentBrowser.Reapply(Viewport.Appearance());
+                    SceneDirectory.Reapply(Viewport.Appearance());
+                    TexturePaint.Reapply(Viewport.Appearance());
                     if (FamilyAltered)
                         Fonts.RequestLoad(FontRoot.c_str(), Viewport.Appearance().Fonts, 1.0f);
                 }
