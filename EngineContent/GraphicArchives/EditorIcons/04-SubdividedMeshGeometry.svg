@@ -1,34 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" data-name="geometry-mesh">
-<defs>
-<linearGradient id="meb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3f47"/><stop offset="1" stop-color="#121418"/></linearGradient>
-<linearGradient id="meg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".30"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
-<linearGradient id="mee" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".62"/><stop offset=".5" stop-color="#ffffff" stop-opacity=".05"/><stop offset="1" stop-color="#ffffff" stop-opacity=".20"/></linearGradient>
-<clipPath id="mec"><rect x="6" y="6" width="108" height="108" rx="27"/></clipPath>
-<filter id="med" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="2.5" stdDeviation="2.6" flood-color="#000" flood-opacity=".55"/></filter>
-</defs>
-<rect x="6" y="6" width="108" height="108" rx="27" fill="url(#meb)"/>
-<g clip-path="url(#mec)"><path d="M6 6H114V44C92 60 28 60 6 44Z" fill="url(#meg)"/></g>
-<linearGradient id="meF" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#63e6ff" stop-opacity=".38"/><stop offset="1" stop-color="#1a6f8f" stop-opacity=".22"/></linearGradient>
-<linearGradient id="meTop" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#4a5568"/><stop offset="1" stop-color="#94a3b8"/></linearGradient>
-<linearGradient id="meLeft" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e293b"/><stop offset="1" stop-color="#334155"/></linearGradient>
-<linearGradient id="meRight" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#334155"/><stop offset="1" stop-color="#64748b"/></linearGradient>
-<ellipse cx="60" cy="103" rx="30" ry="5" fill="#000" opacity=".4"/>
-<g filter="url(#med)">
-<polygon points="60,26 94,46 60,66 26,46" fill="url(#meTop)"/>
-<polygon points="26,46 60,66 60,102 26,82" fill="url(#meLeft)"/>
-<polygon points="94,46 60,66 60,102 94,82" fill="url(#meRight)"/>
+<rect width="120" height="120" rx="24" fill="#0f172a"/>
+<!-- Top Face -->
+<polygon points="60,24 92,40 60,56 28,40" fill="#0f766e"/>
+<!-- Left Face -->
+<polygon points="28,40 60,56 60,92 28,76" fill="#115e59"/>
+<!-- Right Face -->
+<polygon points="60,56 92,40 92,76 60,92" fill="#134e4a"/>
+<!-- Subdivision Wireframe Lines -->
+<g stroke="#14b8a6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<polygon points="60,24 92,40 60,56 28,40" fill="none"/>
+<polygon points="28,40 60,56 60,92 28,76" fill="none"/>
+<polygon points="60,56 92,40 92,76 60,92" fill="none"/>
+<line x1="44" y1="32" x2="76" y2="48"/>
+<line x1="76" y1="32" x2="44" y2="48"/>
+<line x1="44" y1="48" x2="44" y2="84"/>
+<line x1="76" y1="48" x2="76" y2="84"/>
 </g>
-<g fill="none" stroke="#6fe9ff" stroke-width="1.8" stroke-linejoin="round">
-<polygon points="60,26 94,46 60,66 26,46"/>
-<polygon points="26,46 60,66 60,102 26,82"/>
-<polygon points="94,46 60,66 60,102 94,82"/>
-</g>
-<g fill="none" stroke="#6fe9ff" stroke-opacity=".55" stroke-width="1.1">
-<path d="M60 26 60 66M26 46 94 46M26 46 60 102M94 46 60 102M26 64 60 84M94 64 60 84M43 36 43 74M77 36 77 74"/>
-</g>
-<g fill="#eafcff">
-<circle cx="60" cy="26" r="2.8"/><circle cx="94" cy="46" r="2.8"/><circle cx="26" cy="46" r="2.8"/>
-<circle cx="60" cy="66" r="3.2"/><circle cx="26" cy="82" r="2.8"/><circle cx="94" cy="82" r="2.8"/><circle cx="60" cy="102" r="2.8"/>
-</g>
-<rect x="6.75" y="6.75" width="106.5" height="106.5" rx="26.3" fill="none" stroke="url(#mee)" stroke-width="1.5"/>
+<!-- Vertex Dots -->
+<circle cx="60" cy="24" r="3.5" fill="#2dd4bf"/>
+<circle cx="92" cy="40" r="3.5" fill="#2dd4bf"/>
+<circle cx="28" cy="40" r="3.5" fill="#2dd4bf"/>
+<circle cx="60" cy="56" r="4" fill="#ffffff"/>
+<circle cx="28" cy="76" r="3.5" fill="#2dd4bf"/>
+<circle cx="92" cy="76" r="3.5" fill="#2dd4bf"/>
+<circle cx="60" cy="92" r="3.5" fill="#2dd4bf"/>
 </svg>

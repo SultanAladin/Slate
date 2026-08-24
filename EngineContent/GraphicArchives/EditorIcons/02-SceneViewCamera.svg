@@ -1,46 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" data-name="scene-camera">
-<defs>
-<linearGradient id="camb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#40444a"/><stop offset="1" stop-color="#0f1013"/></linearGradient>
-<linearGradient id="camg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".30"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
-<linearGradient id="came" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".62"/><stop offset=".5" stop-color="#ffffff" stop-opacity=".05"/><stop offset="1" stop-color="#ffffff" stop-opacity=".20"/></linearGradient>
-<clipPath id="camc"><rect x="6" y="6" width="108" height="108" rx="27"/></clipPath>
-<filter id="camd" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="2.5" stdDeviation="2.6" flood-color="#000" flood-opacity=".55"/></filter>
-</defs>
-<rect x="6" y="6" width="108" height="108" rx="27" fill="url(#camb)"/>
-<g clip-path="url(#camc)"><path d="M6 6H114V44C92 60 28 60 6 44Z" fill="url(#camg)"/></g>
-<linearGradient id="camT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fdfcf9"/><stop offset=".6" stop-color="#e7e3db"/><stop offset="1" stop-color="#bdb9b0"/></linearGradient>
-<linearGradient id="camL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2d3035"/><stop offset="1" stop-color="#121316"/></linearGradient>
-<linearGradient id="camR" x1=".15" y1="0" x2=".85" y2="1"><stop offset="0" stop-color="#848a91"/><stop offset=".3" stop-color="#2b2e33"/><stop offset=".62" stop-color="#4c5157"/><stop offset="1" stop-color="#101215"/></linearGradient>
-<radialGradient id="camG" cx=".36" cy=".3" r=".92"><stop offset="0" stop-color="#82a492"/><stop offset=".3" stop-color="#24413a"/><stop offset=".62" stop-color="#0a1512"/><stop offset=".88" stop-color="#152724"/><stop offset="1" stop-color="#31423c"/></radialGradient>
-<linearGradient id="camB" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#996515"/><stop offset="50" stop-color="#f7d070"/><stop offset="100" stop-color="#80500d"/></linearGradient>
-<ellipse cx="60" cy="103" rx="34" ry="5.5" fill="#000" opacity=".4"/>
-<g clip-path="url(#camc)">
-<rect x="6" y="6" width="108" height="31" fill="url(#camT)"/>
-<rect x="6" y="36" width="108" height="78" fill="url(#camL)"/>
-<rect x="6" y="35.4" width="108" height="1.8" fill="#000" opacity=".55"/>
-<circle cx="97" cy="20" r="5" fill="#33363b"/><circle cx="97" cy="20" r="3.4" fill="#0b0d0f"/><circle cx="95.6" cy="18.6" r="1.1" fill="#9fb8c6" opacity=".85"/>
-<path d="M6 6H114V29C92 43 28 43 6 29Z" fill="#ffffff" opacity=".16"/>
-<circle cx="41" cy="44" r="2.8" fill="#e04a3c"/><circle cx="40" cy="43" r="1" fill="#ffa49c"/>
-</g>
-<!-- Outer Brass & Blue Lens Rings -->
-<circle cx="60" cy="68" r="34" fill="none" stroke="url(#camB)" stroke-width="1.8"/>
-<g filter="url(#camd)"><circle cx="60" cy="68" r="32" fill="url(#camR)"/></g>
-<circle cx="60" cy="68" r="32" fill="none" stroke="#000" stroke-opacity=".5"/>
-<circle cx="60" cy="68" r="28.5" fill="#0d0f11"/>
-<!-- Glass Element -->
-<circle cx="60" cy="68" r="26" fill="url(#camG)"/>
-<circle cx="60" cy="68" r="26" fill="none" stroke="#000" stroke-opacity=".55" stroke-width="1.2"/>
-<!-- Aperture Blades -->
-<polygon points="60,45 70,54 63,68" fill="#05120e" opacity=".7"/>
-<polygon points="73,56 70,70 60,68" fill="#05120e" opacity=".7"/>
-<polygon points="65,73 51,70 60,68" fill="#05120e" opacity=".7"/>
-<polygon points="48,70 51,55 60,68" fill="#05120e" opacity=".7"/>
-<polygon points="48,53 62,48 60,68" fill="#05120e" opacity=".7"/>
-<!-- Pupil -->
-<circle cx="60" cy="68" r="13" fill="#04070a"/>
-<circle cx="60" cy="68" r="13" fill="none" stroke="#33463f" stroke-width="1" opacity=".75"/>
-<ellipse cx="49" cy="56" rx="11" ry="6.4" transform="rotate(-38 49 56)" fill="#eaf6ff" opacity=".22"/>
-<ellipse cx="72" cy="83" rx="7" ry="3.1" transform="rotate(-38 72 83)" fill="#bfe6d8" opacity=".12"/>
-<circle cx="60" cy="103" r="5.2" fill="none" stroke="#50555c" stroke-width="1.6"/>
-<rect x="6.75" y="6.75" width="106.5" height="106.5" rx="26.3" fill="none" stroke="url(#came)" stroke-width="1.5"/>
+<rect width="120" height="120" rx="24" fill="#0f172a"/>
+<!-- Main Camera Body -->
+<rect x="20" y="36" width="80" height="54" rx="12" fill="#1e293b" stroke="#3b82f6" stroke-width="3"/>
+<!-- Viewfinder Top -->
+<path d="M42 36 L50 24 H70 L78 36 Z" fill="#3b82f6"/>
+<!-- Flash / Tally Red LED -->
+<circle cx="86" cy="48" r="4" fill="#ef4444"/>
+<!-- Lens Outer Ring -->
+<circle cx="56" cy="63" r="22" fill="#0f172a" stroke="#3b82f6" stroke-width="3"/>
+<!-- Lens Inner Pupil & Cyan Reflection -->
+<circle cx="56" cy="63" r="14" fill="#06b6d4"/>
+<circle cx="56" cy="63" r="8" fill="#0891b2"/>
+<circle cx="51" cy="58" r="3" fill="#ffffff" opacity="0.8"/>
+<!-- Side Knob -->
+<rect x="94" y="52" width="8" height="22" rx="3" fill="#475569"/>
 </svg>

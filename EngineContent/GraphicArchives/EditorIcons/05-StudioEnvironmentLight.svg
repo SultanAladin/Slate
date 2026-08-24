@@ -1,32 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" data-name="studio-light">
-<defs>
-<linearGradient id="lib" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3d434b"/><stop offset="1" stop-color="#121417"/></linearGradient>
-<linearGradient id="lig" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".30"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
-<linearGradient id="lie" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".62"/><stop offset=".5" stop-color="#ffffff" stop-opacity=".05"/><stop offset="1" stop-color="#ffffff" stop-opacity=".20"/></linearGradient>
-<clipPath id="lic"><rect x="6" y="6" width="108" height="108" rx="27"/></clipPath>
-<filter id="lid" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="2.5" stdDeviation="2.6" flood-color="#000" flood-opacity=".55"/></filter>
-</defs>
-<rect x="6" y="6" width="108" height="108" rx="27" fill="url(#lib)"/>
-<g clip-path="url(#lic)"><path d="M6 6H114V44C92 60 28 60 6 44Z" fill="url(#lig)"/></g>
-<radialGradient id="liG" cx=".5" cy=".45" r=".5"><stop offset="0" stop-color="#ffe89a" stop-opacity=".85"/><stop offset="1" stop-color="#ffd15a" stop-opacity="0"/></radialGradient>
-<radialGradient id="liB" cx=".38" cy=".3" r=".82"><stop offset="0" stop-color="#fffbe8"/><stop offset=".5" stop-color="#ffe07a"/><stop offset="1" stop-color="#e2a318"/></radialGradient>
-<linearGradient id="liM" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6c737c"/><stop offset=".35" stop-color="#d8dde3"/><stop offset="1" stop-color="#767d86"/></linearGradient>
-<linearGradient id="liR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe082" stop-opacity=".5"/><stop offset="1" stop-color="#ff8f00" stop-opacity="0"/></linearGradient>
-<!-- Fanning Rays -->
-<polygon points="60,42 12,102 108,102" fill="url(#liR)"/>
-<circle cx="60" cy="52" r="42" fill="url(#liG)"/>
-<g stroke="#ffd766" stroke-opacity=".65" stroke-width="3" stroke-linecap="round">
-<path d="M60 12v7"/><path d="M27 25l5 5"/><path d="M93 25l-5 5"/><path d="M14 56h7"/><path d="M106 56h-7"/>
+<rect width="120" height="120" rx="24" fill="#0f172a"/>
+<!-- Fanning Light Beam Rays -->
+<g stroke="#fde047" stroke-width="3" stroke-linecap="round">
+<line x1="60" y1="16" x2="60" y2="24"/>
+<line x1="28" y1="28" x2="34" y2="34"/>
+<line x1="92" y1="28" x2="86" y2="34"/>
+<line x1="16" y1="60" x2="24" y2="60"/>
+<line x1="104" y1="60" x2="96" y2="60"/>
 </g>
-<!-- Glass Envelope -->
-<path d="M60 22a24 24 0 0 1 15 43c-3 2-4 4-4 7H49c0-3-1-5-4-7A24 24 0 0 1 60 22z" fill="url(#liB)"/>
-<path d="M50 30a20 20 0 0 1 16-5c-8 1-14 6-16 13-2 6 0 11 3 15-7-5-9-16-3-23z" fill="#fff" opacity=".5"/>
-<!-- Filament Loop -->
-<path d="M52 52c0-6 4-10 8-10s8 4 8 10" fill="none" stroke="#a7660c" stroke-width="2.4" stroke-linecap="round"/>
-<path d="M60 42v18" stroke="#a7660c" stroke-width="2" stroke-linecap="round"/>
-<rect x="48" y="72" width="24" height="7" rx="2.5" fill="url(#liM)"/>
-<rect x="49" y="80" width="22" height="6" rx="2.5" fill="url(#liM)"/>
-<path d="M52 87h16l-3 7a4 4 0 0 1-4 3h-2a4 4 0 0 1-4-3z" fill="#8d949c"/>
-<rect x="48" y="72" width="24" height="2" rx="1" fill="#fff" opacity=".55"/>
-<rect x="6.75" y="6.75" width="106.5" height="106.5" rx="26.3" fill="none" stroke="url(#lie)" stroke-width="1.5"/>
+<!-- Socket Base -->
+<rect x="48" y="80" width="24" height="12" rx="3" fill="#475569"/>
+<rect x="52" y="92" width="16" height="6" rx="2" fill="#334155"/>
+<!-- Main Bulb Envelope -->
+<path d="M60 28 C44 28 34 40 34 56 C34 70 48 78 52 80 H68 C72 78 86 70 86 56 C86 40 76 28 60 28 Z" fill="#facc15"/>
+<!-- Bulb Inner Filament -->
+<path d="M50 64 L54 50 L60 44 L66 50 L70 64" fill="none" stroke="#d97706" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<!-- Specular Arc -->
+<path d="M42 44 A 20 20 0 0 1 58 34" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
 </svg>

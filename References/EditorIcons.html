@@ -3,22 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Slate Editor — General Purpose High-Fidelity Icon Set</title>
+<title>Slate Editor — 2D Flat Colored Icon Set</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg-dark: #07080c;
-    --bg-card: #0d1017;
-    --bg-card-hover: #121622;
+    --bg-dark: #090d16;
+    --bg-card: #0f172a;
+    --bg-card-hover: #1e293b;
     --border: rgba(255, 255, 255, 0.08);
     --border-bright: rgba(255, 255, 255, 0.18);
-    --accent-cyan: #5fe3a1;
-    --accent-gold: #ffb300;
-    --accent-teal: #64ffda;
-    --text-main: #f0f3f8;
-    --text-sub: #828a9a;
+    --accent-cyan: #38bdf8;
+    --accent-gold: #fbbf24;
+    --accent-teal: #34d399;
+    --text-main: #f8fafc;
+    --text-sub: #94a3b8;
     --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
   }
@@ -32,7 +32,7 @@
     min-height: 100vh;
     padding: 44px 32px 80px;
     background-image: 
-      radial-gradient(900px 500px at 50% -10%, #151922 0%, #07080c 65%);
+      radial-gradient(800px 500px at 50% -10%, #1e293b 0%, #090d16 70%);
     -webkit-font-smoothing: antialiased;
   }
 
@@ -53,8 +53,8 @@
     gap: 8px;
     padding: 5px 12px;
     border-radius: 20px;
-    background: rgba(95, 227, 161, 0.08);
-    border: 1px solid rgba(95, 227, 161, 0.2);
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.25);
     color: var(--accent-cyan);
     font-size: 11px;
     font-family: var(--font-mono);
@@ -87,7 +87,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    background: rgba(13, 16, 23, 0.8);
+    background: rgba(15, 23, 42, 0.8);
     backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     padding: 14px 20px;
@@ -121,7 +121,7 @@
   }
 
   .tab-btn.active {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.12);
     color: #ffffff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
@@ -200,9 +200,9 @@
 
   .icon-card:hover {
     background: var(--bg-card-hover);
-    border-color: #333b46;
+    border-color: var(--accent-cyan);
     transform: translateY(-4px);
-    box-shadow: 0 18px 38px -12px rgba(0,0,0,0.8), 0 0 0 1px #1f242c inset;
+    box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.6), 0 0 20px -5px rgba(56, 189, 248, 0.2);
   }
 
   .card-type-tag {
@@ -218,15 +218,15 @@
   }
 
   .card-type-tag.coloured {
-    background: rgba(255, 179, 0, 0.12);
+    background: rgba(251, 191, 36, 0.15);
     color: var(--accent-gold);
-    border: 1px solid rgba(255, 179, 0, 0.25);
+    border: 1px solid rgba(251, 191, 36, 0.3);
   }
 
   .card-type-tag.duotone {
-    background: rgba(95, 227, 161, 0.12);
+    background: rgba(56, 189, 248, 0.15);
     color: var(--accent-cyan);
-    border: 1px solid rgba(95, 227, 161, 0.25);
+    border: 1px solid rgba(56, 189, 248, 0.3);
   }
 
   .card-type-tag.monotone {
@@ -246,7 +246,7 @@
 
   .icon-stage svg {
     transition: width 0.2s ease, height 0.2s ease;
-    filter: drop-shadow(0 12px 24px rgba(0,0,0,0.6));
+    filter: drop-shadow(0 8px 16px rgba(0,0,0,0.4));
   }
 
   .card-info {
@@ -308,10 +308,10 @@
     position: fixed;
     bottom: 30px;
     right: 30px;
-    background: #12161c;
+    background: #1e293b;
     color: #ffffff;
     border: 1px solid var(--accent-cyan);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(95, 227, 161, 0.2);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(56, 189, 248, 0.2);
     padding: 12px 20px;
     border-radius: 12px;
     font-size: 13px;
@@ -351,7 +351,7 @@
   }
 
   .modal-container {
-    background: #0d1017;
+    background: #0f172a;
     border: 1px solid var(--border-bright);
     border-radius: 24px;
     width: 90%;
@@ -407,7 +407,7 @@
   }
 
   .modal-code {
-    background: #06080b;
+    background: #090d16;
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 16px;
@@ -427,10 +427,10 @@
   <header>
     <div class="header-badge">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-      Slate High-Fidelity SVG Icon Engine
+      Slate Editor Flat Vector Suite
     </div>
-    <h1>General Purpose Editor <span>Icon Set</span></h1>
-    <p class="subtitle">10 unique, highly polished vector SVG icons built directly on the engine reference plate standard. Featuring multi-stop linear/radial gradients, bevels, specular reflections, drop shadows, and glass rim lighting.</p>
+    <h1>2D Flat Colored <span>Editor Icons</span></h1>
+    <p class="subtitle">A set of 10 modern, minimal, 2D flat colored SVG icons built with clean geometric shapes, crisp vector strokes, and vibrant color palettes for modern general-purpose editors.</p>
   </header>
 
   <div class="toolbar">
@@ -483,152 +483,98 @@ const RAW_ICONS = [
   {
     "id": "transform-gizmo",
     "name": "Transform Gizmo",
-    "type": "Monotone",
+    "type": "Monotone / Multi-Axis",
     "category": "monotone",
-    "tags": "transform gizmo translate rotate scale 3d manipulator vector axes",
-    "description": "Monochromatic chrome 3D manipulator with precision coordinate axes, central specular orb, and rotation arcs.",
-    "p": "gz",
-    "top": "#3a3f47",
-    "bot": "#121418",
-    "inner_svg": "\n<linearGradient id=\"gzM\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#ffffff\"/><stop offset=\".45\" stop-color=\"#cdd4db\"/><stop offset=\"1\" stop-color=\"#6a727d\"/></linearGradient>\n<linearGradient id=\"gzS\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#9ea7b0\"/><stop offset=\"1\" stop-color=\"#3d444d\"/></linearGradient>\n<radialGradient id=\"gzO\" cx=\".38\" cy=\".3\" r=\".75\"><stop offset=\"0\" stop-color=\"#ffffff\"/><stop offset=\".5\" stop-color=\"#b0b8c2\"/><stop offset=\"1\" stop-color=\"#2c333c\"/></radialGradient>\n<ellipse cx=\"60\" cy=\"98\" rx=\"34\" ry=\"5.5\" fill=\"#000\" opacity=\".4\"/>\n<!-- Rotation Rings -->\n<circle cx=\"60\" cy=\"62\" r=\"36\" fill=\"none\" stroke=\"#68717d\" stroke-opacity=\".35\" stroke-width=\"1.2\" stroke-dasharray=\"2 3\"/>\n<path d=\"M26 62 A 34 34 0 0 1 94 62\" fill=\"none\" stroke=\"url(#gzM)\" stroke-width=\"1.8\" stroke-opacity=\".7\"/>\n<path d=\"M60 28 A 34 34 0 0 1 94 62\" fill=\"none\" stroke=\"#fff\" stroke-width=\"1\" stroke-opacity=\".4\"/>\n<!-- Z Axis (Up) -->\n<path d=\"M60 62 V22\" stroke=\"url(#gzM)\" stroke-width=\"3.2\" stroke-linecap=\"round\"/>\n<path d=\"M60 14 L53 27 H67 Z\" fill=\"url(#gzM)\"/>\n<path d=\"M60 14 L53 27 H60 Z\" fill=\"#fff\" opacity=\".5\"/>\n<!-- X Axis (Right-Down) -->\n<path d=\"M60 62 L92 80\" stroke=\"url(#gzM)\" stroke-width=\"3.2\" stroke-linecap=\"round\"/>\n<path d=\"M98 83 L85 75 L89 87 Z\" fill=\"url(#gzM)\"/>\n<path d=\"M98 83 L85 75 L92 81 Z\" fill=\"#fff\" opacity=\".4\"/>\n<!-- Y Axis (Left-Down) -->\n<path d=\"M60 62 L28 80\" stroke=\"url(#gzS)\" stroke-width=\"3.2\" stroke-linecap=\"round\"/>\n<path d=\"M22 83 L31 87 L34 75 Z\" fill=\"url(#gzS)\"/>\n<path d=\"M22 83 L28 81 L34 75 Z\" fill=\"#fff\" opacity=\".2\"/>\n<!-- Center Chrome Orb -->\n<g filter=\"url(#gzd)\">\n<circle cx=\"60\" cy=\"62\" r=\"9\" fill=\"url(#gzO)\"/>\n<circle cx=\"60\" cy=\"62\" r=\"9\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".5\" stroke-width=\"1\"/>\n</g>\n<ellipse cx=\"57.5\" cy=\"59\" rx=\"3\" ry=\"1.8\" transform=\"rotate(-30 57.5 59)\" fill=\"#fff\" opacity=\".85\"/>\n<!-- Arc Handle Pins -->\n<circle cx=\"60\" cy=\"28\" r=\"2.5\" fill=\"#fff\"/>\n<circle cx=\"94\" cy=\"62\" r=\"2.5\" fill=\"#cdd4db\"/>\n<circle cx=\"26\" cy=\"62\" r=\"2.5\" fill=\"#6a727d\"/>"
+    "tags": "transform gizmo translate rotate scale 3d manipulator vector axes flat 2d",
+    "description": "Clean 2D flat coordinate axes with vibrant red (X), green (Y), blue (Z) arrows, rotation arc, and origin disk.",
+    "svg_body": "<rect width=\"120\" height=\"120\" rx=\"24\" fill=\"#0f172a\"/>\n<!-- Ground Rotation Arc -->\n<path d=\"M30 90 A 42 42 0 0 1 90 30\" fill=\"none\" stroke=\"#475569\" stroke-width=\"3\" stroke-dasharray=\"6 6\"/>\n<!-- Z Axis (Up - Blue) -->\n<line x1=\"60\" y1=\"60\" x2=\"60\" y2=\"24\" stroke=\"#3b82f6\" stroke-width=\"4\" stroke-linecap=\"round\"/>\n<polygon points=\"60,16 53,28 67,28\" fill=\"#3b82f6\"/>\n<!-- X Axis (Right - Red) -->\n<line x1=\"60\" y1=\"60\" x2=\"96\" y2=\"60\" stroke=\"#ef4444\" stroke-width=\"4\" stroke-linecap=\"round\"/>\n<polygon points=\"104,60 92,53 92,67\" fill=\"#ef4444\"/>\n<!-- Y Axis (Down-Left - Green) -->\n<line x1=\"60\" y1=\"60\" x2=\"32\" y2=\"88\" stroke=\"#10b981\" stroke-width=\"4\" stroke-linecap=\"round\"/>\n<polygon points=\"26,94 38,88 32,76\" fill=\"#10b981\"/>\n<!-- Origin Center Ring -->\n<circle cx=\"60\" cy=\"60\" r=\"8\" fill=\"#0f172a\" stroke=\"#f8fafc\" stroke-width=\"3\"/>\n<circle cx=\"60\" cy=\"60\" r=\"3\" fill=\"#f8fafc\"/>"
   },
   {
     "id": "scene-camera",
     "name": "Scene View Camera",
     "type": "Coloured",
     "category": "coloured",
-    "tags": "camera viewport lens cinema view capture optical render",
-    "description": "Photorealistic camera lens with brushed titanium body, optical glass reflections, brass/blue rings, and ruby tally LED.",
-    "p": "cam",
-    "top": "#40444a",
-    "bot": "#0f1013",
-    "inner_svg": "\n<linearGradient id=\"camT\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#fdfcf9\"/><stop offset=\".6\" stop-color=\"#e7e3db\"/><stop offset=\"1\" stop-color=\"#bdb9b0\"/></linearGradient>\n<linearGradient id=\"camL\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#2d3035\"/><stop offset=\"1\" stop-color=\"#121316\"/></linearGradient>\n<linearGradient id=\"camR\" x1=\".15\" y1=\"0\" x2=\".85\" y2=\"1\"><stop offset=\"0\" stop-color=\"#848a91\"/><stop offset=\".3\" stop-color=\"#2b2e33\"/><stop offset=\".62\" stop-color=\"#4c5157\"/><stop offset=\"1\" stop-color=\"#101215\"/></linearGradient>\n<radialGradient id=\"camG\" cx=\".36\" cy=\".3\" r=\".92\"><stop offset=\"0\" stop-color=\"#82a492\"/><stop offset=\".3\" stop-color=\"#24413a\"/><stop offset=\".62\" stop-color=\"#0a1512\"/><stop offset=\".88\" stop-color=\"#152724\"/><stop offset=\"1\" stop-color=\"#31423c\"/></radialGradient>\n<linearGradient id=\"camB\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0\" stop-color=\"#996515\"/><stop offset=\"50\" stop-color=\"#f7d070\"/><stop offset=\"100\" stop-color=\"#80500d\"/></linearGradient>\n<ellipse cx=\"60\" cy=\"103\" rx=\"34\" ry=\"5.5\" fill=\"#000\" opacity=\".4\"/>\n<g clip-path=\"url(#camc)\">\n<rect x=\"6\" y=\"6\" width=\"108\" height=\"31\" fill=\"url(#camT)\"/>\n<rect x=\"6\" y=\"36\" width=\"108\" height=\"78\" fill=\"url(#camL)\"/>\n<rect x=\"6\" y=\"35.4\" width=\"108\" height=\"1.8\" fill=\"#000\" opacity=\".55\"/>\n<circle cx=\"97\" cy=\"20\" r=\"5\" fill=\"#33363b\"/><circle cx=\"97\" cy=\"20\" r=\"3.4\" fill=\"#0b0d0f\"/><circle cx=\"95.6\" cy=\"18.6\" r=\"1.1\" fill=\"#9fb8c6\" opacity=\".85\"/>\n<path d=\"M6 6H114V29C92 43 28 43 6 29Z\" fill=\"#ffffff\" opacity=\".16\"/>\n<circle cx=\"41\" cy=\"44\" r=\"2.8\" fill=\"#e04a3c\"/><circle cx=\"40\" cy=\"43\" r=\"1\" fill=\"#ffa49c\"/>\n</g>\n<!-- Outer Brass & Blue Lens Rings -->\n<circle cx=\"60\" cy=\"68\" r=\"34\" fill=\"none\" stroke=\"url(#camB)\" stroke-width=\"1.8\"/>\n<g filter=\"url(#camd)\"><circle cx=\"60\" cy=\"68\" r=\"32\" fill=\"url(#camR)\"/></g>\n<circle cx=\"60\" cy=\"68\" r=\"32\" fill=\"none\" stroke=\"#000\" stroke-opacity=\".5\"/>\n<circle cx=\"60\" cy=\"68\" r=\"28.5\" fill=\"#0d0f11\"/>\n<!-- Glass Element -->\n<circle cx=\"60\" cy=\"68\" r=\"26\" fill=\"url(#camG)\"/>\n<circle cx=\"60\" cy=\"68\" r=\"26\" fill=\"none\" stroke=\"#000\" stroke-opacity=\".55\" stroke-width=\"1.2\"/>\n<!-- Aperture Blades -->\n<polygon points=\"60,45 70,54 63,68\" fill=\"#05120e\" opacity=\".7\"/>\n<polygon points=\"73,56 70,70 60,68\" fill=\"#05120e\" opacity=\".7\"/>\n<polygon points=\"65,73 51,70 60,68\" fill=\"#05120e\" opacity=\".7\"/>\n<polygon points=\"48,70 51,55 60,68\" fill=\"#05120e\" opacity=\".7\"/>\n<polygon points=\"48,53 62,48 60,68\" fill=\"#05120e\" opacity=\".7\"/>\n<!-- Pupil -->\n<circle cx=\"60\" cy=\"68\" r=\"13\" fill=\"#04070a\"/>\n<circle cx=\"60\" cy=\"68\" r=\"13\" fill=\"none\" stroke=\"#33463f\" stroke-width=\"1\" opacity=\".75\"/>\n<ellipse cx=\"49\" cy=\"56\" rx=\"11\" ry=\"6.4\" transform=\"rotate(-38 49 56)\" fill=\"#eaf6ff\" opacity=\".22\"/>\n<ellipse cx=\"72\" cy=\"83\" rx=\"7\" ry=\"3.1\" transform=\"rotate(-38 72 83)\" fill=\"#bfe6d8\" opacity=\".12\"/>\n<circle cx=\"60\" cy=\"103\" r=\"5.2\" fill=\"none\" stroke=\"#50555c\" stroke-width=\"1.6\"/>"
+    "tags": "camera viewport lens cinema view capture optical render flat 2d",
+    "description": "Modern 2D flat camera with slate blue body, dark lens rings, vibrant red tally indicator, and cyan lens accent.",
+    "svg_body": "<rect width=\"120\" height=\"120\" rx=\"24\" fill=\"#0f172a\"/>\n<!-- Main Camera Body -->\n<rect x=\"20\" y=\"36\" width=\"80\" height=\"54\" rx=\"12\" fill=\"#1e293b\" stroke=\"#3b82f6\" stroke-width=\"3\"/>\n<!-- Viewfinder Top -->\n<path d=\"M42 36 L50 24 H70 L78 36 Z\" fill=\"#3b82f6\"/>\n<!-- Flash / Tally Red LED -->\n<circle cx=\"86\" cy=\"48\" r=\"4\" fill=\"#ef4444\"/>\n<!-- Lens Outer Ring -->\n<circle cx=\"56\" cy=\"63\" r=\"22\" fill=\"#0f172a\" stroke=\"#3b82f6\" stroke-width=\"3\"/>\n<!-- Lens Inner Pupil & Cyan Reflection -->\n<circle cx=\"56\" cy=\"63\" r=\"14\" fill=\"#06b6d4\"/>\n<circle cx=\"56\" cy=\"63\" r=\"8\" fill=\"#0891b2\"/>\n<circle cx=\"51\" cy=\"58\" r=\"3\" fill=\"#ffffff\" opacity=\"0.8\"/>\n<!-- Side Knob -->\n<rect x=\"94\" y=\"52\" width=\"8\" height=\"22\" rx=\"3\" fill=\"#475569\"/>"
   },
   {
     "id": "pbr-material",
     "name": "PBR Shaderball Material",
     "type": "Coloured",
     "category": "coloured",
-    "tags": "material pbr shader sphere reflection surface texture metallic",
-    "description": "3D Shaderball with dual gold metallic & cobalt ceramic surfaces, curved studio reflections, and shader node overlay.",
-    "p": "ma",
-    "top": "#3a3f47",
-    "bot": "#121418",
-    "inner_svg": "\n<radialGradient id=\"maG\" cx=\".34\" cy=\".28\" r=\".9\"><stop offset=\"0\" stop-color=\"#fff8d6\"/><stop offset=\".35\" stop-color=\"#ffd700\"/><stop offset=\".7\" stop-color=\"#b8860b\"/><stop offset=\"1\" stop-color=\"#5c4002\"/></radialGradient>\n<radialGradient id=\"maC\" cx=\".38\" cy=\".32\" r=\".85\"><stop offset=\"0\" stop-color=\"#82b1ff\"/><stop offset=\".4\" stop-color=\"#1565c0\"/><stop offset=\"1\" stop-color=\"#051b40\"/></radialGradient>\n<pattern id=\"maP\" width=\"12\" height=\"12\" patternUnits=\"userSpaceOnUse\">\n<rect width=\"6\" height=\"6\" fill=\"#ffffff\" fill-opacity=\".18\"/><rect x=\"6\" y=\"6\" width=\"6\" height=\"6\" fill=\"#ffffff\" fill-opacity=\".18\"/>\n</pattern>\n<clipPath id=\"maCl\"><circle cx=\"60\" cy=\"58\" r=\"31\"/></clipPath>\n<clipPath id=\"maTop\"><path d=\"M29 58 A31 31 0 0 1 91 58 Z\"/></clipPath>\n<clipPath id=\"maBot\"><path d=\"M29 58 A31 31 0 0 0 91 58 Z\"/></clipPath>\n<ellipse cx=\"60\" cy=\"97\" rx=\"30\" ry=\"5.5\" fill=\"#000\" opacity=\".42\"/>\n<!-- Base Pedestal Ring -->\n<ellipse cx=\"60\" cy=\"88\" rx=\"26\" ry=\"7\" fill=\"#232730\" stroke=\"#4a5260\" stroke-width=\"1.2\"/>\n<ellipse cx=\"60\" cy=\"86\" rx=\"22\" ry=\"5\" fill=\"#0f1217\"/>\n<!-- Sphere Shell -->\n<g filter=\"url(#mad)\">\n<circle cx=\"60\" cy=\"58\" r=\"31\" fill=\"#121418\"/>\n<circle cx=\"60\" cy=\"58\" r=\"31\" fill=\"url(#maG)\" clip-path=\"url(#maTop)\"/>\n<circle cx=\"60\" cy=\"58\" r=\"31\" fill=\"url(#maC)\" clip-path=\"url(#maBot)\"/>\n</g>\n<g clip-path=\"url(#maCl)\"><rect x=\"29\" y=\"27\" width=\"62\" height=\"62\" fill=\"url(#maP)\" opacity=\".6\"/></g>\n<line x1=\"29\" y1=\"58\" x2=\"91\" y2=\"58\" stroke=\"#fff\" stroke-width=\"1\" opacity=\".6\"/>\n<!-- Studio Softbox Curved Reflections -->\n<circle cx=\"60\" cy=\"58\" r=\"31\" fill=\"none\" stroke=\"#ffe57f\" stroke-opacity=\".5\" stroke-width=\"1.2\"/>\n<ellipse cx=\"48\" cy=\"43\" rx=\"10\" ry=\"6.4\" transform=\"rotate(-34 48 43)\" fill=\"#fff\" opacity=\".55\"/>\n<ellipse cx=\"44\" cy=\"38\" rx=\"4\" ry=\"2.4\" transform=\"rotate(-34 44 38)\" fill=\"#fff\" opacity=\".85\"/>\n<path d=\"M36 76a31 31 0 0 0 46-6\" fill=\"none\" stroke=\"#82b1ff\" stroke-opacity=\".45\" stroke-width=\"2.6\"/>\n<!-- Floating Shader Node Badge -->\n<path d=\"M84 26 L94 34 L84 42 L74 34 Z\" fill=\"#121620\" stroke=\"#00e5ff\" stroke-width=\"1.5\"/>\n<circle cx=\"84\" cy=\"34\" r=\"2.5\" fill=\"#00e5ff\"/>"
+    "tags": "material pbr shader sphere reflection surface texture metallic flat 2d",
+    "description": "Flat 2D material sphere split into warm amber gold & deep indigo ceramic, with flat grid texture and node badge.",
+    "svg_body": "<rect width=\"120\" height=\"120\" rx=\"24\" fill=\"#0f172a\"/>\n<!-- Pedestal Base -->\n<path d=\"M40 94 H80 L74 100 H46 Z\" fill=\"#334155\"/>\n<rect x=\"44\" y=\"86\" width=\"32\" height=\"8\" rx=\"2\" fill=\"#475569\"/>\n<!-- Main Material Sphere -->\n<circle cx=\"60\" cy=\"54\" r=\"30\" fill=\"#6366f1\"/>\n<!-- Top Amber Gold Segment -->\n<path d=\"M30 54 A 30 30 0 0 1 90 54 Z\" fill=\"#f59e0b\"/>\n<!-- Seam Line -->\n<line x1=\"30\" y1=\"54\" x2=\"90\" y2=\"54\" stroke=\"#ffffff\" stroke-width=\"2\" opacity=\"0.6\"/>\n<!-- Grid Pattern Lines -->\n<path d=\"M30 54 A 30 30 0 0 1 60 24\" fill=\"none\" stroke=\"#fbbf24\" stroke-width=\"2\"/>\n<path d=\"M60 24 A 30 30 0 0 1 90 54\" fill=\"none\" stroke=\"#fbbf24\" stroke-width=\"2\"/>\n<path d=\"M30 54 A 30 30 0 0 0 60 84\" fill=\"none\" stroke=\"#818cf8\" stroke-width=\"2\"/>\n<path d=\"M60 84 A 30 30 0 0 0 90 54\" fill=\"none\" stroke=\"#818cf8\" stroke-width=\"2\"/>\n<!-- Flat Specular Highlight -->\n<circle cx=\"48\" cy=\"42\" r=\"5\" fill=\"#ffffff\" opacity=\"0.7\"/>\n<!-- Floating Node Badge -->\n<rect x=\"76\" y=\"24\" width=\"22\" height=\"22\" rx=\"6\" fill=\"#10b981\"/>\n<circle cx=\"87\" cy=\"35\" r=\"4\" fill=\"#ffffff\"/>"
   },
   {
     "id": "geometry-mesh",
     "name": "Subdivided Mesh Geometry",
     "type": "Monotone",
     "category": "monotone",
-    "tags": "mesh geometry 3d polyhedron wireframe topology vertex model",
-    "description": "Monochromatic titanium subdivided polyhedron with glowing cyan wireframe edges and vertex nodes.",
-    "p": "me",
-    "top": "#3a3f47",
-    "bot": "#121418",
-    "inner_svg": "\n<linearGradient id=\"meF\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#63e6ff\" stop-opacity=\".38\"/><stop offset=\"1\" stop-color=\"#1a6f8f\" stop-opacity=\".22\"/></linearGradient>\n<linearGradient id=\"meTop\" x1=\"0\" y1=\"1\" x2=\"0\" y2=\"0\"><stop offset=\"0\" stop-color=\"#4a5568\"/><stop offset=\"1\" stop-color=\"#94a3b8\"/></linearGradient>\n<linearGradient id=\"meLeft\" x1=\"1\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#1e293b\"/><stop offset=\"1\" stop-color=\"#334155\"/></linearGradient>\n<linearGradient id=\"meRight\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#334155\"/><stop offset=\"1\" stop-color=\"#64748b\"/></linearGradient>\n<ellipse cx=\"60\" cy=\"103\" rx=\"30\" ry=\"5\" fill=\"#000\" opacity=\".4\"/>\n<g filter=\"url(#med)\">\n<polygon points=\"60,26 94,46 60,66 26,46\" fill=\"url(#meTop)\"/>\n<polygon points=\"26,46 60,66 60,102 26,82\" fill=\"url(#meLeft)\"/>\n<polygon points=\"94,46 60,66 60,102 94,82\" fill=\"url(#meRight)\"/>\n</g>\n<g fill=\"none\" stroke=\"#6fe9ff\" stroke-width=\"1.8\" stroke-linejoin=\"round\">\n<polygon points=\"60,26 94,46 60,66 26,46\"/>\n<polygon points=\"26,46 60,66 60,102 26,82\"/>\n<polygon points=\"94,46 60,66 60,102 94,82\"/>\n</g>\n<g fill=\"none\" stroke=\"#6fe9ff\" stroke-opacity=\".55\" stroke-width=\"1.1\">\n<path d=\"M60 26 60 66M26 46 94 46M26 46 60 102M94 46 60 102M26 64 60 84M94 64 60 84M43 36 43 74M77 36 77 74\"/>\n</g>\n<g fill=\"#eafcff\">\n<circle cx=\"60\" cy=\"26\" r=\"2.8\"/><circle cx=\"94\" cy=\"46\" r=\"2.8\"/><circle cx=\"26\" cy=\"46\" r=\"2.8\"/>\n<circle cx=\"60\" cy=\"66\" r=\"3.2\"/><circle cx=\"26\" cy=\"82\" r=\"2.8\"/><circle cx=\"94\" cy=\"82\" r=\"2.8\"/><circle cx=\"60\" cy=\"102\" r=\"2.8\"/>\n</g>"
+    "tags": "mesh geometry 3d polyhedron wireframe topology vertex model flat 2d",
+    "description": "2D flat isometric cube mesh with solid teal facets, bold turquoise wireframe, and bright vertex dots.",
+    "svg_body": "<rect width=\"120\" height=\"120\" rx=\"24\" fill=\"#0f172a\"/>\n<!-- Top Face -->\n<polygon points=\"60,24 92,40 60,56 28,40\" fill=\"#0f766e\"/>\n<!-- Left Face -->\n<polygon points=\"28,40 60,56 60,92 28,76\" fill=\"#115e59\"/>\n<!-- Right Face -->\n<polygon points=\"60,56 92,40 92,76 60,92\" fill=\"#134e4a\"/>\n<!-- Subdivision Wireframe Lines -->\n<g stroke=\"#14b8a6\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n<polygon points=\"60,24 92,40 60,56 28,40\" fill=\"none\"/>\n<polygon points=\"28,40 60,56 60,92 28,76\" fill=\"none\"/>\n<polygon points=\"60,56 92,40 92,76 60,92\" fill=\"none\"/>\n<line x1=\"44\" y1=\"32\" x2=\"76\" y2=\"48\"/>\n<line x1=\"76\" y1=\"32\" x2=\"44\" y2=\"48\"/>\n<line x1=\"44\" y1=\"48\" x2=\"44\" y2=\"84\"/>\n<line x1=\"76\" y1=\"48\" x2=\"76\" y2=\"84\"/>\n</g>\n<!-- Vertex Dots -->\n<circle cx=\"60\" cy=\"24\" r=\"3.5\" fill=\"#2dd4bf\"/>\n<circle cx=\"92\" cy=\"40\" r=\"3.5\" fill=\"#2dd4bf\"/>\n<circle cx=\"28\" cy=\"40\" r=\"3.5\" fill=\"#2dd4bf\"/>\n<circle cx=\"60\" cy=\"56\" r=\"4\" fill=\"#ffffff\"/>\n<circle cx=\"28\" cy=\"76\" r=\"3.5\" fill=\"#2dd4bf\"/>\n<circle cx=\"92\" cy=\"76\" r=\"3.5\" fill=\"#2dd4bf\"/>\n<circle cx=\"60\" cy=\"92\" r=\"3.5\" fill=\"#2dd4bf\"/>"
   },
   {
     "id": "studio-light",
     "name": "Studio Environment Light",
     "type": "Coloured",
     "category": "coloured",
-    "tags": "light sun bulb spotlight illumination bake environment lamp",
-    "description": "Luminous studio light bulb with warm amber glow, tungsten filament, threaded brass base, and fanning directional rays.",
-    "p": "li",
-    "top": "#3d434b",
-    "bot": "#121417",
-    "inner_svg": "\n<radialGradient id=\"liG\" cx=\".5\" cy=\".45\" r=\".5\"><stop offset=\"0\" stop-color=\"#ffe89a\" stop-opacity=\".85\"/><stop offset=\"1\" stop-color=\"#ffd15a\" stop-opacity=\"0\"/></radialGradient>\n<radialGradient id=\"liB\" cx=\".38\" cy=\".3\" r=\".82\"><stop offset=\"0\" stop-color=\"#fffbe8\"/><stop offset=\".5\" stop-color=\"#ffe07a\"/><stop offset=\"1\" stop-color=\"#e2a318\"/></radialGradient>\n<linearGradient id=\"liM\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0\" stop-color=\"#6c737c\"/><stop offset=\".35\" stop-color=\"#d8dde3\"/><stop offset=\"1\" stop-color=\"#767d86\"/></linearGradient>\n<linearGradient id=\"liR\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#ffe082\" stop-opacity=\".5\"/><stop offset=\"1\" stop-color=\"#ff8f00\" stop-opacity=\"0\"/></linearGradient>\n<!-- Fanning Rays -->\n<polygon points=\"60,42 12,102 108,102\" fill=\"url(#liR)\"/>\n<circle cx=\"60\" cy=\"52\" r=\"42\" fill=\"url(#liG)\"/>\n<g stroke=\"#ffd766\" stroke-opacity=\".65\" stroke-width=\"3\" stroke-linecap=\"round\">\n<path d=\"M60 12v7\"/><path d=\"M27 25l5 5\"/><path d=\"M93 25l-5 5\"/><path d=\"M14 56h7\"/><path d=\"M106 56h-7\"/>\n</g>\n<!-- Glass Envelope -->\n<path d=\"M60 22a24 24 0 0 1 15 43c-3 2-4 4-4 7H49c0-3-1-5-4-7A24 24 0 0 1 60 22z\" fill=\"url(#liB)\"/>\n<path d=\"M50 30a20 20 0 0 1 16-5c-8 1-14 6-16 13-2 6 0 11 3 15-7-5-9-16-3-23z\" fill=\"#fff\" opacity=\".5\"/>\n<!-- Filament Loop -->\n<path d=\"M52 52c0-6 4-10 8-10s8 4 8 10\" fill=\"none\" stroke=\"#a7660c\" stroke-width=\"2.4\" stroke-linecap=\"round\"/>\n<path d=\"M60 42v18\" stroke=\"#a7660c\" stroke-width=\"2\" stroke-linecap=\"round\"/>\n<rect x=\"48\" y=\"72\" width=\"24\" height=\"7\" rx=\"2.5\" fill=\"url(#liM)\"/>\n<rect x=\"49\" y=\"80\" width=\"22\" height=\"6\" rx=\"2.5\" fill=\"url(#liM)\"/>\n<path d=\"M52 87h16l-3 7a4 4 0 0 1-4 3h-2a4 4 0 0 1-4-3z\" fill=\"#8d949c\"/>\n<rect x=\"48\" y=\"72\" width=\"24\" height=\"2\" rx=\"1\" fill=\"#fff\" opacity=\".55\"/>"
+    "tags": "light sun bulb spotlight illumination bake environment lamp flat 2d",
+    "description": "Vibrant 2D flat light bulb with warm yellow envelope, amber filament, dark socket cap, and fanning beam rays.",
+    "svg_body": "<rect width=\"120\" height=\"120\" rx=\"24\" fill=\"#0f172a\"/>\n<!-- Fanning Light Beam Rays -->\n<g stroke=\"#fde047\" stroke-width=\"3\" stroke-linecap=\"round\">\n<line x1=\"60\" y1=\"16\" x2=\"60\" y2=\"24\"/>\n<line x1=\"28\" y1=\"28\" x2=\"34\" y2=\"34\"/>\n<line x1=\"92\" y1=\"28\" x2=\"86\" y2=\"34\"/>\n<line x1=\"16\" y1=\"60\" x2=\"24\" y2=\"60\"/>\n<line x1=\"104\" y1=\"60\" x2=\"96\" y2=\"60\"/>\n</g>\n<!-- Socket Base -->\n<rect x=\"48\" y=\"80\" width=\"24\" height=\"12\" rx=\"3\" fill=\"#475569\"/>\n<rect x=\"52\" y=\"92\" width=\"16\" height=\"6\" rx=\"2\" fill=\"#334155\"/>\n<!-- Main Bulb Envelope -->\n<path d=\"M60 28 C44 28 34 40 34 56 C34 70 48 78 52 80 H68 C72 78 86 70 86 56 C86 40 76 28 60 28 Z\" fill=\"#facc15\"/>\n<!-- Bulb Inner Filament -->\n<path d=\"M50 64 L54 50 L60 44 L66 50 L70 64\" fill=\"none\" stroke=\"#d97706\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n<!-- Specular Arc -->\n<path d=\"M42 44 A 20 20 0 0 1 58 34\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"3\" stroke-linecap=\"round\"/>"
   },
   {
     "id": "audio-emitter",
     "name": "Audio FX Emitter",
     "type": "Duotone",
     "category": "duotone",
-    "tags": "audio sound sfx speaker dsp spatial volume acoustic waveform",
-    "description": "High-contrast duotone studio loudspeaker in amber gold & dark obsidian with soundwave pulses and equalizer display.",
-    "p": "ad",
-    "top": "#2d2822",
-    "bot": "#0e0b08",
-    "inner_svg": "\n<radialGradient id=\"adV\" cx=\".4\" cy=\".3\" r=\".8\"><stop offset=\"0\" stop-color=\"#ffe082\"/><stop offset=\".5\" stop-color=\"#ffb300\"/><stop offset=\"1\" stop-color=\"#ff6f00\"/></radialGradient>\n<radialGradient id=\"adC\" cx=\".4\" cy=\".35\" r=\".7\"><stop offset=\"0\" stop-color=\"#3a332a\"/><stop offset=\"1\" stop-color=\"#14100b\"/></radialGradient>\n<ellipse cx=\"55\" cy=\"98\" rx=\"34\" ry=\"5.5\" fill=\"#000\" opacity=\".4\"/>\n<!-- Speaker Body -->\n<path d=\"M18 38 L36 48 V76 L18 86 Z\" fill=\"#241e18\" stroke=\"#4a3e33\" stroke-width=\"1.5\"/>\n<g filter=\"url(#add)\">\n<path d=\"M36 48 L62 28 V94 L36 76 Z\" fill=\"url(#adV)\"/>\n<ellipse cx=\"62\" cy=\"61\" rx=\"6\" ry=\"33\" fill=\"url(#adC)\" stroke=\"#594633\" stroke-width=\"1.5\"/>\n<ellipse cx=\"62\" cy=\"61\" rx=\"3\" ry=\"18\" fill=\"url(#adV)\"/>\n<ellipse cx=\"62\" cy=\"61\" rx=\"1.5\" ry=\"8\" fill=\"#fff\" opacity=\".9\"/>\n</g>\n<!-- Soundwaves -->\n<path d=\"M74 43 A 24 24 0 0 1 74 79\" fill=\"none\" stroke=\"#ffe082\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n<path d=\"M84 35 A 36 36 0 0 1 84 87\" fill=\"none\" stroke=\"#ffb300\" stroke-width=\"2.5\" stroke-linecap=\"round\" opacity=\".8\"/>\n<path d=\"M94 27 A 48 48 0 0 1 94 95\" fill=\"none\" stroke=\"#ff8f00\" stroke-width=\"1.8\" stroke-linecap=\"round\" opacity=\".5\"/>\n<!-- Equalizer Bars -->\n<g fill=\"#ffb300\">\n<rect x=\"20\" y=\"24\" width=\"3.2\" height=\"8\" rx=\"1.6\"/>\n<rect x=\"26\" y=\"20\" width=\"3.2\" height=\"12\" rx=\"1.6\" fill=\"#ffe082\"/>\n<rect x=\"32\" y=\"22\" width=\"3.2\" height=\"10\" rx=\"1.6\"/>\n<rect x=\"38\" y=\"26\" width=\"3.2\" height=\"6\" rx=\"1.6\" fill=\"#ff8f00\"/>\n</g>"
+    "tags": "audio sound sfx speaker dsp spatial volume acoustic waveform flat 2d",
+    "description": "Bold 2D flat speaker cone in purple & gold with radiating cyan and pink soundwave arcs and equalizer bars.",
+    "svg_body": "<rect width=\"120\" height=\"120\" rx=\"24\" fill=\"#0f172a\"/>\n<!-- Speaker Body -->\n<path d=\"M20 42 H36 L58 26 V94 L36 78 H20 Z\" fill=\"#8b5cf6\" stroke=\"#7c3aed\" stroke-width=\"3\"/>\n<!-- Speaker Center Dust Cap -->\n<ellipse cx=\"58\" cy=\"60\" rx=\"6\" ry=\"24\" fill=\"#f59e0b\"/>\n<ellipse cx=\"58\" cy=\"60\" rx=\"3\" ry=\"12\" fill=\"#ffffff\"/>\n<!-- Acoustic Wave Arcs -->\n<path d=\"M72 44 A 20 20 0 0 1 72 76\" fill=\"none\" stroke=\"#06b6d4\" stroke-width=\"4\" stroke-linecap=\"round\"/>\n<path d=\"M84 36 A 32 32 0 0 1 84 84\" fill=\"none\" stroke=\"#ec4899\" stroke-width=\"4\" stroke-linecap=\"round\"/>\n<path d=\"M96 28 A 44 44 0 0 1 96 92\" fill=\"none\" stroke=\"#3b82f6\" stroke-width=\"4\" stroke-linecap=\"round\"/>\n<!-- Equalizer Bars -->\n<rect x=\"22\" y=\"24\" width=\"4\" height=\"10\" rx=\"2\" fill=\"#f59e0b\"/>\n<rect x=\"28\" y=\"20\" width=\"4\" height=\"14\" rx=\"2\" fill=\"#06b6d4\"/>\n<rect x=\"34\" y=\"22\" width=\"4\" height=\"12\" rx=\"2\" fill=\"#ec4899\"/>"
   },
   {
     "id": "logic-node",
     "name": "Logic Node Graph",
     "type": "Duotone",
     "category": "duotone",
-    "tags": "script logic node blueprint code graph condition event workflow",
-    "description": "Electric cyan & neon violet duotone blueprint node block with glowing bezier connection wire, socket pins, and logic badge.",
-    "p": "nd",
-    "top": "#251a33",
-    "bot": "#0d0716",
-    "inner_svg": "\n<linearGradient id=\"ndHeader\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0\" stop-color=\"#d500f9\"/><stop offset=\"1\" stop-color=\"#aa00ff\"/></linearGradient>\n<linearGradient id=\"ndWire\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#00e5ff\"/><stop offset=\"1\" stop-color=\"#d500f9\"/></linearGradient>\n<!-- Left Card -->\n<g filter=\"url(#ndd)\">\n<rect x=\"18\" y=\"26\" width=\"44\" height=\"68\" rx=\"6\" fill=\"#1c162e\" stroke=\"#3e2d5c\" stroke-width=\"1.2\"/>\n<path d=\"M18 32 a6 6 0 0 1 6-6 h32 a6 6 0 0 1 6 6 v10 h-44 z\" fill=\"url(#ndHeader)\"/>\n<rect x=\"22\" y=\"32\" width=\"20\" height=\"4\" rx=\"2\" fill=\"#ffffff\"/>\n</g>\n<!-- Syntax Lines -->\n<rect x=\"24\" y=\"48\" width=\"28\" height=\"3\" rx=\"1.5\" fill=\"#00e5ff\"/>\n<rect x=\"24\" y=\"56\" width=\"20\" height=\"3\" rx=\"1.5\" fill=\"#d500f9\"/>\n<rect x=\"24\" y=\"64\" width=\"24\" height=\"3\" rx=\"1.5\" fill=\"#00e5ff\"/>\n<rect x=\"24\" y=\"72\" width=\"16\" height=\"3\" rx=\"1.5\" fill=\"#ffffff\" opacity=\".6\"/>\n<!-- Socket Pins -->\n<circle cx=\"18\" cy=\"50\" r=\"3.5\" fill=\"#00e5ff\"/>\n<circle cx=\"62\" cy=\"66\" r=\"3.5\" fill=\"#d500f9\"/>\n<!-- Right Card -->\n<rect x=\"76\" y=\"44\" width=\"28\" height=\"50\" rx=\"6\" fill=\"#1c162e\" stroke=\"#00e5ff\" stroke-width=\"1.2\"/>\n<path d=\"M76 50 a6 6 0 0 1 6-6 h16 a6 6 0 0 1 6 6 v8 h-28 z\" fill=\"#00b0ff\"/>\n<circle cx=\"76\" cy=\"66\" r=\"3.5\" fill=\"#00e5ff\"/>\n<!-- Cable Wire -->\n<path d=\"M62 66 C70 66 68 66 76 66\" fill=\"none\" stroke=\"url(#ndWire)\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n<!-- Logic Decision Badge -->\n<path d=\"M82 22 L92 30 L82 38 L72 30 Z\" fill=\"#0d0716\" stroke=\"#00e5ff\" stroke-width=\"1.5\"/>\n<path d=\"M82 26 L86 30 L82 34 L78 30 Z\" fill=\"#d500f9\"/>"
+    "tags": "script logic node blueprint code graph condition event workflow flat 2d",
+    "description": "Flat 2D visual logic node in indigo & purple with cyan input pin, magenta output pin, and Bezier wire.",
+    "svg_body": "<rect width=\"120\" height=\"120\" rx=\"24\" fill=\"#0f172a\"/>\n<!-- Node Card (Left) -->\n<rect x=\"18\" y=\"28\" width=\"44\" height=\"64\" rx=\"8\" fill=\"#1e1b4b\" stroke=\"#4338ca\" stroke-width=\"3\"/>\n<!-- Header Bar -->\n<path d=\"M18 36 A 8 8 0 0 1 26 28 H54 A 8 8 0 0 1 62 28 V42 H18 Z\" fill=\"#9333ea\"/>\n<rect x=\"24\" y=\"33\" width=\"18\" height=\"4\" rx=\"2\" fill=\"#ffffff\"/>\n<!-- Code Syntax Placeholders -->\n<rect x=\"24\" y=\"50\" width=\"28\" height=\"4\" rx=\"2\" fill=\"#06b6d4\"/>\n<rect x=\"24\" y=\"58\" width=\"20\" height=\"4\" rx=\"2\" fill=\"#d946ef\"/>\n<rect x=\"24\" y=\"66\" width=\"24\" height=\"4\" rx=\"2\" fill=\"#3b82f6\"/>\n<!-- Socket Pins -->\n<circle cx=\"18\" cy=\"52\" r=\"4\" fill=\"#06b6d4\"/>\n<circle cx=\"62\" cy=\"68\" r=\"4\" fill=\"#d946ef\"/>\n<!-- Node Card (Right) -->\n<rect x=\"76\" y=\"44\" width=\"26\" height=\"48\" rx=\"8\" fill=\"#1e1b4b\" stroke=\"#06b6d4\" stroke-width=\"3\"/>\n<path d=\"M76 52 A 8 8 0 0 1 84 44 H94 A 8 8 0 0 1 102 44 V56 H76 Z\" fill=\"#0284c7\"/>\n<circle cx=\"76\" cy=\"68\" r=\"4\" fill=\"#06b6d4\"/>\n<!-- Wire Cable -->\n<path d=\"M62 68 C70 68 68 68 76 68\" fill=\"none\" stroke=\"#d946ef\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n<!-- Logic Gate Badge -->\n<polygon points=\"85,20 95,28 85,36 75,28\" fill=\"#9333ea\"/>\n<polygon points=\"85,24 91,28 85,32 79,28\" fill=\"#ffffff\"/>"
   },
   {
     "id": "vfx-particles",
     "name": "VFX Particle Emitter",
     "type": "Coloured",
     "category": "coloured",
-    "tags": "vfx particles emitter energy plasma sparks vfx explosion fire",
-    "description": "Luminous particle emitter with multi-stop plasma orb core, orbiting energy field rings, and floating spark particle trails.",
-    "p": "pt",
-    "top": "#2f3440",
-    "bot": "#101216",
-    "inner_svg": "\n<radialGradient id=\"ptS\" cx=\".5\" cy=\".5\" r=\".5\"><stop offset=\"0\" stop-color=\"#ffffff\"/><stop offset=\".25\" stop-color=\"#ff80ab\"/><stop offset=\".55\" stop-color=\"#ff1744\"/><stop offset=\".85\" stop-color=\"#651fff\"/><stop offset=\"1\" stop-color=\"#000\" stop-opacity=\"0\"/></radialGradient>\n<linearGradient id=\"ptR\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#00e5ff\"/><stop offset=\".5\" stop-color=\"#ff1744\"/><stop offset=\"1\" stop-color=\"#7c4dff\"/></linearGradient>\n<!-- Orbiting Ring Ellipses -->\n<ellipse cx=\"60\" cy=\"62\" rx=\"38\" ry=\"14\" fill=\"none\" stroke=\"url(#ptR)\" stroke-width=\"1.8\" transform=\"rotate(-20 60 62)\" opacity=\".8\"/>\n<ellipse cx=\"60\" cy=\"62\" rx=\"34\" ry=\"12\" fill=\"none\" stroke=\"#00e5ff\" stroke-width=\"1.2\" transform=\"rotate(35 60 62)\"/>\n<!-- Plasma Core -->\n<g filter=\"url(#ptd)\">\n<circle cx=\"60\" cy=\"62\" r=\"26\" fill=\"url(#ptS)\"/>\n<circle cx=\"60\" cy=\"62\" r=\"9\" fill=\"#ffffff\"/>\n</g>\n<!-- Floating Spark Particles & Trails -->\n<line x1=\"60\" y1=\"62\" x2=\"38\" y2=\"26\" stroke=\"#ff80ab\" stroke-width=\"1\" stroke-dasharray=\"2 3\" opacity=\".7\"/>\n<circle cx=\"38\" cy=\"26\" r=\"3.5\" fill=\"#ffffff\"/>\n<line x1=\"60\" y1=\"62\" x2=\"82\" y2=\"22\" stroke=\"#00e5ff\" stroke-width=\"1.2\" stroke-dasharray=\"2 4\" opacity=\".8\"/>\n<circle cx=\"82\" cy=\"22\" r=\"4\" fill=\"#00e5ff\"/>\n<line x1=\"60\" y1=\"62\" x2=\"26\" y2=\"76\" stroke=\"#ff1744\" stroke-width=\"1\" stroke-dasharray=\"2 2\" opacity=\".6\"/>\n<circle cx=\"26\" cy=\"76\" r=\"2.5\" fill=\"#ff1744\"/>\n<line x1=\"60\" y1=\"62\" x2=\"92\" y2=\"74\" stroke=\"#7c4dff\" stroke-width=\"1\" stroke-dasharray=\"3 3\" opacity=\".7\"/>\n<circle cx=\"92\" cy=\"74\" r=\"3\" fill=\"#b388ff\"/>\n<circle cx=\"48\" cy=\"18\" r=\"1.8\" fill=\"#ffffff\"/>\n<circle cx=\"70\" cy=\"14\" r=\"2\" fill=\"#ff80ab\"/>\n<circle cx=\"58\" cy=\"16\" r=\"2.5\" fill=\"#ffffff\"/>"
+    "tags": "vfx particles emitter energy plasma sparks vfx explosion fire flat 2d",
+    "description": "Vibrant 2D flat particle emitter core in hot pink with yellow, orange, and cyan floating spark dots.",
+    "svg_body": "<rect width=\"120\" height=\"120\" rx=\"24\" fill=\"#0f172a\"/>\n<!-- Orbiting Ring Strokes -->\n<ellipse cx=\"60\" cy=\"64\" rx=\"38\" ry=\"14\" fill=\"none\" stroke=\"#06b6d4\" stroke-width=\"3\" transform=\"rotate(-20 60 64)\"/>\n<ellipse cx=\"60\" cy=\"64\" rx=\"34\" ry=\"12\" fill=\"none\" stroke=\"#ec4899\" stroke-width=\"3\" transform=\"rotate(35 60 64)\"/>\n<!-- Central Core Orb -->\n<circle cx=\"60\" cy=\"64\" r=\"22\" fill=\"#ec4899\"/>\n<circle cx=\"60\" cy=\"64\" r=\"14\" fill=\"#f43f5e\"/>\n<circle cx=\"60\" cy=\"64\" r=\"7\" fill=\"#ffffff\"/>\n<!-- Floating Spark Particle Dots -->\n<circle cx=\"36\" cy=\"28\" r=\"5\" fill=\"#fde047\"/>\n<circle cx=\"82\" cy=\"24\" r=\"6\" fill=\"#06b6d4\"/>\n<circle cx=\"26\" cy=\"78\" r=\"4\" fill=\"#f97316\"/>\n<circle cx=\"92\" cy=\"74\" r=\"5\" fill=\"#a855f7\"/>\n<circle cx=\"48\" cy=\"18\" r=\"3\" fill=\"#ffffff\"/>\n<circle cx=\"72\" cy=\"16\" r=\"3.5\" fill=\"#fde047\"/>\n<circle cx=\"58\" cy=\"18\" r=\"4\" fill=\"#ec4899\"/>"
   },
   {
     "id": "compositing-layers",
     "name": "Compositing Layers",
     "type": "Duotone",
     "category": "duotone",
-    "tags": "layers stack depth compositing mask order z-index blending",
-    "description": "Duotone emerald teal & dark obsidian floating glass layers with vertical stack depth, transparency, and mask cutout.",
-    "p": "ly",
-    "top": "#162826",
-    "bot": "#061210",
-    "inner_svg": "\n<linearGradient id=\"lyTeal\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#64ffda\" stop-opacity=\".65\"/><stop offset=\"1\" stop-color=\"#00bfa5\" stop-opacity=\".25\"/></linearGradient>\n<linearGradient id=\"lyMid\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#1de9b6\" stop-opacity=\".35\"/><stop offset=\"1\" stop-color=\"#004d40\" stop-opacity=\".15\"/></linearGradient>\n<ellipse cx=\"60\" cy=\"101\" rx=\"33\" ry=\"5\" fill=\"#000\" opacity=\".4\"/>\n<!-- Bottom Layer (Stencil Base) -->\n<polygon points=\"60,60 98,76 60,92 22,76\" fill=\"#081010\" stroke=\"#1c3330\" stroke-width=\"1.2\"/>\n<polygon points=\"60,70 76,77 60,84 44,77\" fill=\"#040a0a\" stroke=\"#00bfa5\" stroke-width=\".8\" opacity=\".6\"/>\n<!-- Shadows -->\n<polygon points=\"60,46 98,62 60,78 22,62\" fill=\"#000\" opacity=\".38\"/>\n<!-- Middle Layer -->\n<polygon points=\"60,42 98,58 60,74 22,58\" fill=\"url(#lyMid)\" stroke=\"#1de9b6\" stroke-width=\"1\" stroke-dasharray=\"16 4\"/>\n<line x1=\"41\" y1=\"50\" x2=\"79\" y2=\"66\" stroke=\"#64ffda\" stroke-width=\".8\" opacity=\".4\"/>\n<line x1=\"79\" y1=\"50\" x2=\"41\" y2=\"66\" stroke=\"#64ffda\" stroke-width=\".8\" opacity=\".4\"/>\n<!-- Top Layer (Active Emerald Glass) -->\n<g filter=\"url(#lyd)\">\n<polygon points=\"60,24 98,40 60,56 22,40\" fill=\"url(#lyTeal)\" stroke=\"#64ffda\" stroke-width=\"1.5\"/>\n</g>\n<!-- Active Eye Badge -->\n<ellipse cx=\"60\" cy=\"40\" rx=\"8\" ry=\"4\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"1.2\"/>\n<circle cx=\"60\" cy=\"40\" r=\"2\" fill=\"#64ffda\"/>\n<line x1=\"22\" y1=\"40\" x2=\"22\" y2=\"76\" stroke=\"#64ffda\" stroke-width=\"1\" stroke-dasharray=\"2 3\" opacity=\".5\"/>\n<line x1=\"98\" y1=\"40\" x2=\"98\" y2=\"76\" stroke=\"#64ffda\" stroke-width=\"1\" stroke-dasharray=\"2 3\" opacity=\".5\"/>"
+    "tags": "layers stack depth compositing mask order z-index blending flat 2d",
+    "description": "3 flat stacked rectangular cards in emerald teal, sky blue, and dark slate with depth offset and visibility icon.",
+    "svg_body": "<rect width=\"120\" height=\"120\" rx=\"24\" fill=\"#0f172a\"/>\n<!-- Bottom Layer 3 (Dark Slate) -->\n<rect x=\"36\" y=\"56\" width=\"60\" height=\"40\" rx=\"8\" fill=\"#334155\" stroke=\"#475569\" stroke-width=\"3\"/>\n<!-- Middle Layer 2 (Sky Blue) -->\n<rect x=\"28\" y=\"40\" width=\"60\" height=\"40\" rx=\"8\" fill=\"#0284c7\" stroke=\"#38bdf8\" stroke-width=\"3\"/>\n<!-- Top Layer 1 (Emerald Teal) -->\n<rect x=\"20\" y=\"24\" width=\"60\" height=\"40\" rx=\"8\" fill=\"#10b981\" stroke=\"#34d399\" stroke-width=\"3\"/>\n<!-- Active Layer Eye Visibility Icon -->\n<ellipse cx=\"50\" cy=\"44\" rx=\"10\" ry=\"6\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"2.5\"/>\n<circle cx=\"50\" cy=\"44\" r=\"3\" fill=\"#ffffff\"/>"
   },
   {
     "id": "editor-settings",
     "name": "System Preferences Cogwheel",
     "type": "Monotone",
     "category": "monotone",
-    "tags": "settings gear preferences cog config options setup tool system",
-    "description": "Monochromatic chrome mechanical cogwheel with 12 precision teeth, knurled dial face, and central adjustment socket.",
-    "p": "sg",
-    "top": "#3b4149",
-    "bot": "#121417",
-    "inner_svg": "\n<linearGradient id=\"sgM\" x1=\".15\" y1=\"0\" x2=\".85\" y2=\"1\"><stop offset=\"0\" stop-color=\"#e9edf1\"/><stop offset=\".35\" stop-color=\"#9aa3ad\"/><stop offset=\".6\" stop-color=\"#cdd4db\"/><stop offset=\"1\" stop-color=\"#6d757e\"/></linearGradient>\n<radialGradient id=\"sgH\" cx=\".4\" cy=\".35\" r=\".7\"><stop offset=\"0\" stop-color=\"#2b3038\"/><stop offset=\"1\" stop-color=\"#12151a\"/></radialGradient>\n<g filter=\"url(#sgd)\">\n<g fill=\"url(#sgM)\">\n<rect x=\"54\" y=\"16\" width=\"12\" height=\"20\" rx=\"3\"/><rect x=\"54\" y=\"84\" width=\"12\" height=\"20\" rx=\"3\"/>\n<rect x=\"54\" y=\"16\" width=\"12\" height=\"20\" rx=\"3\" transform=\"rotate(45 60 60)\"/><rect x=\"54\" y=\"84\" width=\"12\" height=\"20\" rx=\"3\" transform=\"rotate(45 60 60)\"/>\n<rect x=\"54\" y=\"16\" width=\"12\" height=\"20\" rx=\"3\" transform=\"rotate(90 60 60)\"/><rect x=\"54\" y=\"84\" width=\"12\" height=\"20\" rx=\"3\" transform=\"rotate(90 60 60)\"/>\n<rect x=\"54\" y=\"16\" width=\"12\" height=\"20\" rx=\"3\" transform=\"rotate(135 60 60)\"/><rect x=\"54\" y=\"84\" width=\"12\" height=\"20\" rx=\"3\" transform=\"rotate(135 60 60)\"/>\n<rect x=\"54\" y=\"16\" width=\"12\" height=\"20\" rx=\"3\" transform=\"rotate(22.5 60 60)\"/><rect x=\"54\" y=\"84\" width=\"12\" height=\"20\" rx=\"3\" transform=\"rotate(22.5 60 60)\"/>\n<rect x=\"54\" y=\"16\" width=\"12\" height=\"20\" rx=\"3\" transform=\"rotate(67.5 60 60)\"/><rect x=\"54\" y=\"84\" width=\"12\" height=\"20\" rx=\"3\" transform=\"rotate(67.5 60 60)\"/>\n<rect x=\"54\" y=\"16\" width=\"12\" height=\"20\" rx=\"3\" transform=\"rotate(112.5 60 60)\"/><rect x=\"54\" y=\"84\" width=\"12\" height=\"20\" rx=\"3\" transform=\"rotate(112.5 60 60)\"/>\n<rect x=\"54\" y=\"16\" width=\"12\" height=\"20\" rx=\"3\" transform=\"rotate(157.5 60 60)\"/><rect x=\"54\" y=\"84\" width=\"12\" height=\"20\" rx=\"3\" transform=\"rotate(157.5 60 60)\"/>\n<circle cx=\"60\" cy=\"60\" r=\"30\"/>\n</g>\n</g>\n<circle cx=\"60\" cy=\"60\" r=\"30\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".35\"/>\n<circle cx=\"60\" cy=\"60\" r=\"24\" fill=\"#8f98a2\"/>\n<circle cx=\"60\" cy=\"60\" r=\"21\" fill=\"url(#sgH)\"/>\n<path d=\"M40 44a30 30 0 0 1 40-4l-6 8a20 20 0 0 0-26 3z\" fill=\"#fff\" opacity=\".28\"/>\n<circle cx=\"60\" cy=\"60\" r=\"14\" fill=\"#0e1114\"/>\n<circle cx=\"60\" cy=\"60\" r=\"14\" fill=\"none\" stroke=\"#79828c\" stroke-width=\"1.4\"/>\n<path d=\"M60 42 A 18 18 0 0 1 78 60\" fill=\"none\" stroke=\"#38bdf8\" stroke-width=\"2.2\" stroke-linecap=\"round\"/>\n<circle cx=\"78\" cy=\"60\" r=\"2.8\" fill=\"#38bdf8\"/>"
+    "tags": "settings gear preferences cog config options setup tool system flat 2d",
+    "description": "Modern 2D flat 8-tooth mechanical gear in steel gray & dark slate with cyan center accent ring.",
+    "svg_body": "<rect width=\"120\" height=\"120\" rx=\"24\" fill=\"#0f172a\"/>\n<!-- 8 Gear Teeth -->\n<g fill=\"#475569\">\n<rect x=\"54\" y=\"16\" width=\"12\" height=\"18\" rx=\"3\"/>\n<rect x=\"54\" y=\"86\" width=\"12\" height=\"18\" rx=\"3\"/>\n<rect x=\"16\" y=\"54\" width=\"18\" height=\"12\" rx=\"3\"/>\n<rect x=\"86\" y=\"54\" width=\"18\" height=\"12\" rx=\"3\"/>\n<rect x=\"54\" y=\"16\" width=\"12\" height=\"18\" rx=\"3\" transform=\"rotate(45 60 60)\"/>\n<rect x=\"54\" y=\"86\" width=\"12\" height=\"18\" rx=\"3\" transform=\"rotate(45 60 60)\"/>\n<rect x=\"16\" y=\"54\" width=\"18\" height=\"12\" rx=\"3\" transform=\"rotate(45 60 60)\"/>\n<rect x=\"86\" y=\"54\" width=\"18\" height=\"12\" rx=\"3\" transform=\"rotate(45 60 60)\"/>\n<!-- Main Outer Gear Circle -->\n<circle cx=\"60\" cy=\"60\" r=\"32\"/>\n</g>\n<!-- Inner Dial & Center Hole -->\n<circle cx=\"60\" cy=\"60\" r=\"22\" fill=\"#1e293b\" stroke=\"#06b6d4\" stroke-width=\"3\"/>\n<circle cx=\"60\" cy=\"60\" r=\"10\" fill=\"#0f172a\"/>\n<circle cx=\"60\" cy=\"60\" r=\"4\" fill=\"#06b6d4\"/>"
   }
 ];
 
-function baseDefs(p, topCol, botCol) {
-  return `<defs>
-<linearGradient id="${p}b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${topCol}"/><stop offset="1" stop-color="${botCol}"/></linearGradient>
-<linearGradient id="${p}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".30"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
-<linearGradient id="${p}e" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".62"/><stop offset=".5" stop-color="#ffffff" stop-opacity=".05"/><stop offset="1" stop-color="#ffffff" stop-opacity=".20"/></linearGradient>
-<clipPath id="${p}c"><rect x="6" y="6" width="108" height="108" rx="27"/></clipPath>
-<filter id="${p}d" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="2.5" stdDeviation="2.6" flood-color="#000" flood-opacity=".55"/></filter>
-`;
-}
-
-function basePlate(p, topCol, botCol) {
-  return `${baseDefs(p, topCol, botCol)}</defs>
-<rect x="6" y="6" width="108" height="108" rx="27" fill="url(#${p}b)"/>
-<g clip-path="url(#${p}c)"><path d="M6 6H114V44C92 60 28 60 6 44Z" fill="url(#${p}g)"/></g>`;
-}
-
-function rim(p) {
-  return `<rect x="6.75" y="6.75" width="106.5" height="106.5" rx="26.3" fill="none" stroke="url(#${p}e)" stroke-width="1.5"/>`;
-}
-
 function makeFullSvg(ic, size=120) {
-  const plate = basePlate(ic.p, ic.top, ic.bot);
-  const r = rim(ic.p);
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="${size}" height="${size}" data-name="${ic.id}">
-${plate}
-${ic.inner_svg.trim()}
-${r}
+${ic.svg_body.trim()}
 </svg>`;
 }
 

@@ -1,42 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" data-name="transform-gizmo">
-<defs>
-<linearGradient id="gzb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3f47"/><stop offset="1" stop-color="#121418"/></linearGradient>
-<linearGradient id="gzg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".30"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
-<linearGradient id="gze" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".62"/><stop offset=".5" stop-color="#ffffff" stop-opacity=".05"/><stop offset="1" stop-color="#ffffff" stop-opacity=".20"/></linearGradient>
-<clipPath id="gzc"><rect x="6" y="6" width="108" height="108" rx="27"/></clipPath>
-<filter id="gzd" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="2.5" stdDeviation="2.6" flood-color="#000" flood-opacity=".55"/></filter>
-</defs>
-<rect x="6" y="6" width="108" height="108" rx="27" fill="url(#gzb)"/>
-<g clip-path="url(#gzc)"><path d="M6 6H114V44C92 60 28 60 6 44Z" fill="url(#gzg)"/></g>
-<linearGradient id="gzM" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="#cdd4db"/><stop offset="1" stop-color="#6a727d"/></linearGradient>
-<linearGradient id="gzS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9ea7b0"/><stop offset="1" stop-color="#3d444d"/></linearGradient>
-<radialGradient id="gzO" cx=".38" cy=".3" r=".75"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#b0b8c2"/><stop offset="1" stop-color="#2c333c"/></radialGradient>
-<ellipse cx="60" cy="98" rx="34" ry="5.5" fill="#000" opacity=".4"/>
-<!-- Rotation Rings -->
-<circle cx="60" cy="62" r="36" fill="none" stroke="#68717d" stroke-opacity=".35" stroke-width="1.2" stroke-dasharray="2 3"/>
-<path d="M26 62 A 34 34 0 0 1 94 62" fill="none" stroke="url(#gzM)" stroke-width="1.8" stroke-opacity=".7"/>
-<path d="M60 28 A 34 34 0 0 1 94 62" fill="none" stroke="#fff" stroke-width="1" stroke-opacity=".4"/>
-<!-- Z Axis (Up) -->
-<path d="M60 62 V22" stroke="url(#gzM)" stroke-width="3.2" stroke-linecap="round"/>
-<path d="M60 14 L53 27 H67 Z" fill="url(#gzM)"/>
-<path d="M60 14 L53 27 H60 Z" fill="#fff" opacity=".5"/>
-<!-- X Axis (Right-Down) -->
-<path d="M60 62 L92 80" stroke="url(#gzM)" stroke-width="3.2" stroke-linecap="round"/>
-<path d="M98 83 L85 75 L89 87 Z" fill="url(#gzM)"/>
-<path d="M98 83 L85 75 L92 81 Z" fill="#fff" opacity=".4"/>
-<!-- Y Axis (Left-Down) -->
-<path d="M60 62 L28 80" stroke="url(#gzS)" stroke-width="3.2" stroke-linecap="round"/>
-<path d="M22 83 L31 87 L34 75 Z" fill="url(#gzS)"/>
-<path d="M22 83 L28 81 L34 75 Z" fill="#fff" opacity=".2"/>
-<!-- Center Chrome Orb -->
-<g filter="url(#gzd)">
-<circle cx="60" cy="62" r="9" fill="url(#gzO)"/>
-<circle cx="60" cy="62" r="9" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1"/>
-</g>
-<ellipse cx="57.5" cy="59" rx="3" ry="1.8" transform="rotate(-30 57.5 59)" fill="#fff" opacity=".85"/>
-<!-- Arc Handle Pins -->
-<circle cx="60" cy="28" r="2.5" fill="#fff"/>
-<circle cx="94" cy="62" r="2.5" fill="#cdd4db"/>
-<circle cx="26" cy="62" r="2.5" fill="#6a727d"/>
-<rect x="6.75" y="6.75" width="106.5" height="106.5" rx="26.3" fill="none" stroke="url(#gze)" stroke-width="1.5"/>
+<rect width="120" height="120" rx="24" fill="#0f172a"/>
+<!-- Ground Rotation Arc -->
+<path d="M30 90 A 42 42 0 0 1 90 30" fill="none" stroke="#475569" stroke-width="3" stroke-dasharray="6 6"/>
+<!-- Z Axis (Up - Blue) -->
+<line x1="60" y1="60" x2="60" y2="24" stroke="#3b82f6" stroke-width="4" stroke-linecap="round"/>
+<polygon points="60,16 53,28 67,28" fill="#3b82f6"/>
+<!-- X Axis (Right - Red) -->
+<line x1="60" y1="60" x2="96" y2="60" stroke="#ef4444" stroke-width="4" stroke-linecap="round"/>
+<polygon points="104,60 92,53 92,67" fill="#ef4444"/>
+<!-- Y Axis (Down-Left - Green) -->
+<line x1="60" y1="60" x2="32" y2="88" stroke="#10b981" stroke-width="4" stroke-linecap="round"/>
+<polygon points="26,94 38,88 32,76" fill="#10b981"/>
+<!-- Origin Center Ring -->
+<circle cx="60" cy="60" r="8" fill="#0f172a" stroke="#f8fafc" stroke-width="3"/>
+<circle cx="60" cy="60" r="3" fill="#f8fafc"/>
 </svg>

@@ -1,33 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" data-name="compositing-layers">
-<defs>
-<linearGradient id="lyb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#162826"/><stop offset="1" stop-color="#061210"/></linearGradient>
-<linearGradient id="lyg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".30"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
-<linearGradient id="lye" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".62"/><stop offset=".5" stop-color="#ffffff" stop-opacity=".05"/><stop offset="1" stop-color="#ffffff" stop-opacity=".20"/></linearGradient>
-<clipPath id="lyc"><rect x="6" y="6" width="108" height="108" rx="27"/></clipPath>
-<filter id="lyd" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="2.5" stdDeviation="2.6" flood-color="#000" flood-opacity=".55"/></filter>
-</defs>
-<rect x="6" y="6" width="108" height="108" rx="27" fill="url(#lyb)"/>
-<g clip-path="url(#lyc)"><path d="M6 6H114V44C92 60 28 60 6 44Z" fill="url(#lyg)"/></g>
-<linearGradient id="lyTeal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#64ffda" stop-opacity=".65"/><stop offset="1" stop-color="#00bfa5" stop-opacity=".25"/></linearGradient>
-<linearGradient id="lyMid" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1de9b6" stop-opacity=".35"/><stop offset="1" stop-color="#004d40" stop-opacity=".15"/></linearGradient>
-<ellipse cx="60" cy="101" rx="33" ry="5" fill="#000" opacity=".4"/>
-<!-- Bottom Layer (Stencil Base) -->
-<polygon points="60,60 98,76 60,92 22,76" fill="#081010" stroke="#1c3330" stroke-width="1.2"/>
-<polygon points="60,70 76,77 60,84 44,77" fill="#040a0a" stroke="#00bfa5" stroke-width=".8" opacity=".6"/>
-<!-- Shadows -->
-<polygon points="60,46 98,62 60,78 22,62" fill="#000" opacity=".38"/>
-<!-- Middle Layer -->
-<polygon points="60,42 98,58 60,74 22,58" fill="url(#lyMid)" stroke="#1de9b6" stroke-width="1" stroke-dasharray="16 4"/>
-<line x1="41" y1="50" x2="79" y2="66" stroke="#64ffda" stroke-width=".8" opacity=".4"/>
-<line x1="79" y1="50" x2="41" y2="66" stroke="#64ffda" stroke-width=".8" opacity=".4"/>
-<!-- Top Layer (Active Emerald Glass) -->
-<g filter="url(#lyd)">
-<polygon points="60,24 98,40 60,56 22,40" fill="url(#lyTeal)" stroke="#64ffda" stroke-width="1.5"/>
-</g>
-<!-- Active Eye Badge -->
-<ellipse cx="60" cy="40" rx="8" ry="4" fill="none" stroke="#ffffff" stroke-width="1.2"/>
-<circle cx="60" cy="40" r="2" fill="#64ffda"/>
-<line x1="22" y1="40" x2="22" y2="76" stroke="#64ffda" stroke-width="1" stroke-dasharray="2 3" opacity=".5"/>
-<line x1="98" y1="40" x2="98" y2="76" stroke="#64ffda" stroke-width="1" stroke-dasharray="2 3" opacity=".5"/>
-<rect x="6.75" y="6.75" width="106.5" height="106.5" rx="26.3" fill="none" stroke="url(#lye)" stroke-width="1.5"/>
+<rect width="120" height="120" rx="24" fill="#0f172a"/>
+<!-- Bottom Layer 3 (Dark Slate) -->
+<rect x="36" y="56" width="60" height="40" rx="8" fill="#334155" stroke="#475569" stroke-width="3"/>
+<!-- Middle Layer 2 (Sky Blue) -->
+<rect x="28" y="40" width="60" height="40" rx="8" fill="#0284c7" stroke="#38bdf8" stroke-width="3"/>
+<!-- Top Layer 1 (Emerald Teal) -->
+<rect x="20" y="24" width="60" height="40" rx="8" fill="#10b981" stroke="#34d399" stroke-width="3"/>
+<!-- Active Layer Eye Visibility Icon -->
+<ellipse cx="50" cy="44" rx="10" ry="6" fill="none" stroke="#ffffff" stroke-width="2.5"/>
+<circle cx="50" cy="44" r="3" fill="#ffffff"/>
 </svg>
