@@ -66,8 +66,9 @@ struct VisibilityUniform
     Real32      ComposedCoefficient15 ;   // [-]
     Unsigned32  DisplayX          ;   // [px] - the extent this rotation is recorded against
     Unsigned32  DisplayY         ;   // [px]
-    Unsigned32  RegistrationBase         ;   // [-]  - the document-wide ordinal this registration's partitions start at
+    Unsigned32  RegistrationBase      ;   // [-]  - the document-wide ordinal this registration's partitions start at
     Unsigned32  DrawnPartitionCount   ;   // [-]  - partitions the recording draws, from the base
+    Unsigned32  SurvivingResolved     ;   // [-]  - non-zero selects the compacted triangle indirection
 };
 
 //------------------------------------------------------------------------------------------------------------------------

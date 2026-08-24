@@ -135,7 +135,7 @@ enum class TickCondition : std::uint32_t
 struct TickPass
 {
     TickCondition     Current        = TickCondition::Idle;   // [-]
-    VkCommandBuffer  Recording       = VK_NULL_HANDLE;            // [-]  - inside a dynamic rendering scope
+    VkCommandBuffer  Recording       = VK_NULL_HANDLE;            // [-]  - open, outside a render scope until BeginDisplay
     double           ElapsedMilliseconds = 0.0;                   // [ms] - since the previous tick
     std::uint32_t    Width     = 0u;                        // [px] - the drawable extent this tick
     std::uint32_t    Height    = 0u;                        // [px]
@@ -164,7 +164,7 @@ struct TickPass
 ///        `Recording`, there is no path in this component that returns without submitting — so a host
 ///        cannot leave a recording open, because it never holds one across a decision.
 /// note  ⚠️ A host owns its own content and this component owns none of it. What crosses is a command
-///        recording already inside a rendering scope; what does not cross is the device, the chain, the
+///        open recording plus an explicit display boundary; what does not cross is the device, the chain, the
 ///        cyclic slots, or any means of reaching them.
 /// tag   owning
 class HostLifecycle
@@ -193,7 +193,7 @@ public:
     Outcome<bool> ConstructHost(const HostDeclaration& Declared);
 
     /// 🧩 Opens one tick — drains input, recovers the display if it moved, acquires an image, and opens a
-    ///    recording inside a rendering scope over it.
+    ///    command recording outside any rendering scope.
     /// in    ClearInk  [-]  what the colour target is cleared to, as four unit ordinates
     /// out   Pass      [-]  `Recording` when the host must record, `Idle` when it must not, `Closed`
     ///                      when the loop must end
@@ -204,6 +204,16 @@ public:
     /// cost  🚩
     /// tag   api, nonthrowing
     TickPass Await(const float ClearInk[4]);
+
+    /// 🧩 Opens the display's dynamic-rendering scope after scene/offscreen recordings have completed.
+    /// out   Result  [-]  refuses when no tick stands or when the display scope already stands
+    /// note  🔴 `Await` deliberately leaves the command recording outside any render scope. Classic scene
+    ///        constructs, transfer work and compute dispatches must record before this call; interface and
+    ///        display overlays record after it. Vulkan forbids nesting a classic render pass inside dynamic
+    ///        rendering, so opening the display in `Await` made the declared geometry schedule impossible.
+    /// cost  ✔️
+    /// tag   api, nonthrowing
+    Outcome<bool> BeginDisplay();
 
     /// 🧩 Closes the rendering scope, submits the recording, presents, and advances the cycle.
     /// out   Result  [-]  refuses when no tick stands recording; a rejected present is recovered here and
@@ -351,7 +361,9 @@ private:
     AcquiredImage         TickImage         = {};               // [-] - valid only while a tick records
     std::uint32_t        SlotIndex       = 0u;               // [-] - the cycle slot this tick took
     VkCommandBuffer      OpenRecording     = VK_NULL_HANDLE;   // [-] - non-null only between Await and Complete
+    float                DisplayClear[4]   = {};               // [-] - retained from Await until BeginDisplay
     bool                 TickRecording     = false;            // [-] - a tick stands at TickCondition::Recording
+    bool                 DisplayScopeOpen  = false;            // [-] - dynamic display rendering stands
     bool                 DisplayAltered    = false;            // [-] - a recovery the host has not adopted
     bool                 DeviceAltered     = false;            // [-] - a device rebuild the host has not adopted
     bool                 DeviceRebuildAsked= false;            // [-] - asked for; serviced next tick

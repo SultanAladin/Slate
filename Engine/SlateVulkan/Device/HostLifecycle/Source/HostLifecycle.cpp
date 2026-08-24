@@ -220,8 +220,9 @@ Outcome<bool> HostLifecycle::RebuildDevice()
 {
     // 🔴 An open recording is abandoned rather than surrendered. The device it was recorded into is gone,
     //    so there is nothing to submit it to and nothing that would ever signal its completion.
-    TickRecording = false;
-    OpenRecording = VK_NULL_HANDLE;
+    TickRecording    = false;
+    DisplayScopeOpen = false;
+    OpenRecording    = VK_NULL_HANDLE;
 
     // ⚠️ Not idled first. `vkDeviceWaitIdle` against a lost device refuses, and `Reclaim` performs the idle
     //    itself for the case where the device is merely being retired rather than already gone.
@@ -496,6 +497,30 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
     }
 
     OpenRecording = Opened.Resolve();
+    for (std::uint32_t Component = 0u; Component < 4u; ++Component)
+        DisplayClear[Component] = ClearInk[Component];
+
+    TickRecording    = true;
+    DisplayScopeOpen = false;
+    Pass.Current     = TickCondition::Recording;
+    Pass.Recording   = OpenRecording;
+
+    return Pass;
+}
+
+Outcome<bool> HostLifecycle::BeginDisplay()
+{
+    if (!TickRecording || OpenRecording == VK_NULL_HANDLE)
+    {
+        return Outcome<bool>::Refuse(Refusal{ RefusalReason::ContentUnsupported,
+                                              "no tick stands recording" });
+    }
+
+    if (DisplayScopeOpen)
+    {
+        return Outcome<bool>::Refuse(Refusal{ RefusalReason::HostDenied,
+                                              "the display scope already stands" });
+    }
 
     const VkRenderingAttachmentInfo ColourAttachment = {
         .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -507,7 +532,7 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
         .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
         .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
-        .clearValue  = { .color = { { ClearInk[0], ClearInk[1], ClearInk[2], ClearInk[3] } } }
+        .clearValue  = { .color = { { DisplayClear[0], DisplayClear[1], DisplayClear[2], DisplayClear[3] } } }
     };
 
     const VkRenderingInfo RenderScope = {
@@ -524,12 +549,8 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
     };
 
     vkCmdBeginRendering(OpenRecording, &RenderScope);
-
-    TickRecording   = true;
-    Pass.Current   = TickCondition::Recording;
-    Pass.Recording  = OpenRecording;
-
-    return Pass;
+    DisplayScopeOpen = true;
+    return Outcome<bool>::Result(true);
 }
 
 Outcome<bool> HostLifecycle::Complete()
@@ -540,7 +561,13 @@ Outcome<bool> HostLifecycle::Complete()
                                               "no tick stands recording" });
     }
 
+    // 📝 A host with no interface content still presents the declared clear. This fallback is deliberately
+    //    here rather than in Await so scene-only recordings remain legal and every acquired image is settled.
+    if (!DisplayScopeOpen)
+        Discard(BeginDisplay());
+
     vkCmdEndRendering(OpenRecording);
+    DisplayScopeOpen = false;
 
     const Outcome<CycleSlot> Slot = Cycle.Current();
 
@@ -552,9 +579,10 @@ Outcome<bool> HostLifecycle::Complete()
         //    chain, which is the only way to retire a signalled semaphore no submission will consume.
         SettleAcquisition();
 
-        TickRecording = false;
-        OpenRecording = VK_NULL_HANDLE;
-        LoopActive  = false;
+        TickRecording    = false;
+        DisplayScopeOpen = false;
+        OpenRecording    = VK_NULL_HANDLE;
+        LoopActive       = false;
         return Outcome<bool>::Refuse(Slot.Error);
     }
 
@@ -565,9 +593,10 @@ Outcome<bool> HostLifecycle::Complete()
         // 🔴 As above — acquired, signalled, and about to return without submitting.
         SettleAcquisition();
 
-        TickRecording = false;
-        OpenRecording = VK_NULL_HANDLE;
-        LoopActive  = false;
+        TickRecording    = false;
+        DisplayScopeOpen = false;
+        OpenRecording    = VK_NULL_HANDLE;
+        LoopActive       = false;
         return Outcome<bool>::Refuse(Refusal{ RefusalReason::DeviceLost, "the rotation could not be armed" });
     }
 
@@ -578,8 +607,9 @@ Outcome<bool> HostLifecycle::Complete()
         .Completion   = Slot.Resolve().Completion
     });
 
-    TickRecording = false;
-    OpenRecording = VK_NULL_HANDLE;
+    TickRecording    = false;
+    DisplayScopeOpen = false;
+    OpenRecording    = VK_NULL_HANDLE;
 
     if (!Submitted.Resolved)
     {
@@ -811,8 +841,9 @@ void HostLifecycle::Reclaim(ResourceLifetime From)
     if (Earliest < static_cast<std::uint32_t>(Constructed))
         Constructed = From;
 
-    TickRecording = false;
-    OpenRecording = VK_NULL_HANDLE;
+    TickRecording    = false;
+    DisplayScopeOpen = false;
+    OpenRecording    = VK_NULL_HANDLE;
 }
 
 HostLifecycle::~HostLifecycle()

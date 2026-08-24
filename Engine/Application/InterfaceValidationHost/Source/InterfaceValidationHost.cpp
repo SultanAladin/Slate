@@ -1032,6 +1032,8 @@ int main(int ArgumentCount, char** ArgumentValues)
 
             if (Interface.Seal().Resolved)
             {
+                Discard(Lifetime.BeginDisplay());
+
                 // 🔴 Read. A rejected Record presents the cleared ground with nothing on it, which is
                 //    indistinguishable from a panel that drew nothing, so the refusal is named here.
                 if (!Interface.Record(Pass.Recording))

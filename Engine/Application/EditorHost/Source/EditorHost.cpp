@@ -1336,6 +1336,10 @@ int main(int ArgumentCount, char** ArgumentValues)
 
             if (Viewport.SealPanels().Resolved)
             {
+                // Scene compute and classic render constructs record before this boundary. The interface and
+                // display-referred overlay require the dynamic display scope and therefore begin it here.
+                Discard(Lifetime.BeginDisplay());
+
                 // 🔴 Read. A rejected Record presents the cleared ground with nothing on it, which is
                 //    indistinguishable from a panel that drew nothing, so the refusal is named here.
                 if (!Viewport.Record(Pass.Recording))
