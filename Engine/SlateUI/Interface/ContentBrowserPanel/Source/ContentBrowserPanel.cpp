@@ -6,6 +6,7 @@
 #include "SlateUI/Interface/ContentBrowserPanel/Api/ContentBrowserPanel.h"
 
 #include <cstdio>
+#include <cstring>
 
 namespace Slate
 {
@@ -53,15 +54,15 @@ bool Within(const char* Subject, const char* Sought)
 
     for (std::uint32_t Origin = 0u; Subject[Origin] != '\0'; ++Origin)
     {
-        std::uint32_t Ordinal = 0u;
+        std::uint32_t Index = 0u;
 
-        while (Sought[Ordinal] != '\0' &&
-               Folded(Subject[Origin + Ordinal]) == Folded(Sought[Ordinal]))
+        while (Sought[Index] != '\0' &&
+               Folded(Subject[Origin + Index]) == Folded(Sought[Index]))
         {
-            ++Ordinal;
+            ++Index;
         }
 
-        if (Sought[Ordinal] == '\0')
+        if (Sought[Index] == '\0')
             return true;
     }
 
@@ -82,6 +83,7 @@ const char* ArchiveNaming(ContentArchive Archive)
         case ContentArchive::Draughting:  return "CAD";
         case ContentArchive::Arrangement: return "Scenes";
         case ContentArchive::Material:    return "Materials";
+        case ContentArchive::Generator:   return "Generators";
         case ContentArchive::Typeface:    return "Fonts";
         case ContentArchive::Vector:      return "SVG / Vectors";
         default:                          return "Unclassed";
@@ -99,6 +101,7 @@ SymbolSubject ArchiveCrest(ContentArchive Archive)
         case ContentArchive::Draughting:  return SymbolSubject::SketchPlane;
         case ContentArchive::Arrangement: return SymbolSubject::PanelSplit;
         case ContentArchive::Material:    return SymbolSubject::MaterialSphere;
+        case ContentArchive::Generator:   return SymbolSubject::PlaceholderMark;
         case ContentArchive::Typeface:    return SymbolSubject::CodeBrackets;
         case ContentArchive::Vector:      return SymbolSubject::UnwrapSeam;
         default:                          return SymbolSubject::PlaceholderMark;
@@ -115,7 +118,7 @@ void ApplyReferenceContent(ContentLibrary& Applying)
                           const char* FirstTag, const char* SecondTag,
                           ContentArchive Archive, const char* Subheading)
     {
-        if (Applying.RecordCount >= ContentLibrary::RecordCeiling)
+        if (Applying.RecordCount >= ContentLibrary::RecordLimit)
             return;
 
         ContentRecord& Written = Applying.Records[Applying.RecordCount];
@@ -137,14 +140,13 @@ void ApplyReferenceContent(ContentLibrary& Applying)
         ++Applying.RecordCount;
     };
 
-    Apply("Turbine_Housing_A",  "step",  48.2, "mech",    nullptr, ContentArchive::Draughting,  nullptr);
-    Apply("Hangar_Interior",    "fbx",  214.9, "env",     "hero",  ContentArchive::Arrangement, nullptr);
-    Apply("Character_Base_Mesh","obj",   18.6, "char",    nullptr, ContentArchive::Topology,    nullptr);
-    Apply("Polished_Copper",    "mat",    1.2, "metal",   nullptr, ContentArchive::Material,    "Metals");
-    Apply("Brushed_Aluminium",  "mat",    2.1, "metal",   nullptr, ContentArchive::Material,    "Metals");
-    Apply("Matte_Red_Plastic",  "mat",    0.5, "plastic", nullptr, ContentArchive::Material,    "Plastics");
-    Apply("Neue_Haas_Grotesk",  "otf",    1.9, "ui",      nullptr, ContentArchive::Typeface,    nullptr);
-    Apply("Company_Logo",       "svg",   0.05, "vector",  nullptr, ContentArchive::Vector,      nullptr);
+    // 🧩 Complete simplified reference catalogue, preserved in declared HTML order.
+    #include "ContentBrowserReferenceCatalog.inc"
+
+    // Slate's runnable default workspace is appended to the reference catalogue rather than replacing it.
+    Apply("WhiteTeaService", ".codex", 1944.0 / OctetsPerMegaOctet,
+          "scene", "tea service", ContentArchive::Arrangement, "Engine Content");
+
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -158,24 +160,29 @@ void ContentBrowserPanel::Reapply(const ThemeProfile& Resolved)
     Colour = Resolved.ContentBrowser;
 }
 
-Outcome<bool> ContentBrowserPanel::Construct(InteractionIndex& Interaction, RecordingSurface& Recording)
+Outcome<bool> ContentBrowserPanel::ConstructContentBrowserPanel(ControlIndex& IncomingInteraction, RecordingSurface& Recording,
+                                                               const ThemeProfile& Appearance)
 {
-    if (Ledger != nullptr)
+    if (Interaction != nullptr)
     {
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported,
                                        "the content browser panel is already constructed" });
     }
 
-    Ledger  = &Interaction;
-    Surface = &Recording;
+    const Outcome<bool> SharedOutcome = SharedControls.ConstructComponents(IncomingInteraction, Recording, Appearance);
+    if (!SharedOutcome.Resolved)
+        return SharedOutcome;
+
+    Interaction = &IncomingInteraction;
+    Surface     = &Recording;
 
     // 🔴 Every identity claimed here and none inside a tick. A refusal partway through retires the whole
-    //    construction rather than leaving half a panel registered against a ledger it cannot fill.
+    //    construction rather than leaving half a panel registered against a index it cannot fill.
     const auto Reserve = [&](ControlIdentity* Written, std::uint32_t Count) -> Outcome<bool>
     {
-        for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < Count; ++Index)
         {
-            const Outcome<ControlIdentity> Registered = Interaction.Register();
+            const Outcome<ControlIdentity> Registered = IncomingInteraction.Register();
 
             if (!Registered.Resolved)
             {
@@ -183,19 +190,19 @@ Outcome<bool> ContentBrowserPanel::Construct(InteractionIndex& Interaction, Reco
                 return Outcome<bool>::Refuse(Registered.Error);
             }
 
-            Written[Ordinal] = Registered.Resolve();
+            Written[Index] = Registered.Resolve();
         }
 
         return Outcome<bool>::Result(true);
     };
 
-    if (const auto Verdict = Reserve(SourceRows, SourceCeiling); !Verdict.Resolved)
+    if (const auto Verdict = Reserve(SourceRows, SourceLimit); !Verdict.Resolved)
         return Verdict;
 
-    if (const auto Verdict = Reserve(LatticeCards, LatticeCeiling); !Verdict.Resolved)
+    if (const auto Verdict = Reserve(LatticeCards, LatticeLimit); !Verdict.Resolved)
         return Verdict;
 
-    if (const auto Verdict = Reserve(ChromeCells, ChromeCeiling); !Verdict.Resolved)
+    if (const auto Verdict = Reserve(ChromeCells, ChromeLimit); !Verdict.Resolved)
         return Verdict;
 
     return Outcome<bool>::Result(true);
@@ -205,12 +212,14 @@ void ContentBrowserPanel::Advance(const PointerCondition& Incoming, double Elaps
 {
     static_cast<void>(Elapsed);
     Sampled = Incoming;
+    SharedControls.Sample(Incoming);
 }
 
 void ContentBrowserPanel::Reset()
 {
-    Ledger  = nullptr;
-    Surface = nullptr;
+    SharedControls.Reset();
+    Interaction = nullptr;
+    Surface     = nullptr;
 
     for (auto& Written : SourceRows)   Written = ControlIdentity{};
     for (auto& Written : LatticeCards) Written = ControlIdentity{};
@@ -235,49 +244,47 @@ void ContentBrowserPanel::RetainExclusion(const PlaneExtent& Extent)
 
 void ContentBrowserPanel::Exclude(DrawerSpace& Drawers, DrawerBearing Bearing) const
 {
-    for (std::uint32_t Ordinal = 0u; Ordinal < ExclusionCount; ++Ordinal)
-        Drawers.Exclude(Bearing, Exclusions[Ordinal]);
+    for (std::uint32_t Index = 0u; Index < ExclusionCount; ++Index)
+        Drawers.Exclude(Bearing, Exclusions[Index]);
 }
 
 bool ContentBrowserPanel::Pressed(ControlIdentity Target, const PlaneExtent& Extent,
                                   ContentBrowserConfiguration& Applied, const char* Tooltip)
 {
-    if (Ledger == nullptr)
+    if (Interaction == nullptr)
         return false;
 
     RetainExclusion(Extent);
 
     const bool Over = Hovered(Extent);
 
-    if (Over && Tooltip != nullptr)
-    {
-        Applied.Tooltip       = Tooltip;
-        Applied.TooltipX  = (Extent.MinimumX + Extent.MaximumX) * 0.5f;
-        Applied.TooltipHeight = Extent.MinimumY;
-    }
+    static_cast<void>(Applied);
 
-    if (Over && Sampled.ContactPressed && !Ledger->AnyDisclosed())
-        Ledger->Grab(Target, ControlPart::Body);
+    if (Tooltip != nullptr)
+        SharedControls.TooltipHint(Target, Extent, TooltipDeclaration{ Tooltip, "" });
 
-    Ledger->DeclareHovered(Target, Over, HoverOver);
+    if (Over && Sampled.ContactPressed && !Interaction->AnyDisclosed())
+        Interaction->Grab(Target, ControlPart::Body);
 
-    return Over && Ledger->Released(Target);
+    Interaction->DeclareHovered(Target, Over, HoverOver);
+
+    return Over && Interaction->Released(Target);
 }
 
-bool ContentBrowserPanel::AcceptTyped(char Sampled, ContentBrowserConfiguration& Applied)
+bool ContentBrowserPanel::AcceptTyped(char Arrived, ContentBrowserConfiguration& Applied)
 {
-    if (!Applied.SeekHolding || Sampled < 0x20)
+    if (!Applied.SeekHolding || Arrived < 0x20)
         return false;
 
     std::uint32_t Occupied = 0u;
 
-    while (Occupied + 1u < ContentBrowserConfiguration::SeekCeiling && Applied.Seek[Occupied] != '\0')
+    while (Occupied + 1u < ContentBrowserConfiguration::SeekLimit && Applied.Seek[Occupied] != '\0')
         ++Occupied;
 
-    if (Occupied + 1u >= ContentBrowserConfiguration::SeekCeiling)
+    if (Occupied + 1u >= ContentBrowserConfiguration::SeekLimit)
         return false;
 
-    Applied.Seek[Occupied]      = Sampled;
+    Applied.Seek[Occupied]      = Arrived;
     Applied.Seek[Occupied + 1u] = '\0';
 
     return true;
@@ -290,7 +297,7 @@ bool ContentBrowserPanel::RetractTyped(ContentBrowserConfiguration& Applied)
 
     std::uint32_t Occupied = 0u;
 
-    while (Occupied + 1u < ContentBrowserConfiguration::SeekCeiling && Applied.Seek[Occupied] != '\0')
+    while (Occupied + 1u < ContentBrowserConfiguration::SeekLimit && Applied.Seek[Occupied] != '\0')
         ++Occupied;
 
     if (Occupied == 0u)
@@ -305,7 +312,7 @@ bool ContentBrowserPanel::Retained(const ContentRecord& Record, const ContentLib
 {
     // 📐 `renderGrid` narrows by archive, then by subheading, then by the seek run — in that order, and
     //    each against the run the previous one left rather than against the whole library.
-    if (Library.TraversedArchive != ContentLibrary::AbsentOrdinal &&
+    if (Library.TraversedArchive != ContentLibrary::AbsentIndex &&
         static_cast<std::uint32_t>(Record.Archive) != Library.TraversedArchive)
     {
         return false;
@@ -386,7 +393,7 @@ void ContentBrowserPanel::RecordScrollbar(const PlaneExtent& Extent, ControlIden
         return;
     }
 
-    const float Ceiling     = Span - Visible;
+    const float Limit     = Span - Visible;
     const float ThumbHeight = (Visible * Visible / Span < 28.0f) ? 28.0f : (Visible * Visible / Span);
     const float Travel      = Visible - ThumbHeight;
 
@@ -394,38 +401,38 @@ void ContentBrowserPanel::RecordScrollbar(const PlaneExtent& Extent, ControlIden
     //    anywhere over it, so a drag begun over a card in a drawer must not slide the drawer instead.
     RetainExclusion(Extent);
 
-    const bool Holding = Ledger->Holding(Target);
+    const bool Holding = Interaction->Holding(Target);
 
     // 📐 The wheel reaches the run whenever the pointer is over the extent, whether or not the bar itself
     //    is hovered — the reference scrolls the container and not its scrollbar.
-    if (Hovered(Extent) && !Ledger->AnyDisclosed() && Sampled.WheelY != 0.0f)
+    if (Hovered(Extent) && !Interaction->AnyDisclosed() && Sampled.WheelY != 0.0f)
         Offset -= Sampled.WheelY * NotchHeight;
 
     const PlaneExtent Trough = Spanning(Extent.MaximumX - 6.0f, Extent.MinimumY, 6.0f, Visible);
 
-    if (Hovered(Trough) && Sampled.ContactPressed && !Ledger->AnyDisclosed())
+    if (Hovered(Trough) && Sampled.ContactPressed && !Interaction->AnyDisclosed())
     {
-        Ledger->Grab(Target, ControlPart::Thumb);
-        Ledger->RecordInitial(Target, Offset);
+        Interaction->Grab(Target, ControlPart::Thumb);
+        Interaction->RecordInitial(Target, Offset);
     }
 
     if (Holding && Travel > 0.0f)
     {
-        const Outcome<float> Previous = Ledger->InitialReading(Target);
+        const Outcome<float> Previous = Interaction->InitialReading(Target);
 
         if (Previous.Resolved)
         {
-            const float Moved = Sampled.PositionY - Ledger->OriginY();
-            Offset = Previous.Resolve() + Moved * (Ceiling / Travel);
+            const float Moved = Sampled.PositionY - Interaction->OriginY();
+            Offset = Previous.Resolve() + Moved * (Limit / Travel);
         }
     }
 
     // 🔴 Clamped last and always. Every reach above may carry the offset past either end, and a run
     //    recorded from a past-the-end offset presents an empty extent that reads as a panel that failed.
     if (Offset < 0.0f)       Offset = 0.0f;
-    if (Offset > Ceiling)    Offset = Ceiling;
+    if (Offset > Limit)    Offset = Limit;
 
-    const float ThumbY = Extent.MinimumY + (Ceiling > 0.0f ? (Offset / Ceiling) * Travel : 0.0f);
+    const float ThumbY = Extent.MinimumY + (Limit > 0.0f ? (Offset / Limit) * Travel : 0.0f);
 
     Surface->Ground(Spanning(Extent.MaximumX - 6.0f + 3.0f, ThumbY, 3.0f, ThumbHeight),
                     Holding ? Colour.EdgeHovered : Colour.GripQuiet, 2.0f);
@@ -461,7 +468,7 @@ void ContentBrowserPanel::RecordSources(const PlaneExtent& Extent, ContentLibrar
     const auto SourceRow = [&](const char* Naming, std::uint32_t Count, float Step,
                                bool Current, SymbolSubject Crest, bool Crested)
     {
-        if (Target >= SourceCeiling)
+        if (Target >= SourceLimit)
             return false;
 
         const PlaneExtent Row = Spanning(Extent.MinimumX + 8.0f + Step, Cursor,
@@ -513,23 +520,23 @@ void ContentBrowserPanel::RecordSources(const PlaneExtent& Extent, ContentLibrar
 
     // 📐 `Project Library` — standing whenever no archive is traversed, as `!state.cat` decides it.
     if (SourceRow("Project Library", Library.RecordCount, 0.0f,
-                  Library.TraversedArchive == ContentLibrary::AbsentOrdinal,
+                  Library.TraversedArchive == ContentLibrary::AbsentIndex,
                   SymbolSubject::FolderClosed, true))
     {
-        Library.TraversedArchive    = ContentLibrary::AbsentOrdinal;
+        Library.TraversedArchive    = ContentLibrary::AbsentIndex;
         Library.TraversedSubheading = nullptr;
-        Library.Taken               = ContentLibrary::AbsentOrdinal;
+        Library.Taken               = ContentLibrary::AbsentIndex;
     }
 
     // 📐 The archives, in the order the library first presents them, exactly as `Array.from(new Set(...))`
     //    yields them rather than in the enum's own order.
-    constexpr std::uint32_t ArchiveCeiling = static_cast<std::uint32_t>(ContentArchive::ArchiveCount);
+    constexpr std::uint32_t ArchiveLimit = static_cast<std::uint32_t>(ContentArchive::ArchiveCount);
 
-    bool Current[ArchiveCeiling] = {};
+    bool Current[ArchiveLimit] = {};
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Library.RecordCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Library.RecordCount; ++Index)
     {
-        const auto Archive = static_cast<std::uint32_t>(Library.Records[Ordinal].Archive);
+        const auto Archive = static_cast<std::uint32_t>(Library.Records[Index].Archive);
 
         if (Archive >= static_cast<std::uint32_t>(ContentArchive::ArchiveCount) || Current[Archive])
             continue;
@@ -556,15 +563,15 @@ void ContentBrowserPanel::RecordSources(const PlaneExtent& Extent, ContentLibrar
             }
         }
 
-        const bool Current = Library.TraversedArchive == Archive &&
+        const bool ArchiveCurrent = Library.TraversedArchive == Archive &&
                               Library.TraversedSubheading == nullptr;
 
         if (SourceRow(ArchiveNaming(static_cast<ContentArchive>(Archive)), Beneath,
-                      Measure.SourceStepX, Current, SymbolSubject::ChevronDown, Subheaded))
+                      Measure.SourceStepX, ArchiveCurrent, SymbolSubject::ChevronDown, Subheaded))
         {
             Library.TraversedArchive    = Archive;
             Library.TraversedSubheading = nullptr;
-            Library.Taken               = ContentLibrary::AbsentOrdinal;
+            Library.Taken               = ContentLibrary::AbsentIndex;
         }
 
         if (!Subheaded)
@@ -619,7 +626,7 @@ void ContentBrowserPanel::RecordSources(const PlaneExtent& Extent, ContentLibrar
             {
                 Library.TraversedArchive    = Archive;
                 Library.TraversedSubheading = Record.Subheading;
-                Library.Taken               = ContentLibrary::AbsentOrdinal;
+                Library.Taken               = ContentLibrary::AbsentIndex;
             }
         }
     }
@@ -728,9 +735,18 @@ void ContentBrowserPanel::RecordSeekRail(const PlaneExtent& Extent, ContentBrows
 
     const PlaneExtent Create = Spanning(Import.MinimumX - 8.0f - CreateX,
                                         Extent.MinimumY + 12.0f, CreateX, Measure.SeekHeight);
+    const PlaneExtent Arrangement = Spanning(Create.MinimumX - 36.0f,
+                                             Extent.MinimumY + 12.0f, 28.0f, Measure.SeekHeight);
+
+    if (Pressed(ChromeCells[11], Arrangement, Applied, "Switch grid/list arrangement"))
+        Applied.GridArrangement = !Applied.GridArrangement;
+    Surface->Ground(Arrangement, Hovered(Arrangement) ? Colour.Taken : Colour.Hovered, Measure.RadiusSoft);
+    Surface->TextRun(Arrangement.MinimumX + 8.0f, Arrangement.MinimumY + 9.0f,
+                     Colour.Primary, Applied.GridArrangement ? "▦" : "☷", Measure.RunBody);
 
     static_cast<void>(Pressed(ChromeCells[1], Create, Applied, "Create a new record"));
-    static_cast<void>(Pressed(ChromeCells[2], Import, Applied, "Import into the library"));
+    if (Pressed(ChromeCells[2], Import, Applied, "Import into the library"))
+        Applied.Page = ContentBrowserPage::Import;
 
     const bool CreateOver = Hovered(Create);
 
@@ -777,7 +793,7 @@ void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrar
     Surface->TextRun(Crumb, Rail.MinimumY + 14.0f, Colour.Faint, "/", Measure.RunBody);
     Crumb += Surface->MeasureRun("/", Measure.RunBody) + 8.0f;
 
-    if (Library.TraversedArchive == ContentLibrary::AbsentOrdinal)
+    if (Library.TraversedArchive == ContentLibrary::AbsentIndex)
     {
         Surface->TextRun(Crumb, Rail.MinimumY + 14.0f, Colour.Primary, "Project Library",
                          Measure.RunBody, 0.0f, true);
@@ -808,22 +824,23 @@ void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrar
 
     Surface->Confine(Run);
 
-    const std::uint32_t Columns = ColumnsWithin(Run.Width(), Measure.CardGap, Measure.CardPad);
+    const std::uint32_t Columns = Applied.GridArrangement
+        ? ColumnsWithin(Run.Width(), Measure.CardGap, Measure.CardPad) : 1u;
 
     const float CardX = (Run.Width() - Measure.CardPad * 2.0f -
                              Measure.CardGap * static_cast<float>(Columns - 1u)) /
                             static_cast<float>(Columns);
 
-    // 📐 `aspect-4-3` over the plate, and `p-2.5` over two runs beneath it.
-    const float PlateY = CardX * 0.75f;
-    const float CardHeight  = PlateY + Measure.CardCaptionHeight;
+    // 🧩 The rail switches the same retained records between reference cards and one compact list row.
+    const float PlateY = Applied.GridArrangement ? CardX * 0.75f : 0.0f;
+    const float CardHeight = Applied.GridArrangement ? PlateY + Measure.CardCaptionHeight : 38.0f;
 
     std::uint32_t Count    = 0u;
     std::uint32_t Target = 0u;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Library.RecordCount && Target < LatticeCeiling; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Library.RecordCount && Target < LatticeLimit; ++Index)
     {
-        const ContentRecord& Record = Library.Records[Ordinal];
+        const ContentRecord& Record = Library.Records[Index];
 
         if (!Retained(Record, Library, Applied))
             continue;
@@ -839,11 +856,17 @@ void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrar
 
         const PlaneExtent Card = Spanning(X, Y, CardX, CardHeight);
 
-        const bool Current = Library.Taken == Ordinal;
+        const bool Current = Library.Taken == Index;
         const bool Over     = Hovered(Card);
 
         if (Pressed(LatticeCards[Target], Card, Applied))
-            Library.Taken = Ordinal;
+        {
+            // A second contact activates a workspace scene; first contact remains ordinary selection.
+            if (Library.Taken == Index && Library.Records[Index].Archive == ContentArchive::Arrangement &&
+                std::strcmp(Library.Records[Index].Extension, ".codex") == 0)
+                Applied.ActivationRequested = Index;
+            Library.Taken = Index;
+        }
 
         // 📐 `hover:-translate-y-0.5` — the hovered card lifts two pixels, which is the whole of the
         //    reference's hover motion apart from its shadow.
@@ -851,28 +874,43 @@ void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrar
             ? Spanning(Card.MinimumX, Card.MinimumY - 2.0f, CardX, CardHeight)
             : Card;
 
-        // 📐 `bg-gradient-to-b from-[#131316] to-[#0f0f12] rounded-xl` — Scrim carries no radius of its
-        //    own, so the corners are cut back to the page ground after it, which is what MaskCorners is for.
-        Surface->Scrim(Lifted, Colour.CardUpper, Colour.CardLower);
-        Surface->MaskCorners(Lifted, Colour.Ground, Measure.RadiusCard);
-
-        // 📐 The plate — the hatched square the crest stands on, clipped to the card's upper corners.
+        const bool MaterialCard = Record.Archive == ContentArchive::Material;
         const PlaneExtent Plate = Spanning(Lifted.MinimumX, Lifted.MinimumY, CardX, PlateY);
 
-        Surface->Ground(Plate, Colour.Plate, Measure.RadiusCard,
-                        CornerLeadingUpper | CornerTrailingUpper);
-
-        RecordHatch(Plate);
-
-        Surface->Ground(Spanning(Plate.MinimumX, Plate.MaximumY - 1.0f, CardX, 1.0f), Colour.Stroke);
+        // 🧩 Material catalogue entries are the reference's isolated round preview and caption: no card,
+        // no square backing, and no hatch. Other authored asset kinds keep their document-card treatment.
+        if (!MaterialCard)
+        {
+            Surface->Scrim(Lifted, Colour.CardUpper, Colour.CardLower);
+            Surface->MaskCorners(Lifted, Colour.Ground, Measure.RadiusCard);
+            Surface->Ground(Plate, Colour.Plate, Measure.RadiusCard,
+                            CornerLeadingUpper | CornerTrailingUpper);
+            RecordHatch(Plate);
+            Surface->Ground(Spanning(Plate.MinimumX, Plate.MaximumY - 1.0f, CardX, 1.0f), Colour.Stroke);
+        }
 
         const float CrestSpan = Over ? 34.0f : 32.0f;
 
-        Surface->Stroke(ArchiveCrest(Record.Archive),
-                        Spanning(Plate.MinimumX + (CardX - CrestSpan) * 0.5f,
-                                 Plate.MinimumY + (PlateY - CrestSpan) * 0.5f,
-                                 CrestSpan, CrestSpan),
-                        Over ? Colour.Secondary : Colour.Faintest);
+        // 🧩 Material cards carry the reference browser's circular preview seat. Image/atlas content is
+        // supplied later; the circular boundary is already stable so adding a tile never changes layout.
+        if (Record.Archive == ContentArchive::Material)
+        {
+            const float Radius = (Over ? 30.0f : 28.0f);
+            Surface->Medallion(Plate.MinimumX + CardX * 0.5f, Plate.MinimumY + PlateY * 0.5f,
+                               Radius, Colour.Medallion);
+            Surface->Edge(Spanning(Plate.MinimumX + CardX * 0.5f - Radius,
+                                   Plate.MinimumY + PlateY * 0.5f - Radius,
+                                   Radius * 2.0f, Radius * 2.0f),
+                          Over ? Colour.EdgeHovered : Colour.Stroke, 1.0f, Radius);
+        }
+        else
+        {
+            Surface->Stroke(ArchiveCrest(Record.Archive),
+                            Spanning(Plate.MinimumX + (CardX - CrestSpan) * 0.5f,
+                                     Plate.MinimumY + (PlateY - CrestSpan) * 0.5f,
+                                     CrestSpan, CrestSpan),
+                            Over ? Colour.Secondary : Colour.Faintest);
+        }
 
         // 📐 The extension chip — `absolute left-2 bottom-2`, a medallion and the run beside it.
         char Extension[16] = {};
@@ -884,18 +922,19 @@ void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrar
                 Extension[Step] = static_cast<char>(Extension[Step] - 'a' + 'A');
         }
 
-        const float ChipX = Surface->MeasureRun(Extension, 9.0f) + 24.0f;
-
-        const PlaneExtent Chip = Spanning(Plate.MinimumX + 8.0f,
-                                          Plate.MaximumY - 8.0f - Measure.ChipHeight,
-                                          ChipX, Measure.ChipHeight);
-
-        Surface->Ground(Chip, Colour.ChipGround, Measure.RadiusSoft);
-        Surface->Edge(Chip, Colour.Stroke, 1.0f, Measure.RadiusSoft);
-        Surface->Medallion(Chip.MinimumX + 9.0f, Chip.MinimumY + Measure.ChipHeight * 0.5f,
-                           3.0f, Colour.Secondary);
-        Surface->TextRun(Chip.MinimumX + 16.0f, Chip.MinimumY + 5.0f,
-                         Colour.Secondary, Extension, 9.0f, 0.6f);
+        if (!MaterialCard)
+        {
+            const float ChipX = Surface->MeasureRun(Extension, 9.0f) + 24.0f;
+            const PlaneExtent Chip = Spanning(Plate.MinimumX + 8.0f,
+                                              Plate.MaximumY - 8.0f - Measure.ChipHeight,
+                                              ChipX, Measure.ChipHeight);
+            Surface->Ground(Chip, Colour.ChipGround, Measure.RadiusSoft);
+            Surface->Edge(Chip, Colour.Stroke, 1.0f, Measure.RadiusSoft);
+            Surface->Medallion(Chip.MinimumX + 9.0f, Chip.MinimumY + Measure.ChipHeight * 0.5f,
+                               3.0f, Colour.Secondary);
+            Surface->TextRun(Chip.MinimumX + 16.0f, Chip.MinimumY + 5.0f,
+                             Colour.Secondary, Extension, 9.0f, 0.6f);
+        }
 
         // 📐 The caption pair — `name.ext` truncated, and the size beneath it.
         char Titled[96] = {};
@@ -915,8 +954,11 @@ void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrar
         // 🔴 Recorded before the plate it reads over, the taken card's white/60 edge was overpainted along
         //    its whole upper run by the plate's own ground, and a taken card was then indistinguishable
         //    from an untaken one down the three sides the caption did not cover.
-        Surface->Edge(Lifted, Current ? Colour.EdgeTaken : (Over ? Colour.EdgeHovered : Colour.Stroke),
-                      1.0f, Measure.RadiusCard);
+        if (!MaterialCard)
+        {
+            Surface->Edge(Lifted, Current ? Colour.EdgeTaken : (Over ? Colour.EdgeHovered : Colour.Stroke),
+                          1.0f, Measure.RadiusCard);
+        }
 
         ++Count;
         ++Target;
@@ -963,16 +1005,16 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
     const char*         TongueNaming[2] = { "Details", "Create" };
     const SymbolSubject TongueCrest[2]  = { SymbolSubject::BulbFilament, SymbolSubject::PlusCross };
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 2u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 2u; ++Index)
     {
         const PlaneExtent Tongue = Spanning(Tongues.MinimumX + 8.0f +
-                                            static_cast<float>(Ordinal) * (TongueX + 4.0f),
+                                            static_cast<float>(Index) * (TongueX + 4.0f),
                                             Tongues.MinimumY + 8.0f, TongueX, 32.0f);
 
-        if (Pressed(ChromeCells[3u + Ordinal], Tongue, Applied))
-            Applied.InspectorTongue = Ordinal;
+        if (Pressed(ChromeCells[3u + Index], Tongue, Applied))
+            Applied.InspectorTongue = Index;
 
-        const bool Current = Applied.InspectorTongue == Ordinal;
+        const bool Current = Applied.InspectorTongue == Index;
 
         if (Current)
             Surface->Ground(Tongue, Colour.Taken, Measure.RadiusSoft);
@@ -980,13 +1022,13 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
         const ThemeToken Run = Current ? Colour.Primary
                                          : (Hovered(Tongue) ? Colour.Secondary : Colour.Faint);
 
-        const float Titled = Surface->MeasureRun(TongueNaming[Ordinal], Measure.RunBody);
+        const float Titled = Surface->MeasureRun(TongueNaming[Index], Measure.RunBody);
         const float Origin = Tongue.MinimumX + (TongueX - Titled - 20.0f) * 0.5f;
 
-        Surface->Stroke(TongueCrest[Ordinal],
+        Surface->Stroke(TongueCrest[Index],
                         Spanning(Origin, Tongue.MinimumY + 9.0f, 14.0f, 14.0f), Run);
         Surface->TextRun(Origin + 20.0f, Tongue.MinimumY + 10.0f, Run,
-                         TongueNaming[Ordinal], Measure.RunBody);
+                         TongueNaming[Index], Measure.RunBody);
     }
 
     // 📐 The preview — `h-48`, always presented, whether or not a record stands taken.
@@ -997,7 +1039,7 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
     Surface->Ground(Spanning(Preview.MinimumX, Preview.MaximumY - 1.0f, Preview.Width(), 1.0f),
                     Colour.Stroke);
 
-    const bool Taken = Library.Taken != ContentLibrary::AbsentOrdinal &&
+    const bool Taken = Library.Taken != ContentLibrary::AbsentIndex &&
                        Library.Taken < Library.RecordCount;
 
     if (!Taken)
@@ -1071,16 +1113,16 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
 
     float TagX = Plate.MaximumX + 12.0f;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Record.TagCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Record.TagCount; ++Index)
     {
-        const float Span = Surface->MeasureRun(Record.Tags[Ordinal], Measure.RunCaption) + 12.0f;
+        const float Span = Surface->MeasureRun(Record.Tags[Index], Measure.RunCaption) + 12.0f;
 
         const PlaneExtent Tag = Spanning(TagX, Crest.MinimumY + 34.0f, Span, Measure.ChipHeight);
 
         Surface->Ground(Tag, Colour.Hatch, 4.0f);
         Surface->Edge(Tag, Colour.Stroke, 1.0f, 4.0f);
         Surface->TextRun(Tag.MinimumX + 6.0f, Tag.MinimumY + 5.0f, Colour.Secondary,
-                         Record.Tags[Ordinal], Measure.RunCaption);
+                         Record.Tags[Index], Measure.RunCaption);
 
         TagX += Span + 4.0f;
     }
@@ -1153,18 +1195,112 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
 }
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                   THE IMPORT CAROUSEL PAGE
+//------------------------------------------------------------------------------------------------------------------------
+
+void ContentBrowserPanel::RecordImport(const PlaneExtent& Extent, ContentBrowserConfiguration& Applied)
+{
+    Surface->Ground(Extent, Colour.Ground);
+    const PlaneExtent Top = Spanning(Extent.MinimumX, Extent.MinimumY, Extent.Width(), 48.0f);
+    Surface->Ground(Top, Colour.Aside);
+    Surface->Ground(Spanning(Top.MinimumX, Top.MaximumY - 1.0f, Top.Width(), 1.0f), Colour.Stroke);
+
+    const PlaneExtent Library = Spanning(Extent.MinimumX + 16.0f, Extent.MinimumY + 10.0f, 106.0f, 28.0f);
+    const PlaneExtent Import = Spanning(Library.MaximumX + 8.0f, Extent.MinimumY + 10.0f, 82.0f, 28.0f);
+    if (Pressed(ChromeCells[10], Library, Applied, "Return to Asset Browser"))
+        Applied.Page = ContentBrowserPage::Library;
+    Surface->Ground(Library, Hovered(Library) ? Colour.Hovered : Colour.Plate, Measure.RadiusSoft);
+    Surface->TextRun(Library.MinimumX + 12.0f, Library.MinimumY + 8.0f, Colour.Primary, "Asset Browser", Measure.RunBody);
+    Surface->Ground(Import, Colour.Taken, Measure.RadiusSoft);
+    Surface->TextRun(Import.MinimumX + 17.0f, Import.MinimumY + 8.0f, Colour.Primary, "Import", Measure.RunBody, 0.0f, true);
+
+    const PlaneExtent Sidebar = Spanning(Extent.MinimumX, Top.MaximumY, Measure.AsideX, Extent.Height() - Top.Height());
+    const PlaneExtent Preview = Spanning(Extent.MaximumX - Measure.InspectorX, Top.MaximumY,
+                                        Measure.InspectorX, Extent.Height() - Top.Height());
+    const PlaneExtent Main = Spanning(Sidebar.MaximumX, Top.MaximumY,
+                                     Preview.MinimumX - Sidebar.MaximumX, Extent.Height() - Top.Height());
+    Surface->Ground(Sidebar, Colour.Aside);
+    Surface->Ground(Spanning(Sidebar.MaximumX - 1.0f, Sidebar.MinimumY, 1.0f, Sidebar.Height()), Colour.Stroke);
+    Surface->TextRunCapitalised(Sidebar.MinimumX + 16.0f, Sidebar.MinimumY + 18.0f, Colour.Faint, "Quick Access", Measure.RunCaption, 1.6f, true);
+    const char* Places[] = { "Home", "Downloads", "Projects" };
+    for (std::uint32_t Index = 0u; Index < 3u; ++Index)
+    {
+        const PlaneExtent Place = Spanning(Sidebar.MinimumX + 8.0f, Sidebar.MinimumY + 40.0f + Index * 32.0f,
+                                           Sidebar.Width() - 16.0f, 28.0f);
+        if (Pressed(ChromeCells[6u + Index], Place, Applied, Places[Index]))
+        {
+            const char* Location[] = { "Home", "EngineContent", "." };
+            std::snprintf(Applied.ImportLocation, sizeof(Applied.ImportLocation), "%s", Location[Index]);
+            Applied.ImportBrowseRequested = true;
+        }
+        if (Hovered(Place)) Surface->Ground(Place, Colour.Hovered, Measure.RadiusSoft);
+        Surface->TextRun(Place.MinimumX + 10.0f, Place.MinimumY + 8.0f, Colour.Secondary, Places[Index], Measure.RunBody);
+    }
+
+    Surface->TextRun(Main.MinimumX + 18.0f, Main.MinimumY + 18.0f, Colour.Faint, Applied.ImportLocation, Measure.RunBody);
+    const PlaneExtent Directory = Spanning(Main.MinimumX + 12.0f, Main.MinimumY + 42.0f, Main.Width() - 24.0f, Main.Height() - 54.0f);
+    Surface->Confine(Directory);
+    for (std::uint32_t Index = 0u; Index < Applied.ImportEntryCount && Index < 128u; ++Index)
+    {
+        const ContentImportEntry& Entry = Applied.ImportEntries[Index];
+        const PlaneExtent Card = Spanning(Directory.MinimumX + 4.0f, Directory.MinimumY + Index * 38.0f,
+                                          Directory.Width() - 12.0f, 34.0f);
+        if (Pressed(LatticeCards[Index], Card, Applied, Entry.Naming))
+        {
+            Applied.ImportTaken = Index;
+            if (Entry.Directory) Applied.ImportBrowseRequested = true;
+            else if (Entry.Supported) Applied.ImportConfirmed = true;
+        }
+        const bool Taken = Applied.ImportTaken == Index;
+        if (Taken || Hovered(Card)) Surface->Ground(Card, Taken ? Colour.Taken : Colour.Hovered, Measure.RadiusSoft);
+        Surface->TextRun(Card.MinimumX + 12.0f, Card.MinimumY + 9.0f, Colour.Primary, Entry.Naming, Measure.RunBody);
+        Surface->TextRun(Card.MaximumX - 78.0f, Card.MinimumY + 9.0f, Colour.Faint,
+                         Entry.Directory ? "Folder" : Entry.Extension, Measure.RunCaption);
+    }
+    Surface->Release();
+
+    // 🧩 Import has its own inspector, matching the library page so selection never loses context.
+    Surface->Ground(Preview, Colour.Aside);
+    Surface->Ground(Spanning(Preview.MinimumX, Preview.MinimumY, 1.0f, Preview.Height()), Colour.Stroke);
+    Surface->TextRunCapitalised(Preview.MinimumX + 14.0f, Preview.MinimumY + 16.0f,
+                                Colour.Faint, "Selection", Measure.RunCaption, 1.4f, true);
+    const bool Taken = Applied.ImportTaken < Applied.ImportEntryCount;
+    if (Taken)
+    {
+        const ContentImportEntry& Entry = Applied.ImportEntries[Applied.ImportTaken];
+        const PlaneExtent Circle = Spanning(Preview.MinimumX + Preview.Width() * 0.5f - 54.0f,
+                                            Preview.MinimumY + 54.0f, 108.0f, 108.0f);
+        Surface->Medallion(Circle.MinimumX + Circle.Width() * 0.5f, Circle.MinimumY + Circle.Height() * 0.5f,
+                           54.0f, Colour.Medallion);
+        Surface->TextRunTruncated(Preview.MinimumX + 14.0f, Circle.MaximumY + 20.0f,
+                                  Preview.Width() - 28.0f, Colour.Primary, Entry.Naming, Measure.RunBody, true);
+        Surface->TextRun(Preview.MinimumX + 14.0f, Circle.MaximumY + 42.0f, Colour.Faint,
+                         Entry.Directory ? "Folder" : Entry.Extension, Measure.RunCaption);
+    }
+    else
+        Surface->TextRun(Preview.MinimumX + 14.0f, Preview.MinimumY + 56.0f,
+                         Colour.Faint, "Select a source to preview.", Measure.RunBody);
+}
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                      THE WHOLE BROWSER
 //------------------------------------------------------------------------------------------------------------------------
 
 void ContentBrowserPanel::RecordBrowser(const PlaneExtent& Extent, ContentLibrary& Library,
                                         ContentBrowserConfiguration& Applied)
 {
-    if (Ledger == nullptr || Surface == nullptr)
+    if (Interaction == nullptr || Surface == nullptr)
         return;
 
     // ⚠️ Cleared here and nowhere else. The set is per tick, and a host that reads it after RecordBrowser
     //    reads exactly what this tick arbitrated.
     ExclusionCount = 0u;
+
+    if (Applied.Page == ContentBrowserPage::Import)
+    {
+        RecordImport(Extent, Applied);
+        return;
+    }
 
     Surface->Ground(Extent, Colour.Ground);
 
@@ -1190,23 +1326,9 @@ void ContentBrowserPanel::RecordBrowser(const PlaneExtent& Extent, ContentLibrar
     RecordInspector(Inspector, Library, Applied);
 }
 
-void ContentBrowserPanel::RecordDeferred(ContentBrowserConfiguration& Applied)
+void ContentBrowserPanel::RecordDeferred()
 {
-    if (Surface == nullptr || Applied.Tooltip == nullptr)
-        return;
-
-    // 📐 The tooltip card, above everything the tick recorded, applied at the hovered control's upper edge.
-    const float Span = Surface->MeasureRun(Applied.Tooltip, Measure.RunCaption);
-
-    const PlaneExtent Card = Spanning(Applied.TooltipX - (Span + 16.0f) * 0.5f,
-                                      Applied.TooltipHeight - 30.0f, Span + 16.0f, 24.0f);
-
-    Surface->Ground(Card, Colour.Medallion, Measure.RadiusSoft);
-    Surface->Edge(Card, Colour.Stroke, 1.0f, Measure.RadiusSoft);
-    Surface->TextRun(Card.MinimumX + 8.0f, Card.MinimumY + 6.0f, Colour.Secondary,
-                     Applied.Tooltip, Measure.RunCaption);
-
-    Applied.Tooltip = nullptr;
+    SharedControls.RecordDeferred();
 }
 
 }   // namespace Slate
