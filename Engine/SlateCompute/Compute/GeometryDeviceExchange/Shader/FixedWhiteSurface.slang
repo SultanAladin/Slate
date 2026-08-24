@@ -19,7 +19,7 @@ void main(uint3 Dispatched : SV_DispatchThreadID)
     if (Dispatched.x >= Width || Dispatched.y >= Height)
         return;
 
-    const uint2 Resolved = VisibilityInput.Load(int3(Dispatched.xy, 0));
+    const uint2 Resolved = VisibilityInput.Load(int2(Dispatched.xy));
 
     // The visibility raster's clear word is the sole unoccupied classification. An empty target is transparent,
     // so the viewport's atmosphere remains visible; every winning surface is initially the same white dielectric.

@@ -30,6 +30,9 @@ struct alignas(16) PhysicalSurfacePacket
     std::uint32_t Interface = 0u;
     std::uint32_t TwoSided = 0u;
     std::uint32_t Reserved = 0u;
+    // Explicit tail lanes complete the final constant-buffer register. This avoids compiler-inserted
+    // alignment padding while keeping the packet a stable 96-byte, sixteen-byte-aligned GPU payload.
+    float RegisterPadding[3] = {};
 };
 
 static_assert(sizeof(PhysicalSurfacePacket) % 16u == 0u,

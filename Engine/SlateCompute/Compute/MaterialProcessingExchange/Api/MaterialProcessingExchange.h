@@ -69,10 +69,11 @@ struct MaterialLiveChannelPreview
 /// Nested entries are flattened in depth-first sequence order while retaining depth and local position.
 struct MaterialProcessingSnapshot
 {
+    // First so every subsequent member begins after the packet's explicit sixteen-byte register boundary.
+    PhysicalSurfacePacket                   PhysicalPacket = {};
     MaterialSpecification                    Material = {};
     PhysicalSurfaceDeclaration               PhysicalDeclaration = {};
     CompiledPhysicalSurface                  PhysicalSurface = {};
-    PhysicalSurfacePacket                   PhysicalPacket = {};
     bool                                     PhysicalSurfaceResolved = false;
     bool                                     PhysicalPacketResolved = false;
     std::vector<MaterialProcessingLayerSnapshot> Layers = {};
