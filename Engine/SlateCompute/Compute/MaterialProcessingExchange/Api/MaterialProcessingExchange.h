@@ -7,6 +7,7 @@
 
 #include "Foundation/DeliveryOutcome.h"
 #include "Foundation/Identity.h"
+#include "SlateCompute/Compute/PreviewProjection/Api/PreviewProjection.h"
 #include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
 #include "SlateDocument/Document/MaterialSpecification/Api/PhysicalSurfaceSpecification.h"
 #include "SlateDocument/Document/SurfaceLayerSequence/Api/SurfaceLayerSequence.h"
@@ -50,6 +51,17 @@ struct MaterialProcessingLayerSnapshot
     LayerSpecification Layer    = {};
     std::uint32_t      Depth    = 0u;
     std::uint32_t      Position = 0u;
+};
+
+/// 🧩 One live material-channel sample resolved by the existing speculative-preview resolver.
+/// It carries no cache or document mutation; callers discard it after the current UI/viewport rotation.
+struct MaterialLiveChannelPreview
+{
+    ChannelSubject         Channel = ChannelSubject::ChannelCount;
+    ResolvedSample         Sample = {};
+    CompiledPhysicalSurface PhysicalSurface = {};
+    std::uint64_t          MaterialFingerprint = 0u;
+    bool                   PhysicalSurfaceResolved = false;
 };
 
 /// 🧩 A worker-safe value snapshot; processing never reads mutable document objects asynchronously.
@@ -101,6 +113,17 @@ public:
     /// 🧩 Reports dirty channels and structural changes without comparing mutable document storage.
     MaterialProcessingDirtySet Compare(const MaterialProcessingSnapshot& Previous,
                                        const MaterialProcessingSnapshot& Current) const;
+
+    /// 🧩 Resolves one channel through PreviewProjection, preserving its one-resolver and non-mutating guarantees.
+    /// This is for immediate paint/material presentation; persistent browser previews use a later bake route.
+    Outcome<MaterialLiveChannelPreview> ResolveLiveChannelPreview(
+        const MaterialProcessingSnapshot& Snapshot,
+        const PreviewProjection& Preview,
+        const SurfaceLayerSequence& Layers,
+        ChannelSubject Channel,
+        double PositionX,
+        double PositionY,
+        std::uint32_t Level) const;
 
     MaterialProcessingCapabilities Capabilities() const;
 

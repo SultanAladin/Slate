@@ -294,9 +294,47 @@ MaterialProcessingDirtySet MaterialProcessingExchange::Compare(const MaterialPro
     return Dirty;
 }
 
+Outcome<MaterialLiveChannelPreview> MaterialProcessingExchange::ResolveLiveChannelPreview(
+    const MaterialProcessingSnapshot& Snapshot,
+    const PreviewProjection& Preview,
+    const SurfaceLayerSequence& Layers,
+    ChannelSubject Channel,
+    double PositionX,
+    double PositionY,
+    std::uint32_t Level) const
+{
+    if (Channel >= ChannelSubject::ChannelCount)
+        return Outcome<MaterialLiveChannelPreview>::Refuse(
+            { RefusalReason::ContentUnsupported, "the closed channel count is not a material channel" });
+
+    const ChannelSpecification& Declared = Snapshot.Material.Channel(Channel);
+    if (!Declared.ChannelDeclared)
+        return Outcome<MaterialLiveChannelPreview>::Refuse(
+            { RefusalReason::ContentUnsupported, "the requested material channel is undeclared" });
+
+    ChannelPlacement Placement;
+    Placement.Channel = Channel;
+    Placement.ComponentSpan = MeasureCarriesColour(Declared.Measured) ? 3u : 1u;
+    const std::vector<ChannelPlacement> Placements = { Placement };
+    const Outcome<ResolvedSample> Resolved = Preview.ProjectContentAt(
+        Layers, Placements, PositionX, PositionY, Level, Placement.ComponentSpan);
+    if (!Resolved.Resolved)
+        return Outcome<MaterialLiveChannelPreview>::Refuse(Resolved.Error);
+
+    MaterialLiveChannelPreview Produced;
+    Produced.Channel = Channel;
+    Produced.Sample = Resolved.Resolve();
+    Produced.PhysicalSurface = Snapshot.PhysicalSurface;
+    Produced.MaterialFingerprint = Snapshot.DirtyKey.Combined;
+    Produced.PhysicalSurfaceResolved = Snapshot.PhysicalSurfaceResolved;
+    return Outcome<MaterialLiveChannelPreview>::Result(Produced);
+}
+
 MaterialProcessingCapabilities MaterialProcessingExchange::Capabilities() const
 {
-    return {};
+    MaterialProcessingCapabilities Declared;
+    Declared.AnalyticResolution = true;
+    return Declared;
 }
 
 } // namespace Slate
