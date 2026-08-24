@@ -4,7 +4,7 @@
 
 #include "SlateCompute/Compute/GeometryRenderingExchange/Api/GeometryRenderingExchange.h"
 
-#include "ExternalPackages/earcut/include/mapbox/earcut.hpp"
+#include "mapbox/earcut.hpp"
 
 #include <algorithm>
 #include <array>
