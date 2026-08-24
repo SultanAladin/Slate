@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slate Engine — Atmosphere Sunset Sky Diagnostic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-dark: #07080c;
+    --bg-card: #0d1017;
+    --border: rgba(255, 255, 255, 0.1);
+    --border-bright: rgba(255, 255, 255, 0.2);
+    --text-main: #f0f3f8;
+    --text-sub: #94a3b8;
+    --accent-orange: #f97316;
+    --accent-purple: #a855f7;
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    padding: 40px 32px 80px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container {
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    background: rgba(249, 115, 22, 0.12);
+    border: 1px solid rgba(249, 115, 22, 0.3);
+    color: var(--accent-orange);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+  }
+
+  p.sub {
+    color: var(--text-sub);
+    font-size: 15px;
+    max-width: 800px;
+  }
+
+  /* Side by Side Renders */
+  .comparison-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    margin-bottom: 48px;
+  }
+
+  .render-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .render-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .render-title {
+    font-size: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    text-transform: uppercase;
+  }
+
+  .tag.current {
+    background: rgba(168, 85, 247, 0.15);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+  }
+
+  .tag.corrected {
+    background: rgba(249, 115, 22, 0.15);
+    color: #fb923c;
+    border: 1px solid rgba(249, 115, 22, 0.3);
+  }
+
+  .canvas-stage {
+    position: relative;
+    width: 100%;
+    height: 380px;
+  }
+
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .render-details {
+    padding: 20px;
+    font-size: 13px;
+    color: var(--text-sub);
+    border-top: 1px solid var(--border);
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  .render-details ul {
+    padding-left: 18px;
+    margin-top: 8px;
+  }
+
+  .render-details li {
+    margin-bottom: 6px;
+  }
+
+  /* Diagnostic Explanation Section */
+  .diag-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+  }
+
+  .diag-section h2 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #ffffff;
+  }
+
+  .diag-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+    margin-top: 24px;
+  }
+
+  .diag-box {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+
+  .diag-box h3 {
+    font-size: 15px;
+    color: var(--accent-orange);
+    margin-bottom: 8px;
+    font-family: var(--font-mono);
+  }
+
+  .diag-box p {
+    font-size: 13.5px;
+    color: var(--text-sub);
+    line-height: 1.55;
+  }
+
+  code {
+    font-family: var(--font-mono);
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #f1f5f9;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="badge">Atmospheric Physics & Shader Diagnostic</div>
+    <h1>Realtime vs. Physical Sunset Sky Comparison</h1>
+    <p class="sub">Analysis of why the realtime preview shader (<code>DynamicSkySurface.slang</code>) renders a purple/dusky sky at sunset, while the physical baker (<code>AtmosphereIntegrator.cpp</code> / <code>SkyViewSurface.slang</code>) produces a realistic golden-orange twilight.</p>
+  </header>
+
+  <div class="comparison-grid">
+    <!-- CURRENT REALTIME SHADER -->
+    <div class="render-card">
+      <div class="render-header">
+        <div class="render-title">
+          <span>Current Realtime Preview Sunset</span>
+        </div>
+        <span class="tag current">DynamicSkySurface.slang</span>
+      </div>
+      <div class="canvas-stage">
+        <canvas id="canvasCurrent"></canvas>
+      </div>
+      <div class="render-details">
+        <strong>Observed Artifacts:</strong>
+        <ul>
+          <li><strong>Purple/Lavender Magenta Tint:</strong> Over-extinction of green wavelengths from scalar Ozone approximation.</li>
+          <li><strong>Over-Misty Horizon Haze:</strong> Flat planar airmass <code>1 / (view.y + 0.13)</code> overestimates extinction.</li>
+          <li><strong>Muted Solar Disc:</strong> Hardcoded Reinhard tone mapping compresses intense direct solar radiance into dull white.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- CORRECTED PHYSICAL SUNSET -->
+    <div class="render-card">
+      <div class="render-header">
+        <div class="render-title">
+          <span>Correct Physical Sunset</span>
+        </div>
+        <span class="tag corrected">AtmosphereIntegrator (Baked)</span>
+      </div>
+      <div class="canvas-stage">
+        <canvas id="canvasCorrected"></canvas>
+      </div>
+      <div class="render-details">
+        <strong>Physical Characteristics:</strong>
+        <ul>
+          <li><strong>Golden-Orange Horizon Glow:</strong> Rayleigh scattering ($\lambda^{-4}$) strips blue/green along long optical paths.</li>
+          <li><strong>Deep Azure Zenith:</strong> Chappuis Ozone absorption tent centered at 25km absorbs yellow-orange overhead.</li>
+          <li><strong>Clear Horizon Gradient:</strong> Spherical planet geometry (<code>ProjectMarchDistance</code>) prevents false midday haziness.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="diag-section">
+    <h2>🔬 Technical Root Cause Analysis</h2>
+    <p style="color: var(--text-sub); font-size: 14.5px;">The discrepancy between the realtime viewport dome and the baked offline atmospheric renderer stems from three fundamental math and physics defects in the preview compute shader <code>Engine/SlateVulkan/Device/AtmospherePresentationSurface/Shader/DynamicSkySurface.slang</code>:</p>
+
+    <div class="diag-grid">
+      <div class="diag-box">
+        <h3>1. Unphysical Ozone Extinction & Wavelength Hardcoding</h3>
+        <p>In <code>DynamicSkySurface.slang</code>, ozone absorption is computed using a flat scalar airmass formula: <code>float3 ozone = exp(-Sky.OzoneDensity * solarMass * float3(0.06f, 0.13f, 0.035f));</code><br><br>
+        Because the green channel coefficient (<code>0.13</code>) is more than double red and blue, as the sun nears the horizon (high <code>solarMass</code>), green light is heavily extinguished across the whole dome. Green suppression leaves Red + Blue = <strong>Purple/Violet tint</strong>.</p>
+      </div>
+
+      <div class="diag-box">
+        <h3>2. Flat Planar Airmass vs. Spherical Planet Geometry</h3>
+        <p>The realtime shader calculates path optical length using <code>1.0 / max(0.08, view.y + 0.13)</code>. This flat plane approximation treats the planet as a flat disk rather than a sphere of radius $R_{planet} = 6,371\,	ext{km}$.<br><br>
+        It forces excessive scattering mass at all angles, causing noon to look like <strong>cloudy dusk or misty fog</strong>, whereas the baked integrator uses spherical ray-marching (<code>ProjectMarchDistance</code>) to calculate exact curved path distances.</p>
+      </div>
+
+      <div class="diag-box">
+        <h3>3. Direct Channel Tone Mapping Clamping</h3>
+        <p>The realtime shader applies <code>radiance = radiance / (1.0 + radiance);</code> directly inside the compute pass before converting to sRGB.<br><br>
+        This clamps high-dynamic-range solar luminance and prevents the intense warm scattering halo around the solar disc from bleeding naturally into the surrounding atmosphere, muting the warm golden glow into a muddy magenta gradient.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Canvas Renderer for Realistic vs Current Sky Preview
+function renderCurrentSky(canvas) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = canvas.offsetWidth * 2;
+  const h = canvas.height = canvas.offsetHeight * 2;
+
+  // Realtime Shader Simulation (Purple / Lavender Sunset with Muted Haze)
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+  skyGrad.addColorStop(0.0, '#1c1a3a');   // Dusky purple zenith
+  skyGrad.addColorStop(0.4, '#483562');   // Lavender mid-sky
+  skyGrad.addColorStop(0.7, '#8b5a7e');   // Purple-pink transition
+  skyGrad.addColorStop(0.85, '#bc7481');  // Muted reddish-purple horizon
+  skyGrad.addColorStop(1.0, '#3a3242');   // Misty dark ground
+
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Muted Sun Disc with Purple-Pink Halo
+  const sunX = w * 0.72;
+  const sunY = h * 0.82;
+
+  const haloGrad = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, 180);
+  haloGrad.addColorStop(0, 'rgba(255, 240, 245, 0.9)');
+  haloGrad.addColorStop(0.2, 'rgba(230, 160, 190, 0.5)');
+  haloGrad.addColorStop(0.6, 'rgba(160, 100, 150, 0.2)');
+  haloGrad.addColorStop(1, 'rgba(70, 50, 90, 0)');
+
+  ctx.fillStyle = haloGrad;
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, 180, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Sun Disc
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, 18, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Perspective Floor Grid (Misty/Cloudy)
+  drawGrid(ctx, w, h, 'rgba(120, 100, 140, 0.25)');
+}
+
+function renderCorrectedSky(canvas) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = canvas.offsetWidth * 2;
+  const h = canvas.height = canvas.offsetHeight * 2;
+
+  // Physical Baked Atmosphere Sunset (Deep Azure Blue Zenith -> Golden Orange Horizon)
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+  skyGrad.addColorStop(0.0, '#0a1d37');   // Deep azure night-blue zenith
+  skyGrad.addColorStop(0.35, '#1e3a5f');  // Twilight cobalt blue
+  skyGrad.addColorStop(0.6, '#6b4c68');   // Subdued purple-blue ozone band
+  skyGrad.addColorStop(0.75, '#d95d1e');  // Rich fiery orange
+  skyGrad.addColorStop(0.88, '#f99f1b');  // Vibrant golden horizon
+  skyGrad.addColorStop(0.92, '#ffe066');  // Bright yellow horizon glow
+  skyGrad.addColorStop(1.0, '#10141d');   // Dark ground silhouette
+
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Intense Golden Solar Halo
+  const sunX = w * 0.72;
+  const sunY = h * 0.88;
+
+  const haloGrad = ctx.createRadialGradient(sunX, sunY, 12, sunX, sunY, 260);
+  haloGrad.addColorStop(0, 'rgba(255, 255, 240, 1.0)');
+  haloGrad.addColorStop(0.15, 'rgba(255, 200, 80, 0.85)');
+  haloGrad.addColorStop(0.4, 'rgba(249, 115, 22, 0.45)');
+  haloGrad.addColorStop(0.7, 'rgba(217, 70, 239, 0.12)');
+  haloGrad.addColorStop(1, 'rgba(10, 29, 55, 0)');
+
+  ctx.fillStyle = haloGrad;
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, 260, 0, Math.PI * 2);
+  ctx.fill();
+
+  // White Hot Solar Disc
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = '#ffe066';
+  ctx.shadowBlur = 30;
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, 20, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Perspective Floor Grid (Clear Crisp Horizon)
+  drawGrid(ctx, w, h, 'rgba(255, 160, 80, 0.3)');
+}
+
+function drawGrid(ctx, w, h, opacityColor) {
+  ctx.strokeStyle = opacityColor;
+  ctx.lineWidth = 1.5;
+
+  const horizonY = h * 0.9;
+  const cx = w * 0.5;
+
+  // Perspective lines
+  for (let x = -w; x <= w * 2; x += w * 0.1) {
+    ctx.beginPath();
+    ctx.moveTo(cx, horizonY);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+
+  // Horizontal grid lines
+  for (let y = horizonY; y <= h; y += 14) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+}
+
+window.addEventListener('load', () => {
+  renderCurrentSky(document.getElementById('canvasCurrent'));
+  renderCorrectedSky(document.getElementById('canvasCorrected'));
+});
+window.addEventListener('resize', () => {
+  renderCurrentSky(document.getElementById('canvasCurrent'));
+  renderCorrectedSky(document.getElementById('canvasCorrected'));
+});
+</script>
+</body>
+</html>
