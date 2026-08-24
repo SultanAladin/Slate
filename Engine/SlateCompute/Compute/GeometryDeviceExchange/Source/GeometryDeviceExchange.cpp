@@ -35,6 +35,8 @@ Outcome<bool> GeometryDeviceExchange::ConstructGeometryDeviceExchange(
             { RefusalReason::ContentUnsupported, "no geometry shader stream location was supplied" });
     }
 
+    DeviceEdge = &Exchange;
+
     if (!Bytes.ReserveByteSpace(Exchange, Naming).Resolved ||
         !Images.ConstructImageSpace(Exchange, Bytes, Naming).Resolved ||
         !Targets.Reserve(Images, DisplayWidth, DisplayHeight, DisplayFormat).Resolved ||
@@ -48,6 +50,24 @@ Outcome<bool> GeometryDeviceExchange::ConstructGeometryDeviceExchange(
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent,
                                        "the geometry visibility device estate was rejected" });
     }
+
+    VkSamplerCreateInfo Sampling = {};
+    Sampling.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    Sampling.magFilter = VK_FILTER_LINEAR;
+    Sampling.minFilter = VK_FILTER_LINEAR;
+    Sampling.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    Sampling.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    Sampling.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    Sampling.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    Sampling.maxLod = 0.0f;
+    if (vkCreateSampler(Exchange.ActiveDevice(), &Sampling, nullptr, &RadianceSampling) != VK_SUCCESS)
+    {
+        Reclaim();
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted,
+                                       "the geometry radiance sampler was rejected" });
+    }
+    Discard(Naming.Declare(VK_OBJECT_TYPE_SAMPLER, reinterpret_cast<std::uint64_t>(RadianceSampling),
+                           "GeometryDeviceExchange radiance sampler"));
 
     DescriptorSlot Visibility;
     Visibility.SlotIndex = 0u;
@@ -183,8 +203,20 @@ Outcome<ImageReservation> GeometryDeviceExchange::Radiance() const
     return Targets.Resolve(SharedTarget::RadianceSurface);
 }
 
+VkSampler GeometryDeviceExchange::RadianceSampler() const
+{
+    return RadianceSampling;
+}
+
 void GeometryDeviceExchange::Reclaim()
 {
+    if (DeviceEdge != nullptr && DeviceEdge->ActiveDevice() != VK_NULL_HANDLE &&
+        RadianceSampling != VK_NULL_HANDLE)
+    {
+        vkDestroySampler(DeviceEdge->ActiveDevice(), RadianceSampling, nullptr);
+    }
+
+    RadianceSampling = VK_NULL_HANDLE;
     Raster.Reclaim();
     Attachments.Reclaim();
     Programs.Reclaim();
@@ -194,6 +226,7 @@ void GeometryDeviceExchange::Reclaim()
     Targets.Release();
     Images.Reclaim();
     Bytes.Reclaim();
+    DeviceEdge = nullptr;
     Constructed = false;
 }
 

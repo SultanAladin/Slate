@@ -67,6 +67,9 @@ public:
     /// 🧩 The transparent fixed-white radiance target after ResolveFixedWhite has written it.
     Outcome<ImageReservation> Radiance() const;
 
+    /// 🧩 The linear sampler through which the interface samples the resolved radiance target.
+    VkSampler RadianceSampler() const;
+
     /// 🧩 Releases every device claim while the device is still alive.
     void Reclaim();
 
@@ -76,6 +79,8 @@ private:
 
     static constexpr std::uint32_t GeometryResidencyLimit = 256u; // [-] - independently resident imported geometry packets
 
+    const VulkanExchange* DeviceEdge = nullptr; // [-] - borrowed device; outlives every owned claim
+    VkSampler          RadianceSampling = VK_NULL_HANDLE; // [-] - transparent radiance sampling
     ByteSpace          Bytes        = {};   // [-] - backing extents for images and spans
     ImageSpace         Images       = {};   // [-] - target images and their layout record
     TargetSpace        Targets      = {};   // [-] - shared target claims
