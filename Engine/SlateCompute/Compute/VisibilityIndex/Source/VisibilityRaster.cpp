@@ -1,11 +1,12 @@
 //============================================================================================================================================
 //                                                            VISIBILITYRASTER.CPP
 //============================================================================================================================================
-// 🧩 The composition, the fan, the residency it becomes, and the one recording that writes `16` §4's targets.
+// 🧩 View composition, authoritative triangle residency, and the recording that writes `16` §4's targets.
 
 #include "SlateCompute/Compute/VisibilityIndex/Api/VisibilityRaster.h"
 
 #include <cstring>
+#include <utility>
 
 namespace Slate
 {
@@ -182,85 +183,90 @@ Outcome<bool> VisibilityRaster::ConstructVisibilityRaster(SpanSpace&        Span
 }
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                                        THE FAN
+//                                                   THE TRIANGLE ARRANGEMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<std::vector<UploadedTriangle>> VisibilityRaster::Fan(const PartitionStructure&  Registered,
-                                                            const TopologyStructure&   Imported,
-                                                            std::uint32_t              RegistrationBase) const
+Outcome<std::vector<UploadedTriangle>> VisibilityRaster::ArrangeTriangles(
+    const PartitionStructure&        Registered,
+    const GeometryRenderingSnapshot& Rendering,
+    std::uint32_t                    RegistrationBase) const
 {
-    using Fanned = std::vector<UploadedTriangle>;
+    using Arranged = std::vector<UploadedTriangle>;
 
     const DerivedPartitioning& Current = Registered.Current();
+    if (Rendering.Vertices.empty() || Rendering.Triangles.empty())
+        return Outcome<Arranged>::Refuse({ RefusalReason::ContentUnsupported,
+                                           "the rendering packet carries no drawable triangles" });
 
-    Fanned Drawn;
-    Drawn.reserve(Imported.CornerCount());
+    std::uint32_t GreatestFace = 0u;
+    for (const std::uint32_t Face : Current.OrderedFaces)
+        GreatestFace = Face > GreatestFace ? Face : GreatestFace;
 
-    for (std::size_t PartitionIndex = 0u; PartitionIndex < Current.Partitions.size(); ++PartitionIndex)
+    std::vector<std::uint32_t> PartitionOfFace(static_cast<std::size_t>(GreatestFace) + 1u,
+                                                AbsentPartition);
+    for (std::uint32_t PartitionIndex = 0u;
+         PartitionIndex < Current.Partitions.size(); ++PartitionIndex)
     {
         const MicroSurfacePartition& Partitioned = Current.Partitions[PartitionIndex];
-
-        // 🔴 The ordinal written into every pixel is document-wide and the one counted here is not. `16` §4
-        //    splits the two components exactly so, and `Register` lays the registrations end to end — so the first
-        //    component is the registration's base plus the partition's position within this partitioning.
-        const std::uint32_t Document = RegistrationBase + static_cast<std::uint32_t>(PartitionIndex);
-
-        std::uint32_t Within = 0u;
-
         for (std::uint32_t Spanned = 0u; Spanned < Partitioned.FaceCount; ++Spanned)
         {
             const std::size_t Ordered = static_cast<std::size_t>(Partitioned.FirstFace) + Spanned;
-
             if (Ordered >= Current.OrderedFaces.size())
-            {
-                return Outcome<Fanned>::Refuse(
-                    { RefusalReason::ContentUnsupported, "a partition spans past the derived ordering" });
-            }
+                return Outcome<Arranged>::Refuse({ RefusalReason::ContentUnsupported,
+                                                   "a partition spans past the derived ordering" });
 
             const std::uint32_t Face = Current.OrderedFaces[Ordered];
-
-            if (Face >= Imported.FaceCount())
-            {
-                return Outcome<Fanned>::Refuse(
-                    { RefusalReason::ContentUnsupported, "the ordering names a face the topology does not carry" });
-            }
-
-            const std::uint32_t FirstCorner = Imported.FaceFirstCorner(Face);
-            const std::uint32_t CornerCount = Imported.FaceCornerCount(Face);
-
-            // 📝 A triangle fan from the first corner, which is `10`'s own winding preserved. `50` §2 ① never
-            //    repairs, so a concave n-gon fans into triangles that overlap — and that is the artist's face
-            //    reproduced rather than a retriangulation nothing in the document asked for.
-            for (std::uint32_t Corner = 2u; Corner < CornerCount; ++Corner)
-            {
-                UploadedTriangle Triangle;
-                Triangle.CornerVertex0    = Imported.CornerVertex(FirstCorner);
-                Triangle.CornerVertex1    = Imported.CornerVertex(FirstCorner + Corner - 1u);
-                Triangle.CornerVertex2    = Imported.CornerVertex(FirstCorner + Corner);
-                Triangle.PartitionIndex = Document;
-                Triangle.TriangleIndex  = Within;
-
-                Drawn.push_back(Triangle);
-
-                ++Within;
-            }
-        }
-
-        // 🔴 The two counts are compared rather than trusted. `16` §1 counts the fan triangles the spanned faces
-        //    amount to and this derives them; a fan derived differently at the two sites hands the pixel a
-        //    triangle ordinal `18` resolves to another triangle of the same partition, which shades as a surface
-        //    that is very nearly the right one.
-        if (Within != Partitioned.TriangleCount)
-        {
-            return Outcome<Fanned>::Refuse(
-                { RefusalReason::ContentUnsupported, "the fan disagrees with the partition's declared count" });
+            if (Face >= PartitionOfFace.size())
+                return Outcome<Arranged>::Refuse({ RefusalReason::ContentUnsupported,
+                                                   "the ordering names an unavailable source face" });
+            PartitionOfFace[Face] = PartitionIndex;
         }
     }
 
-    if (Drawn.empty())
-        return Outcome<Fanned>::Refuse({ RefusalReason::ContentUnsupported, "the partitioning fans to no triangle" });
+    std::vector<Arranged> ByPartition(Current.Partitions.size());
+    for (const GeometryRenderingTriangle& Source : Rendering.Triangles)
+    {
+        if (Source.SourceFace >= PartitionOfFace.size() ||
+            PartitionOfFace[Source.SourceFace] == AbsentPartition)
+        {
+            return Outcome<Arranged>::Refuse({ RefusalReason::ContentUnsupported,
+                                               "an Earcut triangle names a face outside the partitioning" });
+        }
+        if (Source.Corners[0] >= Rendering.Vertices.size() ||
+            Source.Corners[1] >= Rendering.Vertices.size() ||
+            Source.Corners[2] >= Rendering.Vertices.size())
+        {
+            return Outcome<Arranged>::Refuse({ RefusalReason::ContentUnsupported,
+                                               "an Earcut triangle names an unavailable rendering corner" });
+        }
 
-    return Outcome<Fanned>::Result(Drawn);
+        const std::uint32_t PartitionIndex = PartitionOfFace[Source.SourceFace];
+        Arranged& PartitionTriangles = ByPartition[PartitionIndex];
+
+        UploadedTriangle Triangle;
+        Triangle.CornerVertex0  = Source.Corners[0];
+        Triangle.CornerVertex1  = Source.Corners[1];
+        Triangle.CornerVertex2  = Source.Corners[2];
+        Triangle.PartitionIndex = RegistrationBase + PartitionIndex;
+        Triangle.TriangleIndex  = static_cast<std::uint32_t>(PartitionTriangles.size());
+        PartitionTriangles.push_back(Triangle);
+    }
+
+    Arranged Drawn;
+    Drawn.reserve(Rendering.Triangles.size());
+    for (std::uint32_t PartitionIndex = 0u;
+         PartitionIndex < Current.Partitions.size(); ++PartitionIndex)
+    {
+        const Arranged& PartitionTriangles = ByPartition[PartitionIndex];
+        if (PartitionTriangles.size() != Current.Partitions[PartitionIndex].TriangleCount)
+        {
+            return Outcome<Arranged>::Refuse({ RefusalReason::ContentUnsupported,
+                                               "Earcut output disagrees with the partition triangle count" });
+        }
+        Drawn.insert(Drawn.end(), PartitionTriangles.begin(), PartitionTriangles.end());
+    }
+
+    return Outcome<Arranged>::Result(std::move(Drawn));
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -340,8 +346,8 @@ void VisibilityRaster::Abandon(ResidentPartitioning& Abandoned)
 //                                                     THE RESIDENCY
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<std::uint32_t> VisibilityRaster::Resolve(const PartitionStructure&  Registered,
-                                                 const TopologyStructure&   Imported,
+Outcome<std::uint32_t> VisibilityRaster::Resolve(const PartitionStructure&        Registered,
+                                                 const GeometryRenderingSnapshot& Rendering,
                                                  std::uint32_t              RegistrationBase,
                                                  const OcclusionScheduler*  Culling,
                                                  std::uint32_t              CullingIndex,
@@ -353,42 +359,37 @@ Outcome<std::uint32_t> VisibilityRaster::Resolve(const PartitionStructure&  Regi
     if (Recorded == VK_NULL_HANDLE)
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no recording was supplied" });
 
-    if (!Imported.Sealed())
-        return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "the topology is not sealed" });
-
     if (!Registered.PartitioningCurrent())
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no partitioning stands" });
 
-    // 🔴 The two must describe one revision. A partitioning derived from an earlier seal addresses faces the
-    //    topology has since renumbered nothing about — `10` forbids renumbering — but it spans a face count the
-    //    topology no longer has, and the fan then reads corners belonging to another face entirely.
-    if (Registered.DescribedRevision() != Imported.Revision())
+    // 🔴 The two must describe one revision. A partitioning derived from an earlier seal can group source-face
+    //    ordinals differently from this Earcut packet even though neither side renumbers the author's faces.
+    if (Registered.DescribedRevision() != Rendering.TopologyRevision)
     {
         return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::IdentityStale, "the partitioning describes another revision of the topology" });
     }
 
-    const Outcome<std::vector<UploadedTriangle>> Fanned = Fan(Registered, Imported, RegistrationBase);
+    const Outcome<std::vector<UploadedTriangle>> Arranged =
+        ArrangeTriangles(Registered, Rendering, RegistrationBase);
 
-    if (!Fanned.Resolved)
-        return Outcome<std::uint32_t>::Refuse(Fanned.Error);
+    if (!Arranged.Resolved)
+        return Outcome<std::uint32_t>::Refuse(Arranged.Error);
 
-    const std::vector<UploadedTriangle>& Drawn = Fanned.Resolve();
+    const std::vector<UploadedTriangle>& Drawn = Arranged.Resolve();
 
     // 🔴 Narrowed here and nowhere else, and narrowed in **object** space where the extent is the owner's own.
     //    `02`'s rule is that a document position never narrows; an object position is not one, and the rebasing
     //    it would otherwise need rides in the composed transform instead.
-    const std::vector<DocumentPosition>& Positioned = Imported.Positions();
-
     std::vector<UploadedPosition> Narrowed;
-    Narrowed.reserve(Positioned.size());
+    Narrowed.reserve(Rendering.Vertices.size());
 
-    for (const DocumentPosition& Held : Positioned)
+    for (const GeometryRenderingVertex& Held : Rendering.Vertices)
     {
         UploadedPosition Uploaded;
-        Uploaded.PositionX = static_cast<float>(Held.PositionX);
-        Uploaded.PositionY = static_cast<float>(Held.PositionY);
-        Uploaded.PositionZ = static_cast<float>(Held.PositionZ);
+        Uploaded.PositionX = static_cast<float>(Held.Position.PositionX);
+        Uploaded.PositionY = static_cast<float>(Held.Position.PositionY);
+        Uploaded.PositionZ = static_cast<float>(Held.Position.PositionZ);
 
         Narrowed.push_back(Uploaded);
     }
