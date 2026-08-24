@@ -41,7 +41,7 @@ Outcome<ActivatedWorkspaceScene> WorkspaceSceneActivation::Open(const std::strin
             ActivatedGeometryEntry Resolved;
             Resolved.Entry = Entry;
             if (Entry.GeometryReference == "Procedural/Floor")
-                Resolved.SourcePath = Entry.GeometryReference;
+                Resolved.SourcePath = (std::filesystem::path(EngineContentPath) / "GeometryArchives/WhiteTeaService/Floor.obj").string();
             else
             {
                 Resolved.SourcePath = (std::filesystem::path(EngineContentPath) / Entry.GeometryReference).lexically_normal().string();
