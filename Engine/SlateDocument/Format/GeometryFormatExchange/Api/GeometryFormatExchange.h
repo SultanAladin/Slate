@@ -22,7 +22,9 @@ struct GeometryFormatCapability
     bool ImportSupported = false;
     bool ExportSupported = false;
     bool PolygonFacesRetained = false;
+    bool NamedObjectsAndGroupsRetained = false;
     bool MaterialAssignmentsRetained = false;
+    bool MaterialDefinitionsRetained = false;
 };
 
 /// 🧩 Dispatches geometry streams to isolated format codecs and reports the exact capability standing.

@@ -7,6 +7,9 @@
 
 #include <cstddef>
 #include <cstring>
+#include <limits>
+#include <sstream>
+#include <unordered_map>
 
 #pragma warning(push, 0)
 #define FAST_OBJ_IMPLEMENTATION
@@ -88,6 +91,128 @@ unsigned long StreamSpanned(void* Stream, void* Reading)
     if (Held == nullptr || Held->Stream == nullptr) { return 0ul; }
 
     return static_cast<unsigned long>(Held->Stream->size());
+}
+
+std::string Trimmed(const std::string& Incoming)
+{
+    const std::size_t First = Incoming.find_first_not_of(" \t\r\n");
+    if (First == std::string::npos) return {};
+    const std::size_t Last = Incoming.find_last_not_of(" \t\r\n");
+    return Incoming.substr(First, Last - First + 1u);
+}
+
+/// 🧩 Retains OBJ's named face memberships and material spelling independently of the vendor's MTL loader.
+/// note  Group membership is many-to-many. Flattening it to one face-group ordinal would lose valid OBJ data.
+Outcome<bool> RetainWavefrontStructure(const std::vector<std::uint8_t>& Stream,
+                                      std::uint32_t ExpectedFaces,
+                                      DecodedTopology& Produced)
+{
+    std::string Physical(reinterpret_cast<const char*>(Stream.data()), Stream.size());
+    std::istringstream Lines(Physical);
+    std::string Logical;
+    std::string Line;
+    std::uint32_t FaceIndex = 0u;
+    std::size_t ActiveObject = std::numeric_limits<std::size_t>::max();
+    std::vector<std::size_t> ActiveGroups;
+    std::unordered_map<std::string, std::size_t> GroupByName;
+    std::unordered_map<std::string, std::uint32_t> MaterialByName;
+    Produced.MaterialNames.push_back({}); // ordinal zero is the source's undeclared/default material
+    MaterialByName.emplace(std::string{}, 0u);
+    std::uint32_t ActiveMaterial = 0u;
+
+    const auto Consume = [&](const std::string& Statement) -> bool
+    {
+        std::string WithoutComment = Statement;
+        const std::size_t Comment = WithoutComment.find('#');
+        if (Comment != std::string::npos) WithoutComment.erase(Comment);
+        WithoutComment = Trimmed(WithoutComment);
+        if (WithoutComment.empty()) return true;
+
+        std::istringstream Tokens(WithoutComment);
+        std::string Directive;
+        Tokens >> Directive;
+        std::string Remainder;
+        std::getline(Tokens, Remainder);
+        Remainder = Trimmed(Remainder);
+
+        if (Directive == "o")
+        {
+            DecodedFaceSet Declared;
+            Declared.Name = Remainder;
+            Produced.ObjectMemberships.push_back(std::move(Declared));
+            ActiveObject = Produced.ObjectMemberships.size() - 1u;
+        }
+        else if (Directive == "g")
+        {
+            ActiveGroups.clear();
+            std::istringstream Names(Remainder);
+            std::string Name;
+            while (Names >> Name)
+            {
+                if (Name == "off") continue;
+                const auto Found = GroupByName.find(Name);
+                if (Found != GroupByName.end())
+                {
+                    ActiveGroups.push_back(Found->second);
+                    continue;
+                }
+                DecodedFaceSet Declared;
+                Declared.Name = Name;
+                Produced.GroupMemberships.push_back(std::move(Declared));
+                const std::size_t Index = Produced.GroupMemberships.size() - 1u;
+                GroupByName.emplace(Name, Index);
+                ActiveGroups.push_back(Index);
+            }
+        }
+        else if (Directive == "usemtl")
+        {
+            const auto Found = MaterialByName.find(Remainder);
+            if (Found != MaterialByName.end())
+                ActiveMaterial = Found->second;
+            else
+            {
+                ActiveMaterial = static_cast<std::uint32_t>(Produced.MaterialNames.size());
+                Produced.MaterialNames.push_back(Remainder);
+                MaterialByName.emplace(Remainder, ActiveMaterial);
+            }
+        }
+        else if (Directive == "f")
+        {
+            if (FaceIndex >= ExpectedFaces) return false;
+            if (ActiveObject != std::numeric_limits<std::size_t>::max())
+                Produced.ObjectMemberships[ActiveObject].Faces.push_back(FaceIndex);
+            for (const std::size_t Group : ActiveGroups)
+                Produced.GroupMemberships[Group].Faces.push_back(FaceIndex);
+            Produced.MaterialRegistration.push_back(ActiveMaterial);
+            ++FaceIndex;
+        }
+        return true;
+    };
+
+    while (std::getline(Lines, Line))
+    {
+        if (!Line.empty() && Line.back() == '\r') Line.pop_back();
+        const std::string Stripped = Trimmed(Line);
+        const bool Continued = !Stripped.empty() && Stripped.back() == '\\';
+        if (Continued)
+            Logical += Stripped.substr(0u, Stripped.size() - 1u) + " ";
+        else
+        {
+            Logical += Line;
+            if (!Consume(Logical))
+                return Outcome<bool>::Refuse(
+                    { RefusalReason::ContentUnsupported, "OBJ face membership does not match decoded topology" });
+            Logical.clear();
+        }
+    }
+    if (!Logical.empty() && !Consume(Logical))
+        return Outcome<bool>::Refuse(
+            { RefusalReason::ContentUnsupported, "OBJ face membership does not match decoded topology" });
+
+    if (FaceIndex != ExpectedFaces)
+        return Outcome<bool>::Refuse(
+            { RefusalReason::ContentUnsupported, "OBJ face membership does not match decoded topology" });
+    return Outcome<bool>::Result(true);
 }
 
 /// 🧩 Whether an origin's suffix matches one declared spelling, compared without regard to case.
@@ -271,8 +396,6 @@ Outcome<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, cons
         }
 
         Produced.Faces.push_back(CornerVertices);
-        Produced.MaterialRegistration.push_back(static_cast<std::uint32_t>(Parsed->face_materials[FaceIndex]));
-
         CornerIndex += CornerCount;
     }
 
@@ -302,6 +425,14 @@ Outcome<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, cons
     // 📝 A tangent basis is never derived here. `38` §4 derives one where the source supplied none, and a
     //    derived basis incoming through a codec would be indistinguishable from an authored one — which is
     //    precisely the distinction `TopologyStructure::DeclareTangentBases` exists to keep.
+
+    const Outcome<bool> StructureRetained =
+        RetainWavefrontStructure(Stream, static_cast<std::uint32_t>(Parsed->face_count), Produced);
+    if (!StructureRetained.Resolved)
+    {
+        fast_obj_destroy(Parsed);
+        return Outcome<DecodedTopology>::Refuse(StructureRetained.Error);
+    }
 
     Produced.OriginPath        = OriginPath;
     Produced.UnitScale         = 1.0;

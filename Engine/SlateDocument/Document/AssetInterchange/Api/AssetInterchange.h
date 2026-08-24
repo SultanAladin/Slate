@@ -22,13 +22,20 @@ namespace Slate
 //                                                  WHAT A CODEC HANDS OVER
 //------------------------------------------------------------------------------------------------------------------------
 
+/// 🧩 One source-named object or group and the exact source face ordinals belonging to it.
+/// note  A face may belong to several groups, so membership is a set rather than one lossy group index.
+struct DecodedFaceSet
+{
+    std::string Name = {};
+    std::vector<std::uint32_t> Faces = {};
+};
+
 /// 🧩 A decoded topology, faithful to the source and repaired in no respect.
 /// note  🔴 `50` §2 ①: intake **never repairs**. `38`'s non-mutation rule begins here — a codec that welds
 ///        vertices, reverses winding or drops a degenerate face has produced a specification that no longer
 ///        describes the file the artist supplied, and `38`'s guarantee that an index means the same thing
 ///        afterwards is broken before `38` has run.
-/// note  🚧 `10` §1's `TopologyCodec` is unbuilt, so this arrives already decoded — the same shape
-///        `VectorInterchange` takes an `OutlineSpecification` in. The codec fills it; nothing here parses.
+/// note  `TopologyCodec` fills this handover shape. Document intake consumes it and parses no file format.
 /// tag   owning
 struct DecodedTopology
 {
@@ -37,7 +44,10 @@ struct DecodedTopology
     std::vector<DomainCoordinate>            CornerCoordinates  = {};      // [-]  - empty where absent
     std::vector<SurfaceDirection>            Perpendiculars     = {};      // [-]  - empty where absent
     std::vector<TangentBasis>                TangentBases       = {};      // [-]  - empty where absent
-    std::vector<std::uint32_t>               MaterialRegistration = {};      // [-]  - empty where absent
+    std::vector<std::uint32_t>               MaterialRegistration = {};      // [-]  - material ordinal per face
+    std::vector<std::string>                 MaterialNames      = {};      // [-]  - source spelling by ordinal
+    std::vector<DecodedFaceSet>              ObjectMemberships  = {};      // [-]  - source object face sets
+    std::vector<DecodedFaceSet>              GroupMemberships   = {};      // [-]  - overlapping source group face sets
     std::vector<std::string>                 UnsupportedNamed   = {};      // [-]  - constructs that will not survive
     std::string                              OriginPath         = {};      // [-]  - where it was read from
     double                                   UnitScale          = 1.0;     // [-]  - applied once, at intake

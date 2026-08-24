@@ -37,7 +37,13 @@ Outcome<GeometryIdentity> GeometryInterchange::AcceptDecoded(const DecodedTopolo
     Registered.Topology = std::move(Topology);
     Registered.Conditioning = std::move(Conditioning);
     Registered.Name = Name;
-    Registered.OriginPath = Decoded.OriginPath;
+    Registered.SourceRecord.OriginPath = Decoded.OriginPath;
+    Registered.SourceRecord.MaterialNames = Decoded.MaterialNames;
+    Registered.SourceRecord.ObjectMemberships = Decoded.ObjectMemberships;
+    Registered.SourceRecord.GroupMemberships = Decoded.GroupMemberships;
+    Registered.SourceRecord.UnsupportedNamed = Decoded.UnsupportedNamed;
+    Registered.SourceRecord.UnitScale = Decoded.UnitScale;
+    Registered.SourceRecord.UnitScaleDeclared = Decoded.UnitScaleDeclared;
     Registered.Occupied = true;
     if (Registered.Generation == 0u) Registered.Generation = 1u;
     ++OccupiedCount;
@@ -61,7 +67,7 @@ Outcome<GeometryAssetView> GeometryInterchange::Resolve(GeometryIdentity Subject
     Delivered.Topology = Registered.Topology.get();
     Delivered.Conditioning = Registered.Conditioning.get();
     Delivered.Name = &Registered.Name;
-    Delivered.OriginPath = &Registered.OriginPath;
+    Delivered.SourceRecord = &Registered.SourceRecord;
     return Outcome<GeometryAssetView>::Result(Delivered);
 }
 
@@ -76,7 +82,7 @@ Outcome<bool> GeometryInterchange::Retire(GeometryIdentity Subject)
     Registered.Topology.reset();
     Registered.Conditioning.reset();
     Registered.Name.clear();
-    Registered.OriginPath.clear();
+    Registered.SourceRecord = GeometrySourceRecord{};
     Registered.Occupied = false;
     ++Registered.Generation;
     if (Registered.Generation == 0u) Registered.Generation = 1u;
@@ -97,7 +103,7 @@ void GeometryInterchange::Reclaim()
         Registered.Topology.reset();
         Registered.Conditioning.reset();
         Registered.Name.clear();
-        Registered.OriginPath.clear();
+        Registered.SourceRecord = GeometrySourceRecord{};
         Registered.Occupied = false;
         ++Registered.Generation;
         if (Registered.Generation == 0u) Registered.Generation = 1u;

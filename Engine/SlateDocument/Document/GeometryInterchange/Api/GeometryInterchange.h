@@ -18,13 +18,25 @@
 namespace Slate
 {
 
+/// 🧩 Source facts retained beside authoritative topology rather than inferred again at export.
+struct GeometrySourceRecord
+{
+    std::string OriginPath = {};
+    std::vector<std::string> MaterialNames = {};
+    std::vector<DecodedFaceSet> ObjectMemberships = {};
+    std::vector<DecodedFaceSet> GroupMemberships = {};
+    std::vector<std::string> UnsupportedNamed = {};
+    double UnitScale = 1.0;
+    bool UnitScaleDeclared = false;
+};
+
 struct GeometryAssetView
 {
     GeometryIdentity Identity = {};
     const TopologyStructure* Topology = nullptr;
     const TopologyConditioning* Conditioning = nullptr;
     const std::string* Name = nullptr;
-    const std::string* OriginPath = nullptr;
+    const GeometrySourceRecord* SourceRecord = nullptr;
 };
 
 /// 🧩 Registers faithful decoded geometry atomically, derives immutable companions, and issues stable identities.
@@ -47,7 +59,7 @@ private:
         std::unique_ptr<TopologyStructure> Topology;
         std::unique_ptr<TopologyConditioning> Conditioning;
         std::string Name;
-        std::string OriginPath;
+        GeometrySourceRecord SourceRecord;
         std::uint32_t Generation = 1u;
         bool Occupied = false;
     };

@@ -16,7 +16,10 @@ GeometryFormatCapability GeometryFormatExchange::Capability(const std::string& O
         Reported.ImportSupported = true;
         Reported.ExportSupported = false;
         Reported.PolygonFacesRetained = true;
+        Reported.NamedObjectsAndGroupsRetained = true;
         Reported.MaterialAssignmentsRetained = true;
+        // This stream-only overload cannot safely follow an OBJ's external mtllib path.
+        Reported.MaterialDefinitionsRetained = false;
     }
     return Reported;
 }

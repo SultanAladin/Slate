@@ -32,22 +32,39 @@ int main()
         "v  1 0 -1\n"
         "v  1 0  1\n"
         "v -1 0  1\n"
+        "g Surface Collision\n"
         "usemtl White\n"
-        "f 1 2 3 4\n";
+        "f 1 2 3 4\n"
+        "g Surface\n"
+        "usemtl Black\n"
+        "f 4 3 2 1\n";
     const std::vector<std::uint8_t> Bytes(Quad, Quad + std::char_traits<char>::length(Quad));
 
     GeometryFormatExchange Formats;
     const GeometryFormatCapability Capability = Formats.Capability("quad.obj");
-    Passed &= Require(Capability.ImportSupported && Capability.PolygonFacesRetained,
-                      "GeometryFormatExchange reports faithful OBJ polygon import");
-    Passed &= Require(!Capability.ExportSupported,
-                      "unsupported OBJ export is reported rather than simulated");
+    Passed &= Require(Capability.ImportSupported && Capability.PolygonFacesRetained &&
+                      Capability.NamedObjectsAndGroupsRetained && Capability.MaterialAssignmentsRetained,
+                      "GeometryFormatExchange reports faithful OBJ polygon and source-structure import");
+    Passed &= Require(!Capability.ExportSupported && !Capability.MaterialDefinitionsRetained,
+                      "unsupported export and unavailable external material definitions are reported truthfully");
 
     const Outcome<DecodedTopology> Decoded = Formats.Decode(Bytes, "quad.obj");
-    Passed &= Require(Decoded.Resolved && Decoded.Resolve().Faces.size() == 1u &&
+    Passed &= Require(Decoded.Resolved && Decoded.Resolve().Faces.size() == 2u &&
                       Decoded.Resolve().Faces[0].size() == 4u,
-                      "the format exchange retains the imported quad rather than triangulating it");
+                      "the format exchange retains imported quads rather than triangulating them");
     if (!Decoded.Resolved) return 1;
+    Passed &= Require(Decoded.Resolve().MaterialNames.size() == 3u &&
+                      Decoded.Resolve().MaterialNames[1] == "White" &&
+                      Decoded.Resolve().MaterialNames[2] == "Black" &&
+                      Decoded.Resolve().MaterialRegistration[0] == 1u &&
+                      Decoded.Resolve().MaterialRegistration[1] == 2u,
+                      "OBJ material spelling and per-face assignments survive without following mtllib paths");
+    Passed &= Require(Decoded.Resolve().ObjectMemberships.size() == 1u &&
+                      Decoded.Resolve().ObjectMemberships[0].Faces.size() == 2u &&
+                      Decoded.Resolve().GroupMemberships.size() == 2u &&
+                      Decoded.Resolve().GroupMemberships[0].Faces.size() == 2u &&
+                      Decoded.Resolve().GroupMemberships[1].Faces.size() == 1u,
+                      "overlapping OBJ object and group memberships retain exact face ordinals");
 
     GeometryInterchange Geometry;
     IntakeIndex Intake;
@@ -59,6 +76,10 @@ int main()
     Passed &= Require(View.Resolved && View.Resolve().Topology->FaceCornerCount(0u) == 4u &&
                       View.Resolve().Conditioning->ConditionedRevision() == View.Resolve().Topology->Revision(),
                       "authoritative polygons and derived companions share one revision");
+    Passed &= Require(View.Resolved && View.Resolve().SourceRecord != nullptr &&
+                      View.Resolve().SourceRecord->MaterialNames.size() == 3u &&
+                      View.Resolve().SourceRecord->GroupMemberships.size() == 2u,
+                      "GeometryInterchange owns source records for later export and diagnostics");
 
     const GeometryIdentity RetiredIdentity = Registered.Resolve();
     Passed &= Require(Geometry.Retire(RetiredIdentity).Resolved && !Geometry.Resolve(RetiredIdentity).Resolved,
