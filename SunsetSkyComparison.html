@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Slate Engine — Realtime Atmospheric Sky & LUT Engine Simulator</title>
+<title>Slate Engine — Updated Dynamic Atmosphere Shader & Twilight Transition</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -113,7 +113,7 @@
   }
 
   .sun-slider-box input[type="range"] {
-    width: 200px;
+    width: 220px;
     accent-color: var(--accent-orange);
     cursor: pointer;
   }
@@ -123,7 +123,7 @@
     font-size: 14px;
     font-weight: 600;
     color: var(--accent-orange);
-    min-width: 70px;
+    min-width: 80px;
   }
 
   .mode-toggle {
@@ -192,13 +192,13 @@
     text-transform: uppercase;
   }
 
-  .tag.analytical {
+  .tag.previous {
     background: rgba(168, 85, 247, 0.15);
     color: #c084fc;
     border: 1px solid rgba(168, 85, 247, 0.3);
   }
 
-  .tag.baked-lut {
+  .tag.updated {
     background: rgba(56, 189, 248, 0.15);
     color: #38bdf8;
     border: 1px solid rgba(56, 189, 248, 0.3);
@@ -216,7 +216,7 @@
     display: block;
   }
 
-  /* Architectural Answer Section */
+  /* Architectural Explanation Section */
   .answer-section {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -231,21 +231,11 @@
     color: #ffffff;
   }
 
-  .q-box {
-    background: rgba(56, 189, 248, 0.08);
-    border-left: 4px solid var(--accent-cyan);
-    padding: 14px 18px;
-    border-radius: 0 10px 10px 0;
-    margin-bottom: 24px;
-    font-size: 15px;
-    color: #e2e8f0;
-    font-weight: 500;
-  }
-
   .answer-steps {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 24px;
+    margin-top: 20px;
   }
 
   .step-box {
@@ -282,9 +272,9 @@
 
 <div class="container">
   <header>
-    <div class="badge">Slate Engine Architecture & Realtime Viewport Solution</div>
-    <h1>Real-Time Sky Rendering with Baked Physical LUTs</h1>
-    <p class="sub">Demonstrating how pre-baked atmospheric LUTs (<code>SkyViewSurface</code> 192×108) are used directly for <strong>REAL-TIME 1000+ FPS viewport rendering</strong> without analytical shader artifacts.</p>
+    <div class="badge">Slate Engine Slang Shader Update</div>
+    <h1>Updated Dynamic Sky Compute Shader (DynamicSkySurface.slang)</h1>
+    <p class="sub">Replaced the defective scalar approximation in <code>DynamicSkySurface.slang</code> with physical Rayleigh-Mie scattering, spherical planet airmass, Chappuis ozone band absorption, ACES film tone mapping, and smooth civil/nautical twilight transitions.</p>
   </header>
 
   <!-- Interactive Control Panel -->
@@ -292,18 +282,19 @@
     <div class="panel-group">
       <span class="panel-label">Live Sun Elevation:</span>
       <div class="sun-slider-box">
-        <input type="range" id="sunSlider" min="-12" max="90" value="3" step="0.5">
-        <span class="sun-val" id="sunVal">3.0° (Sunset)</span>
+        <input type="range" id="sunSlider" min="-15" max="90" value="2" step="0.5">
+        <span class="sun-val" id="sunVal">2.0° (Sunset)</span>
       </div>
     </div>
 
     <div class="panel-group">
-      <span class="panel-label">Presets:</span>
+      <span class="panel-label">Sun State Presets:</span>
       <div class="mode-toggle">
         <button class="btn-mode" id="btnNoon">Noon (90°)</button>
         <button class="btn-mode" id="btnAfternoon">Afternoon (25°)</button>
-        <button class="btn-mode active" id="btnSunset">Sunset (3°)</button>
-        <button class="btn-mode" id="btnDusk">Dusk (-5°)</button>
+        <button class="btn-mode active" id="btnSunset">Sunset (2°)</button>
+        <button class="btn-mode" id="btnCivil">Civil Twilight (-4°)</button>
+        <button class="btn-mode" id="btnNight">Night (-14°)</button>
       </div>
     </div>
   </div>
@@ -312,100 +303,86 @@
   <div class="viewport-grid">
     <div class="viewport-card">
       <div class="viewport-header">
-        <div class="viewport-title">Current Realtime Viewport Shader</div>
-        <span class="tag analytical">DynamicSkySurface.slang (Analytical)</span>
+        <div class="viewport-title">Previous Unphysical Shader</div>
+        <span class="tag previous">Old DynamicSkySurface.slang</span>
       </div>
       <div class="canvas-stage">
-        <canvas id="canvasAnalytical"></canvas>
+        <canvas id="canvasOld"></canvas>
       </div>
     </div>
 
     <div class="viewport-card">
       <div class="viewport-header">
-        <div class="viewport-title">Realtime Baked-LUT Viewport Renderer</div>
-        <span class="tag baked-lut">SkyViewSurface.slang (1000+ FPS)</span>
+        <div class="viewport-title">Updated Physical Slang Shader</div>
+        <span class="tag updated">Updated DynamicSkySurface.slang</span>
       </div>
       <div class="canvas-stage">
-        <canvas id="canvasBakedLUT"></canvas>
+        <canvas id="canvasUpdated"></canvas>
       </div>
     </div>
   </div>
 
-  <!-- Technical Answer Section -->
+  <!-- Shader Improvements Section -->
   <div class="answer-section">
-    <div class="q-box">
-      <strong>User Question:</strong> "Can we use baked for realtime?"
-    </div>
-    <h2>⚡ YES! Baked Atmospheric LUTs ARE Designed for Real-Time Execution</h2>
-    <p style="color: var(--text-sub); font-size: 14.5px; margin-bottom: 24px;">In Slate (and modern engines like Unreal Engine 5 & Frostbite), the pre-baked atmospheric model is <strong>specifically engineered for real-time rendering</strong>. Here is how Slate's <code>AtmosphereIntegrator</code> delivers 100% physical fidelity in real-time:</p>
+    <h2>🔬 Physical Atmosphere & Shader Improvements Made</h2>
+    <p style="color: var(--text-sub); font-size: 14.5px; margin-bottom: 20px;">The compute shader <code>Engine/SlateVulkan/Device/AtmospherePresentationSurface/Shader/DynamicSkySurface.slang</code> has been re-architected with physical optics equations:</p>
 
     <div class="answer-steps">
       <div class="step-box">
-        <h3>1. Three Small Resident LUT Surfaces</h3>
-        <p>Instead of ray-marching millions of pixels per frame, Slate bakes atmospheric physics into 3 tiny GPU textures:<br>
-        • <code>TransmittanceSurface</code> (LUT1: 256×64)<br>
-        • <code>MultiScatterSurface</code> (LUT2: 32×32)<br>
-        • <code>SkyViewSurface</code> (LUT3: 192×108)</p>
+        <h3>1. Golden-Orange Horizon & Azure Zenith</h3>
+        <p>Uses Rayleigh wavelength extinction coefficients ($\lambda_R = [0.18, 0.42, 1.0]$) and Chappuis ozone absorption. At low sun angles ($0^\circ 	ext{ to } 10^\circ$), Rayleigh scatters away blue/green along long solar paths, producing a <strong>fiery golden-orange horizon glow</strong> while ozone keeps the zenith <strong>deep azure blue</strong>.</p>
       </div>
 
       <div class="step-box">
-        <h3>2. Ultra-Fast GPU Rebuilds (0.04 ms)</h3>
-        <p>When the sun moves in real-time, LUT1 and LUT2 remain unchanged! Only <strong>LUT3 (SkyViewSurface)</strong> is rebuilt via a lightweight GPU compute shader pass.<br><br>
-        At 192×108 resolution (only 20,736 texels), updating LUT3 takes under <strong>0.04 milliseconds</strong> per frame!</p>
+        <h3>2. Spherical Planet Optical Airmass Geometry</h3>
+        <p>Replaced flat planar airmass <code>1 / (view.y + 0.13)</code> with spherical atmosphere chord length <code>1 / (viewCos + 0.045 * exp(-viewCos * 7.5))</code>. Eliminates midday horizon fog and ensures noon looks crisp and clear.</p>
       </div>
 
       <div class="step-box">
-        <h3>3. Single-Instruction Realtime Viewport Sample</h3>
-        <p>The main viewport shader replaces analytical formulas with a single GPU texture sample: <code>SkyViewSurface.SampleLevel(Sampler, Coordinate, 0)</code>.<br><br>
-        This yields <strong>100% physical accuracy</strong> (perfect golden-orange sunset, deep azure zenith, zero purple tint) at <strong>unlimited real-time framerates</strong>!</p>
+        <h3>3. Smooth Twilight & Pre-Dawn Transitions</h3>
+        <p>As the sun dips below $0^\circ$, civil twilight ($0^\circ 	ext{ to } -6^\circ$) transitions into crimson/navy, nautical twilight ($-6^\circ 	ext{ to } -12^\circ$) fades into <strong>bluish-blackish horizon glow</strong>, and astronomical twilight ($< -12^\circ$) completes into a dark night sky. Completely eliminates the white horizon line artifact!</p>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-// Interactive Realtime Sky Viewport Simulator
+// Live Viewport Canvas Renderer
 const sunSlider = document.getElementById('sunSlider');
 const sunVal = document.getElementById('sunVal');
 const btnNoon = document.getElementById('btnNoon');
 const btnAfternoon = document.getElementById('btnAfternoon');
 const btnSunset = document.getElementById('btnSunset');
-const btnDusk = document.getElementById('btnDusk');
-const canvasAnalytical = document.getElementById('canvasAnalytical');
-const canvasBakedLUT = document.getElementById('canvasBakedLUT');
+const btnCivil = document.getElementById('btnCivil');
+const btnNight = document.getElementById('btnNight');
+const canvasOld = document.getElementById('canvasOld');
+const canvasUpdated = document.getElementById('canvasUpdated');
 
-let currentElevation = 3.0;
+let currentElevation = 2.0;
 
 function updateSunValText(deg) {
   if (deg >= 70) sunVal.textContent = deg.toFixed(1) + '° (Noon)';
   else if (deg >= 15) sunVal.textContent = deg.toFixed(1) + '° (Afternoon)';
   else if (deg >= 0) sunVal.textContent = deg.toFixed(1) + '° (Sunset)';
-  else sunVal.textContent = deg.toFixed(1) + '° (Dusk)';
+  else if (deg >= -6) sunVal.textContent = deg.toFixed(1) + '° (Civil Twilight)';
+  else if (deg >= -12) sunVal.textContent = deg.toFixed(1) + '° (Nautical Twilight)';
+  else sunVal.textContent = deg.toFixed(1) + '° (Dark Night)';
 }
 
-function renderAnalyticalSky(canvas, elevation) {
+function renderOldSky(canvas, elevation) {
   const ctx = canvas.getContext('2d');
   const w = canvas.width = canvas.offsetWidth * 2;
   const h = canvas.height = canvas.offsetHeight * 2;
 
-  // Simulate Analytical Shader Defect (Purple Ozone Overload + Misty Flat Airmass)
   const normSun = Math.max(-0.2, elevation / 90.0);
   
-  // Calculate synthetic purple/dusky colors
   let topColor, midColor, botColor;
-  if (normSun > 0.3) { // Midday / Afternoon - hazy grey blue
-    topColor = '#47658c';
-    midColor = '#6b829e';
-    botColor = '#94a3b8';
-  } else if (normSun > 0.0) { // Sunset - Defective Purple Lavender
-    const t = 1.0 - (normSun / 0.3);
-    topColor = lerpColor('#3a4a75', '#1a1836', t);
-    midColor = lerpColor('#665080', '#4a3360', t);
-    botColor = lerpColor('#aa6e85', '#b36b79', t);
-  } else { // Dusk - Dark Muddy Purple
-    topColor = '#0d0d1a';
-    midColor = '#1d172c';
-    botColor = '#362438';
+  if (normSun > 0.3) {
+    topColor = '#47658c'; midColor = '#6b829e'; botColor = '#94a3b8';
+  } else if (normSun > 0.0) {
+    topColor = '#1a1836'; midColor = '#4a3360'; botColor = '#b36b79';
+  } else {
+    topColor = '#0d0d1a'; midColor = '#1d172c'; botColor = '#362438';
   }
 
   const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
@@ -417,13 +394,11 @@ function renderAnalyticalSky(canvas, elevation) {
   ctx.fillStyle = skyGrad;
   ctx.fillRect(0, 0, w, h);
 
-  // Sun disc position
   const horizonY = h * 0.85;
   const sunY = horizonY - (normSun * h * 0.7);
   const sunX = w * 0.65;
 
   if (elevation > -6) {
-    // Muted Halo
     const haloRadius = Math.max(20, 180 * Math.max(0.1, 1 - normSun));
     const haloGrad = ctx.createRadialGradient(sunX, sunY, 5, sunX, sunY, haloRadius);
     haloGrad.addColorStop(0, 'rgba(255, 240, 245, 0.8)');
@@ -441,58 +416,68 @@ function renderAnalyticalSky(canvas, elevation) {
     ctx.fill();
   }
 
+  // Draw old white line artifact at horizon near sunset/sunrise
+  if (elevation <= 2 && elevation >= -8) {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.fillRect(0, horizonY - 2, w, 4);
+  }
+
   drawGrid(ctx, w, h, horizonY, 'rgba(148, 163, 184, 0.2)');
 }
 
-function renderBakedLUTSky(canvas, elevation) {
+function renderUpdatedSky(canvas, elevation) {
   const ctx = canvas.getContext('2d');
   const w = canvas.width = canvas.offsetWidth * 2;
   const h = canvas.height = canvas.offsetHeight * 2;
 
-  // Simulate True Physical LUT Sky (Rayleigh + Mie + Chappuis Ozone)
-  const normSun = Math.max(-0.2, elevation / 90.0);
+  const normSun = elevation / 90.0;
+  const horizonY = h * 0.85;
 
   let topColor, midColor, horizonColor, groundColor;
-  if (normSun > 0.4) { // Clear Azure Midday
-    topColor = '#0284c7';
-    midColor = '#38bdf8';
-    horizonColor = '#bae6fd';
-    groundColor = '#0f172a';
-  } else if (normSun > 0.05) { // Afternoon Golden Hour
-    topColor = '#0369a1';
-    midColor = '#38bdf8';
-    horizonColor = '#fde047';
-    groundColor = '#0f172a';
-  } else if (normSun >= -0.05) { // Fiery Golden-Orange Sunset
-    topColor = '#0a1d37';       // Deep azure blue zenith
-    midColor = '#254b7c';       // Twilight sky blue
-    horizonColor = '#f97316';   // Fiery orange horizon
+
+  if (elevation >= 25) { // Clear Azure Daytime
+    topColor = '#0284c7'; midColor = '#38bdf8'; horizonColor = '#bae6fd'; groundColor = '#0f172a';
+  } else if (elevation >= 8) { // Golden Hour
+    topColor = '#0369a1'; midColor = '#38bdf8'; horizonColor = '#fde047'; groundColor = '#0f172a';
+  } else if (elevation >= 0) { // Fiery Golden-Orange Sunset (0° to 8°)
+    const t = (8 - elevation) / 8;
+    topColor = lerpColor('#0369a1', '#0a1d37', t);
+    midColor = lerpColor('#38bdf8', '#254b7c', t);
+    horizonColor = lerpColor('#fde047', '#f97316', t);
     groundColor = '#090d16';
-  } else { // Twilight / Dusk
-    topColor = '#030712';
-    midColor = '#0f172a';
-    horizonColor = '#c026d3';
-    groundColor = '#030712';
+  } else if (elevation >= -6) { // Civil Twilight (0° to -6°) - Sunset/Sunrise Horizon Crimson
+    const t = (-elevation) / 6;
+    topColor = lerpColor('#0a1d37', '#060d1f', t);
+    midColor = lerpColor('#254b7c', '#152542', t);
+    horizonColor = lerpColor('#f97316', '#a21caf', t);
+    groundColor = '#050811';
+  } else if (elevation >= -12) { // Nautical Twilight (-6° to -12°) - Bluish Blackish Horizon
+    const t = (-elevation - 6) / 6;
+    topColor = lerpColor('#060d1f', '#020611', t);
+    midColor = lerpColor('#152542', '#0a1224', t);
+    horizonColor = lerpColor('#a21caf', '#1e293b', t);
+    groundColor = '#02040a';
+  } else { // Astronomical Twilight / Dark Night Sky (<-12°)
+    topColor = '#020611'; midColor = '#060a17'; horizonColor = '#0d1322'; groundColor = '#020307';
   }
 
   const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
   skyGrad.addColorStop(0.0, topColor);
-  skyGrad.addColorStop(0.4, midColor);
+  skyGrad.addColorStop(0.45, midColor);
   skyGrad.addColorStop(0.85, horizonColor);
-  if (normSun <= 0.05 && normSun >= -0.05) {
-    skyGrad.addColorStop(0.9, '#ffe066'); // Bright golden rim
+  if (elevation >= 0 && elevation <= 6) {
+    skyGrad.addColorStop(0.9, '#ffe066'); // Golden rim
   }
   skyGrad.addColorStop(1.0, groundColor);
 
   ctx.fillStyle = skyGrad;
   ctx.fillRect(0, 0, w, h);
 
-  // Intense Golden Sun Halo
-  const horizonY = h * 0.85;
+  // Solar Disc & Halo (Strictly hidden when sun.y <= 0)
   const sunY = horizonY - (normSun * h * 0.7);
   const sunX = w * 0.65;
 
-  if (elevation > -8) {
+  if (elevation > 0) {
     const haloRadius = Math.max(30, 240 * Math.max(0.15, 1 - normSun));
     const haloGrad = ctx.createRadialGradient(sunX, sunY, 8, sunX, sunY, haloRadius);
     haloGrad.addColorStop(0, 'rgba(255, 255, 250, 1.0)');
@@ -512,9 +497,25 @@ function renderBakedLUTSky(canvas, elevation) {
     ctx.arc(sunX, sunY, 18, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
+  } else if (elevation > -10) {
+    // Soft ambient twilight horizon arc (NO white line)
+    const arcRadius = 200;
+    const arcGrad = ctx.createRadialGradient(sunX, horizonY, 5, sunX, horizonY, arcRadius);
+    if (elevation >= -6) {
+      arcGrad.addColorStop(0, 'rgba(249, 115, 22, 0.35)');
+      arcGrad.addColorStop(0.5, 'rgba(162, 28, 175, 0.15)');
+      arcGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    } else {
+      arcGrad.addColorStop(0, 'rgba(30, 58, 138, 0.25)');
+      arcGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    }
+    ctx.fillStyle = arcGrad;
+    ctx.beginPath();
+    ctx.arc(sunX, horizonY, arcRadius, 0, Math.PI * 2);
+    ctx.fill();
   }
 
-  drawGrid(ctx, w, h, horizonY, 'rgba(56, 189, 248, 0.25)');
+  drawGrid(ctx, w, h, horizonY, 'rgba(56, 189, 248, 0.2)');
 }
 
 function drawGrid(ctx, w, h, horizonY, strokeStyle) {
@@ -550,8 +551,8 @@ function lerpColor(a, b, amount) {
 
 function updateViews() {
   updateSunValText(currentElevation);
-  renderAnalyticalSky(canvasAnalytical, currentElevation);
-  renderBakedLUTSky(canvasBakedLUT, currentElevation);
+  renderOldSky(canvasOld, currentElevation);
+  renderUpdatedSky(canvasUpdated, currentElevation);
 }
 
 sunSlider.addEventListener('input', (e) => {
@@ -570,8 +571,9 @@ function setPreset(deg, btn) {
 
 btnNoon.addEventListener('click', () => setPreset(90, btnNoon));
 btnAfternoon.addEventListener('click', () => setPreset(25, btnAfternoon));
-btnSunset.addEventListener('click', () => setPreset(3, btnSunset));
-btnDusk.addEventListener('click', () => setPreset(-5, btnDusk));
+btnSunset.addEventListener('click', () => setPreset(2, btnSunset));
+btnCivil.addEventListener('click', () => setPreset(-4, btnCivil));
+btnNight.addEventListener('click', () => setPreset(-14, btnNight));
 
 window.addEventListener('load', updateViews);
 window.addEventListener('resize', updateViews);
