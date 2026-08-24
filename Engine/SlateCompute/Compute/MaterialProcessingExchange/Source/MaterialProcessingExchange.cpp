@@ -5,6 +5,7 @@
 #include "SlateCompute/Compute/MaterialProcessingExchange/Api/MaterialProcessingExchange.h"
 
 #include <algorithm>
+#include <cstring>
 
 namespace Slate
 {
@@ -37,6 +38,99 @@ ChannelSpecification Colour(double Red, double Green, double Blue)
     Declared.LowerMagnitude = 0.0;
     Declared.UpperMagnitude = 1.0;
     return Declared;
+}
+
+constexpr std::uint64_t HashSeed = 1469598103934665603ull;
+constexpr std::uint64_t HashPrime = 1099511628211ull;
+
+void HashBytes(std::uint64_t& Hash, const void* Data, std::size_t Span)
+{
+    const auto* Bytes = static_cast<const unsigned char*>(Data);
+    for (std::size_t ByteIndex = 0u; ByteIndex < Span; ++ByteIndex)
+    {
+        Hash ^= Bytes[ByteIndex];
+        Hash *= HashPrime;
+    }
+}
+
+template <typename ValueType>
+void HashValue(std::uint64_t& Hash, const ValueType& Value)
+{
+    HashBytes(Hash, &Value, sizeof(Value));
+}
+
+void HashColour(std::uint64_t& Hash, const ColourSpecification& Colour)
+{
+    HashValue(Hash, Colour.RedCoordinate);
+    HashValue(Hash, Colour.GreenCoordinate);
+    HashValue(Hash, Colour.BlueCoordinate);
+    HashValue(Hash, Colour.SpaceIdentity);
+}
+
+std::uint64_t HashChannel(const ChannelSpecification& Channel)
+{
+    std::uint64_t Hash = HashSeed;
+    HashValue(Hash, Channel.Source);
+    HashValue(Hash, Channel.Measured);
+    HashValue(Hash, Channel.ConstantScalar);
+    HashColour(Hash, Channel.ConstantColour);
+    HashValue(Hash, Channel.DefaultScalar);
+    HashColour(Hash, Channel.DefaultColour);
+    HashValue(Hash, Channel.LowerMagnitude);
+    HashValue(Hash, Channel.UpperMagnitude);
+    HashValue(Hash, Channel.ChannelDeclared);
+    return Hash;
+}
+
+void HashPainted(std::uint64_t& Hash, const PaintedContent& Painted)
+{
+    HashValue(Hash, Painted.ExtentTexels);
+    HashValue(Hash, Painted.ComponentCount);
+    const std::uint64_t TexelCount = static_cast<std::uint64_t>(Painted.Texels.size());
+    HashValue(Hash, TexelCount);
+    if (!Painted.Texels.empty())
+        HashBytes(Hash, Painted.Texels.data(), Painted.Texels.size() * sizeof(float));
+}
+
+void HashLayer(std::uint64_t& Hash, const MaterialProcessingLayerSnapshot& Snapshot)
+{
+    const LayerSpecification& Layer = Snapshot.Layer;
+    HashValue(Hash, Snapshot.Depth);
+    HashValue(Hash, Snapshot.Position);
+    HashValue(Hash, Layer.Identity.SlotIndex);
+    HashValue(Hash, Layer.Identity.SlotGeneration);
+    HashValue(Hash, Layer.Source);
+    HashValue(Hash, Layer.SourceIndex);
+    HashValue(Hash, Layer.NestedIndex);
+    HashValue(Hash, Layer.ChannelMask);
+    HashValue(Hash, Layer.Combination);
+    HashValue(Hash, Layer.Coverage.Source);
+    HashValue(Hash, Layer.Coverage.SourceIndex);
+    HashPainted(Hash, Layer.Coverage.Painted);
+    HashValue(Hash, Layer.Coverage.UniformStrength);
+    HashValue(Hash, Layer.Coverage.CoverageDeclared);
+    HashPainted(Hash, Layer.Painted);
+    const std::uint64_t NameLength = static_cast<std::uint64_t>(Layer.Name.size());
+    HashValue(Hash, NameLength);
+    HashBytes(Hash, Layer.Name.data(), Layer.Name.size());
+    HashValue(Hash, Layer.PresenceEnabled);
+    HashValue(Hash, Layer.Mandatory);
+    HashValue(Hash, Layer.ResampleOwed);
+}
+
+void CaptureLayers(const SurfaceLayerSequence& Sequence,
+                   std::uint32_t Depth,
+                   std::vector<MaterialProcessingLayerSnapshot>& Captured)
+{
+    const std::vector<LayerSpecification>& Entries = Sequence.Entries();
+    for (std::size_t Position = 0u; Position < Entries.size(); ++Position)
+    {
+        Captured.push_back({ Entries[Position], Depth, static_cast<std::uint32_t>(Position) });
+        if (Entries[Position].Source != LayerContentSource::NestedSequence) continue;
+
+        const Outcome<const SurfaceLayerSequence*> Nested = Sequence.Nested(Entries[Position].NestedIndex);
+        if (Nested.Resolved) CaptureLayers(*Nested.Resolve(), Depth + 1u, Captured);
+    }
 }
 }
 
@@ -131,6 +225,54 @@ Outcome<bool> MaterialProcessingExchange::DeclareColour(MaterialSpecification& M
     Amended.Source = ChannelSource::Constant;
     Amended.ConstantColour = Value;
     return Material.DeclareChannel(Channel, Amended);
+}
+
+MaterialProcessingSnapshot MaterialProcessingExchange::Capture(const MaterialSpecification& Material,
+                                                               const SurfaceLayerSequence& Layers) const
+{
+    MaterialProcessingSnapshot Captured;
+    Captured.Material = Material;
+    CaptureLayers(Layers, 0u, Captured.Layers);
+
+    Captured.DirtyKey.Reflectance = HashSeed;
+    const ReflectanceSelection Selected = Material.Reflectance();
+    HashValue(Captured.DirtyKey.Reflectance, Selected);
+
+    for (std::size_t ChannelIndex = 0u; ChannelIndex < MaterialProcessingDirtyKey::ChannelSpan; ++ChannelIndex)
+    {
+        const ChannelSubject Subject = static_cast<ChannelSubject>(ChannelIndex);
+        Captured.DirtyKey.Channels[ChannelIndex] = HashChannel(Material.Channel(Subject));
+    }
+
+    Captured.DirtyKey.Layers = HashSeed;
+    for (const MaterialProcessingLayerSnapshot& Layer : Captured.Layers)
+        HashLayer(Captured.DirtyKey.Layers, Layer);
+
+    Captured.DirtyKey.Combined = HashSeed;
+    HashValue(Captured.DirtyKey.Combined, Captured.DirtyKey.Reflectance);
+    for (std::uint64_t ChannelKey : Captured.DirtyKey.Channels)
+        HashValue(Captured.DirtyKey.Combined, ChannelKey);
+    HashValue(Captured.DirtyKey.Combined, Captured.DirtyKey.Layers);
+    return Captured;
+}
+
+MaterialProcessingDirtySet MaterialProcessingExchange::Compare(const MaterialProcessingSnapshot& Previous,
+                                                               const MaterialProcessingSnapshot& Current) const
+{
+    MaterialProcessingDirtySet Dirty;
+    Dirty.ReflectanceChanged = Previous.DirtyKey.Reflectance != Current.DirtyKey.Reflectance;
+    Dirty.LayersChanged = Previous.DirtyKey.Layers != Current.DirtyKey.Layers;
+    for (std::size_t ChannelIndex = 0u; ChannelIndex < MaterialProcessingDirtyKey::ChannelSpan; ++ChannelIndex)
+    {
+        if (Previous.DirtyKey.Channels[ChannelIndex] != Current.DirtyKey.Channels[ChannelIndex])
+            Dirty.ChannelMask |= 1u << static_cast<std::uint32_t>(ChannelIndex);
+    }
+    return Dirty;
+}
+
+MaterialProcessingCapabilities MaterialProcessingExchange::Capabilities() const
+{
+    return {};
 }
 
 } // namespace Slate

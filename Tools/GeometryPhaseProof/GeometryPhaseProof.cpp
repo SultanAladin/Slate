@@ -133,13 +133,31 @@ int main()
                       "the initial material is a white dielectric");
     Passed &= Require(!Layers.Withdraw(Base.Resolve()).Resolved,
                       "the mandatory base material layer cannot be removed");
+    const MaterialProcessingSnapshot InitialMaterial = Processing.Capture(Material, Layers);
+    Passed &= Require(InitialMaterial.Layers.size() == 1u &&
+                      Processing.Compare(InitialMaterial, Processing.Capture(Material, Layers)).Empty(),
+                      "immutable processing snapshots remain clean while document declarations are unchanged");
+
     Passed &= Require(Processing.DeclareScalar(Material, Layers, Base.Resolve(),
                                                ChannelSubject::Roughness, 0.2).Resolved &&
                       std::abs(Material.Channel(ChannelSubject::Roughness).ConstantScalar - 0.2) < 1.0e-12,
                       "material constants are edited through the base layer processing seam");
+    const MaterialProcessingSnapshot RoughMaterial = Processing.Capture(Material, Layers);
+    const MaterialProcessingDirtySet RoughDirty = Processing.Compare(InitialMaterial, RoughMaterial);
+    Passed &= Require(RoughDirty.ChannelMask == (1u << static_cast<std::uint32_t>(ChannelSubject::Roughness)) &&
+                      !RoughDirty.LayersChanged && !RoughDirty.ReflectanceChanged,
+                      "per-channel dirty keys isolate a roughness edit without rebuilding layer structure");
+
     Passed &= Require(Layers.DeclareName(Base.Resolve(), "Painted Steel").Resolved &&
                       Layers.Resolve(Base.Resolve()).Resolve()->Name == "Painted Steel",
                       "material layer names are editable document data");
+    const MaterialProcessingSnapshot NamedMaterial = Processing.Capture(Material, Layers);
+    const MaterialProcessingDirtySet NameDirty = Processing.Compare(RoughMaterial, NamedMaterial);
+    const MaterialProcessingCapabilities MaterialCapabilities = Processing.Capabilities();
+    Passed &= Require(NameDirty.ChannelMask == 0u && NameDirty.LayersChanged &&
+                      MaterialCapabilities.ImmutableSnapshots && MaterialCapabilities.ChannelDirtyKeys &&
+                      !MaterialCapabilities.LayerSequenceResolution && !MaterialCapabilities.DeviceProcessing,
+                      "layer-only dirtiness and unfinished processing capabilities are reported truthfully");
 
     std::fprintf(stderr, Passed ? "[done] Geometry Phase 2 foundation passed\n"
                                 : "[FAIL] Geometry Phase 2 foundation rejected\n");
