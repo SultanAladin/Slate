@@ -1,5 +1,7 @@
 # Geometry Workspace and Material Processing Plan
 
+> **Forward-plan note:** `UnifiedGeometryRenderingAndMaterialPlan.md` supersedes this document's material inventory, reflectance-selection structure, render order, and micro-rasterization decision. This document remains authoritative for geometry intake, topology, selection, gizmos, and deferred layer-processing detail where the unified plan does not replace it.
+
 ## Decision and scope
 
 Phase 2 should be named the **Geometry Workspace**. `GeometryInterchange` remains the narrower import/export conversion seam described in `PhysicsAndGeometryInterchangePlan.md`; it should not become the name of the entire editor, renderer, topology store, or material processor.
