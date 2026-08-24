@@ -1,9 +1,9 @@
 //============================================================================================================================================
-//                                                            TOPOLOGYCODEC.CPP
+//                                                            GEOMETRYCODEC.CPP
 //============================================================================================================================================
 // 🧩 `10` §1 — polygon streams translated exactly as the file wrote them, n-gons and degeneracies included.
 
-#include "SlateDocument/Format/TopologyCodec/Api/TopologyCodec.h"
+#include "SlateDocument/Format/GeometryCodec/Api/GeometryCodec.h"
 
 #include <cstddef>
 #include <cstring>
@@ -245,11 +245,11 @@ bool SuffixMatches(const std::string& OriginPath, const char* Suffix)
 //                                                  THE CLASSIFICATION
 //------------------------------------------------------------------------------------------------------------------------
 
-TopologyContentSubject ClassifyContent(const std::string& OriginPath)
+GeometryContentSubject ClassifyContent(const std::string& OriginPath)
 {
-    if (SuffixMatches(OriginPath, ".obj")) { return TopologyContentSubject::Wavefront; }
+    if (SuffixMatches(OriginPath, ".obj")) { return GeometryContentSubject::Wavefront; }
 
-    return TopologyContentSubject::Unrecognised;
+    return GeometryContentSubject::Unrecognised;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -258,7 +258,7 @@ TopologyContentSubject ClassifyContent(const std::string& OriginPath)
 
 Outcome<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, const std::string& OriginPath)
 {
-    if (ClassifyContent(OriginPath) == TopologyContentSubject::Unrecognised)
+    if (ClassifyContent(OriginPath) == GeometryContentSubject::Unrecognised)
     {
         return Outcome<DecodedTopology>::Refuse(
             { RefusalReason::ContentUnsupported, "the origin names no accepted polygon layout — `10` §1" });

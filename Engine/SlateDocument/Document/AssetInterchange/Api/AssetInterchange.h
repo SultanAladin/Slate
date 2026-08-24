@@ -35,7 +35,7 @@ struct DecodedFaceSet
 ///        vertices, reverses winding or drops a degenerate face has produced a specification that no longer
 ///        describes the file the artist supplied, and `38`'s guarantee that an index means the same thing
 ///        afterwards is broken before `38` has run.
-/// note  `TopologyCodec` fills this handover shape. Document intake consumes it and parses no file format.
+/// note  `GeometryCodec` fills this handover shape. Document intake consumes it and parses no file format.
 /// tag   owning
 struct DecodedTopology
 {

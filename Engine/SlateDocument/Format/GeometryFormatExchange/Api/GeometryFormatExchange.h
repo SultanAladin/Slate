@@ -7,7 +7,7 @@
 
 #include "Foundation/DeliveryOutcome.h"
 #include "SlateDocument/Document/AssetInterchange/Api/AssetInterchange.h"
-#include "SlateDocument/Format/TopologyCodec/Api/TopologyCodec.h"
+#include "SlateDocument/Format/GeometryCodec/Api/GeometryCodec.h"
 
 #include <cstdint>
 #include <string>
@@ -18,7 +18,7 @@ namespace Slate
 
 struct GeometryFormatCapability
 {
-    TopologyContentSubject Subject = TopologyContentSubject::Unrecognised;
+    GeometryContentSubject Subject = GeometryContentSubject::Unrecognised;
     bool ImportSupported = false;
     bool ExportSupported = false;
     bool PolygonFacesRetained = false;

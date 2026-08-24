@@ -1,5 +1,5 @@
 //============================================================================================================================================
-//                                                             TOPOLOGYCODEC.H
+//                                                             GEOMETRYCODEC.H
 //============================================================================================================================================
 // 🧩 `10` §1 — polygon streams translated exactly as the file wrote them, n-gons and degeneracies included.
 
@@ -27,7 +27,7 @@ namespace Slate
 /// note  🚧 `10` §5 leaves the shipped set open. A second layout is an entry here and a branch in the
 ///        translation; `DecodedTopology` does not change, because it is the handover shape for all of them.
 /// tag   guarantee
-enum class TopologyContentSubject : std::uint32_t
+enum class GeometryContentSubject : std::uint32_t
 {
     Unrecognised = 0u,   // [-] - the origin names no layout below
     Wavefront    = 1u,   // [-] - OBJ — corner runs of any count, in the file's own winding
@@ -43,7 +43,7 @@ enum class TopologyContentSubject : std::uint32_t
 /// out   Subject     [-]  Unrecognised where the suffix names no layout
 /// cost  ✔️
 /// tag   api, nonthrowing
-TopologyContentSubject ClassifyContent(const std::string& OriginPath);
+GeometryContentSubject ClassifyContent(const std::string& OriginPath);
 
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact,
                          PrecisionGuarantee::Exact);

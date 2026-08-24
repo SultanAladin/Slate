@@ -11,7 +11,7 @@ GeometryFormatCapability GeometryFormatExchange::Capability(const std::string& O
 {
     GeometryFormatCapability Reported;
     Reported.Subject = ClassifyContent(OriginPath);
-    if (Reported.Subject == TopologyContentSubject::Wavefront)
+    if (Reported.Subject == GeometryContentSubject::Wavefront)
     {
         Reported.ImportSupported = true;
         Reported.ExportSupported = false;
