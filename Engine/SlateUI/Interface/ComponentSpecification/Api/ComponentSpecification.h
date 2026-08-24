@@ -190,7 +190,7 @@ public:
     ~ComponentSpecification()                              = default;
 
     /// 🧩 Borrows the index, the surface and the appearance every control reads.
-    /// in    Interaction      [-]  the interaction index; borrowed and outlives this component
+    /// in    IncomingInteraction  [-]  the interaction index; borrowed and outlives this component
     /// in    Surface     [-]  the recording surface; borrowed and outlives this component
     /// in    Appearance  [-]  already resolved against the display scale; borrowed and outlives this
     /// out   Result     [-]  refuses with ContentUnsupported when a construction already stands

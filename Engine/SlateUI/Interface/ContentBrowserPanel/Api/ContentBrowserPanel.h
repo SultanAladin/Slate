@@ -191,7 +191,7 @@ public:
     static constexpr std::uint32_t RegistrationDemand = SourceLimit + LatticeLimit + ChromeLimit;
 
     /// 🧩 Reservations every identity the panel will ever arbitrate, once, before the first tick.
-    /// in    Interaction  [-]  borrowed; must outlive the panel
+    /// in    IncomingInteraction  [-]  borrowed; must outlive the panel
     /// in    Recording    [-]  borrowed; must outlive the panel
     /// out   Result      [-]  refuses with ContentUnsupported when a construction already stands, and
     ///                          carries the index's own refusal when a slot cannot be claimed
