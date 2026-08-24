@@ -133,6 +133,20 @@ Outcome<bool> GeometryDeviceExchange::ReclaimDisplay(std::uint32_t DisplayWidth,
     return Raster.Derive(DisplayWidth, DisplayHeight);
 }
 
+Outcome<std::uint32_t> GeometryDeviceExchange::Admit(const PartitionStructure&        Partitioned,
+                                                     const GeometryRenderingSnapshot& Rendering,
+                                                     std::uint32_t                     RegistrationBase,
+                                                     VkCommandBuffer                   Recorded)
+{
+    if (!Constructed || Recorded == VK_NULL_HANDLE)
+    {
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::CapabilityAbsent,
+                                                "the geometry device exchange does not stand" });
+    }
+
+    return Raster.Resolve(Partitioned, Rendering, RegistrationBase, nullptr, AbsentSpan, Recorded);
+}
+
 VisibilityRaster& GeometryDeviceExchange::Visibility()
 {
     return Raster;

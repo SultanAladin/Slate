@@ -55,6 +55,17 @@ public:
     /// pre   the device is idle; HostLifecycle has completed the recovery before this call
     Outcome<bool> ReclaimDisplay(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight);
 
+    /// 🧩 Makes one partitioned, authoritative Earcut packet device-resident through the supplied recording.
+    /// in    Partitioned      [-]  source-face partitioning for the packet's topology revision
+    /// in    Rendering        [-]  immutable corner-expanded Earcut packet
+    /// in    RegistrationBase [-]  document-wide first partition ordinal
+    /// in    Recorded         [-]  open recording that later surrenders the staging transfer
+    /// out   Result           [-]  the resident geometry ordinal
+    Outcome<std::uint32_t> Admit(const PartitionStructure&        Partitioned,
+                                 const GeometryRenderingSnapshot& Rendering,
+                                 std::uint32_t                     RegistrationBase,
+                                 VkCommandBuffer                   Recorded);
+
     /// 🧩 The authoritative hardware visibility raster, ready to receive a real decoded geometry packet.
     VisibilityRaster& Visibility();
 
