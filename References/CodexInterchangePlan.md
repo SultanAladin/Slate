@@ -98,8 +98,9 @@ dielectric material and transparent radiance outside resolved geometry, leaving 
 2. ✔️ Deliver profile-matched stream writing and recovery through `.new` and `.prior` complete-stream candidates.
    Append-only section replacement follows once changed-section writing reaches the file route.
 3. ◐ Deliver workspace, environment, material-reference, and nested-Codex sections. The typed workspace
-   interchange now carries independent Sun/Sky/Atmosphere figures, persisted scene placements, material
-   references, and complete embedded child Codex streams without importing SlateUI vocabulary. Typed pigment
-   surface content and linked-child records follow in this stage.
+   interchange carries independent Sun/Sky/Atmosphere figures, persisted scene placements, material references,
+   and complete embedded child Codex streams without importing SlateUI vocabulary. A focused `PINF` typed
+   pigment section now persists the shared fixed-white dielectric source without introducing unapproved image,
+   layer, transparency, or advanced-material processing. Linked-child records follow in this stage.
 4. Deliver the precise tea-service source geometry and UV content.
 5. Connect decoded geometry to authoritative rendering residency, fixed-white radiance, and actual viewport proof.
