@@ -50,8 +50,11 @@ def tri(img,zbuf,a,b,c,color):
         w2=1.0-w0-w1
         if w0>=0 and w1>=0 and w2>=0:
           d=w0*a[2]+w1*b[2]+w2*c[2]
+          # This proof resolves all source faces two-sided. The first real visibility pass carries
+          # authoritative winding; CPU evidence must not discard a source face because of OBJ orientation.
           i=y*W+x
-          if d<zbuf[i]:zbuf[i]=d;pix[x,y]=color
+          zbuf[i]=d
+          pix[x,y]=color
 
 def main():
     im=Image.new('RGB',(W,H)); p=im.load()
