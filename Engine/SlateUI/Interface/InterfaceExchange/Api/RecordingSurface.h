@@ -420,7 +420,7 @@ public:
     /// tag   api, nonthrowing
     std::uintptr_t RegisterSampledImage(VkSampler Sampler, VkImageView ImageView);
 
-    /// 🧩 Records one sampled image as a triangle mesh with PER-VERTEX texture coordinates, so a caller
+    /// 🧩 Records one sampled image as a triangle geometry with PER-VERTEX texture coordinates, so a caller
     ///    can warp the image — a perspective sky dome, a curved scrim — instead of the single quad
     ///    `Image` records.
     /// in    Identity      [-]  an opaque texture identity from `RegisterSampledImage`; zero records nothing
@@ -430,11 +430,11 @@ public:
     /// in    Indices       [-]  `IndexCount` triangle indices into the vertex runs
     /// in    IndexCount    [-]  a multiple of three; nothing is drawn otherwise
     /// note  🔴 The vertices are recorded into the open tick exactly as the quad is — white, clipped by
-    ///        the standing confine — so the mesh and the quad composite identically. The caller keeps
+    ///        the standing confine — so the geometry and the quad composite identically. The caller keeps
     ///        the runs alive only for the call.
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
-    void ImageMesh(std::uintptr_t Identity,
+    void ImageGeometry(std::uintptr_t Identity,
                    const float* Positions, const float* UVs, std::uint32_t VertexCount,
                    const std::uint32_t* Indices, std::uint32_t IndexCount);
 

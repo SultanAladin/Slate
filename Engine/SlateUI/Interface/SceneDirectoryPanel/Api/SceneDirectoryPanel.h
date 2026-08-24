@@ -20,6 +20,7 @@
 #include "SlateUI/Interface/ControlIndex/Api/ControlIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
+#include "SlateUI/Interface/OverflowScroll/Api/OverflowScroll.h"
 #include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectorySpecification.h"
 #include "SlateUI/Interface/SlidingPages/Api/SlidingPages.h"
 #include "SlateUI/Interface/SymbolSpecification/Api/SymbolSpecification.h"
@@ -339,6 +340,7 @@ private:
     std::uint32_t   TransferMotion  = 0u;   // [-] - format rail travel
     double          TransferFrom    = 0.0;
     double          TransferTarget  = 0.0;
+    OverflowScroll  TransferOverflow = {}; // [-] - shared vertical page overflow
 
     // 📐 Separate inner carousel slots for the outliner inspector and a dedicated properties leaf.
     std::uint32_t   InspectorMotion[2]   = {};   // [-] - eased Properties / Bookmarks travel

@@ -1,5 +1,5 @@
 //============================================================================================================================================
-//                                                     MESHINSTANCECOMPONENT.H
+//                                                     GEOMETRYINSTANCECOMPONENT.H
 //============================================================================================================================================
 
 #pragma once
@@ -12,7 +12,7 @@
 namespace Slate
 {
 
-struct MeshInstanceComponent
+struct GeometryInstanceComponent
 {
     GeometryIdentity Geometry = {};
     bool Visible = true;
@@ -25,7 +25,7 @@ struct MaterialAssignmentComponent
     std::vector<std::uint32_t> MaterialBySlot = {};
 };
 
-struct SourceProvenanceComponent
+struct SourceRecordComponent
 {
     std::uint64_t ContentHash = 0u;
     std::uint32_t FormatIdentity = 0u;

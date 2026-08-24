@@ -54,6 +54,7 @@
 #include "SlateUI/Interface/ControlIndex/Api/ControlIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
+#include "SlateUI/Interface/OverflowScroll/Api/OverflowScroll.h"
 #include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectorySpecification.h"
 #include "SlateUI/Interface/SlidingPages/Api/SlidingPages.h"
 #include "SlateUI/Interface/TexturePaintPanel/Api/TexturePaintSpecification.h"
@@ -448,6 +449,7 @@ private:
     std::uint32_t               ExportMotion[3] = {};    // [-] - format, resolution, and preset rails
     double                      ExportFrom[3] = {};
     double                      ExportTarget[3] = {};
+    OverflowScroll              ExportOverflow = {}; // [-] - shared vertical page overflow
 
     PointerCondition            Sampled = {};            // [-] - this tick's contact
     ModifierCondition           Modified = {};           // [-] - Command/Ctrl and Shift selection intent

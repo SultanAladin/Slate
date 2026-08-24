@@ -6,7 +6,7 @@ Phase 2 should be named the **Geometry Workspace**. `GeometryInterchange` remain
 
 This phase implements, in order:
 
-1. faithful geometry import with materials and provenance;
+1. faithful geometry import with materials and source records;
 2. editable CPU topology plus disposable GPU render geometry;
 3. shaded, triangulated-wire, and source-topology-wire viewport modes;
 4. depth-correct object/face/edge/vertex selection;
@@ -34,9 +34,9 @@ Application/EditorHost
 │   ├── EntityIdentity + parent relationship
 │   ├── optional TransformComponent
 │   ├── EmptyComponent
-│   ├── MeshInstanceComponent ───────────────┐
+│   ├── GeometryInstanceComponent ───────────────┐
 │   ├── MaterialAssignmentComponent          │
-│   └── SourceProvenanceComponent            │
+│   └── SourceRecordComponent            │
 │                                             │
 ├── Scene Directory / Details                 │
 │   ├── shared outliner registration          │
@@ -50,9 +50,9 @@ Application/EditorHost
 │   │   └── isolated format codec adapters     │
 │   └── GeometryInterchange                   │
 │       ├── DecodedScene / polygon soup       │
-│       ├── diagnostics + provenance          │
+│       ├── diagnostics + source records          │
 │       ├── half-edge derivation (CPU)        │
-│       ├── render-mesh derivation            │
+│       ├── render-geometry derivation            │
 │       └── entity-recipe transaction         │
 │                                             │
 ├── GeometryDocumentStore ◄───────────────────┘
@@ -119,7 +119,7 @@ A `GeometryAsset` owns CPU data and stable IDs:
 
 ```text
 GeometryAsset
-  identity, name, provenance
+  identity, name, source record
   SourcePolygonStore
   HalfEdgeStore
   AttributeStore
@@ -154,7 +154,7 @@ These mappings permit faithful source-wire display, face selection after triangu
 - `AttributeRevision`: normals, UVs, colours, weights, or custom values changed.
 - `MaterialAssignmentRevision`: slot bindings changed.
 
-Render meshes, meshlets, acceleration data, wire buffers, and physics meshes are disposable caches keyed by the revisions they consume.
+Render geometry, geometry clusters, acceleration data, wire buffers, and physics geometry are disposable caches keyed by the revisions they consume.
 
 ## Import and export path
 
@@ -198,7 +198,7 @@ Map standard metallic-roughness inputs into neutral channels:
 - Emissive
 - Opacity
 
-Retain source material identity, texture paths, UV-set names, sampler settings, and unsupported extensions in provenance/diagnostics. Packed maps retain channel swizzles rather than being destructively split on import.
+Retain source material identity, texture paths, UV-set names, sampler settings, and unsupported extensions in source records/diagnostics. Packed maps retain channel swizzles rather than being destructively split on import.
 
 ## Scene objects and Empty entities
 
@@ -210,7 +210,7 @@ EmptyComponent
   DisplaySize
   ColourRole
 
-MeshInstanceComponent
+GeometryInstanceComponent
   GeometryAssetIdentity
   MaterialAssignmentIdentity
   Visibility
@@ -221,11 +221,11 @@ MaterialAssignmentComponent
   material identity per geometry slot
 ```
 
-Transform remains optional. An Empty normally has a Transform and no render geometry. It can parent any entity and acts as a spawn/placement anchor. It is registered through the same general-purpose outliner as cameras, lights, folders, and mesh instances; no separate Empty tree is introduced.
+Transform remains optional. An Empty normally has a Transform and no render geometry. It can parent any entity and acts as a spawn/placement anchor. It is registered through the same general-purpose outliner as cameras, lights, folders, and geometry instances; no separate Empty tree is introduced.
 
 ### Initial object appearance
 
-Until the material resolver is integrated, imported mesh instances render as fully directional white dielectric:
+Until the material resolver is integrated, imported geometry instances render as fully directional white dielectric:
 
 ```text
 BaseColour = (1, 1, 1)
@@ -263,7 +263,7 @@ Per geometry cache:
 - triangle indices;
 - triangle-to-face mapping;
 - source-wire segment records;
-- optional meshlets and bounds;
+- optional geometry clusters and bounds;
 - optional deformation output streams later.
 
 Per instance:
@@ -556,7 +556,7 @@ Triangulated wire may be part of material resolve through barycentric coverage o
 
 All edits are commands:
 
-- create/delete/reparent Empty or mesh entity;
+- create/delete/reparent Empty or geometry entity;
 - transform entities;
 - select elements (selection history may remain UI-only);
 - change topology;
@@ -577,13 +577,13 @@ Commands mutate document state on its owning thread, increment revisions, and em
 - source ↔ half-edge ↔ triangle round-trip mappings;
 - unit/axis fixtures;
 - atomic failure leaves no entities/assets;
-- material and texture path provenance.
+- material and texture path source records.
 
 ### Rendering
 
 - fully white dielectric lit by the directional light;
 - shaded/triangulated-wire/source-wire reference images;
-- depth ordering with intersecting and clipped meshes;
+- depth ordering with intersecting and clipped geometry;
 - source wire excludes triangulation diagonals;
 - attachment resize/recovery;
 - GPU resource retirement under rapid import/delete.
@@ -622,10 +622,10 @@ Commands mutate document state on its owning thread, increment revisions, and em
 
 ### Geometry milestone A — document and import
 
-1. Define stable geometry IDs, `DecodedScene`, source polygon store, and provenance.
+1. Define stable geometry IDs, `DecodedScene`, source polygon store, and source records.
 2. Implement OBJ/MTL codec and atomic import transaction.
 3. Implement half-edge derivation and diagnostics without automatic repair.
-4. Add Mesh Instance, Material Assignment, Source Provenance, and Empty components.
+4. Add Geometry Instance, Material Assignment, Source Record, and Empty components.
 5. Register imported objects and Empty entities through the real Scene Directory.
 
 ### Geometry milestone B — rendering
@@ -661,7 +661,7 @@ Commands mutate document state on its owning thread, increment revisions, and em
 ## Explicit non-goals for the first Phase 2 delivery
 
 - no complete FBX/USD feature matrix;
-- no silent mesh repair;
+- no silent topology repair;
 - no complete sculpt/modifier system;
 - no complete Substance-style procedural library;
 - no CPU layer compositor;

@@ -43,7 +43,7 @@ class AtmospherePresentationSurface
 {
 public:
     // A direction-indexed radiance surface, independent of viewport extent. It is deliberately far smaller
-    // than the retired 2048x1152 CPU raster and is filtered by the viewport dome mesh.
+    // than the retired 2048x1152 CPU raster and is filtered by the viewport dome geometry.
     static constexpr std::uint32_t SkyWidth  = 1024u;
     static constexpr std::uint32_t SkyHeight = 512u;
 
@@ -57,7 +57,7 @@ public:
                                              ShaderCodec& Streams);
 
     /// Records a compute refresh only when Dirty is true. The surface is transitioned back to sampled layout
-    /// before the interface records its image mesh.
+    /// before the interface records its image geometry.
     Outcome<bool> Record(VkCommandBuffer Command, const DynamicSkyParameters& Parameters, bool Dirty);
 
     VkImageView View() const { return ImageViewSlot; }

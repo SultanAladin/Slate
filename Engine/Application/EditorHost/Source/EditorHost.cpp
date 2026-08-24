@@ -711,6 +711,9 @@ int main(int ArgumentCount, char** ArgumentValues)
             const PointerCondition& ForegroundPointer = Viewport.Surface().Pointer();
             const PlaneExtent NorthInterior = Viewport.Drawers().Interior(DrawerBearing::North);
             const PlaneExtent SouthInterior = Viewport.Drawers().Interior(DrawerBearing::South);
+            const bool ForegroundDrawerStanding =
+                (NorthInterior.MaximumY > 0.0f && NorthInterior.MinimumY < static_cast<float>(Pass.Height)) ||
+                (SouthInterior.MaximumY > 0.0f && SouthInterior.MinimumY < static_cast<float>(Pass.Height));
             const bool PointerBehindDrawer =
                 NorthInterior.Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY) ||
                 SouthInterior.Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY);
@@ -749,7 +752,7 @@ int main(int ArgumentCount, char** ArgumentValues)
 
             WorkspacePanels.Advance(BackgroundPointer, Pass.ElapsedMilliseconds);
 
-            // 📐 The fly camera is integrated BEFORE any leaf is recorded, so the sky mesh, the
+            // 📐 The fly camera is integrated BEFORE any leaf is recorded, so the sky geometry, the
             //    ground lattice and the gizmo are all projected through the SAME current-tick pose.
             //    The previous order advanced the camera AFTER recording, which left every overlay
             //    one frame behind the artist's input — the lattice and axes trailed the camera while
@@ -1240,8 +1243,9 @@ int main(int ArgumentCount, char** ArgumentValues)
             if (BrowserInterior.Width() > 0.0f && BrowserInterior.Height() > 0.0f)
             {
                 Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
-                Viewport.Surface().Ground(BrowserInterior, Viewport.Appearance().Colour.SurfaceCurrent,
-                                          0.0f, CornerNone);
+                ThemeToken DrawerGround = Viewport.Appearance().Colour.SurfaceCurrent;
+                DrawerGround.Opacity = 255u;
+                Viewport.Surface().Ground(BrowserInterior, DrawerGround, 0.0f, CornerNone);
                 ContentBrowser.RecordBrowser(BrowserInterior, ContentApplied, ContentBrowserApplied);
                 ContentBrowser.RecordDeferred();
 
@@ -1259,8 +1263,11 @@ int main(int ArgumentCount, char** ArgumentValues)
                                           ControlCentreValues.TypographyWeight);
             Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
             if (ControlInterior.Width() > 0.0f && ControlInterior.Height() > 0.0f)
-                Viewport.Surface().Ground(ControlInterior, Viewport.Appearance().Colour.SurfaceCurrent,
-                                          0.0f, CornerNone);
+            {
+                ThemeToken DrawerGround = Viewport.Appearance().Colour.SurfaceCurrent;
+                DrawerGround.Opacity = 255u;
+                Viewport.Surface().Ground(ControlInterior, DrawerGround, 0.0f, CornerNone);
+            }
             Discard(ControlCentre.Record(ControlInterior, ControlCentreValues));
 
             // UI Scaling was previously only a displayed Control Centre value. It now re-resolves the shared
@@ -1342,7 +1349,11 @@ int main(int ArgumentCount, char** ArgumentValues)
                 //    Each viewport leaf's geometry is uploaded at most once per generation change
                 //    and drawn with a scissor clipped to that leaf's box, so the overlay never
                 //    paints over the outliner, the properties or any other panel.
-                for (std::uint32_t ViewportIndex = 0u; ViewportIndex < ViewportLeafTally;
+                // The GPU overlay is recorded after the interface and therefore cannot be hidden by an
+                // ImGui ground. Suppress it while either opaque foreground drawer stands; otherwise the
+                // lattice would visibly cut through Control Centre and Content Browser pages.
+                for (std::uint32_t ViewportIndex = 0u;
+                     !ForegroundDrawerStanding && ViewportIndex < ViewportLeafTally;
                      ++ViewportIndex)
                 {
                     const std::uint32_t LeafIndex = ViewportLeafIndexs[ViewportIndex];

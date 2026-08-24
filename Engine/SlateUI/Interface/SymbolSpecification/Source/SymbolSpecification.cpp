@@ -656,7 +656,7 @@ constexpr SymbolFigure Roster[static_cast<std::uint32_t>(SymbolSubject::SubjectC
     /* InflatePush         */ Unresolved(SymbolDiscipline::Sculpting),
     /* SmoothRelax         */ Unresolved(SymbolDiscipline::Sculpting),
     /* MaskStencil         */ { MaskStencilSteps,    2u, SymbolDiscipline::Sculpting, DeclaredWeight, true },
-    /* RemeshDensity       */ Unresolved(SymbolDiscipline::Sculpting),
+    /* RetopologyDensity       */ Unresolved(SymbolDiscipline::Sculpting),
 
     /* UnwrapSeam          */ Unresolved(SymbolDiscipline::Texturing),
     /* PaintBristle        */ { PaintBristleSteps,   13u, SymbolDiscipline::Texturing, DeclaredWeight, true },
@@ -733,7 +733,7 @@ constexpr SymbolSubject DisciplineOrder[] =
     SymbolSubject::SketchPlane,         SymbolSubject::ConstraintDimension, SymbolSubject::FilletRadius,
     SymbolSubject::RevolveAxis,         SymbolSubject::LoftProfile,
     SymbolSubject::BristleTip,          SymbolSubject::InflatePush,         SymbolSubject::SmoothRelax,
-    SymbolSubject::MaskStencil,         SymbolSubject::RemeshDensity,
+    SymbolSubject::MaskStencil,         SymbolSubject::RetopologyDensity,
     SymbolSubject::UnwrapSeam,          SymbolSubject::PaintBristle,        SymbolSubject::MaterialSphere,
     SymbolSubject::ChannelSelect,       SymbolSubject::StencilProjection,
     SymbolSubject::SunDirectional,      SymbolSubject::LampPoint,           SymbolSubject::AreaEmitter,

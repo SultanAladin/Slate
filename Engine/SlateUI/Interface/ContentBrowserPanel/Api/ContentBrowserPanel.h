@@ -64,7 +64,7 @@ struct ContentBrowserMetric
 /// tag   guarantee
 enum class ContentArchive : std::uint32_t
 {
-    Topology     = 0u,   // [-] - CAT_INFO.mesh, "Meshes"
+    Topology     = 0u,   // [-] - CAT_INFO.topology, "Geometry"
     Draughting   = 1u,   // [-] - CAT_INFO.cad, "CAD"
     Arrangement  = 2u,   // [-] - CAT_INFO.scene, "Scenes"
     Material     = 3u,   // [-] - CAT_INFO.material, "Materials"

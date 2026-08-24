@@ -78,7 +78,7 @@ const char* ArchiveNaming(ContentArchive Archive)
 {
     switch (Archive)
     {
-        case ContentArchive::Topology:    return "Meshes";
+        case ContentArchive::Topology:    return "Geometry";
         case ContentArchive::Draughting:  return "CAD";
         case ContentArchive::Arrangement: return "Scenes";
         case ContentArchive::Material:    return "Materials";
@@ -139,7 +139,7 @@ void ApplyReferenceContent(ContentLibrary& Applying)
 
     Apply("Turbine_Housing_A",  "step",  48.2, "mech",    nullptr, ContentArchive::Draughting,  nullptr);
     Apply("Hangar_Interior",    "fbx",  214.9, "env",     "hero",  ContentArchive::Arrangement, nullptr);
-    Apply("Character_Base_Mesh","obj",   18.6, "char",    nullptr, ContentArchive::Topology,    nullptr);
+    Apply("Character_Base_Geometry","obj",   18.6, "char",    nullptr, ContentArchive::Topology,    nullptr);
     Apply("Polished_Copper",    "mat",    1.2, "metal",   nullptr, ContentArchive::Material,    "Metals");
     Apply("Brushed_Aluminium",  "mat",    2.1, "metal",   nullptr, ContentArchive::Material,    "Metals");
     Apply("Matte_Red_Plastic",  "mat",    0.5, "plastic", nullptr, ContentArchive::Material,    "Plastics");

@@ -207,7 +207,7 @@ A decoded scene is broader than the existing `DecodedTopology` and includes:
 - skeletons, joints, inverse-bind matrices, and skin weights;
 - animation clips and property tracks;
 - custom properties and namespaces;
-- units, axis conventions, handedness, and source provenance;
+- units, axis conventions, handedness, and source record;
 - retained extension payloads where safe round-trip preservation is possible.
 
 ### Geometry representations
@@ -286,7 +286,7 @@ Each stage records parameters and diagnostics. Import remains faithful unless th
 
 ### Triangulation
 
-Triangulation remains a boolean import/export option in the Scene Transfer UI because it is a single explicit operation. The chosen triangulator and its version should still be included in provenance when triangulation is enabled.
+Triangulation remains a boolean import/export option in the Scene Transfer UI because it is a single explicit operation. The chosen triangulator and its version should still be included in the source record when triangulation is enabled.
 
 Half-edge faces remain polygons. Triangles are derived for render/simulation consumers rather than replacing editable polygon faces by default.
 
@@ -343,10 +343,10 @@ After successful geometry intake, a scene builder creates entity recipes rather 
 ```text
 Entity: imported node
   optional TransformComponent
-  optional MeshInstanceComponent
+  optional GeometryInstanceComponent
   optional MaterialAssignmentComponent
   optional SkeletonComponent / SkinComponent
-  source provenance component
+  source record component
 ```
 
 Nothing is registered if validation fails partway through the transaction.

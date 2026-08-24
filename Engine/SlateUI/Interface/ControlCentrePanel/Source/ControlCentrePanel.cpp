@@ -348,6 +348,10 @@ Outcome<bool> ControlCentrePanel::Record(const PlaneExtent& Interior, ControlCen
     Theme.Secondary = Between(FromTheme.Secondary, ToTheme.Secondary, ThemeFraction);
     Theme.Edge = Between(FromTheme.Edge, ToTheme.Edge, ThemeFraction);
     Theme.Card = Between(FromTheme.Card, ToTheme.Card, ThemeFraction);
+    // Foreground settings pages are always covering, including while interpolating from a
+    // previously persisted theme that declared translucent panel roles.
+    Theme.Panel.Opacity = 255u;
+    Theme.Card.Opacity = 255u;
     const ThemeToken Accent = ThemeSpecification::Accent(Configuration.Primary).Colour;
     Surface->Ground(Interior, Theme.Panel, 0.0f, CornerNone);
 
@@ -362,13 +366,21 @@ Outcome<bool> ControlCentrePanel::Record(const PlaneExtent& Interior, ControlCen
         Navigate(Configuration.Page);
     }
 
+    const bool DisplayFooter = CurrentPage == ControlCentrePage::Display;
     const float FooterHeight = std::max(78.0f, static_cast<float>(Configuration.TypographySize[3]) + 48.0f);
+    // One enclosing panel owns a page. Display Settings alone reserves its summary/action footer;
+    // the Control Centre itself has no global footer.
     const PlaneExtent PageFrame = {Interior.MinimumX + 16.0f, Interior.MinimumY + 80.0f,
-                                   Interior.MaximumX - 16.0f, Interior.MaximumY - FooterHeight - 18.0f};
+                                   Interior.MaximumX - 16.0f, Interior.MaximumY - 18.0f};
     Surface->Ground(PageFrame, Theme.Panel, 18.0f, CornerAll);
     Surface->Edge(PageFrame, Theme.Edge, 1.0f, 18.0f, CornerAll);
+    const PlaneExtent DisplayFooterExtent = {
+        PageFrame.MinimumX + PagePad, PageFrame.MaximumY - FooterHeight - 8.0f,
+        PageFrame.MaximumX - PagePad, PageFrame.MaximumY - 8.0f };
     const PlaneExtent PageExtent = {PageFrame.MinimumX + PagePad, PageFrame.MinimumY + 16.0f,
-                                    PageFrame.MaximumX - PagePad, PageFrame.MaximumY - 16.0f};
+                                    PageFrame.MaximumX - PagePad,
+                                    DisplayFooter ? DisplayFooterExtent.MinimumY - 8.0f
+                                                  : PageFrame.MaximumY - 16.0f};
     const std::uint32_t PageIndex = static_cast<std::uint32_t>(CurrentPage);
     // 📝 The Fonts page ceiling follows the page's own content: the eight role strips and the sections
     //    below them stand about 1700px past the viewport, and a ceiling shorter than the content parks
@@ -448,9 +460,8 @@ Outcome<bool> ControlCentrePanel::Record(const PlaneExtent& Interior, ControlCen
     Pointer = LivePointer;
     SharedControls.Sample(LivePointer);
 
-    const PlaneExtent Footer = {PageFrame.MinimumX, PageFrame.MaximumY + 8.0f,
-                                PageFrame.MaximumX, Interior.MaximumY - 10.0f};
-    RecordSettingsFooter(Footer, Configuration, Theme, Accent);
+    if (DisplayFooter)
+        RecordSettingsFooter(DisplayFooterExtent, Configuration, Theme, Accent);
 
     if (SettingsNotice.Opened())
         RetainExclusion(Interior);

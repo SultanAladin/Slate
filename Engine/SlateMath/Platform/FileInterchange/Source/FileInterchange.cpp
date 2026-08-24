@@ -120,7 +120,7 @@ Outcome<PathReport> FileInterchange::Resolve(const std::string& Path)
     }
 
     // 📝 A reparse point is reported as Foreign rather than followed. Following one is a decision about trust
-    //    that `Layer0_Platform` has no standing to make, and `10`'s intake is where a document's provenance
+    //    that `Layer0_Platform` has no standing to make, and `10`'s intake is where a document's source history
     //    is decided.
     if ((Reported.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0u)
     {

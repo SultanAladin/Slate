@@ -59,7 +59,7 @@ The editor places content through commands, not by constructing an omnipotent ob
 ```text
 CreateEntity(name, tags)
 AttachComponent(entity, TransformComponent{...})
-AttachComponent(entity, MeshInstanceComponent{asset})
+AttachComponent(entity, GeometryInstanceComponent{asset})
 CommitTransaction()
 ```
 
@@ -71,7 +71,7 @@ Placement tools resolve a recipe, preview a temporary transform, validate depend
 
 ### Geometry and presentation
 
-- `MeshInstanceComponent`
+- `GeometryInstanceComponent`
 - `CurveComponent`
 - `SurfaceComponent`
 - `ParametricBodyComponent`
@@ -179,7 +179,7 @@ A future `SlateAudioDocument` family owns non-destructive source and edit descri
 - regions, markers, loops, and annotations;
 - clip graphs and non-destructive processing graphs;
 - spectral-analysis caches;
-- provenance and research metadata.
+- source records and research metadata.
 
 ### Scene/runtime audio
 

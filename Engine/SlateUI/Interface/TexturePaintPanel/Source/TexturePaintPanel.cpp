@@ -1129,6 +1129,7 @@ void TexturePaintPanel::Reset()
     StackFacets.Reset();
     ChannelFacets.Reset();
     MaskFacets.Reset();
+    ExportOverflow.Reset();
 
     Interaction     = nullptr;
     Motion     = nullptr;
@@ -1296,6 +1297,12 @@ void TexturePaintPanel::RecordFlattenPage(const PlaneExtent& Extent, TexturePain
     Surface->Edge(Back, Tinted.HairlineFirm, 1.0f, 14.0f, CornerAll);
     Surface->TextRun(Back.MinimumX + 18.0f, Back.MinimumY + 7.0f, Tinted.Primary, "Back", Scaled.RunSecondary);
 
+    const PlaneExtent ScrollViewport = { Extent.MinimumX, Back.MaximumY + 8.0f,
+                                         Extent.MaximumX, Extent.MaximumY };
+    constexpr float ExportContentHeight = 570.0f;
+    const float PageScroll = ExportOverflow.Advance(Sampled, ScrollViewport, ExportContentHeight);
+    Surface->Confine(ScrollViewport);
+
     static const char* const Formats[] =
         { "PNG", "JPEG", "TGA", "TIFF", "OpenEXR", "HDR", "WebP", "DDS", "KTX2" };
     static const char* const Resolutions[] = { "128", "256", "512", "1K", "2K", "4K", "8K", "16K" };
@@ -1365,7 +1372,7 @@ void TexturePaintPanel::RecordFlattenPage(const PlaneExtent& Extent, TexturePain
         Surface->Release();
     };
 
-    float Y = Back.MaximumY + 22.0f;
+    float Y = Back.MaximumY + 22.0f - PageScroll;
     RecordRail(0u, Y, "Output format", Formats, 9u, Applied.ExportFormat);
     Y += 96.0f;
     RecordRail(1u, Y, "Resolution", Resolutions, 8u, Applied.ExportResolution);
@@ -1437,6 +1444,11 @@ void TexturePaintPanel::RecordFlattenPage(const PlaneExtent& Extent, TexturePain
                      Applied.ExportMode == 0u ? "Non-destructive flattened copy; authored layers remain intact."
                                                : "Texture-set export; authored layers and channels remain intact.",
                      Scaled.RunFine);
+
+    Surface->Release();
+    const PlaneExtent Thumb = ExportOverflow.Thumb(ScrollViewport, ExportContentHeight);
+    if (Thumb.Height() > 0.0f)
+        Surface->Ground(Thumb, Tinted.HairlineFirm, 1.5f, CornerAll);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

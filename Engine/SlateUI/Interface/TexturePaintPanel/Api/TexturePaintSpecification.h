@@ -43,7 +43,7 @@ enum class TextureLayerClassification : std::uint32_t
     Fill        = 1u,   // [-] - a solid or gradient fill
     Decal       = 2u,   // [-] - a 3D-placed decal entity
     Pattern     = 3u,   // [-] - a tiled procedural pattern
-    Generator   = 4u,   // [-] - a mesh-map driven generator
+    Generator   = 4u,   // [-] - a topology-map driven generator
     Adjustment  = 5u,   // [-] - a colour/effect adjustment
     Filter      = 6u,   // [-] - a blur/level/effect filter
     Folder      = 7u,   // [-] - a group holding layers

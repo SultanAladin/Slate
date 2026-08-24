@@ -436,6 +436,7 @@ void SceneDirectoryPanel::Reset()
     Controls.Reset();
     Facets.Reset();
     OutlinePages.Reset();
+    TransferOverflow.Reset();
 
     Interaction     = nullptr;
     Motion     = nullptr;
@@ -479,15 +480,15 @@ void SceneDirectoryPanel::RecordViewportSky(const PlaneExtent& Extent, const Sce
     if (Applied.SkyTextureIdentity == 0u)
         return;
 
-    // 📐 The dome is direction-indexed, and the viewport reads it through a PERSPECTIVE mesh rather
+    // 📐 The dome is direction-indexed, and the viewport reads it through a PERSPECTIVE geometry rather
     //    than a single cropped quad: a quad maps azimuth and elevation linearly onto the leaf, which
     //    stretches the sun into an ellipse the moment the leaf's aspect differs from the camera's and
-    //    compresses the horizon where perspective should widen it. The mesh samples the dome per
+    //    compresses the horizon where perspective should widen it. The geometry samples the dome per
     //    screen vertex along the true pinhole ray, so the sun stays round and the horizon reads at any
     //    leaf aspect — the same projection the grid below uses, which is what keeps the two aligned.
-    constexpr std::uint32_t MeshColumns = 64u;
-    constexpr std::uint32_t MeshRows    = 36u;
-    constexpr std::uint32_t QuadCount   = MeshColumns * MeshRows;
+    constexpr std::uint32_t GeometryColumns = 64u;
+    constexpr std::uint32_t GeometryRows    = 36u;
+    constexpr std::uint32_t QuadCount   = GeometryColumns * GeometryRows;
     constexpr std::uint32_t VertexCount = QuadCount * 4u;
     constexpr std::uint32_t IndexCount  = QuadCount * 6u;
 
@@ -519,15 +520,15 @@ void SceneDirectoryPanel::RecordViewportSky(const PlaneExtent& Extent, const Sce
     std::uint32_t VertexOffset = 0u;
     std::uint32_t IndexOffset  = 0u;
 
-    for (std::uint32_t Row = 0u; Row < MeshRows; ++Row)
+    for (std::uint32_t Row = 0u; Row < GeometryRows; ++Row)
     {
-        const float RowY0 = Extent.MinimumY + static_cast<float>(Row)       / static_cast<float>(MeshRows) * Extent.Height();
-        const float RowY1 = Extent.MinimumY + static_cast<float>(Row + 1u)  / static_cast<float>(MeshRows) * Extent.Height();
+        const float RowY0 = Extent.MinimumY + static_cast<float>(Row)       / static_cast<float>(GeometryRows) * Extent.Height();
+        const float RowY1 = Extent.MinimumY + static_cast<float>(Row + 1u)  / static_cast<float>(GeometryRows) * Extent.Height();
 
-        for (std::uint32_t Column = 0u; Column < MeshColumns; ++Column)
+        for (std::uint32_t Column = 0u; Column < GeometryColumns; ++Column)
         {
-            const float ColX0 = Extent.MinimumX + static_cast<float>(Column)      / static_cast<float>(MeshColumns) * Extent.Width();
-            const float ColX1 = Extent.MinimumX + static_cast<float>(Column + 1u) / static_cast<float>(MeshColumns) * Extent.Width();
+            const float ColX0 = Extent.MinimumX + static_cast<float>(Column)      / static_cast<float>(GeometryColumns) * Extent.Width();
+            const float ColX1 = Extent.MinimumX + static_cast<float>(Column + 1u) / static_cast<float>(GeometryColumns) * Extent.Width();
 
             const float CornerScreenX[4] = { ColX0, ColX1, ColX0, ColX1 };
             const float CornerScreenY[4] = { RowY0, RowY0, RowY1, RowY1 };
@@ -588,7 +589,7 @@ void SceneDirectoryPanel::RecordViewportSky(const PlaneExtent& Extent, const Sce
         }
     }
 
-    Surface->ImageMesh(Applied.SkyTextureIdentity, Positions, UVs, VertexCount, Indices, IndexCount);
+    Surface->ImageGeometry(Applied.SkyTextureIdentity, Positions, UVs, VertexCount, Indices, IndexCount);
 }
 
 
@@ -659,7 +660,12 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
     Surface->Edge(Back, Tinted.HairlineFirm, 1.0f, 14.0f, CornerAll);
     Surface->TextRun(Back.MinimumX + 18.0f, Back.MinimumY + 7.0f, Tinted.Primary, "Back", Scaled.RunSecondary);
 
-    float Y = Back.MaximumY + 28.0f;
+    const PlaneExtent ScrollViewport = { Extent.MinimumX, Back.MaximumY + 8.0f,
+                                         Extent.MaximumX, Extent.MaximumY };
+    const float PageScroll = TransferOverflow.Advance(Sampled, ScrollViewport, 880.0f);
+    Surface->Confine(ScrollViewport);
+
+    float Y = Back.MaximumY + 28.0f - PageScroll;
     Surface->TextRun(Extent.MinimumX + Pad, Y, Tinted.Primary,
                      Applied.TransferMode == 0u ? "Import format" : "Export format", Scaled.RunPrimary);
     Y += 28.0f;
@@ -828,15 +834,17 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
     static const char* const PrimaryAxes[] = { "+Y", "+X", "+Z" };
     static const char* const SecondaryAxes[] = { "+X", "+Z", "+Y" };
 
-    float ColumnY[2] = { Y, Y };
+    float CardY = Y;
     const float CardGap = 8.0f;
-    const float CardX = (Extent.Width() - Pad * 2.0f - CardGap) * 0.5f;
+    const float CardX = Extent.Width() - Pad * 2.0f;
 
-    const auto Card = [&](std::uint32_t Index, std::uint32_t Column, const char* Caption,
+    // Transfer options are one reading column. A masonry grid hid the vertical order and
+    // made wheel overflow impossible to understand when cards opened at different heights.
+    const auto Card = [&](std::uint32_t Index, const char* Caption,
                           float BodyHeight, const auto& RecordBody)
     {
-        const float X = Extent.MinimumX + Pad + static_cast<float>(Column) * (CardX + CardGap);
-        const float Top = ColumnY[Column];
+        const float X = Extent.MinimumX + Pad;
+        const float Top = CardY;
         const PlaneExtent Head = Spanning(X, Top, CardX, 34.0f);
         const bool OnHead = Head.Encloses(Sampled.PositionX, Sampled.PositionY);
         if (Sampled.ContactPressed && OnHead && !Interaction->AnyDisclosed())
@@ -873,7 +881,7 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
                                 CardX - 20.0f, BodyHeight - 10.0f));
             Surface->Release();
         }
-        ColumnY[Column] += Head.Height() + OpenBody + CardGap;
+        CardY += Head.Height() + OpenBody + CardGap;
     };
 
     const auto BodyRow = [](const PlaneExtent& Body, std::uint32_t Index) -> PlaneExtent
@@ -891,7 +899,7 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
             SelectionDeclaration{ Caption, Options, OptionCount }, Taken);
     };
 
-    Card(0u, 0u, Applied.TransferMode == 0u ? "Transform" : "Transform output", 112.0f,
+    Card(0u, Applied.TransferMode == 0u ? "Transform" : "Transform output", 112.0f,
          [&](const PlaneExtent& Body)
     {
         ToggleLine(TransferCardFields[0], BodyRow(Body, 0u),
@@ -908,7 +916,7 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
                    "Keep pivots", Applied.TransferPreservePivots);
     });
 
-    Card(1u, 1u, "Materials", 112.0f, [&](const PlaneExtent& Body)
+    Card(1u, "Materials", 112.0f, [&](const PlaneExtent& Body)
     {
         ToggleLine(TransferCardFields[0], BodyRow(Body, 0u), "Include materials", Applied.TransferMaterials);
         CardSelection(TransferCardFields[1], BodyRow(Body, 1u),
@@ -917,7 +925,7 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
                       "Textures", TexturePaths, 3u, Applied.TransferTexturePathMode);
     });
 
-    Card(2u, 0u, "Vertex colours", 112.0f, [&](const PlaneExtent& Body)
+    Card(2u, "Vertex colours", 112.0f, [&](const PlaneExtent& Body)
     {
         ToggleLine(TransferCardFields[0], BodyRow(Body, 0u), "Include colours", Applied.TransferVertexColours);
         CardSelection(TransferCardFields[1], BodyRow(Body, 1u),
@@ -926,7 +934,7 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
                       "Colour space", ColourSpaces, 3u, Applied.TransferVertexColourSpace);
     });
 
-    Card(3u, 1u, "Custom properties", 112.0f, [&](const PlaneExtent& Body)
+    Card(3u, "Custom properties", 112.0f, [&](const PlaneExtent& Body)
     {
         ToggleLine(TransferCardFields[0], BodyRow(Body, 0u),
                    "Include properties", Applied.TransferCustomProperties);
@@ -936,7 +944,7 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
                    "Keep namespaces", Applied.TransferPreserveNamespaces);
     });
 
-    Card(4u, 0u, "Armature", 180.0f, [&](const PlaneExtent& Body)
+    Card(4u, "Armature", 180.0f, [&](const PlaneExtent& Body)
     {
         ToggleLine(TransferCardFields[0], BodyRow(Body, 0u), "Include armature", Applied.TransferArmatures);
         CardSelection(TransferCardFields[1], BodyRow(Body, 1u),
@@ -947,7 +955,7 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
         ToggleLine(TransferCardFields[4], BodyRow(Body, 4u), "Deform bones only", Applied.TransferDeformBonesOnly);
     });
 
-    Card(5u, 1u, Applied.TransferMode == 0u ? "Animation" : "Bake animation", 112.0f,
+    Card(5u, Applied.TransferMode == 0u ? "Animation" : "Bake animation", 112.0f,
          [&](const PlaneExtent& Body)
     {
         ToggleLine(TransferCardFields[0], BodyRow(Body, 0u),
@@ -959,6 +967,10 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
                    "Resample curves", Applied.TransferResampleAnimation);
     });
 
+    Surface->Release();
+    const PlaneExtent Thumb = TransferOverflow.Thumb(ScrollViewport, 880.0f);
+    if (Thumb.Height() > 0.0f)
+        Surface->Ground(Thumb, Tinted.HairlineFirm, 1.5f, CornerAll);
     EnvironmentControls.RecordDeferred();
 }
 
@@ -2167,7 +2179,7 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
         }
         case EntitySubject::Actor:
         {
-            const char* const Fields[3] = { "Static Mesh", "Simulate Physics", "Generate Overlaps" };
+            const char* const Fields[3] = { "Static Geometry", "Simulate Physics", "Generate Overlaps" };
             RecordCard(ComponentCaption, Fields, 3u);
             break;
         }

@@ -531,7 +531,7 @@ void RecordingSurface::Image(const PlaneExtent& Extent, std::uintptr_t Identity,
                                     IM_COL32_WHITE);
 }
 
-void RecordingSurface::ImageMesh(std::uintptr_t Identity,
+void RecordingSurface::ImageGeometry(std::uintptr_t Identity,
                                   const float* Positions, const float* UVs, std::uint32_t VertexCount,
                                   const std::uint32_t* Indices, std::uint32_t IndexCount)
 {
@@ -541,13 +541,13 @@ void RecordingSurface::ImageMesh(std::uintptr_t Identity,
 
     // 📝 The vendor's own texture switch, exactly as `AddImage` performs it: `PushTexture` states the
     //    identity on the command header AND opens a new command when the standing one carries other
-    //    prims, so the mesh never inherits the font atlas's identity and the atlas text never inherits
+    //    prims, so the geometry never inherits the font atlas's identity and the atlas text never inherits
     //    the sky's. Writing the header directly would corrupt whichever command stood — the reported
     //    defect where the viewport read the atlas as sky.
     ImDrawList* Target = Commands(CommandSlot);
 
     // 🔴 The indices a command list carries are ABSOLUTE positions in the list's vertex buffer, not
-    //    positions in the mesh: a mesh that wrote 0-based indices would reference the top bar's text
+    //    positions in the geometry: a geometry run that wrote 0-based indices would reference the top bar's text
     //    vertices and the viewport would read the atlas as sky. The base is the count of vertices the
     //    list already holds, and every delivered index is offset by it.
     const unsigned int Base = Target->_VtxCurrentIdx;

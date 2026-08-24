@@ -26,7 +26,7 @@ enum class SymbolDiscipline : std::uint32_t
     Navigation           =  1u,   // [-] - traversal: chevrons, magnifier, crosshair
     Geometry             =  2u,   // [-] - polygonal modelling: vertices, edges, faces, booleans
     ComputerAidedDesign  =  3u,   // [-] - constrained sketching, revolution, fillet, loft
-    Sculpting            =  4u,   // [-] - bristles, inflation, relaxation, remesh density
+    Sculpting            =  4u,   // [-] - bristles, inflation, relaxation, retopology density
     Texturing            =  5u,   // [-] - unwrap seams, material spheres, channels, stencils
     Illumination         =  6u,   // [-] - directional, point, area and dome emitters
     Rendering            =  7u,   // [-] - aperture, convergence, denoise, exposure
@@ -94,7 +94,7 @@ enum class SymbolSubject : std::uint32_t
     InflatePush         = 33u,   // 🚧
     SmoothRelax         = 34u,   // 🚧
     MaskStencil         = 35u,   // 🚧
-    RemeshDensity       = 36u,   // 🚧
+    RetopologyDensity       = 36u,   // 🚧
 
     // Texturing ---------------------------------------------------------------------------------------------
     UnwrapSeam          = 37u,   // 🚧
