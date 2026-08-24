@@ -40,7 +40,7 @@ struct GeometryAssetView
 };
 
 /// 🧩 Registers faithful decoded geometry atomically, derives immutable companions, and issues stable identities.
-/// note  GeometryFormatExchange owns codec dispatch. A future GeometryPresentationExchange consumes these views.
+/// note  GeometryFormatExchange owns codec dispatch. A future GeometryRenderingExchange consumes these views.
 class GeometryInterchange
 {
 public:

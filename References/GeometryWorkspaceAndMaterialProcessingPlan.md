@@ -20,7 +20,7 @@ The material layer processor is designed in this phase but the complete Substanc
 
 - **GeometryInterchange** owns authoritative decoded geometry intake, derived CPU companions, stable geometry identities, and lifetime. It does not parse file formats or own GPU buffers.
 - **GeometryFormatExchange** is the import/export boundary. It classifies formats and dispatches isolated OBJ, glTF, FBX, USD, and later codec adapters. The first delivered capability is faithful OBJ import; unsupported export is reported rather than simulated.
-- **GeometryPresentationExchange** transfers immutable geometry views into revision-keyed presentation packets and, next, disposable GPU resources. The delivered CPU packet already separates shaded triangles, triangulated wire, and source-topology wire.
+- **GeometryRenderingExchange** transfers immutable geometry views into revision-keyed rendering packets and, next, disposable GPU resources. The delivered CPU packet already separates shaded triangles, triangulated wire, and source-topology wire.
 - **MaterialProcessingExchange** is the layer/channel command and processing seam. “Processing” covers constant edits now and dirty-tile GPU processing later without using the disliked “Evaluation” or “Composition” terms.
 
 `GeometryCodecExchange` remains a valid alternative to `GeometryFormatExchange`, but **GeometryFormatExchange** is selected because the boundary describes user-visible file formats while codecs remain replaceable implementations beneath it.
@@ -69,7 +69,7 @@ Application/EditorHost
 │       ├── additional authored layers
 │       └── channel declarations and bindings
 │
-├── GeometryPresentationExchange
+├── GeometryRenderingExchange
 │   ├── observes immutable scene + asset snapshots
 │   ├── derives dirty sets by revision
 │   ├── uploads through ByteSpace / ImageSpace
@@ -236,11 +236,11 @@ Opacity    = 1
 
 “Directional white” means the surface responds to the directional light and atmosphere; it is not unlit white and not an emissive debug draw.
 
-## GPU geometry presentation
+## GPU geometry rendering
 
-### Presentation exchange
+### Rendering exchange
 
-`GeometryPresentationExchange` is the host-facing seam between immutable geometry snapshots and Vulkan resources. It should consume revisions and produce generation-checked presentation handles. It owns uploads and retirement but not document data.
+`GeometryRenderingExchange` is the host-facing seam between immutable geometry snapshots and Vulkan resources. It should consume revisions and produce generation-checked rendering identities. It owns uploads and retirement but not document data.
 
 ```text
 Synchronise(sceneSnapshot, geometryDirtySet, materialDirtySet)
@@ -469,7 +469,7 @@ Layer Stack UI
       → dirty channel/tile set
       → GPU dispatch schedule
       → evaluated image handles
-  → GeometryPresentationExchange material bindings
+  → GeometryRenderingExchange material bindings
 ```
 
 The exchange owns no UI state and no Vulkan device globally; a Vulkan processing adapter owns device resources behind the exchange.
@@ -630,7 +630,7 @@ Commands mutate document state on its owning thread, increment revisions, and em
 
 ### Geometry milestone B — rendering
 
-6. Add `GeometryPresentationExchange` and revision-keyed GPU resources.
+6. Add `GeometryRenderingExchange` and revision-keyed GPU resources.
 7. Add geometry depth/visibility attachments and white dielectric material resolve.
 8. Render shaded triangles.
 9. Render triangulated wire and source-topology wire as distinct GPU modes.

@@ -1,8 +1,8 @@
 //============================================================================================================================================
-//                                           GEOMETRYPRESENTATIONEXCHANGE.CPP
+//                                           GEOMETRYRENDERINGEXCHANGE.CPP
 //============================================================================================================================================
 
-#include "SlateCompute/Compute/GeometryPresentationExchange/Api/GeometryPresentationExchange.h"
+#include "SlateCompute/Compute/GeometryRenderingExchange/Api/GeometryRenderingExchange.h"
 
 #include "ExternalPackages/earcut/include/mapbox/earcut.hpp"
 
@@ -24,14 +24,14 @@ std::uint64_t EdgeKey(std::uint32_t First, std::uint32_t Second)
     return (static_cast<std::uint64_t>(First) << 32u) | Second;
 }
 
-void AddSegment(std::vector<GeometryPresentationSegment>& Into,
+void AddSegment(std::vector<GeometryRenderingSegment>& Into,
                 std::unordered_map<std::uint64_t, std::uint32_t>& Declared,
                 std::uint32_t FirstCorner, std::uint32_t SecondCorner,
                 std::uint32_t FirstVertex, std::uint32_t SecondVertex)
 {
     const std::uint64_t Key = EdgeKey(FirstVertex, SecondVertex);
     if (Declared.find(Key) != Declared.end()) return;
-    GeometryPresentationSegment Segment;
+    GeometryRenderingSegment Segment;
     Segment.Corners[0] = FirstCorner;
     Segment.Corners[1] = SecondCorner;
     Declared.emplace(Key, static_cast<std::uint32_t>(Into.size()));
@@ -39,7 +39,7 @@ void AddSegment(std::vector<GeometryPresentationSegment>& Into,
 }
 
 bool BuildFace(const TopologyStructure& Topology, std::uint32_t Face,
-               GeometryPresentationSnapshot& Snapshot,
+               GeometryRenderingSnapshot& Snapshot,
                std::unordered_map<std::uint64_t, std::uint32_t>& TriangleEdges)
 {
     const std::uint32_t First = Topology.FaceFirstCorner(Face);
@@ -79,7 +79,7 @@ bool BuildFace(const TopologyStructure& Topology, std::uint32_t Face,
     const std::uint32_t Material = Face < Materials.size() ? Materials[Face] : 0u;
     for (std::size_t Index = 0u; Index < Local.size(); Index += 3u)
     {
-        GeometryPresentationTriangle Triangle;
+        GeometryRenderingTriangle Triangle;
         Triangle.Corners[0] = First + Local[Index + 0u];
         Triangle.Corners[1] = First + Local[Index + 1u];
         Triangle.Corners[2] = First + Local[Index + 2u];
@@ -109,15 +109,15 @@ bool BuildFace(const TopologyStructure& Topology, std::uint32_t Face,
     return true;
 }
 
-Outcome<GeometryPresentationSnapshot> BuildSnapshot(const GeometryAssetView& Geometry)
+Outcome<GeometryRenderingSnapshot> BuildSnapshot(const GeometryAssetView& Geometry)
 {
     if (!Geometry.Identity.IdentityDeclared() || Geometry.Topology == nullptr ||
         Geometry.Conditioning == nullptr || !Geometry.Topology->Sealed())
-        return Outcome<GeometryPresentationSnapshot>::Refuse(
-            { RefusalReason::IdentityStale, "geometry presentation requires one resolved immutable geometry view" });
+        return Outcome<GeometryRenderingSnapshot>::Refuse(
+            { RefusalReason::IdentityStale, "geometry rendering requires one resolved immutable geometry view" });
 
     const TopologyStructure& Topology = *Geometry.Topology;
-    GeometryPresentationSnapshot Built;
+    GeometryRenderingSnapshot Built;
     Built.Geometry = Geometry.Identity;
     Built.TopologyRevision = Topology.Revision();
     Built.Vertices.resize(Topology.CornerCount());
@@ -125,7 +125,7 @@ Outcome<GeometryPresentationSnapshot> BuildSnapshot(const GeometryAssetView& Geo
 
     for (std::uint32_t Corner = 0u; Corner < Topology.CornerCount(); ++Corner)
     {
-        GeometryPresentationVertex& Vertex = Built.Vertices[Corner];
+        GeometryRenderingVertex& Vertex = Built.Vertices[Corner];
         Vertex.SourceCorner = Corner;
         Vertex.SourceVertex = Topology.CornerVertex(Corner);
         Vertex.Position = Topology.Positions()[Vertex.SourceVertex];
@@ -149,32 +149,32 @@ Outcome<GeometryPresentationSnapshot> BuildSnapshot(const GeometryAssetView& Geo
         }
         if (!BuildFace(Topology, Face, Built, TriangleEdges)) Built.UnpresentedFaces.push_back(Face);
     }
-    return Outcome<GeometryPresentationSnapshot>::Result(std::move(Built));
+    return Outcome<GeometryRenderingSnapshot>::Result(std::move(Built));
 }
 }
 
-Outcome<GeometryPresentationIdentity> GeometryPresentationExchange::Synchronise(const GeometryAssetView& Geometry)
+Outcome<GeometryRenderingIdentity> GeometryRenderingExchange::Synchronise(const GeometryAssetView& Geometry)
 {
     if (!Geometry.Identity.IdentityDeclared() || Geometry.Topology == nullptr || Geometry.Conditioning == nullptr)
-        return Outcome<GeometryPresentationIdentity>::Refuse(
-            { RefusalReason::IdentityStale, "geometry presentation requires one resolved immutable geometry view" });
+        return Outcome<GeometryRenderingIdentity>::Refuse(
+            { RefusalReason::IdentityStale, "geometry rendering requires one resolved immutable geometry view" });
 
     for (std::uint32_t Slot = 0u; Slot < Entries.size(); ++Slot)
     {
         Entry& Held = Entries[Slot];
         if (!Held.Occupied || Held.Snapshot.Geometry != Geometry.Identity) continue;
         if (Held.Snapshot.TopologyRevision == Geometry.Topology->Revision())
-            return Outcome<GeometryPresentationIdentity>::Result({ Slot, Held.Generation });
-        const Outcome<GeometryPresentationSnapshot> Built = BuildSnapshot(Geometry);
-        if (!Built.Resolved) return Outcome<GeometryPresentationIdentity>::Refuse(Built.Error);
+            return Outcome<GeometryRenderingIdentity>::Result({ Slot, Held.Generation });
+        const Outcome<GeometryRenderingSnapshot> Built = BuildSnapshot(Geometry);
+        if (!Built.Resolved) return Outcome<GeometryRenderingIdentity>::Refuse(Built.Error);
         Held.Snapshot = Built.Resolve();
         ++Held.Generation;
         if (Held.Generation == 0u) Held.Generation = 1u;
-        return Outcome<GeometryPresentationIdentity>::Result({ Slot, Held.Generation });
+        return Outcome<GeometryRenderingIdentity>::Result({ Slot, Held.Generation });
     }
 
-    const Outcome<GeometryPresentationSnapshot> Built = BuildSnapshot(Geometry);
-    if (!Built.Resolved) return Outcome<GeometryPresentationIdentity>::Refuse(Built.Error);
+    const Outcome<GeometryRenderingSnapshot> Built = BuildSnapshot(Geometry);
+    if (!Built.Resolved) return Outcome<GeometryRenderingIdentity>::Refuse(Built.Error);
     std::uint32_t Slot = 0u;
     if (!ReleasedSlots.empty()) { Slot = ReleasedSlots.back(); ReleasedSlots.pop_back(); }
     else { Slot = static_cast<std::uint32_t>(Entries.size()); Entries.push_back({}); }
@@ -182,26 +182,26 @@ Outcome<GeometryPresentationIdentity> GeometryPresentationExchange::Synchronise(
     Held.Snapshot = Built.Resolve();
     Held.Occupied = true;
     ++OccupiedCount;
-    return Outcome<GeometryPresentationIdentity>::Result({ Slot, Held.Generation });
+    return Outcome<GeometryRenderingIdentity>::Result({ Slot, Held.Generation });
 }
 
-Outcome<const GeometryPresentationSnapshot*> GeometryPresentationExchange::Resolve(GeometryPresentationIdentity Subject) const
+Outcome<const GeometryRenderingSnapshot*> GeometryRenderingExchange::Resolve(GeometryRenderingIdentity Subject) const
 {
     if (!Subject.IdentityDeclared() || Subject.SlotIndex >= Entries.size())
-        return Outcome<const GeometryPresentationSnapshot*>::Refuse({ RefusalReason::IdentityStale, "the geometry presentation is stale" });
+        return Outcome<const GeometryRenderingSnapshot*>::Refuse({ RefusalReason::IdentityStale, "the geometry rendering cache is stale" });
     const Entry& Held = Entries[Subject.SlotIndex];
     if (!Held.Occupied || Held.Generation != Subject.SlotGeneration)
-        return Outcome<const GeometryPresentationSnapshot*>::Refuse({ RefusalReason::IdentityStale, "the geometry presentation is stale" });
-    return Outcome<const GeometryPresentationSnapshot*>::Result(&Held.Snapshot);
+        return Outcome<const GeometryRenderingSnapshot*>::Refuse({ RefusalReason::IdentityStale, "the geometry rendering cache is stale" });
+    return Outcome<const GeometryRenderingSnapshot*>::Result(&Held.Snapshot);
 }
 
-Outcome<bool> GeometryPresentationExchange::Retire(GeometryPresentationIdentity Subject)
+Outcome<bool> GeometryRenderingExchange::Retire(GeometryRenderingIdentity Subject)
 {
     if (!Subject.IdentityDeclared() || Subject.SlotIndex >= Entries.size())
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the geometry presentation is stale" });
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the geometry rendering cache is stale" });
     Entry& Held = Entries[Subject.SlotIndex];
     if (!Held.Occupied || Held.Generation != Subject.SlotGeneration)
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the geometry presentation is stale" });
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the geometry rendering cache is stale" });
     Held.Snapshot = {};
     Held.Occupied = false;
     ++Held.Generation;
@@ -211,7 +211,7 @@ Outcome<bool> GeometryPresentationExchange::Retire(GeometryPresentationIdentity 
     return Outcome<bool>::Result(true);
 }
 
-void GeometryPresentationExchange::Reclaim()
+void GeometryRenderingExchange::Reclaim()
 {
     ReleasedSlots.clear();
     for (std::uint32_t Slot = 0u; Slot < Entries.size(); ++Slot)
