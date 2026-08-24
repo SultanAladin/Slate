@@ -20,7 +20,7 @@ The material layer processor is designed in this phase but the complete Substanc
 
 - **GeometryInterchange** owns authoritative decoded geometry intake, derived CPU companions, stable geometry identities, and lifetime. It does not parse file formats or own GPU buffers.
 - **GeometryFormatExchange** is the import/export boundary. It classifies formats and dispatches isolated OBJ, glTF, FBX, USD, and later codec adapters. The first delivered capability is faithful OBJ import; unsupported export is reported rather than simulated.
-- **GeometryPresentationExchange** will transfer immutable geometry views into disposable GPU presentation resources.
+- **GeometryPresentationExchange** transfers immutable geometry views into revision-keyed presentation packets and, next, disposable GPU resources. The delivered CPU packet already separates shaded triangles, triangulated wire, and source-topology wire.
 - **MaterialProcessingExchange** is the layer/channel command and processing seam. “Processing” covers constant edits now and dirty-tile GPU processing later without using the disliked “Evaluation” or “Composition” terms.
 
 `GeometryCodecExchange` remains a valid alternative to `GeometryFormatExchange`, but **GeometryFormatExchange** is selected because the boundary describes user-visible file formats while codecs remain replaceable implementations beneath it.

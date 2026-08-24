@@ -3,6 +3,7 @@
 //============================================================================================================================================
 // Headless contract proof for the first Geometry Workspace milestone.
 
+#include "SlateCompute/Compute/GeometryPresentationExchange/Api/GeometryPresentationExchange.h"
 #include "SlateCompute/Compute/MaterialProcessingExchange/Api/MaterialProcessingExchange.h"
 #include "SlateDocument/Document/GeometryInterchange/Api/GeometryInterchange.h"
 #include "SlateDocument/Format/GeometryFormatExchange/Api/GeometryFormatExchange.h"
@@ -80,6 +81,25 @@ int main()
                       View.Resolve().SourceRecord->MaterialNames.size() == 3u &&
                       View.Resolve().SourceRecord->GroupMemberships.size() == 2u,
                       "GeometryInterchange owns source records for later export and diagnostics");
+
+    GeometryPresentationExchange Presentation;
+    const Outcome<GeometryPresentationIdentity> Presented = Presentation.Synchronise(View.Resolve());
+    const Outcome<const GeometryPresentationSnapshot*> Packet =
+        Presented.Resolved ? Presentation.Resolve(Presented.Resolve())
+                           : Outcome<const GeometryPresentationSnapshot*>::Refuse(Presented.Error);
+    Passed &= Require(Packet.Resolved && Packet.Resolve()->Triangles.size() == 4u &&
+                      Packet.Resolve()->SourceWire.size() == 4u &&
+                      Packet.Resolve()->TriangulatedWire.size() == 5u &&
+                      Packet.Resolve()->UnpresentedFaces.empty(),
+                      "presentation derives shaded triangles and keeps source and triangulated wire distinct");
+    Passed &= Require(Packet.Resolved && Packet.Resolve()->Triangles[0].SourceFace == 0u &&
+                      Packet.Resolve()->Triangles[0].MaterialIndex == 1u &&
+                      Packet.Resolve()->Triangles[2].SourceFace == 1u &&
+                      Packet.Resolve()->Triangles[2].MaterialIndex == 2u,
+                      "presentation packets retain triangle-to-face and material mappings");
+    Passed &= Require(Presented.Resolved && Presentation.Retire(Presented.Resolve()).Resolved &&
+                      !Presentation.Resolve(Presented.Resolve()).Resolved,
+                      "disposable presentation identities become stale on retirement");
 
     const GeometryIdentity RetiredIdentity = Registered.Resolve();
     Passed &= Require(Geometry.Retire(RetiredIdentity).Resolved && !Geometry.Resolve(RetiredIdentity).Resolved,

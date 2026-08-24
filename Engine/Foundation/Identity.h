@@ -23,6 +23,7 @@ struct RecordingSubject {};
 struct WorkSubject      {};
 struct LayerSubject     {};
 struct GeometrySubject  {};
+struct GeometryPresentationSubject {};
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       IDENTITY
@@ -73,6 +74,7 @@ using RecordingIdentity = Identity<RecordingSubject>;   // [-] - one slot of the
 using WorkIdentity      = Identity<WorkSubject>;        // [-] - one declaration in `34`'s work sequence
 using LayerIdentity     = Identity<LayerSubject>;       // [-] - one entry of a surface's layer sequence
 using GeometryIdentity  = Identity<GeometrySubject>;    // [-] - one authoritative geometry asset
+using GeometryPresentationIdentity = Identity<GeometryPresentationSubject>; // [-] - one disposable geometry cache
 
 // 📝 🔴 `56` §8 requires an entry to carry `10` §2.1's integer pair rather than a bare position: a collision
 //    reorders a surface, and a position alone collides with whichever entry later occupies it. Tagged apart from
