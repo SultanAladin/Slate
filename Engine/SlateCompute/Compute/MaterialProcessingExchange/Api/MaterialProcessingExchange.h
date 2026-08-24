@@ -7,6 +7,7 @@
 
 #include "Foundation/DeliveryOutcome.h"
 #include "Foundation/Identity.h"
+#include "SlateCompute/Compute/MaterialProcessingExchange/Api/PhysicalSurfacePacket.h"
 #include "SlateCompute/Compute/PreviewProjection/Api/PreviewProjection.h"
 #include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
 #include "SlateDocument/Document/MaterialSpecification/Api/PhysicalSurfaceSpecification.h"
@@ -71,7 +72,9 @@ struct MaterialProcessingSnapshot
     MaterialSpecification                    Material = {};
     PhysicalSurfaceDeclaration               PhysicalDeclaration = {};
     CompiledPhysicalSurface                  PhysicalSurface = {};
+    PhysicalSurfacePacket                   PhysicalPacket = {};
     bool                                     PhysicalSurfaceResolved = false;
+    bool                                     PhysicalPacketResolved = false;
     std::vector<MaterialProcessingLayerSnapshot> Layers = {};
     MaterialProcessingDirtyKey               DirtyKey = {};
 };

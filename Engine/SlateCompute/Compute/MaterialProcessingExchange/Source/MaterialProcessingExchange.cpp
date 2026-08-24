@@ -249,6 +249,12 @@ MaterialProcessingSnapshot MaterialProcessingExchange::Capture(const MaterialSpe
     {
         Captured.PhysicalSurface = Physical.Resolve();
         Captured.PhysicalSurfaceResolved = true;
+        const Outcome<PhysicalSurfacePacket> Binding = BindPhysicalSurface(Captured.PhysicalSurface);
+        if (Binding.Resolved)
+        {
+            Captured.PhysicalPacket = Binding.Resolve();
+            Captured.PhysicalPacketResolved = true;
+        }
     }
     CaptureLayers(Layers, 0u, Captured.Layers);
 
@@ -259,6 +265,7 @@ MaterialProcessingSnapshot MaterialProcessingExchange::Capture(const MaterialSpe
     Captured.DirtyKey.PhysicalSurface = HashSeed;
     HashPhysicalDeclaration(Captured.DirtyKey.PhysicalSurface, PhysicalDeclaration);
     HashValue(Captured.DirtyKey.PhysicalSurface, Captured.PhysicalSurfaceResolved);
+    HashValue(Captured.DirtyKey.PhysicalSurface, Captured.PhysicalPacketResolved);
 
     for (std::size_t ChannelIndex = 0u; ChannelIndex < MaterialProcessingDirtyKey::ChannelSpan; ++ChannelIndex)
     {
