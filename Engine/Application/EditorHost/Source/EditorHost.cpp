@@ -38,10 +38,14 @@
 #include "SlateDocument/Document/IntakeIndex/Api/IntakeIndex.h"
 #include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
 #include "SlateDocument/Document/PopulationIndex/Api/PopulationIndex.h"
+#include "SlateDocument/Format/CodexInterchange/Api/CodexInterchange.h"
+#include "SlateDocument/Format/CodexInterchange/Api/WorkspaceCodex.h"
+#include "SlateDocument/Format/WorkspaceSceneActivation/Api/WorkspaceSceneActivation.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <vector>
 
@@ -67,6 +71,52 @@ constexpr std::uint32_t InitialHeight = 720u;    // [px]
 
 constexpr const char* WindowTitle = "Slate \u2014 Editor";
 constexpr const char* HostName    = "EditorHost";
+
+/// 🧩 Enumerates a host-approved import folder for the browser; SlateUI receives names only, never filesystem authority.
+void PopulateImportDirectory(ContentBrowserConfiguration& Browser, const std::filesystem::path& Requested)
+{
+    std::error_code Error;
+    std::filesystem::path Resolved = Requested;
+    if (Requested == "Home")
+    {
+#if defined(_WIN32)
+        const char* Home = std::getenv("USERPROFILE");
+#else
+        const char* Home = std::getenv("HOME");
+#endif
+        if (Home != nullptr && Home[0] != '\0') Resolved = Home;
+    }
+    if (Resolved.empty()) Resolved = std::filesystem::current_path(Error);
+
+    Browser.ImportEntryCount = 0u;
+    Browser.ImportTaken = ContentLibrary::AbsentIndex;
+    std::snprintf(Browser.ImportLocation, sizeof(Browser.ImportLocation), "%s", Resolved.generic_string().c_str());
+    if (Error || !std::filesystem::is_directory(Resolved, Error) || Error) return;
+
+    std::vector<std::filesystem::directory_entry> Entries;
+    for (std::filesystem::directory_iterator Current(Resolved, Error), End; !Error && Current != End; Current.increment(Error))
+        Entries.push_back(*Current);
+    std::sort(Entries.begin(), Entries.end(), [](const auto& Left, const auto& Right)
+    {
+        const bool LeftDirectory = Left.is_directory();
+        const bool RightDirectory = Right.is_directory();
+        return LeftDirectory != RightDirectory ? LeftDirectory : Left.path().filename() < Right.path().filename();
+    });
+
+    for (const auto& Current : Entries)
+    {
+        if (Browser.ImportEntryCount >= 128u) break;
+        ContentImportEntry& Written = Browser.ImportEntries[Browser.ImportEntryCount++];
+        const std::string Name = Current.path().filename().string();
+        const std::string Extension = Current.path().extension().string();
+        Written.Directory = Current.is_directory(Error) && !Error;
+        Written.Octets = Written.Directory ? 0u : Current.file_size(Error);
+        if (Error) { Error.clear(); Written.Octets = 0u; }
+        std::snprintf(Written.Naming, sizeof(Written.Naming), "%s", Name.c_str());
+        std::snprintf(Written.Extension, sizeof(Written.Extension), "%s", Extension.c_str());
+        Written.Supported = Written.Directory || Extension == ".obj" || Extension == ".codex" || Extension == ".pigment";
+    }
+}
 
 // 📝 The workspace ground the interface is recorded over. Stated here because it is the one visual decision
 //    this host makes; everything else it presents belongs to a panel.
@@ -116,8 +166,6 @@ static_assert(sizeof(WorkspaceIndex) + sizeof(WorkspacePanel) + sizeof(EditorPan
               + (sizeof(PanelStructure)       * WorkspaceIndex::WorkspaceLimit)
               + (sizeof(EditorPanelConfiguration) * WorkspaceIndex::WorkspaceLimit)
               + sizeof(ControlCentrePanel)  + sizeof(ControlCentreConfiguration)
-              + sizeof(ControlIndex)    + sizeof(ContentBrowserPanel)
-              + sizeof(ContentBrowserConfiguration) + sizeof(ContentLibrary)
               + sizeof(ControlIndex)    + sizeof(SceneDirectoryPanel)
               + sizeof(SceneDirectoryContext) + sizeof(ShaderCodec) + sizeof(WorkspaceOverlayPass)
               + sizeof(TexturePaintPanel) + sizeof(TexturePaintContext)
@@ -315,16 +363,30 @@ int main(int ArgumentCount, char** ArgumentValues)
         { "Post Process Volume",     EntitySubject::Actor,      2u,  4u,         0u, "post volume effects", CameraRole::Absent, 1006u },
         { "Editor Camera",           EntitySubject::Camera,     1u,  0u,         0u, "camera fly view", CameraRole::Editor, 1007u }
     };
+    static EntityRow WorkspaceEntities[SceneDirectoryContext::EntityLimit] = {};
+    static char WorkspaceEntityNames[SceneDirectoryContext::EntityLimit][96] = {};
+    static char WorkspaceEntityTags[SceneDirectoryContext::EntityLimit][160] = {};
+    static const char* const WhiteDielectricChannels[] = { "Base Color", "Metallic", "Roughness", "Opacity" };
+    static TextureLayerRow WhiteDielectricLayer = {
+        "White Dielectric", TextureLayerClassification::Material, "Normal", 100u, 0xE7E3D8u, 0xE7E3D8u,
+        false, 100u, false, "WhiteDielectric.pigment", "Shared Engine Content material",
+        { WhiteDielectricChannels[0], WhiteDielectricChannels[1], WhiteDielectricChannels[2], WhiteDielectricChannels[3] },
+        4u, 0u, 0xFFFFFFFFu, 0u, true, "white dielectric shared tea service", false, "", true, 4001u
+    };
+    EntityRow* PresentedEntities = EditorEntities;
+    std::uint32_t PresentedEntityCount = 7u;
 
     FontLoader                  Fonts;
 
-    ControlIndex         BrowserInteraction;
+    // The full catalogue and its 356 arbitrated controls are process-lifetime UI state. Keep them out
+    // of main's Windows-sized automatic frame; ordinary host setup reinitialises their presented state.
+    static ControlIndex                 BrowserInteraction;
 
     // 📝 The south drawer's owner. The library is the HOST's, not the panel's — `14` §1 forbids a panel
     //    from holding what it displays, which is the same separation WorkspaceIndex and WorkspacePanel keep.
-    ContentBrowserPanel      ContentBrowser;
-    ContentBrowserConfiguration  ContentBrowserApplied;
-    ContentLibrary           ContentApplied;
+    static ContentBrowserPanel          ContentBrowser;
+    static ContentBrowserConfiguration  ContentBrowserApplied;
+    static ContentLibrary               ContentApplied;
 
     // 📝 The appearance file sits beside the executable and is read once, before any panel is recorded. A
     //    first run has no file yet, which is the ordinary case and not a fault — the build's own appearance
@@ -628,6 +690,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     ContentBrowser.Reapply(Viewport.Appearance());
 
     ApplyReferenceContent(ContentApplied);
+    PopulateImportDirectory(ContentBrowserApplied, std::filesystem::path("EngineContent"));
 
     // 📝 🔴 The editor opens a VACANT workspace, where the painting host opens a canvas. This is the one
     //    thing that distinguishes the two hosts, and it is the reason there are two: the editor carries
@@ -1015,7 +1078,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                                     SceneApplied.OutlinePage = 2u;
                                     PanelConfiguration[Index].FooterDemand = EditorFooterDemand::None;
                                 }
-                                SceneDirectory.RecordOutliner(LeafBody, SceneApplied, EditorEntities, 7u);
+                                SceneDirectory.RecordOutliner(LeafBody, SceneApplied, PresentedEntities, PresentedEntityCount);
                                 if (SceneApplied.TransferDemand == SceneTransferDemand::Import)
                                 {
                                     const Outcome<GeometryAssetView> Imported = GeometryTransfer.Import(
@@ -1056,7 +1119,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 break;
                             case PanelSubject::Properties:
                                 SceneDirectory.RecordProperties(LeafBody, SceneApplied,
-                                                                EditorEntities, 7u, SceneApplied.InspectorTab);
+                                                                PresentedEntities, PresentedEntityCount, SceneApplied.InspectorTab);
                                 break;
                             case PanelSubject::TexturePaint:
                                 if (PanelConfiguration[Index].FooterDemand == EditorFooterDemand::ExportFlattened ||
@@ -1338,6 +1401,67 @@ int main(int ArgumentCount, char** ArgumentValues)
                 Viewport.Surface().Ground(BrowserInterior, DrawerGround, 0.0f, CornerNone);
                 ContentBrowser.RecordBrowser(BrowserInterior, ContentApplied, ContentBrowserApplied);
                 ContentBrowser.RecordDeferred();
+
+                if (ContentBrowserApplied.ActivationRequested < ContentApplied.RecordCount)
+                {
+                    const ContentRecord& Requested = ContentApplied.Records[ContentBrowserApplied.ActivationRequested];
+                    const std::filesystem::path ScenePath = std::filesystem::path("EngineContent") /
+                        (std::string(Requested.Naming) + Requested.Extension);
+                    WorkspaceSceneActivation Activating;
+                    const Outcome<ActivatedWorkspaceScene> Workspace = Activating.Open(ScenePath.string(), "EngineContent");
+                    if (!Workspace.Resolved)
+                    {
+                        std::printf("%s — workspace activation refused (reason %u: %s)\n", HostName,
+                                    static_cast<unsigned>(Workspace.Error.DeclaredReason), Workspace.Error.Detail);
+                    }
+                    else
+                    {
+                        const WorkspaceCodex& Loaded = Workspace.Resolve().Workspace;
+                        PresentedEntityCount = std::min<std::uint32_t>(
+                            static_cast<std::uint32_t>(Loaded.Scene.size()), SceneDirectoryContext::EntityLimit);
+                        for (std::uint32_t Index = 0u; Index < PresentedEntityCount; ++Index)
+                        {
+                            const CodexSceneEntry& Entry = Loaded.Scene[Index];
+                            std::snprintf(WorkspaceEntityNames[Index], sizeof(WorkspaceEntityNames[Index]), "%s", Entry.Naming.c_str());
+                            EntityRow& Row = WorkspaceEntities[Index];
+                            Row = {};
+                            Row.Naming = WorkspaceEntityNames[Index];
+                            Row.Subject = Entry.Subject == CodexSceneSubject::Sun ? EntitySubject::Sun :
+                                          Entry.Subject == CodexSceneSubject::Sky ? EntitySubject::Sky : EntitySubject::Actor;
+                            Row.Depth = Entry.Subject == CodexSceneSubject::Geometry ? 1u : 0u;
+                            std::snprintf(WorkspaceEntityTags[Index], sizeof(WorkspaceEntityTags[Index]), "%s", Entry.MaterialReference.c_str());
+                            Row.Tagged = WorkspaceEntityTags[Index];
+                            Row.Identity = 3000u + Index;
+                        }
+                        PresentedEntities = WorkspaceEntities;
+                        SceneApplied.Environment.SunElevation = Loaded.Environment.SunElevation;
+                        SceneApplied.Environment.SunAzimuth = Loaded.Environment.SunAzimuth;
+                        SceneApplied.Environment.SunIntensity = Loaded.Environment.SunIntensity;
+                        SceneApplied.Environment.SunTemperature = Loaded.Environment.SunTemperature;
+                        SceneApplied.Environment.SkyIntensity = Loaded.Environment.SkyIntensity;
+                        SceneApplied.Environment.AtmosphereDensity = Loaded.Environment.AtmosphereDensity;
+                        SceneApplied.Environment.AtmosphereScaleHeight = Loaded.Environment.AtmosphereScaleHeight;
+
+                        // The workspace names one shared pigment for every tea-service geometry entry.
+                        // Present it once in the host-owned layer model rather than fabricating one layer per mesh.
+                        StackRows.Seed(&WhiteDielectricLayer, 1u);
+                        SeedPaintContextFromRows(TexturePaintApplied, StackRows.Rows, StackRows.Count);
+                        TexturePaintApplied.LayerTaken = 0u;
+                    }
+                    ContentBrowserApplied.ActivationRequested = ContentLibrary::AbsentIndex;
+                }
+
+                if (ContentBrowserApplied.ImportBrowseRequested)
+                {
+                    std::filesystem::path Destination(ContentBrowserApplied.ImportLocation);
+                    if (ContentBrowserApplied.ImportTaken < ContentBrowserApplied.ImportEntryCount &&
+                        ContentBrowserApplied.ImportEntries[ContentBrowserApplied.ImportTaken].Directory)
+                    {
+                        Destination /= ContentBrowserApplied.ImportEntries[ContentBrowserApplied.ImportTaken].Naming;
+                    }
+                    PopulateImportDirectory(ContentBrowserApplied, Destination);
+                    ContentBrowserApplied.ImportBrowseRequested = false;
+                }
 
                 // 🔴 Declared every tick or lost. Without it the drawer owns every contact inside its own
                 //    body, so taking a record or dragging the lattice slides the drawer instead.
