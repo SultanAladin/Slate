@@ -12,8 +12,12 @@ Outcome<MaterialPreviewTile> MaterialPreviewAtlas::Reserve(std::uint32_t Materia
     for (MaterialPreviewTile& Current : Tiles)
     {
         if (!Current.Active || Current.MaterialIndex != MaterialIndex) continue;
-        Current.Revision = Revision;
-        Current.Fingerprint = Fingerprint;
+        if (Current.Revision != Revision || Current.Fingerprint != Fingerprint)
+        {
+            Current.Revision = Revision;
+            Current.Fingerprint = Fingerprint;
+            Current.State = MaterialPreviewState::BakeOwed;
+        }
         return Outcome<MaterialPreviewTile>::Result(Current);
     }
 
@@ -30,6 +34,7 @@ Outcome<MaterialPreviewTile> MaterialPreviewAtlas::Reserve(std::uint32_t Materia
     Produced.AtlasIndex = static_cast<std::uint32_t>(Slot / TilesPerAtlas);
     Produced.TileIndex = static_cast<std::uint32_t>(Slot % TilesPerAtlas);
     Produced.Fingerprint = Fingerprint;
+    Produced.State = MaterialPreviewState::BakeOwed;
     Produced.Active = true;
     Tiles.push_back(Produced);
     return Outcome<MaterialPreviewTile>::Result(Produced);
@@ -39,6 +44,27 @@ Outcome<MaterialPreviewTile> MaterialPreviewAtlas::Resolve(std::uint32_t Materia
 {
     for (const MaterialPreviewTile& Current : Tiles)
         if (Current.Active && Current.MaterialIndex == MaterialIndex) return Outcome<MaterialPreviewTile>::Result(Current);
+
+    return Outcome<MaterialPreviewTile>::Refuse(
+        { RefusalReason::ContentUnsupported, "the material has no allocated preview atlas tile" });
+}
+
+Outcome<MaterialPreviewTile> MaterialPreviewAtlas::MarkBaked(std::uint32_t MaterialIndex,
+                                                              std::uint64_t Fingerprint)
+{
+    for (MaterialPreviewTile& Current : Tiles)
+    {
+        if (!Current.Active || Current.MaterialIndex != MaterialIndex) continue;
+        if (Current.Fingerprint != Fingerprint)
+        {
+            return Outcome<MaterialPreviewTile>::Refuse(
+                { RefusalReason::IdentityStale, "the preview bake completed for an older material revision" });
+        }
+
+        Current.BakedFingerprint = Fingerprint;
+        Current.State = MaterialPreviewState::Ready;
+        return Outcome<MaterialPreviewTile>::Result(Current);
+    }
 
     return Outcome<MaterialPreviewTile>::Refuse(
         { RefusalReason::ContentUnsupported, "the material has no allocated preview atlas tile" });
