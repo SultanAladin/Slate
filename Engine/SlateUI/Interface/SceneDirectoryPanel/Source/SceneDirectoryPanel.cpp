@@ -303,7 +303,7 @@ Outcome<bool> SceneDirectoryPanel::ConstructSceneDirectoryPanel(ControlIndex& In
         &InspectCall,
         &DirectoryCall,
         &TransferBack,
-        &TransferCalls[0], &TransferCalls[1],
+        &TransferCalls[0], &TransferCalls[1], &TransferExecute,
         &TransferArrows[0], &TransferArrows[1],
         &TransferFormatOptions[0], &TransferFormatOptions[1], &TransferFormatOptions[2], &TransferFormatOptions[3],
         &TransferFormatOptions[4], &TransferFormatOptions[5], &TransferFormatOptions[6], &TransferFormatOptions[7],
@@ -743,7 +743,7 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
                      Applied.TransferMode == 0u ? "Choose a scene format to import." : "Choose a scene format to export.",
                      Scaled.RunSecondary);
     Surface->TextRun(Extent.MinimumX + Pad, Y + 24.0f, Tinted.Faint,
-                     "File selection and transfer will be connected in a later increment.", Scaled.RunFine);
+                     "Enter the source path below, then confirm the transfer at the end of this panel.", Scaled.RunFine);
     Y += 56.0f;
 
     const auto Field = [&](std::uint32_t Index, const PlaneExtent& Row, const char* Label,
@@ -765,7 +765,9 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
           Applied.TransferTags, 96u);
     Y += 42.0f;
     Field(2u, Spanning(Extent.MinimumX + Pad, Y, Extent.Width() - Pad * 2.0f, 34.0f),
-          "Location", "Project/Scenes", Applied.TransferLocation, 96u);
+          Applied.TransferMode == 0u ? "Source" : "Destination",
+          Applied.TransferMode == 0u ? "path/to/model.obj" : "path/to/scene.codex",
+          Applied.TransferLocation, 96u);
     Y += 46.0f;
 
     // Scale uses the same reusable editable form as Name and Location, with the established
@@ -974,6 +976,22 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
         ToggleLine(TransferCardFields[2], BodyRow(Body, 2u),
                    "Resample curves", Applied.TransferResampleAnimation);
     });
+
+    const PlaneExtent Execute = Spanning(Extent.MinimumX + Pad, CardY + 4.0f,
+                                         std::min(220.0f, Extent.Width() - Pad * 2.0f), 34.0f);
+    const bool ExecuteHovered = Execute.Encloses(Sampled.PositionX, Sampled.PositionY);
+    if (Sampled.ContactPressed && ExecuteHovered && !Interaction->AnyDisclosed())
+        Interaction->Grab(TransferExecute, ControlPart::Body);
+    if (ExecuteHovered && Interaction->Released(TransferExecute))
+        Applied.TransferDemand = Applied.TransferMode == 0u ? SceneTransferDemand::Import : SceneTransferDemand::Save;
+    Interaction->DeclareHovered(TransferExecute, ExecuteHovered, HoverOver);
+    Surface->Ground(Execute, ExecuteHovered ? Tinted.EntityAccent : Tinted.Tile, 10.0f, CornerAll);
+    Surface->Edge(Execute, Tinted.HairlineFirm, 1.0f, 10.0f, CornerAll);
+    const char* const ExecuteCaption = Applied.TransferMode == 0u ? "Import selected source" : "Save Codex document";
+    const float ExecuteWidth = Surface->MeasureRun(ExecuteCaption, Scaled.RunSecondary, 0.0f);
+    Surface->TextRun(Execute.MinimumX + (Execute.Width() - ExecuteWidth) * 0.5f,
+                     Execute.MinimumY + (Execute.Height() - Scaled.RunSecondary) * 0.5f,
+                     Tinted.Primary, ExecuteCaption, Scaled.RunSecondary, 0.0f, true);
 
     Surface->Release();
     const PlaneExtent Thumb = TransferOverflow.Thumb(ScrollViewport, 880.0f);

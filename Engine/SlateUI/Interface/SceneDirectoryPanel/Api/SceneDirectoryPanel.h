@@ -30,6 +30,14 @@
 namespace Slate
 {
 
+/// 🧩 One explicit scene-transfer request emitted by the dedicated import/save page.
+enum class SceneTransferDemand : std::uint32_t
+{
+    None   = 0u,
+    Import = 1u,
+    Save   = 2u
+};
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   WHAT THE HOST OWNS
 //------------------------------------------------------------------------------------------------------------------------
@@ -110,6 +118,7 @@ struct SceneDirectoryContext
     std::uint32_t              TransferPrimaryBoneAxis = 0u;     // [-] - Y, X, or Z
     std::uint32_t              TransferSecondaryBoneAxis = 0u;   // [-] - X, Z, or Y
     bool                       TransferCardExpanded[6] = {};      // [-] - animated option cards
+    SceneTransferDemand        TransferDemand = SceneTransferDemand::None; // [-] - drained by the owning host
 
     // 📝 The scene directory's own search and filter, placed between the outliner's header and its
     //    rows. `EntityRetention` is the search run the host feeds through the seam's `AcceptTyped`
@@ -325,6 +334,7 @@ private:
     ControlIdentity DirectoryCall   = {};
     ControlIdentity TransferBack    = {};
     ControlIdentity TransferCalls[2] = {}; // [-] - Import and Save calls from the directory footer
+    ControlIdentity TransferExecute = {};  // [-] - confirms the dedicated transfer-page declaration
     ControlIdentity TransferArrows[2] = {};
     ControlIdentity TransferFormatOptions[11] = {};
     ControlIdentity TransferFields[4] = {};

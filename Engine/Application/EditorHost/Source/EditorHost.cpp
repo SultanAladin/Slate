@@ -32,6 +32,12 @@
 #include "SlateVulkan/Device/ShaderCodec/Api/ShaderCodec.h"
 #include "SlateVulkan/Device/AtmospherePresentationSurface/Api/AtmospherePresentationSurface.h"
 #include "SlateCompute/Compute/GeometryDeviceExchange/Api/GeometryDeviceExchange.h"
+#include "SlateCompute/Compute/GeometryRenderingExchange/Api/GeometryRenderingExchange.h"
+#include "SlateCompute/Compute/VisibilityIndex/Api/VisibilityIndex.h"
+#include "SlateDocument/Document/GeometryInterchange/Api/GeometryFileInterchange.h"
+#include "SlateDocument/Document/IntakeIndex/Api/IntakeIndex.h"
+#include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
+#include "SlateDocument/Document/PopulationIndex/Api/PopulationIndex.h"
 
 #include <algorithm>
 #include <cmath>
@@ -267,6 +273,17 @@ int main(int ArgumentCount, char** ArgumentValues)
     ShaderCodec             OverlayCodec;
     WorkspaceOverlayPass             Overlay;
     GeometryDeviceExchange           GeometryDevice = {};
+    GeometryFileInterchange          GeometryTransfer = {};
+    GeometryInterchange              ImportedGeometry = {};
+    GeometryRenderingExchange        ImportedRendering = {};
+    IntakeIndex                      ImportedIntake = {};
+    PopulationIndex                  ImportedOwners = {};
+    PartitionResolutionIndex         ImportedPartitions = {};
+    VisibilityIndex                  ImportedVisibility = {};
+    GeometryRenderingIdentity        PendingRendering = {};
+    std::uint32_t                    PendingVisibilityRegistration = 0u;
+    std::uint32_t                    PendingRegistrationBase = 0u;
+    bool                             GeometryAdmissionPending = false;
     std::uint32_t           OverlayGeneration[PanelStructure::RecordLimit] = {};   // [-] - per viewport leaf
 
     // 📝 One overlay record per viewport leaf, in STATIC storage: each record is ~70 KB and the
@@ -590,6 +607,10 @@ int main(int ArgumentCount, char** ArgumentValues)
     {
         std::printf("%s \u2014 the geometry device estate was rejected (reason %u: %s)\n", HostName,
                     static_cast<unsigned>(GeometryOutcome.Error.DeclaredReason), GeometryOutcome.Error.Detail);
+    }
+    if (!ImportedVisibility.ConstructVisibilityIndex(InitialWidth, InitialHeight).Resolved)
+    {
+        std::printf("%s — imported topology partition visibility could not be prepared\n", HostName);
     }
 
     // 🔴 The browser carries its OWN index, as every panel here does, so its registration cannot exhaust the
@@ -995,6 +1016,43 @@ int main(int ArgumentCount, char** ArgumentValues)
                                     PanelConfiguration[Index].FooterDemand = EditorFooterDemand::None;
                                 }
                                 SceneDirectory.RecordOutliner(LeafBody, SceneApplied, EditorEntities, 7u);
+                                if (SceneApplied.TransferDemand == SceneTransferDemand::Import)
+                                {
+                                    const Outcome<GeometryAssetView> Imported = GeometryTransfer.Import(
+                                        SceneApplied.TransferLocation, SceneApplied.TransferName,
+                                        ImportedGeometry, ImportedIntake);
+                                    if (!Imported.Resolved)
+                                    {
+                                        std::printf("%s — geometry import refused (reason %u: %s)\n", HostName,
+                                                    static_cast<unsigned>(Imported.Error.DeclaredReason), Imported.Error.Detail);
+                                    }
+                                    else
+                                    {
+                                        const Outcome<OwnerIdentity> Owner = ImportedOwners.Register();
+                                        const std::uint32_t Base = ImportedVisibility.DeclaredPartitionCount();
+                                        const Outcome<std::uint32_t> Registered = Owner.Resolved
+                                            ? ImportedVisibility.Register(Owner.Resolve(), *Imported.Resolve().Topology,
+                                                                         *Imported.Resolve().Conditioning, ImportedPartitions)
+                                            : Outcome<std::uint32_t>::Refuse(Owner.Error);
+                                        const Outcome<GeometryRenderingIdentity> Rendered = Registered.Resolved
+                                            ? ImportedRendering.Synchronise(Imported.Resolve())
+                                            : Outcome<GeometryRenderingIdentity>::Refuse(Registered.Error);
+                                        if (!Rendered.Resolved)
+                                        {
+                                            std::printf("%s — imported topology could not prepare visibility (reason %u: %s)\n",
+                                                        HostName, static_cast<unsigned>(Rendered.Error.DeclaredReason),
+                                                        Rendered.Error.Detail);
+                                        }
+                                        else
+                                        {
+                                            PendingRendering = Rendered.Resolve();
+                                            PendingVisibilityRegistration = Registered.Resolve();
+                                            PendingRegistrationBase = Base;
+                                            GeometryAdmissionPending = true;
+                                        }
+                                    }
+                                    SceneApplied.TransferDemand = SceneTransferDemand::None;
+                                }
                                 break;
                             case PanelSubject::Properties:
                                 SceneDirectory.RecordProperties(LeafBody, SceneApplied,
@@ -1365,6 +1423,27 @@ int main(int ArgumentCount, char** ArgumentValues)
             }
             ControlCentre.Exclude(Viewport.Drawers());
             Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Beneath));
+
+            // 🧩 Admission is deliberately drained while the host command recording is open and before the
+            // interface begins the display scope. The imported packet has already travelled through source drain,
+            // faithful decode, document intake, Earcut rendering-packet construction, and partition registration.
+            if (GeometryAdmissionPending && GeometryDevice.Standing())
+            {
+                const Outcome<const PartitionStructure*> Partitioned =
+                    ImportedVisibility.Registered(PendingVisibilityRegistration);
+                const Outcome<const GeometryRenderingSnapshot*> Rendering =
+                    ImportedRendering.Resolve(PendingRendering);
+                if (Partitioned.Resolved && Rendering.Resolved)
+                {
+                    const Outcome<std::uint32_t> Admitted = GeometryDevice.Admit(
+                        *Partitioned.Resolve(), *Rendering.Resolve(), PendingRegistrationBase, Pass.Recording);
+                    if (Admitted.Resolved)
+                        GeometryAdmissionPending = false;
+                    else
+                        std::printf("%s — geometry admission refused (reason %u: %s)\n", HostName,
+                                    static_cast<unsigned>(Admitted.Error.DeclaredReason), Admitted.Error.Detail);
+                }
+            }
 
             if (Viewport.SealPanels().Resolved)
             {
