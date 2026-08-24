@@ -58,6 +58,13 @@ public:
     /// 🧩 The authoritative hardware visibility raster, ready to receive a real decoded geometry packet.
     VisibilityRaster& Visibility();
 
+    /// 🧩 Records hardware visibility followed by transparent fixed-white radiance resolve.
+    /// in    Recorded  [-]  the open pre-display command recording
+    /// in    SlotIndex [-]  the completion-gated recording slot this command belongs to
+    /// in    Viewing   [-]  the current reversed-depth camera projection
+    /// out   Result    [-]  refuses until at least one authoritative geometry residency stands
+    Outcome<bool> Record(VkCommandBuffer Recorded, std::uint32_t SlotIndex, const ViewProjection& Viewing);
+
     /// 🧩 Resolves visibility into transparent black or an initial fixed-white dielectric radiance.
     /// in    Recorded  [-]  the open pre-display command recording
     /// in    SlotIndex [-]  the completion-gated recording slot this command belongs to

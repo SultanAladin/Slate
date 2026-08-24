@@ -138,6 +138,35 @@ VisibilityRaster& GeometryDeviceExchange::Visibility()
     return Raster;
 }
 
+Outcome<bool> GeometryDeviceExchange::Record(VkCommandBuffer Recorded,
+                                            std::uint32_t SlotIndex,
+                                            const ViewProjection& Viewing)
+{
+    if (!Constructed || Recorded == VK_NULL_HANDLE || Raster.ResidentCount() == 0u)
+    {
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported,
+                                       "no authoritative geometry residency is available to record" });
+    }
+
+    const Outcome<std::uint32_t> Visibility = Targets.IndexOf(SharedTarget::VisibilityIndex);
+    const Outcome<std::uint32_t> Occupancy = Targets.IndexOf(SharedTarget::OccupancySurface);
+    const Outcome<std::uint32_t> Depth = Targets.IndexOf(SharedTarget::DepthSurface);
+    if (!Visibility.Resolved || !Occupancy.Resolved || !Depth.Resolved ||
+        !Images.Transition(Recorded, Visibility.Resolve(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL).Resolved ||
+        !Images.Transition(Recorded, Occupancy.Resolve(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL).Resolved ||
+        !Images.Transition(Recorded, Depth.Resolve(), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL).Resolved)
+    {
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied,
+                                       "the visibility targets could not enter their raster layouts" });
+    }
+
+    const Outcome<bool> Rasterised = Raster.Record(Recorded, SlotIndex, Viewing);
+    if (!Rasterised.Resolved)
+        return Rasterised;
+
+    return ResolveFixedWhite(Recorded, SlotIndex);
+}
+
 Outcome<bool> GeometryDeviceExchange::ResolveFixedWhite(VkCommandBuffer Recorded, std::uint32_t SlotIndex)
 {
     if (!Constructed || Recorded == VK_NULL_HANDLE || SlotIndex >= RecordingSlotCount)
