@@ -1,8 +1,8 @@
-# Geometry Workspace and Material Evaluation Plan
+# Geometry Workspace and Material Processing Plan
 
 ## Decision and scope
 
-Phase 2 should be named the **Geometry Workspace**. `GeometryInterchange` remains the narrower import/export conversion seam described in `PhysicsAndGeometryInterchangePlan.md`; it should not become the name of the entire editor, renderer, topology store, or texture evaluator.
+Phase 2 should be named the **Geometry Workspace**. `GeometryInterchange` remains the narrower import/export conversion seam described in `PhysicsAndGeometryInterchangePlan.md`; it should not become the name of the entire editor, renderer, topology store, or material processor.
 
 This phase implements, in order:
 
@@ -14,7 +14,16 @@ This phase implements, in order:
 6. a default dielectric base-material layer with editable channels;
 7. the contracts and scheduling model for a later GPU texture-paint evaluator.
 
-The texture layer evaluator is designed in this phase but the complete Substance-style stack is **not** implemented yet. Physics interchange and an extracted shared DLL also remain out of scope.
+The material layer processor is designed in this phase but the complete Substance-style stack is **not** implemented yet. Physics interchange and an extracted shared DLL also remain out of scope.
+
+## Naming selected for Phase 2
+
+- **GeometryInterchange** owns authoritative decoded geometry intake, derived CPU companions, stable geometry identities, and lifetime. It does not parse file formats or own GPU buffers.
+- **GeometryFormatExchange** is the import/export boundary. It classifies formats and dispatches isolated OBJ, glTF, FBX, USD, and later codec adapters. The first delivered capability is faithful OBJ import; unsupported export is reported rather than simulated.
+- **GeometryPresentationExchange** will transfer immutable geometry views into disposable GPU presentation resources.
+- **MaterialProcessingExchange** is the layer/channel command and processing seam. “Processing” covers constant edits now and dirty-tile GPU processing later without using the disliked “Evaluation” or “Composition” terms.
+
+`GeometryCodecExchange` remains a valid alternative to `GeometryFormatExchange`, but **GeometryFormatExchange** is selected because the boundary describes user-visible file formats while codecs remain replaceable implementations beneath it.
 
 ## Entire structure
 
@@ -37,7 +46,8 @@ Application/EditorHost
 │                                             │
 ├── Scene Transfer UI                         │
 │   ├── FileInterchange                       │
-│   ├── format codec adapter                  │
+│   ├── GeometryFormatExchange               │
+│   │   └── isolated format codec adapters     │
 │   └── GeometryInterchange                   │
 │       ├── DecodedScene / polygon soup       │
 │       ├── diagnostics + provenance          │
@@ -79,10 +89,10 @@ Application/EditorHost
 │   ├── stable entity + topology element mapping
 │   └── persistent SelectionSet update
 │
-└── TextureEvaluationExchange (contract first)
+└── MaterialProcessingExchange (contract first)
     ├── immutable layer/channel snapshot
     ├── dependency graph and dirty-tile compiler
-    ├── GPU evaluator and transient image pool
+    ├── GPU processor and transient image pool
     ├── bake/export requests
     └── evaluated material bindings → renderer
 ```
@@ -90,11 +100,11 @@ Application/EditorHost
 ### Dependency direction
 
 ```text
-codecs → GeometryInterchange → document topology → presentation exchange → Vulkan
+codecs → GeometryFormatExchange → GeometryInterchange → document topology → presentation exchange → Vulkan
                                       ↑                    ↓
                               editor commands       read-only pick results
 
-Layer Stack UI → material commands → material document → TextureEvaluationExchange
+Layer Stack UI → material commands → material document → MaterialProcessingExchange
                                                                ↓
                                                      evaluated GPU material set
 ```
@@ -446,7 +456,7 @@ A layer can omit a channel; omission means pass-through, not a default overwrite
 
 ## Texture evaluation architecture
 
-The proposed seam is **TextureEvaluationExchange**. It is separate from `GeometryInterchange`: import/export translates external assets, while evaluation turns authored layer graphs into GPU material images.
+The proposed seam is **MaterialProcessingExchange**. It is separate from `GeometryInterchange`: import/export translates external assets, while evaluation turns authored layer graphs into GPU material images.
 
 ### Responsibilities
 
@@ -454,7 +464,7 @@ The proposed seam is **TextureEvaluationExchange**. It is separate from `Geometr
 Layer Stack UI
   → undoable MaterialCommand
   → MaterialAsset revision
-  → TextureEvaluationExchange compiler
+  → MaterialProcessingExchange compiler
       → validated dependency DAG
       → dirty channel/tile set
       → GPU dispatch schedule
@@ -462,7 +472,7 @@ Layer Stack UI
   → GeometryPresentationExchange material bindings
 ```
 
-The exchange owns no UI state and no Vulkan device globally; a Vulkan evaluator adapter owns device resources behind the exchange.
+The exchange owns no UI state and no Vulkan device globally; a Vulkan processing adapter owns device resources behind the exchange.
 
 ### Entirely GPU-driven evaluation
 
@@ -487,7 +497,7 @@ DirtyKey = material + channel + udim + mip + tileX + tileY
 
 Propagate dirtiness through the DAG. Merge duplicate keys before dispatch. Generate lower mips on GPU only for affected parent regions.
 
-### Evaluation order
+### Processing order
 
 For each output channel:
 
@@ -509,7 +519,7 @@ Normal channels use reoriented-normal or declared normal blending. Height can co
 - bounded descriptor and transient-image allocation;
 - asynchronous compute when it overlaps safely with graphics;
 - timeline/generation ownership through the existing cycle scheduler;
-- cache keys include source revision, node parameters, channel schema, and evaluator version;
+- cache keys include source revision, node parameters, channel schema, and processor version;
 - deterministic output for identical inputs and declared precision mode;
 - explicit memory budget, eviction, and re-evaluation policy;
 - timestamps per node/channel/tile for profiling.
@@ -640,9 +650,9 @@ Commands mutate document state on its owning thread, increment revisions, and em
 17. Bind base-layer values to viewport material resolve.
 18. Keep all material editing in the Layer Stack command path.
 
-### Material milestone B — evaluator contract and measured prototype
+### Material milestone B — processing contract and measured prototype
 
-19. Define `TextureEvaluationExchange`, immutable snapshots, dirty keys, and capability report.
+19. Define `MaterialProcessingExchange`, immutable snapshots, dirty keys, and capability report.
 20. Implement constant/image/layer blend for one colour and one data channel on GPU.
 21. Add tile dirtiness, transient image lifetime analysis, and GPU timestamps.
 22. Validate normal/height policies before adding paint and procedural nodes.

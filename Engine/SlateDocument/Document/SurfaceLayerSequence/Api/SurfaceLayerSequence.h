@@ -15,6 +15,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <string>
 #include <vector>
 
 namespace Slate
@@ -35,7 +36,8 @@ enum class LayerContentSource : std::uint32_t
     Tiling             = 2u,   // [-] - the pattern declaration — `54`
     AnalyticResolution = 3u,   // [-] - an outline or an analytic source — `70`
     NestedSequence     = 4u,   // [-] - an entry that is itself a sequence — §4.1
-    SourceCount        = 5u    // [-] - the closed count, never a source
+    MaterialConstants  = 5u,   // [-] - channel constants held by MaterialSpecification
+    SourceCount        = 6u    // [-] - the closed count, never a source
 };
 
 /// 🧩 Whether content from one source can be rebuilt from what the document holds.
@@ -131,7 +133,9 @@ struct LayerSpecification
     CombineSpecification  Combination     = CombineSpecification::Over;    // [-] - `22` §3's, unamended
     CoverageSpecification Coverage        = {};                            // [-]
     PaintedContent        Painted         = {};                            // [-] - read at PaintedImpressions
+    std::string           Name            = {};                            // [-] - editable and used by export naming
     bool                  PresenceEnabled = true;                          // [-] - hiding is a recorded amendment
+    bool                  Mandatory       = false;                         // [-] - base material cannot be removed
     bool                  ResampleOwed    = false;                         // [-] - a re-partition has moved the domain
 };
 
@@ -191,6 +195,9 @@ public:
     /// cost  🚩
     /// tag   api, nonthrowing
     Outcome<bool> DeclarePresence(LayerIdentity Subject, bool PresenceEnabled);
+
+    /// 🧩 Renames one entry. The name is document data and supplies material/export labels.
+    Outcome<std::string> DeclareName(LayerIdentity Subject, const std::string& Name);
 
     /// 🧩 Amends one entry's combination.
     /// out   Result  [-]  refuses with IdentityStale; carries the prior combination

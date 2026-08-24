@@ -85,6 +85,11 @@ Outcome<std::uint32_t> SurfaceLayerSequence::Reorder(LayerIdentity Subject, std:
 
     const std::uint32_t Prior   = static_cast<std::uint32_t>(Located_);
     const LayerSpecification Held = Sequenced[Located_];
+    if (Held.Mandatory && Position != Prior)
+        return Outcome<std::uint32_t>::Refuse(
+            { RefusalReason::HostDenied, "a mandatory material layer cannot be reordered" });
+    if (!Held.Mandatory && !Sequenced.empty() && Sequenced.front().Mandatory && Position == 0u)
+        Position = 1u;
 
     Sequenced.erase(Sequenced.begin() + static_cast<std::ptrdiff_t>(Located_));
 
@@ -108,6 +113,16 @@ Outcome<bool> SurfaceLayerSequence::DeclarePresence(LayerIdentity Subject, bool 
     Sequenced[Located_].PresenceEnabled = PresenceEnabled;
 
     return Outcome<bool>::Result(Prior);
+}
+
+Outcome<std::string> SurfaceLayerSequence::DeclareName(LayerIdentity Subject, const std::string& Name)
+{
+    const std::size_t Located_ = Located(Subject);
+    if (Located_ == Sequenced.size())
+        return Outcome<std::string>::Refuse({ RefusalReason::IdentityStale, "the entry no longer resolves" });
+    const std::string Prior = Sequenced[Located_].Name;
+    Sequenced[Located_].Name = Name;
+    return Outcome<std::string>::Result(Prior);
 }
 
 Outcome<CombineSpecification> SurfaceLayerSequence::DeclareCombination(LayerIdentity        Subject,
@@ -143,6 +158,10 @@ Outcome<LayerSpecification> SurfaceLayerSequence::Withdraw(LayerIdentity Subject
         return Outcome<LayerSpecification>::Refuse(
             { RefusalReason::IdentityStale, "the entry no longer resolves" });
     }
+
+    if (Sequenced[Located_].Mandatory)
+        return Outcome<LayerSpecification>::Refuse(
+            { RefusalReason::HostDenied, "a mandatory material layer cannot be removed" });
 
     LayerSpecification Departing = Sequenced[Located_];
 

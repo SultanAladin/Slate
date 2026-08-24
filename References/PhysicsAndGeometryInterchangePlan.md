@@ -162,7 +162,7 @@ The core scene and components do not depend on Jolt.
 
 ## GeometryInterchange
 
-The Phase 2 workspace, GPU geometry, selection, gizmo, base-material layer, and texture-evaluation delivery is expanded in `GeometryWorkspaceAndMaterialEvaluationPlan.md`. This section remains the neutral interchange contract.
+The Phase 2 workspace, GPU geometry, selection, gizmo, base-material layer, and texture-evaluation delivery is expanded in `GeometryWorkspaceAndMaterialProcessingPlan.md`. This section remains the neutral interchange contract.
 
 ### Purpose
 
