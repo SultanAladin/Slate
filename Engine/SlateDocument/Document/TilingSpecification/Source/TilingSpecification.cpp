@@ -73,7 +73,7 @@ Outcome<bool> TilingSpecification::DeclareContent(const CellContent& Declaring)
 
     // 🔴 A tiling already nested may not nest another — `54` §3's one level, enforced at the element rather than
     //    at the reference, so a tiling that is nested afterwards still refuses.
-    if (Declaring.Source == CellContentSource::NestedTiling && Depth >= TilingNestingCeiling)
+    if (Declaring.Source == CellContentSource::NestedTiling && Depth >= TilingNestingLimit)
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "nesting is bounded at one level — `54` §3" });
@@ -137,14 +137,14 @@ Outcome<ClassifiedCell> TilingSpecification::Classify(double PositionX, double P
     //    preview and `70`'s device resolution — `54` §1.
     if (DeclaredVariation.Declared == VariationSubject::Permuted)
     {
-        const std::uint32_t Folded = FoldedCellOrdinal(CellX, CellY);
+        const std::uint32_t Folded = FoldedCellIndex(CellX, CellY);
 
-        Classified.VariationOrdinal =
-            ProjectPermutedOrdinal(Folded, DeclaredVariation.PatternSeed) % DeclaredVariation.DeclaredSpan;
+        Classified.VariationIndex =
+            ProjectPermutedIndex(Folded, DeclaredVariation.PatternSeed) % DeclaredVariation.DeclaredSpan;
 
         const double Fraction = DeclaredVariation.DeclaredSpan <= 1u
                               ? 0.0
-                              : static_cast<double>(Classified.VariationOrdinal)
+                              : static_cast<double>(Classified.VariationIndex)
                               / static_cast<double>(DeclaredVariation.DeclaredSpan - 1u);
 
         Classified.VariationScale = DeclaredVariation.LowerScale
@@ -154,9 +154,9 @@ Outcome<ClassifiedCell> TilingSpecification::Classify(double PositionX, double P
     {
         // 📝 A progression is indexed by position rather than permuted, so a gradient across a bolt of cloth is
         //    expressible without a permutation pretending to be one.
-        const double Fraction = ProjectVariation(FoldedCellOrdinal(CellX, 0), DeclaredVariation.PatternSeed);
+        const double Fraction = ProjectVariation(FoldedCellIndex(CellX, 0), DeclaredVariation.PatternSeed);
 
-        Classified.VariationOrdinal = static_cast<std::uint32_t>(CellX + CellY);
+        Classified.VariationIndex = static_cast<std::uint32_t>(CellX + CellY);
         Classified.VariationScale   = DeclaredVariation.LowerScale
                                     + (DeclaredVariation.UpperScale - DeclaredVariation.LowerScale) * Fraction;
     }
@@ -180,43 +180,43 @@ bool                            TilingSpecification::LatticeDeclared() const { r
 
 Outcome<std::uint32_t> TilingIndex::Declare()
 {
-    if (Declared.size() >= TilingCeiling)
+    if (Declared.size() >= TilingLimit)
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "the tiling ceiling was reached" });
 
-    const std::uint32_t TilingOrdinal = static_cast<std::uint32_t>(Declared.size());
+    const std::uint32_t TilingIndex = static_cast<std::uint32_t>(Declared.size());
 
     Declared.push_back(TilingSpecification{});
 
-    return Outcome<std::uint32_t>::Result(TilingOrdinal);
+    return Outcome<std::uint32_t>::Result(TilingIndex);
 }
 
-Outcome<const TilingSpecification*> TilingIndex::Resolve(std::uint32_t TilingOrdinal) const
+Outcome<const TilingSpecification*> TilingIndex::Resolve(std::uint32_t TilingIndex) const
 {
-    if (TilingOrdinal >= Declared.size())
+    if (TilingIndex >= Declared.size())
         return Outcome<const TilingSpecification*>::Refuse({ RefusalReason::ContentUnsupported, "no such tiling" });
 
-    return Outcome<const TilingSpecification*>::Result(&Declared[TilingOrdinal]);
+    return Outcome<const TilingSpecification*>::Result(&Declared[TilingIndex]);
 }
 
-Outcome<TilingSpecification*> TilingIndex::Amend(std::uint32_t TilingOrdinal)
+Outcome<TilingSpecification*> TilingIndex::Amend(std::uint32_t TilingIndex)
 {
-    if (TilingOrdinal >= Declared.size())
+    if (TilingIndex >= Declared.size())
         return Outcome<TilingSpecification*>::Refuse({ RefusalReason::ContentUnsupported, "no such tiling" });
 
-    return Outcome<TilingSpecification*>::Result(&Declared[TilingOrdinal]);
+    return Outcome<TilingSpecification*>::Result(&Declared[TilingIndex]);
 }
 
-Outcome<bool> TilingIndex::Nest(std::uint32_t EnclosingOrdinal, std::uint32_t NestedOrdinal)
+Outcome<bool> TilingIndex::Nest(std::uint32_t EnclosingIndex, std::uint32_t NestedIndex)
 {
-    if (EnclosingOrdinal >= Declared.size() || NestedOrdinal >= Declared.size())
+    if (EnclosingIndex >= Declared.size() || NestedIndex >= Declared.size())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such tiling" });
 
-    if (EnclosingOrdinal == NestedOrdinal)
+    if (EnclosingIndex == NestedIndex)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a tiling cannot nest itself" });
 
-    const std::uint32_t Incoming = Declared[EnclosingOrdinal].NestingDepth() + 1u;
+    const std::uint32_t Incoming = Declared[EnclosingIndex].NestingDepth() + 1u;
 
-    if (Incoming > TilingNestingCeiling)
+    if (Incoming > TilingNestingLimit)
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "nesting is bounded at one level — `54` §3" });
@@ -224,7 +224,7 @@ Outcome<bool> TilingIndex::Nest(std::uint32_t EnclosingOrdinal, std::uint32_t Ne
 
     // 📝 A tiling already carrying a nested element cannot itself become nested, because that would place a
     //    nested element two levels down without either declaration having said so.
-    for (const CellContent& Held : Declared[NestedOrdinal].Content())
+    for (const CellContent& Held : Declared[NestedIndex].Content())
     {
         if (Held.Source == CellContentSource::NestedTiling)
         {
@@ -233,7 +233,7 @@ Outcome<bool> TilingIndex::Nest(std::uint32_t EnclosingOrdinal, std::uint32_t Ne
         }
     }
 
-    Declared[NestedOrdinal].DeclareNestingDepth(Incoming);
+    Declared[NestedIndex].DeclareNestingDepth(Incoming);
 
     return Outcome<bool>::Result(true);
 }

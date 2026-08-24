@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "Contract/CombineContract.h"
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/Combination.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
+#include "Foundation/NumericTolerance.h"
 #include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
 #include "SlateMath/Numeric/ReportSequence/Api/ReportSequence.h"
 
@@ -27,7 +27,7 @@ namespace Slate
 /// note  🔴 A shape is **coverage, not colour**. An imported image supplies where the impression applies and the
 ///        values it applies come from §2's channel set. A shape carrying colour would make every brush a
 ///        per-channel asset, and an artist changing colour would be editing an image.
-/// tag   contract
+/// tag   guarantee
 enum class ShapeSource : std::uint32_t
 {
     Analytic     = 0u,   // [-] - a profile from centre to edge, resolved at the extent
@@ -37,7 +37,7 @@ enum class ShapeSource : std::uint32_t
 };
 
 /// 🧩 How the analytic profile falls from centre to edge.
-/// tag   contract
+/// tag   guarantee
 enum class ProfileSubject : std::uint32_t
 {
     Constant     = 0u,   // [-] - full coverage to the edge, then nothing
@@ -48,7 +48,7 @@ enum class ProfileSubject : std::uint32_t
 };
 
 /// 🧩 What sets one impression's rotation — `58` §3.1.
-/// tag   contract
+/// tag   guarantee
 enum class RotationSubject : std::uint32_t
 {
     Fixed         = 0u,   // [-] - one declared angle
@@ -66,7 +66,7 @@ struct ImpressionShape
 {
     ShapeSource      Source          = ShapeSource::Analytic;
     ProfileSubject   Profile         = ProfileSubject::Linear;     // [-]   - read at Analytic
-    std::uint32_t    SourceOrdinal   = 0u;                         // [-]   - into `50` or `52`
+    std::uint32_t    SourceIndex   = 0u;                         // [-]   - into `50` or `52`
     RotationSubject  Rotated         = RotationSubject::Fixed;     // [-]
     double           FixedRotation   = 0.0;                        // [deg] - read at Fixed
 };
@@ -80,7 +80,7 @@ struct ImpressionShape
 ///        timestamps and distance from the resampled path. The three the stylus reports may be absent, and an
 ///        absent axis falls back to a declared value rather than reading as zero — a tablet reporting no tilt
 ///        and a stylus held upright are different facts.
-/// tag   contract
+/// tag   guarantee
 enum class DynamicAxis : std::uint32_t
 {
     Pressure     = 0u,   // [-] - reported by the stylus
@@ -92,7 +92,7 @@ enum class DynamicAxis : std::uint32_t
 };
 
 /// 🧩 Which brush parameter a dynamic drives.
-/// tag   contract
+/// tag   guarantee
 enum class DynamicParameter : std::uint32_t
 {
     Extent           = 0u,   // [-] - the impression radius
@@ -106,7 +106,7 @@ enum class DynamicParameter : std::uint32_t
 /// note  🔴 Declared, **never linear by assumption** — `58` §4. Pressure mapped linearly onto radius feels wrong
 ///        to every artist who has used a stylus, and a brush that cannot state its own progression is a brush
 ///        every artist immediately abandons. `ProgressionCount` is the undeclared value and is rejected.
-/// tag   contract
+/// tag   guarantee
 enum class ProgressionSubject : std::uint32_t
 {
     Linear          = 0u,   // [-]
@@ -280,7 +280,7 @@ public:
 
     /// 🧩 Resolves the brush's parameters at one impression of one stroke.
     /// in    Axes              [-]  what the device reported, and which of it is present
-    /// in    ImpressionOrdinal [-]  the impression's position within the stroke
+    /// in    ImpressionIndex [-]  the impression's position within the stroke
     /// in    StrokeSeed        [-]  recorded with the transaction — `58` §6
     /// out   Resolved          [-]  extent, rotation, strength, spacing and displacement
     /// note  🔴 The variation reads `02` §6's shared permutation at Tier A, so the sequence `82` previews with
@@ -291,7 +291,7 @@ public:
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
     ResolvedBrush Resolve(const ResolvedAxes& Axes,
-                          std::uint32_t       ImpressionOrdinal,
+                          std::uint32_t       ImpressionIndex,
                           std::uint32_t       StrokeSeed) const;
 
     /// 🧩 Appends the spacing-floor report, once, if the floor was reached.
@@ -346,17 +346,17 @@ public:
     /// tag   api, nonthrowing
     Outcome<std::uint32_t> Declare(const std::string& Named, const std::string& Grouping);
 
-    Outcome<const BrushSpecification*> Resolve(std::uint32_t BrushOrdinal) const;
-    Outcome<BrushSpecification*>       Amend(std::uint32_t BrushOrdinal);
+    Outcome<const BrushSpecification*> Resolve(std::uint32_t BrushIndex) const;
+    Outcome<BrushSpecification*>       Amend(std::uint32_t BrushIndex);
 
-    const std::string& DeclaredName(std::uint32_t BrushOrdinal) const;
-    const std::string& DeclaredGrouping(std::uint32_t BrushOrdinal) const;
+    const std::string& DeclaredName(std::uint32_t BrushIndex) const;
+    const std::string& DeclaredGrouping(std::uint32_t BrushIndex) const;
 
     std::uint32_t DeclaredCount() const;
 
 private:
 
-    static constexpr std::uint32_t BrushCeiling = 4096u;   // [-] - brushes the application may hold
+    static constexpr std::uint32_t BrushLimit = 4096u;   // [-] - brushes the application may hold
 
     std::vector<BrushSpecification>  Declared;
     std::vector<std::string>         DeclaredNames;

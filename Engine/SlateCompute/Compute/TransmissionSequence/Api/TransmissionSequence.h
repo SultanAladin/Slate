@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
+#include "Foundation/NumericTolerance.h"
 #include "Shared/TransmissionProjection.slang.h"
 #include "SlateCompute/Compute/ReflectanceIntegrator/Api/ReflectanceIntegrator.h"
 #include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
@@ -33,7 +33,7 @@ namespace Slate
 /// note  🔴 Because a cutout owner writes `VisibilityIndex`, it is shaded by `18`, outlined by `26`, picked by
 ///        `74` and occluded by `60` with no special case in any of them. That is the whole reason the
 ///        classification lives at `16` rather than here.
-/// tag   contract
+/// tag   guarantee
 enum class TransmissionBehaviour : std::uint32_t
 {
     Opaque         = 0u,   // [-] - channel 8 is not read at all
@@ -157,8 +157,8 @@ public:
 
     // 📝 `08` §3 ⑤ is two recordings. The ordinals are declared here so that the schedule orders them against
     //    `30`'s without either document knowing the other's number by heart.
-    static constexpr std::uint32_t CollectAmendmentOrdinal = 10u;   // [-] - ⑤·i writes `TransmissionIndex`
-    static constexpr std::uint32_t ResolveAmendmentOrdinal = 20u;   // [-] - ⑤·ii amends `RadianceSurface`
+    static constexpr std::uint32_t CollectAmendmentIndex = 10u;   // [-] - ⑤·i writes `TransmissionIndex`
+    static constexpr std::uint32_t ResolveAmendmentIndex = 20u;   // [-] - ⑤·ii amends `RadianceSurface`
 
     /// 🧩 Contributes ⑤·i — the collection that writes `TransmissionIndex` and no depth.
     /// out   Result  [-]  refuses with whatever the schedule rejected

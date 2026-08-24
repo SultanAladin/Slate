@@ -40,11 +40,11 @@ Outcome<bool> VectorInterchange::DeclareFromText(const OutlineSpecification& Inc
     return Outcome<bool>::Result(true);
 }
 
-void VectorInterchange::Refuse(const std::string& Construct, std::uint32_t SourceOrdinal, const Refusal& Declining)
+void VectorInterchange::Refuse(const std::string& Construct, std::uint32_t SourceIndex, const Refusal& Declining)
 {
     RejectedConstruct Refusing;
     Refusing.Construct     = Construct;
-    Refusing.SourceOrdinal = SourceOrdinal;
+    Refusing.SourceIndex = SourceIndex;
     Refusing.Declining     = Declining;
 
     RejectedConstructs.push_back(Refusing);
@@ -90,32 +90,32 @@ std::int32_t VectorInterchange::Classify(const std::vector<std::vector<PlanarPos
 {
     std::int32_t Resolved = -1;
 
-    for (std::size_t PathOrdinal = 0u; PathOrdinal < Flattened.size(); ++PathOrdinal)
+    for (std::size_t PathIndex = 0u; PathIndex < Flattened.size(); ++PathIndex)
     {
-        const std::vector<PlanarPosition>& Traversed = Flattened[PathOrdinal];
+        const std::vector<PlanarPosition>& Traversed = Flattened[PathIndex];
 
         if (Traversed.size() < 3u)
             continue;
 
-        const FillRule Rule = PathOrdinal < DeclaredOutline.Paths.size()
-                            ? DeclaredOutline.Paths[PathOrdinal].Rule
+        const FillRule Rule = PathIndex < DeclaredOutline.Paths.size()
+                            ? DeclaredOutline.Paths[PathIndex].Rule
                             : FillRule::NonZero;
 
         Signed32 WindingCount    = 0;
         Signed32 CrossingCount   = 0;
-        Signed32 BoundaryTouched = 0;
+        Signed32 DividerTouched = 0;
 
-        for (std::size_t Ordinal = 0u; Ordinal + 1u < Traversed.size(); ++Ordinal)
+        for (std::size_t Index = 0u; Index + 1u < Traversed.size(); ++Index)
         {
-            AccumulateWinding(Traversed[Ordinal].PositionX,      Traversed[Ordinal].PositionY,
-                              Traversed[Ordinal + 1u].PositionX, Traversed[Ordinal + 1u].PositionY,
+            AccumulateWinding(Traversed[Index].PositionX,      Traversed[Index].PositionY,
+                              Traversed[Index + 1u].PositionX, Traversed[Index + 1u].PositionY,
                               PointX, PointY,
-                              WindingCount, CrossingCount, BoundaryTouched);
+                              WindingCount, CrossingCount, DividerTouched);
         }
 
         const Signed32 Containment = ResolveContainment(WindingCount,
                                                        CrossingCount,
-                                                       BoundaryTouched,
+                                                       DividerTouched,
                                                        Rule == FillRule::EvenOdd ? 1 : 0);
 
         // 🔴 A boundary anywhere wins outright. A position that is exactly on one path's edge and inside another

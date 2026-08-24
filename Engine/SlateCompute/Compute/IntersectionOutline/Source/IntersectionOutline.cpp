@@ -103,7 +103,7 @@ Outcome<bool> IntersectionOutline::Contribute(RenderSchedule& Schedule) const
     //    so the outline colour is display code already; ordered scene-referred it would be compressed with the
     //    radiance and the outline would change colour as the exposure adapted.
     Declared.DisplayReferred  = true;
-    Declared.AmendmentOrdinal = AmendmentOrdinal;
+    Declared.AmendmentIndex = AmendmentIndex;
 
     return Schedule.Contribute(Declared);
 }

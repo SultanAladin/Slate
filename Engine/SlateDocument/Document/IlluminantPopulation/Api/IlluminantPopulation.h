@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "Contract/IdentityContract.h"
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/Identity.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
+#include "Foundation/NumericTolerance.h"
 #include "SlateMath/Numeric/ColourProjection/Api/ColourProjection.h"
 #include "SlateMath/Numeric/TransformProjection/Api/TransformProjection.h"
 
@@ -26,7 +26,7 @@ namespace Slate
 /// note  🔴 Every shape has a **non-zero size**, and the declaration below refuses one that does not. This is not
 ///        a refinement: `18` §4's reflectance models integrate over a solid extent, and a zero-extent source
 ///        produces a specular highlight that is either absent or a single aliased pixel depending on the roughness.
-/// tag   contract
+/// tag   guarantee
 enum class EmissionShape : std::uint32_t
 {
     Point       = 0u,   // [-] - a position, with a radius
@@ -226,24 +226,24 @@ public:
     /// cost  🚩
     /// tag   api, nonthrowing
     Outcome<bool> DerivePartition(const IlluminantPopulation& Illuminants,
-                                  std::uint32_t               PartitionOrdinal,
+                                  std::uint32_t               PartitionIndex,
                                   PartitionExtent             Extent);
 
     /// 🧩 How many illuminants reach one partition.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t ReachingCount(std::uint32_t PartitionOrdinal) const;
+    std::uint32_t ReachingCount(std::uint32_t PartitionIndex) const;
 
     /// 🧩 One reaching illuminant, in identity order.
     /// out   Result  [-]  refuses with ExtentExhausted outside the reaching count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<OwnerIdentity> Reaching(std::uint32_t PartitionOrdinal, std::uint32_t ReachOrdinal) const;
+    Outcome<OwnerIdentity> Reaching(std::uint32_t PartitionIndex, std::uint32_t ReachIndex) const;
 
     /// 🧩 How many illuminants one partition could not carry — `86`'s truncation row.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t TruncatedCount(std::uint32_t PartitionOrdinal) const;
+    std::uint32_t TruncatedCount(std::uint32_t PartitionIndex) const;
 
     /// 🧩 The truncation across every partition.
     /// cost  ✔️
@@ -265,7 +265,7 @@ private:
     std::vector<std::vector<OwnerIdentity>>  ReachingSets;         // [-] - per partition, in identity order
     std::vector<std::uint32_t>                  TruncatedCounts;      // [-] - per partition
     std::uint32_t                               TruncatedAccumulated = 0u;   // [-] - across every partition
-    std::uint64_t                               DescribedOrdinal     = 0u;   // [-] - the population revision
+    std::uint64_t                               DescribedIndex     = 0u;   // [-] - the population revision
 };
 
 // 📐 Identity, registration and the reach comparison are Exact; the incidence projection reads a square root and a

@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/IdentityContract.h"
-#include "Contract/DeliveryContract.h"
+#include "Foundation/Identity.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateMath/Numeric/ReportSequence/Api/ReportSequence.h"
 #include "SlateMath/Platform/TickSequence/Api/TickSequence.h"
 
@@ -33,7 +33,7 @@ inline constexpr std::uint32_t AbsentWork = 0xFFFFFFFFu;   // [-] - no record
 /// 🧩 How urgently declared work is wanted, and therefore what it may starve.
 /// note  🔴 At least one worker is reserved for Interactive. A residency promotion under the cursor and a
 ///        whole-document export are both long solves, and `34` §4 forbids the export occupying every worker.
-/// tag   contract
+/// tag   guarantee
 enum class WorkPriority : std::uint32_t
 {
     Interactive   = 0u,   // [-] - the artist is waiting and the workspace shows a gap; never starves
@@ -45,7 +45,7 @@ enum class WorkPriority : std::uint32_t
 /// 🧩 How one declaration ended.
 /// note  ⚠️ Cancelled and Superseded are both cancellations and are reported apart, because `86` §5 rules a
 ///        superseded cancellation ordinary operation and a withdrawn one the requester's own decision.
-/// tag   contract
+/// tag   guarantee
 enum class WorkConclusion : std::uint32_t
 {
     Delivered  = 0u,   // [-] - the resolution delivered
@@ -181,7 +181,7 @@ struct WorkCompletion
     const char*     Origin          = "";                          // [-]  - as declared
     WorkConclusion  Completed       = WorkConclusion::Cancelled;   // [-]  - how it ended
     Refusal         Declining       = {};                          // [-]  - meaningful only when Rejected
-    std::uint64_t   DeclaredOrdinal = 0u;                          // [-]  - declaration order; Drain sorts by it
+    std::uint64_t   DeclaredIndex = 0u;                          // [-]  - declaration order; Drain sorts by it
     TickPoint       Sealed          = {};                          // [ns] - when the conclusion was recorded
 };
 
@@ -200,7 +200,7 @@ public:
     /// 🧩 Accepts one record ordinal at the end of the order.
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Accept(std::uint32_t RecordOrdinal);
+    void Accept(std::uint32_t RecordIndex);
 
     /// 🧩 Reservations the earliest pending record ordinal.
     /// out   Result  [-]  refuses with ExtentExhausted when nothing is pending
@@ -211,7 +211,7 @@ public:
     /// 🧩 Strikes one record ordinal from the order without claiming it.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Withdraw(std::uint32_t RecordOrdinal);
+    void Withdraw(std::uint32_t RecordIndex);
 
     /// 🧩 How many declarations are pending here.
     /// cost  ✔️
@@ -221,7 +221,7 @@ public:
 private:
 
     std::vector<std::uint32_t>  PendingOrder;          // [-] - record ordinals; AbsentWork where struck
-    std::size_t                 ReservationOrdinal = 0u;     // [-] - how far the claim has walked
+    std::size_t                 ReservationIndex = 0u;     // [-] - how far the claim has walked
     std::uint32_t               PendingHeld  = 0u;     // [-] - unstruck, unclaimed entries
 };
 
@@ -240,7 +240,7 @@ class WorkSequence
 {
 public:
 
-    static constexpr std::uint32_t WorkerCeiling = 64u;   // [-] - workers this sequence will construct
+    static constexpr std::uint32_t WorkerLimit = 64u;   // [-] - workers this sequence will construct
 
     WorkSequence();
     WorkSequence(const WorkSequence&)            = delete;
@@ -258,7 +258,7 @@ public:
     ///        reading this only asks for.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(std::uint32_t RequestedWorkers, const TickSequence& HostTimeline, ReportSequence& Reporting);
+    Outcome<bool> ConstructWorkerSequence(std::uint32_t RequestedWorkers, const TickSequence& HostTimeline, ReportSequence& Reporting);
 
     /// 🧩 Declares one unit of work, to be resolved by a worker.
     /// in    Incoming  [-]  the declaration, its inputs already captured
@@ -340,18 +340,18 @@ private:
     struct WorkRecord;
 
     static constexpr std::size_t   PrioritySpan               = static_cast<std::size_t>(WorkPriority::PriorityCount);
-    static constexpr std::uint32_t InteractiveReservedOrdinal = 0u;
+    static constexpr std::uint32_t InteractiveReservedIndex = 0u;
 
-    void          Serve(std::uint32_t WorkerOrdinal);
-    bool          Reservable(std::uint32_t WorkerOrdinal) const;
-    std::uint32_t Reserve(std::uint32_t WorkerOrdinal);
-    void          Seal(std::uint32_t RecordOrdinal, const Outcome<bool>& Resolved);
+    void          Serve(std::uint32_t WorkerIndex);
+    bool          Reservable(std::uint32_t WorkerIndex) const;
+    std::uint32_t Reserve(std::uint32_t WorkerIndex);
+    void          Seal(std::uint32_t RecordIndex, const Outcome<bool>& Resolved);
     Outcome<bool> Cancel(WorkIdentity Subject, bool SupersessionPosed);
     std::uint32_t Resolved(WorkIdentity Subject) const;
 
     std::vector<std::thread>                   Workers;                     // [-] - fixed at Construct
     std::vector<std::unique_ptr<WorkRecord>>   Records;                     // [-] - one per declaration slot
-    std::vector<std::uint32_t>                 ReleasedOrdinals;            // [-] - slots free for reuse
+    std::vector<std::uint32_t>                 ReleasedIndexs;            // [-] - slots free for reuse
     WorkQueue                                  PendingByPriority[PrioritySpan] = {};
     std::vector<WorkCompletion>                SealedCompletions;           // [-] - awaiting the next Drain
     std::vector<WorkCompletion>                DrainedCompletions;          // [-] - what the last Drain returned

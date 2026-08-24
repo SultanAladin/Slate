@@ -61,9 +61,9 @@ Outcome<bool> FontLoader::Discover(const char* FontRoot)
     return Outcome<bool>::Result(true);
 }
 
-const char* FontLoader::FamilyName(std::uint32_t Ordinal) const
+const char* FontLoader::FamilyName(std::uint32_t Index) const
 {
-    return Ordinal < Families.size() ? Families[Ordinal].c_str() : nullptr;
+    return Index < Families.size() ? Families[Index].c_str() : nullptr;
 }
 
 Outcome<bool> FontLoader::PreparePreviews(float DisplayScale)

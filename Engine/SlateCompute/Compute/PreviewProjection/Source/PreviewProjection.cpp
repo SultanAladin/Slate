@@ -30,7 +30,7 @@ constexpr std::uint32_t FinestLevel = 0u;       // [-] - the finest reduction le
 //                                                     WHAT IT READS
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> PreviewProjection::Construct(const PreviewSources& Supplied)
+Outcome<bool> PreviewProjection::ConstructPreviewProjection(const PreviewSources& Supplied)
 {
     // 🔴 `82` §5: previews resolve through `70`'s host path and through nothing else. An absent resolver is not
     //    a preview that degrades to something simpler — it is a preview that would have to invent a second
@@ -99,7 +99,7 @@ Outcome<bool> PreviewProjection::AmendImpression(const StrokeArrival& Incoming)
 
 Outcome<ResolvedRun> PreviewProjection::ResolveImpression(SurfaceTileSpace& Residency,
                                                           RequestQueue&     Requesting,
-                                                          std::uint64_t     RecordingOrdinal)
+                                                          std::uint64_t     RecordingIndex)
 {
     if (!ImpressionOpen)
     {
@@ -111,7 +111,7 @@ Outcome<ResolvedRun> PreviewProjection::ResolveImpression(SurfaceTileSpace& Resi
     //    `DeclareUncommitted` is the only thing in the engine that blocks an eviction, it is not called on this
     //    path, and `22`'s own resolution skips it for a speculative stroke. A preview that pinned would exhaust
     //    residency while the artist hovers across a surface without painting anything.
-    return Previewing.Resolve(Residency, Requesting, RecordingOrdinal);
+    return Previewing.Resolve(Residency, Requesting, RecordingIndex);
 }
 
 void PreviewProjection::CloseImpression(SurfaceTileSpace& Residency)
@@ -187,7 +187,7 @@ Outcome<ResolvedSample> PreviewProjection::ProjectPlacementAt(const SurfaceLayer
 //                                                  THE PARAMETER PREVIEW
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> PreviewProjection::AmendParameter(std::uint64_t RecordingOrdinal)
+Outcome<bool> PreviewProjection::AmendParameter(std::uint64_t RecordingIndex)
 {
     if (!CurrentExtent.ExtentHeld)
     {
@@ -199,7 +199,7 @@ Outcome<bool> PreviewProjection::AmendParameter(std::uint64_t RecordingOrdinal)
     //    the caller; the count exists so `86` can measure what one drag cost in re-resolutions and for no other
     //    reason. Nothing keys on it and no revision advances from it.
     ++AmendedCount;
-    CurrentExtent.ResolvedAt = RecordingOrdinal;
+    CurrentExtent.ResolvedAt = RecordingIndex;
 
     return Outcome<bool>::Result(true);
 }
@@ -214,9 +214,9 @@ std::uint32_t PreviewProjection::AmendmentCount() const
 //------------------------------------------------------------------------------------------------------------------------
 
 Outcome<bool> PreviewProjection::DeclareExtent(SpeculativeSubject Previewed,
-                                               std::uint32_t      SurfaceOrdinal,
+                                               std::uint32_t      SurfaceIndex,
                                                std::uint32_t      RequestedLevel,
-                                               std::uint64_t      RecordingOrdinal)
+                                               std::uint64_t      RecordingIndex)
 {
     if (Previewed == SpeculativeSubject::SubjectCount)
     {
@@ -234,8 +234,8 @@ Outcome<bool> PreviewProjection::DeclareExtent(SpeculativeSubject Previewed,
     //    answer coarser, so the two agreeing is the ordinary case and the difference is what `14` reads to know
     //    it is presenting something not yet at the extent that was asked for.
     CurrentExtent.Previewed      = Previewed;
-    CurrentExtent.ResolvedAt     = RecordingOrdinal;
-    CurrentExtent.SurfaceOrdinal = SurfaceOrdinal;
+    CurrentExtent.ResolvedAt     = RecordingIndex;
+    CurrentExtent.SurfaceIndex = SurfaceIndex;
     CurrentExtent.ResolvedLevel  = RequestedLevel;
     CurrentExtent.RequestedLevel = RequestedLevel;
     CurrentExtent.ExtentHeld = true;
@@ -250,12 +250,12 @@ const SpeculativeExtent& PreviewProjection::Current() const
     return CurrentExtent;
 }
 
-bool PreviewProjection::ExtentCurrent(std::uint64_t RecordingOrdinal) const
+bool PreviewProjection::ExtentCurrent(std::uint64_t RecordingIndex) const
 {
     // 🔴 `22` §4.1: a speculative extent is discarded and re-resolved each rotation. An extent carrying any other
     //    rotation is therefore not stale content to refresh — it is content that must not be presented at all,
     //    and answering false is what keeps that a state `14` cannot reach rather than a defect to diagnose.
-    return CurrentExtent.ExtentHeld && CurrentExtent.ResolvedAt == RecordingOrdinal;
+    return CurrentExtent.ExtentHeld && CurrentExtent.ResolvedAt == RecordingIndex;
 }
 
 void PreviewProjection::ReclaimExtent()

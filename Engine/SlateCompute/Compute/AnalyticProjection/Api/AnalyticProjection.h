@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "Contract/CombineContract.h"
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/Combination.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateCompute/Compute/SurfaceTileSpace/Api/SurfaceTileSpace.h"
 #include "SlateDocument/Document/DecalProjection/Api/DecalProjection.h"
 #include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
@@ -51,7 +51,7 @@ struct AnalyticSources
 // 📝 Components one resolved sample carries. Four rather than a per-channel run, because a channel is a scalar
 //    or a colour and `42`'s widest measure is three components with coverage beside it. A resolution wider than
 //    this is a channel `42` does not declare.
-inline constexpr std::uint32_t ResolvedComponentCeiling = 4u;   // [-] - components one sample may carry
+inline constexpr std::uint32_t ResolvedComponentLimit = 4u;   // [-] - components one sample may carry
 
 /// 🧩 One position's resolved value and the coverage it applies at.
 /// note  🔴 Coverage is carried **beside** the value rather than folded into it. `56` §2's combination reads the
@@ -60,7 +60,7 @@ inline constexpr std::uint32_t ResolvedComponentCeiling = 4u;   // [-] - compone
 /// tag   nonallocating, nonthrowing
 struct ResolvedSample
 {
-    double         Component[ResolvedComponentCeiling] = {};    // [-] - the resolved value, by component
+    double         Component[ResolvedComponentLimit] = {};    // [-] - the resolved value, by component
     double         Coverage                            = 0.0;   // [-] - how strongly it applies here
     std::uint32_t  ComponentCount                      = 0u;    // [-] - components the source produced
     bool           SampleResolved                      = false; // [-] - the source answered at all
@@ -131,7 +131,7 @@ public:
     /// out   Result   [-]  delivers unconditionally; an absent library refuses only where a layer names it
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Construct(const AnalyticSources& Supplied);
+    Outcome<bool> ConstructAnalyticProjection(const AnalyticSources& Supplied);
 
     /// 🧩 The content revision one sequence currently stands at.
     /// in    Content  [-]  the surface's layer sequence
@@ -209,23 +209,23 @@ private:
                                            double                     Tolerance,
                                            std::uint32_t              ComponentCount) const;
 
-    Outcome<ResolvedSample> ResolveOutlineAt(std::uint32_t  SourceOrdinal,
+    Outcome<ResolvedSample> ResolveOutlineAt(std::uint32_t  SourceIndex,
                                              double         SourceX,
                                              double         SourceY,
                                              double         Tolerance) const;
 
-    Outcome<ResolvedSample> ResolveTextAt(std::uint32_t  SourceOrdinal,
+    Outcome<ResolvedSample> ResolveTextAt(std::uint32_t  SourceIndex,
                                           double         SourceX,
                                           double         SourceY,
                                           double         Tolerance) const;
 
-    Outcome<ResolvedSample> ResolveTilingAt(std::uint32_t  TilingOrdinal,
+    Outcome<ResolvedSample> ResolveTilingAt(std::uint32_t  TilingIndex,
                                             double         SourceX,
                                             double         SourceY,
                                             double         Tolerance,
                                             std::uint32_t  NestingDepth) const;
 
-    Outcome<ResolvedSample> ResolvePlacedAt(std::uint32_t  PlacementOrdinal,
+    Outcome<ResolvedSample> ResolvePlacedAt(std::uint32_t  PlacementIndex,
                                             double         PositionX,
                                             double         PositionY,
                                             double         Tolerance) const;
@@ -240,11 +240,11 @@ private:
     struct FlattenedOutline
     {
         std::vector<std::vector<PlanarPosition>>  Flattened     = {};    // [-] - one run per path
-        std::uint32_t                             SourceOrdinal = 0u;    // [-] - by source ordinal
+        std::uint32_t                             SourceIndex = 0u;    // [-] - by source ordinal
         double                                    Tolerance     = 0.0;   // [-] - the level it was flattened at
     };
 
-    const std::vector<std::vector<PlanarPosition>>* Flattening(std::uint32_t  SourceOrdinal,
+    const std::vector<std::vector<PlanarPosition>>* Flattening(std::uint32_t  SourceIndex,
                                                                double         Tolerance) const;
 
     AnalyticSources  Supplied = {};   // [-] - borrowed; never owned

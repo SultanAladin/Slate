@@ -27,21 +27,21 @@ void IntakeIndex::Record(const IntakeRecord& Incoming)
 
 void IntakeIndex::Report(ReportSequence& Reporting, TickPoint Sampled)
 {
-    for (std::size_t Ordinal = 0u; Ordinal < Recorded.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < Recorded.size(); ++Index)
     {
-        if (!Recorded[Ordinal].AssumptionMade || AssumptionReported[Ordinal])
+        if (!Recorded[Index].AssumptionMade || AssumptionReported[Index])
             continue;
 
         ReportSpecification Assumed;
         Assumed.Origin         = "50 §3 AssetInterchange";
         Assumed.Verdict    = ReportVerdict::Assumed;
-        Assumed.SubjectOrdinal = static_cast<std::uint64_t>(Ordinal);
+        Assumed.SubjectIndex = static_cast<std::uint64_t>(Index);
         Assumed.Arrival        = Sampled;
 
         // 📝 Static text only — `86` §3.1 accepts an append from any thread and a report that owned an allocation
         //    would allocate while the tick presents the register. The origin path lives in the record beside the
         //    report and the presenter reads it from there.
-        if (Recorded[Ordinal].Assumed == AssumedSubject::UnitScale)
+        if (Recorded[Index].Assumed == AssumedSubject::UnitScale)
         {
             Assumed.Subject = "UnitScale";
             Assumed.Detail  = "the source declared no unit convention; one was chosen and applied at intake";
@@ -54,7 +54,7 @@ void IntakeIndex::Report(ReportSequence& Reporting, TickPoint Sampled)
 
         Reporting.Append(Assumed);
 
-        AssumptionReported[Ordinal] = true;
+        AssumptionReported[Index] = true;
     }
 }
 
@@ -66,10 +66,10 @@ const std::vector<IntakeRecord>& IntakeIndex::Records() const { return Recorded;
 
 Outcome<IntakeRecord> IntakeIndex::Resolve(const std::string& OriginPath) const
 {
-    for (std::size_t Ordinal = Recorded.size(); Ordinal-- > 0u;)
+    for (std::size_t Index = Recorded.size(); Index-- > 0u;)
     {
-        if (Recorded[Ordinal].OriginPath == OriginPath)
-            return Outcome<IntakeRecord>::Result(Recorded[Ordinal]);
+        if (Recorded[Index].OriginPath == OriginPath)
+            return Outcome<IntakeRecord>::Result(Recorded[Index]);
     }
 
     return Outcome<IntakeRecord>::Refuse({ RefusalReason::ExtentExhausted, "nothing arrived from that origin" });

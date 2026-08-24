@@ -3,7 +3,7 @@
 //============================================================================================================================================
 // 🧩 The painting application — lifetime and tick only, with every device concern held by HostLifecycle.
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/ContentBrowserPanel/Api/ContentBrowserPanel.h"
 #include "SlateUI/Interface/ControlCentrePanel/Api/ControlCentrePanel.h"
 #include "SlateUI/Interface/ThemeInterchange/Api/ThemeInterchange.h"
@@ -41,12 +41,12 @@ constexpr const char* HostName    = "PaintHost";
 //    least once, taken a host down with no window and no log line. They are asserted here so a fourth panel
 //    cannot repeat any of them silently.
 
-// ① EASED INTERPOLANTS. `InteractionIndex::Register` draws two fades per control, and the integrator's supply
-//    is shared by every ledger in the process — the browser's private ledger does not get its own pool.
+// ① EASED INTERPOLANTS. `ControlIndex::Register` draws two fades per control, and the integrator's supply
+//    is shared by every index in the process — the browser's private index does not get its own pool.
 constexpr std::uint32_t EasesPerControl = 2u;
 constexpr std::uint32_t CentreControls  = ControlCentrePanel::ControlCapacity;
 constexpr std::uint32_t BrowserControls = ContentBrowserPanel::RegistrationDemand;
-constexpr std::uint32_t EditorControls  = PanelStructure::RecordCeiling * EditorPanel::ControlsPerRecord;
+constexpr std::uint32_t EditorControls  = PanelStructure::RecordLimit * EditorPanel::ControlsPerRecord;
 constexpr std::uint32_t BareEases       = 9u + 1u;   // [-] - the Control Centre's own motions
 
 constexpr std::uint32_t DemandedEases =
@@ -57,24 +57,24 @@ static_assert(DemandedEases <= MotionIntegrator::EaseCapacity,
               "constructed last is rejected mid-registration and the host exits before its first frame; raise "
               "MotionIntegrator::EaseCapacity or reduce a panel's control count");
 
-// ② LEDGER SLOTS. Counted per ledger, not per host. The browser is the only owner of its own
-//    `BrowserLedger`, so only its demand is weighed here; the Control Centre answers to its private index.
-static_assert(BrowserControls <= InteractionIndex::ControlCapacity,
-              "the content browser registers more controls than one InteractionIndex holds — Construct is "
+// ② INDEX SLOTS. Counted per index, not per host. The browser is the only owner of its own
+//    `BrowserInteraction`, so only its demand is weighed here; the Control Centre answers to its private index.
+static_assert(BrowserControls <= ControlIndex::ControlCapacity,
+              "the content browser registers more controls than one ControlIndex holds — Construct is "
               "rejected with \"no further control slot\" and the south drawer opens onto blank ground");
 
 // ③ AUTOMATIC STORAGE. A Windows thread is given one megabyte and a refusal here is not a refusal at all:
 //    the guard page is touched in the prologue, so the process dies before a statement can report anything.
 //    Linux hands out eight megabytes, which is exactly why no gate here can catch it.
 constexpr std::size_t WindowsThreadStack = 1048576u;                  // [B] - the shipped linker default
-constexpr std::size_t AutomaticCeiling   = WindowsThreadStack / 4u;   // [B] - a quarter, leaving room to call
+constexpr std::size_t AutomaticLimit   = WindowsThreadStack / 4u;   // [B] - a quarter, leaving room to call
 
 static_assert(sizeof(WorkspaceIndex) + sizeof(WorkspacePanel) + sizeof(EditorPanel)
-              + (sizeof(PanelStructure)       * WorkspaceIndex::WorkspaceCeiling)
-              + (sizeof(EditorPanelConfiguration) * WorkspaceIndex::WorkspaceCeiling)
+              + (sizeof(PanelStructure)       * WorkspaceIndex::WorkspaceLimit)
+              + (sizeof(EditorPanelConfiguration) * WorkspaceIndex::WorkspaceLimit)
               + sizeof(ControlCentrePanel)  + sizeof(ControlCentreConfiguration)
-              + sizeof(InteractionIndex)    + sizeof(ContentBrowserPanel)
-              + sizeof(ContentBrowserConfiguration) + sizeof(ContentLibrary) <= AutomaticCeiling,
+              + sizeof(ControlIndex)    + sizeof(ContentBrowserPanel)
+              + sizeof(ContentBrowserConfiguration) + sizeof(ContentLibrary) <= AutomaticLimit,
               "this host's automatic UI members no longer fit a quarter of a Windows thread stack — the "
               "prologue's stack probe will fault before main runs a statement and the host will exit with "
               "no window and no log line; move the largest member to static storage");
@@ -93,7 +93,7 @@ InterfaceAttachment Attach(const DeviceOffering& Offered)
     Incoming.ScoredDevice             = Offered.ScoredDevice;
     Incoming.ActiveDevice             = Offered.ActiveDevice;
     Incoming.GraphicsQueue            = Offered.GraphicsQueue;
-    Incoming.GraphicsFamilyOrdinal    = Offered.GraphicsFamilyOrdinal;
+    Incoming.GraphicsFamilyIndex    = Offered.GraphicsFamilyIndex;
     Incoming.ColourTargetFormat       = Offered.ColourTargetFormat;
     Incoming.MinimumDisplayImageCount = Offered.MinimumDisplayImageCount;
     Incoming.DisplayImageCount        = Offered.DisplayImageCount;
@@ -126,7 +126,7 @@ int main(int ArgumentCount, char** ArgumentValues)
 
     HostLifecycle Lifetime;
 
-    if (!Lifetime.Construct(Declared).Resolved)
+    if (!Lifetime.ConstructHost(Declared).Resolved)
         return 1;
 
     // ② The viewport sequence — springs, drawers, and the assembled recording.
@@ -142,7 +142,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     SouthDrawer.TongueSubject = SymbolSubject::FolderClosed;
     SouthDrawer.PoseCount     = 3u;
 
-    if (!Viewport.Construct(Attach(Lifetime.Offering()), NorthDrawer, SouthDrawer).Resolved)
+    if (!Viewport.ConstructViewportSequence(Attach(Lifetime.Offering()), NorthDrawer, SouthDrawer).Resolved)
     {
         std::printf("%s \u2014 the viewport sequence was rejected\n", HostName);
         return 1;
@@ -157,7 +157,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    nothing. That is what makes the `continue` below safe — the arrangement this host previously got
     //    wrong five times over, returning to the top of the loop with a command buffer still recording.
 
-    // ③ The workspaces this host opens. 🔴 The LEDGER owns them and the panel presents them — `14` §1
+    // ③ The workspaces this host opens. 🔴 The INDEX owns them and the panel presents them — `14` §1
     //    forbids a panel from holding what it displays, and separating the two is the whole reason there
     //    are two components here rather than one.
     // 📝 The subject this host opens by default, named once so the startup registration and the strip's `+`
@@ -167,13 +167,13 @@ int main(int ArgumentCount, char** ArgumentValues)
     WorkspaceIndex          Workspaces;
     WorkspacePanel          Workspace;
     EditorPanel             WorkspacePanels;
-    PanelStructure          PanelPartitions[WorkspaceIndex::WorkspaceCeiling];
-    EditorPanelConfiguration    PanelConfiguration[WorkspaceIndex::WorkspaceCeiling];
+    PanelStructure          PanelPartitions[WorkspaceIndex::WorkspaceLimit];
+    EditorPanelConfiguration    PanelConfiguration[WorkspaceIndex::WorkspaceLimit];
     ControlCentrePanel      ControlCentre;
     ControlCentreConfiguration  ControlCentreValues;
     FontLoader                  Fonts;
 
-    InteractionIndex         BrowserLedger;
+    ControlIndex         BrowserInteraction;
 
     // 📝 The south drawer's owner. The library is the HOST's, not the panel's — `14` §1 forbids a panel
     //    from holding what it displays, which is the same separation WorkspaceIndex and WorkspacePanel keep.
@@ -234,43 +234,43 @@ int main(int ArgumentCount, char** ArgumentValues)
     // 📝 Seat the family carousel on the family the appearance names. Without this the carousel opened
     //    on ordinal zero (the alphabetically first family) while the loaded faces were the appearance's
     //    own — and the role strips draw the LOADED family's faces, so the two have to agree at bring-up.
-    for (std::uint32_t Ordinal = 0u; Ordinal < Fonts.FamilyCount(); ++Ordinal)
-        if (Fonts.FamilyName(Ordinal) != nullptr &&
-            std::strcmp(Fonts.FamilyName(Ordinal), Viewport.Appearance().Fonts.Family) == 0)
+    for (std::uint32_t Index = 0u; Index < Fonts.FamilyCount(); ++Index)
+        if (Fonts.FamilyName(Index) != nullptr &&
+            std::strcmp(Fonts.FamilyName(Index), Viewport.Appearance().Fonts.Family) == 0)
         {
-            ControlCentreValues.Font = Ordinal;
+            ControlCentreValues.Font = Index;
             break;
         }
 
 
-    if (!Workspace.Construct(Viewport.Surface(), Viewport.Appearance()).Resolved)
+    if (!Workspace.ConstructWorkspacePanel(Viewport.Surface(), Viewport.Appearance()).Resolved)
     {
         std::printf("%s \u2014 the workspace panel was rejected\n", HostName);
         return 1;
     }
 
-    if (!WorkspacePanels.Construct(Viewport.MotionSource(), Viewport.Surface(), Viewport.Appearance()).Resolved)
+    if (!WorkspacePanels.ConstructEditorPanel(Viewport.MotionSource(), Viewport.Surface(), Viewport.Appearance()).Resolved)
     {
         std::printf("%s \u2014 the editor panels were rejected\n", HostName);
         return 1;
     }
 
-    if (!ControlCentre.Construct(Viewport.MotionSource(), Viewport.Surface(), Viewport.Appearance()).Resolved)
+    if (!ControlCentre.ConstructControlCentrePanel(Viewport.MotionSource(), Viewport.Surface(), Viewport.Appearance()).Resolved)
     {
         std::printf("%s \u2014 the Control Centre panel was rejected\n", HostName);
         return 1;
     }
 
-    if (!BrowserLedger.Construct(Viewport.MotionSource()).Resolved)
+    if (!BrowserInteraction.AttachMotion(Viewport.MotionSource()).Resolved)
     {
-        std::printf("%s \u2014 the content browser ledger was rejected\n", HostName);
+        std::printf("%s \u2014 the content browser index was rejected\n", HostName);
         return 1;
     }
 
-    // 🔴 The browser carries its OWN ledger, as every panel here does, so its registration cannot exhaust the
+    // 🔴 The browser carries its OWN index, as every panel here does, so its registration cannot exhaust the
     //    Control Centre's. Read — an registration refusal is silent at the call site and a browser that was
     //    rejected records nothing at all, which reads as a drawer that opens onto blank ground.
-    if (!ContentBrowser.Construct(BrowserLedger, Viewport.Surface()).Resolved)
+    if (!ContentBrowser.ConstructContentBrowserPanel(BrowserInteraction, Viewport.Surface(), Viewport.Appearance()).Resolved)
     {
         std::printf("%s \u2014 the content browser was rejected\n", HostName);
         return 1;
@@ -289,7 +289,7 @@ int main(int ArgumentCount, char** ArgumentValues)
         std::printf("%s \u2014 the default workspace could not be opened\n", HostName);
         return 1;
     }
-    PanelPartitions[DefaultWorkspace.Resolve()].Construct(PanelSubject::Viewport);
+    PanelPartitions[DefaultWorkspace.Resolve()].ConstructPanelPartition(PanelSubject::Viewport);
 
     // 🔴 The sheet's tab figures applied into the vendor's style, including the four `Patches/` adds. They
     //    default to 0.0f, at which a patched build draws stock rectangular tabs — so this call is what
@@ -328,7 +328,7 @@ int main(int ArgumentCount, char** ArgumentValues)
         if (Lifetime.DeviceRecovered())
         {
             // 📝 Not reclaimed here: the retiring tick above already did it, while the device lived.
-            if (!Viewport.Construct(Attach(Lifetime.Offering()), NorthDrawer, SouthDrawer).Resolved)
+            if (!Viewport.ConstructViewportSequence(Attach(Lifetime.Offering()), NorthDrawer, SouthDrawer).Resolved)
             {
                 std::printf("%s \u2014 the interface could not be rebuilt on the recovered device\n", HostName);
                 break;
@@ -369,6 +369,23 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                static_cast<float>(Pass.Width),
                                                static_cast<float>(Pass.Height));
 
+            const PointerCondition& ForegroundPointer = Viewport.Surface().Pointer();
+            const PlaneExtent NorthInterior = Viewport.Drawers().Interior(DrawerBearing::North);
+            const PlaneExtent SouthInterior = Viewport.Drawers().Interior(DrawerBearing::South);
+            const bool PointerBehindDrawer =
+                NorthInterior.Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY) ||
+                SouthInterior.Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY);
+            PointerCondition BackgroundPointer = ForegroundPointer;
+            if (PointerBehindDrawer)
+            {
+                BackgroundPointer.PositionX = BackgroundPointer.PositionY = -1000000.0f;
+                BackgroundPointer.TravelX = BackgroundPointer.TravelY = BackgroundPointer.WheelY = 0.0f;
+                BackgroundPointer.ContactHeld = BackgroundPointer.ContactPressed = false;
+                BackgroundPointer.ContactDoublePressed = BackgroundPointer.ContactReleased = false;
+                BackgroundPointer.SecondaryHeld = BackgroundPointer.SecondaryPressed = false;
+                BackgroundPointer.SecondaryReleased = false;
+            }
+
             Discard(Workspace.Record(Whole, Workspaces.ActiveTitle()));
 
             // 🔴 The dock space FIRST, over the whole panel. Every workspace below docks into it, and the
@@ -379,7 +396,7 @@ int main(int ArgumentCount, char** ArgumentValues)
 
             const std::uint32_t OpenCount = Workspaces.OpenCount();
 
-            // 🔴 Titles are read through `Titled`, which points into the ledger's own storage. The delivered
+            // 🔴 Titles are read through `Titled`, which points into the index's own storage. The delivered
             //    form copies the entry, so a pointer taken from it dangles at the semicolon — every label
             //    then decayed to the same garbage and ImGui reported four conflicting IDs.
             std::uint32_t Withdrawing = OpenCount;
@@ -390,11 +407,11 @@ int main(int ArgumentCount, char** ArgumentValues)
 
             RegisterIntoNode = 0u;
 
-            WorkspacePanels.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+            WorkspacePanels.Advance(BackgroundPointer, Pass.ElapsedMilliseconds);
 
-            for (std::uint32_t Ordinal = 0u; Ordinal < OpenCount; ++Ordinal)
+            for (std::uint32_t Index = 0u; Index < OpenCount; ++Index)
             {
-                const char* Titled = Workspaces.Titled(Ordinal);
+                const char* Titled = Workspaces.Titled(Index);
 
                 if (Titled == nullptr)
                     continue;
@@ -402,17 +419,17 @@ int main(int ArgumentCount, char** ArgumentValues)
                 bool Current = true;
 
                 const PlaneExtent PanelExtent = Viewport.Seam().EnterWorkspaceWindow(
-                    Titled, !Workspaces.Applied(Ordinal), ApplyInto, Current);
-                Workspaces.Apply(Ordinal);
+                    Titled, !Workspaces.Applied(Index), ApplyInto, Current);
+                Workspaces.Apply(Index);
 
                 if (PanelExtent.Width() > 0.0f && PanelExtent.Height() > 0.0f)
                 {
                     Discard(Viewport.Surface().SwitchToWindow());
                     Discard(WorkspacePanels.Record(PanelExtent,
-                                                      PanelPartitions[Ordinal],
-                                                      PanelConfiguration[Ordinal],
-                                                      Ordinal));
-                    if (WorkspacePanels.PointerCaptured(Ordinal))
+                                                      PanelPartitions[Index],
+                                                      PanelConfiguration[Index],
+                                                      Index));
+                    if (WorkspacePanels.PointerCaptured(Index))
                         Viewport.Seam().WithholdPointer();
                 }
 
@@ -421,7 +438,7 @@ int main(int ArgumentCount, char** ArgumentValues)
 
                 // ⚠️ Recorded, never acted on inside the sweep. Withdrawing here edits the set being walked.
                 if (!Current)
-                    Withdrawing = Ordinal;
+                    Withdrawing = Index;
             }
 
             if (Withdrawing < OpenCount)
@@ -449,7 +466,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                 RegisterIntoNode = AskingNode;
                 const Outcome<std::uint32_t> RegisteredWorkspace = Workspaces.Register(DefaultSubject);
                 if (RegisteredWorkspace.Resolved)
-                    PanelPartitions[RegisteredWorkspace.Resolve()].Construct(PanelSubject::Viewport);
+                    PanelPartitions[RegisteredWorkspace.Resolve()].ConstructPanelPartition(PanelSubject::Viewport);
             }
 
             // 🔴 With nothing open there is no tab bar to seat a `+` in, so the empty shell carries the
@@ -459,7 +476,7 @@ int main(int ArgumentCount, char** ArgumentValues)
             {
                 const Outcome<std::uint32_t> RegisteredWorkspace = Workspaces.Register(DefaultSubject);
                 if (RegisteredWorkspace.Resolved)
-                    PanelPartitions[RegisteredWorkspace.Resolve()].Construct(PanelSubject::Viewport);
+                    PanelPartitions[RegisteredWorkspace.Resolve()].ConstructPanelPartition(PanelSubject::Viewport);
             }
 
             // 📝 The drawers last, so they sit ABOVE the workspace as the sheet lays them.
@@ -472,14 +489,16 @@ int main(int ArgumentCount, char** ArgumentValues)
             //     extent it offers is a different one on almost every tick of an open or a close.
             const PlaneExtent BrowserInterior = Viewport.Drawers().Interior(DrawerBearing::South);
 
-            BrowserLedger.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+            BrowserInteraction.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
             ContentBrowser.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
 
             if (BrowserInterior.Width() > 0.0f && BrowserInterior.Height() > 0.0f)
             {
                 Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
+                Viewport.Surface().Ground(BrowserInterior, Viewport.Appearance().Colour.SurfaceCurrent,
+                                          0.0f, CornerNone);
                 ContentBrowser.RecordBrowser(BrowserInterior, ContentApplied, ContentBrowserApplied);
-                ContentBrowser.RecordDeferred(ContentBrowserApplied);
+                ContentBrowser.RecordDeferred();
 
                 // 🔴 Declared every tick or lost. Without it the drawer owns every contact inside its own
                 //    body, so taking a record or dragging the lattice slides the drawer instead.
@@ -491,9 +510,25 @@ int main(int ArgumentCount, char** ArgumentValues)
             ControlCentre.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
             // 📝 The artist's per-role weights are declared every tick so the workspace's panels read the
             //    current choice; the viewport re-states them after each resolve.
-            Viewport.ApplyTypographyWeights(ControlCentreValues.TypographyWeight);
+            Viewport.ApplyTypographyRoles(ControlCentreValues.TypographySize,
+                                          ControlCentreValues.TypographyWeight);
             Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
+            if (ControlInterior.Width() > 0.0f && ControlInterior.Height() > 0.0f)
+                Viewport.Surface().Ground(ControlInterior, Viewport.Appearance().Colour.SurfaceCurrent,
+                                          0.0f, CornerNone);
             Discard(ControlCentre.Record(ControlInterior, ControlCentreValues));
+
+            // Apply the Control Centre preference to the shared appearance instead of displaying a
+            // disconnected percentage. Content Browser caches derived metrics and is reseated explicitly.
+            if (Viewport.ApplyInterfaceScale(ControlCentreValues.Scaling))
+            {
+                Discard(Viewport.Seam().ApplyWorkspaceStyle(
+                    Viewport.Appearance().WorkspaceMeasure,
+                    Viewport.Appearance().Workspace));
+                ContentBrowser.Reapply(Viewport.Appearance());
+            }
+            Discard(Viewport.Seam().ApplyInterfaceAntialiasing(
+                ControlCentreValues.GeometryAntialiasing));
 
             // 📝 Compared rather than watched. The Control Centre writes the artist's choice straight into the
             //    ordinates, so the change is visible here as a difference and needs no callback to report it.
@@ -544,6 +579,8 @@ int main(int ArgumentCount, char** ArgumentValues)
 
             if (Viewport.SealPanels().Resolved)
             {
+                Discard(Lifetime.BeginDisplay());
+
                 // 🔴 Read. A rejected Record presents the cleared ground with nothing on it, which is
                 //    indistinguishable from a panel that drew nothing, so the refusal is named here.
                 if (!Viewport.Record(Pass.Recording))
@@ -578,8 +615,8 @@ int main(int ArgumentCount, char** ArgumentValues)
 
     ControlCentre.Reset();
     WorkspacePanels.Reset();
-    for (std::uint32_t Ordinal = 0u; Ordinal < WorkspaceIndex::WorkspaceCeiling; ++Ordinal)
-        PanelPartitions[Ordinal].Reset();
+    for (std::uint32_t Index = 0u; Index < WorkspaceIndex::WorkspaceLimit; ++Index)
+        PanelPartitions[Index].Reset();
     Workspace.Reset();
     Workspaces.Reset();
     Viewport.Reclaim();

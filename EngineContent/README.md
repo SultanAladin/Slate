@@ -9,5 +9,6 @@ the same arrangement `SlateAppearance.toml` already uses.
 | `FontArchives`    | Typefaces — `.otf`, `.ttf`, `.woff2`.                                      |
 | `GraphicArchives` | Vector and raster graphics — `.svg` first, alongside `.png`, `.jpg`, `.webp`, `.tga`, `.exr`. |
 | `MaterialArchives`| Material declarations and their bound texture sets — `.mat`.               |
+| `GeometryArchives`| Editable source topology and material references — `.obj`, `.mtl`, and source generators. |
 
 Each archive keeps a `.gitkeep` so the arrangement survives a clone with no content in it.

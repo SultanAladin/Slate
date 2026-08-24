@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "Contract/IdentityContract.h"
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/Identity.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateDocument/Document/RegistrationIndex/Api/RegistrationIndex.h"
 #include "SlateDocument/Document/TopologyConditioning/Api/TopologyConditioning.h"
 #include "SlateDocument/Document/TopologyStructure/Api/TopologyStructure.h"
@@ -22,11 +22,11 @@ namespace Slate
 //                                                    SUBDIVISION SHAPE
 //------------------------------------------------------------------------------------------------------------------------
 
-// 📝 Read by this unit alone, so `00` §2 places them here rather than in `Contract/`. Both are tuning figures and
+// 📝 Read by this unit alone, so `00` §2 places them here rather than in `Foundation/`. Both are tuning figures and
 //    `40` §8 carries them as open: the depth bounds the recursion so a pathological owner distribution cannot
 //    make a traversal unbounded, and the occupancy is where subdividing further stops paying for itself.
-inline constexpr std::uint32_t SubdivisionDepthCeiling = 20u;         // [-] - subdivisions permitted below the root
-inline constexpr std::uint32_t SubdivisionLeafCeiling  = 8u;          // [-] - entries a record holds before dividing
+inline constexpr std::uint32_t SubdivisionDepthLimit = 20u;         // [-] - subdivisions permitted below the root
+inline constexpr std::uint32_t SubdivisionLeafLimit  = 8u;          // [-] - entries a record holds before dividing
 inline constexpr std::uint32_t AbsentRecord            = 0xFFFFFFFFu; // [-] - no record; never a valid ordinal
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -40,8 +40,8 @@ inline constexpr std::uint32_t AbsentRecord            = 0xFFFFFFFFu; // [-] - n
 /// tag   nonallocating, nonthrowing
 struct FaceIntersection
 {
-    std::uint32_t  FaceOrdinal       = 0u;                    // [-]  - the face the ray met
-    std::uint32_t  CornerOrdinals[3] = { 0u, 0u, 0u };        // [-]  - the fan triangle's corners
+    std::uint32_t  FaceIndex       = 0u;                    // [-]  - the face the ray met
+    std::uint32_t  CornerIndexs[3] = { 0u, 0u, 0u };        // [-]  - the fan triangle's corners
     double         Weights[3]        = { 0.0, 0.0, 0.0 };     // [-]  - barycentric, summing to one
     double         Distance          = 0.0;                   // [mm] - along the supplied direction
     bool           Resolved          = false;                 // [-]  - a face was met at all
@@ -54,8 +54,8 @@ struct FaceIntersection
 struct ResolvedIntersection
 {
     OwnerIdentity  Owner          = {};                  // [-]  - `12` registration, `78` manipulation
-    std::uint32_t     FaceOrdinal       = 0u;                  // [-]  - component selection
-    std::uint32_t     CornerOrdinals[3] = { 0u, 0u, 0u };      // [-]  - `74` interpolates the domain from these
+    std::uint32_t     FaceIndex       = 0u;                  // [-]  - component selection
+    std::uint32_t     CornerIndexs[3] = { 0u, 0u, 0u };      // [-]  - `74` interpolates the domain from these
     double            Weights[3]        = { 0.0, 0.0, 0.0 };   // [-]  - barycentric
     double            Distance          = 0.0;                 // [mm] - ordering when several intersect
     DocumentPosition  Position          = {};                  // [mm] - `78`'s manipulator plane, in document space
@@ -88,7 +88,7 @@ public:
     ///        confidently wrong.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const TopologyStructure& Imported, const TopologyConditioning& Conditioned);
+    Outcome<bool> ConstructSubdivision(const TopologyStructure& Imported, const TopologyConditioning& Conditioned);
 
     /// 🧩 Intersects one ray, in the owner's own object space.
     /// in    Origin            [mm]  the ray's origin, in object space
@@ -134,8 +134,8 @@ private:
         std::uint32_t      FirstDivided  = AbsentRecord;   // [-]  - first of eight; AbsentRecord for a leaf
     };
 
-    void Divide(std::uint32_t RecordOrdinal, std::uint32_t Depth);
-    void Descend(std::uint32_t     RecordOrdinal,
+    void Divide(std::uint32_t RecordIndex, std::uint32_t Depth);
+    void Descend(std::uint32_t     RecordIndex,
                  DocumentPosition  Origin,
                  double            ReciprocalX,
                  double            ReciprocalY,
@@ -216,7 +216,7 @@ public:
     /// post  the shape is optimal for the current extents; nothing is owed
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Construct();
+    Outcome<bool> ConstructOctants();
 
     /// 🧩 Resolves the nearest owner surface along one document-space ray — `74`'s precedence 2.
     /// in    Origin      [mm]  the ray's origin, in document space
@@ -272,8 +272,8 @@ private:
     };
 
     std::size_t Located(OwnerIdentity Subject) const;
-    void        Divide(std::uint32_t RecordOrdinal, std::uint32_t Depth);
-    void        Descend(std::uint32_t          RecordOrdinal,
+    void        Divide(std::uint32_t RecordIndex, std::uint32_t Depth);
+    void        Descend(std::uint32_t          RecordIndex,
                         DocumentPosition       Origin,
                         double                 DirectionX,
                         double                 DirectionY,
@@ -301,8 +301,8 @@ struct DomainExtent
     double         MinimumY    = 0.0;   // [-] - its second
     double         MaximumX  = 0.0;   // [-]
     double         MaximumY = 0.0;   // [-]
-    std::uint32_t  PlacementOrdinal = 0u;  // [-] - what the caller resolves it back to
-    std::uint32_t  SequenceOrdinal  = 0u;  // [-] - `56` layer order; the topmost containing extent wins
+    std::uint32_t  PlacementIndex = 0u;  // [-] - what the caller resolves it back to
+    std::uint32_t  SequenceIndex  = 0u;  // [-] - `56` layer order; the topmost containing extent wins
 };
 
 /// 🧩 The two-dimensional subdivision over one surface's domain — `74` precedence 1 and `72`.
@@ -319,13 +319,13 @@ public:
     /// 🧩 Declares the whole placement set, replacing what stood.
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Construct(const std::vector<DomainExtent>& Declaring);
+    void ConstructAxes(const std::vector<DomainExtent>& Declaring);
 
     /// 🧩 Amends one placement's extent without rebuilding — the row `40` §4 reaches when a placement moved.
     /// out   Result  [-]  refuses with ExtentExhausted when no placement carries that ordinal
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Refit(std::uint32_t PlacementOrdinal, DomainExtent Amending);
+    Outcome<bool> Refit(std::uint32_t PlacementIndex, DomainExtent Amending);
 
     /// 🧩 Resolves the topmost placement containing one domain position.
     /// out   Result  [-]  refuses with ExtentExhausted when no placement contains it

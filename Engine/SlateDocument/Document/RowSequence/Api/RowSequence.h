@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/IdentityContract.h"
-#include "Contract/DeliveryContract.h"
+#include "Foundation/Identity.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateDocument/Document/SceneStructure/Api/SceneStructure.h"
 
 #include <cstdint>
@@ -53,35 +53,35 @@ public:
     /// post  the count of every prefix equals its row ordinal
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Construct(std::uint32_t RowCount);
+    void PopulateRanks(std::uint32_t RowCount);
 
     /// 🧩 Declares one row counted or uncounted, adjusting every prefix that contains it.
-    /// in    RowOrdinal      [-]  the row
+    /// in    RowIndex      [-]  the row
     /// in    CountedEnabled  [-]  whether it participates in the visible count
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Declare(std::uint32_t RowOrdinal, bool CountedEnabled);
+    void Declare(std::uint32_t RowIndex, bool CountedEnabled);
 
     /// 🧩 How many rows before this ordinal are counted.
-    /// in    RowOrdinal  [-]  exclusive upper bound
+    /// in    RowIndex  [-]  exclusive upper bound
     /// out   Counted     [-]  visible rows in the half-open prefix
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t CountedBefore(std::uint32_t RowOrdinal) const;
+    std::uint32_t CountedBefore(std::uint32_t RowIndex) const;
 
     /// 🧩 Which row carries the visible row at a declared position — the first scroll question.
-    /// in    VisibleOrdinal  [-]  position among counted rows, zero-based
+    /// in    VisibleIndex  [-]  position among counted rows, zero-based
     /// out   Result         [-]  refuses with ExtentExhausted past the last counted row
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<std::uint32_t> RowAtVisible(std::uint32_t VisibleOrdinal) const;
+    Outcome<std::uint32_t> RowAtVisible(std::uint32_t VisibleIndex) const;
 
     /// 🧩 What visible position a row sits at — the second scroll question.
-    /// in    RowOrdinal  [-]  the row
+    /// in    RowIndex  [-]  the row
     /// out   Result     [-]  refuses with ExtentExhausted for an uncounted or out-of-span row
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<std::uint32_t> VisibleOfRow(std::uint32_t RowOrdinal) const;
+    Outcome<std::uint32_t> VisibleOfRow(std::uint32_t RowIndex) const;
 
     /// 🧩 How many rows are counted in total.
     /// cost  ✔️

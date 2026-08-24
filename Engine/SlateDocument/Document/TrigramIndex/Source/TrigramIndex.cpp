@@ -26,11 +26,11 @@ std::vector<std::uint32_t> FoldedTrigrams(const std::string& Declared)
 
     Folded.reserve(Declared.size() - 2u);
 
-    for (std::size_t Ordinal = 0u; Ordinal + 3u <= Declared.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index + 3u <= Declared.size(); ++Index)
     {
-        const std::uint32_t Trigram = FoldedOrdinal(Declared[Ordinal])      * TrigramAlphabet * TrigramAlphabet
-                                    + FoldedOrdinal(Declared[Ordinal + 1u]) * TrigramAlphabet
-                                    + FoldedOrdinal(Declared[Ordinal + 2u]);
+        const std::uint32_t Trigram = FoldedIndex(Declared[Index])      * TrigramAlphabet * TrigramAlphabet
+                                    + FoldedIndex(Declared[Index + 1u]) * TrigramAlphabet
+                                    + FoldedIndex(Declared[Index + 2u]);
 
         bool Repeated = false;
 
@@ -65,7 +65,7 @@ bool NameContains(const std::string& Declared, const std::string& Sought)
         std::size_t Matched = 0u;
 
         while (Matched < Sought.size()
-            && FoldedOrdinal(Declared[Start + Matched]) == FoldedOrdinal(Sought[Matched]))
+            && FoldedIndex(Declared[Start + Matched]) == FoldedIndex(Sought[Matched]))
         {
             ++Matched;
         }
@@ -83,7 +83,7 @@ bool NameContains(const std::string& Declared, const std::string& Sought)
 //                                                     DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-void TrigramIndex::Enter(std::uint32_t SlotOrdinal, const std::string& Declared)
+void TrigramIndex::Enter(std::uint32_t SlotIndex, const std::string& Declared)
 {
     if (TrigramRuns.empty())
         TrigramRuns.resize(TrigramSpan);
@@ -99,16 +99,16 @@ void TrigramIndex::Enter(std::uint32_t SlotOrdinal, const std::string& Declared)
         {
             const std::size_t Middle = Lower + (Upper - Lower) / 2u;
 
-            if (Run[Middle] < SlotOrdinal)
+            if (Run[Middle] < SlotIndex)
                 Lower = Middle + 1u;
             else
                 Upper = Middle;
         }
 
-        if (Lower < Run.size() && Run[Lower] == SlotOrdinal)
+        if (Lower < Run.size() && Run[Lower] == SlotIndex)
             continue;
 
-        Run.insert(Run.begin() + static_cast<std::ptrdiff_t>(Lower), SlotOrdinal);
+        Run.insert(Run.begin() + static_cast<std::ptrdiff_t>(Lower), SlotIndex);
     }
 }
 
@@ -121,7 +121,7 @@ Outcome<bool> TrigramIndex::Declare(OwnerIdentity Subject, const std::string& De
     //    exactly the defect step ⑦ exists to prevent: the owner stays findable under a name it lost.
     Withdraw(Subject);
 
-    const std::size_t Required = static_cast<std::size_t>(Subject.SlotOrdinal) + 1u;
+    const std::size_t Required = static_cast<std::size_t>(Subject.SlotIndex) + 1u;
 
     if (Required > DeclaredNames.size())
     {
@@ -129,23 +129,23 @@ Outcome<bool> TrigramIndex::Declare(OwnerIdentity Subject, const std::string& De
         NamedIdentities.resize(Required);
     }
 
-    DeclaredNames[Subject.SlotOrdinal]   = Declared;
-    NamedIdentities[Subject.SlotOrdinal] = Subject;
+    DeclaredNames[Subject.SlotIndex]   = Declared;
+    NamedIdentities[Subject.SlotIndex] = Subject;
 
     if (!Declared.empty())
         ++NamedOwners;
 
-    Enter(Subject.SlotOrdinal, Declared);
+    Enter(Subject.SlotIndex, Declared);
 
     return Outcome<bool>::Result(true);
 }
 
 void TrigramIndex::Withdraw(OwnerIdentity Subject)
 {
-    if (!Subject.IdentityDeclared() || Subject.SlotOrdinal >= DeclaredNames.size())
+    if (!Subject.IdentityDeclared() || Subject.SlotIndex >= DeclaredNames.size())
         return;
 
-    const std::string Departing = DeclaredNames[Subject.SlotOrdinal];
+    const std::string Departing = DeclaredNames[Subject.SlotIndex];
 
     if (Departing.empty())
         return;
@@ -154,18 +154,18 @@ void TrigramIndex::Withdraw(OwnerIdentity Subject)
     {
         std::vector<std::uint32_t>& Run = TrigramRuns[Trigram];
 
-        for (std::size_t Ordinal = 0u; Ordinal < Run.size(); ++Ordinal)
+        for (std::size_t Index = 0u; Index < Run.size(); ++Index)
         {
-            if (Run[Ordinal] == Subject.SlotOrdinal)
+            if (Run[Index] == Subject.SlotIndex)
             {
-                Run.erase(Run.begin() + static_cast<std::ptrdiff_t>(Ordinal));
+                Run.erase(Run.begin() + static_cast<std::ptrdiff_t>(Index));
                 break;
             }
         }
     }
 
-    DeclaredNames[Subject.SlotOrdinal].clear();
-    NamedIdentities[Subject.SlotOrdinal] = OwnerIdentity{};
+    DeclaredNames[Subject.SlotIndex].clear();
+    NamedIdentities[Subject.SlotIndex] = OwnerIdentity{};
     --NamedOwners;
 }
 
@@ -186,10 +186,10 @@ std::vector<OwnerIdentity> TrigramIndex::Narrow(const std::string& Sought) const
     //    rather than answered as absent. A one-character search returning nothing looks like a broken index.
     if (Folded.empty() || TrigramRuns.empty())
     {
-        for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < DeclaredNames.size(); ++SlotOrdinal)
+        for (std::uint32_t SlotIndex = 0u; SlotIndex < DeclaredNames.size(); ++SlotIndex)
         {
-            if (!DeclaredNames[SlotOrdinal].empty() && NameContains(DeclaredNames[SlotOrdinal], Sought))
-                Confirmed.push_back(NamedIdentities[SlotOrdinal]);
+            if (!DeclaredNames[SlotIndex].empty() && NameContains(DeclaredNames[SlotIndex], Sought))
+                Confirmed.push_back(NamedIdentities[SlotIndex]);
         }
 
         return Confirmed;
@@ -207,15 +207,15 @@ std::vector<OwnerIdentity> TrigramIndex::Narrow(const std::string& Sought) const
 
     // 🔴 The exact confirmation. A trigram set matches names that never contain the sought text — "arm" and
     //    "ram" share no trigram, but longer text easily produces candidates that do not match at all.
-    for (const std::uint32_t SlotOrdinal : *Narrowest)
+    for (const std::uint32_t SlotIndex : *Narrowest)
     {
-        if (SlotOrdinal >= DeclaredNames.size())
+        if (SlotIndex >= DeclaredNames.size())
             continue;
 
-        if (!NameContains(DeclaredNames[SlotOrdinal], Sought))
+        if (!NameContains(DeclaredNames[SlotIndex], Sought))
             continue;
 
-        Confirmed.push_back(NamedIdentities[SlotOrdinal]);
+        Confirmed.push_back(NamedIdentities[SlotIndex]);
     }
 
     return Confirmed;
@@ -223,10 +223,10 @@ std::vector<OwnerIdentity> TrigramIndex::Narrow(const std::string& Sought) const
 
 const std::string& TrigramIndex::DeclaredName(OwnerIdentity Subject) const
 {
-    if (!Subject.IdentityDeclared() || Subject.SlotOrdinal >= DeclaredNames.size())
+    if (!Subject.IdentityDeclared() || Subject.SlotIndex >= DeclaredNames.size())
         return AbsentName;
 
-    return DeclaredNames[Subject.SlotOrdinal];
+    return DeclaredNames[Subject.SlotIndex];
 }
 
 std::uint32_t TrigramIndex::NamedCount() const

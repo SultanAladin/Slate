@@ -12,7 +12,7 @@ namespace Slate
 //                                                   COUNTED ORDERING
 //------------------------------------------------------------------------------------------------------------------------
 
-void RankIndex::Construct(std::uint32_t RowCount)
+void RankIndex::PopulateRanks(std::uint32_t RowCount)
 {
     SpannedRows = RowCount;
     CountedRows = RowCount;
@@ -22,37 +22,37 @@ void RankIndex::Construct(std::uint32_t RowCount)
 
     // 📐 Built in one pass rather than by RowCount insertions: each stored word takes the count of the run
     //    ending at its ordinal, then hands that run's total to the word that contains it.
-    for (std::uint32_t Ordinal = 1u; Ordinal <= RowCount; ++Ordinal)
+    for (std::uint32_t Index = 1u; Index <= RowCount; ++Index)
     {
-        RunCounts[Ordinal] += 1u;
+        RunCounts[Index] += 1u;
 
-        const std::uint32_t Containing = Ordinal + (Ordinal & (~Ordinal + 1u));
+        const std::uint32_t Containing = Index + (Index & (~Index + 1u));
 
         if (Containing <= RowCount)
-            RunCounts[Containing] += RunCounts[Ordinal];
+            RunCounts[Containing] += RunCounts[Index];
     }
 }
 
-void RankIndex::Declare(std::uint32_t RowOrdinal, bool CountedEnabled)
+void RankIndex::Declare(std::uint32_t RowIndex, bool CountedEnabled)
 {
-    if (RowOrdinal >= SpannedRows)
+    if (RowIndex >= SpannedRows)
         return;
 
-    if (RowCounted[RowOrdinal] == CountedEnabled)
+    if (RowCounted[RowIndex] == CountedEnabled)
         return;
 
-    RowCounted[RowOrdinal] = CountedEnabled;
+    RowCounted[RowIndex] = CountedEnabled;
 
     const std::uint32_t Adjustment = CountedEnabled ? 1u : 0u;
 
-    for (std::uint32_t Ordinal = RowOrdinal + 1u;
-         Ordinal <= SpannedRows;
-         Ordinal += Ordinal & (~Ordinal + 1u))
+    for (std::uint32_t Index = RowIndex + 1u;
+         Index <= SpannedRows;
+         Index += Index & (~Index + 1u))
     {
         if (Adjustment == 1u)
-            ++RunCounts[Ordinal];
+            ++RunCounts[Index];
         else
-            --RunCounts[Ordinal];
+            --RunCounts[Index];
     }
 
     if (CountedEnabled)
@@ -61,9 +61,9 @@ void RankIndex::Declare(std::uint32_t RowOrdinal, bool CountedEnabled)
         --CountedRows;
 }
 
-std::uint32_t RankIndex::CountedBefore(std::uint32_t RowOrdinal) const
+std::uint32_t RankIndex::CountedBefore(std::uint32_t RowIndex) const
 {
-    std::uint32_t Bounded = RowOrdinal > SpannedRows ? SpannedRows : RowOrdinal;
+    std::uint32_t Bounded = RowIndex > SpannedRows ? SpannedRows : RowIndex;
     std::uint32_t Counted = 0u;
 
     while (Bounded != 0u)
@@ -75,9 +75,9 @@ std::uint32_t RankIndex::CountedBefore(std::uint32_t RowOrdinal) const
     return Counted;
 }
 
-Outcome<std::uint32_t> RankIndex::RowAtVisible(std::uint32_t VisibleOrdinal) const
+Outcome<std::uint32_t> RankIndex::RowAtVisible(std::uint32_t VisibleIndex) const
 {
-    if (VisibleOrdinal >= CountedRows)
+    if (VisibleIndex >= CountedRows)
     {
         return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "the visible position lies past the last counted row" });
@@ -86,7 +86,7 @@ Outcome<std::uint32_t> RankIndex::RowAtVisible(std::uint32_t VisibleOrdinal) con
     // 📐 Descends the runs from the widest, taking each whose count the target still exceeds. The ordinal
     //    accumulated is the last row whose prefix count is not greater than the target.
     std::uint32_t Stride    = 1u;
-    std::uint32_t Remaining = VisibleOrdinal;
+    std::uint32_t Remaining = VisibleIndex;
     std::uint32_t Located   = 0u;
 
     while (Stride * 2u <= SpannedRows)
@@ -106,18 +106,18 @@ Outcome<std::uint32_t> RankIndex::RowAtVisible(std::uint32_t VisibleOrdinal) con
     return Outcome<std::uint32_t>::Result(Located);
 }
 
-Outcome<std::uint32_t> RankIndex::VisibleOfRow(std::uint32_t RowOrdinal) const
+Outcome<std::uint32_t> RankIndex::VisibleOfRow(std::uint32_t RowIndex) const
 {
-    if (RowOrdinal >= SpannedRows)
+    if (RowIndex >= SpannedRows)
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "the row lies outside the span" });
 
-    if (!RowCounted[RowOrdinal])
+    if (!RowCounted[RowIndex])
     {
         return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "the row is collapsed or narrowed out of the count" });
     }
 
-    return Outcome<std::uint32_t>::Result(CountedBefore(RowOrdinal));
+    return Outcome<std::uint32_t>::Result(CountedBefore(RowIndex));
 }
 
 std::uint32_t RankIndex::CountedTotal() const
@@ -190,17 +190,17 @@ Outcome<bool> RowSequence::Linearize(const SceneStructure& Relations)
 
     while (!Pending.empty())
     {
-        const std::uint32_t SlotOrdinal = Pending.back();
+        const std::uint32_t SlotIndex = Pending.back();
         Pending.pop_back();
 
         SequencedRow Incoming;
-        Incoming.Owner         = Relations.OwnerAt(SlotOrdinal);
-        Incoming.EnclosureDepth   = Relations.EnclosureDepth(SlotOrdinal);
-        Incoming.ExpansionEnabled = !SlotCollapsed[SlotOrdinal];
+        Incoming.Owner         = Relations.OwnerAt(SlotIndex);
+        Incoming.EnclosureDepth   = Relations.EnclosureDepth(SlotIndex);
+        Incoming.ExpansionEnabled = !SlotCollapsed[SlotIndex];
 
         std::uint32_t EnclosedCount = 0u;
 
-        for (std::uint32_t Enclosed = Relations.FirstEnclosed(SlotOrdinal);
+        for (std::uint32_t Enclosed = Relations.FirstEnclosed(SlotIndex);
              Enclosed != AbsentSlot;
              Enclosed = Relations.NextInOrder(Enclosed))
         {
@@ -209,22 +209,22 @@ Outcome<bool> RowSequence::Linearize(const SceneStructure& Relations)
 
         Incoming.EnclosedCount = EnclosedCount;
 
-        RowOfSlot[SlotOrdinal] = static_cast<std::uint32_t>(SequencedRows.size());
+        RowOfSlot[SlotIndex] = static_cast<std::uint32_t>(SequencedRows.size());
         SequencedRows.push_back(Incoming);
 
-        AppendReversed(Pending, Relations, Relations.FirstEnclosed(SlotOrdinal));
+        AppendReversed(Pending, Relations, Relations.FirstEnclosed(SlotIndex));
     }
 
     // 📝 🔴 A slot that holds no row holds no standing decision either. Clearing here is what makes a reused
     //    slot safe: without it a new owner inherits the collapse and the retention of whoever the slot
     //    carried before, and appears collapsed, or retained by a narrowing it was never confirmed against.
-    for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < RowOfSlot.size(); ++SlotOrdinal)
+    for (std::uint32_t SlotIndex = 0u; SlotIndex < RowOfSlot.size(); ++SlotIndex)
     {
-        if (RowOfSlot[SlotOrdinal] != AbsentSlot)
+        if (RowOfSlot[SlotIndex] != AbsentSlot)
             continue;
 
-        SlotCollapsed[SlotOrdinal] = false;
-        SlotRetained[SlotOrdinal]  = false;
+        SlotCollapsed[SlotIndex] = false;
+        SlotRetained[SlotIndex]  = false;
     }
 
     Recount();
@@ -247,15 +247,15 @@ constexpr std::uint32_t NothingCollapsed = 0xFFFFFFFFu;   // [-] - no collapsing
 
 void RowSequence::Recount()
 {
-    VisibleOrdering.Construct(static_cast<std::uint32_t>(SequencedRows.size()));
+    VisibleOrdering.PopulateRanks(static_cast<std::uint32_t>(SequencedRows.size()));
 
     // 📝 A row leaves the count when it is narrowed, or when any row it sits under is collapsed. The
     //    collapsing depth is carried down the sequence so the whole derivation is one pass over the rows.
     std::uint32_t CollapsedAtDepth = NothingCollapsed;
 
-    for (std::size_t Ordinal = 0u; Ordinal < SequencedRows.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < SequencedRows.size(); ++Index)
     {
-        SequencedRow& Held = SequencedRows[Ordinal];
+        SequencedRow& Held = SequencedRows[Index];
 
         if (Held.EnclosureDepth <= CollapsedAtDepth)
             CollapsedAtDepth = NothingCollapsed;
@@ -263,12 +263,12 @@ void RowSequence::Recount()
         // 📝 A narrowing narrows by retention rather than by exclusion, so an owner registered in nothing
         //    leaves the count while one stands. `12` §10 makes it a subset, and the subset is what is kept.
         const bool Retained = !NarrowingHeld
-                           || (Held.Owner.SlotOrdinal < SlotRetained.size()
-                            && SlotRetained[Held.Owner.SlotOrdinal]);
+                           || (Held.Owner.SlotIndex < SlotRetained.size()
+                            && SlotRetained[Held.Owner.SlotIndex]);
 
         Held.VisibleInCount = CollapsedAtDepth == NothingCollapsed && Retained;
 
-        VisibleOrdering.Declare(static_cast<std::uint32_t>(Ordinal), Held.VisibleInCount);
+        VisibleOrdering.Declare(static_cast<std::uint32_t>(Index), Held.VisibleInCount);
 
         if (!Held.ExpansionEnabled && Held.EnclosureDepth < CollapsedAtDepth)
             CollapsedAtDepth = Held.EnclosureDepth;
@@ -285,7 +285,7 @@ Outcome<bool> RowSequence::DeclareExpansion(OwnerIdentity Subject, bool Expansio
     // 🔴 Declared against the slot as well as the row. The row is rebuilt at every ⑤ and the slot is not, so
     //    holding it on the row alone would reopen the enclosure on the tick after the artist collapsed it.
     SequencedRows[Located.Resolve()].ExpansionEnabled = ExpansionEnabled;
-    SlotCollapsed[Subject.SlotOrdinal]                = !ExpansionEnabled;
+    SlotCollapsed[Subject.SlotIndex]                = !ExpansionEnabled;
 
     Recount();
 
@@ -321,7 +321,7 @@ Outcome<bool> RowSequence::DeclareNarrowing(const std::vector<OwnerIdentity>& Re
     SlotRetained.assign(SlotRetained.size(), false);
 
     for (const OwnerIdentity& Retaining : Retained)
-        SlotRetained[Retaining.SlotOrdinal] = true;
+        SlotRetained[Retaining.SlotIndex] = true;
 
     NarrowingHeld = true;
 
@@ -346,15 +346,15 @@ const RankIndex& RowSequence::Counted() const
 
 Outcome<std::uint32_t> RowSequence::RowOf(OwnerIdentity Subject) const
 {
-    if (!Subject.IdentityDeclared() || Subject.SlotOrdinal >= RowOfSlot.size())
+    if (!Subject.IdentityDeclared() || Subject.SlotIndex >= RowOfSlot.size())
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::IdentityStale, "the owner holds no row" });
 
-    const std::uint32_t RowOrdinal = RowOfSlot[Subject.SlotOrdinal];
+    const std::uint32_t RowIndex = RowOfSlot[Subject.SlotIndex];
 
-    if (RowOrdinal == AbsentSlot || SequencedRows[RowOrdinal].Owner != Subject)
+    if (RowIndex == AbsentSlot || SequencedRows[RowIndex].Owner != Subject)
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::IdentityStale, "the owner holds no row" });
 
-    return Outcome<std::uint32_t>::Result(RowOrdinal);
+    return Outcome<std::uint32_t>::Result(RowIndex);
 }
 
 bool RowSequence::NarrowingCurrent() const
@@ -377,14 +377,14 @@ bool RowSequence::CountsAgree() const
 
     std::uint32_t Walking = 0u;
 
-    for (std::size_t Ordinal = 0u; Ordinal < SequencedRows.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < SequencedRows.size(); ++Index)
     {
-        if (!SequencedRows[Ordinal].VisibleInCount)
+        if (!SequencedRows[Index].VisibleInCount)
             continue;
 
         const Outcome<std::uint32_t> Located = VisibleOrdering.RowAtVisible(Walking);
 
-        if (!Located.Resolved || Located.Resolve() != static_cast<std::uint32_t>(Ordinal))
+        if (!Located.Resolved || Located.Resolve() != static_cast<std::uint32_t>(Index))
             return false;
 
         ++Walking;

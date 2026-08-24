@@ -5,12 +5,14 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
-#include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
+#include "SlateUI/Interface/ControlIndex/Api/ControlIndex.h"
+#include "SlateUI/Interface/Dropdown/Api/Dropdown.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/SymbolSpecification/Api/SymbolSpecification.h"
+#include "SlateUI/Interface/Tooltip/Api/Tooltip.h"
 
 #include <cstdint>
 
@@ -25,7 +27,7 @@ namespace Slate
 /// note  The card is arranged from its row count rather than measured from its content, because the sheet
 ///       states a fixed padding and a fixed inter-row gap and every row it holds is one of eight known
 ///       extents. A card that measured its content would disagree with the sheet the moment a run wrapped.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct CardArrangement
 {
     PlaneExtent  Enclosure = {};     // [px] - the card's own extent, ground and edge
@@ -37,31 +39,12 @@ struct CardArrangement
 //                                                    WHAT EACH CONTROL TAKES
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 What one selection field presents — its label, its options, and how many there are.
-/// note  🔴 The options are borrowed, never copied. `14` §1 forbids a panel storing what it presents, and an
-///       array of captions copied into the panel is exactly that defect at its smallest.
-/// tag   contract, nonallocating, nonthrowing
-struct SelectionDeclaration
-{
-    const char*         Caption     = "";        // [-] - the leading label
-    const char* const*  Options     = nullptr;   // [-] - borrowed; outlives the tick
-    std::uint32_t       OptionCount = 0u;        // [-] - zero records the field and no menu
-
-    /// 🔴 A caption-only dropdown had no way to say so. SelectionField always
-    ///    reserves `LabelX` (160 px) for a leading label plus `RowGapX` (32 px).
-    ///    The facet card sizes its pill at 132 px, which is NARROWER than that
-    ///    reserved strip, so the field came out 60 px INVERTED — MinimumX past
-    ///    MaximumX — with the caption drawn outside the pill entirely. Setting
-    ///    this true drops the strip and lets the field fill the row it is given.
-    bool CaptionInside = false;   // [-] - no leading label strip; caption sits in the field
-};
-
 /// 🧩 What one magnitude row presents — its label, its unit glyph, and the domain it spans.
 /// note  📐 The domain is stated rather than assumed. The sheet declares 0 … 255 for all three of its rows,
 ///        but a percentage that ran to 255 would be a defect the sheet cannot report and a caller can.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 /// 🧩 One reusable single-line editable run.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct EditableTextDeclaration
 {
     const char* Placeholder     = "";    // [-] - shown only while the accepted run is empty
@@ -70,7 +53,7 @@ struct EditableTextDeclaration
 };
 
 /// 🧩 What one editable field decided during this tick.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct EditableTextVerdict
 {
     bool        Accepted = false;             // [-] - the caller-owned run was replaced
@@ -122,12 +105,12 @@ struct MagnitudeDeclaration
 };
 
 /// 🧩 What the rotation ruler presents — its label and the unit its captions carry.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 /// 🧩 A three-axis reading — a position, a rotation or a scale — and its unit.
 /// note  📐 The scalar MagnitudeDeclaration states one figure against one unit. A transform row states
 ///        three against one, so the readout is three value cells sharing a single trailing unit cell
 ///        rather than three separate pills.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct VectorDeclaration
 {
     const char*  Caption   = "";       // [-] - the leading label
@@ -151,50 +134,29 @@ struct RulerDeclaration
 };
 
 /// 🧩 What one toggle row presents.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct ToggleDeclaration
 {
     const char*  Caption = "";   // [-] - the run right of the ring
 };
 
 /// 🧩 What one multi-select row presents.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct SubsetDeclaration
 {
     const char*  Caption = "";   // [-] - the run inside the row
 };
 
 /// 🧩 What the magnitude stops present — the four captions, of which the taken one is drawn.
-/// note  ⚠️ Exactly `StopCeiling` captions are read. The sheet declares four; a caller declaring more is
+/// note  ⚠️ Exactly `StopLimit` captions are read. The sheet declares four; a caller declaring more is
 ///        rejected rather than silently truncated, because a fifth stop the artist can see and cannot reach
 ///        is worse than a refusal at bring-up.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct StopDeclaration
 {
     const char*         Caption   = "";        // [-] - the leading label
     const char* const*  Stops     = nullptr;   // [-] - borrowed; the letter each stop carries
-    std::uint32_t       StopCount = 0u;        // [-] - two to StopCeiling
-};
-
-/// 🧩 Which of the sheet's two tooltip appearances one trigger carries.
-/// tag   contract
-enum class TooltipAppearance : std::uint32_t
-{
-    Light           = 0u,   // [-] - the white card and the white trigger
-    Dark            = 1u,   // [-] - the near-black card and the near-black trigger
-    AppearanceCount = 2u    // [-] - the closed count, never an appearance
-};
-
-/// 🧩 What one tooltip trigger presents — its figure, and the card that discloses above it.
-/// note  The body is borrowed and wrapped at record time against the card's stated extent. Nothing is
-///       measured into storage, so a caller may change the run between two ticks.
-/// tag   contract, nonallocating, nonthrowing
-struct TooltipDeclaration
-{
-    const char*        Title      = "";                            // [-] - the card's heading
-    const char*        Body       = "";                            // [-] - wrapped inside the card
-    SymbolSubject      Figure     = SymbolSubject::BulbFilament;   // [-] - the trigger's own figure
-    TooltipAppearance  Appearance = TooltipAppearance::Light;      // [-]
+    std::uint32_t       StopCount = 0u;        // [-] - two to StopLimit
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -205,7 +167,7 @@ struct TooltipDeclaration
 /// note  🔴 Stores **no** artist-visible datum. Every value arrives by reference and is written back through
 ///        that same reference in the same call, so `14` §1's "a panel presents state owned elsewhere and
 ///        stores none of it" is a property of the signatures rather than a discipline. What is stored —
-///        which control is grabbed, which menu stands open, what is fading — lives in `InteractionIndex`,
+///        which control is grabbed, which menu stands open, what is fading — lives in `ControlIndex`,
 ///        which is `14` §4.1's sanctioned home for it.
 /// note  🔴 Two phases, never interleaved. `Advance` arbitrates and records nothing; the shared recording
 ///        methods draw and mutate no interaction. The separation is what lets every popup be recorded in a
@@ -218,30 +180,30 @@ class ComponentSpecification
 {
 public:
 
-    static constexpr std::uint32_t StopCeiling     = 8u;    // [-] - stops one row may carry; the sheet declares four
-    static constexpr std::uint32_t DeferredCeiling = 16u;   // [-] - popups and tooltips deferred within one tick
-    static constexpr std::uint32_t WrapCeiling     = 8u;    // [-] - lines one tooltip body may wrap to
+    static constexpr std::uint32_t StopLimit     = 8u;    // [-] - stops one row may carry; the sheet declares four
+    static constexpr std::uint32_t DeferredLimit = 16u;   // [-] - popups and tooltips deferred within one tick
+    static constexpr std::uint32_t WrapLimit     = 8u;    // [-] - lines one tooltip body may wrap to
 
     ComponentSpecification()                               = default;
     ComponentSpecification(const ComponentSpecification&)            = delete;
     ComponentSpecification& operator=(const ComponentSpecification&) = delete;
     ~ComponentSpecification()                              = default;
 
-    /// 🧩 Borrows the ledger, the surface and the appearance every control reads.
-    /// in    Ledger      [-]  the interaction ledger; borrowed and outlives this component
+    /// 🧩 Borrows the index, the surface and the appearance every control reads.
+    /// in    Interaction      [-]  the interaction index; borrowed and outlives this component
     /// in    Surface     [-]  the recording surface; borrowed and outlives this component
     /// in    Appearance  [-]  already resolved against the display scale; borrowed and outlives this
     /// out   Result     [-]  refuses with ContentUnsupported when a construction already stands
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Construct(InteractionIndex&              Ledger,
+    Outcome<bool> ConstructComponents(ControlIndex&              IncomingInteraction,
                             RecordingSurface&              Surface,
                             const ThemeProfile& Appearance);
 
     /// 🧩 Advances one tick of arbitration — samples the contact and clears the deferred sweep.
     /// in    Sampled  [-]   what `RecordingSurface::Pointer` sampled this tick
     /// in    Elapsed  [ms]  what the same tick's display condition measured
-    /// note  🔴 Advances the ledger too. A caller that advances both is advancing the ledger twice, which
+    /// note  🔴 Advances the index too. A caller that advances both is advancing the index twice, which
     ///        retires a release before the control that grabbed it has run.
     /// post  the deferred sweep is empty; every recording method is valid until RecordDeferred
     /// cost  ✔️
@@ -279,13 +241,13 @@ public:
     /// in    Target       [-]  the identity this field was registered under
     /// in    Row           [px] the extent the whole row occupies
     /// in    Declared      [-]  what it presents; borrowed
-    /// in    TakenOrdinal  [-]  which option stands taken; written when the artist takes another
-    /// out   Verdict       [-]  ReadingAltered when TakenOrdinal was written this tick
+    /// in    TakenIndex  [-]  which option stands taken; written when the artist takes another
+    /// out   Verdict       [-]  ReadingAltered when TakenIndex was written this tick
     /// note  The menu is not recorded here. It is deferred, so that it draws above every row below it.
     /// cost  🚩
     /// tag   api, nonthrowing
     ControlVerdict SelectionField(ControlIdentity Target, const PlaneExtent& Row,
-                                  const SelectionDeclaration& Declared, std::uint32_t& TakenOrdinal);
+                                  const SelectionDeclaration& Declared, std::uint32_t& TakenIndex);
 
     /// 🧩 Records one reusable single-line editor and writes the caller's run only when accepted.
     /// note  Contact begins editing; Enter accepts and Escape restores the standing run.
@@ -293,7 +255,7 @@ public:
     /// tag   api, nonthrowing
     EditableTextVerdict EditableText(ControlIdentity Target, const PlaneExtent& Extent,
                                      const EditableTextDeclaration& Declared,
-                                     char* Run, std::uint32_t RunCeiling);
+                                     char* Run, std::uint32_t RunLimit);
 
     /// 🧩 One magnitude row — a numeric readout, a unit cell, and a slider spanning the declared domain.
     /// in    Coordinate         [-]  the presented magnitude; written while the thumb or track is held
@@ -334,7 +296,7 @@ public:
     /// tag   api, nonthrowing
     /// 🧩 Draws the pill switch alone, for a caller that owns its own arbitration.
     /// note  🔴 Identical in shape and animation to ControlPanel::SwitchTrack.
-    ///        LayerStackPanel hand-rolled this twice with a ternary nub and a
+    ///        the retired validation stack once hand-rolled this twice with a ternary nub and a
     ///        fixed 5 px radius, so the switch snapped there while the same
     ///        control travelled elsewhere. This holds no ControlPanel, so the
     ///        helper is offered here too rather than pulling a whole panel in.
@@ -355,11 +317,11 @@ public:
                              const SubsetDeclaration& Declared, bool& Registered);
 
     /// 🧩 The magnitude stops — small discs, of which the taken one grows and carries its letter.
-    /// in    TakenOrdinal  [-]  which stop stands taken; written when another is tapped
+    /// in    TakenIndex  [-]  which stop stands taken; written when another is tapped
     /// cost  🚩
     /// tag   api, nonthrowing
     ControlVerdict MagnitudeStops(ControlIdentity Target, const PlaneExtent& Row,
-                                  const StopDeclaration& Declared, std::uint32_t& TakenOrdinal);
+                                  const StopDeclaration& Declared, std::uint32_t& TakenIndex);
 
     /// 🧩 One tooltip trigger — a rounded button whose card discloses above it while the pointer rests on it.
     /// note  The card is deferred, so it draws above every control recorded after this one.
@@ -367,6 +329,10 @@ public:
     /// tag   api, nonthrowing
     ControlVerdict TooltipTrigger(ControlIdentity Target, const PlaneExtent& Trigger,
                                   const TooltipDeclaration& Declared);
+
+    /// 🧩 Adds the shared deferred tooltip to a control another component has already rendered.
+    ControlVerdict TooltipHint(ControlIdentity Target, const PlaneExtent& Anchor,
+                               const TooltipDeclaration& Declared);
 
     //--------------------------------------------------------------------------------------------------------
     //                                             THE DEFERRED SWEEP
@@ -408,6 +374,8 @@ private:
         const char* const*  Options     = nullptr;                       // [-] - borrowed, for a menu
         std::uint32_t       OptionCount = 0u;                            // [-]
         std::uint32_t       TakenOption = 0u;                            // [-] - which option stands taken
+        SelectionIndicator  Indicator   = SelectionIndicator::Marked;
+        float               Disclosure  = 0.0f;                          // [-] - animated open fraction
         const char*         Title       = nullptr;                       // [-] - borrowed, for a tooltip
         const char*         Body        = nullptr;                       // [-] - borrowed, for a tooltip
         TooltipAppearance   Appearance  = TooltipAppearance::Light;      // [-]
@@ -418,7 +386,7 @@ private:
     /// note  📐 The blend roster is thirteen entries and the generator roster eleven; at the shipped option
     ///        height both stand taller than an editor leaf, so an uncapped menu ran off the panel and its
     ///        last entries could not be reached at all.
-    static constexpr float MenuCeilingY = 320.0f;   // [px] - max-height:330px in the reference
+    static constexpr float MenuLimitY = 320.0f;   // [px] - max-height:330px in the reference
 
     /// 🧩 The scroll one open menu carries, eased toward where the wheel put it.
     /// note  📐 Kept per-field rather than singular: two fields may be disclosed across a tick boundary and
@@ -430,9 +398,9 @@ private:
         float           Wanted  = 0.0f;   // [px] - where the wheel asked it to be
     };
 
-    static constexpr std::uint32_t MenuScrollCeiling = 8u;
+    static constexpr std::uint32_t MenuScrollLimit = 8u;
 
-    MenuScroll  MenuScrolls[MenuScrollCeiling] = {};
+    MenuScroll  MenuScrolls[MenuScrollLimit] = {};
 
     /// 🧩 Advances one menu's scroll toward where the wheel put it and answers where it stands now.
     float MenuTravel(ControlIdentity Target, float Content, float Shown, bool Over);
@@ -461,26 +429,32 @@ private:
     /// 🧩 Which option the pointer stands over, or OptionCount when it stands over none.
     std::uint32_t OptionUnder(ControlIdentity Target, const PlaneExtent& Field, std::uint32_t OptionCount) const;
 
-    static constexpr std::uint32_t EditableRunCeiling = 128u;
+    static constexpr std::uint32_t EditableRunLimit = 128u;
 
-    void BeginEditing(ControlIdentity Target, const char* Standing, std::uint32_t Ordinal = 0u);
+    void BeginEditing(ControlIdentity Target, const char* Standing, std::uint32_t Index = 0u);
     void AdvanceEditing();
     bool Editing(ControlIdentity Target) const;
     void FinishEditing();
+    void RemoveEditingSelection();
+    std::uint32_t EditingIndexAt(float PointerX, float RunX, float PointSize) const;
     void RecordEditableRun(const PlaneExtent& Extent, const char* Placeholder, bool Invalid);
 
-    InteractionIndex*               Ledger                          = nullptr;   // [-] - borrowed
+    ControlIndex*               Interaction                          = nullptr;   // [-] - borrowed
     RecordingSurface*               Surface                         = nullptr;   // [-] - borrowed
     const ThemeProfile*  Appearance                      = nullptr;   // [-] - borrowed
     PointerCondition                Sampled                         = {};        // [-] - this tick's pointer
-    DeferredRecording               Deferred[DeferredCeiling]       = {};        // [-] - never allocated
+    DeferredRecording               Deferred[DeferredLimit]       = {};        // [-] - never allocated
     std::uint32_t                   DeferredCount                   = 0u;        // [-]
     RedrawMark                      Current                        = RedrawMark::Quiet;   // [-]
     bool                            ContactHeldByPanel              = false;     // [-]
     ControlIdentity                 EditingTarget                   = {};        // [-] - one active field
-    char                            EditingRun[EditableRunCeiling]  = {};        // [-] - interaction copy
+    char                            EditingRun[EditableRunLimit]  = {};        // [-] - interaction copy
     std::uint32_t                   EditingCursor                   = 0u;         // [-] - byte insertion point
-    std::uint32_t                   EditingOrdinal                  = 0u;         // [-] - vector axis being edited
+    std::uint32_t                   EditingSelectionAnchor          = 0u;         // [-] - fixed end of a pointer selection
+    std::uint32_t                   EditingSelectionEdge            = 0u;         // [-] - moving end of a pointer selection
+    std::uint32_t                   EditingIndex                    = 0u;         // [-] - vector axis being edited
+    bool                            EditingSelecting                = false;      // [-] - either pointer contact is extending selection
+    bool                            EditingSelectionSecondary       = false;      // [-] - selection belongs to the secondary contact
     bool                            EditingInvalid                  = false;      // [-] - last acceptance refused
 };
 

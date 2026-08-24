@@ -32,7 +32,7 @@ namespace
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ByteSpace::Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming)
+Outcome<bool> ByteSpace::ReserveByteSpace(const VulkanExchange& Exchange, const DiagnosticExtension& Naming)
 {
     if (Exchange.ActiveDevice() == VK_NULL_HANDLE || Exchange.ScoredDevice() == VK_NULL_HANDLE)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
@@ -78,12 +78,12 @@ Outcome<std::uint32_t> ByteSpace::ClassifyResidency(ExtentResidency Residency) c
 
     // 📝 The vendor declares its entries in preference order, so the first entry carrying every required
     //    property is the one to take. Scoring further would mean preferring a heap the vendor did not.
-    for (std::uint32_t Ordinal = 0u; Ordinal < VendorDeclared.memoryTypeCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < VendorDeclared.memoryTypeCount; ++Index)
     {
-        const VkMemoryPropertyFlags Carried = VendorDeclared.memoryTypes[Ordinal].propertyFlags;
+        const VkMemoryPropertyFlags Carried = VendorDeclared.memoryTypes[Index].propertyFlags;
 
         if ((Carried & Required) == Required)
-            return Outcome<std::uint32_t>::Result(Ordinal);
+            return Outcome<std::uint32_t>::Result(Index);
     }
 
     return Outcome<std::uint32_t>::Refuse(
@@ -96,10 +96,10 @@ Outcome<std::uint32_t> ByteSpace::ClassifyResidency(ExtentResidency Residency) c
 
 Outcome<std::uint32_t> ByteSpace::ConstructExtent(ExtentResidency Residency, VkDeviceSize MinimumBytes)
 {
-    const Outcome<std::uint32_t> VendorOrdinal = ClassifyResidency(Residency);
+    const Outcome<std::uint32_t> VendorIndex = ClassifyResidency(Residency);
 
-    if (!VendorOrdinal.Resolved)
-        return Outcome<std::uint32_t>::Refuse(VendorOrdinal.Error);
+    if (!VendorIndex.Resolved)
+        return Outcome<std::uint32_t>::Refuse(VendorIndex.Error);
 
     VkDeviceSize ExtentBytes = Residency == ExtentResidency::DeviceLocal
                                  ? DeviceLocalExtentBytes
@@ -125,12 +125,12 @@ Outcome<std::uint32_t> ByteSpace::ConstructExtent(ExtentResidency Residency, VkD
     VkMemoryAllocateInfo ExtentDeclaration = {};
     ExtentDeclaration.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     ExtentDeclaration.allocationSize       = ExtentBytes;
-    ExtentDeclaration.memoryTypeIndex      = VendorOrdinal.Resolve();
+    ExtentDeclaration.memoryTypeIndex      = VendorIndex.Resolve();
 
     SlicedExtent Incoming;
     Incoming.TotalBytes    = ExtentBytes;
     Incoming.Residency     = Residency;
-    Incoming.VendorOrdinal = VendorOrdinal.Resolve();
+    Incoming.VendorIndex = VendorIndex.Resolve();
 
     if (vkAllocateMemory(DeviceEdge->ActiveDevice(), &ExtentDeclaration, nullptr, &Incoming.DeviceExtent) != VK_SUCCESS)
     {
@@ -156,7 +156,7 @@ Outcome<std::uint32_t> ByteSpace::ConstructExtent(ExtentResidency Residency, VkD
 
     Extents.push_back(Incoming);
 
-    const std::uint32_t ExtentOrdinal = static_cast<std::uint32_t>(Extents.size() - 1u);
+    const std::uint32_t ExtentIndex = static_cast<std::uint32_t>(Extents.size() - 1u);
 
     // 📝 🔴 `06` §7's diagnostic-name gate. The refusal is discarded deliberately: an extent that stands and
     //    could not be named is still an extent every later claim is sliced from, and refusing the allocation
@@ -165,9 +165,9 @@ Outcome<std::uint32_t> ByteSpace::ConstructExtent(ExtentResidency Residency, VkD
                         reinterpret_cast<std::uint64_t>(Incoming.DeviceExtent),
                         Residency == ExtentResidency::DeviceLocal ? "ByteSpace device-local extent"
                                                                   : "ByteSpace host-writable extent",
-                        ExtentOrdinal));
+                        ExtentIndex));
 
-    return Outcome<std::uint32_t>::Result(ExtentOrdinal);
+    return Outcome<std::uint32_t>::Result(ExtentIndex);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -201,16 +201,16 @@ Outcome<ByteReservation> ByteSpace::Reserve(VkDeviceSize    RequestedBytes,
     //    because the claim sizes here are a handful of shapes repeated rather than an arbitrary spread.
     for (int Attempt = 0; Attempt < 2; ++Attempt)
     {
-        for (std::size_t ExtentOrdinal = 0u; ExtentOrdinal < Extents.size(); ++ExtentOrdinal)
+        for (std::size_t ExtentIndex = 0u; ExtentIndex < Extents.size(); ++ExtentIndex)
         {
-            SlicedExtent& Candidate = Extents[ExtentOrdinal];
+            SlicedExtent& Candidate = Extents[ExtentIndex];
 
             if (Candidate.Residency != Residency)
                 continue;
 
-            for (std::size_t SpanOrdinal = 0u; SpanOrdinal < Candidate.Unclaimed.size(); ++SpanOrdinal)
+            for (std::size_t SpanIndex = 0u; SpanIndex < Candidate.Unclaimed.size(); ++SpanIndex)
             {
-                const FreeSpan     Available  = Candidate.Unclaimed[SpanOrdinal];
+                const FreeSpan     Available  = Candidate.Unclaimed[SpanIndex];
                 const VkDeviceSize Raised     = RaiseToAlignment(Available.ByteOffset, Alignment);
                 const VkDeviceSize Introduced = Raised - Available.ByteOffset;
 
@@ -222,7 +222,7 @@ Outcome<ByteReservation> ByteSpace::Reserve(VkDeviceSize    RequestedBytes,
                 //    `86`'s residency figure then drifts upward for a reason no reader can attribute.
                 const VkDeviceSize Trailing = Available.ByteSpan - Introduced - RequestedBytes;
 
-                const std::ptrdiff_t Reinsertion = static_cast<std::ptrdiff_t>(SpanOrdinal);
+                const std::ptrdiff_t Reinsertion = static_cast<std::ptrdiff_t>(SpanIndex);
 
                 Candidate.Unclaimed.erase(Candidate.Unclaimed.begin() + Reinsertion);
 
@@ -246,7 +246,7 @@ Outcome<ByteReservation> ByteSpace::Reserve(VkDeviceSize    RequestedBytes,
                 Sliced.BackingExtent = Candidate.DeviceExtent;
                 Sliced.ByteOffset    = Raised;
                 Sliced.ByteSpan      = RequestedBytes;
-                Sliced.ExtentOrdinal = static_cast<std::uint32_t>(ExtentOrdinal);
+                Sliced.ExtentIndex = static_cast<std::uint32_t>(ExtentIndex);
                 Sliced.HostAddress   = Candidate.HostAddress == nullptr
                                          ? nullptr
                                          : static_cast<void*>(static_cast<unsigned char*>(Candidate.HostAddress) + Raised);
@@ -283,13 +283,13 @@ Outcome<ByteReservation> ByteSpace::Reserve(VkDeviceSize    RequestedBytes,
 
 void ByteSpace::Release(const ByteReservation& Reserved)
 {
-    if (Reserved.ExtentOrdinal == AbsentExtent || Reserved.ByteSpan == 0u)
+    if (Reserved.ExtentIndex == AbsentExtent || Reserved.ByteSpan == 0u)
         return;
 
-    if (static_cast<std::size_t>(Reserved.ExtentOrdinal) >= Extents.size())
+    if (static_cast<std::size_t>(Reserved.ExtentIndex) >= Extents.size())
         return;
 
-    SlicedExtent& Holding = Extents[Reserved.ExtentOrdinal];
+    SlicedExtent& Holding = Extents[Reserved.ExtentIndex];
 
     // 📝 Inserted in offset order and then coalesced with both neighbours. Without the coalescing an extent
     //    that has cycled through a few thousand claims holds its whole span in the free list and satisfies

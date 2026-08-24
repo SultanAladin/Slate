@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateMath/Numeric/QuadratureIntegrator/Api/QuadratureIntegrator.h"
 
 namespace Slate
@@ -17,7 +17,7 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 // 📝 The interval the matching functions are declared over. Read by this component alone, so `00` §2 keeps the
-//    two here rather than in `Contract/`; they are a declared domain rather than a tolerance, so `02` §8's gate
+//    two here rather than in `Foundation/`; they are a declared domain rather than a tolerance, so `02` §8's gate
 //    does not reach them either.
 inline constexpr double SpectralLowerWavelength = 360.0;   // [nm]
 inline constexpr double SpectralUpperWavelength = 830.0;   // [nm]
@@ -110,12 +110,12 @@ Outcome<TristimulusCoordinate> ProjectSpectrum(const QuadratureRule& Rule, Spect
 
     TristimulusCoordinate Projected;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Rule.DeclaredCount(); ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Rule.DeclaredCount(); ++Index)
     {
         double Wavelength = 0.0;
         double Weighting  = 0.0;
 
-        if (!Rule.Project(Ordinal, SpectralLowerWavelength, SpectralUpperWavelength, Wavelength, Weighting)
+        if (!Rule.Project(Index, SpectralLowerWavelength, SpectralUpperWavelength, Wavelength, Weighting)
                  .Resolved)
         {
             continue;

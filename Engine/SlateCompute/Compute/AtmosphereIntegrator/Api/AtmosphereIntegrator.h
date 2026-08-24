@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
+#include "Foundation/NumericTolerance.h"
 #include "Shared/AtmosphereProjection.slang.h"
 #include "SlateMath/Numeric/ColourProjection/Api/ColourProjection.h"
 #include "SlateMath/Numeric/QuadratureIntegrator/Api/QuadratureIntegrator.h"
@@ -113,7 +113,7 @@ public:
     ///        horizon while standing at the pole, which appears as a bright ring directly overhead.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(std::uint32_t Width, std::uint32_t Height, bool WrapXDeclared);
+    Outcome<bool> ConstructResidentSurface(std::uint32_t Width, std::uint32_t Height, bool WrapXDeclared);
 
     /// 🧩 Writes one texel's three components; the fourth is written as unity.
     /// note  📝 The fourth component is claimed and unused. `08` §2 declares the format RGBA16F and a

@@ -79,7 +79,7 @@ void Compact(TestedPartition Tested)
 
     const uint FirstSlot = Prior / 3u;
 
-    if (FirstSlot + Tested.TriangleCount > Occluding.TriangleCeiling)
+    if (FirstSlot + Tested.TriangleCount > Occluding.TriangleLimit)
     {
         return;
     }
@@ -103,29 +103,29 @@ void Compact(TestedPartition Tested)
 [numthreads(64, 1, 1)]
 void main(uint3 Dispatched : SV_DispatchThreadID)
 {
-    const uint PartitionOrdinal = Dispatched.x;
+    const uint PartitionIndex = Dispatched.x;
 
-    if (PartitionOrdinal >= Occluding.ClassifiedCount)
+    if (PartitionIndex >= Occluding.ClassifiedCount)
     {
         return;
     }
 
-    const TestedPartition Tested = Classified[PartitionOrdinal];
+    const TestedPartition Tested = Classified[PartitionIndex];
 
     // 📝 A partition the host rejected is dispatched and skipped rather than compacted away before the dispatch.
     //    Compacting on the host would make the classified run shorter than the partition count and the verdict
     //    run would then be indexed by something other than the partition's own ordinal.
     if (Tested.Current != PartitionAccepted)
     {
-        if (Occluding.PhaseOrdinal == PhaseAgainstPrevious)
+        if (Occluding.PhaseIndex == PhaseAgainstPrevious)
         {
-            Verdicts[PartitionOrdinal] = Tested.Current;
+            Verdicts[PartitionIndex] = Tested.Current;
         }
 
         return;
     }
 
-    if (Occluding.PhaseOrdinal == PhaseAgainstCurrent && Verdicts[PartitionOrdinal] != PartitionDepthOccluded)
+    if (Occluding.PhaseIndex == PhaseAgainstCurrent && Verdicts[PartitionIndex] != PartitionDepthOccluded)
     {
         // 📝 Already drawn by ①, or already rejected by a predicate depth cannot overturn. Either way it is not
         //    ③'s to admit, and accepting it is what draws a survivor twice.
@@ -136,17 +136,17 @@ void main(uint3 Dispatched : SV_DispatchThreadID)
 
     if (DepthOccludes(Tested.NearestDepth, Furthest))
     {
-        if (Occluding.PhaseOrdinal == PhaseAgainstPrevious)
+        if (Occluding.PhaseIndex == PhaseAgainstPrevious)
         {
-            Verdicts[PartitionOrdinal] = PartitionDepthOccluded;
+            Verdicts[PartitionIndex] = PartitionDepthOccluded;
         }
 
         return;
     }
 
-    if (Occluding.PhaseOrdinal == PhaseAgainstPrevious)
+    if (Occluding.PhaseIndex == PhaseAgainstPrevious)
     {
-        Verdicts[PartitionOrdinal] = PartitionAccepted;
+        Verdicts[PartitionIndex] = PartitionAccepted;
     }
 
     Compact(Tested);

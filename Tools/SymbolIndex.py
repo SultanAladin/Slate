@@ -68,7 +68,7 @@ KnownTags = {
     "allocating", "nonallocating", "throwing", "nonthrowing",
     "threadsafe", "unsafe", "inline", "virtual", "static",
     "constructor", "destructor", "deprecated", "incomplete",
-    "owning", "contract", "shared", "parity", "constexpr",
+    "owning", "guarantee", "shared", "parity", "constexpr",
 }
 
 # ⚠️ `✔` (U+2714) and `✔️` (U+2714 U+FE0F) render identically and compare unequal. Both are accepted on

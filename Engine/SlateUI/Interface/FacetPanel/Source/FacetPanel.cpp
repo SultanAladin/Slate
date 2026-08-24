@@ -44,7 +44,7 @@ float Scaled(float Figure, const ThemeProfile& Appearance)
 //                                                       CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> FacetPanel::Construct(MotionIntegrator& IncomingMotion,
+Outcome<bool> FacetPanel::ConstructFacetPanel(MotionIntegrator& IncomingMotion,
                                     RecordingSurface& IncomingSurface,
                                     const ThemeProfile& IncomingAppearance)
 {
@@ -55,19 +55,19 @@ Outcome<bool> FacetPanel::Construct(MotionIntegrator& IncomingMotion,
     Surface    = &IncomingSurface;
     Appearance = &IncomingAppearance;
 
-    if (!Interaction.Construct(IncomingMotion).Resolved)
+    if (!Interaction.AttachMotion(IncomingMotion).Resolved)
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "facet interaction was rejected" });
 
-    if (!SharedControls.Construct(Interaction, IncomingSurface, IncomingAppearance).Resolved)
+    if (!SharedControls.ConstructComponents(Interaction, IncomingSurface, IncomingAppearance).Resolved)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "shared facet controls were rejected" });
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < FacetCapacity + 2u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < FacetCapacity + 2u; ++Index)
     {
         const Outcome<ControlIdentity> Registered = Interaction.Register();
         if (!Registered.Resolved)
             return Outcome<bool>::Refuse(Registered.Error);
 
-        Controls[Ordinal] = Registered.Resolve();
+        Controls[Index] = Registered.Resolve();
     }
 
     return Outcome<bool>::Result(true);
@@ -112,14 +112,14 @@ FacetPanel::Arrangement FacetPanel::Arrange(float X,
 
     const std::uint32_t Count = (Declared.OptionCount < FacetCapacity)
                               ? Declared.OptionCount : FacetCapacity;
-    for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Count; ++Index)
     {
-        if (Enabled == nullptr || !Enabled[Ordinal])
+        if (Enabled == nullptr || !Enabled[Index])
             continue;
 
         ActivePresent = true;
-        const char* Caption = (Declared.Options != nullptr && Declared.Options[Ordinal] != nullptr)
-                            ? Declared.Options[Ordinal] : "";
+        const char* Caption = (Declared.Options != nullptr && Declared.Options[Index] != nullptr)
+                            ? Declared.Options[Index] : "";
         const float CaptionX = Surface->MeasureRun(Caption, TextSize);
         const float RequiredX = (ChipPadLeading + ChipSwatch + ChipSwatchGap + ChipRemoveGap +
                                      ChipRemove + ChipPadTrailing) * Scale + CaptionX;
@@ -188,12 +188,12 @@ float FacetPanel::MeasureHeight(float Width,
 //                                                        INTERACTION
 //------------------------------------------------------------------------------------------------------------------------
 
-bool FacetPanel::Pressed(std::uint32_t Ordinal, const PlaneExtent& Extent)
+bool FacetPanel::Pressed(std::uint32_t Index, const PlaneExtent& Extent)
 {
-    if (Ordinal >= FacetCapacity + 2u)
+    if (Index >= FacetCapacity + 2u)
         return false;
 
-    const ControlIdentity Target = Controls[Ordinal];
+    const ControlIdentity Target = Controls[Index];
     const bool Hovered = Extent.Encloses(Pointer.PositionX, Pointer.PositionY);
     if (Hovered && Pointer.ContactPressed && !Interaction.AnyDisclosed())
         Interaction.Grab(Target, ControlPart::Body);
@@ -202,10 +202,10 @@ bool FacetPanel::Pressed(std::uint32_t Ordinal, const PlaneExtent& Extent)
     return Hovered && Interaction.Released(Target);
 }
 
-ThemeToken FacetPanel::FacetColour(const FacetDeclaration& Declared, std::uint32_t Ordinal) const
+ThemeToken FacetPanel::FacetColour(const FacetDeclaration& Declared, std::uint32_t Index) const
 {
-    if (Declared.Colours != nullptr && Ordinal < Declared.OptionCount)
-        return Declared.Colours[Ordinal];
+    if (Declared.Colours != nullptr && Index < Declared.OptionCount)
+        return Declared.Colours[Index];
 
     return Appearance != nullptr ? Appearance->Control.StopTaken : Covering(0xE8E8E8u);
 }
@@ -235,8 +235,8 @@ Outcome<bool> FacetPanel::Record(const PlaneExtent& Extent,
     Surface->Edge(Extent, Colour.CardEdge, Appearance->ControlMeasure.CardEdgeWeight, Radius, CornerAll);
 
     std::uint32_t ActiveCount = 0u;
-    for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
-        if (Enabled != nullptr && Enabled[Ordinal]) ++ActiveCount;
+    for (std::uint32_t Index = 0u; Index < Count; ++Index)
+        if (Enabled != nullptr && Enabled[Index]) ++ActiveCount;
 
     // 🔴 The heading run, the count badge and the "Clear all" action are withdrawn
     //    with the header band. Each chip carries its own cross, so clearing is one
@@ -253,13 +253,13 @@ Outcome<bool> FacetPanel::Record(const PlaneExtent& Extent,
     const float Gap = ChipGap * Scale;
     float CursorX = Arranged.Chips.MinimumX;
     float CursorY = Arranged.Chips.MinimumY;
-    for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Count; ++Index)
     {
-        if (Enabled == nullptr || !Enabled[Ordinal])
+        if (Enabled == nullptr || !Enabled[Index])
             continue;
 
-        const char* Caption = (Declared.Options != nullptr && Declared.Options[Ordinal] != nullptr)
-                            ? Declared.Options[Ordinal] : "";
+        const char* Caption = (Declared.Options != nullptr && Declared.Options[Index] != nullptr)
+                            ? Declared.Options[Index] : "";
         const float CaptionX = Surface->MeasureRun(Caption, TextSize);
         const float RequiredX = (ChipPadLeading + ChipSwatch + ChipSwatchGap + ChipRemoveGap +
                                      ChipRemove + ChipPadTrailing) * Scale + CaptionX;
@@ -276,7 +276,7 @@ Outcome<bool> FacetPanel::Record(const PlaneExtent& Extent,
         Surface->Medallion(Chip.MinimumX + ChipPadLeading * Scale + ChipSwatch * Scale * 0.5f,
                            Chip.MinimumY + ChipRowY * 0.5f,
                            ChipSwatch * Scale * 0.5f,
-                           FacetColour(Declared, Ordinal));
+                           FacetColour(Declared, Index));
         const float CaptionTop = Chip.MinimumX + (ChipPadLeading + ChipSwatch + ChipSwatchGap) * Scale;
         Surface->TextRun(CaptionTop,
                          Chip.MinimumY + (ChipRowY - TextSize) * 0.5f,
@@ -296,22 +296,22 @@ Outcome<bool> FacetPanel::Record(const PlaneExtent& Extent,
                                                        Remove.Width() - 8.0f * Scale,
                                                        Remove.Height() - 8.0f * Scale),
                         Colour.CellColour);
-        if (Ordinal != Declared.LockedOrdinal && Pressed(Ordinal + 2u, Remove))
-            Enabled[Ordinal] = false;
+        if (Index != Declared.LockedIndex && Pressed(Index + 2u, Remove))
+            Enabled[Index] = false;
 
         CursorX = Chip.MaximumX + Gap;
     }
 
     AvailableCount = 1u;
     AvailableOptions[0] = "Choose filter...";
-    AvailableOrdinals[0] = AbsentFacet;
-    for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+    AvailableIndexs[0] = AbsentFacet;
+    for (std::uint32_t Index = 0u; Index < Count; ++Index)
     {
-        if (Enabled != nullptr && Enabled[Ordinal])
+        if (Enabled != nullptr && Enabled[Index])
             continue;
 
-        AvailableOptions[AvailableCount] = Declared.Options != nullptr ? Declared.Options[Ordinal] : "";
-        AvailableOrdinals[AvailableCount] = Ordinal;
+        AvailableOptions[AvailableCount] = Declared.Options != nullptr ? Declared.Options[Index] : "";
+        AvailableIndexs[AvailableCount] = Index;
         ++AvailableCount;
     }
 
@@ -324,6 +324,7 @@ Outcome<bool> FacetPanel::Record(const PlaneExtent& Extent,
     //    was 60 px INVERTED and the caption fell outside the pill. The dropdown
     //    is caption-only, so say so.
     Dropdown.CaptionInside = true;
+    Dropdown.Indicator = SelectionIndicator::Plain;
     if (PendingSelection >= AvailableCount)
         PendingSelection = 0u;
 
@@ -331,9 +332,9 @@ Outcome<bool> FacetPanel::Record(const PlaneExtent& Extent,
                                                                   Dropdown, PendingSelection);
     if (Selected.ReadingAltered && PendingSelection > 0u && PendingSelection < AvailableCount && Enabled != nullptr)
     {
-        const std::uint32_t FacetOrdinal = AvailableOrdinals[PendingSelection];
-        if (FacetOrdinal < Count)
-            Enabled[FacetOrdinal] = true;
+        const std::uint32_t FacetIndex = AvailableIndexs[PendingSelection];
+        if (FacetIndex < Count)
+            Enabled[FacetIndex] = true;
         PendingSelection = 0u;
     }
 
@@ -360,12 +361,12 @@ void FacetPanel::Reset()
     AvailableCount   = 0u;
     PendingSelection = 0u;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < FacetCapacity + 2u; ++Ordinal)
-        Controls[Ordinal] = {};
-    for (std::uint32_t Ordinal = 0u; Ordinal < FacetCapacity + 1u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < FacetCapacity + 2u; ++Index)
+        Controls[Index] = {};
+    for (std::uint32_t Index = 0u; Index < FacetCapacity + 1u; ++Index)
     {
-        AvailableOptions[Ordinal] = nullptr;
-        AvailableOrdinals[Ordinal] = AbsentFacet;
+        AvailableOptions[Index] = nullptr;
+        AvailableIndexs[Index] = AbsentFacet;
     }
 }
 

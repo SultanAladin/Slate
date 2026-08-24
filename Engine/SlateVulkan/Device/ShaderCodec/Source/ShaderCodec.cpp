@@ -13,7 +13,7 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ShaderCodec::Construct(const VulkanExchange& Exchange, const std::string& StreamDirectory)
+Outcome<bool> ShaderCodec::AttachShaderStreams(const VulkanExchange& Exchange, const std::string& StreamDirectory)
 {
     if (Exchange.ActiveDevice() == VK_NULL_HANDLE)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
@@ -68,11 +68,11 @@ Outcome<std::vector<std::uint32_t>> ShaderCodec::ReadStream(const std::string& S
     //    every host and merely happen to work on the two that tolerate a misaligned load.
     std::vector<std::uint32_t> Words(ReadBack.size() / sizeof(std::uint32_t), 0u);
 
-    for (std::size_t Ordinal = 0u; Ordinal < Words.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < Words.size(); ++Index)
     {
-        const std::size_t Byte = Ordinal * sizeof(std::uint32_t);
+        const std::size_t Byte = Index * sizeof(std::uint32_t);
 
-        Words[Ordinal] = static_cast<std::uint32_t>(ReadBack[Byte])
+        Words[Index] = static_cast<std::uint32_t>(ReadBack[Byte])
                        | (static_cast<std::uint32_t>(ReadBack[Byte + 1u]) << 8)
                        | (static_cast<std::uint32_t>(ReadBack[Byte + 2u]) << 16)
                        | (static_cast<std::uint32_t>(ReadBack[Byte + 3u]) << 24);
@@ -102,10 +102,10 @@ Outcome<std::uint32_t> ShaderCodec::Resolve(const std::string& UnitName, const s
     // 📝 A stream already read is delivered rather than read again. Several programs are constructed against
     //    one module — `16`'s two raster paths share their entry point — and reading it per program would
     //    construct a second vendor module carrying the same instructions.
-    for (std::size_t Ordinal = 0u; Ordinal < Modules.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < Modules.size(); ++Index)
     {
-        if (Modules[Ordinal].UnitName == UnitName && Modules[Ordinal].StreamStem == StreamStem)
-            return Outcome<std::uint32_t>::Result(static_cast<std::uint32_t>(Ordinal));
+        if (Modules[Index].UnitName == UnitName && Modules[Index].StreamStem == StreamStem)
+            return Outcome<std::uint32_t>::Result(static_cast<std::uint32_t>(Index));
     }
 
     const std::string StreamPath = StreamRoot + UnitName + "\\" + StreamStem + ".spv";
@@ -142,11 +142,11 @@ Outcome<std::uint32_t> ShaderCodec::Resolve(const std::string& UnitName, const s
 //                                                      THE STAGE
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<VkPipelineShaderStageCreateInfo> ShaderCodec::Stage(std::uint32_t                            ModuleOrdinal,
+Outcome<VkPipelineShaderStageCreateInfo> ShaderCodec::Stage(std::uint32_t                            ModuleIndex,
                                                             VkShaderStageFlagBits                    Reading,
                                                             const std::vector<SpecialisedConstant>&  Fixed)
 {
-    if (static_cast<std::size_t>(ModuleOrdinal) >= Modules.size())
+    if (static_cast<std::size_t>(ModuleIndex) >= Modules.size())
     {
         return Outcome<VkPipelineShaderStageCreateInfo>::Refuse(
             { RefusalReason::ContentUnsupported, "no module stands at that ordinal" });
@@ -155,7 +155,7 @@ Outcome<VkPipelineShaderStageCreateInfo> ShaderCodec::Stage(std::uint32_t       
     VkPipelineShaderStageCreateInfo StageDeclaration = {};
     StageDeclaration.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     StageDeclaration.stage                           = Reading;
-    StageDeclaration.module                          = Modules[ModuleOrdinal].Constructed;
+    StageDeclaration.module                          = Modules[ModuleIndex].Constructed;
 
     // 📝 🔴 The entry point is the one slangc emitted, and slangc emits the name the `[shader(...)]` attribute
     //    carried. Slate's entry points sit inside `namespace Slate`, which is exactly why the build passes no
@@ -172,7 +172,7 @@ Outcome<VkPipelineShaderStageCreateInfo> ShaderCodec::Stage(std::uint32_t       
     for (const SpecialisedConstant& Constant : Fixed)
     {
         VkSpecializationMapEntry Entry = {};
-        Entry.constantID               = Constant.ConstantOrdinal;
+        Entry.constantID               = Constant.ConstantIndex;
         Entry.offset                   = static_cast<std::uint32_t>(Held.Fixed.size() * sizeof(std::uint32_t));
         Entry.size                     = sizeof(std::uint32_t);
 

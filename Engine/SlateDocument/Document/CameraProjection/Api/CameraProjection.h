@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "Contract/IdentityContract.h"
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/Identity.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
+#include "Foundation/NumericTolerance.h"
 #include "SlateMath/Numeric/TransformProjection/Api/TransformProjection.h"
 
 #include <cstdint>
@@ -25,7 +25,7 @@ namespace Slate
 ///        and changes what occludes what, zoom amends the extent parameter below and does not. An application
 ///        that binds one control to whichever is convenient produces an artist who cannot say why their
 ///        composition changed.
-/// tag   contract
+/// tag   guarantee
 enum class ProjectionSubject : std::uint32_t
 {
     Perspective     = 0u,   // [-] - angular field; the workspace
@@ -86,7 +86,7 @@ struct CameraSpecification
 
 /// 🧩 Document space to view-relative space, per `02` §3.2 — the rebasing origin and the matrices around it.
 /// note  🔴 The translation is **not** in `ViewRotation`. It is the rebasing subtraction, performed at 64-bit by
-///        `Rebase` before anything narrows, which is the whole of `02` §3.2's contract. A view matrix carrying
+///        `Rebase` before anything narrows, which is the whole of `02` §3.2's guarantee. A view matrix carrying
 ///        the camera's document position would narrow a billion-millimetre coordinate and lose the millimetre.
 /// tag   nonallocating, nonthrowing
 struct ViewProjection
@@ -102,7 +102,7 @@ struct ViewProjection
 /// out   Result    [-]  refuses with ContentUnsupported for an invalid clipping interval, a non-positive sensor
 ///                       proportion, or an extent parameter with no interior
 /// note  📐 Depth is reversed — `NearPlaneDepth` at the nearest plane, `FarPlaneDepth` at the furthest. The
-///        constants live in `Contract/` because `16` compares against them, `30` marches against them and `80`
+///        constants live in `Foundation/` because `16` compares against them, `30` marches against them and `80`
 ///        depth-tests against them; one document reversing its own comparison in isolation produces geometry that
 ///        vanishes rather than geometry that sorts wrongly.
 /// cost  ✔️
@@ -143,7 +143,7 @@ public:
     /// post  every plane is unit-normalised and pushed outward
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Construct(const ViewProjection& Projected);
+    void DeriveFrustumPlanes(const ViewProjection& Projected);
 
     /// 🧩 Classifies one document-space extent against the frustum.
     /// in    Minimum      [mm]  the extent's lower corner, in document space
@@ -166,7 +166,7 @@ public:
     /// 🧩 One derived plane, for whoever presents the frustum.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    const FrustumPlane& Plane(std::uint32_t PlaneOrdinal) const;
+    const FrustumPlane& Plane(std::uint32_t PlaneIndex) const;
 
 private:
 
@@ -180,7 +180,7 @@ private:
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Which navigation gesture is open.
-/// tag   contract
+/// tag   guarantee
 enum class NavigationSubject : std::uint32_t
 {
     Orbit           = 0u,   // [-] - rotation, and position to preserve the distance, about the focus
@@ -192,7 +192,7 @@ enum class NavigationSubject : std::uint32_t
 
 // 📝 The four rates below convert a pointer displacement in display pixels into the gesture's own measure. They
 //    are declared here and read by nothing else, so `00` §2's rule places them in this unit rather than in
-//    `Contract/`. Pan and dolly are additionally scaled by the distance to the focus, so a gesture feels the same
+//    `Foundation/`. Pan and dolly are additionally scaled by the distance to the focus, so a gesture feels the same
 //    whether the artist is inspecting a rivet or framing a building.
 inline constexpr double OrbitRadiansPerPixel  = 0.006;   // [rad/px]
 inline constexpr double PanFractionPerPixel   = 0.0018;  // [-/px] - of the focus distance

@@ -30,14 +30,14 @@ namespace Slate
 
 /// 🧩 The greatest ordinal not above a coordinate.
 /// in    Coordinate  [-]  a continuous cell coordinate, of either sign
-/// out   Ordinal     [-]  floored, never truncated toward zero
+/// out   Index     [-]  floored, never truncated toward zero
 /// note  🔴 Truncation and flooring agree above the origin and disagree below it, so a lattice that truncated
 ///        would repeat its first cell twice across the origin and shift every negative cell by one. The artist
 ///        meets that as a pattern whose repeat breaks along exactly one row and one column of the domain.
 /// cost  ✔️
 /// note  Exact — a comparison and an integer decrement; identical on the host and on the device.
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED Signed32 FlooredOrdinal(Real64 Coordinate)
+SLATE_SHARED Signed32 FlooredIndex(Real64 Coordinate)
 {
     const Signed32 Truncated = Signed32(Coordinate);
 
@@ -89,23 +89,23 @@ SLATE_SHARED void ClassifyLatticeCell(Real64 PositionX,
 
     if (OffsetProgressionY != 0.0)
     {
-        CellX   = FlooredOrdinal(CoordinateX);
+        CellX   = FlooredIndex(CoordinateX);
         WithinX = CoordinateX - Real64(CellX);
 
         const Real64 DisplacedY = CoordinateY - OffsetProgressionY * Real64(CellX);
 
-        CellY   = FlooredOrdinal(DisplacedY);
+        CellY   = FlooredIndex(DisplacedY);
         WithinY = DisplacedY - Real64(CellY);
 
         return;
     }
 
-    CellY   = FlooredOrdinal(CoordinateY);
+    CellY   = FlooredIndex(CoordinateY);
     WithinY = CoordinateY - Real64(CellY);
 
     const Real64 DisplacedX = CoordinateX - OffsetProgressionX * Real64(CellY);
 
-    CellX   = FlooredOrdinal(DisplacedX);
+    CellX   = FlooredIndex(DisplacedX);
     WithinX = DisplacedX - Real64(CellX);
 }
 
@@ -155,7 +155,7 @@ SLATE_SHARED void ProjectWithinCell(Signed32   CellX,
 
     const Unsigned32 Turns = (RotationIncrement * (Unsigned32(CellX) + Unsigned32(CellY))) & 3u;
 
-    for (Unsigned32 TurnOrdinal = 0u; TurnOrdinal < Turns; ++TurnOrdinal)
+    for (Unsigned32 TurnIndex = 0u; TurnIndex < Turns; ++TurnIndex)
     {
         const Real64 Turned = X;
 
@@ -172,16 +172,16 @@ SLATE_SHARED void ProjectWithinCell(Signed32   CellX,
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Carries one signed ordinal onto the unsigned ordinals, order-preserving about the origin.
-/// in    Ordinal   [-]  a cell ordinal, of either sign
+/// in    Index   [-]  a cell ordinal, of either sign
 /// out   Folded    [-]  a non-negative ordinal; zero maps to zero and −1 to one
-/// note  📝 The negative branch is written against `Ordinal + 1` rather than against `Ordinal`, because the most
+/// note  📝 The negative branch is written against `Index + 1` rather than against `Index`, because the most
 ///        negative representable ordinal has no representable negation and negating it directly is undefined.
 /// cost  ✔️
 /// note  Exact — integer arithmetic; a bijection onto the unsigned ordinals.
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED Unsigned32 ZigzagOrdinal(Signed32 Ordinal)
+SLATE_SHARED Unsigned32 ZigzagIndex(Signed32 Index)
 {
-    return Ordinal < 0 ? ((Unsigned32(-(Ordinal + 1)) << 1) | 1u) : (Unsigned32(Ordinal) << 1);
+    return Index < 0 ? ((Unsigned32(-(Index + 1)) << 1) | 1u) : (Unsigned32(Index) << 1);
 }
 
 /// 🧩 Folds a cell's two ordinals into the one ordinal its variation is indexed by.
@@ -198,9 +198,9 @@ SLATE_SHARED Unsigned32 ZigzagOrdinal(Signed32 Ordinal)
 /// cost  ✔️
 /// note  Exact — two products and one sum, all wrapping in 32 bits by construction.
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED Unsigned32 FoldedCellOrdinal(Signed32 CellX, Signed32 CellY)
+SLATE_SHARED Unsigned32 FoldedCellIndex(Signed32 CellX, Signed32 CellY)
 {
-    return ZigzagOrdinal(CellX) * 0x9E3779B9u + ZigzagOrdinal(CellY) * 0x85EBCA6Bu;
+    return ZigzagIndex(CellX) * 0x9E3779B9u + ZigzagIndex(CellY) * 0x85EBCA6Bu;
 }
 
 }   // namespace Slate

@@ -5,7 +5,7 @@
 
 #include "SlateVulkan/Device/RenderSchedule/Api/RenderSchedule.h"
 
-#include "Contract/ToleranceContract.h"
+#include "Foundation/NumericTolerance.h"
 
 namespace Slate
 {
@@ -82,7 +82,7 @@ namespace
         ImageIntent::ComputeWritable    // SkyViewSurface
     };
 
-    // 📝 The absolute extents come from `Contract/ToleranceContract.h` because `28` reads them too — one set
+    // 📝 The absolute extents come from `Foundation/NumericTolerance.h` because `28` reads them too — one set
     //    of numbers, two units, which is where `00` §2 places them. A zero here means the target is not
     //    absolute and its extent is derived from the display instead.
     constexpr std::uint32_t AbsoluteX[TargetSpan] =
@@ -114,11 +114,11 @@ namespace
 
 ExtentRelation RelationOfTarget(SharedTarget Target)
 {
-    const std::size_t TargetOrdinal = static_cast<std::size_t>(Target);
+    const std::size_t TargetIndex = static_cast<std::size_t>(Target);
 
     // 📝 A target outside the closed enumeration reads as absolute, which is the relation that touches
     //    nothing on a resize. The refusal for such a target is raised where it is claimed, not here.
-    return TargetOrdinal < TargetSpan ? RelationOf[TargetOrdinal] : ExtentRelation::Absolute;
+    return TargetIndex < TargetSpan ? RelationOf[TargetIndex] : ExtentRelation::Absolute;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -127,20 +127,20 @@ ExtentRelation RelationOfTarget(SharedTarget Target)
 
 Outcome<ImageShape> TargetSpace::ShapeOf(SharedTarget Target) const
 {
-    const std::size_t TargetOrdinal = static_cast<std::size_t>(Target);
+    const std::size_t TargetIndex = static_cast<std::size_t>(Target);
 
-    if (TargetOrdinal >= TargetSpan)
+    if (TargetIndex >= TargetSpan)
         return Outcome<ImageShape>::Refuse({ RefusalReason::ContentUnsupported, "no such shared target" });
 
     ImageShape Declared;
-    Declared.Format     = TargetOrdinal == static_cast<std::size_t>(SharedTarget::DisplaySurface)
+    Declared.Format     = TargetIndex == static_cast<std::size_t>(SharedTarget::DisplaySurface)
                             ? DisplayCarries
-                            : FormatOf[TargetOrdinal];
-    Declared.Intent     = IntentOf[TargetOrdinal];
-    Declared.LayerCount = LayersOf[TargetOrdinal];
+                            : FormatOf[TargetIndex];
+    Declared.Intent     = IntentOf[TargetIndex];
+    Declared.LayerCount = LayersOf[TargetIndex];
     Declared.LevelCount = 1u;
 
-    switch (RelationOf[TargetOrdinal])
+    switch (RelationOf[TargetIndex])
     {
         case ExtentRelation::DisplayRelative:
         {
@@ -161,8 +161,8 @@ Outcome<ImageShape> TargetSpace::ShapeOf(SharedTarget Target) const
         case ExtentRelation::Absolute:
         default:
         {
-            Declared.Width  = AbsoluteX[TargetOrdinal];
-            Declared.Height = AbsoluteY[TargetOrdinal];
+            Declared.Width  = AbsoluteX[TargetIndex];
+            Declared.Height = AbsoluteY[TargetIndex];
             break;
         }
     }
@@ -170,7 +170,7 @@ Outcome<ImageShape> TargetSpace::ShapeOf(SharedTarget Target) const
     if (Declared.Width == 0u || Declared.Height == 0u)
         return Outcome<ImageShape>::Refuse({ RefusalReason::ContentUnsupported, "the target resolves to a zero extent" });
 
-    if (Declared.Width > DisplayExtentCeiling || Declared.Height > DisplayExtentCeiling)
+    if (Declared.Width > DisplayExtentLimit || Declared.Height > DisplayExtentLimit)
     {
         return Outcome<ImageShape>::Refuse(
             { RefusalReason::ContentUnsupported, "the target resolves above the declared display extent ceiling" });
@@ -194,7 +194,7 @@ Outcome<bool> TargetSpace::Reserve(ImageSpace&    Images,
     if (DisplayWidth == 0u || DisplayHeight == 0u)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of zero" });
 
-    if (DisplayWidth > DisplayExtentCeiling || DisplayHeight > DisplayExtentCeiling)
+    if (DisplayWidth > DisplayExtentLimit || DisplayHeight > DisplayExtentLimit)
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a display extent above the declared ceiling" });
@@ -213,9 +213,9 @@ Outcome<bool> TargetSpace::Reserve(ImageSpace&    Images,
     CurrentHeight = DisplayHeight;
     DisplayCarries = DisplayFormat;
 
-    for (std::size_t TargetOrdinal = 0u; TargetOrdinal < TargetSpan; ++TargetOrdinal)
+    for (std::size_t TargetIndex = 0u; TargetIndex < TargetSpan; ++TargetIndex)
     {
-        const Outcome<ImageShape> Declared = ShapeOf(static_cast<SharedTarget>(TargetOrdinal));
+        const Outcome<ImageShape> Declared = ShapeOf(static_cast<SharedTarget>(TargetIndex));
 
         if (!Declared.Resolved)
         {
@@ -233,8 +233,8 @@ Outcome<bool> TargetSpace::Reserve(ImageSpace&    Images,
             return Outcome<bool>::Refuse(Reserved.Error);
         }
 
-        ReservedFor[TargetOrdinal]    = Reserved.Resolve().ImageOrdinal;
-        TargetReserved[TargetOrdinal] = true;
+        ReservedFor[TargetIndex]    = Reserved.Resolve().ImageIndex;
+        TargetReserved[TargetIndex] = true;
     }
 
     return Outcome<bool>::Result(true);
@@ -248,7 +248,7 @@ Outcome<bool> TargetSpace::Reclaim(std::uint32_t DisplayWidth, std::uint32_t Dis
     if (DisplayWidth == 0u || DisplayHeight == 0u)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of zero" });
 
-    if (DisplayWidth > DisplayExtentCeiling || DisplayHeight > DisplayExtentCeiling)
+    if (DisplayWidth > DisplayExtentLimit || DisplayHeight > DisplayExtentLimit)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent above the declared ceiling" });
 
     CurrentWidth  = DisplayWidth;
@@ -257,23 +257,23 @@ Outcome<bool> TargetSpace::Reclaim(std::uint32_t DisplayWidth, std::uint32_t Dis
     // 🔴 `06` §7: **every** display-relative and fraction-of-display target, and no absolute one. The two
     //    passes are separate — every affected target is released before any is re-claimed — so that the peak
     //    residency of a resize is one target set and not two.
-    for (std::size_t TargetOrdinal = 0u; TargetOrdinal < TargetSpan; ++TargetOrdinal)
+    for (std::size_t TargetIndex = 0u; TargetIndex < TargetSpan; ++TargetIndex)
     {
-        if (RelationOf[TargetOrdinal] == ExtentRelation::Absolute || !TargetReserved[TargetOrdinal])
+        if (RelationOf[TargetIndex] == ExtentRelation::Absolute || !TargetReserved[TargetIndex])
             continue;
 
-        ImageEdge->Release(ReservedFor[TargetOrdinal]);
+        ImageEdge->Release(ReservedFor[TargetIndex]);
 
-        ReservedFor[TargetOrdinal]    = AbsentImage;
-        TargetReserved[TargetOrdinal] = false;
+        ReservedFor[TargetIndex]    = AbsentImage;
+        TargetReserved[TargetIndex] = false;
     }
 
-    for (std::size_t TargetOrdinal = 0u; TargetOrdinal < TargetSpan; ++TargetOrdinal)
+    for (std::size_t TargetIndex = 0u; TargetIndex < TargetSpan; ++TargetIndex)
     {
-        if (RelationOf[TargetOrdinal] == ExtentRelation::Absolute)
+        if (RelationOf[TargetIndex] == ExtentRelation::Absolute)
             continue;
 
-        const Outcome<ImageShape> Declared = ShapeOf(static_cast<SharedTarget>(TargetOrdinal));
+        const Outcome<ImageShape> Declared = ShapeOf(static_cast<SharedTarget>(TargetIndex));
 
         if (!Declared.Resolved)
         {
@@ -289,8 +289,8 @@ Outcome<bool> TargetSpace::Reclaim(std::uint32_t DisplayWidth, std::uint32_t Dis
             return Outcome<bool>::Refuse(Reserved.Error);
         }
 
-        ReservedFor[TargetOrdinal]    = Reserved.Resolve().ImageOrdinal;
-        TargetReserved[TargetOrdinal] = true;
+        ReservedFor[TargetIndex]    = Reserved.Resolve().ImageIndex;
+        TargetReserved[TargetIndex] = true;
     }
 
     return Outcome<bool>::Result(true);
@@ -302,42 +302,42 @@ Outcome<bool> TargetSpace::Reclaim(std::uint32_t DisplayWidth, std::uint32_t Dis
 
 Outcome<ImageReservation> TargetSpace::Resolve(SharedTarget Target) const
 {
-    const Outcome<std::uint32_t> Ordinal = OrdinalOf(Target);
+    const Outcome<std::uint32_t> Index = IndexOf(Target);
 
-    if (!Ordinal.Resolved)
-        return Outcome<ImageReservation>::Refuse(Ordinal.Error);
+    if (!Index.Resolved)
+        return Outcome<ImageReservation>::Refuse(Index.Error);
 
-    return ImageEdge->Current(Ordinal.Resolve());
+    return ImageEdge->Current(Index.Resolve());
 }
 
-Outcome<std::uint32_t> TargetSpace::OrdinalOf(SharedTarget Target) const
+Outcome<std::uint32_t> TargetSpace::IndexOf(SharedTarget Target) const
 {
-    const std::size_t TargetOrdinal = static_cast<std::size_t>(Target);
+    const std::size_t TargetIndex = static_cast<std::size_t>(Target);
 
-    if (TargetOrdinal >= TargetSpan)
+    if (TargetIndex >= TargetSpan)
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such shared target" });
 
-    if (ImageEdge == nullptr || !TargetReserved[TargetOrdinal])
+    if (ImageEdge == nullptr || !TargetReserved[TargetIndex])
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "the target is not claimed" });
 
-    return Outcome<std::uint32_t>::Result(ReservedFor[TargetOrdinal]);
+    return Outcome<std::uint32_t>::Result(ReservedFor[TargetIndex]);
 }
 
 void TargetSpace::Release()
 {
     if (ImageEdge != nullptr)
     {
-        for (std::size_t TargetOrdinal = 0u; TargetOrdinal < TargetSpan; ++TargetOrdinal)
+        for (std::size_t TargetIndex = 0u; TargetIndex < TargetSpan; ++TargetIndex)
         {
-            if (TargetReserved[TargetOrdinal])
-                ImageEdge->Release(ReservedFor[TargetOrdinal]);
+            if (TargetReserved[TargetIndex])
+                ImageEdge->Release(ReservedFor[TargetIndex]);
         }
     }
 
-    for (std::size_t TargetOrdinal = 0u; TargetOrdinal < TargetSpan; ++TargetOrdinal)
+    for (std::size_t TargetIndex = 0u; TargetIndex < TargetSpan; ++TargetIndex)
     {
-        ReservedFor[TargetOrdinal]    = AbsentImage;
-        TargetReserved[TargetOrdinal] = false;
+        ReservedFor[TargetIndex]    = AbsentImage;
+        TargetReserved[TargetIndex] = false;
     }
 
     // 📝 🔴 `06` §7: no persistent extent is carried across a change. The standing extent is forgotten with
@@ -368,21 +368,21 @@ Outcome<bool> RenderSchedule::Contribute(const DeclaredRecording& Incoming)
 
     for (const SharedTarget Produced : Incoming.Produces)
     {
-        const std::size_t TargetOrdinal = static_cast<std::size_t>(Produced);
+        const std::size_t TargetIndex = static_cast<std::size_t>(Produced);
 
-        if (TargetOrdinal >= TargetSpan)
+        if (TargetIndex >= TargetSpan)
             return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such shared target" });
 
         // 📝 One producing recording per target. An amender declares itself in Amends and takes its place
         //    in the ordered amendment list instead — `08` §2's Amended by column.
-        if (ProducerOf[TargetOrdinal].IdentityDeclared())
+        if (ProducerOf[TargetIndex].IdentityDeclared())
         {
             return Outcome<bool>::Refuse(
                 { RefusalReason::HostDenied, "the target already declares a producing recording" });
         }
 
-        ProducerOf[TargetOrdinal].SlotOrdinal    = static_cast<std::uint32_t>(ContributedOrder.size());
-        ProducerOf[TargetOrdinal].SlotGeneration = 1u;
+        ProducerOf[TargetIndex].SlotIndex    = static_cast<std::uint32_t>(ContributedOrder.size());
+        ProducerOf[TargetIndex].SlotGeneration = 1u;
     }
 
     ContributedOrder.push_back(Incoming);
@@ -420,14 +420,14 @@ Outcome<bool> RenderSchedule::Fix()
             //    found. Every recording that declares no ordinal carries nought, so a schedule of recordings
             //    that predate the field is placed in exactly the order it was before.
             std::size_t   Preferred        = ContributedOrder.size();
-            std::uint32_t PreferredOrdinal = 0u;
+            std::uint32_t PreferredIndex = 0u;
 
-            for (std::size_t Ordinal = 0u; Ordinal < ContributedOrder.size(); ++Ordinal)
+            for (std::size_t Index = 0u; Index < ContributedOrder.size(); ++Index)
             {
-                if (Placed[Ordinal])
+                if (Placed[Index])
                     continue;
 
-                const DeclaredRecording& Candidate = ContributedOrder[Ordinal];
+                const DeclaredRecording& Candidate = ContributedOrder[Index];
 
                 if (Candidate.DisplayReferred != PlacingDisplayReferred)
                     continue;
@@ -436,9 +436,9 @@ Outcome<bool> RenderSchedule::Fix()
 
                 for (const SharedTarget Consumed : Candidate.Reads)
                 {
-                    const std::size_t TargetOrdinal = static_cast<std::size_t>(Consumed);
+                    const std::size_t TargetIndex = static_cast<std::size_t>(Consumed);
 
-                    if (ProducerOf[TargetOrdinal].IdentityDeclared() && !Available[TargetOrdinal])
+                    if (ProducerOf[TargetIndex].IdentityDeclared() && !Available[TargetIndex])
                     {
                         ReadsSatisfied = false;
                         break;
@@ -448,10 +448,10 @@ Outcome<bool> RenderSchedule::Fix()
                 if (!ReadsSatisfied)
                     continue;
 
-                if (Preferred == ContributedOrder.size() || Candidate.AmendmentOrdinal < PreferredOrdinal)
+                if (Preferred == ContributedOrder.size() || Candidate.AmendmentIndex < PreferredIndex)
                 {
-                    Preferred        = Ordinal;
-                    PreferredOrdinal = Candidate.AmendmentOrdinal;
+                    Preferred        = Index;
+                    PreferredIndex = Candidate.AmendmentIndex;
                 }
             }
 

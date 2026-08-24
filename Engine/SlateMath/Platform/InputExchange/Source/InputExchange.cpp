@@ -69,10 +69,10 @@ namespace
 
     WindowAttachment* ResolveAttachment(HWND WindowSlot)
     {
-        for (std::uint32_t Ordinal = 0u; Ordinal < AttachmentCapacity; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < AttachmentCapacity; ++Index)
         {
-            if (Attached[Ordinal].WindowSlot == WindowSlot)
-                return &Attached[Ordinal];
+            if (Attached[Index].WindowSlot == WindowSlot)
+                return &Attached[Index];
         }
 
         return nullptr;
@@ -171,15 +171,15 @@ LRESULT CALLBACK ReceivePointerMessage(HWND WindowSlot, UINT Message, WPARAM Inc
     case WM_POINTERUPDATE:
     case WM_POINTERUP:
     {
-        const std::uint32_t PointerOrdinal = GET_POINTERID_WPARAM(Incoming);
+        const std::uint32_t PointerIndex = GET_POINTERID_WPARAM(Incoming);
 
         POINTER_INPUT_TYPE ReportedDevice = PT_POINTER;
 
-        if (GetPointerType(PointerOrdinal, &ReportedDevice) && ReportedDevice == PT_PEN)
+        if (GetPointerType(PointerIndex, &ReportedDevice) && ReportedDevice == PT_PEN)
         {
             POINTER_PEN_INFO Reported = {};
 
-            if (GetPointerPenInfo(PointerOrdinal, &Reported))
+            if (GetPointerPenInfo(PointerIndex, &Reported))
             {
                 PointerSample Filling;
 
@@ -260,13 +260,13 @@ Outcome<bool> InputExchange::Attach(void* NativeWindowSlot, const TickSequence& 
 
     WindowAttachment* Vacant = nullptr;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < AttachmentCapacity; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < AttachmentCapacity; ++Index)
     {
-        if (Attached[Ordinal].WindowSlot == WindowSlot)
+        if (Attached[Index].WindowSlot == WindowSlot)
             return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the window is already read from" });
 
-        if (Vacant == nullptr && Attached[Ordinal].WindowSlot == nullptr)
-            Vacant = &Attached[Ordinal];
+        if (Vacant == nullptr && Attached[Index].WindowSlot == nullptr)
+            Vacant = &Attached[Index];
     }
 
     if (Vacant == nullptr)
@@ -391,14 +391,14 @@ TickPoint InputExchange::ArrivalStamp(std::uint64_t HostCount) const
 
 void InputExchange::Record(const PointerSample& Incoming)
 {
-    const std::uint32_t WriteOrdinal = (OldestOrdinal + OccupiedCount) % ArrivalCapacity;
-    ArrivalOrder[WriteOrdinal]       = Incoming;
+    const std::uint32_t WriteIndex = (OldestIndex + OccupiedCount) % ArrivalCapacity;
+    ArrivalOrder[WriteIndex]       = Incoming;
 
     if (OccupiedCount == ArrivalCapacity)
     {
         // 📝 The extent is full, so the write above overwrote the oldest sample. Advancing the oldest
         //    ordinal is what makes that overwrite a discard rather than a corruption of the ordering.
-        OldestOrdinal = (OldestOrdinal + 1u) % ArrivalCapacity;
+        OldestIndex = (OldestIndex + 1u) % ArrivalCapacity;
     }
     else
     {
@@ -410,9 +410,9 @@ void InputExchange::Record(const PointerSample& Incoming)
 //                                                        DRAIN
 //------------------------------------------------------------------------------------------------------------------------
 
-const PointerSample& InputExchange::Sample(std::uint32_t ArrivalOrdinal) const
+const PointerSample& InputExchange::Sample(std::uint32_t ArrivalIndex) const
 {
-    return ArrivalOrder[(OldestOrdinal + ArrivalOrdinal) % ArrivalCapacity];
+    return ArrivalOrder[(OldestIndex + ArrivalIndex) % ArrivalCapacity];
 }
 
 std::uint32_t InputExchange::HeldCount() const
@@ -422,7 +422,7 @@ std::uint32_t InputExchange::HeldCount() const
 
 void InputExchange::Reclaim()
 {
-    OldestOrdinal = 0u;
+    OldestIndex = 0u;
     OccupiedCount = 0u;
 }
 

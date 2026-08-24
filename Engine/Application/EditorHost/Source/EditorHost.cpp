@@ -9,18 +9,16 @@
 //          outliner | properties leaves, each with chrome and a footer)
 //          → leaf content (SceneDirectoryPanel: the sky in a viewport leaf,
 //            the outliner | details column in an outliner leaf, the
-//            properties | history pages in a properties leaf).
-//    `GlobalShellPanel` is the VALIDATION PROTOTYPE (the full reference sheet:
-//    options rail, texture-paint layer stack, CAD drafting, fullscreen
-//    inspector). It is recorded ONLY by InterfaceValidationHost. NEVER record
-//    it here, and never port its rail/layer-stack/fullscreen strip into this
-//    host — that mistake was made once and reverted. The validation viewport
-//    stays black; the editor's sky lives in the viewport LEAF.
+//            properties / camera-bookmark pages in a properties leaf).
+//    The retired validation-shell prototype once duplicated the options rail,
+//    texture-paint stack, drafting directory, and inspector. Runtime UI belongs
+//    only to the standing panels named above; the editor's sky lives in the
+//    viewport LEAF.
 
-#include "Contract/DeliveryContract.h"
-#include "Application/EditorHost/Api/EditorCameraComponent.h"
-#include "Application/EditorHost/Api/SkyImage.h"
-#include "SlateCompute/Compute/AtmosphereIntegrator/Api/AtmosphereIntegrator.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "SlateScene/Scene/EditorCameraComponent/Api/EditorCameraComponent.h"
+#include "SlateScene/Scene/AtmosphereComponent/Api/AtmosphereComponent.h"
+#include "SlateScene/Scene/DirectionalLightComponent/Api/DirectionalLightComponent.h"
 #include "SlateUI/Interface/ContentBrowserPanel/Api/ContentBrowserPanel.h"
 #include "SlateUI/Interface/ControlCentrePanel/Api/ControlCentrePanel.h"
 #include "SlateUI/Interface/ThemeInterchange/Api/ThemeInterchange.h"
@@ -30,11 +28,19 @@
 #include "SlateUI/Interface/ViewportSequence/Api/ViewportSequence.h"
 #include "SlateUI/Interface/WorkspacePanel/Api/WorkspaceIndex.h"
 #include "SlateVulkan/Device/HostLifecycle/Api/HostLifecycle.h"
-#include "SlateVulkan/Device/OverlayPass/Api/OverlayPass.h"
+#include "SlateVulkan/Device/WorkspaceOverlayPass/Api/WorkspaceOverlayPass.h"
 #include "SlateVulkan/Device/ShaderCodec/Api/ShaderCodec.h"
-#include "SlateVulkan/Device/ViewportSkySurface/Api/ViewportSkySurface.h"
+#include "SlateVulkan/Device/AtmospherePresentationSurface/Api/AtmospherePresentationSurface.h"
+#include "SlateCompute/Compute/GeometryDeviceExchange/Api/GeometryDeviceExchange.h"
+#include "SlateCompute/Compute/GeometryRenderingExchange/Api/GeometryRenderingExchange.h"
+#include "SlateCompute/Compute/VisibilityIndex/Api/VisibilityIndex.h"
+#include "SlateDocument/Document/GeometryInterchange/Api/GeometryFileInterchange.h"
+#include "SlateDocument/Document/IntakeIndex/Api/IntakeIndex.h"
+#include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
+#include "SlateDocument/Document/PopulationIndex/Api/PopulationIndex.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <filesystem>
 #include <vector>
@@ -72,12 +78,12 @@ constexpr const char* HostName    = "EditorHost";
 //    least once, taken a host down with no window and no log line. They are asserted here so a fourth panel
 //    cannot repeat any of them silently.
 
-// ① EASED INTERPOLANTS. `InteractionIndex::Register` draws two fades per control, and the integrator's supply
-//    is shared by every ledger in the process — the browser's private ledger does not get its own pool.
+// ① EASED INTERPOLANTS. `ControlIndex::Register` draws two fades per control, and the integrator's supply
+//    is shared by every index in the process — the browser's private index does not get its own pool.
 constexpr std::uint32_t EasesPerControl = 2u;
 constexpr std::uint32_t CentreControls  = ControlCentrePanel::ControlCapacity;
 constexpr std::uint32_t BrowserControls = ContentBrowserPanel::RegistrationDemand;
-constexpr std::uint32_t EditorControls  = PanelStructure::RecordCeiling * EditorPanel::ControlsPerRecord;
+constexpr std::uint32_t EditorControls  = PanelStructure::RecordLimit * EditorPanel::ControlsPerRecord;
 constexpr std::uint32_t SceneControls   = SceneDirectoryPanel::RegistrationDemand
                                         + TexturePaintPanel::RegistrationDemand;
 constexpr std::uint32_t BareEases       = 9u + 1u + 1u + 4u; // [-] - centre, shell, and transfer/export rails
@@ -90,32 +96,32 @@ static_assert(DemandedEases <= MotionIntegrator::EaseCapacity,
               "constructed last is rejected mid-registration and the host exits before its first frame; raise "
               "MotionIntegrator::EaseCapacity or reduce a panel's control count");
 
-// ② LEDGER SLOTS. Counted per ledger, not per host. The browser is the only owner of its own
-//    `BrowserLedger`, so only its demand is weighed here; the Control Centre answers to its private index.
-static_assert(BrowserControls <= InteractionIndex::ControlCapacity,
-              "the content browser registers more controls than one InteractionIndex holds — Construct is "
+// ② INDEX SLOTS. Counted per index, not per host. The browser is the only owner of its own
+//    `BrowserInteraction`, so only its demand is weighed here; the Control Centre answers to its private index.
+static_assert(BrowserControls <= ControlIndex::ControlCapacity,
+              "the content browser registers more controls than one ControlIndex holds — Construct is "
               "rejected with \"no further control slot\" and the south drawer opens onto blank ground");
 
-static_assert(SceneControls <= InteractionIndex::ControlCapacity,
-              "the scene directory registers more controls than one InteractionIndex holds — Construct is "
+static_assert(SceneControls <= ControlIndex::ControlCapacity,
+              "the scene directory registers more controls than one ControlIndex holds — Construct is "
               "rejected with \"no further control slot\" and the editor opens without its scene directory");
 
 // ③ AUTOMATIC STORAGE. A Windows thread is given one megabyte and a refusal here is not a refusal at all:
 //    the guard page is touched in the prologue, so the process dies before a statement can report anything.
 //    Linux hands out eight megabytes, which is exactly why no gate here can catch it.
 constexpr std::size_t WindowsThreadStack = 1048576u;                  // [B] - the shipped linker default
-constexpr std::size_t AutomaticCeiling   = WindowsThreadStack / 4u;   // [B] - a quarter, leaving room to call
+constexpr std::size_t AutomaticLimit   = WindowsThreadStack / 4u;   // [B] - a quarter, leaving room to call
 
 static_assert(sizeof(WorkspaceIndex) + sizeof(WorkspacePanel) + sizeof(EditorPanel)
-              + (sizeof(PanelStructure)       * WorkspaceIndex::WorkspaceCeiling)
-              + (sizeof(EditorPanelConfiguration) * WorkspaceIndex::WorkspaceCeiling)
+              + (sizeof(PanelStructure)       * WorkspaceIndex::WorkspaceLimit)
+              + (sizeof(EditorPanelConfiguration) * WorkspaceIndex::WorkspaceLimit)
               + sizeof(ControlCentrePanel)  + sizeof(ControlCentreConfiguration)
-              + sizeof(InteractionIndex)    + sizeof(ContentBrowserPanel)
+              + sizeof(ControlIndex)    + sizeof(ContentBrowserPanel)
               + sizeof(ContentBrowserConfiguration) + sizeof(ContentLibrary)
-              + sizeof(InteractionIndex)    + sizeof(SceneDirectoryPanel)
-              + sizeof(SceneDirectoryContext) + sizeof(ShaderCodec) + sizeof(OverlayPass)
+              + sizeof(ControlIndex)    + sizeof(SceneDirectoryPanel)
+              + sizeof(SceneDirectoryContext) + sizeof(ShaderCodec) + sizeof(WorkspaceOverlayPass)
               + sizeof(TexturePaintPanel) + sizeof(TexturePaintContext)
-              <= AutomaticCeiling,
+              <= AutomaticLimit,
               "this host's automatic UI members no longer fit a quarter of a Windows thread stack — the "
               "prologue's stack probe will fault before main runs a statement and the host will exit with "
               "no window and no log line; move the largest member to static storage");
@@ -176,7 +182,7 @@ InterfaceAttachment Attach(const DeviceOffering& Offered)
     Incoming.ScoredDevice             = Offered.ScoredDevice;
     Incoming.ActiveDevice             = Offered.ActiveDevice;
     Incoming.GraphicsQueue            = Offered.GraphicsQueue;
-    Incoming.GraphicsFamilyOrdinal    = Offered.GraphicsFamilyOrdinal;
+    Incoming.GraphicsFamilyIndex    = Offered.GraphicsFamilyIndex;
     Incoming.ColourTargetFormat       = Offered.ColourTargetFormat;
     Incoming.MinimumDisplayImageCount = Offered.MinimumDisplayImageCount;
     Incoming.DisplayImageCount        = Offered.DisplayImageCount;
@@ -209,7 +215,7 @@ int main(int ArgumentCount, char** ArgumentValues)
 
     HostLifecycle Lifetime;
 
-    if (!Lifetime.Construct(Declared).Resolved)
+    if (!Lifetime.ConstructHost(Declared).Resolved)
         return 1;
 
     // ② The viewport sequence — springs, drawers, and the assembled recording.
@@ -225,7 +231,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     SouthDrawer.TongueSubject = SymbolSubject::FolderClosed;
     SouthDrawer.PoseCount     = 3u;
 
-    if (!Viewport.Construct(Attach(Lifetime.Offering()), NorthDrawer, SouthDrawer).Resolved)
+    if (!Viewport.ConstructViewportSequence(Attach(Lifetime.Offering()), NorthDrawer, SouthDrawer).Resolved)
     {
         std::printf("%s \u2014 the viewport sequence was rejected\n", HostName);
         return 1;
@@ -240,7 +246,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    nothing. That is what makes the `continue` below safe — the arrangement this host previously got
     //    wrong five times over, returning to the top of the loop with a command buffer still recording.
 
-    // ③ The workspaces this host opens. 🔴 The LEDGER owns them and the panel presents them — `14` §1
+    // ③ The workspaces this host opens. 🔴 The INDEX owns them and the panel presents them — `14` §1
     //    forbids a panel from holding what it displays, and separating the two is the whole reason there
     //    are two components here rather than one.
     // 📝 The subject this host opens by default, named once so the startup registration and the strip's `+`
@@ -250,61 +256,69 @@ int main(int ArgumentCount, char** ArgumentValues)
     WorkspaceIndex          Workspaces;
     WorkspacePanel          Workspace;
     EditorPanel             WorkspacePanels;
-    PanelStructure          PanelPartitions[WorkspaceIndex::WorkspaceCeiling];
-    EditorPanelConfiguration    PanelConfiguration[WorkspaceIndex::WorkspaceCeiling];
+    PanelStructure          PanelPartitions[WorkspaceIndex::WorkspaceLimit];
+    EditorPanelConfiguration    PanelConfiguration[WorkspaceIndex::WorkspaceLimit];
     ControlCentrePanel      ControlCentre;
     ControlCentreConfiguration  ControlCentreValues;
     SceneDirectoryPanel     SceneDirectory;
     SceneDirectoryContext   SceneApplied;
-    InteractionIndex        SceneLedger;
+    ControlIndex        SceneInteraction;
     TexturePaintPanel        TexturePaint;
     TexturePaintContext     TexturePaintApplied;
     TexturePaintStack        StackRows;                 // [-] - the mutable row set; the panel borrows it
-    ViewportSkySurface      SkySurface;
-    AtmosphereIntegrator    SkyIntegrator;
-    EditorCameraComponent    EditorCamera;
+    AtmospherePresentationSurface AtmosphereSurface;
+    AtmosphereComponent       DynamicAtmosphere;
+    DirectionalLightComponent SunLight;
+    EditorCameraComponent     EditorCamera;
     ShaderCodec             OverlayCodec;
-    OverlayPass             Overlay;
-    std::uint32_t           OverlayGeneration[PanelStructure::RecordCeiling] = {};   // [-] - per viewport leaf
+    WorkspaceOverlayPass             Overlay;
+    GeometryDeviceExchange           GeometryDevice = {};
+    GeometryFileInterchange          GeometryTransfer = {};
+    GeometryInterchange              ImportedGeometry = {};
+    GeometryRenderingExchange        ImportedRendering = {};
+    IntakeIndex                      ImportedIntake = {};
+    PopulationIndex                  ImportedOwners = {};
+    PartitionResolutionIndex         ImportedPartitions = {};
+    VisibilityIndex                  ImportedVisibility = {};
+    GeometryRenderingIdentity        PendingRendering = {};
+    std::uint32_t                    PendingVisibilityRegistration = 0u;
+    std::uint32_t                    PendingRegistrationBase = 0u;
+    bool                             GeometryAdmissionPending = false;
+    std::uint32_t           OverlayGeneration[PanelStructure::RecordLimit] = {};   // [-] - per viewport leaf
 
     // 📝 One overlay record per viewport leaf, in STATIC storage: each record is ~70 KB and the
     //    automatic-storage budget (a quarter of a Windows thread stack) cannot hold eleven of them.
-    static OverlayGeometry   ViewportOverlays[PanelStructure::RecordCeiling];
-    std::uint32_t            ViewportLeafOrdinals[PanelStructure::RecordCeiling] = {};
-    PlaneExtent              ViewportLeafRects[PanelStructure::RecordCeiling]    = {};
+    static OverlayGeometry   ViewportOverlays[PanelStructure::RecordLimit];
+    std::uint32_t            ViewportLeafIndexs[PanelStructure::RecordLimit] = {};
+    PlaneExtent              ViewportLeafRects[PanelStructure::RecordLimit]    = {};
     std::uint32_t            ViewportLeafTally = 0u;
 
     // 📝 The texture-paint leaves, for the Tab arbitration: the layer stack consumes Tab only when
     //    the pointer is over one of its leaves.
-    PlaneExtent              LayerLeafRects[PanelStructure::RecordCeiling] = {};
+    PlaneExtent              LayerLeafRects[PanelStructure::RecordLimit] = {};
     std::uint32_t            LayerLeafTally = 0u;
-    std::vector<std::uint8_t> SkyPixels;
-    SkyCamera               SkyCam;
-    EnvironmentConfiguration SkyPrevious;
     bool                    SkyEverGenerated = false;
+    std::uint32_t           SkyQuality = 0xFFFFFFFFu;
     std::uintptr_t          SkyTextureIdentity = 0u;
     bool                    SkyRegistered = false;
 
     // 📐 The editor's scene directory — the sun and sky the viewport renders, registered under the
     //    Lighting grouping. `Sun` and `Sky` are the two appended `EntitySubject` ordinals, so the
     //    inspector's slider cards branch on them while every reference entity keeps its g_NN identity.
-    static constexpr EntityRow EditorEntities[7] =
+    static EntityRow EditorEntities[7] =
     {
-        { "Level_01_City",           EntitySubject::Level,      0u, 0xFFFFFFFFu, 3u, "city level main" },
-        { "Lighting",                EntitySubject::Grouping,   1u,  0u,         2u, "folder lighting" },
-        { "Directional Light (Sun)", EntitySubject::Sun,        2u,  1u,         0u, "sun light directional" },
-        { "Sky Atmosphere",          EntitySubject::Sky,        2u,  1u,         0u, "sky atmosphere dome" },
-        { "Environment",             EntitySubject::Grouping,   1u,  0u,         1u, "folder environment" },
-        { "Post Process Volume",     EntitySubject::Actor,      2u,  4u,         0u, "post volume effects" },
-        { "Editor Camera",           EntitySubject::Camera,     1u,  0u,         0u, "camera fly view" }
+        { "Level_01_City",           EntitySubject::Level,      0u, 0xFFFFFFFFu, 3u, "city level main", CameraRole::Absent, 1001u },
+        { "Lighting",                EntitySubject::Grouping,   1u,  0u,         2u, "folder lighting", CameraRole::Absent, 1002u },
+        { "Directional Light (Sun)", EntitySubject::Sun,        2u,  1u,         0u, "sun light directional", CameraRole::Absent, 1003u },
+        { "Sky Atmosphere",          EntitySubject::Sky,        2u,  1u,         0u, "sky atmosphere dome", CameraRole::Absent, 1004u },
+        { "Environment",             EntitySubject::Grouping,   1u,  0u,         1u, "folder environment", CameraRole::Absent, 1005u },
+        { "Post Process Volume",     EntitySubject::Actor,      2u,  4u,         0u, "post volume effects", CameraRole::Absent, 1006u },
+        { "Editor Camera",           EntitySubject::Camera,     1u,  0u,         0u, "camera fly view", CameraRole::Editor, 1007u }
     };
 
-    // 📝 The editor's own history run, drained from the shell's one-slot demand at drag end.
-    EntityRevision EditorRevisions[8] = {};
-    std::uint32_t  EditorRevisionCount = 0u;
     FontLoader                  Fonts;
 
-    InteractionIndex         BrowserLedger;
+    ControlIndex         BrowserInteraction;
 
     // 📝 The south drawer's owner. The library is the HOST's, not the panel's — `14` §1 forbids a panel
     //    from holding what it displays, which is the same separation WorkspaceIndex and WorkspacePanel keep.
@@ -365,36 +379,36 @@ int main(int ArgumentCount, char** ArgumentValues)
     // 📝 Seat the family carousel on the family the appearance names. Without this the carousel opened
     //    on ordinal zero (the alphabetically first family) while the loaded faces were the appearance's
     //    own — and the role strips draw the LOADED family's faces, so the two have to agree at bring-up.
-    for (std::uint32_t Ordinal = 0u; Ordinal < Fonts.FamilyCount(); ++Ordinal)
-        if (Fonts.FamilyName(Ordinal) != nullptr &&
-            std::strcmp(Fonts.FamilyName(Ordinal), Viewport.Appearance().Fonts.Family) == 0)
+    for (std::uint32_t Index = 0u; Index < Fonts.FamilyCount(); ++Index)
+        if (Fonts.FamilyName(Index) != nullptr &&
+            std::strcmp(Fonts.FamilyName(Index), Viewport.Appearance().Fonts.Family) == 0)
         {
-            ControlCentreValues.Font = Ordinal;
+            ControlCentreValues.Font = Index;
             break;
         }
 
 
-    if (!Workspace.Construct(Viewport.Surface(), Viewport.Appearance()).Resolved)
+    if (!Workspace.ConstructWorkspacePanel(Viewport.Surface(), Viewport.Appearance()).Resolved)
     {
         std::printf("%s \u2014 the workspace panel was rejected\n", HostName);
         return 1;
     }
 
-    if (!WorkspacePanels.Construct(Viewport.MotionSource(), Viewport.Surface(), Viewport.Appearance()).Resolved)
+    if (!WorkspacePanels.ConstructEditorPanel(Viewport.MotionSource(), Viewport.Surface(), Viewport.Appearance()).Resolved)
     {
         std::printf("%s \u2014 the editor panels were rejected\n", HostName);
         return 1;
     }
 
-    if (!ControlCentre.Construct(Viewport.MotionSource(), Viewport.Surface(), Viewport.Appearance()).Resolved)
+    if (!ControlCentre.ConstructControlCentrePanel(Viewport.MotionSource(), Viewport.Surface(), Viewport.Appearance()).Resolved)
     {
         std::printf("%s \u2014 the Control Centre panel was rejected\n", HostName);
         return 1;
     }
 
-    if (!BrowserLedger.Construct(Viewport.MotionSource()).Resolved)
+    if (!BrowserInteraction.AttachMotion(Viewport.MotionSource()).Resolved)
     {
-        std::printf("%s \u2014 the content browser ledger was rejected\n", HostName);
+        std::printf("%s \u2014 the content browser index was rejected\n", HostName);
         return 1;
     }
 
@@ -416,50 +430,50 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    generator mask), then a fill with a paint mask, a pattern, and a second folder of materials.
     //    The row detail runs are the small sub-lines the stack page shows; the full settings live on
     //    the properties page.
-    static const char* const StackChannels[TextureChannelCeiling] =
+    static const char* const StackChannels[TextureChannelLimit] =
     {
         "Base Color", "Metallic", "Roughness", "Normal",
         "Height", "Ambient Occlusion", "Emissive", "Opacity"
     };
 
-    static TextureLayerRow StackSeed[TextureLayerCeiling] =
+    static TextureLayerRow StackSeed[TextureLayerLimit] =
     {
         { "Surface Detail",  TextureLayerClassification::Folder,  "Passthrough", 100u, 0x9B8CF0u, 0x9B8CF0u,
           false, 100u, false, "", "4 layers", { StackChannels[0], StackChannels[1], StackChannels[2] }, 3u,
-          0u, 0xFFFFFFFFu, 4u, true, "folder detail group", false, "" },
+          0u, 0xFFFFFFFFu, 4u, true, "folder detail group", false, "", false, 2001u },
         { "Levels",          TextureLayerClassification::Adjustment, "Overlay",   64u, 0x8B8D98u, 0x8B8D98u,
           false, 100u, false, "", "2048px \u00B7 RGBA 8", { StackChannels[0], StackChannels[3] }, 2u,
-          1u, 0u, 0u, true, "adjust levels", false, "" },
+          1u, 0u, 0u, true, "adjust levels", false, "", false, 2002u },
         { "Warning Stencil", TextureLayerClassification::Decal,   "Normal",    100u, 0xE5484Du, 0xE5484Du,
           true,  100u, false, "Bitmap", "Planar \u00B7 100%", { StackChannels[0] }, 1u,
-          1u, 0u, 0u, true, "decal stencil warning", false, "" },
+          1u, 0u, 0u, true, "decal stencil warning", false, "", false, 2003u },
         { "Scratches",       TextureLayerClassification::Paint,    "Screen",     38u, 0xB0E64Cu, 0xB0E64Cu,
           true,   88u, false, "Generator", "2048px \u00B7 RGBA 8", { StackChannels[0], StackChannels[2] }, 2u,
-          1u, 0u, 0u, true, "paint scratches grunge", false, "Blur" },
+          1u, 0u, 0u, true, "paint scratches grunge", false, "Blur", false, 2004u },
         { "Edge Wear",       TextureLayerClassification::Fill,     "Multiply",   82u, 0xF76B15u, 0xF76B15u,
           true,  100u, false, "Generator", "2048px \u00B7 RGBA 8", { StackChannels[1], StackChannels[2] }, 2u,
-          1u, 0u, 0u, true, "fill edge wear rust", false, "" },
+          1u, 0u, 0u, true, "fill edge wear rust", false, "", false, 2005u },
         { "Emissive Trim",   TextureLayerClassification::Fill,     "Normal",    100u, 0xFFC53Du, 0xFFC53Du,
           true,  100u, false, "Paint", "2048px \u00B7 RGBA 8", { StackChannels[6] }, 1u,
-          0u, 0xFFFFFFFFu, 0u, true, "fill emissive trim", false, "" },
+          0u, 0xFFFFFFFFu, 0u, true, "fill emissive trim", false, "", false, 2006u },
         { "Hex Panelling",   TextureLayerClassification::Pattern,  "Normal",    100u, 0x8AB4D8u, 0x8AB4D8u,
           true,  100u, false, "Generator", "Hex Grid \u00B7 4\u00D74", { StackChannels[2], StackChannels[4] }, 2u,
-          0u, 0xFFFFFFFFu, 0u, true, "pattern hex panel", false, "" },
+          0u, 0xFFFFFFFFu, 0u, true, "pattern hex panel", false, "", false, 2007u },
         { "Base Materials",  TextureLayerClassification::Folder,   "Passthrough", 100u, 0x12A594u, 0x12A594u,
           false, 100u, false, "", "4 layers", { StackChannels[0], StackChannels[1] }, 2u,
-          0u, 0xFFFFFFFFu, 4u, true, "folder materials base", false, "" },
+          0u, 0xFFFFFFFFu, 4u, true, "folder materials base", false, "", false, 2008u },
         { "Brushed Steel",   TextureLayerClassification::Fill,     "Normal",    100u, 0x8AB4D8u, 0x8AB4D8u,
           true,  100u, false, "Generator", "4096px \u00B7 RGBA 8", { StackChannels[0], StackChannels[1] }, 2u,
-          1u, 7u, 0u, true, "fill brushed steel metal", false, "" },
+          1u, 7u, 0u, true, "fill brushed steel metal", false, "", false, 2009u },
         { "Gold Inlay",      TextureLayerClassification::Fill,     "Normal",    100u, 0xE5484Du, 0xE5484Du,
           true,   50u, true,  "Color Selection", "2048px \u00B7 RGBA 8", { StackChannels[0] }, 1u,
-          1u, 7u, 0u, true, "fill gold inlay", false, "Levels, HSL Shift" },
+          1u, 7u, 0u, true, "fill gold inlay", false, "Levels, HSL Shift", false, 2010u },
         { "Oak Panel",       TextureLayerClassification::Material, "Normal",    100u, 0xF76B15u, 0xF76B15u,
           false, 100u, false, "", "2048px \u00B7 RGBA 8", { StackChannels[0], StackChannels[2] }, 2u,
-          1u, 7u, 0u, true, "material oak wood", true, "" },
+          1u, 7u, 0u, true, "material oak wood", true, "", false, 2011u },
         { "Canvas Weave",    TextureLayerClassification::Material, "Normal",     90u, 0xE93D82u, 0xE93D82u,
           false, 100u, false, "", "2048px \u00B7 RGBA 8", { StackChannels[0], StackChannels[3] }, 2u,
-          1u, 7u, 0u, false, "material canvas fabric", false, "" }
+          1u, 7u, 0u, false, "material canvas fabric", false, "", false, 2012u }
     };
 
     TexturePaintApplied.LayerTaken = 1u;
@@ -469,12 +483,12 @@ int main(int ArgumentCount, char** ArgumentValues)
     StackRows.Seed(StackSeed, 12u);
     SeedPaintContextFromRows(TexturePaintApplied, StackRows.Rows, StackRows.Count);
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < TextureLayerCeiling; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < TextureLayerLimit; ++Index)
     {
-        TexturePaintApplied.MaskSourceTaken[Ordinal] =
-            (Ordinal == 2u || Ordinal == 3u || Ordinal == 4u) ? 4u : 0u;
-        TexturePaintApplied.MaskDensity[Ordinal] = (Ordinal == 3u) ? 88u : 100u;
-        TexturePaintApplied.MaskInverted[Ordinal] = (Ordinal == 9u);
+        TexturePaintApplied.MaskSourceTaken[Index] =
+            (Index == 2u || Index == 3u || Index == 4u) ? 4u : 0u;
+        TexturePaintApplied.MaskDensity[Index] = (Index == 3u) ? 88u : 100u;
+        TexturePaintApplied.MaskInverted[Index] = (Index == 9u);
     }
 
     // 📝 The editor camera, registered as the seventh row. Its details' options are the camera's own:
@@ -496,51 +510,60 @@ int main(int ArgumentCount, char** ArgumentValues)
     SceneApplied.CameraPosition[2] = 0.0;
     SceneApplied.CameraRotation[0] = EditorCamera.YawDegrees;
     SceneApplied.CameraRotation[1] = EditorCamera.PitchDegrees;
-
-    if (!SceneLedger.Construct(Viewport.MotionSource()).Resolved)
+    // The Editor Camera row's Transform card is the camera component's authored pose, not a disconnected
+    // entity mirror. Other rows keep their ordinary scene transforms.
+    for (std::uint32_t Axis = 0u; Axis < 3u; ++Axis)
     {
-        std::printf("%s \u2014 the scene directory ledger was rejected\n", HostName);
+        SceneApplied.EntityPosition[6u][Axis] = SceneApplied.CameraPosition[Axis];
+        SceneApplied.EntityRotation[6u][Axis] = SceneApplied.CameraRotation[Axis];
+    }
+    EditorCamera.PublishTransform(SceneApplied.EntityPosition[6u], SceneApplied.EntityRotation[6u]);
+
+    if (!SceneInteraction.AttachMotion(Viewport.MotionSource()).Resolved)
+    {
+        std::printf("%s \u2014 the scene directory index was rejected\n", HostName);
         return 1;
     }
 
-    if (!SceneDirectory.Construct(SceneLedger, Viewport.MotionSource(), Viewport.Surface(),
+    if (!SceneDirectory.ConstructSceneDirectoryPanel(SceneInteraction, Viewport.MotionSource(), Viewport.Surface(),
                                   Viewport.Appearance()).Resolved)
     {
         std::printf("%s \u2014 the scene directory was rejected\n", HostName);
         return 1;
     }
 
-    if (!TexturePaint.Construct(SceneLedger, Viewport.MotionSource(), Viewport.Surface(),
+    if (!TexturePaint.ConstructTexturePaintPanel(SceneInteraction, Viewport.MotionSource(), Viewport.Surface(),
                               Viewport.Appearance()).Resolved)
     {
         std::printf("%s \u2014 the texture paint panel was rejected\n", HostName);
         return 1;
     }
 
-    // 📝 The viewport's sky: one device texture, uploaded from the CPU atmosphere evaluation. The
-    //    texture identity is registered with the interface's own Vulkan backend, so the shell draws
-    //    it through the same sampled-image path the font atlas uses.
-    if (!SkySurface.Construct(Lifetime.DeviceExchange(), Lifetime.DiagnosticsExtension()).Resolved)
-    {
-        std::printf("%s \u2014 the viewport sky surface was rejected\n", HostName);
-        return 1;
-    }
-
-    {
-        // 🔴 The interface context is current after Viewport.Construct, and the backend is
-        //    initialised — this is the only window in which the texture may be registered. The
-        //    registration itself lives in the interface's own translation unit, which is the engine's
-        //    single place the vendor is spelled.
-        SkyTextureIdentity = Viewport.Surface().RegisterSampledImage(SkySurface.Sampler(), SkySurface.View());
-        SkyRegistered = SkyTextureIdentity != 0u;
-    }
-
-    // 📝 The overlay pass — the grid, the gizmo and the wireframe drawn on the GPU in their own
-    //    straight-alpha pass. The lowered streams live at `<Binary>/../Shader` (the build's output
-    //    root); a build that lowered nothing (the sandbox) refuses here and the editor draws the
-    //    SAME geometry through the interface instead (the fallback), so the grid is never absent.
+    // One shader stream index feeds both the dynamic atmosphere compute pass and the overlay pass.
     const Outcome<bool> CodecOutcome =
-        OverlayCodec.Construct(Lifetime.DeviceExchange(), ShaderStreamDirectory());
+        OverlayCodec.AttachShaderStreams(Lifetime.DeviceExchange(), ShaderStreamDirectory());
+
+    if (CodecOutcome.Resolved)
+    {
+        const Outcome<bool> AtmosphereOutcome = AtmosphereSurface.ConstructAtmosphereSurface(
+            Lifetime.DeviceExchange(), Lifetime.DiagnosticsExtension(), OverlayCodec);
+        if (AtmosphereOutcome.Resolved)
+        {
+            SkyTextureIdentity = Viewport.Surface().RegisterSampledImage(
+                AtmosphereSurface.Sampler(), AtmosphereSurface.View());
+            SkyRegistered = SkyTextureIdentity != 0u;
+        }
+        else
+        {
+            std::printf("%s \u2014 the GPU atmosphere presentation was rejected (reason %u: %s)\n", HostName,
+                        static_cast<unsigned>(AtmosphereOutcome.Error.DeclaredReason),
+                        AtmosphereOutcome.Error.Detail);
+        }
+    }
+
+    // The overlay pass shares the lowered-stream index. A sandbox with no SPIR-V keeps the interface
+    // functional, but a packaged editor uses the compute sky and GPU overlay paths.
+
 
     if (!CodecOutcome.Resolved)
     {
@@ -552,7 +575,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     }
     else
     {
-        const Outcome<bool> PassOutcome = Overlay.Construct(Lifetime.DeviceExchange(),
+        const Outcome<bool> PassOutcome = Overlay.ConstructWorkspaceOverlayPass(Lifetime.DeviceExchange(),
                                                             Lifetime.DiagnosticsExtension(),
                                                             OverlayCodec,
                                                             Lifetime.Offering().ColourTargetFormat);
@@ -572,10 +595,28 @@ int main(int ArgumentCount, char** ArgumentValues)
         }
     }
 
-    // 🔴 The browser carries its OWN ledger, as every panel here does, so its registration cannot exhaust the
+    // 🔴 The renderer's device estate is deliberately brought up before any geometry is admitted. The next
+    //    geometry increment supplies a selected imported packet; until then it owns no residency and records no
+    //    geometry. Keeping the estate separate makes device recovery and display-sized target reclamation testable
+    //    without inventing a placeholder surface.
+    const DeviceOffering GeometryOffering = Lifetime.Offering();
+    const Outcome<bool> GeometryOutcome = GeometryDevice.ConstructGeometryDeviceExchange(
+        Lifetime.DeviceExchange(), Lifetime.DiagnosticsExtension(), ShaderStreamDirectory().c_str(),
+        InitialWidth, InitialHeight, GeometryOffering.ColourTargetFormat);
+    if (!GeometryOutcome.Resolved)
+    {
+        std::printf("%s \u2014 the geometry device estate was rejected (reason %u: %s)\n", HostName,
+                    static_cast<unsigned>(GeometryOutcome.Error.DeclaredReason), GeometryOutcome.Error.Detail);
+    }
+    if (!ImportedVisibility.ConstructVisibilityIndex(InitialWidth, InitialHeight).Resolved)
+    {
+        std::printf("%s — imported topology partition visibility could not be prepared\n", HostName);
+    }
+
+    // 🔴 The browser carries its OWN index, as every panel here does, so its registration cannot exhaust the
     //    Control Centre's. Read — an registration refusal is silent at the call site and a browser that was
     //    rejected records nothing at all, which reads as a drawer that opens onto blank ground.
-    const Outcome<bool> BrowserOutcome = ContentBrowser.Construct(BrowserLedger, Viewport.Surface());
+    const Outcome<bool> BrowserOutcome = ContentBrowser.ConstructContentBrowserPanel(BrowserInteraction, Viewport.Surface(), Viewport.Appearance());
     if (!BrowserOutcome.Resolved)
     {
         std::printf("%s \u2014 the content browser was rejected (reason %u: %s)\n", HostName,
@@ -598,7 +639,7 @@ int main(int ArgumentCount, char** ArgumentValues)
         std::printf("%s \u2014 the default workspace could not be opened\n", HostName);
         return 1;
     }
-    PanelPartitions[DefaultWorkspace.Resolve()].Construct(PanelSubject::Viewport);
+    PanelPartitions[DefaultWorkspace.Resolve()].ConstructPanelPartition(PanelSubject::Viewport);
 
     // 🔴 The sheet's tab figures applied into the vendor's style, including the four `Patches/` adds. They
     //    default to 0.0f, at which a patched build draws stock rectangular tabs — so this call is what
@@ -626,7 +667,8 @@ int main(int ArgumentCount, char** ArgumentValues)
         if (Pass.DeviceRetiring)
         {
             Viewport.Reclaim();
-            SkySurface.Reclaim();
+            GeometryDevice.Reclaim();
+            AtmosphereSurface.Reclaim();
             SkyRegistered = false;
             SkyTextureIdentity = 0u;
             Overlay.Reclaim();
@@ -642,32 +684,41 @@ int main(int ArgumentCount, char** ArgumentValues)
         if (Lifetime.DeviceRecovered())
         {
             // 📝 Not reclaimed here: the retiring tick above already did it, while the device lived.
-            if (!Viewport.Construct(Attach(Lifetime.Offering()), NorthDrawer, SouthDrawer).Resolved)
+            if (!Viewport.ConstructViewportSequence(Attach(Lifetime.Offering()), NorthDrawer, SouthDrawer).Resolved)
             {
                 std::printf("%s \u2014 the interface could not be rebuilt on the recovered device\n", HostName);
                 break;
             }
 
-            // 🔴 The sky texture's image, view and sampler died with the old device, and the interface's
-            //    own descriptor pool was rebuilt with it — so the texture is re-created and re-registered
-            //    against the fresh backend, exactly as the font atlas is.
-            if (SkySurface.Construct(Lifetime.DeviceExchange(), Lifetime.DiagnosticsExtension()).Resolved)
+            // The shader modules, dynamic atmosphere image and overlay all died with the old device.
+            // Reattach streams first because both passes resolve their modules from that index.
+            if (OverlayCodec.AttachShaderStreams(Lifetime.DeviceExchange(), ShaderStreamDirectory()).Resolved)
             {
-                SkyTextureIdentity = Viewport.Surface().RegisterSampledImage(SkySurface.Sampler(), SkySurface.View());
-                SkyRegistered = SkyTextureIdentity != 0u;
-                SkyPrevious = {};   // [-] - the next tick regenerates and uploads
-            }
+                if (AtmosphereSurface.ConstructAtmosphereSurface(Lifetime.DeviceExchange(), Lifetime.DiagnosticsExtension(),
+                                                   OverlayCodec).Resolved)
+                {
+                    SkyTextureIdentity = Viewport.Surface().RegisterSampledImage(
+                        AtmosphereSurface.Sampler(), AtmosphereSurface.View());
+                    SkyRegistered = SkyTextureIdentity != 0u;
+                    SkyEverGenerated = false;
+                }
 
-            // 🔴 The overlay's pipeline, buffers and descriptors died with the old device too — it is
-            //    reconstructed against the fresh handles, exactly as the sky surface is.
-            if (OverlayCodec.Construct(Lifetime.DeviceExchange(), ShaderStreamDirectory()).Resolved)
-            {
-                static_cast<void>(Overlay.Construct(Lifetime.DeviceExchange(),
+                static_cast<void>(Overlay.ConstructWorkspaceOverlayPass(Lifetime.DeviceExchange(),
                                                     Lifetime.DiagnosticsExtension(),
                                                     OverlayCodec,
                                                     Lifetime.Offering().ColourTargetFormat));
-                for (std::uint32_t Ordinal = 0u; Ordinal < PanelStructure::RecordCeiling; ++Ordinal)
-                    OverlayGeneration[Ordinal] = 0u;   // [-] - the next tick re-uploads every leaf
+                for (std::uint32_t Index = 0u; Index < PanelStructure::RecordLimit; ++Index)
+                    OverlayGeneration[Index] = 0u;
+            }
+
+            const DeviceOffering GeometryOffering = Lifetime.Offering();
+            const Outcome<bool> GeometryOutcome = GeometryDevice.ConstructGeometryDeviceExchange(
+                Lifetime.DeviceExchange(), Lifetime.DiagnosticsExtension(), ShaderStreamDirectory().c_str(),
+                Pass.Width, Pass.Height, GeometryOffering.ColourTargetFormat);
+            if (!GeometryOutcome.Resolved)
+            {
+                std::printf("%s \u2014 the geometry device estate could not be rebuilt (reason %u: %s)\n", HostName,
+                            static_cast<unsigned>(GeometryOutcome.Error.DeclaredReason), GeometryOutcome.Error.Detail);
             }
 
             // 📝 The display recovery this rebuild also raised is consumed here. The reconstruction above
@@ -687,6 +738,11 @@ int main(int ArgumentCount, char** ArgumentValues)
             {
                 std::printf("%s \u2014 the interface rejected the restated image counts\n", HostName);
             }
+
+            if (GeometryDevice.Standing() && !GeometryDevice.ReclaimDisplay(Pass.Width, Pass.Height).Resolved)
+            {
+                std::printf("%s \u2014 the geometry targets could not be re-derived after display recovery\n", HostName);
+            }
         }
 
         if (Pass.Current != TickCondition::Recording)
@@ -705,6 +761,27 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                static_cast<float>(Pass.Width),
                                                static_cast<float>(Pass.Height));
 
+            const PointerCondition& ForegroundPointer = Viewport.Surface().Pointer();
+            const PlaneExtent NorthInterior = Viewport.Drawers().Interior(DrawerBearing::North);
+            const PlaneExtent SouthInterior = Viewport.Drawers().Interior(DrawerBearing::South);
+            const bool ForegroundDrawerStanding =
+                (NorthInterior.MaximumY > 0.0f && NorthInterior.MinimumY < static_cast<float>(Pass.Height)) ||
+                (SouthInterior.MaximumY > 0.0f && SouthInterior.MinimumY < static_cast<float>(Pass.Height));
+            const bool PointerBehindDrawer =
+                NorthInterior.Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY) ||
+                SouthInterior.Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY);
+            PointerCondition BackgroundPointer = ForegroundPointer;
+            if (PointerBehindDrawer)
+            {
+                BackgroundPointer.PositionX = -1000000.0f;
+                BackgroundPointer.PositionY = -1000000.0f;
+                BackgroundPointer.TravelX = BackgroundPointer.TravelY = BackgroundPointer.WheelY = 0.0f;
+                BackgroundPointer.ContactHeld = BackgroundPointer.ContactPressed = false;
+                BackgroundPointer.ContactDoublePressed = BackgroundPointer.ContactReleased = false;
+                BackgroundPointer.SecondaryHeld = BackgroundPointer.SecondaryPressed = false;
+                BackgroundPointer.SecondaryReleased = false;
+            }
+
             Discard(Workspace.Record(Whole, Workspaces.ActiveTitle()));
 
             // 🔴 The dock space FIRST, over the whole panel. Every workspace below docks into it, and the
@@ -715,7 +792,7 @@ int main(int ArgumentCount, char** ArgumentValues)
 
             const std::uint32_t OpenCount = Workspaces.OpenCount();
 
-            // 🔴 Titles are read through `Titled`, which points into the ledger's own storage. The delivered
+            // 🔴 Titles are read through `Titled`, which points into the index's own storage. The delivered
             //    form copies the entry, so a pointer taken from it dangles at the semicolon — every label
             //    then decayed to the same garbage and ImGui reported four conflicting IDs.
             std::uint32_t Withdrawing = OpenCount;
@@ -726,19 +803,57 @@ int main(int ArgumentCount, char** ArgumentValues)
 
             RegisterIntoNode = 0u;
 
-            WorkspacePanels.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+            WorkspacePanels.Advance(BackgroundPointer, Pass.ElapsedMilliseconds);
 
-            // 📐 The fly camera is integrated BEFORE any leaf is recorded, so the sky mesh, the
+            // 📐 The fly camera is integrated BEFORE any leaf is recorded, so the sky geometry, the
             //    ground lattice and the gizmo are all projected through the SAME current-tick pose.
             //    The previous order advanced the camera AFTER recording, which left every overlay
             //    one frame behind the artist's input — the lattice and axes trailed the camera while
             //    panning or flying. The sky regeneration below depends only on the environment and is
             //    intentionally left where it stands.
             {
-                const CameraCondition FlyInput = Viewport.Seam().CameraInput();
+                bool PointerOverViewport = false;
+                const PointerCondition& Pointer = Viewport.Surface().Pointer();
+
+                for (std::uint32_t Leaf = 0u; Leaf < WorkspacePanels.LeafCount(); ++Leaf)
+                {
+                    if (WorkspacePanels.LeafSubject(Leaf) == PanelSubject::Viewport &&
+                        WorkspacePanels.LeafBody(Leaf).Encloses(Pointer.PositionX, Pointer.PositionY))
+                    {
+                        PointerOverViewport = true;
+                        break;
+                    }
+                }
+
+                CameraCondition FlyInput = Viewport.Seam().CameraInput(PointerOverViewport && !PointerBehindDrawer);
+
+                // A direct XYZ edit in the Editor Camera's Transform card is consumed before navigation.
+                // The transform synchronizer distinguishes it from the values the camera published last tick,
+                // so WASD movement is never reset by a stale UI mirror.
+                static_cast<void>(EditorCamera.ConsumeTransform(SceneApplied.EntityPosition[6u],
+                                                                SceneApplied.EntityRotation[6u]));
+
+                EditorCamera.FlySpeed = std::clamp(SceneApplied.CameraSpeed, 1.0, 5000.0);
+                EditorCamera.FieldOfViewDegrees = std::clamp(SceneApplied.CameraFieldOfView, 20.0, 150.0);
+                EditorCamera.NearClipMetres = std::clamp(SceneApplied.CameraNearClip, 0.01, 10.0);
+                EditorCamera.FarClipMetres = std::clamp(SceneApplied.CameraFarClip,
+                                                        EditorCamera.NearClipMetres + 0.01, 100000.0);
+
+                if (FlyInput.SpeedSteps != 0.0f)
+                {
+                    // 📐 Unreal-style fly-speed gearing: while right-button look owns the viewport,
+                    //    each wheel notch changes the persistent Editor Camera speed by one 25% step.
+                    //    It changes speed, not FOV or position, and the outliner control reflects it.
+                    EditorCamera.AdjustFlySpeed(static_cast<double>(FlyInput.SpeedSteps));
+                }
+
+                SceneApplied.CameraSpeed       = EditorCamera.FlySpeed;
+                SceneApplied.CameraFieldOfView = EditorCamera.FieldOfViewDegrees;
+                SceneApplied.CameraNearClip    = EditorCamera.NearClipMetres;
+                SceneApplied.CameraFarClip     = EditorCamera.FarClipMetres;
 
                 CameraSettings FlySettings;
-                FlySettings.FlySpeed    = SceneApplied.CameraSpeed;
+                FlySettings.FlySpeed    = EditorCamera.FlySpeed;
                 FlySettings.LagEnabled  = (SceneApplied.DetailBits[6u] & 2u) != 0u;
                 FlySettings.InvertPitch = (SceneApplied.DetailBits[6u] & 4u) != 0u;
 
@@ -746,17 +861,21 @@ int main(int ArgumentCount, char** ArgumentValues)
 
                 SceneApplied.ViewportSkyCamera.AzimuthDegrees    = static_cast<float>(EditorCamera.LaggedYawDegrees);
                 SceneApplied.ViewportSkyCamera.ElevationDegrees  = static_cast<float>(EditorCamera.LaggedPitchDegrees);
-                SceneApplied.ViewportSkyCamera.FieldOfViewDegrees = 60.0f;
+                SceneApplied.ViewportSkyCamera.FieldOfViewDegrees =
+                    static_cast<float>(EditorCamera.FieldOfViewDegrees);
                 SceneApplied.CameraPosition[0] = EditorCamera.LaggedPosition[0];
                 SceneApplied.CameraPosition[1] = EditorCamera.LaggedPosition[1];
                 SceneApplied.CameraPosition[2] = EditorCamera.LaggedPosition[2];
                 SceneApplied.CameraRotation[0] = EditorCamera.LaggedYawDegrees;
                 SceneApplied.CameraRotation[1] = EditorCamera.LaggedPitchDegrees;
+                SceneApplied.CameraRotation[2] = 0.0;
+                EditorCamera.PublishTransform(SceneApplied.EntityPosition[6u],
+                                              SceneApplied.EntityRotation[6u]);
             }
 
-            for (std::uint32_t Ordinal = 0u; Ordinal < OpenCount; ++Ordinal)
+            for (std::uint32_t Index = 0u; Index < OpenCount; ++Index)
             {
-                const char* Titled = Workspaces.Titled(Ordinal);
+                const char* Titled = Workspaces.Titled(Index);
 
                 if (Titled == nullptr)
                     continue;
@@ -764,8 +883,8 @@ int main(int ArgumentCount, char** ArgumentValues)
                 bool Current = true;
 
                 const PlaneExtent PanelExtent = Viewport.Seam().EnterWorkspaceWindow(
-                    Titled, !Workspaces.Applied(Ordinal), ApplyInto, Current);
-                Workspaces.Apply(Ordinal);
+                    Titled, !Workspaces.Applied(Index), ApplyInto, Current);
+                Workspaces.Apply(Index);
 
                 if (PanelExtent.Width() > 0.0f && PanelExtent.Height() > 0.0f)
                 {
@@ -774,15 +893,15 @@ int main(int ArgumentCount, char** ArgumentValues)
                     //    the leaf content, or the sky quad paints over them and the menus become
                     //    unreadable — the reported defect when splitting a panel.
                     Discard(WorkspacePanels.Record(PanelExtent,
-                                                      PanelPartitions[Ordinal],
-                                                      PanelConfiguration[Ordinal],
-                                                      Ordinal,
+                                                      PanelPartitions[Index],
+                                                      PanelConfiguration[Index],
+                                                      Index,
                                                       true));
 
                     // 📝 The leaf content — the editor's scene directory inside the workspace's own
                     //    panels. Recorded into the same window the panel chrome was, so it clips and
                     //    orders with it: the sky fills a viewport leaf, the outliner | details fills
-                    //    an outliner leaf, and the properties | history fills a properties leaf.
+                    //    an outliner leaf, and the properties / camera bookmarks fill a properties leaf.
                     //    Panels draw their content only while they exist in the partition; there is
                     //    no fullscreen scene directory in this host (see the header's layout rule).
                     // 📝 Each viewport leaf owns its overlay record: the panel empties the leaf's
@@ -815,7 +934,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 //    host owns the EditorCameraComponent and the leaf's extent both.
                                 {
                                     OverlayGroundPose& Pose = LeafOverlay.Ground;
-                                    const EditorPanelConfiguration& Declared = PanelConfiguration[Ordinal];
+                                    const EditorPanelConfiguration& Declared = PanelConfiguration[Index];
 
                                     Pose.Standing = Declared.Lattice != PanelLatticePresentation::None;
 
@@ -859,6 +978,10 @@ int main(int ArgumentCount, char** ArgumentValues)
                                     Pose.DotRadius    = Declared.LatticeDotRadius;
                                     Pose.Subdivisions = Declared.Subdivisions > 0u
                                                       ? static_cast<float>(Declared.Subdivisions) : 10.0f;
+                                    Pose.ExtentMetres = static_cast<float>(
+                                        std::max(Declared.LatticeExtentMetres, DeclaredCell));
+                                    Pose.FadeRadiusMetres = static_cast<float>(
+                                        std::max(Declared.LatticeFadeRadiusMetres, DeclaredCell));
 
                                     std::uint32_t Mask = 0u;
                                     if (Declared.AxisX) Mask |= 1u;
@@ -875,45 +998,78 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 if (!Overlay.Standing())
                                     SceneDirectory.RecordOverlayFallback(LeafBody, LeafOverlay);
 
-                                if (ViewportLeafTally < PanelStructure::RecordCeiling)
+                                if (ViewportLeafTally < PanelStructure::RecordLimit)
                                 {
-                                    ViewportLeafOrdinals[ViewportLeafTally] = Leaf;
+                                    ViewportLeafIndexs[ViewportLeafTally] = Leaf;
                                     ViewportLeafRects[ViewportLeafTally]    = LeafBody;
                                     ++ViewportLeafTally;
                                 }
                                 break;
                             }
                             case PanelSubject::Outliner:
-                                if (PanelConfiguration[Ordinal].FooterDemand == EditorFooterDemand::SceneImport ||
-                                    PanelConfiguration[Ordinal].FooterDemand == EditorFooterDemand::SceneExport)
+                                if (PanelConfiguration[Index].FooterDemand == EditorFooterDemand::SceneImport ||
+                                    PanelConfiguration[Index].FooterDemand == EditorFooterDemand::SceneExport)
                                 {
                                     SceneApplied.TransferMode =
-                                        PanelConfiguration[Ordinal].FooterDemand == EditorFooterDemand::SceneExport ? 1u : 0u;
+                                        PanelConfiguration[Index].FooterDemand == EditorFooterDemand::SceneExport ? 1u : 0u;
                                     SceneApplied.OutlinePage = 2u;
-                                    PanelConfiguration[Ordinal].FooterDemand = EditorFooterDemand::None;
+                                    PanelConfiguration[Index].FooterDemand = EditorFooterDemand::None;
                                 }
-                                SceneDirectory.RecordOutliner(LeafBody, SceneApplied,
-                                                              EditorEntities, 7u,
-                                                              EditorRevisions, EditorRevisionCount);
+                                SceneDirectory.RecordOutliner(LeafBody, SceneApplied, EditorEntities, 7u);
+                                if (SceneApplied.TransferDemand == SceneTransferDemand::Import)
+                                {
+                                    const Outcome<GeometryAssetView> Imported = GeometryTransfer.Import(
+                                        SceneApplied.TransferLocation, SceneApplied.TransferName,
+                                        ImportedGeometry, ImportedIntake);
+                                    if (!Imported.Resolved)
+                                    {
+                                        std::printf("%s — geometry import refused (reason %u: %s)\n", HostName,
+                                                    static_cast<unsigned>(Imported.Error.DeclaredReason), Imported.Error.Detail);
+                                    }
+                                    else
+                                    {
+                                        const Outcome<OwnerIdentity> Owner = ImportedOwners.Register();
+                                        const std::uint32_t Base = ImportedVisibility.DeclaredPartitionCount();
+                                        const Outcome<std::uint32_t> Registered = Owner.Resolved
+                                            ? ImportedVisibility.Register(Owner.Resolve(), *Imported.Resolve().Topology,
+                                                                         *Imported.Resolve().Conditioning, ImportedPartitions)
+                                            : Outcome<std::uint32_t>::Refuse(Owner.Error);
+                                        const Outcome<GeometryRenderingIdentity> Rendered = Registered.Resolved
+                                            ? ImportedRendering.Synchronise(Imported.Resolve())
+                                            : Outcome<GeometryRenderingIdentity>::Refuse(Registered.Error);
+                                        if (!Rendered.Resolved)
+                                        {
+                                            std::printf("%s — imported topology could not prepare visibility (reason %u: %s)\n",
+                                                        HostName, static_cast<unsigned>(Rendered.Error.DeclaredReason),
+                                                        Rendered.Error.Detail);
+                                        }
+                                        else
+                                        {
+                                            PendingRendering = Rendered.Resolve();
+                                            PendingVisibilityRegistration = Registered.Resolve();
+                                            PendingRegistrationBase = Base;
+                                            GeometryAdmissionPending = true;
+                                        }
+                                    }
+                                    SceneApplied.TransferDemand = SceneTransferDemand::None;
+                                }
                                 break;
                             case PanelSubject::Properties:
                                 SceneDirectory.RecordProperties(LeafBody, SceneApplied,
-                                                                EditorEntities, 7u,
-                                                                EditorRevisions, EditorRevisionCount,
-                                                                SceneApplied.InspectorTab);
+                                                                EditorEntities, 7u, SceneApplied.InspectorTab);
                                 break;
                             case PanelSubject::TexturePaint:
-                                if (PanelConfiguration[Ordinal].FooterDemand == EditorFooterDemand::ExportFlattened ||
-                                    PanelConfiguration[Ordinal].FooterDemand == EditorFooterDemand::LayerExport)
+                                if (PanelConfiguration[Index].FooterDemand == EditorFooterDemand::ExportFlattened ||
+                                    PanelConfiguration[Index].FooterDemand == EditorFooterDemand::LayerExport)
                                 {
                                     TexturePaintApplied.ExportMode =
-                                        PanelConfiguration[Ordinal].FooterDemand == EditorFooterDemand::LayerExport ? 1u : 0u;
+                                        PanelConfiguration[Index].FooterDemand == EditorFooterDemand::LayerExport ? 1u : 0u;
                                     TexturePaintApplied.StackPage = 2u;
-                                    PanelConfiguration[Ordinal].FooterDemand = EditorFooterDemand::None;
+                                    PanelConfiguration[Index].FooterDemand = EditorFooterDemand::None;
                                 }
                                 TexturePaint.Record(LeafBody, TexturePaintApplied, StackRows.Rows, StackRows.Count);
 
-                                if (LayerLeafTally < PanelStructure::RecordCeiling)
+                                if (LayerLeafTally < PanelStructure::RecordLimit)
                                 {
                                     LayerLeafRects[LayerLeafTally] = LeafBody;
                                     ++LayerLeafTally;
@@ -925,10 +1081,10 @@ int main(int ArgumentCount, char** ArgumentValues)
                     }
 
                     // 🔴 The popups after the leaf content, so they composite above it.
-                    WorkspacePanels.RecordDeferredPopups(PanelPartitions[Ordinal],
-                                                         PanelConfiguration[Ordinal]);
+                    WorkspacePanels.RecordDeferredPopups(PanelPartitions[Index],
+                                                         PanelConfiguration[Index]);
 
-                    if (WorkspacePanels.PointerCaptured(Ordinal))
+                    if (WorkspacePanels.PointerCaptured(Index))
                         Viewport.Seam().WithholdPointer();
                 }
 
@@ -937,7 +1093,7 @@ int main(int ArgumentCount, char** ArgumentValues)
 
                 // ⚠️ Recorded, never acted on inside the sweep. Withdrawing here edits the set being walked.
                 if (!Current)
-                    Withdrawing = Ordinal;
+                    Withdrawing = Index;
             }
 
             if (Withdrawing < OpenCount)
@@ -965,7 +1121,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                 RegisterIntoNode = AskingNode;
                 const Outcome<std::uint32_t> RegisteredWorkspace = Workspaces.Register(DefaultSubject);
                 if (RegisteredWorkspace.Resolved)
-                    PanelPartitions[RegisteredWorkspace.Resolve()].Construct(PanelSubject::Viewport);
+                    PanelPartitions[RegisteredWorkspace.Resolve()].ConstructPanelPartition(PanelSubject::Viewport);
             }
 
             // 🔴 With nothing open there is no tab bar to seat a `+` in, so the empty shell carries the
@@ -975,14 +1131,14 @@ int main(int ArgumentCount, char** ArgumentValues)
             {
                 const Outcome<std::uint32_t> RegisteredWorkspace = Workspaces.Register(DefaultSubject);
                 if (RegisteredWorkspace.Resolved)
-                    PanelPartitions[RegisteredWorkspace.Resolve()].Construct(PanelSubject::Viewport);
+                    PanelPartitions[RegisteredWorkspace.Resolve()].ConstructPanelPartition(PanelSubject::Viewport);
             }
 
             // 📝 The drawers last, so they sit ABOVE the workspace as the sheet lays them.
-            // ④·b The scene directory — the shared ledger is advanced here, once, before the panel
+            // ④·b The scene directory — the shared index is advanced here, once, before the panel
             //      samples it; the panel's own Advance only samples, and a second advance would retire
             //      the release before the leaves read it.
-            SceneLedger.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+            SceneInteraction.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
 
             // 📐 Tab is shared by the scene directory's pages and the layer stack's carousel, so the
             //    key goes to whichever panel the pointer is over: a TexturePaint leaf feeds the layer
@@ -996,9 +1152,9 @@ int main(int ArgumentCount, char** ArgumentValues)
             {
                 PointerInLayers = false;
 
-                for (std::uint32_t Ordinal = 0u; Ordinal < LayerLeafTally; ++Ordinal)
+                for (std::uint32_t Index = 0u; Index < LayerLeafTally; ++Index)
                 {
-                    if (LayerLeafRects[Ordinal].Encloses(Hovered.PositionX, Hovered.PositionY))
+                    if (LayerLeafRects[Index].Encloses(Hovered.PositionX, Hovered.PositionY))
                     {
                         PointerInLayers = true;
                         break;
@@ -1006,12 +1162,14 @@ int main(int ArgumentCount, char** ArgumentValues)
                 }
             }
 
-            SceneDirectory.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds,
+            SceneDirectory.Advance(BackgroundPointer, Pass.ElapsedMilliseconds,
                                    SceneApplied,
-                                   TabPressed && !PointerInLayers);
-            TexturePaint.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds,
+                                   TabPressed && !PointerInLayers && !PointerBehindDrawer,
+                                   Viewport.Seam().Modifiers());
+            TexturePaint.Advance(BackgroundPointer, Pass.ElapsedMilliseconds,
                                TexturePaintApplied, StackRows.Rows, StackRows.Count,
-                               TabPressed && PointerInLayers);
+                               TabPressed && PointerInLayers && !PointerBehindDrawer,
+                               Viewport.Seam().Modifiers());
 
             // 📝 The search field: while it holds the contact, the seam's typed run feeds the
             //    directory's retention run, and Backspace / Escape edit it. Gated on the panel's own
@@ -1020,13 +1178,13 @@ int main(int ArgumentCount, char** ArgumentValues)
             if (SceneApplied.SearchTaken)
             {
                 static_cast<void>(Viewport.Seam().AcceptTyped(SceneApplied.EntityRetention,
-                                                              SceneDirectoryContext::RetentionCeiling));
+                                                              SceneDirectoryContext::RetentionLimit));
 
                 if (Viewport.Seam().KeyPressed(KeySubject::Retract))
                 {
                     std::uint32_t Occupied = 0u;
 
-                    while (Occupied + 1u < SceneDirectoryContext::RetentionCeiling &&
+                    while (Occupied + 1u < SceneDirectoryContext::RetentionLimit &&
                            SceneApplied.EntityRetention[Occupied] != '\0')
                     {
                         ++Occupied;
@@ -1044,13 +1202,13 @@ int main(int ArgumentCount, char** ArgumentValues)
             if (TexturePaintApplied.SearchTaken)
             {
                 static_cast<void>(Viewport.Seam().AcceptTyped(TexturePaintApplied.Retention,
-                                                              TexturePaintContext::TextureRetentionCeiling));
+                                                              TexturePaintContext::TextureRetentionLimit));
 
                 if (Viewport.Seam().KeyPressed(KeySubject::Retract))
                 {
                     std::uint32_t Occupied = 0u;
 
-                    while (Occupied + 1u < TexturePaintContext::TextureRetentionCeiling &&
+                    while (Occupied + 1u < TexturePaintContext::TextureRetentionLimit &&
                            TexturePaintApplied.Retention[Occupied] != '\0')
                     {
                         ++Occupied;
@@ -1064,44 +1222,80 @@ int main(int ArgumentCount, char** ArgumentValues)
                     TexturePaintApplied.Retention[0] = '\0';
             }
 
-            // 📝 The sky image is regenerated and uploaded only when the environment actually changed
-            //    (the sliders write at drag end, so this runs at most once per drag), and the identity
-            //    is handed to the shell every tick so the viewport draws the texture. The fly camera was
-            //    integrated before the leaves were recorded, so the viewport crop already stands here.
+            // The atmosphere is updated on the GPU in this frame's command stream. The scene component
+            // classifies medium, sky-view and presentation changes; the current compatibility surface
+            // composes those results directly without any CPU pixel generation or transfer submission.
             if (SkyRegistered && SceneApplied.EnvironmentPresented)
             {
-                const bool SkyAltered = !SkyEverGenerated ||
-                                        std::memcmp(&SkyPrevious, &SceneApplied.Environment,
-                                                    sizeof(EnvironmentConfiguration)) != 0;
-                if (SkyAltered)
+                // A non-zero day-cycle rate drives the same authored azimuth the editor and game consume.
+                // It therefore updates the visible disc and the directional light/shadow direction together.
+                if (SceneApplied.Environment.DayCycleDegreesPerSecond != 0.0)
                 {
-                    // 📐 The viewport frames the lit side of the scene: the camera turns with the sun,
-                    //    which keeps the disc in frame as the artist drags the azimuth slider.
-                    SkyCam.AzimuthDegrees = SceneApplied.Environment.SunAzimuth - 20.0;
-                    // 📐 The camera's elevation is fixed, so the artist SEES the sun rise and set as the
-                    //    elevation slider moves; a camera that rose with the sun would hold the disc at
-                    //    one screen height and a drag would read as no change at all. The ground plane
-                    //    remains in the lower frame, and the shell's crop shifts to keep a sun above
-                    //    the camera's view pinned near the top edge.
-                    SkyCam.ElevationDegrees = 15.0;
-                    if (GenerateSkyImage(SkyIntegrator, SceneApplied.Environment, SkyCam,
-                                         ViewportSkySurface::SkyWidth, ViewportSkySurface::SkyHeight,
-                                         SkyPixels).Resolved)
-                        static_cast<void>(SkySurface.Upload(SkyPixels.data()));
-                    SkyPrevious = SceneApplied.Environment;
+                    SceneApplied.Environment.SunAzimuth = std::fmod(
+                        SceneApplied.Environment.SunAzimuth +
+                        SceneApplied.Environment.DayCycleDegreesPerSecond *
+                        (Pass.ElapsedMilliseconds / 1000.0), 360.0);
+                    if (SceneApplied.Environment.SunAzimuth < 0.0)
+                        SceneApplied.Environment.SunAzimuth += 360.0;
+                }
+
+                AtmosphereState Authored;
+                Authored.SunElevation = SceneApplied.Environment.SunElevation;
+                Authored.SunAzimuth = SceneApplied.Environment.SunAzimuth;
+                Authored.SunIlluminance = SceneApplied.Environment.SunIntensity;
+                Authored.SunTemperature = SceneApplied.Environment.SunTemperature;
+                Authored.SunAngularRadius = 0.266 * SceneApplied.Environment.SunDiscRadius;
+                Authored.SunDiscIntensity = SceneApplied.Environment.SunDiscIntensity;
+                Authored.SkyIntensity = SceneApplied.Environment.SkyIntensity;
+                Authored.ExposureCompensation = SceneApplied.Environment.ExposureCompensation;
+                Authored.GroundAlbedo = SceneApplied.Environment.GroundAlbedo;
+                Authored.RayleighDensity = SceneApplied.Environment.AtmosphereDensity;
+                Authored.RayleighScaleHeightKilometres = 8.0 * SceneApplied.Environment.AtmosphereScaleHeight;
+                Authored.MieDensity = SceneApplied.Environment.MieDensity;
+                Authored.MieScaleHeightKilometres = SceneApplied.Environment.MieScaleHeightKilometres;
+                Authored.MieAsymmetry = SceneApplied.Environment.MieAsymmetry;
+                Authored.OzoneDensity = SceneApplied.Environment.OzoneDensity;
+                Authored.CameraAltitudeKilometres = std::max(EditorCamera.LaggedPosition[1], 0.0) * 0.001;
+
+                const AtmosphereDirty Dirty = DynamicAtmosphere.Apply(Authored);
+
+                SunLight.SetSolarPosition(Authored.SunAzimuth, Authored.SunElevation);
+                SunLight.Illuminance = Authored.SunIlluminance;
+                SunLight.TemperatureKelvin = Authored.SunTemperature;
+                SunLight.AngularRadiusDegrees = Authored.SunAngularRadius;
+                SunLight.ShadowStrength = SceneApplied.Environment.SunShadowStrength;
+                SunLight.CastShadows = SceneApplied.Environment.SunShadowStrength > 0.0;
+
+                DynamicSkyParameters GPU;
+                GPU.SunElevationDegrees = static_cast<float>(Authored.SunElevation);
+                GPU.SunAzimuthDegrees = static_cast<float>(Authored.SunAzimuth);
+                GPU.SunIlluminance = static_cast<float>(Authored.SunIlluminance);
+                GPU.SunTemperatureKelvin = static_cast<float>(Authored.SunTemperature);
+                GPU.SunAngularRadiusDegrees = static_cast<float>(Authored.SunAngularRadius);
+                GPU.SunDiscIntensity = static_cast<float>(Authored.SunDiscIntensity);
+                GPU.SkyIntensity = static_cast<float>(Authored.SkyIntensity);
+                GPU.ExposureCompensation = static_cast<float>(Authored.ExposureCompensation);
+                GPU.GroundAlbedo = static_cast<float>(Authored.GroundAlbedo);
+                GPU.RayleighDensity = static_cast<float>(Authored.RayleighDensity);
+                GPU.RayleighScaleHeightKilometres = static_cast<float>(Authored.RayleighScaleHeightKilometres);
+                GPU.MieDensity = static_cast<float>(Authored.MieDensity);
+                GPU.MieScaleHeightKilometres = static_cast<float>(Authored.MieScaleHeightKilometres);
+                GPU.MieAsymmetry = static_cast<float>(Authored.MieAsymmetry);
+                GPU.OzoneDensity = static_cast<float>(Authored.OzoneDensity);
+                GPU.CameraAltitudeKilometres = static_cast<float>(Authored.CameraAltitudeKilometres);
+                GPU.Quality = std::min(SceneApplied.Environment.AtmosphereQuality, 3u);
+
+                const bool Refresh = !SkyEverGenerated || Dirty != AtmosphereDirty::None ||
+                                     SkyQuality != GPU.Quality;
+                if (AtmosphereSurface.Record(Pass.Recording, GPU, Refresh).Resolved)
+                {
                     SkyEverGenerated = true;
-                    // 📝 The camera is the EditorCameraComponent's; `SkyCam` only frames the DOME's generation
-                    //    (which is camera-independent) and never the viewport crop.
+                    SkyQuality = GPU.Quality;
                 }
                 SceneApplied.SkyTextureIdentity = SkyTextureIdentity;
-                // 📝 The viewport crop is the fly camera's own, written by the camera step every tick;
-                //    the sky regeneration must NOT restate it — the old fixed `SkyCam` pose (pitch 15)
-                //    would snap the crop for the tick an environment change lands on.
             }
             else
-            {
                 SceneApplied.SkyTextureIdentity = 0u;
-            }
 
             // 📝 The layer stack's structural request is drained exactly once per tick, through the
             //    same shared helper the harness drives — the row set and the working copies stay in
@@ -1124,20 +1318,6 @@ int main(int ArgumentCount, char** ArgumentValues)
                 SceneApplied.CameraBookmarkRecallRequested = false;
             }
 
-            // 📝 The history demand is drained ONCE per drag — the shell raises it at drag end, the host
-            //    appends it to its own run and clears the slot, and no tick in between wrote a revision.
-            if (SceneApplied.RevisionDemandSlot.Standing && EditorRevisionCount < 8u)
-            {
-                EntityRevision& Written = EditorRevisions[EditorRevisionCount++];
-                Written.Description = SceneApplied.RevisionDemandSlot.Caption;
-                Written.Secondary   = SceneApplied.RevisionDemandSlot.Secondary;
-                Written.TimeRun     = "now";
-                Written.Author      = "Artist";
-                Written.Against     = SceneApplied.RevisionDemandSlot.Against;
-                Written.Classified  = RevisionSubject::Parameter;
-                SceneApplied.RevisionDemandSlot = {};
-            }
-
             Viewport.RecordDrawers();
             Viewport.DrawerPanels();
 
@@ -1147,14 +1327,17 @@ int main(int ArgumentCount, char** ArgumentValues)
             //     extent it offers is a different one on almost every tick of an open or a close.
             const PlaneExtent BrowserInterior = Viewport.Drawers().Interior(DrawerBearing::South);
 
-            BrowserLedger.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+            BrowserInteraction.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
             ContentBrowser.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
 
             if (BrowserInterior.Width() > 0.0f && BrowserInterior.Height() > 0.0f)
             {
                 Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
+                ThemeToken DrawerGround = Viewport.Appearance().Colour.SurfaceCurrent;
+                DrawerGround.Opacity = 255u;
+                Viewport.Surface().Ground(BrowserInterior, DrawerGround, 0.0f, CornerNone);
                 ContentBrowser.RecordBrowser(BrowserInterior, ContentApplied, ContentBrowserApplied);
-                ContentBrowser.RecordDeferred(ContentBrowserApplied);
+                ContentBrowser.RecordDeferred();
 
                 // 🔴 Declared every tick or lost. Without it the drawer owns every contact inside its own
                 //    body, so taking a record or dragging the lattice slides the drawer instead.
@@ -1166,9 +1349,31 @@ int main(int ArgumentCount, char** ArgumentValues)
             ControlCentre.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
             // 📝 The artist's per-role weights are declared every tick so the workspace's panels read the
             //    current choice; the viewport re-states them after each resolve.
-            Viewport.ApplyTypographyWeights(ControlCentreValues.TypographyWeight);
+            Viewport.ApplyTypographyRoles(ControlCentreValues.TypographySize,
+                                          ControlCentreValues.TypographyWeight);
             Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
+            if (ControlInterior.Width() > 0.0f && ControlInterior.Height() > 0.0f)
+            {
+                ThemeToken DrawerGround = Viewport.Appearance().Colour.SurfaceCurrent;
+                DrawerGround.Opacity = 255u;
+                Viewport.Surface().Ground(ControlInterior, DrawerGround, 0.0f, CornerNone);
+            }
             Discard(ControlCentre.Record(ControlInterior, ControlCentreValues));
+
+            // UI Scaling was previously only a displayed Control Centre value. It now re-resolves the shared
+            // appearance, while display DPI remains an independent multiplier. Panels that cache derived
+            // metrics are explicitly reseated; borrowed-theme panels observe the same profile immediately.
+            if (Viewport.ApplyInterfaceScale(ControlCentreValues.Scaling))
+            {
+                Discard(Viewport.Seam().ApplyWorkspaceStyle(
+                    Viewport.Appearance().WorkspaceMeasure,
+                    Viewport.Appearance().Workspace));
+                ContentBrowser.Reapply(Viewport.Appearance());
+                SceneDirectory.Reapply(Viewport.Appearance());
+                TexturePaint.Reapply(Viewport.Appearance());
+            }
+            Discard(Viewport.Seam().ApplyInterfaceAntialiasing(
+                ControlCentreValues.GeometryAntialiasing));
 
             // 📝 Compared rather than watched. The Control Centre writes the artist's choice straight into the
             //    ordinates, so the change is visible here as a difference and needs no callback to report it.
@@ -1210,6 +1415,8 @@ int main(int ArgumentCount, char** ArgumentValues)
                         Viewport.Appearance().WorkspaceMeasure,
                         Viewport.Appearance().Workspace));
                     ContentBrowser.Reapply(Viewport.Appearance());
+                    SceneDirectory.Reapply(Viewport.Appearance());
+                    TexturePaint.Reapply(Viewport.Appearance());
                     if (FamilyAltered)
                         Fonts.RequestLoad(FontRoot.c_str(), Viewport.Appearance().Fonts, 1.0f);
                 }
@@ -1217,8 +1424,33 @@ int main(int ArgumentCount, char** ArgumentValues)
             ControlCentre.Exclude(Viewport.Drawers());
             Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Beneath));
 
+            // 🧩 Admission is deliberately drained while the host command recording is open and before the
+            // interface begins the display scope. The imported packet has already travelled through source drain,
+            // faithful decode, document intake, Earcut rendering-packet construction, and partition registration.
+            if (GeometryAdmissionPending && GeometryDevice.Standing())
+            {
+                const Outcome<const PartitionStructure*> Partitioned =
+                    ImportedVisibility.Registered(PendingVisibilityRegistration);
+                const Outcome<const GeometryRenderingSnapshot*> Rendering =
+                    ImportedRendering.Resolve(PendingRendering);
+                if (Partitioned.Resolved && Rendering.Resolved)
+                {
+                    const Outcome<std::uint32_t> Admitted = GeometryDevice.Admit(
+                        *Partitioned.Resolve(), *Rendering.Resolve(), PendingRegistrationBase, Pass.Recording);
+                    if (Admitted.Resolved)
+                        GeometryAdmissionPending = false;
+                    else
+                        std::printf("%s — geometry admission refused (reason %u: %s)\n", HostName,
+                                    static_cast<unsigned>(Admitted.Error.DeclaredReason), Admitted.Error.Detail);
+                }
+            }
+
             if (Viewport.SealPanels().Resolved)
             {
+                // Scene compute and classic render constructs record before this boundary. The interface and
+                // display-referred overlay require the dynamic display scope and therefore begin it here.
+                Discard(Lifetime.BeginDisplay());
+
                 // 🔴 Read. A rejected Record presents the cleared ground with nothing on it, which is
                 //    indistinguishable from a panel that drew nothing, so the refusal is named here.
                 if (!Viewport.Record(Pass.Recording))
@@ -1232,19 +1464,23 @@ int main(int ArgumentCount, char** ArgumentValues)
                 //    Each viewport leaf's geometry is uploaded at most once per generation change
                 //    and drawn with a scissor clipped to that leaf's box, so the overlay never
                 //    paints over the outliner, the properties or any other panel.
-                for (std::uint32_t ViewportOrdinal = 0u; ViewportOrdinal < ViewportLeafTally;
-                     ++ViewportOrdinal)
+                // The GPU overlay is recorded after the interface and therefore cannot be hidden by an
+                // ImGui ground. Suppress it while either opaque foreground drawer stands; otherwise the
+                // lattice would visibly cut through Control Centre and Content Browser pages.
+                for (std::uint32_t ViewportIndex = 0u;
+                     !ForegroundDrawerStanding && ViewportIndex < ViewportLeafTally;
+                     ++ViewportIndex)
                 {
-                    const std::uint32_t LeafOrdinal = ViewportLeafOrdinals[ViewportOrdinal];
-                    OverlayGeometry& LeafOverlay = ViewportOverlays[LeafOrdinal];
+                    const std::uint32_t LeafIndex = ViewportLeafIndexs[ViewportIndex];
+                    OverlayGeometry& LeafOverlay = ViewportOverlays[LeafIndex];
 
-                    if (LeafOverlay.Generation != OverlayGeneration[LeafOrdinal])
+                    if (LeafOverlay.Generation != OverlayGeneration[LeafIndex])
                     {
                         Overlay.Upload(LeafOverlay);
-                        OverlayGeneration[LeafOrdinal] = LeafOverlay.Generation;
+                        OverlayGeneration[LeafIndex] = LeafOverlay.Generation;
                     }
 
-                    const PlaneExtent& LeafRect = ViewportLeafRects[ViewportOrdinal];
+                    const PlaneExtent& LeafRect = ViewportLeafRects[ViewportIndex];
 
                     Overlay.Record(Pass.Recording, Pass.Width, Pass.Height,
                                    LeafRect.MinimumX, LeafRect.MinimumY,
@@ -1278,16 +1514,17 @@ int main(int ArgumentCount, char** ArgumentValues)
 
     ControlCentre.Reset();
     WorkspacePanels.Reset();
-    for (std::uint32_t Ordinal = 0u; Ordinal < WorkspaceIndex::WorkspaceCeiling; ++Ordinal)
-        PanelPartitions[Ordinal].Reset();
+    for (std::uint32_t Index = 0u; Index < WorkspaceIndex::WorkspaceLimit; ++Index)
+        PanelPartitions[Index].Reset();
     Workspace.Reset();
     Workspaces.Reset();
     Viewport.Reclaim();
 
-    // 🔴 The sky surface is reclaimed BEFORE the device: its fence wait needs the device alive, and a
-    //    surface left standing past `Lifetime.Reclaim()` waited on a dead device in its destructor —
+    // 🔴 The atmosphere presentation is reclaimed BEFORE the device: its fence wait needs the device alive,
+    //    and a surface left standing past `Lifetime.Reclaim()` waited on a dead device in its destructor —
     //    the "vkWaitForFences: Invalid device" reported at shutdown.
-    SkySurface.Reclaim();
+    GeometryDevice.Reclaim();
+    AtmosphereSurface.Reclaim();
     SkyRegistered = false;
     SkyTextureIdentity = 0u;
     Overlay.Reclaim();

@@ -34,12 +34,12 @@ Outcome<OwnerIdentity> OutlinerSequence::Register(const std::string& DeclaredNam
     if (!DeclaredName.empty())
         Discard(NameSearch.Declare(Incoming, DeclaredName));
 
-    const std::size_t Required = static_cast<std::size_t>(Incoming.SlotOrdinal) + 1u;
+    const std::size_t Required = static_cast<std::size_t>(Incoming.SlotIndex) + 1u;
 
     if (Required > LiveGenerations.size())
         LiveGenerations.resize(Required, 0u);
 
-    LiveGenerations[Incoming.SlotOrdinal] = Incoming.SlotGeneration;
+    LiveGenerations[Incoming.SlotIndex] = Incoming.SlotGeneration;
 
     // 📝 An owner incoming while a narrowing stands is retained by nothing, so the narrowing is owed again
     //    at ⑦. Without it the arrival is hidden by a search its own name may well confirm.
@@ -142,11 +142,11 @@ Outcome<bool> OutlinerSequence::ApplySubset(const DeclaredIntent& Applying,
         }
         else
         {
-            for (std::size_t Ordinal = 0u; Ordinal < Current.size(); ++Ordinal)
+            for (std::size_t Index = 0u; Index < Current.size(); ++Index)
             {
-                if (Current[Ordinal] == Applying.Subject)
+                if (Current[Index] == Applying.Subject)
                 {
-                    Current.erase(Current.begin() + static_cast<std::ptrdiff_t>(Ordinal));
+                    Current.erase(Current.begin() + static_cast<std::ptrdiff_t>(Index));
                     break;
                 }
             }
@@ -402,8 +402,8 @@ Outcome<bool> OutlinerSequence::Reconcile(std::uint64_t SealedAt)
     {
         Discard(Population.Withdraw(Departing));
 
-        if (Departing.SlotOrdinal < LiveGenerations.size())
-            LiveGenerations[Departing.SlotOrdinal] = 0u;
+        if (Departing.SlotIndex < LiveGenerations.size())
+            LiveGenerations[Departing.SlotIndex] = 0u;
     }
 
     RemovedOwners.clear();

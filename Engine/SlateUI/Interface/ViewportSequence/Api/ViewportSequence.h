@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/DrawerSpace/Api/DrawerSpace.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/InterfaceExchange.h"
@@ -51,7 +51,7 @@ public:
     /// post  both drawers stand Closed and settled; nothing moves until a pointer arrives
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const InterfaceAttachment& Incoming,
+    Outcome<bool> ConstructViewportSequence(const InterfaceAttachment& Incoming,
                             const DrawerDeclaration&   North,
                             const DrawerDeclaration&   South);
 
@@ -131,6 +131,15 @@ public:
     /// tag   api, nonallocating, nonthrowing
     void Retint(const ThemeSelection& Selected);
 
+    /// 🧩 Applies the artist's interface-scale preference to every later appearance resolution.
+    /// in    Percentage  [%]  clamped to the same 75–200 range as AppearanceSpecification
+    /// out   Altered     [-]  true only when the effective scale changed
+    /// note  The display scale remains independent: high-DPI scaling and the artist preference multiply once.
+    /// post  Appearance() immediately reports the newly scaled metrics
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    bool ApplyInterfaceScale(std::uint32_t Percentage);
+
     /// 🧩 Declares the per-role typeface weights every later resolution folds into the appearance.
     /// in    Weights  [-]  the eight `ControlCentreConfiguration::TypographyWeight` figures — Title, Header,
     ///                     Subheader, Body, Label, Caption, Warning, Alert, as `FontWeight` values
@@ -139,6 +148,8 @@ public:
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     void ApplyTypographyWeights(const std::uint32_t Weights[8]);
+    /// Applies both semantic role sizes and weights to every TextRun and matching measurement.
+    void ApplyTypographyRoles(const std::uint32_t Sizes[8], const std::uint32_t Weights[8]);
 
     /// 🧩 The shared motion integrator, for panels whose interaction contributes to viewport wakefulness.
     /// cost  ✔️
@@ -183,12 +194,14 @@ public:
 private:
 
     /// 🧩 Applies the declared role weights to a freshly resolved appearance.
-    void RestateTypography(ThemeProfile& Profile) const;
+    void RestateTypography(ThemeProfile& Profile);
 
     InterfaceExchange        Interface         = {};   // [-] - the interface context and ImGui
     MotionIntegrator         Motion            = {};   // [-] - spring physics
-    ThemeProfile  Resolved          = {};   // [-] - colours and metrics at the display scale
+    ThemeProfile  Resolved          = {};   // [-] - colours and metrics at the display and artist scales
     ThemeSelection           Chosen            = {};   // [-] - the theme every resolve is anchored onto
+    double                   InterfaceScale    = 1.0;  // [-] - artist preference, independent of display DPI
+    std::uint32_t RoleSizes[8] = {24u, 20u, 16u, 14u, 12u, 10u, 14u, 14u};
     std::uint32_t RoleWeights[8] = {600u, 600u, 500u, 400u, 500u, 400u, 500u, 600u};   // [-] - the FontProfile defaults
     DrawerSpace              DrawersOwned      = {};   // [-] - the two drawers
     RedrawScheduler          MarksOwned        = {};   // [-] - per-panel redraw marks

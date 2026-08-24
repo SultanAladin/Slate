@@ -64,15 +64,15 @@ constexpr std::uint32_t ConsumedChannels[static_cast<std::size_t>(ReflectanceSel
 
 bool ChannelConsumed(ReflectanceSelection Selected, ChannelSubject Channel)
 {
-    const std::size_t Ordinal = static_cast<std::size_t>(Selected);
+    const std::size_t Index = static_cast<std::size_t>(Selected);
 
-    if (Ordinal >= static_cast<std::size_t>(ReflectanceSelection::ReflectanceCount))
+    if (Index >= static_cast<std::size_t>(ReflectanceSelection::ReflectanceCount))
         return false;
 
     if (Channel == ChannelSubject::ChannelCount)
         return false;
 
-    return (ConsumedChannels[Ordinal] & ChannelBit(Channel)) != 0u;
+    return (ConsumedChannels[Index] & ChannelBit(Channel)) != 0u;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -88,9 +88,9 @@ void MaterialSpecification::DeclareReflectance(ReflectanceSelection Selecting)
 
 Outcome<bool> MaterialSpecification::DeclareChannel(ChannelSubject Channel, const ChannelSpecification& Declaring)
 {
-    const std::size_t Ordinal = static_cast<std::size_t>(Channel);
+    const std::size_t Index = static_cast<std::size_t>(Channel);
 
-    if (Ordinal >= ChannelSpan)
+    if (Index >= ChannelSpan)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such channel" });
 
     if (MeasureCarriesColour(Declaring.Measured))
@@ -122,8 +122,8 @@ Outcome<bool> MaterialSpecification::DeclareChannel(ChannelSubject Channel, cons
         }
     }
 
-    Declarations[Ordinal]                 = Declaring;
-    Declarations[Ordinal].ChannelDeclared = true;
+    Declarations[Index]                 = Declaring;
+    Declarations[Index].ChannelDeclared = true;
 
     return Outcome<bool>::Result(true);
 }
@@ -144,16 +144,16 @@ bool                 MaterialSpecification::CutoutRegistered() const  { return C
 
 const ChannelSpecification& MaterialSpecification::Channel(ChannelSubject Subject) const
 {
-    const std::size_t Ordinal = static_cast<std::size_t>(Subject);
+    const std::size_t Index = static_cast<std::size_t>(Subject);
 
-    return Declarations[Ordinal < ChannelSpan ? Ordinal : 0u];
+    return Declarations[Index < ChannelSpan ? Index : 0u];
 }
 
 bool MaterialSpecification::ChannelSampled(ChannelSubject Subject) const
 {
-    const std::size_t Ordinal = static_cast<std::size_t>(Subject);
+    const std::size_t Index = static_cast<std::size_t>(Subject);
 
-    if (Ordinal >= ChannelSpan)
+    if (Index >= ChannelSpan)
         return false;
 
     if (!ChannelConsumed(Selected, Subject))
@@ -161,16 +161,16 @@ bool MaterialSpecification::ChannelSampled(ChannelSubject Subject) const
 
     // 📝 An undeclared or Absent channel resolves to its declared default and is not sampled. That is the whole
     //    point of `42` §2's Absent source: the value is read directly rather than fetched from anywhere.
-    return Declarations[Ordinal].ChannelDeclared && Declarations[Ordinal].Source != ChannelSource::Absent;
+    return Declarations[Index].ChannelDeclared && Declarations[Index].Source != ChannelSource::Absent;
 }
 
 bool MaterialSpecification::ChannelConverted(ChannelSubject Subject) const
 {
-    const std::size_t Ordinal = static_cast<std::size_t>(Subject);
+    const std::size_t Index = static_cast<std::size_t>(Subject);
 
-    return Ordinal < ChannelSpan
-        && Declarations[Ordinal].ChannelDeclared
-        && MeasureCarriesColour(Declarations[Ordinal].Measured);
+    return Index < ChannelSpan
+        && Declarations[Index].ChannelDeclared
+        && MeasureCarriesColour(Declarations[Index].Measured);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -179,42 +179,42 @@ bool MaterialSpecification::ChannelConverted(ChannelSubject Subject) const
 
 Outcome<std::uint32_t> MaterialIndex::Declare(const std::string& Named)
 {
-    if (Declared.size() >= MaterialCeiling)
+    if (Declared.size() >= MaterialLimit)
     {
         return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "the document reached its material ceiling" });
     }
 
-    const std::uint32_t MaterialOrdinal = static_cast<std::uint32_t>(Declared.size());
+    const std::uint32_t MaterialIndex = static_cast<std::uint32_t>(Declared.size());
 
     Declared.push_back(MaterialSpecification{});
     DeclaredNames.push_back(Named);
 
-    return Outcome<std::uint32_t>::Result(MaterialOrdinal);
+    return Outcome<std::uint32_t>::Result(MaterialIndex);
 }
 
-Outcome<const MaterialSpecification*> MaterialIndex::Resolve(std::uint32_t MaterialOrdinal) const
+Outcome<const MaterialSpecification*> MaterialIndex::Resolve(std::uint32_t MaterialIndex) const
 {
-    if (MaterialOrdinal >= Declared.size())
+    if (MaterialIndex >= Declared.size())
     {
         return Outcome<const MaterialSpecification*>::Refuse(
             { RefusalReason::ContentUnsupported, "no such material" });
     }
 
-    return Outcome<const MaterialSpecification*>::Result(&Declared[MaterialOrdinal]);
+    return Outcome<const MaterialSpecification*>::Result(&Declared[MaterialIndex]);
 }
 
-Outcome<MaterialSpecification*> MaterialIndex::Amend(std::uint32_t MaterialOrdinal)
+Outcome<MaterialSpecification*> MaterialIndex::Amend(std::uint32_t MaterialIndex)
 {
-    if (MaterialOrdinal >= Declared.size())
+    if (MaterialIndex >= Declared.size())
         return Outcome<MaterialSpecification*>::Refuse({ RefusalReason::ContentUnsupported, "no such material" });
 
-    return Outcome<MaterialSpecification*>::Result(&Declared[MaterialOrdinal]);
+    return Outcome<MaterialSpecification*>::Result(&Declared[MaterialIndex]);
 }
 
-const std::string& MaterialIndex::DeclaredName(std::uint32_t MaterialOrdinal) const
+const std::string& MaterialIndex::DeclaredName(std::uint32_t MaterialIndex) const
 {
-    return MaterialOrdinal < DeclaredNames.size() ? DeclaredNames[MaterialOrdinal] : AbsentName;
+    return MaterialIndex < DeclaredNames.size() ? DeclaredNames[MaterialIndex] : AbsentName;
 }
 
 std::uint32_t MaterialIndex::DeclaredCount() const
@@ -244,14 +244,14 @@ Outcome<PartitionIdentity> PartitionResolutionIndex::Declare(const ResolvedParti
             { RefusalReason::IdentityStale, "a partition resolves to no owner" });
     }
 
-    if (Resolutions.size() >= PartitionCeiling)
+    if (Resolutions.size() >= PartitionLimit)
     {
         return Outcome<PartitionIdentity>::Refuse(
             { RefusalReason::ExtentExhausted, "the partition ceiling was reached" });
     }
 
     PartitionIdentity Registered;
-    Registered.SlotOrdinal    = static_cast<std::uint32_t>(Resolutions.size());
+    Registered.SlotIndex    = static_cast<std::uint32_t>(Resolutions.size());
     Registered.SlotGeneration = static_cast<std::uint32_t>(DerivedRevision);
 
     Resolutions.push_back(Resolving);
@@ -261,7 +261,7 @@ Outcome<PartitionIdentity> PartitionResolutionIndex::Declare(const ResolvedParti
 
 Outcome<ResolvedPartition> PartitionResolutionIndex::Resolve(PartitionIdentity Subject) const
 {
-    if (!Subject.IdentityDeclared() || Subject.SlotOrdinal >= Resolutions.size())
+    if (!Subject.IdentityDeclared() || Subject.SlotIndex >= Resolutions.size())
         return Outcome<ResolvedPartition>::Refuse({ RefusalReason::IdentityStale, "no such partition" });
 
     if (Subject.SlotGeneration != static_cast<std::uint32_t>(DerivedRevision))
@@ -270,7 +270,7 @@ Outcome<ResolvedPartition> PartitionResolutionIndex::Resolve(PartitionIdentity S
             { RefusalReason::IdentityStale, "the partitioning was derived again since the identity was taken" });
     }
 
-    return Outcome<ResolvedPartition>::Result(Resolutions[Subject.SlotOrdinal]);
+    return Outcome<ResolvedPartition>::Result(Resolutions[Subject.SlotIndex]);
 }
 
 std::uint64_t PartitionResolutionIndex::Revision() const      { return DerivedRevision; }

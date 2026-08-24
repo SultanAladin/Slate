@@ -18,7 +18,7 @@ VkImageLayout AttachmentIndex::LayoutOf(bool DepthAspect)
                        : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 }
 
-Outcome<bool> AttachmentIndex::Construct(const VulkanExchange& Exchange, const TargetSpace& Reserved)
+Outcome<bool> AttachmentIndex::ConstructAttachmentIndex(const VulkanExchange& Exchange, const TargetSpace& Reserved)
 {
     if (Exchange.ActiveDevice() == VK_NULL_HANDLE)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
@@ -92,7 +92,7 @@ Outcome<std::uint32_t> AttachmentIndex::Declare(const ConstructDeclaration& Decl
 
         // 📝 Cleared to `FarPlaneDepth` by the recording that opens the construct, not by a magnitude declared
         //    here. The construct states that a clear happens; what it clears to is the reversed-depth
-        //    convention `Contract/` holds, and stating it twice is how the two come to differ.
+        //    convention `Foundation/` holds, and stating it twice is how the two come to differ.
         VkAttachmentDescription Description = {};
         Description.format                  = Current.Resolve().Shape.Format;
         Description.samples                 = VK_SAMPLE_COUNT_1_BIT;
@@ -138,7 +138,7 @@ Outcome<std::uint32_t> AttachmentIndex::Declare(const ConstructDeclaration& Decl
     Held.ColourTargets   = Declaring.ColourTargets;
     Held.DepthTarget     = Declaring.DepthTarget;
 
-    const std::uint32_t ConstructOrdinal = static_cast<std::uint32_t>(Constructs.size());
+    const std::uint32_t ConstructIndex = static_cast<std::uint32_t>(Constructs.size());
 
     Constructs.push_back(Held);
 
@@ -147,7 +147,7 @@ Outcome<std::uint32_t> AttachmentIndex::Declare(const ConstructDeclaration& Decl
     //    construct rather than a span covering every construct but the newest.
     SpanCurrent = false;
 
-    return Outcome<std::uint32_t>::Result(ConstructOrdinal);
+    return Outcome<std::uint32_t>::Result(ConstructIndex);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -231,8 +231,8 @@ Outcome<bool> AttachmentIndex::Derive(std::uint32_t DisplayWidth, std::uint32_t 
 
     Release();
 
-    for (std::size_t ConstructOrdinal = 0u; ConstructOrdinal < Constructs.size(); ++ConstructOrdinal)
-        Constructs[ConstructOrdinal].SpannedTargets = Incoming[ConstructOrdinal];
+    for (std::size_t ConstructIndex = 0u; ConstructIndex < Constructs.size(); ++ConstructIndex)
+        Constructs[ConstructIndex].SpannedTargets = Incoming[ConstructIndex];
 
     DerivedWidth  = DisplayWidth;
     DerivedHeight = DisplayHeight;
@@ -245,9 +245,9 @@ Outcome<bool> AttachmentIndex::Derive(std::uint32_t DisplayWidth, std::uint32_t 
 //                                                    THE RESOLUTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<ConstructedSpan> AttachmentIndex::Resolve(std::uint32_t ConstructOrdinal) const
+Outcome<ConstructedSpan> AttachmentIndex::Resolve(std::uint32_t ConstructIndex) const
 {
-    if (static_cast<std::size_t>(ConstructOrdinal) >= Constructs.size())
+    if (static_cast<std::size_t>(ConstructIndex) >= Constructs.size())
     {
         return Outcome<ConstructedSpan>::Refuse(
             { RefusalReason::ContentUnsupported, "no render construct stands at that ordinal" });
@@ -259,7 +259,7 @@ Outcome<ConstructedSpan> AttachmentIndex::Resolve(std::uint32_t ConstructOrdinal
             { RefusalReason::ExtentExhausted, "no span has been derived at any display extent" });
     }
 
-    const HeldConstruct& Held = Constructs[ConstructOrdinal];
+    const HeldConstruct& Held = Constructs[ConstructIndex];
 
     ConstructedSpan Resolved;
     Resolved.RenderConstruct = Held.RenderConstruct;
@@ -270,15 +270,15 @@ Outcome<ConstructedSpan> AttachmentIndex::Resolve(std::uint32_t ConstructOrdinal
     return Outcome<ConstructedSpan>::Result(Resolved);
 }
 
-Outcome<VkRenderPass> AttachmentIndex::ConstructOf(std::uint32_t ConstructOrdinal) const
+Outcome<VkRenderPass> AttachmentIndex::ConstructOf(std::uint32_t ConstructIndex) const
 {
-    if (static_cast<std::size_t>(ConstructOrdinal) >= Constructs.size())
+    if (static_cast<std::size_t>(ConstructIndex) >= Constructs.size())
     {
         return Outcome<VkRenderPass>::Refuse(
             { RefusalReason::ContentUnsupported, "no render construct stands at that ordinal" });
     }
 
-    return Outcome<VkRenderPass>::Result(Constructs[ConstructOrdinal].RenderConstruct);
+    return Outcome<VkRenderPass>::Result(Constructs[ConstructIndex].RenderConstruct);
 }
 
 std::uint32_t AttachmentIndex::DeclaredCount() const

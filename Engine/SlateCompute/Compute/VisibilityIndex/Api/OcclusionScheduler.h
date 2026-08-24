@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateCompute/Compute/VisibilityIndex/Api/DepthReduction.h"
 #include "SlateCompute/Compute/VisibilityIndex/Api/PartitionClassifier.h"
 #include "SlateVulkan/Device/DescriptorIndex/Api/DescriptorIndex.h"
@@ -36,7 +36,7 @@ namespace Slate
 /// note  🔴 Both are required. `16` §2 tests against last rotation's reduction to record a draw without waiting,
 ///        and then against this rotation's to admit what the camera has just moved into view — a single-phase
 ///        arrangement rejects every silhouette the camera approached, which reads as geometry appearing late.
-/// tag   contract
+/// tag   guarantee
 enum class CullingPhase : std::uint32_t
 {
     AgainstPrevious = 0u,   // [-] - ①; the reduction the previous rotation left standing
@@ -77,8 +77,8 @@ struct UploadedOcclusion
     std::uint32_t  LevelCount      = 0u;   // [-]  - levels the chain carries
     std::uint32_t  DisplayX    = 0u;   // [px] - the extent the finest level covers
     std::uint32_t  DisplayY   = 0u;   // [px]
-    std::uint32_t  TriangleCeiling = 0u;   // [-]  - entries the surviving run can hold
-    std::uint32_t  PhaseOrdinal    = 0u;   // [-]  - which of `16` §2's two phases is dispatching
+    std::uint32_t  TriangleLimit = 0u;   // [-]  - entries the surviving run can hold
+    std::uint32_t  PhaseIndex    = 0u;   // [-]  - which of `16` §2's two phases is dispatching
     std::uint32_t  Unoccupied1     = 0u;   // [-]
     std::uint32_t  Unoccupied2     = 0u;   // [-]
 };
@@ -118,9 +118,9 @@ struct CulledResidency
     std::vector<std::uint32_t>  VerdictSpans    = {};           // [-] - ①'s per-partition verdict, per slot
     std::vector<std::uint32_t>  RecordSpans     = {};           // [-] - PhaseSlot-indexed indirect records
     std::vector<std::uint32_t>  SurvivingSpans  = {};           // [-] - PhaseSlot-indexed compacted ordinals
-    std::vector<std::uint32_t>  ReservationOrdinals   = {};           // [-] - PhaseSlot-indexed culling claims
+    std::vector<std::uint32_t>  ReservationIndexs   = {};           // [-] - PhaseSlot-indexed culling claims
     std::vector<bool>           AmendedFor      = {};           // [-] - one per cycle slot
-    std::uint32_t               TriangleCeiling = 0u;           // [-] - triangles the residency's fan carries
+    std::uint32_t               TriangleLimit = 0u;           // [-] - triangles the residency's fan carries
     std::uint32_t               PartitionCount  = 0u;           // [-] - partitions it declared
 };
 
@@ -130,9 +130,9 @@ struct CulledResidency
 ///        routine rather than a repeated product.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-constexpr std::uint32_t PhaseSlot(CullingPhase Phase, std::uint32_t SlotOrdinal)
+constexpr std::uint32_t PhaseSlot(CullingPhase Phase, std::uint32_t SlotIndex)
 {
-    return static_cast<std::uint32_t>(Phase) * RecordingSlotCount + SlotOrdinal;
+    return static_cast<std::uint32_t>(Phase) * RecordingSlotCount + SlotIndex;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -173,7 +173,7 @@ public:
     /// post  both programs stand; no chain is derived and no residency is claimable
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(SpanSpace&        Spans,
+    Outcome<bool> ConstructOcclusionScheduler(SpanSpace&        Spans,
                             ImageSpace&       Images,
                             const TargetSpace& Reserved,
                             ShaderCodec&      Modules,
@@ -195,7 +195,7 @@ public:
     Outcome<bool> Derive(std::uint32_t DisplayX, std::uint32_t DisplayY);
 
     /// 🧩 Reservations the culling spans for one resident partitioning.
-    /// in    TriangleCeiling  [-]  triangles the residency's fan carries; the surviving run is sized to it
+    /// in    TriangleLimit  [-]  triangles the residency's fan carries; the surviving run is sized to it
     /// in    PartitionCount   [-]  partitions the registration declared
     /// out   Result          [-]  the culling ordinal; refuses with whatever the claim rejected and with
     ///                             ContentUnsupported for a residency carrying no triangle
@@ -206,11 +206,11 @@ public:
     ///        would do it to a set the previous rotation's dispatch is still reading.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Resolve(std::uint32_t TriangleCeiling, std::uint32_t PartitionCount);
+    Outcome<std::uint32_t> Resolve(std::uint32_t TriangleLimit, std::uint32_t PartitionCount);
 
     /// 🧩 Writes one rotation's classification into a residency's span and clears its indirect record.
-    /// in    CullingOrdinal  [-]  an ordinal this component registered
-    /// in    SlotOrdinal    [-]  below `RecordingSlotCount`
+    /// in    CullingIndex  [-]  an ordinal this component registered
+    /// in    SlotIndex    [-]  below `RecordingSlotCount`
     /// in    Classified      [-]  one entry per partition, as `ClassifyPartition` produced them in order
     /// out   Result         [-]  refuses with ContentUnsupported for an unclaimed ordinal or a run disagreeing
     ///                            with the declared partition count, and with whatever the write rejected
@@ -223,13 +223,13 @@ public:
     ///        run at the partition count and lets the entry point's dispatch extent be that same count.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Amend(std::uint32_t                             CullingOrdinal,
-                        std::uint32_t                             SlotOrdinal,
+    Outcome<bool> Amend(std::uint32_t                             CullingIndex,
+                        std::uint32_t                             SlotIndex,
                         const std::vector<ClassifiedPartition>&   Classified);
 
     /// 🧩 Records ② — one dispatch per level, reducing the depth target into the chain.
     /// in    Recorded      [-]  the open recording of this cycle slot
-    /// in    SlotOrdinal  [-]  below `RecordingSlotCount`
+    /// in    SlotIndex  [-]  below `RecordingSlotCount`
     /// out   Result       [-]  refuses with ContentUnsupported before the chain is derived, and with whatever
     ///                          the descriptor write, the transition or the program resolution rejected
     /// post  ChainReduced holds; phase ③ may be recorded against it
@@ -243,11 +243,11 @@ public:
     ///        from the wrong one.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Reduce(VkCommandBuffer Recorded, std::uint32_t SlotOrdinal);
+    Outcome<bool> Reduce(VkCommandBuffer Recorded, std::uint32_t SlotIndex);
 
     /// 🧩 Records ① or ③ — one dispatch per residency, testing its partitions and compacting the survivors.
     /// in    Recorded      [-]  the open recording of this cycle slot
-    /// in    SlotOrdinal  [-]  below `RecordingSlotCount`
+    /// in    SlotIndex  [-]  below `RecordingSlotCount`
     /// in    Phase         [-]  which reduction is being tested against
     /// out   Result       [-]  refuses with ContentUnsupported before the chain is derived, before `Amend` has
     ///                          written this cycle slot, and for `AgainstCurrent` before `Reduce` was recorded
@@ -258,26 +258,26 @@ public:
     ///        invocation — which draws a prefix of the survivors and reads as geometry culled at random.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Cull(VkCommandBuffer Recorded, std::uint32_t SlotOrdinal, CullingPhase Phase);
+    Outcome<bool> Cull(VkCommandBuffer Recorded, std::uint32_t SlotIndex, CullingPhase Phase);
 
     /// 🧩 The record and the surviving run one residency's draw is registered from.
-    /// in    CullingOrdinal  [-]  an ordinal this component registered
-    /// in    SlotOrdinal    [-]  below `RecordingSlotCount`
+    /// in    CullingIndex  [-]  an ordinal this component registered
+    /// in    SlotIndex    [-]  below `RecordingSlotCount`
     /// in    Phase           [-]  which of the two phases the draw follows
     /// out   Result         [-]  the indirect record's vendor span; refuses with ContentUnsupported for an
     ///                            unclaimed ordinal or an excessive cycle slot
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<VkBuffer> RecordOf(std::uint32_t CullingOrdinal,
-                               std::uint32_t SlotOrdinal,
+    Outcome<VkBuffer> RecordOf(std::uint32_t CullingIndex,
+                               std::uint32_t SlotIndex,
                                CullingPhase  Phase) const;
 
     /// 🧩 The compacted triangle ordinals one residency's vertex stage resolves through.
     /// out   Result  [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<VkBuffer> SurvivingOf(std::uint32_t CullingOrdinal,
-                                  std::uint32_t SlotOrdinal,
+    Outcome<VkBuffer> SurvivingOf(std::uint32_t CullingIndex,
+                                  std::uint32_t SlotIndex,
                                   CullingPhase  Phase) const;
 
     /// 🧩 Releases every culling span and the chain.
@@ -306,12 +306,12 @@ private:
 
     /// 🧩 Writes one level's reduction record and records the dispatch that reduces into it.
     /// in    Recorded      [-]  the recording being written into
-    /// in    SlotOrdinal  [-]  below `RecordingSlotCount`
-    /// in    LevelOrdinal  [-]  the level being written; nought reads the depth target
+    /// in    SlotIndex  [-]  below `RecordingSlotCount`
+    /// in    LevelIndex  [-]  the level being written; nought reads the depth target
     /// out   Result       [-]  refuses with whatever the write or the resolution rejected
     Outcome<bool> ReduceLevel(VkCommandBuffer  Recorded,
-                              std::uint32_t    SlotOrdinal,
-                              std::uint32_t    LevelOrdinal);
+                              std::uint32_t    SlotIndex,
+                              std::uint32_t    LevelIndex);
 
     /// 🧩 Releases every span one part-built residency claimed, so a refusal retains nothing.
     void Abandon(CulledResidency& Abandoned);

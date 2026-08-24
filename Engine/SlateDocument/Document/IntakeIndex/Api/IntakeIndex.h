@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateMath/Numeric/ReportSequence/Api/ReportSequence.h"
 
 #include <cstdint>
@@ -23,7 +23,7 @@ namespace Slate
 /// note  🔴 `50` §3: these are exactly the two rows that produce a result which looks plausible and is wrong. A
 ///        model at a hundredth of its intended size still renders, and an image decoded as though it were linear
 ///        still looks like an image. Every other silent row is rejected rather than assumed.
-/// tag   contract
+/// tag   guarantee
 enum class AssumedSubject : std::uint32_t
 {
     UnitScale       = 0u,   // [-] - the file declared no unit convention
@@ -43,7 +43,7 @@ struct IntakeRecord
     std::string     Subject           = {};                        // [-] - what arrived
     AssumedSubject  Assumed           = AssumedSubject::AssumedCount;
     double          AssumedMagnitude  = 0.0;                       // [-] - the unit scale that was chosen
-    std::uint32_t   AssumedOrdinal    = 0u;                        // [-] - the colour space that was chosen
+    std::uint32_t   AssumedIndex    = 0u;                        // [-] - the colour space that was chosen
     bool            AssumptionMade    = false;                     // [-] - the two fields above are meaningful
 };
 

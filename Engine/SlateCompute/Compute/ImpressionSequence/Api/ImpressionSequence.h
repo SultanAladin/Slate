@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "Contract/CombineContract.h"
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/Combination.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
+#include "Foundation/NumericTolerance.h"
 #include "SlateCompute/Compute/RequestQueue/Api/RequestQueue.h"
 #include "SlateCompute/Compute/StrokeSpace/Api/StrokeSpace.h"
 #include "SlateCompute/Compute/SurfaceTileSpace/Api/SurfaceTileSpace.h"
@@ -61,7 +61,7 @@ struct ImpressionSample
     double         PositionY    = 0.0;   // [-]  - its second
     double         PathDistance      = 0.0;   // [-]  - accumulated along the resampled path
     ResolvedBrush  Resolved          = {};    // [-]  - `58`'s, at this impression's ordinal
-    std::uint32_t  ImpressionOrdinal = 0u;    // [-]  - position within the stroke; `58` §6 seeds from it
+    std::uint32_t  ImpressionIndex = 0u;    // [-]  - position within the stroke; `58` §6 seeds from it
     bool           ResolutionOwed    = true;  // [-]  - not yet accumulated; a deferral leaves it standing
 };
 
@@ -96,7 +96,7 @@ struct StrokeDeclaration
 {
     std::vector<ChannelPlacement>  Placements     = {};      // [-]  - one per brush channel — never derived
     LayerIdentity                  Subject        = {};      // [-]  - the `56` entry the stroke paints into
-    std::uint32_t                  SurfaceOrdinal = 0u;      // [-]  - which residency demands name
+    std::uint32_t                  SurfaceIndex = 0u;      // [-]  - which residency demands name
     std::uint32_t                  WorkingExtent  = 0u;      // [px] - texels per edge of the painted entry
     std::uint32_t                  ComponentCount = 1u;      // [-]  - components per texel the entry holds
     std::uint32_t                  StrokeSeed     = 1u;      // [-]  - `58` §6; recorded with the transaction
@@ -174,7 +174,7 @@ public:
     // 🚧 `22` §7 carries the impression count as unbounded and it cannot be. The ceiling bounds one stroke's
     //    storage and its resolution cost; reaching it refuses the amendment rather than dropping impressions,
     //    so the caller seals and reopens and nothing the artist drew is lost. Read by this unit alone.
-    static constexpr std::uint32_t ImpressionCeiling = 65536u;   // [-] - impressions one stroke may carry
+    static constexpr std::uint32_t ImpressionLimit = 65536u;   // [-] - impressions one stroke may carry
 
     /// 🧩 Opens a stroke against a declared brush.
     /// in    Declaring  [-]  the surface, the entry, the packing and the seed
@@ -210,7 +210,7 @@ public:
     /// 🧩 Resolves whatever impressions the residency now accepts, demanding what it does not.
     /// in    Residency        [-]  the surface's cells and tiles
     /// in    Requesting       [-]  where a demand for a non-resident cell is recorded
-    /// in    RecordingOrdinal  [-]  the rotation resolving
+    /// in    RecordingIndex  [-]  the rotation resolving
     /// out   Result          [-]  refuses with HostDenied before Open
     /// post  🔴 a deferred impression stays owed; nothing is dropped and nothing resolves coarse
     /// note  🔴 `22` §2: an impression touching a non-resident cell **demands and defers**. It is not resolved
@@ -227,7 +227,7 @@ public:
     /// tag   api, nonthrowing
     Outcome<ResolvedRun> Resolve(SurfaceTileSpace& Residency,
                                  RequestQueue&     Requesting,
-                                 std::uint64_t     RecordingOrdinal);
+                                 std::uint64_t     RecordingIndex);
 
     /// 🧩 Ends the stroke with no effect, releasing every tile it pinned.
     /// post  no transaction was recorded; the accumulation is reclaimed
@@ -285,7 +285,7 @@ private:
     Outcome<bool> ResolveOne(ImpressionSample& Impressing,
                              SurfaceTileSpace& Residency,
                              RequestQueue&     Requesting,
-                             std::uint64_t     RecordingOrdinal);
+                             std::uint64_t     RecordingIndex);
 
     StrokeDeclaration              Declared            = {};      // [-] - as Open validated it
     BrushSpecification             Brush               = {};      // [-] - held by value; `58` §7

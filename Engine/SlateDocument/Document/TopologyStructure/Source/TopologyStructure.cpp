@@ -52,26 +52,26 @@ Outcome<bool> TopologyStructure::DeclareFace(const std::vector<std::uint32_t>& C
     if (CornerVertices.size() < 3u)
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "fewer than three corners is not a face" });
 
-    for (const std::uint32_t VertexOrdinal : CornerVertices)
+    for (const std::uint32_t VertexIndex : CornerVertices)
     {
-        if (VertexOrdinal >= VertexPositions.size())
+        if (VertexIndex >= VertexPositions.size())
         {
             return Outcome<bool>::Refuse(
                 { RefusalReason::ContentUnsupported, "a corner addresses a vertex that was not declared" });
         }
     }
 
-    const std::uint32_t FaceOrdinal = static_cast<std::uint32_t>(FaceFirstCorners.size());
+    const std::uint32_t FaceIndex = static_cast<std::uint32_t>(FaceFirstCorners.size());
 
-    FaceFirstCorners.push_back(static_cast<std::uint32_t>(CornerVertexOrdinals.size()));
+    FaceFirstCorners.push_back(static_cast<std::uint32_t>(CornerVertexIndexs.size()));
     FaceCornerCounts.push_back(static_cast<std::uint32_t>(CornerVertices.size()));
 
     // 📝 A repeated ordinal within one run is accepted deliberately. `38` §3 enrolls it as degenerate and
     //    excludes it downstream; refusing it here would repair the artist's file, which `50` §2 ① forbids.
-    for (const std::uint32_t VertexOrdinal : CornerVertices)
+    for (const std::uint32_t VertexIndex : CornerVertices)
     {
-        CornerVertexOrdinals.push_back(VertexOrdinal);
-        CornerFaceOrdinals.push_back(FaceOrdinal);
+        CornerVertexIndexs.push_back(VertexIndex);
+        CornerFaceIndexs.push_back(FaceIndex);
     }
 
     return Outcome<bool>::Result(true);
@@ -82,7 +82,7 @@ Outcome<bool> TopologyStructure::DeclareCoordinates(const std::vector<DomainCoor
     if (SealDeclared)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the topology is sealed" });
 
-    if (Incoming.size() != CornerVertexOrdinals.size())
+    if (Incoming.size() != CornerVertexIndexs.size())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "one coordinate per corner is required" });
 
     CornerCoordinates = Incoming;
@@ -124,7 +124,7 @@ Outcome<bool> TopologyStructure::DeclareMaterialRegistration(const std::vector<s
     if (Incoming.size() != FaceFirstCorners.size())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "one enrollment per face is required" });
 
-    FaceMaterialOrdinals = Incoming;
+    FaceMaterialIndexs = Incoming;
 
     return Outcome<bool>::Result(true);
 }
@@ -143,8 +143,8 @@ Outcome<bool> TopologyStructure::Seal()
 
     // 📝 One material for the whole owner where the source declared none — `50` §3's last-resort row. It is a
     //    default rather than an assumption, so nothing is reported: the artist assigns materials afterwards.
-    if (FaceMaterialOrdinals.empty())
-        FaceMaterialOrdinals.assign(FaceFirstCorners.size(), 0u);
+    if (FaceMaterialIndexs.empty())
+        FaceMaterialIndexs.assign(FaceFirstCorners.size(), 0u);
 
     SealedRevision = IssueRevision();
     SealDeclared   = true;
@@ -171,34 +171,34 @@ std::uint32_t TopologyStructure::FaceCount() const
 
 std::uint32_t TopologyStructure::CornerCount() const
 {
-    return static_cast<std::uint32_t>(CornerVertexOrdinals.size());
+    return static_cast<std::uint32_t>(CornerVertexIndexs.size());
 }
 
-std::uint32_t TopologyStructure::FaceFirstCorner(std::uint32_t FaceOrdinal) const
+std::uint32_t TopologyStructure::FaceFirstCorner(std::uint32_t FaceIndex) const
 {
-    return FaceOrdinal < FaceFirstCorners.size() ? FaceFirstCorners[FaceOrdinal] : 0u;
+    return FaceIndex < FaceFirstCorners.size() ? FaceFirstCorners[FaceIndex] : 0u;
 }
 
-std::uint32_t TopologyStructure::FaceCornerCount(std::uint32_t FaceOrdinal) const
+std::uint32_t TopologyStructure::FaceCornerCount(std::uint32_t FaceIndex) const
 {
-    return FaceOrdinal < FaceCornerCounts.size() ? FaceCornerCounts[FaceOrdinal] : 0u;
+    return FaceIndex < FaceCornerCounts.size() ? FaceCornerCounts[FaceIndex] : 0u;
 }
 
-std::uint32_t TopologyStructure::CornerVertex(std::uint32_t CornerOrdinal) const
+std::uint32_t TopologyStructure::CornerVertex(std::uint32_t CornerIndex) const
 {
-    return CornerOrdinal < CornerVertexOrdinals.size() ? CornerVertexOrdinals[CornerOrdinal] : 0u;
+    return CornerIndex < CornerVertexIndexs.size() ? CornerVertexIndexs[CornerIndex] : 0u;
 }
 
-std::uint32_t TopologyStructure::CornerFace(std::uint32_t CornerOrdinal) const
+std::uint32_t TopologyStructure::CornerFace(std::uint32_t CornerIndex) const
 {
-    return CornerOrdinal < CornerFaceOrdinals.size() ? CornerFaceOrdinals[CornerOrdinal] : 0u;
+    return CornerIndex < CornerFaceIndexs.size() ? CornerFaceIndexs[CornerIndex] : 0u;
 }
 
 const std::vector<DocumentPosition>& TopologyStructure::Positions() const          { return VertexPositions;      }
 const std::vector<DomainCoordinate>& TopologyStructure::Coordinates() const        { return CornerCoordinates;    }
 const std::vector<SurfaceDirection>& TopologyStructure::Perpendiculars() const     { return VertexPerpendiculars; }
 const std::vector<TangentBasis>&     TopologyStructure::TangentBases() const       { return VertexTangentBases;   }
-const std::vector<std::uint32_t>&    TopologyStructure::MaterialRegistration() const { return FaceMaterialOrdinals; }
+const std::vector<std::uint32_t>&    TopologyStructure::MaterialRegistration() const { return FaceMaterialIndexs; }
 
 bool TopologyStructure::CoordinatesSupplied() const    { return !CornerCoordinates.empty();    }
 bool TopologyStructure::PerpendicularsSupplied() const { return !VertexPerpendiculars.empty(); }

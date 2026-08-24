@@ -62,7 +62,7 @@ LeafAppearance AppearanceFor(const ThemeProfile& Appearance, LeafSubject Subject
 //                                                       LEAF TARGET
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> LeafPanel::Construct(RecordingSurface& IncomingSurface,
+Outcome<bool> LeafPanel::ConstructLeafPanel(RecordingSurface& IncomingSurface,
                                    const ThemeProfile& IncomingAppearance,
                                    LeafSubject IncomingSubject)
 {

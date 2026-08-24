@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/NumericTolerance.h"
 #include "SlateVulkan/Device/CycleScheduler/Api/CycleScheduler.h"
 #include "SlateVulkan/Device/DiagnosticExtension/Api/DiagnosticExtension.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
@@ -68,26 +68,26 @@ public:
     ///        being written from the one the device is still executing, and that pair is the whole rotation.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
+    Outcome<bool> ConstructCommandSequence(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
 
     /// 🧩 Resets one cycle slot's recording extent and opens its recording for writing.
-    /// in    SlotOrdinal  [-]  below `RecordingSlotCount`
+    /// in    SlotIndex  [-]  below `RecordingSlotCount`
     /// out   Result       [-]  the opened recording; refuses with ContentUnsupported for an excessive slot
     ///                          and HostDenied when the device declines the reset or the open
     /// pre   🔴 `CycleScheduler::Await` delivered for this slot — the device no longer reads it
     /// post  the slot is open; Submit closes it
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<VkCommandBuffer> Open(std::uint32_t SlotOrdinal);
+    Outcome<VkCommandBuffer> Open(std::uint32_t SlotIndex);
 
     /// 🧩 The recording one cycle slot holds, for a document contributing commands to an open slot.
     /// out   Result  [-]  refuses with ContentUnsupported for an excessive slot or a slot that is not open
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<VkCommandBuffer> Recording(std::uint32_t SlotOrdinal) const;
+    Outcome<VkCommandBuffer> Recording(std::uint32_t SlotIndex) const;
 
     /// 🧩 Closes one cycle slot's recording and surrenders it to the one graphics queue.
-    /// in    SlotOrdinal [-]  below `RecordingSlotCount`
+    /// in    SlotIndex [-]  below `RecordingSlotCount`
     /// in    Ordering     [-]  what the surrender waits on and signals; any member may be null
     /// out   Result      [-]  refuses with ContentUnsupported for a slot that is not open, HostDenied when
     ///                         the device declines the close or the surrender, and DeviceLost when the device
@@ -98,7 +98,7 @@ public:
     ///        moment for every other reader of it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Submit(std::uint32_t SlotOrdinal, const SubmitOrdering& Ordering);
+    Outcome<bool> Submit(std::uint32_t SlotIndex, const SubmitOrdering& Ordering);
 
     /// 🧩 Opens a recording outside the rotation, for the one-off transfers bring-up records.
     /// out   Result  [-]  refuses with ExtentExhausted when the device declines the recording
@@ -133,7 +133,7 @@ private:
 
     // 📝 The same ceiling `CycleScheduler` waits under, for the same reason — a bounded wait reports a lost
     //    device where an indefinite one merely stops.
-    static constexpr std::uint64_t CompletionCeilingNanoseconds = 2000000000ull;   // [ns]
+    static constexpr std::uint64_t CompletionLimitNanoseconds = 2000000000ull;   // [ns]
 
     const VulkanExchange*       DeviceEdge      = nullptr;         // [-] - borrowed; never owned
     const DiagnosticExtension*  NamingEdge      = nullptr;         // [-] - borrowed; never owned

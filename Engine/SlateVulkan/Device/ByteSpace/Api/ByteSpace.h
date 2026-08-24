@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateVulkan/Device/DiagnosticExtension/Api/DiagnosticExtension.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
 
@@ -29,7 +29,7 @@ inline constexpr std::uint32_t AbsentExtent = 0xFFFFFFFFu;   // [-] - the claim 
 /// note  🔴 The vendor's `memoryTypeIndex` is **not** this. It is resolved from this by scoring what the
 ///       device declares, and it differs per device, per driver and per configuration. A caller naming the
 ///       vendor ordinal directly has hard-coded one machine's declaration into a claim site.
-/// tag   contract
+/// tag   guarantee
 enum class ExtentResidency : std::uint32_t
 {
     DeviceLocal    = 0u,   // [-] - fastest for the device; unreachable from the host
@@ -42,7 +42,7 @@ enum class ExtentResidency : std::uint32_t
 ///       exhaustion is residency policy rather than a reported failure. The distinction cannot be derived
 ///       from the span — a hundred megabytes is the working set for one caller and an optional prefetch for
 ///       the next — so it is declared at the claim and carried into the refusal.
-/// tag   contract
+/// tag   guarantee
 enum class ReservationCondition : std::uint32_t
 {
     Reserved      = 0u,   // [-] - taken at bring-up and held for the run; exhaustion ends bring-up
@@ -64,7 +64,7 @@ struct ByteReservation
     VkDeviceSize    ByteOffset    = 0u;               // [B] - where the span begins inside that allocation
     VkDeviceSize    ByteSpan      = 0u;               // [B] - how far it runs, alignment padding excluded
     void*           HostAddress   = nullptr;          // [-] - null for every DeviceLocal claim
-    std::uint32_t   ExtentOrdinal = AbsentExtent;     // [-] - which sliced extent Release returns it to
+    std::uint32_t   ExtentIndex = AbsentExtent;     // [-] - which sliced extent Release returns it to
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -104,7 +104,7 @@ public:
     ///        takes on its own, which is every extent after the first of each residency.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
+    Outcome<bool> ReserveByteSpace(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
 
     /// 🧩 Slices one span of the requested residency, taking a further extent when none can satisfy it.
     /// in    RequestedBytes  [B]  how far the span must run
@@ -162,7 +162,7 @@ private:
         VkDeviceSize           TakenBytes    = 0u;                             // [B] - claimed out of it
         void*                  HostAddress   = nullptr;                        // [-] - mapped once, never per claim
         ExtentResidency        Residency     = ExtentResidency::DeviceLocal;   // [-]
-        std::uint32_t          VendorOrdinal = 0u;                             // [-] - the memoryTypeIndex scored
+        std::uint32_t          VendorIndex = 0u;                             // [-] - the memoryTypeIndex scored
         std::vector<FreeSpan>  Unclaimed     = {};                             // [-] - ascending by offset
     };
 

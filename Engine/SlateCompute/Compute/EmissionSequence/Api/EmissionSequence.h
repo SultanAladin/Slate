@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateCompute/Compute/AnalyticProjection/Api/AnalyticProjection.h"
 #include "SlateDocument/Document/AssetInterchange/Api/AssetInterchange.h"
 #include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
@@ -25,7 +25,7 @@ namespace Slate
 // 🔴 The widest edge an emission may declare. Sixteen thousand per edge at four components is a gigabyte in
 //    single precision, which is the point past which an export is a decision the artist should have been asked
 //    about rather than a wait they are subjected to. Rejected at Open, where the refusal costs nothing.
-inline constexpr std::uint32_t EmissionExtentCeiling = 16384u;   // [px] - per edge, per emitted image
+inline constexpr std::uint32_t EmissionExtentLimit = 16384u;   // [px] - per edge, per emitted image
 
 // 📝 Rows one band resolves. `50` §5 runs an emission through `34` at `Background`, and a work item that
 //    resolved a whole image would occupy a worker for the length of the export and starve nothing visibly while
@@ -129,12 +129,12 @@ public:
     /// out   Result   [-]  refuses with ContentUnsupported for an absent resolver
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Construct(const EmissionSources& Supplied);
+    Outcome<bool> ConstructEmissionSequence(const EmissionSources& Supplied);
 
     /// 🧩 Opens one image of a validated emission, ready for its first band.
     /// in    Declaring     [-]  the emission specification; validated here, again, and not assumed
     /// in    Materials     [-]  the declared materials, so a channel no material declares is rejected
-    /// in    ImageOrdinal  [-]  which of the specification's images this emission produces
+    /// in    ImageIndex  [-]  which of the specification's images this emission produces
     /// out   Result       [-]  refuses with HostDenied before Construct and while an emission stands, with
     ///                          ContentUnsupported outside the image count and above the extent ceiling, and
     ///                          with whatever the specification's own validation rejected
@@ -147,7 +147,7 @@ public:
     /// tag   api, nonthrowing
     Outcome<bool> Open(const EmissionSpecification& Declaring,
                        const MaterialIndex&         Materials,
-                       std::uint32_t                ImageOrdinal);
+                       std::uint32_t                ImageIndex);
 
     /// 🧩 Resolves the next band of rows, and no more than that.
     /// in    Content   [-]  the sealed layer sequence the emission reads

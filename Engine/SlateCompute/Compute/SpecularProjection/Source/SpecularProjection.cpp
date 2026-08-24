@@ -21,7 +21,7 @@ const char* const ReflectionRecordingIdentity = "30-SpecularProjection";
 
 Outcome<bool> SpecularProjection::Declare(const ReflectionSpecification& Declaring)
 {
-    if (Declaring.MarchCeiling == 0u)
+    if (Declaring.MarchLimit == 0u)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a march of no step resolves nothing" });
 
     if (!(Declaring.ThicknessBound > 0.0))
@@ -30,7 +30,7 @@ Outcome<bool> SpecularProjection::Declare(const ReflectionSpecification& Declari
             { RefusalReason::ContentUnsupported, "a thickness of nothing accepts no crossing at all" });
     }
 
-    if (Declaring.RoughnessCeiling < 0.0 || Declaring.RoughnessCeiling > 1.0)
+    if (Declaring.RoughnessLimit < 0.0 || Declaring.RoughnessLimit > 1.0)
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the roughness ceiling lies outside the channel's own interval" });
@@ -75,7 +75,7 @@ Outcome<bool> SpecularProjection::Contribute(RenderSchedule& Schedule) const
     Declared.CapabilityRequired = false;
     Declared.Substitution       = "";
     Declared.DisplayReferred    = false;
-    Declared.AmendmentOrdinal   = AmendmentOrdinal;
+    Declared.AmendmentIndex   = AmendmentIndex;
 
     return Schedule.Contribute(Declared);
 }

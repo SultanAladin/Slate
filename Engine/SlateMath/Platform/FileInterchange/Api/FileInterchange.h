@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 
 #include <cstdint>
 #include <string>
@@ -22,7 +22,7 @@ namespace Slate
 /// note  🔴 Absent is one of the four rather than a refusal, because "no file is there" is an answer the
 ///       caller asked for and acts on. A refusal names a file system that failed to answer at all, which
 ///       is a different fact and is reported through `Result` instead.
-/// tag   contract
+/// tag   guarantee
 enum class PathContent : std::uint32_t
 {
     Absent    = 0u,   // [-] - nothing is at the path
@@ -118,7 +118,7 @@ public:
     // 📝 A read of more than this refuses rather than attempting the allocation. Every stream this surface is
     //    asked for is a document, a lowered shader or an image; a path naming something larger is a path that
     //    is wrong, and reporting that is more use than exhausting the host trying to honour it.
-    static constexpr std::uint64_t StreamCeiling = 4ull * 1024ull * 1024ull * 1024ull;   // [B] - largest whole read
+    static constexpr std::uint64_t StreamLimit = 4ull * 1024ull * 1024ull * 1024ull;   // [B] - largest whole read
 };
 
 }   // namespace Slate

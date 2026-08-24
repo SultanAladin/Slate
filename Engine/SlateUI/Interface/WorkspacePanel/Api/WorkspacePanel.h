@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 
@@ -22,7 +22,7 @@ namespace Slate
 /// note  🔴 The subject is the workspace's own, not the host's. `32` §3 ships one painting host, and an
 ///        editor presents every subject at once — so a host that inferred the subject from itself could
 ///        not carry two kinds of workspace, which is the whole reason the editor exists.
-/// tag   contract
+/// tag   guarantee
 enum class WorkspaceSubject : std::uint32_t
 {
     Vacant       = 0u,   // [-] - opened blank; the editor's default
@@ -32,7 +32,7 @@ enum class WorkspaceSubject : std::uint32_t
 };
 
 /// 🧩 The run one workspace of a given subject is titled with, before its ordinal is appended.
-/// note  📝 Declared here beside the subject and defined beside the ledger that owns it. Two hosts opening
+/// note  📝 Declared here beside the subject and defined beside the index that owns it. Two hosts opening
 ///        one subject then title it identically; `DockWorkspace.html` titles a tab by stem and ordinal.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
@@ -44,7 +44,7 @@ const char* WorkspaceStem(WorkspaceSubject Subject);
 
 /// 🧩 Presents the workspaces a host has open, as `DockWorkspace.html` draws them.
 /// note  🔴 `14` §1: this panel presents state owned elsewhere and stores none of it. What it holds is a
-///        borrowed ledger and the extents it drew last, which is presentation and not content — the
+///        borrowed index and the extents it drew last, which is presentation and not content — the
 ///        workspaces themselves belong to `WorkspaceIndex`.
 /// note  ⚠️ The tab strip's TRAPEZOIDAL geometry is the vendor's, patched per `Patches/`. What this records
 ///        is the strip ground, the body, the footer and the vacant placeholder — the parts of the sheet the
@@ -65,7 +65,7 @@ public:
     /// out   Result     [-]  refuses with ContentUnsupported when a construction already stands
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Construct(RecordingSurface& Recording, const ThemeProfile& Appearance);
+    Outcome<bool> ConstructWorkspacePanel(RecordingSurface& Recording, const ThemeProfile& Appearance);
 
     /// 🧩 Records one workspace panel — strip ground, body, footer, and the vacant run when it carries none.
     /// in    Extent      [px]  the whole panel, strip and footer included

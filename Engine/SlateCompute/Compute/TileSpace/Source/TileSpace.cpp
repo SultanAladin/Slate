@@ -12,15 +12,15 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> TileSpace::Construct(std::uint32_t SlotCeiling_, std::uint32_t BytesPerTexel)
+Outcome<bool> TileSpace::ReserveTileSpace(std::uint32_t SlotLimit_, std::uint32_t BytesPerTexel)
 {
-    if (SlotCeiling_ == 0u)
-        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a ledger of no slot backs nothing" });
+    if (SlotLimit_ == 0u)
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a index of no slot backs nothing" });
 
     if (BytesPerTexel == 0u)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a texel of no width stores nothing" });
 
-    Ceiling = SlotCeiling_;
+    Limit = SlotLimit_;
 
     // 📐 The apron is counted into the stored extent rather than added at the transfer site, because a tile
     //    whose apron is budgeted separately is one whose byte offsets overlap its neighbour's border by four
@@ -29,16 +29,16 @@ Outcome<bool> TileSpace::Construct(std::uint32_t SlotCeiling_, std::uint32_t Byt
               * static_cast<std::uint64_t>(StoredTexelsPerEdge)
               * static_cast<std::uint64_t>(BytesPerTexel);
 
-    Conditions.assign(Ceiling, SlotCondition::Free);
-    ReleasedAt.assign(Ceiling, 0u);
+    Conditions.assign(Limit, SlotCondition::Free);
+    ReleasedAt.assign(Limit, 0u);
 
-    FreeOrdinals.clear();
-    FreeOrdinals.reserve(Ceiling);
+    FreeIndexs.clear();
+    FreeIndexs.reserve(Limit);
 
-    // 📝 Pushed in descending order so the first claim takes slot zero. A ledger that handed out its highest
+    // 📝 Pushed in descending order so the first claim takes slot zero. A index that handed out its highest
     //    slot first would be correct and would make every measurement of it read backwards.
-    for (std::uint32_t Ordinal = Ceiling; Ordinal-- > 0u;)
-        FreeOrdinals.push_back(Ordinal);
+    for (std::uint32_t Index = Limit; Index-- > 0u;)
+        FreeIndexs.push_back(Index);
 
     HeldSlots     = 0u;
     QuarantinedSlots = 0u;
@@ -52,14 +52,14 @@ Outcome<bool> TileSpace::Construct(std::uint32_t SlotCeiling_, std::uint32_t Byt
 
 Outcome<std::uint32_t> TileSpace::Reserve()
 {
-    if (FreeOrdinals.empty())
+    if (FreeIndexs.empty())
     {
         return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "every slot is claimed or quarantined" });
     }
 
-    const std::uint32_t Held = FreeOrdinals.back();
-    FreeOrdinals.pop_back();
+    const std::uint32_t Held = FreeIndexs.back();
+    FreeIndexs.pop_back();
 
     Conditions[Held] = SlotCondition::Held;
     ++HeldSlots;
@@ -67,16 +67,16 @@ Outcome<std::uint32_t> TileSpace::Reserve()
     return Outcome<std::uint32_t>::Result(Held);
 }
 
-Outcome<bool> TileSpace::Release(std::uint32_t SlotOrdinal, std::uint64_t RecordingOrdinal)
+Outcome<bool> TileSpace::Release(std::uint32_t SlotIndex, std::uint64_t RecordingIndex)
 {
-    if (SlotOrdinal >= Ceiling)
+    if (SlotIndex >= Limit)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such slot" });
 
-    if (Conditions[SlotOrdinal] != SlotCondition::Held)
+    if (Conditions[SlotIndex] != SlotCondition::Held)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the slot is not claimed" });
 
-    Conditions[SlotOrdinal]   = SlotCondition::Quarantined;
-    ReleasedAt[SlotOrdinal] = RecordingOrdinal;
+    Conditions[SlotIndex]   = SlotCondition::Quarantined;
+    ReleasedAt[SlotIndex] = RecordingIndex;
 
     --HeldSlots;
     ++QuarantinedSlots;
@@ -84,29 +84,29 @@ Outcome<bool> TileSpace::Release(std::uint32_t SlotOrdinal, std::uint64_t Record
     return Outcome<bool>::Result(true);
 }
 
-std::uint32_t TileSpace::Reclaim(std::uint64_t RecordingOrdinal)
+std::uint32_t TileSpace::Reclaim(std::uint64_t RecordingIndex)
 {
     if (QuarantinedSlots == 0u)
         return 0u;
 
     std::uint32_t Reclaimed = 0u;
 
-    for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < Ceiling; ++SlotOrdinal)
+    for (std::uint32_t SlotIndex = 0u; SlotIndex < Limit; ++SlotIndex)
     {
-        if (Conditions[SlotOrdinal] != SlotCondition::Quarantined)
+        if (Conditions[SlotIndex] != SlotCondition::Quarantined)
             continue;
 
         // 🔴 `20` §5: reclamation is deferred by the recording slot count. The comparison is written as a subtraction
         //    from the current rotation rather than as an addition to the release, because the release ordinal
         //    plus the depth overflows at the end of the representable range and the current ordinal does not.
-        if (RecordingOrdinal < ReleasedAt[SlotOrdinal]
-         || RecordingOrdinal - ReleasedAt[SlotOrdinal] < RecordingSlotCount)
+        if (RecordingIndex < ReleasedAt[SlotIndex]
+         || RecordingIndex - ReleasedAt[SlotIndex] < RecordingSlotCount)
         {
             continue;
         }
 
-        Conditions[SlotOrdinal] = SlotCondition::Free;
-        FreeOrdinals.push_back(SlotOrdinal);
+        Conditions[SlotIndex] = SlotCondition::Free;
+        FreeIndexs.push_back(SlotIndex);
 
         --QuarantinedSlots;
         ++Reclaimed;
@@ -119,31 +119,31 @@ std::uint32_t TileSpace::Reclaim(std::uint64_t RecordingOrdinal)
 //                                                     WHAT IS READ
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<std::uint64_t> TileSpace::ByteOffsetOf(std::uint32_t SlotOrdinal) const
+Outcome<std::uint64_t> TileSpace::ByteOffsetOf(std::uint32_t SlotIndex) const
 {
-    if (SlotOrdinal >= Ceiling)
+    if (SlotIndex >= Limit)
         return Outcome<std::uint64_t>::Refuse({ RefusalReason::ContentUnsupported, "no such slot" });
 
-    return Outcome<std::uint64_t>::Result(static_cast<std::uint64_t>(SlotOrdinal) * TileBytes);
+    return Outcome<std::uint64_t>::Result(static_cast<std::uint64_t>(SlotIndex) * TileBytes);
 }
 
 std::uint64_t TileSpace::StoredBytesPerTile() const { return TileBytes; }
 
 std::uint64_t TileSpace::BackingBytes() const
 {
-    return static_cast<std::uint64_t>(Ceiling) * TileBytes;
+    return static_cast<std::uint64_t>(Limit) * TileBytes;
 }
 
-std::uint32_t TileSpace::SlotCeiling() const       { return Ceiling;          }
+std::uint32_t TileSpace::SlotLimit() const       { return Limit;          }
 std::uint32_t TileSpace::HeldCount() const      { return HeldSlots;     }
 std::uint32_t TileSpace::QuarantinedCount() const  { return QuarantinedSlots; }
 
 std::uint32_t TileSpace::FreeCount() const
 {
-    return static_cast<std::uint32_t>(FreeOrdinals.size());
+    return static_cast<std::uint32_t>(FreeIndexs.size());
 }
 
-bool TileSpace::LedgerConsistent() const
+bool TileSpace::InteractionConsistent() const
 {
     std::uint32_t Free = 0u;
     std::uint32_t Held = 0u;
@@ -156,10 +156,10 @@ bool TileSpace::LedgerConsistent() const
         else                                             ++Kept;
     }
 
-    return Free == FreeOrdinals.size()
+    return Free == FreeIndexs.size()
         && Held == HeldSlots
         && Kept == QuarantinedSlots
-        && Free + Held + Kept == Ceiling;
+        && Free + Held + Kept == Limit;
 }
 
 }   // namespace Slate

@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                         COMPONENTSPECIFICATION.CPP
 //============================================================================================================================================
-// 🧩 The shared controls, arranged and recorded from the sheet's own figures, arbitrated against the ledger's one grab.
+// 🧩 The shared controls, arranged and recorded from the sheet's own figures, arbitrated against the index's one grab.
 
 #include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
 
@@ -21,6 +21,7 @@ namespace
 constexpr double HoverDuration    = 200.0;   // [ms] - the sheet's transition-colors on a hover
 constexpr double DiscloseDuration = 150.0;   // [ms] - the accordion and the chevron's turn
 constexpr double TooltipDuration  = 300.0;   // [ms] - duration-300 on the tooltip's opacity
+constexpr float  HalfTurnRadians  = 3.1415926536f;
 
 /// 🧩 Interpolates between two ordinates by a fraction already clamped to the unit interval.
 /// cost  ✔️
@@ -74,9 +75,9 @@ constexpr double Held(double Coordinate, double Minimum, double Maximum)
 ///        its row. Deriving the upper edge here rather than at nineteen call sites is what keeps a run from
 ///        sitting a pixel high in one control and correct in the next.
 /// cost  ✔️
-constexpr float CentredY(const PlaneExtent& Extent, float PointSize)
+float CentredY(RecordingSurface& Surface, const PlaneExtent& Extent, float PointSize)
 {
-    return Extent.MinimumY + (Extent.Height() - PointSize) * 0.5f;
+    return Extent.MinimumY + (Extent.Height() - Surface.ResolveTypographySize(PointSize)) * 0.5f;
 }
 
 /// 🧩 Rounds an integral reading to its decimal run, without allocating.
@@ -213,17 +214,17 @@ double RotationDegrees(double Previous, double TravelX, double DegreesPerPixel)
 //                                                        CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ComponentSpecification::Construct(InteractionIndex&              IncomingLedger,
+Outcome<bool> ComponentSpecification::ConstructComponents(ControlIndex&              IncomingInteraction,
                                       RecordingSurface&              IncomingSurface,
                                       const ThemeProfile& IncomingAppearance)
 {
-    if (Ledger != nullptr)
+    if (Interaction != nullptr)
     {
         return Outcome<bool>::Refuse(Refusal{ RefusalReason::ContentUnsupported,
                                               "ComponentSpecification is already constructed" });
     }
 
-    Ledger     = &IncomingLedger;
+    Interaction     = &IncomingInteraction;
     Surface    = &IncomingSurface;
     Appearance = &IncomingAppearance;
 
@@ -232,16 +233,16 @@ Outcome<bool> ComponentSpecification::Construct(InteractionIndex&              I
 
 void ComponentSpecification::Advance(const PointerCondition& Incoming, double Elapsed)
 {
-    if (Ledger == nullptr)
+    if (Interaction == nullptr)
         return;
 
-    Ledger->Advance(Incoming, Elapsed);
+    Interaction->Advance(Incoming, Elapsed);
     Sample(Incoming);
 }
 
 void ComponentSpecification::Sample(const PointerCondition& Incoming)
 {
-    if (Ledger == nullptr)
+    if (Interaction == nullptr)
         return;
 
     Sampled       = Incoming;
@@ -267,7 +268,7 @@ RedrawMark ComponentSpecification::CurrentMark() const
 
 void ComponentSpecification::Reset()
 {
-    Ledger             = nullptr;
+    Interaction             = nullptr;
     Surface            = nullptr;
     Appearance         = nullptr;
     Sampled            = {};
@@ -276,9 +277,13 @@ void ComponentSpecification::Reset()
     ContactHeldByPanel = false;
     EditingTarget      = {};
     EditingRun[0]      = '\0';
-    EditingCursor      = 0u;
-    EditingOrdinal     = 0u;
-    EditingInvalid     = false;
+    EditingCursor             = 0u;
+    EditingSelectionAnchor    = 0u;
+    EditingSelectionEdge      = 0u;
+    EditingSelecting          = false;
+    EditingSelectionSecondary = false;
+    EditingIndex              = 0u;
+    EditingInvalid            = false;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -297,12 +302,12 @@ CardArrangement ComponentSpecification::ArrangeCard(float X, float Y, float Widt
 
     float Interior = 0.0f;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < RowCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < RowCount; ++Index)
     {
         if (RowExtents != nullptr)
-            Interior += RowExtents[Ordinal];
+            Interior += RowExtents[Index];
 
-        if (Ordinal + 1u < RowCount)
+        if (Index + 1u < RowCount)
             Interior += Measure.CardRowGap;
     }
 
@@ -331,11 +336,11 @@ void ComponentSpecification::RecordCard(const CardArrangement& Arranged)
 //------------------------------------------------------------------------------------------------------------------------
 
 ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Target, const PlaneExtent& Row,
-                                            const SelectionDeclaration& Declared, std::uint32_t& TakenOrdinal)
+                                            const SelectionDeclaration& Declared, std::uint32_t& TakenIndex)
 {
     ControlVerdict Reported;
 
-    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Target))
+    if (Interaction == nullptr || Surface == nullptr || Appearance == nullptr || !Interaction->Resolves(Target))
         return Reported;
 
     const ControlColour&    Colour     = Appearance->Control;
@@ -362,22 +367,22 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Target, co
     const bool OverField = Field.Encloses(Sampled.PositionX, Sampled.PositionY);
     const bool OverCell  = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    const bool StoodOpen = Ledger->Disclosed(Target);
+    const bool StoodOpen = Interaction->Disclosed(Target);
     const PlaneExtent Menu = StoodOpen ? MenuEnclosure(Field, Declared.OptionCount) : PlaneExtent{};
     const bool OverMenu  = StoodOpen && Menu.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Ledger->DeclareHovered(Target, OverCell, HoverDuration))
+    if (Interaction->DeclareHovered(Target, OverCell, HoverDuration))
         FoldMark(RedrawMark::Recolour);
 
     if (Sampled.ContactPressed && (OverField || OverMenu))
     {
-        if (Ledger->Grab(Target, OverMenu  ? ControlPart::Option
+        if (Interaction->Grab(Target, OverMenu  ? ControlPart::Option
                                  : OverCell  ? ControlPart::Chevron
                                              : ControlPart::Body))
             ContactHeldByPanel = true;
     }
 
-    if (Ledger->Released(Target))
+    if (Interaction->Released(Target))
     {
         if (StoodOpen && OverMenu)
         {
@@ -385,23 +390,23 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Target, co
             //    call that presents it — the panel never holds it between two ticks.
             const std::uint32_t Chosen = OptionUnder(Target, Field, Declared.OptionCount);
 
-            if (Chosen < Declared.OptionCount && Chosen != TakenOrdinal)
+            if (Chosen < Declared.OptionCount && Chosen != TakenIndex)
             {
-                TakenOrdinal             = Chosen;
+                TakenIndex             = Chosen;
                 Reported.ReadingAltered = true;
             }
 
-            Ledger->Withdraw();
+            Interaction->Withdraw();
             FoldMark(RedrawMark::Rearrange);
         }
         else if (OverField)
         {
-            // 🔴 A tap on the field toggles the menu. Disclosing through the ledger is what closes whichever
+            // 🔴 A tap on the field toggles the menu. Disclosing through the index is what closes whichever
             //    other menu stood open, so no call site has to remember to.
             if (StoodOpen)
-                Ledger->Withdraw();
+                Interaction->Withdraw();
             else
-                Ledger->Disclose(Target);
+                Interaction->Disclose(Target);
 
             FoldMark(RedrawMark::Rearrange);
         }
@@ -411,17 +416,22 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Target, co
     //    menu the sheet declares performs, and the reason the test is on arrival rather than on release.
     if (StoodOpen && Sampled.ContactPressed && !OverField && !OverMenu)
     {
-        Ledger->Withdraw();
+        Interaction->Withdraw();
         FoldMark(RedrawMark::Rearrange);
     }
 
-    const bool  Disclosed = Ledger->Disclosed(Target);
-    const float Hovered    = Ledger->HoveredFraction(Target);
+    const bool  Disclosed = Interaction->Disclosed(Target);
+    Interaction->DeclareTaken(Target, Disclosed, DiscloseDuration, EaseCurve::CssEase);
+    const float Disclosure = Interaction->TakenFraction(Target);
+    const float Hovered     = Interaction->HoveredFraction(Target);
+
+    if (Disclosure > 0.0f && Disclosure < 1.0f)
+        FoldMark(RedrawMark::Rerecord);
 
     // ③ The label, then the field's two grounds.
     if (!Declared.CaptionInside)
     {
-        Surface->TextRun(Label.MinimumX, CentredY(Label, Measure.LabelText), Colour.LabelQuiet,
+        Surface->TextRun(Label.MinimumX, CentredY(*Surface, Label, Measure.LabelText), Colour.LabelQuiet,
                          Declared.Caption, Measure.LabelText, 0.0f, false);
     }
 
@@ -433,12 +443,12 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Target, co
     Surface->Edge(Field, Colour.CardEdge, Measure.CardEdgeWeight, Radius, CornerAll);
 
     // ④ The taken option's caption, inside the black field.
-    const char* OptionCaption = (Declared.Options != nullptr && TakenOrdinal < Declared.OptionCount)
-                          ? Declared.Options[TakenOrdinal]
+    const char* OptionCaption = (Declared.Options != nullptr && TakenIndex < Declared.OptionCount)
+                          ? Declared.Options[TakenIndex]
                           : "";
 
     Surface->TextRunTruncated(Field.MinimumX + Measure.FieldPadX,
-                              CentredY(Field, Measure.RowText),
+                              CentredY(*Surface, Field, Measure.RowText),
                               Cell.MinimumX - Field.MinimumX - Measure.FieldPadX * 2.0f,
                               Colour.FieldColour, OptionCaption, Measure.RowText, false);
 
@@ -449,22 +459,25 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Target, co
                                          Cell.MinimumY + (Cell.Height() - Measure.ChevronSymbol) * 0.5f,
                                          Measure.ChevronSymbol, Measure.ChevronSymbol);
 
-    Surface->Stroke(SymbolSubject::ChevronDown, Chevron, Colour.CellColour);
+    Surface->Stroke(SymbolSubject::ChevronDown, Chevron, Colour.CellColour,
+                    Disclosure * HalfTurnRadians);
 
     // ⑥ The menu is deferred so that it records above every row beneath it.
-    if (Disclosed && Declared.OptionCount > 0u && DeferredCount < DeferredCeiling)
+    if (Disclosure > 0.0f && Declared.OptionCount > 0u && DeferredCount < DeferredLimit)
     {
         DeferredRecording& Holding = Deferred[DeferredCount++];
 
-        Holding.Target     = Target;
+        Holding.Target      = Target;
         Holding.Anchor      = Field;
         Holding.Options     = Declared.Options;
         Holding.OptionCount = Declared.OptionCount;
-        Holding.TakenOption = TakenOrdinal;
+        Holding.TakenOption = TakenIndex;
+        Holding.Indicator   = Declared.Indicator;
+        Holding.Disclosure  = Disclosure;
         Holding.Menu        = true;
     }
 
-    Reported.ContactTaken = Ledger->Holding(Target);
+    Reported.ContactTaken = Interaction->Holding(Target);
     Reported.Mark         = Current;
 
     return Reported;
@@ -486,10 +499,10 @@ PlaneExtent ComponentSpecification::MenuEnclosure(const PlaneExtent& Field, std:
     //    bottom of an editor leaf and their last entries could not be reached by
     //    any means — there was no scroll. The enclosure is capped and the body
     //    scrolls inside it.
-    const float Ceiling = MenuCeilingY - Measure.MenuPad * 2.0f;
+    const float Limit = MenuLimitY - Measure.MenuPad * 2.0f;
 
-    if (Interior > Ceiling)
-        Interior = Ceiling;
+    if (Interior > Limit)
+        Interior = Limit;
 
     return Spanning(Field.MinimumX, Field.MaximumY + Measure.MenuLift,
                     Field.Width(), Interior + Measure.MenuPad * 2.0f);
@@ -512,14 +525,14 @@ std::uint32_t ComponentSpecification::OptionUnder(ControlIdentity Target, const 
     //    cannot be pressed through the card's edge.
     float Cursor = Menu.MinimumY + Measure.MenuPad - MenuShown(Target);
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < OptionCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < OptionCount; ++Index)
     {
         const PlaneExtent Option = Spanning(Menu.MinimumX + Measure.MenuPad, Cursor,
                                             Menu.Width() - Measure.MenuPad * 2.0f, OptionHeight);
 
         if (Option.Encloses(Sampled.PositionX, Sampled.PositionY) &&
             Sampled.PositionY >= Menu.MinimumY && Sampled.PositionY <= Menu.MaximumY)
-            return Ordinal;
+            return Index;
 
         Cursor += OptionHeight + Measure.MenuGapY;
     }
@@ -532,21 +545,25 @@ std::uint32_t ComponentSpecification::OptionUnder(ControlIdentity Target, const 
 //------------------------------------------------------------------------------------------------------------------------
 
 void ComponentSpecification::BeginEditing(ControlIdentity Target, const char* Standing,
-                                            std::uint32_t Ordinal)
+                                            std::uint32_t Index)
 {
-    if (Ledger == nullptr || !Ledger->Disclose(Target))
+    if (Interaction == nullptr || !Interaction->Disclose(Target))
         return;
 
-    EditingTarget  = Target;
-    EditingCursor  = 0u;
-    EditingOrdinal = Ordinal;
-    EditingInvalid = false;
+    EditingTarget             = Target;
+    EditingCursor             = 0u;
+    EditingSelectionAnchor    = 0u;
+    EditingSelectionEdge      = 0u;
+    EditingSelecting          = false;
+    EditingSelectionSecondary = false;
+    EditingIndex              = Index;
+    EditingInvalid            = false;
 
     std::uint32_t Length = 0u;
 
     if (Standing != nullptr)
     {
-        while (Length + 1u < EditableRunCeiling && Standing[Length] != '\0')
+        while (Length + 1u < EditableRunLimit && Standing[Length] != '\0')
         {
             EditingRun[Length] = Standing[Length];
             ++Length;
@@ -563,19 +580,70 @@ void ComponentSpecification::BeginEditing(ControlIdentity Target, const char* St
 
 bool ComponentSpecification::Editing(ControlIdentity Target) const
 {
-    return Ledger != nullptr && EditingTarget == Target && Ledger->Disclosed(Target);
+    return Interaction != nullptr && EditingTarget == Target && Interaction->Disclosed(Target);
 }
 
 void ComponentSpecification::FinishEditing()
 {
-    if (Ledger != nullptr && EditingTarget.IdentityDeclared())
-        Ledger->Withdraw();
+    if (Interaction != nullptr && EditingTarget.IdentityDeclared())
+        Interaction->Withdraw();
 
     EditingTarget  = {};
     EditingRun[0]  = '\0';
-    EditingCursor  = 0u;
-    EditingOrdinal = 0u;
-    EditingInvalid = false;
+    EditingCursor             = 0u;
+    EditingSelectionAnchor    = 0u;
+    EditingSelectionEdge      = 0u;
+    EditingSelecting          = false;
+    EditingSelectionSecondary = false;
+    EditingIndex              = 0u;
+    EditingInvalid            = false;
+}
+
+void ComponentSpecification::RemoveEditingSelection()
+{
+    const std::uint32_t First = (EditingSelectionAnchor < EditingSelectionEdge)
+                              ? EditingSelectionAnchor : EditingSelectionEdge;
+    const std::uint32_t Last  = (EditingSelectionAnchor < EditingSelectionEdge)
+                              ? EditingSelectionEdge : EditingSelectionAnchor;
+
+    if (First == Last)
+        return;
+
+    std::uint32_t Length = 0u;
+    while (Length + 1u < EditableRunLimit && EditingRun[Length] != '\0')
+        ++Length;
+
+    std::memmove(EditingRun + First, EditingRun + Last,
+                 static_cast<std::size_t>(Length - Last + 1u));
+    EditingCursor          = First;
+    EditingSelectionAnchor = First;
+    EditingSelectionEdge   = First;
+    EditingInvalid         = false;
+}
+
+std::uint32_t ComponentSpecification::EditingIndexAt(float PointerX, float RunX, float PointSize) const
+{
+    if (Surface == nullptr || PointerX <= RunX)
+        return 0u;
+
+    char Prefix[EditableRunLimit] = {};
+    std::uint32_t Index = 0u;
+    float Previous = 0.0f;
+
+    while (Index + 1u < EditableRunLimit && EditingRun[Index] != '\0')
+    {
+        Prefix[Index] = EditingRun[Index];
+        Prefix[Index + 1u] = '\0';
+        const float PrefixWidth = Surface->MeasureRun(Prefix, PointSize);
+
+        if (PointerX < RunX + (Previous + PrefixWidth) * 0.5f)
+            return Index;
+
+        Previous = PrefixWidth;
+        ++Index;
+    }
+
+    return Index;
 }
 
 void ComponentSpecification::AdvanceEditing()
@@ -586,43 +654,87 @@ void ComponentSpecification::AdvanceEditing()
     const TextInputCondition& Text = Surface->TextInput();
     std::uint32_t Length = 0u;
 
-    while (Length + 1u < EditableRunCeiling && EditingRun[Length] != '\0')
+    while (Length + 1u < EditableRunLimit && EditingRun[Length] != '\0')
         ++Length;
 
+    const bool Selected = EditingSelectionAnchor != EditingSelectionEdge;
+
     if (Text.HomePressed)
+    {
         EditingCursor = 0u;
+        EditingSelectionAnchor = EditingSelectionEdge = EditingCursor;
+    }
     else if (Text.EndPressed)
+    {
         EditingCursor = Length;
-    else if (Text.LeftPressed && EditingCursor > 0u)
-        --EditingCursor;
-    else if (Text.RightPressed && EditingCursor < Length)
-        ++EditingCursor;
-
-    if (Text.BackspacePressed && EditingCursor > 0u)
+        EditingSelectionAnchor = EditingSelectionEdge = EditingCursor;
+    }
+    else if (Text.LeftPressed)
     {
-        std::memmove(EditingRun + EditingCursor - 1u, EditingRun + EditingCursor,
-                     static_cast<std::size_t>(Length - EditingCursor + 1u));
-        --EditingCursor;
-        --Length;
-        EditingInvalid = false;
+        EditingCursor = Selected
+                      ? ((EditingSelectionAnchor < EditingSelectionEdge)
+                         ? EditingSelectionAnchor : EditingSelectionEdge)
+                      : ((EditingCursor > 0u) ? EditingCursor - 1u : 0u);
+        EditingSelectionAnchor = EditingSelectionEdge = EditingCursor;
+    }
+    else if (Text.RightPressed)
+    {
+        EditingCursor = Selected
+                      ? ((EditingSelectionAnchor > EditingSelectionEdge)
+                         ? EditingSelectionAnchor : EditingSelectionEdge)
+                      : ((EditingCursor < Length) ? EditingCursor + 1u : Length);
+        EditingSelectionAnchor = EditingSelectionEdge = EditingCursor;
     }
 
-    if (Text.DeletePressed && EditingCursor < Length)
+    if (Text.BackspacePressed)
     {
-        std::memmove(EditingRun + EditingCursor, EditingRun + EditingCursor + 1u,
-                     static_cast<std::size_t>(Length - EditingCursor));
-        --Length;
-        EditingInvalid = false;
+        if (EditingSelectionAnchor != EditingSelectionEdge)
+        {
+            RemoveEditingSelection();
+            Length = static_cast<std::uint32_t>(std::strlen(EditingRun));
+        }
+        else if (EditingCursor > 0u)
+        {
+            std::memmove(EditingRun + EditingCursor - 1u, EditingRun + EditingCursor,
+                         static_cast<std::size_t>(Length - EditingCursor + 1u));
+            --EditingCursor;
+            --Length;
+            EditingSelectionAnchor = EditingSelectionEdge = EditingCursor;
+            EditingInvalid = false;
+        }
     }
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Text.IntakeCount; ++Ordinal)
+    if (Text.DeletePressed)
     {
-        if (Length + 1u >= EditableRunCeiling)
+        if (EditingSelectionAnchor != EditingSelectionEdge)
+        {
+            RemoveEditingSelection();
+            Length = static_cast<std::uint32_t>(std::strlen(EditingRun));
+        }
+        else if (EditingCursor < Length)
+        {
+            std::memmove(EditingRun + EditingCursor, EditingRun + EditingCursor + 1u,
+                         static_cast<std::size_t>(Length - EditingCursor));
+            --Length;
+            EditingInvalid = false;
+        }
+    }
+
+    if (Text.IntakeCount > 0u && EditingSelectionAnchor != EditingSelectionEdge)
+    {
+        RemoveEditingSelection();
+        Length = static_cast<std::uint32_t>(std::strlen(EditingRun));
+    }
+
+    for (std::uint32_t Index = 0u; Index < Text.IntakeCount; ++Index)
+    {
+        if (Length + 1u >= EditableRunLimit)
             break;
 
         std::memmove(EditingRun + EditingCursor + 1u, EditingRun + EditingCursor,
                      static_cast<std::size_t>(Length - EditingCursor + 1u));
-        EditingRun[EditingCursor++] = Text.Intake[Ordinal];
+        EditingRun[EditingCursor++] = Text.Intake[Index];
+        EditingSelectionAnchor = EditingSelectionEdge = EditingCursor;
         ++Length;
         EditingInvalid = false;
     }
@@ -645,19 +757,40 @@ void ComponentSpecification::RecordEditableRun(const PlaneExtent& Extent,
     const char* Shown = EditingRun[0] != '\0' ? EditingRun : Placeholder;
     const ThemeToken Ink = EditingRun[0] != '\0' ? Colour.FieldColour : Colour.LabelQuiet;
     const float Lead = Extent.MinimumX + 10.0f;
-    const float Ceiling = Extent.MaximumX - 10.0f;
+    const float Limit = Extent.MaximumX - 10.0f;
 
-    Surface->TextRunTruncated(Lead, CentredY(Extent, Measure.ReadoutText), Ceiling,
-                              Ink, Shown, Measure.ReadoutText, true);
-
-    char PrefixRun[EditableRunCeiling] = {};
-    const std::uint32_t PrefixCount = (EditingCursor < EditableRunCeiling - 1u)
-                                    ? EditingCursor : EditableRunCeiling - 1u;
+    char PrefixRun[EditableRunLimit] = {};
+    const std::uint32_t PrefixCount = (EditingCursor < EditableRunLimit - 1u)
+                                    ? EditingCursor : EditableRunLimit - 1u;
     std::memcpy(PrefixRun, EditingRun, PrefixCount);
     PrefixRun[PrefixCount] = '\0';
 
-    const float Prefix = Surface->MeasureRun(PrefixRun, Measure.ReadoutText, 0.0f);
-    const float CaretX = Held(Lead + Prefix, Lead, Ceiling);
+    if (EditingSelectionAnchor != EditingSelectionEdge)
+    {
+        const std::uint32_t First = (EditingSelectionAnchor < EditingSelectionEdge)
+                                  ? EditingSelectionAnchor : EditingSelectionEdge;
+        const std::uint32_t Last  = (EditingSelectionAnchor < EditingSelectionEdge)
+                                  ? EditingSelectionEdge : EditingSelectionAnchor;
+        char LeadingRun[EditableRunLimit] = {};
+        char SelectedRun[EditableRunLimit] = {};
+        std::memcpy(LeadingRun, EditingRun, First);
+        std::memcpy(SelectedRun, EditingRun + First, Last - First);
+        const float SelectionX = Lead + Surface->MeasureRun(LeadingRun, Measure.ReadoutText);
+        const float SelectionWidth = Surface->MeasureRun(SelectedRun, Measure.ReadoutText);
+        const float AvailableWidth = (Limit > SelectionX) ? Limit - SelectionX : 0.0f;
+        const float VisibleWidth = (SelectionWidth < AvailableWidth) ? SelectionWidth : AvailableWidth;
+
+        if (VisibleWidth > 0.0f)
+            Surface->Ground(Spanning(SelectionX, Extent.MinimumY + 4.0f,
+                                     VisibleWidth, Extent.Height() - 8.0f),
+                            Partial(0x4A90E2u, 0.55), 2.0f, CornerAll);
+    }
+
+    Surface->TextRunTruncated(Lead, CentredY(*Surface, Extent, Measure.ReadoutText), Limit,
+                              Ink, Shown, Measure.ReadoutText, true);
+
+    const float Prefix = static_cast<float>(Surface->MeasureRun(PrefixRun, Measure.ReadoutText, 0.0f));
+    const float CaretX = static_cast<float>(Held(Lead + Prefix, Lead, Limit));
 
     Surface->Ground(Spanning(CaretX, Extent.MinimumY + 5.0f, 1.0f, Extent.Height() - 10.0f),
                     Colour.FieldColour, 0.0f, CornerNone);
@@ -666,16 +799,45 @@ void ComponentSpecification::RecordEditableRun(const PlaneExtent& Extent,
 EditableTextVerdict ComponentSpecification::EditableText(ControlIdentity Target,
                                                            const PlaneExtent& Extent,
                                                            const EditableTextDeclaration& Declared,
-                                                           char* Run, std::uint32_t RunCeiling)
+                                                           char* Run, std::uint32_t RunLimit)
 {
     EditableTextVerdict Verdict;
 
-    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || Run == nullptr ||
-        RunCeiling == 0u || !Ledger->Resolves(Target))
+    if (Interaction == nullptr || Surface == nullptr || Appearance == nullptr || Run == nullptr ||
+        RunLimit == 0u || !Interaction->Resolves(Target))
         return Verdict;
 
-    if (Sampled.ContactPressed && Extent.Encloses(Sampled.PositionX, Sampled.PositionY))
-        BeginEditing(Target, Run);
+    const bool Hovered = Extent.Encloses(Sampled.PositionX, Sampled.PositionY);
+    const bool SelectionPressed = Sampled.ContactPressed || Sampled.SecondaryPressed;
+
+    if (SelectionPressed && Hovered)
+    {
+        if (!Editing(Target))
+            BeginEditing(Target, Run);
+
+        if (Editing(Target))
+        {
+            const ControlMetric& Measure = Appearance->ControlMeasure;
+            const float RunX = Extent.MinimumX + 10.0f;
+            const std::uint32_t Hit = EditingIndexAt(Sampled.PositionX, RunX, Measure.ReadoutText);
+
+            if (Sampled.ContactDoublePressed)
+            {
+                EditingSelectionAnchor = 0u;
+                EditingSelectionEdge = static_cast<std::uint32_t>(std::strlen(EditingRun));
+                EditingCursor = EditingSelectionEdge;
+                EditingSelecting = false;
+            }
+            else
+            {
+                EditingCursor = Hit;
+                EditingSelectionAnchor = Hit;
+                EditingSelectionEdge = Hit;
+                EditingSelecting = true;
+                EditingSelectionSecondary = Sampled.SecondaryPressed;
+            }
+        }
+    }
 
     if (!Editing(Target))
     {
@@ -688,12 +850,31 @@ EditableTextVerdict ComponentSpecification::EditableText(ControlIdentity Target,
         Surface->Ground(Extent, Colour.FieldGround, Radius, CornerAll);
         Surface->Edge(Extent, Colour.CardEdge, Measure.CardEdgeWeight, Radius, CornerAll);
         Surface->TextRunTruncated(Extent.MinimumX + 10.0f,
-                                  CentredY(Extent, Measure.ReadoutText),
+                                  CentredY(*Surface, Extent, Measure.ReadoutText),
                                   Extent.MaximumX - 10.0f, Ink, Shown,
                                   Measure.ReadoutText, true);
-        Ledger->DeclareHovered(Target, Extent.Encloses(Sampled.PositionX, Sampled.PositionY),
+        Interaction->DeclareHovered(Target, Extent.Encloses(Sampled.PositionX, Sampled.PositionY),
                                HoverDuration);
         return Verdict;
+    }
+
+    if (EditingSelecting)
+    {
+        const bool ExtendingContact = EditingSelectionSecondary
+                                    ? (Sampled.SecondaryHeld || Sampled.SecondaryReleased)
+                                    : (Sampled.ContactHeld || Sampled.ContactReleased);
+
+        if (ExtendingContact)
+        {
+            const ControlMetric& Measure = Appearance->ControlMeasure;
+            EditingSelectionEdge = EditingIndexAt(Sampled.PositionX, Extent.MinimumX + 10.0f,
+                                                   Measure.ReadoutText);
+            EditingCursor = EditingSelectionEdge;
+        }
+
+        if ((EditingSelectionSecondary && Sampled.SecondaryReleased) ||
+            (!EditingSelectionSecondary && Sampled.ContactReleased))
+            EditingSelecting = false;
     }
 
     AdvanceEditing();
@@ -709,7 +890,7 @@ EditableTextVerdict ComponentSpecification::EditableText(ControlIdentity Target,
 
     if (Text.AcceptPressed)
     {
-        char AcceptedRun[EditableRunCeiling] = {};
+        char AcceptedRun[EditableRunLimit] = {};
         const char* Accepted = EditingRun;
 
         if (!Declared.EmptyAccepted && EditingRun[0] == '\0')
@@ -733,7 +914,7 @@ EditableTextVerdict ComponentSpecification::EditableText(ControlIdentity Target,
 
         if (!EditingInvalid)
         {
-            std::snprintf(Run, RunCeiling, "%s", Accepted);
+            std::snprintf(Run, RunLimit, "%s", Accepted);
             FinishEditing();
             Verdict.Accepted = true;
             Verdict.Mark = RedrawMark::Rerecord;
@@ -759,7 +940,7 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Target, cons
 {
     ControlVerdict Reported;
 
-    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Target))
+    if (Interaction == nullptr || Surface == nullptr || Appearance == nullptr || !Interaction->Resolves(Target))
         return Reported;
 
     const ControlColour&    Colour     = Appearance->Control;
@@ -829,12 +1010,57 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Target, cons
         char Standing[24] = {};
         DecimalRun(Standing, 24u, Coordinate, Declared.Decimals);
         BeginEditing(Target, Standing);
+        EditingSelectionAnchor = static_cast<std::uint32_t>(std::strlen(EditingRun));
+        EditingSelectionEdge = EditingCursor = 0u;
+    }
+    else if (Sampled.SecondaryPressed && OverReadout && !Editing(Target))
+    {
+        char Standing[24] = {};
+        DecimalRun(Standing, 24u, Coordinate, Declared.Decimals);
+        BeginEditing(Target, Standing);
+        const PlaneExtent ValueCell = { Readout.MinimumX, Readout.MinimumY,
+                                        UnitCell.MinimumX, Readout.MaximumY };
+        const std::uint32_t Hit = EditingIndexAt(Sampled.PositionX, ValueCell.MinimumX + 10.0f,
+                                                  Measure.ReadoutText);
+        EditingCursor = EditingSelectionAnchor = EditingSelectionEdge = Hit;
+        EditingSelecting = true;
+        EditingSelectionSecondary = true;
     }
 
     bool MagnitudeEditing = Editing(Target);
 
     if (MagnitudeEditing)
     {
+        const PlaneExtent ValueCell = { Readout.MinimumX, Readout.MinimumY,
+                                        UnitCell.MinimumX, Readout.MaximumY };
+        const bool PointerPressed = Sampled.ContactPressed || Sampled.SecondaryPressed;
+
+        if (PointerPressed && !Sampled.ContactDoublePressed &&
+            ValueCell.Encloses(Sampled.PositionX, Sampled.PositionY))
+        {
+            const std::uint32_t Hit = EditingIndexAt(Sampled.PositionX, ValueCell.MinimumX + 10.0f,
+                                                      Measure.ReadoutText);
+            EditingCursor = EditingSelectionAnchor = EditingSelectionEdge = Hit;
+            EditingSelecting = true;
+            EditingSelectionSecondary = Sampled.SecondaryPressed;
+        }
+
+        if (EditingSelecting)
+        {
+            const bool ExtendingContact = EditingSelectionSecondary
+                                        ? (Sampled.SecondaryHeld || Sampled.SecondaryReleased)
+                                        : (Sampled.ContactHeld || Sampled.ContactReleased);
+            if (ExtendingContact)
+            {
+                EditingSelectionEdge = EditingIndexAt(Sampled.PositionX, ValueCell.MinimumX + 10.0f,
+                                                       Measure.ReadoutText);
+                EditingCursor = EditingSelectionEdge;
+            }
+            if ((EditingSelectionSecondary && Sampled.SecondaryReleased) ||
+                (!EditingSelectionSecondary && Sampled.ContactReleased))
+                EditingSelecting = false;
+        }
+
         AdvanceEditing();
         const TextInputCondition& Text = Surface->TextInput();
 
@@ -869,22 +1095,22 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Target, cons
         }
     }
 
-    if (Ledger->DeclareHovered(Target, OverTrack || OverReadout, HoverDuration))
+    if (Interaction->DeclareHovered(Target, OverTrack || OverReadout, HoverDuration))
         FoldMark(RedrawMark::Recolour);
 
     if (!MagnitudeEditing && Sampled.ContactPressed && OverTrack)
     {
-        if (Ledger->Grab(Target, ControlPart::Thumb))
+        if (Interaction->Grab(Target, ControlPart::Thumb))
         {
             ContactHeldByPanel = true;
-            Ledger->RecordInitial(Target, static_cast<float>(Coordinate));
+            Interaction->RecordInitial(Target, static_cast<float>(Coordinate));
         }
     }
 
     // 📐 While held, the reading is projected from the pointer's absolute abscissa against the track — not
     //    accumulated from per-tick travel, which drifts by a pixel for every tick the pointer spent outside
     //    the extent and never returns to a round figure at either end.
-    if (Ledger->Holding(Target) && TravelWidth > 0.0f)
+    if (Interaction->Holding(Target) && TravelWidth > 0.0f)
     {
         const double Fraction = Held((static_cast<double>(Sampled.PositionX) -
                                       static_cast<double>(TravelLeft)) / static_cast<double>(TravelWidth),
@@ -904,7 +1130,7 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Target, cons
 
     // ③ The label, absent when the readout trails a full-width slider.
     if (Laid != MagnitudeDeclaration::Arrange::Trailing)
-        Surface->TextRun(Label.MinimumX, CentredY(Label, Measure.LabelText), Colour.LabelQuiet,
+        Surface->TextRun(Label.MinimumX, CentredY(*Surface, Label, Measure.LabelText), Colour.LabelQuiet,
                          Declared.Caption, Measure.LabelText, 0.0f, false);
 
     // ④ The readout pill — a black value cell and a raised unit cell, rounded at the ends only.
@@ -930,7 +1156,7 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Target, cons
     else
     {
         Surface->TextRun(ValueX + (ValueSpan - ReadingRun) * 0.5f,
-                         CentredY(Readout, Measure.ReadoutText),
+                         CentredY(*Surface, Readout, Measure.ReadoutText),
                          Colour.FieldColour, Reading, Measure.ReadoutText,
                          Measure.ReadoutTracking, true);
     }
@@ -938,7 +1164,7 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Target, cons
     const float UnitRun = Surface->MeasureRun(Declared.UnitGlyph, Measure.UnitText, 0.0f);
 
     Surface->TextRun(UnitCell.MinimumX + (UnitCell.Width() - UnitRun) * 0.5f,
-                     CentredY(UnitCell, Measure.UnitText),
+                     CentredY(*Surface, UnitCell, Measure.UnitText),
                      Colour.UnitColour, Declared.UnitGlyph, Measure.UnitText, 0.0f, false);
 
     // ⑤ The track — taken below the fraction, quiet above it, and the thumb centred on the division.
@@ -957,7 +1183,7 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Target, cons
     Surface->Edge(Track, Colour.TrackEdge, Measure.CardEdgeWeight, TrackRadius, CornerAll);
     Surface->Medallion(Division, Track.MinimumY + Track.Height() * 0.5f, Radius, Colour.ThumbGround);
 
-    Reported.ContactTaken = Ledger->Holding(Target) || MagnitudeEditing;
+    Reported.ContactTaken = Interaction->Holding(Target) || MagnitudeEditing;
     Reported.Mark = MagnitudeEditing ? Dearer(Current, RedrawMark::Rerecord) : Current;
 
     return Reported;
@@ -972,8 +1198,8 @@ ControlVerdict ComponentSpecification::VectorRow(ControlIdentity Target, const P
 {
     ControlVerdict Reported;
 
-    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr ||
-        Coordinates == nullptr || !Ledger->Resolves(Target))
+    if (Interaction == nullptr || Surface == nullptr || Appearance == nullptr ||
+        Coordinates == nullptr || !Interaction->Resolves(Target))
         return Reported;
 
     const ControlColour& Colour  = Appearance->Control;
@@ -1015,12 +1241,63 @@ ControlVerdict ComponentSpecification::VectorRow(ControlIdentity Target, const P
         char Standing[24] = {};
         DecimalRun(Standing, 24u, Coordinates[OverAxis], Declared.Decimals);
         BeginEditing(Target, Standing, static_cast<std::uint32_t>(OverAxis));
+        EditingSelectionAnchor = static_cast<std::uint32_t>(std::strlen(EditingRun));
+        EditingSelectionEdge = EditingCursor = 0u;
+    }
+    else if (Sampled.SecondaryPressed && OverAxis >= 0 && !Editing(Target))
+    {
+        char Standing[24] = {};
+        DecimalRun(Standing, 24u, Coordinates[OverAxis], Declared.Decimals);
+        BeginEditing(Target, Standing, static_cast<std::uint32_t>(OverAxis));
+        const float CellLead = Readout.MinimumX + AxisSpan * static_cast<float>(OverAxis);
+        const char* AxisRun = (Declared.AxisRuns[OverAxis] != nullptr) ? Declared.AxisRuns[OverAxis] : "";
+        const float AxisWide = Surface->MeasureRun(AxisRun, Measure.UnitText);
+        const PlaneExtent EditingCell = { CellLead + 8.0f + AxisWide, Readout.MinimumY,
+                                          CellLead + AxisSpan, Readout.MaximumY };
+        const std::uint32_t Hit = EditingIndexAt(Sampled.PositionX, EditingCell.MinimumX + 10.0f,
+                                                  Measure.ReadoutText);
+        EditingCursor = EditingSelectionAnchor = EditingSelectionEdge = Hit;
+        EditingSelecting = true;
+        EditingSelectionSecondary = true;
     }
 
-    bool VectorEditing = Editing(Target) && EditingOrdinal < 3u;
+    bool VectorEditing = Editing(Target) && EditingIndex < 3u;
 
     if (VectorEditing)
     {
+        const float CellLead = Readout.MinimumX + AxisSpan * static_cast<float>(EditingIndex);
+        const char* AxisRun = (Declared.AxisRuns[EditingIndex] != nullptr) ? Declared.AxisRuns[EditingIndex] : "";
+        const float AxisWide = Surface->MeasureRun(AxisRun, Measure.UnitText);
+        const PlaneExtent EditingCell = { CellLead + 8.0f + AxisWide, Readout.MinimumY,
+                                          CellLead + AxisSpan, Readout.MaximumY };
+        const bool PointerPressed = Sampled.ContactPressed || Sampled.SecondaryPressed;
+
+        if (PointerPressed && !Sampled.ContactDoublePressed &&
+            EditingCell.Encloses(Sampled.PositionX, Sampled.PositionY))
+        {
+            const std::uint32_t Hit = EditingIndexAt(Sampled.PositionX, EditingCell.MinimumX + 10.0f,
+                                                      Measure.ReadoutText);
+            EditingCursor = EditingSelectionAnchor = EditingSelectionEdge = Hit;
+            EditingSelecting = true;
+            EditingSelectionSecondary = Sampled.SecondaryPressed;
+        }
+
+        if (EditingSelecting)
+        {
+            const bool ExtendingContact = EditingSelectionSecondary
+                                        ? (Sampled.SecondaryHeld || Sampled.SecondaryReleased)
+                                        : (Sampled.ContactHeld || Sampled.ContactReleased);
+            if (ExtendingContact)
+            {
+                EditingSelectionEdge = EditingIndexAt(Sampled.PositionX, EditingCell.MinimumX + 10.0f,
+                                                       Measure.ReadoutText);
+                EditingCursor = EditingSelectionEdge;
+            }
+            if ((EditingSelectionSecondary && Sampled.SecondaryReleased) ||
+                (!EditingSelectionSecondary && Sampled.ContactReleased))
+                EditingSelecting = false;
+        }
+
         AdvanceEditing();
         const TextInputCondition& Text = Surface->TextInput();
 
@@ -1043,9 +1320,9 @@ ControlVerdict ComponentSpecification::VectorRow(ControlIdentity Target, const P
                 const double Bounded = (Incoming < Declared.Minimum) ? Declared.Minimum
                                      : (Incoming > Declared.Maximum) ? Declared.Maximum : Incoming;
 
-                if (Bounded != Coordinates[EditingOrdinal])
+                if (Bounded != Coordinates[EditingIndex])
                 {
-                    Coordinates[EditingOrdinal] = Bounded;
+                    Coordinates[EditingIndex] = Bounded;
                     Reported.ReadingAltered = true;
                 }
 
@@ -1055,15 +1332,15 @@ ControlVerdict ComponentSpecification::VectorRow(ControlIdentity Target, const P
         }
     }
 
-    if (Ledger->DeclareHovered(Target, OverAxis >= 0, HoverDuration))
+    if (Interaction->DeclareHovered(Target, OverAxis >= 0, HoverDuration))
         FoldMark(RedrawMark::Recolour);
 
     if (!VectorEditing && Sampled.ContactPressed && OverAxis >= 0)
     {
-        if (Ledger->Grab(Target, ControlPart::Thumb))
+        if (Interaction->Grab(Target, ControlPart::Thumb))
         {
             ContactHeldByPanel = true;
-            Ledger->RecordInitial(Target, static_cast<float>(OverAxis));
+            Interaction->RecordInitial(Target, static_cast<float>(OverAxis));
         }
     }
 
@@ -1075,9 +1352,9 @@ ControlVerdict ComponentSpecification::VectorRow(ControlIdentity Target, const P
     //    accumulation is the reading rather than an approximation of it. The
     //    drift that comment warns about cannot arise here for the same reason:
     //    there is no round figure at either end to fail to return to.
-    if (Ledger->Holding(Target) && AxisSpan > 0.0f)
+    if (Interaction->Holding(Target) && AxisSpan > 0.0f)
     {
-        const Outcome<float> Recorded = Ledger->InitialReading(Target);
+        const Outcome<float> Recorded = Interaction->InitialReading(Target);
         const std::int32_t   Held = Recorded.Resolved
                                   ? static_cast<std::int32_t>(Recorded.Resolve() + 0.5f) : -1;
         if (Held >= 0 && Held < 3)
@@ -1100,7 +1377,7 @@ ControlVerdict ComponentSpecification::VectorRow(ControlIdentity Target, const P
     }
 
     // ③ The label.
-    Surface->TextRun(Label.MinimumX, CentredY(Label, Measure.LabelText), Colour.LabelQuiet,
+    Surface->TextRun(Label.MinimumX, CentredY(*Surface, Label, Measure.LabelText), Colour.LabelQuiet,
                      Declared.Caption, Measure.LabelText, 0.0f, false);
 
     // ④ The readout: one pill, three value cells, one raised unit cell.
@@ -1122,7 +1399,7 @@ ControlVerdict ComponentSpecification::VectorRow(ControlIdentity Target, const P
         const char* AxisRun = (Declared.AxisRuns[Axis] != nullptr) ? Declared.AxisRuns[Axis] : "";
         const float AxisWide = Surface->MeasureRun(AxisRun, Measure.UnitText, 0.0f);
 
-        Surface->TextRun(CellLead + 8.0f, CentredY(Readout, Measure.UnitText),
+        Surface->TextRun(CellLead + 8.0f, CentredY(*Surface, Readout, Measure.UnitText),
                          Colour.UnitColour, AxisRun, Measure.UnitText, 0.0f, false);
 
         char Reading[24] = {};
@@ -1133,7 +1410,7 @@ ControlVerdict ComponentSpecification::VectorRow(ControlIdentity Target, const P
         const float ReadingLead = CellLead + 8.0f + AxisWide;
         const float ReadingRoom = AxisSpan - 8.0f - AxisWide - 8.0f;
 
-        if (VectorEditing && EditingOrdinal == static_cast<std::uint32_t>(Axis))
+        if (VectorEditing && EditingIndex == static_cast<std::uint32_t>(Axis))
         {
             const PlaneExtent EditingCell = { ReadingLead, Readout.MinimumY,
                                               CellLead + AxisSpan, Readout.MaximumY };
@@ -1142,7 +1419,7 @@ ControlVerdict ComponentSpecification::VectorRow(ControlIdentity Target, const P
         else
         {
             Surface->TextRun(ReadingLead + (ReadingRoom - ReadingRun) * 0.5f,
-                             CentredY(Readout, Measure.ReadoutText),
+                             CentredY(*Surface, Readout, Measure.ReadoutText),
                              Colour.FieldColour, Reading, Measure.ReadoutText,
                              Measure.ReadoutTracking, true);
         }
@@ -1151,10 +1428,10 @@ ControlVerdict ComponentSpecification::VectorRow(ControlIdentity Target, const P
     const float UnitRun = Surface->MeasureRun(Declared.UnitGlyph, Measure.UnitText, 0.0f);
 
     Surface->TextRun(UnitCell.MinimumX + (UnitCell.Width() - UnitRun) * 0.5f,
-                     CentredY(UnitCell, Measure.UnitText),
+                     CentredY(*Surface, UnitCell, Measure.UnitText),
                      Colour.UnitColour, Declared.UnitGlyph, Measure.UnitText, 0.0f, false);
 
-    Reported.ContactTaken = Ledger->Holding(Target) || VectorEditing;
+    Reported.ContactTaken = Interaction->Holding(Target) || VectorEditing;
     Reported.Mark = VectorEditing ? Dearer(Current, RedrawMark::Rerecord) : Current;
     return Reported;
 }
@@ -1164,7 +1441,7 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Target, con
 {
     ControlVerdict Reported;
 
-    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Target))
+    if (Interaction == nullptr || Surface == nullptr || Appearance == nullptr || !Interaction->Resolves(Target))
         return Reported;
 
     const ControlColour&    Colour     = Appearance->Control;
@@ -1186,21 +1463,21 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Target, con
 
     if (Sampled.ContactPressed && OverStrip)
     {
-        if (Ledger->Grab(Target, ControlPart::Strip))
+        if (Interaction->Grab(Target, ControlPart::Strip))
         {
             ContactHeldByPanel = true;
-            Ledger->RecordInitial(Target, static_cast<float>(Degrees));
+            Interaction->RecordInitial(Target, static_cast<float>(Degrees));
         }
     }
 
-    if (Ledger->Holding(Target) && Ledger->HeldPart(Target) == ControlPart::Strip)
+    if (Interaction->Holding(Target) && Interaction->HeldPart(Target) == ControlPart::Strip)
     {
-        const Outcome<float> Previous = Ledger->InitialReading(Target);
+        const Outcome<float> Previous = Interaction->InitialReading(Target);
 
         if (Previous.Resolved)
         {
             const double Travel   = static_cast<double>(Sampled.PositionX) -
-                                    static_cast<double>(Ledger->OriginX());
+                                    static_cast<double>(Interaction->OriginX());
             const double Turned   = RotationDegrees(static_cast<double>(Previous.Resolve()), Travel,
                                                     static_cast<double>(Measure.RulerDegreesPerPixel));
 
@@ -1214,7 +1491,7 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Target, con
     }
 
     // ③ The label and the readout pill.
-    Surface->TextRun(Label.MinimumX, CentredY(Label, Measure.LabelText), Colour.LabelQuiet,
+    Surface->TextRun(Label.MinimumX, CentredY(*Surface, Label, Measure.LabelText), Colour.LabelQuiet,
                      Declared.Caption, Measure.LabelText, 0.0f, false);
 
     const float PillRadius = Readout.Height() * 0.5f;
@@ -1232,13 +1509,13 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Target, con
     const float ReadingRun = Surface->MeasureRun(Reading, Measure.ReadoutText, Measure.ReadoutTracking);
 
     Surface->TextRun(Readout.MinimumX + (ValueSpan - ReadingRun) * 0.5f,
-                     CentredY(Readout, Measure.ReadoutText),
+                     CentredY(*Surface, Readout, Measure.ReadoutText),
                      Colour.FieldColour, Reading, Measure.ReadoutText, Measure.ReadoutTracking, true);
 
     const float UnitRun = Surface->MeasureRun(Declared.UnitGlyph, Measure.UnitText, 0.0f);
 
     Surface->TextRun(UnitCell.MinimumX + (UnitCell.Width() - UnitRun) * 0.5f,
-                     CentredY(UnitCell, Measure.UnitText),
+                     CentredY(*Surface, UnitCell, Measure.UnitText),
                      Colour.UnitColour, Declared.UnitGlyph, Measure.UnitText, 0.0f, false);
 
     // ④ The strip's ground, and every tick inside it, confined so nothing escapes the rounded extent.
@@ -1323,7 +1600,7 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Target, con
 
     Surface->Release();
 
-    Reported.ContactTaken = Ledger->Holding(Target);
+    Reported.ContactTaken = Interaction->Holding(Target);
     Reported.Mark         = Current;
 
     return Reported;
@@ -1339,13 +1616,13 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Target, con
 void ComponentSpecification::SwitchTrack(ControlIdentity Target, const PlaneExtent& Extent, bool Taken,
                                          ThemeToken TrackTaken, ThemeToken TrackQuiet, ThemeToken Nub)
 {
-    if (Ledger == nullptr || Surface == nullptr)
+    if (Interaction == nullptr || Surface == nullptr)
         return;
 
-    Ledger->DeclareTaken(Target, Taken, HoverDuration);
+    Interaction->DeclareTaken(Target, Taken, HoverDuration);
 
-    const float TakenFraction = Ledger->TakenFraction(Target);
-    const float HoverFraction = Ledger->HoveredFraction(Target);
+    const float TakenFraction = Interaction->TakenFraction(Target);
+    const float HoverFraction = Interaction->HoveredFraction(Target);
 
     const float Radius    = Extent.Height() * 0.5f;
     const float NubQuiet  = Radius * (11.0f / 16.0f);
@@ -1364,7 +1641,7 @@ ControlVerdict ComponentSpecification::ToggleRow(ControlIdentity Target, const P
 {
     ControlVerdict Reported;
 
-    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Target))
+    if (Interaction == nullptr || Surface == nullptr || Appearance == nullptr || !Interaction->Resolves(Target))
         return Reported;
 
     const ControlColour&    Colour     = Appearance->Control;
@@ -1372,27 +1649,27 @@ ControlVerdict ComponentSpecification::ToggleRow(ControlIdentity Target, const P
 
     const bool OverRow = Row.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Ledger->DeclareHovered(Target, OverRow, HoverDuration))
+    if (Interaction->DeclareHovered(Target, OverRow, HoverDuration))
         FoldMark(RedrawMark::Recolour);
 
     if (Sampled.ContactPressed && OverRow)
     {
-        if (Ledger->Grab(Target, ControlPart::Body))
+        if (Interaction->Grab(Target, ControlPart::Body))
             ContactHeldByPanel = true;
     }
 
-    if (Ledger->Released(Target) && OverRow)
+    if (Interaction->Released(Target) && OverRow)
     {
         Taken                    = !Taken;
         Reported.ReadingAltered = true;
         FoldMark(RedrawMark::Rerecord);
     }
 
-    if (Ledger->DeclareTaken(Target, Taken, HoverDuration))
+    if (Interaction->DeclareTaken(Target, Taken, HoverDuration))
         FoldMark(RedrawMark::Recolour);
 
-    const float Hovered = Ledger->HoveredFraction(Target);
-    const float Held   = Ledger->TakenFraction(Target);
+    const float Hovered = Interaction->HoveredFraction(Target);
+    const float Held   = Interaction->TakenFraction(Target);
 
     // ① The ring — quiet, hovered, or taken. The sheet fades the border colour and scales the dot.
     const PlaneExtent Ring = Spanning(Row.MinimumX + Measure.ToggleRowPadX,
@@ -1418,10 +1695,10 @@ ControlVerdict ComponentSpecification::ToggleRow(ControlIdentity Target, const P
     const ThemeToken QuietLabel = Blend(Colour.LabelQuiet, Colour.LabelHovered, Hovered);
     const ThemeToken LabelColour   = Blend(QuietLabel, Colour.LabelTaken, Held);
 
-    Surface->TextRun(Ring.MaximumX + Measure.ToggleGapX, CentredY(Row, Measure.RowText),
+    Surface->TextRun(Ring.MaximumX + Measure.ToggleGapX, CentredY(*Surface, Row, Measure.RowText),
                      LabelColour, Declared.Caption, Measure.RowText, 0.0f, false);
 
-    Reported.ContactTaken = Ledger->Holding(Target);
+    Reported.ContactTaken = Interaction->Holding(Target);
     Reported.Mark         = Current;
 
     return Reported;
@@ -1436,7 +1713,7 @@ ControlVerdict ComponentSpecification::SubsetRow(ControlIdentity Target, const P
 {
     ControlVerdict Reported;
 
-    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Target))
+    if (Interaction == nullptr || Surface == nullptr || Appearance == nullptr || !Interaction->Resolves(Target))
         return Reported;
 
     const ControlColour&    Colour     = Appearance->Control;
@@ -1444,27 +1721,27 @@ ControlVerdict ComponentSpecification::SubsetRow(ControlIdentity Target, const P
 
     const bool OverRow = Row.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Ledger->DeclareHovered(Target, OverRow, HoverDuration))
+    if (Interaction->DeclareHovered(Target, OverRow, HoverDuration))
         FoldMark(RedrawMark::Recolour);
 
     if (Sampled.ContactPressed && OverRow)
     {
-        if (Ledger->Grab(Target, ControlPart::Body))
+        if (Interaction->Grab(Target, ControlPart::Body))
             ContactHeldByPanel = true;
     }
 
-    if (Ledger->Released(Target) && OverRow)
+    if (Interaction->Released(Target) && OverRow)
     {
         Registered                 = !Registered;
         Reported.ReadingAltered = true;
         FoldMark(RedrawMark::Rerecord);
     }
 
-    if (Ledger->DeclareTaken(Target, Registered, HoverDuration))
+    if (Interaction->DeclareTaken(Target, Registered, HoverDuration))
         FoldMark(RedrawMark::Recolour);
 
-    const float Hovered = Ledger->HoveredFraction(Target);
-    const float Held   = Ledger->TakenFraction(Target);
+    const float Hovered = Interaction->HoveredFraction(Target);
+    const float Held   = Interaction->TakenFraction(Target);
 
     // ① The ground. The sheet gives a quiet row no ground at all, a hovered one #222222, and a taken one
     //    #2a2a2a — and the taken ground wins over the hovered one, which is why it is blended last.
@@ -1483,10 +1760,10 @@ ControlVerdict ComponentSpecification::SubsetRow(ControlIdentity Target, const P
     // ③ The label.
     const ThemeToken LabelColour = Blend(Colour.LabelQuiet, Colour.LabelTaken, Held);
 
-    Surface->TextRun(Row.MinimumX + Measure.SubsetRowPadX, CentredY(Row, Measure.RowText),
+    Surface->TextRun(Row.MinimumX + Measure.SubsetRowPadX, CentredY(*Surface, Row, Measure.RowText),
                      LabelColour, Declared.Caption, Measure.RowText, 0.0f, false);
 
-    Reported.ContactTaken = Ledger->Holding(Target);
+    Reported.ContactTaken = Interaction->Holding(Target);
     Reported.Mark         = Current;
 
     return Reported;
@@ -1497,14 +1774,14 @@ ControlVerdict ComponentSpecification::SubsetRow(ControlIdentity Target, const P
 //------------------------------------------------------------------------------------------------------------------------
 
 ControlVerdict ComponentSpecification::MagnitudeStops(ControlIdentity Target, const PlaneExtent& Row,
-                                            const StopDeclaration& Declared, std::uint32_t& TakenOrdinal)
+                                            const StopDeclaration& Declared, std::uint32_t& TakenIndex)
 {
     ControlVerdict Reported;
 
-    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Target))
+    if (Interaction == nullptr || Surface == nullptr || Appearance == nullptr || !Interaction->Resolves(Target))
         return Reported;
 
-    if (Declared.StopCount < 2u || Declared.StopCount > StopCeiling || Declared.Stops == nullptr)
+    if (Declared.StopCount < 2u || Declared.StopCount > StopLimit || Declared.Stops == nullptr)
         return Reported;
 
     const ControlColour&    Colour     = Appearance->Control;
@@ -1521,51 +1798,51 @@ ControlVerdict ComponentSpecification::MagnitudeStops(ControlIdentity Target, co
     //    why the declaration refuses a count below two rather than dividing by zero here.
     const float Division = StripWidth / static_cast<float>(Declared.StopCount - 1u);
 
-    Surface->TextRun(Label.MinimumX, CentredY(Label, Measure.LabelText), Colour.LabelQuiet,
+    Surface->TextRun(Label.MinimumX, CentredY(*Surface, Label, Measure.LabelText), Colour.LabelQuiet,
                      Declared.Caption, Measure.LabelText, 0.0f, false);
 
-    std::uint32_t HoveredOrdinal = Declared.StopCount;
+    std::uint32_t HoveredIndex = Declared.StopCount;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Declared.StopCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Declared.StopCount; ++Index)
     {
-        const float  StopX = StripLeft + Division * static_cast<float>(Ordinal);
-        const bool   TakenStop = Ordinal == TakenOrdinal;
+        const float  StopX = StripLeft + Division * static_cast<float>(Index);
+        const bool   TakenStop = Index == TakenIndex;
         const float  Extent    = TakenStop ? Measure.StopTakenExtent : Measure.StopQuietExtent;
         const float  Reach     = Extent * 0.5f;
 
         const PlaneExtent Stop = Spanning(StopX - Reach, CentreY - Reach, Extent, Extent);
 
         if (Stop.Encloses(Sampled.PositionX, Sampled.PositionY))
-            HoveredOrdinal = Ordinal;
+            HoveredIndex = Index;
     }
 
     // ① One hover fade serves the whole strip, because the sheet roues exactly one stop at a time.
-    if (Ledger->DeclareHovered(Target, HoveredOrdinal < Declared.StopCount, HoverDuration))
+    if (Interaction->DeclareHovered(Target, HoveredIndex < Declared.StopCount, HoverDuration))
         FoldMark(RedrawMark::Recolour);
 
-    if (Sampled.ContactPressed && HoveredOrdinal < Declared.StopCount)
+    if (Sampled.ContactPressed && HoveredIndex < Declared.StopCount)
     {
-        if (Ledger->Grab(Target, ControlPart::Body))
+        if (Interaction->Grab(Target, ControlPart::Body))
             ContactHeldByPanel = true;
     }
 
-    if (Ledger->Released(Target) && HoveredOrdinal < Declared.StopCount && HoveredOrdinal != TakenOrdinal)
+    if (Interaction->Released(Target) && HoveredIndex < Declared.StopCount && HoveredIndex != TakenIndex)
     {
-        TakenOrdinal             = HoveredOrdinal;
+        TakenIndex             = HoveredIndex;
         Reported.ReadingAltered = true;
         FoldMark(RedrawMark::Rearrange);
     }
 
-    const float Hovered = Ledger->HoveredFraction(Target);
+    const float Hovered = Interaction->HoveredFraction(Target);
 
     // ② Every stop, the taken one grown and carrying its letter.
-    for (std::uint32_t Ordinal = 0u; Ordinal < Declared.StopCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Declared.StopCount; ++Index)
     {
-        const float StopX = StripLeft + Division * static_cast<float>(Ordinal);
-        const bool  TakenStop = Ordinal == TakenOrdinal;
+        const float StopX = StripLeft + Division * static_cast<float>(Index);
+        const bool  TakenStop = Index == TakenIndex;
         const float Extent    = TakenStop ? Measure.StopTakenExtent : Measure.StopQuietExtent;
 
-        const ThemeToken Quiet = (Ordinal == HoveredOrdinal) ? Blend(Colour.StopQuiet, Colour.StopHovered, Hovered)
+        const ThemeToken Quiet = (Index == HoveredIndex) ? Blend(Colour.StopQuiet, Colour.StopHovered, Hovered)
                                                              : Colour.StopQuiet;
         const ThemeToken StopColour = TakenStop ? Colour.StopTaken : Quiet;
 
@@ -1574,7 +1851,7 @@ ControlVerdict ComponentSpecification::MagnitudeStops(ControlIdentity Target, co
         if (!TakenStop)
             continue;
 
-        const char* Letter = Declared.Stops[Ordinal];
+        const char* Letter = Declared.Stops[Index];
 
         if (Letter == nullptr || Letter[0] == '\0')
             continue;
@@ -1585,7 +1862,7 @@ ControlVerdict ComponentSpecification::MagnitudeStops(ControlIdentity Target, co
                          Colour.StopTakenColour, Letter, Measure.RowText, 0.0f, true);
     }
 
-    Reported.ContactTaken = Ledger->Holding(Target);
+    Reported.ContactTaken = Interaction->Holding(Target);
     Reported.Mark         = Current;
 
     return Reported;
@@ -1600,7 +1877,7 @@ ControlVerdict ComponentSpecification::TooltipTrigger(ControlIdentity Target, co
 {
     ControlVerdict Reported;
 
-    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Target))
+    if (Interaction == nullptr || Surface == nullptr || Appearance == nullptr || !Interaction->Resolves(Target))
         return Reported;
 
     const ControlColour&    Colour     = Appearance->Control;
@@ -1611,21 +1888,21 @@ ControlVerdict ComponentSpecification::TooltipTrigger(ControlIdentity Target, co
 
     // 📝 The card is disclosed by rest rather than by tap — `group-hover` — so this is the one control that
     //    declares its take fade from the pointer's presence and never from a release.
-    if (Ledger->DeclareHovered(Target, OverIt, HoverDuration))
+    if (Interaction->DeclareHovered(Target, OverIt, HoverDuration))
         FoldMark(RedrawMark::Recolour);
 
-    if (Ledger->DeclareTaken(Target, OverIt, TooltipDuration))
+    if (Interaction->DeclareTaken(Target, OverIt, TooltipDuration))
         FoldMark(RedrawMark::Recolour);
 
     if (Sampled.ContactPressed && OverIt)
     {
-        if (Ledger->Grab(Target, ControlPart::Body))
+        if (Interaction->Grab(Target, ControlPart::Body))
             ContactHeldByPanel = true;
     }
 
-    const float Hovered    = Ledger->HoveredFraction(Target);
-    const float Disclosed = Ledger->TakenFraction(Target);
-    const bool  Grabbed    = Ledger->Holding(Target);
+    const float Hovered    = Interaction->HoveredFraction(Target);
+    const float Disclosed = Interaction->TakenFraction(Target);
+    const bool  Grabbed    = Interaction->Holding(Target);
 
     // ① The sheet scales the trigger to 1.05 on hover and 0.95 while it is held. Both are recorded as an
     //    inset of the declared extent, because the recording surface places extents and does not transform.
@@ -1645,7 +1922,7 @@ ControlVerdict ComponentSpecification::TooltipTrigger(ControlIdentity Target, co
     Surface->Stroke(Declared.Figure, Figure, Light ? Colour.TriggerLightColour : Colour.TriggerDarkColour);
 
     // ② The card is deferred while any of it is visible, so it records above every later control.
-    if (Disclosed > 0.0f && DeferredCount < DeferredCeiling)
+    if (Disclosed > 0.0f && DeferredCount < DeferredLimit)
     {
         DeferredRecording& Holding = Deferred[DeferredCount++];
 
@@ -1660,6 +1937,34 @@ ControlVerdict ComponentSpecification::TooltipTrigger(ControlIdentity Target, co
     Reported.ContactTaken = Grabbed;
     Reported.Mark         = Current;
 
+    return Reported;
+}
+
+ControlVerdict ComponentSpecification::TooltipHint(ControlIdentity Target, const PlaneExtent& Anchor,
+                                                     const TooltipDeclaration& Declared)
+{
+    ControlVerdict Reported;
+
+    if (Interaction == nullptr || Surface == nullptr || Appearance == nullptr || !Interaction->Resolves(Target))
+        return Reported;
+
+    const bool Over = Anchor.Encloses(Sampled.PositionX, Sampled.PositionY);
+    if (Interaction->DeclareTaken(Target, Over, TooltipDuration))
+        FoldMark(RedrawMark::Recolour);
+
+    const float Disclosed = Interaction->TakenFraction(Target);
+    if (Disclosed > 0.0f && DeferredCount < DeferredLimit)
+    {
+        DeferredRecording& Holding = Deferred[DeferredCount++];
+        Holding.Target     = Target;
+        Holding.Anchor     = Anchor;
+        Holding.Title      = Declared.Title;
+        Holding.Body       = Declared.Body;
+        Holding.Appearance = Declared.Appearance;
+        Holding.Menu       = false;
+    }
+
+    Reported.Mark = Current;
     return Reported;
 }
 
@@ -1682,7 +1987,7 @@ float ComponentSpecification::MenuContent(std::uint32_t OptionCount) const
 float ComponentSpecification::MenuShown(ControlIdentity Target) const
 {
     for (const MenuScroll& Held : MenuScrolls)
-        if (Held.Target.SlotOrdinal == Target.SlotOrdinal && Held.Target.SlotGeneration == Target.SlotGeneration)
+        if (Held.Target.SlotIndex == Target.SlotIndex && Held.Target.SlotGeneration == Target.SlotGeneration)
             return Held.Shown;
 
     return 0.0f;
@@ -1701,7 +2006,7 @@ float ComponentSpecification::MenuTravel(ControlIdentity Target, float Content, 
 
     for (MenuScroll& Candidate : MenuScrolls)
     {
-        if (Candidate.Target.SlotOrdinal == Target.SlotOrdinal &&
+        if (Candidate.Target.SlotIndex == Target.SlotIndex &&
             Candidate.Target.SlotGeneration == Target.SlotGeneration)
         {
             Held = &Candidate;
@@ -1757,22 +2062,26 @@ void ComponentSpecification::RecordMenu(const DeferredRecording& Holding)
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
     const PlaneExtent Menu = MenuEnclosure(Holding.Anchor, Holding.OptionCount);
+    const float Disclosure = static_cast<float>(Held(Holding.Disclosure, 0.0, 1.0));
+    const PlaneExtent Revealed = { Menu.MinimumX, Menu.MinimumY, Menu.MaximumX,
+                                   Menu.MinimumY + Menu.Height() * Disclosure };
 
-    Surface->Ground(Menu, Colour.MenuGround, Measure.MenuRadius, CornerAll);
-    Surface->Edge(Menu, Colour.MenuEdge, Measure.CardEdgeWeight, Measure.MenuRadius, CornerAll);
+    Surface->Ground(Revealed, Colour.MenuGround, Measure.MenuRadius, CornerAll);
+    Surface->Edge(Revealed, Colour.MenuEdge, Measure.CardEdgeWeight, Measure.MenuRadius, CornerAll);
 
     const float OptionHeight = Measure.RowText * 1.5f + Measure.OptionPadY * 2.0f;
     const float Content      = MenuContent(Holding.OptionCount);
     const float Interior     = Menu.Height() - Measure.MenuPad * 2.0f;
-    const bool  OverMenu     = Menu.Encloses(Sampled.PositionX, Sampled.PositionY);
+    const bool  OverMenu     = Revealed.Encloses(Sampled.PositionX, Sampled.PositionY);
     const float Offset       = MenuTravel(Holding.Target, Content, Interior, OverMenu);
 
-    // 📐 Everything past the ceiling is clipped rather than drawn over the panel.
-    Surface->Confine(Menu);
+    // 📐 The opening and closing travel is a real downward reveal. Content keeps its final layout and the
+    //    animated enclosure clips it, so no option changes position while the menu travels.
+    Surface->Confine(Revealed);
 
     float Cursor = Menu.MinimumY + Measure.MenuPad - Offset;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Holding.OptionCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Holding.OptionCount; ++Index)
     {
         const PlaneExtent Option = Spanning(Menu.MinimumX + Measure.MenuPad, Cursor,
                                             Menu.Width() - Measure.MenuPad * 2.0f, OptionHeight);
@@ -1795,26 +2104,26 @@ void ComponentSpecification::RecordMenu(const DeferredRecording& Holding)
             Surface->Ground(Option, Colour.OptionGroundHovered, Option.Height() * 0.5f, CornerAll);
         }
 
-        const char* Caption = (Holding.Options != nullptr) ? Holding.Options[Ordinal] : "";
-        const bool  Taken   = Ordinal == Holding.TakenOption;
+        const char* Caption = (Holding.Options != nullptr) ? Holding.Options[Index] : "";
+        const bool  Taken   = Index == Holding.TakenOption;
 
-        // 🔴 The standing option was marked by colour alone here, and elsewhere in the
-        //    editor by a tick or a chevron glyph — three vocabularies for one idea.
-        //    SubsetRow already states "this one is taken" with a rail down the leading
-        //    edge and the validation host shows it on Entry one … four. That is the
-        //    indicator the whole interface should spend, so the menu spends it too.
-        if (Taken)
+        // Selection and shading menus use one trailing-dot vocabulary. Plain filter menus omit it because
+        // the roster narrows content rather than choosing one persistent presentation value.
+        const bool Marked = Holding.Indicator == SelectionIndicator::Marked;
+        if (Marked)
         {
-            Surface->Ground(Spanning(Option.MinimumX, Option.MinimumY + 3.0f,
-                                     Measure.SubsetRailX, Option.Height() - 6.0f),
-                            Colour.RowRailTaken, Measure.SubsetRailX * 0.5f, CornerAll);
+            Surface->Medallion(Option.MaximumX - Measure.OptionPadX,
+                               Option.MinimumY + Option.Height() * 0.5f,
+                               Taken ? 4.0f : 3.0f,
+                               Taken ? Colour.RowRailTaken : Colour.LabelQuiet);
         }
 
         const float CaptionLead = Option.MinimumX + Measure.OptionPadX;
+        const float MarkerSpace = Marked ? Measure.OptionPadX * 2.0f : 0.0f;
 
         Surface->TextRunTruncated(CaptionLead,
-                                  CentredY(Option, Measure.RowText),
-                                  Option.Width() - Measure.OptionPadX * 2.0f,
+                                  CentredY(*Surface, Option, Measure.RowText),
+                                  Option.Width() - Measure.OptionPadX * 2.0f - MarkerSpace,
                                   (Over || Taken) ? Colour.OptionColourHovered : Colour.OptionColour,
                                   Caption, Measure.RowText, false);
 
@@ -1844,7 +2153,7 @@ void ComponentSpecification::RecordTooltip(const DeferredRecording& Holding)
     const ControlColour&    Colour     = Appearance->Control;
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
-    const float Disclosed = Ledger->TakenFraction(Holding.Target);
+    const float Disclosed = Interaction->TakenFraction(Holding.Target);
 
     if (Disclosed <= 0.0f)
         return;
@@ -1858,13 +2167,13 @@ void ComponentSpecification::RecordTooltip(const DeferredRecording& Holding)
     // ① The body is wrapped first, because the card's extent across follows from how many lines it took.
     const float Interior = Measure.TooltipX - Measure.TooltipPad * 2.0f;
 
-    const char*   LineFirst[WrapCeiling] = {};
-    std::uint32_t LineExtent[WrapCeiling] = {};
+    const char*   LineFirst[WrapLimit] = {};
+    std::uint32_t LineExtent[WrapLimit] = {};
     std::uint32_t Lines = 0u;
 
     const char* Sweeping = (Holding.Body != nullptr) ? Holding.Body : "";
 
-    while (*Sweeping != '\0' && Lines < WrapCeiling)
+    while (*Sweeping != '\0' && Lines < WrapLimit)
     {
         const char*   LineStart = Sweeping;
         const char*   LastBreak = nullptr;
@@ -1877,8 +2186,8 @@ void ComponentSpecification::RecordTooltip(const DeferredRecording& Holding)
                 char          Probe[256] = {};
                 std::uint32_t Copied     = (Taken < 255u) ? Taken : 255u;
 
-                for (std::uint32_t Ordinal = 0u; Ordinal < Copied; ++Ordinal)
-                    Probe[Ordinal] = LineStart[Ordinal];
+                for (std::uint32_t Index = 0u; Index < Copied; ++Index)
+                    Probe[Index] = LineStart[Index];
 
                 Probe[Copied] = '\0';
 
@@ -1933,13 +2242,13 @@ void ComponentSpecification::RecordTooltip(const DeferredRecording& Holding)
     float Cursor = Card.MinimumY + Measure.TooltipPad + Measure.TooltipTitleText * 1.5f
                  + Measure.TooltipTitleGap;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Lines; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Lines; ++Index)
     {
         char          Staging[256] = {};
-        std::uint32_t Copied       = (LineExtent[Ordinal] < 255u) ? LineExtent[Ordinal] : 255u;
+        std::uint32_t Copied       = (LineExtent[Index] < 255u) ? LineExtent[Index] : 255u;
 
         for (std::uint32_t Glyph = 0u; Glyph < Copied; ++Glyph)
-            Staging[Glyph] = LineFirst[Ordinal][Glyph];
+            Staging[Glyph] = LineFirst[Index][Glyph];
 
         Staging[Copied] = '\0';
 
@@ -1952,12 +2261,12 @@ void ComponentSpecification::RecordTooltip(const DeferredRecording& Holding)
 
 void ComponentSpecification::RecordDeferred()
 {
-    if (Surface == nullptr || Appearance == nullptr || Ledger == nullptr)
+    if (Surface == nullptr || Appearance == nullptr || Interaction == nullptr)
         return;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < DeferredCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < DeferredCount; ++Index)
     {
-        const DeferredRecording& Holding = Deferred[Ordinal];
+        const DeferredRecording& Holding = Deferred[Index];
 
         if (Holding.Menu)
             RecordMenu(Holding);

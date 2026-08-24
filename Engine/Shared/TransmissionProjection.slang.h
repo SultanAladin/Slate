@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Shared/Prelude.slang.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/NumericTolerance.h"
 
 // 📐 🔴 `62` §3 collects transmissive fragments into `TransmissionIndex` with atomic sorted insertion on the
 //    device, and `82` resolves the same column on the host for a preview. Both orderings are therefore this
@@ -18,10 +18,10 @@
 //    flickers, and it flickers most on exactly the coplanar surfaces artists build deliberately.
 
 // 📝 No fragment; never a valid packed surface word. The partition field of a written word is always below
-//    `PartitionCeiling`, so the all-ones word cannot collide with one.
+//    `PartitionLimit`, so the all-ones word cannot collide with one.
 #define SlateTransmissionAbsent (0xFFFFFFFFu)
 
-// 📝 Triangle ordinals count **within** a partition — `16` §4 — and `Contract/`'s `PartitionTriangleCeiling` is
+// 📝 Triangle ordinals count **within** a partition — `16` §4 — and `Foundation/`'s `PartitionTriangleLimit` is
 //    128, so seven bits carry every one of them. The partition ordinal takes the remaining twenty-five, which is
 //    above `42`'s own partition ceiling of 2²⁰ with five bits of headroom.
 #define SlateTriangleFieldBits (7u)
@@ -35,8 +35,8 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Packs one fragment's partition and triangle ordinals into the second component of `TransmissionIndex`.
-/// in    PartitionOrdinal  [-]  document-wide, as `16` §4 writes it
-/// in    TriangleOrdinal   [-]  within the partition, never within the document
+/// in    PartitionIndex  [-]  document-wide, as `16` §4 writes it
+/// in    TriangleIndex   [-]  within the partition, never within the document
 /// out   SurfaceWord       [-]  the packed pair
 /// note  🔴 The same two ordinals `16` §4 writes, in one word rather than two, because the second component of
 ///        the pair is already spent on the depth key below. A third component would widen `TransmissionIndex`
@@ -45,10 +45,10 @@ namespace Slate
 /// cost  ✔️
 /// note  Exact — a shift and a mask; identical on the host and on the device.
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED SLATE_CONSTEXPR Unsigned32 PackTransmissionSurface(Unsigned32 PartitionOrdinal,
-                                                                Unsigned32 TriangleOrdinal)
+SLATE_SHARED SLATE_CONSTEXPR Unsigned32 PackTransmissionSurface(Unsigned32 PartitionIndex,
+                                                                Unsigned32 TriangleIndex)
 {
-    return (PartitionOrdinal << SlateTriangleFieldBits) | (TriangleOrdinal & SlateTriangleFieldMask);
+    return (PartitionIndex << SlateTriangleFieldBits) | (TriangleIndex & SlateTriangleFieldMask);
 }
 
 /// 🧩 The partition ordinal one packed surface word carries.
@@ -72,7 +72,7 @@ SLATE_SHARED SLATE_CONSTEXPR Unsigned32 UnpackTransmissionTriangle(Unsigned32 Su
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 The ordering key one reversed-depth coordinate carries.
-/// in    ReversedDepth  [-]  in the closed unit interval; near is one — `Contract/`'s convention
+/// in    ReversedDepth  [-]  in the closed unit interval; near is one — `Foundation/`'s convention
 /// out   DepthKey       [-]  an unsigned ordinal ordered identically to the coordinate
 /// note  📐 A non-negative floating-point coordinate and its own bit pattern are **identically ordered**, so the
 ///        key is the bit pattern and the comparison is an integer one. That is what makes the ordering Exact
@@ -138,11 +138,11 @@ SLATE_SHARED Unsigned32 ProjectTransmissionSlot(SLATE_INOUT_SPAN(Unsigned32, Hel
                                                 Unsigned32 IncomingKey,
                                                 Unsigned32 IncomingSurface)
 {
-    for (Unsigned32 Ordinal = 0u; Ordinal < HeldCount; ++Ordinal)
+    for (Unsigned32 Index = 0u; Index < HeldCount; ++Index)
     {
-        if (TransmissionPrecedes(IncomingKey, IncomingSurface, HeldKey[Ordinal], HeldSurface[Ordinal]))
+        if (TransmissionPrecedes(IncomingKey, IncomingSurface, HeldKey[Index], HeldSurface[Index]))
         {
-            return Ordinal;
+            return Index;
         }
     }
 

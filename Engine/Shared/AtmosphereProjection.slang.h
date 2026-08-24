@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Shared/Prelude.slang.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/NumericTolerance.h"
 
 // 📐 🔴 A bake and the lookup that reads it are the same mapping written twice, and that is the defect this file
 //    exists to make impossible. A transmittance surface baked through one arrangement of its axes and sampled
@@ -292,7 +292,7 @@ SLATE_SHARED Real64 IntegrateStepInScatter(Real64 ScatteringMagnitude, Real64 Ex
 /// out   CoordinateY  [-]  the altitude, over the declared thickness
 /// note  📐 The zenith cosine takes the wider of the two axes precisely because the transmittance gradient across
 ///        the horizon is the steep one, and the altitude the narrower because its gradient is not. Two hundred and
-///        fifty-six against sixty-four is that observation as a number — `Contract/` holds both.
+///        fifty-six against sixty-four is that observation as a number — `Foundation/` holds both.
 /// cost  ✔️
 /// tag   shared, parity, nonallocating, nonthrowing
 SLATE_SHARED void ProjectTransmittanceCoordinate(MediumProfile Medium, Real64 Radius, Real64 ZenithCosine,

@@ -42,8 +42,8 @@ Outcome<bool> RevisionSequence::Seal(std::uint64_t SealedAt, bool MergeDeclared)
 
     // 📝 Sealing after a retreat discards the transactions the artist scrubbed past. They are not reachable
     //    again, and keeping them would present two futures from one position.
-    if (ScrubOrdinal < CommittedOrder.size())
-        CommittedOrder.resize(static_cast<std::size_t>(ScrubOrdinal));
+    if (ScrubIndex < CommittedOrder.size())
+        CommittedOrder.resize(static_cast<std::size_t>(ScrubIndex));
 
     OpenTransaction.SealedAt      = SealedAt;
     OpenTransaction.MergeDeclared = MergeDeclared;
@@ -60,7 +60,7 @@ Outcome<bool> RevisionSequence::Seal(std::uint64_t SealedAt, bool MergeDeclared)
     {
         // 📝 The merged transaction keeps the earlier inverse and the later forward, so undoing it returns
         //    to the content that stood before the first of the two.
-        CommittedOrder.back().ForwardOrdinal = OpenTransaction.ForwardOrdinal;
+        CommittedOrder.back().ForwardIndex = OpenTransaction.ForwardIndex;
         CommittedOrder.back().SealedAt       = SealedAt;
     }
     else
@@ -68,7 +68,7 @@ Outcome<bool> RevisionSequence::Seal(std::uint64_t SealedAt, bool MergeDeclared)
         CommittedOrder.push_back(OpenTransaction);
     }
 
-    ScrubOrdinal    = CommittedOrder.size();
+    ScrubIndex    = CommittedOrder.size();
     OpenTransaction = {};
     OpenDeclared    = false;
 
@@ -81,19 +81,19 @@ Outcome<bool> RevisionSequence::Seal(std::uint64_t SealedAt, bool MergeDeclared)
 
 Outcome<bool> RevisionSequence::Retreat()
 {
-    if (ScrubOrdinal == 0u)
+    if (ScrubIndex == 0u)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the scrub position is at the beginning" });
 
-    --ScrubOrdinal;
+    --ScrubIndex;
     return Outcome<bool>::Result(true);
 }
 
 Outcome<bool> RevisionSequence::Advance()
 {
-    if (ScrubOrdinal >= CommittedOrder.size())
+    if (ScrubIndex >= CommittedOrder.size())
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the scrub position is at the end" });
 
-    ++ScrubOrdinal;
+    ++ScrubIndex;
     return Outcome<bool>::Result(true);
 }
 
@@ -108,7 +108,7 @@ const std::vector<CommittedTransaction>& RevisionSequence::Committed() const
 
 std::uint64_t RevisionSequence::ScrubPosition() const
 {
-    return ScrubOrdinal;
+    return ScrubIndex;
 }
 
 bool RevisionSequence::TransactionOpen() const

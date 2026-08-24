@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Shared/Prelude.slang.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/NumericTolerance.h"
 
 // 📐 🔴 `60` §3.1 packs one visibility per illuminant per pixel into one RGBA8 word, **by `OcclusionIndex`
 //    position**, and `18` unpacks by that same position. The position rule therefore crosses the toolchain seam
@@ -33,7 +33,7 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Which component of the packed word one position in the reaching set occupies.
-/// in    ReachOrdinal  [-]  the illuminant's position in `44` §5's reaching set, in identity order
+/// in    ReachIndex  [-]  the illuminant's position in `44` §5's reaching set, in identity order
 /// out   Slot          [-]  below `DirectOcclusionCapacity`, or `SlateOcclusionSlotAbsent` beyond it
 /// note  🔴 The identity mapping below the capacity, and absence above it. It is written as a routine rather
 ///        than as a comparison at each site precisely because it is trivial: a trivial rule spelled at six sites
@@ -41,9 +41,9 @@ namespace Slate
 /// cost  ✔️
 /// note  Exact — an integer comparison; identical on the host and on the device by construction.
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED SLATE_CONSTEXPR Unsigned32 ProjectOcclusionSlot(Unsigned32 ReachOrdinal)
+SLATE_SHARED SLATE_CONSTEXPR Unsigned32 ProjectOcclusionSlot(Unsigned32 ReachIndex)
 {
-    return ReachOrdinal < DirectOcclusionCapacity ? ReachOrdinal : SlateOcclusionSlotAbsent;
+    return ReachIndex < DirectOcclusionCapacity ? ReachIndex : SlateOcclusionSlotAbsent;
 }
 
 /// 🧩 How many of a reaching set the packed word cannot carry.
@@ -96,7 +96,7 @@ SLATE_SHARED Real64 ResolveOcclusionSlot(Real64 PackedRed,
 ///        the recorded one by more than the offset, so the offset is subtracted from the recorded coordinate and
 ///        never added to it. Written the other way round, every surface shadows itself completely and the image
 ///        is uniformly unlit by every registered illuminant at once.
-/// note  🔴 The offset is slope-scaled and both of its terms live in `Contract/` — `60` §7 and `02` §8. A
+/// note  🔴 The offset is slope-scaled and both of its terms live in `Foundation/` — `60` §7 and `02` §8. A
 ///        constant term alone either leaves a gap under every contact or fails to clear a surface at a grazing
 ///        angle, and the two failures are corrected by moving one number in opposite directions.
 /// cost  ✔️

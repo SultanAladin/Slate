@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateCompute/Compute/AnalyticProjection/Api/AnalyticProjection.h"
 #include "SlateCompute/Compute/ImpressionSequence/Api/ImpressionSequence.h"
 #include "SlateCompute/Compute/SurfaceTileSpace/Api/SurfaceTileSpace.h"
@@ -32,7 +32,7 @@ namespace Slate
 /// note  📝 The four differ in what they resolve through and in nothing else. `82` §1's properties are identical
 ///        across all four, which is the whole reason this document gathers them rather than letting each consumer
 ///        arrive at its own — and the gathering is only true if one enumeration covers them.
-/// tag   contract
+/// tag   guarantee
 enum class SpeculativeSubject : std::uint32_t
 {
     BrushImpression = 0u,   // [-] - the impression about to be applied, under the cursor — through `58` and `22`
@@ -47,7 +47,7 @@ enum class SpeculativeSubject : std::uint32_t
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 The content a row may present — `82` §3's six entries.
-/// tag   contract
+/// tag   guarantee
 enum class ThumbnailSubject : std::uint32_t
 {
     Imagery       = 0u,   // [-] - `50`'s decoded content
@@ -119,7 +119,7 @@ struct SpeculativeExtent
 {
     SpeculativeSubject  Previewed        = SpeculativeSubject::SubjectCount;   // [-] - which consumer declared it
     std::uint64_t       ResolvedAt       = 0u;    // [-]  - the rotation it was resolved in; stale in any other
-    std::uint32_t       SurfaceOrdinal   = 0u;    // [-]  - the surface it addresses
+    std::uint32_t       SurfaceIndex   = 0u;    // [-]  - the surface it addresses
     std::uint32_t       ResolvedLevel    = 0u;    // [-]  - the level it actually resolved at; `20` may be coarser
     std::uint32_t       RequestedLevel   = 0u;    // [-]  - the level it asked for
     bool                ExtentHeld   = false; // [-]  - false where nothing is previewed at all
@@ -162,7 +162,7 @@ public:
     /// out   Result   [-]  refuses with ContentUnsupported for an absent resolver
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Construct(const PreviewSources& Supplied);
+    Outcome<bool> ConstructPreviewProjection(const PreviewSources& Supplied);
 
     //--------------------------------------------------------------------------------------------------------------------
     //                                                  THE BRUSH PREVIEW
@@ -198,14 +198,14 @@ public:
     /// 🧩 Resolves the previewed impression against whatever residency accepts, demanding nothing it may pin.
     /// in    Residency        [-]  the surface's cells and tiles
     /// in    Requesting       [-]  where a demand for a non-resident cell is recorded
-    /// in    RecordingOrdinal  [-]  the rotation resolving
+    /// in    RecordingIndex  [-]  the rotation resolving
     /// out   Result          [-]  refuses with HostDenied before Open
     /// post  🔴 nothing was pinned; `DeclareUncommitted` was not called and cannot have been
     /// cost  🔴
     /// tag   api, nonthrowing
     Outcome<ResolvedRun> ResolveImpression(SurfaceTileSpace& Residency,
                                            RequestQueue&     Requesting,
-                                           std::uint64_t     RecordingOrdinal);
+                                           std::uint64_t     RecordingIndex);
 
     /// 🧩 Closes the brush preview. Nothing was recorded, so there is nothing to abandon beyond the accumulation.
     /// cost  🚩
@@ -284,7 +284,7 @@ public:
     //--------------------------------------------------------------------------------------------------------------------
 
     /// 🧩 Declares that a dragged parameter has moved, so the standing extent is owed a re-resolution.
-    /// in    RecordingOrdinal  [-]  the rotation the amendment arrived in
+    /// in    RecordingIndex  [-]  the rotation the amendment arrived in
     /// out   Result          [-]  refuses with HostDenied when no extent stands
     /// post  🔴 nothing is recorded; `10` §2.4's transaction stays open and its Seal is the caller's
     /// note  🔴 `82` §2's fourth row: every Amend is a re-resolution and **none** of them is recorded. The
@@ -292,7 +292,7 @@ public:
     ///        other reason — it is not a revision and nothing keys on it.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> AmendParameter(std::uint64_t RecordingOrdinal);
+    Outcome<bool> AmendParameter(std::uint64_t RecordingIndex);
 
     /// 🧩 How many re-resolutions the standing parameter drag has asked for.
     /// cost  ✔️
@@ -305,16 +305,16 @@ public:
 
     /// 🧩 Declares which of the four is being previewed, and in which rotation.
     /// in    Previewed        [-]  the consumer
-    /// in    SurfaceOrdinal   [-]  the surface it addresses
+    /// in    SurfaceIndex   [-]  the surface it addresses
     /// in    RequestedLevel   [-]  the level it asks for
-    /// in    RecordingOrdinal  [-]  the rotation declaring it
+    /// in    RecordingIndex  [-]  the rotation declaring it
     /// out   Result          [-]  refuses with ContentUnsupported for the closed count and outside the level count
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     Outcome<bool> DeclareExtent(SpeculativeSubject Previewed,
-                                std::uint32_t      SurfaceOrdinal,
+                                std::uint32_t      SurfaceIndex,
                                 std::uint32_t      RequestedLevel,
-                                std::uint64_t      RecordingOrdinal);
+                                std::uint64_t      RecordingIndex);
 
     /// 🧩 The extent as it stands.
     /// cost  ✔️
@@ -326,7 +326,7 @@ public:
     ///        other rotation is not stale content to refresh — it is content that must not be presented at all.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool ExtentCurrent(std::uint64_t RecordingOrdinal) const;
+    bool ExtentCurrent(std::uint64_t RecordingIndex) const;
 
     /// 🧩 Discards the standing extent. Called each rotation, and at every consumer's end.
     /// cost  ✔️

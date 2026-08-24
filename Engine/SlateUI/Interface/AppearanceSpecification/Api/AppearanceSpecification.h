@@ -17,7 +17,7 @@ namespace Slate
 /// 🧩 One display-referred colour, packed at eight bits per component.
 /// note  ⚠️ Display-referred. `08` §3.1 places the interface after the tone projection, so nothing declared
 ///       here is ever tone-mapped a second time.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct ThemeToken
 {
     std::uint8_t  Red     = 0u;     // [-] - sRGB-encoded, never linear
@@ -56,7 +56,7 @@ constexpr ThemeToken Partial(std::uint32_t Packed, double Coverage)
 //    sRGB transfer then gives the ordinates below. Nine of the ten agree with the hex table everyone recalls;
 //    `NeutralFourHundred` does **not** — it resolves to 0xA1A1A1 and not to 0xA3A3A3, because the source is
 //    Tailwind v4, whose palette was re-declared in Oklch rather than converted from the earlier hexes.
-// ⚠️ Transcribing that one value from memory is precisely the sixteenth-place seam `ToleranceContract.h`
+// ⚠️ Transcribing that one value from memory is precisely the sixteenth-place seam `NumericTolerance.h`
 //    exists to prevent — two panels disagreeing by two ordinates with nothing in the build comparing them.
 inline constexpr std::uint32_t NeutralOneHundred    = 0xF5F5F5u;   // [-] - oklch(97%   0 none)
 inline constexpr std::uint32_t NeutralTwoHundred    = 0xE5E5E5u;   // [-] - oklch(92.2% 0 none)
@@ -77,7 +77,7 @@ inline constexpr std::uint32_t AbsoluteBlack        = 0x000000u;   // [-] - --co
 /// 🧩 Every colour the interface draws with, named by the responsibility it carries rather than by its ladder rung.
 /// note  A second appearance is a second filled instance of this record and nothing else — no call site names
 ///       a ladder rung directly, so no call site has to be revisited to add one.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct SurfaceColour
 {
     ThemeToken  SurfaceGround       = Covering(NeutralNineFifty);        // [-] - workspace ground, preview rail
@@ -162,7 +162,7 @@ inline constexpr std::uint32_t ControlPointerColour    = 0x6C77FFu;   // [-] - t
 ///       are never transcribed at a call site.
 /// note  The source's shadows are absent by declaration and not by omission — no halo, glow, inner shadow or
 ///       shadow coordinate is named anywhere in this record. Depth is carried by ground and edge alone.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct ControlColour
 {
     ThemeToken  PageGround         = Covering(ControlPageGround);        // [-] - behind every card
@@ -234,7 +234,7 @@ struct ControlColour
 /// 🧩 Every extent the source states, already multiplied by the display scale.
 /// note  🔴 Multiplied **once**, at resolve. A call site that scales again produces a panel correct at exactly
 ///       one display scale, and the defect only appears on a second machine.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct MetricScale
 {
     float  SpacingUnit          =   4.0f;   // [px] - --spacing, 0.25rem; every padding is a multiple
@@ -308,7 +308,7 @@ struct MetricScale
     float  ContentTrailingPad   =  48.0f;   // [px] - pb-12
     float  ContentScrollPad     =   8.0f;   // [px] - pr-2
 
-    float  EntryXCeiling    = 320.0f;   // [px] - max-w-xs, 20rem
+    float  EntryXLimit    = 320.0f;   // [px] - max-w-xs, 20rem
     float  EntryPadX        =  16.0f;   // [px] - px-4
     float  EntryPadY       =   6.0f;   // [px] - py-1.5
     float  TogglePad            =   8.0f;   // [px] - p-2
@@ -326,7 +326,7 @@ struct MetricScale
     float  PreviewGap           =  24.0f;   // [px] - gap-6
     float  PreviewPad           =  24.0f;   // [px] - p-6
     float  PreviewBoxFloor      =  80.0f;   // [px] - min-h-[80px]
-    float  PreviewBoxCeiling    = 240.0f;   // [px] - max-h-[240px]
+    float  PreviewBoxLimit    = 240.0f;   // [px] - max-h-[240px]
     float  SkeletonGapUpper     =  12.0f;   // [px] - space-y-3
     float  SkeletonGapLower     =   8.0f;   // [px] - space-y-2
     float  SkeletonLeading      =  16.0f;   // [px] - pt-4 above the lower group
@@ -366,7 +366,7 @@ inline constexpr float TextLegibilityFloor = 11.0f;   // [px] - no run is ever r
 /// note  🔴 A classification of extent and never of pixel density. A dense laptop panel and a dense phone
 ///       report the same display scale and want different arrangements; what separates them is how much
 ///       room there is, which is what this reads.
-/// tag   contract
+/// tag   guarantee
 enum class ComfortDensity : std::uint32_t
 {
     Compact      = 0u,   // [-] - below 1024 px; the laptop panel, tightened
@@ -401,7 +401,7 @@ constexpr float DensityFactor(ComfortDensity Classified)
 ///       transcribed verbatim so the two can be compared line by line; `Resolve` multiplies each of them by
 ///       AuthoredReduction and by the three scale factors exactly once. A member transcribed pre-divided
 ///       cannot be checked against the sheet, which is the whole reason the sheet is quoted in the comment.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct ControlMetric
 {
     // The column and its cards -------------------------------------------------------------------------------
@@ -447,7 +447,7 @@ struct ControlMetric
     float  SliderX          = 224.0f;   // [px] - w-56
     float  SliderHeight         =  44.0f;   // [px] - h-[44px]
     float  ThumbExtent          =  44.0f;   // [px] - the thumb's diameter
-    float  MagnitudeCeiling     = 255.0f;   // [-]  - max="255"; a domain bound, never a length
+    float  MagnitudeLimit     = 255.0f;   // [-]  - max="255"; a domain bound, never a length
 
     // The rotation ruler -------------------------------------------------------------------------------------
     float  RulerHeight          = 100.0f;   // [px] - h-[100px]
@@ -535,7 +535,7 @@ inline constexpr std::uint32_t WorkspaceVacantColour    = 0x33333Du;   // [-] - 
 ///       driven by are declared here so the sheet can be compared against them line by line.
 /// note  ⚠️ TabPadX and TabOverlap are coupled. The sheet's 38 px horizontal padding exists to clear the
 ///       slant plus the overlap; raising the overlap without raising the padding runs adjacent runs together.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct WorkspaceMetric
 {
     float  TabY        =  24.0f;   // [px] - .tab height
@@ -543,7 +543,7 @@ struct WorkspaceMetric
     float  TabOverlap       =  24.0f;   // [px] - .tab margin-right: -24px
     float  TabPadX      =  38.0f;   // [px] - .tab padding: 0 38px
     float  TabXFloor    = 170.0f;   // [px] - .tab min-width
-    float  TabXCeiling  = 320.0f;   // [px] - .tab max-width
+    float  TabXLimit  = 320.0f;   // [px] - .tab max-width
     float  TabRadius        =   0.0f;   // [px] - roundCorners is off; 5.0f turns it on
     float  TabEdgeWeight    =   0.0f;   // [px] - no border requested; the sheet's stroke is 1.0f
     float  StripY      =  28.0f;   // [px] - .tabstrip height
@@ -556,7 +556,7 @@ struct WorkspaceMetric
 };
 
 /// 🧩 The colours the workspace tab strip and its footer are drawn with.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct WorkspaceColour
 {
     ThemeToken  StripGround   = Covering(WorkspaceStrip);         // [-] - behind the tabs
@@ -597,7 +597,7 @@ inline constexpr std::uint32_t EditorPositive        = 0x22C55Eu;   // [-] - gre
 inline constexpr std::uint32_t EditorNegative        = 0xF87171u;   // [-] - red-400
 
 /// 🧩 Semantic colours shared by every editor panel and its split controls.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct EditorPanelColour
 {
     ThemeToken  WindowGround   = Covering(EditorWindowGround);   // [-] - outside and vacant ground
@@ -617,7 +617,7 @@ struct EditorPanelColour
 };
 
 /// 🧩 Exact editor-panel extents from `References/Panels`, resolved once against the display scale.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct EditorPanelMetric
 {
     float  HeaderHeight       =  32.0f;   // [px] - h-8
@@ -655,7 +655,7 @@ struct EditorPanelMetric
 /// note  📐 ζ = 35 / (2√350) ≈ 0.9354, so every drawer transition overshoots slightly before settling. A
 ///       linear ease at the same duration reads as a different product, which is why the coefficients travel
 ///       rather than a duration.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct MotionScale
 {
     double  DrawerStiffness      = 350.0;   // [-]  - spring, mass one
@@ -713,7 +713,7 @@ inline constexpr std::uint32_t ShellEntityTaken  = 0x1E40AFu;   // [-] - bg-[#1e
 /// note  🔴 A record and not forty call-site literals. The reference states each colour once as a custom
 ///        property and every rule reads it; a port spelling `Covering(0x17171Au)` at each of the sites it
 ///        appears could not be compared against the sheet, and one of them would drift unnoticed.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct ShellColour
 {
     ThemeToken  Desk         = Covering(ShellDesk);            // [-] - the viewport ground
@@ -743,7 +743,7 @@ struct ShellColour
 /// 🧩 Every colour `AsstbrowsrBasic` states, named rather than repeated.
 /// note  📐 The reference reaches for Tailwind's neutral run and a handful of literal hexes. Each field
 ///        carries the class or the hex it transcribes, so the sheet can be checked line by line.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct ContentBrowserColour
 {
     ThemeToken  Ground        = Covering(0x000000u);         // [-] - bg-black, the lattice ground
@@ -781,7 +781,7 @@ struct ContentBrowserColour
 /// 🧩 Every colour `LayerstackV1` declares in its `:root`, named rather than repeated.
 /// note  📐 The reference's own OLED-neutral token run. Each field carries the custom property it
 ///        transcribes, so the sheet can be checked line by line.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct LayerStackColour
 {
     ThemeToken  Ground        = Covering(0x000000u);        // [-] - --bg
@@ -866,7 +866,7 @@ struct LayoutProfile
 //------------------------------------------------------------------------------------------------------------------------
 
 /// The one record every panel reads. Resolved at bring-up and again only when the display scale changes.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct ThemeProfile
 {
     TypographyProfile Typography = {};
@@ -897,7 +897,7 @@ struct ThemeProfile
 ///       must not be able to resolve a zero-extent interface the artist can no longer reach a control in to
 ///       correct it — the one defect from which there is no recovery inside the application.
 inline constexpr double ArtistScaleFloor   = 0.75;   // [-] - the tightest arrangement accepted
-inline constexpr double ArtistScaleCeiling = 2.00;   // [-] - the most generous
+inline constexpr double ArtistScaleLimit = 2.00;   // [-] - the most generous
 
 /// 🧩 Classifies how generous the arrangement should be from the extent the display offers.
 /// in    Measure       [-]  the breakpoints are read from here, already at the display scale

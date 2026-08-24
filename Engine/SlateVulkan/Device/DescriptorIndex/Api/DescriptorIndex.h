@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/NumericTolerance.h"
 #include "SlateVulkan/Device/DiagnosticExtension/Api/DiagnosticExtension.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
 
@@ -31,7 +31,7 @@ inline constexpr std::uint32_t AbsentDescriptor = 0xFFFFFFFFu;   // [-] - the cl
 /// tag   nonallocating, nonthrowing
 struct DescriptorSlot
 {
-    std::uint32_t       SlotOrdinal    = 0u;                                    // [-] - the shader's binding ordinal
+    std::uint32_t       SlotIndex    = 0u;                                    // [-] - the shader's binding ordinal
     VkDescriptorType    Carried        = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;     // [-] - the vendor spelling
     std::uint32_t       CarriedCount   = 1u;                                    // [-] - one, or the run's length
     VkShaderStageFlags  ReachingStages = VK_SHADER_STAGE_COMPUTE_BIT;           // [-] - which stages read it
@@ -44,7 +44,7 @@ struct DescriptorSlot
 /// tag   nonallocating, nonthrowing
 struct DescriptorContent
 {
-    std::uint32_t   SlotOrdinal   = 0u;               // [-] - which declared slot is amended
+    std::uint32_t   SlotIndex   = 0u;               // [-] - which declared slot is amended
     VkBuffer        SpanExtent    = VK_NULL_HANDLE;   // [-] - for a span slot; the vendor spelling
     VkDeviceSize    SpanOffset    = 0u;               // [B]
     VkDeviceSize    SpanBytes     = VK_WHOLE_SIZE;    // [B]
@@ -54,7 +54,7 @@ struct DescriptorContent
 };
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                                THE DESCRIPTOR LEDGER
+//                                                THE DESCRIPTOR INDEX
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Every descriptor set layout the engine declares, and the rotation-deep sets claimed against them.
@@ -84,7 +84,7 @@ public:
     ///        bound it — so an unnamed set turns each of those reports into an address the reader must resolve.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
+    Outcome<bool> ConstructDescriptorIndex(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
 
     /// 🧩 Declares one layout from its slots, returning the ordinal every later claim names it by.
     /// in    Declared  [-]  the slots, in any order; slot ordinals need not be contiguous
@@ -105,37 +105,37 @@ public:
     Outcome<bool> Fix(std::uint32_t ConcurrentSets);
 
     /// 🧩 Reservations one set per cycle slot against a declared layout, returning the claim's ordinal.
-    /// in    LayoutOrdinal [-]  a layout this component declared
+    /// in    LayoutIndex [-]  a layout this component declared
     /// out   Result       [-]  refuses with ExtentExhausted when the extent accepts no further set
     /// post  `RecordingSlotCount` sets stand and are addressed by the returned ordinal and a cycle slot
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Reserve(std::uint32_t LayoutOrdinal);
+    Outcome<std::uint32_t> Reserve(std::uint32_t LayoutIndex);
 
     /// 🧩 Writes the content of one claimed set for one cycle slot.
-    /// in    ReservationOrdinal  [-]  a claim this component registered
-    /// in    SlotOrdinal  [-]  below `RecordingSlotCount`
+    /// in    ReservationIndex  [-]  a claim this component registered
+    /// in    SlotIndex  [-]  below `RecordingSlotCount`
     /// in    Amended       [-]  one entry per slot being written; a slot omitted is left as it stood
     /// out   Result       [-]  refuses with ContentUnsupported for an unclaimed ordinal, a cycle slot at
     ///                          or above the depth, or a slot the layout does not declare
     /// pre   🔴 no recording that reads this set for this cycle slot is still executing
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Amend(std::uint32_t                          ReservationOrdinal,
-                        std::uint32_t                          SlotOrdinal,
+    Outcome<bool> Amend(std::uint32_t                          ReservationIndex,
+                        std::uint32_t                          SlotIndex,
                         const std::vector<DescriptorContent>&  Amended);
 
     /// 🧩 The set one claim names for one cycle slot, for the recording that reads it.
     /// out   Result  [-]  refuses with ContentUnsupported for an unclaimed ordinal or an excessive slot
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<VkDescriptorSet> Resolve(std::uint32_t ReservationOrdinal, std::uint32_t SlotOrdinal) const;
+    Outcome<VkDescriptorSet> Resolve(std::uint32_t ReservationIndex, std::uint32_t SlotIndex) const;
 
     /// 🧩 The layout one ordinal names, for the recording that constructs a program against it.
     /// out   Result  [-]  refuses with ContentUnsupported for an undeclared ordinal
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<VkDescriptorSetLayout> Layout(std::uint32_t LayoutOrdinal) const;
+    Outcome<VkDescriptorSetLayout> Layout(std::uint32_t LayoutIndex) const;
 
     /// 🧩 Destroys every set, every layout and the extent they were sliced from.
     /// pre   the device is idle
@@ -156,12 +156,12 @@ private:
 
     struct ReservedSet
     {
-        std::uint32_t                  LayoutOrdinal = AbsentDescriptor;   // [-] - which layout it was sliced against
+        std::uint32_t                  LayoutIndex = AbsentDescriptor;   // [-] - which layout it was sliced against
         std::vector<VkDescriptorSet>   PerSlot   = {};                 // [-] - RecordingSlotCount entries
     };
 
     /// 🧩 Which declared slot carries an ordinal, or nothing when the layout does not declare it.
-    const DescriptorSlot* SlotOf(const DeclaredLayout& Holding, std::uint32_t SlotOrdinal) const;
+    const DescriptorSlot* SlotOf(const DeclaredLayout& Holding, std::uint32_t SlotIndex) const;
 
     const VulkanExchange*        DeviceEdge       = nullptr;         // [-] - borrowed; never owned
     const DiagnosticExtension*   NamingEdge       = nullptr;         // [-] - borrowed; never owned

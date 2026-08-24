@@ -19,14 +19,14 @@ namespace Slate
 ///       for the participle. `Assembly` and not `Compositing`, for the same reason.
 /// note  The registration is a property of the **figure**, not of where it is presented. A magnifier is a
 ///       navigation figure wherever it is drawn.
-/// tag   contract
+/// tag   guarantee
 enum class SymbolDiscipline : std::uint32_t
 {
     Workspace            =  0u,   // [-] - the shell itself: folders, arrangements, panels
     Navigation           =  1u,   // [-] - traversal: chevrons, magnifier, crosshair
     Geometry             =  2u,   // [-] - polygonal modelling: vertices, edges, faces, booleans
     ComputerAidedDesign  =  3u,   // [-] - constrained sketching, revolution, fillet, loft
-    Sculpting            =  4u,   // [-] - bristles, inflation, relaxation, remesh density
+    Sculpting            =  4u,   // [-] - bristles, inflation, relaxation, retopology density
     Texturing            =  5u,   // [-] - unwrap seams, material spheres, channels, stencils
     Illumination         =  6u,   // [-] - directional, point, area and dome emitters
     Rendering            =  7u,   // [-] - aperture, convergence, denoise, exposure
@@ -46,7 +46,7 @@ enum class SymbolDiscipline : std::uint32_t
 /// note  🚧 Only the seven the source actually draws carry declared artwork. Every other subject resolves to
 ///       `PlaceholderMark` at the correct extent, so the roster may be filled in later without a single
 ///       layout moving. That is the whole reason the extents are exact now and the artwork is not.
-/// tag   contract
+/// tag   guarantee
 enum class SymbolSubject : std::uint32_t
 {
     // Workspace ---------------------------------------------------------------------------------------------
@@ -94,7 +94,7 @@ enum class SymbolSubject : std::uint32_t
     InflatePush         = 33u,   // 🚧
     SmoothRelax         = 34u,   // 🚧
     MaskStencil         = 35u,   // 🚧
-    RemeshDensity       = 36u,   // 🚧
+    RetopologyDensity       = 36u,   // 🚧
 
     // Texturing ---------------------------------------------------------------------------------------------
     UnwrapSeam          = 37u,   // 🚧
@@ -169,7 +169,7 @@ enum class SymbolSubject : std::uint32_t
 
 /// 🧩 What one step of a figure's stroke stream does.
 /// note  `Enclosure` and not the obvious spelling: `Frame` is a banned word.
-/// tag   contract
+/// tag   guarantee
 enum class StrokeCommand : std::uint32_t
 {
     Origin     = 0u,   // [-] - lifts the pen and places it; ends any open outline
@@ -181,7 +181,7 @@ enum class StrokeCommand : std::uint32_t
 };
 
 /// 🧩 One step, in the 24-unit declared square Lucide draws in.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct StrokeStep
 {
     StrokeCommand  Command      = StrokeCommand::Origin;   // [-] - what this step does
@@ -213,7 +213,7 @@ inline constexpr float QuarterArcControl   = 0.5522847498f;   // [-] - κ
 /// 🧩 One declared figure — its stroke stream, its registration, and the weight it is drawn at.
 /// note  Points into static storage. Nothing here ever owns an allocation, and a figure outlives every
 ///       reference to it by construction.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct SymbolFigure
 {
     const StrokeStep*  Steps       = nullptr;                        // [-] - static; never allocated

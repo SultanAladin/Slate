@@ -7,10 +7,12 @@
 //    never draws the validation shell's rail, top bar or layer stack.
 
 #include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectoryPanel.h"
+#include "SlateUI/Interface/TreeMechanics/Api/TreeMechanics.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 namespace Slate
@@ -183,8 +185,8 @@ ShellMetric ScaleShellLengths(float Factor)
     float* const Lengths = &Scaled.TopBarHeight;
     const std::uint32_t Count = static_cast<std::uint32_t>(sizeof(ShellMetric) / sizeof(float));
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
-        Lengths[Ordinal] *= Applied;
+    for (std::uint32_t Index = 0u; Index < Count; ++Index)
+        Lengths[Index] *= Applied;
 
     return Scaled;
 }
@@ -251,70 +253,34 @@ const char* EntityText(EntitySubject Subject)
     }
 }
 
-ThemeToken RevisionHue(RevisionSubject Classified)
-{
-    // 📐 The reference's `REVISION_HUE` record, transcribed verbatim from `components/Inspector.tsx`.
-    switch (Classified)
-    {
-        case RevisionSubject::Start:     return Covering(0x7EC8FFu);
-        case RevisionSubject::Feature:   return Covering(0xFFB24Du);
-        case RevisionSubject::Parameter: return Covering(0x4FD18Bu);
-        case RevisionSubject::Sketch:    return Covering(0x37D6D6u);
-        case RevisionSubject::Relocate:  return Covering(0x5B8CFFu);
-        case RevisionSubject::Grouped:   return Covering(0xB98BFFu);
-        case RevisionSubject::Created:   return Covering(0x7EC8FFu);
-        case RevisionSubject::Amended:   return Covering(0xC99B6Au);
-        case RevisionSubject::Dropped:   return Covering(0xFF6B6Bu);
-        default:                          return Covering(0xC99B6Au);
-    }
-}
-
-const char* RevisionText(RevisionSubject Classified)
-{
-    // 📐 The `label` of the reference's `REVISION_CLASS` record, verbatim.
-    switch (Classified)
-    {
-        case RevisionSubject::Start:     return "Start";
-        case RevisionSubject::Feature:   return "Feature";
-        case RevisionSubject::Parameter: return "Params";
-        case RevisionSubject::Sketch:    return "Sketch";
-        case RevisionSubject::Relocate:  return "Relocate";
-        case RevisionSubject::Grouped:   return "Group";
-        case RevisionSubject::Created:   return "Create";
-        case RevisionSubject::Amended:   return "Edit";
-        case RevisionSubject::Dropped:   return "Drop";
-        default:                          return "Edit";
-    }
-}
-
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> SceneDirectoryPanel::Construct(InteractionIndex& Interaction,
+Outcome<bool> SceneDirectoryPanel::ConstructSceneDirectoryPanel(ControlIndex& IncomingInteraction,
                                              MotionIntegrator& Integrator,
-                                             RecordingSurface& Surface,
+                                             RecordingSurface& IncomingSurface,
                                              const ThemeProfile& Resolved)
 {
-    if (Ledger != nullptr)
+    if (Interaction != nullptr)
     {
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported,
                                        "the scene directory panel is already constructed" });
     }
 
-    Ledger     = &Interaction;
+    Interaction     = &IncomingInteraction;
     Motion     = &Integrator;
-    this->Surface = &Surface;
+    this->Surface = &IncomingSurface;
     Appearance = &Resolved;
 
-    if (!Controls.Construct(Interaction, Surface, Resolved).Resolved)
+    if (!Controls.ConstructControlPanel(IncomingInteraction, IncomingSurface, Resolved).Resolved)
     {
         Reset();
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent,
                                        "the shared inspector controls were rejected" });
     }
 
-    if (!EnvironmentControls.Construct(Interaction, Surface, Resolved).Resolved)
+    if (!EnvironmentControls.ConstructComponents(IncomingInteraction, IncomingSurface, Resolved).Resolved)
     {
         Reset();
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent,
@@ -323,7 +289,7 @@ Outcome<bool> SceneDirectoryPanel::Construct(InteractionIndex& Interaction,
 
     // 🔴 Every identity is claimed here and none inside a tick. A control registered mid-tick receives a fresh
     //    fade and reads as though the pointer had just arrived over it, once per tick, forever.
-    if (!Facets.Construct(Integrator, Surface, Resolved).Resolved)
+    if (!Facets.ConstructFacetPanel(Integrator, IncomingSurface, Resolved).Resolved)
     {
         Reset();
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent,
@@ -336,22 +302,27 @@ Outcome<bool> SceneDirectoryPanel::Construct(InteractionIndex& Interaction,
         &OutlineStrip,
         &InspectCall,
         &DirectoryCall,
+        &TransferBack,
+        &TransferCalls[0], &TransferCalls[1], &TransferExecute,
         &TransferArrows[0], &TransferArrows[1],
-        &TransferChoices[0], &TransferChoices[1], &TransferChoices[2], &TransferChoices[3],
-        &TransferChoices[4], &TransferChoices[5], &TransferChoices[6], &TransferChoices[7],
-        &TransferChoices[8], &TransferChoices[9],
+        &TransferFormatOptions[0], &TransferFormatOptions[1], &TransferFormatOptions[2], &TransferFormatOptions[3],
+        &TransferFormatOptions[4], &TransferFormatOptions[5], &TransferFormatOptions[6], &TransferFormatOptions[7],
+        &TransferFormatOptions[8], &TransferFormatOptions[9], &TransferFormatOptions[10],
         &TransferFields[0], &TransferFields[1], &TransferFields[2], &TransferFields[3],
         &TransferOptions[0], &TransferOptions[1], &TransferOptions[2], &TransferOptions[3],
         &TransferOptions[4], &TransferOptions[5], &TransferOptions[6], &TransferOptions[7],
         &TransferOptions[8], &TransferOptions[9], &TransferOptions[10], &TransferOptions[11],
         &TransferOptions[12], &TransferOptions[13], &TransferOptions[14],
         &TransferOptions[15], &TransferOptions[16], &TransferOptions[17],
+        &TransferCardFolds[0], &TransferCardFolds[1], &TransferCardFolds[2],
+        &TransferCardFolds[3], &TransferCardFolds[4], &TransferCardFolds[5],
+        &TransferCardFields[0], &TransferCardFields[1], &TransferCardFields[2],
+        &TransferCardFields[3], &TransferCardFields[4],
         &BookmarkSave,
         &BookmarkRecall,
         &BookmarkRetire,
         &SearchField,
-        &EnvironmentSliders[0], &EnvironmentSliders[1], &EnvironmentSliders[2],
-        &EnvironmentSliders[3], &EnvironmentSliders[4], &EnvironmentSliders[5],
+        &EnvironmentQuality,
         &CardFolds[0], &CardFolds[1], &CardFolds[2], &CardFolds[3],
         // 🔴 A control that is never registered resolves to nothing, so its row
         //    would draw but refuse every contact — the axis would look editable
@@ -364,30 +335,36 @@ Outcome<bool> SceneDirectoryPanel::Construct(InteractionIndex& Interaction,
 
     for (ControlIdentity* Identity : Every)
     {
-        const Outcome<ControlIdentity> Registered = Interaction.Register();
+        const Outcome<ControlIdentity> Registered = IncomingInteraction.Register();
         if (!Registered.Resolved)
             return Outcome<bool>::Refuse(Registered.Error);
 
         *Identity = Registered.Resolve();
     }
 
+    for (auto& Card : EnvironmentSliders)
+    {
+        for (ControlIdentity& Identity : Card)
+        {
+            const Outcome<ControlIdentity> Registered = IncomingInteraction.Register();
+            if (!Registered.Resolved)
+                return Outcome<bool>::Refuse(Registered.Error);
+            Identity = Registered.Resolve();
+        }
+    }
+
     for (ControlIdentity& Identity : BookmarkNames)
     {
-        const Outcome<ControlIdentity> Registered = Interaction.Register();
+        const Outcome<ControlIdentity> Registered = IncomingInteraction.Register();
         if (!Registered.Resolved)
             return Outcome<bool>::Refuse(Registered.Error);
         Identity = Registered.Resolve();
     }
 
     // 📐 The leaf's page travel. Registered here, never mid-tick.
-    {
-        const Outcome<std::uint32_t> Eased = Integrator.RegisterEased(1.0);
-
-        if (!Eased.Resolved)
-            return Outcome<bool>::Refuse(Eased.Error);
-
-        OutlineMotion = Eased.Resolve();
-    }
+    if (const Outcome<bool> Pages = OutlinePages.ConstructSlidingPages(Integrator, 0u);
+        !Pages.Resolved)
+        return Pages;
 
     {
         const Outcome<std::uint32_t> Eased = Integrator.RegisterEased(1.0);
@@ -396,28 +373,27 @@ Outcome<bool> SceneDirectoryPanel::Construct(InteractionIndex& Interaction,
         TransferMotion = Eased.Resolve();
     }
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 2u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 2u; ++Index)
     {
         const Outcome<std::uint32_t> Eased = Integrator.RegisterEased(1.0);
 
         if (!Eased.Resolved)
             return Outcome<bool>::Refuse(Eased.Error);
 
-        InspectorMotion[Ordinal] = Eased.Resolve();
+        InspectorMotion[Index] = Eased.Resolve();
     }
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < SceneDirectoryContext::EntityCeiling; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < SceneDirectoryContext::EntityLimit; ++Index)
     {
         ControlIdentity* const Rows[] =
         {
-            &RowContacts[Ordinal], &RowDisclosures[Ordinal], &RowPresences[Ordinal],
-            &DetailOptions[Ordinal][0], &DetailOptions[Ordinal][1], &DetailOptions[Ordinal][2],
-            &RevisionGroups[Ordinal]
+            &RowContacts[Index], &RowDisclosures[Index], &RowPresences[Index],
+            &DetailOptions[Index][0], &DetailOptions[Index][1], &DetailOptions[Index][2]
         };
 
         for (ControlIdentity* Identity : Rows)
         {
-            const Outcome<ControlIdentity> Registered = Interaction.Register();
+            const Outcome<ControlIdentity> Registered = IncomingInteraction.Register();
             if (!Registered.Resolved)
                 return Outcome<bool>::Refuse(Registered.Error);
 
@@ -431,48 +407,39 @@ Outcome<bool> SceneDirectoryPanel::Construct(InteractionIndex& Interaction,
 }
 
 void SceneDirectoryPanel::Advance(const PointerCondition& Contact, double Elapsed,
-                                   SceneDirectoryContext& Applied, bool TabPressed)
+                                   SceneDirectoryContext& Applied, bool TabPressed,
+                                   const ModifierCondition& Modifiers)
 {
     Sampled = Contact;
+    Modified = Modifiers;
     Controls.Advance(Contact, Elapsed);
-    // 📝 Sampled, never advanced: the tick owner advances the shared ledger exactly once, and a
+    // 📝 Sampled, never advanced: the tick owner advances the shared index exactly once, and a
     //    second advance would retire the release before the panel reads it.
     EnvironmentControls.Sample(Contact);
     Facets.Advance(Contact, Elapsed);
 
-    // 📐 Two outer slides, with Properties and History nested inside the inspector. The old three-page
-    //    outer state mapped both inspector destinations to the same -width coordinate, so its second
-    //    transition had zero distance and appeared broken.
+    // Tab alternates the directory and inspector. the removed revision feed is no longer an intermediate destination;
+    // camera bookmarks remain reachable through the camera inspector's explicit tab.
     if (TabPressed)
     {
-        if (Applied.OutlinePage == 0u)
-        {
-            Applied.OutlinePage = 1u;
-            Applied.OutlineInspectorTab = 0u;
-        }
-        else if (Applied.OutlineInspectorTab == 0u)
-        {
-            Applied.OutlineInspectorTab = 1u;
-        }
-        else
-        {
-            Applied.OutlinePage = 0u;
-            Applied.OutlineInspectorTab = 0u;
-        }
+        Applied.OutlinePage = Applied.OutlinePage == 0u ? 1u : 0u;
+        Applied.OutlineInspectorTab = 0u;
     }
 
     // 📝 The search field's taken state, reported to the host so it feeds the seam's typed run only
     //    while the field actually holds the contact — the validation shell's filter captured every
     //    keystroke unconditionally, which is the "search box not working" a gate fixes.
-    Applied.SearchTaken = Ledger->Holding(SearchField) || Ledger->Disclosed(SearchField);
+    Applied.SearchTaken = Interaction->Holding(SearchField) || Interaction->Disclosed(SearchField);
 }
 
 void SceneDirectoryPanel::Reset()
 {
     Controls.Reset();
     Facets.Reset();
+    OutlinePages.Reset();
+    TransferOverflow.Reset();
 
-    Ledger     = nullptr;
+    Interaction     = nullptr;
     Motion     = nullptr;
     Surface    = nullptr;
     Appearance = nullptr;
@@ -480,11 +447,12 @@ void SceneDirectoryPanel::Reset()
     Tinted     = {};
     Scaled     = {};
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 6u; ++Ordinal)
-    {
-        EnvironmentArmed[Ordinal] = false;
-        EnvironmentFrom[Ordinal]  = 0.0;
-    }
+    for (std::uint32_t Card = 0u; Card < SceneDirectoryContext::CardLimit; ++Card)
+        for (std::uint32_t Field = 0u; Field < EnvironmentFieldLimit; ++Field)
+        {
+            EnvironmentArmed[Card][Field] = false;
+            EnvironmentFrom[Card][Field] = 0.0;
+        }
 }
 
 void SceneDirectoryPanel::Reapply(const ThemeProfile& Resolved)
@@ -510,18 +478,18 @@ void SceneDirectoryPanel::Reapply(const ThemeProfile& Resolved)
 
 void SceneDirectoryPanel::RecordViewportSky(const PlaneExtent& Extent, const SceneDirectoryContext& Applied)
 {
-    if (Applied.SkyTextureIdentity == 0u)
+    if (Applied.SkyTextureIdentity == 0u && Applied.GeometryTextureIdentity == 0u)
         return;
 
-    // 📐 The dome is direction-indexed, and the viewport reads it through a PERSPECTIVE mesh rather
+    // 📐 The dome is direction-indexed, and the viewport reads it through a PERSPECTIVE geometry rather
     //    than a single cropped quad: a quad maps azimuth and elevation linearly onto the leaf, which
     //    stretches the sun into an ellipse the moment the leaf's aspect differs from the camera's and
-    //    compresses the horizon where perspective should widen it. The mesh samples the dome per
+    //    compresses the horizon where perspective should widen it. The geometry samples the dome per
     //    screen vertex along the true pinhole ray, so the sun stays round and the horizon reads at any
     //    leaf aspect — the same projection the grid below uses, which is what keeps the two aligned.
-    constexpr std::uint32_t MeshColumns = 64u;
-    constexpr std::uint32_t MeshRows    = 36u;
-    constexpr std::uint32_t QuadCount   = MeshColumns * MeshRows;
+    constexpr std::uint32_t GeometryColumns = 64u;
+    constexpr std::uint32_t GeometryRows    = 36u;
+    constexpr std::uint32_t QuadCount   = GeometryColumns * GeometryRows;
     constexpr std::uint32_t VertexCount = QuadCount * 4u;
     constexpr std::uint32_t IndexCount  = QuadCount * 6u;
 
@@ -553,15 +521,15 @@ void SceneDirectoryPanel::RecordViewportSky(const PlaneExtent& Extent, const Sce
     std::uint32_t VertexOffset = 0u;
     std::uint32_t IndexOffset  = 0u;
 
-    for (std::uint32_t Row = 0u; Row < MeshRows; ++Row)
+    for (std::uint32_t Row = 0u; Row < GeometryRows; ++Row)
     {
-        const float RowY0 = Extent.MinimumY + static_cast<float>(Row)       / static_cast<float>(MeshRows) * Extent.Height();
-        const float RowY1 = Extent.MinimumY + static_cast<float>(Row + 1u)  / static_cast<float>(MeshRows) * Extent.Height();
+        const float RowY0 = Extent.MinimumY + static_cast<float>(Row)       / static_cast<float>(GeometryRows) * Extent.Height();
+        const float RowY1 = Extent.MinimumY + static_cast<float>(Row + 1u)  / static_cast<float>(GeometryRows) * Extent.Height();
 
-        for (std::uint32_t Column = 0u; Column < MeshColumns; ++Column)
+        for (std::uint32_t Column = 0u; Column < GeometryColumns; ++Column)
         {
-            const float ColX0 = Extent.MinimumX + static_cast<float>(Column)      / static_cast<float>(MeshColumns) * Extent.Width();
-            const float ColX1 = Extent.MinimumX + static_cast<float>(Column + 1u) / static_cast<float>(MeshColumns) * Extent.Width();
+            const float ColX0 = Extent.MinimumX + static_cast<float>(Column)      / static_cast<float>(GeometryColumns) * Extent.Width();
+            const float ColX1 = Extent.MinimumX + static_cast<float>(Column + 1u) / static_cast<float>(GeometryColumns) * Extent.Width();
 
             const float CornerScreenX[4] = { ColX0, ColX1, ColX0, ColX1 };
             const float CornerScreenY[4] = { RowY0, RowY0, RowY1, RowY1 };
@@ -622,12 +590,19 @@ void SceneDirectoryPanel::RecordViewportSky(const PlaneExtent& Extent, const Sce
         }
     }
 
-    Surface->ImageMesh(Applied.SkyTextureIdentity, Positions, UVs, VertexCount, Indices, IndexCount);
+    if (Applied.SkyTextureIdentity != 0u)
+        Surface->ImageGeometry(Applied.SkyTextureIdentity, Positions, UVs, VertexCount, Indices, IndexCount);
+
+    // Geometry has already passed through the camera projection during hardware visibility rasterisation.
+    // Its resolve is transparent where no surface won, so this ordinary image overlays the direction-indexed
+    // atmosphere without replacing it and remains clipped to the viewport leaf by the recording surface.
+    if (Applied.GeometryTextureIdentity != 0u)
+        Surface->Image(Extent, Applied.GeometryTextureIdentity);
 }
 
 
 // 🔴 RecordGroundGrid is withdrawn. The ground lattice is solved per pixel
-//    by OverlayFragment.slang mode 3 — see the note in OverlayFragment.slang.
+//    by WorkspaceOverlayFragment.slang mode 3 — see the note in WorkspaceOverlayFragment.slang.
 //    The host pushes the camera to the overlay pass through OverlayGroundPose
 //    instead of handing it screen-space line segments.
 
@@ -660,14 +635,16 @@ void SceneDirectoryPanel::RecordLeafHeader(const PlaneExtent& Extent, SymbolSubj
 
     const float Run        = Scaled.RunPrimary;
     const float SecondaryRun = Scaled.RunFine;
-    const float PairHeight = Run * RunLeading + SecondaryRun * RunLeading;
+    const bool HasSecondary = Secondary != nullptr && Secondary[0] != '\0';
+    const float PairHeight = HasSecondary ? (Run * RunLeading + SecondaryRun * RunLeading) : Run;
     const float PairLead   = Extent.MinimumY + (Extent.Height() - PairHeight) * 0.5f;
     const float RunLead    = Crest.MaximumX + Pad;
 
     Surface->TextRunTruncated(RunLead, PairLead, Extent.MaximumX - RunLead - Pad,
                               Tinted.Primary, Titled, Run, true);
-    Surface->TextRunTruncated(RunLead, PairLead + Run * RunLeading,
-                              Extent.MaximumX - RunLead - Pad, Hue, Secondary, SecondaryRun, false);
+    if (HasSecondary)
+        Surface->TextRunTruncated(RunLead, PairLead + Run * RunLeading,
+                                  Extent.MaximumX - RunLead - Pad, Hue, Secondary, SecondaryRun, false);
 }
 
 void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirectoryContext& Applied)
@@ -681,24 +658,32 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
 
     const PlaneExtent Back = Spanning(Extent.MinimumX + Pad, Header.MaximumY + Pad, 82.0f, 28.0f);
     const bool OnBack = Back.Encloses(Sampled.PositionX, Sampled.PositionY);
-    if (Sampled.ContactPressed && OnBack && !Ledger->AnyDisclosed()) Ledger->Grab(DirectoryCall, ControlPart::Body);
-    if (OnBack && Ledger->Released(DirectoryCall)) Applied.OutlinePage = 0u;
-    Ledger->DeclareHovered(DirectoryCall, OnBack, HoverOver);
+    if (Sampled.ContactPressed && OnBack)
+    {
+        Interaction->Withdraw();
+        Applied.OutlinePage = 0u;
+    }
+    Interaction->DeclareHovered(TransferBack, OnBack, HoverOver);
     Surface->Ground(Back, OnBack ? Tinted.TileHovered : Tinted.Tile, 14.0f, CornerAll);
     Surface->Edge(Back, Tinted.HairlineFirm, 1.0f, 14.0f, CornerAll);
     Surface->TextRun(Back.MinimumX + 18.0f, Back.MinimumY + 7.0f, Tinted.Primary, "Back", Scaled.RunSecondary);
 
-    float Y = Back.MaximumY + 28.0f;
+    const PlaneExtent ScrollViewport = { Extent.MinimumX, Back.MaximumY + 8.0f,
+                                         Extent.MaximumX, Extent.MaximumY };
+    const float PageScroll = TransferOverflow.Advance(Sampled, ScrollViewport, 880.0f);
+    Surface->Confine(ScrollViewport);
+
+    float Y = Back.MaximumY + 28.0f - PageScroll;
     Surface->TextRun(Extent.MinimumX + Pad, Y, Tinted.Primary,
                      Applied.TransferMode == 0u ? "Import format" : "Export format", Scaled.RunPrimary);
     Y += 28.0f;
 
     static const char* const ImportFormats[] =
-        { "FBX", "glTF", "GLB", "OBJ", "USD", "USDZ", "DAE", "STL", "PLY", "ABC" };
+        { "Codex", "FBX", "glTF", "GLB", "OBJ", "USD", "USDZ", "DAE", "STL", "PLY", "ABC" };
     static const char* const ExportFormats[] =
-        { "FBX", "glTF", "GLB", "OBJ", "USD", "USDZ", "DAE", "STL", "ABC" };
+        { "Codex", "FBX", "glTF", "GLB", "OBJ", "USD", "USDZ", "DAE", "STL", "ABC" };
     const char* const* Formats = Applied.TransferMode == 0u ? ImportFormats : ExportFormats;
-    const std::uint32_t FormatCount = Applied.TransferMode == 0u ? 10u : 9u;
+    const std::uint32_t FormatCount = Applied.TransferMode == 0u ? 11u : 10u;
     if (Applied.TransferFormat >= FormatCount)
         Applied.TransferFormat = FormatCount - 1u;
 
@@ -708,19 +693,19 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
     const double Fraction = Motion->Eased(TransferMotion).Current();
     const double Scroll = TransferFrom + (TransferTarget - TransferFrom) * Fraction;
 
-    const auto Arrow = [&](std::uint32_t Ordinal, const PlaneExtent& Cell, const char* Mark)
+    const auto Arrow = [&](std::uint32_t Index, const PlaneExtent& Cell, const char* Mark)
     {
         const bool On = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
-        if (Sampled.ContactPressed && On && !Ledger->AnyDisclosed()) Ledger->Grab(TransferArrows[Ordinal], ControlPart::Body);
-        if (On && Ledger->Released(TransferArrows[Ordinal]))
+        if (Sampled.ContactPressed && On)
         {
-            if (Ordinal == 0u && Applied.TransferFormat > 0u) --Applied.TransferFormat;
-            if (Ordinal == 1u && Applied.TransferFormat + 1u < FormatCount) ++Applied.TransferFormat;
+            Interaction->Withdraw();
+            if (Index == 0u && Applied.TransferFormat > 0u) --Applied.TransferFormat;
+            if (Index == 1u && Applied.TransferFormat + 1u < FormatCount) ++Applied.TransferFormat;
             TransferFrom = Scroll;
             TransferTarget = static_cast<double>(Applied.TransferFormat) * 144.0;
             Motion->Eased(TransferMotion).Depart(0.0, 1.0, 250.0, 0.0, EaseCurve::Carousel);
         }
-        Ledger->DeclareHovered(TransferArrows[Ordinal], On, HoverOver);
+        Interaction->DeclareHovered(TransferArrows[Index], On, HoverOver);
         Surface->Ground(Cell, On ? Tinted.TileHovered : Tinted.Tile, 21.0f, CornerAll);
         Surface->Edge(Cell, Tinted.HairlineFirm, 1.0f, 21.0f, CornerAll);
         Surface->TextRun(Cell.MinimumX + 16.0f, Cell.MinimumY + 11.0f, Tinted.Primary, Mark, Scaled.RunPrimary);
@@ -729,25 +714,26 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
     Arrow(1u, Right, ">");
 
     Surface->Confine(Rail);
-    for (std::uint32_t Ordinal = 0u; Ordinal < FormatCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < FormatCount; ++Index)
     {
-        const PlaneExtent Choice = Spanning(Rail.MinimumX + 4.0f + Ordinal * 144.0f - static_cast<float>(Scroll),
+        const PlaneExtent OptionTile = Spanning(Rail.MinimumX + 4.0f + Index * 144.0f - static_cast<float>(Scroll),
                                             Rail.MinimumY, 132.0f, 80.0f);
-        const bool On = Choice.Encloses(Sampled.PositionX, Sampled.PositionY);
-        if (Sampled.ContactPressed && On && !Ledger->AnyDisclosed()) Ledger->Grab(TransferChoices[Ordinal], ControlPart::Body);
-        if (On && Ledger->Released(TransferChoices[Ordinal]))
+        const bool On = Rail.Encloses(Sampled.PositionX, Sampled.PositionY) &&
+                        OptionTile.Encloses(Sampled.PositionX, Sampled.PositionY);
+        if (Sampled.ContactPressed && On)
         {
-            Applied.TransferFormat = Ordinal;
+            Interaction->Withdraw();
+            Applied.TransferFormat = Index;
             TransferFrom = Scroll;
-            TransferTarget = static_cast<double>(Ordinal) * 144.0;
+            TransferTarget = static_cast<double>(Index) * 144.0;
             Motion->Eased(TransferMotion).Depart(0.0, 1.0, 250.0, 0.0, EaseCurve::Carousel);
         }
-        Ledger->DeclareHovered(TransferChoices[Ordinal], On, HoverOver);
-        const bool Taken = Applied.TransferFormat == Ordinal;
-        Surface->Ground(Choice, Taken ? Tinted.RowTaken : (On ? Tinted.TileHovered : Tinted.Tile), 12.0f, CornerAll);
-        Surface->Edge(Choice, Taken ? Tinted.EntityAccent : Tinted.Hairline, 1.0f, 12.0f, CornerAll);
-        Surface->TextRun(Choice.MinimumX + 16.0f, Choice.MinimumY + 16.0f, Tinted.Primary, Formats[Ordinal], Scaled.RunPrimary);
-        Surface->TextRun(Choice.MinimumX + 16.0f, Choice.MinimumY + 48.0f, Tinted.Muted,
+        Interaction->DeclareHovered(TransferFormatOptions[Index], On, HoverOver);
+        const bool Taken = Applied.TransferFormat == Index;
+        Surface->Ground(OptionTile, Taken ? Tinted.RowTaken : (On ? Tinted.TileHovered : Tinted.Tile), 12.0f, CornerAll);
+        Surface->Edge(OptionTile, Taken ? Tinted.EntityAccent : Tinted.Hairline, 1.0f, 12.0f, CornerAll);
+        Surface->TextRun(OptionTile.MinimumX + 16.0f, OptionTile.MinimumY + 16.0f, Tinted.Primary, Formats[Index], Scaled.RunPrimary);
+        Surface->TextRun(OptionTile.MinimumX + 16.0f, OptionTile.MinimumY + 48.0f, Tinted.Muted,
                          Applied.TransferMode == 0u ? "Scene input" : "Scene output", Scaled.RunFine);
     }
     Surface->Release();
@@ -757,19 +743,19 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
                      Applied.TransferMode == 0u ? "Choose a scene format to import." : "Choose a scene format to export.",
                      Scaled.RunSecondary);
     Surface->TextRun(Extent.MinimumX + Pad, Y + 24.0f, Tinted.Faint,
-                     "File selection and transfer will be connected in a later increment.", Scaled.RunFine);
+                     "Enter the source path below, then confirm the transfer at the end of this panel.", Scaled.RunFine);
     Y += 56.0f;
 
-    const auto Field = [&](std::uint32_t Ordinal, const PlaneExtent& Row, const char* Label,
-                           const char* Placeholder, char* Run, std::uint32_t Ceiling)
+    const auto Field = [&](std::uint32_t Index, const PlaneExtent& Row, const char* Label,
+                           const char* Placeholder, char* Run, std::uint32_t Limit)
     {
         Surface->TextRun(Row.MinimumX, Row.MinimumY + 9.0f, Tinted.Muted, Label, Scaled.RunSecondary);
         EditableTextDeclaration Declared;
         Declared.Placeholder = Placeholder;
-        EnvironmentControls.EditableText(TransferFields[Ordinal],
+        EnvironmentControls.EditableText(TransferFields[Index],
                                          Spanning(Row.MinimumX + 84.0f, Row.MinimumY,
                                                   Row.Width() - 84.0f, 34.0f),
-                                         Declared, Run, Ceiling);
+                                         Declared, Run, Limit);
     };
 
     const float Half = (Extent.Width() - Pad * 3.0f) * 0.5f;
@@ -779,109 +765,400 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
           Applied.TransferTags, 96u);
     Y += 42.0f;
     Field(2u, Spanning(Extent.MinimumX + Pad, Y, Extent.Width() - Pad * 2.0f, 34.0f),
-          "Location", "Project/Scenes", Applied.TransferLocation, 96u);
+          Applied.TransferMode == 0u ? "Source" : "Destination",
+          Applied.TransferMode == 0u ? "path/to/model.obj" : "path/to/scene.codex",
+          Applied.TransferLocation, 96u);
     Y += 46.0f;
 
-    const auto OptionRun = [&](const char* Label, const char* const* Options, std::uint32_t Count,
-                               std::uint32_t FirstControl, std::uint32_t& Taken, float CellWidth)
+    // Scale uses the same reusable editable form as Name and Location, with the established
+    // calculator grammar (`10 exp 5`, `10^5`, `3.5*320`) enabled.
     {
-        Surface->TextRun(Extent.MinimumX + Pad, Y + 8.0f, Tinted.Muted, Label, Scaled.RunSecondary);
-        for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
-        {
-            const PlaneExtent Cell = Spanning(Extent.MinimumX + Pad + 92.0f + Ordinal * (CellWidth + 8.0f),
-                                              Y, CellWidth, 30.0f);
-            const bool On = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
-            ControlIdentity Target = TransferOptions[FirstControl + Ordinal];
-            if (Sampled.ContactPressed && On && !Ledger->AnyDisclosed()) Ledger->Grab(Target, ControlPart::Body);
-            if (On && Ledger->Released(Target)) Taken = Ordinal;
-            Ledger->DeclareHovered(Target, On, HoverOver);
-            const bool Selected = Taken == Ordinal;
-            Surface->Ground(Cell, Selected ? Tinted.RowTaken : (On ? Tinted.TileHovered : Tinted.Tile), 15.0f, CornerAll);
-            Surface->Edge(Cell, Selected ? Tinted.EntityAccent : Tinted.Hairline, 1.0f, 15.0f, CornerAll);
-            Surface->TextRun(Cell.MinimumX + 12.0f, Cell.MinimumY + 7.0f, Tinted.Primary, Options[Ordinal], Scaled.RunFine);
-        }
-        Y += 38.0f;
-    };
-
-    static const char* const Scales[] = { "0.01", "1.0", "100" };
-    std::uint32_t ScaleTaken = Applied.TransferScale == 0.01 ? 0u : Applied.TransferScale == 100.0 ? 2u : 1u;
-    OptionRun("Scale", Scales, 3u, 0u, ScaleTaken, 72.0f);
-    Applied.TransferScale = ScaleTaken == 0u ? 0.01 : ScaleTaken == 2u ? 100.0 : 1.0;
-    static const char* const Forward[] = { "-Z", "+Z", "+X", "-X" };
-    OptionRun("Forward", Forward, 4u, 3u, Applied.TransferForwardAxis, 58.0f);
-    static const char* const Up[] = { "+Y", "+Z" };
-    OptionRun("Up axis", Up, 2u, 7u, Applied.TransferUpAxis, 58.0f);
-    static const char* const Normals[] = { "Custom", "Calculate", "Face" };
-    OptionRun("Normals", Normals, 3u, 9u, Applied.TransferNormalMode, 86.0f);
-
-    bool* Flags[6] = { &Applied.TransferApplyTransform, &Applied.TransferMaterials,
-                       &Applied.TransferAnimation, &Applied.TransferVertexColours,
-                       &Applied.TransferTriangulate, &Applied.TransferCustomProperties };
-    const char* ImportFlagNames[6] = { "Apply transform", "Materials", "Animation", "Vertex colours",
-                                       "Triangulate", "Custom properties" };
-    const char* ExportFlagNames[6] = { "Apply modifiers", "Materials", "Bake animation", "Tangent space",
-                                       "Triangulate", "Custom properties" };
-    const char* const* FlagNames = Applied.TransferMode == 0u ? ImportFlagNames : ExportFlagNames;
-    for (std::uint32_t Ordinal = 0u; Ordinal < 6u; ++Ordinal)
-    {
-        const std::uint32_t Column = Ordinal % 3u;
-        const std::uint32_t Row = Ordinal / 3u;
-        const PlaneExtent Cell = Spanning(Extent.MinimumX + Pad + Column * 178.0f,
-                                          Y + Row * 36.0f, 168.0f, 28.0f);
-        const bool On = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
-        ControlIdentity Target = TransferOptions[12u + Ordinal];
-        if (Sampled.ContactPressed && On && !Ledger->AnyDisclosed()) Ledger->Grab(Target, ControlPart::Body);
-        if (On && Ledger->Released(Target)) *Flags[Ordinal] = !*Flags[Ordinal];
-        Ledger->DeclareHovered(Target, On, HoverOver);
-        Surface->Ground(Cell, *Flags[Ordinal] ? Tinted.RowTaken : Tinted.Tile, 14.0f, CornerAll);
-        Surface->Edge(Cell, *Flags[Ordinal] ? Tinted.EntityAccent : Tinted.Hairline, 1.0f, 14.0f, CornerAll);
-        Surface->TextRun(Cell.MinimumX + 12.0f, Cell.MinimumY + 6.0f, Tinted.Primary, FlagNames[Ordinal], Scaled.RunFine);
+        const PlaneExtent Row = Spanning(Extent.MinimumX + Pad, Y,
+                                         Extent.Width() - Pad * 2.0f, 34.0f);
+        Surface->TextRun(Row.MinimumX, Row.MinimumY + 9.0f, Tinted.Muted,
+                         "Scale", Scaled.RunSecondary);
+        const EditableTextVerdict Verdict = EnvironmentControls.EditableText(
+            TransferFields[3u],
+            Spanning(Row.MinimumX + 84.0f, Row.MinimumY, Row.Width() - 84.0f, 34.0f),
+            EditableTextDeclaration{ "1.0", false, true },
+            Applied.TransferScaleRun, sizeof(Applied.TransferScaleRun));
+        if (Verdict.Accepted)
+            Applied.TransferScale = std::strtod(Applied.TransferScaleRun, nullptr);
+        Y += 42.0f;
     }
 
+    static const char* const Forward[] = { "-Z", "+Z", "+X", "-X" };
+    static const char* const Up[] = { "+Y", "+Z" };
+    static const char* const Normals[] = { "Custom", "Calculate", "Face" };
+
+    // 📐 Every axis field spends the same compact width. The two columns are anchored to opposite
+    // sides of the page, so a wide transfer leaf does not stretch a three-word roster across 1200 px.
+    const float ColumnGap = Pad * 2.0f;
+    const float CompactX = std::min(420.0f, (Extent.Width() - Pad * 2.0f - ColumnGap) * 0.5f);
+    const float LeftX = Extent.MinimumX + Pad;
+    const float RightX = Extent.MaximumX - Pad - CompactX;
+    const PlaneExtent ForwardRow = Spanning(LeftX, Y, CompactX, 34.0f);
+    const PlaneExtent UpRow = Spanning(RightX, Y, CompactX, 34.0f);
+    EnvironmentControls.SelectionField(TransferOptions[0u], ForwardRow,
+        SelectionDeclaration{ "Forward", Forward, 4u }, Applied.TransferForwardAxis);
+    EnvironmentControls.SelectionField(TransferOptions[1u], UpRow,
+        SelectionDeclaration{ "Up Axis", Up, 2u }, Applied.TransferUpAxis);
+    Y += 42.0f;
+
+    const PlaneExtent NormalRow = Spanning(LeftX, Y, CompactX, 34.0f);
+    EnvironmentControls.SelectionField(TransferOptions[2u], NormalRow,
+        SelectionDeclaration{ "Normals", Normals, 3u }, Applied.TransferNormalMode);
+
+    const auto ToggleLine = [&](ControlIdentity Target, const PlaneExtent& Row,
+                                const char* Caption, bool& Reading)
+    {
+        const bool On = Row.Encloses(Sampled.PositionX, Sampled.PositionY);
+        if (Sampled.ContactPressed && On && !Interaction->AnyDisclosed())
+            Interaction->Grab(Target, ControlPart::Body);
+        if (On && Interaction->Released(Target))
+            Reading = !Reading;
+        Interaction->DeclareHovered(Target, On, HoverOver);
+        if (On)
+            Surface->Ground(Row, Tinted.TileHovered, Scaled.FieldRadius, CornerAll);
+        Surface->TextRun(Row.MinimumX + 10.0f,
+                         Row.MinimumY + (Row.Height() - Scaled.RunSecondary) * 0.5f,
+                         On ? Tinted.Primary : Tinted.Muted, Caption, Scaled.RunSecondary);
+        const PlaneExtent Switch = Spanning(Row.MaximumX - 58.0f,
+                                            Row.MinimumY + (Row.Height() - 32.0f) * 0.5f,
+                                            50.0f, 32.0f);
+        EnvironmentControls.SwitchTrack(Target, Switch, Reading,
+                                        Tinted.EntityAccent, Tinted.Hairline, Covering(0xFFFFFFu));
+    };
+
+    ToggleLine(TransferOptions[3u], Spanning(RightX, Y, CompactX, 34.0f),
+               "Triangulate", Applied.TransferTriangulate);
+    Y += 44.0f;
+
+    static const char* const TransformModes[] = { "Bake transform", "Preserve hierarchy", "Geometry only" };
+    static const char* const MaterialModes[] = { "Create materials", "Reuse matching", "Link source" };
+    static const char* const TexturePaths[] = { "Relative paths", "Copy textures", "Embed textures" };
+    static const char* const VertexModes[] = { "Replace", "Multiply", "Ignore" };
+    static const char* const ColourSpaces[] = { "Source", "sRGB", "Linear" };
+    static const char* const PropertyModes[] = { "All properties", "Supported only", "None" };
+    static const char* const AnimationModes[] = { "All animation", "Active action", "Current take" };
+    static const char* const PrimaryAxes[] = { "+Y", "+X", "+Z" };
+    static const char* const SecondaryAxes[] = { "+X", "+Z", "+Y" };
+
+    float CardY = Y;
+    const float CardGap = 8.0f;
+    const float CardX = Extent.Width() - Pad * 2.0f;
+
+    // Transfer options are one reading column. A masonry grid hid the vertical order and
+    // made wheel overflow impossible to understand when cards opened at different heights.
+    const auto Card = [&](std::uint32_t Index, const char* Caption,
+                          float BodyHeight, const auto& RecordBody)
+    {
+        const float X = Extent.MinimumX + Pad;
+        const float Top = CardY;
+        const PlaneExtent Head = Spanning(X, Top, CardX, 34.0f);
+        const bool OnHead = Head.Encloses(Sampled.PositionX, Sampled.PositionY);
+        if (Sampled.ContactPressed && OnHead && !Interaction->AnyDisclosed())
+            Interaction->Grab(TransferCardFolds[Index], ControlPart::Chevron);
+        if (OnHead && Interaction->Released(TransferCardFolds[Index]))
+        {
+            const bool Opening = !Applied.TransferCardExpanded[Index];
+            for (bool& Expanded : Applied.TransferCardExpanded)
+                Expanded = false;
+            Applied.TransferCardExpanded[Index] = Opening;
+        }
+        Interaction->DeclareHovered(TransferCardFolds[Index], OnHead, HoverOver);
+
+        const float Opening = Controls.OutlineExpansion(TransferCardFolds[Index],
+                                                        Applied.TransferCardExpanded[Index], true);
+        const float OpenBody = BodyHeight * Opening;
+        const PlaneExtent Whole = Spanning(X, Top, CardX, Head.Height() + OpenBody);
+        Surface->Ground(Whole, Tinted.Tile, Scaled.CardRadius, CornerAll);
+        Surface->Edge(Whole, OnHead ? Tinted.HairlineFirm : Tinted.Hairline,
+                      1.0f, Scaled.CardRadius, CornerAll);
+        Surface->TextRun(Head.MinimumX + 12.0f,
+                         Head.MinimumY + (Head.Height() - Scaled.RunSecondary) * 0.5f,
+                         OnHead ? Tinted.Primary : Tinted.Muted, Caption, Scaled.RunSecondary, 0.0f, true);
+        Surface->Stroke(Applied.TransferCardExpanded[Index]
+                        ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
+                        Spanning(Head.MaximumX - 24.0f, Head.MinimumY + 9.0f, 14.0f, 14.0f),
+                        OnHead ? Tinted.Primary : Tinted.Faint);
+
+        if (OpenBody > 0.5f)
+        {
+            const PlaneExtent Clip = Spanning(X, Head.MaximumY, CardX, OpenBody);
+            Surface->Confine(Clip);
+            RecordBody(Spanning(X + 10.0f, Head.MaximumY + 6.0f,
+                                CardX - 20.0f, BodyHeight - 10.0f));
+            Surface->Release();
+        }
+        CardY += Head.Height() + OpenBody + CardGap;
+    };
+
+    const auto BodyRow = [](const PlaneExtent& Body, std::uint32_t Index) -> PlaneExtent
+    {
+        return Spanning(Body.MinimumX, Body.MinimumY + static_cast<float>(Index) * 34.0f,
+                        Body.Width(), 32.0f);
+    };
+    const auto CardSelection = [&](ControlIdentity Target, const PlaneExtent& Row,
+                                   const char* Caption, const char* const* Options,
+                                   std::uint32_t OptionCount, std::uint32_t& Taken)
+    {
+        const float Width = std::min(420.0f, Row.Width());
+        EnvironmentControls.SelectionField(Target,
+            Spanning(Row.MinimumX, Row.MinimumY, Width, Row.Height()),
+            SelectionDeclaration{ Caption, Options, OptionCount }, Taken);
+    };
+
+    Card(0u, Applied.TransferMode == 0u ? "Transform" : "Transform output", 112.0f,
+         [&](const PlaneExtent& Body)
+    {
+        ToggleLine(TransferCardFields[0], BodyRow(Body, 0u),
+                   Applied.TransferMode == 0u ? "Apply transform" : "Apply modifiers",
+                   Applied.TransferApplyTransform);
+        CardSelection(TransferCardFields[1], BodyRow(Body, 1u),
+                      "Mode", TransformModes, 3u, Applied.TransferTransformMode);
+        const float HalfRow = (Body.Width() - 6.0f) * 0.5f;
+        ToggleLine(TransferCardFields[2], Spanning(Body.MinimumX, BodyRow(Body, 2u).MinimumY,
+                                                  HalfRow, 32.0f),
+                   "Apply units", Applied.TransferApplyUnits);
+        ToggleLine(TransferCardFields[3], Spanning(Body.MaximumX - HalfRow, BodyRow(Body, 2u).MinimumY,
+                                                  HalfRow, 32.0f),
+                   "Keep pivots", Applied.TransferPreservePivots);
+    });
+
+    Card(1u, "Materials", 112.0f, [&](const PlaneExtent& Body)
+    {
+        ToggleLine(TransferCardFields[0], BodyRow(Body, 0u), "Include materials", Applied.TransferMaterials);
+        CardSelection(TransferCardFields[1], BodyRow(Body, 1u),
+                      "Material mode", MaterialModes, 3u, Applied.TransferMaterialMode);
+        CardSelection(TransferCardFields[2], BodyRow(Body, 2u),
+                      "Textures", TexturePaths, 3u, Applied.TransferTexturePathMode);
+    });
+
+    Card(2u, "Vertex colours", 112.0f, [&](const PlaneExtent& Body)
+    {
+        ToggleLine(TransferCardFields[0], BodyRow(Body, 0u), "Include colours", Applied.TransferVertexColours);
+        CardSelection(TransferCardFields[1], BodyRow(Body, 1u),
+                      "Mode", VertexModes, 3u, Applied.TransferVertexColourMode);
+        CardSelection(TransferCardFields[2], BodyRow(Body, 2u),
+                      "Colour space", ColourSpaces, 3u, Applied.TransferVertexColourSpace);
+    });
+
+    Card(3u, "Custom properties", 112.0f, [&](const PlaneExtent& Body)
+    {
+        ToggleLine(TransferCardFields[0], BodyRow(Body, 0u),
+                   "Include properties", Applied.TransferCustomProperties);
+        CardSelection(TransferCardFields[1], BodyRow(Body, 1u),
+                      "Properties", PropertyModes, 3u, Applied.TransferCustomPropertyMode);
+        ToggleLine(TransferCardFields[2], BodyRow(Body, 2u),
+                   "Keep namespaces", Applied.TransferPreserveNamespaces);
+    });
+
+    Card(4u, "Armature", 180.0f, [&](const PlaneExtent& Body)
+    {
+        ToggleLine(TransferCardFields[0], BodyRow(Body, 0u), "Include armature", Applied.TransferArmatures);
+        CardSelection(TransferCardFields[1], BodyRow(Body, 1u),
+                      "Primary axis", PrimaryAxes, 3u, Applied.TransferPrimaryBoneAxis);
+        CardSelection(TransferCardFields[2], BodyRow(Body, 2u),
+                      "Secondary axis", SecondaryAxes, 3u, Applied.TransferSecondaryBoneAxis);
+        ToggleLine(TransferCardFields[3], BodyRow(Body, 3u), "Include leaf bones", Applied.TransferLeafBones);
+        ToggleLine(TransferCardFields[4], BodyRow(Body, 4u), "Deform bones only", Applied.TransferDeformBonesOnly);
+    });
+
+    Card(5u, Applied.TransferMode == 0u ? "Animation" : "Bake animation", 112.0f,
+         [&](const PlaneExtent& Body)
+    {
+        ToggleLine(TransferCardFields[0], BodyRow(Body, 0u),
+                   Applied.TransferMode == 0u ? "Include animation" : "Bake animation",
+                   Applied.TransferAnimation);
+        CardSelection(TransferCardFields[1], BodyRow(Body, 1u),
+                      "Range", AnimationModes, 3u, Applied.TransferAnimationMode);
+        ToggleLine(TransferCardFields[2], BodyRow(Body, 2u),
+                   "Resample curves", Applied.TransferResampleAnimation);
+    });
+
+    const PlaneExtent Execute = Spanning(Extent.MinimumX + Pad, CardY + 4.0f,
+                                         std::min(220.0f, Extent.Width() - Pad * 2.0f), 34.0f);
+    const bool ExecuteHovered = Execute.Encloses(Sampled.PositionX, Sampled.PositionY);
+    if (Sampled.ContactPressed && ExecuteHovered && !Interaction->AnyDisclosed())
+        Interaction->Grab(TransferExecute, ControlPart::Body);
+    if (ExecuteHovered && Interaction->Released(TransferExecute))
+        Applied.TransferDemand = Applied.TransferMode == 0u ? SceneTransferDemand::Import : SceneTransferDemand::Save;
+    Interaction->DeclareHovered(TransferExecute, ExecuteHovered, HoverOver);
+    Surface->Ground(Execute, ExecuteHovered ? Tinted.EntityAccent : Tinted.Tile, 10.0f, CornerAll);
+    Surface->Edge(Execute, Tinted.HairlineFirm, 1.0f, 10.0f, CornerAll);
+    const char* const ExecuteCaption = Applied.TransferMode == 0u ? "Import selected source" : "Save Codex document";
+    const float ExecuteWidth = Surface->MeasureRun(ExecuteCaption, Scaled.RunSecondary, 0.0f);
+    Surface->TextRun(Execute.MinimumX + (Execute.Width() - ExecuteWidth) * 0.5f,
+                     Execute.MinimumY + (Execute.Height() - Scaled.RunSecondary) * 0.5f,
+                     Tinted.Primary, ExecuteCaption, Scaled.RunSecondary, 0.0f, true);
+
+    Surface->Release();
+    const PlaneExtent Thumb = TransferOverflow.Thumb(ScrollViewport, 880.0f);
+    if (Thumb.Height() > 0.0f)
+        Surface->Ground(Thumb, Tinted.HairlineFirm, 1.5f, CornerAll);
     EnvironmentControls.RecordDeferred();
 }
 
+namespace
+{
+
+bool ParentEntityRows(EntityRow* Rows, std::uint32_t RowCount, SceneDirectoryContext& Applied,
+                      std::uint32_t Source, std::uint32_t Destination)
+{
+    if (Rows == nullptr || Source >= RowCount || Destination >= RowCount || Source == Destination)
+        return false;
+
+    const std::uint32_t SourceDepth = Rows[Source].Depth;
+    std::uint32_t SourcePast = Source + 1u;
+    while (SourcePast < RowCount && Rows[SourcePast].Depth > SourceDepth)
+        ++SourcePast;
+
+    if (Destination >= Source && Destination < SourcePast)
+        return false;
+
+    EntityRow OldRows[SceneDirectoryContext::EntityLimit] = {};
+    bool OldExpanded[SceneDirectoryContext::EntityLimit] = {};
+    bool OldPresent[SceneDirectoryContext::EntityLimit] = {};
+    bool OldSelected[SceneDirectoryContext::EntityLimit] = {};
+    const std::uint32_t OldAnchor = Applied.EntitySelectionAnchor;
+    std::uint32_t OldDetailBits[SceneDirectoryContext::EntityLimit] = {};
+    double OldPosition[SceneDirectoryContext::EntityLimit][3] = {};
+    double OldRotation[SceneDirectoryContext::EntityLimit][3] = {};
+    double OldScale[SceneDirectoryContext::EntityLimit][3] = {};
+
+    for (std::uint32_t Index = 0u; Index < RowCount; ++Index)
+    {
+        OldRows[Index] = Rows[Index];
+        OldExpanded[Index] = Applied.EntityExpanded[Index];
+        OldPresent[Index] = Applied.EntityPresent[Index];
+        OldSelected[Index] = Applied.EntitySelected[Index];
+        OldDetailBits[Index] = Applied.DetailBits[Index];
+        for (std::uint32_t Axis = 0u; Axis < 3u; ++Axis)
+        {
+            OldPosition[Index][Axis] = Applied.EntityPosition[Index][Axis];
+            OldRotation[Index][Axis] = Applied.EntityRotation[Index][Axis];
+            OldScale[Index][Axis] = Applied.EntityScale[Index][Axis];
+        }
+    }
+
+    std::uint32_t Order[SceneDirectoryContext::EntityLimit] = {};
+    std::uint32_t Remaining = 0u;
+    for (std::uint32_t Index = 0u; Index < RowCount; ++Index)
+        if (Index < Source || Index >= SourcePast)
+            Order[Remaining++] = Index;
+
+    std::uint32_t DestinationAt = 0u;
+    while (DestinationAt < Remaining && Order[DestinationAt] != Destination)
+        ++DestinationAt;
+    if (DestinationAt >= Remaining)
+        return false;
+
+    const std::uint32_t DestinationDepth = OldRows[Destination].Depth;
+    std::uint32_t Home = DestinationAt + 1u;
+    while (Home < Remaining && OldRows[Order[Home]].Depth > DestinationDepth)
+        ++Home;
+
+    const std::uint32_t Span = SourcePast - Source;
+    for (std::uint32_t Index = Remaining; Index-- > Home;)
+        Order[Index + Span] = Order[Index];
+    for (std::uint32_t Index = 0u; Index < Span; ++Index)
+        Order[Home + Index] = Source + Index;
+
+    const std::int32_t DepthDelta = static_cast<std::int32_t>(DestinationDepth + 1u)
+                                  - static_cast<std::int32_t>(SourceDepth);
+    const std::int32_t Deepest = static_cast<std::int32_t>(OldRows[SourcePast - 1u].Depth) + DepthDelta;
+    if (Deepest < 0 || Deepest >= static_cast<std::int32_t>(SceneDirectoryContext::EntityLimit))
+        return false;
+
+    std::uint32_t NewTaken = Applied.EntityTaken;
+    std::uint32_t NewAnchor = Applied.EntitySelectionAnchor;
+
+    for (std::uint32_t Index = 0u; Index < RowCount; ++Index)
+    {
+        const std::uint32_t Old = Order[Index];
+        Rows[Index] = OldRows[Old];
+        if (Old >= Source && Old < SourcePast)
+            Rows[Index].Depth = static_cast<std::uint32_t>(static_cast<std::int32_t>(Rows[Index].Depth) + DepthDelta);
+
+        Applied.EntityExpanded[Index] = OldExpanded[Old];
+        Applied.EntityPresent[Index] = OldPresent[Old];
+        Applied.EntitySelected[Index] = OldSelected[Old];
+        Applied.DetailBits[Index] = OldDetailBits[Old];
+        for (std::uint32_t Axis = 0u; Axis < 3u; ++Axis)
+        {
+            Applied.EntityPosition[Index][Axis] = OldPosition[Old][Axis];
+            Applied.EntityRotation[Index][Axis] = OldRotation[Old][Axis];
+            Applied.EntityScale[Index][Axis] = OldScale[Old][Axis];
+        }
+        if (Old == Applied.EntityTaken)
+            NewTaken = Index;
+        if (Old == OldAnchor)
+            NewAnchor = Index;
+    }
+
+    std::uint32_t Ancestors[SceneDirectoryContext::EntityLimit] = {};
+    for (std::uint32_t Index = 0u; Index < RowCount; ++Index)
+    {
+        Rows[Index].Enclosing = Rows[Index].Depth == 0u ? 0xFFFFFFFFu : Ancestors[Rows[Index].Depth - 1u];
+        Ancestors[Rows[Index].Depth] = Index;
+        Rows[Index].EnclosedCount = 0u;
+    }
+    for (std::uint32_t Index = 0u; Index < RowCount; ++Index)
+        if (Rows[Index].Enclosing < RowCount)
+            ++Rows[Rows[Index].Enclosing].EnclosedCount;
+
+    Applied.EntityTaken = NewTaken;
+    Applied.EntitySelectionAnchor = NewAnchor;
+    return true;
+}
+
+} // namespace
+
 void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
-                                         const EntityRow* Rows, std::uint32_t RowCount,
-                                         const EntityRevision* Revisions, std::uint32_t RevisionCount)
+                                         EntityRow* Rows, std::uint32_t RowCount)
 {
     if (Rows == nullptr)
         RowCount = 0u;
 
-    if (RowCount > SceneDirectoryContext::EntityCeiling)
-        RowCount = SceneDirectoryContext::EntityCeiling;
-
-    if (Revisions == nullptr)
-        RevisionCount = 0u;
+    if (RowCount > SceneDirectoryContext::EntityLimit)
+        RowCount = SceneDirectoryContext::EntityLimit;
 
     Surface->Ground(Extent, Tinted.Menu, 0.0f, CornerNone);
 
     const float Pad = Scaled.PanePad;
 
-    // 📐 One three-page carousel: Directory + Details leads, the Properties | History inspector trails.
+    // 📐 One three-page carousel: Directory + Details leads, the Properties / Bookmarks inspector trails.
     //    Both pages are always positioned from the same carried coordinate, so departure and arrival
     //    remain visible throughout travel in either direction.
-    if (Applied.OutlinePage != OutlineArriving)
+    OutlinePages.Navigate(Applied.OutlinePage);
+
+    const PlaneExtent DirectoryExtent = OutlinePages.Page(Extent, 0u);
+    const PlaneExtent InspectorExtent = OutlinePages.Page(Extent, 1u);
+    const PlaneExtent TransferExtent  = OutlinePages.Page(Extent, 2u);
+    const PointerCondition LivePointer = Sampled;
+    struct PointerRestore
     {
-        OutlineDeparted = OutlineArriving;
-        OutlineArriving = Applied.OutlinePage;
-        Motion->Eased(OutlineMotion).Depart(0.0, 1.0, 260.0, 0.0, EaseCurve::Carousel);
-    }
-
-    const float Travelled  = static_cast<float>(Motion->Eased(OutlineMotion).Current());
-    const float DepartedAt = -static_cast<float>(OutlineDeparted) * Extent.Width();
-    const float ArrivingAt = -static_cast<float>(OutlineArriving) * Extent.Width();
-    const float Carried    = DepartedAt + (ArrivingAt - DepartedAt) * Travelled;
-
-    const PlaneExtent DirectoryExtent = Spanning(Extent.MinimumX + Carried, Extent.MinimumY,
-                                                  Extent.Width(), Extent.Height());
-    const PlaneExtent InspectorExtent = Spanning(DirectoryExtent.MaximumX, Extent.MinimumY,
-                                                  Extent.Width(), Extent.Height());
-    const PlaneExtent TransferExtent = Spanning(InspectorExtent.MaximumX, Extent.MinimumY,
-                                                 Extent.Width(), Extent.Height());
+        PointerCondition& Slot;
+        PointerCondition  Saved;
+        ~PointerRestore() { Slot = Saved; }
+    } RestorePointer{ Sampled, LivePointer };
+    const auto SeatPagePointer = [&](std::uint32_t Page)
+    {
+        Sampled = LivePointer;
+        if (OutlinePages.CurrentPage() != Page)
+        {
+            Sampled.PositionX = -1000000.0f;
+            Sampled.PositionY = -1000000.0f;
+            Sampled.ContactHeld = Sampled.ContactPressed = Sampled.ContactReleased = false;
+            Sampled.ContactDoublePressed = false;
+            Sampled.WheelY = 0.0f;
+        }
+    };
 
     if (!Surface->Excluded(TransferExtent))
     {
+        SeatPagePointer(2u);
         Surface->Confine(Extent);
         RecordTransfer(TransferExtent, Applied);
         Surface->Release();
@@ -889,15 +1166,20 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
 
     if (!Surface->Excluded(InspectorExtent))
     {
+        SeatPagePointer(1u);
         Surface->Confine(Extent);
-        RecordProperties(InspectorExtent, Applied, Rows, RowCount, Revisions, RevisionCount,
+        RecordProperties(InspectorExtent, Applied, Rows, RowCount,
                          Applied.OutlineInspectorTab, true);
         Surface->Release();
     }
 
     if (Surface->Excluded(DirectoryExtent))
+    {
+        Sampled = LivePointer;
         return;
+    }
 
+    SeatPagePointer(0u);
     Surface->Confine(Extent);
 
     // 📐 The directory and its immediate details use the validation drafting split, constrained to 60%
@@ -911,59 +1193,11 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
     const PlaneExtent Header = Spanning(Outlining.MinimumX, Outlining.MinimumY,
                                         Outlining.Width(), Scaled.HeaderHeight);
 
-    RecordLeafHeader(Header, SymbolSubject::GearCog, Tinted.EntityAccent, "Scene Directory",
-                     "Document Directory");
-
-    // 📐 The Inspect call at the header's trailing edge — jumps the leaf to the selected record's
-    //    properties, the same travel Tab performs one step at a time.
-    {
-        const char* Caption = "Inspect";
-        const float Run     = Scaled.RunSecondary;
-        const float PadX    = Scaled.HeaderPadX * 0.8f;
-        const float CallSpan = PadX * 2.0f + Surface->MeasureRun(Caption, Run, 0.0f) + 12.0f;
-
-        const PlaneExtent Call = Spanning(Header.MaximumX - PadX - CallSpan,
-                                          Header.MinimumY + (Header.Height() - 24.0f) * 0.5f,
-                                          CallSpan, 24.0f);
-
-        const bool OnCall = Call.Encloses(Sampled.PositionX, Sampled.PositionY);
-
-        if (Sampled.ContactPressed && OnCall && !Ledger->AnyDisclosed())
-            Ledger->Grab(InspectCall, ControlPart::Body);
-
-        if (OnCall && Ledger->Released(InspectCall))
-            Applied.OutlinePage = 1u;
-
-        Ledger->DeclareHovered(InspectCall, OnCall, HoverOver);
-
-        // 🔴 THIS DID NOT LOOK LIKE A BUTTON. It drew a bare run of text with a ground
-        //    only while hovered, so at rest it was indistinguishable from the header's
-        //    own labels — the artist had no way to know the thing was pressable, which
-        //    is why it read as decoration. It carries a ground, an edge and a chevron
-        //    at rest now, and lifts on hover like every other action in the shell.
-        const float Lit = Ledger->HoveredFraction(InspectCall);
-
-        Surface->Ground(Call, Blend(Tinted.Tile, Tinted.TileHovered, Lit),
-                        Call.Height() * 0.5f, CornerAll);
-        Surface->Edge(Call, Blend(Tinted.Hairline, Tinted.HairlineFirm, Lit), 1.0f,
-                      Call.Height() * 0.5f, CornerAll);
-
-        Surface->TextRun(Call.MinimumX + PadX,
-                         Call.MinimumY + (Call.Height() - Run) * 0.5f,
-                         OnCall ? Tinted.Primary : Tinted.Muted, Caption, Run);
-
-        // 📐 A trailing chevron, so the button states that it travels somewhere.
-        const float Mark = 10.0f;
-
-        Surface->Stroke(SymbolSubject::ChevronRight,
-                        Spanning(Call.MaximumX - PadX - Mark * 0.6f,
-                                 Call.MinimumY + (Call.Height() - Mark) * 0.5f, Mark, Mark),
-                        OnCall ? Tinted.Primary : Tinted.Faint);
-    }
+    RecordLeafHeader(Header, SymbolSubject::GearCog, Tinted.EntityAccent, "Document Directory", "");
 
     // 📐 One footer belongs to the whole Directory destination, not only to its outliner column. The
     //    details pane now terminates above the same band, so the page has a complete baseline before
-    //    it slides to Properties / History.
+    //    it slides to Properties / Bookmarks.
     const PlaneExtent Footer = Spanning(DirectoryExtent.MinimumX,
                                         DirectoryExtent.MaximumY - Scaled.FooterHeight,
                                         DirectoryExtent.Width(), Scaled.FooterHeight);
@@ -971,7 +1205,7 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
     // 🔴 THE DIRECTORY | PROPERTIES | HISTORY STRIP IS WITHDRAWN, as asked. It was a
     //    third route to a page that Tab already cycles and that the header's Inspect
     //    call already jumps to, and it spent a whole band restating navigation the
-    //    leaf has twice over. The inspector's own Properties | History strip stays —
+    //    leaf has twice over. The inspector's own Properties / Bookmarks strip stays —
     //    that one chooses between two pages nothing else reaches.
     const PlaneExtent Strip = Spanning(Outlining.MinimumX, Footer.MinimumY,
                                        Outlining.Width(), 0.0f);
@@ -986,17 +1220,17 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
     {
         const bool Hovered = Search.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        if (Hovered && Sampled.ContactPressed && !Ledger->AnyDisclosed())
-            Ledger->Grab(SearchField, ControlPart::Body);
+        if (Hovered && Sampled.ContactPressed && !Interaction->AnyDisclosed())
+            Interaction->Grab(SearchField, ControlPart::Body);
 
-        const bool Taken = Ledger->Holding(SearchField) || Ledger->Disclosed(SearchField);
+        const bool Taken = Interaction->Holding(SearchField) || Interaction->Disclosed(SearchField);
 
         // 🔴 A pill: `Search.Height() * 0.5f` corners, never the card radius — the reported render
         //    showed the search box with the field's small radius, reading as a squashed input.
         const float PillRadius = Search.Height() * 0.5f;
 
         Surface->Ground(Search, Tinted.MenuLower, PillRadius, CornerAll);
-        Surface->Edge(Search, Taken ? Faded(Covering(0xFFFFFFu), 0.22f) : Tinted.Hairline,
+        Surface->Edge(Search, Taken ? Faded(Tinted.Primary, 0.22f) : Tinted.Hairline,
                       1.0f, PillRadius, CornerAll);
 
         const float GlyphExtent = 14.0f;
@@ -1055,60 +1289,57 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
     //    (name or tags, within an enabled category) or when any row it holds matches, and while the
     //    filter stands every branch is forced open — the shell's own rule.
     const bool Filtering = RetentionActive(Applied);
+    const std::uint32_t PriorDragDestination = Applied.DragDestination;
+    const bool Carrying = Applied.DragSource < RowCount;
+    const bool Dragging = Carrying && Sampled.ContactHeld &&
+                          std::abs(Sampled.PositionY - Applied.DragOriginY) >= 5.0f;
+    Applied.DragDestination = SceneDirectoryContext::EntityLimit;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < RowCount; ++Ordinal)
+    // 📝 Selection ranges follow the presented tree, not storage ordinals: folded descendants and
+    // filtered-out records do not become selected merely because they stand between the anchor and target.
+    bool Presented[SceneDirectoryContext::EntityLimit] = {};
+    bool Retained[SceneDirectoryContext::EntityLimit] = {};
+    float PresentedFraction[SceneDirectoryContext::EntityLimit] = {};
+    float Expansion[SceneDirectoryContext::EntityLimit] = {};
+    std::uint32_t Parents[SceneDirectoryContext::EntityLimit] = {};
+    std::uint32_t Depths[SceneDirectoryContext::EntityLimit] = {};
+    for (std::uint32_t Candidate = 0u; Candidate < RowCount; ++Candidate)
     {
-        if (Filtering)
-        {
-            if (!RowRetained(Applied, Rows[Ordinal]))
-            {
-                bool DescendantRetained = false;
+        Parents[Candidate] = Rows[Candidate].Enclosing;
+        Depths[Candidate] = Rows[Candidate].Depth;
+        Retained[Candidate] = RowRetained(Applied, Rows[Candidate]);
+        Expansion[Candidate] = Rows[Candidate].EnclosedCount > 0u
+                             ? Controls.OutlineExpansion(RowDisclosures[Candidate],
+                                                         Applied.EntityExpanded[Candidate], true)
+                             : 1.0f;
+    }
+    VisibleTree::Resolve(Parents, Expansion, Retained, RowCount, Filtering, true,
+                         Presented, PresentedFraction);
 
-                for (std::uint32_t Inward = Ordinal + 1u; Inward < RowCount; ++Inward)
-                {
-                    if (Rows[Inward].Depth <= Rows[Ordinal].Depth)
-                        break;
+    for (std::uint32_t Index = 0u; Index < RowCount; ++Index)
+    {
+        if (!Presented[Index])
+            continue;
 
-                    if (RowRetained(Applied, Rows[Inward]))
-                    {
-                        DescendantRetained = true;
-                        break;
-                    }
-                }
-
-                if (!DescendantRetained)
-                    continue;
-            }
-        }
-        else
-        {
-            // 📐 Walked outward: a row is presented only when every enclosure above it stands disclosed.
-            std::uint32_t Walking = Rows[Ordinal].Enclosing;
-            std::uint32_t Walked  = 0u;
-
-            while (Walking < RowCount && Walked++ <= RowCount)
-            {
-                if (!Applied.EntityExpanded[Walking])
-                    break;
-
-                Walking = Rows[Walking].Enclosing;
-            }
-
-            if (Walking < RowCount)
-                continue;
-        }
-
-        const EntityRow&  EntryRow = Rows[Ordinal];
+        const EntityRow&  EntryRow = Rows[Index];
+        const float       Folded   = PresentedFraction[Index];
         const PlaneExtent Row      = Spanning(Body.MinimumX, Sweep, Body.Width(), Scaled.RowHeight);
-
-        Sweep += Scaled.RowHeight;
+        const PlaneExtent RowClip  = Spanning(Body.MinimumX, Sweep, Body.Width(),
+                                              Scaled.RowHeight * Folded);
 
         if (Sweep > Body.MaximumY)
             break;
+        Sweep += RowClip.Height();
 
-        const bool Taken   = Applied.EntityTaken == Ordinal;
-        const bool Hovered = Row.Encloses(Sampled.PositionX, Sampled.PositionY);
-        const bool Absent  = !Applied.EntityPresent[Ordinal];
+        Surface->Confine(RowClip);
+
+        const bool Taken   = Applied.EntitySelected[Index];
+        const bool Hovered = RowClip.Encloses(Sampled.PositionX, Sampled.PositionY);
+        const bool Absent  = !Applied.EntityPresent[Index];
+
+        if (Dragging && Hovered &&
+            SceneTreePolicy::AllowsParent(Applied.DragSource, Index, Depths, RowCount))
+            Applied.DragDestination = Index;
         const bool Branch  = EntryRow.EnclosedCount > 0u;
 
         const float LeadX = Row.MinimumX + Scaled.RowLeadX
@@ -1129,26 +1360,31 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
 
         const bool OnPresence = Presence.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        if (Sampled.ContactPressed && !Ledger->AnyDisclosed())
+        if (Sampled.ContactPressed && !Interaction->AnyDisclosed())
         {
             if (OnChevron)
-                Ledger->Grab(RowDisclosures[Ordinal], ControlPart::Chevron);
+                Interaction->Grab(RowDisclosures[Index], ControlPart::Chevron);
             else if (OnPresence)
-                Ledger->Grab(RowPresences[Ordinal], ControlPart::Body);
+                Interaction->Grab(RowPresences[Index], ControlPart::Body);
             else if (Hovered)
-                Ledger->Grab(RowContacts[Ordinal], ControlPart::Body);
+            {
+                Interaction->Grab(RowContacts[Index], ControlPart::Body);
+                Applied.DragSource = Index;
+                Applied.DragDestination = SceneDirectoryContext::EntityLimit;
+                Applied.DragOriginY = Sampled.PositionY;
+            }
         }
 
-        if (OnChevron && Ledger->Released(RowDisclosures[Ordinal]))
-            Applied.EntityExpanded[Ordinal] = !Applied.EntityExpanded[Ordinal];
+        if (OnChevron && Interaction->Released(RowDisclosures[Index]))
+            Applied.EntityExpanded[Index] = !Applied.EntityExpanded[Index];
 
-        if (OnPresence && Ledger->Released(RowPresences[Ordinal]))
+        if (OnPresence && Interaction->Released(RowPresences[Index]))
         {
-            const bool Incoming = !Applied.EntityPresent[Ordinal];
+            const bool Incoming = !Applied.EntityPresent[Index];
 
-            Applied.EntityPresent[Ordinal] = Incoming;
+            Applied.EntityPresent[Index] = Incoming;
 
-            for (std::uint32_t Inward = Ordinal + 1u; Inward < RowCount; ++Inward)
+            for (std::uint32_t Inward = Index + 1u; Inward < RowCount; ++Inward)
             {
                 if (Rows[Inward].Depth <= EntryRow.Depth)
                     break;
@@ -1157,10 +1393,18 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
             }
         }
 
-        if (Hovered && !OnChevron && !OnPresence && Ledger->Released(RowContacts[Ordinal]))
-            Applied.EntityTaken = Ordinal;
+        if (Hovered && !OnChevron && !OnPresence && Interaction->Released(RowContacts[Index]))
+        {
+            SelectionSet::Apply(Applied.EntitySelected, RowCount, Applied.EntitySelectionAnchor,
+                                Index, Presented,
+                                SelectionGesture{ Modified.Shifted, Modified.Commanded });
 
-        Ledger->DeclareHovered(RowContacts[Ordinal], Hovered, HoverOver);
+            // Details always follows a member of the persistent set, including after a toggle removes
+            // the clicked endpoint. An empty set is not representable while a details pane stands.
+            Applied.EntityTaken = SelectionSet::Primary(Applied.EntitySelected, RowCount, Index);
+        }
+
+        Interaction->DeclareHovered(RowContacts[Index], Hovered, HoverOver);
 
         // ③ The row ground, then its rail. A withheld row draws at half coverage.
         const float Coverage = Absent ? 0.5f : 1.0f;
@@ -1180,8 +1424,11 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
                             CornerTrailingUpper | CornerTrailingLower);
         }
 
+        if (Applied.DragDestination == Index)
+            Surface->Edge(Row, Tinted.EntityAccent, 2.0f, Scaled.FieldRadius, CornerAll);
+
         if (Branch)
-            Surface->Stroke((Applied.EntityExpanded[Ordinal] || Filtering)
+            Surface->Stroke((Applied.EntityExpanded[Index] || Filtering)
                             ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
                             Chevron, Faded(Tinted.Faint, Coverage));
 
@@ -1197,7 +1444,7 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
         const float NamingLead = Glyph.MaximumX + Scaled.PanePad;
         const float NamingTop  = Row.MinimumY + (Row.Height() - NamingRun) * 0.5f;
 
-        float NamingCeiling = Presence.MinimumX - Scaled.PanePad;
+        float NamingLimit = Presence.MinimumX - Scaled.PanePad;
 
         if (Branch)
         {
@@ -1206,15 +1453,15 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
                           static_cast<unsigned>(EntryRow.EnclosedCount));
 
             const float CountRun  = Scaled.RunFine;
-            const float CountLead = NamingCeiling - Surface->MeasureRun(Counted, CountRun, 0.0f);
+            const float CountLead = NamingLimit - Surface->MeasureRun(Counted, CountRun, 0.0f);
 
             Surface->TextRun(CountLead, Row.MinimumY + (Row.Height() - CountRun) * 0.5f,
                              Faded(Tinted.Faint, Coverage), Counted, CountRun);
 
-            NamingCeiling = CountLead - Scaled.PanePad;
+            NamingLimit = CountLead - Scaled.PanePad;
         }
 
-        Surface->TextRunTruncated(NamingLead, NamingTop, NamingCeiling,
+        Surface->TextRunTruncated(NamingLead, NamingTop, NamingLimit,
                                   Faded(Taken ? Tinted.Primary : (Hovered ? Tinted.Primary : Tinted.Muted),
                                         Coverage),
                                   EntryRow.Naming, NamingRun);
@@ -1232,6 +1479,17 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
             Surface->Stroke(Absent ? SymbolSubject::EyeClosed : SymbolSubject::EyeOpen, Eye,
                             OnPresence ? Tinted.Primary : Tinted.Faint);
         }
+
+        Surface->Release();
+    }
+
+    if (Carrying && !Sampled.ContactHeld)
+    {
+        if (PriorDragDestination < RowCount)
+            ParentEntityRows(Rows, RowCount, Applied, Applied.DragSource, PriorDragDestination);
+
+        Applied.DragSource = SceneDirectoryContext::EntityLimit;
+        Applied.DragDestination = SceneDirectoryContext::EntityLimit;
     }
 
     // 📝 The empty state: the filter stands but nothing matched.
@@ -1263,6 +1521,28 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
     Surface->TextRun(FooterLead + Surface->MeasureRun(Counted, FooterRun, 0.0f) + 4.0f, FooterTop,
                      Tinted.Muted, " records", FooterRun);
 
+    // 🧩 Scene interchange always opens the dedicated transfer page; the footer never starts a hidden import.
+    const auto TransferCall = [&](std::uint32_t Index, const char* Caption, float Width)
+    {
+        const PlaneExtent Call = Spanning(Footer.MaximumX - Scaled.HeaderPadX - Width - Index * (Width + 6.0f),
+                                          Footer.MinimumY + 3.0f, Width, Footer.Height() - 6.0f);
+        const bool Hovered = Call.Encloses(Sampled.PositionX, Sampled.PositionY);
+        if (Sampled.ContactPressed && Hovered)
+        {
+            Interaction->Withdraw();
+            Applied.TransferMode = Index == 0u ? 1u : 0u;
+            Applied.OutlinePage = 2u;
+        }
+        Interaction->DeclareHovered(TransferCalls[Index], Hovered, HoverOver);
+        Surface->Ground(Call, Hovered ? Tinted.TileHovered : Tinted.Tile, 9.0f, CornerAll);
+        Surface->Edge(Call, Tinted.HairlineFirm, 1.0f, 9.0f, CornerAll);
+        const float CaptionWidth = Surface->MeasureRun(Caption, FooterRun, 0.0f);
+        Surface->TextRun(Call.MinimumX + (Call.Width() - CaptionWidth) * 0.5f, FooterTop,
+                         Tinted.Primary, Caption, FooterRun);
+    };
+    TransferCall(0u, "Save", 52.0f);
+    TransferCall(1u, "Import", 58.0f);
+
     // ⑤ The details pane — the small metadata and options card for the taken row.
     const PlaneExtent Detailing = Spanning(Outlining.MaximumX, DirectoryExtent.MinimumY,
                                            DirectoryExtent.MaximumX - Outlining.MaximumX,
@@ -1286,15 +1566,30 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
         return;
     }
 
-    const std::uint32_t Ordinal = Applied.EntityTaken;
-    const EntityRow&    Current = Rows[Ordinal];
+    const std::uint32_t Index = Applied.EntityTaken;
+    const EntityRow&    Current = Rows[Index];
     const ThemeToken    Hue     = EntityHue(Current.Subject);
 
     const PlaneExtent DetailsHeader = Spanning(Detailing.MinimumX, Detailing.MinimumY,
                                                Detailing.Width(), Scaled.HeaderHeight);
 
+    // The complete selected-component header is the Inspect action: icon, name and type travel together.
+    const bool OnDetailsHeader = DetailsHeader.Encloses(Sampled.PositionX, Sampled.PositionY);
+    if (Sampled.ContactPressed && OnDetailsHeader && !Interaction->AnyDisclosed())
+        Interaction->Grab(InspectCall, ControlPart::Body);
+    if (OnDetailsHeader && Interaction->Released(InspectCall))
+        Applied.OutlinePage = 1u;
+    Interaction->DeclareHovered(InspectCall, OnDetailsHeader, HoverOver);
+
     RecordLeafHeader(DetailsHeader, EntityGlyph(Current.Subject), Hue,
                      Current.Naming, EntityText(Current.Subject));
+    if (OnDetailsHeader)
+        Surface->Ground(DetailsHeader, Faded(Tinted.TileHovered, 0.18f), 0.0f, CornerNone);
+    Surface->Stroke(SymbolSubject::ChevronRight,
+                    Spanning(DetailsHeader.MaximumX - Scaled.HeaderPadX - 12.0f,
+                             DetailsHeader.MinimumY + (DetailsHeader.Height() - 12.0f) * 0.5f,
+                             12.0f, 12.0f),
+                    OnDetailsHeader ? Tinted.Primary : Tinted.Faint);
 
     const float DetailPad = Scaled.PanePad * 1.5f;
     const PlaneExtent DetailBody = Spanning(Detailing.MinimumX + DetailPad,
@@ -1329,7 +1624,7 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
                                  Figure, Figure), Covering(0xFFFFFFu));
 
         char Token[12] = {};
-        std::snprintf(Token, sizeof(Token), "g_%02u", static_cast<unsigned>(Ordinal + 1u));
+        std::snprintf(Token, sizeof(Token), "g_%02u", static_cast<unsigned>(Index + 1u));
 
         const float NameRun = Scaled.RunPrimary;
         const float PairRun = Scaled.RunFine;
@@ -1347,7 +1642,7 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
 
     RecordDetailOptions(Spanning(DetailBody.MinimumX, DetailSweep,
                                  DetailBody.Width(), DetailBody.MaximumY - DetailSweep),
-                        Applied, Ordinal, Current);
+                        Applied, Index, Current);
 
     Surface->Release();
     Surface->Release();
@@ -1358,12 +1653,12 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
 }
 
 void SceneDirectoryPanel::RecordDetailOptions(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
-                                              std::uint32_t Ordinal, const EntityRow& Current)
+                                              std::uint32_t Index, const EntityRow& Current)
 {
     // 📐 The camera row's options are the camera's own settings: the lag and the pitch direction,
     //    beside the visibility every row carries. Every other row keeps the reference's generic
     //    options. The bits are the same slots — bit 1 is lag on the camera, Locked elsewhere.
-    const bool Camera = Current.Subject == EntitySubject::Camera;
+    const bool Camera = Current.Camera == CameraRole::Editor;
 
     const char* const CameraCaptions[3]    = { "Visible", "Position Lag", "Invert Pitch" };
     const char* const GenericCaptions[3]   = { "Visible", "Locked", "Cast Shadows" };
@@ -1389,32 +1684,28 @@ void SceneDirectoryPanel::RecordDetailOptions(const PlaneExtent& Extent, SceneDi
 
         const bool OnRow = Row.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        const bool State = (Option == 0u) ? Applied.EntityPresent[Ordinal]
-                          : ((Applied.DetailBits[Ordinal] & (1u << Option)) != 0u);
+        const bool State = (Option == 0u) ? Applied.EntityPresent[Index]
+                          : ((Applied.DetailBits[Index] & (1u << Option)) != 0u);
 
-        if (Sampled.ContactPressed && OnRow && !Ledger->AnyDisclosed())
-            Ledger->Grab(DetailOptions[Ordinal][Option], ControlPart::Body);
+        if (Sampled.ContactPressed && OnRow && !Interaction->AnyDisclosed())
+            Interaction->Grab(DetailOptions[Index][Option], ControlPart::Body);
 
-        if (OnRow && Ledger->Released(DetailOptions[Ordinal][Option]))
+        if (OnRow && Interaction->Released(DetailOptions[Index][Option]))
         {
             if (Option == 0u)
-                Applied.EntityPresent[Ordinal] = !Applied.EntityPresent[Ordinal];
+                Applied.EntityPresent[Index] = !Applied.EntityPresent[Index];
             else
-                Applied.DetailBits[Ordinal] ^= (1u << Option);
+                Applied.DetailBits[Index] ^= (1u << Option);
         }
 
-        Ledger->DeclareHovered(DetailOptions[Ordinal][Option], OnRow, HoverOver);
+        Interaction->DeclareHovered(DetailOptions[Index][Option], OnRow, HoverOver);
 
         if (OnRow)
             Surface->Ground(Row, Tinted.TileHovered, Scaled.FieldRadius, CornerAll);
 
-        // 🔴 `ChipExtent * 2.5` is 8 * 2.5 = 20 px across and 10 px tall — barely half
-        //    the pill every other switch in the editor draws, so the three Options
-        //    toggles read as dots rather than as switches and did not match the layer
-        //    stack's or the channel card's. The shared pill is 14 px tall at the
-        //    reference's 50:32 ratio, which is what those spend; these spend it too.
-        const float ToggleY = 14.0f;
-        const float ToggleX = ToggleY * (50.0f / 32.0f);
+        // 📐 Match the shared component switch's reference dimensions rather than a reduced mini-pill.
+        const float ToggleY = 32.0f;
+        const float ToggleX = 50.0f;
         const PlaneExtent Switch = Spanning(Row.MaximumX - ToggleX - Scaled.PanePad * 1.5f,
                                             Row.MinimumY + (Row.Height() - ToggleY) * 0.5f,
                                             ToggleX, ToggleY);
@@ -1423,7 +1714,7 @@ void SceneDirectoryPanel::RecordDetailOptions(const PlaneExtent& Extent, SceneDi
         //    jumped between the two ends instead of travelling, and its radius
         //    was Toggle*0.5-2 rather than the shared proportion. The same switch
         //    animated in the validation host and snapped here.
-        Controls.SwitchTrack(DetailOptions[Ordinal][Option], Switch, State,
+        Controls.SwitchTrack(DetailOptions[Index][Option], Switch, State,
                              Tinted.EntityAccent, Tinted.Hairline, Covering(0xFFFFFFu));
 
         Surface->TextRun(Row.MinimumX + Scaled.PanePad * 2.0f,
@@ -1486,14 +1777,13 @@ void SceneDirectoryPanel::RecordDetailOptions(const PlaneExtent& Extent, SceneDi
 
 void SceneDirectoryPanel::RecordProperties(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
                                            const EntityRow* Rows, std::uint32_t RowCount,
-                                           const EntityRevision* Revisions, std::uint32_t RevisionCount,
                                            std::uint32_t& InspectorTab, bool OutlinePresentation)
 {
     if (Rows == nullptr)
         RowCount = 0u;
 
-    if (RowCount > SceneDirectoryContext::EntityCeiling)
-        RowCount = SceneDirectoryContext::EntityCeiling;
+    if (RowCount > SceneDirectoryContext::EntityLimit)
+        RowCount = SceneDirectoryContext::EntityLimit;
 
     Surface->Ground(Extent, Tinted.MenuLower, 0.0f, CornerNone);
 
@@ -1527,14 +1817,14 @@ void SceneDirectoryPanel::RecordProperties(const PlaneExtent& Extent, SceneDirec
                                           CallSpan, 24.0f);
         const bool OnCall = Call.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        if (Sampled.ContactPressed && OnCall && !Ledger->AnyDisclosed())
-            Ledger->Grab(DirectoryCall, ControlPart::Body);
+        if (Sampled.ContactPressed && OnCall && !Interaction->AnyDisclosed())
+            Interaction->Grab(DirectoryCall, ControlPart::Body);
 
-        if (OnCall && Ledger->Released(DirectoryCall))
+        if (OnCall && Interaction->Released(DirectoryCall))
             Applied.OutlinePage = 0u;
 
-        Ledger->DeclareHovered(DirectoryCall, OnCall, HoverOver);
-        const float Lit = Ledger->HoveredFraction(DirectoryCall);
+        Interaction->DeclareHovered(DirectoryCall, OnCall, HoverOver);
+        const float Lit = Interaction->HoveredFraction(DirectoryCall);
 
         Surface->Ground(Call, Blend(Tinted.Tile, Tinted.TileHovered, Lit),
                         Call.Height() * 0.5f, CornerAll);
@@ -1548,57 +1838,55 @@ void SceneDirectoryPanel::RecordProperties(const PlaneExtent& Extent, SceneDirec
                          OnCall ? Tinted.Primary : Tinted.Muted, Caption, Run);
     }
 
-    // ① The strip, and the inner pages it drives. Cameras own bookmarks rather than revisions:
-    //    saved viewpoints are camera data, while History remains meaningful for every other entity.
-    const bool CameraSelected = Selected && Rows[Applied.EntityTaken].Subject == EntitySubject::Camera;
-    const char* const Captions[2] = { "Properties", CameraSelected ? "Bookmarks" : "History" };
+    // The revision feed was removed from Scene Directory. Ordinary entities now have one direct Properties page;
+    // only the Editor Camera has a second page because bookmarks are operational camera data.
+    const bool CameraSelected = Selected && Rows[Applied.EntityTaken].Camera == CameraRole::Editor;
+    if (!CameraSelected)
+        InspectorTab = 0u;
 
-    const PlaneExtent Strip = Spanning(Extent.MinimumX, Header.MaximumY,
-                                       Extent.Width(), Scaled.ComponentY);
+    PlaneExtent Pages = Spanning(Extent.MinimumX, Header.MaximumY, Extent.Width(),
+                                 Extent.MaximumY - Header.MaximumY - Scaled.FooterHeight);
 
-    const TabDeclaration Declared{ Captions, 2u };
-
-    static_cast<void>(Controls.TabStrip(InspectorStrip, Strip, Declared, InspectorTab));
-
-    const PlaneExtent Pages = Spanning(Extent.MinimumX, Strip.MaximumY, Extent.Width(),
-                                       Extent.MaximumY - Strip.MaximumY - Scaled.FooterHeight);
-
-    // 📐 The two pages sit side by side and travel on an eased interpolant. A hard ternary here was
-    //    the broken carousel: it teleported between Properties and History despite drawing both pages.
-    const std::uint32_t MotionOrdinal = OutlinePresentation ? 0u : 1u;
-
-    if (InspectorTab != InspectorArriving[MotionOrdinal])
+    if (CameraSelected)
     {
-        InspectorDeparted[MotionOrdinal] = InspectorArriving[MotionOrdinal];
-        InspectorArriving[MotionOrdinal] = InspectorTab;
-        Motion->Eased(InspectorMotion[MotionOrdinal]).Depart(0.0, 1.0, 240.0, 0.0,
-                                                             EaseCurve::Carousel);
+        const char* const Captions[2] = { "Properties", "Bookmarks" };
+        const PlaneExtent Strip = Spanning(Extent.MinimumX, Header.MaximumY,
+                                           Extent.Width(), Scaled.ComponentY);
+        const TabDeclaration Declared{ Captions, 2u };
+        static_cast<void>(Controls.TabStrip(InspectorStrip, Strip, Declared, InspectorTab));
+        Pages = Spanning(Extent.MinimumX, Strip.MaximumY, Extent.Width(),
+                         Extent.MaximumY - Strip.MaximumY - Scaled.FooterHeight);
     }
 
-    const float Travelled = static_cast<float>(Motion->Eased(InspectorMotion[MotionOrdinal]).Current());
-    const float DepartedAt = (InspectorDeparted[MotionOrdinal] == 1u) ? -Pages.Width() : 0.0f;
-    const float ArrivingAt = (InspectorArriving[MotionOrdinal] == 1u) ? -Pages.Width() : 0.0f;
-    const float Carried = DepartedAt + (ArrivingAt - DepartedAt) * Travelled;
+    const std::uint32_t MotionIndex = OutlinePresentation ? 0u : 1u;
+    if (InspectorTab != InspectorArriving[MotionIndex])
+    {
+        InspectorDeparted[MotionIndex] = InspectorArriving[MotionIndex];
+        InspectorArriving[MotionIndex] = InspectorTab;
+        Motion->Eased(InspectorMotion[MotionIndex]).Depart(0.0, 1.0, 240.0, 0.0,
+                                                           EaseCurve::Carousel);
+    }
+
+    const float Travelled = static_cast<float>(Motion->Eased(InspectorMotion[MotionIndex]).Current());
+    const float DepartedAt = InspectorDeparted[MotionIndex] == 1u ? -Pages.Width() : 0.0f;
+    const float ArrivingAt = InspectorArriving[MotionIndex] == 1u ? -Pages.Width() : 0.0f;
+    const float Carried = CameraSelected ? DepartedAt + (ArrivingAt - DepartedAt) * Travelled : 0.0f;
 
     Surface->Confine(Pages);
-
     const PlaneExtent Leading = Spanning(Pages.MinimumX + Carried, Pages.MinimumY,
                                          Pages.Width(), Pages.Height());
-    const PlaneExtent Trailing = Spanning(Leading.MaximumX, Pages.MinimumY,
-                                          Pages.Width(), Pages.Height());
-
     if (!Surface->Excluded(Leading))
         RecordPropertyCards(Leading, Applied, Rows, RowCount);
 
-    if (!Surface->Excluded(Trailing))
+    if (CameraSelected)
     {
-        if (CameraSelected)
+        const PlaneExtent Trailing = Spanning(Leading.MaximumX, Pages.MinimumY,
+                                              Pages.Width(), Pages.Height());
+        if (!Surface->Excluded(Trailing))
             RecordCameraBookmarks(Trailing, Applied);
-        else
-            RecordRevisionSpine(Trailing, Applied, Rows, RowCount, Revisions, RevisionCount);
     }
-
     Surface->Release();
+
 
     // ② The footer, `{n} fields` — the strip's selection stated in the entity's own hue.
     const PlaneExtent Footer = Spanning(Extent.MinimumX, Extent.MaximumY - Scaled.FooterHeight,
@@ -1621,8 +1909,7 @@ void SceneDirectoryPanel::RecordProperties(const PlaneExtent& Extent, SceneDirec
 
         Surface->TextRun(Footer.MinimumX + Scaled.HeaderPadX + Scaled.ChipExtent
                          + Scaled.PanePad, FooterTop, Tinted.Muted,
-                         (InspectorTab == 0u) ? "Properties"
-                                              : (CameraSelected ? "Bookmarks" : "History"), FooterRun);
+                         (InspectorTab == 0u) ? "Properties" : "Bookmarks", FooterRun);
     }
 
     EnvironmentControls.RecordDeferred();
@@ -1647,7 +1934,7 @@ float SceneDirectoryPanel::AdvanceOutlineScroll(SceneDirectoryContext& Applied,
     }
 
     if (Viewport.Encloses(Sampled.PositionX, Sampled.PositionY) && Sampled.WheelY != 0.0f &&
-        !Ledger->AnyDisclosed())
+        !Interaction->AnyDisclosed())
     {
         PropertyWanted -= Sampled.WheelY * 56.0f;
     }
@@ -1680,7 +1967,7 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
     const float Wheeled = AdvanceOutlineScroll(Applied, Extent);
 
     float       Sweep = Extent.MinimumY + Pad - Wheeled;
-    std::uint32_t CardOrdinal = 0u;
+    std::uint32_t CardIndex = 0u;
 
     // 📝 The property card — a folding card, from the reference's generic component cards.
     // 🔴 Its rows used to be inert labels: the row said "Position" and drew no reading at all. A row
@@ -1689,10 +1976,10 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
     const auto RecordCard = [&](const char* Caption, const char* const* Fields, std::uint32_t FieldCount,
                                 double (*Vectors)[3] = nullptr, const char* const* Units = nullptr)
     {
-        if (CardOrdinal >= SceneDirectoryContext::CardCeiling)
+        if (CardIndex >= SceneDirectoryContext::CardLimit)
             return;
 
-        const std::uint32_t Target = CardOrdinal++;
+        const std::uint32_t Target = CardIndex++;
         const bool  Folded   = Applied.CardFolded[Target];
         const float Current  = Controls.OutlineExpansion(CardFolds[Target], !Folded, true);
 
@@ -1717,10 +2004,10 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
 
         const bool OnHeader = CardHeader.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        if (Sampled.ContactPressed && OnHeader && !Ledger->AnyDisclosed())
-            Ledger->Grab(CardFolds[Target], ControlPart::Chevron);
+        if (Sampled.ContactPressed && OnHeader && !Interaction->AnyDisclosed())
+            Interaction->Grab(CardFolds[Target], ControlPart::Chevron);
 
-        if (OnHeader && Ledger->Released(CardFolds[Target]))
+        if (OnHeader && Interaction->Released(CardFolds[Target]))
             Applied.CardFolded[Target] = !Applied.CardFolded[Target];
 
         if (Current > 0.0f)
@@ -1761,7 +2048,7 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
 
             float RowCursor = CardHeader.MaximumY + Pad;
 
-            for (std::uint32_t FieldOrdinal = 0u; FieldOrdinal < FieldCount; ++FieldOrdinal)
+            for (std::uint32_t FieldIndex = 0u; FieldIndex < FieldCount; ++FieldIndex)
             {
                 const PlaneExtent Row = Spanning(Card.MinimumX + Pad * 1.5f, RowCursor,
                                                  Card.Width() - Pad * 3.0f, Scaled.RowHeight);
@@ -1769,18 +2056,18 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
                 if (Vectors != nullptr)
                 {
                     VectorDeclaration Axes;
-                    Axes.Caption   = Fields[FieldOrdinal];
-                    Axes.UnitGlyph = (Units != nullptr && Units[FieldOrdinal] != nullptr)
-                                   ? Units[FieldOrdinal] : "";
+                    Axes.Caption   = Fields[FieldIndex];
+                    Axes.UnitGlyph = (Units != nullptr && Units[FieldIndex] != nullptr)
+                                   ? Units[FieldIndex] : "";
 
                     static_cast<void>(EnvironmentControls.VectorRow(
-                        CardFields[Target][FieldOrdinal], Row, Axes, Vectors[FieldOrdinal]));
+                        CardFields[Target][FieldIndex], Row, Axes, Vectors[FieldIndex]));
                 }
                 else
                 {
                     Surface->TextRun(Row.MinimumX + 2.0f,
                                      Row.MinimumY + (Row.Height() - Scaled.RunPrimary) * 0.5f,
-                                     Tinted.Muted, Fields[FieldOrdinal], Scaled.RunPrimary);
+                                     Tinted.Muted, Fields[FieldIndex], Scaled.RunPrimary);
                 }
 
                 RowCursor += Scaled.RowHeight;
@@ -1813,7 +2100,7 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
         //    as a collapsed object on a fresh scene.
         if (!Applied.TransformSeeded)
         {
-            for (std::uint32_t Each = 0u; Each < SceneDirectoryContext::EntityCeiling; ++Each)
+            for (std::uint32_t Each = 0u; Each < SceneDirectoryContext::EntityLimit; ++Each)
                 for (std::uint32_t Axis = 0u; Axis < 3u; ++Axis)
                     Applied.EntityScale[Each][Axis] = 1.0;
 
@@ -1843,6 +2130,28 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
     std::snprintf(ComponentCaption, sizeof(ComponentCaption), "%s Component",
                   EntityText(Current.Subject));
 
+    const auto RecordEnvironmentQuality = [&]()
+    {
+        static const char* const Options[4] = { "Preview", "Balanced", "High", "Ultra" };
+        SelectionDeclaration Declaration;
+        Declaration.Caption = "Quality";
+        Declaration.Options = Options;
+        Declaration.OptionCount = 4u;
+        Declaration.Indicator = SelectionIndicator::Marked;
+        Applied.Environment.AtmosphereQuality = std::min(Applied.Environment.AtmosphereQuality, 3u);
+        const PlaneExtent Card = Spanning(Extent.MinimumX + Scaled.PanePad, Sweep,
+                                          Extent.Width() - Scaled.PanePad * 2.0f,
+                                          Scaled.RowHeight + Scaled.PanePad * 2.0f);
+        Surface->Ground(Card, Tinted.Desk, Scaled.CardRadius, CornerAll);
+        Surface->Edge(Card, Tinted.Hairline, 1.0f, Scaled.CardRadius, CornerAll);
+        EnvironmentControls.SelectionField(
+            EnvironmentQuality,
+            Spanning(Card.MinimumX + Scaled.PanePad, Card.MinimumY + Scaled.PanePad,
+                     Card.Width() - Scaled.PanePad * 2.0f, Scaled.RowHeight),
+            Declaration, Applied.Environment.AtmosphereQuality);
+        Sweep = Card.MaximumY + Scaled.PanePad * 0.85f;
+    };
+
     // 📐 The per-subject field sets, and the environment cards where the subject is the sun or the sky
     //    while the environment is presented.
     switch (Current.Subject)
@@ -1855,22 +2164,41 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
         }
         case EntitySubject::Camera:
         {
-            const char* const Fields[4] = { "Projection", "Field of View", "Near Clip", "Far Clip" };
-            RecordCard(ComponentCaption, Fields, 4u);
+            if (Current.Camera != CameraRole::Editor)
+            {
+                const char* const Fields[3] = { "Projection", "Field of View", "Clipping" };
+                RecordCard(ComponentCaption, Fields, 3u);
+                break;
+            }
 
-            // 📝 The camera's own card — the fly speed, a live slider exactly like the environment's,
-            //    with the same once-per-drag history demand against the camera row.
-            const char* const CameraCaptions[1] = { "Fly Speed" };
-            const char* const CameraUnits[1]    = { "m/s" };
-            const double CameraMinimums[1]      = { 1.0 };
-            const double CameraMaximums[1]      = { 500.0 };
-            double CameraValues[1]              = { Applied.CameraSpeed };
+            // 📝 This scene currently exposes the Editor Camera as its camera entity. Its operational
+            //    properties are real magnitude controls rather than a card of inert labels: wheel-adjusted
+            //    fly speed, perspective field of view, and both clipping distances.
+            const char* const CameraCaptions[4] =
+                { "Fly Speed", "Field of View", "Near Clip", "Far Clip" };
+            const char* const CameraUnits[4] = { "m/s", "deg", "m", "m" };
+            const double CameraMinimums[4] = { 1.0, 20.0, 0.01, 10.0 };
+            const double CameraMaximums[4] = { 5000.0, 150.0, 10.0, 100000.0 };
+            const std::uint32_t CameraDecimals[4] = { 0u, 0u, 2u, 0u };
+            double CameraValues[4] =
+            {
+                Applied.CameraSpeed,
+                Applied.CameraFieldOfView,
+                Applied.CameraNearClip,
+                Applied.CameraFarClip
+            };
 
-            RecordEnvironmentCard(Applied, Extent, Sweep, CardOrdinal,
-                                  "Camera", CameraCaptions, CameraUnits, CameraMinimums,
-                                  CameraMaximums, CameraValues, 1u);
+            RecordEnvironmentCard(Applied, Extent, Sweep, CardIndex,
+                                  "Editor Camera", CameraCaptions, CameraUnits, CameraMinimums,
+                                  CameraMaximums, CameraValues, 4u, CameraDecimals);
 
-            Applied.CameraSpeed = CameraValues[0];
+            Applied.CameraSpeed       = CameraValues[0];
+            Applied.CameraFieldOfView = CameraValues[1];
+            Applied.CameraNearClip    = CameraValues[2];
+            Applied.CameraFarClip     = CameraValues[3];
+
+            if (Applied.CameraFarClip <= Applied.CameraNearClip)
+                Applied.CameraFarClip = Applied.CameraNearClip + 0.01;
             break;
         }
         case EntitySubject::Audio:
@@ -1899,7 +2227,7 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
         }
         case EntitySubject::Actor:
         {
-            const char* const Fields[3] = { "Static Mesh", "Simulate Physics", "Generate Overlaps" };
+            const char* const Fields[3] = { "Static Geometry", "Simulate Physics", "Generate Overlaps" };
             RecordCard(ComponentCaption, Fields, 3u);
             break;
         }
@@ -1916,23 +2244,28 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
             //    reference's generic illuminant card instead.
             if (Applied.EnvironmentPresented)
             {
-                const char* const SunCaptions[4] = { "Elevation", "Azimuth", "Intensity", "Temperature" };
-                const char* const SunUnits[4]    = { "\u00B0", "\u00B0", "lx", "K" };
-                const double SunMinimums[4]      = { 0.0, 0.0, 0.0, 1000.0 };
-                const double SunMaximums[4]      = { 90.0, 360.0, 10.0, 12000.0 };
-                double SunValues[4]              = { Applied.Environment.SunElevation,
-                                                     Applied.Environment.SunAzimuth,
-                                                     Applied.Environment.SunIntensity,
-                                                     Applied.Environment.SunTemperature };
+                const char* const SunCaptions[6] =
+                    { "Elevation", "Azimuth", "Intensity", "Temperature", "Day Cycle", "Shadow Strength" };
+                const char* const SunUnits[6] = { "\u00B0", "\u00B0", "lx", "K", "\u00B0/s", "" };
+                const double SunMinimums[6] = { -90.0, 0.0, 0.0, 1000.0, -30.0, 0.0 };
+                const double SunMaximums[6] = { 90.0, 360.0, 10.0, 12000.0, 30.0, 1.0 };
+                double SunValues[6] = { Applied.Environment.SunElevation,
+                                        Applied.Environment.SunAzimuth,
+                                        Applied.Environment.SunIntensity,
+                                        Applied.Environment.SunTemperature,
+                                        Applied.Environment.DayCycleDegreesPerSecond,
+                                        Applied.Environment.SunShadowStrength };
 
-                RecordEnvironmentCard(Applied, Extent, Sweep, CardOrdinal,
+                RecordEnvironmentCard(Applied, Extent, Sweep, CardIndex,
                                       "Sun", SunCaptions, SunUnits, SunMinimums, SunMaximums,
-                                      SunValues, 4u);
+                                      SunValues, 6u);
 
-                Applied.Environment.SunElevation   = SunValues[0];
-                Applied.Environment.SunAzimuth     = SunValues[1];
-                Applied.Environment.SunIntensity   = SunValues[2];
+                Applied.Environment.SunElevation = SunValues[0];
+                Applied.Environment.SunAzimuth = SunValues[1];
+                Applied.Environment.SunIntensity = SunValues[2];
                 Applied.Environment.SunTemperature = SunValues[3];
+                Applied.Environment.DayCycleDegreesPerSecond = SunValues[4];
+                Applied.Environment.SunShadowStrength = SunValues[5];
 
                 // 📐 The sun disc is the icon drawn over the atmosphere: its radius multiplier and
                 //    direct-term intensity. Same component as the other environment cards.
@@ -1943,12 +2276,13 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
                 double DiscValues[2]              = { Applied.Environment.SunDiscRadius,
                                                      Applied.Environment.SunDiscIntensity };
 
-                RecordEnvironmentCard(Applied, Extent, Sweep, CardOrdinal,
+                RecordEnvironmentCard(Applied, Extent, Sweep, CardIndex,
                                       "Sun Disc", DiscCaptions, DiscUnits, DiscMinimums, DiscMaximums,
                                       DiscValues, 2u);
 
                 Applied.Environment.SunDiscRadius    = DiscValues[0];
                 Applied.Environment.SunDiscIntensity = DiscValues[1];
+                RecordEnvironmentQuality();
             }
             else
             {
@@ -1961,37 +2295,49 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
         {
             if (Applied.EnvironmentPresented)
             {
-                const char* const SkyCaptions[2] = { "Sky Intensity", "Turbidity" };
-                const char* const SkyUnits[2]    = { "", "" };
-                const double SkyMinimums[2]      = { 0.0, 1.0 };
-                const double SkyMaximums[2]      = { 3.0, 10.0 };
-                double SkyValues[2]              = { Applied.Environment.SkyIntensity,
-                                                     Applied.Environment.SkyTurbidity };
+                const char* const SkyCaptions[4] =
+                    { "Sky Intensity", "Turbidity", "Exposure", "Ground Albedo" };
+                const char* const SkyUnits[4] = { "", "", "EV", "" };
+                const double SkyMinimums[4] = { 0.0, 1.0, -8.0, 0.0 };
+                const double SkyMaximums[4] = { 3.0, 10.0, 8.0, 1.0 };
+                double SkyValues[4] = { Applied.Environment.SkyIntensity,
+                                        Applied.Environment.SkyTurbidity,
+                                        Applied.Environment.ExposureCompensation,
+                                        Applied.Environment.GroundAlbedo };
 
-                RecordEnvironmentCard(Applied, Extent, Sweep, CardOrdinal,
+                RecordEnvironmentCard(Applied, Extent, Sweep, CardIndex,
                                       "Sky", SkyCaptions, SkyUnits, SkyMinimums, SkyMaximums,
-                                      SkyValues, 2u);
+                                      SkyValues, 4u);
 
                 Applied.Environment.SkyIntensity = SkyValues[0];
                 Applied.Environment.SkyTurbidity = SkyValues[1];
+                Applied.Environment.ExposureCompensation = SkyValues[2];
+                Applied.Environment.GroundAlbedo = SkyValues[3];
 
-                const char* const AtmoCaptions[4] = { "Atmosphere Density", "Scale Height", "Mie Density", "Mie Asymmetry" };
-                const char* const AtmoUnits[4]    = { "", "", "x", "" };
-                const double AtmoMinimums[4]      = { 0.0, 0.2, 0.0, -0.95 };
-                const double AtmoMaximums[4]      = { 3.0, 3.0, 4.0, 0.95 };
-                double AtmoValues[4]              = { Applied.Environment.AtmosphereDensity,
-                                                      Applied.Environment.AtmosphereScaleHeight,
-                                                      Applied.Environment.MieDensity,
-                                                      Applied.Environment.MieAsymmetry };
+                const char* const AtmoCaptions[6] =
+                    { "Rayleigh Density", "Rayleigh Height", "Mie Density", "Mie Height",
+                      "Mie Asymmetry", "Ozone Density" };
+                const char* const AtmoUnits[6] = { "", "x", "x", "km", "", "x" };
+                const double AtmoMinimums[6] = { 0.0, 0.2, 0.0, 0.1, -0.95, 0.0 };
+                const double AtmoMaximums[6] = { 3.0, 3.0, 4.0, 8.0, 0.95, 3.0 };
+                double AtmoValues[6] = { Applied.Environment.AtmosphereDensity,
+                                         Applied.Environment.AtmosphereScaleHeight,
+                                         Applied.Environment.MieDensity,
+                                         Applied.Environment.MieScaleHeightKilometres,
+                                         Applied.Environment.MieAsymmetry,
+                                         Applied.Environment.OzoneDensity };
 
-                RecordEnvironmentCard(Applied, Extent, Sweep, CardOrdinal,
+                RecordEnvironmentCard(Applied, Extent, Sweep, CardIndex,
                                       "Atmosphere", AtmoCaptions, AtmoUnits, AtmoMinimums,
-                                      AtmoMaximums, AtmoValues, 4u);
+                                      AtmoMaximums, AtmoValues, 6u);
 
-                Applied.Environment.AtmosphereDensity     = AtmoValues[0];
+                Applied.Environment.AtmosphereDensity = AtmoValues[0];
                 Applied.Environment.AtmosphereScaleHeight = AtmoValues[1];
-                Applied.Environment.MieDensity            = AtmoValues[2];
-                Applied.Environment.MieAsymmetry          = AtmoValues[3];
+                Applied.Environment.MieDensity = AtmoValues[2];
+                Applied.Environment.MieScaleHeightKilometres = AtmoValues[3];
+                Applied.Environment.MieAsymmetry = AtmoValues[4];
+                Applied.Environment.OzoneDensity = AtmoValues[5];
+                RecordEnvironmentQuality();
             }
             else
             {
@@ -2011,8 +2357,8 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
     // 🔴 Every card ordinal is spent whether the subject presented it or not. Skipped, a card that
     //    appears for one subject and not the next inherits the fold of whichever card held that ordinal
     //    before it, and the artist watches an unrelated card close.
-    while (CardOrdinal < SceneDirectoryContext::CardCeiling)
-        static_cast<void>(Controls.OutlineExpansion(CardFolds[CardOrdinal++], true, true));
+    while (CardIndex < SceneDirectoryContext::CardLimit)
+        static_cast<void>(Controls.OutlineExpansion(CardFolds[CardIndex++], true, true));
 
     // 📐 What the column actually came to, for next tick's scroll ceiling. Measured
     //    from the sweep rather than predicted, so a card folding or a subject
@@ -2036,19 +2382,20 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
 
 void SceneDirectoryPanel::RecordEnvironmentCard(SceneDirectoryContext& Applied,
                                                 const PlaneExtent& Extent, float& Sweep,
-                                                std::uint32_t& CardOrdinal,
+                                                std::uint32_t& CardIndex,
                                                 const char* Caption,
                                                 const char* const* SliderCaptions,
                                                 const char* const* UnitGlyphs,
                                                 const double* Minimums, const double* Maximums,
-                                                double* Values, std::uint32_t SliderCount)
+                                                double* Values, std::uint32_t SliderCount,
+                                                const std::uint32_t* DecimalPlaces)
 {
-    if (CardOrdinal >= SceneDirectoryContext::CardCeiling)
+    if (CardIndex >= SceneDirectoryContext::CardLimit)
         return;
 
     const float Pad = Scaled.PanePad;
 
-    const std::uint32_t Target = CardOrdinal++;
+    const std::uint32_t Target = CardIndex++;
     const bool  Folded   = Applied.CardFolded[Target];
     const float Current  = Controls.OutlineExpansion(CardFolds[Target], !Folded, true);
 
@@ -2069,10 +2416,10 @@ void SceneDirectoryPanel::RecordEnvironmentCard(SceneDirectoryContext& Applied,
 
     const bool OnHeader = CardHeader.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Sampled.ContactPressed && OnHeader && !Ledger->AnyDisclosed())
-        Ledger->Grab(CardFolds[Target], ControlPart::Chevron);
+    if (Sampled.ContactPressed && OnHeader && !Interaction->AnyDisclosed())
+        Interaction->Grab(CardFolds[Target], ControlPart::Chevron);
 
-    if (OnHeader && Ledger->Released(CardFolds[Target]))
+    if (OnHeader && Interaction->Released(CardFolds[Target]))
         Applied.CardFolded[Target] = !Applied.CardFolded[Target];
 
     if (Current > 0.0f)
@@ -2113,52 +2460,42 @@ void SceneDirectoryPanel::RecordEnvironmentCard(SceneDirectoryContext& Applied,
 
         float RowCursor = CardHeader.MaximumY + Pad;
 
-        for (std::uint32_t SliderOrdinal = 0u; SliderOrdinal < SliderCount; ++SliderOrdinal)
+        for (std::uint32_t SliderIndex = 0u; SliderIndex < SliderCount; ++SliderIndex)
         {
             const PlaneExtent Row = Spanning(Card.MinimumX + Pad * 1.5f, RowCursor,
                                              Card.Width() - Pad * 3.0f, Scaled.RowHeight);
 
             MagnitudeDeclaration Declared;
-            Declared.Caption     = SliderCaptions[SliderOrdinal];
-            Declared.UnitGlyph   = UnitGlyphs[SliderOrdinal];
-            Declared.Minimum     = Minimums[SliderOrdinal];
-            Declared.Maximum     = Maximums[SliderOrdinal];
+            Declared.Caption     = SliderCaptions[SliderIndex];
+            Declared.UnitGlyph   = UnitGlyphs[SliderIndex];
+            Declared.Minimum     = Minimums[SliderIndex];
+            Declared.Maximum     = Maximums[SliderIndex];
+            Declared.Decimals    = DecimalPlaces != nullptr ? DecimalPlaces[SliderIndex] : 1u;
             // 🔴 The same defect as the shell's copy of this card: the rows were
             //    laid out with no label at all. Label · track · readout.
             Declared.Layout      = MagnitudeDeclaration::Arrange::Measured;
 
-            double& Coordinate   = Values[SliderOrdinal];
+            double& Coordinate   = Values[SliderIndex];
 
-            static_cast<void>(EnvironmentControls.MagnitudeRow(EnvironmentSliders[SliderOrdinal],
+            static_cast<void>(EnvironmentControls.MagnitudeRow(EnvironmentSliders[Target][SliderIndex],
                                                                Row, Declared, Coordinate, false));
 
             // 🔴 The drag arm: latched the first tick the slider holds the contact, with the value at
             //    that moment — the "start" the history entry describes. Released with a changed value,
             //    one demand is raised; neither fires on the intermediate ticks.
-            if (Ledger->Holding(EnvironmentSliders[SliderOrdinal]) && !EnvironmentArmed[SliderOrdinal])
+            if (Interaction->Holding(EnvironmentSliders[Target][SliderIndex]) && !EnvironmentArmed[Target][SliderIndex])
             {
-                EnvironmentArmed[SliderOrdinal] = true;
-                EnvironmentFrom[SliderOrdinal]  = Coordinate;
+                EnvironmentArmed[Target][SliderIndex] = true;
+                EnvironmentFrom[Target][SliderIndex]  = Coordinate;
             }
 
-            if (Ledger->Released(EnvironmentSliders[SliderOrdinal]))
+            if (Interaction->Released(EnvironmentSliders[Target][SliderIndex]))
             {
-                if (EnvironmentArmed[SliderOrdinal])
+                if (EnvironmentArmed[Target][SliderIndex])
                 {
-                    if (std::abs(Coordinate - EnvironmentFrom[SliderOrdinal]) > 0.0005)
-                    {
-                        Applied.RevisionDemandSlot.Standing  = true;
-                        Applied.RevisionDemandSlot.Against   = Applied.EntityTaken;
-                        std::snprintf(Applied.RevisionDemandSlot.Caption,
-                                      sizeof(Applied.RevisionDemandSlot.Caption), "%s",
-                                      SliderCaptions[SliderOrdinal]);
-                        std::snprintf(Applied.RevisionDemandSlot.Secondary,
-                                      sizeof(Applied.RevisionDemandSlot.Secondary),
-                                      "%.1f \u2192 %.1f",
-                                      EnvironmentFrom[SliderOrdinal], Coordinate);
-                    }
-
-                    EnvironmentArmed[SliderOrdinal] = false;
+                    // No revision feed is produced. The arm remains only to close the gesture
+                    // cleanly; undo/redo will belong to a future command system rather than this panel.
+                    EnvironmentArmed[Target][SliderIndex] = false;
                 }
             }
 
@@ -2193,8 +2530,8 @@ void SceneDirectoryPanel::RecordCameraBookmarks(const PlaneExtent& Extent,
                           const char* Caption, bool Enabled) -> bool
     {
         const bool Over = Enabled && Bounds.Encloses(Sampled.PositionX, Sampled.PositionY);
-        if (Sampled.ContactPressed && Over && !Ledger->AnyDisclosed())
-            Ledger->Grab(Target, ControlPart::Body);
+        if (Sampled.ContactPressed && Over && !Interaction->AnyDisclosed())
+            Interaction->Grab(Target, ControlPart::Body);
 
         Surface->Ground(Bounds, Over ? Tinted.TileHovered : Tinted.Tile,
                         Bounds.Height() * 0.5f, CornerAll);
@@ -2204,11 +2541,11 @@ void SceneDirectoryPanel::RecordCameraBookmarks(const PlaneExtent& Extent,
         Surface->TextRun(Bounds.MinimumX + (Bounds.Width() - Surface->MeasureRun(Caption, Run, 0.0f)) * 0.5f,
                          Bounds.MinimumY + (Bounds.Height() - Run) * 0.5f,
                          Enabled ? Tinted.Primary : Tinted.Faint, Caption, Run);
-        return Over && Ledger->Released(Target);
+        return Over && Interaction->Released(Target);
     };
 
     if (Pill(BookmarkSave, Save, "Save Current", true) &&
-        Applied.CameraBookmarkCount < SceneDirectoryContext::CameraBookmarkCeiling)
+        Applied.CameraBookmarkCount < SceneDirectoryContext::CameraBookmarkLimit)
     {
         const std::uint32_t Bookmark = Applied.CameraBookmarkCount++;
         Applied.CameraBookmarkTaken = Bookmark;
@@ -2296,218 +2633,6 @@ void SceneDirectoryPanel::RecordCameraBookmarks(const PlaneExtent& Extent,
     }
 }
 
-void SceneDirectoryPanel::RecordRevisionSpine(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
-                                              const EntityRow* Rows, std::uint32_t RowCount,
-                                              const EntityRevision* Revisions, std::uint32_t RevisionCount)
-{
-    Surface->Ground(Extent, Tinted.MenuLower, 0.0f, CornerNone);
-
-    if (Revisions == nullptr)
-        RevisionCount = 0u;
-
-    const bool Selected = Applied.EntityTaken < RowCount;
-
-    // 📐 The reference gathers the taken record AND everything nested inside it, so a folder presents
-    //    its children's revisions too.
-    std::uint32_t Minimum = Applied.EntityTaken;
-    std::uint32_t Maximum  = Applied.EntityTaken;
-
-    if (Selected)
-    {
-        for (std::uint32_t Inward = Applied.EntityTaken + 1u; Inward < RowCount; ++Inward)
-        {
-            if (Rows[Inward].Depth <= Rows[Applied.EntityTaken].Depth)
-                break;
-
-            Maximum = Inward;
-        }
-    }
-
-    std::uint32_t Current = 0u;
-
-    if (Selected)
-    {
-        for (std::uint32_t Ordinal = 0u; Ordinal < RevisionCount; ++Ordinal)
-        {
-            if (Revisions[Ordinal].Against >= Minimum && Revisions[Ordinal].Against <= Maximum)
-                ++Current;
-        }
-    }
-
-    if (!Selected || Current == 0u)
-    {
-        const float Run   = Scaled.RunSecondary;
-        const char* Prose = "No history events found for this selection or its children.";
-
-        Surface->TextRun(Extent.MinimumX + (Extent.Width()
-                                              - Surface->MeasureRun(Prose, Run, 0.0f)) * 0.5f,
-                         Extent.MinimumY + Scaled.HeaderHeight, Tinted.Faint, Prose, Run);
-        return;
-    }
-
-    const float Pad    = Scaled.PanePad;
-    float       Sweep = Extent.MinimumY + Pad;
-
-    Surface->Confine(Extent);
-
-    // 📐 One group per record that carries a revision, in the run's own order.
-    for (std::uint32_t Against = Minimum; Against <= Maximum; ++Against)
-    {
-        std::uint32_t Held = 0u;
-
-        for (std::uint32_t Ordinal = 0u; Ordinal < RevisionCount; ++Ordinal)
-        {
-            if (Revisions[Ordinal].Against == Against)
-                ++Held;
-        }
-
-        if (Held == 0u)
-            continue;
-
-        const EntityRow&  Grouped = Rows[Against];
-        const ThemeToken Hue     = EntityHue(Grouped.Subject);
-
-        // ① The group header, which folds the whole group.
-        const PlaneExtent GroupHead = Spanning(Extent.MinimumX + Pad, Sweep,
-                                               Extent.Width() - Pad * 2.0f, Scaled.RowHeight);
-
-        const bool OnHead = GroupHead.Encloses(Sampled.PositionX, Sampled.PositionY);
-
-        if (Sampled.ContactPressed && OnHead && !Ledger->AnyDisclosed())
-            Ledger->Grab(RevisionGroups[Against], ControlPart::Chevron);
-
-        if (OnHead && Ledger->Released(RevisionGroups[Against]))
-            Applied.RevisionFolded[Against] = !Applied.RevisionFolded[Against];
-
-        const bool  GroupFolded = Applied.RevisionFolded[Against];
-        const float Opened      = Controls.OutlineExpansion(RevisionGroups[Against], !GroupFolded, true);
-
-        const float CrestExtent = Scaled.ActionGlyph + 5.0f;
-        const PlaneExtent Crest = Spanning(GroupHead.MinimumX,
-                                           GroupHead.MinimumY
-                                           + (GroupHead.Height() - CrestExtent) * 0.5f,
-                                           CrestExtent, CrestExtent);
-
-        Surface->Ground(Crest, Hue, 5.0f, CornerAll);
-
-        const float CrestFigure = CrestExtent * 0.6f;
-
-        Surface->Stroke(EntityGlyph(Grouped.Subject),
-                        Spanning(Crest.MinimumX + (CrestExtent - CrestFigure) * 0.5f,
-                                 Crest.MinimumY + (CrestExtent - CrestFigure) * 0.5f,
-                                 CrestFigure, CrestFigure),
-                        Covering(0xFFFFFFu));
-
-        const float NameRun = Scaled.RunPrimary;
-        const float NameTop = GroupHead.MinimumY + (GroupHead.Height() - NameRun) * 0.5f;
-
-        // 📐 `{n} ops` at the trailing edge, and the chevron outboard of it.
-        char Tallied[16] = {};
-        std::snprintf(Tallied, sizeof(Tallied), "%u ops", static_cast<unsigned>(Held));
-
-        const float TallyRun  = Scaled.RunFine;
-        const float Mark      = Scaled.ActionGlyph;
-        const float TallyLead = GroupHead.MaximumX - Mark - Pad
-                              - Surface->MeasureRun(Tallied, TallyRun, 0.0f);
-
-        Surface->TextRun(TallyLead, GroupHead.MinimumY + (GroupHead.Height() - TallyRun) * 0.5f,
-                         Tinted.Muted, Tallied, TallyRun);
-
-        Surface->Stroke(GroupFolded ? SymbolSubject::ChevronRight : SymbolSubject::ChevronDown,
-                        Spanning(GroupHead.MaximumX - Mark,
-                                 GroupHead.MinimumY + (GroupHead.Height() - Mark) * 0.5f,
-                                 Mark, Mark),
-                        Tinted.Faint);
-
-        Surface->TextRunTruncated(Crest.MaximumX + Pad, NameTop, TallyLead - Pad,
-                                  OnHead ? Covering(0xFFFFFFu) : Tinted.Primary,
-                                  Grouped.Naming, NameRun, true);
-
-        Sweep += Scaled.RowHeight + 4.0f;
-
-        if (Opened <= 0.0f)
-            continue;
-
-        // ② The revisions themselves — a numbered bubble, the spine, and the card beside them.
-        const float CardHeight  = Scaled.LayerHeadHeight;
-        const float WholeHeight = static_cast<float>(Held) * (CardHeight + 4.0f) * Opened;
-        const PlaneExtent Stack = Spanning(Extent.MinimumX, Sweep, Extent.Width(), WholeHeight);
-
-        Surface->Confine(Stack);
-
-        float         X        = Sweep;
-        std::uint32_t Numbered = 0u;
-
-        for (std::uint32_t Ordinal = 0u; Ordinal < RevisionCount; ++Ordinal)
-        {
-            const EntityRevision& Revised = Revisions[Ordinal];
-
-            if (Revised.Against != Against)
-                continue;
-
-            const bool First = Numbered == 0u;
-            const bool Last  = Numbered + 1u == Held;
-
-            const float BubbleExtent = 25.0f;
-            const float BubbleLead   = Extent.MinimumX + Pad
-                                     + (32.0f - BubbleExtent) * 0.5f;
-            const float BubbleMid    = X + 7.0f + BubbleExtent * 0.5f;
-
-            // 📐 The spine, stopping half way at the first and last of the group so the run reads as a
-            //    bracket — the same rule the shell's layer stack follows.
-            const float SpineMid  = Extent.MinimumX + Pad + 32.0f + 15.0f * 0.5f;
-            const float SpineTop  = First ? BubbleMid : X;
-            const float SpineFoot = Last  ? BubbleMid : X + CardHeight + 4.0f;
-
-            if (SpineFoot > SpineTop)
-            {
-                Surface->Ground(Spanning(SpineMid - 3.0f, SpineTop, 6.0f, SpineFoot - SpineTop),
-                                Hue, 4.0f, CornerAll);
-            }
-
-            Surface->Ground(Spanning(BubbleLead, X + 7.0f, BubbleExtent, BubbleExtent),
-                            Hue, BubbleExtent * 0.5f, CornerAll);
-
-            char Counted[4] = {};
-            std::snprintf(Counted, sizeof(Counted), "%02u", static_cast<unsigned>(Numbered));
-
-            const float CountRun = Scaled.RunFine;
-
-            Surface->TextRun(BubbleLead + (BubbleExtent
-                                           - Surface->MeasureRun(Counted, CountRun, 0.0f)) * 0.5f,
-                             X + 7.0f + (BubbleExtent - CountRun) * 0.5f,
-                             Covering(0xFFFFFFu), Counted, CountRun, 0.0f, true);
-
-            // 📐 The 7 px node, ringed by 3 px of the pane's own ground.
-            Surface->Medallion(SpineMid, BubbleMid, 6.5f, Tinted.MenuLower);
-            Surface->Medallion(SpineMid, BubbleMid, 3.5f, Covering(0xFFFFFFu));
-
-            const PlaneExtent Card = Spanning(SpineMid + 15.0f * 0.5f + 8.0f, X,
-                                              Extent.MaximumX - Pad
-                                              - (SpineMid + 15.0f * 0.5f + 8.0f), CardHeight);
-
-            const bool OnCard = Card.Encloses(Sampled.PositionX, Sampled.PositionY);
-
-            Surface->Ground(Card, OnCard ? Tinted.TileHovered : Tinted.Tile, Scaled.LayerRadius, CornerAll);
-            Surface->Edge(Card, Tinted.Hairline, 1.0f, Scaled.LayerRadius, CornerAll);
-
-            const RevisionDeclaration Declared{ Revised.Description, Revised.Secondary, Revised.TimeRun };
-
-            Controls.RevisionRow(Card, Declared, OnCard);
-
-            X        += CardHeight + 4.0f;
-            Numbered += 1u;
-        }
-
-        Surface->Release();
-
-        Sweep += WholeHeight + Pad * 2.0f;
-    }
-
-    Surface->Release();
-}
-
-
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE GIZMO
 //------------------------------------------------------------------------------------------------------------------------
@@ -2516,7 +2641,7 @@ void SceneDirectoryPanel::RecordGizmo(const PlaneExtent& Extent, SceneDirectoryC
                                       OverlayGeometry& Overlay)
 {
     // 📐 The ground grid and all 3 world axes (Red X, Green Y, Blue Z) are rendered 100%
-    //    on the GPU by the overlay pass fragment shader (OverlayFragment.slang). The CPU gizmo
+    //    on the GPU by the overlay pass fragment shader (WorkspaceOverlayFragment.slang). The CPU gizmo
     //    arrows are removed.
     (void)Extent;
     (void)Applied;
@@ -2540,23 +2665,23 @@ void SceneDirectoryPanel::RecordOverlayFallback(const PlaneExtent& Extent,
         return Faded(Covering(Packed & 0xFFFFFFu), Alpha);
     };
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Overlay.LineCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Overlay.LineCount; ++Index)
     {
-        const OverlayLine& Line = Overlay.Lines[Ordinal];
+        const OverlayLine& Line = Overlay.Lines[Index];
         const float PointsX[2] = { Line.X0, Line.X1 };
         const float PointsY[2] = { Line.Y0, Line.Y1 };
         Surface->Polyline(PointsX, PointsY, 2u, Token(Line.Packed), Line.Thickness);
     }
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Overlay.DotCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Overlay.DotCount; ++Index)
     {
-        const OverlayDot& Dot = Overlay.Dots[Ordinal];
+        const OverlayDot& Dot = Overlay.Dots[Index];
         Surface->Medallion(Dot.X, Dot.Y, Dot.Radius, Token(Dot.Packed));
     }
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Overlay.TriangleCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Overlay.TriangleCount; ++Index)
     {
-        const OverlayTriangle& Triangle = Overlay.Triangles[Ordinal];
+        const OverlayTriangle& Triangle = Overlay.Triangles[Index];
         const float Corners[6] = { Triangle.X0, Triangle.Y0,
                                    Triangle.X1, Triangle.Y1,
                                    Triangle.X2, Triangle.Y2 };

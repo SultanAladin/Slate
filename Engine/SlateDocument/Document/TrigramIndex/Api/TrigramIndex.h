@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/IdentityContract.h"
-#include "Contract/DeliveryContract.h"
+#include "Foundation/Identity.h"
+#include "Foundation/DeliveryOutcome.h"
 
 #include <cstdint>
 #include <string>
@@ -27,11 +27,11 @@ inline constexpr std::uint32_t TrigramSpan     = TrigramAlphabet * TrigramAlphab
 
 /// 🧩 Folds one character to its alphabet ordinal, case-insensitively.
 /// in    Incoming  [-]  one character of a name
-/// out   Ordinal   [-]  below TrigramAlphabet; everything unrecognised folds to the last four
+/// out   Index   [-]  below TrigramAlphabet; everything unrecognised folds to the last four
 /// note  Case folding is what makes a search for "arm" find "Arm". The artist typed a name, not a spelling.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-constexpr std::uint32_t FoldedOrdinal(char Incoming)
+constexpr std::uint32_t FoldedIndex(char Incoming)
 {
     if (Incoming >= 'a' && Incoming <= 'z')
         return static_cast<std::uint32_t>(Incoming - 'a');
@@ -108,7 +108,7 @@ public:
 
 private:
 
-    void Enter(std::uint32_t SlotOrdinal, const std::string& Declared);
+    void Enter(std::uint32_t SlotIndex, const std::string& Declared);
 
     std::vector<std::string>                  DeclaredNames;           // [-] - by slot ordinal; the exact text
     std::vector<OwnerIdentity>             NamedIdentities;         // [-] - as declared; never reconstructed

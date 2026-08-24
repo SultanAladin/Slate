@@ -1,12 +1,12 @@
 //============================================================================================================================================
 //                                                             UNWRAPSOLVER.H
 //============================================================================================================================================
-// 🧩 Boundary-first parameterisation — Convergent, and held to reporting which criterion terminated it.
+// 🧩 Contour-first parameterisation — Convergent, and held to reporting which criterion terminated it.
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateMath/Numeric/CurveSolver/Api/CurveSolver.h"
 #include "SlateMath/Numeric/TransformProjection/Api/TransformProjection.h"
 
@@ -32,9 +32,9 @@ struct UnwrapSpecification
 {
     std::vector<DocumentPosition>  Positions            = {};        // [mm] - chart-local, object space
     std::vector<std::uint32_t>     TriangleCorners      = {};        // [-]  - three per triangle, into Positions
-    std::vector<std::uint32_t>     BoundaryLoop         = {};        // [-]  - ordered, closed, into Positions
+    std::vector<std::uint32_t>     ContourLoop         = {};        // [-]  - ordered, closed, into Positions
     double                         ConvergenceCriterion = 1.0e-7;    // [-]  - relative to the boundary radius
-    std::uint32_t                  IterationCeiling     = 4096u;     // [-]  - iterations before termination
+    std::uint32_t                  IterationLimit     = 4096u;     // [-]  - iterations before termination
 };
 
 //------------------------------------------------------------------------------------------------------------------------

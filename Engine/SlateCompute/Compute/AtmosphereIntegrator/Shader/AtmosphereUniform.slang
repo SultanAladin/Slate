@@ -28,7 +28,7 @@ namespace Slate
 /// note  📝 Every member is scalar and ordered widest-first so the layout carries no implicit padding under any
 ///        of the three declared layout rules. A vector member here would pad to sixteen bytes under std140 and to
 ///        its own width elsewhere, and the host mirror would agree with exactly one of them.
-/// tag   contract
+/// tag   guarantee
 struct MediumUniform
 {
     Real32  PlanetRadius            ;   // [m]   - to the surface

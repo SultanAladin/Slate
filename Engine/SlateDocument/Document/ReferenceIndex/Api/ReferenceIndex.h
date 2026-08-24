@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/IdentityContract.h"
-#include "Contract/DeliveryContract.h"
+#include "Foundation/Identity.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateMath/Numeric/ReportSequence/Api/ReportSequence.h"
 
 #include <cstdint>
@@ -24,7 +24,7 @@ namespace Slate
 /// note  🔴 The subject decides the default and the document decides the retention. Nothing infers one from the
 ///        other at read time, because a document written under one answer must open correctly under both — and a
 ///        reader that inferred it would open the same file two ways on two builds.
-/// tag   contract
+/// tag   guarantee
 enum class ReferenceSubject : std::uint32_t
 {
     PaintedContent  = 0u,   // [-] - authored here, per `56`; nothing else holds it
@@ -36,7 +36,7 @@ enum class ReferenceSubject : std::uint32_t
 };
 
 /// 🧩 Whether the content travels inside the document or is read from where it lives.
-/// tag   contract
+/// tag   guarantee
 enum class ReferenceRetention : std::uint32_t
 {
     Embedded   = 0u,   // [-] - written into the document; the document alone is enough to open it
@@ -48,7 +48,7 @@ enum class ReferenceRetention : std::uint32_t
 ///        stays registered, reports what it was looking for, and presents as missing. A document that substituted
 ///        a default for a missing texture is one the artist saves over with the defaults baked in, and the
 ///        original path is gone from the file at that point.
-/// tag   contract
+/// tag   guarantee
 enum class ReferenceCondition : std::uint32_t
 {
     Unresolved    = 0u,   // [-] - declared, not yet looked for
@@ -116,13 +116,13 @@ public:
     /// out   Result  [-]  refuses with ExtentExhausted outside the declared count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareRetention(std::uint32_t ReferenceOrdinal, ReferenceRetention Declaring);
+    Outcome<bool> DeclareRetention(std::uint32_t ReferenceIndex, ReferenceRetention Declaring);
 
     /// 🧩 Declares one reference found, with the extent it spans.
     /// out   Result  [-]  refuses with ExtentExhausted outside the declared count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareResolved(std::uint32_t ReferenceOrdinal, std::uint64_t SpannedBytes);
+    Outcome<bool> DeclareResolved(std::uint32_t ReferenceIndex, std::uint64_t SpannedBytes);
 
     /// 🧩 Declares one reference missing — registered, reported, and never replaced.
     /// out   Result  [-]  refuses with ExtentExhausted outside the declared count
@@ -131,7 +131,7 @@ public:
     ///        to go and find, and clearing it turns a recoverable absence into a permanent one.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareAbsent(std::uint32_t ReferenceOrdinal);
+    Outcome<bool> DeclareAbsent(std::uint32_t ReferenceIndex);
 
     /// 🧩 Appends every unreported absence to the register — `48` §5 and `86` §4.
     /// in    Reporting  [-]  where the absence rows land

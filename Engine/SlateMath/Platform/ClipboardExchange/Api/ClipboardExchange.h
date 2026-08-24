@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 
 #include <cstdint>
 #include <string>
@@ -98,7 +98,7 @@ public:
     // 📝 🔴 A ceiling rather than an unbounded read. The host clipboard is written by any process on the machine
     //    and its extent is therefore an untrusted number; a translation that reserved whatever it was told would
     //    exhaust the process on a clipboard nobody in this application produced.
-    static constexpr std::uint64_t ImageTexelCeiling = 268435456ull;   // [texel] - 16384 × 16384
+    static constexpr std::uint64_t ImageTexelLimit = 268435456ull;   // [texel] - 16384 × 16384
 };
 
 }   // namespace Slate

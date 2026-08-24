@@ -5,8 +5,9 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
+#include "SlateCompute/Compute/GeometryRenderingExchange/Api/GeometryRenderingExchange.h"
 #include "SlateCompute/Compute/VisibilityIndex/Api/VisibilityIndex.h"
 #include "SlateCompute/Compute/VisibilityIndex/Api/OcclusionScheduler.h"
 #include "SlateDocument/Document/CameraProjection/Api/CameraProjection.h"
@@ -59,8 +60,8 @@ struct UploadedTriangle
     std::uint32_t  CornerVertex0    = 0u;   // [-] - into the uploaded positions
     std::uint32_t  CornerVertex1    = 0u;   // [-]
     std::uint32_t  CornerVertex2    = 0u;   // [-]
-    std::uint32_t  PartitionOrdinal = 0u;   // [-] - document-wide
-    std::uint32_t  TriangleOrdinal  = 0u;   // [-] - within the partition
+    std::uint32_t  PartitionIndex = 0u;   // [-] - document-wide
+    std::uint32_t  TriangleIndex  = 0u;   // [-] - within the partition
     std::uint32_t  Unoccupied       = 0u;   // [-] - pads the record; the shader never reads it
 };
 
@@ -134,10 +135,10 @@ inline constexpr std::uint32_t AbsentResidency = 0xFFFFFFFFu;   // [-] - the res
 struct ResidentPartitioning
 {
     std::uint32_t               PositionSpan   = AbsentSpan;         // [-] - the object-space positions, device-local
-    std::uint32_t               TriangleSpan   = AbsentSpan;         // [-] - the fanned triangles and their ordinals
+    std::uint32_t               TriangleSpan   = AbsentSpan;         // [-] - authoritative triangles and their ordinals
     std::vector<std::uint32_t>  UniformSpans   = {};                 // [-] - one per cycle slot, host-writable
-    std::vector<std::uint32_t>  ReservationOrdinals  = {};                 // [-] - direct, then one per culling phase
-    std::uint32_t               CullingOrdinal = AbsentSpan;         // [-] - `OcclusionScheduler`'s, or absent
+    std::vector<std::uint32_t>  ReservationIndexs  = {};                 // [-] - direct, then one per culling phase
+    std::uint32_t               CullingIndex = AbsentSpan;         // [-] - `OcclusionScheduler`'s, or absent
     std::uint32_t               VertexCount    = 0u;                 // [-] - positions the span carries
     std::uint32_t               TriangleCount  = 0u;                 // [-] - triangles the span carries
     std::uint32_t               RegistrationBase  = 0u;                 // [-] - the document-wide ordinal it begins at
@@ -146,7 +147,7 @@ struct ResidentPartitioning
 
 // 📝 Reserve ordinal nought is the direct route and the two after it follow `CullingPhase`. Three sets rather than
 //    one because slot three names a different surviving run in each, and a set is written once at registration.
-inline constexpr std::uint32_t DirectReservationOrdinal = 0u;             // [-] - the route that reads no surviving run
+inline constexpr std::uint32_t DirectReservationIndex = 0u;             // [-] - the route that reads no surviving run
 inline constexpr std::uint32_t RasterReservationCount   = 1u + static_cast<std::uint32_t>(CullingPhase::PhaseCount);
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -186,27 +187,27 @@ public:
     /// post  the program stands and the residency is claimable
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(SpanSpace&        Spans,
+    Outcome<bool> ConstructVisibilityRaster(SpanSpace&        Spans,
                             ShaderCodec&      Modules,
                             DescriptorIndex&  Descriptors,
                             ProgramIndex&     Programs,
                             AttachmentIndex&  Attachments);
 
-    /// 🧩 Makes one registered partitioning resident, fanning its faces into the triangle run the device draws.
+    /// 🧩 Makes one registered partitioning resident from the authoritative rendering packet.
     /// in    Registered      [-]  the standing partitioning, from `VisibilityIndex::Registered`
-    /// in    Imported      [-]  the sealed topology it was derived from, at the same revision
+    /// in    Rendering       [-]  Earcut triangles and corner-expanded attributes for the same revision
     /// in    RegistrationBase [-]  the document-wide ordinal this registration's partitions begin at
     /// in    Culling       [-]  where the surviving runs come from; null declares the direct route only
-    /// in    CullingOrdinal[-]  an ordinal `OcclusionScheduler::Resolve` registered, or AbsentSpan
+    /// in    CullingIndex[-]  an ordinal `OcclusionScheduler::Resolve` registered, or AbsentSpan
     /// in    Recorded      [-]  an immediate recording the transfers are written into
     /// out   Result       [-]  the residency ordinal; refuses with whatever the claim rejected and with
-    ///                          ContentUnsupported for an unsealed topology or a partitioning that is not standing
+    ///                          ContentUnsupported for an empty/stale rendering packet or a partitioning that is not standing
     /// pre   🔴 `DescriptorIndex::Fix` delivered — a set cannot be claimed before the extent it is sliced from
     /// post  the spans stand and are drawn from every rotation until the topology changes
-    /// note  🔴 The fan is derived **here** and matches `MicroSurfacePartition::TriangleCount` by construction.
-    ///        `10` accepts faces of any corner count and `16` §1 counts the fan triangles the spanned faces amount
-    ///        to; a fan derived differently at the two sites gives the pixel a triangle ordinal `18` resolves to
-    ///        another triangle of the same partition.
+    /// note  🔴 Triangles are never independently fanned here. `GeometryRenderingExchange` owns Earcut and its
+    ///        source-face/corner mappings; this residency only groups that authoritative run by partition. A second
+    ///        triangulation route can disagree on concave faces while retaining the same n−2 count, making every
+    ///        identity look valid while pixels name the wrong surface.
     /// note  🔴 The descriptor set is written **here**, once per cycle slot, and never again. Every span it
     ///        names stands for the life of the residency, so a per-slot write would rewrite one arrangement
     ///        with itself — and would do it to a set the previous rotation's recording is still reading.
@@ -219,11 +220,11 @@ public:
     ///        extent a recorded transfer still names. `Release` below is what releases them.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Resolve(const PartitionStructure&  Registered,
-                                   const TopologyStructure&   Imported,
+    Outcome<std::uint32_t> Resolve(const PartitionStructure&      Registered,
+                                   const GeometryRenderingSnapshot& Rendering,
                                    std::uint32_t              RegistrationBase,
                                    const OcclusionScheduler*  Culling,
-                                   std::uint32_t              CullingOrdinal,
+                                   std::uint32_t              CullingIndex,
                                    VkCommandBuffer            Recorded);
 
     /// 🧩 Releases the staging spans every `Resolve` since the last surrender claimed.
@@ -246,12 +247,12 @@ public:
 
     /// 🧩 Records the raster for one cycle slot — the construct, the program, and one draw per residency.
     /// in    Recorded      [-]  the open recording of this cycle slot
-    /// in    SlotOrdinal  [-]  below `RecordingSlotCount`
+    /// in    SlotIndex  [-]  below `RecordingSlotCount`
     /// in    Viewing       [-]  what `46` derived for this rotation
     /// out   Result       [-]  refuses with ContentUnsupported before the spans are derived, and with
     ///                          whatever the descriptor write or the program resolution rejected
     /// note  🔴 The depth clear carries `FarPlaneDepth` and the comparison is `VK_COMPARE_OP_GREATER`. Reversed,
-    ///        per `Contract/`'s convention — clearing to unity against a greater-than comparison resolves nothing
+    ///        per `Foundation/`'s convention — clearing to unity against a greater-than comparison resolves nothing
     ///        at all, and the image is empty rather than wrong, which is the failure mode that gets attributed
     ///        to the geometry.
     /// note  ⚠️ Every owner is drawn at the identity placement, because nothing yet supplies one. `56` holds
@@ -259,12 +260,12 @@ public:
     /// cost  🔴
     /// tag   api, nonthrowing
     Outcome<bool> Record(VkCommandBuffer        Recorded,
-                         std::uint32_t          SlotOrdinal,
+                         std::uint32_t          SlotIndex,
                          const ViewProjection&  Viewing);
 
     /// 🧩 Records the raster for one cycle slot from what one culling phase compacted.
     /// in    Recorded      [-]  the open recording of this cycle slot
-    /// in    SlotOrdinal  [-]  below `RecordingSlotCount`
+    /// in    SlotIndex  [-]  below `RecordingSlotCount`
     /// in    Viewing       [-]  what `46` derived for this rotation
     /// in    Culling       [-]  the scheduler whose records the draws are registered from
     /// in    Phase         [-]  which of `16` §2's two phases this draw follows
@@ -279,7 +280,7 @@ public:
     /// cost  🔴
     /// tag   api, nonthrowing
     Outcome<bool> RecordIndirect(VkCommandBuffer           Recorded,
-                                 std::uint32_t             SlotOrdinal,
+                                 std::uint32_t             SlotIndex,
                                  const ViewProjection&     Viewing,
                                  const OcclusionScheduler& Culling,
                                  CullingPhase              Phase);
@@ -303,19 +304,20 @@ private:
     /// 🧩 Writes one residency's uniform for one cycle slot.
     /// in    SurvivingResolved [-]  non-zero routes the corner through the surviving run
     Outcome<bool> Project(const ResidentPartitioning& Current,
-                          std::uint32_t               SlotOrdinal,
+                          std::uint32_t               SlotIndex,
                           const ViewProjection&       Viewing,
                           const ConstructedSpan&      Covering,
                           bool                        SurvivingResolved);
 
-    /// 🧩 Fans one partitioning's faces into the triangle run the device draws.
-    /// in    Registered      [-]  the standing partitioning
-    /// in    Imported      [-]  the sealed topology
+    /// 🧩 Groups authoritative Earcut triangles into the contiguous partition run the device draws.
+    /// in    Registered       [-]  the standing partitioning
+    /// in    Rendering        [-]  the immutable rendering packet for the same topology revision
     /// in    RegistrationBase [-]  the document-wide ordinal the partitions begin at
-    /// out   Result       [-]  the fanned run; refuses with ContentUnsupported when the two disagree on a face
-    Outcome<std::vector<UploadedTriangle>> Fan(const PartitionStructure&  Registered,
-                                               const TopologyStructure&   Imported,
-                                               std::uint32_t              RegistrationBase) const;
+    /// out   Result           [-]  the grouped run; refuses when a source face or corner is inconsistent
+    Outcome<std::vector<UploadedTriangle>> ArrangeTriangles(
+        const PartitionStructure&       Registered,
+        const GeometryRenderingSnapshot& Rendering,
+        std::uint32_t                   RegistrationBase) const;
 
     /// 🧩 Reservations one device-local span and stages the supplied bytes into it through one recorded transfer.
     /// in    Incoming       [-]  what is staged; read for IncomingBytes and never retained
@@ -340,14 +342,14 @@ private:
 
     std::vector<ResidentPartitioning>  Resident         = {};                 // [-] - one per resident registration
     std::vector<std::uint32_t>         StagedSpans      = {};                 // [-] - released at Release
-    std::uint32_t                      LayoutOrdinal    = AbsentDescriptor;   // [-] - the one declared layout
-    std::uint32_t                      ProgramOrdinal   = AbsentProgram;      // [-] - the constructed program
-    std::uint32_t                      ConstructOrdinal = AbsentConstruct;    // [-] - the render construct
+    std::uint32_t                      LayoutIndex    = AbsentDescriptor;   // [-] - the one declared layout
+    std::uint32_t                      ProgramSlotIndex = AbsentProgram;      // [-] - the constructed program
+    std::uint32_t                      ConstructIndex = AbsentConstruct;    // [-] - the render construct
     std::uint32_t                      CornerModule     = AbsentModule;       // [-] - the vertex stream
     std::uint32_t                      SurfaceModule    = AbsentModule;       // [-] - the fragment stream
 };
 
-// 📐 The fan and the ordinals are integer throughout and therefore Exact; the composition carries its own
+// 📐 The triangle arrangement and ordinals are integer throughout and therefore Exact; the composition carries its own
 //    declaration and the raster inherits it. `00` §3's transitivity rule folds them to the weaker of the two.
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded, PrecisionGuarantee::Exact);
 

@@ -5,7 +5,7 @@
 
 #include "SlateMath/Numeric/CurveSolver/Api/CurveSolver.h"
 
-#include "Contract/ToleranceContract.h"
+#include "Foundation/NumericTolerance.h"
 
 #include <cmath>
 
@@ -22,7 +22,7 @@ namespace
 // 📝 The subdivision ceiling bounds the appended count at any tolerance, so a pathological control layout
 //    cannot make one segment consume unbounded storage. `20` §2.2's evaluation budget cannot bound what it
 //    cannot predict, and this is where the prediction comes from.
-constexpr std::uint32_t SubdivisionCeiling = 16u;   // [-] - halvings permitted per segment
+constexpr std::uint32_t SubdivisionLimit = 16u;   // [-] - halvings permitted per segment
 
 double ChordDeviation(PlanarPosition Origin,
                       PlanarPosition Control,
@@ -173,12 +173,12 @@ void FlattenArc(PlanarPosition                Origin,
     if (StepCount == 0u)
         StepCount = 1u;
 
-    if (StepCount > (1u << SubdivisionCeiling))
-        StepCount = 1u << SubdivisionCeiling;
+    if (StepCount > (1u << SubdivisionLimit))
+        StepCount = 1u << SubdivisionLimit;
 
-    for (std::uint32_t Ordinal = 1u; Ordinal <= StepCount; ++Ordinal)
+    for (std::uint32_t Index = 1u; Index <= StepCount; ++Index)
     {
-        const double Angle = FirstAngle + Sweep * static_cast<double>(Ordinal)
+        const double Angle = FirstAngle + Sweep * static_cast<double>(Index)
                                                 / static_cast<double>(StepCount);
 
         const double XTerm  = ScaledX  * std::cos(Angle);
@@ -220,13 +220,13 @@ void Flatten(PlanarPosition                Origin,
             PlanarPosition SecondControl = Interpolate(Segment.Terminus,  Segment.FirstControl, 2.0 / 3.0);
 
             SubdivideCubic(Origin, FirstControl, SecondControl, Segment.Terminus,
-                           Bounded, SubdivisionCeiling, Appending);
+                           Bounded, SubdivisionLimit, Appending);
             return;
         }
 
         case SegmentSubject::Cubic:
             SubdivideCubic(Origin, Segment.FirstControl, Segment.SecondControl, Segment.Terminus,
-                           Bounded, SubdivisionCeiling, Appending);
+                           Bounded, SubdivisionLimit, Appending);
             return;
 
         case SegmentSubject::Arc:
@@ -290,15 +290,15 @@ Outcome<std::vector<PlanarPosition>> OffsetOutline(const std::vector<PlanarPosit
 
         for (std::size_t Passed = 0u; Passed < Traversed.size(); ++Passed)
         {
-            const std::size_t Ordinal = Side == 0u ? Passed : Traversed.size() - 1u - Passed;
+            const std::size_t Index = Side == 0u ? Passed : Traversed.size() - 1u - Passed;
 
-            const std::size_t Earlier = Ordinal == 0u
+            const std::size_t Earlier = Index == 0u
                                       ? (ClosedRun ? Traversed.size() - 1u : 0u)
-                                      : Ordinal - 1u;
+                                      : Index - 1u;
 
-            const std::size_t Later = Ordinal + 1u >= Traversed.size()
+            const std::size_t Later = Index + 1u >= Traversed.size()
                                     ? (ClosedRun ? 0u : Traversed.size() - 1u)
-                                    : Ordinal + 1u;
+                                    : Index + 1u;
 
             const double SpanX = Traversed[Later].PositionX - Traversed[Earlier].PositionX;
             const double SpanY = Traversed[Later].PositionY - Traversed[Earlier].PositionY;
@@ -308,8 +308,8 @@ Outcome<std::vector<PlanarPosition>> OffsetOutline(const std::vector<PlanarPosit
                 continue;
 
             PlanarPosition Offset;
-            Offset.PositionX = Traversed[Ordinal].PositionX - Signum * HalfWidth * SpanY / Length;
-            Offset.PositionY = Traversed[Ordinal].PositionY + Signum * HalfWidth * SpanX / Length;
+            Offset.PositionX = Traversed[Index].PositionX - Signum * HalfWidth * SpanY / Length;
+            Offset.PositionY = Traversed[Index].PositionY + Signum * HalfWidth * SpanX / Length;
 
             Outlined.push_back(Offset);
         }

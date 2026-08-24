@@ -6,13 +6,15 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
 #include "SlateUI/Interface/DrawerSpace/Api/DrawerSpace.h"
-#include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
+#include "SlateUI/Interface/ControlIndex/Api/ControlIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
+#include "SlateUI/Interface/InterfacePreferences/Api/InterfacePreferences.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
+#include "SlateUI/Interface/NoticeDialog/Api/NoticeDialog.h"
 #include "SlateUI/Interface/ShortcutSpecification/Api/ShortcutSpecification.h"
 #include "SlateUI/Interface/ThemeSpecification/Api/ThemeSpecification.h"
 
@@ -62,7 +64,9 @@ struct ControlCentreConfiguration
     AccentSubject SemanticColours[5] = {AccentSubject::Blue, AccentSubject::Violet, AccentSubject::Cyan,
                                         AccentSubject::Amber, AccentSubject::Rose};
     std::uint32_t Quality = 2u;
-    std::uint32_t Antialiasing = 1u;
+    InterfaceAntialiasing GeometryAntialiasing = InterfaceAntialiasing::Refined;
+    FontRasterisation FontAntialiasing = FontRasterisation::Automatic;
+    VectorTessellation VectorQuality = VectorTessellation::Balanced;
     std::uint32_t Resolution = 0u;
     std::uint32_t Scaling = 100u;
     std::uint32_t RefreshRate = 0u;
@@ -103,7 +107,7 @@ public:
     //    and were not. 256 applies the eight strips with the rest of the panel's controls intact.
     static constexpr std::uint32_t ControlCapacity = 256u;
 
-    Outcome<bool> Construct(MotionIntegrator& Motion, RecordingSurface& Surface,
+    Outcome<bool> ConstructControlCentrePanel(MotionIntegrator& Motion, RecordingSurface& Surface,
                             const ThemeProfile& Appearance);
     void Advance(const PointerCondition& Sampled, double Elapsed);
     Outcome<bool> Record(const PlaneExtent& Interior, ControlCentreConfiguration& Configuration);
@@ -113,10 +117,10 @@ public:
 
 private:
     void RetainExclusion(const PlaneExtent& Extent);
-    bool Pressed(std::uint32_t Ordinal, const PlaneExtent& Extent);
-    bool Slider(std::uint32_t Ordinal, const PlaneExtent& Extent, std::uint32_t Minimum, std::uint32_t Maximum,
+    bool Pressed(std::uint32_t Index, const PlaneExtent& Extent);
+    bool Slider(std::uint32_t Index, const PlaneExtent& Extent, std::uint32_t Minimum, std::uint32_t Maximum,
                 std::uint32_t& Reading, const char* UnitGlyph, ThemeToken Rail, ThemeToken Accent);
-    void Toggle(std::uint32_t Ordinal, const PlaneExtent& Extent, bool& Enabled, ThemeToken Quiet, ThemeToken Accent);
+    void Toggle(std::uint32_t Index, const PlaneExtent& Extent, bool& Enabled, ThemeToken Quiet, ThemeToken Accent);
     void Symbol(const PlaneExtent& Extent, ThemeToken Colour);
     void DashboardPage(const PlaneExtent& Extent, ControlCentreConfiguration& Configuration, const ThemeDeclaration& Theme,
                        ThemeToken Accent);
@@ -134,14 +138,17 @@ private:
                    ThemeToken Accent);
     void DisplayHardwarePage(const PlaneExtent& Extent, ControlCentreConfiguration& Configuration,
                              const ThemeDeclaration& Theme, ThemeToken Accent);
+    void RecordSettingsFooter(const PlaneExtent& Extent, ControlCentreConfiguration& Configuration,
+                              const ThemeDeclaration& Theme, ThemeToken Accent);
     void Navigate(ControlCentrePage Incoming);
 
     MotionIntegrator* Motion = nullptr;
     RecordingSurface* Surface = nullptr;
     const ThemeProfile* Appearance = nullptr;
     FontLoader* FontArchive = nullptr;
-    InteractionIndex Interaction = {};
+    ControlIndex Interaction = {};
     ComponentSpecification SharedControls = {};
+    NoticeDialog SettingsNotice = {};
     ControlIdentity Controls[ControlCapacity] = {};
     PlaneExtent Exclusions[ControlCapacity] = {};
     std::uint32_t ExclusionCount = 0u;
@@ -163,6 +170,10 @@ private:
     float Scroll[static_cast<std::uint32_t>(ControlCentrePage::PageCount)] = {};
     float ScrollFrom[static_cast<std::uint32_t>(ControlCentrePage::PageCount)] = {};
     float ScrollTarget[static_cast<std::uint32_t>(ControlCentrePage::PageCount)] = {};
+    std::uint32_t DisplayScrollMotion[3] = {};
+    float DisplayScroll[3] = {};
+    float DisplayScrollFrom[3] = {};
+    float DisplayScrollTarget[3] = {};
     float FontScroll = 0.0f;
     float FontFrom = 0.0f;
     float FontTarget = 0.0f;
@@ -171,6 +182,9 @@ private:
     float RoleFontTarget[8] = {};
     std::uint32_t OpenPalette = 5u;
     bool InputPresetOpen = false;
+    bool WorkingConfigurationReady = false;
+    ControlCentreConfiguration WorkingConfiguration = {};
+    ControlCentreConfiguration AppliedConfiguration = {};
 };
 
 } // namespace Slate

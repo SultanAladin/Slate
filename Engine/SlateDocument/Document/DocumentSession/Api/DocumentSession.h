@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/IdentityContract.h"
-#include "Contract/DeliveryContract.h"
+#include "Foundation/Identity.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateDocument/Document/OutlinerSequence/Api/OutlinerSequence.h"
 #include "SlateDocument/Document/PersistenceSequence/Api/PersistenceSequence.h"
 #include "SlateDocument/Document/RecoverySequence/Api/RecoverySequence.h"
@@ -28,7 +28,7 @@ namespace Slate
 /// 🧩 Whether an open session has a file behind it yet.
 /// note  📝 A session with no location is a document the artist began rather than opened. It is not an error and
 ///        it is not a lesser document — it simply has no target for a save until one is declared.
-/// tag   contract
+/// tag   guarantee
 enum class StorageCurrent : std::uint32_t
 {
     Undeclared    = 0u,   // [-] - begun here; no file behind it yet
@@ -49,7 +49,7 @@ enum class StorageCurrent : std::uint32_t
 /// note  🔴 `SelectionSequence` sits inside `OutlinerSequence` and is session state — `48` §2 and `12` §11. It is
 ///        not written on save. A document that reopened with someone else's selection restored has restored a
 ///        decision the artist had already finished making, and the first stroke lands on the wrong owner.
-/// note  ⚠️ Non-copyable. Two copies of one open document are two populations issuing identities from two ledgers,
+/// note  ⚠️ Non-copyable. Two copies of one open document are two populations issuing identities from two indexs,
 ///        and the generation that makes a reference safe is only unique within one of them.
 /// tag   owning
 class DocumentSession
@@ -195,7 +195,7 @@ public:
 
     // 📝 A bound rather than an absence of one. The ceiling is what makes an unbounded open loop report instead
     //    of exhausting the host, and every open document costs its whole population.
-    static constexpr std::uint32_t SessionCeiling = 64u;   // [-] - documents open at once
+    static constexpr std::uint32_t SessionLimit = 64u;   // [-] - documents open at once
 
     /// 🧩 Opens one session and issues the ordinal that addresses it.
     /// out   Result  [-]  refuses with ExtentExhausted at the ceiling
@@ -213,20 +213,20 @@ public:
     ///        the answer is a conversation with the artist and this component cannot have one.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Close(std::uint32_t SessionOrdinal);
+    Outcome<bool> Close(std::uint32_t SessionIndex);
 
     /// 🧩 One open session.
     /// out   Result  [-]  refuses with ExtentExhausted outside the open count, and for a closed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<DocumentSession*>       Resolve(std::uint32_t SessionOrdinal);
-    Outcome<const DocumentSession*> Resolve(std::uint32_t SessionOrdinal) const;
+    Outcome<DocumentSession*>       Resolve(std::uint32_t SessionIndex);
+    Outcome<const DocumentSession*> Resolve(std::uint32_t SessionIndex) const;
 
     /// 🧩 Declares which session the interface presents — `14` presents one at a time.
     /// out   Result  [-]  refuses with ExtentExhausted outside the open count, and for a closed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareCurrent(std::uint32_t SessionOrdinal);
+    Outcome<bool> DeclareCurrent(std::uint32_t SessionIndex);
 
     /// 🧩 The session the interface presents.
     /// out   Result  [-]  refuses with ExtentExhausted when no session is open
@@ -238,7 +238,7 @@ public:
     /// 🧩 Which ordinal is presented; the ceiling when nothing is open.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t CurrentOrdinal() const;
+    std::uint32_t CurrentIndex() const;
 
     /// 🧩 The most recently opened session naming one storage location.
     /// out   Result  [-]  refuses with ExtentExhausted when no open session holds that path
@@ -266,7 +266,7 @@ public:
 private:
 
     std::vector<std::unique_ptr<DocumentSession>>  Sessions;                            // [-] - by session ordinal; empty where closed
-    std::uint32_t                                  CurrentSession = SessionCeiling;   // [-] - the ceiling declares none
+    std::uint32_t                                  CurrentSession = SessionLimit;   // [-] - the ceiling declares none
     std::uint32_t                                  OpenTotal        = 0u;               // [-] - sessions currently open
 };
 

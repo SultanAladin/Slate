@@ -12,7 +12,7 @@ subject = [ "Compute" ]
 unit = [ "SlateMath", "SlateVulkan", "SlateDocument" ]
 
 [external]
-include = [ "$VULKAN_SDK/Include" ]
+include = [ "$VULKAN_SDK/Include", "ExternalPackages/earcut/include" ]
 declare = []
 
 [link]

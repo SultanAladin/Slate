@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
+#include "Foundation/NumericTolerance.h"
 #include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
 #include "SlateDocument/Document/TopologyConditioning/Api/TopologyConditioning.h"
 #include "SlateDocument/Document/TopologyStructure/Api/TopologyStructure.h"
@@ -54,7 +54,7 @@ struct OrientationCone
 /// note  🔴 One material per partition. `42`'s `ResolvedPartition` carries a single material ordinal, so growth
 ///        stops where the enrollment changes; a partition spanning two would resolve to whichever was recorded
 ///        first and shade half its own pixels with the wrong reflectance.
-/// note  ⚠️ `TriangleCount` sits between `PartitionTriangleFloor` and `PartitionTriangleCeiling` except at the
+/// note  ⚠️ `TriangleCount` sits between `PartitionTriangleFloor` and `PartitionTriangleLimit` except at the
 ///        end of a connected piece, where the growth front exhausts before the floor is reached. That partition
 ///        is closed short rather than merged across a boundary — merging is what makes an extent enclose two
 ///        pieces that are nowhere near each other, and the cull then rejects neither.
@@ -66,7 +66,7 @@ struct MicroSurfacePartition
     std::uint32_t      FirstFace       = 0u;   // [-]  - into OrderedFaces, never into the imported topology
     std::uint32_t      FaceCount       = 0u;   // [-]  - faces of that ordering the partition spans
     std::uint32_t      TriangleCount   = 0u;   // [-]  - fan triangles the spanned faces amount to
-    std::uint32_t      MaterialOrdinal = 0u;   // [-]  - the one enrollment every spanned face carries
+    std::uint32_t      MaterialIndex = 0u;   // [-]  - the one enrollment every spanned face carries
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -80,7 +80,7 @@ struct PartitioningMetrics
     std::uint32_t  PartitionCount        = 0u;   // [-] - partitions derived
     std::uint32_t  ShortPartitionCount   = 0u;   // [-] - closed below the floor; a connected piece ran out
     std::uint32_t  ConelessCount         = 0u;   // [-] - orientations spanning more than a hemisphere
-    std::uint32_t  BoundaryRefusalCount  = 0u;   // [-] - adjacency refusals the growth front met
+    std::uint32_t  EdgeRefusalCount  = 0u;   // [-] - adjacency refusals the growth front met
     std::uint32_t  ExcludedFaceCount     = 0u;   // [-] - zero-extent faces the growth stepped over
     std::uint32_t  MinimumTriangleCount    = 0u;   // [-] - the smallest partition derived
     std::uint32_t  MaximumTriangleCount = 0u;   // [-] - the largest; above the ceiling only for a lone wide face
@@ -176,7 +176,7 @@ public:
     ///                     IdentityStale when nothing has been declared since the last adoption
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<PartitionIdentity> IdentityOf(std::uint32_t PartitionOrdinal) const;
+    Outcome<PartitionIdentity> IdentityOf(std::uint32_t PartitionIndex) const;
 
     /// 🧩 Discards the standing partitioning and every identity taken against it.
     /// cost  🚩

@@ -47,15 +47,17 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "Shared/OverlayGeometry.slang.h"
 #include "SlateUI/Interface/ControlPanel/Api/ControlPanel.h"
 #include "SlateUI/Interface/FacetPanel/Api/FacetPanel.h"
-#include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
+#include "SlateUI/Interface/ControlIndex/Api/ControlIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
-#include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectoryContract.h"
-#include "SlateUI/Interface/TexturePaintPanel/Api/TexturePaintContract.h"
+#include "SlateUI/Interface/OverflowScroll/Api/OverflowScroll.h"
+#include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectorySpecification.h"
+#include "SlateUI/Interface/SlidingPages/Api/SlidingPages.h"
+#include "SlateUI/Interface/TexturePaintPanel/Api/TexturePaintSpecification.h"
 
 #include <cstdint>
 
@@ -69,10 +71,10 @@ namespace Slate
 /// 🧩 Every datum the texture-paint panel presents, owned by the host and written through by the panel.
 ///    The per-row working copies (opacity, blend, lock, mask, tag hue) are seeded from the rows at
 ///    bring-up and synchronised back through `TexturePaintStack::ApplyRequest` — the rows stay the model.
-/// tag   contract
+/// tag   guarantee
 struct TexturePaintContext
 {
-    static constexpr std::uint32_t TextureRetentionCeiling = 48u;  // [-] - the search run, terminator included
+    static constexpr std::uint32_t TextureRetentionLimit = 48u;  // [-] - the search run, terminator included
     static constexpr std::uint32_t TextureFacetCount      = 8u;    // [-] - Paint … Filter
     /// 🔴 This was 3 — "Base, Maps, Output" — a set of captions that appears
     ///    nowhere in the schema, and the card used it only to HIDE rows. The
@@ -82,14 +84,16 @@ struct TexturePaintContext
     ///    channel, and the enabled array the card hands the facet panel is the
     ///    layer's own `ChannelOn` row — so pressing a chip's cross disables the
     ///    channel rather than merely hiding a card that stays enabled underneath.
-    static constexpr std::uint32_t TextureChannelFacetCount = TextureChannelCeiling;
+    static constexpr std::uint32_t TextureChannelFacetCount = TextureChannelLimit;
     static constexpr std::uint32_t TextureSwatchCount     = 10u;   // [-] - the reference's COLORS run
 
     // 📐 The selection and the pages. `StackPage` is the carousel: 0 the stack, 1 the properties.
     //    `PropertyTab` is which properties panel the strip shows — 0 Channels, 1 Mask, 2 Settings
     //    (decal / pattern / generator / the folder's combined stack). Tab toggles the stack page,
     //    then the property tabs the selection offers.
-    std::uint32_t              LayerTaken    = 0u;           // [-] - which row is taken
+    std::uint32_t              LayerTaken    = 0u;           // [-] - primary row
+    bool                       LayerSelected[TextureLayerLimit] = { true }; // [-] - persistent membership
+    std::uint32_t              LayerSelectionAnchor = 0u;     // [-] - visible-range origin
     bool                       MaskTaken     = false;        // [-] - the taken row's mask is taken
     std::uint32_t              StackPage     = 0u;           // [-] - 0 Stack, 1 Properties
     std::uint32_t              PropertyTab   = 0u;           // [-] - 0 Channels, 1 Mask, 2 Settings
@@ -106,7 +110,7 @@ struct TexturePaintContext
     bool                       ExportBaseColourSrgb = true;
 
     // 📝 The search and the filters — the same pair the scene directory carries.
-    char                       Retention[TextureRetentionCeiling] = {};   // [-] - the search run
+    char                       Retention[TextureRetentionLimit] = {};   // [-] - the search run
     bool                       SearchTaken   = false;       // [-] - the search pill holds the contact
     bool                       FacetEnabled[TextureFacetCount]     = {};  // [-] - layer categories
     // 🔴 `ChannelFacet` was a THIRD copy of the channel's enabled state, beside
@@ -119,29 +123,36 @@ struct TexturePaintContext
 
     // 📝 The rows' own conditions: hierarchy disclosure, inline-card disclosure, presence, and the
     //    channel each layer is showing on the properties page.
-    bool                       LayerExpanded[TextureLayerCeiling]  = {};
-    bool                       LayerCardExpanded[TextureLayerCeiling] = {}; // [-] - inline detail card beneath row
-    bool                       LayerCardSection[TextureLayerCeiling][5] = {}; // [-] - Info … Channel Blending folds
-    double                     LayerResolution[TextureLayerCeiling] = {};   // [px] - editable inline Info field
-    bool                       LayerHeightIntegrated[TextureLayerCeiling] = {}; // [-] - Height → Normal toggle
-    std::uint32_t              LayerHeightBlendTaken[TextureLayerCeiling] = {}; // [-] - height blend roster
-    std::uint32_t              LayerEffectTaken[TextureLayerCeiling] = {}; // [-] - compact effect roster
-    bool                       LayerPresent[TextureLayerCeiling]   = {};
-    std::uint32_t              ChannelTaken[TextureLayerCeiling]   = {};
-    bool                       ChannelFolded[TextureChannelCeiling] = {};
+    bool                       LayerExpanded[TextureLayerLimit]  = {};
+    bool                       LayerCardExpanded[TextureLayerLimit] = {}; // [-] - inline detail card beneath row
+    bool                       LayerCardSection[TextureLayerLimit][5] = {}; // [-] - Info … Channel Blending folds
+    double                     LayerResolution[TextureLayerLimit] = {};   // [px] - editable inline Info field
+    bool                       LayerHeightIntegrated[TextureLayerLimit] = {}; // [-] - Height → Normal toggle
+    std::uint32_t              LayerHeightBlendTaken[TextureLayerLimit] = {}; // [-] - height blend roster
+    std::uint32_t              LayerEffectTaken[TextureLayerLimit] = {}; // [-] - compact effect roster
+    bool                       LayerPresent[TextureLayerLimit]   = {};
+    std::uint32_t              ChannelTaken[TextureLayerLimit]   = {};
+    bool                       ChannelFolded[TextureChannelLimit] = {};
     bool                       MaskFolded    = false;       // [-] - the mask panel's sections
     bool                       SettingFolded = false;       // [-] - the settings panel's sections
 
     // 📝 The per-row working copies — the fields the artist edits on the stack page itself, seeded
     //    from the rows at bring-up and written back by `TexturePaintStack::ApplyRequest`.
-    std::uint32_t              LayerOpacity[TextureLayerCeiling]   = {};   // [%] - the footer slider
-    std::uint32_t              LayerBlendTaken[TextureLayerCeiling] = {};  // [-] - into the blend roster
-    bool                       LayerLocked[TextureLayerCeiling]    = {};
-    bool                       MaskAttached[TextureLayerCeiling]   = {};
-    bool                       MaskVisible[TextureLayerCeiling]    = {};
-    std::uint32_t              LayerTagHue[TextureLayerCeiling]    = {};   // [-] - 0xRRGGBB, the entry tag
+    std::uint32_t              LayerOpacity[TextureLayerLimit]   = {};   // [%] - the footer slider
+    std::uint32_t              LayerBlendTaken[TextureLayerLimit] = {};  // [-] - into the blend roster
+    bool                       LayerLocked[TextureLayerLimit]    = {};
+    bool                       MaskAttached[TextureLayerLimit]   = {};
+    bool                       MaskVisible[TextureLayerLimit]    = {};
+    std::uint32_t              LayerTagHue[TextureLayerLimit]    = {};   // [-] - 0xRRGGBB, the entry tag
     std::uint32_t              SoloTaken     = 0xFFFFFFFFu;      // [-] - the solo'd row; absent for none
     bool                       WideRows      = false;        // [-] - the expand toggle's wide columns
+
+    // 📝 Left-contact row carrying. A short contact still selects; travel beyond the threshold resolves
+    //    before/after placement or enclosure by a folder and is committed by TexturePaintStack.
+    std::uint32_t              DragSource      = TextureLayerLimit;
+    std::uint32_t              DragDestination = TextureLayerLimit;
+    std::uint32_t              DragPlacement   = 0u;   // 0 absent, 1 before, 2 after, 3 inside folder
+    float                      DragOriginY      = 0.0f;
 
     // 📝 The open menu. `MenuOpen` is 0 none, 1 the Add menu, 2 the layer menu, 3 the mask menu,
     //    4 the blend menu; `MenuRow` is the row the layer/mask menu hangs from.
@@ -154,57 +165,57 @@ struct TexturePaintContext
 
     // 📝 The properties page's editable scratch — the panel writes these, the host seeds them from
     //    the rows at bring-up. Per-layer channel state, mask state and the settings sliders.
-    bool                       ChannelOn[TextureLayerCeiling][TextureChannelCeiling] = {};
-    std::uint32_t              ChannelAmount[TextureLayerCeiling][TextureChannelCeiling] = {};
-    std::uint32_t              ChannelBlendTaken[TextureLayerCeiling][TextureChannelCeiling] = {};
+    bool                       ChannelOn[TextureLayerLimit][TextureChannelLimit] = {};
+    std::uint32_t              ChannelAmount[TextureLayerLimit][TextureChannelLimit] = {};
+    std::uint32_t              ChannelBlendTaken[TextureLayerLimit][TextureChannelLimit] = {};
     // 🔴 ChannelAmount is a 0..100 integer, which cannot hold an angle to 360 or
     //    a refraction index from 1.0 to 3.0. The card reads the channel's own
     //    span, so the reading is kept as the figure it actually is.
-    double                     ChannelReading[TextureLayerCeiling][TextureChannelCeiling] = {};
-    std::uint32_t              ChannelMode[TextureLayerCeiling][TextureChannelCeiling] = {};
+    double                     ChannelReading[TextureLayerLimit][TextureChannelLimit] = {};
+    std::uint32_t              ChannelMode[TextureLayerLimit][TextureChannelLimit] = {};
 
     // 📝 Texture mode: what the atlas holds and what has been imported over it.
-    std::uint32_t              ChannelStrokes[TextureLayerCeiling][TextureChannelCeiling] = {};
-    bool                       ChannelImported[TextureLayerCeiling][TextureChannelCeiling] = {};
+    std::uint32_t              ChannelStrokes[TextureLayerLimit][TextureChannelLimit] = {};
+    bool                       ChannelImported[TextureLayerLimit][TextureChannelLimit] = {};
 
     // 📝 Generator mode: which catalogue entry stands, and its own knobs.
     //    AbsentGenerator means the picker still reads "Choose generator".
     static constexpr std::uint32_t AbsentGenerator = 0xFFFFFFFFu;
-    std::uint32_t              ChannelGenerator[TextureLayerCeiling][TextureChannelCeiling] = {};
-    double                     ChannelGeneratorParam[TextureLayerCeiling][TextureChannelCeiling]
+    std::uint32_t              ChannelGenerator[TextureLayerLimit][TextureChannelLimit] = {};
+    double                     ChannelGeneratorParam[TextureLayerLimit][TextureChannelLimit]
                                                     [TextureGeneratorParamMax] = {};
     bool                       ChannelGeneratorSeeded = false;
-    std::uint32_t              MaskDensity[TextureLayerCeiling]    = {};
-    bool                       MaskInverted[TextureLayerCeiling]   = {};
-    std::uint32_t              MaskSourceTaken[TextureLayerCeiling] = {};
+    std::uint32_t              MaskDensity[TextureLayerLimit]    = {};
+    bool                       MaskInverted[TextureLayerLimit]   = {};
+    std::uint32_t              MaskSourceTaken[TextureLayerLimit] = {};
 
     // 📝 The rest of the reference's mask record (TPPanel.html `mask:`): the blend
     //    the mask composites with, which channels it applies to, its generator
     //    and that generator's knobs. None of this was held, so the mask card had
     //    nothing to draw beyond four rows.
-    std::uint32_t              MaskBlendTaken[TextureLayerCeiling] = {};
-    bool                       MaskChannel[TextureLayerCeiling][TextureChannelCeiling] = {};
-    std::uint32_t              MaskGenerator[TextureLayerCeiling]  = {};
-    double                     MaskGeneratorParam[TextureLayerCeiling][TextureGeneratorParamMax] = {};
+    std::uint32_t              MaskBlendTaken[TextureLayerLimit] = {};
+    bool                       MaskChannel[TextureLayerLimit][TextureChannelLimit] = {};
+    std::uint32_t              MaskGenerator[TextureLayerLimit]  = {};
+    double                     MaskGeneratorParam[TextureLayerLimit][TextureGeneratorParamMax] = {};
     bool                       MaskFoldConfig  = false;   // [-] - the three mask sections
     bool                       MaskFoldSource  = false;
     bool                       MaskFoldTargets = false;
 
     // 📝 The decal record. A decal had NO state at all and no card; it fell
     //    through to the channels page.
-    double                     DecalPosition[TextureLayerCeiling][2] = {};
-    double                     DecalScale[TextureLayerCeiling][2]    = {};
-    double                     DecalRotation[TextureLayerCeiling]    = {};
-    double                     DecalFadeAngle[TextureLayerCeiling]   = {};
-    double                     DecalDepthRange[TextureLayerCeiling]  = {};
-    bool                       DecalBackfaceCull[TextureLayerCeiling] = {};
-    bool                       DecalUniformScale[TextureLayerCeiling] = {};
-    std::uint32_t              DecalProjection[TextureLayerCeiling]  = {};   // [-] - Planar/Box/Normal
+    double                     DecalPosition[TextureLayerLimit][2] = {};
+    double                     DecalScale[TextureLayerLimit][2]    = {};
+    double                     DecalRotation[TextureLayerLimit]    = {};
+    double                     DecalFadeAngle[TextureLayerLimit]   = {};
+    double                     DecalDepthRange[TextureLayerLimit]  = {};
+    bool                       DecalBackfaceCull[TextureLayerLimit] = {};
+    bool                       DecalUniformScale[TextureLayerLimit] = {};
+    std::uint32_t              DecalProjection[TextureLayerLimit]  = {};   // [-] - Planar/Box/Normal
     bool                       DecalSeeded = false;
 
     // 📝 The folder's own switch. The coverage view is computed from the rows
     //    every tick, so it is never stored.
-    bool                       FolderIsolate[TextureLayerCeiling]  = {};
+    bool                       FolderIsolate[TextureLayerLimit]  = {};
 
     // 📝 THE TWO SCROLLS. They are different things and were conflated before:
     //
@@ -223,9 +234,9 @@ struct TexturePaintContext
     float                      StackListWanted  = 0.0f;
     float                      PropertyListShown  = 0.0f; // [px] - the properties page's list
     float                      PropertyListWanted = 0.0f;
-    std::uint32_t              SettingAmount[TextureLayerCeiling][4] = {};
-    std::uint32_t              SettingToggle[TextureLayerCeiling]  = {};
-    std::uint32_t              SettingChoice[TextureLayerCeiling]  = {};
+    std::uint32_t              SettingAmount[TextureLayerLimit][4] = {};
+    std::uint32_t              SettingToggle[TextureLayerLimit]  = {};
+    std::uint32_t              SettingSelection[TextureLayerLimit]  = {};
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -241,11 +252,11 @@ public:
 
     /// 🧩 Exactly how many control identities `Construct` claims, stated where they are claimed.
     static constexpr std::uint32_t RegistrationDemand =
-          TextureLayerCeiling * 9u                    // [-] - five layer + four mask controls per row
+          TextureLayerLimit * 9u                    // [-] - five layer + four mask controls per row
         + 54u                                         // [-] - every fixed header/tool/card control
         + 40u                                         // [-] - pooled menu item identities
         + 40u                                         // [-] - one disclosed inline card's editable fields
-        + TextureChannelCeiling * 10u                 // [-] - fold, dot, source, amount, generator,
+        + TextureChannelLimit * 10u                 // [-] - fold, dot, source, amount, generator,
                                                       //       reset, remove, and three parameters
         + (FacetPanel::FacetCapacity + 2u) * 3u       // [-] - stack, channel, and mask filter cards
         + 45u;                                         // [-] - three export rails, fields, and output options
@@ -259,7 +270,7 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported when a construction already stands
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(InteractionIndex&              Interaction,
+    Outcome<bool> ConstructTexturePaintPanel(ControlIndex&              IncomingInteraction,
                             MotionIntegrator&              Integrator,
                             RecordingSurface&              Surface,
                             const ThemeProfile& Resolved);
@@ -268,13 +279,13 @@ public:
     ///    the carousel when Tab arrives.
     /// in    Applied   [-]  the host's context; `StackPage` and `PropertyTab` are written here
     /// in    TabPressed [-]  the seam's Summon (Tab), edge-triggered and unrepeated
-    /// note  🔴 This does not advance the ledger; the tick owner advances it once.
+    /// note  🔴 This does not advance the index; the tick owner advances it once.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     void Advance(const PointerCondition& Sampled, double Elapsed,
                  TexturePaintContext& Applied,
                  const TextureLayerRow* Rows, std::uint32_t RowCount,
-                 bool TabPressed);
+                 bool TabPressed, const ModifierCondition& Modifiers = {});
 
     /// 🧩 Re-applies every scaled extent after the appearance was resolved against a new display.
     /// cost  ✔️
@@ -300,9 +311,9 @@ public:
     ///        block the panel drew.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    PlaneExtent RowExtent(std::uint32_t Ordinal) const
+    PlaneExtent RowExtent(std::uint32_t Index) const
     {
-        return Ordinal < RowTally ? RowRects[Ordinal] : PlaneExtent{};
+        return Index < RowTally ? RowRects[Index] : PlaneExtent{};
     }
 
     /// 🧩 How many rows the last `Record` drew, for the host's probe.
@@ -317,15 +328,15 @@ private:
     void RecordStackTools(const PlaneExtent& Tools, TexturePaintContext& Applied);
     void RecordStackRow(const PlaneExtent& Row, TexturePaintContext& Applied,
                         const TextureLayerRow* Rows, std::uint32_t RowCount,
-                        const TextureLayerRow& Current, std::uint32_t Ordinal);
+                        const TextureLayerRow& Current, std::uint32_t Index);
     /// 🧩 Records the independently disclosed card beneath one layer row and answers its full height.
     float RecordInlineLayerCard(const PlaneExtent& Extent, TexturePaintContext& Applied,
-                                const TextureLayerRow& Current, std::uint32_t Ordinal,
+                                const TextureLayerRow& Current, std::uint32_t Index,
                                 bool Recording);
     ControlIdentity NextInlineControl();
     void RecordMaskRow(const PlaneExtent& Row, TexturePaintContext& Applied,
                        const TextureLayerRow* Rows, std::uint32_t RowCount,
-                       const TextureLayerRow& Current, std::uint32_t Ordinal);
+                       const TextureLayerRow& Current, std::uint32_t Index);
     void RecordStackFooter(const PlaneExtent& Footer, TexturePaintContext& Applied,
                            const TextureLayerRow* Rows, std::uint32_t RowCount);
     void RecordBarButton(ControlIdentity Target, const PlaneExtent& Cell, SymbolSubject Glyph,
@@ -351,19 +362,19 @@ public:
     /// 🧩 The action bar's cell extents as the panel actually laid them out this tick,
     ///    so a proof harness presses the real geometry instead of recomputing it and
     ///    testing its own arithmetic. Reads state; changes nothing.
-    static constexpr std::uint32_t BarCellCeiling = 13u;
-    PlaneExtent   ProofBarCell(std::uint32_t Ordinal) const
-    { return Ordinal < BarCellCeiling ? BarCells[Ordinal] : PlaneExtent{}; }
+    static constexpr std::uint32_t BarCellLimit = 13u;
+    PlaneExtent   ProofBarCell(std::uint32_t Index) const
+    { return Index < BarCellLimit ? BarCells[Index] : PlaneExtent{}; }
     std::uint32_t ProofBarCellCount() const { return BarCellTally; }
 
     /// 🧩 Which eased slot the carousel travels on, so a proof harness can read the
     ///    fraction rather than guessing an ordinal. Reads state; changes nothing.
-    std::uint32_t ProofPageMotion() const { return PageMotion; }
+    std::uint32_t ProofPageMotion() const { return StackPages.MotionSlot(); }
 private:
 
     /// 🧩 How far the folder enclosing one row has opened; 1 when nothing encloses it.
     float EnclosureFraction(const TexturePaintContext& Applied, const TextureLayerRow* Rows,
-                            std::uint32_t RowCount, std::uint32_t Ordinal);
+                            std::uint32_t RowCount, std::uint32_t Index);
 
     /// 🧩 Advances one list's scroll toward where the wheel put it; answers where it stands.
     /// note  📐 The drawn offset chases the wanted one rather than being written by the wheel, so a
@@ -417,9 +428,9 @@ private:
     void RecordMenuOptions(const PlaneExtent& Card, const char* const* Captions,
                            const SymbolSubject* Glyphs, std::uint32_t OptionCount,
                            const char* const* Shortcuts, ControlIdentity* Identities,
-                           TexturePaintContext& Applied, std::uint32_t* Writes);
+                           TexturePaintContext& Applied, std::uint32_t* Writes, bool Interactive);
 
-    InteractionIndex*           Ledger = nullptr;        // [-] - borrowed; never owned
+    ControlIndex*           Interaction = nullptr;        // [-] - borrowed; never owned
     MotionIntegrator*           Motion = nullptr;        // [-] - borrowed; never owned
     RecordingSurface*           Surface = nullptr;       // [-] - borrowed; never owned
     const ThemeProfile*         Appearance = nullptr;    // [-] - borrowed; never owned
@@ -434,14 +445,14 @@ private:
 
     PlaneExtent                 BarCells[13]  = {};      // [-] - where the bar drew its cells
     std::uint32_t               BarCellTally  = 0u;      // [-] - how many stood this tick
-    std::uint32_t               PageMotion    = 0u;      // [-] - the carousel's eased travel
-    std::uint32_t               PageDeparted  = 0u;      // [-] - which page the travel began from
-    std::uint32_t               PageArriving  = 0u;      // [-] - which page it is bound for
+    SlidingPages                StackPages    = {};      // [-] - shared stack/properties/export travel
     std::uint32_t               ExportMotion[3] = {};    // [-] - format, resolution, and preset rails
     double                      ExportFrom[3] = {};
     double                      ExportTarget[3] = {};
+    OverflowScroll              ExportOverflow = {}; // [-] - shared vertical page overflow
 
     PointerCondition            Sampled = {};            // [-] - this tick's contact
+    ModifierCondition           Modified = {};           // [-] - Command/Ctrl and Shift selection intent
 
     ControlIdentity HeaderAdd     = {};
     ControlIdentity ToolFolder    = {};
@@ -453,33 +464,34 @@ private:
     ControlIdentity BarButtons[12] = {};
     ControlIdentity StackStrip    = {};
     ControlIdentity PropertyStrip = {};
+    ControlIdentity ExportBack = {};
     ControlIdentity ExportArrows[3][2] = {};
-    ControlIdentity ExportChoices[3][10] = {};
+    ControlIdentity ExportCarouselOptions[3][10] = {};
     ControlIdentity ExportFields[3] = {};
     ControlIdentity ExportOptions[6] = {};
 
-    ControlIdentity LayerContacts[TextureLayerCeiling]   = {};
-    ControlIdentity LayerChevrons[TextureLayerCeiling]   = {};
-    ControlIdentity LayerEyes[TextureLayerCeiling]       = {};
-    ControlIdentity LayerDetails[TextureLayerCeiling]    = {};
-    ControlIdentity LayerMores[TextureLayerCeiling]      = {};
+    ControlIdentity LayerContacts[TextureLayerLimit]   = {};
+    ControlIdentity LayerChevrons[TextureLayerLimit]   = {};
+    ControlIdentity LayerEyes[TextureLayerLimit]       = {};
+    ControlIdentity LayerDetails[TextureLayerLimit]    = {};
+    ControlIdentity LayerMores[TextureLayerLimit]      = {};
     ControlIdentity InlineControls[40]                   = {};
     std::uint32_t   InlineControlsSpent                  = 0u;
-    ControlIdentity MaskContacts[TextureLayerCeiling]    = {};
-    ControlIdentity MaskEyes[TextureLayerCeiling]        = {};
-    ControlIdentity MaskDetails[TextureLayerCeiling]     = {};
-    ControlIdentity MaskMores[TextureLayerCeiling]       = {};
+    ControlIdentity MaskContacts[TextureLayerLimit]    = {};
+    ControlIdentity MaskEyes[TextureLayerLimit]        = {};
+    ControlIdentity MaskDetails[TextureLayerLimit]     = {};
+    ControlIdentity MaskMores[TextureLayerLimit]       = {};
 
-    ControlIdentity ChannelFolds[TextureChannelCeiling]  = {};
-    ControlIdentity ChannelDots[TextureChannelCeiling]   = {};
-    ControlIdentity ChannelBlends[TextureChannelCeiling] = {};
-    ControlIdentity ChannelOps[TextureChannelCeiling]    = {};
+    ControlIdentity ChannelFolds[TextureChannelLimit]  = {};
+    ControlIdentity ChannelDots[TextureChannelLimit]   = {};
+    ControlIdentity ChannelBlends[TextureChannelLimit] = {};
+    ControlIdentity ChannelOps[TextureChannelLimit]    = {};
     // 🧩 The generator picker and its knobs, one identity each: a control that is
     //    never registered draws but refuses every contact.
-    ControlIdentity ChannelGenerators[TextureChannelCeiling] = {};
-    ControlIdentity ChannelGenReset[TextureChannelCeiling]   = {};
-    ControlIdentity ChannelGenDrop[TextureChannelCeiling]    = {};
-    ControlIdentity ChannelParams[TextureChannelCeiling][TextureGeneratorParamMax] = {};
+    ControlIdentity ChannelGenerators[TextureChannelLimit] = {};
+    ControlIdentity ChannelGenReset[TextureChannelLimit]   = {};
+    ControlIdentity ChannelGenDrop[TextureChannelLimit]    = {};
+    ControlIdentity ChannelParams[TextureChannelLimit][TextureGeneratorParamMax] = {};
     ControlIdentity MaskRows[9]                          = {};
     ControlIdentity MaskParams[TextureGeneratorParamMax] = {};
     ControlIdentity DecalRows[10]                        = {};
@@ -493,7 +505,8 @@ private:
     ControlIdentity MenuIdentities[40] = {};             // [-] - the pooled menu item identities
 
     PlaneExtent MenuAnchorExtent = {};                   // [px] - where the open menu hangs from
-    PlaneExtent RowRects[TextureLayerCeiling] = {};      // [-] - the last Record's rows
+    std::uint32_t MenuPresented = 0u;                    // [-] - retained while a menu animates closed
+    PlaneExtent RowRects[TextureLayerLimit] = {};      // [-] - the last Record's rows
     std::uint32_t RowTally = 0u;                         // [-] - how many stood
 };
 

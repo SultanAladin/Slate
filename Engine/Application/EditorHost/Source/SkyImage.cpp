@@ -47,7 +47,7 @@ Outcome<bool> GenerateSkyImage(AtmosphereIntegrator& Atmosphere,
     if (!Atmosphere.DeclareMedium(Earth).Resolved)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the sky medium was rejected" });
 
-    const double SunElevation = std::clamp(Environment.SunElevation, 0.0, 90.0) * HalfTurn / 180.0;
+    const double SunElevation = std::clamp(Environment.SunElevation, -90.0, 90.0) * HalfTurn / 180.0;
     const double SunAzimuth   = Environment.SunAzimuth * HalfTurn / 180.0;
     const double SunCosine    = std::cos(SunElevation);
     const double SunDirectionX = SunCosine * std::sin(SunAzimuth);
@@ -65,7 +65,9 @@ Outcome<bool> GenerateSkyImage(AtmosphereIntegrator& Atmosphere,
     // 📝 `02` §5's Gauss–Legendre rule, derived on the recurrence — the same rule the ConsoleHost's
     //    atmosphere verification derives before it rebuilds.
     QuadratureRule Rule;
-    if (!Rule.Derive(32u).Resolved)
+    const std::uint32_t Quality = std::min(Environment.AtmosphereQuality, 3u);
+    const std::uint32_t QuadratureOrders[4] = { 8u, 16u, 32u, 48u };
+    if (!Rule.Derive(QuadratureOrders[Quality]).Resolved)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the sky rule would not derive" });
 
     if (!Atmosphere.Rebuild(DeclaredWorkingSpace(), Rule).Resolved)
@@ -98,12 +100,15 @@ Outcome<bool> GenerateSkyImage(AtmosphereIntegrator& Atmosphere,
     }
 
     const double SunIntensity = std::clamp(Environment.SunIntensity, 0.0, 10.0);
+    const double SunHeight = std::sin(SunElevation);
+    const double Daylight = std::clamp((SunHeight + 0.105) / 0.14, 0.0, 1.0);
+    const double Night = 1.0 - std::clamp((SunHeight + 0.31) / 0.205, 0.0, 1.0);
 
     double SunTransmitRed = 0.0, SunTransmitGreen = 0.0, SunTransmitBlue = 0.0;
     static_cast<void>(Atmosphere.SampleTransmittance(1.0, std::sin(SunElevation),
                                                      SunTransmitRed, SunTransmitGreen, SunTransmitBlue));
 
-    const double DirectStrength = std::clamp(Environment.SunDiscIntensity, 0.0, 4.0);
+    const double DirectStrength = std::clamp(Environment.SunDiscIntensity, 0.0, 4.0) * Daylight;
     const double DirectRed   = SunRed   * SunTransmitRed * DirectStrength;
     const double DirectGreen = SunGreen * SunTransmitGreen * DirectStrength;
     const double DirectBlue  = SunBlue  * SunTransmitBlue * DirectStrength;
@@ -163,7 +168,7 @@ Outcome<bool> GenerateSkyImage(AtmosphereIntegrator& Atmosphere,
             //    the horizon, so a linear scale clips the whole lower sky to white before the horizon
             //    line — the tone curve keeps the gradient visible and only the sun disc reaches unity.
             const double SkyScale = std::clamp(Environment.SunIntensity, 0.0, 10.0) * 8.0
-                                  * std::clamp(Environment.SkyIntensity, 0.0, 3.0);
+                                  * std::clamp(Environment.SkyIntensity, 0.0, 3.0) * Daylight;
             const auto Tone = [&](double Radiant) -> double
             {
                 const double Scaled = Radiant * SkyScale;
@@ -172,6 +177,11 @@ Outcome<bool> GenerateSkyImage(AtmosphereIntegrator& Atmosphere,
             Red   = Tone(Red);
             Green = Tone(Green);
             Blue  = Tone(Blue);
+
+            const double NightZenith = std::clamp(RayY * 0.5 + 0.5, 0.0, 1.0);
+            Red   += Night * (0.0012 + NightZenith * 0.0013);
+            Green += Night * (0.0018 + NightZenith * 0.0032);
+            Blue  += Night * (0.0040 + NightZenith * 0.0080);
 
             // 📐 The sun's own disc is added after the tone curve, in display space, so it keeps the
             //    temperature-mapped warm hue; the direct term's magnitude is the artist's intensity.
@@ -187,14 +197,15 @@ Outcome<bool> GenerateSkyImage(AtmosphereIntegrator& Atmosphere,
             const double GroundMix = std::clamp(-RayY * 900.0, 0.0, 1.0);
             if (GroundMix > 0.0)
             {
-                Red   = Red   * (1.0 - GroundMix) + 0.020 * GroundMix;
-                Green = Green * (1.0 - GroundMix) + 0.022 * GroundMix;
-                Blue  = Blue  * (1.0 - GroundMix) + 0.026 * GroundMix;
+                const double GroundLight = 0.003 + 0.017 * Daylight;
+                Red   = Red   * (1.0 - GroundMix) + GroundLight * GroundMix;
+                Green = Green * (1.0 - GroundMix) + GroundLight * 1.05 * GroundMix;
+                Blue  = Blue  * (1.0 - GroundMix) + GroundLight * 1.15 * GroundMix;
             }
 
             // 📝 A touch of turbidity warms the dome by pulling it toward the horizon's hue.
             const double Turbidity = std::clamp(Environment.SkyTurbidity, 1.0, 10.0);
-            const double Warm = (Turbidity - 1.0) / 9.0 * 0.18;
+            const double Warm = (Turbidity - 1.0) / 9.0 * 0.18 * Daylight;
             Red   = std::min(Red   + Warm * (1.0 - Red),   1.0);
             Green = std::min(Green + Warm * 0.5 * (1.0 - Green), 1.0);
             Blue  = std::min(Blue  - Warm * 0.4 * Blue, 1.0);

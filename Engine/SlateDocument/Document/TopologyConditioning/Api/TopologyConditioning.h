@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateDocument/Document/RegistrationIndex/Api/RegistrationIndex.h"
 #include "SlateDocument/Document/TopologyStructure/Api/TopologyStructure.h"
 
@@ -24,7 +24,7 @@ namespace Slate
 /// note  🔴 `38` §3: removal is what an editor does. Removing a face renumbers everything after it, and every
 ///        index the artist's file carried — their selections, their coordinates, their material assignment —
 ///        would then address the wrong face. Slate does not own that file and must not do this to it.
-/// tag   contract
+/// tag   guarantee
 enum class DegeneracySubject : std::uint32_t
 {
     ZeroExtentFace  = 0u,   // [-] - the face encloses no area; excluded from `40`, `68` and `74`
@@ -76,14 +76,14 @@ public:
     Outcome<bool> Condition(const TopologyStructure& Imported);
 
     /// 🧩 The welded position one imported vertex belongs to.
-    /// in    VertexOrdinal  [-]  an imported vertex
+    /// in    VertexIndex  [-]  an imported vertex
     /// out   Result        [-]  refuses with ContentUnsupported outside the vertex count
     /// note  🔴 `38` §2: two vertices at the same position with different ordinals are one point on the surface
     ///        and two points in the file. `68` unwraps against the welded positions so a chart does not split at
     ///        every coordinate discontinuity, and `18` reads the imported ordinals so authored coordinates live.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> WeldedPosition(std::uint32_t VertexOrdinal) const;
+    Outcome<std::uint32_t> WeldedPosition(std::uint32_t VertexIndex) const;
 
     /// 🧩 The corner across the edge one corner opens, where exactly one face is adjacent there.
     /// out   Result  [-]  refuses with ContentUnsupported at a boundary or non-manifold edge
@@ -91,18 +91,18 @@ public:
     ///        traversal's result depend on face declaration order, and `34` §6 forbids exactly that shape.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> AdjacentCorner(std::uint32_t CornerOrdinal) const;
+    Outcome<std::uint32_t> AdjacentCorner(std::uint32_t CornerIndex) const;
 
     /// 🧩 Whether one face is registered under a degeneracy condition.
     /// note  Answered by interval comparison, per `38` §3, so an excluded population costs nothing to skip.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool FaceRegistered(std::uint32_t FaceOrdinal, DegeneracySubject Condition) const;
+    bool FaceRegistered(std::uint32_t FaceIndex, DegeneracySubject Condition) const;
 
     /// 🧩 Whether one vertex is registered as isolated.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool VertexIsolated(std::uint32_t VertexOrdinal) const;
+    bool VertexIsolated(std::uint32_t VertexIndex) const;
 
     /// 🧩 The runs of one registered condition, for whoever excludes a whole span at once.
     /// cost  ✔️

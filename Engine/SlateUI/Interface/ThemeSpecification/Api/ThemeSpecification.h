@@ -17,7 +17,7 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 The six appearances the Control Centre offers, in the order the notch reference presents them.
-/// tag   contract
+/// tag   guarantee
 enum class ThemeSubject : std::uint32_t
 {
     Oled         = 0u,   // [-] - absolute black ground; the reference default
@@ -30,7 +30,7 @@ enum class ThemeSubject : std::uint32_t
 };
 
 /// 🧩 The eight semantic accents an appearance draws its emphasis from.
-/// tag   contract
+/// tag   guarantee
 enum class AccentSubject : std::uint32_t
 {
     Blue         = 0u,   // [-]
@@ -46,9 +46,9 @@ enum class AccentSubject : std::uint32_t
 
 // 📝 Derived rather than written twice. An appearance added to the enumeration widens every table that
 //    stores one, and nothing has to be revisited for the widening to take effect.
-inline constexpr std::uint32_t ThemeCeiling   = static_cast<std::uint32_t>(ThemeSubject::SubjectCount);
-inline constexpr std::uint32_t AccentCeiling  = static_cast<std::uint32_t>(AccentSubject::SubjectCount);
-inline constexpr std::uint32_t CaptionCeiling = 32u;   // [-] - longest caption is "Clean White"; the rest is headroom
+inline constexpr std::uint32_t ThemeLimit   = static_cast<std::uint32_t>(ThemeSubject::SubjectCount);
+inline constexpr std::uint32_t AccentLimit  = static_cast<std::uint32_t>(AccentSubject::SubjectCount);
+inline constexpr std::uint32_t CaptionLimit = 32u;   // [-] - longest caption is "Clean White"; the rest is headroom
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                ONE DECLARED APPEARANCE
@@ -60,10 +60,10 @@ inline constexpr std::uint32_t CaptionCeiling = 32u;   // [-] - longest caption 
 ///        the moment that record is copied. Inline storage makes the whole declaration copyable, which is
 ///        what lets `ThemeArchive` be returned by value and handed across the stream edge unchanged.
 /// note  A `char` run decays to `const char*`, so every existing call site reading `.Caption` is unaffected.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct ThemeDeclaration
 {
-    char         Caption[CaptionCeiling] = {};   // [-] - NUL-terminated; presented verbatim
+    char         Caption[CaptionLimit] = {};   // [-] - NUL-terminated; presented verbatim
     ThemeToken  Ground                  = {};   // [-] - the appearance behind everything
     ThemeToken  Panel                   = {};   // [-] - the standing panel body
     ThemeToken  Primary                 = {};   // [-] - text that carries meaning
@@ -80,10 +80,10 @@ struct ThemeDeclaration
 };
 
 /// 🧩 One semantic accent — the caption a reader picks it by, and the single colour it contributes.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct AccentDeclaration
 {
-    char         Caption[CaptionCeiling] = {};   // [-] - NUL-terminated; presented verbatim
+    char         Caption[CaptionLimit] = {};   // [-] - NUL-terminated; presented verbatim
     ThemeToken  Colour                     = {};   // [-] - fully covering in every declared accent
 };
 
@@ -94,7 +94,7 @@ struct AccentDeclaration
 /// 🧩 Which appearance and which accents the artist chose, independent of what those appearances contain.
 /// note  These are the six choices the Control Centre writes. Every other Control Centre coordinate is a
 ///       preference about something other than colour and is not carried here.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct ThemeSelection
 {
     ThemeSubject   Current   = ThemeSubject::Oled;      // [-] - the appearance every panel resolves against
@@ -112,12 +112,12 @@ struct ThemeSelection
 ///        without the file that records them changing. Persisting the colours alone would forget which of
 ///        them was chosen. The pair is the smallest thing that reproduces what was on screen.
 /// note  Copyable and free of pointers, so it crosses the stream edge and the unit seam by value.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct ThemeArchive
 {
     ThemeSelection     Selected                = {};   // [-] - what the Control Centre chose
-    ThemeDeclaration   Themes[ThemeCeiling]    = {};   // [-] - indexed by ThemeSubject
-    AccentDeclaration  Accents[AccentCeiling]  = {};   // [-] - indexed by AccentSubject
+    ThemeDeclaration   Themes[ThemeLimit]    = {};   // [-] - indexed by ThemeSubject
+    AccentDeclaration  Accents[AccentLimit]  = {};   // [-] - indexed by AccentSubject
 };
 
 //------------------------------------------------------------------------------------------------------------------------

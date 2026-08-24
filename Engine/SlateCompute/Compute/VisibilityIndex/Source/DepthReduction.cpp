@@ -12,12 +12,12 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> DepthReduction::Construct(std::uint32_t DisplayX, std::uint32_t DisplayY)
+Outcome<bool> DepthReduction::ConstructDepthReduction(std::uint32_t DisplayX, std::uint32_t DisplayY)
 {
     if (DisplayX == 0u || DisplayY == 0u)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of zero reduces nothing" });
 
-    if (DisplayX > DisplayExtentCeiling || DisplayY > DisplayExtentCeiling)
+    if (DisplayX > DisplayExtentLimit || DisplayY > DisplayExtentLimit)
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the display extent is above the declared ceiling" });
 
     // 📝 Reclaimed first rather than appended to, so a second Construct against a different extent cannot leave the
@@ -30,7 +30,7 @@ Outcome<bool> DepthReduction::Construct(std::uint32_t DisplayX, std::uint32_t Di
 
     for (;;)
     {
-        if (Levels.size() >= static_cast<std::size_t>(ReductionLevelCeiling))
+        if (Levels.size() >= static_cast<std::size_t>(ReductionLevelLimit))
         {
             Reclaim();
 
@@ -73,12 +73,12 @@ void DepthReduction::Reclaim()
 //                                                   LEVEL SELECTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<ReductionLevel> DepthReduction::Level(std::uint32_t LevelOrdinal) const
+Outcome<ReductionLevel> DepthReduction::Level(std::uint32_t LevelIndex) const
 {
-    if (LevelOrdinal >= static_cast<std::uint32_t>(Levels.size()))
+    if (LevelIndex >= static_cast<std::uint32_t>(Levels.size()))
         return Outcome<ReductionLevel>::Refuse({ RefusalReason::ContentUnsupported, "no such level" });
 
-    return Outcome<ReductionLevel>::Result(Levels[LevelOrdinal]);
+    return Outcome<ReductionLevel>::Result(Levels[LevelIndex]);
 }
 
 Outcome<std::uint32_t> DepthReduction::LevelOfExtent(std::uint32_t ProjectedX, std::uint32_t ProjectedY) const

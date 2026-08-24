@@ -53,9 +53,9 @@ void TranslateShape(const stbtt_vertex* Contours, int ContourCount, std::vector<
     OutlinePath  Constructing;
     bool         PathOccupied = false;
 
-    for (int Ordinal = 0; Ordinal < ContourCount; ++Ordinal)
+    for (int Index = 0; Index < ContourCount; ++Index)
     {
-        const stbtt_vertex& Carried = Contours[Ordinal];
+        const stbtt_vertex& Carried = Contours[Index];
 
         if (Carried.type == STBTT_vmove)
         {
@@ -113,7 +113,7 @@ void TranslateShape(const stbtt_vertex* Contours, int ContourCount, std::vector<
 //                                                   THE TRANSLATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<DecodedTypeface> Translate(const std::vector<std::uint8_t>& Stream, std::uint32_t GlyphCeiling)
+Outcome<DecodedTypeface> Translate(const std::vector<std::uint8_t>& Stream, std::uint32_t GlyphLimit)
 {
     if (Stream.empty())
     {
@@ -143,31 +143,31 @@ Outcome<DecodedTypeface> Translate(const std::vector<std::uint8_t>& Stream, std:
     Produced.UnitsPerEm = ResolveUnitsPerEm(Reading);
     Produced.GlyphCount = static_cast<std::uint32_t>(DeclaredGlyphCount);
 
-    const std::uint32_t Translating = GlyphCeiling < Produced.GlyphCount ? GlyphCeiling : Produced.GlyphCount;
+    const std::uint32_t Translating = GlyphLimit < Produced.GlyphCount ? GlyphLimit : Produced.GlyphCount;
 
     Produced.Glyphs.reserve(Translating);
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Translating; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < Translating; ++Index)
     {
         GlyphSpecification Constructing;
-        Constructing.GlyphIdentity = Ordinal;
+        Constructing.GlyphIdentity = Index;
 
         int Advance = 0;
         int Bearing = 0;
-        stbtt_GetGlyphHMetrics(&Reading, static_cast<int>(Ordinal), &Advance, &Bearing);
+        stbtt_GetGlyphHMetrics(&Reading, static_cast<int>(Index), &Advance, &Bearing);
 
         Constructing.Advance      = static_cast<double>(Advance);
         Constructing.BearingX = static_cast<double>(Bearing);
 
-        int Boundary[4] = { 0, 0, 0, 0 };
+        int GlyphBox[4] = { 0, 0, 0, 0 };
 
-        if (stbtt_GetGlyphBox(&Reading, static_cast<int>(Ordinal), &Boundary[0], &Boundary[1], &Boundary[2], &Boundary[3]) != 0)
+        if (stbtt_GetGlyphBox(&Reading, static_cast<int>(Index), &GlyphBox[0], &GlyphBox[1], &GlyphBox[2], &GlyphBox[3]) != 0)
         {
-            Constructing.BearingY = static_cast<double>(Boundary[1]);
+            Constructing.BearingY = static_cast<double>(GlyphBox[1]);
         }
 
         stbtt_vertex* Contours     = nullptr;
-        const int     ContourCount = stbtt_GetGlyphShape(&Reading, static_cast<int>(Ordinal), &Contours);
+        const int     ContourCount = stbtt_GetGlyphShape(&Reading, static_cast<int>(Index), &Contours);
 
         if (Contours != nullptr)
         {
@@ -190,9 +190,9 @@ Outcome<DecodedTypeface> Translate(const std::vector<std::uint8_t>& Stream, std:
 
         Produced.Adjustments.reserve(static_cast<std::size_t>(Written > 0 ? Written : 0));
 
-        for (int Ordinal = 0; Ordinal < Written; ++Ordinal)
+        for (int Index = 0; Index < Written; ++Index)
         {
-            const stbtt_kerningentry& Declaring = Carried[static_cast<std::size_t>(Ordinal)];
+            const stbtt_kerningentry& Declaring = Carried[static_cast<std::size_t>(Index)];
 
             DecodedAdjustment Placed;
             Placed.EarlierGlyph = static_cast<std::uint32_t>(Declaring.glyph1);
@@ -230,7 +230,7 @@ Outcome<std::uint32_t> ResolveCodepoint(const std::vector<std::uint8_t>& Stream,
 
     const int Resolved = stbtt_FindGlyphIndex(&Reading, static_cast<int>(Codepoint));
 
-    // 🔴 Ordinal zero is the typeface's own absent glyph and is a refusal here rather than a delivered result.
+    // 🔴 Index zero is the typeface's own absent glyph and is a refusal here rather than a delivered result.
     //    Delivering it would put a visible substitute into a stored glyph sequence, and `52` §3 stores that
     //    sequence — so the artist's text would carry the substitute permanently, with nothing recording why.
     if (Resolved <= 0)

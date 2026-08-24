@@ -20,7 +20,7 @@ namespace Slate
 /// tag   nonallocating, nonthrowing
 struct TickPoint
 {
-    std::uint64_t  Ordinal = 0u;   // [ns] - host-monotonic, zero at process start
+    std::uint64_t  Index = 0u;   // [ns] - host-monotonic, zero at process start
 };
 
 /// 🧩 The monotonic host timeline. One instance per process, constructed at bring-up.

@@ -27,7 +27,7 @@ namespace Slate
 /// 🧩 Classifies one ordinal against a closed interval.
 /// in    IntervalBegin  [-]  first ordinal of the interval
 /// in    IntervalEnd    [-]  last ordinal of it
-/// in    Ordinal        [-]  the ordinal being classified
+/// in    Index        [-]  the ordinal being classified
 /// out   Containment    [-]  +1 strictly inside, 0 on a bound, −1 outside
 /// note  🔴 A bound resolves to zero and not to inside. `12` §5's invariant 4 requires labels to nest strictly,
 ///        so an owner sitting exactly on its enclosure's bound is a label that was registered wrongly rather than
@@ -35,13 +35,13 @@ namespace Slate
 /// cost  ✔️
 /// note  Exact — an integer comparison; identical on the host and on the device by construction.
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED SLATE_CONSTEXPR Signed32 ClassifyOrdinalContainment(Unsigned64 IntervalBegin,
+SLATE_SHARED SLATE_CONSTEXPR Signed32 ClassifyIndexContainment(Unsigned64 IntervalBegin,
                                                                  Unsigned64 IntervalEnd,
-                                                                 Unsigned64 Ordinal)
+                                                                 Unsigned64 Index)
 {
     return IntervalEnd < IntervalBegin ? -1
-         : Ordinal == IntervalBegin || Ordinal == IntervalEnd ? 0
-         : Ordinal > IntervalBegin && Ordinal < IntervalEnd ? 1
+         : Index == IntervalBegin || Index == IntervalEnd ? 0
+         : Index > IntervalBegin && Index < IntervalEnd ? 1
          : -1;
 }
 
@@ -52,9 +52,9 @@ SLATE_SHARED SLATE_CONSTEXPR Signed32 ClassifyOrdinalContainment(Unsigned64 Inte
 ///        to remember to adjust the other's answer by one.
 /// cost  ✔️
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED SLATE_CONSTEXPR bool OrdinalRegistered(Unsigned64 RunBegin, Unsigned64 RunEnd, Unsigned64 Ordinal)
+SLATE_SHARED SLATE_CONSTEXPR bool IndexRegistered(Unsigned64 RunBegin, Unsigned64 RunEnd, Unsigned64 Index)
 {
-    return RunEnd >= RunBegin && Ordinal >= RunBegin && Ordinal <= RunEnd;
+    return RunEnd >= RunBegin && Index >= RunBegin && Index <= RunEnd;
 }
 
 //------------------------------------------------------------------------------------------------------------------------

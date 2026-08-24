@@ -1,12 +1,12 @@
 //============================================================================================================================================
 //                                                           ASSETINTERCHANGE.H
 //============================================================================================================================================
-// 🧩 Topology and imagery in, painted channels out — one contract, and intake that never repairs.
+// 🧩 Topology and imagery in, painted channels out — one guarantee, and intake that never repairs.
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateDocument/Document/IntakeIndex/Api/IntakeIndex.h"
 #include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
 #include "SlateDocument/Document/TopologyStructure/Api/TopologyStructure.h"
@@ -22,13 +22,20 @@ namespace Slate
 //                                                  WHAT A CODEC HANDS OVER
 //------------------------------------------------------------------------------------------------------------------------
 
+/// 🧩 One source-named object or group and the exact source face ordinals belonging to it.
+/// note  A face may belong to several groups, so membership is a set rather than one lossy group index.
+struct DecodedFaceSet
+{
+    std::string Name = {};
+    std::vector<std::uint32_t> Faces = {};
+};
+
 /// 🧩 A decoded topology, faithful to the source and repaired in no respect.
 /// note  🔴 `50` §2 ①: intake **never repairs**. `38`'s non-mutation rule begins here — a codec that welds
 ///        vertices, reverses winding or drops a degenerate face has produced a specification that no longer
 ///        describes the file the artist supplied, and `38`'s guarantee that an index means the same thing
 ///        afterwards is broken before `38` has run.
-/// note  🚧 `10` §1's `TopologyCodec` is unbuilt, so this arrives already decoded — the same shape
-///        `VectorInterchange` takes an `OutlineSpecification` in. The codec fills it; nothing here parses.
+/// note  `GeometryCodec` fills this handover shape. Document intake consumes it and parses no file format.
 /// tag   owning
 struct DecodedTopology
 {
@@ -37,7 +44,10 @@ struct DecodedTopology
     std::vector<DomainCoordinate>            CornerCoordinates  = {};      // [-]  - empty where absent
     std::vector<SurfaceDirection>            Perpendiculars     = {};      // [-]  - empty where absent
     std::vector<TangentBasis>                TangentBases       = {};      // [-]  - empty where absent
-    std::vector<std::uint32_t>               MaterialRegistration = {};      // [-]  - empty where absent
+    std::vector<std::uint32_t>               MaterialRegistration = {};      // [-]  - material ordinal per face
+    std::vector<std::string>                 MaterialNames      = {};      // [-]  - source spelling by ordinal
+    std::vector<DecodedFaceSet>              ObjectMemberships  = {};      // [-]  - source object face sets
+    std::vector<DecodedFaceSet>              GroupMemberships   = {};      // [-]  - overlapping source group face sets
     std::vector<std::string>                 UnsupportedNamed   = {};      // [-]  - constructs that will not survive
     std::string                              OriginPath         = {};      // [-]  - where it was read from
     double                                   UnitScale          = 1.0;     // [-]  - applied once, at intake
@@ -68,7 +78,7 @@ struct DecodedImage
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 One component of an emitted image.
-/// tag   contract
+/// tag   guarantee
 enum class ComponentSlot : std::uint32_t
 {
     Red            = 0u,   // [-]
@@ -138,7 +148,7 @@ std::string ResolveName(const std::string& Pattern,
 //                                                    THE INTERCHANGE
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Intake and emission as one contract, in both directions.
+/// 🧩 Intake and emission as one guarantee, in both directions.
 /// note  🔴 `50` §2: intake is three steps and they are separate. ① decodes faithfully — the codec's. ② registers
 ///        owners — this document's. ③ derives companions — `38`'s, through `34`, and where the cost lives.
 /// note  🔴 `50` §8: a partially failed intake **registers nothing**. Half a topology registered as an owner is an

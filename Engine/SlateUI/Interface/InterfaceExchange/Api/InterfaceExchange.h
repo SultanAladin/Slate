@@ -5,10 +5,11 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
-#include "Contract/ToleranceContract.h"
+#include "SlateUI/Interface/InterfacePreferences/Api/InterfacePreferences.h"
+#include "Foundation/NumericTolerance.h"
 
 #include <vulkan/vulkan.h>
 
@@ -33,7 +34,7 @@ struct InterfaceAttachment
     VkPhysicalDevice  ScoredDevice          = VK_NULL_HANDLE;          // [-]  - the device VendorClassifier won
     VkDevice          ActiveDevice          = VK_NULL_HANDLE;          // [-]  - the created device
     VkQueue           GraphicsQueue         = VK_NULL_HANDLE;          // [-]  - the one queue taken
-    std::uint32_t     GraphicsFamilyOrdinal = 0u;                      // [-]  - the family that queue sits in
+    std::uint32_t     GraphicsFamilyIndex = 0u;                      // [-]  - the family that queue sits in
     VkFormat          ColourTargetFormat       = VK_FORMAT_UNDEFINED;  // [-] - format of DisplaySurface
     std::uint32_t     MinimumDisplayImageCount = 0u;                   // [-] - minimum requested of the chain
     std::uint32_t     DisplayImageCount        = 0u;                   // [-] - actual images the chain holds
@@ -68,7 +69,7 @@ public:
     ///       recording into a target the device never agreed to.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const InterfaceAttachment& Incoming);
+    Outcome<bool> AttachInterface(const InterfaceAttachment& Incoming);
 
     /// 🧩 Destroys the interface context and both vendor attachments.
     /// cost  🚩
@@ -122,6 +123,13 @@ public:
     ///        `StyleColorsDark` — so a style applied once at bring-up was silently lost on every rebuild
     ///        and the trapezoidal tabs reverted to stock rectangles with nothing reporting it.
     Outcome<bool> ApplyWorkspaceStyle(const WorkspaceMetric& Measure, const WorkspaceColour& Tinted);
+
+    /// 🧩 Applies interface-geometry antialiasing and curve quality to the vendor draw lists.
+    /// note  Retained across device/context rebuilds and latched by the vendor at the next frame boundary.
+    /// note  This does not alter viewport rendering, font rasterisation, or future SVG flattening quality.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    Outcome<bool> ApplyInterfaceAntialiasing(InterfaceAntialiasing Preference);
 
     /// 🧩 Opens the dock space the workspace body is docked into, filling the declared extent.
     /// note  🔴 One dock space per host, over the body alone. `DockingEnable` makes panels dockable; a dock
@@ -245,11 +253,11 @@ public:
     /// note  🔴 Not const: the look gesture's capture state stands here until `Seal` warps the cursor.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    CameraCondition CameraInput();
+    CameraCondition CameraInput(bool LookPermitted);
 
     /// 🧩 Appends this tick's typed characters to a caller-owned run, and reports whether any arrived.
     /// in    Intake     [-]  the run written into; always left terminated
-    /// in    Ceiling    [-]  the run's full extent in bytes, terminator included
+    /// in    Limit    [-]  the run's full extent in bytes, terminator included
     /// out   Accepted   [-]  true when at least one character was appended
     /// note  🔴 The filter fields are recorded as PRIMITIVES and not as vendor widgets. A vendor `InputText`
     ///        opens its own window draw list, which composites above every shell layer — that is precisely
@@ -261,7 +269,7 @@ public:
     ///        stroked as replacement marks.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool AcceptTyped(char* Intake, std::uint32_t Ceiling) const;
+    bool AcceptTyped(char* Intake, std::uint32_t Limit) const;
 
 private:
 
@@ -279,6 +287,7 @@ private:
     bool                 WindowAttached    = false;            // [-] - the window system attachment stands
     bool                 VendorAttached    = false;            // [-] - the vendor attachment stands
     bool                 StyleApplied       = false;            // [-] - a workspace style was applied once
+    InterfaceAntialiasing Antialiasing      = InterfaceAntialiasing::Refined;
     bool                 WorkspaceEntered  = false;            // [-] - between workspace entry and leave
     WorkspaceMetric      AppliedMeasure     = {};               // [-] - retained, so Construct re-applies it
     WorkspaceColour         AppliedColour         = {};               // [-] - retained, so Construct re-applies it

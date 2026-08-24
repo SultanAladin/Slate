@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateDocument/Document/AssetInterchange/Api/AssetInterchange.h"
 
 #include <cstdint>
@@ -24,7 +24,7 @@ namespace Slate
 /// note  ⚠️ `10` §5 leaves which formats ship in the first codec open, and this enumeration is where that answer
 ///        lives. Adding one is an entry here and a branch in the translation; nothing above this line changes,
 ///        because every layout produces the same `DecodedImage`.
-/// tag   contract
+/// tag   guarantee
 enum class ImageContentSubject : std::uint32_t
 {
     Unrecognised      = 0u,   // [-] - the leading bytes match no layout below

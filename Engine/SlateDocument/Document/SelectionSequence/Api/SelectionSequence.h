@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/IdentityContract.h"
-#include "Contract/DeliveryContract.h"
+#include "Foundation/Identity.h"
+#include "Foundation/DeliveryOutcome.h"
 
 #include <cstdint>
 #include <vector>
@@ -26,7 +26,7 @@ namespace Slate
 struct CommittedSelection
 {
     std::vector<OwnerIdentity>  SelectedOwners = {};   // [-] - in the order the artist selected them
-    std::uint64_t                  RevisionOrdinal   = 0u;   // [-] - document revisions committed when sealed
+    std::uint64_t                  RevisionIndex   = 0u;   // [-] - document revisions committed when sealed
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -47,11 +47,11 @@ public:
 
     /// 🧩 Commits one selection, paired with the document revision it stands at.
     /// in    Selected         [-]  the owners, in the order the artist selected them
-    /// in    RevisionOrdinal  [-]  document revisions committed at the moment of sealing
+    /// in    RevisionIndex  [-]  document revisions committed at the moment of sealing
     /// post  the traversal position is the end of the sequence
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Seal(const std::vector<OwnerIdentity>& Selected, std::uint64_t RevisionOrdinal);
+    void Seal(const std::vector<OwnerIdentity>& Selected, std::uint64_t RevisionIndex);
 
     /// 🧩 Traverses one selection backwards.
     /// out   Result  [-]  refuses with ExtentExhausted at the beginning of the sequence
@@ -66,13 +66,13 @@ public:
     Outcome<bool> Advance();
 
     /// 🧩 Restores the selection that stood at a declared document revision.
-    /// in    RevisionOrdinal  [-]  the document revision a scrub has arrived at
+    /// in    RevisionIndex  [-]  the document revision a scrub has arrived at
     /// out   Result          [-]  refuses with ExtentExhausted when no selection was ever sealed there
     /// note  This is what pairs a document scrub with the selection its transaction applied to. The pairing
     ///        holds within the session where the scrub happens, which is all `12` §11 requires of it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> RestoreAt(std::uint64_t RevisionOrdinal);
+    Outcome<bool> RestoreAt(std::uint64_t RevisionIndex);
 
     /// 🧩 The selection standing now.
     /// cost  ✔️
@@ -93,7 +93,7 @@ private:
 
     std::vector<CommittedSelection>  CommittedOrder;             // [-] - the sequence itself
     std::vector<OwnerIdentity>    CurrentSelection;          // [-] - as the traversal position leaves it
-    std::uint64_t                    TraversalOrdinal = 0u;      // [-] - selections currently applied
+    std::uint64_t                    TraversalIndex = 0u;      // [-] - selections currently applied
 };
 
 }   // namespace Slate

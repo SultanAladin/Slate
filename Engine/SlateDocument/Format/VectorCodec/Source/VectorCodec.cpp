@@ -57,47 +57,47 @@ bool Whitespace(char Carried)
 }
 
 /// 🧩 Advances past every separator, so a run of commands may be spaced however the source spaced it.
-std::size_t SkipSeparators(const std::string& Reading, std::size_t Ordinal)
+std::size_t SkipSeparators(const std::string& Reading, std::size_t Index)
 {
-    while (Ordinal < Reading.size() && Whitespace(Reading[Ordinal])) { ++Ordinal; }
+    while (Index < Reading.size() && Whitespace(Reading[Index])) { ++Index; }
 
-    return Ordinal;
+    return Index;
 }
 
 /// 🧩 Reads one real from the path data, reporting whether one was there to read.
 /// note  📝 Read here rather than through the standard conversions because a path's numbers run together
 ///        without separators — "1.5.5" is two numbers — and a conversion that consumed as much as it could
 ///        would take both. The scan below stops at the second decimal point, which is what the grammar means.
-bool ReadCoordinate(const std::string& Reading, std::size_t& Ordinal, double& Produced)
+bool ReadCoordinate(const std::string& Reading, std::size_t& Index, double& Produced)
 {
-    Ordinal = SkipSeparators(Reading, Ordinal);
+    Index = SkipSeparators(Reading, Index);
 
-    const std::size_t Beginning = Ordinal;
+    const std::size_t Beginning = Index;
 
-    if (Ordinal < Reading.size() && (Reading[Ordinal] == '+' || Reading[Ordinal] == '-')) { ++Ordinal; }
+    if (Index < Reading.size() && (Reading[Index] == '+' || Reading[Index] == '-')) { ++Index; }
 
     bool PointSeen = false;
     bool DigitSeen = false;
 
-    while (Ordinal < Reading.size())
+    while (Index < Reading.size())
     {
-        const char Carried = Reading[Ordinal];
+        const char Carried = Reading[Index];
 
         if (Carried >= '0' && Carried <= '9')
         {
             DigitSeen = true;
-            ++Ordinal;
+            ++Index;
         }
         else if (Carried == '.' && !PointSeen)
         {
             PointSeen = true;
-            ++Ordinal;
+            ++Index;
         }
         else if ((Carried == 'e' || Carried == 'E') && DigitSeen)
         {
-            ++Ordinal;
+            ++Index;
 
-            if (Ordinal < Reading.size() && (Reading[Ordinal] == '+' || Reading[Ordinal] == '-')) { ++Ordinal; }
+            if (Index < Reading.size() && (Reading[Index] == '+' || Reading[Index] == '-')) { ++Index; }
         }
         else
         {
@@ -107,28 +107,28 @@ bool ReadCoordinate(const std::string& Reading, std::size_t& Ordinal, double& Pr
 
     if (!DigitSeen)
     {
-        Ordinal = Beginning;
+        Index = Beginning;
         return false;
     }
 
-    Produced = std::strtod(Reading.substr(Beginning, Ordinal - Beginning).c_str(), nullptr);
+    Produced = std::strtod(Reading.substr(Beginning, Index - Beginning).c_str(), nullptr);
 
     return true;
 }
 
 /// 🧩 Reads one flag — a single digit, which the arc grammar writes without a separator after it.
-bool ReadFlag(const std::string& Reading, std::size_t& Ordinal, bool& Produced)
+bool ReadFlag(const std::string& Reading, std::size_t& Index, bool& Produced)
 {
-    Ordinal = SkipSeparators(Reading, Ordinal);
+    Index = SkipSeparators(Reading, Index);
 
-    if (Ordinal >= Reading.size()) { return false; }
+    if (Index >= Reading.size()) { return false; }
 
-    const char Carried = Reading[Ordinal];
+    const char Carried = Reading[Index];
 
     if (Carried != '0' && Carried != '1') { return false; }
 
     Produced = Carried == '1';
-    ++Ordinal;
+    ++Index;
 
     return true;
 }
@@ -156,7 +156,7 @@ void TranslatePathData(const std::string& PathData, FillRule Rule, std::vector<O
     PathReading  Reading;
     OutlinePath  Constructing;
     bool         PathOccupied = false;
-    std::size_t  Ordinal      = 0u;
+    std::size_t  Index      = 0u;
     char         Command      = '\0';
 
     const auto SealPath = [&]()
@@ -171,18 +171,18 @@ void TranslatePathData(const std::string& PathData, FillRule Rule, std::vector<O
         PathOccupied = false;
     };
 
-    while (Ordinal < PathData.size())
+    while (Index < PathData.size())
     {
-        Ordinal = SkipSeparators(PathData, Ordinal);
+        Index = SkipSeparators(PathData, Index);
 
-        if (Ordinal >= PathData.size()) { break; }
+        if (Index >= PathData.size()) { break; }
 
-        const char Carried = PathData[Ordinal];
+        const char Carried = PathData[Index];
 
         if ((Carried >= 'A' && Carried <= 'Z') || (Carried >= 'a' && Carried <= 'z'))
         {
             Command = Carried;
-            ++Ordinal;
+            ++Index;
         }
         else if (Command == '\0')
         {
@@ -223,7 +223,7 @@ void TranslatePathData(const std::string& PathData, FillRule Rule, std::vector<O
             double XCoordinate  = 0.0;
             double YCoordinate = 0.0;
 
-            if (!ReadCoordinate(PathData, Ordinal, XCoordinate) || !ReadCoordinate(PathData, Ordinal, YCoordinate))
+            if (!ReadCoordinate(PathData, Index, XCoordinate) || !ReadCoordinate(PathData, Index, YCoordinate))
             {
                 break;
             }
@@ -267,7 +267,7 @@ void TranslatePathData(const std::string& PathData, FillRule Rule, std::vector<O
                 double ReadX  = 0.0;
                 double ReadY = 0.0;
 
-                if (ReadCoordinate(PathData, Ordinal, ReadX) && ReadCoordinate(PathData, Ordinal, ReadY))
+                if (ReadCoordinate(PathData, Index, ReadX) && ReadCoordinate(PathData, Index, ReadY))
                 {
                     XCoordinate  = Relative ? Reading.Position.PositionX + ReadX  : ReadX;
                     YCoordinate = Relative ? Reading.Position.PositionY + ReadY : ReadY;
@@ -278,7 +278,7 @@ void TranslatePathData(const std::string& PathData, FillRule Rule, std::vector<O
             {
                 double ReadX = 0.0;
 
-                if (ReadCoordinate(PathData, Ordinal, ReadX))
+                if (ReadCoordinate(PathData, Index, ReadX))
                 {
                     XCoordinate = Relative ? Reading.Position.PositionX + ReadX : ReadX;
                     SegmentRead   = true;
@@ -288,7 +288,7 @@ void TranslatePathData(const std::string& PathData, FillRule Rule, std::vector<O
             {
                 double ReadY = 0.0;
 
-                if (ReadCoordinate(PathData, Ordinal, ReadY))
+                if (ReadCoordinate(PathData, Index, ReadY))
                 {
                     YCoordinate = Relative ? Reading.Position.PositionY + ReadY : ReadY;
                     SegmentRead    = true;
@@ -316,7 +316,7 @@ void TranslatePathData(const std::string& PathData, FillRule Rule, std::vector<O
             {
                 double FirstX = 0.0, FirstY = 0.0;
 
-                Occupied = ReadCoordinate(PathData, Ordinal, FirstX) && ReadCoordinate(PathData, Ordinal, FirstY);
+                Occupied = ReadCoordinate(PathData, Index, FirstX) && ReadCoordinate(PathData, Index, FirstY);
 
                 FirstControl = { Relative ? Reading.Position.PositionX + FirstX  : FirstX,
                                  Relative ? Reading.Position.PositionY + FirstY : FirstY };
@@ -335,8 +335,8 @@ void TranslatePathData(const std::string& PathData, FillRule Rule, std::vector<O
             double SecondX = 0.0, SecondY = 0.0, TerminusX = 0.0, TerminusY = 0.0;
 
             Occupied = Occupied
-                    && ReadCoordinate(PathData, Ordinal, SecondX)   && ReadCoordinate(PathData, Ordinal, SecondY)
-                    && ReadCoordinate(PathData, Ordinal, TerminusX) && ReadCoordinate(PathData, Ordinal, TerminusY);
+                    && ReadCoordinate(PathData, Index, SecondX)   && ReadCoordinate(PathData, Index, SecondY)
+                    && ReadCoordinate(PathData, Index, TerminusX) && ReadCoordinate(PathData, Index, TerminusY);
 
             if (Occupied)
             {
@@ -368,7 +368,7 @@ void TranslatePathData(const std::string& PathData, FillRule Rule, std::vector<O
             {
                 double ControlX = 0.0, ControlY = 0.0;
 
-                Occupied = ReadCoordinate(PathData, Ordinal, ControlX) && ReadCoordinate(PathData, Ordinal, ControlY);
+                Occupied = ReadCoordinate(PathData, Index, ControlX) && ReadCoordinate(PathData, Index, ControlY);
 
                 Control = { Relative ? Reading.Position.PositionX + ControlX  : ControlX,
                             Relative ? Reading.Position.PositionY + ControlY : ControlY };
@@ -383,8 +383,8 @@ void TranslatePathData(const std::string& PathData, FillRule Rule, std::vector<O
 
             double TerminusX = 0.0, TerminusY = 0.0;
 
-            Occupied = Occupied && ReadCoordinate(PathData, Ordinal, TerminusX)
-                                && ReadCoordinate(PathData, Ordinal, TerminusY);
+            Occupied = Occupied && ReadCoordinate(PathData, Index, TerminusX)
+                                && ReadCoordinate(PathData, Index, TerminusY);
 
             if (Occupied)
             {
@@ -408,13 +408,13 @@ void TranslatePathData(const std::string& PathData, FillRule Rule, std::vector<O
             double TerminusX = 0.0, TerminusY = 0.0;
             bool   LargeArc = false, Sweep = false;
 
-            const bool Occupied = ReadCoordinate(PathData, Ordinal, RadiusX)
-                               && ReadCoordinate(PathData, Ordinal, RadiusY)
-                               && ReadCoordinate(PathData, Ordinal, Rotation)
-                               && ReadFlag(PathData, Ordinal, LargeArc)
-                               && ReadFlag(PathData, Ordinal, Sweep)
-                               && ReadCoordinate(PathData, Ordinal, TerminusX)
-                               && ReadCoordinate(PathData, Ordinal, TerminusY);
+            const bool Occupied = ReadCoordinate(PathData, Index, RadiusX)
+                               && ReadCoordinate(PathData, Index, RadiusY)
+                               && ReadCoordinate(PathData, Index, Rotation)
+                               && ReadFlag(PathData, Index, LargeArc)
+                               && ReadFlag(PathData, Index, Sweep)
+                               && ReadCoordinate(PathData, Index, TerminusX)
+                               && ReadCoordinate(PathData, Index, TerminusY);
 
             if (Occupied)
             {
@@ -454,16 +454,16 @@ void TranslatePathData(const std::string& PathData, FillRule Rule, std::vector<O
 std::string AttributeValue(const std::string& Element, const char* Attribute)
 {
     const std::string  Wanted   = std::string(Attribute) + "=";
-    std::size_t        Ordinal  = Element.find(Wanted);
+    std::size_t        Index  = Element.find(Wanted);
 
-    while (Ordinal != std::string::npos)
+    while (Index != std::string::npos)
     {
         // 📝 The preceding character must be a separator, so `fill` does not match inside `fill-rule`.
-        const bool Delimited = Ordinal == 0u || Whitespace(Element[Ordinal - 1u]);
+        const bool Delimited = Index == 0u || Whitespace(Element[Index - 1u]);
 
         if (Delimited)
         {
-            std::size_t Beginning = Ordinal + Wanted.size();
+            std::size_t Beginning = Index + Wanted.size();
 
             if (Beginning < Element.size() && (Element[Beginning] == '"' || Element[Beginning] == '\''))
             {
@@ -477,7 +477,7 @@ std::string AttributeValue(const std::string& Element, const char* Attribute)
             }
         }
 
-        Ordinal = Element.find(Wanted, Ordinal + 1u);
+        Index = Element.find(Wanted, Index + 1u);
     }
 
     return std::string();
@@ -504,11 +504,11 @@ Outcome<DecodedOutline> TranslateSource(const std::string& Source)
 {
     DecodedOutline Produced;
 
-    std::size_t Ordinal = 0u;
+    std::size_t Index = 0u;
 
-    while (Ordinal < Source.size())
+    while (Index < Source.size())
     {
-        const std::size_t Opening = Source.find('<', Ordinal);
+        const std::size_t Opening = Source.find('<', Index);
 
         if (Opening == std::string::npos) { break; }
 
@@ -518,7 +518,7 @@ Outcome<DecodedOutline> TranslateSource(const std::string& Source)
 
         const std::string Element = Source.substr(Opening + 1u, Closing - Opening - 1u);
 
-        Ordinal = Closing + 1u;
+        Index = Closing + 1u;
 
         if (Element.empty() || Element[0] == '/' || Element[0] == '?' || Element[0] == '!') { continue; }
 
@@ -532,7 +532,7 @@ Outcome<DecodedOutline> TranslateSource(const std::string& Source)
             {
                 RejectedConstruct Recording;
                 Recording.Construct     = Refusing.Spelling;
-                Recording.SourceOrdinal = static_cast<std::uint32_t>(Opening);
+                Recording.SourceIndex = static_cast<std::uint32_t>(Opening);
                 Recording.Declining     = { Refusing.Reason, Refusing.Detail };
 
                 Produced.Rejected.push_back(Recording);
@@ -557,7 +557,7 @@ Outcome<DecodedOutline> TranslateSource(const std::string& Source)
         {
             RejectedConstruct Recording;
             Recording.Construct     = "stroke";
-            Recording.SourceOrdinal = static_cast<std::uint32_t>(Opening);
+            Recording.SourceIndex = static_cast<std::uint32_t>(Opening);
             Recording.Declining     = { RefusalReason::ContentUnsupported, StrokedDetail };
 
             Produced.Rejected.push_back(Recording);

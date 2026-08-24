@@ -30,7 +30,7 @@ static const Unsigned32 MultiScatterStepCount      = 20u;   // [-] - march steps
 
 // 📐 The transfer fraction is held below unity before it divides. A fraction reaching one is a medium returning
 //    every photon it receives, which the geometric series does not converge for and which no atmosphere is.
-static const Real64 TransferCeiling = 0.999;   // [-] - above this the divisor is held at the floor below
+static const Real64 TransferLimit = 0.999;   // [-] - above this the divisor is held at the floor below
 static const Real64 TransferFloor   = 0.001;   // [-] - the held divisor
 
 ConstantBuffer<MediumUniform>  Medium;                 // [-] - the uploaded medium
@@ -80,10 +80,10 @@ void ResolveTransmittance(MediumProfile Profile, Real64 Radius, Real64 ZenithCos
 /// tag   api, nonallocating, nonthrowing
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void IntegrateMultiScatter(Unsigned32x3 TexelOrdinal : SV_DispatchThreadID)
+void IntegrateMultiScatter(Unsigned32x3 TexelIndex : SV_DispatchThreadID)
 {
-    const Unsigned32 X  = TexelOrdinal.x;
-    const Unsigned32 Y = TexelOrdinal.y;
+    const Unsigned32 X  = TexelIndex.x;
+    const Unsigned32 Y = TexelIndex.y;
 
     if (X >= MultiScatterExtentX || Y >= MultiScatterExtentY)
     {
@@ -190,7 +190,7 @@ void IntegrateMultiScatter(Unsigned32x3 TexelOrdinal : SV_DispatchThreadID)
     {
         const Real64 Order    = SecondOrder[Component] * Reciprocal;
         const Real64 Fraction = Transfer[Component]    * Reciprocal;
-        const Real64 Divisor  = Fraction < TransferCeiling ? 1.0 - Fraction : TransferFloor;
+        const Real64 Divisor  = Fraction < TransferLimit ? 1.0 - Fraction : TransferFloor;
 
         Series[Component] = Order / Divisor;
     }

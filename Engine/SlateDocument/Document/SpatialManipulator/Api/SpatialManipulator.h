@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "Contract/IdentityContract.h"
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/Identity.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateDocument/Document/CameraProjection/Api/CameraProjection.h"
 #include "SlateDocument/Document/PointerIntersection/Api/PointerIntersection.h"
 #include "SlateDocument/Document/PrimitiveStructure/Api/PrimitiveStructure.h"
@@ -28,7 +28,7 @@ namespace Slate
 /// note  📝 The ordinal **is** the axis, so a grip's axis indexes a basis directly rather than being switched on.
 ///        The screen entry is last because it addresses no basis axis at all — it is the camera plane, and `78` §3
 ///        lists it as a constraint rather than as a direction.
-/// tag   contract
+/// tag   guarantee
 enum class ManipulationAxis : std::uint32_t
 {
     AxisX   = 0u,   // [-] - the reference orientation's first axis
@@ -49,7 +49,7 @@ enum class ManipulationAxis : std::uint32_t
 /// note  📝 A plane translation is held apart from an axis translation rather than being two axis translations at
 ///        once. The drag resolves against a plane rather than against a line, and `78` §2 fixes that plane at Open
 ///        — two line solves would each re-derive their own and the two would disagree the moment the camera moved.
-/// tag   contract
+/// tag   guarantee
 enum class ManipulationSubject : std::uint32_t
 {
     Translate       = 0u,   // [-] - along one axis of the reference orientation
@@ -60,7 +60,7 @@ enum class ManipulationSubject : std::uint32_t
 };
 
 /// 🧩 What the drag resolves against, fixed at Open and never re-derived — `78` §3.
-/// tag   contract
+/// tag   guarantee
 enum class ConstraintSubject : std::uint32_t
 {
     AxisConstrained   = 0u,   // [-] - one axis of the reference orientation
@@ -74,7 +74,7 @@ enum class ConstraintSubject : std::uint32_t
 /// note  🔴 The surface reference is what makes placement manipulation usable. Dragging a decal along document axes
 ///        moves it off the surface it sits on; dragging along the surface reference slides it across the surface,
 ///        which is what the gesture means and what the artist expects to have happened.
-/// tag   contract
+/// tag   guarantee
 enum class ReferenceOrientation : std::uint32_t
 {
     DocumentAxes   = 0u,   // [-] - the document's own axes
@@ -89,7 +89,7 @@ enum class ReferenceOrientation : std::uint32_t
 ///        document space. The manipulator is drawn in document space and the drag is projected back through the
 ///        attachment before it is applied. Applied in document space it would store an absolute transform and
 ///        `00` §10.1 ②'s zero-cost rows would each become "re-resolve everything".
-/// tag   contract
+/// tag   guarantee
 enum class ManipulatedSubject : std::uint32_t
 {
     Nothing        = 0u,   // [-] - no target; the manipulator is not presented
@@ -168,7 +168,7 @@ class ManipulationLayout
 {
 public:
 
-    static constexpr std::uint32_t GripCeiling = 16u;   // [-] - three axes × four subjects, plus the ring
+    static constexpr std::uint32_t GripLimit = 16u;   // [-] - three axes × four subjects, plus the ring
 
     /// 🧩 Lays the grips out about one origin, in one reference orientation, at a constant display extent.
     /// in    Origin       [mm]  where the manipulator sits, in document space
@@ -217,7 +217,7 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported outside the laid-out count and for an undeclared grip
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<const ManipulationGrip*> Resolve(std::uint32_t GripOrdinal) const;
+    Outcome<const ManipulationGrip*> Resolve(std::uint32_t GripIndex) const;
 
     /// 🧩 Every laid-out grip, for whoever records them.
     /// note  📝 Recorded in `08` §3 ⑪ — the depth-free overlay recording `80` already declares, at

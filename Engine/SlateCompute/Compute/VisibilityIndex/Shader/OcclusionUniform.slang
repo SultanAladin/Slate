@@ -41,8 +41,8 @@ struct OcclusionUniform
     uint  LevelCount;        // [-]  - levels the chain carries
     uint  DisplayX;      // [px] - the extent the finest level covers
     uint  DisplayY;     // [px]
-    uint  TriangleCeiling;   // [-]  - entries the surviving run can hold
-    uint  PhaseOrdinal;      // [-]  - nought is ①, one is ③
+    uint  TriangleLimit;   // [-]  - entries the surviving run can hold
+    uint  PhaseIndex;      // [-]  - nought is ①, one is ③
     uint  Unoccupied1;       // [-]
     uint  Unoccupied2;       // [-]
 };
@@ -53,7 +53,7 @@ struct OcclusionUniform
 ///        its first triangle and every other one is unreachable; the survivor writes its own run out instead.
 struct TestedPartition
 {
-    uint   PartitionOrdinal;   // [-]  - within the registration
+    uint   PartitionIndex;   // [-]  - within the registration
     uint   Current;           // [-]  - the host's verdict; see the four ordinals below
     uint   FirstTriangle;      // [-]  - into the residency's fanned run
     uint   TriangleCount;      // [-]  - triangles of that run it spans
@@ -118,7 +118,7 @@ uint SelectLevel(uint SpannedX, uint SpannedY, uint LevelCount)
 /// in    NearestDepth  [-]  the partition's nearest coordinate; reversed, so the greatest of its eight corners
 /// in    ReducedDepth  [-]  the least coordinate the covered region carries; the furthest point recorded there
 /// out   Occluded      [-]  true only where nothing of the partition can reach in front of what stands
-/// note  📐 Reversed depth throughout — `NearPlaneDepth` is unity and `FarPlaneDepth` nought, per `Contract/`.
+/// note  📐 Reversed depth throughout — `NearPlaneDepth` is unity and `FarPlaneDepth` nought, per `Foundation/`.
 ///        The conservative reduction is therefore the **minimum**, and a partition is occluded when its nearest
 ///        coordinate is at or below the furthest coordinate recorded across the region it covers.
 /// note  🔴 Written the other way round, this rejects on every silhouette and accepts inside every surface — the

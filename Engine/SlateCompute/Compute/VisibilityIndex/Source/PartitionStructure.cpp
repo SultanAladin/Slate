@@ -20,19 +20,19 @@ namespace
 // 📝 The material one face carries. A topology whose source declared no enrollment carries one material for the
 //    whole surface, and reading past the end of an undeclared run is how that surface acquires a partition split
 //    at every face instead.
-std::uint32_t MaterialOfFace(const TopologyStructure& Imported, std::uint32_t FaceOrdinal)
+std::uint32_t MaterialOfFace(const TopologyStructure& Imported, std::uint32_t FaceIndex)
 {
     const std::vector<std::uint32_t>& Registration = Imported.MaterialRegistration();
 
-    return FaceOrdinal < static_cast<std::uint32_t>(Registration.size()) ? Registration[FaceOrdinal] : 0u;
+    return FaceIndex < static_cast<std::uint32_t>(Registration.size()) ? Registration[FaceIndex] : 0u;
 }
 
 // 📝 The fan triangles one face amounts to. `50` §2 ① accepts n-gons, so this is the corner count less two and
 //    never the constant one — a partition budgeted as though every face were a triangle overruns by the amount
 //    the artist's quads and n-gons exceed it, which on a subdivided surface is the whole budget again.
-std::uint32_t TrianglesOfFace(const TopologyStructure& Imported, std::uint32_t FaceOrdinal)
+std::uint32_t TrianglesOfFace(const TopologyStructure& Imported, std::uint32_t FaceIndex)
 {
-    const std::uint32_t Corners = Imported.FaceCornerCount(FaceOrdinal);
+    const std::uint32_t Corners = Imported.FaceCornerCount(FaceIndex);
 
     return Corners > 2u ? Corners - 2u : 0u;
 }
@@ -45,11 +45,11 @@ std::uint32_t TrianglesOfFace(const TopologyStructure& Imported, std::uint32_t F
 /// note  📝 Accumulated at 64 bits and narrowed only at the end. The positions are `mm` in document space and
 ///        `02` §3.2 keeps them at 64 bits precisely because differencing them at 32 bits is where a distant
 ///        owner's geometry turns to noise.
-SurfaceDirection OrientationOfFace(const TopologyStructure& Imported, std::uint32_t FaceOrdinal, bool& OrientationDerived)
+SurfaceDirection OrientationOfFace(const TopologyStructure& Imported, std::uint32_t FaceIndex, bool& OrientationDerived)
 {
     const std::vector<DocumentPosition>& Positions   = Imported.Positions();
-    const std::uint32_t                  FirstCorner = Imported.FaceFirstCorner(FaceOrdinal);
-    const std::uint32_t                  CornerRun   = Imported.FaceCornerCount(FaceOrdinal);
+    const std::uint32_t                  FirstCorner = Imported.FaceFirstCorner(FaceIndex);
+    const std::uint32_t                  CornerRun   = Imported.FaceCornerCount(FaceIndex);
 
     double SummedX = 0.0;
     double SummedY = 0.0;
@@ -154,9 +154,9 @@ Outcome<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Impo
             { RefusalReason::ContentUnsupported, "the conditioning describes another revision of this topology" });
     }
 
-    const std::uint32_t FaceCeiling = Imported.FaceCount();
+    const std::uint32_t FaceLimit = Imported.FaceCount();
 
-    if (FaceCeiling == 0u)
+    if (FaceLimit == 0u)
     {
         return Outcome<DerivedPartitioning>::Refuse(
             { RefusalReason::ContentUnsupported, "a topology of no face partitions into nothing" });
@@ -164,7 +164,7 @@ Outcome<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Impo
 
     const std::vector<ConditionedExtent>& FaceExtents = Conditioned.FaceExtents();
 
-    if (static_cast<std::uint32_t>(FaceExtents.size()) != FaceCeiling)
+    if (static_cast<std::uint32_t>(FaceExtents.size()) != FaceLimit)
     {
         return Outcome<DerivedPartitioning>::Refuse(
             { RefusalReason::ContentUnsupported, "the conditioning carries an extent count the topology does not" });
@@ -172,20 +172,20 @@ Outcome<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Impo
 
     DerivedPartitioning Derived;
     Derived.DescribedRevision = Imported.Revision();
-    Derived.OrderedFaces.reserve(FaceCeiling);
+    Derived.OrderedFaces.reserve(FaceLimit);
 
     // 📝 Two marks and not one. Accepted says the face belongs to a closed partition and is never revisited;
     //    Enqueued says it is standing on a growth front that may yet close before reaching it, and that mark is
     //    lifted at the close so the face seeds or joins the next partition instead of vanishing from the surface.
-    std::vector<bool> Accepted(FaceCeiling, false);
-    std::vector<bool> Enqueued(FaceCeiling, false);
+    std::vector<bool> Accepted(FaceLimit, false);
+    std::vector<bool> Enqueued(FaceLimit, false);
 
     std::vector<std::uint32_t> Front;
-    Front.reserve(FaceCeiling);
+    Front.reserve(FaceLimit);
 
     bool MinimumRecorded = false;
 
-    for (std::uint32_t SeedFace = 0u; SeedFace < FaceCeiling; ++SeedFace)
+    for (std::uint32_t SeedFace = 0u; SeedFace < FaceLimit; ++SeedFace)
     {
         if (Accepted[SeedFace])
             continue;
@@ -212,7 +212,7 @@ Outcome<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Impo
 
         MicroSurfacePartition Growing;
         Growing.FirstFace       = static_cast<std::uint32_t>(Derived.OrderedFaces.size());
-        Growing.MaterialOrdinal = SeedMaterial;
+        Growing.MaterialIndex = SeedMaterial;
 
         double SummedX        = 0.0;
         double SummedY        = 0.0;
@@ -231,7 +231,7 @@ Outcome<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Impo
 
         std::size_t FrontHead = 0u;
 
-        while (FrontHead < Front.size() && Growing.TriangleCount < PartitionTriangleCeiling)
+        while (FrontHead < Front.size() && Growing.TriangleCount < PartitionTriangleLimit)
         {
             const std::uint32_t AcceptedFace = Front[FrontHead];
             ++FrontHead;
@@ -272,13 +272,13 @@ Outcome<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Impo
                 //    fragmentation from.
                 if (!Y.Resolved)
                 {
-                    ++Derived.Metrics.BoundaryRefusalCount;
+                    ++Derived.Metrics.EdgeRefusalCount;
                     continue;
                 }
 
                 const std::uint32_t Adjacent = Imported.CornerFace(Y.Resolve());
 
-                if (Adjacent >= FaceCeiling || Accepted[Adjacent] || Enqueued[Adjacent])
+                if (Adjacent >= FaceLimit || Accepted[Adjacent] || Enqueued[Adjacent])
                     continue;
 
                 if (Conditioned.FaceRegistered(Adjacent, DegeneracySubject::ZeroExtentFace))
@@ -394,7 +394,7 @@ Outcome<bool> PartitionStructure::Declare(PartitionResolutionIndex& Resolutions,
     {
         ResolvedPartition Resolving;
         Resolving.Owner        = Owner;
-        Resolving.MaterialOrdinal = Current.MaterialOrdinal;
+        Resolving.MaterialIndex = Current.MaterialIndex;
         Resolving.FirstFace       = Current.FirstFace;
         Resolving.FaceCount       = Current.FaceCount;
 
@@ -433,9 +433,9 @@ const DerivedPartitioning& PartitionStructure::Current() const
     return CurrentPartitioning;
 }
 
-Outcome<PartitionIdentity> PartitionStructure::IdentityOf(std::uint32_t PartitionOrdinal) const
+Outcome<PartitionIdentity> PartitionStructure::IdentityOf(std::uint32_t PartitionIndex) const
 {
-    if (PartitionOrdinal >= static_cast<std::uint32_t>(CurrentPartitioning.Partitions.size()))
+    if (PartitionIndex >= static_cast<std::uint32_t>(CurrentPartitioning.Partitions.size()))
         return Outcome<PartitionIdentity>::Refuse({ RefusalReason::ContentUnsupported, "no such partition" });
 
     if (Identities.size() != CurrentPartitioning.Partitions.size())
@@ -444,7 +444,7 @@ Outcome<PartitionIdentity> PartitionStructure::IdentityOf(std::uint32_t Partitio
             { RefusalReason::IdentityStale, "nothing has been declared since the partitioning was adopted" });
     }
 
-    return Outcome<PartitionIdentity>::Result(Identities[PartitionOrdinal]);
+    return Outcome<PartitionIdentity>::Result(Identities[PartitionIndex]);
 }
 
 bool PartitionStructure::PartitioningCurrent() const

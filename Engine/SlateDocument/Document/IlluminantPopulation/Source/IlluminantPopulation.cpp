@@ -23,8 +23,8 @@ namespace
 //    being reused. `44` §6's determinism requirement is satisfied by the storage rather than by a sort at read.
 bool PrecedesInIdentity(OwnerIdentity Earlier, OwnerIdentity Later)
 {
-    if (Earlier.SlotOrdinal != Later.SlotOrdinal)
-        return Earlier.SlotOrdinal < Later.SlotOrdinal;
+    if (Earlier.SlotIndex != Later.SlotIndex)
+        return Earlier.SlotIndex < Later.SlotIndex;
 
     return Earlier.SlotGeneration < Later.SlotGeneration;
 }
@@ -117,12 +117,12 @@ Outcome<bool> IlluminantPopulation::Validate(const IlluminantSpecification& Decl
     if (!Declaring.AtmosphericSource)
         return Outcome<bool>::Result(true);
 
-    for (std::size_t Ordinal = 0u; Ordinal < Declarations.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < Declarations.size(); ++Index)
     {
-        if (!Declarations[Ordinal].AtmosphericSource)
+        if (!Declarations[Index].AtmosphericSource)
             continue;
 
-        if (RegisteredOrder[Ordinal] == Subject)
+        if (RegisteredOrder[Index] == Subject)
             continue;
 
         return Outcome<bool>::Refuse(
@@ -253,10 +253,10 @@ Outcome<ColourSpecification> IlluminantPopulation::ResolveColour(OwnerIdentity  
 
 Outcome<OwnerIdentity> IlluminantPopulation::AtmosphericSource() const
 {
-    for (std::size_t Ordinal = 0u; Ordinal < Declarations.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < Declarations.size(); ++Index)
     {
-        if (Declarations[Ordinal].AtmosphericSource)
-            return Outcome<OwnerIdentity>::Result(RegisteredOrder[Ordinal]);
+        if (Declarations[Index].AtmosphericSource)
+            return Outcome<OwnerIdentity>::Result(RegisteredOrder[Index]);
     }
 
     return Outcome<OwnerIdentity>::Refuse(
@@ -405,33 +405,33 @@ Outcome<bool> IlluminantIndex::Derive(const IlluminantPopulation&          Illum
     TruncatedCounts.assign(Extents.size(), 0u);
     TruncatedAccumulated = 0u;
 
-    for (std::uint32_t PartitionOrdinal = 0u; PartitionOrdinal < Extents.size(); ++PartitionOrdinal)
+    for (std::uint32_t PartitionIndex = 0u; PartitionIndex < Extents.size(); ++PartitionIndex)
     {
-        const Outcome<bool> Derived = DerivePartition(Illuminants, PartitionOrdinal, Extents[PartitionOrdinal]);
+        const Outcome<bool> Derived = DerivePartition(Illuminants, PartitionIndex, Extents[PartitionIndex]);
 
         if (!Derived.Resolved)
             return Derived;
     }
 
-    DescribedOrdinal = Illuminants.Revision();
+    DescribedIndex = Illuminants.Revision();
 
     return Outcome<bool>::Result(true);
 }
 
 Outcome<bool> IlluminantIndex::DerivePartition(const IlluminantPopulation& Illuminants,
-                                               std::uint32_t               PartitionOrdinal,
+                                               std::uint32_t               PartitionIndex,
                                                PartitionExtent             Extent)
 {
-    if (PartitionOrdinal >= ReachingSets.size())
+    if (PartitionIndex >= ReachingSets.size())
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "no such partition" });
 
-    std::vector<OwnerIdentity>& Reaching_ = ReachingSets[PartitionOrdinal];
+    std::vector<OwnerIdentity>& Reaching_ = ReachingSets[PartitionIndex];
 
-    if (TruncatedAccumulated >= TruncatedCounts[PartitionOrdinal])
-        TruncatedAccumulated -= TruncatedCounts[PartitionOrdinal];
+    if (TruncatedAccumulated >= TruncatedCounts[PartitionIndex])
+        TruncatedAccumulated -= TruncatedCounts[PartitionIndex];
 
     Reaching_.clear();
-    TruncatedCounts[PartitionOrdinal] = 0u;
+    TruncatedCounts[PartitionIndex] = 0u;
 
     // 📝 Walked in the population's own identity order, so the reaching set is in identity order without a sort.
     //    `44` §6 depends on it and `18` integrates in exactly this order.
@@ -446,41 +446,41 @@ Outcome<bool> IlluminantIndex::DerivePartition(const IlluminantPopulation& Illum
         {
             // 🔴 Counted rather than dropped silently. `86`'s truncation row presents it, and `60` §3.1 truncates
             //    again at the narrower packed capacity — two capacities, two reports, neither inferred.
-            ++TruncatedCounts[PartitionOrdinal];
+            ++TruncatedCounts[PartitionIndex];
             continue;
         }
 
         Reaching_.push_back(Subject);
     }
 
-    TruncatedAccumulated += TruncatedCounts[PartitionOrdinal];
+    TruncatedAccumulated += TruncatedCounts[PartitionIndex];
 
     return Outcome<bool>::Result(true);
 }
 
-std::uint32_t IlluminantIndex::ReachingCount(std::uint32_t PartitionOrdinal) const
+std::uint32_t IlluminantIndex::ReachingCount(std::uint32_t PartitionIndex) const
 {
-    if (PartitionOrdinal >= ReachingSets.size())
+    if (PartitionIndex >= ReachingSets.size())
         return 0u;
 
-    return static_cast<std::uint32_t>(ReachingSets[PartitionOrdinal].size());
+    return static_cast<std::uint32_t>(ReachingSets[PartitionIndex].size());
 }
 
-Outcome<OwnerIdentity> IlluminantIndex::Reaching(std::uint32_t PartitionOrdinal, std::uint32_t ReachOrdinal) const
+Outcome<OwnerIdentity> IlluminantIndex::Reaching(std::uint32_t PartitionIndex, std::uint32_t ReachIndex) const
 {
-    if (PartitionOrdinal >= ReachingSets.size() || ReachOrdinal >= ReachingSets[PartitionOrdinal].size())
+    if (PartitionIndex >= ReachingSets.size() || ReachIndex >= ReachingSets[PartitionIndex].size())
         return Outcome<OwnerIdentity>::Refuse({ RefusalReason::ExtentExhausted, "no such reaching illuminant" });
 
-    return Outcome<OwnerIdentity>::Result(ReachingSets[PartitionOrdinal][ReachOrdinal]);
+    return Outcome<OwnerIdentity>::Result(ReachingSets[PartitionIndex][ReachIndex]);
 }
 
-std::uint32_t IlluminantIndex::TruncatedCount(std::uint32_t PartitionOrdinal) const
+std::uint32_t IlluminantIndex::TruncatedCount(std::uint32_t PartitionIndex) const
 {
-    return PartitionOrdinal < TruncatedCounts.size() ? TruncatedCounts[PartitionOrdinal] : 0u;
+    return PartitionIndex < TruncatedCounts.size() ? TruncatedCounts[PartitionIndex] : 0u;
 }
 
 std::uint32_t IlluminantIndex::TruncatedTotal() const  { return TruncatedAccumulated; }
-std::uint64_t IlluminantIndex::DescribedRevision() const { return DescribedOrdinal;   }
+std::uint64_t IlluminantIndex::DescribedRevision() const { return DescribedIndex;   }
 
 std::uint32_t IlluminantIndex::SpannedCount() const
 {

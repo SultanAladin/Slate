@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateMath/Platform/TickSequence/Api/TickSequence.h"
 
 #include <cstdint>
@@ -114,11 +114,11 @@ public:
     void Record(const PointerSample& Incoming);
 
     /// 🧩 Reads one held sample in arrival order.
-    /// in    ArrivalOrdinal [-]  zero is the oldest sample still held
-    /// pre   ArrivalOrdinal is below HeldCount
+    /// in    ArrivalIndex [-]  zero is the oldest sample still held
+    /// pre   ArrivalIndex is below HeldCount
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    const PointerSample& Sample(std::uint32_t ArrivalOrdinal) const;
+    const PointerSample& Sample(std::uint32_t ArrivalIndex) const;
 
     /// 🧩 How many samples are held.
     /// cost  ✔️
@@ -133,7 +133,7 @@ public:
 private:
 
     PointerSample        ArrivalOrder[ArrivalCapacity] = {};        // [-] - cyclic; oldest discarded when full
-    std::uint32_t        OldestOrdinal                 = 0u;        // [-] - where the oldest held sample sits
+    std::uint32_t        OldestIndex                 = 0u;        // [-] - where the oldest held sample sits
     std::uint32_t        OccupiedCount                 = 0u;        // [-] - how many are held
     void*                AttachedWindowSlot            = nullptr;   // [-] - the native window this reads from
     void*                PrecedingReceiver             = nullptr;   // [-] - what held the stream before Attach

@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/IdentityContract.h"
-#include "Contract/DeliveryContract.h"
+#include "Foundation/Identity.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateMath/Numeric/ColourProjection/Api/ColourProjection.h"
 
 #include <cstdint>
@@ -23,11 +23,11 @@ namespace Slate
 /// 🧩 What a property's value measures, which fixes both its storage and its validation.
 /// note  ⚠️ Not a type tag. `SKILL-Naming.md` bans `Kind` and `Type` as spellings precisely because they name
 ///        the category instead of the mechanism; what discriminates here is what the number means.
-/// tag   contract
+/// tag   guarantee
 enum class PropertyMeasure : std::uint32_t
 {
     Truth        = 0u,   // [-] - a declared condition; bounds are not read
-    Ordinal      = 1u,   // [-] - an unsigned count or index
+    Index      = 1u,   // [-] - an unsigned count or index
     Signed       = 2u,   // [-] - a signed count or displacement
     Magnitude    = 3u,   // [-] - a real quantity, bounded by the declared interval
     Text         = 4u,   // [-] - a name or a declaration the artist typed
@@ -50,7 +50,7 @@ struct PropertyValue
 {
     PropertyMeasure      Measured       = PropertyMeasure::Truth;   // [-] - which member below is meaningful
     bool                 TruthDeclared  = false;                    // [-] - read at Truth
-    std::uint64_t        OrdinalHeld    = 0u;                       // [-] - read at Ordinal and Registration
+    std::uint64_t        IndexHeld    = 0u;                       // [-] - read at Index and Registration
     std::int64_t         SignedHeld     = 0;                        // [-] - read at Signed
     double               MagnitudeHeld  = 0.0;                      // [-] - read at Magnitude
     std::string          TextHeld       = {};                       // [-] - read at Text
@@ -83,7 +83,7 @@ struct PropertyDeclaration
     double                     UpperMagnitude  = 1.0;                         // [-] - read at Magnitude
     std::int64_t               LowerSigned     = 0;                           // [-] - read at Signed
     std::int64_t               UpperSigned     = 0;                           // [-] - read at Signed
-    std::uint64_t              UpperOrdinal    = 0u;                          // [-] - read at Ordinal; zero unbounds
+    std::uint64_t              UpperIndex    = 0u;                          // [-] - read at Index; zero unbounds
     std::uint32_t              RequiredSpace   = 0u;                          // [-] - read at Colour; zero accepts any
     std::vector<std::string>   RegisteredOptions = {};                          // [-] - read at Registration
     std::uint32_t              TextExtent      = 0u;                          // [-] - read at Text; zero unbounds
@@ -107,7 +107,7 @@ Outcome<bool> Validate(const PropertyDeclaration& Declared, const PropertyValue&
 
 /// 🧩 Brings one value inside a declaration's bounds where the measure accepts it.
 /// in    Declared  [-]  the declaration
-/// in    Offered   [-]  the value; returned bounded at Magnitude, Signed and Ordinal
+/// in    Offered   [-]  the value; returned bounded at Magnitude, Signed and Index
 /// out   Result   [-]  refuses when the measures disagree, because no bounding can reconcile that
 /// note  🔴 Offered as a **separate** call rather than folded into the write. `10` §2.2 requires the write to
 ///        refuse, so a write that bounded silently would accept a value the artist can neither see nor correct.

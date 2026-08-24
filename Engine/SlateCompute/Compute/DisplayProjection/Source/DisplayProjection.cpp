@@ -93,7 +93,7 @@ Outcome<bool> DisplayProjection::Contribute(RenderSchedule& Schedule) const
     //    orders a recording *after* the tone line, and this recording **is** the tone line — declaring it
     //    display-referred would place it among the amenders of its own output.
     Declared.DisplayReferred  = false;
-    Declared.AmendmentOrdinal = AmendmentOrdinal;
+    Declared.AmendmentIndex = AmendmentIndex;
 
     return Schedule.Contribute(Declared);
 }
@@ -121,8 +121,8 @@ Outcome<bool> DisplayProjection::AdvanceMetering(double ReducedLuminance, double
     //    crosses a bright scene in one step and a dark one in fifty.
     const double Target = std::log2(MiddleGreyLuminance / ReducedLuminance);
 
-    const double Ceiling = Exposing.MeteredCeiling;
-    const double Bounded = Target < -Ceiling ? -Ceiling : (Target > Ceiling ? Ceiling : Target);
+    const double Limit = Exposing.MeteredLimit;
+    const double Bounded = Target < -Limit ? -Limit : (Target > Limit ? Limit : Target);
 
     if (!MeteringCurrent)
     {

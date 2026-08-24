@@ -104,9 +104,9 @@ void GenerateBox(const PrimitiveSpecification& Declaring, GeneratedSurface& Gene
         {  0.0,  0.0, -1.0,  -1.0, 0.0,  0.0,   0.0, 1.0,  0.0 }    // [-] - the near side across
     };
 
-    for (std::size_t FaceOrdinal = 0u; FaceOrdinal < 6u; ++FaceOrdinal)
+    for (std::size_t FaceIndex = 0u; FaceIndex < 6u; ++FaceIndex)
     {
-        const double* Declared = Faces[FaceOrdinal];
+        const double* Declared = Faces[FaceIndex];
 
         const double CentreX  = Declared[0] * HalfX;
         const double CentreUp     = Declared[1] * HalfUp;
@@ -285,15 +285,15 @@ void GenerateRevolution(const PrimitiveSpecification& Declaring, GeneratedSurfac
     const double CapFacing[2]   = { -1.0,     1.0        };
     const double CapScales[2]   = {  1.0,     UpperFraction };
 
-    for (std::size_t CapOrdinal = 0u; CapOrdinal < 2u; ++CapOrdinal)
+    for (std::size_t CapIndex = 0u; CapIndex < 2u; ++CapIndex)
     {
-        if (CapScales[CapOrdinal] <= 0.0)
+        if (CapScales[CapIndex] <= 0.0)
         {
             continue;
         }
 
-        const std::uint32_t Centre = Generating.Emit(0.0, CapHeights[CapOrdinal], 0.0,
-                                                     0.0, CapFacing[CapOrdinal], 0.0,
+        const std::uint32_t Centre = Generating.Emit(0.0, CapHeights[CapIndex], 0.0,
+                                                     0.0, CapFacing[CapIndex], 0.0,
                                                      0.5, 0.5);
 
         const std::uint32_t FirstRim = Centre + 1u;
@@ -306,10 +306,10 @@ void GenerateRevolution(const PrimitiveSpecification& Declaring, GeneratedSurfac
             const double UnitX  = std::cos(Azimuth);
             const double UnitY = std::sin(Azimuth);
 
-            Generating.Emit(UnitX  * CapScales[CapOrdinal] * Declaring.HalfExtentX,
-                            CapHeights[CapOrdinal],
-                            UnitY * CapScales[CapOrdinal] * Declaring.HalfExtentY,
-                            0.0, CapFacing[CapOrdinal], 0.0,
+            Generating.Emit(UnitX  * CapScales[CapIndex] * Declaring.HalfExtentX,
+                            CapHeights[CapIndex],
+                            UnitY * CapScales[CapIndex] * Declaring.HalfExtentY,
+                            0.0, CapFacing[CapIndex], 0.0,
                             0.5 + 0.5 * UnitX, 0.5 + 0.5 * UnitY);
         }
 
@@ -320,7 +320,7 @@ void GenerateRevolution(const PrimitiveSpecification& Declaring, GeneratedSurfac
 
             // 📝 The two caps wind opposite ways because they face opposite ways. One winding for both is the
             //    defect where a cylinder is closed at one end and open at the other from outside.
-            if (CapFacing[CapOrdinal] > 0.0)
+            if (CapFacing[CapIndex] > 0.0)
             {
                 Generating.EmitFace(Centre, NearRim, FarRim);
             }
@@ -528,9 +528,9 @@ Outcome<bool> GeneratePrimitive(const PrimitiveSpecification& Declaring, Topolog
     std::vector<DomainCoordinate> PerCorner;
     PerCorner.reserve(static_cast<std::size_t>(Generated.CornerCount()));
 
-    for (std::uint32_t CornerOrdinal = 0u; CornerOrdinal < Generated.CornerCount(); ++CornerOrdinal)
+    for (std::uint32_t CornerIndex = 0u; CornerIndex < Generated.CornerCount(); ++CornerIndex)
     {
-        PerCorner.push_back(Generating.Coordinates[Generated.CornerVertex(CornerOrdinal)]);
+        PerCorner.push_back(Generating.Coordinates[Generated.CornerVertex(CornerIndex)]);
     }
 
     const Outcome<bool> Addressed = Generated.DeclareCoordinates(PerCorner);
@@ -610,18 +610,18 @@ Outcome<std::uint32_t> PrimitiveIndex::Declare(const PrimitiveSpecification& Dec
     Holding.DeclaredRevision = LatestRevision;
     Holding.SlotOccupied     = true;
 
-    if (!ReleasedOrdinals.empty())
+    if (!ReleasedIndexs.empty())
     {
-        const std::uint32_t Reused = ReleasedOrdinals.back();
+        const std::uint32_t Reused = ReleasedIndexs.back();
 
-        ReleasedOrdinals.pop_back();
+        ReleasedIndexs.pop_back();
         Primitives[Reused] = Holding;
         ++OccupiedCount;
 
         return Outcome<std::uint32_t>::Result(Reused);
     }
 
-    if (Primitives.size() >= static_cast<std::size_t>(PrimitiveCeiling))
+    if (Primitives.size() >= static_cast<std::size_t>(PrimitiveLimit))
     {
         return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "the declared primitive ceiling is reached" });
@@ -635,9 +635,9 @@ Outcome<std::uint32_t> PrimitiveIndex::Declare(const PrimitiveSpecification& Dec
     return Outcome<std::uint32_t>::Result(Registered);
 }
 
-Outcome<bool> PrimitiveIndex::Amend(std::uint32_t PrimitiveOrdinal, const PrimitiveSpecification& Amending)
+Outcome<bool> PrimitiveIndex::Amend(std::uint32_t PrimitiveIndex, const PrimitiveSpecification& Amending)
 {
-    if (PrimitiveOrdinal >= Primitives.size() || !Primitives[PrimitiveOrdinal].SlotOccupied)
+    if (PrimitiveIndex >= Primitives.size() || !Primitives[PrimitiveIndex].SlotOccupied)
     {
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no primitive is declared at that ordinal" });
     }
@@ -648,7 +648,7 @@ Outcome<bool> PrimitiveIndex::Amend(std::uint32_t PrimitiveOrdinal, const Primit
             { RefusalReason::ContentUnsupported, "the amended parameters generate no surface" });
     }
 
-    HeldPrimitive&                Holding  = Primitives[PrimitiveOrdinal];
+    HeldPrimitive&                Holding  = Primitives[PrimitiveIndex];
     const PrimitiveSpecification& Current = Holding.Declared;
 
     const bool SurfaceDiffers = Current.Generated        != Amending.Generated
@@ -673,41 +673,41 @@ Outcome<bool> PrimitiveIndex::Amend(std::uint32_t PrimitiveOrdinal, const Primit
     return Outcome<bool>::Result(true);
 }
 
-Outcome<const PrimitiveSpecification*> PrimitiveIndex::Resolve(std::uint32_t PrimitiveOrdinal) const
+Outcome<const PrimitiveSpecification*> PrimitiveIndex::Resolve(std::uint32_t PrimitiveIndex) const
 {
-    if (PrimitiveOrdinal >= Primitives.size() || !Primitives[PrimitiveOrdinal].SlotOccupied)
+    if (PrimitiveIndex >= Primitives.size() || !Primitives[PrimitiveIndex].SlotOccupied)
     {
         return Outcome<const PrimitiveSpecification*>::Refuse(
             { RefusalReason::ContentUnsupported, "no primitive is declared at that ordinal" });
     }
 
-    return Outcome<const PrimitiveSpecification*>::Result(&Primitives[PrimitiveOrdinal].Declared);
+    return Outcome<const PrimitiveSpecification*>::Result(&Primitives[PrimitiveIndex].Declared);
 }
 
-Outcome<bool> PrimitiveIndex::Withdraw(std::uint32_t PrimitiveOrdinal)
+Outcome<bool> PrimitiveIndex::Withdraw(std::uint32_t PrimitiveIndex)
 {
-    if (PrimitiveOrdinal >= Primitives.size() || !Primitives[PrimitiveOrdinal].SlotOccupied)
+    if (PrimitiveIndex >= Primitives.size() || !Primitives[PrimitiveIndex].SlotOccupied)
     {
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no primitive is declared at that ordinal" });
     }
 
-    Primitives[PrimitiveOrdinal].SlotOccupied     = false;
-    Primitives[PrimitiveOrdinal].DeclaredRevision = 0u;
+    Primitives[PrimitiveIndex].SlotOccupied     = false;
+    Primitives[PrimitiveIndex].DeclaredRevision = 0u;
 
-    ReleasedOrdinals.push_back(PrimitiveOrdinal);
+    ReleasedIndexs.push_back(PrimitiveIndex);
     --OccupiedCount;
 
     return Outcome<bool>::Result(true);
 }
 
-std::uint64_t PrimitiveIndex::Revision(std::uint32_t PrimitiveOrdinal) const
+std::uint64_t PrimitiveIndex::Revision(std::uint32_t PrimitiveIndex) const
 {
-    if (PrimitiveOrdinal >= Primitives.size() || !Primitives[PrimitiveOrdinal].SlotOccupied)
+    if (PrimitiveIndex >= Primitives.size() || !Primitives[PrimitiveIndex].SlotOccupied)
     {
         return 0u;
     }
 
-    return Primitives[PrimitiveOrdinal].DeclaredRevision;
+    return Primitives[PrimitiveIndex].DeclaredRevision;
 }
 
 std::uint32_t PrimitiveIndex::DeclaredCount() const
@@ -723,7 +723,7 @@ std::uint32_t PrimitiveIndex::SpannedCount() const
 void PrimitiveIndex::Reclaim()
 {
     Primitives.clear();
-    ReleasedOrdinals.clear();
+    ReleasedIndexs.clear();
 
     OccupiedCount  = 0u;
     LatestRevision = 0u;

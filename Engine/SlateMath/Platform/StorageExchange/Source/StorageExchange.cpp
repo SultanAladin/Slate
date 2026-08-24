@@ -126,7 +126,7 @@ Outcome<bool> StorageExchange::Open(const std::string& Path)
 
     DeclaredCount = 0u;
     PendingOrder.clear();
-    PendingOrdinal.clear();
+    PendingIndex.clear();
     DrainedRanges.clear();
 
     return Outcome<bool>::Result(true);
@@ -147,7 +147,7 @@ void StorageExchange::Reclaim()
     StreamSpanned = 0u;
     DeclaredCount = 0u;
     PendingOrder.clear();
-    PendingOrdinal.clear();
+    PendingIndex.clear();
     DrainedRanges.clear();
 }
 
@@ -168,7 +168,7 @@ Outcome<std::uint32_t> StorageExchange::Declare(RangeRequest Wanted)
     if (Wanted.SpannedBytes == 0u)
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::HostDenied, "an empty range asks for nothing" });
 
-    if (Wanted.SpannedBytes > RangeCeiling)
+    if (Wanted.SpannedBytes > RangeLimit)
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted,
                                                 "the range spans beyond the declared ceiling" });
 
@@ -184,7 +184,7 @@ Outcome<std::uint32_t> StorageExchange::Declare(RangeRequest Wanted)
     ++DeclaredCount;
 
     PendingOrder.push_back(Wanted);
-    PendingOrdinal.push_back(Registered);
+    PendingIndex.push_back(Registered);
 
     return Outcome<std::uint32_t>::Result(Registered);
 }
@@ -208,12 +208,12 @@ const std::vector<RangeArrival>& StorageExchange::Drain()
 
     DrainedRanges.reserve(PendingOrder.size());
 
-    for (std::size_t Ordinal = 0u; Ordinal < PendingOrder.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < PendingOrder.size(); ++Index)
     {
-        const RangeRequest& Wanted = PendingOrder[Ordinal];
+        const RangeRequest& Wanted = PendingOrder[Index];
 
         RangeArrival Sampled;
-        Sampled.Declared = PendingOrdinal[Ordinal];
+        Sampled.Declared = PendingIndex[Index];
         Sampled.Offset   = Wanted.Offset;
 
         const TickPoint Began = LatencyTimeline.Advance();
@@ -300,7 +300,7 @@ const std::vector<RangeArrival>& StorageExchange::Drain()
     }
 
     PendingOrder.clear();
-    PendingOrdinal.clear();
+    PendingIndex.clear();
 
     return DrainedRanges;
 }

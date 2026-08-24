@@ -1,11 +1,12 @@
 //============================================================================================================================================
 //                                                            VISIBILITYRASTER.CPP
 //============================================================================================================================================
-// 🧩 The composition, the fan, the residency it becomes, and the one recording that writes `16` §4's targets.
+// 🧩 View composition, authoritative triangle residency, and the recording that writes `16` §4's targets.
 
 #include "SlateCompute/Compute/VisibilityIndex/Api/VisibilityRaster.h"
 
 #include <cstring>
+#include <utility>
 
 namespace Slate
 {
@@ -65,7 +66,7 @@ ProjectedTransform ComposeVisibilityTransform(const ViewProjection&     Viewing,
 //                                                      CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> VisibilityRaster::Construct(SpanSpace&        Spans,
+Outcome<bool> VisibilityRaster::ConstructVisibilityRaster(SpanSpace&        Spans,
                                           ShaderCodec&      Modules,
                                           DescriptorIndex&  Descriptors,
                                           ProgramIndex&     Programs,
@@ -84,19 +85,19 @@ Outcome<bool> VisibilityRaster::Construct(SpanSpace&        Spans,
     std::vector<DescriptorSlot> Declared;
 
     DescriptorSlot Projecting;
-    Projecting.SlotOrdinal    = 0u;
+    Projecting.SlotIndex    = 0u;
     Projecting.Carried        = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     Projecting.CarriedCount   = 1u;
     Projecting.ReachingStages = VK_SHADER_STAGE_VERTEX_BIT;
 
     DescriptorSlot Positions;
-    Positions.SlotOrdinal     = 1u;
+    Positions.SlotIndex     = 1u;
     Positions.Carried         = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     Positions.CarriedCount    = 1u;
     Positions.ReachingStages  = VK_SHADER_STAGE_VERTEX_BIT;
 
     DescriptorSlot Triangles;
-    Triangles.SlotOrdinal     = 2u;
+    Triangles.SlotIndex     = 2u;
     Triangles.Carried         = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     Triangles.CarriedCount    = 1u;
     Triangles.ReachingStages  = VK_SHADER_STAGE_VERTEX_BIT;
@@ -104,7 +105,7 @@ Outcome<bool> VisibilityRaster::Construct(SpanSpace&        Spans,
     // 📝 Bound on every route. The entry point names it statically, so the vendor requires it present whether
     //    or not `SurvivingResolved` routes the corner through it.
     DescriptorSlot Surviving;
-    Surviving.SlotOrdinal     = 3u;
+    Surviving.SlotIndex     = 3u;
     Surviving.Carried         = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     Surviving.CarriedCount    = 1u;
     Surviving.ReachingStages  = VK_SHADER_STAGE_VERTEX_BIT;
@@ -119,7 +120,7 @@ Outcome<bool> VisibilityRaster::Construct(SpanSpace&        Spans,
     if (!Layout.Resolved)
         return Outcome<bool>::Refuse(Layout.Error);
 
-    LayoutOrdinal = Layout.Resolve();
+    LayoutIndex = Layout.Resolve();
 
     // 📝 The stems are the source file names without their extension, which is what the build lowers each
     //    `[shader(...)]` translation to. Each carries exactly one entry point, so each is named `main` and
@@ -149,9 +150,9 @@ Outcome<bool> VisibilityRaster::Construct(SpanSpace&        Spans,
     if (!Construct_.Resolved)
         return Outcome<bool>::Refuse(Construct_.Error);
 
-    ConstructOrdinal = Construct_.Resolve();
+    ConstructIndex = Construct_.Resolve();
 
-    const Outcome<VkRenderPass> Current = AttachmentEdge->ConstructOf(ConstructOrdinal);
+    const Outcome<VkRenderPass> Current = AttachmentEdge->ConstructOf(ConstructIndex);
 
     if (!Current.Resolved)
         return Outcome<bool>::Refuse(Current.Error);
@@ -162,7 +163,7 @@ Outcome<bool> VisibilityRaster::Construct(SpanSpace&        Spans,
     GraphicsDeclaration Programmed;
     Programmed.VertexModule          = CornerModule;
     Programmed.FragmentModule        = SurfaceModule;
-    Programmed.LayoutOrdinals        = { LayoutOrdinal };
+    Programmed.LayoutIndexs        = { LayoutIndex };
     Programmed.RenderConstruct       = Current.Resolve();
     Programmed.ColourAttachmentCount = 2u;
     Programmed.Assembled             = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -176,91 +177,96 @@ Outcome<bool> VisibilityRaster::Construct(SpanSpace&        Spans,
     if (!Program.Resolved)
         return Outcome<bool>::Refuse(Program.Error);
 
-    ProgramOrdinal = Program.Resolve();
+    ProgramSlotIndex = Program.Resolve();
 
     return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                                        THE FAN
+//                                                   THE TRIANGLE ARRANGEMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<std::vector<UploadedTriangle>> VisibilityRaster::Fan(const PartitionStructure&  Registered,
-                                                            const TopologyStructure&   Imported,
-                                                            std::uint32_t              RegistrationBase) const
+Outcome<std::vector<UploadedTriangle>> VisibilityRaster::ArrangeTriangles(
+    const PartitionStructure&        Registered,
+    const GeometryRenderingSnapshot& Rendering,
+    std::uint32_t                    RegistrationBase) const
 {
-    using Fanned = std::vector<UploadedTriangle>;
+    using Arranged = std::vector<UploadedTriangle>;
 
     const DerivedPartitioning& Current = Registered.Current();
+    if (Rendering.Vertices.empty() || Rendering.Triangles.empty())
+        return Outcome<Arranged>::Refuse({ RefusalReason::ContentUnsupported,
+                                           "the rendering packet carries no drawable triangles" });
 
-    Fanned Drawn;
-    Drawn.reserve(Imported.CornerCount());
+    std::uint32_t GreatestFace = 0u;
+    for (const std::uint32_t Face : Current.OrderedFaces)
+        GreatestFace = Face > GreatestFace ? Face : GreatestFace;
 
-    for (std::size_t PartitionOrdinal = 0u; PartitionOrdinal < Current.Partitions.size(); ++PartitionOrdinal)
+    std::vector<std::uint32_t> PartitionOfFace(static_cast<std::size_t>(GreatestFace) + 1u,
+                                                AbsentPartition);
+    for (std::uint32_t PartitionIndex = 0u;
+         PartitionIndex < Current.Partitions.size(); ++PartitionIndex)
     {
-        const MicroSurfacePartition& Partitioned = Current.Partitions[PartitionOrdinal];
-
-        // 🔴 The ordinal written into every pixel is document-wide and the one counted here is not. `16` §4
-        //    splits the two components exactly so, and `Register` lays the registrations end to end — so the first
-        //    component is the registration's base plus the partition's position within this partitioning.
-        const std::uint32_t Document = RegistrationBase + static_cast<std::uint32_t>(PartitionOrdinal);
-
-        std::uint32_t Within = 0u;
-
+        const MicroSurfacePartition& Partitioned = Current.Partitions[PartitionIndex];
         for (std::uint32_t Spanned = 0u; Spanned < Partitioned.FaceCount; ++Spanned)
         {
             const std::size_t Ordered = static_cast<std::size_t>(Partitioned.FirstFace) + Spanned;
-
             if (Ordered >= Current.OrderedFaces.size())
-            {
-                return Outcome<Fanned>::Refuse(
-                    { RefusalReason::ContentUnsupported, "a partition spans past the derived ordering" });
-            }
+                return Outcome<Arranged>::Refuse({ RefusalReason::ContentUnsupported,
+                                                   "a partition spans past the derived ordering" });
 
             const std::uint32_t Face = Current.OrderedFaces[Ordered];
-
-            if (Face >= Imported.FaceCount())
-            {
-                return Outcome<Fanned>::Refuse(
-                    { RefusalReason::ContentUnsupported, "the ordering names a face the topology does not carry" });
-            }
-
-            const std::uint32_t FirstCorner = Imported.FaceFirstCorner(Face);
-            const std::uint32_t CornerCount = Imported.FaceCornerCount(Face);
-
-            // 📝 A triangle fan from the first corner, which is `10`'s own winding preserved. `50` §2 ① never
-            //    repairs, so a concave n-gon fans into triangles that overlap — and that is the artist's face
-            //    reproduced rather than a retriangulation nothing in the document asked for.
-            for (std::uint32_t Corner = 2u; Corner < CornerCount; ++Corner)
-            {
-                UploadedTriangle Triangle;
-                Triangle.CornerVertex0    = Imported.CornerVertex(FirstCorner);
-                Triangle.CornerVertex1    = Imported.CornerVertex(FirstCorner + Corner - 1u);
-                Triangle.CornerVertex2    = Imported.CornerVertex(FirstCorner + Corner);
-                Triangle.PartitionOrdinal = Document;
-                Triangle.TriangleOrdinal  = Within;
-
-                Drawn.push_back(Triangle);
-
-                ++Within;
-            }
-        }
-
-        // 🔴 The two counts are compared rather than trusted. `16` §1 counts the fan triangles the spanned faces
-        //    amount to and this derives them; a fan derived differently at the two sites hands the pixel a
-        //    triangle ordinal `18` resolves to another triangle of the same partition, which shades as a surface
-        //    that is very nearly the right one.
-        if (Within != Partitioned.TriangleCount)
-        {
-            return Outcome<Fanned>::Refuse(
-                { RefusalReason::ContentUnsupported, "the fan disagrees with the partition's declared count" });
+            if (Face >= PartitionOfFace.size())
+                return Outcome<Arranged>::Refuse({ RefusalReason::ContentUnsupported,
+                                                   "the ordering names an unavailable source face" });
+            PartitionOfFace[Face] = PartitionIndex;
         }
     }
 
-    if (Drawn.empty())
-        return Outcome<Fanned>::Refuse({ RefusalReason::ContentUnsupported, "the partitioning fans to no triangle" });
+    std::vector<Arranged> ByPartition(Current.Partitions.size());
+    for (const GeometryRenderingTriangle& Source : Rendering.Triangles)
+    {
+        if (Source.SourceFace >= PartitionOfFace.size() ||
+            PartitionOfFace[Source.SourceFace] == AbsentPartition)
+        {
+            return Outcome<Arranged>::Refuse({ RefusalReason::ContentUnsupported,
+                                               "an Earcut triangle names a face outside the partitioning" });
+        }
+        if (Source.Corners[0] >= Rendering.Vertices.size() ||
+            Source.Corners[1] >= Rendering.Vertices.size() ||
+            Source.Corners[2] >= Rendering.Vertices.size())
+        {
+            return Outcome<Arranged>::Refuse({ RefusalReason::ContentUnsupported,
+                                               "an Earcut triangle names an unavailable rendering corner" });
+        }
 
-    return Outcome<Fanned>::Result(Drawn);
+        const std::uint32_t PartitionIndex = PartitionOfFace[Source.SourceFace];
+        Arranged& PartitionTriangles = ByPartition[PartitionIndex];
+
+        UploadedTriangle Triangle;
+        Triangle.CornerVertex0  = Source.Corners[0];
+        Triangle.CornerVertex1  = Source.Corners[1];
+        Triangle.CornerVertex2  = Source.Corners[2];
+        Triangle.PartitionIndex = RegistrationBase + PartitionIndex;
+        Triangle.TriangleIndex  = static_cast<std::uint32_t>(PartitionTriangles.size());
+        PartitionTriangles.push_back(Triangle);
+    }
+
+    Arranged Drawn;
+    Drawn.reserve(Rendering.Triangles.size());
+    for (std::uint32_t PartitionIndex = 0u;
+         PartitionIndex < Current.Partitions.size(); ++PartitionIndex)
+    {
+        const Arranged& PartitionTriangles = ByPartition[PartitionIndex];
+        if (PartitionTriangles.size() != Current.Partitions[PartitionIndex].TriangleCount)
+        {
+            return Outcome<Arranged>::Refuse({ RefusalReason::ContentUnsupported,
+                                               "Earcut output disagrees with the partition triangle count" });
+        }
+        Drawn.insert(Drawn.end(), PartitionTriangles.begin(), PartitionTriangles.end());
+    }
+
+    return Outcome<Arranged>::Result(std::move(Drawn));
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -282,13 +288,13 @@ Outcome<std::uint32_t> VisibilityRaster::Stage(const void*      Incoming,
     if (!Staged.Resolved)
         return Outcome<std::uint32_t>::Refuse(Staged.Error);
 
-    const std::uint32_t StagedOrdinal = Staged.Resolve().SpanOrdinal;
+    const std::uint32_t StagedIndex = Staged.Resolve().SpanIndex;
 
     // 📝 Retained before the write, so that a refusal below still releases it at the next surrender. A staging
     //    span recorded nowhere is one nothing returns until the device is torn down.
-    StagedSpans.push_back(StagedOrdinal);
+    StagedSpans.push_back(StagedIndex);
 
-    const Outcome<bool> Written = SpanEdge->Amend(StagedOrdinal, Incoming, IncomingBytes, 0u);
+    const Outcome<bool> Written = SpanEdge->Amend(StagedIndex, Incoming, IncomingBytes, 0u);
 
     if (!Written.Resolved)
         return Outcome<std::uint32_t>::Refuse(Written.Error);
@@ -303,17 +309,17 @@ Outcome<std::uint32_t> VisibilityRaster::Stage(const void*      Incoming,
     if (!Reserved.Resolved)
         return Outcome<std::uint32_t>::Refuse(Reserved.Error);
 
-    const std::uint32_t ResidentOrdinal = Reserved.Resolve().SpanOrdinal;
+    const std::uint32_t ResidentIndex = Reserved.Resolve().SpanIndex;
 
-    const Outcome<bool> Carried = SpanEdge->Transfer(Recorded, StagedOrdinal, ResidentOrdinal, IncomingBytes);
+    const Outcome<bool> Carried = SpanEdge->Transfer(Recorded, StagedIndex, ResidentIndex, IncomingBytes);
 
     if (!Carried.Resolved)
     {
-        SpanEdge->Release(ResidentOrdinal);
+        SpanEdge->Release(ResidentIndex);
         return Outcome<std::uint32_t>::Refuse(Carried.Error);
     }
 
-    return Outcome<std::uint32_t>::Result(ResidentOrdinal);
+    return Outcome<std::uint32_t>::Result(ResidentIndex);
 }
 
 void VisibilityRaster::Abandon(ResidentPartitioning& Abandoned)
@@ -340,11 +346,11 @@ void VisibilityRaster::Abandon(ResidentPartitioning& Abandoned)
 //                                                     THE RESIDENCY
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<std::uint32_t> VisibilityRaster::Resolve(const PartitionStructure&  Registered,
-                                                 const TopologyStructure&   Imported,
+Outcome<std::uint32_t> VisibilityRaster::Resolve(const PartitionStructure&        Registered,
+                                                 const GeometryRenderingSnapshot& Rendering,
                                                  std::uint32_t              RegistrationBase,
                                                  const OcclusionScheduler*  Culling,
-                                                 std::uint32_t              CullingOrdinal,
+                                                 std::uint32_t              CullingIndex,
                                                  VkCommandBuffer            Recorded)
 {
     if (SpanEdge == nullptr || DescriptorEdge == nullptr)
@@ -353,42 +359,37 @@ Outcome<std::uint32_t> VisibilityRaster::Resolve(const PartitionStructure&  Regi
     if (Recorded == VK_NULL_HANDLE)
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no recording was supplied" });
 
-    if (!Imported.Sealed())
-        return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "the topology is not sealed" });
-
     if (!Registered.PartitioningCurrent())
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no partitioning stands" });
 
-    // 🔴 The two must describe one revision. A partitioning derived from an earlier seal addresses faces the
-    //    topology has since renumbered nothing about — `10` forbids renumbering — but it spans a face count the
-    //    topology no longer has, and the fan then reads corners belonging to another face entirely.
-    if (Registered.DescribedRevision() != Imported.Revision())
+    // 🔴 The two must describe one revision. A partitioning derived from an earlier seal can group source-face
+    //    ordinals differently from this Earcut packet even though neither side renumbers the author's faces.
+    if (Registered.DescribedRevision() != Rendering.TopologyRevision)
     {
         return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::IdentityStale, "the partitioning describes another revision of the topology" });
     }
 
-    const Outcome<std::vector<UploadedTriangle>> Fanned = Fan(Registered, Imported, RegistrationBase);
+    const Outcome<std::vector<UploadedTriangle>> Arranged =
+        ArrangeTriangles(Registered, Rendering, RegistrationBase);
 
-    if (!Fanned.Resolved)
-        return Outcome<std::uint32_t>::Refuse(Fanned.Error);
+    if (!Arranged.Resolved)
+        return Outcome<std::uint32_t>::Refuse(Arranged.Error);
 
-    const std::vector<UploadedTriangle>& Drawn = Fanned.Resolve();
+    const std::vector<UploadedTriangle>& Drawn = Arranged.Resolve();
 
     // 🔴 Narrowed here and nowhere else, and narrowed in **object** space where the extent is the owner's own.
     //    `02`'s rule is that a document position never narrows; an object position is not one, and the rebasing
     //    it would otherwise need rides in the composed transform instead.
-    const std::vector<DocumentPosition>& Positioned = Imported.Positions();
-
     std::vector<UploadedPosition> Narrowed;
-    Narrowed.reserve(Positioned.size());
+    Narrowed.reserve(Rendering.Vertices.size());
 
-    for (const DocumentPosition& Held : Positioned)
+    for (const GeometryRenderingVertex& Held : Rendering.Vertices)
     {
         UploadedPosition Uploaded;
-        Uploaded.PositionX = static_cast<float>(Held.PositionX);
-        Uploaded.PositionY = static_cast<float>(Held.PositionY);
-        Uploaded.PositionZ = static_cast<float>(Held.PositionZ);
+        Uploaded.PositionX = static_cast<float>(Held.Position.PositionX);
+        Uploaded.PositionY = static_cast<float>(Held.Position.PositionY);
+        Uploaded.PositionZ = static_cast<float>(Held.Position.PositionZ);
 
         Narrowed.push_back(Uploaded);
     }
@@ -398,7 +399,7 @@ Outcome<std::uint32_t> VisibilityRaster::Resolve(const PartitionStructure&  Regi
     Incoming.TriangleCount  = static_cast<std::uint32_t>(Drawn.size());
     Incoming.RegistrationBase  = RegistrationBase;
     Incoming.PartitionCount = Registered.PartitionCount();
-    Incoming.CullingOrdinal = Culling != nullptr ? CullingOrdinal : AbsentSpan;
+    Incoming.CullingIndex = Culling != nullptr ? CullingIndex : AbsentSpan;
 
     const Outcome<std::uint32_t> Positions =
         Stage(Narrowed.data(),
@@ -428,7 +429,7 @@ Outcome<std::uint32_t> VisibilityRaster::Resolve(const PartitionStructure&  Regi
     // 📝 One host-writable uniform per cycle slot. `06` §2.1 accepts explicit sets per slot precisely so that
     //    the block a recording writes is never the block the previous rotation is still reading, and a single
     //    block shared across the depth would reintroduce that read at the one site the depth exists for.
-    for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < RecordingSlotCount; ++SlotOrdinal)
+    for (std::uint32_t SlotIndex = 0u; SlotIndex < RecordingSlotCount; ++SlotIndex)
     {
         SpanShape Uniform;
         Uniform.SpanBytes = static_cast<VkDeviceSize>(sizeof(UploadedProjection));
@@ -443,17 +444,17 @@ Outcome<std::uint32_t> VisibilityRaster::Resolve(const PartitionStructure&  Regi
             return Outcome<std::uint32_t>::Refuse(Reserved.Error);
         }
 
-        Incoming.UniformSpans.push_back(Reserved.Resolve().SpanOrdinal);
+        Incoming.UniformSpans.push_back(Reserved.Resolve().SpanIndex);
     }
 
     // 📝 One claim for the direct route and one per culling phase. Three rather than one because slot three
     //    names a different span in each, and a set is written once at registration and never rewritten.
-    for (std::uint32_t ReservationOrdinal = 0u; ReservationOrdinal < RasterReservationCount; ++ReservationOrdinal)
+    for (std::uint32_t ReservationIndex = 0u; ReservationIndex < RasterReservationCount; ++ReservationIndex)
     {
-        if (ReservationOrdinal != DirectReservationOrdinal && Incoming.CullingOrdinal == AbsentSpan)
+        if (ReservationIndex != DirectReservationIndex && Incoming.CullingIndex == AbsentSpan)
             break;
 
-        const Outcome<std::uint32_t> Reservation = DescriptorEdge->Reserve(LayoutOrdinal);
+        const Outcome<std::uint32_t> Reservation = DescriptorEdge->Reserve(LayoutIndex);
 
         if (!Reservation.Resolved)
         {
@@ -461,17 +462,17 @@ Outcome<std::uint32_t> VisibilityRaster::Resolve(const PartitionStructure&  Regi
             return Outcome<std::uint32_t>::Refuse(Reservation.Error);
         }
 
-        Incoming.ReservationOrdinals.push_back(Reservation.Resolve());
+        Incoming.ReservationIndexs.push_back(Reservation.Resolve());
     }
 
     // 🔴 Written once per cycle slot, here, and never inside a recording. Every span the set names stands for
     //    the residency's whole life, so a per-slot write would rewrite one arrangement with itself — and
     //    would write it into a set the previous rotation's recording still reads.
-    for (std::uint32_t ReservationOrdinal = 0u; ReservationOrdinal < Incoming.ReservationOrdinals.size(); ++ReservationOrdinal)
+    for (std::uint32_t ReservationIndex = 0u; ReservationIndex < Incoming.ReservationIndexs.size(); ++ReservationIndex)
     {
-        for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < RecordingSlotCount; ++SlotOrdinal)
+        for (std::uint32_t SlotIndex = 0u; SlotIndex < RecordingSlotCount; ++SlotIndex)
         {
-            const Outcome<SpanReservation> Uniform  = SpanEdge->Current(Incoming.UniformSpans[SlotOrdinal]);
+            const Outcome<SpanReservation> Uniform  = SpanEdge->Current(Incoming.UniformSpans[SlotIndex]);
             const Outcome<SpanReservation> Position = SpanEdge->Current(Incoming.PositionSpan);
             const Outcome<SpanReservation> Triangle = SpanEdge->Current(Incoming.TriangleSpan);
 
@@ -487,12 +488,12 @@ Outcome<std::uint32_t> VisibilityRaster::Resolve(const PartitionStructure&  Regi
             VkBuffer     SurvivingExtent = Triangle.Resolve().Extent;
             VkDeviceSize SurvivingBytes  = Triangle.Resolve().SpanBytes;
 
-            if (ReservationOrdinal != DirectReservationOrdinal)
+            if (ReservationIndex != DirectReservationIndex)
             {
-                const CullingPhase Phase = static_cast<CullingPhase>(ReservationOrdinal - 1u);
+                const CullingPhase Phase = static_cast<CullingPhase>(ReservationIndex - 1u);
 
                 const Outcome<VkBuffer> Compacted =
-                    Culling->SurvivingOf(Incoming.CullingOrdinal, SlotOrdinal, Phase);
+                    Culling->SurvivingOf(Incoming.CullingIndex, SlotIndex, Phase);
 
                 if (!Compacted.Resolved)
                 {
@@ -505,22 +506,22 @@ Outcome<std::uint32_t> VisibilityRaster::Resolve(const PartitionStructure&  Regi
             }
 
             DescriptorContent Projecting;
-            Projecting.SlotOrdinal = 0u;
+            Projecting.SlotIndex = 0u;
             Projecting.SpanExtent  = Uniform.Resolve().Extent;
             Projecting.SpanBytes   = Uniform.Resolve().SpanBytes;
 
             DescriptorContent Positions_;
-            Positions_.SlotOrdinal = 1u;
+            Positions_.SlotIndex = 1u;
             Positions_.SpanExtent  = Position.Resolve().Extent;
             Positions_.SpanBytes   = Position.Resolve().SpanBytes;
 
             DescriptorContent Triangles_;
-            Triangles_.SlotOrdinal = 2u;
+            Triangles_.SlotIndex = 2u;
             Triangles_.SpanExtent  = Triangle.Resolve().Extent;
             Triangles_.SpanBytes   = Triangle.Resolve().SpanBytes;
 
             DescriptorContent Surviving_;
-            Surviving_.SlotOrdinal = 3u;
+            Surviving_.SlotIndex = 3u;
             Surviving_.SpanExtent  = SurvivingExtent;
             Surviving_.SpanBytes   = SurvivingBytes;
 
@@ -528,7 +529,7 @@ Outcome<std::uint32_t> VisibilityRaster::Resolve(const PartitionStructure&  Regi
                 { Projecting, Positions_, Triangles_, Surviving_ };
 
             const Outcome<bool> Amended =
-                DescriptorEdge->Amend(Incoming.ReservationOrdinals[ReservationOrdinal], SlotOrdinal, Amending);
+                DescriptorEdge->Amend(Incoming.ReservationIndexs[ReservationIndex], SlotIndex, Amending);
 
             if (!Amended.Resolved)
             {
@@ -538,11 +539,11 @@ Outcome<std::uint32_t> VisibilityRaster::Resolve(const PartitionStructure&  Regi
         }
     }
 
-    const std::uint32_t ResidencyOrdinal = static_cast<std::uint32_t>(Resident.size());
+    const std::uint32_t ResidencyIndex = static_cast<std::uint32_t>(Resident.size());
 
     Resident.push_back(Incoming);
 
-    return Outcome<std::uint32_t>::Result(ResidencyOrdinal);
+    return Outcome<std::uint32_t>::Result(ResidencyIndex);
 }
 
 void VisibilityRaster::Release()
@@ -574,12 +575,12 @@ Outcome<bool> VisibilityRaster::Derive(std::uint32_t DisplayX, std::uint32_t Dis
 
 Outcome<ConstructedSpan> VisibilityRaster::Open(VkCommandBuffer Recorded, ConstructedProgram& Constructed)
 {
-    const Outcome<ConstructedSpan> Spanned = AttachmentEdge->Resolve(ConstructOrdinal);
+    const Outcome<ConstructedSpan> Spanned = AttachmentEdge->Resolve(ConstructIndex);
 
     if (!Spanned.Resolved)
         return Spanned;
 
-    const Outcome<ConstructedProgram> Program = ProgramEdge->Resolve(ProgramOrdinal);
+    const Outcome<ConstructedProgram> Program = ProgramEdge->Resolve(ProgramSlotIndex);
 
     if (!Program.Resolved)
         return Outcome<ConstructedSpan>::Refuse(Program.Error);
@@ -639,7 +640,7 @@ Outcome<ConstructedSpan> VisibilityRaster::Open(VkCommandBuffer Recorded, Constr
 }
 
 Outcome<bool> VisibilityRaster::Project(const ResidentPartitioning& Current,
-                                        std::uint32_t               SlotOrdinal,
+                                        std::uint32_t               SlotIndex,
                                         const ViewProjection&       Viewing,
                                         const ConstructedSpan&      Covering,
                                         bool                        SurvivingResolved)
@@ -660,14 +661,14 @@ Outcome<bool> VisibilityRaster::Project(const ResidentPartitioning& Current,
     Projecting.DrawnPartitionCount = Current.PartitionCount;
     Projecting.SurvivingResolved   = SurvivingResolved ? 1u : 0u;
 
-    return SpanEdge->Amend(Current.UniformSpans[SlotOrdinal],
+    return SpanEdge->Amend(Current.UniformSpans[SlotIndex],
                            &Projecting,
                            static_cast<VkDeviceSize>(sizeof(Projecting)),
                            0u);
 }
 
 Outcome<bool> VisibilityRaster::Record(VkCommandBuffer        Recorded,
-                                       std::uint32_t          SlotOrdinal,
+                                       std::uint32_t          SlotIndex,
                                        const ViewProjection&  Viewing)
 {
     if (SpanEdge == nullptr || ProgramEdge == nullptr || AttachmentEdge == nullptr)
@@ -676,7 +677,7 @@ Outcome<bool> VisibilityRaster::Record(VkCommandBuffer        Recorded,
     if (Recorded == VK_NULL_HANDLE)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no recording was supplied" });
 
-    if (SlotOrdinal >= RecordingSlotCount)
+    if (SlotIndex >= RecordingSlotCount)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the cycle slot is outside the depth" });
 
     ConstructedProgram Constructed;
@@ -693,7 +694,7 @@ Outcome<bool> VisibilityRaster::Record(VkCommandBuffer        Recorded,
         if (Current.TriangleCount == 0u)
             continue;
 
-        const Outcome<bool> Written = Project(Current, SlotOrdinal, Viewing, Covering, false);
+        const Outcome<bool> Written = Project(Current, SlotIndex, Viewing, Covering, false);
 
         if (!Written.Resolved)
         {
@@ -702,7 +703,7 @@ Outcome<bool> VisibilityRaster::Record(VkCommandBuffer        Recorded,
         }
 
         const Outcome<VkDescriptorSet> Reaching =
-            DescriptorEdge->Resolve(Current.ReservationOrdinals[DirectReservationOrdinal], SlotOrdinal);
+            DescriptorEdge->Resolve(Current.ReservationIndexs[DirectReservationIndex], SlotIndex);
 
         if (!Reaching.Resolved)
         {
@@ -731,7 +732,7 @@ Outcome<bool> VisibilityRaster::Record(VkCommandBuffer        Recorded,
 //------------------------------------------------------------------------------------------------------------------------
 
 Outcome<bool> VisibilityRaster::RecordIndirect(VkCommandBuffer           Recorded,
-                                               std::uint32_t             SlotOrdinal,
+                                               std::uint32_t             SlotIndex,
                                                const ViewProjection&     Viewing,
                                                const OcclusionScheduler& Culling,
                                                CullingPhase              Phase)
@@ -742,7 +743,7 @@ Outcome<bool> VisibilityRaster::RecordIndirect(VkCommandBuffer           Recorde
     if (Recorded == VK_NULL_HANDLE)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no recording was supplied" });
 
-    if (SlotOrdinal >= RecordingSlotCount || Phase == CullingPhase::PhaseCount)
+    if (SlotIndex >= RecordingSlotCount || Phase == CullingPhase::PhaseCount)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such cycle slot or phase" });
 
     ConstructedProgram Constructed;
@@ -753,7 +754,7 @@ Outcome<bool> VisibilityRaster::RecordIndirect(VkCommandBuffer           Recorde
         return Outcome<bool>::Refuse(Opened.Error);
 
     const ConstructedSpan& Covering       = Opened.Resolve();
-    const std::uint32_t    ReservationOrdinal   = 1u + static_cast<std::uint32_t>(Phase);
+    const std::uint32_t    ReservationIndex   = 1u + static_cast<std::uint32_t>(Phase);
 
     for (const ResidentPartitioning& Current : Resident)
     {
@@ -763,14 +764,14 @@ Outcome<bool> VisibilityRaster::RecordIndirect(VkCommandBuffer           Recorde
         // 🔴 A residency that declared no culling ordinal is rejected rather than drawn directly. Falling back
         //    would draw every triangle of it beside the compacted survivors of its neighbours, and the artist
         //    would meet one owner of a scene costing what the whole scene costs with no way to see why.
-        if (Current.CullingOrdinal == AbsentSpan || Current.ReservationOrdinals.size() <= ReservationOrdinal)
+        if (Current.CullingIndex == AbsentSpan || Current.ReservationIndexs.size() <= ReservationIndex)
         {
             vkCmdEndRenderPass(Recorded);
             return Outcome<bool>::Refuse(
                 { RefusalReason::ContentUnsupported, "the residency declared no culling ordinal" });
         }
 
-        const Outcome<bool> Written = Project(Current, SlotOrdinal, Viewing, Covering, true);
+        const Outcome<bool> Written = Project(Current, SlotIndex, Viewing, Covering, true);
 
         if (!Written.Resolved)
         {
@@ -779,7 +780,7 @@ Outcome<bool> VisibilityRaster::RecordIndirect(VkCommandBuffer           Recorde
         }
 
         const Outcome<VkBuffer> Recording =
-            Culling.RecordOf(Current.CullingOrdinal, SlotOrdinal, Phase);
+            Culling.RecordOf(Current.CullingIndex, SlotIndex, Phase);
 
         if (!Recording.Resolved)
         {
@@ -788,7 +789,7 @@ Outcome<bool> VisibilityRaster::RecordIndirect(VkCommandBuffer           Recorde
         }
 
         const Outcome<VkDescriptorSet> Reaching =
-            DescriptorEdge->Resolve(Current.ReservationOrdinals[ReservationOrdinal], SlotOrdinal);
+            DescriptorEdge->Resolve(Current.ReservationIndexs[ReservationIndex], SlotIndex);
 
         if (!Reaching.Resolved)
         {
@@ -843,7 +844,7 @@ std::uint32_t VisibilityRaster::DrawnTriangleCount() const
 
 bool VisibilityRaster::ProgramCurrent() const
 {
-    return ProgramOrdinal != AbsentProgram;
+    return ProgramSlotIndex != AbsentProgram;
 }
 
 }   // namespace Slate

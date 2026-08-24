@@ -189,7 +189,7 @@ void BrushSpecification::DeclareVariation(const VaryingSpecification& Declaring)
 //------------------------------------------------------------------------------------------------------------------------
 
 ResolvedBrush BrushSpecification::Resolve(const ResolvedAxes& Axes,
-                                          std::uint32_t       ImpressionOrdinal,
+                                          std::uint32_t       ImpressionIndex,
                                           std::uint32_t       StrokeSeed) const
 {
     ResolvedBrush Resolved;
@@ -224,7 +224,7 @@ ResolvedBrush BrushSpecification::Resolve(const ResolvedAxes& Axes,
     //    own. Reusing one draw across the four would correlate extent with rotation, and every impression would
     //    lean the same way as it grew — which reads as a brush with a defect rather than as a brush with
     //    variation.
-    const std::uint32_t Seeded = StrokeSeed * 0x9E3779B9u + ImpressionOrdinal * 4u;
+    const std::uint32_t Seeded = StrokeSeed * 0x9E3779B9u + ImpressionIndex * 4u;
 
     if (DeclaredVariation.ExtentVariation != 0.0)
     {
@@ -316,42 +316,42 @@ bool BrushSpecification::ChannelDeclared(ChannelSubject Channel) const
 
 Outcome<std::uint32_t> BrushIndex::Declare(const std::string& Named, const std::string& Grouping)
 {
-    if (Declared.size() >= BrushCeiling)
+    if (Declared.size() >= BrushLimit)
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "the brush ceiling was reached" });
 
-    const std::uint32_t BrushOrdinal = static_cast<std::uint32_t>(Declared.size());
+    const std::uint32_t BrushIndex = static_cast<std::uint32_t>(Declared.size());
 
     Declared.push_back(BrushSpecification{});
     DeclaredNames.push_back(Named);
     DeclaredGroupings.push_back(Grouping);
 
-    return Outcome<std::uint32_t>::Result(BrushOrdinal);
+    return Outcome<std::uint32_t>::Result(BrushIndex);
 }
 
-Outcome<const BrushSpecification*> BrushIndex::Resolve(std::uint32_t BrushOrdinal) const
+Outcome<const BrushSpecification*> BrushIndex::Resolve(std::uint32_t BrushIndex) const
 {
-    if (BrushOrdinal >= Declared.size())
+    if (BrushIndex >= Declared.size())
         return Outcome<const BrushSpecification*>::Refuse({ RefusalReason::ContentUnsupported, "no such brush" });
 
-    return Outcome<const BrushSpecification*>::Result(&Declared[BrushOrdinal]);
+    return Outcome<const BrushSpecification*>::Result(&Declared[BrushIndex]);
 }
 
-Outcome<BrushSpecification*> BrushIndex::Amend(std::uint32_t BrushOrdinal)
+Outcome<BrushSpecification*> BrushIndex::Amend(std::uint32_t BrushIndex)
 {
-    if (BrushOrdinal >= Declared.size())
+    if (BrushIndex >= Declared.size())
         return Outcome<BrushSpecification*>::Refuse({ RefusalReason::ContentUnsupported, "no such brush" });
 
-    return Outcome<BrushSpecification*>::Result(&Declared[BrushOrdinal]);
+    return Outcome<BrushSpecification*>::Result(&Declared[BrushIndex]);
 }
 
-const std::string& BrushIndex::DeclaredName(std::uint32_t BrushOrdinal) const
+const std::string& BrushIndex::DeclaredName(std::uint32_t BrushIndex) const
 {
-    return BrushOrdinal < DeclaredNames.size() ? DeclaredNames[BrushOrdinal] : AbsentName;
+    return BrushIndex < DeclaredNames.size() ? DeclaredNames[BrushIndex] : AbsentName;
 }
 
-const std::string& BrushIndex::DeclaredGrouping(std::uint32_t BrushOrdinal) const
+const std::string& BrushIndex::DeclaredGrouping(std::uint32_t BrushIndex) const
 {
-    return BrushOrdinal < DeclaredGroupings.size() ? DeclaredGroupings[BrushOrdinal] : AbsentName;
+    return BrushIndex < DeclaredGroupings.size() ? DeclaredGroupings[BrushIndex] : AbsentName;
 }
 
 std::uint32_t BrushIndex::DeclaredCount() const

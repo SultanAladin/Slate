@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 
 #include <cstdint>
 
@@ -97,7 +97,7 @@ public:
     ///        interface; this reads four physical keys beneath any interface that could capture them.
     /// note  ⚠️ F11 is deliberately absent. The window manager takes it for fullscreen before the process
     ///        sees it, so a scenario bound there reports nothing and looks like a defect in the scenario.
-    /// tag   contract
+    /// tag   guarantee
     enum class DiagnosticKey : std::uint32_t
     {
         RecoverDisplay = 0u,   // [-] - F6 — re-establish the presentation chain once

@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateDocument/Document/VectorInterchange/Api/VectorInterchange.h"
 
 #include <cstdint>
@@ -55,7 +55,7 @@ struct DecodedTypeface
 
 /// 🧩 Translates one typeface stream into glyph outlines, in the typeface's own units.
 /// in    Stream        [-]  the whole stream, as `StorageExchange` drained it
-/// in    GlyphCeiling  [-]  how many glyph ordinals to translate; the typeface's own count where it is lower
+/// in    GlyphLimit  [-]  how many glyph ordinals to translate; the typeface's own count where it is lower
 /// out   Result       [-]  refuses with ContentUnsupported for a stream the reader rejected, and with
 ///                          ExtentExhausted for a typeface declaring no glyph at all
 /// err   never throws; every shape the reader allocated is released before returning, on refusal included
@@ -69,7 +69,7 @@ struct DecodedTypeface
 /// note  ⚠️ An empty glyph — a space, most often — decodes to a glyph carrying no path and is retained. Dropping
 ///        it would renumber every ordinal after it, and the glyph sequence `52` §3 stores indexes those ordinals.
 /// tag   api, nonthrowing
-Outcome<DecodedTypeface> Translate(const std::vector<std::uint8_t>& Stream, std::uint32_t GlyphCeiling);
+Outcome<DecodedTypeface> Translate(const std::vector<std::uint8_t>& Stream, std::uint32_t GlyphLimit);
 
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact,
                          PrecisionGuarantee::Exact);

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 
 #include <cstdint>
@@ -21,7 +21,7 @@ namespace Slate
 /// note  🔴 Exactly one tick reports `Sampled` and exactly one reports `Released`, even when the window
 ///       system delivers both in the same tick. A consumer that seizes on `Sampled` and resolves on
 ///       `Released` therefore never loses either edge to a stalled or coalesced tick.
-/// tag   contract
+/// tag   guarantee
 enum class ContactPhase : std::uint32_t
 {
     Absent     = 0u,   // [-] - nothing is held
@@ -36,11 +36,11 @@ enum class ContactPhase : std::uint32_t
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 What separates a tap from a drag, and a drag from a fling.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct GestureTolerance
 {
-    float   TapTravelCeiling   = 6.0f;    // [px]   - beyond this a contact is a drag and never a tap
-    double  TapDurationCeiling = 350.0;   // [ms]   - beyond this a contact is a press and never a tap
+    float   TapTravelLimit   = 6.0f;    // [px]   - beyond this a contact is a drag and never a tap
+    double  TapDurationLimit = 350.0;   // [ms]   - beyond this a contact is a press and never a tap
     double  RateRetention      = 0.60;    // [-]    - carried from the previous tick's rate estimate
     double  FlingRateFloor     = 300.0;   // [px/s] - beyond this a release carries momentum
 };
@@ -52,7 +52,7 @@ struct GestureTolerance
 /// 🧩 Everything one contact has done since it arrived.
 /// note  📐 The rate is smoothed across ticks rather than taken from the last one. A single stalled tick
 ///       produces an instantaneous rate of several thousand pixels a second from a stationary thumb.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct ContactTravel
 {
     ContactPhase  Phase           = ContactPhase::Absent;   // [-]    - this tick's phase
@@ -65,7 +65,7 @@ struct ContactTravel
     double        RateX       = 0.0;                    // [px/s] - smoothed, signed
     double        RateY      = 0.0;                    // [px/s]
     double        HeldDuration    = 0.0;                    // [ms]   - since arrival
-    bool          TravelExceeded  = false;                  // [-]    - passed TapTravelCeiling at least once
+    bool          TravelExceeded  = false;                  // [-]    - passed TapTravelLimit at least once
     bool          TapResolved     = false;                  // [-]    - Released, within both tap ceilings
     bool          FlingResolved   = false;                  // [-]    - Released above FlingRateFloor across
 };

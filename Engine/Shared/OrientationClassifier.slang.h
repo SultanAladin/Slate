@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Shared/Prelude.slang.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/NumericTolerance.h"
 
 // 📐 The predicate answers: walking Alpha → Beta → Gamma, does the path turn left, turn right, or stay
 //    collinear. The quantity is the determinant
@@ -14,7 +14,7 @@
 //        | Alphaₓ − Gammaₓ   Alpha_y − Gamma_y |
 //        | Betaₓ  − Gammaₓ   Beta_y  − Gamma_y |
 //
-//    and only its **sign** is contracted. A predicate that is usually exact provides no topological
+//    and only its **sign** is guaranteeed. A predicate that is usually exact provides no topological
 //    guarantee at all, so the filtered path is taken only where its own error bound excludes zero.
 
 // 📝 An expansion is a sequence of non-overlapping terms held in increasing magnitude whose exact sum is
@@ -30,7 +30,7 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 // 📝 Every routine below is exact in the 64-bit representation. They rely on round-to-nearest and on the
-//    absence of contraction, which is why /fp:precise is declared in the build and never relaxed.
+//    absence of guaranteeion, which is why /fp:precise is declared in the build and never relaxed.
 
 /// 🧩 Splits one operand into two halves whose product with another split operand is exactly representable.
 /// in    Operand    [-]  the quantity to split
@@ -122,11 +122,11 @@ SLATE_SHARED void AccumulateExactly(SLATE_INOUT_SPAN(Real64, Expansion, SlateExp
     Real64   Carried  = Incoming;
     Signed32 Occupied = 0;
 
-    for (Signed32 TermOrdinal = 0; TermOrdinal < TermCount; ++TermOrdinal)
+    for (Signed32 TermIndex = 0; TermIndex < TermCount; ++TermIndex)
     {
         Real64 Leading = 0.0;
         Real64 Residue = 0.0;
-        SumExactly(Expansion[TermOrdinal], Carried, Leading, Residue);
+        SumExactly(Expansion[TermIndex], Carried, Leading, Residue);
         Carried = Leading;
 
         if (Residue != 0.0)
@@ -193,7 +193,7 @@ SLATE_SHARED Signed32 ClassifyOrientation(Real64 AlphaX, Real64 AlphaY,
     const Real64 Summed    = Magnitude(LeftSpan) + Magnitude(RightSpan);
     const Real64 ErrorEdge = OrientationErrorFactor * Summed;
 
-    // 📝 The filtered sign is contracted only where the determinant exceeds its own error bound. Every
+    // 📝 The filtered sign is guaranteeed only where the determinant exceeds its own error bound. Every
     //    other input falls through to the expansion, including every exactly collinear one.
     if (Filtered > ErrorEdge)
     {

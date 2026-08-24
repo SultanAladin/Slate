@@ -47,7 +47,7 @@ VkImageAspectFlags ImageSpace::AspectOf(ImageIntent Intent)
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ImageSpace::Construct(const VulkanExchange&      Exchange,
+Outcome<bool> ImageSpace::ConstructImageSpace(const VulkanExchange&      Exchange,
                                     ByteSpace&                 BackingSpace,
                                     const DiagnosticExtension& Naming)
 {
@@ -193,22 +193,22 @@ Outcome<ImageReservation> ImageSpace::Reserve(const ImageShape& Declared)
 
     // 📝 A released slot is reused rather than erased, so that an ordinal a contributing document recorded
     //    against one rotation never names a different image the next.
-    std::uint32_t Ordinal = AbsentImage;
+    std::uint32_t Index = AbsentImage;
 
     for (std::size_t Candidate = 0u; Candidate < Images.size(); ++Candidate)
     {
         if (!Images[Candidate].SlotOccupied)
         {
             Images[Candidate] = Taken;
-            Ordinal           = static_cast<std::uint32_t>(Candidate);
+            Index           = static_cast<std::uint32_t>(Candidate);
             break;
         }
     }
 
-    if (Ordinal == AbsentImage)
+    if (Index == AbsentImage)
     {
         Images.push_back(Taken);
-        Ordinal = static_cast<std::uint32_t>(Images.size() - 1u);
+        Index = static_cast<std::uint32_t>(Images.size() - 1u);
     }
 
     // 📝 🔴 `06` §7's diagnostic-name gate. The image and its whole-image view are separate vendor objects and
@@ -217,19 +217,19 @@ Outcome<ImageReservation> ImageSpace::Reserve(const ImageShape& Declared)
     Discard(NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE,
                         reinterpret_cast<std::uint64_t>(Incoming),
                         NameOf(Declared.Intent),
-                        Ordinal));
+                        Index));
 
     Discard(NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE_VIEW,
                         reinterpret_cast<std::uint64_t>(Whole),
                         "ImageSpace whole-image view",
-                        Ordinal));
+                        Index));
 
     ImageReservation Handed;
     Handed.Extent         = Incoming;
     Handed.WholeView      = Whole;
     Handed.CurrentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     Handed.Shape          = Declared;
-    Handed.ImageOrdinal   = Ordinal;
+    Handed.ImageIndex   = Index;
 
     return Outcome<ImageReservation>::Result(Handed);
 }
@@ -292,15 +292,15 @@ namespace
     }
 }
 
-Outcome<bool> ImageSpace::Transition(VkCommandBuffer Recorded, std::uint32_t ImageOrdinal, VkImageLayout Incoming)
+Outcome<bool> ImageSpace::Transition(VkCommandBuffer Recorded, std::uint32_t ImageIndex, VkImageLayout Incoming)
 {
     if (Recorded == VK_NULL_HANDLE)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no recording to record the barrier into" });
 
-    if (static_cast<std::size_t>(ImageOrdinal) >= Images.size() || !Images[ImageOrdinal].SlotOccupied)
+    if (static_cast<std::size_t>(ImageIndex) >= Images.size() || !Images[ImageIndex].SlotOccupied)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no image stands at that ordinal" });
 
-    HeldImage& Held = Images[ImageOrdinal];
+    HeldImage& Held = Images[ImageIndex];
 
     // 📝 A repeat transition is delivered rather than rejected. `08` §3's ordering has several recordings
     //    declaring the same read of the same target, and refusing the second would make the contribution
@@ -345,41 +345,41 @@ Outcome<bool> ImageSpace::Transition(VkCommandBuffer Recorded, std::uint32_t Ima
 //                                                   WHAT IS CLAIMED
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<ImageReservation> ImageSpace::Current(std::uint32_t ImageOrdinal) const
+Outcome<ImageReservation> ImageSpace::Current(std::uint32_t ImageIndex) const
 {
-    if (static_cast<std::size_t>(ImageOrdinal) >= Images.size() || !Images[ImageOrdinal].SlotOccupied)
+    if (static_cast<std::size_t>(ImageIndex) >= Images.size() || !Images[ImageIndex].SlotOccupied)
         return Outcome<ImageReservation>::Refuse({ RefusalReason::ContentUnsupported, "no image stands at that ordinal" });
 
-    const HeldImage& Held = Images[ImageOrdinal];
+    const HeldImage& Held = Images[ImageIndex];
 
     ImageReservation Reported;
     Reported.Extent         = Held.Extent;
     Reported.WholeView      = Held.WholeView;
     Reported.CurrentLayout = Held.CurrentLayout;
     Reported.Shape          = Held.Shape;
-    Reported.ImageOrdinal   = ImageOrdinal;
+    Reported.ImageIndex   = ImageIndex;
 
     return Outcome<ImageReservation>::Result(Reported);
 }
 
-Outcome<VkImageView> ImageSpace::LevelView(std::uint32_t ImageOrdinal, std::uint32_t LevelOrdinal)
+Outcome<VkImageView> ImageSpace::LevelView(std::uint32_t ImageIndex, std::uint32_t LevelIndex)
 {
     if (DeviceEdge == nullptr)
         return Outcome<VkImageView>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
-    if (static_cast<std::size_t>(ImageOrdinal) >= Images.size() || !Images[ImageOrdinal].SlotOccupied)
+    if (static_cast<std::size_t>(ImageIndex) >= Images.size() || !Images[ImageIndex].SlotOccupied)
         return Outcome<VkImageView>::Refuse({ RefusalReason::ContentUnsupported, "no image stands at that ordinal" });
 
-    HeldImage& Held = Images[ImageOrdinal];
+    HeldImage& Held = Images[ImageIndex];
 
-    if (LevelOrdinal >= Held.Shape.LevelCount)
+    if (LevelIndex >= Held.Shape.LevelCount)
         return Outcome<VkImageView>::Refuse({ RefusalReason::ContentUnsupported, "the level is outside the declared count" });
 
     // 📝 Constructed on first ask and held for the image's life. `16` §2's reduction walks the chain once per
     //    rotation, and a view constructed per walk is a vendor object created and destroyed inside the
     //    rotation that reads it.
-    if (Held.LevelViews[LevelOrdinal] != VK_NULL_HANDLE)
-        return Outcome<VkImageView>::Result(Held.LevelViews[LevelOrdinal]);
+    if (Held.LevelViews[LevelIndex] != VK_NULL_HANDLE)
+        return Outcome<VkImageView>::Result(Held.LevelViews[LevelIndex]);
 
     VkImageViewCreateInfo ViewDeclaration            = {};
     ViewDeclaration.sType                            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -388,7 +388,7 @@ Outcome<VkImageView> ImageSpace::LevelView(std::uint32_t ImageOrdinal, std::uint
                                                                                   : VK_IMAGE_VIEW_TYPE_2D;
     ViewDeclaration.format                           = Held.Shape.Format;
     ViewDeclaration.subresourceRange.aspectMask      = AspectOf(Held.Shape.Intent);
-    ViewDeclaration.subresourceRange.baseMipLevel    = LevelOrdinal;
+    ViewDeclaration.subresourceRange.baseMipLevel    = LevelIndex;
     ViewDeclaration.subresourceRange.levelCount      = 1u;
     ViewDeclaration.subresourceRange.baseArrayLayer  = 0u;
     ViewDeclaration.subresourceRange.layerCount      = Held.Shape.LayerCount;
@@ -401,7 +401,7 @@ Outcome<VkImageView> ImageSpace::LevelView(std::uint32_t ImageOrdinal, std::uint
             { RefusalReason::ContentUnsupported, "the device rejected a view over the declared level" });
     }
 
-    Held.LevelViews[LevelOrdinal] = Constructed;
+    Held.LevelViews[LevelIndex] = Constructed;
 
     // 📝 🔴 `06` §7's gate reaches the level view too. It is named by its level rather than by its image,
     //    because the chain `16` §2 walks constructs one per level over a single image — an ordinal naming the
@@ -410,7 +410,7 @@ Outcome<VkImageView> ImageSpace::LevelView(std::uint32_t ImageOrdinal, std::uint
     Discard(NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE_VIEW,
                         reinterpret_cast<std::uint64_t>(Constructed),
                         "ImageSpace level view",
-                        LevelOrdinal));
+                        LevelIndex));
 
     return Outcome<VkImageView>::Result(Constructed);
 }
@@ -445,12 +445,12 @@ VkDeviceSize ImageSpace::ReservedBytes() const
 //                                                     RECLAMATION
 //------------------------------------------------------------------------------------------------------------------------
 
-void ImageSpace::Release(std::uint32_t ImageOrdinal)
+void ImageSpace::Release(std::uint32_t ImageIndex)
 {
-    if (DeviceEdge == nullptr || static_cast<std::size_t>(ImageOrdinal) >= Images.size())
+    if (DeviceEdge == nullptr || static_cast<std::size_t>(ImageIndex) >= Images.size())
         return;
 
-    HeldImage& Held = Images[ImageOrdinal];
+    HeldImage& Held = Images[ImageIndex];
 
     if (!Held.SlotOccupied)
         return;
@@ -485,8 +485,8 @@ void ImageSpace::Release(std::uint32_t ImageOrdinal)
 
 void ImageSpace::Reclaim()
 {
-    for (std::size_t Ordinal = 0u; Ordinal < Images.size(); ++Ordinal)
-        Release(static_cast<std::uint32_t>(Ordinal));
+    for (std::size_t Index = 0u; Index < Images.size(); ++Index)
+        Release(static_cast<std::uint32_t>(Index));
 
     Images.clear();
 }

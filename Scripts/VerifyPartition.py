@@ -189,7 +189,7 @@ def Main(Arguments):
     Refusals = []
     Refusals += TestAcyclic(Declared)
 
-    # 🔴 Every include of the form "SlateX/..." is a unit reference. Contract/ and Shared/ are reachable from
+    # 🔴 Every include of the form "SlateX/..." is a unit reference. Foundation/ and Shared/ are reachable from
     #    everywhere by declaration — they are the shared seam, not a unit — and a vendored header is neither.
     for UnitName in sorted(Declared):
         Entry     = Declared[UnitName]
@@ -207,7 +207,7 @@ def Main(Arguments):
             with open(Source, 'r', encoding='utf-8-sig', errors='replace') as Reader:
                 Lines = Reader.read().split('\n')
 
-            for Ordinal, Line in enumerate(Lines, start=1):
+            for Index, Line in enumerate(Lines, start=1):
                 Named = re.match(r'^\s*#include\s+"([^"]+)"', Line)
 
                 if not Named:
@@ -223,19 +223,19 @@ def Main(Arguments):
                     if Reached in Reachable:     continue
 
                     Refusals.append("{0}({1}): {2} includes {3}, which it does not require".format(
-                        Relative, Ordinal, UnitName, Reached))
+                        Relative, Index, UnitName, Reached))
                     continue
 
                 # 🔴 `00` §2.2: exactly one copy of ImGui exists and SlateUI owns it.
                 if re.match(r'^(imgui|backends/imgui)', Included) and UnitName != 'SlateUI':
                     Refusals.append("{0}({1}): {2} names an ImGui header; only SlateUI may".format(
-                        Relative, Ordinal, UnitName))
+                        Relative, Index, UnitName))
                     continue
 
                 # 🔴 `10` §1: the vendored readers are compiled into SlateDocument's codecs and nowhere else.
                 if re.match(r'^(stb|fast_obj|cgltf|ufbx)', Included) and UnitName != 'SlateDocument':
                     Refusals.append("{0}({1}): {2} names a vendored reader; only SlateDocument may".format(
-                        Relative, Ordinal, UnitName))
+                        Relative, Index, UnitName))
 
         if Detail:
             Reaches = ', '.join(sorted(Reachable)) if Reachable else 'nothing'

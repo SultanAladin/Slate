@@ -1,12 +1,12 @@
 //============================================================================================================================================
 //                                                               TILESPACE.H
 //============================================================================================================================================
-// 🧩 Physical tile extents, sliced and reclaimed — slot ledger and byte offsets, and never a texel.
+// 🧩 Physical tile extents, sliced and reclaimed — slot index and byte offsets, and never a texel.
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/NumericTolerance.h"
 
 #include <cstdint>
 #include <vector>
@@ -31,7 +31,7 @@ inline constexpr std::uint32_t AbsentTile = 0xFFFFFFFFu;   // [-] - no tile slot
 inline constexpr std::uint32_t StoredTexelsPerEdge = PhysicalTileTexels + 2u * PhysicalTileApron;   // [-] - 136
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                                    THE SLOT LEDGER
+//                                                    THE SLOT INDEX
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 The physical tile slots one surface's residency draws from, and the byte offsets they occupy.
@@ -46,8 +46,8 @@ class TileSpace
 {
 public:
 
-    /// 🧩 Sizes the ledger to a slot ceiling and a declared texel width.
-    /// in    SlotCeiling   [-]  tiles the surface's backing extent holds
+    /// 🧩 Sizes the index to a slot ceiling and a declared texel width.
+    /// in    SlotLimit   [-]  tiles the surface's backing extent holds
     /// in    BytesPerTexel [B]  the surface's channel set, as a width
     /// out   Result       [-]  refuses with ContentUnsupported for a ceiling or width of zero
     /// post  every slot is free; nothing is quarantined
@@ -56,7 +56,7 @@ public:
     ///        it from a device this component is forbidden to name.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(std::uint32_t SlotCeiling, std::uint32_t BytesPerTexel);
+    Outcome<bool> ReserveTileSpace(std::uint32_t SlotLimit, std::uint32_t BytesPerTexel);
 
     /// 🧩 Reservations one free slot.
     /// out   Result  [-]  refuses with ExtentExhausted when every slot is claimed or quarantined
@@ -68,23 +68,23 @@ public:
     Outcome<std::uint32_t> Reserve();
 
     /// 🧩 Releases one claimed slot into quarantine.
-    /// in    SlotOrdinal      [-]  the slot
-    /// in    RecordingOrdinal  [-]  the rotation the release happened on
+    /// in    SlotIndex      [-]  the slot
+    /// in    RecordingIndex  [-]  the rotation the release happened on
     /// out   Result          [-]  refuses with ContentUnsupported for an unclaimed or out-of-range slot
     /// post  the slot is unusable until `RecordingSlotCount` rotations have passed
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Release(std::uint32_t SlotOrdinal, std::uint64_t RecordingOrdinal);
+    Outcome<bool> Release(std::uint32_t SlotIndex, std::uint64_t RecordingIndex);
 
     /// 🧩 Returns quarantined slots whose release is older than the recording slot count.
-    /// in    RecordingOrdinal  [-]  the rotation now being recorded
+    /// in    RecordingIndex  [-]  the rotation now being recorded
     /// out   Reclaimed        [-]  how many slots became free
     /// note  🔴 This is the whole of `20` §5's deferred reclamation, and it is one comparison. Reclaiming
     ///        immediately is the defect that costs nothing to write and is invisible until a device is fast
     ///        enough to still be reading the slot.
     /// cost  🚩
     /// tag   api, nonthrowing
-    std::uint32_t Reclaim(std::uint64_t RecordingOrdinal);
+    std::uint32_t Reclaim(std::uint64_t RecordingIndex);
 
     /// 🧩 Where one slot sits inside the surface's backing extent.
     /// out   Result  [-]  refuses with ContentUnsupported outside the ceiling
@@ -92,7 +92,7 @@ public:
     ///        may not name it. `06` adds the base; nothing here knows one exists.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<std::uint64_t> ByteOffsetOf(std::uint32_t SlotOrdinal) const;
+    Outcome<std::uint64_t> ByteOffsetOf(std::uint32_t SlotIndex) const;
 
     /// 🧩 What one tile occupies, apron included.
     /// cost  ✔️
@@ -104,7 +104,7 @@ public:
     /// tag   api, nonallocating, nonthrowing
     std::uint64_t BackingBytes() const;
 
-    std::uint32_t SlotCeiling() const;
+    std::uint32_t SlotLimit() const;
     std::uint32_t HeldCount() const;
     std::uint32_t QuarantinedCount() const;
     std::uint32_t FreeCount() const;
@@ -112,7 +112,7 @@ public:
     /// 🧩 🔍 Whether every slot is in exactly one of free, claimed and quarantined.
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
-    bool LedgerConsistent() const;
+    bool InteractionConsistent() const;
 
 private:
 
@@ -125,9 +125,9 @@ private:
 
     std::vector<SlotCondition>   Conditions;                 // [-] - one per slot
     std::vector<std::uint64_t>  ReleasedAt;               // [-] - rotation each quarantined slot was released
-    std::vector<std::uint32_t>  FreeOrdinals;             // [-] - claimable slots, most recently freed first
+    std::vector<std::uint32_t>  FreeIndexs;             // [-] - claimable slots, most recently freed first
     std::uint64_t               TileBytes         = 0u;   // [B] - StoredTexelsPerEdge² × the declared width
-    std::uint32_t               Ceiling           = 0u;   // [-] - slots the ledger spans
+    std::uint32_t               Limit           = 0u;   // [-] - slots the index spans
     std::uint32_t               HeldSlots      = 0u;   // [-]
     std::uint32_t               QuarantinedSlots  = 0u;   // [-]
 };

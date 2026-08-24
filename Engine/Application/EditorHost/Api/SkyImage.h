@@ -15,9 +15,9 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateCompute/Compute/AtmosphereIntegrator/Api/AtmosphereIntegrator.h"
-#include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectoryContract.h"
+#include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectorySpecification.h"
 
 #include <cstdint>
 #include <vector>
@@ -26,7 +26,7 @@ namespace Slate
 {
 
 /// 🧩 The editor viewport's fixed camera, which the sky image is generated for.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct SkyCamera
 {
     double AzimuthDegrees  = 0.0;    // [deg] - the view direction's azimuth; the host turns it toward the sun

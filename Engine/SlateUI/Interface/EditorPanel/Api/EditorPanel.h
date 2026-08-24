@@ -5,11 +5,11 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
 #include "SlateUI/Interface/EditorPanel/Api/EditorLeafPanels.h"
-#include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
+#include "SlateUI/Interface/ControlIndex/Api/ControlIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
 #include "SlateUI/Interface/PanelStructure/Api/PanelStructure.h"
@@ -24,7 +24,7 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Lattice presentation selected for viewport and UV panels.
-/// tag   contract
+/// tag   guarantee
 enum class PanelLatticePresentation : std::uint32_t
 {
     None              = 0u,
@@ -35,7 +35,7 @@ enum class PanelLatticePresentation : std::uint32_t
 };
 
 /// 🧩 Scene shading selected for a viewport panel.
-/// tag   contract
+/// tag   guarantee
 enum class PanelShading : std::uint32_t
 {
     Solid        = 0u,
@@ -48,7 +48,7 @@ enum class PanelShading : std::uint32_t
 };
 
 /// 🧩 Gizmo convention selected for a viewport panel.
-/// tag   contract
+/// tag   guarantee
 enum class PanelGizmo : std::uint32_t
 {
     Blender    = 0u,
@@ -66,7 +66,7 @@ enum class EditorFooterDemand : std::uint32_t
 };
 
 /// 🧩 Visible preferences and one-tick modular footer requests retained by the host.
-/// tag   contract, nonallocating, nonthrowing
+/// tag   guarantee, nonallocating, nonthrowing
 struct EditorPanelConfiguration
 {
     PanelLatticePresentation  Lattice         = PanelLatticePresentation::Lines;   // [-] - lattice presentation
@@ -81,15 +81,14 @@ struct EditorPanelConfiguration
     bool                      FpsOverlay      = false;                              // [-] - FPS overlay requested
     bool                      StorageOverlay  = false;                              // [-] - storage overlay requested
     bool                      RendererOverlay = false;                              // [-] - renderer overlay requested
-    // 📝 The extended lattice surface the footer popup edits. Cell metres folds the old skeletal
-    //    LatticeScale into the one value the ground lattice reads; the weights and radius carry the
-    //    line and dot presentation that used to be literals in RecordGroundGrid; LatticeFollowCamera
-    //    snaps the lattice origin to the eye each tick so the artist always has ground under them while
-    //    the world axes stay pinned to the origin.
+    // 📝 The extended lattice surface the footer popup edits. Extent limits the grid around world
+    //    centre; fade radius independently limits what remains sharp around the moving camera. The
+    //    fragment stage combines both, so the analytic grid remains finite without CPU tessellation.
     double                    LatticeCellMetres = 1.0;                              // [m] - one lattice cell
     float                     LatticeLineWeight  = 1.0f;                            // [px] - fine line thickness
     float                     LatticeDotRadius   = 2.0f;                            // [px] - fine dot radius
-    bool                      LatticeFollowCamera = true;                            // [-] - snap origin to the eye
+    double                    LatticeExtentMetres = 100.0;                          // [m] - radius from world centre
+    double                    LatticeFadeRadiusMetres = 40.0;                       // [m] - sharp-to-absent camera radius
     EditorFooterDemand        FooterDemand = EditorFooterDemand::None;               // [-] - one-tick panel action
 };
 
@@ -106,19 +105,19 @@ class EditorPanel
 public:
 
     static constexpr std::uint32_t ControlsPerRecord = 26u;
-    static constexpr std::uint32_t ControlCapacity = PanelStructure::RecordCeiling * ControlsPerRecord;
+    static constexpr std::uint32_t ControlCapacity = PanelStructure::RecordLimit * ControlsPerRecord;
 
-    Outcome<bool> Construct(MotionIntegrator& Motion,
+    Outcome<bool> ConstructEditorPanel(MotionIntegrator& Motion,
                             RecordingSurface& Surface,
                             const ThemeProfile& Appearance);
     void Advance(const PointerCondition& Sampled, double Elapsed);
     Outcome<bool> Record(const PlaneExtent& Extent,
                          PanelStructure& Partition,
                          EditorPanelConfiguration& Configuration,
-                         std::uint32_t PresentationOrdinal = 0u,
+                         std::uint32_t PresentationIndex = 0u,
                          bool DeferPopups = false);
-    bool PointerCaptured(std::uint32_t PresentationOrdinal) const;
-    void WithdrawPresentation(std::uint32_t PresentationOrdinal);
+    bool PointerCaptured(std::uint32_t PresentationIndex) const;
+    void WithdrawPresentation(std::uint32_t PresentationIndex);
     void Reset();
 
     /// 🧩 How many leaves the last `Record` presented, for the host to fill their bodies with content.
@@ -129,23 +128,23 @@ public:
     std::uint32_t LeafCount() const { return LeafTally; }
 
     /// 🧩 The body of one leaf the last `Record` left, between its header and its footer.
-    /// note  ⚠️ Valid only until the next `Record`, and empty when `LeafOrdinal` is out of range. The host
+    /// note  ⚠️ Valid only until the next `Record`, and empty when `LeafIndex` is out of range. The host
     ///        records its content — the sky in a viewport leaf, the outliner, the properties — into this
     ///        extent, on top of the leaf's own ground and caption, before the footer is drawn over it.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    PlaneExtent LeafBody(std::uint32_t LeafOrdinal) const
+    PlaneExtent LeafBody(std::uint32_t LeafIndex) const
     {
-        return LeafOrdinal < LeafTally ? LeafBodies[LeafOrdinal] : PlaneExtent{};
+        return LeafIndex < LeafTally ? LeafBodies[LeafIndex] : PlaneExtent{};
     }
 
     /// 🧩 What one leaf presents, so the host decides which content to record into its body.
-    /// note  ⚠️ Valid only until the next `Record`, and `Vacant` when `LeafOrdinal` is out of range.
+    /// note  ⚠️ Valid only until the next `Record`, and `Vacant` when `LeafIndex` is out of range.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    PanelSubject LeafSubject(std::uint32_t LeafOrdinal) const
+    PanelSubject LeafSubject(std::uint32_t LeafIndex) const
     {
-        return LeafOrdinal < LeafTally ? LeafSubjects[LeafOrdinal] : PanelSubject::Vacant;
+        return LeafIndex < LeafTally ? LeafSubjects[LeafIndex] : PanelSubject::Vacant;
     }
 
     /// 🧩 Records the deferred popups (subject, division, lattice, shading and gizmo menus) the last
@@ -200,7 +199,8 @@ private:
         LatticeCell,
         LatticeLineWeight,
         LatticeDotRadius,
-        LatticeFollow,
+        LatticeExtent,
+        LatticeFadeRadius,
         AxisX,
         AxisY,
         AxisZ,
@@ -209,42 +209,42 @@ private:
         RoleCount
     };
 
-    std::uint32_t ControlOrdinal(std::uint32_t RecordOrdinal, ControlRole Role) const;
-    bool Pressed(std::uint32_t ControlOrdinal, const PlaneExtent& Extent, bool PopupAction = false);
+    std::uint32_t ResolveControlIndex(std::uint32_t RecordIndex, ControlRole Role) const;
+    bool Pressed(std::uint32_t ControlIndex, const PlaneExtent& Extent, bool PopupAction = false);
     bool Disclosed(ControlIdentity Target) const;
     void Disclose(ControlIdentity Target);
     void CloseDisclosure();
-    void RecordBranch(std::uint32_t RecordOrdinal,
+    void RecordBranch(std::uint32_t RecordIndex,
                       const PlaneExtent& Extent,
                       PanelStructure& Partition,
                       EditorPanelConfiguration& Configuration);
-    void RecordLeaf(std::uint32_t RecordOrdinal,
+    void RecordLeaf(std::uint32_t RecordIndex,
                     const PanelRecord& Declared,
                     const PlaneExtent& Extent,
                     PanelStructure& Partition,
                     EditorPanelConfiguration& Configuration);
-    void RecordHeader(std::uint32_t RecordOrdinal,
+    void RecordHeader(std::uint32_t RecordIndex,
                       PanelSubject Subject,
                       const PlaneExtent& Extent,
                       PanelStructure& Partition);
-    void RecordFooter(std::uint32_t RecordOrdinal,
+    void RecordFooter(std::uint32_t RecordIndex,
                       PanelSubject Subject,
                       const PlaneExtent& Extent,
                       EditorPanelConfiguration& Configuration);
-    void RecordVacant(std::uint32_t RecordOrdinal,
+    void RecordVacant(std::uint32_t RecordIndex,
                       const PlaneExtent& Extent,
                       PanelStructure& Partition);
     void RecordDeferred(PanelStructure& Partition, EditorPanelConfiguration& Configuration);
-    void RecordSubjectMenu(std::uint32_t RecordOrdinal,
+    void RecordSubjectMenu(std::uint32_t RecordIndex,
                            const PlaneExtent& Anchor,
                            PanelStructure& Partition);
-    void RecordDivisionMenu(std::uint32_t RecordOrdinal,
+    void RecordDivisionMenu(std::uint32_t RecordIndex,
                             const PlaneExtent& Anchor,
                             PanelStructure& Partition);
-    void RecordLatticeMenu(std::uint32_t RecordOrdinal,
+    void RecordLatticeMenu(std::uint32_t RecordIndex,
                            const PlaneExtent& Anchor,
                            EditorPanelConfiguration& Configuration);
-    void RecordFooterMenu(std::uint32_t RecordOrdinal,
+    void RecordFooterMenu(std::uint32_t RecordIndex,
                           const PlaneExtent& Anchor,
                           ControlRole Role,
                           EditorPanelConfiguration& Configuration);
@@ -253,7 +253,7 @@ private:
     MotionIntegrator* Motion = nullptr;
     RecordingSurface* Surface = nullptr;
     const ThemeProfile* Appearance = nullptr;
-    InteractionIndex Interaction = {};
+    ControlIndex Interaction = {};
     ComponentSpecification SharedControls = {};
     LeafPanel ScenePresentation = {};
     LeafPanel UvPresentation = {};
@@ -264,19 +264,19 @@ private:
     PointerCondition Pointer = {};
     PlaneExtent CurrentLeafExtent = {};
     PlaneExtent DeferredAnchor = {};
-    PlaneExtent DeferredBoundary = {};
-    std::uint32_t DeferredRecord = PanelStructure::RecordCeiling;
+    PlaneExtent DeferredDivider = {};
+    std::uint32_t DeferredRecord = PanelStructure::RecordLimit;
     ControlRole DeferredRole = ControlRole::RoleCount;
     std::uint32_t CurrentPresentation = 0u;
     std::uint32_t CapturedPresentation = AbsentPresentation;
     std::uint32_t DisclosedPresentation = AbsentPresentation;
-    std::uint32_t DraggedDivision = PanelStructure::RecordCeiling;
+    std::uint32_t DraggedDivision = PanelStructure::RecordLimit;
     PlaneExtent DraggedExtent = {};
 
     // 📝 The leaves the last `Record` presented, for the host to fill. `LeafTally` resets at the top
     //    of every `Record`; a vacant leaf is a chooser and is not counted.
-    PlaneExtent LeafBodies[PanelStructure::RecordCeiling] = {};
-    PanelSubject LeafSubjects[PanelStructure::RecordCeiling] = {};
+    PlaneExtent LeafBodies[PanelStructure::RecordLimit] = {};
+    PanelSubject LeafSubjects[PanelStructure::RecordLimit] = {};
     std::uint32_t LeafTally = 0u;
 };
 

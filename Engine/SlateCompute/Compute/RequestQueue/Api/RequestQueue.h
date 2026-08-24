@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/NumericTolerance.h"
 
 #include <cstdint>
 #include <vector>
@@ -25,8 +25,8 @@ namespace Slate
 /// tag   nonallocating, nonthrowing
 struct CellDemand
 {
-    std::uint32_t  SurfaceOrdinal  = 0u;   // [-] - which surface's residency
-    std::uint32_t  CellOrdinal     = 0u;   // [-] - the cell, level included — `20` §1
+    std::uint32_t  SurfaceIndex  = 0u;   // [-] - which surface's residency
+    std::uint32_t  CellIndex     = 0u;   // [-] - the cell, level included — `20` §1
     std::uint32_t  OccurrenceCount = 1u;   // [-] - raised by coalescing, never by the caller
 };
 
@@ -49,10 +49,10 @@ public:
     // 🚧 `20` §6 carries the promotion budget as open and this ceiling with it. It bounds one rotation's
     //    distinct demands, so a surface that suddenly becomes wholly visible defers rather than allocating
     //    during a rotation. Read by this unit alone, so `00` §2 keeps it here.
-    static constexpr std::uint32_t ArrivalCeiling = 4096u;   // [-] - distinct cells one drain may present
+    static constexpr std::uint32_t ArrivalLimit = 4096u;   // [-] - distinct cells one drain may present
 
     /// 🧩 Accepts one demand, coalescing it into an earlier demand for the same cell.
-    /// post  the arrival count never exceeds ArrivalCeiling; a demand beyond it is discarded and counted
+    /// post  the arrival count never exceeds ArrivalLimit; a demand beyond it is discarded and counted
     /// note  ⚠️ A discarded demand is a **deferral**, not a loss. Sampling still touches the cell next
     ///        rotation and demands it again, so the discard costs one rotation of coarseness and nothing else.
     ///        That is why it is a measure rather than a report — `86` §5.
@@ -98,22 +98,22 @@ public:
     static constexpr std::uint32_t SlotCount = RecordingSlotCount + 1u;   // [-] - cycle slots held
 
     /// 🧩 Records one demand against the rotation now sampling.
-    /// in    SurfaceOrdinal   [-]  which surface
-    /// in    CellOrdinal      [-]  the cell that was not resident
-    /// in    RecordingOrdinal  [-]  the rotation being recorded
+    /// in    SurfaceIndex   [-]  which surface
+    /// in    CellIndex      [-]  the cell that was not resident
+    /// in    RecordingIndex  [-]  the rotation being recorded
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Demand(std::uint32_t SurfaceOrdinal, std::uint32_t CellOrdinal, std::uint64_t RecordingOrdinal);
+    void Demand(std::uint32_t SurfaceIndex, std::uint32_t CellIndex, std::uint64_t RecordingIndex);
 
     /// 🧩 The slot a rotation writes into.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    PageQueue& SlotAt(std::uint64_t RecordingOrdinal);
+    PageQueue& SlotAt(std::uint64_t RecordingIndex);
 
     /// 🧩 The slot a rotation writes into, for reading.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    const PageQueue& SlotAt(std::uint64_t RecordingOrdinal) const;
+    const PageQueue& SlotAt(std::uint64_t RecordingIndex) const;
 
     std::uint64_t RecordedCount() const;
     std::uint64_t DiscardedCount() const;
@@ -141,7 +141,7 @@ public:
 
     /// 🧩 Reads back the demands recorded a recording slot count ago.
     /// in    Requesting       [-]  the queue those demands were written into
-    /// in    RecordingOrdinal  [-]  the rotation now being recorded
+    /// in    RecordingIndex  [-]  the rotation now being recorded
     /// out   Result          [-]  refuses with ExtentExhausted before the depth has elapsed, and with
     ///                             HostDenied when this rotation has already been drained
     /// post  the drained slot is emptied and is the slot the caller may write next
@@ -150,7 +150,7 @@ public:
     ///        budget being half what it was declared to be.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<const PageQueue*> Drain(RequestQueue& Requesting, std::uint64_t RecordingOrdinal);
+    Outcome<const PageQueue*> Drain(RequestQueue& Requesting, std::uint64_t RecordingIndex);
 
     /// 🧩 The rotation last drained; zero before anything has been.
     /// cost  ✔️

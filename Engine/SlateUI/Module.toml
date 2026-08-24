@@ -6,7 +6,7 @@ name    = "SlateUI"
 product = "StaticLibrary"
 subject = [ "Interface" ]
 
-# 🔴 SlateUI declares no unit requirement, and that is not an omission. Its whole surface reaches Contract/,
+# 🔴 SlateUI declares no unit requirement, and that is not an omission. Its whole surface reaches Foundation/,
 #    its own Api/, and the vendored interface library — it names no symbol from SlateMath, SlateVulkan,
 #    SlateDocument or SlateCompute, which VerifyPartition.ps1 checks rather than assumes. The four were
 #    declared here when the unit was younger and were carried forward unread; a requirement nothing uses is

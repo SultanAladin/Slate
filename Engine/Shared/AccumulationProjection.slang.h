@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Shared/Prelude.slang.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/NumericTolerance.h"
 
 // 📐 🔴 `64` §3: the accumulation weight is derived from the **recorded sample count** and never from a constant.
 //    A constant weight is an exponential average that never converges and never fully forgets — it leaves a
@@ -22,7 +22,7 @@ namespace Slate
 
 /// 🧩 How much of the incoming sample the accumulation takes.
 /// in    HeldCount     [-]  samples already accumulated at this pixel, before this one
-/// in    CountCeiling  [-]  the declared saturating ceiling
+/// in    CountLimit  [-]  the declared saturating ceiling
 /// out   Weight        [-]  one on the first sample, falling as the count rises, floored at the ceiling
 /// note  🔴 The ceiling is not a refinement. Without it a workspace left untouched accumulates a weight so small
 ///        that a subsequent change takes seconds to appear, and the artist believes the program has stopped
@@ -32,9 +32,9 @@ namespace Slate
 ///        constant, which is what a still-but-editable workspace actually wants.
 /// cost  ✔️
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED Real64 ProjectAccumulationWeight(Unsigned32 HeldCount, Unsigned32 CountCeiling)
+SLATE_SHARED Real64 ProjectAccumulationWeight(Unsigned32 HeldCount, Unsigned32 CountLimit)
 {
-    const Unsigned32 Bounded = HeldCount < CountCeiling ? HeldCount : CountCeiling;
+    const Unsigned32 Bounded = HeldCount < CountLimit ? HeldCount : CountLimit;
 
     return 1.0 / Real64(Bounded + 1u);
 }
@@ -44,9 +44,9 @@ SLATE_SHARED Real64 ProjectAccumulationWeight(Unsigned32 HeldCount, Unsigned32 C
 ///        convergence, which reads as the whole image sharpening and softening on a cycle nobody declared.
 /// cost  ✔️
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED SLATE_CONSTEXPR Unsigned32 ProjectAccumulatedCount(Unsigned32 HeldCount, Unsigned32 CountCeiling)
+SLATE_SHARED SLATE_CONSTEXPR Unsigned32 ProjectAccumulatedCount(Unsigned32 HeldCount, Unsigned32 CountLimit)
 {
-    return HeldCount < CountCeiling ? HeldCount + 1u : CountCeiling;
+    return HeldCount < CountLimit ? HeldCount + 1u : CountLimit;
 }
 
 //------------------------------------------------------------------------------------------------------------------------

@@ -12,7 +12,7 @@ namespace Slate
 //                                                       CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> WorkspacePanel::Construct(RecordingSurface& Recording, const ThemeProfile& Declared)
+Outcome<bool> WorkspacePanel::ConstructWorkspacePanel(RecordingSurface& Recording, const ThemeProfile& Declared)
 {
     if (Surface != nullptr)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a construction already stands" });

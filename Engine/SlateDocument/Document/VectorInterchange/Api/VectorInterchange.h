@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateMath/Numeric/ColourProjection/Api/ColourProjection.h"
 #include "SlateMath/Numeric/CurveSolver/Api/CurveSolver.h"
 
@@ -23,7 +23,7 @@ namespace Slate
 /// 🧩 Which rule decides a closed path's interior.
 /// note  Both are accepted — `52` §2. The rule is a declared property of each closed path and is read by
 ///        `ResolveContainment`, which takes it as the one bit the classification depends on.
-/// tag   contract
+/// tag   guarantee
 enum class FillRule : std::uint32_t
 {
     NonZero  = 0u,   // [-] - interior where the winding number is not zero
@@ -80,7 +80,7 @@ struct OutlineSpecification
 struct RejectedConstruct
 {
     std::string    Construct     = {};   // [-] - what the source declared
-    std::uint32_t  SourceOrdinal = 0u;   // [-] - character position, or path ordinal for a file route
+    std::uint32_t  SourceIndex = 0u;   // [-] - character position, or path ordinal for a file route
     Refusal        Declining     = {};   // [-] - the reason, in static text
 };
 
@@ -117,7 +117,7 @@ public:
     /// 🧩 Records one rejected construct, to be reported through `86`.
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Refuse(const std::string& Construct, std::uint32_t SourceOrdinal, const Refusal& Declining);
+    void Refuse(const std::string& Construct, std::uint32_t SourceIndex, const Refusal& Declining);
 
     /// 🧩 Flattens every path at a tolerance the caller supplies, into one run per path.
     /// in    Tolerance  [-]  greatest permitted deviation, in the outline's own space

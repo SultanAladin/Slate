@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/NumericTolerance.h"
 #include "SlateVulkan/Device/DiagnosticExtension/Api/DiagnosticExtension.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
 
@@ -40,7 +40,7 @@ struct CycleSlot
 
 /// 🧩 The cyclic ordering every per-slot resource is sized against and every recording is written into.
 /// note  🔴 `06` §7: every per-recording resource is sized against the recording slot count. `RecordingSlotCount`
-///       is declared in `Contract/` because `SlateVulkan` sizes against it and `SlateCompute` quarantines
+///       is declared in `Foundation/` because `SlateVulkan` sizes against it and `SlateCompute` quarantines
 ///       against it — one number, two units, and the count is 🚧 open at `06` §9 between two and three.
 /// note  ⚠️ `Advance` is the only writer of the standing ordinal. A caller keeping its own counter and
 ///       advancing it separately produces two counters that agree for exactly as long as nothing refuses.
@@ -65,7 +65,7 @@ public:
     ///        by address — an unnamed cycle makes every deadlock report the same sentence.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
+    Outcome<bool> ConstructCycleScheduler(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
 
     /// 🧩 Waits until the slot the standing ordinal names is no longer read, and makes it writable again.
     /// out   Result  [-]  refuses with HostDenied when the device does not complete within the ceiling, and
@@ -100,7 +100,7 @@ public:
     /// 🧩 Which slot in the cycle is standing — what every per-slot claim is addressed by.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t CurrentOrdinal() const;
+    std::uint32_t CurrentIndex() const;
 
     /// 🧩 How many recordings have completed since bring-up, for `86`'s pacing report.
     /// cost  ✔️
@@ -118,7 +118,7 @@ private:
     // 📝 About two seconds, expressed in the nanoseconds the vendor counts in. Long enough that no honest
     //    rotation reaches it on hardware Slate targets, short enough that a lost device is reported rather
     //    than waited on — the two conditions the ceiling exists between.
-    static constexpr std::uint64_t CompletionCeilingNanoseconds = 2000000000ull;   // [ns]
+    static constexpr std::uint64_t CompletionLimitNanoseconds = 2000000000ull;   // [ns]
 
     const VulkanExchange*      DeviceEdge   = nullptr;   // [-] - borrowed; never owned
     const DiagnosticExtension* NamingEdge   = nullptr;   // [-] - borrowed; never owned

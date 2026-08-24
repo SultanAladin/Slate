@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
+#include "Foundation/NumericTolerance.h"
 
 #include <cstdint>
 #include <vector>
@@ -27,9 +27,9 @@ namespace Slate
 //    as an object flickering along its own edge rather than as a comparison written the wrong way round.
 
 // 📝 Levels a reduction may carry. The finest level is the display extent and each further level halves both
-//    ordinates, so the ceiling is reached only above `DisplayExtentCeiling` — 2¹⁴ needs fifteen levels including
+//    ordinates, so the ceiling is reached only above `DisplayExtentLimit` — 2¹⁴ needs fifteen levels including
 //    the finest, and one more is headroom rather than a budget anything is expected to spend.
-inline constexpr std::uint32_t ReductionLevelCeiling = 16u;   // [-] - levels including the finest
+inline constexpr std::uint32_t ReductionLevelLimit = 16u;   // [-] - levels including the finest
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      ONE LEVEL
@@ -66,17 +66,17 @@ public:
     /// in    DisplayX   [px]  the display extent this reduction covers
     /// in    DisplayY  [px]
     /// out   Result        [-]   refuses with ContentUnsupported for an extent of zero and with ExtentExhausted
-    ///                            above `DisplayExtentCeiling` or beyond `ReductionLevelCeiling` levels
+    ///                            above `DisplayExtentLimit` or beyond `ReductionLevelLimit` levels
     /// post  the chain runs from the display extent down to a single texel
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(std::uint32_t DisplayX, std::uint32_t DisplayY);
+    Outcome<bool> ConstructDepthReduction(std::uint32_t DisplayX, std::uint32_t DisplayY);
 
     /// 🧩 One level's extent.
     /// out   Result  [-]  refuses with ContentUnsupported outside the derived level count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<ReductionLevel> Level(std::uint32_t LevelOrdinal) const;
+    Outcome<ReductionLevel> Level(std::uint32_t LevelIndex) const;
 
     /// 🧩 The coarsest level at which one projected extent is covered by a two-by-two reading.
     /// in    ProjectedX   [px]  the extent the partition projects to, conservative outward

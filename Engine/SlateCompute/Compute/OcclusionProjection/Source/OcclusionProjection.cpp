@@ -33,11 +33,11 @@ constexpr double RootHalf = 0.7071067811865476;   // [-] - sin and cos of a quar
 //    camera look down its own negative third axis, so a facing is the rotation that carries that axis onto it —
 //    and reusing that convention is what lets `46`'s own derivation build these projections rather than a second
 //    reversed-depth derivation written here.
-RotationQuaternion FacingOf(std::uint32_t FaceOrdinal)
+RotationQuaternion FacingOf(std::uint32_t FaceIndex)
 {
     RotationQuaternion Facing;
 
-    switch (FaceOrdinal)
+    switch (FaceIndex)
     {
         case 0u:   // -Z, the convention's own facing
             break;
@@ -229,18 +229,18 @@ Outcome<bool> OcclusionIndex::Derive(const IlluminantIndex& Reaching, const Illu
     Packed.assign(Spanned, PackedPartition{});
     TruncatedAccumulated = 0u;
 
-    for (std::uint32_t PartitionOrdinal = 0u; PartitionOrdinal < Spanned; ++PartitionOrdinal)
+    for (std::uint32_t PartitionIndex = 0u; PartitionIndex < Spanned; ++PartitionIndex)
     {
-        PackedPartition& Packing = Packed[PartitionOrdinal];
+        PackedPartition& Packing = Packed[PartitionIndex];
 
-        const std::uint32_t ReachingCount = Reaching.ReachingCount(PartitionOrdinal);
+        const std::uint32_t ReachingCount = Reaching.ReachingCount(PartitionIndex);
 
         // 📝 Walked in the reaching set's own order, which `44` guarantees is identity order. The packing is
         //    therefore identity-ordered too, so a pixel's fourth component carries the same illuminant on every
         //    rotation and on every machine — and `18` unpacks by position without a second ordering to consult.
-        for (std::uint32_t ReachOrdinal = 0u; ReachOrdinal < ReachingCount; ++ReachOrdinal)
+        for (std::uint32_t ReachIndex = 0u; ReachIndex < ReachingCount; ++ReachIndex)
         {
-            const Outcome<OwnerIdentity> Named = Reaching.Reaching(PartitionOrdinal, ReachOrdinal);
+            const Outcome<OwnerIdentity> Named = Reaching.Reaching(PartitionIndex, ReachIndex);
 
             if (!Named.Resolved)
                 continue;
@@ -270,12 +270,12 @@ Outcome<bool> OcclusionIndex::Derive(const IlluminantIndex& Reaching, const Illu
     return Outcome<bool>::Result(true);
 }
 
-Outcome<std::uint32_t> OcclusionIndex::SlotOf(std::uint32_t PartitionOrdinal, OwnerIdentity Illuminant) const
+Outcome<std::uint32_t> OcclusionIndex::SlotOf(std::uint32_t PartitionIndex, OwnerIdentity Illuminant) const
 {
-    if (PartitionOrdinal >= Packed.size())
+    if (PartitionIndex >= Packed.size())
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such partition" });
 
-    const PackedPartition& Packing = Packed[PartitionOrdinal];
+    const PackedPartition& Packing = Packed[PartitionIndex];
 
     for (std::uint32_t Slot = 0u; Slot < Packing.OccupiedCount; ++Slot)
     {
@@ -296,17 +296,17 @@ Outcome<std::uint32_t> OcclusionIndex::SlotOf(std::uint32_t PartitionOrdinal, Ow
         { RefusalReason::ContentUnsupported, "the illuminant does not reach that partition" });
 }
 
-Outcome<OwnerIdentity> OcclusionIndex::IlluminantAt(std::uint32_t PartitionOrdinal, std::uint32_t Slot) const
+Outcome<OwnerIdentity> OcclusionIndex::IlluminantAt(std::uint32_t PartitionIndex, std::uint32_t Slot) const
 {
-    if (PartitionOrdinal >= Packed.size() || Slot >= Packed[PartitionOrdinal].OccupiedCount)
+    if (PartitionIndex >= Packed.size() || Slot >= Packed[PartitionIndex].OccupiedCount)
         return Outcome<OwnerIdentity>::Refuse({ RefusalReason::ExtentExhausted, "the slot carries nothing" });
 
-    return Outcome<OwnerIdentity>::Result(Packed[PartitionOrdinal].Occupying[Slot]);
+    return Outcome<OwnerIdentity>::Result(Packed[PartitionIndex].Occupying[Slot]);
 }
 
-std::uint32_t OcclusionIndex::TruncatedCount(std::uint32_t PartitionOrdinal) const
+std::uint32_t OcclusionIndex::TruncatedCount(std::uint32_t PartitionIndex) const
 {
-    return PartitionOrdinal < Packed.size() ? Packed[PartitionOrdinal].TruncatedCount : 0u;
+    return PartitionIndex < Packed.size() ? Packed[PartitionIndex].TruncatedCount : 0u;
 }
 
 std::uint32_t OcclusionIndex::TruncatedTotal() const { return TruncatedAccumulated; }
@@ -415,7 +415,7 @@ Outcome<bool> OcclusionProjectionSpace::DeclareCamera(const CameraSpecification&
             Declaring.Placement.Rotation.ImaginaryZ != ReferenceCamera.Placement.Rotation.ImaginaryZ ||
             Declaring.Placement.Rotation.Real       != ReferenceCamera.Placement.Rotation.Real;
 
-        // 📝 A camera that has barely moved owes nothing. The threshold is `Contract/`'s own altitude
+        // 📝 A camera that has barely moved owes nothing. The threshold is `Foundation/`'s own altitude
         //    materiality reused, because both answer the same question — how far a viewer must move before a
         //    precomputed thing stops describing what it sees.
         if (Moved <= CameraAltitudeMateriality && !RangeAmended && !RotationAmended)
@@ -448,10 +448,10 @@ Outcome<bool> OcclusionProjectionSpace::DeclareCamera(const CameraSpecification&
 
 std::size_t OcclusionProjectionSpace::Located(OwnerIdentity Illuminant) const
 {
-    for (std::size_t Ordinal = 0u; Ordinal < Projections.size(); ++Ordinal)
+    for (std::size_t Index = 0u; Index < Projections.size(); ++Index)
     {
-        if (Projections[Ordinal].Illuminant == Illuminant)
-            return Ordinal;
+        if (Projections[Index].Illuminant == Illuminant)
+            return Index;
     }
 
     return Projections.size();
@@ -544,13 +544,13 @@ Outcome<bool> OcclusionProjectionSpace::Invalidate(InvalidationSubject Declared,
 
 Outcome<DerivedProjection> OcclusionProjectionSpace::Derive(const IlluminantSpecification& Declared,
                                                             OwnerIdentity               Illuminant,
-                                                            std::uint64_t                  RecordingOrdinal) const
+                                                            std::uint64_t                  RecordingIndex) const
 {
     DerivedProjection Deriving;
     Deriving.Illuminant   = Illuminant;
     Deriving.Shape        = ShapeOfEmission(Declared.Emission);
     Deriving.ExtentTexels = ProjectionExtentTexels;
-    Deriving.DerivedAt    = RecordingOrdinal;
+    Deriving.DerivedAt    = RecordingIndex;
     Deriving.RebuildOwed  = false;
 
     if (Deriving.Shape == ProjectionShape::ShapeCount)
@@ -562,11 +562,11 @@ Outcome<DerivedProjection> OcclusionProjectionSpace::Derive(const IlluminantSpec
         {
             Deriving.EmissionSize = Declared.EmissionRadius * 2.0;
 
-            for (std::uint32_t FaceOrdinal = 0u; FaceOrdinal < 6u; ++FaceOrdinal)
+            for (std::uint32_t FaceIndex = 0u; FaceIndex < 6u; ++FaceIndex)
             {
                 CameraSpecification Projecting;
                 Projecting.Placement.Translation = Declared.Placement.Translation;
-                Projecting.Placement.Rotation    = FacingOf(FaceOrdinal);
+                Projecting.Placement.Rotation    = FacingOf(FaceIndex);
                 Projecting.Projected             = ProjectionSubject::Perspective;
 
                 // 📐 Ninety degrees exactly, because six of them tile the whole sphere and a wider face would
@@ -597,7 +597,7 @@ Outcome<DerivedProjection> OcclusionProjectionSpace::Derive(const IlluminantSpec
                 Face.Projected     = Projected.Resolve();
                 Face.NearestPlane  = Projecting.Clipping.Nearest;
                 Face.FurthestPlane = Projecting.Clipping.Furthest;
-                Face.Bounding.Construct(Face.Projected);
+                Face.Bounding.DeriveFrustumPlanes(Face.Projected);
 
                 Deriving.Faces.push_back(Face);
             }
@@ -638,7 +638,7 @@ Outcome<DerivedProjection> OcclusionProjectionSpace::Derive(const IlluminantSpec
             Face.Projected     = Projected.Resolve();
             Face.NearestPlane  = Projecting.Clipping.Nearest;
             Face.FurthestPlane = Projecting.Clipping.Furthest;
-            Face.Bounding.Construct(Face.Projected);
+            Face.Bounding.DeriveFrustumPlanes(Face.Projected);
 
             Deriving.Faces.push_back(Face);
 
@@ -678,7 +678,7 @@ Outcome<DerivedProjection> OcclusionProjectionSpace::Derive(const IlluminantSpec
             Face.Projected     = Projected.Resolve();
             Face.NearestPlane  = Projecting.Clipping.Nearest;
             Face.FurthestPlane = Projecting.Clipping.Furthest;
-            Face.Bounding.Construct(Face.Projected);
+            Face.Bounding.DeriveFrustumPlanes(Face.Projected);
 
             Deriving.Faces.push_back(Face);
 
@@ -749,7 +749,7 @@ Outcome<DerivedProjection> OcclusionProjectionSpace::Derive(const IlluminantSpec
                 Face.Projected     = Projected.Resolve();
                 Face.NearestPlane  = SliceNearest;
                 Face.FurthestPlane = SliceFurthest;
-                Face.Bounding.Construct(Face.Projected);
+                Face.Bounding.DeriveFrustumPlanes(Face.Projected);
 
                 Deriving.Faces.push_back(Face);
             }
@@ -772,7 +772,7 @@ Outcome<DerivedProjection> OcclusionProjectionSpace::Derive(const IlluminantSpec
 //------------------------------------------------------------------------------------------------------------------------
 
 Outcome<bool> OcclusionProjectionSpace::Rebuild(const IlluminantPopulation& Illuminants,
-                                                std::uint64_t               RecordingOrdinal)
+                                                std::uint64_t               RecordingIndex)
 {
     if (!CameraDeclared)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no camera has been declared" });
@@ -810,7 +810,7 @@ Outcome<bool> OcclusionProjectionSpace::Rebuild(const IlluminantPopulation& Illu
             continue;
         }
 
-        const Outcome<DerivedProjection> Derived = Derive(Declared.Resolve(), Illuminant, RecordingOrdinal);
+        const Outcome<DerivedProjection> Derived = Derive(Declared.Resolve(), Illuminant, RecordingIndex);
 
         if (!Derived.Resolved)
             return Outcome<bool>::Refuse(Derived.Error);
@@ -877,16 +877,16 @@ void OcclusionProjectionSpace::Report(ReportSequence& Reporting,
     // 🔴 `86` §4's `60` §3.1 row. Coalesced by **partition ordinal** as the subject, so twelve partitions that
     //    each truncated present as twelve entries rather than as one with a count of twelve — `86` §6 refuses
     //    the second shape by name, because the count is exactly what destroys the fact the artist needs.
-    for (std::uint32_t PartitionOrdinal = 0u; PartitionOrdinal < PackedIndex.SpannedCount(); ++PartitionOrdinal)
+    for (std::uint32_t PartitionIndex = 0u; PartitionIndex < PackedIndex.SpannedCount(); ++PartitionIndex)
     {
-        if (PackedIndex.TruncatedCount(PartitionOrdinal) == 0u)
+        if (PackedIndex.TruncatedCount(PartitionIndex) == 0u)
             continue;
 
         ReportSpecification Truncated;
         Truncated.Origin         = "60 §3.1 OcclusionProjection";
         Truncated.Subject        = "PackedCapacity";
         Truncated.Detail         = "illuminants beyond the packed word are integrated unattenuated, not dropped";
-        Truncated.SubjectOrdinal = PartitionOrdinal;
+        Truncated.SubjectIndex = PartitionIndex;
         Truncated.Verdict    = ReportVerdict::Truncated;
         Truncated.Arrival        = Sampled;
 

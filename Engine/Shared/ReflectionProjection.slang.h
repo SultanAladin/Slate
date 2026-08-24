@@ -7,7 +7,7 @@
 
 #include "Shared/Prelude.slang.h"
 #include "Shared/SampleProjection.slang.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/NumericTolerance.h"
 
 // 📐 🔴 `30` §1 is the load-bearing rule of that document, and it is here rather than at the resolve site so
 //    that the composition cannot be written twice. `18` already added a specular ambient term from `28`, so a
@@ -59,7 +59,7 @@ SLATE_SHARED Real64 ResolveExactComposite(Real64 CurrentRadiance,
 /// in    OrientationY   [-]
 /// in    OrientationZ   [-]
 /// in    Roughness      [-]  `18` §2 channel 3, perceptual
-/// in    SampleOrdinal  [-]  the sample; `02` §6's progressive pattern supplies the offset
+/// in    SampleIndex  [-]  the sample; `02` §6's progressive pattern supplies the offset
 /// out   ReflectedX/Y/Z [-]  unit
 /// note  📐 The perturbation is applied to the **reflected direction** rather than to the orientation, because
 ///        perturbing the orientation would also perturb the cosine every downstream term reads. What `30` §4
@@ -72,7 +72,7 @@ SLATE_SHARED Real64 ResolveExactComposite(Real64 CurrentRadiance,
 SLATE_SHARED void ProjectReflectedDirection(Real64 ViewX, Real64 ViewY, Real64 ViewZ,
                                             Real64 OrientationX, Real64 OrientationY, Real64 OrientationZ,
                                             Real64 Roughness,
-                                            Unsigned32 SampleOrdinal,
+                                            Unsigned32 SampleIndex,
                                             SLATE_OUT(Real64) ReflectedX,
                                             SLATE_OUT(Real64) ReflectedY,
                                             SLATE_OUT(Real64) ReflectedZ)
@@ -89,7 +89,7 @@ SLATE_SHARED void ProjectReflectedDirection(Real64 ViewX, Real64 ViewY, Real64 V
     {
         Real64 FirstCoordinate  = 0.0;
         Real64 SecondCoordinate = 0.0;
-        ProjectPlanarSample(SampleOrdinal + 1u, FirstCoordinate, SecondCoordinate);
+        ProjectPlanarSample(SampleIndex + 1u, FirstCoordinate, SecondCoordinate);
 
         Real64 SampleX = 0.0;
         Real64 SampleY = 0.0;
@@ -126,7 +126,7 @@ SLATE_SHARED void ProjectReflectedDirection(Real64 ViewX, Real64 ViewY, Real64 V
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Whether a marched position has left the display extent.
-/// note  🔴 `30` §3's first failure row. Weight zero, and §1's contract makes it a no-op.
+/// note  🔴 `30` §3's first failure row. Weight zero, and §1's guarantee makes it a no-op.
 /// cost  ✔️
 /// tag   shared, parity, nonallocating, nonthrowing
 SLATE_SHARED SLATE_CONSTEXPR bool ReflectionLeftExtent(Real64 CoordinateX, Real64 CoordinateY)
@@ -158,9 +158,9 @@ SLATE_SHARED SLATE_CONSTEXPR bool ReflectionCrossed(Real64 MarchedDepth, Real64 
 ///        stands, and the visual difference is below the threshold that would justify the cost.
 /// cost  ✔️
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED SLATE_CONSTEXPR bool ReflectionSkipped(Real64 Roughness, Real64 RoughnessCeiling)
+SLATE_SHARED SLATE_CONSTEXPR bool ReflectionSkipped(Real64 Roughness, Real64 RoughnessLimit)
 {
-    return Roughness > RoughnessCeiling;
+    return Roughness > RoughnessLimit;
 }
 
 }   // namespace Slate

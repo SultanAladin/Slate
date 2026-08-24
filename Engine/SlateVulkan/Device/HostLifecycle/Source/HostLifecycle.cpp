@@ -33,7 +33,7 @@ void Report(const char* Naming, const char* Stage)
 //                                                        CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> HostLifecycle::Construct(const HostDeclaration& Incoming)
+Outcome<bool> HostLifecycle::ConstructHost(const HostDeclaration& Incoming)
 {
     Declared = Incoming;
 
@@ -69,7 +69,7 @@ Outcome<bool> HostLifecycle::Construct(const HostDeclaration& Incoming)
 
     // ⑤ The diagnostic extension — after the instance, before the device. Not fatal when absent: a machine
     //    without the validation layers installed still runs, it simply reports less.
-    if (!DiagnosticEdge.Construct(DeviceEdge, DiagnosticRegister, Clock).Resolved)
+    if (!DiagnosticEdge.AttachDiagnostics(DeviceEdge, DiagnosticRegister, Clock).Resolved)
         Report(Declared.Naming, "the diagnostic extension was not negotiated");
 
     // ⑥ The device — Device lifetime begins here.
@@ -95,8 +95,8 @@ Outcome<bool> HostLifecycle::Construct(const HostDeclaration& Incoming)
     Constructed = ResourceLifetime::Display;
 
     // ⑧ The cyclic slots and the recordings — Recording lifetime begins here.
-    if (!Cycle.Construct(DeviceEdge, DiagnosticEdge).Resolved ||
-        !Commands.Construct(DeviceEdge, DiagnosticEdge).Resolved)
+    if (!Cycle.ConstructCycleScheduler(DeviceEdge, DiagnosticEdge).Resolved ||
+        !Commands.ConstructCommandSequence(DeviceEdge, DiagnosticEdge).Resolved)
     {
         Report(Declared.Naming, "the recording rotation was rejected");
         Reclaim();
@@ -113,7 +113,7 @@ Outcome<bool> HostLifecycle::Construct(const HostDeclaration& Incoming)
 
 Outcome<bool> HostLifecycle::EstablishDisplay(std::uint32_t Width, std::uint32_t Height)
 {
-    return DisplayChain.Construct(DeviceEdge, DiagnosticEdge, PresentationSurface,
+    return DisplayChain.ConstructDisplayScheduler(DeviceEdge, DiagnosticEdge, PresentationSurface,
                                   Width, Height, Declared.Pacing);
 }
 
@@ -204,7 +204,7 @@ Outcome<bool> HostLifecycle::RecoverDevice()
 {
     // 🔴 Bounded. A device that is lost twice is a driver that is not coming back, and rebuilding forever
     //    presents the artist with a window that never draws instead of one that reports and exits.
-    if (DeviceRecoveries >= DeviceRecoveryCeiling)
+    if (DeviceRecoveries >= DeviceRecoveryLimit)
     {
         Report(Declared.Naming, "the device was lost more times than the ceiling accepts");
         LoopActive = false;
@@ -220,8 +220,9 @@ Outcome<bool> HostLifecycle::RebuildDevice()
 {
     // 🔴 An open recording is abandoned rather than surrendered. The device it was recorded into is gone,
     //    so there is nothing to submit it to and nothing that would ever signal its completion.
-    TickRecording = false;
-    OpenRecording = VK_NULL_HANDLE;
+    TickRecording    = false;
+    DisplayScopeOpen = false;
+    OpenRecording    = VK_NULL_HANDLE;
 
     // ⚠️ Not idled first. `vkDeviceWaitIdle` against a lost device refuses, and `Reclaim` performs the idle
     //    itself for the case where the device is merely being retired rather than already gone.
@@ -250,8 +251,8 @@ Outcome<bool> HostLifecycle::RebuildDevice()
     Constructed = ResourceLifetime::Display;
     Surface.AdoptExtent();
 
-    if (!Cycle.Construct(DeviceEdge, DiagnosticEdge).Resolved ||
-        !Commands.Construct(DeviceEdge, DiagnosticEdge).Resolved)
+    if (!Cycle.ConstructCycleScheduler(DeviceEdge, DiagnosticEdge).Resolved ||
+        !Commands.ConstructCommandSequence(DeviceEdge, DiagnosticEdge).Resolved)
     {
         Report(Declared.Naming, "the recording rotation was rejected on a rebuilt device");
         LoopActive = false;
@@ -421,7 +422,7 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
         return Pass;
     }
 
-    SlotOrdinal = Cycle.CurrentOrdinal();
+    SlotIndex = Cycle.CurrentIndex();
 
     const Outcome<CycleSlot> Slot = Cycle.Current();
 
@@ -485,7 +486,7 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
     TickImage = Received.Resolve();
 
     // ⑦ Open the recording and the rendering scope.
-    const Outcome<VkCommandBuffer> Opened = Commands.Open(SlotOrdinal);
+    const Outcome<VkCommandBuffer> Opened = Commands.Open(SlotIndex);
 
     if (!Opened.Resolved)
     {
@@ -496,6 +497,30 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
     }
 
     OpenRecording = Opened.Resolve();
+    for (std::uint32_t Component = 0u; Component < 4u; ++Component)
+        DisplayClear[Component] = ClearInk[Component];
+
+    TickRecording    = true;
+    DisplayScopeOpen = false;
+    Pass.Current     = TickCondition::Recording;
+    Pass.Recording   = OpenRecording;
+
+    return Pass;
+}
+
+Outcome<bool> HostLifecycle::BeginDisplay()
+{
+    if (!TickRecording || OpenRecording == VK_NULL_HANDLE)
+    {
+        return Outcome<bool>::Refuse(Refusal{ RefusalReason::ContentUnsupported,
+                                              "no tick stands recording" });
+    }
+
+    if (DisplayScopeOpen)
+    {
+        return Outcome<bool>::Refuse(Refusal{ RefusalReason::HostDenied,
+                                              "the display scope already stands" });
+    }
 
     const VkRenderingAttachmentInfo ColourAttachment = {
         .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -507,7 +532,7 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
         .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
         .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
-        .clearValue  = { .color = { { ClearInk[0], ClearInk[1], ClearInk[2], ClearInk[3] } } }
+        .clearValue  = { .color = { { DisplayClear[0], DisplayClear[1], DisplayClear[2], DisplayClear[3] } } }
     };
 
     const VkRenderingInfo RenderScope = {
@@ -524,12 +549,8 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
     };
 
     vkCmdBeginRendering(OpenRecording, &RenderScope);
-
-    TickRecording   = true;
-    Pass.Current   = TickCondition::Recording;
-    Pass.Recording  = OpenRecording;
-
-    return Pass;
+    DisplayScopeOpen = true;
+    return Outcome<bool>::Result(true);
 }
 
 Outcome<bool> HostLifecycle::Complete()
@@ -540,7 +561,13 @@ Outcome<bool> HostLifecycle::Complete()
                                               "no tick stands recording" });
     }
 
+    // 📝 A host with no interface content still presents the declared clear. This fallback is deliberately
+    //    here rather than in Await so scene-only recordings remain legal and every acquired image is settled.
+    if (!DisplayScopeOpen)
+        Discard(BeginDisplay());
+
     vkCmdEndRendering(OpenRecording);
+    DisplayScopeOpen = false;
 
     const Outcome<CycleSlot> Slot = Cycle.Current();
 
@@ -552,9 +579,10 @@ Outcome<bool> HostLifecycle::Complete()
         //    chain, which is the only way to retire a signalled semaphore no submission will consume.
         SettleAcquisition();
 
-        TickRecording = false;
-        OpenRecording = VK_NULL_HANDLE;
-        LoopActive  = false;
+        TickRecording    = false;
+        DisplayScopeOpen = false;
+        OpenRecording    = VK_NULL_HANDLE;
+        LoopActive       = false;
         return Outcome<bool>::Refuse(Slot.Error);
     }
 
@@ -565,21 +593,23 @@ Outcome<bool> HostLifecycle::Complete()
         // 🔴 As above — acquired, signalled, and about to return without submitting.
         SettleAcquisition();
 
-        TickRecording = false;
-        OpenRecording = VK_NULL_HANDLE;
-        LoopActive  = false;
+        TickRecording    = false;
+        DisplayScopeOpen = false;
+        OpenRecording    = VK_NULL_HANDLE;
+        LoopActive       = false;
         return Outcome<bool>::Refuse(Refusal{ RefusalReason::DeviceLost, "the rotation could not be armed" });
     }
 
-    const Outcome<bool> Submitted = Commands.Submit(SlotOrdinal, SubmitOrdering{
+    const Outcome<bool> Submitted = Commands.Submit(SlotIndex, SubmitOrdering{
         .Awaited      = Slot.Resolve().ImageAvailable,
         .AwaitedStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
         .Signalled    = Slot.Resolve().RecordingDone,
         .Completion   = Slot.Resolve().Completion
     });
 
-    TickRecording = false;
-    OpenRecording = VK_NULL_HANDLE;
+    TickRecording    = false;
+    DisplayScopeOpen = false;
+    OpenRecording    = VK_NULL_HANDLE;
 
     if (!Submitted.Resolved)
     {
@@ -611,7 +641,7 @@ Outcome<bool> HostLifecycle::Complete()
     //    chain the display has outgrown as a delivered `false`, and reading only `Resolved` — which
     //    this did — made this branch unreachable on a resize: the chain was then rebuilt a tick later by
     //    the extent test, or never, when the display outgrew a chain the window extent had not moved.
-    const Outcome<bool> Presentation = DisplayChain.Present(Slot.Resolve(), TickImage.ImageOrdinal);
+    const Outcome<bool> Presentation = DisplayChain.Present(Slot.Resolve(), TickImage.ImageIndex);
 
     if (!Presentation.Resolved || !Presentation.Resolve())
     {
@@ -640,7 +670,7 @@ DeviceOffering HostLifecycle::Offering() const
     Incoming.ScoredDevice             = DeviceEdge.ScoredDevice();
     Incoming.ActiveDevice             = DeviceEdge.ActiveDevice();
     Incoming.GraphicsQueue            = DeviceEdge.GraphicsQueue();
-    Incoming.GraphicsFamilyOrdinal    = DeviceEdge.Capability().GraphicsFamilyOrdinal;
+    Incoming.GraphicsFamilyIndex    = DeviceEdge.Capability().GraphicsFamilyIndex;
     Incoming.ColourTargetFormat       = DisplayChain.Carries();
     Incoming.MinimumDisplayImageCount = DisplayChain.MinimumChainImageCount();
     Incoming.DisplayImageCount        = DisplayChain.ChainImageCount();
@@ -748,7 +778,7 @@ std::uint32_t HostLifecycle::StateDiagnostics() const
                     (Declared.Naming != nullptr) ? Declared.Naming : "Host",
                     Spelling(Entry.Verdict),
                     Entry.Subject,
-                    static_cast<unsigned long long>(Entry.SubjectOrdinal),
+                    static_cast<unsigned long long>(Entry.SubjectIndex),
                     Entry.OccurrenceCount,
                     Entry.Detail);
     }
@@ -811,8 +841,9 @@ void HostLifecycle::Reclaim(ResourceLifetime From)
     if (Earliest < static_cast<std::uint32_t>(Constructed))
         Constructed = From;
 
-    TickRecording = false;
-    OpenRecording = VK_NULL_HANDLE;
+    TickRecording    = false;
+    DisplayScopeOpen = false;
+    OpenRecording    = VK_NULL_HANDLE;
 }
 
 HostLifecycle::~HostLifecycle()

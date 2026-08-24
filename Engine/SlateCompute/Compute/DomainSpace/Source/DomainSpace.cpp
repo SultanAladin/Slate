@@ -19,7 +19,7 @@ namespace
 
 // 📝 Bisection steps. Forty-eight halvings of a double-precision interval reach the last representable place, so
 //    the settled scale is the same number on every machine rather than the same number to a tolerance.
-constexpr std::uint32_t BisectionCeiling = 48u;   // [-] - halvings taken
+constexpr std::uint32_t BisectionLimit = 48u;   // [-] - halvings taken
 
 }   // namespace
 
@@ -34,9 +34,9 @@ bool DomainSpace::Feasible(const std::vector<std::uint32_t>&  Ordering,
     double ShelfHeight = 0.0;
     double WalkingX = Gap;
 
-    for (const std::uint32_t Ordinal : Ordering)
+    for (const std::uint32_t Index : Ordering)
     {
-        const ChartExtent& Held = Extents[Ordinal];
+        const ChartExtent& Held = Extents[Index];
 
         const double Width  = Held.Width  * Scale;
         const double Height = Held.Height * Scale;
@@ -58,11 +58,11 @@ bool DomainSpace::Feasible(const std::vector<std::uint32_t>&  Ordering,
 
         if (Recording != nullptr)
         {
-            (*Recording)[Ordinal].MinimumX   = WalkingX;
-            (*Recording)[Ordinal].MinimumY  = ShelfY;
-            (*Recording)[Ordinal].Scale        = Scale;
-            (*Recording)[Ordinal].ChartOrdinal = Held.ChartOrdinal;
-            (*Recording)[Ordinal].Placed       = true;
+            (*Recording)[Index].MinimumX   = WalkingX;
+            (*Recording)[Index].MinimumY  = ShelfY;
+            (*Recording)[Index].Scale        = Scale;
+            (*Recording)[Index].ChartIndex = Held.ChartIndex;
+            (*Recording)[Index].Placed       = true;
         }
 
         WalkingX += Width + Gap;
@@ -114,8 +114,8 @@ Outcome<bool> DomainSpace::Arrange(const std::vector<ChartExtent>& Extents, bool
     //    bisection step evaluate a different packing and the search would converge to nothing reproducible.
     std::vector<std::uint32_t> Ordering(Extents.size());
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Extents.size(); ++Ordinal)
-        Ordering[Ordinal] = Ordinal;
+    for (std::uint32_t Index = 0u; Index < Extents.size(); ++Index)
+        Ordering[Index] = Index;
 
     for (std::size_t Passed = 1u; Passed < Ordering.size(); ++Passed)
     {
@@ -147,7 +147,7 @@ Outcome<bool> DomainSpace::Arrange(const std::vector<ChartExtent>& Extents, bool
 
     if (!Feasible(Ordering, Extents, UpperScale, nullptr))
     {
-        for (std::uint32_t Passed = 0u; Passed < BisectionCeiling; ++Passed)
+        for (std::uint32_t Passed = 0u; Passed < BisectionLimit; ++Passed)
         {
             const double Middle = (LowerScale + UpperScale) * 0.5;
 

@@ -51,19 +51,19 @@ ScoredCandidate Classify(VkPhysicalDevice Candidate, VkSurfaceKHR PresentationSu
     vkGetPhysicalDeviceQueueFamilyProperties(Candidate, &FamilyCount, FamilyProperties.data());
 
     bool          FamilyFound   = false;
-    std::uint32_t FamilyOrdinal = 0u;
+    std::uint32_t FamilyIndex = 0u;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < FamilyCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < FamilyCount; ++Index)
     {
-        const bool DrawsHere = (FamilyProperties[Ordinal].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0u;
+        const bool DrawsHere = (FamilyProperties[Index].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0u;
 
         VkBool32 PresentsHere = VK_FALSE;
-        vkGetPhysicalDeviceSurfaceSupportKHR(Candidate, Ordinal, PresentationSurface, &PresentsHere);
+        vkGetPhysicalDeviceSurfaceSupportKHR(Candidate, Index, PresentationSurface, &PresentsHere);
 
         if (DrawsHere && PresentsHere == VK_TRUE)
         {
             FamilyFound   = true;
-            FamilyOrdinal = Ordinal;
+            FamilyIndex = Index;
             break;
         }
     }
@@ -75,8 +75,8 @@ ScoredCandidate Classify(VkPhysicalDevice Candidate, VkSurfaceKHR PresentationSu
         return Scored;
     }
 
-    Scored.Scored.GraphicsFamilyOrdinal      = FamilyOrdinal;
-    Scored.Scored.ComputeRasterAvailable     = (FamilyProperties[FamilyOrdinal].queueFlags & VK_QUEUE_COMPUTE_BIT) != 0u;
+    Scored.Scored.GraphicsFamilyIndex      = FamilyIndex;
+    Scored.Scored.ComputeRasterAvailable     = (FamilyProperties[FamilyIndex].queueFlags & VK_QUEUE_COMPUTE_BIT) != 0u;
     Scored.Scored.HalfPrecisionStore         = CandidateFeatures.shaderStorageImageExtendedFormats == VK_TRUE;
     Scored.Scored.TimestampQueryAvailable    = CandidateProperties.limits.timestampComputeAndGraphics == VK_TRUE;
     Scored.Scored.DynamicRecordingAvailable  = CoreThirteenFeatures.dynamicRendering == VK_TRUE;

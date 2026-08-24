@@ -1,7 +1,7 @@
 #pragma once
 
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 
 #include <array>
 #include <string>
@@ -22,7 +22,7 @@ public:
     void RequestLoad(const char* FontRoot, const FontProfile& Profile, float DisplayScale);
     Outcome<bool> FlushPending();
     std::uint32_t FamilyCount() const { return static_cast<std::uint32_t>(Families.size()); }
-    const char* FamilyName(std::uint32_t Ordinal) const;
+    const char* FamilyName(std::uint32_t Index) const;
     ImFont* Active() const { return Face(FontWeight::Regular, FontSlant::Upright); }
     ImFont* Face(FontWeight Weight, FontSlant Slant) const;
     bool HasFace(FontWeight Weight, FontSlant Slant) const;

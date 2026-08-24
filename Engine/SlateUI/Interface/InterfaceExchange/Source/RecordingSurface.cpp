@@ -7,6 +7,7 @@
 
 #include "imgui.h"
 
+#include <algorithm>
 #include <cfloat>
 #include <cmath>
 
@@ -20,7 +21,7 @@ namespace Slate
 namespace
 {
 
-constexpr std::uint32_t ConfineCeiling  = 16u;   // [-] - nesting depth a scroll extent may reach
+constexpr std::uint32_t ConfineLimit  = 16u;   // [-] - nesting depth a scroll extent may reach
 constexpr float         EmphaticOffset  = 0.34f; // [px] - the second recording's displacement
 
 ImU32 Vendor(ThemeToken Colour)
@@ -85,18 +86,21 @@ Outcome<bool> RecordingSurface::Adopt(ShellLayer Layer)
     SampledPointer.ContactPressed       = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
     SampledPointer.ContactDoublePressed = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
     SampledPointer.ContactReleased      = ImGui::IsMouseReleased(ImGuiMouseButton_Left);
+    SampledPointer.SecondaryHeld        = ImGui::IsMouseDown(ImGuiMouseButton_Right);
+    SampledPointer.SecondaryPressed     = ImGui::IsMouseClicked(ImGuiMouseButton_Right);
+    SampledPointer.SecondaryReleased    = ImGui::IsMouseReleased(ImGuiMouseButton_Right);
     SampledPointer.HeldDuration         = SampledPointer.ContactHeld
                                         ? static_cast<double>(Sampled.MouseDownDuration[0]) * 1000.0
                                         : 0.0;
 
     SampledText = {};
 
-    for (int Ordinal = 0; Ordinal < Sampled.InputQueueCharacters.Size; ++Ordinal)
+    for (int Index = 0; Index < Sampled.InputQueueCharacters.Size; ++Index)
     {
-        const ImWchar Typed = Sampled.InputQueueCharacters[Ordinal];
+        const ImWchar Typed = Sampled.InputQueueCharacters[Index];
 
         if (Typed < 0x20 || Typed > 0x7E ||
-            SampledText.IntakeCount + 1u >= TextInputCondition::IntakeCeiling)
+            SampledText.IntakeCount + 1u >= TextInputCondition::IntakeLimit)
             continue;
 
         SampledText.Intake[SampledText.IntakeCount++] = static_cast<char>(Typed);
@@ -277,19 +281,19 @@ void RecordingSurface::MaskCorners(const PlaneExtent& Extent, ThemeToken Outside
     ImDrawList* Target = Commands(CommandSlot);
     const ImU32 CoveringColour = Vendor(OutsideColour);
 
-    for (std::uint32_t CornerOrdinal = 0u; CornerOrdinal < 4u; ++CornerOrdinal)
+    for (std::uint32_t CornerIndex = 0u; CornerIndex < 4u; ++CornerIndex)
     {
-        for (std::uint32_t StepOrdinal = 0u; StepOrdinal < ArcSteps; ++StepOrdinal)
+        for (std::uint32_t StepIndex = 0u; StepIndex < ArcSteps; ++StepIndex)
         {
-            const float FirstFraction = static_cast<float>(StepOrdinal) / static_cast<float>(ArcSteps);
-            const float SecondFraction = static_cast<float>(StepOrdinal + 1u) / static_cast<float>(ArcSteps);
-            const float FirstAngle = Start[CornerOrdinal] + Travel[CornerOrdinal] * FirstFraction;
-            const float SecondAngle = Start[CornerOrdinal] + Travel[CornerOrdinal] * SecondFraction;
-            const ImVec2 First = { Centre[CornerOrdinal].x + std::cos(FirstAngle) * HeldRadius,
-                                   Centre[CornerOrdinal].y + std::sin(FirstAngle) * HeldRadius };
-            const ImVec2 Second = { Centre[CornerOrdinal].x + std::cos(SecondAngle) * HeldRadius,
-                                    Centre[CornerOrdinal].y + std::sin(SecondAngle) * HeldRadius };
-            Target->AddTriangleFilled(Outer[CornerOrdinal], First, Second, CoveringColour);
+            const float FirstFraction = static_cast<float>(StepIndex) / static_cast<float>(ArcSteps);
+            const float SecondFraction = static_cast<float>(StepIndex + 1u) / static_cast<float>(ArcSteps);
+            const float FirstAngle = Start[CornerIndex] + Travel[CornerIndex] * FirstFraction;
+            const float SecondAngle = Start[CornerIndex] + Travel[CornerIndex] * SecondFraction;
+            const ImVec2 First = { Centre[CornerIndex].x + std::cos(FirstAngle) * HeldRadius,
+                                   Centre[CornerIndex].y + std::sin(FirstAngle) * HeldRadius };
+            const ImVec2 Second = { Centre[CornerIndex].x + std::cos(SecondAngle) * HeldRadius,
+                                    Centre[CornerIndex].y + std::sin(SecondAngle) * HeldRadius };
+            Target->AddTriangleFilled(Outer[CornerIndex], First, Second, CoveringColour);
         }
     }
 }
@@ -309,9 +313,9 @@ void RecordingSurface::Tongue(const float* Corners, std::uint32_t CornerCount, T
 
     ImVec2 Outline[8];
 
-    for (std::uint32_t CornerOrdinal = 0u; CornerOrdinal < CornerCount; ++CornerOrdinal)
+    for (std::uint32_t CornerIndex = 0u; CornerIndex < CornerCount; ++CornerIndex)
     {
-        Outline[CornerOrdinal] = ImVec2(Corners[CornerOrdinal * 2u], Corners[CornerOrdinal * 2u + 1u]);
+        Outline[CornerIndex] = ImVec2(Corners[CornerIndex * 2u], Corners[CornerIndex * 2u + 1u]);
     }
 
     Commands(CommandSlot)->AddConvexPolyFilled(Outline, static_cast<int>(CornerCount), Vendor(Colour));
@@ -362,9 +366,9 @@ void RecordingSurface::Stroke(SymbolSubject Subject, const PlaneExtent& SquareEx
         OutlineOpen = false;
     };
 
-    for (std::uint32_t StepOrdinal = 0u; StepOrdinal < Declared.StepCount; ++StepOrdinal)
+    for (std::uint32_t StepIndex = 0u; StepIndex < Declared.StepCount; ++StepIndex)
     {
-        const StrokeStep& Step = Declared.Steps[StepOrdinal];
+        const StrokeStep& Step = Declared.Steps[StepIndex];
 
         switch (Step.Command)
         {
@@ -423,6 +427,21 @@ constexpr std::uint32_t StagingCapacity = 512u;
 //    preview) wins; otherwise the loader resolves the requested weight and falls back to the regular face
 //    when the family lacks it, exactly as `FontLoader::Face` already promises; with no loader at all the
 //    vendor's own standing font is what an unadorned run always drew.
+std::uint32_t TypographyRoleFor(float AuthoredSize)
+{
+    if (AuthoredSize <= -1.0f && AuthoredSize >= -8.0f)
+        return static_cast<std::uint32_t>(-AuthoredSize - 1.0f);
+    // Family specimens and large numeric readouts are intentionally literal; the ordinary interface
+    // ladder occupies 8–32 px and maps onto the six generally inferred semantic roles.
+    if (AuthoredSize > 32.0f) return 8u;
+    if (AuthoredSize >= 22.0f) return 0u; // Title
+    if (AuthoredSize >= 18.0f) return 1u; // Header
+    if (AuthoredSize >= 15.0f) return 2u; // Subheader
+    if (AuthoredSize >= 13.0f) return 3u; // Body
+    if (AuthoredSize >= 11.0f) return 4u; // Label
+    return 5u;                            // Caption
+}
+
 ImFont* ResolveRunFace(FontLoader* Fonts, ImFont* Override, FontWeight Weight)
 {
     if (Override != nullptr)
@@ -440,18 +459,18 @@ ImFont* ResolveRunFace(FontLoader* Fonts, ImFont* Override, FontWeight Weight)
 
 void Capitalise(const char* Text, char* Staging)
 {
-    std::uint32_t Ordinal = 0u;
+    std::uint32_t Index = 0u;
 
-    while (Text[Ordinal] != '\0' && Ordinal + 1u < StagingCapacity)
+    while (Text[Index] != '\0' && Index + 1u < StagingCapacity)
     {
-        const char Sampled = Text[Ordinal];
-        Staging[Ordinal]   = (Sampled >= 'a' && Sampled <= 'z')
+        const char Sampled = Text[Index];
+        Staging[Index]   = (Sampled >= 'a' && Sampled <= 'z')
                            ? static_cast<char>(Sampled - ('a' - 'A'))
                            : Sampled;
-        ++Ordinal;
+        ++Index;
     }
 
-    Staging[Ordinal] = '\0';
+    Staging[Index] = '\0';
 }
 
 }   // namespace
@@ -459,6 +478,26 @@ void Capitalise(const char* Text, char* Staging)
 void RecordingSurface::ApplyTypographyScale(float Scale)
 {
     TypographyScale = (Scale < 0.5f) ? 0.5f : ((Scale > 2.0f) ? 2.0f : Scale);
+}
+
+void RecordingSurface::ApplyTypographyRoles(const std::uint32_t Sizes[8],
+                                            const std::uint32_t Weights[8])
+{
+    if (Sizes == nullptr || Weights == nullptr) return;
+    const std::uint32_t Minimum[8] = {20u, 16u, 12u, 10u, 8u, 8u, 10u, 10u};
+    const std::uint32_t Maximum[8] = {64u, 40u, 32u, 24u, 20u, 16u, 24u, 24u};
+    for (std::uint32_t Index = 0u; Index < 8u; ++Index)
+    {
+        TypographySizes[Index] = static_cast<float>(std::clamp(Sizes[Index], Minimum[Index], Maximum[Index]));
+        TypographyWeights[Index] = static_cast<FontWeight>(std::clamp(Weights[Index], 100u, 900u));
+    }
+}
+
+float RecordingSurface::ResolveTypographySize(float AuthoredSize) const
+{
+    const std::uint32_t Role = TypographyRoleFor(AuthoredSize);
+    const float Semantic = Role < 8u ? TypographySizes[Role] : AuthoredSize;
+    return Semantic * TypographyScale;
 }
 
 void RecordingSurface::ApplyCornerScale(float Scale)
@@ -492,7 +531,7 @@ void RecordingSurface::Image(const PlaneExtent& Extent, std::uintptr_t Identity,
                                     IM_COL32_WHITE);
 }
 
-void RecordingSurface::ImageMesh(std::uintptr_t Identity,
+void RecordingSurface::ImageGeometry(std::uintptr_t Identity,
                                   const float* Positions, const float* UVs, std::uint32_t VertexCount,
                                   const std::uint32_t* Indices, std::uint32_t IndexCount)
 {
@@ -502,13 +541,13 @@ void RecordingSurface::ImageMesh(std::uintptr_t Identity,
 
     // 📝 The vendor's own texture switch, exactly as `AddImage` performs it: `PushTexture` states the
     //    identity on the command header AND opens a new command when the standing one carries other
-    //    prims, so the mesh never inherits the font atlas's identity and the atlas text never inherits
+    //    prims, so the geometry never inherits the font atlas's identity and the atlas text never inherits
     //    the sky's. Writing the header directly would corrupt whichever command stood — the reported
     //    defect where the viewport read the atlas as sky.
     ImDrawList* Target = Commands(CommandSlot);
 
     // 🔴 The indices a command list carries are ABSOLUTE positions in the list's vertex buffer, not
-    //    positions in the mesh: a mesh that wrote 0-based indices would reference the top bar's text
+    //    positions in the geometry: a geometry run that wrote 0-based indices would reference the top bar's text
     //    vertices and the viewport would read the atlas as sky. The base is the count of vertices the
     //    list already holds, and every delivered index is offset by it.
     const unsigned int Base = Target->_VtxCurrentIdx;
@@ -516,15 +555,15 @@ void RecordingSurface::ImageMesh(std::uintptr_t Identity,
     Target->PushTexture(ImTextureRef(static_cast<ImTextureID>(Identity)));
     Target->PrimReserve(static_cast<int>(IndexCount), static_cast<int>(VertexCount));
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < VertexCount; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < VertexCount; ++Index)
     {
-        Target->PrimWriteVtx(ImVec2(Positions[Ordinal * 2u], Positions[Ordinal * 2u + 1u]),
-                             ImVec2(UVs[Ordinal * 2u], UVs[Ordinal * 2u + 1u]),
+        Target->PrimWriteVtx(ImVec2(Positions[Index * 2u], Positions[Index * 2u + 1u]),
+                             ImVec2(UVs[Index * 2u], UVs[Index * 2u + 1u]),
                              IM_COL32_WHITE);
     }
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < IndexCount; ++Ordinal)
-        Target->PrimWriteIdx(static_cast<ImDrawIdx>(Base + Indices[Ordinal]));
+    for (std::uint32_t Index = 0u; Index < IndexCount; ++Index)
+        Target->PrimWriteIdx(static_cast<ImDrawIdx>(Base + Indices[Index]));
 
     Target->PopTexture();
 }
@@ -543,8 +582,8 @@ void RecordingSurface::Polyline(const float* PointsX, const float* PointsY, std:
 
     ImVec2 Points[64];
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
-        Points[Ordinal] = ImVec2(PointsX[Ordinal], PointsY[Ordinal]);
+    for (std::uint32_t Index = 0u; Index < Count; ++Index)
+        Points[Index] = ImVec2(PointsX[Index], PointsY[Index]);
 
     Commands(CommandSlot)->AddPolyline(Points, static_cast<int>(Count), Vendor(Colour), Weight);
 }
@@ -555,6 +594,15 @@ void RecordingSurface::TextRun(float X, float Y, ThemeToken Colour, const char* 
     if (CommandSlot == nullptr || Text == nullptr || Text[0] == '\0' || Colour.Opacity == 0u)
         return;
 
+    const std::uint32_t Role = TypographyRoleFor(PointSize);
+    if (Role < 8u)
+    {
+        PointSize = TypographySizes[Role];
+        if (Weight == FontWeight::Regular)
+            Weight = TypographyWeights[Role];
+    }
+    if (Weight != FontWeight::Regular)
+        Emphatic = false;
     ImDrawList*   Target   = Commands(CommandSlot);
     ImFont*       Typeface = ResolveRunFace(Fonts, FontOverride, Weight);
     const ImU32   Vendored = Vendor(Colour);
@@ -612,6 +660,21 @@ void RecordingSurface::TextRun(float X, float Y, ThemeToken Colour, const char* 
         Emit(X + EmphaticOffset, Y);
 }
 
+void RecordingSurface::TextRunRole(float X, float Y, ThemeToken Colour, const char* Text,
+                                   TypographyRole Role, float Tracking)
+{
+    const std::uint32_t Index = static_cast<std::uint32_t>(Role);
+    TextRun(X, Y, Colour, Text, -1.0f - static_cast<float>(Index), Tracking, false,
+            Index < 8u ? TypographyWeights[Index] : FontWeight::Regular);
+}
+
+float RecordingSurface::MeasureRunRole(const char* Text, TypographyRole Role, float Tracking) const
+{
+    const std::uint32_t Index = static_cast<std::uint32_t>(Role);
+    return MeasureRun(Text, -1.0f - static_cast<float>(Index), Tracking,
+                      Index < 8u ? TypographyWeights[Index] : FontWeight::Regular);
+}
+
 void RecordingSurface::TextRunCapitalised(float X, float Y, ThemeToken Colour, const char* Text,
                                           float PointSize, float Tracking, bool Emphatic, FontWeight Weight)
 {
@@ -624,21 +687,25 @@ void RecordingSurface::TextRunCapitalised(float X, float Y, ThemeToken Colour, c
     TextRun(X, Y, Colour, Staging, PointSize, Tracking, Emphatic, Weight);
 }
 
-void RecordingSurface::TextRunTruncated(float X, float Y, float CeilingX, ThemeToken Colour,
+void RecordingSurface::TextRunTruncated(float X, float Y, float LimitX, ThemeToken Colour,
                                         const char* Text, float PointSize, bool Emphatic, FontWeight Weight)
 {
     if (CommandSlot == nullptr || Text == nullptr || Text[0] == '\0')
         return;
 
-    if (MeasureRun(Text, PointSize, 0.0f, Weight) <= CeilingX)
+    if (MeasureRun(Text, PointSize, 0.0f, Weight) <= LimitX)
     {
         TextRun(X, Y, Colour, Text, PointSize, 0.0f, Emphatic, Weight);
         return;
     }
 
+    const std::uint32_t Role = TypographyRoleFor(PointSize);
+    if (Role < 8u && Weight == FontWeight::Regular)
+        Weight = TypographyWeights[Role];
+    const float EffectivePointSize = ResolveTypographySize(PointSize);
     ImFont*       Typeface     = ResolveRunFace(Fonts, FontOverride, Weight);
-    const float   EllipsisSpan = Typeface->CalcTextSizeA(PointSize, FLT_MAX, 0.0f, "...").x;
-    const float   Admissible   = CeilingX - EllipsisSpan;
+    const float   EllipsisSpan = Typeface->CalcTextSizeA(EffectivePointSize, FLT_MAX, 0.0f, "...").x;
+    const float   Admissible   = LimitX - EllipsisSpan;
 
     char          Staging[StagingCapacity];
     std::uint32_t Kept = 0u;
@@ -647,7 +714,7 @@ void RecordingSurface::TextRunTruncated(float X, float Y, float CeilingX, ThemeT
     while (Text[Kept] != '\0' && Kept + 4u < StagingCapacity)
     {
         const char Glyph[2] = { Text[Kept], '\0' };
-        const float Advance = Typeface->CalcTextSizeA(PointSize, FLT_MAX, 0.0f, Glyph, Glyph + 1).x;
+        const float Advance = Typeface->CalcTextSizeA(EffectivePointSize, FLT_MAX, 0.0f, Glyph, Glyph + 1).x;
 
         if (Pen + Advance > Admissible)
             break;
@@ -670,6 +737,13 @@ float RecordingSurface::MeasureRun(const char* Text, float PointSize, float Trac
     if (Text == nullptr || Text[0] == '\0' || ImGui::GetCurrentContext() == nullptr)
         return 0.0f;
 
+    const std::uint32_t Role = TypographyRoleFor(PointSize);
+    if (Role < 8u)
+    {
+        PointSize = TypographySizes[Role];
+        if (Weight == FontWeight::Regular)
+            Weight = TypographyWeights[Role];
+    }
     ImFont*       Typeface = ResolveRunFace(Fonts, FontOverride, Weight);
     PointSize *= TypographyScale;
     const float   Measured = Typeface->CalcTextSizeA(PointSize, FLT_MAX, 0.0f, Text).x;
@@ -692,7 +766,7 @@ float RecordingSurface::LineHeight(float PointSize) const
     // 📐 The source's `leading-normal` is 1.5 for body text; the two captions declare `leading-none`, which the
     //    caller states by asking for the point size itself. 1.5 is the figure a run occupies when nothing
     //    overrides it, so it is what this reports.
-    return PointSize * 1.5f;
+    return ResolveTypographySize(PointSize) * 1.5f;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -701,7 +775,7 @@ float RecordingSurface::LineHeight(float PointSize) const
 
 void RecordingSurface::Confine(const PlaneExtent& Extent)
 {
-    if (CommandSlot == nullptr || ConfineDepth >= ConfineCeiling)
+    if (CommandSlot == nullptr || ConfineDepth >= ConfineLimit)
         return;
 
     Commands(CommandSlot)->PushClipRect(ImVec2(Extent.MinimumX, Extent.MinimumY),

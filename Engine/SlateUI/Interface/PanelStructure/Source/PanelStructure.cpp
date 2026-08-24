@@ -12,17 +12,17 @@ namespace Slate
 //                                                       CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-void PanelStructure::Construct(PanelSubject InitialSubject)
+void PanelStructure::ConstructPanelPartition(PanelSubject InitialSubject)
 {
     Reset();
-    Records[RootOrdinal].Occupied = true;
-    Records[RootOrdinal].Subject  = InitialSubject;
+    Records[RootIndex].Occupied = true;
+    Records[RootIndex].Subject  = InitialSubject;
 }
 
 void PanelStructure::Reset()
 {
-    for (std::uint32_t Ordinal = 0u; Ordinal < RecordCeiling; ++Ordinal)
-        Records[Ordinal] = PanelRecord{};
+    for (std::uint32_t Index = 0u; Index < RecordLimit; ++Index)
+        Records[Index] = PanelRecord{};
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -31,34 +31,34 @@ void PanelStructure::Reset()
 
 std::uint32_t PanelStructure::TakeVacant()
 {
-    for (std::uint32_t Ordinal = 1u; Ordinal < RecordCeiling; ++Ordinal)
+    for (std::uint32_t Index = 1u; Index < RecordLimit; ++Index)
     {
-        if (!Records[Ordinal].Occupied)
-            return Ordinal;
+        if (!Records[Index].Occupied)
+            return Index;
     }
 
-    return RecordCeiling;
+    return RecordLimit;
 }
 
-Outcome<bool> PanelStructure::Divide(std::uint32_t LeafOrdinal,
+Outcome<bool> PanelStructure::Divide(std::uint32_t LeafIndex,
                                      PanelDivisionAxis Axis,
                                      PanelDivisionSide VacantSide)
 {
-    if (LeafOrdinal >= RecordCeiling || !Records[LeafOrdinal].Occupied || Records[LeafOrdinal].Divided)
+    if (LeafIndex >= RecordLimit || !Records[LeafIndex].Occupied || Records[LeafIndex].Divided)
         return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "that ordinal names no leaf panel" });
 
     const std::uint32_t FirstSlot = TakeVacant();
-    if (FirstSlot >= RecordCeiling)
+    if (FirstSlot >= RecordLimit)
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "no two panel slots remain" });
 
     Records[FirstSlot].Occupied = true;
     const std::uint32_t SecondSlot = TakeVacant();
     Records[FirstSlot].Occupied = false;
 
-    if (SecondSlot >= RecordCeiling)
+    if (SecondSlot >= RecordLimit)
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "no two panel slots remain" });
 
-    const PanelSubject DepartingSubject = Records[LeafOrdinal].Subject;
+    const PanelSubject DepartingSubject = Records[LeafIndex].Subject;
     const bool VacantTop = VacantSide == PanelDivisionSide::Minimum;
 
     Records[FirstSlot] = PanelRecord{ true, false,
@@ -66,7 +66,7 @@ Outcome<bool> PanelStructure::Divide(std::uint32_t LeafOrdinal,
     Records[SecondSlot] = PanelRecord{ true, false,
                                        VacantTop ? DepartingSubject : PanelSubject::Vacant };
 
-    PanelRecord& Divided = Records[LeafOrdinal];
+    PanelRecord& Divided = Records[LeafIndex];
     Divided.Divided       = true;
     Divided.Subject       = PanelSubject::Vacant;
     Divided.Axis          = Axis;
@@ -81,46 +81,46 @@ Outcome<bool> PanelStructure::Divide(std::uint32_t LeafOrdinal,
 //                                                       WITHDRAWAL
 //------------------------------------------------------------------------------------------------------------------------
 
-bool PanelStructure::Encloses(std::uint32_t BranchOrdinal,
-                              std::uint32_t SeekingOrdinal,
-                              std::uint32_t& EnclosingOrdinal,
+bool PanelStructure::Encloses(std::uint32_t BranchIndex,
+                              std::uint32_t SeekingIndex,
+                              std::uint32_t& EnclosingIndex,
                               bool& MinimumSide) const
 {
-    if (BranchOrdinal >= RecordCeiling || !Records[BranchOrdinal].Occupied || !Records[BranchOrdinal].Divided)
+    if (BranchIndex >= RecordLimit || !Records[BranchIndex].Occupied || !Records[BranchIndex].Divided)
         return false;
 
-    const PanelRecord& Branch = Records[BranchOrdinal];
-    if (Branch.Minimum == SeekingOrdinal || Branch.Maximum == SeekingOrdinal)
+    const PanelRecord& Branch = Records[BranchIndex];
+    if (Branch.Minimum == SeekingIndex || Branch.Maximum == SeekingIndex)
     {
-        EnclosingOrdinal = BranchOrdinal;
-        MinimumSide        = Branch.Minimum == SeekingOrdinal;
+        EnclosingIndex = BranchIndex;
+        MinimumSide        = Branch.Minimum == SeekingIndex;
         return true;
     }
 
-    return Encloses(Branch.Minimum, SeekingOrdinal, EnclosingOrdinal, MinimumSide) ||
-           Encloses(Branch.Maximum, SeekingOrdinal, EnclosingOrdinal, MinimumSide);
+    return Encloses(Branch.Minimum, SeekingIndex, EnclosingIndex, MinimumSide) ||
+           Encloses(Branch.Maximum, SeekingIndex, EnclosingIndex, MinimumSide);
 }
 
-Outcome<bool> PanelStructure::Withdraw(std::uint32_t LeafOrdinal)
+Outcome<bool> PanelStructure::Withdraw(std::uint32_t LeafIndex)
 {
-    if (LeafOrdinal >= RecordCeiling || !Records[LeafOrdinal].Occupied || Records[LeafOrdinal].Divided)
+    if (LeafIndex >= RecordLimit || !Records[LeafIndex].Occupied || Records[LeafIndex].Divided)
         return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "that ordinal names no leaf panel" });
 
-    if (LeafOrdinal == RootOrdinal)
+    if (LeafIndex == RootIndex)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the sole panel cannot be withdrawn" });
 
-    std::uint32_t EnclosingOrdinal = RecordCeiling;
+    std::uint32_t EnclosingIndex = RecordLimit;
     bool          MinimumSide        = false;
-    if (!Encloses(RootOrdinal, LeafOrdinal, EnclosingOrdinal, MinimumSide))
+    if (!Encloses(RootIndex, LeafIndex, EnclosingIndex, MinimumSide))
         return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the leaf has no enclosing division" });
 
-    const PanelRecord Enclosing = Records[EnclosingOrdinal];
-    const std::uint32_t PromotedOrdinal = MinimumSide ? Enclosing.Maximum : Enclosing.Minimum;
-    const PanelRecord Promoted = Records[PromotedOrdinal];
+    const PanelRecord Enclosing = Records[EnclosingIndex];
+    const std::uint32_t PromotedIndex = MinimumSide ? Enclosing.Maximum : Enclosing.Minimum;
+    const PanelRecord Promoted = Records[PromotedIndex];
 
-    Records[EnclosingOrdinal] = Promoted;
-    Records[LeafOrdinal]      = PanelRecord{};
-    Records[PromotedOrdinal]  = PanelRecord{};
+    Records[EnclosingIndex] = Promoted;
+    Records[LeafIndex]      = PanelRecord{};
+    Records[PromotedIndex]  = PanelRecord{};
 
     return Outcome<bool>::Result(true);
 }
@@ -129,27 +129,27 @@ Outcome<bool> PanelStructure::Withdraw(std::uint32_t LeafOrdinal)
 //                                                        EDITING
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> PanelStructure::Assign(std::uint32_t LeafOrdinal, PanelSubject Subject)
+Outcome<bool> PanelStructure::Assign(std::uint32_t LeafIndex, PanelSubject Subject)
 {
-    if (LeafOrdinal >= RecordCeiling || !Records[LeafOrdinal].Occupied || Records[LeafOrdinal].Divided)
+    if (LeafIndex >= RecordLimit || !Records[LeafIndex].Occupied || Records[LeafIndex].Divided)
         return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "that ordinal names no leaf panel" });
 
     if (Subject >= PanelSubject::SubjectCount)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "that panel subject is unsupported" });
 
-    Records[LeafOrdinal].Subject = Subject;
+    Records[LeafIndex].Subject = Subject;
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> PanelStructure::Proportion(std::uint32_t DivisionOrdinal, float MinimumFraction)
+Outcome<bool> PanelStructure::Proportion(std::uint32_t DivisionIndex, float MinimumFraction)
 {
-    if (DivisionOrdinal >= RecordCeiling || !Records[DivisionOrdinal].Occupied ||
-        !Records[DivisionOrdinal].Divided)
+    if (DivisionIndex >= RecordLimit || !Records[DivisionIndex].Occupied ||
+        !Records[DivisionIndex].Divided)
     {
         return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "that ordinal names no panel division" });
     }
 
-    Records[DivisionOrdinal].MinimumFraction = (MinimumFraction < 0.05f) ? 0.05f
+    Records[DivisionIndex].MinimumFraction = (MinimumFraction < 0.05f) ? 0.05f
                                                    : (MinimumFraction > 0.95f) ? 0.95f
                                                                                  : MinimumFraction;
     return Outcome<bool>::Result(true);
@@ -159,17 +159,17 @@ Outcome<bool> PanelStructure::Proportion(std::uint32_t DivisionOrdinal, float Mi
 //                                                        READINGS
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<PanelRecord> PanelStructure::Current(std::uint32_t Ordinal) const
+Outcome<PanelRecord> PanelStructure::Current(std::uint32_t Index) const
 {
-    if (Ordinal >= RecordCeiling || !Records[Ordinal].Occupied)
+    if (Index >= RecordLimit || !Records[Index].Occupied)
         return Outcome<PanelRecord>::Refuse({ RefusalReason::IdentityStale, "that panel ordinal is unoccupied" });
 
-    return Outcome<PanelRecord>::Result(Records[Ordinal]);
+    return Outcome<PanelRecord>::Result(Records[Index]);
 }
 
 bool PanelStructure::RemovalAccepted() const
 {
-    const PanelRecord& Root = Records[RootOrdinal];
+    const PanelRecord& Root = Records[RootIndex];
     return Root.Occupied && Root.Divided;
 }
 

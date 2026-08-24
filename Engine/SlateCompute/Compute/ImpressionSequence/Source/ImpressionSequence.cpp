@@ -35,7 +35,7 @@ namespace
 
 // 📝 The normalisation references the five dynamic axes are expressed against. `58` §4 declares the axes and
 //    leaves their normalisation to whoever supplies them, which is here. Read by this unit alone, so `00` §2
-//    keeps them here rather than in `Contract/`.
+//    keeps them here rather than in `Foundation/`.
 constexpr double SpeedReference        = 2.0;    // [-/s] - crossing the domain twice a second reads as unity
 constexpr double PathDistanceReference = 1.0;    // [-]   - one full traverse of the domain reads as unity
 constexpr double TiltReference         = 90.0;   // [deg] - flat against the surface reads as unity
@@ -125,7 +125,7 @@ Outcome<bool> ImpressionSequence::Open(const StrokeDeclaration& Declaring, const
                     { RefusalReason::ContentUnsupported, "the placement's span does not match the channel's measure" });
             }
 
-            if (Placing.ComponentOrdinal + Placing.ComponentSpan > Declaring.ComponentCount)
+            if (Placing.ComponentIndex + Placing.ComponentSpan > Declaring.ComponentCount)
             {
                 return Outcome<bool>::Refuse(
                     { RefusalReason::ContentUnsupported, "the placement runs past the entry's components" });
@@ -153,7 +153,7 @@ Outcome<bool> ImpressionSequence::Open(const StrokeDeclaration& Declaring, const
     Recorded = RecordBrush(Brushed, Declaring.StrokeSeed);
 
     Sequenced.clear();
-    Accumulated.Construct();
+    Accumulated.ConstructStrokeSpace();
 
     LastX         = 0.0;
     LastY        = 0.0;
@@ -224,10 +224,10 @@ void ImpressionSequence::Emit(double              PositionX,
                               double              PathDistance)
 {
     ImpressionSample Impressing;
-    Impressing.ImpressionOrdinal = static_cast<std::uint32_t>(Sequenced.size());
+    Impressing.ImpressionIndex = static_cast<std::uint32_t>(Sequenced.size());
     Impressing.PathDistance      = PathDistance;
 
-    Impressing.Resolved = Brush.Resolve(Axes, Impressing.ImpressionOrdinal, Declared.StrokeSeed);
+    Impressing.Resolved = Brush.Resolve(Axes, Impressing.ImpressionIndex, Declared.StrokeSeed);
 
     // 🔴 `58` §3.1: path-relative rotation reads the tangent of the **resampled** path and never of the raw
     //    input. Raw input at a low sample rate produces a tangent that jitters at every reported position, and
@@ -269,7 +269,7 @@ Outcome<bool> ImpressionSequence::Amend(const StrokeArrival& Incoming)
         return Outcome<bool>::Result(true);
     }
 
-    if (Sequenced.size() >= ImpressionCeiling)
+    if (Sequenced.size() >= ImpressionLimit)
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::ExtentExhausted, "the stroke reached the declared impression ceiling" });
@@ -329,7 +329,7 @@ Outcome<bool> ImpressionSequence::Amend(const StrokeArrival& Incoming)
     //    comparison decides the last impression of the segment on the residue of the additions. A path of four
     //    tenths at a spacing of one fortieth is sixteen spacings by the geometry and 5.6e-17 short of sixteen in
     //    binary, so exactly one impression is withheld — and it is the one at the position the artist released.
-    while (Sequenced.size() < ImpressionCeiling
+    while (Sequenced.size() < ImpressionLimit
         && PendingDistance + (SegmentSpan - Walked) >= NextSpacing * (1.0 - SpacingArrivalTolerance))
     {
         // 📝 The advance is the full spacing even where the tolerance accepted the step, so `Walked` tracks the
@@ -373,7 +373,7 @@ Outcome<bool> ImpressionSequence::Amend(const StrokeArrival& Incoming)
 Outcome<bool> ImpressionSequence::ResolveOne(ImpressionSample& Impressing,
                                              SurfaceTileSpace& Residency,
                                              RequestQueue&     Requesting,
-                                             std::uint64_t     RecordingOrdinal)
+                                             std::uint64_t     RecordingIndex)
 {
     const std::uint32_t CellsPerEdge  = CellsPerEdgeAt(Level);
     const std::uint32_t WorkingExtent = CellsPerEdge * CoverageTileTexels;
@@ -421,7 +421,7 @@ Outcome<bool> ImpressionSequence::ResolveOne(ImpressionSample& Impressing,
             const double SampleY = (static_cast<double>(Y) + 0.5) / static_cast<double>(CellsPerEdge);
 
             const Outcome<SampledCell> Sampled =
-                Residency.Sample(Level, SampleX, SampleY, RecordingOrdinal, Requesting);
+                Residency.Sample(Level, SampleX, SampleY, RecordingIndex, Requesting);
 
             if (!Sampled.Resolved)
                 return Outcome<bool>::Refuse(Sampled.Error);
@@ -489,15 +489,15 @@ Outcome<bool> ImpressionSequence::ResolveOne(ImpressionSample& Impressing,
             Addressed.X  = CellX;
             Addressed.Y = CellY;
 
-            const Outcome<std::uint32_t> CellOrdinal = OrdinalOf(Addressed);
+            const Outcome<std::uint32_t> CellIndex = IndexOf(Addressed);
 
-            if (!CellOrdinal.Resolved)
+            if (!CellIndex.Resolved)
                 continue;
 
-            const Outcome<std::uint32_t> TileOrdinal = Accumulated.Reserve(CellOrdinal.Resolve());
+            const Outcome<std::uint32_t> TileIndex = Accumulated.Reserve(CellIndex.Resolve());
 
-            if (!TileOrdinal.Resolved)
-                return Outcome<bool>::Refuse(TileOrdinal.Error);
+            if (!TileIndex.Resolved)
+                return Outcome<bool>::Refuse(TileIndex.Error);
 
             // 🔴 `20` §5's gate, declared per cell as the stroke first touches it and withdrawn at Seal. No tile
             //    holding uncommitted paint is evicted; without it the artist's own stroke is the pressure that
@@ -505,9 +505,9 @@ Outcome<bool> ImpressionSequence::ResolveOne(ImpressionSample& Impressing,
             // ⚠️ A speculative extent never declares it — `22` §4.1. A brush preview that pinned every tile the
             //    cursor passed over would exhaust residency while the artist painted nothing.
             if (!Declared.Speculative)
-                Discard(Residency.DeclareUncommitted(CellOrdinal.Resolve(), true));
+                Discard(Residency.DeclareUncommitted(CellIndex.Resolve(), true));
 
-            Accumulated.Accumulate(TileOrdinal.Resolve(),
+            Accumulated.Accumulate(TileIndex.Resolve(),
                                    static_cast<std::uint32_t>(X)  % CoverageTileTexels,
                                    static_cast<std::uint32_t>(Y) % CoverageTileTexels,
                                    Coverage);
@@ -521,7 +521,7 @@ Outcome<bool> ImpressionSequence::ResolveOne(ImpressionSample& Impressing,
 
 Outcome<ResolvedRun> ImpressionSequence::Resolve(SurfaceTileSpace& Residency,
                                                  RequestQueue&     Requesting,
-                                                 std::uint64_t     RecordingOrdinal)
+                                                 std::uint64_t     RecordingIndex)
 {
     if (!OpenDeclared)
         return Outcome<ResolvedRun>::Refuse({ RefusalReason::HostDenied, "no stroke is open" });
@@ -537,7 +537,7 @@ Outcome<ResolvedRun> ImpressionSequence::Resolve(SurfaceTileSpace& Residency,
         if (!Impressing.ResolutionOwed)
             continue;
 
-        const Outcome<bool> Resolved = ResolveOne(Impressing, Residency, Requesting, RecordingOrdinal);
+        const Outcome<bool> Resolved = ResolveOne(Impressing, Residency, Requesting, RecordingIndex);
 
         if (Resolved.Resolved)
         {
@@ -567,8 +567,8 @@ void ImpressionSequence::Abandon(SurfaceTileSpace& Residency)
 
     if (!Declared.Speculative)
     {
-        for (const std::uint32_t CellOrdinal : Accumulated.TouchedCells())
-            Discard(Residency.DeclareUncommitted(CellOrdinal, false));
+        for (const std::uint32_t CellIndex : Accumulated.TouchedCells())
+            Discard(Residency.DeclareUncommitted(CellIndex, false));
     }
 
     Accumulated.Reclaim();
@@ -654,12 +654,12 @@ Outcome<SealedStroke> ImpressionSequence::Seal(SurfaceLayerSequence& Content,
 
     for (std::size_t Passed = 0u; Passed < Sealing.TouchedCells.size(); ++Passed)
     {
-        const std::uint32_t CellOrdinal = Sealing.TouchedCells[Passed];
+        const std::uint32_t CellIndex = Sealing.TouchedCells[Passed];
 
-        const Outcome<CellAddress>   Addressed   = AddressOf(CellOrdinal);
-        const Outcome<std::uint32_t> TileOrdinal = Accumulated.Located(CellOrdinal);
+        const Outcome<CellAddress>   Addressed   = AddressOf(CellIndex);
+        const Outcome<std::uint32_t> TileIndex = Accumulated.Located(CellIndex);
 
-        if (!Addressed.Resolved || !TileOrdinal.Resolved)
+        if (!Addressed.Resolved || !TileIndex.Resolved)
             continue;
 
         const std::uint32_t OriginX  = Addressed.Resolve().X  * CoverageTileTexels;
@@ -681,7 +681,7 @@ Outcome<SealedStroke> ImpressionSequence::Seal(SurfaceLayerSequence& Content,
                 for (std::size_t Component = 0u; Component < Stride; ++Component)
                     Sealing.PriorTexels[Writing + Component] = Painted.Texels[Reading + Component];
 
-                const double Coverage = Accumulated.Coverage(TileOrdinal.Resolve(), X, Y);
+                const double Coverage = Accumulated.Coverage(TileIndex.Resolve(), X, Y);
 
                 if (Coverage <= 0.0)
                     continue;
@@ -707,7 +707,7 @@ Outcome<SealedStroke> ImpressionSequence::Seal(SurfaceLayerSequence& Content,
 
                             for (std::uint32_t Component = 0u; Component < 3u; ++Component)
                             {
-                                const std::size_t Slot = Reading + Placing.ComponentOrdinal + Component;
+                                const std::size_t Slot = Reading + Placing.ComponentIndex + Component;
 
                                 Painted.Texels[Slot] = static_cast<float>(
                                     CombineValue(Combination,
@@ -718,7 +718,7 @@ Outcome<SealedStroke> ImpressionSequence::Seal(SurfaceLayerSequence& Content,
                         }
                         else
                         {
-                            const std::size_t Slot = Reading + Placing.ComponentOrdinal;
+                            const std::size_t Slot = Reading + Placing.ComponentIndex;
 
                             Painted.Texels[Slot] = static_cast<float>(
                                 CombineValue(Combination,
@@ -736,7 +736,7 @@ Outcome<SealedStroke> ImpressionSequence::Seal(SurfaceLayerSequence& Content,
         // 🔴 Cancelled here rather than after the transaction seals. `20` §5: at this point the paint is in `56`
         //    and the tile is a projection of it again, so the tile is evictable and re-resolvable — holding the
         //    gate open past the write would pin tiles for a stroke that has already committed.
-        Discard(Residency.DeclareUncommitted(CellOrdinal, false));
+        Discard(Residency.DeclareUncommitted(CellIndex, false));
     }
 
     const Outcome<bool> Committed = Revised.Seal(SealedAt, false);

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateDocument/Document/BrushSpecification/Api/BrushSpecification.h"
 #include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
 #include "SlateDocument/Document/PointerIntersection/Api/PointerIntersection.h"
@@ -30,7 +30,7 @@ inline constexpr std::uint32_t AbsentTool = 0xFFFFFFFFu;   // [-] - nothing is a
 /// 🧩 `14` §4.2's four levels, in the order they are consulted.
 /// note  🔴 The ordinal **is** the precedence, ascending, so an arbitration is one integer comparison rather than
 ///        a table. Nothing outside this enumeration may hold the pointer.
-/// tag   contract
+/// tag   guarantee
 enum class PointerPrecedence : std::uint32_t
 {
     Interface       = 0u,   // [-] - the interface reports the pointer over itself
@@ -45,7 +45,7 @@ enum class PointerPrecedence : std::uint32_t
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Which of `80` §3's overlays is presented.
-/// tag   contract
+/// tag   guarantee
 enum class OverlaySubject : std::uint32_t
 {
     GroundLattice     = 0u,   // [-] - depth-tested, `08` §3 ⑩
@@ -62,7 +62,7 @@ enum class OverlaySubject : std::uint32_t
 /// note  ⚠️ Read by `66` and by `14`, and stored in neither. `76` §2: none of this travels with the document,
 ///        because a document that reopened in someone else's display mode has restored a decision about the
 ///        machine rather than about the work.
-/// tag   contract
+/// tag   guarantee
 enum class DisplaySubject : std::uint32_t
 {
     Shaded          = 0u,   // [-] - `18`'s full integration
@@ -72,7 +72,7 @@ enum class DisplaySubject : std::uint32_t
 };
 
 /// 🧩 What `82` presents for a tool before the artist commits.
-/// tag   contract
+/// tag   guarantee
 enum class PreviewSubject : std::uint32_t
 {
     Absent       = 0u,   // [-] - the tool previews nothing
@@ -86,7 +86,7 @@ enum class PreviewSubject : std::uint32_t
 /// note  🔴 Declared per tool rather than inferred from the pointer. A tool whose edit is immediate and one whose
 ///        edit is a drag seal a transaction at different moments, and inferring it from whether the pointer moved
 ///        would make a tap and a one-pixel drag two different operations.
-/// tag   contract
+/// tag   guarantee
 enum class TransactionSubject : std::uint32_t
 {
     Unrecorded   = 0u,   // [-] - the tool mutates nothing in the document
@@ -127,8 +127,8 @@ public:
     /// tag   api, nonthrowing
     Outcome<std::uint32_t> Declare(const ToolSpecification& Declaring);
 
-    Outcome<const ToolSpecification*> Resolve(std::uint32_t ToolOrdinal) const;
-    Outcome<ToolSpecification*>       Amend(std::uint32_t ToolOrdinal);
+    Outcome<const ToolSpecification*> Resolve(std::uint32_t ToolIndex) const;
+    Outcome<ToolSpecification*>       Amend(std::uint32_t ToolIndex);
 
     /// 🧩 The ordinal one identity was declared at.
     /// out   Result  [-]  refuses with ContentUnsupported when nothing declares that identity
@@ -140,7 +140,7 @@ public:
 
 private:
 
-    static constexpr std::uint32_t ToolCeiling = 256u;   // [-] - tools one application may declare
+    static constexpr std::uint32_t ToolLimit = 256u;   // [-] - tools one application may declare
 
     std::vector<ToolSpecification>  Declared;   // [-] - by tool ordinal
 };
@@ -201,13 +201,13 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported outside the declared tool count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareTool(std::uint32_t ToolOrdinal);
+    Outcome<bool> DeclareTool(std::uint32_t ToolIndex);
 
     /// 🧩 Activates one declared brush.
     /// out   Result  [-]  refuses with ContentUnsupported outside the declared brush count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareBrush(std::uint32_t BrushOrdinal);
+    Outcome<bool> DeclareBrush(std::uint32_t BrushIndex);
 
     /// 🧩 Declares the active colour.
     /// out   Result  [-]  refuses with ContentUnsupported for a colour declaring no space
@@ -282,8 +282,8 @@ public:
     /// tag   api, nonthrowing
     Outcome<const BrushSpecification*> ActiveBrush() const;
 
-    std::uint32_t   ActiveToolOrdinal() const;
-    std::uint32_t   ActiveBrushOrdinal() const;
+    std::uint32_t   ActiveToolIndex() const;
+    std::uint32_t   ActiveBrushIndex() const;
     DisplaySubject  Display() const;
     ChannelSubject  IsolatedChannel() const;
     bool            OverlayActive(OverlaySubject Subject) const;
@@ -298,8 +298,8 @@ private:
     PointerCapture       CurrentCapture   = {};                                 // [-] - who holds the pointer
     DisplaySubject       CurrentDisplay  = DisplaySubject::Shaded;             // [-]
     ChannelSubject       CurrentChannel  = ChannelSubject::AlbedoColour;       // [-] - read at ChannelIsolated
-    std::uint32_t        ToolOrdinal       = AbsentTool;                         // [-] - the active tool
-    std::uint32_t        BrushOrdinal      = AbsentTool;                         // [-] - the active brush
+    std::uint32_t        SelectedToolIndex  = AbsentTool;                         // [-] - the active tool
+    std::uint32_t        SelectedBrushIndex = AbsentTool;                         // [-] - the active brush
     bool                 OverlayPresent[OverlaySpan] = {};                       // [-] - per `80` overlay
 };
 

@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
+#include "Foundation/NumericTolerance.h"
 
 #include <cstdint>
 #include <vector>
@@ -40,7 +40,7 @@ public:
     // 📝 Read by this component alone, so `00` §2 keeps it here. Beyond about a hundred abscissae the Legendre
     //    roots crowd the interval ends closely enough that the derivation's own conditioning, rather than the
     //    rule's order, decides the result — so the ceiling is a correctness bound and not merely a budget.
-    static constexpr std::uint32_t AbscissaCeiling = 128u;   // [-] - abscissae one rule may carry
+    static constexpr std::uint32_t AbscissaLimit = 128u;   // [-] - abscissae one rule may carry
 
     /// 🧩 Derives the rule of a declared abscissa count.
     /// in    Requested  [-]  abscissae; a rule of n integrates a polynomial of degree 2n−1 exactly
@@ -54,18 +54,18 @@ public:
     Outcome<bool> Derive(std::uint32_t Requested);
 
     /// 🧩 One abscissa of the reference interval, in ascending order.
-    /// pre   Ordinal is below DeclaredCount
+    /// pre   Index is below DeclaredCount
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    double Abscissa(std::uint32_t Ordinal) const;
+    double Abscissa(std::uint32_t Index) const;
 
     /// 🧩 The weight that abscissa carries.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    double Weight(std::uint32_t Ordinal) const;
+    double Weight(std::uint32_t Index) const;
 
     /// 🧩 Projects one abscissa onto a declared interval, weight included.
-    /// in    Ordinal   [-]  the abscissa
+    /// in    Index   [-]  the abscissa
     /// in    Lower     [-]  the interval's lower bound
     /// in    Upper     [-]  its upper bound
     /// out   Position  [-]  where the abscissa lands
@@ -77,7 +77,7 @@ public:
     ///        separate scalar integrations would evaluate the same density profile three times.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Project(std::uint32_t Ordinal,
+    Outcome<bool> Project(std::uint32_t Index,
                           double        Lower,
                           double        Upper,
                           double&       Position,
@@ -106,8 +106,8 @@ public:
 
         double Accumulated = 0.0;
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < DeclaredAbscissae.size(); ++Ordinal)
-            Accumulated += DeclaredWeights[Ordinal] * Evaluate(Middle + HalfSpan * DeclaredAbscissae[Ordinal]);
+        for (std::uint32_t Index = 0u; Index < DeclaredAbscissae.size(); ++Index)
+            Accumulated += DeclaredWeights[Index] * Evaluate(Middle + HalfSpan * DeclaredAbscissae[Index]);
 
         return Accumulated * HalfSpan;
     }

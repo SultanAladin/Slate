@@ -48,7 +48,7 @@ PlaneExtent Reach(const PlaneExtent& Exact)
 //                                                      CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> DrawerSpace::Construct(MotionIntegrator&              Integrator,
+Outcome<bool> DrawerSpace::ConstructDrawerSpace(MotionIntegrator&              Integrator,
                                      const ThemeProfile& Resolved,
                                      const DrawerDeclaration&       North,
                                      const DrawerDeclaration&       South,
@@ -136,10 +136,10 @@ bool DrawerSpace::Rearrange(const DisplayCondition& Sampled)
 
     const float Admissible = TongueAdmissible();
 
-    for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < 2u; ++SlotOrdinal)
+    for (std::uint32_t SlotIndex = 0u; SlotIndex < 2u; ++SlotIndex)
     {
-        DrawerSlot&         Current = Slots[SlotOrdinal];
-        const DrawerBearing Bearing  = static_cast<DrawerBearing>(SlotOrdinal);
+        DrawerSlot&         Current = Slots[SlotIndex];
+        const DrawerBearing Bearing  = static_cast<DrawerBearing>(SlotIndex);
 
         Current.Grabbed         = GrabSubject::Nothing;
         Current.AxisResolved   = false;
@@ -275,8 +275,8 @@ float DrawerSpace::TongueAdmissible() const
     if (Appearance == nullptr)
         return 0.0f;
 
-    const float Ceiling = (Width - Appearance->Measure.TongueX) * 0.5f;
-    return (Ceiling > 0.0f) ? Ceiling : 0.0f;
+    const float Limit = (Width - Appearance->Measure.TongueX) * 0.5f;
+    return (Limit > 0.0f) ? Limit : 0.0f;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -362,9 +362,9 @@ GrabSubject DrawerSpace::Contacted(DrawerBearing Bearing, float X, float Y) cons
 
     if (Visible && Body(Bearing).Encloses(X, Y))
     {
-        for (std::uint32_t Ordinal = 0u; Ordinal < Current.CurrentCount; ++Ordinal)
+        for (std::uint32_t Index = 0u; Index < Current.CurrentCount; ++Index)
         {
-            if (Current.CurrentExcluded[Ordinal].Encloses(X, Y))
+            if (Current.CurrentExcluded[Index].Encloses(X, Y))
                 return GrabSubject::Nothing;
         }
 
@@ -383,9 +383,9 @@ bool DrawerSpace::Covers(float X, float Y, DrawerBearing& Bearing) const
     // 🔴 The OPEN drawer is asked first, both of them, before either withdrawn one. A raised body reaches
     //    across the display and can cover the other drawer's gutter; the drawer the artist raised is the
     //    one they mean, so it takes the contact rather than the strip hiding beneath it.
-    for (std::uint32_t Ordinal = 0u; Ordinal < static_cast<std::uint32_t>(DrawerBearing::BearingCount); ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < static_cast<std::uint32_t>(DrawerBearing::BearingCount); ++Index)
     {
-        const DrawerBearing Asked = static_cast<DrawerBearing>(Ordinal);
+        const DrawerBearing Asked = static_cast<DrawerBearing>(Index);
 
         if (Closed(Asked))
             continue;
@@ -398,9 +398,9 @@ bool DrawerSpace::Covers(float X, float Y, DrawerBearing& Bearing) const
     }
 
     // 📝 Then the withdrawn ones, for their tongue and their gutter — the only chrome a closed drawer has.
-    for (std::uint32_t Ordinal = 0u; Ordinal < static_cast<std::uint32_t>(DrawerBearing::BearingCount); ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < static_cast<std::uint32_t>(DrawerBearing::BearingCount); ++Index)
     {
-        const DrawerBearing Asked = static_cast<DrawerBearing>(Ordinal);
+        const DrawerBearing Asked = static_cast<DrawerBearing>(Index);
 
         if (!Closed(Asked))
             continue;
@@ -454,9 +454,9 @@ bool DrawerSpace::Grab(const ContactTravel& Contact)
     const DrawerBearing Order[2]   = { SouthAbove ? DrawerBearing::South : DrawerBearing::North,
                                        SouthAbove ? DrawerBearing::North : DrawerBearing::South };
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 2u; ++Ordinal)
+    for (std::uint32_t Index = 0u; Index < 2u; ++Index)
     {
-        const DrawerBearing Bearing = Order[Ordinal];
+        const DrawerBearing Bearing = Order[Index];
         const GrabSubject   Grabbed  = Contacted(Bearing, Contact.PositionX, Contact.PositionY);
 
         if (Grabbed == GrabSubject::Nothing)
@@ -719,12 +719,12 @@ void DrawerSpace::PromoteExclusions()
 {
     // 📝 A panel declares its exclusions while recording, which happens after arbitration. Promoting the
     //    previous tick's set is what lets the two run in that order without the set growing without bound.
-    for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < 2u; ++SlotOrdinal)
+    for (std::uint32_t SlotIndex = 0u; SlotIndex < 2u; ++SlotIndex)
     {
-        DrawerSlot& Current = Slots[SlotOrdinal];
+        DrawerSlot& Current = Slots[SlotIndex];
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < Current.PendingCount; ++Ordinal)
-            Current.CurrentExcluded[Ordinal] = Current.PendingExcluded[Ordinal];
+        for (std::uint32_t Index = 0u; Index < Current.PendingCount; ++Index)
+            Current.CurrentExcluded[Index] = Current.PendingExcluded[Index];
 
         Current.CurrentCount = Current.PendingCount;
         Current.PendingCount  = 0u;

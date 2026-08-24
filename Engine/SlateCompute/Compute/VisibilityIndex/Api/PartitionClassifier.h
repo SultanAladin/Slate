@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateCompute/Compute/VisibilityIndex/Api/PartitionStructure.h"
 #include "SlateDocument/Document/CameraProjection/Api/CameraProjection.h"
 #include "SlateMath/Numeric/TransformProjection/Api/TransformProjection.h"
@@ -27,7 +27,7 @@ namespace Slate
 /// note  ⚠️ `DepthOccluded` is the only standing `16` §2 ③ re-tests. Frustum and orientation rejections do not
 ///        change between the two phases — neither predicate reads depth — so re-testing them would walk the
 ///        same partitions to the same answer and pay for it twice.
-/// tag   contract
+/// tag   guarantee
 enum class PartitionVerdict : std::uint32_t
 {
     Accepted            = 0u,   // [-] - every predicate passed; the partition is drawn
@@ -55,7 +55,7 @@ enum class PartitionVerdict : std::uint32_t
 /// tag   nonallocating, nonthrowing
 struct ClassifiedPartition
 {
-    std::uint32_t      PartitionOrdinal = 0u;                            // [-]    - within the registration
+    std::uint32_t      PartitionIndex = 0u;                            // [-]    - within the registration
     PartitionVerdict  Current         = PartitionVerdict::Accepted;   // [-]
     std::uint32_t      FirstTriangle    = 0u;                            // [-]    - into the residency's fanned run
     std::uint32_t      TriangleCount    = 0u;                            // [-]    - triangles of that run it spans
@@ -141,7 +141,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 /// in    Viewing        [-]   what `46` derived for this rotation
 /// in    Bounding       [-]   the frustum `46` extracted from the same projection
 /// in    Composed       [-]   the composition this owner is drawn with
-/// in    PartitionOrdinal [-] the partition's position within the registration
+/// in    PartitionIndex [-] the partition's position within the registration
 /// in    FirstTriangle  [-]   where this partition's run begins in the residency's fanned triangles
 /// in    DisplayX   [px]  the extent this rotation is recorded against
 /// in    DisplayY  [px]
@@ -166,7 +166,7 @@ ClassifiedPartition ClassifyPartition(const MicroSurfacePartition&  Partitioned,
                                       const ViewProjection&         Viewing,
                                       const FrustumSpace&           Bounding,
                                       const ProjectedTransform&     Composed,
-                                      std::uint32_t                 PartitionOrdinal,
+                                      std::uint32_t                 PartitionIndex,
                                       std::uint32_t                 FirstTriangle,
                                       std::uint32_t                 DisplayX,
                                       std::uint32_t                 DisplayY);

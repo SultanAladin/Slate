@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
-#include "Contract/ToleranceContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
+#include "Foundation/NumericTolerance.h"
 #include "Shared/OcclusionProjection.slang.h"
 #include "Shared/ReflectanceProjection.slang.h"
 #include "SlateCompute/Compute/AnalyticProjection/Api/AnalyticProjection.h"
@@ -113,7 +113,7 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported for an extent of nothing on either axis
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(std::uint32_t Width, std::uint32_t Height);
+    Outcome<bool> ConstructDirectionalAlbedoSurface(std::uint32_t Width, std::uint32_t Height);
 
     /// 🧩 Writes one texel's three components.
     /// cost  ✔️

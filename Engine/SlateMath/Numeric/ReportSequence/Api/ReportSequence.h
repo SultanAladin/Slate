@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
+#include "Foundation/DeliveryOutcome.h"
 #include "SlateMath/Platform/TickSequence/Api/TickSequence.h"
 
 #include <cstdint>
@@ -27,7 +27,7 @@ namespace Slate
 ///        verdict is a presentation that disagrees with the document that made the promise — `86` §4.1.
 /// note  Five of the seven describe normal operation. `86` §5 is the authority on which of them is a problem,
 ///        and a presenter that treats all seven as failures teaches the artist to ignore it.
-/// tag   contract
+/// tag   guarantee
 enum class ReportVerdict : std::uint32_t
 {
     Measured         = 0u,   // [-] - a sampled quantity with a current value; belongs in MeasureIndex
@@ -55,7 +55,7 @@ struct ReportSpecification
     const char*        Origin          = "";                          // [-] - static text naming document and section
     const char*        Subject         = "";                          // [-] - static text naming what it applies to
     const char*        Detail          = "";                          // [-] - static text; the reason, verbatim
-    std::uint64_t      SubjectOrdinal  = 0u;                          // [-] - a position, a slot, a count; zero for none
+    std::uint64_t      SubjectIndex  = 0u;                          // [-] - a position, a slot, a count; zero for none
     ReportVerdict  Verdict     = ReportVerdict::Failed;   // [-] - declared, never inferred
     TickPoint          Arrival         = {};                          // [ns] - stamped where the occurrence happened
     std::uint32_t      OccurrenceCount = 1u;                          // [-] - raised by coalescing, never by the caller
@@ -82,7 +82,7 @@ public:
     // 🚧 `86` §11 leaves the session bound open — by count or by extent held. It is a count here, and the
     //    discard is itself presented, because a register that silently forgot the first report of a run is
     //    worse than one that accepts it is full.
-    static constexpr std::uint32_t RetainedCeiling = 4096u;   // [-] - reports retained before the oldest leaves
+    static constexpr std::uint32_t RetainedLimit = 4096u;   // [-] - reports retained before the oldest leaves
 
     ReportSequence()                                 = default;
     ReportSequence(const ReportSequence&)            = delete;
@@ -90,7 +90,7 @@ public:
 
     /// 🧩 Appends one report, coalescing it into a recurrence of the same origin, verdict and subject.
     /// in    Incoming  [-]  the report as its origin declared it
-    /// post  the retained count never exceeds RetainedCeiling; the oldest report leaves when it would
+    /// post  the retained count never exceeds RetainedLimit; the oldest report leaves when it would
     /// note  🔴 Appended exactly once per occurrence, at the moment of the occurrence — `86` §2.2. A report
     ///        reconstructed later from a measure that changed is a report about the wrong instant.
     /// note  📝 Coalescing compares the two integer discriminants before either text, so a full register costs
@@ -100,7 +100,7 @@ public:
     void Append(const ReportSpecification& Incoming);
 
     /// 🧩 The retained reports, oldest first, as a copy taken under the register's own guard.
-    /// out   Retained  [-]  at most RetainedCeiling entries, each carrying its occurrence count
+    /// out   Retained  [-]  at most RetainedLimit entries, each carrying its occurrence count
     /// note  Returned by value deliberately. Appends arrive from any thread, so handing back a reference would
     ///        hand back storage a worker may be writing while the presenter walks it.
     /// cost  🚩
@@ -131,7 +131,7 @@ private:
 
     mutable std::mutex                ReportGuard;              // [-] - held for every append and every read
     std::vector<ReportSpecification>  RetainedOrder;            // [-] - cyclic, sized once to the ceiling
-    std::uint32_t                     OldestOrdinal   = 0u;     // [-] - where the oldest retained report sits
+    std::uint32_t                     OldestIndex   = 0u;     // [-] - where the oldest retained report sits
     std::uint32_t                     OccupiedCount   = 0u;     // [-] - how many are retained
     std::uint64_t                     AppendedReports = 0u;     // [-] - occurrences across the session
     std::uint64_t                     DiscardedReports = 0u;    // [-] - retained reports the ceiling dropped

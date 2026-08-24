@@ -33,7 +33,7 @@ RWTexture2D<Real32x4>          TransmittanceOutput;    // [-] - RGBA16F, 256 × 
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Integrates one texel's optical depth and writes its transmittance.
-/// in    TexelOrdinal  [-]  the dispatch ordinal; ordinals outside the declared extent write nothing
+/// in    TexelIndex  [-]  the dispatch ordinal; ordinals outside the declared extent write nothing
 /// note  📐 Beer–Lambert over the whole path to the boundary, per component, in one march. Three separate marches
 ///        would evaluate the same two density profiles three times and accumulate in three orders — `02` §5.
 /// note  📝 The path is **not** shortened at the ground. A ray that descends through the planet accumulates the
@@ -44,10 +44,10 @@ RWTexture2D<Real32x4>          TransmittanceOutput;    // [-] - RGBA16F, 256 × 
 /// tag   api, nonallocating, nonthrowing
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void IntegrateTransmittance(Unsigned32x3 TexelOrdinal : SV_DispatchThreadID)
+void IntegrateTransmittance(Unsigned32x3 TexelIndex : SV_DispatchThreadID)
 {
-    const Unsigned32 X  = TexelOrdinal.x;
-    const Unsigned32 Y = TexelOrdinal.y;
+    const Unsigned32 X  = TexelIndex.x;
+    const Unsigned32 Y = TexelIndex.y;
 
     if (X >= TransmittanceExtentX || Y >= TransmittanceExtentY)
     {

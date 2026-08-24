@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/DeliveryContract.h"
-#include "Contract/PrecisionContract.h"
+#include "Foundation/DeliveryOutcome.h"
+#include "Foundation/PrecisionGuarantee.h"
 #include "SlateCompute/Compute/DomainSpace/Api/DomainSpace.h"
 #include "SlateCompute/Compute/SeamSpecification/Api/SeamSpecification.h"
 #include "SlateDocument/Document/TopologyConditioning/Api/TopologyConditioning.h"
@@ -27,14 +27,14 @@ namespace Slate
 
 /// 🧩 The parameters a partition is derived against.
 /// note  🚧 `68` §10 leaves the distortion threshold open and it blocks quality alone — `86` reports the measured
-///        distortion either way. It is declared here rather than in `Contract/` because no second unit reads it.
+///        distortion either way. It is declared here rather than in `Foundation/` because no second unit reads it.
 /// tag   nonallocating, nonthrowing
 struct PartitionSpecification
 {
     double         DistortionThreshold  = 4.0;      // [-] - area ratio above which a chart is subdivided
     double         ConvergenceCriterion = 1.0e-7;   // [-] - handed to `UnwrapSolver`
-    std::uint32_t  IterationCeiling     = 4096u;    // [-] - handed to `UnwrapSolver`
-    std::uint32_t  SubdivisionCeiling   = 64u;      // [-] - subdivisions permitted before a chart is accepted
+    std::uint32_t  IterationLimit     = 4096u;    // [-] - handed to `UnwrapSolver`
+    std::uint32_t  SubdivisionLimit   = 64u;      // [-] - subdivisions permitted before a chart is accepted
     bool           CommonScaleDeclared  = true;     // [-] - `68` §5's default
 };
 
@@ -50,7 +50,7 @@ struct PartitionSpecification
 /// tag   owning
 struct Chart
 {
-    std::uint32_t              IdentityOrdinal = 0u;                                // [-]   - least face ordinal held
+    std::uint32_t              IdentityIndex = 0u;                                // [-]   - least face ordinal held
     std::vector<std::uint32_t> Faces           = {};                                // [-]   - imported face ordinals
     TerminationCause           Cause           = TerminationCause::CriterionSatisfied;
     double                     ResidualNorm    = 0.0;                               // [-]   - at termination
@@ -69,7 +69,7 @@ struct PartitionMetrics
 {
     std::uint32_t  ChartCount              = 0u;    // [-]   - charts the topology cut into
     std::uint32_t  DerivedSeamCount        = 0u;    // [-]   - cuts the partitioner added — `68` §2
-    std::uint32_t  CeilingTerminationCount = 0u;    // [-]   - charts that ended at the ceiling — `68` §4
+    std::uint32_t  LimitTerminationCount = 0u;    // [-]   - charts that ended at the ceiling — `68` §4
     std::uint32_t  FoldCount               = 0u;    // [-]   - folds found and subdivided away — `68` §4.1
     double         Occupancy               = 0.0;   // [-]   - fraction of the domain covered — `68` §5
     double         MaximumAreaRatio       = 1.0;   // [-]   - worst across every chart
@@ -163,7 +163,7 @@ public:
     ///                     while no partition stands
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<DomainCoordinate> Coordinate(std::uint32_t CornerOrdinal) const;
+    Outcome<DomainCoordinate> Coordinate(std::uint32_t CornerIndex) const;
 
     /// 🧩 Whether a partition stands at all.
     /// cost  ✔️

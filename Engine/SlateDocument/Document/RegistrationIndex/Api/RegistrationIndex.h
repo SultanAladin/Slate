@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "Contract/IdentityContract.h"
-#include "Contract/DeliveryContract.h"
+#include "Foundation/Identity.h"
+#include "Foundation/DeliveryOutcome.h"
 
 #include <cstdint>
 #include <vector>
@@ -19,12 +19,12 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Every subset the outliner declares, and where each one's mutations are recorded.
-/// note  ⚠️ `MembershipRegion` and `MembershipIndex` are retired spellings. `Region` is banned and the
+/// note  ⚠️ `MembershipDomain` and `MembershipIndex` are retired spellings. the earlier broad geographic noun is retired and the
 ///        mechanism is enrollment — `12` §3.
 /// note  🔴 `12` §11: every subset mutation is a transaction. What differs between these is where the
 ///        transaction is recorded, not whether there is one. Selection is recorded in `SelectionSequence`
 ///        and is session-scoped; the other three are recorded in `RevisionSequence` and scrubbed by undo.
-/// tag   contract
+/// tag   guarantee
 enum class SubsetSubject : std::uint32_t
 {
     Selection           = 0u,   // [-] - recorded in SelectionSequence, session-scoped
@@ -41,8 +41,8 @@ enum class SubsetSubject : std::uint32_t
 /// tag   nonallocating, nonthrowing
 struct RegisteredInterval
 {
-    std::uint32_t  FirstOrdinal = 0u;   // [-] - first registered slot ordinal of the run
-    std::uint32_t  LastOrdinal  = 0u;   // [-] - last of it; equal to the first for a single slot
+    std::uint32_t  FirstIndex = 0u;   // [-] - first registered slot ordinal of the run
+    std::uint32_t  LastIndex  = 0u;   // [-] - last of it; equal to the first for a single slot
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -51,20 +51,20 @@ struct RegisteredInterval
 
 /// 🧩 Registers one ordinal into a sorted run of intervals, merging where it abuts.
 /// in    Runs     [-]  sorted, never touching; amended in place
-/// in    Ordinal  [-]  the ordinal to register
+/// in    Index  [-]  the ordinal to register
 /// out   Sampled  [-]  false when the ordinal was already registered, so a caller may count arrivals
 /// note  🔴 Declared apart from `RegistrationIndex` because `38` §3 registers **faces and vertices** by this same
 ///        mechanism and neither is a slot of the document population. One implementation both read is the whole
 ///        point: two interval implementations that must agree are one that will not.
 /// cost  🚩
 /// tag   api, nonthrowing
-bool RegisterInterval(std::vector<RegisteredInterval>& Runs, std::uint32_t Ordinal);
+bool RegisterInterval(std::vector<RegisteredInterval>& Runs, std::uint32_t Index);
 
 /// 🧩 Whether one ordinal is registered in a sorted run of intervals.
 /// out   Registered  [-]  answered by a search over the runs, never over the ordinals
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-bool IntervalRegistered(const std::vector<RegisteredInterval>& Runs, std::uint32_t Ordinal);
+bool IntervalRegistered(const std::vector<RegisteredInterval>& Runs, std::uint32_t Index);
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   MUTUAL EXCLUSION
