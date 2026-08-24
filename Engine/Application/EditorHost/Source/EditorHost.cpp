@@ -31,6 +31,7 @@
 #include "SlateVulkan/Device/WorkspaceOverlayPass/Api/WorkspaceOverlayPass.h"
 #include "SlateVulkan/Device/ShaderCodec/Api/ShaderCodec.h"
 #include "SlateVulkan/Device/AtmospherePresentationSurface/Api/AtmospherePresentationSurface.h"
+#include "SlateCompute/Compute/GeometryDeviceExchange/Api/GeometryDeviceExchange.h"
 
 #include <algorithm>
 #include <cmath>
@@ -265,6 +266,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     EditorCameraComponent     EditorCamera;
     ShaderCodec             OverlayCodec;
     WorkspaceOverlayPass             Overlay;
+    GeometryDeviceExchange           GeometryDevice = {};
     std::uint32_t           OverlayGeneration[PanelStructure::RecordLimit] = {};   // [-] - per viewport leaf
 
     // 📝 One overlay record per viewport leaf, in STATIC storage: each record is ~70 KB and the
@@ -576,6 +578,20 @@ int main(int ArgumentCount, char** ArgumentValues)
         }
     }
 
+    // 🔴 The renderer's device estate is deliberately brought up before any geometry is admitted. The next
+    //    geometry increment supplies a selected imported packet; until then it owns no residency and records no
+    //    geometry. Keeping the estate separate makes device recovery and display-sized target reclamation testable
+    //    without inventing a placeholder surface.
+    const DeviceOffering GeometryOffering = Lifetime.Offering();
+    const Outcome<bool> GeometryOutcome = GeometryDevice.ConstructGeometryDeviceExchange(
+        Lifetime.DeviceExchange(), Lifetime.DiagnosticsExtension(), ShaderStreamDirectory().c_str(),
+        InitialWidth, InitialHeight, GeometryOffering.ColourTargetFormat);
+    if (!GeometryOutcome.Resolved)
+    {
+        std::printf("%s \u2014 the geometry device estate was rejected (reason %u: %s)\n", HostName,
+                    static_cast<unsigned>(GeometryOutcome.Error.DeclaredReason), GeometryOutcome.Error.Detail);
+    }
+
     // 🔴 The browser carries its OWN index, as every panel here does, so its registration cannot exhaust the
     //    Control Centre's. Read — an registration refusal is silent at the call site and a browser that was
     //    rejected records nothing at all, which reads as a drawer that opens onto blank ground.
@@ -630,6 +646,7 @@ int main(int ArgumentCount, char** ArgumentValues)
         if (Pass.DeviceRetiring)
         {
             Viewport.Reclaim();
+            GeometryDevice.Reclaim();
             AtmosphereSurface.Reclaim();
             SkyRegistered = false;
             SkyTextureIdentity = 0u;
@@ -673,6 +690,16 @@ int main(int ArgumentCount, char** ArgumentValues)
                     OverlayGeneration[Index] = 0u;
             }
 
+            const DeviceOffering GeometryOffering = Lifetime.Offering();
+            const Outcome<bool> GeometryOutcome = GeometryDevice.ConstructGeometryDeviceExchange(
+                Lifetime.DeviceExchange(), Lifetime.DiagnosticsExtension(), ShaderStreamDirectory().c_str(),
+                Pass.Width, Pass.Height, GeometryOffering.ColourTargetFormat);
+            if (!GeometryOutcome.Resolved)
+            {
+                std::printf("%s \u2014 the geometry device estate could not be rebuilt (reason %u: %s)\n", HostName,
+                            static_cast<unsigned>(GeometryOutcome.Error.DeclaredReason), GeometryOutcome.Error.Detail);
+            }
+
             // 📝 The display recovery this rebuild also raised is consumed here. The reconstruction above
             //    already took the counts the new chain holds, and renegotiating them again would restate
             //    what was just constructed.
@@ -689,6 +716,11 @@ int main(int ArgumentCount, char** ArgumentValues)
             if (!Viewport.Renegotiate(Offered.MinimumDisplayImageCount, Offered.DisplayImageCount))
             {
                 std::printf("%s \u2014 the interface rejected the restated image counts\n", HostName);
+            }
+
+            if (GeometryDevice.Standing() && !GeometryDevice.ReclaimDisplay(Pass.Width, Pass.Height).Resolved)
+            {
+                std::printf("%s \u2014 the geometry targets could not be re-derived after display recovery\n", HostName);
             }
         }
 
@@ -1412,6 +1444,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     // 🔴 The atmosphere presentation is reclaimed BEFORE the device: its fence wait needs the device alive,
     //    and a surface left standing past `Lifetime.Reclaim()` waited on a dead device in its destructor —
     //    the "vkWaitForFences: Invalid device" reported at shutdown.
+    GeometryDevice.Reclaim();
     AtmosphereSurface.Reclaim();
     SkyRegistered = false;
     SkyTextureIdentity = 0u;
