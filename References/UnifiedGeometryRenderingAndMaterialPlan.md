@@ -15,6 +15,40 @@ The implementation priority is explicit:
 
 Material layer resolution, image processing, dirty tiles, viewport material binding, and export packing are **on hold**. Planning the durable material schema now prevents the geometry renderer from baking in an eight-channel or opaque-only assumption.
 
+## Frontier material-document reconciliation
+
+This revision has been checked against the prior-project material documents in `SultanAladin/Frontier/Documentation`:
+
+- `PLAN-UnifiedMaterialModels.md`;
+- `RESEARCH-MaterialModels2026.md`;
+- `PLAN-MaterialPresets.md`;
+- `PLAN-ProductionPbrChannels.md`.
+
+Their material research transfers; their code locations, measured Frontier timings, GTX 1060-specific budgets, retired G-buffer assumptions, and hand-mirrored vertex-stride changes do not transfer automatically to Slate.
+
+The apparent **22 versus 48 channel** disagreement is terminology rather than two competing renderer designs:
+
+- approximately **22 artist-facing channel families** are sufficient for the initial production UI and texture packing;
+- the families expand to approximately **48 typed leaf signals** when compound controls are represented honestly—for example attenuation colour plus distance, RGB subsurface radius plus scale, coat properties, thin-film limits, physical emission intensity, and transmission scattering;
+- structural enums and non-texturable homogeneous-medium properties are declarations, not texture channels;
+- a compiled material samples only its active subset.
+
+Slate will therefore expose a compact family-oriented UI while retaining typed leaf values in the document. It will not allocate 48 atlases or sample 48 textures.
+
+The Frontier research also settles these corrections for Slate:
+
+1. conductor Fresnel uses **F82-tint** where selected; white edge tint reduces to the ordinary Schlick result;
+2. exact F82-tint metal and exact thin-film iridescence cannot be combined without a richer complex-IOR representation, so the material must select the approximation explicitly;
+3. emission is below coat and fuzz and is attenuated by them;
+4. EON is the rough-diffuse response, not cloth fuzz;
+5. glTF sheen/fuzz roughness uses the declared `alphaG = roughness²` convention at the call site;
+6. high-quality screen-space subsurface uses Burley diffusion and is gated by temporal antialiasing; a deterministic separable tier precedes it;
+7. first-tier raster glass uses one reduced-resolution opaque-radiance source per cycle, baked/declared thickness, and sorted transmissive geometry; OIT is deferred;
+8. presets are named default bundles, never new shader closures or pipeline permutations;
+9. hair/fur remains a separate future geometry and transparency pipeline, not another ordinary material channel.
+
+Do **not** implement an arbitrary Substrate-style slab graph in the first renderer. Use a bounded 4-bit shading selection plus a small fixed feature set, classify visible pixels, and keep one closure entry point that can accept a richer compiled slab representation later.
+
 ## Decisions
 
 ### Rendering decisions
@@ -34,7 +68,8 @@ Material layer resolution, image processing, dirty tiles, viewport material bind
 - Use an OpenPBR-inspired layered physical surface as Slate's neutral authoring target, not Unreal-specific serialized material data.
 - Preserve familiar metallic/roughness controls while also supporting physical interface controls such as F0, F90, IOR, attenuation, and thickness.
 - Use EON for the optional rough-diffuse response. EON is a diffuse BRDF, not the fuzz lobe.
-- Allow coat, fuzz, anisotropy, subsurface, thin film, and transmission to coexist. They must not be mutually exclusive material selections.
+- Use a bounded physical-surface closure plus feature bits now; preserve an ordered physical interpretation without implementing an arbitrary authored slab graph.
+- Allow compatible coat, fuzz, anisotropy, subsurface, thin-film, and transmission features to coexist within declared limits rather than forcing one mutually exclusive feature name.
 - Separate sampleable material signals from structural declarations such as thin-walled, two-sided, coverage mode, and parameterization mode.
 - Compile only the features a material consumes. A shader must not sample every declared signal.
 - Keep imported parameterizations losslessly enough to export or re-resolve them; generate one renderer-facing closure representation from them.
@@ -112,9 +147,14 @@ Horizontal mixing remains a masked mix between complete surface descriptions. Ve
 The following are material declarations and are selected once per material or partition:
 
 ```text
-SurfaceClosureSelection
-  PhysicalSurface | Unlit
+SurfaceClosureSelection (4-bit bounded dispatch)
+  StandardSurface | SubsurfaceSurface
+  ThinTransmission | VolumeTransmission
+  Unlit | Matcap
   reserved later: Hair | Eye | Water | ParticipatingMedium
+
+PhysicalFeatureSet (small fixed mask)
+  EONDiffuse | Anisotropy | SecondSpecular | Coat | Fuzz | ThinFilm
 
 CoverageSelection
   Opaque | Cutout | Blended
@@ -132,7 +172,7 @@ DiffuseResponse
   Lambert | EON
 ```
 
-`PhysicalSurface` is feature-composable. It replaces the current mutually exclusive Standard/Anisotropic/ClearCoated/Cloth/Subsurface/Transmissive split.
+The bounded selection chooses the fundamentally different closure or render path; `PhysicalFeatureSet` composes compatible interface layers within it. This replaces the current mistake of treating Standard, Anisotropic, ClearCoated, Cloth, Subsurface, and Transmissive as peer choices when anisotropy, coat, fuzz, and thin film can be features of another base. Matcap is a viewport/debug closure, not a physical preset.
 
 Coverage, transmission, and volume are different:
 
@@ -168,6 +208,7 @@ The durable authoring inventory is grouped below. Every signal can be constant o
 | DiffuseRoughness | scalar | 0 | EON rough-diffuse roughness |
 | NormalIncidenceReflectance | RGB reflectance | derived | F0; authoritative only in `DirectF0` mode |
 | GrazingReflectance | RGB reflectance | white | F90 artistic/edge response |
+| ConductorEdgeTint | RGB reflectance | white | F82-tint control; white reduces to Schlick |
 | RefractionRatio | scalar ratio | 1.5 | IOR; authoritative in `RefractionRatio` mode |
 | SecondSpecularRoughness | scalar | primary | optional second lobe roughness |
 | SecondSpecularWeight | scalar | 0 | optional second lobe mixture |
@@ -179,6 +220,8 @@ F0 = ((ior - 1) / (ior + 1))² × SpecularWeight × SpecularColour
 ```
 
 The direct-F0 and IOR forms must not both be authoritative. Both may be retained for round-trip source records, but one declared parameterization produces the renderer-facing F0.
+
+For conductors, F82-tint is the preferred non-iridescent real-time Fresnel form. White `ConductorEdgeTint` is the compatibility default. A material requesting exact thin-film interference must use the declared iridescent Fresnel path instead; the renderer must not silently combine it with F82-tint as though both were exact.
 
 #### Anisotropy
 
@@ -234,12 +277,14 @@ Thick glass uses closed geometry, IOR, geometric path length, absorption/attenua
 | Signal | Type | Default | Meaning |
 |---|---:|---:|---|
 | SubsurfaceWeight | scalar | 0 | base-to-subsurface mixture |
-| SubsurfaceColour | RGB reflectance | 0.8 | scattering albedo |
 | SubsurfaceRadius | RGB distance | 1 | mean travel/radius by wavelength band |
 | SubsurfaceRadiusScale | scalar | 1 | global radius multiplier |
 | SubsurfaceAnisotropy | scalar | 0 | phase anisotropy, -1 to 1 |
+| SubsurfaceTransmissionTint | RGB transmittance | white | back-lit thin-region tint |
 
-The existing single `SubsurfaceThickness` cannot represent both path length and RGB mean free path. Geometry thickness and scattering radius are separate declarations.
+The first Burley screen-space resolver uses `AlbedoColour` as its surface/volume albedo rather than exposing a second conflicting colour authority. A separately imported OpenPBR subsurface colour remains in the source record until a resolver with well-defined conversion consumes it. The existing single `SubsurfaceThickness` cannot represent both path length and RGB mean free path. Geometry thickness and scattering radius are separate declarations.
+
+High-quality Burley diffusion is a classified, full-resolution disk gather with object-identity and bilateral rejection. It requires temporal antialiasing for stable sparse sampling. Until Slate has TAA, use a deterministic separable profile or omit SSS rather than shipping unstable Burley sampling.
 
 #### Thin film
 
@@ -256,7 +301,7 @@ The existing single `SubsurfaceThickness` cannot represent both path length and 
 | EmissionColour | RGB emission | white | spectral/colour shape |
 | EmissionLuminance | luminance | 0 | physical emitted intensity |
 
-This yields 48 sampleable semantic signals. The number is not a promise that a material samples 48 textures. Ordinary metallic/roughness geometry consumes approximately six to ten resolved values, and the compiler emits a bounded feature variant.
+This yields approximately 48 typed leaf signals grouped into approximately 22 artist-facing families. The number is not a promise that a material samples that many textures. Some leaves are uniform declarations, several share packed images, and ordinary metallic/roughness geometry consumes approximately six to ten resolved values. The compiler emits a bounded feature variant.
 
 ### Channel storage changes required later
 
@@ -283,6 +328,25 @@ Tier 5 — specialised closures reserved for hair, eye, water, participating med
 ```
 
 The tier is a runtime compilation result, not authored material identity. Quality settings may simplify a tier, but must report the simplification and preserve document parameters.
+
+### Preset layer
+
+Presets are artist-facing bundles over a closure selection, feature set, and defaults. They add no shader code and no pipeline axis. Initial families carried forward from Frontier are:
+
+- Plastic;
+- Metal;
+- Brushed/anisotropic metal;
+- Clearcoat/car paint;
+- Fabric/fuzz;
+- Glass;
+- Ceramic/porcelain;
+- Rubber;
+- Skin/wax/marble;
+- Iridescent;
+- Emissive/LED;
+- Matcap/CAD preview.
+
+A preset hides irrelevant controls but never deletes their retained document values. Runtime authoring resolves a preset after each edit; shipped/baked content may flatten the resolved closure and values without a runtime preset lookup.
 
 ## Geometry rendering pipeline
 
@@ -317,6 +381,8 @@ GeometryRenderingResource
   revision keys
   generation-checked rendering identity
 ```
+
+The current Slate packet already carries FP64 position, surface perpendicular, domain coordinate, source vertex, and source corner. It is sufficient for the fixed white first render. It does not yet carry an explicit tangent/sign pair; derive and upload that before normal maps or anisotropy become visible. Unlike Frontier's old stride-32 path, Slate must define one host/shader vertex-layout contract rather than hand-copying offsets across shaders.
 
 Rules:
 
@@ -442,10 +508,13 @@ After opaque geometry is proven:
 - add cutout visibility with an explicit opacity source and threshold;
 - keep blended/transmissive surfaces out of the single-hit opaque visibility assumption;
 - render glass after opaque radiance is available;
+- create one half- or quarter-resolution opaque-radiance copy plus mips/declared blur per cycle, not one copy per draw;
 - use `TransmissionIndex`/depth layers or another explicitly scheduled transparent path;
 - support reflection plus refraction, not alpha-only glass;
-- start with thin glass, then closed-volume attenuation, then rough transmission/dispersion;
-- treat order-independent transparency as a measured design choice, not an automatic requirement.
+- start with thin glass, then closed-volume Beer–Lambert attenuation, then rough transmission/dispersion;
+- use baked/declared slab thickness first and an optional sphere approximation for suitable hero objects; do not derive thickness from a shadow map;
+- sort transmissive objects per object and accept that first-tier refractors do not refract other refractors;
+- defer OIT until measured content proves that its cost and limitations solve an actual Slate workload.
 
 ## Visibility buffer versus micro-rasterization
 
@@ -576,9 +645,13 @@ Only after profiling:
 Resume only after R3–R5:
 
 - 64-bit `ChannelSet`;
-- composable physical-surface declarations;
-- complete signal schema above;
+- bounded 4-bit closure selection plus a small fixed feature set;
+- compact channel families backed by the typed leaf schema above;
+- F82-tint conductor path and explicit iridescent fallback policy;
 - imported glTF/OpenPBR mapping and diagnostics;
+- named preset bundles with no new pipeline permutations;
+- material classification before specialised shade dispatch;
+- serialised Vulkan pipeline cache from the first specialised material milestone;
 - fixed renderer closure matching the schema.
 
 ### Material milestone M2 onward — held work
@@ -601,8 +674,12 @@ When material implementation resumes:
 - direct F0 and IOR modes never become dual authorities;
 - white furnace tests cover base, coat, fuzz, and transmission combinations;
 - EON preserves energy over sampled roughness/view/light domains;
+- white F82 edge tint reduces to the compatibility Fresnel result;
+- exact F82 and exact thin-film paths cannot be enabled together silently;
+- glTF fuzz/sheen roughness uses the declared squared convention;
 - data signals never receive colour transfer functions;
 - unused channels are not sampled;
+- Burley SSS cannot become the default before temporal antialiasing is present;
 - thin-wall and thick-volume glass produce distinct paths;
 - import mappings report unsupported semantics rather than dropping them silently.
 
@@ -621,6 +698,7 @@ When material implementation resumes:
 
 The material direction is based on:
 
+- the four material plans/research documents in `SultanAladin/Frontier/Documentation`, reconciled against Slate rather than copied with Frontier-specific code and budgets;
 - OpenPBR Surface 1.1.1: layered base, thin film, coat, fuzz, transmission, subsurface, physical parameter reference, and furnace testing;
 - Unreal Substrate: measured slab/interface concepts, F0/F90, roughness, anisotropy, MFP, fuzz, second roughness, and quality-dependent simplification;
 - Khronos glTF PBR: interoperable metallic/roughness plus anisotropy, clearcoat, dispersion, emissive strength, IOR, iridescence, sheen, specular, transmission, and volume;
