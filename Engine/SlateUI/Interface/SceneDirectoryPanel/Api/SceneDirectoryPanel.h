@@ -61,7 +61,8 @@ struct SceneDirectoryContext
 
     // 📝 The device-local GPU atmosphere surface the viewport leaf draws. Opaque on purpose: the panel
     //    names no vendor, so the identity is an integer the recording surface resolves.
-    std::uintptr_t             SkyTextureIdentity = 0u;       // [-] - zero draws no sky at all
+    std::uintptr_t             SkyTextureIdentity      = 0u;   // [-] - zero draws no sky at all
+    std::uintptr_t             GeometryTextureIdentity = 0u;   // [-] - transparent resolved surface overlay
 
     // 📝 The sky's own camera, declared by the host each tick it regenerates. The dome is
     //    direction-indexed, and the viewport leaf crops it to this camera's field of view.

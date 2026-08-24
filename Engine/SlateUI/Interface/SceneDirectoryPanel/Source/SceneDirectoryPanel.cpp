@@ -477,7 +477,7 @@ void SceneDirectoryPanel::Reapply(const ThemeProfile& Resolved)
 
 void SceneDirectoryPanel::RecordViewportSky(const PlaneExtent& Extent, const SceneDirectoryContext& Applied)
 {
-    if (Applied.SkyTextureIdentity == 0u)
+    if (Applied.SkyTextureIdentity == 0u && Applied.GeometryTextureIdentity == 0u)
         return;
 
     // 📐 The dome is direction-indexed, and the viewport reads it through a PERSPECTIVE geometry rather
@@ -589,7 +589,14 @@ void SceneDirectoryPanel::RecordViewportSky(const PlaneExtent& Extent, const Sce
         }
     }
 
-    Surface->ImageGeometry(Applied.SkyTextureIdentity, Positions, UVs, VertexCount, Indices, IndexCount);
+    if (Applied.SkyTextureIdentity != 0u)
+        Surface->ImageGeometry(Applied.SkyTextureIdentity, Positions, UVs, VertexCount, Indices, IndexCount);
+
+    // Geometry has already passed through the camera projection during hardware visibility rasterisation.
+    // Its resolve is transparent where no surface won, so this ordinary image overlays the direction-indexed
+    // atmosphere without replacing it and remains clipped to the viewport leaf by the recording surface.
+    if (Applied.GeometryTextureIdentity != 0u)
+        Surface->Image(Extent, Applied.GeometryTextureIdentity);
 }
 
 
