@@ -58,7 +58,13 @@ public:
     /// 🧩 The authoritative hardware visibility raster, ready to receive a real decoded geometry packet.
     VisibilityRaster& Visibility();
 
-    /// 🧩 The transparent fixed-white radiance target, once a future resolve recording has written it.
+    /// 🧩 Resolves visibility into transparent black or an initial fixed-white dielectric radiance.
+    /// in    Recorded  [-]  the open pre-display command recording
+    /// in    SlotIndex [-]  the completion-gated recording slot this command belongs to
+    /// out   Result    [-]  refuses before the device estate or its resolve program stands
+    Outcome<bool> ResolveFixedWhite(VkCommandBuffer Recorded, std::uint32_t SlotIndex);
+
+    /// 🧩 The transparent fixed-white radiance target after ResolveFixedWhite has written it.
     Outcome<ImageReservation> Radiance() const;
 
     /// 🧩 Releases every device claim while the device is still alive.
@@ -67,6 +73,8 @@ public:
     bool Standing() const;
 
 private:
+
+    static constexpr std::uint32_t GeometryResidencyLimit = 256u; // [-] - independently resident imported geometry packets
 
     ByteSpace          Bytes        = {};   // [-] - backing extents for images and spans
     ImageSpace         Images       = {};   // [-] - target images and their layout record
@@ -77,6 +85,9 @@ private:
     ProgramIndex       Programs     = {};   // [-] - visibility graphics program
     AttachmentIndex    Attachments  = {};   // [-] - classic visibility render construct
     VisibilityRaster   Raster       = {};   // [-] - authoritative Earcut triangle residency
+    std::uint32_t      ResolveLayout = AbsentDescriptor; // [-] - fixed-white image descriptor declaration
+    std::uint32_t      ResolveReservation = AbsentDescriptor; // [-] - per-slot fixed-white descriptors
+    std::uint32_t      ResolveProgram = AbsentProgram; // [-] - fixed-white compute program
     bool               Constructed  = false;// [-] - every dependency stands
 };
 
