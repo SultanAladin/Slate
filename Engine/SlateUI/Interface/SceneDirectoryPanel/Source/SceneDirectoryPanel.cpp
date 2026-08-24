@@ -303,10 +303,11 @@ Outcome<bool> SceneDirectoryPanel::ConstructSceneDirectoryPanel(ControlIndex& In
         &InspectCall,
         &DirectoryCall,
         &TransferBack,
+        &TransferCalls[0], &TransferCalls[1],
         &TransferArrows[0], &TransferArrows[1],
         &TransferFormatOptions[0], &TransferFormatOptions[1], &TransferFormatOptions[2], &TransferFormatOptions[3],
         &TransferFormatOptions[4], &TransferFormatOptions[5], &TransferFormatOptions[6], &TransferFormatOptions[7],
-        &TransferFormatOptions[8], &TransferFormatOptions[9],
+        &TransferFormatOptions[8], &TransferFormatOptions[9], &TransferFormatOptions[10],
         &TransferFields[0], &TransferFields[1], &TransferFields[2], &TransferFields[3],
         &TransferOptions[0], &TransferOptions[1], &TransferOptions[2], &TransferOptions[3],
         &TransferOptions[4], &TransferOptions[5], &TransferOptions[6], &TransferOptions[7],
@@ -678,11 +679,11 @@ void SceneDirectoryPanel::RecordTransfer(const PlaneExtent& Extent, SceneDirecto
     Y += 28.0f;
 
     static const char* const ImportFormats[] =
-        { "FBX", "glTF", "GLB", "OBJ", "USD", "USDZ", "DAE", "STL", "PLY", "ABC" };
+        { "Codex", "FBX", "glTF", "GLB", "OBJ", "USD", "USDZ", "DAE", "STL", "PLY", "ABC" };
     static const char* const ExportFormats[] =
-        { "FBX", "glTF", "GLB", "OBJ", "USD", "USDZ", "DAE", "STL", "ABC" };
+        { "Codex", "FBX", "glTF", "GLB", "OBJ", "USD", "USDZ", "DAE", "STL", "ABC" };
     const char* const* Formats = Applied.TransferMode == 0u ? ImportFormats : ExportFormats;
-    const std::uint32_t FormatCount = Applied.TransferMode == 0u ? 10u : 9u;
+    const std::uint32_t FormatCount = Applied.TransferMode == 0u ? 11u : 10u;
     if (Applied.TransferFormat >= FormatCount)
         Applied.TransferFormat = FormatCount - 1u;
 
@@ -1501,6 +1502,28 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
     Surface->TextRun(FooterLead, FooterTop, Tinted.Primary, Counted, FooterRun, 0.0f, true);
     Surface->TextRun(FooterLead + Surface->MeasureRun(Counted, FooterRun, 0.0f) + 4.0f, FooterTop,
                      Tinted.Muted, " records", FooterRun);
+
+    // 🧩 Scene interchange always opens the dedicated transfer page; the footer never starts a hidden import.
+    const auto TransferCall = [&](std::uint32_t Index, const char* Caption, float Width)
+    {
+        const PlaneExtent Call = Spanning(Footer.MaximumX - Scaled.HeaderPadX - Width - Index * (Width + 6.0f),
+                                          Footer.MinimumY + 3.0f, Width, Footer.Height() - 6.0f);
+        const bool Hovered = Call.Encloses(Sampled.PositionX, Sampled.PositionY);
+        if (Sampled.ContactPressed && Hovered)
+        {
+            Interaction->Withdraw();
+            Applied.TransferMode = Index == 0u ? 1u : 0u;
+            Applied.OutlinePage = 2u;
+        }
+        Interaction->DeclareHovered(TransferCalls[Index], Hovered, HoverOver);
+        Surface->Ground(Call, Hovered ? Tinted.TileHovered : Tinted.Tile, 9.0f, CornerAll);
+        Surface->Edge(Call, Tinted.HairlineFirm, 1.0f, 9.0f, CornerAll);
+        const float CaptionWidth = Surface->MeasureRun(Caption, FooterRun, 0.0f);
+        Surface->TextRun(Call.MinimumX + (Call.Width() - CaptionWidth) * 0.5f, FooterTop,
+                         Tinted.Primary, Caption, FooterRun);
+    };
+    TransferCall(0u, "Save", 52.0f);
+    TransferCall(1u, "Import", 58.0f);
 
     // ⑤ The details pane — the small metadata and options card for the taken row.
     const PlaneExtent Detailing = Spanning(Outlining.MaximumX, DirectoryExtent.MinimumY,

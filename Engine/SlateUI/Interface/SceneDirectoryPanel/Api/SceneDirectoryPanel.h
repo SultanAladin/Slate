@@ -324,8 +324,9 @@ private:
     ControlIdentity InspectCall     = {};
     ControlIdentity DirectoryCall   = {};
     ControlIdentity TransferBack    = {};
+    ControlIdentity TransferCalls[2] = {}; // [-] - Import and Save calls from the directory footer
     ControlIdentity TransferArrows[2] = {};
-    ControlIdentity TransferFormatOptions[10] = {};
+    ControlIdentity TransferFormatOptions[11] = {};
     ControlIdentity TransferFields[4] = {};
     ControlIdentity TransferOptions[18] = {};
     ControlIdentity TransferCardFolds[6] = {};
