@@ -1,36 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" data-name="pbr-material">
 <defs>
-<linearGradient id="matPlate" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1c1917"/><stop offset="100%" stop-color="#0c0a09"/></linearGradient>
-<linearGradient id="matRim" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#665343" stop-opacity="0.8"/><stop offset="100%" stop-color="#261c14" stop-opacity="0.3"/></linearGradient>
-<linearGradient id="matBase" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3d3735"/><stop offset="100%" stop-color="#141110"/></linearGradient>
-<linearGradient id="matGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fff8d6"/><stop offset="30%" stop-color="#ffd700"/><stop offset="70%" stop-color="#b8860b"/><stop offset="100%" stop-color="#5c4002"/></linearGradient>
-<linearGradient id="matCobalt" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#82b1ff"/><stop offset="40%" stop-color="#2979ff"/><stop offset="80%" stop-color="#0d47a1"/><stop offset="100%" stop-color="#051b40"/></linearGradient>
-<clipPath id="sphereTopClip"><path d="M30 54 A30 30 0 0 1 90 54 Z"/></clipPath>
-<clipPath id="sphereBotClip"><path d="M30 54 A30 30 0 0 0 90 54 Z"/></clipPath>
-<filter id="nodeGlow"><feGaussianBlur stdDeviation="2" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
+<linearGradient id="mab" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3f47"/><stop offset="1" stop-color="#121418"/></linearGradient>
+<linearGradient id="mag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".30"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
+<linearGradient id="mae" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".62"/><stop offset=".5" stop-color="#ffffff" stop-opacity=".05"/><stop offset="1" stop-color="#ffffff" stop-opacity=".20"/></linearGradient>
+<clipPath id="mac"><rect x="6" y="6" width="108" height="108" rx="27"/></clipPath>
+<filter id="mad" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="2.5" stdDeviation="2.6" flood-color="#000" flood-opacity=".55"/></filter>
 </defs>
-<rect x="6" y="6" width="108" height="108" rx="26" fill="url(#matPlate)"/>
-<rect x="6.75" y="6.75" width="106.5" height="106.5" rx="25.25" fill="none" stroke="url(#matRim)" stroke-width="1.5"/>
-<ellipse cx="60" cy="94" rx="34" ry="7" fill="#000000" opacity="0.5" filter="blur(3px)"/>
-<!-- Pedestal Base Ring -->
-<ellipse cx="60" cy="84" rx="26" ry="8" fill="url(#matBase)" stroke="#594f4b" stroke-width="1"/>
-<ellipse cx="60" cy="82" rx="22" ry="6" fill="#141110"/>
-<!-- Shaderball Sphere -->
-<circle cx="60" cy="54" r="30" fill="#12100e"/>
-<!-- Top Half: 24K Gold -->
-<circle cx="60" cy="54" r="30" fill="url(#matGold)" clip-path="url(#sphereTopClip)"/>
-<!-- Bottom Half: Cobalt Ceramic -->
-<circle cx="60" cy="54" r="30" fill="url(#matCobalt)" clip-path="url(#sphereBotClip)"/>
-<!-- Center Seam & Accent Ring -->
-<line x1="30" y1="54" x2="90" y2="54" stroke="#ffffff" stroke-width="1" opacity="0.6"/>
-<!-- Curved Studio Grid Reflections -->
-<path d="M42 32 C52 26 68 26 78 32 C72 38 48 38 42 32 Z" fill="#ffffff" opacity="0.45"/>
-<path d="M46 30 C53 26 67 26 74 30" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.8"/>
-<ellipse cx="44" cy="68" rx="8" ry="4" transform="rotate(-20 44 68)" fill="#82b1ff" opacity="0.3"/>
-<!-- Outer Sphere Highlight Rim -->
-<circle cx="60" cy="54" r="29.5" fill="none" stroke="#ffe57f" stroke-width="1" opacity="0.5"/>
+<rect x="6" y="6" width="108" height="108" rx="27" fill="url(#mab)"/>
+<g clip-path="url(#mac)"><path d="M6 6H114V44C92 60 28 60 6 44Z" fill="url(#mag)"/></g>
+<radialGradient id="maG" cx=".34" cy=".28" r=".9"><stop offset="0" stop-color="#fff8d6"/><stop offset=".35" stop-color="#ffd700"/><stop offset=".7" stop-color="#b8860b"/><stop offset="1" stop-color="#5c4002"/></radialGradient>
+<radialGradient id="maC" cx=".38" cy=".32" r=".85"><stop offset="0" stop-color="#82b1ff"/><stop offset=".4" stop-color="#1565c0"/><stop offset="1" stop-color="#051b40"/></radialGradient>
+<pattern id="maP" width="12" height="12" patternUnits="userSpaceOnUse">
+<rect width="6" height="6" fill="#ffffff" fill-opacity=".18"/><rect x="6" y="6" width="6" height="6" fill="#ffffff" fill-opacity=".18"/>
+</pattern>
+<clipPath id="maCl"><circle cx="60" cy="58" r="31"/></clipPath>
+<clipPath id="maTop"><path d="M29 58 A31 31 0 0 1 91 58 Z"/></clipPath>
+<clipPath id="maBot"><path d="M29 58 A31 31 0 0 0 91 58 Z"/></clipPath>
+<ellipse cx="60" cy="97" rx="30" ry="5.5" fill="#000" opacity=".42"/>
+<!-- Base Pedestal Ring -->
+<ellipse cx="60" cy="88" rx="26" ry="7" fill="#232730" stroke="#4a5260" stroke-width="1.2"/>
+<ellipse cx="60" cy="86" rx="22" ry="5" fill="#0f1217"/>
+<!-- Sphere Shell -->
+<g filter="url(#mad)">
+<circle cx="60" cy="58" r="31" fill="#121418"/>
+<circle cx="60" cy="58" r="31" fill="url(#maG)" clip-path="url(#maTop)"/>
+<circle cx="60" cy="58" r="31" fill="url(#maC)" clip-path="url(#maBot)"/>
+</g>
+<g clip-path="url(#maCl)"><rect x="29" y="27" width="62" height="62" fill="url(#maP)" opacity=".6"/></g>
+<line x1="29" y1="58" x2="91" y2="58" stroke="#fff" stroke-width="1" opacity=".6"/>
+<!-- Studio Softbox Curved Reflections -->
+<circle cx="60" cy="58" r="31" fill="none" stroke="#ffe57f" stroke-opacity=".5" stroke-width="1.2"/>
+<ellipse cx="48" cy="43" rx="10" ry="6.4" transform="rotate(-34 48 43)" fill="#fff" opacity=".55"/>
+<ellipse cx="44" cy="38" rx="4" ry="2.4" transform="rotate(-34 44 38)" fill="#fff" opacity=".85"/>
+<path d="M36 76a31 31 0 0 0 46-6" fill="none" stroke="#82b1ff" stroke-opacity=".45" stroke-width="2.6"/>
 <!-- Floating Shader Node Badge -->
-<path d="M82 28 L94 38 L82 48 L70 38 Z" fill="#1c202b" stroke="#00e5ff" stroke-width="1.5" filter="url(#nodeGlow)"/>
-<circle cx="82" cy="38" r="3" fill="#00e5ff"/>
-<path d="M68 50 C74 46 76 42 70 38" fill="none" stroke="#00e5ff" stroke-width="1.2" stroke-dasharray="2 2"/>
+<path d="M84 26 L94 34 L84 42 L74 34 Z" fill="#121620" stroke="#00e5ff" stroke-width="1.5"/>
+<circle cx="84" cy="34" r="2.5" fill="#00e5ff"/>
+<rect x="6.75" y="6.75" width="106.5" height="106.5" rx="26.3" fill="none" stroke="url(#mae)" stroke-width="1.5"/>
 </svg>

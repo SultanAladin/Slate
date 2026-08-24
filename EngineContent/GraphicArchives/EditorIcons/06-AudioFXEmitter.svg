@@ -1,28 +1,34 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" data-name="audio-emitter">
 <defs>
-<linearGradient id="audPlate" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#181512"/><stop offset="100%" stop-color="#080705"/></linearGradient>
-<linearGradient id="audRim" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#664d26" stop-opacity="0.8"/><stop offset="100%" stop-color="#261b0a" stop-opacity="0.3"/></linearGradient>
-<linearGradient id="amberGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffe082"/><stop offset="50%" stop-color="#ffb300"/><stop offset="100%" stop-color="#ff6f00"/></linearGradient>
-<linearGradient id="amberWave" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#ffb300"/><stop offset="100%" stop-color="#ffe082" stop-opacity="0.1"/></linearGradient>
-<filter id="amberGlow"><feGaussianBlur stdDeviation="2" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
+<linearGradient id="adb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2d2822"/><stop offset="1" stop-color="#0e0b08"/></linearGradient>
+<linearGradient id="adg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".30"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
+<linearGradient id="ade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".62"/><stop offset=".5" stop-color="#ffffff" stop-opacity=".05"/><stop offset="1" stop-color="#ffffff" stop-opacity=".20"/></linearGradient>
+<clipPath id="adc"><rect x="6" y="6" width="108" height="108" rx="27"/></clipPath>
+<filter id="add" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="2.5" stdDeviation="2.6" flood-color="#000" flood-opacity=".55"/></filter>
 </defs>
-<rect x="6" y="6" width="108" height="108" rx="26" fill="url(#audPlate)"/>
-<rect x="6.75" y="6.75" width="106.5" height="106.5" rx="25.25" fill="none" stroke="url(#audRim)" stroke-width="1.5"/>
-<!-- Loudspeaker Housing Rim -->
-<path d="M18 36 L36 48 L36 76 L18 88 Z" fill="#1f1b18" stroke="#3d332d" stroke-width="1.5"/>
-<path d="M36 48 L62 30 L62 94 L36 76 Z" fill="url(#amberGold)"/>
-<!-- Speaker Cone Diaphragm Rings -->
-<ellipse cx="62" cy="62" rx="6" ry="32" fill="#14100c" stroke="#3d3024" stroke-width="1.5"/>
-<ellipse cx="62" cy="62" rx="3" ry="18" fill="url(#amberGold)"/>
-<!-- Center Dust Cap -->
-<ellipse cx="62" cy="62" rx="2" ry="8" fill="#ffffff" filter="url(#amberGlow)"/>
-<!-- Concentric Acoustic Soundwaves -->
-<path d="M74 44 A 24 24 0 0 1 74 80" fill="none" stroke="url(#amberGold)" stroke-width="3" stroke-linecap="round" filter="url(#amberGlow)"/>
-<path d="M84 36 A 36 36 0 0 1 84 88" fill="none" stroke="url(#amberGold)" stroke-width="2.5" stroke-linecap="round" opacity="0.75"/>
-<path d="M94 28 A 48 48 0 0 1 94 96" fill="none" stroke="url(#amberGold)" stroke-width="1.8" stroke-linecap="round" opacity="0.4"/>
-<!-- Equalizer Spectrum Bars (Bottom Corner) -->
-<rect x="20" y="24" width="3" height="8" rx="1.5" fill="#ffb300"/>
-<rect x="26" y="20" width="3" height="12" rx="1.5" fill="#ffe082"/>
-<rect x="32" y="22" width="3" height="10" rx="1.5" fill="#ffb300"/>
-<rect x="38" y="26" width="3" height="6" rx="1.5" fill="#ff8f00"/>
+<rect x="6" y="6" width="108" height="108" rx="27" fill="url(#adb)"/>
+<g clip-path="url(#adc)"><path d="M6 6H114V44C92 60 28 60 6 44Z" fill="url(#adg)"/></g>
+<radialGradient id="adV" cx=".4" cy=".3" r=".8"><stop offset="0" stop-color="#ffe082"/><stop offset=".5" stop-color="#ffb300"/><stop offset="1" stop-color="#ff6f00"/></radialGradient>
+<radialGradient id="adC" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#3a332a"/><stop offset="1" stop-color="#14100b"/></radialGradient>
+<ellipse cx="55" cy="98" rx="34" ry="5.5" fill="#000" opacity=".4"/>
+<!-- Speaker Body -->
+<path d="M18 38 L36 48 V76 L18 86 Z" fill="#241e18" stroke="#4a3e33" stroke-width="1.5"/>
+<g filter="url(#add)">
+<path d="M36 48 L62 28 V94 L36 76 Z" fill="url(#adV)"/>
+<ellipse cx="62" cy="61" rx="6" ry="33" fill="url(#adC)" stroke="#594633" stroke-width="1.5"/>
+<ellipse cx="62" cy="61" rx="3" ry="18" fill="url(#adV)"/>
+<ellipse cx="62" cy="61" rx="1.5" ry="8" fill="#fff" opacity=".9"/>
+</g>
+<!-- Soundwaves -->
+<path d="M74 43 A 24 24 0 0 1 74 79" fill="none" stroke="#ffe082" stroke-width="3" stroke-linecap="round"/>
+<path d="M84 35 A 36 36 0 0 1 84 87" fill="none" stroke="#ffb300" stroke-width="2.5" stroke-linecap="round" opacity=".8"/>
+<path d="M94 27 A 48 48 0 0 1 94 95" fill="none" stroke="#ff8f00" stroke-width="1.8" stroke-linecap="round" opacity=".5"/>
+<!-- Equalizer Bars -->
+<g fill="#ffb300">
+<rect x="20" y="24" width="3.2" height="8" rx="1.6"/>
+<rect x="26" y="20" width="3.2" height="12" rx="1.6" fill="#ffe082"/>
+<rect x="32" y="22" width="3.2" height="10" rx="1.6"/>
+<rect x="38" y="26" width="3.2" height="6" rx="1.6" fill="#ff8f00"/>
+</g>
+<rect x="6.75" y="6.75" width="106.5" height="106.5" rx="26.3" fill="none" stroke="url(#ade)" stroke-width="1.5"/>
 </svg>
