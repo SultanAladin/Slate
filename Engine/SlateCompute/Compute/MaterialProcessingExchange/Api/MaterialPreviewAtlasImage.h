@@ -31,6 +31,13 @@ public:
                                                      std::uint32_t AtlasCount);
 
     VkImageView View(std::uint32_t AtlasIndex) const;
+    VkImage Image(std::uint32_t AtlasIndex) const;
+
+    /// Records the image-layout transition required before one compute bake writes an atlas.
+    Outcome<bool> PrepareForBake(VkCommandBuffer Recording, std::uint32_t AtlasIndex);
+    /// Records the image-layout transition required before Browser/UI sampling.
+    Outcome<bool> PrepareForSampling(VkCommandBuffer Recording, std::uint32_t AtlasIndex);
+
     VkSampler Sampler() const { return Sampling; }
     std::uint32_t DeclaredAtlasCount() const { return AtlasCount; }
     bool Standing() const { return DeviceEdge != nullptr; }
@@ -42,7 +49,12 @@ private:
         VkImage Image = VK_NULL_HANDLE;
         VkDeviceMemory Memory = VK_NULL_HANDLE;
         VkImageView ImageView = VK_NULL_HANDLE;
+        VkImageLayout Layout = VK_IMAGE_LAYOUT_UNDEFINED;
     };
+
+    Outcome<bool> Transition(VkCommandBuffer Recording, AtlasImage& Atlas, VkImageLayout Wanted,
+                             VkPipelineStageFlags SourceStage, VkPipelineStageFlags DestinationStage,
+                             VkAccessFlags SourceAccess, VkAccessFlags DestinationAccess);
 
     const VulkanExchange* DeviceEdge = nullptr;
     std::vector<AtlasImage> Atlases = {};

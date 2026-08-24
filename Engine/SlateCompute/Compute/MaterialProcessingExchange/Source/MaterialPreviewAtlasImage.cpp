@@ -88,6 +88,55 @@ VkImageView MaterialPreviewAtlasImage::View(std::uint32_t AtlasIndex) const
     return AtlasIndex < Atlases.size() ? Atlases[AtlasIndex].ImageView : VK_NULL_HANDLE;
 }
 
+VkImage MaterialPreviewAtlasImage::Image(std::uint32_t AtlasIndex) const
+{
+    return AtlasIndex < Atlases.size() ? Atlases[AtlasIndex].Image : VK_NULL_HANDLE;
+}
+
+Outcome<bool> MaterialPreviewAtlasImage::Transition(VkCommandBuffer Recording, AtlasImage& Atlas,
+                                                     VkImageLayout Wanted, VkPipelineStageFlags SourceStage,
+                                                     VkPipelineStageFlags DestinationStage, VkAccessFlags SourceAccess,
+                                                     VkAccessFlags DestinationAccess)
+{
+    if (Recording == VK_NULL_HANDLE || Atlas.Image == VK_NULL_HANDLE)
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "the material preview atlas image is unavailable" });
+    if (Atlas.Layout == Wanted) return Outcome<bool>::Result(true);
+
+    VkImageMemoryBarrier Barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+    Barrier.oldLayout = Atlas.Layout;
+    Barrier.newLayout = Wanted;
+    Barrier.srcAccessMask = SourceAccess;
+    Barrier.dstAccessMask = DestinationAccess;
+    Barrier.image = Atlas.Image;
+    Barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    Barrier.subresourceRange.levelCount = 1u;
+    Barrier.subresourceRange.layerCount = 1u;
+    vkCmdPipelineBarrier(Recording, SourceStage, DestinationStage, 0u, 0u, nullptr, 0u, nullptr, 1u, &Barrier);
+    Atlas.Layout = Wanted;
+    return Outcome<bool>::Result(true);
+}
+
+Outcome<bool> MaterialPreviewAtlasImage::PrepareForBake(VkCommandBuffer Recording, std::uint32_t AtlasIndex)
+{
+    if (AtlasIndex >= Atlases.size())
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the requested material preview atlas is absent" });
+    return Transition(Recording, Atlases[AtlasIndex], VK_IMAGE_LAYOUT_GENERAL,
+                                  VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                                  VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                                  VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                                  VK_ACCESS_SHADER_WRITE_BIT);
+}
+
+Outcome<bool> MaterialPreviewAtlasImage::PrepareForSampling(VkCommandBuffer Recording, std::uint32_t AtlasIndex)
+{
+    if (AtlasIndex >= Atlases.size())
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the requested material preview atlas is absent" });
+    return Transition(Recording, Atlases[AtlasIndex], VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                  VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                                  VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+}
+
 void MaterialPreviewAtlasImage::Reclaim()
 {
     if (DeviceEdge != nullptr && DeviceEdge->ActiveDevice() != VK_NULL_HANDLE)
