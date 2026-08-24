@@ -1,0 +1,17 @@
+# SlateFeature — feature history, sketch declarations and reference resolution above SlateGeometry.
+
+[unit]
+name    = "SlateFeature"
+product = "StaticLibrary"
+subject = [ "Feature", "Reference", "Sketch" ]
+
+[requires]
+unit = [ "SlateGeometry", "SlateMath" ]
+
+[external]
+include = []
+declare = []
+
+[link]
+unit    = [ "SlateGeometry", "SlateMath" ]
+library = []
