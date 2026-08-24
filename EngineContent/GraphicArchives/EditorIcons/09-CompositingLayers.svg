@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" data-name="compositing-layers">
+<defs>
+<linearGradient id="layPlate" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0c1818"/><stop offset="100%" stop-color="#040a0a"/></linearGradient>
+<linearGradient id="layRim" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#24665a" stop-opacity="0.8"/><stop offset="100%" stop-color="#0c2621" stop-opacity="0.3"/></linearGradient>
+<linearGradient id="tealGlass" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#64ffda" stop-opacity="0.6"/><stop offset="100%" stop-color="#00bfa5" stop-opacity="0.2"/></linearGradient>
+<linearGradient id="midGlass" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1de9b6" stop-opacity="0.3"/><stop offset="100%" stop-color="#004d40" stop-opacity="0.15"/></linearGradient>
+<filter id="tealGlow"><feGaussianBlur stdDeviation="2" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
+</defs>
+<rect x="6" y="6" width="108" height="108" rx="26" fill="url(#layPlate)"/>
+<rect x="6.75" y="6.75" width="106.5" height="106.5" rx="25.25" fill="none" stroke="url(#layRim)" stroke-width="1.5"/>
+<!-- Bottom Layer 3 (Obsidian Stencil Base) -->
+<polygon points="60,60 98,76 60,92 22,76" fill="#081010" stroke="#1c3330" stroke-width="1.2"/>
+<!-- Mask Cutout Hole in Layer 3 -->
+<polygon points="60,70 76,77 60,84 44,77" fill="#040a0a" stroke="#00bfa5" stroke-width="0.8" opacity="0.6"/>
+<!-- Ambient Shadows -->
+<polygon points="60,46 98,62 60,78 22,62" fill="#000000" opacity="0.4" filter="blur(2px)"/>
+<!-- Middle Layer 2 (Translucent Crosshatch) -->
+<polygon points="60,42 98,58 60,74 22,58" fill="url(#midGlass)" stroke="#1de9b6" stroke-width="1" stroke-dasharray="16 4"/>
+<!-- Layer 2 Grid Lines -->
+<line x1="41" y1="50" x2="79" y2="66" stroke="#64ffda" stroke-width="0.8" opacity="0.4"/>
+<line x1="79" y1="50" x2="41" y2="66" stroke="#64ffda" stroke-width="0.8" opacity="0.4"/>
+<!-- Ambient Shadows -->
+<polygon points="60,28 98,44 60,60 22,44" fill="#000000" opacity="0.4" filter="blur(2px)"/>
+<!-- Top Layer 1 (Emerald Glass Active Layer) -->
+<polygon points="60,24 98,40 60,56 22,40" fill="url(#tealGlass)" stroke="#64ffda" stroke-width="1.5" filter="url(#tealGlow)"/>
+<!-- Top Layer Active Eye / Visibility Badge -->
+<ellipse cx="60" cy="40" rx="8" ry="4" fill="none" stroke="#ffffff" stroke-width="1.2"/>
+<circle cx="60" cy="40" r="2" fill="#64ffda"/>
+<!-- Layer Stack Connection Pins / Depth Guidelines -->
+<line x1="22" y1="40" x2="22" y2="76" stroke="#64ffda" stroke-width="1" stroke-dasharray="2 3" opacity="0.5"/>
+<line x1="98" y1="40" x2="98" y2="76" stroke="#64ffda" stroke-width="1" stroke-dasharray="2 3" opacity="0.5"/>
+</svg>

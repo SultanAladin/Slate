@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" data-name="geometry-mesh">
+<defs>
+<linearGradient id="meshPlate" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#141824"/><stop offset="100%" stop-color="#080a12"/></linearGradient>
+<linearGradient id="meshRim" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#414d66" stop-opacity="0.8"/><stop offset="100%" stop-color="#151a28" stop-opacity="0.3"/></linearGradient>
+<linearGradient id="facetTop" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#4a5568"/><stop offset="100%" stop-color="#a0aec0"/></linearGradient>
+<linearGradient id="facetLeft" x1="1" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a202c"/><stop offset="100%" stop-color="#2d3748"/></linearGradient>
+<linearGradient id="facetRight" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#2d3748"/><stop offset="100%" stop-color="#718096"/></linearGradient>
+<filter id="wireGlow"><feGaussianBlur stdDeviation="1.5" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
+</defs>
+<rect x="6" y="6" width="108" height="108" rx="26" fill="url(#meshPlate)"/>
+<rect x="6.75" y="6.75" width="106.5" height="106.5" rx="25.25" fill="none" stroke="url(#meshRim)" stroke-width="1.5"/>
+<!-- Ground Perspective Grid -->
+<path d="M20 92 L60 76 L100 92 M33 87 L60 79 L87 87 M46 82 L60 81 L74 82" fill="none" stroke="#2d3748" stroke-width="1" opacity="0.5"/>
+<path d="M60 76 L60 98 M40 84 L40 95 M80 84 L80 95 M20 92 L10 98 M100 92 L110 98" fill="none" stroke="#2d3748" stroke-width="1" opacity="0.5"/>
+<!-- Faceted Polyhedron Faces -->
+<!-- Top Face -->
+<polygon points="60,22 88,38 60,54 32,38" fill="url(#facetTop)"/>
+<!-- Left Face -->
+<polygon points="32,38 60,54 60,86 32,70" fill="url(#facetLeft)"/>
+<!-- Right Face -->
+<polygon points="60,54 88,38 88,70 60,86" fill="url(#facetRight)"/>
+<!-- Subdivided Face Division Lines -->
+<line x1="46" y1="30" x2="74" y2="46" stroke="#1a202c" stroke-width="1"/>
+<line x1="74" y1="30" x2="46" y2="46" stroke="#1a202c" stroke-width="1"/>
+<line x1="32" y1="54" x2="60" y2="70" stroke="#0f172a" stroke-width="1"/>
+<line x1="46" y1="46" x2="46" y2="78" stroke="#0f172a" stroke-width="1"/>
+<line x1="88" y1="54" x2="60" y2="70" stroke="#1e293b" stroke-width="1"/>
+<line x1="74" y1="46" x2="74" y2="78" stroke="#1e293b" stroke-width="1"/>
+<!-- Glowing Neon Wireframe Overlay -->
+<g stroke="#e2e8f0" stroke-width="1.5" stroke-linejoin="round" filter="url(#wireGlow)">
+<polygon points="60,22 88,38 60,54 32,38" fill="none"/>
+<polygon points="32,38 60,54 60,86 32,70" fill="none"/>
+<polygon points="60,54 88,38 88,70 60,86" fill="none"/>
+</g>
+<!-- Vertex Node Dots -->
+<circle cx="60" cy="22" r="3" fill="#ffffff"/>
+<circle cx="88" cy="38" r="2.5" fill="#cbd5e1"/>
+<circle cx="32" cy="38" r="2.5" fill="#cbd5e1"/>
+<circle cx="60" cy="54" r="3.5" fill="#ffffff" filter="url(#wireGlow)"/>
+<circle cx="32" cy="70" r="2.5" fill="#94a3b8"/>
+<circle cx="88" cy="70" r="2.5" fill="#94a3b8"/>
+<circle cx="60" cy="86" r="3" fill="#cbd5e1"/>
+</svg>

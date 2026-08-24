@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" data-name="logic-node">
+<defs>
+<linearGradient id="nodePlate" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#161224"/><stop offset="100%" stop-color="#090612"/></linearGradient>
+<linearGradient id="nodeRim" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6a3093" stop-opacity="0.8"/><stop offset="100%" stop-color="#240b42" stop-opacity="0.3"/></linearGradient>
+<linearGradient id="headerViolet" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#d500f9"/><stop offset="100%" stop-color="#aa00ff"/></linearGradient>
+<linearGradient id="wireCyanViolet" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#00e5ff"/><stop offset="100%" stop-color="#d500f9"/></linearGradient>
+<filter id="neonGlow"><feGaussianBlur stdDeviation="2.5" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
+</defs>
+<rect x="6" y="6" width="108" height="108" rx="26" fill="url(#nodePlate)"/>
+<rect x="6.75" y="6.75" width="106.5" height="106.5" rx="25.25" fill="none" stroke="url(#nodeRim)" stroke-width="1.5"/>
+<!-- Node Card Container (Left) -->
+<rect x="18" y="26" width="44" height="68" rx="6" fill="#1c162e" stroke="#3e2d5c" stroke-width="1.2"/>
+<rect x="18" y="26" width="44" height="16" rx="6" fill="url(#headerViolet)"/>
+<rect x="22" y="32" width="20" height="4" rx="2" fill="#ffffff"/>
+<!-- Code Syntax Line Placeholders -->
+<rect x="22" y="50" width="28" height="3" rx="1.5" fill="#00e5ff"/>
+<rect x="22" y="58" width="20" height="3" rx="1.5" fill="#8e24aa"/>
+<rect x="22" y="66" width="24" height="3" rx="1.5" fill="#00e5ff"/>
+<rect x="22" y="74" width="16" height="3" rx="1.5" fill="#ffffff" opacity="0.6"/>
+<!-- Socket Pins on Left Node -->
+<circle cx="18" cy="51" r="3.5" fill="#00e5ff" filter="url(#neonGlow)"/>
+<circle cx="62" cy="67" r="3.5" fill="#d500f9" filter="url(#neonGlow)"/>
+<!-- Node Card Container (Right) -->
+<rect x="76" y="44" width="28" height="50" rx="6" fill="#1c162e" stroke="#00e5ff" stroke-width="1.2"/>
+<rect x="76" y="44" width="28" height="12" rx="6" fill="#00b0ff"/>
+<circle cx="76" cy="67" r="3.5" fill="#00e5ff" filter="url(#neonGlow)"/>
+<!-- Connecting Bezier Cable Wire -->
+<path d="M62 67 C70 67 68 67 76 67" fill="none" stroke="url(#wireCyanViolet)" stroke-width="3" stroke-linecap="round" filter="url(#neonGlow)"/>
+<!-- Floating Decision Logic Badge -->
+<path d="M82 22 L92 30 L82 38 L72 30 Z" fill="#090612" stroke="#00e5ff" stroke-width="1.5" filter="url(#neonGlow)"/>
+<path d="M82 26 L86 30 L82 34 L78 30 Z" fill="#d500f9"/>
+</svg>

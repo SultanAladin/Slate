@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slate Editor — Core High-Fidelity Icon Set</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=gradient" rel="stylesheet">
+<style>
+  :root {
+    --bg-dark: #090a0f;
+    --bg-card: #11141d;
+    --bg-card-hover: #161b2b;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-bright: rgba(255, 255, 255, 0.18);
+    --accent-cyan: #00e5ff;
+    --accent-gold: #ffb300;
+    --accent-teal: #64ffda;
+    --text-main: #f0f3f8;
+    --text-sub: #828a9a;
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    padding: 40px 28px 80px;
+    background-image: 
+      radial-gradient(800px 400px at 20% -10%, rgba(0, 229, 255, 0.06), transparent 70%),
+      radial-gradient(700px 500px at 80% 10%, rgba(213, 0, 249, 0.05), transparent 70%),
+      radial-gradient(1000px 800px at 50% 100%, rgba(100, 255, 218, 0.03), transparent 80%);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container {
+    max-width: 1320px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    background: rgba(0, 229, 255, 0.08);
+    border: 1px solid rgba(0, 229, 255, 0.2);
+    color: var(--accent-cyan);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #ffffff 30%, #a0aec0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  p.subtitle {
+    color: var(--text-sub);
+    font-size: 14px;
+    max-width: 720px;
+    line-height: 1.6;
+  }
+
+  /* Toolbar Controls */
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: rgba(17, 20, 29, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    padding: 14px 20px;
+    border-radius: 16px;
+    margin-bottom: 32px;
+  }
+
+  .filter-tabs {
+    display: flex;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+
+  .tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-sub);
+    padding: 7px 16px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .tab-btn:hover {
+    color: var(--text-main);
+  }
+
+  .tab-btn.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .controls-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .search-box {
+    position: relative;
+    width: 260px;
+  }
+
+  .search-box input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 14px 8px 34px;
+    color: var(--text-main);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-box input:focus {
+    border-color: var(--accent-cyan);
+  }
+
+  .search-box svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 15px;
+    height: 15px;
+    stroke: var(--text-sub);
+  }
+
+  .size-slider-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-sub);
+    font-family: var(--font-mono);
+  }
+
+  .size-slider-wrapper input[type="range"] {
+    width: 90px;
+    accent-color: var(--accent-cyan);
+    cursor: pointer;
+  }
+
+  /* Grid Layout */
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+  }
+
+  .icon-card {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    overflow: hidden;
+  }
+
+  .icon-card:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-bright);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.6), 0 0 20px -5px rgba(0, 229, 255, 0.1);
+  }
+
+  .card-type-tag {
+    position: absolute;
+    top: 14px;
+    left: 16px;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+
+  .card-type-tag.coloured {
+    background: rgba(255, 179, 0, 0.12);
+    color: var(--accent-gold);
+    border: 1px solid rgba(255, 179, 0, 0.25);
+  }
+
+  .card-type-tag.duotone {
+    background: rgba(0, 229, 255, 0.12);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(0, 229, 255, 0.25);
+  }
+
+  .card-type-tag.monotone {
+    background: rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .icon-stage {
+    padding: 20px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 160px;
+  }
+
+  .icon-stage svg {
+    transition: width 0.2s ease, height 0.2s ease;
+    filter: drop-shadow(0 12px 24px rgba(0,0,0,0.5));
+  }
+
+  .card-info {
+    width: 100%;
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .icon-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #ffffff;
+  }
+
+  .icon-desc {
+    font-size: 12px;
+    color: var(--text-sub);
+    line-height: 1.45;
+    margin-bottom: 14px;
+    height: 36px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-action {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    color: #cbd5e1;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 11.5px;
+    font-family: var(--font-mono);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .btn-action:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    border-color: var(--border-bright);
+  }
+
+  /* Toast Notification */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: #1e293b;
+    color: #ffffff;
+    border: 1px solid var(--accent-cyan);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 229, 255, 0.2);
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-family: var(--font-mono);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    z-index: 1000;
+  }
+
+  .toast.show {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  /* Modal Inspector */
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(4, 5, 8, 0.85);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 2000;
+  }
+
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .modal-container {
+    background: #11141f;
+    border: 1px solid var(--border-bright);
+    border-radius: 24px;
+    width: 90%;
+    max-width: 840px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8);
+  }
+
+  .modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .modal-title {
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .btn-close {
+    background: transparent;
+    border: none;
+    color: var(--text-sub);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+
+  .btn-close:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+
+  .modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 24px;
+  }
+
+  .modal-preview {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+  }
+
+  .modal-code {
+    background: #080a0f;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: #a0aec0;
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    max-height: 360px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="header-badge">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      Slate Engine Graphics Asset Suite
+    </div>
+    <h1>Core Editor High-Fidelity Icons</h1>
+    <p class="subtitle">A custom designed 10-icon set built specifically for general-purpose 3D/2D game engine editors. Includes a rich mix of Coloured realistic optics, Duotone neon vectors, and Monotone polished titanium chrome plates.</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="filter-tabs">
+      <button class="tab-btn active" data-filter="all">All Icons (10)</button>
+      <button class="tab-btn" data-filter="coloured">Coloured (4)</button>
+      <button class="tab-btn" data-filter="duotone">Duotone (3)</button>
+      <button class="tab-btn" data-filter="monotone">Monotone (3)</button>
+    </div>
+
+    <div class="controls-right">
+      <div class="size-slider-wrapper">
+        <span>Size:</span>
+        <input type="range" id="sizeRange" min="80" max="180" value="120">
+        <span id="sizeVal">120px</span>
+      </div>
+
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="searchInput" placeholder="Search icons or keywords...">
+      </div>
+    </div>
+  </div>
+
+  <div class="icon-grid" id="iconGrid">
+    <!-- Generated dynamically -->
+  </div>
+</div>
+
+<div class="toast" id="toast">Copied SVG to Clipboard!</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-container">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Icon Inspector</div>
+      <button class="btn-close" id="modalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-preview" id="modalPreview"></div>
+      <div>
+        <div style="margin-bottom: 8px; font-size: 12px; font-family: var(--font-mono); color: var(--text-sub);">SVG MARKUP CODE</div>
+        <pre class="modal-code" id="modalCode"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ICONS = [
+  {
+    "id": "transform-gizmo",
+    "name": "Transform Gizmo",
+    "type": "Monotone",
+    "category": "monotone",
+    "tags": "transform gizmo translate rotate scale 3d manipulator vector axes",
+    "description": "Monochromatic chrome 3D manipulator with precision coordinate axes, central specular orb, and rotation ring arcs.",
+    "svg_body": "<defs>\n<linearGradient id=\"gizPlate\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#181c26\"/><stop offset=\"50%\" stop-color=\"#0e1118\"/><stop offset=\"100%\" stop-color=\"#07080c\"/></linearGradient>\n<linearGradient id=\"gizRim\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#4f5866\" stop-opacity=\"0.8\"/><stop offset=\"100%\" stop-color=\"#191d26\" stop-opacity=\"0.3\"/></linearGradient>\n<linearGradient id=\"gizZ\" x1=\"0\" y1=\"1\" x2=\"0\" y2=\"0\"><stop offset=\"0%\" stop-color=\"#2a303c\"/><stop offset=\"50%\" stop-color=\"#8a96a6\"/><stop offset=\"100%\" stop-color=\"#ffffff\"/></linearGradient>\n<linearGradient id=\"gizX\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0.6\"><stop offset=\"0%\" stop-color=\"#1d222e\"/><stop offset=\"60%\" stop-color=\"#606c7d\"/><stop offset=\"100%\" stop-color=\"#d0d7e5\"/></linearGradient>\n<linearGradient id=\"gizY\" x1=\"1\" y1=\"0\" x2=\"0\" y2=\"0.6\"><stop offset=\"0%\" stop-color=\"#151922\"/><stop offset=\"60%\" stop-color=\"#414a5a\"/><stop offset=\"100%\" stop-color=\"#9da8b6\"/></linearGradient>\n<radialGradient id=\"gizOrb\" cx=\"35%\" cy=\"30%\" r=\"70%\"><stop offset=\"0%\" stop-color=\"#ffffff\"/><stop offset=\"35%\" stop-color=\"#c8d1dc\"/><stop offset=\"70%\" stop-color=\"#4f5866\"/><stop offset=\"100%\" stop-color=\"#121620\"/></radialGradient>\n<filter id=\"gizGlow\" x=\"-20%\" y=\"-20%\" width=\"140%\" height=\"140%\"><feGaussianBlur stdDeviation=\"2.5\" result=\"blur\"/><feComposite in=\"SourceGraphic\" in2=\"blur\" operator=\"over\"/></filter>\n</defs>\n<rect x=\"6\" y=\"6\" width=\"108\" height=\"108\" rx=\"26\" fill=\"url(#gizPlate)\"/>\n<rect x=\"6.75\" y=\"6.75\" width=\"106.5\" height=\"106.5\" rx=\"25.25\" fill=\"none\" stroke=\"url(#gizRim)\" stroke-width=\"1.5\"/>\n<ellipse cx=\"60\" cy=\"92\" rx=\"34\" ry=\"8\" fill=\"#000000\" opacity=\"0.45\" filter=\"blur(3px)\"/>\n<!-- Outer Rotation Arcs -->\n<circle cx=\"60\" cy=\"62\" r=\"38\" fill=\"none\" stroke=\"#2a313d\" stroke-width=\"1.2\" stroke-dasharray=\"2 4\"/>\n<circle cx=\"60\" cy=\"62\" r=\"32\" fill=\"none\" stroke=\"#485363\" stroke-width=\"1\" stroke-dasharray=\"18 6 4 6\" opacity=\"0.6\"/>\n<!-- Z Axis (Up) -->\n<path d=\"M60 62 L60 22\" stroke=\"url(#gizZ)\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n<polygon points=\"60,15 54,26 66,26\" fill=\"url(#gizZ)\"/>\n<polygon points=\"60,15 54,26 60,24\" fill=\"#ffffff\" opacity=\"0.7\"/>\n<!-- X Axis (Right-Down) -->\n<path d=\"M60 62 L92 80\" stroke=\"url(#gizX)\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n<polygon points=\"98,83 86,75 89,87\" fill=\"url(#gizX)\"/>\n<polygon points=\"98,83 86,75 92,81\" fill=\"#ffffff\" opacity=\"0.6\"/>\n<!-- Y Axis (Left-Down) -->\n<path d=\"M60 62 L28 80\" stroke=\"url(#gizY)\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n<polygon points=\"22,83 31,87 34,75\" fill=\"url(#gizY)\"/>\n<polygon points=\"22,83 28,81 34,75\" fill=\"#ffffff\" opacity=\"0.4\"/>\n<!-- Center Chrome Orb & Handle Ring -->\n<circle cx=\"60\" cy=\"62\" r=\"11\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"1\" opacity=\"0.3\"/>\n<circle cx=\"60\" cy=\"62\" r=\"8\" fill=\"url(#gizOrb)\" filter=\"url(#gizGlow)\"/>\n<ellipse cx=\"57.5\" cy=\"59.5\" rx=\"2.5\" ry=\"1.5\" transform=\"rotate(-30 57.5 59.5)\" fill=\"#ffffff\" opacity=\"0.85\"/>\n<!-- Handle Nodes on Arcs -->\n<circle cx=\"60\" cy=\"24\" r=\"2.5\" fill=\"#ffffff\"/>\n<circle cx=\"92\" cy=\"62\" r=\"2.5\" fill=\"#aab4c2\"/>\n<circle cx=\"28\" cy=\"62\" r=\"2.5\" fill=\"#687385\"/>"
+  },
+  {
+    "id": "scene-camera",
+    "name": "Scene View Camera",
+    "type": "Coloured",
+    "category": "coloured",
+    "tags": "camera viewport lens cinema view capture optical render",
+    "description": "Photorealistic camera lens with brushed titanium body, optical glass reflections, anti-reflective coating, and ruby tally LED.",
+    "svg_body": "<defs>\n<linearGradient id=\"camPlate\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#1a1e27\"/><stop offset=\"100%\" stop-color=\"#0a0c10\"/></linearGradient>\n<linearGradient id=\"camRim\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#5a6375\" stop-opacity=\"0.8\"/><stop offset=\"100%\" stop-color=\"#1e222d\" stop-opacity=\"0.3\"/></linearGradient>\n<linearGradient id=\"camBody\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#3d4452\"/><stop offset=\"40%\" stop-color=\"#252a34\"/><stop offset=\"100%\" stop-color=\"#12151c\"/></linearGradient>\n<linearGradient id=\"camBrass\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0%\" stop-color=\"#996515\"/><stop offset=\"50%\" stop-color=\"#f7d070\"/><stop offset=\"100%\" stop-color=\"#80500d\"/></linearGradient>\n<linearGradient id=\"camBlueRing\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#00b0ff\"/><stop offset=\"100%\" stop-color=\"#004182\"/></linearGradient>\n<radialGradient id=\"camGlass\" cx=\"38%\" cy=\"32%\" r=\"85%\"><stop offset=\"0%\" stop-color=\"#a7ffeb\"/><stop offset=\"22%\" stop-color=\"#00e676\"/><stop offset=\"50%\" stop-color=\"#005b4f\"/><stop offset=\"80%\" stop-color=\"#00251a\"/><stop offset=\"100%\" stop-color=\"#020d09\"/></radialGradient>\n<radialGradient id=\"camTally\" cx=\"35%\" cy=\"30%\" r=\"70%\"><stop offset=\"0%\" stop-color=\"#ff8a80\"/><stop offset=\"40%\" stop-color=\"#ff1744\"/><stop offset=\"100%\" stop-color=\"#800000\"/></radialGradient>\n<filter id=\"tallyGlow\"><feGaussianBlur stdDeviation=\"2\" result=\"blur\"/><feComposite in=\"SourceGraphic\" in2=\"blur\" operator=\"over\"/></filter>\n</defs>\n<rect x=\"6\" y=\"6\" width=\"108\" height=\"108\" rx=\"26\" fill=\"url(#camPlate)\"/>\n<rect x=\"6.75\" y=\"6.75\" width=\"106.5\" height=\"106.5\" rx=\"25.25\" fill=\"none\" stroke=\"url(#camRim)\" stroke-width=\"1.5\"/>\n<ellipse cx=\"60\" cy=\"96\" rx=\"36\" ry=\"7\" fill=\"#000000\" opacity=\"0.5\" filter=\"blur(3px)\"/>\n<!-- Camera Body -->\n<rect x=\"18\" y=\"32\" width=\"84\" height=\"58\" rx=\"10\" fill=\"url(#camBody)\"/>\n<rect x=\"18\" y=\"32\" width=\"84\" height=\"10\" rx=\"10\" fill=\"#525b6c\" opacity=\"0.4\"/>\n<line x1=\"18\" y1=\"42\" x2=\"102\" y2=\"42\" stroke=\"#0d0f14\" stroke-width=\"1.5\"/>\n<!-- Screws & Accents -->\n<circle cx=\"26\" cy=\"37\" r=\"2\" fill=\"#12151c\"/><circle cx=\"26\" cy=\"37\" r=\"1\" fill=\"#788496\"/>\n<circle cx=\"94\" cy=\"37\" r=\"2\" fill=\"#12151c\"/><circle cx=\"94\" cy=\"37\" r=\"1\" fill=\"#788496\"/>\n<!-- Tally Light -->\n<circle cx=\"82\" cy=\"37\" r=\"3.5\" fill=\"url(#camTally)\" filter=\"url(#tallyGlow)\"/>\n<!-- Lens Outer Ring -->\n<circle cx=\"56\" cy=\"62\" r=\"28\" fill=\"#181c24\" stroke=\"#0a0c10\" stroke-width=\"2\"/>\n<circle cx=\"56\" cy=\"62\" r=\"26\" fill=\"none\" stroke=\"url(#camBrass)\" stroke-width=\"1.5\"/>\n<circle cx=\"56\" cy=\"62\" r=\"24\" fill=\"none\" stroke=\"url(#camBlueRing)\" stroke-width=\"2\"/>\n<circle cx=\"56\" cy=\"62\" r=\"21\" fill=\"#080a0e\"/>\n<!-- Lens Glass Element -->\n<circle cx=\"56\" cy=\"62\" r=\"19\" fill=\"url(#camGlass)\"/>\n<!-- Aperture Blades -->\n<polygon points=\"56,45 66,54 59,62\" fill=\"#05120e\" opacity=\"0.8\"/>\n<polygon points=\"67,56 64,68 56,62\" fill=\"#05120e\" opacity=\"0.8\"/>\n<polygon points=\"61,71 49,68 56,62\" fill=\"#05120e\" opacity=\"0.8\"/>\n<polygon points=\"46,68 48,55 56,62\" fill=\"#05120e\" opacity=\"0.8\"/>\n<polygon points=\"46,53 58,48 56,62\" fill=\"#05120e\" opacity=\"0.8\"/>\n<!-- Optical Core Pupil -->\n<circle cx=\"56\" cy=\"62\" r=\"8\" fill=\"#020806\"/>\n<circle cx=\"56\" cy=\"62\" r=\"8\" fill=\"none\" stroke=\"#00e676\" stroke-width=\"0.8\" opacity=\"0.6\"/>\n<!-- Lens Reflection Flares -->\n<ellipse cx=\"48\" cy=\"52\" rx=\"9\" ry=\"4.5\" transform=\"rotate(-38 48 52)\" fill=\"#ffffff\" opacity=\"0.32\"/>\n<ellipse cx=\"65\" cy=\"71\" rx=\"5\" ry=\"2.2\" transform=\"rotate(-38 65 71)\" fill=\"#80ffe1\" opacity=\"0.25\"/>\n<!-- Side Viewfinder / Mic -->\n<rect x=\"88\" y=\"52\" width=\"16\" height=\"20\" rx=\"3\" fill=\"#1a1e27\" stroke=\"#333a46\" stroke-width=\"1\"/>\n<circle cx=\"96\" cy=\"62\" r=\"4\" fill=\"#0b0d12\"/>\n<circle cx=\"96\" cy=\"62\" r=\"2\" fill=\"#00e5ff\" opacity=\"0.8\"/>"
+  },
+  {
+    "id": "pbr-material",
+    "name": "PBR Shaderball Material",
+    "type": "Coloured",
+    "category": "coloured",
+    "tags": "material pbr shader sphere reflection surface texture metallic",
+    "description": "3D Shaderball with dual split gold metallic & cobalt ceramic surfaces, curved studio softbox reflections, and shader node overlay.",
+    "svg_body": "<defs>\n<linearGradient id=\"matPlate\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#1c1917\"/><stop offset=\"100%\" stop-color=\"#0c0a09\"/></linearGradient>\n<linearGradient id=\"matRim\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#665343\" stop-opacity=\"0.8\"/><stop offset=\"100%\" stop-color=\"#261c14\" stop-opacity=\"0.3\"/></linearGradient>\n<linearGradient id=\"matBase\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#3d3735\"/><stop offset=\"100%\" stop-color=\"#141110\"/></linearGradient>\n<linearGradient id=\"matGold\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#fff8d6\"/><stop offset=\"30%\" stop-color=\"#ffd700\"/><stop offset=\"70%\" stop-color=\"#b8860b\"/><stop offset=\"100%\" stop-color=\"#5c4002\"/></linearGradient>\n<linearGradient id=\"matCobalt\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#82b1ff\"/><stop offset=\"40%\" stop-color=\"#2979ff\"/><stop offset=\"80%\" stop-color=\"#0d47a1\"/><stop offset=\"100%\" stop-color=\"#051b40\"/></linearGradient>\n<clipPath id=\"sphereTopClip\"><path d=\"M30 54 A30 30 0 0 1 90 54 Z\"/></clipPath>\n<clipPath id=\"sphereBotClip\"><path d=\"M30 54 A30 30 0 0 0 90 54 Z\"/></clipPath>\n<filter id=\"nodeGlow\"><feGaussianBlur stdDeviation=\"2\" result=\"blur\"/><feComposite in=\"SourceGraphic\" in2=\"blur\" operator=\"over\"/></filter>\n</defs>\n<rect x=\"6\" y=\"6\" width=\"108\" height=\"108\" rx=\"26\" fill=\"url(#matPlate)\"/>\n<rect x=\"6.75\" y=\"6.75\" width=\"106.5\" height=\"106.5\" rx=\"25.25\" fill=\"none\" stroke=\"url(#matRim)\" stroke-width=\"1.5\"/>\n<ellipse cx=\"60\" cy=\"94\" rx=\"34\" ry=\"7\" fill=\"#000000\" opacity=\"0.5\" filter=\"blur(3px)\"/>\n<!-- Pedestal Base Ring -->\n<ellipse cx=\"60\" cy=\"84\" rx=\"26\" ry=\"8\" fill=\"url(#matBase)\" stroke=\"#594f4b\" stroke-width=\"1\"/>\n<ellipse cx=\"60\" cy=\"82\" rx=\"22\" ry=\"6\" fill=\"#141110\"/>\n<!-- Shaderball Sphere -->\n<circle cx=\"60\" cy=\"54\" r=\"30\" fill=\"#12100e\"/>\n<!-- Top Half: 24K Gold -->\n<circle cx=\"60\" cy=\"54\" r=\"30\" fill=\"url(#matGold)\" clip-path=\"url(#sphereTopClip)\"/>\n<!-- Bottom Half: Cobalt Ceramic -->\n<circle cx=\"60\" cy=\"54\" r=\"30\" fill=\"url(#matCobalt)\" clip-path=\"url(#sphereBotClip)\"/>\n<!-- Center Seam & Accent Ring -->\n<line x1=\"30\" y1=\"54\" x2=\"90\" y2=\"54\" stroke=\"#ffffff\" stroke-width=\"1\" opacity=\"0.6\"/>\n<!-- Curved Studio Grid Reflections -->\n<path d=\"M42 32 C52 26 68 26 78 32 C72 38 48 38 42 32 Z\" fill=\"#ffffff\" opacity=\"0.45\"/>\n<path d=\"M46 30 C53 26 67 26 74 30\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"1\" opacity=\"0.8\"/>\n<ellipse cx=\"44\" cy=\"68\" rx=\"8\" ry=\"4\" transform=\"rotate(-20 44 68)\" fill=\"#82b1ff\" opacity=\"0.3\"/>\n<!-- Outer Sphere Highlight Rim -->\n<circle cx=\"60\" cy=\"54\" r=\"29.5\" fill=\"none\" stroke=\"#ffe57f\" stroke-width=\"1\" opacity=\"0.5\"/>\n<!-- Floating Shader Node Badge -->\n<path d=\"M82 28 L94 38 L82 48 L70 38 Z\" fill=\"#1c202b\" stroke=\"#00e5ff\" stroke-width=\"1.5\" filter=\"url(#nodeGlow)\"/>\n<circle cx=\"82\" cy=\"38\" r=\"3\" fill=\"#00e5ff\"/>\n<path d=\"M68 50 C74 46 76 42 70 38\" fill=\"none\" stroke=\"#00e5ff\" stroke-width=\"1.2\" stroke-dasharray=\"2 2\"/>"
+  },
+  {
+    "id": "geometry-mesh",
+    "name": "Subdivided Mesh Geometry",
+    "type": "Monotone",
+    "category": "monotone",
+    "tags": "mesh geometry 3d polyhedron wireframe topology vertex model",
+    "description": "Monochromatic titanium subdivided polyhedron with glowing wireframe edges, vertex nodes, and perspective floor grid.",
+    "svg_body": "<defs>\n<linearGradient id=\"meshPlate\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#141824\"/><stop offset=\"100%\" stop-color=\"#080a12\"/></linearGradient>\n<linearGradient id=\"meshRim\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#414d66\" stop-opacity=\"0.8\"/><stop offset=\"100%\" stop-color=\"#151a28\" stop-opacity=\"0.3\"/></linearGradient>\n<linearGradient id=\"facetTop\" x1=\"0\" y1=\"1\" x2=\"0\" y2=\"0\"><stop offset=\"0%\" stop-color=\"#4a5568\"/><stop offset=\"100%\" stop-color=\"#a0aec0\"/></linearGradient>\n<linearGradient id=\"facetLeft\" x1=\"1\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#1a202c\"/><stop offset=\"100%\" stop-color=\"#2d3748\"/></linearGradient>\n<linearGradient id=\"facetRight\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#2d3748\"/><stop offset=\"100%\" stop-color=\"#718096\"/></linearGradient>\n<filter id=\"wireGlow\"><feGaussianBlur stdDeviation=\"1.5\" result=\"blur\"/><feComposite in=\"SourceGraphic\" in2=\"blur\" operator=\"over\"/></filter>\n</defs>\n<rect x=\"6\" y=\"6\" width=\"108\" height=\"108\" rx=\"26\" fill=\"url(#meshPlate)\"/>\n<rect x=\"6.75\" y=\"6.75\" width=\"106.5\" height=\"106.5\" rx=\"25.25\" fill=\"none\" stroke=\"url(#meshRim)\" stroke-width=\"1.5\"/>\n<!-- Ground Perspective Grid -->\n<path d=\"M20 92 L60 76 L100 92 M33 87 L60 79 L87 87 M46 82 L60 81 L74 82\" fill=\"none\" stroke=\"#2d3748\" stroke-width=\"1\" opacity=\"0.5\"/>\n<path d=\"M60 76 L60 98 M40 84 L40 95 M80 84 L80 95 M20 92 L10 98 M100 92 L110 98\" fill=\"none\" stroke=\"#2d3748\" stroke-width=\"1\" opacity=\"0.5\"/>\n<!-- Faceted Polyhedron Faces -->\n<!-- Top Face -->\n<polygon points=\"60,22 88,38 60,54 32,38\" fill=\"url(#facetTop)\"/>\n<!-- Left Face -->\n<polygon points=\"32,38 60,54 60,86 32,70\" fill=\"url(#facetLeft)\"/>\n<!-- Right Face -->\n<polygon points=\"60,54 88,38 88,70 60,86\" fill=\"url(#facetRight)\"/>\n<!-- Subdivided Face Division Lines -->\n<line x1=\"46\" y1=\"30\" x2=\"74\" y2=\"46\" stroke=\"#1a202c\" stroke-width=\"1\"/>\n<line x1=\"74\" y1=\"30\" x2=\"46\" y2=\"46\" stroke=\"#1a202c\" stroke-width=\"1\"/>\n<line x1=\"32\" y1=\"54\" x2=\"60\" y2=\"70\" stroke=\"#0f172a\" stroke-width=\"1\"/>\n<line x1=\"46\" y1=\"46\" x2=\"46\" y2=\"78\" stroke=\"#0f172a\" stroke-width=\"1\"/>\n<line x1=\"88\" y1=\"54\" x2=\"60\" y2=\"70\" stroke=\"#1e293b\" stroke-width=\"1\"/>\n<line x1=\"74\" y1=\"46\" x2=\"74\" y2=\"78\" stroke=\"#1e293b\" stroke-width=\"1\"/>\n<!-- Glowing Neon Wireframe Overlay -->\n<g stroke=\"#e2e8f0\" stroke-width=\"1.5\" stroke-linejoin=\"round\" filter=\"url(#wireGlow)\">\n<polygon points=\"60,22 88,38 60,54 32,38\" fill=\"none\"/>\n<polygon points=\"32,38 60,54 60,86 32,70\" fill=\"none\"/>\n<polygon points=\"60,54 88,38 88,70 60,86\" fill=\"none\"/>\n</g>\n<!-- Vertex Node Dots -->\n<circle cx=\"60\" cy=\"22\" r=\"3\" fill=\"#ffffff\"/>\n<circle cx=\"88\" cy=\"38\" r=\"2.5\" fill=\"#cbd5e1\"/>\n<circle cx=\"32\" cy=\"38\" r=\"2.5\" fill=\"#cbd5e1\"/>\n<circle cx=\"60\" cy=\"54\" r=\"3.5\" fill=\"#ffffff\" filter=\"url(#wireGlow)\"/>\n<circle cx=\"32\" cy=\"70\" r=\"2.5\" fill=\"#94a3b8\"/>\n<circle cx=\"88\" cy=\"70\" r=\"2.5\" fill=\"#94a3b8\"/>\n<circle cx=\"60\" cy=\"86\" r=\"3\" fill=\"#cbd5e1\"/>"
+  },
+  {
+    "id": "studio-light",
+    "name": "Studio Environment Light",
+    "type": "Coloured",
+    "category": "coloured",
+    "tags": "light sun bulb spotlight illumination bake environment lamp",
+    "description": "Luminous studio light bulb with warm amber glow, glowing tungsten filament, threaded brass base, and fanning directional rays.",
+    "svg_body": "<defs>\n<linearGradient id=\"lightPlate\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#241e17\"/><stop offset=\"100%\" stop-color=\"#0d0a08\"/></linearGradient>\n<linearGradient id=\"lightRim\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#806346\" stop-opacity=\"0.8\"/><stop offset=\"100%\" stop-color=\"#2e1f14\" stop-opacity=\"0.3\"/></linearGradient>\n<linearGradient id=\"brassBase\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0%\" stop-color=\"#8c6834\"/><stop offset=\"50%\" stop-color=\"#ffe082\"/><stop offset=\"100%\" stop-color=\"#6d4c1b\"/></linearGradient>\n<radialGradient id=\"bulbGlow\" cx=\"50%\" cy=\"40%\" r=\"60%\"><stop offset=\"0%\" stop-color=\"#ffffff\"/><stop offset=\"25%\" stop-color=\"#fff59d\"/><stop offset=\"55%\" stop-color=\"#ffb300\"/><stop offset=\"85%\" stop-color=\"#ff6f00\"/><stop offset=\"100%\" stop-color=\"#3e1a00\" stop-opacity=\"0.2\"/></radialGradient>\n<linearGradient id=\"rayCone\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#ffe082\" stop-opacity=\"0.6\"/><stop offset=\"100%\" stop-color=\"#ff8f00\" stop-opacity=\"0\"/></linearGradient>\n<filter id=\"filamentGlow\"><feGaussianBlur stdDeviation=\"2\" result=\"blur\"/><feComposite in=\"SourceGraphic\" in2=\"blur\" operator=\"over\"/></filter>\n</defs>\n<rect x=\"6\" y=\"6\" width=\"108\" height=\"108\" rx=\"26\" fill=\"url(#lightPlate)\"/>\n<rect x=\"6.75\" y=\"6.75\" width=\"106.5\" height=\"106.5\" rx=\"25.25\" fill=\"none\" stroke=\"url(#lightRim)\" stroke-width=\"1.5\"/>\n<!-- Fanning Directional Light Rays -->\n<polygon points=\"60,42 12,102 108,102\" fill=\"url(#rayCone)\"/>\n<line x1=\"60\" y1=\"42\" x2=\"20\" y2=\"100\" stroke=\"#ffe082\" stroke-width=\"1\" opacity=\"0.4\" stroke-dasharray=\"4 3\"/>\n<line x1=\"60\" y1=\"42\" x2=\"100\" y2=\"100\" stroke=\"#ffe082\" stroke-width=\"1\" opacity=\"0.4\" stroke-dasharray=\"4 3\"/>\n<line x1=\"60\" y1=\"42\" x2=\"60\" y2=\"102\" stroke=\"#ffffff\" stroke-width=\"1.2\" opacity=\"0.5\"/>\n<!-- Threaded Brass Base Cap -->\n<rect x=\"48\" y=\"16\" width=\"24\" height=\"14\" rx=\"2\" fill=\"url(#brassBase)\"/>\n<line x1=\"48\" y1=\"20\" x2=\"72\" y2=\"20\" stroke=\"#422f0f\" stroke-width=\"1\"/>\n<line x1=\"48\" y1=\"24\" x2=\"72\" y2=\"24\" stroke=\"#422f0f\" stroke-width=\"1\"/>\n<line x1=\"48\" y1=\"28\" x2=\"72\" y2=\"28\" stroke=\"#422f0f\" stroke-width=\"1\"/>\n<rect x=\"52\" y=\"12\" width=\"16\" height=\"5\" rx=\"1\" fill=\"#2d2213\"/>\n<!-- Glass Bulb Envelope -->\n<path d=\"M48 30 C34 30 26 44 26 58 C26 74 44 82 52 82 L68 82 C76 82 94 74 94 58 C94 44 86 30 72 30 Z\" fill=\"url(#bulbGlow)\"/>\n<path d=\"M48 30 C34 30 26 44 26 58 C26 74 44 82 52 82 L68 82 C76 82 94 74 94 58 C94 44 86 30 72 30 Z\" fill=\"none\" stroke=\"#ffe082\" stroke-width=\"1.2\" opacity=\"0.7\"/>\n<!-- Tungsten Filament & Mount -->\n<path d=\"M52 68 L54 50 L60 44 L66 50 L68 68\" fill=\"none\" stroke=\"#ffe082\" stroke-width=\"1.2\"/>\n<path d=\"M54 50 C57 44 63 44 66 50\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"2\" filter=\"url(#filamentGlow)\"/>\n<!-- Bulb Glass Reflection Highlights -->\n<path d=\"M34 44 A24 24 0 0 1 52 33\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"2.5\" stroke-linecap=\"round\" opacity=\"0.6\"/>\n<circle cx=\"78\" cy=\"62\" r=\"3\" fill=\"#ffffff\" opacity=\"0.3\"/>"
+  },
+  {
+    "id": "audio-emitter",
+    "name": "Audio FX Emitter",
+    "type": "Duotone",
+    "category": "duotone",
+    "tags": "audio sound sfx speaker dsp spatial volume acoustic waveform",
+    "description": "High-contrast duotone acoustic speaker cone in amber gold & dark obsidian with soundwave pulses and equalizer bars.",
+    "svg_body": "<defs>\n<linearGradient id=\"audPlate\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#181512\"/><stop offset=\"100%\" stop-color=\"#080705\"/></linearGradient>\n<linearGradient id=\"audRim\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#664d26\" stop-opacity=\"0.8\"/><stop offset=\"100%\" stop-color=\"#261b0a\" stop-opacity=\"0.3\"/></linearGradient>\n<linearGradient id=\"amberGold\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#ffe082\"/><stop offset=\"50%\" stop-color=\"#ffb300\"/><stop offset=\"100%\" stop-color=\"#ff6f00\"/></linearGradient>\n<linearGradient id=\"amberWave\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0%\" stop-color=\"#ffb300\"/><stop offset=\"100%\" stop-color=\"#ffe082\" stop-opacity=\"0.1\"/></linearGradient>\n<filter id=\"amberGlow\"><feGaussianBlur stdDeviation=\"2\" result=\"blur\"/><feComposite in=\"SourceGraphic\" in2=\"blur\" operator=\"over\"/></filter>\n</defs>\n<rect x=\"6\" y=\"6\" width=\"108\" height=\"108\" rx=\"26\" fill=\"url(#audPlate)\"/>\n<rect x=\"6.75\" y=\"6.75\" width=\"106.5\" height=\"106.5\" rx=\"25.25\" fill=\"none\" stroke=\"url(#audRim)\" stroke-width=\"1.5\"/>\n<!-- Loudspeaker Housing Rim -->\n<path d=\"M18 36 L36 48 L36 76 L18 88 Z\" fill=\"#1f1b18\" stroke=\"#3d332d\" stroke-width=\"1.5\"/>\n<path d=\"M36 48 L62 30 L62 94 L36 76 Z\" fill=\"url(#amberGold)\"/>\n<!-- Speaker Cone Diaphragm Rings -->\n<ellipse cx=\"62\" cy=\"62\" rx=\"6\" ry=\"32\" fill=\"#14100c\" stroke=\"#3d3024\" stroke-width=\"1.5\"/>\n<ellipse cx=\"62\" cy=\"62\" rx=\"3\" ry=\"18\" fill=\"url(#amberGold)\"/>\n<!-- Center Dust Cap -->\n<ellipse cx=\"62\" cy=\"62\" rx=\"2\" ry=\"8\" fill=\"#ffffff\" filter=\"url(#amberGlow)\"/>\n<!-- Concentric Acoustic Soundwaves -->\n<path d=\"M74 44 A 24 24 0 0 1 74 80\" fill=\"none\" stroke=\"url(#amberGold)\" stroke-width=\"3\" stroke-linecap=\"round\" filter=\"url(#amberGlow)\"/>\n<path d=\"M84 36 A 36 36 0 0 1 84 88\" fill=\"none\" stroke=\"url(#amberGold)\" stroke-width=\"2.5\" stroke-linecap=\"round\" opacity=\"0.75\"/>\n<path d=\"M94 28 A 48 48 0 0 1 94 96\" fill=\"none\" stroke=\"url(#amberGold)\" stroke-width=\"1.8\" stroke-linecap=\"round\" opacity=\"0.4\"/>\n<!-- Equalizer Spectrum Bars (Bottom Corner) -->\n<rect x=\"20\" y=\"24\" width=\"3\" height=\"8\" rx=\"1.5\" fill=\"#ffb300\"/>\n<rect x=\"26\" y=\"20\" width=\"3\" height=\"12\" rx=\"1.5\" fill=\"#ffe082\"/>\n<rect x=\"32\" y=\"22\" width=\"3\" height=\"10\" rx=\"1.5\" fill=\"#ffb300\"/>\n<rect x=\"38\" y=\"26\" width=\"3\" height=\"6\" rx=\"1.5\" fill=\"#ff8f00\"/>"
+  },
+  {
+    "id": "logic-node",
+    "name": "Logic Node Graph",
+    "type": "Duotone",
+    "category": "duotone",
+    "tags": "script logic node blueprint code graph condition event workflow",
+    "description": "Electric cyan & neon violet duotone blueprint node block with glowing bezier connection wire, socket pins, and logic badge.",
+    "svg_body": "<defs>\n<linearGradient id=\"nodePlate\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#161224\"/><stop offset=\"100%\" stop-color=\"#090612\"/></linearGradient>\n<linearGradient id=\"nodeRim\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#6a3093\" stop-opacity=\"0.8\"/><stop offset=\"100%\" stop-color=\"#240b42\" stop-opacity=\"0.3\"/></linearGradient>\n<linearGradient id=\"headerViolet\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0%\" stop-color=\"#d500f9\"/><stop offset=\"100%\" stop-color=\"#aa00ff\"/></linearGradient>\n<linearGradient id=\"wireCyanViolet\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#00e5ff\"/><stop offset=\"100%\" stop-color=\"#d500f9\"/></linearGradient>\n<filter id=\"neonGlow\"><feGaussianBlur stdDeviation=\"2.5\" result=\"blur\"/><feComposite in=\"SourceGraphic\" in2=\"blur\" operator=\"over\"/></filter>\n</defs>\n<rect x=\"6\" y=\"6\" width=\"108\" height=\"108\" rx=\"26\" fill=\"url(#nodePlate)\"/>\n<rect x=\"6.75\" y=\"6.75\" width=\"106.5\" height=\"106.5\" rx=\"25.25\" fill=\"none\" stroke=\"url(#nodeRim)\" stroke-width=\"1.5\"/>\n<!-- Node Card Container (Left) -->\n<rect x=\"18\" y=\"26\" width=\"44\" height=\"68\" rx=\"6\" fill=\"#1c162e\" stroke=\"#3e2d5c\" stroke-width=\"1.2\"/>\n<rect x=\"18\" y=\"26\" width=\"44\" height=\"16\" rx=\"6\" fill=\"url(#headerViolet)\"/>\n<rect x=\"22\" y=\"32\" width=\"20\" height=\"4\" rx=\"2\" fill=\"#ffffff\"/>\n<!-- Code Syntax Line Placeholders -->\n<rect x=\"22\" y=\"50\" width=\"28\" height=\"3\" rx=\"1.5\" fill=\"#00e5ff\"/>\n<rect x=\"22\" y=\"58\" width=\"20\" height=\"3\" rx=\"1.5\" fill=\"#8e24aa\"/>\n<rect x=\"22\" y=\"66\" width=\"24\" height=\"3\" rx=\"1.5\" fill=\"#00e5ff\"/>\n<rect x=\"22\" y=\"74\" width=\"16\" height=\"3\" rx=\"1.5\" fill=\"#ffffff\" opacity=\"0.6\"/>\n<!-- Socket Pins on Left Node -->\n<circle cx=\"18\" cy=\"51\" r=\"3.5\" fill=\"#00e5ff\" filter=\"url(#neonGlow)\"/>\n<circle cx=\"62\" cy=\"67\" r=\"3.5\" fill=\"#d500f9\" filter=\"url(#neonGlow)\"/>\n<!-- Node Card Container (Right) -->\n<rect x=\"76\" y=\"44\" width=\"28\" height=\"50\" rx=\"6\" fill=\"#1c162e\" stroke=\"#00e5ff\" stroke-width=\"1.2\"/>\n<rect x=\"76\" y=\"44\" width=\"28\" height=\"12\" rx=\"6\" fill=\"#00b0ff\"/>\n<circle cx=\"76\" cy=\"67\" r=\"3.5\" fill=\"#00e5ff\" filter=\"url(#neonGlow)\"/>\n<!-- Connecting Bezier Cable Wire -->\n<path d=\"M62 67 C70 67 68 67 76 67\" fill=\"none\" stroke=\"url(#wireCyanViolet)\" stroke-width=\"3\" stroke-linecap=\"round\" filter=\"url(#neonGlow)\"/>\n<!-- Floating Decision Logic Badge -->\n<path d=\"M82 22 L92 30 L82 38 L72 30 Z\" fill=\"#090612\" stroke=\"#00e5ff\" stroke-width=\"1.5\" filter=\"url(#neonGlow)\"/>\n<path d=\"M82 26 L86 30 L82 34 L78 30 Z\" fill=\"#d500f9\"/>"
+  },
+  {
+    "id": "vfx-particles",
+    "name": "VFX Particle Emitter",
+    "type": "Coloured",
+    "category": "coloured",
+    "tags": "vfx particles emitter energy plasma sparks vfx explosion fire",
+    "description": "Luminous particle emitter with multi-stop plasma orb core, orbiting energy field rings, and floating spark particle trails.",
+    "svg_body": "<defs>\n<linearGradient id=\"vfxPlate\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#241220\"/><stop offset=\"100%\" stop-color=\"#0a040e\"/></linearGradient>\n<linearGradient id=\"vfxRim\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#7e3870\" stop-opacity=\"0.8\"/><stop offset=\"100%\" stop-color=\"#2a0c25\" stop-opacity=\"0.3\"/></linearGradient>\n<radialGradient id=\"plasmaCore\" cx=\"50%\" cy=\"50%\" r=\"50%\"><stop offset=\"0%\" stop-color=\"#ffffff\"/><stop offset=\"20%\" stop-color=\"#ff80ab\"/><stop offset=\"50%\" stop-color=\"#ff1744\"/><stop offset=\"80%\" stop-color=\"#651fff\"/><stop offset=\"100%\" stop-color=\"#000000\" stop-opacity=\"0\"/></radialGradient>\n<linearGradient id=\"ringGrad\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#00e5ff\"/><stop offset=\"50%\" stop-color=\"#ff1744\"/><stop offset=\"100%\" stop-color=\"#7c4dff\"/></linearGradient>\n<filter id=\"vfxGlow\"><feGaussianBlur stdDeviation=\"3\" result=\"blur\"/><feComposite in=\"SourceGraphic\" in2=\"blur\" operator=\"over\"/></filter>\n</defs>\n<rect x=\"6\" y=\"6\" width=\"108\" height=\"108\" rx=\"26\" fill=\"url(#vfxPlate)\"/>\n<rect x=\"6.75\" y=\"6.75\" width=\"106.5\" height=\"106.5\" rx=\"25.25\" fill=\"none\" stroke=\"url(#vfxRim)\" stroke-width=\"1.5\"/>\n<!-- Orbiting Energy Field Ring 1 -->\n<ellipse cx=\"60\" cy=\"66\" rx=\"38\" ry=\"14\" fill=\"none\" stroke=\"url(#ringGrad)\" stroke-width=\"1.8\" transform=\"rotate(-20 60 66)\" opacity=\"0.8\"/>\n<!-- Orbiting Energy Field Ring 2 -->\n<ellipse cx=\"60\" cy=\"66\" rx=\"34\" ry=\"12\" fill=\"none\" stroke=\"#00e5ff\" stroke-width=\"1.2\" transform=\"rotate(35 60 66)\" filter=\"url(#vfxGlow)\"/>\n<!-- Central Plasma Core -->\n<circle cx=\"60\" cy=\"66\" r=\"28\" fill=\"url(#plasmaCore)\"/>\n<circle cx=\"60\" cy=\"66\" r=\"10\" fill=\"#ffffff\" filter=\"url(#vfxGlow)\"/>\n<!-- Floating Spark Particles with Trails -->\n<line x1=\"60\" y1=\"66\" x2=\"38\" y2=\"30\" stroke=\"#ff80ab\" stroke-width=\"1\" stroke-dasharray=\"2 3\" opacity=\"0.6\"/>\n<circle cx=\"38\" cy=\"30\" r=\"3.5\" fill=\"#ffffff\" filter=\"url(#vfxGlow)\"/>\n<line x1=\"60\" y1=\"66\" x2=\"82\" y2=\"26\" stroke=\"#00e5ff\" stroke-width=\"1.2\" stroke-dasharray=\"2 4\" opacity=\"0.7\"/>\n<circle cx=\"82\" cy=\"26\" r=\"4\" fill=\"#00e5ff\" filter=\"url(#vfxGlow)\"/>\n<line x1=\"60\" y1=\"66\" x2=\"26\" y2=\"78\" stroke=\"#ff1744\" stroke-width=\"1\" stroke-dasharray=\"2 2\" opacity=\"0.5\"/>\n<circle cx=\"26\" cy=\"78\" r=\"2.5\" fill=\"#ff1744\"/>\n<line x1=\"60\" y1=\"66\" x2=\"92\" y2=\"76\" stroke=\"#7c4dff\" stroke-width=\"1\" stroke-dasharray=\"3 3\" opacity=\"0.6\"/>\n<circle cx=\"92\" cy=\"76\" r=\"3\" fill=\"#b388ff\"/>\n<!-- Additional Micro Sparks -->\n<circle cx=\"48\" cy=\"22\" r=\"1.8\" fill=\"#ffffff\"/>\n<circle cx=\"70\" cy=\"18\" r=\"2\" fill=\"#ff80ab\"/>\n<circle cx=\"28\" cy=\"48\" r=\"1.5\" fill=\"#00e5ff\"/>\n<circle cx=\"94\" cy=\"46\" r=\"2.2\" fill=\"#ff1744\"/>\n<circle cx=\"58\" cy=\"20\" r=\"2.5\" fill=\"#ffffff\" filter=\"url(#vfxGlow)\"/>"
+  },
+  {
+    "id": "compositing-layers",
+    "name": "Compositing Layers",
+    "type": "Duotone",
+    "category": "duotone",
+    "tags": "layers stack depth compositing mask order z-index blending",
+    "description": "Duotone emerald teal & dark obsidian floating glass layers with vertical stack depth, transparency, and mask cutout.",
+    "svg_body": "<defs>\n<linearGradient id=\"layPlate\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#0c1818\"/><stop offset=\"100%\" stop-color=\"#040a0a\"/></linearGradient>\n<linearGradient id=\"layRim\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#24665a\" stop-opacity=\"0.8\"/><stop offset=\"100%\" stop-color=\"#0c2621\" stop-opacity=\"0.3\"/></linearGradient>\n<linearGradient id=\"tealGlass\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#64ffda\" stop-opacity=\"0.6\"/><stop offset=\"100%\" stop-color=\"#00bfa5\" stop-opacity=\"0.2\"/></linearGradient>\n<linearGradient id=\"midGlass\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#1de9b6\" stop-opacity=\"0.3\"/><stop offset=\"100%\" stop-color=\"#004d40\" stop-opacity=\"0.15\"/></linearGradient>\n<filter id=\"tealGlow\"><feGaussianBlur stdDeviation=\"2\" result=\"blur\"/><feComposite in=\"SourceGraphic\" in2=\"blur\" operator=\"over\"/></filter>\n</defs>\n<rect x=\"6\" y=\"6\" width=\"108\" height=\"108\" rx=\"26\" fill=\"url(#layPlate)\"/>\n<rect x=\"6.75\" y=\"6.75\" width=\"106.5\" height=\"106.5\" rx=\"25.25\" fill=\"none\" stroke=\"url(#layRim)\" stroke-width=\"1.5\"/>\n<!-- Bottom Layer 3 (Obsidian Stencil Base) -->\n<polygon points=\"60,60 98,76 60,92 22,76\" fill=\"#081010\" stroke=\"#1c3330\" stroke-width=\"1.2\"/>\n<!-- Mask Cutout Hole in Layer 3 -->\n<polygon points=\"60,70 76,77 60,84 44,77\" fill=\"#040a0a\" stroke=\"#00bfa5\" stroke-width=\"0.8\" opacity=\"0.6\"/>\n<!-- Ambient Shadows -->\n<polygon points=\"60,46 98,62 60,78 22,62\" fill=\"#000000\" opacity=\"0.4\" filter=\"blur(2px)\"/>\n<!-- Middle Layer 2 (Translucent Crosshatch) -->\n<polygon points=\"60,42 98,58 60,74 22,58\" fill=\"url(#midGlass)\" stroke=\"#1de9b6\" stroke-width=\"1\" stroke-dasharray=\"16 4\"/>\n<!-- Layer 2 Grid Lines -->\n<line x1=\"41\" y1=\"50\" x2=\"79\" y2=\"66\" stroke=\"#64ffda\" stroke-width=\"0.8\" opacity=\"0.4\"/>\n<line x1=\"79\" y1=\"50\" x2=\"41\" y2=\"66\" stroke=\"#64ffda\" stroke-width=\"0.8\" opacity=\"0.4\"/>\n<!-- Ambient Shadows -->\n<polygon points=\"60,28 98,44 60,60 22,44\" fill=\"#000000\" opacity=\"0.4\" filter=\"blur(2px)\"/>\n<!-- Top Layer 1 (Emerald Glass Active Layer) -->\n<polygon points=\"60,24 98,40 60,56 22,40\" fill=\"url(#tealGlass)\" stroke=\"#64ffda\" stroke-width=\"1.5\" filter=\"url(#tealGlow)\"/>\n<!-- Top Layer Active Eye / Visibility Badge -->\n<ellipse cx=\"60\" cy=\"40\" rx=\"8\" ry=\"4\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"1.2\"/>\n<circle cx=\"60\" cy=\"40\" r=\"2\" fill=\"#64ffda\"/>\n<!-- Layer Stack Connection Pins / Depth Guidelines -->\n<line x1=\"22\" y1=\"40\" x2=\"22\" y2=\"76\" stroke=\"#64ffda\" stroke-width=\"1\" stroke-dasharray=\"2 3\" opacity=\"0.5\"/>\n<line x1=\"98\" y1=\"40\" x2=\"98\" y2=\"76\" stroke=\"#64ffda\" stroke-width=\"1\" stroke-dasharray=\"2 3\" opacity=\"0.5\"/>"
+  },
+  {
+    "id": "editor-settings",
+    "name": "System Preferences Cogwheel",
+    "type": "Monotone",
+    "category": "monotone",
+    "tags": "settings gear preferences cog config options setup tool system",
+    "description": "Monochromatic chrome mechanical cogwheel with 12 precision teeth, knurled dial face, and central adjustment socket.",
+    "svg_body": "<defs>\n<linearGradient id=\"setPlate\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#161a22\"/><stop offset=\"100%\" stop-color=\"#090b0e\"/></linearGradient>\n<linearGradient id=\"setRim\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#4e5869\" stop-opacity=\"0.8\"/><stop offset=\"100%\" stop-color=\"#181d26\" stop-opacity=\"0.3\"/></linearGradient>\n<linearGradient id=\"chromeGear\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#ffffff\"/><stop offset=\"25%\" stop-color=\"#cbd5e1\"/><stop offset=\"60%\" stop-color=\"#475569\"/><stop offset=\"90%\" stop-color=\"#1e293b\"/><stop offset=\"100%\" stop-color=\"#0f172a\"/></linearGradient>\n<radialGradient id=\"gearDial\" cx=\"40%\" cy=\"35%\" r=\"65%\"><stop offset=\"0%\" stop-color=\"#334155\"/><stop offset=\"70%\" stop-color=\"#0f172a\"/><stop offset=\"100%\" stop-color=\"#020617\"/></radialGradient>\n<filter id=\"gearShadow\"><feGaussianBlur stdDeviation=\"2.5\" result=\"blur\"/><feComposite in=\"SourceGraphic\" in2=\"blur\" operator=\"over\"/></filter>\n</defs>\n<rect x=\"6\" y=\"6\" width=\"108\" height=\"108\" rx=\"26\" fill=\"url(#setPlate)\"/>\n<rect x=\"6.75\" y=\"6.75\" width=\"106.5\" height=\"106.5\" rx=\"25.25\" fill=\"none\" stroke=\"url(#setRim)\" stroke-width=\"1.5\"/>\n<circle cx=\"60\" cy=\"62\" r=\"36\" fill=\"#000000\" opacity=\"0.4\" filter=\"blur(3px)\"/>\n<!-- 12 Mechanical Gear Teeth -->\n<g fill=\"url(#chromeGear)\" filter=\"url(#gearShadow)\">\n<path d=\"M60 22 C64 22 65 26 60 26 C55 26 56 22 60 22 Z\nM79 27 C82 29 80 33 76 31 C72 29 76 25 79 27 Z\nM93 41 C95 44 91 48 89 44 C87 40 91 38 93 41 Z\nM98 60 C98 64 94 65 94 60 C94 55 98 56 98 60 Z\nM93 79 C91 82 87 80 89 76 C91 72 95 76 93 79 Z\nM79 93 C76 95 72 91 76 89 C80 87 82 91 79 93 Z\nM60 98 C56 98 55 94 60 94 C65 94 64 98 60 98 Z\nM41 93 C38 91 40 87 44 89 C48 91 44 95 41 93 Z\nM27 79 C25 76 29 72 31 76 C33 80 29 82 27 79 Z\nM22 60 C22 56 26 55 26 60 C26 65 22 64 22 60 Z\nM27 41 C29 38 33 40 31 44 C29 48 25 44 27 41 Z\nM41 27 C44 25 48 29 44 31 C40 33 38 29 41 27 Z\"/>\n<!-- Main Gear Outer Ring -->\n<circle cx=\"60\" cy=\"60\" r=\"35\" fill=\"url(#chromeGear)\"/>\n</g>\n<!-- Inner Dial Face -->\n<circle cx=\"60\" cy=\"60\" r=\"26\" fill=\"url(#gearDial)\"/>\n<circle cx=\"60\" cy=\"60\" r=\"26\" fill=\"none\" stroke=\"#94a3b8\" stroke-width=\"1\" opacity=\"0.6\"/>\n<!-- Radial Dial Knurling Tick Marks (12 ticks) -->\n<line x1=\"60\" y1=\"36\" x2=\"60\" y2=\"40\" stroke=\"#cbd5e1\" stroke-width=\"1.5\"/>\n<line x1=\"77\" y1=\"43\" x2=\"74\" y2=\"46\" stroke=\"#cbd5e1\" stroke-width=\"1.5\"/>\n<line x1=\"84\" y1=\"60\" x2=\"80\" y2=\"60\" stroke=\"#cbd5e1\" stroke-width=\"1.5\"/>\n<line x1=\"77\" y1=\"77\" x2=\"74\" y2=\"74\" stroke=\"#cbd5e1\" stroke-width=\"1.5\"/>\n<line x1=\"60\" y1=\"84\" x2=\"60\" y2=\"80\" stroke=\"#cbd5e1\" stroke-width=\"1.5\"/>\n<line x1=\"43\" y1=\"77\" x2=\"46\" y2=\"74\" stroke=\"#cbd5e1\" stroke-width=\"1.5\"/>\n<line x1=\"36\" y1=\"60\" x2=\"40\" y2=\"60\" stroke=\"#cbd5e1\" stroke-width=\"1.5\"/>\n<line x1=\"43\" y1=\"43\" x2=\"46\" y2=\"46\" stroke=\"#cbd5e1\" stroke-width=\"1.5\"/>\n<!-- Center Hex Socket Pin & Adjustment Arc -->\n<path d=\"M60 42 A 18 18 0 0 1 78 60\" fill=\"none\" stroke=\"#38bdf8\" stroke-width=\"2\" stroke-linecap=\"round\"/>\n<circle cx=\"78\" cy=\"60\" r=\"3\" fill=\"#38bdf8\"/>\n<circle cx=\"60\" cy=\"60\" r=\"10\" fill=\"#0f172a\" stroke=\"#64748b\" stroke-width=\"1.2\"/>\n<polygon points=\"60,53 66,57 66,63 60,67 54,63 54,57\" fill=\"url(#chromeGear)\"/>\n<circle cx=\"60\" cy=\"60\" r=\"3\" fill=\"#020617\"/>"
+  }
+];
+
+const iconGrid = document.getElementById('iconGrid');
+const searchInput = document.getElementById('searchInput');
+const filterBtns = document.querySelectorAll('.tab-btn');
+const sizeRange = document.getElementById('sizeRange');
+const sizeVal = document.getElementById('sizeVal');
+const toast = document.getElementById('toast');
+const modalOverlay = document.getElementById('modalOverlay');
+const modalTitle = document.getElementById('modalTitle');
+const modalPreview = document.getElementById('modalPreview');
+const modalCode = document.getElementById('modalCode');
+const modalClose = document.getElementById('modalClose');
+
+let currentFilter = 'all';
+let currentSearch = '';
+let iconSize = 120;
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function renderIcons() {
+  iconGrid.innerHTML = '';
+  const filtered = ICONS.filter(ic => {
+    const matchFilter = currentFilter === 'all' || ic.category === currentFilter;
+    const q = currentSearch.toLowerCase();
+    const matchSearch = !q || ic.name.toLowerCase().includes(q) || ic.tags.toLowerCase().includes(q);
+    return matchFilter && matchSearch;
+  });
+
+  if (filtered.length === 0) {
+    iconGrid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 60px; color: var(--text-sub);">No icons match your search query.</div>`;
+    return;
+  }
+
+  filtered.forEach(ic => {
+    const card = document.createElement('div');
+    card.className = 'icon-card';
+    card.setAttribute('data-category', ic.category);
+
+    const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="${iconSize}" height="${iconSize}">${ic.svg_body}</svg>`;
+
+    card.innerHTML = `
+      <span class="card-type-tag ${ic.category}">${ic.type}</span>
+      <div class="icon-stage">
+        ${fullSvg}
+      </div>
+      <div class="card-info">
+        <div class="icon-title">${ic.name}</div>
+        <div class="icon-desc">${ic.description}</div>
+        <div class="card-actions">
+          <button class="btn-action btn-copy" data-id="${ic.id}">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy SVG
+          </button>
+          <button class="btn-action btn-inspect" data-id="${ic.id}">
+            Inspect
+          </button>
+        </div>
+      </div>
+    `;
+
+    card.querySelector('.btn-copy').addEventListener('click', (e) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(fullSvg);
+      showToast(`Copied ${ic.name} SVG code!`);
+    });
+
+    card.querySelector('.btn-inspect').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openModal(ic);
+    });
+
+    iconGrid.appendChild(card);
+  });
+}
+
+function openModal(ic) {
+  modalTitle.textContent = ic.name + ' (' + ic.type + ')';
+  const displaySvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="180" height="180">${ic.svg_body}</svg>`;
+  modalPreview.innerHTML = displaySvg;
+  modalCode.textContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+${ic.svg_body.trim()}
+</svg>`;
+  modalOverlay.classList.add('open');
+}
+
+modalClose.addEventListener('click', () => modalOverlay.classList.remove('open'));
+modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) modalOverlay.classList.remove('open'); });
+
+filterBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    filterBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderIcons();
+  });
+});
+
+searchInput.addEventListener('input', (e) => {
+  currentSearch = e.target.value.trim();
+  renderIcons();
+});
+
+sizeRange.addEventListener('input', (e) => {
+  iconSize = e.target.value;
+  sizeVal.textContent = iconSize + 'px';
+  document.querySelectorAll('.icon-stage svg').forEach(svg => {
+    svg.setAttribute('width', iconSize);
+    svg.setAttribute('height', iconSize);
+  });
+});
+
+renderIcons();
+</script>
+</body>
+</html>
