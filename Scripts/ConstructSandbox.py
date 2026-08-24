@@ -182,6 +182,10 @@ def GetIncludePath(UnitEntry, VulkanInclude):
     if UnitEntry['Name'] == 'SlateDocument':
         Paths.append(PackageRoot)
 
+    # 📝 GeometryRenderingExchange triangulates with SlateCompute's declared Earcut dependency.
+    if UnitEntry['Name'] == 'SlateCompute':
+        Paths.append(os.path.join(PackageRoot, 'earcut', 'include'))
+
     # 📝 A host includes the interface unit's Api and, through it, ImGui's own header.
     if UnitEntry['Name'] == 'Application':
         Paths.append(os.path.join(PackageRoot, 'imgui'))
