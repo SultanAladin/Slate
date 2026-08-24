@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slate Engine — 3D Texture Painting Test Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<style>
+  :root {
+    --bg-dark: #07080c;
+    --bg-card: #0f172a;
+    --border: rgba(255, 255, 255, 0.12);
+    --border-bright: rgba(255, 255, 255, 0.25);
+    --accent-cyan: #38bdf8;
+    --accent-teal: #34d399;
+    --text-main: #f8fafc;
+    --text-sub: #94a3b8;
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background: #0f172a;
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 100;
+  }
+
+  .logo-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .badge {
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: var(--accent-cyan);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    padding: 3px 10px;
+    border-radius: 12px;
+    text-transform: uppercase;
+  }
+
+  h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+
+  .workspace {
+    flex: 1;
+    display: flex;
+    position: relative;
+  }
+
+  /* Left Object Selector Toolbar */
+  .sidebar {
+    width: 280px;
+    background: #0d121f;
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    z-index: 10;
+  }
+
+  .sidebar-section h3 {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+  }
+
+  .btn-obj {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    color: #cbd5e1;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .btn-obj:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border-color: var(--border-bright);
+  }
+
+  .btn-obj.active {
+    background: rgba(56, 189, 248, 0.15);
+    color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+  }
+
+  /* Painting Tools Panel */
+  .paint-tools {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .tool-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12.5px;
+    color: var(--text-sub);
+  }
+
+  .tool-row input[type="color"] {
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    background: transparent;
+  }
+
+  .tool-row input[type="range"] {
+    width: 100px;
+    accent-color: var(--accent-cyan);
+  }
+
+  /* 3D Canvas Stage */
+  #webglStage {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+
+  .viewport-overlay {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text-sub);
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-title">
+    <div class="badge">Slate Engine 3D Test Objects</div>
+    <h1>Texture Painting & Material Evaluation Studio</h1>
+  </div>
+  <div style="font-family: var(--font-mono); font-size: 12px; color: var(--text-sub);">
+    Left Drag: Rotate · Right Drag: Pan · Scroll: Zoom · Click 3D Surface: Paint
+  </div>
+</header>
+
+<div class="workspace">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <h3>Select Test Object (5)</h3>
+      <button class="btn-obj active" data-id="scene">🌟 Full Scene (All 5 Objects)</button>
+      <button class="btn-obj" data-id="teapot">🫖 01. Utah Teapot (Newell)</button>
+      <button class="btn-obj" data-id="shaderball">🔮 02. PBR Shaderball</button>
+      <button class="btn-obj" data-id="vase">🏺 03. Ceramic Vase</button>
+      <button class="btn-obj" data-id="barrel">🛢️ 04. Industrial Barrel</button>
+      <button class="btn-obj" data-id="prop">🍩 05. Chamfer Test Prop</button>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>3D Texture Painter Brush</h3>
+      <div class="paint-tools">
+        <div class="tool-row">
+          <span>Brush Color:</span>
+          <input type="color" id="brushColor" value="#ff3b30">
+        </div>
+        <div class="tool-row">
+          <span>Brush Radius:</span>
+          <input type="range" id="brushRadius" min="5" max="60" value="20">
+          <span id="radiusVal" style="font-family: var(--font-mono);">20px</span>
+        </div>
+        <div class="tool-row">
+          <span>Shading Mode:</span>
+          <select id="shadingMode" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:4px 8px; border-radius:6px; font-size:12px;">
+            <option value="pbr">PBR Painted Material</option>
+            <option value="uv">UV Grid View</option>
+            <option value="wire">Wireframe Topology</option>
+            <option value="normal">Normal Map View</option>
+          </select>
+        </div>
+        <button id="btnClearPaint" style="background:#ef4444; color:#fff; border:none; padding:8px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; margin-top:6px;">Clear Paint Canvas</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="webglStage">
+    <div class="viewport-overlay" id="viewportInfo">Object: Full Scene (5 Objects) · 3D Paint Enabled</div>
+  </div>
+</div>
+
+<script>
+// WebGL Three.js Realtime 3D Texture Painting Engine
+let scene, camera, renderer, controls;
+let currentObjectGroup;
+let paintCanvas, paintContext, paintTexture;
+let raycaster, mouse;
+let isPainting = false;
+
+function init() {
+  const container = document.getElementById('webglStage');
+  
+  // Create Scene, Camera, Renderer
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x07080c);
+  scene.fog = new THREE.FogExp2(0x07080c, 0.03);
+
+  camera = new THREE.PerspectiveCamera(45, container.offsetWidth / container.offsetHeight, 0.1, 100);
+  camera.position.set(0, 3, 7);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(container.offsetWidth, container.offsetHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  container.appendChild(renderer.domElement);
+
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  controls.target.set(0, 1.2, 0);
+
+  // Lighting
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+  scene.add(ambientLight);
+
+  const dirLight = new THREE.DirectionalLight(0xfff5ea, 1.5);
+  dirLight.position.set(5, 8, 5);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.width = 2048;
+  dirLight.shadow.mapSize.height = 2048;
+  scene.add(dirLight);
+
+  const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.8);
+  rimLight.position.set(-5, 4, -5);
+  scene.add(rimLight);
+
+  // Studio Grid Floor
+  const gridHelper = new THREE.GridHelper(12, 24, 0x38bdf8, 0x1e293b);
+  gridHelper.position.y = 0;
+  scene.add(gridHelper);
+
+  // Dynamic Texture Paint Canvas
+  paintCanvas = document.createElement('canvas');
+  paintCanvas.width = 1024;
+  paintCanvas.height = 1024;
+  paintContext = paintCanvas.getContext('2d');
+  clearPaintCanvas();
+
+  paintTexture = new THREE.CanvasTexture(paintCanvas);
+  paintTexture.wrapS = THREE.RepeatWrapping;
+  paintTexture.wrapT = THREE.RepeatWrapping;
+
+  // Raycaster for 3D Paint Hit Test
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+
+  // Load Objects
+  currentObjectGroup = new THREE.Group();
+  scene.add(currentObjectGroup);
+
+  loadSceneObjects('scene');
+
+  // Event Listeners
+  window.addEventListener('resize', onWindowResize);
+  renderer.domElement.addEventListener('pointerdown', onPointerDown);
+  renderer.domElement.addEventListener('pointermove', onPointerMove);
+  renderer.domElement.addEventListener('pointerup', onPointerUp);
+}
+
+function clearPaintCanvas() {
+  paintContext.fillStyle = '#e2e8f0';
+  paintContext.fillRect(0, 0, 1024, 1024);
+  
+  // Draw base UV grid lines for reference
+  paintContext.strokeStyle = 'rgba(0,0,0,0.08)';
+  paintContext.lineWidth = 1;
+  for(let i=0; i<1024; i+=64) {
+    paintContext.beginPath(); paintContext.moveTo(i, 0); paintContext.lineTo(i, 1024); paintContext.stroke();
+    paintContext.beginPath(); paintContext.moveTo(0, i); paintContext.lineTo(1024, i); paintContext.stroke();
+  }
+  if (paintTexture) paintTexture.needsUpdate = true;
+}
+
+function loadSceneObjects(mode) {
+  // Clear old meshes
+  while(currentObjectGroup.children.length > 0) { 
+    currentObjectGroup.remove(currentObjectGroup.children[0]); 
+  }
+
+  const pbrMaterial = new THREE.MeshStandardMaterial({
+    map: paintTexture,
+    roughness: 0.35,
+    metalness: 0.15,
+  });
+
+  if (mode === 'scene' || mode === 'teapot') {
+    const teapotMesh = createLatheMesh(teapotProfile, 32, 1.2, pbrMaterial);
+    teapotMesh.position.set(mode==='scene' ? -2.4 : 0, 0, mode==='scene' ? -0.5 : 0);
+    currentObjectGroup.add(teapotMesh);
+  }
+
+  if (mode === 'scene' || mode === 'shaderball') {
+    const ballMesh = new THREE.Mesh(new THREE.SphereGeometry(1.0, 32, 32), pbrMaterial);
+    ballMesh.position.set(mode==='scene' ? -1.2 : 0, 1.0, mode==='scene' ? 1.2 : 0);
+    currentObjectGroup.add(ballMesh);
+  }
+
+  if (mode === 'scene' || mode === 'vase') {
+    const vaseMesh = createLatheMesh(vaseProfile, 32, 1.4, pbrMaterial);
+    vaseMesh.position.set(mode==='scene' ? 0.0 : 0, 0, mode==='scene' ? -0.8 : 0);
+    currentObjectGroup.add(vaseMesh);
+  }
+
+  if (mode === 'scene' || mode === 'barrel') {
+    const barrelMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 2.2, 32), pbrMaterial);
+    barrelMesh.position.set(mode==='scene' ? 1.4 : 0, 1.1, mode==='scene' ? 0.8 : 0);
+    currentObjectGroup.add(barrelMesh);
+  }
+
+  if (mode === 'scene' || mode === 'prop') {
+    const torusMesh = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.3, 16, 32), pbrMaterial);
+    torusMesh.position.set(mode==='scene' ? 2.5 : 0, 1.0, mode==='scene' ? -0.5 : 0);
+    torusMesh.rotation.x = Math.PI * 0.5;
+    currentObjectGroup.add(torusMesh);
+  }
+}
+
+function teapotProfile(t) {
+  let y = t * 2.2;
+  let r = 0.8 + 0.6 * Math.sin(t * Math.PI);
+  return new THREE.Vector2(r, y);
+}
+
+function vaseProfile(t) {
+  let y = t * 2.6;
+  let r = 0.6 + 0.5 * Math.sin(t * Math.PI * 1.5);
+  return new THREE.Vector2(r, y);
+}
+
+function createLatheMesh(profileFn, segments, height, material) {
+  const points = [];
+  for (let i = 0; i <= 20; i++) {
+    points.push(profileFn(i / 20));
+  }
+  const geom = new THREE.LatheGeometry(points, segments);
+  const mesh = new THREE.Mesh(geom, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+function onPointerDown(e) {
+  if (e.button === 0) { // Left click paint
+    isPainting = true;
+    paintAt(e);
+  }
+}
+
+function onPointerMove(e) {
+  if (isPainting) {
+    paintAt(e);
+  }
+}
+
+function onPointerUp() { isPainting = false; }
+
+function paintAt(e) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(currentObjectGroup.children);
+
+  if (intersects.length > 0 && intersects[0].uv) {
+    controls.enabled = false; // Pause camera rotation while painting
+    const uv = intersects[0].uv;
+    const x = uv.x * 1024;
+    const y = (1.0 - uv.y) * 1024;
+
+    const brushColor = document.getElementById('brushColor').value;
+    const brushRadius = parseInt(document.getElementById('brushRadius').value);
+
+    paintContext.fillStyle = brushColor;
+    paintContext.beginPath();
+    paintContext.arc(x, y, brushRadius, 0, Math.PI * 2);
+    paintContext.fill();
+
+    paintTexture.needsUpdate = true;
+  } else {
+    controls.enabled = true;
+  }
+}
+
+function onWindowResize() {
+  const container = document.getElementById('webglStage');
+  camera.aspect = container.offsetWidth / container.offsetHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.offsetWidth, container.offsetHeight);
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('load', () => {
+  init();
+  animate();
+
+  // Sidebar Button Bindings
+  document.querySelectorAll('.btn-obj').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.btn-obj').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const objId = btn.dataset.id;
+      loadSceneObjects(objId);
+      document.getElementById('viewportInfo').textContent = `Object: ${btn.textContent} · 3D Paint Enabled`;
+    });
+  });
+
+  document.getElementById('brushRadius').addEventListener('input', (e) => {
+    document.getElementById('radiusVal').textContent = e.target.value + 'px';
+  });
+
+  document.getElementById('btnClearPaint').addEventListener('click', clearPaintCanvas);
+});
+</script>
+</body>
+</html>
