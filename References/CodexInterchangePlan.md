@@ -93,9 +93,10 @@ dielectric material and transparent radiance outside resolved geometry, leaving 
 
 ## Delivery Sequence
 
-1. Deliver the in-memory Codex codec: preamble, payload sections, index, completion record, validation, and
+1. ✔️ Deliver the in-memory Codex codec: preamble, payload sections, index, completion record, validation, and
    unknown-section retention.
-2. Deliver append-safe stream writing and recovery through the file interchange seam.
+2. ✔️ Deliver profile-matched stream writing and recovery through `.new` and `.prior` complete-stream candidates.
+   Append-only section replacement follows once changed-section writing reaches the file route.
 3. Deliver workspace, environment, revision, material, and nested-Codex sections.
 4. Deliver the precise tea-service source geometry and UV content.
 5. Connect decoded geometry to authoritative rendering residency, fixed-white radiance, and actual viewport proof.

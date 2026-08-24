@@ -8,6 +8,7 @@
 #include "Foundation/DeliveryOutcome.h"
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace Slate
@@ -75,6 +76,21 @@ public:
     /// out   Result [-]  profile, identities, and retained payload sections
     /// err   refuses when signatures, positions, extents, or integrity digests disagree
     Outcome<CodexDocument> Decode(const std::vector<std::uint8_t>& Stream) const;
+
+    /// 🧩 Opens the newest complete Codex stream among the standing file and interrupted-save recovery files.
+    /// in    OriginPath [-]  `.codex` or specialized Codex path
+    /// out   Result     [-]  the highest complete revision whose profile agrees with the suffix
+    Outcome<CodexDocument> Open(const std::string& OriginPath) const;
+
+    /// 🧩 Inscribes one complete Codex stream through a recoverable temporary and preceding-revision route.
+    /// in    Document   [-]  complete document to preserve
+    /// in    OriginPath [-]  profile-matching target path
+    /// out   Result     [-]  refuses without replacing the last complete stream when writing fails
+    Outcome<bool> Inscribe(const CodexDocument& Document, const std::string& OriginPath) const;
+
+    /// 🧩 Resolves one supported Codex profile from a case-insensitive file suffix.
+    /// out   Result [-]  refuses for a suffix that names no Codex profile
+    static Outcome<CodexProfile> ProfileOf(const std::string& OriginPath);
 };
 
 }   // namespace Slate
