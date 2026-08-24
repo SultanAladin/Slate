@@ -75,9 +75,9 @@ def create_lathed(name, profile, handle_data=None):
             append_torus(out, "Handle", *handle_data)
 
 
-# The named Utah Teapot source is a clean, production-friendly topology approximation: body, fitted lid,
-# curved handle, and spout are separated by source groups and retain non-triangulated source faces.
-create_lathed("UtahTeapot", [(0.0, 0.00), (0.105, 0.00), (0.155, 0.04), (0.182, 0.14),
+# The service teapot is a clean, production-friendly replacement topology: body, fitted lid,
+# curved handle, and spout retain non-triangulated source faces.
+create_lathed("ServiceTeapot", [(0.0, 0.00), (0.105, 0.00), (0.155, 0.04), (0.182, 0.14),
                               (0.175, 0.23), (0.145, 0.29), (0.095, 0.31), (0.0, 0.31)],
               ((-0.17, 0.16, 0.0), 0.09, 0.018, -pi/2, pi, 18))
 create_lathed("Teacup", [(0.0, 0.00), (0.075, 0.00), (0.083, 0.012), (0.096, 0.070),

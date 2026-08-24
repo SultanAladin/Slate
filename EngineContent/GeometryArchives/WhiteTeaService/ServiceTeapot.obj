@@ -1,6 +1,6 @@
-# White Tea Service — UtahTeapot
+# White Tea Service — ServiceTeapot
 mtllib WhiteDielectric.mtl
-o UtahTeapot
+o ServiceTeapot
 usemtl WhiteDielectric
 v 0.000000000 0.000000000 0.000000000
 v 0.000000000 0.000000000 0.000000000
