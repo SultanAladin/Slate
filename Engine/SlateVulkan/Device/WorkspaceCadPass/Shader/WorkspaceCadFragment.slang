@@ -18,14 +18,14 @@ struct WorkspaceCadVertexOutput
     Real32x4 Position : SV_Position;
     Real32x4 Colour   : COLOR0;
     Real32x2 Local    : TEXCOORD0;
-    Unsigned32 Role   : TEXCOORD1;
+    Unsigned32 Draw    : TEXCOORD1;
     Unsigned32 Subject : TEXCOORD2;
 };
 
 [shader("fragment")]
 Real32x4 main(WorkspaceCadVertexOutput Input) : SV_Target
 {
-    if (Input.Role == WorkspaceCadMarkerDraw)
+    if (Input.Draw == WorkspaceCadMarkerDraw)
     {
         const Real32 Radius = dot(Input.Local, Input.Local);
         if (Radius > 1.0)

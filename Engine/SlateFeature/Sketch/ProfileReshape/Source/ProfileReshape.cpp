@@ -521,6 +521,8 @@ Outcome<SketchCurveName> TrimCurve(SketchStructure& Declared,
         case CurveSubject::SubjectCount:
             return Outcome<SketchCurveName>::Refuse({ RefusalReason::ContentUnsupported, "the curve cannot be trimmed" });
     }
+
+    return Outcome<SketchCurveName>::Refuse({ RefusalReason::ContentUnsupported, "the curve cannot be trimmed" });
 }
 
 Outcome<std::vector<SketchCurveName>> CutCurve(SketchStructure& Declared,
