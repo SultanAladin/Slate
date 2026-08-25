@@ -8,6 +8,7 @@
 #define SLATE_PARAMETRIC_SKETCH_HOST 1
 #include "Foundation/DeliveryOutcome.h"
 #include "Application/Api/SharedViewportHostBridge.h"
+#include "Application/Api/SharedCadDrawingController.h"
 #include "Application/Api/ParametricWorkspaceBridge.h"
 #include "Application/Api/SketchSceneDirectoryBridge.h"
 #include "SlateFeature/Feature/WorkspaceDirectoryProjection/Api/WorkspaceDirectoryProjection.h"
@@ -1068,59 +1069,14 @@ void RecordProfileValidationReadout(RecordingSurface& Surface,
 
 ParametricDraftSubject ResolveDraftSubject(ParametricToolSubject Subject)
 {
-    switch (Subject)
-    {
-        case ParametricToolSubject::Line:            return ParametricDraftSubject::Line;
-        case ParametricToolSubject::Polyline:        return ParametricDraftSubject::Polyline;
-        case ParametricToolSubject::Rectangle:       return ParametricDraftSubject::Rectangle;
-        case ParametricToolSubject::Circle:          return ParametricDraftSubject::Circle;
-        case ParametricToolSubject::Arc:             return ParametricDraftSubject::Arc;
-        case ParametricToolSubject::LinearDimension: return ParametricDraftSubject::LinearDimension;
-        case ParametricToolSubject::Point:           return ParametricDraftSubject::Point;
-        case ParametricToolSubject::Ellipse:         return ParametricDraftSubject::Ellipse;
-        case ParametricToolSubject::EllipticalArc:   return ParametricDraftSubject::EllipticalArc;
-        case ParametricToolSubject::BasisSpline:     return ParametricDraftSubject::BasisSpline;
-        case ParametricToolSubject::BezierCurve:     return ParametricDraftSubject::Bezier;
-        case ParametricToolSubject::HermiteCurve:    return ParametricDraftSubject::Hermite;
-        case ParametricToolSubject::RationalSpline:  return ParametricDraftSubject::RationalSpline;
-        case ParametricToolSubject::ConstructionLine:return ParametricDraftSubject::Line;
-        case ParametricToolSubject::CenterRectangle: return ParametricDraftSubject::CenterRectangle;
-        case ParametricToolSubject::ThreePointRectangle: return ParametricDraftSubject::ThreePointRectangle;
-        case ParametricToolSubject::DiameterCircle:  return ParametricDraftSubject::DiameterCircle;
-        case ParametricToolSubject::ThreePointCircle:return ParametricDraftSubject::ThreePointCircle;
-        case ParametricToolSubject::CenterStartEndArc:return ParametricDraftSubject::CenterStartEndArc;
-        case ParametricToolSubject::TangentArc:      return ParametricDraftSubject::TangentArc;
-        case ParametricToolSubject::Polygon:         return ParametricDraftSubject::Polygon;
-        case ParametricToolSubject::Slot:            return ParametricDraftSubject::Slot;
-        case ParametricToolSubject::Interpolate:
-        case ParametricToolSubject::Approximate:     return ParametricDraftSubject::Bezier;
-        default:                                     return ParametricDraftSubject::None;
-    }
+    return static_cast<ParametricDraftSubject>(static_cast<std::uint32_t>(ResolveSharedCadDraftSubject(Subject)));
 }
 
 bool DraftProducesClosedProfile(ParametricDraftSubject Subject)
 {
-    switch (Subject)
-    {
-        case ParametricDraftSubject::Rectangle:
-        case ParametricDraftSubject::CenterRectangle:
-        case ParametricDraftSubject::ThreePointRectangle:
-        case ParametricDraftSubject::Circle:
-        case ParametricDraftSubject::DiameterCircle:
-        case ParametricDraftSubject::ThreePointCircle:
-        case ParametricDraftSubject::Ellipse:
-        case ParametricDraftSubject::Polygon:
-        case ParametricDraftSubject::Slot:
-            return true;
-        default:
-            return false;
-    }
+    return SharedCadDraftProducesClosedProfile(static_cast<SharedCadDraftSubject>(static_cast<std::uint32_t>(Subject)));
 }
 
-WorkspaceRecordName AutoDeclareWorkspaceProfilesFromChains(WorkspaceNameIndex& Naming,
-                                                           SketchStructure& Sketch,
-                                                           WorkspaceRecordStructure& Records,
-                                                           WorkspaceRevisionSequence& Revisions);
 
 void AdoptCommittedDraft(ParametricDraftSubject Subject,
                          WorkspaceNameIndex& Naming,
@@ -4226,9 +4182,8 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
                  Draft.Subject == ParametricDraftSubject::BasisSpline)
         {
             AppendDraftAnchor(Draft);
-            const std::uint32_t RequiredAnchors = Draft.Subject == ParametricDraftSubject::Bezier ? 2u
-                                                : Draft.Subject == ParametricDraftSubject::Hermite ? 4u
-                                                : 3u;
+            const std::uint32_t RequiredAnchors = SharedCadDraftRequiredAnchors(
+                static_cast<SharedCadDraftSubject>(static_cast<std::uint32_t>(Draft.Subject)));
             if (Pointer.ContactDoublePressed && Draft.Anchors.size() >= RequiredAnchors)
             {
                 const Outcome<WorkspaceRecordName> Record = CommitDraft(Naming, Sketch, Records, Revisions, Draft);

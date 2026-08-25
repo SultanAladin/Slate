@@ -65,6 +65,14 @@ def main() -> int:
     require("ConsumeSharedCodexActivation" in parametric,
             "ParametricSketchHost activation must use the shared codex activation helper")
 
+    shared_cad = read("Engine/Application/Api/SharedCadDrawingController.h")
+    require("ResolveSharedCadDraftSubject" in shared_cad and "SharedCadDraftRequiredAnchors" in shared_cad,
+            "shared CAD drawing controller must own the tool-to-draft dispatch")
+    require("SharedCadDrawingController.h" in editor and "ResolveSharedCadDraftSubject" in editor,
+            "EditorHost must consume the shared CAD drawing controller dispatch")
+    require("SharedCadDrawingController.h" in parametric and "ResolveSharedCadDraftSubject" in parametric,
+            "ParametricSketchHost must consume the shared CAD drawing controller dispatch")
+
     shared_viewport = read("Engine/Application/Api/SharedViewportHostBridge.h")
     require("RecordSharedViewportGizmo" in shared_viewport and "HitSharedViewportGizmo" in shared_viewport,
             "shared viewport bridge must own the one-at-a-time gizmo dispatch")
@@ -72,6 +80,8 @@ def main() -> int:
             "both Blender and CAD viewport gizmos must be anchored at the top-right of the viewport")
     require("SharedViewportCameraDepth" in shared_viewport,
             "shared viewport gizmos must use the HTML-reference camera-forward depth ordering")
+    require("DrawFaceLabel" in shared_viewport and "TextRun(Face" not in shared_viewport,
+            "CAD cube face labels must be projected face strokes, not hovering screen-space text")
 
     tools = read("Engine/SlateUI/Interface/ParametricTools/Source/ParametricToolsPanel.cpp")
     require("static_cast<void>(Elapsed);" in tools, "ParametricToolsPanel must mark Elapsed as intentionally unused")

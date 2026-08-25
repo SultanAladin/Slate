@@ -18,6 +18,7 @@
 #define SLATE_EDITOR_HOST 1
 #include "Foundation/DeliveryOutcome.h"
 #include "Application/Api/SharedViewportHostBridge.h"
+#include "Application/Api/SharedCadDrawingController.h"
 #include "Application/Api/MaterialLayerStackBridge.h"
 #include "Application/Api/SketchSceneDirectoryBridge.h"
 #include "SlateScene/Scene/EditorCameraComponent/Api/EditorCameraComponent.h"
@@ -1152,6 +1153,9 @@ int main(int ArgumentCount, char** ArgumentValues)
                         {
                             case PanelSubject::Viewport:
                             {
+                                const SharedCadDraftSubject ActiveCadDraft =
+                                    ResolveSharedCadDraftSubject(ParametricToolsApplied.ActiveSubject);
+                                static_cast<void>(ActiveCadDraft);
                                 OverlayGeometry& LeafOverlay = ViewportOverlays[Leaf];
                                 LeafOverlay.Reset();
 

@@ -435,6 +435,34 @@ def draw_cad_cube(img: Image, cam: Camera, body=BODY) -> None:
         pp=[P(q) for q in shifted]
         img.polygon(pp, col, 0.54)
         img.polyline(pp, (255,255,255), 0.78, 1, True)
+        # Face-projected vector label: endpoints are interpolated inside the face, not placed as screen text.
+        def fp(u: float, v: float) -> Point:
+            ax, ay = pp[0]
+            bx, by = pp[1]
+            dx, dy = pp[3]
+            return (ax + (bx - ax) * u + (dx - ax) * v, ay + (by - ay) * u + (dy - ay) * v)
+        def stroke(u0: float, v0: float, u1: float, v1: float):
+            img.line(fp(u0, v0), fp(u1, v1), (16,18,24), 0.95, 1)
+        glyphs = {
+            'T': [(0,0,1,0),(0.5,0,0.5,1)],
+            'O': [(0.2,0,0.8,0),(0.8,0,1,0.2),(1,0.2,1,0.8),(1,0.8,0.8,1),(0.8,1,0.2,1),(0.2,1,0,0.8),(0,0.8,0,0.2),(0,0.2,0.2,0)],
+            'P': [(0,1,0,0),(0,0,0.8,0),(0.8,0,1,0.25),(1,0.25,0.8,0.5),(0.8,0.5,0,0.5)],
+            'R': [(0,1,0,0),(0,0,0.8,0),(0.8,0,1,0.25),(1,0.25,0.8,0.5),(0.8,0.5,0,0.5),(0.45,0.5,1,1)],
+            'I': [(0,0,1,0),(0.5,0,0.5,1),(0,1,1,1)],
+            'G': [(1,0.15,0.8,0),(0.8,0,0.2,0),(0.2,0,0,0.2),(0,0.2,0,0.8),(0,0.8,0.2,1),(0.2,1,0.85,1),(0.85,1,1,0.82),(1,0.82,1,0.58),(1,0.58,0.58,0.58)],
+            'H': [(0,0,0,1),(1,0,1,1),(0,0.5,1,0.5)],
+            'F': [(0,0,0,1),(0,0,1,0),(0,0.5,0.78,0.5)],
+            'N': [(0,1,0,0),(0,0,1,1),(1,1,1,0)],
+        }
+        text = label.upper()
+        count = len(text)
+        gw = min(0.135, (0.78 - 0.018 * max(count-1, 0)) / max(count, 1))
+        gh = gw * 1.5
+        total = gw * count + 0.018 * max(count-1, 0)
+        sx, sy = 0.5 - total * 0.5, 0.5 - gh * 0.5
+        for i, ch in enumerate(text):
+            for a,b,c,d in glyphs.get(ch, []):
+                stroke(sx + i*(gw+0.018) + a*gw, sy + b*gh, sx + i*(gw+0.018) + c*gw, sy + d*gh)
 def render(name: str, cam: Camera, gizmo: str, transform: str) -> str:
     img = Image(W, H)
     # App frame gutters around the viewport panel.
@@ -457,7 +485,6 @@ def render(name: str, cam: Camera, gizmo: str, transform: str) -> str:
         "convert", ppm,
         "-font", "DejaVu-Sans-Bold", "-pointsize", "12", "-fill", "#d8d8dc",
         "-gravity", "northwest", "-annotate", f"+{PANEL_X + 72}+{PANEL_Y + 9}", "3D Viewport",
-        "-pointsize", "10", "-fill", "#101014", "-annotate", f"+{BODY[2] - 82}+{BODY[1] + 51}", "TOP" if gizmo == "cad" else "",
         "-pointsize", "10", "-fill", "#101014", "-annotate", f"+{BODY[2] - 73}+{BODY[1] + 25}", "X" if gizmo == "blender" else "",
         "-annotate", f"+{BODY[2] - 105}+{BODY[1] - 7}", "Z" if gizmo == "blender" else "",
         "-pointsize", "13", "-fill", "#a7f3d0", "-annotate", f"+{PANEL_X + 16}+{PANEL_Y + PANEL_H - 24}",

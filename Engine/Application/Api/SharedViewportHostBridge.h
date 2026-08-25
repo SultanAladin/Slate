@@ -370,6 +370,71 @@ inline void RecordSharedViewportCadCube(RecordingSurface& Surface,
         return Left.Depth > Right.Depth;
     });
 
+    const auto DrawFaceLabel = [&](const FaceRecord& Face)
+    {
+        // CAD cube labels are vector strokes projected into the actual face parallelogram. They are not
+        // screen-space TextRun overlays; every stroke endpoint is interpolated from the face's corners so
+        // the word lives on the same projected 3D face in perspective/orthographic views.
+        const auto FacePoint = [&](float U, float V, float& X, float& Y)
+        {
+            const float Ax = Face.Corners[0];
+            const float Ay = Face.Corners[1];
+            const float Bx = Face.Corners[2];
+            const float By = Face.Corners[3];
+            const float Dx = Face.Corners[6];
+            const float Dy = Face.Corners[7];
+            X = Ax + (Bx - Ax) * U + (Dx - Ax) * V;
+            Y = Ay + (By - Ay) * U + (Dy - Ay) * V;
+        };
+        const auto Stroke = [&](float X0, float Y0, float X1, float Y1)
+        {
+            float SX0 = 0.0f, SY0 = 0.0f, SX1 = 0.0f, SY1 = 0.0f;
+            FacePoint(X0, Y0, SX0, SY0);
+            FacePoint(X1, Y1, SX1, SY1);
+            const float Xs[2] = { SX0, SX1 };
+            const float Ys[2] = { SY0, SY1 };
+            Surface.Polyline(Xs, Ys, 2u, ThemeToken{ 16u, 18u, 24u, 225u }, 1.25f);
+        };
+        const auto Glyph = [&](char C, float X, float Y, float W, float H)
+        {
+            const auto L = [&](float X0, float Y0, float X1, float Y1)
+            {
+                Stroke(X + X0 * W, Y + Y0 * H, X + X1 * W, Y + Y1 * H);
+            };
+            switch (C)
+            {
+                case 'A': L(0,1,0.5f,0); L(1,1,0.5f,0); L(0.22f,0.55f,0.78f,0.55f); break;
+                case 'B': L(0,0,0,1); L(0,0,0.72f,0); L(0.72f,0,0.9f,0.22f); L(0.9f,0.22f,0.72f,0.48f); L(0,0.48f,0.72f,0.48f); L(0.72f,0.48f,0.9f,0.74f); L(0.9f,0.74f,0.72f,1); L(0.72f,1,0,1); break;
+                case 'C': L(1,0.12f,0.82f,0); L(0.82f,0,0.18f,0); L(0.18f,0,0,0.2f); L(0,0.2f,0,0.8f); L(0,0.8f,0.18f,1); L(0.18f,1,0.82f,1); L(0.82f,1,1,0.88f); break;
+                case 'E': L(1,0,0,0); L(0,0,0,1); L(0,0.5f,0.78f,0.5f); L(0,1,1,1); break;
+                case 'F': L(0,0,0,1); L(0,0,1,0); L(0,0.5f,0.78f,0.5f); break;
+                case 'G': L(1,0.14f,0.82f,0); L(0.82f,0,0.18f,0); L(0.18f,0,0,0.2f); L(0,0.2f,0,0.8f); L(0,0.8f,0.18f,1); L(0.18f,1,0.82f,1); L(0.82f,1,1,0.82f); L(1,0.82f,1,0.58f); L(1,0.58f,0.58f,0.58f); break;
+                case 'H': L(0,0,0,1); L(1,0,1,1); L(0,0.5f,1,0.5f); break;
+                case 'I': L(0,0,1,0); L(0.5f,0,0.5f,1); L(0,1,1,1); break;
+                case 'K': L(0,0,0,1); L(1,0,0,0.5f); L(0,0.5f,1,1); break;
+                case 'L': L(0,0,0,1); L(0,1,1,1); break;
+                case 'M': L(0,1,0,0); L(0,0,0.5f,0.55f); L(0.5f,0.55f,1,0); L(1,0,1,1); break;
+                case 'N': L(0,1,0,0); L(0,0,1,1); L(1,1,1,0); break;
+                case 'O': L(0.18f,0,0.82f,0); L(0.82f,0,1,0.18f); L(1,0.18f,1,0.82f); L(1,0.82f,0.82f,1); L(0.82f,1,0.18f,1); L(0.18f,1,0,0.82f); L(0,0.82f,0,0.18f); L(0,0.18f,0.18f,0); break;
+                case 'P': L(0,1,0,0); L(0,0,0.78f,0); L(0.78f,0,1,0.24f); L(1,0.24f,0.78f,0.5f); L(0.78f,0.5f,0,0.5f); break;
+                case 'R': L(0,1,0,0); L(0,0,0.78f,0); L(0.78f,0,1,0.24f); L(1,0.24f,0.78f,0.5f); L(0.78f,0.5f,0,0.5f); L(0.45f,0.5f,1,1); break;
+                case 'T': L(0,0,1,0); L(0.5f,0,0.5f,1); break;
+                default: break;
+            }
+        };
+        const char* Text = Face.Label;
+        std::uint32_t Count = 0u;
+        while (Text[Count] != '\0') ++Count;
+        const float Gap = 0.018f;
+        const float LetterW = std::min(0.135f, (0.78f - Gap * static_cast<float>(Count > 0u ? Count - 1u : 0u)) / std::max(1.0f, static_cast<float>(Count)));
+        const float Height = LetterW * 1.5f;
+        const float Total = LetterW * static_cast<float>(Count) + Gap * static_cast<float>(Count > 0u ? Count - 1u : 0u);
+        const float StartX = 0.5f - Total * 0.5f;
+        const float StartY = 0.5f - Height * 0.5f;
+        for (std::uint32_t Index = 0u; Index < Count; ++Index)
+            Glyph(Text[Index], StartX + static_cast<float>(Index) * (LetterW + Gap), StartY, LetterW, Height);
+    };
+
     Surface.Confine(Extent);
     for (const FaceRecord& Face : Faces)
     {
@@ -387,14 +452,7 @@ inline void RecordSharedViewportCadCube(RecordingSurface& Surface,
         Surface.Polyline(X3, Y3, 2u, ThemeToken{ 255u, 255u, 255u, 190u }, 1.2f);
 
         if (Face.Depth <= 0.25)
-        {
-            const float Width = Surface.MeasureRun(Face.Label, 9.0f, 0.0f);
-            const ThemeToken Text = Face.Orientation == SharedViewportOrientation::Top
-                                  ? ThemeToken{ 16u, 16u, 20u, 240u }
-                                  : ThemeToken{ 255u, 255u, 255u, 235u };
-            Surface.TextRun(Face.CentreX - Width * 0.5f, Face.CentreY - 5.0f,
-                            Text, Face.Label, 9.0f, 0.0f, true);
-        }
+            DrawFaceLabel(Face);
     }
     Surface.Release();
 }
