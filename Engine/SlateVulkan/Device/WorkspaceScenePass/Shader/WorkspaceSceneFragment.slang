@@ -54,7 +54,7 @@ struct WorkspaceSceneVertexOutput
     Unsigned32 ViewMode : TEXCOORD4;
 };
 
-StructuredBuffer<SceneMaterialRecord> SceneMaterials : register(t1);
+[[vk::binding(1, 0)]] StructuredBuffer<SceneMaterialRecord> SceneMaterials;
 
 Real32 EdgeFactor(Real32x3 Bary)
 {

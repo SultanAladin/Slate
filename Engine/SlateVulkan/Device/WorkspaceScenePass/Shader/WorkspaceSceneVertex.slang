@@ -67,8 +67,8 @@ struct ScenePushConstant
 [[vk::push_constant]]
 ConstantBuffer<ScenePushConstant> Push;
 
-StructuredBuffer<SceneTriangleRecord> SceneTriangles;
-StructuredBuffer<SceneMaterialRecord> SceneMaterials;
+[[vk::binding(0, 0)]] StructuredBuffer<SceneTriangleRecord> SceneTriangles;
+[[vk::binding(1, 0)]] StructuredBuffer<SceneMaterialRecord> SceneMaterials;
 
 struct WorkspaceSceneVertexOutput
 {

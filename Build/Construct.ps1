@@ -116,13 +116,21 @@ function Read-UnitGraph
             $Carried = [regex]::Matches($Matches[1], '"([^"]+)"') | ForEach-Object { $_.Groups[1].Value }
         }
 
+        $ExternalInclude = @()
+
+        if ($Content -match '(?ms)^\[external\].*?^include\s*=\s*\[(.*?)\]')
+        {
+            $ExternalInclude = [regex]::Matches($Matches[1], '"([^"]+)"') | ForEach-Object { $_.Groups[1].Value }
+        }
+
         $Declared[$UnitName] = @{
-            Name     = $UnitName
-            Product  = $Product
-            Subject  = @($Subject)
-            Requires = @($Linked)
-            Carry    = @($Carried)
-            Root     = $UnitRoot
+            Name            = $UnitName
+            Product         = $Product
+            Subject         = @($Subject)
+            Requires        = @($Linked)
+            Carry           = @($Carried)
+            ExternalInclude = @($ExternalInclude)
+            Root            = $UnitRoot
         }
     }
 
@@ -318,6 +326,18 @@ function Get-CompilationFlags([string] $Selection)
 #                                           PATH ASSEMBLY
 #---
 
+function Resolve-ManifestPath([string] $Path, [string] $VulkanRoot)
+{
+    $Expanded = $Path.Replace('$VULKAN_SDK', $VulkanRoot).Replace('/', '\')
+
+    if ([System.IO.Path]::IsPathRooted($Expanded))
+    {
+        return $Expanded
+    }
+
+    return Join-Path $RepositoryRoot $Expanded
+}
+
 function Get-IncludePath([hashtable] $UnitEntry, [string] $VulkanRoot)
 {
     # 📝 Foundation/ and Shared/ are reachable from every unit through the engine root, and so is every other
@@ -342,7 +362,12 @@ function Get-IncludePath([hashtable] $UnitEntry, [string] $VulkanRoot)
         $Paths += $PackageRoot
     }
 
-    return @($Paths | ForEach-Object { "/I$_" })
+    foreach ($External in @($UnitEntry.ExternalInclude))
+    {
+        $Paths += (Resolve-ManifestPath $External $VulkanRoot)
+    }
+
+    return @(($Paths | Select-Object -Unique) | ForEach-Object { "/I$_" })
 }
 
 function Get-UnitSource([hashtable] $UnitEntry, [string] $Subject = '')
