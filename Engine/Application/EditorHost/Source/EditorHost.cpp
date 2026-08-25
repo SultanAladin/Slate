@@ -15,7 +15,9 @@
 //    only to the standing panels named above; the editor's sky lives in the
 //    viewport LEAF.
 
+#define SLATE_EDITOR_HOST 1
 #include "Foundation/DeliveryOutcome.h"
+#include "Application/Api/SharedViewportHostBridge.h"
 #include "Application/Api/MaterialLayerStackBridge.h"
 #include "Application/Api/SketchSceneDirectoryBridge.h"
 #include "SlateScene/Scene/EditorCameraComponent/Api/EditorCameraComponent.h"
@@ -345,34 +347,6 @@ void RecordWorkspaceCodexProxy(RecordingSurface& Surface,
 }
 
 
-std::filesystem::path ResolveEngineContentRoot(const std::filesystem::path& ExecutablePath)
-{
-    const auto Standing = [](const std::filesystem::path& Candidate)
-    {
-        return std::filesystem::exists(Candidate / "WhiteTeaService.codex") ||
-               std::filesystem::exists(Candidate / "FontArchives");
-    };
-    std::filesystem::path Starts[3] =
-    {
-        std::filesystem::current_path() / "EngineContent",
-        ExecutablePath.parent_path() / "EngineContent",
-        ExecutablePath.parent_path().parent_path() / "EngineContent"
-    };
-    for (const std::filesystem::path& Candidate : Starts)
-        if (Standing(Candidate))
-            return Candidate.lexically_normal();
-    std::filesystem::path Walk = std::filesystem::current_path();
-    for (std::uint32_t Step = 0u; Step < 8u; ++Step)
-    {
-        const std::filesystem::path Candidate = Walk / "EngineContent";
-        if (Standing(Candidate))
-            return Candidate.lexically_normal();
-        if (!Walk.has_parent_path() || Walk.parent_path() == Walk)
-            break;
-        Walk = Walk.parent_path();
-    }
-    return (std::filesystem::current_path() / "EngineContent").lexically_normal();
-}
 
 InterfaceAttachment Attach(const DeviceOffering& Offered)
 {
@@ -1645,46 +1619,36 @@ int main(int ArgumentCount, char** ArgumentValues)
                 ContentBrowser.RecordBrowser(BrowserInterior, ContentApplied, ContentBrowserApplied);
                 ContentBrowser.RecordDeferred();
 
-                if (ContentBrowserApplied.ActivationRequested < ContentApplied.RecordCount)
+                const SharedCodexActivation ActivatedScene = ConsumeSharedCodexActivation(
+                    ContentBrowserApplied, ContentApplied, EngineContentRoot);
+                if (ActivatedScene.Requested && !ActivatedScene.Resolved)
                 {
-                    const ContentRecord& Requested = ContentApplied.Records[ContentBrowserApplied.ActivationRequested];
-                    const std::string Extension = Requested.Extension != nullptr && Requested.Extension[0] == '.'
-                                                ? std::string(Requested.Extension)
-                                                : "." + std::string(Requested.Extension != nullptr ? Requested.Extension : "");
-                    const std::filesystem::path ScenePath = EngineContentRoot /
-                        (std::string(Requested.Naming) + Extension);
-                    WorkspaceSceneActivation Activating;
-                    const Outcome<ActivatedWorkspaceScene> ActivatedScene = Activating.Open(ScenePath.string(), EngineContentRoot.string());
-                    if (!ActivatedScene.Resolved)
-                    {
-                        std::printf("%s — workspace activation refused (reason %u: %s)\n", HostName,
-                                    static_cast<unsigned>(ActivatedScene.Error.DeclaredReason), ActivatedScene.Error.Detail);
-                    }
-                    else
-                    {
-                        const WorkspaceCodex& Loaded = ActivatedScene.Resolve().Workspace;
-                        OpenedScene = Loaded;
-                        OpenedSceneStanding = true;
-                        BridgeSketchSceneDirectory(OpenedScene, WorkspaceSceneRows);
-                        PresentedEntities = WorkspaceSceneRows.Rows;
-                        PresentedEntityCount = WorkspaceSceneRows.RowCount;
-                        ApplySketchSceneEnvironment(OpenedScene, SceneApplied);
-                        EditorCamera.Position[0] = 0.0;
-                        EditorCamera.Position[1] = 1.2;
-                        EditorCamera.Position[2] = -4.0;
-                        EditorCamera.YawDegrees = 0.0;
-                        EditorCamera.PitchDegrees = -8.0;
-                        EditorCamera.Snap();
-
-                        // The workspace names one shared pigment for every tea-service geometry entry.
-                        // Present it once in the host-owned layer model rather than fabricating one layer per mesh.
-                        StackRows.Seed(&WhiteDielectricLayer, 1u);
-                        SeedPaintContextFromRows(TexturePaintApplied, StackRows.Rows, StackRows.Count);
-                        TexturePaintApplied.LayerTaken = 0u;
-                    }
-                    ContentBrowserApplied.ActivationRequested = ContentLibrary::AbsentIndex;
+                    std::printf("%s — workspace activation refused (reason %u: %s)\n", HostName,
+                                static_cast<unsigned>(ActivatedScene.Error.DeclaredReason), ActivatedScene.Error.Detail);
                 }
+                else if (ActivatedScene.Resolved)
+                {
+                    OpenedScene = ActivatedScene.Scene.Workspace;
+                    OpenedSceneStanding = true;
+                    BridgeSketchSceneDirectory(OpenedScene, WorkspaceSceneRows);
+                    PresentedEntities = WorkspaceSceneRows.Rows;
+                    PresentedEntityCount = WorkspaceSceneRows.RowCount;
+                    ApplySketchSceneEnvironment(OpenedScene, SceneApplied);
+                    const SharedViewportCameraSeed CameraSeed = SharedViewportDefaultCamera();
+                    EditorCamera.Position[0] = CameraSeed.Position[0];
+                    EditorCamera.Position[1] = CameraSeed.Position[1];
+                    EditorCamera.Position[2] = CameraSeed.Position[2];
+                    EditorCamera.YawDegrees = CameraSeed.YawDegrees;
+                    EditorCamera.PitchDegrees = CameraSeed.PitchDegrees;
+                    EditorCamera.FieldOfViewDegrees = CameraSeed.FieldOfViewDegrees;
+                    EditorCamera.Snap();
 
+                    // The workspace names one shared pigment for every tea-service geometry entry.
+                    // Present it once in the host-owned layer model rather than fabricating one layer per mesh.
+                    StackRows.Seed(&WhiteDielectricLayer, 1u);
+                    SeedPaintContextFromRows(TexturePaintApplied, StackRows.Rows, StackRows.Count);
+                    TexturePaintApplied.LayerTaken = 0u;
+                }
                 if (ContentBrowserApplied.ImportBrowseRequested)
                 {
                     std::filesystem::path Destination(ContentBrowserApplied.ImportLocation);

@@ -3,7 +3,9 @@
 //============================================================================================================================================
 // 🧩 The painting application — lifetime and tick only, with every device concern held by HostLifecycle.
 
+#define SLATE_PAINT_HOST 1
 #include "Foundation/DeliveryOutcome.h"
+#include "Application/Api/SharedViewportHostBridge.h"
 #include "SlateUI/Interface/ContentBrowserPanel/Api/ContentBrowserPanel.h"
 #include "SlateUI/Interface/ControlCentrePanel/Api/ControlCentrePanel.h"
 #include "SlateUI/Interface/ThemeInterchange/Api/ThemeInterchange.h"
@@ -11,7 +13,6 @@
 #include "SlateUI/Interface/ViewportSequence/Api/ViewportSequence.h"
 #include "SlateUI/Interface/WorkspacePanel/Api/WorkspaceIndex.h"
 #include "SlateVulkan/Device/HostLifecycle/Api/HostLifecycle.h"
-#include "SlateDocument/Format/WorkspaceSceneActivation/Api/WorkspaceSceneActivation.h"
 
 #include <cmath>
 #include <cstdio>
@@ -246,34 +247,6 @@ void RecordSharedViewportChrome(RecordingSurface& Surface, const PlaneExtent& Ex
 ///        offers the same handles as `DeviceOffering` and the host performs the copy. The copy IS the seam:
 ///        it happens in the one translation unit that is allowed to see both sides.
 
-std::filesystem::path ResolveEngineContentRoot(const std::filesystem::path& ExecutablePath)
-{
-    const auto Standing = [](const std::filesystem::path& Candidate)
-    {
-        return std::filesystem::exists(Candidate / "WhiteTeaService.codex") ||
-               std::filesystem::exists(Candidate / "FontArchives");
-    };
-    std::filesystem::path Starts[3] =
-    {
-        std::filesystem::current_path() / "EngineContent",
-        ExecutablePath.parent_path() / "EngineContent",
-        ExecutablePath.parent_path().parent_path() / "EngineContent"
-    };
-    for (const std::filesystem::path& Candidate : Starts)
-        if (Standing(Candidate))
-            return Candidate.lexically_normal();
-    std::filesystem::path Walk = std::filesystem::current_path();
-    for (std::uint32_t Step = 0u; Step < 8u; ++Step)
-    {
-        const std::filesystem::path Candidate = Walk / "EngineContent";
-        if (Standing(Candidate))
-            return Candidate.lexically_normal();
-        if (!Walk.has_parent_path() || Walk.parent_path() == Walk)
-            break;
-        Walk = Walk.parent_path();
-    }
-    return (std::filesystem::current_path() / "EngineContent").lexically_normal();
-}
 
 InterfaceAttachment Attach(const DeviceOffering& Offered)
 {
@@ -698,29 +671,18 @@ int main(int ArgumentCount, char** ArgumentValues)
                                           0.0f, CornerNone);
                 ContentBrowser.RecordBrowser(BrowserInterior, ContentApplied, ContentBrowserApplied);
                 ContentBrowser.RecordDeferred();
-                if (ContentBrowserApplied.ActivationRequested < ContentApplied.RecordCount)
+                const SharedCodexActivation ActivatedScene = ConsumeSharedCodexActivation(
+                    ContentBrowserApplied, ContentApplied, EngineContentRoot);
+                if (ActivatedScene.Resolved)
                 {
-                    const ContentRecord& Requested = ContentApplied.Records[ContentBrowserApplied.ActivationRequested];
-                    const std::string Extension = Requested.Extension != nullptr && Requested.Extension[0] == '.'
-                                                ? std::string(Requested.Extension)
-                                                : "." + std::string(Requested.Extension != nullptr ? Requested.Extension : "");
-                    const std::filesystem::path ScenePath = EngineContentRoot /
-                        (std::string(Requested.Naming) + Extension);
-                    WorkspaceSceneActivation Activating;
-                    const Outcome<ActivatedWorkspaceScene> ActivatedScene = Activating.Open(ScenePath.string(), EngineContentRoot.string());
-                    if (ActivatedScene.Resolved)
-                    {
-                        OpenedScene = ActivatedScene.Resolve().Workspace;
-                        OpenedSceneStanding = true;
-                    }
-                    else
-                    {
-                        std::printf("%s — workspace activation refused (reason %u: %s)\n", HostName,
-                                    static_cast<unsigned>(ActivatedScene.Error.DeclaredReason), ActivatedScene.Error.Detail);
-                    }
-                    ContentBrowserApplied.ActivationRequested = ContentLibrary::AbsentIndex;
+                    OpenedScene = ActivatedScene.Scene.Workspace;
+                    OpenedSceneStanding = true;
                 }
-
+                else if (ActivatedScene.Requested)
+                {
+                    std::printf("%s — workspace activation refused (reason %u: %s)\n", HostName,
+                                static_cast<unsigned>(ActivatedScene.Error.DeclaredReason), ActivatedScene.Error.Detail);
+                }
                 // 🔴 Declared every tick or lost. Without it the drawer owns every contact inside its own
                 //    body, so taking a record or dragging the lattice slides the drawer instead.
                 ContentBrowser.Exclude(Viewport.Drawers(), DrawerBearing::South);

@@ -44,7 +44,7 @@ def main() -> int:
     require("std::strncpy" not in editor, "EditorHost must avoid MSVC strncpy warning")
     require("ResizedGeometryOffering" in editor and "ResizedGeometryOutcome" in editor,
             "EditorHost resize path should not shadow geometry construction locals")
-    require("ActivatedScene = Activating.Open" in editor, "EditorHost activation local should not shadow Workspace")
+    require("ConsumeSharedCodexActivation" in editor, "EditorHost activation must use the shared codex activation helper")
 
     paint = read("Engine/Application/PaintHost/Source/PaintHost.cpp")
     require("static ViewportSequence Viewport;" in paint, "PaintHost must keep the motion-heavy viewport sequence off the stack")
@@ -58,8 +58,8 @@ def main() -> int:
             "ParametricSketchHost must keep the motion-heavy viewport sequence off the stack")
     require("_dupenv_s(&Home" in parametric, "ParametricSketchHost must avoid MSVC getenv warning on Windows")
     require("std::strncpy" not in parametric, "ParametricSketchHost must avoid MSVC strncpy warning")
-    require("ActivatedScene = Activating.Open" in parametric,
-            "ParametricSketchHost activation local should not shadow Workspace")
+    require("ConsumeSharedCodexActivation" in parametric,
+            "ParametricSketchHost activation must use the shared codex activation helper")
 
     tools = read("Engine/SlateUI/Interface/ParametricTools/Source/ParametricToolsPanel.cpp")
     require("static_cast<void>(Elapsed);" in tools, "ParametricToolsPanel must mark Elapsed as intentionally unused")

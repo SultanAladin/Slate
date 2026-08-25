@@ -5,7 +5,9 @@
 //    outliner and Properties | Revision leaves, and host-owned exact-record / revision state bridged into the
 //    UI guarantee. The CAD render pass remains a later phase; viewport leaves are placeholders for now.
 
+#define SLATE_PARAMETRIC_SKETCH_HOST 1
 #include "Foundation/DeliveryOutcome.h"
+#include "Application/Api/SharedViewportHostBridge.h"
 #include "Application/Api/ParametricWorkspaceBridge.h"
 #include "Application/Api/SketchSceneDirectoryBridge.h"
 #include "SlateFeature/Feature/WorkspaceDirectoryProjection/Api/WorkspaceDirectoryProjection.h"
@@ -256,34 +258,6 @@ std::string ShaderStreamDirectory()
 }
 
 
-std::filesystem::path ResolveEngineContentRoot(const std::filesystem::path& ExecutablePath)
-{
-    const auto Standing = [](const std::filesystem::path& Candidate)
-    {
-        return std::filesystem::exists(Candidate / "WhiteTeaService.codex") ||
-               std::filesystem::exists(Candidate / "FontArchives");
-    };
-    std::filesystem::path Starts[3] =
-    {
-        std::filesystem::current_path() / "EngineContent",
-        ExecutablePath.parent_path() / "EngineContent",
-        ExecutablePath.parent_path().parent_path() / "EngineContent"
-    };
-    for (const std::filesystem::path& Candidate : Starts)
-        if (Standing(Candidate))
-            return Candidate.lexically_normal();
-    std::filesystem::path Walk = std::filesystem::current_path();
-    for (std::uint32_t Step = 0u; Step < 8u; ++Step)
-    {
-        const std::filesystem::path Candidate = Walk / "EngineContent";
-        if (Standing(Candidate))
-            return Candidate.lexically_normal();
-        if (!Walk.has_parent_path() || Walk.parent_path() == Walk)
-            break;
-        Walk = Walk.parent_path();
-    }
-    return (std::filesystem::current_path() / "EngineContent").lexically_normal();
-}
 
 InterfaceAttachment Attach(const DeviceOffering& Offered)
 {
@@ -5702,57 +5676,45 @@ int main(int ArgumentCount, char** ArgumentValues)
             ContentBrowser.RecordBrowser(BrowserInterior, ContentApplied, ContentBrowserApplied);
             ContentBrowser.RecordDeferred();
 
-            if (ContentBrowserApplied.ActivationRequested < ContentApplied.RecordCount)
+            const SharedCodexActivation ActivatedScene = ConsumeSharedCodexActivation(
+                ContentBrowserApplied, ContentApplied, EngineContentRoot);
+            if (ActivatedScene.Requested && !ActivatedScene.Resolved)
             {
-                const ContentRecord& Requested = ContentApplied.Records[ContentBrowserApplied.ActivationRequested];
-                const std::string Extension = Requested.Extension != nullptr && Requested.Extension[0] == '.'
-                                            ? std::string(Requested.Extension)
-                                            : "." + std::string(Requested.Extension != nullptr ? Requested.Extension : "");
-                const std::filesystem::path ScenePath = EngineContentRoot /
-                    (std::string(Requested.Naming) + Extension);
-                WorkspaceSceneActivation Activating;
-                const Outcome<ActivatedWorkspaceScene> ActivatedScene = Activating.Open(ScenePath.string(), EngineContentRoot.string());
-                if (!ActivatedScene.Resolved)
-                {
-                    std::printf("%s — workspace activation refused (reason %u: %s)\n", HostName,
-                                static_cast<unsigned>(ActivatedScene.Error.DeclaredReason), ActivatedScene.Error.Detail);
-                }
-                else
-                {
-                    const WorkspaceCodex& Loaded = ActivatedScene.Resolve().Workspace;
-                    OpenedScene = Loaded;
-                    OpenedSceneStanding = true;
-                    SceneApplied.TransformSeeded = false;
-                    ApplySketchSceneEnvironment(OpenedScene, SceneApplied);
-
-                    SpatialPoint Focus = {};
-                    std::uint32_t GeometryCount = 0u;
-                    for (const CodexSceneEntry& Entry : Loaded.Scene)
-                    {
-                        if (Entry.Subject != CodexSceneSubject::Geometry)
-                            continue;
-                        const SpatialPoint Position = CodexScenePosition(Entry);
-                        Focus.Left += Position.Left;
-                        Focus.Up += Position.Up;
-                        Focus.Forward += Position.Forward;
-                        ++GeometryCount;
-                    }
-                    if (GeometryCount > 0u)
-                    {
-                        Focus.Left /= static_cast<double>(GeometryCount);
-                        Focus.Up /= static_cast<double>(GeometryCount);
-                        Focus.Forward /= static_cast<double>(GeometryCount);
-                        for (ParametricViewportState& View : ViewStates)
-                        {
-                            View.Focus = Focus;
-                            View.Distance = std::max(View.Distance, 420.0);
-                            View.OrthoScale = std::max(View.OrthoScale, 3.0);
-                        }
-                    }
-                }
-                ContentBrowserApplied.ActivationRequested = ContentLibrary::AbsentIndex;
+                std::printf("%s — workspace activation refused (reason %u: %s)\n", HostName,
+                            static_cast<unsigned>(ActivatedScene.Error.DeclaredReason), ActivatedScene.Error.Detail);
             }
+            else if (ActivatedScene.Resolved)
+            {
+                OpenedScene = ActivatedScene.Scene.Workspace;
+                OpenedSceneStanding = true;
+                SceneApplied.TransformSeeded = false;
+                ApplySketchSceneEnvironment(OpenedScene, SceneApplied);
 
+                SpatialPoint Focus = {};
+                std::uint32_t GeometryCount = 0u;
+                for (const CodexSceneEntry& Entry : OpenedScene.Scene)
+                {
+                    if (Entry.Subject != CodexSceneSubject::Geometry)
+                        continue;
+                    const SpatialPoint Position = CodexScenePosition(Entry);
+                    Focus.Left += Position.Left;
+                    Focus.Up += Position.Up;
+                    Focus.Forward += Position.Forward;
+                    ++GeometryCount;
+                }
+                if (GeometryCount > 0u)
+                {
+                    Focus.Left /= static_cast<double>(GeometryCount);
+                    Focus.Up /= static_cast<double>(GeometryCount);
+                    Focus.Forward /= static_cast<double>(GeometryCount);
+                    for (ParametricViewportState& View : ViewStates)
+                    {
+                        View.Focus = Focus;
+                        View.Distance = std::max(View.Distance, 420.0);
+                        View.OrthoScale = std::max(View.OrthoScale, 3.0);
+                    }
+                }
+            }
             if (ContentBrowserApplied.ImportConfirmed)
             {
                 if (ContentBrowserApplied.ImportTaken < ContentBrowserApplied.ImportEntryCount &&
