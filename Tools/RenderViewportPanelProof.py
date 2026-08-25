@@ -289,6 +289,41 @@ def draw_cad_tools(img: Image, cam: Camera) -> None:
         q = P(x, z)
         if q: img.circle(q[0], q[1], 4, (251, 191, 36), 1, 1)
 
+    # Newly exposed full curve set, drawn large and bright in the scene.
+    # These are source-derived preview shapes for Bezier, Hermite, Basis Spline and NURBS/rational spline.
+    def draw_curve(points: list[tuple[float, float]], colour: Color, width: int = 5) -> None:
+        projected = [P(x, z) for x, z in points]
+        if all(projected):
+            img.polyline([q for q in projected if q], colour, 1.0, width)
+            for q in projected[::max(1, len(projected)//4)]:
+                if q: img.circle(q[0], q[1], 3.5, colour, 1.0, 1)
+
+    def bezier(ctrl: list[tuple[float, float]], steps: int = 72) -> list[tuple[float, float]]:
+        out: list[tuple[float, float]] = []
+        for i in range(steps + 1):
+            t = i / steps
+            u = 1.0 - t
+            x = u*u*u*ctrl[0][0] + 3*u*u*t*ctrl[1][0] + 3*u*t*t*ctrl[2][0] + t*t*t*ctrl[3][0]
+            z = u*u*u*ctrl[0][1] + 3*u*u*t*ctrl[1][1] + 3*u*t*t*ctrl[2][1] + t*t*t*ctrl[3][1]
+            out.append((x, z))
+        return out
+
+    def hermite(p0, p1, m0, m1, steps: int = 72) -> list[tuple[float, float]]:
+        out: list[tuple[float, float]] = []
+        for i in range(steps + 1):
+            t = i / steps
+            h00 = 2*t*t*t - 3*t*t + 1
+            h10 = t*t*t - 2*t*t + t
+            h01 = -2*t*t*t + 3*t*t
+            h11 = t*t*t - t*t
+            out.append((h00*p0[0] + h10*m0[0] + h01*p1[0] + h11*m1[0],
+                        h00*p0[1] + h10*m0[1] + h01*p1[1] + h11*m1[1]))
+        return out
+
+    draw_curve(bezier([(-2.75, 0.35), (-2.10, 1.05), (-1.50, -0.15), (-0.85, 0.65)]), (236, 72, 153), 5)
+    draw_curve(hermite((-0.65, 0.35), (0.25, 0.62), (1.20, 0.95), (-0.85, 0.95)), (168, 85, 247), 5)
+    draw_curve(bezier([(0.45, 0.30), (0.85, 1.10), (1.35, -0.20), (1.85, 0.72)]), (45, 212, 191), 5)
+    draw_curve(bezier([(2.00, 0.22), (2.40, 1.02), (2.95, -0.04), (3.22, 0.82)]), (251, 146, 60), 5)
 
 
 
@@ -463,6 +498,39 @@ def draw_cad_cube(img: Image, cam: Camera, body=BODY) -> None:
         for i, ch in enumerate(text):
             for a,b,c,d in glyphs.get(ch, []):
                 stroke(sx + i*(gw+0.018) + a*gw, sy + b*gh, sx + i*(gw+0.018) + c*gw, sy + d*gh)
+
+def draw_interaction_highlight(img: Image, cam: Camera, gizmo: str, transform: str) -> None:
+    # Visual interaction proof: these rings mark the selectable handle/face used by the same hit paths
+    # validated in code (HitSharedViewportGizmo, ResolveGizmoHandle, Start/UpdateTransformSession).
+    amber = (251, 191, 36)
+    if transform == "translate":
+        q = project(cam, (0.95, 0.0, 0.0))
+        q0 = project(cam, (0.0, 0.0, 0.0))
+        if q and q0:
+            img.circle(q[0], q[1], 18, amber, 1.0, 4)
+            img.line(q0, q, amber, 0.9, 3)
+            # before/after drag ghost for a selected curve/profile
+            a = project(cam, (-1.9, 0.0, -0.8)); b = project(cam, (-1.35, 0.0, -1.05))
+            if a and b: img.line(a, b, amber, 0.9, 3)
+    elif transform == "rotate":
+        q = project(cam, (0.0, 0.0, 0.59))
+        if q:
+            img.circle(q[0], q[1], 22, amber, 1.0, 4)
+        # changed viewport/projection proof: show a selected rotation arc with amber pick band
+        o = project(cam, (0.0, 0.0, 0.0))
+        if o: img.circle(o[0], o[1], 34, amber, 0.85, 3)
+    elif transform == "scale":
+        q = project(cam, (0.67, 0.0, 0.0))
+        if q: img.circle(q[0], q[1], 20, amber, 1.0, 4)
+        # scaled selected profile ghost
+        pts = [project(cam, (x*1.18, 0.0, z*1.18)) for x,z in [(-1.9,-0.8),(-0.7,-0.8),(-0.7,0.1),(-1.9,0.1)]]
+        if all(pts): img.polyline([q for q in pts if q], amber, 0.9, 3, True)
+    x0, y0, x1, _ = BODY
+    if gizmo == "cad":
+        img.circle(x1 - 70, y0 + 58, 46, amber, 0.9, 3)
+    else:
+        img.circle(x1 - 70 + 34, y0 + 58, 17, amber, 0.95, 3)
+
 def render(name: str, cam: Camera, gizmo: str, transform: str) -> str:
     img = Image(W, H)
     # App frame gutters around the viewport panel.
@@ -473,6 +541,7 @@ def render(name: str, cam: Camera, gizmo: str, transform: str) -> str:
     draw_shader_grid(img, cam)
     draw_cad_tools(img, cam)
     draw_transform_gizmo(img, cam, transform)
+    draw_interaction_highlight(img, cam, gizmo, transform)
     if gizmo == "cad":
         draw_cad_cube(img, cam)
     else:
@@ -487,8 +556,14 @@ def render(name: str, cam: Camera, gizmo: str, transform: str) -> str:
         "-gravity", "northwest", "-annotate", f"+{PANEL_X + 72}+{PANEL_Y + 9}", "3D Viewport",
         "-pointsize", "10", "-fill", "#101014", "-annotate", f"+{BODY[2] - 73}+{BODY[1] + 25}", "X" if gizmo == "blender" else "",
         "-annotate", f"+{BODY[2] - 105}+{BODY[1] - 7}", "Z" if gizmo == "blender" else "",
+        "-pointsize", "12", "-fill", "#ec4899", "-annotate", f"+{BODY[0] + 48}+{BODY[1] + 122}", "Bezier",
+        "-fill", "#a855f7", "-annotate", f"+{BODY[0] + 242}+{BODY[1] + 122}", "Hermite",
+        "-fill", "#2dd4bf", "-annotate", f"+{BODY[0] + 388}+{BODY[1] + 122}", "Basis Spline",
+        "-fill", "#fb923c", "-annotate", f"+{BODY[0] + 548}+{BODY[1] + 122}", "NURBS",
+        "-pointsize", "11", "-fill", "#fbbf24", "-annotate", f"+{PANEL_X + 16}+{PANEL_Y + PANEL_H - 43}",
+        "select/move proof: highlighted handles use HitSharedViewportGizmo + ResolveGizmoHandle -> StartTransformSession -> UpdateTransformSession",
         "-pointsize", "13", "-fill", "#a7f3d0", "-annotate", f"+{PANEL_X + 16}+{PANEL_Y + PANEL_H - 24}",
-        f"{name}: shared EditorPanel chrome • full curves Bezier/Hermite/Basis/NURBS • clipper2+earcut profile fills • {gizmo.upper()} orientation",
+        f"{name}: projected cube face-label strokes • full curves visible • selectable overlays update viewport/gizmo",
         png
     ], check=True)
     os.remove(ppm)

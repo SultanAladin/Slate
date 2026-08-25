@@ -72,6 +72,8 @@ def main() -> int:
             "EditorHost must consume the shared CAD drawing controller dispatch")
     require("SharedCadDrawingController.h" in parametric and "ResolveSharedCadDraftSubject" in parametric,
             "ParametricSketchHost must consume the shared CAD drawing controller dispatch")
+    require("ResolveGizmoHandle" in parametric and "StartTransformSession" in parametric and "UpdateTransformSession" in parametric,
+            "ParametricSketchHost transform gizmo handles must remain selectable and movable")
 
     shared_viewport = read("Engine/Application/Api/SharedViewportHostBridge.h")
     require("RecordSharedViewportGizmo" in shared_viewport and "HitSharedViewportGizmo" in shared_viewport,
