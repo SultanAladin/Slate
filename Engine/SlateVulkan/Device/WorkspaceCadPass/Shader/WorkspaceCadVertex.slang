@@ -10,9 +10,9 @@
 namespace Slate
 {
 
-static const Unsigned32 WorkspaceCadSegmentKind = 0u;
-static const Unsigned32 WorkspaceCadFillKind    = 1u;
-static const Unsigned32 WorkspaceCadMarkerKind  = 2u;
+static const Unsigned32 WorkspaceCadSegmentDraw = 0u;
+static const Unsigned32 WorkspaceCadFillDraw    = 1u;
+static const Unsigned32 WorkspaceCadMarkerDraw  = 2u;
 
 struct SegmentRecord
 {
@@ -42,7 +42,7 @@ struct MarkerRecord
 
 struct CadPushConstant
 {
-    Unsigned32 Kind;
+    Unsigned32 Draw;
     Real32 DisplayWidth;
     Real32 DisplayHeight;
     Real32 Padding;
@@ -63,7 +63,7 @@ struct WorkspaceCadVertexOutput
     Real32x4 Position : SV_Position;
     Real32x4 Colour   : COLOR0;
     Real32x2 Local    : TEXCOORD0;
-    Unsigned32 Kind   : TEXCOORD1;
+    Unsigned32 Role   : TEXCOORD1;
     Unsigned32 Subject : TEXCOORD2;
 };
 
@@ -99,13 +99,13 @@ WorkspaceCadVertexOutput main(Unsigned32 VertexIndex : SV_VertexID)
     Output.Position = Real32x4(0.0, 0.0, 0.0, 1.0);
     Output.Colour = Real32x4(1.0, 1.0, 1.0, 1.0);
     Output.Local = Real32x2(0.0, 0.0);
-    Output.Kind = Push.Kind;
+    Output.Role = Push.Role;
     Output.Subject = 0u;
 
     Real32x2 Screen = Real32x2(0.0, 0.0);
     bool Valid = true;
 
-    if (Push.Kind == WorkspaceCadFillKind)
+    if (Push.Role == WorkspaceCadFillDraw)
     {
         const Unsigned32 Record = VertexIndex / 3u;
         const Unsigned32 Corner = VertexIndex % 3u;
@@ -115,7 +115,7 @@ WorkspaceCadVertexOutput main(Unsigned32 VertexIndex : SV_VertexID)
                               : ProjectScreen(Triangle.Third.x, Triangle.Third.y, Valid);
         Output.Colour = Triangle.Colour;
     }
-    else if (Push.Kind == WorkspaceCadSegmentKind)
+    else if (Push.Role == WorkspaceCadSegmentDraw)
     {
         const Unsigned32 Record = VertexIndex / 6u;
         const Unsigned32 Corner = QuadCorner(VertexIndex);

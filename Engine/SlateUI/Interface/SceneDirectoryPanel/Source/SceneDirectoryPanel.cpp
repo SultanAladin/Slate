@@ -420,10 +420,16 @@ void SceneDirectoryPanel::Advance(const PointerCondition& Contact, double Elapse
 
     // Tab alternates the directory and inspector. the removed revision feed is no longer an intermediate destination;
     // camera bookmarks remain reachable through the camera inspector's explicit tab.
+    const std::uint32_t PriorPage = Applied.OutlinePage;
     if (TabPressed)
     {
         Applied.OutlinePage = Applied.OutlinePage == 0u ? 1u : 0u;
         Applied.OutlineInspectorTab = 0u;
+    }
+    if (Applied.OutlinePage != PriorPage)
+    {
+        Interaction->Withdraw();
+        Interaction->Abandon();
     }
 
     // 📝 The search field's taken state, reported to the host so it feeds the seam's typed run only

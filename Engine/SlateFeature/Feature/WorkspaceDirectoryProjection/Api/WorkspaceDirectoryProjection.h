@@ -16,7 +16,7 @@
 namespace Slate
 {
 
-enum class WorkspaceDirectoryRowKind : std::uint32_t
+enum class WorkspaceDirectoryRowRole : std::uint32_t
 {
     CategoryRoot = 0u,
     Record = 1u
@@ -24,7 +24,7 @@ enum class WorkspaceDirectoryRowKind : std::uint32_t
 
 struct WorkspaceDirectoryRow
 {
-    WorkspaceDirectoryRowKind Kind = WorkspaceDirectoryRowKind::Record;
+    WorkspaceDirectoryRowRole Role = WorkspaceDirectoryRowRole::Record;
     WorkspaceCategory Category = WorkspaceCategory::Sketch;
     WorkspaceRecordName Record = {};
     WorkspaceRecordSubject Subject = WorkspaceRecordSubject::Folder;

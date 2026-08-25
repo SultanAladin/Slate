@@ -93,10 +93,10 @@ void NoticeDialog::Advance(const PointerCondition& Sampled, double ElapsedMillis
     Interaction.Advance(Sampled, ElapsedMilliseconds);
 }
 
-void NoticeDialog::Open(NoticeKind IncomingKind, const char* IncomingTitle, const char* IncomingMessage,
+void NoticeDialog::Open(NoticeTone IncomingTone, const char* IncomingTitle, const char* IncomingMessage,
                         const char* IncomingAcceptCaption, const char* IncomingDismissCaption)
 {
-    Kind = IncomingKind;
+    Role = IncomingTone;
     Retain(Title, sizeof(Title), IncomingTitle);
     Retain(Message, sizeof(Message), IncomingMessage);
     Retain(AcceptCaption, sizeof(AcceptCaption), IncomingAcceptCaption);
@@ -124,10 +124,10 @@ void NoticeDialog::Record(const PlaneExtent& Available, const ThemeDeclaration& 
     }
 
     const ThemeToken Status = ThemeSpecification::Accent(
-        Kind == NoticeKind::Confirmation ? AccentSubject::Emerald
-        : Kind == NoticeKind::Warning ? AccentSubject::Amber : AccentSubject::Rose).Colour;
-    const std::uint32_t TitleRoleIndex = Kind == NoticeKind::Warning ? 6u
-                                          : Kind == NoticeKind::Error ? 7u : 1u;
+        Role == NoticeTone::Confirmation ? AccentSubject::Emerald
+        : Role == NoticeTone::Warning ? AccentSubject::Amber : AccentSubject::Rose).Colour;
+    const std::uint32_t TitleRoleIndex = Role == NoticeTone::Warning ? 6u
+                                          : Role == NoticeTone::Error ? 7u : 1u;
     const float TitleSize = static_cast<float>(std::clamp(TypographySize[TitleRoleIndex], 10u, 40u));
     const float BodySize = static_cast<float>(std::clamp(TypographySize[3], 10u, 24u));
     const float ButtonSize = static_cast<float>(std::clamp(TypographySize[4], 10u, 20u));

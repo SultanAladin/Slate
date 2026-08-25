@@ -489,7 +489,7 @@ const GENERATOR_CATALOGUE = [
 const GENERATOR_ENTRIES = GENERATOR_CATALOGUE.filter(Entry => Entry.Key);
 const FindGenerator = Key => GENERATOR_ENTRIES.find(Entry => Entry.Key === Key);
 
-// 🔴 LayerKinds.js:68 — "Texture" means PAINTED BY HAND, not loaded from disk. The atlas IS the storage.
+// 🔴 LayerCategories.js:68 — "Texture" means PAINTED BY HAND, not loaded from disk. The atlas IS the storage.
 //    An imported map is an optional BASE beneath the strokes, not a replacement for them: deleting the
 //    import leaves the paint intact and the channel stays in Texture mode.
 const SOURCE_CATALOGUE = [

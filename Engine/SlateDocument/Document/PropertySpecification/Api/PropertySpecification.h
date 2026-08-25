@@ -21,7 +21,7 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 What a property's value measures, which fixes both its storage and its validation.
-/// note  ⚠️ Not a type tag. `SKILL-Naming.md` bans `Kind` and `Type` as spellings precisely because they name
+/// note  ⚠️ Not a type tag. `SKILL-Naming.md` bans `Role` and `Type` as spellings precisely because they name
 ///        the category instead of the mechanism; what discriminates here is what the number means.
 /// tag   guarantee
 enum class PropertyMeasure : std::uint32_t

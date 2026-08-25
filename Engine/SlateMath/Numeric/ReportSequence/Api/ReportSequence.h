@@ -20,7 +20,7 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 What the engine did, on the artist's behalf, that the artist could not otherwise see.
-/// note  ⚠️ `86` §4.1 calls these report classes. `Class` used as a noun is banned alongside `Kind`, and for the
+/// note  ⚠️ `86` §4.1 calls these report classes. `Class` used as a noun is banned alongside `Role`, and for the
 ///        same reason — it names the category rather than the mechanism. Each member below is instead the past
 ///        participle of what happened, which is the discriminating fact.
 /// note  🔴 The verdict is declared by the reporting mechanism and never inferred from the text. An inferred

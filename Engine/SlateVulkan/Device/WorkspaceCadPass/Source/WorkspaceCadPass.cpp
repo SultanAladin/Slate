@@ -425,7 +425,7 @@ void WorkspaceCadPass::Record(VkCommandBuffer Command, const WorkspaceCadProject
 
     struct PushBlock
     {
-        std::uint32_t Kind;
+        std::uint32_t Draw;
         float DisplayWidth;
         float DisplayHeight;
         float Padding;
@@ -435,12 +435,12 @@ void WorkspaceCadPass::Record(VkCommandBuffer Command, const WorkspaceCadProject
     };
 
     const auto Stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    const auto DrawKind = [&](WorkspaceCadDraw Kind, std::uint32_t Count, std::uint32_t VerticesPerRecord)
+    const auto DrawCategory = [&](WorkspaceCadDraw Draw, std::uint32_t Count, std::uint32_t VerticesPerRecord)
     {
         if (Count == 0u)
             return;
 
-        PushBlock Push = { DrawValue(Kind), Projection.DisplayWidth, Projection.DisplayHeight, 0.0f };
+        PushBlock Push = { DrawValue(Draw), Projection.DisplayWidth, Projection.DisplayHeight, 0.0f };
         for (std::uint32_t Index = 0u; Index < 4u; ++Index)
         {
             Push.Projection0[Index] = Projection.Projection0[Index];
@@ -452,9 +452,9 @@ void WorkspaceCadPass::Record(VkCommandBuffer Command, const WorkspaceCadProject
         vkCmdDraw(Command, Count * VerticesPerRecord, 1u, 0u, 0u);
     };
 
-    DrawKind(WorkspaceCadDraw::Fill, PacketFillCount, 3u);
-    DrawKind(WorkspaceCadDraw::Segment, PacketSegmentCount, 6u);
-    DrawKind(WorkspaceCadDraw::Marker, PacketMarkerCount, 6u);
+    DrawCategory(WorkspaceCadDraw::Fill, PacketFillCount, 3u);
+    DrawCategory(WorkspaceCadDraw::Segment, PacketSegmentCount, 6u);
+    DrawCategory(WorkspaceCadDraw::Marker, PacketMarkerCount, 6u);
 }
 
 void WorkspaceCadPass::Reclaim()

@@ -525,7 +525,7 @@ void ControlCentrePanel::RecordSettingsFooter(const PlaneExtent& Extent,
                      White, ApplyCaption, AuthoredFooterSize, 0.0f, false, FooterWeight);
 
     if (!SettingsNotice.Opened() && Pressed(250u, Apply))
-        SettingsNotice.Open(NoticeKind::Confirmation, "Apply interface settings?",
+        SettingsNotice.Open(NoticeTone::Confirmation, "Apply interface settings?",
                             "The staged font, theme, scale, icon, and interaction settings will be applied.",
                             "Apply", "Cancel");
     if (!SettingsNotice.Opened() && Pressed(251u, Discard))

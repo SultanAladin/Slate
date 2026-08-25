@@ -16,10 +16,10 @@
 namespace Slate
 {
 
-static const Unsigned32 WorkspaceOverlayLineKind       = 0u;
-static const Unsigned32 WorkspaceOverlayDotKind        = 1u;
-static const Unsigned32 WorkspaceOverlayTriangleKind   = 2u;
-static const Unsigned32 WorkspaceOverlayGroundGridKind = 3u;
+static const Unsigned32 WorkspaceOverlayLineDraw       = 0u;
+static const Unsigned32 WorkspaceOverlayDotDraw        = 1u;
+static const Unsigned32 WorkspaceOverlayTriangleDraw   = 2u;
+static const Unsigned32 WorkspaceOverlayGroundGridDraw = 3u;
 
 struct WorkspaceOverlayVertexOutput
 {
@@ -31,7 +31,7 @@ struct WorkspaceOverlayVertexOutput
 //    layout to agree, and the fragment stage reads the camera terms.
 struct OverlayPushConstant
 {
-    Unsigned32 Kind;
+    Unsigned32 Draw;
     Real32     DisplayWidth;
     Real32     DisplayHeight;
     Real32     FadeRadiusMetres;
@@ -255,7 +255,7 @@ Real32x4 ResolveGround(Real32x2 Corner)
 [shader("fragment")]
 Real32x4 main(WorkspaceOverlayVertexOutput Input) : SV_Target
 {
-    if (Push.Kind == WorkspaceOverlayGroundGridKind)
+    if (Push.Role == WorkspaceOverlayGroundGridDraw)
         return ResolveGround(Input.Colour.xy);
 
     return Input.Colour;

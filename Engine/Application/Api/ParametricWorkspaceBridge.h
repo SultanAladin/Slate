@@ -82,7 +82,7 @@ inline ParametricCategory BridgeParametricCategory(WorkspaceCategory Category)
 
 inline ParametricRowSubject BridgeParametricRowSubject(const WorkspaceDirectoryRow& Source)
 {
-    if (Source.Kind == WorkspaceDirectoryRowKind::CategoryRoot)
+    if (Source.Role == WorkspaceDirectoryRowRole::CategoryRoot)
         return ParametricRowSubject::CategoryRoot;
 
     switch (Source.Subject)
@@ -252,7 +252,7 @@ inline Outcome<bool> BridgeParametricInspector(const WorkspaceRecordStructure& R
     const WorkspaceRecord& Held = *Source.Subject;
     const ParametricCategory Category = BridgeParametricCategory(PresentedCategoryOfRecord(Held));
     const ParametricRowSubject Subject = BridgeParametricRowSubject(
-        WorkspaceDirectoryRow{ WorkspaceDirectoryRowKind::Record, PresentedCategoryOfRecord(Held), SubjectName,
+        WorkspaceDirectoryRow{ WorkspaceDirectoryRowRole::Record, PresentedCategoryOfRecord(Held), SubjectName,
                                Held.Subject, 0u, 0xFFFFFFFFu, 0u, 0u, nullptr, nullptr,
                                Held.Visible, Held.Locked, Held.ClosedSemantic, Held.AutoNamed });
 

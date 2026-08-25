@@ -47,7 +47,7 @@ static_assert(sizeof(TriangleRecord) % 16u == 0u, "the triangle record must alig
 //    🔴 Vulkan guarantees at least 128 bytes of push constant; this is exactly 128.
 constexpr std::uint32_t OverlayPushConstantBytes = 128u;
 
-enum class WorkspaceOverlayKind : std::uint32_t
+enum class WorkspaceOverlayDraw : std::uint32_t
 {
     Line       = 0u,
     Dot        = 1u,
@@ -55,9 +55,9 @@ enum class WorkspaceOverlayKind : std::uint32_t
     GroundGrid = 3u
 };
 
-constexpr std::uint32_t KindValue(WorkspaceOverlayKind Kind)
+constexpr std::uint32_t DrawValue(WorkspaceOverlayDraw Draw)
 {
-    return static_cast<std::uint32_t>(Kind);
+    return static_cast<std::uint32_t>(Draw);
 }
 
 }   // namespace
@@ -514,7 +514,7 @@ void WorkspaceOverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, 
     //    size and leaf rect in the same block are what the vertex stage transforms against.
     struct PushBlock
     {
-        std::uint32_t Kind;
+        std::uint32_t Draw;
         float         DisplayWidth;
         float         DisplayHeight;
         float         FadeRadiusMetres;
@@ -537,7 +537,7 @@ void WorkspaceOverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, 
     {
         // The spare scalar and lattice-alpha lane carry the two finite-grid distances without
         // increasing Vulkan's guaranteed-minimum 128-byte push-constant footprint.
-        PushBlock Push = { KindValue(WorkspaceOverlayKind::GroundGrid),
+        PushBlock Push = { DrawValue(WorkspaceOverlayDraw::GroundGrid),
                            static_cast<float>(Width), static_cast<float>(Height),
                            OverlayGround.FadeRadiusMetres };
 
@@ -588,13 +588,13 @@ void WorkspaceOverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, 
         vkCmdDraw(Command, 6u, 1u, 0u, 0u);
     }
 
-    const auto DrawKind = [&](WorkspaceOverlayKind Kind, std::uint32_t Count,
+    const auto DrawCategory = [&](WorkspaceOverlayDraw Draw, std::uint32_t Count,
                               std::uint32_t VerticesPerRecord)
     {
         if (Count == 0u)
             return;
 
-        PushBlock Push = { KindValue(Kind), static_cast<float>(Width), static_cast<float>(Height), 0.0f };
+        PushBlock Push = { DrawValue(Draw), static_cast<float>(Width), static_cast<float>(Height), 0.0f };
         Push.LeafRect[0] = ClipX0;
         Push.LeafRect[1] = ClipY0;
         Push.LeafRect[2] = ClipX1;
@@ -609,9 +609,9 @@ void WorkspaceOverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, 
     //    the list topology then built every triangle from two records' corners: measured on three 300 px
     //    lines the MIDDLE line vanished entirely and rows 82…217 held a diagonal smear, and three dots
     //    covered 136 px where three whole dots are 192. That is the reported "lines render, dots don't".
-    DrawKind(WorkspaceOverlayKind::Line, OverlayLineCount, 6u);
-    DrawKind(WorkspaceOverlayKind::Dot, OverlayDotCount, 6u);
-    DrawKind(WorkspaceOverlayKind::Triangle, OverlayTriangleCount, 3u);
+    DrawCategory(WorkspaceOverlayDraw::Line, OverlayLineCount, 6u);
+    DrawCategory(WorkspaceOverlayDraw::Dot, OverlayDotCount, 6u);
+    DrawCategory(WorkspaceOverlayDraw::Triangle, OverlayTriangleCount, 3u);
 }
 
 void WorkspaceOverlayPass::Reclaim()

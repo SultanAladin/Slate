@@ -1189,7 +1189,7 @@ function activateTool(key){
   const t=ALL_TOOLS.find(x=>x.key===key); if(!t) return;
   activeTool=key;
   /* solid-creation tools drop a body under the current destination */
-  if(t.creates && anchorId){ addSolidOfKind(t.creates, t.name); }
+  if(t.creates && anchorId){ addSolidOfCategory(t.creates, t.name); }
 }
 </script>
 
@@ -1458,7 +1458,7 @@ function addObjectOfType(typeKey){
   selectOnly(newNode.id);
 }
 /* a solid-creation tool (Extrude/Revolve/Loft) drops a feature body */
-function addSolidOfKind(kind, label){
+function addSolidOfCategory(kind, label){
   const map={ solid:'solid', revolve:'revolve', loft:'loft' };
   const typeKey=map[kind]||'solid';
   const prefix={ solid:'EXT_', revolve:'REV_', loft:'LFT_' }[kind]||'EXT_';

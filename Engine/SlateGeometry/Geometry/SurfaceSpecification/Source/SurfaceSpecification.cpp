@@ -46,7 +46,7 @@ SurfaceSpecification SurfaceSpecification::DeclarePlane(const PlaneSurface& Decl
                                                         const SurfaceParameterRange& Range)
 {
     SurfaceSpecification Held;
-    Held.HeldSubject = SurfaceKind::Plane;
+    Held.HeldSubject = SurfaceForm::Plane;
     Held.HeldRange = Range;
     Held.Plane = Declared;
     return Held;
@@ -56,7 +56,7 @@ SurfaceSpecification SurfaceSpecification::DeclareCylinder(const CylinderSurface
                                                            const SurfaceParameterRange& Range)
 {
     SurfaceSpecification Held;
-    Held.HeldSubject = SurfaceKind::Cylinder;
+    Held.HeldSubject = SurfaceForm::Cylinder;
     Held.HeldRange = Range;
     Held.Cylinder = Declared;
     return Held;
@@ -66,7 +66,7 @@ SurfaceSpecification SurfaceSpecification::DeclareCone(const ConeSurface& Declar
                                                        const SurfaceParameterRange& Range)
 {
     SurfaceSpecification Held;
-    Held.HeldSubject = SurfaceKind::Cone;
+    Held.HeldSubject = SurfaceForm::Cone;
     Held.HeldRange = Range;
     Held.Cone = Declared;
     return Held;
@@ -76,7 +76,7 @@ SurfaceSpecification SurfaceSpecification::DeclareSphere(const SphereSurface& De
                                                          const SurfaceParameterRange& Range)
 {
     SurfaceSpecification Held;
-    Held.HeldSubject = SurfaceKind::Sphere;
+    Held.HeldSubject = SurfaceForm::Sphere;
     Held.HeldRange = Range;
     Held.Sphere = Declared;
     return Held;
@@ -86,7 +86,7 @@ SurfaceSpecification SurfaceSpecification::DeclareTorus(const TorusSurface& Decl
                                                         const SurfaceParameterRange& Range)
 {
     SurfaceSpecification Held;
-    Held.HeldSubject = SurfaceKind::Torus;
+    Held.HeldSubject = SurfaceForm::Torus;
     Held.HeldRange = Range;
     Held.Torus = Declared;
     return Held;
@@ -96,7 +96,7 @@ SurfaceSpecification SurfaceSpecification::DeclareLinearExtrusion(const LinearEx
                                                                   const SurfaceParameterRange& Range)
 {
     SurfaceSpecification Held;
-    Held.HeldSubject = SurfaceKind::LinearExtrusion;
+    Held.HeldSubject = SurfaceForm::LinearExtrusion;
     Held.HeldRange = Range;
     Held.Extrusion = Declared;
     return Held;
@@ -106,7 +106,7 @@ SurfaceSpecification SurfaceSpecification::DeclareBezierPatch(const PatchSurface
                                                               const SurfaceParameterRange& Range)
 {
     SurfaceSpecification Held;
-    Held.HeldSubject = SurfaceKind::BezierPatch;
+    Held.HeldSubject = SurfaceForm::BezierPatch;
     Held.HeldRange = Range;
     Held.Patch = Declared;
     return Held;
@@ -116,7 +116,7 @@ SurfaceSpecification SurfaceSpecification::DeclareRationalPatch(const PatchSurfa
                                                                 const SurfaceParameterRange& Range)
 {
     SurfaceSpecification Held;
-    Held.HeldSubject = SurfaceKind::RationalPatch;
+    Held.HeldSubject = SurfaceForm::RationalPatch;
     Held.HeldRange = Range;
     Held.Patch = Declared;
     return Held;
@@ -129,35 +129,35 @@ bool SurfaceSpecification::Declared() const
 
     switch (HeldSubject)
     {
-        case SurfaceKind::Plane:
+        case SurfaceForm::Plane:
             return LengthSquared(Plane.Normal) > 0.0 && LengthSquared(Plane.AlongDirection) > 0.0;
 
-        case SurfaceKind::Cylinder:
+        case SurfaceForm::Cylinder:
             return Cylinder.Radius > 0.0
                 && LengthSquared(Cylinder.Axis) > 0.0
                 && LengthSquared(Cylinder.RadialDirection) > 0.0;
 
-        case SurfaceKind::Cone:
+        case SurfaceForm::Cone:
             return LengthSquared(Cone.Axis) > 0.0 && Cone.HalfAngleRadians > 0.0;
 
-        case SurfaceKind::Sphere:
+        case SurfaceForm::Sphere:
             return Sphere.Radius > 0.0;
 
-        case SurfaceKind::Torus:
+        case SurfaceForm::Torus:
             return LengthSquared(Torus.Axis) > 0.0
                 && Torus.MajorRadius > 0.0
                 && Torus.MinorRadius > 0.0;
 
-        case SurfaceKind::LinearExtrusion:
+        case SurfaceForm::LinearExtrusion:
             return Extrusion.SectionCurve.Declared() && LengthSquared(Extrusion.Direction) > 0.0;
 
-        case SurfaceKind::BezierPatch:
+        case SurfaceForm::BezierPatch:
             return PatchDeclared(Patch, false);
 
-        case SurfaceKind::RationalPatch:
+        case SurfaceForm::RationalPatch:
             return PatchDeclared(Patch, true);
 
-        case SurfaceKind::SubjectCount:
+        case SurfaceForm::SubjectCount:
             return false;
     }
 

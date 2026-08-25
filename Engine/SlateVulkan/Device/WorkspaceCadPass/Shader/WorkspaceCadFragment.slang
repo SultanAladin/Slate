@@ -9,23 +9,23 @@
 namespace Slate
 {
 
-static const Unsigned32 WorkspaceCadSegmentKind = 0u;
-static const Unsigned32 WorkspaceCadFillKind    = 1u;
-static const Unsigned32 WorkspaceCadMarkerKind  = 2u;
+static const Unsigned32 WorkspaceCadSegmentDraw = 0u;
+static const Unsigned32 WorkspaceCadFillDraw    = 1u;
+static const Unsigned32 WorkspaceCadMarkerDraw  = 2u;
 
 struct WorkspaceCadVertexOutput
 {
     Real32x4 Position : SV_Position;
     Real32x4 Colour   : COLOR0;
     Real32x2 Local    : TEXCOORD0;
-    Unsigned32 Kind   : TEXCOORD1;
+    Unsigned32 Role   : TEXCOORD1;
     Unsigned32 Subject : TEXCOORD2;
 };
 
 [shader("fragment")]
 Real32x4 main(WorkspaceCadVertexOutput Input) : SV_Target
 {
-    if (Input.Kind == WorkspaceCadMarkerKind)
+    if (Input.Role == WorkspaceCadMarkerDraw)
     {
         const Real32 Radius = dot(Input.Local, Input.Local);
         if (Radius > 1.0)

@@ -253,7 +253,7 @@
     <p class="note">Stroke lays a glue film. Dust, glitter and rust rain onto that film by themselves — no extra click. Glitter = PET flakes lying on the glue, one face mirrors the light. Rust grows as oxide scabs. Rate is how fast the film loads.</p>
     </div>
     <div id="smoke-panel" style="display:none">
-    <div class="sec">Kind</div>
+    <div class="sec">Category</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
       <button type="button" class="dip kkind" data-k="soot">Soot</button>
       <button type="button" class="dip kkind active" data-k="smoke">Smoke</button>
@@ -446,7 +446,7 @@ function placeSprayRing(hit) {
 const P = {
   color: '#c45c2a', hairs: 48, radius: 0.045, stiff: 0.45, splay: 1.1,
   press: 0.55, visc: 0.58, load: 0.85, width: 1.2, thick: 0.7, drip: 0.65,
-  shape: 'round', medium: 'oil', alpha: 0.75, bloom: 0.18, sprP: 0.55, stand: 0.4, cone: 0.7, sColor: '#c45c2a', sDrip: 0.35, mNib: 'chisel', mColor: '#1a3a8a', mSize: 0.028, mAng: 0.25, mPress: 0.55, mBleed: 0.4, mLoad: 0.85, mInk: 0.85, spColor: '#7a1018', spVol: 0.55, spBody: 0.45, spForce: 0.85, spSat: 0.65, duKind: 'dust', duColor: '#c4b089', duSize: 0.05, duDens: 0.75, duTack: 0.85, duGrain: 1, kKind: 'smoke', kColor: '#b9c2c8', kHeat: 0.65, kSpread: 0.55, kDens: 0.5, kFlake: 0.35, kWave: 0.65, oKind: 'oil', oColor: '#6a5420', oVol: 0.55, oTilt: 0, qKind: 'water', qColor: '#7eb4d4', qVol: 0.6, qTilt: 0, sandMode: 'linear', nGrit: 120, nSize: 0.04, nPress: 0.55, eGrade: 0.45, eSize: 0.012, eSide: 0.08, ePress: 0.45, eShine: 0.35, dry: 'chalk', dColor: '#e8dcc8', dHard: 0.45, dSize: 0.028, dSide: 0.15, dPress: 0.5, dTooth: 0.55, dDust: 0.4
+  shape: 'round', medium: 'oil', alpha: 0.75, bloom: 0.18, sprP: 0.55, stand: 0.4, cone: 0.7, sColor: '#c45c2a', sDrip: 0.35, mNib: 'chisel', mColor: '#1a3a8a', mSize: 0.028, mAng: 0.25, mPress: 0.55, mBleed: 0.4, mLoad: 0.85, mInk: 0.85, spColor: '#7a1018', spVol: 0.55, spBody: 0.45, spForce: 0.85, spSat: 0.65, duCategory: 'dust', duColor: '#c4b089', duSize: 0.05, duDens: 0.75, duTack: 0.85, duGrain: 1, kCategory: 'smoke', kColor: '#b9c2c8', kHeat: 0.65, kSpread: 0.55, kDens: 0.5, kFlake: 0.35, kWave: 0.65, oCategory: 'oil', oColor: '#6a5420', oVol: 0.55, oTilt: 0, qCategory: 'water', qColor: '#7eb4d4', qVol: 0.6, qTilt: 0, sandMode: 'linear', nGrit: 120, nSize: 0.04, nPress: 0.55, eGrade: 0.45, eSize: 0.012, eSide: 0.08, ePress: 0.45, eShine: 0.35, dry: 'chalk', dColor: '#e8dcc8', dHard: 0.45, dSize: 0.028, dSide: 0.15, dPress: 0.5, dTooth: 0.55, dDust: 0.4
 };
 const MEDIA = {
   acrylic: { visc: 0.86, thick: 0.92, drip: 0.28, bloom: 0.03, alpha: 0.95, bump: 0.72, coat: 0.22, coatR: 0.42 },
@@ -546,9 +546,9 @@ document.querySelectorAll('.qkind').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.qkind').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    P.qKind = btn.getAttribute('data-q');
+    P.qCategory = btn.getAttribute('data-q');
     const defs = { water: '#7eb4d4', paint: '#c45c2a', oil: '#8a6a28' };
-    P.qColor = defs[P.qKind] || P.qColor;
+    P.qColor = defs[P.qCategory] || P.qColor;
     document.getElementById('q-color').value = P.qColor;
     if (typeof pourMatSync === 'function') pourMatSync();
   });
@@ -558,9 +558,9 @@ document.querySelectorAll('.okind').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.okind').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    P.oKind = btn.getAttribute('data-o');
+    P.oCategory = btn.getAttribute('data-o');
     const defs = { water: '#5a9ec9', paint: '#c45c2a', oil: '#6a5420' };
-    P.oColor = defs[P.oKind] || P.oColor;
+    P.oColor = defs[P.oCategory] || P.oColor;
     document.getElementById('o-color').value = P.oColor;
   });
 });
@@ -569,8 +569,8 @@ document.querySelectorAll('.kkind').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.kkind').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    P.kKind = btn.getAttribute('data-k');
-    if (P.kKind === 'soot') { P.kColor = '#1c1814'; }
+    P.kCategory = btn.getAttribute('data-k');
+    if (P.kCategory === 'soot') { P.kColor = '#1c1814'; }
     else { P.kColor = '#b9c2c8'; }
     document.getElementById('k-color').value = P.kColor;
   });
@@ -579,9 +579,9 @@ document.querySelectorAll('.dukind').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.dukind').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    P.duKind = btn.getAttribute('data-du');
+    P.duCategory = btn.getAttribute('data-du');
     const defs = { dust: '#c4b089', glitter: '#d8c48c', rust: '#8a3a14' };
-    P.duColor = defs[P.duKind] || P.duColor;
+    P.duColor = defs[P.duCategory] || P.duColor;
     document.getElementById('du-color').value = P.duColor;
   });
 });
@@ -1035,7 +1035,7 @@ function fluidStep() {
   }
   smokeBlit();
   smokeBakeN++;
-  const emitting = (typeof painting !== 'undefined' && painting && tool === 'smoke' && P.kKind === 'smoke');
+  const emitting = (typeof painting !== 'undefined' && painting && tool === 'smoke' && P.kCategory === 'smoke');
   if (smokeBakeN % 5 === 0) smokeCapture(emitting ? 0.14 : 0.28);
   if (!emitting) smokeStick();
   if (maxd < 0.02) {
@@ -1100,13 +1100,13 @@ function pourStamp(hit, e) {
   lastPourHit = hit;
   if (!painting) return;
   const uv = worldToUV(hit.point);
-  const kind = P.oKind || 'water';
+  const kind = P.oCategory || 'water';
   const mul = kind === 'water' ? 0.85 : kind === 'oil' ? 1.15 : 1.0;
   pourInject(uv.u, uv.v, (0.35 + P.oVol * 0.7) * mul);
 }
 function pourBlit() {
   const [cr, cg, cb] = hexRgb(P.oColor || '#5a9ec9');
-  const kind = P.oKind || 'water';
+  const kind = P.oCategory || 'water';
   const data = pImg.data;
   for (let j = 0; j < SN; j++) {
     for (let i = 0; i < SN; i++) {
@@ -1151,7 +1151,7 @@ function pourBake(a) {
 function pourStep() {
   if (pourAlive <= 0) return;
   pourPot();
-  const kind = P.oKind || 'water';
+  const kind = P.oCategory || 'water';
   const visc = kind === 'water' ? 0.12 : kind === 'oil' ? 0.78 : 0.42;
   const yld = kind === 'water' ? 0.02 : kind === 'oil' ? 0.07 : 0.04;
   const spread = kind === 'water' ? 0.085 : kind === 'oil' ? 0.018 : 0.04;
@@ -1247,7 +1247,7 @@ let lastFlowHit = null;
 function pourMatSync() {
   const [r, g, b] = hexRgb(P.qColor || '#7eb4d4');
   qMat.color.setRGB(r / 255, g / 255, b / 255);
-  const k = P.qKind || 'water';
+  const k = P.qCategory || 'water';
   if (k === 'water') {
     qMat.transmission = 0.92; qMat.roughness = 0.05; qMat.opacity = 0.95; qMat.ior = 1.33;
   } else if (k === 'oil') {
@@ -1285,7 +1285,7 @@ function flowPour(hit, e) {
   lastFlowHit = hit;
   if (!painting) return;
   const nAdd = 2 + (P.qVol * 5) | 0;
-  const kind = P.qKind || 'water';
+  const kind = P.qCategory || 'water';
   const rad = kind === 'water' ? 0.011 : kind === 'oil' ? 0.016 : 0.014;
   for (let i = 0; i < nAdd; i++) {
     while (drops.length >= QMAX) drops.splice(0, 1);
@@ -1308,7 +1308,7 @@ function flowStep() {
   if (!n0) return;
   const ang = (P.qTilt || 0) * 0.9;
   const gx = Math.sin(ang), gy = -Math.cos(ang);
-  const kind = P.qKind || 'water';
+  const kind = P.qCategory || 'water';
   const visc = kind === 'water' ? 0.045 : kind === 'oil' ? 0.16 : 0.1;
   const acc = kind === 'water' ? 0.00135 : kind === 'oil' ? 0.00055 : 0.00085;
   const sep = kind === 'water' ? 0.00008 : 0.00012;
@@ -1946,7 +1946,7 @@ function stickParticle(pt) {
   nrm.copy(pt).normalize();
   const upness = Math.max(0.15, nrm.y * 0.5 + 0.5);
   if (Math.random() > tk * upness) return false;
-  const kind = P.duKind;
+  const kind = P.duCategory;
   const [cr, cg, cb] = hexRgb(P.duColor);
   if (kind === 'glitter') glitterFlake(pt, uv.u, uv.v);
   else if (kind === 'rust') rustScab(uv.u, uv.v);
@@ -2032,7 +2032,7 @@ function vnoise(x, y) {
 function smokeStamp(hit, e) {
   pctx.globalAlpha = 1;
   pctx.lineCap = 'round';
-  const kind = P.kKind || 'smoke';
+  const kind = P.kCategory || 'smoke';
   const [cr, cg, cb] = hexRgb(P.kColor || (kind === 'soot' ? '#1c1814' : '#b9c2c8'));
   const src = hit.point.clone();
   nrm.copy(src).normalize();

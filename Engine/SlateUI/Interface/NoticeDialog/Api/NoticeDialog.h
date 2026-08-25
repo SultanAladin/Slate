@@ -17,7 +17,7 @@
 namespace Slate
 {
 
-enum class NoticeKind : std::uint32_t
+enum class NoticeTone : std::uint32_t
 {
     Confirmation = 0u,
     Warning = 1u,
@@ -36,7 +36,7 @@ class NoticeDialog
 public:
     Outcome<bool> ConstructNoticeDialog(MotionIntegrator& Motion, RecordingSurface& Surface);
     void Advance(const PointerCondition& Pointer, double ElapsedMilliseconds);
-    void Open(NoticeKind Kind, const char* Title, const char* Message,
+    void Open(NoticeTone Role, const char* Title, const char* Message,
               const char* AcceptCaption = "Confirm", const char* DismissCaption = "Cancel");
     void Record(const PlaneExtent& Available, const ThemeDeclaration& Theme,
                 const std::uint32_t TypographySize[8], const std::uint32_t TypographyWeight[8]);
@@ -54,7 +54,7 @@ private:
     ControlIdentity Accept = {};
     ControlIdentity Dismiss = {};
     PointerCondition Pointer = {};
-    NoticeKind Kind = NoticeKind::Confirmation;
+    NoticeTone Role = NoticeTone::Confirmation;
     NoticeDecision Decision = NoticeDecision::None;
     bool IsOpen = false;
     char Title[64] = {};

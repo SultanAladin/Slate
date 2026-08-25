@@ -27,7 +27,7 @@ struct SurfaceParameterRange
     bool Declared() const { return Along.Declared() && Across.Declared(); }
 };
 
-enum class SurfaceKind : std::uint32_t
+enum class SurfaceForm : std::uint32_t
 {
     Plane = 0u,
     Cylinder = 1u,
@@ -121,7 +121,7 @@ public:
     static SurfaceSpecification DeclareRationalPatch(const PatchSurface& Declared,
                                                      const SurfaceParameterRange& Range);
 
-    SurfaceKind Subject() const { return HeldSubject; }
+    SurfaceForm Subject() const { return HeldSubject; }
     const SurfaceParameterRange& Range() const { return HeldRange; }
     const PlaneSurface& HeldPlane() const { return Plane; }
     const CylinderSurface& HeldCylinder() const { return Cylinder; }
@@ -133,7 +133,7 @@ public:
     bool Declared() const;
 
 private:
-    SurfaceKind HeldSubject = SurfaceKind::Plane;
+    SurfaceForm HeldSubject = SurfaceForm::Plane;
     SurfaceParameterRange HeldRange = {};
     PlaneSurface Plane = {};
     CylinderSurface Cylinder = {};

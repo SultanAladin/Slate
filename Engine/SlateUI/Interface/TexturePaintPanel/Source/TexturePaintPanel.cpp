@@ -1188,6 +1188,7 @@ void TexturePaintPanel::Advance(const PointerCondition& Contact, double Elapsed,
     //    selection names (Channels for a layer, Mask for a mask, Stack for a folder) — and back.
     //    The property tabs themselves are switched with the strip, never by Tab: one key, one
     //    travel, exactly as the user's flow describes.
+    const std::uint32_t PriorPage = Applied.StackPage;
     if (TabPressed && Rows != nullptr && RowCount > 0u &&
         Applied.LayerTaken < RowCount)
     {
@@ -1200,6 +1201,12 @@ void TexturePaintPanel::Advance(const PointerCondition& Contact, double Elapsed,
         {
             Applied.StackPage = 0u;
         }
+    }
+    if (Applied.StackPage != PriorPage)
+    {
+        Interaction->Withdraw();
+        Interaction->Abandon();
+        Applied.MenuOpen = 0u;
     }
 }
 

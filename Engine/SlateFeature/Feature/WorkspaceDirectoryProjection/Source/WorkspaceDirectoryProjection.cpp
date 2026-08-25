@@ -114,7 +114,7 @@ private:
     void EmitCategoryRoot(WorkspaceCategory Category)
     {
         WorkspaceDirectoryRow Row = {};
-        Row.Kind = WorkspaceDirectoryRowKind::CategoryRoot;
+        Row.Role = WorkspaceDirectoryRowRole::CategoryRoot;
         Row.Category = Category;
         Row.Subject = WorkspaceRecordSubject::Folder;
         Row.Depth = 0u;
@@ -143,7 +143,7 @@ private:
         Recorded[RecordName.IssuedIndex] = true;
 
         WorkspaceDirectoryRow Row = {};
-        Row.Kind = WorkspaceDirectoryRowKind::Record;
+        Row.Role = WorkspaceDirectoryRowRole::Record;
         Row.Category = PresentedCategoryOfRecord(*Held);
         Row.Record = RecordName;
         Row.Subject = Held->Subject;

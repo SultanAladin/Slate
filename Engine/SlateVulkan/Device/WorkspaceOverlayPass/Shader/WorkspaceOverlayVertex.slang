@@ -8,7 +8,7 @@
 //      - lines:      { x0, y0, x1, y1, thickness, a, r, g, b }   (two points per line)
 //      - dots:       { x, y, radius, padding, a, r, g, b }       (one point per dot)
 //      - triangles:  { x0, y0, x1, y1, x2, y2, a, r, g, b }      (three points)
-//    The push constant's `Kind` selects the region: 0 lines, 1 dots, 2 triangles.
+//    The push constant's `Role` selects the region: 0 lines, 1 dots, 2 triangles.
 //    A line or dot draws 6 × count vertices — the expanded quad's two TRIANGLE_LIST
 //    triangles, whose logical corner is `QuadCorner(SV_VertexID)` — and a triangle
 //    draws 3 × count (`SV_VertexID % 3`). The screen-space expansion is the whole point: the CPU
@@ -21,10 +21,10 @@
 namespace Slate
 {
 
-static const Unsigned32 WorkspaceOverlayLineKind       = 0u;
-static const Unsigned32 WorkspaceOverlayDotKind        = 1u;
-static const Unsigned32 WorkspaceOverlayTriangleKind   = 2u;
-static const Unsigned32 WorkspaceOverlayGroundGridKind = 3u;
+static const Unsigned32 WorkspaceOverlayLineDraw       = 0u;
+static const Unsigned32 WorkspaceOverlayDotDraw        = 1u;
+static const Unsigned32 WorkspaceOverlayTriangleDraw   = 2u;
+static const Unsigned32 WorkspaceOverlayGroundGridDraw = 3u;
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE RECORD SHAPES
@@ -68,7 +68,7 @@ struct TriangleRecord
 //       draws 3 (corner = VertexIndex % 3). The record ordinal is VertexIndex / 6 (or / 3).
 struct OverlayPushConstant
 {
-    Unsigned32 Kind;       // [-] - 0 lines, 1 dots, 2 triangles, 3 the analytic ground
+    Unsigned32 Draw;       // [-] - 0 lines, 1 dots, 2 triangles, 3 the analytic ground
     Real32     DisplayWidth;   // [px]
     Real32     DisplayHeight;  // [px]
     Real32     FadeRadiusMetres; // [m] - ground visibility radius around the camera
@@ -163,7 +163,7 @@ WorkspaceOverlayVertexOutput main(Unsigned32 VertexIndex : SV_VertexID)
     Real32x2 Position = Real32x2(0.0, 0.0);
     Real32x4 Colour   = Real32x4(1.0, 1.0, 1.0, 1.0);
 
-    if (Push.Kind == WorkspaceOverlayLineKind)
+    if (Push.Role == WorkspaceOverlayLineDraw)
     {
         // 📐 The line's four corners are the endpoints widened by half the thickness along the
         //    segment's normal. The normal is computed here, keeping the CPU record at four floats.
@@ -183,7 +183,7 @@ WorkspaceOverlayVertexOutput main(Unsigned32 VertexIndex : SV_VertexID)
         Position += Normal * (Half * Side);
         Colour    = Line.Colour;
     }
-    else if (Push.Kind == WorkspaceOverlayDotKind)
+    else if (Push.Role == WorkspaceOverlayDotDraw)
     {
         // 📐 The dot's four corners are the centre widened by the radius along both axes.
         const Unsigned32 Record = VertexIndex / 6u;
@@ -196,7 +196,7 @@ WorkspaceOverlayVertexOutput main(Unsigned32 VertexIndex : SV_VertexID)
         Position = Dot.Centre + Real32x2(X, Y) * Dot.Radius;
         Colour   = Dot.Colour;
     }
-    else if (Push.Kind == WorkspaceOverlayGroundGridKind)
+    else if (Push.Role == WorkspaceOverlayGroundGridDraw)
     {
         // 📐 The analytic ground is ONE quad over the viewport leaf; the fragment
         //    stage decides what each pixel of it is. Four corners from the

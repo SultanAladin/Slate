@@ -167,7 +167,7 @@ namespace
             return false;
 
         const SurfaceSpecification& Surface = (*View.Surfaces)[Face.SupportingSurface.IssuedIndex - 1u].Geometry;
-        if (Surface.Subject() != SurfaceKind::Plane)
+        if (Surface.Subject() != SurfaceForm::Plane)
             return false;
 
         const SpatialDirection Normal = Normalize(Surface.HeldPlane().Normal);
@@ -372,7 +372,7 @@ bool ResolveNearestFace(const SolidStructure& Declared,
             continue;
 
         const SurfaceSpecification& Surface = (*View.Surfaces)[Face.SupportingSurface.IssuedIndex - 1u].Geometry;
-        if (Surface.Subject() != SurfaceKind::Plane)
+        if (Surface.Subject() != SurfaceForm::Plane)
             continue;
 
         const SpatialDirection Normal = Normalize(Surface.HeldPlane().Normal);

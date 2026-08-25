@@ -45,7 +45,7 @@ SkippedFolders = {".git", ".vs", ".idea", "_AgentScratch", "ExternalPackages",
                   "Binaries", "Intermediate", "Generated", "__pycache__"}
 
 # Closed record kinds. A letter outside this set is a hard parse error, so drift is loud rather than silent.
-RecordKinds = {
+RecordCategories = {
     "F": "function",                                         # free function, method, operator, constructor, destructor
     "T": "type",                                             # class, struct, union
     "M": "member",                                           # data member, emitted nested under its owning type
@@ -236,7 +236,7 @@ class Parameter:
 
 @dataclass
 class Symbol:
-    Kind: str = "F"
+    Role: str = "F"
     Name: str = ""
     Owner: str = ""                                          # enclosing type or namespace, empty at file scope
     File: str = ""                                           # path relative to the folder holding the index
@@ -538,7 +538,7 @@ def SymbolName(Head):
 
 
 def ClassifyStatement(Text):
-    """Reduce a logical statement to (Kind, Name, Extra) or None when it declares nothing indexable."""
+    """Reduce a logical statement to (Role, Name, Extra) or None when it declares nothing indexable."""
     Text = Text.strip()
     if not Text:
         return None
@@ -674,7 +674,7 @@ def HarvestFile(FullPath, ShortName, Problems):
             break
 
     Harvested = []
-    OwnerStack = []                                          # (Name, LastLine, Kind)
+    OwnerStack = []                                          # (Name, LastLine, Role)
     Cursor = 0
     while Cursor < len(CleanLines):
         while OwnerStack and Cursor > OwnerStack[-1][1]:
@@ -686,26 +686,26 @@ def HarvestFile(FullPath, ShortName, Problems):
             Cursor += 1
             continue
 
-        Kind, Name, Extra = Classified
+        Role, Name, Extra = Classified
         Owner = "::".join(Entry[0] for Entry in OwnerStack if Entry[2] == "T")
         Opens = Text.rstrip().endswith("{") or "{" in Text
         Closing = SpanEnd(CleanLines, Cursor) if Opens else Final
 
-        if Kind == "N":
+        if Role == "N":
             OwnerStack.append((Name, Closing, "N"))
             Cursor = Final + 1
             continue
 
-        if Kind in ("T", "E") and Extra.get("Forward"):
+        if Role in ("T", "E") and Extra.get("Forward"):
             Cursor = Final + 1
             continue
 
-        Entry = Symbol(Kind=Kind, Name=Name, Owner=Owner, File=ShortName,
+        Entry = Symbol(Role=Role, Name=Name, Owner=Owner, File=ShortName,
                        First=Cursor + 1, Last=Closing + 1,
                        Section=Sections[Cursor] or "SYMBOLS",
                        Signature=Sanitised(Text.rstrip("{").rstrip()))
 
-        if Kind == "F":
+        if Role == "F":
             Entry.Returns = Extra["Returns"] or Absent
             Bare = Name.split("::")[-1]
             if Bare.startswith("~"):
@@ -720,33 +720,33 @@ def HarvestFile(FullPath, ShortName, Problems):
                 Entry.Inputs.append(Parameter(Name=ParameterName, Declared=Declared, Description=Unknown))
             if Extra.get("Declaration"):
                 Entry.Last = Entry.First
-        elif Kind == "E":
+        elif Role == "E":
             Entry.Returns = Extra.get("Underlying") or Absent
             Entry.Members = [Parameter(Name=Constant, Declared=Name, Description=Unknown)
                              for Constant in EnumerationConstants(CleanLines, Cursor, Closing)]
-        elif Kind == "A":
+        elif Role == "A":
             Entry.Returns = Extra.get("Target", Absent)
-        elif Kind == "V":
+        elif Role == "V":
             Entry.Returns = Extra.get("Declared", Absent)
             # A `V` declared inside a type is a data member: it becomes an `M` folded onto that type,
             # never a row of its own. Only namespace-scope constants stay as rows.
             if Owner:
-                Entry.Kind = "M"
+                Entry.Role = "M"
 
         Block = AnnotationAbove(OriginalLines, Cursor)
         if Block:
             ApplyAnnotation(Entry, Block, Problems, "{0}:{1}".format(ShortName, Cursor + 1))
             MergeAuthoredInputs(Entry, Problems, "{0}:{1}".format(ShortName, Cursor + 1))
 
-        if Entry.Kind == "M":
+        if Entry.Role == "M":
             FoldMember(Harvested, Owner, Entry)
         else:
             Harvested.append(Entry)
 
-        if Kind == "T" and Opens:
+        if Role == "T" and Opens:
             OwnerStack.append((Name, Closing, "T"))
             Cursor = Final + 1
-        elif Opens and Kind in ("F", "E"):
+        elif Opens and Role in ("F", "E"):
             Cursor = Closing + 1
         else:
             Cursor = Final + 1
@@ -763,9 +763,9 @@ def FoldMember(Harvested, Owner, Entry):
     aggregate — is kept as a row of its own rather than dropped, because absence must mean "does not exist".
     """
     Host = next((Item for Item in reversed(Harvested)
-                 if Item.Kind == "T" and Item.Qualified == Owner), None)
+                 if Item.Role == "T" and Item.Qualified == Owner), None)
     if Host is None:
-        Entry.Kind = "V"
+        Entry.Role = "V"
         Harvested.append(Entry)
         return
     Host.Members.append(Parameter(Name=Entry.Name, Declared=Entry.Returns,
@@ -955,7 +955,7 @@ def EmitFolderIndex(Folder):
             Ordered.append(Entry.Section)
 
     HeaderRows = [[
-        "{0} {1}".format(Entry.Kind, Entry.Qualified),
+        "{0} {1}".format(Entry.Role, Entry.Qualified),
         Entry.File,
         SpanText(Entry),
         ",".join(Entry.Tags) or Absent,
@@ -984,7 +984,7 @@ def DetailLines(Entry):
     for Item in Entry.Inputs:
         Keyed.append(("in", [Item.Name, Item.Declared, Item.Unit, Item.Description]))
     for Item in Entry.Outputs or ([Parameter(Name=Absent, Declared=Entry.Returns, Description=Unknown)]
-                                  if Entry.Kind == "F" and Entry.Returns not in (Absent, "") else []):
+                                  if Entry.Role == "F" and Entry.Returns not in (Absent, "") else []):
         Keyed.append(("out", [Absent, Item.Declared if Item.Declared != Absent else Entry.Returns,
                               Item.Unit, Item.Description]))
     for Item in Entry.Members:
@@ -1036,7 +1036,7 @@ def EmitLayerIndex(LayerName, LayerPath, Folders):
 
     Lines += Banner("Symbols", SectionWidth, "-")
     Lines.append("")
-    SymbolRows = [["{0} {1}".format(Entry.Kind, Entry.Qualified),
+    SymbolRows = [["{0} {1}".format(Entry.Role, Entry.Qualified),
                    "{0}/{1}".format(Folder.Name, Entry.File),
                    SpanText(Entry),
                    Sanitised(Entry.Purpose)] for Folder, Entry in Symbols]
@@ -1105,9 +1105,9 @@ def ReadIndex(FullPath):
             continue
         Fields = [Field.strip() for Field in Stripped.split("|")]
         Head = Fields[0].split(None, 1)
-        if len(Head) != 2 or Head[0] not in RecordKinds:
+        if len(Head) != 2 or Head[0] not in RecordCategories:
             raise ValueError("{0}:{1}: unknown record kind in {2!r}".format(FullPath, Number, Stripped))
-        Current = {"Kind": Head[0], "Name": Head[1], "Fields": Fields[1:], "Details": [], "Line": Number}
+        Current = {"Role": Head[0], "Name": Head[1], "Fields": Fields[1:], "Details": [], "Line": Number}
         Records.append(Current)
     return Settings, Records
 
@@ -1229,13 +1229,13 @@ def CommandFind(Options):
     for Path in IndexFiles(Options.Root):
         Settings, Records = ReadIndex(Path)
         for Record in Records:
-            if Record["Kind"] in ("S", "I") and not Options.All:
+            if Record["Role"] in ("S", "I") and not Options.All:
                 continue
             if not Pattern.search(Record["Name"]):
                 continue
             Hits += 1
             print("{0}:{1}  {2} {3} | {4}".format(
-                Path.replace("\\", "/"), Record["Line"], Record["Kind"], Record["Name"],
+                Path.replace("\\", "/"), Record["Line"], Record["Role"], Record["Name"],
                 " | ".join(Record["Fields"])))
     if not Hits:
         print("no symbol matches {0!r} — the index may not be built; run `build`".format(Options.Pattern))
@@ -1252,7 +1252,7 @@ def CommandRead(Options):
         if Settings.get("scope") != "folder":
             continue
         for Record in Records:
-            if Record["Kind"] in ("S", "I"):
+            if Record["Role"] in ("S", "I"):
                 continue
             if Record["Name"] != Wanted and Record["Name"].split("::")[-1] != Bare:
                 continue
@@ -1260,7 +1260,7 @@ def CommandRead(Options):
             Folder = Settings.get("path", os.path.dirname(Path))
             FileName = Record["Fields"][0] if Record["Fields"] else "?"
             Span = Record["Fields"][1] if len(Record["Fields"]) > 1 else "?"
-            print("{0} {1} | {2}".format(Record["Kind"], Record["Name"], " | ".join(Record["Fields"])))
+            print("{0} {1} | {2}".format(Record["Role"], Record["Name"], " | ".join(Record["Fields"])))
             for Detail in Record["Details"]:
                 print("    " + Detail)
             print("    source  {0}/{1} lines {2}".format(Folder, FileName, Span))

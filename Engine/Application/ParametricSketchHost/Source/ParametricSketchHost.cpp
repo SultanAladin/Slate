@@ -1659,7 +1659,7 @@ WorkspaceRecordName ResolveSelectedRecord(const WorkspaceDirectoryProjection& Di
     if (Applied.RowTaken >= Directory.Rows.size())
         return {};
     const WorkspaceDirectoryRow& Row = Directory.Rows[Applied.RowTaken];
-    return Row.Kind == WorkspaceDirectoryRowKind::Record ? Row.Record : WorkspaceRecordName{};
+    return Row.Role == WorkspaceDirectoryRowRole::Record ? Row.Record : WorkspaceRecordName{};
 }
 
 bool ResolveSketchPointPositionLocal(const SketchStructure& Sketch,
@@ -3537,12 +3537,12 @@ bool AnySelectedRow(const ParametricWorkspaceContext& Applied, std::uint32_t Row
 std::uint32_t ResolveInitialRow(const WorkspaceDirectoryProjection& Directory)
 {
     for (std::uint32_t Index = 0u; Index < Directory.Rows.size(); ++Index)
-        if (Directory.Rows[Index].Kind == WorkspaceDirectoryRowKind::Record &&
+        if (Directory.Rows[Index].Role == WorkspaceDirectoryRowRole::Record &&
             Directory.Rows[Index].Subject != WorkspaceRecordSubject::Folder)
             return Index;
 
     for (std::uint32_t Index = 0u; Index < Directory.Rows.size(); ++Index)
-        if (Directory.Rows[Index].Kind == WorkspaceDirectoryRowKind::Record)
+        if (Directory.Rows[Index].Role == WorkspaceDirectoryRowRole::Record)
             return Index;
 
     return 0u;
@@ -3629,7 +3629,7 @@ Outcome<bool> SynchroniseParametricPresentation(const WorkspaceRecordStructure& 
 
     const std::uint32_t RowCount = static_cast<std::uint32_t>(Directory.Rows.size());
     if (Applied.RowTaken >= RowCount || Directory.Rows.empty() ||
-        Directory.Rows[Applied.RowTaken].Kind != WorkspaceDirectoryRowKind::Record)
+        Directory.Rows[Applied.RowTaken].Role != WorkspaceDirectoryRowRole::Record)
     {
         ClearInspectorBridge(Bridge);
         return Outcome<bool>::Result(true);
@@ -3686,7 +3686,7 @@ void SynchroniseToolContext(const WorkspaceDirectoryProjection& Directory,
         return;
 
     const WorkspaceDirectoryRow& Row = Directory.Rows[WorkspaceApplied.RowTaken];
-    if (Row.Kind != WorkspaceDirectoryRowKind::Record)
+    if (Row.Role != WorkspaceDirectoryRowRole::Record)
         return;
 
     const WorkspaceRecord* Record = Records.Resolve(Row.Record);
@@ -4423,6 +4423,8 @@ int main(int ArgumentCount, char** ArgumentValues)
         if (BrowserInterior.Width() > 0.0f && BrowserInterior.Height() > 0.0f)
         {
             Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
+            const PlaneExtent BrowserBody = Viewport.Drawers().Body(DrawerBearing::South);
+            Viewport.Surface().Ground(BrowserBody, Covering(0x111114u), 0.0f, CornerNone);
             Viewport.Surface().Ground(BrowserInterior, Viewport.Appearance().Colour.SurfaceCurrent,
                                       0.0f, CornerNone);
             ContentBrowser.RecordBrowser(BrowserInterior, ContentApplied, ContentBrowserApplied);
@@ -4500,8 +4502,12 @@ int main(int ArgumentCount, char** ArgumentValues)
                                       ControlCentreValues.TypographyWeight);
         Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
         if (ControlInterior.Width() > 0.0f && ControlInterior.Height() > 0.0f)
+        {
+            const PlaneExtent ControlBody = Viewport.Drawers().Body(DrawerBearing::North);
+            Viewport.Surface().Ground(ControlBody, Covering(0x111114u), 0.0f, CornerNone);
             Viewport.Surface().Ground(ControlInterior, Viewport.Appearance().Colour.SurfaceCurrent,
                                       0.0f, CornerNone);
+        }
         Discard(ControlCentre.Record(ControlInterior, ControlCentreValues));
 
         if (Viewport.ApplyInterfaceScale(ControlCentreValues.Scaling))

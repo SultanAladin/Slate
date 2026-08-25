@@ -8,7 +8,7 @@
 
 ## Implementation note
 
-The approved migration has now been applied. The camera foundation was made even narrower than the proposed dependency sketch: `SlateScene` consumes only the neutral `Foundation/CameraFoundation.h` and therefore declares no engine-unit dependency. The combined GPU pass took the documented lower-risk route and is now `WorkspaceOverlayPass`; its generated shader stems are `WorkspaceOverlayVertex` and `WorkspaceOverlayFragment`, and its former numeric mode interface is a named `WorkspaceOverlayKind` guarantee.
+The approved migration has now been applied. The camera foundation was made even narrower than the proposed dependency sketch: `SlateScene` consumes only the neutral `Foundation/CameraFoundation.h` and therefore declares no engine-unit dependency. The combined GPU pass took the documented lower-risk route and is now `WorkspaceOverlayPass`; its generated shader stems are `WorkspaceOverlayVertex` and `WorkspaceOverlayFragment`, and its former numeric mode interface is a named `WorkspaceOverlayDraw` guarantee.
 
 ## Executive decision
 
@@ -439,7 +439,7 @@ WorkspaceOverlayVertex.slang
 WorkspaceOverlayFragment.slang
 ```
 
-and replace `Mode == 3u` with a named shader/CPU guarantee such as `OverlayKind::GroundGrid`. This is less precise than a split, but it makes the generated SPIR-V discoverable and removes the magic-number guarantee.
+and replace `Mode == 3u` with a named shader/CPU guarantee such as `OverlayDraw::GroundGrid`. This is less precise than a split, but it makes the generated SPIR-V discoverable and removes the magic-number guarantee.
 
 ### Related shared names
 

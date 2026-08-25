@@ -110,8 +110,14 @@ void ParametricWorkspacePanel::Advance(const PointerCondition& Contact, double E
     Controls.Advance(Contact, Elapsed);
     Facets.Advance(Contact, Elapsed);
 
+    const std::uint32_t PriorPage = Applied.OutlinePage;
     if (TabPressed)
         Applied.OutlinePage = Applied.OutlinePage == 0u ? 1u : 0u;
+    if (Applied.OutlinePage != PriorPage)
+    {
+        Interaction->Withdraw();
+        Interaction->Abandon();
+    }
 
     Applied.SearchTaken = Interaction->Holding(SearchField) || Interaction->Disclosed(SearchField);
 }
