@@ -5416,6 +5416,20 @@ int main(int ArgumentCount, char** ArgumentValues)
         PlaneExtent SketchLeafRects[PanelStructure::RecordLimit] = {};
         std::uint32_t SketchLeafTally = 0u;
 
+        const bool TabPressed = Viewport.Seam().KeyPressed(KeySubject::Summon);
+
+        // Panel leaves must sample pointer/contact before they record. This keeps CAD tool tiles,
+        // Sketch Directory rows and Scene Directory rows clickable in the same frame; advancing them
+        // after Record meant their widgets saw stale contact state and user clicks appeared to do nothing.
+        ParametricInteraction.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+        SceneInteraction.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+        ParametricPanel.Advance(BackgroundPointer, Pass.ElapsedMilliseconds,
+                                ParametricApplied, false, Viewport.Seam().Modifiers());
+        ToolPanel.Advance(BackgroundPointer, Pass.ElapsedMilliseconds,
+                          ToolsApplied, false);
+        SceneDirectory.Advance(BackgroundPointer, Pass.ElapsedMilliseconds,
+                               SceneApplied, false, Viewport.Seam().Modifiers());
+
         WorkspacePanels.Advance(BackgroundPointer, Pass.ElapsedMilliseconds);
 
         for (std::uint32_t Index = 0u; Index < OpenCount; ++Index)
@@ -5857,43 +5871,20 @@ int main(int ArgumentCount, char** ArgumentValues)
         ControlCentre.Exclude(Viewport.Drawers());
         Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Beneath));
 
-        const bool TabPressed = Viewport.Seam().KeyPressed(KeySubject::Summon);
-        const PointerCondition& Hovered = Viewport.Surface().Pointer();
-        bool PointerInTools = false;
-        for (std::uint32_t Index = 0u; Index < ToolLeafTally; ++Index)
-            if (ToolLeafRects[Index].Encloses(Hovered.PositionX, Hovered.PositionY))
-            {
-                PointerInTools = true;
-                break;
-            }
-        bool PointerInScene = false;
-        for (std::uint32_t Index = 0u; Index < SceneLeafTally; ++Index)
-            if (SceneLeafRects[Index].Encloses(Hovered.PositionX, Hovered.PositionY))
-            {
-                PointerInScene = true;
-                break;
-            }
-        bool PointerInSketch = false;
-        for (std::uint32_t Index = 0u; Index < SketchLeafTally; ++Index)
-            if (SketchLeafRects[Index].Encloses(Hovered.PositionX, Hovered.PositionY))
-            {
-                PointerInSketch = true;
-                break;
-            }
-
-        ParametricInteraction.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
-        SceneInteraction.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
-        ParametricPanel.Advance(BackgroundPointer, Pass.ElapsedMilliseconds,
-                                ParametricApplied,
-                                TabPressed && PointerInSketch && !PointerBehindDrawer,
-                                Viewport.Seam().Modifiers());
-        ToolPanel.Advance(BackgroundPointer, Pass.ElapsedMilliseconds,
-                          ToolsApplied,
-                          TabPressed && PointerInTools && !PointerBehindDrawer);
-        SceneDirectory.Advance(BackgroundPointer, Pass.ElapsedMilliseconds,
-                               SceneApplied,
-                               TabPressed && PointerInScene && !PointerBehindDrawer,
-                               Viewport.Seam().Modifiers());
+        if (TabPressed && !PointerBehindDrawer)
+        {
+            const PointerCondition& Hovered = Viewport.Surface().Pointer();
+            for (std::uint32_t Index = 0u; Index < SketchLeafTally; ++Index)
+                if (SketchLeafRects[Index].Encloses(Hovered.PositionX, Hovered.PositionY))
+                    ParametricApplied.OutlinePage = ParametricApplied.OutlinePage == 0u ? 1u : 0u;
+            for (std::uint32_t Index = 0u; Index < ToolLeafTally; ++Index)
+                if (ToolLeafRects[Index].Encloses(Hovered.PositionX, Hovered.PositionY))
+                    ToolsApplied.Page = ToolsApplied.Page == ParametricToolPage::Catalogue
+                                      ? ParametricToolPage::Settings : ParametricToolPage::Catalogue;
+            for (std::uint32_t Index = 0u; Index < SceneLeafTally; ++Index)
+                if (SceneLeafRects[Index].Encloses(Hovered.PositionX, Hovered.PositionY))
+                    SceneApplied.OutlinePage = SceneApplied.OutlinePage == 0u ? 1u : 0u;
+        }
         SynchroniseCodexTransformsFromSceneDirectory(OpenedScene, SceneDirectoryStorage,
                                                      SceneApplied, OpenedSceneStanding);
 

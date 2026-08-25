@@ -1189,8 +1189,9 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
                                         Extent.Width() - 24.0f, Measure.ImportY);
 
     const bool ImportOver = Hovered(Import);
+    const bool ImportPressed = ImportOver && (Sampled.ContactPressed || Sampled.ContactHeld);
     if (Pressed(ChromeCells[5], Import, Applied, "Import this record") ||
-        (ImportOver && Sampled.ContactPressed && !Interaction->AnyDisclosed()))
+        (ImportOver && (Sampled.ContactPressed || Sampled.ContactReleased) && !Interaction->AnyDisclosed()))
     {
         if (Record.Archive == ContentArchive::Arrangement &&
             (std::strcmp(Record.Extension, ".codex") == 0 || std::strcmp(Record.Extension, "codex") == 0))
@@ -1200,7 +1201,9 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
     }
 
 
-    Surface->Ground(Import, ImportOver ? Colour.EmphaticHovered : Colour.Emphatic, Measure.RadiusSoft);
+    Surface->Ground(Import, ImportPressed ? Colour.EdgeTaken : (ImportOver ? Colour.EmphaticHovered : Colour.Emphatic), Measure.RadiusSoft);
+    if (ImportPressed)
+        Surface->Edge(Import, Colour.EmphaticRun, 1.6f, Measure.RadiusSoft);
 
     const float Span = Surface->MeasureRun("Import", Measure.RunBody);
 

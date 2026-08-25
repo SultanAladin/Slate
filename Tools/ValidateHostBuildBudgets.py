@@ -74,6 +74,9 @@ def main() -> int:
             "ParametricSketchHost must consume the shared CAD drawing controller dispatch")
     require("ResolveGizmoHandle" in parametric and "StartTransformSession" in parametric and "UpdateTransformSession" in parametric,
             "ParametricSketchHost transform gizmo handles must remain selectable and movable")
+    require("Panel leaves must sample pointer/contact before they record" in parametric and
+            parametric.find("ToolPanel.Advance") < parametric.find("WorkspacePanels.Record"),
+            "ParametricSketchHost must advance CAD tool interactions before recording/drawing the viewport")
 
     shared_viewport = read("Engine/Application/Api/SharedViewportHostBridge.h")
     require("RecordSharedViewportGizmo" in shared_viewport and "HitSharedViewportGizmo" in shared_viewport,
@@ -90,6 +93,8 @@ def main() -> int:
     content_browser = read("Engine/SlateUI/Interface/ContentBrowserPanel/Source/ContentBrowserPanel.cpp")
     require("ActivationRequested = Library.Taken" in content_browser and "ActivationRequested = Index" in content_browser,
             "Content Browser card and Import button must request codex activation")
+    require("ImportPressed" in content_browser and "Sampled.ContactReleased" in content_browser,
+            "Content Browser import button must visibly press and activate on click release")
 
     tools = read("Engine/SlateUI/Interface/ParametricTools/Source/ParametricToolsPanel.cpp")
     require("static_cast<void>(Elapsed);" in tools, "ParametricToolsPanel must mark Elapsed as intentionally unused")
