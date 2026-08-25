@@ -365,6 +365,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     std::uint32_t                    PendingVisibilityRegistration = 0u;
     std::uint32_t                    PendingRegistrationBase = 0u;
     bool                             GeometryAdmissionPending = false;
+    bool                             EditorCameraLookLatched = false;
     std::uint32_t           OverlayGeneration[PanelStructure::RecordLimit] = {};   // [-] - per viewport leaf
 
     // 📝 One overlay record per viewport leaf, in STATIC storage: each record is ~70 KB and the
@@ -945,7 +946,13 @@ int main(int ArgumentCount, char** ArgumentValues)
                     }
                 }
 
-                CameraCondition FlyInput = Viewport.Seam().CameraInput(PointerOverViewport && !PointerBehindDrawer);
+                if (Pointer.SecondaryPressed)
+                    EditorCameraLookLatched = PointerOverViewport && !PointerBehindDrawer;
+                if (Pointer.SecondaryReleased || !Pointer.SecondaryHeld)
+                    EditorCameraLookLatched = false;
+
+                CameraCondition FlyInput = Viewport.Seam().CameraInput(
+                    (PointerOverViewport || EditorCameraLookLatched) && !PointerBehindDrawer);
 
                 // A direct XYZ edit in the Editor Camera's Transform card is consumed before navigation.
                 // The transform synchronizer distinguishes it from the values the camera published last tick,

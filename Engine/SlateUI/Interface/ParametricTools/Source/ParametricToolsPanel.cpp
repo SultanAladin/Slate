@@ -512,8 +512,6 @@ const BandEntry Bands[BandCount] =
       static_cast<std::uint32_t>(sizeof(ReferenceTools) / sizeof(ReferenceTools[0])) },
     { "Data-Sourced", SymbolSubject::FolderClosed, DataTools,
       static_cast<std::uint32_t>(sizeof(DataTools) / sizeof(DataTools[0])) },
-    { "Illumination", SymbolSubject::BulbFilament, IlluminationTools,
-      static_cast<std::uint32_t>(sizeof(IlluminationTools) / sizeof(IlluminationTools[0])) },
     { "Annotation", SymbolSubject::ConstraintDimension, AnnotationTools,
       static_cast<std::uint32_t>(sizeof(AnnotationTools) / sizeof(AnnotationTools[0])) },
 };
@@ -546,8 +544,6 @@ bool DimensionAccepted(const ToolEntry& Tool, ParametricToolDimension Active)
 
 bool Gated(const ToolEntry& Tool, const ParametricToolsContext& Applied)
 {
-    if (Tool.Workplane && !Applied.WorkplaneActivation)
-        return true;
     if (Tool.Closed && !Applied.ClosedProfileCondition)
         return true;
     if (Tool.Planar && !Applied.PlanarProfileCondition)
@@ -717,7 +713,6 @@ std::uint32_t VisibleCount(const BandEntry& Band, const ParametricToolsContext& 
 
 const char* ShortfallText(const ToolEntry& Tool, const ParametricToolsContext& Applied)
 {
-    if (Tool.Workplane && !Applied.WorkplaneActivation) return "set workplane";
     if (Tool.Axis && !Applied.AxisAvailability) return "needs axis";
     if (Tool.Path && !Applied.PathAvailability) return "needs path";
     if (Tool.Reference && !Applied.ReferencePlaneCondition) return "needs reference plane";
@@ -1144,8 +1139,7 @@ void ParametricToolsPanel::RecordBrowsePage(const PlaneExtent& Extent, Parametri
                                  Tinted.Faint, Tool.Accelerator, Scaled.RunFiner);
             if (ToolGated)
                 Surface->TextRunTruncated(Row.MinimumX + 6.0f, Row.MinimumY + 58.0f,
-                                          Row.Width() - 12.0f, Tool.Workplane && !Applied.WorkplaneActivation
-                                                                    ? Tinted.EntityAccent : Covering(0xF59E0Bu),
+                                          Row.Width() - 12.0f, Covering(0xF59E0Bu),
                                           ShortfallText(Tool, Applied), Scaled.RunFiner);
             else if (const char* Badge = ResultText(Tool, Applied); Badge != nullptr)
                 Surface->TextRun(Row.MinimumX + 6.0f, Row.MinimumY + 58.0f,

@@ -21,6 +21,7 @@ namespace
 constexpr double HoverOver   = 0.120;   // [s] - the reference's `transition-colors` duration
 constexpr float  NotchHeight =  48.0f;  // [px] - one wheel notch
 constexpr double OctetsPerMegaOctet = 1048576.0;   // [B] - the reference's own divisor
+constexpr double OctetsPerKiloOctet = 1024.0;      // [B] - inspector fallback for small engine content
 
 /// 🔴 The lattice's column count is not a media query here. The reference steps 2→6 columns across five
 ///    Tailwind breakpoints against the VIEWPORT; a panel inside a page has its own extent, so the count is
@@ -108,6 +109,16 @@ SymbolSubject ArchiveCrest(ContentArchive Archive)
     }
 }
 
+void FormatOctets(char* Written, std::uint32_t Limit, double Octets)
+{
+    if (Written == nullptr || Limit == 0u)
+        return;
+    if (Octets < OctetsPerMegaOctet * 0.1)
+        std::snprintf(Written, Limit, "%.1f KB", Octets / OctetsPerKiloOctet);
+    else
+        std::snprintf(Written, Limit, "%.1f MB", Octets / OctetsPerMegaOctet);
+}
+
 void ApplyReferenceContent(ContentLibrary& Applying)
 {
     Applying = ContentLibrary{};
@@ -144,7 +155,7 @@ void ApplyReferenceContent(ContentLibrary& Applying)
     #include "ContentBrowserReferenceCatalog.inc"
 
     // Slate's runnable default workspace is appended to the reference catalogue rather than replacing it.
-    Apply("WhiteTeaService", ".codex", 1944.0 / OctetsPerMegaOctet,
+    Apply("WhiteTeaService", ".codex", 6064.0 / OctetsPerMegaOctet,
           "scene", "tea service", ContentArchive::Arrangement, "Engine Content");
 
 }
@@ -861,12 +872,11 @@ void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrar
 
         if (Pressed(LatticeCards[Target], Card, Applied))
         {
-            // A second contact activates a workspace scene; first contact remains ordinary selection.
-            if (Library.Taken == Index && Library.Records[Index].Archive == ContentArchive::Arrangement &&
+            Library.Taken = Index;
+            if (Library.Records[Index].Archive == ContentArchive::Arrangement &&
                 (std::strcmp(Library.Records[Index].Extension, ".codex") == 0 ||
                  std::strcmp(Library.Records[Index].Extension, "codex") == 0))
                 Applied.ActivationRequested = Index;
-            Library.Taken = Index;
         }
 
         // 📐 `hover:-translate-y-0.5` — the hovered card lifts two pixels, which is the whole of the
@@ -945,7 +955,7 @@ void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrar
                                   CardX - 20.0f, Colour.Primary, Titled, Measure.RunBody, true);
 
         char Sized[32] = {};
-        std::snprintf(Sized, sizeof(Sized), "%.1f MB", Record.Octets / OctetsPerMegaOctet);
+        FormatOctets(Sized, sizeof(Sized), Record.Octets);
 
         Surface->TextRun(Lifted.MinimumX + 10.0f, Plate.MaximumY + 26.0f,
                          Colour.Faint, Sized, Measure.RunCaption);
@@ -1168,7 +1178,7 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
         RecordPair("Subcategory", Record.Subheading);
 
     char Sized[32] = {};
-    std::snprintf(Sized, sizeof(Sized), "%.1f MB", Record.Octets / OctetsPerMegaOctet);
+    FormatOctets(Sized, sizeof(Sized), Record.Octets);
 
     RecordPair("Size", Sized);
 
@@ -1177,7 +1187,14 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
                                         Extent.MaximumY - 12.0f - Measure.ImportY,
                                         Extent.Width() - 24.0f, Measure.ImportY);
 
-    static_cast<void>(Pressed(ChromeCells[5], Import, Applied, "Import this record"));
+    if (Pressed(ChromeCells[5], Import, Applied, "Import this record"))
+    {
+        if (Record.Archive == ContentArchive::Arrangement &&
+            (std::strcmp(Record.Extension, ".codex") == 0 || std::strcmp(Record.Extension, "codex") == 0))
+            Applied.ActivationRequested = Library.Taken;
+        else
+            Applied.Page = ContentBrowserPage::Import;
+    }
 
     const bool ImportOver = Hovered(Import);
 

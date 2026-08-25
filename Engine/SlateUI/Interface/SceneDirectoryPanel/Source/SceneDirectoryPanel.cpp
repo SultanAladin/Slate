@@ -44,6 +44,45 @@ constexpr std::uint8_t BlendChannel(std::uint8_t Previous, std::uint8_t Incoming
                                       static_cast<float>(Previous)) * Fraction + 0.5f);
 }
 
+void AddViewportOrientationGizmo(OverlayGeometry& Overlay, const PlaneExtent& Extent)
+{
+    const auto Packed = [](std::uint32_t Red, std::uint32_t Green, std::uint32_t Blue, std::uint32_t Alpha)
+    {
+        return PackOverlayColour(Red, Green, Blue, Alpha);
+    };
+    const float Right = Extent.MaximumX - 24.0f;
+    const float Top = Extent.MinimumY + 28.0f;
+    const float Size = 46.0f;
+    const float X = Right - Size;
+    const float Y = Top;
+    const std::uint32_t FaceTop = Packed(0xF8u, 0xFAu, 0xFCu, 116u);
+    const std::uint32_t FaceFront = Packed(0x5Bu, 0x8Cu, 0xFFu, 142u);
+    const std::uint32_t FaceSide = Packed(0xFCu, 0x5Au, 0x5Au, 142u);
+    const std::uint32_t Edge = Packed(0xFFu, 0xFFu, 0xFFu, 210u);
+    const float A[2] = { X, Y + 15.0f };
+    const float B[2] = { X + Size * 0.55f, Y };
+    const float C[2] = { X + Size, Y + 13.0f };
+    const float D[2] = { X + Size * 0.46f, Y + 28.0f };
+    const float E[2] = { X + Size * 0.46f, Y + Size };
+    const float F[2] = { X + Size, Y + Size * 0.70f };
+    const float G[2] = { X, Y + Size * 0.72f };
+    Overlay.AddTriangle(A[0], A[1], B[0], B[1], C[0], C[1], FaceTop);
+    Overlay.AddTriangle(A[0], A[1], C[0], C[1], D[0], D[1], FaceTop);
+    Overlay.AddTriangle(A[0], A[1], D[0], D[1], E[0], E[1], FaceFront);
+    Overlay.AddTriangle(A[0], A[1], E[0], E[1], G[0], G[1], FaceFront);
+    Overlay.AddTriangle(D[0], D[1], C[0], C[1], F[0], F[1], FaceSide);
+    Overlay.AddTriangle(D[0], D[1], F[0], F[1], E[0], E[1], FaceSide);
+    Overlay.AddLine(A[0], A[1], B[0], B[1], Edge, 1.2f);
+    Overlay.AddLine(B[0], B[1], C[0], C[1], Edge, 1.2f);
+    Overlay.AddLine(C[0], C[1], F[0], F[1], Edge, 1.2f);
+    Overlay.AddLine(F[0], F[1], E[0], E[1], Edge, 1.2f);
+    Overlay.AddLine(E[0], E[1], G[0], G[1], Edge, 1.2f);
+    Overlay.AddLine(G[0], G[1], A[0], A[1], Edge, 1.2f);
+    Overlay.AddLine(A[0], A[1], D[0], D[1], Edge, 1.2f);
+    Overlay.AddLine(D[0], D[1], C[0], C[1], Edge, 1.2f);
+    Overlay.AddLine(D[0], D[1], E[0], E[1], Edge, 1.2f);
+}
+
 constexpr ThemeToken Blend(ThemeToken Previous, ThemeToken Incoming, float Fraction)
 {
     const float Bounded = (Fraction < 0.0f) ? 0.0f : (Fraction > 1.0f) ? 1.0f : Fraction;
@@ -2647,11 +2686,10 @@ void SceneDirectoryPanel::RecordGizmo(const PlaneExtent& Extent, SceneDirectoryC
                                       OverlayGeometry& Overlay)
 {
     // 📐 The ground grid and all 3 world axes (Red X, Green Y, Blue Z) are rendered 100%
-    //    on the GPU by the overlay pass fragment shader (WorkspaceOverlayFragment.slang). The CPU gizmo
-    //    arrows are removed.
-    (void)Extent;
-    (void)Applied;
-    (void)Overlay;
+    //    on the GPU by the overlay pass fragment shader (WorkspaceOverlayFragment.slang). The viewport
+    //    orientation gizmo is lightweight screen-space overlay geometry so every viewport leaf receives it.
+    static_cast<void>(Applied);
+    AddViewportOrientationGizmo(Overlay, Extent);
 }
 
 void SceneDirectoryPanel::RecordOverlayFallback(const PlaneExtent& Extent,
