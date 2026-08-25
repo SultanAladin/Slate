@@ -43,6 +43,7 @@
 #include "SlateDocument/Format/SceneMeshImport/Api/SceneMeshImport.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -631,10 +632,6 @@ WorkspaceCadProjection ResolveCadProjection(const SpatialBasis& Basis,
     return Projection;
 }
 
-bool WithinViewportOrientationButton(const PlaneExtent& Button, const PointerCondition& Pointer)
-{
-    return Button.Encloses(Pointer.PositionX, Pointer.PositionY);
-}
 
 void RecordViewportOrientationHud(RecordingSurface& Surface,
                                   const PlaneExtent& Extent,
@@ -644,84 +641,110 @@ void RecordViewportOrientationHud(RecordingSurface& Surface,
                                   bool& PointerTaken)
 {
     bool& Perspective = Configuration.Perspective;
-    const float Pad = 10.0f;
-    const float ButtonX = 56.0f;
-    const float ButtonY = 24.0f;
-    const float Top = Extent.MinimumY + Pad;
-    const float Right = Extent.MaximumX - Pad;
+    const SpatialBasis Basis = { {}, {1.0, 0.0, 0.0}, {0.0, 0.0, 1.0}, {0.0, 1.0, 0.0} };
+    const ViewFrame Frame = ResolveViewportFrame(Basis, View, Perspective);
 
-    struct FaceButton
+    const float CentreX = Extent.MaximumX - 78.0f;
+    const float CentreY = Extent.MinimumY + 78.0f;
+    const float Scale = 34.0f;
+
+    const auto ProjectAxis = [&](const SpatialDirection& Axis, float& X, float& Y)
     {
-        ParametricViewOrientation Orientation;
-        const char* Text;
-        PlaneExtent Extent;
-        bool PerspectiveReading;
+        X = static_cast<float>(Dot(Axis, Frame.Right)) * Scale;
+        Y = -static_cast<float>(Dot(Axis, Frame.Up)) * Scale;
     };
 
-    FaceButton Faces[] =
+    float XX = 0.0f, XY = 0.0f;
+    float YX = 0.0f, YY = 0.0f;
+    float ZX = 0.0f, ZY = 0.0f;
+    ProjectAxis(Basis.Along, XX, XY);
+    ProjectAxis(Basis.Normal, YX, YY);
+    ProjectAxis(Basis.Across, ZX, ZY);
+
+    const float OX = CentreX - (XX + YX + ZX) * 0.50f;
+    const float OY = CentreY - (XY + YY + ZY) * 0.50f;
+
+    const auto V = [&](float Ax, float Ay, float Bx, float By, float Cx, float Cy)
     {
-        { ParametricViewOrientation::Top, "Top", Spanning(Right - 104.0f, Top, ButtonX, ButtonY), false },
-        { ParametricViewOrientation::Front, "Front", Spanning(Right - 164.0f, Top + 26.0f, ButtonX, ButtonY), false },
-        { ParametricViewOrientation::Back, "Back", Spanning(Right - 104.0f, Top + 26.0f, ButtonX, ButtonY), false },
-        { ParametricViewOrientation::Left, "Left", Spanning(Right - 224.0f, Top + 26.0f, ButtonX, ButtonY), false },
-        { ParametricViewOrientation::Right, "Right", Spanning(Right - 56.0f, Top + 26.0f, ButtonX, ButtonY), false },
-        { ParametricViewOrientation::Bottom, "Bottom", Spanning(Right - 104.0f, Top + 52.0f, ButtonX, ButtonY), false },
-        { ParametricViewOrientation::Isometric, "Iso", Spanning(Right - 104.0f, Top + 78.0f, ButtonX, ButtonY), true },
+        return std::array<float, 2>{ OX + Ax + Bx + Cx, OY + Ay + By + Cy };
     };
 
-    for (FaceButton& Face : Faces)
+    const std::array<float, 2> V000 = V(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+    const std::array<float, 2> V100 = V(XX, XY, 0.0f, 0.0f, 0.0f, 0.0f);
+    const std::array<float, 2> V010 = V(0.0f, 0.0f, YX, YY, 0.0f, 0.0f);
+    const std::array<float, 2> V001 = V(0.0f, 0.0f, 0.0f, 0.0f, ZX, ZY);
+    const std::array<float, 2> V110 = V(XX, XY, YX, YY, 0.0f, 0.0f);
+    const std::array<float, 2> V101 = V(XX, XY, 0.0f, 0.0f, ZX, ZY);
+    const std::array<float, 2> V011 = V(0.0f, 0.0f, YX, YY, ZX, ZY);
+    const std::array<float, 2> V111 = V(XX, XY, YX, YY, ZX, ZY);
+
+    const auto Centre = [](const std::array<float, 2>& A, const std::array<float, 2>& B,
+                           const std::array<float, 2>& C, const std::array<float, 2>& D)
     {
-        const bool Hovered = WithinViewportOrientationButton(Face.Extent, Pointer);
-        const bool Current = Face.PerspectiveReading ? Perspective : (!Perspective && View.Orientation == Face.Orientation);
-        if (Hovered && Pointer.ContactPressed)
+        return std::array<float, 2>{ (A[0] + B[0] + C[0] + D[0]) * 0.25f,
+                                     (A[1] + B[1] + C[1] + D[1]) * 0.25f };
+    };
+
+    const std::array<float, 2> TopCentre   = Centre(V010, V110, V111, V011);
+    const std::array<float, 2> FrontCentre = Centre(V001, V101, V111, V011);
+    const std::array<float, 2> RightCentre = Centre(V100, V110, V111, V101);
+    const PlaneExtent CubeHit = Spanning(CentreX - 58.0f, CentreY - 58.0f, 116.0f, 116.0f);
+
+    if (CubeHit.Encloses(Pointer.PositionX, Pointer.PositionY))
+    {
+        PointerTaken = true;
+        if (Pointer.ContactPressed)
         {
-            ApplyViewportOrientation(View, Face.Orientation, Face.PerspectiveReading);
-            Perspective = Face.PerspectiveReading;
-            PointerTaken = true;
+            const auto Distance2 = [&](const std::array<float, 2>& P)
+            {
+                const float DX = Pointer.PositionX - P[0];
+                const float DY = Pointer.PositionY - P[1];
+                return DX * DX + DY * DY;
+            };
+            const float DT = Distance2(TopCentre);
+            const float DF = Distance2(FrontCentre);
+            const float DR = Distance2(RightCentre);
+            if (DT <= DF && DT <= DR)
+                ApplyViewportOrientation(View, ParametricViewOrientation::Top, false);
+            else if (DR <= DT && DR <= DF)
+                ApplyViewportOrientation(View, ParametricViewOrientation::Right, false);
+            else
+                ApplyViewportOrientation(View, ParametricViewOrientation::Front, false);
+            Perspective = false;
         }
-        if (Hovered)
-            PointerTaken = true;
-
-        Surface.Ground(Face.Extent, Current ? Covering(0x5B8CFFu) : (Hovered ? Covering(0x26262Bu) : Covering(0x17171Au)), 7.0f, CornerAll);
-        Surface.Edge(Face.Extent, Covering(0x1C1C20u), 1.0f, 7.0f, CornerAll);
-        const float Width = Surface.MeasureRun(Face.Text, 11.0f, 0.0f);
-        Surface.TextRun(Face.Extent.MinimumX + (Face.Extent.Width() - Width) * 0.5f,
-                        Face.Extent.MinimumY + 7.0f,
-                        Current ? Covering(0xFFFFFFu) : Covering(0xD8D8DCu),
-                        Face.Text, 11.0f, 0.0f, true);
     }
 
-    const PlaneExtent PerspectiveButton = Spanning(Extent.MinimumX + Pad, Extent.MinimumY + Pad, 86.0f, 24.0f);
-    const PlaneExtent OrthographicButton = Spanning(PerspectiveButton.MaximumX + 6.0f, PerspectiveButton.MinimumY, 98.0f, 24.0f);
-    const bool PerspectiveHovered = WithinViewportOrientationButton(PerspectiveButton, Pointer);
-    const bool OrthographicHovered = WithinViewportOrientationButton(OrthographicButton, Pointer);
-    if (PerspectiveHovered && Pointer.ContactPressed)
+    Surface.Confine(Extent);
+    const auto DrawFace = [&](const std::array<float, 2>& A, const std::array<float, 2>& B,
+                              const std::array<float, 2>& C, const std::array<float, 2>& D,
+                              ThemeToken Colour)
     {
-        Perspective = true;
-        ApplyViewportOrientation(View, ParametricViewOrientation::Isometric, true);
-        PointerTaken = true;
-    }
-    if (OrthographicHovered && Pointer.ContactPressed)
+        const float T0[6] = { A[0], A[1], B[0], B[1], C[0], C[1] };
+        const float T1[6] = { A[0], A[1], C[0], C[1], D[0], D[1] };
+        Surface.Tongue(T0, 3u, Colour);
+        Surface.Tongue(T1, 3u, Colour);
+    };
+    const auto DrawEdge = [&](const std::array<float, 2>& A, const std::array<float, 2>& B)
     {
-        Perspective = false;
-        PointerTaken = true;
-    }
-    if (PerspectiveHovered || OrthographicHovered)
-        PointerTaken = true;
+        const float X[2] = { A[0], B[0] };
+        const float Y[2] = { A[1], B[1] };
+        Surface.Polyline(X, Y, 2u, Partial(0xFFFFFFu, 0.88f), 1.35f);
+    };
 
-    Surface.Ground(PerspectiveButton, Perspective ? Covering(0x5B8CFFu) : Covering(0x17171Au), 7.0f, CornerAll);
-    Surface.Edge(PerspectiveButton, Covering(0x1C1C20u), 1.0f, 7.0f, CornerAll);
-    Surface.TextRun(PerspectiveButton.MinimumX + 10.0f, PerspectiveButton.MinimumY + 7.0f,
-                    Perspective ? Covering(0xFFFFFFu) : Covering(0xD8D8DCu),
-                    "Perspective", 11.0f, 0.0f, true);
+    DrawFace(V010, V110, V111, V011, Partial(0xF8FAFCu, 0.46f));
+    DrawFace(V001, V101, V111, V011, Partial(0x5B8CFFu, 0.54f));
+    DrawFace(V100, V110, V111, V101, Partial(0xFC5A5Au, 0.54f));
+    DrawEdge(V000, V100); DrawEdge(V000, V010); DrawEdge(V000, V001);
+    DrawEdge(V100, V110); DrawEdge(V100, V101); DrawEdge(V010, V110);
+    DrawEdge(V010, V011); DrawEdge(V001, V101); DrawEdge(V001, V011);
+    DrawEdge(V111, V110); DrawEdge(V111, V101); DrawEdge(V111, V011);
 
-    Surface.Ground(OrthographicButton, !Perspective ? Covering(0x5B8CFFu) : Covering(0x17171Au), 7.0f, CornerAll);
-    Surface.Edge(OrthographicButton, Covering(0x1C1C20u), 1.0f, 7.0f, CornerAll);
-    Surface.TextRun(OrthographicButton.MinimumX + 10.0f, OrthographicButton.MinimumY + 7.0f,
-                    !Perspective ? Covering(0xFFFFFFu) : Covering(0xD8D8DCu),
-                    "Orthographic", 11.0f, 0.0f, true);
-
+    Surface.TextRun(TopCentre[0] - 11.0f, TopCentre[1] - 5.0f, Covering(0x101014u), "TOP", 9.0f, 0.0f, true);
+    Surface.TextRun(FrontCentre[0] - 17.0f, FrontCentre[1] - 5.0f, Covering(0xFFFFFFu), "FRONT", 9.0f, 0.0f, true);
+    Surface.TextRun(RightCentre[0] - 15.0f, RightCentre[1] - 5.0f, Covering(0xFFFFFFu), "RIGHT", 9.0f, 0.0f, true);
+    Surface.Release();
 }
+
 
 void DriveViewport(const PlaneExtent& Extent,
                    const PointerCondition& Pointer,
@@ -2156,40 +2179,6 @@ std::uint32_t OverlayPacked(std::uint32_t Red,
     return PackOverlayColour(Red, Green, Blue, Alpha);
 }
 
-void AddViewportOrientationGizmo(OverlayGeometry& Overlay, const PlaneExtent& Extent)
-{
-    const float Right = Extent.MaximumX - 24.0f;
-    const float Top = Extent.MinimumY + 28.0f;
-    const float Size = 46.0f;
-    const float X = Right - Size;
-    const float Y = Top;
-    const std::uint32_t FaceTop = OverlayPacked(0xF8u, 0xFAu, 0xFCu, 116u);
-    const std::uint32_t FaceFront = OverlayPacked(0x5Bu, 0x8Cu, 0xFFu, 142u);
-    const std::uint32_t FaceSide = OverlayPacked(0xFCu, 0x5Au, 0x5Au, 142u);
-    const std::uint32_t Edge = OverlayPacked(0xFFu, 0xFFu, 0xFFu, 210u);
-    const float A[2] = { X, Y + 15.0f };
-    const float B[2] = { X + Size * 0.55f, Y };
-    const float C[2] = { X + Size, Y + 13.0f };
-    const float D[2] = { X + Size * 0.46f, Y + 28.0f };
-    const float E[2] = { X + Size * 0.46f, Y + Size };
-    const float F[2] = { X + Size, Y + Size * 0.70f };
-    const float G[2] = { X, Y + Size * 0.72f };
-    Overlay.AddTriangle(A[0], A[1], B[0], B[1], C[0], C[1], FaceTop);
-    Overlay.AddTriangle(A[0], A[1], C[0], C[1], D[0], D[1], FaceTop);
-    Overlay.AddTriangle(A[0], A[1], D[0], D[1], E[0], E[1], FaceFront);
-    Overlay.AddTriangle(A[0], A[1], E[0], E[1], G[0], G[1], FaceFront);
-    Overlay.AddTriangle(D[0], D[1], C[0], C[1], F[0], F[1], FaceSide);
-    Overlay.AddTriangle(D[0], D[1], F[0], F[1], E[0], E[1], FaceSide);
-    Overlay.AddLine(A[0], A[1], B[0], B[1], Edge, 1.2f);
-    Overlay.AddLine(B[0], B[1], C[0], C[1], Edge, 1.2f);
-    Overlay.AddLine(C[0], C[1], F[0], F[1], Edge, 1.2f);
-    Overlay.AddLine(F[0], F[1], E[0], E[1], Edge, 1.2f);
-    Overlay.AddLine(E[0], E[1], G[0], G[1], Edge, 1.2f);
-    Overlay.AddLine(G[0], G[1], A[0], A[1], Edge, 1.2f);
-    Overlay.AddLine(A[0], A[1], D[0], D[1], Edge, 1.2f);
-    Overlay.AddLine(D[0], D[1], C[0], C[1], Edge, 1.2f);
-    Overlay.AddLine(D[0], D[1], E[0], E[1], Edge, 1.2f);
-}
 
 ThemeToken TokenFromPacked(std::uint32_t Packed)
 {
@@ -3156,8 +3145,6 @@ void RecordViewportGridOverlay(OverlayGeometry& Overlay,
                                bool Perspective,
                                const EditorPanelConfiguration& Configuration)
 {
-    AddViewportOrientationGizmo(Overlay, Extent);
-
     if (Configuration.Lattice == PanelLatticePresentation::None)
         return;
 

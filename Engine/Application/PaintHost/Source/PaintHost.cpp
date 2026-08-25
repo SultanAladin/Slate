@@ -11,10 +11,13 @@
 #include "SlateUI/Interface/ViewportSequence/Api/ViewportSequence.h"
 #include "SlateUI/Interface/WorkspacePanel/Api/WorkspaceIndex.h"
 #include "SlateVulkan/Device/HostLifecycle/Api/HostLifecycle.h"
+#include "SlateDocument/Format/WorkspaceSceneActivation/Api/WorkspaceSceneActivation.h"
 
+#include <cmath>
 #include <cstdio>
 #include <filesystem>
 #include <cstring>
+#include <string>
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                          FIGURES
@@ -81,9 +84,100 @@ static_assert(sizeof(WorkspaceIndex) + sizeof(WorkspacePanel) + sizeof(EditorPan
 
 constexpr float WorkspaceGround[4] = { 0.06f, 0.06f, 0.08f, 1.0f };   // [-]
 
-void RecordSharedViewportChrome(RecordingSurface& Surface, const PlaneExtent& Extent)
+bool ProjectPaintScenePoint(const PlaneExtent& Extent,
+                            double WorldX,
+                            double WorldY,
+                            double WorldZ,
+                            float& ScreenX,
+                            float& ScreenY)
+{
+    const double Yaw = 0.0;
+    const double Pitch = -8.0 * 3.14159265358979323846 / 180.0;
+    const double CosP = std::cos(Pitch), SinP = std::sin(Pitch);
+    const double SinY = std::sin(Yaw),   CosY = std::cos(Yaw);
+    const double ForwardX = CosP * SinY;
+    const double ForwardY = SinP;
+    const double ForwardZ = CosP * CosY;
+    const double RightX = CosY;
+    const double RightZ = -SinY;
+    const double UpX = -SinP * SinY;
+    const double UpY = CosP;
+    const double UpZ = -SinP * CosY;
+    const double DX = WorldX;
+    const double DY = WorldY - 1.2;
+    const double DZ = WorldZ + 4.0;
+    const double CameraX = DX * RightX + DZ * RightZ;
+    const double CameraY = DX * UpX + DY * UpY + DZ * UpZ;
+    const double CameraZ = DX * ForwardX + DY * ForwardY + DZ * ForwardZ;
+    if (CameraZ <= 0.01)
+        return false;
+    const double TanV = std::tan(30.0 * 3.14159265358979323846 / 180.0);
+    const double Aspect = Extent.Height() > 0.0f ? static_cast<double>(Extent.Width()) / static_cast<double>(Extent.Height()) : 1.0;
+    ScreenX = static_cast<float>((CameraX / (CameraZ * TanV * Aspect) * 0.5 + 0.5) * Extent.Width() + Extent.MinimumX);
+    ScreenY = static_cast<float>((-CameraY / (CameraZ * TanV) * 0.5 + 0.5) * Extent.Height() + Extent.MinimumY);
+    return true;
+}
+
+void RecordPaintSceneProxy(RecordingSurface& Surface, const PlaneExtent& Extent,
+                           const WorkspaceCodex& Scene, bool SceneStanding)
+{
+    if (!SceneStanding)
+        return;
+    const ThemeToken Fill = Partial(0xF4F1E8u, 0.38f);
+    const ThemeToken Edge = Partial(0xFFFFFFu, 0.72f);
+    for (const CodexSceneEntry& Entry : Scene.Scene)
+    {
+        if (Entry.Subject != CodexSceneSubject::Geometry)
+            continue;
+        const CodexSceneMesh* Mesh = nullptr;
+        for (const CodexSceneMesh& Candidate : Scene.SceneMeshes)
+            if (Candidate.Naming == Entry.GeometryReference)
+            {
+                Mesh = &Candidate;
+                break;
+            }
+        if (Mesh == nullptr)
+            continue;
+        for (std::uint32_t Index = 0u; Index + 2u < Mesh->Indices.size(); Index += 3u)
+        {
+            float SX[3] = {};
+            float SY[3] = {};
+            bool Standing = true;
+            for (std::uint32_t Corner = 0u; Corner < 3u; ++Corner)
+            {
+                const std::uint32_t Vertex = Mesh->Indices[Index + Corner];
+                if (Vertex * 3u + 2u >= Mesh->Positions.size())
+                {
+                    Standing = false;
+                    break;
+                }
+                Standing = ProjectPaintScenePoint(Extent,
+                    Entry.Position[0] + Mesh->Positions[Vertex * 3u + 0u] * Entry.Scale[0],
+                    Entry.Position[1] + Mesh->Positions[Vertex * 3u + 1u] * Entry.Scale[1],
+                    Entry.Position[2] + Mesh->Positions[Vertex * 3u + 2u] * Entry.Scale[2],
+                    SX[Corner], SY[Corner]) && Standing;
+            }
+            if (Standing)
+            {
+                const float Corners[6] = { SX[0], SY[0], SX[1], SY[1], SX[2], SY[2] };
+                Surface.Tongue(Corners, 3u, Fill);
+                const float X0[2] = { SX[0], SX[1] }; const float Y0[2] = { SY[0], SY[1] };
+                const float X1[2] = { SX[1], SX[2] }; const float Y1[2] = { SY[1], SY[2] };
+                const float X2[2] = { SX[2], SX[0] }; const float Y2[2] = { SY[2], SY[0] };
+                Surface.Polyline(X0, Y0, 2u, Edge, 0.7f);
+                Surface.Polyline(X1, Y1, 2u, Edge, 0.7f);
+                Surface.Polyline(X2, Y2, 2u, Edge, 0.7f);
+            }
+        }
+    }
+}
+
+void RecordSharedViewportChrome(RecordingSurface& Surface, const PlaneExtent& Extent,
+                                const WorkspaceCodex& Scene, bool SceneStanding)
 {
     Surface.Confine(Extent);
+    Surface.Ground(Extent, Covering(0x0F1014u), 0.0f, CornerNone);
+    RecordPaintSceneProxy(Surface, Extent, Scene, SceneStanding);
     const float Step = 48.0f;
     const float CentreX = (Extent.MinimumX + Extent.MaximumX) * 0.5f;
     const float CentreY = (Extent.MinimumY + Extent.MaximumY) * 0.5f;
@@ -246,6 +340,8 @@ int main(int ArgumentCount, char** ArgumentValues)
     ContentBrowserPanel      ContentBrowser;
     ContentBrowserConfiguration  ContentBrowserApplied;
     ContentLibrary           ContentApplied;
+    WorkspaceCodex           OpenedScene = {};
+    bool                     OpenedSceneStanding = false;
 
     // 📝 The appearance file sits beside the executable and is read once, before any panel is recorded. A
     //    first run has no file yet, which is the ordinary case and not a fault — the build's own appearance
@@ -498,7 +594,8 @@ int main(int ArgumentCount, char** ArgumentValues)
                     for (std::uint32_t Leaf = 0u; Leaf < WorkspacePanels.LeafCount(); ++Leaf)
                     {
                         if (WorkspacePanels.LeafSubject(Leaf) == PanelSubject::Viewport)
-                            RecordSharedViewportChrome(Viewport.Surface(), WorkspacePanels.LeafBody(Leaf));
+                            RecordSharedViewportChrome(Viewport.Surface(), WorkspacePanels.LeafBody(Leaf),
+                                                       OpenedScene, OpenedSceneStanding);
                     }
                     if (WorkspacePanels.PointerCaptured(Index))
                         Viewport.Seam().WithholdPointer();
@@ -570,6 +667,28 @@ int main(int ArgumentCount, char** ArgumentValues)
                                           0.0f, CornerNone);
                 ContentBrowser.RecordBrowser(BrowserInterior, ContentApplied, ContentBrowserApplied);
                 ContentBrowser.RecordDeferred();
+                if (ContentBrowserApplied.ActivationRequested < ContentApplied.RecordCount)
+                {
+                    const ContentRecord& Requested = ContentApplied.Records[ContentBrowserApplied.ActivationRequested];
+                    const std::string Extension = Requested.Extension != nullptr && Requested.Extension[0] == '.'
+                                                ? std::string(Requested.Extension)
+                                                : "." + std::string(Requested.Extension != nullptr ? Requested.Extension : "");
+                    const std::filesystem::path ScenePath = std::filesystem::path("EngineContent") /
+                        (std::string(Requested.Naming) + Extension);
+                    WorkspaceSceneActivation Activating;
+                    const Outcome<ActivatedWorkspaceScene> ActivatedScene = Activating.Open(ScenePath.string(), "EngineContent");
+                    if (ActivatedScene.Resolved)
+                    {
+                        OpenedScene = ActivatedScene.Resolve().Workspace;
+                        OpenedSceneStanding = true;
+                    }
+                    else
+                    {
+                        std::printf("%s — workspace activation refused (reason %u: %s)\n", HostName,
+                                    static_cast<unsigned>(ActivatedScene.Error.DeclaredReason), ActivatedScene.Error.Detail);
+                    }
+                    ContentBrowserApplied.ActivationRequested = ContentLibrary::AbsentIndex;
+                }
 
                 // 🔴 Declared every tick or lost. Without it the drawer owns every contact inside its own
                 //    body, so taking a record or dragging the lattice slides the drawer instead.

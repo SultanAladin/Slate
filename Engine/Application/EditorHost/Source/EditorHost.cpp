@@ -245,6 +245,105 @@ std::string ShaderStreamDirectory()
     return Shader.lexically_normal().string();
 }
 
+bool ProjectWorkspaceCodexPoint(const SceneDirectoryContext& Scene,
+                                const PlaneExtent& Extent,
+                                double WorldX,
+                                double WorldY,
+                                double WorldZ,
+                                float& ScreenX,
+                                float& ScreenY)
+{
+    const double Yaw   = Scene.ViewportSkyCamera.AzimuthDegrees * 3.14159265358979323846 / 180.0;
+    const double Pitch = Scene.ViewportSkyCamera.ElevationDegrees * 3.14159265358979323846 / 180.0;
+    const double CosP = std::cos(Pitch), SinP = std::sin(Pitch);
+    const double SinY = std::sin(Yaw),   CosY = std::cos(Yaw);
+    const double ForwardX = CosP * SinY;
+    const double ForwardY = SinP;
+    const double ForwardZ = CosP * CosY;
+    const double RightX = CosY;
+    const double RightZ = -SinY;
+    const double UpX = -SinP * SinY;
+    const double UpY = CosP;
+    const double UpZ = -SinP * CosY;
+
+    const double DX = WorldX - Scene.CameraPosition[0];
+    const double DY = WorldY - Scene.CameraPosition[1];
+    const double DZ = WorldZ - Scene.CameraPosition[2];
+    const double CameraX = DX * RightX + DZ * RightZ;
+    const double CameraY = DX * UpX + DY * UpY + DZ * UpZ;
+    const double CameraZ = DX * ForwardX + DY * ForwardY + DZ * ForwardZ;
+    if (CameraZ <= 0.01)
+        return false;
+
+    const double HalfV = Scene.ViewportSkyCamera.FieldOfViewDegrees * 0.5 * 3.14159265358979323846 / 180.0;
+    const double TanV = std::tan(HalfV);
+    const double Aspect = Extent.Height() > 0.0f ? static_cast<double>(Extent.Width()) / static_cast<double>(Extent.Height()) : 1.0;
+    const double TanH = TanV * Aspect;
+    ScreenX = static_cast<float>((CameraX / (CameraZ * TanH) * 0.5 + 0.5) * Extent.Width() + Extent.MinimumX);
+    ScreenY = static_cast<float>((-CameraY / (CameraZ * TanV) * 0.5 + 0.5) * Extent.Height() + Extent.MinimumY);
+    return true;
+}
+
+void RecordWorkspaceCodexProxy(RecordingSurface& Surface,
+                               const PlaneExtent& Extent,
+                               const SceneDirectoryContext& SceneApplied,
+                               const WorkspaceCodex& Scene,
+                               bool SceneStanding)
+{
+    if (!SceneStanding)
+        return;
+
+    Surface.Confine(Extent);
+    const ThemeToken Fill = Partial(0xF4F1E8u, 0.38f);
+    const ThemeToken Edge = Partial(0xFFFFFFu, 0.72f);
+    for (const CodexSceneEntry& Entry : Scene.Scene)
+    {
+        if (Entry.Subject != CodexSceneSubject::Geometry)
+            continue;
+        const CodexSceneMesh* Mesh = nullptr;
+        for (const CodexSceneMesh& Candidate : Scene.SceneMeshes)
+            if (Candidate.Naming == Entry.GeometryReference)
+            {
+                Mesh = &Candidate;
+                break;
+            }
+        if (Mesh == nullptr)
+            continue;
+        for (std::uint32_t Index = 0u; Index + 2u < Mesh->Indices.size(); Index += 3u)
+        {
+            float SX[3] = {};
+            float SY[3] = {};
+            bool Standing = true;
+            for (std::uint32_t Corner = 0u; Corner < 3u; ++Corner)
+            {
+                const std::uint32_t Vertex = Mesh->Indices[Index + Corner];
+                if (Vertex * 3u + 2u >= Mesh->Positions.size())
+                {
+                    Standing = false;
+                    break;
+                }
+                Standing = ProjectWorkspaceCodexPoint(SceneApplied, Extent,
+                    Entry.Position[0] + Mesh->Positions[Vertex * 3u + 0u] * Entry.Scale[0],
+                    Entry.Position[1] + Mesh->Positions[Vertex * 3u + 1u] * Entry.Scale[1],
+                    Entry.Position[2] + Mesh->Positions[Vertex * 3u + 2u] * Entry.Scale[2],
+                    SX[Corner], SY[Corner]) && Standing;
+            }
+            if (Standing)
+            {
+                const float Corners[6] = { SX[0], SY[0], SX[1], SY[1], SX[2], SY[2] };
+                Surface.Tongue(Corners, 3u, Fill);
+                const float X0[2] = { SX[0], SX[1] }; const float Y0[2] = { SY[0], SY[1] };
+                const float X1[2] = { SX[1], SX[2] }; const float Y1[2] = { SY[1], SY[2] };
+                const float X2[2] = { SX[2], SX[0] }; const float Y2[2] = { SY[2], SY[0] };
+                Surface.Polyline(X0, Y0, 2u, Edge, 0.7f);
+                Surface.Polyline(X1, Y1, 2u, Edge, 0.7f);
+                Surface.Polyline(X2, Y2, 2u, Edge, 0.7f);
+            }
+        }
+    }
+    Surface.Release();
+}
+
 InterfaceAttachment Attach(const DeviceOffering& Offered)
 {
     InterfaceAttachment Incoming = {};
@@ -387,17 +486,18 @@ int main(int ArgumentCount, char** ArgumentValues)
     // 📐 The editor's scene directory — the sun and sky the viewport renders, registered under the
     //    Lighting grouping. `Sun` and `Sky` are the two appended `EntitySubject` ordinals, so the
     //    inspector's slider cards branch on them while every reference entity keeps its g_NN identity.
-    static EntityRow EditorEntities[7] =
+    static EntityRow EditorEntities[6] =
     {
-        { "Level_01_City",           EntitySubject::Level,      0u, 0xFFFFFFFFu, 3u, "city level main", CameraRole::Absent, 1001u },
-        { "Lighting",                EntitySubject::Grouping,   1u,  0u,         2u, "folder lighting", CameraRole::Absent, 1002u },
-        { "Directional Light (Sun)", EntitySubject::Sun,        2u,  1u,         0u, "sun light directional", CameraRole::Absent, 1003u },
-        { "Sky Atmosphere",          EntitySubject::Sky,        2u,  1u,         0u, "sky atmosphere dome", CameraRole::Absent, 1004u },
-        { "Environment",             EntitySubject::Grouping,   1u,  0u,         1u, "folder environment", CameraRole::Absent, 1005u },
-        { "Post Process Volume",     EntitySubject::Actor,      2u,  4u,         0u, "post volume effects", CameraRole::Absent, 1006u },
-        { "Editor Camera",           EntitySubject::Camera,     1u,  0u,         0u, "camera fly view", CameraRole::Editor, 1007u }
+        { "Lighting",                EntitySubject::Grouping,   0u, 0xFFFFFFFFu, 2u, "folder lighting", CameraRole::Absent, 1002u },
+        { "Directional Light (Sun)", EntitySubject::Sun,        1u,  0u,         0u, "sun light directional", CameraRole::Absent, 1003u },
+        { "Sky Atmosphere",          EntitySubject::Sky,        1u,  0u,         0u, "sky atmosphere dome", CameraRole::Absent, 1004u },
+        { "Environment",             EntitySubject::Grouping,   0u, 0xFFFFFFFFu, 1u, "folder environment", CameraRole::Absent, 1005u },
+        { "Post Process Volume",     EntitySubject::Actor,      1u,  3u,         0u, "post volume effects", CameraRole::Absent, 1006u },
+        { "Editor Camera",           EntitySubject::Camera,     0u, 0xFFFFFFFFu, 0u, "camera fly view", CameraRole::Editor, 1007u }
     };
     static SketchSceneDirectoryStorage WorkspaceSceneRows = {};
+    static WorkspaceCodex OpenedScene = {};
+    static bool OpenedSceneStanding = false;
     static const char* const WhiteDielectricChannels[] = { "Base Color", "Metallic", "Roughness", "Opacity" };
     static TextureLayerRow WhiteDielectricLayer = {
         "White Dielectric", TextureLayerClassification::Material, "Normal", 100u, 0xE7E3D8u, 0xE7E3D8u,
@@ -406,7 +506,7 @@ int main(int ArgumentCount, char** ArgumentValues)
         4u, 0u, 0xFFFFFFFFu, 0u, true, "white dielectric shared tea service", false, "", true, 4001u
     };
     EntityRow* PresentedEntities = EditorEntities;
-    std::uint32_t PresentedEntityCount = 7u;
+    std::uint32_t PresentedEntityCount = 6u;
 
     FontLoader                  Fonts;
 
@@ -1051,6 +1151,8 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 LeafOverlay.Reset();
 
                                 SceneDirectory.RecordViewportSky(LeafBody, SceneApplied);
+                                RecordWorkspaceCodexProxy(Viewport.Surface(), LeafBody, SceneApplied,
+                                                          OpenedScene, OpenedSceneStanding);
 
                                 // 📐 The ground lattice is no longer recorded here. It is solved per
                                 //    pixel in the overlay pass's mode 3, from the camera pushed below,
@@ -1530,10 +1632,18 @@ int main(int ArgumentCount, char** ArgumentValues)
                     else
                     {
                         const WorkspaceCodex& Loaded = ActivatedScene.Resolve().Workspace;
-                        BridgeSketchSceneDirectory(Loaded, WorkspaceSceneRows);
+                        OpenedScene = Loaded;
+                        OpenedSceneStanding = true;
+                        BridgeSketchSceneDirectory(OpenedScene, WorkspaceSceneRows);
                         PresentedEntities = WorkspaceSceneRows.Rows;
                         PresentedEntityCount = WorkspaceSceneRows.RowCount;
-                        ApplySketchSceneEnvironment(Loaded, SceneApplied);
+                        ApplySketchSceneEnvironment(OpenedScene, SceneApplied);
+                        EditorCamera.Position[0] = 0.0;
+                        EditorCamera.Position[1] = 1.2;
+                        EditorCamera.Position[2] = -4.0;
+                        EditorCamera.YawDegrees = 0.0;
+                        EditorCamera.PitchDegrees = -8.0;
+                        EditorCamera.Snap();
 
                         // The workspace names one shared pigment for every tea-service geometry entry.
                         // Present it once in the host-owned layer model rather than fabricating one layer per mesh.
