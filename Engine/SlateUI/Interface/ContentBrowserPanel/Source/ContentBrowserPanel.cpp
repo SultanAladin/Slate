@@ -870,7 +870,8 @@ void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrar
         const bool Current = Library.Taken == Index;
         const bool Over     = Hovered(Card);
 
-        if (Pressed(LatticeCards[Target], Card, Applied))
+        if (Pressed(LatticeCards[Target], Card, Applied) ||
+            (Over && Sampled.ContactPressed && !Interaction->AnyDisclosed()))
         {
             Library.Taken = Index;
             if (Library.Records[Index].Archive == ContentArchive::Arrangement &&
@@ -1187,7 +1188,9 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
                                         Extent.MaximumY - 12.0f - Measure.ImportY,
                                         Extent.Width() - 24.0f, Measure.ImportY);
 
-    if (Pressed(ChromeCells[5], Import, Applied, "Import this record"))
+    const bool ImportOver = Hovered(Import);
+    if (Pressed(ChromeCells[5], Import, Applied, "Import this record") ||
+        (ImportOver && Sampled.ContactPressed && !Interaction->AnyDisclosed()))
     {
         if (Record.Archive == ContentArchive::Arrangement &&
             (std::strcmp(Record.Extension, ".codex") == 0 || std::strcmp(Record.Extension, "codex") == 0))
@@ -1196,7 +1199,6 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
             Applied.Page = ContentBrowserPage::Import;
     }
 
-    const bool ImportOver = Hovered(Import);
 
     Surface->Ground(Import, ImportOver ? Colour.EmphaticHovered : Colour.Emphatic, Measure.RadiusSoft);
 

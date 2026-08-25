@@ -255,6 +255,36 @@ std::string ShaderStreamDirectory()
     return (Binary / ".." / "Shader").lexically_normal().string();
 }
 
+
+std::filesystem::path ResolveEngineContentRoot(const std::filesystem::path& ExecutablePath)
+{
+    const auto Standing = [](const std::filesystem::path& Candidate)
+    {
+        return std::filesystem::exists(Candidate / "WhiteTeaService.codex") ||
+               std::filesystem::exists(Candidate / "FontArchives");
+    };
+    std::filesystem::path Starts[3] =
+    {
+        std::filesystem::current_path() / "EngineContent",
+        ExecutablePath.parent_path() / "EngineContent",
+        ExecutablePath.parent_path().parent_path() / "EngineContent"
+    };
+    for (const std::filesystem::path& Candidate : Starts)
+        if (Standing(Candidate))
+            return Candidate.lexically_normal();
+    std::filesystem::path Walk = std::filesystem::current_path();
+    for (std::uint32_t Step = 0u; Step < 8u; ++Step)
+    {
+        const std::filesystem::path Candidate = Walk / "EngineContent";
+        if (Standing(Candidate))
+            return Candidate.lexically_normal();
+        if (!Walk.has_parent_path() || Walk.parent_path() == Walk)
+            break;
+        Walk = Walk.parent_path();
+    }
+    return (std::filesystem::current_path() / "EngineContent").lexically_normal();
+}
+
 InterfaceAttachment Attach(const DeviceOffering& Offered)
 {
     InterfaceAttachment Incoming = {};
@@ -396,6 +426,9 @@ double Dot(const SpatialDirection& LeftDirection,
 
 SpatialBasis ResolveSketchBasis(const SketchStructure& Sketch)
 {
+    if (!Sketch.Declared())
+        return { {}, { 1.0, 0.0, 0.0 }, { 0.0, 0.0, 1.0 }, { 0.0, 1.0, 0.0 } };
+
     const SketchPlane& Plane = Sketch.HeldPlane();
     const SpatialDirection Along = Normalize(Plane.AlongDirection);
     const SpatialDirection Normal = Normalize(Plane.Normal);
@@ -4137,6 +4170,8 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
     if (Pointer.ContactPressed)
     {
         PointerTaken = true;
+        if (!Sketch.Declared())
+            Sketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 } });
         if (Draft.Subject == ParametricDraftSubject::Line)
         {
             AppendDraftAnchor(Draft);
@@ -4697,139 +4732,14 @@ void SeedParametricWorkspace(WorkspaceNameIndex& Naming,
                              WorkspaceRecordStructure& Records,
                              WorkspaceRevisionSequence& Revisions)
 {
-    if (Records.DeclaredCount() != 0u)
-        return;
-
-    Sketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 } });
-
-    const SketchCurveName CurveName = Sketch.DeclareLine({ -120.0, 0.0, -40.0 },
-                                                         {  120.0, 0.0, -40.0 });
-    const SketchPointName PointName = { (CurveName.IssuedIndex << 8u) | 1u };
-
-    const Outcome<ProfileNameInFeature> ProfileOutcome =
-        Sketch.DeclareRegularPolygon({ 0.0, 0.0, 60.0 }, 70.0, 5u);
-    const ProfileNameInFeature DeclaredProfile = ProfileOutcome.Resolved ? ProfileOutcome.Resolve() : ProfileNameInFeature{};
-
-    ReferenceSpecification PointReference = {};
-    PointReference.Subject = ReferenceSubject::SketchPoint;
-    PointReference.SketchPoint = { (CurveName.IssuedIndex << 8u) | 1u };
-
-    ReferenceSpecification PointReference2 = {};
-    PointReference2.Subject = ReferenceSubject::SketchPoint;
-    PointReference2.SketchPoint = { (CurveName.IssuedIndex << 8u) | 2u };
-
-    ReferenceSpecification CurveReference = {};
-    CurveReference.Subject = ReferenceSubject::SketchCurve;
-    CurveReference.SketchCurve = CurveName;
-
-    DimensionSpecification DeclaredDimension = {};
-    DeclaredDimension.Subject = DimensionSubject::Horizontal;
-    DeclaredDimension.Primary = PointReference;
-    DeclaredDimension.Secondary = PointReference2;
-    DeclaredDimension.Target = 240.0;
-    const DimensionName DeclaredDimensionName = Sketch.DeclareDimension(DeclaredDimension);
-
-    ConstraintSpecification DeclaredConstraint = {};
-    DeclaredConstraint.Subject = ConstraintSubject::Horizontal;
-    DeclaredConstraint.Primary = CurveReference;
-    const ConstraintName DeclaredConstraintName = Sketch.DeclareConstraint(DeclaredConstraint);
-
-    const WorkspaceRecordName FolderSketch = Records.Declare(
-        WorkspaceRecord{ WorkspaceRecordSubject::Folder, {}, WorkspaceCategory::Sketch,
-                         Naming.Issue(WorkspaceRecordSubject::Folder) });
-    Discard(Records.SetFolderCategory(FolderSketch, WorkspaceCategory::Sketch));
-
-    const WorkspaceRecordName FolderGeometry = Records.Declare(
-        WorkspaceRecord{ WorkspaceRecordSubject::Folder, {}, WorkspaceCategory::Sketch,
-                         Naming.Issue(WorkspaceRecordSubject::Folder) });
-    Discard(Records.SetFolderCategory(FolderGeometry, WorkspaceCategory::Geometry));
-
-    const WorkspaceRecordName FolderAnnotation = Records.Declare(
-        WorkspaceRecord{ WorkspaceRecordSubject::Folder, {}, WorkspaceCategory::Sketch,
-                         Naming.Issue(WorkspaceRecordSubject::Folder) });
-    Discard(Records.SetFolderCategory(FolderAnnotation, WorkspaceCategory::Annotation));
-
-    const WorkspaceRecordName FolderOperation = Records.Declare(
-        WorkspaceRecord{ WorkspaceRecordSubject::Folder, {}, WorkspaceCategory::Sketch,
-                         Naming.Issue(WorkspaceRecordSubject::Folder) });
-    Discard(Records.SetFolderCategory(FolderOperation, WorkspaceCategory::Operation));
-
-    WorkspaceRecord PointRecord = {};
-    PointRecord.Subject = WorkspaceRecordSubject::Point;
-    PointRecord.ParentFolder = FolderSketch;
-    PointRecord.Naming = Naming.Issue(WorkspaceRecordSubject::Point);
-    PointRecord.SketchPoint = PointName;
-    const WorkspaceRecordName Point = Records.Declare(PointRecord);
-
-    WorkspaceRecord CurveRecord = {};
-    CurveRecord.Subject = WorkspaceRecordSubject::OpenCurve;
-    CurveRecord.ParentFolder = FolderSketch;
-    CurveRecord.Naming = Naming.Issue(WorkspaceRecordSubject::OpenCurve);
-    CurveRecord.SketchCurve = CurveName;
-    const WorkspaceRecordName Curve = Records.Declare(CurveRecord);
-
-    WorkspaceRecord ProfileRecord = {};
-    ProfileRecord.Subject = WorkspaceRecordSubject::ClosedProfile;
-    ProfileRecord.ParentFolder = FolderSketch;
-    ProfileRecord.Naming = Naming.Issue(WorkspaceRecordSubject::ClosedProfile);
-    ProfileRecord.ClosedSemantic = true;
-    ProfileRecord.Profile = DeclaredProfile;
-    const WorkspaceRecordName Profile = Records.Declare(ProfileRecord);
-
-    WorkspaceRecord SurfaceRecord = {};
-    SurfaceRecord.Subject = WorkspaceRecordSubject::ThinSurface;
-    SurfaceRecord.ParentFolder = FolderGeometry;
-    SurfaceRecord.Naming = Naming.Issue(WorkspaceRecordSubject::ThinSurface);
-    SurfaceRecord.Profile = DeclaredProfile;
-    const WorkspaceRecordName Surface = Records.Declare(SurfaceRecord);
-
-    WorkspaceRecord SolidRecord = {};
-    SolidRecord.Subject = WorkspaceRecordSubject::Solid;
-    SolidRecord.ParentFolder = FolderGeometry;
-    SolidRecord.Naming = Naming.Issue(WorkspaceRecordSubject::Solid);
-    SolidRecord.ClosedSemantic = true;
-    SolidRecord.Profile = DeclaredProfile;
-    SolidRecord.Solid = { 1u };
-    const WorkspaceRecordName Solid = Records.Declare(SolidRecord);
-
-    WorkspaceRecord DimensionRecord = {};
-    DimensionRecord.Subject = WorkspaceRecordSubject::Dimension;
-    DimensionRecord.ParentFolder = FolderAnnotation;
-    DimensionRecord.Naming = Naming.Issue(WorkspaceRecordSubject::Dimension);
-    DimensionRecord.Dimension = DeclaredDimensionName;
-    const WorkspaceRecordName Dimension = Records.Declare(DimensionRecord);
-
-    WorkspaceRecord ConstraintRecord = {};
-    ConstraintRecord.Subject = WorkspaceRecordSubject::Constraint;
-    ConstraintRecord.ParentFolder = FolderAnnotation;
-    ConstraintRecord.Naming = Naming.Issue(WorkspaceRecordSubject::Constraint);
-    ConstraintRecord.Constraint = DeclaredConstraintName;
-    const WorkspaceRecordName Constraint = Records.Declare(ConstraintRecord);
-
-    WorkspaceRecord PatternRecord = {};
-    PatternRecord.Subject = WorkspaceRecordSubject::Pattern;
-    PatternRecord.ParentFolder = FolderOperation;
-    PatternRecord.Naming = Naming.Issue(WorkspaceRecordSubject::Pattern);
-    PatternRecord.Feature = { 1u };
-    const WorkspaceRecordName Pattern = Records.Declare(PatternRecord);
-
-    WorkspaceRecord MirrorRecord = {};
-    MirrorRecord.Subject = WorkspaceRecordSubject::Mirror;
-    MirrorRecord.ParentFolder = FolderOperation;
-    MirrorRecord.Naming = Naming.Issue(WorkspaceRecordSubject::Mirror);
-    MirrorRecord.Feature = { 2u };
-    const WorkspaceRecordName Mirror = Records.Declare(MirrorRecord);
-
-    Revisions.Seal("Declared Point_1", "Create Point", { Point }, 1u);
-    Revisions.Seal("Declared Line_1", "Create Curve", { Curve }, 2u);
-    Revisions.Seal("Closed Profile_1", "Resolve Profile", { Curve, Profile }, 3u);
-    Revisions.Seal("Raised ThinSurface_1", "Extrude Surface", { Profile, Surface }, 4u);
-    Revisions.Seal("Raised Solid_1", "Extrude Solid", { Profile, Solid }, 5u);
-    Revisions.Seal("Added Dimension_1", "Measure", { Dimension, Profile }, 6u);
-    Revisions.Seal("Added Constraint_1", "Constrain", { Constraint, Curve, Point }, 7u);
-    Revisions.Seal("Patterned Solid_1", "Pattern", { Pattern, Solid }, 8u);
-    Revisions.Seal("Mirrored Solid_1", "Mirror", { Mirror, Solid }, 9u);
+    // Parametric sketch starts empty. The default grid/basis is supplied by
+    // ResolveSketchBasis until the artist creates real CAD records.
+    static_cast<void>(Naming);
+    static_cast<void>(Sketch);
+    static_cast<void>(Records);
+    static_cast<void>(Revisions);
 }
+
 
 void ConstructParametricLayout(PanelStructure& Partition)
 {
@@ -5239,7 +5149,8 @@ int main(int ArgumentCount, char** ArgumentValues)
     const std::filesystem::path ExecutablePath = InvokedAs[0] != '\0'
                                                ? std::filesystem::absolute(InvokedAs)
                                                : std::filesystem::current_path();
-    const std::string FontRoot = (ExecutablePath.parent_path() / "EngineContent" / "FontArchives").string();
+    const std::filesystem::path EngineContentRoot = ResolveEngineContentRoot(ExecutablePath);
+    const std::string FontRoot = (EngineContentRoot / "FontArchives").string();
 
     {
         ThemeSelection Recorded;
@@ -5310,7 +5221,7 @@ int main(int ArgumentCount, char** ArgumentValues)
 
     ContentBrowser.Reapply(Viewport.Appearance());
     ApplyReferenceContent(ContentApplied);
-    PopulateImportDirectory(ContentBrowserApplied, std::filesystem::path("EngineContent"));
+    PopulateImportDirectory(ContentBrowserApplied, EngineContentRoot);
 
     if (!ParametricInteraction.AttachMotion(Viewport.MotionSource()).Resolved)
     {
@@ -5797,10 +5708,10 @@ int main(int ArgumentCount, char** ArgumentValues)
                 const std::string Extension = Requested.Extension != nullptr && Requested.Extension[0] == '.'
                                             ? std::string(Requested.Extension)
                                             : "." + std::string(Requested.Extension != nullptr ? Requested.Extension : "");
-                const std::filesystem::path ScenePath = std::filesystem::path("EngineContent") /
+                const std::filesystem::path ScenePath = EngineContentRoot /
                     (std::string(Requested.Naming) + Extension);
                 WorkspaceSceneActivation Activating;
-                const Outcome<ActivatedWorkspaceScene> ActivatedScene = Activating.Open(ScenePath.string(), "EngineContent");
+                const Outcome<ActivatedWorkspaceScene> ActivatedScene = Activating.Open(ScenePath.string(), EngineContentRoot.string());
                 if (!ActivatedScene.Resolved)
                 {
                     std::printf("%s — workspace activation refused (reason %u: %s)\n", HostName,

@@ -344,6 +344,36 @@ void RecordWorkspaceCodexProxy(RecordingSurface& Surface,
     Surface.Release();
 }
 
+
+std::filesystem::path ResolveEngineContentRoot(const std::filesystem::path& ExecutablePath)
+{
+    const auto Standing = [](const std::filesystem::path& Candidate)
+    {
+        return std::filesystem::exists(Candidate / "WhiteTeaService.codex") ||
+               std::filesystem::exists(Candidate / "FontArchives");
+    };
+    std::filesystem::path Starts[3] =
+    {
+        std::filesystem::current_path() / "EngineContent",
+        ExecutablePath.parent_path() / "EngineContent",
+        ExecutablePath.parent_path().parent_path() / "EngineContent"
+    };
+    for (const std::filesystem::path& Candidate : Starts)
+        if (Standing(Candidate))
+            return Candidate.lexically_normal();
+    std::filesystem::path Walk = std::filesystem::current_path();
+    for (std::uint32_t Step = 0u; Step < 8u; ++Step)
+    {
+        const std::filesystem::path Candidate = Walk / "EngineContent";
+        if (Standing(Candidate))
+            return Candidate.lexically_normal();
+        if (!Walk.has_parent_path() || Walk.parent_path() == Walk)
+            break;
+        Walk = Walk.parent_path();
+    }
+    return (std::filesystem::current_path() / "EngineContent").lexically_normal();
+}
+
 InterfaceAttachment Attach(const DeviceOffering& Offered)
 {
     InterfaceAttachment Incoming = {};
@@ -527,7 +557,8 @@ int main(int ArgumentCount, char** ArgumentValues)
     const std::filesystem::path ExecutablePath = InvokedAs[0] != '\0'
                                                ? std::filesystem::absolute(InvokedAs)
                                                : std::filesystem::current_path();
-    const std::string FontRoot = (ExecutablePath.parent_path() / "EngineContent" / "FontArchives").string();
+    const std::filesystem::path EngineContentRoot = ResolveEngineContentRoot(ExecutablePath);
+    const std::string FontRoot = (EngineContentRoot / "FontArchives").string();
 
     {
         ThemeSelection Recorded;
@@ -848,7 +879,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     ContentBrowser.Reapply(Viewport.Appearance());
 
     ApplyReferenceContent(ContentApplied);
-    PopulateImportDirectory(ContentBrowserApplied, std::filesystem::path("EngineContent"));
+    PopulateImportDirectory(ContentBrowserApplied, EngineContentRoot);
 
     // 📝 🔴 The editor opens a VACANT workspace, where the painting host opens a canvas. This is the one
     //    thing that distinguishes the two hosts, and it is the reason there are two: the editor carries
@@ -1620,10 +1651,10 @@ int main(int ArgumentCount, char** ArgumentValues)
                     const std::string Extension = Requested.Extension != nullptr && Requested.Extension[0] == '.'
                                                 ? std::string(Requested.Extension)
                                                 : "." + std::string(Requested.Extension != nullptr ? Requested.Extension : "");
-                    const std::filesystem::path ScenePath = std::filesystem::path("EngineContent") /
+                    const std::filesystem::path ScenePath = EngineContentRoot /
                         (std::string(Requested.Naming) + Extension);
                     WorkspaceSceneActivation Activating;
-                    const Outcome<ActivatedWorkspaceScene> ActivatedScene = Activating.Open(ScenePath.string(), "EngineContent");
+                    const Outcome<ActivatedWorkspaceScene> ActivatedScene = Activating.Open(ScenePath.string(), EngineContentRoot.string());
                     if (!ActivatedScene.Resolved)
                     {
                         std::printf("%s — workspace activation refused (reason %u: %s)\n", HostName,
