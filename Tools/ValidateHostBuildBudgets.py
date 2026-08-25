@@ -22,13 +22,14 @@ def main() -> int:
     motion = read("Engine/SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h")
     match = re.search(r"EaseCapacity\s*=\s*(\d+)u", motion)
     require(match is not None, "MotionIntegrator must declare EaseCapacity")
-    require(int(match.group(1)) >= 4096, "MotionIntegrator eased capacity must cover the combined editor panels")
-    require("4,053 eased records" in motion, "MotionIntegrator comment must record the editor demand")
+    require(int(match.group(1)) >= 8192, "MotionIntegrator eased capacity must cover runtime editor startup registrations")
+    require("static storage in the windowed hosts" in motion, "MotionIntegrator comment must record why the reserve is safe")
 
     editor = read("Engine/Application/EditorHost/Source/EditorHost.cpp")
     require("constexpr std::size_t AutomaticUiBytes = sizeof(ShaderCodec) + sizeof(WorkspaceOverlayPass);" in editor,
             "EditorHost stack assertion must only count members still on automatic storage")
     for needle in [
+        "static ViewportSequence Viewport;",
         "static WorkspaceIndex          Workspaces;",
         "static WorkspacePanel          Workspace;",
         "static EditorPanel             WorkspacePanels;",
@@ -46,12 +47,15 @@ def main() -> int:
     require("ActivatedScene = Activating.Open" in editor, "EditorHost activation local should not shadow Workspace")
 
     paint = read("Engine/Application/PaintHost/Source/PaintHost.cpp")
+    require("static ViewportSequence Viewport;" in paint, "PaintHost must keep the motion-heavy viewport sequence off the stack")
     require("std::strncpy" not in paint, "PaintHost must avoid MSVC strncpy warning")
 
     validation = read("Engine/Application/InterfaceValidationHost/Source/InterfaceValidationHost.cpp")
     require("std::strncpy" not in validation, "InterfaceValidationHost must avoid MSVC strncpy warning")
 
     parametric = read("Engine/Application/ParametricSketchHost/Source/ParametricSketchHost.cpp")
+    require("static ViewportSequence Viewport;" in parametric,
+            "ParametricSketchHost must keep the motion-heavy viewport sequence off the stack")
     require("_dupenv_s(&Home" in parametric, "ParametricSketchHost must avoid MSVC getenv warning on Windows")
     require("std::strncpy" not in parametric, "ParametricSketchHost must avoid MSVC strncpy warning")
     require("ActivatedScene = Activating.Open" in parametric,

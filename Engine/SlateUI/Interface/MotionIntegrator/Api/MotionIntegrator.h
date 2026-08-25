@@ -97,10 +97,12 @@ public:
     // 🔴 The editor's exact registration declarations now include all three texture filters, every channel
     //    control, and the import/export rails. At 2560 the last owner (Content Browser) was rejected during
     //    construction. The ceiling is a .bss reservation, so this safety margin costs bytes and never a tick.
-    // The EditorHost owns the Content Browser, scene directory, paint stack, sketch panels and eleven
-    // workspace leaves. Their bounded registrations require 4,053 eased records; 4,096 retains a small
-    // fixed reserve while staying power-of-two sized for diagnostics.
-    static constexpr std::uint32_t EaseCapacity   = 4096u;   // [-] - host-wide control fades and page motions
+    // The EditorHost owns the Content Browser, scene directory, paint stack, sketch panels, facet filters,
+    // notices, page rails and eleven workspace leaves. The editor also constructs those panels before the
+    // browser, so a small underestimate rejects the browser at startup. The storage-heavy sequence lives in
+    // static storage in the windowed hosts; this ceiling is therefore a deliberate host-wide reserve rather
+    // than a thread-stack burden.
+    static constexpr std::uint32_t EaseCapacity   = 8192u;   // [-] - host-wide control fades and page motions
 
     MotionIntegrator()                                   = default;
     MotionIntegrator(const MotionIntegrator&)            = delete;

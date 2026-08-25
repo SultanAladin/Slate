@@ -130,7 +130,7 @@ int main(int ArgumentCount, char** ArgumentValues)
         return 1;
 
     // ② The viewport sequence — springs, drawers, and the assembled recording.
-    ViewportSequence Viewport;
+    static ViewportSequence Viewport;
 
     DrawerDeclaration NorthDrawer;
     NorthDrawer.Caption       = "ControlCentre";

@@ -5234,7 +5234,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     if (!Lifetime.ConstructHost(Declared).Resolved)
         return 1;
 
-    ViewportSequence Viewport;
+    static ViewportSequence Viewport;
     DrawerDeclaration NorthDrawer = { "ControlCentre", SymbolSubject::PulseTrace, 2u };
     DrawerDeclaration SouthDrawer = { "ContentBrowser", SymbolSubject::FolderClosed, 3u };
     if (!Viewport.ConstructViewportSequence(Attach(Lifetime.Offering()), NorthDrawer, SouthDrawer).Resolved)
