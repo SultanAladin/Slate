@@ -3454,6 +3454,33 @@ bool SelectSceneMeshAtPointer(const PlaneExtent& Extent,
     return true;
 }
 
+ThemeToken CodexMaterialToken(const WorkspaceCodex& Scene,
+                              const CodexSceneEntry& Entry,
+                              double Alpha,
+                              std::uint32_t Fallback)
+{
+    for (const WorkspaceMaterialRecord& Material : Scene.Materials)
+    {
+        if (Material.Reference != Entry.MaterialReference)
+            continue;
+        const ChannelSpecification& Albedo = Material.Material.Channel(ChannelSubject::AlbedoColour);
+        if (!Albedo.ChannelDeclared || Albedo.Measured != ChannelMeasure::Reflectance ||
+            Albedo.Source != ChannelSource::Constant || !Albedo.ConstantColour.ColourDeclared())
+            break;
+
+        const auto Byte = [](double Value) -> std::uint32_t
+        {
+            const double Clamped = std::max(0.0, std::min(1.0, Value));
+            return static_cast<std::uint32_t>(Clamped * 255.0 + 0.5);
+        };
+        const std::uint32_t Packed = (Byte(Albedo.ConstantColour.RedCoordinate) << 16u)
+                                   | (Byte(Albedo.ConstantColour.GreenCoordinate) << 8u)
+                                   | Byte(Albedo.ConstantColour.BlueCoordinate);
+        return Partial(Packed, Alpha);
+    }
+    return Partial(Fallback, Alpha);
+}
+
 void RecordCodexSceneProxy(RecordingSurface& Surface,
                            const PlaneExtent& Extent,
                            const SpatialBasis& Basis,
@@ -3468,7 +3495,6 @@ void RecordCodexSceneProxy(RecordingSurface& Surface,
         return;
 
     Surface.Confine(Extent);
-    const ThemeToken Fill = Partial(0xF4F1E8u, 0.34);
     const ThemeToken FaceLit = Partial(0xFFFFFFu, 0.22);
     const ThemeToken Edge = Partial(0xE7E3D8u, 0.74);
     const ThemeToken SelectedEdge = Partial(0xFBBF24u, 0.95);
@@ -3481,6 +3507,7 @@ void RecordCodexSceneProxy(RecordingSurface& Surface,
             continue;
 
         const SpatialPoint Centre = CodexScenePosition(Entry);
+        const ThemeToken Fill = CodexMaterialToken(Scene, Entry, 0.34, 0xF4F1E8u);
         const CodexSceneMesh* Mesh = nullptr;
         for (const CodexSceneMesh& Candidate : Scene.SceneMeshes)
             if (Candidate.Naming == Entry.GeometryReference)
