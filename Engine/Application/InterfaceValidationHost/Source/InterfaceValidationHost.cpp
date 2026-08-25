@@ -373,14 +373,14 @@ int main(int ArgumentCount, char** ArgumentValues)
     const ValidationIdentities Target = Registered.Resolve();
 
     ThemeProfile Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, Selected);
-    std::strncpy(Appearance.Fonts.Family, Selected.FontFamily, sizeof(Appearance.Fonts.Family) - 1u);
+    std::snprintf(Appearance.Fonts.Family, sizeof(Appearance.Fonts.Family), "%s", Selected.FontFamily);
     Discard(Interface.ApplyWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);
     Surface.ApplyFontLoader(Fonts);
     Discard(Fonts.Discover(FontArchivesPath));
     Discard(Fonts.Load(FontArchivesPath, Appearance.Fonts, 1.0f));
-    std::strncpy(LoadedFontFamily, Appearance.Fonts.Family, sizeof(LoadedFontFamily) - 1u);
+    std::snprintf(LoadedFontFamily, sizeof(LoadedFontFamily), "%s", Appearance.Fonts.Family);
 
     // Every construct refusal below is reported WITH its detail and flushed before the return. A refusal
     //    that printed only a headline and left the text in a buffered stdout was invisible: the window is
@@ -624,7 +624,7 @@ int main(int ArgumentCount, char** ArgumentValues)
         if (Display.Width != ResolvedAgainst)
         {
             Appearance      = ResolveTinted(Display.DisplayScale, ArtistScale, Display.Width, Selected);
-            std::strncpy(Appearance.Fonts.Family, Selected.FontFamily, sizeof(Appearance.Fonts.Family) - 1u);
+            std::snprintf(Appearance.Fonts.Family, sizeof(Appearance.Fonts.Family), "%s", Selected.FontFamily);
             Discard(Interface.ApplyWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);
@@ -633,7 +633,7 @@ int main(int ArgumentCount, char** ArgumentValues)
         Discard(Fonts.Discover(FontArchivesPath));
         Discard(Fonts.PreparePreviews(1.0f));
         Fonts.RequestLoad(FontArchivesPath, Appearance.Fonts, 1.0f);
-        std::strncpy(LoadedFontFamily, Appearance.Fonts.Family, sizeof(LoadedFontFamily) - 1u);
+        std::snprintf(LoadedFontFamily, sizeof(LoadedFontFamily), "%s", Appearance.Fonts.Family);
     }
             ResolvedAgainst = Display.Width;
 

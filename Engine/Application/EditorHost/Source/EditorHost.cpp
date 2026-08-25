@@ -77,6 +77,25 @@ constexpr std::uint32_t InitialHeight = 720u;    // [px]
 constexpr const char* WindowTitle = "Slate \u2014 Editor";
 constexpr const char* HostName    = "EditorHost";
 
+std::filesystem::path HomeProfilePath()
+{
+#if defined(_WIN32)
+    char* Home = nullptr;
+    std::size_t Count = 0u;
+    if (_dupenv_s(&Home, &Count, "USERPROFILE") == 0 && Home != nullptr && Count > 1u)
+    {
+        std::filesystem::path Result = Home;
+        std::free(Home);
+        return Result;
+    }
+    if (Home != nullptr) std::free(Home);
+    return {};
+#else
+    const char* Home = std::getenv("HOME");
+    return (Home != nullptr && Home[0] != '\0') ? std::filesystem::path(Home) : std::filesystem::path{};
+#endif
+}
+
 /// 🧩 Enumerates a host-approved import folder for the browser; SlateUI receives names only, never filesystem authority.
 void PopulateImportDirectory(ContentBrowserConfiguration& Browser, const std::filesystem::path& Requested)
 {
@@ -84,12 +103,8 @@ void PopulateImportDirectory(ContentBrowserConfiguration& Browser, const std::fi
     std::filesystem::path Resolved = Requested;
     if (Requested == "Home")
     {
-#if defined(_WIN32)
-        const char* Home = std::getenv("USERPROFILE");
-#else
-        const char* Home = std::getenv("HOME");
-#endif
-        if (Home != nullptr && Home[0] != '\0') Resolved = Home;
+        const std::filesystem::path Home = HomeProfilePath();
+        if (!Home.empty()) Resolved = Home;
     }
     if (Resolved.empty()) Resolved = std::filesystem::current_path(Error);
 
@@ -175,16 +190,9 @@ static_assert(ParametricControls <= ControlIndex::ControlCapacity,
 constexpr std::size_t WindowsThreadStack = 1048576u;                  // [B] - the shipped linker default
 constexpr std::size_t AutomaticLimit   = WindowsThreadStack / 4u;   // [B] - a quarter, leaving room to call
 
-static_assert(sizeof(WorkspaceIndex) + sizeof(WorkspacePanel) + sizeof(EditorPanel)
-              + (sizeof(PanelStructure)       * WorkspaceIndex::WorkspaceLimit)
-              + (sizeof(EditorPanelConfiguration) * WorkspaceIndex::WorkspaceLimit)
-              + sizeof(ControlCentrePanel)  + sizeof(ControlCentreConfiguration)
-              + sizeof(ControlIndex)    + sizeof(SceneDirectoryPanel)
-              + sizeof(SceneDirectoryContext) + sizeof(ShaderCodec) + sizeof(WorkspaceOverlayPass)
-              + sizeof(TexturePaintPanel) + sizeof(TexturePaintContext)
-              + sizeof(ParametricWorkspacePanel) + sizeof(ParametricWorkspaceContext)
-              + sizeof(ParametricToolsPanel) + sizeof(ParametricToolsContext) + sizeof(ControlIndex)
-              <= AutomaticLimit,
+constexpr std::size_t AutomaticUiBytes = sizeof(ShaderCodec) + sizeof(WorkspaceOverlayPass);
+
+static_assert(AutomaticUiBytes <= AutomaticLimit,
               "this host's automatic UI members no longer fit a quarter of a Windows thread stack — the "
               "prologue's stack probe will fault before main runs a statement and the host will exit with "
               "no window and no log line; move the largest member to static storage");
@@ -316,23 +324,23 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    cannot disagree about what a new workspace is.
     constexpr WorkspaceSubject DefaultSubject = WorkspaceSubject::Vacant;
 
-    WorkspaceIndex          Workspaces;
-    WorkspacePanel          Workspace;
-    EditorPanel             WorkspacePanels;
-    PanelStructure          PanelPartitions[WorkspaceIndex::WorkspaceLimit];
-    EditorPanelConfiguration    PanelConfiguration[WorkspaceIndex::WorkspaceLimit];
-    ControlCentrePanel      ControlCentre;
-    ControlCentreConfiguration  ControlCentreValues;
-    SceneDirectoryPanel     SceneDirectory;
-    SceneDirectoryContext   SceneApplied;
-    ControlIndex        SceneInteraction;
-    ParametricWorkspacePanel SketchDirectory;
-    ParametricWorkspaceContext SketchDirectoryApplied;
-    ParametricToolsPanel    ParametricTools;
-    ParametricToolsContext  ParametricToolsApplied;
-    ControlIndex            ParametricInteraction;
-    TexturePaintPanel        TexturePaint;
-    TexturePaintContext     TexturePaintApplied;
+    static WorkspaceIndex          Workspaces;
+    static WorkspacePanel          Workspace;
+    static EditorPanel             WorkspacePanels;
+    static PanelStructure          PanelPartitions[WorkspaceIndex::WorkspaceLimit];
+    static EditorPanelConfiguration    PanelConfiguration[WorkspaceIndex::WorkspaceLimit];
+    static ControlCentrePanel      ControlCentre;
+    static ControlCentreConfiguration  ControlCentreValues;
+    static SceneDirectoryPanel     SceneDirectory;
+    static SceneDirectoryContext   SceneApplied;
+    static ControlIndex        SceneInteraction;
+    static ParametricWorkspacePanel SketchDirectory;
+    static ParametricWorkspaceContext SketchDirectoryApplied;
+    static ParametricToolsPanel    ParametricTools;
+    static ParametricToolsContext  ParametricToolsApplied;
+    static ControlIndex            ParametricInteraction;
+    static TexturePaintPanel        TexturePaint;
+    static TexturePaintContext     TexturePaintApplied;
     TexturePaintStack        StackRows;                 // [-] - the mutable row set; the panel borrows it
     MaterialSpecification     EditorMaterialDocument;
     SurfaceLayerSequence      EditorMaterialLayers;
@@ -823,14 +831,14 @@ int main(int ArgumentCount, char** ArgumentValues)
                     OverlayGeneration[Index] = 0u;
             }
 
-            const DeviceOffering GeometryOffering = Lifetime.Offering();
-            const Outcome<bool> GeometryOutcome = GeometryDevice.ConstructGeometryDeviceExchange(
+            const DeviceOffering ResizedGeometryOffering = Lifetime.Offering();
+            const Outcome<bool> ResizedGeometryOutcome = GeometryDevice.ConstructGeometryDeviceExchange(
                 Lifetime.DeviceExchange(), Lifetime.DiagnosticsExtension(), ShaderStreamDirectory().c_str(),
-                Pass.Width, Pass.Height, GeometryOffering.ColourTargetFormat);
-            if (!GeometryOutcome.Resolved)
+                Pass.Width, Pass.Height, ResizedGeometryOffering.ColourTargetFormat);
+            if (!ResizedGeometryOutcome.Resolved)
             {
                 std::printf("%s \u2014 the geometry device estate could not be rebuilt (reason %u: %s)\n", HostName,
-                            static_cast<unsigned>(GeometryOutcome.Error.DeclaredReason), GeometryOutcome.Error.Detail);
+                            static_cast<unsigned>(ResizedGeometryOutcome.Error.DeclaredReason), ResizedGeometryOutcome.Error.Detail);
             }
 
             // 📝 The display recovery this rebuild also raised is consumed here. The reconstruction above
@@ -1046,9 +1054,9 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 //    host owns the EditorCameraComponent and the leaf's extent both.
                                 {
                                     OverlayGroundPose& Pose = LeafOverlay.Ground;
-                                    const EditorPanelConfiguration& Declared = PanelConfiguration[Index];
+                                    const EditorPanelConfiguration& PanelDeclared = PanelConfiguration[Index];
 
-                                    Pose.Standing = Declared.Lattice != PanelLatticePresentation::None;
+                                    Pose.Standing = PanelDeclared.Lattice != PanelLatticePresentation::None;
 
                                     const double Yaw   = SceneApplied.ViewportSkyCamera.AzimuthDegrees
                                                        * 3.14159265358979323846 / 180.0;
@@ -1080,25 +1088,25 @@ int main(int ArgumentCount, char** ArgumentValues)
                                     Pose.TanHalfV = static_cast<float>(std::tan(HalfV));
                                     Pose.TanHalfH = static_cast<float>(std::tan(HalfV) * Aspect);
 
-                                    const double DeclaredCell = Declared.LatticeCellMetres > 0.0
-                                                              ? Declared.LatticeCellMetres : 1.0;
+                                    const double DeclaredCell = PanelDeclared.LatticeCellMetres > 0.0
+                                                              ? PanelDeclared.LatticeCellMetres : 1.0;
                                     Pose.Cell = static_cast<float>(DeclaredCell
-                                              * static_cast<double>(Declared.LatticeScale));
+                                              * static_cast<double>(PanelDeclared.LatticeScale));
 
-                                    Pose.Presentation = static_cast<std::uint32_t>(Declared.Lattice);
-                                    Pose.LineWeight   = Declared.LatticeLineWeight;
-                                    Pose.DotRadius    = Declared.LatticeDotRadius;
-                                    Pose.Subdivisions = Declared.Subdivisions > 0u
-                                                      ? static_cast<float>(Declared.Subdivisions) : 10.0f;
+                                    Pose.Presentation = static_cast<std::uint32_t>(PanelDeclared.Lattice);
+                                    Pose.LineWeight   = PanelDeclared.LatticeLineWeight;
+                                    Pose.DotRadius    = PanelDeclared.LatticeDotRadius;
+                                    Pose.Subdivisions = PanelDeclared.Subdivisions > 0u
+                                                      ? static_cast<float>(PanelDeclared.Subdivisions) : 10.0f;
                                     Pose.ExtentMetres = static_cast<float>(
-                                        std::max(Declared.LatticeExtentMetres, DeclaredCell));
+                                        std::max(PanelDeclared.LatticeExtentMetres, DeclaredCell));
                                     Pose.FadeRadiusMetres = static_cast<float>(
-                                        std::max(Declared.LatticeFadeRadiusMetres, DeclaredCell));
+                                        std::max(PanelDeclared.LatticeFadeRadiusMetres, DeclaredCell));
 
                                     std::uint32_t Mask = 0u;
-                                    if (Declared.AxisX) Mask |= 1u;
-                                    if (Declared.AxisY) Mask |= 2u;
-                                    if (Declared.AxisZ) Mask |= 4u;
+                                    if (PanelDeclared.AxisX) Mask |= 1u;
+                                    if (PanelDeclared.AxisY) Mask |= 2u;
+                                    if (PanelDeclared.AxisZ) Mask |= 4u;
                                     Pose.AxisMask = Mask;
                                 }
 
@@ -1506,15 +1514,15 @@ int main(int ArgumentCount, char** ArgumentValues)
                     const std::filesystem::path ScenePath = std::filesystem::path("EngineContent") /
                         (std::string(Requested.Naming) + Extension);
                     WorkspaceSceneActivation Activating;
-                    const Outcome<ActivatedWorkspaceScene> Workspace = Activating.Open(ScenePath.string(), "EngineContent");
-                    if (!Workspace.Resolved)
+                    const Outcome<ActivatedWorkspaceScene> ActivatedScene = Activating.Open(ScenePath.string(), "EngineContent");
+                    if (!ActivatedScene.Resolved)
                     {
                         std::printf("%s — workspace activation refused (reason %u: %s)\n", HostName,
-                                    static_cast<unsigned>(Workspace.Error.DeclaredReason), Workspace.Error.Detail);
+                                    static_cast<unsigned>(ActivatedScene.Error.DeclaredReason), ActivatedScene.Error.Detail);
                     }
                     else
                     {
-                        const WorkspaceCodex& Loaded = Workspace.Resolve().Workspace;
+                        const WorkspaceCodex& Loaded = ActivatedScene.Resolve().Workspace;
                         BridgeSketchSceneDirectory(Loaded, WorkspaceSceneRows);
                         PresentedEntities = WorkspaceSceneRows.Rows;
                         PresentedEntityCount = WorkspaceSceneRows.RowCount;
@@ -1590,7 +1598,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                 Chosen.Warning     = ControlCentreValues.Warning;
                 Chosen.Alert       = ControlCentreValues.Alert;
                 if (ControlCentreValues.Font < Fonts.FamilyCount() && Fonts.FamilyName(ControlCentreValues.Font) != nullptr)
-                    std::strncpy(Chosen.FontFamily, Fonts.FamilyName(ControlCentreValues.Font), sizeof(Chosen.FontFamily) - 1u);
+                    std::snprintf(Chosen.FontFamily, sizeof(Chosen.FontFamily), "%s", Fonts.FamilyName(ControlCentreValues.Font));
 
                 // 🔴 Only the family re-runs the font pipeline. The other members are colours and reach
                 //    every panel through the appearance; re-loading fonts for them would re-rasterise

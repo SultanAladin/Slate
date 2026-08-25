@@ -269,18 +269,33 @@ InterfaceAttachment Attach(const DeviceOffering& Offered)
     return Incoming;
 }
 
+std::filesystem::path HomeProfilePath()
+{
+#if defined(_WIN32)
+    char* Home = nullptr;
+    std::size_t Count = 0u;
+    if (_dupenv_s(&Home, &Count, "USERPROFILE") == 0 && Home != nullptr && Count > 1u)
+    {
+        std::filesystem::path Result = Home;
+        std::free(Home);
+        return Result;
+    }
+    if (Home != nullptr) std::free(Home);
+    return {};
+#else
+    const char* Home = std::getenv("HOME");
+    return (Home != nullptr && Home[0] != '\0') ? std::filesystem::path(Home) : std::filesystem::path{};
+#endif
+}
+
 void PopulateImportDirectory(ContentBrowserConfiguration& Browser, const std::filesystem::path& Requested)
 {
     std::error_code Error;
     std::filesystem::path Resolved = Requested;
     if (Requested == "Home")
     {
-#if defined(_WIN32)
-        const char* Home = std::getenv("USERPROFILE");
-#else
-        const char* Home = std::getenv("HOME");
-#endif
-        if (Home != nullptr && Home[0] != '\0') Resolved = Home;
+        const std::filesystem::path Home = HomeProfilePath();
+        if (!Home.empty()) Resolved = Home;
     }
     if (Resolved.empty()) Resolved = std::filesystem::current_path(Error);
 
@@ -5846,15 +5861,15 @@ int main(int ArgumentCount, char** ArgumentValues)
                 const std::filesystem::path ScenePath = std::filesystem::path("EngineContent") /
                     (std::string(Requested.Naming) + Extension);
                 WorkspaceSceneActivation Activating;
-                const Outcome<ActivatedWorkspaceScene> Workspace = Activating.Open(ScenePath.string(), "EngineContent");
-                if (!Workspace.Resolved)
+                const Outcome<ActivatedWorkspaceScene> ActivatedScene = Activating.Open(ScenePath.string(), "EngineContent");
+                if (!ActivatedScene.Resolved)
                 {
                     std::printf("%s — workspace activation refused (reason %u: %s)\n", HostName,
-                                static_cast<unsigned>(Workspace.Error.DeclaredReason), Workspace.Error.Detail);
+                                static_cast<unsigned>(ActivatedScene.Error.DeclaredReason), ActivatedScene.Error.Detail);
                 }
                 else
                 {
-                    const WorkspaceCodex& Loaded = Workspace.Resolve().Workspace;
+                    const WorkspaceCodex& Loaded = ActivatedScene.Resolve().Workspace;
                     OpenedScene = Loaded;
                     OpenedSceneStanding = true;
                     SceneApplied.TransformSeeded = false;
@@ -6022,8 +6037,8 @@ int main(int ArgumentCount, char** ArgumentValues)
             Chosen.Information = ControlCentreValues.Information;
             Chosen.Warning = ControlCentreValues.Warning;
             Chosen.Alert = ControlCentreValues.Alert;
-            if (ControlCentreValues.Font < Fonts.FamilyCount() && Fonts.FamilyName(ControlCentreValues.Font) != nullptr)
-                std::strncpy(Chosen.FontFamily, Fonts.FamilyName(ControlCentreValues.Font), sizeof(Chosen.FontFamily) - 1u);
+                if (ControlCentreValues.Font < Fonts.FamilyCount() && Fonts.FamilyName(ControlCentreValues.Font) != nullptr)
+                    std::snprintf(Chosen.FontFamily, sizeof(Chosen.FontFamily), "%s", Fonts.FamilyName(ControlCentreValues.Font));
 
             const bool FamilyAltered = std::strcmp(Chosen.FontFamily, InscribedSelection.FontFamily) != 0;
             const bool Altered = Chosen.Current != InscribedSelection.Current

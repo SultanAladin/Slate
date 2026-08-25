@@ -541,7 +541,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                 Chosen.Warning     = ControlCentreValues.Warning;
                 Chosen.Alert       = ControlCentreValues.Alert;
                 if (ControlCentreValues.Font < Fonts.FamilyCount() && Fonts.FamilyName(ControlCentreValues.Font) != nullptr)
-                    std::strncpy(Chosen.FontFamily, Fonts.FamilyName(ControlCentreValues.Font), sizeof(Chosen.FontFamily) - 1u);
+                    std::snprintf(Chosen.FontFamily, sizeof(Chosen.FontFamily), "%s", Fonts.FamilyName(ControlCentreValues.Font));
 
                 // 🔴 Only the family re-runs the font pipeline. The other members are colours and reach
                 //    every panel through the appearance; re-loading fonts for them would re-rasterise

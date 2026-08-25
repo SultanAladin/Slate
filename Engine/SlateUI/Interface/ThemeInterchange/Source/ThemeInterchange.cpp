@@ -389,7 +389,7 @@ Outcome<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
             if (Matched(Key, "font"))
             {
-                std::strncpy(Produced.Selected.FontFamily, Named, sizeof(Produced.Selected.FontFamily) - 1u);
+                std::snprintf(Produced.Selected.FontFamily, sizeof(Produced.Selected.FontFamily), "%s", Named);
                 Produced.Selected.FontFamily[sizeof(Produced.Selected.FontFamily) - 1u] = '\0';
                 continue;
             }
@@ -411,7 +411,7 @@ Outcome<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
             else if (Matched(Key, "alert")) Produced.Selected.Alert       = Chosen;
             else if (Matched(Key, "font"))
             {
-                std::strncpy(Produced.Selected.FontFamily, Named, sizeof(Produced.Selected.FontFamily) - 1u);
+                std::snprintf(Produced.Selected.FontFamily, sizeof(Produced.Selected.FontFamily), "%s", Named);
                 Produced.Selected.FontFamily[sizeof(Produced.Selected.FontFamily) - 1u] = '\0';
             }
             else

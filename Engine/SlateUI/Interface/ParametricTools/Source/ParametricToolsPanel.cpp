@@ -923,6 +923,7 @@ Outcome<bool> ParametricToolsPanel::ConstructParametricToolsPanel(ControlIndex& 
 void ParametricToolsPanel::Advance(const PointerCondition& Contact, double Elapsed,
                                    ParametricToolsContext& Applied, bool TabPressed)
 {
+    static_cast<void>(Elapsed);
     Sampled = Contact;
     if (TabPressed)
         Applied.Page = Applied.Page == ParametricToolPage::Catalogue
