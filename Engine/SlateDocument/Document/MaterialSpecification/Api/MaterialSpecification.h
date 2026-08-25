@@ -141,6 +141,7 @@ struct ChannelSpecification
 {
     ChannelSource        Source          = ChannelSource::Absent;         // [-] - where the value comes from
     ChannelMeasure       Measured        = ChannelMeasure::Scalar;        // [-] - `36` §4 reads only this
+    std::uint32_t        SourceIndex     = 0u;                            // [-] - into imported-image/layer source tables
     double               ConstantScalar  = 0.0;                          // [-] - Constant, at a scalar measure
     ColourSpecification  ConstantColour  = {};                           // [-] - Constant, at a colour measure
     double               DefaultScalar   = 0.0;                          // [-] - Absent, at a scalar measure

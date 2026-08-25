@@ -72,6 +72,7 @@ std::uint64_t HashChannel(const ChannelSpecification& Channel)
     std::uint64_t Hash = HashSeed;
     HashValue(Hash, Channel.Source);
     HashValue(Hash, Channel.Measured);
+    HashValue(Hash, Channel.SourceIndex);
     HashValue(Hash, Channel.ConstantScalar);
     HashColour(Hash, Channel.ConstantColour);
     HashValue(Hash, Channel.DefaultScalar);

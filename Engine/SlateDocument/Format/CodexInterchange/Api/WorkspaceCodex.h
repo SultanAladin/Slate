@@ -58,12 +58,25 @@ struct CodexSceneMesh
     std::vector<std::uint32_t>   Indices   = {}; // [-] - triangle-list indices into Positions triples
 };
 
+/// 🧩 One imported image reference declared by a material channel. Pixels remain external until image sampling lands.
+struct WorkspaceMaterialImageReference
+{
+    std::string      ReferenceName = {};     // [-] - artist-visible source name
+    std::string      OriginPath = {};        // [-] - path or package-local locator retained for missing reports
+    std::uint32_t    Width = 0u;             // [px]
+    std::uint32_t    Height = 0u;            // [px]
+    std::uint32_t    ComponentCount = 0u;    // [-] - 1, 2, 3 or 4 where known
+    std::uint32_t    BitsPerComponent = 8u;  // [b]
+    bool             ColourData = true;      // [-] - true for colour-managed channels, false for data maps
+};
+
 /// 🧩 One document-backed material slot carried beside workspace scene entries.
 struct WorkspaceMaterialRecord
 {
-    std::string           Reference = {};   // [-] - section-local material identity used by scene entries
-    MaterialSpecification Material  = {};   // [-] - twenty-channel declaration and reflectance choice
-    SurfaceLayerSequence  Layers    = {};   // [-] - ordered layer sequence with a mandatory Base Material entry
+    std::string                                  Reference = {};   // [-] - section-local material identity used by scene entries
+    MaterialSpecification                       Material  = {};   // [-] - twenty-channel declaration and reflectance choice
+    SurfaceLayerSequence                        Layers    = {};   // [-] - ordered layer sequence with a mandatory Base Material entry
+    std::vector<WorkspaceMaterialImageReference> Images    = {};   // [-] - imported image sources addressed by channel SourceIndex
 };
 
 /// 🧩 A complete workspace payload carried by a WorkspaceCodex document.
@@ -82,6 +95,16 @@ WorkspaceMaterialRecord DefaultWorkspaceMaterialRecord(const std::string& Refere
 
 /// 🧩 Ensures every geometry scene entry has a corresponding document-backed material record.
 void EnsureWorkspaceMaterialRecords(WorkspaceCodex& Workspace);
+
+/// 🧩 Assigns a declared material to one geometry entry without changing any mesh data.
+Outcome<bool> AssignWorkspaceMaterial(WorkspaceCodex& Workspace,
+                                      std::uint32_t SceneIndex,
+                                      const std::string& MaterialReference);
+
+/// 🧩 Binds one imported image reference to a material channel and returns its material-local source ordinal.
+Outcome<std::uint32_t> BindWorkspaceMaterialImage(WorkspaceMaterialRecord& Material,
+                                                  ChannelSubject Channel,
+                                                  const WorkspaceMaterialImageReference& Image);
 
 /// 🧩 Translates typed workspace content to and from preserved Codex sections.
 class WorkspaceCodexInterchange

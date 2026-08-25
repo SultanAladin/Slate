@@ -225,6 +225,7 @@ void InscribeChannel(std::vector<std::uint8_t>& Content, const ChannelSpecificat
 {
     Inscribe32(Content, static_cast<std::uint32_t>(Channel.Source));
     Inscribe32(Content, static_cast<std::uint32_t>(Channel.Measured));
+    Inscribe32(Content, Channel.SourceIndex);
     InscribeReal(Content, Channel.ConstantScalar);
     InscribeColour(Content, Channel.ConstantColour);
     InscribeReal(Content, Channel.DefaultScalar);
@@ -240,6 +241,7 @@ bool ExtractChannel(const std::vector<std::uint8_t>& Content, std::size_t& Posit
     std::uint32_t Measure = 0u;
     if (!Extract32(Content, Position, Source) || Source > static_cast<std::uint32_t>(ChannelSource::Absent)
      || !Extract32(Content, Position, Measure) || Measure >= static_cast<std::uint32_t>(ChannelMeasure::MeasureCount)
+     || !Extract32(Content, Position, Channel.SourceIndex)
      || !ExtractReal(Content, Position, Channel.ConstantScalar)
      || !ExtractColour(Content, Position, Channel.ConstantColour)
      || !ExtractReal(Content, Position, Channel.DefaultScalar)
@@ -370,6 +372,63 @@ void EnsureWorkspaceMaterialRecords(WorkspaceCodex& Workspace)
     }
 }
 
+Outcome<bool> AssignWorkspaceMaterial(WorkspaceCodex& Workspace,
+                                      std::uint32_t SceneIndex,
+                                      const std::string& MaterialReference)
+{
+    if (SceneIndex >= Workspace.Scene.size() || Workspace.Scene[SceneIndex].Subject != CodexSceneSubject::Geometry)
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the scene entry is not a geometry material owner" });
+    if (MaterialReference.empty())
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the material reference is empty" });
+
+    bool Found = false;
+    for (const WorkspaceMaterialRecord& Material : Workspace.Materials)
+        if (Material.Reference == MaterialReference)
+        {
+            Found = true;
+            break;
+        }
+
+    if (!Found)
+        Workspace.Materials.push_back(DefaultWorkspaceMaterialRecord(MaterialReference));
+
+    Workspace.Scene[SceneIndex].MaterialReference = MaterialReference;
+    return Outcome<bool>::Result(true);
+}
+
+Outcome<std::uint32_t> BindWorkspaceMaterialImage(WorkspaceMaterialRecord& Material,
+                                                  ChannelSubject Channel,
+                                                  const WorkspaceMaterialImageReference& Image)
+{
+    if (Channel == ChannelSubject::ChannelCount)
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "the closed channel count is not bindable" });
+    if (Image.OriginPath.empty() || Image.Width == 0u || Image.Height == 0u || Image.ComponentCount == 0u)
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "the imported image declaration is incomplete" });
+
+    Material.Images.push_back(Image);
+    const std::uint32_t SourceIndex = static_cast<std::uint32_t>(Material.Images.size() - 1u);
+    ChannelSpecification Declared = Material.Material.Channel(Channel);
+    Declared.Source = ChannelSource::Imported;
+    Declared.SourceIndex = SourceIndex;
+    Declared.Measured = Image.ColourData ? ChannelMeasure::Reflectance : ChannelMeasure::Scalar;
+    if (Image.ColourData && !Declared.DefaultColour.ColourDeclared())
+        Declared.DefaultColour = { 1.0, 1.0, 1.0, WorkingSpaceIdentity };
+    if (!Image.ColourData)
+    {
+        Declared.DefaultScalar = Channel == ChannelSubject::Opacity || Channel == ChannelSubject::AmbientOcclusion ? 1.0 : 0.0;
+        Declared.LowerMagnitude = 0.0;
+        Declared.UpperMagnitude = 1.0;
+    }
+
+    const Outcome<bool> ChannelDeclared = Material.Material.DeclareChannel(Channel, Declared);
+    if (!ChannelDeclared.Resolved)
+    {
+        Material.Images.pop_back();
+        return Outcome<std::uint32_t>::Refuse(ChannelDeclared.Error);
+    }
+    return Outcome<std::uint32_t>::Result(SourceIndex);
+}
+
 Outcome<CodexDocument> WorkspaceCodexInterchange::EncodeWorkspace(const WorkspaceCodex& Workspace,
                                                                    std::uint64_t          Identity,
                                                                    std::uint64_t          Revision) const
@@ -441,6 +500,17 @@ Outcome<CodexDocument> WorkspaceCodexInterchange::EncodeWorkspace(const Workspac
         InscribeBool(Materials, Current.Material.CutoutRegistered());
         for (std::uint32_t ChannelIndex = 0u; ChannelIndex < static_cast<std::uint32_t>(ChannelSubject::ChannelCount); ++ChannelIndex)
             InscribeChannel(Materials, Current.Material.Channel(static_cast<ChannelSubject>(ChannelIndex)));
+        Inscribe32(Materials, static_cast<std::uint32_t>(Current.Images.size()));
+        for (const WorkspaceMaterialImageReference& Image : Current.Images)
+        {
+            InscribeRun(Materials, Image.ReferenceName);
+            InscribeRun(Materials, Image.OriginPath);
+            Inscribe32(Materials, Image.Width);
+            Inscribe32(Materials, Image.Height);
+            Inscribe32(Materials, Image.ComponentCount);
+            Inscribe32(Materials, Image.BitsPerComponent);
+            InscribeBool(Materials, Image.ColourData);
+        }
         Inscribe32(Materials, Current.Layers.EntryCount());
         for (const LayerSpecification& Layer : Current.Layers.Entries())
             InscribeLayer(Materials, Layer);
@@ -654,6 +724,28 @@ Outcome<WorkspaceCodex> WorkspaceCodexInterchange::DecodeWorkspace(const CodexDo
                     if (!Declared.Resolved)
                         return Outcome<WorkspaceCodex>::Refuse(Declared.Error);
                 }
+            }
+
+            std::uint32_t ImageCount = 0u;
+            if (!Extract32(Materials->Content, Position, ImageCount))
+                return Outcome<WorkspaceCodex>::Refuse(
+                    { RefusalReason::ContentUnsupported, "a workspace material image count is incomplete" });
+            Current.Images.reserve(ImageCount);
+            for (std::uint32_t ImageIndex = 0u; ImageIndex < ImageCount; ++ImageIndex)
+            {
+                WorkspaceMaterialImageReference Image;
+                if (!ExtractRun(Materials->Content, Position, Image.ReferenceName)
+                 || !ExtractRun(Materials->Content, Position, Image.OriginPath)
+                 || !Extract32(Materials->Content, Position, Image.Width)
+                 || !Extract32(Materials->Content, Position, Image.Height)
+                 || !Extract32(Materials->Content, Position, Image.ComponentCount)
+                 || !Extract32(Materials->Content, Position, Image.BitsPerComponent)
+                 || !ExtractBool(Materials->Content, Position, Image.ColourData))
+                {
+                    return Outcome<WorkspaceCodex>::Refuse(
+                        { RefusalReason::ContentUnsupported, "a workspace material image is incomplete" });
+                }
+                Current.Images.push_back(std::move(Image));
             }
 
             std::uint32_t LayerCount = 0u;

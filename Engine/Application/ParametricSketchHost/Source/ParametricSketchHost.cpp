@@ -39,6 +39,7 @@
 #include "SlateVulkan/Device/WorkspaceCadPass/Api/WorkspaceCadPass.h"
 #include "SlateVulkan/Device/WorkspaceOverlayPass/Api/WorkspaceOverlayPass.h"
 #include "SlateDocument/Format/WorkspaceSceneActivation/Api/WorkspaceSceneActivation.h"
+#include "SlateDocument/Format/MaterialImageImport/Api/MaterialImageImport.h"
 #include "SlateDocument/Format/SceneMeshImport/Api/SceneMeshImport.h"
 
 #include <algorithm>
@@ -310,7 +311,8 @@ void PopulateImportDirectory(ContentBrowserConfiguration& Browser, const std::fi
         std::snprintf(Written.Naming, sizeof(Written.Naming), "%s", Name.c_str());
         std::snprintf(Written.Extension, sizeof(Written.Extension), "%s", Extension.c_str());
         Written.Supported = Written.Directory || Extension == ".codex" || Extension == ".sketch" ||
-                            SceneMeshFormatSupported(Current.path().string());
+                            SceneMeshFormatSupported(Current.path().string()) ||
+                            MaterialImageFormatSupported(Current.path().string());
     }
 }
 
@@ -5893,31 +5895,79 @@ int main(int ArgumentCount, char** ArgumentValues)
                 {
                     const std::filesystem::path ImportPath = std::filesystem::path(ContentBrowserApplied.ImportLocation) /
                         ContentBrowserApplied.ImportEntries[ContentBrowserApplied.ImportTaken].Naming;
-                    const Outcome<ImportedSceneMesh> Imported = ImportSceneMeshFile(ImportPath.string());
-                    if (!Imported.Resolved)
+                    if (MaterialImageFormatSupported(ImportPath.string()))
                     {
-                        std::printf("%s — mesh import refused (reason %u: %s)\n", HostName,
-                                    static_cast<unsigned>(Imported.Error.DeclaredReason), Imported.Error.Detail);
+                        const Outcome<ImportedMaterialImage> Imported = ImportMaterialImageReference(ImportPath.string());
+                        if (!Imported.Resolved)
+                        {
+                            std::printf("%s — material image import refused (reason %u: %s)\n", HostName,
+                                        static_cast<unsigned>(Imported.Error.DeclaredReason), Imported.Error.Detail);
+                        }
+                        else
+                        {
+                            if (!OpenedSceneStanding)
+                            {
+                                OpenedScene = {};
+                                OpenedScene.Naming = "Imported Material Scene";
+                                OpenedSceneStanding = true;
+                            }
+                            EnsureWorkspaceMaterialRecords(OpenedScene);
+                            std::string MaterialReference = OpenedScene.Materials.empty()
+                                ? std::string("ImportedImageMaterial") : OpenedScene.Materials.front().Reference;
+                            if (SceneApplied.EntityTaken < SceneDirectoryStorage.RowCount)
+                            {
+                                const StableRowIdentity Identity = SceneDirectoryStorage.Rows[SceneApplied.EntityTaken].Identity;
+                                if (Identity >= 6200u && Identity - 6200u < OpenedScene.Scene.size())
+                                    MaterialReference = OpenedScene.Scene[Identity - 6200u].MaterialReference;
+                            }
+                            if (OpenedScene.Materials.empty())
+                                OpenedScene.Materials.push_back(DefaultWorkspaceMaterialRecord(MaterialReference));
+                            for (WorkspaceMaterialRecord& Material : OpenedScene.Materials)
+                            {
+                                if (Material.Reference != MaterialReference)
+                                    continue;
+                                const Outcome<std::uint32_t> Bound = BindWorkspaceMaterialImage(
+                                    Material, Imported.Resolve().SuggestedChannel, Imported.Resolve().Reference);
+                                if (!Bound.Resolved)
+                                    std::printf("%s — material image bind refused (reason %u: %s)\n", HostName,
+                                                static_cast<unsigned>(Bound.Error.DeclaredReason), Bound.Error.Detail);
+                                else
+                                    std::printf("%s — imported material image %s for channel %u on %s\n",
+                                                HostName, Imported.Resolve().Reference.ReferenceName.c_str(),
+                                                static_cast<unsigned>(Imported.Resolve().SuggestedChannel),
+                                                Material.Reference.c_str());
+                                break;
+                            }
+                        }
                     }
                     else
                     {
-                        if (!OpenedSceneStanding)
+                        const Outcome<ImportedSceneMesh> Imported = ImportSceneMeshFile(ImportPath.string());
+                        if (!Imported.Resolved)
                         {
-                            OpenedScene = {};
-                            OpenedScene.Naming = "Imported Mesh Scene";
-                            OpenedSceneStanding = true;
+                            std::printf("%s — mesh import refused (reason %u: %s)\n", HostName,
+                                        static_cast<unsigned>(Imported.Error.DeclaredReason), Imported.Error.Detail);
                         }
-                        OpenedScene.Scene.push_back(Imported.Resolve().Entry);
-                        OpenedScene.SceneMeshes.push_back(Imported.Resolve().Mesh);
-                        for (const WorkspaceMaterialRecord& Material : Imported.Resolve().MaterialRecords)
-                            OpenedScene.Materials.push_back(Material);
-                        EnsureWorkspaceMaterialRecords(OpenedScene);
-                        SceneApplied.TransformSeeded = false;
-                        std::printf("%s — imported mesh %s (%zu vertices, %zu triangles, %zu material slots)\n",
-                                    HostName, Imported.Resolve().Entry.Naming.c_str(),
-                                    Imported.Resolve().Mesh.Positions.size() / 3u,
-                                    Imported.Resolve().Mesh.Indices.size() / 3u,
-                                    Imported.Resolve().MaterialSlots.size());
+                        else
+                        {
+                            if (!OpenedSceneStanding)
+                            {
+                                OpenedScene = {};
+                                OpenedScene.Naming = "Imported Mesh Scene";
+                                OpenedSceneStanding = true;
+                            }
+                            OpenedScene.Scene.push_back(Imported.Resolve().Entry);
+                            OpenedScene.SceneMeshes.push_back(Imported.Resolve().Mesh);
+                            for (const WorkspaceMaterialRecord& Material : Imported.Resolve().MaterialRecords)
+                                OpenedScene.Materials.push_back(Material);
+                            EnsureWorkspaceMaterialRecords(OpenedScene);
+                            SceneApplied.TransformSeeded = false;
+                            std::printf("%s — imported mesh %s (%zu vertices, %zu triangles, %zu material slots)\n",
+                                        HostName, Imported.Resolve().Entry.Naming.c_str(),
+                                        Imported.Resolve().Mesh.Positions.size() / 3u,
+                                        Imported.Resolve().Mesh.Indices.size() / 3u,
+                                        Imported.Resolve().MaterialSlots.size());
+                        }
                     }
                 }
                 ContentBrowserApplied.ImportConfirmed = false;

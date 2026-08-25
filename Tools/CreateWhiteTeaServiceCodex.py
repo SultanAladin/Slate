@@ -53,15 +53,15 @@ def painted():
     return u32(0) + u32(1) + u32(0)
 
 def scalar_channel(value, default):
-    return (u32(0) + u32(2) + f64(value) + colour(0., 0., 0., 0) +
+    return (u32(0) + u32(2) + u32(0) + f64(value) + colour(0., 0., 0., 0) +
             f64(default) + colour(0., 0., 0., 0) + f64(0.) + f64(1.) + byte(True))
 
 def colour_channel(red, green, blue):
     c = colour(red, green, blue)
-    return u32(0) + u32(0) + f64(0.) + c + f64(0.) + c + f64(0.) + f64(1.) + byte(True)
+    return u32(0) + u32(0) + u32(0) + f64(0.) + c + f64(0.) + c + f64(0.) + f64(1.) + byte(True)
 
 def absent_channel():
-    return (u32(4) + u32(2) + f64(0.) + colour(0., 0., 0., 0) +
+    return (u32(4) + u32(2) + u32(0) + f64(0.) + colour(0., 0., 0., 0) +
             f64(0.) + colour(0., 0., 0., 0) + f64(0.) + f64(1.) + byte(False))
 
 def coverage():
