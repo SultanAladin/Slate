@@ -84,6 +84,12 @@ def main() -> int:
             "shared viewport gizmos must use the HTML-reference camera-forward depth ordering")
     require("DrawFaceLabel" in shared_viewport and "TextRun(Face" not in shared_viewport,
             "CAD cube face labels must be projected face strokes, not hovering screen-space text")
+    require("CenterActivatedSceneAtWorldOrigin" in shared_viewport and "CenterActivatedSceneAtWorldOrigin(Loaded)" in shared_viewport,
+            "codex scene activation must recenter loaded geometry at the world origin")
+
+    content_browser = read("Engine/SlateUI/Interface/ContentBrowserPanel/Source/ContentBrowserPanel.cpp")
+    require("ActivationRequested = Library.Taken" in content_browser and "ActivationRequested = Index" in content_browser,
+            "Content Browser card and Import button must request codex activation")
 
     tools = read("Engine/SlateUI/Interface/ParametricTools/Source/ParametricToolsPanel.cpp")
     require("static_cast<void>(Elapsed);" in tools, "ParametricToolsPanel must mark Elapsed as intentionally unused")
