@@ -14,8 +14,11 @@
 #include "SlateFeature/Feature/WorkspaceRevisionSequence/Api/WorkspaceRevisionSequence.h"
 #include "SlateFeature/Sketch/SketchRenderingProjection/Api/SketchRenderingProjection.h"
 #include "SlateFeature/Sketch/SketchStructure/Api/SketchStructure.h"
+#include "SlateUI/Interface/ContentBrowserPanel/Api/ContentBrowserPanel.h"
+#include "SlateUI/Interface/ControlCentrePanel/Api/ControlCentrePanel.h"
 #include "SlateUI/Interface/EditorPanel/Api/EditorPanel.h"
 #include "SlateUI/Interface/ParametricWorkspace/Api/ParametricWorkspacePanel.h"
+#include "SlateUI/Interface/ThemeInterchange/Api/ThemeInterchange.h"
 #include "SlateUI/Interface/ViewportSequence/Api/ViewportSequence.h"
 #include "SlateUI/Interface/WorkspacePanel/Api/WorkspaceIndex.h"
 #include "SlateVulkan/Device/HostLifecycle/Api/HostLifecycle.h"
@@ -24,6 +27,8 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <utility>
 #if defined(_WIN32)
@@ -87,6 +92,51 @@ InterfaceAttachment Attach(const DeviceOffering& Offered)
     Incoming.DisplayImageCount = Offered.DisplayImageCount;
     Incoming.NativeWindowSlot = Offered.NativeWindowSlot;
     return Incoming;
+}
+
+void PopulateImportDirectory(ContentBrowserConfiguration& Browser, const std::filesystem::path& Requested)
+{
+    std::error_code Error;
+    std::filesystem::path Resolved = Requested;
+    if (Requested == "Home")
+    {
+#if defined(_WIN32)
+        const char* Home = std::getenv("USERPROFILE");
+#else
+        const char* Home = std::getenv("HOME");
+#endif
+        if (Home != nullptr && Home[0] != '\0') Resolved = Home;
+    }
+    if (Resolved.empty()) Resolved = std::filesystem::current_path(Error);
+
+    Browser.ImportEntryCount = 0u;
+    Browser.ImportTaken = ContentLibrary::AbsentIndex;
+    std::snprintf(Browser.ImportLocation, sizeof(Browser.ImportLocation), "%s", Resolved.generic_string().c_str());
+    if (Error || !std::filesystem::is_directory(Resolved, Error) || Error) return;
+
+    std::vector<std::filesystem::directory_entry> Entries;
+    for (std::filesystem::directory_iterator Current(Resolved, Error), End; !Error && Current != End; Current.increment(Error))
+        Entries.push_back(*Current);
+    std::sort(Entries.begin(), Entries.end(), [](const auto& Left, const auto& Right)
+    {
+        const bool LeftDirectory = Left.is_directory();
+        const bool RightDirectory = Right.is_directory();
+        return LeftDirectory != RightDirectory ? LeftDirectory : Left.path().filename() < Right.path().filename();
+    });
+
+    for (const auto& Current : Entries)
+    {
+        if (Browser.ImportEntryCount >= 128u) break;
+        ContentImportEntry& Written = Browser.ImportEntries[Browser.ImportEntryCount++];
+        const std::string Name = Current.path().filename().string();
+        const std::string Extension = Current.path().extension().string();
+        Written.Directory = Current.is_directory(Error) && !Error;
+        Written.Octets = Written.Directory ? 0u : Current.file_size(Error);
+        if (Error) { Error.clear(); Written.Octets = 0u; }
+        std::snprintf(Written.Naming, sizeof(Written.Naming), "%s", Name.c_str());
+        std::snprintf(Written.Extension, sizeof(Written.Extension), "%s", Extension.c_str());
+        Written.Supported = Written.Directory || Extension == ".obj" || Extension == ".codex" || Extension == ".pigment";
+    }
 }
 
 void ClearInspectorBridge(ParametricWorkspaceBridgeStorage& Bridge)
@@ -253,19 +303,8 @@ void ConstructParametricLayout(PanelStructure& Partition)
         return;
 
     Discard(Partition.Assign(Root.Resolve().Minimum, PanelSubject::Outliner));
-
-    const std::uint32_t Right = Root.Resolve().Maximum;
-    if (!Partition.Divide(Right, PanelDivisionAxis::Y, PanelDivisionSide::Maximum).Resolved)
-        return;
-
-    const Outcome<PanelRecord> RightBranch = Partition.Current(Right);
-    if (!RightBranch.Resolved)
-        return;
-
-    Discard(Partition.Assign(RightBranch.Resolve().Minimum, PanelSubject::Viewport));
-    Discard(Partition.Assign(RightBranch.Resolve().Maximum, PanelSubject::Properties));
-    Discard(Partition.Proportion(PanelStructure::RootIndex, 0.28f));
-    Discard(Partition.Proportion(Right, 0.68f));
+    Discard(Partition.Assign(Root.Resolve().Maximum, PanelSubject::Viewport));
+    Discard(Partition.Proportion(PanelStructure::RootIndex, 0.30f));
 }
 
 bool AnySelectedRow(const ParametricWorkspaceContext& Applied, std::uint32_t RowCount)
@@ -474,7 +513,7 @@ void RecordViewportPlaceholder(RecordingSurface& Surface, const PlaneExtent& Ext
 
 } // namespace
 
-int main()
+int main(int ArgumentCount, char** ArgumentValues)
 {
     using namespace Slate;
 
@@ -493,8 +532,8 @@ int main()
         return 1;
 
     ViewportSequence Viewport;
-    DrawerDeclaration NorthDrawer = { "ParametricTools", SymbolSubject::SketchPlane, 2u };
-    DrawerDeclaration SouthDrawer = { "ParametricSupport", SymbolSubject::GearCog, 2u };
+    DrawerDeclaration NorthDrawer = { "ControlCentre", SymbolSubject::PulseTrace, 2u };
+    DrawerDeclaration SouthDrawer = { "AssetBrowser", SymbolSubject::FolderClosed, 3u };
     if (!Viewport.ConstructViewportSequence(Attach(Lifetime.Offering()), NorthDrawer, SouthDrawer).Resolved)
     {
         std::printf("%s — the viewport sequence was rejected\n", HostName);
@@ -506,6 +545,13 @@ int main()
     EditorPanel WorkspacePanels;
     PanelStructure PanelPartitions[WorkspaceIndex::WorkspaceLimit];
     EditorPanelConfiguration PanelConfiguration[WorkspaceIndex::WorkspaceLimit];
+    ControlCentrePanel ControlCentre;
+    ControlCentreConfiguration ControlCentreValues;
+    FontLoader Fonts;
+    ControlIndex BrowserInteraction;
+    ContentBrowserPanel ContentBrowser;
+    ContentBrowserConfiguration ContentBrowserApplied;
+    ContentLibrary ContentApplied;
     ControlIndex ParametricInteraction;
     ParametricWorkspacePanel ParametricPanel;
     ShaderCodec CadCodec;
@@ -526,6 +572,47 @@ int main()
     std::uint32_t UploadedCadGeneration = 0xFFFFFFFFu;
     std::uint32_t RegisterIntoNode = 0u;
 
+    const char* const InvokedAs = (ArgumentCount > 0) ? ArgumentValues[0] : "";
+    const std::filesystem::path ExecutablePath = InvokedAs[0] != '\0'
+                                               ? std::filesystem::absolute(InvokedAs)
+                                               : std::filesystem::current_path();
+    const std::string FontRoot = (ExecutablePath.parent_path() / "EngineContent" / "FontArchives").string();
+
+    {
+        ThemeSelection Recorded;
+        if (ThemeInterchange::AdoptBeside(InvokedAs, Recorded))
+        {
+            ControlCentreValues.Theme = Recorded.Current;
+            ControlCentreValues.Primary = Recorded.Primary;
+            ControlCentreValues.Secondary = Recorded.Secondary;
+            ControlCentreValues.Information = Recorded.Information;
+            ControlCentreValues.Warning = Recorded.Warning;
+            ControlCentreValues.Alert = Recorded.Alert;
+        }
+    }
+
+    ThemeSelection InscribedSelection;
+    InscribedSelection.Current = ControlCentreValues.Theme;
+    InscribedSelection.Primary = ControlCentreValues.Primary;
+    InscribedSelection.Secondary = ControlCentreValues.Secondary;
+    InscribedSelection.Information = ControlCentreValues.Information;
+    InscribedSelection.Warning = ControlCentreValues.Warning;
+    InscribedSelection.Alert = ControlCentreValues.Alert;
+    Viewport.Retint(InscribedSelection);
+
+    Viewport.Surface().ApplyFontLoader(Fonts);
+    Discard(Fonts.Discover(FontRoot.c_str()));
+    Discard(Fonts.PreparePreviews(1.0f));
+    Discard(Fonts.Load(FontRoot.c_str(), Viewport.Appearance().Fonts, 1.0f));
+    ControlCentre.SetFontFamilies(Fonts);
+    for (std::uint32_t Index = 0u; Index < Fonts.FamilyCount(); ++Index)
+        if (Fonts.FamilyName(Index) != nullptr &&
+            std::strcmp(Fonts.FamilyName(Index), Viewport.Appearance().Fonts.Family) == 0)
+        {
+            ControlCentreValues.Font = Index;
+            break;
+        }
+
     SeedParametricWorkspace(Naming, Sketch, Records, Revisions);
 
     if (!Workspace.ConstructWorkspacePanel(Viewport.Surface(), Viewport.Appearance()).Resolved)
@@ -539,6 +626,28 @@ int main()
         std::printf("%s — the editor panels were rejected\n", HostName);
         return 1;
     }
+
+    if (!ControlCentre.ConstructControlCentrePanel(Viewport.MotionSource(), Viewport.Surface(), Viewport.Appearance()).Resolved)
+    {
+        std::printf("%s — the Control Centre panel was rejected\n", HostName);
+        return 1;
+    }
+
+    if (!BrowserInteraction.AttachMotion(Viewport.MotionSource()).Resolved)
+    {
+        std::printf("%s — the content browser index was rejected\n", HostName);
+        return 1;
+    }
+
+    if (!ContentBrowser.ConstructContentBrowserPanel(BrowserInteraction, Viewport.Surface(), Viewport.Appearance()).Resolved)
+    {
+        std::printf("%s — the content browser was rejected\n", HostName);
+        return 1;
+    }
+
+    ContentBrowser.Reapply(Viewport.Appearance());
+    ApplyReferenceContent(ContentApplied);
+    PopulateImportDirectory(ContentBrowserApplied, std::filesystem::path("EngineContent"));
 
     if (!ParametricInteraction.AttachMotion(Viewport.MotionSource()).Resolved)
     {
@@ -598,6 +707,7 @@ int main()
     while (Lifetime.Active())
     {
         const TickPass Pass = Lifetime.Await(WorkspaceGround);
+        Discard(Fonts.FlushPending());
 
         if (Pass.Current == TickCondition::Closed)
             break;
@@ -622,6 +732,7 @@ int main()
             static_cast<void>(Viewport.Seam().ApplyWorkspaceStyle(Viewport.Appearance().WorkspaceMeasure,
                                                                   Viewport.Appearance().Workspace));
             ParametricPanel.Reapply(Viewport.Appearance());
+            ContentBrowser.Reapply(Viewport.Appearance());
 
             const Outcome<bool> Reattached =
                 CadCodec.AttachShaderStreams(Lifetime.DeviceExchange(), ShaderStreamDirectory());
@@ -771,16 +882,12 @@ int main()
                     switch (WorkspacePanels.LeafSubject(Leaf))
                     {
                         case PanelSubject::Outliner:
-                            ParametricPanel.RecordOutliner(LeafBody, ParametricApplied,
-                                Bridge.DirectoryRows.empty() ? nullptr : Bridge.DirectoryRows.data(),
-                                static_cast<std::uint32_t>(Bridge.DirectoryRows.size()));
-                            break;
-
-                        case PanelSubject::Properties:
                         {
                             const bool PropertyPresented = Bridge.Property.Naming != nullptr
                                                         && Bridge.Property.Naming[0] != '\0';
-                            ParametricPanel.RecordProperties(LeafBody, ParametricApplied,
+                            ParametricPanel.RecordOutliner(LeafBody, ParametricApplied,
+                                Bridge.DirectoryRows.empty() ? nullptr : Bridge.DirectoryRows.data(),
+                                static_cast<std::uint32_t>(Bridge.DirectoryRows.size()),
                                 PropertyPresented ? &Bridge.Property : nullptr,
                                 Bridge.RevisionRows.empty() ? nullptr : Bridge.RevisionRows.data(),
                                 static_cast<std::uint32_t>(Bridge.RevisionRows.size()));
@@ -845,6 +952,88 @@ int main()
         Viewport.RecordDrawers();
         Viewport.DrawerPanels();
 
+        const PlaneExtent BrowserInterior = Viewport.Drawers().Interior(DrawerBearing::South);
+        BrowserInteraction.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+        ContentBrowser.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+        if (BrowserInterior.Width() > 0.0f && BrowserInterior.Height() > 0.0f)
+        {
+            Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
+            Viewport.Surface().Ground(BrowserInterior, Viewport.Appearance().Colour.SurfaceCurrent,
+                                      0.0f, CornerNone);
+            ContentBrowser.RecordBrowser(BrowserInterior, ContentApplied, ContentBrowserApplied);
+            ContentBrowser.RecordDeferred();
+
+            if (ContentBrowserApplied.ImportBrowseRequested)
+            {
+                std::filesystem::path Destination(ContentBrowserApplied.ImportLocation);
+                if (ContentBrowserApplied.ImportTaken < ContentBrowserApplied.ImportEntryCount &&
+                    ContentBrowserApplied.ImportEntries[ContentBrowserApplied.ImportTaken].Directory)
+                {
+                    Destination /= ContentBrowserApplied.ImportEntries[ContentBrowserApplied.ImportTaken].Naming;
+                }
+                PopulateImportDirectory(ContentBrowserApplied, Destination);
+                ContentBrowserApplied.ImportBrowseRequested = false;
+            }
+
+            ContentBrowser.Exclude(Viewport.Drawers(), DrawerBearing::South);
+            Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Beneath));
+        }
+
+        const PlaneExtent ControlInterior = Viewport.Drawers().Interior(DrawerBearing::North);
+        ControlCentre.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+        Viewport.ApplyTypographyRoles(ControlCentreValues.TypographySize,
+                                      ControlCentreValues.TypographyWeight);
+        Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
+        if (ControlInterior.Width() > 0.0f && ControlInterior.Height() > 0.0f)
+            Viewport.Surface().Ground(ControlInterior, Viewport.Appearance().Colour.SurfaceCurrent,
+                                      0.0f, CornerNone);
+        Discard(ControlCentre.Record(ControlInterior, ControlCentreValues));
+
+        if (Viewport.ApplyInterfaceScale(ControlCentreValues.Scaling))
+        {
+            Discard(Viewport.Seam().ApplyWorkspaceStyle(Viewport.Appearance().WorkspaceMeasure,
+                                                        Viewport.Appearance().Workspace));
+            ContentBrowser.Reapply(Viewport.Appearance());
+            ParametricPanel.Reapply(Viewport.Appearance());
+        }
+        Discard(Viewport.Seam().ApplyInterfaceAntialiasing(ControlCentreValues.GeometryAntialiasing));
+
+        {
+            ThemeSelection Chosen;
+            Chosen.Current = ControlCentreValues.Theme;
+            Chosen.Primary = ControlCentreValues.Primary;
+            Chosen.Secondary = ControlCentreValues.Secondary;
+            Chosen.Information = ControlCentreValues.Information;
+            Chosen.Warning = ControlCentreValues.Warning;
+            Chosen.Alert = ControlCentreValues.Alert;
+            if (ControlCentreValues.Font < Fonts.FamilyCount() && Fonts.FamilyName(ControlCentreValues.Font) != nullptr)
+                std::strncpy(Chosen.FontFamily, Fonts.FamilyName(ControlCentreValues.Font), sizeof(Chosen.FontFamily) - 1u);
+
+            const bool FamilyAltered = std::strcmp(Chosen.FontFamily, InscribedSelection.FontFamily) != 0;
+            const bool Altered = Chosen.Current != InscribedSelection.Current
+                              || Chosen.Primary != InscribedSelection.Primary
+                              || Chosen.Secondary != InscribedSelection.Secondary
+                              || Chosen.Information != InscribedSelection.Information
+                              || Chosen.Warning != InscribedSelection.Warning
+                              || Chosen.Alert != InscribedSelection.Alert
+                              || std::strcmp(Chosen.FontFamily, InscribedSelection.FontFamily) != 0;
+
+            if (Altered)
+            {
+                Discard(ThemeInterchange::RecordBeside(InvokedAs, Chosen));
+                InscribedSelection = Chosen;
+                Viewport.Retint(Chosen);
+                Discard(Viewport.Seam().ApplyWorkspaceStyle(Viewport.Appearance().WorkspaceMeasure,
+                                                            Viewport.Appearance().Workspace));
+                ContentBrowser.Reapply(Viewport.Appearance());
+                ParametricPanel.Reapply(Viewport.Appearance());
+                if (FamilyAltered)
+                    Fonts.RequestLoad(FontRoot.c_str(), Viewport.Appearance().Fonts, 1.0f);
+            }
+        }
+        ControlCentre.Exclude(Viewport.Drawers());
+        Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Beneath));
+
         ParametricInteraction.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
         ParametricPanel.Advance(BackgroundPointer, Pass.ElapsedMilliseconds,
                                 ParametricApplied,
@@ -903,6 +1092,8 @@ int main()
     }
 
     const std::uint32_t Serious = Lifetime.StateDiagnostics();
+    ControlCentre.Reset();
+    ContentBrowser.Reset();
     ParametricPanel.Reset();
     WorkspacePanels.Reset();
     for (std::uint32_t Index = 0u; Index < WorkspaceIndex::WorkspaceLimit; ++Index)

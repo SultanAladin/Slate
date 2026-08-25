@@ -180,7 +180,9 @@ Host and panel seams:
 - parametric workspace UI guarantee for directory, properties and revision content;
 - host-side bridge from exact workspace projections into UI rows and property/revision presentations;
 - dedicated CAD outliner and Properties | Revision leaf panel shell in SlateUI;
+- one-leaf Directory → Properties | Revision slide path, matching scene-directory travel;
 - dedicated `ParametricSketchHost` bring-up owning exact records, revisions and the CAD panel bridge;
+- Control Centre and Asset Browser drawers brought up on the parametric host like the other application hosts;
 - shared CAD drawing packet and exact sketch rendering projection seam;
 - dedicated `WorkspaceCadPass` shell consuming the CAD packet inside the dynamic rendering scope;
 - workspace panel contract.

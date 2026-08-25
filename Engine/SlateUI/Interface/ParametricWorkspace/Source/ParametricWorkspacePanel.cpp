@@ -63,7 +63,7 @@ Outcome<bool> ParametricWorkspacePanel::ConstructParametricWorkspacePanel(Contro
                                        "the CAD facet controls were rejected" });
     }
 
-    ControlIdentity* const Fixed[] = { &SearchField, &InspectorStrip };
+    ControlIdentity* const Fixed[] = { &SearchField, &InspectorStrip, &DirectoryCall, &InspectCall };
     for (ControlIdentity* Identity : Fixed)
     {
         const Outcome<ControlIdentity> Registered = IncomingInteraction.Register();
@@ -90,6 +90,13 @@ Outcome<bool> ParametricWorkspacePanel::ConstructParametricWorkspacePanel(Contro
         }
     }
 
+    if (!OutlinePages.ConstructSlidingPages(Integrator, 0u).Resolved)
+    {
+        Reset();
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent,
+                                       "the CAD page travel was rejected" });
+    }
+
     Reapply(Resolved);
     return Outcome<bool>::Result(true);
 }
@@ -104,9 +111,7 @@ void ParametricWorkspacePanel::Advance(const PointerCondition& Contact, double E
     Facets.Advance(Contact, Elapsed);
 
     if (TabPressed)
-        Applied.InspectorPage = Applied.InspectorPage == ParametricInspectorPage::Properties
-                              ? ParametricInspectorPage::Revision
-                              : ParametricInspectorPage::Properties;
+        Applied.OutlinePage = Applied.OutlinePage == 0u ? 1u : 0u;
 
     Applied.SearchTaken = Interaction->Holding(SearchField) || Interaction->Disclosed(SearchField);
 }
@@ -127,6 +132,7 @@ void ParametricWorkspacePanel::Reset()
     Facets.Reset();
     OutlineOverflow.Reset();
     InspectorOverflow.Reset();
+    OutlinePages.Reset();
 
     Interaction = nullptr;
     Motion = nullptr;
@@ -211,10 +217,11 @@ void ParametricWorkspacePanel::RecordSearchField(const PlaneExtent& Extent,
                               FieldRun);
 }
 
-void ParametricWorkspacePanel::RecordOutliner(const PlaneExtent& Extent,
-                                              ParametricWorkspaceContext& Applied,
-                                              const ParametricDirectoryRow* Rows,
-                                              std::uint32_t RowCount)
+void ParametricWorkspacePanel::RecordDirectoryPage(const PlaneExtent& Extent,
+                                                   ParametricWorkspaceContext& Applied,
+                                                   const ParametricDirectoryRow* Rows,
+                                                   std::uint32_t RowCount,
+                                                   const ParametricPropertyPresentation* Property)
 {
     if (Rows == nullptr)
         RowCount = 0u;
@@ -334,6 +341,14 @@ void ParametricWorkspacePanel::RecordOutliner(const PlaneExtent& Extent,
             Applied.RowTaken = SelectionSet::Primary(Applied.RowSelected, RowCount, Index);
         }
 
+        if (Hovered && Sampled.ContactDoublePressed && Current.Subject != ParametricRowSubject::CategoryRoot)
+        {
+            SelectionSet::Apply(Applied.RowSelected, RowCount, Applied.RowSelectionAnchor,
+                                Index, Presented, SelectionGesture{});
+            Applied.RowTaken = SelectionSet::Primary(Applied.RowSelected, RowCount, Index);
+            Applied.OutlinePage = 1u;
+        }
+
         Interaction->DeclareHovered(RowContacts[Index], Hovered, HoverOver);
 
         if (Selected)
@@ -427,6 +442,26 @@ void ParametricWorkspacePanel::RecordOutliner(const PlaneExtent& Extent,
     Surface->TextRun(FooterLead, FooterTop, Tinted.Primary, Counted, Scaled.RunFine, 0.0f, true);
     Surface->TextRun(FooterLead + Surface->MeasureRun(Counted, Scaled.RunFine, 0.0f) + 4.0f,
                      FooterTop, Tinted.Muted, " rows", Scaled.RunFine);
+
+    if (Property != nullptr && Property->Naming != nullptr && Property->Naming[0] != '\0')
+    {
+        const char* Caption = "Inspect";
+        const float Run = Scaled.RunFine;
+        const float Width = 60.0f;
+        const PlaneExtent Call = Spanning(Footer.MaximumX - Scaled.HeaderPadX - Width,
+                                          Footer.MinimumY + 3.0f, Width, Footer.Height() - 6.0f);
+        const bool Hovered = Call.Encloses(Sampled.PositionX, Sampled.PositionY);
+        if (Sampled.ContactPressed && Hovered)
+            Interaction->Grab(InspectCall, ControlPart::Body);
+        if (Hovered && Interaction->Released(InspectCall))
+            Applied.OutlinePage = 1u;
+        Interaction->DeclareHovered(InspectCall, Hovered, HoverOver);
+        Surface->Ground(Call, Hovered ? Tinted.TileHovered : Tinted.Tile, 9.0f, CornerAll);
+        Surface->Edge(Call, Tinted.HairlineFirm, 1.0f, 9.0f, CornerAll);
+        const float CaptionWidth = Surface->MeasureRun(Caption, Run, 0.0f);
+        Surface->TextRun(Call.MinimumX + (Call.Width() - CaptionWidth) * 0.5f,
+                         FooterTop, Tinted.Primary, Caption, Run);
+    }
 
     Facets.RecordDeferred();
 }
@@ -558,7 +593,8 @@ void ParametricWorkspacePanel::RecordProperties(const PlaneExtent& Extent,
                                                 ParametricWorkspaceContext& Applied,
                                                 const ParametricPropertyPresentation* Property,
                                                 const ParametricRevisionRow* Revisions,
-                                                std::uint32_t RevisionCount)
+                                                std::uint32_t RevisionCount,
+                                                bool OutlinePresentation)
 {
     Surface->Ground(Extent, Tinted.MenuLower, 0.0f, CornerNone);
 
@@ -573,6 +609,35 @@ void ParametricWorkspacePanel::RecordProperties(const PlaneExtent& Extent,
     RecordLeafHeader(Header, Glyph, Hue,
                      Selected ? Property->Naming : "Nothing selected",
                      Selected ? Property->Secondary : "Select a committed CAD record");
+
+    if (OutlinePresentation)
+    {
+        const char* Caption = "Directory";
+        const float Run = Scaled.RunSecondary;
+        const float PadX = 10.0f;
+        const float CallSpan = PadX * 2.0f + Surface->MeasureRun(Caption, Run, 0.0f) + 12.0f;
+        const PlaneExtent Call = Spanning(Header.MaximumX - Scaled.HeaderPadX - CallSpan,
+                                          Header.MinimumY + (Header.Height() - 24.0f) * 0.5f,
+                                          CallSpan, 24.0f);
+        const bool OnCall = Call.Encloses(Sampled.PositionX, Sampled.PositionY);
+
+        if (Sampled.ContactPressed && OnCall && !Interaction->AnyDisclosed())
+            Interaction->Grab(DirectoryCall, ControlPart::Body);
+        if (OnCall && Interaction->Released(DirectoryCall))
+            Applied.OutlinePage = 0u;
+
+        Interaction->DeclareHovered(DirectoryCall, OnCall, HoverOver);
+        Surface->Ground(Call, OnCall ? Tinted.TileHovered : Tinted.Tile,
+                        Call.Height() * 0.5f, CornerAll);
+        Surface->Edge(Call, OnCall ? Tinted.HairlineFirm : Tinted.Hairline, 1.0f,
+                      Call.Height() * 0.5f, CornerAll);
+        Surface->TextRun(Call.MinimumX + PadX * 0.7f,
+                         Call.MinimumY + (Call.Height() - Run) * 0.5f,
+                         OnCall ? Tinted.Primary : Tinted.Faint, "<", Run, 0.0f, true);
+        Surface->TextRun(Call.MinimumX + PadX + 12.0f,
+                         Call.MinimumY + (Call.Height() - Run) * 0.5f,
+                         OnCall ? Tinted.Primary : Tinted.Muted, Caption, Run);
+    }
 
     const char* const Captions[2] =
     {
@@ -640,6 +705,57 @@ void ParametricWorkspacePanel::RecordProperties(const PlaneExtent& Extent,
                          Tinted.Muted,
                          ParametricInspectorPageText(Applied.InspectorPage), Scaled.RunFine);
     }
+}
+
+void ParametricWorkspacePanel::RecordOutliner(const PlaneExtent& Extent,
+                                              ParametricWorkspaceContext& Applied,
+                                              const ParametricDirectoryRow* Rows,
+                                              std::uint32_t RowCount,
+                                              const ParametricPropertyPresentation* Property,
+                                              const ParametricRevisionRow* Revisions,
+                                              std::uint32_t RevisionCount)
+{
+    OutlinePages.Navigate(Applied.OutlinePage);
+
+    const PlaneExtent DirectoryExtent = OutlinePages.Page(Extent, 0u);
+    const PlaneExtent InspectorExtent = OutlinePages.Page(Extent, 1u);
+    const PointerCondition LivePointer = Sampled;
+
+    const auto SeatPagePointer = [&](std::uint32_t Page)
+    {
+        Sampled = LivePointer;
+        if (OutlinePages.CurrentPage() != Page)
+        {
+            Sampled.PositionX = -1000000.0f;
+            Sampled.PositionY = -1000000.0f;
+            Sampled.ContactHeld = false;
+            Sampled.ContactPressed = false;
+            Sampled.ContactReleased = false;
+            Sampled.ContactDoublePressed = false;
+            Sampled.SecondaryHeld = false;
+            Sampled.SecondaryPressed = false;
+            Sampled.SecondaryReleased = false;
+            Sampled.WheelY = 0.0f;
+        }
+    };
+
+    if (!Surface->Excluded(InspectorExtent))
+    {
+        SeatPagePointer(1u);
+        Surface->Confine(Extent);
+        RecordProperties(InspectorExtent, Applied, Property, Revisions, RevisionCount, true);
+        Surface->Release();
+    }
+
+    if (!Surface->Excluded(DirectoryExtent))
+    {
+        SeatPagePointer(0u);
+        Surface->Confine(Extent);
+        RecordDirectoryPage(DirectoryExtent, Applied, Rows, RowCount, Property);
+        Surface->Release();
+    }
+
+    Sampled = LivePointer;
 }
 
 } // namespace Slate

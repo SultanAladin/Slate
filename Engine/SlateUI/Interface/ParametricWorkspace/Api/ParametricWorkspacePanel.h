@@ -16,6 +16,7 @@
 #include "SlateUI/Interface/OverflowScroll/Api/OverflowScroll.h"
 #include "SlateUI/Interface/ParametricWorkspace/Api/ParametricWorkspaceSpecification.h"
 #include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectorySpecification.h"
+#include "SlateUI/Interface/SlidingPages/Api/SlidingPages.h"
 
 #include <cstdint>
 
@@ -50,15 +51,19 @@ public:
     void Reapply(const ThemeProfile& Resolved);
     void Reset();
 
-    /// 🧩 Records the CAD outliner leaf: search, CAD facets, and committed semantic rows.
+    /// 🧩 Records the combined CAD directory leaf: outliner, and the slid-in Properties | Revision page.
     void RecordOutliner(const PlaneExtent& Extent, ParametricWorkspaceContext& Applied,
-                        const ParametricDirectoryRow* Rows, std::uint32_t RowCount);
+                        const ParametricDirectoryRow* Rows, std::uint32_t RowCount,
+                        const ParametricPropertyPresentation* Property,
+                        const ParametricRevisionRow* Revisions,
+                        std::uint32_t RevisionCount);
 
-    /// 🧩 Records the selected CAD inspector leaf: Properties | Revision.
+    /// 🧩 Records the selected CAD inspector leaf standalone, for hosts that still dedicate a full panel to it.
     void RecordProperties(const PlaneExtent& Extent, ParametricWorkspaceContext& Applied,
                           const ParametricPropertyPresentation* Property,
                           const ParametricRevisionRow* Revisions,
-                          std::uint32_t RevisionCount);
+                          std::uint32_t RevisionCount,
+                          bool OutlinePresentation = false);
 
 private:
 
@@ -73,6 +78,9 @@ private:
                             const ParametricRevisionRow* Revisions,
                             std::uint32_t RevisionCount,
                             float ScrollOffset);
+    void RecordDirectoryPage(const PlaneExtent& Extent, ParametricWorkspaceContext& Applied,
+                             const ParametricDirectoryRow* Rows, std::uint32_t RowCount,
+                             const ParametricPropertyPresentation* Property);
 
     ControlIndex*           Interaction = nullptr;
     MotionIntegrator*       Motion = nullptr;
@@ -87,9 +95,12 @@ private:
     FacetPanel              Facets = {};
     OverflowScroll          OutlineOverflow = {};
     OverflowScroll          InspectorOverflow = {};
+    SlidingPages            OutlinePages = {};
 
     ControlIdentity         SearchField = {};
     ControlIdentity         InspectorStrip = {};
+    ControlIdentity         DirectoryCall = {};
+    ControlIdentity         InspectCall = {};
     ControlIdentity         RowContacts[ParametricWorkspaceContext::RowLimit] = {};
     ControlIdentity         RowDisclosures[ParametricWorkspaceContext::RowLimit] = {};
 };

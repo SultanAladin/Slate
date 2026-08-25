@@ -185,7 +185,7 @@ struct ParametricRevisionRow
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Every mutable UI condition the future dedicated parametric workspace leaf will own through its host:
-///    selection, disclosure, filter, and the Properties | Revision page choice.
+///    selection, disclosure, filter, and the one-leaf Directory | Properties | Revision travel.
 /// note  🔴 Visibility and lock do NOT live here. Those are authored workspace semantics and belong to the
 ///        borrowed rows; this context holds only presentation state the panel mutates directly.
 /// tag   guarantee
@@ -204,6 +204,7 @@ struct ParametricWorkspaceContext
     std::uint32_t            RowSelectionAnchor = 0u;
     std::uint32_t            RowTaken           = 0u;
 
+    std::uint32_t            OutlinePage = 0u; // [-] - 0 Directory, 1 Inspector
     ParametricInspectorPage  InspectorPage = ParametricInspectorPage::Properties;
 };
 
