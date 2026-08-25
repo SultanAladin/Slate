@@ -285,6 +285,93 @@ def draw_cad_tools(img: Image, cam: Camera) -> None:
         if q: img.circle(q[0], q[1], 4, (251, 191, 36), 1, 1)
 
 
+
+def axis_screen_layout(cam: Camera, origin: Vec3 = (0.0, 0.0, 0.0)) -> Tuple[Point, dict[str, Point], dict[str, Point]] | None:
+    o = project(cam, origin)
+    if not o:
+        return None
+    dirs: dict[str, Point] = {}
+    tips: dict[str, Point] = {}
+    axes = {"x": (1.0, 0.0, 0.0), "y": (0.0, 1.0, 0.0), "z": (0.0, 0.0, 1.0)}
+    for k, a in axes.items():
+        sp = project(cam, add(origin, mul(a, 0.5)))
+        if not sp:
+            dirs[k] = (0.0, 0.0)
+            tips[k] = o
+            continue
+        dx, dy = sp[0] - o[0], sp[1] - o[1]
+        ln = math.hypot(dx, dy)
+        if ln < 1e-4:
+            dirs[k] = (0.0, 0.0)
+            tips[k] = o
+        else:
+            dirs[k] = (dx / ln, dy / ln)
+            tips[k] = (o[0] + dirs[k][0] * 82.0, o[1] + dirs[k][1] * 82.0)
+    return o, dirs, tips
+
+
+def draw_arrow(img: Image, o: Point, tip: Point, d: Point, col: Color) -> None:
+    img.line(o, tip, col, 1.0, 4)
+    if abs(d[0]) + abs(d[1]) < 1e-6:
+        return
+    back = (tip[0] - d[0] * 18.0, tip[1] - d[1] * 18.0)
+    perp = (-d[1], d[0])
+    tri = [tip, (back[0] + perp[0] * 6.0, back[1] + perp[1] * 6.0), (back[0] - perp[0] * 6.0, back[1] - perp[1] * 6.0)]
+    img.polygon(tri, col, 1.0)
+
+
+def draw_plane_handle(img: Image, o: Point, dirs: dict[str, Point], a: str, b: str, col: Color) -> None:
+    off, sz = 28.0, 22.0
+    da, db = dirs[a], dirs[b]
+    if math.hypot(*da) < 1e-4 or math.hypot(*db) < 1e-4:
+        return
+    def corner(ka: float, kb: float) -> Point:
+        return (o[0] + da[0] * ka + db[0] * kb, o[1] + da[1] * ka + db[1] * kb)
+    pts = [corner(off, off), corner(off + sz, off), corner(off + sz, off + sz), corner(off, off + sz)]
+    img.polygon(pts, col, 0.45)
+    img.polyline(pts, col, 0.95, 1, True)
+
+
+def draw_ring(img: Image, o: Point, dirs: dict[str, Point], axis: str, col: Color) -> None:
+    others = [k for k in ("x", "y", "z") if k != axis]
+    da, db = dirs[others[0]], dirs[others[1]]
+    if math.hypot(*da) < 1e-4 or math.hypot(*db) < 1e-4:
+        img.circle(o[0], o[1], 96.0, col, 0.85, False, 3)
+        return
+    pts = []
+    for i in range(145):
+        t = math.tau * i / 144
+        pts.append((o[0] + (da[0] * math.cos(t) + db[0] * math.sin(t)) * 96.0,
+                    o[1] + (da[1] * math.cos(t) + db[1] * math.sin(t)) * 96.0))
+    img.polyline(pts, col, 0.92, 4)
+
+
+def draw_transform_gizmo(img: Image, cam: Camera, mode: str) -> None:
+    # Ported from References/Cad/js/gizmo.js constants: axisLen 82, cone 18,
+    # scaleBox 11, ringR 96, planeOff 28, planeSize 22, uniform 14.
+    layout = axis_screen_layout(cam, (0.0, 0.0, 0.0))
+    if not layout:
+        return
+    o, dirs, tips = layout
+    axis_col = {"x": (0x31, 0xF5, 0x0A), "y": (0x1C, 0x64, 0xFC), "z": (0xFA, 0x14, 0x14)}
+    if mode == "translate":
+        draw_plane_handle(img, o, dirs, "x", "y", (0x1B, 0xF5, 0xE6))
+        draw_plane_handle(img, o, dirs, "y", "z", (0xDF, 0x22, 0xF5))
+        draw_plane_handle(img, o, dirs, "x", "z", (0xF7, 0xDB, 0x14))
+        for k in ("x", "y", "z"):
+            draw_arrow(img, o, tips[k], dirs[k], axis_col[k])
+        img.rect(int(o[0] - 7), int(o[1] - 7), int(o[0] + 7), int(o[1] + 7), (255, 255, 255), 0.95)
+    elif mode == "rotate":
+        for k in ("x", "y", "z"):
+            draw_ring(img, o, dirs, k, axis_col[k])
+        img.rect(int(o[0] - 3), int(o[1] - 3), int(o[0] + 3), int(o[1] + 3), (255, 255, 255), 0.95)
+    elif mode == "scale":
+        for k in ("x", "y", "z"):
+            img.line(o, tips[k], axis_col[k], 0.95, 4)
+            tx, ty = tips[k]
+            img.rect(int(tx - 5.5), int(ty - 5.5), int(tx + 5.5), int(ty + 5.5), axis_col[k], 1.0)
+        img.rect(int(o[0] - 7), int(o[1] - 7), int(o[0] + 7), int(o[1] + 7), (255, 255, 255), 1.0)
+
 def draw_blender_gizmo(img: Image, body=BODY) -> None:
     x0, y0, x1, _ = body
     cx, cy, r = x1 - 70, y0 + 58, 34
@@ -312,7 +399,7 @@ def draw_cad_cube(img: Image, body=BODY) -> None:
     img.polyline(front, (255, 255, 255), 0.7, 1, True)
 
 
-def render(name: str, cam: Camera, gizmo: str) -> str:
+def render(name: str, cam: Camera, gizmo: str, transform: str) -> str:
     img = Image(W, H)
     # App frame gutters around the viewport panel.
     img.rect(0, 0, W, H, (17, 17, 20), 1)
@@ -321,6 +408,7 @@ def render(name: str, cam: Camera, gizmo: str) -> str:
     draw_viewport_panel(img, name)
     draw_shader_grid(img, cam)
     draw_cad_tools(img, cam)
+    draw_transform_gizmo(img, cam, transform)
     if gizmo == "cad":
         draw_cad_cube(img)
     else:
@@ -337,7 +425,7 @@ def render(name: str, cam: Camera, gizmo: str) -> str:
         "-pointsize", "10", "-fill", "#101014", "-annotate", f"+{BODY[2] - 73}+{BODY[1] + 25}", "X" if gizmo == "blender" else "",
         "-annotate", f"+{BODY[2] - 105}+{BODY[1] - 7}", "Z" if gizmo == "blender" else "",
         "-pointsize", "13", "-fill", "#a7f3d0", "-annotate", f"+{PANEL_X + 16}+{PANEL_Y + PANEL_H - 24}",
-        f"{name}: shader-grid CPU mirror, semi-transparent closed profiles, {gizmo.upper()} gizmo only",
+        f"{name}: shader-grid CPU mirror, {transform} transform gizmo, semi-transparent profiles, {gizmo.upper()} orientation only",
         png
     ], check=True)
     os.remove(ppm)
@@ -347,12 +435,12 @@ def render(name: str, cam: Camera, gizmo: str) -> str:
 def main() -> None:
     os.makedirs(OUT, exist_ok=True)
     views = [
-        ("viewport_actual_grid_top_cad", Camera((0.0, 3.6, 0.001), 0.0, -89.0), "cad"),
-        ("viewport_actual_grid_front_cad", Camera((0.0, 1.25, -4.2), 0.0, -6.0), "cad"),
-        ("viewport_actual_grid_iso_blender", Camera((3.2, 2.5, -4.2), -38.0, -20.0), "blender"),
+        ("viewport_proof_top_ortho_cad_translate", Camera((0.0, 3.6, 0.001), 0.0, -89.0), "cad", "translate"),
+        ("viewport_proof_front_ortho_blender_rotate", Camera((0.0, 1.25, -4.2), 0.0, -6.0), "blender", "rotate"),
+        ("viewport_proof_iso_perspective_cad_scale", Camera((3.2, 2.5, -4.2), -38.0, -20.0), "cad", "scale"),
     ]
-    for name, cam, gizmo in views:
-        print(render(name, cam, gizmo))
+    for name, cam, gizmo, transform in views:
+        print(render(name, cam, gizmo, transform))
 
 
 if __name__ == "__main__":
