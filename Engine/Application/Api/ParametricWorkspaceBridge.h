@@ -290,7 +290,12 @@ inline Outcome<bool> BridgeParametricInspector(const WorkspaceRecordStructure& R
     Append("Visible", BridgeAffirmation(Held.Visible));
     Append("Locked", BridgeAffirmation(Held.Locked));
     Append("Auto Name", BridgeAffirmation(Held.AutoNamed));
-    Append("Closed Semantic", BridgeAffirmation(Held.ClosedSemantic));
+    if (Held.ClosedSemantic)
+    {
+        Append("Curve Closure", "Closed", "toggleable");
+        Append("Extrude Source", "Filled profile", "ready");
+        Append("Open/Closed", "Closed", "click toggle");
+    }
     Append("Parent Folder", BridgeRecordDisplay(Records, Held.ParentFolder));
 
     const std::string Reference = BridgeSubjectReference(Held);

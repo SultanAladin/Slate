@@ -5457,6 +5457,21 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 PropertyPresented ? &Bridge.Property : nullptr,
                                 Bridge.RevisionRows.empty() ? nullptr : Bridge.RevisionRows.data(),
                                 static_cast<std::uint32_t>(Bridge.RevisionRows.size()));
+                            if (ParametricApplied.ClosureToggleDemand)
+                            {
+                                WorkspaceRecordName Subject = { static_cast<std::uint32_t>(ParametricApplied.ClosureToggleIdentity) };
+                                if (WorkspaceRecord* Record = Records.Resolve(Subject))
+                                {
+                                    Record->ClosedSemantic = !Record->ClosedSemantic;
+                                    Revisions.Seal(std::string("Set ") + Record->Naming +
+                                                   (Record->ClosedSemantic ? " closed" : " open"),
+                                                   "Toggle Curve Closure", { Subject },
+                                                   Revisions.DeclaredCount() + 1u);
+                                    PendingSelection = Subject;
+                                }
+                                ParametricApplied.ClosureToggleDemand = false;
+                                ParametricApplied.ClosureToggleIdentity = 0u;
+                            }
                             break;
                         }
 

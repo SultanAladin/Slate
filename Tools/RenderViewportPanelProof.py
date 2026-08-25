@@ -284,6 +284,28 @@ def draw_cad_tools(img: Image, cam: Camera) -> None:
     if all(pl): img.polyline([p for p in pl if p], white, 0.95, 2)
     arc = [P(1.75 + math.cos(math.pi * (0.15 + i / 55 * 0.75)) * 0.55, -0.82 + math.sin(math.pi * (0.15 + i / 55 * 0.75)) * 0.55) for i in range(56)]
     if all(arc): img.polyline([p for p in arc if p], blue, 0.95, 2)
+    # Open-vs-closed curve proof in a separate area of the same scene.
+    # Open curves stay stroked only; joined closed loops become filled/extrude-ready profiles.
+    open_curve = [P(-3.05, -2.30), P(-2.60, -1.90), P(-2.10, -2.25), P(-1.65, -1.85)]
+    if all(open_curve):
+        img.polyline([p for p in open_curve if p], (248, 113, 113), 1.0, 4)
+    joined = [P(-0.95, -2.30), P(-0.28, -2.28), P(-0.18, -1.72), P(-0.82, -1.55), P(-1.10, -1.95)]
+    if all(joined):
+        jj = [p for p in joined if p]
+        img.polygon(jj, (34, 197, 94), 0.26)
+        img.polyline(jj, (167, 243, 208), 1.0, 4, True)
+    joined2 = [P(0.45 + math.cos(math.tau * i / 80) * 0.38, -2.00 + math.sin(math.tau * i / 80) * 0.28) for i in range(80)]
+    if all(joined2):
+        j2 = [p for p in joined2 if p]
+        img.polygon(j2, (34, 197, 94), 0.24)
+        img.polyline(j2, (167, 243, 208), 1.0, 3, True)
+    # Join operation arrows from open endpoints into the filled closed loop.
+    a0, a1 = P(-1.52, -2.02), P(-1.16, -2.02)
+    if a0 and a1:
+        img.line(a0, a1, (251, 191, 36), 1.0, 3)
+        img.line((a1[0]-10, a1[1]-6), a1, (251, 191, 36), 1.0, 3)
+        img.line((a1[0]-10, a1[1]+6), a1, (251, 191, 36), 1.0, 3)
+
     # points/markers
     for x, z in [(-2.0, 1.6), (0.25, 1.55), (1.75, -0.82)]:
         q = P(x, z)
@@ -531,12 +553,29 @@ def draw_interaction_highlight(img: Image, cam: Camera, gizmo: str, transform: s
     else:
         img.circle(x1 - 70 + 34, y0 + 58, 17, amber, 0.95, 3)
 
+
+def draw_parametric_property_proof(img: Image) -> None:
+    # Left inspector proof: closed-profile rows expose the Open/Closed toggle, open curves do not.
+    x0, y0, w = 28, 100, 320
+    img.rect(x0, y0, x0 + w, y0 + 245, (18, 18, 22), 0.98)
+    img.rect(x0, y0, x0 + w, y0 + 32, (31, 31, 37), 1.0)
+    for i, text_col in enumerate([(96,165,250), (167,243,208)]):
+        y = y0 + 48 + i * 36
+        img.rect(x0 + 14, y, x0 + w - 14, y + 28, (24, 25, 30), 1.0)
+        img.circle(x0 + 30, y + 14, 6, text_col, 1.0, 1)
+    # toggle card visible only for selected closed profile
+    ty = y0 + 132
+    img.rect(x0 + 14, ty, x0 + w - 14, ty + 86, (20, 22, 28), 1.0)
+    img.rect(x0 + w - 122, ty + 42, x0 + w - 30, ty + 66, (34, 197, 94), 1.0)
+    img.circle(x0 + w - 44, ty + 54, 8, (255,255,255), 1.0, 1)
+
 def render(name: str, cam: Camera, gizmo: str, transform: str) -> str:
     img = Image(W, H)
     # App frame gutters around the viewport panel.
     img.rect(0, 0, W, H, (17, 17, 20), 1)
     img.rect(0, 0, 390, H, (18, 18, 22), 1)
     img.rect(390, 0, 640, H, (20, 20, 24), 1)
+    draw_parametric_property_proof(img)
     draw_viewport_panel(img, name)
     draw_shader_grid(img, cam)
     draw_cad_tools(img, cam)
@@ -554,8 +593,15 @@ def render(name: str, cam: Camera, gizmo: str, transform: str) -> str:
         "convert", ppm,
         "-font", "DejaVu-Sans-Bold", "-pointsize", "12", "-fill", "#d8d8dc",
         "-gravity", "northwest", "-annotate", f"+{PANEL_X + 72}+{PANEL_Y + 9}", "3D Viewport",
+        "-pointsize", "12", "-fill", "#d8d8dc", "-annotate", "+42+112", "Sketch Directory / Properties",
+        "-pointsize", "10", "-fill", "#93c5fd", "-annotate", "+72+156", "Open Curve: no closure toggle",
+        "-fill", "#a7f3d0", "-annotate", "+72+192", "Closed Profile: toggle visible",
+        "-fill", "#d8d8dc", "-annotate", "+54+250", "Curve Closure",
+        "-fill", "#101014", "-annotate", "+242+288", "Closed",
         "-pointsize", "10", "-fill", "#101014", "-annotate", f"+{BODY[2] - 73}+{BODY[1] + 25}", "X" if gizmo == "blender" else "",
         "-annotate", f"+{BODY[2] - 105}+{BODY[1] - 7}", "Z" if gizmo == "blender" else "",
+        "-pointsize", "12", "-fill", "#f87171", "-annotate", f"+{BODY[0] + 24}+{BODY[1] + 500}", "OPEN curves",
+        "-fill", "#a7f3d0", "-annotate", f"+{BODY[0] + 210}+{BODY[1] + 500}", "JOIN -> CLOSED filled profiles",
         "-pointsize", "12", "-fill", "#ec4899", "-annotate", f"+{BODY[0] + 48}+{BODY[1] + 122}", "Bezier",
         "-fill", "#a855f7", "-annotate", f"+{BODY[0] + 242}+{BODY[1] + 122}", "Hermite",
         "-fill", "#2dd4bf", "-annotate", f"+{BODY[0] + 388}+{BODY[1] + 122}", "Basis Spline",

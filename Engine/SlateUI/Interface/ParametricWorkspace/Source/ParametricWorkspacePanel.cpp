@@ -472,7 +472,7 @@ void ParametricWorkspacePanel::RecordDirectoryPage(const PlaneExtent& Extent,
     Facets.RecordDeferred();
 }
 
-void ParametricWorkspacePanel::RecordPropertyPage(const PlaneExtent& Extent,
+void ParametricWorkspacePanel::RecordPropertyPage(const PlaneExtent& Extent, ParametricWorkspaceContext& Applied,
                                                   const ParametricPropertyPresentation& Property,
                                                   float ScrollOffset)
 {
@@ -508,6 +508,33 @@ void ParametricWorkspacePanel::RecordPropertyPage(const PlaneExtent& Extent,
                      Hue, Property.Secondary, Scaled.RunFine);
 
     Sweep = Hero.MaximumY + Pad;
+
+    if (Property.ClosedSemantic)
+    {
+        const PlaneExtent ToggleCard = Spanning(Extent.MinimumX + Pad, Sweep,
+                                                Extent.Width() - Pad * 2.0f, Scaled.ComponentY + Pad * 2.0f);
+        const bool Hovered = ToggleCard.Encloses(Sampled.PositionX, Sampled.PositionY);
+        if (Sampled.ContactPressed && Hovered)
+        {
+            Applied.ClosureToggleDemand = true;
+            Applied.ClosureToggleIdentity = Property.Identity;
+        }
+        Surface->Ground(ToggleCard, Hovered ? Tinted.TileHovered : Tinted.Desk, Scaled.CardRadius, CornerAll);
+        Surface->Edge(ToggleCard, Hovered ? Tinted.HairlineFirm : Tinted.Hairline, 1.0f, Scaled.CardRadius, CornerAll);
+        Surface->TextRun(ToggleCard.MinimumX + Pad,
+                         ToggleCard.MinimumY + (ToggleCard.Height() - Scaled.RunSmall) * 0.5f,
+                         Tinted.Muted, "Curve Closure", Scaled.RunSmall, 0.0f, true);
+        const float SwitchW = 92.0f;
+        const PlaneExtent Switch = Spanning(ToggleCard.MaximumX - Pad - SwitchW,
+                                            ToggleCard.MinimumY + (ToggleCard.Height() - 24.0f) * 0.5f,
+                                            SwitchW, 24.0f);
+        Surface->Ground(Switch, Hue, 12.0f, CornerAll);
+        Surface->TextRun(Switch.MinimumX + 13.0f,
+                         Switch.MinimumY + (Switch.Height() - Scaled.RunFine) * 0.5f,
+                         Covering(0x101014u), "Closed", Scaled.RunFine, 0.0f, true);
+        Surface->Medallion(Switch.MaximumX - 13.0f, Switch.MinimumY + 12.0f, 8.0f, Covering(0xFFFFFFu));
+        Sweep = ToggleCard.MaximumY + Pad;
+    }
 
     const float CardHeight = Scaled.ComponentY + Pad * 2.0f
                            + static_cast<float>(Property.FieldCount) * Scaled.StatY;
@@ -688,7 +715,7 @@ void ParametricWorkspacePanel::RecordProperties(const PlaneExtent& Extent,
                          Tinted.Faint, Prose, Scaled.RunSecondary);
     }
     else if (Applied.InspectorPage == ParametricInspectorPage::Properties)
-        RecordPropertyPage(Body, *Property, Scroll);
+        RecordPropertyPage(Body, Applied, *Property, Scroll);
     else
         RecordRevisionPage(Body, Revisions, RevisionCount, Scroll);
     Surface->Release();

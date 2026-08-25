@@ -90,6 +90,14 @@ def main() -> int:
     require("Bezier" in tools and "Hermite" in tools and "NURBS Curve" in tools,
             "Sketch Draw must expose the full primary curve set")
 
+    parametric_spec = read("Engine/SlateUI/Interface/ParametricWorkspace/Api/ParametricWorkspaceSpecification.h")
+    parametric_panel = read("Engine/SlateUI/Interface/ParametricWorkspace/Source/ParametricWorkspacePanel.cpp")
+    parametric_bridge = read("Engine/Application/Api/ParametricWorkspaceBridge.h")
+    require("ClosureToggleDemand" in parametric_spec and "Curve Closure" in parametric_panel,
+            "closed profile properties must expose an open/closed closure toggle")
+    require("Curve Closure" in parametric_bridge and "Extrude Source" in parametric_bridge,
+            "closed profile inspector data must describe closure and extrusion readiness")
+
     theme = read("Engine/SlateUI/Interface/ThemeInterchange/Source/ThemeInterchange.cpp")
     require("std::strncpy" not in theme, "ThemeInterchange must avoid MSVC strncpy warning")
 

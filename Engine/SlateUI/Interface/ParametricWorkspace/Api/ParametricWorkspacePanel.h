@@ -71,7 +71,7 @@ private:
                           const ThemeToken& Hue, const char* Titled,
                           const char* Secondary);
     void RecordSearchField(const PlaneExtent& Extent, ParametricWorkspaceContext& Applied);
-    void RecordPropertyPage(const PlaneExtent& Extent,
+    void RecordPropertyPage(const PlaneExtent& Extent, ParametricWorkspaceContext& Applied,
                             const ParametricPropertyPresentation& Property,
                             float ScrollOffset);
     void RecordRevisionPage(const PlaneExtent& Extent,
