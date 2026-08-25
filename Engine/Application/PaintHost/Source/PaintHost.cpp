@@ -6,6 +6,7 @@
 #define SLATE_PAINT_HOST 1
 #include "Foundation/DeliveryOutcome.h"
 #include "Application/Api/SharedViewportHostBridge.h"
+#include "SlateScene/Scene/EditorCameraComponent/Api/EditorCameraComponent.h"
 #include "SlateUI/Interface/ContentBrowserPanel/Api/ContentBrowserPanel.h"
 #include "SlateUI/Interface/ControlCentrePanel/Api/ControlCentrePanel.h"
 #include "SlateUI/Interface/ThemeInterchange/Api/ThemeInterchange.h"
@@ -89,11 +90,12 @@ bool ProjectPaintScenePoint(const PlaneExtent& Extent,
                             double WorldX,
                             double WorldY,
                             double WorldZ,
+                            const EditorCameraComponent& Camera,
                             float& ScreenX,
                             float& ScreenY)
 {
-    const double Yaw = 0.0;
-    const double Pitch = -8.0 * 3.14159265358979323846 / 180.0;
+    const double Yaw = Camera.LaggedYawDegrees * 3.14159265358979323846 / 180.0;
+    const double Pitch = Camera.LaggedPitchDegrees * 3.14159265358979323846 / 180.0;
     const double CosP = std::cos(Pitch), SinP = std::sin(Pitch);
     const double SinY = std::sin(Yaw),   CosY = std::cos(Yaw);
     const double ForwardX = CosP * SinY;
@@ -104,15 +106,15 @@ bool ProjectPaintScenePoint(const PlaneExtent& Extent,
     const double UpX = -SinP * SinY;
     const double UpY = CosP;
     const double UpZ = -SinP * CosY;
-    const double DX = WorldX;
-    const double DY = WorldY - 1.2;
-    const double DZ = WorldZ + 4.0;
+    const double DX = WorldX - Camera.LaggedPosition[0];
+    const double DY = WorldY - Camera.LaggedPosition[1];
+    const double DZ = WorldZ - Camera.LaggedPosition[2];
     const double CameraX = DX * RightX + DZ * RightZ;
     const double CameraY = DX * UpX + DY * UpY + DZ * UpZ;
     const double CameraZ = DX * ForwardX + DY * ForwardY + DZ * ForwardZ;
     if (CameraZ <= 0.01)
         return false;
-    const double TanV = std::tan(30.0 * 3.14159265358979323846 / 180.0);
+    const double TanV = std::tan(Camera.FieldOfViewDegrees * 0.5 * 3.14159265358979323846 / 180.0);
     const double Aspect = Extent.Height() > 0.0f ? static_cast<double>(Extent.Width()) / static_cast<double>(Extent.Height()) : 1.0;
     ScreenX = static_cast<float>((CameraX / (CameraZ * TanV * Aspect) * 0.5 + 0.5) * Extent.Width() + Extent.MinimumX);
     ScreenY = static_cast<float>((-CameraY / (CameraZ * TanV) * 0.5 + 0.5) * Extent.Height() + Extent.MinimumY);
@@ -120,7 +122,8 @@ bool ProjectPaintScenePoint(const PlaneExtent& Extent,
 }
 
 void RecordPaintSceneProxy(RecordingSurface& Surface, const PlaneExtent& Extent,
-                           const WorkspaceCodex& Scene, bool SceneStanding)
+                           const WorkspaceCodex& Scene, bool SceneStanding,
+                           const EditorCameraComponent& Camera)
 {
     if (!SceneStanding)
         return;
@@ -156,7 +159,7 @@ void RecordPaintSceneProxy(RecordingSurface& Surface, const PlaneExtent& Extent,
                     Entry.Position[0] + Mesh->Positions[Vertex * 3u + 0u] * Entry.Scale[0],
                     Entry.Position[1] + Mesh->Positions[Vertex * 3u + 1u] * Entry.Scale[1],
                     Entry.Position[2] + Mesh->Positions[Vertex * 3u + 2u] * Entry.Scale[2],
-                    SX[Corner], SY[Corner]) && Standing;
+                    Camera, SX[Corner], SY[Corner]) && Standing;
             }
             if (Standing)
             {
@@ -174,11 +177,12 @@ void RecordPaintSceneProxy(RecordingSurface& Surface, const PlaneExtent& Extent,
 }
 
 void RecordSharedViewportChrome(RecordingSurface& Surface, const PlaneExtent& Extent,
-                                const WorkspaceCodex& Scene, bool SceneStanding)
+                                const WorkspaceCodex& Scene, bool SceneStanding,
+                                const EditorCameraComponent& Camera)
 {
     Surface.Confine(Extent);
     Surface.Ground(Extent, Covering(0x0F1014u), 0.0f, CornerNone);
-    RecordPaintSceneProxy(Surface, Extent, Scene, SceneStanding);
+    RecordPaintSceneProxy(Surface, Extent, Scene, SceneStanding, Camera);
     const float Step = 48.0f;
     const float CentreX = (Extent.MinimumX + Extent.MaximumX) * 0.5f;
     const float CentreY = (Extent.MinimumY + Extent.MaximumY) * 0.5f;
@@ -345,6 +349,18 @@ int main(int ArgumentCount, char** ArgumentValues)
     ContentLibrary           ContentApplied;
     WorkspaceCodex           OpenedScene = {};
     bool                     OpenedSceneStanding = false;
+    EditorCameraComponent    EditorCamera;
+    bool                     EditorCameraLookLatched = false;
+    {
+        const SharedViewportCameraSeed CameraSeed = SharedViewportDefaultCamera();
+        EditorCamera.Position[0] = CameraSeed.Position[0];
+        EditorCamera.Position[1] = CameraSeed.Position[1];
+        EditorCamera.Position[2] = CameraSeed.Position[2];
+        EditorCamera.YawDegrees = CameraSeed.YawDegrees;
+        EditorCamera.PitchDegrees = CameraSeed.PitchDegrees;
+        EditorCamera.FieldOfViewDegrees = CameraSeed.FieldOfViewDegrees;
+        EditorCamera.Snap();
+    }
 
     // 📝 The appearance file sits beside the executable and is read once, before any panel is recorded. A
     //    first run has no file yet, which is the ordinary case and not a fault — the build's own appearance
@@ -573,6 +589,26 @@ int main(int ArgumentCount, char** ArgumentValues)
 
             RegisterIntoNode = 0u;
 
+            bool PointerOverViewport = false;
+            for (std::uint32_t Leaf = 0u; Leaf < WorkspacePanels.LeafCount(); ++Leaf)
+            {
+                if (WorkspacePanels.LeafSubject(Leaf) == PanelSubject::Viewport &&
+                    WorkspacePanels.LeafBody(Leaf).Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY))
+                {
+                    PointerOverViewport = true;
+                    break;
+                }
+            }
+            if (ForegroundPointer.SecondaryPressed)
+                EditorCameraLookLatched = PointerOverViewport && !PointerBehindDrawer;
+            if (ForegroundPointer.SecondaryReleased || !ForegroundPointer.SecondaryHeld)
+                EditorCameraLookLatched = false;
+            CameraCondition FlyInput = Viewport.Seam().CameraInput(
+                (PointerOverViewport || EditorCameraLookLatched) && !PointerBehindDrawer);
+            CameraSettings FlySettings;
+            FlySettings.FlySpeed = EditorCamera.FlySpeed;
+            EditorCamera.Advance(Pass.ElapsedMilliseconds / 1000.0, FlyInput, FlySettings);
+
             WorkspacePanels.Advance(BackgroundPointer, Pass.ElapsedMilliseconds);
 
             for (std::uint32_t Index = 0u; Index < OpenCount; ++Index)
@@ -599,7 +635,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                     {
                         if (WorkspacePanels.LeafSubject(Leaf) == PanelSubject::Viewport)
                             RecordSharedViewportChrome(Viewport.Surface(), WorkspacePanels.LeafBody(Leaf),
-                                                       OpenedScene, OpenedSceneStanding);
+                                                       OpenedScene, OpenedSceneStanding, EditorCamera);
                     }
                     if (WorkspacePanels.PointerCaptured(Index))
                         Viewport.Seam().WithholdPointer();

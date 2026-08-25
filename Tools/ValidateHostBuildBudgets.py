@@ -48,6 +48,10 @@ def main() -> int:
 
     paint = read("Engine/Application/PaintHost/Source/PaintHost.cpp")
     require("static ViewportSequence Viewport;" in paint, "PaintHost must keep the motion-heavy viewport sequence off the stack")
+    require("EditorCameraComponent" in paint and "CameraInput" in paint,
+            "PaintHost viewport must use the shared editor camera component and hotkey path")
+    require("ConsumeSharedCodexActivation" in paint,
+            "PaintHost activation must use the shared codex activation helper")
     require("std::strncpy" not in paint, "PaintHost must avoid MSVC strncpy warning")
 
     validation = read("Engine/Application/InterfaceValidationHost/Source/InterfaceValidationHost.cpp")
