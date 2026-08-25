@@ -140,7 +140,7 @@ struct MaterialProcessingCapabilities
     bool ChannelDirtyKeys               = true;
     bool PhysicalSurfaceCompilation     = true;
     bool LayerSequenceResolution        = true;
-    bool ImportedImageResolution        = false;
+    bool ImportedImageResolution        = true;
     bool AnalyticResolution             = true;
     bool DeviceProcessing               = false;
 };

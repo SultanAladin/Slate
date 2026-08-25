@@ -63,8 +63,8 @@ def main() -> int:
         "LayerSequenceResolution        = true",
         "AnalyticResolution             = true",
     )
-    require("ImportedImageResolution        = false" in compute_header,
-            "image masks should remain a future phase")
+    require("ImportedImageResolution        = true" in compute_header,
+            "imported image resolution should stay enabled after pass 4")
 
     compute_source = require_text(
         "Engine/SlateCompute/Compute/MaterialProcessingExchange/Source/MaterialProcessingExchange.cpp",

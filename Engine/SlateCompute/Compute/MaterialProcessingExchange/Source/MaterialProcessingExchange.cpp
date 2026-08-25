@@ -521,6 +521,7 @@ MaterialProcessingCapabilities MaterialProcessingExchange::Capabilities() const
 {
     MaterialProcessingCapabilities Declared;
     Declared.AnalyticResolution = true;
+    Declared.ImportedImageResolution = true;
     return Declared;
 }
 
