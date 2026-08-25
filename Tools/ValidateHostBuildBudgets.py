@@ -93,10 +93,10 @@ def main() -> int:
     parametric_spec = read("Engine/SlateUI/Interface/ParametricWorkspace/Api/ParametricWorkspaceSpecification.h")
     parametric_panel = read("Engine/SlateUI/Interface/ParametricWorkspace/Source/ParametricWorkspacePanel.cpp")
     parametric_bridge = read("Engine/Application/Api/ParametricWorkspaceBridge.h")
-    require("ClosureToggleDemand" in parametric_spec and "Curve Closure" in parametric_panel,
-            "closed profile properties must expose an open/closed closure toggle")
-    require("Curve Closure" in parametric_bridge and "Extrude Source" in parametric_bridge,
-            "closed profile inspector data must describe closure and extrusion readiness")
+    require("ExtrusionCapToggleDemand" in parametric_spec and "Extrude Caps" in parametric_panel,
+            "closed profile properties must expose a capped/wall extrusion toggle")
+    require("Curve Closure" in parametric_bridge and "Extrude Result" in parametric_bridge and "Extrude Caps" in parametric_bridge,
+            "closed profile inspector data must distinguish closed-loop rendering from capped solid extrusion")
 
     theme = read("Engine/SlateUI/Interface/ThemeInterchange/Source/ThemeInterchange.cpp")
     require("std::strncpy" not in theme, "ThemeInterchange must avoid MSVC strncpy warning")

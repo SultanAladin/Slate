@@ -1077,6 +1077,10 @@ bool DraftProducesClosedProfile(ParametricDraftSubject Subject)
     return SharedCadDraftProducesClosedProfile(static_cast<SharedCadDraftSubject>(static_cast<std::uint32_t>(Subject)));
 }
 
+WorkspaceRecordName AutoDeclareWorkspaceProfilesFromChains(WorkspaceNameIndex& Naming,
+                                                           SketchStructure& Sketch,
+                                                           WorkspaceRecordStructure& Records,
+                                                           WorkspaceRevisionSequence& Revisions);
 
 void AdoptCommittedDraft(ParametricDraftSubject Subject,
                          WorkspaceNameIndex& Naming,
@@ -1188,6 +1192,7 @@ WorkspaceRecordName DeclareWorkspaceProfile(WorkspaceNameIndex& Naming,
     Record.Naming = Naming.Issue(WorkspaceRecordSubject::ClosedProfile);
     Record.Profile = Profile;
     Record.ClosedSemantic = true;
+    Record.CappedExtrusionSemantic = true;
     return Records.Declare(Record);
 }
 
@@ -5457,20 +5462,20 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 PropertyPresented ? &Bridge.Property : nullptr,
                                 Bridge.RevisionRows.empty() ? nullptr : Bridge.RevisionRows.data(),
                                 static_cast<std::uint32_t>(Bridge.RevisionRows.size()));
-                            if (ParametricApplied.ClosureToggleDemand)
+                            if (ParametricApplied.ExtrusionCapToggleDemand)
                             {
-                                WorkspaceRecordName Subject = { static_cast<std::uint32_t>(ParametricApplied.ClosureToggleIdentity) };
+                                WorkspaceRecordName Subject = { static_cast<std::uint32_t>(ParametricApplied.ExtrusionCapToggleIdentity) };
                                 if (WorkspaceRecord* Record = Records.Resolve(Subject))
                                 {
-                                    Record->ClosedSemantic = !Record->ClosedSemantic;
+                                    Record->CappedExtrusionSemantic = !Record->CappedExtrusionSemantic;
                                     Revisions.Seal(std::string("Set ") + Record->Naming +
-                                                   (Record->ClosedSemantic ? " closed" : " open"),
-                                                   "Toggle Curve Closure", { Subject },
+                                                   (Record->CappedExtrusionSemantic ? " solid extrusion" : " wall extrusion"),
+                                                   "Toggle Extrude Caps", { Subject },
                                                    Revisions.DeclaredCount() + 1u);
                                     PendingSelection = Subject;
                                 }
-                                ParametricApplied.ClosureToggleDemand = false;
-                                ParametricApplied.ClosureToggleIdentity = 0u;
+                                ParametricApplied.ExtrusionCapToggleDemand = false;
+                                ParametricApplied.ExtrusionCapToggleIdentity = 0u;
                             }
                             break;
                         }

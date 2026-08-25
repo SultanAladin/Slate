@@ -69,6 +69,8 @@ Outcome<bool> WorkspaceRecordStructure::Promote(WorkspaceRecordName Subject, Wor
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such workspace record is declared" });
     Held->Subject = TargetSubject;
     Held->ClosedSemantic = TargetSubject == WorkspaceRecordSubject::ClosedProfile || TargetSubject == WorkspaceRecordSubject::Solid;
+    if (Held->ClosedSemantic && !Held->CappedExtrusionSemantic)
+        Held->CappedExtrusionSemantic = true;
     return Outcome<bool>::Result(true);
 }
 
@@ -151,7 +153,7 @@ void WorkspaceRecordStructure::ResolvePresented(std::vector<WorkspacePresentedRo
         const WorkspaceRecord& Held = HeldRecords[RecordIndex - 1u];
         Presented.push_back({ { RecordIndex }, Held.Subject, PresentedCategoryOfRecord(Held), Held.ParentFolder,
                               Held.Naming.c_str(), ResolveDepth(Held.ParentFolder), Held.Visible, Held.Locked,
-                              Held.ClosedSemantic, Held.ConstructionSemantic });
+                              Held.ClosedSemantic, Held.CappedExtrusionSemantic, Held.ConstructionSemantic });
     }
 }
 

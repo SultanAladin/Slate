@@ -516,22 +516,22 @@ void ParametricWorkspacePanel::RecordPropertyPage(const PlaneExtent& Extent, Par
         const bool Hovered = ToggleCard.Encloses(Sampled.PositionX, Sampled.PositionY);
         if (Sampled.ContactPressed && Hovered)
         {
-            Applied.ClosureToggleDemand = true;
-            Applied.ClosureToggleIdentity = Property.Identity;
+            Applied.ExtrusionCapToggleDemand = true;
+            Applied.ExtrusionCapToggleIdentity = Property.Identity;
         }
         Surface->Ground(ToggleCard, Hovered ? Tinted.TileHovered : Tinted.Desk, Scaled.CardRadius, CornerAll);
         Surface->Edge(ToggleCard, Hovered ? Tinted.HairlineFirm : Tinted.Hairline, 1.0f, Scaled.CardRadius, CornerAll);
         Surface->TextRun(ToggleCard.MinimumX + Pad,
                          ToggleCard.MinimumY + (ToggleCard.Height() - Scaled.RunSmall) * 0.5f,
-                         Tinted.Muted, "Curve Closure", Scaled.RunSmall, 0.0f, true);
+                         Tinted.Muted, "Extrude Caps", Scaled.RunSmall, 0.0f, true);
         const float SwitchW = 92.0f;
         const PlaneExtent Switch = Spanning(ToggleCard.MaximumX - Pad - SwitchW,
                                             ToggleCard.MinimumY + (ToggleCard.Height() - 24.0f) * 0.5f,
                                             SwitchW, 24.0f);
-        Surface->Ground(Switch, Hue, 12.0f, CornerAll);
+        Surface->Ground(Switch, Property.CappedExtrusionSemantic ? Hue : Tinted.Tile, 12.0f, CornerAll);
         Surface->TextRun(Switch.MinimumX + 13.0f,
                          Switch.MinimumY + (Switch.Height() - Scaled.RunFine) * 0.5f,
-                         Covering(0x101014u), "Closed", Scaled.RunFine, 0.0f, true);
+                         Covering(0x101014u), Property.CappedExtrusionSemantic ? "Solid" : "Walls", Scaled.RunFine, 0.0f, true);
         Surface->Medallion(Switch.MaximumX - 13.0f, Switch.MinimumY + 12.0f, 8.0f, Covering(0xFFFFFFu));
         Sweep = ToggleCard.MaximumY + Pad;
     }

@@ -268,6 +268,7 @@ inline Outcome<bool> BridgeParametricInspector(const WorkspaceRecordStructure& R
     Delivered.Property.Visible        = Held.Visible;
     Delivered.Property.Locked         = Held.Locked;
     Delivered.Property.ClosedSemantic = Held.ClosedSemantic;
+    Delivered.Property.CappedExtrusionSemantic = Held.CappedExtrusionSemantic;
     Delivered.Property.AutoNamed      = Held.AutoNamed;
 
     std::uint32_t Field = 0u;
@@ -292,9 +293,10 @@ inline Outcome<bool> BridgeParametricInspector(const WorkspaceRecordStructure& R
     Append("Auto Name", BridgeAffirmation(Held.AutoNamed));
     if (Held.ClosedSemantic)
     {
-        Append("Curve Closure", "Closed", "toggleable");
-        Append("Extrude Source", "Filled profile", "ready");
-        Append("Open/Closed", "Closed", "click toggle");
+        Append("Curve Closure", "Closed loop", "outline only");
+        Append("Extrude Result", Held.CappedExtrusionSemantic ? "Solid" : "Walls only",
+               Held.CappedExtrusionSemantic ? "top/bottom caps" : "no caps");
+        Append("Extrude Caps", Held.CappedExtrusionSemantic ? "On" : "Off", "click toggle");
     }
     Append("Parent Folder", BridgeRecordDisplay(Records, Held.ParentFolder));
 

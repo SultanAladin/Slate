@@ -65,6 +65,7 @@ struct WorkspaceRecord
     bool Visible = true;
     bool Locked = false;
     bool ClosedSemantic = false;
+    bool CappedExtrusionSemantic = false;
     bool ConstructionSemantic = false;
     SketchPointName SketchPoint = {};
     SketchCurveName SketchCurve = {};
@@ -88,6 +89,7 @@ struct WorkspacePresentedRow
     bool Visible = true;
     bool Locked = false;
     bool ClosedSemantic = false;
+    bool CappedExtrusionSemantic = false;
     bool ConstructionSemantic = false;
 };
 

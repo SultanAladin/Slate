@@ -115,6 +115,7 @@ struct ParametricDirectoryRow
     bool                  Visible        = true;
     bool                  Locked         = false;
     bool                  ClosedSemantic = false;
+    bool                  CappedExtrusionSemantic = false;
     bool                  AutoNamed      = false;
 };
 
@@ -162,6 +163,7 @@ struct ParametricPropertyPresentation
     bool                  Visible        = true;
     bool                  Locked         = false;
     bool                  ClosedSemantic = false;
+    bool                  CappedExtrusionSemantic = false;
     bool                  AutoNamed      = false;
     ParametricPropertyField Fields[FieldLimit] = {};
     std::uint32_t         FieldCount     = 0u;
@@ -207,9 +209,9 @@ struct ParametricWorkspaceContext
     std::uint32_t            OutlinePage = 0u; // [-] - 0 Directory, 1 Inspector
     ParametricInspectorPage  InspectorPage = ParametricInspectorPage::Properties;
 
-    // Authored by the Properties page when a selected closed profile exposes its Open/Closed toggle.
-    bool                     ClosureToggleDemand = false;
-    StableRowIdentity        ClosureToggleIdentity = 0u;
+    // Authored by the Properties page when a selected closed profile exposes its capped/wall extrusion toggle.
+    bool                     ExtrusionCapToggleDemand = false;
+    StableRowIdentity        ExtrusionCapToggleIdentity = 0u;
 };
 
 //------------------------------------------------------------------------------------------------------------------------

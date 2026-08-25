@@ -285,19 +285,17 @@ def draw_cad_tools(img: Image, cam: Camera) -> None:
     arc = [P(1.75 + math.cos(math.pi * (0.15 + i / 55 * 0.75)) * 0.55, -0.82 + math.sin(math.pi * (0.15 + i / 55 * 0.75)) * 0.55) for i in range(56)]
     if all(arc): img.polyline([p for p in arc if p], blue, 0.95, 2)
     # Open-vs-closed curve proof in a separate area of the same scene.
-    # Open curves stay stroked only; joined closed loops become filled/extrude-ready profiles.
+    # Closed curves render as outlines with empty interiors; their extrusion option decides solid caps vs wall-only sides.
     open_curve = [P(-3.05, -2.30), P(-2.60, -1.90), P(-2.10, -2.25), P(-1.65, -1.85)]
     if all(open_curve):
         img.polyline([p for p in open_curve if p], (248, 113, 113), 1.0, 4)
     joined = [P(-0.95, -2.30), P(-0.28, -2.28), P(-0.18, -1.72), P(-0.82, -1.55), P(-1.10, -1.95)]
     if all(joined):
         jj = [p for p in joined if p]
-        img.polygon(jj, (34, 197, 94), 0.26)
         img.polyline(jj, (167, 243, 208), 1.0, 4, True)
     joined2 = [P(0.45 + math.cos(math.tau * i / 80) * 0.38, -2.00 + math.sin(math.tau * i / 80) * 0.28) for i in range(80)]
     if all(joined2):
         j2 = [p for p in joined2 if p]
-        img.polygon(j2, (34, 197, 94), 0.24)
         img.polyline(j2, (167, 243, 208), 1.0, 3, True)
     # Join operation arrows from open endpoints into the filled closed loop.
     a0, a1 = P(-1.52, -2.02), P(-1.16, -2.02)
@@ -305,6 +303,22 @@ def draw_cad_tools(img: Image, cam: Camera) -> None:
         img.line(a0, a1, (251, 191, 36), 1.0, 3)
         img.line((a1[0]-10, a1[1]-6), a1, (251, 191, 36), 1.0, 3)
         img.line((a1[0]-10, a1[1]+6), a1, (251, 191, 36), 1.0, 3)
+
+    # Extrude-result proof: same closed loop, caps ON makes top/bottom + sides; caps OFF makes walls only.
+    solid = [P(1.30, -2.34), P(1.82, -2.34), P(1.82, -1.92), P(1.30, -1.92)]
+    top = [P(1.42, -2.18), P(1.94, -2.18), P(1.94, -1.76), P(1.42, -1.76)]
+    if all(solid) and all(top):
+        ss = [q for q in solid if q]; tt = [q for q in top if q]
+        img.polygon(ss, (34, 197, 94), 0.20)
+        img.polygon(tt, (34, 197, 94), 0.32)
+        for i in range(4): img.line(ss[i], tt[i], (167, 243, 208), 0.9, 2)
+        img.polyline(ss, (167, 243, 208), 1, 2, True); img.polyline(tt, (167, 243, 208), 1, 2, True)
+    wall = [P(2.28, -2.34), P(2.80, -2.34), P(2.80, -1.92), P(2.28, -1.92)]
+    wall_top = [P(2.40, -2.18), P(2.92, -2.18), P(2.92, -1.76), P(2.40, -1.76)]
+    if all(wall) and all(wall_top):
+        ww = [q for q in wall if q]; wt = [q for q in wall_top if q]
+        for i in range(4): img.line(ww[i], wt[i], (248, 113, 113), 0.95, 3)
+        img.polyline(ww, (248, 113, 113), 1, 2, True); img.polyline(wt, (248, 113, 113), 1, 2, True)
 
     # points/markers
     for x, z in [(-2.0, 1.6), (0.25, 1.55), (1.75, -0.82)]:
@@ -555,7 +569,7 @@ def draw_interaction_highlight(img: Image, cam: Camera, gizmo: str, transform: s
 
 
 def draw_parametric_property_proof(img: Image) -> None:
-    # Left inspector proof: closed-profile rows expose the Open/Closed toggle, open curves do not.
+    # Left inspector proof: closed-profile rows expose an extrusion-cap toggle; open curves do not.
     x0, y0, w = 28, 100, 320
     img.rect(x0, y0, x0 + w, y0 + 245, (18, 18, 22), 0.98)
     img.rect(x0, y0, x0 + w, y0 + 32, (31, 31, 37), 1.0)
@@ -595,13 +609,15 @@ def render(name: str, cam: Camera, gizmo: str, transform: str) -> str:
         "-gravity", "northwest", "-annotate", f"+{PANEL_X + 72}+{PANEL_Y + 9}", "3D Viewport",
         "-pointsize", "12", "-fill", "#d8d8dc", "-annotate", "+42+112", "Sketch Directory / Properties",
         "-pointsize", "10", "-fill", "#93c5fd", "-annotate", "+72+156", "Open Curve: no closure toggle",
-        "-fill", "#a7f3d0", "-annotate", "+72+192", "Closed Profile: toggle visible",
-        "-fill", "#d8d8dc", "-annotate", "+54+250", "Curve Closure",
-        "-fill", "#101014", "-annotate", "+242+288", "Closed",
+        "-fill", "#a7f3d0", "-annotate", "+72+192", "Closed loop: cap toggle visible",
+        "-fill", "#d8d8dc", "-annotate", "+54+250", "Extrude Caps",
+        "-fill", "#101014", "-annotate", "+242+288", "Solid",
         "-pointsize", "10", "-fill", "#101014", "-annotate", f"+{BODY[2] - 73}+{BODY[1] + 25}", "X" if gizmo == "blender" else "",
         "-annotate", f"+{BODY[2] - 105}+{BODY[1] - 7}", "Z" if gizmo == "blender" else "",
         "-pointsize", "12", "-fill", "#f87171", "-annotate", f"+{BODY[0] + 24}+{BODY[1] + 500}", "OPEN curves",
-        "-fill", "#a7f3d0", "-annotate", f"+{BODY[0] + 210}+{BODY[1] + 500}", "JOIN -> CLOSED filled profiles",
+        "-fill", "#a7f3d0", "-annotate", f"+{BODY[0] + 466}+{BODY[1] + 500}", "caps ON: solid",
+        "-fill", "#f87171", "-annotate", f"+{BODY[0] + 568}+{BODY[1] + 500}", "caps OFF: walls",
+        "-fill", "#a7f3d0", "-annotate", f"+{BODY[0] + 210}+{BODY[1] + 500}", "JOIN -> CLOSED empty-outline loops",
         "-pointsize", "12", "-fill", "#ec4899", "-annotate", f"+{BODY[0] + 48}+{BODY[1] + 122}", "Bezier",
         "-fill", "#a855f7", "-annotate", f"+{BODY[0] + 242}+{BODY[1] + 122}", "Hermite",
         "-fill", "#2dd4bf", "-annotate", f"+{BODY[0] + 388}+{BODY[1] + 122}", "Basis Spline",
