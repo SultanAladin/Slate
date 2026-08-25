@@ -46,11 +46,9 @@ struct CadPushConstant
     Real32 DisplayWidth;
     Real32 DisplayHeight;
     Real32 Padding;
-    Real32 MinimumAlong;
-    Real32 MinimumAcross;
-    Real32 MaximumAlong;
-    Real32 MaximumAcross;
-    Real32x4 ClipRect;
+    Real32x4 Projection0;
+    Real32x4 Projection1;
+    Real32x4 Projection2;
 };
 
 [[vk::push_constant]]
@@ -80,22 +78,18 @@ Unsigned32 QuadCorner(Unsigned32 VertexIndex)
     return 3u;
 }
 
-Real32x2 FitToLeaf(Real32 Along, Real32 Across)
+Real32x2 ProjectScreen(Real32 Along, Real32 Across, SLATE_OUT(bool) Valid)
 {
-    const Real32 Pad = 18.0;
-    const Real32 SafeAlong = max(Push.MaximumAlong - Push.MinimumAlong, 1.0);
-    const Real32 SafeAcross = max(Push.MaximumAcross - Push.MinimumAcross, 1.0);
-    const Real32 LeafWidth = max(Push.ClipRect.z - Push.ClipRect.x, 1.0);
-    const Real32 LeafHeight = max(Push.ClipRect.w - Push.ClipRect.y, 1.0);
-    const Real32 Scale = min((LeafWidth - Pad * 2.0) / SafeAlong,
-                             (LeafHeight - Pad * 2.0) / SafeAcross);
-    const Real32 OccupiedX = SafeAlong * Scale;
-    const Real32 OccupiedY = SafeAcross * Scale;
-    const Real32 OriginX = Push.ClipRect.x + (LeafWidth - OccupiedX) * 0.5;
-    const Real32 OriginY = Push.ClipRect.y + (LeafHeight - OccupiedY) * 0.5;
+    const Real32x4 Projected = Push.Projection0 + Push.Projection1 * Along + Push.Projection2 * Across;
+    const Real32 Denominator = Projected.w;
+    if (Denominator <= 0.0001)
+    {
+        Valid = false;
+        return Real32x2(-100000.0, -100000.0);
+    }
 
-    return Real32x2(OriginX + (Along - Push.MinimumAlong) * Scale,
-                    OriginY + OccupiedY - (Across - Push.MinimumAcross) * Scale);
+    Valid = true;
+    return Projected.xy / Denominator;
 }
 
 [shader("vertex")]
@@ -109,24 +103,27 @@ WorkspaceCadVertexOutput main(Unsigned32 VertexIndex : SV_VertexID)
     Output.Subject = 0u;
 
     Real32x2 Screen = Real32x2(0.0, 0.0);
+    bool Valid = true;
 
     if (Push.Kind == WorkspaceCadFillKind)
     {
         const Unsigned32 Record = VertexIndex / 3u;
         const Unsigned32 Corner = VertexIndex % 3u;
         const FillRecord Triangle = FillPool[Record];
-        Screen = Corner == 0u ? FitToLeaf(Triangle.First.x, Triangle.First.y)
-               : Corner == 1u ? FitToLeaf(Triangle.Second.x, Triangle.Second.y)
-                              : FitToLeaf(Triangle.Third.x, Triangle.Third.y);
+        Screen = Corner == 0u ? ProjectScreen(Triangle.First.x, Triangle.First.y, Valid)
+               : Corner == 1u ? ProjectScreen(Triangle.Second.x, Triangle.Second.y, Valid)
+                              : ProjectScreen(Triangle.Third.x, Triangle.Third.y, Valid);
         Output.Colour = Triangle.Colour;
     }
     else if (Push.Kind == WorkspaceCadSegmentKind)
     {
         const Unsigned32 Record = VertexIndex / 6u;
         const Unsigned32 Corner = QuadCorner(VertexIndex);
+        bool StartValid = false, EndValid = false;
         const SegmentRecord Segment = SegmentPool[Record];
-        const Real32x2 Start = FitToLeaf(Segment.Start.x, Segment.Start.y);
-        const Real32x2 End = FitToLeaf(Segment.End.x, Segment.End.y);
+        const Real32x2 Start = ProjectScreen(Segment.Start.x, Segment.Start.y, StartValid);
+        const Real32x2 End = ProjectScreen(Segment.End.x, Segment.End.y, EndValid);
+        Valid = StartValid && EndValid;
         const Real32x2 Direction = End - Start;
         const Real32 Length = sqrt(dot(Direction, Direction));
         const Real32x2 Normal = Length > 0.0001 ? Real32x2(-Direction.y / Length, Direction.x / Length)
@@ -141,18 +138,19 @@ WorkspaceCadVertexOutput main(Unsigned32 VertexIndex : SV_VertexID)
         const Unsigned32 Record = VertexIndex / 6u;
         const Unsigned32 Corner = QuadCorner(VertexIndex);
         const MarkerRecord Marker = MarkerPool[Record];
-        const Real32x2 Centre = FitToLeaf(Marker.Centre.x, Marker.Centre.y);
         const Real32 LocalX = ((Corner == 1u) || (Corner == 3u)) ? 1.0 : -1.0;
         const Real32 LocalY = Corner >= 2u ? 1.0 : -1.0;
         Output.Local = Real32x2(LocalX, LocalY);
         Output.Subject = Marker.Subject;
+        const Real32x2 Centre = ProjectScreen(Marker.Centre.x, Marker.Centre.y, Valid);
         Screen = Centre + Output.Local * Marker.Radius;
         Output.Colour = Marker.Colour;
     }
 
-    Output.Position = Real32x4(OverlayNdcX(Screen.x, Push.DisplayWidth),
-                               OverlayNdcY(Screen.y, Push.DisplayHeight),
-                               0.0, 1.0);
+    Output.Position = Valid ? Real32x4(OverlayNdcX(Screen.x, Push.DisplayWidth),
+                                       OverlayNdcY(Screen.y, Push.DisplayHeight),
+                                       0.0, 1.0)
+                            : Real32x4(-2.0, -2.0, 0.0, 1.0);
     return Output;
 }
 

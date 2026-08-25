@@ -104,7 +104,7 @@ class EditorPanel
 {
 public:
 
-    static constexpr std::uint32_t ControlsPerRecord = 26u;
+    static constexpr std::uint32_t ControlsPerRecord = 29u;
     static constexpr std::uint32_t ControlCapacity = PanelStructure::RecordLimit * ControlsPerRecord;
 
     Outcome<bool> ConstructEditorPanel(MotionIntegrator& Motion,
@@ -190,6 +190,7 @@ private:
         //    it and moves the hover and contact state of unrelated controls.
         ChooseProperties,
         ChooseTexturePaint,
+        ChooseParametricTools,
         LatticeMenu,
         CameraMenu,
         OverlayMenu,

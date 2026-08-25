@@ -181,6 +181,11 @@ Host and panel seams:
 - host-side bridge from exact workspace projections into UI rows and property/revision presentations;
 - dedicated CAD outliner and Properties | Revision leaf panel shell in SlateUI;
 - one-leaf Directory → Properties | Revision slide path, matching scene-directory travel;
+- dedicated `ParametricTools` leaf subject and a catalogue → settings slide shell;
+- fidelity pass toward `ConstructionCatalogueMenu.html`: richer band/tool data, probe sections and settings readouts;
+- viewport view-state pass: top/front/right-style orientation chooser, perspective/orthographic switching and mouse-driven pan/orbit/zoom;
+- camera-aware CAD pass projection derived from the sketch plane and viewport state;
+- first drawable viewport pass: active line / rectangle / circle tools, mouse-to-plane projection, snapping, preview and commit into exact sketch records;
 - dedicated `ParametricSketchHost` bring-up owning exact records, revisions and the CAD panel bridge;
 - Control Centre and Asset Browser drawers brought up on the parametric host like the other application hosts;
 - shared CAD drawing packet and exact sketch rendering projection seam;

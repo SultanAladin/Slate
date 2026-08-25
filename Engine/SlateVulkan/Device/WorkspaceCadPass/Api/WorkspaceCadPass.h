@@ -19,6 +19,15 @@
 namespace Slate
 {
 
+struct WorkspaceCadProjection
+{
+    float DisplayWidth = 1.0f;
+    float DisplayHeight = 1.0f;
+    float Projection0[4] = {};
+    float Projection1[4] = {};
+    float Projection2[4] = {};
+};
+
 class WorkspaceCadPass
 {
 public:
@@ -37,7 +46,7 @@ public:
                                             VkFormat ColourFormat);
 
     void Upload(const WorkspaceCadPacket& Packet);
-    void Record(VkCommandBuffer Command, std::uint32_t Width, std::uint32_t Height,
+    void Record(VkCommandBuffer Command, const WorkspaceCadProjection& Projection,
                 float ClipX0, float ClipY0, float ClipX1, float ClipY1);
 
     bool Standing() const

@@ -17,17 +17,14 @@ const char* SubjectTitle(PanelSubject Subject)
 {
     switch (Subject)
     {
-        case PanelSubject::Viewport:   return "3D Viewport";
-        case PanelSubject::Uv:         return "UV Editor";
-        case PanelSubject::Outliner:   return "Outliner";
-        case PanelSubject::Properties: return "Properties";
-        // 🔴 TexturePaint was appended to PanelSubject and listed in the chooser,
-        //    but never given a case here, so the menu's fifth row fell through to
-        //    the default and read "Choose Panel Type" — the chooser's own title,
-        //    not a panel name. Every subject the menu can list needs a case.
-        case PanelSubject::TexturePaint: return "Layer Stack";
-        case PanelSubject::Vacant:       return "Choose Panel Type";
-        default:                         return "Choose Panel Type";
+        case PanelSubject::Viewport:       return "3D Viewport";
+        case PanelSubject::Uv:             return "UV Editor";
+        case PanelSubject::Outliner:       return "Outliner";
+        case PanelSubject::Properties:     return "Properties";
+        case PanelSubject::TexturePaint:   return "Layer Stack";
+        case PanelSubject::ParametricTools:return "Construction";
+        case PanelSubject::Vacant:         return "Choose Panel Type";
+        default:                           return "Choose Panel Type";
     }
 }
 
@@ -664,7 +661,7 @@ void EditorPanel::RecordVacant(std::uint32_t RecordIndex,
     const std::uint32_t Columns = (AvailableX >= Measure.ChooserButtonX * 4.0f +
                                                      Measure.ChooserGap * 3.0f) ? 4u
                                 : (AvailableX >= 212.0f) ? 2u : 1u;
-    const std::uint32_t Rows = (4u + Columns - 1u) / Columns;
+    const std::uint32_t Rows = (5u + Columns - 1u) / Columns;
     const float ButtonX = (Measure.ChooserButtonX <
                               (AvailableX - Measure.ChooserGap * static_cast<float>(Columns - 1u)) /
                                   static_cast<float>(Columns))
@@ -698,12 +695,14 @@ void EditorPanel::RecordVacant(std::uint32_t RecordIndex,
     // 🔴 This grid and the dropdown menu are two ways to reach the same choice,
     //    so they must offer the same subjects. They had drifted: the grid listed
     //    Properties and never listed the Layer Stack, while the menu listed both.
-    const PanelSubject Subjects[4] = { PanelSubject::Viewport, PanelSubject::Uv,
-                                       PanelSubject::Outliner, PanelSubject::TexturePaint };
-    const ControlRole Roles[4] = { ControlRole::ChooseViewport, ControlRole::ChooseUv,
-                                   ControlRole::ChooseOutliner, ControlRole::ChooseTexturePaint };
+    const PanelSubject Subjects[5] = { PanelSubject::Viewport, PanelSubject::Uv,
+                                       PanelSubject::Outliner, PanelSubject::TexturePaint,
+                                       PanelSubject::ParametricTools };
+    const ControlRole Roles[5] = { ControlRole::ChooseViewport, ControlRole::ChooseUv,
+                                   ControlRole::ChooseOutliner, ControlRole::ChooseTexturePaint,
+                                   ControlRole::ChooseParametricTools };
 
-    for (std::uint32_t Index = 0u; Index < 4u; ++Index)
+    for (std::uint32_t Index = 0u; Index < 5u; ++Index)
     {
         const std::uint32_t Column = Index % Columns;
         const std::uint32_t Row = Index / Columns;
@@ -819,12 +818,14 @@ void EditorPanel::RecordSubjectMenu(std::uint32_t RecordIndex,
     //    Texture Paint workspace. The subject and its host case remain so an
     //    existing layout that already holds one still draws, but it can no
     //    longer be newly chosen.
-    const PanelSubject Subjects[4] = { PanelSubject::Viewport, PanelSubject::Uv,
-                                       PanelSubject::Outliner, PanelSubject::TexturePaint };
-    const ControlRole Roles[4] = { ControlRole::ChooseViewport, ControlRole::ChooseUv,
-                                   ControlRole::ChooseOutliner, ControlRole::ChooseTexturePaint };
+    const PanelSubject Subjects[5] = { PanelSubject::Viewport, PanelSubject::Uv,
+                                       PanelSubject::Outliner, PanelSubject::TexturePaint,
+                                       PanelSubject::ParametricTools };
+    const ControlRole Roles[5] = { ControlRole::ChooseViewport, ControlRole::ChooseUv,
+                                   ControlRole::ChooseOutliner, ControlRole::ChooseTexturePaint,
+                                   ControlRole::ChooseParametricTools };
 
-    for (std::uint32_t Index = 0u; Index < 4u; ++Index)
+    for (std::uint32_t Index = 0u; Index < 5u; ++Index)
     {
         const PlaneExtent Row = Spanning(Menu.MinimumX + Measure.MenuPadY,
                                          Menu.MinimumY + Measure.MenuPadY +

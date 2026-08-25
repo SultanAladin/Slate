@@ -40,7 +40,7 @@ static_assert(sizeof(SegmentRecord) % 16u == 0u, "the CAD segment record must al
 static_assert(sizeof(FillRecord) % 16u == 0u, "the CAD fill record must align to 16 bytes");
 static_assert(sizeof(MarkerRecord) % 16u == 0u, "the CAD marker record must align to 16 bytes");
 
-constexpr std::uint32_t CadPushConstantBytes = 48u;
+constexpr std::uint32_t CadPushConstantBytes = 64u;
 
 enum class WorkspaceCadDraw : std::uint32_t
 {
@@ -395,23 +395,23 @@ void WorkspaceCadPass::Upload(const WorkspaceCadPacket& Packet)
     PacketMarkerCount = Packet.MarkerCount;
 }
 
-void WorkspaceCadPass::Record(VkCommandBuffer Command, std::uint32_t Width, std::uint32_t Height,
+void WorkspaceCadPass::Record(VkCommandBuffer Command, const WorkspaceCadProjection& Projection,
                               float ClipX0, float ClipY0, float ClipX1, float ClipY1)
 {
     if (DeviceEdge == nullptr || CadPipeline == VK_NULL_HANDLE || Command == VK_NULL_HANDLE ||
-        Width == 0u || Height == 0u)
+        Projection.DisplayWidth <= 0.0f || Projection.DisplayHeight <= 0.0f)
         return;
 
     vkCmdBindPipeline(Command, VK_PIPELINE_BIND_POINT_GRAPHICS, CadPipeline);
 
-    const VkViewport Viewport = { 0.0f, 0.0f, static_cast<float>(Width), static_cast<float>(Height), 0.0f, 1.0f };
+    const VkViewport Viewport = { 0.0f, 0.0f, Projection.DisplayWidth, Projection.DisplayHeight, 0.0f, 1.0f };
 
     const std::int32_t ScissorX = static_cast<std::int32_t>(ClipX0 < 0.0f ? 0.0f : ClipX0);
     const std::int32_t ScissorY = static_cast<std::int32_t>(ClipY0 < 0.0f ? 0.0f : ClipY0);
-    const std::int32_t ScissorRight = static_cast<std::int32_t>(ClipX1 > static_cast<float>(Width)
-                                                              ? static_cast<float>(Width) : ClipX1);
-    const std::int32_t ScissorBottom = static_cast<std::int32_t>(ClipY1 > static_cast<float>(Height)
-                                                               ? static_cast<float>(Height) : ClipY1);
+    const std::int32_t ScissorRight = static_cast<std::int32_t>(ClipX1 > Projection.DisplayWidth
+                                                              ? Projection.DisplayWidth : ClipX1);
+    const std::int32_t ScissorBottom = static_cast<std::int32_t>(ClipY1 > Projection.DisplayHeight
+                                                               ? Projection.DisplayHeight : ClipY1);
     const VkRect2D Scissor = {
         { ScissorX, ScissorY },
         { static_cast<std::uint32_t>(ScissorRight > ScissorX ? ScissorRight - ScissorX : 0),
@@ -429,11 +429,9 @@ void WorkspaceCadPass::Record(VkCommandBuffer Command, std::uint32_t Width, std:
         float DisplayWidth;
         float DisplayHeight;
         float Padding;
-        float MinimumAlong;
-        float MinimumAcross;
-        float MaximumAlong;
-        float MaximumAcross;
-        float ClipRect[4] = {};
+        float Projection0[4] = {};
+        float Projection1[4] = {};
+        float Projection2[4] = {};
     };
 
     const auto Stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -442,13 +440,13 @@ void WorkspaceCadPass::Record(VkCommandBuffer Command, std::uint32_t Width, std:
         if (Count == 0u)
             return;
 
-        PushBlock Push = { DrawValue(Kind), static_cast<float>(Width), static_cast<float>(Height), 0.0f,
-                           PacketMinimumAlong, PacketMinimumAcross,
-                           PacketMaximumAlong, PacketMaximumAcross };
-        Push.ClipRect[0] = ClipX0;
-        Push.ClipRect[1] = ClipY0;
-        Push.ClipRect[2] = ClipX1;
-        Push.ClipRect[3] = ClipY1;
+        PushBlock Push = { DrawValue(Kind), Projection.DisplayWidth, Projection.DisplayHeight, 0.0f };
+        for (std::uint32_t Index = 0u; Index < 4u; ++Index)
+        {
+            Push.Projection0[Index] = Projection.Projection0[Index];
+            Push.Projection1[Index] = Projection.Projection1[Index];
+            Push.Projection2[Index] = Projection.Projection2[Index];
+        }
 
         vkCmdPushConstants(Command, CadPipelineLayout, Stages, 0u, CadPushConstantBytes, &Push);
         vkCmdDraw(Command, Count * VerticesPerRecord, 1u, 0u, 0u);

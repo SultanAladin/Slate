@@ -20,13 +20,14 @@ namespace Slate
 /// tag   guarantee
 enum class PanelSubject : std::uint32_t
 {
-    Viewport     = 0u,   // [-] - three-dimensional scene presentation
-    Uv           = 1u,   // [-] - selected geometry's UV presentation
-    Outliner     = 2u,   // [-] - editor scene outline
-    Properties   = 3u,   // [-] - selected record's properties
-    Vacant       = 4u,   // [-] - panel chooser
-    TexturePaint = 5u,   // [-] - the texture-paint layer stack (appended, so 0-4 never move)
-    SubjectCount = 6u    // [-] - closed count, never a subject
+    Viewport       = 0u,   // [-] - three-dimensional scene presentation
+    Uv             = 1u,   // [-] - selected geometry's UV presentation
+    Outliner       = 2u,   // [-] - editor scene outline
+    Properties     = 3u,   // [-] - selected record's properties
+    Vacant         = 4u,   // [-] - panel chooser
+    TexturePaint   = 5u,   // [-] - the texture-paint layer stack (appended, so 0-4 never move)
+    ParametricTools = 6u,  // [-] - the CAD construction catalogue and its settings
+    SubjectCount   = 7u    // [-] - closed count, never a subject
 };
 
 /// 🧩 Which display axis a division partitions.
