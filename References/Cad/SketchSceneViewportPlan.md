@@ -165,5 +165,14 @@ Status: started in implementation. The transform gizmo now emits world-space/pro
 
 - Scene Directory CAD reference selection selects the underlying CAD record.
 - Sketch Directory CAD selection highlights matching Scene Directory references when present.
+
+### Phase 8 — 2D CAD tool completion
+
+Status: started in implementation. The viewport drafting path now covers the first expanded entity set: line, polyline, rectangle, circle, three-point arc, and aligned linear dimension placement from snapped sketch references. Snapping is now on by default while drafting; Command temporarily bypasses snap for free placement.
+
+- Basic sketch entities: line, polyline, rectangle/profile, circle/profile, and three-point arc are active in the parametric viewport.
+- Snapping: endpoint, midpoint, centre/control, and along-curve snaps are resolved by the existing CPU sketch snap path during drafting.
+- Dimensions: the Linear Dimension tool can place an aligned dimension between two snapped sketch references and records a dimension row in the Sketch Directory.
+- Next: add explicit point entities, ellipse/spline tools, constraint tools, trim/extend/offset/fillet/chamfer editing, and profile validation feedback.
 - Scene geometry selection selects Scene Directory rows.
 - CAD point/control selection remains exact and CPU-authoritative.
