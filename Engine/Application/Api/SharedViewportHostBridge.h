@@ -232,6 +232,20 @@ inline void RecordSharedViewportOrientationGizmo(RecordingSurface& Surface,
     Surface.Release();
 }
 
+inline void SharedViewportProjectAxisPoint(const SharedViewportBasis& Basis,
+                                           const double Axis[3],
+                                           float Scale,
+                                           float& X,
+                                           float& Y,
+                                           double& Depth)
+{
+    const double SX = Axis[0] * Basis.Right[0] + Axis[1] * Basis.Right[1] + Axis[2] * Basis.Right[2];
+    const double SY = Axis[0] * Basis.Up[0] + Axis[1] * Basis.Up[1] + Axis[2] * Basis.Up[2];
+    Depth = Axis[0] * Basis.Forward[0] + Axis[1] * Basis.Forward[1] + Axis[2] * Basis.Forward[2];
+    X = static_cast<float>(SX) * Scale;
+    Y = -static_cast<float>(SY) * Scale;
+}
+
 inline SharedViewportOrientation HitSharedViewportOrientationGizmo(const PlaneExtent& Extent,
                                                                    const SharedViewportBasis& Basis,
                                                                    float PointerX,
@@ -269,6 +283,150 @@ inline SharedViewportOrientation HitSharedViewportOrientationGizmo(const PlaneEx
         {
             BestDistance = Distance;
             Best = Axis.Orientation;
+        }
+    }
+    return Best;
+}
+
+inline void RecordSharedViewportCadCube(RecordingSurface& Surface,
+                                        const PlaneExtent& Extent,
+                                        const SharedViewportBasis& Basis)
+{
+    struct FaceRecord
+    {
+        SharedViewportOrientation Orientation;
+        double Normal[3];
+        ThemeToken Colour;
+        const char* Label;
+        float Corners[8];
+        float CentreX;
+        float CentreY;
+        double Depth;
+    };
+
+    const float CentreX = Extent.MaximumX - 70.0f;
+    const float CentreY = Extent.MinimumY + 58.0f;
+    const float Scale = 28.0f;
+    const double AxisX[3] = { 1.0, 0.0, 0.0 };
+    const double AxisY[3] = { 0.0, 1.0, 0.0 };
+    const double AxisZ[3] = { 0.0, 0.0, 1.0 };
+    float VX = 0.0f, VY = 0.0f, UX = 0.0f, UY = 0.0f, WX = 0.0f, WY = 0.0f;
+    double DX = 0.0, DY = 0.0, DZ = 0.0;
+    SharedViewportProjectAxisPoint(Basis, AxisX, Scale, VX, VY, DX);
+    SharedViewportProjectAxisPoint(Basis, AxisY, Scale, UX, UY, DY);
+    SharedViewportProjectAxisPoint(Basis, AxisZ, Scale, WX, WY, DZ);
+    const float OriginX = CentreX - (VX + UX + WX) * 0.5f;
+    const float OriginY = CentreY - (VY + UY + WY) * 0.5f;
+
+    const auto Point = [&](float XMul, float YMul, float ZMul, float& X, float& Y)
+    {
+        X = OriginX + VX * XMul + UX * YMul + WX * ZMul;
+        Y = OriginY + VY * XMul + UY * YMul + WY * ZMul;
+    };
+    const auto FillFace = [&](FaceRecord& Face,
+                              float A0, float A1, float A2,
+                              float B0, float B1, float B2,
+                              float C0, float C1, float C2,
+                              float D0, float D1, float D2)
+    {
+        Point(A0, A1, A2, Face.Corners[0], Face.Corners[1]);
+        Point(B0, B1, B2, Face.Corners[2], Face.Corners[3]);
+        Point(C0, C1, C2, Face.Corners[4], Face.Corners[5]);
+        Point(D0, D1, D2, Face.Corners[6], Face.Corners[7]);
+        Face.CentreX = (Face.Corners[0] + Face.Corners[2] + Face.Corners[4] + Face.Corners[6]) * 0.25f;
+        Face.CentreY = (Face.Corners[1] + Face.Corners[3] + Face.Corners[5] + Face.Corners[7]) * 0.25f;
+        Face.Depth = Face.Normal[0] * Basis.Forward[0] + Face.Normal[1] * Basis.Forward[1] + Face.Normal[2] * Basis.Forward[2];
+    };
+
+    FaceRecord Faces[6] =
+    {
+        { SharedViewportOrientation::Right,  {  1.0,  0.0,  0.0 }, ThemeToken{ 0xFCu, 0x5Au, 0x5Au, 150u }, "Right" },
+        { SharedViewportOrientation::Left,   { -1.0,  0.0,  0.0 }, ThemeToken{ 0xFCu, 0x5Au, 0x5Au, 110u }, "Left"  },
+        { SharedViewportOrientation::Top,    {  0.0,  1.0,  0.0 }, ThemeToken{ 0xF8u, 0xFAu, 0xFCu, 150u }, "Top"   },
+        { SharedViewportOrientation::Bottom, {  0.0, -1.0,  0.0 }, ThemeToken{ 0xD8u, 0xDEu, 0xEAu, 105u }, "Bottom"},
+        { SharedViewportOrientation::Front,  {  0.0,  0.0,  1.0 }, ThemeToken{ 0x5Bu, 0x8Cu, 0xFFu, 150u }, "Front" },
+        { SharedViewportOrientation::Back,   {  0.0,  0.0, -1.0 }, ThemeToken{ 0x5Bu, 0x8Cu, 0xFFu, 110u }, "Back"  },
+    };
+
+    FillFace(Faces[0], 1,0,0, 1,1,0, 1,1,1, 1,0,1);
+    FillFace(Faces[1], 0,0,0, 0,0,1, 0,1,1, 0,1,0);
+    FillFace(Faces[2], 0,1,0, 0,1,1, 1,1,1, 1,1,0);
+    FillFace(Faces[3], 0,0,0, 1,0,0, 1,0,1, 0,0,1);
+    FillFace(Faces[4], 0,0,1, 1,0,1, 1,1,1, 0,1,1);
+    FillFace(Faces[5], 0,0,0, 0,1,0, 1,1,0, 1,0,0);
+
+    std::sort(Faces, Faces + 6u, [](const FaceRecord& Left, const FaceRecord& Right)
+    {
+        return Left.Depth > Right.Depth;
+    });
+
+    Surface.Confine(Extent);
+    for (const FaceRecord& Face : Faces)
+    {
+        const float T0[6] = { Face.Corners[0], Face.Corners[1], Face.Corners[2], Face.Corners[3], Face.Corners[4], Face.Corners[5] };
+        const float T1[6] = { Face.Corners[0], Face.Corners[1], Face.Corners[4], Face.Corners[5], Face.Corners[6], Face.Corners[7] };
+        Surface.Tongue(T0, 3u, Face.Colour);
+        Surface.Tongue(T1, 3u, Face.Colour);
+        const float X0[2] = { Face.Corners[0], Face.Corners[2] }; const float Y0[2] = { Face.Corners[1], Face.Corners[3] };
+        const float X1[2] = { Face.Corners[2], Face.Corners[4] }; const float Y1[2] = { Face.Corners[3], Face.Corners[5] };
+        const float X2[2] = { Face.Corners[4], Face.Corners[6] }; const float Y2[2] = { Face.Corners[5], Face.Corners[7] };
+        const float X3[2] = { Face.Corners[6], Face.Corners[0] }; const float Y3[2] = { Face.Corners[7], Face.Corners[1] };
+        Surface.Polyline(X0, Y0, 2u, ThemeToken{ 255u, 255u, 255u, 190u }, 1.2f);
+        Surface.Polyline(X1, Y1, 2u, ThemeToken{ 255u, 255u, 255u, 190u }, 1.2f);
+        Surface.Polyline(X2, Y2, 2u, ThemeToken{ 255u, 255u, 255u, 190u }, 1.2f);
+        Surface.Polyline(X3, Y3, 2u, ThemeToken{ 255u, 255u, 255u, 190u }, 1.2f);
+
+        if (Face.Depth <= 0.25)
+        {
+            const float Width = Surface.MeasureRun(Face.Label, 9.0f, 0.0f);
+            const ThemeToken Text = Face.Orientation == SharedViewportOrientation::Top
+                                  ? ThemeToken{ 16u, 16u, 20u, 240u }
+                                  : ThemeToken{ 255u, 255u, 255u, 235u };
+            Surface.TextRun(Face.CentreX - Width * 0.5f, Face.CentreY - 5.0f,
+                            Text, Face.Label, 9.0f, 0.0f, true);
+        }
+    }
+    Surface.Release();
+}
+
+inline SharedViewportOrientation HitSharedViewportCadCube(const PlaneExtent& Extent,
+                                                          const SharedViewportBasis& Basis,
+                                                          float PointerX,
+                                                          float PointerY)
+{
+    const float CentreX = Extent.MaximumX - 70.0f;
+    const float CentreY = Extent.MinimumY + 58.0f;
+    const float Scale = 28.0f;
+    const double Axis[6][3] =
+    {
+        {  1.0,  0.0,  0.0 }, { -1.0,  0.0,  0.0 },
+        {  0.0,  1.0,  0.0 }, {  0.0, -1.0,  0.0 },
+        {  0.0,  0.0,  1.0 }, {  0.0,  0.0, -1.0 }
+    };
+    const SharedViewportOrientation Orientation[6] =
+    {
+        SharedViewportOrientation::Right, SharedViewportOrientation::Left,
+        SharedViewportOrientation::Top, SharedViewportOrientation::Bottom,
+        SharedViewportOrientation::Front, SharedViewportOrientation::Back
+    };
+
+    SharedViewportOrientation Best = SharedViewportOrientation::None;
+    float BestDistance = 24.0f * 24.0f;
+    for (std::uint32_t Index = 0u; Index < 6u; ++Index)
+    {
+        float X = 0.0f;
+        float Y = 0.0f;
+        double Depth = 0.0;
+        SharedViewportProjectAxisPoint(Basis, Axis[Index], Scale * 0.58f, X, Y, Depth);
+        X += CentreX;
+        Y += CentreY;
+        const float DX = PointerX - X;
+        const float DY = PointerY - Y;
+        const float Distance = DX * DX + DY * DY;
+        if (Distance < BestDistance)
+        {
+            BestDistance = Distance;
+            Best = Orientation[Index];
         }
     }
     return Best;

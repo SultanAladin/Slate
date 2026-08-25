@@ -178,7 +178,8 @@ void RecordPaintSceneProxy(RecordingSurface& Surface, const PlaneExtent& Extent,
 
 void RecordSharedViewportChrome(RecordingSurface& Surface, const PlaneExtent& Extent,
                                 const WorkspaceCodex& Scene, bool SceneStanding,
-                                const EditorCameraComponent& Camera)
+                                const EditorCameraComponent& Camera,
+                                const EditorPanelConfiguration& Configuration)
 {
     Surface.Confine(Extent);
     Surface.Ground(Extent, Covering(0x0F1014u), 0.0f, CornerNone);
@@ -211,9 +212,12 @@ void RecordSharedViewportChrome(RecordingSurface& Surface, const PlaneExtent& Ex
         Surface.Polyline(PointsX, PointsY, 2u, Partial(0xC4C8D6u, 0.10f), 1.0f);
     }
 
-    RecordSharedViewportOrientationGizmo(Surface, Extent,
-                                         SharedViewportBasisFromYawPitch(Camera.LaggedYawDegrees,
-                                                                         Camera.LaggedPitchDegrees));
+    const SharedViewportBasis GizmoBasis = SharedViewportBasisFromYawPitch(Camera.LaggedYawDegrees,
+                                                                            Camera.LaggedPitchDegrees);
+    if (Configuration.Gizmo == PanelGizmo::Cad)
+        RecordSharedViewportCadCube(Surface, Extent, GizmoBasis);
+    else
+        RecordSharedViewportOrientationGizmo(Surface, Extent, GizmoBasis);
     Surface.Release();
 }
 
@@ -612,8 +616,9 @@ int main(int ArgumentCount, char** ArgumentValues)
                             {
                                 const SharedViewportBasis GizmoBasis = SharedViewportBasisFromYawPitch(
                                     EditorCamera.LaggedYawDegrees, EditorCamera.LaggedPitchDegrees);
-                                const SharedViewportOrientation Hit = HitSharedViewportOrientationGizmo(
-                                    LeafBody, GizmoBasis, BackgroundPointer.PositionX, BackgroundPointer.PositionY);
+                                const SharedViewportOrientation Hit = PanelConfiguration[Index].Gizmo == PanelGizmo::Cad
+                                    ? HitSharedViewportCadCube(LeafBody, GizmoBasis, BackgroundPointer.PositionX, BackgroundPointer.PositionY)
+                                    : HitSharedViewportOrientationGizmo(LeafBody, GizmoBasis, BackgroundPointer.PositionX, BackgroundPointer.PositionY);
                                 if (Hit != SharedViewportOrientation::None)
                                 {
                                     double Yaw = EditorCamera.YawDegrees;
@@ -625,7 +630,8 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 }
                             }
                             RecordSharedViewportChrome(Viewport.Surface(), LeafBody,
-                                                       OpenedScene, OpenedSceneStanding, EditorCamera);
+                                                       OpenedScene, OpenedSceneStanding, EditorCamera,
+                                                       PanelConfiguration[Index]);
                         }
                     }
                     if (WorkspacePanels.PointerCaptured(Index))

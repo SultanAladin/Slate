@@ -663,8 +663,9 @@ void RecordViewportOrientationHud(RecordingSurface& Surface,
 
     if (Pointer.ContactPressed)
     {
-        const SharedViewportOrientation Hit = HitSharedViewportOrientationGizmo(
-            Extent, GizmoBasis, Pointer.PositionX, Pointer.PositionY);
+        const SharedViewportOrientation Hit = Configuration.Gizmo == PanelGizmo::Cad
+            ? HitSharedViewportCadCube(Extent, GizmoBasis, Pointer.PositionX, Pointer.PositionY)
+            : HitSharedViewportOrientationGizmo(Extent, GizmoBasis, Pointer.PositionX, Pointer.PositionY);
         if (Hit != SharedViewportOrientation::None)
         {
             switch (Hit)
@@ -683,7 +684,10 @@ void RecordViewportOrientationHud(RecordingSurface& Surface,
         }
     }
 
-    RecordSharedViewportOrientationGizmo(Surface, Extent, GizmoBasis);
+    if (Configuration.Gizmo == PanelGizmo::Cad)
+        RecordSharedViewportCadCube(Surface, Extent, GizmoBasis);
+    else
+        RecordSharedViewportOrientationGizmo(Surface, Extent, GizmoBasis);
 }
 
 

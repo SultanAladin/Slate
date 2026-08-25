@@ -1162,11 +1162,13 @@ int main(int ArgumentCount, char** ArgumentValues)
                                     SharedViewportBasis GizmoBasis = SharedViewportBasisFromYawPitch(
                                         SceneApplied.ViewportSkyCamera.AzimuthDegrees,
                                         SceneApplied.ViewportSkyCamera.ElevationDegrees);
+                                    const EditorPanelConfiguration& PanelDeclaredForGizmo = PanelConfiguration[Index];
                                     if (BackgroundPointer.ContactPressed &&
                                         LeafBody.Encloses(BackgroundPointer.PositionX, BackgroundPointer.PositionY))
                                     {
-                                        const SharedViewportOrientation Hit = HitSharedViewportOrientationGizmo(
-                                            LeafBody, GizmoBasis, BackgroundPointer.PositionX, BackgroundPointer.PositionY);
+                                        const SharedViewportOrientation Hit = PanelDeclaredForGizmo.Gizmo == PanelGizmo::Cad
+                                            ? HitSharedViewportCadCube(LeafBody, GizmoBasis, BackgroundPointer.PositionX, BackgroundPointer.PositionY)
+                                            : HitSharedViewportOrientationGizmo(LeafBody, GizmoBasis, BackgroundPointer.PositionX, BackgroundPointer.PositionY);
                                         if (Hit != SharedViewportOrientation::None)
                                         {
                                             double Yaw = EditorCamera.YawDegrees;
@@ -1178,7 +1180,10 @@ int main(int ArgumentCount, char** ArgumentValues)
                                             GizmoBasis = SharedViewportBasisFromYawPitch(Yaw, Pitch);
                                         }
                                     }
-                                    RecordSharedViewportOrientationGizmo(Viewport.Surface(), LeafBody, GizmoBasis);
+                                    if (PanelDeclaredForGizmo.Gizmo == PanelGizmo::Cad)
+                                        RecordSharedViewportCadCube(Viewport.Surface(), LeafBody, GizmoBasis);
+                                    else
+                                        RecordSharedViewportOrientationGizmo(Viewport.Surface(), LeafBody, GizmoBasis);
                                 }
 
                                 // 📐 The ground lattice is no longer recorded here. It is solved per
