@@ -1,0 +1,91 @@
+#!/usr/bin/env python3
+"""Static validation for Material System Pass 5 painted-layer and dirty-tile plumbing."""
+from __future__ import annotations
+
+from pathlib import Path
+import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def read(path: str) -> str:
+    return (ROOT / path).read_text(encoding="utf-8")
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise AssertionError(message)
+
+
+def require_text(path: str, *needles: str) -> str:
+    content = read(path)
+    for needle in needles:
+        require(needle in content, f"{path} missing {needle!r}")
+    return content
+
+
+def main() -> int:
+    require_text(
+        "References/MaterialSystemPass5Plan.md",
+        "document/compute painting MVP",
+        "No parametric paint UI",
+        "dirty tiles/channels",
+    )
+
+    header = require_text(
+        "Engine/SlateCompute/Compute/MaterialPaintExchange/Api/MaterialPaintExchange.h",
+        "MaterialPaintLayerDeclaration",
+        "MaterialPaintDirtyTile",
+        "MaterialPaintCommitReport",
+        "CreatePaintedLayer",
+        "DeclareStroke",
+        "CommitResolvedStroke",
+        "DirtyTilesOf",
+    )
+    require("ParametricSketchHost" not in header and "TexturePaintPanel" not in header,
+            "paint exchange must not depend on parametric host or texture-paint UI")
+    require("Asset" not in header, "paint exchange must avoid banned Asset naming")
+
+    source = require_text(
+        "Engine/SlateCompute/Compute/MaterialPaintExchange/Source/MaterialPaintExchange.cpp",
+        "LayerContentSource::PaintedImpressions",
+        "Layer.Painted.Texels.assign",
+        "ChannelPlacement Placement",
+        "the brush writes a channel the layer does not own",
+        "Stroke.Seal(Layers, Revisions, Residency, SealedAt)",
+        "AddressOf(CellIndex)",
+        "MaterialProcessingExchange Processing",
+        "Processing.Compare(*Previous, Current)",
+    )
+    require("ParametricSketchHost" not in source and "TexturePaintPanel" not in source,
+            "paint exchange source must stay host/UI independent")
+
+    # The existing stroke path must still enforce one transaction, speculative refusal, and inverse extents.
+    require_text(
+        "Engine/SlateCompute/Compute/ImpressionSequence/Source/ImpressionSequence.cpp",
+        "Revised.Open(\"\", \"PaintStroke\")",
+        "a speculative extent never enters the revision sequence",
+        "PriorTexels.assign",
+        "Residency.DeclareUncommitted(CellIndex, false)",
+    )
+
+    subprocess.run([
+        "g++", "-std=c++20", "-fsyntax-only", "-IEngine",
+        "Engine/SlateCompute/Compute/MaterialPaintExchange/Source/MaterialPaintExchange.cpp",
+        "Engine/SlateCompute/Compute/ImpressionSequence/Source/ImpressionSequence.cpp",
+        "Engine/SlateCompute/Compute/StrokeSpace/Source/StrokeSpace.cpp",
+        "Engine/SlateDocument/Document/SurfaceLayerSequence/Source/SurfaceLayerSequence.cpp",
+        "Engine/SlateCompute/Compute/MaterialProcessingExchange/Source/MaterialProcessingExchange.cpp",
+    ], cwd=ROOT, check=True)
+
+    print("[MaterialSystemPass5] painted layers, stroke declarations, commit sealing and dirty tiles hold")
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except Exception as exc:
+        print(f"[MaterialSystemPass5] failed: {exc}", file=sys.stderr)
+        raise SystemExit(1)
