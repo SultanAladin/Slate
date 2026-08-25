@@ -432,6 +432,27 @@ inline SharedViewportOrientation HitSharedViewportCadCube(const PlaneExtent& Ext
     return Best;
 }
 
+inline void RecordSharedViewportGizmo(RecordingSurface& Surface,
+                                      const PlaneExtent& Extent,
+                                      const SharedViewportBasis& Basis,
+                                      bool CadMode)
+{
+    if (CadMode)
+        RecordSharedViewportCadCube(Surface, Extent, Basis);
+    else
+        RecordSharedViewportOrientationGizmo(Surface, Extent, Basis);
+}
+
+inline SharedViewportOrientation HitSharedViewportGizmo(const PlaneExtent& Extent,
+                                                        const SharedViewportBasis& Basis,
+                                                        float PointerX,
+                                                        float PointerY,
+                                                        bool CadMode)
+{
+    return CadMode ? HitSharedViewportCadCube(Extent, Basis, PointerX, PointerY)
+                   : HitSharedViewportOrientationGizmo(Extent, Basis, PointerX, PointerY);
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    ENGINE CONTENT
 //------------------------------------------------------------------------------------------------------------------------

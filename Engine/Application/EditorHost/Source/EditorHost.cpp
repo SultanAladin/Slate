@@ -1166,9 +1166,9 @@ int main(int ArgumentCount, char** ArgumentValues)
                                     if (BackgroundPointer.ContactPressed &&
                                         LeafBody.Encloses(BackgroundPointer.PositionX, BackgroundPointer.PositionY))
                                     {
-                                        const SharedViewportOrientation Hit = PanelDeclaredForGizmo.Gizmo == PanelGizmo::Cad
-                                            ? HitSharedViewportCadCube(LeafBody, GizmoBasis, BackgroundPointer.PositionX, BackgroundPointer.PositionY)
-                                            : HitSharedViewportOrientationGizmo(LeafBody, GizmoBasis, BackgroundPointer.PositionX, BackgroundPointer.PositionY);
+                                        const SharedViewportOrientation Hit = HitSharedViewportGizmo(
+                                            LeafBody, GizmoBasis, BackgroundPointer.PositionX, BackgroundPointer.PositionY,
+                                            PanelDeclaredForGizmo.Gizmo == PanelGizmo::Cad);
                                         if (Hit != SharedViewportOrientation::None)
                                         {
                                             double Yaw = EditorCamera.YawDegrees;
@@ -1180,10 +1180,8 @@ int main(int ArgumentCount, char** ArgumentValues)
                                             GizmoBasis = SharedViewportBasisFromYawPitch(Yaw, Pitch);
                                         }
                                     }
-                                    if (PanelDeclaredForGizmo.Gizmo == PanelGizmo::Cad)
-                                        RecordSharedViewportCadCube(Viewport.Surface(), LeafBody, GizmoBasis);
-                                    else
-                                        RecordSharedViewportOrientationGizmo(Viewport.Surface(), LeafBody, GizmoBasis);
+                                    RecordSharedViewportGizmo(Viewport.Surface(), LeafBody, GizmoBasis,
+                                                              PanelDeclaredForGizmo.Gizmo == PanelGizmo::Cad);
                                 }
 
                                 // 📐 The ground lattice is no longer recorded here. It is solved per
