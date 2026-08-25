@@ -185,7 +185,11 @@ Host and panel seams:
 - fidelity pass toward `ConstructionCatalogueMenu.html`: richer band/tool data, probe sections and settings readouts;
 - viewport view-state pass: top/front/right-style orientation chooser, perspective/orthographic switching and mouse-driven pan/orbit/zoom;
 - camera-aware CAD pass projection derived from the sketch plane and viewport state;
-- first drawable viewport pass: active line / rectangle / circle tools, mouse-to-plane projection, snapping, preview and commit into exact sketch records;
+- first drawable viewport pass: active line / rectangle / circle tools, mouse-to-plane projection, Ctrl-gated snapping, preview and commit into exact sketch records;
+- viewport semantic selection and planar point/control editing through exact sketch selection/edit seams;
+- GPU overlay path for grid, viewport selection highlight, transform gizmo handles and command feedback;
+- Blender-style transform command chains for planar sketch edit (`G`, `G X/Z`, `G G`, `R`, `S X/Z`, numeric values);
+- creation settings wired from `ParametricToolsContext` into drawing behavior: construction drafting, line length/angle assists, rectangle width/height assists and circle radius/diameter assists;
 - dedicated `ParametricSketchHost` bring-up owning exact records, revisions and the CAD panel bridge;
 - Control Centre and Asset Browser drawers brought up on the parametric host like the other application hosts;
 - shared CAD drawing packet and exact sketch rendering projection seam;

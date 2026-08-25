@@ -102,6 +102,18 @@ struct ParametricToolsContext
     bool ReferencePlaneCondition = false;
     bool SourceImageryCondition = false;
     bool MeasurableCondition = false;
+
+    bool ConstructionGeometry = false;
+    bool LineLengthAssist = false;
+    bool LineAngleAssist = false;
+    double LineLength = 100.0;
+    double LineAngleDegrees = 0.0;
+    bool RectangleDimensionAssist = false;
+    double RectangleWidth = 120.0;
+    double RectangleHeight = 80.0;
+    bool CircleRadiusAssist = false;
+    bool CircleDiameterMode = false;
+    double CircleRadius = 40.0;
 };
 
 const char* ParametricToolDimensionText(ParametricToolDimension Subject);

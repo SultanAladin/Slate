@@ -16,11 +16,13 @@
 #include "SlateFeature/Sketch/SketchPolyline/Api/SketchPolyline.h"
 #include "SlateFeature/Sketch/SketchRenderingProjection/Api/SketchRenderingProjection.h"
 #include "SlateFeature/Sketch/SketchSelection/Api/SketchSelection.h"
+#include "SlateFeature/Sketch/SketchSnap/Api/SketchSnap.h"
 #include "SlateFeature/Sketch/SketchStructure/Api/SketchStructure.h"
 #include "SlateUI/Interface/ContentBrowserPanel/Api/ContentBrowserPanel.h"
 #include "SlateUI/Interface/ControlCentrePanel/Api/ControlCentrePanel.h"
 #include "SlateUI/Interface/EditorPanel/Api/EditorPanel.h"
 #include "SlateUI/Interface/ParametricWorkspace/Api/ParametricWorkspacePanel.h"
+#include "SlateUI/Interface/ParametricTools/Api/ParametricToolsPanel.h"
 #include "SlateUI/Interface/ThemeInterchange/Api/ThemeInterchange.h"
 #include "SlateUI/Interface/ViewportSequence/Api/ViewportSequence.h"
 #include "SlateUI/Interface/WorkspacePanel/Api/WorkspaceIndex.h"
@@ -57,6 +59,13 @@ constexpr float WorkspaceGround[4] = { 0.06f, 0.06f, 0.08f, 1.0f };
 
 constexpr double Pi = 3.14159265358979323846;
 constexpr double CadPerspectiveFieldOfViewDegrees = 42.0;
+
+constexpr ThemeToken Faded(ThemeToken Declared, float Fraction)
+{
+    const float Held = Fraction < 0.0f ? 0.0f : (Fraction > 1.0f ? 1.0f : Fraction);
+    Declared.Opacity = static_cast<std::uint8_t>(static_cast<float>(Declared.Opacity) * Held + 0.5f);
+    return Declared;
+}
 
 struct SpatialBasis
 {
@@ -102,6 +111,7 @@ struct ParametricDraftState
     bool HoverStanding = false;
     SpatialPoint Hover = {};
     SketchSnapPlacement Snap = {};
+    bool Construction = false;
 };
 
 enum class ParametricSelectionSubject : std::uint32_t
@@ -946,6 +956,72 @@ WorkspaceRecordName DeclareWorkspaceProfile(WorkspaceNameIndex& Naming,
     return Records.Declare(Record);
 }
 
+SpatialPoint ResolveDraftStanding(const SpatialBasis& Basis, double Along, double Across)
+{
+    return ResolvePlanarPoint(Basis, Along, Across);
+}
+
+void ResolveDraftCoordinates(const SpatialBasis& Basis, const SpatialPoint& Position,
+                             double& Along, double& Across)
+{
+    const SpatialDirection Offset = Difference(Basis.Origin, Position);
+    Along = Dot(Offset, Basis.Along);
+    Across = Dot(Offset, Basis.Across);
+}
+
+SpatialPoint ApplyParametricDraftSettings(const ParametricDraftState& Draft,
+                                          const SpatialBasis& Basis,
+                                          const ParametricToolsContext& Settings,
+                                          SpatialPoint Hover)
+{
+    if (Draft.Anchors.empty())
+        return Hover;
+
+    double AnchorAlong = 0.0;
+    double AnchorAcross = 0.0;
+    double HoverAlong = 0.0;
+    double HoverAcross = 0.0;
+    ResolveDraftCoordinates(Basis, Draft.Anchors[0], AnchorAlong, AnchorAcross);
+    ResolveDraftCoordinates(Basis, Hover, HoverAlong, HoverAcross);
+
+    const double DeltaAlong = HoverAlong - AnchorAlong;
+    const double DeltaAcross = HoverAcross - AnchorAcross;
+    const double Length = std::sqrt(DeltaAlong * DeltaAlong + DeltaAcross * DeltaAcross);
+
+    if (Draft.Subject == ParametricDraftSubject::Line && (Settings.LineLengthAssist || Settings.LineAngleAssist))
+    {
+        double Angle = Length > 1.0e-6 ? std::atan2(DeltaAcross, DeltaAlong) : Settings.LineAngleDegrees * Pi / 180.0;
+        double Distance = Length;
+        if (Settings.LineAngleAssist)
+            Angle = Settings.LineAngleDegrees * Pi / 180.0;
+        if (Settings.LineLengthAssist)
+            Distance = std::max(Settings.LineLength, 0.0);
+        return ResolveDraftStanding(Basis,
+                                    AnchorAlong + std::cos(Angle) * Distance,
+                                    AnchorAcross + std::sin(Angle) * Distance);
+    }
+
+    if (Draft.Subject == ParametricDraftSubject::Rectangle && Settings.RectangleDimensionAssist)
+    {
+        const double SignAlong = DeltaAlong < 0.0 ? -1.0 : 1.0;
+        const double SignAcross = DeltaAcross < 0.0 ? -1.0 : 1.0;
+        return ResolveDraftStanding(Basis,
+                                    AnchorAlong + SignAlong * std::max(Settings.RectangleWidth, 0.0),
+                                    AnchorAcross + SignAcross * std::max(Settings.RectangleHeight, 0.0));
+    }
+
+    if (Draft.Subject == ParametricDraftSubject::Circle && Settings.CircleRadiusAssist)
+    {
+        const double Radius = std::max(Settings.CircleRadius, 0.0);
+        double Angle = Length > 1.0e-6 ? std::atan2(DeltaAcross, DeltaAlong) : 0.0;
+        return ResolveDraftStanding(Basis,
+                                    AnchorAlong + std::cos(Angle) * Radius,
+                                    AnchorAcross + std::sin(Angle) * Radius);
+    }
+
+    return Hover;
+}
+
 Outcome<WorkspaceRecordName> CommitDraft(WorkspaceNameIndex& Naming,
                                          SketchStructure& Sketch,
                                          WorkspaceRecordStructure& Records,
@@ -956,7 +1032,8 @@ Outcome<WorkspaceRecordName> CommitDraft(WorkspaceNameIndex& Naming,
     {
         const SketchCurveName Curve = Sketch.DeclareLine(Draft.Anchors[0], Draft.Anchors[1]);
         const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve);
-        Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Curve", { Record },
+        Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming),
+                       Draft.Construction ? "Create Construction Curve" : "Create Curve", { Record },
                        Revisions.DeclaredCount() + 1u);
         return Outcome<WorkspaceRecordName>::Result(Record);
     }
@@ -969,8 +1046,18 @@ Outcome<WorkspaceRecordName> CommitDraft(WorkspaceNameIndex& Naming,
             return Outcome<WorkspaceRecordName>::Refuse({ RefusalReason::ContentUnsupported,
                                                           "the circle radius is too small" });
 
-        const Outcome<ProfileNameInFeature> Profile = Sketch.DeclareCircleProfile(
-            { Draft.Anchors[0], Sketch.HeldPlane().Normal, Normalize(Radius), RadiusLength });
+        const CircleCurve Circle = { Draft.Anchors[0], Sketch.HeldPlane().Normal, Normalize(Radius), RadiusLength };
+        if (Draft.Construction)
+        {
+            const SketchCurveName Curve = Sketch.DeclareCircle(Circle);
+            const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve);
+            Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming),
+                           "Create Construction Circle", { Record },
+                           Revisions.DeclaredCount() + 1u);
+            return Outcome<WorkspaceRecordName>::Result(Record);
+        }
+
+        const Outcome<ProfileNameInFeature> Profile = Sketch.DeclareCircleProfile(Circle);
         if (!Profile.Resolved)
             return Outcome<WorkspaceRecordName>::Refuse(Profile.Error);
         const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve());
@@ -994,6 +1081,16 @@ Outcome<WorkspaceRecordName> CommitDraft(WorkspaceNameIndex& Naming,
         const SketchCurveName BC = Sketch.DeclareLine(B, C);
         const SketchCurveName CD = Sketch.DeclareLine(C, D);
         const SketchCurveName DA = Sketch.DeclareLine(D, A);
+        if (Draft.Construction)
+        {
+            const WorkspaceRecordName First = DeclareWorkspaceCurve(Naming, Records, AB);
+            const WorkspaceRecordName Second = DeclareWorkspaceCurve(Naming, Records, BC);
+            const WorkspaceRecordName Third = DeclareWorkspaceCurve(Naming, Records, CD);
+            const WorkspaceRecordName Fourth = DeclareWorkspaceCurve(Naming, Records, DA);
+            Revisions.Seal("Declared construction rectangle", "Create Construction Rectangle",
+                           { First, Second, Third, Fourth }, Revisions.DeclaredCount() + 1u);
+            return Outcome<WorkspaceRecordName>::Result(First);
+        }
         Loop.Traversal = { { { AB.IssuedIndex }, true }, { { BC.IssuedIndex }, true },
                            { { CD.IssuedIndex }, true }, { { DA.IssuedIndex }, true } };
         Profile.DeclareLoop(Loop);
@@ -2287,6 +2384,16 @@ double DistancePointSegmentSquared2(float PX, float PY,
     return DistanceSquared2(PX, PY, static_cast<float>(X), static_cast<float>(Y));
 }
 
+struct GizmoScreenBasis
+{
+    float PivotX = 0.0f;
+    float PivotY = 0.0f;
+    float XDirX = 1.0f;
+    float XDirY = 0.0f;
+    float ZDirX = 0.0f;
+    float ZDirY = -1.0f;
+};
+
 ParametricGizmoHandle ResolveGizmoHandle(const PointerCondition& Pointer,
                                          const GizmoScreenBasis& Basis,
                                          ParametricTransformMode Mode)
@@ -2396,16 +2503,6 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
     else if (Hovered.Standing())
         RecordPoint(Hovered, OverlayPacked(0xFBu, 0xBFu, 0x24u, 208u), OverlayPacked(0xFBu, 0xBFu, 0x24u, 180u));
 }
-
-struct GizmoScreenBasis
-{
-    float PivotX = 0.0f;
-    float PivotY = 0.0f;
-    float XDirX = 1.0f;
-    float XDirY = 0.0f;
-    float ZDirX = 0.0f;
-    float ZDirY = -1.0f;
-};
 
 bool ResolveGizmoScreenBasis(const SpatialBasis& Basis,
                              const ParametricViewportState& View,
@@ -2616,7 +2713,7 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
                                const SpatialBasis& Basis,
                                const ParametricViewportState& View,
                                bool Perspective,
-                               ParametricToolSubject Tool,
+                               const ParametricToolsContext& ToolContext,
                                WorkspaceNameIndex& Naming,
                                SketchStructure& Sketch,
                                WorkspaceRecordStructure& Records,
@@ -2625,7 +2722,7 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
                                ParametricDraftState& Draft,
                                bool& PointerTaken)
 {
-    const ParametricDraftSubject Desired = ResolveDraftSubject(Tool);
+    const ParametricDraftSubject Desired = ResolveDraftSubject(ToolContext.ActiveSubject);
     if (Desired == ParametricDraftSubject::None)
     {
         if (Draft.Subject != ParametricDraftSubject::None)
@@ -2654,6 +2751,8 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
         if (Draft.Snap.Resolved())
             Draft.Hover = Draft.Snap.Position;
     }
+    Draft.Construction = ToolContext.ConstructionGeometry;
+    Draft.Hover = ApplyParametricDraftSettings(Draft, Basis, ToolContext, Draft.Hover);
 
     if (Pointer.ContactPressed)
     {
@@ -3808,7 +3907,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 DriveDrawingWithModifiers(LeafBody, BackgroundPointer, Modifiers,
                                                          Basis, View,
                                                          PanelConfiguration[Index].Perspective,
-                                                         ToolsApplied.ActiveSubject,
+                                                         ToolsApplied,
                                                          Naming, Sketch, Records, Revisions,
                                                          PendingSelection, Draft, PointerTaken);
 

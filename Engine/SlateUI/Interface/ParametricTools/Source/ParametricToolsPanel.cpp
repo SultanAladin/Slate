@@ -933,7 +933,7 @@ void ParametricToolsPanel::RecordBrowsePage(const PlaneExtent& Extent, Parametri
             char Gated[32] = {};
             std::snprintf(Gated, sizeof(Gated), "+%u", static_cast<unsigned>(Visible - Live));
             Surface->TextRun(Row.MaximumX - 40.0f, Row.MinimumY + (Row.Height() - Scaled.RunFiner) * 0.5f,
-                             Tinted.Warning, Gated, Scaled.RunFiner);
+                             Covering(0xF59E0Bu), Gated, Scaled.RunFiner);
         }
     }
     Surface->Release();
@@ -1012,11 +1012,11 @@ void ParametricToolsPanel::RecordBrowsePage(const PlaneExtent& Extent, Parametri
             if (ToolGated)
                 Surface->TextRunTruncated(Row.MinimumX + 6.0f, Row.MinimumY + 58.0f,
                                           Row.Width() - 12.0f, Tool.Workplane && !Applied.WorkplaneActivation
-                                                                    ? Tinted.EntityAccent : Tinted.Warning,
+                                                                    ? Tinted.EntityAccent : Covering(0xF59E0Bu),
                                           ShortfallText(Tool, Applied), Scaled.RunFiner);
             else if (const char* Badge = ResultText(Tool, Applied); Badge != nullptr)
                 Surface->TextRun(Row.MinimumX + 6.0f, Row.MinimumY + 58.0f,
-                                 Tinted.Warning, Badge, Scaled.RunFiner);
+                                 Covering(0xF59E0Bu), Badge, Scaled.RunFiner);
         }
     }
     Surface->Release();
@@ -1177,7 +1177,7 @@ void ParametricToolsPanel::RecordDetailPage(const PlaneExtent& Extent, Parametri
                       ParametricToolDimensionText(Applied.ActiveDimension), Result);
         Surface->TextRun(Card.MinimumX + 8.0f, Card.MinimumY + 9.0f, Tinted.Primary, Law, Scaled.RunSecondary, 0.0f, true);
         Surface->TextRun(Card.MinimumX + 8.0f, Card.MinimumY + 28.0f,
-                         Raised == ParametricToolDimension::Shell ? Tinted.Warning : Tinted.Faint,
+                         Raised == ParametricToolDimension::Shell ? Covering(0xF59E0Bu) : Tinted.Faint,
                          Raised == ParametricToolDimension::Shell ? "open wire or shell stops one step short of solid"
                                                                   : "dimension raises exactly one step when the input allows it",
                          Scaled.RunFiner);
@@ -1244,7 +1244,7 @@ void ParametricToolsPanel::RecordDetailPage(const PlaneExtent& Extent, Parametri
     Surface->Release();
 
     const float OptionScroll = OptionOverflow.Advance(Sampled, Options,
-                       Tool != nullptr ? 160.0f + static_cast<float>(Tool->OptionCount) * 34.0f : 120.0f, 72.0f);
+                       Tool != nullptr ? 360.0f + static_cast<float>(Tool->OptionCount) * 34.0f : 120.0f, 72.0f);
     Surface->Confine(Options);
 
     if (Tool == nullptr)
@@ -1261,15 +1261,15 @@ void ParametricToolsPanel::RecordDetailPage(const PlaneExtent& Extent, Parametri
             const PlaneExtent Banner = Spanning(Options.MinimumX + 10.0f, OptionY,
                                                 Options.Width() - 20.0f, 34.0f);
             Surface->Ground(Banner, Tinted.Tile, 9.0f, CornerAll);
-            Surface->Edge(Banner, Tinted.Warning, 1.0f, 9.0f, CornerAll);
+            Surface->Edge(Banner, Covering(0xF59E0Bu), 1.0f, 9.0f, CornerAll);
             Surface->TextRun(Banner.MinimumX + 10.0f, Banner.MinimumY + 10.0f,
-                             Tinted.Warning, Badge, Scaled.RunFine, 0.0f, true);
+                             Covering(0xF59E0Bu), Badge, Scaled.RunFine, 0.0f, true);
             OptionY += 42.0f;
         }
 
         const PlaneExtent Card = Spanning(Options.MinimumX + 10.0f, OptionY,
                                           Options.Width() - 20.0f,
-                                          38.0f + static_cast<float>(Tool->OptionCount) * 30.0f);
+                                          218.0f + static_cast<float>(Tool->OptionCount) * 30.0f);
         Surface->Ground(Card, Tinted.Desk, Scaled.CardRadius, CornerAll);
         Surface->Edge(Card, Tinted.Hairline, 1.0f, Scaled.CardRadius, CornerAll);
         Surface->Ground(Spanning(Card.MinimumX, Card.MinimumY, Card.Width(), Scaled.ComponentY),
@@ -1291,6 +1291,76 @@ void ParametricToolsPanel::RecordDetailPage(const PlaneExtent& Extent, Parametri
             Surface->TextRun(Value.MinimumX + 8.0f, Value.MinimumY + 7.0f, Tinted.Primary,
                              Tool->Options[Index].Value, Scaled.RunFine);
             RowY += 30.0f;
+        }
+
+        const auto ToggleSetting = [&](float& Cursor, const char* Label, bool& Value)
+        {
+            const PlaneExtent Row = Spanning(Card.MinimumX + 10.0f, Cursor,
+                                             Card.Width() - 20.0f, 24.0f);
+            const PlaneExtent Switch = Spanning(Row.MaximumX - 58.0f, Row.MinimumY, 58.0f, 24.0f);
+            const bool Hovered = Row.Encloses(Sampled.PositionX, Sampled.PositionY);
+            if (Hovered && Sampled.ContactPressed)
+                Value = !Value;
+            Surface->TextRun(Row.MinimumX, Row.MinimumY + 7.0f, Tinted.Muted, Label, Scaled.RunFine);
+            Surface->Ground(Switch, Value ? Tinted.EntityTaken : Tinted.Tile, 12.0f, CornerAll);
+            Surface->Edge(Switch, Value ? Tinted.EntityAccent : Tinted.Hairline, 1.0f, 12.0f, CornerAll);
+            Surface->TextRun(Switch.MinimumX + 10.0f, Switch.MinimumY + 7.0f,
+                             Value ? Tinted.Primary : Tinted.Faint, Value ? "On" : "Off", Scaled.RunFine);
+            Cursor += 30.0f;
+        };
+
+        const auto StepSetting = [&](float& Cursor, const char* Label, double& Value,
+                                     double Step, double Minimum, double Maximum, const char* Unit)
+        {
+            const PlaneExtent Row = Spanning(Card.MinimumX + 10.0f, Cursor,
+                                             Card.Width() - 20.0f, 24.0f);
+            const PlaneExtent Less = Spanning(Row.MaximumX - 112.0f, Row.MinimumY, 24.0f, 24.0f);
+            const PlaneExtent More = Spanning(Row.MaximumX - 24.0f, Row.MinimumY, 24.0f, 24.0f);
+            const PlaneExtent ValueBox = Spanning(Less.MaximumX + 4.0f, Row.MinimumY, 56.0f, 24.0f);
+            const bool LessHovered = Less.Encloses(Sampled.PositionX, Sampled.PositionY);
+            const bool MoreHovered = More.Encloses(Sampled.PositionX, Sampled.PositionY);
+            if (Sampled.ContactPressed && LessHovered)
+                Value = std::max(Minimum, Value - Step);
+            if (Sampled.ContactPressed && MoreHovered)
+                Value = std::min(Maximum, Value + Step);
+            char Reading[32] = {};
+            std::snprintf(Reading, sizeof(Reading), Unit[0] == '\0' ? "%.0f" : "%.0f%s", Value, Unit);
+            Surface->TextRun(Row.MinimumX, Row.MinimumY + 7.0f, Tinted.Muted, Label, Scaled.RunFine);
+            Surface->Ground(Less, LessHovered ? Tinted.TileHovered : Tinted.Tile, 12.0f, CornerAll);
+            Surface->TextRun(Less.MinimumX + 7.0f, Less.MinimumY + 7.0f, Tinted.Primary, "-", Scaled.RunFine);
+            Surface->Ground(ValueBox, Tinted.Tile, 12.0f, CornerAll);
+            Surface->TextRun(ValueBox.MinimumX + 7.0f, ValueBox.MinimumY + 7.0f, Tinted.Primary, Reading, Scaled.RunFine);
+            Surface->Ground(More, MoreHovered ? Tinted.TileHovered : Tinted.Tile, 12.0f, CornerAll);
+            Surface->TextRun(More.MinimumX + 7.0f, More.MinimumY + 7.0f, Tinted.Primary, "+", Scaled.RunFine);
+            Cursor += 30.0f;
+        };
+
+        RowY += 8.0f;
+        Surface->Ground(Spanning(Card.MinimumX + 10.0f, RowY, Card.Width() - 20.0f, 1.0f), Tinted.Hairline);
+        RowY += 10.0f;
+        const ParametricToolSubject Subject = ToolSubjectOf(Applied.ActiveBand, Applied.ActiveTool);
+        ToggleSetting(RowY, "Construction", Applied.ConstructionGeometry);
+        if (Subject == ParametricToolSubject::Line)
+        {
+            ToggleSetting(RowY, "Use Length", Applied.LineLengthAssist);
+            StepSetting(RowY, "Length", Applied.LineLength, 10.0, 1.0, 1000.0, "");
+            ToggleSetting(RowY, "Use Angle", Applied.LineAngleAssist);
+            StepSetting(RowY, "Angle", Applied.LineAngleDegrees, 15.0, -180.0, 180.0, "°");
+        }
+        else if (Subject == ParametricToolSubject::Rectangle)
+        {
+            ToggleSetting(RowY, "Use Size", Applied.RectangleDimensionAssist);
+            StepSetting(RowY, "Width", Applied.RectangleWidth, 10.0, 1.0, 1000.0, "");
+            StepSetting(RowY, "Height", Applied.RectangleHeight, 10.0, 1.0, 1000.0, "");
+        }
+        else if (Subject == ParametricToolSubject::Circle)
+        {
+            ToggleSetting(RowY, "Use Radius", Applied.CircleRadiusAssist);
+            ToggleSetting(RowY, "Diameter Readout", Applied.CircleDiameterMode);
+            double CircleReading = Applied.CircleDiameterMode ? Applied.CircleRadius * 2.0 : Applied.CircleRadius;
+            StepSetting(RowY, Applied.CircleDiameterMode ? "Diameter" : "Radius", CircleReading,
+                        5.0, 1.0, 2000.0, "");
+            Applied.CircleRadius = Applied.CircleDiameterMode ? CircleReading * 0.5 : CircleReading;
         }
     }
     Surface->Release();
