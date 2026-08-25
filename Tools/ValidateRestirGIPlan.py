@@ -42,6 +42,23 @@ def main() -> int:
     )
     require("Input.Role" not in fragment, "CAD fragment shader still references the old varying field")
 
+    overlay_vertex = require_text(
+        "Engine/SlateVulkan/Device/WorkspaceOverlayPass/Shader/WorkspaceOverlayVertex.slang",
+        "struct OverlayPushConstant",
+        "Unsigned32 Draw;",
+        "if (Push.Draw == WorkspaceOverlayLineDraw)",
+        "else if (Push.Draw == WorkspaceOverlayDotDraw)",
+        "else if (Push.Draw == WorkspaceOverlayGroundGridDraw)",
+    )
+    overlay_fragment = require_text(
+        "Engine/SlateVulkan/Device/WorkspaceOverlayPass/Shader/WorkspaceOverlayFragment.slang",
+        "struct OverlayPushConstant",
+        "Unsigned32 Draw;",
+        "if (Push.Draw == WorkspaceOverlayGroundGridDraw)",
+    )
+    require("Push.Role" not in overlay_vertex + overlay_fragment,
+            "overlay shaders still reference the old push field")
+
     require_text(
         "Engine/SlateFeature/Sketch/ProfileReshape/Source/ProfileReshape.cpp",
         "return Outcome<SketchCurveName>::Refuse({ RefusalReason::ContentUnsupported, \"the curve cannot be trimmed\" });",
@@ -59,11 +76,21 @@ def main() -> int:
         "Denoising and temporal accumulation",
         "Implementation phases recommended for Slate",
     )
-    lower = plan.lower()
+    denoiser_flare = require_text(
+        "References/RealtimeDenoiserLensFlareResearch.md",
+        "NVIDIA NRD",
+        "AMD FidelityFX Denoiser",
+        "Intel Open Image Denoise",
+        "Economic screen-space flare",
+        "convolution bloom flare",
+        "physical lens ghosting",
+        "Slate lens flare tiers",
+    )
+    lower = (plan + denoiser_flare).lower()
     require("kind" not in lower and "asset" not in lower and "role" not in lower,
-            "ReSTIR GI plan must avoid banned vocabulary")
+            "research plans must avoid banned vocabulary")
 
-    print("[RestirGIPlan] CAD shader fix and ReSTIR GI architecture plan hold")
+    print("[RestirGIPlan] CAD/overlay shader fixes and realtime rendering research plans hold")
     return 0
 
 

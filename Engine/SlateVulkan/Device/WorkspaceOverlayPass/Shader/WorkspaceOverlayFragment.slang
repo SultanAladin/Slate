@@ -255,7 +255,7 @@ Real32x4 ResolveGround(Real32x2 Corner)
 [shader("fragment")]
 Real32x4 main(WorkspaceOverlayVertexOutput Input) : SV_Target
 {
-    if (Push.Role == WorkspaceOverlayGroundGridDraw)
+    if (Push.Draw == WorkspaceOverlayGroundGridDraw)
         return ResolveGround(Input.Colour.xy);
 
     return Input.Colour;

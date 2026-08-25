@@ -163,7 +163,7 @@ WorkspaceOverlayVertexOutput main(Unsigned32 VertexIndex : SV_VertexID)
     Real32x2 Position = Real32x2(0.0, 0.0);
     Real32x4 Colour   = Real32x4(1.0, 1.0, 1.0, 1.0);
 
-    if (Push.Role == WorkspaceOverlayLineDraw)
+    if (Push.Draw == WorkspaceOverlayLineDraw)
     {
         // 📐 The line's four corners are the endpoints widened by half the thickness along the
         //    segment's normal. The normal is computed here, keeping the CPU record at four floats.
@@ -183,7 +183,7 @@ WorkspaceOverlayVertexOutput main(Unsigned32 VertexIndex : SV_VertexID)
         Position += Normal * (Half * Side);
         Colour    = Line.Colour;
     }
-    else if (Push.Role == WorkspaceOverlayDotDraw)
+    else if (Push.Draw == WorkspaceOverlayDotDraw)
     {
         // 📐 The dot's four corners are the centre widened by the radius along both axes.
         const Unsigned32 Record = VertexIndex / 6u;
@@ -196,7 +196,7 @@ WorkspaceOverlayVertexOutput main(Unsigned32 VertexIndex : SV_VertexID)
         Position = Dot.Centre + Real32x2(X, Y) * Dot.Radius;
         Colour   = Dot.Colour;
     }
-    else if (Push.Role == WorkspaceOverlayGroundGridDraw)
+    else if (Push.Draw == WorkspaceOverlayGroundGridDraw)
     {
         // 📐 The analytic ground is ONE quad over the viewport leaf; the fragment
         //    stage decides what each pixel of it is. Four corners from the
