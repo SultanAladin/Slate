@@ -599,9 +599,10 @@ void RecordViewportOrientationHud(RecordingSurface& Surface,
                                   const PlaneExtent& Extent,
                                   const PointerCondition& Pointer,
                                   ParametricViewportState& View,
-                                  bool& Perspective,
+                                  EditorPanelConfiguration& Configuration,
                                   bool& PointerTaken)
 {
+    bool& Perspective = Configuration.Perspective;
     const float Pad = 10.0f;
     const float ButtonX = 34.0f;
     const float ButtonY = 24.0f;
@@ -678,6 +679,54 @@ void RecordViewportOrientationHud(RecordingSurface& Surface,
     Surface.TextRun(OrthographicButton.MinimumX + 10.0f, OrthographicButton.MinimumY + 7.0f,
                     !Perspective ? Covering(0xFFFFFFu) : Covering(0xD8D8DCu),
                     "Orthographic", 11.0f, 0.0f, true);
+
+    const PlaneExtent StyleButton = Spanning(OrthographicButton.MaximumX + 6.0f,
+                                             OrthographicButton.MinimumY, 104.0f, 24.0f);
+    const bool StyleHovered = WithinViewportOrientationButton(StyleButton, Pointer);
+    if (StyleHovered && Pointer.ContactPressed)
+    {
+        Configuration.Gizmo = Configuration.Gizmo == PanelGizmo::Blender ? PanelGizmo::Cad : PanelGizmo::Blender;
+        PointerTaken = true;
+    }
+    if (StyleHovered)
+        PointerTaken = true;
+    Surface.Ground(StyleButton, StyleHovered ? Covering(0x26262Bu) : Covering(0x17171Au), 7.0f, CornerAll);
+    Surface.Edge(StyleButton, Covering(0x1C1C20u), 1.0f, 7.0f, CornerAll);
+    Surface.TextRun(StyleButton.MinimumX + 10.0f, StyleButton.MinimumY + 7.0f,
+                    Covering(0xD8D8DCu),
+                    Configuration.Gizmo == PanelGizmo::Cad ? "CAD Gizmo" : "Blender Gizmo",
+                    11.0f, 0.0f, true);
+
+    if (Configuration.Gizmo == PanelGizmo::Cad)
+    {
+        const float CubeX = Right - 106.0f;
+        const float CubeY = Top + 108.0f;
+        const float S = 38.0f;
+        const float TopFace[6] = { CubeX, CubeY, CubeX + S, CubeY - 10.0f, CubeX + S * 1.72f, CubeY + 8.0f };
+        const float TopFace2[6] = { CubeX, CubeY, CubeX + S * 1.72f, CubeY + 8.0f, CubeX + S * 0.72f, CubeY + 18.0f };
+        const float FrontFace[6] = { CubeX, CubeY, CubeX + S * 0.72f, CubeY + 18.0f, CubeX + S * 0.72f, CubeY + 58.0f };
+        const float FrontFace2[6] = { CubeX, CubeY, CubeX + S * 0.72f, CubeY + 58.0f, CubeX, CubeY + 40.0f };
+        const float SideFace[6] = { CubeX + S * 0.72f, CubeY + 18.0f, CubeX + S * 1.72f, CubeY + 8.0f, CubeX + S * 1.72f, CubeY + 48.0f };
+        const float SideFace2[6] = { CubeX + S * 0.72f, CubeY + 18.0f, CubeX + S * 1.72f, CubeY + 48.0f, CubeX + S * 0.72f, CubeY + 58.0f };
+        const PlaneExtent CubeHit = Spanning(CubeX - 4.0f, CubeY - 16.0f, S * 1.9f, 80.0f);
+        const bool CubeHovered = CubeHit.Encloses(Pointer.PositionX, Pointer.PositionY);
+        if (CubeHovered && Pointer.ContactPressed)
+        {
+            Perspective = true;
+            ApplyViewportOrientation(View, ParametricViewOrientation::Isometric, true);
+            PointerTaken = true;
+        }
+        if (CubeHovered)
+            PointerTaken = true;
+        Surface.Tongue(TopFace, 3u, Partial(0xFFFFFFu, CubeHovered ? 0.30 : 0.20));
+        Surface.Tongue(TopFace2, 3u, Partial(0xFFFFFFu, CubeHovered ? 0.30 : 0.20));
+        Surface.Tongue(FrontFace, 3u, Partial(0x5B8CFFu, CubeHovered ? 0.34 : 0.24));
+        Surface.Tongue(FrontFace2, 3u, Partial(0x5B8CFFu, CubeHovered ? 0.34 : 0.24));
+        Surface.Tongue(SideFace, 3u, Partial(0xFC5A5Au, CubeHovered ? 0.34 : 0.24));
+        Surface.Tongue(SideFace2, 3u, Partial(0xFC5A5Au, CubeHovered ? 0.34 : 0.24));
+        Surface.Edge(CubeHit, Partial(0xFFFFFFu, 0.20), 1.0f, 8.0f, CornerAll);
+        Surface.TextRun(CubeX + S * 0.86f, CubeY + 24.0f, Covering(0xFFFFFFu), "CAD", 10.0f, 0.0f, true);
+    }
 }
 
 void DriveViewport(const PlaneExtent& Extent,
@@ -1523,6 +1572,44 @@ bool ProjectSpatialPoint(const SpatialBasis& Basis,
     return ProjectViewportPoint(Basis, View, Perspective, Extent, Along, Across, ScreenX, ScreenY);
 }
 
+bool ProjectWorldPoint(const SpatialBasis& Basis,
+                       const ParametricViewportState& View,
+                       bool Perspective,
+                       const PlaneExtent& Extent,
+                       const SpatialPoint& Position,
+                       float& ScreenX,
+                       float& ScreenY,
+                       double* Depth = nullptr)
+{
+    const ViewFrame Frame = ResolveViewportFrame(Basis, View, Perspective);
+    if (!Perspective)
+    {
+        const SpatialDirection Offset = Difference(View.Focus, Position);
+        const double X = Dot(Offset, Frame.Right);
+        const double Y = Dot(Offset, Frame.Up);
+        if (Depth != nullptr)
+            *Depth = Dot(Offset, Frame.Forward);
+        ScreenX = static_cast<float>(Extent.MinimumX + Extent.Width() * 0.5 + X * View.OrthoScale);
+        ScreenY = static_cast<float>(Extent.MinimumY + Extent.Height() * 0.5 - Y * View.OrthoScale);
+        return true;
+    }
+
+    const SpatialDirection EyeToPoint = Difference(Frame.Eye, Position);
+    const double CameraX = Dot(EyeToPoint, Frame.Right);
+    const double CameraY = Dot(EyeToPoint, Frame.Up);
+    const double CameraZ = Dot(EyeToPoint, Frame.Forward);
+    if (Depth != nullptr)
+        *Depth = CameraZ;
+    if (CameraZ <= 0.01)
+        return false;
+
+    const double TanHalf = std::tan(CadPerspectiveFieldOfViewDegrees * 0.5 * Pi / 180.0);
+    const double Focal = (Extent.Height() * 0.5) / TanHalf;
+    ScreenX = static_cast<float>(Extent.MinimumX + Extent.Width() * 0.5 + CameraX / CameraZ * Focal);
+    ScreenY = static_cast<float>(Extent.MinimumY + Extent.Height() * 0.5 - CameraY / CameraZ * Focal);
+    return true;
+}
+
 WorkspaceRecordName ResolveSelectedRecord(const WorkspaceDirectoryProjection& Directory,
                                           const ParametricWorkspaceContext& Applied)
 {
@@ -2263,6 +2350,149 @@ void RecordViewportOverlayFallback(RecordingSurface& Surface,
         const OverlayTriangle& Triangle = Overlay.Triangles[Index];
         const float Corners[6] = { Triangle.X0, Triangle.Y0, Triangle.X1, Triangle.Y1, Triangle.X2, Triangle.Y2 };
         Surface.Tongue(Corners, 3u, TokenFromPacked(Triangle.Packed));
+    }
+    Surface.Release();
+}
+
+constexpr double CodexSceneMetreScale = 1000.0;
+
+SpatialPoint CodexScenePosition(const CodexSceneEntry& Entry)
+{
+    return { Entry.Position[0] * CodexSceneMetreScale,
+             Entry.Position[1] * CodexSceneMetreScale,
+             Entry.Position[2] * CodexSceneMetreScale };
+}
+
+void ResolveCodexProxyExtent(const CodexSceneEntry& Entry,
+                             double& HalfX,
+                             double& HalfY,
+                             double& HalfZ)
+{
+    const char* Name = Entry.Naming.c_str();
+    if (std::strstr(Name, "Teapot") != nullptr)
+    {
+        HalfX = 150.0; HalfY = 85.0; HalfZ = 105.0;
+    }
+    else if (std::strstr(Name, "Teacup") != nullptr)
+    {
+        HalfX = 62.0; HalfY = 48.0; HalfZ = 62.0;
+    }
+    else if (std::strstr(Name, "Saucer") != nullptr)
+    {
+        HalfX = 88.0; HalfY = 10.0; HalfZ = 88.0;
+    }
+    else if (std::strstr(Name, "Sugar") != nullptr)
+    {
+        HalfX = 78.0; HalfY = 58.0; HalfZ = 72.0;
+    }
+    else if (std::strstr(Name, "Milk") != nullptr)
+    {
+        HalfX = 66.0; HalfY = 72.0; HalfZ = 54.0;
+    }
+    else if (std::strstr(Name, "Floor") != nullptr)
+    {
+        HalfX = 1000.0 * Entry.Scale[0]; HalfY = 1.0; HalfZ = 1000.0 * Entry.Scale[2];
+    }
+    else
+    {
+        HalfX = 60.0; HalfY = 60.0; HalfZ = 60.0;
+    }
+}
+
+bool ProjectSceneProxyPoint(const SpatialBasis& Basis,
+                            const ParametricViewportState& View,
+                            bool Perspective,
+                            const PlaneExtent& Extent,
+                            const SpatialPoint& Centre,
+                            double X,
+                            double Y,
+                            double Z,
+                            float& ScreenX,
+                            float& ScreenY)
+{
+    const SpatialPoint Position = Added(Centre,
+        Added(Added(Scaled(Basis.Along, X), Scaled(Basis.Normal, Y)), Scaled(Basis.Across, Z)));
+    return ProjectWorldPoint(Basis, View, Perspective, Extent, Position, ScreenX, ScreenY);
+}
+
+void RecordCodexSceneProxy(RecordingSurface& Surface,
+                           const PlaneExtent& Extent,
+                           const SpatialBasis& Basis,
+                           const ParametricViewportState& View,
+                           bool Perspective,
+                           const WorkspaceCodex& Scene,
+                           bool SceneStanding)
+{
+    if (!SceneStanding)
+        return;
+
+    Surface.Confine(Extent);
+    const ThemeToken Fill = Partial(0xF4F1E8u, 0.34);
+    const ThemeToken FaceLit = Partial(0xFFFFFFu, 0.22);
+    const ThemeToken Edge = Partial(0xE7E3D8u, 0.74);
+    const ThemeToken Floor = Partial(0xFFFFFFu, 0.08);
+
+    for (const CodexSceneEntry& Entry : Scene.Scene)
+    {
+        if (Entry.Subject != CodexSceneSubject::Geometry)
+            continue;
+
+        double HalfX = 0.0, HalfY = 0.0, HalfZ = 0.0;
+        ResolveCodexProxyExtent(Entry, HalfX, HalfY, HalfZ);
+        const SpatialPoint Centre = CodexScenePosition(Entry);
+
+        float X[8] = {};
+        float Y[8] = {};
+        const double Signs[8][3] =
+        {
+            { -1.0, -1.0, -1.0 }, {  1.0, -1.0, -1.0 }, {  1.0, -1.0,  1.0 }, { -1.0, -1.0,  1.0 },
+            { -1.0,  1.0, -1.0 }, {  1.0,  1.0, -1.0 }, {  1.0,  1.0,  1.0 }, { -1.0,  1.0,  1.0 }
+        };
+        bool Standing = true;
+        for (std::uint32_t Index = 0u; Index < 8u; ++Index)
+            Standing = ProjectSceneProxyPoint(Basis, View, Perspective, Extent, Centre,
+                                              Signs[Index][0] * HalfX,
+                                              Signs[Index][1] * HalfY,
+                                              Signs[Index][2] * HalfZ,
+                                              X[Index], Y[Index]) && Standing;
+        if (!Standing)
+            continue;
+
+        const bool IsFloor = std::strstr(Entry.Naming.c_str(), "Floor") != nullptr;
+        const auto Triangle = [&](std::uint32_t A, std::uint32_t B, std::uint32_t C, ThemeToken Colour)
+        {
+            const float Corners[6] = { X[A], Y[A], X[B], Y[B], X[C], Y[C] };
+            Surface.Tongue(Corners, 3u, Colour);
+        };
+        const auto Line = [&](std::uint32_t A, std::uint32_t B)
+        {
+            const float PointsX[2] = { X[A], X[B] };
+            const float PointsY[2] = { Y[A], Y[B] };
+            Surface.Polyline(PointsX, PointsY, 2u, Edge, 1.1f);
+        };
+
+        if (IsFloor)
+        {
+            Triangle(0u, 1u, 2u, Floor);
+            Triangle(0u, 2u, 3u, Floor);
+        }
+        else
+        {
+            Triangle(4u, 5u, 6u, FaceLit);
+            Triangle(4u, 6u, 7u, FaceLit);
+            Triangle(0u, 1u, 5u, Fill);
+            Triangle(0u, 5u, 4u, Fill);
+            Triangle(1u, 2u, 6u, Fill);
+            Triangle(1u, 6u, 5u, Fill);
+            Triangle(2u, 3u, 7u, Fill);
+            Triangle(2u, 7u, 6u, Fill);
+            Triangle(3u, 0u, 4u, Fill);
+            Triangle(3u, 4u, 7u, Fill);
+        }
+
+        Line(0u, 1u); Line(1u, 2u); Line(2u, 3u); Line(3u, 0u);
+        Line(4u, 5u); Line(5u, 6u); Line(6u, 7u); Line(7u, 4u);
+        Line(0u, 4u); Line(1u, 5u); Line(2u, 6u); Line(3u, 7u);
     }
     Surface.Release();
 }
@@ -3923,7 +4153,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                             bool PointerTaken = false;
                             Viewport.Surface().Confine(LeafBody);
                             RecordViewportOrientationHud(Viewport.Surface(), LeafBody, BackgroundPointer,
-                                                         View, PanelConfiguration[Index].Perspective,
+                                                         View, PanelConfiguration[Index],
                                                          PointerTaken);
                             if (PointerInside && !PointerTaken && !Transform.Engaged)
                                 DriveViewport(LeafBody, BackgroundPointer, Modifiers,
@@ -3957,6 +4187,10 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                          ToolsApplied,
                                                          Naming, Sketch, Records, Revisions,
                                                          PendingSelection, Draft, PointerTaken);
+
+                            RecordCodexSceneProxy(Viewport.Surface(), LeafBody, Basis, View,
+                                                  PanelConfiguration[Index].Perspective,
+                                                  OpenedScene, OpenedSceneStanding);
 
                             Discard(SynchroniseCadPacket(Sketch, Records, CadPacket));
                             if (!CadPass.Standing())
@@ -4071,9 +4305,10 @@ int main(int ArgumentCount, char** ArgumentValues)
                     {
                         if (Entry.Subject != CodexSceneSubject::Geometry)
                             continue;
-                        Focus.Left += Entry.Position[0];
-                        Focus.Up += Entry.Position[1];
-                        Focus.Forward += Entry.Position[2];
+                        const SpatialPoint Position = CodexScenePosition(Entry);
+                        Focus.Left += Position.Left;
+                        Focus.Up += Position.Up;
+                        Focus.Forward += Position.Forward;
                         ++GeometryCount;
                     }
                     if (GeometryCount > 0u)

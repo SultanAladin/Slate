@@ -142,11 +142,12 @@ Status: started in implementation with Scene Directory row projection.
 
 ### Phase 5 — binary scene loading into unified viewport
 
-Status: started in implementation with `WhiteTeaService.codex` activation into Scene Directory rows and shared viewport focus state.
+Status: started in implementation with `WhiteTeaService.codex` activation into Scene Directory rows, shared viewport focus state, and a first in-viewport codex scene proxy render.
 
 - Load `WhiteTeaService.codex` through the existing codex activation path.
 - Register scene rows in Scene Directory.
 - Render codex scene geometry and CAD geometry in the same viewport/camera path.
+- First proxy render uses codex scene placements and white-dielectric translucent proxy volumes until embedded binary mesh sections feed a dedicated scene polygon pass.
 
 ### Phase 6 — selection sync
 
