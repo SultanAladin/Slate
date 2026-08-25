@@ -174,10 +174,25 @@ const ToolEntry SketchDrawTools[] =
       0u, 0u, 0u, 0u, 0u, 0u, 0u,
       { { "Defined By", "centre + radii + sweep" } }, 1u },
 
+    { "Bezier", "", SymbolSubject::CurveTangent, ParametricToolDimension::Nothing,
+      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
+      2u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Controls", "2+" }, { "Finish", "double click" } }, 2u },
+
+    { "Hermite", "", SymbolSubject::CurveTangent, ParametricToolDimension::Nothing,
+      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
+      4u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Inputs", "start/end/tangents" }, { "Finish", "double click" } }, 2u },
+
     { "Basis Spline", "", SymbolSubject::CurveTangent, ParametricToolDimension::Nothing,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
       3u, 0u, 0u, 0u, 0u, 0u, 0u,
       { { "Degree", "3" }, { "Finish", "double click" } }, 2u },
+
+    { "NURBS Curve", "", SymbolSubject::CurveTangent, ParametricToolDimension::Nothing,
+      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
+      3u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Weights", "uniform" }, { "Finish", "double click" } }, 2u },
 
     { "Construction Line", "", SymbolSubject::EdgeSegment, ParametricToolDimension::Nothing,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
@@ -618,15 +633,18 @@ ParametricToolSubject ToolSubjectOf(std::uint32_t BandIndex, std::uint32_t ToolI
                  : ToolIndex == 5u ? ParametricToolSubject::Ellipse
                  : ToolIndex == 6u ? ParametricToolSubject::Point
                  : ToolIndex == 7u ? ParametricToolSubject::EllipticalArc
-                 : ToolIndex == 8u ? ParametricToolSubject::BasisSpline
-                 : ToolIndex == 9u ? ParametricToolSubject::ConstructionLine
-                 : ToolIndex == 10u ? ParametricToolSubject::CenterRectangle
-                 : ToolIndex == 11u ? ParametricToolSubject::ThreePointRectangle
-                 : ToolIndex == 12u ? ParametricToolSubject::DiameterCircle
-                 : ToolIndex == 13u ? ParametricToolSubject::ThreePointCircle
-                 : ToolIndex == 14u ? ParametricToolSubject::CenterStartEndArc
-                 : ToolIndex == 15u ? ParametricToolSubject::TangentArc
-                 : ToolIndex == 16u ? ParametricToolSubject::Polygon
+                 : ToolIndex == 8u ? ParametricToolSubject::BezierCurve
+                 : ToolIndex == 9u ? ParametricToolSubject::HermiteCurve
+                 : ToolIndex == 10u ? ParametricToolSubject::BasisSpline
+                 : ToolIndex == 11u ? ParametricToolSubject::RationalSpline
+                 : ToolIndex == 12u ? ParametricToolSubject::ConstructionLine
+                 : ToolIndex == 13u ? ParametricToolSubject::CenterRectangle
+                 : ToolIndex == 14u ? ParametricToolSubject::ThreePointRectangle
+                 : ToolIndex == 15u ? ParametricToolSubject::DiameterCircle
+                 : ToolIndex == 16u ? ParametricToolSubject::ThreePointCircle
+                 : ToolIndex == 17u ? ParametricToolSubject::CenterStartEndArc
+                 : ToolIndex == 18u ? ParametricToolSubject::TangentArc
+                 : ToolIndex == 19u ? ParametricToolSubject::Polygon
                                     : ParametricToolSubject::Slot;
         case 2u:
             return ToolIndex == 0u ? ParametricToolSubject::Fillet

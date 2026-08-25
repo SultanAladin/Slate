@@ -461,7 +461,7 @@ def render(name: str, cam: Camera, gizmo: str, transform: str) -> str:
         "-pointsize", "10", "-fill", "#101014", "-annotate", f"+{BODY[2] - 73}+{BODY[1] + 25}", "X" if gizmo == "blender" else "",
         "-annotate", f"+{BODY[2] - 105}+{BODY[1] - 7}", "Z" if gizmo == "blender" else "",
         "-pointsize", "13", "-fill", "#a7f3d0", "-annotate", f"+{PANEL_X + 16}+{PANEL_Y + PANEL_H - 24}",
-        f"{name}: shader-grid CPU mirror, {transform} transform gizmo, semi-transparent profiles, {gizmo.upper()} orientation only",
+        f"{name}: shared EditorPanel chrome • full curves Bezier/Hermite/Basis/NURBS • clipper2+earcut profile fills • {gizmo.upper()} orientation",
         png
     ], check=True)
     os.remove(ppm)

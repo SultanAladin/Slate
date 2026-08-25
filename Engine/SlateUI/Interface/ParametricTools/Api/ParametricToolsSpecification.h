@@ -90,7 +90,10 @@ enum class ParametricToolSubject : std::uint32_t
     TangentArc = 55u,
     Polygon = 56u,
     Slot = 57u,
-    SubjectCount = 58u
+    BezierCurve = 58u,
+    HermiteCurve = 59u,
+    RationalSpline = 60u,
+    SubjectCount = 61u
 };
 
 struct ParametricToolsContext

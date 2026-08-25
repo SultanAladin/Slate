@@ -130,7 +130,9 @@ enum class ParametricDraftSubject : std::uint32_t
     CenterStartEndArc = 16u,
     TangentArc = 17u,
     Polygon = 18u,
-    Slot = 19u
+    Slot = 19u,
+    Hermite = 20u,
+    RationalSpline = 21u
 };
 
 struct ParametricDraftState
@@ -1078,6 +1080,9 @@ ParametricDraftSubject ResolveDraftSubject(ParametricToolSubject Subject)
         case ParametricToolSubject::Ellipse:         return ParametricDraftSubject::Ellipse;
         case ParametricToolSubject::EllipticalArc:   return ParametricDraftSubject::EllipticalArc;
         case ParametricToolSubject::BasisSpline:     return ParametricDraftSubject::BasisSpline;
+        case ParametricToolSubject::BezierCurve:     return ParametricDraftSubject::Bezier;
+        case ParametricToolSubject::HermiteCurve:    return ParametricDraftSubject::Hermite;
+        case ParametricToolSubject::RationalSpline:  return ParametricDraftSubject::RationalSpline;
         case ParametricToolSubject::ConstructionLine:return ParametricDraftSubject::Line;
         case ParametricToolSubject::CenterRectangle: return ParametricDraftSubject::CenterRectangle;
         case ParametricToolSubject::ThreePointRectangle: return ParametricDraftSubject::ThreePointRectangle;
@@ -1627,6 +1632,34 @@ Outcome<WorkspaceRecordName> CommitDraft(WorkspaceNameIndex& Naming,
         const SketchCurveName Curve = Sketch.DeclareBasisSpline(Spline);
         const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Draft.Construction);
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Basis Spline", { Record },
+                       Revisions.DeclaredCount() + 1u);
+        return Outcome<WorkspaceRecordName>::Result(Record);
+    }
+
+    if (Draft.Subject == ParametricDraftSubject::RationalSpline && Draft.Anchors.size() >= 3u)
+    {
+        RationalSplineCurve Spline;
+        Spline.ControlPoints = Draft.Anchors;
+        Spline.Weights.assign(Draft.Anchors.size(), 1.0);
+        Spline.Degree = std::min<std::uint32_t>(3u, static_cast<std::uint32_t>(Spline.ControlPoints.size() - 1u));
+        Spline.Periodic = false;
+        const SketchCurveName Curve = Sketch.DeclareRationalSpline(Spline);
+        const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Draft.Construction);
+        Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create NURBS Curve", { Record },
+                       Revisions.DeclaredCount() + 1u);
+        return Outcome<WorkspaceRecordName>::Result(Record);
+    }
+
+    if (Draft.Subject == ParametricDraftSubject::Hermite && Draft.Anchors.size() >= 4u)
+    {
+        HermiteCurve CurveData;
+        CurveData.StartPoint = Draft.Anchors[0];
+        CurveData.EndPoint = Draft.Anchors[1];
+        CurveData.StartTangent = Difference(Draft.Anchors[0], Draft.Anchors[2]);
+        CurveData.EndTangent = Difference(Draft.Anchors[1], Draft.Anchors[3]);
+        const SketchCurveName Curve = Sketch.DeclareHermite(CurveData);
+        const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Draft.Construction);
+        Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Hermite Curve", { Record },
                        Revisions.DeclaredCount() + 1u);
         return Outcome<WorkspaceRecordName>::Result(Record);
     }
@@ -4133,6 +4166,8 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
 
         if ((Draft.Subject == ParametricDraftSubject::Polyline ||
              Draft.Subject == ParametricDraftSubject::Bezier ||
+             Draft.Subject == ParametricDraftSubject::Hermite ||
+             Draft.Subject == ParametricDraftSubject::RationalSpline ||
              Draft.Subject == ParametricDraftSubject::BasisSpline) &&
             Draft.Anchors.size() < 2u)
             return;
@@ -4185,10 +4220,16 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
                 CancelDraft(Draft);
             }
         }
-        else if (Draft.Subject == ParametricDraftSubject::Bezier || Draft.Subject == ParametricDraftSubject::BasisSpline)
+        else if (Draft.Subject == ParametricDraftSubject::Bezier ||
+                 Draft.Subject == ParametricDraftSubject::Hermite ||
+                 Draft.Subject == ParametricDraftSubject::RationalSpline ||
+                 Draft.Subject == ParametricDraftSubject::BasisSpline)
         {
             AppendDraftAnchor(Draft);
-            if (Pointer.ContactDoublePressed && Draft.Anchors.size() >= (Draft.Subject == ParametricDraftSubject::BasisSpline ? 3u : 2u))
+            const std::uint32_t RequiredAnchors = Draft.Subject == ParametricDraftSubject::Bezier ? 2u
+                                                : Draft.Subject == ParametricDraftSubject::Hermite ? 4u
+                                                : 3u;
+            if (Pointer.ContactDoublePressed && Draft.Anchors.size() >= RequiredAnchors)
             {
                 const Outcome<WorkspaceRecordName> Record = CommitDraft(Naming, Sketch, Records, Revisions, Draft);
                 AdoptCommittedDraft(Draft.Subject, Naming, Sketch, Records, Revisions, Record, PendingSelection);

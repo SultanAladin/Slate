@@ -75,6 +75,8 @@ def main() -> int:
 
     tools = read("Engine/SlateUI/Interface/ParametricTools/Source/ParametricToolsPanel.cpp")
     require("static_cast<void>(Elapsed);" in tools, "ParametricToolsPanel must mark Elapsed as intentionally unused")
+    require("Bezier" in tools and "Hermite" in tools and "NURBS Curve" in tools,
+            "Sketch Draw must expose the full primary curve set")
 
     theme = read("Engine/SlateUI/Interface/ThemeInterchange/Source/ThemeInterchange.cpp")
     require("std::strncpy" not in theme, "ThemeInterchange must avoid MSVC strncpy warning")

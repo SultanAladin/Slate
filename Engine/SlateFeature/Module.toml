@@ -9,7 +9,7 @@ subject = [ "Feature", "Reference", "Sketch" ]
 unit = [ "SlateGeometry", "SlateMath" ]
 
 [external]
-include = []
+include = [ "ExternalPackages/earcut/include", "ExternalPackages/clipper2/CPP/Clipper2Lib/include" ]
 declare = []
 
 [link]
