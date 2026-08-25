@@ -13,6 +13,7 @@
 #include "SlateFeature/Feature/WorkspacePropertyProjection/Api/WorkspacePropertyProjection.h"
 #include "SlateFeature/Feature/WorkspaceRecordStructure/Api/WorkspaceRecordStructure.h"
 #include "SlateFeature/Feature/WorkspaceRevisionSequence/Api/WorkspaceRevisionSequence.h"
+#include "SlateFeature/Sketch/ConstraintSolver/Api/ConstraintSolver.h"
 #include "SlateFeature/Sketch/SketchEditing/Api/SketchEditing.h"
 #include "SlateFeature/Sketch/ProfilePattern/Api/ProfilePattern.h"
 #include "SlateFeature/Sketch/ProfileReshape/Api/ProfileReshape.h"
@@ -959,6 +960,30 @@ void RecordViewportStateReadout(RecordingSurface& Surface,
                     Detail, 11.0f);
 }
 
+void RecordProfileValidationReadout(RecordingSurface& Surface,
+                                    const PlaneExtent& Extent,
+                                    const SketchStructure& Sketch)
+{
+    std::uint32_t ValidProfiles = 0u;
+    for (const ProfileSpecification& Profile : Sketch.Profiles())
+        if (Profile.Declared())
+            ++ValidProfiles;
+
+    const ConstraintDisposition Constraints = EvaluateConstraints(Sketch);
+    const bool ConstraintWarning = Constraints == ConstraintDisposition::InvalidSketch
+                                || Constraints == ConstraintDisposition::UnsupportedConstraint
+                                || Constraints == ConstraintDisposition::ConflictingConstraint;
+    char Detail[160] = {};
+    std::snprintf(Detail, sizeof(Detail), "%u/%u profiles valid • constraints %s",
+                  static_cast<unsigned>(ValidProfiles),
+                  static_cast<unsigned>(Sketch.Profiles().size()),
+                  ConstraintWarning ? "need attention" : "valid");
+    Surface.TextRun(Extent.MinimumX + 16.0f,
+                    Extent.MaximumY - 42.0f,
+                    ConstraintWarning ? Covering(0xFBBF24u) : Faded(Covering(0xA7F3D0u), 0.85f),
+                    Detail, 11.0f);
+}
+
 ParametricDraftSubject ResolveDraftSubject(ParametricToolSubject Subject)
 {
     switch (Subject)
@@ -1169,6 +1194,7 @@ void SealConstraintRecord(WorkspaceNameIndex& Naming,
     if (!Constraint.Declared())
         return;
     const ConstraintName Named = Sketch.DeclareConstraint(Constraint);
+    Discard(ApplyConstraint(Sketch, Named));
     const WorkspaceRecordName Record = DeclareWorkspaceConstraint(Naming, Records, Named);
     Written.push_back(Record);
     Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Constraint", { Record },
@@ -3654,6 +3680,71 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
     }
 }
 
+bool ConstraintToolSubject(ParametricToolSubject Tool,
+                           ConstraintSubject& Delivered)
+{
+    switch (Tool)
+    {
+        case ParametricToolSubject::HorizontalConstraint:    Delivered = ConstraintSubject::Horizontal; return true;
+        case ParametricToolSubject::VerticalConstraint:      Delivered = ConstraintSubject::Vertical; return true;
+        case ParametricToolSubject::CoincidentConstraint:    Delivered = ConstraintSubject::Coincident; return true;
+        case ParametricToolSubject::ParallelConstraint:      Delivered = ConstraintSubject::Parallel; return true;
+        case ParametricToolSubject::PerpendicularConstraint: Delivered = ConstraintSubject::Perpendicular; return true;
+        case ParametricToolSubject::TangentConstraint:       Delivered = ConstraintSubject::Tangent; return true;
+        case ParametricToolSubject::EqualConstraint:         Delivered = ConstraintSubject::Equal; return true;
+        default:                                             return false;
+    }
+}
+
+bool ApplyViewportConstraintTool(ParametricToolSubject Tool,
+                                 WorkspaceNameIndex& Naming,
+                                 SketchStructure& Sketch,
+                                 WorkspaceRecordStructure& Records,
+                                 WorkspaceRevisionSequence& Revisions,
+                                 const ParametricViewportSelection& ActiveSelection,
+                                 const ParametricViewportSelection& HoveredSelection,
+                                 WorkspaceRecordName& PendingSelection)
+{
+    ConstraintSubject Subject = ConstraintSubject::Fixed;
+    if (!ConstraintToolSubject(Tool, Subject) || !ActiveSelection.Standing())
+        return false;
+
+    ConstraintSpecification Constraint = {};
+    Constraint.Subject = Subject;
+    if (Subject == ConstraintSubject::Horizontal || Subject == ConstraintSubject::Vertical)
+    {
+        if (!ActiveSelection.Curve.Assigned())
+            return false;
+        Constraint.Primary = ReferenceFromCurve(ActiveSelection.Curve);
+    }
+    else if (Subject == ConstraintSubject::Coincident)
+    {
+        if (!ActiveSelection.Point.Assigned() || !HoveredSelection.Point.Assigned())
+            return false;
+        Constraint.Primary = ReferenceFromPoint(ActiveSelection.Point);
+        Constraint.Secondary = ReferenceFromPoint(HoveredSelection.Point);
+    }
+    else
+    {
+        if (!ActiveSelection.Curve.Assigned() || !HoveredSelection.Curve.Assigned())
+            return false;
+        Constraint.Primary = ReferenceFromCurve(ActiveSelection.Curve);
+        Constraint.Secondary = ReferenceFromCurve(HoveredSelection.Curve);
+    }
+
+    if (!Constraint.Declared())
+        return false;
+
+    std::vector<WorkspaceRecordName> Written;
+    SealConstraintRecord(Naming, Records, Revisions, Sketch, Constraint, Written);
+    if (!Written.empty())
+    {
+        PendingSelection = Written.front();
+        return true;
+    }
+    return false;
+}
+
 bool CommitCurveSet(WorkspaceNameIndex& Naming,
                     WorkspaceRecordStructure& Records,
                     WorkspaceRevisionSequence& Revisions,
@@ -3785,7 +3876,18 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
     const ParametricViewportSelection ActiveSelection =
         ResolveEditableSelection(Sketch, Records, SelectedRecord, PendingSelection, SemanticSelection);
 
-    if (!Transform.Engaged && Probed && Pointer.ContactPressed &&
+    ConstraintSubject ActiveConstraintSubject = ConstraintSubject::Fixed;
+    if (!Transform.Engaged && Pointer.ContactPressed && ConstraintToolSubject(ActiveTool, ActiveConstraintSubject))
+    {
+        if (ApplyViewportConstraintTool(ActiveTool, Naming, Sketch, Records, Revisions,
+                                        ActiveSelection, HoveredSelection, PendingSelection))
+        {
+            PointerTaken = true;
+            SemanticSelection = {};
+        }
+    }
+
+    if (!PointerTaken && !Transform.Engaged && Probed && Pointer.ContactPressed &&
         (ActiveTool == ParametricToolSubject::Trim || ActiveTool == ParametricToolSubject::Extend ||
          ActiveTool == ParametricToolSubject::Offset || ActiveTool == ParametricToolSubject::Fillet ||
          ActiveTool == ParametricToolSubject::Chamfer || ActiveTool == ParametricToolSubject::LinearArray ||
@@ -4946,6 +5048,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                PanelConfiguration[Index].Perspective, Draft);
                             RecordViewportStateReadout(Viewport.Surface(), LeafBody, View,
                                                        PanelConfiguration[Index].Perspective, CadPacket);
+                            RecordProfileValidationReadout(Viewport.Surface(), LeafBody, Sketch);
                             RecordViewportTransformReadout(Viewport.Surface(), LeafBody, Transform);
                             if (LeafOverlay != nullptr && !OverlayPass.Standing())
                                 RecordViewportOverlayFallback(Viewport.Surface(), LeafBody, *LeafOverlay);

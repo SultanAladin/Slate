@@ -383,6 +383,36 @@ const ToolEntry AnnotationTools[] =
       false, false, false, false, false, false, false, false, false, false, false, false, true, false,
       1u, 0u, 0u, 0u, 1u, 0u, 0u,
       { { "Precision", "2 dp" }, { "Centre Mark", "On" } }, 2u },
+
+    { "Horizontal", "H", SymbolSubject::ConstraintDimension, ParametricToolDimension::Edge,
+      false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+      1u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Applies", "selected line" } }, 1u },
+
+    { "Vertical", "V", SymbolSubject::ConstraintDimension, ParametricToolDimension::Edge,
+      false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+      1u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Applies", "selected line" } }, 1u },
+
+    { "Coincident", "", SymbolSubject::ConstraintDimension, ParametricToolDimension::Vertex,
+      false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+      2u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Needs", "two points" } }, 1u },
+
+    { "Parallel", "", SymbolSubject::ConstraintDimension, ParametricToolDimension::Edge,
+      false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+      2u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Needs", "two lines" } }, 1u },
+
+    { "Perpendicular", "", SymbolSubject::ConstraintDimension, ParametricToolDimension::Edge,
+      false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+      2u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Needs", "two lines" } }, 1u },
+
+    { "Tangent", "", SymbolSubject::ConstraintDimension, ParametricToolDimension::Edge,
+      false, false, false, false, false, false, false, false, false, true, false, false, false, false,
+      2u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Needs", "line + curve" } }, 1u },
 };
 
 const BandEntry Bands[BandCount] =
@@ -555,7 +585,13 @@ ParametricToolSubject ToolSubjectOf(std::uint32_t BandIndex, std::uint32_t ToolI
                                    : ParametricToolSubject::Camera;
         case 11u:
             return ToolIndex == 0u ? ParametricToolSubject::LinearDimension
-                                   : ParametricToolSubject::LeaderNote;
+                 : ToolIndex == 1u ? ParametricToolSubject::LeaderNote
+                 : ToolIndex == 2u ? ParametricToolSubject::HorizontalConstraint
+                 : ToolIndex == 3u ? ParametricToolSubject::VerticalConstraint
+                 : ToolIndex == 4u ? ParametricToolSubject::CoincidentConstraint
+                 : ToolIndex == 5u ? ParametricToolSubject::ParallelConstraint
+                 : ToolIndex == 6u ? ParametricToolSubject::PerpendicularConstraint
+                                   : ParametricToolSubject::TangentConstraint;
         default:
             return ParametricToolSubject::Select;
     }

@@ -69,7 +69,14 @@ enum class ParametricToolSubject : std::uint32_t
     LinearDimension = 34u,
     LeaderNote = 35u,
     Ellipse = 36u,
-    SubjectCount = 37u
+    HorizontalConstraint = 37u,
+    VerticalConstraint = 38u,
+    CoincidentConstraint = 39u,
+    ParallelConstraint = 40u,
+    PerpendicularConstraint = 41u,
+    TangentConstraint = 42u,
+    EqualConstraint = 43u,
+    SubjectCount = 44u
 };
 
 struct ParametricToolsContext
