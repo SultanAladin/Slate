@@ -148,7 +148,7 @@ inline void SharedViewportOrientationPoint(const SharedViewportBasis& Basis,
                                            double& Depth)
 {
     constexpr float Radius = 34.0f;
-    const float CentreX = Extent.MinimumX + 52.0f;
+    const float CentreX = Extent.MaximumX - 70.0f;
     const float CentreY = Extent.MinimumY + 58.0f;
     const double SX = Axis[0] * Basis.Right[0] + Axis[1] * Basis.Right[1] + Axis[2] * Basis.Right[2];
     const double SY = Axis[0] * Basis.Up[0] + Axis[1] * Basis.Up[1] + Axis[2] * Basis.Up[2];
@@ -200,7 +200,7 @@ inline void RecordSharedViewportOrientationGizmo(RecordingSurface& Surface,
         return Left.Depth < Right.Depth;
     });
 
-    const float CentreX = Extent.MinimumX + 52.0f;
+    const float CentreX = Extent.MaximumX - 70.0f;
     const float CentreY = Extent.MinimumY + 58.0f;
     Surface.Confine(Extent);
     for (const ProjectedAxis& Point : Projected)

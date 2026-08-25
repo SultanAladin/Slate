@@ -65,6 +65,12 @@ def main() -> int:
     require("ConsumeSharedCodexActivation" in parametric,
             "ParametricSketchHost activation must use the shared codex activation helper")
 
+    shared_viewport = read("Engine/Application/Api/SharedViewportHostBridge.h")
+    require("RecordSharedViewportGizmo" in shared_viewport and "HitSharedViewportGizmo" in shared_viewport,
+            "shared viewport bridge must own the one-at-a-time gizmo dispatch")
+    require("Extent.MinimumX + 52.0f" not in shared_viewport and "Extent.MaximumX - 70.0f" in shared_viewport,
+            "both Blender and CAD viewport gizmos must be anchored at the top-right of the viewport")
+
     tools = read("Engine/SlateUI/Interface/ParametricTools/Source/ParametricToolsPanel.cpp")
     require("static_cast<void>(Elapsed);" in tools, "ParametricToolsPanel must mark Elapsed as intentionally unused")
 
