@@ -159,6 +159,11 @@ const ToolEntry SketchDrawTools[] =
       0u, 0u, 0u, 0u, 0u, 0u, 0u,
       { { "Radius", "50 mm" }, { "Included Angle", "90°" }, { "Direction", "CCW" } }, 3u },
 
+    { "Ellipse", "E", SymbolSubject::ConstraintDimension, ParametricToolDimension::Nothing,
+      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
+      0u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Defined By", "Centre + corner" }, { "Construction", "Off" } }, 2u },
+
     { "Point", "", SymbolSubject::VertexPoint, ParametricToolDimension::Nothing,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
       0u, 0u, 0u, 0u, 0u, 0u, 0u,
@@ -509,6 +514,7 @@ ParametricToolSubject ToolSubjectOf(std::uint32_t BandIndex, std::uint32_t ToolI
                  : ToolIndex == 2u ? ParametricToolSubject::Rectangle
                  : ToolIndex == 3u ? ParametricToolSubject::Circle
                  : ToolIndex == 4u ? ParametricToolSubject::Arc
+                 : ToolIndex == 5u ? ParametricToolSubject::Ellipse
                                    : ParametricToolSubject::Point;
         case 2u:
             return ToolIndex == 0u ? ParametricToolSubject::Fillet

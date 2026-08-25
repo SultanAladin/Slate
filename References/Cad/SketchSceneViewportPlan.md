@@ -170,9 +170,11 @@ Status: started in implementation. The transform gizmo now emits world-space/pro
 
 Status: started in implementation. The viewport drafting path now covers the first expanded entity set: line, polyline, rectangle, circle, three-point arc, and aligned linear dimension placement from snapped sketch references. Snapping is now on by default while drafting; Command temporarily bypasses snap for free placement.
 
-- Basic sketch entities: line, polyline, rectangle/profile, circle/profile, and three-point arc are active in the parametric viewport.
-- Snapping: endpoint, midpoint, centre/control, and along-curve snaps are resolved by the existing CPU sketch snap path during drafting.
-- Dimensions: the Linear Dimension tool can place an aligned dimension between two snapped sketch references and records a dimension row in the Sketch Directory.
-- Next: add explicit point entities, ellipse/spline tools, constraint tools, trim/extend/offset/fillet/chamfer editing, and profile validation feedback.
+- Basic sketch entities: line, polyline, rectangle/profile, circle/profile, three-point arc, point markers, ellipse/profile, and Bezier drafting are active in the parametric viewport.
+- Snapping: endpoint, midpoint, centre/control, along-curve, intersection, and fallback grid snaps are resolved by the CPU sketch snap path during drafting; snap glyphs now use distinct colours by snap subject.
+- Dimensions: the Linear Dimension tool can place an aligned dimension between two snapped sketch references and records a dimension row in the Sketch Directory; circle profiles also record a radius dimension.
+- Constraints: horizontal/vertical and coincident constraints are emitted from line/polyline drafting when the committed geometry and snapped references imply them.
+- Editing: trim, extend, offset, fillet/chamfer preparation, mirror, and linear-array hooks are wired to selected curves and produce new sketch records while preserving CPU-authoritative geometry.
+- Next: add dedicated constraint toolbar entries, stronger trim/extend semantics, perpendicular/tangent solving, and profile validation feedback.
 - Scene geometry selection selects Scene Directory rows.
 - CAD point/control selection remains exact and CPU-authoritative.

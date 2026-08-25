@@ -111,7 +111,31 @@ namespace
         if (!Best.Resolved() || CandidateDistance < Best.Distance)
             Best = { Subject, SourceCurve, SketchPoint, SketchControl, CandidatePosition, CandidateDistance };
     }
+
+    bool SegmentIntersectionPlanar(const SpatialPoint& A,
+                                   const SpatialPoint& B,
+                                   const SpatialPoint& C,
+                                   const SpatialPoint& D,
+                                   SpatialPoint& Result)
+    {
+        const double ABx = B.Left - A.Left;
+        const double ABy = B.Forward - A.Forward;
+        const double CDx = D.Left - C.Left;
+        const double CDy = D.Forward - C.Forward;
+        const double Denominator = ABx * CDy - ABy * CDx;
+        if (std::fabs(Denominator) <= 1.0e-9)
+            return false;
+        const double ACx = C.Left - A.Left;
+        const double ACy = C.Forward - A.Forward;
+        const double T = (ACx * CDy - ACy * CDx) / Denominator;
+        const double U = (ACx * ABy - ACy * ABx) / Denominator;
+        if (T < 0.0 || T > 1.0 || U < 0.0 || U > 1.0)
+            return false;
+        Result = Added(A, Scaled(Difference(A, B), T));
+        return true;
+    }
 }
+
 
 SketchSnapPlacement ResolveNearestSnap(const SketchStructure& Declared,
                                        const SpatialPoint& Probe,
@@ -121,9 +145,16 @@ SketchSnapPlacement ResolveNearestSnap(const SketchStructure& Declared,
     SketchSnapPlacement Best = {};
     Best.Distance = MaximumDistance;
 
+    struct CurvePolyline
+    {
+        SketchCurveName Curve = {};
+        std::vector<SpatialPoint> Points = {};
+    };
+
     std::vector<SketchPointPlacement> Points;
     std::vector<SketchControlPlacement> Controls;
     std::vector<SpatialPoint> Polyline;
+    std::vector<CurvePolyline> CurvePolylines;
 
     for (std::uint32_t CurveIndex = 1u; CurveIndex <= Declared.Curves().size(); ++CurveIndex)
     {
@@ -153,6 +184,8 @@ SketchSnapPlacement ResolveNearestSnap(const SketchStructure& Declared,
         AppendCurvePolylineLocal(Held->Geometry, Polyline);
         if (Polyline.size() < 2u)
             continue;
+        if (Accepted.IntersectionAccepted)
+            CurvePolylines.push_back({ Curve, Polyline });
 
         if (Accepted.MidpointAccepted)
         {
@@ -178,6 +211,32 @@ SketchSnapPlacement ResolveNearestSnap(const SketchStructure& Declared,
                     : 0.0;
                 const SpatialPoint Closest = Added(Polyline[PointIndex], Scaled(Span, Parameter));
                 ConsiderCandidate(Probe, Closest, Curve, SketchSnapSubject::AlongCurve, {}, {}, MaximumDistance, Best);
+            }
+        }
+    }
+
+    if (Accepted.IntersectionAccepted)
+    {
+        for (std::size_t LeftIndex = 0u; LeftIndex < CurvePolylines.size(); ++LeftIndex)
+        {
+            for (std::size_t RightIndex = LeftIndex + 1u; RightIndex < CurvePolylines.size(); ++RightIndex)
+            {
+                const CurvePolyline& Left = CurvePolylines[LeftIndex];
+                const CurvePolyline& Right = CurvePolylines[RightIndex];
+                for (std::size_t A = 0u; A + 1u < Left.Points.size(); ++A)
+                {
+                    for (std::size_t B = 0u; B + 1u < Right.Points.size(); ++B)
+                    {
+                        SpatialPoint Intersected = {};
+                        if (SegmentIntersectionPlanar(Left.Points[A], Left.Points[A + 1u],
+                                                      Right.Points[B], Right.Points[B + 1u],
+                                                      Intersected))
+                        {
+                            ConsiderCandidate(Probe, Intersected, Left.Curve, SketchSnapSubject::Intersection,
+                                              {}, {}, MaximumDistance, Best);
+                        }
+                    }
+                }
             }
         }
     }

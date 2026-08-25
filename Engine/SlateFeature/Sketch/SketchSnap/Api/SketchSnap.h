@@ -19,7 +19,11 @@ enum class SketchSnapSubject : std::uint32_t
     Centre = 3u,
     Control = 4u,
     AlongCurve = 5u,
-    SubjectCount = 6u
+    Intersection = 6u,
+    Grid = 7u,
+    Perpendicular = 8u,
+    Tangent = 9u,
+    SubjectCount = 10u
 };
 
 struct SketchSnapMask
@@ -29,6 +33,10 @@ struct SketchSnapMask
     bool CentreAccepted = true;
     bool ControlAccepted = true;
     bool AlongCurveAccepted = true;
+    bool IntersectionAccepted = true;
+    bool GridAccepted = true;
+    bool PerpendicularAccepted = true;
+    bool TangentAccepted = true;
 };
 
 struct SketchSnapPlacement

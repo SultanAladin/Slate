@@ -68,7 +68,8 @@ enum class ParametricToolSubject : std::uint32_t
     Camera = 33u,
     LinearDimension = 34u,
     LeaderNote = 35u,
-    SubjectCount = 36u
+    Ellipse = 36u,
+    SubjectCount = 37u
 };
 
 struct ParametricToolsContext
