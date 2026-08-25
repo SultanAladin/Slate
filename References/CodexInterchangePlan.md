@@ -102,8 +102,8 @@ dielectric material and transparent radiance outside resolved geometry, leaving 
    and complete embedded child Codex streams without importing SlateUI vocabulary. A focused `PINF` typed
    pigment section now persists the shared fixed-white dielectric source without introducing unapproved image,
    layer, transparency, or advanced-material processing. Linked-child records follow in this stage.
-4. ◐ Deliver the precise tea-service source geometry and UV content. `EngineContent/GeometryArchives/WhiteTeaService`
-   now holds deterministic named OBJ source topology for each five tea-service entries, source quadrilateral faces,
-   and per-corner UVs. The canonical historical Utah Teapot source must replace the explicitly documented temporary
-   demonstration teapot before `WhiteTeaService.codex` is inscribed.
+4. ◐ Deliver the precise tea-service binary geometry and UV content inside `WhiteTeaService.codex`. Editable
+   source topology must stay out of `EngineContent`; activation validates the binary workspace without resolving
+   back to OBJ files. The canonical historical Utah Teapot source must replace the explicitly documented temporary
+   demonstration teapot before final geometry residency lands.
 5. Connect decoded geometry to authoritative rendering residency, fixed-white radiance, and actual viewport proof.

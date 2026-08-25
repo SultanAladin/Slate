@@ -24,6 +24,8 @@
 #include "SlateUI/Interface/ThemeInterchange/Api/ThemeInterchange.h"
 #include "SlateUI/Interface/EditorPanel/Api/EditorPanel.h"
 #include "SlateUI/Interface/TexturePaintPanel/Api/TexturePaintPanel.h"
+#include "SlateUI/Interface/ParametricWorkspace/Api/ParametricWorkspacePanel.h"
+#include "SlateUI/Interface/ParametricTools/Api/ParametricToolsPanel.h"
 #include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectoryPanel.h"
 #include "SlateUI/Interface/ViewportSequence/Api/ViewportSequence.h"
 #include "SlateUI/Interface/WorkspacePanel/Api/WorkspaceIndex.h"
@@ -114,7 +116,7 @@ void PopulateImportDirectory(ContentBrowserConfiguration& Browser, const std::fi
         if (Error) { Error.clear(); Written.Octets = 0u; }
         std::snprintf(Written.Naming, sizeof(Written.Naming), "%s", Name.c_str());
         std::snprintf(Written.Extension, sizeof(Written.Extension), "%s", Extension.c_str());
-        Written.Supported = Written.Directory || Extension == ".obj" || Extension == ".codex" || Extension == ".pigment";
+        Written.Supported = Written.Directory || Extension == ".codex" || Extension == ".sketch" || Extension == ".pigment";
     }
 }
 
@@ -136,10 +138,14 @@ constexpr std::uint32_t BrowserControls = ContentBrowserPanel::RegistrationDeman
 constexpr std::uint32_t EditorControls  = PanelStructure::RecordLimit * EditorPanel::ControlsPerRecord;
 constexpr std::uint32_t SceneControls   = SceneDirectoryPanel::RegistrationDemand
                                         + TexturePaintPanel::RegistrationDemand;
+constexpr std::uint32_t ParametricControls = 4u + ParametricWorkspaceContext::RowLimit * 2u
+                                           + 1u + ParametricToolsContext::BandLimit
+                                           + ParametricToolsContext::TileLimit;
 constexpr std::uint32_t BareEases       = 9u + 1u + 1u + 4u; // [-] - centre, shell, and transfer/export rails
 
 constexpr std::uint32_t DemandedEases =
-    ((CentreControls + BrowserControls + EditorControls + SceneControls) * EasesPerControl) + BareEases;
+    ((CentreControls + BrowserControls + EditorControls + SceneControls + ParametricControls)
+     * EasesPerControl) + BareEases;
 
 static_assert(DemandedEases <= MotionIntegrator::EaseCapacity,
               "this host's panels demand more eased interpolants than the integrator holds — the panel "
@@ -156,6 +162,10 @@ static_assert(SceneControls <= ControlIndex::ControlCapacity,
               "the scene directory registers more controls than one ControlIndex holds — Construct is "
               "rejected with \"no further control slot\" and the editor opens without its scene directory");
 
+static_assert(ParametricControls <= ControlIndex::ControlCapacity,
+              "the sketch directory and parametric tools register more controls than one ControlIndex holds — "
+              "the editor cannot add the sketch panels to its dropdown safely");
+
 // ③ AUTOMATIC STORAGE. A Windows thread is given one megabyte and a refusal here is not a refusal at all:
 //    the guard page is touched in the prologue, so the process dies before a statement can report anything.
 //    Linux hands out eight megabytes, which is exactly why no gate here can catch it.
@@ -169,6 +179,8 @@ static_assert(sizeof(WorkspaceIndex) + sizeof(WorkspacePanel) + sizeof(EditorPan
               + sizeof(ControlIndex)    + sizeof(SceneDirectoryPanel)
               + sizeof(SceneDirectoryContext) + sizeof(ShaderCodec) + sizeof(WorkspaceOverlayPass)
               + sizeof(TexturePaintPanel) + sizeof(TexturePaintContext)
+              + sizeof(ParametricWorkspacePanel) + sizeof(ParametricWorkspaceContext)
+              + sizeof(ParametricToolsPanel) + sizeof(ParametricToolsContext) + sizeof(ControlIndex)
               <= AutomaticLimit,
               "this host's automatic UI members no longer fit a quarter of a Windows thread stack — the "
               "prologue's stack probe will fault before main runs a statement and the host will exit with "
@@ -311,6 +323,11 @@ int main(int ArgumentCount, char** ArgumentValues)
     SceneDirectoryPanel     SceneDirectory;
     SceneDirectoryContext   SceneApplied;
     ControlIndex        SceneInteraction;
+    ParametricWorkspacePanel SketchDirectory;
+    ParametricWorkspaceContext SketchDirectoryApplied;
+    ParametricToolsPanel    ParametricTools;
+    ParametricToolsContext  ParametricToolsApplied;
+    ControlIndex            ParametricInteraction;
     TexturePaintPanel        TexturePaint;
     TexturePaintContext     TexturePaintApplied;
     TexturePaintStack        StackRows;                 // [-] - the mutable row set; the panel borrows it
@@ -598,6 +615,26 @@ int main(int ArgumentCount, char** ArgumentValues)
                               Viewport.Appearance()).Resolved)
     {
         std::printf("%s \u2014 the texture paint panel was rejected\n", HostName);
+        return 1;
+    }
+
+    if (!ParametricInteraction.AttachMotion(Viewport.MotionSource()).Resolved)
+    {
+        std::printf("%s \u2014 the sketch-directory index was rejected\n", HostName);
+        return 1;
+    }
+
+    if (!SketchDirectory.ConstructParametricWorkspacePanel(ParametricInteraction, Viewport.MotionSource(),
+                                                           Viewport.Surface(), Viewport.Appearance()).Resolved)
+    {
+        std::printf("%s \u2014 the sketch directory was rejected\n", HostName);
+        return 1;
+    }
+
+    if (!ParametricTools.ConstructParametricToolsPanel(ParametricInteraction, Viewport.MotionSource(),
+                                                       Viewport.Surface(), Viewport.Appearance()).Resolved)
+    {
+        std::printf("%s \u2014 the parametric tools panel was rejected\n", HostName);
         return 1;
     }
 
@@ -1069,6 +1106,15 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 }
                                 break;
                             }
+                            case PanelSubject::SketchDirectory:
+                                SketchDirectory.RecordOutliner(LeafBody, SketchDirectoryApplied,
+                                                               nullptr, 0u, nullptr, nullptr, 0u);
+                                break;
+
+                            case PanelSubject::ParametricTools:
+                                ParametricTools.Record(LeafBody, ParametricToolsApplied);
+                                break;
+
                             case PanelSubject::Outliner:
                                 if (PanelConfiguration[Index].FooterDemand == EditorFooterDemand::SceneImport ||
                                     PanelConfiguration[Index].FooterDemand == EditorFooterDemand::SceneExport)
@@ -1202,6 +1248,7 @@ int main(int ArgumentCount, char** ArgumentValues)
             //      samples it; the panel's own Advance only samples, and a second advance would retire
             //      the release before the leaves read it.
             SceneInteraction.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+            ParametricInteraction.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
 
             // 📐 Tab is shared by the scene directory's pages and the layer stack's carousel, so the
             //    key goes to whichever panel the pointer is over: a TexturePaint leaf feeds the layer
@@ -1233,6 +1280,12 @@ int main(int ArgumentCount, char** ArgumentValues)
                                TexturePaintApplied, StackRows.Rows, StackRows.Count,
                                TabPressed && PointerInLayers && !PointerBehindDrawer,
                                Viewport.Seam().Modifiers());
+            SketchDirectory.Advance(BackgroundPointer, Pass.ElapsedMilliseconds,
+                                    SketchDirectoryApplied,
+                                    TabPressed && !PointerBehindDrawer);
+            ParametricTools.Advance(BackgroundPointer, Pass.ElapsedMilliseconds,
+                                    ParametricToolsApplied,
+                                    TabPressed && !PointerBehindDrawer);
 
             // 📝 The search field: while it holds the contact, the seam's typed run feeds the
             //    directory's retention run, and Backspace / Escape edit it. Gated on the panel's own
@@ -1494,6 +1547,8 @@ int main(int ArgumentCount, char** ArgumentValues)
                     Viewport.Appearance().Workspace));
                 ContentBrowser.Reapply(Viewport.Appearance());
                 SceneDirectory.Reapply(Viewport.Appearance());
+                SketchDirectory.Reapply(Viewport.Appearance());
+                ParametricTools.Reapply(Viewport.Appearance());
                 TexturePaint.Reapply(Viewport.Appearance());
             }
             Discard(Viewport.Seam().ApplyInterfaceAntialiasing(
@@ -1540,6 +1595,8 @@ int main(int ArgumentCount, char** ArgumentValues)
                         Viewport.Appearance().Workspace));
                     ContentBrowser.Reapply(Viewport.Appearance());
                     SceneDirectory.Reapply(Viewport.Appearance());
+                    SketchDirectory.Reapply(Viewport.Appearance());
+                    ParametricTools.Reapply(Viewport.Appearance());
                     TexturePaint.Reapply(Viewport.Appearance());
                     if (FamilyAltered)
                         Fonts.RequestLoad(FontRoot.c_str(), Viewport.Appearance().Fonts, 1.0f);

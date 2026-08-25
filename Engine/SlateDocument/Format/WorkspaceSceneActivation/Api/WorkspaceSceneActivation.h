@@ -14,11 +14,11 @@
 namespace Slate
 {
 
-/// 🧩 One geometry entry after its workspace-relative source has been resolved against Engine Content.
+/// 🧩 One geometry entry after its binary workspace identity has been validated.
 struct ActivatedGeometryEntry
 {
     CodexSceneEntry Entry = {};
-    std::string SourcePath = {};
+    std::string SourcePath = {}; // [-] - codex fragment identity, not an external OBJ path
 };
 
 /// 🧩 Immutable result a host may commit atomically into its Outliner, layer model, and geometry intake queue.

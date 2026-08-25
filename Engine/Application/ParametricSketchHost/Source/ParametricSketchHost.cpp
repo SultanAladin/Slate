@@ -283,7 +283,7 @@ void PopulateImportDirectory(ContentBrowserConfiguration& Browser, const std::fi
         if (Error) { Error.clear(); Written.Octets = 0u; }
         std::snprintf(Written.Naming, sizeof(Written.Naming), "%s", Name.c_str());
         std::snprintf(Written.Extension, sizeof(Written.Extension), "%s", Extension.c_str());
-        Written.Supported = Written.Directory || Extension == ".obj" || Extension == ".codex" || Extension == ".pigment";
+        Written.Supported = Written.Directory || Extension == ".codex" || Extension == ".sketch" || Extension == ".pigment";
     }
 }
 
@@ -3126,7 +3126,7 @@ void ConstructParametricLayout(PanelStructure& Partition)
     if (!Root.Resolved)
         return;
 
-    Discard(Partition.Assign(Root.Resolve().Minimum, PanelSubject::Outliner));
+    Discard(Partition.Assign(Root.Resolve().Minimum, PanelSubject::SketchDirectory));
 
     const std::uint32_t Right = Root.Resolve().Maximum;
     if (!Partition.Divide(Right, PanelDivisionAxis::X, PanelDivisionSide::Minimum).Resolved)
@@ -3842,7 +3842,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                     const PlaneExtent LeafBody = WorkspacePanels.LeafBody(Leaf);
                     switch (WorkspacePanels.LeafSubject(Leaf))
                     {
-                        case PanelSubject::Outliner:
+                        case PanelSubject::SketchDirectory:
                         {
                             const bool PropertyPresented = Bridge.Property.Naming != nullptr
                                                         && Bridge.Property.Naming[0] != '\0';

@@ -27,7 +27,8 @@ enum class PanelSubject : std::uint32_t
     Vacant         = 4u,   // [-] - panel chooser
     TexturePaint   = 5u,   // [-] - the texture-paint layer stack (appended, so 0-4 never move)
     ParametricTools = 6u,  // [-] - the CAD construction catalogue and its settings
-    SubjectCount   = 7u    // [-] - closed count, never a subject
+    SketchDirectory = 7u, // [-] - the CAD/sketch semantic directory
+    SubjectCount   = 8u    // [-] - closed count, never a subject
 };
 
 /// 🧩 Which display axis a division partitions.

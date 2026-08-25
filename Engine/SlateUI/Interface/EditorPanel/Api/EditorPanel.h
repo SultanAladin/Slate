@@ -104,7 +104,7 @@ class EditorPanel
 {
 public:
 
-    static constexpr std::uint32_t ControlsPerRecord = 29u;
+    static constexpr std::uint32_t ControlsPerRecord = 30u;
     static constexpr std::uint32_t ControlCapacity = PanelStructure::RecordLimit * ControlsPerRecord;
 
     Outcome<bool> ConstructEditorPanel(MotionIntegrator& Motion,
@@ -191,6 +191,7 @@ private:
         ChooseProperties,
         ChooseTexturePaint,
         ChooseParametricTools,
+        ChooseSketchDirectory,
         LatticeMenu,
         CameraMenu,
         OverlayMenu,

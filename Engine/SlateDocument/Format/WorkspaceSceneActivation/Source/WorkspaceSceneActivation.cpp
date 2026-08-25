@@ -2,14 +2,14 @@
 
 #include "SlateDocument/Format/CodexInterchange/Api/CodexInterchange.h"
 
-#include <filesystem>
-
 namespace Slate
 {
 
 Outcome<ActivatedWorkspaceScene> WorkspaceSceneActivation::Open(const std::string& CodexPath,
                                                                   const std::string& EngineContentPath) const
 {
+    (void)EngineContentPath;
+
     CodexInterchange Stream;
     WorkspaceCodexInterchange Typed;
     const Outcome<CodexDocument> Document = Stream.Open(CodexPath);
@@ -40,15 +40,9 @@ Outcome<ActivatedWorkspaceScene> WorkspaceSceneActivation::Open(const std::strin
 
             ActivatedGeometryEntry Resolved;
             Resolved.Entry = Entry;
-            if (Entry.GeometryReference == "Procedural/Floor")
-                Resolved.SourcePath = (std::filesystem::path(EngineContentPath) / "GeometryArchives/WhiteTeaService/Floor.obj").string();
-            else
-            {
-                Resolved.SourcePath = (std::filesystem::path(EngineContentPath) / Entry.GeometryReference).lexically_normal().string();
-                if (!std::filesystem::is_regular_file(Resolved.SourcePath))
-                    return Outcome<ActivatedWorkspaceScene>::Refuse(
-                        { RefusalReason::HostDenied, "a workspace geometry source is absent from Engine Content" });
-            }
+            // Geometry is carried by the binary workspace stream. Runtime activation must not resolve
+            // WhiteTeaService entries back to editable OBJ files under EngineContent.
+            Resolved.SourcePath = CodexPath + "#" + Entry.GeometryReference;
             Activated.Geometry.push_back(std::move(Resolved));
         }
     }
