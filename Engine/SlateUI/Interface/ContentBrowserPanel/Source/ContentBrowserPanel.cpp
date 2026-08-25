@@ -863,7 +863,8 @@ void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrar
         {
             // A second contact activates a workspace scene; first contact remains ordinary selection.
             if (Library.Taken == Index && Library.Records[Index].Archive == ContentArchive::Arrangement &&
-                std::strcmp(Library.Records[Index].Extension, ".codex") == 0)
+                (std::strcmp(Library.Records[Index].Extension, ".codex") == 0 ||
+                 std::strcmp(Library.Records[Index].Extension, "codex") == 0))
                 Applied.ActivationRequested = Index;
             Library.Taken = Index;
         }

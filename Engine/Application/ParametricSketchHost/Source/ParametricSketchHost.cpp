@@ -7,6 +7,7 @@
 
 #include "Foundation/DeliveryOutcome.h"
 #include "Application/Api/ParametricWorkspaceBridge.h"
+#include "Application/Api/SketchSceneDirectoryBridge.h"
 #include "SlateFeature/Feature/WorkspaceDirectoryProjection/Api/WorkspaceDirectoryProjection.h"
 #include "SlateFeature/Feature/WorkspaceNameIndex/Api/WorkspaceNameIndex.h"
 #include "SlateFeature/Feature/WorkspacePropertyProjection/Api/WorkspacePropertyProjection.h"
@@ -23,6 +24,7 @@
 #include "SlateUI/Interface/EditorPanel/Api/EditorPanel.h"
 #include "SlateUI/Interface/ParametricWorkspace/Api/ParametricWorkspacePanel.h"
 #include "SlateUI/Interface/ParametricTools/Api/ParametricToolsPanel.h"
+#include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectoryPanel.h"
 #include "SlateUI/Interface/ThemeInterchange/Api/ThemeInterchange.h"
 #include "SlateUI/Interface/ViewportSequence/Api/ViewportSequence.h"
 #include "SlateUI/Interface/WorkspacePanel/Api/WorkspaceIndex.h"
@@ -31,6 +33,7 @@
 #include "SlateVulkan/Device/ShaderCodec/Api/ShaderCodec.h"
 #include "SlateVulkan/Device/WorkspaceCadPass/Api/WorkspaceCadPass.h"
 #include "SlateVulkan/Device/WorkspaceOverlayPass/Api/WorkspaceOverlayPass.h"
+#include "SlateDocument/Format/WorkspaceSceneActivation/Api/WorkspaceSceneActivation.h"
 
 #include <algorithm>
 #include <cmath>
@@ -283,7 +286,7 @@ void PopulateImportDirectory(ContentBrowserConfiguration& Browser, const std::fi
         if (Error) { Error.clear(); Written.Octets = 0u; }
         std::snprintf(Written.Naming, sizeof(Written.Naming), "%s", Name.c_str());
         std::snprintf(Written.Extension, sizeof(Written.Extension), "%s", Extension.c_str());
-        Written.Supported = Written.Directory || Extension == ".codex" || Extension == ".sketch" || Extension == ".pigment";
+        Written.Supported = Written.Directory || Extension == ".codex" || Extension == ".sketch";
     }
 }
 
@@ -3458,7 +3461,7 @@ int main(int ArgumentCount, char** ArgumentValues)
 
     ViewportSequence Viewport;
     DrawerDeclaration NorthDrawer = { "ControlCentre", SymbolSubject::PulseTrace, 2u };
-    DrawerDeclaration SouthDrawer = { "AssetBrowser", SymbolSubject::FolderClosed, 3u };
+    DrawerDeclaration SouthDrawer = { "ContentBrowser", SymbolSubject::FolderClosed, 3u };
     if (!Viewport.ConstructViewportSequence(Attach(Lifetime.Offering()), NorthDrawer, SouthDrawer).Resolved)
     {
         std::printf("%s — the viewport sequence was rejected\n", HostName);
@@ -3482,6 +3485,14 @@ int main(int ArgumentCount, char** ArgumentValues)
     ParametricWorkspacePanel ParametricPanel;
     ParametricToolsContext ToolsApplied = {};
     ParametricToolsPanel ToolPanel;
+    ControlIndex SceneInteraction;
+    SceneDirectoryPanel SceneDirectory;
+    SceneDirectoryContext SceneApplied;
+    SketchSceneDirectoryStorage SceneDirectoryStorage;
+    WorkspaceCodex OpenedScene = {};
+    bool OpenedSceneStanding = false;
+    EntityRow* PresentedSceneRows = nullptr;
+    std::uint32_t PresentedSceneRowCount = 0u;
     ShaderCodec CadCodec;
     WorkspaceCadPass CadPass;
     WorkspaceOverlayPass OverlayPass;
@@ -3611,6 +3622,21 @@ int main(int ArgumentCount, char** ArgumentValues)
         return 1;
     }
 
+    if (!SceneInteraction.AttachMotion(Viewport.MotionSource()).Resolved)
+    {
+        std::printf("%s — the scene directory index was rejected\n", HostName);
+        return 1;
+    }
+
+    if (!SceneDirectory.ConstructSceneDirectoryPanel(SceneInteraction,
+                                                     Viewport.MotionSource(),
+                                                     Viewport.Surface(),
+                                                     Viewport.Appearance()).Resolved)
+    {
+        std::printf("%s — the scene directory was rejected\n", HostName);
+        return 1;
+    }
+
     const Outcome<bool> CodecOutcome =
         CadCodec.AttachShaderStreams(Lifetime.DeviceExchange(), ShaderStreamDirectory());
     if (!CodecOutcome.Resolved)
@@ -3682,6 +3708,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                                   Viewport.Appearance().Workspace));
             ParametricPanel.Reapply(Viewport.Appearance());
             ToolPanel.Reapply(Viewport.Appearance());
+            SceneDirectory.Reapply(Viewport.Appearance());
             ContentBrowser.Reapply(Viewport.Appearance());
 
             const Outcome<bool> Reattached =
@@ -3774,6 +3801,13 @@ int main(int ArgumentCount, char** ArgumentValues)
         }
 
         SynchroniseToolContext(Directory, Records, Sketch, ParametricApplied, ToolsApplied);
+        if (OpenedSceneStanding)
+            BridgeSketchSceneDirectory(OpenedScene, SceneDirectoryStorage);
+        else
+            SceneDirectoryStorage = SketchSceneDirectoryStorage{};
+        AppendSketchCadReferences(Records, SceneDirectoryStorage);
+        PresentedSceneRows = SceneDirectoryStorage.RowCount > 0u ? SceneDirectoryStorage.Rows : nullptr;
+        PresentedSceneRowCount = SceneDirectoryStorage.RowCount;
 
         const PlaneExtent Whole = Spanning(0.0f, 0.0f,
                                            static_cast<float>(Pass.Width),
@@ -3814,6 +3848,10 @@ int main(int ArgumentCount, char** ArgumentValues)
         std::uint32_t ViewportLeafTally = 0u;
         PlaneExtent ToolLeafRects[PanelStructure::RecordLimit] = {};
         std::uint32_t ToolLeafTally = 0u;
+        PlaneExtent SceneLeafRects[PanelStructure::RecordLimit] = {};
+        std::uint32_t SceneLeafTally = 0u;
+        PlaneExtent SketchLeafRects[PanelStructure::RecordLimit] = {};
+        std::uint32_t SketchLeafTally = 0u;
 
         WorkspacePanels.Advance(BackgroundPointer, Pass.ElapsedMilliseconds);
 
@@ -3842,8 +3880,17 @@ int main(int ArgumentCount, char** ArgumentValues)
                     const PlaneExtent LeafBody = WorkspacePanels.LeafBody(Leaf);
                     switch (WorkspacePanels.LeafSubject(Leaf))
                     {
+                        case PanelSubject::Outliner:
+                            if (SceneLeafTally < PanelStructure::RecordLimit)
+                                SceneLeafRects[SceneLeafTally++] = LeafBody;
+                            SceneDirectory.RecordOutliner(LeafBody, SceneApplied,
+                                                          PresentedSceneRows, PresentedSceneRowCount);
+                            break;
+
                         case PanelSubject::SketchDirectory:
                         {
+                            if (SketchLeafTally < PanelStructure::RecordLimit)
+                                SketchLeafRects[SketchLeafTally++] = LeafBody;
                             const bool PropertyPresented = Bridge.Property.Naming != nullptr
                                                         && Bridge.Property.Naming[0] != '\0';
                             ParametricPanel.RecordOutliner(LeafBody, ParametricApplied,
@@ -3996,6 +4043,55 @@ int main(int ArgumentCount, char** ArgumentValues)
             ContentBrowser.RecordBrowser(BrowserInterior, ContentApplied, ContentBrowserApplied);
             ContentBrowser.RecordDeferred();
 
+            if (ContentBrowserApplied.ActivationRequested < ContentApplied.RecordCount)
+            {
+                const ContentRecord& Requested = ContentApplied.Records[ContentBrowserApplied.ActivationRequested];
+                const std::string Extension = Requested.Extension != nullptr && Requested.Extension[0] == '.'
+                                            ? std::string(Requested.Extension)
+                                            : "." + std::string(Requested.Extension != nullptr ? Requested.Extension : "");
+                const std::filesystem::path ScenePath = std::filesystem::path("EngineContent") /
+                    (std::string(Requested.Naming) + Extension);
+                WorkspaceSceneActivation Activating;
+                const Outcome<ActivatedWorkspaceScene> Workspace = Activating.Open(ScenePath.string(), "EngineContent");
+                if (!Workspace.Resolved)
+                {
+                    std::printf("%s — workspace activation refused (reason %u: %s)\n", HostName,
+                                static_cast<unsigned>(Workspace.Error.DeclaredReason), Workspace.Error.Detail);
+                }
+                else
+                {
+                    const WorkspaceCodex& Loaded = Workspace.Resolve().Workspace;
+                    OpenedScene = Loaded;
+                    OpenedSceneStanding = true;
+                    ApplySketchSceneEnvironment(OpenedScene, SceneApplied);
+
+                    SpatialPoint Focus = {};
+                    std::uint32_t GeometryCount = 0u;
+                    for (const CodexSceneEntry& Entry : Loaded.Scene)
+                    {
+                        if (Entry.Subject != CodexSceneSubject::Geometry)
+                            continue;
+                        Focus.Left += Entry.Position[0];
+                        Focus.Up += Entry.Position[1];
+                        Focus.Forward += Entry.Position[2];
+                        ++GeometryCount;
+                    }
+                    if (GeometryCount > 0u)
+                    {
+                        Focus.Left /= static_cast<double>(GeometryCount);
+                        Focus.Up /= static_cast<double>(GeometryCount);
+                        Focus.Forward /= static_cast<double>(GeometryCount);
+                        for (ParametricViewportState& View : ViewStates)
+                        {
+                            View.Focus = Focus;
+                            View.Distance = std::max(View.Distance, 420.0);
+                            View.OrthoScale = std::max(View.OrthoScale, 3.0);
+                        }
+                    }
+                }
+                ContentBrowserApplied.ActivationRequested = ContentLibrary::AbsentIndex;
+            }
+
             if (ContentBrowserApplied.ImportBrowseRequested)
             {
                 std::filesystem::path Destination(ContentBrowserApplied.ImportLocation);
@@ -4029,6 +4125,7 @@ int main(int ArgumentCount, char** ArgumentValues)
             ContentBrowser.Reapply(Viewport.Appearance());
             ParametricPanel.Reapply(Viewport.Appearance());
             ToolPanel.Reapply(Viewport.Appearance());
+            SceneDirectory.Reapply(Viewport.Appearance());
         }
         Discard(Viewport.Seam().ApplyInterfaceAntialiasing(ControlCentreValues.GeometryAntialiasing));
 
@@ -4062,6 +4159,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                 ContentBrowser.Reapply(Viewport.Appearance());
                 ParametricPanel.Reapply(Viewport.Appearance());
                 ToolPanel.Reapply(Viewport.Appearance());
+                SceneDirectory.Reapply(Viewport.Appearance());
                 if (FamilyAltered)
                     Fonts.RequestLoad(FontRoot.c_str(), Viewport.Appearance().Fonts, 1.0f);
             }
@@ -4078,15 +4176,34 @@ int main(int ArgumentCount, char** ArgumentValues)
                 PointerInTools = true;
                 break;
             }
+        bool PointerInScene = false;
+        for (std::uint32_t Index = 0u; Index < SceneLeafTally; ++Index)
+            if (SceneLeafRects[Index].Encloses(Hovered.PositionX, Hovered.PositionY))
+            {
+                PointerInScene = true;
+                break;
+            }
+        bool PointerInSketch = false;
+        for (std::uint32_t Index = 0u; Index < SketchLeafTally; ++Index)
+            if (SketchLeafRects[Index].Encloses(Hovered.PositionX, Hovered.PositionY))
+            {
+                PointerInSketch = true;
+                break;
+            }
 
         ParametricInteraction.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+        SceneInteraction.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
         ParametricPanel.Advance(BackgroundPointer, Pass.ElapsedMilliseconds,
                                 ParametricApplied,
-                                TabPressed && !PointerInTools && !PointerBehindDrawer,
+                                TabPressed && PointerInSketch && !PointerBehindDrawer,
                                 Viewport.Seam().Modifiers());
         ToolPanel.Advance(BackgroundPointer, Pass.ElapsedMilliseconds,
                           ToolsApplied,
                           TabPressed && PointerInTools && !PointerBehindDrawer);
+        SceneDirectory.Advance(BackgroundPointer, Pass.ElapsedMilliseconds,
+                               SceneApplied,
+                               TabPressed && PointerInScene && !PointerBehindDrawer,
+                               Viewport.Seam().Modifiers());
 
         if (ParametricApplied.SearchTaken)
         {

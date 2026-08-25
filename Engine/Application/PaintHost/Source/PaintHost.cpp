@@ -138,7 +138,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     NorthDrawer.PoseCount     = 2u;
 
     DrawerDeclaration SouthDrawer;
-    SouthDrawer.Caption       = "AssetBrowser";
+    SouthDrawer.Caption       = "ContentBrowser";
     SouthDrawer.TongueSubject = SymbolSubject::FolderClosed;
     SouthDrawer.PoseCount     = 3u;
 

@@ -134,11 +134,15 @@ Status: started in implementation with editor dropdown routing and empty-panel h
 
 ### Phase 4 — Sketch-scene references
 
+Status: started in implementation with Scene Directory row projection.
+
 - Add host-side scene reference records for sketch workspaces.
 - Project renderable CAD records into Scene Directory as references.
 - Keep exact CAD ownership in `WorkspaceRecordStructure`.
 
 ### Phase 5 — binary scene loading into unified viewport
+
+Status: started in implementation with `WhiteTeaService.codex` activation into Scene Directory rows and shared viewport focus state.
 
 - Load `WhiteTeaService.codex` through the existing codex activation path.
 - Register scene rows in Scene Directory.

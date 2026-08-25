@@ -16,6 +16,7 @@
 //    viewport LEAF.
 
 #include "Foundation/DeliveryOutcome.h"
+#include "Application/Api/SketchSceneDirectoryBridge.h"
 #include "SlateScene/Scene/EditorCameraComponent/Api/EditorCameraComponent.h"
 #include "SlateScene/Scene/AtmosphereComponent/Api/AtmosphereComponent.h"
 #include "SlateScene/Scene/DirectionalLightComponent/Api/DirectionalLightComponent.h"
@@ -287,7 +288,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     NorthDrawer.PoseCount     = 2u;
 
     DrawerDeclaration SouthDrawer;
-    SouthDrawer.Caption       = "AssetBrowser";
+    SouthDrawer.Caption       = "ContentBrowser";
     SouthDrawer.TongueSubject = SymbolSubject::FolderClosed;
     SouthDrawer.PoseCount     = 3u;
 
@@ -380,9 +381,7 @@ int main(int ArgumentCount, char** ArgumentValues)
         { "Post Process Volume",     EntitySubject::Actor,      2u,  4u,         0u, "post volume effects", CameraRole::Absent, 1006u },
         { "Editor Camera",           EntitySubject::Camera,     1u,  0u,         0u, "camera fly view", CameraRole::Editor, 1007u }
     };
-    static EntityRow WorkspaceEntities[SceneDirectoryContext::EntityLimit] = {};
-    static char WorkspaceEntityNames[SceneDirectoryContext::EntityLimit][96] = {};
-    static char WorkspaceEntityTags[SceneDirectoryContext::EntityLimit][160] = {};
+    static SketchSceneDirectoryStorage WorkspaceSceneRows = {};
     static const char* const WhiteDielectricChannels[] = { "Base Color", "Metallic", "Roughness", "Opacity" };
     static TextureLayerRow WhiteDielectricLayer = {
         "White Dielectric", TextureLayerClassification::Material, "Normal", 100u, 0xE7E3D8u, 0xE7E3D8u,
@@ -1458,8 +1457,11 @@ int main(int ArgumentCount, char** ArgumentValues)
                 if (ContentBrowserApplied.ActivationRequested < ContentApplied.RecordCount)
                 {
                     const ContentRecord& Requested = ContentApplied.Records[ContentBrowserApplied.ActivationRequested];
+                    const std::string Extension = Requested.Extension != nullptr && Requested.Extension[0] == '.'
+                                                ? std::string(Requested.Extension)
+                                                : "." + std::string(Requested.Extension != nullptr ? Requested.Extension : "");
                     const std::filesystem::path ScenePath = std::filesystem::path("EngineContent") /
-                        (std::string(Requested.Naming) + Requested.Extension);
+                        (std::string(Requested.Naming) + Extension);
                     WorkspaceSceneActivation Activating;
                     const Outcome<ActivatedWorkspaceScene> Workspace = Activating.Open(ScenePath.string(), "EngineContent");
                     if (!Workspace.Resolved)
@@ -1470,30 +1472,10 @@ int main(int ArgumentCount, char** ArgumentValues)
                     else
                     {
                         const WorkspaceCodex& Loaded = Workspace.Resolve().Workspace;
-                        PresentedEntityCount = std::min<std::uint32_t>(
-                            static_cast<std::uint32_t>(Loaded.Scene.size()), SceneDirectoryContext::EntityLimit);
-                        for (std::uint32_t Index = 0u; Index < PresentedEntityCount; ++Index)
-                        {
-                            const CodexSceneEntry& Entry = Loaded.Scene[Index];
-                            std::snprintf(WorkspaceEntityNames[Index], sizeof(WorkspaceEntityNames[Index]), "%s", Entry.Naming.c_str());
-                            EntityRow& Row = WorkspaceEntities[Index];
-                            Row = {};
-                            Row.Naming = WorkspaceEntityNames[Index];
-                            Row.Subject = Entry.Subject == CodexSceneSubject::Sun ? EntitySubject::Sun :
-                                          Entry.Subject == CodexSceneSubject::Sky ? EntitySubject::Sky : EntitySubject::Actor;
-                            Row.Depth = Entry.Subject == CodexSceneSubject::Geometry ? 1u : 0u;
-                            std::snprintf(WorkspaceEntityTags[Index], sizeof(WorkspaceEntityTags[Index]), "%s", Entry.MaterialReference.c_str());
-                            Row.Tagged = WorkspaceEntityTags[Index];
-                            Row.Identity = 3000u + Index;
-                        }
-                        PresentedEntities = WorkspaceEntities;
-                        SceneApplied.Environment.SunElevation = Loaded.Environment.SunElevation;
-                        SceneApplied.Environment.SunAzimuth = Loaded.Environment.SunAzimuth;
-                        SceneApplied.Environment.SunIntensity = Loaded.Environment.SunIntensity;
-                        SceneApplied.Environment.SunTemperature = Loaded.Environment.SunTemperature;
-                        SceneApplied.Environment.SkyIntensity = Loaded.Environment.SkyIntensity;
-                        SceneApplied.Environment.AtmosphereDensity = Loaded.Environment.AtmosphereDensity;
-                        SceneApplied.Environment.AtmosphereScaleHeight = Loaded.Environment.AtmosphereScaleHeight;
+                        BridgeSketchSceneDirectory(Loaded, WorkspaceSceneRows);
+                        PresentedEntities = WorkspaceSceneRows.Rows;
+                        PresentedEntityCount = WorkspaceSceneRows.RowCount;
+                        ApplySketchSceneEnvironment(Loaded, SceneApplied);
 
                         // The workspace names one shared pigment for every tea-service geometry entry.
                         // Present it once in the host-owned layer model rather than fabricating one layer per mesh.
