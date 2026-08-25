@@ -6,8 +6,12 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
+#include <string>
 #include <vector>
 
 namespace Slate
@@ -118,6 +122,47 @@ bool ParseJpeg(const std::vector<std::uint8_t>& Bytes, WorkspaceMaterialImageRef
     return false;
 }
 
+std::string ShellQuote(const std::string& Path)
+{
+    std::string Quoted = "'";
+    for (char Character : Path)
+    {
+        if (Character == '\'') Quoted += "'\\''";
+        else Quoted.push_back(Character);
+    }
+    Quoted.push_back('\'');
+    return Quoted;
+}
+
+std::string TemporaryPath(const char* Stem, const char* Extension)
+{
+    static std::uint32_t Counter = 0u;
+    return (std::filesystem::temp_directory_path() /
+            (std::string("slate_") + Stem + "_" + std::to_string(++Counter) + Extension)).string();
+}
+
+bool IdentifyExternal(const std::string& Path, WorkspaceMaterialImageReference& Reference)
+{
+    const std::string Info = TemporaryPath("material_identify", ".txt");
+    const std::string Command = "identify -format '%w %h %[channels] %[bit-depth]' " + ShellQuote(Path) + " > " + ShellQuote(Info);
+    if (std::system(Command.c_str()) != 0)
+    {
+        std::remove(Info.c_str());
+        return false;
+    }
+
+    std::ifstream Input(Info);
+    std::string Channels;
+    Input >> Reference.Width >> Reference.Height >> Channels >> Reference.BitsPerComponent;
+    std::remove(Info.c_str());
+    if (Reference.Width == 0u || Reference.Height == 0u)
+        return false;
+    const std::string LowerChannels = Lower(Channels);
+    Reference.ComponentCount = LowerChannels.find('a') != std::string::npos ? 4u
+                             : LowerChannels.find("rgb") != std::string::npos ? 3u : 1u;
+    return true;
+}
+
 } // namespace
 
 MaterialImageFormat ClassifyMaterialImageFormat(const std::string& Path)
@@ -170,13 +215,9 @@ Outcome<ImportedMaterialImage> ImportMaterialImageReference(const std::string& P
     else if (Format == MaterialImageFormat::Jpeg) Parsed = ParseJpeg(Prefix.Resolve(), Imported.Reference);
     else if (Format == MaterialImageFormat::Bitmap) Parsed = ParseBmp(Prefix.Resolve(), Imported.Reference);
     else if (Format == MaterialImageFormat::Tga) Parsed = ParseTga(Prefix.Resolve(), Imported.Reference);
-    else
-    {
-        Imported.Reference.Width = 1u;
-        Imported.Reference.Height = 1u;
-        Imported.Reference.ComponentCount = 4u;
-        Parsed = true;
-    }
+
+    if (!Parsed)
+        Parsed = IdentifyExternal(Path, Imported.Reference);
 
     if (!Parsed)
         return Outcome<ImportedMaterialImage>::Refuse({ RefusalReason::ContentUnsupported, "the material image header is unsupported" });

@@ -35,6 +35,7 @@
 #include "SlateVulkan/Device/WorkspaceOverlayPass/Api/WorkspaceOverlayPass.h"
 #include "SlateVulkan/Device/ShaderCodec/Api/ShaderCodec.h"
 #include "SlateVulkan/Device/AtmospherePresentationSurface/Api/AtmospherePresentationSurface.h"
+#include "SlateCompute/Compute/MaterialTextureExport/Api/MaterialTextureExport.h"
 #include "SlateCompute/Compute/GeometryDeviceExchange/Api/GeometryDeviceExchange.h"
 #include "SlateCompute/Compute/GeometryRenderingExchange/Api/GeometryRenderingExchange.h"
 #include "SlateCompute/Compute/VisibilityIndex/Api/VisibilityIndex.h"
@@ -1185,6 +1186,31 @@ int main(int ArgumentCount, char** ArgumentValues)
                                     TexturePaintApplied.ExportMode =
                                         PanelConfiguration[Index].FooterDemand == EditorFooterDemand::LayerExport ? 1u : 0u;
                                     TexturePaintApplied.StackPage = 2u;
+
+                                    WorkspaceMaterialRecord ExportMaterial;
+                                    ExportMaterial.Reference = TexturePaintApplied.ExportName;
+                                    ExportMaterial.Material = EditorMaterialDocument;
+                                    ExportMaterial.Layers = EditorMaterialLayers;
+                                    MaterialExportOptions ExportOptions;
+                                    ExportOptions.OutputName = TexturePaintApplied.ExportName;
+                                    ExportOptions.OutputDirectory = TexturePaintApplied.ExportLocation;
+                                    ExportOptions.Target = static_cast<MaterialExportTarget>(
+                                        std::min(TexturePaintApplied.ExportPreset,
+                                                 static_cast<std::uint32_t>(MaterialExportTarget::TargetCount) - 1u));
+                                    ExportOptions.Format = TexturePaintApplied.ExportFormat == 1u
+                                        ? MaterialExportImageFormat::Tga : MaterialExportImageFormat::Png;
+                                    ExportOptions.BitDepth = static_cast<MaterialExportBitDepth>(
+                                        std::min(TexturePaintApplied.ExportBitDepth,
+                                                 static_cast<std::uint32_t>(MaterialExportBitDepth::DepthCount) - 1u));
+                                    ExportOptions.NormalConvention = TexturePaintApplied.ExportDirectXNormals
+                                        ? MaterialExportNormalConvention::DirectX : MaterialExportNormalConvention::OpenGl;
+                                    ExportOptions.Resolution = 128u << std::min(TexturePaintApplied.ExportResolution, 7u);
+                                    ExportOptions.Dilation = TexturePaintApplied.ExportDilation;
+                                    const Outcome<MaterialExportPackage> ExportPackage =
+                                        BuildMaterialExportPackage(ExportMaterial, ExportOptions);
+                                    if (ExportPackage.Resolved)
+                                        Discard(MaterialTextureExport().WritePackage(ExportMaterial, ExportPackage.Resolve()));
+
                                     PanelConfiguration[Index].FooterDemand = EditorFooterDemand::None;
                                 }
                                 TexturePaint.Record(LeafBody, TexturePaintApplied, StackRows.Rows, StackRows.Count);

@@ -58,10 +58,11 @@ struct MaterialImageSamplingCapabilities
 {
     bool BitmapUncompressed = true;
     bool TgaUncompressed = true;
-    bool PngDecoded = false;
-    bool JpegDecoded = false;
-    bool WebpDecoded = false;
-    bool ExrDecoded = false;
+    bool PngDecoded = true;
+    bool JpegDecoded = true;
+    bool WebpDecoded = true;
+    bool ExrDecoded = true;
+    bool ExternalDecoder = true;
 };
 
 class MaterialImageSampling

@@ -7,7 +7,12 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdio>
+#include <cstdlib>
+#include <filesystem>
 #include <fstream>
+#include <sstream>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -202,6 +207,63 @@ double Address(double Coordinate, MaterialImageAddressing Addressing)
     return Wrapped;
 }
 
+std::string ShellQuote(const std::string& Path)
+{
+    std::string Quoted = "'";
+    for (char Character : Path)
+    {
+        if (Character == '\'') Quoted += "'\\''";
+        else Quoted.push_back(Character);
+    }
+    Quoted.push_back('\'');
+    return Quoted;
+}
+
+std::string TemporaryPath(const char* Stem, const char* Extension)
+{
+    static std::uint32_t Counter = 0u;
+    const std::filesystem::path Root = std::filesystem::temp_directory_path();
+    return (Root / (std::string("slate_") + Stem + "_" + std::to_string(++Counter) + Extension)).string();
+}
+
+Outcome<MaterialImageRaster> DecodeExternal(const WorkspaceMaterialImageReference& Reference)
+{
+    if (Reference.Width == 0u || Reference.Height == 0u)
+        return Outcome<MaterialImageRaster>::Refuse(
+            { RefusalReason::ContentUnsupported, "the imported image reference has no declared extent for decoding" });
+
+    const std::string Raw = TemporaryPath("material_decode", ".rgba");
+    const std::string Command = "convert " + ShellQuote(Reference.OriginPath) +
+        " -auto-orient -resize " + std::to_string(Reference.Width) + "x" + std::to_string(Reference.Height) + "!" +
+        " -depth 8 rgba:" + ShellQuote(Raw);
+    if (std::system(Command.c_str()) != 0)
+    {
+        std::remove(Raw.c_str());
+        return Outcome<MaterialImageRaster>::Refuse(
+            { RefusalReason::ContentUnsupported, "the external image decoder rejected the referenced material image" });
+    }
+
+    const Outcome<std::vector<std::uint8_t>> Bytes = ReadAll(Raw);
+    std::remove(Raw.c_str());
+    if (!Bytes.Resolved) return Outcome<MaterialImageRaster>::Refuse(Bytes.Error);
+
+    const std::size_t Expected = static_cast<std::size_t>(Reference.Width) * Reference.Height * 4u;
+    if (Bytes.Resolve().size() < Expected)
+        return Outcome<MaterialImageRaster>::Refuse(
+            { RefusalReason::ContentUnsupported, "the external image decoder produced an incomplete RGBA span" });
+
+    MaterialImageRaster Raster;
+    Raster.OriginPath = Reference.OriginPath;
+    Raster.Width = Reference.Width;
+    Raster.Height = Reference.Height;
+    Raster.ComponentCount = 4u;
+    Raster.ColourData = Reference.ColourData;
+    Raster.Texels.assign(Expected, 1.0f);
+    for (std::size_t Index = 0u; Index < Expected; ++Index)
+        Raster.Texels[Index] = static_cast<float>(Bytes.Resolve()[Index]) / 255.0f;
+    return Outcome<MaterialImageRaster>::Result(std::move(Raster));
+}
+
 } // namespace
 
 std::uint64_t FingerprintMaterialImageReference(const WorkspaceMaterialImageReference& Reference)
@@ -223,13 +285,18 @@ Outcome<MaterialImageRaster> MaterialImageSampling::OpenReference(const Workspac
     if (!Bytes.Resolved) return Outcome<MaterialImageRaster>::Refuse(Bytes.Error);
 
     if (Bytes.Resolve().size() >= 2u && Bytes.Resolve()[0] == 'B' && Bytes.Resolve()[1] == 'M')
-        return DecodeBmp(Bytes.Resolve(), Reference);
+    {
+        const Outcome<MaterialImageRaster> Native = DecodeBmp(Bytes.Resolve(), Reference);
+        if (Native.Resolved) return Native;
+    }
     if (Bytes.Resolve().size() >= 3u && Bytes.Resolve()[1] == 0u &&
         (Bytes.Resolve()[2] == 2u || Bytes.Resolve()[2] == 3u))
-        return DecodeTga(Bytes.Resolve(), Reference);
+    {
+        const Outcome<MaterialImageRaster> Native = DecodeTga(Bytes.Resolve(), Reference);
+        if (Native.Resolved) return Native;
+    }
 
-    return Outcome<MaterialImageRaster>::Refuse(
-        { RefusalReason::ContentUnsupported, "this imported image format is registered but not decoded for sampling yet" });
+    return DecodeExternal(Reference);
 }
 
 Outcome<MaterialImageSample> MaterialImageSampling::SampleReference(const WorkspaceMaterialImageReference& Reference,

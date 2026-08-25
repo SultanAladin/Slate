@@ -51,7 +51,7 @@ def main() -> int:
         "Channel.Source != ChannelSource::Imported",
         "Channel.SourceIndex >= Material.Images.size()",
         "the imported image reference is absent",
-        "registered but not decoded for sampling yet",
+        "DecodeExternal",
     )
     require("std::floor" in source and "std::min<std::uint32_t>" in source,
             "UV addressing and texel selection are not wired")
