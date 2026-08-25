@@ -168,6 +168,61 @@ const ToolEntry SketchDrawTools[] =
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
       0u, 0u, 0u, 0u, 0u, 0u, 0u,
       { { "Snap", "Grid" }, { "Construction", "On" } }, 2u },
+
+    { "Elliptical Arc", "", SymbolSubject::CurveTangent, ParametricToolDimension::Nothing,
+      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
+      0u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Defined By", "centre + radii + sweep" } }, 1u },
+
+    { "Basis Spline", "", SymbolSubject::CurveTangent, ParametricToolDimension::Nothing,
+      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
+      3u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Degree", "3" }, { "Finish", "double click" } }, 2u },
+
+    { "Construction Line", "", SymbolSubject::EdgeSegment, ParametricToolDimension::Nothing,
+      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
+      0u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Semantic", "construction" } }, 1u },
+
+    { "Center Rectangle", "", SymbolSubject::FacePlanar, ParametricToolDimension::Nothing,
+      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
+      0u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Defined By", "centre + corner" } }, 1u },
+
+    { "3-Point Rectangle", "", SymbolSubject::FacePlanar, ParametricToolDimension::Nothing,
+      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
+      0u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Defined By", "edge + height" } }, 1u },
+
+    { "Diameter Circle", "", SymbolSubject::ConstraintDimension, ParametricToolDimension::Nothing,
+      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
+      0u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Defined By", "diameter endpoints" } }, 1u },
+
+    { "3-Point Circle", "", SymbolSubject::ConstraintDimension, ParametricToolDimension::Nothing,
+      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
+      0u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Defined By", "three points" } }, 1u },
+
+    { "Center Arc", "", SymbolSubject::ConstraintDimension, ParametricToolDimension::Nothing,
+      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
+      0u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Defined By", "centre/start/end" } }, 1u },
+
+    { "Tangent Arc", "", SymbolSubject::CurveTangent, ParametricToolDimension::Nothing,
+      false, true, false, false, false, false, false, false, false, true, false, false, false, false,
+      0u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Defined By", "tangent chain" } }, 1u },
+
+    { "Polygon", "", SymbolSubject::FacePlanar, ParametricToolDimension::Nothing,
+      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
+      0u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Sides", "6" }, { "Defined By", "centre + radius" } }, 2u },
+
+    { "Slot", "", SymbolSubject::FacePlanar, ParametricToolDimension::Nothing,
+      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
+      0u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Defined By", "endpoints + radius" } }, 1u },
 };
 
 const ToolEntry SketchModifyTools[] =
@@ -565,7 +620,18 @@ ParametricToolSubject ToolSubjectOf(std::uint32_t BandIndex, std::uint32_t ToolI
                  : ToolIndex == 3u ? ParametricToolSubject::Circle
                  : ToolIndex == 4u ? ParametricToolSubject::Arc
                  : ToolIndex == 5u ? ParametricToolSubject::Ellipse
-                                   : ParametricToolSubject::Point;
+                 : ToolIndex == 6u ? ParametricToolSubject::Point
+                 : ToolIndex == 7u ? ParametricToolSubject::EllipticalArc
+                 : ToolIndex == 8u ? ParametricToolSubject::BasisSpline
+                 : ToolIndex == 9u ? ParametricToolSubject::ConstructionLine
+                 : ToolIndex == 10u ? ParametricToolSubject::CenterRectangle
+                 : ToolIndex == 11u ? ParametricToolSubject::ThreePointRectangle
+                 : ToolIndex == 12u ? ParametricToolSubject::DiameterCircle
+                 : ToolIndex == 13u ? ParametricToolSubject::ThreePointCircle
+                 : ToolIndex == 14u ? ParametricToolSubject::CenterStartEndArc
+                 : ToolIndex == 15u ? ParametricToolSubject::TangentArc
+                 : ToolIndex == 16u ? ParametricToolSubject::Polygon
+                                    : ParametricToolSubject::Slot;
         case 2u:
             return ToolIndex == 0u ? ParametricToolSubject::Fillet
                  : ToolIndex == 1u ? ParametricToolSubject::Chamfer

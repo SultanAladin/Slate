@@ -453,7 +453,10 @@ Outcome<bool> ProjectSketchRendering(const SketchStructure& Sketch,
 
             case WorkspaceRecordSubject::OpenCurve:
                 if (ResolveCurvePolyline(Sketch, Record->SketchCurve, Basis, Style.CurveSteps, Polyline))
-                    AppendPolylineSegments(Polyline, Style.SketchCurveColour, Style.CurveThickness, Delivered);
+                    AppendPolylineSegments(Polyline,
+                                           Record->ConstructionSemantic ? Style.ConstructionCurveColour : Style.SketchCurveColour,
+                                           Record->ConstructionSemantic ? Style.ConstructionThickness : Style.CurveThickness,
+                                           Delivered);
                 break;
 
             case WorkspaceRecordSubject::ClosedProfile:

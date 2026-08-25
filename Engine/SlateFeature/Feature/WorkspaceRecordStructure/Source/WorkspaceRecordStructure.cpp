@@ -151,7 +151,7 @@ void WorkspaceRecordStructure::ResolvePresented(std::vector<WorkspacePresentedRo
         const WorkspaceRecord& Held = HeldRecords[RecordIndex - 1u];
         Presented.push_back({ { RecordIndex }, Held.Subject, PresentedCategoryOfRecord(Held), Held.ParentFolder,
                               Held.Naming.c_str(), ResolveDepth(Held.ParentFolder), Held.Visible, Held.Locked,
-                              Held.ClosedSemantic });
+                              Held.ClosedSemantic, Held.ConstructionSemantic });
     }
 }
 

@@ -65,6 +65,7 @@ struct WorkspaceRecord
     bool Visible = true;
     bool Locked = false;
     bool ClosedSemantic = false;
+    bool ConstructionSemantic = false;
     SketchPointName SketchPoint = {};
     SketchCurveName SketchCurve = {};
     ProfileNameInFeature Profile = {};
@@ -87,6 +88,7 @@ struct WorkspacePresentedRow
     bool Visible = true;
     bool Locked = false;
     bool ClosedSemantic = false;
+    bool ConstructionSemantic = false;
 };
 
 class WorkspaceRecordStructure

@@ -108,6 +108,33 @@ def assert_close_point(name: str, actual: P, expected: P, eps: float = 1.0e-6) -
         raise AssertionError(f"{name}: expected {expected}, got {actual}")
 
 
+def polygon_area(points: list[P]) -> float:
+    return sum(points[i].x * points[(i + 1) % len(points)].y - points[(i + 1) % len(points)].x * points[i].y for i in range(len(points))) * 0.5
+
+
+def point_in_polygon(point: P, polygon: list[P]) -> bool:
+    inside = False
+    j = len(polygon) - 1
+    for i, current in enumerate(polygon):
+        previous = polygon[j]
+        if (current.y > point.y) != (previous.y > point.y):
+            crossing_x = (previous.x - current.x) * (point.y - current.y) / (previous.y - current.y) + current.x
+            if point.x < crossing_x:
+                inside = not inside
+        j = i
+    return inside
+
+
+def circumcircle(a: P, b: P, c: P) -> tuple[P, float]:
+    d = 2.0 * (a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y))
+    if abs(d) <= 1.0e-9:
+        raise AssertionError("three point circle is collinear")
+    a2, b2, c2 = dot(a, a), dot(b, b), dot(c, c)
+    centre = P((a2 * (b.y - c.y) + b2 * (c.y - a.y) + c2 * (a.y - b.y)) / d,
+               (a2 * (c.x - b.x) + b2 * (a.x - c.x) + c2 * (b.x - a.x)) / d)
+    return centre, length(centre - a)
+
+
 def run_checks() -> list[str]:
     passed: list[str] = []
 
@@ -170,6 +197,37 @@ def run_checks() -> list[str]:
         raise AssertionError("point marker surrogate not tiny")
     passed.append("edge explicit point marker stays tiny")
 
+    outer = [P(0, 0), P(80, 0), P(80, 50), P(0, 50)]
+    hole = [P(25, 15), P(55, 15), P(55, 35), P(25, 35)]
+    if polygon_area(outer) <= 0.0 or polygon_area(hole) <= 0.0 or not point_in_polygon(P(40, 25), outer):
+        raise AssertionError("outer/hole profile classification failed")
+    passed.append("ordinary profile area classifies outer loops and holes")
+
+    bow_hit = segment_intersection(P(0, 0), P(40, 40), P(0, 40), P(40, 0))
+    assert bow_hit is not None
+    passed.append("edge profile area marks self-intersections")
+
+    open_gap = length(P(0, 0) - P(0.4, 0.3))
+    if not (open_gap > 0.0 and open_gap < 1.0):
+        raise AssertionError("profile gap marker failed")
+    passed.append("edge profile area highlights open-loop gaps")
+
+    centre, radius = circumcircle(P(10, 0), P(0, 10), P(-10, 0))
+    assert_close_point("three point circle centre", centre, P(0, 0))
+    if not isclose(radius, 10.0):
+        raise AssertionError("three point circle radius failed")
+    passed.append("ordinary three-point circle resolves centre and radius")
+
+    hexagon = [P(cos(i * pi / 3.0) * 20.0, sin(i * pi / 3.0) * 20.0) for i in range(6)]
+    if len(hexagon) != 6 or abs(polygon_area(hexagon)) <= 900.0:
+        raise AssertionError("polygon profile failed")
+    passed.append("ordinary polygon tool emits closed profile area")
+
+    slot_radius = length(P(40, 0) - P(40, 12))
+    if not isclose(slot_radius, 12.0):
+        raise AssertionError("slot radius failed")
+    passed.append("ordinary slot tool resolves radius from third point")
+
     return passed
 
 
@@ -189,8 +247,8 @@ def write_svg(passed: list[str]) -> None:
     bez = [bezier([P(45, 300), P(110, 220), P(170, 360), P(240, 285)], i / 24) for i in range(25)]
     bez_path = " ".join(("M" if i == 0 else "L") + f" {p.x:.2f} {p.y:.2f}" for i, p in enumerate(bez))
     checks = "".join(f'<text x="30" y="{430 + i * 16}" fill="#d1d5db" font-size="12">✓ {text}</text>' for i, text in enumerate(passed))
-    content = f'''<svg xmlns="http://www.w3.org/2000/svg" width="820" height="650" viewBox="0 0 820 650">
-  <rect width="820" height="650" fill="#111114"/>
+    content = f'''<svg xmlns="http://www.w3.org/2000/svg" width="820" height="780" viewBox="0 0 820 780">
+  <rect width="820" height="780" fill="#111114"/>
   <text x="30" y="34" fill="#f9fafb" font-size="22" font-family="sans-serif">Sketch hardening validation</text>
   <text x="30" y="58" fill="#9ca3af" font-size="13" font-family="sans-serif">Snaps, constraints, dimensions, edit hooks, and edge cases</text>
   {svg_line(P(40,70), P(150,180), '#60a5fa')}

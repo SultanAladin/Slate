@@ -79,7 +79,18 @@ enum class ParametricToolSubject : std::uint32_t
     MidpointConstraint = 44u,
     SymmetryConstraint = 45u,
     ConcentricConstraint = 46u,
-    SubjectCount = 47u
+    EllipticalArc = 47u,
+    BasisSpline = 48u,
+    ConstructionLine = 49u,
+    CenterRectangle = 50u,
+    ThreePointRectangle = 51u,
+    DiameterCircle = 52u,
+    ThreePointCircle = 53u,
+    CenterStartEndArc = 54u,
+    TangentArc = 55u,
+    Polygon = 56u,
+    Slot = 57u,
+    SubjectCount = 58u
 };
 
 struct ParametricToolsContext
