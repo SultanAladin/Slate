@@ -111,6 +111,77 @@ def box_mesh(name, halfx, halfy, halfz):
         out += u32(i)
     return bytes(out)
 
+def mesh_record(name, verts, faces):
+    out = bytearray(run(name) + u32(len(verts)))
+    for v in verts:
+        out += b"".join(f64(x) for x in v)
+    flat = [i for tri in faces for i in tri]
+    out += u32(len(flat))
+    for i in flat:
+        out += u32(i)
+    return bytes(out)
+
+def lathe_mesh(name, profile, segments=32):
+    verts = []
+    for i in range(segments):
+        a = 2.0 * 3.141592653589793 * i / segments
+        ca, sa = __import__('math').cos(a), __import__('math').sin(a)
+        for r, y in profile:
+            verts.append((r * ca, y, r * sa))
+    faces = []
+    rows = len(profile)
+    for i in range(segments):
+        ni = (i + 1) % segments
+        for j in range(rows - 1):
+            a = i * rows + j
+            b = ni * rows + j
+            c = ni * rows + j + 1
+            d = i * rows + j + 1
+            faces.append((a, b, c)); faces.append((a, c, d))
+    return verts, faces
+
+def translated_mesh(verts, faces, offset):
+    base = 0
+    return [(x + offset[0], y + offset[1], z + offset[2]) for x,y,z in verts], faces
+
+def merge_mesh(name, parts):
+    verts=[]; faces=[]
+    for pv,pf in parts:
+        base=len(verts); verts.extend(pv); faces.extend([(a+base,b+base,c+base) for a,b,c in pf])
+    return mesh_record(name, verts, faces)
+
+def box_part(halfx, halfy, halfz, offset=(0.,0.,0.)):
+    ox,oy,oz=offset
+    verts=[(ox+x,oy+y,oz+z) for x,y,z in [
+        (-halfx,-halfy,-halfz),(halfx,-halfy,-halfz),(halfx,-halfy,halfz),(-halfx,-halfy,halfz),
+        (-halfx,halfy,-halfz),(halfx,halfy,-halfz),(halfx,halfy,halfz),(-halfx,halfy,halfz)]]
+    faces=[(0,1,2),(0,2,3),(4,6,5),(4,7,6),(0,4,5),(0,5,1),(1,5,6),(1,6,2),(2,6,7),(2,7,3),(3,7,4),(3,4,0)]
+    return verts,faces
+
+def tea_service_meshes():
+    teapot_body = lathe_mesh("", [(0.00,-0.070),(0.105,-0.060),(0.150,-0.015),(0.132,0.045),(0.085,0.075),(0.035,0.088),(0.000,0.088)], 40)
+    lid = lathe_mesh("", [(0.00,0.080),(0.070,0.080),(0.080,0.092),(0.035,0.108),(0.000,0.108)], 40)
+    knob = lathe_mesh("", [(0.00,0.108),(0.025,0.112),(0.025,0.132),(0.000,0.136)], 24)
+    spout = box_part(0.070,0.018,0.022,(0.190,0.022,0.000))
+    handle = box_part(0.018,0.070,0.030,(-0.175,0.012,0.000))
+    teapot = merge_mesh("Mesh/ServiceTeapot", [teapot_body,lid,knob,spout,handle])
+
+    cup_outer = lathe_mesh("", [(0.038,-0.048),(0.058,-0.030),(0.064,0.040),(0.070,0.058)], 36)
+    cup_inner = lathe_mesh("", [(0.048,-0.030),(0.055,0.035),(0.060,0.053)], 36)
+    cup_handle = box_part(0.012,0.034,0.018,(-0.078,0.004,0.000))
+    cup = merge_mesh("Mesh/Teacup", [cup_outer,cup_inner,cup_handle])
+
+    saucer = mesh_record("Mesh/Saucer", *lathe_mesh("", [(0.020,-0.008),(0.090,-0.010),(0.105,0.000),(0.080,0.012),(0.030,0.014),(0.000,0.012)], 40))
+    sugar = merge_mesh("Mesh/SugarBowl", [
+        lathe_mesh("", [(0.00,-0.050),(0.070,-0.044),(0.082,0.010),(0.066,0.052),(0.030,0.064),(0.000,0.064)], 36),
+        lathe_mesh("", [(0.00,0.058),(0.060,0.058),(0.068,0.070),(0.026,0.090),(0.000,0.094)], 36),
+        box_part(0.026,0.010,0.010,(0.095,0.020,0.000)), box_part(0.026,0.010,0.010,(-0.095,0.020,0.000))])
+    milk = merge_mesh("Mesh/MilkJug", [
+        lathe_mesh("", [(0.00,-0.060),(0.055,-0.052),(0.070,0.020),(0.052,0.078),(0.030,0.090),(0.000,0.090)], 36),
+        box_part(0.020,0.032,0.018,(-0.082,0.020,0.000)), box_part(0.050,0.015,0.018,(0.088,0.060,0.000))])
+    floor = mesh_record("Mesh/Floor", *box_part(1.000,.001,1.000))
+    return [teapot, cup, saucer, sugar, milk, floor]
+
 def main():
     (CONTENT / "MaterialArchives").mkdir(parents=True, exist_ok=True)
     pigment = run("White Dielectric") + b"".join(f64(x) for x in (1.,1.,1.,0.32,1.5)) + b"\x01"
@@ -132,14 +203,7 @@ def main():
         scene_entry(3, "Floor", "Mesh/Floor", material, (0., -0.002, 0.), scale=(2.,1.,2.)),
     ]
     scene = u32(len(entries)) + b"".join(entries)
-    meshes = [
-        box_mesh("Mesh/ServiceTeapot", .150, .085, .105),
-        box_mesh("Mesh/Teacup", .062, .048, .062),
-        box_mesh("Mesh/Saucer", .088, .010, .088),
-        box_mesh("Mesh/SugarBowl", .078, .058, .072),
-        box_mesh("Mesh/MilkJug", .066, .072, .054),
-        box_mesh("Mesh/Floor", 1.000, .001, 1.000),
-    ]
+    meshes = tea_service_meshes()
     mesh_section = u32(len(meshes)) + b"".join(meshes)
     materials = u32(1) + material_record(material)
     embedded = u32(0)
