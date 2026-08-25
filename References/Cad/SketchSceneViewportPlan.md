@@ -152,12 +152,13 @@ Status: started in implementation with `WhiteTeaService.codex` activation into S
 
 ### Phase 6 — real 3D gizmo and CAD orientation cube
 
-- Replace the current screen-overlay transform drawing with real 3D gizmo geometry.
+Status: started in implementation. The transform gizmo now emits world-space/projection-based geometry into the existing viewport overlay pass instead of fixed 2D glyphs, preserving the CAD/grid/scene ordering while the future GPU gizmo pass is designed.
+
 - Move mode: arrows, cone heads, cylinders/shafts, axis planes, and white screen-space move handle.
 - Scale mode: axis boxes, planar boxes, and white screen-space scale handle.
 - Rotate mode: axis rings/tori/arcs and white screen-space rotate ring.
 - Keep Blender command chains: `G`, `G Z 50`, `S X 2`, `R X 90`, and double-tap `G G` for line/curve slide.
-- CAD orientation cube: true 3D top-right cube with face/edge/corner picking; use the existing baked font path to label cube faces (`Top`, `Front`, `Back`, `Left`, `Right`, `Bottom`).
+- CAD orientation cube: top-right projected cube has distinct face, edge, and corner hit regions; visible faces use the existing baked font path for labels and the remaining face labels continue through the orientation buttons.
 - Viewport gizmo-style dropdown keeps both `Blender Gizmo` and `CAD Gizmo`; chosen style controls both handle presentation and orientation-cube behavior.
 
 ### Phase 7 — selection sync

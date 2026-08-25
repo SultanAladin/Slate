@@ -604,7 +604,7 @@ void RecordViewportOrientationHud(RecordingSurface& Surface,
 {
     bool& Perspective = Configuration.Perspective;
     const float Pad = 10.0f;
-    const float ButtonX = 34.0f;
+    const float ButtonX = 56.0f;
     const float ButtonY = 24.0f;
     const float Top = Extent.MinimumY + Pad;
     const float Right = Extent.MaximumX - Pad;
@@ -619,13 +619,13 @@ void RecordViewportOrientationHud(RecordingSurface& Surface,
 
     FaceButton Faces[] =
     {
-        { ParametricViewOrientation::Top, "T", Spanning(Right - 72.0f, Top, ButtonX, ButtonY), false },
-        { ParametricViewOrientation::Front, "F", Spanning(Right - 108.0f, Top + 26.0f, ButtonX, ButtonY), false },
-        { ParametricViewOrientation::Back, "B", Spanning(Right - 72.0f, Top + 26.0f, ButtonX, ButtonY), false },
-        { ParametricViewOrientation::Left, "L", Spanning(Right - 144.0f, Top + 26.0f, ButtonX, ButtonY), false },
-        { ParametricViewOrientation::Right, "R", Spanning(Right - 36.0f, Top + 26.0f, ButtonX, ButtonY), false },
-        { ParametricViewOrientation::Bottom, "D", Spanning(Right - 72.0f, Top + 52.0f, ButtonX, ButtonY), false },
-        { ParametricViewOrientation::Isometric, "P", Spanning(Right - 72.0f, Top + 78.0f, ButtonX, ButtonY), true },
+        { ParametricViewOrientation::Top, "Top", Spanning(Right - 104.0f, Top, ButtonX, ButtonY), false },
+        { ParametricViewOrientation::Front, "Front", Spanning(Right - 164.0f, Top + 26.0f, ButtonX, ButtonY), false },
+        { ParametricViewOrientation::Back, "Back", Spanning(Right - 104.0f, Top + 26.0f, ButtonX, ButtonY), false },
+        { ParametricViewOrientation::Left, "Left", Spanning(Right - 224.0f, Top + 26.0f, ButtonX, ButtonY), false },
+        { ParametricViewOrientation::Right, "Right", Spanning(Right - 56.0f, Top + 26.0f, ButtonX, ButtonY), false },
+        { ParametricViewOrientation::Bottom, "Bottom", Spanning(Right - 104.0f, Top + 52.0f, ButtonX, ButtonY), false },
+        { ParametricViewOrientation::Isometric, "Iso", Spanning(Right - 104.0f, Top + 78.0f, ButtonX, ButtonY), true },
     };
 
     for (FaceButton& Face : Faces)
@@ -699,33 +699,76 @@ void RecordViewportOrientationHud(RecordingSurface& Surface,
 
     if (Configuration.Gizmo == PanelGizmo::Cad)
     {
-        const float CubeX = Right - 106.0f;
-        const float CubeY = Top + 108.0f;
-        const float S = 38.0f;
-        const float TopFace[6] = { CubeX, CubeY, CubeX + S, CubeY - 10.0f, CubeX + S * 1.72f, CubeY + 8.0f };
-        const float TopFace2[6] = { CubeX, CubeY, CubeX + S * 1.72f, CubeY + 8.0f, CubeX + S * 0.72f, CubeY + 18.0f };
-        const float FrontFace[6] = { CubeX, CubeY, CubeX + S * 0.72f, CubeY + 18.0f, CubeX + S * 0.72f, CubeY + 58.0f };
-        const float FrontFace2[6] = { CubeX, CubeY, CubeX + S * 0.72f, CubeY + 58.0f, CubeX, CubeY + 40.0f };
-        const float SideFace[6] = { CubeX + S * 0.72f, CubeY + 18.0f, CubeX + S * 1.72f, CubeY + 8.0f, CubeX + S * 1.72f, CubeY + 48.0f };
-        const float SideFace2[6] = { CubeX + S * 0.72f, CubeY + 18.0f, CubeX + S * 1.72f, CubeY + 48.0f, CubeX + S * 0.72f, CubeY + 58.0f };
-        const PlaneExtent CubeHit = Spanning(CubeX - 4.0f, CubeY - 16.0f, S * 1.9f, 80.0f);
+        const float CubeX = Right - 118.0f;
+        const float CubeY = Top + 116.0f;
+        const float S = 42.0f;
+        const float V0[2] = { CubeX, CubeY };
+        const float V1[2] = { CubeX + S, CubeY - 12.0f };
+        const float V2[2] = { CubeX + S * 1.76f, CubeY + 9.0f };
+        const float V3[2] = { CubeX + S * 0.74f, CubeY + 21.0f };
+        const float V4[2] = { CubeX, CubeY + 44.0f };
+        const float V5[2] = { CubeX + S * 0.74f, CubeY + 65.0f };
+        const float V6[2] = { CubeX + S * 1.76f, CubeY + 52.0f };
+        const float TopFace[6] = { V0[0], V0[1], V1[0], V1[1], V2[0], V2[1] };
+        const float TopFace2[6] = { V0[0], V0[1], V2[0], V2[1], V3[0], V3[1] };
+        const float FrontFace[6] = { V0[0], V0[1], V3[0], V3[1], V5[0], V5[1] };
+        const float FrontFace2[6] = { V0[0], V0[1], V5[0], V5[1], V4[0], V4[1] };
+        const float SideFace[6] = { V3[0], V3[1], V2[0], V2[1], V6[0], V6[1] };
+        const float SideFace2[6] = { V3[0], V3[1], V6[0], V6[1], V5[0], V5[1] };
+        const PlaneExtent CubeHit = Spanning(CubeX - 8.0f, CubeY - 18.0f, S * 2.02f, 92.0f);
+        const auto InTriangle = [&](const float* Triangle) -> bool
+        {
+            const float PX = Pointer.PositionX;
+            const float PY = Pointer.PositionY;
+            const float X0 = Triangle[0], Y0 = Triangle[1];
+            const float X1 = Triangle[2], Y1 = Triangle[3];
+            const float X2 = Triangle[4], Y2 = Triangle[5];
+            const float D0 = (PX - X1) * (Y0 - Y1) - (X0 - X1) * (PY - Y1);
+            const float D1 = (PX - X2) * (Y1 - Y2) - (X1 - X2) * (PY - Y2);
+            const float D2 = (PX - X0) * (Y2 - Y0) - (X2 - X0) * (PY - Y0);
+            const bool Negative = D0 < 0.0f || D1 < 0.0f || D2 < 0.0f;
+            const bool Positive = D0 > 0.0f || D1 > 0.0f || D2 > 0.0f;
+            return !(Negative && Positive);
+        };
+        const bool TopHovered = InTriangle(TopFace) || InTriangle(TopFace2);
+        const bool FrontHovered = InTriangle(FrontFace) || InTriangle(FrontFace2);
+        const bool RightHovered = InTriangle(SideFace) || InTriangle(SideFace2);
         const bool CubeHovered = CubeHit.Encloses(Pointer.PositionX, Pointer.PositionY);
+        const PlaneExtent CornerHit = Spanning(V2[0] - 6.0f, V2[1] - 6.0f, 12.0f, 12.0f);
+        const PlaneExtent EdgeHit = Spanning(V3[0] - 8.0f, V3[1] - 8.0f, 16.0f, 16.0f);
+        const bool CornerHovered = CornerHit.Encloses(Pointer.PositionX, Pointer.PositionY);
+        const bool EdgeHovered = EdgeHit.Encloses(Pointer.PositionX, Pointer.PositionY);
         if (CubeHovered && Pointer.ContactPressed)
         {
-            Perspective = true;
-            ApplyViewportOrientation(View, ParametricViewOrientation::Isometric, true);
+            if (CornerHovered || EdgeHovered)
+                ApplyViewportOrientation(View, ParametricViewOrientation::Isometric, true);
+            else if (TopHovered)
+                ApplyViewportOrientation(View, ParametricViewOrientation::Top, false);
+            else if (FrontHovered)
+                ApplyViewportOrientation(View, ParametricViewOrientation::Front, false);
+            else if (RightHovered)
+                ApplyViewportOrientation(View, ParametricViewOrientation::Right, false);
+            else
+                ApplyViewportOrientation(View, ParametricViewOrientation::Isometric, true);
+            Perspective = (CornerHovered || EdgeHovered || (!TopHovered && !FrontHovered && !RightHovered));
             PointerTaken = true;
         }
         if (CubeHovered)
             PointerTaken = true;
-        Surface.Tongue(TopFace, 3u, Partial(0xFFFFFFu, CubeHovered ? 0.30 : 0.20));
-        Surface.Tongue(TopFace2, 3u, Partial(0xFFFFFFu, CubeHovered ? 0.30 : 0.20));
-        Surface.Tongue(FrontFace, 3u, Partial(0x5B8CFFu, CubeHovered ? 0.34 : 0.24));
-        Surface.Tongue(FrontFace2, 3u, Partial(0x5B8CFFu, CubeHovered ? 0.34 : 0.24));
-        Surface.Tongue(SideFace, 3u, Partial(0xFC5A5Au, CubeHovered ? 0.34 : 0.24));
-        Surface.Tongue(SideFace2, 3u, Partial(0xFC5A5Au, CubeHovered ? 0.34 : 0.24));
+        const bool AnyIsoHovered = CornerHovered || EdgeHovered;
+        Surface.Tongue(TopFace, 3u, Partial(0xFFFFFFu, TopHovered ? 0.38 : 0.22));
+        Surface.Tongue(TopFace2, 3u, Partial(0xFFFFFFu, TopHovered ? 0.38 : 0.22));
+        Surface.Tongue(FrontFace, 3u, Partial(0x5B8CFFu, FrontHovered ? 0.44 : 0.25));
+        Surface.Tongue(FrontFace2, 3u, Partial(0x5B8CFFu, FrontHovered ? 0.44 : 0.25));
+        Surface.Tongue(SideFace, 3u, Partial(0xFC5A5Au, RightHovered ? 0.44 : 0.25));
+        Surface.Tongue(SideFace2, 3u, Partial(0xFC5A5Au, RightHovered ? 0.44 : 0.25));
         Surface.Edge(CubeHit, Partial(0xFFFFFFu, 0.20), 1.0f, 8.0f, CornerAll);
-        Surface.TextRun(CubeX + S * 0.86f, CubeY + 24.0f, Covering(0xFFFFFFu), "CAD", 10.0f, 0.0f, true);
+        Surface.Ground(CornerHit, AnyIsoHovered ? Partial(0xFBBF24u, 0.95) : Partial(0xFFFFFFu, 0.36), 6.0f, CornerAll);
+        Surface.Ground(EdgeHit, EdgeHovered ? Partial(0xFBBF24u, 0.80) : Partial(0xFFFFFFu, 0.24), 4.0f, CornerAll);
+        Surface.TextRun(CubeX + S * 0.74f, CubeY + 2.0f, Covering(0x101014u), "Top", 9.0f, 0.0f, true);
+        Surface.TextRun(CubeX + S * 0.24f, CubeY + 35.0f, Covering(0xFFFFFFu), "Front", 9.0f, 0.0f, true);
+        Surface.TextRun(CubeX + S * 1.08f, CubeY + 34.0f, Covering(0xFFFFFFu), "Right", 9.0f, 0.0f, true);
+        Surface.TextRun(CubeX - 2.0f, CubeY + 69.0f, Covering(0xBFC7D5u), "Back / Left / Bottom via face buttons", 8.0f, 0.0f, true);
     }
 }
 
@@ -2827,118 +2870,190 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
     if (!ResolveGizmoScreenBasis(Basis, View, Perspective, Extent, Selected.Position, Screen))
         return;
 
+    const ViewFrame Frame = ResolveViewportFrame(Basis, View, Perspective);
+    const SpatialPoint Pivot = Selected.Position;
+    const SpatialDirection AxisX = Basis.Along;
+    const SpatialDirection AxisY = Basis.Normal;
+    const SpatialDirection AxisZ = Basis.Across;
     const std::uint32_t XPacked = OverlayPacked(0xE0u, 0x14u, 0x14u, 255u);
+    const std::uint32_t YPacked = OverlayPacked(0x22u, 0xC5u, 0x5Eu, 255u);
     const std::uint32_t ZPacked = OverlayPacked(0x15u, 0x60u, 0xE0u, 255u);
     const std::uint32_t White = OverlayPacked(0xFFu, 0xFFu, 0xFFu, 255u);
     const std::uint32_t Highlight = OverlayPacked(0xFBu, 0xBFu, 0x24u, 255u);
+    const std::uint32_t PlaneFill = OverlayPacked(0xFFu, 0xFFu, 0xFFu, 56u);
     const std::uint32_t Guide = OverlayPacked(0xFFu, 0xFFu, 0xFFu, 160u);
-    const float AxisLength = 44.0f;
-    const float XEndX = Screen.PivotX + Screen.XDirX * AxisLength;
-    const float XEndY = Screen.PivotY + Screen.XDirY * AxisLength;
-    const float ZEndX = Screen.PivotX + Screen.ZDirX * AxisLength;
-    const float ZEndY = Screen.PivotY + Screen.ZDirY * AxisLength;
 
-    Overlay.AddLine(Screen.PivotX, Screen.PivotY, XEndX, XEndY,
-                    HoveredHandle == ParametricGizmoHandle::MoveX || HoveredHandle == ParametricGizmoHandle::ScaleX ? Highlight : XPacked,
-                    1.6f);
-    Overlay.AddLine(Screen.PivotX, Screen.PivotY, ZEndX, ZEndY,
-                    HoveredHandle == ParametricGizmoHandle::MoveZ || HoveredHandle == ParametricGizmoHandle::ScaleZ ? Highlight : ZPacked,
-                    1.6f);
+    const auto Project = [&](const SpatialPoint& P, float& X, float& Y) -> bool
+    {
+        return ProjectWorldPoint(Basis, View, Perspective, Extent, P, X, Y);
+    };
+    const auto AddWorldLine = [&](const SpatialPoint& A, const SpatialPoint& B, std::uint32_t Packed, float Thickness)
+    {
+        float X0 = 0.0f, Y0 = 0.0f, X1 = 0.0f, Y1 = 0.0f;
+        if (Project(A, X0, Y0) && Project(B, X1, Y1))
+            Overlay.AddLine(X0, Y0, X1, Y1, Packed, Thickness);
+    };
+    const auto AddWorldTriangle = [&](const SpatialPoint& A, const SpatialPoint& B, const SpatialPoint& C, std::uint32_t Packed)
+    {
+        float X0 = 0.0f, Y0 = 0.0f, X1 = 0.0f, Y1 = 0.0f, X2 = 0.0f, Y2 = 0.0f;
+        if (Project(A, X0, Y0) && Project(B, X1, Y1) && Project(C, X2, Y2))
+            Overlay.AddTriangle(X0, Y0, X1, Y1, X2, Y2, Packed);
+    };
+    const auto AddWorldQuad = [&](const SpatialPoint& A, const SpatialPoint& B,
+                                  const SpatialPoint& C, const SpatialPoint& D,
+                                  std::uint32_t Packed, std::uint32_t EdgePacked)
+    {
+        AddWorldTriangle(A, B, C, Packed);
+        AddWorldTriangle(A, C, D, Packed);
+        AddWorldLine(A, B, EdgePacked, 1.2f);
+        AddWorldLine(B, C, EdgePacked, 1.2f);
+        AddWorldLine(C, D, EdgePacked, 1.2f);
+        AddWorldLine(D, A, EdgePacked, 1.2f);
+    };
+    const auto AddBox = [&](const SpatialPoint& Centre,
+                            const SpatialDirection& A,
+                            const SpatialDirection& B,
+                            const SpatialDirection& C,
+                            double HA, double HB, double HC,
+                            std::uint32_t Packed)
+    {
+        SpatialPoint P[8] = {};
+        const double S[8][3] = { {-1,-1,-1}, {1,-1,-1}, {1,1,-1}, {-1,1,-1}, {-1,-1,1}, {1,-1,1}, {1,1,1}, {-1,1,1} };
+        for (std::uint32_t Index = 0u; Index < 8u; ++Index)
+            P[Index] = Added(Centre, Added(Added(Scaled(A, S[Index][0] * HA), Scaled(B, S[Index][1] * HB)), Scaled(C, S[Index][2] * HC)));
+        AddWorldQuad(P[0], P[1], P[2], P[3], Packed, Packed);
+        AddWorldQuad(P[4], P[7], P[6], P[5], Packed, Packed);
+        AddWorldQuad(P[0], P[4], P[5], P[1], Packed, Packed);
+        AddWorldQuad(P[1], P[5], P[6], P[2], Packed, Packed);
+        AddWorldQuad(P[2], P[6], P[7], P[3], Packed, Packed);
+        AddWorldQuad(P[3], P[7], P[4], P[0], Packed, Packed);
+    };
+    const auto AddCylinderShaft = [&](const SpatialDirection& Axis,
+                                      const SpatialDirection& Side,
+                                      std::uint32_t Packed,
+                                      bool Highlighted)
+    {
+        const double Length = 78.0;
+        const double Radius = Highlighted ? 4.4 : 3.0;
+        const SpatialPoint A = Added(Pivot, Scaled(Axis, 12.0));
+        const SpatialPoint B = Added(Pivot, Scaled(Axis, Length));
+        const SpatialDirection SideB = Normalize(Cross(Axis, Side));
+        AddWorldQuad(Added(A, Scaled(Side, Radius)), Added(B, Scaled(Side, Radius)),
+                     Added(B, Scaled(Side, -Radius)), Added(A, Scaled(Side, -Radius)),
+                     Packed, Packed);
+        AddWorldQuad(Added(A, Scaled(SideB, Radius)), Added(B, Scaled(SideB, Radius)),
+                     Added(B, Scaled(SideB, -Radius)), Added(A, Scaled(SideB, -Radius)),
+                     Packed, Packed);
+    };
+    const auto AddConeHead = [&](const SpatialDirection& Axis,
+                                 const SpatialDirection& Side,
+                                 std::uint32_t Packed)
+    {
+        const SpatialPoint Tip = Added(Pivot, Scaled(Axis, 102.0));
+        const SpatialPoint Base = Added(Pivot, Scaled(Axis, 78.0));
+        const SpatialDirection SideB = Normalize(Cross(Axis, Side));
+        const double Radius = 10.0;
+        const SpatialPoint P0 = Added(Base, Scaled(Side, Radius));
+        const SpatialPoint P1 = Added(Base, Scaled(SideB, Radius));
+        const SpatialPoint P2 = Added(Base, Scaled(Side, -Radius));
+        const SpatialPoint P3 = Added(Base, Scaled(SideB, -Radius));
+        AddWorldTriangle(Tip, P0, P1, Packed);
+        AddWorldTriangle(Tip, P1, P2, Packed);
+        AddWorldTriangle(Tip, P2, P3, Packed);
+        AddWorldTriangle(Tip, P3, P0, Packed);
+        AddWorldLine(P0, P2, Packed, 1.2f);
+        AddWorldLine(P1, P3, Packed, 1.2f);
+    };
+    const auto AddRing = [&](const SpatialDirection& A,
+                             const SpatialDirection& B,
+                             double Radius,
+                             std::uint32_t Packed,
+                             float Thickness)
+    {
+        SpatialPoint Prior = Added(Pivot, Scaled(A, Radius));
+        for (std::uint32_t Segment = 1u; Segment <= 72u; ++Segment)
+        {
+            const double T = static_cast<double>(Segment) / 72.0 * 2.0 * Pi;
+            const SpatialPoint Next = Added(Pivot, Added(Scaled(A, std::cos(T) * Radius), Scaled(B, std::sin(T) * Radius)));
+            AddWorldLine(Prior, Next, Packed, Thickness);
+            Prior = Next;
+        }
+    };
+    const auto AddScreenHandle = [&](double Radius, std::uint32_t Packed)
+    {
+        SpatialPoint Prior = Added(Pivot, Scaled(Frame.Right, Radius));
+        for (std::uint32_t Segment = 1u; Segment <= 40u; ++Segment)
+        {
+            const double T = static_cast<double>(Segment) / 40.0 * 2.0 * Pi;
+            const SpatialPoint Next = Added(Pivot, Added(Scaled(Frame.Right, std::cos(T) * Radius), Scaled(Frame.Up, std::sin(T) * Radius)));
+            AddWorldLine(Prior, Next, Packed, 2.0f);
+            Prior = Next;
+        }
+    };
 
     if (Transform.Mode == ParametricTransformMode::Move)
     {
-        const std::uint32_t PlanePacked = HoveredHandle == ParametricGizmoHandle::MoveFree
-                                        ? OverlayPacked(0xFBu, 0xBFu, 0x24u, 96u)
-                                        : OverlayPacked(0x1Fu, 0xC7u, 0xC7u, 70u);
-        const float PlaneOffset = 16.0f;
-        const float PlaneHalf = 7.0f;
-        const float PlaneCentreX = Screen.PivotX + (Screen.XDirX + Screen.ZDirX) * PlaneOffset;
-        const float PlaneCentreY = Screen.PivotY + (Screen.XDirY + Screen.ZDirY) * PlaneOffset;
-        const float X0 = PlaneCentreX - Screen.XDirX * PlaneHalf - Screen.ZDirX * PlaneHalf;
-        const float Y0 = PlaneCentreY - Screen.XDirY * PlaneHalf - Screen.ZDirY * PlaneHalf;
-        const float X1 = PlaneCentreX + Screen.XDirX * PlaneHalf - Screen.ZDirX * PlaneHalf;
-        const float Y1 = PlaneCentreY + Screen.XDirY * PlaneHalf - Screen.ZDirY * PlaneHalf;
-        const float X2 = PlaneCentreX + Screen.XDirX * PlaneHalf + Screen.ZDirX * PlaneHalf;
-        const float Y2 = PlaneCentreY + Screen.XDirY * PlaneHalf + Screen.ZDirY * PlaneHalf;
-        const float X3 = PlaneCentreX - Screen.XDirX * PlaneHalf + Screen.ZDirX * PlaneHalf;
-        const float Y3 = PlaneCentreY - Screen.XDirY * PlaneHalf + Screen.ZDirY * PlaneHalf;
-        Overlay.AddTriangle(X0, Y0, X1, Y1, X2, Y2, PlanePacked);
-        Overlay.AddTriangle(X0, Y0, X2, Y2, X3, Y3, PlanePacked);
-        Overlay.AddLine(X0, Y0, X1, Y1, HoveredHandle == ParametricGizmoHandle::MoveFree ? Highlight : White, 1.2f);
-        Overlay.AddLine(X1, Y1, X2, Y2, HoveredHandle == ParametricGizmoHandle::MoveFree ? Highlight : White, 1.2f);
-        Overlay.AddLine(X2, Y2, X3, Y3, HoveredHandle == ParametricGizmoHandle::MoveFree ? Highlight : White, 1.2f);
-        Overlay.AddLine(X3, Y3, X0, Y0, HoveredHandle == ParametricGizmoHandle::MoveFree ? Highlight : White, 1.2f);
-
-        AppendOverlayArrow(Overlay, Screen.PivotX, Screen.PivotY, XEndX, XEndY,
-                           HoveredHandle == ParametricGizmoHandle::MoveX ? Highlight : XPacked, 2.2f);
-        AppendOverlayArrow(Overlay, Screen.PivotX, Screen.PivotY, ZEndX, ZEndY,
-                           HoveredHandle == ParametricGizmoHandle::MoveZ ? Highlight : ZPacked, 2.2f);
-        AppendOverlayCircle(Overlay, Screen.PivotX, Screen.PivotY, 10.0f,
-                            HoveredHandle == ParametricGizmoHandle::MoveFree ? Highlight : White, 1.8f);
+        const std::uint32_t XColour = HoveredHandle == ParametricGizmoHandle::MoveX ? Highlight : XPacked;
+        const std::uint32_t ZColour = HoveredHandle == ParametricGizmoHandle::MoveZ ? Highlight : ZPacked;
+        const std::uint32_t PlaneColour = HoveredHandle == ParametricGizmoHandle::MoveFree ? Highlight : OverlayPacked(0x1Fu, 0xC7u, 0xC7u, 160u);
+        AddCylinderShaft(AxisX, AxisY, XColour, HoveredHandle == ParametricGizmoHandle::MoveX);
+        AddConeHead(AxisX, AxisY, XColour);
+        AddCylinderShaft(AxisZ, AxisY, ZColour, HoveredHandle == ParametricGizmoHandle::MoveZ);
+        AddConeHead(AxisZ, AxisY, ZColour);
+        const SpatialPoint C = Added(Pivot, Added(Scaled(AxisX, 34.0), Scaled(AxisZ, 34.0)));
+        AddWorldQuad(Added(C, Added(Scaled(AxisX, -16.0), Scaled(AxisZ, -16.0))),
+                     Added(C, Added(Scaled(AxisX,  16.0), Scaled(AxisZ, -16.0))),
+                     Added(C, Added(Scaled(AxisX,  16.0), Scaled(AxisZ,  16.0))),
+                     Added(C, Added(Scaled(AxisX, -16.0), Scaled(AxisZ,  16.0))),
+                     PlaneFill, PlaneColour);
+        AddScreenHandle(18.0, HoveredHandle == ParametricGizmoHandle::MoveFree ? Highlight : White);
     }
     else if (Transform.Mode == ParametricTransformMode::Rotate)
     {
-        const float XAngle = std::atan2(Screen.XDirY, Screen.XDirX);
-        const float ZAngle = std::atan2(Screen.ZDirY, Screen.ZDirX);
-        AppendOverlayArc(Overlay, Screen.PivotX, Screen.PivotY, 34.0f, XAngle - 0.55f, 1.10f,
-                         HoveredHandle == ParametricGizmoHandle::Rotate ? Highlight : XPacked, 2.0f, 16u);
-        AppendOverlayArc(Overlay, Screen.PivotX, Screen.PivotY, 40.0f, ZAngle - 0.55f, 1.10f,
-                         HoveredHandle == ParametricGizmoHandle::Rotate ? Highlight : ZPacked, 1.8f, 16u);
-        AppendOverlayCircle(Overlay, Screen.PivotX, Screen.PivotY, 10.0f, White, 1.8f);
+        AddRing(AxisZ, AxisY, 64.0, HoveredHandle == ParametricGizmoHandle::Rotate ? Highlight : XPacked, 2.2f);
+        AddRing(AxisX, AxisZ, 70.0, HoveredHandle == ParametricGizmoHandle::Rotate ? Highlight : ZPacked, 2.2f);
+        AddRing(AxisX, AxisY, 58.0, HoveredHandle == ParametricGizmoHandle::Rotate ? Highlight : YPacked, 2.2f);
+        AddScreenHandle(82.0, HoveredHandle == ParametricGizmoHandle::Rotate ? Highlight : White);
     }
     else
     {
-        Overlay.AddLine(Screen.PivotX, Screen.PivotY, XEndX, XEndY,
-                        HoveredHandle == ParametricGizmoHandle::ScaleX ? Highlight : XPacked, 2.1f);
-        Overlay.AddLine(Screen.PivotX, Screen.PivotY, ZEndX, ZEndY,
-                        HoveredHandle == ParametricGizmoHandle::ScaleZ ? Highlight : ZPacked, 2.1f);
-        AppendOverlaySquare(Overlay, XEndX, XEndY, 4.5f,
-                            HoveredHandle == ParametricGizmoHandle::ScaleX ? Highlight : XPacked, 1.8f);
-        AppendOverlaySquare(Overlay, ZEndX, ZEndY, 4.5f,
-                            HoveredHandle == ParametricGizmoHandle::ScaleZ ? Highlight : ZPacked, 1.8f);
-        AppendOverlayCircle(Overlay, Screen.PivotX, Screen.PivotY, 10.0f,
-                            HoveredHandle == ParametricGizmoHandle::ScaleFree ? Highlight : White, 1.8f);
+        const std::uint32_t XColour = HoveredHandle == ParametricGizmoHandle::ScaleX ? Highlight : XPacked;
+        const std::uint32_t ZColour = HoveredHandle == ParametricGizmoHandle::ScaleZ ? Highlight : ZPacked;
+        AddCylinderShaft(AxisX, AxisY, XColour, HoveredHandle == ParametricGizmoHandle::ScaleX);
+        AddCylinderShaft(AxisZ, AxisY, ZColour, HoveredHandle == ParametricGizmoHandle::ScaleZ);
+        AddBox(Added(Pivot, Scaled(AxisX, 94.0)), AxisX, AxisY, AxisZ, 8.0, 8.0, 8.0, XColour);
+        AddBox(Added(Pivot, Scaled(AxisZ, 94.0)), AxisZ, AxisY, AxisX, 8.0, 8.0, 8.0, ZColour);
+        const std::uint32_t FreeColour = HoveredHandle == ParametricGizmoHandle::ScaleFree ? Highlight : White;
+        AddBox(Pivot, AxisX, AxisY, AxisZ, 10.0, 10.0, 10.0, FreeColour);
+        const SpatialPoint C = Added(Pivot, Added(Scaled(AxisX, 32.0), Scaled(AxisZ, 32.0)));
+        AddWorldQuad(Added(C, Added(Scaled(AxisX, -13.0), Scaled(AxisZ, -13.0))),
+                     Added(C, Added(Scaled(AxisX,  13.0), Scaled(AxisZ, -13.0))),
+                     Added(C, Added(Scaled(AxisX,  13.0), Scaled(AxisZ,  13.0))),
+                     Added(C, Added(Scaled(AxisX, -13.0), Scaled(AxisZ,  13.0))),
+                     PlaneFill, FreeColour);
     }
 
     if (Transform.Engaged)
     {
-        float GuideX = 0.0f;
-        float GuideY = 0.0f;
+        SpatialDirection GuideAxis = {};
         bool Guided = false;
         if (Transform.Constraint == ParametricTransformConstraint::AxisX)
         {
-            GuideX = Screen.XDirX;
-            GuideY = Screen.XDirY;
+            GuideAxis = AxisX;
             Guided = true;
         }
         else if (Transform.Constraint == ParametricTransformConstraint::AxisZ)
         {
-            GuideX = Screen.ZDirX;
-            GuideY = Screen.ZDirY;
+            GuideAxis = AxisZ;
             Guided = true;
         }
         else if (Transform.Constraint == ParametricTransformConstraint::Curve)
         {
-            GuideX = static_cast<float>(Dot(Transform.CurveDirection, Basis.Along) * Screen.XDirX
-                                      + Dot(Transform.CurveDirection, Basis.Across) * Screen.ZDirX);
-            GuideY = static_cast<float>(Dot(Transform.CurveDirection, Basis.Along) * Screen.XDirY
-                                      + Dot(Transform.CurveDirection, Basis.Across) * Screen.ZDirY);
-            const float Length = std::sqrt(GuideX * GuideX + GuideY * GuideY);
-            if (Length > 1.0e-4f)
-            {
-                GuideX /= Length;
-                GuideY /= Length;
-                Guided = true;
-            }
+            GuideAxis = Transform.CurveDirection;
+            Guided = true;
         }
-
         if (Guided)
-        {
-            const float Span = std::max(Extent.Width(), Extent.Height());
-            Overlay.AddLine(Screen.PivotX - GuideX * Span, Screen.PivotY - GuideY * Span,
-                            Screen.PivotX + GuideX * Span, Screen.PivotY + GuideY * Span,
-                            Guide, 1.5f);
-        }
+            AddWorldLine(Added(Pivot, Scaled(GuideAxis, -1000.0)), Added(Pivot, Scaled(GuideAxis, 1000.0)), Guide, 1.5f);
     }
 }
 
