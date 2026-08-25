@@ -39,6 +39,7 @@
 #include "SlateVulkan/Device/WorkspaceCadPass/Api/WorkspaceCadPass.h"
 #include "SlateVulkan/Device/WorkspaceOverlayPass/Api/WorkspaceOverlayPass.h"
 #include "SlateDocument/Format/WorkspaceSceneActivation/Api/WorkspaceSceneActivation.h"
+#include "SlateDocument/Format/SceneMeshImport/Api/SceneMeshImport.h"
 
 #include <algorithm>
 #include <cmath>
@@ -308,7 +309,8 @@ void PopulateImportDirectory(ContentBrowserConfiguration& Browser, const std::fi
         if (Error) { Error.clear(); Written.Octets = 0u; }
         std::snprintf(Written.Naming, sizeof(Written.Naming), "%s", Name.c_str());
         std::snprintf(Written.Extension, sizeof(Written.Extension), "%s", Extension.c_str());
-        Written.Supported = Written.Directory || Extension == ".codex" || Extension == ".sketch";
+        Written.Supported = Written.Directory || Extension == ".codex" || Extension == ".sketch" ||
+                            SceneMeshFormatSupported(Current.path().string());
     }
 }
 
@@ -3313,13 +3315,154 @@ bool ProjectSceneProxyPoint(const SpatialBasis& Basis,
     return ProjectWorldPoint(Basis, View, Perspective, Extent, Position, ScreenX, ScreenY);
 }
 
+void SeedSceneDirectoryTransformsFromCodex(const WorkspaceCodex& Scene,
+                                           const SketchSceneDirectoryStorage& Storage,
+                                           SceneDirectoryContext& Applied)
+{
+    if (Applied.TransformSeeded)
+        return;
+    for (std::uint32_t Row = 0u; Row < Storage.RowCount && Row < SceneDirectoryContext::EntityLimit; ++Row)
+    {
+        const StableRowIdentity Identity = Storage.Rows[Row].Identity;
+        if (Identity < 6200u)
+            continue;
+        const std::uint32_t SceneIndex = Identity - 6200u;
+        if (SceneIndex >= Scene.Scene.size())
+            continue;
+        const CodexSceneEntry& Entry = Scene.Scene[SceneIndex];
+        for (std::uint32_t Axis = 0u; Axis < 3u; ++Axis)
+        {
+            Applied.EntityPosition[Row][Axis] = Entry.Position[Axis];
+            Applied.EntityRotation[Row][Axis] = Entry.Rotation[Axis];
+            Applied.EntityScale[Row][Axis] = Entry.Scale[Axis];
+        }
+    }
+    Applied.TransformSeeded = true;
+}
+
+void SynchroniseCodexTransformsFromSceneDirectory(WorkspaceCodex& Scene,
+                                                  const SketchSceneDirectoryStorage& Storage,
+                                                  const SceneDirectoryContext& Applied,
+                                                  bool SceneStanding)
+{
+    if (!SceneStanding)
+        return;
+    for (std::uint32_t Row = 0u; Row < Storage.RowCount && Row < SceneDirectoryContext::EntityLimit; ++Row)
+    {
+        const StableRowIdentity Identity = Storage.Rows[Row].Identity;
+        if (Identity < 6200u)
+            continue;
+        const std::uint32_t SceneIndex = Identity - 6200u;
+        if (SceneIndex >= Scene.Scene.size())
+            continue;
+        CodexSceneEntry& Entry = Scene.Scene[SceneIndex];
+        for (std::uint32_t Axis = 0u; Axis < 3u; ++Axis)
+        {
+            Entry.Position[Axis] = Applied.EntityPosition[Row][Axis];
+            Entry.Rotation[Axis] = Applied.EntityRotation[Row][Axis];
+            Entry.Scale[Axis] = Applied.EntityScale[Row][Axis] == 0.0 ? 1.0 : Applied.EntityScale[Row][Axis];
+        }
+    }
+}
+
+bool ResolveSelectedSceneMeshPivot(const WorkspaceCodex& Scene,
+                                   bool SceneStanding,
+                                   const SketchSceneDirectoryStorage& Storage,
+                                   const SceneDirectoryContext& Applied,
+                                   SpatialPoint& Pivot)
+{
+    if (!SceneStanding || Applied.EntityTaken >= Storage.RowCount || Applied.EntityTaken >= SceneDirectoryContext::EntityLimit)
+        return false;
+    const StableRowIdentity Identity = Storage.Rows[Applied.EntityTaken].Identity;
+    if (Identity < 6200u)
+        return false;
+    const std::uint32_t SceneIndex = Identity - 6200u;
+    if (SceneIndex >= Scene.Scene.size() || Scene.Scene[SceneIndex].Subject != CodexSceneSubject::Geometry)
+        return false;
+    Pivot = CodexScenePosition(Scene.Scene[SceneIndex]);
+    return true;
+}
+
+bool SelectSceneMeshAtPointer(const PlaneExtent& Extent,
+                              const PointerCondition& Pointer,
+                              const SpatialBasis& Basis,
+                              const ParametricViewportState& View,
+                              bool Perspective,
+                              const WorkspaceCodex& Scene,
+                              bool SceneStanding,
+                              const SketchSceneDirectoryStorage& Storage,
+                              SceneDirectoryContext& Applied)
+{
+    if (!SceneStanding || !Pointer.ContactPressed || !Extent.Encloses(Pointer.PositionX, Pointer.PositionY))
+        return false;
+
+    std::uint32_t BestRow = SceneDirectoryContext::EntityLimit;
+    double BestArea = 1.0e300;
+    for (std::uint32_t Row = 0u; Row < Storage.RowCount && Row < SceneDirectoryContext::EntityLimit; ++Row)
+    {
+        const StableRowIdentity Identity = Storage.Rows[Row].Identity;
+        if (Identity < 6200u)
+            continue;
+        const std::uint32_t SceneIndex = Identity - 6200u;
+        if (SceneIndex >= Scene.Scene.size())
+            continue;
+        const CodexSceneEntry& Entry = Scene.Scene[SceneIndex];
+        const CodexSceneMesh* Mesh = nullptr;
+        for (const CodexSceneMesh& Candidate : Scene.SceneMeshes)
+            if (Candidate.Naming == Entry.GeometryReference)
+            {
+                Mesh = &Candidate;
+                break;
+            }
+        if (Mesh == nullptr || Mesh->Positions.size() < 3u)
+            continue;
+
+        const SpatialPoint Centre = CodexScenePosition(Entry);
+        float MinX = 1.0e30f, MinY = 1.0e30f, MaxX = -1.0e30f, MaxY = -1.0e30f;
+        for (std::size_t Vertex = 0u; Vertex * 3u + 2u < Mesh->Positions.size(); ++Vertex)
+        {
+            float X = 0.0f, Y = 0.0f;
+            if (!ProjectSceneProxyPoint(Basis, View, Perspective, Extent, Centre,
+                Mesh->Positions[Vertex * 3u + 0u] * Entry.Scale[0] * CodexSceneMetreScale,
+                Mesh->Positions[Vertex * 3u + 1u] * Entry.Scale[1] * CodexSceneMetreScale,
+                Mesh->Positions[Vertex * 3u + 2u] * Entry.Scale[2] * CodexSceneMetreScale, X, Y))
+                continue;
+            MinX = std::min(MinX, X); MinY = std::min(MinY, Y);
+            MaxX = std::max(MaxX, X); MaxY = std::max(MaxY, Y);
+        }
+        if (MinX > MaxX || MinY > MaxY)
+            continue;
+        const float Pad = 8.0f;
+        if (Pointer.PositionX + Pad < MinX || Pointer.PositionX - Pad > MaxX ||
+            Pointer.PositionY + Pad < MinY || Pointer.PositionY - Pad > MaxY)
+            continue;
+        const double Area = static_cast<double>(MaxX - MinX) * static_cast<double>(MaxY - MinY);
+        if (Area < BestArea)
+        {
+            BestArea = Area;
+            BestRow = Row;
+        }
+    }
+
+    if (BestRow >= SceneDirectoryContext::EntityLimit)
+        return false;
+    for (bool& Selected : Applied.EntitySelected)
+        Selected = false;
+    Applied.EntitySelected[BestRow] = true;
+    Applied.EntityTaken = BestRow;
+    Applied.EntitySelectionAnchor = BestRow;
+    return true;
+}
+
 void RecordCodexSceneProxy(RecordingSurface& Surface,
                            const PlaneExtent& Extent,
                            const SpatialBasis& Basis,
                            const ParametricViewportState& View,
                            bool Perspective,
                            const WorkspaceCodex& Scene,
-                           bool SceneStanding)
+                           bool SceneStanding,
+                           const SketchSceneDirectoryStorage& Storage,
+                           const SceneDirectoryContext& Applied)
 {
     if (!SceneStanding)
         return;
@@ -3328,10 +3471,12 @@ void RecordCodexSceneProxy(RecordingSurface& Surface,
     const ThemeToken Fill = Partial(0xF4F1E8u, 0.34);
     const ThemeToken FaceLit = Partial(0xFFFFFFu, 0.22);
     const ThemeToken Edge = Partial(0xE7E3D8u, 0.74);
+    const ThemeToken SelectedEdge = Partial(0xFBBF24u, 0.95);
     const ThemeToken Floor = Partial(0xFFFFFFu, 0.08);
 
-    for (const CodexSceneEntry& Entry : Scene.Scene)
+    for (std::uint32_t SceneIndex = 0u; SceneIndex < Scene.Scene.size(); ++SceneIndex)
     {
+        const CodexSceneEntry& Entry = Scene.Scene[SceneIndex];
         if (Entry.Subject != CodexSceneSubject::Geometry)
             continue;
 
@@ -3393,6 +3538,13 @@ void RecordCodexSceneProxy(RecordingSurface& Surface,
             continue;
 
         const bool IsFloor = std::strstr(Entry.Naming.c_str(), "Floor") != nullptr;
+        const bool Selected = [&]()
+        {
+            for (std::uint32_t Row = 0u; Row < Storage.RowCount && Row < SceneDirectoryContext::EntityLimit; ++Row)
+                if (Storage.Rows[Row].Identity == 6200u + SceneIndex && Applied.EntitySelected[Row])
+                    return true;
+            return false;
+        }();
         const auto Triangle = [&](std::uint32_t A, std::uint32_t B, std::uint32_t C, ThemeToken Colour)
         {
             const float Corners[6] = { X[A], Y[A], X[B], Y[B], X[C], Y[C] };
@@ -3402,7 +3554,7 @@ void RecordCodexSceneProxy(RecordingSurface& Surface,
         {
             const float PointsX[2] = { X[A], X[B] };
             const float PointsY[2] = { Y[A], Y[B] };
-            Surface.Polyline(PointsX, PointsY, 2u, Edge, 1.1f);
+            Surface.Polyline(PointsX, PointsY, 2u, Selected ? SelectedEdge : Edge, Selected ? 1.8f : 1.1f);
         };
 
         if (IsFloor)
@@ -5385,6 +5537,8 @@ int main(int ArgumentCount, char** ArgumentValues)
         else
             SceneDirectoryStorage = SketchSceneDirectoryStorage{};
         AppendSketchCadReferences(Records, SceneDirectoryStorage);
+        if (OpenedSceneStanding)
+            SeedSceneDirectoryTransformsFromCodex(OpenedScene, SceneDirectoryStorage, SceneApplied);
         PresentedSceneRows = SceneDirectoryStorage.RowCount > 0u ? SceneDirectoryStorage.Rows : nullptr;
         PresentedSceneRowCount = SceneDirectoryStorage.RowCount;
 
@@ -5538,9 +5692,15 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                          Naming, Sketch, Records, Revisions,
                                                          PendingSelection, Draft, PointerTaken);
 
+                            if (!PointerTaken && PointerInside && ToolsApplied.ActiveSubject == ParametricToolSubject::Select)
+                                PointerTaken = SelectSceneMeshAtPointer(LeafBody, BackgroundPointer, Basis, View,
+                                                                        PanelConfiguration[Index].Perspective,
+                                                                        OpenedScene, OpenedSceneStanding,
+                                                                        SceneDirectoryStorage, SceneApplied);
                             RecordCodexSceneProxy(Viewport.Surface(), LeafBody, Basis, View,
                                                   PanelConfiguration[Index].Perspective,
-                                                  OpenedScene, OpenedSceneStanding);
+                                                  OpenedScene, OpenedSceneStanding,
+                                                  SceneDirectoryStorage, SceneApplied);
 
                             Discard(SynchroniseCadPacket(Sketch, Records, CadPacket));
                             if (!CadPass.Standing())
@@ -5555,6 +5715,20 @@ int main(int ArgumentCount, char** ArgumentValues)
                             RecordConstraintGlyphs(Viewport.Surface(), LeafBody, Sketch, View,
                                                    PanelConfiguration[Index].Perspective);
                             RecordProfileValidationReadout(Viewport.Surface(), LeafBody, Sketch);
+                            if (LeafOverlay != nullptr)
+                            {
+                                SpatialPoint ScenePivot = {};
+                                if (ResolveSelectedSceneMeshPivot(OpenedScene, OpenedSceneStanding,
+                                                                  SceneDirectoryStorage, SceneApplied, ScenePivot))
+                                {
+                                    ParametricViewportSelection SceneSelection = {};
+                                    SceneSelection.Subject = ParametricSelectionSubject::Record;
+                                    SceneSelection.Position = ScenePivot;
+                                    RecordViewportGizmo(*LeafOverlay, LeafBody, Basis, View,
+                                                        PanelConfiguration[Index].Perspective,
+                                                        SceneSelection, ParametricGizmoHandle::None, Transform);
+                                }
+                            }
                             RecordViewportTransformReadout(Viewport.Surface(), LeafBody, Transform);
                             if (LeafOverlay != nullptr && !OverlayPass.Standing())
                                 RecordViewportOverlayFallback(Viewport.Surface(), LeafBody, *LeafOverlay);
@@ -5654,6 +5828,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                     const WorkspaceCodex& Loaded = Workspace.Resolve().Workspace;
                     OpenedScene = Loaded;
                     OpenedSceneStanding = true;
+                    SceneApplied.TransformSeeded = false;
                     ApplySketchSceneEnvironment(OpenedScene, SceneApplied);
 
                     SpatialPoint Focus = {};
@@ -5682,6 +5857,40 @@ int main(int ArgumentCount, char** ArgumentValues)
                     }
                 }
                 ContentBrowserApplied.ActivationRequested = ContentLibrary::AbsentIndex;
+            }
+
+            if (ContentBrowserApplied.ImportConfirmed)
+            {
+                if (ContentBrowserApplied.ImportTaken < ContentBrowserApplied.ImportEntryCount &&
+                    !ContentBrowserApplied.ImportEntries[ContentBrowserApplied.ImportTaken].Directory)
+                {
+                    const std::filesystem::path ImportPath = std::filesystem::path(ContentBrowserApplied.ImportLocation) /
+                        ContentBrowserApplied.ImportEntries[ContentBrowserApplied.ImportTaken].Naming;
+                    const Outcome<ImportedSceneMesh> Imported = ImportSceneMeshFile(ImportPath.string());
+                    if (!Imported.Resolved)
+                    {
+                        std::printf("%s — mesh import refused (reason %u: %s)\n", HostName,
+                                    static_cast<unsigned>(Imported.Error.DeclaredReason), Imported.Error.Detail);
+                    }
+                    else
+                    {
+                        if (!OpenedSceneStanding)
+                        {
+                            OpenedScene = {};
+                            OpenedScene.Naming = "Imported Mesh Scene";
+                            OpenedSceneStanding = true;
+                        }
+                        OpenedScene.Scene.push_back(Imported.Resolve().Entry);
+                        OpenedScene.SceneMeshes.push_back(Imported.Resolve().Mesh);
+                        SceneApplied.TransformSeeded = false;
+                        std::printf("%s — imported mesh %s (%zu vertices, %zu triangles, %zu material slots)\n",
+                                    HostName, Imported.Resolve().Entry.Naming.c_str(),
+                                    Imported.Resolve().Mesh.Positions.size() / 3u,
+                                    Imported.Resolve().Mesh.Indices.size() / 3u,
+                                    Imported.Resolve().MaterialSlots.size());
+                    }
+                }
+                ContentBrowserApplied.ImportConfirmed = false;
             }
 
             if (ContentBrowserApplied.ImportBrowseRequested)
@@ -5800,6 +6009,8 @@ int main(int ArgumentCount, char** ArgumentValues)
                                SceneApplied,
                                TabPressed && PointerInScene && !PointerBehindDrawer,
                                Viewport.Seam().Modifiers());
+        SynchroniseCodexTransformsFromSceneDirectory(OpenedScene, SceneDirectoryStorage,
+                                                     SceneApplied, OpenedSceneStanding);
 
         if (ParametricApplied.SearchTaken)
         {
