@@ -118,6 +118,8 @@ void HashLayer(std::uint64_t& Hash, const MaterialProcessingLayerSnapshot& Snaps
     HashValue(Hash, Layer.Coverage.SourceIndex);
     HashPainted(Hash, Layer.Coverage.Painted);
     HashValue(Hash, Layer.Coverage.UniformStrength);
+    HashValue(Hash, Layer.Coverage.ChannelMask);
+    HashValue(Hash, Layer.Coverage.Inverted);
     HashValue(Hash, Layer.Coverage.CoverageDeclared);
     HashPainted(Hash, Layer.Painted);
     const std::uint64_t NameLength = static_cast<std::uint64_t>(Layer.Name.size());
@@ -237,6 +239,138 @@ Outcome<bool> MaterialProcessingExchange::DeclareColour(MaterialSpecification& M
     return Material.DeclareChannel(Channel, Amended);
 }
 
+Outcome<MaterialLayerCommandResult> MaterialProcessingExchange::ApplyLayerCommand(
+    SurfaceLayerSequence& Layers,
+    const MaterialLayerCommand& Command) const
+{
+    MaterialLayerCommandResult Result;
+    Result.Action = Command.Action;
+
+    switch (Command.Action)
+    {
+        case MaterialLayerCommandAction::AddLayer:
+        {
+            LayerSpecification Layer = Command.Layer;
+            if (Layer.Name.empty()) Layer.Name = "Layer";
+            if (Layer.Source == LayerContentSource::PaintedImpressions && Layer.Painted.Texels.empty())
+                Layer.Source = LayerContentSource::MaterialConstants;
+            const Outcome<LayerIdentity> Added = Layers.Append(Layer);
+            if (!Added.Resolved) return Outcome<MaterialLayerCommandResult>::Refuse(Added.Error);
+            Result.Identity = Added.Resolve();
+            Result.StructuralChange = true;
+            return Outcome<MaterialLayerCommandResult>::Result(Result);
+        }
+        case MaterialLayerCommandAction::AddFolder:
+        {
+            const Outcome<std::uint32_t> Nested = Layers.Nest();
+            if (!Nested.Resolved) return Outcome<MaterialLayerCommandResult>::Refuse(Nested.Error);
+            LayerSpecification Folder = Command.Layer;
+            Folder.Name = Folder.Name.empty() ? "Folder" : Folder.Name;
+            Folder.Source = LayerContentSource::NestedSequence;
+            Folder.NestedIndex = Nested.Resolve();
+            const Outcome<LayerIdentity> Added = Layers.Append(Folder);
+            if (!Added.Resolved) return Outcome<MaterialLayerCommandResult>::Refuse(Added.Error);
+            Result.Identity = Added.Resolve();
+            Result.NestedIndex = Nested.Resolve();
+            Result.StructuralChange = true;
+            return Outcome<MaterialLayerCommandResult>::Result(Result);
+        }
+        case MaterialLayerCommandAction::Remove:
+        {
+            const Outcome<std::uint32_t> Position = Layers.PositionOf(Command.Subject);
+            const Outcome<LayerSpecification> Removed = Layers.Withdraw(Command.Subject);
+            if (!Removed.Resolved) return Outcome<MaterialLayerCommandResult>::Refuse(Removed.Error);
+            Result.Identity = Command.Subject;
+            Result.PreviousPosition = Position.Resolved ? Position.Resolve() : 0u;
+            Result.StructuralChange = true;
+            return Outcome<MaterialLayerCommandResult>::Result(Result);
+        }
+        case MaterialLayerCommandAction::Duplicate:
+        {
+            const Outcome<const LayerSpecification*> Source = Layers.Resolve(Command.Subject);
+            if (!Source.Resolved) return Outcome<MaterialLayerCommandResult>::Refuse(Source.Error);
+            LayerSpecification Copy = *Source.Resolve();
+            Copy.Identity = {};
+            Copy.Mandatory = false;
+            if (!Command.Name.empty()) Copy.Name = Command.Name;
+            const Outcome<LayerIdentity> Added = Layers.Append(Copy);
+            if (!Added.Resolved) return Outcome<MaterialLayerCommandResult>::Refuse(Added.Error);
+            Result.Identity = Added.Resolve();
+            Result.StructuralChange = true;
+            return Outcome<MaterialLayerCommandResult>::Result(Result);
+        }
+        case MaterialLayerCommandAction::Reorder:
+        {
+            const Outcome<std::uint32_t> Previous = Layers.Reorder(Command.Subject, Command.Position);
+            if (!Previous.Resolved) return Outcome<MaterialLayerCommandResult>::Refuse(Previous.Error);
+            Result.Identity = Command.Subject;
+            Result.PreviousPosition = Previous.Resolve();
+            Result.StructuralChange = true;
+            return Outcome<MaterialLayerCommandResult>::Result(Result);
+        }
+        case MaterialLayerCommandAction::MoveToFolder:
+        {
+            const Outcome<SurfaceLayerSequence*> Nested = Layers.AmendNested(Command.NestedIndex);
+            if (!Nested.Resolved) return Outcome<MaterialLayerCommandResult>::Refuse(Nested.Error);
+            const Outcome<LayerSpecification> Moving = Layers.Withdraw(Command.Subject);
+            if (!Moving.Resolved) return Outcome<MaterialLayerCommandResult>::Refuse(Moving.Error);
+            LayerSpecification Layer = Moving.Resolve();
+            Layer.Identity = {};
+            Layer.Mandatory = false;
+            const Outcome<LayerIdentity> Added = Nested.Resolve()->Append(Layer);
+            if (!Added.Resolved) return Outcome<MaterialLayerCommandResult>::Refuse(Added.Error);
+            Result.Identity = Added.Resolve();
+            Result.StructuralChange = true;
+            return Outcome<MaterialLayerCommandResult>::Result(Result);
+        }
+        case MaterialLayerCommandAction::Rename:
+        {
+            const Outcome<std::string> Renamed = Layers.DeclareName(Command.Subject, Command.Name);
+            if (!Renamed.Resolved) return Outcome<MaterialLayerCommandResult>::Refuse(Renamed.Error);
+            Result.Identity = Command.Subject;
+            return Outcome<MaterialLayerCommandResult>::Result(Result);
+        }
+        case MaterialLayerCommandAction::Presence:
+        {
+            const Outcome<bool> Presence = Layers.DeclarePresence(Command.Subject, Command.PresenceEnabled);
+            if (!Presence.Resolved) return Outcome<MaterialLayerCommandResult>::Refuse(Presence.Error);
+            Result.Identity = Command.Subject;
+            return Outcome<MaterialLayerCommandResult>::Result(Result);
+        }
+        case MaterialLayerCommandAction::Source:
+        {
+            const Outcome<LayerContentSource> Source = Layers.DeclareSource(Command.Subject, Command.Source);
+            if (!Source.Resolved) return Outcome<MaterialLayerCommandResult>::Refuse(Source.Error);
+            Result.Identity = Command.Subject;
+            return Outcome<MaterialLayerCommandResult>::Result(Result);
+        }
+        case MaterialLayerCommandAction::ChannelMask:
+        {
+            const Outcome<std::uint32_t> Mask = Layers.DeclareChannelMask(Command.Subject, Command.ChannelMask);
+            if (!Mask.Resolved) return Outcome<MaterialLayerCommandResult>::Refuse(Mask.Error);
+            Result.Identity = Command.Subject;
+            return Outcome<MaterialLayerCommandResult>::Result(Result);
+        }
+        case MaterialLayerCommandAction::Coverage:
+        {
+            const Outcome<CoverageSpecification> Coverage = Layers.DeclareCoverage(Command.Subject, Command.Coverage);
+            if (!Coverage.Resolved) return Outcome<MaterialLayerCommandResult>::Refuse(Coverage.Error);
+            Result.Identity = Command.Subject;
+            return Outcome<MaterialLayerCommandResult>::Result(Result);
+        }
+        case MaterialLayerCommandAction::Combination:
+        {
+            const Outcome<CombineSpecification> Combination = Layers.DeclareCombination(Command.Subject, Command.Combination);
+            if (!Combination.Resolved) return Outcome<MaterialLayerCommandResult>::Refuse(Combination.Error);
+            Result.Identity = Command.Subject;
+            return Outcome<MaterialLayerCommandResult>::Result(Result);
+        }
+    }
+
+    return Outcome<MaterialLayerCommandResult>::Refuse(
+        { RefusalReason::ContentUnsupported, "no such material layer command" });
+}
+
 MaterialProcessingSnapshot MaterialProcessingExchange::Capture(const MaterialSpecification& Material,
                                                                const SurfaceLayerSequence& Layers,
                                                                const PhysicalSurfaceDeclaration& PhysicalDeclaration) const
@@ -335,6 +469,51 @@ Outcome<MaterialLiveChannelPreview> MaterialProcessingExchange::ResolveLiveChann
     Produced.MaterialFingerprint = Snapshot.DirtyKey.Combined;
     Produced.PhysicalSurfaceResolved = Snapshot.PhysicalSurfaceResolved;
     return Outcome<MaterialLiveChannelPreview>::Result(Produced);
+}
+
+Outcome<MaterialLayerCoveragePreview> MaterialProcessingExchange::ResolveLayerCoveragePreview(
+    const MaterialProcessingSnapshot& Snapshot,
+    LayerIdentity Layer,
+    ChannelSubject Channel) const
+{
+    if (Channel >= ChannelSubject::ChannelCount)
+        return Outcome<MaterialLayerCoveragePreview>::Refuse(
+            { RefusalReason::ContentUnsupported, "the closed channel count is not a material channel" });
+
+    for (const MaterialProcessingLayerSnapshot& Captured : Snapshot.Layers)
+    {
+        const LayerSpecification& Entry = Captured.Layer;
+        if (Entry.Identity.SlotIndex != Layer.SlotIndex || Entry.Identity.SlotGeneration != Layer.SlotGeneration)
+            continue;
+
+        MaterialLayerCoveragePreview Produced;
+        Produced.Identity = Entry.Identity;
+        Produced.Channel = Channel;
+        Produced.CoverageDeclared = Entry.Coverage.CoverageDeclared;
+        Produced.AffectedChannelMask = Entry.Coverage.ChannelMask;
+
+        const std::uint32_t TargetMask = Entry.Coverage.ChannelMask == 0u ? Entry.ChannelMask : Entry.Coverage.ChannelMask;
+        if (TargetMask != 0u && (TargetMask & ChannelBit(Channel)) == 0u)
+        {
+            Produced.Coverage = 1.0;
+        }
+        else if (!Entry.Coverage.CoverageDeclared)
+        {
+            Produced.Coverage = 1.0;
+        }
+        else
+        {
+            Produced.Coverage = std::clamp(Entry.Coverage.UniformStrength, 0.0, 1.0);
+            if (Entry.Coverage.Inverted) Produced.Coverage = 1.0 - Produced.Coverage;
+        }
+
+        Produced.LayerFingerprint = HashSeed;
+        HashLayer(Produced.LayerFingerprint, Captured);
+        return Outcome<MaterialLayerCoveragePreview>::Result(Produced);
+    }
+
+    return Outcome<MaterialLayerCoveragePreview>::Refuse(
+        { RefusalReason::IdentityStale, "the layer no longer resolves in the material snapshot" });
 }
 
 MaterialProcessingCapabilities MaterialProcessingExchange::Capabilities() const

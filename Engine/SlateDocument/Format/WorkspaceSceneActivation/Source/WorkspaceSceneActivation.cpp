@@ -1,9 +1,44 @@
+//============================================================================================================================================
+//                                                WORKSPACESCENEACTIVATION.CPP
+//============================================================================================================================================
+
 #include "SlateDocument/Format/WorkspaceSceneActivation/Api/WorkspaceSceneActivation.h"
 
 #include "SlateDocument/Format/CodexInterchange/Api/CodexInterchange.h"
 
+#include <utility>
+
 namespace Slate
 {
+namespace
+{
+
+bool MeshReferenceDeclared(const WorkspaceCodex& Workspace, const std::string& Reference)
+{
+    for (const CodexSceneMesh& Mesh : Workspace.SceneMeshes)
+        if (Mesh.Naming == Reference)
+            return true;
+    return false;
+}
+
+bool MaterialReferenceDeclared(const WorkspaceCodex& Workspace, const std::string& Reference)
+{
+    for (const WorkspaceMaterialRecord& Material : Workspace.Materials)
+        if (Material.Reference == Reference)
+            return true;
+    return false;
+}
+
+bool MandatoryBaseLayerDeclared(const WorkspaceMaterialRecord& Material)
+{
+    if (Material.Layers.EntryCount() == 0u)
+        return false;
+
+    const LayerSpecification& First = Material.Layers.Entries().front();
+    return First.Mandatory && First.Name == "Base Material" && First.ChannelMask != 0u;
+}
+
+}
 
 Outcome<ActivatedWorkspaceScene> WorkspaceSceneActivation::Open(const std::string& CodexPath,
                                                                   const std::string& EngineContentPath) const
@@ -19,9 +54,21 @@ Outcome<ActivatedWorkspaceScene> WorkspaceSceneActivation::Open(const std::strin
 
     ActivatedWorkspaceScene Activated;
     Activated.Workspace = Decoded.Resolve();
+    EnsureWorkspaceMaterialRecords(Activated.Workspace);
+    Activated.Materials = Activated.Workspace.Materials;
+
     std::uint32_t SunCount = 0u;
     std::uint32_t SkyCount = 0u;
     std::uint32_t AtmosphereCount = 0u;
+
+    for (const WorkspaceMaterialRecord& Material : Activated.Materials)
+    {
+        if (Material.Reference.empty() || !MandatoryBaseLayerDeclared(Material))
+        {
+            return Outcome<ActivatedWorkspaceScene>::Refuse(
+                { RefusalReason::ContentUnsupported, "a workspace material lacks a mandatory Base Material layer" });
+        }
+    }
 
     for (const CodexSceneEntry& Entry : Activated.Workspace.Scene)
     {
@@ -33,10 +80,12 @@ Outcome<ActivatedWorkspaceScene> WorkspaceSceneActivation::Open(const std::strin
             if (Entry.GeometryReference.empty() || Entry.MaterialReference.empty())
                 return Outcome<ActivatedWorkspaceScene>::Refuse(
                     { RefusalReason::ContentUnsupported, "a workspace geometry entry lacks a source or material reference" });
-            if (Activated.SharedMaterialReference.empty()) Activated.SharedMaterialReference = Entry.MaterialReference;
-            if (Activated.SharedMaterialReference != Entry.MaterialReference)
+            if (!MeshReferenceDeclared(Activated.Workspace, Entry.GeometryReference))
                 return Outcome<ActivatedWorkspaceScene>::Refuse(
-                    { RefusalReason::ContentUnsupported, "the White Tea Service workspace must retain one shared material reference" });
+                    { RefusalReason::ContentUnsupported, "a workspace geometry entry references missing embedded mesh data" });
+            if (!MaterialReferenceDeclared(Activated.Workspace, Entry.MaterialReference))
+                return Outcome<ActivatedWorkspaceScene>::Refuse(
+                    { RefusalReason::ContentUnsupported, "a workspace geometry entry references a missing material" });
 
             ActivatedGeometryEntry Resolved;
             Resolved.Entry = Entry;
@@ -47,11 +96,10 @@ Outcome<ActivatedWorkspaceScene> WorkspaceSceneActivation::Open(const std::strin
         }
     }
 
-    if (SunCount != 1u || SkyCount != 1u || AtmosphereCount != 1u || Activated.Geometry.size() != 6u ||
-        Activated.SharedMaterialReference.empty())
+    if (SunCount != 1u || SkyCount != 1u || AtmosphereCount != 1u || Activated.Geometry.empty())
     {
         return Outcome<ActivatedWorkspaceScene>::Refuse(
-            { RefusalReason::ContentUnsupported, "the workspace does not declare one environment, six geometry entries, and one shared material" });
+            { RefusalReason::ContentUnsupported, "the workspace does not declare one environment and scene geometry" });
     }
 
     return Outcome<ActivatedWorkspaceScene>::Result(Activated);

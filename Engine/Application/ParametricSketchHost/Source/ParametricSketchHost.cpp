@@ -5882,6 +5882,9 @@ int main(int ArgumentCount, char** ArgumentValues)
                         }
                         OpenedScene.Scene.push_back(Imported.Resolve().Entry);
                         OpenedScene.SceneMeshes.push_back(Imported.Resolve().Mesh);
+                        for (const WorkspaceMaterialRecord& Material : Imported.Resolve().MaterialRecords)
+                            OpenedScene.Materials.push_back(Material);
+                        EnsureWorkspaceMaterialRecords(OpenedScene);
                         SceneApplied.TransformSeeded = false;
                         std::printf("%s — imported mesh %s (%zu vertices, %zu triangles, %zu material slots)\n",
                                     HostName, Imported.Resolve().Entry.Naming.c_str(),

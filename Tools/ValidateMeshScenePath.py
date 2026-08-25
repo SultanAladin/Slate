@@ -32,7 +32,9 @@ def main() -> None:
         checks.append(f"{ext} import route stands")
 
     require(import_cpp, "MaterialSlots")
-    checks.append("material slot capture stands")
+    require(import_cpp, "MaterialRecords")
+    require(import_cpp, "DefaultWorkspaceMaterialRecord")
+    checks.append("material slot capture and default material records stand")
 
     require(host_cpp, "SceneMeshFormatSupported(Current.path().string())")
     checks.append("Content Browser import directory recognises mesh formats")

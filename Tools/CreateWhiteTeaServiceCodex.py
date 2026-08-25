@@ -44,6 +44,56 @@ def codex(profile, identity, sections):
     stream[:64] = preamble
     return bytes(stream)
 
+def byte(v): return bytes([1 if v else 0])
+
+def colour(red, green, blue, space=1):
+    return f64(red) + f64(green) + f64(blue) + u32(space)
+
+def painted():
+    return u32(0) + u32(1) + u32(0)
+
+def scalar_channel(value, default):
+    return (u32(0) + u32(2) + f64(value) + colour(0., 0., 0., 0) +
+            f64(default) + colour(0., 0., 0., 0) + f64(0.) + f64(1.) + byte(True))
+
+def colour_channel(red, green, blue):
+    c = colour(red, green, blue)
+    return u32(0) + u32(0) + f64(0.) + c + f64(0.) + c + f64(0.) + f64(1.) + byte(True)
+
+def absent_channel():
+    return (u32(4) + u32(2) + f64(0.) + colour(0., 0., 0., 0) +
+            f64(0.) + colour(0., 0., 0., 0) + f64(0.) + f64(1.) + byte(False))
+
+def coverage():
+    return u32(3) + u32(0) + painted() + f64(1.) + u32(0) + byte(False) + byte(False)
+
+def material_layer():
+    channel_mask = (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3) | (1 << 5) | (1 << 6) | (1 << 7)
+    return (u32(0) + u32(1) + u32(5) + u32(0) + u32(0) + u32(channel_mask) + u32(0) +
+            coverage() + painted() + run("Base Material") + byte(True) + byte(True) + byte(False))
+
+def material_record(reference):
+    channels = []
+    for index in range(20):
+        if index == 0:
+            channels.append(colour_channel(1., 1., 1.))
+        elif index == 1:
+            channels.append(scalar_channel(0., 0.))
+        elif index == 2:
+            channels.append(scalar_channel(0.5, 0.5))
+        elif index == 3:
+            channels.append(scalar_channel(0.04, 0.04))
+        elif index == 5:
+            channels.append(scalar_channel(1., 1.))
+        elif index == 6:
+            channels.append(colour_channel(0., 0., 0.))
+        elif index == 7:
+            channels.append(scalar_channel(1., 1.))
+        else:
+            channels.append(absent_channel())
+    return (run(reference) + u32(0) + f64(0.5) + byte(False) +
+            b"".join(channels) + u32(1) + material_layer())
+
 def scene_entry(subject, name, geometry, material, position, rotation=(0.,0.,0.), scale=(1.,1.,1.)):
     return u32(subject) + run(name) + run(geometry) + run(material) + b"".join(f64(x) for x in position + rotation + scale)
 
@@ -91,10 +141,11 @@ def main():
         box_mesh("Mesh/Floor", 1.000, .001, 1.000),
     ]
     mesh_section = u32(len(meshes)) + b"".join(meshes)
+    materials = u32(1) + material_record(material)
     embedded = u32(0)
     (CONTENT / "WhiteTeaService.codex").write_bytes(codex(0, 0x5748544541534552,
         [(0x4D414E57, naming), (0x564E4557, environment), (0x454E4353, scene),
-         (0x4853454D, mesh_section), (0x44424D45, embedded)]))
+         (0x4853454D, mesh_section), (0x5354414D, materials), (0x44424D45, embedded)]))
 
 if __name__ == "__main__":
     main()

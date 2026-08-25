@@ -125,6 +125,48 @@ Outcome<std::string> SurfaceLayerSequence::DeclareName(LayerIdentity Subject, co
     return Outcome<std::string>::Result(Prior);
 }
 
+Outcome<std::uint32_t> SurfaceLayerSequence::DeclareChannelMask(LayerIdentity Subject,
+                                                               std::uint32_t  ChannelMask)
+{
+    const std::size_t Located_ = Located(Subject);
+    if (Located_ == Sequenced.size())
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::IdentityStale, "the entry no longer resolves" });
+
+    const std::uint32_t Prior = Sequenced[Located_].ChannelMask;
+    Sequenced[Located_].ChannelMask = ChannelMask;
+    return Outcome<std::uint32_t>::Result(Prior);
+}
+
+Outcome<LayerContentSource> SurfaceLayerSequence::DeclareSource(LayerIdentity      Subject,
+                                                               LayerContentSource Source)
+{
+    const std::size_t Located_ = Located(Subject);
+    if (Located_ == Sequenced.size())
+        return Outcome<LayerContentSource>::Refuse({ RefusalReason::IdentityStale, "the entry no longer resolves" });
+
+    if (Source == LayerContentSource::SourceCount)
+        return Outcome<LayerContentSource>::Refuse({ RefusalReason::ContentUnsupported, "no such layer source" });
+
+    const LayerContentSource Prior = Sequenced[Located_].Source;
+    Sequenced[Located_].Source = Source;
+    return Outcome<LayerContentSource>::Result(Prior);
+}
+
+Outcome<CoverageSpecification> SurfaceLayerSequence::DeclareCoverage(LayerIdentity                Subject,
+                                                                    const CoverageSpecification& Coverage)
+{
+    const std::size_t Located_ = Located(Subject);
+    if (Located_ == Sequenced.size())
+        return Outcome<CoverageSpecification>::Refuse({ RefusalReason::IdentityStale, "the entry no longer resolves" });
+
+    if (Coverage.Source == LayerContentSource::SourceCount)
+        return Outcome<CoverageSpecification>::Refuse({ RefusalReason::ContentUnsupported, "no such coverage source" });
+
+    const CoverageSpecification Prior = Sequenced[Located_].Coverage;
+    Sequenced[Located_].Coverage = Coverage;
+    return Outcome<CoverageSpecification>::Result(Prior);
+}
+
 Outcome<CombineSpecification> SurfaceLayerSequence::DeclareCombination(LayerIdentity        Subject,
                                                                        CombineSpecification Declaring)
 {

@@ -106,6 +106,8 @@ struct CoverageSpecification
     std::uint32_t       SourceIndex   = 0u;      // [-] - into `54`, `52` or `50`
     PaintedContent      Painted         = {};      // [-] - read at PaintedImpressions
     double              UniformStrength = 1.0;     // [-] - applied to whatever the source resolves
+    std::uint32_t       ChannelMask     = 0u;      // [-] - zero means every channel the layer writes
+    bool                Inverted        = false;   // [-] - true maps resolved coverage to one-minus-coverage
     bool                CoverageDeclared = false;  // [-] - false applies the entry everywhere at full strength
 };
 
@@ -198,6 +200,24 @@ public:
 
     /// 🧩 Renames one entry. The name is document data and supplies material/export labels.
     Outcome<std::string> DeclareName(LayerIdentity Subject, const std::string& Name);
+
+    /// 🧩 Changes which material channels one entry writes.
+    /// out   Result  [-]  previous channel mask, or IdentityStale when the row no longer resolves
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    Outcome<std::uint32_t> DeclareChannelMask(LayerIdentity Subject, std::uint32_t ChannelMask);
+
+    /// 🧩 Changes one entry's content source without replacing its identity.
+    /// out   Result  [-]  previous source, or IdentityStale when the row no longer resolves
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    Outcome<LayerContentSource> DeclareSource(LayerIdentity Subject, LayerContentSource Source);
+
+    /// 🧩 Changes the mask/coverage that gates one entry.
+    /// out   Result  [-]  previous coverage declaration, or IdentityStale when the row no longer resolves
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    Outcome<CoverageSpecification> DeclareCoverage(LayerIdentity Subject, const CoverageSpecification& Coverage);
 
     /// 🧩 Amends one entry's combination.
     /// out   Result  [-]  refuses with IdentityStale; carries the prior combination

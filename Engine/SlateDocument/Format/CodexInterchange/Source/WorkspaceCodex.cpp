@@ -19,6 +19,7 @@ constexpr std::uint32_t NamingSection      = 0x4D414E57u;   // [-] - `WNAM`
 constexpr std::uint32_t EnvironmentSection = 0x564E4557u;   // [-] - `WENV`
 constexpr std::uint32_t SceneSection       = 0x454E4353u;   // [-] - `SCNE`
 constexpr std::uint32_t MeshSection        = 0x4853454Du;   // [-] - `MESH`
+constexpr std::uint32_t MaterialSection    = 0x5354414Du;   // [-] - `MATS`
 constexpr std::uint32_t EmbeddedSection    = 0x44424D45u;   // [-] - `EMBD`
 
 void Inscribe32(std::vector<std::uint8_t>& Content, std::uint32_t Held)
@@ -39,6 +40,11 @@ void InscribeReal(std::vector<std::uint8_t>& Content, double Held)
     static_assert(sizeof(Bits) == sizeof(Held));
     std::memcpy(&Bits, &Held, sizeof(Bits));
     Inscribe64(Content, Bits);
+}
+
+void InscribeBool(std::vector<std::uint8_t>& Content, bool Held)
+{
+    Content.push_back(Held ? 1u : 0u);
 }
 
 void InscribeRun(std::vector<std::uint8_t>& Content, const std::string& Held)
@@ -79,6 +85,14 @@ bool ExtractReal(const std::vector<std::uint8_t>& Content, std::size_t& Position
     return true;
 }
 
+bool ExtractBool(const std::vector<std::uint8_t>& Content, std::size_t& Position, bool& Held)
+{
+    if (Position >= Content.size())
+        return false;
+    Held = Content[Position++] != 0u;
+    return true;
+}
+
 bool ExtractRun(const std::vector<std::uint8_t>& Content, std::size_t& Position, std::string& Held)
 {
     std::uint32_t ByteCount = 0u;
@@ -112,6 +126,248 @@ CodexSection Section(std::uint32_t Code, std::uint64_t Revision, std::vector<std
     return Produced;
 }
 
+ChannelSpecification ScalarChannel(double Value, double Default)
+{
+    ChannelSpecification Declared;
+    Declared.Source = ChannelSource::Constant;
+    Declared.Measured = ChannelMeasure::Scalar;
+    Declared.ConstantScalar = Value;
+    Declared.DefaultScalar = Default;
+    Declared.LowerMagnitude = 0.0;
+    Declared.UpperMagnitude = 1.0;
+    return Declared;
+}
+
+ChannelSpecification ColourChannel(double Red, double Green, double Blue)
+{
+    ChannelSpecification Declared;
+    Declared.Source = ChannelSource::Constant;
+    Declared.Measured = ChannelMeasure::Reflectance;
+    Declared.ConstantColour = { Red, Green, Blue, WorkingSpaceIdentity };
+    Declared.DefaultColour = Declared.ConstantColour;
+    Declared.LowerMagnitude = 0.0;
+    Declared.UpperMagnitude = 1.0;
+    return Declared;
+}
+
+std::uint32_t ChannelBit(ChannelSubject Channel)
+{
+    return Channel == ChannelSubject::ChannelCount ? 0u : (1u << static_cast<std::uint32_t>(Channel));
+}
+
+std::uint32_t DefaultMaterialChannelMask()
+{
+    return ChannelBit(ChannelSubject::AlbedoColour)
+         | ChannelBit(ChannelSubject::Metallic)
+         | ChannelBit(ChannelSubject::Roughness)
+         | ChannelBit(ChannelSubject::NormalIncidenceReflectance)
+         | ChannelBit(ChannelSubject::AmbientOcclusion)
+         | ChannelBit(ChannelSubject::Emission)
+         | ChannelBit(ChannelSubject::Opacity);
+}
+
+void InscribeColour(std::vector<std::uint8_t>& Content, const ColourSpecification& Colour)
+{
+    InscribeReal(Content, Colour.RedCoordinate);
+    InscribeReal(Content, Colour.GreenCoordinate);
+    InscribeReal(Content, Colour.BlueCoordinate);
+    Inscribe32(Content, Colour.SpaceIdentity);
+}
+
+bool ExtractColour(const std::vector<std::uint8_t>& Content, std::size_t& Position, ColourSpecification& Colour)
+{
+    return ExtractReal(Content, Position, Colour.RedCoordinate)
+        && ExtractReal(Content, Position, Colour.GreenCoordinate)
+        && ExtractReal(Content, Position, Colour.BlueCoordinate)
+        && Extract32(Content, Position, Colour.SpaceIdentity);
+}
+
+void InscribePainted(std::vector<std::uint8_t>& Content, const PaintedContent& Painted)
+{
+    Inscribe32(Content, Painted.ExtentTexels);
+    Inscribe32(Content, Painted.ComponentCount);
+    Inscribe32(Content, static_cast<std::uint32_t>(Painted.Texels.size()));
+    for (float Texel : Painted.Texels)
+    {
+        std::uint32_t Bits = 0u;
+        static_assert(sizeof(Bits) == sizeof(Texel));
+        std::memcpy(&Bits, &Texel, sizeof(Bits));
+        Inscribe32(Content, Bits);
+    }
+}
+
+bool ExtractPainted(const std::vector<std::uint8_t>& Content, std::size_t& Position, PaintedContent& Painted)
+{
+    std::uint32_t TexelCount = 0u;
+    if (!Extract32(Content, Position, Painted.ExtentTexels)
+     || !Extract32(Content, Position, Painted.ComponentCount)
+     || !Extract32(Content, Position, TexelCount))
+        return false;
+
+    if (TexelCount > (Content.size() - Position) / 4u)
+        return false;
+
+    Painted.Texels.clear();
+    Painted.Texels.reserve(TexelCount);
+    for (std::uint32_t Index = 0u; Index < TexelCount; ++Index)
+    {
+        std::uint32_t Bits = 0u;
+        float Texel = 0.0f;
+        if (!Extract32(Content, Position, Bits))
+            return false;
+        std::memcpy(&Texel, &Bits, sizeof(Texel));
+        Painted.Texels.push_back(Texel);
+    }
+    return true;
+}
+
+void InscribeChannel(std::vector<std::uint8_t>& Content, const ChannelSpecification& Channel)
+{
+    Inscribe32(Content, static_cast<std::uint32_t>(Channel.Source));
+    Inscribe32(Content, static_cast<std::uint32_t>(Channel.Measured));
+    InscribeReal(Content, Channel.ConstantScalar);
+    InscribeColour(Content, Channel.ConstantColour);
+    InscribeReal(Content, Channel.DefaultScalar);
+    InscribeColour(Content, Channel.DefaultColour);
+    InscribeReal(Content, Channel.LowerMagnitude);
+    InscribeReal(Content, Channel.UpperMagnitude);
+    InscribeBool(Content, Channel.ChannelDeclared);
+}
+
+bool ExtractChannel(const std::vector<std::uint8_t>& Content, std::size_t& Position, ChannelSpecification& Channel)
+{
+    std::uint32_t Source = 0u;
+    std::uint32_t Measure = 0u;
+    if (!Extract32(Content, Position, Source) || Source > static_cast<std::uint32_t>(ChannelSource::Absent)
+     || !Extract32(Content, Position, Measure) || Measure >= static_cast<std::uint32_t>(ChannelMeasure::MeasureCount)
+     || !ExtractReal(Content, Position, Channel.ConstantScalar)
+     || !ExtractColour(Content, Position, Channel.ConstantColour)
+     || !ExtractReal(Content, Position, Channel.DefaultScalar)
+     || !ExtractColour(Content, Position, Channel.DefaultColour)
+     || !ExtractReal(Content, Position, Channel.LowerMagnitude)
+     || !ExtractReal(Content, Position, Channel.UpperMagnitude)
+     || !ExtractBool(Content, Position, Channel.ChannelDeclared))
+        return false;
+
+    Channel.Source = static_cast<ChannelSource>(Source);
+    Channel.Measured = static_cast<ChannelMeasure>(Measure);
+    return true;
+}
+
+void InscribeCoverage(std::vector<std::uint8_t>& Content, const CoverageSpecification& Coverage)
+{
+    Inscribe32(Content, static_cast<std::uint32_t>(Coverage.Source));
+    Inscribe32(Content, Coverage.SourceIndex);
+    InscribePainted(Content, Coverage.Painted);
+    InscribeReal(Content, Coverage.UniformStrength);
+    Inscribe32(Content, Coverage.ChannelMask);
+    InscribeBool(Content, Coverage.Inverted);
+    InscribeBool(Content, Coverage.CoverageDeclared);
+}
+
+bool ExtractCoverage(const std::vector<std::uint8_t>& Content, std::size_t& Position, CoverageSpecification& Coverage)
+{
+    std::uint32_t Source = 0u;
+    if (!Extract32(Content, Position, Source) || Source >= static_cast<std::uint32_t>(LayerContentSource::SourceCount)
+     || !Extract32(Content, Position, Coverage.SourceIndex)
+     || !ExtractPainted(Content, Position, Coverage.Painted)
+     || !ExtractReal(Content, Position, Coverage.UniformStrength)
+     || !Extract32(Content, Position, Coverage.ChannelMask)
+     || !ExtractBool(Content, Position, Coverage.Inverted)
+     || !ExtractBool(Content, Position, Coverage.CoverageDeclared))
+        return false;
+
+    Coverage.Source = static_cast<LayerContentSource>(Source);
+    return true;
+}
+
+void InscribeLayer(std::vector<std::uint8_t>& Content, const LayerSpecification& Layer)
+{
+    Inscribe32(Content, Layer.Identity.SlotIndex);
+    Inscribe32(Content, Layer.Identity.SlotGeneration);
+    Inscribe32(Content, static_cast<std::uint32_t>(Layer.Source));
+    Inscribe32(Content, Layer.SourceIndex);
+    Inscribe32(Content, Layer.NestedIndex);
+    Inscribe32(Content, Layer.ChannelMask);
+    Inscribe32(Content, static_cast<std::uint32_t>(Layer.Combination));
+    InscribeCoverage(Content, Layer.Coverage);
+    InscribePainted(Content, Layer.Painted);
+    InscribeRun(Content, Layer.Name);
+    InscribeBool(Content, Layer.PresenceEnabled);
+    InscribeBool(Content, Layer.Mandatory);
+    InscribeBool(Content, Layer.ResampleOwed);
+}
+
+bool ExtractLayer(const std::vector<std::uint8_t>& Content, std::size_t& Position, LayerSpecification& Layer)
+{
+    std::uint32_t Source = 0u;
+    std::uint32_t Combination = 0u;
+    if (!Extract32(Content, Position, Layer.Identity.SlotIndex)
+     || !Extract32(Content, Position, Layer.Identity.SlotGeneration)
+     || !Extract32(Content, Position, Source) || Source >= static_cast<std::uint32_t>(LayerContentSource::SourceCount)
+     || !Extract32(Content, Position, Layer.SourceIndex)
+     || !Extract32(Content, Position, Layer.NestedIndex)
+     || !Extract32(Content, Position, Layer.ChannelMask)
+     || !Extract32(Content, Position, Combination) || Combination >= static_cast<std::uint32_t>(CombineSpecification::CombineCount)
+     || !ExtractCoverage(Content, Position, Layer.Coverage)
+     || !ExtractPainted(Content, Position, Layer.Painted)
+     || !ExtractRun(Content, Position, Layer.Name)
+     || !ExtractBool(Content, Position, Layer.PresenceEnabled)
+     || !ExtractBool(Content, Position, Layer.Mandatory)
+     || !ExtractBool(Content, Position, Layer.ResampleOwed))
+        return false;
+
+    Layer.Source = static_cast<LayerContentSource>(Source);
+    Layer.Combination = static_cast<CombineSpecification>(Combination);
+    return true;
+}
+
+}
+
+WorkspaceMaterialRecord DefaultWorkspaceMaterialRecord(const std::string& Reference)
+{
+    WorkspaceMaterialRecord Record;
+    Record.Reference = Reference.empty() ? "DefaultMaterial" : Reference;
+    Record.Material.DeclareReflectance(ReflectanceSelection::Standard);
+    Discard(Record.Material.DeclareChannel(ChannelSubject::AlbedoColour, ColourChannel(1.0, 1.0, 1.0)));
+    Discard(Record.Material.DeclareChannel(ChannelSubject::Metallic, ScalarChannel(0.0, 0.0)));
+    Discard(Record.Material.DeclareChannel(ChannelSubject::Roughness, ScalarChannel(0.5, 0.5)));
+    Discard(Record.Material.DeclareChannel(ChannelSubject::NormalIncidenceReflectance, ScalarChannel(0.04, 0.04)));
+    Discard(Record.Material.DeclareChannel(ChannelSubject::AmbientOcclusion, ScalarChannel(1.0, 1.0)));
+    Discard(Record.Material.DeclareChannel(ChannelSubject::Emission, ColourChannel(0.0, 0.0, 0.0)));
+    Discard(Record.Material.DeclareChannel(ChannelSubject::Opacity, ScalarChannel(1.0, 1.0)));
+
+    LayerSpecification Base;
+    Base.Name = "Base Material";
+    Base.Source = LayerContentSource::MaterialConstants;
+    Base.ChannelMask = DefaultMaterialChannelMask();
+    Base.Mandatory = true;
+    Base.PresenceEnabled = true;
+    Discard(Record.Layers.Append(Base));
+    return Record;
+}
+
+void EnsureWorkspaceMaterialRecords(WorkspaceCodex& Workspace)
+{
+    for (CodexSceneEntry& Entry : Workspace.Scene)
+    {
+        if (Entry.Subject != CodexSceneSubject::Geometry)
+            continue;
+        if (Entry.MaterialReference.empty())
+            Entry.MaterialReference = Entry.Naming.empty() ? "DefaultMaterial" : Entry.Naming + "Material";
+
+        bool Found = false;
+        for (const WorkspaceMaterialRecord& Material : Workspace.Materials)
+        {
+            if (Material.Reference == Entry.MaterialReference)
+            {
+                Found = true;
+                break;
+            }
+        }
+        if (!Found)
+            Workspace.Materials.push_back(DefaultWorkspaceMaterialRecord(Entry.MaterialReference));
+    }
 }
 
 Outcome<CodexDocument> WorkspaceCodexInterchange::EncodeWorkspace(const WorkspaceCodex& Workspace,
@@ -120,10 +376,11 @@ Outcome<CodexDocument> WorkspaceCodexInterchange::EncodeWorkspace(const Workspac
 {
     if (Workspace.Scene.size() > std::numeric_limits<std::uint32_t>::max() ||
         Workspace.SceneMeshes.size() > std::numeric_limits<std::uint32_t>::max() ||
+        Workspace.Materials.size() > std::numeric_limits<std::uint32_t>::max() ||
         Workspace.Embedded.size() > std::numeric_limits<std::uint32_t>::max())
     {
         return Outcome<CodexDocument>::Refuse(
-            { RefusalReason::ExtentExhausted, "the workspace carries too many scene, mesh, or embedded documents" });
+            { RefusalReason::ExtentExhausted, "the workspace carries too many scene, mesh, material, or embedded documents" });
     }
 
     std::vector<std::uint8_t> Naming;
@@ -174,6 +431,21 @@ Outcome<CodexDocument> WorkspaceCodexInterchange::EncodeWorkspace(const Workspac
             Inscribe32(Meshes, Index);
     }
 
+    std::vector<std::uint8_t> Materials;
+    Inscribe32(Materials, static_cast<std::uint32_t>(Workspace.Materials.size()));
+    for (const WorkspaceMaterialRecord& Current : Workspace.Materials)
+    {
+        InscribeRun(Materials, Current.Reference);
+        Inscribe32(Materials, static_cast<std::uint32_t>(Current.Material.Reflectance()));
+        InscribeReal(Materials, Current.Material.CutoutThreshold());
+        InscribeBool(Materials, Current.Material.CutoutRegistered());
+        for (std::uint32_t ChannelIndex = 0u; ChannelIndex < static_cast<std::uint32_t>(ChannelSubject::ChannelCount); ++ChannelIndex)
+            InscribeChannel(Materials, Current.Material.Channel(static_cast<ChannelSubject>(ChannelIndex)));
+        Inscribe32(Materials, Current.Layers.EntryCount());
+        for (const LayerSpecification& Layer : Current.Layers.Entries())
+            InscribeLayer(Materials, Layer);
+    }
+
     CodexInterchange Codex;
     std::vector<std::uint8_t> Embedded;
     Inscribe32(Embedded, static_cast<std::uint32_t>(Workspace.Embedded.size()));
@@ -198,6 +470,7 @@ Outcome<CodexDocument> WorkspaceCodexInterchange::EncodeWorkspace(const Workspac
     Produced.Sections.push_back(Section(EnvironmentSection, Revision, std::move(Environment)));
     Produced.Sections.push_back(Section(SceneSection, Revision, std::move(Scene)));
     Produced.Sections.push_back(Section(MeshSection, Revision, std::move(Meshes)));
+    Produced.Sections.push_back(Section(MaterialSection, Revision, std::move(Materials)));
     Produced.Sections.push_back(Section(EmbeddedSection, Revision, std::move(Embedded)));
     return Outcome<CodexDocument>::Result(std::move(Produced));
 }
@@ -214,6 +487,7 @@ Outcome<WorkspaceCodex> WorkspaceCodexInterchange::DecodeWorkspace(const CodexDo
     const CodexSection* Environment = SectionOf(Document, EnvironmentSection);
     const CodexSection* Scene = SectionOf(Document, SceneSection);
     const CodexSection* Meshes = SectionOf(Document, MeshSection);
+    const CodexSection* Materials = SectionOf(Document, MaterialSection);
     const CodexSection* Embedded = SectionOf(Document, EmbeddedSection);
     if (Naming == nullptr || Environment == nullptr || Scene == nullptr || Embedded == nullptr)
     {
@@ -337,6 +611,78 @@ Outcome<WorkspaceCodex> WorkspaceCodexInterchange::DecodeWorkspace(const CodexDo
             return Outcome<WorkspaceCodex>::Refuse(
                 { RefusalReason::ContentUnsupported, "the workspace mesh section has trailing content" });
     }
+
+    if (Materials != nullptr)
+    {
+        Position = 0u;
+        std::uint32_t MaterialCount = 0u;
+        if (!Extract32(Materials->Content, Position, MaterialCount))
+        {
+            return Outcome<WorkspaceCodex>::Refuse(
+                { RefusalReason::ContentUnsupported, "the workspace material section is incomplete" });
+        }
+
+        Produced.Materials.reserve(MaterialCount);
+        for (std::uint32_t MaterialIndex = 0u; MaterialIndex < MaterialCount; ++MaterialIndex)
+        {
+            WorkspaceMaterialRecord Current;
+            std::uint32_t Reflectance = 0u;
+            bool CutoutRegistered = false;
+            double CutoutThreshold = 0.5;
+            if (!ExtractRun(Materials->Content, Position, Current.Reference)
+             || !Extract32(Materials->Content, Position, Reflectance)
+             || Reflectance >= static_cast<std::uint32_t>(ReflectanceSelection::ReflectanceCount)
+             || !ExtractReal(Materials->Content, Position, CutoutThreshold)
+             || !ExtractBool(Materials->Content, Position, CutoutRegistered))
+            {
+                return Outcome<WorkspaceCodex>::Refuse(
+                    { RefusalReason::ContentUnsupported, "a workspace material header is inconsistent" });
+            }
+            Current.Material.DeclareReflectance(static_cast<ReflectanceSelection>(Reflectance));
+            Current.Material.DeclareCutoutThreshold(CutoutThreshold);
+            Current.Material.DeclareCutoutRegistration(CutoutRegistered);
+
+            for (std::uint32_t ChannelIndex = 0u; ChannelIndex < static_cast<std::uint32_t>(ChannelSubject::ChannelCount); ++ChannelIndex)
+            {
+                ChannelSpecification Channel;
+                if (!ExtractChannel(Materials->Content, Position, Channel))
+                    return Outcome<WorkspaceCodex>::Refuse(
+                        { RefusalReason::ContentUnsupported, "a workspace material channel is incomplete" });
+                if (Channel.ChannelDeclared)
+                {
+                    const Outcome<bool> Declared = Current.Material.DeclareChannel(static_cast<ChannelSubject>(ChannelIndex), Channel);
+                    if (!Declared.Resolved)
+                        return Outcome<WorkspaceCodex>::Refuse(Declared.Error);
+                }
+            }
+
+            std::uint32_t LayerCount = 0u;
+            if (!Extract32(Materials->Content, Position, LayerCount))
+                return Outcome<WorkspaceCodex>::Refuse(
+                    { RefusalReason::ContentUnsupported, "a workspace material layer count is incomplete" });
+            for (std::uint32_t LayerIndex = 0u; LayerIndex < LayerCount; ++LayerIndex)
+            {
+                LayerSpecification Layer;
+                if (!ExtractLayer(Materials->Content, Position, Layer))
+                    return Outcome<WorkspaceCodex>::Refuse(
+                        { RefusalReason::ContentUnsupported, "a workspace material layer is incomplete" });
+                if (Layer.Source == LayerContentSource::PaintedImpressions && Layer.Painted.Texels.empty())
+                    Layer.Source = LayerContentSource::MaterialConstants;
+                const Outcome<LayerIdentity> Added = Current.Layers.Append(Layer);
+                if (!Added.Resolved)
+                    return Outcome<WorkspaceCodex>::Refuse(Added.Error);
+            }
+
+            if (Current.Layers.EntryCount() == 0u)
+                Current = DefaultWorkspaceMaterialRecord(Current.Reference);
+            Produced.Materials.push_back(std::move(Current));
+        }
+        if (Position != Materials->Content.size())
+            return Outcome<WorkspaceCodex>::Refuse(
+                { RefusalReason::ContentUnsupported, "the workspace material section has trailing content" });
+    }
+
+    EnsureWorkspaceMaterialRecords(Produced);
 
     Position = 0u;
     std::uint32_t EmbeddedCount = 0u;

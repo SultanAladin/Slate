@@ -31,6 +31,7 @@ struct ImportedSceneMesh
     CodexSceneEntry Entry = {};
     CodexSceneMesh Mesh = {};
     std::vector<std::string> MaterialSlots = {};
+    std::vector<WorkspaceMaterialRecord> MaterialRecords = {};
     SceneMeshFormat Format = SceneMeshFormat::Unsupported;
 };
 

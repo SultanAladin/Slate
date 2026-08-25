@@ -90,6 +90,9 @@ namespace
         Imported.Entry.MaterialReference = Imported.MaterialSlots.size() == 1u
             ? Imported.MaterialSlots.front()
             : std::to_string(Imported.MaterialSlots.size()) + " material slots";
+        Imported.MaterialRecords.clear();
+        for (const std::string& Slot : Imported.MaterialSlots)
+            Imported.MaterialRecords.push_back(DefaultWorkspaceMaterialRecord(Slot));
         Imported.Entry.Scale[0] = Imported.Entry.Scale[1] = Imported.Entry.Scale[2] = 1.0;
     }
 

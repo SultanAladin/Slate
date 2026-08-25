@@ -26,7 +26,7 @@ struct ActivatedWorkspaceScene
 {
     WorkspaceCodex Workspace = {};
     std::vector<ActivatedGeometryEntry> Geometry = {};
-    std::string SharedMaterialReference = {};
+    std::vector<WorkspaceMaterialRecord> Materials = {};
 };
 
 /// 🧩 Opens and validates a WorkspaceCodex before a host changes its presented scene.

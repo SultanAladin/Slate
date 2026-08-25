@@ -33,12 +33,15 @@ const char* ShadingTitle(PanelShading Shading)
 {
     switch (Shading)
     {
-        case PanelShading::Wireframe:    return "wireframe";
-        case PanelShading::Matcap:       return "matcap";
-        case PanelShading::Normal:       return "normal";
-        case PanelShading::Metallic:     return "metallic";
-        case PanelShading::Illumination: return "gi";
-        default:                         return "solid";
+        case PanelShading::Lit:              return "lit";
+        case PanelShading::Matcap:           return "matcap";
+        case PanelShading::SourceWire:       return "source wire";
+        case PanelShading::TriangulatedWire: return "tri wire";
+        case PanelShading::Points:           return "points";
+        case PanelShading::Normal:           return "normal";
+        case PanelShading::Metallic:         return "metallic";
+        case PanelShading::Illumination:     return "gi";
+        default:                             return "lit";
     }
 }
 

@@ -16,6 +16,7 @@
 //    viewport LEAF.
 
 #include "Foundation/DeliveryOutcome.h"
+#include "Application/Api/MaterialLayerStackBridge.h"
 #include "Application/Api/SketchSceneDirectoryBridge.h"
 #include "SlateScene/Scene/EditorCameraComponent/Api/EditorCameraComponent.h"
 #include "SlateScene/Scene/AtmosphereComponent/Api/AtmosphereComponent.h"
@@ -332,6 +333,11 @@ int main(int ArgumentCount, char** ArgumentValues)
     TexturePaintPanel        TexturePaint;
     TexturePaintContext     TexturePaintApplied;
     TexturePaintStack        StackRows;                 // [-] - the mutable row set; the panel borrows it
+    MaterialSpecification     EditorMaterialDocument;
+    SurfaceLayerSequence      EditorMaterialLayers;
+    MaterialProcessingExchange EditorMaterialExchange;
+    MaterialProcessingSnapshot EditorMaterialSnapshot;
+    bool                      EditorMaterialSnapshotReady = false;
     AtmospherePresentationSurface AtmosphereSurface;
     AtmosphereComponent       DynamicAtmosphere;
     DirectionalLightComponent SunLight;
@@ -568,6 +574,12 @@ int main(int ArgumentCount, char** ArgumentValues)
         TexturePaintApplied.MaskDensity[Index] = (Index == 3u) ? 88u : 100u;
         TexturePaintApplied.MaskInverted[Index] = (Index == 9u);
     }
+
+    MaterialLayerStackBridgeReport InitialMaterialBridge = RebuildMaterialLayersFromTextureStack(
+        EditorMaterialDocument, EditorMaterialLayers, StackRows, TexturePaintApplied,
+        EditorMaterialExchange, nullptr);
+    EditorMaterialSnapshot = InitialMaterialBridge.Snapshot;
+    EditorMaterialSnapshotReady = true;
 
     // 📝 The editor camera, registered as the seventh row. Its details' options are the camera's own:
     //    bit 1 is the camera lag, bit 2 the inverted pitch — the lag arrives enabled so the camera
@@ -1416,6 +1428,11 @@ int main(int ArgumentCount, char** ArgumentValues)
             //    same shared helper the harness drives — the row set and the working copies stay in
             //    step with the panel's buttons and menus.
             StackRows.ApplyRequest(TexturePaintApplied);
+            MaterialLayerStackBridgeReport MaterialBridge = RebuildMaterialLayersFromTextureStack(
+                EditorMaterialDocument, EditorMaterialLayers, StackRows, TexturePaintApplied,
+                EditorMaterialExchange, EditorMaterialSnapshotReady ? &EditorMaterialSnapshot : nullptr);
+            EditorMaterialSnapshot = MaterialBridge.Snapshot;
+            EditorMaterialSnapshotReady = true;
 
             // 📝 Bookmark recall is a request to the owning EditorCameraComponent, not a temporary write
             //    into the panel's mirrored pose (which the next camera tick would overwrite).

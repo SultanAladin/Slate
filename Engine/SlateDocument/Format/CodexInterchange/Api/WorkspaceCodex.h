@@ -6,6 +6,8 @@
 #pragma once
 
 #include "Foundation/DeliveryOutcome.h"
+#include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
+#include "SlateDocument/Document/SurfaceLayerSequence/Api/SurfaceLayerSequence.h"
 #include "SlateDocument/Format/CodexInterchange/Api/CodexInterchange.h"
 
 #include <cstdint>
@@ -56,15 +58,30 @@ struct CodexSceneMesh
     std::vector<std::uint32_t>   Indices   = {}; // [-] - triangle-list indices into Positions triples
 };
 
+/// 🧩 One document-backed material slot carried beside workspace scene entries.
+struct WorkspaceMaterialRecord
+{
+    std::string           Reference = {};   // [-] - section-local material identity used by scene entries
+    MaterialSpecification Material  = {};   // [-] - twenty-channel declaration and reflectance choice
+    SurfaceLayerSequence  Layers    = {};   // [-] - ordered layer sequence with a mandatory Base Material entry
+};
+
 /// 🧩 A complete workspace payload carried by a WorkspaceCodex document.
 struct WorkspaceCodex
 {
-    std::string                     Naming       = {};   // [-] - document title
-    CodexEnvironment                Environment  = {};   // [-] - Sun, Sky, and Atmosphere declaration
-    std::vector<CodexSceneEntry>    Scene        = {};   // [-] - only persisted scene entries
-    std::vector<CodexSceneMesh>     SceneMeshes  = {};   // [m] - embedded binary scene geometry
-    std::vector<CodexDocument>      Embedded     = {};   // [B] - whole specialized Codex documents
+    std::string                          Naming       = {};   // [-] - document title
+    CodexEnvironment                     Environment  = {};   // [-] - Sun, Sky, and Atmosphere declaration
+    std::vector<CodexSceneEntry>         Scene        = {};   // [-] - only persisted scene entries
+    std::vector<CodexSceneMesh>          SceneMeshes  = {};   // [m] - embedded binary scene geometry
+    std::vector<WorkspaceMaterialRecord> Materials    = {};   // [-] - document-backed material slots
+    std::vector<CodexDocument>           Embedded     = {};   // [B] - whole specialized Codex documents
 };
+
+/// 🧩 Creates Slate's default white dielectric material with its mandatory Base Material layer.
+WorkspaceMaterialRecord DefaultWorkspaceMaterialRecord(const std::string& Reference);
+
+/// 🧩 Ensures every geometry scene entry has a corresponding document-backed material record.
+void EnsureWorkspaceMaterialRecords(WorkspaceCodex& Workspace);
 
 /// 🧩 Translates typed workspace content to and from preserved Codex sections.
 class WorkspaceCodexInterchange
