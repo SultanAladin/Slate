@@ -648,109 +648,44 @@ void RecordViewportOrientationHud(RecordingSurface& Surface,
                                   bool& PointerTaken)
 {
     bool& Perspective = Configuration.Perspective;
-    const SpatialBasis Basis = { {}, {1.0, 0.0, 0.0}, {0.0, 0.0, 1.0}, {0.0, 1.0, 0.0} };
-    const ViewFrame Frame = ResolveViewportFrame(Basis, View, Perspective);
+    const SpatialBasis SketchBasis = { {}, { 1.0, 0.0, 0.0 }, { 0.0, 0.0, 1.0 }, { 0.0, 1.0, 0.0 } };
+    const ViewFrame Frame = ResolveViewportFrame(SketchBasis, View, Perspective);
+    SharedViewportBasis GizmoBasis;
+    GizmoBasis.Right[0] = Frame.Right.Left;
+    GizmoBasis.Right[1] = Frame.Right.Up;
+    GizmoBasis.Right[2] = Frame.Right.Forward;
+    GizmoBasis.Up[0] = Frame.Up.Left;
+    GizmoBasis.Up[1] = Frame.Up.Up;
+    GizmoBasis.Up[2] = Frame.Up.Forward;
+    GizmoBasis.Forward[0] = Frame.Forward.Left;
+    GizmoBasis.Forward[1] = Frame.Forward.Up;
+    GizmoBasis.Forward[2] = Frame.Forward.Forward;
 
-    const float CentreX = Extent.MaximumX - 78.0f;
-    const float CentreY = Extent.MinimumY + 78.0f;
-    const float Scale = 34.0f;
-
-    const auto ProjectAxis = [&](const SpatialDirection& Axis, float& X, float& Y)
+    if (Pointer.ContactPressed)
     {
-        X = static_cast<float>(Dot(Axis, Frame.Right)) * Scale;
-        Y = -static_cast<float>(Dot(Axis, Frame.Up)) * Scale;
-    };
-
-    float XX = 0.0f, XY = 0.0f;
-    float YX = 0.0f, YY = 0.0f;
-    float ZX = 0.0f, ZY = 0.0f;
-    ProjectAxis(Basis.Along, XX, XY);
-    ProjectAxis(Basis.Normal, YX, YY);
-    ProjectAxis(Basis.Across, ZX, ZY);
-
-    const float OX = CentreX - (XX + YX + ZX) * 0.50f;
-    const float OY = CentreY - (XY + YY + ZY) * 0.50f;
-
-    const auto V = [&](float Ax, float Ay, float Bx, float By, float Cx, float Cy)
-    {
-        return std::array<float, 2>{ OX + Ax + Bx + Cx, OY + Ay + By + Cy };
-    };
-
-    const std::array<float, 2> V000 = V(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
-    const std::array<float, 2> V100 = V(XX, XY, 0.0f, 0.0f, 0.0f, 0.0f);
-    const std::array<float, 2> V010 = V(0.0f, 0.0f, YX, YY, 0.0f, 0.0f);
-    const std::array<float, 2> V001 = V(0.0f, 0.0f, 0.0f, 0.0f, ZX, ZY);
-    const std::array<float, 2> V110 = V(XX, XY, YX, YY, 0.0f, 0.0f);
-    const std::array<float, 2> V101 = V(XX, XY, 0.0f, 0.0f, ZX, ZY);
-    const std::array<float, 2> V011 = V(0.0f, 0.0f, YX, YY, ZX, ZY);
-    const std::array<float, 2> V111 = V(XX, XY, YX, YY, ZX, ZY);
-
-    const auto Centre = [](const std::array<float, 2>& A, const std::array<float, 2>& B,
-                           const std::array<float, 2>& C, const std::array<float, 2>& D)
-    {
-        return std::array<float, 2>{ (A[0] + B[0] + C[0] + D[0]) * 0.25f,
-                                     (A[1] + B[1] + C[1] + D[1]) * 0.25f };
-    };
-
-    const std::array<float, 2> TopCentre   = Centre(V010, V110, V111, V011);
-    const std::array<float, 2> FrontCentre = Centre(V001, V101, V111, V011);
-    const std::array<float, 2> RightCentre = Centre(V100, V110, V111, V101);
-    const PlaneExtent CubeHit = Spanning(CentreX - 58.0f, CentreY - 58.0f, 116.0f, 116.0f);
-
-    if (CubeHit.Encloses(Pointer.PositionX, Pointer.PositionY))
-    {
-        PointerTaken = true;
-        if (Pointer.ContactPressed)
+        const SharedViewportOrientation Hit = HitSharedViewportOrientationGizmo(
+            Extent, GizmoBasis, Pointer.PositionX, Pointer.PositionY);
+        if (Hit != SharedViewportOrientation::None)
         {
-            const auto Distance2 = [&](const std::array<float, 2>& P)
+            switch (Hit)
             {
-                const float DX = Pointer.PositionX - P[0];
-                const float DY = Pointer.PositionY - P[1];
-                return DX * DX + DY * DY;
-            };
-            const float DT = Distance2(TopCentre);
-            const float DF = Distance2(FrontCentre);
-            const float DR = Distance2(RightCentre);
-            if (DT <= DF && DT <= DR)
-                ApplyViewportOrientation(View, ParametricViewOrientation::Top, false);
-            else if (DR <= DT && DR <= DF)
-                ApplyViewportOrientation(View, ParametricViewOrientation::Right, false);
-            else
-                ApplyViewportOrientation(View, ParametricViewOrientation::Front, false);
-            Perspective = false;
+                case SharedViewportOrientation::Top:    ApplyViewportOrientation(View, ParametricViewOrientation::Top, false); break;
+                case SharedViewportOrientation::Bottom: ApplyViewportOrientation(View, ParametricViewOrientation::Bottom, false); break;
+                case SharedViewportOrientation::Front:  ApplyViewportOrientation(View, ParametricViewOrientation::Front, false); break;
+                case SharedViewportOrientation::Back:   ApplyViewportOrientation(View, ParametricViewOrientation::Back, false); break;
+                case SharedViewportOrientation::Right:  ApplyViewportOrientation(View, ParametricViewOrientation::Right, false); break;
+                case SharedViewportOrientation::Left:   ApplyViewportOrientation(View, ParametricViewOrientation::Left, false); break;
+                case SharedViewportOrientation::Iso:    ApplyViewportOrientation(View, ParametricViewOrientation::Isometric, true); break;
+                case SharedViewportOrientation::None: break;
+            }
+            Perspective = Hit == SharedViewportOrientation::Iso ? true : false;
+            PointerTaken = true;
         }
     }
 
-    Surface.Confine(Extent);
-    const auto DrawFace = [&](const std::array<float, 2>& A, const std::array<float, 2>& B,
-                              const std::array<float, 2>& C, const std::array<float, 2>& D,
-                              ThemeToken Colour)
-    {
-        const float T0[6] = { A[0], A[1], B[0], B[1], C[0], C[1] };
-        const float T1[6] = { A[0], A[1], C[0], C[1], D[0], D[1] };
-        Surface.Tongue(T0, 3u, Colour);
-        Surface.Tongue(T1, 3u, Colour);
-    };
-    const auto DrawEdge = [&](const std::array<float, 2>& A, const std::array<float, 2>& B)
-    {
-        const float X[2] = { A[0], B[0] };
-        const float Y[2] = { A[1], B[1] };
-        Surface.Polyline(X, Y, 2u, Partial(0xFFFFFFu, 0.88f), 1.35f);
-    };
-
-    DrawFace(V010, V110, V111, V011, Partial(0xF8FAFCu, 0.46f));
-    DrawFace(V001, V101, V111, V011, Partial(0x5B8CFFu, 0.54f));
-    DrawFace(V100, V110, V111, V101, Partial(0xFC5A5Au, 0.54f));
-    DrawEdge(V000, V100); DrawEdge(V000, V010); DrawEdge(V000, V001);
-    DrawEdge(V100, V110); DrawEdge(V100, V101); DrawEdge(V010, V110);
-    DrawEdge(V010, V011); DrawEdge(V001, V101); DrawEdge(V001, V011);
-    DrawEdge(V111, V110); DrawEdge(V111, V101); DrawEdge(V111, V011);
-
-    Surface.TextRun(TopCentre[0] - 11.0f, TopCentre[1] - 5.0f, Covering(0x101014u), "TOP", 9.0f, 0.0f, true);
-    Surface.TextRun(FrontCentre[0] - 17.0f, FrontCentre[1] - 5.0f, Covering(0xFFFFFFu), "FRONT", 9.0f, 0.0f, true);
-    Surface.TextRun(RightCentre[0] - 15.0f, RightCentre[1] - 5.0f, Covering(0xFFFFFFu), "RIGHT", 9.0f, 0.0f, true);
-    Surface.Release();
+    RecordSharedViewportOrientationGizmo(Surface, Extent, GizmoBasis);
 }
+
 
 
 void DriveViewport(const PlaneExtent& Extent,

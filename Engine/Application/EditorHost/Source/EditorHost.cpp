@@ -1158,6 +1158,28 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 SceneDirectory.RecordViewportSky(LeafBody, SceneApplied);
                                 RecordWorkspaceCodexProxy(Viewport.Surface(), LeafBody, SceneApplied,
                                                           OpenedScene, OpenedSceneStanding);
+                                {
+                                    SharedViewportBasis GizmoBasis = SharedViewportBasisFromYawPitch(
+                                        SceneApplied.ViewportSkyCamera.AzimuthDegrees,
+                                        SceneApplied.ViewportSkyCamera.ElevationDegrees);
+                                    if (BackgroundPointer.ContactPressed &&
+                                        LeafBody.Encloses(BackgroundPointer.PositionX, BackgroundPointer.PositionY))
+                                    {
+                                        const SharedViewportOrientation Hit = HitSharedViewportOrientationGizmo(
+                                            LeafBody, GizmoBasis, BackgroundPointer.PositionX, BackgroundPointer.PositionY);
+                                        if (Hit != SharedViewportOrientation::None)
+                                        {
+                                            double Yaw = EditorCamera.YawDegrees;
+                                            double Pitch = EditorCamera.PitchDegrees;
+                                            SharedViewportOrientationPreset(Hit, Yaw, Pitch);
+                                            EditorCamera.YawDegrees = Yaw;
+                                            EditorCamera.PitchDegrees = Pitch;
+                                            EditorCamera.Snap();
+                                            GizmoBasis = SharedViewportBasisFromYawPitch(Yaw, Pitch);
+                                        }
+                                    }
+                                    RecordSharedViewportOrientationGizmo(Viewport.Surface(), LeafBody, GizmoBasis);
+                                }
 
                                 // 📐 The ground lattice is no longer recorded here. It is solved per
                                 //    pixel in the overlay pass's mode 3, from the camera pushed below,

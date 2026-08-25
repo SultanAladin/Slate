@@ -211,38 +211,9 @@ void RecordSharedViewportChrome(RecordingSurface& Surface, const PlaneExtent& Ex
         Surface.Polyline(PointsX, PointsY, 2u, Partial(0xC4C8D6u, 0.10f), 1.0f);
     }
 
-    const float Right = Extent.MaximumX - 24.0f;
-    const float Top = Extent.MinimumY + 28.0f;
-    const float Size = 46.0f;
-    const float X = Right - Size;
-    const float Y = Top;
-    const float A[2] = { X, Y + 15.0f };
-    const float B[2] = { X + Size * 0.55f, Y };
-    const float C[2] = { X + Size, Y + 13.0f };
-    const float D[2] = { X + Size * 0.46f, Y + 28.0f };
-    const float E[2] = { X + Size * 0.46f, Y + Size };
-    const float F[2] = { X + Size, Y + Size * 0.70f };
-    const float G[2] = { X, Y + Size * 0.72f };
-    const float TopFace[6] = { A[0], A[1], B[0], B[1], C[0], C[1] };
-    const float TopFace2[6] = { A[0], A[1], C[0], C[1], D[0], D[1] };
-    const float FrontFace[6] = { A[0], A[1], D[0], D[1], E[0], E[1] };
-    const float SideFace[6] = { D[0], D[1], C[0], C[1], F[0], F[1] };
-    Surface.Tongue(TopFace, 3u, Partial(0xF8FAFCu, 0.44f));
-    Surface.Tongue(TopFace2, 3u, Partial(0xF8FAFCu, 0.44f));
-    Surface.Tongue(FrontFace, 3u, Partial(0x5B8CFFu, 0.52f));
-    Surface.Tongue(SideFace, 3u, Partial(0xFC5A5Au, 0.52f));
-    const float EdgeX1[2] = { A[0], B[0] }; const float EdgeY1[2] = { A[1], B[1] };
-    const float EdgeX2[2] = { B[0], C[0] }; const float EdgeY2[2] = { B[1], C[1] };
-    const float EdgeX3[2] = { C[0], F[0] }; const float EdgeY3[2] = { C[1], F[1] };
-    const float EdgeX4[2] = { F[0], E[0] }; const float EdgeY4[2] = { F[1], E[1] };
-    const float EdgeX5[2] = { E[0], G[0] }; const float EdgeY5[2] = { E[1], G[1] };
-    const float EdgeX6[2] = { G[0], A[0] }; const float EdgeY6[2] = { G[1], A[1] };
-    Surface.Polyline(EdgeX1, EdgeY1, 2u, Partial(0xFFFFFFu, 0.82f), 1.2f);
-    Surface.Polyline(EdgeX2, EdgeY2, 2u, Partial(0xFFFFFFu, 0.82f), 1.2f);
-    Surface.Polyline(EdgeX3, EdgeY3, 2u, Partial(0xFFFFFFu, 0.82f), 1.2f);
-    Surface.Polyline(EdgeX4, EdgeY4, 2u, Partial(0xFFFFFFu, 0.82f), 1.2f);
-    Surface.Polyline(EdgeX5, EdgeY5, 2u, Partial(0xFFFFFFu, 0.82f), 1.2f);
-    Surface.Polyline(EdgeX6, EdgeY6, 2u, Partial(0xFFFFFFu, 0.82f), 1.2f);
+    RecordSharedViewportOrientationGizmo(Surface, Extent,
+                                         SharedViewportBasisFromYawPitch(Camera.LaggedYawDegrees,
+                                                                         Camera.LaggedPitchDegrees));
     Surface.Release();
 }
 
@@ -634,8 +605,28 @@ int main(int ArgumentCount, char** ArgumentValues)
                     for (std::uint32_t Leaf = 0u; Leaf < WorkspacePanels.LeafCount(); ++Leaf)
                     {
                         if (WorkspacePanels.LeafSubject(Leaf) == PanelSubject::Viewport)
-                            RecordSharedViewportChrome(Viewport.Surface(), WorkspacePanels.LeafBody(Leaf),
+                        {
+                            const PlaneExtent LeafBody = WorkspacePanels.LeafBody(Leaf);
+                            if (BackgroundPointer.ContactPressed &&
+                                LeafBody.Encloses(BackgroundPointer.PositionX, BackgroundPointer.PositionY))
+                            {
+                                const SharedViewportBasis GizmoBasis = SharedViewportBasisFromYawPitch(
+                                    EditorCamera.LaggedYawDegrees, EditorCamera.LaggedPitchDegrees);
+                                const SharedViewportOrientation Hit = HitSharedViewportOrientationGizmo(
+                                    LeafBody, GizmoBasis, BackgroundPointer.PositionX, BackgroundPointer.PositionY);
+                                if (Hit != SharedViewportOrientation::None)
+                                {
+                                    double Yaw = EditorCamera.YawDegrees;
+                                    double Pitch = EditorCamera.PitchDegrees;
+                                    SharedViewportOrientationPreset(Hit, Yaw, Pitch);
+                                    EditorCamera.YawDegrees = Yaw;
+                                    EditorCamera.PitchDegrees = Pitch;
+                                    EditorCamera.Snap();
+                                }
+                            }
+                            RecordSharedViewportChrome(Viewport.Surface(), LeafBody,
                                                        OpenedScene, OpenedSceneStanding, EditorCamera);
+                        }
                     }
                     if (WorkspacePanels.PointerCaptured(Index))
                         Viewport.Seam().WithholdPointer();

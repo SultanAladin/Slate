@@ -2686,10 +2686,11 @@ void SceneDirectoryPanel::RecordGizmo(const PlaneExtent& Extent, SceneDirectoryC
                                       OverlayGeometry& Overlay)
 {
     // 📐 The ground grid and all 3 world axes (Red X, Green Y, Blue Z) are rendered 100%
-    //    on the GPU by the overlay pass fragment shader (WorkspaceOverlayFragment.slang). The viewport
-    //    orientation gizmo is lightweight screen-space overlay geometry so every viewport leaf receives it.
+    //    on the GPU by the overlay pass fragment shader (WorkspaceOverlayFragment.slang). The host records
+    //    the shared screen-space orientation gizmo so Editor, Paint and ParametricSketch cannot diverge.
     static_cast<void>(Applied);
-    AddViewportOrientationGizmo(Overlay, Extent);
+    static_cast<void>(Overlay);
+    static_cast<void>(Extent);
 }
 
 void SceneDirectoryPanel::RecordOverlayFallback(const PlaneExtent& Extent,
