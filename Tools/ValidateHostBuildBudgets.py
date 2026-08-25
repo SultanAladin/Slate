@@ -70,6 +70,8 @@ def main() -> int:
             "shared viewport bridge must own the one-at-a-time gizmo dispatch")
     require("Extent.MinimumX + 52.0f" not in shared_viewport and "Extent.MaximumX - 70.0f" in shared_viewport,
             "both Blender and CAD viewport gizmos must be anchored at the top-right of the viewport")
+    require("SharedViewportCameraDepth" in shared_viewport,
+            "shared viewport gizmos must use the HTML-reference camera-forward depth ordering")
 
     tools = read("Engine/SlateUI/Interface/ParametricTools/Source/ParametricToolsPanel.cpp")
     require("static_cast<void>(Elapsed);" in tools, "ParametricToolsPanel must mark Elapsed as intentionally unused")

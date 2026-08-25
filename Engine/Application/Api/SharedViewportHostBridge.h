@@ -140,6 +140,16 @@ inline void SharedViewportOrientationPreset(SharedViewportOrientation Orientatio
     }
 }
 
+inline double SharedViewportCameraDepth(const SharedViewportBasis& Basis, const double Axis[3])
+{
+    // The HTML reference (References/Cad/js/viewport3d.js::vp3Basis/vp3Gizmo) uses
+    // camera-forward = target - eye for depth ordering. Editor/Paint yaw-pitch stores
+    // the eye ray in Basis.Forward, while Parametric passes an already camera-forward
+    // frame, so the public gizmo projection always normalizes depth through this helper
+    // instead of letting each host guess front/back differently.
+    return -(Axis[0] * Basis.Forward[0] + Axis[1] * Basis.Forward[1] + Axis[2] * Basis.Forward[2]);
+}
+
 inline void SharedViewportOrientationPoint(const SharedViewportBasis& Basis,
                                            const PlaneExtent& Extent,
                                            const double Axis[3],
@@ -152,7 +162,7 @@ inline void SharedViewportOrientationPoint(const SharedViewportBasis& Basis,
     const float CentreY = Extent.MinimumY + 58.0f;
     const double SX = Axis[0] * Basis.Right[0] + Axis[1] * Basis.Right[1] + Axis[2] * Basis.Right[2];
     const double SY = Axis[0] * Basis.Up[0] + Axis[1] * Basis.Up[1] + Axis[2] * Basis.Up[2];
-    Depth = Axis[0] * Basis.Forward[0] + Axis[1] * Basis.Forward[1] + Axis[2] * Basis.Forward[2];
+    Depth = SharedViewportCameraDepth(Basis, Axis);
     X = CentreX + static_cast<float>(SX) * Radius;
     Y = CentreY - static_cast<float>(SY) * Radius;
 }
@@ -241,7 +251,7 @@ inline void SharedViewportProjectAxisPoint(const SharedViewportBasis& Basis,
 {
     const double SX = Axis[0] * Basis.Right[0] + Axis[1] * Basis.Right[1] + Axis[2] * Basis.Right[2];
     const double SY = Axis[0] * Basis.Up[0] + Axis[1] * Basis.Up[1] + Axis[2] * Basis.Up[2];
-    Depth = Axis[0] * Basis.Forward[0] + Axis[1] * Basis.Forward[1] + Axis[2] * Basis.Forward[2];
+    Depth = SharedViewportCameraDepth(Basis, Axis);
     X = static_cast<float>(SX) * Scale;
     Y = -static_cast<float>(SY) * Scale;
 }
@@ -335,7 +345,7 @@ inline void RecordSharedViewportCadCube(RecordingSurface& Surface,
         Point(D0, D1, D2, Face.Corners[6], Face.Corners[7]);
         Face.CentreX = (Face.Corners[0] + Face.Corners[2] + Face.Corners[4] + Face.Corners[6]) * 0.25f;
         Face.CentreY = (Face.Corners[1] + Face.Corners[3] + Face.Corners[5] + Face.Corners[7]) * 0.25f;
-        Face.Depth = Face.Normal[0] * Basis.Forward[0] + Face.Normal[1] * Basis.Forward[1] + Face.Normal[2] * Basis.Forward[2];
+        Face.Depth = SharedViewportCameraDepth(Basis, Face.Normal);
     };
 
     FaceRecord Faces[6] =

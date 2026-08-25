@@ -50,6 +50,11 @@ def mul(a: Vec3, s: float) -> Vec3:
 def dot(a: Vec3, b: Vec3) -> float:
     return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 
+def cross(a: Vec3, b: Vec3) -> Vec3:
+    return (a[1] * b[2] - a[2] * b[1],
+            a[2] * b[0] - a[0] * b[2],
+            a[0] * b[1] - a[1] * b[0])
+
 
 def length(a: Vec3) -> float:
     return math.sqrt(dot(a, a))
@@ -286,119 +291,150 @@ def draw_cad_tools(img: Image, cam: Camera) -> None:
 
 
 
-def axis_screen_layout(cam: Camera, origin: Vec3 = (0.0, 0.0, 0.0)) -> Tuple[Point, dict[str, Point], dict[str, Point]] | None:
-    o = project(cam, origin)
-    if not o:
-        return None
-    dirs: dict[str, Point] = {}
-    tips: dict[str, Point] = {}
-    axes = {"x": (1.0, 0.0, 0.0), "y": (0.0, 1.0, 0.0), "z": (0.0, 0.0, 1.0)}
-    for k, a in axes.items():
-        sp = project(cam, add(origin, mul(a, 0.5)))
-        if not sp:
-            dirs[k] = (0.0, 0.0)
-            tips[k] = o
-            continue
-        dx, dy = sp[0] - o[0], sp[1] - o[1]
-        ln = math.hypot(dx, dy)
-        if ln < 1e-4:
-            dirs[k] = (0.0, 0.0)
-            tips[k] = o
-        else:
-            dirs[k] = (dx / ln, dy / ln)
-            tips[k] = (o[0] + dirs[k][0] * 82.0, o[1] + dirs[k][1] * 82.0)
-    return o, dirs, tips
+
+def _shade(col: Color, f: float) -> Color:
+    return (int(clamp(col[0] * f, 0, 255)), int(clamp(col[1] * f, 0, 255)), int(clamp(col[2] * f, 0, 255)))
 
 
-def draw_arrow(img: Image, o: Point, tip: Point, d: Point, col: Color) -> None:
-    img.line(o, tip, col, 1.0, 4)
-    if abs(d[0]) + abs(d[1]) < 1e-6:
-        return
-    back = (tip[0] - d[0] * 18.0, tip[1] - d[1] * 18.0)
-    perp = (-d[1], d[0])
-    tri = [tip, (back[0] + perp[0] * 6.0, back[1] + perp[1] * 6.0), (back[0] - perp[0] * 6.0, back[1] - perp[1] * 6.0)]
-    img.polygon(tri, col, 1.0)
+def _project_poly(img: Image, cam: Camera, pts: list[Vec3], col: Color, alpha: float = 1.0) -> None:
+    pp = [project(cam, p) for p in pts]
+    if all(pp):
+        img.polygon([q for q in pp if q], col, alpha)
 
 
-def draw_plane_handle(img: Image, o: Point, dirs: dict[str, Point], a: str, b: str, col: Color) -> None:
-    off, sz = 28.0, 22.0
-    da, db = dirs[a], dirs[b]
-    if math.hypot(*da) < 1e-4 or math.hypot(*db) < 1e-4:
-        return
-    def corner(ka: float, kb: float) -> Point:
-        return (o[0] + da[0] * ka + db[0] * kb, o[1] + da[1] * ka + db[1] * kb)
-    pts = [corner(off, off), corner(off + sz, off), corner(off + sz, off + sz), corner(off, off + sz)]
-    img.polygon(pts, col, 0.45)
-    img.polyline(pts, col, 0.95, 1, True)
+def _project_line(img: Image, cam: Camera, pts: list[Vec3], col: Color, alpha: float = 1.0, width: int = 2) -> None:
+    pp = [project(cam, p) for p in pts]
+    if all(pp):
+        img.polyline([q for q in pp if q], col, alpha, width)
 
 
-def draw_ring(img: Image, o: Point, dirs: dict[str, Point], axis: str, col: Color) -> None:
-    others = [k for k in ("x", "y", "z") if k != axis]
-    da, db = dirs[others[0]], dirs[others[1]]
-    if math.hypot(*da) < 1e-4 or math.hypot(*db) < 1e-4:
-        img.circle(o[0], o[1], 96.0, col, 0.85, False, 3)
-        return
-    pts = []
-    for i in range(145):
-        t = math.tau * i / 144
-        pts.append((o[0] + (da[0] * math.cos(t) + db[0] * math.sin(t)) * 96.0,
-                    o[1] + (da[1] * math.cos(t) + db[1] * math.sin(t)) * 96.0))
-    img.polyline(pts, col, 0.92, 4)
+def _basis_for_axis(axis: Vec3) -> tuple[Vec3, Vec3]:
+    ref = (0.0, 1.0, 0.0) if abs(axis[1]) < 0.8 else (1.0, 0.0, 0.0)
+    u = norm(cross(axis, ref))
+    v = norm(cross(axis, u))
+    return u, v
+
+
+def _draw_cylinder(img: Image, cam: Camera, axis: Vec3, col: Color, radius: float, centre_dist: float, height: float) -> None:
+    u, v = _basis_for_axis(axis)
+    a = centre_dist - height * 0.5
+    b = centre_dist + height * 0.5
+    for i in range(24):
+        t0, t1 = math.tau * i / 24, math.tau * (i + 1) / 24
+        r0 = add(mul(u, math.cos(t0) * radius), mul(v, math.sin(t0) * radius))
+        r1 = add(mul(u, math.cos(t1) * radius), mul(v, math.sin(t1) * radius))
+        shade = 0.62 + 0.38 * max(0.0, math.cos(t0 - 0.6))
+        _project_poly(img, cam, [add(mul(axis, a), r0), add(mul(axis, b), r0), add(mul(axis, b), r1), add(mul(axis, a), r1)], _shade(col, shade), 0.96)
+
+
+def _draw_cone(img: Image, cam: Camera, axis: Vec3, col: Color, radius: float, base_dist: float, tip_dist: float) -> None:
+    u, v = _basis_for_axis(axis)
+    tip = mul(axis, tip_dist)
+    for i in range(24):
+        t0, t1 = math.tau * i / 24, math.tau * (i + 1) / 24
+        p0 = add(mul(axis, base_dist), add(mul(u, math.cos(t0) * radius), mul(v, math.sin(t0) * radius)))
+        p1 = add(mul(axis, base_dist), add(mul(u, math.cos(t1) * radius), mul(v, math.sin(t1) * radius)))
+        shade = 0.58 + 0.42 * max(0.0, math.cos(t0 - 0.6))
+        _project_poly(img, cam, [tip, p0, p1], _shade(col, shade), 0.98)
+
+
+def _draw_arc_bar(img: Image, cam: Camera, u: Vec3, v: Vec3, radius: float, band: float, sweep: float, col: Color) -> None:
+    centre = math.pi / 4.0
+    start = centre - sweep * 0.5
+    for i in range(24):
+        a0 = start + sweep * i / 24
+        a1 = start + sweep * (i + 1) / 24
+        def P(a: float, r: float) -> Vec3:
+            return add(mul(u, math.cos(a) * r), mul(v, math.sin(a) * r))
+        _project_poly(img, cam, [P(a0, radius - band), P(a0, radius + band), P(a1, radius + band), P(a1, radius - band)], col, 0.96)
+
+
+def _draw_plane_square(img: Image, cam: Camera, axis_name: str, u: Vec3, v: Vec3, normal: Vec3, col: Color) -> None:
+    half, tip = 0.08, 0.95
+    corner = mul(add(u, v), tip - half)
+    pts = [add(corner, add(mul(u, -half), mul(v, -half))),
+           add(corner, add(mul(u, half), mul(v, -half))),
+           add(corner, add(mul(u, half), mul(v, half))),
+           add(corner, add(mul(u, -half), mul(v, half)))]
+    _project_poly(img, cam, pts, col, 0.28)
+    outer = add(corner, add(mul(u, half), mul(v, half)))
+    back_u = add(outer, mul(u, -half * 2.0))
+    back_v = add(outer, mul(v, -half * 2.0))
+    _project_line(img, cam, [back_u, outer, back_v], col, 0.95, 2)
 
 
 def draw_transform_gizmo(img: Image, cam: Camera, mode: str) -> None:
-    # Ported from References/Cad/js/gizmo.js constants: axisLen 82, cone 18,
-    # scaleBox 11, ringR 96, planeOff 28, planeSize 22, uniform 14.
-    layout = axis_screen_layout(cam, (0.0, 0.0, 0.0))
-    if not layout:
-        return
-    o, dirs, tips = layout
-    axis_col = {"x": (0x31, 0xF5, 0x0A), "y": (0x1C, 0x64, 0xFC), "z": (0xFA, 0x14, 0x14)}
-    if mode == "translate":
-        draw_plane_handle(img, o, dirs, "x", "y", (0x1B, 0xF5, 0xE6))
-        draw_plane_handle(img, o, dirs, "y", "z", (0xDF, 0x22, 0xF5))
-        draw_plane_handle(img, o, dirs, "x", "z", (0xF7, 0xDB, 0x14))
-        for k in ("x", "y", "z"):
-            draw_arrow(img, o, tips[k], dirs[k], axis_col[k])
-        img.rect(int(o[0] - 7), int(o[1] - 7), int(o[0] + 7), int(o[1] + 7), (255, 255, 255), 0.95)
-    elif mode == "rotate":
-        for k in ("x", "y", "z"):
-            draw_ring(img, o, dirs, k, axis_col[k])
-        img.rect(int(o[0] - 3), int(o[1] - 3), int(o[0] + 3), int(o[1] + 3), (255, 255, 255), 0.95)
-    elif mode == "scale":
-        for k in ("x", "y", "z"):
-            img.line(o, tips[k], axis_col[k], 0.95, 4)
-            tx, ty = tips[k]
-            img.rect(int(tx - 5.5), int(ty - 5.5), int(tx + 5.5), int(ty + 5.5), axis_col[k], 1.0)
-        img.rect(int(o[0] - 7), int(o[1] - 7), int(o[0] + 7), int(o[1] + 7), (255, 255, 255), 1.0)
+    # References/Gizmo.html, not the older 2D gizmo.js: all grabbable handles are real
+    # 3D primitives in world space: cone translate tips, short cylinder scale handles,
+    # transparent plane squares, narrow annular rotation bars, and a camera-facing white centre ring.
+    axes = {"x": ((1.0, 0.0, 0.0), (0xE0, 0x14, 0x14)),
+            "y": ((0.0, 1.0, 0.0), (0x12, 0xD4, 0x0A)),
+            "z": ((0.0, 0.0, 1.0), (0x15, 0x60, 0xE0))}
+    others = {"x": ((0.0, 1.0, 0.0), (0.0, 0.0, 1.0), (0x1F, 0xC7, 0xC7)),
+              "y": ((1.0, 0.0, 0.0), (0.0, 0.0, 1.0), (0xC8, 0x1E, 0xC8)),
+              "z": ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0xE0, 0xCD, 0x12))}
+    for name, (axis, col) in axes.items():
+        _draw_cone(img, cam, axis, col, 0.06, 0.95 - 0.09, 0.95)
+        _draw_cylinder(img, cam, axis, col, 0.06, 0.95 - 0.28, 0.14)
+        u, v, plane_col = others[name]
+        _draw_plane_square(img, cam, name, u, v, axis, plane_col)
+        _draw_arc_bar(img, cam, u, v, 0.95 * 0.62, 0.038, math.radians(31.0), col)
+    o = project(cam, (0.0, 0.0, 0.0))
+    if o:
+        # Torus billboard in the HTML; represented as a white ring plus dark centre and tiny target cube.
+        img.circle(o[0], o[1], 26.0, (255, 255, 255), 1.0, 4)
+        img.circle(o[0], o[1], 8.0, (115, 124, 138), 0.75, 3)
 
-def draw_blender_gizmo(img: Image, body=BODY) -> None:
+
+def _orientation_points(cam: Camera, body=BODY) -> list[tuple[Vec3, Color, bool, str, float, float, float]]:
     x0, y0, x1, _ = body
     cx, cy, r = x1 - 70, y0 + 58, 34
-    pts = [((r, 0), (252, 90, 90), True, "X"), ((-r, 0), (252, 90, 90), False, ""),
-           ((0, -r), (90, 139, 252), True, "Z"), ((0, r), (90, 139, 252), False, ""),
-           ((0, 0), (123, 214, 106), True, "Y")]
-    for (dx, dy), col, pos, lab in pts:
-        if pos and (dx or dy): img.line((cx, cy), (cx + dx, cy + dy), (255, 255, 255), 0.14, 2)
-    for (dx, dy), col, pos, lab in pts:
-        img.circle(cx + dx, cy + dy, 9 if pos else 7, col if pos else (10, 12, 16), 1, 1)
+    right, up, forward = cam.basis
+    axes = [((1,0,0), (252,90,90), True, "X"), ((-1,0,0), (252,90,90), False, ""),
+            ((0,1,0), (123,214,106), True, "Y"), ((0,-1,0), (123,214,106), False, ""),
+            ((0,0,1), (90,139,252), True, "Z"), ((0,0,-1), (90,139,252), False, "")]
+    out=[]
+    for a,col,pos,label in axes:
+        sx, sy = dot(a, right), dot(a, up)
+        depth = -dot(a, forward)  # SharedViewportCameraDepth: match HTML reference front/back ordering.
+        out.append((a, col, pos, label, cx + sx*r, cy - sy*r, depth))
+    return sorted(out, key=lambda x: x[6])
 
 
-def draw_cad_cube(img: Image, body=BODY) -> None:
+def draw_blender_gizmo(img: Image, cam: Camera, body=BODY) -> None:
     x0, y0, x1, _ = body
-    # Top orthographic cube face: label on projected face, single top-right gizmo.
-    bx, by = x1 - 98, y0 + 28
-    top = [(bx, by), (bx + 58, by), (bx + 58, by + 58), (bx, by + 58)]
-    img.polygon(top, (248, 250, 252), 0.58)
-    img.polyline(top, (255, 255, 255), 0.95, 2, True)
-    side = [(bx + 58, by), (bx + 68, by + 10), (bx + 68, by + 68), (bx + 58, by + 58)]
-    img.polygon(side, (252, 90, 90), 0.45)
-    img.polyline(side, (255, 255, 255), 0.7, 1, True)
-    front = [(bx, by + 58), (bx + 58, by + 58), (bx + 68, by + 68), (bx + 10, by + 68)]
-    img.polygon(front, (91, 140, 255), 0.45)
-    img.polyline(front, (255, 255, 255), 0.7, 1, True)
+    cx, cy = x1 - 70, y0 + 58
+    pts = _orientation_points(cam, body)
+    for _, _, pos, _, x, y, _ in pts:
+        if pos:
+            img.line((cx, cy), (x, y), (255, 255, 255), 0.14, 2)
+    for _, col, pos, _, x, y, depth in pts:
+        if pos:
+            img.circle(x, y, 9, col, 1.0 if depth > 0 else 0.75, 1)
+        else:
+            img.circle(x, y, 7, (10, 12, 16), 0.9, 1)
+            img.circle(x, y, 4, col, 0.85, 1)
 
 
+def draw_cad_cube(img: Image, cam: Camera, body=BODY) -> None:
+    x0, y0, x1, _ = body
+    cx, cy, scale = x1 - 70, y0 + 58, 28.0
+    right, up, forward = cam.basis
+    def P(p: Vec3) -> Point:
+        return (cx + dot(p, right) * scale, cy - dot(p, up) * scale)
+    faces = [((1,0,0), [(1,0,0),(1,1,0),(1,1,1),(1,0,1)], (252,90,90), "Right"),
+             ((-1,0,0), [(0,0,0),(0,0,1),(0,1,1),(0,1,0)], (252,90,90), "Left"),
+             ((0,1,0), [(0,1,0),(0,1,1),(1,1,1),(1,1,0)], (248,250,252), "Top"),
+             ((0,-1,0), [(0,0,0),(1,0,0),(1,0,1),(0,0,1)], (216,222,234), "Bottom"),
+             ((0,0,1), [(0,0,1),(1,0,1),(1,1,1),(0,1,1)], (91,140,255), "Front"),
+             ((0,0,-1), [(0,0,0),(0,1,0),(1,1,0),(1,0,0)], (91,140,255), "Back")]
+    def centre_pts(corners):
+        return tuple(sum(q[i] for q in corners)/4.0 - 0.5 for i in range(3))
+    for normal, corners, col, label in sorted(faces, key=lambda f: -dot(f[0], forward)):
+        shifted=[(p[0]-0.5,p[1]-0.5,p[2]-0.5) for p in corners]
+        pp=[P(q) for q in shifted]
+        img.polygon(pp, col, 0.54)
+        img.polyline(pp, (255,255,255), 0.78, 1, True)
 def render(name: str, cam: Camera, gizmo: str, transform: str) -> str:
     img = Image(W, H)
     # App frame gutters around the viewport panel.
@@ -410,9 +446,9 @@ def render(name: str, cam: Camera, gizmo: str, transform: str) -> str:
     draw_cad_tools(img, cam)
     draw_transform_gizmo(img, cam, transform)
     if gizmo == "cad":
-        draw_cad_cube(img)
+        draw_cad_cube(img, cam)
     else:
-        draw_blender_gizmo(img)
+        draw_blender_gizmo(img, cam)
     ppm = os.path.join(OUT, f"{name}.ppm")
     png = os.path.join(OUT, f"{name}.png")
     img.save_ppm(ppm)
