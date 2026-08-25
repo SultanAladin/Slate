@@ -2437,9 +2437,45 @@ void RecordCodexSceneProxy(RecordingSurface& Surface,
         if (Entry.Subject != CodexSceneSubject::Geometry)
             continue;
 
+        const SpatialPoint Centre = CodexScenePosition(Entry);
+        const CodexSceneMesh* Mesh = nullptr;
+        for (const CodexSceneMesh& Candidate : Scene.SceneMeshes)
+            if (Candidate.Naming == Entry.GeometryReference)
+            {
+                Mesh = &Candidate;
+                break;
+            }
+        if (Mesh != nullptr && Mesh->Positions.size() >= 9u && Mesh->Indices.size() >= 3u)
+        {
+            for (std::uint32_t Index = 0u; Index + 2u < Mesh->Indices.size(); Index += 3u)
+            {
+                float SX[3] = {};
+                float SY[3] = {};
+                bool TriangleStanding = true;
+                for (std::uint32_t Corner = 0u; Corner < 3u; ++Corner)
+                {
+                    const std::uint32_t Vertex = Mesh->Indices[Index + Corner];
+                    if (Vertex * 3u + 2u >= Mesh->Positions.size())
+                    {
+                        TriangleStanding = false;
+                        break;
+                    }
+                    TriangleStanding = ProjectSceneProxyPoint(Basis, View, Perspective, Extent, Centre,
+                        Mesh->Positions[Vertex * 3u + 0u] * Entry.Scale[0] * CodexSceneMetreScale,
+                        Mesh->Positions[Vertex * 3u + 1u] * Entry.Scale[1] * CodexSceneMetreScale,
+                        Mesh->Positions[Vertex * 3u + 2u] * Entry.Scale[2] * CodexSceneMetreScale,
+                        SX[Corner], SY[Corner]) && TriangleStanding;
+                }
+                if (TriangleStanding)
+                {
+                    const float Corners[6] = { SX[0], SY[0], SX[1], SY[1], SX[2], SY[2] };
+                    Surface.Tongue(Corners, 3u, std::strstr(Entry.Naming.c_str(), "Floor") != nullptr ? Floor : Fill);
+                }
+            }
+        }
+
         double HalfX = 0.0, HalfY = 0.0, HalfZ = 0.0;
         ResolveCodexProxyExtent(Entry, HalfX, HalfY, HalfZ);
-        const SpatialPoint Centre = CodexScenePosition(Entry);
 
         float X[8] = {};
         float Y[8] = {};

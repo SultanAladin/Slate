@@ -18,6 +18,7 @@ namespace
 constexpr std::uint32_t NamingSection      = 0x4D414E57u;   // [-] - `WNAM`
 constexpr std::uint32_t EnvironmentSection = 0x564E4557u;   // [-] - `WENV`
 constexpr std::uint32_t SceneSection       = 0x454E4353u;   // [-] - `SCNE`
+constexpr std::uint32_t MeshSection        = 0x4853454Du;   // [-] - `MESH`
 constexpr std::uint32_t EmbeddedSection    = 0x44424D45u;   // [-] - `EMBD`
 
 void Inscribe32(std::vector<std::uint8_t>& Content, std::uint32_t Held)
@@ -118,10 +119,11 @@ Outcome<CodexDocument> WorkspaceCodexInterchange::EncodeWorkspace(const Workspac
                                                                    std::uint64_t          Revision) const
 {
     if (Workspace.Scene.size() > std::numeric_limits<std::uint32_t>::max() ||
+        Workspace.SceneMeshes.size() > std::numeric_limits<std::uint32_t>::max() ||
         Workspace.Embedded.size() > std::numeric_limits<std::uint32_t>::max())
     {
         return Outcome<CodexDocument>::Refuse(
-            { RefusalReason::ExtentExhausted, "the workspace carries too many scene or embedded documents" });
+            { RefusalReason::ExtentExhausted, "the workspace carries too many scene, mesh, or embedded documents" });
     }
 
     std::vector<std::uint8_t> Naming;
@@ -152,6 +154,26 @@ Outcome<CodexDocument> WorkspaceCodexInterchange::EncodeWorkspace(const Workspac
             InscribeReal(Scene, Current.Scale[Axis]);
     }
 
+    std::vector<std::uint8_t> Meshes;
+    Inscribe32(Meshes, static_cast<std::uint32_t>(Workspace.SceneMeshes.size()));
+    for (const CodexSceneMesh& Current : Workspace.SceneMeshes)
+    {
+        if (Current.Positions.size() % 3u != 0u ||
+            Current.Positions.size() / 3u > std::numeric_limits<std::uint32_t>::max() ||
+            Current.Indices.size() > std::numeric_limits<std::uint32_t>::max())
+        {
+            return Outcome<CodexDocument>::Refuse(
+                { RefusalReason::ContentUnsupported, "a workspace scene mesh has inconsistent extents" });
+        }
+        InscribeRun(Meshes, Current.Naming);
+        Inscribe32(Meshes, static_cast<std::uint32_t>(Current.Positions.size() / 3u));
+        for (double Position : Current.Positions)
+            InscribeReal(Meshes, Position);
+        Inscribe32(Meshes, static_cast<std::uint32_t>(Current.Indices.size()));
+        for (std::uint32_t Index : Current.Indices)
+            Inscribe32(Meshes, Index);
+    }
+
     CodexInterchange Codex;
     std::vector<std::uint8_t> Embedded;
     Inscribe32(Embedded, static_cast<std::uint32_t>(Workspace.Embedded.size()));
@@ -175,6 +197,7 @@ Outcome<CodexDocument> WorkspaceCodexInterchange::EncodeWorkspace(const Workspac
     Produced.Sections.push_back(Section(NamingSection, Revision, std::move(Naming)));
     Produced.Sections.push_back(Section(EnvironmentSection, Revision, std::move(Environment)));
     Produced.Sections.push_back(Section(SceneSection, Revision, std::move(Scene)));
+    Produced.Sections.push_back(Section(MeshSection, Revision, std::move(Meshes)));
     Produced.Sections.push_back(Section(EmbeddedSection, Revision, std::move(Embedded)));
     return Outcome<CodexDocument>::Result(std::move(Produced));
 }
@@ -190,6 +213,7 @@ Outcome<WorkspaceCodex> WorkspaceCodexInterchange::DecodeWorkspace(const CodexDo
     const CodexSection* Naming = SectionOf(Document, NamingSection);
     const CodexSection* Environment = SectionOf(Document, EnvironmentSection);
     const CodexSection* Scene = SectionOf(Document, SceneSection);
+    const CodexSection* Meshes = SectionOf(Document, MeshSection);
     const CodexSection* Embedded = SectionOf(Document, EmbeddedSection);
     if (Naming == nullptr || Environment == nullptr || Scene == nullptr || Embedded == nullptr)
     {
@@ -262,6 +286,56 @@ Outcome<WorkspaceCodex> WorkspaceCodexInterchange::DecodeWorkspace(const CodexDo
     {
         return Outcome<WorkspaceCodex>::Refuse(
             { RefusalReason::ContentUnsupported, "the workspace scene section has trailing content" });
+    }
+
+    if (Meshes != nullptr)
+    {
+        Position = 0u;
+        std::uint32_t MeshCount = 0u;
+        if (!Extract32(Meshes->Content, Position, MeshCount))
+        {
+            return Outcome<WorkspaceCodex>::Refuse(
+                { RefusalReason::ContentUnsupported, "the workspace mesh section is incomplete" });
+        }
+
+        Produced.SceneMeshes.reserve(MeshCount);
+        for (std::uint32_t MeshIndex = 0u; MeshIndex < MeshCount; ++MeshIndex)
+        {
+            CodexSceneMesh Current;
+            std::uint32_t VertexCount = 0u;
+            if (!ExtractRun(Meshes->Content, Position, Current.Naming) ||
+                !Extract32(Meshes->Content, Position, VertexCount))
+            {
+                return Outcome<WorkspaceCodex>::Refuse(
+                    { RefusalReason::ContentUnsupported, "a workspace mesh header is inconsistent" });
+            }
+            Current.Positions.reserve(static_cast<std::size_t>(VertexCount) * 3u);
+            for (std::uint32_t Index = 0u; Index < VertexCount * 3u; ++Index)
+            {
+                double Held = 0.0;
+                if (!ExtractReal(Meshes->Content, Position, Held))
+                    return Outcome<WorkspaceCodex>::Refuse(
+                        { RefusalReason::ContentUnsupported, "a workspace mesh vertex run is incomplete" });
+                Current.Positions.push_back(Held);
+            }
+            std::uint32_t IndexCount = 0u;
+            if (!Extract32(Meshes->Content, Position, IndexCount))
+                return Outcome<WorkspaceCodex>::Refuse(
+                    { RefusalReason::ContentUnsupported, "a workspace mesh index count is incomplete" });
+            Current.Indices.reserve(IndexCount);
+            for (std::uint32_t Index = 0u; Index < IndexCount; ++Index)
+            {
+                std::uint32_t Held = 0u;
+                if (!Extract32(Meshes->Content, Position, Held) || Held >= VertexCount)
+                    return Outcome<WorkspaceCodex>::Refuse(
+                        { RefusalReason::ContentUnsupported, "a workspace mesh index is inconsistent" });
+                Current.Indices.push_back(Held);
+            }
+            Produced.SceneMeshes.push_back(std::move(Current));
+        }
+        if (Position != Meshes->Content.size())
+            return Outcome<WorkspaceCodex>::Refuse(
+                { RefusalReason::ContentUnsupported, "the workspace mesh section has trailing content" });
     }
 
     Position = 0u;

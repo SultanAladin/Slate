@@ -48,12 +48,21 @@ struct CodexEnvironment
     double         AtmosphereScaleHeight = 1.0;     // [-]
 };
 
+/// 🧩 One binary polygon mesh carried directly inside a WorkspaceCodex document.
+struct CodexSceneMesh
+{
+    std::string                  Naming    = {}; // [-] - matches CodexSceneEntry::GeometryReference
+    std::vector<double>          Positions = {}; // [m] - xyz triples, local to the scene entry placement
+    std::vector<std::uint32_t>   Indices   = {}; // [-] - triangle-list indices into Positions triples
+};
+
 /// 🧩 A complete workspace payload carried by a WorkspaceCodex document.
 struct WorkspaceCodex
 {
     std::string                     Naming       = {};   // [-] - document title
     CodexEnvironment                Environment  = {};   // [-] - Sun, Sky, and Atmosphere declaration
     std::vector<CodexSceneEntry>    Scene        = {};   // [-] - only persisted scene entries
+    std::vector<CodexSceneMesh>     SceneMeshes  = {};   // [m] - embedded binary scene geometry
     std::vector<CodexDocument>      Embedded     = {};   // [B] - whole specialized Codex documents
 };
 

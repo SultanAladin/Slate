@@ -147,9 +147,20 @@ Status: started in implementation with `WhiteTeaService.codex` activation into S
 - Load `WhiteTeaService.codex` through the existing codex activation path.
 - Register scene rows in Scene Directory.
 - Render codex scene geometry and CAD geometry in the same viewport/camera path.
-- First proxy render uses codex scene placements and white-dielectric translucent proxy volumes until embedded binary mesh sections feed a dedicated scene polygon pass.
+- `WhiteTeaService.codex` now carries an embedded binary mesh section (`MESH`) for the tea-service proof.
+- The first viewport render reads that binary mesh payload and draws white-dielectric triangles in the same viewport path; the dedicated Vulkan `WorkspaceScenePass` remains the next GPU-residency step.
 
-### Phase 6 — selection sync
+### Phase 6 — real 3D gizmo and CAD orientation cube
+
+- Replace the current screen-overlay transform drawing with real 3D gizmo geometry.
+- Move mode: arrows, cone heads, cylinders/shafts, axis planes, and white screen-space move handle.
+- Scale mode: axis boxes, planar boxes, and white screen-space scale handle.
+- Rotate mode: axis rings/tori/arcs and white screen-space rotate ring.
+- Keep Blender command chains: `G`, `G Z 50`, `S X 2`, `R X 90`, and double-tap `G G` for line/curve slide.
+- CAD orientation cube: true 3D top-right cube with face/edge/corner picking; use the existing baked font path to label cube faces (`Top`, `Front`, `Back`, `Left`, `Right`, `Bottom`).
+- Viewport gizmo-style dropdown keeps both `Blender Gizmo` and `CAD Gizmo`; chosen style controls both handle presentation and orientation-cube behavior.
+
+### Phase 7 — selection sync
 
 - Scene Directory CAD reference selection selects the underlying CAD record.
 - Sketch Directory CAD selection highlights matching Scene Directory references when present.
