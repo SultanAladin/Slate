@@ -28,7 +28,8 @@ enum class WorkspaceSubject : std::uint32_t
     Vacant       = 0u,   // [-] - opened blank; the editor's default
     Painting     = 1u,   // [-] - a paint surface; the painting host's default
     Modelling    = 2u,   // [-] - a sketch or solid workspace
-    SubjectCount = 3u    // [-] - the closed count, never a subject
+    Parametric   = 3u,   // [-] - a dedicated CAD workspace
+    SubjectCount = 4u    // [-] - the closed count, never a subject
 };
 
 /// 🧩 The run one workspace of a given subject is titled with, before its ordinal is appended.
