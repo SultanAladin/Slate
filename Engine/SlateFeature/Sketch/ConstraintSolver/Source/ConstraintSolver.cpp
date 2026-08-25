@@ -138,10 +138,12 @@ namespace
         Slate::AppendCurvePolyline(Geometry, Polyline, 96u);
     }
 
-    bool ResolveCurveTangentAtPoint(const SketchStructure& Declared,
-                                    SketchCurveName Subject,
-                                    const SpatialPoint& Contact,
-                                    SpatialDirection& Tangent)
+    bool ResolveCurveTangentNearPoint(const SketchStructure& Declared,
+                                      SketchCurveName Subject,
+                                      const SpatialPoint& Probe,
+                                      SpatialPoint& Contact,
+                                      SpatialDirection& Tangent,
+                                      double& Distance)
     {
         if (!Subject.Assigned() || Subject.IssuedIndex > Declared.Curves().size())
             return false;
@@ -154,32 +156,43 @@ namespace
         if (Polyline.size() < 2u)
             return false;
 
-        double BestDistance = 1.0e300;
-        SpatialDirection BestDirection = {};
+        Distance = 1.0e300;
         for (std::size_t Index = 0u; Index + 1u < Polyline.size(); ++Index)
         {
             const SpatialPoint& StartPoint = Polyline[Index];
             const SpatialPoint& EndPoint = Polyline[Index + 1u];
             const SpatialDirection Span = Difference(StartPoint, EndPoint);
-            const SpatialDirection Offset = Difference(StartPoint, Contact);
+            const SpatialDirection Offset = Difference(StartPoint, Probe);
             const double SpanLengthSquared = LengthSquared(Span);
             const double Parameter = SpanLengthSquared > 1.0e-18
                 ? std::clamp(Dot(Offset, Span) / SpanLengthSquared, 0.0, 1.0)
                 : 0.0;
             const SpatialPoint Closest = Added(StartPoint, Scaled(Span, Parameter));
-            const double Distance = std::sqrt(LengthSquared(Difference(Closest, Contact)));
-            if (Distance < BestDistance)
+            const double CandidateDistance = std::sqrt(LengthSquared(Difference(Closest, Probe)));
+            if (CandidateDistance < Distance)
             {
-                BestDistance = Distance;
-                BestDirection = Normalize(Span);
+                Distance = CandidateDistance;
+                Contact = Closest;
+                Tangent = Normalize(Span);
             }
         }
 
-        if (BestDistance > 1.0e-3)
+        return Distance < 1.0e300;
+    }
+
+    bool ResolveCircle(const SketchStructure& Declared,
+                       SketchCurveName Subject,
+                       CircleCurve& Circle)
+    {
+        if (!Subject.Assigned() || Subject.IssuedIndex > Declared.Curves().size())
             return false;
-        Tangent = BestDirection;
+        const CurveSpecification& Geometry = Declared.Curves()[Subject.IssuedIndex - 1u].Geometry;
+        if (Geometry.Subject() != CurveSubject::Circle || !Geometry.Declared())
+            return false;
+        Circle = Geometry.HeldCircle();
         return true;
     }
+
 }
 
 ConstraintDisposition EvaluateConstraints(const SketchStructure& Declared)
@@ -253,11 +266,14 @@ Outcome<bool> ApplyConstraints(SketchStructure& Declared)
     if (EvaluateConstraints(Declared) != ConstraintDisposition::Produced)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the sketch constraints are unsupported" });
 
-    for (std::uint32_t ConstraintIndex = 1u; ConstraintIndex <= Declared.Constraints().size(); ++ConstraintIndex)
+    for (std::uint32_t Pass = 0u; Pass < 8u; ++Pass)
     {
-        const Outcome<bool> Applied = ApplyConstraint(Declared, { ConstraintIndex });
-        if (!Applied)
-            return Applied;
+        for (std::uint32_t ConstraintIndex = 1u; ConstraintIndex <= Declared.Constraints().size(); ++ConstraintIndex)
+        {
+            const Outcome<bool> Applied = ApplyConstraint(Declared, { ConstraintIndex });
+            if (!Applied)
+                return Applied;
+        }
     }
     return Outcome<bool>::Result(true);
 }
@@ -368,31 +384,57 @@ Outcome<bool> ApplyConstraint(SketchStructure& Declared,
             }
 
             SpatialPoint LineStart = {}, LineEnd = {};
-            if (!ResolveLine(Declared, Primary, LineStart, LineEnd))
+            bool LineIsPrimary = ResolveLine(Declared, Primary, LineStart, LineEnd);
+            if (!LineIsPrimary && ResolveLine(Declared, Secondary, LineStart, LineEnd))
             {
                 std::swap(Primary, Secondary);
-                if (!ResolveLine(Declared, Primary, LineStart, LineEnd))
-                    return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "tangent currently requires one line curve" });
+                LineIsPrimary = true;
             }
 
-            SpatialDirection StartTangent = {};
-            SpatialDirection EndTangent = {};
-            const bool StartContact = ResolveCurveTangentAtPoint(Declared, Secondary, LineStart, StartTangent);
-            const bool EndContact = ResolveCurveTangentAtPoint(Declared, Secondary, LineEnd, EndTangent);
-            if (!StartContact && !EndContact)
+            if (LineIsPrimary)
             {
-                return Outcome<bool>::Refuse(
-                    { RefusalReason::ContentUnsupported, "tangent currently requires one line endpoint to lie on the target curve" });
+                SpatialPoint StartContact = {}, EndContact = {};
+                SpatialDirection StartTangent = {}, EndTangent = {};
+                double StartDistance = 0.0, EndDistance = 0.0;
+                const bool StartResolved = ResolveCurveTangentNearPoint(Declared, Secondary, LineStart, StartContact, StartTangent, StartDistance);
+                const bool EndResolved = ResolveCurveTangentNearPoint(Declared, Secondary, LineEnd, EndContact, EndTangent, EndDistance);
+                if (!StartResolved && !EndResolved)
+                {
+                    return Outcome<bool>::Refuse(
+                        { RefusalReason::ContentUnsupported, "tangent currently requires one line and one target curve" });
+                }
+
+                const bool UseStart = StartResolved && (!EndResolved || StartDistance <= EndDistance);
+                const SpatialPoint Contact = UseStart ? StartContact : EndContact;
+                const SpatialPoint Anchor = UseStart ? LineEnd : LineStart;
+                const SpatialDirection TangentDirection = UseStart ? StartTangent : EndTangent;
+                const double Length = std::sqrt(LengthSquared(Difference(Anchor, Contact)));
+                const SpatialPoint Adjusted = Added(Contact, Scaled(TangentDirection, Length));
+                const Outcome<bool> ContactApplied = EnforceSketchPoint(Declared,
+                    { (Primary.IssuedIndex << 8u) | (UseStart ? 1u : 2u) }, Contact);
+                if (!ContactApplied)
+                    return ContactApplied;
+                return EnforceSketchPoint(Declared,
+                    { (Primary.IssuedIndex << 8u) | (UseStart ? 2u : 1u) }, Adjusted);
             }
 
-            const SpatialPoint Contact = StartContact ? LineStart : LineEnd;
-            const SpatialPoint Anchor = StartContact ? LineEnd : LineStart;
-            const SpatialDirection TangentDirection = StartContact ? StartTangent : EndTangent;
-            const double Length = std::sqrt(LengthSquared(Difference(Anchor, Contact)));
-            const SpatialPoint Adjusted = Added(Contact, Scaled(TangentDirection, Length));
-            return EnforceSketchPoint(Declared,
-                                      { (Primary.IssuedIndex << 8u) | (StartContact ? 2u : 1u) },
-                                      Adjusted);
+            CircleCurve FirstCircle = {};
+            CircleCurve SecondCircle = {};
+            if (ResolveCircle(Declared, Primary, FirstCircle) && ResolveCircle(Declared, Secondary, SecondCircle))
+            {
+                SpatialDirection Direction = Difference(FirstCircle.Centre, SecondCircle.Centre);
+                if (LengthSquared(Direction) <= 1.0e-12)
+                    Direction = Normalize(FirstCircle.StartDirection);
+                else
+                    Direction = Normalize(Direction);
+                const double Distance = std::max(FirstCircle.Radius + SecondCircle.Radius, 1.0e-6);
+                Declared.Curves()[Secondary.IssuedIndex - 1u].Geometry.HeldCircle().Centre =
+                    Added(FirstCircle.Centre, Scaled(Direction, Distance));
+                return Outcome<bool>::Result(true);
+            }
+
+            return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported,
+                                           "tangent currently requires a line plus curve or two circles" });
         }
 
         case ConstraintSubject::SubjectCount:

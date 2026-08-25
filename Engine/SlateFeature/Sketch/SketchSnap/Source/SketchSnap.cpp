@@ -181,6 +181,15 @@ SketchSnapPlacement ResolveNearestSnap(const SketchStructure& Declared,
         if (Held == nullptr || !Held->Geometry.Declared())
             continue;
 
+        if (Accepted.TangentAccepted && Held->Geometry.Subject() == CurveSubject::Circle)
+        {
+            const CircleCurve& Circle = Held->Geometry.HeldCircle();
+            const SpatialDirection Radial = Difference(Circle.Centre, Probe);
+            if (LengthSquared(Radial) > 1.0e-12)
+                ConsiderCandidate(Probe, Added(Circle.Centre, Scaled(Normalize(Radial), Circle.Radius)),
+                                  Curve, SketchSnapSubject::Tangent, {}, {}, MaximumDistance, Best);
+        }
+
         AppendCurvePolylineLocal(Held->Geometry, Polyline);
         if (Polyline.size() < 2u)
             continue;
@@ -210,7 +219,10 @@ SketchSnapPlacement ResolveNearestSnap(const SketchStructure& Declared,
                                  0.0, 1.0)
                     : 0.0;
                 const SpatialPoint Closest = Added(Polyline[PointIndex], Scaled(Span, Parameter));
-                ConsiderCandidate(Probe, Closest, Curve, SketchSnapSubject::AlongCurve, {}, {}, MaximumDistance, Best);
+                const SketchSnapSubject Subject = Accepted.PerpendicularAccepted && Parameter > 1.0e-4 && Parameter < 1.0 - 1.0e-4
+                                                ? SketchSnapSubject::Perpendicular
+                                                : SketchSnapSubject::AlongCurve;
+                ConsiderCandidate(Probe, Closest, Curve, Subject, {}, {}, MaximumDistance, Best);
             }
         }
     }

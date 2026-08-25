@@ -138,6 +138,18 @@ def run_checks() -> list[str]:
     assert abs(dot(unit(t1 - t0), unit(t0 - P(0, 0)))) <= 1.0e-6
     passed.append("ordinary tangent solve creates tangent direction")
 
+    near_contact = P(10, 0)
+    t0, t1 = tangent_from_contact(P(0, 0), 10.0, near_contact, P(14, 28))
+    assert_close_point("non-contact tangent contact", t0, near_contact)
+    assert abs(dot(unit(t1 - t0), unit(t0 - P(0, 0)))) <= 1.0e-6
+    passed.append("edge arc/line tangent projects to nearest curve contact")
+
+    c1, r1, c2, r2 = P(0, 0), 10.0, P(3, 0), 5.0
+    direction = unit(c2 - c1)
+    moved = c1 + direction.scale(r1 + r2)
+    assert_close_point("circle circle tangent", moved, P(15, 0))
+    passed.append("ordinary circle-circle tangent moves secondary centre externally")
+
     assert three_point_arc_ready(P(0, 0), P(10, 10), P(20, 0))
     assert not three_point_arc_ready(P(0, 0), P(10, 0), P(20, 0))
     passed.append("edge collinear arc points are rejected")

@@ -413,6 +413,26 @@ const ToolEntry AnnotationTools[] =
       false, false, false, false, false, false, false, false, false, true, false, false, false, false,
       2u, 0u, 0u, 0u, 0u, 0u, 0u,
       { { "Needs", "line + curve" } }, 1u },
+
+    { "Equal", "", SymbolSubject::ConstraintDimension, ParametricToolDimension::Edge,
+      false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+      2u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Needs", "two like curves" } }, 1u },
+
+    { "Midpoint", "", SymbolSubject::ConstraintDimension, ParametricToolDimension::Vertex,
+      false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+      1u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Planned", "point on centre" } }, 1u },
+
+    { "Symmetry", "", SymbolSubject::MirrorAxis, ParametricToolDimension::Vertex,
+      false, false, false, false, true, false, false, false, false, false, false, true, false, false,
+      2u, 0u, 0u, 0u, 0u, 0u, 1u,
+      { { "Planned", "mirror about line" } }, 1u },
+
+    { "Concentric", "", SymbolSubject::ConstraintDimension, ParametricToolDimension::Edge,
+      false, false, false, false, false, false, false, false, false, true, false, false, false, false,
+      2u, 0u, 0u, 0u, 2u, 0u, 0u,
+      { { "Planned", "shared centre" } }, 1u },
 };
 
 const BandEntry Bands[BandCount] =
@@ -591,7 +611,11 @@ ParametricToolSubject ToolSubjectOf(std::uint32_t BandIndex, std::uint32_t ToolI
                  : ToolIndex == 4u ? ParametricToolSubject::CoincidentConstraint
                  : ToolIndex == 5u ? ParametricToolSubject::ParallelConstraint
                  : ToolIndex == 6u ? ParametricToolSubject::PerpendicularConstraint
-                                   : ParametricToolSubject::TangentConstraint;
+                 : ToolIndex == 7u ? ParametricToolSubject::TangentConstraint
+                 : ToolIndex == 8u ? ParametricToolSubject::EqualConstraint
+                 : ToolIndex == 9u ? ParametricToolSubject::MidpointConstraint
+                 : ToolIndex == 10u ? ParametricToolSubject::SymmetryConstraint
+                                    : ParametricToolSubject::ConcentricConstraint;
         default:
             return ParametricToolSubject::Select;
     }

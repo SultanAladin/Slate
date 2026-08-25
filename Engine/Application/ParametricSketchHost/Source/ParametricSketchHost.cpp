@@ -14,6 +14,7 @@
 #include "SlateFeature/Feature/WorkspaceRecordStructure/Api/WorkspaceRecordStructure.h"
 #include "SlateFeature/Feature/WorkspaceRevisionSequence/Api/WorkspaceRevisionSequence.h"
 #include "SlateFeature/Sketch/ConstraintSolver/Api/ConstraintSolver.h"
+#include "SlateFeature/Sketch/DimensionSolver/Api/DimensionSolver.h"
 #include "SlateFeature/Sketch/SketchEditing/Api/SketchEditing.h"
 #include "SlateFeature/Sketch/ProfilePattern/Api/ProfilePattern.h"
 #include "SlateFeature/Sketch/ProfileReshape/Api/ProfileReshape.h"
@@ -960,6 +961,89 @@ void RecordViewportStateReadout(RecordingSurface& Surface,
                     Detail, 11.0f);
 }
 
+const char* ConstraintGlyphText(ConstraintSubject Subject)
+{
+    switch (Subject)
+    {
+        case ConstraintSubject::Coincident:     return "●";
+        case ConstraintSubject::Horizontal:     return "H";
+        case ConstraintSubject::Vertical:       return "V";
+        case ConstraintSubject::Parallel:       return "∥";
+        case ConstraintSubject::Perpendicular:  return "⊥";
+        case ConstraintSubject::Tangent:        return "T";
+        case ConstraintSubject::Equal:          return "=";
+        case ConstraintSubject::Fixed:          return "F";
+        case ConstraintSubject::SubjectCount:   return "?";
+    }
+    return "?";
+}
+
+bool ResolveConstraintGlyphAnchor(const SketchStructure& Sketch,
+                                  const ReferenceSpecification& Reference,
+                                  SpatialPoint& Anchor)
+{
+    if (Reference.Subject == ReferenceSubject::SketchCurve && Reference.SketchCurve.Assigned() &&
+        Reference.SketchCurve.IssuedIndex <= Sketch.Curves().size())
+    {
+        std::vector<SpatialPoint> Polyline;
+        AppendCurvePolyline(Sketch.Curves()[Reference.SketchCurve.IssuedIndex - 1u].Geometry, Polyline, 24u);
+        if (Polyline.empty())
+            return false;
+        Anchor = Polyline[Polyline.size() / 2u];
+        return true;
+    }
+    if (Reference.Subject == ReferenceSubject::SketchPoint && Reference.SketchPoint.Assigned())
+    {
+        const std::uint32_t CurveIndex = Reference.SketchPoint.IssuedIndex >> 8u;
+        std::vector<SketchPointPlacement> Points;
+        if (CurveIndex != 0u && ResolveSketchPoints(Sketch, { CurveIndex }, Points))
+            for (const SketchPointPlacement& Point : Points)
+                if (Point.Name.IssuedIndex == Reference.SketchPoint.IssuedIndex)
+                {
+                    Anchor = Point.Position;
+                    return true;
+                }
+    }
+    return false;
+}
+
+void RecordConstraintGlyphs(RecordingSurface& Surface,
+                            const PlaneExtent& Extent,
+                            const SketchStructure& Sketch,
+                            const ParametricViewportState& View,
+                            bool Perspective)
+{
+    if (!Sketch.Declared())
+        return;
+    const SpatialBasis Basis = ResolveSketchBasis(Sketch);
+    for (const ConstraintSpecification& Constraint : Sketch.Constraints())
+    {
+        SpatialPoint Anchor = {};
+        if (!ResolveConstraintGlyphAnchor(Sketch, Constraint.Primary, Anchor))
+            continue;
+        float X = 0.0f, Y = 0.0f;
+        const SpatialDirection Offset = Difference(Basis.Origin, Anchor);
+        const double Along = Dot(Offset, Basis.Along);
+        const double Across = Dot(Offset, Basis.Across);
+        if (!ProjectViewportPoint(Basis, View, Perspective, Extent, Along, Across, X, Y))
+            continue;
+        Surface.TextRun(X + 6.0f, Y - 6.0f, Covering(0xFBBF24u),
+                        ConstraintGlyphText(Constraint.Subject), 12.0f, 0.0f, true);
+    }
+}
+
+const char* ConstraintDispositionText(ConstraintDisposition Disposition)
+{
+    switch (Disposition)
+    {
+        case ConstraintDisposition::Produced:              return "valid";
+        case ConstraintDisposition::InvalidSketch:         return "invalid sketch references";
+        case ConstraintDisposition::UnsupportedConstraint: return "unsupported constraint";
+        case ConstraintDisposition::ConflictingConstraint: return "conflicting constraint";
+    }
+    return "unknown";
+}
+
 void RecordProfileValidationReadout(RecordingSurface& Surface,
                                     const PlaneExtent& Extent,
                                     const SketchStructure& Sketch)
@@ -974,10 +1058,11 @@ void RecordProfileValidationReadout(RecordingSurface& Surface,
                                 || Constraints == ConstraintDisposition::UnsupportedConstraint
                                 || Constraints == ConstraintDisposition::ConflictingConstraint;
     char Detail[160] = {};
-    std::snprintf(Detail, sizeof(Detail), "%u/%u profiles valid • constraints %s",
+    std::snprintf(Detail, sizeof(Detail), "%u/%u profiles valid • %u constraints: %s",
                   static_cast<unsigned>(ValidProfiles),
                   static_cast<unsigned>(Sketch.Profiles().size()),
-                  ConstraintWarning ? "need attention" : "valid");
+                  static_cast<unsigned>(Sketch.Constraints().size()),
+                  ConstraintDispositionText(Constraints));
     Surface.TextRun(Extent.MinimumX + 16.0f,
                     Extent.MaximumY - 42.0f,
                     ConstraintWarning ? Covering(0xFBBF24u) : Faded(Covering(0xA7F3D0u), 0.85f),
@@ -3696,6 +3781,35 @@ bool ConstraintToolSubject(ParametricToolSubject Tool,
     }
 }
 
+bool ApplyDimensionTextEdit(const TextInputCondition& TextInput,
+                            SketchStructure& Sketch,
+                            WorkspaceRecordStructure& Records,
+                            WorkspaceRevisionSequence& Revisions,
+                            WorkspaceRecordName SelectedRecord)
+{
+    const WorkspaceRecord* Record = Records.Resolve(SelectedRecord);
+    if (Record == nullptr || Record->Subject != WorkspaceRecordSubject::Dimension || !Record->Dimension.Assigned())
+        return false;
+    char Numeric[32] = {};
+    std::size_t Count = 0u;
+    for (std::uint32_t Index = 0u; Index < TextInput.IntakeCount && Count + 1u < sizeof(Numeric); ++Index)
+    {
+        const char Character = TextInput.Intake[Index];
+        if ((Character >= '0' && Character <= '9') || Character == '.' || Character == '-')
+            Numeric[Count++] = Character;
+    }
+    Numeric[Count] = '\0';
+    if (Count == 0u || Record->Dimension.IssuedIndex == 0u || Record->Dimension.IssuedIndex > Sketch.Dimensions().size())
+        return false;
+    const double Target = std::atof(Numeric);
+    if (Target <= 0.0)
+        return false;
+    Sketch.Dimensions()[Record->Dimension.IssuedIndex - 1u].Target = Target;
+    Discard(ApplyDimension(Sketch, Record->Dimension));
+    Revisions.Seal("Edited " + Record->Naming, "Edit Dimension", { SelectedRecord }, Revisions.DeclaredCount() + 1u);
+    return true;
+}
+
 bool ApplyViewportConstraintTool(ParametricToolSubject Tool,
                                  WorkspaceNameIndex& Naming,
                                  SketchStructure& Sketch,
@@ -3778,7 +3892,14 @@ bool ApplyViewportEditTool(ParametricToolSubject Tool,
     std::vector<WorkspaceRecordName> Written;
     if (Tool == ParametricToolSubject::Trim)
     {
-        const Outcome<SketchCurveName> Trimmed = TrimCurve(Sketch, ActiveSelection.Curve, Probe, true);
+        SketchSnapMask TrimMask = {};
+        TrimMask.EndpointAccepted = TrimMask.MidpointAccepted = TrimMask.CentreAccepted = false;
+        TrimMask.ControlAccepted = TrimMask.AlongCurveAccepted = TrimMask.GridAccepted = false;
+        TrimMask.PerpendicularAccepted = TrimMask.TangentAccepted = false;
+        TrimMask.IntersectionAccepted = true;
+        const SketchSnapPlacement TrimSnap = ResolveNearestSnap(Sketch, Probe, 25.0, TrimMask);
+        const SpatialPoint TrimPosition = TrimSnap.Resolved() ? TrimSnap.Position : Probe;
+        const Outcome<SketchCurveName> Trimmed = TrimCurve(Sketch, ActiveSelection.Curve, TrimPosition, true);
         if (!Trimmed.Resolved)
             return false;
         Discard(Records.ToggleVisible(ActiveSelection.Record, false));
@@ -3786,7 +3907,14 @@ bool ApplyViewportEditTool(ParametricToolSubject Tool,
     }
     else if (Tool == ParametricToolSubject::Extend)
     {
-        const Outcome<SketchCurveName> Extended = TrimCurve(Sketch, ActiveSelection.Curve, Probe, false);
+        SketchSnapMask ExtendMask = {};
+        ExtendMask.EndpointAccepted = ExtendMask.MidpointAccepted = ExtendMask.CentreAccepted = false;
+        ExtendMask.ControlAccepted = ExtendMask.AlongCurveAccepted = ExtendMask.GridAccepted = false;
+        ExtendMask.PerpendicularAccepted = ExtendMask.TangentAccepted = false;
+        ExtendMask.IntersectionAccepted = true;
+        const SketchSnapPlacement ExtendSnap = ResolveNearestSnap(Sketch, Probe, 1000.0, ExtendMask);
+        const SpatialPoint ExtendPosition = ExtendSnap.Resolved() ? ExtendSnap.Position : Probe;
+        const Outcome<SketchCurveName> Extended = TrimCurve(Sketch, ActiveSelection.Curve, ExtendPosition, false);
         if (!Extended.Resolved)
             return false;
         Discard(Records.ToggleVisible(ActiveSelection.Record, false));
@@ -3861,6 +3989,8 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
                                         double& LastGPressedMilliseconds)
 {
     const WorkspaceRecordName SelectedRecord = ResolveSelectedRecord(Directory, WorkspaceApplied);
+    if (ApplyDimensionTextEdit(TextInput, Sketch, Records, Revisions, SelectedRecord))
+        PointerTaken = true;
     if (SemanticSelection.Standing() && SelectedRecord.Assigned() &&
         SemanticSelection.Record.IssuedIndex != SelectedRecord.IssuedIndex &&
         (!PendingSelection.Assigned() || PendingSelection.IssuedIndex != SemanticSelection.Record.IssuedIndex))
@@ -3875,6 +4005,16 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
 
     const ParametricViewportSelection ActiveSelection =
         ResolveEditableSelection(Sketch, Records, SelectedRecord, PendingSelection, SemanticSelection);
+
+    if (TextInput.DeletePressed && ActiveSelection.Record.Assigned())
+    {
+        Discard(Records.ToggleVisible(ActiveSelection.Record, false));
+        Revisions.Seal("Deleted selected sketch record", "Delete Sketch Record", { ActiveSelection.Record },
+                       Revisions.DeclaredCount() + 1u);
+        PendingSelection = {};
+        SemanticSelection = {};
+        PointerTaken = true;
+    }
 
     ConstraintSubject ActiveConstraintSubject = ConstraintSubject::Fixed;
     if (!Transform.Engaged && Pointer.ContactPressed && ConstraintToolSubject(ActiveTool, ActiveConstraintSubject))
@@ -5048,6 +5188,8 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                PanelConfiguration[Index].Perspective, Draft);
                             RecordViewportStateReadout(Viewport.Surface(), LeafBody, View,
                                                        PanelConfiguration[Index].Perspective, CadPacket);
+                            RecordConstraintGlyphs(Viewport.Surface(), LeafBody, Sketch, View,
+                                                   PanelConfiguration[Index].Perspective);
                             RecordProfileValidationReadout(Viewport.Surface(), LeafBody, Sketch);
                             RecordViewportTransformReadout(Viewport.Surface(), LeafBody, Transform);
                             if (LeafOverlay != nullptr && !OverlayPass.Standing())

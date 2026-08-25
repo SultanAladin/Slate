@@ -76,7 +76,10 @@ enum class ParametricToolSubject : std::uint32_t
     PerpendicularConstraint = 41u,
     TangentConstraint = 42u,
     EqualConstraint = 43u,
-    SubjectCount = 44u
+    MidpointConstraint = 44u,
+    SymmetryConstraint = 45u,
+    ConcentricConstraint = 46u,
+    SubjectCount = 47u
 };
 
 struct ParametricToolsContext

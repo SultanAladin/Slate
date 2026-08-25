@@ -69,6 +69,7 @@ public:
     const std::vector<ProfileSpecification>& Profiles() const { return HeldProfiles; }
     const std::vector<ConstraintSpecification>& Constraints() const { return HeldConstraints; }
     const std::vector<DimensionSpecification>& Dimensions() const { return HeldDimensions; }
+    std::vector<DimensionSpecification>& Dimensions() { return HeldDimensions; }
     bool Declared() const;
     void Reclaim();
 
