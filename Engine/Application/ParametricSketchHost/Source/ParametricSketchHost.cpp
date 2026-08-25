@@ -1157,6 +1157,50 @@ ParametricDraftSubject ResolveDraftSubject(ParametricToolSubject Subject)
     }
 }
 
+bool DraftProducesClosedProfile(ParametricDraftSubject Subject)
+{
+    switch (Subject)
+    {
+        case ParametricDraftSubject::Rectangle:
+        case ParametricDraftSubject::CenterRectangle:
+        case ParametricDraftSubject::ThreePointRectangle:
+        case ParametricDraftSubject::Circle:
+        case ParametricDraftSubject::DiameterCircle:
+        case ParametricDraftSubject::ThreePointCircle:
+        case ParametricDraftSubject::Ellipse:
+        case ParametricDraftSubject::Polygon:
+        case ParametricDraftSubject::Slot:
+            return true;
+        default:
+            return false;
+    }
+}
+
+WorkspaceRecordName AutoDeclareWorkspaceProfilesFromChains(WorkspaceNameIndex& Naming,
+                                                           SketchStructure& Sketch,
+                                                           WorkspaceRecordStructure& Records,
+                                                           WorkspaceRevisionSequence& Revisions);
+
+void AdoptCommittedDraft(ParametricDraftSubject Subject,
+                         WorkspaceNameIndex& Naming,
+                         SketchStructure& Sketch,
+                         WorkspaceRecordStructure& Records,
+                         WorkspaceRevisionSequence& Revisions,
+                         const Outcome<WorkspaceRecordName>& Record,
+                         WorkspaceRecordName& PendingSelection)
+{
+    if (!Record.Resolved)
+        return;
+
+    PendingSelection = Record.Resolve();
+    if (DraftProducesClosedProfile(Subject))
+    {
+        const WorkspaceRecordName ProfileRecord = AutoDeclareWorkspaceProfilesFromChains(Naming, Sketch, Records, Revisions);
+        if (ProfileRecord.Assigned())
+            PendingSelection = ProfileRecord;
+    }
+}
+
 bool ResolveViewportPlaneIntersection(const SpatialBasis& Basis,
                                       const ParametricViewportState& View,
                                       bool Perspective,
@@ -2145,13 +2189,7 @@ void DriveDrawing(const PlaneExtent& Extent,
             if (Draft.Anchors.size() >= 2u)
             {
                 const Outcome<WorkspaceRecordName> Record = CommitDraft(Naming, Sketch, Records, Revisions, Draft);
-                if (Record.Resolved)
-                {
-                    PendingSelection = Record.Resolve();
-                    const WorkspaceRecordName ProfileRecord = AutoDeclareWorkspaceProfilesFromChains(Naming, Sketch, Records, Revisions);
-                    if (ProfileRecord.Assigned())
-                        PendingSelection = ProfileRecord;
-                }
+                AdoptCommittedDraft(Draft.Subject, Naming, Sketch, Records, Revisions, Record, PendingSelection);
                 CancelDraft(Draft);
             }
         }
@@ -2162,13 +2200,7 @@ void DriveDrawing(const PlaneExtent& Extent,
             else
             {
                 const Outcome<WorkspaceRecordName> Record = CommitDraft(Naming, Sketch, Records, Revisions, Draft);
-                if (Record.Resolved)
-                {
-                    PendingSelection = Record.Resolve();
-                    const WorkspaceRecordName ProfileRecord = AutoDeclareWorkspaceProfilesFromChains(Naming, Sketch, Records, Revisions);
-                    if (ProfileRecord.Assigned())
-                        PendingSelection = ProfileRecord;
-                }
+                AdoptCommittedDraft(Draft.Subject, Naming, Sketch, Records, Revisions, Record, PendingSelection);
                 CancelDraft(Draft);
             }
         }
@@ -4096,6 +4128,7 @@ void AppendDraftAnchor(ParametricDraftState& Draft)
 
 void DriveDrawingWithModifiers(const PlaneExtent& Extent,
                                const PointerCondition& Pointer,
+                               const TextInputCondition& Text,
                                const ModifierCondition& Modifiers,
                                const SpatialBasis& Basis,
                                const ParametricViewportState& View,
@@ -4114,6 +4147,13 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
     {
         if (Draft.Subject != ParametricDraftSubject::None)
             CancelDraft(Draft);
+        return;
+    }
+
+    if (Text.CancelPressed)
+    {
+        CancelDraft(Draft);
+        PointerTaken = true;
         return;
     }
 
@@ -4141,6 +4181,33 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
     Draft.Construction = ToolContext.ConstructionGeometry || ToolContext.ActiveSubject == ParametricToolSubject::ConstructionLine;
     Draft.Hover = ApplyParametricDraftSettings(Draft, Basis, ToolContext, Draft.Hover);
 
+    if (Text.AcceptPressed && Draft.Subject != ParametricDraftSubject::None)
+    {
+        if (!Sketch.Declared())
+            Sketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 } });
+
+        if ((Draft.Subject == ParametricDraftSubject::Rectangle ||
+             Draft.Subject == ParametricDraftSubject::CenterRectangle ||
+             Draft.Subject == ParametricDraftSubject::Circle ||
+             Draft.Subject == ParametricDraftSubject::DiameterCircle ||
+             Draft.Subject == ParametricDraftSubject::Polygon ||
+             Draft.Subject == ParametricDraftSubject::Ellipse) &&
+            Draft.Anchors.size() == 1u && Draft.HoverStanding)
+            AppendDraftAnchor(Draft);
+
+        if ((Draft.Subject == ParametricDraftSubject::Polyline ||
+             Draft.Subject == ParametricDraftSubject::Bezier ||
+             Draft.Subject == ParametricDraftSubject::BasisSpline) &&
+            Draft.Anchors.size() < 2u)
+            return;
+
+        const Outcome<WorkspaceRecordName> Record = CommitDraft(Naming, Sketch, Records, Revisions, Draft);
+        AdoptCommittedDraft(Draft.Subject, Naming, Sketch, Records, Revisions, Record, PendingSelection);
+        CancelDraft(Draft);
+        PointerTaken = true;
+        return;
+    }
+
     if (Pointer.ContactPressed)
     {
         PointerTaken = true;
@@ -4152,13 +4219,7 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
             if (Draft.Anchors.size() >= 2u)
             {
                 const Outcome<WorkspaceRecordName> Record = CommitDraft(Naming, Sketch, Records, Revisions, Draft);
-                if (Record.Resolved)
-                {
-                    PendingSelection = Record.Resolve();
-                    const WorkspaceRecordName ProfileRecord = AutoDeclareWorkspaceProfilesFromChains(Naming, Sketch, Records, Revisions);
-                    if (ProfileRecord.Assigned())
-                        PendingSelection = ProfileRecord;
-                }
+                AdoptCommittedDraft(Draft.Subject, Naming, Sketch, Records, Revisions, Record, PendingSelection);
                 CancelDraft(Draft);
             }
         }
@@ -4168,13 +4229,7 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
             if (Pointer.ContactDoublePressed && Draft.Anchors.size() >= 2u)
             {
                 const Outcome<WorkspaceRecordName> Record = CommitDraft(Naming, Sketch, Records, Revisions, Draft);
-                if (Record.Resolved)
-                {
-                    PendingSelection = Record.Resolve();
-                    const WorkspaceRecordName ProfileRecord = AutoDeclareWorkspaceProfilesFromChains(Naming, Sketch, Records, Revisions);
-                    if (ProfileRecord.Assigned())
-                        PendingSelection = ProfileRecord;
-                }
+                AdoptCommittedDraft(Draft.Subject, Naming, Sketch, Records, Revisions, Record, PendingSelection);
                 CancelDraft(Draft);
             }
         }
@@ -4190,13 +4245,7 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
             if (Draft.Anchors.size() >= 3u)
             {
                 const Outcome<WorkspaceRecordName> Record = CommitDraft(Naming, Sketch, Records, Revisions, Draft);
-                if (Record.Resolved)
-                {
-                    PendingSelection = Record.Resolve();
-                    const WorkspaceRecordName ProfileRecord = AutoDeclareWorkspaceProfilesFromChains(Naming, Sketch, Records, Revisions);
-                    if (ProfileRecord.Assigned())
-                        PendingSelection = ProfileRecord;
-                }
+                AdoptCommittedDraft(Draft.Subject, Naming, Sketch, Records, Revisions, Record, PendingSelection);
                 CancelDraft(Draft);
             }
         }
@@ -4206,13 +4255,7 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
             if (Pointer.ContactDoublePressed && Draft.Anchors.size() >= (Draft.Subject == ParametricDraftSubject::BasisSpline ? 3u : 2u))
             {
                 const Outcome<WorkspaceRecordName> Record = CommitDraft(Naming, Sketch, Records, Revisions, Draft);
-                if (Record.Resolved)
-                {
-                    PendingSelection = Record.Resolve();
-                    const WorkspaceRecordName ProfileRecord = AutoDeclareWorkspaceProfilesFromChains(Naming, Sketch, Records, Revisions);
-                    if (ProfileRecord.Assigned())
-                        PendingSelection = ProfileRecord;
-                }
+                AdoptCommittedDraft(Draft.Subject, Naming, Sketch, Records, Revisions, Record, PendingSelection);
                 CancelDraft(Draft);
             }
         }
@@ -4220,13 +4263,7 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
         {
             AppendDraftAnchor(Draft);
             const Outcome<WorkspaceRecordName> Record = CommitDraft(Naming, Sketch, Records, Revisions, Draft);
-            if (Record.Resolved)
-            {
-                PendingSelection = Record.Resolve();
-                const WorkspaceRecordName ProfileRecord = AutoDeclareWorkspaceProfilesFromChains(Naming, Sketch, Records, Revisions);
-                if (ProfileRecord.Assigned())
-                    PendingSelection = ProfileRecord;
-            }
+            AdoptCommittedDraft(Draft.Subject, Naming, Sketch, Records, Revisions, Record, PendingSelection);
             CancelDraft(Draft);
         }
         else if (Draft.Subject == ParametricDraftSubject::LinearDimension)
@@ -4236,13 +4273,7 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
             if (Draft.AnchorSnaps.size() >= 2u)
             {
                 const Outcome<WorkspaceRecordName> Record = CommitDraft(Naming, Sketch, Records, Revisions, Draft);
-                if (Record.Resolved)
-                {
-                    PendingSelection = Record.Resolve();
-                    const WorkspaceRecordName ProfileRecord = AutoDeclareWorkspaceProfilesFromChains(Naming, Sketch, Records, Revisions);
-                    if (ProfileRecord.Assigned())
-                        PendingSelection = ProfileRecord;
-                }
+                AdoptCommittedDraft(Draft.Subject, Naming, Sketch, Records, Revisions, Record, PendingSelection);
                 CancelDraft(Draft);
             }
         }
@@ -4258,13 +4289,7 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
             else
             {
                 const Outcome<WorkspaceRecordName> Record = CommitDraft(Naming, Sketch, Records, Revisions, Draft);
-                if (Record.Resolved)
-                {
-                    PendingSelection = Record.Resolve();
-                    const WorkspaceRecordName ProfileRecord = AutoDeclareWorkspaceProfilesFromChains(Naming, Sketch, Records, Revisions);
-                    if (ProfileRecord.Assigned())
-                        PendingSelection = ProfileRecord;
-                }
+                AdoptCommittedDraft(Draft.Subject, Naming, Sketch, Records, Revisions, Record, PendingSelection);
                 CancelDraft(Draft);
             }
         }
@@ -5553,7 +5578,8 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                                LastGPressedMilliseconds);
 
                             if (!Transform.Engaged)
-                                DriveDrawingWithModifiers(LeafBody, BackgroundPointer, Modifiers,
+                                DriveDrawingWithModifiers(LeafBody, BackgroundPointer,
+                                                         Viewport.Surface().TextInput(), Modifiers,
                                                          Basis, View,
                                                          PanelConfiguration[Index].Perspective,
                                                          ToolsApplied,
