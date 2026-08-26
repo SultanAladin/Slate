@@ -43,7 +43,8 @@ enum class SharedCadDraftSubject : std::uint32_t
     Polygon = 18u,
     Slot = 19u,
     Hermite = 20u,
-    RationalSpline = 21u
+    RationalSpline = 21u,
+    Constraint = 22u
 };
 
 inline SharedCadDraftSubject ResolveSharedCadDraftSubject(ParametricToolSubject Subject)
@@ -74,6 +75,13 @@ inline SharedCadDraftSubject ResolveSharedCadDraftSubject(ParametricToolSubject 
         case ParametricToolSubject::TangentArc:           return SharedCadDraftSubject::TangentArc;
         case ParametricToolSubject::Polygon:              return SharedCadDraftSubject::Polygon;
         case ParametricToolSubject::Slot:                 return SharedCadDraftSubject::Slot;
+        case ParametricToolSubject::HorizontalConstraint:
+        case ParametricToolSubject::VerticalConstraint:
+        case ParametricToolSubject::CoincidentConstraint:
+        case ParametricToolSubject::ParallelConstraint:
+        case ParametricToolSubject::PerpendicularConstraint:
+        case ParametricToolSubject::TangentConstraint:
+        case ParametricToolSubject::EqualConstraint:       return SharedCadDraftSubject::Constraint;
         default:                                          return SharedCadDraftSubject::None;
     }
 }
@@ -148,6 +156,7 @@ struct SharedCadAuthoringRequest
     SharedCadDraftSubject Subject = SharedCadDraftSubject::None;
     SpatialPoint Hover = {};
     SketchSnapPlacement Snap = {};
+    ConstraintSubject Constraint = ConstraintSubject::Fixed;
     bool HoverStanding = false;
     bool ContactPressed = false;
     bool CommitRequested = false;
@@ -207,6 +216,7 @@ inline bool SharedCadAuthoringDispatch(SharedCadWorkspaceRuntime& Runtime,
     Runtime.Draft.HoverStanding = Request.HoverStanding;
     Runtime.Draft.Hover = Request.Hover;
     Runtime.Draft.Snap = Request.Snap;
+    Runtime.Draft.Constraint = Request.Constraint;
     if (!Request.Snap.Resolved())
         Runtime.Draft.Snap = {};
     if (!Request.ContactPressed || !Request.HoverStanding)
@@ -228,6 +238,7 @@ inline bool SharedCadAuthoringDispatch(SharedCadWorkspaceRuntime& Runtime,
     const bool Polygon = Subject == ParametricDraftSubject::Polygon;
     const bool Slot = Subject == ParametricDraftSubject::Slot;
     const bool Dimension = Subject == ParametricDraftSubject::LinearDimension;
+    const bool Constraint = Subject == ParametricDraftSubject::Constraint;
     const bool Polyline = Subject == ParametricDraftSubject::Polyline;
     const bool EllipticalArc = Subject == ParametricDraftSubject::EllipticalArc;
     const bool Spline = Subject == ParametricDraftSubject::Bezier ||
@@ -235,9 +246,12 @@ inline bool SharedCadAuthoringDispatch(SharedCadWorkspaceRuntime& Runtime,
                         Subject == ParametricDraftSubject::RationalSpline ||
                         Subject == ParametricDraftSubject::Hermite;
     const std::size_t Required = Subject == ParametricDraftSubject::Hermite ? 4u
+                               : Constraint && (Request.Constraint == ConstraintSubject::Horizontal ||
+                                                Request.Constraint == ConstraintSubject::Vertical ||
+                                                Request.Constraint == ConstraintSubject::Fixed) ? 1u
                                : (Subject == ParametricDraftSubject::BasisSpline ||
                                   Subject == ParametricDraftSubject::RationalSpline || Slot || EllipticalArc) ? 3u : 2u;
-    if ((Arc || EllipticalArc ? !ThreePoint : Spline ? Runtime.Draft.Anchors.size() < Required : !TwoPoint) ||
+    if ((Arc || EllipticalArc ? !ThreePoint : Spline || Constraint ? Runtime.Draft.Anchors.size() < Required : !TwoPoint) ||
         ((Polyline || Spline || EllipticalArc) && !Request.CommitRequested))
         return true;
 
@@ -315,6 +329,48 @@ inline bool SharedCadAuthoringDispatch(SharedCadWorkspaceRuntime& Runtime,
                                    Runtime.Revisions.DeclaredCount() + 1u);
             Runtime.Draft = ParametricDraftState{};
         }
+        return true;
+    }
+
+    if (Constraint)
+    {
+        auto ReferenceFromSnap = [](const SketchSnapPlacement& Snap)
+        {
+            ReferenceSpecification Reference = {};
+            if (Snap.SketchPoint.Assigned())
+            {
+                Reference.Subject = ReferenceSubject::SketchPoint;
+                Reference.SketchPoint = Snap.SketchPoint;
+            }
+            else if (Snap.SourceCurve.Assigned())
+            {
+                Reference.Subject = ReferenceSubject::SketchCurve;
+                Reference.SketchCurve = Snap.SourceCurve;
+            }
+            return Reference;
+        };
+        ConstraintSpecification Data = {};
+        Data.Subject = Request.Constraint;
+        if (Runtime.Draft.AnchorSnaps.size() > 0u)
+            Data.Primary = ReferenceFromSnap(Runtime.Draft.AnchorSnaps[0]);
+        if (Runtime.Draft.AnchorSnaps.size() > 1u)
+            Data.Secondary = ReferenceFromSnap(Runtime.Draft.AnchorSnaps[1]);
+        if (Data.Declared())
+        {
+            const ConstraintName Named = Runtime.Sketch.DeclareConstraint(Data);
+            WorkspaceRecord RecordData = {};
+            RecordData.Subject = WorkspaceRecordSubject::Constraint;
+            RecordData.Naming = Naming.Issue(WorkspaceRecordSubject::Constraint);
+            RecordData.Constraint = Named;
+            const WorkspaceRecordName Record = Runtime.Records.Declare(RecordData);
+            if (Record.Assigned())
+            {
+                Runtime.PendingSelection = Record;
+                Runtime.Revisions.Seal("Declared constraint", "Create Constraint", { Record },
+                                       Runtime.Revisions.DeclaredCount() + 1u);
+            }
+        }
+        Runtime.Draft = ParametricDraftState{};
         return true;
     }
 

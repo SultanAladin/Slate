@@ -53,7 +53,8 @@ enum class ParametricDraftSubject : std::uint32_t
     LinearDimension = 6u, Point = 7u, Ellipse = 8u, Bezier = 9u, EllipticalArc = 10u,
     BasisSpline = 11u, CenterRectangle = 12u, ThreePointRectangle = 13u,
     DiameterCircle = 14u, ThreePointCircle = 15u, CenterStartEndArc = 16u,
-    TangentArc = 17u, Polygon = 18u, Slot = 19u, Hermite = 20u, RationalSpline = 21u
+    TangentArc = 17u, Polygon = 18u, Slot = 19u, Hermite = 20u, RationalSpline = 21u,
+    Constraint = 22u
 };
 
 struct ParametricDraftState
@@ -64,6 +65,7 @@ struct ParametricDraftState
     bool HoverStanding = false;
     SpatialPoint Hover = {};
     SketchSnapPlacement Snap = {};
+    ConstraintSubject Constraint = ConstraintSubject::Fixed;
     bool Construction = false;
 };
 

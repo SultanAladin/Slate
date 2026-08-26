@@ -32,7 +32,7 @@ Make Editor Host, Paint Host, and Parametric Sketch Host use one shared viewport
    - Introduce one dispatch entry point that receives the active tool, pointer, modifiers, grid-plane projection, and shared runtime.
    - Move the existing Parametric Sketch dispatch behind that entry point rather than creating a second Editor implementation.
    - Connect the same entry point from Editor Host and Parametric Sketch Host.
-   - Status: in progress; the shared entry point now handles line, polyline, rectangle, circle, three-point arc, center/start/end arc, tangent arc, elliptical arc, Bézier, basis spline, rational spline, Hermite, polygon, and slot records, plus the dimension record path when two resolved references are supplied. Grid snapping is now shared by Parametric Sketch and Editor; entity/tangent/intersection snapping, constraint creation, and preview rendering still need extraction from the Parametric host.
+   - Status: in progress; the shared entry point now handles line, polyline, rectangle, circle, three-point arc, center/start/end arc, tangent arc, elliptical arc, Bézier, basis spline, rational spline, Hermite, polygon, and slot records, plus dimension and constraint paths when resolved references are supplied. Grid snapping is now shared by Parametric Sketch and Editor; entity/tangent/intersection snapping and preview rendering still need extraction from the Parametric host.
    - Move grid-plane pointer conversion, snapping, draft preview, commit, selection, and transform dispatch into the shared runtime.
    - Enable the runtime in Editor Host through its existing CAD host feature definition.
    - Preserve Paint Host’s non-CAD feature boundary.
