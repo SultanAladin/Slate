@@ -9,6 +9,8 @@
 #pragma once
 
 #include "SlateUI/Interface/ParametricTools/Api/ParametricToolsSpecification.h"
+#include "Application/Api/SharedCadWorkspaceRuntime.h"
+#include "SlateFeature/Feature/WorkspaceNameIndex/Api/WorkspaceNameIndex.h"
 
 #include <cstdint>
 
@@ -136,6 +138,60 @@ inline bool SharedCadDraftIsMultiClickCurve(SharedCadDraftSubject Subject)
            Subject == SharedCadDraftSubject::BasisSpline ||
            Subject == SharedCadDraftSubject::Hermite ||
            Subject == SharedCadDraftSubject::RationalSpline;
+}
+
+struct SharedCadAuthoringRequest
+{
+    SharedCadDraftSubject Subject = SharedCadDraftSubject::None;
+    SpatialPoint Hover = {};
+    bool HoverStanding = false;
+    bool ContactPressed = false;
+    bool CancelPressed = false;
+    bool Construction = false;
+};
+
+/// Advances the shared draft state and commits the common two-point line tool. More specialised
+/// tools remain in the host adapter until their existing feature helpers are moved here as well.
+inline bool SharedCadAuthoringDispatch(SharedCadWorkspaceRuntime& Runtime,
+                                       WorkspaceNameIndex& Naming,
+                                       const SharedCadAuthoringRequest& Request)
+{
+    if (Request.CancelPressed || Request.Subject == SharedCadDraftSubject::None)
+    {
+        Runtime.Draft = ParametricDraftState{};
+        return Request.CancelPressed;
+    }
+
+    if (Runtime.Draft.Subject != static_cast<ParametricDraftSubject>(Request.Subject))
+    {
+        Runtime.Draft = ParametricDraftState{};
+        Runtime.Draft.Subject = static_cast<ParametricDraftSubject>(Request.Subject);
+    }
+    Runtime.Draft.Construction = Request.Construction;
+    Runtime.Draft.HoverStanding = Request.HoverStanding;
+    Runtime.Draft.Hover = Request.Hover;
+    if (!Request.ContactPressed || !Request.HoverStanding)
+        return false;
+
+    Runtime.Draft.Anchors.push_back(Request.Hover);
+    if (Runtime.Draft.Subject != ParametricDraftSubject::Line || Runtime.Draft.Anchors.size() < 2u)
+        return true;
+
+    if (!Runtime.Sketch.Declared())
+        Runtime.Sketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 } });
+    const SketchCurveName Curve = Runtime.Sketch.DeclareLine(Runtime.Draft.Anchors[0], Runtime.Draft.Anchors[1]);
+    WorkspaceRecord Record = {};
+    Record.Subject = WorkspaceRecordSubject::OpenCurve;
+    Record.Naming = Naming.Issue(WorkspaceRecordSubject::OpenCurve);
+    Record.SketchCurve = Curve;
+    Record.ConstructionSemantic = Request.Construction;
+    const WorkspaceRecordName Written = Runtime.Records.Declare(Record);
+    if (Written.Assigned())
+        Runtime.Revisions.Seal("Declared " + Record.Naming, "Create Curve", { Written },
+                               Runtime.Revisions.DeclaredCount() + 1u);
+    Runtime.PendingSelection = Written;
+    Runtime.Draft = ParametricDraftState{};
+    return true;
 }
 
 inline const char* SharedCadDraftSubjectName(SharedCadDraftSubject Subject)

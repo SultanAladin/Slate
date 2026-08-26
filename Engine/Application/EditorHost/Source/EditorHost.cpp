@@ -489,6 +489,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     // Shared CAD state is kept beside the editor camera so the Editor host can consume the same
     // sketch records and draft lifecycle as the standalone Parametric Sketch host.
     static SharedCadWorkspaceRuntime CadRuntime;
+    static WorkspaceNameIndex CadNaming;
     ShaderCodec             OverlayCodec;
     WorkspaceOverlayPass             Overlay;
     GeometryDeviceExchange           GeometryDevice = {};
@@ -1208,6 +1209,21 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 const SharedCadDraftSubject ActiveCadDraft =
                                     ResolveSharedCadDraftSubject(ParametricToolsApplied.ActiveSubject);
                                 static_cast<void>(ActiveCadDraft);
+                                if (ActiveCadDraft != SharedCadDraftSubject::None)
+                                {
+                                    const float CentreX = LeafBody.MinimumX + LeafBody.Width() * 0.5f;
+                                    const float CentreY = LeafBody.MinimumY + LeafBody.Height() * 0.5f;
+                                    const double Along = static_cast<double>(LeafPointer.PositionX - CentreX) / 72.0;
+                                    const double Across = static_cast<double>(CentreY - LeafPointer.PositionY) / 72.0;
+                                    SharedCadAuthoringRequest Authoring;
+                                    Authoring.Subject = ActiveCadDraft;
+                                    Authoring.HoverStanding = LeafBody.Encloses(LeafPointer.PositionX, LeafPointer.PositionY);
+                                    Authoring.Hover = { Along, 0.0, Across };
+                                    Authoring.ContactPressed = LeafPointer.ContactPressed && Authoring.HoverStanding;
+                                    Authoring.CancelPressed = Viewport.Surface().TextInput().CancelPressed;
+                                    Authoring.Construction = ParametricToolsApplied.ConstructionGeometry;
+                                    SharedCadAuthoringDispatch(CadRuntime, CadNaming, Authoring);
+                                }
                                 OverlayGeometry& LeafOverlay = ViewportOverlays[Leaf];
                                 LeafOverlay.Reset();
 

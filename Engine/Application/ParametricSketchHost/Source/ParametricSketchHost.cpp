@@ -3602,6 +3602,7 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
                                const ParametricViewportState& View,
                                bool Perspective,
                                const ParametricToolsContext& ToolContext,
+                               SharedCadWorkspaceRuntime& Runtime,
                                WorkspaceNameIndex& Naming,
                                SketchStructure& Sketch,
                                WorkspaceRecordStructure& Records,
@@ -3648,6 +3649,25 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
         Draft.Hover = Draft.Snap.Position;
     Draft.Construction = ToolContext.ConstructionGeometry || ToolContext.ActiveSubject == ParametricToolSubject::ConstructionLine;
     Draft.Hover = ApplyParametricDraftSettings(Draft, Basis, ToolContext, Draft.Hover);
+
+    // The common line path owns its draft anchors and commit in both standalone hosts. The
+    // specialised branches below remain for tools whose feature helpers have not moved yet.
+    if (Draft.Subject == ParametricDraftSubject::Line &&
+        (Text.AcceptPressed || Pointer.ContactPressed))
+    {
+        SharedCadAuthoringRequest Request;
+        Request.Subject = SharedCadDraftSubject::Line;
+        Request.Hover = Draft.Hover;
+        Request.HoverStanding = Draft.HoverStanding;
+        Request.ContactPressed = Draft.HoverStanding;
+        Request.Construction = Draft.Construction;
+        if (SharedCadAuthoringDispatch(Runtime, Naming, Request))
+        {
+            PendingSelection = Runtime.PendingSelection;
+            PointerTaken = true;
+            return;
+        }
+    }
 
     if (Text.AcceptPressed && Draft.Subject != ParametricDraftSubject::None)
     {
@@ -5101,6 +5121,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                          Basis, View,
                                                          false,
                                                          ToolsApplied,
+                                                         CadRuntime,
                                                          Naming, Sketch, Records, Revisions,
                                                          PendingSelection, Draft, PointerTaken);
 
