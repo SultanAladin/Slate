@@ -187,7 +187,16 @@ inline bool SharedCadAuthoringDispatch(SharedCadWorkspaceRuntime& Runtime,
     const bool Circle = Subject == ParametricDraftSubject::Circle ||
                         Subject == ParametricDraftSubject::DiameterCircle;
     const bool Polyline = Subject == ParametricDraftSubject::Polyline;
-    if ((Arc ? !ThreePoint : !TwoPoint) || (Polyline && !Request.CommitRequested))
+    const bool EllipticalArc = Subject == ParametricDraftSubject::EllipticalArc;
+    const bool Spline = Subject == ParametricDraftSubject::Bezier ||
+                        Subject == ParametricDraftSubject::BasisSpline ||
+                        Subject == ParametricDraftSubject::RationalSpline ||
+                        Subject == ParametricDraftSubject::Hermite;
+    const std::size_t Required = Subject == ParametricDraftSubject::Hermite ? 4u
+                               : (Subject == ParametricDraftSubject::BasisSpline ||
+                                  Subject == ParametricDraftSubject::RationalSpline || EllipticalArc) ? 3u : 2u;
+    if ((Arc || EllipticalArc ? !ThreePoint : Spline ? Runtime.Draft.Anchors.size() < Required : !TwoPoint) ||
+        ((Polyline || Spline || EllipticalArc) && !Request.CommitRequested))
         return true;
 
     if (!Runtime.Sketch.Declared())
@@ -233,6 +242,52 @@ inline bool SharedCadAuthoringDispatch(SharedCadWorkspaceRuntime& Runtime,
                 const CircularArcCurve ArcData = { Centre, { 0.0, 1.0, 0.0 }, StartOffset, {}, false, Radius, Sweep };
                 Curve = Runtime.Sketch.DeclareCurve(CurveSpecification::DeclareCircularArc(ArcData, { 0.0, 1.0 }));
             }
+        }
+        DeclareCurve(Curve);
+    }
+    else if (EllipticalArc)
+    {
+        const SpatialPoint& Centre = Runtime.Draft.Anchors[0];
+        const double Major = std::max(std::abs(Runtime.Draft.Anchors[1].Left - Centre.Left), 1.0e-6);
+        const double Minor = std::max(std::abs(Runtime.Draft.Anchors[1].Forward - Centre.Forward), Major * 0.5);
+        const double EndAngle = std::atan2((Runtime.Draft.Anchors[2].Forward - Centre.Forward) / Minor,
+                                           (Runtime.Draft.Anchors[2].Left - Centre.Left) / Major);
+        const EllipticalArcCurve ArcData = { Centre, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 },
+                                             Major, Minor, 0.0, EndAngle <= 0.0 ? EndAngle + 2.0 * 3.14159265358979323846 : EndAngle };
+        DeclareCurve(Runtime.Sketch.DeclareCurve(CurveSpecification::DeclareEllipticalArc(ArcData, { 0.0, 1.0 })));
+    }
+    else if (Spline)
+    {
+        SketchCurveName Curve = {};
+        if (Subject == ParametricDraftSubject::Bezier)
+            Curve = Runtime.Sketch.DeclareBezier(Runtime.Draft.Anchors);
+        else if (Subject == ParametricDraftSubject::BasisSpline)
+        {
+            BasisSplineCurve Data;
+            Data.ControlPoints = Runtime.Draft.Anchors;
+            Data.Degree = std::min<std::uint32_t>(3u, static_cast<std::uint32_t>(Data.ControlPoints.size() - 1u));
+            Curve = Runtime.Sketch.DeclareBasisSpline(Data);
+        }
+        else if (Subject == ParametricDraftSubject::RationalSpline)
+        {
+            RationalSplineCurve Data;
+            Data.ControlPoints = Runtime.Draft.Anchors;
+            Data.Weights.assign(Data.ControlPoints.size(), 1.0);
+            Data.Degree = std::min<std::uint32_t>(3u, static_cast<std::uint32_t>(Data.ControlPoints.size() - 1u));
+            Curve = Runtime.Sketch.DeclareRationalSpline(Data);
+        }
+        else
+        {
+            HermiteCurve Data;
+            Data.StartPoint = Runtime.Draft.Anchors[0];
+            Data.EndPoint = Runtime.Draft.Anchors[1];
+            Data.StartTangent = { Runtime.Draft.Anchors[2].Left - Data.StartPoint.Left,
+                                  Runtime.Draft.Anchors[2].Up - Data.StartPoint.Up,
+                                  Runtime.Draft.Anchors[2].Forward - Data.StartPoint.Forward };
+            Data.EndTangent = { Runtime.Draft.Anchors[3].Left - Data.EndPoint.Left,
+                                Runtime.Draft.Anchors[3].Up - Data.EndPoint.Up,
+                                Runtime.Draft.Anchors[3].Forward - Data.EndPoint.Forward };
+            Curve = Runtime.Sketch.DeclareHermite(Data);
         }
         DeclareCurve(Curve);
     }
