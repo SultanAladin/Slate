@@ -464,7 +464,8 @@ void WorkspaceOverlayPass::Upload(const OverlayGeometry& Overlay)
 }
 
 void WorkspaceOverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, std::uint32_t Height,
-                          float ClipX0, float ClipY0, float ClipX1, float ClipY1)
+                          float ClipX0, float ClipY0, float ClipX1, float ClipY1,
+                          float LeafX0, float LeafY0, float LeafX1, float LeafY1)
 {
     if (DeviceEdge == nullptr || OverlayPipeline == VK_NULL_HANDLE || Command == VK_NULL_HANDLE ||
         Width == 0u || Height == 0u)
@@ -572,10 +573,10 @@ void WorkspaceOverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, 
         Push.WeightsAndDot[2] = OverlayGround.Subdivisions;
         Push.WeightsAndDot[3] = static_cast<float>(OverlayGround.AxisMask);
 
-        Push.LeafRect[0] = ClipX0;
-        Push.LeafRect[1] = ClipY0;
-        Push.LeafRect[2] = ClipX1;
-        Push.LeafRect[3] = ClipY1;
+        Push.LeafRect[0] = LeafX0;
+        Push.LeafRect[1] = LeafY0;
+        Push.LeafRect[2] = LeafX1;
+        Push.LeafRect[3] = LeafY1;
 
         vkCmdPushConstants(Command, OverlayPipelineLayout, Stages,
                            0u, OverlayPushConstantBytes, &Push);
@@ -595,10 +596,10 @@ void WorkspaceOverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, 
             return;
 
         PushBlock Push = { DrawValue(Draw), static_cast<float>(Width), static_cast<float>(Height), 0.0f };
-        Push.LeafRect[0] = ClipX0;
-        Push.LeafRect[1] = ClipY0;
-        Push.LeafRect[2] = ClipX1;
-        Push.LeafRect[3] = ClipY1;
+        Push.LeafRect[0] = LeafX0;
+        Push.LeafRect[1] = LeafY0;
+        Push.LeafRect[2] = LeafX1;
+        Push.LeafRect[3] = LeafY1;
 
         vkCmdPushConstants(Command, OverlayPipelineLayout, Stages,
                            0u, OverlayPushConstantBytes, &Push);

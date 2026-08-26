@@ -1855,7 +1855,9 @@ int main(int ArgumentCount, char** ArgumentValues)
 
                     Overlay.Record(Pass.Recording, Pass.Width, Pass.Height,
                                    LeafRect.MinimumX, VisibleMinimumY,
-                                   LeafRect.MaximumX, VisibleMaximumY);
+                                   LeafRect.MaximumX, VisibleMaximumY,
+                                   LeafRect.MinimumX, LeafRect.MinimumY,
+                                   LeafRect.MaximumX, LeafRect.MaximumY);
                 }
             }
             else

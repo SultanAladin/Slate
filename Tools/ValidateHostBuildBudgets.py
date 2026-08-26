@@ -106,10 +106,18 @@ def main() -> int:
             "Editor popup disclosure state must be queryable so hosts can block background pointer paths")
     require("Covering(0x18191Eu)" in editor_panel and "Pointer.ContactPressed" in editor_panel,
             "Editor dropdown and grid popup menus must be opaque and capture press/release contact")
+    overlay_pass = read("Engine/SlateVulkan/Device/WorkspaceOverlayPass/Source/WorkspaceOverlayPass.cpp")
+    overlay_api = read("Engine/SlateVulkan/Device/WorkspaceOverlayPass/Api/WorkspaceOverlayPass.h")
     require("VisibleMinimumY" in editor and "VisibleMaximumY" in editor and "!ForegroundDrawerStanding" not in editor,
             "Editor viewport overlay grid must remain visible outside open drawers instead of being globally suppressed")
     require("VisibleMinimumY" in parametric and "VisibleMaximumY" in parametric and "!ForegroundDrawerStanding" not in parametric,
             "Parametric viewport overlay grid must remain visible outside open drawers instead of being globally suppressed")
+    require("LeafX0" in overlay_api and "Push.LeafRect[0] = LeafX0" in overlay_pass,
+            "Drawer clipping must not change the grid projection/aspect; scissor and logical viewport rect stay separate")
+
+    tea_generator = read("Tools/CreateWhiteTeaServiceCodex.py")
+    require('b"".join(channels) + u32(0) + u32(1) + material_layer()' in tea_generator,
+            "WhiteTeaService.codex material section must write zero images before its layer count")
 
     content_browser = read("Engine/SlateUI/Interface/ContentBrowserPanel/Source/ContentBrowserPanel.cpp")
     require("ActivationRequested = Library.Taken" in content_browser and "ActivationRequested = Index" in content_browser,

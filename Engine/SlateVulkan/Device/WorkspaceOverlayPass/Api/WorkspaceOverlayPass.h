@@ -93,7 +93,8 @@ public:
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     void Record(VkCommandBuffer Command, std::uint32_t Width, std::uint32_t Height,
-                float ClipX0, float ClipY0, float ClipX1, float ClipY1);
+                float ClipX0, float ClipY0, float ClipX1, float ClipY1,
+                float LeafX0, float LeafY0, float LeafX1, float LeafY1);
 
     /// 🧩 Whether the pass stands — what the host tests before it records the GPU overlay, and what
     ///    decides whether the interface-drawn fallback (same geometry, drawn through the recording

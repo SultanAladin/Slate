@@ -92,7 +92,7 @@ def material_record(reference):
         else:
             channels.append(absent_channel())
     return (run(reference) + u32(0) + f64(0.5) + byte(False) +
-            b"".join(channels) + u32(1) + material_layer())
+            b"".join(channels) + u32(0) + u32(1) + material_layer())
 
 def scene_entry(subject, name, geometry, material, position, rotation=(0.,0.,0.), scale=(1.,1.,1.)):
     return u32(subject) + run(name) + run(geometry) + run(material) + b"".join(f64(x) for x in position + rotation + scale)

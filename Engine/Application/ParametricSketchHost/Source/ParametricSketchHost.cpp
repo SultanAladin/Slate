@@ -5966,7 +5966,9 @@ int main(int ArgumentCount, char** ArgumentValues)
                     OverlayPass.Upload(ViewportOverlays[ViewportIndex]);
                     OverlayPass.Record(Pass.Recording, Pass.Width, Pass.Height,
                                        LeafRect.MinimumX, VisibleMinimumY,
-                                       LeafRect.MaximumX, VisibleMaximumY);
+                                       LeafRect.MaximumX, VisibleMaximumY,
+                                       LeafRect.MinimumX, LeafRect.MinimumY,
+                                       LeafRect.MaximumX, LeafRect.MaximumY);
                 }
             }
         }
