@@ -3659,6 +3659,7 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
         Request.Subject = SharedCadDraftSubject::Line;
         Request.Hover = Draft.Hover;
         Request.HoverStanding = Draft.HoverStanding;
+        Request.Snap = Draft.Snap;
         Request.ContactPressed = Draft.HoverStanding;
         Request.Construction = Draft.Construction;
         if (SharedCadAuthoringDispatch(Runtime, Naming, Request))

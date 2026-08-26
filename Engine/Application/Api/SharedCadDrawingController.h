@@ -145,6 +145,7 @@ struct SharedCadAuthoringRequest
 {
     SharedCadDraftSubject Subject = SharedCadDraftSubject::None;
     SpatialPoint Hover = {};
+    SketchSnapPlacement Snap = {};
     bool HoverStanding = false;
     bool ContactPressed = false;
     bool CommitRequested = false;
@@ -172,10 +173,15 @@ inline bool SharedCadAuthoringDispatch(SharedCadWorkspaceRuntime& Runtime,
     Runtime.Draft.Construction = Request.Construction;
     Runtime.Draft.HoverStanding = Request.HoverStanding;
     Runtime.Draft.Hover = Request.Hover;
+    Runtime.Draft.Snap = Request.Snap;
+    if (!Request.Snap.Resolved())
+        Runtime.Draft.Snap = {};
     if (!Request.ContactPressed || !Request.HoverStanding)
         return false;
 
     Runtime.Draft.Anchors.push_back(Request.Hover);
+    if (Request.Snap.Resolved())
+        Runtime.Draft.AnchorSnaps.push_back(Request.Snap);
     const ParametricDraftSubject Subject = Runtime.Draft.Subject;
     const bool TwoPoint = Runtime.Draft.Anchors.size() >= 2u;
     const bool ThreePoint = Runtime.Draft.Anchors.size() >= 3u;
