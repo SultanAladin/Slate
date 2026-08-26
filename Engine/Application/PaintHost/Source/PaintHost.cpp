@@ -99,6 +99,15 @@ void RecordPaintSceneProxy(RecordingSurface& Surface, const PlaneExtent& Extent,
         return;
     const ThemeToken Fill = Partial(0xF4F1E8u, 0.38f);
     const ThemeToken Edge = Partial(0xFFFFFFu, 0.72f);
+    SharedViewportCameraState ViewCamera;
+    ViewCamera.Position[0] = Camera.LaggedPosition[0];
+    ViewCamera.Position[1] = Camera.LaggedPosition[1];
+    ViewCamera.Position[2] = Camera.LaggedPosition[2];
+    ViewCamera.YawDegrees = Camera.LaggedYawDegrees;
+    ViewCamera.PitchDegrees = Camera.LaggedPitchDegrees;
+    ViewCamera.FieldOfViewDegrees = Camera.FieldOfViewDegrees;
+    ViewCamera.Perspective = Perspective;
+
     for (const CodexSceneEntry& Entry : Scene.Scene)
     {
         if (Entry.Subject != CodexSceneSubject::Geometry)
@@ -129,8 +138,7 @@ void RecordPaintSceneProxy(RecordingSurface& Surface, const PlaneExtent& Extent,
                     Entry.Position[0] + Mesh->Positions[Vertex * 3u + 0u] * Entry.Scale[0],
                     Entry.Position[1] + Mesh->Positions[Vertex * 3u + 1u] * Entry.Scale[1],
                     Entry.Position[2] + Mesh->Positions[Vertex * 3u + 2u] * Entry.Scale[2],
-                    Camera.LaggedPosition, Camera.LaggedYawDegrees, Camera.LaggedPitchDegrees,
-                    Camera.FieldOfViewDegrees, Perspective, SX[Corner], SY[Corner]) && Standing;
+                    ViewCamera, SX[Corner], SY[Corner]) && Standing;
             }
             if (Standing)
             {

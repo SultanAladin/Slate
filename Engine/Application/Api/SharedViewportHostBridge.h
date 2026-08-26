@@ -75,6 +75,31 @@ struct SharedViewportCameraSeed
     double FieldOfViewDegrees = 60.0;
 };
 
+/// The common camera payload passed between a host controller and viewport presentation. Hosts may
+/// retain different navigation controls, but they must publish this same pose and projection state.
+struct SharedViewportCameraState
+{
+    double Position[3] = { 0.0, 1.2, -4.0 };
+    double YawDegrees = 0.0;
+    double PitchDegrees = -8.0;
+    double FieldOfViewDegrees = 60.0;
+    bool Perspective = true;
+};
+
+inline SharedViewportCameraState SharedViewportCameraFromSeed(const SharedViewportCameraSeed& Seed,
+                                                               bool Perspective = true)
+{
+    SharedViewportCameraState State;
+    State.Position[0] = Seed.Position[0];
+    State.Position[1] = Seed.Position[1];
+    State.Position[2] = Seed.Position[2];
+    State.YawDegrees = Seed.YawDegrees;
+    State.PitchDegrees = Seed.PitchDegrees;
+    State.FieldOfViewDegrees = Seed.FieldOfViewDegrees;
+    State.Perspective = Perspective;
+    return State;
+}
+
 /// Shared projection law used by every standalone host. The camera pose stays host-owned, while
 /// perspective selection is supplied by the viewport footer configuration.
 inline bool SharedViewportProjectPoint(const PlaneExtent& Extent,
@@ -126,6 +151,20 @@ inline bool SharedViewportProjectPoint(const PlaneExtent& Extent,
     ScreenX = static_cast<float>((CameraX / (CameraZ * TanV * Aspect) * 0.5 + 0.5) * Extent.Width() + Extent.MinimumX);
     ScreenY = static_cast<float>((-CameraY / (CameraZ * TanV) * 0.5 + 0.5) * Extent.Height() + Extent.MinimumY);
     return true;
+}
+
+inline bool SharedViewportProjectPoint(const PlaneExtent& Extent,
+                                       double WorldX,
+                                       double WorldY,
+                                       double WorldZ,
+                                       const SharedViewportCameraState& Camera,
+                                       float& ScreenX,
+                                       float& ScreenY)
+{
+    return SharedViewportProjectPoint(Extent, WorldX, WorldY, WorldZ,
+                                      Camera.Position, Camera.YawDegrees, Camera.PitchDegrees,
+                                      Camera.FieldOfViewDegrees, Camera.Perspective,
+                                      ScreenX, ScreenY);
 }
 
 inline SharedViewportCameraSeed SharedViewportDefaultCamera()
