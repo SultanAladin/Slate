@@ -95,6 +95,7 @@ bool ProjectPaintScenePoint(const PlaneExtent& Extent,
                             double WorldY,
                             double WorldZ,
                             const EditorCameraComponent& Camera,
+                            bool Perspective,
                             float& ScreenX,
                             float& ScreenY)
 {
@@ -116,6 +117,15 @@ bool ProjectPaintScenePoint(const PlaneExtent& Extent,
     const double CameraX = DX * RightX + DZ * RightZ;
     const double CameraY = DX * UpX + DY * UpY + DZ * UpZ;
     const double CameraZ = DX * ForwardX + DY * ForwardY + DZ * ForwardZ;
+    if (!Perspective)
+    {
+        // The footer's Persp/Ortho control changes the projection, not the camera pose.
+        // Keep the same camera frame so toggling does not cause a jump in orientation.
+        constexpr double OrthoPixelsPerMetre = 72.0;
+        ScreenX = static_cast<float>(Extent.MinimumX + Extent.Width() * 0.5 + CameraX * OrthoPixelsPerMetre);
+        ScreenY = static_cast<float>(Extent.MinimumY + Extent.Height() * 0.5 - CameraY * OrthoPixelsPerMetre);
+        return true;
+    }
     if (CameraZ <= 0.01)
         return false;
     const double TanV = std::tan(Camera.FieldOfViewDegrees * 0.5 * 3.14159265358979323846 / 180.0);
@@ -127,7 +137,8 @@ bool ProjectPaintScenePoint(const PlaneExtent& Extent,
 
 void RecordPaintSceneProxy(RecordingSurface& Surface, const PlaneExtent& Extent,
                            const WorkspaceCodex& Scene, bool SceneStanding,
-                           const EditorCameraComponent& Camera)
+                           const EditorCameraComponent& Camera,
+                           bool Perspective)
 {
     if (!SceneStanding)
         return;
@@ -163,7 +174,7 @@ void RecordPaintSceneProxy(RecordingSurface& Surface, const PlaneExtent& Extent,
                     Entry.Position[0] + Mesh->Positions[Vertex * 3u + 0u] * Entry.Scale[0],
                     Entry.Position[1] + Mesh->Positions[Vertex * 3u + 1u] * Entry.Scale[1],
                     Entry.Position[2] + Mesh->Positions[Vertex * 3u + 2u] * Entry.Scale[2],
-                    Camera, SX[Corner], SY[Corner]) && Standing;
+                    Camera, Perspective, SX[Corner], SY[Corner]) && Standing;
             }
             if (Standing)
             {
@@ -203,35 +214,11 @@ void RecordSharedViewportChrome(RecordingSurface& Surface, const PlaneExtent& Ex
                        ThemeToken{ R, G, B, 255u }, 0.0f, CornerNone);
     }
 
-    float SunX = 0.0f, SunY = 0.0f;
-    if (ProjectPaintScenePoint(Extent, 24.0, 18.0, 32.0, Camera, SunX, SunY) && Extent.Encloses(SunX, SunY))
-    {
-        Surface.Medallion(SunX, SunY, 24.0f, Partial(0xFDE68Au, 0.24f));
-        Surface.Medallion(SunX, SunY, 8.0f, Covering(0xFFF7ADu));
-    }
+    // PaintHost owns the shared viewport shell and scene projection only. It must not draw
+    // a second screen-space grid or decorative sun; the shared viewport renderer owns those.
 
-    const ThemeToken Minor = Partial(0xC4C8D6u, 0.16f);
-    const ThemeToken Major = Partial(0xFFFFFFu, 0.34f);
-    for (int Line = -20; Line <= 20; ++Line)
-    {
-        float X0 = 0.0f, Y0 = 0.0f, X1 = 0.0f, Y1 = 0.0f;
-        if (ProjectPaintScenePoint(Extent, static_cast<double>(Line), 0.0, -20.0, Camera, X0, Y0) &&
-            ProjectPaintScenePoint(Extent, static_cast<double>(Line), 0.0,  20.0, Camera, X1, Y1))
-        {
-            const float Xs[2] = { X0, X1 };
-            const float Ys[2] = { Y0, Y1 };
-            Surface.Polyline(Xs, Ys, 2u, (Line % 5) == 0 ? Major : Minor, (Line % 5) == 0 ? 1.25f : 0.8f);
-        }
-        if (ProjectPaintScenePoint(Extent, -20.0, 0.0, static_cast<double>(Line), Camera, X0, Y0) &&
-            ProjectPaintScenePoint(Extent,  20.0, 0.0, static_cast<double>(Line), Camera, X1, Y1))
-        {
-            const float Xs[2] = { X0, X1 };
-            const float Ys[2] = { Y0, Y1 };
-            Surface.Polyline(Xs, Ys, 2u, (Line % 5) == 0 ? Major : Minor, (Line % 5) == 0 ? 1.25f : 0.8f);
-        }
-    }
-
-    RecordPaintSceneProxy(Surface, Extent, Scene, SceneStanding, Camera);
+    RecordPaintSceneProxy(Surface, Extent, Scene, SceneStanding, Camera,
+                          Configuration.Perspective);
 
     const SharedViewportBasis GizmoBasis = SharedViewportBasisFromYawPitch(Camera.LaggedYawDegrees,
                                                                             Camera.LaggedPitchDegrees);
