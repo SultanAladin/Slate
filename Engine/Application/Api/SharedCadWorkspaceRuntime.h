@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                             SHAREDCADWORKSPACERUNTIME.H
 //============================================================================================================================================
-// Shared CAD viewport state used by the Editor and Parametric Sketch hosts.
+// Shared CAD workspace state used by the Editor and Parametric Sketch hosts.
 
 #pragma once
 
@@ -47,28 +47,11 @@ struct ParametricViewportState
 
 enum class ParametricDraftSubject : std::uint32_t
 {
-    None = 0u,
-    Line = 1u,
-    Rectangle = 2u,
-    Circle = 3u,
-    Arc = 4u,
-    Polyline = 5u,
-    LinearDimension = 6u,
-    Point = 7u,
-    Ellipse = 8u,
-    Bezier = 9u,
-    EllipticalArc = 10u,
-    BasisSpline = 11u,
-    CenterRectangle = 12u,
-    ThreePointRectangle = 13u,
-    DiameterCircle = 14u,
-    ThreePointCircle = 15u,
-    CenterStartEndArc = 16u,
-    TangentArc = 17u,
-    Polygon = 18u,
-    Slot = 19u,
-    Hermite = 20u,
-    RationalSpline = 21u
+    None = 0u, Line = 1u, Rectangle = 2u, Circle = 3u, Arc = 4u, Polyline = 5u,
+    LinearDimension = 6u, Point = 7u, Ellipse = 8u, Bezier = 9u, EllipticalArc = 10u,
+    BasisSpline = 11u, CenterRectangle = 12u, ThreePointRectangle = 13u,
+    DiameterCircle = 14u, ThreePointCircle = 15u, CenterStartEndArc = 16u,
+    TangentArc = 17u, Polygon = 18u, Slot = 19u, Hermite = 20u, RationalSpline = 21u
 };
 
 struct ParametricDraftState
@@ -84,27 +67,17 @@ struct ParametricDraftState
 
 enum class ParametricSelectionSubject : std::uint32_t
 {
-    None = 0u,
-    Point = 1u,
-    Control = 2u,
-    Curve = 3u,
-    Record = 4u
+    None = 0u, Point = 1u, Control = 2u, Curve = 3u, Record = 4u
 };
 
 enum class ParametricTransformMode : std::uint32_t
 {
-    Move = 0u,
-    Rotate = 1u,
-    Scale = 2u
+    Move = 0u, Rotate = 1u, Scale = 2u
 };
 
 enum class ParametricTransformConstraint : std::uint32_t
 {
-    Free = 0u,
-    AxisX = 1u,
-    AxisZ = 2u,
-    Screen = 3u,
-    Curve = 4u
+    Free = 0u, AxisX = 1u, AxisZ = 2u, Screen = 3u, Curve = 4u
 };
 
 struct ParametricViewportSelection
@@ -116,10 +89,7 @@ struct ParametricViewportSelection
     SketchCurveName Curve = {};
     SpatialPoint Position = {};
 
-    bool Standing() const
-    {
-        return Subject != ParametricSelectionSubject::None;
-    }
+    bool Standing() const { return Subject != ParametricSelectionSubject::None; }
 };
 
 struct ParametricTransformPlacement
@@ -155,17 +125,10 @@ struct ParametricTransformState
     double PreviewValue = 0.0;
 };
 
-struct SharedCadWorkspaceRuntime
+enum class ParametricGizmoHandle : std::uint32_t
 {
-    SketchStructure Sketch;
-    WorkspaceRecordStructure Records;
-    WorkspaceRevisionSequence Revisions;
-    ParametricViewportState View;
-    ParametricDraftState Draft;
-    ParametricViewportSelection SemanticSelection;
-    ParametricViewportSelection HoveredSelection;
-    ParametricTransformState Transform;
-    WorkspaceRecordName PendingSelection = {};
+    None = 0u, MoveFree = 1u, MoveX = 2u, MoveZ = 3u, Rotate = 4u,
+    ScaleFree = 5u, ScaleX = 6u, ScaleZ = 7u
 };
 
 struct ParametricTransformCommandInput
@@ -178,5 +141,17 @@ struct ParametricTransformCommandInput
     char NumericAppend[32] = {};
 };
 
+struct SharedCadWorkspaceRuntime
+{
+    SketchStructure Sketch;
+    WorkspaceRecordStructure Records;
+    WorkspaceRevisionSequence Revisions;
+    ParametricViewportState View;
+    ParametricDraftState Draft;
+    ParametricViewportSelection SemanticSelection;
+    ParametricViewportSelection HoveredSelection;
+    ParametricTransformState Transform;
+    WorkspaceRecordName PendingSelection = {};
+};
 
 } // namespace Slate
