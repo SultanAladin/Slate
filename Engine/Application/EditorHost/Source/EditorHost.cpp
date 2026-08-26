@@ -1072,6 +1072,16 @@ int main(int ArgumentCount, char** ArgumentValues)
     bool FirstSkyRecordLogged = false;
     bool FirstSkyRecordedLogged = false;
     bool FirstCodexProxyLogged = false;
+    bool FirstViewportGizmoLogged = false;
+    bool FirstSceneGizmoLogged = false;
+    bool FirstViewportLeafPreparedLogged = false;
+    bool FirstWorkspaceWindowLeftLogged = false;
+    bool FirstSealPanelsLogged = false;
+    bool FirstBeginDisplayLogged = false;
+    bool FirstRecordBeneathLogged = false;
+    bool FirstOverlayRecordedLogged = false;
+    bool FirstRecordAboveLogged = false;
+    bool FirstCompleteLogged = false;
 
     while (Lifetime.Active())
     {
@@ -2409,12 +2419,22 @@ int main(int ArgumentCount, char** ArgumentValues)
                                     }
                                     RecordSharedViewportGizmo(Viewport.Surface(), LeafBody, GizmoBasis,
                                                               PanelDeclaredForGizmo.Gizmo == PanelGizmo::Cad);
+                                    if (!FirstViewportGizmoLogged)
+                                    {
+                                        Milestone("recorded the shared viewport gizmo");
+                                        FirstViewportGizmoLogged = true;
+                                    }
                                 }
 
                                 // 📐 The ground lattice is no longer recorded here. It is solved per
                                 //    pixel in the overlay pass's mode 3, from the camera pushed below,
                                 //    so the CPU hands over a pose rather than a thousand segments.
                                 SceneDirectory.RecordGizmo(LeafBody, SceneApplied, LeafOverlay);
+                                if (!FirstSceneGizmoLogged)
+                                {
+                                    Milestone("recorded the scene gizmo overlay");
+                                    FirstSceneGizmoLogged = true;
+                                }
 
                                 // Render committed and preview CAD geometry into the viewport overlay
                                 const std::uint32_t CommittedColor = PackOverlayColour(52u, 211u, 153u, 255u);
@@ -2867,6 +2887,12 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 if (!Overlay.Standing())
                                     SceneDirectory.RecordOverlayFallback(LeafBody, LeafOverlay);
 
+                                if (!FirstViewportLeafPreparedLogged)
+                                {
+                                    Milestone("prepared the first viewport leaf overlay");
+                                    FirstViewportLeafPreparedLogged = true;
+                                }
+
                                 if (ViewportLeafTally < PanelStructure::RecordLimit)
                                 {
                                     ViewportLeafIndexs[ViewportLeafTally] = Leaf;
@@ -3000,6 +3026,11 @@ int main(int ArgumentCount, char** ArgumentValues)
                 }
 
                 Viewport.Seam().LeaveWorkspaceWindow();
+                if (!FirstWorkspaceWindowLeftLogged)
+                {
+                    Milestone("left the first workspace window");
+                    FirstWorkspaceWindowLeftLogged = true;
+                }
                 Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Beneath));
 
                 // ⚠️ Recorded, never acted on inside the sweep. Withdrawing here edits the set being walked.
@@ -3417,15 +3448,31 @@ int main(int ArgumentCount, char** ArgumentValues)
 
             if (Viewport.SealPanels().Resolved)
             {
+                if (!FirstSealPanelsLogged)
+                {
+                    Milestone("sealed the first panel recording");
+                    FirstSealPanelsLogged = true;
+                }
+
                 // Scene compute and classic render constructs record before this boundary. The interface and
                 // display-referred overlay require the dynamic display scope and therefore begin it here.
                 Discard(Lifetime.BeginDisplay());
+                if (!FirstBeginDisplayLogged)
+                {
+                    Milestone("began the first display scope");
+                    FirstBeginDisplayLogged = true;
+                }
 
                 // 🔴 Read. A rejected Record presents the cleared ground with nothing on it, which is
                 //    indistinguishable from a panel that drew nothing, so the refusal is named here.
                 if (!Viewport.RecordBeneath(Pass.Recording))
                 {
                     std::printf("%s — the interface content was not recorded\n", HostName);
+                }
+                else if (!FirstRecordBeneathLogged)
+                {
+                    Milestone("recorded the first beneath-layer interface content");
+                    FirstRecordBeneathLogged = true;
                 }
 
                 // 🔴 Overlay always records. Drawers may scissor the leaf they cover;
@@ -3468,11 +3515,21 @@ int main(int ArgumentCount, char** ArgumentValues)
                                    LeafRect.MaximumX, LeafRect.MaximumY,
                                    LeafRect.MinimumX, LeafRect.MinimumY,
                                    LeafRect.MaximumX, LeafRect.MaximumY);
+                    if (!FirstOverlayRecordedLogged)
+                    {
+                        Milestone("recorded the first workspace overlay pass");
+                        FirstOverlayRecordedLogged = true;
+                    }
                 }
 
                 if (!Viewport.RecordAbove(Pass.Recording))
                 {
                     std::printf("%s — the interface chrome was not recorded\n", HostName);
+                }
+                else if (!FirstRecordAboveLogged)
+                {
+                    Milestone("recorded the first above-layer interface chrome");
+                    FirstRecordAboveLogged = true;
                 }
             }
             else
@@ -3489,6 +3546,11 @@ int main(int ArgumentCount, char** ArgumentValues)
         //    than ending the loop.
         if (!Lifetime.Complete().Resolved)
             break;
+        if (!FirstCompleteLogged)
+        {
+            Milestone("completed the first frame");
+            FirstCompleteLogged = true;
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────────────────────────────────
