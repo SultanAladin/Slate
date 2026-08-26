@@ -1124,8 +1124,8 @@ void EditorPanel::RecordFooterMenu(std::uint32_t RecordIndex,
         return;
     }
 
-    const std::uint32_t OptionCount = Role == ControlRole::Shading ? 6u : 2u;
-    const float MenuX = Role == ControlRole::Shading ? 160.0f : 130.0f;
+    const std::uint32_t OptionCount = Role == ControlRole::Shading ? 3u : 2u;
+    const float MenuX = Role == ControlRole::Shading ? 170.0f : 130.0f;
     const PlaneExtent Menu = FitExtent(Anchor.MaximumX - MenuX,
                                        MenuX,
                                        Anchor.MinimumY - Measure.MenuPadY * 2.0f -
@@ -1136,11 +1136,13 @@ void EditorPanel::RecordFooterMenu(std::uint32_t RecordIndex,
     Surface->Ground(Menu, Covering(0x18191Eu), Measure.MenuRadius, CornerAll);
     Surface->Edge(Menu, Colour.Edge, Measure.EdgeWeight, Measure.MenuRadius, CornerAll);
 
-    const char* ShadingOptions[6] = { "solid", "wireframe", "matcap", "normal", "metallic", "gi" };
+    const char* ShadingOptions[3] = { "lit", "source wire", "triangulated wire" };
+    const PanelShading ShadingModes[3] = { PanelShading::Lit,
+                                           PanelShading::SourceWire,
+                                           PanelShading::TriangulatedWire };
     const char* GizmoOptions[2] = { "blender", "cad" };
-    const ControlRole OptionRoles[6] = { ControlRole::DivideLeft, ControlRole::DivideRight,
-                                         ControlRole::DivideUpper, ControlRole::DivideLower,
-                                         ControlRole::ChooseViewport, ControlRole::ChooseUv };
+    const ControlRole OptionRoles[3] = { ControlRole::DivideLeft, ControlRole::DivideRight,
+                                         ControlRole::DivideUpper };
     for (std::uint32_t Index = 0u; Index < OptionCount; ++Index)
     {
         const PlaneExtent Row = Spanning(Menu.MinimumX + Measure.MenuPadY,
@@ -1149,7 +1151,7 @@ void EditorPanel::RecordFooterMenu(std::uint32_t RecordIndex,
                                          Menu.Width() - Measure.MenuPadY * 2.0f,
                                          Measure.MenuRowHeight);
         const bool Taken = Role == ControlRole::Shading
-                         ? static_cast<std::uint32_t>(Configuration.Shading) == Index
+                         ? Configuration.Shading == ShadingModes[Index]
                          : static_cast<std::uint32_t>(Configuration.Gizmo) == Index;
         if (Taken)
             Surface->Ground(Row, Colour.Hovered, 4.0f, CornerAll);
@@ -1162,7 +1164,7 @@ void EditorPanel::RecordFooterMenu(std::uint32_t RecordIndex,
         if (Pressed(ResolveControlIndex(RecordIndex, OptionRoles[Index]), Row, true))
         {
             if (Role == ControlRole::Shading)
-                Configuration.Shading = static_cast<PanelShading>(Index);
+                Configuration.Shading = ShadingModes[Index];
             else
                 Configuration.Gizmo = static_cast<PanelGizmo>(Index);
             CloseDisclosure();

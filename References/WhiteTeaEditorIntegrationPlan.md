@@ -64,7 +64,16 @@
 - Render a live preview for every supported drawing tool using the same geometry path as completion.
 - Keep preview geometry transient until confirmation.
 
-## 9. Verification
+## 9. Debug scene presentation and camera
+
+- Keep the White Tea Service as the only scene content rendered by the debug viewport.
+- Use the existing viewport debug menu and existing `WorkspaceScenePass`; do not add another scene shader.
+- Expose only these temporary debug modes: `Lit` (default), `SourceWire`, and `TriangulatedWire`.
+- Ensure the default mode is `Lit`; source-wire and triangulated-wire are opt-in selections only.
+- Use the existing editor camera from Scene Directory and scene settings for the scene projection.
+- Keep the camera row and its authored pose connected to the same camera component used for rendering.
+
+## 10. Verification
 
 - Search the final source for duplicate host shaders, suns, grids, controls, drawers, overlays, and gizmos.
 - Verify Codex activation commits Scene Directory, one material layer, and geometry intake together.
