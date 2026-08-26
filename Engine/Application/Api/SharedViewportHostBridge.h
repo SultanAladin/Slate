@@ -75,6 +75,59 @@ struct SharedViewportCameraSeed
     double FieldOfViewDegrees = 60.0;
 };
 
+/// Shared projection law used by every standalone host. The camera pose stays host-owned, while
+/// perspective selection is supplied by the viewport footer configuration.
+inline bool SharedViewportProjectPoint(const PlaneExtent& Extent,
+                                       double WorldX,
+                                       double WorldY,
+                                       double WorldZ,
+                                       const double CameraPosition[3],
+                                       double YawDegrees,
+                                       double PitchDegrees,
+                                       double FieldOfViewDegrees,
+                                       bool Perspective,
+                                       float& ScreenX,
+                                       float& ScreenY)
+{
+    const double Pi = 3.14159265358979323846;
+    const double Yaw = YawDegrees * Pi / 180.0;
+    const double Pitch = PitchDegrees * Pi / 180.0;
+    const double CosP = std::cos(Pitch), SinP = std::sin(Pitch);
+    const double SinY = std::sin(Yaw), CosY = std::cos(Yaw);
+    const double ForwardX = CosP * SinY;
+    const double ForwardY = SinP;
+    const double ForwardZ = CosP * CosY;
+    const double RightX = CosY;
+    const double RightZ = -SinY;
+    const double UpX = -SinP * SinY;
+    const double UpY = CosP;
+    const double UpZ = -SinP * CosY;
+    const double DX = WorldX - CameraPosition[0];
+    const double DY = WorldY - CameraPosition[1];
+    const double DZ = WorldZ - CameraPosition[2];
+    const double CameraX = DX * RightX + DZ * RightZ;
+    const double CameraY = DX * UpX + DY * UpY + DZ * UpZ;
+    const double CameraZ = DX * ForwardX + DY * ForwardY + DZ * ForwardZ;
+
+    if (!Perspective)
+    {
+        constexpr double PixelsPerMetre = 72.0;
+        ScreenX = static_cast<float>(Extent.MinimumX + Extent.Width() * 0.5 + CameraX * PixelsPerMetre);
+        ScreenY = static_cast<float>(Extent.MinimumY + Extent.Height() * 0.5 - CameraY * PixelsPerMetre);
+        return true;
+    }
+
+    if (CameraZ <= 0.01 || FieldOfViewDegrees <= 0.01)
+        return false;
+    const double TanV = std::tan(FieldOfViewDegrees * 0.5 * Pi / 180.0);
+    const double Aspect = Extent.Height() > 0.0f
+                        ? static_cast<double>(Extent.Width()) / static_cast<double>(Extent.Height())
+                        : 1.0;
+    ScreenX = static_cast<float>((CameraX / (CameraZ * TanV * Aspect) * 0.5 + 0.5) * Extent.Width() + Extent.MinimumX);
+    ScreenY = static_cast<float>((-CameraY / (CameraZ * TanV) * 0.5 + 0.5) * Extent.Height() + Extent.MinimumY);
+    return true;
+}
+
 inline SharedViewportCameraSeed SharedViewportDefaultCamera()
 {
     return SharedViewportCameraSeed{};

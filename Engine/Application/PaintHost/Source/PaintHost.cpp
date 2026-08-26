@@ -90,51 +90,6 @@ static_assert(sizeof(WorkspaceIndex) + sizeof(WorkspacePanel) + sizeof(EditorPan
 
 constexpr float WorkspaceGround[4] = { 0.06f, 0.06f, 0.08f, 1.0f };   // [-]
 
-bool ProjectPaintScenePoint(const PlaneExtent& Extent,
-                            double WorldX,
-                            double WorldY,
-                            double WorldZ,
-                            const EditorCameraComponent& Camera,
-                            bool Perspective,
-                            float& ScreenX,
-                            float& ScreenY)
-{
-    const double Yaw = Camera.LaggedYawDegrees * 3.14159265358979323846 / 180.0;
-    const double Pitch = Camera.LaggedPitchDegrees * 3.14159265358979323846 / 180.0;
-    const double CosP = std::cos(Pitch), SinP = std::sin(Pitch);
-    const double SinY = std::sin(Yaw),   CosY = std::cos(Yaw);
-    const double ForwardX = CosP * SinY;
-    const double ForwardY = SinP;
-    const double ForwardZ = CosP * CosY;
-    const double RightX = CosY;
-    const double RightZ = -SinY;
-    const double UpX = -SinP * SinY;
-    const double UpY = CosP;
-    const double UpZ = -SinP * CosY;
-    const double DX = WorldX - Camera.LaggedPosition[0];
-    const double DY = WorldY - Camera.LaggedPosition[1];
-    const double DZ = WorldZ - Camera.LaggedPosition[2];
-    const double CameraX = DX * RightX + DZ * RightZ;
-    const double CameraY = DX * UpX + DY * UpY + DZ * UpZ;
-    const double CameraZ = DX * ForwardX + DY * ForwardY + DZ * ForwardZ;
-    if (!Perspective)
-    {
-        // The footer's Persp/Ortho control changes the projection, not the camera pose.
-        // Keep the same camera frame so toggling does not cause a jump in orientation.
-        constexpr double OrthoPixelsPerMetre = 72.0;
-        ScreenX = static_cast<float>(Extent.MinimumX + Extent.Width() * 0.5 + CameraX * OrthoPixelsPerMetre);
-        ScreenY = static_cast<float>(Extent.MinimumY + Extent.Height() * 0.5 - CameraY * OrthoPixelsPerMetre);
-        return true;
-    }
-    if (CameraZ <= 0.01)
-        return false;
-    const double TanV = std::tan(Camera.FieldOfViewDegrees * 0.5 * 3.14159265358979323846 / 180.0);
-    const double Aspect = Extent.Height() > 0.0f ? static_cast<double>(Extent.Width()) / static_cast<double>(Extent.Height()) : 1.0;
-    ScreenX = static_cast<float>((CameraX / (CameraZ * TanV * Aspect) * 0.5 + 0.5) * Extent.Width() + Extent.MinimumX);
-    ScreenY = static_cast<float>((-CameraY / (CameraZ * TanV) * 0.5 + 0.5) * Extent.Height() + Extent.MinimumY);
-    return true;
-}
-
 void RecordPaintSceneProxy(RecordingSurface& Surface, const PlaneExtent& Extent,
                            const WorkspaceCodex& Scene, bool SceneStanding,
                            const EditorCameraComponent& Camera,
@@ -170,11 +125,12 @@ void RecordPaintSceneProxy(RecordingSurface& Surface, const PlaneExtent& Extent,
                     Standing = false;
                     break;
                 }
-                Standing = ProjectPaintScenePoint(Extent,
+                Standing = SharedViewportProjectPoint(Extent,
                     Entry.Position[0] + Mesh->Positions[Vertex * 3u + 0u] * Entry.Scale[0],
                     Entry.Position[1] + Mesh->Positions[Vertex * 3u + 1u] * Entry.Scale[1],
                     Entry.Position[2] + Mesh->Positions[Vertex * 3u + 2u] * Entry.Scale[2],
-                    Camera, Perspective, SX[Corner], SY[Corner]) && Standing;
+                    Camera.LaggedPosition, Camera.LaggedYawDegrees, Camera.LaggedPitchDegrees,
+                    Camera.FieldOfViewDegrees, Perspective, SX[Corner], SY[Corner]) && Standing;
             }
             if (Standing)
             {
