@@ -196,12 +196,6 @@ public:
     /// tag   api, nonthrowing
     bool VacantPressed(const PlaneExtent& Extent);
 
-    /// 🧩 Records the assembled content into a command recording of the current cycle slot.
-    /// in    CommandRecording [-]  a recording already inside a dynamic rendering scope over DisplaySurface
-    /// out   Result          [-]  refuses when nothing has been sealed since the last Advance
-    /// pre   Seal delivered
-    /// cost  🚩
-    /// tag   api, nonthrowing
     /// 🧩 Which assembled lists `Record` submits on this call.
     /// note  🔴 Drawers and deferred menus live on the vendor's foreground list. The GPU overlay
     ///        must sit *between* the workspace/sky and that chrome, or the lattice paints through
@@ -213,6 +207,12 @@ public:
         Above   = 2u    // [-] - the foreground chrome only
     };
 
+    /// 🧩 Records the assembled content into a command recording of the current cycle slot.
+    /// in    CommandRecording [-]  a recording already inside a dynamic rendering scope over DisplaySurface
+    /// out   Result          [-]  refuses when nothing has been sealed since the last Advance
+    /// pre   Seal delivered
+    /// cost  🚩
+    /// tag   api, nonthrowing
     Outcome<bool> Record(VkCommandBuffer CommandRecording, RecordBand Band = RecordBand::Entire);
 
     /// 🧩 Whether the interface has taken the pointer, so that `22` must not treat it as a canvas stroke.
