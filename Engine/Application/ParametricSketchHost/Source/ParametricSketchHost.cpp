@@ -2064,6 +2064,33 @@ void RecordDraftPreview(RecordingSurface& Surface,
         }
     }
 
+    const bool PreviewHandled =
+        Draft.Subject == ParametricDraftSubject::Line ||
+        Draft.Subject == ParametricDraftSubject::LinearDimension ||
+        Draft.Subject == ParametricDraftSubject::Polyline ||
+        Draft.Subject == ParametricDraftSubject::Arc ||
+        Draft.Subject == ParametricDraftSubject::Bezier ||
+        Draft.Subject == ParametricDraftSubject::Ellipse ||
+        Draft.Subject == ParametricDraftSubject::Rectangle ||
+        Draft.Subject == ParametricDraftSubject::Circle;
+    if (!PreviewHandled && !Draft.Anchors.empty())
+    {
+        float PointsX[128] = {};
+        float PointsY[128] = {};
+        std::uint32_t Count = 0u;
+        for (const SpatialPoint& Anchor : Draft.Anchors)
+        {
+            if (Count >= 127u)
+                break;
+            if (Projected(Anchor, PointsX[Count], PointsY[Count]))
+                ++Count;
+        }
+        if (Count < 127u && Projected(Draft.Hover, PointsX[Count], PointsY[Count]))
+            ++Count;
+        if (Count >= 2u)
+            Surface.Polyline(PointsX, PointsY, Count, Preview, 1.8f);
+    }
+
     float MarkerX = 0.0f, MarkerY = 0.0f;
     if (Projected(Draft.Hover, MarkerX, MarkerY))
         Surface.Medallion(MarkerX, MarkerY, 4.0f, Draft.Snap.Resolved() ? SnapTone : Preview);
@@ -5534,14 +5561,16 @@ int main(int ArgumentCount, char** ArgumentValues)
 
                             const SpatialBasis Basis = ResolveSketchBasis(Sketch);
                             if (LeafOverlay != nullptr)
+                                // Sketch authoring is always on the top/grid plane. The camera may remain
+                                // perspective, but the authoring grid and its scale do not change with view mode.
                                 RecordViewportGridOverlay(*LeafOverlay, LeafBody, Sketch, View,
-                                                          PanelConfiguration[Index].Perspective,
+                                                          false,
                                                           PanelConfiguration[Index]);
 
                             DriveViewportSelectionAndTransform(LeafBody, LeafPointer,
                                                                Viewport.Surface().TextInput(), Modifiers,
                                                                Basis, View,
-                                                               PanelConfiguration[Index].Perspective,
+                                                               false,
                                                                ToolsApplied.ActiveSubject,
                                                                Naming,
                                                                Directory, ParametricApplied,
@@ -5558,7 +5587,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 DriveDrawingWithModifiers(LeafBody, LeafPointer,
                                                          Viewport.Surface().TextInput(), Modifiers,
                                                          Basis, View,
-                                                         PanelConfiguration[Index].Perspective,
+                                                         false,
                                                          ToolsApplied,
                                                          Naming, Sketch, Records, Revisions,
                                                          PendingSelection, Draft, PointerTaken);
@@ -5578,7 +5607,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 RecordCadFallback(Viewport.Surface(), LeafBody, Sketch, View,
                                                   PanelConfiguration[Index].Perspective, CadPacket);
                             RecordDraftPreview(Viewport.Surface(), LeafBody, Sketch, View,
-                                               PanelConfiguration[Index].Perspective, Draft);
+                                               false, Draft);
                             RecordViewportStateReadout(Viewport.Surface(), LeafBody, View,
                                                        PanelConfiguration[Index].Perspective, CadPacket);
                             RecordProfileAreaOverlay(Viewport.Surface(), LeafBody, Sketch, View,
@@ -5955,18 +5984,11 @@ int main(int ArgumentCount, char** ArgumentValues)
                      ++ViewportIndex)
                 {
                     const PlaneExtent& LeafRect = ViewportLeafRects[ViewportIndex];
-                    float VisibleMinimumY = LeafRect.MinimumY;
-                    float VisibleMaximumY = LeafRect.MaximumY;
-                    if (NorthInterior.MaximumY > 0.0f && NorthInterior.MinimumY < static_cast<float>(Pass.Height))
-                        VisibleMinimumY = VisibleMinimumY > NorthInterior.MaximumY ? VisibleMinimumY : NorthInterior.MaximumY;
-                    if (SouthInterior.MaximumY > 0.0f && SouthInterior.MinimumY < static_cast<float>(Pass.Height))
-                        VisibleMaximumY = VisibleMaximumY < SouthInterior.MinimumY ? VisibleMaximumY : SouthInterior.MinimumY;
-                    if (VisibleMaximumY <= VisibleMinimumY + 1.0f)
-                        continue;
+                    // Drawer occlusion must not alter the viewport rectangle or grid projection.
                     OverlayPass.Upload(ViewportOverlays[ViewportIndex]);
                     OverlayPass.Record(Pass.Recording, Pass.Width, Pass.Height,
-                                       LeafRect.MinimumX, VisibleMinimumY,
-                                       LeafRect.MaximumX, VisibleMaximumY,
+                                       LeafRect.MinimumX, LeafRect.MinimumY,
+                                       LeafRect.MaximumX, LeafRect.MaximumY,
                                        LeafRect.MinimumX, LeafRect.MinimumY,
                                        LeafRect.MaximumX, LeafRect.MaximumY);
                 }

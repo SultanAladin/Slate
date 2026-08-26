@@ -1875,18 +1875,12 @@ int main(int ArgumentCount, char** ArgumentValues)
                     }
 
                     const PlaneExtent& LeafRect = ViewportLeafRects[ViewportIndex];
-                    float VisibleMinimumY = LeafRect.MinimumY;
-                    float VisibleMaximumY = LeafRect.MaximumY;
-                    if (NorthInterior.MaximumY > 0.0f && NorthInterior.MinimumY < static_cast<float>(Pass.Height))
-                        VisibleMinimumY = VisibleMinimumY > NorthInterior.MaximumY ? VisibleMinimumY : NorthInterior.MaximumY;
-                    if (SouthInterior.MaximumY > 0.0f && SouthInterior.MinimumY < static_cast<float>(Pass.Height))
-                        VisibleMaximumY = VisibleMaximumY < SouthInterior.MinimumY ? VisibleMaximumY : SouthInterior.MinimumY;
-                    if (VisibleMaximumY <= VisibleMinimumY + 1.0f)
-                        continue;
-
+                    // The drawer is an occluding surface, not a new viewport projection. Keep the
+                    // overlay's original leaf rectangle so opening a drawer never resizes or removes
+                    // the grid.
                     Overlay.Record(Pass.Recording, Pass.Width, Pass.Height,
-                                   LeafRect.MinimumX, VisibleMinimumY,
-                                   LeafRect.MaximumX, VisibleMaximumY,
+                                   LeafRect.MinimumX, LeafRect.MinimumY,
+                                   LeafRect.MaximumX, LeafRect.MaximumY,
                                    LeafRect.MinimumX, LeafRect.MinimumY,
                                    LeafRect.MaximumX, LeafRect.MaximumY);
                 }
