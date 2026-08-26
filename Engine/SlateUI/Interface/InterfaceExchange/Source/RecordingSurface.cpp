@@ -546,14 +546,15 @@ void RecordingSurface::ImageGeometry(std::uintptr_t Identity,
     //    defect where the viewport read the atlas as sky.
     ImDrawList* Target = Commands(CommandSlot);
 
-    // 🔴 The indices a command list carries are ABSOLUTE positions in the list's vertex buffer, not
-    //    positions in the geometry: a geometry run that wrote 0-based indices would reference the top bar's text
-    //    vertices and the viewport would read the atlas as sky. The base is the count of vertices the
-    //    list already holds, and every delivered index is offset by it.
-    const unsigned int Base = Target->_VtxCurrentIdx;
-
+    // 🔴 The indices a command list carries are ABSOLUTE positions in the CURRENT draw command's vertex
+    //    range, not positions in the geometry: a geometry run that wrote 0-based indices would reference
+    //    earlier text vertices and the viewport would read the atlas as sky. The base must be taken AFTER
+    //    PrimReserve, not before it: a large reservation may start a fresh command with a non-zero VtxOffset
+    //    and reset _VtxCurrentIdx to 0 for 16-bit indices. Capturing the pre-reserve figure made the sky
+    //    write indices against the wrong vertex range once the first frame crossed 64K vertices.
     Target->PushTexture(ImTextureRef(static_cast<ImTextureID>(Identity)));
     Target->PrimReserve(static_cast<int>(IndexCount), static_cast<int>(VertexCount));
+    const unsigned int Base = Target->_VtxCurrentIdx;
 
     for (std::uint32_t Index = 0u; Index < VertexCount; ++Index)
     {

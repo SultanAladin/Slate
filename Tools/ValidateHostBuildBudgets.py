@@ -77,6 +77,11 @@ def main() -> int:
             "Editor popup disclosure state must be queryable so hosts can block background pointer paths")
     require("Covering(0x18191Eu)" in editor_panel and "Pointer.ContactPressed" in editor_panel,
             "Editor dropdown and grid popup menus must be opaque and capture press/release contact")
+    scene_directory = read("Engine/SlateUI/Interface/SceneDirectoryPanel/Source/SceneDirectoryPanel.cpp")
+    require("static float Positions[VertexCount * 2u];" in scene_directory and
+            "static float UVs[VertexCount * 2u];" in scene_directory and
+            "static std::uint32_t Indices[IndexCount];" in scene_directory,
+            "SceneDirectoryPanel viewport-sky scratch must stay out of the call stack on Windows")
     overlay_pass = read("Engine/SlateVulkan/Device/WorkspaceOverlayPass/Source/WorkspaceOverlayPass.cpp")
     overlay_api = read("Engine/SlateVulkan/Device/WorkspaceOverlayPass/Api/WorkspaceOverlayPass.h")
     require("LeafRect.MinimumX" in editor and "LeafRect.MaximumX" in editor and "!ForegroundDrawerStanding" not in editor,

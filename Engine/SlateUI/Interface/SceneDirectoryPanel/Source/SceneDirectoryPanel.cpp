@@ -523,6 +523,9 @@ void SceneDirectoryPanel::Reapply(const ThemeProfile& Resolved)
 
 void SceneDirectoryPanel::RecordViewportSky(const PlaneExtent& Extent, const SceneDirectoryContext& Applied)
 {
+    if (Surface == nullptr || Extent.Width() <= 0.0f || Extent.Height() <= 0.0f)
+        return;
+
     if (Applied.SkyTextureIdentity == 0u && Applied.GeometryTextureIdentity == 0u)
         return;
 
@@ -559,9 +562,12 @@ void SceneDirectoryPanel::RecordViewportSky(const PlaneExtent& Extent, const Sce
     const double Right[3]   = { CosY, 0.0, -SinY };
     const double Up[3]      = { -SinP * SinY, CosP, -SinP * CosY };
 
-    float Positions[VertexCount * 2u];
-    float UVs[VertexCount * 2u];
-    std::uint32_t Indices[IndexCount];
+    // 📝 The perspective sky mesh needs a little over 200 KB of scratch for one leaf. Kept in static
+    //    storage rather than on the call stack so a Windows editor tick does not spend the host's last
+    //    quarter-megabyte on this one projection and fault at the first viewport frame.
+    static float Positions[VertexCount * 2u];
+    static float UVs[VertexCount * 2u];
+    static std::uint32_t Indices[IndexCount];
 
     std::uint32_t VertexOffset = 0u;
     std::uint32_t IndexOffset  = 0u;

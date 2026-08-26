@@ -1070,6 +1070,8 @@ int main(int ArgumentCount, char** ArgumentValues)
     bool FirstAdvanceLogged = false;
     bool FirstViewportLeafLogged = false;
     bool FirstSkyRecordLogged = false;
+    bool FirstSkyRecordedLogged = false;
+    bool FirstCodexProxyLogged = false;
 
     while (Lifetime.Active())
     {
@@ -1395,9 +1397,19 @@ int main(int ArgumentCount, char** ArgumentValues)
                                     FirstSkyRecordLogged = true;
                                 }
                                 SceneDirectory.RecordViewportSky(LeafBody, SceneApplied);
+                                if (!FirstSkyRecordedLogged)
+                                {
+                                    Milestone("recorded the first viewport sky");
+                                    FirstSkyRecordedLogged = true;
+                                }
                                 RecordWorkspaceCodexProxy(Viewport.Surface(), LeafBody, SceneApplied,
                                                           OpenedScene, OpenedSceneStanding,
                                                           PanelConfiguration[Index].Shading);
+                                if (!FirstCodexProxyLogged)
+                                {
+                                    Milestone("recorded the workspace codex proxy");
+                                    FirstCodexProxyLogged = true;
+                                }
 
                                 const float CentreX = LeafBody.MinimumX + LeafBody.Width() * 0.5f;
                                 const float CentreY = LeafBody.MinimumY + LeafBody.Height() * 0.5f;
