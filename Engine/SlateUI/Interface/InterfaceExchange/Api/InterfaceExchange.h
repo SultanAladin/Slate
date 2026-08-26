@@ -202,7 +202,18 @@ public:
     /// pre   Seal delivered
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Record(VkCommandBuffer CommandRecording);
+    /// 🧩 Which assembled lists `Record` submits on this call.
+    /// note  🔴 Drawers and deferred menus live on the vendor's foreground list. The GPU overlay
+    ///        must sit *between* the workspace/sky and that chrome, or the lattice paints through
+    ///        opaque grounds. `Entire` is the historical single submission.
+    enum class RecordBand : std::uint32_t
+    {
+        Entire  = 0u,   // [-] - every sealed list, as before
+        Beneath = 1u,   // [-] - every list except the foreground chrome
+        Above   = 2u    // [-] - the foreground chrome only
+    };
+
+    Outcome<bool> Record(VkCommandBuffer CommandRecording, RecordBand Band = RecordBand::Entire);
 
     /// 🧩 Whether the interface has taken the pointer, so that `22` must not treat it as a canvas stroke.
     /// cost  ✔️

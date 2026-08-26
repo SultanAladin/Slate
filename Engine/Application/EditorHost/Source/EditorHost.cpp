@@ -1452,9 +1452,10 @@ int main(int ArgumentCount, char** ArgumentValues)
                         }
                     }
 
-                    // 🔴 The popups after the leaf content, so they composite above it.
+                    Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
                     WorkspacePanels.RecordDeferredPopups(PanelPartitions[Index],
                                                          PanelConfiguration[Index]);
+                    Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Beneath));
 
                     if (WorkspacePanels.PointerCaptured(Index))
                         Viewport.Seam().WithholdPointer();
@@ -1580,8 +1581,7 @@ int main(int ArgumentCount, char** ArgumentValues)
             // 📝 The layer stack's own search pill — the same gated feed.
             if (TexturePaintApplied.SearchTaken)
             {
-                static_cast<void>(Viewport.Seam().AcceptTyped(TexturePaintApplied.Retention,
-                                                              TexturePaintContext::TextureRetentionLimit));
+                static_cast<void>(Viewport.Seam().AcceptTyped(Textur:TextureRetentionLimit));
 
                 if (Viewport.Seam().KeyPressed(KeySubject::Retract))
                 {
@@ -1883,20 +1883,14 @@ int main(int ArgumentCount, char** ArgumentValues)
 
                 // 🔴 Read. A rejected Record presents the cleared ground with nothing on it, which is
                 //    indistinguishable from a panel that drew nothing, so the refusal is named here.
-                if (!Viewport.Record(Pass.Recording))
+                if (!Viewport.RecordBeneath(Pass.Recording))
                 {
                     std::printf("%s — the interface content was not recorded\n", HostName);
                 }
 
-                // 📝 The overlay pass records INSIDE the same dynamic-rendering scope, after the
-                //    interface: the grid and axes draw directly on top of the sky and viewport,
-                //    in their own straight-alpha GPU pass — no ImGui tessellation, vivid colours.
-                //    Each viewport leaf's geometry is uploaded at most once per generation change
-                //    and drawn with a scissor clipped to that leaf's box, so the overlay never
-                //    paints over the outliner, the properties or any other panel.
-                // The GPU overlay is recorded after the interface and therefore cannot be hidden by an
-                // ImGui ground. Suppress it while either opaque foreground drawer stands; otherwise the
-                // lattice would visibly cut through Control Centre and Content Browser pages.
+                // 🔴 Overlay always records. Drawers may scissor the leaf they cover;
+                //    menus sit on the foreground list submitted after this pass.
+
                 for (std::uint32_t ViewportIndex = 0u;
                      ViewportIndex < ViewportLeafTally;
                      ++ViewportIndex)
@@ -1910,15 +1904,35 @@ int main(int ArgumentCount, char** ArgumentValues)
                         OverlayGeneration[LeafIndex] = LeafOverlay.Generation;
                     }
 
-                    const PlaneExtent& LeafRect = ViewportLeafRects[ViewportIndex];
-                    // The drawer is an occluding surface, not a new viewport projection. Keep the
-                    // overlay's original leaf rectangle so opening a drawer never resizes or removes
-                    // the grid.
+                    PlaneExtent LeafRect = ViewportLeafRects[ViewportIndex];
+
+                    if (NorthInterior.Height() > 0.0f &&
+                        NorthInterior.MaximumY > LeafRect.MinimumY &&
+                        NorthInterior.MinimumY <= LeafRect.MinimumY)
+                    {
+                        LeafRect.MinimumY = std::min(LeafRect.MaximumY, NorthInterior.MaximumY);
+                    }
+
+                    if (SouthInterior.Height() > 0.0f &&
+                        SouthInterior.MinimumY < LeafRect.MaximumY &&
+                        SouthInterior.MaximumY >= LeafRect.MaximumY)
+                    {
+                        LeafRect.MaximumY = std::max(LeafRect.MinimumY, SouthInterior.MinimumY);
+                    }
+
+                    if (LeafRect.Width() <= 0.0f || LeafRect.Height() <= 0.0f)
+                        continue;
+
                     Overlay.Record(Pass.Recording, Pass.Width, Pass.Height,
                                    LeafRect.MinimumX, LeafRect.MinimumY,
                                    LeafRect.MaximumX, LeafRect.MaximumY,
                                    LeafRect.MinimumX, LeafRect.MinimumY,
                                    LeafRect.MaximumX, LeafRect.MaximumY);
+                }
+
+                if (!Viewport.RecordAbove(Pass.Recording))
+                {
+                    std::printf("%s — the interface chrome was not recorded\n", HostName);
                 }
             }
             else

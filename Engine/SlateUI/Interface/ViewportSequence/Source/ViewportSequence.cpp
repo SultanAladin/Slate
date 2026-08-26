@@ -189,6 +189,16 @@ Outcome<bool> ViewportSequence::Record(VkCommandBuffer CommandRecording)
     return Interface.Record(CommandRecording);
 }
 
+Outcome<bool> ViewportSequence::RecordBeneath(VkCommandBuffer CommandRecording)
+{
+    return Interface.Record(CommandRecording, InterfaceExchange::RecordBand::Beneath);
+}
+
+Outcome<bool> ViewportSequence::RecordAbove(VkCommandBuffer CommandRecording)
+{
+    return Interface.Record(CommandRecording, InterfaceExchange::RecordBand::Above);
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        ACCESSORS
 //------------------------------------------------------------------------------------------------------------------------
