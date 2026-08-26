@@ -186,6 +186,8 @@ inline bool SharedCadAuthoringDispatch(SharedCadWorkspaceRuntime& Runtime,
                         Subject == ParametricDraftSubject::CenterRectangle;
     const bool Circle = Subject == ParametricDraftSubject::Circle ||
                         Subject == ParametricDraftSubject::DiameterCircle;
+    const bool Polygon = Subject == ParametricDraftSubject::Polygon;
+    const bool Slot = Subject == ParametricDraftSubject::Slot;
     const bool Polyline = Subject == ParametricDraftSubject::Polyline;
     const bool EllipticalArc = Subject == ParametricDraftSubject::EllipticalArc;
     const bool Spline = Subject == ParametricDraftSubject::Bezier ||
@@ -194,7 +196,7 @@ inline bool SharedCadAuthoringDispatch(SharedCadWorkspaceRuntime& Runtime,
                         Subject == ParametricDraftSubject::Hermite;
     const std::size_t Required = Subject == ParametricDraftSubject::Hermite ? 4u
                                : (Subject == ParametricDraftSubject::BasisSpline ||
-                                  Subject == ParametricDraftSubject::RationalSpline || EllipticalArc) ? 3u : 2u;
+                                  Subject == ParametricDraftSubject::RationalSpline || Slot || EllipticalArc) ? 3u : 2u;
     if ((Arc || EllipticalArc ? !ThreePoint : Spline ? Runtime.Draft.Anchors.size() < Required : !TwoPoint) ||
         ((Polyline || Spline || EllipticalArc) && !Request.CommitRequested))
         return true;
@@ -290,6 +292,46 @@ inline bool SharedCadAuthoringDispatch(SharedCadWorkspaceRuntime& Runtime,
             Curve = Runtime.Sketch.DeclareHermite(Data);
         }
         DeclareCurve(Curve);
+    }
+    const auto DeclareProfile = [&](ProfileNameInFeature Profile)
+    {
+        WorkspaceRecord Record = {};
+        Record.Subject = WorkspaceRecordSubject::ClosedProfile;
+        Record.Naming = Naming.Issue(WorkspaceRecordSubject::ClosedProfile);
+        Record.Profile = Profile;
+        Record.ClosedSemantic = true;
+        Record.CappedExtrusionSemantic = true;
+        const WorkspaceRecordName Name = Runtime.Records.Declare(Record);
+        if (Name.Assigned())
+            Written.push_back(Name);
+    };
+
+    if (Polygon)
+    {
+        const double DX = Runtime.Draft.Anchors[1].Left - Runtime.Draft.Anchors[0].Left;
+        const double DZ = Runtime.Draft.Anchors[1].Forward - Runtime.Draft.Anchors[0].Forward;
+        const double Radius = std::sqrt(DX * DX + DZ * DZ);
+        if (Radius > 1.0e-6)
+        {
+            const Outcome<ProfileNameInFeature> Profile =
+                Runtime.Sketch.DeclareRegularPolygon(Runtime.Draft.Anchors[0], Radius, 6u);
+            if (Profile.Resolved)
+                DeclareProfile(Profile.Resolve());
+        }
+    }
+    else if (Slot)
+    {
+        const SpatialPoint& Centre = Runtime.Draft.Anchors[0];
+        const double DX = Runtime.Draft.Anchors[2].Left - Runtime.Draft.Anchors[1].Left;
+        const double DZ = Runtime.Draft.Anchors[2].Forward - Runtime.Draft.Anchors[1].Forward;
+        const double Radius = std::sqrt(DX * DX + DZ * DZ);
+        if (Radius > 1.0e-6)
+        {
+            const Outcome<ProfileNameInFeature> Profile =
+                Runtime.Sketch.DeclareSlot(Centre, Runtime.Draft.Anchors[1], Radius);
+            if (Profile.Resolved)
+                DeclareProfile(Profile.Resolve());
+        }
     }
     else if (Polyline)
     {
