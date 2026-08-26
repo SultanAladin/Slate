@@ -291,14 +291,16 @@ void RecordWorkspaceCodexProxy(RecordingSurface& Surface,
                                const PlaneExtent& Extent,
                                const SceneDirectoryContext& SceneApplied,
                                const WorkspaceCodex& Scene,
-                               bool SceneStanding)
+                               bool SceneStanding,
+                               PanelShading Shading)
 {
     if (!SceneStanding)
         return;
 
     Surface.Confine(Extent);
-    const ThemeToken Fill = Partial(0xF4F1E8u, 0.38f);
-    const ThemeToken Edge = Partial(0xFFFFFFu, 0.72f);
+    const ThemeToken Edge = Shading == PanelShading::SourceWire
+                           ? Partial(0x8AB4D8u, 0.92f)
+                           : Partial(0xFFFFFFu, 0.82f);
     for (const CodexSceneEntry& Entry : Scene.Scene)
     {
         if (Entry.Subject != CodexSceneSubject::Geometry)
@@ -316,6 +318,9 @@ void RecordWorkspaceCodexProxy(RecordingSurface& Surface,
         {
             float SX[3] = {};
             float SY[3] = {};
+            double WorldX[3] = {};
+            double WorldY[3] = {};
+            double WorldZ[3] = {};
             bool Standing = true;
             for (std::uint32_t Corner = 0u; Corner < 3u; ++Corner)
             {
@@ -325,22 +330,47 @@ void RecordWorkspaceCodexProxy(RecordingSurface& Surface,
                     Standing = false;
                     break;
                 }
+                WorldX[Corner] = Entry.Position[0] + Mesh->Positions[Vertex * 3u + 0u] * Entry.Scale[0];
+                WorldY[Corner] = Entry.Position[1] + Mesh->Positions[Vertex * 3u + 1u] * Entry.Scale[1];
+                WorldZ[Corner] = Entry.Position[2] + Mesh->Positions[Vertex * 3u + 2u] * Entry.Scale[2];
                 Standing = ProjectWorkspaceCodexPoint(SceneApplied, Extent,
-                    Entry.Position[0] + Mesh->Positions[Vertex * 3u + 0u] * Entry.Scale[0],
-                    Entry.Position[1] + Mesh->Positions[Vertex * 3u + 1u] * Entry.Scale[1],
-                    Entry.Position[2] + Mesh->Positions[Vertex * 3u + 2u] * Entry.Scale[2],
-                    SX[Corner], SY[Corner]) && Standing;
+                    WorldX[Corner], WorldY[Corner], WorldZ[Corner], SX[Corner], SY[Corner]) && Standing;
             }
             if (Standing)
             {
                 const float Corners[6] = { SX[0], SY[0], SX[1], SY[1], SX[2], SY[2] };
-                Surface.Tongue(Corners, 3u, Fill);
-                const float X0[2] = { SX[0], SX[1] }; const float Y0[2] = { SY[0], SY[1] };
-                const float X1[2] = { SX[1], SX[2] }; const float Y1[2] = { SY[1], SY[2] };
-                const float X2[2] = { SX[2], SX[0] }; const float Y2[2] = { SY[2], SY[0] };
-                Surface.Polyline(X0, Y0, 2u, Edge, 0.7f);
-                Surface.Polyline(X1, Y1, 2u, Edge, 0.7f);
-                Surface.Polyline(X2, Y2, 2u, Edge, 0.7f);
+                const double EdgeX1 = WorldX[1] - WorldX[0];
+                const double EdgeY1 = WorldY[1] - WorldY[0];
+                const double EdgeZ1 = WorldZ[1] - WorldZ[0];
+                const double EdgeX2 = WorldX[2] - WorldX[0];
+                const double EdgeY2 = WorldY[2] - WorldY[0];
+                const double EdgeZ2 = WorldZ[2] - WorldZ[0];
+                const double NormalX = EdgeY1 * EdgeZ2 - EdgeZ1 * EdgeY2;
+                const double NormalY = EdgeZ1 * EdgeX2 - EdgeX1 * EdgeZ2;
+                const double NormalZ = EdgeX1 * EdgeY2 - EdgeY1 * EdgeX2;
+                const double NormalLength = std::sqrt(NormalX * NormalX + NormalY * NormalY + NormalZ * NormalZ);
+                const double LightX = 0.35;
+                const double LightY = 0.82;
+                const double LightZ = 0.44;
+                const double Diffuse = NormalLength > 1.0e-9
+                    ? std::max(0.0, (NormalX * LightX + NormalY * LightY + NormalZ * LightZ) / NormalLength)
+                    : 0.0;
+                const std::uint32_t LitLevel = static_cast<std::uint32_t>(
+                    std::clamp(150.0 + Diffuse * 105.0, 0.0, 255.0));
+                const ThemeToken Lit = Covering((LitLevel << 16u) | (LitLevel << 8u) | LitLevel);
+
+                if (Shading == PanelShading::Lit)
+                    Surface.Tongue(Corners, 3u, Lit);
+
+                if (Shading == PanelShading::SourceWire || Shading == PanelShading::TriangulatedWire)
+                {
+                    const float X0[2] = { SX[0], SX[1] }; const float Y0[2] = { SY[0], SY[1] };
+                    const float X1[2] = { SX[1], SX[2] }; const float Y1[2] = { SY[1], SY[2] };
+                    const float X2[2] = { SX[2], SX[0] }; const float Y2[2] = { SY[2], SY[0] };
+                    Surface.Polyline(X0, Y0, 2u, Edge, 0.7f);
+                    Surface.Polyline(X1, Y1, 2u, Edge, 0.7f);
+                    Surface.Polyline(X2, Y2, 2u, Edge, 0.7f);
+                }
             }
         }
     }
@@ -1169,7 +1199,8 @@ int main(int ArgumentCount, char** ArgumentValues)
 
                                 SceneDirectory.RecordViewportSky(LeafBody, SceneApplied);
                                 RecordWorkspaceCodexProxy(Viewport.Surface(), LeafBody, SceneApplied,
-                                                          OpenedScene, OpenedSceneStanding);
+                                                          OpenedScene, OpenedSceneStanding,
+                                                          PanelConfiguration[Index].Shading);
                                 {
                                     SharedViewportBasis GizmoBasis = SharedViewportBasisFromYawPitch(
                                         SceneApplied.ViewportSkyCamera.AzimuthDegrees,
