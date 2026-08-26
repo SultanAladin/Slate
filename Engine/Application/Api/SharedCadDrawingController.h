@@ -178,12 +178,16 @@ inline bool SharedCadAuthoringDispatch(SharedCadWorkspaceRuntime& Runtime,
     Runtime.Draft.Anchors.push_back(Request.Hover);
     const ParametricDraftSubject Subject = Runtime.Draft.Subject;
     const bool TwoPoint = Runtime.Draft.Anchors.size() >= 2u;
+    const bool ThreePoint = Runtime.Draft.Anchors.size() >= 3u;
+    const bool Arc = Subject == ParametricDraftSubject::Arc ||
+                     Subject == ParametricDraftSubject::CenterStartEndArc ||
+                     Subject == ParametricDraftSubject::TangentArc;
     const bool Closed = Subject == ParametricDraftSubject::Rectangle ||
                         Subject == ParametricDraftSubject::CenterRectangle;
     const bool Circle = Subject == ParametricDraftSubject::Circle ||
                         Subject == ParametricDraftSubject::DiameterCircle;
     const bool Polyline = Subject == ParametricDraftSubject::Polyline;
-    if (!TwoPoint || (Polyline && !Request.CommitRequested))
+    if ((Arc ? !ThreePoint : !TwoPoint) || (Polyline && !Request.CommitRequested))
         return true;
 
     if (!Runtime.Sketch.Declared())
@@ -202,7 +206,37 @@ inline bool SharedCadAuthoringDispatch(SharedCadWorkspaceRuntime& Runtime,
             Written.push_back(Name);
     };
 
-    if (Polyline)
+    if (Arc)
+    {
+        SketchCurveName Curve = {};
+        if (Subject == ParametricDraftSubject::Arc)
+        {
+            Curve = Runtime.Sketch.DeclareThreePointArc(Runtime.Draft.Anchors[0],
+                                                         Runtime.Draft.Anchors[1],
+                                                         Runtime.Draft.Anchors[2]);
+        }
+        else
+        {
+            const SpatialPoint& Centre = Runtime.Draft.Anchors[0];
+            const SpatialPoint& Start = Runtime.Draft.Anchors[1];
+            const SpatialPoint& End = Runtime.Draft.Anchors[2];
+            const SpatialDirection StartOffset = { Start.Left - Centre.Left, Start.Up - Centre.Up, Start.Forward - Centre.Forward };
+            const SpatialDirection EndOffset = { End.Left - Centre.Left, End.Up - Centre.Up, End.Forward - Centre.Forward };
+            const double Radius = std::sqrt(StartOffset.Left * StartOffset.Left +
+                                            StartOffset.Up * StartOffset.Up +
+                                            StartOffset.Forward * StartOffset.Forward);
+            if (Radius > 1.0e-6)
+            {
+                double Sweep = std::atan2(End.Forward - Centre.Forward, End.Left - Centre.Left)
+                             - std::atan2(Start.Forward - Centre.Forward, Start.Left - Centre.Left);
+                if (Sweep <= 0.0) Sweep += 2.0 * 3.14159265358979323846;
+                const CircularArcCurve ArcData = { Centre, { 0.0, 1.0, 0.0 }, StartOffset, {}, false, Radius, Sweep };
+                Curve = Runtime.Sketch.DeclareCurve(CurveSpecification::DeclareCircularArc(ArcData, { 0.0, 1.0 }));
+            }
+        }
+        DeclareCurve(Curve);
+    }
+    else if (Polyline)
     {
         std::vector<SketchCurveName> Curves;
         const Outcome<bool> Declared = Runtime.Sketch.DeclarePolyline(Runtime.Draft.Anchors, Curves);
