@@ -3317,24 +3317,6 @@ void SynchroniseCodexTransformsFromSceneDirectory(WorkspaceCodex& Scene,
     }
 }
 
-bool ResolveSelectedSceneMeshPivot(const WorkspaceCodex& Scene,
-                                   bool SceneStanding,
-                                   const SketchSceneDirectoryStorage& Storage,
-                                   const SceneDirectoryContext& Applied,
-                                   SpatialPoint& Pivot)
-{
-    if (!SceneStanding || Applied.EntityTaken >= Storage.RowCount || Applied.EntityTaken >= SceneDirectoryContext::EntityLimit)
-        return false;
-    const StableRowIdentity Identity = Storage.Rows[Applied.EntityTaken].Identity;
-    if (Identity < 6200u)
-        return false;
-    const std::uint32_t SceneIndex = Identity - 6200u;
-    if (SceneIndex >= Scene.Scene.size() || Scene.Scene[SceneIndex].Subject != CodexSceneSubject::Geometry)
-        return false;
-    Pivot = CodexScenePosition(Scene.Scene[SceneIndex]);
-    return true;
-}
-
 bool SelectSceneMeshAtPointer(const PlaneExtent& Extent,
                               const PointerCondition& Pointer,
                               const SpatialBasis& Basis,
@@ -3657,93 +3639,6 @@ enum class ParametricGizmoHandle : std::uint32_t
     ScaleZ = 7u
 };
 
-double DistanceSquared2(float X0, float Y0, float X1, float Y1)
-{
-    const double DX = static_cast<double>(X1 - X0);
-    const double DY = static_cast<double>(Y1 - Y0);
-    return DX * DX + DY * DY;
-}
-
-double DistancePointSegmentSquared2(float PX, float PY,
-                                    float AX, float AY,
-                                    float BX, float BY)
-{
-    const double DX = static_cast<double>(BX - AX);
-    const double DY = static_cast<double>(BY - AY);
-    const double LengthSquared = DX * DX + DY * DY;
-    if (LengthSquared <= 1.0e-12)
-        return DistanceSquared2(PX, PY, AX, AY);
-
-    const double Parameter = std::clamp(((static_cast<double>(PX - AX) * DX)
-                                       + (static_cast<double>(PY - AY) * DY)) / LengthSquared,
-                                        0.0, 1.0);
-    const double X = static_cast<double>(AX) + DX * Parameter;
-    const double Y = static_cast<double>(AY) + DY * Parameter;
-    return DistanceSquared2(PX, PY, static_cast<float>(X), static_cast<float>(Y));
-}
-
-struct GizmoScreenBasis
-{
-    float PivotX = 0.0f;
-    float PivotY = 0.0f;
-    float XDirX = 1.0f;
-    float XDirY = 0.0f;
-    float ZDirX = 0.0f;
-    float ZDirY = -1.0f;
-};
-
-ParametricGizmoHandle ResolveGizmoHandle(const PointerCondition& Pointer,
-                                         const GizmoScreenBasis& Basis,
-                                         ParametricTransformMode Mode)
-{
-    // Keep hit geometry in the same fixed-pixel envelope as References/Cad/js/gizmo.js.
-    constexpr float AxisLength = 82.0f;
-    const float XEndX = Basis.PivotX + Basis.XDirX * AxisLength;
-    const float XEndY = Basis.PivotY + Basis.XDirY * AxisLength;
-    const float ZEndX = Basis.PivotX + Basis.ZDirX * AxisLength;
-    const float ZEndY = Basis.PivotY + Basis.ZDirY * AxisLength;
-
-    const double CentreDistanceSquared = DistanceSquared2(Pointer.PositionX, Pointer.PositionY, Basis.PivotX, Basis.PivotY);
-    if (Mode == ParametricTransformMode::Move)
-    {
-        constexpr float PlaneOffset = 28.0f;
-        constexpr float PlaneHalf = 11.0f;
-        const float PlaneCentreX = Basis.PivotX + (Basis.XDirX + Basis.ZDirX) * PlaneOffset;
-        const float PlaneCentreY = Basis.PivotY + (Basis.XDirY + Basis.ZDirY) * PlaneOffset;
-        const float LocalX = (Pointer.PositionX - PlaneCentreX) * Basis.XDirX + (Pointer.PositionY - PlaneCentreY) * Basis.XDirY;
-        const float LocalZ = (Pointer.PositionX - PlaneCentreX) * Basis.ZDirX + (Pointer.PositionY - PlaneCentreY) * Basis.ZDirY;
-        if (std::fabs(LocalX) <= PlaneHalf && std::fabs(LocalZ) <= PlaneHalf)
-            return ParametricGizmoHandle::MoveFree;
-        if (DistancePointSegmentSquared2(Pointer.PositionX, Pointer.PositionY,
-                                         Basis.PivotX, Basis.PivotY, XEndX, XEndY) <= 11.0 * 11.0)
-            return ParametricGizmoHandle::MoveX;
-        if (DistancePointSegmentSquared2(Pointer.PositionX, Pointer.PositionY,
-                                         Basis.PivotX, Basis.PivotY, ZEndX, ZEndY) <= 11.0 * 11.0)
-            return ParametricGizmoHandle::MoveZ;
-        if (CentreDistanceSquared <= 12.0 * 12.0)
-            return ParametricGizmoHandle::MoveFree;
-    }
-    else if (Mode == ParametricTransformMode::Rotate)
-    {
-        const double Distance = std::sqrt(CentreDistanceSquared);
-        if (Distance >= 91.0 && Distance <= 101.0)
-            return ParametricGizmoHandle::Rotate;
-        if (CentreDistanceSquared <= 12.0 * 12.0)
-            return ParametricGizmoHandle::Rotate;
-    }
-    else
-    {
-        if (DistanceSquared2(Pointer.PositionX, Pointer.PositionY, XEndX, XEndY) <= 10.0 * 10.0)
-            return ParametricGizmoHandle::ScaleX;
-        if (DistanceSquared2(Pointer.PositionX, Pointer.PositionY, ZEndX, ZEndY) <= 10.0 * 10.0)
-            return ParametricGizmoHandle::ScaleZ;
-        if (CentreDistanceSquared <= 12.0 * 12.0)
-            return ParametricGizmoHandle::ScaleFree;
-    }
-
-    return ParametricGizmoHandle::None;
-}
-
 void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
                                     const PlaneExtent& Extent,
                                     const SpatialBasis& Basis,
@@ -3803,264 +3698,9 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
         RecordPoint(Hovered, OverlayPacked(0xFBu, 0xBFu, 0x24u, 208u), OverlayPacked(0xFBu, 0xBFu, 0x24u, 180u));
 }
 
-bool ResolveGizmoScreenBasis(const SpatialBasis& Basis,
-                             const ParametricViewportState& View,
-                             bool Perspective,
-                             const PlaneExtent& Extent,
-                             const SpatialPoint& Pivot,
-                             GizmoScreenBasis& Resolved)
-{
-    if (!ProjectSpatialPoint(Basis, View, Perspective, Extent, Pivot, Resolved.PivotX, Resolved.PivotY))
-        return false;
-
-    float X0 = 0.0f, Y0 = 0.0f;
-    if (ProjectSpatialPoint(Basis, View, Perspective, Extent, Added(Pivot, Scaled(Basis.Along, 24.0)), X0, Y0))
-    {
-        const float DX = X0 - Resolved.PivotX;
-        const float DY = Y0 - Resolved.PivotY;
-        const float Length = std::sqrt(DX * DX + DY * DY);
-        if (Length > 1.0e-4f)
-        {
-            Resolved.XDirX = DX / Length;
-            Resolved.XDirY = DY / Length;
-        }
-    }
-
-    if (ProjectSpatialPoint(Basis, View, Perspective, Extent, Added(Pivot, Scaled(Basis.Across, 24.0)), X0, Y0))
-    {
-        const float DX = X0 - Resolved.PivotX;
-        const float DY = Y0 - Resolved.PivotY;
-        const float Length = std::sqrt(DX * DX + DY * DY);
-        if (Length > 1.0e-4f)
-        {
-            Resolved.ZDirX = DX / Length;
-            Resolved.ZDirY = DY / Length;
-        }
-    }
-
-    return true;
-}
-
-void RecordViewportGizmo(OverlayGeometry& Overlay,
-                         const PlaneExtent& Extent,
-                         const SpatialBasis& Basis,
-                         const ParametricViewportState& View,
-                         bool Perspective,
-                         const ParametricViewportSelection& Selected,
-                         ParametricGizmoHandle HoveredHandle,
-                         const ParametricTransformState& Transform)
-{
-    if (!Selected.Standing())
-        return;
-
-    GizmoScreenBasis Screen = {};
-    if (!ResolveGizmoScreenBasis(Basis, View, Perspective, Extent, Selected.Position, Screen))
-        return;
-
-    const ViewFrame Frame = ResolveViewportFrame(Basis, View, Perspective);
-    const SpatialPoint Pivot = Selected.Position;
-
-    // The reference gizmo is screen-sized. Derive one world-to-pixel scale at the pivot and
-    // use it for every handle, so perspective distance cannot make the gizmo balloon or shrink.
-    float SampleX = 0.0f, SampleY = 0.0f;
-    double WorldPerPixel = 1.0;
-    if (ProjectSpatialPoint(Basis, View, Perspective, Extent,
-                            Added(Pivot, Scaled(Basis.Along, 1.0)), SampleX, SampleY))
-    {
-        const float DX = SampleX - Screen.PivotX;
-        const float DY = SampleY - Screen.PivotY;
-        const double PixelsPerWorld = std::sqrt(static_cast<double>(DX * DX + DY * DY));
-        if (PixelsPerWorld > 1.0e-4)
-            WorldPerPixel = 1.0 / PixelsPerWorld;
-    }
-    const SpatialDirection AxisX = Scaled(Basis.Along, WorldPerPixel);
-    const SpatialDirection AxisY = Scaled(Basis.Normal, WorldPerPixel);
-    const SpatialDirection AxisZ = Scaled(Basis.Across, WorldPerPixel);
-    // Palette and pixel proportions mirror References/Cad/js/gizmo.js exactly.
-    const std::uint32_t XPacked = OverlayPacked(0x31u, 0xF5u, 0x0Au, 255u);
-    const std::uint32_t YPacked = OverlayPacked(0x1Cu, 0x64u, 0xFCu, 255u);
-    const std::uint32_t ZPacked = OverlayPacked(0xFAu, 0x14u, 0x14u, 255u);
-    const std::uint32_t White = OverlayPacked(0xFFu, 0xFFu, 0xFFu, 255u);
-    const std::uint32_t Highlight = OverlayPacked(0xFBu, 0xBFu, 0x24u, 255u);
-    const std::uint32_t PlaneFill = OverlayPacked(0xFFu, 0xFFu, 0xFFu, 56u);
-    const std::uint32_t Guide = OverlayPacked(0xFFu, 0xFFu, 0xFFu, 160u);
-
-    const auto Project = [&](const SpatialPoint& P, float& X, float& Y) -> bool
-    {
-        return ProjectWorldPoint(Basis, View, Perspective, Extent, P, X, Y);
-    };
-    const auto AddWorldLine = [&](const SpatialPoint& A, const SpatialPoint& B, std::uint32_t Packed, float Thickness)
-    {
-        float X0 = 0.0f, Y0 = 0.0f, X1 = 0.0f, Y1 = 0.0f;
-        if (Project(A, X0, Y0) && Project(B, X1, Y1))
-            Overlay.AddLine(X0, Y0, X1, Y1, Packed, Thickness);
-    };
-    const auto AddWorldTriangle = [&](const SpatialPoint& A, const SpatialPoint& B, const SpatialPoint& C, std::uint32_t Packed)
-    {
-        float X0 = 0.0f, Y0 = 0.0f, X1 = 0.0f, Y1 = 0.0f, X2 = 0.0f, Y2 = 0.0f;
-        if (Project(A, X0, Y0) && Project(B, X1, Y1) && Project(C, X2, Y2))
-            Overlay.AddTriangle(X0, Y0, X1, Y1, X2, Y2, Packed);
-    };
-    const auto AddWorldQuad = [&](const SpatialPoint& A, const SpatialPoint& B,
-                                  const SpatialPoint& C, const SpatialPoint& D,
-                                  std::uint32_t Packed, std::uint32_t EdgePacked)
-    {
-        AddWorldTriangle(A, B, C, Packed);
-        AddWorldTriangle(A, C, D, Packed);
-        AddWorldLine(A, B, EdgePacked, 1.2f);
-        AddWorldLine(B, C, EdgePacked, 1.2f);
-        AddWorldLine(C, D, EdgePacked, 1.2f);
-        AddWorldLine(D, A, EdgePacked, 1.2f);
-    };
-    const auto AddBox = [&](const SpatialPoint& Centre,
-                            const SpatialDirection& A,
-                            const SpatialDirection& B,
-                            const SpatialDirection& C,
-                            double HA, double HB, double HC,
-                            std::uint32_t Packed)
-    {
-        SpatialPoint P[8] = {};
-        const double S[8][3] = { {-1,-1,-1}, {1,-1,-1}, {1,1,-1}, {-1,1,-1}, {-1,-1,1}, {1,-1,1}, {1,1,1}, {-1,1,1} };
-        for (std::uint32_t Index = 0u; Index < 8u; ++Index)
-            P[Index] = Added(Centre, Added(Added(Scaled(A, S[Index][0] * HA), Scaled(B, S[Index][1] * HB)), Scaled(C, S[Index][2] * HC)));
-        AddWorldQuad(P[0], P[1], P[2], P[3], Packed, Packed);
-        AddWorldQuad(P[4], P[7], P[6], P[5], Packed, Packed);
-        AddWorldQuad(P[0], P[4], P[5], P[1], Packed, Packed);
-        AddWorldQuad(P[1], P[5], P[6], P[2], Packed, Packed);
-        AddWorldQuad(P[2], P[6], P[7], P[3], Packed, Packed);
-        AddWorldQuad(P[3], P[7], P[4], P[0], Packed, Packed);
-    };
-    const auto AddCylinderShaft = [&](const SpatialDirection& Axis,
-                                      const SpatialDirection& Side,
-                                      std::uint32_t Packed,
-                                      bool Highlighted)
-    {
-        constexpr double Length = 64.0;
-        const double Radius = Highlighted ? 4.4 : 3.0;
-        const SpatialPoint A = Added(Pivot, Scaled(Axis, 12.0));
-        const SpatialPoint B = Added(Pivot, Scaled(Axis, Length));
-        const SpatialDirection SideB = Normalize(Cross(Axis, Side));
-        AddWorldQuad(Added(A, Scaled(Side, Radius)), Added(B, Scaled(Side, Radius)),
-                     Added(B, Scaled(Side, -Radius)), Added(A, Scaled(Side, -Radius)),
-                     Packed, Packed);
-        AddWorldQuad(Added(A, Scaled(SideB, Radius)), Added(B, Scaled(SideB, Radius)),
-                     Added(B, Scaled(SideB, -Radius)), Added(A, Scaled(SideB, -Radius)),
-                     Packed, Packed);
-    };
-    const auto AddConeHead = [&](const SpatialDirection& Axis,
-                                 const SpatialDirection& Side,
-                                 std::uint32_t Packed)
-    {
-        constexpr double TipDistance = 82.0;
-        constexpr double BaseDistance = 64.0;
-        const SpatialPoint Tip = Added(Pivot, Scaled(Axis, TipDistance));
-        const SpatialPoint Base = Added(Pivot, Scaled(Axis, BaseDistance));
-        const SpatialDirection SideB = Normalize(Cross(Axis, Side));
-        const double Radius = 10.0;
-        const SpatialPoint P0 = Added(Base, Scaled(Side, Radius));
-        const SpatialPoint P1 = Added(Base, Scaled(SideB, Radius));
-        const SpatialPoint P2 = Added(Base, Scaled(Side, -Radius));
-        const SpatialPoint P3 = Added(Base, Scaled(SideB, -Radius));
-        AddWorldTriangle(Tip, P0, P1, Packed);
-        AddWorldTriangle(Tip, P1, P2, Packed);
-        AddWorldTriangle(Tip, P2, P3, Packed);
-        AddWorldTriangle(Tip, P3, P0, Packed);
-        AddWorldLine(P0, P2, Packed, 1.2f);
-        AddWorldLine(P1, P3, Packed, 1.2f);
-    };
-    const auto AddRing = [&](const SpatialDirection& A,
-                             const SpatialDirection& B,
-                             double Radius,
-                             std::uint32_t Packed,
-                             float Thickness)
-    {
-        SpatialPoint Prior = Added(Pivot, Scaled(A, Radius));
-        for (std::uint32_t Segment = 1u; Segment <= 72u; ++Segment)
-        {
-            const double T = static_cast<double>(Segment) / 72.0 * 2.0 * Pi;
-            const SpatialPoint Next = Added(Pivot, Added(Scaled(A, std::cos(T) * Radius), Scaled(B, std::sin(T) * Radius)));
-            AddWorldLine(Prior, Next, Packed, Thickness);
-            Prior = Next;
-        }
-    };
-    const auto AddScreenHandle = [&](double Radius, std::uint32_t Packed)
-    {
-        SpatialPoint Prior = Added(Pivot, Scaled(Frame.Right, Radius * WorldPerPixel));
-        for (std::uint32_t Segment = 1u; Segment <= 40u; ++Segment)
-        {
-            const double T = static_cast<double>(Segment) / 40.0 * 2.0 * Pi;
-            const SpatialPoint Next = Added(Pivot, Added(Scaled(Frame.Right, std::cos(T) * Radius * WorldPerPixel), Scaled(Frame.Up, std::sin(T) * Radius * WorldPerPixel)));
-            AddWorldLine(Prior, Next, Packed, 2.0f);
-            Prior = Next;
-        }
-    };
-
-    if (Transform.Mode == ParametricTransformMode::Move)
-    {
-        const std::uint32_t XColour = HoveredHandle == ParametricGizmoHandle::MoveX ? Highlight : XPacked;
-        const std::uint32_t ZColour = HoveredHandle == ParametricGizmoHandle::MoveZ ? Highlight : ZPacked;
-        const std::uint32_t PlaneColour = HoveredHandle == ParametricGizmoHandle::MoveFree ? Highlight : OverlayPacked(0x1Fu, 0xC7u, 0xC7u, 160u);
-        AddCylinderShaft(AxisX, AxisY, XColour, HoveredHandle == ParametricGizmoHandle::MoveX);
-        AddConeHead(AxisX, AxisY, XColour);
-        AddCylinderShaft(AxisZ, AxisY, ZColour, HoveredHandle == ParametricGizmoHandle::MoveZ);
-        AddConeHead(AxisZ, AxisY, ZColour);
-        constexpr double PlaneOffset = 28.0;
-        constexpr double PlaneSize = 22.0;
-        const double PlaneCentre = PlaneOffset + PlaneSize * 0.5;
-        const SpatialPoint C = Added(Pivot, Added(Scaled(AxisX, PlaneCentre), Scaled(AxisZ, PlaneCentre)));
-        AddWorldQuad(Added(C, Added(Scaled(AxisX, -PlaneSize * 0.5), Scaled(AxisZ, -PlaneSize * 0.5))),
-                     Added(C, Added(Scaled(AxisX,  PlaneSize * 0.5), Scaled(AxisZ, -PlaneSize * 0.5))),
-                     Added(C, Added(Scaled(AxisX,  PlaneSize * 0.5), Scaled(AxisZ,  PlaneSize * 0.5))),
-                     Added(C, Added(Scaled(AxisX, -PlaneSize * 0.5), Scaled(AxisZ,  PlaneSize * 0.5))),
-                     PlaneFill, PlaneColour);
-        AddScreenHandle(14.0, HoveredHandle == ParametricGizmoHandle::MoveFree ? Highlight : White);
-    }
-    else if (Transform.Mode == ParametricTransformMode::Rotate)
-    {
-        constexpr double RingRadius = 96.0;
-        AddRing(AxisZ, AxisY, RingRadius, HoveredHandle == ParametricGizmoHandle::Rotate ? Highlight : XPacked, 2.5f);
-        AddRing(AxisX, AxisZ, RingRadius, HoveredHandle == ParametricGizmoHandle::Rotate ? Highlight : ZPacked, 2.5f);
-        AddRing(AxisX, AxisY, RingRadius, HoveredHandle == ParametricGizmoHandle::Rotate ? Highlight : YPacked, 2.5f);
-
-    }
-    else
-    {
-        const std::uint32_t XColour = HoveredHandle == ParametricGizmoHandle::ScaleX ? Highlight : XPacked;
-        const std::uint32_t ZColour = HoveredHandle == ParametricGizmoHandle::ScaleZ ? Highlight : ZPacked;
-        AddCylinderShaft(AxisX, AxisY, XColour, HoveredHandle == ParametricGizmoHandle::ScaleX);
-        AddCylinderShaft(AxisZ, AxisY, ZColour, HoveredHandle == ParametricGizmoHandle::ScaleZ);
-        constexpr double AxisTipDistance = 82.0;
-        constexpr double ScaleHalf = 5.5;
-        AddBox(Added(Pivot, Scaled(AxisX, AxisTipDistance)), AxisX, AxisY, AxisZ, ScaleHalf, ScaleHalf, ScaleHalf, XColour);
-        AddBox(Added(Pivot, Scaled(AxisZ, AxisTipDistance)), AxisZ, AxisY, AxisX, ScaleHalf, ScaleHalf, ScaleHalf, ZColour);
-        const std::uint32_t FreeColour = HoveredHandle == ParametricGizmoHandle::ScaleFree ? Highlight : White;
-        AddBox(Pivot, AxisX, AxisY, AxisZ, ScaleHalf, ScaleHalf, ScaleHalf, FreeColour);
-
-    }
-
-    if (Transform.Engaged)
-    {
-        SpatialDirection GuideAxis = {};
-        bool Guided = false;
-        if (Transform.Constraint == ParametricTransformConstraint::AxisX)
-        {
-            GuideAxis = AxisX;
-            Guided = true;
-        }
-        else if (Transform.Constraint == ParametricTransformConstraint::AxisZ)
-        {
-            GuideAxis = AxisZ;
-            Guided = true;
-        }
-        else if (Transform.Constraint == ParametricTransformConstraint::Curve)
-        {
-            GuideAxis = Transform.CurveDirection;
-            Guided = true;
-        }
-        if (Guided)
-            AddWorldLine(Added(Pivot, Scaled(GuideAxis, -1000.0)), Added(Pivot, Scaled(GuideAxis, 1000.0)), Guide, 1.5f);
-    }
-}
+// The Parametric host deliberately does not draw a second, host-local transform gizmo here.
+// The reference orientation gizmo is recorded by RecordViewportOrientationHud for every viewport;
+// keeping a second bespoke renderer was the source of the visible fake gizmo.
 
 void RecordViewportTransformReadout(RecordingSurface& Surface,
                                     const PlaneExtent& Extent,
@@ -4555,13 +4195,9 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
         }
     }
 
-    ParametricGizmoHandle HoveredHandle = ParametricGizmoHandle::None;
-    if (!Transform.Engaged && ActiveSelection.Standing() && ResolveDraftSubject(ActiveTool) == ParametricDraftSubject::None)
-    {
-        GizmoScreenBasis Screen = {};
-        if (ResolveGizmoScreenBasis(Basis, View, Perspective, Extent, ActiveSelection.Position, Screen))
-            HoveredHandle = ResolveGizmoHandle(Pointer, Screen, Transform.Mode);
-    }
+    // Transform handles are not owned by this standalone host. Keep selection clicks available;
+    // the shared reference orientation gizmo is recorded by RecordViewportOrientationHud above.
+    const ParametricGizmoHandle HoveredHandle = ParametricGizmoHandle::None;
 
     if (!PointerTaken && !Transform.Engaged && ResolveDraftSubject(ActiveTool) == ParametricDraftSubject::None &&
         Pointer.ContactPressed && HoveredHandle == ParametricGizmoHandle::None && HoveredSelection.Standing())
@@ -4691,8 +4327,6 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
 
     RecordViewportSelectionOverlay(Overlay, Extent, Basis, View, Perspective,
                                    Sketch, Records, HoveredSelection, ActiveSelection);
-    RecordViewportGizmo(Overlay, Extent, Basis, View, Perspective,
-                        ActiveSelection, HoveredHandle, Transform);
 }
 
 } // namespace
@@ -5634,20 +5268,6 @@ int main(int ArgumentCount, char** ArgumentValues)
                             RecordConstraintGlyphs(Viewport.Surface(), LeafBody, Sketch, View,
                                                    PanelConfiguration[Index].Perspective);
                             RecordProfileValidationReadout(Viewport.Surface(), LeafBody, Sketch);
-                            if (LeafOverlay != nullptr)
-                            {
-                                SpatialPoint ScenePivot = {};
-                                if (ResolveSelectedSceneMeshPivot(OpenedScene, OpenedSceneStanding,
-                                                                  SceneDirectoryStorage, SceneApplied, ScenePivot))
-                                {
-                                    ParametricViewportSelection SceneSelection = {};
-                                    SceneSelection.Subject = ParametricSelectionSubject::Record;
-                                    SceneSelection.Position = ScenePivot;
-                                    RecordViewportGizmo(*LeafOverlay, LeafBody, Basis, View,
-                                                        PanelConfiguration[Index].Perspective,
-                                                        SceneSelection, ParametricGizmoHandle::None, Transform);
-                                }
-                            }
                             RecordViewportTransformReadout(Viewport.Surface(), LeafBody, Transform);
                             if (LeafOverlay != nullptr && !OverlayPass.Standing())
                                 RecordViewportOverlayFallback(Viewport.Surface(), LeafBody, *LeafOverlay);
