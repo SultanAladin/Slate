@@ -6,6 +6,7 @@
 #pragma once
 
 #include "SlateFeature/Sketch/SketchSnap/Api/SketchSnap.h"
+#include "SlateFeature/Sketch/SketchEditing/Api/SketchEditing.h"
 #include "SlateFeature/Sketch/SketchStructure/Api/SketchStructure.h"
 #include "SlateFeature/Feature/WorkspaceRecordStructure/Api/WorkspaceRecordStructure.h"
 #include "SlateFeature/Feature/WorkspaceRevisionSequence/Api/WorkspaceRevisionSequence.h"

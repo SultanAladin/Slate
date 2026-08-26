@@ -13,6 +13,7 @@
 #include "SlateFeature/Feature/WorkspaceNameIndex/Api/WorkspaceNameIndex.h"
 
 #include <cstdint>
+#include <string>
 
 namespace Slate
 {
@@ -146,6 +147,7 @@ struct SharedCadAuthoringRequest
     SpatialPoint Hover = {};
     bool HoverStanding = false;
     bool ContactPressed = false;
+    bool CommitRequested = false;
     bool CancelPressed = false;
     bool Construction = false;
 };
@@ -174,22 +176,81 @@ inline bool SharedCadAuthoringDispatch(SharedCadWorkspaceRuntime& Runtime,
         return false;
 
     Runtime.Draft.Anchors.push_back(Request.Hover);
-    if (Runtime.Draft.Subject != ParametricDraftSubject::Line || Runtime.Draft.Anchors.size() < 2u)
+    const ParametricDraftSubject Subject = Runtime.Draft.Subject;
+    const bool TwoPoint = Runtime.Draft.Anchors.size() >= 2u;
+    const bool Closed = Subject == ParametricDraftSubject::Rectangle ||
+                        Subject == ParametricDraftSubject::CenterRectangle;
+    const bool Circle = Subject == ParametricDraftSubject::Circle ||
+                        Subject == ParametricDraftSubject::DiameterCircle;
+    const bool Polyline = Subject == ParametricDraftSubject::Polyline;
+    if (!TwoPoint || (Polyline && !Request.CommitRequested))
         return true;
 
     if (!Runtime.Sketch.Declared())
         Runtime.Sketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 } });
-    const SketchCurveName Curve = Runtime.Sketch.DeclareLine(Runtime.Draft.Anchors[0], Runtime.Draft.Anchors[1]);
-    WorkspaceRecord Record = {};
-    Record.Subject = WorkspaceRecordSubject::OpenCurve;
-    Record.Naming = Naming.Issue(WorkspaceRecordSubject::OpenCurve);
-    Record.SketchCurve = Curve;
-    Record.ConstructionSemantic = Request.Construction;
-    const WorkspaceRecordName Written = Runtime.Records.Declare(Record);
-    if (Written.Assigned())
-        Runtime.Revisions.Seal("Declared " + Record.Naming, "Create Curve", { Written },
+
+    std::vector<WorkspaceRecordName> Written;
+    const auto DeclareCurve = [&](SketchCurveName Curve)
+    {
+        WorkspaceRecord Record = {};
+        Record.Subject = WorkspaceRecordSubject::OpenCurve;
+        Record.Naming = Naming.Issue(WorkspaceRecordSubject::OpenCurve);
+        Record.SketchCurve = Curve;
+        Record.ConstructionSemantic = Request.Construction;
+        const WorkspaceRecordName Name = Runtime.Records.Declare(Record);
+        if (Name.Assigned())
+            Written.push_back(Name);
+    };
+
+    if (Polyline)
+    {
+        std::vector<SketchCurveName> Curves;
+        const Outcome<bool> Declared = Runtime.Sketch.DeclarePolyline(Runtime.Draft.Anchors, Curves);
+        if (!Declared.Resolved)
+            return true;
+        for (const SketchCurveName Curve : Curves)
+            DeclareCurve(Curve);
+    }
+    else if (Closed)
+    {
+        const SpatialPoint& A = Runtime.Draft.Anchors[0];
+        const SpatialPoint& B = Runtime.Draft.Anchors[1];
+        const SpatialPoint C = { B.Left, A.Up, A.Forward };
+        const SpatialPoint D = { A.Left, A.Up, B.Forward };
+        DeclareCurve(Runtime.Sketch.DeclareLine(A, C));
+        DeclareCurve(Runtime.Sketch.DeclareLine(C, B));
+        DeclareCurve(Runtime.Sketch.DeclareLine(B, D));
+        DeclareCurve(Runtime.Sketch.DeclareLine(D, A));
+    }
+    else if (Circle)
+    {
+        const SpatialPoint& Centre = Runtime.Draft.Anchors[0];
+        const SpatialDirection Along = { Request.Hover.Left - Centre.Left,
+                                         Request.Hover.Up - Centre.Up,
+                                         Request.Hover.Forward - Centre.Forward };
+        const double Radius = std::sqrt((Request.Hover.Left - Centre.Left) * (Request.Hover.Left - Centre.Left) +
+                                        (Request.Hover.Forward - Centre.Forward) * (Request.Hover.Forward - Centre.Forward));
+        if (Radius > 1.0e-6)
+        {
+            const CircularArcCurve Arc = { Centre, { 0.0, 1.0, 0.0 }, Along, {}, false, Radius, 2.0 * 3.14159265358979323846 };
+            DeclareCurve(Runtime.Sketch.DeclareCurve(CurveSpecification::DeclareCircularArc(Arc, { 0.0, 1.0 })));
+        }
+    }
+    else if (Subject == ParametricDraftSubject::Line)
+    {
+        DeclareCurve(Runtime.Sketch.DeclareLine(Runtime.Draft.Anchors[0], Runtime.Draft.Anchors[1]));
+    }
+    else
+    {
+        return true;
+    }
+
+    if (!Written.empty())
+    {
+        Runtime.PendingSelection = Written.front();
+        Runtime.Revisions.Seal("Declared CAD geometry", "Create CAD geometry", Written,
                                Runtime.Revisions.DeclaredCount() + 1u);
-    Runtime.PendingSelection = Written;
+    }
     Runtime.Draft = ParametricDraftState{};
     return true;
 }

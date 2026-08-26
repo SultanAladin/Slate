@@ -1220,6 +1220,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                                     Authoring.HoverStanding = LeafBody.Encloses(LeafPointer.PositionX, LeafPointer.PositionY);
                                     Authoring.Hover = { Along, 0.0, Across };
                                     Authoring.ContactPressed = LeafPointer.ContactPressed && Authoring.HoverStanding;
+                                    Authoring.CommitRequested = Authoring.Subject != SharedCadDraftSubject::Polyline;
                                     Authoring.CancelPressed = Viewport.Surface().TextInput().CancelPressed;
                                     Authoring.Construction = ParametricToolsApplied.ConstructionGeometry;
                                     SharedCadAuthoringDispatch(CadRuntime, CadNaming, Authoring);
