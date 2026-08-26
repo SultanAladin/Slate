@@ -60,9 +60,12 @@ SLATE_SHARED Unsigned32 PackWorkspaceCadColour(Unsigned32 Red, Unsigned32 Green,
 
 struct WorkspaceCadPacket
 {
-    static constexpr Unsigned32 SegmentLimit = 4096u;
-    static constexpr Unsigned32 FillLimit = 1024u;
-    static constexpr Unsigned32 MarkerLimit = 1024u;
+    // A completed sketch can contain many sampled curves and profile loops. These capacities are
+    // deliberately independent of the panel row limit: presentation must not silently discard
+    // geometry merely because the outliner has a finite interaction buffer.
+    static constexpr Unsigned32 SegmentLimit = 32768u;
+    static constexpr Unsigned32 FillLimit = 8192u;
+    static constexpr Unsigned32 MarkerLimit = 8192u;
 
     WorkspaceCadSegment Segments[SegmentLimit] = {};
     Unsigned32 SegmentCount = 0u;
