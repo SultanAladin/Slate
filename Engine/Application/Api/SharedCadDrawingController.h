@@ -227,6 +227,7 @@ inline bool SharedCadAuthoringDispatch(SharedCadWorkspaceRuntime& Runtime,
                         Subject == ParametricDraftSubject::DiameterCircle;
     const bool Polygon = Subject == ParametricDraftSubject::Polygon;
     const bool Slot = Subject == ParametricDraftSubject::Slot;
+    const bool Dimension = Subject == ParametricDraftSubject::LinearDimension;
     const bool Polyline = Subject == ParametricDraftSubject::Polyline;
     const bool EllipticalArc = Subject == ParametricDraftSubject::EllipticalArc;
     const bool Spline = Subject == ParametricDraftSubject::Bezier ||
@@ -255,6 +256,67 @@ inline bool SharedCadAuthoringDispatch(SharedCadWorkspaceRuntime& Runtime,
         if (Name.Assigned())
             Written.push_back(Name);
     };
+
+    const auto DeclareDimension = [&](DimensionName DimensionNameValue)
+    {
+        WorkspaceRecord Record = {};
+        Record.Subject = WorkspaceRecordSubject::Dimension;
+        Record.Naming = Naming.Issue(WorkspaceRecordSubject::Dimension);
+        Record.Dimension = DimensionNameValue;
+        const WorkspaceRecordName Name = Runtime.Records.Declare(Record);
+        if (Name.Assigned())
+            Written.push_back(Name);
+    };
+
+    if (Dimension && Runtime.Draft.AnchorSnaps.size() >= 2u)
+    {
+        const auto ReferenceFromSnap = [](const SketchSnapPlacement& Snap)
+        {
+            ReferenceSpecification Reference = {};
+            if (Snap.SketchPoint.Assigned())
+            {
+                Reference.Subject = ReferenceSubject::SketchPoint;
+                Reference.SketchPoint = Snap.SketchPoint;
+            }
+            else if (Snap.SketchControl.Assigned())
+            {
+                Reference.Subject = ReferenceSubject::SketchControl;
+                Reference.SketchControl = Snap.SketchControl;
+            }
+            else if (Snap.SourceCurve.Assigned())
+            {
+                Reference.Subject = ReferenceSubject::SketchCurve;
+                Reference.SketchCurve = Snap.SourceCurve;
+            }
+            return Reference;
+        };
+        const ReferenceSpecification Primary = ReferenceFromSnap(Runtime.Draft.AnchorSnaps[0]);
+        const ReferenceSpecification Secondary = ReferenceFromSnap(Runtime.Draft.AnchorSnaps[1]);
+        if (Primary.Declared() && Secondary.Declared())
+        {
+            const SpatialPoint& A = Runtime.Draft.Anchors[0];
+            const SpatialPoint& B = Runtime.Draft.Anchors[1];
+            const double DX = B.Left - A.Left;
+            const double DY = B.Up - A.Up;
+            const double DZ = B.Forward - A.Forward;
+            DimensionSpecification Data = {};
+            Data.Subject = DimensionSubject::Aligned;
+            Data.Primary = Primary;
+            Data.Secondary = Secondary;
+            Data.Target = std::sqrt(DX * DX + DY * DY + DZ * DZ);
+            DeclareDimension(Runtime.Sketch.DeclareDimension(Data));
+        }
+        if (Written.empty() && Runtime.Draft.AnchorSnaps.size() >= 2u)
+            Runtime.Draft = ParametricDraftState{};
+        if (!Written.empty())
+        {
+            Runtime.PendingSelection = Written.front();
+            Runtime.Revisions.Seal("Declared dimension", "Create Dimension", Written,
+                                   Runtime.Revisions.DeclaredCount() + 1u);
+            Runtime.Draft = ParametricDraftState{};
+        }
+        return true;
+    }
 
     if (Arc)
     {
@@ -332,7 +394,7 @@ inline bool SharedCadAuthoringDispatch(SharedCadWorkspaceRuntime& Runtime,
         }
         DeclareCurve(Curve);
     }
-    const auto DeclareProfile = [&](ProfileNameInFeature Profile)
+    if (Polygon)
     {
         WorkspaceRecord Record = {};
         Record.Subject = WorkspaceRecordSubject::ClosedProfile;
