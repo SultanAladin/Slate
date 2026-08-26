@@ -711,9 +711,6 @@ int main(int ArgumentCount, char** ArgumentValues)
             const PointerCondition& ForegroundPointer = Viewport.Surface().Pointer();
             const PlaneExtent NorthInterior = Viewport.Drawers().Interior(DrawerBearing::North);
             const PlaneExtent SouthInterior = Viewport.Drawers().Interior(DrawerBearing::South);
-            const bool ForegroundDrawerStanding =
-                (NorthInterior.MaximumY > 0.0f && NorthInterior.MinimumY < static_cast<float>(Pass.Height)) ||
-                (SouthInterior.MaximumY > 0.0f && SouthInterior.MinimumY < static_cast<float>(Pass.Height));
             const bool PointerBehindDrawer =
                 NorthInterior.Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY) ||
                 SouthInterior.Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY);
@@ -1353,11 +1350,14 @@ int main(int ArgumentCount, char** ArgumentValues)
                 //    Each viewport leaf's geometry is uploaded at most once per generation change
                 //    and drawn with a scissor clipped to that leaf's box, so the overlay never
                 //    paints over the outliner, the properties or any other panel.
-                // The GPU overlay is recorded after the interface and therefore cannot be hidden by an
-                // ImGui ground. Suppress it while either opaque foreground drawer stands; otherwise the
-                // lattice would visibly cut through Control Centre and Content Browser pages.
+                // 🔴 The GPU overlay records after the interface. A standing chrome
+                //    menu would be painted through by the lattice, so withhold only
+                //    while a popup stands. Drawers may occlude the leaf by scissor;
+                //    they must not hide or re-size the lattice.
+                const bool OverlayMenusStanding = WorkspacePanels.AnyPopupStanding();
+
                 for (std::uint32_t ViewportIndex = 0u;
-                     !ForegroundDrawerStanding && ViewportIndex < ViewportLeafTally;
+                     !OverlayMenusStanding && ViewportIndex < ViewportLeafTally;
                      ++ViewportIndex)
                 {
                     const std::uint32_t LeafIndex = ViewportLeafIndexs[ViewportIndex];
@@ -1369,7 +1369,24 @@ int main(int ArgumentCount, char** ArgumentValues)
                         OverlayGeneration[LeafIndex] = LeafOverlay.Generation;
                     }
 
-                    const PlaneExtent& LeafRect = ViewportLeafRects[ViewportIndex];
+                    PlaneExtent LeafRect = ViewportLeafRects[ViewportIndex];
+
+                    if (NorthInterior.Height() > 0.0f &&
+                        NorthInterior.MaximumY > LeafRect.MinimumY &&
+                        NorthInterior.MinimumY <= LeafRect.MinimumY)
+                    {
+                        LeafRect.MinimumY = std::min(LeafRect.MaximumY, NorthInterior.MaximumY);
+                    }
+
+                    if (SouthInterior.Height() > 0.0f &&
+                        SouthInterior.MinimumY < LeafRect.MaximumY &&
+                        SouthInterior.MaximumY >= LeafRect.MaximumY)
+                    {
+                        LeafRect.MaximumY = std::max(LeafRect.MinimumY, SouthInterior.MinimumY);
+                    }
+
+                    if (LeafRect.Width() <= 0.0f || LeafRect.Height() <= 0.0f)
+                        continue;
 
                     Overlay.Record(Pass.Recording, Pass.Width, Pass.Height,
                                    LeafRect.MinimumX, LeafRect.MinimumY,
@@ -1424,5 +1441,8 @@ int main(int ArgumentCount, char** ArgumentValues)
 
     // 🔴 Returned rather than only stated. A validation run needs an exit code, so that a serious arrival
     //    fails whatever invoked the host instead of scrolling past in a console nobody reads.
+    return (Serious == 0u) ? 0 : 1;
+}
+lling past in a console nobody reads.
     return (Serious == 0u) ? 0 : 1;
 }

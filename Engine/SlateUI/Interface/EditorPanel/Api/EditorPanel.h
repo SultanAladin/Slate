@@ -38,13 +38,10 @@ enum class PanelLatticePresentation : std::uint32_t
 /// tag   guarantee
 enum class PanelShading : std::uint32_t
 {
-    Solid        = 0u,
-    Wireframe    = 1u,
-    Matcap       = 2u,
-    Normal       = 3u,
-    Metallic     = 4u,
-    Illumination = 5u,
-    ShadingCount = 6u
+    Lit               = 0u,
+    SourceWire        = 1u,
+    TriangulatedWire  = 2u,
+    ShadingCount      = 3u
 };
 
 /// 🧩 Gizmo convention selected for a viewport panel.
@@ -70,7 +67,7 @@ enum class EditorFooterDemand : std::uint32_t
 struct EditorPanelConfiguration
 {
     PanelLatticePresentation  Lattice         = PanelLatticePresentation::Lines;   // [-] - lattice presentation
-    PanelShading              Shading         = PanelShading::Solid;                // [-] - viewport shading
+    PanelShading              Shading         = PanelShading::Lit;                  // [-] - viewport shading
     PanelGizmo                Gizmo           = PanelGizmo::Blender;                // [-] - gizmo convention
     std::uint32_t             LatticeScale    = 1u;                                 // [-] - skeletal lattice scale
     std::uint32_t             Subdivisions    = 10u;                                // [-] - major line every N cells

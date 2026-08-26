@@ -35,12 +35,9 @@ const char* ShadingTitle(PanelShading Shading)
 {
     switch (Shading)
     {
-        case PanelShading::Wireframe:    return "wireframe";
-        case PanelShading::Matcap:       return "matcap";
-        case PanelShading::Normal:       return "normal";
-        case PanelShading::Metallic:     return "metallic";
-        case PanelShading::Illumination: return "gi";
-        default:                         return "solid";
+        case PanelShading::SourceWire:       return "source wire";
+        case PanelShading::TriangulatedWire: return "triangulated wire";
+        default:                             return "lit";
     }
 }
 
@@ -1114,8 +1111,8 @@ void EditorPanel::RecordFooterMenu(std::uint32_t RecordIndex,
         return;
     }
 
-    const std::uint32_t OptionCount = Role == ControlRole::Shading ? 6u : 2u;
-    const float MenuX = Role == ControlRole::Shading ? 160.0f : 130.0f;
+    const std::uint32_t OptionCount = Role == ControlRole::Shading ? 3u : 2u;
+    const float MenuX = Role == ControlRole::Shading ? 180.0f : 130.0f;
     const PlaneExtent Menu = FitExtent(Anchor.MaximumX - MenuX,
                                        MenuX,
                                        Anchor.MinimumY - Measure.MenuPadY * 2.0f -
@@ -1126,7 +1123,7 @@ void EditorPanel::RecordFooterMenu(std::uint32_t RecordIndex,
     Surface->Ground(Menu, Colour.ChromeGround, Measure.MenuRadius, CornerAll);
     Surface->Edge(Menu, Colour.Edge, Measure.EdgeWeight, Measure.MenuRadius, CornerAll);
 
-    const char* ShadingOptions[6] = { "solid", "wireframe", "matcap", "normal", "metallic", "gi" };
+    const char* ShadingOptions[3] = { "lit", "source wire", "triangulated wire" };
     const char* GizmoOptions[2] = { "blender", "cad" };
     const ControlRole OptionRoles[6] = { ControlRole::DivideLeft, ControlRole::DivideRight,
                                          ControlRole::DivideUpper, ControlRole::DivideLower,

@@ -116,13 +116,28 @@ Real32x4 ResolveGround(Real32x2 Corner)
     const bool ShowAxisZ = (AxisMask & 4u) != 0u;
     const Unsigned32 Present = Unsigned32(Push.UpAndPresent.w + 0.5);
 
-    // ① The pixel's ray through the pinhole camera.
+    // ① The pixel's ray. A negative tangent pair is the orthographic footer
+    //    toggle: parallel rays through the same camera frame.
     const Real32 NdcX = Corner.x * 2.0 - 1.0;
     const Real32 NdcY = 1.0 - Corner.y * 2.0;
+    const bool Orthographic = TanH < 0.0 || TanV < 0.0;
+    const Real32 SpanH = abs(TanH);
+    const Real32 SpanV = abs(TanV);
 
-    const Real32x3 Ray = normalize(Right * (NdcX * TanH)
-                                 + Up    * (NdcY * TanV)
-                                 + Forward);
+    Real32x3 Ray = Forward;
+    Real32x3 Origin = Eye;
+
+    if (Orthographic)
+    {
+        Origin = Eye + Right * (NdcX * SpanH) + Up * (NdcY * SpanV);
+        Ray = normalize(Forward);
+    }
+    else
+    {
+        Ray = normalize(Right * (NdcX * SpanH)
+                      + Up    * (NdcY * SpanV)
+                      + Forward);
+    }
 
     // 📐 Two independent authored limits: one bounds the lattice around world centre, the other
     //    follows the camera and softens nearby detail into nothing at its radius.
@@ -136,11 +151,11 @@ Real32x4 ResolveGround(Real32x2 Corner)
     // ② Ground Plane (Y = 0): minor and major grid lines fading together + Red X & Blue Z axes.
     if (abs(Ray.y) > 1e-6 && (Eye.y * Ray.y < 0.0))
     {
-        const Real32 Distance = -Eye.y / Ray.y;
+        const Real32 Distance = -Origin.y / Ray.y;
         if (Distance > 0.0)
         {
-            const Real32x2 Ground = Real32x2(Eye.x + Ray.x * Distance,
-                                             Eye.z + Ray.z * Distance);
+            const Real32x2 Ground = Real32x2(Origin.x + Ray.x * Distance,
+                                             Origin.z + Ray.z * Distance);
 
             const Real32 MinorCell = Cell;
             const Real32 MajorCell = Cell * MajorStep;
@@ -212,11 +227,11 @@ Real32x4 ResolveGround(Real32x2 Corner)
         const Real32 RayXZ2 = Ray.x * Ray.x + Ray.z * Ray.z;
         if (RayXZ2 > 1e-7)
         {
-            const Real32 TClosest = -(Eye.x * Ray.x + Eye.z * Ray.z) / RayXZ2;
+            const Real32 TClosest = -(Origin.x * Ray.x + Origin.z * Ray.z) / RayXZ2;
             if (TClosest > 0.05)
             {
-                const Real32 ClosestX = Eye.x + Ray.x * TClosest;
-                const Real32 ClosestZ = Eye.z + Ray.z * TClosest;
+                const Real32 ClosestX = Origin.x + Ray.x * TClosest;
+                const Real32 ClosestZ = Origin.z + Ray.z * TClosest;
                 const Real32 DistPerp = sqrt(ClosestX * ClosestX + ClosestZ * ClosestZ);
 
                 const Real32 PixelWorldSize = TClosest * (2.0 * TanH / max(Push.DisplayWidth, 1.0));
