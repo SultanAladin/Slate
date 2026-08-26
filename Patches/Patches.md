@@ -1,6 +1,6 @@
 # Patches — Slate's divergence from vendored ImGui
 
-Three patches, all against `ExternalPackages/imgui` on the **`docking`** branch at `83f6686` (`1.93.0 WIP`).
+Four patches, all against `ExternalPackages/imgui` on the **`docking`** branch at `83f6686` (`1.93.0 WIP`).
 
 ⚠️ The pin was previously `12b7977`, which this document described as being on the `docking` branch. It was
 not — it is an `ocornut/master` commit, and it is an ancestor of `docking` only because that branch merges
@@ -26,12 +26,14 @@ as the sheet's SVG is `pointer-events:none` over a rectangular `<div>`.
 
 | Patch | Adds | Touches |
 |-------|------|---------|
-| `PatchA-TrapezoidalTabs.patch`  | `TabSlant` | `imgui.h`, `imgui.cpp`, `imgui_widgets.cpp` |
-
-| `PatchB-TabOverlapZOrder.patch` | `TabOverlap`, `TabHeight`, `TabStripPadTop` | all four files |
+| `PatchA-TrapezoidalTabs.patch`       | `TabSlant` | `imgui.h`, `imgui.cpp`, `imgui_widgets.cpp` |
+| `PatchB-TabOverlapZOrder.patch`      | `TabOverlap`, `TabHeight`, `TabStripPadTop` | all four files |
+| `PatchC-RoundTabButtons.patch`       | `TabButtonRounding` | `imgui.h`, `imgui.cpp`, `imgui_internal.h`, `imgui_widgets.cpp` |
+| `PatchD-BandedVulkanFrameRing.patch` | per-frame Vulkan upload-ring advance | `backends/imgui_impl_vulkan.cpp` |
 
 `A` is independently applicable. `B` stacks on `A` and cannot apply first — its context includes A's
-lines.
+lines. `C` and `D` are independent of the tab-shape stack, but they are still applied in a fixed order so
+one script can bring a pristine submodule to Slate's exact standing tree.
 
 ### A — the trapezoid
 
@@ -77,12 +79,25 @@ by `ImGuiStyle::ScaleAllSizes`, so a slant fixed at 14 is not half as steep on a
 ⚠️ `TabOverlap` and `FramePadding.x` are coupled. The sheet's 38 px horizontal padding exists to clear
 slant plus overlap; raising the overlap without raising the padding runs adjacent labels together.
 
+## PatchD — one Vulkan transient-buffer ring step per ImGui frame
+
+Slate records ImGui in two bands: beneath the GPU workspace overlay, then above it. Dear ImGui's Vulkan
+backend advances its per-viewport transient vertex/index-buffer ring inside `ImGui_ImplVulkan_RenderDrawData()`.
+If that function is called twice for the same `draw_data->FrameCount`, the second call can recycle a buffer slot
+while the first band's command buffer still references it. The visible symptom is not a deterministic bring-up
+crash but transient artefacts, flicker, and eventually device loss under resize or drag pressure.
+
+Patch D adds `LastFrameCount` to the viewport render-buffer ring and advances the ring only when the ImGui
+frame count changes. That keeps both Slate band renders on the same transient buffer slot for one frame while
+still rotating across frames exactly as upstream intends.
+
 ## Upgrading ImGui
 
-`ApplyImGuiPatches.ps1` reports when the submodule stands at a commit other than `12b7977` rather than
+`ApplyImGuiPatches.ps1` reports when the submodule stands at a commit other than `83f6686` rather than
 asserting, because a deliberate upgrade should reach a message naming both commits. After an upgrade,
-re-cut both patches against the new tree and re-check `TabItemBackground`, `TabBarLayout` and
-`BeginTabBar` — those three are the only functions either patch touches.
+re-cut the standing patch set against the new tree and re-check `TabItemBackground`, `TabBarLayout`,
+`BeginTabBar`, and `ImGui_ImplVulkan_RenderDrawData` — those are the vendor functions Slate currently
+patches.
 
 ```powershell
 powershell -File Scripts\ApplyImGuiPatches.ps1            # apply, idempotent

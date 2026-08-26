@@ -7,7 +7,7 @@
 #    the .ps1's, line for line. Two patchers that disagree would leave the vendored tree in a state only one
 #    of them understands, which is the exact defect `14` §2 forbids.
 #
-# 🔴 `ExternalPackages/` is never edited by hand. The three patches are the whole of Slate's divergence from
+# 🔴 `ExternalPackages/` is never edited by hand. The four patches are the whole of Slate's divergence from
 #    upstream ImGui, they are tracked in `Patches/`, and this script is the only thing that applies them.
 #
 # 🔴 Both patches default every member they add to 0.0f. An unpatched build and a patched build with default
@@ -31,9 +31,10 @@ PatchRoot      = os.path.join(RepositoryRoot, 'Patches')
 #    would report A as absent on a fully patched tree and the script would try to apply it again, aborting a
 #    build whose tree was perfectly healthy. A sentinel is stable under stacking.
 Declared = [
-    {'Name': 'PatchA-TrapezoidalTabs.patch',  'Sentinel': 'SLATE PATCH A', 'Witness': 'imgui_widgets.cpp'},
-    {'Name': 'PatchB-TabOverlapZOrder.patch', 'Sentinel': 'SLATE PATCH B', 'Witness': 'imgui_widgets.cpp'},
-    {'Name': 'PatchC-RoundTabButtons.patch',  'Sentinel': 'SLATE PATCH C', 'Witness': 'imgui_widgets.cpp'},
+    {'Name': 'PatchA-TrapezoidalTabs.patch',   'Sentinel': 'SLATE PATCH A', 'Witness': 'imgui_widgets.cpp'},
+    {'Name': 'PatchB-TabOverlapZOrder.patch',  'Sentinel': 'SLATE PATCH B', 'Witness': 'imgui_widgets.cpp'},
+    {'Name': 'PatchC-RoundTabButtons.patch',   'Sentinel': 'SLATE PATCH C', 'Witness': 'imgui_widgets.cpp'},
+    {'Name': 'PatchD-BandedVulkanFrameRing.patch', 'Sentinel': 'SLATE PATCH D', 'Witness': 'backends/imgui_impl_vulkan.cpp'},
 ]
 
 # 🔴 The commit these patches were written against. `git apply` would fail loudly on a different tree, but it

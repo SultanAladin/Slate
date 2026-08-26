@@ -1,0 +1,36 @@
+diff --git a/backends/imgui_impl_vulkan.cpp b/backends/imgui_impl_vulkan.cpp
+index d6d24b39c..78d28bcb7 100644
+--- a/backends/imgui_impl_vulkan.cpp
++++ b/backends/imgui_impl_vulkan.cpp
+@@ -270,6 +270,7 @@ struct ImGui_ImplVulkan_WindowRenderBuffers
+ {
+     uint32_t            Index;
+     uint32_t            Count;
++    int                 LastFrameCount; // SLATE PATCH D — advance the ring once per ImGui frame, not once per banded render call.
+     ImVector<ImGui_ImplVulkan_FrameRenderBuffers> FrameRenderBuffers;
+ };
+ 
+@@ -606,13 +607,21 @@ void ImGui_ImplVulkan_RenderDrawData(ImDrawData* draw_data, VkCommandBuffer comm
+     ImGui_ImplVulkan_WindowRenderBuffers* wrb = &viewport_renderer_data->RenderBuffers;
+     if (wrb->FrameRenderBuffers.Size == 0)
+     {
+-        wrb->Index = 0;
+         wrb->Count = v->ImageCount;
++        wrb->Index = wrb->Count > 0 ? wrb->Count - 1 : 0;
++        wrb->LastFrameCount = -1;
+         wrb->FrameRenderBuffers.resize(wrb->Count);
+         memset((void*)wrb->FrameRenderBuffers.Data, 0, wrb->FrameRenderBuffers.size_in_bytes());
+     }
+     IM_ASSERT(wrb->Count == v->ImageCount);
+-    wrb->Index = (wrb->Index + 1) % wrb->Count;
++    // SLATE PATCH D — Slate can render the same ImGui frame in two bands (beneath, then above).
++    // The upload ring must therefore advance once per FRAME, not once per RenderDrawData call,
++    // or the second band rewrites transient buffers the first band's command buffer still names.
++    if (wrb->LastFrameCount != draw_data->FrameCount)
++    {
++        wrb->Index = (wrb->Index + 1) % wrb->Count;
++        wrb->LastFrameCount = draw_data->FrameCount;
++    }
+     ImGui_ImplVulkan_FrameRenderBuffers* rb = &wrb->FrameRenderBuffers[wrb->Index];
+ 
+     if (draw_data->TotalVtxCount > 0)

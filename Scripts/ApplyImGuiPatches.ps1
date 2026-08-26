@@ -1,6 +1,6 @@
 ﻿# ApplyImGuiPatches.ps1 — applies Slate's tab-shape patches to the vendored ImGui submodule.
 #
-# 🔴 `ExternalPackages/` is never edited by hand. The two patches below are the whole of Slate's
+# 🔴 `ExternalPackages/` is never edited by hand. The four patches below are the whole of Slate's
 #    divergence from upstream ImGui, they are tracked in `Patches/`, and this script is the only thing
 #    that applies them. A silently adjusted vendored dependency is a defect that reproduces on one
 #    machine only — `14` §2 — so the divergence is a file a reader can open rather than a local edit.
@@ -30,9 +30,10 @@ $PatchRoot      = Join-Path $RepositoryRoot 'Patches'
 #    reverse-check would report A as absent on a fully patched tree and the script would try to apply it
 #    again, aborting a build whose tree was perfectly healthy. A sentinel is stable under stacking.
 $Declared = @(
-    @{ Name = 'PatchA-TrapezoidalTabs.patch';  Sentinel = 'SLATE PATCH A'; Witness = 'imgui_widgets.cpp' }
-    @{ Name = 'PatchB-TabOverlapZOrder.patch'; Sentinel = 'SLATE PATCH B'; Witness = 'imgui_widgets.cpp' }
-    @{ Name = 'PatchC-RoundTabButtons.patch';  Sentinel = 'SLATE PATCH C'; Witness = 'imgui_widgets.cpp' }
+    @{ Name = 'PatchA-TrapezoidalTabs.patch';     Sentinel = 'SLATE PATCH A'; Witness = 'imgui_widgets.cpp' }
+    @{ Name = 'PatchB-TabOverlapZOrder.patch';    Sentinel = 'SLATE PATCH B'; Witness = 'imgui_widgets.cpp' }
+    @{ Name = 'PatchC-RoundTabButtons.patch';     Sentinel = 'SLATE PATCH C'; Witness = 'imgui_widgets.cpp' }
+    @{ Name = 'PatchD-BandedVulkanFrameRing.patch'; Sentinel = 'SLATE PATCH D'; Witness = 'backends/imgui_impl_vulkan.cpp' }
 )
 
 # 🔴 The commit these patches were written against. `git apply` would fail loudly on a different tree,
