@@ -11,6 +11,8 @@
 #include "SlateUI/Interface/ControlCentrePanel/Api/ControlCentrePanel.h"
 #include "SlateUI/Interface/ThemeInterchange/Api/ThemeInterchange.h"
 #include "SlateUI/Interface/EditorPanel/Api/EditorPanel.h"
+#include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectoryPanel.h"
+#include "SlateUI/Interface/TexturePaintPanel/Api/TexturePaintPanel.h"
 #include "SlateUI/Interface/ViewportSequence/Api/ViewportSequence.h"
 #include "SlateUI/Interface/WorkspacePanel/Api/WorkspaceIndex.h"
 #include "SlateVulkan/Device/HostLifecycle/Api/HostLifecycle.h"
@@ -52,10 +54,12 @@ constexpr std::uint32_t EasesPerControl = 2u;
 constexpr std::uint32_t CentreControls  = ControlCentrePanel::ControlCapacity;
 constexpr std::uint32_t BrowserControls = ContentBrowserPanel::RegistrationDemand;
 constexpr std::uint32_t EditorControls  = PanelStructure::RecordLimit * EditorPanel::ControlsPerRecord;
+constexpr std::uint32_t SceneControls   = SceneDirectoryPanel::RegistrationDemand
+                                      + TexturePaintPanel::RegistrationDemand;
 constexpr std::uint32_t BareEases       = 9u + 1u;   // [-] - the Control Centre's own motions
 
 constexpr std::uint32_t DemandedEases =
-    ((CentreControls + BrowserControls + EditorControls) * EasesPerControl) + BareEases;
+    ((CentreControls + BrowserControls + EditorControls + SceneControls) * EasesPerControl) + BareEases;
 
 static_assert(DemandedEases <= MotionIntegrator::EaseCapacity,
               "this host's panels demand more eased interpolants than the integrator holds — the panel "
@@ -182,35 +186,52 @@ void RecordSharedViewportChrome(RecordingSurface& Surface, const PlaneExtent& Ex
                                 const EditorPanelConfiguration& Configuration)
 {
     Surface.Confine(Extent);
-    Surface.Ground(Extent, Covering(0x0F1014u), 0.0f, CornerNone);
+
+    // Same editor viewport body as the Editor host: a filled 3D viewport surface first,
+    // then camera-projected world content. This deliberately is not the old screen-space
+    // static grid, so the panel reads as the editor's 3D viewport instead of a placeholder.
+    constexpr std::uint32_t Bands = 18u;
+    for (std::uint32_t Band = 0u; Band < Bands; ++Band)
+    {
+        const float T0 = static_cast<float>(Band) / static_cast<float>(Bands);
+        const float T1 = static_cast<float>(Band + 1u) / static_cast<float>(Bands);
+        const std::uint8_t R = static_cast<std::uint8_t>(18u + static_cast<std::uint32_t>(18.0f * (1.0f - T0)));
+        const std::uint8_t G = static_cast<std::uint8_t>(20u + static_cast<std::uint32_t>(22.0f * (1.0f - T0)));
+        const std::uint8_t B = static_cast<std::uint8_t>(28u + static_cast<std::uint32_t>(42.0f * (1.0f - T0)));
+        Surface.Ground(Spanning(Extent.MinimumX, Extent.MinimumY + Extent.Height() * T0,
+                                Extent.Width(), Extent.Height() * (T1 - T0) + 1.0f),
+                       ThemeToken{ R, G, B, 255u }, 0.0f, CornerNone);
+    }
+
+    float SunX = 0.0f, SunY = 0.0f;
+    if (ProjectPaintScenePoint(Extent, 24.0, 18.0, 32.0, Camera, SunX, SunY) && Extent.Encloses(SunX, SunY))
+    {
+        Surface.Medallion(SunX, SunY, 24.0f, Partial(0xFDE68Au, 0.24f));
+        Surface.Medallion(SunX, SunY, 8.0f, Covering(0xFFF7ADu));
+    }
+
+    const ThemeToken Minor = Partial(0xC4C8D6u, 0.16f);
+    const ThemeToken Major = Partial(0xFFFFFFu, 0.34f);
+    for (int Line = -20; Line <= 20; ++Line)
+    {
+        float X0 = 0.0f, Y0 = 0.0f, X1 = 0.0f, Y1 = 0.0f;
+        if (ProjectPaintScenePoint(Extent, static_cast<double>(Line), 0.0, -20.0, Camera, X0, Y0) &&
+            ProjectPaintScenePoint(Extent, static_cast<double>(Line), 0.0,  20.0, Camera, X1, Y1))
+        {
+            const float Xs[2] = { X0, X1 };
+            const float Ys[2] = { Y0, Y1 };
+            Surface.Polyline(Xs, Ys, 2u, (Line % 5) == 0 ? Major : Minor, (Line % 5) == 0 ? 1.25f : 0.8f);
+        }
+        if (ProjectPaintScenePoint(Extent, -20.0, 0.0, static_cast<double>(Line), Camera, X0, Y0) &&
+            ProjectPaintScenePoint(Extent,  20.0, 0.0, static_cast<double>(Line), Camera, X1, Y1))
+        {
+            const float Xs[2] = { X0, X1 };
+            const float Ys[2] = { Y0, Y1 };
+            Surface.Polyline(Xs, Ys, 2u, (Line % 5) == 0 ? Major : Minor, (Line % 5) == 0 ? 1.25f : 0.8f);
+        }
+    }
+
     RecordPaintSceneProxy(Surface, Extent, Scene, SceneStanding, Camera);
-    const float Step = 48.0f;
-    const float CentreX = (Extent.MinimumX + Extent.MaximumX) * 0.5f;
-    const float CentreY = (Extent.MinimumY + Extent.MaximumY) * 0.5f;
-    for (float X = CentreX; X < Extent.MaximumX; X += Step)
-    {
-        const float PointsX[2] = { X, X };
-        const float PointsY[2] = { Extent.MinimumY, Extent.MaximumY };
-        Surface.Polyline(PointsX, PointsY, 2u, Partial(0xC4C8D6u, 0.10f), 1.0f);
-    }
-    for (float X = CentreX - Step; X > Extent.MinimumX; X -= Step)
-    {
-        const float PointsX[2] = { X, X };
-        const float PointsY[2] = { Extent.MinimumY, Extent.MaximumY };
-        Surface.Polyline(PointsX, PointsY, 2u, Partial(0xC4C8D6u, 0.10f), 1.0f);
-    }
-    for (float Y = CentreY; Y < Extent.MaximumY; Y += Step)
-    {
-        const float PointsX[2] = { Extent.MinimumX, Extent.MaximumX };
-        const float PointsY[2] = { Y, Y };
-        Surface.Polyline(PointsX, PointsY, 2u, Partial(0xC4C8D6u, 0.10f), 1.0f);
-    }
-    for (float Y = CentreY - Step; Y > Extent.MinimumY; Y -= Step)
-    {
-        const float PointsX[2] = { Extent.MinimumX, Extent.MaximumX };
-        const float PointsY[2] = { Y, Y };
-        Surface.Polyline(PointsX, PointsY, 2u, Partial(0xC4C8D6u, 0.10f), 1.0f);
-    }
 
     const SharedViewportBasis GizmoBasis = SharedViewportBasisFromYawPitch(Camera.LaggedYawDegrees,
                                                                             Camera.LaggedPitchDegrees);
@@ -303,22 +324,28 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    cannot disagree about what a new workspace is.
     constexpr WorkspaceSubject DefaultSubject = WorkspaceSubject::Painting;
 
-    WorkspaceIndex          Workspaces;
-    WorkspacePanel          Workspace;
-    EditorPanel             WorkspacePanels;
-    PanelStructure          PanelPartitions[WorkspaceIndex::WorkspaceLimit];
-    EditorPanelConfiguration    PanelConfiguration[WorkspaceIndex::WorkspaceLimit];
-    ControlCentrePanel      ControlCentre;
-    ControlCentreConfiguration  ControlCentreValues;
+    static WorkspaceIndex          Workspaces;
+    static WorkspacePanel          Workspace;
+    static EditorPanel             WorkspacePanels;
+    static PanelStructure          PanelPartitions[WorkspaceIndex::WorkspaceLimit];
+    static EditorPanelConfiguration    PanelConfiguration[WorkspaceIndex::WorkspaceLimit];
+    static ControlCentrePanel      ControlCentre;
+    static ControlCentreConfiguration  ControlCentreValues;
     FontLoader                  Fonts;
 
-    ControlIndex         BrowserInteraction;
+    static ControlIndex         BrowserInteraction;
 
     // 📝 The south drawer's owner. The library is the HOST's, not the panel's — `14` §1 forbids a panel
     //    from holding what it displays, which is the same separation WorkspaceIndex and WorkspacePanel keep.
-    ContentBrowserPanel      ContentBrowser;
-    ContentBrowserConfiguration  ContentBrowserApplied;
-    ContentLibrary           ContentApplied;
+    static ContentBrowserPanel      ContentBrowser;
+    static ContentBrowserConfiguration  ContentBrowserApplied;
+    static ContentLibrary           ContentApplied;
+    static ControlIndex             SceneInteraction;
+    static SceneDirectoryPanel      SceneDirectory;
+    static SceneDirectoryContext    SceneApplied;
+    static TexturePaintPanel        TexturePaint;
+    static TexturePaintContext      TexturePaintApplied;
+    TexturePaintStack               StackRows;
     WorkspaceCodex           OpenedScene = {};
     bool                     OpenedSceneStanding = false;
     EditorCameraComponent    EditorCamera;
@@ -434,6 +461,58 @@ int main(int ArgumentCount, char** ArgumentValues)
     ContentBrowser.Reapply(Viewport.Appearance());
 
     ApplyReferenceContent(ContentApplied);
+
+    if (!SceneInteraction.AttachMotion(Viewport.MotionSource()).Resolved)
+    {
+        std::printf("%s \u2014 the paint workspace panel index was rejected\n", HostName);
+        return 1;
+    }
+
+    if (!SceneDirectory.ConstructSceneDirectoryPanel(SceneInteraction, Viewport.MotionSource(),
+                                                     Viewport.Surface(), Viewport.Appearance()).Resolved)
+    {
+        std::printf("%s \u2014 the paint scene directory was rejected\n", HostName);
+        return 1;
+    }
+
+    if (!TexturePaint.ConstructTexturePaintPanel(SceneInteraction, Viewport.MotionSource(),
+                                                 Viewport.Surface(), Viewport.Appearance()).Resolved)
+    {
+        std::printf("%s \u2014 the paint layer stack was rejected\n", HostName);
+        return 1;
+    }
+
+    static const char* const PaintChannels[] = { "Base Color", "Roughness", "Normal", "Opacity" };
+    static TextureLayerRow PaintLayerSeed[3] =
+    {
+        { "White Dielectric", TextureLayerClassification::Material, "Normal", 100u, 0xE7E3D8u, 0xE7E3D8u,
+          false, 100u, false, "WhiteDielectric.pigment", "shared viewport material",
+          { PaintChannels[0], PaintChannels[1], PaintChannels[2], PaintChannels[3] }, 4u,
+          0u, 0xFFFFFFFFu, 0u, true, "paint material", false, "", true, 5001u },
+        { "Paint Layer", TextureLayerClassification::Paint, "Normal", 100u, 0x8AB4D8u, 0x8AB4D8u,
+          true, 100u, false, "Brush", "2048px RGBA", { PaintChannels[0], PaintChannels[3] }, 2u,
+          0u, 0xFFFFFFFFu, 0u, true, "paint colour opacity", false, "", false, 5002u },
+        { "Edge Wear", TextureLayerClassification::Fill, "Multiply", 72u, 0xF76B15u, 0xF76B15u,
+          true, 100u, false, "Generator", "roughness detail", { PaintChannels[1], PaintChannels[2] }, 2u,
+          0u, 0xFFFFFFFFu, 0u, true, "paint generated wear", false, "", false, 5003u },
+    };
+    StackRows.Seed(PaintLayerSeed, 3u);
+    SeedPaintContextFromRows(TexturePaintApplied, StackRows.Rows, StackRows.Count);
+
+    static EntityRow PaintEntities[6] =
+    {
+        { "Paint Scene", EntitySubject::Level, 0u, 0xFFFFFFFFu, 5u, "level paint scene", CameraRole::Absent, 6001u },
+        { "Imported Geometry", EntitySubject::Actor, 1u, 0u, 0u, "paint mesh geometry", CameraRole::Absent, 6002u },
+        { "White Dielectric", EntitySubject::Actor, 1u, 0u, 0u, "paint material layer stack", CameraRole::Absent, 6003u },
+        { "Sun", EntitySubject::Sun, 1u, 0u, 0u, "sun light directional", CameraRole::Absent, 6004u },
+        { "Sky Atmosphere", EntitySubject::Sky, 1u, 0u, 0u, "sky atmosphere dome", CameraRole::Absent, 6005u },
+        { "Editor Camera", EntitySubject::Camera, 1u, 0u, 0u, "camera fly viewport", CameraRole::Editor, 6006u },
+    };
+    SceneApplied.EnvironmentPresented = true;
+    SceneApplied.Environment.SunElevation = 35.0;
+    SceneApplied.Environment.SunAzimuth = 120.0;
+    SceneApplied.CameraSpeed = EditorCamera.FlySpeed;
+    SceneApplied.DetailBits[5u] = 2u;
 
     // 📝 One workspace open by default, of the subject this host is for. A host that opened none would show
     //    the vacant run on first launch, which reads as a failure rather than as a fresh start.
@@ -581,7 +660,25 @@ int main(int ArgumentCount, char** ArgumentValues)
             FlySettings.FlySpeed = EditorCamera.FlySpeed;
             EditorCamera.Advance(Pass.ElapsedMilliseconds / 1000.0, FlyInput, FlySettings);
 
+            SceneApplied.CameraSpeed = EditorCamera.FlySpeed;
+            SceneApplied.CameraFieldOfView = EditorCamera.FieldOfViewDegrees;
+            SceneApplied.ViewportSkyCamera.AzimuthDegrees = static_cast<float>(EditorCamera.LaggedYawDegrees);
+            SceneApplied.ViewportSkyCamera.ElevationDegrees = static_cast<float>(EditorCamera.LaggedPitchDegrees);
+            SceneApplied.ViewportSkyCamera.FieldOfViewDegrees = static_cast<float>(EditorCamera.FieldOfViewDegrees);
+            SceneApplied.CameraPosition[0] = EditorCamera.LaggedPosition[0];
+            SceneApplied.CameraPosition[1] = EditorCamera.LaggedPosition[1];
+            SceneApplied.CameraPosition[2] = EditorCamera.LaggedPosition[2];
+            SceneApplied.CameraRotation[0] = EditorCamera.LaggedYawDegrees;
+            SceneApplied.CameraRotation[1] = EditorCamera.LaggedPitchDegrees;
+            SceneApplied.CameraRotation[2] = 0.0;
+
             WorkspacePanels.Advance(BackgroundPointer, Pass.ElapsedMilliseconds);
+            SceneInteraction.Advance(BackgroundPointer, Pass.ElapsedMilliseconds);
+            SceneDirectory.Advance(BackgroundPointer, Pass.ElapsedMilliseconds,
+                                   SceneApplied, false, Viewport.Seam().Modifiers());
+            TexturePaint.Advance(BackgroundPointer, Pass.ElapsedMilliseconds,
+                                 TexturePaintApplied, StackRows.Rows, StackRows.Count,
+                                 false, Viewport.Seam().Modifiers());
 
             for (std::uint32_t Index = 0u; Index < OpenCount; ++Index)
             {
@@ -602,35 +699,51 @@ int main(int ArgumentCount, char** ArgumentValues)
                     Discard(WorkspacePanels.Record(PanelExtent,
                                                       PanelPartitions[Index],
                                                       PanelConfiguration[Index],
-                                                      Index));
+                                                      Index,
+                                                      true));
                     for (std::uint32_t Leaf = 0u; Leaf < WorkspacePanels.LeafCount(); ++Leaf)
                     {
-                        if (WorkspacePanels.LeafSubject(Leaf) == PanelSubject::Viewport)
+                        const PlaneExtent LeafBody = WorkspacePanels.LeafBody(Leaf);
+                        switch (WorkspacePanels.LeafSubject(Leaf))
                         {
-                            const PlaneExtent LeafBody = WorkspacePanels.LeafBody(Leaf);
-                            if (BackgroundPointer.ContactPressed &&
-                                LeafBody.Encloses(BackgroundPointer.PositionX, BackgroundPointer.PositionY))
-                            {
-                                const SharedViewportBasis GizmoBasis = SharedViewportBasisFromYawPitch(
-                                    EditorCamera.LaggedYawDegrees, EditorCamera.LaggedPitchDegrees);
-                                const SharedViewportOrientation Hit = HitSharedViewportGizmo(
-                                    LeafBody, GizmoBasis, BackgroundPointer.PositionX, BackgroundPointer.PositionY,
-                                    PanelConfiguration[Index].Gizmo == PanelGizmo::Cad);
-                                if (Hit != SharedViewportOrientation::None)
+                            case PanelSubject::Viewport:
+                                if (BackgroundPointer.ContactPressed &&
+                                    LeafBody.Encloses(BackgroundPointer.PositionX, BackgroundPointer.PositionY))
                                 {
-                                    double Yaw = EditorCamera.YawDegrees;
-                                    double Pitch = EditorCamera.PitchDegrees;
-                                    SharedViewportOrientationPreset(Hit, Yaw, Pitch);
-                                    EditorCamera.YawDegrees = Yaw;
-                                    EditorCamera.PitchDegrees = Pitch;
-                                    EditorCamera.Snap();
+                                    const SharedViewportBasis GizmoBasis = SharedViewportBasisFromYawPitch(
+                                        EditorCamera.LaggedYawDegrees, EditorCamera.LaggedPitchDegrees);
+                                    const SharedViewportOrientation Hit = HitSharedViewportGizmo(
+                                        LeafBody, GizmoBasis, BackgroundPointer.PositionX, BackgroundPointer.PositionY,
+                                        PanelConfiguration[Index].Gizmo == PanelGizmo::Cad);
+                                    if (Hit != SharedViewportOrientation::None)
+                                    {
+                                        double Yaw = EditorCamera.YawDegrees;
+                                        double Pitch = EditorCamera.PitchDegrees;
+                                        SharedViewportOrientationPreset(Hit, Yaw, Pitch);
+                                        EditorCamera.YawDegrees = Yaw;
+                                        EditorCamera.PitchDegrees = Pitch;
+                                        EditorCamera.Snap();
+                                    }
                                 }
-                            }
-                            RecordSharedViewportChrome(Viewport.Surface(), LeafBody,
-                                                       OpenedScene, OpenedSceneStanding, EditorCamera,
-                                                       PanelConfiguration[Index]);
+                                RecordSharedViewportChrome(Viewport.Surface(), LeafBody,
+                                                           OpenedScene, OpenedSceneStanding, EditorCamera,
+                                                           PanelConfiguration[Index]);
+                                break;
+                            case PanelSubject::Outliner:
+                                SceneDirectory.RecordOutliner(LeafBody, SceneApplied, PaintEntities, 6u);
+                                break;
+                            case PanelSubject::Properties:
+                                SceneDirectory.RecordProperties(LeafBody, SceneApplied, PaintEntities, 6u,
+                                                                SceneApplied.InspectorTab);
+                                break;
+                            case PanelSubject::TexturePaint:
+                                TexturePaint.Record(LeafBody, TexturePaintApplied, StackRows.Rows, StackRows.Count);
+                                break;
+                            default:
+                                break;
                         }
                     }
+                    WorkspacePanels.RecordDeferredPopups(PanelPartitions[Index], PanelConfiguration[Index]);
                     if (WorkspacePanels.PointerCaptured(Index))
                         Viewport.Seam().WithholdPointer();
                 }
@@ -826,6 +939,8 @@ int main(int ArgumentCount, char** ArgumentValues)
     // 🔴 Read before Reclaim. The register is Device lifetime, and a reclaimed device has emptied it.
     const std::uint32_t Serious = Lifetime.StateDiagnostics();
 
+    TexturePaint.Reset();
+    SceneDirectory.Reset();
     ControlCentre.Reset();
     WorkspacePanels.Reset();
     for (std::uint32_t Index = 0u; Index < WorkspaceIndex::WorkspaceLimit; ++Index)

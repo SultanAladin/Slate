@@ -5522,6 +5522,9 @@ int main(int ArgumentCount, char** ArgumentValues)
                             const bool PointerInside = LeafBody.Encloses(LeafPointer.PositionX, LeafPointer.PositionY);
                             bool PointerTaken = false;
                             Viewport.Surface().Confine(LeafBody);
+                            // Cover EditorPanel's placeholder render-target caption with the real shared
+                            // viewport body before CAD, imported geometry, grid and gizmos are recorded.
+                            Viewport.Surface().Ground(LeafBody, Covering(0x0F1014u), 0.0f, CornerNone);
                             RecordViewportOrientationHud(Viewport.Surface(), LeafBody, LeafPointer,
                                                          View, PanelConfiguration[Index],
                                                          PointerTaken);

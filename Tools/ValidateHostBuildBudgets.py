@@ -52,6 +52,10 @@ def main() -> int:
             "PaintHost viewport must use the shared editor camera component and hotkey path")
     require("ConsumeSharedCodexActivation" in paint,
             "PaintHost activation must use the shared codex activation helper")
+    require("RecordDeferredPopups" in paint and "PanelSubject::TexturePaint" in paint and "SceneDirectory.RecordOutliner" in paint,
+            "PaintHost must expose the same editor panel dropdown/content path for viewport, outliner and Layer Stack")
+    require("const float Step = 48.0f" not in paint and "ProjectPaintScenePoint" in paint and "old screen-space" in paint,
+            "PaintHost viewport must draw a camera-projected editor-style viewport, not a static screen grid")
     require("std::strncpy" not in paint, "PaintHost must avoid MSVC strncpy warning")
 
     validation = read("Engine/Application/InterfaceValidationHost/Source/InterfaceValidationHost.cpp")
@@ -77,6 +81,8 @@ def main() -> int:
     require("Panel leaves must sample pointer/contact before they record" in parametric and
             parametric.find("ToolPanel.Advance") < parametric.find("WorkspacePanels.Record"),
             "ParametricSketchHost must advance CAD tool interactions before recording/drawing the viewport")
+    require("placeholder render-target caption" in parametric and "Viewport.Surface().Ground(LeafBody" in parametric,
+            "ParametricSketchHost viewport must cover the EditorPanel render-target placeholder text with the real viewport body")
 
     shared_viewport = read("Engine/Application/Api/SharedViewportHostBridge.h")
     require("RecordSharedViewportGizmo" in shared_viewport and "HitSharedViewportGizmo" in shared_viewport,
