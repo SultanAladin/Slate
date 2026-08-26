@@ -19,6 +19,7 @@
 #include "Foundation/DeliveryOutcome.h"
 #include "Application/Api/SharedViewportHostBridge.h"
 #include "Application/Api/SharedCadDrawingController.h"
+#include "Application/Api/SharedCadWorkspaceRuntime.h"
 #include "Application/Api/MaterialLayerStackBridge.h"
 #include "Application/Api/SketchSceneDirectoryBridge.h"
 #include "SlateScene/Scene/EditorCameraComponent/Api/EditorCameraComponent.h"
@@ -485,6 +486,9 @@ int main(int ArgumentCount, char** ArgumentValues)
     AtmosphereComponent       DynamicAtmosphere;
     DirectionalLightComponent SunLight;
     EditorCameraComponent     EditorCamera;
+    // Shared CAD state is kept beside the editor camera so the Editor host can consume the same
+    // sketch records and draft lifecycle as the standalone Parametric Sketch host.
+    static SharedCadWorkspaceRuntime CadRuntime;
     ShaderCodec             OverlayCodec;
     WorkspaceOverlayPass             Overlay;
     GeometryDeviceExchange           GeometryDevice = {};
