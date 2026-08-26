@@ -12,6 +12,8 @@
 #include "Application/Api/SharedCadWorkspaceRuntime.h"
 #include "SlateFeature/Feature/WorkspaceNameIndex/Api/WorkspaceNameIndex.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <string>
 
@@ -152,6 +154,37 @@ struct SharedCadAuthoringRequest
     bool CancelPressed = false;
     bool Construction = false;
 };
+
+inline SketchSnapPlacement SharedCadResolveGridSnap(const SpatialBasis& Basis,
+                                                       const SpatialPoint& Probe,
+                                                       double Step,
+                                                       double MaximumDistance)
+{
+    const SpatialDirection Offset = { Probe.Left - Basis.Origin.Left,
+                                      Probe.Up - Basis.Origin.Up,
+                                      Probe.Forward - Basis.Origin.Forward };
+    const double Along = Offset.Left * Basis.Along.Left + Offset.Up * Basis.Along.Up + Offset.Forward * Basis.Along.Forward;
+    const double Across = Offset.Left * Basis.Across.Left + Offset.Up * Basis.Across.Up + Offset.Forward * Basis.Across.Forward;
+    const double SafeStep = std::max(Step, 1.0e-6);
+    const double SnappedAlong = std::round(Along / SafeStep) * SafeStep;
+    const double SnappedAcross = std::round(Across / SafeStep) * SafeStep;
+    const SpatialPoint Snapped = {
+        Basis.Origin.Left + Basis.Along.Left * SnappedAlong + Basis.Across.Left * SnappedAcross,
+        Basis.Origin.Up + Basis.Along.Up * SnappedAlong + Basis.Across.Up * SnappedAcross,
+        Basis.Origin.Forward + Basis.Along.Forward * SnappedAlong + Basis.Across.Forward * SnappedAcross
+    };
+    const double DX = Probe.Left - Snapped.Left;
+    const double DY = Probe.Up - Snapped.Up;
+    const double DZ = Probe.Forward - Snapped.Forward;
+    const double Distance = std::sqrt(DX * DX + DY * DY + DZ * DZ);
+    if (Distance > MaximumDistance)
+        return {};
+    SketchSnapPlacement Placement = {};
+    Placement.Subject = SketchSnapSubject::Grid;
+    Placement.Position = Snapped;
+    Placement.Distance = Distance;
+    return Placement;
+}
 
 /// Advances the shared draft state and commits the common two-point line tool. More specialised
 /// tools remain in the host adapter until their existing feature helpers are moved here as well.

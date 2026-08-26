@@ -3644,7 +3644,7 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
     Draft.Snap = Modifiers.Commanded ? SketchSnapPlacement{}
                                      : ResolveNearestSnap(Sketch, Raw, SnapTolerance);
     if (!Draft.Snap.Resolved() && !Modifiers.Commanded)
-        Draft.Snap = ResolveGridSnap(Basis, Raw, 10.0, SnapTolerance);
+        Draft.Snap = SharedCadResolveGridSnap(Basis, Raw, 10.0, SnapTolerance);
     if (Draft.Snap.Resolved())
         Draft.Hover = Draft.Snap.Position;
     Draft.Construction = ToolContext.ConstructionGeometry || ToolContext.ActiveSubject == ParametricToolSubject::ConstructionLine;

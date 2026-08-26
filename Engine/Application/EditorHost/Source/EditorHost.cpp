@@ -1219,6 +1219,11 @@ int main(int ArgumentCount, char** ArgumentValues)
                                     Authoring.Subject = ActiveCadDraft;
                                     Authoring.HoverStanding = LeafBody.Encloses(LeafPointer.PositionX, LeafPointer.PositionY);
                                     Authoring.Hover = { Along, 0.0, Across };
+                                    const SpatialBasis CadBasis = { {}, { 1.0, 0.0, 0.0 }, { 0.0, 0.0, 1.0 }, { 0.0, 1.0, 0.0 } };
+                                    if (Authoring.HoverStanding)
+                                        Authoring.Snap = SharedCadResolveGridSnap(CadBasis, Authoring.Hover, 10.0, 10.0);
+                                    if (Authoring.Snap.Resolved())
+                                        Authoring.Hover = Authoring.Snap.Position;
                                     Authoring.ContactPressed = LeafPointer.ContactPressed && Authoring.HoverStanding;
                                     Authoring.CommitRequested = Authoring.Subject != SharedCadDraftSubject::Polyline;
                                     Authoring.CancelPressed = Viewport.Surface().TextInput().CancelPressed;
