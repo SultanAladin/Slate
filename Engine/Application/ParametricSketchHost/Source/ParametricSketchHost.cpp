@@ -5258,15 +5258,15 @@ int main(int ArgumentCount, char** ArgumentValues)
                             Discard(SynchroniseCadPacket(Sketch, Records, CadPacket));
                             if (!CadPass.Standing())
                                 RecordCadFallback(Viewport.Surface(), LeafBody, Sketch, View,
-                                                  PanelConfiguration[Index].Perspective, CadPacket);
+                                                  false, CadPacket);
                             RecordDraftPreview(Viewport.Surface(), LeafBody, Sketch, View,
                                                false, Draft);
                             RecordViewportStateReadout(Viewport.Surface(), LeafBody, View,
                                                        PanelConfiguration[Index].Perspective, CadPacket);
                             RecordProfileAreaOverlay(Viewport.Surface(), LeafBody, Sketch, View,
-                                                       PanelConfiguration[Index].Perspective);
+                                                       false);
                             RecordConstraintGlyphs(Viewport.Surface(), LeafBody, Sketch, View,
-                                                   PanelConfiguration[Index].Perspective);
+                                                   false);
                             RecordProfileValidationReadout(Viewport.Surface(), LeafBody, Sketch);
                             RecordViewportTransformReadout(Viewport.Surface(), LeafBody, Transform);
                             if (LeafOverlay != nullptr && !OverlayPass.Standing())
@@ -5279,7 +5279,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                             {
                                 ViewportCadProjections[ViewportLeafTally] = ResolveCadProjection(
                                     Basis, View,
-                                    PanelConfiguration[Index].Perspective,
+                                    false,
                                     LeafBody, Pass.Width, Pass.Height);
                                 ++ViewportLeafTally;
                             }
