@@ -465,6 +465,12 @@ int main(int ArgumentCount, char** ArgumentValues)
 {
     using namespace Slate;
 
+    const auto Milestone = [](const char* Detail)
+    {
+        std::fprintf(stderr, "[EditorHost] %s\n", Detail);
+        std::fflush(stderr);
+    };
+
     // ① The five lifetimes — window, instance, surface, diagnostic, device, chain, slots, recordings.
     HostDeclaration Declared;
     Declared.Naming        = HostName;
@@ -762,11 +768,14 @@ int main(int ArgumentCount, char** ArgumentValues)
         return 1;
     }
 
+    Milestone("attaching the content browser index");
     if (!BrowserInteraction.AttachMotion(Viewport.MotionSource()).Resolved)
     {
         std::printf("%s \u2014 the content browser index was rejected\n", HostName);
         return 1;
     }
+
+    Milestone("seeding the editor material mock");
 
     // 📝 The editor's sun and sky arrive presented, so the viewport draws the sky from the very first
     //    frame and the inspector edits the same ordinates.
@@ -853,6 +862,8 @@ int main(int ArgumentCount, char** ArgumentValues)
     EditorMaterialSnapshot = InitialMaterialBridge.Snapshot;
     EditorMaterialSnapshotReady = true;
 
+    Milestone("material mock seeded");
+
     // 📝 The editor camera, registered as the seventh row. Its details' options are the camera's own:
     //    bit 1 is the camera lag, bit 2 the inverted pitch — the lag arrives enabled so the camera
     //    eases out of the gate, and the pitch arrives un-inverted (the standard fly-cam convention).
@@ -881,12 +892,14 @@ int main(int ArgumentCount, char** ArgumentValues)
     }
     EditorCamera.PublishTransform(SceneApplied.EntityPosition[6u], SceneApplied.EntityRotation[6u]);
 
+    Milestone("attaching the scene directory index");
     if (!SceneInteraction.AttachMotion(Viewport.MotionSource()).Resolved)
     {
         std::printf("%s \u2014 the scene directory index was rejected\n", HostName);
         return 1;
     }
 
+    Milestone("constructing the scene directory panel");
     if (!SceneDirectory.ConstructSceneDirectoryPanel(SceneInteraction, Viewport.MotionSource(), Viewport.Surface(),
                                   Viewport.Appearance()).Resolved)
     {
@@ -894,6 +907,7 @@ int main(int ArgumentCount, char** ArgumentValues)
         return 1;
     }
 
+    Milestone("constructing the texture paint panel");
     if (!TexturePaint.ConstructTexturePaintPanel(SceneInteraction, Viewport.MotionSource(), Viewport.Surface(),
                               Viewport.Appearance()).Resolved)
     {
@@ -901,12 +915,14 @@ int main(int ArgumentCount, char** ArgumentValues)
         return 1;
     }
 
+    Milestone("attaching the parametric interaction index");
     if (!ParametricInteraction.AttachMotion(Viewport.MotionSource()).Resolved)
     {
         std::printf("%s \u2014 the sketch-directory index was rejected\n", HostName);
         return 1;
     }
 
+    Milestone("constructing the sketch directory panel");
     if (!SketchDirectory.ConstructParametricWorkspacePanel(ParametricInteraction, Viewport.MotionSource(),
                                                            Viewport.Surface(), Viewport.Appearance()).Resolved)
     {
@@ -914,6 +930,7 @@ int main(int ArgumentCount, char** ArgumentValues)
         return 1;
     }
 
+    Milestone("constructing the parametric tools panel");
     if (!ParametricTools.ConstructParametricToolsPanel(ParametricInteraction, Viewport.MotionSource(),
                                                        Viewport.Surface(), Viewport.Appearance()).Resolved)
     {
@@ -921,12 +938,15 @@ int main(int ArgumentCount, char** ArgumentValues)
         return 1;
     }
 
+    Milestone("attaching shader streams");
+
     // One shader stream index feeds both the dynamic atmosphere compute pass and the overlay pass.
     const Outcome<bool> CodecOutcome =
         OverlayCodec.AttachShaderStreams(Lifetime.DeviceExchange(), ShaderStreamDirectory());
 
     if (CodecOutcome.Resolved)
     {
+        Milestone("constructing the atmosphere presentation surface");
         const Outcome<bool> AtmosphereOutcome = AtmosphereSurface.ConstructAtmosphereSurface(
             Lifetime.DeviceExchange(), Lifetime.DiagnosticsExtension(), OverlayCodec);
         if (AtmosphereOutcome.Resolved)
@@ -957,6 +977,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     }
     else
     {
+        Milestone("constructing the workspace overlay pass");
         const Outcome<bool> PassOutcome = Overlay.ConstructWorkspaceOverlayPass(Lifetime.DeviceExchange(),
                                                             Lifetime.DiagnosticsExtension(),
                                                             OverlayCodec,
@@ -981,6 +1002,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    geometry increment supplies a selected imported packet; until then it owns no residency and records no
     //    geometry. Keeping the estate separate makes device recovery and display-sized target reclamation testable
     //    without inventing a placeholder surface.
+    Milestone("constructing the geometry device estate");
     const DeviceOffering GeometryOffering = Lifetime.Offering();
     const Outcome<bool> GeometryOutcome = GeometryDevice.ConstructGeometryDeviceExchange(
         Lifetime.DeviceExchange(), Lifetime.DiagnosticsExtension(), ShaderStreamDirectory().c_str(),
@@ -990,10 +1012,13 @@ int main(int ArgumentCount, char** ArgumentValues)
         std::printf("%s \u2014 the geometry device estate was rejected (reason %u: %s)\n", HostName,
                     static_cast<unsigned>(GeometryOutcome.Error.DeclaredReason), GeometryOutcome.Error.Detail);
     }
+    Milestone("constructing imported topology visibility");
     if (!ImportedVisibility.ConstructVisibilityIndex(InitialWidth, InitialHeight).Resolved)
     {
         std::printf("%s — imported topology partition visibility could not be prepared\n", HostName);
     }
+
+    Milestone("constructing the content browser panel");
 
     // 🔴 The browser carries its OWN index, as every panel here does, so its registration cannot exhaust the
     //    Control Centre's. Read — an registration refusal is silent at the call site and a browser that was
@@ -1009,8 +1034,11 @@ int main(int ArgumentCount, char** ArgumentValues)
     // 🔴 The browser takes no appearance at Construct — it is applied here, once the viewport has resolved one.
     ContentBrowser.Reapply(Viewport.Appearance());
 
+    Milestone("seeding content browser data");
     ApplyReferenceContent(ContentApplied);
     PopulateImportDirectory(ContentBrowserApplied, EngineContentRoot);
+
+    Milestone("registering the default workspace");
 
     // 📝 🔴 The editor opens a VACANT workspace, where the painting host opens a canvas. This is the one
     //    thing that distinguishes the two hosts, and it is the reason there are two: the editor carries
@@ -1027,17 +1055,30 @@ int main(int ArgumentCount, char** ArgumentValues)
     // 🔴 The sheet's tab figures applied into the vendor's style, including the four `Patches/` adds. They
     //    default to 0.0f, at which a patched build draws stock rectangular tabs — so this call is what
     //    turns the trapezoid on.
+    Milestone("applying the workspace style");
     if (!Viewport.Seam().ApplyWorkspaceStyle(Viewport.Appearance().WorkspaceMeasure,
                                                  Viewport.Appearance().Workspace).Resolved)
     {
         std::printf("%s \u2014 the workspace style was not applied\n", HostName);
     }
 
+    Milestone("startup complete; entering the tick loop");
     std::printf("%s \u2014 opened %s\n", HostName, Workspaces.ActiveTitle());
+
+    bool FirstAwaitLogged = false;
+    bool FirstRecordingTickLogged = false;
+    bool FirstAdvanceLogged = false;
+    bool FirstViewportLeafLogged = false;
+    bool FirstSkyRecordLogged = false;
 
     while (Lifetime.Active())
     {
         const TickPass Pass = Lifetime.Await(WorkspaceGround);
+        if (!FirstAwaitLogged)
+        {
+            Milestone("the first Lifetime.Await returned");
+            FirstAwaitLogged = true;
+        }
         Discard(Fonts.FlushPending());
 
         if (Pass.Current == TickCondition::Closed)
@@ -1131,11 +1172,23 @@ int main(int ArgumentCount, char** ArgumentValues)
         if (Pass.Current != TickCondition::Recording)
             continue;
 
+        if (!FirstRecordingTickLogged)
+        {
+            Milestone("the first recording tick began");
+            FirstRecordingTickLogged = true;
+        }
+
         // ④ Build the interface tick. A refusal here abandons the tick's content, and the recording is
         //    still surrendered — an empty rendering scope presents the cleared ground, which is correct
         //    and is what the artist sees for one tick.
         if (Viewport.Advance(Pass.ElapsedMilliseconds).Resolved)
         {
+            if (!FirstAdvanceLogged)
+            {
+                Milestone("the first Viewport.Advance completed");
+                FirstAdvanceLogged = true;
+            }
+
             // 🔴 The workspace is recorded FIRST and the drawers over it. One background draw list, so
             //    the order of recording IS the z-order — and the previous arrangement recorded the
             //    workspace after `RecordDrawers`, which painted the whole surface over the control
@@ -1326,10 +1379,21 @@ int main(int ArgumentCount, char** ArgumentValues)
                         {
                             case PanelSubject::Viewport:
                             {
+                                if (!FirstViewportLeafLogged)
+                                {
+                                    Milestone("recording the first viewport leaf");
+                                    FirstViewportLeafLogged = true;
+                                }
+
                                 CadRuntime.Camera.Perspective = PanelConfiguration[Index].Perspective;
                                 OverlayGeometry& LeafOverlay = ViewportOverlays[Leaf];
                                 LeafOverlay.Reset();
 
+                                if (!FirstSkyRecordLogged)
+                                {
+                                    Milestone("recording the first viewport sky");
+                                    FirstSkyRecordLogged = true;
+                                }
                                 SceneDirectory.RecordViewportSky(LeafBody, SceneApplied);
                                 RecordWorkspaceCodexProxy(Viewport.Surface(), LeafBody, SceneApplied,
                                                           OpenedScene, OpenedSceneStanding,
