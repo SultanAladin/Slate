@@ -75,13 +75,13 @@ Outcome<bool> FontLoader::PreparePreviews(float DisplayScale)
     for (const std::string& Family : Families)
         static_cast<void>(Preview(Family.c_str(), DisplayScale));
 
-    // 📝 Build only when a new preview face entered the atlas. The validation host used to call this on
-    //    every resize and every theme change, and an unconditional Build re-packed every font in the
-    //    atlas each time — a full CPU re-rasterisation for a call that added nothing.
-    if (PreviewFaces.size() != StandingCount)
-        ImGui::GetIO().Fonts->Build();
-    std::fprintf(stderr, "[Fonts] prepared %u preview faces before recording\n",
-                 static_cast<unsigned>(PreviewFaces.size()));
+    // 🔴 Preview insertion and selected-family insertion form one atlas mutation. Building between them
+    //    leaves the backend observing a completed atlas that is immediately changed again; the following
+    //    selected-family Build then replaces its baked storage while retained preview pointers still name
+    //    the first build. Load performs the one Build after every startup face has entered.
+    std::fprintf(stderr, "[Fonts] prepared %u preview faces before recording (%u added)\n",
+                 static_cast<unsigned>(PreviewFaces.size()),
+                 static_cast<unsigned>(PreviewFaces.size() - StandingCount));
     return Outcome<bool>::Result(true);
 }
 

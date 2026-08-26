@@ -684,13 +684,36 @@ int main(int ArgumentCount, char** ArgumentValues)
     std::uint32_t  RegisterIntoNode = 0u;
 
     Viewport.Surface().ApplyFontLoader(Fonts);
-    Discard(Fonts.Discover(FontRoot.c_str()));
+    const Outcome<bool> FontDiscovery = Fonts.Discover(FontRoot.c_str());
+    if (!FontDiscovery.Resolved)
+    {
+        std::fprintf(stderr, "%s — font discovery was rejected: %s\n", HostName, FontDiscovery.Error.Detail);
+        std::fflush(stderr);
+        return 1;
+    }
+
     // 📝 The family carousel's preview faces are added to the atlas BEFORE the first tick records. Added
     //    during recording instead, the faces would land in an atlas the renderer had already uploaded and
     //    the preview tiles would draw from stale texture data.
-    Discard(Fonts.PreparePreviews(1.0f));
-    Discard(Fonts.Load(FontRoot.c_str(), Viewport.Appearance().Fonts, 1.0f));
+    const Outcome<bool> FontPreviews = Fonts.PreparePreviews(1.0f);
+    if (!FontPreviews.Resolved)
+    {
+        std::fprintf(stderr, "%s — font previews were rejected: %s\n", HostName, FontPreviews.Error.Detail);
+        std::fflush(stderr);
+        return 1;
+    }
+
+    const Outcome<bool> FontSelection = Fonts.Load(FontRoot.c_str(), Viewport.Appearance().Fonts, 1.0f);
+    if (!FontSelection.Resolved)
+    {
+        std::fprintf(stderr, "%s — font selection was rejected: %s\n", HostName, FontSelection.Error.Detail);
+        std::fflush(stderr);
+        return 1;
+    }
+
     ControlCentre.SetFontFamilies(Fonts);
+    std::fprintf(stderr, "[EditorHost] font archive attached to the Control Centre\n");
+    std::fflush(stderr);
     // 📝 Seat the family carousel on the family the appearance names. Without this the carousel opened
     //    on ordinal zero (the alphabetically first family) while the loaded faces were the appearance's
     //    own — and the role strips draw the LOADED family's faces, so the two have to agree at bring-up.
@@ -703,21 +726,39 @@ int main(int ArgumentCount, char** ArgumentValues)
         }
 
 
-    if (!Workspace.ConstructWorkspacePanel(Viewport.Surface(), Viewport.Appearance()).Resolved)
+    std::fprintf(stderr, "[EditorHost] constructing the workspace panel\n");
+    std::fflush(stderr);
+    const Outcome<bool> WorkspaceConstruction =
+        Workspace.ConstructWorkspacePanel(Viewport.Surface(), Viewport.Appearance());
+    if (!WorkspaceConstruction.Resolved)
     {
-        std::printf("%s \u2014 the workspace panel was rejected\n", HostName);
+        std::fprintf(stderr, "%s — the workspace panel was rejected: %s\n",
+                     HostName, WorkspaceConstruction.Error.Detail);
+        std::fflush(stderr);
         return 1;
     }
 
-    if (!WorkspacePanels.ConstructEditorPanel(Viewport.MotionSource(), Viewport.Surface(), Viewport.Appearance()).Resolved)
+    std::fprintf(stderr, "[EditorHost] constructing the editor panels\n");
+    std::fflush(stderr);
+    const Outcome<bool> EditorPanelConstruction =
+        WorkspacePanels.ConstructEditorPanel(Viewport.MotionSource(), Viewport.Surface(), Viewport.Appearance());
+    if (!EditorPanelConstruction.Resolved)
     {
-        std::printf("%s \u2014 the editor panels were rejected\n", HostName);
+        std::fprintf(stderr, "%s — the editor panels were rejected: %s\n",
+                     HostName, EditorPanelConstruction.Error.Detail);
+        std::fflush(stderr);
         return 1;
     }
 
-    if (!ControlCentre.ConstructControlCentrePanel(Viewport.MotionSource(), Viewport.Surface(), Viewport.Appearance()).Resolved)
+    std::fprintf(stderr, "[EditorHost] constructing the Control Centre panel\n");
+    std::fflush(stderr);
+    const Outcome<bool> ControlCentreConstruction =
+        ControlCentre.ConstructControlCentrePanel(Viewport.MotionSource(), Viewport.Surface(), Viewport.Appearance());
+    if (!ControlCentreConstruction.Resolved)
     {
-        std::printf("%s \u2014 the Control Centre panel was rejected\n", HostName);
+        std::fprintf(stderr, "%s — the Control Centre panel was rejected: %s\n",
+                     HostName, ControlCentreConstruction.Error.Detail);
+        std::fflush(stderr);
         return 1;
     }
 
