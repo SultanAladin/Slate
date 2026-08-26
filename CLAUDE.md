@@ -47,6 +47,44 @@ and update it whenever a folder or subsystem is added, moved, or renamed.
 
 ---
 
+## 🔴 Reuse-before-change gate
+
+Slate is an existing product, not a blank prototype. Before proposing or writing any implementation, inspect
+`git status`, the current commit, the relevant module index, and the existing call path. Treat the following
+surfaces as authoritative implementations when they already exist:
+
+- Codex import and the White Tea Service proof: `Engine/SlateDocument/Format/CodexInterchange/`,
+  `EngineContent/WhiteTeaService.codex`, and `References/CodexInterchangePlan.md`.
+- Atmosphere and sun rendering: `Engine/SlateCompute/Compute/AtmosphereIntegrator/`,
+  `Engine/SlateVulkan/Device/AtmospherePresentationSurface/`, and the editor's `SkyImage` path.
+- Viewport overlays and the ground grid: `Engine/SlateVulkan/Device/WorkspaceOverlayPass/`,
+  `Engine/SlateVulkan/Device/WorkspaceCadPass/`, and `Engine/SlateUI/Interface/ViewportSequence/`.
+- Viewport controls and drawers: `Engine/SlateUI/Interface/ControlCentrePanel/`,
+  `Engine/SlateUI/Interface/ControlPanel/`, `Engine/SlateUI/Interface/DrawerSpace/`, and
+  `Engine/SlateUI/Interface/ViewportSequence/`.
+- Transform gizmo behaviour: the existing `TransformManipulator` and viewport interaction path, including
+  the parametric host's established gizmo projection. Follow `AgenticInstuctions/EDITOR-AND-VALIDATION.md`
+  before changing either host.
+
+The reuse gate is mandatory:
+
+1. Search for the requested capability by behaviour, public symbol, file name, and reference surface.
+2. Read the existing declaration and its call sites before choosing a change location.
+3. Extend, connect, or correct the existing implementation. Do not create a second shader, sun, control set,
+   drawer, viewport overlay, or gizmo when an implementation already exists.
+4. Do not replace an existing implementation with a simplified mock, placeholder, synthetic scene row, or
+   parallel demonstration path. Existing Codex content and reference geometry remain the source of truth.
+5. If the existing implementation cannot satisfy the request, stop and report the exact missing contract and
+   the files inspected. Do not silently invent a substitute.
+6. Before finishing, search for duplicate implementations and state which existing symbols were reused or
+   changed. A new file or public symbol requires an explicit reason in the response.
+
+A request to "add" or "make" a feature means integrate with the existing Slate path unless the user explicitly
+asks for a separate prototype. The current commit and working tree are authoritative; never assume a feature is
+absent merely because its name differs from the request.
+
+---
+
 ## Build & tooling
 
 - **Shell = PowerShell.** Run every `.bat` and `.ps1` through the PowerShell tool, never Bash (Bash
