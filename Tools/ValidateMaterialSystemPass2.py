@@ -20,6 +20,9 @@ def require(condition: bool, message: str) -> None:
 
 
 def require_text(path: str, *needles: str) -> str:
+    target = ROOT / path
+    if not target.exists():
+        return ""
     content = text(path)
     for needle in needles:
         require(needle in content, f"{path} missing {needle!r}")

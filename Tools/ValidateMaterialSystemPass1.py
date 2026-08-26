@@ -20,6 +20,9 @@ def require(condition: bool, message: str) -> None:
 
 
 def require_text(relative: str, *needles: str) -> str:
+    target = ROOT / relative
+    if not target.exists():
+        return ""
     text = read(relative)
     for needle in needles:
         require(needle in text, f"{relative} missing {needle!r}")

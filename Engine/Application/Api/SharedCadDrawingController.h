@@ -1,10 +1,8 @@
 //============================================================================================================================================
 //                                                SHAREDCADDRAWINGCONTROLLER.H
 //============================================================================================================================================
-// 🧩 Shared CAD drawing controller vocabulary used by EditorHost and ParametricSketchHost.
-//    ParametricSketchHost owns the exact sketch document today; EditorHost consumes the same controller mapping so the
-//    combined editor does not grow a divergent CAD tool dispatch table while the remaining exact-record state is being
-//    lifted behind this seam.
+// 🧩 CAD drawing controller vocabulary used by EditorHost.
+//    Provides controller mappings for drafting tools and exact-record workspace state.
 
 #pragma once
 

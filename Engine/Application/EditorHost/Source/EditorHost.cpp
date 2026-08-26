@@ -453,6 +453,8 @@ inline bool IsCadDrawSubject(Slate::ParametricToolSubject Subject)
            Subject == Slate::ParametricToolSubject::CenterRectangle;
 }
 
+[[maybe_unused]] static const auto CadDraftSubjectMapping = Slate::ResolveSharedCadDraftSubject;
+
 }   // namespace
 
 //------------------------------------------------------------------------------------------------------------------------

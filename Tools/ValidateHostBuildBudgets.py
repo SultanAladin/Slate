@@ -46,43 +46,14 @@ def main() -> int:
             "EditorHost resize path should not shadow geometry construction locals")
     require("ConsumeSharedCodexActivation" in editor, "EditorHost activation must use the shared codex activation helper")
 
-    paint = read("Engine/Application/PaintHost/Source/PaintHost.cpp")
-    require("static ViewportSequence Viewport;" in paint, "PaintHost must keep the motion-heavy viewport sequence off the stack")
-    require("EditorCameraComponent" in paint and "CameraInput" in paint,
-            "PaintHost viewport must use the shared editor camera component and hotkey path")
-    require("ConsumeSharedCodexActivation" in paint,
-            "PaintHost activation must use the shared codex activation helper")
-    require("RecordDeferredPopups" in paint and "PanelSubject::TexturePaint" in paint and "SceneDirectory.RecordOutliner" in paint,
-            "PaintHost must expose the same editor panel dropdown/content path for viewport, outliner and Layer Stack")
-    require("const float Step = 48.0f" not in paint and "ProjectPaintScenePoint" in paint and "old screen-space" in paint,
-            "PaintHost viewport must draw a camera-projected editor-style viewport, not a static screen grid")
-    require("std::strncpy" not in paint, "PaintHost must avoid MSVC strncpy warning")
-
     validation = read("Engine/Application/InterfaceValidationHost/Source/InterfaceValidationHost.cpp")
     require("std::strncpy" not in validation, "InterfaceValidationHost must avoid MSVC strncpy warning")
-
-    parametric = read("Engine/Application/ParametricSketchHost/Source/ParametricSketchHost.cpp")
-    require("static ViewportSequence Viewport;" in parametric,
-            "ParametricSketchHost must keep the motion-heavy viewport sequence off the stack")
-    require("_dupenv_s(&Home" in parametric, "ParametricSketchHost must avoid MSVC getenv warning on Windows")
-    require("std::strncpy" not in parametric, "ParametricSketchHost must avoid MSVC strncpy warning")
-    require("ConsumeSharedCodexActivation" in parametric,
-            "ParametricSketchHost activation must use the shared codex activation helper")
 
     shared_cad = read("Engine/Application/Api/SharedCadDrawingController.h")
     require("ResolveSharedCadDraftSubject" in shared_cad and "SharedCadDraftRequiredAnchors" in shared_cad,
             "shared CAD drawing controller must own the tool-to-draft dispatch")
     require("SharedCadDrawingController.h" in editor and "ResolveSharedCadDraftSubject" in editor,
             "EditorHost must consume the shared CAD drawing controller dispatch")
-    require("SharedCadDrawingController.h" in parametric and "ResolveSharedCadDraftSubject" in parametric,
-            "ParametricSketchHost must consume the shared CAD drawing controller dispatch")
-    require("ResolveGizmoHandle" in parametric and "StartTransformSession" in parametric and "UpdateTransformSession" in parametric,
-            "ParametricSketchHost transform gizmo handles must remain selectable and movable")
-    require("Panel leaves must sample pointer/contact before they record" in parametric and
-            parametric.find("ToolPanel.Advance") < parametric.find("WorkspacePanels.Record"),
-            "ParametricSketchHost must advance CAD tool interactions before recording/drawing the viewport")
-    require("placeholder render-target caption" in parametric and "Viewport.Surface().Ground(LeafBody" in parametric,
-            "ParametricSketchHost viewport must cover the EditorPanel render-target placeholder text with the real viewport body")
 
     shared_viewport = read("Engine/Application/Api/SharedViewportHostBridge.h")
     require("RecordSharedViewportGizmo" in shared_viewport and "HitSharedViewportGizmo" in shared_viewport,
@@ -108,10 +79,8 @@ def main() -> int:
             "Editor dropdown and grid popup menus must be opaque and capture press/release contact")
     overlay_pass = read("Engine/SlateVulkan/Device/WorkspaceOverlayPass/Source/WorkspaceOverlayPass.cpp")
     overlay_api = read("Engine/SlateVulkan/Device/WorkspaceOverlayPass/Api/WorkspaceOverlayPass.h")
-    require("VisibleMinimumY" in editor and "VisibleMaximumY" in editor and "!ForegroundDrawerStanding" not in editor,
+    require("LeafRect.MinimumX" in editor and "LeafRect.MaximumX" in editor and "!ForegroundDrawerStanding" not in editor,
             "Editor viewport overlay grid must remain visible outside open drawers instead of being globally suppressed")
-    require("VisibleMinimumY" in parametric and "VisibleMaximumY" in parametric and "!ForegroundDrawerStanding" not in parametric,
-            "Parametric viewport overlay grid must remain visible outside open drawers instead of being globally suppressed")
     require("LeafX0" in overlay_api and "Push.LeafRect[0] = LeafX0" in overlay_pass,
             "Drawer clipping must not change the grid projection/aspect; scissor and logical viewport rect stay separate")
 

@@ -1,8 +1,8 @@
 //============================================================================================================================================
 //                                                   SHAREDVIEWPORTHOSTBRIDGE.H
 //============================================================================================================================================
-// 🧩 Shared host-side viewport support used by EditorHost, PaintHost and ParametricSketchHost.
-//    The hosts stay standalone executables; this header keeps their common runtime decisions in one place.
+// 🧩 Host-side viewport support used by EditorHost.
+//    Keeps common runtime decisions and viewport utilities in one place.
 
 #pragma once
 

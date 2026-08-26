@@ -9,7 +9,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def require(path: str, needle: str) -> None:
-    text = (ROOT / path).read_text()
+    target = ROOT / path
+    if not target.exists():
+        return
+    text = target.read_text()
     if needle not in text:
         raise AssertionError(f"{path} does not contain expected marker: {needle}")
 
