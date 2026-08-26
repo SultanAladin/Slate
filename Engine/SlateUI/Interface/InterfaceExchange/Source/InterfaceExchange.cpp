@@ -19,6 +19,8 @@
 //    beyond the backend, which exposes no warp API of its own.
 #include <GLFW/glfw3.h>
 
+#include <cstdio>
+
 namespace Slate
 {
 
@@ -725,40 +727,72 @@ Outcome<bool> InterfaceExchange::Record(VkCommandBuffer CommandRecording, Record
         return Outcome<bool>::Result(true);
     }
 
-    ImDrawList* const Foreground = ImGui::GetForegroundDrawList();
-    ImVector<ImDrawList*> Held = AssembledContent->CmdLists;
-    const int HeldCount = AssembledContent->CmdListsCount;
-    const int HeldVtx = AssembledContent->TotalVtxCount;
-    const int HeldIdx = AssembledContent->TotalIdxCount;
+    // 🔴 The sealed draw data is treated as READ-ONLY here. Mutating `CmdLists` in place to render the
+    //    beneath/above bands one at a time leaves the context's own assembled record temporarily detached
+    //    from the lists `Render()` just built, and the first Windows frame faults inside the vendor render
+    //    path before the call returns. A local filtered copy carries the same lists, viewport and textures
+    //    without rewriting the standing assembled record.
+    ImDrawData Filtered = *AssembledContent;
+    Filtered.CmdLists.clear();
+    Filtered.TotalVtxCount = 0;
+    Filtered.TotalIdxCount = 0;
 
-    AssembledContent->CmdLists.clear();
-    AssembledContent->TotalVtxCount = 0;
-    AssembledContent->TotalIdxCount = 0;
+    ImDrawList* Foreground = nullptr;
+    if (ImGuiViewportP* const Owner = static_cast<ImGuiViewportP*>(AssembledContent->OwnerViewport))
+        Foreground = Owner->BgFgDrawLists[1];
 
     const bool WantForeground = (Band == RecordBand::Above);
 
-    for (int Index = 0; Index < Held.Size; ++Index)
+    for (int Index = 0; Index < AssembledContent->CmdLists.Size; ++Index)
     {
-        ImDrawList* const List = Held[Index];
+        ImDrawList* const List = AssembledContent->CmdLists[Index];
         const bool IsForeground = (List == Foreground);
 
         if (IsForeground != WantForeground)
             continue;
 
-        AssembledContent->CmdLists.push_back(List);
-        AssembledContent->TotalVtxCount += List->VtxBuffer.Size;
-        AssembledContent->TotalIdxCount += List->IdxBuffer.Size;
+        Filtered.CmdLists.push_back(List);
+        Filtered.TotalVtxCount += List->VtxBuffer.Size;
+        Filtered.TotalIdxCount += List->IdxBuffer.Size;
     }
 
-    AssembledContent->CmdListsCount = AssembledContent->CmdLists.Size;
+    Filtered.CmdListsCount = Filtered.CmdLists.Size;
 
-    if (AssembledContent->CmdListsCount > 0)
-        ImGui_ImplVulkan_RenderDrawData(AssembledContent, CommandRecording);
+    static bool FirstBeneathPrepared = false;
+    static bool FirstBeneathRendered = false;
+    static bool FirstAbovePrepared = false;
+    static bool FirstAboveRendered = false;
 
-    AssembledContent->CmdLists = Held;
-    AssembledContent->CmdListsCount = HeldCount;
-    AssembledContent->TotalVtxCount = HeldVtx;
-    AssembledContent->TotalIdxCount = HeldIdx;
+    if (Band == RecordBand::Beneath && !FirstBeneathPrepared)
+    {
+        std::fprintf(stderr, "[Interface] prepared beneath band: %d list(s), %d vertices, %d indices\n",
+                     Filtered.CmdListsCount, Filtered.TotalVtxCount, Filtered.TotalIdxCount);
+        std::fflush(stderr);
+        FirstBeneathPrepared = true;
+    }
+    if (Band == RecordBand::Above && !FirstAbovePrepared)
+    {
+        std::fprintf(stderr, "[Interface] prepared above band: %d list(s), %d vertices, %d indices\n",
+                     Filtered.CmdListsCount, Filtered.TotalVtxCount, Filtered.TotalIdxCount);
+        std::fflush(stderr);
+        FirstAbovePrepared = true;
+    }
+
+    if (Filtered.CmdListsCount > 0)
+        ImGui_ImplVulkan_RenderDrawData(&Filtered, CommandRecording);
+
+    if (Band == RecordBand::Beneath && !FirstBeneathRendered)
+    {
+        std::fprintf(stderr, "[Interface] rendered the first beneath band\n");
+        std::fflush(stderr);
+        FirstBeneathRendered = true;
+    }
+    if (Band == RecordBand::Above && !FirstAboveRendered)
+    {
+        std::fprintf(stderr, "[Interface] rendered the first above band\n");
+        std::fflush(stderr);
+        FirstAboveRendered = true;
+    }
 
     if (Band == RecordBand::Above)
         ContentAssembled = false;
