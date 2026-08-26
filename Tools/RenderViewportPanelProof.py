@@ -489,7 +489,7 @@ def draw_blender_gizmo(img: Image, cam: Camera, body=BODY) -> None:
 
 def draw_cad_cube(img: Image, cam: Camera, body=BODY) -> None:
     x0, y0, x1, _ = body
-    cx, cy, scale = x1 - 70, y0 + 58, 28.0
+    cx, cy, scale = x1 - 70, y0 + 58, 40.0
     right, up, forward = cam.basis
     def P(p: Vec3) -> Point:
         return (cx + dot(p, right) * scale, cy - dot(p, up) * scale)
@@ -513,7 +513,7 @@ def draw_cad_cube(img: Image, cam: Camera, body=BODY) -> None:
             dx, dy = pp[3]
             return (ax + (bx - ax) * u + (dx - ax) * v, ay + (by - ay) * u + (dy - ay) * v)
         def stroke(u0: float, v0: float, u1: float, v1: float):
-            img.line(fp(u0, v0), fp(u1, v1), (16,18,24), 0.95, 1)
+            img.line(fp(u0, v0), fp(u1, v1), (255,255,255), 0.95, 1)
         glyphs = {
             'T': [(0,0,1,0),(0.5,0,0.5,1)],
             'O': [(0.2,0,0.8,0),(0.8,0,1,0.2),(1,0.2,1,0.8),(1,0.8,0.8,1),(0.8,1,0.2,1),(0.2,1,0,0.8),(0,0.8,0,0.2),(0,0.2,0.2,0)],

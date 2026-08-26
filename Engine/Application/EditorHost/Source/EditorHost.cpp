@@ -991,9 +991,6 @@ int main(int ArgumentCount, char** ArgumentValues)
             const PointerCondition& ForegroundPointer = Viewport.Surface().Pointer();
             const PlaneExtent NorthInterior = Viewport.Drawers().Interior(DrawerBearing::North);
             const PlaneExtent SouthInterior = Viewport.Drawers().Interior(DrawerBearing::South);
-            const bool ForegroundDrawerStanding =
-                (NorthInterior.MaximumY > 0.0f && NorthInterior.MinimumY < static_cast<float>(Pass.Height)) ||
-                (SouthInterior.MaximumY > 0.0f && SouthInterior.MinimumY < static_cast<float>(Pass.Height));
             const bool PointerBehindDrawer =
                 NorthInterior.Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY) ||
                 SouthInterior.Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY);
@@ -1131,6 +1128,17 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                       Index,
                                                       true));
 
+                    PointerCondition LeafPointer = BackgroundPointer;
+                    if (WorkspacePanels.PopupOpen(Index))
+                    {
+                        LeafPointer.PositionX = LeafPointer.PositionY = -1000000.0f;
+                        LeafPointer.TravelX = LeafPointer.TravelY = LeafPointer.WheelY = 0.0f;
+                        LeafPointer.ContactHeld = LeafPointer.ContactPressed = false;
+                        LeafPointer.ContactDoublePressed = LeafPointer.ContactReleased = false;
+                        LeafPointer.SecondaryHeld = LeafPointer.SecondaryPressed = false;
+                        LeafPointer.SecondaryReleased = false;
+                    }
+
                     // 📝 The leaf content — the editor's scene directory inside the workspace's own
                     //    panels. Recorded into the same window the panel chrome was, so it clips and
                     //    orders with it: the sky fills a viewport leaf, the outliner | details fills
@@ -1167,11 +1175,11 @@ int main(int ArgumentCount, char** ArgumentValues)
                                         SceneApplied.ViewportSkyCamera.AzimuthDegrees,
                                         SceneApplied.ViewportSkyCamera.ElevationDegrees);
                                     const EditorPanelConfiguration& PanelDeclaredForGizmo = PanelConfiguration[Index];
-                                    if (BackgroundPointer.ContactPressed &&
-                                        LeafBody.Encloses(BackgroundPointer.PositionX, BackgroundPointer.PositionY))
+                                    if (LeafPointer.ContactPressed &&
+                                        LeafBody.Encloses(LeafPointer.PositionX, LeafPointer.PositionY))
                                     {
                                         const SharedViewportOrientation Hit = HitSharedViewportGizmo(
-                                            LeafBody, GizmoBasis, BackgroundPointer.PositionX, BackgroundPointer.PositionY,
+                                            LeafBody, GizmoBasis, LeafPointer.PositionX, LeafPointer.PositionY,
                                             PanelDeclaredForGizmo.Gizmo == PanelGizmo::Cad);
                                         if (Hit != SharedViewportOrientation::None)
                                         {
@@ -1823,7 +1831,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                 // ImGui ground. Suppress it while either opaque foreground drawer stands; otherwise the
                 // lattice would visibly cut through Control Centre and Content Browser pages.
                 for (std::uint32_t ViewportIndex = 0u;
-                     !ForegroundDrawerStanding && ViewportIndex < ViewportLeafTally;
+                     ViewportIndex < ViewportLeafTally;
                      ++ViewportIndex)
                 {
                     const std::uint32_t LeafIndex = ViewportLeafIndexs[ViewportIndex];
@@ -1836,10 +1844,18 @@ int main(int ArgumentCount, char** ArgumentValues)
                     }
 
                     const PlaneExtent& LeafRect = ViewportLeafRects[ViewportIndex];
+                    float VisibleMinimumY = LeafRect.MinimumY;
+                    float VisibleMaximumY = LeafRect.MaximumY;
+                    if (NorthInterior.MaximumY > 0.0f && NorthInterior.MinimumY < static_cast<float>(Pass.Height))
+                        VisibleMinimumY = VisibleMinimumY > NorthInterior.MaximumY ? VisibleMinimumY : NorthInterior.MaximumY;
+                    if (SouthInterior.MaximumY > 0.0f && SouthInterior.MinimumY < static_cast<float>(Pass.Height))
+                        VisibleMaximumY = VisibleMaximumY < SouthInterior.MinimumY ? VisibleMaximumY : SouthInterior.MinimumY;
+                    if (VisibleMaximumY <= VisibleMinimumY + 1.0f)
+                        continue;
 
                     Overlay.Record(Pass.Recording, Pass.Width, Pass.Height,
-                                   LeafRect.MinimumX, LeafRect.MinimumY,
-                                   LeafRect.MaximumX, LeafRect.MaximumY);
+                                   LeafRect.MinimumX, VisibleMinimumY,
+                                   LeafRect.MaximumX, VisibleMaximumY);
                 }
             }
             else

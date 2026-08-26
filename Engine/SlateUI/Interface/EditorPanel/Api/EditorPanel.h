@@ -122,6 +122,7 @@ public:
                          std::uint32_t PresentationIndex = 0u,
                          bool DeferPopups = false);
     bool PointerCaptured(std::uint32_t PresentationIndex) const;
+    bool PopupOpen(std::uint32_t PresentationIndex) const;
     void WithdrawPresentation(std::uint32_t PresentationIndex);
     void Reset();
 

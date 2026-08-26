@@ -192,12 +192,17 @@ void EditorPanel::RecordDeferredPopups(PanelStructure& Partition, EditorPanelCon
 
 bool EditorPanel::PointerCaptured(std::uint32_t PresentationIndex) const
 {
-    const bool ContactCurrent = Pointer.ContactHeld || Pointer.ContactReleased;
+    const bool ContactCurrent = Pointer.ContactPressed || Pointer.ContactHeld || Pointer.ContactReleased;
     const bool PresentationCaptured = CapturedPresentation == PresentationIndex;
     const bool PointerWithinPresentation = DeferredDivider.Encloses(Pointer.PositionX, Pointer.PositionY);
     const bool PopupCaptured = DisclosedPresentation == PresentationIndex && Interaction.AnyDisclosed() &&
                                PointerWithinPresentation;
     return ContactCurrent && (PresentationCaptured || PopupCaptured);
+}
+
+bool EditorPanel::PopupOpen(std::uint32_t PresentationIndex) const
+{
+    return DisclosedPresentation == PresentationIndex && Interaction.AnyDisclosed();
 }
 
 void EditorPanel::WithdrawPresentation(std::uint32_t PresentationIndex)
@@ -811,7 +816,7 @@ void EditorPanel::RecordSubjectMenu(std::uint32_t RecordIndex,
                                       Anchor.MaximumY + Measure.MenuLift,
                                       MenuX,
                                       Measure.MenuPadY * 2.0f + Measure.MenuRowHeight * 6.0f);
-    Surface->Ground(Menu, Colour.ChromeGround, Measure.MenuRadius, CornerAll);
+    Surface->Ground(Menu, Covering(0x18191Eu), Measure.MenuRadius, CornerAll);
     Surface->Edge(Menu, Colour.Edge, Measure.EdgeWeight, Measure.MenuRadius, CornerAll);
 
     // 📐 Ordered as the workspace reads: the two viewers, the scene tree, then
@@ -865,7 +870,7 @@ void EditorPanel::RecordDivisionMenu(std::uint32_t RecordIndex,
                                       Anchor.MaximumY + Measure.MenuLift,
                                       MenuX,
                                       Measure.MenuPadY * 2.0f + Measure.MenuRowHeight * 4.0f + 1.0f);
-    Surface->Ground(Menu, Colour.ChromeGround, Measure.MenuRadius, CornerAll);
+    Surface->Ground(Menu, Covering(0x18191Eu), Measure.MenuRadius, CornerAll);
     Surface->Edge(Menu, Colour.Edge, Measure.EdgeWeight, Measure.MenuRadius, CornerAll);
 
     const char* Captions[4] = { "Split Left", "Split Right", "Split Top", "Split Bottom" };
@@ -920,7 +925,7 @@ void EditorPanel::RecordLatticeMenu(std::uint32_t RecordIndex,
         CloseDisclosure();
         return;
     }
-    Surface->Ground(Menu, Colour.ChromeGround, 12.0f, CornerAll);
+    Surface->Ground(Menu, Covering(0x18191Eu), 12.0f, CornerAll);
     Surface->Edge(Menu, Colour.Edge, Measure.EdgeWeight, 12.0f, CornerAll);
     Surface->TextRun(Menu.MinimumX + 20.0f, Menu.MinimumY + 18.0f,
                      Colour.ColourPrimary, "Grid settings", Measure.TextBody, 0.0f, false);
@@ -1077,7 +1082,7 @@ void EditorPanel::RecordFooterMenu(std::uint32_t RecordIndex,
     {
         const PlaneExtent Menu = FitExtent(Anchor.MinimumX, 240.0f, Anchor.MinimumY - 116.0f, 104.0f);
         if (Dismissed(Menu)) return;
-        Surface->Ground(Menu, Colour.ChromeGround, 12.0f, CornerAll);
+        Surface->Ground(Menu, Covering(0x18191Eu), 12.0f, CornerAll);
         Surface->Edge(Menu, Colour.Edge, Measure.EdgeWeight, 12.0f, CornerAll);
         Surface->TextRun(Menu.MinimumX + 12.0f, Menu.MinimumY + 14.0f,
                          Colour.ColourSecondary, "Saved Cameras", Measure.TextSmall, 0.0f, false);
@@ -1097,7 +1102,7 @@ void EditorPanel::RecordFooterMenu(std::uint32_t RecordIndex,
                                            Anchor.MinimumY - 132.0f,
                                            120.0f);
         if (Dismissed(Menu)) return;
-        Surface->Ground(Menu, Colour.ChromeGround, 12.0f, CornerAll);
+        Surface->Ground(Menu, Covering(0x18191Eu), 12.0f, CornerAll);
         Surface->Edge(Menu, Colour.Edge, Measure.EdgeWeight, 12.0f, CornerAll);
 
         ToggleDeclaration Declarations[3];
@@ -1128,7 +1133,7 @@ void EditorPanel::RecordFooterMenu(std::uint32_t RecordIndex,
                                        Measure.MenuPadY * 2.0f +
                                            Measure.MenuRowHeight * static_cast<float>(OptionCount));
     if (Dismissed(Menu)) return;
-    Surface->Ground(Menu, Colour.ChromeGround, Measure.MenuRadius, CornerAll);
+    Surface->Ground(Menu, Covering(0x18191Eu), Measure.MenuRadius, CornerAll);
     Surface->Edge(Menu, Colour.Edge, Measure.EdgeWeight, Measure.MenuRadius, CornerAll);
 
     const char* ShadingOptions[6] = { "solid", "wireframe", "matcap", "normal", "metallic", "gi" };

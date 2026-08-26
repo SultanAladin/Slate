@@ -316,7 +316,7 @@ inline void RecordSharedViewportCadCube(RecordingSurface& Surface,
 
     const float CentreX = Extent.MaximumX - 70.0f;
     const float CentreY = Extent.MinimumY + 58.0f;
-    const float Scale = 28.0f;
+    const float Scale = 40.0f;
     const double AxisX[3] = { 1.0, 0.0, 0.0 };
     const double AxisY[3] = { 0.0, 1.0, 0.0 };
     const double AxisZ[3] = { 0.0, 0.0, 1.0 };
@@ -393,7 +393,7 @@ inline void RecordSharedViewportCadCube(RecordingSurface& Surface,
             FacePoint(X1, Y1, SX1, SY1);
             const float Xs[2] = { SX0, SX1 };
             const float Ys[2] = { SY0, SY1 };
-            Surface.Polyline(Xs, Ys, 2u, ThemeToken{ 16u, 18u, 24u, 225u }, 1.25f);
+            Surface.Polyline(Xs, Ys, 2u, ThemeToken{ 255u, 255u, 255u, 235u }, 1.25f);
         };
         const auto Glyph = [&](char C, float X, float Y, float W, float H)
         {
@@ -438,10 +438,7 @@ inline void RecordSharedViewportCadCube(RecordingSurface& Surface,
     Surface.Confine(Extent);
     for (const FaceRecord& Face : Faces)
     {
-        const float T0[6] = { Face.Corners[0], Face.Corners[1], Face.Corners[2], Face.Corners[3], Face.Corners[4], Face.Corners[5] };
-        const float T1[6] = { Face.Corners[0], Face.Corners[1], Face.Corners[4], Face.Corners[5], Face.Corners[6], Face.Corners[7] };
-        Surface.Tongue(T0, 3u, Face.Colour);
-        Surface.Tongue(T1, 3u, Face.Colour);
+        Surface.Tongue(Face.Corners, 4u, Face.Colour);
         const float X0[2] = { Face.Corners[0], Face.Corners[2] }; const float Y0[2] = { Face.Corners[1], Face.Corners[3] };
         const float X1[2] = { Face.Corners[2], Face.Corners[4] }; const float Y1[2] = { Face.Corners[3], Face.Corners[5] };
         const float X2[2] = { Face.Corners[4], Face.Corners[6] }; const float Y2[2] = { Face.Corners[5], Face.Corners[7] };
@@ -451,8 +448,7 @@ inline void RecordSharedViewportCadCube(RecordingSurface& Surface,
         Surface.Polyline(X2, Y2, 2u, ThemeToken{ 255u, 255u, 255u, 190u }, 1.2f);
         Surface.Polyline(X3, Y3, 2u, ThemeToken{ 255u, 255u, 255u, 190u }, 1.2f);
 
-        if (Face.Depth <= 0.25)
-            DrawFaceLabel(Face);
+        DrawFaceLabel(Face);
     }
     Surface.Release();
 }
@@ -464,7 +460,7 @@ inline SharedViewportOrientation HitSharedViewportCadCube(const PlaneExtent& Ext
 {
     const float CentreX = Extent.MaximumX - 70.0f;
     const float CentreY = Extent.MinimumY + 58.0f;
-    const float Scale = 28.0f;
+    const float Scale = 40.0f;
     const double Axis[6][3] =
     {
         {  1.0,  0.0,  0.0 }, { -1.0,  0.0,  0.0 },
@@ -479,7 +475,7 @@ inline SharedViewportOrientation HitSharedViewportCadCube(const PlaneExtent& Ext
     };
 
     SharedViewportOrientation Best = SharedViewportOrientation::None;
-    float BestDistance = 24.0f * 24.0f;
+    float BestDistance = 34.0f * 34.0f;
     for (std::uint32_t Index = 0u; Index < 6u; ++Index)
     {
         float X = 0.0f;

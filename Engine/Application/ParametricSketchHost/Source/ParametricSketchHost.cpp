@@ -5379,9 +5379,6 @@ int main(int ArgumentCount, char** ArgumentValues)
         const PointerCondition& ForegroundPointer = Viewport.Surface().Pointer();
         const PlaneExtent NorthInterior = Viewport.Drawers().Interior(DrawerBearing::North);
         const PlaneExtent SouthInterior = Viewport.Drawers().Interior(DrawerBearing::South);
-        const bool ForegroundDrawerStanding =
-            (NorthInterior.MaximumY > 0.0f && NorthInterior.MinimumY < static_cast<float>(Pass.Height)) ||
-            (SouthInterior.MaximumY > 0.0f && SouthInterior.MinimumY < static_cast<float>(Pass.Height));
         const bool PointerBehindDrawer =
             NorthInterior.Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY) ||
             SouthInterior.Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY);
@@ -5452,6 +5449,17 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                Index,
                                                true));
 
+                PointerCondition LeafPointer = BackgroundPointer;
+                if (WorkspacePanels.PopupOpen(Index))
+                {
+                    LeafPointer.PositionX = LeafPointer.PositionY = -1000000.0f;
+                    LeafPointer.TravelX = LeafPointer.TravelY = LeafPointer.WheelY = 0.0f;
+                    LeafPointer.ContactHeld = LeafPointer.ContactPressed = false;
+                    LeafPointer.ContactDoublePressed = LeafPointer.ContactReleased = false;
+                    LeafPointer.SecondaryHeld = LeafPointer.SecondaryPressed = false;
+                    LeafPointer.SecondaryReleased = false;
+                }
+
                 for (std::uint32_t Leaf = 0u; Leaf < WorkspacePanels.LeafCount(); ++Leaf)
                 {
                     const PlaneExtent LeafBody = WorkspacePanels.LeafBody(Leaf);
@@ -5511,14 +5519,14 @@ int main(int ArgumentCount, char** ArgumentValues)
                             }
 
                             ParametricViewportState& View = ViewStates[Index];
-                            const bool PointerInside = LeafBody.Encloses(BackgroundPointer.PositionX, BackgroundPointer.PositionY);
+                            const bool PointerInside = LeafBody.Encloses(LeafPointer.PositionX, LeafPointer.PositionY);
                             bool PointerTaken = false;
                             Viewport.Surface().Confine(LeafBody);
-                            RecordViewportOrientationHud(Viewport.Surface(), LeafBody, BackgroundPointer,
+                            RecordViewportOrientationHud(Viewport.Surface(), LeafBody, LeafPointer,
                                                          View, PanelConfiguration[Index],
                                                          PointerTaken);
                             if (!PointerTaken && !Transform.Engaged)
-                                DriveViewport(LeafBody, BackgroundPointer, Modifiers,
+                                DriveViewport(LeafBody, LeafPointer, Modifiers,
                                               View, PanelConfiguration[Index].Perspective);
 
                             const SpatialBasis Basis = ResolveSketchBasis(Sketch);
@@ -5527,7 +5535,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                           PanelConfiguration[Index].Perspective,
                                                           PanelConfiguration[Index]);
 
-                            DriveViewportSelectionAndTransform(LeafBody, BackgroundPointer,
+                            DriveViewportSelectionAndTransform(LeafBody, LeafPointer,
                                                                Viewport.Surface().TextInput(), Modifiers,
                                                                Basis, View,
                                                                PanelConfiguration[Index].Perspective,
@@ -5544,7 +5552,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                                LastGPressedMilliseconds);
 
                             if (!Transform.Engaged)
-                                DriveDrawingWithModifiers(LeafBody, BackgroundPointer,
+                                DriveDrawingWithModifiers(LeafBody, LeafPointer,
                                                          Viewport.Surface().TextInput(), Modifiers,
                                                          Basis, View,
                                                          PanelConfiguration[Index].Perspective,
@@ -5553,7 +5561,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                          PendingSelection, Draft, PointerTaken);
 
                             if (!PointerTaken && PointerInside && ToolsApplied.ActiveSubject == ParametricToolSubject::Select)
-                                PointerTaken = SelectSceneMeshAtPointer(LeafBody, BackgroundPointer, Basis, View,
+                                PointerTaken = SelectSceneMeshAtPointer(LeafBody, LeafPointer, Basis, View,
                                                                         PanelConfiguration[Index].Perspective,
                                                                         OpenedScene, OpenedSceneStanding,
                                                                         SceneDirectoryStorage, SceneApplied);
@@ -5940,14 +5948,22 @@ int main(int ArgumentCount, char** ArgumentValues)
             if (OverlayPass.Standing())
             {
                 for (std::uint32_t ViewportIndex = 0u;
-                     !ForegroundDrawerStanding && ViewportIndex < ViewportLeafTally;
+                     ViewportIndex < ViewportLeafTally;
                      ++ViewportIndex)
                 {
                     const PlaneExtent& LeafRect = ViewportLeafRects[ViewportIndex];
+                    float VisibleMinimumY = LeafRect.MinimumY;
+                    float VisibleMaximumY = LeafRect.MaximumY;
+                    if (NorthInterior.MaximumY > 0.0f && NorthInterior.MinimumY < static_cast<float>(Pass.Height))
+                        VisibleMinimumY = VisibleMinimumY > NorthInterior.MaximumY ? VisibleMinimumY : NorthInterior.MaximumY;
+                    if (SouthInterior.MaximumY > 0.0f && SouthInterior.MinimumY < static_cast<float>(Pass.Height))
+                        VisibleMaximumY = VisibleMaximumY < SouthInterior.MinimumY ? VisibleMaximumY : SouthInterior.MinimumY;
+                    if (VisibleMaximumY <= VisibleMinimumY + 1.0f)
+                        continue;
                     OverlayPass.Upload(ViewportOverlays[ViewportIndex]);
                     OverlayPass.Record(Pass.Recording, Pass.Width, Pass.Height,
-                                       LeafRect.MinimumX, LeafRect.MinimumY,
-                                       LeafRect.MaximumX, LeafRect.MaximumY);
+                                       LeafRect.MinimumX, VisibleMinimumY,
+                                       LeafRect.MaximumX, VisibleMaximumY);
                 }
             }
         }
