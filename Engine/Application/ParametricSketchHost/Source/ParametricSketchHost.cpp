@@ -3696,7 +3696,8 @@ ParametricGizmoHandle ResolveGizmoHandle(const PointerCondition& Pointer,
                                          const GizmoScreenBasis& Basis,
                                          ParametricTransformMode Mode)
 {
-    const float AxisLength = 44.0f;
+    // Keep hit geometry in the same fixed-pixel envelope as References/Cad/js/gizmo.js.
+    constexpr float AxisLength = 82.0f;
     const float XEndX = Basis.PivotX + Basis.XDirX * AxisLength;
     const float XEndY = Basis.PivotY + Basis.XDirY * AxisLength;
     const float ZEndX = Basis.PivotX + Basis.ZDirX * AxisLength;
@@ -3705,8 +3706,8 @@ ParametricGizmoHandle ResolveGizmoHandle(const PointerCondition& Pointer,
     const double CentreDistanceSquared = DistanceSquared2(Pointer.PositionX, Pointer.PositionY, Basis.PivotX, Basis.PivotY);
     if (Mode == ParametricTransformMode::Move)
     {
-        const float PlaneOffset = 16.0f;
-        const float PlaneHalf = 7.0f;
+        constexpr float PlaneOffset = 28.0f;
+        constexpr float PlaneHalf = 11.0f;
         const float PlaneCentreX = Basis.PivotX + (Basis.XDirX + Basis.ZDirX) * PlaneOffset;
         const float PlaneCentreY = Basis.PivotY + (Basis.XDirY + Basis.ZDirY) * PlaneOffset;
         const float LocalX = (Pointer.PositionX - PlaneCentreX) * Basis.XDirX + (Pointer.PositionY - PlaneCentreY) * Basis.XDirY;
@@ -3714,10 +3715,10 @@ ParametricGizmoHandle ResolveGizmoHandle(const PointerCondition& Pointer,
         if (std::fabs(LocalX) <= PlaneHalf && std::fabs(LocalZ) <= PlaneHalf)
             return ParametricGizmoHandle::MoveFree;
         if (DistancePointSegmentSquared2(Pointer.PositionX, Pointer.PositionY,
-                                         Basis.PivotX, Basis.PivotY, XEndX, XEndY) <= 8.0 * 8.0)
+                                         Basis.PivotX, Basis.PivotY, XEndX, XEndY) <= 11.0 * 11.0)
             return ParametricGizmoHandle::MoveX;
         if (DistancePointSegmentSquared2(Pointer.PositionX, Pointer.PositionY,
-                                         Basis.PivotX, Basis.PivotY, ZEndX, ZEndY) <= 8.0 * 8.0)
+                                         Basis.PivotX, Basis.PivotY, ZEndX, ZEndY) <= 11.0 * 11.0)
             return ParametricGizmoHandle::MoveZ;
         if (CentreDistanceSquared <= 12.0 * 12.0)
             return ParametricGizmoHandle::MoveFree;
@@ -3725,7 +3726,7 @@ ParametricGizmoHandle ResolveGizmoHandle(const PointerCondition& Pointer,
     else if (Mode == ParametricTransformMode::Rotate)
     {
         const double Distance = std::sqrt(CentreDistanceSquared);
-        if (Distance >= 28.0 && Distance <= 44.0)
+        if (Distance >= 91.0 && Distance <= 101.0)
             return ParametricGizmoHandle::Rotate;
         if (CentreDistanceSquared <= 12.0 * 12.0)
             return ParametricGizmoHandle::Rotate;
@@ -3858,12 +3859,27 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
 
     const ViewFrame Frame = ResolveViewportFrame(Basis, View, Perspective);
     const SpatialPoint Pivot = Selected.Position;
-    const SpatialDirection AxisX = Basis.Along;
-    const SpatialDirection AxisY = Basis.Normal;
-    const SpatialDirection AxisZ = Basis.Across;
-    const std::uint32_t XPacked = OverlayPacked(0xE0u, 0x14u, 0x14u, 255u);
-    const std::uint32_t YPacked = OverlayPacked(0x22u, 0xC5u, 0x5Eu, 255u);
-    const std::uint32_t ZPacked = OverlayPacked(0x15u, 0x60u, 0xE0u, 255u);
+
+    // The reference gizmo is screen-sized. Derive one world-to-pixel scale at the pivot and
+    // use it for every handle, so perspective distance cannot make the gizmo balloon or shrink.
+    float SampleX = 0.0f, SampleY = 0.0f;
+    double WorldPerPixel = 1.0;
+    if (ProjectSpatialPoint(Basis, View, Perspective, Extent,
+                            Added(Pivot, Scaled(Basis.Along, 1.0)), SampleX, SampleY))
+    {
+        const float DX = SampleX - Screen.PivotX;
+        const float DY = SampleY - Screen.PivotY;
+        const double PixelsPerWorld = std::sqrt(static_cast<double>(DX * DX + DY * DY));
+        if (PixelsPerWorld > 1.0e-4)
+            WorldPerPixel = 1.0 / PixelsPerWorld;
+    }
+    const SpatialDirection AxisX = Scaled(Basis.Along, WorldPerPixel);
+    const SpatialDirection AxisY = Scaled(Basis.Normal, WorldPerPixel);
+    const SpatialDirection AxisZ = Scaled(Basis.Across, WorldPerPixel);
+    // Palette and pixel proportions mirror References/Cad/js/gizmo.js exactly.
+    const std::uint32_t XPacked = OverlayPacked(0x31u, 0xF5u, 0x0Au, 255u);
+    const std::uint32_t YPacked = OverlayPacked(0x1Cu, 0x64u, 0xFCu, 255u);
+    const std::uint32_t ZPacked = OverlayPacked(0xFAu, 0x14u, 0x14u, 255u);
     const std::uint32_t White = OverlayPacked(0xFFu, 0xFFu, 0xFFu, 255u);
     const std::uint32_t Highlight = OverlayPacked(0xFBu, 0xBFu, 0x24u, 255u);
     const std::uint32_t PlaneFill = OverlayPacked(0xFFu, 0xFFu, 0xFFu, 56u);
@@ -3919,7 +3935,7 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
                                       std::uint32_t Packed,
                                       bool Highlighted)
     {
-        const double Length = 78.0;
+        constexpr double Length = 64.0;
         const double Radius = Highlighted ? 4.4 : 3.0;
         const SpatialPoint A = Added(Pivot, Scaled(Axis, 12.0));
         const SpatialPoint B = Added(Pivot, Scaled(Axis, Length));
@@ -3935,8 +3951,10 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
                                  const SpatialDirection& Side,
                                  std::uint32_t Packed)
     {
-        const SpatialPoint Tip = Added(Pivot, Scaled(Axis, 102.0));
-        const SpatialPoint Base = Added(Pivot, Scaled(Axis, 78.0));
+        constexpr double TipDistance = 82.0;
+        constexpr double BaseDistance = 64.0;
+        const SpatialPoint Tip = Added(Pivot, Scaled(Axis, TipDistance));
+        const SpatialPoint Base = Added(Pivot, Scaled(Axis, BaseDistance));
         const SpatialDirection SideB = Normalize(Cross(Axis, Side));
         const double Radius = 10.0;
         const SpatialPoint P0 = Added(Base, Scaled(Side, Radius));
@@ -3967,11 +3985,11 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
     };
     const auto AddScreenHandle = [&](double Radius, std::uint32_t Packed)
     {
-        SpatialPoint Prior = Added(Pivot, Scaled(Frame.Right, Radius));
+        SpatialPoint Prior = Added(Pivot, Scaled(Frame.Right, Radius * WorldPerPixel));
         for (std::uint32_t Segment = 1u; Segment <= 40u; ++Segment)
         {
             const double T = static_cast<double>(Segment) / 40.0 * 2.0 * Pi;
-            const SpatialPoint Next = Added(Pivot, Added(Scaled(Frame.Right, std::cos(T) * Radius), Scaled(Frame.Up, std::sin(T) * Radius)));
+            const SpatialPoint Next = Added(Pivot, Added(Scaled(Frame.Right, std::cos(T) * Radius * WorldPerPixel), Scaled(Frame.Up, std::sin(T) * Radius * WorldPerPixel)));
             AddWorldLine(Prior, Next, Packed, 2.0f);
             Prior = Next;
         }
@@ -3986,20 +4004,24 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
         AddConeHead(AxisX, AxisY, XColour);
         AddCylinderShaft(AxisZ, AxisY, ZColour, HoveredHandle == ParametricGizmoHandle::MoveZ);
         AddConeHead(AxisZ, AxisY, ZColour);
-        const SpatialPoint C = Added(Pivot, Added(Scaled(AxisX, 34.0), Scaled(AxisZ, 34.0)));
-        AddWorldQuad(Added(C, Added(Scaled(AxisX, -16.0), Scaled(AxisZ, -16.0))),
-                     Added(C, Added(Scaled(AxisX,  16.0), Scaled(AxisZ, -16.0))),
-                     Added(C, Added(Scaled(AxisX,  16.0), Scaled(AxisZ,  16.0))),
-                     Added(C, Added(Scaled(AxisX, -16.0), Scaled(AxisZ,  16.0))),
+        constexpr double PlaneOffset = 28.0;
+        constexpr double PlaneSize = 22.0;
+        const double PlaneCentre = PlaneOffset + PlaneSize * 0.5;
+        const SpatialPoint C = Added(Pivot, Added(Scaled(AxisX, PlaneCentre), Scaled(AxisZ, PlaneCentre)));
+        AddWorldQuad(Added(C, Added(Scaled(AxisX, -PlaneSize * 0.5), Scaled(AxisZ, -PlaneSize * 0.5))),
+                     Added(C, Added(Scaled(AxisX,  PlaneSize * 0.5), Scaled(AxisZ, -PlaneSize * 0.5))),
+                     Added(C, Added(Scaled(AxisX,  PlaneSize * 0.5), Scaled(AxisZ,  PlaneSize * 0.5))),
+                     Added(C, Added(Scaled(AxisX, -PlaneSize * 0.5), Scaled(AxisZ,  PlaneSize * 0.5))),
                      PlaneFill, PlaneColour);
-        AddScreenHandle(18.0, HoveredHandle == ParametricGizmoHandle::MoveFree ? Highlight : White);
+        AddScreenHandle(14.0, HoveredHandle == ParametricGizmoHandle::MoveFree ? Highlight : White);
     }
     else if (Transform.Mode == ParametricTransformMode::Rotate)
     {
-        AddRing(AxisZ, AxisY, 64.0, HoveredHandle == ParametricGizmoHandle::Rotate ? Highlight : XPacked, 2.2f);
-        AddRing(AxisX, AxisZ, 70.0, HoveredHandle == ParametricGizmoHandle::Rotate ? Highlight : ZPacked, 2.2f);
-        AddRing(AxisX, AxisY, 58.0, HoveredHandle == ParametricGizmoHandle::Rotate ? Highlight : YPacked, 2.2f);
-        AddScreenHandle(82.0, HoveredHandle == ParametricGizmoHandle::Rotate ? Highlight : White);
+        constexpr double RingRadius = 96.0;
+        AddRing(AxisZ, AxisY, RingRadius, HoveredHandle == ParametricGizmoHandle::Rotate ? Highlight : XPacked, 2.5f);
+        AddRing(AxisX, AxisZ, RingRadius, HoveredHandle == ParametricGizmoHandle::Rotate ? Highlight : ZPacked, 2.5f);
+        AddRing(AxisX, AxisY, RingRadius, HoveredHandle == ParametricGizmoHandle::Rotate ? Highlight : YPacked, 2.5f);
+
     }
     else
     {
@@ -4007,16 +4029,13 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
         const std::uint32_t ZColour = HoveredHandle == ParametricGizmoHandle::ScaleZ ? Highlight : ZPacked;
         AddCylinderShaft(AxisX, AxisY, XColour, HoveredHandle == ParametricGizmoHandle::ScaleX);
         AddCylinderShaft(AxisZ, AxisY, ZColour, HoveredHandle == ParametricGizmoHandle::ScaleZ);
-        AddBox(Added(Pivot, Scaled(AxisX, 94.0)), AxisX, AxisY, AxisZ, 8.0, 8.0, 8.0, XColour);
-        AddBox(Added(Pivot, Scaled(AxisZ, 94.0)), AxisZ, AxisY, AxisX, 8.0, 8.0, 8.0, ZColour);
+        constexpr double AxisTipDistance = 82.0;
+        constexpr double ScaleHalf = 5.5;
+        AddBox(Added(Pivot, Scaled(AxisX, AxisTipDistance)), AxisX, AxisY, AxisZ, ScaleHalf, ScaleHalf, ScaleHalf, XColour);
+        AddBox(Added(Pivot, Scaled(AxisZ, AxisTipDistance)), AxisZ, AxisY, AxisX, ScaleHalf, ScaleHalf, ScaleHalf, ZColour);
         const std::uint32_t FreeColour = HoveredHandle == ParametricGizmoHandle::ScaleFree ? Highlight : White;
-        AddBox(Pivot, AxisX, AxisY, AxisZ, 10.0, 10.0, 10.0, FreeColour);
-        const SpatialPoint C = Added(Pivot, Added(Scaled(AxisX, 32.0), Scaled(AxisZ, 32.0)));
-        AddWorldQuad(Added(C, Added(Scaled(AxisX, -13.0), Scaled(AxisZ, -13.0))),
-                     Added(C, Added(Scaled(AxisX,  13.0), Scaled(AxisZ, -13.0))),
-                     Added(C, Added(Scaled(AxisX,  13.0), Scaled(AxisZ,  13.0))),
-                     Added(C, Added(Scaled(AxisX, -13.0), Scaled(AxisZ,  13.0))),
-                     PlaneFill, FreeColour);
+        AddBox(Pivot, AxisX, AxisY, AxisZ, ScaleHalf, ScaleHalf, ScaleHalf, FreeColour);
+
     }
 
     if (Transform.Engaged)
