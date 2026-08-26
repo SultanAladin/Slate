@@ -1135,6 +1135,15 @@ int main(int ArgumentCount, char** ArgumentValues)
                 SceneApplied.CameraRotation[2] = 0.0;
                 EditorCamera.PublishTransform(SceneApplied.EntityPosition[6u],
                                               SceneApplied.EntityRotation[6u]);
+
+                // Publish the same camera payload consumed by the shared CAD authoring runtime.
+                CadRuntime.Camera.Position[0] = EditorCamera.LaggedPosition[0];
+                CadRuntime.Camera.Position[1] = EditorCamera.LaggedPosition[1];
+                CadRuntime.Camera.Position[2] = EditorCamera.LaggedPosition[2];
+                CadRuntime.Camera.YawDegrees = EditorCamera.LaggedYawDegrees;
+                CadRuntime.Camera.PitchDegrees = EditorCamera.LaggedPitchDegrees;
+                CadRuntime.Camera.FieldOfViewDegrees = EditorCamera.FieldOfViewDegrees;
+                CadRuntime.Camera.Perspective = true;
             }
 
             for (std::uint32_t Index = 0u; Index < OpenCount; ++Index)
@@ -1195,6 +1204,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                         {
                             case PanelSubject::Viewport:
                             {
+                                CadRuntime.Camera.Perspective = PanelConfiguration[Index].Perspective;
                                 const SharedCadDraftSubject ActiveCadDraft =
                                     ResolveSharedCadDraftSubject(ParametricToolsApplied.ActiveSubject);
                                 static_cast<void>(ActiveCadDraft);

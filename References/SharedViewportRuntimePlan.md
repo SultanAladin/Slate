@@ -26,8 +26,13 @@ Make Editor Host, Paint Host, and Parametric Sketch Host use one shared viewport
 2. **Shared CAD workspace state**
    - Extract sketch structure, workspace records, revisions, draft state, selection, and transform state from the Parametric Sketch host into a reusable feature/runtime unit.
    - Keep host-specific panels and entry functions outside the runtime.
+   - Status: complete in `SharedCadWorkspaceRuntime.h`; both hosts include the contract.
 
 3. **Shared authoring dispatch**
+   - Introduce one dispatch entry point that receives the active tool, pointer, modifiers, grid-plane projection, and shared runtime.
+   - Move the existing Parametric Sketch dispatch behind that entry point rather than creating a second Editor implementation.
+   - Connect the same entry point from Editor Host and Parametric Sketch Host.
+   - Status: in progress; the current Parametric dispatch still contains host-local commit helpers that must move with the entry point.
    - Move grid-plane pointer conversion, snapping, draft preview, commit, selection, and transform dispatch into the shared runtime.
    - Enable the runtime in Editor Host through its existing CAD host feature definition.
    - Preserve Paint Host’s non-CAD feature boundary.

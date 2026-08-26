@@ -5052,6 +5052,12 @@ int main(int ArgumentCount, char** ArgumentValues)
                             }
 
                             ParametricViewportState& View = ViewStates[Index];
+                            CadRuntime.Camera.YawDegrees = View.OrbitYaw;
+                            CadRuntime.Camera.PitchDegrees = View.OrbitPitch;
+                            CadRuntime.Camera.Perspective = PanelConfiguration[Index].Perspective;
+                            CadRuntime.Camera.Position[0] = View.Focus.Left;
+                            CadRuntime.Camera.Position[1] = View.Focus.Up;
+                            CadRuntime.Camera.Position[2] = View.Focus.Forward;
                             const bool PointerInside = LeafBody.Encloses(LeafPointer.PositionX, LeafPointer.PositionY);
                             bool PointerTaken = false;
                             Viewport.Surface().Confine(LeafBody);

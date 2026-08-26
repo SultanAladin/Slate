@@ -9,6 +9,7 @@
 #include "SlateFeature/Sketch/SketchStructure/Api/SketchStructure.h"
 #include "SlateFeature/Feature/WorkspaceRecordStructure/Api/WorkspaceRecordStructure.h"
 #include "SlateFeature/Feature/WorkspaceRevisionSequence/Api/WorkspaceRevisionSequence.h"
+#include "Application/Api/SharedViewportHostBridge.h"
 
 #include <cstdint>
 #include <vector>
@@ -146,6 +147,7 @@ struct SharedCadWorkspaceRuntime
     SketchStructure Sketch;
     WorkspaceRecordStructure Records;
     WorkspaceRevisionSequence Revisions;
+    SharedViewportCameraState Camera;
     ParametricViewportState View;
     ParametricDraftState Draft;
     ParametricViewportSelection SemanticSelection;
