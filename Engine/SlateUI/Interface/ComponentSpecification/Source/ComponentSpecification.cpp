@@ -2066,8 +2066,8 @@ void ComponentSpecification::RecordMenu(const DeferredRecording& Holding)
     const PlaneExtent Revealed = { Menu.MinimumX, Menu.MinimumY, Menu.MaximumX,
                                    Menu.MinimumY + Menu.Height() * Disclosure };
 
-    Surface->Ground(Revealed, Colour.MenuGround, Measure.MenuRadius, CornerAll);
-    Surface->Edge(Revealed, Colour.MenuEdge, Measure.CardEdgeWeight, Measure.MenuRadius, CornerAll);
+    Surface->Ground(Revealed, Opaque(Colour.MenuGround), Measure.MenuRadius, CornerAll);
+    Surface->Edge(Revealed, Opaque(Colour.MenuEdge), Measure.CardEdgeWeight, Measure.MenuRadius, CornerAll);
 
     const float OptionHeight = Measure.RowText * 1.5f + Measure.OptionPadY * 2.0f;
     const float Content      = MenuContent(Holding.OptionCount);

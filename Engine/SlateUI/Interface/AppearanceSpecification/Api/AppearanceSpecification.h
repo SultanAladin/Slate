@@ -36,6 +36,13 @@ constexpr ThemeToken Covering(std::uint32_t Packed)
                         255u };
 }
 
+/// 🧩 Retains a resolved colour while making its menu or popup surface fully covering.
+constexpr ThemeToken Opaque(ThemeToken Colour)
+{
+    Colour.Opacity = 255u;
+    return Colour;
+}
+
 /// 🧩 Constructs an colour at a declared coverage, matching CSS `color-mix(… n%, transparent)`.
 /// in    Packed    [-]  0xRRGGBB
 /// in    Coverage  [-]  zero is invisible, one is fully covering

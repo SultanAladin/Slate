@@ -1461,8 +1461,8 @@ void ControlCentrePanel::InputPage(const PlaneExtent& Extent, ControlCentreConfi
     if (InputPresetOpen)
     {
         const PlaneExtent Menu = Spanning(Preset.MinimumX, Preset.MaximumY + 6.0f, Preset.Width(), 108.0f);
-        Surface->Ground(Menu, Theme.Card, 10.0f, CornerAll);
-        Surface->Edge(Menu, Theme.Edge, 1.0f, 10.0f, CornerAll);
+        Surface->Ground(Menu, Opaque(Theme.Card), 10.0f, CornerAll);
+        Surface->Edge(Menu, Opaque(Theme.Edge), 1.0f, 10.0f, CornerAll);
         for (std::uint32_t Index = 0u; Index < 3u; ++Index)
         {
             const PlaneExtent Option = Spanning(Menu.MinimumX + 4.0f, Menu.MinimumY + 4.0f + 34.0f * Index,
