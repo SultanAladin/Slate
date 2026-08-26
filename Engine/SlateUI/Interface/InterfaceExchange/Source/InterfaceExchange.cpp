@@ -694,7 +694,7 @@ Outcome<bool> InterfaceExchange::Renegotiate(std::uint32_t MinimumImageCount, st
 //                                                      RECORDING
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> InterfaceExchange::Record(VkCommandBuffer CommandRecording)
+Outcome<bool> InterfaceExchange::Record(VkCommandBuffer CommandRecording, RecordBand Band)
 {
     if (!ContentAssembled)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "nothing has been sealed for recording" });
@@ -718,8 +718,50 @@ Outcome<bool> InterfaceExchange::Record(VkCommandBuffer CommandRecording)
         return Outcome<bool>::Result(true);
     }
 
-    ImGui_ImplVulkan_RenderDrawData(AssembledContent, CommandRecording);
-    ContentAssembled = false;
+    if (Band == RecordBand::Entire)
+    {
+        ImGui_ImplVulkan_RenderDrawData(AssembledContent, CommandRecording);
+        ContentAssembled = false;
+        return Outcome<bool>::Result(true);
+    }
+
+    ImDrawList* const Foreground = ImGui::GetForegroundDrawList();
+    ImVector<ImDrawList*> Held = AssembledContent->CmdLists;
+    const int HeldCount = AssembledContent->CmdListsCount;
+    const int HeldVtx = AssembledContent->TotalVtxCount;
+    const int HeldIdx = AssembledContent->TotalIdxCount;
+
+    AssembledContent->CmdLists.clear();
+    AssembledContent->TotalVtxCount = 0;
+    AssembledContent->TotalIdxCount = 0;
+
+    const bool WantForeground = (Band == RecordBand::Above);
+
+    for (int Index = 0; Index < Held.Size; ++Index)
+    {
+        ImDrawList* const List = Held[Index];
+        const bool IsForeground = (List == Foreground);
+
+        if (IsForeground != WantForeground)
+            continue;
+
+        AssembledContent->CmdLists.push_back(List);
+        AssembledContent->TotalVtxCount += List->VtxBuffer.Size;
+        AssembledContent->TotalIdxCount += List->IdxBuffer.Size;
+    }
+
+    AssembledContent->CmdListsCount = AssembledContent->CmdLists.Size;
+
+    if (AssembledContent->CmdListsCount > 0)
+        ImGui_ImplVulkan_RenderDrawData(AssembledContent, CommandRecording);
+
+    AssembledContent->CmdLists = Held;
+    AssembledContent->CmdListsCount = HeldCount;
+    AssembledContent->TotalVtxCount = HeldVtx;
+    AssembledContent->TotalIdxCount = HeldIdx;
+
+    if (Band == RecordBand::Above)
+        ContentAssembled = false;
 
     return Outcome<bool>::Result(true);
 }

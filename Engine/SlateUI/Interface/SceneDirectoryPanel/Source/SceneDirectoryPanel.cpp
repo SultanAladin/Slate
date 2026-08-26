@@ -2599,12 +2599,137 @@ void SceneDirectoryPanel::RecordCameraBookmarks(const PlaneExtent& Extent,
 void SceneDirectoryPanel::RecordGizmo(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
                                       OverlayGeometry& Overlay)
 {
-    // 📐 The ground grid and all 3 world axes (Red X, Green Y, Blue Z) are rendered 100%
-    //    on the GPU by the overlay pass fragment shader (WorkspaceOverlayFragment.slang). The CPU gizmo
-    //    arrows are removed.
-    (void)Extent;
-    (void)Applied;
-    (void)Overlay;
+    if (Extent.Width() <= 1.0f || Extent.Height() <= 1.0f)
+        return;
+
+    const std::uint32_t Taken = Applied.EntityTaken;
+    if (Taken >= SceneDirectoryContext::EntityLimit)
+        return;
+
+    // 📐 Same pinhole as the analytic ground / sky. The manipulator is sized as a
+    //    fraction of the leaf height (`78` GripViewFraction) so it never world-scales.
+    const float CentreX = Extent.MinimumX + Extent.Width()  * 0.5f;
+    const float CentreY = Extent.MinimumY + Extent.Height() * 0.5f;
+
+    const double HalfV = Applied.ViewportSkyCamera.FieldOfViewDegrees * 0.5
+                       * 3.14159265358979323846 / 180.0;
+    const double Aspect = static_cast<double>(Extent.Width())
+                        / static_cast<double>(Extent.Height());
+    const double TanHalfV = std::tan(HalfV);
+    const double TanHalfH = TanHalfV * Aspect;
+
+    const double Yaw   = Applied.ViewportSkyCamera.AzimuthDegrees
+                       * 3.14159265358979323846 / 180.0;
+    const double Pitch = Applied.ViewportSkyCamera.ElevationDegrees
+                       * 3.14159265358979323846 / 180.0;
+    const double CosP = std::cos(Pitch);
+    const double SinP = std::sin(Pitch);
+    const double SinY = std::sin(Yaw);
+    const double CosY = std::cos(Yaw);
+
+    const double Forward[3] = { CosP * SinY, SinP, CosP * CosY };
+    const double Right[3]   = { CosY, 0.0, -SinY };
+    const double Up[3]      = { -SinP * SinY, CosP, -SinP * CosY };
+
+    const double Eye[3] = { Applied.CameraPosition[0],
+                            Applied.CameraPosition[1],
+                            Applied.CameraPosition[2] };
+    const double Origin[3] = { Applied.EntityPosition[Taken][0],
+                               Applied.EntityPosition[Taken][1],
+                               Applied.EntityPosition[Taken][2] };
+
+    const auto Project = [&](double WorldX, double WorldY, double WorldZ,
+                             float& ScreenX, float& ScreenY, bool& Visible) -> void
+    {
+        const double RelX = WorldX - Eye[0];
+        const double RelY = WorldY - Eye[1];
+        const double RelZ = WorldZ - Eye[2];
+        const double ViewX = RelX * Right[0]   + RelY * Right[1]   + RelZ * Right[2];
+        const double ViewY = RelX * Up[0]      + RelY * Up[1]      + RelZ * Up[2];
+        const double ViewZ = RelX * Forward[0] + RelY * Forward[1] + RelZ * Forward[2];
+
+        Visible = ViewZ > 0.05;
+        if (!Visible)
+        {
+            ScreenX = CentreX;
+            ScreenY = CentreY;
+            return;
+        }
+
+        ScreenX = CentreX + static_cast<float>((ViewX / (ViewZ * TanHalfH)) * (Extent.Width()  * 0.5));
+        ScreenY = CentreY - static_cast<float>((ViewY / (ViewZ * TanHalfV)) * (Extent.Height() * 0.5));
+    };
+
+    bool OriginVisible = false;
+    float OriginX = 0.0f;
+    float OriginY = 0.0f;
+    Project(Origin[0], Origin[1], Origin[2], OriginX, OriginY, OriginVisible);
+    if (!OriginVisible)
+        return;
+
+    const double AxisWorld[3][3] =
+    {
+        { 1.0, 0.0, 0.0 },
+        { 0.0, 1.0, 0.0 },
+        { 0.0, 0.0, 1.0 }
+    };
+    const std::uint32_t AxisPacked[3] =
+    {
+        PackOverlayColour(232u, 72u, 77u, 255u),
+        PackOverlayColour(48u,  164u, 108u, 255u),
+        PackOverlayColour(58u,  130u, 246u, 255u)
+    };
+
+    const float AxisPixels = Extent.Height() * 0.16f;
+
+    for (std::uint32_t Axis = 0u; Axis < 3u; ++Axis)
+    {
+        bool TipVisible = false;
+        float TipX = 0.0f;
+        float TipY = 0.0f;
+        Project(Origin[0] + AxisWorld[Axis][0],
+                Origin[1] + AxisWorld[Axis][1],
+                Origin[2] + AxisWorld[Axis][2],
+                TipX, TipY, TipVisible);
+        if (!TipVisible)
+            continue;
+
+        float DirX = TipX - OriginX;
+        float DirY = TipY - OriginY;
+        const float Length = std::sqrt(DirX * DirX + DirY * DirY);
+        if (Length < 1.0f)
+            continue;
+
+        DirX /= Length;
+        DirY /= Length;
+
+        const float EndX = OriginX + DirX * AxisPixels;
+        const float EndY = OriginY + DirY * AxisPixels;
+        Overlay.AddLine(OriginX, OriginY, EndX, EndY, AxisPacked[Axis], 2.0f);
+
+        const float PerpX = -DirY;
+        const float PerpY = DirX;
+        const float Cone = AxisPixels * 0.18f;
+        Overlay.AddTriangle(EndX + DirX * Cone,
+                            EndY + DirY * Cone,
+                            EndX - DirX * Cone * 0.15f + PerpX * Cone * 0.35f,
+                            EndY - DirY * Cone * 0.15f + PerpY * Cone * 0.35f,
+                            EndX - DirX * Cone * 0.15f - PerpX * Cone * 0.35f,
+                            EndY - DirY * Cone * 0.15f - PerpY * Cone * 0.35f,
+                            AxisPacked[Axis]);
+
+        const float ScaleIn = AxisPixels * 0.72f;
+        const float Half = AxisPixels * 0.035f;
+        const float SX = OriginX + DirX * ScaleIn;
+        const float SY = OriginY + DirY * ScaleIn;
+        Overlay.AddTriangle(SX - PerpX * Half, SY - PerpY * Half,
+                            SX + PerpX * Half, SY + PerpY * Half,
+                            SX + DirX * Half * 2.0f, SY + DirY * Half * 2.0f,
+                            AxisPacked[Axis]);
+    }
+
+    Overlay.AddDot(OriginX, OriginY, PackOverlayColour(255u, 255u, 255u, 255u),
+                   std::max(3.0f, Extent.Height() * 0.006f));
 }
 
 void SceneDirectoryPanel::RecordOverlayFallback(const PlaneExtent& Extent,

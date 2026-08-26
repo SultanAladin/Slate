@@ -103,6 +103,8 @@ public:
     /// cost  🚩
     /// tag   api, nonthrowing
     Outcome<bool> Record(VkCommandBuffer CommandRecording);
+    Outcome<bool> RecordBeneath(VkCommandBuffer CommandRecording);
+    Outcome<bool> RecordAbove(VkCommandBuffer CommandRecording);
 
     /// 🧩 The two drawers, for the host to query pose and extent.
     /// cost  ✔️

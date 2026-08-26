@@ -987,9 +987,10 @@ int main(int ArgumentCount, char** ArgumentValues)
                         }
                     }
 
-                    // 🔴 The popups after the leaf content, so they composite above it.
+                    Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
                     WorkspacePanels.RecordDeferredPopups(PanelPartitions[Index],
                                                          PanelConfiguration[Index]);
+                    Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Beneath));
 
                     if (WorkspacePanels.PointerCaptured(Index))
                         Viewport.Seam().WithholdPointer();
@@ -1108,8 +1109,7 @@ int main(int ArgumentCount, char** ArgumentValues)
             // 📝 The layer stack's own search pill — the same gated feed.
             if (TexturePaintApplied.SearchTaken)
             {
-                static_cast<void>(Viewport.Seam().AcceptTyped(TexturePaintApplied.Retention,
-                                                              TexturePaintContext::TextureRetentionLimit));
+                static_cast<void>(Viewport.Seam().AcceptTyped(Textur:TextureRetentionLimit));
 
                 if (Viewport.Seam().KeyPressed(KeySubject::Retract))
                 {
@@ -1339,25 +1339,16 @@ int main(int ArgumentCount, char** ArgumentValues)
 
                 // 🔴 Read. A rejected Record presents the cleared ground with nothing on it, which is
                 //    indistinguishable from a panel that drew nothing, so the refusal is named here.
-                if (!Viewport.Record(Pass.Recording))
+                if (!Viewport.RecordBeneath(Pass.Recording))
                 {
                     std::printf("%s — the interface content was not recorded\n", HostName);
                 }
 
-                // 📝 The overlay pass records INSIDE the same dynamic-rendering scope, after the
-                //    interface: the grid and axes draw directly on top of the sky and viewport,
-                //    in their own straight-alpha GPU pass — no ImGui tessellation, vivid colours.
-                //    Each viewport leaf's geometry is uploaded at most once per generation change
-                //    and drawn with a scissor clipped to that leaf's box, so the overlay never
-                //    paints over the outliner, the properties or any other panel.
-                // 🔴 The GPU overlay records after the interface. A standing chrome
-                //    menu would be painted through by the lattice, so withhold only
-                //    while a popup stands. Drawers may occlude the leaf by scissor;
-                //    they must not hide or re-size the lattice.
-                const bool OverlayMenusStanding = WorkspacePanels.AnyPopupStanding();
+                // 🔴 Overlay always records. Drawers may scissor the leaf they cover;
+                //    menus sit on the foreground list submitted after this pass.
 
                 for (std::uint32_t ViewportIndex = 0u;
-                     !OverlayMenusStanding && ViewportIndex < ViewportLeafTally;
+                     ViewportIndex < ViewportLeafTally;
                      ++ViewportIndex)
                 {
                     const std::uint32_t LeafIndex = ViewportLeafIndexs[ViewportIndex];
@@ -1391,6 +1382,11 @@ int main(int ArgumentCount, char** ArgumentValues)
                     Overlay.Record(Pass.Recording, Pass.Width, Pass.Height,
                                    LeafRect.MinimumX, LeafRect.MinimumY,
                                    LeafRect.MaximumX, LeafRect.MaximumY);
+                }
+
+                if (!Viewport.RecordAbove(Pass.Recording))
+                {
+                    std::printf("%s — the interface chrome was not recorded\n", HostName);
                 }
             }
             else
@@ -1441,8 +1437,5 @@ int main(int ArgumentCount, char** ArgumentValues)
 
     // 🔴 Returned rather than only stated. A validation run needs an exit code, so that a serious arrival
     //    fails whatever invoked the host instead of scrolling past in a console nobody reads.
-    return (Serious == 0u) ? 0 : 1;
-}
-lling past in a console nobody reads.
     return (Serious == 0u) ? 0 : 1;
 }
