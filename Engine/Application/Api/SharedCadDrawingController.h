@@ -450,7 +450,7 @@ inline bool SharedCadAuthoringDispatch(SharedCadWorkspaceRuntime& Runtime,
         }
         DeclareCurve(Curve);
     }
-    if (Polygon)
+    const auto DeclareProfile = [&](ProfileNameInFeature Profile)
     {
         WorkspaceRecord Record = {};
         Record.Subject = WorkspaceRecordSubject::ClosedProfile;

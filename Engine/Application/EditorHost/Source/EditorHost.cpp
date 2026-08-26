@@ -20,6 +20,7 @@
 #include "Application/Api/SharedViewportHostBridge.h"
 #include "Application/Api/SharedCadDrawingController.h"
 #include "Application/Api/SharedCadWorkspaceRuntime.h"
+#include "Application/Api/ParametricWorkspaceBridge.h"
 #include "Application/Api/MaterialLayerStackBridge.h"
 #include "Application/Api/SketchSceneDirectoryBridge.h"
 #include "SlateScene/Scene/EditorCameraComponent/Api/EditorCameraComponent.h"
@@ -397,6 +398,61 @@ InterfaceAttachment Attach(const DeviceOffering& Offered)
     return Incoming;
 }
 
+enum class EditorCadKind : std::uint32_t
+{
+    Point,
+    Line,
+    Polyline,
+    Arc,
+    Circle,
+    Polygon,
+    Slot,
+    Ellipse,
+    Rectangle,
+    Curve
+};
+
+struct EditorCadItem
+{
+    EditorCadKind Kind = EditorCadKind::Rectangle;
+    char Name[48] = {};
+    double PlaneNormal[3] = {};
+    double AxisU[3] = {};
+    double AxisV[3] = {};
+    double RectCorners[4][3] = {};
+    double Center[3] = {};
+    double RadiusMajor = 0.0;
+    double RadiusMinor = 0.0;
+    double LineStart[3] = {};
+    double LineEnd[3] = {};
+    double ArcMid[3] = {};
+    std::uint32_t PolygonSides = 6u;
+    double SlotThickness = 0.8;
+    static constexpr std::uint32_t MaxPoints = 64u;
+    double Points[MaxPoints][3] = {};
+    std::uint32_t PointCount = 0u;
+    std::uint32_t EntityRowIndex = 0u;
+    Slate::WorkspaceRecordName CadRecordName = {};
+};
+
+inline bool IsCadDrawSubject(Slate::ParametricToolSubject Subject)
+{
+    return Subject == Slate::ParametricToolSubject::Point ||
+           Subject == Slate::ParametricToolSubject::Line ||
+           Subject == Slate::ParametricToolSubject::Polyline ||
+           Subject == Slate::ParametricToolSubject::Arc ||
+           Subject == Slate::ParametricToolSubject::Circle ||
+           Subject == Slate::ParametricToolSubject::Polygon ||
+           Subject == Slate::ParametricToolSubject::Slot ||
+           Subject == Slate::ParametricToolSubject::Ellipse ||
+           Subject == Slate::ParametricToolSubject::Rectangle ||
+           Subject == Slate::ParametricToolSubject::RationalSpline ||
+           Subject == Slate::ParametricToolSubject::BasisSpline ||
+           Subject == Slate::ParametricToolSubject::HermiteCurve ||
+           Subject == Slate::ParametricToolSubject::BezierCurve ||
+           Subject == Slate::ParametricToolSubject::CenterRectangle;
+}
+
 }   // namespace
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -523,10 +579,32 @@ int main(int ArgumentCount, char** ArgumentValues)
     std::uintptr_t          SkyTextureIdentity = 0u;
     bool                    SkyRegistered = false;
 
+    static constexpr std::uint32_t EditorCadLimit = 64u;
+    static EditorCadItem EditorCadItems[EditorCadLimit] = {};
+    static std::uint32_t EditorCadCount = 0u;
+
+    static bool CadDrawActive = false;
+    static std::uint32_t CadDrawPhase = 0u;
+    static double CadStartWorld[3] = {};
+    static double CadCurrentWorld[3] = {};
+    static double CadAuxWorld[3] = {};
+    static double CadDrawPlaneNormal[3] = { 0.0, 1.0, 0.0 };
+    static double CadDrawPlaneOrigin[3] = { 0.0, 0.0, 0.0 };
+    static double CadDrawAxisU[3] = { 1.0, 0.0, 0.0 };
+    static double CadDrawAxisV[3] = { 0.0, 0.0, 1.0 };
+    static ParametricToolSubject CadActiveTool = ParametricToolSubject::Select;
+    static std::uint32_t CadPolygonSides = 6u;
+    static double CadSlotThickness = 0.8;
+    static double CadMultiPoints[64][3] = {};
+    static std::uint32_t CadMultiPointCount = 0u;
+    static std::uint32_t CadShapeIndex = 1u;
+    static ParametricWorkspaceBridgeStorage CadBridgeStorage = {};
+    static WorkspaceDirectoryProjection CadDirectoryProjection = {};
+
     // 📐 The editor's scene directory — the sun and sky the viewport renders, registered under the
     //    Lighting grouping. `Sun` and `Sky` are the two appended `EntitySubject` ordinals, so the
     //    inspector's slider cards branch on them while every reference entity keeps its g_NN identity.
-    static EntityRow EditorEntities[6] =
+    static EntityRow EditorEntities[SceneDirectoryContext::EntityLimit] =
     {
         { "Lighting",                EntitySubject::Grouping,   0u, 0xFFFFFFFFu, 2u, "folder lighting", CameraRole::Absent, 1002u },
         { "Directional Light (Sun)", EntitySubject::Sun,        1u,  0u,         0u, "sun light directional", CameraRole::Absent, 1003u },
@@ -1206,30 +1284,6 @@ int main(int ArgumentCount, char** ArgumentValues)
                             case PanelSubject::Viewport:
                             {
                                 CadRuntime.Camera.Perspective = PanelConfiguration[Index].Perspective;
-                                const SharedCadDraftSubject ActiveCadDraft =
-                                    ResolveSharedCadDraftSubject(ParametricToolsApplied.ActiveSubject);
-                                static_cast<void>(ActiveCadDraft);
-                                if (ActiveCadDraft != SharedCadDraftSubject::None)
-                                {
-                                    const float CentreX = LeafBody.MinimumX + LeafBody.Width() * 0.5f;
-                                    const float CentreY = LeafBody.MinimumY + LeafBody.Height() * 0.5f;
-                                    const double Along = static_cast<double>(LeafPointer.PositionX - CentreX) / 72.0;
-                                    const double Across = static_cast<double>(CentreY - LeafPointer.PositionY) / 72.0;
-                                    SharedCadAuthoringRequest Authoring;
-                                    Authoring.Subject = ActiveCadDraft;
-                                    Authoring.HoverStanding = LeafBody.Encloses(LeafPointer.PositionX, LeafPointer.PositionY);
-                                    Authoring.Hover = { Along, 0.0, Across };
-                                    const SpatialBasis CadBasis = { {}, { 1.0, 0.0, 0.0 }, { 0.0, 0.0, 1.0 }, { 0.0, 1.0, 0.0 } };
-                                    if (Authoring.HoverStanding)
-                                        Authoring.Snap = SharedCadResolveGridSnap(CadBasis, Authoring.Hover, 10.0, 10.0);
-                                    if (Authoring.Snap.Resolved())
-                                        Authoring.Hover = Authoring.Snap.Position;
-                                    Authoring.ContactPressed = LeafPointer.ContactPressed && Authoring.HoverStanding;
-                                    Authoring.CommitRequested = Authoring.Subject != SharedCadDraftSubject::Polyline;
-                                    Authoring.CancelPressed = Viewport.Surface().TextInput().CancelPressed;
-                                    Authoring.Construction = ParametricToolsApplied.ConstructionGeometry;
-                                    SharedCadAuthoringDispatch(CadRuntime, CadNaming, Authoring);
-                                }
                                 OverlayGeometry& LeafOverlay = ViewportOverlays[Leaf];
                                 LeafOverlay.Reset();
 
@@ -1237,6 +1291,981 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 RecordWorkspaceCodexProxy(Viewport.Surface(), LeafBody, SceneApplied,
                                                           OpenedScene, OpenedSceneStanding,
                                                           PanelConfiguration[Index].Shading);
+
+                                const float CentreX = LeafBody.MinimumX + LeafBody.Width() * 0.5f;
+                                const float CentreY = LeafBody.MinimumY + LeafBody.Height() * 0.5f;
+
+                                const double CamHalfV = SceneApplied.ViewportSkyCamera.FieldOfViewDegrees * 0.5 * 3.14159265358979323846 / 180.0;
+                                const double CamAspect = (LeafBody.Height() > 0.0f) ? static_cast<double>(LeafBody.Width()) / static_cast<double>(LeafBody.Height()) : 1.0;
+                                const double CamTanHalfV = std::tan(CamHalfV);
+                                const double CamTanHalfH = CamTanHalfV * CamAspect;
+
+                                const double CamYaw = SceneApplied.ViewportSkyCamera.AzimuthDegrees * 3.14159265358979323846 / 180.0;
+                                const double CamPitch = SceneApplied.ViewportSkyCamera.ElevationDegrees * 3.14159265358979323846 / 180.0;
+                                const double CamCosP = std::cos(CamPitch), CamSinP = std::sin(CamPitch);
+                                const double CamSinY = std::sin(CamYaw), CamCosY = std::cos(CamYaw);
+
+                                const double CamForward[3] = { CamCosP * CamSinY, CamSinP, CamCosP * CamCosY };
+                                const double CamRight[3]   = { CamCosY, 0.0, -CamSinY };
+                                const double CamUp[3]      = { -CamSinP * CamSinY, CamCosP, -CamSinP * CamCosY };
+                                const double CamEye[3]     = { SceneApplied.CameraPosition[0],
+                                                               SceneApplied.CameraPosition[1],
+                                                               SceneApplied.CameraPosition[2] };
+                                const bool IsPerspective   = PanelConfiguration[Index].Perspective;
+
+                                double ActivePlaneNormal[3] = { 0.0, 1.0, 0.0 };
+                                double ActivePlaneOrigin[3] = { 0.0, 0.0, 0.0 };
+                                double ActiveAxisU[3]       = { 1.0, 0.0, 0.0 };
+                                double ActiveAxisV[3]       = { 0.0, 0.0, 1.0 };
+
+                                if (std::abs(CamForward[1]) >= 0.45)
+                                {
+                                    ActivePlaneNormal[0] = 0.0; ActivePlaneNormal[1] = 1.0; ActivePlaneNormal[2] = 0.0;
+                                    ActiveAxisU[0] = 1.0; ActiveAxisU[1] = 0.0; ActiveAxisU[2] = 0.0;
+                                    ActiveAxisV[0] = 0.0; ActiveAxisV[1] = 0.0; ActiveAxisV[2] = 1.0;
+                                }
+                                else if (std::abs(CamForward[2]) >= std::abs(CamForward[0]))
+                                {
+                                    ActivePlaneNormal[0] = 0.0; ActivePlaneNormal[1] = 0.0; ActivePlaneNormal[2] = 1.0;
+                                    ActiveAxisU[0] = 1.0; ActiveAxisU[1] = 0.0; ActiveAxisU[2] = 0.0;
+                                    ActiveAxisV[0] = 0.0; ActiveAxisV[1] = 1.0; ActiveAxisV[2] = 0.0;
+                                }
+                                else
+                                {
+                                    ActivePlaneNormal[0] = 1.0; ActivePlaneNormal[1] = 0.0; ActivePlaneNormal[2] = 0.0;
+                                    ActiveAxisU[0] = 0.0; ActiveAxisU[1] = 0.0; ActiveAxisU[2] = 1.0;
+                                    ActiveAxisV[0] = 0.0; ActiveAxisV[1] = 1.0; ActiveAxisV[2] = 0.0;
+                                }
+
+                                const auto UnprojectPoint = [&](float ScreenX, float ScreenY, double OutWorld[3]) -> bool
+                                {
+                                    const double NdcX = (static_cast<double>(ScreenX) - CentreX) / (LeafBody.Width() * 0.5);
+                                    const double NdcY = (static_cast<double>(CentreY) - ScreenY) / (LeafBody.Height() * 0.5);
+
+                                    double RayOrig[3];
+                                    double RayDir[3];
+
+                                    if (IsPerspective)
+                                    {
+                                        RayOrig[0] = CamEye[0]; RayOrig[1] = CamEye[1]; RayOrig[2] = CamEye[2];
+                                        RayDir[0] = CamForward[0] + CamRight[0] * (NdcX * CamTanHalfH) + CamUp[0] * (NdcY * CamTanHalfV);
+                                        RayDir[1] = CamForward[1] + CamRight[1] * (NdcX * CamTanHalfH) + CamUp[1] * (NdcY * CamTanHalfV);
+                                        RayDir[2] = CamForward[2] + CamRight[2] * (NdcX * CamTanHalfH) + CamUp[2] * (NdcY * CamTanHalfV);
+                                    }
+                                    else
+                                    {
+                                        const double SpanH = 20.0 * CamAspect;
+                                        const double SpanV = 20.0;
+                                        RayOrig[0] = CamEye[0] + CamRight[0] * (NdcX * SpanH) + CamUp[0] * (NdcY * SpanV);
+                                        RayOrig[1] = CamEye[1] + CamRight[1] * (NdcX * SpanH) + CamUp[1] * (NdcY * SpanV);
+                                        RayOrig[2] = CamEye[2] + CamRight[2] * (NdcX * SpanH) + CamUp[2] * (NdcY * SpanV);
+                                        RayDir[0] = CamForward[0]; RayDir[1] = CamForward[1]; RayDir[2] = CamForward[2];
+                                    }
+
+                                    const double DirLen = std::sqrt(RayDir[0] * RayDir[0] + RayDir[1] * RayDir[1] + RayDir[2] * RayDir[2]);
+                                    if (DirLen < 1.0e-9) return false;
+                                    RayDir[0] /= DirLen; RayDir[1] /= DirLen; RayDir[2] /= DirLen;
+
+                                    const double Denom = RayDir[0] * ActivePlaneNormal[0] + RayDir[1] * ActivePlaneNormal[1] + RayDir[2] * ActivePlaneNormal[2];
+                                    if (std::abs(Denom) < 1.0e-6) return false;
+
+                                    const double Diff[3] = { ActivePlaneOrigin[0] - RayOrig[0],
+                                                             ActivePlaneOrigin[1] - RayOrig[1],
+                                                             ActivePlaneOrigin[2] - RayOrig[2] };
+                                    const double Numer = Diff[0] * ActivePlaneNormal[0] + Diff[1] * ActivePlaneNormal[1] + Diff[2] * ActivePlaneNormal[2];
+                                    const double t = Numer / Denom;
+                                    if (IsPerspective && t <= 0.0) return false;
+
+                                    OutWorld[0] = RayOrig[0] + RayDir[0] * t;
+                                    OutWorld[1] = RayOrig[1] + RayDir[1] * t;
+                                    OutWorld[2] = RayOrig[2] + RayDir[2] * t;
+                                    return true;
+                                };
+
+                                const auto ProjectPoint = [&](const double W[3], float& OutScreenX, float& OutScreenY) -> bool
+                                {
+                                    const double RelX = W[0] - CamEye[0];
+                                    const double RelY = W[1] - CamEye[1];
+                                    const double RelZ = W[2] - CamEye[2];
+                                    const double ViewX = RelX * CamRight[0]   + RelY * CamRight[1]   + RelZ * CamRight[2];
+                                    const double ViewY = RelX * CamUp[0]      + RelY * CamUp[1]      + RelZ * CamUp[2];
+                                    const double ViewZ = RelX * CamForward[0] + RelY * CamForward[1] + RelZ * CamForward[2];
+
+                                    if (IsPerspective)
+                                    {
+                                        if (ViewZ <= 0.01) return false;
+                                        OutScreenX = CentreX + static_cast<float>((ViewX / (ViewZ * CamTanHalfH)) * (LeafBody.Width() * 0.5));
+                                        OutScreenY = CentreY - static_cast<float>((ViewY / (ViewZ * CamTanHalfV)) * (LeafBody.Height() * 0.5));
+                                    }
+                                    else
+                                    {
+                                        const double SpanH = 20.0 * CamAspect;
+                                        const double SpanV = 20.0;
+                                        OutScreenX = CentreX + static_cast<float>((ViewX / SpanH) * (LeafBody.Width() * 0.5));
+                                        OutScreenY = CentreY - static_cast<float>((ViewY / SpanV) * (LeafBody.Height() * 0.5));
+                                    }
+                                    return true;
+                                };
+
+                                const auto SafeOverlayLine = [&](float X0, float Y0, float X1, float Y1, std::uint32_t Color, float Width = 2.0f)
+                                {
+                                    if (std::isfinite(X0) && std::isfinite(Y0) && std::isfinite(X1) && std::isfinite(Y1))
+                                    {
+                                        if (std::abs(X0) < 40000.0f && std::abs(Y0) < 40000.0f &&
+                                            std::abs(X1) < 40000.0f && std::abs(Y1) < 40000.0f)
+                                        {
+                                            LeafOverlay.AddLine(X0, Y0, X1, Y1, Color, Width);
+                                        }
+                                    }
+                                };
+
+                                const auto SafeOverlayDot = [&](float X, float Y, std::uint32_t Color, float Radius = 3.0f)
+                                {
+                                    if (std::isfinite(X) && std::isfinite(Y))
+                                    {
+                                        if (std::abs(X) < 40000.0f && std::abs(Y) < 40000.0f)
+                                        {
+                                            LeafOverlay.AddDot(X, Y, Color, Radius);
+                                        }
+                                    }
+                                };
+
+                                const auto SyncPresentedSceneEntities = [&]()
+                                {
+                                    if (OpenedSceneStanding)
+                                    {
+                                        BridgeSketchSceneDirectory(OpenedScene, WorkspaceSceneRows);
+                                        AppendSketchCadReferences(CadRuntime.Records, WorkspaceSceneRows);
+                                        PresentedEntities = WorkspaceSceneRows.Rows;
+                                        PresentedEntityCount = WorkspaceSceneRows.RowCount;
+                                        for (std::uint32_t i = 0u; i < PresentedEntityCount && i < SceneDirectoryContext::EntityLimit; ++i)
+                                        {
+                                            SceneApplied.EntityPresent[i] = true;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        std::uint32_t Count = 6u;
+                                        for (std::uint32_t i = 0u; i < EditorCadCount && Count < SceneDirectoryContext::EntityLimit; ++i)
+                                        {
+                                            EditorCadItem& Item = EditorCadItems[i];
+                                            EntityRow& Row = EditorEntities[Count];
+                                            Row = EntityRow{
+                                                Item.Name,
+                                                EntitySubject::Actor,
+                                                1u,
+                                                0xFFFFFFFFu,
+                                                0u,
+                                                "cad geometry actor",
+                                                CameraRole::Absent,
+                                                2000u + Count
+                                            };
+                                            SceneApplied.EntityPresent[Count] = true;
+                                            SceneApplied.EntityExpanded[Count] = false;
+                                            for (int a = 0; a < 3; ++a)
+                                            {
+                                                SceneApplied.EntityPosition[Count][a] = Item.Center[a];
+                                                SceneApplied.EntityRotation[Count][a] = 0.0;
+                                                SceneApplied.EntityScale[Count][a] = 1.0;
+                                            }
+                                            Item.EntityRowIndex = Count;
+                                            Count++;
+                                        }
+                                        PresentedEntities = EditorEntities;
+                                        PresentedEntityCount = Count;
+                                    }
+                                };
+
+                                if (LeafPointer.SecondaryPressed || Viewport.Surface().TextInput().CancelPressed)
+                                {
+                                    if (CadDrawActive)
+                                    {
+                                        CadDrawActive = false;
+                                        CadDrawPhase = 0u;
+                                        CadMultiPointCount = 0u;
+                                    }
+                                }
+
+                                const ParametricToolSubject ActiveSubj = ParametricToolsApplied.ActiveSubject;
+                                if (CadActiveTool != ActiveSubj)
+                                {
+                                    CadDrawActive = false;
+                                    CadDrawPhase = 0u;
+                                    CadMultiPointCount = 0u;
+                                    CadActiveTool = ActiveSubj;
+                                }
+
+                                const bool IsCadTool = IsCadDrawSubject(ActiveSubj);
+                                if (IsCadTool && LeafBody.Encloses(LeafPointer.PositionX, LeafPointer.PositionY))
+                                {
+                                    double WorldPt[3] = {};
+                                    if (UnprojectPoint(LeafPointer.PositionX, LeafPointer.PositionY, WorldPt))
+                                    {
+                                        for (int a = 0; a < 3; ++a)
+                                            CadCurrentWorld[a] = WorldPt[a];
+
+                                        CadDrawPlaneNormal[0] = ActivePlaneNormal[0];
+                                        CadDrawPlaneNormal[1] = ActivePlaneNormal[1];
+                                        CadDrawPlaneNormal[2] = ActivePlaneNormal[2];
+                                        CadDrawPlaneOrigin[0] = ActivePlaneOrigin[0];
+                                        CadDrawPlaneOrigin[1] = ActivePlaneOrigin[1];
+                                        CadDrawPlaneOrigin[2] = ActivePlaneOrigin[2];
+                                        CadDrawAxisU[0] = ActiveAxisU[0];
+                                        CadDrawAxisU[1] = ActiveAxisU[1];
+                                        CadDrawAxisU[2] = ActiveAxisU[2];
+                                        CadDrawAxisV[0] = ActiveAxisV[0];
+                                        CadDrawAxisV[1] = ActiveAxisV[1];
+                                        CadDrawAxisV[2] = ActiveAxisV[2];
+
+                                        if (ActiveSubj == ParametricToolSubject::Polygon && CadDrawActive)
+                                        {
+                                            if (LeafPointer.WheelY > 0.05f)
+                                                CadPolygonSides = std::min(CadPolygonSides + 1u, 32u);
+                                            else if (LeafPointer.WheelY < -0.05f)
+                                                CadPolygonSides = std::max(CadPolygonSides - 1u, 3u);
+                                        }
+                                        else if (ActiveSubj == ParametricToolSubject::Slot && CadDrawActive)
+                                        {
+                                            if (LeafPointer.WheelY > 0.05f)
+                                                CadSlotThickness = std::clamp(CadSlotThickness + 0.15, 0.1, 20.0);
+                                            else if (LeafPointer.WheelY < -0.05f)
+                                                CadSlotThickness = std::clamp(CadSlotThickness - 0.15, 0.1, 20.0);
+                                        }
+
+                                        if (ActiveSubj == ParametricToolSubject::Point)
+                                        {
+                                            if (LeafPointer.ContactPressed && EditorCadCount < EditorCadLimit)
+                                            {
+                                                EditorCadItem& Item = EditorCadItems[EditorCadCount++];
+                                                Item.Kind = EditorCadKind::Point;
+                                                std::snprintf(Item.Name, sizeof(Item.Name), "Point %u", CadShapeIndex++);
+                                                for (int a = 0; a < 3; ++a)
+                                                {
+                                                    Item.PlaneNormal[a] = ActivePlaneNormal[a];
+                                                    Item.AxisU[a] = ActiveAxisU[a];
+                                                    Item.AxisV[a] = ActiveAxisV[a];
+                                                    Item.Center[a] = WorldPt[a];
+                                                }
+                                                if (!CadRuntime.Sketch.Declared())
+                                                    CadRuntime.Sketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { ActivePlaneNormal[0], ActivePlaneNormal[1], ActivePlaneNormal[2] }, { ActiveAxisU[0], ActiveAxisU[1], ActiveAxisU[2] } });
+
+                                                std::vector<WorkspaceRecordName> Written;
+                                                WorkspaceRecord PointRec = {};
+                                                PointRec.Subject = WorkspaceRecordSubject::Point;
+                                                PointRec.Naming = CadNaming.Issue(WorkspaceRecordSubject::Point);
+                                                Item.CadRecordName = CadRuntime.Records.Declare(PointRec);
+                                                if (Item.CadRecordName.Assigned()) Written.push_back(Item.CadRecordName);
+                                                CadRuntime.Revisions.Seal("Declared point", "Create Point", Written, CadRuntime.Revisions.DeclaredCount() + 1u);
+                                                SyncPresentedSceneEntities();
+                                            }
+                                        }
+                                        else if (ActiveSubj == ParametricToolSubject::Line)
+                                        {
+                                            if (LeafPointer.ContactPressed)
+                                            {
+                                                CadDrawActive = true;
+                                                CadDrawPhase = 1u;
+                                                for (int a = 0; a < 3; ++a)
+                                                {
+                                                    CadStartWorld[a] = WorldPt[a];
+                                                    CadCurrentWorld[a] = WorldPt[a];
+                                                }
+                                            }
+                                            else if (CadDrawActive && (LeafPointer.ContactReleased || !LeafPointer.ContactHeld))
+                                            {
+                                                const double Dist = std::sqrt(
+                                                    (CadCurrentWorld[0] - CadStartWorld[0]) * (CadCurrentWorld[0] - CadStartWorld[0]) +
+                                                    (CadCurrentWorld[1] - CadStartWorld[1]) * (CadCurrentWorld[1] - CadStartWorld[1]) +
+                                                    (CadCurrentWorld[2] - CadStartWorld[2]) * (CadCurrentWorld[2] - CadStartWorld[2]));
+                                                if (Dist > 0.02 && EditorCadCount < EditorCadLimit)
+                                                {
+                                                    EditorCadItem& Item = EditorCadItems[EditorCadCount++];
+                                                    Item.Kind = EditorCadKind::Line;
+                                                    std::snprintf(Item.Name, sizeof(Item.Name), "Line %u", CadShapeIndex++);
+                                                    for (int a = 0; a < 3; ++a)
+                                                    {
+                                                        Item.PlaneNormal[a] = CadDrawPlaneNormal[a];
+                                                        Item.AxisU[a] = CadDrawAxisU[a];
+                                                        Item.AxisV[a] = CadDrawAxisV[a];
+                                                        Item.LineStart[a] = CadStartWorld[a];
+                                                        Item.LineEnd[a] = CadCurrentWorld[a];
+                                                        Item.Center[a] = (CadStartWorld[a] + CadCurrentWorld[a]) * 0.5;
+                                                    }
+                                                    if (!CadRuntime.Sketch.Declared())
+                                                        CadRuntime.Sketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { CadDrawPlaneNormal[0], CadDrawPlaneNormal[1], CadDrawPlaneNormal[2] }, { CadDrawAxisU[0], CadDrawAxisU[1], CadDrawAxisU[2] } });
+
+                                                    const SpatialPoint SP0 = { Item.LineStart[0], Item.LineStart[1], Item.LineStart[2] };
+                                                    const SpatialPoint SP1 = { Item.LineEnd[0], Item.LineEnd[1], Item.LineEnd[2] };
+                                                    const SketchCurveName LineCurve = CadRuntime.Sketch.DeclareLine(SP0, SP1);
+                                                    std::vector<WorkspaceRecordName> Written;
+                                                    WorkspaceRecord CurveRec = {};
+                                                    CurveRec.Subject = WorkspaceRecordSubject::OpenCurve;
+                                                    CurveRec.Naming = CadNaming.Issue(WorkspaceRecordSubject::OpenCurve);
+                                                    CurveRec.SketchCurve = LineCurve;
+                                                    const WorkspaceRecordName CN = CadRuntime.Records.Declare(CurveRec);
+                                                    if (CN.Assigned()) Written.push_back(CN);
+                                                    CadRuntime.Revisions.Seal("Declared line", "Create Line", Written, CadRuntime.Revisions.DeclaredCount() + 1u);
+                                                    SyncPresentedSceneEntities();
+                                                }
+                                                CadDrawActive = false;
+                                                CadDrawPhase = 0u;
+                                            }
+                                        }
+                                        else if (ActiveSubj == ParametricToolSubject::Rectangle || ActiveSubj == ParametricToolSubject::CenterRectangle)
+                                        {
+                                            if (LeafPointer.ContactPressed)
+                                            {
+                                                CadDrawActive = true;
+                                                CadDrawPhase = 1u;
+                                                for (int a = 0; a < 3; ++a)
+                                                {
+                                                    CadStartWorld[a] = WorldPt[a];
+                                                    CadCurrentWorld[a] = WorldPt[a];
+                                                }
+                                            }
+                                            else if (CadDrawActive && (LeafPointer.ContactReleased || !LeafPointer.ContactHeld))
+                                            {
+                                                const double Diff[3] = { CadCurrentWorld[0] - CadStartWorld[0],
+                                                                         CadCurrentWorld[1] - CadStartWorld[1],
+                                                                         CadCurrentWorld[2] - CadStartWorld[2] };
+                                                const double DU = Diff[0] * CadDrawAxisU[0] + Diff[1] * CadDrawAxisU[1] + Diff[2] * CadDrawAxisU[2];
+                                                const double DV = Diff[0] * CadDrawAxisV[0] + Diff[1] * CadDrawAxisV[1] + Diff[2] * CadDrawAxisV[2];
+
+                                                if (std::abs(DU) > 0.02 && std::abs(DV) > 0.02 && EditorCadCount < EditorCadLimit)
+                                                {
+                                                    EditorCadItem& Item = EditorCadItems[EditorCadCount++];
+                                                    Item.Kind = EditorCadKind::Rectangle;
+                                                    std::snprintf(Item.Name, sizeof(Item.Name), "Rectangle %u", CadShapeIndex++);
+                                                    for (int a = 0; a < 3; ++a)
+                                                    {
+                                                        Item.PlaneNormal[a] = CadDrawPlaneNormal[a];
+                                                        Item.AxisU[a] = CadDrawAxisU[a];
+                                                        Item.AxisV[a] = CadDrawAxisV[a];
+                                                        Item.RectCorners[0][a] = CadStartWorld[a];
+                                                        Item.RectCorners[1][a] = CadStartWorld[a] + CadDrawAxisU[a] * DU;
+                                                        Item.RectCorners[2][a] = CadCurrentWorld[a];
+                                                        Item.RectCorners[3][a] = CadStartWorld[a] + CadDrawAxisV[a] * DV;
+                                                        Item.Center[a] = (Item.RectCorners[0][a] + Item.RectCorners[2][a]) * 0.5;
+                                                    }
+                                                    if (!CadRuntime.Sketch.Declared())
+                                                        CadRuntime.Sketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { CadDrawPlaneNormal[0], CadDrawPlaneNormal[1], CadDrawPlaneNormal[2] }, { CadDrawAxisU[0], CadDrawAxisU[1], CadDrawAxisU[2] } });
+
+                                                    const SpatialPoint SP0 = { Item.RectCorners[0][0], Item.RectCorners[0][1], Item.RectCorners[0][2] };
+                                                    const SpatialPoint SP1 = { Item.RectCorners[1][0], Item.RectCorners[1][1], Item.RectCorners[1][2] };
+                                                    const SpatialPoint SP2 = { Item.RectCorners[2][0], Item.RectCorners[2][1], Item.RectCorners[2][2] };
+                                                    const SpatialPoint SP3 = { Item.RectCorners[3][0], Item.RectCorners[3][1], Item.RectCorners[3][2] };
+
+                                                    std::vector<WorkspaceRecordName> Written;
+                                                    const auto DeclareCurve = [&](SketchCurveName Curve)
+                                                    {
+                                                        WorkspaceRecord Rec = {};
+                                                        Rec.Subject = WorkspaceRecordSubject::OpenCurve;
+                                                        Rec.Naming = CadNaming.Issue(WorkspaceRecordSubject::OpenCurve);
+                                                        Rec.SketchCurve = Curve;
+                                                        const WorkspaceRecordName N = CadRuntime.Records.Declare(Rec);
+                                                        if (N.Assigned()) Written.push_back(N);
+                                                    };
+                                                    DeclareCurve(CadRuntime.Sketch.DeclareLine(SP0, SP1));
+                                                    DeclareCurve(CadRuntime.Sketch.DeclareLine(SP1, SP2));
+                                                    DeclareCurve(CadRuntime.Sketch.DeclareLine(SP2, SP3));
+                                                    DeclareCurve(CadRuntime.Sketch.DeclareLine(SP3, SP0));
+
+                                                    WorkspaceRecord ProfileRec = {};
+                                                    ProfileRec.Subject = WorkspaceRecordSubject::ClosedProfile;
+                                                    ProfileRec.Naming = CadNaming.Issue(WorkspaceRecordSubject::ClosedProfile);
+                                                    ProfileRec.ClosedSemantic = true;
+                                                    ProfileRec.CappedExtrusionSemantic = true;
+                                                    Item.CadRecordName = CadRuntime.Records.Declare(ProfileRec);
+                                                    if (Item.CadRecordName.Assigned()) Written.push_back(Item.CadRecordName);
+
+                                                    CadRuntime.Revisions.Seal("Declared rectangle", "Create Rectangle", Written,
+                                                                              CadRuntime.Revisions.DeclaredCount() + 1u);
+                                                    SyncPresentedSceneEntities();
+                                                }
+                                                CadDrawActive = false;
+                                                CadDrawPhase = 0u;
+                                            }
+                                        }
+                                        else if (ActiveSubj == ParametricToolSubject::Circle)
+                                        {
+                                            if (LeafPointer.ContactPressed)
+                                            {
+                                                CadDrawActive = true;
+                                                CadDrawPhase = 1u;
+                                                for (int a = 0; a < 3; ++a)
+                                                {
+                                                    CadStartWorld[a] = WorldPt[a];
+                                                    CadCurrentWorld[a] = WorldPt[a];
+                                                }
+                                            }
+                                            else if (CadDrawActive && (LeafPointer.ContactReleased || !LeafPointer.ContactHeld))
+                                            {
+                                                const double Diff[3] = { CadCurrentWorld[0] - CadStartWorld[0],
+                                                                         CadCurrentWorld[1] - CadStartWorld[1],
+                                                                         CadCurrentWorld[2] - CadStartWorld[2] };
+                                                const double Radius = std::sqrt(Diff[0] * Diff[0] + Diff[1] * Diff[1] + Diff[2] * Diff[2]);
+
+                                                if (Radius > 0.02 && EditorCadCount < EditorCadLimit)
+                                                {
+                                                    EditorCadItem& Item = EditorCadItems[EditorCadCount++];
+                                                    Item.Kind = EditorCadKind::Circle;
+                                                    std::snprintf(Item.Name, sizeof(Item.Name), "Circle %u", CadShapeIndex++);
+                                                    for (int a = 0; a < 3; ++a)
+                                                    {
+                                                        Item.PlaneNormal[a] = CadDrawPlaneNormal[a];
+                                                        Item.AxisU[a] = CadDrawAxisU[a];
+                                                        Item.AxisV[a] = CadDrawAxisV[a];
+                                                        Item.Center[a] = CadStartWorld[a];
+                                                    }
+                                                    Item.RadiusMajor = Radius;
+
+                                                    if (!CadRuntime.Sketch.Declared())
+                                                        CadRuntime.Sketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { CadDrawPlaneNormal[0], CadDrawPlaneNormal[1], CadDrawPlaneNormal[2] }, { CadDrawAxisU[0], CadDrawAxisU[1], CadDrawAxisU[2] } });
+
+                                                    const SpatialPoint C = { Item.Center[0], Item.Center[1], Item.Center[2] };
+                                                    const CircularArcCurve Arc = { C, { Item.PlaneNormal[0], Item.PlaneNormal[1], Item.PlaneNormal[2] },
+                                                                                  { Item.AxisU[0], Item.AxisU[1], Item.AxisU[2] }, {}, false, Item.RadiusMajor,
+                                                                                  2.0 * 3.14159265358979323846 };
+                                                    const SketchCurveName Curve = CadRuntime.Sketch.DeclareCurve(CurveSpecification::DeclareCircularArc(Arc, { 0.0, 1.0 }));
+
+                                                    std::vector<WorkspaceRecordName> Written;
+                                                    WorkspaceRecord CurveRec = {};
+                                                    CurveRec.Subject = WorkspaceRecordSubject::OpenCurve;
+                                                    CurveRec.Naming = CadNaming.Issue(WorkspaceRecordSubject::OpenCurve);
+                                                    CurveRec.SketchCurve = Curve;
+                                                    const WorkspaceRecordName CN = CadRuntime.Records.Declare(CurveRec);
+                                                    if (CN.Assigned()) Written.push_back(CN);
+
+                                                    WorkspaceRecord ProfileRec = {};
+                                                    ProfileRec.Subject = WorkspaceRecordSubject::ClosedProfile;
+                                                    ProfileRec.Naming = CadNaming.Issue(WorkspaceRecordSubject::ClosedProfile);
+                                                    ProfileRec.ClosedSemantic = true;
+                                                    ProfileRec.CappedExtrusionSemantic = true;
+                                                    Item.CadRecordName = CadRuntime.Records.Declare(ProfileRec);
+                                                    if (Item.CadRecordName.Assigned()) Written.push_back(Item.CadRecordName);
+
+                                                    CadRuntime.Revisions.Seal("Declared circle", "Create Circle", Written,
+                                                                              CadRuntime.Revisions.DeclaredCount() + 1u);
+                                                    SyncPresentedSceneEntities();
+                                                }
+                                                CadDrawActive = false;
+                                                CadDrawPhase = 0u;
+                                            }
+                                        }
+                                        else if (ActiveSubj == ParametricToolSubject::Polygon)
+                                        {
+                                            if (LeafPointer.ContactPressed)
+                                            {
+                                                CadDrawActive = true;
+                                                CadDrawPhase = 1u;
+                                                for (int a = 0; a < 3; ++a)
+                                                {
+                                                    CadStartWorld[a] = WorldPt[a];
+                                                    CadCurrentWorld[a] = WorldPt[a];
+                                                }
+                                            }
+                                            else if (CadDrawActive && (LeafPointer.ContactReleased || !LeafPointer.ContactHeld))
+                                            {
+                                                const double Diff[3] = { CadCurrentWorld[0] - CadStartWorld[0],
+                                                                         CadCurrentWorld[1] - CadStartWorld[1],
+                                                                         CadCurrentWorld[2] - CadStartWorld[2] };
+                                                const double Radius = std::sqrt(Diff[0] * Diff[0] + Diff[1] * Diff[1] + Diff[2] * Diff[2]);
+
+                                                if (Radius > 0.02 && EditorCadCount < EditorCadLimit)
+                                                {
+                                                    EditorCadItem& Item = EditorCadItems[EditorCadCount++];
+                                                    Item.Kind = EditorCadKind::Polygon;
+                                                    std::snprintf(Item.Name, sizeof(Item.Name), "Polygon %u", CadShapeIndex++);
+                                                    for (int a = 0; a < 3; ++a)
+                                                    {
+                                                        Item.PlaneNormal[a] = CadDrawPlaneNormal[a];
+                                                        Item.AxisU[a] = CadDrawAxisU[a];
+                                                        Item.AxisV[a] = CadDrawAxisV[a];
+                                                        Item.Center[a] = CadStartWorld[a];
+                                                    }
+                                                    Item.RadiusMajor = Radius;
+                                                    Item.PolygonSides = CadPolygonSides;
+                                                    Item.PointCount = CadPolygonSides;
+
+                                                    const double DU = Diff[0] * CadDrawAxisU[0] + Diff[1] * CadDrawAxisU[1] + Diff[2] * CadDrawAxisU[2];
+                                                    const double DV = Diff[0] * CadDrawAxisV[0] + Diff[1] * CadDrawAxisV[1] + Diff[2] * CadDrawAxisV[2];
+                                                    const double Theta0 = std::atan2(DV, DU);
+
+                                                    for (std::uint32_t s = 0u; s < Item.PolygonSides; ++s)
+                                                    {
+                                                        const double Ang = Theta0 + static_cast<double>(s) * 2.0 * 3.14159265358979323846 / static_cast<double>(Item.PolygonSides);
+                                                        for (int a = 0; a < 3; ++a)
+                                                            Item.Points[s][a] = Item.Center[a] + Item.AxisU[a] * (Radius * std::cos(Ang)) + Item.AxisV[a] * (Radius * std::sin(Ang));
+                                                    }
+
+                                                    if (!CadRuntime.Sketch.Declared())
+                                                        CadRuntime.Sketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { CadDrawPlaneNormal[0], CadDrawPlaneNormal[1], CadDrawPlaneNormal[2] }, { CadDrawAxisU[0], CadDrawAxisU[1], CadDrawAxisU[2] } });
+
+                                                    std::vector<WorkspaceRecordName> Written;
+                                                    for (std::uint32_t s = 0u; s < Item.PolygonSides; ++s)
+                                                    {
+                                                        const std::uint32_t Next = (s + 1u) % Item.PolygonSides;
+                                                        const SpatialPoint P0 = { Item.Points[s][0], Item.Points[s][1], Item.Points[s][2] };
+                                                        const SpatialPoint P1 = { Item.Points[Next][0], Item.Points[Next][1], Item.Points[Next][2] };
+                                                        const SketchCurveName LineC = CadRuntime.Sketch.DeclareLine(P0, P1);
+                                                        WorkspaceRecord Rec = {};
+                                                        Rec.Subject = WorkspaceRecordSubject::OpenCurve;
+                                                        Rec.Naming = CadNaming.Issue(WorkspaceRecordSubject::OpenCurve);
+                                                        Rec.SketchCurve = LineC;
+                                                        const WorkspaceRecordName N = CadRuntime.Records.Declare(Rec);
+                                                        if (N.Assigned()) Written.push_back(N);
+                                                    }
+
+                                                    WorkspaceRecord ProfileRec = {};
+                                                    ProfileRec.Subject = WorkspaceRecordSubject::ClosedProfile;
+                                                    ProfileRec.Naming = CadNaming.Issue(WorkspaceRecordSubject::ClosedProfile);
+                                                    ProfileRec.ClosedSemantic = true;
+                                                    ProfileRec.CappedExtrusionSemantic = true;
+                                                    Item.CadRecordName = CadRuntime.Records.Declare(ProfileRec);
+                                                    if (Item.CadRecordName.Assigned()) Written.push_back(Item.CadRecordName);
+
+                                                    CadRuntime.Revisions.Seal("Declared polygon", "Create Polygon", Written,
+                                                                              CadRuntime.Revisions.DeclaredCount() + 1u);
+                                                    SyncPresentedSceneEntities();
+                                                }
+                                                CadDrawActive = false;
+                                                CadDrawPhase = 0u;
+                                            }
+                                        }
+                                        else if (ActiveSubj == ParametricToolSubject::Arc)
+                                        {
+                                            if (CadDrawPhase == 0u)
+                                            {
+                                                if (LeafPointer.ContactPressed)
+                                                {
+                                                    CadDrawActive = true;
+                                                    CadDrawPhase = 1u;
+                                                    for (int a = 0; a < 3; ++a)
+                                                    {
+                                                        CadStartWorld[a] = WorldPt[a];
+                                                        CadCurrentWorld[a] = WorldPt[a];
+                                                    }
+                                                }
+                                            }
+                                            else if (CadDrawPhase == 1u)
+                                            {
+                                                if (LeafPointer.ContactReleased)
+                                                {
+                                                    const double Dist = std::sqrt(
+                                                        (CadCurrentWorld[0] - CadStartWorld[0]) * (CadCurrentWorld[0] - CadStartWorld[0]) +
+                                                        (CadCurrentWorld[1] - CadStartWorld[1]) * (CadCurrentWorld[1] - CadStartWorld[1]) +
+                                                        (CadCurrentWorld[2] - CadStartWorld[2]) * (CadCurrentWorld[2] - CadStartWorld[2]));
+                                                    if (Dist > 0.05)
+                                                    {
+                                                        for (int a = 0; a < 3; ++a)
+                                                            CadAuxWorld[a] = CadCurrentWorld[a];
+                                                        CadDrawPhase = 2u;
+                                                    }
+                                                }
+                                            }
+                                            else if (CadDrawPhase == 2u)
+                                            {
+                                                if (LeafPointer.ContactPressed)
+                                                {
+                                                    if (EditorCadCount < EditorCadLimit)
+                                                    {
+                                                        EditorCadItem& Item = EditorCadItems[EditorCadCount++];
+                                                        Item.Kind = EditorCadKind::Arc;
+                                                        std::snprintf(Item.Name, sizeof(Item.Name), "Arc %u", CadShapeIndex++);
+                                                        for (int a = 0; a < 3; ++a)
+                                                        {
+                                                            Item.PlaneNormal[a] = CadDrawPlaneNormal[a];
+                                                            Item.AxisU[a] = CadDrawAxisU[a];
+                                                            Item.AxisV[a] = CadDrawAxisV[a];
+                                                            Item.LineStart[a] = CadStartWorld[a];
+                                                            Item.LineEnd[a] = CadAuxWorld[a];
+                                                            Item.ArcMid[a] = CadCurrentWorld[a];
+                                                            Item.Center[a] = (Item.LineStart[a] + Item.LineEnd[a]) * 0.5;
+                                                        }
+                                                        if (!CadRuntime.Sketch.Declared())
+                                                            CadRuntime.Sketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { CadDrawPlaneNormal[0], CadDrawPlaneNormal[1], CadDrawPlaneNormal[2] }, { CadDrawAxisU[0], CadDrawAxisU[1], CadDrawAxisU[2] } });
+
+                                                        const SpatialPoint SP0 = { Item.LineStart[0], Item.LineStart[1], Item.LineStart[2] };
+                                                        const SpatialPoint SP1 = { Item.ArcMid[0], Item.ArcMid[1], Item.ArcMid[2] };
+                                                        const SpatialPoint SP2 = { Item.LineEnd[0], Item.LineEnd[1], Item.LineEnd[2] };
+
+                                                        const SketchCurveName ArcC0 = CadRuntime.Sketch.DeclareLine(SP0, SP1);
+                                                        const SketchCurveName ArcC1 = CadRuntime.Sketch.DeclareLine(SP1, SP2);
+
+                                                        std::vector<WorkspaceRecordName> Written;
+                                                        WorkspaceRecord Rec0 = {};
+                                                        Rec0.Subject = WorkspaceRecordSubject::OpenCurve;
+                                                        Rec0.Naming = CadNaming.Issue(WorkspaceRecordSubject::OpenCurve);
+                                                        Rec0.SketchCurve = ArcC0;
+                                                        const WorkspaceRecordName N0 = CadRuntime.Records.Declare(Rec0);
+                                                        if (N0.Assigned()) Written.push_back(N0);
+
+                                                        WorkspaceRecord Rec1 = {};
+                                                        Rec1.Subject = WorkspaceRecordSubject::OpenCurve;
+                                                        Rec1.Naming = CadNaming.Issue(WorkspaceRecordSubject::OpenCurve);
+                                                        Rec1.SketchCurve = ArcC1;
+                                                        const WorkspaceRecordName N1 = CadRuntime.Records.Declare(Rec1);
+                                                        if (N1.Assigned()) Written.push_back(N1);
+
+                                                        Item.CadRecordName = N0;
+                                                        CadRuntime.Revisions.Seal("Declared arc", "Create Arc", Written,
+                                                                                  CadRuntime.Revisions.DeclaredCount() + 1u);
+                                                        SyncPresentedSceneEntities();
+                                                    }
+                                                    CadDrawActive = false;
+                                                    CadDrawPhase = 0u;
+                                                }
+                                            }
+                                        }
+                                        else if (ActiveSubj == ParametricToolSubject::Ellipse)
+                                        {
+                                            if (LeafPointer.ContactPressed)
+                                            {
+                                                CadDrawActive = true;
+                                                CadDrawPhase = 1u;
+                                                for (int a = 0; a < 3; ++a)
+                                                {
+                                                    CadStartWorld[a] = WorldPt[a];
+                                                    CadCurrentWorld[a] = WorldPt[a];
+                                                }
+                                            }
+                                            else if (CadDrawActive && (LeafPointer.ContactReleased || !LeafPointer.ContactHeld))
+                                            {
+                                                const double Diff[3] = { CadCurrentWorld[0] - CadStartWorld[0],
+                                                                         CadCurrentWorld[1] - CadStartWorld[1],
+                                                                         CadCurrentWorld[2] - CadStartWorld[2] };
+                                                double DU = std::abs(Diff[0] * CadDrawAxisU[0] + Diff[1] * CadDrawAxisU[1] + Diff[2] * CadDrawAxisU[2]);
+                                                double DV = std::abs(Diff[0] * CadDrawAxisV[0] + Diff[1] * CadDrawAxisV[1] + Diff[2] * CadDrawAxisV[2]);
+                                                const double Dist = std::sqrt(Diff[0] * Diff[0] + Diff[1] * Diff[1] + Diff[2] * Diff[2]);
+
+                                                if (DU < 0.05 && DV < 0.05) { DU = DV = Dist; }
+                                                else { DU = std::max(DU, 0.05); DV = std::max(DV, 0.05); }
+
+                                                if (DU > 0.02 && DV > 0.02 && EditorCadCount < EditorCadLimit)
+                                                {
+                                                    EditorCadItem& Item = EditorCadItems[EditorCadCount++];
+                                                    Item.Kind = EditorCadKind::Ellipse;
+                                                    std::snprintf(Item.Name, sizeof(Item.Name), "Ellipse %u", CadShapeIndex++);
+                                                    for (int a = 0; a < 3; ++a)
+                                                    {
+                                                        Item.PlaneNormal[a] = CadDrawPlaneNormal[a];
+                                                        Item.AxisU[a] = CadDrawAxisU[a];
+                                                        Item.AxisV[a] = CadDrawAxisV[a];
+                                                        Item.Center[a] = CadStartWorld[a];
+                                                    }
+                                                    Item.RadiusMajor = DU;
+                                                    Item.RadiusMinor = DV;
+
+                                                    if (!CadRuntime.Sketch.Declared())
+                                                        CadRuntime.Sketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { CadDrawPlaneNormal[0], CadDrawPlaneNormal[1], CadDrawPlaneNormal[2] }, { CadDrawAxisU[0], CadDrawAxisU[1], CadDrawAxisU[2] } });
+
+                                                    std::vector<WorkspaceRecordName> Written;
+                                                    constexpr int EllipseSegs = 24;
+                                                    for (int s = 0; s < EllipseSegs; ++s)
+                                                    {
+                                                        const double A0 = static_cast<double>(s) * 2.0 * 3.14159265358979323846 / static_cast<double>(EllipseSegs);
+                                                        const double A1 = static_cast<double>((s + 1) % EllipseSegs) * 2.0 * 3.14159265358979323846 / static_cast<double>(EllipseSegs);
+                                                        const SpatialPoint P0 = {
+                                                            Item.Center[0] + Item.AxisU[0] * (DU * std::cos(A0)) + Item.AxisV[0] * (DV * std::sin(A0)),
+                                                            Item.Center[1] + Item.AxisU[1] * (DU * std::cos(A0)) + Item.AxisV[1] * (DV * std::sin(A0)),
+                                                            Item.Center[2] + Item.AxisU[2] * (DU * std::cos(A0)) + Item.AxisV[2] * (DV * std::sin(A0))
+                                                        };
+                                                        const SpatialPoint P1 = {
+                                                            Item.Center[0] + Item.AxisU[0] * (DU * std::cos(A1)) + Item.AxisV[0] * (DV * std::sin(A1)),
+                                                            Item.Center[1] + Item.AxisU[1] * (DU * std::cos(A1)) + Item.AxisV[1] * (DV * std::sin(A1)),
+                                                            Item.Center[2] + Item.AxisU[2] * (DU * std::cos(A1)) + Item.AxisV[2] * (DV * std::sin(A1))
+                                                        };
+                                                        const SketchCurveName LineC = CadRuntime.Sketch.DeclareLine(P0, P1);
+                                                        WorkspaceRecord Rec = {};
+                                                        Rec.Subject = WorkspaceRecordSubject::OpenCurve;
+                                                        Rec.Naming = CadNaming.Issue(WorkspaceRecordSubject::OpenCurve);
+                                                        Rec.SketchCurve = LineC;
+                                                        const WorkspaceRecordName N = CadRuntime.Records.Declare(Rec);
+                                                        if (N.Assigned()) Written.push_back(N);
+                                                    }
+
+                                                    WorkspaceRecord ProfileRec = {};
+                                                    ProfileRec.Subject = WorkspaceRecordSubject::ClosedProfile;
+                                                    ProfileRec.Naming = CadNaming.Issue(WorkspaceRecordSubject::ClosedProfile);
+                                                    ProfileRec.ClosedSemantic = true;
+                                                    ProfileRec.CappedExtrusionSemantic = true;
+                                                    Item.CadRecordName = CadRuntime.Records.Declare(ProfileRec);
+                                                    if (Item.CadRecordName.Assigned()) Written.push_back(Item.CadRecordName);
+
+                                                    CadRuntime.Revisions.Seal("Declared ellipse", "Create Ellipse", Written,
+                                                                              CadRuntime.Revisions.DeclaredCount() + 1u);
+                                                    SyncPresentedSceneEntities();
+                                                }
+                                                CadDrawActive = false;
+                                                CadDrawPhase = 0u;
+                                            }
+                                        }
+                                        else if (ActiveSubj == ParametricToolSubject::Slot)
+                                        {
+                                            if (!CadDrawActive)
+                                            {
+                                                if (LeafPointer.ContactPressed)
+                                                {
+                                                    CadDrawActive = true;
+                                                    CadDrawPhase = 1u;
+                                                    CadMultiPointCount = 1u;
+                                                    for (int a = 0; a < 3; ++a)
+                                                    {
+                                                        CadMultiPoints[0][a] = WorldPt[a];
+                                                        CadStartWorld[a] = WorldPt[a];
+                                                        CadCurrentWorld[a] = WorldPt[a];
+                                                    }
+                                                    CadSlotThickness = 0.8;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (LeafPointer.ContactDoublePressed)
+                                                {
+                                                    if (CadMultiPointCount < 64u)
+                                                    {
+                                                        for (int a = 0; a < 3; ++a)
+                                                            CadMultiPoints[CadMultiPointCount][a] = WorldPt[a];
+                                                        CadMultiPointCount++;
+                                                    }
+                                                    if (CadMultiPointCount >= 2u && EditorCadCount < EditorCadLimit)
+                                                    {
+                                                        EditorCadItem& Item = EditorCadItems[EditorCadCount++];
+                                                        Item.Kind = EditorCadKind::Slot;
+                                                        std::snprintf(Item.Name, sizeof(Item.Name), "Slot %u", CadShapeIndex++);
+                                                        for (int a = 0; a < 3; ++a)
+                                                        {
+                                                            Item.PlaneNormal[a] = CadDrawPlaneNormal[a];
+                                                            Item.AxisU[a] = CadDrawAxisU[a];
+                                                            Item.AxisV[a] = CadDrawAxisV[a];
+                                                            Item.Center[a] = CadMultiPoints[0][a];
+                                                        }
+                                                        Item.SlotThickness = CadSlotThickness;
+                                                        Item.PointCount = CadMultiPointCount;
+                                                        for (std::uint32_t p = 0u; p < CadMultiPointCount; ++p)
+                                                            for (int a = 0; a < 3; ++a)
+                                                                Item.Points[p][a] = CadMultiPoints[p][a];
+
+                                                        if (!CadRuntime.Sketch.Declared())
+                                                            CadRuntime.Sketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { CadDrawPlaneNormal[0], CadDrawPlaneNormal[1], CadDrawPlaneNormal[2] }, { CadDrawAxisU[0], CadDrawAxisU[1], CadDrawAxisU[2] } });
+
+                                                        std::vector<WorkspaceRecordName> Written;
+                                                        for (std::uint32_t p = 0u; p + 1u < Item.PointCount; ++p)
+                                                        {
+                                                            const SpatialPoint P0 = { Item.Points[p][0], Item.Points[p][1], Item.Points[p][2] };
+                                                            const SpatialPoint P1 = { Item.Points[p + 1u][0], Item.Points[p + 1u][1], Item.Points[p + 1u][2] };
+                                                            const SketchCurveName LineC = CadRuntime.Sketch.DeclareLine(P0, P1);
+                                                            WorkspaceRecord Rec = {};
+                                                            Rec.Subject = WorkspaceRecordSubject::OpenCurve;
+                                                            Rec.Naming = CadNaming.Issue(WorkspaceRecordSubject::OpenCurve);
+                                                            Rec.SketchCurve = LineC;
+                                                            const WorkspaceRecordName N = CadRuntime.Records.Declare(Rec);
+                                                            if (N.Assigned()) Written.push_back(N);
+                                                        }
+
+                                                        WorkspaceRecord ProfileRec = {};
+                                                        ProfileRec.Subject = WorkspaceRecordSubject::ClosedProfile;
+                                                        ProfileRec.Naming = CadNaming.Issue(WorkspaceRecordSubject::ClosedProfile);
+                                                        ProfileRec.ClosedSemantic = true;
+                                                        ProfileRec.CappedExtrusionSemantic = true;
+                                                        Item.CadRecordName = CadRuntime.Records.Declare(ProfileRec);
+                                                        if (Item.CadRecordName.Assigned()) Written.push_back(Item.CadRecordName);
+
+                                                        CadRuntime.Revisions.Seal("Declared slot", "Create Slot", Written,
+                                                                                  CadRuntime.Revisions.DeclaredCount() + 1u);
+                                                        SyncPresentedSceneEntities();
+                                                    }
+                                                    CadDrawActive = false;
+                                                    CadDrawPhase = 0u;
+                                                    CadMultiPointCount = 0u;
+                                                }
+                                                else if (LeafPointer.ContactPressed)
+                                                {
+                                                    const double Dist = std::sqrt(
+                                                        (WorldPt[0] - CadMultiPoints[CadMultiPointCount - 1u][0]) * (WorldPt[0] - CadMultiPoints[CadMultiPointCount - 1u][0]) +
+                                                        (WorldPt[1] - CadMultiPoints[CadMultiPointCount - 1u][1]) * (WorldPt[1] - CadMultiPoints[CadMultiPointCount - 1u][1]) +
+                                                        (WorldPt[2] - CadMultiPoints[CadMultiPointCount - 1u][2]) * (WorldPt[2] - CadMultiPoints[CadMultiPointCount - 1u][2]));
+                                                    if (Dist > 0.05 && CadMultiPointCount < 64u)
+                                                    {
+                                                        for (int a = 0; a < 3; ++a)
+                                                            CadMultiPoints[CadMultiPointCount][a] = WorldPt[a];
+                                                        CadMultiPointCount++;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        else if (ActiveSubj == ParametricToolSubject::Polyline)
+                                        {
+                                            if (!CadDrawActive)
+                                            {
+                                                if (LeafPointer.ContactPressed)
+                                                {
+                                                    CadDrawActive = true;
+                                                    CadDrawPhase = 1u;
+                                                    CadMultiPointCount = 1u;
+                                                    for (int a = 0; a < 3; ++a)
+                                                    {
+                                                        CadMultiPoints[0][a] = WorldPt[a];
+                                                        CadCurrentWorld[a] = WorldPt[a];
+                                                    }
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (LeafPointer.ContactDoublePressed)
+                                                {
+                                                    if (CadMultiPointCount < 64u)
+                                                    {
+                                                        for (int a = 0; a < 3; ++a)
+                                                            CadMultiPoints[CadMultiPointCount][a] = WorldPt[a];
+                                                        CadMultiPointCount++;
+                                                    }
+                                                    if (CadMultiPointCount >= 2u && EditorCadCount < EditorCadLimit)
+                                                    {
+                                                        EditorCadItem& Item = EditorCadItems[EditorCadCount++];
+                                                        Item.Kind = EditorCadKind::Polyline;
+                                                        std::snprintf(Item.Name, sizeof(Item.Name), "Polyline %u", CadShapeIndex++);
+                                                        for (int a = 0; a < 3; ++a)
+                                                        {
+                                                            Item.PlaneNormal[a] = CadDrawPlaneNormal[a];
+                                                            Item.AxisU[a] = CadDrawAxisU[a];
+                                                            Item.AxisV[a] = CadDrawAxisV[a];
+                                                            Item.Center[a] = CadMultiPoints[0][a];
+                                                        }
+                                                        Item.PointCount = CadMultiPointCount;
+                                                        for (std::uint32_t p = 0u; p < CadMultiPointCount; ++p)
+                                                            for (int a = 0; a < 3; ++a)
+                                                                Item.Points[p][a] = CadMultiPoints[p][a];
+
+                                                        if (!CadRuntime.Sketch.Declared())
+                                                            CadRuntime.Sketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { CadDrawPlaneNormal[0], CadDrawPlaneNormal[1], CadDrawPlaneNormal[2] }, { CadDrawAxisU[0], CadDrawAxisU[1], CadDrawAxisU[2] } });
+
+                                                        std::vector<WorkspaceRecordName> Written;
+                                                        for (std::uint32_t p = 0u; p + 1u < Item.PointCount; ++p)
+                                                        {
+                                                            const SpatialPoint P0 = { Item.Points[p][0], Item.Points[p][1], Item.Points[p][2] };
+                                                            const SpatialPoint P1 = { Item.Points[p + 1u][0], Item.Points[p + 1u][1], Item.Points[p + 1u][2] };
+                                                            const SketchCurveName LineC = CadRuntime.Sketch.DeclareLine(P0, P1);
+                                                            WorkspaceRecord Rec = {};
+                                                            Rec.Subject = WorkspaceRecordSubject::OpenCurve;
+                                                            Rec.Naming = CadNaming.Issue(WorkspaceRecordSubject::OpenCurve);
+                                                            Rec.SketchCurve = LineC;
+                                                            const WorkspaceRecordName N = CadRuntime.Records.Declare(Rec);
+                                                            if (N.Assigned()) Written.push_back(N);
+                                                        }
+                                                        CadRuntime.Revisions.Seal("Declared polyline", "Create Polyline", Written,
+                                                                                  CadRuntime.Revisions.DeclaredCount() + 1u);
+                                                        SyncPresentedSceneEntities();
+                                                    }
+                                                    CadDrawActive = false;
+                                                    CadDrawPhase = 0u;
+                                                    CadMultiPointCount = 0u;
+                                                }
+                                                else if (LeafPointer.ContactPressed)
+                                                {
+                                                    const double Dist = std::sqrt(
+                                                        (WorldPt[0] - CadMultiPoints[CadMultiPointCount - 1u][0]) * (WorldPt[0] - CadMultiPoints[CadMultiPointCount - 1u][0]) +
+                                                        (WorldPt[1] - CadMultiPoints[CadMultiPointCount - 1u][1]) * (WorldPt[1] - CadMultiPoints[CadMultiPointCount - 1u][1]) +
+                                                        (WorldPt[2] - CadMultiPoints[CadMultiPointCount - 1u][2]) * (WorldPt[2] - CadMultiPoints[CadMultiPointCount - 1u][2]));
+                                                    if (Dist > 0.05 && CadMultiPointCount < 64u)
+                                                    {
+                                                        for (int a = 0; a < 3; ++a)
+                                                            CadMultiPoints[CadMultiPointCount][a] = WorldPt[a];
+                                                        CadMultiPointCount++;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        else if (ActiveSubj == ParametricToolSubject::RationalSpline ||
+                                                 ActiveSubj == ParametricToolSubject::BasisSpline ||
+                                                 ActiveSubj == ParametricToolSubject::HermiteCurve ||
+                                                 ActiveSubj == ParametricToolSubject::BezierCurve)
+                                        {
+                                            if (!CadDrawActive)
+                                            {
+                                                if (LeafPointer.ContactPressed)
+                                                {
+                                                    CadDrawActive = true;
+                                                    CadDrawPhase = 1u;
+                                                    CadMultiPointCount = 1u;
+                                                    for (int a = 0; a < 3; ++a)
+                                                    {
+                                                        CadMultiPoints[0][a] = WorldPt[a];
+                                                        CadCurrentWorld[a] = WorldPt[a];
+                                                    }
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (LeafPointer.ContactDoublePressed)
+                                                {
+                                                    if (CadMultiPointCount < 64u)
+                                                    {
+                                                        for (int a = 0; a < 3; ++a)
+                                                            CadMultiPoints[CadMultiPointCount][a] = WorldPt[a];
+                                                        CadMultiPointCount++;
+                                                    }
+                                                    if (CadMultiPointCount >= 2u && EditorCadCount < EditorCadLimit)
+                                                    {
+                                                        EditorCadItem& Item = EditorCadItems[EditorCadCount++];
+                                                        Item.Kind = EditorCadKind::Curve;
+                                                        const char* CurveLabel = (ActiveSubj == ParametricToolSubject::BezierCurve) ? "Bezier" :
+                                                                                 (ActiveSubj == ParametricToolSubject::HermiteCurve) ? "Hermite" :
+                                                                                 (ActiveSubj == ParametricToolSubject::BasisSpline) ? "B-Spline" : "NURBS";
+                                                        std::snprintf(Item.Name, sizeof(Item.Name), "%s %u", CurveLabel, CadShapeIndex++);
+                                                        for (int a = 0; a < 3; ++a)
+                                                        {
+                                                            Item.PlaneNormal[a] = CadDrawPlaneNormal[a];
+                                                            Item.AxisU[a] = CadDrawAxisU[a];
+                                                            Item.AxisV[a] = CadDrawAxisV[a];
+                                                            Item.Center[a] = CadMultiPoints[0][a];
+                                                        }
+                                                        Item.PointCount = CadMultiPointCount;
+                                                        for (std::uint32_t p = 0u; p < CadMultiPointCount; ++p)
+                                                            for (int a = 0; a < 3; ++a)
+                                                                Item.Points[p][a] = CadMultiPoints[p][a];
+
+                                                        if (!CadRuntime.Sketch.Declared())
+                                                            CadRuntime.Sketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { CadDrawPlaneNormal[0], CadDrawPlaneNormal[1], CadDrawPlaneNormal[2] }, { CadDrawAxisU[0], CadDrawAxisU[1], CadDrawAxisU[2] } });
+
+                                                        std::vector<WorkspaceRecordName> Written;
+                                                        for (std::uint32_t p = 0u; p + 1u < Item.PointCount; ++p)
+                                                        {
+                                                            const SpatialPoint P0 = { Item.Points[p][0], Item.Points[p][1], Item.Points[p][2] };
+                                                            const SpatialPoint P1 = { Item.Points[p + 1u][0], Item.Points[p + 1u][1], Item.Points[p + 1u][2] };
+                                                            const SketchCurveName LineC = CadRuntime.Sketch.DeclareLine(P0, P1);
+                                                            WorkspaceRecord Rec = {};
+                                                            Rec.Subject = WorkspaceRecordSubject::OpenCurve;
+                                                            Rec.Naming = CadNaming.Issue(WorkspaceRecordSubject::OpenCurve);
+                                                            Rec.SketchCurve = LineC;
+                                                            const WorkspaceRecordName N = CadRuntime.Records.Declare(Rec);
+                                                            if (N.Assigned()) Written.push_back(N);
+                                                        }
+                                                        CadRuntime.Revisions.Seal("Declared curve", "Create Curve", Written,
+                                                                                  CadRuntime.Revisions.DeclaredCount() + 1u);
+                                                        SyncPresentedSceneEntities();
+                                                    }
+                                                    CadDrawActive = false;
+                                                    CadDrawPhase = 0u;
+                                                    CadMultiPointCount = 0u;
+                                                }
+                                                else if (LeafPointer.ContactPressed)
+                                                {
+                                                    const double Dist = std::sqrt(
+                                                        (WorldPt[0] - CadMultiPoints[CadMultiPointCount - 1u][0]) * (WorldPt[0] - CadMultiPoints[CadMultiPointCount - 1u][0]) +
+                                                        (WorldPt[1] - CadMultiPoints[CadMultiPointCount - 1u][1]) * (WorldPt[1] - CadMultiPoints[CadMultiPointCount - 1u][1]) +
+                                                        (WorldPt[2] - CadMultiPoints[CadMultiPointCount - 1u][2]) * (WorldPt[2] - CadMultiPoints[CadMultiPointCount - 1u][2]));
+                                                    if (Dist > 0.05 && CadMultiPointCount < 64u)
+                                                    {
+                                                        for (int a = 0; a < 3; ++a)
+                                                            CadMultiPoints[CadMultiPointCount][a] = WorldPt[a];
+                                                        CadMultiPointCount++;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                                 {
                                     SharedViewportBasis GizmoBasis = SharedViewportBasisFromYawPitch(
                                         SceneApplied.ViewportSkyCamera.AzimuthDegrees,
@@ -1268,6 +2297,389 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 //    so the CPU hands over a pose rather than a thousand segments.
                                 SceneDirectory.RecordGizmo(LeafBody, SceneApplied, LeafOverlay);
 
+                                // Render committed and preview CAD geometry into the viewport overlay
+                                const std::uint32_t CommittedColor = PackOverlayColour(52u, 211u, 153u, 255u);
+                                const std::uint32_t PreviewColor   = PackOverlayColour(0u, 229u, 255u, 255u);
+                                const std::uint32_t HandleColor    = PackOverlayColour(255u, 255u, 255u, 255u);
+                                const std::uint32_t MutedColor     = PackOverlayColour(0u, 229u, 255u, 120u);
+
+                                for (std::uint32_t I = 0u; I < EditorCadCount; ++I)
+                                {
+                                    const EditorCadItem& Item = EditorCadItems[I];
+                                    if (Item.Kind == EditorCadKind::Point)
+                                    {
+                                        float SX = 0.0f, SY = 0.0f;
+                                        if (ProjectPoint(Item.Center, SX, SY))
+                                            SafeOverlayDot(SX, SY, CommittedColor, 4.0f);
+                                    }
+                                    else if (Item.Kind == EditorCadKind::Line)
+                                    {
+                                        float S0X = 0.0f, S0Y = 0.0f, S1X = 0.0f, S1Y = 0.0f;
+                                        if (ProjectPoint(Item.LineStart, S0X, S0Y) && ProjectPoint(Item.LineEnd, S1X, S1Y))
+                                        {
+                                            SafeOverlayLine(S0X, S0Y, S1X, S1Y, CommittedColor, 2.0f);
+                                            SafeOverlayDot(S0X, S0Y, HandleColor, 3.0f);
+                                            SafeOverlayDot(S1X, S1Y, HandleColor, 3.0f);
+                                        }
+                                    }
+                                    else if (Item.Kind == EditorCadKind::Rectangle)
+                                    {
+                                        float Sc[4][2] = {};
+                                        bool AllVis = true;
+                                        for (int c = 0; c < 4; ++c)
+                                        {
+                                            if (!ProjectPoint(Item.RectCorners[c], Sc[c][0], Sc[c][1]))
+                                                AllVis = false;
+                                        }
+                                        if (AllVis)
+                                        {
+                                            for (int c = 0; c < 4; ++c)
+                                            {
+                                                SafeOverlayLine(Sc[c][0], Sc[c][1], Sc[(c + 1) % 4][0], Sc[(c + 1) % 4][1], CommittedColor, 2.0f);
+                                                SafeOverlayDot(Sc[c][0], Sc[c][1], HandleColor, 3.0f);
+                                            }
+                                        }
+                                    }
+                                    else if (Item.Kind == EditorCadKind::Circle)
+                                    {
+                                        float PrevSX = 0.0f, PrevSY = 0.0f;
+                                        bool First = true;
+                                        constexpr int Segments = 48;
+                                        for (int s = 0; s <= Segments; ++s)
+                                        {
+                                            const double Ang = static_cast<double>(s % Segments) * 2.0 * 3.14159265358979323846 / static_cast<double>(Segments);
+                                            double WP[3] = {};
+                                            for (int a = 0; a < 3; ++a)
+                                                WP[a] = Item.Center[a] + Item.AxisU[a] * (Item.RadiusMajor * std::cos(Ang)) + Item.AxisV[a] * (Item.RadiusMajor * std::sin(Ang));
+                                            float CurSX = 0.0f, CurSY = 0.0f;
+                                            if (ProjectPoint(WP, CurSX, CurSY))
+                                            {
+                                                if (!First)
+                                                    SafeOverlayLine(PrevSX, PrevSY, CurSX, CurSY, CommittedColor, 2.0f);
+                                                else
+                                                    First = false;
+                                                PrevSX = CurSX; PrevSY = CurSY;
+                                            }
+                                        }
+                                        float CSX = 0.0f, CSY = 0.0f;
+                                        if (ProjectPoint(Item.Center, CSX, CSY))
+                                            SafeOverlayDot(CSX, CSY, HandleColor, 3.0f);
+                                    }
+                                    else if (Item.Kind == EditorCadKind::Polygon)
+                                    {
+                                        for (std::uint32_t s = 0u; s < Item.PolygonSides; ++s)
+                                        {
+                                            const std::uint32_t Next = (s + 1u) % Item.PolygonSides;
+                                            float S0X = 0.0f, S0Y = 0.0f, S1X = 0.0f, S1Y = 0.0f;
+                                            if (ProjectPoint(Item.Points[s], S0X, S0Y) && ProjectPoint(Item.Points[Next], S1X, S1Y))
+                                            {
+                                                SafeOverlayLine(S0X, S0Y, S1X, S1Y, CommittedColor, 2.0f);
+                                                SafeOverlayDot(S0X, S0Y, HandleColor, 3.0f);
+                                            }
+                                        }
+                                    }
+                                    else if (Item.Kind == EditorCadKind::Arc)
+                                    {
+                                        float PrevSX = 0.0f, PrevSY = 0.0f;
+                                        bool First = true;
+                                        constexpr int Segments = 32;
+                                        for (int s = 0; s <= Segments; ++s)
+                                        {
+                                            const double t = static_cast<double>(s) / static_cast<double>(Segments);
+                                            double WP[3] = {};
+                                            for (int a = 0; a < 3; ++a)
+                                                WP[a] = (1.0 - t) * (1.0 - t) * Item.LineStart[a] + 2.0 * (1.0 - t) * t * Item.ArcMid[a] + t * t * Item.LineEnd[a];
+                                            float CurSX = 0.0f, CurSY = 0.0f;
+                                            if (ProjectPoint(WP, CurSX, CurSY))
+                                            {
+                                                if (!First)
+                                                    SafeOverlayLine(PrevSX, PrevSY, CurSX, CurSY, CommittedColor, 2.0f);
+                                                else
+                                                    First = false;
+                                                PrevSX = CurSX; PrevSY = CurSY;
+                                            }
+                                        }
+                                        float S0X = 0.0f, S0Y = 0.0f, S1X = 0.0f, S1Y = 0.0f;
+                                        if (ProjectPoint(Item.LineStart, S0X, S0Y)) SafeOverlayDot(S0X, S0Y, HandleColor, 3.0f);
+                                        if (ProjectPoint(Item.LineEnd, S1X, S1Y)) SafeOverlayDot(S1X, S1Y, HandleColor, 3.0f);
+                                    }
+                                    else if (Item.Kind == EditorCadKind::Ellipse)
+                                    {
+                                        float PrevSX = 0.0f, PrevSY = 0.0f;
+                                        bool First = true;
+                                        constexpr int Segments = 48;
+                                        for (int s = 0; s <= Segments; ++s)
+                                        {
+                                            const double Ang = static_cast<double>(s % Segments) * 2.0 * 3.14159265358979323846 / static_cast<double>(Segments);
+                                            double WP[3] = {};
+                                            for (int a = 0; a < 3; ++a)
+                                                WP[a] = Item.Center[a] + Item.AxisU[a] * (Item.RadiusMajor * std::cos(Ang)) + Item.AxisV[a] * (Item.RadiusMinor * std::sin(Ang));
+                                            float CurSX = 0.0f, CurSY = 0.0f;
+                                            if (ProjectPoint(WP, CurSX, CurSY))
+                                            {
+                                                if (!First)
+                                                    SafeOverlayLine(PrevSX, PrevSY, CurSX, CurSY, CommittedColor, 2.0f);
+                                                else
+                                                    First = false;
+                                                PrevSX = CurSX; PrevSY = CurSY;
+                                            }
+                                        }
+                                        float CSX = 0.0f, CSY = 0.0f;
+                                        if (ProjectPoint(Item.Center, CSX, CSY))
+                                            SafeOverlayDot(CSX, CSY, HandleColor, 3.0f);
+                                    }
+                                    else if (Item.Kind == EditorCadKind::Slot || Item.Kind == EditorCadKind::Polyline || Item.Kind == EditorCadKind::Curve)
+                                    {
+                                        for (std::uint32_t p = 0u; p + 1u < Item.PointCount; ++p)
+                                        {
+                                            float S0X = 0.0f, S0Y = 0.0f, S1X = 0.0f, S1Y = 0.0f;
+                                            if (ProjectPoint(Item.Points[p], S0X, S0Y) && ProjectPoint(Item.Points[p + 1u], S1X, S1Y))
+                                            {
+                                                SafeOverlayLine(S0X, S0Y, S1X, S1Y, CommittedColor, 2.0f);
+                                                SafeOverlayDot(S0X, S0Y, HandleColor, 3.0f);
+                                            }
+                                        }
+                                        if (Item.PointCount > 0u)
+                                        {
+                                            float LastSX = 0.0f, LastSY = 0.0f;
+                                            if (ProjectPoint(Item.Points[Item.PointCount - 1u], LastSX, LastSY))
+                                                SafeOverlayDot(LastSX, LastSY, HandleColor, 3.0f);
+                                        }
+                                    }
+                                }
+
+                                if (CadDrawActive)
+                                {
+                                    if (CadActiveTool == ParametricToolSubject::Line)
+                                    {
+                                        float S0X = 0.0f, S0Y = 0.0f, S1X = 0.0f, S1Y = 0.0f;
+                                        if (ProjectPoint(CadStartWorld, S0X, S0Y) && ProjectPoint(CadCurrentWorld, S1X, S1Y))
+                                        {
+                                            SafeOverlayLine(S0X, S0Y, S1X, S1Y, PreviewColor, 2.0f);
+                                            SafeOverlayDot(S0X, S0Y, HandleColor, 4.0f);
+                                            SafeOverlayDot(S1X, S1Y, HandleColor, 4.0f);
+                                        }
+                                    }
+                                    else if (CadActiveTool == ParametricToolSubject::Rectangle || CadActiveTool == ParametricToolSubject::CenterRectangle)
+                                    {
+                                        const double Diff[3] = { CadCurrentWorld[0] - CadStartWorld[0],
+                                                                 CadCurrentWorld[1] - CadStartWorld[1],
+                                                                 CadCurrentWorld[2] - CadStartWorld[2] };
+                                        const double DU = Diff[0] * CadDrawAxisU[0] + Diff[1] * CadDrawAxisU[1] + Diff[2] * CadDrawAxisU[2];
+                                        const double DV = Diff[0] * CadDrawAxisV[0] + Diff[1] * CadDrawAxisV[1] + Diff[2] * CadDrawAxisV[2];
+
+                                        double Corners[4][3] = {};
+                                        for (int a = 0; a < 3; ++a)
+                                        {
+                                            Corners[0][a] = CadStartWorld[a];
+                                            Corners[1][a] = CadStartWorld[a] + CadDrawAxisU[a] * DU;
+                                            Corners[2][a] = CadCurrentWorld[a];
+                                            Corners[3][a] = CadStartWorld[a] + CadDrawAxisV[a] * DV;
+                                        }
+                                        float Sc[4][2] = {};
+                                        bool AllVis = true;
+                                        for (int c = 0; c < 4; ++c)
+                                        {
+                                            if (!ProjectPoint(Corners[c], Sc[c][0], Sc[c][1]))
+                                                AllVis = false;
+                                        }
+                                        if (AllVis)
+                                        {
+                                            for (int c = 0; c < 4; ++c)
+                                            {
+                                                SafeOverlayLine(Sc[c][0], Sc[c][1], Sc[(c + 1) % 4][0], Sc[(c + 1) % 4][1], PreviewColor, 2.0f);
+                                                SafeOverlayDot(Sc[c][0], Sc[c][1], HandleColor, 4.0f);
+                                            }
+                                        }
+                                    }
+                                    else if (CadActiveTool == ParametricToolSubject::Circle)
+                                    {
+                                        const double Diff[3] = { CadCurrentWorld[0] - CadStartWorld[0],
+                                                                 CadCurrentWorld[1] - CadStartWorld[1],
+                                                                 CadCurrentWorld[2] - CadStartWorld[2] };
+                                        const double Radius = std::sqrt(Diff[0] * Diff[0] + Diff[1] * Diff[1] + Diff[2] * Diff[2]);
+
+                                        float PrevSX = 0.0f, PrevSY = 0.0f;
+                                        bool First = true;
+                                        constexpr int Segments = 48;
+                                        for (int s = 0; s <= Segments; ++s)
+                                        {
+                                            const double Ang = static_cast<double>(s % Segments) * 2.0 * 3.14159265358979323846 / static_cast<double>(Segments);
+                                            double WP[3] = {};
+                                            for (int a = 0; a < 3; ++a)
+                                                WP[a] = CadStartWorld[a] + CadDrawAxisU[a] * (Radius * std::cos(Ang)) + CadDrawAxisV[a] * (Radius * std::sin(Ang));
+                                            float CurSX = 0.0f, CurSY = 0.0f;
+                                            if (ProjectPoint(WP, CurSX, CurSY))
+                                            {
+                                                if (!First)
+                                                    SafeOverlayLine(PrevSX, PrevSY, CurSX, CurSY, PreviewColor, 2.0f);
+                                                else
+                                                    First = false;
+                                                PrevSX = CurSX; PrevSY = CurSY;
+                                            }
+                                        }
+                                        float CenterSX = 0.0f, CenterSY = 0.0f;
+                                        float CurSX = 0.0f, CurSY = 0.0f;
+                                        if (ProjectPoint(CadStartWorld, CenterSX, CenterSY))
+                                            SafeOverlayDot(CenterSX, CenterSY, HandleColor, 4.0f);
+                                        if (ProjectPoint(CadStartWorld, CenterSX, CenterSY) && ProjectPoint(CadCurrentWorld, CurSX, CurSY))
+                                            SafeOverlayLine(CenterSX, CenterSY, CurSX, CurSY, MutedColor, 1.0f);
+                                    }
+                                    else if (CadActiveTool == ParametricToolSubject::Polygon)
+                                    {
+                                        const double Diff[3] = { CadCurrentWorld[0] - CadStartWorld[0],
+                                                                 CadCurrentWorld[1] - CadStartWorld[1],
+                                                                 CadCurrentWorld[2] - CadStartWorld[2] };
+                                        const double Radius = std::sqrt(Diff[0] * Diff[0] + Diff[1] * Diff[1] + Diff[2] * Diff[2]);
+                                        const double DU = Diff[0] * CadDrawAxisU[0] + Diff[1] * CadDrawAxisU[1] + Diff[2] * CadDrawAxisU[2];
+                                        const double DV = Diff[0] * CadDrawAxisV[0] + Diff[1] * CadDrawAxisV[1] + Diff[2] * CadDrawAxisV[2];
+                                        const double Theta0 = std::atan2(DV, DU);
+
+                                        float PrevSX = 0.0f, PrevSY = 0.0f;
+                                        float FirstSX = 0.0f, FirstSY = 0.0f;
+                                        for (std::uint32_t s = 0u; s < CadPolygonSides; ++s)
+                                        {
+                                            const double Ang = Theta0 + static_cast<double>(s) * 2.0 * 3.14159265358979323846 / static_cast<double>(CadPolygonSides);
+                                            double WP[3] = {};
+                                            for (int a = 0; a < 3; ++a)
+                                                WP[a] = CadStartWorld[a] + CadDrawAxisU[a] * (Radius * std::cos(Ang)) + CadDrawAxisV[a] * (Radius * std::sin(Ang));
+                                            float CurSX = 0.0f, CurSY = 0.0f;
+                                            if (ProjectPoint(WP, CurSX, CurSY))
+                                            {
+                                                SafeOverlayDot(CurSX, CurSY, HandleColor, 3.5f);
+                                                if (s > 0u)
+                                                    SafeOverlayLine(PrevSX, PrevSY, CurSX, CurSY, PreviewColor, 2.0f);
+                                                else
+                                                {
+                                                    FirstSX = CurSX;
+                                                    FirstSY = CurSY;
+                                                }
+                                                PrevSX = CurSX; PrevSY = CurSY;
+                                            }
+                                        }
+                                        SafeOverlayLine(PrevSX, PrevSY, FirstSX, FirstSY, PreviewColor, 2.0f);
+                                        float CSX = 0.0f, CSY = 0.0f;
+                                        if (ProjectPoint(CadStartWorld, CSX, CSY))
+                                            SafeOverlayDot(CSX, CSY, HandleColor, 4.0f);
+                                    }
+                                    else if (CadActiveTool == ParametricToolSubject::Arc)
+                                    {
+                                        const double* P0 = CadStartWorld;
+                                        const double* P1 = (CadDrawPhase == 2u) ? CadAuxWorld : CadCurrentWorld;
+                                        double Pmid[3] = {};
+                                        if (CadDrawPhase == 2u)
+                                        {
+                                            for (int a = 0; a < 3; ++a)
+                                                Pmid[a] = CadCurrentWorld[a];
+                                        }
+                                        else
+                                        {
+                                            const double D[3] = { P1[0] - P0[0], P1[1] - P0[1], P1[2] - P0[2] };
+                                            const double L = std::sqrt(D[0] * D[0] + D[1] * D[1] + D[2] * D[2]);
+                                            if (L > 0.01)
+                                            {
+                                                const double InvL = 1.0 / L;
+                                                const double Dx = D[0] * InvL, Dy = D[1] * InvL, Dz = D[2] * InvL;
+                                                const double Nx = CadDrawPlaneNormal[1] * Dz - CadDrawPlaneNormal[2] * Dy;
+                                                const double Ny = CadDrawPlaneNormal[2] * Dx - CadDrawPlaneNormal[0] * Dz;
+                                                const double Nz = CadDrawPlaneNormal[0] * Dy - CadDrawPlaneNormal[1] * Dx;
+                                                for (int a = 0; a < 3; ++a)
+                                                    Pmid[a] = (P0[a] + P1[a]) * 0.5;
+                                                Pmid[0] += Nx * (L * 0.28);
+                                                Pmid[1] += Ny * (L * 0.28);
+                                                Pmid[2] += Nz * (L * 0.28);
+                                            }
+                                            else
+                                            {
+                                                for (int a = 0; a < 3; ++a)
+                                                    Pmid[a] = P0[a];
+                                            }
+                                        }
+
+                                        float PrevSX = 0.0f, PrevSY = 0.0f;
+                                        bool First = true;
+                                        constexpr int Segments = 32;
+                                        for (int s = 0; s <= Segments; ++s)
+                                        {
+                                            const double t = static_cast<double>(s) / static_cast<double>(Segments);
+                                            double WP[3] = {};
+                                            for (int a = 0; a < 3; ++a)
+                                                WP[a] = (1.0 - t) * (1.0 - t) * P0[a] + 2.0 * (1.0 - t) * t * Pmid[a] + t * t * P1[a];
+                                            float CurSX = 0.0f, CurSY = 0.0f;
+                                            if (ProjectPoint(WP, CurSX, CurSY))
+                                            {
+                                                if (!First)
+                                                    SafeOverlayLine(PrevSX, PrevSY, CurSX, CurSY, PreviewColor, 2.0f);
+                                                else
+                                                    First = false;
+                                                PrevSX = CurSX; PrevSY = CurSY;
+                                            }
+                                        }
+                                        float S0X = 0.0f, S0Y = 0.0f, S1X = 0.0f, S1Y = 0.0f;
+                                        if (ProjectPoint(P0, S0X, S0Y)) SafeOverlayDot(S0X, S0Y, HandleColor, 4.0f);
+                                        if (ProjectPoint(P1, S1X, S1Y)) SafeOverlayDot(S1X, S1Y, HandleColor, 4.0f);
+                                    }
+                                    else if (CadActiveTool == ParametricToolSubject::Ellipse)
+                                    {
+                                        const double Diff[3] = { CadCurrentWorld[0] - CadStartWorld[0],
+                                                                 CadCurrentWorld[1] - CadStartWorld[1],
+                                                                 CadCurrentWorld[2] - CadStartWorld[2] };
+                                        double DU = std::abs(Diff[0] * CadDrawAxisU[0] + Diff[1] * CadDrawAxisU[1] + Diff[2] * CadDrawAxisU[2]);
+                                        double DV = std::abs(Diff[0] * CadDrawAxisV[0] + Diff[1] * CadDrawAxisV[1] + Diff[2] * CadDrawAxisV[2]);
+                                        const double Dist = std::sqrt(Diff[0] * Diff[0] + Diff[1] * Diff[1] + Diff[2] * Diff[2]);
+                                        if (DU < 0.05 && DV < 0.05) { DU = DV = Dist; }
+                                        else { DU = std::max(DU, 0.05); DV = std::max(DV, 0.05); }
+
+                                        float PrevSX = 0.0f, PrevSY = 0.0f;
+                                        bool First = true;
+                                        constexpr int Segments = 48;
+                                        for (int s = 0; s <= Segments; ++s)
+                                        {
+                                            const double Ang = static_cast<double>(s % Segments) * 2.0 * 3.14159265358979323846 / static_cast<double>(Segments);
+                                            double WP[3] = {};
+                                            for (int a = 0; a < 3; ++a)
+                                                WP[a] = CadStartWorld[a] + CadDrawAxisU[a] * (DU * std::cos(Ang)) + CadDrawAxisV[a] * (DV * std::sin(Ang));
+                                            float CurSX = 0.0f, CurSY = 0.0f;
+                                            if (ProjectPoint(WP, CurSX, CurSY))
+                                            {
+                                                if (!First)
+                                                    SafeOverlayLine(PrevSX, PrevSY, CurSX, CurSY, PreviewColor, 2.0f);
+                                                else
+                                                    First = false;
+                                                PrevSX = CurSX; PrevSY = CurSY;
+                                            }
+                                        }
+                                        float CSX = 0.0f, CSY = 0.0f;
+                                        if (ProjectPoint(CadStartWorld, CSX, CSY))
+                                            SafeOverlayDot(CSX, CSY, HandleColor, 4.0f);
+                                    }
+                                    else if (CadActiveTool == ParametricToolSubject::Slot ||
+                                             CadActiveTool == ParametricToolSubject::Polyline ||
+                                             CadActiveTool == ParametricToolSubject::RationalSpline ||
+                                             CadActiveTool == ParametricToolSubject::BasisSpline ||
+                                             CadActiveTool == ParametricToolSubject::HermiteCurve ||
+                                             CadActiveTool == ParametricToolSubject::BezierCurve)
+                                    {
+                                        for (std::uint32_t p = 0u; p < CadMultiPointCount; ++p)
+                                        {
+                                            float SX = 0.0f, SY = 0.0f;
+                                            if (ProjectPoint(CadMultiPoints[p], SX, SY))
+                                                SafeOverlayDot(SX, SY, HandleColor, 3.5f);
+                                            if (p + 1u < CadMultiPointCount)
+                                            {
+                                                float S0X = 0.0f, S0Y = 0.0f, S1X = 0.0f, S1Y = 0.0f;
+                                                if (ProjectPoint(CadMultiPoints[p], S0X, S0Y) && ProjectPoint(CadMultiPoints[p + 1u], S1X, S1Y))
+                                                    SafeOverlayLine(S0X, S0Y, S1X, S1Y, PreviewColor, 2.0f);
+                                            }
+                                        }
+                                        if (CadMultiPointCount > 0u)
+                                        {
+                                            float S0X = 0.0f, S0Y = 0.0f, S1X = 0.0f, S1Y = 0.0f;
+                                            if (ProjectPoint(CadMultiPoints[CadMultiPointCount - 1u], S0X, S0Y) && ProjectPoint(CadCurrentWorld, S1X, S1Y))
+                                                SafeOverlayLine(S0X, S0Y, S1X, S1Y, PreviewColor, 2.0f);
+                                        }
+                                    }
+                                }
                                 // 📐 The pose the analytic ground reads. Assembled here because the
                                 //    host owns the EditorCameraComponent and the leaf's extent both.
                                 {
@@ -1345,9 +2757,16 @@ int main(int ArgumentCount, char** ArgumentValues)
                                 break;
                             }
                             case PanelSubject::SketchDirectory:
+                            {
+                                CadDirectoryProjection.Reclaim();
+                                ProjectWorkspaceDirectory(CadRuntime.Records, CadDirectoryProjection);
+                                Discard(BridgeParametricDirectory(CadDirectoryProjection, CadBridgeStorage));
                                 SketchDirectory.RecordOutliner(LeafBody, SketchDirectoryApplied,
-                                                               nullptr, 0u, nullptr, nullptr, 0u);
+                                                              CadBridgeStorage.DirectoryRows.data(),
+                                                              static_cast<std::uint32_t>(CadBridgeStorage.DirectoryRows.size()),
+                                                              nullptr, nullptr, 0u);
                                 break;
+                            }
 
                             case PanelSubject::ParametricTools:
                                 ParametricTools.Record(LeafBody, ParametricToolsApplied);
@@ -1581,7 +3000,8 @@ int main(int ArgumentCount, char** ArgumentValues)
             // 📝 The layer stack's own search pill — the same gated feed.
             if (TexturePaintApplied.SearchTaken)
             {
-                static_cast<void>(Viewport.Seam().AcceptTyped(Textur:TextureRetentionLimit));
+                static_cast<void>(Viewport.Seam().AcceptTyped(TexturePaintApplied.Retention,
+                                                              TexturePaintContext::TextureRetentionLimit));
 
                 if (Viewport.Seam().KeyPressed(KeySubject::Retract))
                 {
@@ -1735,6 +3155,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                     OpenedScene = ActivatedScene.Scene.Workspace;
                     OpenedSceneStanding = true;
                     BridgeSketchSceneDirectory(OpenedScene, WorkspaceSceneRows);
+                    AppendSketchCadReferences(CadRuntime.Records, WorkspaceSceneRows);
                     PresentedEntities = WorkspaceSceneRows.Rows;
                     PresentedEntityCount = WorkspaceSceneRows.RowCount;
                     ApplySketchSceneEnvironment(OpenedScene, SceneApplied);

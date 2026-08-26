@@ -134,110 +134,70 @@ const ToolEntry SolidPrimitiveTools[] =
 
 const ToolEntry SketchDrawTools[] =
 {
+    { "Point", "", SymbolSubject::VertexPoint, ParametricToolDimension::Nothing,
+      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
+      0u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Snap", "Grid" }, { "Construction", "Off" } }, 2u },
+
     { "Line", "L", SymbolSubject::EdgeSegment, ParametricToolDimension::Nothing,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
       0u, 0u, 0u, 0u, 0u, 0u, 0u,
-      { { "Length", "100 mm" }, { "Angle", "0°" }, { "Construction", "Off" }, { "Snap", "Grid / Endpoint" } }, 4u },
+      { { "Length", "100 mm" }, { "Angle", "0°" }, { "Construction", "Off" }, { "Snap", "Grid" } }, 4u },
 
     { "Polyline", "⇧L", SymbolSubject::EdgeSegment, ParametricToolDimension::Nothing,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
       0u, 0u, 0u, 0u, 0u, 0u, 0u,
-      { { "Close on Finish", "Off" }, { "Segment", "Line" }, { "Snap", "Grid / Endpoint" } }, 3u },
+      { { "Close on Finish", "Off" }, { "Segment", "Line" }, { "Snap", "Grid" } }, 3u },
 
-    { "Rectangle", "R", SymbolSubject::FacePlanar, ParametricToolDimension::Nothing,
+    { "3-Point Arc", "A", SymbolSubject::ConstraintDimension, ParametricToolDimension::Nothing,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
       0u, 0u, 0u, 0u, 0u, 0u, 0u,
-      { { "Width", "120 mm" }, { "Height", "80 mm" }, { "Corner Radius", "0 mm" }, { "Construction", "Off" } }, 4u },
+      { { "Radius", "50 mm" }, { "Included Angle", "90°" }, { "Direction", "CCW" } }, 3u },
 
     { "Circle", "C", SymbolSubject::ConstraintDimension, ParametricToolDimension::Nothing,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
       0u, 0u, 0u, 0u, 0u, 0u, 0u,
       { { "Radius", "40 mm" }, { "Defined By", "Centre" }, { "Construction", "Off" } }, 3u },
 
-    { "Arc", "A", SymbolSubject::ConstraintDimension, ParametricToolDimension::Nothing,
+    { "Polygon", "", SymbolSubject::FacePlanar, ParametricToolDimension::Nothing,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
       0u, 0u, 0u, 0u, 0u, 0u, 0u,
-      { { "Radius", "50 mm" }, { "Included Angle", "90°" }, { "Direction", "CCW" } }, 3u },
+      { { "Sides", "6 (Scroll)" }, { "Defined By", "Centre + radius" } }, 2u },
+
+    { "Slot", "", SymbolSubject::FacePlanar, ParametricToolDimension::Nothing,
+      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
+      0u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Thickness", "Drag in/out" }, { "Defined By", "Path + radius" } }, 2u },
 
     { "Ellipse", "E", SymbolSubject::ConstraintDimension, ParametricToolDimension::Nothing,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
       0u, 0u, 0u, 0u, 0u, 0u, 0u,
-      { { "Defined By", "Centre + corner" }, { "Construction", "Off" } }, 2u },
+      { { "Defined By", "Centre + axes" }, { "Construction", "Off" } }, 2u },
 
-    { "Point", "", SymbolSubject::VertexPoint, ParametricToolDimension::Nothing,
+    { "Rectangle", "R", SymbolSubject::FacePlanar, ParametricToolDimension::Nothing,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
       0u, 0u, 0u, 0u, 0u, 0u, 0u,
-      { { "Snap", "Grid" }, { "Construction", "On" } }, 2u },
-
-    { "Elliptical Arc", "", SymbolSubject::CurveTangent, ParametricToolDimension::Nothing,
-      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
-      0u, 0u, 0u, 0u, 0u, 0u, 0u,
-      { { "Defined By", "centre + radii + sweep" } }, 1u },
-
-    { "Bezier", "", SymbolSubject::CurveTangent, ParametricToolDimension::Nothing,
-      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
-      2u, 0u, 0u, 0u, 0u, 0u, 0u,
-      { { "Controls", "2+" }, { "Finish", "double click" } }, 2u },
-
-    { "Hermite", "", SymbolSubject::CurveTangent, ParametricToolDimension::Nothing,
-      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
-      4u, 0u, 0u, 0u, 0u, 0u, 0u,
-      { { "Inputs", "start/end/tangents" }, { "Finish", "double click" } }, 2u },
-
-    { "Basis Spline", "", SymbolSubject::CurveTangent, ParametricToolDimension::Nothing,
-      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
-      3u, 0u, 0u, 0u, 0u, 0u, 0u,
-      { { "Degree", "3" }, { "Finish", "double click" } }, 2u },
+      { { "Width", "120 mm" }, { "Height", "80 mm" }, { "Defined By", "Corner to corner" } }, 3u },
 
     { "NURBS Curve", "", SymbolSubject::CurveTangent, ParametricToolDimension::Nothing,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
       3u, 0u, 0u, 0u, 0u, 0u, 0u,
       { { "Weights", "uniform" }, { "Finish", "double click" } }, 2u },
 
-    { "Construction Line", "", SymbolSubject::EdgeSegment, ParametricToolDimension::Nothing,
+    { "Basis Spline", "", SymbolSubject::CurveTangent, ParametricToolDimension::Nothing,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
-      0u, 0u, 0u, 0u, 0u, 0u, 0u,
-      { { "Semantic", "construction" } }, 1u },
+      3u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Degree", "3" }, { "Finish", "double click" } }, 2u },
 
-    { "Center Rectangle", "", SymbolSubject::FacePlanar, ParametricToolDimension::Nothing,
+    { "Hermite", "", SymbolSubject::CurveTangent, ParametricToolDimension::Nothing,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
-      0u, 0u, 0u, 0u, 0u, 0u, 0u,
-      { { "Defined By", "centre + corner" } }, 1u },
+      4u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Inputs", "start/end/tangents" }, { "Finish", "double click" } }, 2u },
 
-    { "3-Point Rectangle", "", SymbolSubject::FacePlanar, ParametricToolDimension::Nothing,
+    { "Bezier", "", SymbolSubject::CurveTangent, ParametricToolDimension::Nothing,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
-      0u, 0u, 0u, 0u, 0u, 0u, 0u,
-      { { "Defined By", "edge + height" } }, 1u },
-
-    { "Diameter Circle", "", SymbolSubject::ConstraintDimension, ParametricToolDimension::Nothing,
-      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
-      0u, 0u, 0u, 0u, 0u, 0u, 0u,
-      { { "Defined By", "diameter endpoints" } }, 1u },
-
-    { "3-Point Circle", "", SymbolSubject::ConstraintDimension, ParametricToolDimension::Nothing,
-      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
-      0u, 0u, 0u, 0u, 0u, 0u, 0u,
-      { { "Defined By", "three points" } }, 1u },
-
-    { "Center Arc", "", SymbolSubject::ConstraintDimension, ParametricToolDimension::Nothing,
-      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
-      0u, 0u, 0u, 0u, 0u, 0u, 0u,
-      { { "Defined By", "centre/start/end" } }, 1u },
-
-    { "Tangent Arc", "", SymbolSubject::CurveTangent, ParametricToolDimension::Nothing,
-      false, true, false, false, false, false, false, false, false, true, false, false, false, false,
-      0u, 0u, 0u, 0u, 0u, 0u, 0u,
-      { { "Defined By", "tangent chain" } }, 1u },
-
-    { "Polygon", "", SymbolSubject::FacePlanar, ParametricToolDimension::Nothing,
-      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
-      0u, 0u, 0u, 0u, 0u, 0u, 0u,
-      { { "Sides", "6" }, { "Defined By", "centre + radius" } }, 2u },
-
-    { "Slot", "", SymbolSubject::FacePlanar, ParametricToolDimension::Nothing,
-      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
-      0u, 0u, 0u, 0u, 0u, 0u, 0u,
-      { { "Defined By", "endpoints + radius" } }, 1u },
+      2u, 0u, 0u, 0u, 0u, 0u, 0u,
+      { { "Controls", "2+" }, { "Finish", "double click" } }, 2u }
 };
 
 const ToolEntry SketchModifyTools[] =
@@ -625,27 +585,20 @@ ParametricToolSubject ToolSubjectOf(std::uint32_t BandIndex, std::uint32_t ToolI
                  : ToolIndex == 1u ? ParametricToolSubject::Circle
                                    : ParametricToolSubject::Select;
         case 1u:
-            return ToolIndex == 0u ? ParametricToolSubject::Line
-                 : ToolIndex == 1u ? ParametricToolSubject::Polyline
-                 : ToolIndex == 2u ? ParametricToolSubject::Rectangle
-                 : ToolIndex == 3u ? ParametricToolSubject::Circle
-                 : ToolIndex == 4u ? ParametricToolSubject::Arc
-                 : ToolIndex == 5u ? ParametricToolSubject::Ellipse
-                 : ToolIndex == 6u ? ParametricToolSubject::Point
-                 : ToolIndex == 7u ? ParametricToolSubject::EllipticalArc
-                 : ToolIndex == 8u ? ParametricToolSubject::BezierCurve
-                 : ToolIndex == 9u ? ParametricToolSubject::HermiteCurve
+            return ToolIndex == 0u  ? ParametricToolSubject::Point
+                 : ToolIndex == 1u  ? ParametricToolSubject::Line
+                 : ToolIndex == 2u  ? ParametricToolSubject::Polyline
+                 : ToolIndex == 3u  ? ParametricToolSubject::Arc
+                 : ToolIndex == 4u  ? ParametricToolSubject::Circle
+                 : ToolIndex == 5u  ? ParametricToolSubject::Polygon
+                 : ToolIndex == 6u  ? ParametricToolSubject::Slot
+                 : ToolIndex == 7u  ? ParametricToolSubject::Ellipse
+                 : ToolIndex == 8u  ? ParametricToolSubject::Rectangle
+                 : ToolIndex == 9u  ? ParametricToolSubject::RationalSpline
                  : ToolIndex == 10u ? ParametricToolSubject::BasisSpline
-                 : ToolIndex == 11u ? ParametricToolSubject::RationalSpline
-                 : ToolIndex == 12u ? ParametricToolSubject::ConstructionLine
-                 : ToolIndex == 13u ? ParametricToolSubject::CenterRectangle
-                 : ToolIndex == 14u ? ParametricToolSubject::ThreePointRectangle
-                 : ToolIndex == 15u ? ParametricToolSubject::DiameterCircle
-                 : ToolIndex == 16u ? ParametricToolSubject::ThreePointCircle
-                 : ToolIndex == 17u ? ParametricToolSubject::CenterStartEndArc
-                 : ToolIndex == 18u ? ParametricToolSubject::TangentArc
-                 : ToolIndex == 19u ? ParametricToolSubject::Polygon
-                                    : ParametricToolSubject::Slot;
+                 : ToolIndex == 11u ? ParametricToolSubject::HermiteCurve
+                 : ToolIndex == 12u ? ParametricToolSubject::BezierCurve
+                 : ParametricToolSubject::Select;
         case 2u:
             return ToolIndex == 0u ? ParametricToolSubject::Fillet
                  : ToolIndex == 1u ? ParametricToolSubject::Chamfer
