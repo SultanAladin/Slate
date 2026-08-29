@@ -22,6 +22,7 @@
 #include "SlateShape/Sketch/SketchRenderingProjection/Api/SketchRenderingProjection.h"
 #include "SlateWorkspace/Discipline/ContentImportCommit/Api/ContentImportCommit.h"
 #include "SlateWorkspace/Discipline/SketchInteraction/Api/SketchInteraction.h"
+#include "SlateWorkspace/Discipline/WorldDraftSketchBridge/Api/WorldDraftSketchBridge.h"
 #include "SketchToolset/SketchTool/SelectionOptions/Api/SelectionOptions.h"
 #include "SlateUI/Interface/ToolOptionsWidget/Api/ToolOptionsWidget.h"
 #include "SlateUI/Interface/ToolContextMenu/Api/ToolContextMenu.h"
@@ -433,6 +434,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     static SketchPick                SketchSemanticSelection;
     static SketchPick                SketchHoveredSelection;
     static TransformSession          SketchTransform;
+    static WorldDraftTransformSession SketchWorldTransform;
     static double                    SketchLastMovePressed = 0.0;
     // 📝 A monotonic run of the session, accumulated from the tick's own elapsed figure, so the
     //    double-tap that switches a move between plane and free travel has a clock to measure against.
@@ -1571,19 +1573,37 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     //    `SelectedTool(...).Subject` is `None`, the drawing arm takes
                                     //    nothing, and every press reaches the picker.
                                     ProjectWorkspaceDirectory(SketchRecords, SketchDirectoryRows);
-                                    DriveViewportSelectionAndTransform(
-                                        LeafBody, BackgroundPointer,
-                                        SketchViewportText, Viewport.Seam().Modifiers(),
-                                        SketchBasis, SketchView, LeafPerspective,
-                                        ParametricToolsApplied.ActiveSubject, SketchSelection, SketchGizmo,
-                                        SketchNaming, SketchDirectoryRows, SketchDirectoryApplied,
-                                        Sketch, SketchRecords, SketchRevisions,
-                                        SketchPendingSelection, SketchSemanticSelection,
-                                        SketchHoveredSelection, SketchTransform, LeafOverlay,
-                                        PointerTaken, SketchSessionMilliseconds,
-                                        SketchLastMovePressed,
-                                        static_cast<double>(SketchCornerDistance),
-                                        SketchTrimKeep == 0u);
+                                    if (ParametricToolsApplied.ActiveSubject == ParametricToolSubject::Select
+                                     || SketchWorldTransform.Engaged())
+                                    {
+                                        DriveViewportSelectionAndTransformWorldBacked(
+                                            LeafBody, BackgroundPointer,
+                                            SketchViewportText,
+                                            SketchSelection, SketchGizmo,
+                                            SceneCamera,
+                                            SketchDirectoryRows, SketchDirectoryApplied,
+                                            Sketch, SketchRecords, SketchRevisions,
+                                            SketchPendingSelection, SketchSemanticSelection,
+                                            SketchHoveredSelection, SketchWorldTransform, LeafOverlay,
+                                            PointerTaken, SketchSessionMilliseconds,
+                                            SketchLastMovePressed);
+                                    }
+                                    else
+                                    {
+                                        DriveViewportSelectionAndTransform(
+                                            LeafBody, BackgroundPointer,
+                                            SketchViewportText, Viewport.Seam().Modifiers(),
+                                            SketchBasis, SketchView, LeafPerspective,
+                                            ParametricToolsApplied.ActiveSubject, SketchSelection, SketchGizmo,
+                                            SketchNaming, SketchDirectoryRows, SketchDirectoryApplied,
+                                            Sketch, SketchRecords, SketchRevisions,
+                                            SketchPendingSelection, SketchSemanticSelection,
+                                            SketchHoveredSelection, SketchTransform, LeafOverlay,
+                                            PointerTaken, SketchSessionMilliseconds,
+                                            SketchLastMovePressed,
+                                            static_cast<double>(SketchCornerDistance),
+                                            SketchTrimKeep == 0u);
+                                    }
 
                                     // 🔴 NO SECOND GRID. `RecordViewportGridOverlay` was called here and
                                     //    drew 161 CPU line segments of its OWN lattice on top of the
@@ -1595,7 +1615,12 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     //    down but ran the wrong way left and right, and why drawn
                                     //    shapes appeared to sit on a surface that slid under them.
                                     //    The existing grid is the grid; the sketch draws onto it.
-                                    Discard(ProjectSketchRendering(Sketch, SketchRecords, SketchCadPacket));
+                                    const DrawableScale SketchDrawable = DrawableScale::Between(
+                                        Viewport.Surface().Display().Width,
+                                        static_cast<double>(Pass.Width));
+                                    Discard(ProjectWorldBackedSketchRendering(Sketch, SceneCamera,
+                                                                              LeafBody, SketchDrawable,
+                                                                              SketchCadPacket));
 
                                     // 🔴 THE SHAPE BEING DRAWN GOES IN THE SAME PACKET AS THE SHAPES
                                     //    ALREADY DRAWN, so the GPU pass rasterises both and NOTHING
@@ -1624,8 +1649,8 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                                                SketchTool.HoverPosition(),
                                                                PreviewSpans,
                                                                SketchTool.Resolution());
-                                        static_cast<void>(ProjectPlacementPreview(
-                                            Sketch, PreviewSpans,
+                                        static_cast<void>(ProjectWorldPlacementPreview(
+                                            SceneCamera, LeafBody, SketchDrawable, PreviewSpans,
                                             SketchTool.Anchors(), SketchTool.HoverPosition(),
                                             SketchCadPacket));
                                     }
@@ -1774,9 +1799,8 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                             Viewport.Surface().Display().Width,
                                             static_cast<double>(Pass.Width));
 
-                                        ViewportCadProjections[ViewportLeafTally] = ResolveCadProjection(
-                                            ResolveSketchBasis(Sketch), SketchView, LeafPerspective,
-                                            LeafBody, Drawable, Pass.Width, Pass.Height);
+                                        ViewportCadProjections[ViewportLeafTally] =
+                                            ResolveWorldDraftScreenProjection(Pass.Width, Pass.Height);
                                         ViewportLeafScale = Drawable;
                                     }
 

@@ -27,6 +27,8 @@
 #include "SlateWorkspace/Discipline/TransformSession/Api/TransformSession.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/SketchBasis.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/ViewportProjection.h"
+#include "SlateShape/World/WorldDraftPicking/Api/WorldDraftPicking.h"
+#include "SlateWorkspace/Discipline/WorldDraftTransformSession/Api/WorldDraftTransformSession.h"
 
 #include "Shared/OverlayGeometry.slang.h"
 #include "Shared/WorkspaceCadPacket.slang.h"
@@ -104,6 +106,13 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
                                     const SketchPick& Hovered,
                                     const SketchPick& Selected);
 
+void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
+                                    const PlaneExtent& Extent,
+                                    const ResolvedCamera& Camera,
+                                    const WorldDraftStructure& Declared,
+                                    const WorldPick& Hovered,
+                                    const WorldPick& Selected);
+
 void RecordViewportGizmo(OverlayGeometry& Overlay,
                          const PlaneExtent& Extent,
                          const SpatialBasis& Basis,
@@ -112,6 +121,13 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
                          const SketchPick& Selected,
                          GizmoHandle HoveredHandle,
                          const TransformSession& Transform);
+
+void RecordViewportGizmo(OverlayGeometry& Overlay,
+                         const PlaneExtent& Extent,
+                         const ResolvedCamera& Camera,
+                         const WorldPick& Selected,
+                         GizmoHandle HoveredHandle,
+                         const WorldDraftTransformSession& Transform);
 
 void RecordViewportTransformReadout(RecordingSurface& Surface,
                                     const PlaneExtent& Extent,

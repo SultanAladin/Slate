@@ -32,6 +32,7 @@
 #include "SlateWorkspace/Discipline/TransformSession/Api/TransformSession.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/ViewportProjection.h"
 #include "SlateWorkspace/Discipline/WorkplaneCatalogue/Api/WorkplaneCatalogue.h"
+#include "SlateWorkspace/Discipline/WorldDraftTransformSession/Api/WorldDraftTransformSession.h"
 
 #include "Shared/OverlayGeometry.slang.h"
 
@@ -150,5 +151,25 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
                                         double& LastGPressedMilliseconds,
                                         double CornerDistance,
                                         bool KeepStart);
+
+void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
+                                                   const PointerCondition& Pointer,
+                                                   const TextInputCondition& TextInput,
+                                                   const SelectionOptions& Selection,
+                                                   const GizmoOptions& Gizmo,
+                                                   const ResolvedCamera& Camera,
+                                                   const WorkspaceDirectoryProjection& Directory,
+                                                   const ParametricWorkspaceContext& WorkspaceApplied,
+                                                   SketchStructure& Sketch,
+                                                   WorkspaceRecordStructure& Records,
+                                                   WorkspaceRevisionSequence& Revisions,
+                                                   WorkspaceRecordName& PendingSelection,
+                                                   SketchPick& SemanticSelection,
+                                                   SketchPick& HoveredSelection,
+                                                   WorldDraftTransformSession& Transform,
+                                                   OverlayGeometry& Overlay,
+                                                   bool& PointerTaken,
+                                                   double SessionMilliseconds,
+                                                   double& LastGPressedMilliseconds);
 
 }   // namespace Slate

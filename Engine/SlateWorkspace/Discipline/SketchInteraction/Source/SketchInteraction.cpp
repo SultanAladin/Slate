@@ -17,6 +17,8 @@
 #include "SlateWorkspace/Discipline/TransformSequence/Api/TransformSequence.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/SketchBasis.h"
 #include "SlateWorkspace/Discipline/WorkplaneStanding/Api/WorkplaneStanding.h"
+#include "SlateWorkspace/Discipline/WorldDraftInteraction/Api/WorldDraftInteraction.h"
+#include "SlateWorkspace/Discipline/WorldDraftSketchBridge/Api/WorldDraftSketchBridge.h"
 
 #include <algorithm>
 #include <cmath>
@@ -791,6 +793,97 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
     if (Gizmo.Shown && SelectStanding)
         RecordViewportGizmo(Overlay, Extent, Basis, View, Perspective,
                             ActiveSelection, HoveredHandle, Transform);
+}
+
+void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
+                                                   const PointerCondition& Pointer,
+                                                   const TextInputCondition& TextInput,
+                                                   const SelectionOptions& Selection,
+                                                   const GizmoOptions& Gizmo,
+                                                   const ResolvedCamera& Camera,
+                                                   const WorkspaceDirectoryProjection& Directory,
+                                                   const ParametricWorkspaceContext& WorkspaceApplied,
+                                                   SketchStructure& Sketch,
+                                                   WorkspaceRecordStructure& Records,
+                                                   WorkspaceRevisionSequence& Revisions,
+                                                   WorkspaceRecordName& PendingSelection,
+                                                   SketchPick& SemanticSelection,
+                                                   SketchPick& HoveredSelection,
+                                                   WorldDraftTransformSession& Transform,
+                                                   OverlayGeometry& Overlay,
+                                                   bool& PointerTaken,
+                                                   double SessionMilliseconds,
+                                                   double& LastGPressedMilliseconds)
+{
+    const WorkspaceRecordName SelectedRecord = SelectedRecordIn(Directory, WorkspaceApplied);
+    if (ApplyDimensionTextEdit(TextInput, Sketch, Records, Revisions, SelectedRecord))
+        PointerTaken = true;
+    if (SemanticSelection.Standing() && SelectedRecord.Assigned() &&
+        SemanticSelection.Record.IssuedIndex != SelectedRecord.IssuedIndex &&
+        (!PendingSelection.Assigned() || PendingSelection.IssuedIndex != SemanticSelection.Record.IssuedIndex))
+        SemanticSelection = {};
+
+    const SketchPick ActiveSketchSelection =
+        EditableSelection(Sketch, Records, SelectedRecord, PendingSelection, SemanticSelection);
+
+    if (TextInput.DeletePressed && ActiveSketchSelection.Record.Assigned())
+    {
+        Discard(Records.ToggleVisible(ActiveSketchSelection.Record, false));
+        Revisions.Seal("Deleted selected sketch record", "Delete Sketch Record", { ActiveSketchSelection.Record },
+                       Revisions.DeclaredCount() + 1u);
+        PendingSelection = {};
+        SemanticSelection = {};
+        HoveredSelection = {};
+        PointerTaken = true;
+        return;
+    }
+
+    WorldDraftStructure World;
+    WorldDraftSketchMapping Mapping;
+    MirrorSketchIntoWorldDraft(Sketch, World, Mapping);
+
+    WorldPick WorldSemantic = {};
+    WorldPick WorldHovered = {};
+    if (ActiveSketchSelection.Standing())
+        ResolveWorldPickForSketchPick(Sketch, Records, World, Mapping, ActiveSketchSelection, WorldSemantic);
+
+    const bool WasEngaged = Transform.Engaged();
+    const bool WasAwaitingRelease = Transform.AwaitingRelease;
+    const bool WasChanged = Transform.Changed;
+    const TransformManner WasManner = Transform.Manner();
+
+    GizmoHandle HoveredHandle = GizmoHandle::None;
+    DriveWorldDraftSelectionAndTransform(Extent, Pointer, TextInput,
+                                         Selection, Gizmo, Camera,
+                                         World, WorldSemantic, WorldHovered,
+                                         Transform, PointerTaken,
+                                         SessionMilliseconds, LastGPressedMilliseconds,
+                                         &HoveredHandle);
+
+    ApplyWorldDraftToSketch(World, Sketch);
+
+    if (!ResolveSketchPickForWorldPick(Sketch, Records, Mapping, WorldSemantic, SemanticSelection))
+        SemanticSelection = {};
+    if (!ResolveSketchPickForWorldPick(Sketch, Records, Mapping, WorldHovered, HoveredSelection))
+        HoveredSelection = {};
+
+    if (SemanticSelection.Record.Assigned())
+        PendingSelection = SemanticSelection.Record;
+
+    const bool Committed = WasEngaged && WasChanged && !Transform.Engaged() && !TextInput.CancelPressed &&
+                         ((WasAwaitingRelease && Pointer.ContactReleased)
+                       || (!WasAwaitingRelease && (TextInput.AcceptPressed || Pointer.ContactPressed)));
+    if (Committed && SemanticSelection.Record.Assigned())
+    {
+        const WorkspaceRecord* Record = Records.Resolve(SemanticSelection.Record);
+        if (Record != nullptr)
+            Revisions.Seal(std::string(TransformMannerText(WasManner)) + " " + Record->Naming,
+                           "Edit Sketch", { SemanticSelection.Record }, Revisions.DeclaredCount() + 1u);
+    }
+
+    RecordViewportSelectionOverlay(Overlay, Extent, Camera, World, WorldHovered, WorldSemantic);
+    if (Gizmo.Shown && WorldSemantic.Standing())
+        RecordViewportGizmo(Overlay, Extent, Camera, WorldSemantic, HoveredHandle, Transform);
 }
 
 }   // namespace Slate

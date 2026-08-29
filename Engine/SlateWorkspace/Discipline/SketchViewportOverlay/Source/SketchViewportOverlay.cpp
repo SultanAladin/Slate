@@ -376,6 +376,69 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
         RecordPoint(Hovered, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 208u), PackOverlayColour(0xFBu, 0xBFu, 0x24u, 180u));
 }
 
+void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
+                                    const PlaneExtent& Extent,
+                                    const ResolvedCamera& Camera,
+                                    const WorldDraftStructure& Declared,
+                                    const WorldPick& Hovered,
+                                    const WorldPick& Selected)
+{
+    const auto RecordCurve = [&](WorldCurveName Curve, std::uint32_t Packed, float Thickness)
+    {
+        if (!Curve.Assigned() || Curve.IssuedIndex > Declared.CurveCount())
+            return;
+        std::vector<SpatialPoint> Polyline;
+        const DeclaredWorldCurve* Held = Declared.Resolve(Curve);
+        if (Held == nullptr || !Held->Geometry.Declared())
+            return;
+        AppendCurvePolyline(Held->Geometry, Polyline, 48u);
+        for (std::size_t Index = 0u; Index + 1u < Polyline.size(); ++Index)
+        {
+            float X0 = 0.0f, Y0 = 0.0f, X1 = 0.0f, Y1 = 0.0f;
+            if (ProjectFromCamera(Camera, Extent, Polyline[Index], X0, Y0) &&
+                ProjectFromCamera(Camera, Extent, Polyline[Index + 1u], X1, Y1))
+                Overlay.AddLine(X0, Y0, X1, Y1, Packed, Thickness);
+        }
+    };
+
+    const auto RecordLoop = [&](WorldLoopName Loop, std::uint32_t Packed, float Thickness)
+    {
+        const DeclaredWorldLoop* Held = Declared.Resolve(Loop);
+        if (Held == nullptr)
+            return;
+        for (const WorldCurveUse& Use : Held->Traversal)
+            RecordCurve(Use.TraversedCurve, Packed, Thickness);
+    };
+
+    const auto RecordPoint = [&](const WorldPick& Subject, std::uint32_t Outer, std::uint32_t Inner)
+    {
+        float X = 0.0f;
+        float Y = 0.0f;
+        if (!ProjectFromCamera(Camera, Extent, Subject.Position, X, Y))
+            return;
+        Overlay.AddDot(X, Y, Inner, 4.5f);
+        AppendOverlayCircle(Overlay, X, Y, 8.0f, Outer, 1.6f);
+    };
+
+    if (Selected.Standing())
+    {
+        if (Selected.Subject == WorldPickSubject::Curve)
+            RecordCurve(Selected.Curve, PackOverlayColour(0x5Bu, 0x8Cu, 0xFFu, 255u), 2.4f);
+        else if (Selected.Subject == WorldPickSubject::Loop)
+            RecordLoop(Selected.Loop, PackOverlayColour(0x5Bu, 0x8Cu, 0xFFu, 255u), 2.2f);
+    }
+
+    if (Selected.Subject == WorldPickSubject::Point || Selected.Subject == WorldPickSubject::Control)
+        RecordPoint(Selected, PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 224u), PackOverlayColour(0x5Bu, 0x8Cu, 0xFFu, 255u));
+
+    if (Hovered.Subject == WorldPickSubject::Curve)
+        RecordCurve(Hovered.Curve, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 208u), 1.8f);
+    else if (Hovered.Subject == WorldPickSubject::Loop)
+        RecordLoop(Hovered.Loop, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 208u), 1.8f);
+    else if (Hovered.Standing())
+        RecordPoint(Hovered, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 208u), PackOverlayColour(0xFBu, 0xBFu, 0x24u, 180u));
+}
+
 void RecordViewportGizmo(OverlayGeometry& Overlay,
                          const PlaneExtent& Extent,
                          const SpatialBasis& Basis,
@@ -625,6 +688,257 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
         else if (Transform.Restriction() == TransformRestriction::Curve)
         {
             GuideAxis = Transform.CurveDirection;
+            Guided = true;
+        }
+        if (Guided)
+            AddWorldLine(Added(Pivot, Scaled(GuideAxis, -1000.0)), Added(Pivot, Scaled(GuideAxis, 1000.0)), Guide, 1.5f);
+    }
+}
+
+void RecordViewportGizmo(OverlayGeometry& Overlay,
+                         const PlaneExtent& Extent,
+                         const ResolvedCamera& Camera,
+                         const WorldPick& Selected,
+                         GizmoHandle HoveredHandle,
+                         const WorldDraftTransformSession& Transform)
+{
+    if (!Selected.Standing())
+        return;
+
+    GizmoScreenBasis Screen = {};
+    if (!ResolveGizmoScreenBasis(Camera, Extent, Selected.Position, Screen))
+        return;
+
+    const auto Px = [&](double Pixels) { return GizmoWorld(Screen, Pixels); };
+
+    const ViewFrame& Frame = Camera.Frame;
+    const SpatialPoint Pivot = Selected.Position;
+    const SpatialDirection AxisX = Camera.Basis.Along;
+    const SpatialDirection AxisY = Camera.Basis.Normal;
+    const SpatialDirection AxisZ = Camera.Basis.Across;
+    const std::uint32_t XPacked = PackOverlayColour(0xE0u, 0x14u, 0x14u, 255u);
+    const std::uint32_t YPacked = PackOverlayColour(0x12u, 0xD4u, 0x0Au, 255u);
+    const std::uint32_t ZPacked = PackOverlayColour(0x15u, 0x60u, 0xE0u, 255u);
+    const std::uint32_t Cyan = PackOverlayColour(0x1Fu, 0xC7u, 0xC7u, 255u);
+    const std::uint32_t Magenta = PackOverlayColour(0xC8u, 0x1Eu, 0xC8u, 255u);
+    const std::uint32_t Yellow = PackOverlayColour(0xE0u, 0xCDu, 0x12u, 255u);
+    const std::uint32_t White = PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 255u);
+    const std::uint32_t Highlight = PackOverlayColour(0xFBu, 0xBFu, 0x24u, 255u);
+    const std::uint32_t Guide = PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 160u);
+
+    const auto Project = [&](const SpatialPoint& P, float& X, float& Y) -> bool
+    {
+        return ProjectFromCamera(Camera, Extent, P, X, Y);
+    };
+    const auto AddWorldLine = [&](const SpatialPoint& A, const SpatialPoint& B, std::uint32_t Packed, float Thickness)
+    {
+        float X0 = 0.0f, Y0 = 0.0f, X1 = 0.0f, Y1 = 0.0f;
+        if (Project(A, X0, Y0) && Project(B, X1, Y1))
+            Overlay.AddLine(X0, Y0, X1, Y1, Packed, Thickness);
+    };
+    const auto AddWorldTriangle = [&](const SpatialPoint& A, const SpatialPoint& B, const SpatialPoint& C, std::uint32_t Packed)
+    {
+        float X0 = 0.0f, Y0 = 0.0f, X1 = 0.0f, Y1 = 0.0f, X2 = 0.0f, Y2 = 0.0f;
+        if (Project(A, X0, Y0) && Project(B, X1, Y1) && Project(C, X2, Y2))
+            Overlay.AddTriangle(X0, Y0, X1, Y1, X2, Y2, Packed);
+    };
+
+    const auto AddCone = [&](const SpatialDirection& Axis,
+                             const SpatialDirection& U,
+                             const SpatialDirection& V,
+                             std::uint32_t Packed)
+    {
+        const SpatialPoint Tip = Added(Pivot, Scaled(Axis, Px(GizmoMeasure::AxisEnd)));
+        const SpatialPoint Base = Added(Pivot, Scaled(Axis, Px(GizmoMeasure::AxisEnd - GizmoMeasure::ConeLength)));
+        const double Radius = Px(GizmoMeasure::ConeRadius);
+        const SpatialPoint Centre = Base;
+
+        for (std::uint32_t Segment = 0u; Segment < GizmoMeasure::ConeSegments; ++Segment)
+        {
+            const double A0 = (static_cast<double>(Segment) / static_cast<double>(GizmoMeasure::ConeSegments)) * 2.0 * ProjectionPi;
+            const double A1 = (static_cast<double>(Segment + 1u) / static_cast<double>(GizmoMeasure::ConeSegments)) * 2.0 * ProjectionPi;
+            const SpatialPoint P0 = Added(Centre,
+                Added(Scaled(U, std::cos(A0) * Radius), Scaled(V, std::sin(A0) * Radius)));
+            const SpatialPoint P1 = Added(Centre,
+                Added(Scaled(U, std::cos(A1) * Radius), Scaled(V, std::sin(A1) * Radius)));
+            AddWorldTriangle(Tip, P0, P1, Packed);
+            AddWorldTriangle(Centre, P1, P0, Packed);
+        }
+    };
+
+    const auto AddCylinder = [&](const SpatialDirection& Axis,
+                                 const SpatialDirection& U,
+                                 const SpatialDirection& V,
+                                 std::uint32_t Packed)
+    {
+        const SpatialPoint Centre = Added(Pivot, Scaled(Axis, Px(GizmoMeasure::ScaleCentre)));
+        const SpatialPoint A = Added(Centre, Scaled(Axis, -Px(GizmoMeasure::ScaleLength * 0.5)));
+        const SpatialPoint B = Added(Centre, Scaled(Axis,  Px(GizmoMeasure::ScaleLength * 0.5)));
+        const double Radius = Px(GizmoMeasure::ScaleRadius);
+
+        for (std::uint32_t Segment = 0u; Segment < GizmoMeasure::CylinderSegments; ++Segment)
+        {
+            const double T0 = (static_cast<double>(Segment) / static_cast<double>(GizmoMeasure::CylinderSegments)) * 2.0 * ProjectionPi;
+            const double T1 = (static_cast<double>(Segment + 1u) / static_cast<double>(GizmoMeasure::CylinderSegments)) * 2.0 * ProjectionPi;
+            const SpatialDirection R0 = Added(Scaled(U, std::cos(T0) * Radius), Scaled(V, std::sin(T0) * Radius));
+            const SpatialDirection R1 = Added(Scaled(U, std::cos(T1) * Radius), Scaled(V, std::sin(T1) * Radius));
+            const SpatialPoint A0 = Added(A, R0);
+            const SpatialPoint A1 = Added(A, R1);
+            const SpatialPoint B0 = Added(B, R0);
+            const SpatialPoint B1 = Added(B, R1);
+            AddWorldTriangle(A0, B0, B1, Packed);
+            AddWorldTriangle(A0, B1, A1, Packed);
+            AddWorldTriangle(A, A1, A0, Packed);
+            AddWorldTriangle(B, B0, B1, Packed);
+        }
+    };
+
+    const auto AddPlaneHandle = [&](const SpatialDirection& U,
+                                    const SpatialDirection& V,
+                                    std::uint32_t FillPacked,
+                                    std::uint32_t EdgePacked)
+    {
+        const double Half = Px(GizmoMeasure::PlaneHalf);
+        const SpatialPoint Centre = Added(Pivot,
+            Added(Scaled(U, Px(GizmoMeasure::PlaneCentre)),
+                  Scaled(V, Px(GizmoMeasure::PlaneCentre))));
+
+        const SpatialPoint P0 = Added(Centre, Added(Scaled(U, -Half), Scaled(V, -Half)));
+        const SpatialPoint P1 = Added(Centre, Added(Scaled(U,  Half), Scaled(V, -Half)));
+        const SpatialPoint P2 = Added(Centre, Added(Scaled(U,  Half), Scaled(V,  Half)));
+        const SpatialPoint P3 = Added(Centre, Added(Scaled(U, -Half), Scaled(V,  Half)));
+        AddWorldTriangle(P0, P1, P2, FillPacked);
+        AddWorldTriangle(P0, P2, P3, FillPacked);
+
+        const SpatialPoint Outer = Added(Centre, Added(Scaled(U, Half), Scaled(V, Half)));
+        const SpatialPoint BackU = Added(Outer, Scaled(U, -Half * 2.0));
+        const SpatialPoint BackV = Added(Outer, Scaled(V, -Half * 2.0));
+        AddWorldLine(BackU, Outer, EdgePacked, 1.0f);
+        AddWorldLine(Outer, BackV, EdgePacked, 1.0f);
+    };
+
+    const auto AddArcBar = [&](const SpatialDirection& U,
+                               const SpatialDirection& V,
+                               std::uint32_t Packed)
+    {
+        const double Inner = Px(GizmoMeasure::RotateRadius - GizmoMeasure::RotateHalfWidth);
+        const double Outer = Px(GizmoMeasure::RotateRadius + GizmoMeasure::RotateHalfWidth);
+        const double Start = ProjectionPi * 0.25 - GizmoMeasure::RotateSweepRadians * 0.5;
+        for (std::uint32_t Segment = 0u; Segment < GizmoMeasure::RotateSegments; ++Segment)
+        {
+            const double A0 = Start + GizmoMeasure::RotateSweepRadians
+                                    * static_cast<double>(Segment)
+                                    / static_cast<double>(GizmoMeasure::RotateSegments);
+            const double A1 = Start + GizmoMeasure::RotateSweepRadians
+                                    * static_cast<double>(Segment + 1u)
+                                    / static_cast<double>(GizmoMeasure::RotateSegments);
+            const SpatialPoint I0 = Added(Pivot,
+                Added(Scaled(U, std::cos(A0) * Inner), Scaled(V, std::sin(A0) * Inner)));
+            const SpatialPoint O0 = Added(Pivot,
+                Added(Scaled(U, std::cos(A0) * Outer), Scaled(V, std::sin(A0) * Outer)));
+            const SpatialPoint I1 = Added(Pivot,
+                Added(Scaled(U, std::cos(A1) * Inner), Scaled(V, std::sin(A1) * Inner)));
+            const SpatialPoint O1 = Added(Pivot,
+                Added(Scaled(U, std::cos(A1) * Outer), Scaled(V, std::sin(A1) * Outer)));
+            AddWorldTriangle(I0, O0, I1, Packed);
+            AddWorldTriangle(O0, O1, I1, Packed);
+        }
+    };
+
+    const auto AddBillboardTorus = [&](std::uint32_t Packed)
+    {
+        const double Major = Px(GizmoMeasure::CentreRingRadius);
+        const double Minor = Px(GizmoMeasure::CentreRingTube);
+
+        const auto TorusPoint = [&](std::uint32_t MajorIndex, std::uint32_t MinorIndex)
+        {
+            const double UAngle = (static_cast<double>(MajorIndex) / static_cast<double>(GizmoMeasure::CentreRingTubularSegments)) * 2.0 * ProjectionPi;
+            const double VAngle = (static_cast<double>(MinorIndex) / static_cast<double>(GizmoMeasure::CentreRingRadialSegments)) * 2.0 * ProjectionPi;
+            const SpatialDirection Radial = Normalize(Added(Scaled(Frame.Right, std::cos(UAngle)),
+                                                           Scaled(Frame.Up, std::sin(UAngle))));
+            const SpatialPoint RingCentre = Added(Pivot, Scaled(Radial, Major));
+            return Added(RingCentre,
+                         Added(Scaled(Radial, std::cos(VAngle) * Minor),
+                               Scaled(Frame.Forward, std::sin(VAngle) * Minor)));
+        };
+
+        for (std::uint32_t MajorIndex = 0u; MajorIndex < GizmoMeasure::CentreRingTubularSegments; ++MajorIndex)
+            for (std::uint32_t MinorIndex = 0u; MinorIndex < GizmoMeasure::CentreRingRadialSegments; ++MinorIndex)
+            {
+                const std::uint32_t NextMajor = (MajorIndex + 1u) % GizmoMeasure::CentreRingTubularSegments;
+                const std::uint32_t NextMinor = (MinorIndex + 1u) % GizmoMeasure::CentreRingRadialSegments;
+                const SpatialPoint P00 = TorusPoint(MajorIndex, MinorIndex);
+                const SpatialPoint P10 = TorusPoint(NextMajor, MinorIndex);
+                const SpatialPoint P11 = TorusPoint(NextMajor, NextMinor);
+                const SpatialPoint P01 = TorusPoint(MajorIndex, NextMinor);
+                AddWorldTriangle(P00, P10, P11, Packed);
+                AddWorldTriangle(P00, P11, P01, Packed);
+            }
+    };
+
+    const bool Universal = !Transform.Engaged();
+    const bool DrawMove = Universal || Transform.Manner() == TransformManner::Move;
+    const bool DrawRotate = Universal || Transform.Manner() == TransformManner::Rotate;
+    const bool DrawScale = Universal || Transform.Manner() == TransformManner::Scale;
+
+    if (DrawMove)
+    {
+        AddPlaneHandle(AxisY, AxisZ,
+                       PackOverlayColour(0x1Fu, 0xC7u, 0xC7u, 71u),
+                       Cyan);
+        AddPlaneHandle(AxisX, AxisZ,
+                       HoveredHandle == GizmoHandle::MoveFree ? PackOverlayColour(0xFBu, 0xBFu, 0x24u, 140u)
+                                                              : PackOverlayColour(0xC8u, 0x1Eu, 0xC8u, 71u),
+                       HoveredHandle == GizmoHandle::MoveFree ? Highlight : Magenta);
+        AddPlaneHandle(AxisX, AxisY,
+                       PackOverlayColour(0xE0u, 0xCDu, 0x12u, 71u),
+                       Yellow);
+    }
+
+    if (DrawRotate)
+    {
+        AddArcBar(AxisY, AxisZ, HoveredHandle == GizmoHandle::Rotate ? Highlight : XPacked);
+        AddArcBar(AxisX, AxisZ, HoveredHandle == GizmoHandle::Rotate ? Highlight : YPacked);
+        AddArcBar(AxisX, AxisY, HoveredHandle == GizmoHandle::Rotate ? Highlight : ZPacked);
+    }
+
+    if (DrawScale)
+    {
+        AddCylinder(AxisX, AxisY, AxisZ, HoveredHandle == GizmoHandle::ScaleX ? Highlight : XPacked);
+        AddCylinder(AxisY, AxisX, AxisZ, YPacked);
+        AddCylinder(AxisZ, AxisX, AxisY, HoveredHandle == GizmoHandle::ScaleZ ? Highlight : ZPacked);
+    }
+
+    if (DrawMove)
+    {
+        AddCone(AxisX, AxisY, AxisZ, HoveredHandle == GizmoHandle::MoveX ? Highlight : XPacked);
+        AddCone(AxisY, AxisX, AxisZ, YPacked);
+        AddCone(AxisZ, AxisX, AxisY, HoveredHandle == GizmoHandle::MoveZ ? Highlight : ZPacked);
+    }
+
+    AddBillboardTorus((HoveredHandle == GizmoHandle::MoveFree
+                    || HoveredHandle == GizmoHandle::ScaleFree
+                    || HoveredHandle == GizmoHandle::Rotate)
+                        ? Highlight
+                        : White);
+
+    if (Transform.Engaged())
+    {
+        SpatialDirection GuideAxis = {};
+        bool Guided = false;
+        if (Transform.Restriction() == TransformRestriction::AxisX)
+        {
+            GuideAxis = AxisX;
+            Guided = true;
+        }
+        else if (Transform.Restriction() == TransformRestriction::AxisZ)
+        {
+            GuideAxis = AxisZ;
+            Guided = true;
+        }
+        else if (Transform.Restriction() == TransformRestriction::Curve)
+        {
+            GuideAxis = Transform.AxisDirection;
             Guided = true;
         }
         if (Guided)
