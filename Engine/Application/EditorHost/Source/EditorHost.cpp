@@ -1867,16 +1867,19 @@ static const char* const         SketchTrimSides[2]  = { "Start", "End" };
                                 //    what is selected, not what could be.
                                 {
                                     const SketchPick& Held = SketchSemanticSelection;
+                                    const SketchPick& Displayed = Held.Standing()
+                                                              ? Held
+                                                              : SketchHoveredSelection;
 
                                     ParametricToolsApplied.ActiveDimension =
-                                        !Held.Standing()                                  ? ParametricToolDimension::Nothing
-                                      : Held.Subject == SketchPickSubject::Point          ? ParametricToolDimension::Vertex
-                                      : Held.Subject == SketchPickSubject::Control        ? ParametricToolDimension::Vertex
-                                      : Held.Subject == SketchPickSubject::Curve          ? ParametricToolDimension::Edge
-                                      : Held.Subject == SketchPickSubject::Record         ? ParametricToolDimension::Wire
+                                        !Displayed.Standing()                             ? ParametricToolDimension::Nothing
+                                      : Displayed.Subject == SketchPickSubject::Point    ? ParametricToolDimension::Vertex
+                                      : Displayed.Subject == SketchPickSubject::Control  ? ParametricToolDimension::Vertex
+                                      : Displayed.Subject == SketchPickSubject::Curve    ? ParametricToolDimension::Edge
+                                      : Displayed.Subject == SketchPickSubject::Record   ? ParametricToolDimension::Wire
                                                                                           : ParametricToolDimension::Nothing;
 
-                                    ParametricToolsApplied.SelectedCount = Held.Standing() ? 1u : 0u;
+                                    ParametricToolsApplied.SelectedCount = Displayed.Standing() ? 1u : 0u;
 
                                     // 🔴 A WORKPLANE IS ALWAYS STANDING once the sketch has one, and the
                                     //    sketch is planed every frame above. Left false, the whole sketch

@@ -450,6 +450,16 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
 
     if (Hovered.Subject == SketchPickSubject::Curve)
         RecordCurve(Hovered.Curve, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 208u), 1.8f);
+    else if (Hovered.Subject == SketchPickSubject::Record)
+    {
+        const WorkspaceRecord* Record = Records.Resolve(Hovered.Record);
+        if (Record != nullptr && Record->Profile.Assigned() && Record->Profile.IssuedIndex <= Sketch.Profiles().size())
+            for (const ProfileLoop& Loop : Sketch.Profiles()[Record->Profile.IssuedIndex - 1u].HeldLoops())
+                for (const ProfileCurveUse& Use : Loop.Traversal)
+                    RecordCurve({ Use.TraversedCurve.IssuedIndex }, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 208u), 1.8f);
+        else
+            RecordPoint(Hovered, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 208u), PackOverlayColour(0xFBu, 0xBFu, 0x24u, 180u));
+    }
     else if (Hovered.Standing())
         RecordPoint(Hovered, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 208u), PackOverlayColour(0xFBu, 0xBFu, 0x24u, 180u));
 }
@@ -600,7 +610,9 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
         }
     };
 
-    if (Transform.Manner() == TransformManner::Move)
+    const bool Universal = !Transform.Engaged();
+
+    if (Universal || Transform.Manner() == TransformManner::Move)
     {
         const std::uint32_t XColour = HoveredHandle == GizmoHandle::MoveX ? Highlight : XPacked;
         const std::uint32_t ZColour = HoveredHandle == GizmoHandle::MoveZ ? Highlight : ZPacked;
@@ -609,8 +621,6 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
         AddConeHead(AxisX, AxisY, XColour);
         AddCylinderShaft(AxisZ, AxisY, GizmoMeasure::ArrowBase, ZColour, HoveredHandle == GizmoHandle::MoveZ);
         AddConeHead(AxisZ, AxisY, ZColour);
-        // 📝 The square the hit test looks for: centred `PlaneOffset` out along each axis, `PlaneHalf` to
-        //    a side. The two must be the same rectangle or the artist grabs beside what they can see.
         const double PlaneCentre = Px(GizmoMeasure::PlaneOffset);
         const double PlaneEdge   = Px(GizmoMeasure::PlaneHalf);
         const SpatialPoint C = Added(Pivot, Added(Scaled(AxisX, PlaneCentre), Scaled(AxisZ, PlaneCentre)));
@@ -621,14 +631,16 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
                      PlaneFill, PlaneColour);
         AddScreenHandle(GizmoMeasure::CentreGrab, HoveredHandle == GizmoHandle::MoveFree ? Highlight : White);
     }
-    else if (Transform.Manner() == TransformManner::Rotate)
+
+    if (Universal || Transform.Manner() == TransformManner::Rotate)
     {
         AddRing(AxisZ, AxisY, Px(GizmoMeasure::RingRadius), HoveredHandle == GizmoHandle::Rotate ? Highlight : XPacked, 2.4f);
         AddRing(AxisX, AxisZ, Px(GizmoMeasure::RingRadius), HoveredHandle == GizmoHandle::Rotate ? Highlight : ZPacked, 2.4f);
         AddRing(AxisX, AxisY, Px(GizmoMeasure::RingRadius), HoveredHandle == GizmoHandle::Rotate ? Highlight : YPacked, 2.4f);
         AddScreenHandle(GizmoMeasure::RingRadius, HoveredHandle == GizmoHandle::Rotate ? Highlight : White);
     }
-    else
+
+    if (Universal || Transform.Manner() == TransformManner::Scale)
     {
         const std::uint32_t XColour = HoveredHandle == GizmoHandle::ScaleX ? Highlight : XPacked;
         const std::uint32_t ZColour = HoveredHandle == GizmoHandle::ScaleZ ? Highlight : ZPacked;
@@ -639,10 +651,13 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
         const double BoxRadius = Px(GizmoMeasure::ShaftRadius * 1.6);
         AddBox(Added(Pivot, Scaled(AxisX, BoxOut)), AxisX, AxisY, AxisZ, BoxHalf, BoxRadius, BoxRadius, XColour);
         AddBox(Added(Pivot, Scaled(AxisZ, BoxOut)), AxisZ, AxisY, AxisX, BoxHalf, BoxRadius, BoxRadius, ZColour);
-        const std::uint32_t FreeColour = HoveredHandle == GizmoHandle::ScaleFree ? Highlight : White;
-        AddBox(Pivot, AxisX, AxisY, AxisZ,
-               Px(GizmoMeasure::CentreGrab), Px(GizmoMeasure::CentreGrab), Px(GizmoMeasure::CentreGrab),
-               FreeColour);
+        if (!Universal)
+        {
+            const std::uint32_t FreeColour = HoveredHandle == GizmoHandle::ScaleFree ? Highlight : White;
+            AddBox(Pivot, AxisX, AxisY, AxisZ,
+                   Px(GizmoMeasure::CentreGrab), Px(GizmoMeasure::CentreGrab), Px(GizmoMeasure::CentreGrab),
+                   FreeColour);
+        }
     }
 
     if (Transform.Engaged())

@@ -152,6 +152,63 @@ void ProveResolution()
     }
 }
 
+/// 🧩 Three connected lines: left, bottom and right of a square, so dragging the bottom edge must bring
+///    the shared corners of the neighbouring edges with it.
+struct ConnectedBench
+{
+    SketchStructure           Sketch;
+    WorkspaceRecordStructure  Records;
+    WorkspaceRevisionSequence Revisions;
+
+    SpatialBasis      Basis = { { 0.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 0.0, 0.0, 1.0 }, { 0.0, 1.0, 0.0 } };
+    ViewportStanding  View;
+    PlaneExtent       Extent = { 0.0f, 0.0f, 800.0f, 600.0f };
+
+    SketchCurveName Left = {};
+    SketchCurveName Bottom = {};
+    SketchCurveName Right = {};
+    WorkspaceRecordName BottomRecord = {};
+
+    ConnectedBench()
+    {
+        SketchPlane Ground;
+        Ground.Origin = { 0.0, 0.0, 0.0 };
+        Ground.Normal = { 0.0, 1.0, 0.0 };
+        Ground.AlongDirection = { 1.0, 0.0, 0.0 };
+        Sketch.DeclarePlane(Ground);
+
+        View.Focus = { 0.0, 0.0, 0.0 };
+        View.OrthoScale = 4.0;
+        View.Distance = 240.0;
+
+        Left = Sketch.DeclareLine({ -20.0, 0.0, -20.0 }, { -20.0, 0.0, 20.0 });
+        Bottom = Sketch.DeclareLine({ -20.0, 0.0, -20.0 }, { 20.0, 0.0, -20.0 });
+        Right = Sketch.DeclareLine({ 20.0, 0.0, -20.0 }, { 20.0, 0.0, 20.0 });
+
+        WorkspaceRecord Held = {};
+        Held.Subject = WorkspaceRecordSubject::OpenCurve;
+        Held.SketchCurve = Bottom;
+        Held.Naming = "Bottom";
+        BottomRecord = Records.Declare(Held);
+    }
+
+    SketchPick BottomPick() const
+    {
+        SketchPick Pick = {};
+        Pick.Subject = SketchPickSubject::Curve;
+        Pick.Curve = Bottom;
+        Pick.Record = BottomRecord;
+        ResolveCurvePivot(Sketch, Bottom, Pick.Position);
+        return Pick;
+    }
+
+    void ScreenOf(double Along, double Across, float& X, float& Y) const
+    {
+        ProjectViewportPoint(Basis, View, false, Extent, Along, Across, X, Y);
+    }
+};
+
+
 //========================================================================================================
 // 2. A MOVE
 //========================================================================================================
@@ -213,6 +270,60 @@ void ProveMove()
         Restored = SamePoint(Returned[Index], Before[Index], 1.0e-6);
     Claim(Restored, "dragging back to the start returns the original positions with no drift");
 }
+
+void ProveConnectedEdgeMove()
+{
+    std::printf("\n2b. Dragging one edge carries the corners it shares\n");
+
+    ConnectedBench Stage;
+
+    std::vector<SketchPointPlacement> BottomPoints;
+    std::vector<SketchPointPlacement> LeftPoints;
+    std::vector<SketchPointPlacement> RightPoints;
+    ResolveSketchPoints(Stage.Sketch, Stage.Bottom, BottomPoints);
+    ResolveSketchPoints(Stage.Sketch, Stage.Left, LeftPoints);
+    ResolveSketchPoints(Stage.Sketch, Stage.Right, RightPoints);
+
+    float StartX = 0.0f;
+    float StartY = 0.0f;
+    Stage.ScreenOf(0.0, -20.0, StartX, StartY);
+
+    TransformSession Session;
+    Claim(StartTransformSession(Stage.Sketch, Stage.Records, Stage.Basis, Stage.View, false,
+                                Stage.Extent, StartX, StartY, Stage.BottomPick(),
+                                TransformManner::Move, TransformRestriction::Free, false, true, Session),
+          "a connected edge drag starts");
+
+    float EndX = 0.0f;
+    float EndY = 0.0f;
+    Stage.ScreenOf(0.0, -8.0, EndX, EndY);
+    UpdateTransformSession(Stage.Basis, Stage.View, false, Stage.Extent, EndX, EndY, false,
+                           Stage.Sketch, Session);
+
+    std::vector<SketchPointPlacement> BottomAfter;
+    std::vector<SketchPointPlacement> LeftAfter;
+    std::vector<SketchPointPlacement> RightAfter;
+    ResolveSketchPoints(Stage.Sketch, Stage.Bottom, BottomAfter);
+    ResolveSketchPoints(Stage.Sketch, Stage.Left, LeftAfter);
+    ResolveSketchPoints(Stage.Sketch, Stage.Right, RightAfter);
+
+    Claim(BottomAfter.size() == 2u && LeftAfter.size() == 2u && RightAfter.size() == 2u,
+          "the connected geometry remains readable after the drag");
+
+    if (BottomAfter.size() == 2u && LeftAfter.size() == 2u && RightAfter.size() == 2u)
+    {
+        Claim(Near(BottomAfter[0].Position.Forward, -8.0, 1.0e-6)
+           && Near(BottomAfter[1].Position.Forward, -8.0, 1.0e-6),
+              "the selected edge itself moved to the new across value");
+        Claim(SamePoint(LeftAfter[0].Position, BottomAfter[0].Position, 1.0e-6)
+           || SamePoint(LeftAfter[1].Position, BottomAfter[0].Position, 1.0e-6),
+              "the left neighbour keeps sharing the dragged corner");
+        Claim(SamePoint(RightAfter[0].Position, BottomAfter[1].Position, 1.0e-6)
+           || SamePoint(RightAfter[1].Position, BottomAfter[1].Position, 1.0e-6),
+              "and the right neighbour keeps sharing the other dragged corner");
+    }
+}
+
 
 //========================================================================================================
 // 3. AXIS RESTRICTION
@@ -571,6 +682,7 @@ int main()
 
     ProveResolution();
     ProveMove();
+    ProveConnectedEdgeMove();
     ProveRestriction();
     ProveRotateAndScale();
     ProveOffOrigin();

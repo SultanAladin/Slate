@@ -92,8 +92,7 @@ int main()
 
         const SketchPick Face =
             ResolveSketchPickForElement(Sketch, Records, Probe, 20.0, SelectionElement::Face);
-        Require(Face.Subject == SketchPickSubject::Record, "Face mode returns the record");
-        Require(Face.Record.Assigned(), "and names it");
+        Require(!Face.Standing(), "Face mode refuses an open wire that encloses no region");
     }
 
     // ③ 🔴 A MISS IS A MISS. At the edge's midpoint, a hundred units from either endpoint, Vertex mode
@@ -122,6 +121,39 @@ int main()
             const SketchPick Missed =
                 ResolveSketchPickForElement(Sketch, Records, Distant, 20.0, Element);
             Require(!Missed.Standing(), "nothing within tolerance picks nothing, in every mode");
+        }
+    }
+
+    // ⑤ FACE AND OBJECT MUST PICK THE WHOLE CLOSED PROFILE THROUGH ITS AREA, not only by grazing one
+    //    of its edges. A probe in the middle of a closed region is the ordinary way an artist reaches it.
+    {
+        SketchStructure ProfileSketch;
+        WorkspaceRecordStructure ProfileRecords;
+        WorkspaceNameIndex ProfileNaming;
+
+        ProfileSketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 } });
+        const Deliver<ProfileNameInFeature> Square =
+            ProfileSketch.DeclareRegularPolygon({ 0.0, 0.0, 0.0 }, 40.0, 4u, { 1.0, 0.0, 0.0 });
+        Require(Square.Resolved, "a closed profile can be declared for face picking");
+        if (Square.Resolved)
+        {
+            const WorkspaceRecordName Shape =
+                DeclareWorkspaceProfile(ProfileNaming, ProfileRecords, Square.Resolve());
+            const SpatialPoint Middle = { 0.0, 0.0, 0.0 };
+
+            const SketchPick Face =
+                ResolveSketchPickForElement(ProfileSketch, ProfileRecords, Middle, 100.0, SelectionElement::Face);
+            Require(Face.Subject == SketchPickSubject::Record,
+                    "Face mode reaches the whole closed profile from its interior");
+            Require(Face.Record.IssuedIndex == Shape.IssuedIndex,
+                    "and names the profile record rather than one edge of it");
+
+            const SketchPick Object =
+                ResolveSketchPickForElement(ProfileSketch, ProfileRecords, Middle, 100.0, SelectionElement::Object);
+            Require(Object.Subject == SketchPickSubject::Record,
+                    "Object mode also reaches the whole profile from its interior");
+            Require(Object.Record.IssuedIndex == Shape.IssuedIndex,
+                    "and keeps the same profile record identity");
         }
     }
 

@@ -4,8 +4,174 @@
 
 #include "SlateWorkspace/Discipline/SketchPicking/Api/SketchPicking.h"
 
+#include "SlateShape/Sketch/SketchPolyline/Api/SketchPolyline.h"
+
+#include <algorithm>
+#include <cmath>
+#include <vector>
+
 namespace Slate
 {
+
+namespace
+{
+
+double PickingDistanceSquared(const SpatialPoint& Left, const SpatialPoint& Right)
+{
+    return LengthSquared(Difference(Left, Right));
+}
+
+bool PickingPointsNear(const SpatialPoint& Left, const SpatialPoint& Right, double Tolerance = 1.0e-5)
+{
+    return PickingDistanceSquared(Left, Right) <= Tolerance * Tolerance;
+}
+
+double PickingSignedArea(const std::vector<SpatialPoint>& Points)
+{
+    if (Points.size() < 3u)
+        return 0.0;
+
+    double Area = 0.0;
+    for (std::size_t Index = 0u; Index < Points.size(); ++Index)
+    {
+        const SpatialPoint& Current = Points[Index];
+        const SpatialPoint& Next = Points[(Index + 1u) % Points.size()];
+        Area += Current.Left * Next.Forward - Next.Left * Current.Forward;
+    }
+    return Area * 0.5;
+}
+
+bool PickingPointInsideLoop(const SpatialPoint& Probe, const std::vector<SpatialPoint>& Loop)
+{
+    if (Loop.size() < 3u)
+        return false;
+
+    bool Inside = false;
+    for (std::size_t Index = 0u, Prior = Loop.size() - 1u; Index < Loop.size(); Prior = Index++)
+    {
+        const SpatialPoint& A = Loop[Index];
+        const SpatialPoint& B = Loop[Prior];
+        const bool Crosses = ((A.Forward > Probe.Forward) != (B.Forward > Probe.Forward))
+                          && (Probe.Left < (B.Left - A.Left)
+                                           * (Probe.Forward - A.Forward)
+                                           / ((B.Forward - A.Forward) + 1.0e-300)
+                                           + A.Left);
+        if (Crosses)
+            Inside = !Inside;
+    }
+    return Inside;
+}
+
+bool AppendProfileLoopPolyline(const SketchStructure& Sketch,
+                               const ProfileLoop& Loop,
+                               std::vector<SpatialPoint>& Points)
+{
+    Points.clear();
+    for (const ProfileCurveUse& Use : Loop.Traversal)
+    {
+        if (Use.TraversedCurve.IssuedIndex == 0u || Use.TraversedCurve.IssuedIndex > Sketch.Curves().size())
+            return false;
+
+        std::vector<SpatialPoint> Segment;
+        AppendCurvePolyline(Sketch.Curves()[Use.TraversedCurve.IssuedIndex - 1u].Geometry, Segment, 48u);
+        if (Segment.size() < 2u)
+            return false;
+        if (!Use.SameSense)
+            std::reverse(Segment.begin(), Segment.end());
+
+        if (Points.empty())
+        {
+            Points = Segment;
+            continue;
+        }
+
+        if (!PickingPointsNear(Points.back(), Segment.front()))
+        {
+            if (PickingPointsNear(Points.back(), Segment.back()))
+                std::reverse(Segment.begin(), Segment.end());
+            else
+                return false;
+        }
+
+        Points.insert(Points.end(), Segment.begin() + 1, Segment.end());
+    }
+
+    if (Points.size() >= 2u && PickingPointsNear(Points.front(), Points.back()))
+        Points.pop_back();
+    return Points.size() >= 3u;
+}
+
+WorkspaceRecordName ResolveProfileRecordForCurve(const SketchStructure& Sketch,
+                                                 const WorkspaceRecordStructure& Records,
+                                                 SketchCurveName Curve)
+{
+    if (!Curve.Assigned())
+        return {};
+
+    for (std::uint32_t Index = 1u; Index <= Records.DeclaredCount(); ++Index)
+    {
+        const WorkspaceRecord* Record = Records.Resolve({ Index });
+        if (Record == nullptr || !Record->Profile.Assigned() ||
+            Record->Profile.IssuedIndex > Sketch.Profiles().size())
+            continue;
+        if (ProfileContainsCurve(Sketch.Profiles()[Record->Profile.IssuedIndex - 1u], Curve))
+            return { Index };
+    }
+
+    return {};
+}
+
+WorkspaceRecordName ResolveProfileRecordAtPoint(const SketchStructure& Sketch,
+                                                const WorkspaceRecordStructure& Records,
+                                                const SpatialPoint& Probe)
+{
+    WorkspaceRecordName Best = {};
+    double BestArea = 1.0e300;
+
+    for (std::uint32_t Index = 1u; Index <= Records.DeclaredCount(); ++Index)
+    {
+        const WorkspaceRecord* Record = Records.Resolve({ Index });
+        if (Record == nullptr || !Record->Profile.Assigned() ||
+            Record->Profile.IssuedIndex > Sketch.Profiles().size())
+            continue;
+
+        const ProfileSpecification& Profile = Sketch.Profiles()[Record->Profile.IssuedIndex - 1u];
+        bool InsideOuter = false;
+        bool InsideHole = false;
+        double Area = 1.0e300;
+
+        for (const ProfileLoop& Loop : Profile.HeldLoops())
+        {
+            std::vector<SpatialPoint> LoopPoints;
+            if (!AppendProfileLoopPolyline(Sketch, Loop, LoopPoints))
+                continue;
+
+            if (!PickingPointInsideLoop(Probe, LoopPoints))
+                continue;
+
+            const double LoopArea = std::abs(PickingSignedArea(LoopPoints));
+            if (Loop.Orientation == ProfileLoopOrientation::Outer)
+            {
+                InsideOuter = true;
+                Area = std::min(Area, LoopArea);
+            }
+            else
+            {
+                InsideHole = true;
+            }
+        }
+
+        if (InsideOuter && !InsideHole && Area < BestArea)
+        {
+            Best = { Index };
+            BestArea = Area;
+        }
+    }
+
+    return Best;
+}
+
+}   // namespace
 
 bool ResolveSketchPointPosition(const SketchStructure& Sketch,
                                 SketchPointName Subject,
@@ -366,51 +532,38 @@ SketchPick ResolveSketchPickForElement(const SketchStructure& Sketch,
         }
 
         case SelectionElement::Face:
-        {
-            // 📝 A face is the closed region a set of curves bounds, and what names it is the RECORD the
-            //    curve belongs to. Picking the curve and returning its owner as a record pick is
-            //    therefore the same act, reported at the coarser grain the artist asked for.
-            SketchCurveName Curve = {};
-            if (ResolveNearestSketchCurve(Sketch, Probe, MaximumDistance, Curve, Distance))
-            {
-                SketchPick Pick = {};
-                Pick.Subject = SketchPickSubject::Record;
-                Pick.Curve   = Curve;
-                Pick.Record  = ResolveRecordForCurve(Sketch, Records, Curve);
-                ResolveCurvePivot(Sketch, Curve, Pick.Position);
-                if (Pick.Record.Assigned())
-                    return Pick;
-            }
-            return {};
-        }
-
-        // 🔴 THE WHOLE SHAPE, NOT THE PART UNDER THE POINTER. `Face` answers "which region did I hit";
-        //    `Object` answers "which shape does that belong to". They reach the same curve and differ
-        //    only in what is reported, so this shares Face's search and then widens the answer to the
-        //    record's own pivot — selecting a profile by clicking any part of it, which is what an
-        //    artist means by clicking a shape.
         case SelectionElement::Object:
         {
+            // 🔴 A PROFILE IS HIT THROUGH ITS AREA, not only by grazing one of its edges. The previous
+            //    search asked the nearest curve for its owner, which meant clicking the middle of a face
+            //    selected nothing at all unless the pointer happened to be within edge tolerance.
+            const WorkspaceRecordName ProfileRecord = ResolveProfileRecordAtPoint(Sketch, Records, Probe);
+            if (ProfileRecord.Assigned())
+            {
+                SketchPick WholeShape = {};
+                if (ResolvePickForRecord(Sketch, Records, ProfileRecord, WholeShape))
+                    return WholeShape;
+            }
+
+            // 📝 And when the probe is on the boundary rather than inside, Face/Object still mean the
+            //    enclosing profile if one exists, not the edge record the unrestricted search would pick.
             SketchCurveName Curve = {};
             if (ResolveNearestSketchCurve(Sketch, Probe, MaximumDistance, Curve, Distance))
             {
-                SketchPick Pick = {};
-                Pick.Subject = SketchPickSubject::Record;
-                Pick.Record  = ResolveRecordForCurve(Sketch, Records, Curve);
-
-                // 📝 The CURVE IS DELIBERATELY NOT CARRIED. A record pick that names one of its curves
-                //    reads downstream as "this curve of this shape", and the transform session would
-                //    move that curve alone — which is precisely the difference between Object and Face.
-                //    `ResolvePickForRecord` states the record's own pivot, which is the whole shape's,
-                //    and it is the function the outliner already selects a record through.
-                if (Pick.Record.Assigned())
+                const WorkspaceRecordName ProfileOwner = ResolveProfileRecordForCurve(Sketch, Records, Curve);
+                if (ProfileOwner.Assigned())
                 {
                     SketchPick WholeShape = {};
-                    if (ResolvePickForRecord(Sketch, Records, Pick.Record, WholeShape))
+                    if (ResolvePickForRecord(Sketch, Records, ProfileOwner, WholeShape))
                         return WholeShape;
+                }
 
-                    ResolveCurvePivot(Sketch, Curve, Pick.Position);
-                    return Pick;
+                if (Element == SelectionElement::Object)
+                {
+                    SketchPick WholeShape = {};
+                    const WorkspaceRecordName Owner = ResolveRecordForCurve(Sketch, Records, Curve);
+                    if (Owner.Assigned() && ResolvePickForRecord(Sketch, Records, Owner, WholeShape))
+                        return WholeShape;
                 }
             }
             return {};

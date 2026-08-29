@@ -14,6 +14,43 @@ namespace Slate
 namespace
 {
     constexpr double SessionPi = 3.14159265358979323846;
+
+    bool SameTransformPoint(const SpatialPoint& Left,
+                            const SpatialPoint& Right,
+                            double Tolerance = 1.0e-5)
+    {
+        return LengthSquared(Difference(Left, Right)) <= Tolerance * Tolerance;
+    }
+
+    void CollectCoincidentPointPlacements(const SketchStructure& Sketch,
+                                          const SpatialPoint& Anchor,
+                                          std::vector<SketchPlacementSubject>& Placements)
+    {
+        std::vector<SketchPointPlacement> Points;
+        for (std::uint32_t CurveIndex = 1u; CurveIndex <= Sketch.Curves().size(); ++CurveIndex)
+        {
+            if (!ResolveSketchPoints(Sketch, { CurveIndex }, Points))
+                continue;
+
+            for (const SketchPointPlacement& Point : Points)
+                if (SameTransformPoint(Point.Position, Anchor))
+                    AppendPlacementUnique(Placements, { false, Point.Name, {}, Point.Position });
+        }
+    }
+
+    void CollectConnectedCurvePlacements(const SketchStructure& Sketch,
+                                         SketchCurveName Curve,
+                                         std::vector<SketchPlacementSubject>& Placements)
+    {
+        CollectCurvePlacements(Sketch, Curve, Placements);
+
+        std::vector<SketchPointPlacement> Points;
+        if (!ResolveSketchPoints(Sketch, Curve, Points))
+            return;
+
+        for (const SketchPointPlacement& Point : Points)
+            CollectCoincidentPointPlacements(Sketch, Point.Position, Placements);
+    }
 }
 
 bool ResolveTransformPlacements(const SketchStructure& Sketch,
@@ -28,7 +65,9 @@ bool ResolveTransformPlacements(const SketchStructure& Sketch,
 
     if (Target.Subject == SketchPickSubject::Point)
     {
-        Placements.push_back({ false, Target.Point, {}, Target.Position });
+        CollectCoincidentPointPlacements(Sketch, Target.Position, Placements);
+        if (Placements.empty())
+            Placements.push_back({ false, Target.Point, {}, Target.Position });
         Pivot = Target.Position;
         return true;
     }
@@ -42,7 +81,7 @@ bool ResolveTransformPlacements(const SketchStructure& Sketch,
 
     if (Target.Subject == SketchPickSubject::Curve)
     {
-        CollectCurvePlacements(Sketch, Target.Curve, Placements);
+        CollectConnectedCurvePlacements(Sketch, Target.Curve, Placements);
         if (!ResolveCurvePivot(Sketch, Target.Curve, Pivot))
             Pivot = Target.Position;
         return !Placements.empty();

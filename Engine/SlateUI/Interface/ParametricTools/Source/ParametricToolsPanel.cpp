@@ -224,27 +224,27 @@ const ToolEntry SketchModifyTools[] =
 {
     { "Fillet", "", SymbolSubject::FilletRadius, ParametricToolDimension::Vertex,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
-      1u, 0u, 0u, 0u, 0u, 0u, 0u,
+      0u, 0u, 0u, 0u, 0u, 0u, 0u,
       { { "Radius", "5 mm" }, { "Trim Originals", "On" } }, 2u },
 
     { "Chamfer", "", SymbolSubject::BevelChamfer, ParametricToolDimension::Vertex,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
-      1u, 0u, 0u, 0u, 0u, 0u, 0u,
+      0u, 0u, 0u, 0u, 0u, 0u, 0u,
       { { "Distance", "5 mm" }, { "Angle", "45°" } }, 2u },
 
     { "Trim", "", SymbolSubject::CrosshairCentre, ParametricToolDimension::Edge,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
-      1u, 0u, 0u, 0u, 0u, 0u, 0u,
+      0u, 0u, 0u, 0u, 0u, 0u, 0u,
       { { "Extent", "To nearest" } }, 1u },
 
     { "Extend", "", SymbolSubject::CrosshairCentre, ParametricToolDimension::Edge,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
-      1u, 0u, 0u, 0u, 0u, 0u, 0u,
+      0u, 0u, 0u, 0u, 0u, 0u, 0u,
       { { "Distance", "20 mm" }, { "Extend to Limit", "On" } }, 2u },
 
     { "Offset", "", SymbolSubject::CrosshairCentre, ParametricToolDimension::Edge,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
-      1u, 0u, 0u, 0u, 0u, 0u, 0u,
+      0u, 0u, 0u, 0u, 0u, 0u, 0u,
       { { "Distance", "5 mm" }, { "Corners", "Arc" }, { "Both Sides", "Off" } }, 3u },
 
     // 🔴 CUT WAS NAMED IN THE CATALOGUE'S ENUMERATION AND HAD NO TILE. `ParametricToolSubject::Cut`
@@ -255,7 +255,7 @@ const ToolEntry SketchModifyTools[] =
     //    selected curve itself, so the catalogue should ask for the curve the artist means to divide.
     { "Cut", "", SymbolSubject::CrosshairCentre, ParametricToolDimension::Edge,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
-      1u, 0u, 0u, 0u, 0u, 0u, 0u,
+      0u, 0u, 0u, 0u, 0u, 0u, 0u,
       { { "At", "Picked edge" } }, 1u },
 };
 

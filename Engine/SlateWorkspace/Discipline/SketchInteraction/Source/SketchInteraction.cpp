@@ -122,6 +122,46 @@ SpatialPoint ResolveViewportEditProbe(ParametricToolSubject Tool,
     return Probe;
 }
 
+bool SamePickIdentity(const SketchPick& Left,
+                      const SketchPick& Right)
+{
+    if (Left.Subject != Right.Subject)
+        return false;
+
+    switch (Left.Subject)
+    {
+        case SketchPickSubject::Point:
+            return Left.Point.IssuedIndex == Right.Point.IssuedIndex;
+        case SketchPickSubject::Control:
+            return Left.Control.IssuedIndex == Right.Control.IssuedIndex;
+        case SketchPickSubject::Curve:
+            return Left.Curve.IssuedIndex == Right.Curve.IssuedIndex;
+        case SketchPickSubject::Record:
+            return Left.Record.IssuedIndex == Right.Record.IssuedIndex;
+        case SketchPickSubject::None:
+            return true;
+    }
+    return false;
+}
+
+GizmoHandle ResolveUniversalGizmoHandle(const GizmoScreenBasis& Screen,
+                                        float PointerX,
+                                        float PointerY)
+{
+    const GizmoHandle Move = ResolveGizmoHandle(Screen, TransformManner::Move, PointerX, PointerY);
+    if (Move == GizmoHandle::MoveFree)
+        return Move;
+
+    const GizmoHandle Scale = ResolveGizmoHandle(Screen, TransformManner::Scale, PointerX, PointerY);
+    if (Scale != GizmoHandle::None)
+        return Scale;
+
+    if (Move != GizmoHandle::None)
+        return Move;
+
+    return ResolveGizmoHandle(Screen, TransformManner::Rotate, PointerX, PointerY);
+}
+
 }   // namespace
 
 void DriveViewport(const PlaneExtent& Extent,
@@ -753,7 +793,9 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
     {
         GizmoScreenBasis Screen = {};
         if (ResolveGizmoScreenBasis(Basis, View, Perspective, Extent, ActiveSelection.Position, Screen))
-            HoveredHandle = ResolveGizmoHandle(Screen, Transform.Manner(), Pointer.PositionX, Pointer.PositionY);
+            HoveredHandle = Transform.Engaged()
+                          ? ResolveGizmoHandle(Screen, Transform.Manner(), Pointer.PositionX, Pointer.PositionY)
+                          : ResolveUniversalGizmoHandle(Screen, Pointer.PositionX, Pointer.PositionY);
     }
 
     if (!PointerTaken && !Transform.Engaged() && SelectStanding &&
@@ -770,6 +812,16 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
     if (!Transform.Engaged() && SelectStanding && ActiveSelection.Standing() &&
         Extent.Encloses(Pointer.PositionX, Pointer.PositionY))
     {
+        if (HoveredHandle == GizmoHandle::None && !PointerTaken && Pointer.ContactHeld &&
+            !Pointer.ContactPressed && (std::fabs(Pointer.TravelX) + std::fabs(Pointer.TravelY)) > 0.0f &&
+            HoveredSelection.Standing() && SamePickIdentity(HoveredSelection, ActiveSelection))
+        {
+            PointerTaken = StartTransformSession(Sketch, Records, Basis, View, Perspective, Extent,
+                                                 Pointer.PositionX, Pointer.PositionY, ActiveSelection,
+                                                 TransformManner::Move, TransformRestriction::Free,
+                                                 false, true, Transform);
+        }
+
         if (HoveredHandle != GizmoHandle::None && Pointer.ContactPressed)
         {
             // 📝 A handle names both what it does and what it restricts, so the two are read from it
