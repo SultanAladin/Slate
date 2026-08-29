@@ -1097,6 +1097,122 @@ int main()
     }
 
     //--------------------------------------------------------------------------------------------
+    // 🔴 CURVE OUTLINES CROSS THE SAME NEAR PLANE. Bezier, basis spline, NURBS and Hermite do not
+    //    reach the CAD pass as special cases; they are tessellated into the packet's ordinary segment
+    //    list. So the segment clipper must preserve their visible prefixes too, or a camera skimming
+    //    the plane drops the very curve families that motivated the viewport rewrite.
+    //--------------------------------------------------------------------------------------------
+    {
+        struct CurveSubject
+        {
+            SketchSubject             Subject;
+            PlacementMethod           Method;
+            std::vector<SpatialPoint> Anchors;
+            const char*               Naming;
+        };
+
+        const CurveSubject Every[] = {
+            { SketchSubject::Bezier, PlacementMethod::Extent,
+              { { -140.0, 0.0, -30.0 }, { -40.0, 0.0, 120.0 }, { 60.0, 0.0, -120.0 }, { 160.0, 0.0, 40.0 } },
+              "Bezier" },
+            { SketchSubject::BasisSpline, PlacementMethod::Extent,
+              { { -150.0, 0.0, -50.0 }, { -90.0, 0.0, 130.0 }, { 0.0, 0.0, -140.0 }, { 110.0, 0.0, 120.0 }, { 180.0, 0.0, -20.0 } },
+              "basis spline" },
+            { SketchSubject::RationalSpline, PlacementMethod::Extent,
+              { { -150.0, 0.0, -40.0 }, { -80.0, 0.0, 140.0 }, { 10.0, 0.0, -150.0 }, { 120.0, 0.0, 110.0 }, { 190.0, 0.0, -10.0 } },
+              "NURBS curve" },
+            { SketchSubject::Hermite, PlacementMethod::Extent,
+              { { -170.0, 0.0, -30.0 }, { -70.0, 0.0, 110.0 }, { 20.0, 0.0, -130.0 }, { 110.0, 0.0, 110.0 }, { 190.0, 0.0, -20.0 } },
+              "Hermite" },
+        };
+
+        const PlaneExtent Leaf = { 0.0f, 0.0f, 800.0f, 600.0f };
+        const DrawableScale Unscaled = {};
+
+        for (const CurveSubject& Subject : Every)
+        {
+            SketchStructure           Sketch;
+            WorkspaceRecordStructure  Records;
+            WorkspaceRevisionSequence Revisions;
+            WorkspaceNameIndex        Naming;
+            WorkplaneCatalogue        Workplanes;
+            SketchPlacement           Tool;
+            WorkspaceRecordName       Pending;
+
+            Sketch.DeclarePlane({ Workplanes.Active().Origin,
+                                  Workplanes.Active().Normal,
+                                  Workplanes.Active().Along });
+
+            const auto Demand = [&](bool Held, const char* Suffix)
+            {
+                const std::string Claim = std::string(Subject.Naming) + Suffix;
+                Require(Held, Claim.c_str());
+            };
+
+            Tool.Declare(Subject.Subject, Subject.Method, false);
+            for (const SpatialPoint& Anchor : Subject.Anchors)
+            {
+                Tool.Hover(Anchor, {});
+                static_cast<void>(Tool.Anchor(false));
+            }
+
+            const SealedPlacement Sealed = Tool.Seal();
+            const Deliver<WorkspaceRecordName> Committed =
+                CommitPlacement(Naming, Sketch, Records, Revisions, Sealed);
+            Demand(Committed.Resolved, " must commit as a curve");
+            AdoptCommittedShape(Sealed.Subject, Naming, Sketch, Records, Revisions, Committed, Pending);
+
+            WorkspaceCadPacket Delivered;
+            static_cast<void>(ProjectSketchRendering(Sketch, Records, Delivered));
+            Demand(Delivered.SegmentCount > 0u,
+                   " must reach the CAD packet as outline segments");
+
+            const SpatialBasis Basis = ResolveSketchBasis(Sketch);
+            const ViewportStanding Skimming = ResolveOrbitStandingFromFree(
+                { 0.0, 0.08, 0.0 }, 0.0, -2.0, Basis);
+            const WorkspaceCadProjection Rows = ResolveCadProjection(
+                Basis, Skimming, true, Leaf, Unscaled,
+                static_cast<std::uint32_t>(Leaf.Width()),
+                static_cast<std::uint32_t>(Leaf.Height()));
+
+            const auto Projected = [&](float Along, float Across)
+            {
+                WorkspaceCadProjectedPoint Point;
+                Point.X = Rows.Projection0[0] + Along * Rows.Projection1[0] + Across * Rows.Projection2[0];
+                Point.Y = Rows.Projection0[1] + Along * Rows.Projection1[1] + Across * Rows.Projection2[1];
+                Point.W = Rows.Projection0[3] + Along * Rows.Projection1[3] + Across * Rows.Projection2[3];
+                return Point;
+            };
+
+            bool AnyVisible = false;
+            bool AnyClipped = false;
+            for (Unsigned32 Index = 0u; Index < Delivered.SegmentCount; ++Index)
+            {
+                const WorkspaceCadSegment& Segment = Delivered.Segments[Index];
+                WorkspaceCadProjectedPoint Start = Projected(Segment.Along0, Segment.Across0);
+                WorkspaceCadProjectedPoint End   = Projected(Segment.Along1, Segment.Across1);
+                const bool Mixed = WorkspaceCadProjectedFront(Start) != WorkspaceCadProjectedFront(End);
+                const bool Survived = ClipWorkspaceCadSegmentNear(Start, End);
+                if (Survived)
+                    AnyVisible = true;
+                if (Mixed)
+                {
+                    AnyClipped = true;
+                    Demand(Start.W >= WorkspaceCadNearDepth && End.W >= WorkspaceCadNearDepth,
+                           " clipped segment endpoints must land on or ahead of the near plane");
+                }
+            }
+
+            Demand(AnyVisible,
+                   " must still show some outline after near clipping");
+            Demand(AnyClipped,
+                   " must exercise the segment near-plane clipper in a skimming view");
+        }
+
+        std::printf("  near-plane clipping holds for Bezier, basis spline, NURBS and Hermite outlines\n");
+    }
+
+    //--------------------------------------------------------------------------------------------
     // 🔴 THE FILL COVERS THE SHAPE AND NOTHING ELSE. A fan across a concave outline lays triangles
     //    over the notches -- it would still report a fill count, so counting is not enough.
     //--------------------------------------------------------------------------------------------
