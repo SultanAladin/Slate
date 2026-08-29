@@ -522,10 +522,8 @@ struct SceneDriver
     bool  SimShiftHeld   = false;
     bool  SimTabPressed  = false;
     bool  SimLayersTab   = false;   // [-] - Tab goes to the layer stack, not the scene directory
-    bool  OverlayFallbackSim = false;   // [-] - draw the overlay through the interface, as the host
-                                        //       does when the GPU overlay pass could not stand
-    bool  SkipOverlayRaster  = false;   // [-] - the capture skips the GPU pass's CPU twin (the
-                                        //       fallback scenario's PNG must show the fallback only)
+    bool  SkipOverlayRaster  = false;   // [-] - the capture withholds the overlay pass's CPU twin
+                                        //       so GPU-only scenarios can assert that no CPU fallback drew
     char  SimTyped[16]   = {};   // [-] - the run the search field accepts this tick
 
     SceneDriver() : IO(ImGui::GetIO()) {}
@@ -762,11 +760,8 @@ struct SceneDriver
                     // records only the leaf content it owns.
                     SceneDirectory.RecordGizmo(LeafBody, Applied, Applied.Overlay);
 
-                    // 📐 The host's fallback path: when the GPU overlay pass could not stand, the SAME
-                    //    record is drawn through the interface — the editor-overlay-fallback scenario
-                    //    proves those pixels.
-                    if (OverlayFallbackSim)
-                        SceneDirectory.RecordOverlayFallback(LeafBody, Applied.Overlay);
+                    // 📐 GPU-only by design: the viewport leaf records overlay geometry for the pass,
+                    //    and a skipped pass leaves no CPU twin behind to draw it through the interface.
                     break;
                 case PanelSubject::Outliner:
                     if (Configuration.FooterDemand == EditorFooterDemand::SceneImport ||
@@ -1322,15 +1317,12 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
             return false;
         }
     }
-    else if (std::strcmp(Scenario, "editor-overlay-fallback") == 0)
+    else if (std::strcmp(Scenario, "editor-overlay-gpu-only") == 0)
     {
-        // 📐 The host's fallback path: when the GPU overlay pass could not stand (a build that
-        //    lowered no shaders), the SAME OverlayGeometry is drawn through the interface, clipped to
-        //    the viewport leaf. This scenario records the fallback INSTEAD of the GPU twin and
-        //    asserts the grid, the axes and the gizmo are visible through it — the editor must never
-        //    silently lose its overlay.
-        Driver.OverlayFallbackSim = true;
-        Driver.SkipOverlayRaster  = true;
+        // 📐 GPU-only means exactly that: when the overlay pass is withheld, the viewport contributes
+        //    no second interface-drawn copy of the grid or axes. This scenario suppresses the pass's
+        //    CPU twin and asserts that the unique overlay hues are absent from the captured image.
+        Driver.SkipOverlayRaster = true;
         Driver.ApplyPartition(false);
         Driver.Settle(20);
 
@@ -1352,9 +1344,7 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         if (!Driver.Capture(OutputPath, Atlas, AtlasWidth, AtlasHeight))
             return false;
 
-        // 📐 The same colour scan the GPU-twin scenario uses: the axes' full-opacity hues and the
-        //    lattice's grey-blue ink, all inside the viewport leaf (x < 637).
-        std::uint32_t Red = 0u, Green = 0u, Blue = 0u, Lattice = 0u, Handle = 0u;
+        std::uint32_t Red = 0u, Green = 0u, Blue = 0u, Lattice = 0u;
         std::uint32_t RedOutside = 0u;
         {
             int ReadWidth = 0;
@@ -1364,7 +1354,7 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
 
             if (ReadPixels == nullptr)
             {
-                std::fprintf(stderr, "[FAIL] the fallback capture would not read back\n");
+                std::fprintf(stderr, "[FAIL] the GPU-only capture would not read back\n");
                 return false;
             }
 
@@ -1382,8 +1372,6 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
                     const bool AxisBlue  = R < 90 && G < 130 && B > 170 && (B - R) > 110;
                     const bool LatticeInk = R > 38 && R < 130 && B > R && (B - R) < 22 &&
                                             std::abs(R - G) < 8 && std::abs(G - B) < 14;
-                    const bool HandleWhite = R > 215 && G > 215 && B > 215 &&
-                                             std::abs(R - G) < 12 && std::abs(G - B) < 12;
 
                     if (X < 637)
                     {
@@ -1391,7 +1379,6 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
                         if (AxisGreen) ++Green;
                         if (AxisBlue)  ++Blue;
                         if (LatticeInk) ++Lattice;
-                        if (HandleWhite) ++Handle;
                     }
                     else if (AxisRed)
                     {
@@ -1403,20 +1390,20 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
             stbi_image_free(ReadPixels);
         }
 
-        std::fprintf(stderr, "[assert] fallback overlay: axis R=%u G=%u B=%u lattice=%u handle=%u\n",
-                     Red, Green, Blue, Lattice, Handle);
+        std::fprintf(stderr, "[assert] gpu-only overlay omitted: axis R=%u G=%u B=%u lattice=%u\n",
+                     Red, Green, Blue, Lattice);
 
-        if (Red < 20u || Green < 20u || Blue < 20u || Lattice < 200u || Handle < 12u)
+        if (Red != 0u || Green != 0u || Blue != 0u || Lattice != 0u)
         {
-            std::fprintf(stderr, "[FAIL] the interface fallback did not draw the grid, the axes and the gizmo\n");
+            std::fprintf(stderr, "[FAIL] overlay colours survived even though the GPU pass was withheld\n");
             return false;
         }
 
-        std::fprintf(stderr, "[assert] fallback axis-red outside the viewport leaf: %u\n", RedOutside);
+        std::fprintf(stderr, "[assert] gpu-only axis-red outside the viewport leaf: %u\n", RedOutside);
 
         if (RedOutside != 0u)
         {
-            std::fprintf(stderr, "[FAIL] the fallback painted over the panels\n");
+            std::fprintf(stderr, "[FAIL] overlay colours leaked into the non-viewport panels\n");
             return false;
         }
     }
@@ -3113,7 +3100,7 @@ int main(int ArgumentCount, char** Arguments)
                            "editor-camera-bookmarks",
                            "editor-sun-props", "editor-sky-quality",
                            "editor-after-drag",
-                           "editor-camera-fly", "editor-grid-settings", "editor-overlay-fallback",
+                           "editor-camera-fly", "editor-grid-settings", "editor-overlay-gpu-only",
                            "editor-search-filter", "editor-grid-fade", "editor-grid-dropdown",
                            "editor-scene-transfer", "editor-scene-transfer-options", "editor-scene-export",
                            "editor-layer-flatten", "editor-layer-export", "editor-layer-scroll-return",

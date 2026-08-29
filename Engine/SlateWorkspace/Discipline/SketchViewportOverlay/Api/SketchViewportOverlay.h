@@ -56,13 +56,6 @@ void RecordViewportOrientationHud(RecordingSurface& Surface,
                                   EditorPanelConfiguration& Configuration,
                                   bool& PointerTaken);
 
-void RecordCadFallback(RecordingSurface& Surface,
-                       const PlaneExtent& Extent,
-                       const SketchStructure& Sketch,
-                       const ViewportStanding& View,
-                       bool Perspective,
-                       const WorkspaceCadPacket& Packet);
-
 void RecordViewportStateReadout(RecordingSurface& Surface,
                                 const PlaneExtent& Extent,
                                 const ViewportStanding& View,
@@ -92,10 +85,6 @@ void RecordViewportGridOverlay(OverlayGeometry& Overlay,
                                const ViewportStanding& View,
                                bool Perspective,
                                const EditorPanelConfiguration& Configuration);
-
-void RecordViewportOverlayFallback(RecordingSurface& Surface,
-                                   const PlaneExtent& Extent,
-                                   const OverlayGeometry& Overlay);
 
 void AppendOverlayCircle(OverlayGeometry& Overlay,
                          float CentreX,

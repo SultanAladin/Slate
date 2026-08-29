@@ -107,7 +107,6 @@ def main() -> int:
     #    Each of these is a separate way for the viewport to go blank while every gate stays green.
     for Drawn, Why in (
             ("ProjectSketchRendering(", "sketch curves must be projected into the CAD packet"),
-            ("RecordCadFallback(", "curves must still draw when the GPU CAD pass is not standing"),
             ("ProjectPlacementPreview(", "the tool in flight must show its preview"),
             ("ResolvePlacementCurves(", "every curve subject must preview, not the seven with a branch")):
         require(Drawn in editor, f"{Why} -- {Drawn} is not called by the host that ships")
@@ -144,8 +143,10 @@ def main() -> int:
     #    accumulate, and each fill triangle shows its own anti-aliased edges as a wireframe.
     require("CadPass.Upload(" in editor and "CadPass.RecordAround(" in editor,
             "the sketch must be uploaded to and recorded by the GPU CAD pass")
-    require("if (!CadPass.Standing())" in editor,
-            "the CPU fallback must run only when the GPU CAD pass is absent")
+    require("RecordCadFallback(" not in editor,
+            "the retired CPU CAD fallback must stay deleted from the shipping host")
+    require("GPU CAD is required for sketch rendering" in editor,
+            "the host must report that sketch rendering now requires the GPU CAD pass")
 
     # 🔴 ONE CAMERA. The sketch used orbit angles copied off the editor camera, which resolves a
     #    genuinely different frame -- geometry sat on a surface that slid out from under it.
@@ -347,41 +348,19 @@ def main() -> int:
     # 🔴 THE CONTEXT MENU MUST BE REACHABLE, PLACED AND AVOIDING SOMETHING. Four times now a correct
     #    function has sat in this tree with no call site, so each half of the wiring is named here: the
     #    menu is opened by a gesture, recorded each tick, and told what not to cover.
-    require("SketchContextMenu.Open(" in editor,
-            "a context menu nothing opens is a context menu that does not exist")
-    require("SketchContextMenu.Record(" in editor,
-            "the context popup must be recorded, or it is declared and never drawn")
-
-    # 🔴 AND IT MUST ASK FOR A FIGURE, NOT LIST COMMANDS. The popup was first built as five rows naming
-    #    Bevel, Chamfer, Trim, Cut and Add -- a second way to start commands the tool catalogue already
-    #    offers, and not what the reference sheet describes. What the artist could not say was HOW FAR.
-    require("SketchCornerDistance" in editor,
-            "the bevel and chamfer popup must carry a distance the artist can set")
-    require("OptionControl::Slider" in editor,
-            "the popup's parameters must use the reference's own controls")
+    require("SketchContextMenu.Open(" not in editor and "SketchContextMenu.Record(" not in editor,
+            "operations are visual-only for now, so the retired construction popup must stay dormant")
     require("SketchContextMenu.Avoid(SketchToolOptions.Occupies())" in editor,
-            "the menu must be told the options widget's ACTUAL box, or it cannot avoid it")
-
-    # 🔴 AND THE OPEN GESTURE MUST NOT COLLIDE WITH THE FLY CAMERA. The secondary contact already drives
-    #    look; a menu bound to the press alone would repeat exactly what Q did. A press that travelled was
-    #    a look, so the menu opens on a release that did not.
+            "selection still keeps the context menu away from the floating tool options widget")
     require("SecondaryClickTravel" in editor and "SecondaryReleased" in editor,
-            "the menu must open on a stationary right-click, not on any secondary press")
+            "the stationary secondary-click gesture remains partitioned from camera look")
+    require("SketchBuildTool = ParametricToolSubject::Select;" in editor
+            and "SketchBuildApply = false;" in editor,
+            "operation picks must disarm the legacy build/apply path while the tiles stay visual-only")
+    require("ApplyViewportEditTool(" not in editor,
+            "the shipping host must not call the retired operation algorithm while operations are disabled")
 
-    # 🔴 AND TAKING A ROW MUST REACH REAL GEOMETRY. This is the claim the tree has needed five times over.
-    #    `ApplyProfileCorner` was 214 working lines with no caller; `ApplyViewportEditTool` was ninety more
-    #    behind it, equally unreachable. A menu that draws five rows and discards which one was taken looks
-    #    identical on screen to one that works, which is precisely how the earlier orphans survived review.
-    require("ApplyViewportEditTool(" in editor,
-            "the construction rows must call the edit tool, not discard the taken index")
-    require("PopupVerdict::Applied" in editor,
-            "the operation must run on Apply, not on the popup merely standing")
-    require("SketchBuildTool" in editor,
-            "the chosen construction tool must be remembered while its popup asks for parameters")
-    require("SketchSemanticSelection.Standing()" in editor,
-            "the rows must be gated on an ACTUAL pick, not on the element mode, which is always set")
-
-    # 📐 And the catalogue must be complete: the plan named five tools and all five must be reachable.
+    # 📐 And the catalogue must still expose the parked operation subjects.
     for tool in ("ParametricToolSubject::Fillet", "ParametricToolSubject::Chamfer",
                  "ParametricToolSubject::Trim", "ParametricToolSubject::Cut",
                  "ParametricToolSubject::Extend"):
@@ -390,15 +369,8 @@ def main() -> int:
     # 🔴 THE EDIT TOOL'S CORNER ARM MUST DO THE CORNER. It used to call `CutCurve` and label the revision
     #    "Fillet Preparation" -- a name that admits it never filleted anything.
     interaction = read("Engine/SlateWorkspace/Discipline/SketchInteraction/Source/SketchInteraction.cpp")
-    require("ApplyProfileCorner(" in interaction,
-            "bevel and chamfer must call the corner solver, not merely split the curve")
-    require("ResolveProfileCornerNear(" in interaction,
-            "the selected curve and the click must be resolved to a corner")
-    # ⚠️ Scoped to the QUOTED revision label, not the word: the comment above the fixed arm quotes the
-    #    old name to explain what it replaced, and a gate that cannot tell a name from a mention of a
-    #    name would forbid recording why the change was made.
-    require('"Fillet Preparation"' not in interaction and '"Chamfer Preparation"' not in interaction,
-            "a revision named 'Preparation' is a stub admitting it did not do the work")
+    require("return false;" in interaction.split("bool ApplyViewportEditTool(", 1)[1],
+            "the retired viewport edit algorithm must be stubbed out while operations are visual-only")
 
     # 📝 These five claims outlived the file they were written against. The orientation widget now lives in
     #    `SlateWorkspace/Discipline/OrientationCube` and the codex activation in

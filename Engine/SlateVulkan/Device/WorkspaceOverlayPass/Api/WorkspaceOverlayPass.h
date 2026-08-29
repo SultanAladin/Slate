@@ -123,11 +123,9 @@ public:
                       float ScissorX0, float ScissorY0, float ScissorX1, float ScissorY1,
                       float WithheldX0, float WithheldY0, float WithheldX1, float WithheldY1);
 
-    /// 🧩 Whether the pass stands — what the host tests before it records the GPU overlay, and what
-    ///    decides whether the interface-drawn fallback (same geometry, drawn through the recording
-    ///    surface) must stand in instead.
-    /// note  🔴 The pass refuses when the build lowered no shaders; the host then draws the fallback
-    ///        so the grid, the axes and the gizmo are visible even without the GPU pass.
+    /// 🧩 Whether the pass stands — what the host tests before it records the GPU overlay.
+    /// note  🔴 The pass refuses when the build lowered no shaders; the host now reports that the GPU
+    ///        overlay is required rather than drawing a second CPU path.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     bool Standing() const

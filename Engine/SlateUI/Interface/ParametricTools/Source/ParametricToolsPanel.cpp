@@ -17,7 +17,7 @@ namespace
 constexpr double HoverOver = 120.0;
 constexpr float RunLeading = 1.30f;
 constexpr float LeftPaneX = 196.0f;
-constexpr std::uint32_t BandCount = 12u;
+constexpr std::uint32_t BandCount = 2u;
 constexpr std::uint32_t PresetCount = 9u;
 
 struct OptionEntry
@@ -78,7 +78,7 @@ constexpr ThemeToken Faded(ThemeToken Declared, float Fraction)
     return Declared;
 }
 
-constexpr std::uint32_t DimensionValue(ParametricToolDimension Subject)
+[[maybe_unused]] constexpr std::uint32_t DimensionValue(ParametricToolDimension Subject)
 {
     return static_cast<std::uint32_t>(Subject);
 }
@@ -493,28 +493,10 @@ const ToolEntry AnnotationTools[] =
 
 const BandEntry Bands[BandCount] =
 {
-    { "Solid Primitive", SymbolSubject::CubeSolid, SolidPrimitiveTools,
-      static_cast<std::uint32_t>(sizeof(SolidPrimitiveTools) / sizeof(SolidPrimitiveTools[0])) },
-    { "Sketch Draw", SymbolSubject::SketchPlane, SketchDrawTools,
+    { "2DPrimitives", SymbolSubject::SketchPlane, SketchDrawTools,
       static_cast<std::uint32_t>(sizeof(SketchDrawTools) / sizeof(SketchDrawTools[0])) },
-    { "Sketch Modify", SymbolSubject::FilletRadius, SketchModifyTools,
+    { "Operations", SymbolSubject::FilletRadius, SketchModifyTools,
       static_cast<std::uint32_t>(sizeof(SketchModifyTools) / sizeof(SketchModifyTools[0])) },
-    { "Profile Sweep", SymbolSubject::ExtrudeSpan, SweepTools,
-      static_cast<std::uint32_t>(sizeof(SweepTools) / sizeof(SweepTools[0])) },
-    { "3D Curves", SymbolSubject::CurveTangent, CurveTools,
-      static_cast<std::uint32_t>(sizeof(CurveTools) / sizeof(CurveTools[0])) },
-    { "Surface", SymbolSubject::FacePlanar, SurfaceTools,
-      static_cast<std::uint32_t>(sizeof(SurfaceTools) / sizeof(SurfaceTools[0])) },
-    { "Boolean", SymbolSubject::BooleanUnion, BooleanTools,
-      static_cast<std::uint32_t>(sizeof(BooleanTools) / sizeof(BooleanTools[0])) },
-    { "Pattern", SymbolSubject::MirrorAxis, PatternTools,
-      static_cast<std::uint32_t>(sizeof(PatternTools) / sizeof(PatternTools[0])) },
-    { "Reference", SymbolSubject::SketchPlane, ReferenceTools,
-      static_cast<std::uint32_t>(sizeof(ReferenceTools) / sizeof(ReferenceTools[0])) },
-    { "Data-Sourced", SymbolSubject::FolderClosed, DataTools,
-      static_cast<std::uint32_t>(sizeof(DataTools) / sizeof(DataTools[0])) },
-    { "Annotation", SymbolSubject::ConstraintDimension, AnnotationTools,
-      static_cast<std::uint32_t>(sizeof(AnnotationTools) / sizeof(AnnotationTools[0])) },
 };
 
 const PresetEntry Presets[PresetCount] =
@@ -538,84 +520,32 @@ struct ToolTally
     std::uint32_t Total = 0u;
 };
 
-bool DimensionAccepted(const ToolEntry& Tool, ParametricToolDimension Active)
+[[maybe_unused]] bool DimensionAccepted(const ToolEntry& Tool, ParametricToolDimension Active)
 {
-    return DimensionValue(Active) >= DimensionValue(Tool.MinimumDimension);
+    static_cast<void>(Tool);
+    static_cast<void>(Active);
+    return true;
 }
 
 bool Gated(const ToolEntry& Tool, const ParametricToolsContext& Applied)
 {
-    // 🔴 The dimension is the FIRST gate, moved here out of `Hidden` so an inapplicable tool is shown
-    //    dimmed rather than removed. See the note on `Hidden`.
-    if (!DimensionAccepted(Tool, Applied.ActiveDimension))
-        return true;
-    if (Tool.Closed && !Applied.ClosedProfileCondition)
-        return true;
-    if (Tool.Planar && !Applied.PlanarProfileCondition)
-        return true;
-    if (Tool.Axis && !Applied.AxisAvailability)
-        return true;
-    if (Tool.Path && !Applied.PathAvailability)
-        return true;
-    if (Tool.Uniform && !Applied.UniformClosureCondition)
-        return true;
-    if (Tool.Pending && Applied.PendingGeometryCondition)
-        return true;
-    if (Tool.Support && !Applied.SupportMaterialCondition)
-        return true;
-    if (Tool.Tangent && !Applied.TangentEndpointCondition)
-        return true;
-    if (Tool.Opening && !Applied.OpeningCondition)
-        return true;
-    if (Tool.Reference && !Applied.ReferencePlaneCondition)
-        return true;
-    if (Tool.Imagery && !Applied.SourceImageryCondition)
-        return true;
-    if (Tool.Measurable && !Applied.MeasurableCondition)
-        return true;
-    if (Tool.MinimumSelection > Applied.SelectedCount)
-        return true;
-    if (Tool.MinimumProfile > Applied.ProfileCount)
-        return true;
-    if (Tool.MinimumSolid > Applied.SolidCount)
-        return true;
-    if (Tool.ExactSolid != 0u && Tool.ExactSolid != Applied.SolidCount)
-        return true;
-    if (Tool.MinimumCircle > Applied.ExistingCircleCount)
-        return true;
-    if (Tool.MinimumPerimeter > Applied.PerimeterEdgeCount)
-        return true;
-    if (Tool.MaximumPerimeter != 0u && Applied.PerimeterEdgeCount > Tool.MaximumPerimeter)
-        return true;
+    static_cast<void>(Tool);
+    static_cast<void>(Applied);
     return false;
 }
 
-bool Hidden(const ToolEntry& Tool, const ParametricToolsContext& Applied)
+[[maybe_unused]] bool Hidden(const ToolEntry& Tool, const ParametricToolsContext& Applied)
 {
-    // 🔴 THE DIMENSION FILTER GATES, IT DOES NOT HIDE. This returned true when the active dimension did
-    //    not reach a tool's minimum, and `Presented` refuses a hidden tool OUTRIGHT — `ShowGated` bypasses
-    //    `Gated` and cannot bypass this. Every tool in "Sketch Modify" declares `Edge`, so with nothing
-    //    selected all five vanished, `VisibleCount` fell to zero, and the rail skipped the whole band:
-    //    the artist could not see Fillet, Chamfer, Trim, Extend or Offset, or even the band holding them.
-    //
-    //    It deadlocked, too. Reaching Edge means selecting an edge, and an artist reasonably goes to the
-    //    catalogue to find the operation first. A tool one cannot SEE cannot be understood as "not yet
-    //    applicable" — it reads as missing, which is exactly how it was reported.
-    //
-    // 📝 So the dimension now answers `Gated`: the tile is drawn, dimmed, and refuses the press, which is
-    //    what every other unmet condition already does. `Raising` against a solid stays HIDDEN because
-    //    that one is not "not yet" but "never" — a solid has no successor to raise it to, so the tile
-    //    would be dimmed forever with no action that could ever light it.
-    if (Tool.Raising && Applied.ActiveDimension == ParametricToolDimension::Solid)
-        return true;
+    static_cast<void>(Tool);
+    static_cast<void>(Applied);
     return false;
 }
 
 bool Presented(const ToolEntry& Tool, const ParametricToolsContext& Applied)
 {
-    if (Hidden(Tool, Applied))
-        return false;
-    return Applied.ShowGated || !Gated(Tool, Applied);
+    static_cast<void>(Tool);
+    static_cast<void>(Applied);
+    return true;
 }
 
 ParametricToolSubject ToolSubjectOf(std::uint32_t BandIndex, std::uint32_t ToolIndex)
@@ -623,10 +553,6 @@ ParametricToolSubject ToolSubjectOf(std::uint32_t BandIndex, std::uint32_t ToolI
     switch (BandIndex)
     {
         case 0u:
-            return ToolIndex == 0u ? ParametricToolSubject::Rectangle
-                 : ToolIndex == 1u ? ParametricToolSubject::Circle
-                                   : ParametricToolSubject::Select;
-        case 1u:
             return ToolIndex == 0u ? ParametricToolSubject::Line
                  : ToolIndex == 1u ? ParametricToolSubject::Polyline
                  : ToolIndex == 2u ? ParametricToolSubject::Rectangle
@@ -640,65 +566,16 @@ ParametricToolSubject ToolSubjectOf(std::uint32_t BandIndex, std::uint32_t ToolI
                  : ToolIndex == 10u ? ParametricToolSubject::BasisSpline
                  : ToolIndex == 11u ? ParametricToolSubject::RationalSpline
                  : ToolIndex == 12u ? ParametricToolSubject::ConstructionLine
-                 // 🔴 FIVE TILES REMOVED, NO CAPABILITY LOST. `CenterRectangle`,
-                 //    `ThreePointRectangle`, `DiameterCircle`, `ThreePointCircle` and
-                 //    `CenterStartEndArc` were separate SUBJECTS for what is one subject drawn by a
-                 //    different METHOD -- shape and method of construction are separate axes, and
-                 //    crossing them into the tile list is what produced a rectangle three times and a
-                 //    circle three times. The method is chosen for the active shape instead.
                  : ToolIndex == 13u ? ParametricToolSubject::TangentArc
                  : ToolIndex == 14u ? ParametricToolSubject::Polygon
                                     : ParametricToolSubject::Slot;
-        case 2u:
+        case 1u:
             return ToolIndex == 0u ? ParametricToolSubject::Fillet
                  : ToolIndex == 1u ? ParametricToolSubject::Chamfer
                  : ToolIndex == 2u ? ParametricToolSubject::Trim
                  : ToolIndex == 3u ? ParametricToolSubject::Extend
                  : ToolIndex == 4u ? ParametricToolSubject::Offset
-                                   : ParametricToolSubject::Cut;
-        case 3u:
-            return ToolIndex == 0u ? ParametricToolSubject::Extrude
-                 : ToolIndex == 1u ? ParametricToolSubject::Revolve
-                 : ToolIndex == 2u ? ParametricToolSubject::Sweep
-                 : ToolIndex == 3u ? ParametricToolSubject::Loft
-                                   : ParametricToolSubject::Boss;
-        case 4u:
-            return ToolIndex == 0u ? ParametricToolSubject::Interpolate
-                 : ToolIndex == 1u ? ParametricToolSubject::Approximate
-                                   : ParametricToolSubject::Helix;
-        case 5u:
-            return ToolIndex == 0u ? ParametricToolSubject::PlanarFace
-                                   : ParametricToolSubject::FillFace;
-        case 6u:
-            return ToolIndex == 0u ? ParametricToolSubject::Union
-                                   : ParametricToolSubject::Cut;
-        case 7u:
-            return ToolIndex == 0u ? ParametricToolSubject::LinearArray
-                                   : ParametricToolSubject::Mirror;
-        case 8u:
-            return ToolIndex == 0u ? ParametricToolSubject::Workplane
-                                   : ParametricToolSubject::DatumAxis;
-        case 9u:
-            return ToolIndex == 0u ? ParametricToolSubject::ImportStep
-                 : ToolIndex == 1u ? ParametricToolSubject::MeshToSolid
-                                   : ParametricToolSubject::TraceImage;
-        case 10u:
-            return ToolIndex == 0u ? ParametricToolSubject::PointLight
-                 : ToolIndex == 1u ? ParametricToolSubject::PointLight
-                                   : ParametricToolSubject::Camera;
-        case 11u:
-            return ToolIndex == 0u ? ParametricToolSubject::LinearDimension
-                 : ToolIndex == 1u ? ParametricToolSubject::LeaderNote
-                 : ToolIndex == 2u ? ParametricToolSubject::HorizontalConstraint
-                 : ToolIndex == 3u ? ParametricToolSubject::VerticalConstraint
-                 : ToolIndex == 4u ? ParametricToolSubject::CoincidentConstraint
-                 : ToolIndex == 5u ? ParametricToolSubject::ParallelConstraint
-                 : ToolIndex == 6u ? ParametricToolSubject::PerpendicularConstraint
-                 : ToolIndex == 7u ? ParametricToolSubject::TangentConstraint
-                 : ToolIndex == 8u ? ParametricToolSubject::EqualConstraint
-                 : ToolIndex == 9u ? ParametricToolSubject::MidpointConstraint
-                 : ToolIndex == 10u ? ParametricToolSubject::SymmetryConstraint
-                                    : ParametricToolSubject::ConcentricConstraint;
+                                    : ParametricToolSubject::Cut;
         default:
             return ParametricToolSubject::Select;
     }
@@ -725,39 +602,21 @@ const ToolEntry* ActiveTool(const ParametricToolsContext& Applied)
 
 std::uint32_t LiveCount(const BandEntry& Band, const ParametricToolsContext& Applied)
 {
-    std::uint32_t Count = 0u;
-    for (std::uint32_t Index = 0u; Index < Band.ToolCount; ++Index)
-        if (!Hidden(Band.Tools[Index], Applied) && !Gated(Band.Tools[Index], Applied))
-            ++Count;
-    return Count;
+    static_cast<void>(Applied);
+    return Band.ToolCount;
 }
 
 std::uint32_t VisibleCount(const BandEntry& Band, const ParametricToolsContext& Applied)
 {
-    std::uint32_t Count = 0u;
-    for (std::uint32_t Index = 0u; Index < Band.ToolCount; ++Index)
-        if (Presented(Band.Tools[Index], Applied))
-            ++Count;
-    return Count;
+    static_cast<void>(Applied);
+    return Band.ToolCount;
 }
 
 const char* ShortfallText(const ToolEntry& Tool, const ParametricToolsContext& Applied)
 {
-    if (Tool.Axis && !Applied.AxisAvailability) return "needs axis";
-    if (Tool.Path && !Applied.PathAvailability) return "needs path";
-    if (Tool.Reference && !Applied.ReferencePlaneCondition) return "needs reference plane";
-    if (Tool.Imagery && !Applied.SourceImageryCondition) return "needs imported source";
-    if (Tool.Opening && !Applied.OpeningCondition) return "needs opening";
-    if (Tool.Tangent && !Applied.TangentEndpointCondition) return "needs shared endpoint";
-    if (Tool.MinimumProfile > Applied.ProfileCount) return "needs profiles";
-    if (Tool.MinimumSolid > Applied.SolidCount || (Tool.ExactSolid != 0u && Tool.ExactSolid != Applied.SolidCount))
-        return "needs solids";
-    if (Tool.MinimumCircle > Applied.ExistingCircleCount) return "needs circles";
-    if (Tool.MinimumPerimeter > Applied.PerimeterEdgeCount ||
-        (Tool.MaximumPerimeter != 0u && Applied.PerimeterEdgeCount > Tool.MaximumPerimeter))
-        return "needs perimeter edges";
-    if (Tool.MinimumSelection > Applied.SelectedCount) return "needs selection";
-    return "gated";
+    static_cast<void>(Tool);
+    static_cast<void>(Applied);
+    return "";
 }
 
 const char* ResultText(const ToolEntry& Tool, const ParametricToolsContext& Applied)
@@ -777,29 +636,17 @@ const char* ResultText(const ToolEntry& Tool, const ParametricToolsContext& Appl
 
 ToolTally ResolveTally(const ParametricToolsContext& Applied)
 {
+    static_cast<void>(Applied);
     ToolTally Tally = {};
     for (const BandEntry& Band : Bands)
-    {
-        for (std::uint32_t Index = 0u; Index < Band.ToolCount; ++Index)
-        {
-            const ToolEntry& Tool = Band.Tools[Index];
-            ++Tally.Total;
-            if (Hidden(Tool, Applied))
-                ++Tally.Hidden;
-            else if (Gated(Tool, Applied))
-                ++Tally.Gated;
-            else
-                ++Tally.Available;
-        }
-    }
+        Tally.Total += Band.ToolCount;
+    Tally.Available = Tally.Total;
     return Tally;
 }
 
 std::uint32_t FirstPresentedBand(const ParametricToolsContext& Applied)
 {
-    for (std::uint32_t Index = 0u; Index < BandCount; ++Index)
-        if (VisibleCount(Bands[Index], Applied) > 0u)
-            return Index;
+    static_cast<void>(Applied);
     return 0u;
 }
 
@@ -1028,7 +875,7 @@ void ParametricToolsPanel::RecordBrowsePage(const PlaneExtent& Extent, Parametri
     const PlaneExtent Header = Spanning(Extent.MinimumX, Extent.MinimumY,
                                         Extent.Width(), Scaled.HeaderHeight);
     RecordLeafHeader(Header, SymbolSubject::SketchPlane, Tinted.EntityAccent,
-                     "Construction Catalogue", "Rail and operation field");
+                     "Construction Catalogue", "2D primitives and operations");
 
     const float LeftWidth = std::min(LeftPaneX, Extent.Width() * 0.40f);
     const PlaneExtent Rail = Spanning(Extent.MinimumX, Header.MaximumY,

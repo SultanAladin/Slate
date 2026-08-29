@@ -415,14 +415,14 @@ static ParametricToolSubject     SketchBuildTool     = ParametricToolSubject::Se
 static bool                      SketchBuildApply    = false;
 static float                     SketchCornerDistance = 4.0f;
 static std::uint32_t             SketchTrimKeep      = 0u;
-constexpr float                  SketchCornerMinimum = 0.1f;
-constexpr float                  SketchCornerMaximum = 50.0f;
-static const char* const         SketchTrimSides[2]  = { "Start", "End" };
+[[maybe_unused]] constexpr float                  SketchCornerMinimum = 0.1f;
+[[maybe_unused]] constexpr float                  SketchCornerMaximum = 50.0f;
+[[maybe_unused]] static const char* const         SketchTrimSides[2]  = { "Start", "End" };
     // 📝 A right-press is a look while it travels and a menu when it does not. The distance is summed
     //    across the hold, because on the release tick the per-tick travel has already fallen to zero.
     static float SecondaryTravel = 0.0f;   // [px] - summed over the current secondary hold
-    static float SecondaryOpenX  = 0.0f;   // [px] - where the press landed
-    static float SecondaryOpenY  = 0.0f;   // [px]
+    [[maybe_unused]] static float SecondaryOpenX  = 0.0f;   // [px] - where the press landed
+    [[maybe_unused]] static float SecondaryOpenY  = 0.0f;   // [px]
     constexpr float SecondaryClickTravel = 4.0f;   // [px] - beyond this the gesture was a look
     // 📝 The sketch tools measure against an orbit standing; the editor flies a free camera. The
     //    standing is kept beside it and driven from the same yaw/pitch, so both describe one view.
@@ -784,7 +784,7 @@ static const char* const         SketchTrimSides[2]  = { "Start", "End" };
     if (!CodecDelivery.Resolved)
     {
         std::printf("%s \u2014 the overlay shader streams were not found (reason %u: %s); "
-                    "drawing the grid and axes through the interface fallback\n",
+                    "GPU overlay is required for grid and axis rendering\n",
                     HostName,
                     static_cast<unsigned>(CodecDelivery.Error.DeclaredReason),
                     CodecDelivery.Error.Detail);
@@ -799,7 +799,7 @@ static const char* const         SketchTrimSides[2]  = { "Start", "End" };
         if (!PassDelivery.Resolved)
         {
             std::printf("%s \u2014 the overlay pass was rejected (reason %u: %s); "
-                        "drawing the grid and axes through the interface fallback\n",
+                        "GPU overlay is required for grid and axis rendering\n",
                         HostName,
                         static_cast<unsigned>(PassDelivery.Error.DeclaredReason),
                         PassDelivery.Error.Detail);
@@ -818,7 +818,7 @@ static const char* const         SketchTrimSides[2]  = { "Start", "End" };
                 Lifetime.Offering().ColourTargetFormat);
             if (!CadDelivery.Resolved)
                 std::printf("%s \u2014 the CAD pass was not standing (reason %u: %s); "
-                            "drawing sketch geometry through the interface fallback\n",
+                            "GPU CAD is required for sketch rendering\n",
                             HostName,
                             static_cast<unsigned>(CadDelivery.Error.DeclaredReason),
                             CadDelivery.Error.Detail);
@@ -1283,14 +1283,12 @@ static const char* const         SketchTrimSides[2]  = { "Start", "End" };
                                 {
                                     // 📐 The pointer itself is the anchor: a right-click has no tile, so
                                     //    the popup hangs off a point rather than a button.
-                                    // 📝 A stationary right-click REOPENS the active construction tool's
-                                    //    parameters, which is how the artist adjusts a distance after
-                                    //    dismissing the popup without having to reselect the tool. With
-                                    //    no construction tool active there is nothing to ask about, so
-                                    //    nothing opens.
+                                    // 📝 Operations are visual-only for now, so the stationary
+                                    //    secondary-click gesture no longer reopens a construction popup.
+                                    //    A dormant popup must stay shut even when an old tool state
+                                    //    survives into this frame.
                                     if (SketchBuildTool != ParametricToolSubject::Select)
-                                        SketchContextMenu.Open(Spanning(SecondaryOpenX, SecondaryOpenY,
-                                                                        1.0f, 1.0f));
+                                        SketchContextMenu.Close();
                                 }
 
                                 // 🔴 A WHEEL NOTCH IN A PARALLEL VIEW CHANGED NOTHING, IN ALL FOUR OF
@@ -1413,121 +1411,13 @@ static const char* const         SketchTrimSides[2]  = { "Start", "End" };
                                             SketchContextMenu.Avoid({});
                                         }
 
-                                        // 📐 THE POPUP ASKS FOR A FIGURE, IT DOES NOT LIST COMMANDS.
-                                        //    This arm first held five rows -- Bevel, Chamfer, Trim, Cut,
-                                        //    Add -- which was a second way to start commands the tool
-                                        //    catalogue already offers. What the artist had no way to say
-                                        //    was HOW FAR. So the popup carries the active tool's
-                                        //    parameters and applies on Apply.
-                                        OptionDeclaration BuildRows[2] = {};
-                                        const char* BuildTitle = "";
-                                        SymbolSubject BuildGlyph = SymbolSubject::SubjectCount;
-                                        std::uint32_t BuildRowCount = 0u;
-
-                                        switch (SketchBuildTool)
-                                        {
-                                            case ParametricToolSubject::Fillet:
-                                            case ParametricToolSubject::Chamfer:
-                                            {
-                                                const bool Chamfering =
-                                                    SketchBuildTool == ParametricToolSubject::Chamfer;
-                                                BuildTitle = Chamfering ? "Chamfer" : "Bevel";
-                                                BuildGlyph = SymbolSubject::BevelChamfer;
-
-                                                BuildRows[0].Kind    = OptionControl::Slider;
-                                                BuildRows[0].Caption = "Distance";
-                                                BuildRows[0].Unit    = "u";
-                                                BuildRows[0].Reading = &SketchCornerDistance;
-                                                BuildRows[0].Minimum = SketchCornerMinimum;
-                                                BuildRows[0].Maximum = SketchCornerMaximum;
-                                                BuildRowCount = 1u;
-                                                break;
-                                            }
-                                            case ParametricToolSubject::Trim:
-                                                BuildTitle = "Trim";
-                                                // 📝 Trim's only real question is which side survives, and
-                                                //    that is a choice rather than a figure.
-                                                BuildRows[0].Kind        = OptionControl::Segmented;
-                                                BuildRows[0].Caption     = "Keep";
-                                                BuildRows[0].Selected    = &SketchTrimKeep;
-                                                BuildRows[0].Options     = SketchTrimSides;
-                                                BuildRows[0].OptionCount = 2u;
-                                                BuildRowCount = 1u;
-                                                break;
-                                            case ParametricToolSubject::Cut:
-                                                BuildTitle = "Cut";
-                                                BuildRowCount = 0u;
-                                                break;
-                                            default:
-                                                BuildRowCount = 0u;
-                                                break;
-                                        }
-
-                                        // ⚠️ A popup with nothing to ask has nothing to show. Cut splits
-                                        //    at the picked point and takes no parameter, so it is applied
-                                        //    directly rather than through a popup holding only buttons.
-                                        // ⚠️ ONLY CUT IS PARAMETERLESS. This first read "no rows" as
-                                        //    "apply immediately", which also caught Extend and the
-                                        //    default arm -- so choosing Add ran it with no popup and no
-                                        //    chance to decline. The tool says whether it needs asking.
-                                        if (SketchContextMenu.Standing() &&
-                                            SketchBuildTool == ParametricToolSubject::Cut)
-                                        {
-                                            SketchContextMenu.Close();
-                                            SketchBuildApply = true;
-                                        }
-
-                                        PopupDeclaration BuildPopup;
-                                        BuildPopup.Title    = BuildTitle;
-                                        BuildPopup.Glyph    = BuildGlyph;
-                                        BuildPopup.Rows     = BuildRows;
-                                        BuildPopup.RowCount = BuildRowCount;
-
-                                        if (SketchContextMenu.Record(LeafBody, BuildPopup,
-                                                                     PointerTaken).Resolve() ==
-                                            PopupVerdict::Applied)
-                                            SketchBuildApply = true;
-
-                                        // 🔴 THE OPERATION STILL NEEDS SOMETHING TO ACT ON. The gate is
-                                        //    the ACTUAL pick, not `SketchSelection.Element`, which is
-                                        //    which KIND of thing is being picked and is always set --
-                                        //    reading that would let every command run against nothing.
-                                        const bool BuildPicked =
-                                            SketchBuildTool == ParametricToolSubject::Fillet ||
-                                            SketchBuildTool == ParametricToolSubject::Chamfer
-                                                ? (SketchSemanticSelection.Standing() &&
-                                                   SketchSemanticSelection.Curve.Assigned())
-                                                : (SketchSemanticSelection.Subject == SketchPickSubject::Curve &&
-                                                   SketchSemanticSelection.Curve.Assigned());
-
-                                        if (SketchBuildApply && BuildPicked)
-                                        {
-                                            SketchBuildApply = false;
-
-                                            // 🔴 `ApplyViewportEditTool` was 90 correct lines with no call
-                                            //    site -- the fifth such function found in this tree. The
-                                            //    probe is the selection's own position, so the command
-                                            //    acts where the artist picked rather than where the popup
-                                            //    happened to be dismissed.
-                                            static_cast<void>(ApplyViewportEditTool(
-                                                SketchBuildTool,
-                                                SketchSemanticSelection.Position,
-                                                SketchBasis, SketchNaming, Sketch, SketchRecords,
-                                                SketchRevisions, SketchSemanticSelection,
-                                                static_cast<double>(SketchCornerDistance),
-                                                SketchTrimKeep == 0u,
-                                                SketchPendingSelection));
-
-                                            SketchBuildTool = ParametricToolSubject::Select;
-                                        }
-                                        else if (SketchBuildApply)
-                                        {
-                                            // ⚠️ Applied with nothing selected: disarm rather than hold
-                                            //    the request, or it would fire against the next thing
-                                            //    the artist happened to pick.
-                                            SketchBuildApply = false;
-                                            SketchBuildTool  = ParametricToolSubject::Select;
-                                        }
+                                        // 🔴 OPERATIONS ARE PARKED FOR NOW. The catalogue still shows the
+                                        //    tiles, but no build popup or legacy edit algorithm is allowed
+                                        //    to run until the GPU-only viewport and the targeting rules are
+                                        //    rebuilt cleanly.
+                                        SketchContextMenu.Close();
+                                        SketchBuildApply = false;
+                                        SketchBuildTool = ParametricToolSubject::Select;
                                     }
 
                                     // 🔴 ONE CAMERA, NOT TWO. The orbit angles were copied straight off
@@ -1676,17 +1566,9 @@ static const char* const         SketchTrimSides[2]  = { "Start", "End" };
                                             SketchCadPacket));
                                     }
 
-                                    // 🔴 THE FALLBACK IS A FALLBACK. It walks every segment and fill
-                                    //    through the interface's draw lists, which ImGui tessellates on
-                                    //    the CPU each frame -- the viewport slowed as shapes
-                                    //    accumulated, and each fill triangle drew its own anti-aliased
-                                    //    edges, showing the triangulation as a wireframe over the
-                                    //    surface. It now runs only when the GPU pass is not standing,
-                                    //    and it now carries the preview too, so a device without the
-                                    //    pass still shows the shape under the pointer.
-                                    if (!CadPass.Standing())
-                                        RecordCadFallback(Viewport.Surface(), LeafBody, Sketch, SketchView,
-                                                          LeafPerspective, SketchCadPacket);
+                                    // 🔴 GPU-ONLY SKETCH RASTER. The sketch packet and its live preview
+                                    //    now travel only through the CAD pass, so this viewport arm no
+                                    //    longer keeps a second interface path alive beside it.
                                 }
 
                                 // 🔴 Clicking a mesh in the viewport selects it. Lived only in the
@@ -1810,14 +1692,9 @@ static const char* const         SketchTrimSides[2]  = { "Start", "End" };
                                     Pose.AxisMask = Mask;
                                 }
 
-                                // 🔴 When the GPU overlay pass could not stand (a build that lowered no
-                                //    shaders, or a device that refused it), the SAME record is drawn
-                                //    through the interface so the grid, the axes and the gizmo are
-                                //    ALWAYS visible — the editor must never silently lose its overlay.
-                                //    The upload/record block below then has no pass to draw and skips.
-                                if (!Overlay.Standing())
-                                    SceneDirectory.RecordOverlayFallback(LeafBody, LeafOverlay);
-
+                                // 🔴 GPU-ONLY OVERLAY RECORDING. The host still tracks each viewport
+                                //    leaf's overlay geometry for upload, but a missing overlay pass is
+                                //    now an explicit failure rather than a cue to draw a second CPU copy.
                                 if (ViewportLeafTally < PanelStructure::RecordLimit)
                                 {
                                     ViewportLeafIndexs[ViewportLeafTally] = Leaf;
@@ -1901,22 +1778,19 @@ static const char* const         SketchTrimSides[2]  = { "Start", "End" };
                                 //    every frame the tile stayed active, including the frame after the
                                 //    artist cancelled it.
                                 const ParametricToolSubject Chosen = ParametricToolsApplied.ActiveSubject;
-                                const bool Constructing =
+                                const bool OperationVisualOnly =
                                     Chosen == ParametricToolSubject::Fillet  ||
                                     Chosen == ParametricToolSubject::Chamfer ||
                                     Chosen == ParametricToolSubject::Trim    ||
-                                    Chosen == ParametricToolSubject::Cut     ||
-                                    Chosen == ParametricToolSubject::Extend;
+                                    Chosen == ParametricToolSubject::Extend  ||
+                                    Chosen == ParametricToolSubject::Offset  ||
+                                    Chosen == ParametricToolSubject::Cut;
 
-                                if (Chosen != Before && Constructing)
+                                if (Chosen != Before && OperationVisualOnly)
                                 {
-                                    SketchBuildTool = Chosen;
-
-                                    // 📐 Anchored on the SELECTION, not on the tile: the popup belongs to
-                                    //    the corner being cut, and a popup opening over on the toolbar
-                                    //    makes the artist look away from the thing they are shaping.
-                                    SketchContextMenu.Open(Spanning(SecondaryOpenX, SecondaryOpenY,
-                                                                    1.0f, 1.0f));
+                                    SketchBuildTool = ParametricToolSubject::Select;
+                                    SketchBuildApply = false;
+                                    SketchContextMenu.Close();
                                 }
                                 break;
                             }

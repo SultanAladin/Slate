@@ -108,7 +108,7 @@ SketchPick ResolveViewportEditSelection(ParametricToolSubject Tool,
     }
 }
 
-SpatialPoint ResolveViewportEditProbe(ParametricToolSubject Tool,
+[[maybe_unused]] SpatialPoint ResolveViewportEditProbe(ParametricToolSubject Tool,
                                       const SpatialPoint& Probe,
                                       const SketchPick& TargetSelection)
 {
@@ -558,140 +558,18 @@ bool ApplyViewportEditTool(ParametricToolSubject Tool,
                            bool KeepStart,
                            WorkspaceRecordName& PendingSelection)
 {
-    if (!TargetSelection.Curve.Assigned() || !TargetSelection.Record.Assigned())
-        return false;
-
-    const SketchCurveName TargetCurve = TargetSelection.Curve;
-    WorkspaceRecordName TargetRecord = ResolveRecordForCurve(Sketch, Records, TargetCurve);
-    if (!TargetRecord.Assigned())
-        TargetRecord = TargetSelection.Record;
-    const SpatialPoint TargetProbe = ResolveViewportEditProbe(Tool, Probe, TargetSelection);
-
-    std::vector<WorkspaceRecordName> Written;
-    if (Tool == ParametricToolSubject::Trim)
-    {
-        SketchSnapMask TrimMask = {};
-        TrimMask.EndpointAccepted = TrimMask.MidpointAccepted = TrimMask.CentreAccepted = false;
-        TrimMask.ControlAccepted = TrimMask.AlongCurveAccepted = TrimMask.GridAccepted = false;
-        TrimMask.PerpendicularAccepted = TrimMask.TangentAccepted = false;
-        TrimMask.IntersectionAccepted = true;
-        const SketchSnapPlacement TrimSnap = ResolveNearestSnap(Sketch, TargetProbe, 25.0, TrimMask);
-        const SpatialPoint TrimPosition = TrimSnap.Resolved() ? TrimSnap.Position : TargetProbe;
-        const Deliver<SketchCurveName> Trimmed = TrimCurve(Sketch, TargetCurve, TrimPosition, KeepStart);
-        if (!Trimmed.Resolved)
-            return false;
-        Discard(Records.ToggleVisible(TargetRecord, false));
-        CommitCurveSet(Naming, Records, Revisions, { Trimmed.Resolve() }, "Trim Curve", Written);
-    }
-    else if (Tool == ParametricToolSubject::Extend)
-    {
-        SketchSnapMask ExtendMask = {};
-        ExtendMask.EndpointAccepted = ExtendMask.MidpointAccepted = ExtendMask.CentreAccepted = false;
-        ExtendMask.ControlAccepted = ExtendMask.AlongCurveAccepted = ExtendMask.GridAccepted = false;
-        ExtendMask.PerpendicularAccepted = ExtendMask.TangentAccepted = false;
-        ExtendMask.IntersectionAccepted = true;
-        const SketchSnapPlacement ExtendSnap = ResolveNearestSnap(Sketch, TargetProbe, 1000.0, ExtendMask);
-        const SpatialPoint ExtendPosition = ExtendSnap.Resolved() ? ExtendSnap.Position : TargetProbe;
-        const Deliver<SketchCurveName> Extended = TrimCurve(Sketch, TargetCurve, ExtendPosition, false);
-        if (!Extended.Resolved)
-            return false;
-        Discard(Records.ToggleVisible(TargetRecord, false));
-        CommitCurveSet(Naming, Records, Revisions, { Extended.Resolve() }, "Extend Curve", Written);
-    }
-    else if (Tool == ParametricToolSubject::Offset)
-    {
-        const SpatialDirection Offset = Difference(TargetSelection.Position, TargetProbe);
-        const Deliver<PatternResult> Duplicated = DuplicateCurves(Sketch, { TargetCurve }, Offset);
-        if (!Duplicated.Resolved)
-            return false;
-        CommitCurveSet(Naming, Records, Revisions, Duplicated.Resolve().CurveSet, "Offset Curve", Written);
-    }
-    else if (Tool == ParametricToolSubject::LinearArray)
-    {
-        const SpatialDirection Step = Added(Scaled(Basis.Along, 40.0), Scaled(Basis.Across, 0.0));
-        const Deliver<PatternResult> Pattern = DeclareLinearPattern(Sketch, { TargetCurve }, Step, 3u);
-        if (!Pattern.Resolved)
-            return false;
-        CommitCurveSet(Naming, Records, Revisions, Pattern.Resolve().CurveSet, "Linear Pattern", Written);
-    }
-    else if (Tool == ParametricToolSubject::Mirror)
-    {
-        const SpatialPoint AxisStart = Added(TargetProbe, Scaled(Basis.Across, -100.0));
-        const SpatialPoint AxisEnd = Added(TargetProbe, Scaled(Basis.Across, 100.0));
-        const Deliver<PatternResult> Mirrored = MirrorCurves(Sketch, { TargetCurve }, AxisStart, AxisEnd);
-        if (!Mirrored.Resolved)
-            return false;
-        CommitCurveSet(Naming, Records, Revisions, Mirrored.Resolve().CurveSet, "Mirror Curve", Written);
-    }
-    else if (Tool == ParametricToolSubject::Fillet || Tool == ParametricToolSubject::Chamfer)
-    {
-        // 🔴 THIS USED TO ONLY SPLIT THE CURVE and label the revision as merely preparatory -- a name
-        //    that admitted it never filleted anything. `ApplyProfileCorner` is the real rounding and
-        //    chamfering, 214 lines of it, and it had no call site anywhere in the tree. The two ends are
-        //    joined here.
-        //
-        // 📐 A corner belongs to a PROFILE, not to a loose curve: it is the junction of two curves in a
-        //    resolved loop. When the selection sits on a profile the corner is rounded properly; when it
-        //    does not, splitting the curve at the probe is still the honest thing to do, because that is
-        //    the operation the artist can actually have on an open chain.
-        // 📐 The pointed vertex wins over the curve body. If the artist hovered or selected a corner,
-        //    `TargetProbe` is that exact point rather than an arbitrary position along the curve.
-        const double CornerRadius = CornerDistance > 0.0 ? CornerDistance : 4.0;
-        const bool Chamfering = Tool == ParametricToolSubject::Chamfer;
-        bool Rounded = false;
-
-        const Deliver<ProfileCornerTarget> Targeted =
-            ResolveProfileCornerNear(Sketch, TargetCurve, TargetProbe);
-
-        if (Targeted.Resolved)
-        {
-            const ProfileCornerTarget Corner = Targeted.Resolve();
-            const Deliver<ProfileNameInFeature> Produced =
-                ApplyProfileCorner(Sketch, Corner.Profile, Corner.LoopIndex, Corner.CornerIndex,
-                                   CornerRadius, Chamfering);
-
-            if (Produced.Resolved)
-            {
-                const ProfileSpecification& Reshaped =
-                    Sketch.Profiles()[Produced.Resolve().IssuedIndex - 1u];
-
-                std::vector<SketchCurveName> ProducedCurves;
-                for (const ProfileCurveUse& Use : Reshaped.HeldLoops()[Corner.LoopIndex].Traversal)
-                    ProducedCurves.push_back({ Use.TraversedCurve.IssuedIndex });
-
-                Discard(Records.ToggleVisible(TargetRecord, false));
-                CommitCurveSet(Naming, Records, Revisions, ProducedCurves,
-                               Chamfering ? "Chamfer Corner" : "Bevel Corner", Written);
-                Rounded = true;
-            }
-        }
-
-        if (!Rounded)
-        {
-            const Deliver<std::vector<SketchCurveName>> Cut = CutCurve(Sketch, TargetCurve, TargetProbe);
-            if (!Cut.Resolved)
-                return false;
-            Discard(Records.ToggleVisible(TargetRecord, false));
-            CommitCurveSet(Naming, Records, Revisions, Cut.Resolve(),
-                           Chamfering ? "Chamfer Split" : "Bevel Split", Written);
-        }
-    }
-    else if (Tool == ParametricToolSubject::Cut)
-    {
-        const Deliver<std::vector<SketchCurveName>> Divided = CutCurve(Sketch, TargetCurve, TargetProbe);
-        if (!Divided.Resolved)
-            return false;
-        Discard(Records.ToggleVisible(TargetRecord, false));
-        CommitCurveSet(Naming, Records, Revisions, Divided.Resolve(), "Cut Curve", Written);
-    }
-    else
-    {
-        return false;
-    }
-
-    if (!Written.empty())
-        PendingSelection = Written.front();
-    return !Written.empty();
+    static_cast<void>(Tool);
+    static_cast<void>(Probe);
+    static_cast<void>(Basis);
+    static_cast<void>(Naming);
+    static_cast<void>(Sketch);
+    static_cast<void>(Records);
+    static_cast<void>(Revisions);
+    static_cast<void>(TargetSelection);
+    static_cast<void>(CornerDistance);
+    static_cast<void>(KeepStart);
+    static_cast<void>(PendingSelection);
+    return false;
 }
 
 void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,

@@ -245,16 +245,12 @@ int main()
     }
 
     // ─────────────────────────────────────────────────────────────────────────────────────────────────
-    //  ⑧ THE CATALOGUE DEADLOCK. 🔴 THE OPERATIONS WERE NEVER MISSING — THEY WERE FILTERED OUT.
+    //  ⑧ THE CATALOGUE RESET. 🔴 ONLY THE TWO REQUESTED BANDS SURVIVE, AND NEITHER IS GATED.
     //
-    //  Every tool in the "Sketch Modify" band declares `MinimumDimension = Edge`, and the panel hides a
-    //  tool whose minimum the ACTIVE dimension does not reach. Nothing ever set the active dimension from
-    //  the real sketch: it held `Nothing` for the whole session, so Fillet, Chamfer, Trim, Extend and
-    //  Offset could not appear at any point, under any selection. The artist reported them as absent.
-    //
-    //  It was also circular. The operations needed a selection to become visible, and an artist cannot
-    //  say what they mean to operate on before the operation exists to be chosen. Nothing in a proof of
-    //  the picker alone could see it, because the picker was never the broken part.
+    //  The current reset keeps the draw band and the parked operation band, renames them to
+    //  `2DPrimitives` and `Operations`, and removes the old dimension/selection gating from the
+    //  presentation layer. Operations stay visible as a visual-only shell while their algorithms are
+    //  retired; drawing tools stay available exactly as before.
     // ─────────────────────────────────────────────────────────────────────────────────────────────────
     {
         const std::string Host = ReadWhole("Engine/Application/EditorHost/Source/EditorHost.cpp");
@@ -287,12 +283,9 @@ int main()
         Require(Panel.find("ParametricToolSubject::Cut") != std::string::npos,
                 "and the band maps its index onto the Cut subject");
 
-        // 🔴 THE DIMENSION GATES, IT DOES NOT HIDE. `Presented` refuses a HIDDEN tool outright and
-        //    `ShowGated` cannot bypass that, so a dimension filter answering `Hidden` removed all five
-        //    Sketch Modify tools whenever nothing was selected -- and `VisibleCount` then fell to zero,
-        //    which made the rail skip the entire band. The artist could not see the operations OR the
-        //    band that holds them, and reaching the dimension that would reveal them required selecting
-        //    an edge, which is the thing they had gone to the catalogue to find an operation for.
+        // 🔴 THE PRESENTATION FILTERS ARE NOW NEUTRALISED. The helpers still exist, but both answer
+        //    `false` so the reduced catalogue cannot hide or dim the two surviving bands while the
+        //    operation workflow is intentionally parked.
         const std::size_t GateAt = Panel.find("bool Gated(");
         const std::size_t HideAt = Panel.find("bool Hidden(");
         Require(GateAt != std::string::npos && HideAt != std::string::npos,
@@ -302,15 +295,15 @@ int main()
         const std::size_t HideEnds = Panel.find("\n}", HideAt);
         const std::string HideBody = Panel.substr(HideAt, HideEnds > HideAt ? HideEnds - HideAt : 0u);
 
-        Require(GateBody.find("DimensionAccepted") != std::string::npos,
-                "the dimension answers Gated, so an inapplicable tool is dimmed and still visible");
-        Require(HideBody.find("DimensionAccepted") == std::string::npos,
-                "and does NOT answer Hidden, which would remove it and take its band with it");
-
-        // 📝 `Raising` against a solid stays hidden on purpose: that is "never", not "not yet", so a
-        //    dimmed tile would sit there forever with no action that could light it.
-        Require(HideBody.find("Tool.Raising") != std::string::npos,
-                "a raising tool on a solid stays hidden, because nothing could ever make it applicable");
+        Require(Panel.find("BandCount = 2u") != std::string::npos,
+                "the catalogue has been reduced to the two requested bands");
+        Require(Panel.find("2DPrimitives") != std::string::npos
+             && Panel.find("Operations") != std::string::npos,
+                "and those bands are renamed to 2DPrimitives and Operations");
+        Require(GateBody.find("return false;") != std::string::npos,
+                "operations are no longer gated while the menu is being reduced to a visual-only shell");
+        Require(HideBody.find("return false;") != std::string::npos,
+                "and no band is hidden out from under the artist while the workflow is reset");
     }
 
     std::printf("[SelectionModeProof] %u claims, %u failures\n", Claims, Failures);

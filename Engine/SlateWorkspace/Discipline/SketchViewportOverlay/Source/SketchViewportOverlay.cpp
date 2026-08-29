@@ -70,68 +70,6 @@ void RecordViewportOrientationHud(RecordingSurface& Surface,
     RecordOrientationWidget(Surface, Extent, Widget, Cad);
 }
 
-void RecordCadFallback(RecordingSurface& Surface,
-                       const PlaneExtent& Extent,
-                       const SketchStructure& Sketch,
-                       const ViewportStanding& View,
-                       bool Perspective,
-                       const WorkspaceCadPacket& Packet)
-{
-    if (!Packet.ExtentStanding || !Sketch.Declared())
-        return;
-
-    const SpatialBasis Basis = ResolveSketchBasis(Sketch);
-    Surface.Confine(Extent);
-
-    for (std::uint32_t Index = 0u; Index < Packet.FillCount; ++Index)
-    {
-        const WorkspaceCadFillTriangle& Fill = Packet.Fills[Index];
-        float X0 = 0.0f, Y0 = 0.0f, X1 = 0.0f, Y1 = 0.0f, X2 = 0.0f, Y2 = 0.0f;
-        if (!ProjectViewportPoint(Basis, View, Perspective, Extent, Fill.Along0, Fill.Across0, X0, Y0) ||
-            !ProjectViewportPoint(Basis, View, Perspective, Extent, Fill.Along1, Fill.Across1, X1, Y1) ||
-            !ProjectViewportPoint(Basis, View, Perspective, Extent, Fill.Along2, Fill.Across2, X2, Y2))
-            continue;
-        const float Corners[6] = { X0, Y0, X1, Y1, X2, Y2 };
-        Surface.Tongue(Corners, 3u, ThemeToken{
-            static_cast<std::uint8_t>((Fill.Packed >> 16u) & 0xFFu),
-            static_cast<std::uint8_t>((Fill.Packed >> 8u) & 0xFFu),
-            static_cast<std::uint8_t>((Fill.Packed >> 0u) & 0xFFu),
-            static_cast<std::uint8_t>((Fill.Packed >> 24u) & 0xFFu) });
-    }
-
-    for (std::uint32_t Index = 0u; Index < Packet.SegmentCount; ++Index)
-    {
-        const WorkspaceCadSegment& Segment = Packet.Segments[Index];
-        float X0 = 0.0f, Y0 = 0.0f, X1 = 0.0f, Y1 = 0.0f;
-        if (!ProjectViewportPoint(Basis, View, Perspective, Extent, Segment.Along0, Segment.Across0, X0, Y0) ||
-            !ProjectViewportPoint(Basis, View, Perspective, Extent, Segment.Along1, Segment.Across1, X1, Y1))
-            continue;
-        const float PointsX[2] = { X0, X1 };
-        const float PointsY[2] = { Y0, Y1 };
-        Surface.Polyline(PointsX, PointsY, 2u,
-            ThemeToken{ static_cast<std::uint8_t>((Segment.Packed >> 16u) & 0xFFu),
-                        static_cast<std::uint8_t>((Segment.Packed >> 8u) & 0xFFu),
-                        static_cast<std::uint8_t>((Segment.Packed >> 0u) & 0xFFu),
-                        static_cast<std::uint8_t>((Segment.Packed >> 24u) & 0xFFu) },
-            Segment.Thickness);
-    }
-
-    for (std::uint32_t Index = 0u; Index < Packet.MarkerCount; ++Index)
-    {
-        const WorkspaceCadMarker& Marker = Packet.Markers[Index];
-        float X = 0.0f, Y = 0.0f;
-        if (!ProjectViewportPoint(Basis, View, Perspective, Extent, Marker.Along, Marker.Across, X, Y))
-            continue;
-        Surface.Medallion(X, Y, Marker.Radius,
-            ThemeToken{ static_cast<std::uint8_t>((Marker.Packed >> 16u) & 0xFFu),
-                        static_cast<std::uint8_t>((Marker.Packed >> 8u) & 0xFFu),
-                        static_cast<std::uint8_t>((Marker.Packed >> 0u) & 0xFFu),
-                        static_cast<std::uint8_t>((Marker.Packed >> 24u) & 0xFFu) });
-    }
-
-    Surface.Release();
-}
-
 void RecordViewportStateReadout(RecordingSurface& Surface,
                                 const PlaneExtent& Extent,
                                 const ViewportStanding& View,
@@ -347,32 +285,6 @@ void RecordViewportGridOverlay(OverlayGeometry& Overlay,
         ProjectViewportPoint(Basis, View, Perspective, Extent, 0.0, -Count * Step, X0, Y0) &&
         ProjectViewportPoint(Basis, View, Perspective, Extent, 0.0, Count * Step, X1, Y1))
         Overlay.AddLine(X0, Y0, X1, Y1, PackOverlayColour(0x5Au, 0x8Bu, 0xFCu, 208u), 1.6f);
-}
-
-void RecordViewportOverlayFallback(RecordingSurface& Surface,
-                                   const PlaneExtent& Extent,
-                                   const OverlayGeometry& Overlay)
-{
-    Surface.Confine(Extent);
-    for (std::uint32_t Index = 0u; Index < Overlay.LineCount; ++Index)
-    {
-        const OverlayLine& Line = Overlay.Lines[Index];
-        const float PointsX[2] = { Line.X0, Line.X1 };
-        const float PointsY[2] = { Line.Y0, Line.Y1 };
-        Surface.Polyline(PointsX, PointsY, 2u, Unpacked(Line.Packed), Line.Thickness);
-    }
-    for (std::uint32_t Index = 0u; Index < Overlay.DotCount; ++Index)
-    {
-        const OverlayDot& Dot = Overlay.Dots[Index];
-        Surface.Medallion(Dot.X, Dot.Y, Dot.Radius, Unpacked(Dot.Packed));
-    }
-    for (std::uint32_t Index = 0u; Index < Overlay.TriangleCount; ++Index)
-    {
-        const OverlayTriangle& Triangle = Overlay.Triangles[Index];
-        const float Corners[6] = { Triangle.X0, Triangle.Y0, Triangle.X1, Triangle.Y1, Triangle.X2, Triangle.Y2 };
-        Surface.Tongue(Corners, 3u, Unpacked(Triangle.Packed));
-    }
-    Surface.Release();
 }
 
 void AppendOverlayCircle(OverlayGeometry& Overlay,
