@@ -157,6 +157,51 @@ int main()
         }
     }
 
+    // ⑤b PROFILE-ONLY SHAPES STILL OFFER VERTEX AND EDGE PICKS. A triangle drawn as one closed profile
+    //     with no child edge rows must still let its corner highlight as a vertex and its side as an edge.
+    {
+        SketchStructure TriangleSketch;
+        WorkspaceRecordStructure TriangleRecords;
+        WorkspaceNameIndex TriangleNaming;
+
+        TriangleSketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 } });
+        const Deliver<ProfileNameInFeature> Triangle =
+            TriangleSketch.DeclareRegularPolygon({ 0.0, 0.0, 0.0 }, 40.0, 3u, { 1.0, 0.0, 0.0 });
+        Require(Triangle.Resolved, "a closed triangle can be declared for element picking");
+        if (Triangle.Resolved)
+        {
+            const WorkspaceRecordName Shape =
+                DeclareWorkspaceProfile(TriangleNaming, TriangleRecords, Triangle.Resolve());
+            const ProfileSpecification& Held = TriangleSketch.Profiles()[Triangle.Resolve().IssuedIndex - 1u];
+            const SketchCurveName FirstEdge = { Held.HeldLoops()[0].Traversal[0].TraversedCurve.IssuedIndex };
+
+            std::vector<SketchPointPlacement> Corners;
+            Require(ResolveSketchPoints(TriangleSketch, FirstEdge, Corners) && Corners.size() == 2u,
+                    "the triangle exposes the two corners of one edge");
+            if (Corners.size() == 2u)
+            {
+                const SpatialPoint Corner = Corners[0].Position;
+                const SpatialPoint Midpoint = { (Corners[0].Position.Left + Corners[1].Position.Left) * 0.5,
+                                                0.0,
+                                                (Corners[0].Position.Forward + Corners[1].Position.Forward) * 0.5 };
+
+                const SketchPick Vertex = ResolveSketchPickForElement(
+                    TriangleSketch, TriangleRecords, Corner, 5.0, SelectionElement::Vertex);
+                Require(Vertex.Subject == SketchPickSubject::Point,
+                        "Vertex mode reaches a triangle corner even when only the profile has a record");
+                Require(Vertex.Record.IssuedIndex == Shape.IssuedIndex,
+                        "and that corner carries the owning profile record");
+
+                const SketchPick Edge = ResolveSketchPickForElement(
+                    TriangleSketch, TriangleRecords, Midpoint, 5.0, SelectionElement::Edge);
+                Require(Edge.Subject == SketchPickSubject::Curve,
+                        "Edge mode reaches the existing triangle side rather than missing it");
+                Require(Edge.Record.IssuedIndex == Shape.IssuedIndex,
+                        "and the side also resolves through the profile record");
+            }
+        }
+    }
+
     // ⑤ THE OPTIONS ADMIT ONE KIND AND REFUSE THE REST — the declaration the widget writes into.
     {
         SelectionOptions Options;

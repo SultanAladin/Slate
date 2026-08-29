@@ -74,7 +74,12 @@ bool ProfileContainsCurve(const ProfileSpecification& Profile, SketchCurveName C
 /// note 🔴 An unassigned name resolves to nothing. Without that guard the search matches the first record
 ///       whose point is ALSO unassigned — which is every record carrying no point — so a folder or a
 ///       dimension would be handed back as the owner of a point that does not exist.
-WorkspaceRecordName ResolveRecordForPoint(const WorkspaceRecordStructure& Records, SketchPointName Point);
+/// note 📝 A point may belong to a point record, its source curve's record, OR an enclosing profile when
+///       the profile is the only thing the directory names. That last case is what lets a triangle drawn
+///       as one closed profile still offer vertex picks at its corners.
+WorkspaceRecordName ResolveRecordForPoint(const SketchStructure& Sketch,
+                                          const WorkspaceRecordStructure& Records,
+                                          SketchPointName Point);
 
 /// 🧩 The directory record that owns a curve.
 /// note 📝 A curve may be named directly by a record, or be one edge of a closed profile that is. The

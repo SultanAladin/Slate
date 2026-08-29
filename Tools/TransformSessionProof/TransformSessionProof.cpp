@@ -208,6 +208,81 @@ struct ConnectedBench
     }
 };
 
+/// 🧩 A triangle carried ONLY by a closed-profile record. Its corners must still be pickable and moving
+///    one corner must keep the loop closed by moving both coincident endpoints that meet there.
+struct ProfileTriangleBench
+{
+    SketchStructure           Sketch;
+    WorkspaceRecordStructure  Records;
+    WorkspaceRevisionSequence Revisions;
+
+    SpatialBasis      Basis = { { 0.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 0.0, 0.0, 1.0 }, { 0.0, 1.0, 0.0 } };
+    ViewportStanding  View;
+    PlaneExtent       Extent = { 0.0f, 0.0f, 800.0f, 600.0f };
+
+    ProfileNameInFeature Profile = {};
+    WorkspaceRecordName  ProfileRecord = {};
+    SketchCurveName      EdgeA = {};
+    SketchCurveName      EdgeB = {};
+    SketchCurveName      EdgeC = {};
+    SpatialPoint         Corner = {};
+
+    ProfileTriangleBench()
+    {
+        SketchPlane Ground;
+        Ground.Origin = { 0.0, 0.0, 0.0 };
+        Ground.Normal = { 0.0, 1.0, 0.0 };
+        Ground.AlongDirection = { 1.0, 0.0, 0.0 };
+        Sketch.DeclarePlane(Ground);
+
+        View.Focus = { 0.0, 0.0, 0.0 };
+        View.OrthoScale = 4.0;
+        View.Distance = 240.0;
+
+        const Deliver<ProfileNameInFeature> Triangle =
+            Sketch.DeclareRegularPolygon({ 0.0, 0.0, 0.0 }, 24.0, 3u, { 1.0, 0.0, 0.0 });
+        if (!Triangle.Resolved)
+            return;
+
+        Profile = Triangle.Resolve();
+
+        WorkspaceRecord Held = {};
+        Held.Subject = WorkspaceRecordSubject::ClosedProfile;
+        Held.Profile = Profile;
+        Held.Naming = "Triangle";
+        ProfileRecord = Records.Declare(Held);
+
+        const ProfileSpecification& Declared = Sketch.Profiles()[Profile.IssuedIndex - 1u];
+        if (Declared.HeldLoops().empty() || Declared.HeldLoops()[0].Traversal.size() < 3u)
+            return;
+
+        EdgeA = { Declared.HeldLoops()[0].Traversal[0].TraversedCurve.IssuedIndex };
+        EdgeB = { Declared.HeldLoops()[0].Traversal[1].TraversedCurve.IssuedIndex };
+        EdgeC = { Declared.HeldLoops()[0].Traversal[2].TraversedCurve.IssuedIndex };
+
+        std::vector<SketchPointPlacement> Points;
+        if (ResolveSketchPoints(Sketch, EdgeA, Points) && !Points.empty())
+            Corner = Points[0].Position;
+    }
+
+    void ScreenOf(double Along, double Across, float& X, float& Y) const
+    {
+        ProjectViewportPoint(Basis, View, false, Extent, Along, Across, X, Y);
+    }
+
+    SketchPick VertexPick() const
+    {
+        return ResolveSketchPickForElement(Sketch, Records, Corner, 5.0, SelectionElement::Vertex);
+    }
+
+    SketchPick ProfilePick() const
+    {
+        SketchPick Pick = {};
+        ResolvePickForRecord(Sketch, Records, ProfileRecord, Pick);
+        return Pick;
+    }
+};
+
 
 //========================================================================================================
 // 2. A MOVE
@@ -321,6 +396,115 @@ void ProveConnectedEdgeMove()
         Claim(SamePoint(RightAfter[0].Position, BottomAfter[1].Position, 1.0e-6)
            || SamePoint(RightAfter[1].Position, BottomAfter[1].Position, 1.0e-6),
               "and the right neighbour keeps sharing the other dragged corner");
+    }
+}
+
+void ProveProfileVertexAndProfileMove()
+{
+    std::printf("\n2c. Profile-only triangles still move as one closed shape\n");
+
+    ProfileTriangleBench Stage;
+    Claim(Stage.Profile.Assigned() && Stage.ProfileRecord.Assigned(),
+          "the profile-only triangle bench is standing");
+
+    const SketchPick Vertex = Stage.VertexPick();
+    Claim(Vertex.Subject == SketchPickSubject::Point,
+          "one corner of a profile-only triangle is still a vertex pick");
+    Claim(Vertex.Record.IssuedIndex == Stage.ProfileRecord.IssuedIndex,
+          "and that vertex carries the profile record that owns the triangle");
+
+    WorkspaceRecordName ResolvedRecord = {};
+    SpatialPoint Pivot = {};
+    std::vector<SketchPlacementSubject> Placements;
+    Claim(ResolveTransformPlacements(Stage.Sketch, Stage.Records, Vertex, ResolvedRecord, Pivot, Placements),
+          "that vertex can arm a transform session");
+    Claim(Placements.size() >= 2u,
+          "moving one triangle corner resolves BOTH coincident endpoints that meet there");
+    Claim(ResolvedRecord.IssuedIndex == Stage.ProfileRecord.IssuedIndex,
+          "and the session stays attached to the triangle's profile record");
+
+    SketchPick WholeProfile = Stage.ProfilePick();
+    std::vector<SketchPlacementSubject> WholePlacements;
+    Claim(WholeProfile.Subject == SketchPickSubject::Record,
+          "the triangle's directory record resolves to a whole-profile pick");
+    Claim(ResolveTransformPlacements(Stage.Sketch, Stage.Records, WholeProfile,
+                                     ResolvedRecord, Pivot, WholePlacements),
+          "the whole profile can arm a transform session too");
+
+    std::vector<SketchPointPlacement> EdgeAPoints;
+    std::vector<SketchPointPlacement> EdgeBPoints;
+    std::vector<SketchPointPlacement> EdgeCPoints;
+    ResolveSketchPoints(Stage.Sketch, Stage.EdgeA, EdgeAPoints);
+    ResolveSketchPoints(Stage.Sketch, Stage.EdgeB, EdgeBPoints);
+    ResolveSketchPoints(Stage.Sketch, Stage.EdgeC, EdgeCPoints);
+    const auto HasPoint = [&](SketchPointName Name)
+    {
+        for (const SketchPlacementSubject& Placement : WholePlacements)
+            if (!Placement.ControlPlacement && Placement.Point.IssuedIndex == Name.IssuedIndex)
+                return true;
+        return false;
+    };
+    bool CoversWholeTriangle = EdgeAPoints.size() == 2u && EdgeBPoints.size() == 2u && EdgeCPoints.size() == 2u;
+    for (const SketchPointPlacement& Point : EdgeAPoints) CoversWholeTriangle = CoversWholeTriangle && HasPoint(Point.Name);
+    for (const SketchPointPlacement& Point : EdgeBPoints) CoversWholeTriangle = CoversWholeTriangle && HasPoint(Point.Name);
+    for (const SketchPointPlacement& Point : EdgeCPoints) CoversWholeTriangle = CoversWholeTriangle && HasPoint(Point.Name);
+    Claim(CoversWholeTriangle,
+          "and selecting the whole triangle gathers the placements of every edge it is built from");
+
+    float StartX = 0.0f;
+    float StartY = 0.0f;
+    Stage.ScreenOf(Vertex.Position.Left, Vertex.Position.Forward, StartX, StartY);
+
+    TransformSession Session;
+    Claim(StartTransformSession(Stage.Sketch, Stage.Records, Stage.Basis, Stage.View, false,
+                                Stage.Extent, StartX, StartY, Vertex,
+                                TransformManner::Move, TransformRestriction::Free, false, true, Session),
+          "a triangle-corner drag starts");
+
+    const double TargetAlong = Vertex.Position.Left + 12.0;
+    const double TargetAcross = Vertex.Position.Forward + 9.0;
+    float EndX = 0.0f;
+    float EndY = 0.0f;
+    Stage.ScreenOf(TargetAlong, TargetAcross, EndX, EndY);
+    UpdateTransformSession(Stage.Basis, Stage.View, false, Stage.Extent, EndX, EndY, false,
+                           Stage.Sketch, Session);
+
+    std::vector<SketchPointPlacement> A;
+    std::vector<SketchPointPlacement> B;
+    std::vector<SketchPointPlacement> C;
+    ResolveSketchPoints(Stage.Sketch, Stage.EdgeA, A);
+    ResolveSketchPoints(Stage.Sketch, Stage.EdgeB, B);
+    ResolveSketchPoints(Stage.Sketch, Stage.EdgeC, C);
+    Claim(A.size() == 2u && B.size() == 2u && C.size() == 2u,
+          "the triangle still exposes all three edges after the vertex drag");
+
+    if (A.size() == 2u && B.size() == 2u && C.size() == 2u)
+    {
+        std::uint32_t MovedCount = 0u;
+        for (const SketchPointPlacement& Point : { A[0], A[1], B[0], B[1], C[0], C[1] })
+            if (SamePoint(Point.Position, { TargetAlong, 0.0, TargetAcross }, 1.0e-6))
+                ++MovedCount;
+        Claim(MovedCount == 2u,
+              "exactly the two endpoints that shared the dragged corner moved to the new vertex position");
+
+        const SpatialPoint VertexPosition = { TargetAlong, 0.0, TargetAcross };
+        const bool AtoB = SamePoint(A[1].Position, B[0].Position, 1.0e-6)
+                       || SamePoint(A[1].Position, B[1].Position, 1.0e-6)
+                       || SamePoint(A[0].Position, B[0].Position, 1.0e-6)
+                       || SamePoint(A[0].Position, B[1].Position, 1.0e-6);
+        const bool BtoC = SamePoint(B[0].Position, C[0].Position, 1.0e-6)
+                       || SamePoint(B[0].Position, C[1].Position, 1.0e-6)
+                       || SamePoint(B[1].Position, C[0].Position, 1.0e-6)
+                       || SamePoint(B[1].Position, C[1].Position, 1.0e-6);
+        const bool CtoA = SamePoint(C[0].Position, A[0].Position, 1.0e-6)
+                       || SamePoint(C[0].Position, A[1].Position, 1.0e-6)
+                       || SamePoint(C[1].Position, A[0].Position, 1.0e-6)
+                       || SamePoint(C[1].Position, A[1].Position, 1.0e-6);
+        Claim(AtoB && BtoC && CtoA,
+              "and every neighbouring edge pair still shares a corner - the triangle stays closed");
+        Claim((SamePoint(A[0].Position, VertexPosition, 1.0e-6) || SamePoint(A[1].Position, VertexPosition, 1.0e-6)) &&
+              (SamePoint(C[0].Position, VertexPosition, 1.0e-6) || SamePoint(C[1].Position, VertexPosition, 1.0e-6)),
+              "the dragged corner is shared by the two incident edges rather than split into separate points");
     }
 }
 
@@ -683,6 +867,7 @@ int main()
     ProveResolution();
     ProveMove();
     ProveConnectedEdgeMove();
+    ProveProfileVertexAndProfileMove();
     ProveRestriction();
     ProveRotateAndScale();
     ProveOffOrigin();

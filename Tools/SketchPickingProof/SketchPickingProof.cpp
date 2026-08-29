@@ -152,7 +152,7 @@ void ProveOwnership()
     // 🔴 THE GUARD. An unassigned name must not match every record that also carries none.
     Claim(!ResolveRecordForCurve(Stage.Sketch, Stage.Records, {}).Assigned(),
           "an unassigned curve resolves to NO record - it must not match the first record carrying none");
-    Claim(!ResolveRecordForPoint(Stage.Records, {}).Assigned(),
+    Claim(!ResolveRecordForPoint(Stage.Sketch, Stage.Records, {}).Assigned(),
           "an unassigned point resolves to NO record either");
 
     // ⚠️ Concretely: a directory whose FIRST record carries no curve at all.
@@ -165,7 +165,7 @@ void ProveOwnership()
 
         Claim(!ResolveRecordForCurve(Bare.Sketch, Bare.Records, {}).Assigned(),
               "an unassigned curve does not resolve to a folder that happens to carry no curve");
-        Claim(!ResolveRecordForPoint(Bare.Records, {}).Assigned(),
+        Claim(!ResolveRecordForPoint(Bare.Sketch, Bare.Records, {}).Assigned(),
               "and an unassigned point does not resolve to it either");
     }
 
@@ -174,6 +174,30 @@ void ProveOwnership()
         const SketchCurveName Unnamed = Stage.Sketch.DeclareLine({ 50.0, 0.0, 0.0 }, { 60.0, 0.0, 0.0 });
         Claim(!ResolveRecordForCurve(Stage.Sketch, Stage.Records, Unnamed).Assigned(),
               "a curve with no record resolves to nothing");
+    }
+
+    // 🔴 PROFILE-ONLY SHAPES STILL OWN THEIR CORNERS. A triangle usually has one profile record and no
+    //    child edge rows; its vertices must therefore resolve to the PROFILE or Vertex mode cannot pick
+    //    them at all.
+    {
+        Bench ProfileOnly;
+        const Deliver<ProfileNameInFeature> Triangle =
+            ProfileOnly.Sketch.DeclareRegularPolygon({ 0.0, 0.0, 0.0 }, 20.0, 3u, { 1.0, 0.0, 0.0 });
+        Claim(Triangle.Resolved, "a profile-only triangle can be declared");
+        if (Triangle.Resolved)
+        {
+            const WorkspaceRecordName ProfileRecord = ProfileOnly.DeclareProfileRecord(Triangle.Resolve());
+            const ProfileSpecification& Held =
+                ProfileOnly.Sketch.Profiles()[Triangle.Resolve().IssuedIndex - 1u];
+            const SketchCurveName FirstCurve = { Held.HeldLoops()[0].Traversal[0].TraversedCurve.IssuedIndex };
+
+            std::vector<SketchPointPlacement> Points;
+            Claim(ResolveSketchPoints(ProfileOnly.Sketch, FirstCurve, Points) && !Points.empty(),
+                  "the triangle exposes points on its first edge");
+            if (!Points.empty())
+                Claim(ResolveRecordForPoint(ProfileOnly.Sketch, ProfileOnly.Records, Points[0].Name).IssuedIndex == ProfileRecord.IssuedIndex,
+                      "and one of those points resolves to the PROFILE record that owns the triangle");
+        }
     }
 }
 

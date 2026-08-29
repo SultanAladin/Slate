@@ -209,7 +209,9 @@ bool ProfileContainsCurve(const ProfileSpecification& Profile, SketchCurveName C
     return false;
 }
 
-WorkspaceRecordName ResolveRecordForPoint(const WorkspaceRecordStructure& Records, SketchPointName Point)
+WorkspaceRecordName ResolveRecordForPoint(const SketchStructure& Sketch,
+                                           const WorkspaceRecordStructure& Records,
+                                           SketchPointName Point)
 {
     // 🔴 REFUSES AN UNASSIGNED NAME. Without this the loop below matches the first record whose
     //    `SketchPoint` is also zero — which is EVERY record that carries no point at all, so a dimension
@@ -225,15 +227,34 @@ WorkspaceRecordName ResolveRecordForPoint(const WorkspaceRecordStructure& Record
             return { Index };
     }
 
-    // 📝 A point with no record of its own belongs to the curve that owns it.
     const std::uint32_t CurveIndex = Point.IssuedIndex >> 8u;
-    if (CurveIndex != 0u)
+    if (CurveIndex == 0u)
+        return {};
+
+    // 📝 A point with no record of its own belongs first to the curve that owns it.
+    for (std::uint32_t Index = 1u; Index <= Records.DeclaredCount(); ++Index)
+    {
+        const WorkspaceRecord* Record = Records.Resolve({ Index });
+        if (Record != nullptr && Record->SketchCurve.IssuedIndex == CurveIndex)
+            return { Index };
+    }
+
+    // 🔴 PROFILE-ONLY SHAPES STILL HAVE VERTICES. A triangle or rectangle often reaches the directory as
+    //    one closed-profile record with no child edge rows; falling out here would make its corners
+    //    unpickable in Vertex mode and Free mode would degrade them into edge/profile picks.
+    if (CurveIndex <= Sketch.Curves().size())
+    {
+        const SketchCurveName Curve = { CurveIndex };
         for (std::uint32_t Index = 1u; Index <= Records.DeclaredCount(); ++Index)
         {
             const WorkspaceRecord* Record = Records.Resolve({ Index });
-            if (Record != nullptr && Record->SketchCurve.IssuedIndex == CurveIndex)
+            if (Record == nullptr || !Record->Profile.Assigned() ||
+                Record->Profile.IssuedIndex > Sketch.Profiles().size())
+                continue;
+            if (ProfileContainsCurve(Sketch.Profiles()[Record->Profile.IssuedIndex - 1u], Curve))
                 return { Index };
         }
+    }
 
     return {};
 }
@@ -428,7 +449,7 @@ SketchPick ResolveSketchPick(const SketchStructure& Sketch,
         Pick.Point    = Point.Name;
         Pick.Curve    = Point.SourceCurve;
         Pick.Position = Point.Position;
-        Pick.Record   = ResolveRecordForPoint(Records, Point.Name);
+        Pick.Record   = ResolveRecordForPoint(Sketch, Records, Point.Name);
 
         // ⚠️ Only returned once the directory can name it. A pick with no record is a selection nothing
         //    can act on, so the search falls through to the next kind instead.
@@ -494,7 +515,7 @@ SketchPick ResolveSketchPickForElement(const SketchStructure& Sketch,
                 Pick.Point    = Point.Name;
                 Pick.Curve    = Point.SourceCurve;
                 Pick.Position = Point.Position;
-                Pick.Record   = ResolveRecordForPoint(Records, Point.Name);
+                Pick.Record   = ResolveRecordForPoint(Sketch, Records, Point.Name);
                 if (Pick.Record.Assigned())
                     return Pick;
             }
