@@ -964,6 +964,41 @@ void ProveNearPlaneFillClipping()
     Claim(Count == 0u, "a fill wholly behind the near plane must be discarded outright");
 }
 
+void ProveNearPlaneSegmentClipping()
+{
+    std::printf("\n  §8f near-plane CAD segment clipping preserves crossing outlines\n");
+
+    const auto Make = [](float X, float Y, float W)
+    {
+        WorkspaceCadProjectedPoint Point;
+        Point.X = X;
+        Point.Y = Y;
+        Point.W = W;
+        return Point;
+    };
+
+    WorkspaceCadProjectedPoint Start = Make(-0.40f, 0.10f, 1.00f);
+    WorkspaceCadProjectedPoint End   = Make( 0.40f, 0.10f, 1.00f);
+    Claim(ClipWorkspaceCadSegmentNear(Start, End),
+          "a segment wholly in front of the near plane must survive");
+    Claim(Near(Start.X, -0.40) && Near(End.X, 0.40),
+          "an unclipped segment must preserve both endpoints");
+
+    Start = Make(-0.40f, 0.10f, 1.00f);
+    End   = Make( 0.40f, 0.10f, 0.005f);
+    Claim(ClipWorkspaceCadSegmentNear(Start, End),
+          "a segment crossing the near plane must be clipped, not discarded");
+    Claim(Start.W > WorkspaceCadNearDepth && Near(End.W, WorkspaceCadNearDepth, 1.0e-6),
+          "the clipped endpoint must land exactly on the near plane");
+    Claim(Start.X < End.X,
+          "the surviving segment must keep its front endpoint ordering");
+
+    Start = Make(-0.40f, 0.10f, 0.004f);
+    End   = Make( 0.40f, 0.10f, 0.005f);
+    Claim(!ClipWorkspaceCadSegmentNear(Start, End),
+          "a segment wholly behind the near plane must disappear");
+}
+
 }   // namespace
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -985,6 +1020,7 @@ int main()
     ProveSharedProjectionReplacesTheHostCopies();
     ProveNearEyeRefusal();
     ProveNearPlaneFillClipping();
+    ProveNearPlaneSegmentClipping();
 
     std::printf("\n%d claims, %d failures\n", Checks, Failures);
     std::printf(Failures == 0 ? "PROVEN\n\n" : "REFUTED\n\n");

@@ -1,14 +1,14 @@
 //============================================================================================================================================
 //                                                      WORKSPACECADNEARCLIP.SLANG.H
 //============================================================================================================================================
-// 🧩 Shared near-plane clipping for the CAD pass's projected fill triangles.
+// 🧩 Shared near-plane clipping for the CAD pass's projected fills and outline segments.
 //
-// 🔴 WHY THIS EXISTS. The CAD shader projects one triangle from the sketch plane into screen space by
-//    dividing its projected x and y by w. When one corner falls at or behind the near plane, dividing the
-//    surviving corners by their own positive w while the third is replaced with an off-screen sentinel does
-//    not clip the surface — it stretches it into a giant wedge across the viewport. The fix is geometric,
-//    not presentational: clip the triangle against the near plane FIRST, then triangulate the surviving
-//    polygon.
+// 🔴 WHY THIS EXISTS. The CAD shader projects sketch geometry into screen space by dividing projected x
+//    and y by w. When one corner or one endpoint falls at or behind the near plane, dividing the surviving
+//    points by their own positive w while the bad one is merely dropped does not clip the geometry — a fill
+//    stretches into a giant wedge and an outline pops away at the eye. The fix is geometric, not
+//    presentational: clip the triangle or segment against the near plane FIRST, then draw only the part
+//    that survives.
 //
 // 📝 The arithmetic lives in Shared/ so the shader and the host proofs compile the SAME clipper. The
 //    clipping plane is `w = WorkspaceCadNearDepth`, because the CAD projection rows carry camera depth in
@@ -67,6 +67,31 @@ SLATE_SHARED WorkspaceCadProjectedPoint IntersectWorkspaceCadNear(
     WorkspaceCadProjectedPoint Hit = BlendWorkspaceCadProjectedPoint(From, Toward, Fraction);
     Hit.W = NearDepth;
     return Hit;
+}
+
+/// 🧩 Clips one projected segment against the CAD near plane.
+/// out   Returned   [-] false when the segment lies wholly behind the plane; otherwise `Start` and `End`
+///                     are rewritten to the surviving segment, with any crossing endpoint moved onto the
+///                     plane itself.
+SLATE_SHARED bool ClipWorkspaceCadSegmentNear(
+    SLATE_INOUT(WorkspaceCadProjectedPoint) Start,
+    SLATE_INOUT(WorkspaceCadProjectedPoint) End,
+    Real32 NearDepth = WorkspaceCadNearDepth)
+{
+    const bool StartFront = WorkspaceCadProjectedFront(Start, NearDepth);
+    const bool EndFront = WorkspaceCadProjectedFront(End, NearDepth);
+
+    if (StartFront && EndFront)
+        return true;
+    if (!StartFront && !EndFront)
+        return false;
+
+    const WorkspaceCadProjectedPoint Hit = IntersectWorkspaceCadNear(Start, End, NearDepth);
+    if (!StartFront)
+        Start = Hit;
+    else
+        End = Hit;
+    return true;
 }
 
 /// 🧩 Clips one projected fill triangle against the CAD near plane.

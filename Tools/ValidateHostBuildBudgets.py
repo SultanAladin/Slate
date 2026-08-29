@@ -408,8 +408,11 @@ def main() -> int:
     require("WorkspaceCadNearDepth" in cad_shared,
             "the shared CAD near-plane threshold must be declared once")
     require("ClipWorkspaceCadFillTriangleNear(" in cad_shared
+            and "ClipWorkspaceCadSegmentNear(" in cad_shared
             and "IntersectWorkspaceCadNear(" in cad_shared,
-            "the shared CAD near-plane clipper must define both clipping and intersection")
+            "the shared CAD near-plane clipper must define fill, segment and intersection paths")
+    require("ClipWorkspaceCadSegmentNear(" in cad_shader,
+            "the CAD shader must near-clip outline segments as well as fills")
     cad_pass = read("Engine/SlateVulkan/Device/WorkspaceCadPass/Source/WorkspaceCadPass.cpp")
     require("DrawCategory(WorkspaceCadDraw::Fill, PacketFillCount, 6u);" in cad_pass,
             "CAD fills must spend two triangles per record so a clipped quad can be emitted")

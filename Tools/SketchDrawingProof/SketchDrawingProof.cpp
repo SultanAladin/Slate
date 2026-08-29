@@ -22,8 +22,11 @@
 #include "SlateWorkspace/Discipline/OrientationCube/Api/OrientationStanding.h"
 #include "SlateWorkspace/Discipline/PlacementCommit/Api/PlacementCommit.h"
 #include "SlateWorkspace/Discipline/SketchInteraction/Api/SketchInteraction.h"
+#include "SlateWorkspace/Discipline/ViewportProjection/Api/CadProjection.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/SketchBasis.h"
+#include "SlateWorkspace/Discipline/ViewportProjection/Api/ViewportProjection.h"
 #include "SlateWorkspace/Discipline/WorkplaneCatalogue/Api/WorkplaneCatalogue.h"
+#include "Shared/WorkspaceCadNearClip.slang.h"
 
 #include <algorithm>
 #include <cmath>
@@ -966,6 +969,131 @@ int main()
         }
 
         std::printf("  closed profiles: square, concave L and star all shade; open stays open\n");
+    }
+
+    //--------------------------------------------------------------------------------------------
+    // 🔴 THE NEAR-PLANE CLIPPER MUST HOLD FOR EVERY KIND OF CLOSED SHAPE, not only a rectangle. By the
+    //    time the CAD pass sees a profile, polygonal and curved loops have all become fill triangles in
+    //    one packet; clipping per fill triangle is therefore the generic fix, provided representative
+    //    shapes from both families survive it.
+    //--------------------------------------------------------------------------------------------
+    {
+        struct ClosedShape
+        {
+            SketchSubject             Subject;
+            PlacementMethod           Method;
+            std::vector<SpatialPoint> Anchors;
+            std::uint32_t             Resolution;
+            const char*               Naming;
+        };
+
+        const ClosedShape Every[] = {
+            { SketchSubject::Polygon, PlacementMethod::Centred,
+              { { 0.0, 0.0, 0.0 }, { 120.0, 0.0, 45.0 } }, 8u, "polygon" },
+            { SketchSubject::Circle, PlacementMethod::Centred,
+              { { 0.0, 0.0, 0.0 }, { 90.0, 0.0, 40.0 } }, PolygonSideDefault, "circle" },
+            { SketchSubject::Ellipse, PlacementMethod::Centred,
+              { { 0.0, 0.0, 0.0 }, { 150.0, 0.0, 60.0 } }, PolygonSideDefault, "ellipse" },
+            { SketchSubject::Slot, PlacementMethod::Extent,
+              { { -100.0, 0.0, 0.0 }, { 100.0, 0.0, 0.0 }, { 100.0, 0.0, 50.0 } },
+              PolygonSideDefault, "slot" },
+        };
+
+        const PlaneExtent Leaf = { 0.0f, 0.0f, 800.0f, 600.0f };
+        const DrawableScale Unscaled = {};
+
+        for (const ClosedShape& Subject : Every)
+        {
+            SketchStructure           Sketch;
+            WorkspaceRecordStructure  Records;
+            WorkspaceRevisionSequence Revisions;
+            WorkspaceNameIndex        Naming;
+            WorkplaneCatalogue        Workplanes;
+            SketchPlacement           Tool;
+            WorkspaceRecordName       Pending;
+
+            Sketch.DeclarePlane({ Workplanes.Active().Origin,
+                                  Workplanes.Active().Normal,
+                                  Workplanes.Active().Along });
+
+            Tool.Declare(Subject.Subject, Subject.Method, false);
+            while (Tool.Resolution() < Subject.Resolution)
+                static_cast<void>(Tool.Resolve(1.0f));
+            for (const SpatialPoint& Anchor : Subject.Anchors)
+            {
+                Tool.Hover(Anchor, {});
+                static_cast<void>(Tool.Anchor(false));
+            }
+
+            const auto Demand = [&](bool Held, const char* Suffix)
+            {
+                const std::string Claim = std::string(Subject.Naming) + Suffix;
+                Require(Held, Claim.c_str());
+            };
+
+            const SealedPlacement Sealed = Tool.Seal();
+            const Deliver<WorkspaceRecordName> Committed =
+                CommitPlacement(Naming, Sketch, Records, Revisions, Sealed);
+            Demand(Committed.Resolved, " must commit as a closed shape");
+            AdoptCommittedShape(Sealed.Subject, Naming, Sketch, Records, Revisions, Committed, Pending);
+
+            WorkspaceCadPacket Delivered;
+            static_cast<void>(ProjectSketchRendering(Sketch, Records, Delivered));
+            Demand(Delivered.FillCount > 0u,
+                   " must reach the CAD packet as shaded fill triangles");
+
+            const SpatialBasis Basis = ResolveSketchBasis(Sketch);
+            const ViewportStanding Skimming = ResolveOrbitStandingFromFree(
+                { 0.0, 0.08, 0.0 }, 0.0, -2.0, Basis);
+            const WorkspaceCadProjection Rows = ResolveCadProjection(
+                Basis, Skimming, true, Leaf, Unscaled,
+                static_cast<std::uint32_t>(Leaf.Width()),
+                static_cast<std::uint32_t>(Leaf.Height()));
+
+            const auto Projected = [&](float Along, float Across)
+            {
+                WorkspaceCadProjectedPoint Point;
+                Point.X = Rows.Projection0[0] + Along * Rows.Projection1[0] + Across * Rows.Projection2[0];
+                Point.Y = Rows.Projection0[1] + Along * Rows.Projection1[1] + Across * Rows.Projection2[1];
+                Point.W = Rows.Projection0[3] + Along * Rows.Projection1[3] + Across * Rows.Projection2[3];
+                return Point;
+            };
+
+            bool AnyVisible = false;
+            bool AnyClipped = false;
+            std::uint32_t Quads = 0u;
+            for (Unsigned32 Index = 0u; Index < Delivered.FillCount; ++Index)
+            {
+                const WorkspaceCadFillTriangle& Triangle = Delivered.Fills[Index];
+                const WorkspaceCadProjectedPoint First  = Projected(Triangle.Along0, Triangle.Across0);
+                const WorkspaceCadProjectedPoint Second = Projected(Triangle.Along1, Triangle.Across1);
+                const WorkspaceCadProjectedPoint Third  = Projected(Triangle.Along2, Triangle.Across2);
+                const bool Mixed = WorkspaceCadProjectedFront(First) != WorkspaceCadProjectedFront(Second)
+                                || WorkspaceCadProjectedFront(Second) != WorkspaceCadProjectedFront(Third);
+                WorkspaceCadProjectedPoint Clipped[4] = {};
+                const Unsigned32 Count = ClipWorkspaceCadFillTriangleNear(First, Second, Third, Clipped);
+                Demand(Count <= 4u,
+                       " fill clipping must produce at most a quad");
+                if (Count != 0u)
+                    AnyVisible = true;
+                if (Mixed)
+                    AnyClipped = true;
+                if (Count == 4u)
+                    ++Quads;
+                for (Unsigned32 Corner = 0u; Corner < Count; ++Corner)
+                    Demand(Clipped[Corner].W >= WorkspaceCadNearDepth,
+                           " clipped fill corners must land on or ahead of the near plane");
+            }
+
+            Demand(AnyVisible,
+                   " must still show some filled surface after near clipping");
+            Demand(AnyClipped,
+                   " must exercise the near-plane clipper in a skimming view");
+            Demand(Quads > 0u,
+                   " must produce at least one clipped quad for the two-triangle path");
+        }
+
+        std::printf("  near-plane clipping holds for polygon, circle, ellipse and slot fills\n");
     }
 
     //--------------------------------------------------------------------------------------------

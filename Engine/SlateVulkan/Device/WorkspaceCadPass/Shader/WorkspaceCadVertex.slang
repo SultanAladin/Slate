@@ -122,6 +122,7 @@ WorkspaceCadVertexOutput main(Unsigned32 VertexIndex : SV_VertexID)
     if (Push.Draw == WorkspaceCadFillDraw)
     {
         const Unsigned32 Record = VertexIndex / 6u;
+        const Unsigned32 Within = VertexIndex % 6u;
         const Unsigned32 Corner = FillCorner(VertexIndex);
         const FillRecord Triangle = FillPool[Record];
         WorkspaceCadProjectedPoint Clipped[4];
@@ -132,10 +133,13 @@ WorkspaceCadVertexOutput main(Unsigned32 VertexIndex : SV_VertexID)
             Clipped);
 
         Valid = false;
-        if (Count == 3u && Corner < 3u)
+        if (Count == 3u)
         {
-            Screen = ProjectScreen(Clipped[Corner]);
-            Valid = true;
+            if (Within < 3u)
+            {
+                Screen = ProjectScreen(Clipped[Within]);
+                Valid = true;
+            }
         }
         else if (Count == 4u)
         {
@@ -149,11 +153,9 @@ WorkspaceCadVertexOutput main(Unsigned32 VertexIndex : SV_VertexID)
         const Unsigned32 Record = VertexIndex / 6u;
         const Unsigned32 Corner = QuadCorner(VertexIndex);
         const SegmentRecord Segment = SegmentPool[Record];
-        const WorkspaceCadProjectedPoint StartPoint = ProjectPoint(Segment.Start.x, Segment.Start.y);
-        const WorkspaceCadProjectedPoint EndPoint = ProjectPoint(Segment.End.x, Segment.End.y);
-        const bool StartValid = WorkspaceCadProjectedFront(StartPoint);
-        const bool EndValid = WorkspaceCadProjectedFront(EndPoint);
-        Valid = StartValid && EndValid;
+        WorkspaceCadProjectedPoint StartPoint = ProjectPoint(Segment.Start.x, Segment.Start.y);
+        WorkspaceCadProjectedPoint EndPoint = ProjectPoint(Segment.End.x, Segment.End.y);
+        Valid = ClipWorkspaceCadSegmentNear(StartPoint, EndPoint);
         if (Valid)
         {
             const Real32x2 Start = ProjectScreen(StartPoint);
