@@ -584,7 +584,8 @@ void WorkspaceOverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, 
         Push.WeightsAndDot[0] = OverlayGround.LineWeight;
         Push.WeightsAndDot[1] = OverlayGround.DotRadius;
         Push.WeightsAndDot[2] = OverlayGround.Subdivisions;
-        Push.WeightsAndDot[3] = static_cast<float>(OverlayGround.AxisMask);
+        Push.WeightsAndDot[3] = static_cast<float>((OverlayGround.AxisMask & 0xFFu)
+                                                 | ((OverlayGround.ViewedOrientation & 0xFFu) << 8u));
 
         // 🔴 THE WHOLE LEAF, NOT THE SCISSOR. The fragment stage maps the camera's field of view
         //    across this rectangle, so it must stay the leaf's true box however little of it is

@@ -111,6 +111,7 @@ struct OverlayGroundPose
     Real32  ExtentMetres = 100.0f; // [m] - finite radius around world centre
     Real32  FadeRadiusMetres = 40.0f; // [m] - camera-relative sharp-to-absent radius
     Unsigned32 AxisMask = 7u;   // [-] - bit 0: X, bit 1: Y, bit 2: Z
+    Unsigned32 ViewedOrientation = 0u; // [-] - ViewportOrientation, when the host knows it exactly
     Unsigned32 Presentation = 1u;   // [-] - PanelLatticePresentation
     // 🔴 The viewport footer's Ortho/Perspective choice. The fragment stage ray-marched a pinhole
     //    camera unconditionally, so the grid stayed in perspective while the geometry drawn on it

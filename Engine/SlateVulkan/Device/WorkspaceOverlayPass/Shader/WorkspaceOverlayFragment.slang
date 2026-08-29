@@ -110,7 +110,9 @@ Real32x4 ResolveGround(Real32x2 Corner)
     const Real32   Weight    = max(Push.WeightsAndDot.x, 0.25);
     const Real32   DotRadius = max(Push.WeightsAndDot.y, 0.25);
     const Real32   MajorStep = max(Push.WeightsAndDot.z, 2.0);
-    const Unsigned32 AxisMask = Unsigned32(Push.WeightsAndDot.w + 0.5);
+    const Unsigned32 AxisPack = Unsigned32(Push.WeightsAndDot.w + 0.5);
+    const Unsigned32 AxisMask = AxisPack & 0xFFu;
+    const Unsigned32 ViewedOrientation = (AxisPack >> 8u) & 0xFFu;
     const bool ShowAxisX = (AxisMask & 1u) != 0u;
     const bool ShowAxisY = (AxisMask & 2u) != 0u;
     const bool ShowAxisZ = (AxisMask & 4u) != 0u;
@@ -159,9 +161,9 @@ Real32x4 ResolveGround(Real32x2 Corner)
     Real32x3 FinalTone  = Push.LatticeColour.rgb;
     Real32   FinalAlpha = 0.0;
 
-    // ② THE ACTIVE ORTHOGRAPHIC DRAWING PLANE, OR THE WORLD GROUND IN PERSPECTIVE. Front/Back must show
-    //    the XY plane and Left/Right the YZ plane, or those views have no grid to draw on and the sketch
-    //    looks like it is floating off the only surface the editor shows.
+    // ② THE VIEW GRID APPEARS ONLY FOR THE EXACT ORTHOGRAPHIC VIEWS the cube/widget snaps to. Letting it
+    //    chase the dominant camera axis while the artist drags would make the plane flip underneath them.
+    bool PlaneStanding = !Parallel;
     Real32x3 PlaneNormal = Real32x3(0.0, 1.0, 0.0);
     Real32x3 PlaneAlong  = Real32x3(1.0, 0.0, 0.0);
     Real32x3 PlaneAcross = Real32x3(0.0, 0.0, 1.0);
@@ -170,11 +172,16 @@ Real32x4 ResolveGround(Real32x2 Corner)
 
     if (Parallel)
     {
-        const Real32 DominantX = abs(Forward.x);
-        const Real32 DominantY = abs(Forward.y);
-        const Real32 DominantZ = abs(Forward.z);
-
-        if (DominantZ >= DominantX && DominantZ >= DominantY)
+        PlaneStanding = true;
+        if (ViewedOrientation == 0u || ViewedOrientation == 1u)
+        {
+            PlaneNormal = Real32x3(0.0, 1.0, 0.0);
+            PlaneAlong  = Real32x3(1.0, 0.0, 0.0);
+            PlaneAcross = Real32x3(0.0, 0.0, 1.0);
+            PlaneAxisAlong = 0u;   // X
+            PlaneAxisAcross = 2u;  // Z
+        }
+        else if (ViewedOrientation == 2u || ViewedOrientation == 3u)
         {
             PlaneNormal = Real32x3(0.0, 0.0, 1.0);
             PlaneAlong  = Real32x3(1.0, 0.0, 0.0);
@@ -182,18 +189,22 @@ Real32x4 ResolveGround(Real32x2 Corner)
             PlaneAxisAlong = 0u;   // X
             PlaneAxisAcross = 1u;  // Y
         }
-        else if (DominantX >= DominantY)
+        else if (ViewedOrientation == 4u || ViewedOrientation == 5u)
         {
             PlaneNormal = Real32x3(1.0, 0.0, 0.0);
-            PlaneAlong  = Real32x3(0.0, 1.0, 0.0);
-            PlaneAcross = Real32x3(0.0, 0.0, 1.0);
-            PlaneAxisAlong = 1u;   // Y
-            PlaneAxisAcross = 2u;  // Z
+            PlaneAlong  = Real32x3(0.0, 0.0, 1.0);
+            PlaneAcross = Real32x3(0.0, 1.0, 0.0);
+            PlaneAxisAlong = 2u;   // Z
+            PlaneAxisAcross = 1u;  // Y
+        }
+        else
+        {
+            PlaneStanding = false;
         }
     }
 
     const Real32 Denominator = dot(Ray, PlaneNormal);
-    if (abs(Denominator) > 1e-6)
+    if (PlaneStanding && abs(Denominator) > 1e-6)
     {
         const Real32 Distance = -dot(RayOrigin, PlaneNormal) / Denominator;
         if (Distance > 0.0)

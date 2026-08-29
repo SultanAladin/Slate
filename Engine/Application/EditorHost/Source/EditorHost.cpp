@@ -1494,30 +1494,27 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     //    resolve to one frame (verified over 225 orientations).
                                     const double PreservedScale = SketchView.OrthoScale;
 
-                                    // 🔴 AN ORTHOGRAPHIC VIEW DRAWS ON THE PLANE IT IS LOOKING AT.
-                                    //    Only Top agreed: Front and Side kept the Ground plane
-                                    //    active, so the artist drew on a surface seen EDGE ON and
-                                    //    the shape landed behind the pointer instead of under it.
-                                    //    Looking down Z holds Z at zero and works on XY; down X
-                                    //    holds X at zero and works on YZ.
-                                    //
-                                    // 📝 Derived from the camera, not from the last cube face
-                                    //    pressed, so dragging into a Front view and clicking the
-                                    //    cube's Front face reach the same plane. Perspective and
-                                    //    Isometric are square to nothing and leave the plane alone,
-                                    //    as does a plane the artist placed themselves.
+                                    // 🔴 THE CURRENT SKETCH OWNS ONE AUTHORING PLANE. Re-seating that plane
+                                    //    after geometry already exists re-interprets every committed curve and
+                                    //    profile through a different basis, which is exactly why the earlier XY
+                                    //    shape appeared to float and spin when a Front or Side view was chosen.
+                                    //    Until the world-space 3D path lands, only an empty sketch may adopt the
+                                    //    plane an orthographic view looks at.
                                     const ViewportOrientation SketchOrientation = ResolveCameraOrientation(
                                         SceneApplied.ViewportSkyCamera.AzimuthDegrees,
                                         SceneApplied.ViewportSkyCamera.ElevationDegrees);
-                                    static_cast<void>(ActivateViewedWorkplane(
-                                        SketchWorkplanes, SketchOrientation, LeafPerspective));
+                                    const bool SketchHasCommittedGeometry =
+                                        !Sketch.Curves().empty() || !Sketch.Profiles().empty();
+                                    if (!SketchHasCommittedGeometry)
+                                        static_cast<void>(ActivateViewedWorkplane(
+                                            SketchWorkplanes, SketchOrientation, LeafPerspective));
 
                                     // 🔴 THE BASIS IS READ AFTER THE ACTIVE PLANE IS SYNCHRONISED. Reading
                                     //    it first left Front and Side one frame stale: the grid switched to
                                     //    XY or YZ, but the drawing ray still intersected the old XZ basis,
                                     //    so the very first click after the view change landed on the wrong plane.
                                     if (!Sketch.PlaneDeclared() ||
-                                        SketchWorkplanes.ActiveName() != ActiveSketchPlane)
+                                        (!SketchHasCommittedGeometry && SketchWorkplanes.ActiveName() != ActiveSketchPlane))
                                     {
                                         Sketch.DeclarePlane({ SketchWorkplanes.Active().Origin,
                                                               SketchWorkplanes.Active().Normal,
@@ -1726,6 +1723,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                               * static_cast<double>(PanelDeclared.LatticeScale));
 
                                     Pose.Presentation = static_cast<std::uint32_t>(PanelDeclared.Lattice);
+                                    Pose.ViewedOrientation = static_cast<std::uint32_t>(SketchView.Orientation);
                                     // 🔴 The grid flattens with everything else. Zero keeps the
                                     //    perspective ray-march; a positive scale selects parallel rays
                                     //    so the lattice and the geometry drawn on it agree.
