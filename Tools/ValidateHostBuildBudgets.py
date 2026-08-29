@@ -336,12 +336,21 @@ def main() -> int:
     seam = read("Engine/SlateUI/Interface/InterfaceExchange/Source/InterfaceExchange.cpp")
     require("if (!Typing && Current.LookHeld)" in seam,
             "WASDEQ must be read only while the look gesture is held, or Q drives two features at once")
+    require("FilterViewportLookTextInput" in editor and "if (!ViewportLookHeld && Viewport.Seam().KeyPressed(KeySubject::ChooseSelect))" in editor,
+            "when RMB-look owns the viewport, WASDEQ must be withheld from sketch tools and Select too")
 
     # 🔴 ORTHOGRAPHIC ZOOM MUST BE DRIVEN BY SOMETHING. `OrthoScale` was written in exactly one place in
     #    the whole tree — a function with no call sites — so a wheel notch in a parallel view changed
     #    nothing at all, in every one of the seven orientations.
     require("SketchView.OrthoScale = std::clamp(" in editor,
             "the host must drive OrthoScale from the wheel, or a parallel view cannot zoom")
+    require("THE BASIS IS READ AFTER THE ACTIVE PLANE IS SYNCHRONISED" in editor,
+            "Front and Side views must re-read the sketch basis immediately after switching planes")
+
+    overlay_fragment = read("Engine/SlateVulkan/Device/WorkspaceOverlayPass/Shader/WorkspaceOverlayFragment.slang")
+    require("PlaneNormal = Real32x3(0.0, 0.0, 1.0)" in overlay_fragment
+            and "PlaneNormal = Real32x3(1.0, 0.0, 0.0)" in overlay_fragment,
+            "the GPU overlay must draw grids for the XY and YZ orthographic planes, not only XZ")
 
     # 🔴 AND THE OVERLAY MUST BE KEPT OFF AN OPEN MENU. Both GPU passes record AFTER the interface and
     #    scissor to the whole viewport leaf, so the grid, the axes and the sketch drew straight over any

@@ -159,14 +159,50 @@ Real32x4 ResolveGround(Real32x2 Corner)
     Real32x3 FinalTone  = Push.LatticeColour.rgb;
     Real32   FinalAlpha = 0.0;
 
-    // ② Ground Plane (Y = 0): minor and major grid lines fading together + Red X & Blue Z axes.
-    if (abs(Ray.y) > 1e-6 && (RayOrigin.y * Ray.y < 0.0))
+    // ② THE ACTIVE ORTHOGRAPHIC DRAWING PLANE, OR THE WORLD GROUND IN PERSPECTIVE. Front/Back must show
+    //    the XY plane and Left/Right the YZ plane, or those views have no grid to draw on and the sketch
+    //    looks like it is floating off the only surface the editor shows.
+    Real32x3 PlaneNormal = Real32x3(0.0, 1.0, 0.0);
+    Real32x3 PlaneAlong  = Real32x3(1.0, 0.0, 0.0);
+    Real32x3 PlaneAcross = Real32x3(0.0, 0.0, 1.0);
+    Unsigned32 PlaneAxisAlong = 0u;
+    Unsigned32 PlaneAxisAcross = 2u;
+
+    if (Parallel)
     {
-        const Real32 Distance = -RayOrigin.y / Ray.y;
+        const Real32 DominantX = abs(Forward.x);
+        const Real32 DominantY = abs(Forward.y);
+        const Real32 DominantZ = abs(Forward.z);
+
+        if (DominantZ >= DominantX && DominantZ >= DominantY)
+        {
+            PlaneNormal = Real32x3(0.0, 0.0, 1.0);
+            PlaneAlong  = Real32x3(1.0, 0.0, 0.0);
+            PlaneAcross = Real32x3(0.0, 1.0, 0.0);
+            PlaneAxisAlong = 0u;   // X
+            PlaneAxisAcross = 1u;  // Y
+        }
+        else if (DominantX >= DominantY)
+        {
+            PlaneNormal = Real32x3(1.0, 0.0, 0.0);
+            PlaneAlong  = Real32x3(0.0, 1.0, 0.0);
+            PlaneAcross = Real32x3(0.0, 0.0, 1.0);
+            PlaneAxisAlong = 1u;   // Y
+            PlaneAxisAcross = 2u;  // Z
+        }
+    }
+
+    const Real32 Denominator = dot(Ray, PlaneNormal);
+    if (abs(Denominator) > 1e-6)
+    {
+        const Real32 Distance = -dot(RayOrigin, PlaneNormal) / Denominator;
         if (Distance > 0.0)
         {
-            const Real32x2 Ground = Real32x2(RayOrigin.x + Ray.x * Distance,
-                                             RayOrigin.z + Ray.z * Distance);
+            const Real32x3 Hit = RayOrigin + Ray * Distance;
+            const Real32x2 Ground = Real32x2(dot(Hit, PlaneAlong),
+                                             dot(Hit, PlaneAcross));
+            const Real32x2 EyePlane = Real32x2(dot(Eye, PlaneAlong),
+                                               dot(Eye, PlaneAcross));
 
             const Real32 MinorCell = Cell;
             const Real32 MajorCell = Cell * MajorStep;
@@ -199,7 +235,7 @@ Real32x4 ResolveGround(Real32x2 Corner)
             }
 
             const Real32 FromWorldCentre = length(Ground);
-            const Real32 FromCamera = length(Ground - Eye.xz);
+            const Real32 FromCamera = length(Ground - EyePlane);
             const Real32 CentreFade = 1.0 - smoothstep(WorldExtent * 0.82, WorldExtent,
                                                        FromWorldCentre);
             const Real32 CameraFade = 1.0 - smoothstep(FadeRadius * 0.62, FadeRadius,
@@ -207,33 +243,61 @@ Real32x4 ResolveGround(Real32x2 Corner)
             const Real32 SpatialFade = CentreFade * CameraFade;
             FinalAlpha = GridCoverage * LatticeAlpha * SpatialFade;
 
-            // World axes on ground plane: Red for X (Z=0), Blue for Z (X=0)
-            const Real32 SpanX = fwidth(Ground.x);
-            const Real32 SpanZ = fwidth(Ground.y);
-            const Real32 PixelDistZ = abs(Ground.x) / max(SpanX, 1e-6);
-            const Real32 PixelDistX = abs(Ground.y) / max(SpanZ, 1e-6);
+            const Real32 SpanAlong = fwidth(Ground.x);
+            const Real32 SpanAcross = fwidth(Ground.y);
+            const Real32 PixelDistAlong = abs(Ground.x) / max(SpanAlong, 1e-6);
+            const Real32 PixelDistAcross = abs(Ground.y) / max(SpanAcross, 1e-6);
+            const Real32 AxisAcross = 1.0 - min(PixelDistAlong / max(Weight * 1.8, 0.5), 1.0);
+            const Real32 AxisAlong = 1.0 - min(PixelDistAcross / max(Weight * 1.8, 0.5), 1.0);
 
-            const Real32 AxisZ = 1.0 - min(PixelDistZ / max(Weight * 1.8, 0.5), 1.0);
-            const Real32 AxisX = 1.0 - min(PixelDistX / max(Weight * 1.8, 0.5), 1.0);
+            const Real32x3 RedAxis   = Real32x3(0.95, 0.24, 0.28);
+            const Real32x3 GreenAxis = Real32x3(0.19, 0.82, 0.35);
+            const Real32x3 BlueAxis  = Real32x3(0.24, 0.44, 0.95);
 
-            if (ShowAxisZ && AxisZ > 0.0)
+            if (AxisAlong > 0.0)
             {
-                const Real32x3 BlueAxis = Real32x3(0.24, 0.44, 0.95);
-                FinalTone  = lerp(FinalTone, BlueAxis, AxisZ);
-                FinalAlpha = max(FinalAlpha, AxisZ * 0.95 * SpatialFade);
+                if (PlaneAxisAlong == 0u && ShowAxisX)
+                {
+                    FinalTone  = lerp(FinalTone, RedAxis, AxisAlong);
+                    FinalAlpha = max(FinalAlpha, AxisAlong * 0.95 * SpatialFade);
+                }
+                else if (PlaneAxisAlong == 1u && ShowAxisY)
+                {
+                    FinalTone  = lerp(FinalTone, GreenAxis, AxisAlong);
+                    FinalAlpha = max(FinalAlpha, AxisAlong * 0.95 * SpatialFade);
+                }
+                else if (PlaneAxisAlong == 2u && ShowAxisZ)
+                {
+                    FinalTone  = lerp(FinalTone, BlueAxis, AxisAlong);
+                    FinalAlpha = max(FinalAlpha, AxisAlong * 0.95 * SpatialFade);
+                }
             }
 
-            if (ShowAxisX && AxisX > 0.0)
+            if (AxisAcross > 0.0)
             {
-                const Real32x3 RedAxis  = Real32x3(0.95, 0.24, 0.28);
-                FinalTone  = lerp(FinalTone, RedAxis, AxisX);
-                FinalAlpha = max(FinalAlpha, AxisX * 0.95 * SpatialFade);
+                if (PlaneAxisAcross == 0u && ShowAxisX)
+                {
+                    FinalTone  = lerp(FinalTone, RedAxis, AxisAcross);
+                    FinalAlpha = max(FinalAlpha, AxisAcross * 0.95 * SpatialFade);
+                }
+                else if (PlaneAxisAcross == 1u && ShowAxisY)
+                {
+                    FinalTone  = lerp(FinalTone, GreenAxis, AxisAcross);
+                    FinalAlpha = max(FinalAlpha, AxisAcross * 0.95 * SpatialFade);
+                }
+                else if (PlaneAxisAcross == 2u && ShowAxisZ)
+                {
+                    FinalTone  = lerp(FinalTone, BlueAxis, AxisAcross);
+                    FinalAlpha = max(FinalAlpha, AxisAcross * 0.95 * SpatialFade);
+                }
             }
         }
     }
 
-    // ③ 3D Vertical Green Y Axis: solved analytically on the GPU.
-    if (ShowAxisY)
+    // ③ The out-of-plane green Y axis is useful in perspective, where the ground is a reference surface.
+    //    In orthographic plane views the in-plane axes above are the wanted read, and a second axis through
+    //    the screen centre is only a duplicate or an occluding stripe.
+    if (ShowAxisY && !Parallel)
     {
         const Real32 RayXZ2 = Ray.x * Ray.x + Ray.z * Ray.z;
         if (RayXZ2 > 1e-7)

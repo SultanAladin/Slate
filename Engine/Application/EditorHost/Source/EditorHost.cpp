@@ -270,6 +270,50 @@ bool ReinstateSketchRevision(std::vector<SketchRevisionSnapshot>& Retreated,
     return true;
 }
 
+bool IsViewportLookNavigationKey(char Character)
+{
+    switch (Character)
+    {
+        case 'w':
+        case 'W':
+        case 'a':
+        case 'A':
+        case 's':
+        case 'S':
+        case 'd':
+        case 'D':
+        case 'e':
+        case 'E':
+        case 'q':
+        case 'Q':
+            return true;
+    }
+    return false;
+}
+
+TextInputCondition FilterViewportLookTextInput(const TextInputCondition& Incoming,
+                                               bool LookHeld)
+{
+    if (!LookHeld || Incoming.IntakeCount == 0u)
+        return Incoming;
+
+    TextInputCondition Filtered = Incoming;
+    Filtered.IntakeCount = 0u;
+
+    for (std::uint32_t Index = 0u; Index < Incoming.IntakeCount; ++Index)
+    {
+        const char Character = Incoming.Intake[Index];
+        if (IsViewportLookNavigationKey(Character))
+            continue;
+        if (Filtered.IntakeCount + 1u >= TextInputCondition::IntakeLimit)
+            break;
+        Filtered.Intake[Filtered.IntakeCount++] = Character;
+    }
+
+    Filtered.Intake[Filtered.IntakeCount] = '\0';
+    return Filtered;
+}
+
 // 🧩 Records a GPU overlay across a scissor box with one rectangle subtracted from it.
 // in    Overlay   [-]  the pass to record into
 // in    Leaf      [px] the leaf's WHOLE box -- the camera's canvas, never the clipped one
@@ -999,17 +1043,37 @@ static std::uint32_t             SketchTrimKeep      = 0u;
             const PointerCondition& ForegroundPointer = Viewport.Surface().Pointer();
             const PlaneExtent NorthInterior = Viewport.Drawers().Interior(DrawerBearing::North);
             const PlaneExtent SouthInterior = Viewport.Drawers().Interior(DrawerBearing::South);
+
+            bool ForegroundOverViewport = false;
+            for (std::uint32_t Leaf = 0u; Leaf < WorkspacePanels.LeafCount(); ++Leaf)
+            {
+                if (WorkspacePanels.LeafSubject(Leaf) == PanelSubject::Viewport &&
+                    WorkspacePanels.LeafBody(Leaf).Encloses(ForegroundPointer.PositionX,
+                                                            ForegroundPointer.PositionY))
+                {
+                    ForegroundOverViewport = true;
+                    break;
+                }
+            }
+
+            // 🔴 WHEN THE LOOK GESTURE OWNS THE VIEWPORT, WASDEQ BELONG TO THE CAMERA ONLY. The same `S`
+            //    was reaching the fly camera as "backward" and the sketch transform grammar as "Scale",
+            //    so one press moved the camera and scaled the shape at once. The look latch survives the
+            //    cursor warp, so the suppression follows the gesture even when the pointer has been recentered.
+            const bool ViewportLookPermitted =
+                (ForegroundOverViewport || EditorCameraLookLatched) && !PointerBehindDrawer;
+            const bool ViewportLookHeld = ForegroundPointer.SecondaryHeld && ViewportLookPermitted;
+            const TextInputCondition SketchViewportText =
+                FilterViewportLookTextInput(Viewport.Surface().TextInput(), ViewportLookHeld);
+
             const bool TabPressed = Viewport.Seam().KeyPressed(KeySubject::Summon);
-            // 🔴 Q IS THE SELECT TOOL. Read here beside Tab rather than inside the viewport arm,
-            //    because the seam's `WantTextInput` guard belongs to the seam: a Q typed into the
-            //    directory's filter field is a letter, not a tool change. Setting `ActiveSubject`
-            //    is the whole binding — `SelectedTool(Select)` resolves to `SketchSubject::None`,
-            //    so with Select active every drawing arm declines and the picker gets the press.
+            // 🔴 Q IS THE SELECT TOOL, AND IT IS ALSO THE FLY CAMERA'S DOWN KEY. While the look gesture is
+            //    held that Q belongs to navigation and must not also flip the sketch into Select.
             //
             // 📝 Any half-placed shape is abandoned. Pressing Q while two anchors of a rectangle
             //    are down and leaving them pending would draw the rectangle on the next click that
             //    was meant to select something.
-            if (Viewport.Seam().KeyPressed(KeySubject::ChooseSelect))
+            if (!ViewportLookHeld && Viewport.Seam().KeyPressed(KeySubject::ChooseSelect))
             {
                 ParametricToolsApplied.ActiveSubject = ParametricToolSubject::Select;
                 ParametricToolsApplied.Page = ParametricToolPage::Catalogue;
@@ -1333,8 +1397,6 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                 //    while still TYPE-CHECKING it -- an `#ifdef` would not.
                                 if constexpr (HostHasFeature(FeatureParametric))
                                 {
-                                    const SpatialBasis SketchBasis = ResolveSketchBasis(Sketch);
-
                                     // 🔴 THE WIDGET IS OFFERED THE CONTACT FIRST. It floats OVER the
                                     //    leaf, so a press that lands on it is a press on it — offering
                                     //    it to the viewport first would drag the camera out from under
@@ -1430,6 +1492,39 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     //    orbit standing FROM the free camera, so both descriptions
                                     //    resolve to one frame (verified over 225 orientations).
                                     const double PreservedScale = SketchView.OrthoScale;
+
+                                    // 🔴 AN ORTHOGRAPHIC VIEW DRAWS ON THE PLANE IT IS LOOKING AT.
+                                    //    Only Top agreed: Front and Side kept the Ground plane
+                                    //    active, so the artist drew on a surface seen EDGE ON and
+                                    //    the shape landed behind the pointer instead of under it.
+                                    //    Looking down Z holds Z at zero and works on XY; down X
+                                    //    holds X at zero and works on YZ.
+                                    //
+                                    // 📝 Derived from the camera, not from the last cube face
+                                    //    pressed, so dragging into a Front view and clicking the
+                                    //    cube's Front face reach the same plane. Perspective and
+                                    //    Isometric are square to nothing and leave the plane alone,
+                                    //    as does a plane the artist placed themselves.
+                                    const ViewportOrientation SketchOrientation = ResolveCameraOrientation(
+                                        SceneApplied.ViewportSkyCamera.AzimuthDegrees,
+                                        SceneApplied.ViewportSkyCamera.ElevationDegrees);
+                                    static_cast<void>(ActivateViewedWorkplane(
+                                        SketchWorkplanes, SketchOrientation, LeafPerspective));
+
+                                    // 🔴 THE BASIS IS READ AFTER THE ACTIVE PLANE IS SYNCHRONISED. Reading
+                                    //    it first left Front and Side one frame stale: the grid switched to
+                                    //    XY or YZ, but the drawing ray still intersected the old XZ basis,
+                                    //    so the very first click after the view change landed on the wrong plane.
+                                    if (!Sketch.PlaneDeclared() ||
+                                        SketchWorkplanes.ActiveName() != ActiveSketchPlane)
+                                    {
+                                        Sketch.DeclarePlane({ SketchWorkplanes.Active().Origin,
+                                                              SketchWorkplanes.Active().Normal,
+                                                              SketchWorkplanes.Active().Along });
+                                        ActiveSketchPlane = SketchWorkplanes.ActiveName();
+                                    }
+
+                                    const SpatialBasis SketchBasis = ResolveSketchBasis(Sketch);
                                     SketchView = ResolveOrbitStandingFromFree(
                                         { SceneApplied.CameraPosition[0], SceneApplied.CameraPosition[1],
                                           SceneApplied.CameraPosition[2] },
@@ -1449,36 +1544,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     //    wrong lens.
                                     SketchView.FieldOfViewDegrees =
                                         SceneApplied.ViewportSkyCamera.FieldOfViewDegrees;
-
-                                    // 🔴 AN ORTHOGRAPHIC VIEW DRAWS ON THE PLANE IT IS LOOKING AT.
-                                    //    Only Top agreed: Front and Side kept the Ground plane
-                                    //    active, so the artist drew on a surface seen EDGE ON and
-                                    //    the shape landed behind the pointer instead of under it.
-                                    //    Looking down Z holds Z at zero and works on XY; down X
-                                    //    holds X at zero and works on YZ.
-                                    //
-                                    // 📝 Derived from the camera, not from the last cube face
-                                    //    pressed, so dragging into a Front view and clicking the
-                                    //    cube's Front face reach the same plane. Perspective and
-                                    //    Isometric are square to nothing and leave the plane alone,
-                                    //    as does a plane the artist placed themselves.
-                                    SketchView.Orientation = ResolveCameraOrientation(
-                                        SceneApplied.ViewportSkyCamera.AzimuthDegrees,
-                                        SceneApplied.ViewportSkyCamera.ElevationDegrees);
-                                    static_cast<void>(ActivateViewedWorkplane(
-                                        SketchWorkplanes, SketchView.Orientation, LeafPerspective));
-
-                                    // 🔴 The sketch is re-planed onto whatever is active, or the
-                                    //    catalogue would hold one surface while the structure kept
-                                    //    projecting onto another.
-                                    if (!Sketch.PlaneDeclared() ||
-                                        SketchWorkplanes.ActiveName() != ActiveSketchPlane)
-                                    {
-                                        Sketch.DeclarePlane({ SketchWorkplanes.Active().Origin,
-                                                              SketchWorkplanes.Active().Normal,
-                                                              SketchWorkplanes.Active().Along });
-                                        ActiveSketchPlane = SketchWorkplanes.ActiveName();
-                                    }
+                                    SketchView.Orientation = SketchOrientation;
                                     // 🔴 The workplane tool is offered the press FIRST and consumes
                                     //    it, or the click that places a plane is also read as the
                                     //    first point of a curve -- drawn onto the plane it replaced.
@@ -1491,7 +1557,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     if (!PointerTaken)
                                         DriveDrawingWithModifiers(
                                             LeafBody, BackgroundPointer,
-                                            Viewport.Surface().TextInput(), Viewport.Seam().Modifiers(),
+                                            SketchViewportText, Viewport.Seam().Modifiers(),
                                             SketchBasis, SketchView, LeafPerspective,
                                             ParametricToolsApplied, SketchNaming, Sketch,
                                             SketchRecords, SketchRevisions, SketchWorkplanes,
@@ -1509,7 +1575,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     ProjectWorkspaceDirectory(SketchRecords, SketchDirectoryRows);
                                     DriveViewportSelectionAndTransform(
                                         LeafBody, BackgroundPointer,
-                                        Viewport.Surface().TextInput(), Viewport.Seam().Modifiers(),
+                                        SketchViewportText, Viewport.Seam().Modifiers(),
                                         SketchBasis, SketchView, LeafPerspective,
                                         ParametricToolsApplied.ActiveSubject, SketchSelection, SketchGizmo,
                                         SketchNaming, SketchDirectoryRows, SketchDirectoryApplied,
