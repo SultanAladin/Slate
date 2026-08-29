@@ -369,6 +369,8 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
                                const ParametricToolsContext& ToolContext,
                                WorkspaceNameIndex& Naming,
                                SketchStructure& Sketch,
+                               WorldDraftStructure& World,
+                               WorldDraftSketchMapping& Mapping,
                                WorkspaceRecordStructure& Records,
                                WorkspaceRevisionSequence& Revisions,
                                WorkplaneCatalogue& Workplanes,
@@ -466,11 +468,12 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
         return;
 
     const SealedPlacement Sealed = Tool.Seal();
-    if (CommitPlacementWorldBacked(Naming, Sketch, Records, Revisions, Sealed, PendingSelection))
+    if (CommitPlacementWorldBacked(World, Mapping, Naming, Sketch, Records, Revisions, Sealed, PendingSelection))
         return;
 
     const Deliver<WorkspaceRecordName> Record = CommitPlacement(Naming, Sketch, Records, Revisions, Sealed);
     AdoptCommittedShape(Sealed.Subject, Naming, Sketch, Records, Revisions, Record, PendingSelection);
+    MirrorSketchIntoWorldDraft(Sketch, World, Mapping);
 }
 
 bool ApplyDimensionTextEdit(const TextInputCondition& TextInput,
@@ -807,6 +810,8 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
                                                    const WorkspaceDirectoryProjection& Directory,
                                                    const ParametricWorkspaceContext& WorkspaceApplied,
                                                    SketchStructure& Sketch,
+                                                   WorldDraftStructure& World,
+                                                   WorldDraftSketchMapping& Mapping,
                                                    WorkspaceRecordStructure& Records,
                                                    WorkspaceRevisionSequence& Revisions,
                                                    WorkspaceRecordName& PendingSelection,
@@ -820,7 +825,10 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
 {
     const WorkspaceRecordName SelectedRecord = SelectedRecordIn(Directory, WorkspaceApplied);
     if (ApplyDimensionTextEdit(TextInput, Sketch, Records, Revisions, SelectedRecord))
+    {
+        MirrorSketchIntoWorldDraft(Sketch, World, Mapping);
         PointerTaken = true;
+    }
     if (SemanticSelection.Standing() && SelectedRecord.Assigned() &&
         SemanticSelection.Record.IssuedIndex != SelectedRecord.IssuedIndex &&
         (!PendingSelection.Assigned() || PendingSelection.IssuedIndex != SemanticSelection.Record.IssuedIndex))
@@ -840,9 +848,6 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
         PointerTaken = true;
         return;
     }
-
-    WorldDraftStructure World;
-    WorldDraftSketchMapping Mapping;
     MirrorSketchIntoWorldDraft(Sketch, World, Mapping);
 
     WorldPick WorldSemantic = {};

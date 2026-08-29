@@ -33,6 +33,7 @@
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/ViewportProjection.h"
 #include "SlateWorkspace/Discipline/WorkplaneCatalogue/Api/WorkplaneCatalogue.h"
 #include "SlateWorkspace/Discipline/WorldDraftTransformSession/Api/WorldDraftTransformSession.h"
+#include "SlateWorkspace/Discipline/WorldDraftSketchBridge/Api/WorldDraftSketchBridge.h"
 
 #include "Shared/OverlayGeometry.slang.h"
 
@@ -84,6 +85,8 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
                                const ParametricToolsContext& ToolContext,
                                WorkspaceNameIndex& Naming,
                                SketchStructure& Sketch,
+                               WorldDraftStructure& World,
+                               WorldDraftSketchMapping& Mapping,
                                WorkspaceRecordStructure& Records,
                                WorkspaceRevisionSequence& Revisions,
                                WorkplaneCatalogue& Workplanes,
@@ -161,6 +164,8 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
                                                    const WorkspaceDirectoryProjection& Directory,
                                                    const ParametricWorkspaceContext& WorkspaceApplied,
                                                    SketchStructure& Sketch,
+                                                   WorldDraftStructure& World,
+                                                   WorldDraftSketchMapping& Mapping,
                                                    WorkspaceRecordStructure& Records,
                                                    WorkspaceRevisionSequence& Revisions,
                                                    WorkspaceRecordName& PendingSelection,

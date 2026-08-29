@@ -173,6 +173,8 @@ struct SketchRevisionSnapshot
 {
     WorkspaceNameIndex        Naming = {};
     SketchStructure           Sketch = {};
+    WorldDraftStructure       World = {};
+    WorldDraftSketchMapping   WorldMapping = {};
     WorkspaceRecordStructure  Records = {};
     WorkspaceRevisionSequence Revisions = {};
     WorkplaneCatalogue        Workplanes = {};
@@ -182,6 +184,8 @@ struct SketchRevisionSnapshot
 
 SketchRevisionSnapshot ResolveSketchRevisionSnapshot(const WorkspaceNameIndex& Naming,
                                                      const SketchStructure& Sketch,
+                                                     const WorldDraftStructure& World,
+                                                     const WorldDraftSketchMapping& WorldMapping,
                                                      const WorkspaceRecordStructure& Records,
                                                      const WorkspaceRevisionSequence& Revisions,
                                                      const WorkplaneCatalogue& Workplanes,
@@ -191,6 +195,8 @@ SketchRevisionSnapshot ResolveSketchRevisionSnapshot(const WorkspaceNameIndex& N
     SketchRevisionSnapshot Snapshot = {};
     Snapshot.Naming = Naming;
     Snapshot.Sketch = Sketch;
+    Snapshot.World = World;
+    Snapshot.WorldMapping = WorldMapping;
     Snapshot.Records = Records;
     Snapshot.Revisions = Revisions;
     Snapshot.Workplanes = Workplanes;
@@ -202,6 +208,8 @@ SketchRevisionSnapshot ResolveSketchRevisionSnapshot(const WorkspaceNameIndex& N
 void ApplySketchRevisionSnapshot(const SketchRevisionSnapshot& Snapshot,
                                  WorkspaceNameIndex& Naming,
                                  SketchStructure& Sketch,
+                                 WorldDraftStructure& World,
+                                 WorldDraftSketchMapping& WorldMapping,
                                  WorkspaceRecordStructure& Records,
                                  WorkspaceRevisionSequence& Revisions,
                                  WorkplaneCatalogue& Workplanes,
@@ -210,6 +218,8 @@ void ApplySketchRevisionSnapshot(const SketchRevisionSnapshot& Snapshot,
 {
     Naming = Snapshot.Naming;
     Sketch = Snapshot.Sketch;
+    World = Snapshot.World;
+    WorldMapping = Snapshot.WorldMapping;
     Records = Snapshot.Records;
     Revisions = Snapshot.Revisions;
     Workplanes = Snapshot.Workplanes;
@@ -235,6 +245,8 @@ bool RetreatSketchRevision(std::vector<SketchRevisionSnapshot>& Retreated,
                            std::vector<SketchRevisionSnapshot>& Reinstated,
                            WorkspaceNameIndex& Naming,
                            SketchStructure& Sketch,
+                           WorldDraftStructure& World,
+                           WorldDraftSketchMapping& WorldMapping,
                            WorkspaceRecordStructure& Records,
                            WorkspaceRevisionSequence& Revisions,
                            WorkplaneCatalogue& Workplanes,
@@ -246,8 +258,8 @@ bool RetreatSketchRevision(std::vector<SketchRevisionSnapshot>& Retreated,
 
     Reinstated.push_back(Retreated.back());
     Retreated.pop_back();
-    ApplySketchRevisionSnapshot(Retreated.back(), Naming, Sketch, Records, Revisions,
-                                Workplanes, PendingSelection, SemanticSelection);
+    ApplySketchRevisionSnapshot(Retreated.back(), Naming, Sketch, World, WorldMapping,
+                                Records, Revisions, Workplanes, PendingSelection, SemanticSelection);
     return true;
 }
 
@@ -255,6 +267,8 @@ bool ReinstateSketchRevision(std::vector<SketchRevisionSnapshot>& Retreated,
                              std::vector<SketchRevisionSnapshot>& Reinstated,
                              WorkspaceNameIndex& Naming,
                              SketchStructure& Sketch,
+                             WorldDraftStructure& World,
+                             WorldDraftSketchMapping& WorldMapping,
                              WorkspaceRecordStructure& Records,
                              WorkspaceRevisionSequence& Revisions,
                              WorkplaneCatalogue& Workplanes,
@@ -265,8 +279,8 @@ bool ReinstateSketchRevision(std::vector<SketchRevisionSnapshot>& Retreated,
         return false;
 
     Retreated.push_back(Reinstated.back());
-    ApplySketchRevisionSnapshot(Retreated.back(), Naming, Sketch, Records, Revisions,
-                                Workplanes, PendingSelection, SemanticSelection);
+    ApplySketchRevisionSnapshot(Retreated.back(), Naming, Sketch, World, WorldMapping,
+                                Records, Revisions, Workplanes, PendingSelection, SemanticSelection);
     Reinstated.pop_back();
     return true;
 }
@@ -418,6 +432,8 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    reason `DiagnosticLayersRequested()` replaced three copies of `#ifdef SLATE_DEBUG`.
     static WorkspaceNameIndex        SketchNaming;
     static SketchStructure           Sketch;
+    static WorldDraftStructure       SketchWorld;
+    static WorldDraftSketchMapping   SketchWorldMapping;
     static WorkspaceRecordStructure  SketchRecords;
     static WorkspaceRevisionSequence SketchRevisions;
     // 🔴 Seated beside the sketch, never inside it: a sketch holds exactly ONE plane and overwrites
@@ -1096,12 +1112,14 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                 const bool ReinstatePressed = Viewport.Seam().Modifiers().Shifted;
                 const bool Restored = ReinstatePressed
                                    ? ReinstateSketchRevision(SketchRetreated, SketchReinstated,
-                                                            SketchNaming, Sketch, SketchRecords,
+                                                            SketchNaming, Sketch, SketchWorld,
+                                                            SketchWorldMapping, SketchRecords,
                                                             SketchRevisions, SketchWorkplanes,
                                                             SketchPendingSelection,
                                                             SketchSemanticSelection)
                                    : RetreatSketchRevision(SketchRetreated, SketchReinstated,
-                                                          SketchNaming, Sketch, SketchRecords,
+                                                          SketchNaming, Sketch, SketchWorld,
+                                                          SketchWorldMapping, SketchRecords,
                                                           SketchRevisions, SketchWorkplanes,
                                                           SketchPendingSelection,
                                                           SketchSemanticSelection);
@@ -1149,7 +1167,8 @@ static std::uint32_t             SketchTrimKeep      = 0u;
 
             SketchSessionMilliseconds += Pass.ElapsedMilliseconds;
             RecordSketchRevisionSnapshot(
-                ResolveSketchRevisionSnapshot(SketchNaming, Sketch, SketchRecords, SketchRevisions,
+                ResolveSketchRevisionSnapshot(SketchNaming, Sketch, SketchWorld, SketchWorldMapping,
+                                              SketchRecords, SketchRevisions,
                                               SketchWorkplanes, SketchPendingSelection,
                                               SketchSemanticSelection),
                 SketchRetreated, SketchReinstated);
@@ -1560,6 +1579,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                             SketchViewportText, Viewport.Seam().Modifiers(),
                                             SketchBasis, SketchView, LeafPerspective,
                                             ParametricToolsApplied, SketchNaming, Sketch,
+                                            SketchWorld, SketchWorldMapping,
                                             SketchRecords, SketchRevisions, SketchWorkplanes,
                                             SketchPendingSelection, SketchTool, PointerTaken);
 
@@ -1582,7 +1602,8 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                             SketchSelection, SketchGizmo,
                                             SceneCamera,
                                             SketchDirectoryRows, SketchDirectoryApplied,
-                                            Sketch, SketchRecords, SketchRevisions,
+                                            Sketch, SketchWorld, SketchWorldMapping,
+                                            SketchRecords, SketchRevisions,
                                             SketchPendingSelection, SketchSemanticSelection,
                                             SketchHoveredSelection, SketchWorldTransform, LeafOverlay,
                                             PointerTaken, SketchSessionMilliseconds,
@@ -1603,6 +1624,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                             SketchLastMovePressed,
                                             static_cast<double>(SketchCornerDistance),
                                             SketchTrimKeep == 0u);
+                                        MirrorSketchIntoWorldDraft(Sketch, SketchWorld, SketchWorldMapping);
                                     }
 
                                     // 🔴 NO SECOND GRID. `RecordViewportGridOverlay` was called here and
@@ -1618,7 +1640,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     const DrawableScale SketchDrawable = DrawableScale::Between(
                                         Viewport.Surface().Display().Width,
                                         static_cast<double>(Pass.Width));
-                                    Discard(ProjectWorldBackedSketchRendering(Sketch, SceneCamera,
+                                    Discard(ProjectWorldBackedSketchRendering(SketchWorld, SceneCamera,
                                                                               LeafBody, SketchDrawable,
                                                                               SketchCadPacket));
 

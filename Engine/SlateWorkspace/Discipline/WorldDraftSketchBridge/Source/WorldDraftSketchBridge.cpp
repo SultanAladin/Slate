@@ -393,7 +393,20 @@ Deliver<bool> ProjectWorldBackedSketchRendering(const SketchStructure& Sketch,
     WorldDraftStructure World;
     WorldDraftSketchMapping Mapping;
     MirrorSketchIntoWorldDraft(Sketch, World, Mapping);
-    return ProjectWorldDraftRendering(World, Camera, Drawable.ToPhysical(LogicalExtent),
+    return ProjectWorldBackedSketchRendering(World, Camera, LogicalExtent, Drawable,
+                                             Delivered, Style, ClosureTolerance, CoplanarTolerance);
+}
+
+Deliver<bool> ProjectWorldBackedSketchRendering(const WorldDraftStructure& Declared,
+                                                const ResolvedCamera& Camera,
+                                                const PlaneExtent& LogicalExtent,
+                                                const DrawableScale& Drawable,
+                                                WorkspaceCadPacket& Delivered,
+                                                const WorldDraftRenderingStyle& Style,
+                                                double ClosureTolerance,
+                                                double CoplanarTolerance)
+{
+    return ProjectWorldDraftRendering(Declared, Camera, Drawable.ToPhysical(LogicalExtent),
                                       Delivered, Style, ClosureTolerance, CoplanarTolerance);
 }
 
@@ -449,7 +462,9 @@ bool ProjectWorldPlacementPreview(const ResolvedCamera& Camera,
     return Appended;
 }
 
-bool CommitPlacementWorldBacked(WorkspaceNameIndex& Naming,
+bool CommitPlacementWorldBacked(WorldDraftStructure& Declared,
+                                WorldDraftSketchMapping& Mapping,
+                                WorkspaceNameIndex& Naming,
                                 SketchStructure& Sketch,
                                 WorkspaceRecordStructure& Records,
                                 WorkspaceRevisionSequence& Revisions,
@@ -466,13 +481,13 @@ bool CommitPlacementWorldBacked(WorkspaceNameIndex& Naming,
         const Deliver<WorkspaceRecordName> Record = CommitPlacement(Naming, Sketch, Records, Revisions, Placed);
         if (!Record.Resolved)
             return false;
+        MirrorSketchIntoWorldDraft(Sketch, Declared, Mapping);
         SelectedRecord = Record.Resolve();
         return SelectedRecord.Assigned();
     }
 
-    WorldDraftStructure World;
-    WorldDraftSketchMapping Mapping;
-    MirrorSketchIntoWorldDraft(Sketch, World, Mapping);
+    if (Declared.CurveCount() != static_cast<std::uint32_t>(Sketch.Curves().size()))
+        MirrorSketchIntoWorldDraft(Sketch, Declared, Mapping);
 
     const WorldPlacementFrame Support = ResolveSketchSupportFrame(Sketch);
     const bool SupportStanding = Support.Declared();
@@ -490,8 +505,8 @@ bool CommitPlacementWorldBacked(WorkspaceNameIndex& Naming,
 
         const SpatialPoint Tip = Added(Placed.Anchors.back(), Scaled(Along, 0.001));
         WorldCurves.push_back(SupportStanding
-                            ? World.DeclareLine(Placed.Anchors.back(), Tip, Support)
-                            : World.DeclareLine(Placed.Anchors.back(), Tip));
+                            ? Declared.DeclareLine(Placed.Anchors.back(), Tip, Support)
+                            : Declared.DeclareLine(Placed.Anchors.back(), Tip));
     }
     else
     {
@@ -502,20 +517,19 @@ bool CommitPlacementWorldBacked(WorkspaceNameIndex& Naming,
         WorldCurves.reserve(Geometry.size());
         for (const CurveSpecification& Curve : Geometry)
             WorldCurves.push_back(SupportStanding
-                                ? World.DeclareCurve(Curve, Support)
-                                : World.DeclareCurve(Curve));
+                                ? Declared.DeclareCurve(Curve, Support)
+                                : Declared.DeclareCurve(Curve));
     }
 
     if (WorldCurves.empty())
         return false;
 
-    const bool Profile = PlacementFormsProfile(Placed);
-    if (Profile)
+    if (PlacementFormsProfile(Placed))
     {
         DeclaredWorldLoop Loop = {};
         for (const WorldCurveName& Curve : WorldCurves)
             Loop.Traversal.push_back({ Curve, true });
-        if (!World.DeclareLoop(Loop).Assigned())
+        if (!Declared.DeclareLoop(Loop).Assigned())
             return false;
     }
 
@@ -523,12 +537,13 @@ bool CommitPlacementWorldBacked(WorkspaceNameIndex& Naming,
     SketchCurves.reserve(WorldCurves.size());
     for (const WorldCurveName& Curve : WorldCurves)
     {
-        const DeclaredWorldCurve* Resolved = World.Resolve(Curve);
+        const DeclaredWorldCurve* Resolved = Declared.Resolve(Curve);
         if (Resolved == nullptr || !Resolved->Geometry.Declared())
             return false;
         SketchCurves.push_back(Sketch.DeclareCurve(Resolved->Geometry));
     }
 
+    const bool Profile = PlacementFormsProfile(Placed);
     std::vector<WorkspaceRecordName> Written;
     if (Placed.Subject == SketchSubject::Point)
     {
@@ -554,6 +569,7 @@ bool CommitPlacementWorldBacked(WorkspaceNameIndex& Naming,
         Shape.DeclareLoop(Loop);
 
         const ProfileNameInFeature DeclaredProfile = Sketch.DeclareProfile(Shape);
+        Mapping.Loops.push_back({ DeclaredProfile, 0u });
         const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, DeclaredProfile);
         Written.push_back(Record);
         SelectedRecord = Record;

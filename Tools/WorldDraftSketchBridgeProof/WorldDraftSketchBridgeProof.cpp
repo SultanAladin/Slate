@@ -42,6 +42,8 @@ struct Bench
     DrawableScale Drawable = { 1.0 };
     ResolvedCamera Camera = ResolveFreeCamera({ 0.0, 50.0, -300.0 }, 0.0, 0.0, 60.0, true, 1.0);
     SketchStructure Sketch = {};
+    WorldDraftStructure World = {};
+    WorldDraftSketchMapping Mapping = {};
     WorkspaceRecordStructure Records = {};
     WorkspaceRevisionSequence Revisions = {};
     WorkspaceDirectoryProjection Directory = {};
@@ -87,6 +89,7 @@ struct Bench
         Record.Profile = DeclaredProfile;
         ProfileRecord = Records.Declare(Record);
 
+        MirrorSketchIntoWorldDraft(Sketch, World, Mapping);
         ProjectWorkspaceDirectory(Records, Directory);
         for (bool& Held : WorkspaceApplied.RowSelected)
             Held = false;
@@ -113,7 +116,7 @@ struct Bench
         DriveViewportSelectionAndTransformWorldBacked(
             Extent, Pointer, Text, Selection, Gizmo, Camera,
             Directory, WorkspaceApplied,
-            Sketch, Records, Revisions,
+            Sketch, World, Mapping, Records, Revisions,
             PendingSelection, SemanticSelection, HoveredSelection,
             Transform, Overlay, PointerTaken,
             Milliseconds, LastGPressedMilliseconds);
@@ -125,14 +128,11 @@ void ProveMirrorAndPickMapping()
     std::printf("\n1. Sketch geometry mirrors into a world draft and picks round-trip\n");
 
     Bench Stage;
-    WorldDraftStructure World;
-    WorldDraftSketchMapping Mapping;
-    MirrorSketchIntoWorldDraft(Stage.Sketch, World, Mapping);
 
-    Claim(World.CurveCount() == 4u,
-          "the sketch's four edges mirror into four world curves");
-    Claim(World.LoopCount() == 1u && Mapping.Loops.size() == 1u,
-          "and the rectangle profile mirrors into one world loop with recorded source mapping");
+    Claim(Stage.World.CurveCount() == 4u,
+          "the sketch's four edges mirror into four persistent world curves");
+    Claim(Stage.World.LoopCount() == 1u && Stage.Mapping.Loops.size() == 1u,
+          "and the rectangle profile mirrors into one persistent world loop with recorded source mapping");
 
     SketchPick ProfilePick = {};
     ProfilePick.Subject = SketchPickSubject::Record;
@@ -140,13 +140,13 @@ void ProveMirrorAndPickMapping()
     ResolveProfilePivot(Stage.Sketch, { 1u }, ProfilePick.Position);
 
     WorldPick Mirrored = {};
-    Claim(ResolveWorldPickForSketchPick(Stage.Sketch, Stage.Records, World, Mapping, ProfilePick, Mirrored),
+    Claim(ResolveWorldPickForSketchPick(Stage.Sketch, Stage.Records, Stage.World, Stage.Mapping, ProfilePick, Mirrored),
           "a selected profile record maps into a world-loop selection");
     Claim(Mirrored.Subject == WorldPickSubject::Loop && Mirrored.Loop.IssuedIndex == 1u,
           "and it chooses the mirrored rectangle loop");
 
     SketchPick Back = {};
-    Claim(ResolveSketchPickForWorldPick(Stage.Sketch, Stage.Records, Mapping, Mirrored, Back),
+    Claim(ResolveSketchPickForWorldPick(Stage.Sketch, Stage.Records, Stage.Mapping, Mirrored, Back),
           "a mirrored world-loop selection maps back into sketch selection space");
     Claim(Back.Subject == SketchPickSubject::Record && Back.Record.IssuedIndex == Stage.ProfileRecord.IssuedIndex,
           "and it comes back as the same profile record");
@@ -200,9 +200,13 @@ void ProveWorldBackedViewportFlow()
     PointerTaken = false;
     Stage.Drive(Drag, {}, 1032.0, PointerTaken);
 
-    Claim(SamePoint(Stage.Sketch.Curves()[1u].Geometry.HeldLine().Origin, { 130.0, 20.0, 40.0 })
+    const DeclaredWorldCurve* WorldCurve = Stage.World.Resolve(WorldCurveName{ 2u });
+    Claim(WorldCurve != nullptr
+       && SamePoint(WorldCurve->Geometry.HeldLine().Origin, { 130.0, 20.0, 40.0 })
+       && SamePoint(WorldCurve->Geometry.HeldLine().Terminus, { 130.0, 120.0, 40.0 })
+       && SamePoint(Stage.Sketch.Curves()[1u].Geometry.HeldLine().Origin, { 130.0, 20.0, 40.0 })
        && SamePoint(Stage.Sketch.Curves()[1u].Geometry.HeldLine().Terminus, { 130.0, 120.0, 40.0 }),
-          "the live world drag writes the moved geometry back into the sketch authority");
+          "the persistent world draft moves first and the sketch mirror follows it");
 
     PointerCondition Release = Drag;
     Release.ContactHeld = false;
@@ -219,14 +223,20 @@ void ProveWorldBackedViewportFlow()
 
 void ProveWorldBackedRenderingAndPreview()
 {
-    std::printf("\n3. The mirrored sketch renders through the world projection and preview appends in screen space\n");
+    std::printf("\n3. The persistent world draft renders directly and preview appends in screen space\n");
 
     Bench Stage;
-    Stage.Sketch.Curves()[1u].Geometry.HeldLine().Origin.Forward = 100.0;
-    Stage.Sketch.Curves()[1u].Geometry.HeldLine().Terminus.Forward = 100.0;
+    DeclaredWorldCurve* Raised = Stage.World.Resolve(WorldCurveName{ 2u });
+    Claim(Raised != nullptr,
+          "the persistent world draft exposes the rectangle edge for direct rendering edits");
+    if (Raised != nullptr)
+    {
+        Raised->Geometry.HeldLine().Origin.Forward = 100.0;
+        Raised->Geometry.HeldLine().Terminus.Forward = 100.0;
+    }
 
     WorkspaceCadPacket Packet = {};
-    Discard(ProjectWorldBackedSketchRendering(Stage.Sketch, Stage.Camera,
+    Discard(ProjectWorldBackedSketchRendering(Stage.World, Stage.Camera,
                                               Stage.Extent, Stage.Drawable, Packet));
     Claim(Packet.SegmentCount > 0u,
           "the mirrored sketch still produces visible linework through the world renderer");

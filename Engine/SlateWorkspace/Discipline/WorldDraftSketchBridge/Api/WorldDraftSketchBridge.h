@@ -72,11 +72,22 @@ bool ProjectWorldPlacementPreview(const ResolvedCamera& Camera,
                                   WorkspaceCadPacket& Delivered,
                                   const SketchRenderingStyle& Style = {});
 
-bool CommitPlacementWorldBacked(WorkspaceNameIndex& Naming,
+bool CommitPlacementWorldBacked(WorldDraftStructure& Declared,
+                                WorldDraftSketchMapping& Mapping,
+                                WorkspaceNameIndex& Naming,
                                 SketchStructure& Sketch,
                                 WorkspaceRecordStructure& Records,
                                 WorkspaceRevisionSequence& Revisions,
                                 const SealedPlacement& Placed,
                                 WorkspaceRecordName& SelectedRecord);
+
+Deliver<bool> ProjectWorldBackedSketchRendering(const WorldDraftStructure& Declared,
+                                                const ResolvedCamera& Camera,
+                                                const PlaneExtent& LogicalExtent,
+                                                const DrawableScale& Drawable,
+                                                WorkspaceCadPacket& Delivered,
+                                                const WorldDraftRenderingStyle& Style = {},
+                                                double ClosureTolerance = 0.01,
+                                                double CoplanarTolerance = 0.01);
 
 } // namespace Slate
