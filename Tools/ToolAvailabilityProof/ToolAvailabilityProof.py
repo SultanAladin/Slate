@@ -27,6 +27,7 @@ SUPPORTING = [
     "Engine/SlateShape/Sketch/DimensionSpecification/Source/DimensionSpecification.cpp",
     "Engine/SlateShape/Sketch/SketchPolyline/Source/SketchPolyline.cpp",
     "Engine/SlateShape/Sketch/SketchSelection/Source/SketchSelection.cpp",
+    "Engine/SlateShape/Sketch/SketchEditing/Source/SketchEditing.cpp",
     "Engine/SlateShape/Sketch/SketchStructure/Source/SketchStructure.cpp",
     "Engine/SlateWorkspace/Discipline/SketchPicking/Source/SketchPicking.cpp",
 ]

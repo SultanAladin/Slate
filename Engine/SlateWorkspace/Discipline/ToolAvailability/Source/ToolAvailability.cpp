@@ -7,6 +7,63 @@
 namespace Slate
 {
 
+namespace
+{
+
+bool ResolveCurrentSemanticSelection(const SketchStructure& Sketch,
+                                     const WorkspaceRecordStructure& Records,
+                                     const SketchPick& SemanticSelection,
+                                     SketchPick& Resolved)
+{
+    Resolved = SemanticSelection;
+
+    switch (SemanticSelection.Subject)
+    {
+        case SketchPickSubject::Point:
+            Resolved.Record = ResolveRecordForPoint(Sketch, Records, SemanticSelection.Point);
+            if (!Resolved.Record.Assigned())
+                return false;
+            Resolved.Curve = { SemanticSelection.Point.IssuedIndex >> 8u };
+            return ResolveSketchPointPosition(Sketch, SemanticSelection.Point, Resolved.Position);
+
+        case SketchPickSubject::Control:
+        {
+            const std::uint32_t CurveIndex = SemanticSelection.Control.IssuedIndex >> 12u;
+            if (CurveIndex == 0u || CurveIndex > Sketch.Curves().size())
+                return false;
+
+            std::vector<SketchControlPlacement> Controls;
+            if (!ResolveSketchControls(Sketch, { CurveIndex }, Controls))
+                return false;
+
+            for (const SketchControlPlacement& Control : Controls)
+                if (Control.Name.IssuedIndex == SemanticSelection.Control.IssuedIndex)
+                {
+                    Resolved.Curve = Control.SourceCurve;
+                    Resolved.Position = Control.Position;
+                    Resolved.Record = ResolveRecordForCurve(Sketch, Records, Control.SourceCurve);
+                    return Resolved.Record.Assigned();
+                }
+            return false;
+        }
+
+        case SketchPickSubject::Curve:
+            Resolved.Record = ResolveRecordForCurve(Sketch, Records, SemanticSelection.Curve);
+            return Resolved.Record.Assigned()
+                && ResolveCurvePivot(Sketch, SemanticSelection.Curve, Resolved.Position);
+
+        case SketchPickSubject::Record:
+            return ResolvePickForRecord(Sketch, Records, SemanticSelection.Record, Resolved);
+
+        case SketchPickSubject::None:
+            return false;
+    }
+
+    return false;
+}
+
+} // namespace
+
 ToolAvailability AvailabilityFor(WorkspaceRecordSubject Subject)
 {
     ToolAvailability Answered = {};
@@ -127,7 +184,11 @@ SketchPick EditableSelection(const SketchStructure& Sketch,
     if (SemanticSelection.Standing() &&
         ((!SelectedRecord.Assigned() || SemanticSelection.Record.IssuedIndex == SelectedRecord.IssuedIndex) ||
          (PendingSelection.Assigned() && PendingSelection.IssuedIndex == SemanticSelection.Record.IssuedIndex)))
-        return SemanticSelection;
+    {
+        SketchPick Refreshed = {};
+        if (ResolveCurrentSemanticSelection(Sketch, Records, SemanticSelection, Refreshed))
+            return Refreshed;
+    }
 
     SketchPick Selection = {};
     ResolvePickForRecord(Sketch, Records, SelectedRecord, Selection);

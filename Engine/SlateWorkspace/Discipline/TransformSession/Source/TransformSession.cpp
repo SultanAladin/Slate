@@ -51,6 +51,31 @@ namespace
         for (const SketchPointPlacement& Point : Points)
             CollectCoincidentPointPlacements(Sketch, Point.Position, Placements);
     }
+
+    bool ResolveCurrentControlPlacement(const SketchStructure& Sketch,
+                                        SketchControlName Subject,
+                                        SketchControlPlacement& Placement)
+    {
+        if (!Subject.Assigned())
+            return false;
+
+        const std::uint32_t CurveIndex = Subject.IssuedIndex >> 12u;
+        if (CurveIndex == 0u || CurveIndex > Sketch.Curves().size())
+            return false;
+
+        std::vector<SketchControlPlacement> Controls;
+        if (!ResolveSketchControls(Sketch, { CurveIndex }, Controls))
+            return false;
+
+        for (const SketchControlPlacement& Control : Controls)
+            if (Control.Name.IssuedIndex == Subject.IssuedIndex)
+            {
+                Placement = Control;
+                return true;
+            }
+
+        return false;
+    }
 }
 
 bool ResolveTransformPlacements(const SketchStructure& Sketch,
@@ -61,34 +86,50 @@ bool ResolveTransformPlacements(const SketchStructure& Sketch,
                                 std::vector<SketchPlacementSubject>& Placements)
 {
     Placements.clear();
-    ResolvedRecord = Target.Record;
+    ResolvedRecord = {};
 
     if (Target.Subject == SketchPickSubject::Point)
     {
-        CollectCoincidentPointPlacements(Sketch, Target.Position, Placements);
+        SpatialPoint Anchor = {};
+        if (!ResolveSketchPointPosition(Sketch, Target.Point, Anchor))
+            return false;
+
+        CollectCoincidentPointPlacements(Sketch, Anchor, Placements);
         if (Placements.empty())
-            Placements.push_back({ false, Target.Point, {}, Target.Position });
-        Pivot = Target.Position;
-        return true;
+            Placements.push_back({ false, Target.Point, {}, Anchor });
+
+        ResolvedRecord = ResolveRecordForPoint(Sketch, Records, Target.Point);
+        Pivot = Anchor;
+        return !Placements.empty() && ResolvedRecord.Assigned();
     }
 
     if (Target.Subject == SketchPickSubject::Control)
     {
-        Placements.push_back({ true, {}, Target.Control, Target.Position });
-        Pivot = Target.Position;
-        return true;
+        SketchControlPlacement Control = {};
+        if (!ResolveCurrentControlPlacement(Sketch, Target.Control, Control))
+            return false;
+
+        Placements.push_back({ true, {}, Target.Control, Control.Position });
+        ResolvedRecord = ResolveRecordForCurve(Sketch, Records, Control.SourceCurve);
+        Pivot = Control.Position;
+        return ResolvedRecord.Assigned();
     }
 
     if (Target.Subject == SketchPickSubject::Curve)
     {
         CollectConnectedCurvePlacements(Sketch, Target.Curve, Placements);
+        ResolvedRecord = ResolveRecordForCurve(Sketch, Records, Target.Curve);
         if (!ResolveCurvePivot(Sketch, Target.Curve, Pivot))
-            Pivot = Target.Position;
-        return !Placements.empty();
+            return false;
+        return !Placements.empty() && ResolvedRecord.Assigned();
     }
 
     if (Target.Subject == SketchPickSubject::Record)
     {
+        SketchPick Refreshed = {};
+        if (!ResolvePickForRecord(Sketch, Records, Target.Record, Refreshed))
+            return false;
+
         const WorkspaceRecord* Record = Records.Resolve(Target.Record);
         if (Record == nullptr)
             return false;
@@ -96,7 +137,8 @@ bool ResolveTransformPlacements(const SketchStructure& Sketch,
             CollectCurvePlacements(Sketch, Record->SketchCurve, Placements);
         else if (Record->Profile.Assigned())
             CollectProfilePlacements(Sketch, Record->Profile, Placements);
-        Pivot = Target.Position;
+        ResolvedRecord = Target.Record;
+        Pivot = Refreshed.Position;
         return !Placements.empty();
     }
 

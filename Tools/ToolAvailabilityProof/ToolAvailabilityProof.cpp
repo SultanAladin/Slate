@@ -12,7 +12,9 @@
 //    one produced from a blank context, which is the claim the shipped shape could not make.
 
 #include "SlateWorkspace/Discipline/ToolAvailability/Api/ToolAvailability.h"
+#include "SlateShape/Sketch/SketchEditing/Api/SketchEditing.h"
 
+#include <cmath>
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -379,6 +381,72 @@ void ProveWhichRowOpens()
           "a count larger than the storage stops at the storage, rather than reading into what follows it");
 }
 
+//------------------------------------------------------------------------------------------------------------------------
+//                               6. A MOVED SUB-ELEMENT STAYS THE SELECTED SUB-ELEMENT
+//------------------------------------------------------------------------------------------------------------------------
+
+void ProveEditableSelectionTracksMovedPoint()
+{
+    std::printf("\n6. A selected vertex refreshes to where the geometry now is\n");
+
+    SketchStructure Sketch;
+    Sketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 } });
+    const Deliver<ProfileNameInFeature> Triangle =
+        Sketch.DeclareRegularPolygon({ 0.0, 0.0, 0.0 }, 20.0, 3u, { 1.0, 0.0, 0.0 });
+    Claim(Triangle.Resolved, "a profile-only triangle can be declared");
+    if (!Triangle.Resolved)
+        return;
+
+    WorkspaceRecordStructure Records;
+    WorkspaceRecord ProfileRecord = {};
+    ProfileRecord.Subject = WorkspaceRecordSubject::ClosedProfile;
+    ProfileRecord.Profile = Triangle.Resolve();
+    ProfileRecord.Naming = "Triangle";
+    const WorkspaceRecordName Record = Records.Declare(ProfileRecord);
+
+    const ProfileSpecification& Held = Sketch.Profiles()[Triangle.Resolve().IssuedIndex - 1u];
+    const SketchCurveName FirstEdge = { Held.HeldLoops()[0].Traversal[0].TraversedCurve.IssuedIndex };
+
+    std::vector<SketchPointPlacement> EdgePoints;
+    Claim(ResolveSketchPoints(Sketch, FirstEdge, EdgePoints) && EdgePoints.size() == 2u,
+          "the triangle exposes a corner to select");
+    if (EdgePoints.size() != 2u)
+        return;
+
+    const SpatialPoint Original = EdgePoints[0].Position;
+    const SpatialPoint Moved = { Original.Left + 11.0, Original.Up, Original.Forward + 7.0 };
+    const SketchPick Vertex = ResolveSketchPickForElement(Sketch, Records, Original, 5.0, SelectionElement::Vertex);
+    Claim(Vertex.Subject == SketchPickSubject::Point,
+          "the chosen corner is selected as a point");
+    Claim(Vertex.Record.IssuedIndex == Record.IssuedIndex,
+          "and it belongs to the profile record the directory names");
+
+    std::uint32_t MovedEndpoints = 0u;
+    for (std::uint32_t CurveIndex = 1u; CurveIndex <= Sketch.Curves().size(); ++CurveIndex)
+    {
+        std::vector<SketchPointPlacement> Points;
+        if (!ResolveSketchPoints(Sketch, { CurveIndex }, Points))
+            continue;
+        for (const SketchPointPlacement& Point : Points)
+            if (std::fabs(Point.Position.Left - Original.Left) < 1.0e-9
+             && std::fabs(Point.Position.Forward - Original.Forward) < 1.0e-9)
+            {
+                Claim(EnforceSketchPoint(Sketch, Point.Name, Moved).Resolved,
+                      "moving one selected corner can update each coincident endpoint that shares it");
+                ++MovedEndpoints;
+            }
+    }
+    Claim(MovedEndpoints == 2u,
+          "exactly two coincident endpoints shared the selected triangle corner");
+
+    const SketchPick Refreshed = EditableSelection(Sketch, Records, Record, {}, Vertex);
+    Claim(Refreshed.Subject == SketchPickSubject::Point,
+          "the editable selection remains the vertex, not the whole profile");
+    Claim(std::fabs(Refreshed.Position.Left - Moved.Left) < 1.0e-9
+       && std::fabs(Refreshed.Position.Forward - Moved.Forward) < 1.0e-9,
+          "and its position refreshes to the vertex's NEW location rather than the stale one it was picked at");
+}
+
 }   // namespace
 
 int main()
@@ -392,6 +460,7 @@ int main()
     ProveAnEmptySelectionOffersNothing();
     ProveTheTwoSourcesOfAPlaneCombine();
     ProveWhichRowOpens();
+    ProveEditableSelectionTracksMovedPoint();
 
     std::printf("\n=========================================================================\n");
     std::printf("%u claims, %u failures -> %s\n", Claims, Failures, Failures == 0u ? "PROVEN" : "REFUTED");

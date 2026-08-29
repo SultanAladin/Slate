@@ -508,6 +508,87 @@ void ProveProfileVertexAndProfileMove()
     }
 }
 
+void ProveRepeatedVertexMoveDoesNotSplit()
+{
+    std::printf("\n2d. Reusing the same selected vertex does not split the shape\n");
+
+    ProfileTriangleBench Stage;
+    const SketchPick Vertex = Stage.VertexPick();
+    Claim(Vertex.Subject == SketchPickSubject::Point,
+          "the triangle still offers a vertex pick to start from");
+
+    TransformSession First;
+    float StartX = 0.0f;
+    float StartY = 0.0f;
+    Stage.ScreenOf(Vertex.Position.Left, Vertex.Position.Forward, StartX, StartY);
+    Claim(StartTransformSession(Stage.Sketch, Stage.Records, Stage.Basis, Stage.View, false,
+                                Stage.Extent, StartX, StartY, Vertex,
+                                TransformManner::Move, TransformRestriction::Free, false, true, First),
+          "the first vertex drag starts");
+
+    const double FirstAlong = Vertex.Position.Left + 10.0;
+    const double FirstAcross = Vertex.Position.Forward + 6.0;
+    float FirstEndX = 0.0f;
+    float FirstEndY = 0.0f;
+    Stage.ScreenOf(FirstAlong, FirstAcross, FirstEndX, FirstEndY);
+    UpdateTransformSession(Stage.Basis, Stage.View, false, Stage.Extent, FirstEndX, FirstEndY, false,
+                           Stage.Sketch, First);
+    CommitTransformSession(Stage.Records, Stage.Revisions, First);
+
+    // 🔴 THE ORIGINAL BUG: the standing semantic point kept its OLD position, so the second drag looked
+    //    for coincident neighbours at the abandoned corner and moved only one endpoint. Reusing the same
+    //    `Vertex` pick here reproduces that exact state.
+    TransformSession Second;
+    Claim(StartTransformSession(Stage.Sketch, Stage.Records, Stage.Basis, Stage.View, false,
+                                Stage.Extent, FirstEndX, FirstEndY, Vertex,
+                                TransformManner::Move, TransformRestriction::Free, false, true, Second),
+          "the second drag can start from the same selected vertex, even though its stored position is stale");
+    Claim(Second.Placements.size() >= 2u,
+          "and it still resolves both incident endpoints rather than only one stale point");
+
+    const double SecondAlong = FirstAlong + 7.0;
+    const double SecondAcross = FirstAcross - 5.0;
+    float SecondEndX = 0.0f;
+    float SecondEndY = 0.0f;
+    Stage.ScreenOf(SecondAlong, SecondAcross, SecondEndX, SecondEndY);
+    UpdateTransformSession(Stage.Basis, Stage.View, false, Stage.Extent, SecondEndX, SecondEndY, false,
+                           Stage.Sketch, Second);
+
+    std::vector<SketchPointPlacement> A;
+    std::vector<SketchPointPlacement> B;
+    std::vector<SketchPointPlacement> C;
+    ResolveSketchPoints(Stage.Sketch, Stage.EdgeA, A);
+    ResolveSketchPoints(Stage.Sketch, Stage.EdgeB, B);
+    ResolveSketchPoints(Stage.Sketch, Stage.EdgeC, C);
+    Claim(A.size() == 2u && B.size() == 2u && C.size() == 2u,
+          "the triangle remains readable after dragging the same selection twice");
+
+    if (A.size() == 2u && B.size() == 2u && C.size() == 2u)
+    {
+        std::uint32_t MovedCount = 0u;
+        for (const SketchPointPlacement& Point : { A[0], A[1], B[0], B[1], C[0], C[1] })
+            if (SamePoint(Point.Position, { SecondAlong, 0.0, SecondAcross }, 1.0e-6))
+                ++MovedCount;
+        Claim(MovedCount == 2u,
+              "after the second drag, exactly the two incident endpoints still share the moved corner");
+
+        const bool AtoB = SamePoint(A[1].Position, B[0].Position, 1.0e-6)
+                       || SamePoint(A[1].Position, B[1].Position, 1.0e-6)
+                       || SamePoint(A[0].Position, B[0].Position, 1.0e-6)
+                       || SamePoint(A[0].Position, B[1].Position, 1.0e-6);
+        const bool BtoC = SamePoint(B[0].Position, C[0].Position, 1.0e-6)
+                       || SamePoint(B[0].Position, C[1].Position, 1.0e-6)
+                       || SamePoint(B[1].Position, C[0].Position, 1.0e-6)
+                       || SamePoint(B[1].Position, C[1].Position, 1.0e-6);
+        const bool CtoA = SamePoint(C[0].Position, A[0].Position, 1.0e-6)
+                       || SamePoint(C[0].Position, A[1].Position, 1.0e-6)
+                       || SamePoint(C[1].Position, A[0].Position, 1.0e-6)
+                       || SamePoint(C[1].Position, A[1].Position, 1.0e-6);
+        Claim(AtoB && BtoC && CtoA,
+              "and the second drag still leaves a closed triangle rather than a split-open one");
+    }
+}
+
 
 //========================================================================================================
 // 3. AXIS RESTRICTION
@@ -868,6 +949,7 @@ int main()
     ProveMove();
     ProveConnectedEdgeMove();
     ProveProfileVertexAndProfileMove();
+    ProveRepeatedVertexMoveDoesNotSplit();
     ProveRestriction();
     ProveRotateAndScale();
     ProveOffOrigin();
