@@ -1056,6 +1056,10 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                 }
             }
 
+            const bool PointerBehindDrawer =
+                NorthInterior.Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY) ||
+                SouthInterior.Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY);
+
             // 🔴 WHEN THE LOOK GESTURE OWNS THE VIEWPORT, WASDEQ BELONG TO THE CAMERA ONLY. The same `S`
             //    was reaching the fly camera as "backward" and the sketch transform grammar as "Scale",
             //    so one press moved the camera and scaled the shape at once. The look latch survives the
@@ -1108,9 +1112,6 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                     SketchContextMenu.Close();
                 }
             }
-            const bool PointerBehindDrawer =
-                NorthInterior.Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY) ||
-                SouthInterior.Encloses(ForegroundPointer.PositionX, ForegroundPointer.PositionY);
             PointerCondition BackgroundPointer = ForegroundPointer;
             if (PointerBehindDrawer)
             {
