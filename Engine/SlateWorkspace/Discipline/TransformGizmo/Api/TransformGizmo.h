@@ -119,6 +119,10 @@ bool ResolveGizmoScreenBasis(const SpatialBasis& Basis,
                              const PlaneExtent& Extent,
                              const SpatialPoint& Pivot,
                              GizmoScreenBasis& Resolved);
+bool ResolveGizmoScreenBasis(const ResolvedCamera& Camera,
+                             const PlaneExtent& Extent,
+                             const SpatialPoint& Pivot,
+                             GizmoScreenBasis& Resolved);
 
 /// 🧩 Which handle a pointer position is over.
 /// note 📝 The hit test follows the reference order: centre, then the plane quad, then the axis, then

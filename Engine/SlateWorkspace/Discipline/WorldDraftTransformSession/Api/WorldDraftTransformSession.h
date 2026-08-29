@@ -19,6 +19,7 @@ struct WorldDraftTransformSession
 {
     TransformStanding Standing = {};
 
+    bool AwaitingRelease = false;
     bool Changed = false;
 
     WorldPick Target = {};
@@ -64,7 +65,8 @@ bool StartWorldDraftTransformSession(const WorldDraftStructure& Declared,
                                      const WorldPick& Target,
                                      TransformRestriction Restriction,
                                      bool SlideAlongCurve,
-                                     WorldDraftTransformSession& Session);
+                                     WorldDraftTransformSession& Session,
+                                     bool MouseDriven = false);
 
 void UpdateWorldDraftTransformSession(const ResolvedCamera& Camera,
                                       const PlaneExtent& Extent,

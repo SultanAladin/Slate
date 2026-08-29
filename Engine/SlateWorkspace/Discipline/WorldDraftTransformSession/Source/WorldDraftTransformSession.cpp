@@ -329,6 +329,7 @@ void RestoreWorldTransformPlacements(WorldDraftStructure& Declared,
 void ClearWorldDraftTransformSession(WorldDraftTransformSession& Session)
 {
     Session.Engaged() = false;
+    Session.AwaitingRelease = false;
     Session.Changed = false;
     Session.SlideAlongCurve() = false;
     Session.Restriction() = TransformRestriction::Free;
@@ -350,7 +351,8 @@ bool StartWorldDraftTransformSession(const WorldDraftStructure& Declared,
                                      const WorldPick& Target,
                                      TransformRestriction Restriction,
                                      bool SlideAlongCurve,
-                                     WorldDraftTransformSession& Session)
+                                     WorldDraftTransformSession& Session,
+                                     bool MouseDriven)
 {
     SpatialPoint Pivot = {};
     std::vector<WorldPlacementSubject> Placements;
@@ -360,6 +362,7 @@ bool StartWorldDraftTransformSession(const WorldDraftStructure& Declared,
     ClearWorldDraftTransformSession(Session);
     Session.Manner() = TransformManner::Move;
     Session.Engaged() = true;
+    Session.AwaitingRelease = MouseDriven;
     Session.Restriction() = Restriction;
     Session.SlideAlongCurve() = SlideAlongCurve || Restriction == TransformRestriction::Curve;
     Session.Target = Target;

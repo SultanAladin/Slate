@@ -153,6 +153,64 @@ bool ResolveGizmoScreenBasis(const SpatialBasis& Basis,
     return true;
 }
 
+bool ResolveGizmoScreenBasis(const ResolvedCamera& Camera,
+                             const PlaneExtent& Extent,
+                             const SpatialPoint& Pivot,
+                             GizmoScreenBasis& Resolved)
+{
+    Resolved = {};
+    if (!ProjectFromCamera(Camera, Extent, Pivot, Resolved.PivotX, Resolved.PivotY))
+        return false;
+
+    double ProbeWorld = 24.0;
+    bool Measured = false;
+
+    const auto Probe = [&](const SpatialDirection& Direction, float& DirX, float& DirY)
+    {
+        float X = 0.0f;
+        float Y = 0.0f;
+        if (!ProjectFromCamera(Camera, Extent, Added(Pivot, Scaled(Direction, ProbeWorld)), X, Y))
+            return;
+
+        const double DX = static_cast<double>(X) - Resolved.PivotX;
+        const double DY = static_cast<double>(Y) - Resolved.PivotY;
+        const double Length = std::sqrt(DX * DX + DY * DY);
+        if (Length <= 1.0e-4)
+            return;
+
+        DirX = static_cast<float>(DX / Length);
+        DirY = static_cast<float>(DY / Length);
+
+        const double Candidate = ProbeWorld / Length;
+        if (!Measured || Candidate < Resolved.WorldPerPixel)
+        {
+            Resolved.WorldPerPixel = Candidate;
+            Measured = true;
+        }
+    };
+
+    Probe(Camera.Basis.Along, Resolved.AlongX, Resolved.AlongY);
+    Probe(Camera.Basis.Across, Resolved.AcrossX, Resolved.AcrossY);
+    Probe(Camera.Basis.Normal, Resolved.NormalX, Resolved.NormalY);
+
+    if (Measured)
+    {
+        ProbeWorld = Resolved.WorldPerPixel * GizmoMeasure::AxisEnd;
+        if (ProbeWorld > 1.0e-6)
+        {
+            Measured = false;
+            Probe(Camera.Basis.Along, Resolved.AlongX, Resolved.AlongY);
+            Probe(Camera.Basis.Across, Resolved.AcrossX, Resolved.AcrossY);
+            Probe(Camera.Basis.Normal, Resolved.NormalX, Resolved.NormalY);
+        }
+    }
+
+    if (!Measured)
+        Resolved.WorldPerPixel = 1.0;
+
+    return true;
+}
+
 GizmoHandle ResolveGizmoHandle(const GizmoScreenBasis& Screen,
                                TransformManner Manner,
                                float PointerX,
