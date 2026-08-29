@@ -2300,10 +2300,21 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                 //    Each viewport leaf's geometry is uploaded at most once per generation change
                 //    and drawn with a scissor clipped to that leaf's box, so the overlay never
                 //    textures over the outliner, the properties or any other panel.
+                // 🔴 A DRAWER HIDES THE STRIP IT COVERS, NOT THE WHOLE VIEWPORT. Both GPU passes record
+                //    after the interface, so either of them can texture over the Control Centre or the
+                //    Content Browser unless they are clipped to the uncovered band. The drawers are
+                //    full-width horizontal bands: North descends from the top edge and South rises from
+                //    the bottom, so what remains visible is one vertical band.
+                const float UncoveredTop    = NorthInterior.MaximumY > 0.0f
+                                            ? std::max(0.0f, NorthInterior.MaximumY) : 0.0f;
+                const float UncoveredBottom = SouthInterior.MinimumY < static_cast<float>(Pass.Height)
+                                            ? std::min(static_cast<float>(Pass.Height), SouthInterior.MinimumY)
+                                            : static_cast<float>(Pass.Height);
+
                 // 🔴 THE SKETCH, RASTERISED ON THE GPU. The packet is uploaded once per generation
                 //    change -- not per frame and not per leaf -- and each viewport leaf records it with
-                //    its own projection. This is the pass the deleted host used and the one whose
-                //    absence made the viewport bog down as shapes accumulated.
+                //    its own projection. The drawer band above clips THIS pass as well, or the sketch
+                //    draws over the drawers even after the overlay learned not to.
                 if constexpr (HostHasFeature(FeatureParametric))
                 {
                     if (CadPass.Standing())
@@ -2314,14 +2325,22 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                             UploadedCadGeneration = SketchCadPacket.Generation;
                         }
 
-                        for (std::uint32_t ViewportIndex = 0u; ViewportIndex < ViewportLeafTally;
+                        for (std::uint32_t ViewportIndex = 0u;
+                             UncoveredBottom > UncoveredTop && ViewportIndex < ViewportLeafTally;
                              ++ViewportIndex)
                         {
-                            // ⚠️ The scissor is PHYSICAL. `LeafBody` is logical, and the pass clamps
-                            //    against a physical width -- a clamp that never fires and silently
-                            //    leaves logical numbers in a physical field, clipping the wrong region.
-                            const PlaneExtent CadRect =
-                                ViewportLeafScale.ToPhysical(ViewportLeafRects[ViewportIndex]);
+                            const PlaneExtent& LeafRect = ViewportLeafRects[ViewportIndex];
+                            const float CadClipY0 = std::max(LeafRect.MinimumY, UncoveredTop);
+                            const float CadClipY1 = std::min(LeafRect.MaximumY, UncoveredBottom);
+
+                            if (CadClipY1 <= CadClipY0)
+                                continue;
+
+                            // ⚠️ The CAD pass scissor is PHYSICAL. The leaf and the uncovered drawer
+                            //    band are logical, so the clipped band is converted as one extent.
+                            const PlaneExtent CadClip =
+                                ViewportLeafScale.ToPhysical(Spanning(LeafRect.MinimumX, CadClipY0,
+                                                                      LeafRect.Width(), CadClipY1 - CadClipY0));
 
                             // 🔴 The open menu is withheld here too, and converted to PHYSICAL first.
                             const PlaneExtent CadWithheld =
@@ -2331,30 +2350,13 @@ static std::uint32_t             SketchTrimKeep      = 0u;
 
                             CadPass.RecordAround(Pass.Recording,
                                                  ViewportCadProjections[ViewportIndex],
-                                                 CadRect.MinimumX, CadRect.MinimumY,
-                                                 CadRect.MaximumX, CadRect.MaximumY,
+                                                 CadClip.MinimumX, CadClip.MinimumY,
+                                                 CadClip.MaximumX, CadClip.MaximumY,
                                                  CadWithheld.MinimumX, CadWithheld.MinimumY,
                                                  CadWithheld.MaximumX, CadWithheld.MaximumY);
                         }
                     }
                 }
-
-                // 🔴 A DRAWER HIDES THE STRIP IT COVERS, NOT THE WHOLE VIEWPORT. The GPU overlay is
-                //    recorded after the interface, so it cannot be hidden by an ImGui ground -- the
-                //    first fix for the lattice cutting through Control Centre was to drop the overlay
-                //    entirely whenever a drawer stood. That is why the grid and the sketch VANISH the
-                //    moment the Control Centre or the Content Browser is opened, even where the
-                //    viewport is still plainly visible between them.
-                //
-                //    Both drawers are full-width horizontal bands: North descends from the top edge,
-                //    South rises from the bottom. So the uncovered region is a band, and clipping the
-                //    scissor to it keeps the grid everywhere it is legitimately visible while still
-                //    refusing to texture a single pixel over a drawer page.
-                const float UncoveredTop    = NorthInterior.MaximumY > 0.0f
-                                            ? std::max(0.0f, NorthInterior.MaximumY) : 0.0f;
-                const float UncoveredBottom = SouthInterior.MinimumY < static_cast<float>(Pass.Height)
-                                            ? std::min(static_cast<float>(Pass.Height), SouthInterior.MinimumY)
-                                            : static_cast<float>(Pass.Height);
 
                 // ⚠️ Drawers meeting in the middle leave nothing; the loop must not record an inverted
                 //    box, which is a validation error rather than an empty draw.

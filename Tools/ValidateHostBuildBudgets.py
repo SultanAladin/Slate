@@ -160,7 +160,9 @@ def main() -> int:
     require("ForegroundDrawerStanding" not in editor,
             "the overlay must clip to the uncovered band, not be suppressed while a drawer stands")
     require("UncoveredTop" in editor and "UncoveredBottom" in editor,
-            "the overlay loop must compute the band no drawer covers")
+            "the GPU passes must compute the band no drawer covers")
+    require("CadClipY0" in editor and "CadClipY1" in editor,
+            "the CAD pass must clip to the drawer-free band too, or sketch fills draw over the drawers")
 
     # 🔴 THE CAMERA RECTANGLE AND THE SCISSOR ARE TWO DIFFERENT THINGS. `LeafRect` is pushed to the
     #    shader, where the fragment stage maps the camera's field of view across it -- so passing the
@@ -177,6 +179,13 @@ def main() -> int:
             "the overlay must receive the whole leaf as its camera rect and the visible band as its scissor")
     require(OverlayRecord.index("LeafRect.MinimumY,") < OverlayRecord.index("ScissorY0,"),
             "the leaf box must precede the scissor in the overlay record call")
+
+    CadRecord = editor[editor.index("CadPass.RecordAround("):]
+    CadRecord = CadRecord[:CadRecord.index(";")]
+    require("CadClip.MinimumY" in CadRecord and "CadWithheld.MinimumY" in CadRecord,
+            "the CAD pass must receive the drawer-clipped band and the popup withheld box separately")
+    require(CadRecord.index("CadClip.MinimumY") < CadRecord.index("CadWithheld.MinimumY"),
+            "the CAD clip band must precede the withheld popup in the CAD record call")
 
     # 🔴 THE FOOTER'S ORTHO/PERSPECTIVE BUTTON MUST REACH THE CAMERA. `PanelConfiguration[].Perspective`
     #    stored the artist's choice while the camera was resolved perspective unconditionally and the
@@ -389,6 +398,12 @@ def main() -> int:
     require("CenterActivatedSceneAtWorldOrigin" in activation
             and "CenterActivatedSceneAtWorldOrigin(Loaded)" in activation,
             "codex scene activation must recenter loaded geometry at the world origin")
+
+    cad_shader = read("Engine/SlateVulkan/Device/WorkspaceCadPass/Shader/WorkspaceCadVertex.slang")
+    require("Denominator <= 0.01" in cad_shader,
+            "the CAD shader must match the CPU picker's near-eye rejection threshold")
+    require("Valid = FirstValid && SecondValid && ThirdValid;" in cad_shader,
+            "a fill triangle must be withheld as one surface when any corner crosses the eye plane")
 
     # 🔴 THE WORKPLANE TOOL MUST BE DISPATCHED, NOT MERELY DEFINED. `ApplyWorkplaneTool` was written in
     #    full — screen-space placement, catalogue write, directory record, sealed revision — and called

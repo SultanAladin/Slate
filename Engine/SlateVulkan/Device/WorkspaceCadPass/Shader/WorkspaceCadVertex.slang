@@ -82,7 +82,12 @@ Real32x2 ProjectScreen(Real32 Along, Real32 Across, SLATE_OUT(bool) Valid)
 {
     const Real32x4 Projected = Push.Projection0 + Push.Projection1 * Along + Push.Projection2 * Across;
     const Real32 Denominator = Projected.w;
-    if (Denominator <= 0.0001)
+
+    // 🔴 MATCH THE CPU PICKER'S FRONT-OF-EYE TEST. A vertex only 0.0001 units in front of the eye
+    //    still projects to absurd screen coordinates, which is how a small profile fill turns into a
+    //    viewport-sized wedge as the camera skims the plane. `ProjectViewportPoint` already refuses
+    //    anything at or nearer than 0.01, so the shader takes the same threshold.
+    if (Denominator <= 0.01)
     {
         Valid = false;
         return Real32x2(-100000.0, -100000.0);
@@ -110,9 +115,19 @@ WorkspaceCadVertexOutput main(Unsigned32 VertexIndex : SV_VertexID)
         const Unsigned32 Record = VertexIndex / 3u;
         const Unsigned32 Corner = VertexIndex % 3u;
         const FillRecord Triangle = FillPool[Record];
-        Screen = Corner == 0u ? ProjectScreen(Triangle.First.x, Triangle.First.y, Valid)
-               : Corner == 1u ? ProjectScreen(Triangle.Second.x, Triangle.Second.y, Valid)
-                              : ProjectScreen(Triangle.Third.x, Triangle.Third.y, Valid);
+        bool FirstValid = false, SecondValid = false, ThirdValid = false;
+        const Real32x2 First = ProjectScreen(Triangle.First.x, Triangle.First.y, FirstValid);
+        const Real32x2 Second = ProjectScreen(Triangle.Second.x, Triangle.Second.y, SecondValid);
+        const Real32x2 Third = ProjectScreen(Triangle.Third.x, Triangle.Third.y, ThirdValid);
+
+        // 🔴 A fill triangle is one surface, not three independent vertices. If any corner has crossed
+        //    the eye plane, sending the other two through on their own stretches the triangle across
+        //    the screen toward the sentinel corner. Whole-triangle invalidation removes the splatter
+        //    until a proper near-plane clipper is introduced.
+        Valid = FirstValid && SecondValid && ThirdValid;
+        Screen = Corner == 0u ? First
+               : Corner == 1u ? Second
+                              : Third;
         Output.Colour = Triangle.Colour;
     }
     else if (Push.Draw == WorkspaceCadSegmentDraw)
