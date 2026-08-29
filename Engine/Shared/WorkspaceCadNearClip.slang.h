@@ -36,15 +36,15 @@ struct WorkspaceCadScreenPoint
     Real32 Y = 0.0f;
 };
 
-SLATE_SHARED bool WorkspaceCadProjectedFront(const WorkspaceCadProjectedPoint& Point,
+SLATE_SHARED bool WorkspaceCadProjectedFront(WorkspaceCadProjectedPoint Point,
                                              Real32 NearDepth = WorkspaceCadNearDepth)
 {
     return Point.W > NearDepth;
 }
 
 SLATE_SHARED WorkspaceCadProjectedPoint BlendWorkspaceCadProjectedPoint(
-    const WorkspaceCadProjectedPoint& From,
-    const WorkspaceCadProjectedPoint& Toward,
+    WorkspaceCadProjectedPoint From,
+    WorkspaceCadProjectedPoint Toward,
     Real32 Fraction)
 {
     WorkspaceCadProjectedPoint Blended;
@@ -55,8 +55,8 @@ SLATE_SHARED WorkspaceCadProjectedPoint BlendWorkspaceCadProjectedPoint(
 }
 
 SLATE_SHARED WorkspaceCadProjectedPoint IntersectWorkspaceCadNear(
-    const WorkspaceCadProjectedPoint& From,
-    const WorkspaceCadProjectedPoint& Toward,
+    WorkspaceCadProjectedPoint From,
+    WorkspaceCadProjectedPoint Toward,
     Real32 NearDepth = WorkspaceCadNearDepth)
 {
     const Real32 Reach = Toward.W - From.W;
@@ -98,9 +98,9 @@ SLATE_SHARED bool ClipWorkspaceCadSegmentNear(
 /// out   Returned   [-] 0 when the triangle lies wholly behind the plane, 3 when it remains a triangle,
 ///                     4 when clipping produces a quad that must be triangulated into two triangles.
 SLATE_SHARED Unsigned32 ClipWorkspaceCadFillTriangleNear(
-    const WorkspaceCadProjectedPoint& First,
-    const WorkspaceCadProjectedPoint& Second,
-    const WorkspaceCadProjectedPoint& Third,
+    WorkspaceCadProjectedPoint First,
+    WorkspaceCadProjectedPoint Second,
+    WorkspaceCadProjectedPoint Third,
     SLATE_INOUT_SPAN(WorkspaceCadProjectedPoint, Clipped, 4),
     Real32 NearDepth = WorkspaceCadNearDepth)
 {
@@ -136,7 +136,7 @@ SLATE_SHARED Unsigned32 ClipWorkspaceCadFillTriangleNear(
     return Count;
 }
 
-SLATE_SHARED WorkspaceCadScreenPoint ResolveWorkspaceCadScreenPoint(const WorkspaceCadProjectedPoint& Point)
+SLATE_SHARED WorkspaceCadScreenPoint ResolveWorkspaceCadScreenPoint(WorkspaceCadProjectedPoint Point)
 {
     WorkspaceCadScreenPoint Screen;
     Screen.X = Point.X / Point.W;

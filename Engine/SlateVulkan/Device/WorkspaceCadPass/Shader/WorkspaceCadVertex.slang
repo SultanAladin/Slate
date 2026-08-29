@@ -100,7 +100,7 @@ WorkspaceCadProjectedPoint ProjectPoint(Real32 Along, Real32 Across)
     return Point;
 }
 
-Real32x2 ProjectScreen(const WorkspaceCadProjectedPoint& Point)
+Real32x2 ProjectScreen(WorkspaceCadProjectedPoint Point)
 {
     const WorkspaceCadScreenPoint Screen = ResolveWorkspaceCadScreenPoint(Point);
     return Real32x2(Screen.X, Screen.Y);

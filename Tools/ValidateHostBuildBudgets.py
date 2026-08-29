@@ -487,6 +487,17 @@ def main() -> int:
     theme = read("Engine/SlateUI/Interface/ThemeInterchange/Source/ThemeInterchange.cpp")
     require("std::strncpy" not in theme, "ThemeInterchange must avoid MSVC strncpy warning")
 
+    # 🔴 SHARED SHADER SOURCE MUST NOT USE C++ REFERENCE PARAMETERS. Slang on the Windows build rejects
+    #    `const T& Name` in these shared/shader entry points, reading the parameter name as an undefined
+    #    identifier and stopping the entire SlateVulkan phase before any C++ unit is reached. The near
+    #    clipper is small POD-by-value arithmetic, so value parameters are the correct shared spelling.
+    cad_near = read("Engine/Shared/WorkspaceCadNearClip.slang.h")
+    cad_vertex = read("Engine/SlateVulkan/Device/WorkspaceCadPass/Shader/WorkspaceCadVertex.slang")
+    require("const WorkspaceCadProjectedPoint&" not in cad_near,
+            "the shared CAD near clipper must not use C++ reference parameters Slang rejects")
+    require("ProjectScreen(const WorkspaceCadProjectedPoint&" not in cad_vertex,
+            "the CAD vertex shader helper must not use a C++ reference parameter")
+
     print("[HostBuildBudgets] editor build budgets and warning fixes hold")
     return 0
 
