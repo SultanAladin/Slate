@@ -61,7 +61,7 @@ SLATE_SHARED WorkspaceCadProjectedPoint IntersectWorkspaceCadNear(
 {
     const Real32 Reach = Toward.W - From.W;
     const Real32 Fraction = Reach != 0.0f
-        ? static_cast<Real32>(BoundedMagnitude((NearDepth - From.W) / Reach, 0.0, 1.0))
+        ? Real32(BoundedMagnitude((NearDepth - From.W) / Reach, 0.0, 1.0))
         : 0.0f;
 
     WorkspaceCadProjectedPoint Hit = BlendWorkspaceCadProjectedPoint(From, Toward, Fraction);

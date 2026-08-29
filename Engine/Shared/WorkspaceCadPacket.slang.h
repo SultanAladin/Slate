@@ -173,7 +173,7 @@ struct WorkspaceCadPacket
         Written.Across = Across;
         Written.Packed = Packed;
         Written.Radius = Radius;
-        Written.Subject = static_cast<Unsigned32>(Subject);
+        Written.Subject = Unsigned32(Subject);
         Extend(Along - Radius, Across - Radius);
         Extend(Along + Radius, Across + Radius);
         ++Generation;

@@ -492,11 +492,16 @@ def main() -> int:
     #    identifier and stopping the entire SlateVulkan phase before any C++ unit is reached. The near
     #    clipper is small POD-by-value arithmetic, so value parameters are the correct shared spelling.
     cad_near = read("Engine/Shared/WorkspaceCadNearClip.slang.h")
+    cad_packet = read("Engine/Shared/WorkspaceCadPacket.slang.h")
     cad_vertex = read("Engine/SlateVulkan/Device/WorkspaceCadPass/Shader/WorkspaceCadVertex.slang")
     require("const WorkspaceCadProjectedPoint&" not in cad_near,
             "the shared CAD near clipper must not use C++ reference parameters Slang rejects")
     require("ProjectScreen(const WorkspaceCadProjectedPoint&" not in cad_vertex,
             "the CAD vertex shader helper must not use a C++ reference parameter")
+    require("static_cast<" not in cad_near,
+            "the shared CAD near clipper must not use C++ static_cast syntax Slang rejects")
+    require("static_cast<" not in cad_packet,
+            "the shared CAD packet must not use C++ static_cast syntax Slang rejects")
 
     print("[HostBuildBudgets] editor build budgets and warning fixes hold")
     return 0
