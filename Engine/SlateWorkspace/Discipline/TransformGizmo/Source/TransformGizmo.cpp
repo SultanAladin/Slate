@@ -12,6 +12,8 @@ namespace Slate
 namespace
 {
 
+constexpr double GizmoPi = 3.14159265358979323846;
+
 double DistanceSquared(float X0, float Y0, float X1, float Y1)
 {
     const double DX = static_cast<double>(X1) - static_cast<double>(X0);
@@ -40,6 +42,45 @@ double DistanceToSegmentSquared(float PX, float PY, float AX, float AY, float BX
     return OffsetX * OffsetX + OffsetY * OffsetY;
 }
 
+double DistanceToArcBarSquared(float PX,
+                               float PY,
+                               float OriginX,
+                               float OriginY,
+                               float UX,
+                               float UY,
+                               float VX,
+                               float VY)
+{
+    const double Start = GizmoPi * 0.25 - GizmoMeasure::RotateSweepRadians * 0.5;
+    double Best = 1.0e30;
+    for (std::uint32_t Segment = 0u; Segment < GizmoMeasure::RotateSegments; ++Segment)
+    {
+        const double A0 = Start + GizmoMeasure::RotateSweepRadians
+                                * static_cast<double>(Segment)
+                                / static_cast<double>(GizmoMeasure::RotateSegments);
+        const double A1 = Start + GizmoMeasure::RotateSweepRadians
+                                * static_cast<double>(Segment + 1u)
+                                / static_cast<double>(GizmoMeasure::RotateSegments);
+
+        const float X0 = OriginX
+                       + (UX * static_cast<float>(std::cos(A0)) + VX * static_cast<float>(std::sin(A0)))
+                         * static_cast<float>(GizmoMeasure::RotateRadius);
+        const float Y0 = OriginY
+                       + (UY * static_cast<float>(std::cos(A0)) + VY * static_cast<float>(std::sin(A0)))
+                         * static_cast<float>(GizmoMeasure::RotateRadius);
+        const float X1 = OriginX
+                       + (UX * static_cast<float>(std::cos(A1)) + VX * static_cast<float>(std::sin(A1)))
+                         * static_cast<float>(GizmoMeasure::RotateRadius);
+        const float Y1 = OriginY
+                       + (UY * static_cast<float>(std::cos(A1)) + VY * static_cast<float>(std::sin(A1)))
+                         * static_cast<float>(GizmoMeasure::RotateRadius);
+        const double Candidate = DistanceToSegmentSquared(PX, PY, X0, Y0, X1, Y1);
+        if (Candidate < Best)
+            Best = Candidate;
+    }
+    return Best;
+}
+
 }   // namespace
 
 bool ResolveGizmoScreenBasis(const SpatialBasis& Basis,
@@ -49,6 +90,7 @@ bool ResolveGizmoScreenBasis(const SpatialBasis& Basis,
                              const SpatialPoint& Pivot,
                              GizmoScreenBasis& Resolved)
 {
+    Resolved = {};
     if (!ProjectSpatialPoint(Basis, View, Perspective, Extent, Pivot, Resolved.PivotX, Resolved.PivotY))
         return false;
 
@@ -57,10 +99,8 @@ bool ResolveGizmoScreenBasis(const SpatialBasis& Basis,
     //    which projection is in use or how it is parameterised.
     //
     // ⚠️ IT MUST BE MEASURED OVER THE SPAN IT WILL BE USED FOR. Perspective is not linear, so a ruler read
-    //    over a long offset under-reports the rate near the pivot — measuring over a fixed 24 units and
-    //    then drawing a 44-pixel arrow gave an arrow 79% of the length asked for at close camera range.
-    //    So: read a rough ruler, work out how far the gizmo actually reaches in world units, and read it
-    //    again over exactly that. Two passes converge; a third changes nothing an artist could see.
+    //    over a long offset under-reports the rate near the pivot. So: read a rough ruler, work out how
+    //    far the gizmo actually reaches in world units, and read it again over exactly that.
     double ProbeWorld = 24.0;
     bool Measured = false;
 
@@ -69,7 +109,7 @@ bool ResolveGizmoScreenBasis(const SpatialBasis& Basis,
         float X = 0.0f;
         float Y = 0.0f;
         if (!ProjectSpatialPoint(Basis, View, Perspective, Extent,
-                               Added(Pivot, Scaled(Direction, ProbeWorld)), X, Y))
+                                 Added(Pivot, Scaled(Direction, ProbeWorld)), X, Y))
             return;
 
         const double DX = static_cast<double>(X) - Resolved.PivotX;
@@ -81,13 +121,8 @@ bool ResolveGizmoScreenBasis(const SpatialBasis& Basis,
         DirX = static_cast<float>(DX / Length);
         DirY = static_cast<float>(DY / Length);
 
-        // 🔴 TAKE THE SMALLEST WORLD-PER-PIXEL OF THE TWO AXES, WHICH IS THE ONE THAT PROJECTS LONGEST.
-        //    Under an oblique view the two axes foreshorten by different amounts — isometric spreads them
-        //    by about 13% — and one factor has to serve both. Sizing by the axis that projects longest
-        //    means the longer arm lands on the table's length and the shorter one comes in slightly under
-        //    it. Sizing by the other axis overshoots instead, and an arm longer than the table says is an
-        //    arm whose tip is outside its own hit box: the artist points at the arrowhead and grabs
-        //    nothing. Under-reaching is invisible; over-reaching is a broken control.
+        // 🔴 TAKE THE SMALLEST WORLD-PER-PIXEL OF THE VISIBLE AXES, WHICH IS THE ONE THAT PROJECTS LONGEST.
+        //    That guarantees none of the HTML-sized handles overshoots its own screen footprint.
         const double Candidate = ProbeWorld / Length;
         if (!Measured || Candidate < Resolved.WorldPerPixel)
         {
@@ -98,6 +133,7 @@ bool ResolveGizmoScreenBasis(const SpatialBasis& Basis,
 
     Probe(Basis.Along, Resolved.AlongX, Resolved.AlongY);
     Probe(Basis.Across, Resolved.AcrossX, Resolved.AcrossY);
+    Probe(Basis.Normal, Resolved.NormalX, Resolved.NormalY);
 
     if (Measured)
     {
@@ -107,6 +143,7 @@ bool ResolveGizmoScreenBasis(const SpatialBasis& Basis,
             Measured = false;
             Probe(Basis.Along, Resolved.AlongX, Resolved.AlongY);
             Probe(Basis.Across, Resolved.AcrossX, Resolved.AcrossY);
+            Probe(Basis.Normal, Resolved.NormalX, Resolved.NormalY);
         }
     }
 
@@ -121,65 +158,73 @@ GizmoHandle ResolveGizmoHandle(const GizmoScreenBasis& Screen,
                                float PointerX,
                                float PointerY)
 {
-    const float AlongStartX  = Screen.PivotX + Screen.AlongX  * static_cast<float>(GizmoMeasure::ShaftStart);
-    const float AlongStartY  = Screen.PivotY + Screen.AlongY  * static_cast<float>(GizmoMeasure::ShaftStart);
-    const float AcrossStartX = Screen.PivotX + Screen.AcrossX * static_cast<float>(GizmoMeasure::ShaftStart);
-    const float AcrossStartY = Screen.PivotY + Screen.AcrossY * static_cast<float>(GizmoMeasure::ShaftStart);
-
-    const float AlongEndX  = Screen.PivotX + Screen.AlongX  * static_cast<float>(GizmoMeasure::AxisEnd);
-    const float AlongEndY  = Screen.PivotY + Screen.AlongY  * static_cast<float>(GizmoMeasure::AxisEnd);
-    const float AcrossEndX = Screen.PivotX + Screen.AcrossX * static_cast<float>(GizmoMeasure::AxisEnd);
-    const float AcrossEndY = Screen.PivotY + Screen.AcrossY * static_cast<float>(GizmoMeasure::AxisEnd);
-
     const double CentreDistanceSquared = DistanceSquared(PointerX, PointerY, Screen.PivotX, Screen.PivotY);
+
+    const auto ConeDistanceSquared = [&](float DirX, float DirY)
+    {
+        const float BaseX = Screen.PivotX + DirX * static_cast<float>(GizmoMeasure::AxisEnd - GizmoMeasure::ConeLength);
+        const float BaseY = Screen.PivotY + DirY * static_cast<float>(GizmoMeasure::AxisEnd - GizmoMeasure::ConeLength);
+        const float TipX  = Screen.PivotX + DirX * static_cast<float>(GizmoMeasure::AxisEnd);
+        const float TipY  = Screen.PivotY + DirY * static_cast<float>(GizmoMeasure::AxisEnd);
+        return DistanceToSegmentSquared(PointerX, PointerY, BaseX, BaseY, TipX, TipY);
+    };
+
+    const auto CylinderDistanceSquared = [&](float DirX, float DirY)
+    {
+        const float StartX = Screen.PivotX + DirX * static_cast<float>(GizmoMeasure::ScaleCentre - GizmoMeasure::ScaleLength * 0.5);
+        const float StartY = Screen.PivotY + DirY * static_cast<float>(GizmoMeasure::ScaleCentre - GizmoMeasure::ScaleLength * 0.5);
+        const float EndX   = Screen.PivotX + DirX * static_cast<float>(GizmoMeasure::ScaleCentre + GizmoMeasure::ScaleLength * 0.5);
+        const float EndY   = Screen.PivotY + DirY * static_cast<float>(GizmoMeasure::ScaleCentre + GizmoMeasure::ScaleLength * 0.5);
+        return DistanceToSegmentSquared(PointerX, PointerY, StartX, StartY, EndX, EndY);
+    };
 
     if (Manner == TransformManner::Move)
     {
-        // The free-move square, offset diagonally so it does not sit on either arrow.
-        const float PlaneX = Screen.PivotX + (Screen.AlongX + Screen.AcrossX) * static_cast<float>(GizmoMeasure::PlaneOffset);
-        const float PlaneY = Screen.PivotY + (Screen.AlongY + Screen.AcrossY) * static_cast<float>(GizmoMeasure::PlaneOffset);
+        // 📝 The sketch's free-move plane is the HTML gizmo's XZ square — the square normal to +Y.
+        const float PlaneX = Screen.PivotX + (Screen.AlongX + Screen.AcrossX) * static_cast<float>(GizmoMeasure::PlaneCentre);
+        const float PlaneY = Screen.PivotY + (Screen.AlongY + Screen.AcrossY) * static_cast<float>(GizmoMeasure::PlaneCentre);
         const double LocalAlong  = (PointerX - PlaneX) * Screen.AlongX  + (PointerY - PlaneY) * Screen.AlongY;
         const double LocalAcross = (PointerX - PlaneX) * Screen.AcrossX + (PointerY - PlaneY) * Screen.AcrossY;
         if (std::fabs(LocalAlong) <= GizmoMeasure::PlaneHalf && std::fabs(LocalAcross) <= GizmoMeasure::PlaneHalf)
             return GizmoHandle::MoveFree;
 
-        // 🔴 From ShaftStart, not from the pivot: the segment tested is the segment DRAWN. Testing from
-        //    the pivot puts the arrow's reach over the nub and makes the nub unreachable.
-        if (DistanceToSegmentSquared(PointerX, PointerY, AlongStartX, AlongStartY, AlongEndX, AlongEndY)
-            <= GizmoMeasure::ShaftGrab * GizmoMeasure::ShaftGrab)
+        if (ConeDistanceSquared(Screen.AlongX, Screen.AlongY) <= GizmoMeasure::MoveGrab * GizmoMeasure::MoveGrab)
             return GizmoHandle::MoveX;
-        if (DistanceToSegmentSquared(PointerX, PointerY, AcrossStartX, AcrossStartY, AcrossEndX, AcrossEndY)
-            <= GizmoMeasure::ShaftGrab * GizmoMeasure::ShaftGrab)
+        if (ConeDistanceSquared(Screen.AcrossX, Screen.AcrossY) <= GizmoMeasure::MoveGrab * GizmoMeasure::MoveGrab)
             return GizmoHandle::MoveZ;
 
-        if (CentreDistanceSquared <= GizmoMeasure::CentreGrab * GizmoMeasure::CentreGrab)
+        if (CentreDistanceSquared <= GizmoMeasure::CentreGrab * GizmoMeasure::CentreGrab * 0.25)
             return GizmoHandle::MoveFree;
     }
     else if (Manner == TransformManner::Rotate)
     {
-        // 📝 A band around the ring rather than a disc. The inside of the ring belongs to whatever is
-        //    drawn there, and a rotation is dragged on the rim.
-        const double Distance = std::sqrt(CentreDistanceSquared);
-        if (Distance >= GizmoMeasure::RingRadius - GizmoMeasure::RingGrab
-         && Distance <= GizmoMeasure::RingRadius + GizmoMeasure::RingGrab)
+        const double ReachSquared = GizmoMeasure::RotateGrab * GizmoMeasure::RotateGrab;
+        if (DistanceToArcBarSquared(PointerX, PointerY,
+                                    Screen.PivotX, Screen.PivotY,
+                                    Screen.AcrossX, Screen.AcrossY,
+                                    Screen.NormalX, Screen.NormalY) <= ReachSquared)
             return GizmoHandle::Rotate;
-        if (CentreDistanceSquared <= GizmoMeasure::CentreGrab * GizmoMeasure::CentreGrab)
+        if (DistanceToArcBarSquared(PointerX, PointerY,
+                                    Screen.PivotX, Screen.PivotY,
+                                    Screen.AlongX, Screen.AlongY,
+                                    Screen.AcrossX, Screen.AcrossY) <= ReachSquared)
+            return GizmoHandle::Rotate;
+        if (DistanceToArcBarSquared(PointerX, PointerY,
+                                    Screen.PivotX, Screen.PivotY,
+                                    Screen.AlongX, Screen.AlongY,
+                                    Screen.NormalX, Screen.NormalY) <= ReachSquared)
+            return GizmoHandle::Rotate;
+
+        if (CentreDistanceSquared <= GizmoMeasure::CentreGrab * GizmoMeasure::CentreGrab * 0.25)
             return GizmoHandle::Rotate;
     }
     else
     {
-        const float AlongBoxX  = Screen.PivotX + Screen.AlongX  * static_cast<float>(GizmoMeasure::ScaleBox);
-        const float AlongBoxY  = Screen.PivotY + Screen.AlongY  * static_cast<float>(GizmoMeasure::ScaleBox);
-        const float AcrossBoxX = Screen.PivotX + Screen.AcrossX * static_cast<float>(GizmoMeasure::ScaleBox);
-        const float AcrossBoxY = Screen.PivotY + Screen.AcrossY * static_cast<float>(GizmoMeasure::ScaleBox);
-
-        if (DistanceSquared(PointerX, PointerY, AlongBoxX, AlongBoxY)
-            <= GizmoMeasure::ScaleGrab * GizmoMeasure::ScaleGrab)
+        if (CylinderDistanceSquared(Screen.AlongX, Screen.AlongY) <= GizmoMeasure::ScaleGrab * GizmoMeasure::ScaleGrab)
             return GizmoHandle::ScaleX;
-        if (DistanceSquared(PointerX, PointerY, AcrossBoxX, AcrossBoxY)
-            <= GizmoMeasure::ScaleGrab * GizmoMeasure::ScaleGrab)
+        if (CylinderDistanceSquared(Screen.AcrossX, Screen.AcrossY) <= GizmoMeasure::ScaleGrab * GizmoMeasure::ScaleGrab)
             return GizmoHandle::ScaleZ;
-        if (CentreDistanceSquared <= GizmoMeasure::CentreGrab * GizmoMeasure::CentreGrab)
+        if (CentreDistanceSquared <= GizmoMeasure::CentreGrab * GizmoMeasure::CentreGrab * 0.25)
             return GizmoHandle::ScaleFree;
     }
 

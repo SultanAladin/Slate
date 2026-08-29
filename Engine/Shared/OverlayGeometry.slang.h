@@ -127,7 +127,7 @@ struct OverlayGeometry
 
     static constexpr Unsigned32 LineLimit     = 1024u;   // [-] - line segments; a 128-cell lattice is 514
     static constexpr Unsigned32 DotLimit      = 2048u;   // [-] - dot markers
-    static constexpr Unsigned32 TriangleLimit =  512u;   // [-] - filled triangles
+    static constexpr Unsigned32 TriangleLimit = 2048u;   // [-] - filled triangles; enough for the HTML-port torus gizmo plus selection overlays
 
     OverlayLine     Lines[LineLimit]         = {};
     Unsigned32   LineCount                  = 0u;

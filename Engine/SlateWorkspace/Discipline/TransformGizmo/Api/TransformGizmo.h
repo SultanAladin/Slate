@@ -49,32 +49,46 @@ enum class GizmoHandle : std::uint32_t
 /// 🔴 Both the hit test and the drawing read THESE and nothing else. A measurement that appears in only
 ///    one of the two is the defect this unit was written to remove.
 ///
-/// 📝 The values below mirror the shipped HTML reference: 82 px axis reach, 18 px move cones,
-///    22 px plane quads, 96 px rotation ring and 11 px scale boxes. The hit test reads the same table,
-///    in the same order, so the handle that is drawn is the handle that answers.
+/// 📝 These are the exact proportions from `References/Gizmo.html`, lifted into one pixel table by taking
+///    the HTML tip distance (0.95 world units) as 82 px on screen. That keeps the C++ GPU gizmo in the
+///    same silhouette — cone tip, short scale cylinder, tucked plane square, 31° rotation arc-bar and
+///    billboard torus ring — while still letting the overlay draw at a constant screen size.
 struct GizmoMeasure
 {
-    /// The shared axis footprint from `References/Cad/js/gizmo.js`: an 82 px axis with an 18 px cone.
-    static constexpr double ShaftStart    = 10.0;
-    static constexpr double AxisEnd       = 82.0;
-    static constexpr double ArrowBase     = 64.0;
-    static constexpr double ArrowRadius   = 6.0;
-    static constexpr double ShaftRadius   = 2.1;
-    static constexpr double ShaftGrab     = 11.0;
+    static constexpr double AxisEnd = 82.0;
 
-    /// The free-move plane quad, centred 39 px out with a 22 px edge.
-    static constexpr double PlaneOffset   = 39.0;
-    static constexpr double PlaneHalf     = 11.0;
+    /// HTML: `new THREE.ConeGeometry(0.06, 0.18, 24)` at `TIP = 0.95`.
+    static constexpr double ConeRadius = AxisEnd * (0.06 / 0.95);
+    static constexpr double ConeLength = AxisEnd * (0.18 / 0.95);
+    static constexpr std::uint32_t ConeSegments = 24u;
 
-    /// The centre handle, and the rotation ring just outside the axis tips.
-    static constexpr double CentreGrab    = 8.0;
-    static constexpr double RingRadius    = 96.0;
-    static constexpr double RingGrab      = 8.0;
+    /// HTML: `new THREE.CylinderGeometry(0.06, 0.06, 0.14, 24)` centred at `TIP - 0.28`.
+    static constexpr double ScaleRadius = AxisEnd * (0.06 / 0.95);
+    static constexpr double ScaleLength = AxisEnd * (0.14 / 0.95);
+    static constexpr double ScaleCentre = AxisEnd * ((0.95 - 0.28) / 0.95);
+    static constexpr std::uint32_t CylinderSegments = 24u;
 
-    /// The scale box at the shared axis tip.
-    static constexpr double ScaleBox      = 82.0;
-    static constexpr double ScaleBoxHalf  = 5.5;
-    static constexpr double ScaleGrab     = 11.0;
+    /// HTML: `const half = 0.08`, centred at `TIP - half` in the plane of the two other axes.
+    static constexpr double PlaneHalf = AxisEnd * (0.08 / 0.95);
+    static constexpr double PlaneCentre = AxisEnd * ((0.95 - 0.08) / 0.95);
+
+    /// HTML: `arcRadius = TIP * 0.62`, `arcBand = 0.038`, `degToRad(31)`, `segments = 24`.
+    static constexpr double RotateRadius = AxisEnd * 0.62;
+    static constexpr double RotateHalfWidth = AxisEnd * (0.038 / 0.95);
+    static constexpr double RotateSweepRadians = 31.0 * 3.14159265358979323846 / 180.0;
+    static constexpr std::uint32_t RotateSegments = 24u;
+
+    /// HTML: `new THREE.TorusGeometry(0.16, 0.008, 12, 48)` billboarding toward the camera.
+    static constexpr double CentreRingRadius = AxisEnd * (0.16 / 0.95);
+    static constexpr double CentreRingTube = AxisEnd * (0.008 / 0.95);
+    static constexpr std::uint32_t CentreRingRadialSegments = 12u;
+    static constexpr std::uint32_t CentreRingTubularSegments = 48u;
+
+    /// Hit reaches, in the same pixel space as the drawn geometry.
+    static constexpr double MoveGrab = ConeRadius + 5.0;
+    static constexpr double ScaleGrab = ScaleRadius + 5.0;
+    static constexpr double RotateGrab = RotateHalfWidth + 5.0;
+    static constexpr double CentreGrab = CentreRingRadius;
 };
 
 /// 🧩 Where the gizmo sits on screen and which way its axes run from there.
@@ -86,6 +100,8 @@ struct GizmoScreenBasis
     float AlongY = 0.0f;
     float AcrossX = 0.0f;
     float AcrossY = -1.0f;
+    float NormalX = 0.0f;
+    float NormalY = -1.0f;
 
     /// 🔴 How many world units one screen pixel covers AT THE PIVOT. This is what lets the drawing express
     ///    the pixel table above in the world units it has to build geometry from.
