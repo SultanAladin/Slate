@@ -704,6 +704,15 @@ ParametricToolSubject ToolSubjectOf(std::uint32_t BandIndex, std::uint32_t ToolI
     }
 }
 
+bool ToolStands(const ParametricToolsContext& Applied,
+                std::uint32_t BandIndex,
+                std::uint32_t ToolIndex)
+{
+    return Applied.ActiveSubject != ParametricToolSubject::Select
+        && Applied.ActiveBand == BandIndex
+        && Applied.ActiveSubject == ToolSubjectOf(BandIndex, ToolIndex);
+}
+
 const ToolEntry* ActiveTool(const ParametricToolsContext& Applied)
 {
     if (Applied.ActiveBand >= BandCount)
@@ -948,7 +957,6 @@ void ParametricToolsPanel::Advance(const PointerCondition& Contact, double Elaps
         Applied.ActiveBand = FirstPresentedBand(Applied);
     if (Applied.ActiveTool >= Bands[Applied.ActiveBand].ToolCount)
         Applied.ActiveTool = 0u;
-    Applied.ActiveSubject = ToolSubjectOf(Applied.ActiveBand, Applied.ActiveTool);
 }
 
 void ParametricToolsPanel::Reapply(const ThemeProfile& Resolved)
@@ -1126,7 +1134,7 @@ void ParametricToolsPanel::RecordBrowsePage(const PlaneExtent& Extent, Parametri
                 continue;
 
             const bool Hovered = Row.Encloses(Sampled.PositionX, Sampled.PositionY);
-            const bool Current = Applied.ActiveTool == Index;
+            const bool Current = ToolStands(Applied, Applied.ActiveBand, Index);
             const bool ToolGated = Gated(Tool, Applied);
 
             if (Hovered && Sampled.ContactPressed)
@@ -1184,7 +1192,9 @@ void ParametricToolsPanel::RecordDetailPage(const PlaneExtent& Extent, Parametri
 {
     Surface->Ground(Extent, Tinted.Menu, 0.0f, CornerNone);
 
-    const ToolEntry* Tool = ActiveTool(Applied);
+    const ToolEntry* Tool = Applied.ActiveSubject == ParametricToolSubject::Select
+                          ? nullptr
+                          : ActiveTool(Applied);
     const PlaneExtent Header = Spanning(Extent.MinimumX, Extent.MinimumY,
                                         Extent.Width(), Scaled.HeaderHeight);
     RecordLeafHeader(Header, Tool != nullptr ? Tool->Glyph : SymbolSubject::SketchPlane,

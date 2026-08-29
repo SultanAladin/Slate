@@ -1012,6 +1012,7 @@ static const char* const         SketchTrimSides[2]  = { "Start", "End" };
             if (Viewport.Seam().KeyPressed(KeySubject::ChooseSelect))
             {
                 ParametricToolsApplied.ActiveSubject = ParametricToolSubject::Select;
+                ParametricToolsApplied.Page = ParametricToolPage::Catalogue;
                 SketchTool.Abandon();
                 SketchBuildApply = false;
                 SketchBuildTool = ParametricToolSubject::Select;
@@ -1346,61 +1347,71 @@ static const char* const         SketchTrimSides[2]  = { "Start", "End" };
                                     //    together: the element mode and reach that govern picking, then
                                     //    whether the gizmo is shown for what was picked.
                                     {
-                                        // 🔴 FIVE MODES, AND THE ORDER IS THE GRAIN THEY WORK AT:
-                                        //    a vertex, the edge between two, the face those bound, the
-                                        //    whole object, then Free — which admits any of them. Reading
-                                        //    left to right is reading from finest to coarsest, so the
-                                        //    artist does not have to learn the order.
-                                        static const char* const ElementCaptions[5] =
-                                            { "Vertex", "Edge", "Face", "Object", "Free" };
-                                        static const SymbolSubject ElementGlyphs[5] =
-                                            { SymbolSubject::VertexPoint,
-                                              SymbolSubject::EdgeSegment,
-                                              SymbolSubject::FacePlanar,
-                                              SymbolSubject::CubeSolid,
-                                              SymbolSubject::CrosshairCentre };
+                                        const bool SelectMode =
+                                            ParametricToolsApplied.ActiveSubject == ParametricToolSubject::Select;
 
-                                        // 📝 The mode is held as an ordinal for the widget and read back
-                                        //    into the enum, so the two can never disagree about which
-                                        //    element is standing.
-                                        std::uint32_t ElementSelected =
-                                            static_cast<std::uint32_t>(SketchSelection.Element);
+                                        if (SelectMode)
+                                        {
+                                            // 🔴 FIVE MODES, AND THE ORDER IS THE GRAIN THEY WORK AT:
+                                            //    a vertex, the edge between two, the face those bound, the
+                                            //    whole object, then Free — which admits any of them. Reading
+                                            //    left to right is reading from finest to coarsest, so the
+                                            //    artist does not have to learn the order.
+                                            static const char* const ElementCaptions[5] =
+                                                { "Vertex", "Edge", "Face", "Object", "Free" };
+                                            static const SymbolSubject ElementGlyphs[5] =
+                                                { SymbolSubject::VertexPoint,
+                                                  SymbolSubject::EdgeSegment,
+                                                  SymbolSubject::FacePlanar,
+                                                  SymbolSubject::CubeSolid,
+                                                  SymbolSubject::CrosshairCentre };
 
-                                        OptionDeclaration SelectRows[3] = {};
-                                        SelectRows[0].Kind        = OptionControl::Segmented;
-                                        SelectRows[0].Caption     = "Mode";
-                                        SelectRows[0].Selected      = &ElementSelected;
-                                        SelectRows[0].Options     = ElementCaptions;
-                                        SelectRows[0].Glyphs      = ElementGlyphs;
-                                        SelectRows[0].OptionCount = 5u;
+                                            // 📝 The mode is held as an ordinal for the widget and read back
+                                            //    into the enum, so the two can never disagree about which
+                                            //    element is standing.
+                                            std::uint32_t ElementSelected =
+                                                static_cast<std::uint32_t>(SketchSelection.Element);
 
-                                        SelectRows[1].Kind    = OptionControl::Slider;
-                                        SelectRows[1].Caption = "Tolerance";
-                                        SelectRows[1].Unit    = "px";
-                                        SelectRows[1].Reading = &SketchSelection.Tolerance;
-                                        SelectRows[1].Minimum = SelectionOptions::ToleranceMinimum;
-                                        SelectRows[1].Maximum = SelectionOptions::ToleranceMaximum;
+                                            OptionDeclaration SelectRows[3] = {};
+                                            SelectRows[0].Kind        = OptionControl::Segmented;
+                                            SelectRows[0].Caption     = "Mode";
+                                            SelectRows[0].Selected    = &ElementSelected;
+                                            SelectRows[0].Options     = ElementCaptions;
+                                            SelectRows[0].Glyphs      = ElementGlyphs;
+                                            SelectRows[0].OptionCount = 5u;
 
-                                        SelectRows[2].Kind    = OptionControl::Toggle;
-                                        SelectRows[2].Caption = "Show gizmo";
-                                        SelectRows[2].Taken   = &SketchGizmo.Shown;
+                                            SelectRows[1].Kind    = OptionControl::Slider;
+                                            SelectRows[1].Caption = "Tolerance";
+                                            SelectRows[1].Unit    = "px";
+                                            SelectRows[1].Reading = &SketchSelection.Tolerance;
+                                            SelectRows[1].Minimum = SelectionOptions::ToleranceMinimum;
+                                            SelectRows[1].Maximum = SelectionOptions::ToleranceMaximum;
 
-                                        Discard(SketchToolOptions.Record(
-                                            LeafBody, "Selection", SymbolSubject::CrosshairCentre,
-                                            SelectRows, 3u, PointerTaken));
+                                            SelectRows[2].Kind    = OptionControl::Toggle;
+                                            SelectRows[2].Caption = "Show gizmo";
+                                            SelectRows[2].Taken   = &SketchGizmo.Shown;
 
-                                        if (ElementSelected <
-                                            static_cast<std::uint32_t>(SelectionElement::ElementCount))
-                                            SketchSelection.Element =
-                                                static_cast<SelectionElement>(ElementSelected);
+                                            Discard(SketchToolOptions.Record(
+                                                LeafBody, "Selection", SymbolSubject::CrosshairCentre,
+                                                SelectRows, 3u, PointerTaken));
 
-                                        // 🔴 THE CONTEXT MENU MUST NOT DRAW ON TOP OF ANOTHER WIDGET, and
-                                        //    it can only avoid what it is told about. The options widget
-                                        //    is DRAGGABLE, so its box is declared here from what it
-                                        //    actually recorded a moment ago rather than from a constant
-                                        //    kept beside it -- a stale box steers the menu into the very
-                                        //    widget it was trying to miss.
-                                        SketchContextMenu.Avoid(SketchToolOptions.Occupies());
+                                            if (ElementSelected <
+                                                static_cast<std::uint32_t>(SelectionElement::ElementCount))
+                                                SketchSelection.Element =
+                                                    static_cast<SelectionElement>(ElementSelected);
+
+                                            // 🔴 THE CONTEXT MENU MUST NOT DRAW ON TOP OF ANOTHER WIDGET, and
+                                            //    it can only avoid what it is told about. The options widget
+                                            //    is DRAGGABLE, so its box is declared here from what it
+                                            //    actually recorded a moment ago rather than from a constant
+                                            //    kept beside it -- a stale box steers the menu into the very
+                                            //    widget it was trying to miss.
+                                            SketchContextMenu.Avoid(SketchToolOptions.Occupies());
+                                        }
+                                        else
+                                        {
+                                            SketchContextMenu.Avoid({});
+                                        }
 
                                         // 📐 THE POPUP ASKS FOR A FIGURE, IT DOES NOT LIST COMMANDS.
                                         //    This arm first held five rows -- Bevel, Chamfer, Trim, Cut,
