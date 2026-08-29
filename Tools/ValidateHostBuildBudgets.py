@@ -400,10 +400,19 @@ def main() -> int:
             "codex scene activation must recenter loaded geometry at the world origin")
 
     cad_shader = read("Engine/SlateVulkan/Device/WorkspaceCadPass/Shader/WorkspaceCadVertex.slang")
-    require("Denominator <= 0.01" in cad_shader,
-            "the CAD shader must match the CPU picker's near-eye rejection threshold")
-    require("Valid = FirstValid && SecondValid && ThirdValid;" in cad_shader,
-            "a fill triangle must be withheld as one surface when any corner crosses the eye plane")
+    require("ClipWorkspaceCadFillTriangleNear(" in cad_shader,
+            "the CAD shader must near-clip fill triangles rather than dropping or stretching them")
+    require('"Shared/WorkspaceCadNearClip.slang.h"' in cad_shader,
+            "the CAD shader must include the shared near-plane clipper")
+    cad_shared = read("Engine/Shared/WorkspaceCadNearClip.slang.h")
+    require("WorkspaceCadNearDepth" in cad_shared,
+            "the shared CAD near-plane threshold must be declared once")
+    require("ClipWorkspaceCadFillTriangleNear(" in cad_shared
+            and "IntersectWorkspaceCadNear(" in cad_shared,
+            "the shared CAD near-plane clipper must define both clipping and intersection")
+    cad_pass = read("Engine/SlateVulkan/Device/WorkspaceCadPass/Source/WorkspaceCadPass.cpp")
+    require("DrawCategory(WorkspaceCadDraw::Fill, PacketFillCount, 6u);" in cad_pass,
+            "CAD fills must spend two triangles per record so a clipped quad can be emitted")
 
     # 🔴 THE WORKPLANE TOOL MUST BE DISPATCHED, NOT MERELY DEFINED. `ApplyWorkplaneTool` was written in
     #    full — screen-space placement, catalogue write, directory record, sealed revision — and called

@@ -6,6 +6,7 @@
 
 #include "Shared/ToolchainInterchange.slang.h"
 #include "Shared/OverlayTransform.slang.h"
+#include "Shared/WorkspaceCadNearClip.slang.h"
 
 namespace Slate
 {
@@ -78,23 +79,31 @@ Unsigned32 QuadCorner(Unsigned32 VertexIndex)
     return 3u;
 }
 
-Real32x2 ProjectScreen(Real32 Along, Real32 Across, SLATE_OUT(bool) Valid)
+Unsigned32 FillCorner(Unsigned32 VertexIndex)
+{
+    const Unsigned32 Within = VertexIndex % 6u;
+    if (Within == 0u) return 0u;
+    if (Within == 1u) return 1u;
+    if (Within == 2u) return 2u;
+    if (Within == 3u) return 0u;
+    if (Within == 4u) return 2u;
+    return 3u;
+}
+
+WorkspaceCadProjectedPoint ProjectPoint(Real32 Along, Real32 Across)
 {
     const Real32x4 Projected = Push.Projection0 + Push.Projection1 * Along + Push.Projection2 * Across;
-    const Real32 Denominator = Projected.w;
+    WorkspaceCadProjectedPoint Point;
+    Point.X = Projected.x;
+    Point.Y = Projected.y;
+    Point.W = Projected.w;
+    return Point;
+}
 
-    // 🔴 MATCH THE CPU PICKER'S FRONT-OF-EYE TEST. A vertex only 0.0001 units in front of the eye
-    //    still projects to absurd screen coordinates, which is how a small profile fill turns into a
-    //    viewport-sized wedge as the camera skims the plane. `ProjectViewportPoint` already refuses
-    //    anything at or nearer than 0.01, so the shader takes the same threshold.
-    if (Denominator <= 0.01)
-    {
-        Valid = false;
-        return Real32x2(-100000.0, -100000.0);
-    }
-
-    Valid = true;
-    return Projected.xy / Denominator;
+Real32x2 ProjectScreen(const WorkspaceCadProjectedPoint& Point)
+{
+    const WorkspaceCadScreenPoint Screen = ResolveWorkspaceCadScreenPoint(Point);
+    return Real32x2(Screen.X, Screen.Y);
 }
 
 [shader("vertex")]
@@ -112,40 +121,51 @@ WorkspaceCadVertexOutput main(Unsigned32 VertexIndex : SV_VertexID)
 
     if (Push.Draw == WorkspaceCadFillDraw)
     {
-        const Unsigned32 Record = VertexIndex / 3u;
-        const Unsigned32 Corner = VertexIndex % 3u;
+        const Unsigned32 Record = VertexIndex / 6u;
+        const Unsigned32 Corner = FillCorner(VertexIndex);
         const FillRecord Triangle = FillPool[Record];
-        bool FirstValid = false, SecondValid = false, ThirdValid = false;
-        const Real32x2 First = ProjectScreen(Triangle.First.x, Triangle.First.y, FirstValid);
-        const Real32x2 Second = ProjectScreen(Triangle.Second.x, Triangle.Second.y, SecondValid);
-        const Real32x2 Third = ProjectScreen(Triangle.Third.x, Triangle.Third.y, ThirdValid);
+        WorkspaceCadProjectedPoint Clipped[4];
+        const Unsigned32 Count = ClipWorkspaceCadFillTriangleNear(
+            ProjectPoint(Triangle.First.x,  Triangle.First.y),
+            ProjectPoint(Triangle.Second.x, Triangle.Second.y),
+            ProjectPoint(Triangle.Third.x,  Triangle.Third.y),
+            Clipped);
 
-        // 🔴 A fill triangle is one surface, not three independent vertices. If any corner has crossed
-        //    the eye plane, sending the other two through on their own stretches the triangle across
-        //    the screen toward the sentinel corner. Whole-triangle invalidation removes the splatter
-        //    until a proper near-plane clipper is introduced.
-        Valid = FirstValid && SecondValid && ThirdValid;
-        Screen = Corner == 0u ? First
-               : Corner == 1u ? Second
-                              : Third;
+        Valid = false;
+        if (Count == 3u && Corner < 3u)
+        {
+            Screen = ProjectScreen(Clipped[Corner]);
+            Valid = true;
+        }
+        else if (Count == 4u)
+        {
+            Screen = ProjectScreen(Clipped[Corner]);
+            Valid = true;
+        }
         Output.Colour = Triangle.Colour;
     }
     else if (Push.Draw == WorkspaceCadSegmentDraw)
     {
         const Unsigned32 Record = VertexIndex / 6u;
         const Unsigned32 Corner = QuadCorner(VertexIndex);
-        bool StartValid = false, EndValid = false;
         const SegmentRecord Segment = SegmentPool[Record];
-        const Real32x2 Start = ProjectScreen(Segment.Start.x, Segment.Start.y, StartValid);
-        const Real32x2 End = ProjectScreen(Segment.End.x, Segment.End.y, EndValid);
+        const WorkspaceCadProjectedPoint StartPoint = ProjectPoint(Segment.Start.x, Segment.Start.y);
+        const WorkspaceCadProjectedPoint EndPoint = ProjectPoint(Segment.End.x, Segment.End.y);
+        const bool StartValid = WorkspaceCadProjectedFront(StartPoint);
+        const bool EndValid = WorkspaceCadProjectedFront(EndPoint);
         Valid = StartValid && EndValid;
-        const Real32x2 Direction = End - Start;
-        const Real32 Length = sqrt(dot(Direction, Direction));
-        const Real32x2 Normal = Length > 0.0001 ? Real32x2(-Direction.y / Length, Direction.x / Length)
-                                                : Real32x2(0.0, 1.0);
-        const Real32 Side = ((Corner == 1u) || (Corner == 3u)) ? 1.0 : -1.0;
-        Screen = (Corner < 2u) ? Start : End;
-        Screen += Normal * (Segment.Thickness * 0.5 * Side);
+        if (Valid)
+        {
+            const Real32x2 Start = ProjectScreen(StartPoint);
+            const Real32x2 End = ProjectScreen(EndPoint);
+            const Real32x2 Direction = End - Start;
+            const Real32 Length = sqrt(dot(Direction, Direction));
+            const Real32x2 Normal = Length > 0.0001 ? Real32x2(-Direction.y / Length, Direction.x / Length)
+                                                    : Real32x2(0.0, 1.0);
+            const Real32 Side = ((Corner == 1u) || (Corner == 3u)) ? 1.0 : -1.0;
+            Screen = (Corner < 2u) ? Start : End;
+            Screen += Normal * (Segment.Thickness * 0.5 * Side);
+        }
         Output.Colour = Segment.Colour;
     }
     else
@@ -157,8 +177,13 @@ WorkspaceCadVertexOutput main(Unsigned32 VertexIndex : SV_VertexID)
         const Real32 LocalY = Corner >= 2u ? 1.0 : -1.0;
         Output.Local = Real32x2(LocalX, LocalY);
         Output.Subject = Marker.Subject;
-        const Real32x2 Centre = ProjectScreen(Marker.Centre.x, Marker.Centre.y, Valid);
-        Screen = Centre + Output.Local * Marker.Radius;
+        const WorkspaceCadProjectedPoint CentrePoint = ProjectPoint(Marker.Centre.x, Marker.Centre.y);
+        Valid = WorkspaceCadProjectedFront(CentrePoint);
+        if (Valid)
+        {
+            const Real32x2 Centre = ProjectScreen(CentrePoint);
+            Screen = Centre + Output.Local * Marker.Radius;
+        }
         Output.Colour = Marker.Colour;
     }
 

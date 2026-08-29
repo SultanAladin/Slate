@@ -452,7 +452,9 @@ void WorkspaceCadPass::Record(VkCommandBuffer Command, const WorkspaceCadProject
         vkCmdDraw(Command, Count * VerticesPerRecord, 1u, 0u, 0u);
     };
 
-    DrawCategory(WorkspaceCadDraw::Fill, PacketFillCount, 3u);
+    // 🔴 A near-clipped fill can become a QUAD. The vertex shader triangulates that into two
+    //    triangles per record, so fills now spend six vertices just as segments and markers do.
+    DrawCategory(WorkspaceCadDraw::Fill, PacketFillCount, 6u);
     DrawCategory(WorkspaceCadDraw::Segment, PacketSegmentCount, 6u);
     DrawCategory(WorkspaceCadDraw::Marker, PacketMarkerCount, 6u);
 }

@@ -19,6 +19,7 @@
 
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/CadProjection.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/ViewportProjection.h"
+#include "Shared/WorkspaceCadNearClip.slang.h"
 
 #include <cmath>
 #include <cstdio>
@@ -870,6 +871,99 @@ void ProveNearEyeRefusal()
           "a refused projection must leave the outputs untouched");
 }
 
+// 🔴 §8e  THE FILL MUST BE CLIPPED, NOT THROWN AWAY. A profile fill is a triangle mesh, and the camera can
+//    skim the sketch plane so one triangle corner falls behind the near plane while the rest remains in
+//    front. Rejecting vertices one by one turns that into a giant wedge; rejecting the whole triangle turns
+//    a legitimate sliver at the eye into a hole. The right answer is to clip the surface against the plane,
+//    which yields either nothing, one triangle or one quad.
+void ProveNearPlaneFillClipping()
+{
+    std::printf("\n  §8e near-plane CAD fill clipping triangulates the surviving polygon\n");
+
+    const auto Make = [](float X, float Y, float W)
+    {
+        WorkspaceCadProjectedPoint Point;
+        Point.X = X;
+        Point.Y = Y;
+        Point.W = W;
+        return Point;
+    };
+    const auto TriangleArea = [](const WorkspaceCadScreenPoint& A,
+                                 const WorkspaceCadScreenPoint& B,
+                                 const WorkspaceCadScreenPoint& C)
+    {
+        return std::fabs((static_cast<double>(B.X) - A.X) * (static_cast<double>(C.Y) - A.Y)
+                       - (static_cast<double>(C.X) - A.X) * (static_cast<double>(B.Y) - A.Y)) * 0.5;
+    };
+    const auto QuadArea = [](const WorkspaceCadScreenPoint& A,
+                             const WorkspaceCadScreenPoint& B,
+                             const WorkspaceCadScreenPoint& C,
+                             const WorkspaceCadScreenPoint& D)
+    {
+        const double Sum = static_cast<double>(A.X) * B.Y - static_cast<double>(B.X) * A.Y
+                         + static_cast<double>(B.X) * C.Y - static_cast<double>(C.X) * B.Y
+                         + static_cast<double>(C.X) * D.Y - static_cast<double>(D.X) * C.Y
+                         + static_cast<double>(D.X) * A.Y - static_cast<double>(A.X) * D.Y;
+        return std::fabs(Sum) * 0.5;
+    };
+
+    WorkspaceCadProjectedPoint Clipped[4] = {};
+
+    // Entirely in front: still one triangle, in the same order.
+    Unsigned32 Count = ClipWorkspaceCadFillTriangleNear(
+        Make(0.00f, 0.00f, 1.00f),
+        Make(0.30f, 0.00f, 1.00f),
+        Make(0.00f, 0.20f, 1.00f),
+        Clipped);
+    Claim(Count == 3u, "a fill wholly in front of the near plane stays one triangle");
+    Claim(Near(Clipped[0].X, 0.00) && Near(Clipped[1].X, 0.30) && Near(Clipped[2].Y, 0.20),
+          "an unclipped fill preserves its original corners");
+
+    // One corner behind: becomes a quad, and the inserted corners lie ON the near plane.
+    Count = ClipWorkspaceCadFillTriangleNear(
+        Make(0.00f, 0.00f, 1.00f),
+        Make(0.30f, 0.00f, 1.00f),
+        Make(0.06f, 0.24f, 0.005f),
+        Clipped);
+    Claim(Count == 4u,
+          "one clipped corner must produce a quad, which the shader then triangulates into two triangles");
+    for (Unsigned32 Index = 0u; Index < Count; ++Index)
+        Claim(Clipped[Index].W >= WorkspaceCadNearDepth,
+              "every clipped fill corner must lie on or in front of the near plane");
+
+    const WorkspaceCadScreenPoint Q0 = ResolveWorkspaceCadScreenPoint(Clipped[0]);
+    const WorkspaceCadScreenPoint Q1 = ResolveWorkspaceCadScreenPoint(Clipped[1]);
+    const WorkspaceCadScreenPoint Q2 = ResolveWorkspaceCadScreenPoint(Clipped[2]);
+    const WorkspaceCadScreenPoint Q3 = ResolveWorkspaceCadScreenPoint(Clipped[3]);
+    const double Tri0 = TriangleArea(Q0, Q1, Q2);
+    const double Tri1 = TriangleArea(Q0, Q2, Q3);
+    const double Quad = QuadArea(Q0, Q1, Q2, Q3);
+    Claim(Tri0 > 0.0 && Tri1 > 0.0,
+          "a clipped quad must triangulate into two non-degenerate screen triangles");
+    Claim(Near(Tri0 + Tri1, Quad, 1.0e-4),
+          "the two emitted triangles must cover the clipped quad exactly");
+
+    // Two corners behind: back to one triangle, made of one survivor and two intersections.
+    Count = ClipWorkspaceCadFillTriangleNear(
+        Make(0.00f, 0.00f, 1.00f),
+        Make(0.06f, 0.24f, 0.005f),
+        Make(-0.12f, 0.12f, 0.003f),
+        Clipped);
+    Claim(Count == 3u,
+          "two clipped corners must leave one triangle made from the survivor and two edge hits");
+    for (Unsigned32 Index = 0u; Index < Count; ++Index)
+        Claim(Clipped[Index].W >= WorkspaceCadNearDepth,
+              "the surviving triangle must stay on or ahead of the near plane");
+
+    // All behind: nothing to draw.
+    Count = ClipWorkspaceCadFillTriangleNear(
+        Make(0.00f, 0.00f, 0.004f),
+        Make(0.30f, 0.00f, 0.005f),
+        Make(0.00f, 0.20f, 0.006f),
+        Clipped);
+    Claim(Count == 0u, "a fill wholly behind the near plane must be discarded outright");
+}
+
 }   // namespace
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -890,6 +984,7 @@ int main()
     ProveFieldOfViewIsHonoured();
     ProveSharedProjectionReplacesTheHostCopies();
     ProveNearEyeRefusal();
+    ProveNearPlaneFillClipping();
 
     std::printf("\n%d claims, %d failures\n", Checks, Failures);
     std::printf(Failures == 0 ? "PROVEN\n\n" : "REFUTED\n\n");
