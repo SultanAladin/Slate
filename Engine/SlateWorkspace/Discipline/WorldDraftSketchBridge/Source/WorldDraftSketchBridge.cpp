@@ -8,9 +8,14 @@
 #include "SlateShape/Sketch/SketchSelection/Api/SketchSelection.h"
 #include "SlateShape/Sketch/SketchPolyline/Api/SketchPolyline.h"
 #include "SlateShape/World/WorldDraftEditing/Api/WorldDraftEditing.h"
+#include "SlateWorkspace/Discipline/PlacementCommit/Api/PlacementCommit.h"
+#include "SlateWorkspace/Discipline/RecordDeclaration/Api/RecordDeclaration.h"
+#include "SketchToolset/SketchTool/SketchPlacement/Api/SketchPlacement.h"
 
 #include <algorithm>
 #include <cmath>
+#include <string>
+#include <vector>
 
 namespace Slate
 {
@@ -125,6 +130,59 @@ void AppendClippedSegment(const ResolvedCamera& Camera,
     const WorkspaceCadScreenPoint A = ResolveWorkspaceCadScreenPoint(First);
     const WorkspaceCadScreenPoint B = ResolveWorkspaceCadScreenPoint(Second);
     Delivered.AddSegment(A.X, A.Y, B.X, B.Y, Packed, Thickness);
+}
+
+bool PlacementClosesOnItself(const std::vector<SpatialPoint>& Anchors)
+{
+    if (Anchors.size() < 3u)
+        return false;
+
+    double Longest = 0.0;
+    for (std::size_t Index = 0u; Index + 1u < Anchors.size(); ++Index)
+        Longest = std::max(Longest, LengthSquared(Difference(Anchors[Index], Anchors[Index + 1u])));
+
+    if (Longest <= 0.0)
+        return false;
+
+    const double Tolerance = std::sqrt(Longest) * 0.01;
+    return LengthSquared(Difference(Anchors.front(), Anchors.back())) <= Tolerance * Tolerance;
+}
+
+bool PlacementFormsProfile(const SealedPlacement& Placed)
+{
+    if (Placed.Construction || !Placed.ClosedProfile)
+        return false;
+
+    const PlacementDeclaration Declared = DeclaredPlacement(Placed.Subject, Placed.Method);
+    return Declared.ClosedProfile || (Placed.Subject == SketchSubject::Polyline && PlacementClosesOnItself(Placed.Anchors));
+}
+
+bool ResolveWorldBackedPlacementCurves(const SealedPlacement& Placed,
+                                       std::vector<CurveSpecification>& Delivered)
+{
+    Delivered.clear();
+    if (Placed.Subject == SketchSubject::None || Placed.Subject == SketchSubject::Point ||
+        Placed.Subject == SketchSubject::Dimension || Placed.Anchors.size() < 2u)
+        return false;
+
+    std::vector<SpatialPoint> Anchors = Placed.Anchors;
+    const SpatialPoint Final = Anchors.back();
+    Anchors.pop_back();
+    ResolvePlacementCurves(Placed.Subject, Anchors, Final, Delivered,
+                           std::clamp(Placed.Resolution, PolygonSideMinimum, PolygonSideMaximum));
+    return !Delivered.empty();
+}
+
+std::string PlacementCreateOperation(const SealedPlacement& Placed,
+                                     bool Profile)
+{
+    const char* Naming = DeclaredPlacement(Placed.Subject, Placed.Method).Naming;
+    const std::string Base = (Naming != nullptr && Naming[0] != '\0') ? Naming : "Shape";
+    if (Placed.Construction)
+        return std::string("Create Construction ") + Base;
+    if (Profile)
+        return std::string("Create ") + Base + " Profile";
+    return std::string("Create ") + Base;
 }
 
 } // namespace
@@ -389,6 +447,137 @@ bool ProjectWorldPlacementPreview(const ResolvedCamera& Camera,
     }
 
     return Appended;
+}
+
+bool CommitPlacementWorldBacked(WorkspaceNameIndex& Naming,
+                                SketchStructure& Sketch,
+                                WorkspaceRecordStructure& Records,
+                                WorkspaceRevisionSequence& Revisions,
+                                const SealedPlacement& Placed,
+                                WorkspaceRecordName& SelectedRecord)
+{
+    SelectedRecord = {};
+
+    if (Placed.Subject == SketchSubject::None)
+        return false;
+
+    if (Placed.Subject == SketchSubject::Dimension)
+    {
+        const Deliver<WorkspaceRecordName> Record = CommitPlacement(Naming, Sketch, Records, Revisions, Placed);
+        if (!Record.Resolved)
+            return false;
+        SelectedRecord = Record.Resolve();
+        return SelectedRecord.Assigned();
+    }
+
+    WorldDraftStructure World;
+    WorldDraftSketchMapping Mapping;
+    MirrorSketchIntoWorldDraft(Sketch, World, Mapping);
+
+    const WorldPlacementFrame Support = ResolveSketchSupportFrame(Sketch);
+    const bool SupportStanding = Support.Declared();
+
+    std::vector<WorldCurveName> WorldCurves;
+    if (Placed.Subject == SketchSubject::Point)
+    {
+        if (Placed.Anchors.empty())
+            return false;
+
+        SpatialDirection Along = SupportStanding ? Normalize(Support.AlongDirection)
+                                                 : SpatialDirection{ 1.0, 0.0, 0.0 };
+        if (LengthSquared(Along) <= 1.0e-12)
+            Along = { 1.0, 0.0, 0.0 };
+
+        const SpatialPoint Tip = Added(Placed.Anchors.back(), Scaled(Along, 0.001));
+        WorldCurves.push_back(SupportStanding
+                            ? World.DeclareLine(Placed.Anchors.back(), Tip, Support)
+                            : World.DeclareLine(Placed.Anchors.back(), Tip));
+    }
+    else
+    {
+        std::vector<CurveSpecification> Geometry;
+        if (!ResolveWorldBackedPlacementCurves(Placed, Geometry))
+            return false;
+
+        WorldCurves.reserve(Geometry.size());
+        for (const CurveSpecification& Curve : Geometry)
+            WorldCurves.push_back(SupportStanding
+                                ? World.DeclareCurve(Curve, Support)
+                                : World.DeclareCurve(Curve));
+    }
+
+    if (WorldCurves.empty())
+        return false;
+
+    const bool Profile = PlacementFormsProfile(Placed);
+    if (Profile)
+    {
+        DeclaredWorldLoop Loop = {};
+        for (const WorldCurveName& Curve : WorldCurves)
+            Loop.Traversal.push_back({ Curve, true });
+        if (!World.DeclareLoop(Loop).Assigned())
+            return false;
+    }
+
+    std::vector<SketchCurveName> SketchCurves;
+    SketchCurves.reserve(WorldCurves.size());
+    for (const WorldCurveName& Curve : WorldCurves)
+    {
+        const DeclaredWorldCurve* Resolved = World.Resolve(Curve);
+        if (Resolved == nullptr || !Resolved->Geometry.Declared())
+            return false;
+        SketchCurves.push_back(Sketch.DeclareCurve(Resolved->Geometry));
+    }
+
+    std::vector<WorkspaceRecordName> Written;
+    if (Placed.Subject == SketchSubject::Point)
+    {
+        std::vector<SketchPointPlacement> Points;
+        if (!ResolveSketchPoints(Sketch, SketchCurves.front(), Points) || Points.empty())
+            return false;
+        const WorkspaceRecordName Record = DeclareWorkspacePoint(Naming, Records, Points.front().Name);
+        Written.push_back(Record);
+        SelectedRecord = Record;
+    }
+    else if (Profile)
+    {
+        ProfileSpecification Shape = {};
+        if (SupportStanding)
+            Shape.DeclarePlane({ Support.Origin, Support.Normal, Support.AlongDirection });
+        else if (Sketch.PlaneDeclared())
+            Shape.DeclarePlane({ Sketch.HeldPlane().Origin, Sketch.HeldPlane().Normal, Sketch.HeldPlane().AlongDirection });
+
+        ProfileLoop Loop = {};
+        Loop.Orientation = ProfileLoopOrientation::Outer;
+        for (const SketchCurveName& Curve : SketchCurves)
+            Loop.Traversal.push_back({ { Curve.IssuedIndex }, true });
+        Shape.DeclareLoop(Loop);
+
+        const ProfileNameInFeature DeclaredProfile = Sketch.DeclareProfile(Shape);
+        const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, DeclaredProfile);
+        Written.push_back(Record);
+        SelectedRecord = Record;
+    }
+    else
+    {
+        for (const SketchCurveName& Curve : SketchCurves)
+            Written.push_back(DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction));
+        SelectedRecord = Written.empty() ? WorkspaceRecordName{} : Written.front();
+    }
+
+    if (!SelectedRecord.Assigned() || Written.empty())
+        return false;
+
+    const WorkspaceRecord* Primary = Records.Resolve(SelectedRecord);
+    const char* NamingText = DeclaredPlacement(Placed.Subject, Placed.Method).Naming;
+    const std::string Description = Primary != nullptr
+                                  ? std::string("Declared ") + Primary->Naming
+                                  : std::string("Declared ") + (NamingText != nullptr ? NamingText : "shape");
+    Revisions.Seal(Description,
+                   PlacementCreateOperation(Placed, Profile),
+                   Written,
+                   Revisions.DeclaredCount() + 1u);
+    return true;
 }
 
 } // namespace Slate

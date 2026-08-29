@@ -13,6 +13,8 @@
 #include "SlateShape/World/WorldDraftRenderingProjection/Api/WorldDraftRenderingProjection.h"
 #include "SlateWorkspace/Discipline/SketchPicking/Api/SketchPicking.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/DrawableScale.h"
+#include "SlateShape/Record/WorkspaceRevisionSequence/Api/WorkspaceRevisionSequence.h"
+#include "SketchToolset/SketchTool/SketchPlacement/Api/SketchPlacement.h"
 
 namespace Slate
 {
@@ -69,5 +71,12 @@ bool ProjectWorldPlacementPreview(const ResolvedCamera& Camera,
                                   const SpatialPoint& Hover,
                                   WorkspaceCadPacket& Delivered,
                                   const SketchRenderingStyle& Style = {});
+
+bool CommitPlacementWorldBacked(WorkspaceNameIndex& Naming,
+                                SketchStructure& Sketch,
+                                WorkspaceRecordStructure& Records,
+                                WorkspaceRevisionSequence& Revisions,
+                                const SealedPlacement& Placed,
+                                WorkspaceRecordName& SelectedRecord);
 
 } // namespace Slate

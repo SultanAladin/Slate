@@ -466,6 +466,9 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
         return;
 
     const SealedPlacement Sealed = Tool.Seal();
+    if (CommitPlacementWorldBacked(Naming, Sketch, Records, Revisions, Sealed, PendingSelection))
+        return;
+
     const Deliver<WorkspaceRecordName> Record = CommitPlacement(Naming, Sketch, Records, Revisions, Sealed);
     AdoptCommittedShape(Sealed.Subject, Naming, Sketch, Records, Revisions, Record, PendingSelection);
 }
