@@ -9,8 +9,8 @@
 #pragma once
 
 #include "SlateShape/Sketch/SketchRenderingProjection/Api/SketchRenderingProjection.h"
-#include "SlateShape/World/WorldDraftPicking/Api/WorldDraftPicking.h"
-#include "SlateShape/World/WorldDraftRenderingProjection/Api/WorldDraftRenderingProjection.h"
+#include "SlateWorkspace/Discipline/WorldDraftPicking/Api/WorldDraftPicking.h"
+#include "SlateWorkspace/Discipline/WorldDraftRenderingProjection/Api/WorldDraftRenderingProjection.h"
 #include "SlateWorkspace/Discipline/SketchPicking/Api/SketchPicking.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/DrawableScale.h"
 #include "SlateShape/Record/WorkspaceRevisionSequence/Api/WorkspaceRevisionSequence.h"
@@ -19,7 +19,7 @@
 namespace Slate
 {
 
-struct WorldDraftSketchLoopBinding
+struct WorldDraftSketchLoopLink
 {
     ProfileNameInFeature Profile = {};
     std::uint32_t ProfileLoopIndex = 0u;
@@ -27,7 +27,7 @@ struct WorldDraftSketchLoopBinding
 
 struct WorldDraftSketchMapping
 {
-    std::vector<WorldDraftSketchLoopBinding> Loops = {};
+    std::vector<WorldDraftSketchLoopLink> Loops = {};
 };
 
 bool MirrorSketchIntoWorldDraft(const SketchStructure& Sketch,

@@ -27,7 +27,7 @@
 #include "SlateWorkspace/Discipline/TransformSession/Api/TransformSession.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/SketchBasis.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/ViewportProjection.h"
-#include "SlateShape/World/WorldDraftPicking/Api/WorldDraftPicking.h"
+#include "SlateWorkspace/Discipline/WorldDraftPicking/Api/WorldDraftPicking.h"
 #include "SlateWorkspace/Discipline/WorldDraftTransformSession/Api/WorldDraftTransformSession.h"
 
 #include "Shared/OverlayGeometry.slang.h"

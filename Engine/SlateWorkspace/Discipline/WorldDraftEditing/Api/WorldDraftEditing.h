@@ -8,7 +8,7 @@
 #pragma once
 
 #include "Foundation/DeliveryGuarantee.h"
-#include "SlateShape/World/WorldDraftPicking/Api/WorldDraftPicking.h"
+#include "SlateWorkspace/Discipline/WorldDraftPicking/Api/WorldDraftPicking.h"
 
 #include <vector>
 

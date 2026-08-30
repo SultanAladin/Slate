@@ -1,7 +1,7 @@
 // 🧩 Phase-4 proof for true 3D deformation on the world-space draft.
 
 #include "SlateShape/World/WorldDraftAnalysis/Api/WorldDraftAnalysis.h"
-#include "SlateShape/World/WorldDraftEditing/Api/WorldDraftEditing.h"
+#include "SlateWorkspace/Discipline/WorldDraftEditing/Api/WorldDraftEditing.h"
 
 #include <cstdio>
 

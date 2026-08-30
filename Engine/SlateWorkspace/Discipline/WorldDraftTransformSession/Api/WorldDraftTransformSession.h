@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "SlateShape/World/WorldDraftEditing/Api/WorldDraftEditing.h"
+#include "SlateWorkspace/Discipline/WorldDraftEditing/Api/WorldDraftEditing.h"
 #include "SlateWorkspace/Discipline/TransformSequence/Api/TransformSequence.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/ViewportProjection.h"
 

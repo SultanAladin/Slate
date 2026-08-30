@@ -7,7 +7,7 @@
 #include "Shared/WorkspaceCadNearClip.slang.h"
 #include "SlateShape/Sketch/SketchSelection/Api/SketchSelection.h"
 #include "SlateShape/Sketch/SketchPolyline/Api/SketchPolyline.h"
-#include "SlateShape/World/WorldDraftEditing/Api/WorldDraftEditing.h"
+#include "SlateWorkspace/Discipline/WorldDraftEditing/Api/WorldDraftEditing.h"
 #include "SlateWorkspace/Discipline/PlacementCommit/Api/PlacementCommit.h"
 #include "SlateWorkspace/Discipline/RecordDeclaration/Api/RecordDeclaration.h"
 #include "SketchToolset/SketchTool/SketchPlacement/Api/SketchPlacement.h"

@@ -2,7 +2,7 @@
 //                                                    WORLDDRAFTEDITING.CPP
 //============================================================================================================================================
 
-#include "SlateShape/World/WorldDraftEditing/Api/WorldDraftEditing.h"
+#include "SlateWorkspace/Discipline/WorldDraftEditing/Api/WorldDraftEditing.h"
 
 #include "SlateShape/Geometry/CurveSpecification/Api/CurveSpecification.h"
 
