@@ -25,6 +25,24 @@ namespace Slate
 namespace
 {
 
+WorkspaceShapeFamily FamilyOfCurve(const CurveSpecification& Curve)
+{
+    switch (Curve.Subject())
+    {
+        case CurveSubject::Line:          return WorkspaceShapeFamily::Line;
+        case CurveSubject::CircularArc:   return WorkspaceShapeFamily::CircularArc;
+        case CurveSubject::Circle:        return WorkspaceShapeFamily::Circle;
+        case CurveSubject::EllipticalArc: return WorkspaceShapeFamily::EllipticalArc;
+        case CurveSubject::Ellipse:       return WorkspaceShapeFamily::Ellipse;
+        case CurveSubject::Bezier:        return WorkspaceShapeFamily::Bezier;
+        case CurveSubject::BasisSpline:   return WorkspaceShapeFamily::BasisSpline;
+        case CurveSubject::RationalSpline:return WorkspaceShapeFamily::Nurbs;
+        case CurveSubject::Hermite:       return WorkspaceShapeFamily::Hermite;
+        case CurveSubject::SubjectCount:  return WorkspaceShapeFamily::Unknown;
+    }
+    return WorkspaceShapeFamily::Unknown;
+}
+
 WorldPlacementFrame ResolveSketchSupportFrame(const SketchStructure& Sketch)
 {
     if (!Sketch.PlaneDeclared())
@@ -1063,7 +1081,12 @@ bool CommitPlacementWorldBacked(const Workplane& ActiveWorkplane,
     else
     {
         for (const SketchCurveName& Curve : SketchCurves)
-            Written.push_back(DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction));
+        {
+            WorkspaceShapeFamily Family = WorkspaceShapeFamily::Unknown;
+            if (Curve.Assigned() && Curve.IssuedIndex <= Sketch.Curves().size())
+                Family = FamilyOfCurve(Sketch.Curves()[Curve.IssuedIndex - 1u].Geometry);
+            Written.push_back(DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction, Family));
+        }
         SelectedRecord = Written.empty() ? WorkspaceRecordName{} : Written.front();
     }
 
