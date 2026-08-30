@@ -28,6 +28,7 @@ SUPPORTING = [
     "Engine/SlateShape/World/WorldSketchPicking/Source/WorldSketchPicking.cpp",
     "Engine/SlateShape/World/WorldSketchAnalysis/Source/WorldSketchAnalysis.cpp",
     "Engine/SlateShape/World/WorldSketchStructure/Source/WorldSketchStructure.cpp",
+    "Engine/SlateShape/World/WorldSketchSnap/Source/WorldSketchSnap.cpp",
     "Engine/SlateShape/Sketch/SketchSelection/Source/SketchSelection.cpp",
     "Engine/SlateWorkspace/Discipline/SketchPicking/Source/SketchPicking.cpp",
     "Engine/SlateWorkspace/Discipline/TransformSession/Source/TransformSession.cpp",

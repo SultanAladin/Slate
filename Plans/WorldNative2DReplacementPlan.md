@@ -90,12 +90,25 @@ The world placement path is now authoritative for ordinary geometry creation. `C
 - The bootstrap import remains available for opening legacy sketch data.
 - World-first placement and interaction proofs, structural budget checks, partition checks, and naming checks remain green.
 
+## World-native semantic snapping
+
+The world authoring model now owns semantic snap resolution. `WorldSketchSnap` accepts only a `WorldSketchStructure`, an explicit `WorldPlacementFrame`, and pending world anchors; it does not consult a camera, workplane catalogue, or compatibility `SketchStructure`. The workspace resolves the active `Workplane` into that frame and adapts the returned world names into the compatibility-facing `SealedPlacement` record at the boundary.
+
+### World-snap acceptance
+- Endpoints, centres, controls, midpoints, along-curve/perpendicular positions, intersections, tangents, and grid candidates resolve from world geometry.
+- Semantic precedence remains stable, with geometry and pending anchors beating the grid.
+- Intersections and grid coordinates use the supplied active frame rather than fixed ground-plane axes.
+- A pending placement can snap before any compatibility sketch geometry exists.
+- World curve/control mappings preserve compatibility selection and transform references when world and sketch names diverge.
+- World snap and interaction proofs, strict compilation, partition checks, and host-budget checks remain green.
+
 ## Validation plan
 - Strict compile:
   - `WorldSketchBridge.cpp`
   - `SketchInteraction.cpp`
   - `EditorHost.cpp` with `-DSLATE_COMBINED_AUTHORING`
 - Proofs:
+  - `WorldSketchSnapProof`
   - `WorldSketchPlacementCommitProof`
   - `WorldSketchBridgeProof`
   - `WorldSketchInteractionProof`

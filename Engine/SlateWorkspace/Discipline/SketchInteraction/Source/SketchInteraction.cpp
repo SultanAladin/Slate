@@ -19,6 +19,7 @@
 #include "SlateWorkspace/Discipline/WorkplaneStanding/Api/WorkplaneStanding.h"
 #include "SlateWorkspace/Discipline/WorldSketchInteraction/Api/WorldSketchInteraction.h"
 #include "SlateWorkspace/Discipline/WorldSketchBridge/Api/WorldSketchBridge.h"
+#include "SlateShape/World/WorldSketchSnap/Api/WorldSketchSnap.h"
 
 #include <algorithm>
 #include <cmath>
@@ -80,6 +81,12 @@ bool SketchHasCommittedGeometry(const SketchStructure& Sketch)
 }
 
 SketchPlane ResolveSketchPlaneFromWorkplane(const Workplane& ActiveWorkplane)
+{
+    const SpatialBasis Basis = ResolveWorkplaneBasis(ActiveWorkplane);
+    return { Basis.Origin, Basis.Normal, Basis.Along };
+}
+
+WorldPlacementFrame ResolveWorldPlacementFrameFromWorkplane(const Workplane& ActiveWorkplane)
 {
     const SpatialBasis Basis = ResolveWorkplaneBasis(ActiveWorkplane);
     return { Basis.Origin, Basis.Normal, Basis.Along };
@@ -431,14 +438,19 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
                                           Pointer.PositionX, Pointer.PositionY, Raw))
         return;
 
-    // 📝 Snapping stays with the host: it needs the sketch, the view scale and the modifier that suspends
-    //    it. The placement is told where the pointer ended up, not how it got there.
+    // 🧩 Snapping is semantic world geometry now. The host supplies only the active workplane frame and
+    //    adapts the returned world names into the compatibility-facing placement record below.
     const double SnapTolerance = ResolveSnapTolerance(View, Perspective);
     // 🔴 THE WHEEL SETS A POLYGON'S RESOLUTION, exactly as the circle tool's drag sets its radius.
     //    `Resolve` refuses for every other subject, so the wheel still zooms while anything else is
     //    being drawn, and the press is consumed only when it was actually used.
     if (Tool.Resolve(Pointer.WheelY))
         PointerTaken = true;
+
+    // 🧩 A legacy document is imported before its geometry can be offered to the world snapper, but a
+    //    live world model is never rebuilt from the sketch while the artist is drawing.
+    if (World.CurveCount() == 0u && SketchHasCommittedGeometry(Sketch))
+        MirrorSketchIntoWorldSketch(Sketch, World, Mapping);
 
     // 🔴 SNAPPING IS HELD, NOT SUFFERED. Control USED to suspend it, which meant every pointer move
     //    was silently dragged onto the nearest endpoint, midpoint, intersection or grid corner whether
@@ -449,12 +461,13 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
     // 🔴 The placement in progress is offered its OWN anchors, which is what lets a polyline or a
     //    spline close back onto the point it started from. Until it seals, that geometry exists
     //    nowhere else.
-    const SketchSnapPlacement Placement = Modifiers.Commanded
-                                        ? ResolveNearestSnap(Sketch,
-                                                             ResolveSketchPlaneFromWorkplane(Workplanes.Active()),
-                                                             Raw, SnapTolerance, {}, 10.0,
-                                                             Tool.Anchors())
-                                        : SketchSnapPlacement{};
+    const WorldSnapPlacement WorldPlacement = Modifiers.Commanded
+        ? ResolveNearestWorldSnap(World,
+                                  ResolveWorldPlacementFrameFromWorkplane(Workplanes.Active()),
+                                  Raw, SnapTolerance, {}, 10.0,
+                                  Tool.Anchors())
+        : WorldSnapPlacement{};
+    const SketchSnapPlacement Placement = ResolveCompatibilitySnap(WorldPlacement, Mapping);
 
     SpatialPoint Hover = Placement.Resolved() ? Placement.Position : Raw;
     Hover = ApplySketchToolSettings(Tool, Basis, ToolContext, Hover);
@@ -889,7 +902,7 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
                                          SessionMilliseconds, LastGPressedMilliseconds,
                                          &HoveredHandle);
 
-    ApplyWorldSketchToSketch(World, Sketch);
+    ApplyWorldSketchToSketch(World, Mapping, Sketch);
 
     if (!ResolveSketchPickForWorldPick(Sketch, Records, Mapping, WorldSemantic, SemanticSelection))
         SemanticSelection = {};

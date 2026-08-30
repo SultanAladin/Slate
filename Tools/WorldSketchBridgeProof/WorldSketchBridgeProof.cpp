@@ -130,8 +130,8 @@ void ProveMirrorAndPickMapping()
 
     Bench Stage;
 
-    Claim(Stage.World.CurveCount() == 4u,
-          "the sketch's four edges mirror into four persistent world curves");
+    Claim(Stage.World.CurveCount() == 4u && Stage.Mapping.Curves.size() == 4u,
+          "the sketch's four edges mirror into four persistent world curves with curve mappings");
     Claim(Stage.World.LoopCount() == 1u && Stage.Mapping.Loops.size() == 1u,
           "and the rectangle profile mirrors into one persistent world loop with recorded source mapping");
 
@@ -153,9 +153,29 @@ void ProveMirrorAndPickMapping()
           "and it comes back as the same profile record");
 }
 
+void ProveWorldNameMappingSurvivesDifferentIssuance()
+{
+    std::printf("\n2. World snap names adapt at the compatibility boundary when issuance diverges\n");
+
+    WorldSketchMapping Mapping = {};
+    Mapping.Curves.push_back({ { 17u }, { 3u } });
+
+    WorldSnapPlacement WorldSnap = {};
+    WorldSnap.Subject = WorldSnapSubject::Endpoint;
+    WorldSnap.SourceCurve = { 17u };
+    WorldSnap.WorldPoint = { (17u << 8u) | 1u };
+    WorldSnap.Position = { 25.0, 40.0, 0.0 };
+    WorldSnap.Distance = 0.5;
+
+    const SketchSnapPlacement Compatibility = ResolveCompatibilitySnap(WorldSnap, Mapping);
+    Claim(Compatibility.SourceCurve.IssuedIndex == 3u
+       && Compatibility.SketchPoint.IssuedIndex == ((3u << 8u) | 1u),
+          "world snap curve and point names map to their compatibility sketch names explicitly");
+}
+
 void ProveWorldBackedViewportFlow()
 {
-    std::printf("\n2. The world-backed viewport flow selects, drags, and seals a revision\n");
+    std::printf("\n3. The world-backed viewport flow selects, drags, and seals a revision\n");
 
     Bench Stage;
     Stage.Gizmo.Shown = false;
@@ -224,7 +244,7 @@ void ProveWorldBackedViewportFlow()
 
 void ProveWorldBackedRenderingAndPreview()
 {
-    std::printf("\n3. The persistent world sketch renders directly and preview appends in screen space\n");
+    std::printf("\n4. The persistent world sketch renders directly and preview appends in screen space\n");
 
     Bench Stage;
     DeclaredWorldCurve* Raised = Stage.World.Resolve(WorldCurveName{ 2u });
@@ -256,7 +276,7 @@ void ProveWorldBackedRenderingAndPreview()
 
 void ProveOverlayUsesExplicitWorldBasis()
 {
-    std::printf("\n4. Compatibility overlays can be projected from the active basis\n");
+    std::printf("\n5. Compatibility overlays can be projected from the active basis\n");
 
     const PlaneExtent Extent = { 0.0f, 0.0f, 800.0f, 600.0f };
     const ViewportStanding View = {};
@@ -290,6 +310,7 @@ int main()
     std::printf("=========================================================================\n");
 
     ProveMirrorAndPickMapping();
+    ProveWorldNameMappingSurvivesDifferentIssuance();
     ProveWorldBackedViewportFlow();
     ProveWorldBackedRenderingAndPreview();
     ProveOverlayUsesExplicitWorldBasis();

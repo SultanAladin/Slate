@@ -218,13 +218,95 @@ std::string PlacementCreateOperation(const SealedPlacement& Placed,
     return std::string("Create ") + Base;
 }
 
+WorldPointName ResolveWorldPointForSketchPoint(const WorldSketchMapping& Mapping,
+                                               SketchPointName Point)
+{
+    if (!Point.Assigned())
+        return {};
+    const WorldCurveName WorldCurve =
+        ResolveWorldCurveForSketchCurve(Mapping, { Point.IssuedIndex >> 8u });
+    return { (WorldCurve.IssuedIndex << 8u) | (Point.IssuedIndex & 0xFFu) };
+}
+
+WorldControlName ResolveWorldControlForSketchControl(const WorldSketchMapping& Mapping,
+                                                     SketchControlName Control)
+{
+    if (!Control.Assigned())
+        return {};
+    const WorldCurveName WorldCurve =
+        ResolveWorldCurveForSketchCurve(Mapping, { Control.IssuedIndex >> 12u });
+    return { (WorldCurve.IssuedIndex << 12u) | (Control.IssuedIndex & 0xFFFu) };
+}
+
+SketchPointName ResolveSketchPointForWorldPoint(const WorldSketchMapping& Mapping,
+                                               WorldPointName Point)
+{
+    if (!Point.Assigned())
+        return {};
+    const SketchCurveName SketchCurve =
+        ResolveSketchCurveForWorldCurve(Mapping, { Point.IssuedIndex >> 8u });
+    return { (SketchCurve.IssuedIndex << 8u) | (Point.IssuedIndex & 0xFFu) };
+}
+
+SketchControlName ResolveSketchControlForWorldControl(const WorldSketchMapping& Mapping,
+                                                      WorldControlName Control)
+{
+    if (!Control.Assigned())
+        return {};
+    const SketchCurveName SketchCurve =
+        ResolveSketchCurveForWorldCurve(Mapping, { Control.IssuedIndex >> 12u });
+    return { (SketchCurve.IssuedIndex << 12u) | (Control.IssuedIndex & 0xFFFu) };
+}
+
 } // namespace
+
+WorldCurveName ResolveWorldCurveForSketchCurve(const WorldSketchMapping& Mapping,
+                                               SketchCurveName Curve)
+{
+    if (!Curve.Assigned())
+        return {};
+    for (const WorldSketchCurveReference& Reference : Mapping.Curves)
+        if (Reference.Sketch.IssuedIndex == Curve.IssuedIndex)
+            return Reference.World;
+    return { Curve.IssuedIndex };
+}
+
+SketchCurveName ResolveSketchCurveForWorldCurve(const WorldSketchMapping& Mapping,
+                                                WorldCurveName Curve)
+{
+    if (!Curve.Assigned())
+        return {};
+    for (const WorldSketchCurveReference& Reference : Mapping.Curves)
+        if (Reference.World.IssuedIndex == Curve.IssuedIndex)
+            return Reference.Sketch;
+    return { Curve.IssuedIndex };
+}
+
+SketchSnapPlacement ResolveCompatibilitySnap(const WorldSnapPlacement& Snapped,
+                                             const WorldSketchMapping& Mapping)
+{
+    if (!Snapped.Resolved())
+        return {};
+
+    const SketchCurveName SketchCurve = ResolveSketchCurveForWorldCurve(Mapping, Snapped.SourceCurve);
+    SketchPointName SketchPoint = {};
+    if (Snapped.WorldPoint.Assigned())
+        SketchPoint = { (SketchCurve.IssuedIndex << 8u) | (Snapped.WorldPoint.IssuedIndex & 0xFFu) };
+
+    SketchControlName SketchControl = {};
+    if (Snapped.WorldControl.Assigned())
+        SketchControl = { (SketchCurve.IssuedIndex << 12u) | (Snapped.WorldControl.IssuedIndex & 0xFFFu) };
+
+    return { static_cast<SketchSnapSubject>(static_cast<std::uint32_t>(Snapped.Subject)),
+             SketchCurve, SketchPoint, SketchControl, Snapped.Position, Snapped.Distance };
+}
 
 bool MirrorSketchIntoWorldSketch(const SketchStructure& Sketch,
                                 WorldSketchStructure& Declared,
                                 WorldSketchMapping& Mapping)
 {
     Declared.Reclaim();
+    Mapping.Curves.clear();
     Mapping.Loops.clear();
 
     const WorldPlacementFrame SketchSupport = ResolveSketchSupportFrame(Sketch);
@@ -248,10 +330,10 @@ bool MirrorSketchIntoWorldSketch(const SketchStructure& Sketch,
     {
         const DeclaredSketchCurve& Curve = Sketch.Curves()[CurveIndex];
         const WorldPlacementFrame& Support = CurveSupports[CurveIndex];
-        if (Support.Declared())
-            Declared.DeclareCurve(Curve.Geometry, Support);
-        else
-            Declared.DeclareCurve(Curve.Geometry);
+        const WorldCurveName WorldCurve = Support.Declared()
+                                        ? Declared.DeclareCurve(Curve.Geometry, Support)
+                                        : Declared.DeclareCurve(Curve.Geometry);
+        Mapping.Curves.push_back({ WorldCurve, { static_cast<std::uint32_t>(CurveIndex + 1u) } });
     }
 
     for (std::uint32_t ProfileIndex = 0u; ProfileIndex < Sketch.Profiles().size(); ++ProfileIndex)
@@ -264,8 +346,8 @@ bool MirrorSketchIntoWorldSketch(const SketchStructure& Sketch,
             Mirrored.Traversal.reserve(Loop.Traversal.size());
             for (const ProfileCurveUse& Use : Loop.Traversal)
                 Mirrored.Traversal.push_back({ { Use.TraversedCurve.IssuedIndex }, Use.SameSense });
-            Declared.DeclareLoop(Mirrored);
-            Mapping.Loops.push_back({ { ProfileIndex + 1u }, LoopIndex });
+            const WorldLoopName WorldLoop = Declared.DeclareLoop(Mirrored);
+            Mapping.Loops.push_back({ WorldLoop, { ProfileIndex + 1u }, LoopIndex });
         }
     }
 
@@ -289,14 +371,45 @@ bool ApplyWorldSketchToSketch(const WorldSketchStructure& Declared,
     return true;
 }
 
+bool ApplyWorldSketchToSketch(const WorldSketchStructure& Declared,
+                             const WorldSketchMapping& Mapping,
+                             SketchStructure& Sketch)
+{
+    if (Mapping.Curves.empty())
+        return ApplyWorldSketchToSketch(Declared, Sketch);
+
+    for (const WorldSketchCurveReference& Reference : Mapping.Curves)
+    {
+        const DeclaredWorldCurve* Source = Declared.Resolve(Reference.World);
+        if (Source == nullptr || !Reference.Sketch.Assigned()
+         || Reference.Sketch.IssuedIndex > Sketch.Curves().size())
+            return false;
+        Sketch.Curves()[Reference.Sketch.IssuedIndex - 1u].Geometry = Source->Geometry;
+    }
+
+    return true;
+}
+
 WorkspaceRecordName ResolveRecordForWorldLoop(const WorkspaceRecordStructure& Records,
                                               const WorldSketchMapping& Mapping,
                                               WorldLoopName Loop)
 {
-    if (!Loop.Assigned() || Loop.IssuedIndex > Mapping.Loops.size())
+    if (!Loop.Assigned())
         return {};
 
-    const ProfileNameInFeature Profile = Mapping.Loops[Loop.IssuedIndex - 1u].Profile;
+    const WorldSketchLoopReference* Matched = nullptr;
+    for (const WorldSketchLoopReference& Reference : Mapping.Loops)
+        if (Reference.World.IssuedIndex == Loop.IssuedIndex)
+        {
+            Matched = &Reference;
+            break;
+        }
+    if (Matched == nullptr && Loop.IssuedIndex <= Mapping.Loops.size())
+        Matched = &Mapping.Loops[Loop.IssuedIndex - 1u];
+    if (Matched == nullptr)
+        return {};
+
+    const ProfileNameInFeature Profile = Matched->Profile;
     for (std::uint32_t Index = 1u; Index <= Records.DeclaredCount(); ++Index)
     {
         const WorkspaceRecord* Record = Records.Resolve({ Index });
@@ -323,19 +436,21 @@ bool ResolveWorldPickForSketchPick(const SketchStructure& Sketch,
     {
         case SketchPickSubject::Point:
             Resolved.Subject = WorldPickSubject::Point;
-            Resolved.Point = { Selection.Point.IssuedIndex };
-            Resolved.Curve = { Selection.Curve.IssuedIndex };
+            Resolved.Point = ResolveWorldPointForSketchPoint(Mapping, Selection.Point);
+            Resolved.Curve = ResolveWorldCurveForSketchCurve(Mapping,
+                                                              { Selection.Point.IssuedIndex >> 8u });
             return ResolveWorldSketchPointPosition(Declared, Resolved.Point, Resolved.Position);
 
         case SketchPickSubject::Control:
             Resolved.Subject = WorldPickSubject::Control;
-            Resolved.Control = { Selection.Control.IssuedIndex };
-            Resolved.Curve = { Selection.Curve.IssuedIndex };
+            Resolved.Control = ResolveWorldControlForSketchControl(Mapping, Selection.Control);
+            Resolved.Curve = ResolveWorldCurveForSketchCurve(Mapping,
+                                                              { Selection.Control.IssuedIndex >> 12u });
             return ResolveWorldControlPosition(Declared, Resolved.Control, Resolved.Position);
 
         case SketchPickSubject::Curve:
             Resolved.Subject = WorldPickSubject::Curve;
-            Resolved.Curve = { Selection.Curve.IssuedIndex };
+            Resolved.Curve = ResolveWorldCurveForSketchCurve(Mapping, Selection.Curve);
             return ResolveWorldCurvePivot(Declared, Resolved.Curve, Resolved.Position);
 
         case SketchPickSubject::Record:
@@ -349,15 +464,16 @@ bool ResolveWorldPickForSketchPick(const SketchStructure& Sketch,
             if (Record->SketchPoint.Assigned())
             {
                 Resolved.Subject = WorldPickSubject::Point;
-                Resolved.Point = { Record->SketchPoint.IssuedIndex };
-                Resolved.Curve = { Record->SketchPoint.IssuedIndex >> 8u };
+                Resolved.Point = ResolveWorldPointForSketchPoint(Mapping, Record->SketchPoint);
+                Resolved.Curve = ResolveWorldCurveForSketchCurve(Mapping,
+                                                                  { Record->SketchPoint.IssuedIndex >> 8u });
                 return ResolveWorldSketchPointPosition(Declared, Resolved.Point, Resolved.Position);
             }
 
             if (Record->SketchCurve.Assigned())
             {
                 Resolved.Subject = WorldPickSubject::Curve;
-                Resolved.Curve = { Record->SketchCurve.IssuedIndex };
+                Resolved.Curve = ResolveWorldCurveForSketchCurve(Mapping, Record->SketchCurve);
                 return ResolveWorldCurvePivot(Declared, Resolved.Curve, Resolved.Position);
             }
 
@@ -367,7 +483,9 @@ bool ResolveWorldPickForSketchPick(const SketchStructure& Sketch,
                     if (Mapping.Loops[LoopIndex - 1u].Profile.IssuedIndex == Record->Profile.IssuedIndex)
                     {
                         Resolved.Subject = WorldPickSubject::Loop;
-                        Resolved.Loop = { LoopIndex };
+                        Resolved.Loop = Mapping.Loops[LoopIndex - 1u].World.Assigned()
+                                      ? Mapping.Loops[LoopIndex - 1u].World
+                                      : WorldLoopName{ LoopIndex };
                         return ResolveWorldLoopPivot(Declared, Resolved.Loop, Resolved.Position);
                     }
             }
@@ -395,21 +513,23 @@ bool ResolveSketchPickForWorldPick(const SketchStructure& Sketch,
     {
         case WorldPickSubject::Point:
             Resolved.Subject = SketchPickSubject::Point;
-            Resolved.Point = { Selection.Point.IssuedIndex };
-            Resolved.Curve = { Selection.Point.IssuedIndex >> 8u };
+            Resolved.Point = ResolveSketchPointForWorldPoint(Mapping, Selection.Point);
+            Resolved.Curve = ResolveSketchCurveForWorldCurve(Mapping,
+                                                              { Selection.Point.IssuedIndex >> 8u });
             Resolved.Record = ResolveRecordForPoint(Sketch, Records, Resolved.Point);
             return ResolveSketchPointPosition(Sketch, Resolved.Point, Resolved.Position);
 
         case WorldPickSubject::Control:
             Resolved.Subject = SketchPickSubject::Control;
-            Resolved.Control = { Selection.Control.IssuedIndex };
-            Resolved.Curve = { Selection.Control.IssuedIndex >> 12u };
+            Resolved.Control = ResolveSketchControlForWorldControl(Mapping, Selection.Control);
+            Resolved.Curve = ResolveSketchCurveForWorldCurve(Mapping,
+                                                              { Selection.Control.IssuedIndex >> 12u });
             Resolved.Record = ResolveRecordForCurve(Sketch, Records, Resolved.Curve);
             return ResolveSketchControlPosition(Sketch, Resolved.Control, Resolved.Position);
 
         case WorldPickSubject::Curve:
             Resolved.Subject = SketchPickSubject::Curve;
-            Resolved.Curve = { Selection.Curve.IssuedIndex };
+            Resolved.Curve = ResolveSketchCurveForWorldCurve(Mapping, Selection.Curve);
             Resolved.Record = ResolveRecordForCurve(Sketch, Records, Resolved.Curve);
             return ResolveCurvePivot(Sketch, Resolved.Curve, Resolved.Position);
 
@@ -418,6 +538,9 @@ bool ResolveSketchPickForWorldPick(const SketchStructure& Sketch,
             Resolved.Record = ResolveRecordForWorldLoop(Records, Mapping, Selection.Loop);
             if (!Resolved.Record.Assigned())
                 return false;
+            for (const WorldSketchLoopReference& Reference : Mapping.Loops)
+                if (Reference.World.IssuedIndex == Selection.Loop.IssuedIndex)
+                    return ResolveProfilePivot(Sketch, Reference.Profile, Resolved.Position);
             if (Selection.Loop.IssuedIndex <= Mapping.Loops.size())
                 return ResolveProfilePivot(Sketch, Mapping.Loops[Selection.Loop.IssuedIndex - 1u].Profile,
                                            Resolved.Position);
@@ -584,12 +707,14 @@ bool CommitPlacementWorldBacked(const Workplane& ActiveWorkplane,
     if (WorldCurves.empty())
         return false;
 
+    WorldLoopName WorldLoop = {};
     if (PlacementFormsProfile(Placed))
     {
         DeclaredWorldLoop Loop = {};
         for (const WorldCurveName& Curve : WorldCurves)
             Loop.Traversal.push_back({ Curve, true });
-        if (!Declared.DeclareLoop(Loop).Assigned())
+        WorldLoop = Declared.DeclareLoop(Loop);
+        if (!WorldLoop.Assigned())
             return false;
     }
 
@@ -600,7 +725,9 @@ bool CommitPlacementWorldBacked(const Workplane& ActiveWorkplane,
         const DeclaredWorldCurve* Resolved = Declared.Resolve(Curve);
         if (Resolved == nullptr || !Resolved->Geometry.Declared())
             return false;
-        SketchCurves.push_back(Sketch.DeclareCurve(Resolved->Geometry));
+        const SketchCurveName SketchCurve = Sketch.DeclareCurve(Resolved->Geometry);
+        SketchCurves.push_back(SketchCurve);
+        Mapping.Curves.push_back({ Curve, SketchCurve });
     }
 
     const bool Profile = PlacementFormsProfile(Placed);
@@ -629,7 +756,7 @@ bool CommitPlacementWorldBacked(const Workplane& ActiveWorkplane,
         Shape.DeclareLoop(Loop);
 
         const ProfileNameInFeature DeclaredProfile = Sketch.DeclareProfile(Shape);
-        Mapping.Loops.push_back({ DeclaredProfile, 0u });
+        Mapping.Loops.push_back({ WorldLoop, DeclaredProfile, 0u });
         const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, DeclaredProfile);
         Written.push_back(Record);
         SelectedRecord = Record;

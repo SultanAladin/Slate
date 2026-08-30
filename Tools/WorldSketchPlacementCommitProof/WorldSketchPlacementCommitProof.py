@@ -25,6 +25,7 @@ SUPPORTING = [
     "Engine/SlateWorkspace/Discipline/ViewportProjection/Source/SketchBasis.cpp",
     "Engine/SlateWorkspace/Discipline/WorldSketchRenderingProjection/Source/WorldSketchRenderingProjection.cpp",
     "Engine/SlateShape/World/WorldSketchPicking/Source/WorldSketchPicking.cpp",
+    "Engine/SlateShape/World/WorldSketchSnap/Source/WorldSketchSnap.cpp",
     "Engine/SlateShape/World/WorldSketchEditing/Source/WorldSketchEditing.cpp",
     "Engine/SlateShape/World/WorldSketchAnalysis/Source/WorldSketchAnalysis.cpp",
     "Engine/SlateShape/World/WorldSketchStructure/Source/WorldSketchStructure.cpp",

@@ -126,9 +126,15 @@ def main() -> int:
     #    dragged onto the nearest endpoint, midpoint or grid corner whether the artist wanted it or
     #    not. It is off by default and Control turns it on, which is the opposite arrangement.
     interaction = read("Engine/SlateWorkspace/Discipline/SketchInteraction/Source/SketchInteraction.cpp")
-    require("Modifiers.Commanded\n                                        ? ResolveNearestSnap(" in interaction
-            or ("? ResolveNearestSnap(" in interaction and ": SketchSnapPlacement{};" in interaction),
-            "Control must ENABLE snapping, not suspend it")
+    require("Modifiers.Commanded\n        ? ResolveNearestWorldSnap(" in interaction
+            and "ResolveCompatibilitySnap(WorldPlacement, Mapping)" in interaction,
+            "world drawing must resolve snapping against the active world sketch")
+    world_snap = read("Engine/SlateShape/World/WorldSketchSnap/Source/WorldSketchSnap.cpp")
+    world_snap_api = read("Engine/SlateShape/World/WorldSketchSnap/Api/WorldSketchSnap.h")
+    require("ResolveNearestWorldSnap(" in world_snap and "const WorldPlacementFrame& ActiveFrame" in world_snap_api,
+            "world snapping must accept the active support frame explicitly")
+    require("SketchStructure/Api" not in world_snap and "ResolveSketchBasis" not in world_snap,
+            "world snapping must not depend on the compatibility sketch or sketch basis")
 
     # 📝 The plural is checked above: a Hermite and a polyline draw more than one span, and asking for
     #    the singular is what drew the first two Hermite points and left the rest as bare points.

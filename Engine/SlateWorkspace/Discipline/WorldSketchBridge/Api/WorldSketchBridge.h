@@ -10,7 +10,9 @@
 #pragma once
 
 #include "SlateShape/Sketch/SketchRenderingProjection/Api/SketchRenderingProjection.h"
+#include "SlateShape/Sketch/SketchSnap/Api/SketchSnap.h"
 #include "SlateShape/World/WorldSketchPicking/Api/WorldSketchPicking.h"
+#include "SlateShape/World/WorldSketchSnap/Api/WorldSketchSnap.h"
 #include "SlateWorkspace/Discipline/SketchPicking/Api/SketchPicking.h"
 #include "SlateWorkspace/Discipline/WorldSketchRenderingProjection/Api/WorldSketchRenderingProjection.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/DrawableScale.h"
@@ -21,22 +23,41 @@
 namespace Slate
 {
 
+struct WorldSketchCurveReference
+{
+    WorldCurveName World = {};
+    SketchCurveName Sketch = {};
+};
+
 struct WorldSketchLoopReference
 {
+    WorldLoopName World = {};
     ProfileNameInFeature Profile = {};
     std::uint32_t ProfileLoopIndex = 0u;
 };
 
 struct WorldSketchMapping
 {
+    std::vector<WorldSketchCurveReference> Curves = {};
     std::vector<WorldSketchLoopReference> Loops = {};
 };
+
+WorldCurveName ResolveWorldCurveForSketchCurve(const WorldSketchMapping& Mapping,
+                                               SketchCurveName Curve);
+SketchCurveName ResolveSketchCurveForWorldCurve(const WorldSketchMapping& Mapping,
+                                                WorldCurveName Curve);
+SketchSnapPlacement ResolveCompatibilitySnap(const WorldSnapPlacement& Snapped,
+                                             const WorldSketchMapping& Mapping);
 
 bool MirrorSketchIntoWorldSketch(const SketchStructure& Sketch,
                                 WorldSketchStructure& Declared,
                                 WorldSketchMapping& Mapping);
 
 bool ApplyWorldSketchToSketch(const WorldSketchStructure& Declared,
+                             SketchStructure& Sketch);
+
+bool ApplyWorldSketchToSketch(const WorldSketchStructure& Declared,
+                             const WorldSketchMapping& Mapping,
                              SketchStructure& Sketch);
 
 WorkspaceRecordName ResolveRecordForWorldLoop(const WorkspaceRecordStructure& Records,
