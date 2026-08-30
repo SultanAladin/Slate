@@ -2,7 +2,7 @@
 //                                                    WORLDDRAFTPICKING.CPP
 //============================================================================================================================================
 
-#include "SlateShape/World/WorldDraftPicking/Api/WorldDraftPicking.h"
+#include "SlateWorkspace/Discipline/WorldDraftPicking/Api/WorldDraftPicking.h"
 
 #include "SlateShape/Sketch/SketchPolyline/Api/SketchPolyline.h"
 #include "SlateShape/World/WorldDraftAnalysis/Api/WorldDraftAnalysis.h"

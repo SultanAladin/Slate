@@ -28,6 +28,12 @@ subject = [ "Discipline" ]
 # 🔴 SlateWorkspace names the interface and the toolsets, because a discipline declares which panels it
 #    seats AND which tools it offers. It names no device and no tick: a workspace that knew when it was
 #    recorded would be a runtime concern wearing a workspace's name.
+#
+# 📝 World-draft picking, rendering projection, and editing are discipline services rather than shape
+#    primitives. Picking and rendering consume `ViewportProjection`, while editing consumes the pick
+#    value types, so those three services stay on this side of the SlateShape boundary together. The
+#    world-draft structure and loop analysis remain in SlateShape and are reached through this unit's
+#    existing SlateShape requirement.
 [requires]
 unit = [ "SketchToolset", "TextureToolset", "SlateUI", "SlateCompute", "SlateDocument", "SlateShape", "SlateMath" ]
 

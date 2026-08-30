@@ -2,7 +2,7 @@
 //                                             WORLDDRAFTRENDERINGPROJECTION.CPP
 //============================================================================================================================================
 
-#include "SlateShape/World/WorldDraftRenderingProjection/Api/WorldDraftRenderingProjection.h"
+#include "SlateWorkspace/Discipline/WorldDraftRenderingProjection/Api/WorldDraftRenderingProjection.h"
 
 #include "Shared/WorkspaceCadNearClip.slang.h"
 #include "SlateShape/Sketch/SketchPolyline/Api/SketchPolyline.h"

@@ -1,6 +1,6 @@
 // 🧩 Phase-2 proof for rendering the world-space draft through the existing CAD packet.
 
-#include "SlateShape/World/WorldDraftRenderingProjection/Api/WorldDraftRenderingProjection.h"
+#include "SlateWorkspace/Discipline/WorldDraftRenderingProjection/Api/WorldDraftRenderingProjection.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/ViewportProjection.h"
 
 #include <cmath>
