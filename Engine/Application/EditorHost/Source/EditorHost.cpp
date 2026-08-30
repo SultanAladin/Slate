@@ -20,6 +20,7 @@
 
 #include "SlateWorkspace/Discipline/SketchViewportOverlay/Api/SketchViewportOverlay.h"
 #include "Application/EditorHost/Api/EditorFrameContext.h"
+#include "Application/EditorHost/Api/ViewportRuntimeState.h"
 #include "SlateShape/Sketch/SketchRenderingProjection/Api/SketchRenderingProjection.h"
 #include "SlateWorkspace/Discipline/ContentImportCommit/Api/ContentImportCommit.h"
 #include "SlateWorkspace/Discipline/SketchInteraction/Api/SketchInteraction.h"
@@ -364,11 +365,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
     //    projection between one tick and the next, so the whole scene jumped and the artist lost
     //    track of where they were looking. One per leaf, because two split viewports may be part-way
     //    through opposite transits at the same time.
-    static ProjectionTransit         LeafProjection[WorkspaceIndex::WorkspaceLimit];
-    // 🧩 An orthographic standing is stateful: pan changes its focus and must not be rebuilt from the
-    //    free camera on the next tick. Keep one transition latch per leaf so entering ortho seeds the
-    //    standing once, then the same standing owns zoom and pan until perspective is requested again.
-    static bool                      LeafWasParallel[WorkspaceIndex::WorkspaceLimit] = {};
+    static ViewportRuntimeState     ViewportRuntime[WorkspaceIndex::WorkspaceLimit];
     // 📝 Static: the packet is large and is reused every frame.
     static WorkspaceCadPacket        SketchCadPacket;
 
@@ -397,7 +394,6 @@ static std::uint32_t             SketchTrimKeep      = 0u;
     //    lives on the CPU; only the rasterisation moves.
     WorkspaceCadPass                 CadPass;
     std::uint64_t                    UploadedCadFingerprint = 0ull;
-    WorkspaceCadProjection           ViewportCadProjections[PanelStructure::RecordLimit] = {};
     GeometryDeviceExchange           GeometryDevice = {};
     GeometryFileInterchange          GeometryTransfer = {};
     GeometryInterchange              ImportedGeometry = {};
@@ -411,12 +407,9 @@ static std::uint32_t             SketchTrimKeep      = 0u;
     std::uint32_t                    PendingRegistrationBase = 0u;
     bool                             GeometryAdmissionPending = false;
     bool                             EditorCameraLookLatched = false;
-    std::uint32_t           OverlayGeneration[PanelStructure::RecordLimit] = {};   // [-] - per viewport leaf
-    float                    OverlayPixelScale[PanelStructure::RecordLimit] = {};   // [-] - uploaded drawable scale
 
     // 📝 One overlay record per viewport leaf, in STATIC storage: each record is ~70 KB and the
     //    automatic-storage budget (a quarter of a Windows thread stack) cannot hold eleven of them.
-    static OverlayGeometry   ViewportOverlays[PanelStructure::RecordLimit];
     std::uint32_t            ViewportLeafIndexs[PanelStructure::RecordLimit] = {};
     PlaneExtent              ViewportLeafRects[PanelStructure::RecordLimit]    = {};
     std::uint32_t            ViewportLeafTally = 0u;
@@ -873,8 +866,8 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                 }
                 for (std::uint32_t Index = 0u; Index < PanelStructure::RecordLimit; ++Index)
                 {
-                    OverlayGeneration[Index] = 0u;
-                    OverlayPixelScale[Index] = 0.0f;
+                    ViewportRuntime[Index].UploadedOverlayGeneration = 0u;
+                    ViewportRuntime[Index].UploadedOverlayScale = 0.0f;
                 }
             }
 
@@ -1205,7 +1198,8 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                         {
                             case PanelSubject::Viewport:
                             {
-                                OverlayGeometry& LeafOverlay = ViewportOverlays[Leaf];
+                                ViewportRuntimeState& LeafRuntime = ViewportRuntime[Leaf];
+                                OverlayGeometry& LeafOverlay = LeafRuntime.Overlay;
                                 LeafOverlay.Reset();
 
                                 // 🔴 One press, one claimant. Scene selection, the workplane tool and
@@ -1268,7 +1262,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                 //    to. `Perspective` below therefore asks the transit, not the
                                 //    button, so the grid and the geometry flatten together over the
                                 //    same quarter second instead of both cutting on one frame.
-                                ProjectionTransit& Transit = LeafProjection[Index];
+                                ProjectionTransit& Transit = ViewportRuntime[Index].Projection;
                                 AdvanceProjectionTransit(Transit, Pass.ElapsedMilliseconds / 1000.0,
                                                          !PanelConfiguration[Index].Perspective);
                                 const bool LeafPerspective = !Transit.Parallel();
@@ -1475,7 +1469,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     //    drag appear dead. Seed it when entering ortho (and continuously
                                     //    while perspective is active); thereafter the standing itself is
                                     //    the source of truth for the orthographic camera.
-                                    const bool EnteredParallel = !LeafWasParallel[Index] && !LeafPerspective;
+                                    const bool EnteredParallel = !ViewportRuntime[Index].WasParallel && !LeafPerspective;
                                     if (LeafPerspective || EnteredParallel)
                                     {
                                         SketchView = ResolveOrbitStandingFromFree(
@@ -1522,7 +1516,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     //    orthographic view, and perspective secondary drag orbits.
                                     DriveViewport(LeafBody, NavigationPointer,
                                                   Viewport.Seam().Modifiers(), SketchView, LeafPerspective);
-                                    LeafWasParallel[Index] = !LeafPerspective;
+                                    ViewportRuntime[Index].WasParallel = !LeafPerspective;
 
                                     // 🔴 SETTLED ORTHOGRAPHIC WORK USES THE SAME RESOLVED CAMERA EVERYWHERE.
                                     //    The free camera is the right source while the perspective transit is
@@ -1791,7 +1785,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                         // 🔴 Measured from the two extents seen THIS frame. A reported
                                         //    scale can be a frame stale after the window changes
                                         //    monitor, and a stale scale clips the wrong region.
-                                        ViewportCadProjections[ViewportLeafTally] =
+                                        ViewportRuntime[Leaf].CadProjection =
                                             ResolveWorldSketchScreenProjection(Pass.Width, Pass.Height);
                                     }
 
@@ -2430,7 +2424,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     : PlaneExtent{};
 
                             CadPass.RecordAround(Pass.Recording,
-                                                 ViewportCadProjections[ViewportIndex],
+                                                 ViewportRuntime[ViewportLeafIndexs[ViewportIndex]].CadProjection,
                                                  CadClip.MinimumX, CadClip.MinimumY,
                                                  CadClip.MaximumX, CadClip.MaximumY,
                                                  CadWithheld.MinimumX, CadWithheld.MinimumY,
@@ -2446,15 +2440,16 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                      ++ViewportIndex)
                 {
                     const std::uint32_t LeafIndex = ViewportLeafIndexs[ViewportIndex];
-                    OverlayGeometry& LeafOverlay = ViewportOverlays[LeafIndex];
+                    ViewportRuntimeState& LeafRuntime = ViewportRuntime[LeafIndex];
+                    OverlayGeometry& LeafOverlay = LeafRuntime.Overlay;
 
                     const float DrawablePixelScale = static_cast<float>(ViewportDrawable.Factor);
-                    if (LeafOverlay.Generation != OverlayGeneration[LeafIndex]
-                        || std::fabs(OverlayPixelScale[LeafIndex] - DrawablePixelScale) > 1.0e-6f)
+                    if (LeafOverlay.Generation != LeafRuntime.UploadedOverlayGeneration
+                        || std::fabs(LeafRuntime.UploadedOverlayScale - DrawablePixelScale) > 1.0e-6f)
                     {
                         Overlay.Upload(LeafOverlay, DrawablePixelScale);
-                        OverlayGeneration[LeafIndex] = LeafOverlay.Generation;
-                        OverlayPixelScale[LeafIndex] = DrawablePixelScale;
+                        LeafRuntime.UploadedOverlayGeneration = LeafOverlay.Generation;
+                        LeafRuntime.UploadedOverlayScale = DrawablePixelScale;
                     }
 
                     const PlaneExtent& LogicalLeafRect = ViewportLeafRects[ViewportIndex];
