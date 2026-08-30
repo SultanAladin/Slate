@@ -54,7 +54,8 @@ WorkspaceRecordName DeclareWorkspaceCurve(WorkspaceNameIndex& Naming,
 {
     WorkspaceRecord Record = {};
     Record.Subject      = WorkspaceRecordSubject::OpenCurve;
-    Record.ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch, "Curves");
+    Record.ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch,
+                                             Construction ? "Construction" : "Curves");
     Record.Naming       = Construction
                         ? std::string("Construction ") + Naming.Issue(WorkspaceRecordSubject::OpenCurve)
                         : Naming.Issue(WorkspaceRecordSubject::OpenCurve);
