@@ -19,6 +19,7 @@
 #include <algorithm>
 
 #include "SlateWorkspace/Discipline/SketchViewportOverlay/Api/SketchViewportOverlay.h"
+#include "Application/EditorHost/Api/EditorFrameContext.h"
 #include "SlateShape/Sketch/SketchRenderingProjection/Api/SketchRenderingProjection.h"
 #include "SlateWorkspace/Discipline/ContentImportCommit/Api/ContentImportCommit.h"
 #include "SlateWorkspace/Discipline/SketchInteraction/Api/SketchInteraction.h"
@@ -1019,7 +1020,12 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                     SketchContextMenu.Close();
                 }
             }
-            PointerCondition BackgroundPointer = ForegroundPointer;
+            EditorFrameContext FrameContext = {
+                Pass, ForegroundPointer, ForegroundPointer, ViewportDrawable,
+                Whole, NorthInterior, SouthInterior,
+                ForegroundOverViewport, PointerBehindDrawer
+            };
+            PointerCondition& BackgroundPointer = FrameContext.BackgroundPointer;
             if (PointerBehindDrawer)
             {
                 BackgroundPointer.PositionX = -1000000.0f;
@@ -1494,12 +1500,27 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                         SceneApplied.ViewportSkyCamera.FieldOfViewDegrees;
                                     SketchView.Orientation = SketchOrientation;
 
+                                    // 🔴 Keep the wheel mutation in the host's frame phase so the active
+                                    //    leaf owns it exactly once. The navigation helper below receives
+                                    //    a wheel-neutral copy and handles pan/orbit only; this avoids
+                                    //    applying the same notch twice while retaining one visible state.
+                                    if (!LeafPerspective && LeafBody.Encloses(BackgroundPointer.PositionX,
+                                                                              BackgroundPointer.PositionY) &&
+                                        BackgroundPointer.WheelY != 0.0f)
+                                    {
+                                        constexpr double ZoomStep = 1.1;
+                                        SketchView.OrthoScale = std::clamp(
+                                            BackgroundPointer.WheelY > 0.0f
+                                                ? SketchView.OrthoScale * ZoomStep
+                                                : SketchView.OrthoScale / ZoomStep,
+                                            0.05, 40.0);
+                                    }
+                                    PointerCondition NavigationPointer = BackgroundPointer;
+                                    NavigationPointer.WheelY = 0.0f;
                                     // 🔴 The viewport driver was implemented but had no call site. This
-                                    //    is the missing CAD navigation path: wheel changes ortho scale,
-                                    //    secondary drag pans an orthographic view, and perspective
-                                    //    secondary drag continues to orbit. It runs after the standing
-                                    //    is seeded and after its exact view orientation is assigned.
-                                    DriveViewport(LeafBody, BackgroundPointer,
+                                    //    is the missing CAD navigation path: secondary drag pans an
+                                    //    orthographic view, and perspective secondary drag orbits.
+                                    DriveViewport(LeafBody, NavigationPointer,
                                                   Viewport.Seam().Modifiers(), SketchView, LeafPerspective);
                                     LeafWasParallel[Index] = !LeafPerspective;
 
