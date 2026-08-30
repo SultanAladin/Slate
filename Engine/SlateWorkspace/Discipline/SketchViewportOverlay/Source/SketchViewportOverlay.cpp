@@ -489,7 +489,13 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
     }
 
     if (Selected.Subject == WorldPickSubject::Point || Selected.Subject == WorldPickSubject::Control)
+    {
         RecordPoint(Selected, PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 224u), PackOverlayColour(0x5Bu, 0x8Cu, 0xFFu, 255u));
+        // 🔴 Vertex/control selection exposes the complete control set for the source curve,
+        //    not only its first and last anchors. This is what makes middle Bezier, Hermite,
+        //    spline and NURBS controls directly visible and pickable.
+        RecordControls(Selected.Curve);
+    }
 
     if (Hovered.Subject == WorldPickSubject::Curve)
         RecordCurve(Hovered.Curve, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 208u), 1.8f);
