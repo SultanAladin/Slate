@@ -809,9 +809,22 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
             Directory.Rows[RowIndex].Role == WorkspaceDirectoryRowRole::Record)
             HasSelectedDirectoryRecord = true;
 
-    if (!HasSelectedDirectoryRecord && RowCount != 0u)
+    std::uint64_t DirectorySignature = 1469598103934665603ull;
+    for (std::uint32_t RowIndex = 0u;
+         RowIndex < RowCount && RowIndex < ParametricWorkspaceContext::RowLimit;
+         ++RowIndex)
+        if (WorkspaceApplied.RowSelected[RowIndex])
+        {
+            DirectorySignature ^= static_cast<std::uint64_t>(RowIndex + 1u);
+            DirectorySignature *= 1099511628211ull;
+            DirectorySignature ^= static_cast<std::uint64_t>(Directory.Rows[RowIndex].Record.IssuedIndex);
+            DirectorySignature *= 1099511628211ull;
+        }
+    const bool DirectoryChanged = !SelectionSet.DirectorySignatureValid ||
+                                   SelectionSet.DirectorySignature != DirectorySignature;
+    if (DirectoryChanged && !HasSelectedDirectoryRecord && RowCount != 0u)
         SelectionSet.Clear();
-    else if (HasSelectedDirectoryRecord)
+    else if (DirectoryChanged && HasSelectedDirectoryRecord)
     {
         for (std::size_t Index = 0u; Index < SelectionSet.Items.size(); )
         {
@@ -829,6 +842,9 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
                 SelectionSet.Items.erase(SelectionSet.Items.begin() + static_cast<std::ptrdiff_t>(Index));
         }
     }
+
+    SelectionSet.DirectorySignature = DirectorySignature;
+    SelectionSet.DirectorySignatureValid = true;
 
     for (std::uint32_t RowIndex = 0u;
          RowIndex < RowCount && RowIndex < ParametricWorkspaceContext::RowLimit;

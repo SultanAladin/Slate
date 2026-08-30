@@ -56,6 +56,8 @@ struct SketchPick
 struct SketchSelectionSet
 {
     std::vector<SketchPick> Items = {};
+    std::uint64_t DirectorySignature = 0u;
+    bool DirectorySignatureValid = false;
 
     bool Empty() const { return Items.empty(); }
     const SketchPick* Active() const { return Items.empty() ? nullptr : &Items.front(); }
