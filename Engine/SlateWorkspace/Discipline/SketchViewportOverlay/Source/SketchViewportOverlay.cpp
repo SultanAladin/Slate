@@ -447,16 +447,45 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
         float Y = 0.0f;
         if (!ProjectFromCamera(Camera, Extent, Subject.Position, X, Y))
             return;
-        Overlay.AddDot(X, Y, Inner, 4.5f);
-        AppendOverlayCircle(Overlay, X, Y, 8.0f, Outer, 1.6f);
+        // 🔴 Vertex/control markers are intentionally larger than the curve stroke. A tiny 4 px
+        //    marker made middle Bezier controls effectively invisible and only the end anchors felt
+        //    selectable at normal CAD zoom.
+        Overlay.AddDot(X, Y, Inner, 7.0f);
+        AppendOverlayCircle(Overlay, X, Y, 11.0f, Outer, 2.0f);
+    };
+
+    const auto RecordControls = [&](WorldCurveName Curve)
+    {
+        std::vector<WorldControlPlacement> Controls;
+        if (!ResolveWorldSketchControls(Declared, Curve, Controls))
+            return;
+        for (const WorldControlPlacement& Control : Controls)
+        {
+            WorldPick Point = {};
+            Point.Subject = WorldPickSubject::Control;
+            Point.Control = Control.Name;
+            Point.Curve = Control.SourceCurve;
+            Point.Position = Control.Position;
+            RecordPoint(Point, PackOverlayColour(0xF4u, 0xB8u, 0x4Au, 255u),
+                        PackOverlayColour(0x1Bu, 0x1Fu, 0x2Au, 255u));
+        }
     };
 
     if (Selected.Standing())
     {
         if (Selected.Subject == WorldPickSubject::Curve)
+        {
             RecordCurve(Selected.Curve, PackOverlayColour(0x5Bu, 0x8Cu, 0xFFu, 255u), 2.4f);
+            RecordControls(Selected.Curve);
+        }
         else if (Selected.Subject == WorldPickSubject::Loop)
+        {
             RecordLoop(Selected.Loop, PackOverlayColour(0x5Bu, 0x8Cu, 0xFFu, 255u), 2.2f);
+            const DeclaredWorldLoop* Loop = Declared.Resolve(Selected.Loop);
+            if (Loop != nullptr)
+                for (const WorldCurveUse& Use : Loop->Traversal)
+                    RecordControls(Use.TraversedCurve);
+        }
     }
 
     if (Selected.Subject == WorldPickSubject::Point || Selected.Subject == WorldPickSubject::Control)
