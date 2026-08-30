@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Foundation/DeliveryGuarantee.h"
+#include "Foundation/WorkspaceShapeFamily.h"
 #include "SlateShape/Record/WorkspaceNameIndex/Api/WorkspaceNameIndex.h"
 #include "SlateShape/Reference/ReferenceSpecification/Api/ReferenceSpecification.h"
 #include "SlateShape/Sketch/ConstraintSpecification/Api/ConstraintSpecification.h"
@@ -33,39 +34,6 @@ enum class WorkspaceCategory : std::uint32_t
     Operation = 3u,
     Folder = 4u,
     CategoryCount = 5u
-};
-
-enum class WorkspaceShapeFamily : std::uint32_t
-{
-    Unknown = 0u,
-
-    Point,
-
-    Line,
-    CircularArc,
-    Bezier,
-    Hermite,
-    BasisSpline,
-    Nurbs,
-
-    Polygon,
-    Rectangle,
-    Slot,
-
-    Circle,
-    Ellipse,
-    EllipticalArc,
-
-    Profile,
-    Surface,
-    Solid,
-
-    Dimension,
-    Constraint,
-    Workplane,
-    Construction,
-
-    ShapeFamilyCount
 };
 
 enum class WorkspaceRecordSubject : std::uint32_t

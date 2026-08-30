@@ -10,7 +10,7 @@
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/SymbolSpecification/Api/SymbolSpecification.h"
 #include "SlateUI/Interface/TreeMechanics/Api/TreeMechanics.h"
-#include "SlateShape/Record/WorkspaceRecordStructure/Api/WorkspaceRecordStructure.h"
+#include "Foundation/WorkspaceShapeFamily.h"
 
 #include <cstdint>
 
