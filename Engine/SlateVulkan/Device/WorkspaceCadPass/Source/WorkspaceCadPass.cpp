@@ -390,9 +390,11 @@ void WorkspaceCadPass::Upload(const WorkspaceCadPacket& Packet)
     PacketMinimumAcross = Packet.ExtentStanding ? Packet.MinimumAcross : -1.0f;
     PacketMaximumAlong = Packet.ExtentStanding ? Packet.MaximumAlong : 1.0f;
     PacketMaximumAcross = Packet.ExtentStanding ? Packet.MaximumAcross : 1.0f;
-    PacketSegmentCount = Packet.SegmentCount;
-    PacketFillCount = Packet.FillCount;
-    PacketMarkerCount = Packet.MarkerCount;
+    // Keep draw counts identical to the records actually copied into the mapped buffer. A malformed
+    // or temporarily over-capacity packet must not make the GPU read beyond the uploaded ranges.
+    PacketSegmentCount = Packet.SegmentCount < SegmentCapacity ? Packet.SegmentCount : SegmentCapacity;
+    PacketFillCount = Packet.FillCount < FillCapacity ? Packet.FillCount : FillCapacity;
+    PacketMarkerCount = Packet.MarkerCount < MarkerCapacity ? Packet.MarkerCount : MarkerCapacity;
 }
 
 void WorkspaceCadPass::Record(VkCommandBuffer Command, const WorkspaceCadProjection& Projection,
