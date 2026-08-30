@@ -9,6 +9,7 @@
 #include "SlateRuntime/Session/SessionSequence/Api/SessionSequence.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/DrawableScale.h"
+#include "Application/EditorHost/Api/PointerDispatch.h"
 
 namespace Slate
 {
@@ -28,6 +29,7 @@ struct EditorFrameContext
     PlaneExtent       SouthInterior = {};
     bool              PointerOverViewport = false;
     bool              PointerBehindDrawer = false;
+    PointerDispatchResult Dispatch = {};
 };
 
 } // namespace Slate

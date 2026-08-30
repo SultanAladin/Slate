@@ -1206,7 +1206,8 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                 //    the drawing tools all read the same pointer, so the first to take
                                 //    it stops the rest -- otherwise a click that picks a mesh also
                                 //    starts a curve.
-                                bool PointerTaken = false;
+                                FrameContext.Dispatch.Reset();
+                                bool& PointerTaken = FrameContext.Dispatch.Consumed;
 
                                 // 🔴 ORIENTATION IS A VIEWPORT COMMAND, NOT A DRAWING CONTACT. Resolve it
                                 //    before the camera, workplane, projection and tools are assembled for
@@ -1242,6 +1243,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                         SceneApplied.EntityRotation[6u][0] = EditorCamera.LaggedYawDegrees;
                                         SceneApplied.EntityRotation[6u][1] = EditorCamera.LaggedPitchDegrees;
                                         PointerTaken = true;
+                                        FrameContext.Dispatch.Owner = PointerOwner::OrientationWidget;
                                         GizmoBasis = CubeBasisFromYawPitch(EditorCamera.LaggedYawDegrees,
                                                                           EditorCamera.LaggedPitchDegrees);
                                     }
@@ -1375,6 +1377,8 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                             Discard(SketchToolOptions.Record(
                                                 LeafBody, "Selection", SymbolSubject::CrosshairCentre,
                                                 SelectRows, 3u, PointerTaken));
+                                            if (PointerTaken && FrameContext.Dispatch.Owner == PointerOwner::None)
+                                                FrameContext.Dispatch.Owner = PointerOwner::PanelControl;
 
                                             if (ElementSelected <
                                                 static_cast<std::uint32_t>(SelectionElement::ElementCount))
@@ -1602,6 +1606,12 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                         MirrorSketchIntoWorldSketch(Sketch, SketchWorld, SketchWorldMapping);
                                     }
 
+                                    if (PointerTaken && FrameContext.Dispatch.Owner == PointerOwner::None)
+                                    {
+                                        FrameContext.Dispatch.Owner = SketchWorldTransform.Engaged()
+                                            ? PointerOwner::Gizmo : PointerOwner::DrawingTool;
+                                    }
+
                                     // 🔴 NO SECOND GRID. `RecordViewportGridOverlay` was called here and
                                     //    drew 161 CPU line segments of its OWN lattice on top of the
                                     //    analytic ground the overlay pass already draws on the GPU.
@@ -1671,6 +1681,8 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                         LeafBody, BackgroundPointer, SceneCamera,
                                         OpenedScene, OpenedSceneStanding, WorkspaceSceneRows,
                                         CodexMetresToMetres, SceneApplied);
+                                if (PointerTaken && FrameContext.Dispatch.Owner == PointerOwner::None)
+                                    FrameContext.Dispatch.Owner = PointerOwner::Scene;
 
                                 RecordCodexSceneProxy(Viewport.Surface(), LeafBody, SceneCamera,
                                                       OpenedScene, OpenedSceneStanding,
