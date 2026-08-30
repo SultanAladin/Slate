@@ -8,6 +8,8 @@
 #include "SlateShape/Sketch/SketchSelection/Api/SketchSelection.h"
 #include "SlateShape/Sketch/SketchPolyline/Api/SketchPolyline.h"
 #include "SlateShape/World/WorldSketchEditing/Api/WorldSketchEditing.h"
+#include "SlateShape/World/WorldSketchDimensionSolver/Api/WorldSketchDimensionSolver.h"
+#include "SlateWorkspace/Discipline/WorldSketchDimensionAuthoring/Api/WorldSketchDimensionAuthoring.h"
 #include "SlateWorkspace/Discipline/PlacementCommit/Api/PlacementCommit.h"
 #include "SlateWorkspace/Discipline/RecordDeclaration/Api/RecordDeclaration.h"
 #include "SketchToolset/SketchTool/SketchPlacement/Api/SketchPlacement.h"
@@ -44,12 +46,6 @@ WorldPlacementFrame ResolveWorkplaneSupportFrame(const Workplane& ActiveWorkplan
     if (!WorkplaneDeclared(ActiveWorkplane))
         return {};
 
-    const SpatialBasis Basis = ResolveWorkplaneBasis(ActiveWorkplane);
-    return { Basis.Origin, Basis.Normal, Basis.Along };
-}
-
-SketchPlane ResolveSketchPlaneFromWorkplane(const Workplane& ActiveWorkplane)
-{
     const SpatialBasis Basis = ResolveWorkplaneBasis(ActiveWorkplane);
     return { Basis.Origin, Basis.Normal, Basis.Along };
 }
@@ -292,6 +288,51 @@ ReferenceSpecification ResolveSketchConstraintReference(const WorldConstraintRef
     return Delivered;
 }
 
+WorldDimensionReference ResolveWorldDimensionReference(const ReferenceSpecification& Reference,
+                                                        const WorldSketchMapping& Mapping)
+{
+    WorldDimensionReference Delivered = {};
+    if (Reference.Subject == ReferenceSubject::SketchCurve && Reference.SketchCurve.Assigned())
+    {
+        Delivered.Subject = WorldDimensionReferenceSubject::Curve;
+        Delivered.Curve = ResolveWorldCurveForSketchCurve(Mapping, Reference.SketchCurve);
+    }
+    else if (Reference.Subject == ReferenceSubject::SketchPoint && Reference.SketchPoint.Assigned())
+    {
+        Delivered.Subject = WorldDimensionReferenceSubject::Point;
+        Delivered.Point = ResolveWorldPointForSketchPoint(Mapping, Reference.SketchPoint).IssuedIndex;
+    }
+    else if (Reference.Subject == ReferenceSubject::SketchControl && Reference.SketchControl.Assigned())
+    {
+        Delivered.Subject = WorldDimensionReferenceSubject::Control;
+        const WorldControlName Control = ResolveWorldControlForSketchControl(Mapping, Reference.SketchControl);
+        Delivered.Control = Control.IssuedIndex;
+    }
+    return Delivered;
+}
+
+ReferenceSpecification ResolveSketchDimensionReference(const WorldDimensionReference& Reference,
+                                                       const WorldSketchMapping& Mapping)
+{
+    ReferenceSpecification Delivered = {};
+    if (Reference.Subject == WorldDimensionReferenceSubject::Curve && Reference.Curve.Assigned())
+    {
+        Delivered.Subject = ReferenceSubject::SketchCurve;
+        Delivered.SketchCurve = ResolveSketchCurveForWorldCurve(Mapping, Reference.Curve);
+    }
+    else if (Reference.Subject == WorldDimensionReferenceSubject::Point && Reference.Point != 0u)
+    {
+        Delivered.Subject = ReferenceSubject::SketchPoint;
+        Delivered.SketchPoint = ResolveSketchPointForWorldPoint(Mapping, { Reference.Point });
+    }
+    else if (Reference.Subject == WorldDimensionReferenceSubject::Control && Reference.Control != 0u)
+    {
+        Delivered.Subject = ReferenceSubject::SketchControl;
+        Delivered.SketchControl = ResolveSketchControlForWorldControl(Mapping, { Reference.Control });
+    }
+    return Delivered;
+}
+
 } // namespace
 
 WorldCurveName ResolveWorldCurveForSketchCurve(const WorldSketchMapping& Mapping,
@@ -338,6 +379,51 @@ ConstraintName ResolveSketchConstraintForWorldConstraint(const WorldSketchMappin
     return { Constraint.IssuedIndex };
 }
 
+WorldDimensionName ResolveWorldDimensionForSketchDimension(const WorldSketchMapping& Mapping,
+                                                           DimensionName Dimension)
+{
+    if (!Dimension.Assigned())
+        return {};
+    for (const WorldSketchDimensionReference& Reference : Mapping.Dimensions)
+        if (Reference.Sketch.IssuedIndex == Dimension.IssuedIndex)
+            return Reference.World;
+    return { Dimension.IssuedIndex };
+}
+
+DimensionName ResolveSketchDimensionForWorldDimension(const WorldSketchMapping& Mapping,
+                                                      WorldDimensionName Dimension)
+{
+    if (!Dimension.Assigned())
+        return {};
+    for (const WorldSketchDimensionReference& Reference : Mapping.Dimensions)
+        if (Reference.World.IssuedIndex == Dimension.IssuedIndex)
+            return Reference.Sketch;
+    return { Dimension.IssuedIndex };
+}
+
+bool ResolveWorldDimensionReferenceForSketchSnap(const WorldSketchMapping& Mapping,
+                                                 const SketchSnapPlacement& Snap,
+                                                 WorldDimensionReference& Reference)
+{
+    Reference = {};
+    if (Snap.SketchPoint.Assigned())
+    {
+        Reference.Subject = WorldDimensionReferenceSubject::Point;
+        Reference.Point = ResolveWorldPointForSketchPoint(Mapping, Snap.SketchPoint).IssuedIndex;
+    }
+    else if (Snap.SketchControl.Assigned())
+    {
+        Reference.Subject = WorldDimensionReferenceSubject::Control;
+        Reference.Control = ResolveWorldControlForSketchControl(Mapping, Snap.SketchControl).IssuedIndex;
+    }
+    else if (Snap.SourceCurve.Assigned())
+    {
+        Reference.Subject = WorldDimensionReferenceSubject::Curve;
+        Reference.Curve = ResolveWorldCurveForSketchCurve(Mapping, Snap.SourceCurve);
+    }
+    return Reference.Declared();
+}
+
 SketchSnapPlacement ResolveCompatibilitySnap(const WorldSnapPlacement& Snapped,
                                              const WorldSketchMapping& Mapping)
 {
@@ -365,6 +451,7 @@ bool MirrorSketchIntoWorldSketch(const SketchStructure& Sketch,
     Mapping.Curves.clear();
     Mapping.Loops.clear();
     Mapping.Constraints.clear();
+    Mapping.Dimensions.clear();
 
     const WorldPlacementFrame SketchSupport = ResolveSketchSupportFrame(Sketch);
     std::vector<WorldPlacementFrame> CurveSupports(Sketch.Curves().size(), SketchSupport);
@@ -422,6 +509,41 @@ bool MirrorSketchIntoWorldSketch(const SketchStructure& Sketch,
         }
     }
 
+    for (std::uint32_t DimensionIndex = 1u;
+         DimensionIndex <= Sketch.Dimensions().size(); ++DimensionIndex)
+    {
+        const DimensionSpecification& Source = Sketch.Dimensions()[DimensionIndex - 1u];
+        WorldDimensionSpecification Mirrored = {};
+        Mirrored.Subject = static_cast<WorldDimensionSubject>(static_cast<std::uint32_t>(Source.Subject));
+        Mirrored.Target = Source.Target;
+        Mirrored.Primary = ResolveWorldDimensionReference(Source.Primary, Mapping);
+        Mirrored.Secondary = ResolveWorldDimensionReference(Source.Secondary, Mapping);
+
+        // A legacy profile radius dimension names the profile rather than its curve. The world model
+        // has no profile-owned dimension reference, so resolve the first curve in that mapped loop.
+        if (Source.Primary.Subject == ReferenceSubject::Profile && Source.Primary.Profile.Assigned())
+        {
+            for (const WorldSketchLoopReference& Loop : Mapping.Loops)
+                if (Loop.Profile.IssuedIndex == Source.Primary.Profile.IssuedIndex)
+                {
+                    const ProfileSpecification& Profile = Sketch.Profiles()[Loop.Profile.IssuedIndex - 1u];
+                    const ProfileLoop& ProfileLoop = Profile.HeldLoops()[Loop.ProfileLoopIndex];
+                    if (!ProfileLoop.Traversal.empty())
+                    {
+                        Mirrored.Primary.Subject = WorldDimensionReferenceSubject::Curve;
+                        Mirrored.Primary.Curve = ResolveWorldCurveForSketchCurve(
+                            Mapping, SketchCurveName{ ProfileLoop.Traversal.front().TraversedCurve.IssuedIndex });
+                    }
+                    break;
+                }
+        }
+
+        const WorldDimensionName WorldDimension = Declared.DeclareDimension(Mirrored);
+        if (!WorldDimension.Assigned())
+            return false;
+        Mapping.Dimensions.push_back({ WorldDimension, { DimensionIndex } });
+    }
+
     return true;
 }
 
@@ -445,6 +567,29 @@ bool MirrorWorldConstraintIntoSketch(const WorldSketchStructure& Declared,
 
     SketchConstraint = Sketch.DeclareConstraint(Mirrored);
     return SketchConstraint.Assigned();
+}
+
+bool MirrorWorldDimensionIntoSketch(const WorldSketchStructure& Declared,
+                                    const WorldSketchMapping& Mapping,
+                                    WorldDimensionName WorldDimension,
+                                    SketchStructure& Sketch,
+                                    DimensionName& SketchDimension)
+{
+    SketchDimension = {};
+    const WorldDimensionSpecification* Source = Declared.Resolve(WorldDimension);
+    if (Source == nullptr || !Source->Declared())
+        return false;
+
+    DimensionSpecification Mirrored = {};
+    Mirrored.Subject = static_cast<DimensionSubject>(static_cast<std::uint32_t>(Source->Subject));
+    Mirrored.Primary = ResolveSketchDimensionReference(Source->Primary, Mapping);
+    Mirrored.Secondary = ResolveSketchDimensionReference(Source->Secondary, Mapping);
+    Mirrored.Target = Source->Target;
+    if (!Mirrored.Declared())
+        return false;
+
+    SketchDimension = Sketch.DeclareDimension(Mirrored);
+    return SketchDimension.Assigned();
 }
 
 bool ApplyWorldSketchToSketch(const WorldSketchStructure& Declared,
@@ -744,17 +889,62 @@ bool CommitPlacementWorldBacked(const Workplane& ActiveWorkplane,
 
     if (Placed.Subject == SketchSubject::Dimension)
     {
-        if ((!Sketch.PlaneDeclared() || !SketchHasCommittedGeometry(Sketch)) && WorkplaneDeclared(ActiveWorkplane))
-            Sketch.DeclarePlane(ResolveSketchPlaneFromWorkplane(ActiveWorkplane));
-
-        const Deliver<WorkspaceRecordName> Record =
-            CommitPlacement(Naming, Sketch, ResolveSketchPlaneFromWorkplane(ActiveWorkplane),
-                            Records, Revisions, Placed);
-        if (!Record.Resolved)
+        // A dimension is a semantic relationship, not a curve. Import a legacy document only at the
+        // bootstrap boundary, then declare and solve the relationship in the live world structure.
+        // The snapshots make this whole cross-structure handoff transactional: a failed solve, mirror,
+        // record declaration, or revision seal cannot leave a world dimension without its compatibility
+        // mapping (or consume a name/revision that was never committed).
+        const WorldSketchStructure WorldBefore = Declared;
+        const WorldSketchMapping MappingBefore = Mapping;
+        const WorkspaceNameIndex NamingBefore = Naming;
+        const SketchStructure SketchBefore = Sketch;
+        const WorkspaceRecordStructure RecordsBefore = Records;
+        const WorkspaceRevisionSequence RevisionsBefore = Revisions;
+        const auto Rollback = [&]()
+        {
+            Declared = WorldBefore;
+            Mapping = MappingBefore;
+            Naming = NamingBefore;
+            Sketch = SketchBefore;
+            Records = RecordsBefore;
+            Revisions = RevisionsBefore;
+            SelectedRecord = {};
             return false;
-        MirrorSketchIntoWorldSketch(Sketch, Declared, Mapping);
-        SelectedRecord = Record.Resolve();
-        return SelectedRecord.Assigned();
+        };
+
+        if (Declared.CurveCount() == 0u && SketchHasCommittedGeometry(Sketch)
+         && !MirrorSketchIntoWorldSketch(Sketch, Declared, Mapping))
+            return Rollback();
+
+        if (Placed.Placements.size() < 2u || Placed.Anchors.size() < 2u)
+            return Rollback();
+        WorldDimensionReference Primary = {};
+        WorldDimensionReference Secondary = {};
+        if (!ResolveWorldDimensionReferenceForSketchSnap(Mapping, Placed.Placements[0], Primary)
+         || !ResolveWorldDimensionReferenceForSketchSnap(Mapping, Placed.Placements[1], Secondary))
+            return Rollback();
+
+        const double Target = std::sqrt(LengthSquared(Difference(Placed.Anchors[0], Placed.Anchors[1])));
+        const Deliver<WorldDimensionSpecification> Specification =
+            DeclareWorldDimensionFrom(WorldDimensionSubject::Aligned, Primary, Secondary, Target);
+        if (!Specification)
+            return Rollback();
+        const WorldDimensionName WorldDimension = Declared.DeclareDimension(Specification.Resolve());
+        if (!WorldDimension.Assigned() || !ApplyWorldDimension(Declared, WorldDimension)
+         || !ApplyWorldSketchToSketch(Declared, Mapping, Sketch))
+            return Rollback();
+
+        DimensionName SketchDimension = {};
+        if (!MirrorWorldDimensionIntoSketch(Declared, Mapping, WorldDimension, Sketch, SketchDimension))
+            return Rollback();
+        Mapping.Dimensions.push_back({ WorldDimension, SketchDimension });
+        const WorkspaceRecordName Record = DeclareWorkspaceDimension(Naming, Records, SketchDimension);
+        if (!Record.Assigned() || Records.Resolve(Record) == nullptr)
+            return Rollback();
+        Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming),
+                       "Create Dimension", { Record }, Revisions.DeclaredCount() + 1u);
+        SelectedRecord = Record;
+        return true;
     }
 
     // 🧩 World geometry is the live authoring authority. Import the compatibility sketch only when the

@@ -96,6 +96,81 @@ struct WorldConstraintSpecification
     }
 };
 
+struct WorldDimensionName
+{
+    std::uint32_t IssuedIndex = 0u;
+    bool Assigned() const { return IssuedIndex != 0u; }
+};
+
+enum class WorldDimensionSubject : std::uint32_t
+{
+    Horizontal = 0u,
+    Vertical = 1u,
+    Aligned = 2u,
+    Radius = 3u,
+    Diameter = 4u,
+    Angle = 5u,
+    SubjectCount = 6u
+};
+
+enum class WorldDimensionReferenceSubject : std::uint32_t
+{
+    None = 0u,
+    Curve = 1u,
+    Point = 2u,
+    Control = 3u
+};
+
+struct WorldDimensionReference
+{
+    WorldDimensionReferenceSubject Subject = WorldDimensionReferenceSubject::None;
+    WorldCurveName Curve = {};
+    std::uint32_t Point = 0u;
+    std::uint32_t Control = 0u;
+
+    bool Declared() const
+    {
+        return (Subject == WorldDimensionReferenceSubject::Curve && Curve.Assigned())
+            || (Subject == WorldDimensionReferenceSubject::Point && Point != 0u)
+            || (Subject == WorldDimensionReferenceSubject::Control && Control != 0u);
+    }
+};
+
+struct WorldDimensionSpecification
+{
+    WorldDimensionSubject Subject = WorldDimensionSubject::Aligned;
+    WorldDimensionReference Primary = {};
+    WorldDimensionReference Secondary = {};
+    double Target = 0.0;
+
+    bool Declared() const
+    {
+        switch (Subject)
+        {
+            case WorldDimensionSubject::Horizontal:
+            case WorldDimensionSubject::Vertical:
+            case WorldDimensionSubject::Aligned:
+                return Primary.Declared() && Target > 0.0
+                    && ((Primary.Subject == WorldDimensionReferenceSubject::Point
+                      && Secondary.Subject == WorldDimensionReferenceSubject::Point
+                      && Secondary.Declared())
+                     || Primary.Subject == WorldDimensionReferenceSubject::Curve);
+            case WorldDimensionSubject::Radius:
+            case WorldDimensionSubject::Diameter:
+                return Primary.Declared() && Target > 0.0
+                    && (Primary.Subject == WorldDimensionReferenceSubject::Curve
+                     || Primary.Subject == WorldDimensionReferenceSubject::Control);
+            case WorldDimensionSubject::Angle:
+                return Primary.Subject == WorldDimensionReferenceSubject::Curve
+                    && Secondary.Subject == WorldDimensionReferenceSubject::Curve
+                    && Primary.Declared() && Secondary.Declared() && Target > 0.0;
+            case WorldDimensionSubject::SubjectCount:
+                return false;
+        }
+        return false;
+    }
+};
+
 struct WorldPlacementFrame
 {
     SpatialPoint Origin = {};
@@ -130,6 +205,7 @@ public:
                                 const WorldPlacementFrame& SupportFrame);
     WorldLoopName DeclareLoop(const DeclaredWorldLoop& Incoming);
     WorldConstraintName DeclareConstraint(const WorldConstraintSpecification& Incoming);
+    WorldDimensionName DeclareDimension(const WorldDimensionSpecification& Incoming);
 
     bool DeclareCurveSupportFrame(WorldCurveName Subject,
                                   const WorldPlacementFrame& SupportFrame);
@@ -171,6 +247,8 @@ public:
     DeclaredWorldLoop* Resolve(WorldLoopName Subject);
     const WorldConstraintSpecification* Resolve(WorldConstraintName Subject) const;
     WorldConstraintSpecification* Resolve(WorldConstraintName Subject);
+    const WorldDimensionSpecification* Resolve(WorldDimensionName Subject) const;
+    WorldDimensionSpecification* Resolve(WorldDimensionName Subject);
 
     void ResolveCurves(std::vector<CurveSpecification>& Delivered) const;
 
@@ -183,6 +261,9 @@ public:
     std::uint32_t ConstraintCount() const { return static_cast<std::uint32_t>(HeldConstraints.size()); }
     const std::vector<WorldConstraintSpecification>& Constraints() const { return HeldConstraints; }
     std::vector<WorldConstraintSpecification>& Constraints() { return HeldConstraints; }
+    std::uint32_t DimensionCount() const { return static_cast<std::uint32_t>(HeldDimensions.size()); }
+    const std::vector<WorldDimensionSpecification>& Dimensions() const { return HeldDimensions; }
+    std::vector<WorldDimensionSpecification>& Dimensions() { return HeldDimensions; }
     bool Declared() const;
     void Reclaim();
 
@@ -190,6 +271,7 @@ private:
     std::vector<DeclaredWorldCurve> HeldCurves = {};
     std::vector<DeclaredWorldLoop> HeldLoops = {};
     std::vector<WorldConstraintSpecification> HeldConstraints = {};
+    std::vector<WorldDimensionSpecification> HeldDimensions = {};
 };
 
 void ResolveWorldPlacementCoordinates(const WorldPlacementFrame& Frame,

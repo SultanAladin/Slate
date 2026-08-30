@@ -81,7 +81,7 @@ The active-plane handoff is implemented. `PlacementCommit` now has an explicit-p
 
 ## World-first authoring handoff
 
-The world placement path is now authoritative for ordinary geometry creation. `CommitPlacementWorldBacked` imports a legacy sketch only when the world model is empty, declares new curves and loops in `WorldSketchStructure` first, and then appends the resulting geometry to `SketchStructure` for compatibility records and legacy consumers. World-backed viewport selection follows the same bootstrap-only import rule; normal frames no longer rebuild live world geometry from the sketch mirror. Dimension text editing remains an explicit compatibility seam until world dimensions are implemented.
+The world placement path is now authoritative for ordinary geometry creation. `CommitPlacementWorldBacked` imports a legacy sketch only when the world model is empty, declares new curves and loops in `WorldSketchStructure` first, and then appends the resulting geometry to `SketchStructure` for compatibility records and legacy consumers. World-backed viewport selection follows the same bootstrap-only import rule; normal frames no longer rebuild live world geometry from the sketch mirror. Driving dimensions now follow the same world-first path, with sketch dimensions retained only as mapped compatibility records.
 
 ### World-first acceptance
 - A partial or stale compatibility sketch cannot erase existing world curves or loops during a new placement.
@@ -144,3 +144,23 @@ world-backed interaction routes constraint tools through the world authoring sea
 - World constraint authoring and solving do not rebuild or solve through the compatibility sketch.
 - `WorldSketchConstraintProof`, world bridge/interaction proofs, strict compilation, partition checks, and
   host-budget checks remain green.
+
+## World-native driving dimensions
+
+Driving dimensions now use the world authority as well. `WorldSketchStructure` stores
+`WorldDimensionName`, semantic world references, and dimension specifications. The camera-free
+`WorldSketchDimensionAuthoring` unit validates references and targets, while `WorldSketchDimensionSolver`
+measures and drives exact world points, controls, curves, radii, and angles using the curve support frame.
+
+World dimension placement resolves its snapped compatibility names back through `WorldSketchMapping`,
+declares the world dimension first, applies it to world geometry, and then mirrors a compatibility dimension
+for the existing workspace record surface. Text edits follow the same route: the world target is changed and
+solved first, the compatibility geometry and target are refreshed second, and one revision records the edit.
+
+### World-dimension acceptance
+- Dimension specifications and identifiers are stored and resolved by `WorldSketchStructure`.
+- Aligned, horizontal, vertical, radius, diameter, and angle dimensions measure and drive world geometry.
+- Support-frame coordinates remain stable when a world dimension changes an endpoint or round control.
+- Dimension placement and text editing do not solve through `SketchStructure`.
+- Compatibility dimensions, mappings, workspace records, and revisions remain available after world edits.
+- `WorldSketchDimensionProof`, world placement/bridge proofs, strict compilation, and host-budget checks remain green.

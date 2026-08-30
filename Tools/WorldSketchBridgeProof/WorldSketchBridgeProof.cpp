@@ -273,9 +273,72 @@ void ProveWorldConstraintCompatibilityMirror()
           "the compatibility geometry follows the solved world geometry");
 }
 
+void ProveWorldDimensionTextEdit()
+{
+    std::printf("\n5. Dimension text edits drive the world dimension and then refresh the mirror\n");
+
+    Bench Stage;
+    const Workplane ActiveWorkplane = { { 0.0, 40.0, 0.0 },
+                                        { 0.0, 1.0, 0.0 },
+                                        { 1.0, 0.0, 0.0 },
+                                        WorkplaneOrigin::Offset };
+    SealedPlacement Rectangle = {};
+    Rectangle.Subject = SketchSubject::Rectangle;
+    Rectangle.Method = PlacementMethod::Extent;
+    Rectangle.Anchors = { { 0.0, 40.0, 0.0 }, { 100.0, 40.0, 80.0 } };
+    Rectangle.ClosedProfile = true;
+    WorkspaceRecordName Profile = {};
+    CommitPlacementWorldBacked(ActiveWorkplane, Stage.World, Stage.Mapping,
+                               Stage.Naming, Stage.Sketch, Stage.Records, Stage.Revisions,
+                               Rectangle, Profile);
+
+    SealedPlacement Placement = {};
+    Placement.Subject = SketchSubject::Dimension;
+    Placement.Anchors = { { 0.0, 40.0, 0.0 }, { 100.0, 40.0, 0.0 } };
+    Placement.Placements = {
+        { SketchSnapSubject::Endpoint, { 1u }, { (1u << 8u) | 1u }, {}, Placement.Anchors[0], 0.0 },
+        { SketchSnapSubject::Endpoint, { 1u }, { (1u << 8u) | 2u }, {}, Placement.Anchors[1], 0.0 }
+    };
+    WorkspaceRecordName DimensionRecord = {};
+    CommitPlacementWorldBacked(ActiveWorkplane, Stage.World, Stage.Mapping,
+                               Stage.Naming, Stage.Sketch, Stage.Records, Stage.Revisions,
+                               Placement, DimensionRecord);
+
+    TextInputCondition Text = {};
+    Text.Intake[0] = '2';
+    Text.Intake[1] = '0';
+    Text.Intake[2] = '0';
+    Text.IntakeCount = 3u;
+    Claim(ApplyViewportWorldDimensionTextEdit(Text, Stage.World, Stage.Mapping,
+                                              Stage.Sketch, Stage.Records, Stage.Revisions,
+                                              DimensionRecord),
+          "dimension text edits are applied through the world dimension mapping");
+    const SpatialPoint End = Stage.World.Resolve(WorldCurveName{ 1u })->Geometry.HeldLine().Terminus;
+    Claim(SamePoint(End, { 200.0, 0.0, 40.0 }),
+          "the text edit changes the live world geometry");
+    Claim(Stage.Sketch.Dimensions()[0u].Target == 200.0
+       && Stage.Revisions.DeclaredCount() == 3u,
+          "the compatibility target and one edit revision follow the world result");
+
+    // Force the post-solve compatibility mapping to fail. The world target and geometry must return to
+    // the last committed edit rather than exposing a half-applied text edit.
+    Stage.Mapping.Dimensions[0u].Sketch = { 99u };
+    Text.Intake[0] = '3';
+    Claim(!ApplyViewportWorldDimensionTextEdit(Text, Stage.World, Stage.Mapping,
+                                               Stage.Sketch, Stage.Records, Stage.Revisions,
+                                               DimensionRecord),
+          "a failed compatibility refresh refuses the text edit");
+    const SpatialPoint RolledBackEnd = Stage.World.Resolve(WorldCurveName{ 1u })->Geometry.HeldLine().Terminus;
+    Claim(SamePoint(RolledBackEnd, { 200.0, 0.0, 40.0 })
+       && Stage.World.Dimensions()[0u].Target == 200.0
+       && Stage.Sketch.Dimensions()[0u].Target == 200.0
+       && Stage.Revisions.DeclaredCount() == 3u,
+          "and rolls back world geometry, both targets, and revision history as one transaction");
+}
+
 void ProveWorldBackedRenderingAndPreview()
 {
-    std::printf("\n5. The persistent world sketch renders directly and preview appends in screen space\n");
+    std::printf("\n6. The persistent world sketch renders directly and preview appends in screen space\n");
 
     Bench Stage;
     DeclaredWorldCurve* Raised = Stage.World.Resolve(WorldCurveName{ 2u });
@@ -307,7 +370,7 @@ void ProveWorldBackedRenderingAndPreview()
 
 void ProveOverlayUsesExplicitWorldBasis()
 {
-    std::printf("\n6. Compatibility overlays can be projected from the active basis\n");
+    std::printf("\n7. Compatibility overlays can be projected from the active basis\n");
 
     const PlaneExtent Extent = { 0.0f, 0.0f, 800.0f, 600.0f };
     const ViewportStanding View = {};
@@ -344,6 +407,7 @@ int main()
     ProveWorldNameMappingSurvivesDifferentIssuance();
     ProveWorldBackedViewportFlow();
     ProveWorldConstraintCompatibilityMirror();
+    ProveWorldDimensionTextEdit();
     ProveWorldBackedRenderingAndPreview();
     ProveOverlayUsesExplicitWorldBasis();
 

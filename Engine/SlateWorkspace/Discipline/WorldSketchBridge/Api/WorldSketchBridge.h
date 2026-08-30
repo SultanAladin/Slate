@@ -42,11 +42,18 @@ struct WorldSketchConstraintReference
     ConstraintName Sketch = {};
 };
 
+struct WorldSketchDimensionReference
+{
+    WorldDimensionName World = {};
+    DimensionName Sketch = {};
+};
+
 struct WorldSketchMapping
 {
     std::vector<WorldSketchCurveReference> Curves = {};
     std::vector<WorldSketchLoopReference> Loops = {};
     std::vector<WorldSketchConstraintReference> Constraints = {};
+    std::vector<WorldSketchDimensionReference> Dimensions = {};
 };
 
 WorldCurveName ResolveWorldCurveForSketchCurve(const WorldSketchMapping& Mapping,
@@ -57,6 +64,13 @@ WorldConstraintName ResolveWorldConstraintForSketchConstraint(const WorldSketchM
                                                               ConstraintName Constraint);
 ConstraintName ResolveSketchConstraintForWorldConstraint(const WorldSketchMapping& Mapping,
                                                          WorldConstraintName Constraint);
+WorldDimensionName ResolveWorldDimensionForSketchDimension(const WorldSketchMapping& Mapping,
+                                                           DimensionName Dimension);
+DimensionName ResolveSketchDimensionForWorldDimension(const WorldSketchMapping& Mapping,
+                                                      WorldDimensionName Dimension);
+bool ResolveWorldDimensionReferenceForSketchSnap(const WorldSketchMapping& Mapping,
+                                                 const SketchSnapPlacement& Snap,
+                                                 WorldDimensionReference& Reference);
 SketchSnapPlacement ResolveCompatibilitySnap(const WorldSnapPlacement& Snapped,
                                              const WorldSketchMapping& Mapping);
 
@@ -69,6 +83,12 @@ bool MirrorWorldConstraintIntoSketch(const WorldSketchStructure& Declared,
                                      WorldConstraintName WorldConstraint,
                                      SketchStructure& Sketch,
                                      ConstraintName& SketchConstraint);
+
+bool MirrorWorldDimensionIntoSketch(const WorldSketchStructure& Declared,
+                                    const WorldSketchMapping& Mapping,
+                                    WorldDimensionName WorldDimension,
+                                    SketchStructure& Sketch,
+                                    DimensionName& SketchDimension);
 
 bool ApplyWorldSketchToSketch(const WorldSketchStructure& Declared,
                              SketchStructure& Sketch);

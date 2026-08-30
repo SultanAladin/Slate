@@ -21,6 +21,7 @@
 #include "SlateWorkspace/Discipline/WorldSketchBridge/Api/WorldSketchBridge.h"
 #include "SlateShape/World/WorldSketchSnap/Api/WorldSketchSnap.h"
 #include "SlateShape/World/WorldSketchConstraintSolver/Api/WorldSketchConstraintSolver.h"
+#include "SlateShape/World/WorldSketchDimensionSolver/Api/WorldSketchDimensionSolver.h"
 #include "SlateWorkspace/Discipline/WorldSketchPicking/Api/WorldSketchPicking.h"
 #include "SlateWorkspace/Discipline/WorldSketchConstraintAuthoring/Api/WorldSketchConstraintAuthoring.h"
 
@@ -500,6 +501,11 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
                                   Sealed, PendingSelection))
         return;
 
+    // A dimension has no safe compatibility fallback. An unsupported or invalid world dimension must
+    // refuse at this authority boundary instead of silently entering the legacy dimension solver.
+    if (Sealed.Subject == SketchSubject::Dimension)
+        return;
+
     const Deliver<WorkspaceRecordName> Record =
         CommitPlacement(Naming, Sketch, ResolveSketchPlaneFromWorkplane(Workplanes.Active()),
                         Records, Revisions, Sealed);
@@ -533,6 +539,69 @@ bool ApplyDimensionTextEdit(const TextInputCondition& TextInput,
     Sketch.Dimensions()[Record->Dimension.IssuedIndex - 1u].Target = Target;
     Discard(ApplyDimension(Sketch, Record->Dimension));
     Revisions.Seal("Edited " + Record->Naming, "Edit Dimension", { SelectedRecord }, Revisions.DeclaredCount() + 1u);
+    return true;
+}
+
+bool ApplyViewportWorldDimensionTextEdit(const TextInputCondition& TextInput,
+                                         WorldSketchStructure& World,
+                                         const WorldSketchMapping& Mapping,
+                                         SketchStructure& Sketch,
+                                         WorkspaceRecordStructure& Records,
+                                         WorkspaceRevisionSequence& Revisions,
+                                         WorkspaceRecordName SelectedRecord)
+{
+    const WorkspaceRecord* Record = Records.Resolve(SelectedRecord);
+    if (Record == nullptr || Record->Subject != WorkspaceRecordSubject::Dimension
+     || !Record->Dimension.Assigned())
+        return false;
+
+    const WorldDimensionName WorldName =
+        ResolveWorldDimensionForSketchDimension(Mapping, Record->Dimension);
+    if (!WorldName.Assigned() || WorldName.IssuedIndex > World.DimensionCount())
+        return false;
+
+    char Numeric[32] = {};
+    std::size_t Count = 0u;
+    for (std::uint32_t Index = 0u; Index < TextInput.IntakeCount && Count + 1u < sizeof(Numeric); ++Index)
+    {
+        const char Character = TextInput.Intake[Index];
+        if ((Character >= '0' && Character <= '9') || Character == '.' || Character == '-')
+            Numeric[Count++] = Character;
+    }
+    Numeric[Count] = '\0';
+    if (Count == 0u)
+        return false;
+
+    const double Target = std::atof(Numeric);
+    if (Target <= 0.0)
+        return false;
+
+    // The world solve and the compatibility refresh are one edit, not two independently observable
+    // mutations. Keep value, geometry, and revision state together so a failed compatibility mapping or
+    // partial mirror cannot leave the world dimension advanced while the selected sketch is stale.
+    const WorldSketchStructure WorldBefore = World;
+    const SketchStructure SketchBefore = Sketch;
+    const WorkspaceRevisionSequence RevisionsBefore = Revisions;
+    const auto Rollback = [&]()
+    {
+        World = WorldBefore;
+        Sketch = SketchBefore;
+        Revisions = RevisionsBefore;
+        return false;
+    };
+
+    WorldDimensionSpecification& Dimension = World.Dimensions()[WorldName.IssuedIndex - 1u];
+    Dimension.Target = Target;
+    if (!ApplyWorldDimension(World, WorldName))
+        return Rollback();
+
+    const DimensionName SketchName = ResolveSketchDimensionForWorldDimension(Mapping, WorldName);
+    if (!SketchName.Assigned() || SketchName.IssuedIndex > Sketch.Dimensions().size()
+     || !ApplyWorldSketchToSketch(World, Mapping, Sketch))
+        return Rollback();
+    Sketch.Dimensions()[SketchName.IssuedIndex - 1u].Target = Target;
+    Revisions.Seal("Edited " + Record->Naming, "Edit Dimension", { SelectedRecord },
+                   Revisions.DeclaredCount() + 1u);
     return true;
 }
 
@@ -907,11 +976,30 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
                                                    double& LastGPressedMilliseconds)
 {
     const WorkspaceRecordName SelectedRecord = SelectedRecordIn(Directory, WorkspaceApplied);
-    if (ApplyDimensionTextEdit(TextInput, Sketch, Records, Revisions, SelectedRecord))
+    const WorkspaceRecord* Selected = Records.Resolve(SelectedRecord);
+    bool WorldDimensionMapped = false;
+    if (Selected != nullptr && Selected->Subject == WorkspaceRecordSubject::Dimension
+     && Selected->Dimension.Assigned())
+        for (const WorldSketchDimensionReference& Reference : Mapping.Dimensions)
+            if (Reference.Sketch.IssuedIndex == Selected->Dimension.IssuedIndex)
+            {
+                WorldDimensionMapped = true;
+                break;
+            }
+
+    if (WorldDimensionMapped)
     {
-        // 🧩 Dimensions remain a compatibility-authoring seam until world dimensions land. Keep this
-        //    explicit bridge narrow; ordinary world selection and transforms must not rebuild world
-        //    geometry from the sketch mirror.
+        // A mapped world dimension is an authoritative object. If its semantic target is unsupported,
+        // invalid, or cannot mirror, refuse the edit here; never reinterpret the same input through the
+        // compatibility solver.
+        if (ApplyViewportWorldDimensionTextEdit(TextInput, World, Mapping, Sketch,
+                                                Records, Revisions, SelectedRecord))
+            PointerTaken = true;
+    }
+    else if (ApplyDimensionTextEdit(TextInput, Sketch, Records, Revisions, SelectedRecord))
+    {
+        // A legacy dimension remains an explicit compatibility fallback. Ordinary world selection,
+        // transforms, and world dimensions must not rebuild live world geometry from the sketch mirror.
         MirrorSketchIntoWorldSketch(Sketch, World, Mapping);
         PointerTaken = true;
     }

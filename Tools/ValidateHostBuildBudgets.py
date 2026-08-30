@@ -162,6 +162,28 @@ def main() -> int:
             and "ParametricToolsApplied.ActiveSubject," in editor,
             "constraint tools must enter the world-backed interaction arm")
 
+    # 🔴 DRIVING DIMENSIONS FOLLOW THE SAME HANDOFF. Placement and text editing must not leave a second
+    #    sketch-only dimension authority behind the world model, or changing a value would immediately
+    #    diverge the two documents again.
+    world_dimension_authoring = read("Engine/SlateWorkspace/Discipline/WorldSketchDimensionAuthoring/Source/WorldSketchDimensionAuthoring.cpp")
+    world_dimension_solver = read("Engine/SlateShape/World/WorldSketchDimensionSolver/Source/WorldSketchDimensionSolver.cpp")
+    require("WorldDimensionName" in world_structure and "DeclareDimension" in world_structure
+            and "Resolve(WorldDimensionName" in world_structure,
+            "the world sketch must own driving-dimension identifiers, storage, and resolution")
+    require("DeclareWorldDimensionFrom" in world_dimension_authoring
+            and "SketchStructure/Api" not in world_dimension_authoring,
+            "world dimension authoring must remain independent of the compatibility sketch")
+    require("ApplyWorldDimension(" in world_dimension_solver
+            and "ResolveWorldDimensionValue" in world_dimension_solver
+            and "SketchStructure/Api" not in world_dimension_solver,
+            "world dimensions must measure and drive exact world geometry")
+    require("ApplyViewportWorldDimensionTextEdit" in interaction
+            and "ResolveWorldDimensionForSketchDimension" in interaction
+            and "WorldDimensionMapped" in interaction
+            and "else if (ApplyDimensionTextEdit" in interaction
+            and "if (Sealed.Subject == SketchSubject::Dimension)" in interaction,
+            "dimension text edits and placement must refuse world failures without legacy fallback")
+
     # 📝 The plural is checked above: a Hermite and a polyline draw more than one span, and asking for
     #    the singular is what drew the first two Hermite points and left the rest as bare points.
 
@@ -505,8 +527,9 @@ def main() -> int:
     require("CommitPlacement(Naming, Sketch, ResolveSketchPlaneFromWorkplane(Workplanes.Active())" in interaction,
             "drawing fallback commits must pass the active workplane plane explicitly")
     bridge = read("Engine/SlateWorkspace/Discipline/WorldSketchBridge/Source/WorldSketchBridge.cpp")
-    require("CommitPlacement(Naming, Sketch, ResolveSketchPlaneFromWorkplane(ActiveWorkplane)" in bridge,
-            "world bridge compatibility commits must pass the active workplane plane explicitly")
+    require("DeclareWorldDimensionFrom(WorldDimensionSubject::Aligned" in bridge
+            and "MirrorWorldDimensionIntoSketch" in bridge,
+            "world bridge dimension commits must declare the world dimension before its compatibility record")
     world_commit = bridge[bridge.index("bool CommitPlacementWorldBacked("):]
     require("Declared.CurveCount() == 0u && SketchHasCommittedGeometry(Sketch)" in world_commit,
             "world-backed placement may import the sketch only while the world model is unseeded")

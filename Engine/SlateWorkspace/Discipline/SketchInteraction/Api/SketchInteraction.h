@@ -100,6 +100,14 @@ bool ApplyDimensionTextEdit(const TextInputCondition& TextInput,
                             WorkspaceRevisionSequence& Revisions,
                             WorkspaceRecordName SelectedRecord);
 
+bool ApplyViewportWorldDimensionTextEdit(const TextInputCondition& TextInput,
+                                         WorldSketchStructure& World,
+                                         const WorldSketchMapping& Mapping,
+                                         SketchStructure& Sketch,
+                                         WorkspaceRecordStructure& Records,
+                                         WorkspaceRevisionSequence& Revisions,
+                                         WorkspaceRecordName SelectedRecord);
+
 bool IsConstraintTool(ParametricToolSubject Tool);
 
 bool ApplyViewportConstraintTool(ParametricToolSubject Tool,

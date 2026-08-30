@@ -61,6 +61,14 @@ WorldConstraintName WorldSketchStructure::DeclareConstraint(const WorldConstrain
     return { static_cast<std::uint32_t>(HeldConstraints.size()) };
 }
 
+WorldDimensionName WorldSketchStructure::DeclareDimension(const WorldDimensionSpecification& Incoming)
+{
+    if (!Incoming.Declared())
+        return {};
+    HeldDimensions.push_back(Incoming);
+    return { static_cast<std::uint32_t>(HeldDimensions.size()) };
+}
+
 bool WorldSketchStructure::DeclareCurveSupportFrame(WorldCurveName Subject,
                                                    const WorldPlacementFrame& SupportFrame)
 {
@@ -209,6 +217,20 @@ WorldConstraintSpecification* WorldSketchStructure::Resolve(WorldConstraintName 
     return &HeldConstraints[Subject.IssuedIndex - 1u];
 }
 
+const WorldDimensionSpecification* WorldSketchStructure::Resolve(WorldDimensionName Subject) const
+{
+    if (!Subject.Assigned() || Subject.IssuedIndex > HeldDimensions.size())
+        return nullptr;
+    return &HeldDimensions[Subject.IssuedIndex - 1u];
+}
+
+WorldDimensionSpecification* WorldSketchStructure::Resolve(WorldDimensionName Subject)
+{
+    if (!Subject.Assigned() || Subject.IssuedIndex > HeldDimensions.size())
+        return nullptr;
+    return &HeldDimensions[Subject.IssuedIndex - 1u];
+}
+
 void WorldSketchStructure::ResolveCurves(std::vector<CurveSpecification>& Delivered) const
 {
     Delivered.clear();
@@ -263,6 +285,40 @@ bool WorldSketchStructure::Declared() const
             return false;
     }
 
+    for (const WorldDimensionSpecification& Dimension : HeldDimensions)
+    {
+        if (!Dimension.Declared())
+            return false;
+
+        const auto ReferenceDeclaredHere = [this](const WorldDimensionReference& Reference)
+        {
+            if (Reference.Subject == WorldDimensionReferenceSubject::Curve)
+                return Reference.Curve.Assigned()
+                    && Reference.Curve.IssuedIndex <= HeldCurves.size();
+            if (Reference.Subject == WorldDimensionReferenceSubject::Point)
+            {
+                const std::uint32_t CurveIndex = Reference.Point >> 8u;
+                return CurveIndex != 0u && CurveIndex <= HeldCurves.size()
+                    && (Reference.Point & 0xFFu) != 0u;
+            }
+            if (Reference.Subject == WorldDimensionReferenceSubject::Control)
+            {
+                const std::uint32_t CurveIndex = Reference.Control >> 12u;
+                return CurveIndex != 0u && CurveIndex <= HeldCurves.size()
+                    && (Reference.Control & 0xFFu) != 0u;
+            }
+            return false;
+        };
+
+        if (!ReferenceDeclaredHere(Dimension.Primary))
+            return false;
+        if ((Dimension.Primary.Subject == WorldDimensionReferenceSubject::Point
+          && !ReferenceDeclaredHere(Dimension.Secondary))
+         || (Dimension.Subject == WorldDimensionSubject::Angle
+          && !ReferenceDeclaredHere(Dimension.Secondary)))
+            return false;
+    }
+
     return true;
 }
 
@@ -271,6 +327,7 @@ void WorldSketchStructure::Reclaim()
     HeldCurves.clear();
     HeldLoops.clear();
     HeldConstraints.clear();
+    HeldDimensions.clear();
 }
 
 void ResolveWorldPlacementCoordinates(const WorldPlacementFrame& Frame,

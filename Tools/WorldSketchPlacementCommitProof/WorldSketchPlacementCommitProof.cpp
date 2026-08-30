@@ -150,9 +150,46 @@ void ProveConstructionPolylineStaysWire()
           "and the multi-span construction draw is still one undo step");
 }
 
+void ProveDimensionPlacementStaysWorldNative()
+{
+    std::printf("\n4. Dimension placement declares a world dimension before the compatibility record\n");
+
+    Bench Stage;
+    SealedPlacement Rectangle = {};
+    Rectangle.Subject = SketchSubject::Rectangle;
+    Rectangle.Method = PlacementMethod::Extent;
+    Rectangle.Anchors = { { 0.0, 40.0, 0.0 }, { 100.0, 40.0, 80.0 } };
+    Rectangle.ClosedProfile = true;
+    WorkspaceRecordName Profile = {};
+    Claim(CommitPlacementWorldBacked(Stage.ActiveWorkplane, Stage.World, Stage.Mapping,
+                                     Stage.Naming, Stage.Sketch, Stage.Records, Stage.Revisions,
+                                     Rectangle, Profile),
+          "dimension setup commits its source world geometry");
+
+    SealedPlacement Dimension = {};
+    Dimension.Subject = SketchSubject::Dimension;
+    Dimension.Method = PlacementMethod::Extent;
+    Dimension.Anchors = { { 0.0, 40.0, 0.0 }, { 100.0, 40.0, 0.0 } };
+    Dimension.Placements = {
+        { SketchSnapSubject::Endpoint, { 1u }, { (1u << 8u) | 1u }, {}, Dimension.Anchors[0], 0.0 },
+        { SketchSnapSubject::Endpoint, { 1u }, { (1u << 8u) | 2u }, {}, Dimension.Anchors[1], 0.0 }
+    };
+    WorkspaceRecordName Selected = {};
+    Claim(CommitPlacementWorldBacked(Stage.ActiveWorkplane, Stage.World, Stage.Mapping,
+                                     Stage.Naming, Stage.Sketch, Stage.Records, Stage.Revisions,
+                                     Dimension, Selected),
+          "a resolved dimension placement commits through the world dimension path");
+    const WorkspaceRecord* Record = Stage.Records.Resolve(Selected);
+    Claim(Stage.World.DimensionCount() == 1u && Stage.Sketch.Dimensions().size() == 1u
+       && Record != nullptr && Record->Subject == WorkspaceRecordSubject::Dimension,
+          "the world dimension mirrors into a compatibility dimension record");
+    Claim(Stage.Mapping.Dimensions.size() == 1u && Stage.Revisions.DeclaredCount() == 2u,
+          "the dimension mapping and one additional workspace revision are preserved");
+}
+
 void ProveExplicitProfileDeclarersTakeActivePlane()
 {
-    std::printf("\n4. Every compatibility profile declarer takes the active plane explicitly\n");
+    std::printf("\n5. Every compatibility profile declarer takes the active plane explicitly\n");
 
     struct Scenario
     {
@@ -195,7 +232,7 @@ void ProveExplicitProfileDeclarersTakeActivePlane()
 
 void ProvePointAndWorldBackedRendering()
 {
-    std::printf("\n5. Point placements still land, and off-plane edits render through the world projection\n");
+    std::printf("\n6. Point placements still land, and off-plane edits render through the world projection\n");
 
     Bench Stage;
     SealedPlacement Point = {};
@@ -231,7 +268,7 @@ void ProvePointAndWorldBackedRendering()
 
 void ProveCompatibilityCommitTakesExplicitPlane()
 {
-    std::printf("\n6. The compatibility commit can be given the active plane without changing the sketch's remembered plane\n");
+    std::printf("\n7. The compatibility commit can be given the active plane without changing the sketch's remembered plane\n");
 
     Bench Stage;
     const SketchPlane ActivePlane = { { 0.0, 40.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 } };
@@ -264,6 +301,7 @@ int main()
     ProveRectangleCommitsAsWorldBackedProfile();
     ProveWorldAuthoringDoesNotRebuildFromStaleSketch();
     ProveConstructionPolylineStaysWire();
+    ProveDimensionPlacementStaysWorldNative();
     ProveExplicitProfileDeclarersTakeActivePlane();
     ProvePointAndWorldBackedRendering();
     ProveCompatibilityCommitTakesExplicitPlane();
