@@ -50,6 +50,21 @@ struct SketchPick
     bool Standing() const { return Subject != SketchPickSubject::None; }
 };
 
+/// The persistent viewport selection.  Shift modifies this set; ordinary clicks replace it.
+/// The first item is the active item used for the shared gizmo until the transform aggregator
+/// consumes the complete set.
+struct SketchSelectionSet
+{
+    std::vector<SketchPick> Items = {};
+
+    bool Empty() const { return Items.empty(); }
+    const SketchPick* Active() const { return Items.empty() ? nullptr : &Items.front(); }
+    void Clear() { Items.clear(); }
+};
+
+bool SameSketchPickIdentity(const SketchPick& Left, const SketchPick& Right);
+void SetSketchPick(SketchSelectionSet& Set, const SketchPick& Pick, bool Additive);
+
 /// 🧩 One thing a transform will move.
 struct SketchPlacementSubject
 {

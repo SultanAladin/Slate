@@ -4,6 +4,8 @@
 
 #include "SlateWorkspace/Discipline/SketchPicking/Api/SketchPicking.h"
 
+#include <cstddef>
+
 #include "SlateShape/Sketch/SketchPolyline/Api/SketchPolyline.h"
 
 #include <algorithm>
@@ -639,6 +641,53 @@ bool ResolvePickForRecord(const SketchStructure& Sketch,
         default:
             return false;
     }
+}
+
+bool SameSketchPickIdentity(const SketchPick& Left, const SketchPick& Right)
+{
+    if (!Left.Standing() || !Right.Standing() || Left.Subject != Right.Subject ||
+        Left.Record.IssuedIndex != Right.Record.IssuedIndex)
+        return false;
+
+    switch (Left.Subject)
+    {
+        case SketchPickSubject::Point:
+            return Left.Point.IssuedIndex == Right.Point.IssuedIndex;
+        case SketchPickSubject::Control:
+            return Left.Control.IssuedIndex == Right.Control.IssuedIndex;
+        case SketchPickSubject::Curve:
+            return Left.Curve.IssuedIndex == Right.Curve.IssuedIndex;
+        case SketchPickSubject::Record:
+            return true;
+        default:
+            return false;
+    }
+}
+
+void SetSketchPick(SketchSelectionSet& Set, const SketchPick& Pick, bool Additive)
+{
+    if (!Pick.Standing())
+    {
+        if (!Additive)
+            Set.Clear();
+        return;
+    }
+
+    if (!Additive)
+    {
+        Set.Items.clear();
+        Set.Items.push_back(Pick);
+        return;
+    }
+
+    for (std::size_t Index = 0u; Index < Set.Items.size(); ++Index)
+    {
+        if (!SameSketchPickIdentity(Set.Items[Index], Pick))
+            continue;
+        Set.Items.erase(Set.Items.begin() + static_cast<std::ptrdiff_t>(Index));
+        return;
+    }
+    Set.Items.push_back(Pick);
 }
 
 }   // namespace Slate

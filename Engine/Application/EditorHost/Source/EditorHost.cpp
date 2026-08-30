@@ -322,6 +322,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    unit. That is why the Select tool did nothing: not a broken implementation, an unreached one.
     //    These four are the state it needs to keep between frames.
     static SketchPick                SketchSemanticSelection;
+    static SketchSelectionSet        SketchSelectionSetState;
     static SketchPick                SketchHoveredSelection;
     static TransformSession          SketchTransform;
     static WorldSketchTransformSession SketchWorldTransform;
@@ -1614,7 +1615,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                             SketchNaming, SketchDirectoryRows, SketchDirectoryApplied,
                                             Sketch, SketchRecords, SketchRevisions,
                                             SketchPendingSelection, SketchSemanticSelection,
-                                            SketchHoveredSelection, SketchTransform, LeafOverlay,
+                                            SketchSelectionSetState, SketchHoveredSelection, SketchTransform, LeafOverlay,
                                             PointerTaken, SketchSessionMilliseconds,
                                             SketchLastMovePressed,
                                             static_cast<double>(SketchCornerDistance),

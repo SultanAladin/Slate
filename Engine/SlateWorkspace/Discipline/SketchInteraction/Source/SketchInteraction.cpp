@@ -786,6 +786,7 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
                                         WorkspaceRevisionSequence& Revisions,
                                         WorkspaceRecordName& PendingSelection,
                                         SketchPick& SemanticSelection,
+                                        SketchSelectionSet& SelectionSet,
                                         SketchPick& HoveredSelection,
                                         TransformSession& Transform,
                                         OverlayGeometry& Overlay,
@@ -818,6 +819,14 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
         const SelectionElement HoverElement = ResolveToolSelectionElement(ActiveTool, Selection);
         HoveredSelection = ResolveSketchPickForElement(Sketch, Records, Probe, Reach, HoverElement);
     }
+
+    // Keep directory selection and the viewport selection set on one active identity.  The first
+    // item remains the active gizmo item until the placement aggregator consumes the complete set.
+    if (SemanticSelection.Standing() && SelectionSet.Empty())
+        SetSketchPick(SelectionSet, SemanticSelection, false);
+    const SketchPick* SetActive = SelectionSet.Active();
+    if (SetActive != nullptr)
+        SemanticSelection = *SetActive;
 
     const SketchPick ActiveSelection =
         EditableSelection(Sketch, Records, SelectedRecord, PendingSelection, SemanticSelection);
@@ -875,8 +884,19 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
     if (!PointerTaken && !Transform.Engaged() && SelectStanding &&
         Pointer.ContactPressed && HoveredHandle == GizmoHandle::None && HoveredSelection.Standing())
     {
-        SemanticSelection = HoveredSelection;
-        PendingSelection = HoveredSelection.Record;
+        SetSketchPick(SelectionSet, HoveredSelection, Modifiers.Shifted);
+        const SketchPick* SetActiveAfterClick = SelectionSet.Active();
+        SemanticSelection = SetActiveAfterClick != nullptr ? *SetActiveAfterClick : SketchPick{};
+        PendingSelection = SemanticSelection.Record;
+        PointerTaken = true;
+    }
+
+    if (!PointerTaken && !Transform.Engaged() && SelectStanding && Pointer.ContactPressed &&
+        HoveredHandle == GizmoHandle::None && !HoveredSelection.Standing() && !Modifiers.Shifted)
+    {
+        SetSketchPick(SelectionSet, {}, false);
+        SemanticSelection = {};
+        PendingSelection = {};
         PointerTaken = true;
     }
 
