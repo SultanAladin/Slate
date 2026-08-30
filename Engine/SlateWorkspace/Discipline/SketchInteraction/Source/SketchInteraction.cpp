@@ -911,7 +911,7 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
             HoveredSelection.Standing() && SamePickIdentity(HoveredSelection, ActiveSelection))
         {
             PointerTaken = StartTransformSession(Sketch, Records, Basis, View, Perspective, Extent,
-                                                 Pointer.PositionX, Pointer.PositionY, ActiveSelection,
+                                                 Pointer.PositionX, Pointer.PositionY, SelectionSet,
                                                  TransformManner::Move, TransformRestriction::Free,
                                                  false, true, Transform);
         }
@@ -925,7 +925,7 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
             const bool Slide = false;
 
             PointerTaken = StartTransformSession(Sketch, Records, Basis, View, Perspective, Extent,
-                                                 Pointer.PositionX, Pointer.PositionY, ActiveSelection,
+                                                 Pointer.PositionX, Pointer.PositionY, SelectionSet,
                                                  Mode, Constraint, Slide, true, Transform);
         }
         else if (Command.StartRequested)
@@ -938,7 +938,7 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
             if (Command.MoveTapCount > 0u)
                 LastGPressedMilliseconds = SessionMilliseconds;
             PointerTaken = StartTransformSession(Sketch, Records, Basis, View, Perspective, Extent,
-                                                 Pointer.PositionX, Pointer.PositionY, ActiveSelection,
+                                                 Pointer.PositionX, Pointer.PositionY, SelectionSet,
                                                  Command.StartManner,
                                                  Slide ? TransformRestriction::Curve
                                                        : (Command.StartManner == TransformManner::Rotate
@@ -1005,8 +1005,32 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
     // 📝 The selection outline is drawn either way: knowing WHAT is selected is not the same question as
     //    wanting handles on it, and hiding the gizmo must not hide the selection.
     if (Gizmo.Shown && SelectStanding)
+    {
+        SketchPick GizmoSelection = ActiveSelection;
+        if (SelectionSet.Items.size() > 1u)
+        {
+            SpatialPoint SharedPivot = {};
+            std::size_t PivotCount = 0u;
+            for (const SketchPick& Pick : SelectionSet.Items)
+            {
+                if (!Pick.Standing())
+                    continue;
+                SharedPivot.Left += Pick.Position.Left;
+                SharedPivot.Up += Pick.Position.Up;
+                SharedPivot.Forward += Pick.Position.Forward;
+                ++PivotCount;
+            }
+            if (PivotCount != 0u)
+            {
+                GizmoSelection.Position = SharedPivot;
+                GizmoSelection.Position.Left /= static_cast<double>(PivotCount);
+                GizmoSelection.Position.Up /= static_cast<double>(PivotCount);
+                GizmoSelection.Position.Forward /= static_cast<double>(PivotCount);
+            }
+        }
         RecordViewportGizmo(Overlay, Extent, Basis, View, Perspective,
-                            ActiveSelection, HoveredHandle, Transform);
+                            GizmoSelection, HoveredHandle, Transform);
+    }
 }
 
 void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,

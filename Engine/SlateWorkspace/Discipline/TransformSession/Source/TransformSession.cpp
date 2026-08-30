@@ -271,19 +271,44 @@ bool StartTransformSession(const SketchStructure& Sketch,
                            const PlaneExtent& Extent,
                            float PointerX,
                            float PointerY,
-                           const SketchPick& Target,
+                           const SketchSelectionSet& SelectionSet,
                            TransformManner Manner,
                            TransformRestriction Restriction,
                            bool SlideAlongCurve,
                            bool MouseDriven,
                            TransformSession& Session)
 {
+    const SketchPick* Active = SelectionSet.Active();
+    if (Active == nullptr)
+        return false;
+
     WorkspaceRecordName ResolvedRecord = {};
     SpatialPoint Pivot = {};
     std::vector<SketchPlacementSubject> Placements;
-    if (!ResolveTransformPlacements(Sketch, Records, Target, ResolvedRecord, Pivot, Placements))
+    std::size_t PivotCount = 0u;
+    for (const SketchPick& Pick : SelectionSet.Items)
+    {
+        WorkspaceRecordName PickRecord = {};
+        SpatialPoint PickPivot = {};
+        std::vector<SketchPlacementSubject> PickPlacements;
+        if (!ResolveTransformPlacements(Sketch, Records, Pick, PickRecord, PickPivot, PickPlacements))
+            continue;
+        if (!ResolvedRecord.Assigned())
+            ResolvedRecord = PickRecord;
+        Pivot.Left += PickPivot.Left;
+        Pivot.Up += PickPivot.Up;
+        Pivot.Forward += PickPivot.Forward;
+        ++PivotCount;
+        for (const SketchPlacementSubject& Placement : PickPlacements)
+            AppendPlacementUnique(Placements, Placement);
+    }
+    if (PivotCount == 0u || Placements.empty())
         return false;
+    Pivot.Left /= static_cast<double>(PivotCount);
+    Pivot.Up /= static_cast<double>(PivotCount);
+    Pivot.Forward /= static_cast<double>(PivotCount);
 
+    const SketchPick& Target = *Active;
     ClearTransformSession(Session);
     Session.Manner() = Manner;
     Session.Engaged() = true;
