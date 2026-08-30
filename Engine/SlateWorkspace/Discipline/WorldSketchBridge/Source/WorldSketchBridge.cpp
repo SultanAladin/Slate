@@ -882,36 +882,37 @@ bool CommitPlacementWorldBacked(const Workplane& ActiveWorkplane,
                                 const SealedPlacement& Placed,
                                 WorkspaceRecordName& SelectedRecord)
 {
+    // World placement is a single transaction across the live model and every compatibility projection.
+    // This snapshot is deliberately taken before the legacy bootstrap import: even an import followed by
+    // an invalid placement must leave world curves, mappings, records, names, revisions, and selection as
+    // they were when the gesture began.
+    const WorldSketchStructure WorldBefore = Declared;
+    const WorldSketchMapping MappingBefore = Mapping;
+    const WorkspaceNameIndex NamingBefore = Naming;
+    const SketchStructure SketchBefore = Sketch;
+    const WorkspaceRecordStructure RecordsBefore = Records;
+    const WorkspaceRevisionSequence RevisionsBefore = Revisions;
+    const auto Rollback = [&]()
+    {
+        Declared = WorldBefore;
+        Mapping = MappingBefore;
+        Naming = NamingBefore;
+        Sketch = SketchBefore;
+        Records = RecordsBefore;
+        Revisions = RevisionsBefore;
+        SelectedRecord = {};
+        return false;
+    };
+
     SelectedRecord = {};
 
     if (Placed.Subject == SketchSubject::None)
-        return false;
+        return Rollback();
 
     if (Placed.Subject == SketchSubject::Dimension)
     {
         // A dimension is a semantic relationship, not a curve. Import a legacy document only at the
         // bootstrap boundary, then declare and solve the relationship in the live world structure.
-        // The snapshots make this whole cross-structure handoff transactional: a failed solve, mirror,
-        // record declaration, or revision seal cannot leave a world dimension without its compatibility
-        // mapping (or consume a name/revision that was never committed).
-        const WorldSketchStructure WorldBefore = Declared;
-        const WorldSketchMapping MappingBefore = Mapping;
-        const WorkspaceNameIndex NamingBefore = Naming;
-        const SketchStructure SketchBefore = Sketch;
-        const WorkspaceRecordStructure RecordsBefore = Records;
-        const WorkspaceRevisionSequence RevisionsBefore = Revisions;
-        const auto Rollback = [&]()
-        {
-            Declared = WorldBefore;
-            Mapping = MappingBefore;
-            Naming = NamingBefore;
-            Sketch = SketchBefore;
-            Records = RecordsBefore;
-            Revisions = RevisionsBefore;
-            SelectedRecord = {};
-            return false;
-        };
-
         if (Declared.CurveCount() == 0u && SketchHasCommittedGeometry(Sketch)
          && !MirrorSketchIntoWorldSketch(Sketch, Declared, Mapping))
             return Rollback();
@@ -950,8 +951,9 @@ bool CommitPlacementWorldBacked(const Workplane& ActiveWorkplane,
     // 🧩 World geometry is the live authoring authority. Import the compatibility sketch only when the
     //    world model has not been seeded yet; an already-live world model must never be rebuilt from a
     //    stale or partial sketch mirror before a new placement.
-    if (Declared.CurveCount() == 0u && SketchHasCommittedGeometry(Sketch))
-        MirrorSketchIntoWorldSketch(Sketch, Declared, Mapping);
+    if (Declared.CurveCount() == 0u && SketchHasCommittedGeometry(Sketch)
+     && !MirrorSketchIntoWorldSketch(Sketch, Declared, Mapping))
+        return Rollback();
 
     WorldPlacementFrame Support = ResolveWorkplaneSupportFrame(ActiveWorkplane);
     if (!Support.Declared())
@@ -962,7 +964,7 @@ bool CommitPlacementWorldBacked(const Workplane& ActiveWorkplane,
     if (Placed.Subject == SketchSubject::Point)
     {
         if (Placed.Anchors.empty())
-            return false;
+            return Rollback();
 
         SpatialDirection Along = SupportStanding ? Normalize(Support.AlongDirection)
                                                  : SpatialDirection{ 1.0, 0.0, 0.0 };
@@ -978,7 +980,7 @@ bool CommitPlacementWorldBacked(const Workplane& ActiveWorkplane,
     {
         std::vector<CurveSpecification> Geometry;
         if (!ResolveWorldBackedPlacementCurves(Placed, Geometry))
-            return false;
+            return Rollback();
 
         WorldCurves.reserve(Geometry.size());
         for (const CurveSpecification& Curve : Geometry)
@@ -988,7 +990,7 @@ bool CommitPlacementWorldBacked(const Workplane& ActiveWorkplane,
     }
 
     if (WorldCurves.empty())
-        return false;
+        return Rollback();
 
     WorldLoopName WorldLoop = {};
     if (PlacementFormsProfile(Placed))
@@ -998,7 +1000,7 @@ bool CommitPlacementWorldBacked(const Workplane& ActiveWorkplane,
             Loop.Traversal.push_back({ Curve, true });
         WorldLoop = Declared.DeclareLoop(Loop);
         if (!WorldLoop.Assigned())
-            return false;
+            return Rollback();
     }
 
     std::vector<SketchCurveName> SketchCurves;
@@ -1007,7 +1009,7 @@ bool CommitPlacementWorldBacked(const Workplane& ActiveWorkplane,
     {
         const DeclaredWorldCurve* Resolved = Declared.Resolve(Curve);
         if (Resolved == nullptr || !Resolved->Geometry.Declared())
-            return false;
+            return Rollback();
         const SketchCurveName SketchCurve = Sketch.DeclareCurve(Resolved->Geometry);
         SketchCurves.push_back(SketchCurve);
         Mapping.Curves.push_back({ Curve, SketchCurve });
@@ -1019,7 +1021,7 @@ bool CommitPlacementWorldBacked(const Workplane& ActiveWorkplane,
     {
         std::vector<SketchPointPlacement> Points;
         if (!ResolveSketchPoints(Sketch, SketchCurves.front(), Points) || Points.empty())
-            return false;
+            return Rollback();
         const WorkspaceRecordName Record = DeclareWorkspacePoint(Naming, Records, Points.front().Name);
         Written.push_back(Record);
         SelectedRecord = Record;
@@ -1052,7 +1054,7 @@ bool CommitPlacementWorldBacked(const Workplane& ActiveWorkplane,
     }
 
     if (!SelectedRecord.Assigned() || Written.empty())
-        return false;
+        return Rollback();
 
     const WorkspaceRecord* Primary = Records.Resolve(SelectedRecord);
     const char* NamingText = DeclaredPlacement(Placed.Subject, Placed.Method).Naming;

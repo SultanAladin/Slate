@@ -178,7 +178,9 @@ unsupported world edit.
   revisions, and pending selection.
 - Failed world dimension text edits restore both targets, world geometry, compatibility geometry, and
   revision history.
+- Failed world geometry placement restores partial legacy-bootstrap imports and does not consume records,
+  names, revisions, or selection.
 - World-backed dimension placement refuses on world failure rather than routing through compatibility
   placement or the legacy dimension solver.
 - Successful world-first commits still mirror compatibility state and seal exactly one revision.
-- Rollback coverage remains green in the world bridge proof.
+- Rollback coverage remains green in the world bridge and placement proofs.

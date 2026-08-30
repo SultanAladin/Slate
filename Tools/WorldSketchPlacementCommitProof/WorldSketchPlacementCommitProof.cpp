@@ -187,9 +187,36 @@ void ProveDimensionPlacementStaysWorldNative()
           "the dimension mapping and one additional workspace revision are preserved");
 }
 
+void ProveFailedWorldPlacementRollsBackBootstrap()
+{
+    std::printf("\n5. Failed world placement rolls back a partial legacy bootstrap\n");
+
+    Bench Stage;
+    Stage.Sketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { 0.0, 0.0, 1.0 }, { 1.0, 0.0, 0.0 } });
+    Stage.Sketch.DeclareLine({ 0.0, 0.0, 0.0 }, { 20.0, 0.0, 0.0 });
+    Stage.Sketch.Dimensions().push_back({});
+
+    SealedPlacement Point = {};
+    Point.Subject = SketchSubject::Point;
+    Point.Method = PlacementMethod::Extent;
+    Point.Anchors = { { 10.0, 40.0, 15.0 } };
+    WorkspaceRecordName Selected = {};
+    Claim(!CommitPlacementWorldBacked(Stage.ActiveWorkplane, Stage.World, Stage.Mapping,
+                                      Stage.Naming, Stage.Sketch, Stage.Records, Stage.Revisions,
+                                      Point, Selected),
+          "an invalid bootstrap dimension refuses the world-backed placement");
+    Claim(Stage.World.CurveCount() == 0u && Stage.World.DimensionCount() == 0u
+       && Stage.Mapping.Curves.empty() && Stage.Mapping.Dimensions.empty(),
+          "and removes all world and mapping state created while importing the legacy sketch");
+    Claim(Stage.Sketch.Curves().size() == 1u && Stage.Sketch.Dimensions().size() == 1u
+       && Stage.Records.DeclaredCount() == 2u && Stage.Revisions.DeclaredCount() == 0u
+       && !Selected.Assigned(),
+          "while preserving the original compatibility document, records, names, history, and selection");
+}
+
 void ProveExplicitProfileDeclarersTakeActivePlane()
 {
-    std::printf("\n5. Every compatibility profile declarer takes the active plane explicitly\n");
+    std::printf("\n6. Every compatibility profile declarer takes the active plane explicitly\n");
 
     struct Scenario
     {
@@ -232,7 +259,7 @@ void ProveExplicitProfileDeclarersTakeActivePlane()
 
 void ProvePointAndWorldBackedRendering()
 {
-    std::printf("\n6. Point placements still land, and off-plane edits render through the world projection\n");
+    std::printf("\n7. Point placements still land, and off-plane edits render through the world projection\n");
 
     Bench Stage;
     SealedPlacement Point = {};
@@ -268,7 +295,7 @@ void ProvePointAndWorldBackedRendering()
 
 void ProveCompatibilityCommitTakesExplicitPlane()
 {
-    std::printf("\n7. The compatibility commit can be given the active plane without changing the sketch's remembered plane\n");
+    std::printf("\n8. The compatibility commit can be given the active plane without changing the sketch's remembered plane\n");
 
     Bench Stage;
     const SketchPlane ActivePlane = { { 0.0, 40.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 } };
@@ -302,6 +329,7 @@ int main()
     ProveWorldAuthoringDoesNotRebuildFromStaleSketch();
     ProveConstructionPolylineStaysWire();
     ProveDimensionPlacementStaysWorldNative();
+    ProveFailedWorldPlacementRollsBackBootstrap();
     ProveExplicitProfileDeclarersTakeActivePlane();
     ProvePointAndWorldBackedRendering();
     ProveCompatibilityCommitTakesExplicitPlane();

@@ -537,6 +537,10 @@ def main() -> int:
             "world-backed placement may import the sketch only while the world model is unseeded")
     require("Declared.CurveCount() != static_cast<std::uint32_t>(Sketch.Curves().size())" not in world_commit,
             "world-backed placement must not rebuild live world geometry from a partial sketch mirror")
+    require("const WorldSketchStructure WorldBefore = Declared" in world_commit
+            and "!MirrorSketchIntoWorldSketch(Sketch, Declared, Mapping)" in world_commit
+            and "return Rollback();" in world_commit,
+            "world-backed placement must roll back failed bootstrap and compatibility handoffs")
 
     interaction_world = interaction[interaction.index("void DriveViewportSelectionAndTransformWorldBacked("):]
     require("World.CurveCount() == 0u && SketchHasCommittedGeometry(Sketch)" in interaction_world,
