@@ -827,17 +827,23 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
         }
     }
 
-    if (SelectionSet.Empty())
+    for (std::uint32_t RowIndex = 0u;
+         RowIndex < RowCount && RowIndex < ParametricWorkspaceContext::RowLimit;
+         ++RowIndex)
     {
-        for (std::uint32_t RowIndex = 0u;
-             RowIndex < RowCount && RowIndex < ParametricWorkspaceContext::RowLimit;
-             ++RowIndex)
+        if (!WorkspaceApplied.RowSelected[RowIndex] ||
+            Directory.Rows[RowIndex].Role != WorkspaceDirectoryRowRole::Record)
+            continue;
+
+        const WorkspaceRecordName RowRecord = Directory.Rows[RowIndex].Record;
+        bool AlreadyRepresented = false;
+        for (const SketchPick& Pick : SelectionSet.Items)
+            if (Pick.Record.IssuedIndex == RowRecord.IssuedIndex)
+                AlreadyRepresented = true;
+        if (!AlreadyRepresented)
         {
-            if (!WorkspaceApplied.RowSelected[RowIndex] ||
-                Directory.Rows[RowIndex].Role != WorkspaceDirectoryRowRole::Record)
-                continue;
             SketchPick DirectoryPick = {};
-            if (ResolvePickForRecord(Sketch, Records, Directory.Rows[RowIndex].Record, DirectoryPick))
+            if (ResolvePickForRecord(Sketch, Records, RowRecord, DirectoryPick))
                 SetSketchPick(SelectionSet, DirectoryPick, true);
         }
     }
