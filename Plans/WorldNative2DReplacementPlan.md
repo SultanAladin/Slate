@@ -164,3 +164,21 @@ solved first, the compatibility geometry and target are refreshed second, and on
 - Dimension placement and text editing do not solve through `SketchStructure`.
 - Compatibility dimensions, mappings, workspace records, and revisions remain available after world edits.
 - `WorldSketchDimensionProof`, world placement/bridge proofs, strict compilation, and host-budget checks remain green.
+
+## World-native transaction boundaries
+
+World-backed constraint and dimension commits now use a single cross-structure transaction. The world
+relationship or dimension is declared and solved first, but compatibility geometry, mirrored specification,
+workspace record, name allocation, pending selection, and revision history are restored if any later handoff
+fails. A mapped world dimension is never retried through the legacy dimension solver after an invalid or
+unsupported world edit.
+
+### Transaction acceptance
+- Failed world constraint commits restore world geometry, compatibility geometry, mappings, records, names,
+  revisions, and pending selection.
+- Failed world dimension text edits restore both targets, world geometry, compatibility geometry, and
+  revision history.
+- World-backed dimension placement refuses on world failure rather than routing through compatibility
+  placement or the legacy dimension solver.
+- Successful world-first commits still mirror compatibility state and seal exactly one revision.
+- Rollback coverage remains green in the world bridge proof.

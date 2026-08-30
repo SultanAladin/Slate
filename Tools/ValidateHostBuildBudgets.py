@@ -156,8 +156,10 @@ def main() -> int:
             and "SketchStructure/Api" not in world_constraint_solver,
             "world constraints must solve against world geometry rather than the sketch solver")
     require("ApplyViewportWorldConstraintTool(" in interaction
-            and "ApplyWorldSketchToSketch(World, Mapping, Sketch)" in interaction,
-            "the viewport must apply world constraints before mirroring compatibility geometry")
+            and "ApplyWorldSketchToSketch(World, Mapping, Sketch)" in interaction
+            and "const WorldSketchStructure WorldBefore = World" in interaction
+            and "const auto Rollback = [&]()" in interaction,
+            "the viewport must apply world constraints before mirroring compatibility geometry and roll back failed commits")
     require("IsConstraintTool(ParametricToolsApplied.ActiveSubject)" in editor
             and "ParametricToolsApplied.ActiveSubject," in editor,
             "constraint tools must enter the world-backed interaction arm")

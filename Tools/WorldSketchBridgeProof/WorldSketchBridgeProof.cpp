@@ -273,9 +273,45 @@ void ProveWorldConstraintCompatibilityMirror()
           "the compatibility geometry follows the solved world geometry");
 }
 
+void ProveWorldConstraintRollback()
+{
+    std::printf("\n5. Failed world constraint commits roll back every mirrored mutation\n");
+
+    Bench Stage;
+    const SpatialPoint WorldBefore = Stage.World.Resolve(WorldCurveName{ 2u })->Geometry.HeldLine().Terminus;
+    const SpatialPoint SketchBefore = Stage.Sketch.Curves()[1u].Geometry.HeldLine().Terminus;
+    Stage.Mapping.Curves[0u].Sketch = { 99u };
+
+    WorldPick Primary = {};
+    Primary.Subject = WorldPickSubject::Curve;
+    Primary.Curve = { 1u };
+    WorldPick Secondary = {};
+    Secondary.Subject = WorldPickSubject::Curve;
+    Secondary.Curve = { 2u };
+    const WorkspaceRecordName PendingBefore = Stage.PendingSelection;
+
+    Claim(!ApplyViewportWorldConstraintTool(
+        ParametricToolSubject::ParallelConstraint, Stage.Naming,
+        Stage.World, Stage.Mapping, Stage.Sketch, Stage.Records, Stage.Revisions,
+        Primary, Secondary, Stage.PendingSelection),
+          "a failed compatibility refresh refuses the world constraint");
+    Claim(Stage.World.ConstraintCount() == 0u && Stage.Sketch.Constraints().empty()
+       && Stage.Mapping.Constraints.empty(),
+          "and removes the unmirrored world constraint and mapping");
+    Claim(SamePoint(Stage.World.Resolve(WorldCurveName{ 2u })->Geometry.HeldLine().Terminus, WorldBefore)
+       && SamePoint(Stage.Sketch.Curves()[1u].Geometry.HeldLine().Terminus, SketchBefore),
+          "the world solve and compatibility geometry return to their previous positions");
+    Claim(Stage.Records.DeclaredCount() == 1u,
+          "workspace records remain unchanged after the refused world constraint");
+    Claim(Stage.Revisions.DeclaredCount() == 0u,
+          "revision history remains unchanged after the refused world constraint");
+    Claim(Stage.PendingSelection.IssuedIndex == PendingBefore.IssuedIndex,
+          "pending selection remains unchanged after the refused world constraint");
+}
+
 void ProveWorldDimensionTextEdit()
 {
-    std::printf("\n5. Dimension text edits drive the world dimension and then refresh the mirror\n");
+    std::printf("\n6. Dimension text edits drive the world dimension and then refresh the mirror\n");
 
     Bench Stage;
     const Workplane ActiveWorkplane = { { 0.0, 40.0, 0.0 },
@@ -338,7 +374,7 @@ void ProveWorldDimensionTextEdit()
 
 void ProveWorldBackedRenderingAndPreview()
 {
-    std::printf("\n6. The persistent world sketch renders directly and preview appends in screen space\n");
+    std::printf("\n7. The persistent world sketch renders directly and preview appends in screen space\n");
 
     Bench Stage;
     DeclaredWorldCurve* Raised = Stage.World.Resolve(WorldCurveName{ 2u });
@@ -370,7 +406,7 @@ void ProveWorldBackedRenderingAndPreview()
 
 void ProveOverlayUsesExplicitWorldBasis()
 {
-    std::printf("\n7. Compatibility overlays can be projected from the active basis\n");
+    std::printf("\n8. Compatibility overlays can be projected from the active basis\n");
 
     const PlaneExtent Extent = { 0.0f, 0.0f, 800.0f, 600.0f };
     const ViewportStanding View = {};
@@ -407,6 +443,7 @@ int main()
     ProveWorldNameMappingSurvivesDifferentIssuance();
     ProveWorldBackedViewportFlow();
     ProveWorldConstraintCompatibilityMirror();
+    ProveWorldConstraintRollback();
     ProveWorldDimensionTextEdit();
     ProveWorldBackedRenderingAndPreview();
     ProveOverlayUsesExplicitWorldBasis();

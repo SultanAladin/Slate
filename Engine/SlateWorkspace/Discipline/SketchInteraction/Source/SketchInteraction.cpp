@@ -658,29 +658,53 @@ bool ApplyViewportWorldConstraintTool(ParametricToolSubject Tool,
     if (!SelectedConstraint(Tool, SketchSubject) || !ActiveSelection.Standing())
         return false;
 
+    // A world constraint is a cross-structure transaction: solving the world curve, refreshing the
+    // compatibility mirror, allocating the record, and sealing its revision either all happen or none
+    // of them do. This also restores monotonic naming if a later boundary refuses the commit.
+    const WorldSketchStructure WorldBefore = World;
+    const WorldSketchMapping MappingBefore = Mapping;
+    const WorkspaceNameIndex NamingBefore = Naming;
+    const SketchStructure SketchBefore = Sketch;
+    const WorkspaceRecordStructure RecordsBefore = Records;
+    const WorkspaceRevisionSequence RevisionsBefore = Revisions;
+    const WorkspaceRecordName PendingBefore = PendingSelection;
+    const auto Rollback = [&]()
+    {
+        World = WorldBefore;
+        Mapping = MappingBefore;
+        Naming = NamingBefore;
+        Sketch = SketchBefore;
+        Records = RecordsBefore;
+        Revisions = RevisionsBefore;
+        PendingSelection = PendingBefore;
+        return false;
+    };
+
     const WorldConstraintSubject WorldSubject =
         static_cast<WorldConstraintSubject>(static_cast<std::uint32_t>(SketchSubject));
     const Deliver<WorldConstraintSpecification> Declared =
         DeclareWorldConstraintFrom(WorldSubject, ActiveSelection, HoveredSelection);
     if (!Declared)
-        return false;
+        return Rollback();
 
     const WorldConstraintName WorldName = World.DeclareConstraint(Declared.Resolve());
     if (!WorldName.Assigned() || !ApplyWorldConstraint(World, WorldName))
-        return false;
+        return Rollback();
     if (!ApplyWorldSketchToSketch(World, Mapping, Sketch))
-        return false;
+        return Rollback();
 
     ConstraintName SketchName = {};
     if (!MirrorWorldConstraintIntoSketch(World, Mapping, WorldName, Sketch, SketchName))
-        return false;
+        return Rollback();
     Mapping.Constraints.push_back({ WorldName, SketchName });
 
     const WorkspaceRecordName Record = DeclareWorkspaceConstraint(Naming, Records, SketchName);
     if (!Record.Assigned())
-        return false;
+        return Rollback();
     const WorkspaceRecord* Written = Records.Resolve(Record);
-    const std::string Label = Written != nullptr ? Written->Naming : "Constraint";
+    if (Written == nullptr)
+        return Rollback();
+    const std::string Label = Written->Naming;
     Revisions.Seal("Declared " + Label, "Create Constraint", { Record },
                    Revisions.DeclaredCount() + 1u);
     PendingSelection = Record;
