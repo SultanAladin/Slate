@@ -1200,7 +1200,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                 ViewportRuntimeState& LeafRuntime = ViewportRuntime[Leaf];
                                 // The local alias keeps the viewport phase readable while the state remains
                                 // owned by this leaf rather than by the application-wide host.
-                                ViewportStanding& SketchView = ViewportRuntime[Index].Standing;
+                                ViewportStanding& SketchView = ViewportRuntime[Leaf].Standing;
                                 OverlayGeometry& LeafOverlay = LeafRuntime.Overlay;
                                 LeafOverlay.Reset();
 
@@ -1266,7 +1266,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                 //    to. `Perspective` below therefore asks the transit, not the
                                 //    button, so the grid and the geometry flatten together over the
                                 //    same quarter second instead of both cutting on one frame.
-                                ProjectionTransit& Transit = ViewportRuntime[Index].Projection;
+                                ProjectionTransit& Transit = ViewportRuntime[Leaf].Projection;
                                 AdvanceProjectionTransit(Transit, Pass.ElapsedMilliseconds / 1000.0,
                                                          !PanelConfiguration[Index].Perspective);
                                 const bool LeafPerspective = !Transit.Parallel();
@@ -1308,7 +1308,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                         SketchContextMenu.Close();
                                 }
 
-                                ResolvedCamera& SceneCamera = ViewportRuntime[Index].Camera;
+                                ResolvedCamera& SceneCamera = ViewportRuntime[Leaf].Camera;
                                 SceneCamera = ResolveFreeCamera(
                                     { SceneApplied.CameraPosition[0], SceneApplied.CameraPosition[1],
                                       SceneApplied.CameraPosition[2] },
@@ -1471,13 +1471,13 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     //    basis below resolves from the workplane that just moved, so a
                                     //    Front or Side view re-reads the sketch basis in the same pass.
                                     const SpatialBasis SketchBasis = ResolveWorkplaneBasis(SketchWorkplanes.Active());
-                                    ViewportRuntime[Index].ActiveWorkplane = SketchWorkplanes.ActiveName();
+                                    ViewportRuntime[Leaf].ActiveWorkplane = SketchWorkplanes.ActiveName();
                                     // 🔴 Do not reconstruct an orthographic standing every frame. That
                                     //    erased its Focus immediately after pan, which made middle/right
                                     //    drag appear dead. Seed it when entering ortho (and continuously
                                     //    while perspective is active); thereafter the standing itself is
                                     //    the source of truth for the orthographic camera.
-                                    const bool EnteredParallel = !ViewportRuntime[Index].WasParallel && !LeafPerspective;
+                                    const bool EnteredParallel = !ViewportRuntime[Leaf].WasParallel && !LeafPerspective;
                                     if (LeafPerspective || EnteredParallel)
                                     {
                                         SketchView = ResolveOrbitStandingFromFree(
@@ -1524,7 +1524,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     //    orthographic view, and perspective secondary drag orbits.
                                     DriveViewport(LeafBody, NavigationPointer,
                                                   Viewport.Seam().Modifiers(), SketchView, LeafPerspective);
-                                    ViewportRuntime[Index].WasParallel = !LeafPerspective;
+                                    ViewportRuntime[Leaf].WasParallel = !LeafPerspective;
 
                                     // 🔴 SETTLED ORTHOGRAPHIC WORK USES THE SAME RESOLVED CAMERA EVERYWHERE.
                                     //    The free camera is the right source while the perspective transit is
