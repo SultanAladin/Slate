@@ -334,6 +334,10 @@ static std::uint32_t             SketchTrimKeep      = 0u;
     //    track of where they were looking. One per leaf, because two split viewports may be part-way
     //    through opposite transits at the same time.
     static ProjectionTransit         LeafProjection[WorkspaceIndex::WorkspaceLimit];
+    // 🧩 An orthographic standing is stateful: pan changes its focus and must not be rebuilt from the
+    //    free camera on the next tick. Keep one transition latch per leaf so entering ortho seeds the
+    //    standing once, then the same standing owns zoom and pan until perspective is requested again.
+    static bool                      LeafWasParallel[WorkspaceIndex::WorkspaceLimit] = {};
     // 📝 Static: the packet is large and is reused every frame.
     static WorkspaceCadPacket        SketchCadPacket;
 
@@ -929,9 +933,15 @@ static std::uint32_t             SketchTrimKeep      = 0u;
             //    was reaching the fly camera as "backward" and the sketch transform grammar as "Scale",
             //    so one press moved the camera and scaled the shape at once. The look latch survives the
             //    cursor warp, so the suppression follows the gesture even when the pointer has been recentered.
+            // 🔴 The navigation mode is a property of the active viewport, not merely of the
+            //    mouse button. In ortho the same secondary drag is CAD pan; feeding it to the free
+            //    camera as well changes the hidden perspective pose and makes the next toggle appear
+            //    to jump back to stale WASD data.
+            const bool ActiveViewportPerspective = PanelConfiguration[0].Perspective;
             const bool ViewportLookPermitted =
                 (ForegroundOverViewport || EditorCameraLookLatched) && !PointerBehindDrawer;
-            const bool ViewportLookHeld = ForegroundPointer.SecondaryHeld && ViewportLookPermitted;
+            const bool ViewportLookHeld = ForegroundPointer.SecondaryHeld && ViewportLookPermitted
+                                        && ActiveViewportPerspective;
             const TextInputCondition SketchViewportText =
                 FilterViewportLookTextInput(Viewport.Surface().TextInput(), ViewportLookHeld);
 
@@ -1063,7 +1073,8 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                     EditorCameraLookLatched = false;
 
                 CameraCondition FlyInput = Viewport.Seam().CameraInput(
-                    (PointerOverViewport || EditorCameraLookLatched) && !PointerBehindDrawer);
+                    (PointerOverViewport || EditorCameraLookLatched)
+                    && !PointerBehindDrawer && ActiveViewportPerspective);
 
                 // A direct XYZ edit in the Editor Camera's Transform card is consumed before navigation.
                 // The transform synchronizer distinguishes it from the values the camera published last tick,
@@ -1263,36 +1274,6 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                         SketchContextMenu.Close();
                                 }
 
-                                // 🔴 A WHEEL NOTCH IN A PARALLEL VIEW CHANGED NOTHING, IN ALL FOUR OF
-                                //    THEM. `OrthoScale` was written in exactly one place in the whole
-                                //    tree — `DriveViewport`, which has no call sites — so it sat at its
-                                //    default of 3.0 for the entire session. The projection arithmetic
-                                //    was never wrong: a 10-unit span measures 30.0 px at scale 3.0 and
-                                //    43.9 px at 4.392, correctly. Nothing ever moved the number.
-                                //
-                                // 📝 A parallel view has no eye to fly towards, so zoom IS the scale;
-                                //    a perspective view keeps flying the camera, which already works.
-                                //    Gated on the pointer being over this leaf so a split viewport
-                                //    zooms the half the artist is pointing at, and not the other one.
-                                if (!LeafPerspective && BackgroundPointer.WheelY != 0.0f &&
-                                    LeafBody.Encloses(BackgroundPointer.PositionX,
-                                                      BackgroundPointer.PositionY))
-                                {
-                                    // 🔴 THE TWO DIRECTIONS ARE EXACT RECIPROCALS. The unreached arm
-                                    //    used 1.1 and 0.9, which are not inverses — 1.1 x 0.9 = 0.99,
-                                    //    so every in-then-out pair lost a further 1% and an artist
-                                    //    rocking the wheel to inspect something drifted steadily
-                                    //    smaller. Forty pairs left the view a third smaller than it
-                                    //    started. Dividing by the factor that multiplies makes the
-                                    //    round trip exact.
-                                    constexpr double ZoomStep = 1.1;
-                                    SketchView.OrthoScale = std::clamp(
-                                        BackgroundPointer.WheelY > 0.0f
-                                            ? SketchView.OrthoScale * ZoomStep
-                                            : SketchView.OrthoScale / ZoomStep,
-                                        0.05, 40.0);
-                                }
-
                                 ResolvedCamera SceneCamera = ResolveFreeCamera(
                                     { SceneApplied.CameraPosition[0], SceneApplied.CameraPosition[1],
                                       SceneApplied.CameraPosition[2] },
@@ -1446,13 +1427,22 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     //    basis below resolves from the workplane that just moved, so a
                                     //    Front or Side view re-reads the sketch basis in the same pass.
                                     const SpatialBasis SketchBasis = ResolveWorkplaneBasis(SketchWorkplanes.Active());
-                                    SketchView = ResolveOrbitStandingFromFree(
-                                        { SceneApplied.CameraPosition[0], SceneApplied.CameraPosition[1],
-                                          SceneApplied.CameraPosition[2] },
-                                        SceneApplied.ViewportSkyCamera.AzimuthDegrees,
-                                        SceneApplied.ViewportSkyCamera.ElevationDegrees,
-                                        SketchBasis);
-                                    SketchView.OrthoScale = PreservedScale;
+                                    // 🔴 Do not reconstruct an orthographic standing every frame. That
+                                    //    erased its Focus immediately after pan, which made middle/right
+                                    //    drag appear dead. Seed it when entering ortho (and continuously
+                                    //    while perspective is active); thereafter the standing itself is
+                                    //    the source of truth for the orthographic camera.
+                                    const bool EnteredParallel = !LeafWasParallel[Index] && !LeafPerspective;
+                                    if (LeafPerspective || EnteredParallel)
+                                    {
+                                        SketchView = ResolveOrbitStandingFromFree(
+                                            { SceneApplied.CameraPosition[0], SceneApplied.CameraPosition[1],
+                                              SceneApplied.CameraPosition[2] },
+                                            SceneApplied.ViewportSkyCamera.AzimuthDegrees,
+                                            SceneApplied.ViewportSkyCamera.ElevationDegrees,
+                                            SketchBasis);
+                                        SketchView.OrthoScale = PreservedScale;
+                                    }
 
                                     // 🔴 ONE LENS FOR THE SKETCH AND THE GROUND IT SITS ON. The
                                     //    analytic grid is posed below with the scene camera's field
@@ -1466,6 +1456,15 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     SketchView.FieldOfViewDegrees =
                                         SceneApplied.ViewportSkyCamera.FieldOfViewDegrees;
                                     SketchView.Orientation = SketchOrientation;
+
+                                    // 🔴 The viewport driver was implemented but had no call site. This
+                                    //    is the missing CAD navigation path: wheel changes ortho scale,
+                                    //    secondary drag pans an orthographic view, and perspective
+                                    //    secondary drag continues to orbit. It runs after the standing
+                                    //    is seeded and after its exact view orientation is assigned.
+                                    DriveViewport(LeafBody, BackgroundPointer,
+                                                  Viewport.Seam().Modifiers(), SketchView, LeafPerspective);
+                                    LeafWasParallel[Index] = !LeafPerspective;
 
                                     // 🔴 SETTLED ORTHOGRAPHIC WORK USES THE SAME RESOLVED CAMERA EVERYWHERE.
                                     //    The free camera is the right source while the perspective transit is

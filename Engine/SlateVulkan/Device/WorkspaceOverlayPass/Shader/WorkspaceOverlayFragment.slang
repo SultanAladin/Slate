@@ -255,7 +255,13 @@ Real32x4 ResolveGround(Real32x2 Corner)
                                                        FromWorldCentre);
             const Real32 CameraFade = 1.0 - smoothstep(FadeRadius * 0.62, FadeRadius,
                                                        FromCamera);
-            const Real32 SpatialFade = CentreFade * CameraFade;
+            // 🔴 Orthographic drafting is a view, not a finite camera billboard. Its rays cover the
+            //    entire leaf at a constant scale, so applying the perspective camera-radius fade here
+            //    made the grid randomly disappear after a fly or pan. Keep the user's line/dot settings,
+            //    but never let camera distance decide whether an orthographic reference plane exists.
+            //    Perspective retains both authored fades so its floor remains finite like Blender's
+            //    perspective grid.
+            const Real32 SpatialFade = Parallel ? 1.0 : CentreFade * CameraFade;
             FinalAlpha = GridCoverage * LatticeAlpha * SpatialFade;
 
             const Real32 SpanAlong = fwidth(Ground.x);
