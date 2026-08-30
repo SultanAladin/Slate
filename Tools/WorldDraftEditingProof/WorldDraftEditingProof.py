@@ -9,11 +9,11 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 OWNED = [
     "Tools/WorldDraftEditingProof/WorldDraftEditingProof.cpp",
-    "Engine/SlateShape/World/WorldDraftEditing/Source/WorldDraftEditing.cpp",
+    "Engine/SlateWorkspace/Discipline/WorldDraftEditing/Source/WorldDraftEditing.cpp",
 ]
 
 SUPPORTING = [
-    "Engine/SlateShape/World/WorldDraftPicking/Source/WorldDraftPicking.cpp",
+    "Engine/SlateWorkspace/Discipline/WorldDraftPicking/Source/WorldDraftPicking.cpp",
     "Engine/SlateShape/World/WorldDraftStructure/Source/WorldDraftStructure.cpp",
     "Engine/SlateShape/World/WorldDraftAnalysis/Source/WorldDraftAnalysis.cpp",
     "Engine/SlateShape/Geometry/CurveSpecification/Source/CurveSpecification.cpp",

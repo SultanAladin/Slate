@@ -20,6 +20,7 @@
 #pragma once
 
 #include "SlateShape/Geometry/CurveSpecification/Api/CurveSpecification.h"
+#include "SlateShape/Geometry/SpatialBasis/Api/SpatialBasis.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 
 #include <cmath>
@@ -31,17 +32,6 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE PLANE AND THE VIEW
 //------------------------------------------------------------------------------------------------------------------------
-
-/// 🧩 The sketch plane as three orthonormal directions about an origin.
-/// note 📝 `Along` and `Across` span the plane; `Normal` leaves it. A planar coordinate pair is measured
-///       against the first two, which is what makes a sketch two-dimensional while living in space.
-struct SpatialBasis
-{
-    SpatialPoint     Origin = {};
-    SpatialDirection Along  = { 1.0, 0.0, 0.0 };
-    SpatialDirection Across = { 0.0, 0.0, 1.0 };
-    SpatialDirection Normal = { 0.0, 1.0, 0.0 };
-};
 
 /// 🧩 Which way the viewport is looking.
 /// note ⚠️ `Isometric` is the only orientation that is not axis-aligned, and it is the one an orbit lands

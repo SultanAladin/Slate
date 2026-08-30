@@ -17,8 +17,8 @@ OWNED = [
 SUPPORTING = [
     "Engine/SlateWorkspace/Discipline/TransformSequence/Source/TransformSequence.cpp",
     "Engine/SlateWorkspace/Discipline/ViewportProjection/Source/ViewportProjection.cpp",
-    "Engine/SlateShape/World/WorldDraftEditing/Source/WorldDraftEditing.cpp",
-    "Engine/SlateShape/World/WorldDraftPicking/Source/WorldDraftPicking.cpp",
+    "Engine/SlateWorkspace/Discipline/WorldDraftEditing/Source/WorldDraftEditing.cpp",
+    "Engine/SlateWorkspace/Discipline/WorldDraftPicking/Source/WorldDraftPicking.cpp",
     "Engine/SlateShape/World/WorldDraftStructure/Source/WorldDraftStructure.cpp",
     "Engine/SlateShape/World/WorldDraftAnalysis/Source/WorldDraftAnalysis.cpp",
     "Engine/SlateShape/Geometry/CurveSpecification/Source/CurveSpecification.cpp",

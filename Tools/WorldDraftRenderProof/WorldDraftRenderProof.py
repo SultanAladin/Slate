@@ -9,7 +9,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 OWNED = [
     "Tools/WorldDraftRenderProof/WorldDraftRenderProof.cpp",
-    "Engine/SlateShape/World/WorldDraftRenderingProjection/Source/WorldDraftRenderingProjection.cpp",
+    "Engine/SlateWorkspace/Discipline/WorldDraftRenderingProjection/Source/WorldDraftRenderingProjection.cpp",
 ]
 
 SUPPORTING = [
