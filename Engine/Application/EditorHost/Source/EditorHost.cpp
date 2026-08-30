@@ -21,6 +21,7 @@
 #include "SlateWorkspace/Discipline/SketchViewportOverlay/Api/SketchViewportOverlay.h"
 #include "Application/EditorHost/Api/EditorFrameContext.h"
 #include "Application/EditorHost/Api/ViewportRuntimeState.h"
+#include "Application/EditorHost/Api/CadPacketUploadState.h"
 #include "SlateShape/Sketch/SketchRenderingProjection/Api/SketchRenderingProjection.h"
 #include "SlateWorkspace/Discipline/ContentImportCommit/Api/ContentImportCommit.h"
 #include "SlateWorkspace/Discipline/SketchInteraction/Api/SketchInteraction.h"
@@ -392,7 +393,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
     //    each triangle was a separate anti-aliased primitive with visible shared edges. The data still
     //    lives on the CPU; only the rasterisation moves.
     WorkspaceCadPass                 CadPass;
-    std::uint64_t                    UploadedCadFingerprint = 0ull;
+    CadPacketUploadState              CadUploadState;
     GeometryDeviceExchange           GeometryDevice = {};
     GeometryFileInterchange          GeometryTransfer = {};
     GeometryInterchange              ImportedGeometry = {};
@@ -861,7 +862,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                                         OverlayCodec,
                                                         Lifetime.Offering().ColourTargetFormat));
                     // 📝 Force a re-upload: the vertex buffer went with the old pass.
-                    UploadedCadFingerprint = 0ull;
+                    CadUploadState.Invalidate();
                 }
                 for (std::uint32_t Index = 0u; Index < PanelStructure::RecordLimit; ++Index)
                 {
@@ -2414,10 +2415,10 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                     if (CadPass.Standing())
                     {
                         const std::uint64_t CadFingerprint = FingerprintCadPacket(SketchCadPacket);
-                        if (UploadedCadFingerprint != CadFingerprint)
+                        if (CadUploadState.NeedsUpload(CadFingerprint))
                         {
                             CadPass.Upload(SketchCadPacket);
-                            UploadedCadFingerprint = CadFingerprint;
+                            CadUploadState.MarkUploaded(CadFingerprint);
                         }
 
                         for (std::uint32_t ViewportIndex = 0u;
