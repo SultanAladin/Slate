@@ -923,15 +923,9 @@ CameraCondition InterfaceExchange::CameraInput(bool LookPermitted)
 
     // 🔴 THE LOOK TRACKS THE OS CURSOR ITSELF and never reads `io.MouseDelta`. ImGui's delta is
     //    computed at `NewFrame` from the position the backend's cursor callback reported at the last
-    //    `glfwPollEvents`, and ANY cursor warp — through the backend's `WantSetMousePos` (applied at
-    //    the next backend NewFrame, clobbering the just-polled motion) or from `Seal()` after
-    //    `Render()` (MousePosPrev is captured BEFORE the warp, so the next delta measures from the
-    //    pre-warp position, not the centre) — makes the delta read zero or alternating and the
-    //    camera "struggles to rotate" (the recurring defect). So the seam reads `glfwGetCursorPos`
-    //    directly, measures against its own previous sample, and warps the OS cursor to the window
-    //    centre mid-frame; `glfwSetCursorPos` synchronously fires the backend's callback, which
-    //    QUEUES the centre as the next mouse event — exactly what makes the artist's next motion
-    //    measure from the centre, continuously, while the panels never see a wrong pointer.
+    //    `glfwPollEvents`; synthetic cursor updates can make that delta alternate or measure from
+    //    the wrong location. The seam therefore reads `glfwGetCursorPos` directly and measures
+    //    against its own previous real sample without synthesising cursor movement.
     if (NativeWindow != nullptr)
     {
         GLFWwindow* const Window = static_cast<GLFWwindow*>(NativeWindow);
@@ -949,24 +943,16 @@ CameraCondition InterfaceExchange::CameraInput(bool LookPermitted)
                 Current.LookDeltaY = static_cast<float>(CursorY - LookLastY);
             }
 
-            int WindowWidth  = 0;
-            int WindowHeight = 0;
-            glfwGetWindowSize(Window, &WindowWidth, &WindowHeight);
-
-            const double CentreX = static_cast<double>(WindowWidth)  * 0.5;
-            const double CentreY = static_cast<double>(WindowHeight) * 0.5;
-
-            // 🔴 The warp runs HERE, mid-frame — after the panels recorded (they sample the pointer
-            //    through `io.MousePos`, which still holds the real position) and before `Render()`
-            //    captures `MousePosPrev` from it. The queued centre event is processed at the next
-            //    NewFrame AFTER the next poll's motion event, so the panels keep the true pointer.
-            glfwSetCursorPos(Window, CentreX, CentreY);
-            // Window systems may quantise a half-pixel centre. Retaining the requested coordinate
-            // produces the same fractional delta every frame and pitches a motionless camera.
-            glfwGetCursorPos(Window, &LookLastX, &LookLastY);
+            // Do not warp or hide the OS cursor during look. Warping it to the window centre can
+            // feed the resize-divider hit test an artificial edge/centre sample, and it also makes
+            // the pointer appear to disappear while the artist is merely moving the mouse. The
+            // direct OS samples above already provide a stable relative delta, so retain the real
+            // position and let the next tick measure from it.
+            LookLastX = CursorX;
+            LookLastY = CursorY;
             LookWasHeld = true;
 
-            ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+            ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
         }
         else
         {
