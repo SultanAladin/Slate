@@ -1720,17 +1720,10 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     OverlayGroundPose& Pose = LeafOverlay.Ground;
                                     const EditorPanelConfiguration& PanelDeclared = PanelConfiguration[Index];
 
-                                    StandingWorkplane ViewedWorkplane = StandingWorkplane::Ground;
-                                    const bool ExactOrthographicPlane =
-                                        !LeafPerspective && ResolveViewedWorkplane(SketchView.Orientation, ViewedWorkplane)
-                                     && SketchWorkplanes.ActiveName() == SketchWorkplanes.StandingName(ViewedWorkplane);
-                                    // 🔴 THE GRID MUST NOT DISAPPEAR IN PERSPECTIVE. Perspective uses the
-                                    //    default ground plane and the free camera frame; a settled axis
-                                    //    view uses the selected standard plane. During the transit the
-                                    //    scale remains zero so the shader stays perspective with the
-                                    //    scene instead of flattening early.
-                                    Pose.Standing = PanelDeclared.Lattice != PanelLatticePresentation::None
-                                                 && (LeafPerspective || ExactOrthographicPlane);
+                                    // 🔴 THE GRID MUST NOT DISAPPEAR IN ORTHOGRAPHIC MODE. The analytic
+                                    // ground is valid for every resolved camera frame, including free
+                                    // orthographic navigation, not only named Front/Back/Left/Right views.
+                                    Pose.Standing = PanelDeclared.Lattice != PanelLatticePresentation::None;
 
                                     // 🔴 The analytic grid consumes the same frame as the settled camera.
                                     //    In particular, Front/Back and Left/Right may have their eye on

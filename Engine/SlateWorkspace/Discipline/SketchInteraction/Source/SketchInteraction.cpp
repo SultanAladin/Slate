@@ -172,18 +172,10 @@ GizmoHandle ResolveUniversalGizmoHandle(const GizmoScreenBasis& Screen,
                                         float PointerX,
                                         float PointerY)
 {
-    const GizmoHandle Move = ResolveGizmoHandle(Screen, TransformManner::Move, PointerX, PointerY);
-    if (Move == GizmoHandle::MoveFree)
-        return Move;
-
-    const GizmoHandle Scale = ResolveGizmoHandle(Screen, TransformManner::Scale, PointerX, PointerY);
-    if (Scale != GizmoHandle::None)
-        return Scale;
-
-    if (Move != GizmoHandle::None)
-        return Move;
-
-    return ResolveGizmoHandle(Screen, TransformManner::Rotate, PointerX, PointerY);
+    // When no transform session is engaged, the visible gizmo is the move gizmo. Do not probe the
+    // hidden scale cylinder or rotation arc as a fallback: their hit regions overlap the move geometry,
+    // so a plain click near a cone could silently start scale/rotation without G/R/S being pressed.
+    return ResolveGizmoHandle(Screen, TransformManner::Move, PointerX, PointerY);
 }
 
 }   // namespace

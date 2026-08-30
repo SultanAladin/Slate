@@ -41,18 +41,9 @@ GizmoHandle ResolveUniversalGizmoHandle(const GizmoScreenBasis& Screen,
                                         float PointerX,
                                         float PointerY)
 {
-    const GizmoHandle Move = ResolveGizmoHandle(Screen, TransformManner::Move, PointerX, PointerY);
-    if (Move == GizmoHandle::MoveFree)
-        return Move;
-
-    const GizmoHandle Scale = ResolveGizmoHandle(Screen, TransformManner::Scale, PointerX, PointerY);
-    if (Scale != GizmoHandle::None)
-        return Scale;
-
-    if (Move != GizmoHandle::None)
-        return Move;
-
-    return ResolveGizmoHandle(Screen, TransformManner::Rotate, PointerX, PointerY);
+    // No active G/R/S session means only the visible move gizmo may claim a press. Probing scale and
+    // rotation as fallbacks made their overlapping geometry actionable even though their visuals were hidden.
+    return ResolveGizmoHandle(Screen, TransformManner::Move, PointerX, PointerY);
 }
 
 WorldPick ResolveActiveSelection(const WorldPick& SemanticSelection)
