@@ -363,6 +363,40 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
         }
     };
 
+    const auto RecordProfileFill = [&](ProfileNameInFeature Profile)
+    {
+        if (!Profile.Assigned() || Profile.IssuedIndex > Sketch.Profiles().size())
+            return;
+        const std::uint32_t Fill = PackOverlayColour(0x5Bu, 0x8Cu, 0xFFu, 64u);
+        for (const ProfileLoop& Loop : Sketch.Profiles()[Profile.IssuedIndex - 1u].HeldLoops())
+        {
+            std::vector<SpatialPoint> Boundary;
+            for (const ProfileCurveUse& Use : Loop.Traversal)
+            {
+                if (!Use.TraversedCurve.Assigned() || Use.TraversedCurve.IssuedIndex > Sketch.Curves().size())
+                    continue;
+                std::vector<SpatialPoint> Segment;
+                AppendCurvePolyline(Sketch.Curves()[Use.TraversedCurve.IssuedIndex - 1u].Geometry, Segment, 24u);
+                if (Use.Reversed)
+                    std::reverse(Segment.begin(), Segment.end());
+                if (!Boundary.empty() && !Segment.empty())
+                    Segment.erase(Segment.begin());
+                Boundary.insert(Boundary.end(), Segment.begin(), Segment.end());
+            }
+            if (Boundary.size() < 3u)
+                continue;
+            const SpatialPoint& Origin = Boundary.front();
+            for (std::size_t Index = 1u; Index + 1u < Boundary.size(); ++Index)
+            {
+                float X0 = 0.0f, Y0 = 0.0f, X1 = 0.0f, Y1 = 0.0f, X2 = 0.0f, Y2 = 0.0f;
+                if (ProjectSpatialPoint(Basis, View, Perspective, Extent, Origin, X0, Y0) &&
+                    ProjectSpatialPoint(Basis, View, Perspective, Extent, Boundary[Index], X1, Y1) &&
+                    ProjectSpatialPoint(Basis, View, Perspective, Extent, Boundary[Index + 1u], X2, Y2))
+                    Overlay.AddTriangle(X0, Y0, X1, Y1, X2, Y2, Fill);
+            }
+        }
+    };
+
     if (Selected.Standing())
     {
         if (Selected.Subject == SketchPickSubject::Curve)
@@ -371,11 +405,13 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
         {
             const WorkspaceRecord* Record = Records.Resolve(Selected.Record);
             if (Record != nullptr && Record->Profile.Assigned() && Record->Profile.IssuedIndex <= Sketch.Profiles().size())
+            {
+                RecordProfileFill(Record->Profile);
                 for (const ProfileLoop& Loop : Sketch.Profiles()[Record->Profile.IssuedIndex - 1u].HeldLoops())
                     for (const ProfileCurveUse& Use : Loop.Traversal)
                         RecordCurve({ Use.TraversedCurve.IssuedIndex }, PackOverlayColour(0x5Bu, 0x8Cu, 0xFFu, 255u), 2.2f);
+            }
         }
-
     }
 
     const auto RecordPoint = [&](const SketchPick& Subject, std::uint32_t Outer, std::uint32_t Inner)
