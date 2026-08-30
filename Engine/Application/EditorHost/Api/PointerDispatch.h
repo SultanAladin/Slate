@@ -45,6 +45,14 @@ struct PointerDispatchResult
         Consumed = true;
         return true;
     }
+
+    // Transitional bridge for existing controls that still report only a bool reference. It may
+    // label an already-consumed event, but it cannot overwrite an earlier owner.
+    void AdoptLegacyOwner(PointerOwner Candidate)
+    {
+        if (Consumed && Owner == PointerOwner::None)
+            Owner = Candidate;
+    }
 };
 
 } // namespace Slate

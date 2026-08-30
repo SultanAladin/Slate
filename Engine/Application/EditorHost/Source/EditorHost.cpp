@@ -1245,7 +1245,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                         SceneApplied.EntityRotation[6u][0] = EditorCamera.LaggedYawDegrees;
                                         SceneApplied.EntityRotation[6u][1] = EditorCamera.LaggedPitchDegrees;
                                         PointerTaken = true;
-                                        FrameContext.Dispatch.Owner = PointerOwner::OrientationWidget;
+                                        FrameContext.Dispatch.AdoptLegacyOwner(PointerOwner::OrientationWidget);
                                         GizmoBasis = CubeBasisFromYawPitch(EditorCamera.LaggedYawDegrees,
                                                                           EditorCamera.LaggedPitchDegrees);
                                     }
@@ -1381,7 +1381,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                                 LeafBody, "Selection", SymbolSubject::CrosshairCentre,
                                                 SelectRows, 3u, PointerTaken));
                                             if (PointerTaken && FrameContext.Dispatch.Owner == PointerOwner::None)
-                                                FrameContext.Dispatch.Owner = PointerOwner::PanelControl;
+                                                FrameContext.Dispatch.AdoptLegacyOwner(PointerOwner::PanelControl);
 
                                             if (ElementSelected <
                                                 static_cast<std::uint32_t>(SelectionElement::ElementCount))
@@ -1552,6 +1552,8 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                         LeafPerspective,
                                         ParametricToolsApplied, SketchNaming, Sketch, SketchRecords,
                                         SketchRevisions, SketchWorkplanes);
+                                    if (PointerTaken && FrameContext.Dispatch.Owner == PointerOwner::None)
+                                        FrameContext.Dispatch.AdoptLegacyOwner(PointerOwner::DrawingTool);
 
                                     if (!PointerTaken)
                                         DriveDrawingWithModifiers(
@@ -1612,8 +1614,11 @@ static std::uint32_t             SketchTrimKeep      = 0u;
 
                                     if (PointerTaken && FrameContext.Dispatch.Owner == PointerOwner::None)
                                     {
-                                        FrameContext.Dispatch.Owner = SketchWorldTransform.Engaged()
-                                            ? PointerOwner::Gizmo : PointerOwner::DrawingTool;
+                                        const PointerOwner Owner = SketchWorldTransform.Engaged()
+                                            ? PointerOwner::Gizmo
+                                            : (ParametricToolsApplied.ActiveSubject == ParametricToolSubject::Select
+                                                 ? PointerOwner::Selection : PointerOwner::DrawingTool);
+                                        FrameContext.Dispatch.AdoptLegacyOwner(Owner);
                                     }
 
                                     // 🔴 NO SECOND GRID. `RecordViewportGridOverlay` was called here and
@@ -1686,7 +1691,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                         OpenedScene, OpenedSceneStanding, WorkspaceSceneRows,
                                         CodexMetresToMetres, SceneApplied);
                                 if (PointerTaken && FrameContext.Dispatch.Owner == PointerOwner::None)
-                                    FrameContext.Dispatch.Owner = PointerOwner::Scene;
+                                    FrameContext.Dispatch.AdoptLegacyOwner(PointerOwner::Scene);
 
                                 RecordCodexSceneProxy(Viewport.Surface(), LeafBody, SceneCamera,
                                                       OpenedScene, OpenedSceneStanding,
