@@ -368,6 +368,8 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
         if (!Profile.Assigned() || Profile.IssuedIndex > Sketch.Profiles().size())
             return;
         const std::uint32_t Fill = PackOverlayColour(0x5Bu, 0x8Cu, 0xFFu, 64u);
+        const ProfileAreaAnalysis Analysis = AnalyzeProfileAreas(Sketch, 0.05);
+        std::vector<std::vector<SpatialPoint>> Boundaries;
         for (const ProfileLoop& Loop : Sketch.Profiles()[Profile.IssuedIndex - 1u].HeldLoops())
         {
             std::vector<SpatialPoint> Boundary;
@@ -383,17 +385,50 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
                     Segment.erase(Segment.begin());
                 Boundary.insert(Boundary.end(), Segment.begin(), Segment.end());
             }
-            if (Boundary.size() < 3u)
-                continue;
-            const SpatialPoint& Origin = Boundary.front();
-            for (std::size_t Index = 1u; Index + 1u < Boundary.size(); ++Index)
+            if (Boundary.size() >= 3u)
+                Boundaries.push_back(std::move(Boundary));
+        }
+
+        const auto Inside = [&](const std::vector<SpatialPoint>& Polygon, const SpatialPoint& Point)
+        {
+            double PointAlong = 0.0, PointAcross = 0.0;
+            ResolvePlaneCoordinates(Basis, Point, PointAlong, PointAcross);
+            bool Hit = false;
+            for (std::size_t Index = 0u, Previous = Polygon.size() - 1u;
+                 Index < Polygon.size(); Previous = Index++)
             {
-                float X0 = 0.0f, Y0 = 0.0f, X1 = 0.0f, Y1 = 0.0f, X2 = 0.0f, Y2 = 0.0f;
-                if (ProjectSpatialPoint(Basis, View, Perspective, Extent, Origin, X0, Y0) &&
-                    ProjectSpatialPoint(Basis, View, Perspective, Extent, Boundary[Index], X1, Y1) &&
-                    ProjectSpatialPoint(Basis, View, Perspective, Extent, Boundary[Index + 1u], X2, Y2))
-                    Overlay.AddTriangle(X0, Y0, X1, Y1, X2, Y2, Fill);
+                double AlongA = 0.0, AcrossA = 0.0, AlongB = 0.0, AcrossB = 0.0;
+                ResolvePlaneCoordinates(Basis, Polygon[Index], AlongA, AcrossA);
+                ResolvePlaneCoordinates(Basis, Polygon[Previous], AlongB, AcrossB);
+                const bool Crosses = ((AcrossA > PointAcross) != (AcrossB > PointAcross)) &&
+                    (PointAlong < (AlongB - AlongA) * (PointAcross - AcrossA) /
+                                  (AcrossB - AcrossA + 1.0e-30) + AlongA);
+                if (Crosses)
+                    Hit = !Hit;
             }
+            return Hit;
+        };
+
+        for (const ProfileAreaTriangle& Triangle : Analysis.Triangles)
+        {
+            const SpatialPoint Centre{
+                (Triangle.A.Left + Triangle.B.Left + Triangle.C.Left) / 3.0,
+                (Triangle.A.Up + Triangle.B.Up + Triangle.C.Up) / 3.0,
+                (Triangle.A.Forward + Triangle.B.Forward + Triangle.C.Forward) / 3.0 };
+            // Even-odd winding is intentional here: an odd number of containing loops is
+            // material, while an even number is a hole (including nested islands/holes).
+            bool InSelectedProfile = false;
+            for (const std::vector<SpatialPoint>& Boundary : Boundaries)
+                if (Inside(Boundary, Centre))
+                    InSelectedProfile = !InSelectedProfile;
+            if (!InSelectedProfile)
+                continue;
+
+            float X0 = 0.0f, Y0 = 0.0f, X1 = 0.0f, Y1 = 0.0f, X2 = 0.0f, Y2 = 0.0f;
+            if (ProjectSpatialPoint(Basis, View, Perspective, Extent, Triangle.A, X0, Y0) &&
+                ProjectSpatialPoint(Basis, View, Perspective, Extent, Triangle.B, X1, Y1) &&
+                ProjectSpatialPoint(Basis, View, Perspective, Extent, Triangle.C, X2, Y2))
+                Overlay.AddTriangle(X0, Y0, X1, Y1, X2, Y2, Fill);
         }
     };
 
