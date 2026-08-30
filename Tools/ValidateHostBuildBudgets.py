@@ -365,6 +365,16 @@ def main() -> int:
     require("void DriveViewportSelectionAndTransform(" not in editor,
             "the editor must not define the interaction it now calls")
 
+    revision_history = read("Engine/SlateWorkspace/Discipline/SketchRevisionHistory/Source/SketchRevisionHistory.cpp")
+    require("SketchRevisionSnapshot ResolveSketchRevisionSnapshot" in revision_history
+            and "void ApplySketchRevisionSnapshot" in revision_history
+            and "void RecordSketchRevisionSnapshot" in revision_history
+            and "bool RetreatSketchRevision" in revision_history
+            and "bool ReinstateSketchRevision" in revision_history
+            and "struct SketchRevisionSnapshot" not in editor
+            and "bool RetreatSketchRevision" not in editor,
+            "revision snapshot state and undo/redo mechanics must live in a workspace unit, not the host")
+
     # 🔴 THIS CLAIM'S NEIGHBOUR ABOVE SAID "the interaction it now calls" AND NEVER CHECKED THAT IT DID.
     #    It did not. Selection, the gizmo, the transform sessions and the whole Blender-style G/R/S
     #    parser were implemented, unit-proven and wired to nothing — `DriveViewportSelectionAndTransform`
@@ -395,8 +405,13 @@ def main() -> int:
     seam = read("Engine/SlateUI/Interface/InterfaceExchange/Source/InterfaceExchange.cpp")
     require("if (!Typing && Current.LookHeld)" in seam,
             "WASDEQ must be read only while the look gesture is held, or Q drives two features at once")
-    require("FilterViewportLookTextInput" in editor and "if (!ViewportLookHeld && Viewport.Seam().KeyPressed(KeySubject::ChooseSelect))" in editor,
-            "when RMB-look owns the viewport, WASDEQ must be withheld from sketch tools and Select too")
+    look_input = read("Engine/SlateWorkspace/Discipline/ViewportLookInput/Source/ViewportLookInput.cpp")
+    require("IsViewportLookNavigationKey" in look_input
+            and "FilterViewportLookTextInput" in look_input
+            and "TextInputCondition FilterViewportLookTextInput" not in editor
+            and "bool IsViewportLookNavigationKey" not in editor
+            and "if (!ViewportLookHeld && Viewport.Seam().KeyPressed(KeySubject::ChooseSelect))" in editor,
+            "when RMB-look owns the viewport, WASDEQ must be filtered in the workspace and withheld from sketch tools and Select")
 
     # 🔴 ORTHOGRAPHIC ZOOM MUST BE DRIVEN BY SOMETHING. `OrthoScale` was written in exactly one place in
     #    the whole tree — a function with no call sites — so a wheel notch in a parallel view changed

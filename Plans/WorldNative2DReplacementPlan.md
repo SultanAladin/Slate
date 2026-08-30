@@ -184,3 +184,18 @@ unsupported world edit.
   placement or the legacy dimension solver.
 - Successful world-first commits still mirror compatibility state and seal exactly one revision.
 - Rollback coverage remains green in the world bridge and placement proofs.
+
+## Host partition cleanup
+
+The combined editor now delegates revision snapshots and viewport-look input arbitration to
+`SlateWorkspace/Discipline/SketchRevisionHistory` and `ViewportLookInput`. `EditorHost` retains only
+lifetime, panel seating, input sampling, and tick orchestration; it no longer defines engine-mechanism
+helpers for revision history or keyboard filtering.
+
+### Host-partition acceptance
+- `VerifyHostPartition.py` reports zero host definitions, engine-mechanism helpers, and preprocessor-gated
+  logic.
+- Revision snapshots restore world sketch, compatibility sketch, mappings, records, workplanes, names,
+  revisions, and semantic selection as one state.
+- WASDEQ filtering remains active only while the viewport look gesture owns the input.
+- The editor combined-authoring translation and workspace helpers compile strictly.
