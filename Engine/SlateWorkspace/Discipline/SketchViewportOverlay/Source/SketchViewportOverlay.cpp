@@ -663,40 +663,52 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
     const bool DrawMove = !Transform.Engaged() || Transform.Manner() == TransformManner::Move;
     const bool DrawRotate = Transform.Engaged() && Transform.Manner() == TransformManner::Rotate;
     const bool DrawScale = Transform.Engaged() && Transform.Manner() == TransformManner::Scale;
+    const auto Visible = [](float X, float Y)
+    {
+        return X * X + Y * Y > 0.01f;
+    };
+    const bool ShowX = Visible(Screen.AlongX, Screen.AlongY);
+    const bool ShowY = Visible(Screen.NormalX, Screen.NormalY);
+    const bool ShowZ = Visible(Screen.AcrossX, Screen.AcrossY);
+    const bool ShowYZ = ShowY && ShowZ;
+    const bool ShowXZ = ShowX && ShowZ;
+    const bool ShowXY = ShowX && ShowY;
 
     if (DrawMove)
     {
-        AddPlaneHandle(AxisY, AxisZ,
-                       PackOverlayColour(0x1Fu, 0xC7u, 0xC7u, 71u),
-                       Cyan);
-        AddPlaneHandle(AxisX, AxisZ,
-                       HoveredHandle == GizmoHandle::MoveFree ? PackOverlayColour(0xFBu, 0xBFu, 0x24u, 140u)
-                                                              : PackOverlayColour(0xC8u, 0x1Eu, 0xC8u, 71u),
-                       HoveredHandle == GizmoHandle::MoveFree ? Highlight : Magenta);
-        AddPlaneHandle(AxisX, AxisY,
-                       PackOverlayColour(0xE0u, 0xCDu, 0x12u, 71u),
-                       Yellow);
+        if (ShowYZ)
+            AddPlaneHandle(AxisY, AxisZ,
+                           HoveredHandle == GizmoHandle::MoveYZ ? Highlight : PackOverlayColour(0x1Fu, 0xC7u, 0xC7u, 71u),
+                           HoveredHandle == GizmoHandle::MoveYZ ? Highlight : Cyan);
+        if (ShowXZ)
+            AddPlaneHandle(AxisX, AxisZ,
+                           (HoveredHandle == GizmoHandle::MoveFree || HoveredHandle == GizmoHandle::MoveXZ) ? Highlight : PackOverlayColour(0xC8u, 0x1Eu, 0xC8u, 71u),
+                           (HoveredHandle == GizmoHandle::MoveFree || HoveredHandle == GizmoHandle::MoveXZ) ? Highlight : Magenta);
+        if (ShowXY)
+            AddPlaneHandle(AxisX, AxisY,
+                           HoveredHandle == GizmoHandle::MoveXY ? Highlight : PackOverlayColour(0xE0u, 0xCDu, 0x12u, 71u),
+                           HoveredHandle == GizmoHandle::MoveXY ? Highlight : Yellow);
     }
 
     if (DrawRotate)
     {
-        AddArcBar(AxisY, AxisZ, HoveredHandle == GizmoHandle::Rotate ? Highlight : XPacked);
-        AddArcBar(AxisX, AxisZ, HoveredHandle == GizmoHandle::Rotate ? Highlight : YPacked);
-        AddArcBar(AxisX, AxisY, HoveredHandle == GizmoHandle::Rotate ? Highlight : ZPacked);
+        if (ShowYZ) AddArcBar(AxisY, AxisZ, HoveredHandle == GizmoHandle::Rotate ? Highlight : XPacked);
+        if (ShowXZ) AddArcBar(AxisX, AxisZ, HoveredHandle == GizmoHandle::Rotate ? Highlight : YPacked);
+        if (ShowXY) AddArcBar(AxisX, AxisY, HoveredHandle == GizmoHandle::Rotate ? Highlight : ZPacked);
     }
 
     if (DrawScale)
     {
-        AddCylinder(AxisX, AxisY, AxisZ, HoveredHandle == GizmoHandle::ScaleX ? Highlight : XPacked);
-        AddCylinder(AxisY, AxisX, AxisZ, HoveredHandle == GizmoHandle::ScaleY ? Highlight : YPacked);
-        AddCylinder(AxisZ, AxisX, AxisY, HoveredHandle == GizmoHandle::ScaleZ ? Highlight : ZPacked);
+        if (ShowX) AddCylinder(AxisX, AxisY, AxisZ, HoveredHandle == GizmoHandle::ScaleX ? Highlight : XPacked);
+        if (ShowY) AddCylinder(AxisY, AxisX, AxisZ, HoveredHandle == GizmoHandle::ScaleY ? Highlight : YPacked);
+        if (ShowZ) AddCylinder(AxisZ, AxisX, AxisY, HoveredHandle == GizmoHandle::ScaleZ ? Highlight : ZPacked);
     }
 
     if (DrawMove)
     {
-        AddCone(AxisX, AxisY, AxisZ, HoveredHandle == GizmoHandle::MoveX ? Highlight : XPacked);
-        AddCone(AxisY, AxisX, AxisZ, HoveredHandle == GizmoHandle::MoveY ? Highlight : YPacked);
-        AddCone(AxisZ, AxisX, AxisY, HoveredHandle == GizmoHandle::MoveZ ? Highlight : ZPacked);
+        if (ShowX) AddCone(AxisX, AxisY, AxisZ, HoveredHandle == GizmoHandle::MoveX ? Highlight : XPacked);
+        if (ShowY) AddCone(AxisY, AxisX, AxisZ, HoveredHandle == GizmoHandle::MoveY ? Highlight : YPacked);
+        if (ShowZ) AddCone(AxisZ, AxisX, AxisY, HoveredHandle == GizmoHandle::MoveZ ? Highlight : ZPacked);
     }
 
     AddBillboardTorus((HoveredHandle == GizmoHandle::MoveFree
@@ -920,40 +932,52 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
     const bool DrawMove = !Transform.Engaged() || Transform.Manner() == TransformManner::Move;
     const bool DrawRotate = Transform.Engaged() && Transform.Manner() == TransformManner::Rotate;
     const bool DrawScale = Transform.Engaged() && Transform.Manner() == TransformManner::Scale;
+    const auto Visible = [](float X, float Y)
+    {
+        return X * X + Y * Y > 0.01f;
+    };
+    const bool ShowX = Visible(Screen.AlongX, Screen.AlongY);
+    const bool ShowY = Visible(Screen.NormalX, Screen.NormalY);
+    const bool ShowZ = Visible(Screen.AcrossX, Screen.AcrossY);
+    const bool ShowYZ = ShowY && ShowZ;
+    const bool ShowXZ = ShowX && ShowZ;
+    const bool ShowXY = ShowX && ShowY;
 
     if (DrawMove)
     {
-        AddPlaneHandle(AxisY, AxisZ,
-                       PackOverlayColour(0x1Fu, 0xC7u, 0xC7u, 71u),
-                       Cyan);
-        AddPlaneHandle(AxisX, AxisZ,
-                       HoveredHandle == GizmoHandle::MoveFree ? PackOverlayColour(0xFBu, 0xBFu, 0x24u, 140u)
-                                                              : PackOverlayColour(0xC8u, 0x1Eu, 0xC8u, 71u),
-                       HoveredHandle == GizmoHandle::MoveFree ? Highlight : Magenta);
-        AddPlaneHandle(AxisX, AxisY,
-                       PackOverlayColour(0xE0u, 0xCDu, 0x12u, 71u),
-                       Yellow);
+        if (ShowYZ)
+            AddPlaneHandle(AxisY, AxisZ,
+                           HoveredHandle == GizmoHandle::MoveYZ ? Highlight : PackOverlayColour(0x1Fu, 0xC7u, 0xC7u, 71u),
+                           HoveredHandle == GizmoHandle::MoveYZ ? Highlight : Cyan);
+        if (ShowXZ)
+            AddPlaneHandle(AxisX, AxisZ,
+                           (HoveredHandle == GizmoHandle::MoveFree || HoveredHandle == GizmoHandle::MoveXZ) ? Highlight : PackOverlayColour(0xC8u, 0x1Eu, 0xC8u, 71u),
+                           (HoveredHandle == GizmoHandle::MoveFree || HoveredHandle == GizmoHandle::MoveXZ) ? Highlight : Magenta);
+        if (ShowXY)
+            AddPlaneHandle(AxisX, AxisY,
+                           HoveredHandle == GizmoHandle::MoveXY ? Highlight : PackOverlayColour(0xE0u, 0xCDu, 0x12u, 71u),
+                           HoveredHandle == GizmoHandle::MoveXY ? Highlight : Yellow);
     }
 
     if (DrawRotate)
     {
-        AddArcBar(AxisY, AxisZ, HoveredHandle == GizmoHandle::Rotate ? Highlight : XPacked);
-        AddArcBar(AxisX, AxisZ, HoveredHandle == GizmoHandle::Rotate ? Highlight : YPacked);
-        AddArcBar(AxisX, AxisY, HoveredHandle == GizmoHandle::Rotate ? Highlight : ZPacked);
+        if (ShowYZ) AddArcBar(AxisY, AxisZ, HoveredHandle == GizmoHandle::Rotate ? Highlight : XPacked);
+        if (ShowXZ) AddArcBar(AxisX, AxisZ, HoveredHandle == GizmoHandle::Rotate ? Highlight : YPacked);
+        if (ShowXY) AddArcBar(AxisX, AxisY, HoveredHandle == GizmoHandle::Rotate ? Highlight : ZPacked);
     }
 
     if (DrawScale)
     {
-        AddCylinder(AxisX, AxisY, AxisZ, HoveredHandle == GizmoHandle::ScaleX ? Highlight : XPacked);
-        AddCylinder(AxisY, AxisX, AxisZ, HoveredHandle == GizmoHandle::ScaleY ? Highlight : YPacked);
-        AddCylinder(AxisZ, AxisX, AxisY, HoveredHandle == GizmoHandle::ScaleZ ? Highlight : ZPacked);
+        if (ShowX) AddCylinder(AxisX, AxisY, AxisZ, HoveredHandle == GizmoHandle::ScaleX ? Highlight : XPacked);
+        if (ShowY) AddCylinder(AxisY, AxisX, AxisZ, HoveredHandle == GizmoHandle::ScaleY ? Highlight : YPacked);
+        if (ShowZ) AddCylinder(AxisZ, AxisX, AxisY, HoveredHandle == GizmoHandle::ScaleZ ? Highlight : ZPacked);
     }
 
     if (DrawMove)
     {
-        AddCone(AxisX, AxisY, AxisZ, HoveredHandle == GizmoHandle::MoveX ? Highlight : XPacked);
-        AddCone(AxisY, AxisX, AxisZ, HoveredHandle == GizmoHandle::MoveY ? Highlight : YPacked);
-        AddCone(AxisZ, AxisX, AxisY, HoveredHandle == GizmoHandle::MoveZ ? Highlight : ZPacked);
+        if (ShowX) AddCone(AxisX, AxisY, AxisZ, HoveredHandle == GizmoHandle::MoveX ? Highlight : XPacked);
+        if (ShowY) AddCone(AxisY, AxisX, AxisZ, HoveredHandle == GizmoHandle::MoveY ? Highlight : YPacked);
+        if (ShowZ) AddCone(AxisZ, AxisX, AxisY, HoveredHandle == GizmoHandle::MoveZ ? Highlight : ZPacked);
     }
 
     AddBillboardTorus((HoveredHandle == GizmoHandle::MoveFree

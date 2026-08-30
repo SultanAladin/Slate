@@ -45,7 +45,12 @@ enum class GizmoHandle : std::uint32_t
     // 🧩 The green normal-axis handles are real controls too. They were drawn but had no enum value,
     //    so hit testing returned no actionable handle and the press fell through to the viewport.
     MoveY     = 8u,
-    ScaleY    = 9u
+    ScaleY    = 9u,
+    // 🧩 Planar move pads are separate controls so each visible coloured pad can
+    //    highlight and capture independently instead of all three collapsing to MoveFree.
+    MoveYZ    = 10u,
+    MoveXZ    = 11u,
+    MoveXY    = 12u
 };
 
 /// 🧩 The one table of measurements, in screen pixels.
