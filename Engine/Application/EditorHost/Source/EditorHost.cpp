@@ -1105,7 +1105,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
 
                 CameraCondition FlyInput = Viewport.Seam().CameraInput(
                     (PointerOverViewport || EditorCameraLookLatched)
-                    && !PointerBehindDrawer && ActiveViewportPerspective);
+                    && !PointerBehindDrawer);
 
                 // A direct XYZ edit in the Editor Camera's Transform card is consumed before navigation.
                 // The transform synchronizer distinguishes it from the values the camera published last tick,
@@ -1526,7 +1526,8 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     //    is the missing CAD navigation path: secondary drag pans an
                                     //    orthographic view, and perspective secondary drag orbits.
                                     DriveViewport(LeafBody, NavigationPointer,
-                                                  Viewport.Seam().Modifiers(), SketchView, LeafPerspective);
+                                                  Viewport.Seam().Modifiers(), SketchView, LeafPerspective,
+                                                  FlyInput, Pass.ElapsedMilliseconds / 1000.0);
                                     ViewportRuntime[Leaf].WasParallel = !LeafPerspective;
 
                                     // 🔴 SETTLED ORTHOGRAPHIC WORK USES THE SAME RESOLVED CAMERA EVERYWHERE.

@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "Foundation/CameraCondition.h"
 #include "SketchToolset/SketchTool/SketchPlacement/Api/SketchPlacement.h"
 #include "SlateShape/Record/WorkspaceDirectoryProjection/Api/WorkspaceDirectoryProjection.h"
 #include "SlateShape/Record/WorkspaceRecordStructure/Api/WorkspaceRecordStructure.h"
@@ -48,7 +49,9 @@ void DriveViewport(const PlaneExtent& Extent,
                    const PointerCondition& Pointer,
                    const ModifierCondition& Modifiers,
                    ViewportStanding& View,
-                   bool Perspective);
+                   bool Perspective,
+                   const CameraCondition& Camera,
+                   double ElapsedSeconds);
 
 void AdoptCommittedShape(SketchSubject Subject,
                          WorkspaceNameIndex& Naming,

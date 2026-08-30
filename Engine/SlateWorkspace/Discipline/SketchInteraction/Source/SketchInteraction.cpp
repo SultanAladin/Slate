@@ -184,7 +184,9 @@ void DriveViewport(const PlaneExtent& Extent,
                    const PointerCondition& Pointer,
                    const ModifierCondition& Modifiers,
                    ViewportStanding& View,
-                   bool Perspective)
+                   bool Perspective,
+                   const CameraCondition& Camera,
+                   double ElapsedSeconds)
 {
     const bool PointerOverViewport = Extent.Encloses(Pointer.PositionX, Pointer.PositionY);
     if (!PointerOverViewport && !Pointer.SecondaryHeld)
@@ -206,13 +208,33 @@ void DriveViewport(const PlaneExtent& Extent,
                                          0.05, 40.0);
     }
 
-    if (!Pointer.SecondaryHeld)
-        return;
-
     const SpatialBasis Basis = { {}, {1.0, 0.0, 0.0}, {0.0, 0.0, 1.0}, {0.0, 1.0, 0.0} };
     const ViewFrame Frame = ResolveViewportFrame(Basis, View, Perspective);
 
-    if (Perspective && !Modifiers.Shifted)
+    // Orthographic navigation remains interactive: while the camera-look gesture is held, WASD pans
+    // the standing in screen space and E/Q changes zoom. This avoids treating orthographic mode as a
+    // frozen projection while preserving the perspective orbit/pan controls below.
+    if (!Perspective && Camera.LookHeld)
+    {
+        const double PixelsPerSecond = 600.0;
+        const double WorldPerSecond = PixelsPerSecond / std::max(View.OrthoScale, 0.001);
+        const double Distance = WorldPerSecond * std::max(ElapsedSeconds, 0.0);
+        SpatialDirection Pan = {};
+        if (Camera.LeftHeld)  Pan = Added(Pan, Scaled(Frame.Right, -Distance));
+        if (Camera.RightHeld) Pan = Added(Pan, Scaled(Frame.Right, Distance));
+        if (Camera.ForwardHeld)  Pan = Added(Pan, Scaled(Frame.Up, Distance));
+        if (Camera.BackwardHeld) Pan = Added(Pan, Scaled(Frame.Up, -Distance));
+        View.Focus = Added(View.Focus, Pan);
+        if (Camera.UpHeld)
+            View.OrthoScale = std::clamp(View.OrthoScale / (1.0 + ElapsedSeconds), 0.05, 40.0);
+        if (Camera.DownHeld)
+            View.OrthoScale = std::clamp(View.OrthoScale * (1.0 + ElapsedSeconds), 0.05, 40.0);
+    }
+
+    if (!Pointer.SecondaryHeld)
+        return;
+
+    if (!Modifiers.Shifted)
     {
         View.OrbitYaw -= static_cast<double>(Pointer.TravelX) * 0.35;
         View.OrbitPitch = std::clamp(View.OrbitPitch + static_cast<double>(Pointer.TravelY) * 0.25, -89.0, 89.0);
