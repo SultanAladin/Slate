@@ -1412,8 +1412,23 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     const ViewportOrientation SketchOrientation = ResolveCameraOrientation(
                                         SceneApplied.ViewportSkyCamera.AzimuthDegrees,
                                         SceneApplied.ViewportSkyCamera.ElevationDegrees);
-                                    static_cast<void>(ActivateViewedWorkplane(
-                                        SketchWorkplanes, SketchOrientation, LeafPerspective));
+                                    // 🔴 Perspective is deliberately not allowed to inherit the last
+                                    //    orthographic plane. Blender-style perspective drafting has one
+                                    //    unambiguous authoring surface: the world floor (XZ, Y = 0).
+                                    //    `ActivateViewedWorkplane` correctly refuses perspective for the
+                                    //    general workplane tool, but the drawing path must explicitly
+                                    //    restore Ground here; otherwise Front/Left/Bottom leaves leak
+                                    //    their previous XY/YZ/XZ basis into the next perspective frame.
+                                    if (LeafPerspective)
+                                    {
+                                        static_cast<void>(SketchWorkplanes.Activate(
+                                            SketchWorkplanes.StandingName(StandingWorkplane::Ground)));
+                                    }
+                                    else
+                                    {
+                                        static_cast<void>(ActivateViewedWorkplane(
+                                            SketchWorkplanes, SketchOrientation, false));
+                                    }
 
                                     // 🔴 The draw basis now comes from the ACTIVE WORKPLANE itself rather
                                     //    than from the sketch's one global plane. That is the actual 2D
