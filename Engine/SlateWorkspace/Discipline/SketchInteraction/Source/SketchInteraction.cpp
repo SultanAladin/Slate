@@ -22,7 +22,7 @@
 #include "SlateShape/World/WorldSketchSnap/Api/WorldSketchSnap.h"
 #include "SlateShape/World/WorldSketchConstraintSolver/Api/WorldSketchConstraintSolver.h"
 #include "SlateShape/World/WorldSketchDimensionSolver/Api/WorldSketchDimensionSolver.h"
-#include "SlateWorkspace/Discipline/WorldSketchPicking/Api/WorldSketchPicking.h"
+#include "SlateWorkspace/Discipline/WorldSketchPicking/Api/WorldSketchScreenPicking.h"
 #include "SlateWorkspace/Discipline/WorldSketchConstraintAuthoring/Api/WorldSketchConstraintAuthoring.h"
 
 #include <algorithm>

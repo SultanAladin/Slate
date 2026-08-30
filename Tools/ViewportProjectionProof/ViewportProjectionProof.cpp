@@ -160,9 +160,68 @@ void ProveFrames()
 //                                           3. THE ORIENTATION CONTROL ITSELF
 //------------------------------------------------------------------------------------------------------------------------
 
+void ProveActiveWorldPlaneViews()
+{
+    std::printf("3. An axis view keeps its world frame when the active drawing plane changes\n");
+
+    const SpatialBasis XY =
+        { {}, { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
+    const SpatialBasis YZ =
+        { {}, { 0.0, 0.0, 1.0 }, { 0.0, -1.0, 0.0 }, { 1.0, 0.0, 0.0 } };
+    const PlaneExtent Extent = Viewport();
+
+    ViewportStanding View;
+    View.Orientation = ViewportOrientation::Front;
+    const ViewFrame Front = ResolveViewportFrame(XY, View, false);
+    Claim(Near(Front.Right.Left, 1.0) && Near(Front.Up.Up, 1.0) && Near(Front.Forward.Forward, 1.0),
+          "the Front frame looks at XY instead of following the active plane's old basis");
+
+    float FrontX = 0.0f;
+    float FrontY = 0.0f;
+    const SpatialPoint XYPoint = ResolvePlanarPoint(XY, 23.0, 17.0);
+    Claim(ProjectViewportPoint(XY, View, false, Extent, 23.0, 17.0, FrontX, FrontY),
+          "a point on Z=0 projects in the Front view");
+    SpatialPoint FrontLanded = {};
+    Claim(ResolveViewportPlaneIntersection(XY, View, false, Extent, FrontX, FrontY, FrontLanded),
+          "the Front pointer ray reaches the XY plane at Z=0");
+    double Along = 0.0;
+    double Across = 0.0;
+    ResolvePlaneCoordinates(XY, FrontLanded, Along, Across);
+    Claim(Near(Along, 23.0, 0.02) && Near(Across, 17.0, 0.02),
+          "Front projection and pointer intersection agree on XY");
+    Claim(Near(FrontLanded.Forward, XYPoint.Forward, 0.02),
+          "the Front intersection does not drift off Z=0");
+
+    View.Orientation = ViewportOrientation::Left;
+    const ViewFrame Left = ResolveViewportFrame(YZ, View, false);
+    Claim(Near(Left.Right.Forward, 1.0) && Near(Left.Up.Up, 1.0) && Near(Left.Forward.Left, 1.0),
+          "the Left frame looks at YZ instead of inheriting XY state");
+
+    const SpatialPoint YZPoint = ResolvePlanarPoint(YZ, 11.0, 7.0);
+    float LeftX = 0.0f;
+    float LeftY = 0.0f;
+    Claim(ProjectViewportPoint(YZ, View, false, Extent, 11.0, 7.0, LeftX, LeftY),
+          "a point on X=0 projects in the Left view");
+    SpatialPoint LeftLanded = {};
+    Claim(ResolveViewportPlaneIntersection(YZ, View, false, Extent, LeftX, LeftY, LeftLanded),
+          "the Left pointer ray reaches the YZ plane at X=0");
+    ResolvePlaneCoordinates(YZ, LeftLanded, Along, Across);
+    Claim(Near(Along, 11.0, 0.02) && Near(Across, 7.0, 0.02),
+          "Left projection and pointer intersection agree on YZ");
+    Claim(Near(LeftLanded.Left, YZPoint.Left, 0.02),
+          "the Left intersection does not drift off X=0");
+
+    // 🔴 This is the reported return path: after YZ, changing the view back to Front must select the
+    //    Front frame again rather than retaining the Side basis in the orthographic resolver.
+    View.Orientation = ViewportOrientation::Front;
+    const ViewFrame Returned = ResolveViewportFrame(XY, View, false);
+    Claim(Near(Returned.Forward.Forward, 1.0) && Near(Returned.Right.Left, 1.0) && Near(Returned.Up.Up, 1.0),
+          "returning from YZ to Front restores the XY screen basis");
+}
+
 void ProveOrientation()
 {
-    std::printf("3. Naming an orientation sets the orbit, in perspective only\n");
+    std::printf("4. Naming an orientation sets the orbit, in perspective only\n");
 
     // 🔴 An orthographic view is decided by its orientation alone, so the orbit must survive untouched —
     //    that is what lets an artist visit Top and come back to the orbit they left.
@@ -176,9 +235,9 @@ void ProveOrientation()
 
     ViewportStanding Perspective;
     ApplyViewportOrientation(Perspective, ViewportOrientation::Front, true);
-    Claim(Near(Perspective.OrbitYaw, 0.0) && Near(Perspective.OrbitPitch, 0.0), "front orbits to 0, 0");
+    Claim(Near(Perspective.OrbitYaw, 180.0) && Near(Perspective.OrbitPitch, 0.0), "front orbits toward +Z at yaw 180");
     ApplyViewportOrientation(Perspective, ViewportOrientation::Back, true);
-    Claim(Near(Perspective.OrbitYaw, 180.0), "back orbits to 180");
+    Claim(Near(Perspective.OrbitYaw, 0.0), "back orbits toward -Z at yaw 0");
     ApplyViewportOrientation(Perspective, ViewportOrientation::Left, true);
     Claim(Near(Perspective.OrbitYaw, -90.0), "left orbits to -90");
     ApplyViewportOrientation(Perspective, ViewportOrientation::Right, true);
@@ -190,9 +249,9 @@ void ProveOrientation()
     //    Cross(Forward, Normal) is nothing at all and the frame collapses. This pins the one degree of
     //    clearance, and section 2 proves the frame it produces is still square.
     ApplyViewportOrientation(Perspective, ViewportOrientation::Top, true);
-    Claim(Near(Perspective.OrbitPitch, 89.0), "top orbits to 89, NOT 90 — at 90 the frame collapses");
+    Claim(Near(Perspective.OrbitPitch, -89.0), "top orbits to -89, not -90 — at 90 the frame collapses");
     ApplyViewportOrientation(Perspective, ViewportOrientation::Bottom, true);
-    Claim(Near(Perspective.OrbitPitch, -89.0), "bottom orbits to -89 for the same reason");
+    Claim(Near(Perspective.OrbitPitch, 89.0), "bottom orbits to 89 for the same reason");
 
     Claim(std::string(OrientationText(ViewportOrientation::Isometric)) == "Perspective",
           "isometric reads as Perspective — the control the artist reached for");
@@ -206,7 +265,7 @@ void ProveOrientation()
 
 void ProveRoundTrip()
 {
-    std::printf("4. A point survives the trip to the screen and back\n");
+    std::printf("5. A point survives the trip to the screen and back\n");
 
     const SpatialBasis Basis  = WorldPlane();
     const PlaneExtent  Extent = Viewport();
@@ -324,7 +383,7 @@ void ProveRoundTrip()
 
 void ProveRefusals()
 {
-    std::printf("5. A point with no screen position is refused, not invented\n");
+    std::printf("6. A point with no screen position is refused, not invented\n");
 
     const SpatialBasis Basis  = WorldPlane();
     const PlaneExtent  Extent = Viewport();
@@ -335,7 +394,7 @@ void ProveRefusals()
     ApplyViewportOrientation(Close, ViewportOrientation::Front, true);
     Close.Distance = 10.0;
     float ScreenX = 0.0f, ScreenY = 0.0f;
-    Claim(!ProjectViewportPoint(Basis, Close, true, Extent, 0.0, 100000.0, ScreenX, ScreenY),
+    Claim(!ProjectViewportPoint(Basis, Close, true, Extent, 0.0, -100000.0, ScreenX, ScreenY),
           "a point far behind the eye must be refused");
 
     // An orthographic view has no eye to be behind, so it always projects.
@@ -380,7 +439,7 @@ void ProveRefusals()
 
 void ProveRegressions()
 {
-    std::printf("6. The two shipped defects the round trip exposed stay fixed\n");
+    std::printf("7. The two shipped defects the round trip exposed stay fixed\n");
 
     const SpatialBasis Basis  = WorldPlane();
     const PlaneExtent  Extent = Viewport();
@@ -1009,6 +1068,7 @@ int main()
 
     ProvePlane();
     ProveFrames();
+    ProveActiveWorldPlaneViews();
     ProveOrientation();
     ProveRoundTrip();
     ProveRefusals();

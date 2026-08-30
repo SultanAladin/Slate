@@ -206,8 +206,12 @@ Real32x4 ResolveGround(Real32x2 Corner)
     const Real32 Denominator = dot(Ray, PlaneNormal);
     if (PlaneStanding && abs(Denominator) > 1e-6)
     {
+        // Orthographic rays are mathematical lines, not half-rays. The camera can be on either side of
+        // the selected plane, and an exact axis view can place the ray origin directly on it (Distance
+        // equals zero). Rejecting non-positive distances made the XY plane at Z=0 disappear from Front
+        // and Back, and made the result depend on which side of a plane the camera happened to occupy.
         const Real32 Distance = -dot(RayOrigin, PlaneNormal) / Denominator;
-        if (Distance > 0.0)
+        if (Parallel || Distance > 0.0)
         {
             const Real32x3 Hit = RayOrigin + Ray * Distance;
             const Real32x2 Ground = Real32x2(dot(Hit, PlaneAlong),

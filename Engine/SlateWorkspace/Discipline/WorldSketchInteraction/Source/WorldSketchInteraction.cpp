@@ -5,7 +5,7 @@
 #include "SlateWorkspace/Discipline/WorldSketchInteraction/Api/WorldSketchInteraction.h"
 
 #include "SlateWorkspace/Discipline/TransformSequence/Api/TransformSequence.h"
-#include "SlateWorkspace/Discipline/WorldSketchPicking/Api/WorldSketchPicking.h"
+#include "SlateWorkspace/Discipline/WorldSketchPicking/Api/WorldSketchScreenPicking.h"
 
 #include <cmath>
 

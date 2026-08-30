@@ -4,6 +4,7 @@
 
 #include "SlateWorkspace/Discipline/TransformGizmo/Api/TransformGizmo.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace Slate
@@ -94,6 +95,38 @@ bool ResolveGizmoScreenBasis(const SpatialBasis& Basis,
     if (!ProjectSpatialPoint(Basis, View, Perspective, Extent, Pivot, Resolved.PivotX, Resolved.PivotY))
         return false;
 
+    if (!Perspective)
+    {
+        // 🔴 ORTHOGRAPHIC SCALE IS ALREADY A SCREEN RULER. Do not infer it from a world probe: a
+        //    stale or nearly edge-on basis can make that probe disappear and fall back to one world
+        //    unit per pixel, which is exactly the zoom-dependent balloon/collapse reported for the
+        //    gizmo. The viewport contract is pixels per world unit, so its reciprocal is authoritative.
+        const double Scale = std::fabs(View.OrthoScale);
+        Resolved.WorldPerPixel = 1.0 / std::max(Scale, 1.0e-6);
+
+        const auto Direction = [&](const SpatialDirection& Axis, float& X, float& Y)
+        {
+            float ProjectedX = 0.0f;
+            float ProjectedY = 0.0f;
+            if (!ProjectSpatialPoint(Basis, View, false, Extent,
+                                     Added(Pivot, Axis), ProjectedX, ProjectedY))
+                return;
+
+            const double DX = static_cast<double>(ProjectedX) - Resolved.PivotX;
+            const double DY = static_cast<double>(ProjectedY) - Resolved.PivotY;
+            const double Length = std::sqrt(DX * DX + DY * DY);
+            if (Length > 1.0e-4)
+            {
+                X = static_cast<float>(DX / Length);
+                Y = static_cast<float>(DY / Length);
+            }
+        };
+        Direction(Basis.Along, Resolved.AlongX, Resolved.AlongY);
+        Direction(Basis.Across, Resolved.AcrossX, Resolved.AcrossY);
+        Direction(Basis.Normal, Resolved.NormalX, Resolved.NormalY);
+        return true;
+    }
+
     // 🔴 THE PROBE IS BOTH A DIRECTION AND A RULER. Projecting a known world offset and measuring how
     //    many pixels it covered gives the world-per-pixel conversion directly, with no assumption about
     //    which projection is in use or how it is parameterised.
@@ -135,16 +168,21 @@ bool ResolveGizmoScreenBasis(const SpatialBasis& Basis,
     Probe(Basis.Across, Resolved.AcrossX, Resolved.AcrossY);
     Probe(Basis.Normal, Resolved.NormalX, Resolved.NormalY);
 
-    if (Measured)
+    // 🔴 PERSPECTIVE IS NON-LINEAR. A long probe can cross enough depth that the first estimate
+    //    describes the wrong end of the handle. Re-measure the actual 82 px span a few times; the
+    //    fixed point is the world length whose projected reach is the table's screen length. The
+    //    orthographic case converges in one pass, while close perspective pivots get the same bounded
+    //    footprint instead of growing or shrinking with zoom.
+    for (std::uint32_t Iteration = 0u; Measured && Iteration < 4u; ++Iteration)
     {
         ProbeWorld = Resolved.WorldPerPixel * GizmoMeasure::AxisEnd;
-        if (ProbeWorld > 1.0e-6)
-        {
-            Measured = false;
-            Probe(Basis.Along, Resolved.AlongX, Resolved.AlongY);
-            Probe(Basis.Across, Resolved.AcrossX, Resolved.AcrossY);
-            Probe(Basis.Normal, Resolved.NormalX, Resolved.NormalY);
-        }
+        if (ProbeWorld <= 1.0e-6)
+            break;
+
+        Measured = false;
+        Probe(Basis.Along, Resolved.AlongX, Resolved.AlongY);
+        Probe(Basis.Across, Resolved.AcrossX, Resolved.AcrossY);
+        Probe(Basis.Normal, Resolved.NormalX, Resolved.NormalY);
     }
 
     if (!Measured)
@@ -161,6 +199,35 @@ bool ResolveGizmoScreenBasis(const ResolvedCamera& Camera,
     Resolved = {};
     if (!ProjectFromCamera(Camera, Extent, Pivot, Resolved.PivotX, Resolved.PivotY))
         return false;
+
+    if (!Camera.Perspective)
+    {
+        // 🔴 The orthographic camera carries the authoritative pixel-to-world ruler. Using it
+        //    directly prevents the gizmo from inheriting numerical or basis failures from a probe.
+        const double Scale = std::fabs(Camera.OrthoScale);
+        Resolved.WorldPerPixel = 1.0 / std::max(Scale, 1.0e-6);
+
+        const auto Direction = [&](const SpatialDirection& Axis, float& X, float& Y)
+        {
+            float ProjectedX = 0.0f;
+            float ProjectedY = 0.0f;
+            if (!ProjectFromCamera(Camera, Extent, Added(Pivot, Axis), ProjectedX, ProjectedY))
+                return;
+
+            const double DX = static_cast<double>(ProjectedX) - Resolved.PivotX;
+            const double DY = static_cast<double>(ProjectedY) - Resolved.PivotY;
+            const double Length = std::sqrt(DX * DX + DY * DY);
+            if (Length > 1.0e-4)
+            {
+                X = static_cast<float>(DX / Length);
+                Y = static_cast<float>(DY / Length);
+            }
+        };
+        Direction(Camera.Basis.Along, Resolved.AlongX, Resolved.AlongY);
+        Direction(Camera.Basis.Across, Resolved.AcrossX, Resolved.AcrossY);
+        Direction(Camera.Basis.Normal, Resolved.NormalX, Resolved.NormalY);
+        return true;
+    }
 
     double ProbeWorld = 24.0;
     bool Measured = false;
@@ -193,16 +260,19 @@ bool ResolveGizmoScreenBasis(const ResolvedCamera& Camera,
     Probe(Camera.Basis.Across, Resolved.AcrossX, Resolved.AcrossY);
     Probe(Camera.Basis.Normal, Resolved.NormalX, Resolved.NormalY);
 
-    if (Measured)
+    // 🔴 PERSPECTIVE IS NON-LINEAR. Re-measure the actual table span rather than trusting one long
+    //    world probe; this keeps a close or distant pivot from making the drawn handle balloon or
+    //    collapse as the camera zooms.
+    for (std::uint32_t Iteration = 0u; Measured && Iteration < 4u; ++Iteration)
     {
         ProbeWorld = Resolved.WorldPerPixel * GizmoMeasure::AxisEnd;
-        if (ProbeWorld > 1.0e-6)
-        {
-            Measured = false;
-            Probe(Camera.Basis.Along, Resolved.AlongX, Resolved.AlongY);
-            Probe(Camera.Basis.Across, Resolved.AcrossX, Resolved.AcrossY);
-            Probe(Camera.Basis.Normal, Resolved.NormalX, Resolved.NormalY);
-        }
+        if (ProbeWorld <= 1.0e-6)
+            break;
+
+        Measured = false;
+        Probe(Camera.Basis.Along, Resolved.AlongX, Resolved.AlongY);
+        Probe(Camera.Basis.Across, Resolved.AcrossX, Resolved.AcrossY);
+        Probe(Camera.Basis.Normal, Resolved.NormalX, Resolved.NormalY);
     }
 
     if (!Measured)

@@ -1,5 +1,5 @@
 //============================================================================================================================================
-//                                                     WORLDSKETCHPICKING.H
+//                                                WORLDSKETCHSCREENPICKING.H
 //============================================================================================================================================
 // 🧩 Screen-space picking over the world-space sketch authoring model: the ray from a pointer position
 //    through a resolved camera, and the nearest exact 3D point, control, curve or planar loop that lands

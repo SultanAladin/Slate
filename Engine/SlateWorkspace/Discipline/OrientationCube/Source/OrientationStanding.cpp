@@ -13,8 +13,8 @@ void OrientationYawPitch(ViewportOrientation Orientation, double& YawDegrees, do
 {
     switch (Orientation)
     {
-        case ViewportOrientation::Top:       YawDegrees = 0.0;   PitchDegrees = 80.0;  return;
-        case ViewportOrientation::Bottom:    YawDegrees = 0.0;   PitchDegrees = -80.0; return;
+        case ViewportOrientation::Top:       YawDegrees = 0.0;   PitchDegrees = -80.0; return;
+        case ViewportOrientation::Bottom:    YawDegrees = 0.0;   PitchDegrees = 80.0;  return;
         case ViewportOrientation::Front:     YawDegrees = 0.0;   PitchDegrees = 0.0;   return;
         case ViewportOrientation::Back:      YawDegrees = 180.0; PitchDegrees = 0.0;   return;
         case ViewportOrientation::Right:     YawDegrees = 90.0;  PitchDegrees = 0.0;   return;

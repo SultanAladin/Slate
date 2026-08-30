@@ -49,26 +49,26 @@ void ApplyViewportOrientation(ViewportStanding& View, ViewportOrientation Orient
             View.OrbitPitch = 30.0;
             break;
 
-        // ⚠️ 89°, not 90°. At exactly 90° the forward direction is parallel to the plane normal, the right
-        //    direction becomes the cross of two parallel vectors — nothing at all — and the whole frame
-        //    collapses. One degree short is what shipped, and it is load-bearing.
+        // ⚠️ 89°, not 90°. At exactly 90° the orbit's yaw reference becomes ambiguous, so the frame
+        //    is kept one degree short while still looking at the named world plane. The free-camera table
+        //    in `OrientationYawPitch` uses the same signs and front/back directions.
         case ViewportOrientation::Top:
-            View.OrbitYaw   = 0.0;
-            View.OrbitPitch = 89.0;
-            break;
-
-        case ViewportOrientation::Bottom:
             View.OrbitYaw   = 0.0;
             View.OrbitPitch = -89.0;
             break;
 
-        case ViewportOrientation::Front:
+        case ViewportOrientation::Bottom:
             View.OrbitYaw   = 0.0;
+            View.OrbitPitch = 89.0;
+            break;
+
+        case ViewportOrientation::Front:
+            View.OrbitYaw   = 180.0;
             View.OrbitPitch = 0.0;
             break;
 
         case ViewportOrientation::Back:
-            View.OrbitYaw   = 180.0;
+            View.OrbitYaw   = 0.0;
             View.OrbitPitch = 0.0;
             break;
 
@@ -103,28 +103,37 @@ ViewFrame ResolveViewportFrame(const SpatialBasis& Basis, const ViewportStanding
 {
     if (!Perspective)
     {
-        // 📝 The eye sits 100 units off the plane in every orthographic view. The distance does not affect
-        //    an orthographic projection at all — it exists only so the eye is on the correct side.
+        // 🔴 AXIS VIEWS ARE WORLD VIEWS, NOT VIEWS RELATIVE TO THE ACTIVE WORKPLANE. Once Front
+        //    activates XY or Left activates YZ, feeding that new plane back into this switch made Front
+        //    look along world Y and made the next Side/Front switch retain the wrong screen basis. The
+        //    active plane supplies the point to intersect; this table supplies the one canonical world
+        //    camera frame that every axis view means.
+        //
+        // 📝 The eye sits 100 units off the selected plane in every orthographic view. The distance does
+        //    not affect an orthographic projection — it only puts the ray on a useful side of the plane.
+        const SpatialDirection WorldX = { 1.0, 0.0, 0.0 };
+        const SpatialDirection WorldY = { 0.0, 1.0, 0.0 };
+        const SpatialDirection WorldZ = { 0.0, 0.0, 1.0 };
         switch (View.Orientation)
         {
             case ViewportOrientation::Top:
-                return { Added(View.Focus, Scaled(Basis.Normal, 100.0)),
-                         Basis.Along, Basis.Across, Negated(Basis.Normal) };
+                return { Added(View.Focus, Scaled(WorldY, 100.0)),
+                         WorldX, WorldZ, Negated(WorldY) };
             case ViewportOrientation::Bottom:
-                return { Added(View.Focus, Scaled(Basis.Normal, -100.0)),
-                         Basis.Along, Negated(Basis.Across), Basis.Normal };
+                return { Added(View.Focus, Scaled(WorldY, -100.0)),
+                         WorldX, Negated(WorldZ), WorldY };
             case ViewportOrientation::Front:
-                return { Added(View.Focus, Scaled(Basis.Across, -100.0)),
-                         Basis.Along, Basis.Normal, Basis.Across };
+                return { Added(View.Focus, Scaled(WorldZ, -100.0)),
+                         WorldX, WorldY, WorldZ };
             case ViewportOrientation::Back:
-                return { Added(View.Focus, Scaled(Basis.Across, 100.0)),
-                         Basis.Along, Negated(Basis.Normal), Negated(Basis.Across) };
+                return { Added(View.Focus, Scaled(WorldZ, 100.0)),
+                         WorldX, Negated(WorldY), Negated(WorldZ) };
             case ViewportOrientation::Left:
-                return { Added(View.Focus, Scaled(Basis.Along, -100.0)),
-                         Basis.Across, Basis.Normal, Basis.Along };
+                return { Added(View.Focus, Scaled(WorldX, -100.0)),
+                         WorldZ, WorldY, WorldX };
             case ViewportOrientation::Right:
-                return { Added(View.Focus, Scaled(Basis.Along, 100.0)),
-                         Negated(Basis.Across), Basis.Normal, Negated(Basis.Along) };
+                return { Added(View.Focus, Scaled(WorldX, 100.0)),
+                         Negated(WorldZ), WorldY, Negated(WorldX) };
             case ViewportOrientation::Isometric:
                 break;
         }

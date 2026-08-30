@@ -314,7 +314,7 @@ int main(int ArgumentCount, char** ArgumentValues)
 //    popup rather than inside it because the popup edits the caller's data in place -- it owns nothing,
 //    so the numbers have to belong to someone, and the host is who runs the operation.
 static ParametricToolSubject     SketchBuildTool     = ParametricToolSubject::Select;
-static bool                      SketchBuildApply    = false;
+[[maybe_unused]] static bool                      SketchBuildApply    = false;
 static float                     SketchCornerDistance = 4.0f;
 static std::uint32_t             SketchTrimKeep      = 0u;
 [[maybe_unused]] constexpr float                  SketchCornerMinimum = 0.1f;
@@ -1158,6 +1158,45 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                 //    starts a curve.
                                 bool PointerTaken = false;
 
+                                // 🔴 ORIENTATION IS A VIEWPORT COMMAND, NOT A DRAWING CONTACT. Resolve it
+                                //    before the camera, workplane, projection and tools are assembled for
+                                //    this leaf. The old late hit-test changed the camera after the drawing
+                                //    basis had already been selected, so a cube click could leave the next
+                                //    operation using the previous plane. Making the camera the single
+                                //    source of the selected orientation also means every consumer below
+                                //    reads the same current-tick state.
+                                CubeBasis GizmoBasis = CubeBasisFromYawPitch(
+                                    SceneApplied.ViewportSkyCamera.AzimuthDegrees,
+                                    SceneApplied.ViewportSkyCamera.ElevationDegrees);
+                                const EditorPanelConfiguration& PanelDeclaredForGizmo = PanelConfiguration[Index];
+                                if (BackgroundPointer.ContactPressed &&
+                                    LeafBody.Encloses(BackgroundPointer.PositionX, BackgroundPointer.PositionY))
+                                {
+                                    const Deliver<ViewportOrientation> Hit = HitOrientationWidget(
+                                        LeafBody, GizmoBasis, BackgroundPointer.PositionX, BackgroundPointer.PositionY,
+                                        PanelDeclaredForGizmo.Gizmo == PanelGizmo::Cad);
+                                    if (Hit.Resolved)
+                                    {
+                                        double Yaw = EditorCamera.YawDegrees;
+                                        double Pitch = EditorCamera.PitchDegrees;
+                                        OrientationYawPitch(Hit.Resolve(), Yaw, Pitch);
+                                        EditorCamera.YawDegrees = Yaw;
+                                        EditorCamera.PitchDegrees = Pitch;
+                                        EditorCamera.Snap();
+                                        SceneApplied.ViewportSkyCamera.AzimuthDegrees =
+                                            static_cast<float>(EditorCamera.LaggedYawDegrees);
+                                        SceneApplied.ViewportSkyCamera.ElevationDegrees =
+                                            static_cast<float>(EditorCamera.LaggedPitchDegrees);
+                                        SceneApplied.CameraRotation[0] = EditorCamera.LaggedYawDegrees;
+                                        SceneApplied.CameraRotation[1] = EditorCamera.LaggedPitchDegrees;
+                                        SceneApplied.EntityRotation[6u][0] = EditorCamera.LaggedYawDegrees;
+                                        SceneApplied.EntityRotation[6u][1] = EditorCamera.LaggedPitchDegrees;
+                                        PointerTaken = true;
+                                        GizmoBasis = CubeBasisFromYawPitch(EditorCamera.LaggedYawDegrees,
+                                                                          EditorCamera.LaggedPitchDegrees);
+                                    }
+                                }
+
                                 SceneDirectory.RecordViewportSky(LeafBody, SceneApplied);
                                 // 🔴 The same drawing the parametric host uses. It was written twice
                                 //    because the shared projection could not express a free-flying
@@ -1244,13 +1283,15 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                             : SketchView.OrthoScale / ZoomStep,
                                         0.05, 40.0);
                                 }
-                                const ResolvedCamera SceneCamera = ResolveFreeCamera(
+
+                                ResolvedCamera SceneCamera = ResolveFreeCamera(
                                     { SceneApplied.CameraPosition[0], SceneApplied.CameraPosition[1],
                                       SceneApplied.CameraPosition[2] },
                                     SceneApplied.ViewportSkyCamera.AzimuthDegrees,
                                     SceneApplied.ViewportSkyCamera.ElevationDegrees,
                                     SceneApplied.ViewportSkyCamera.FieldOfViewDegrees,
                                     LeafPerspective, SketchView.OrthoScale);
+
                                 // 🔴 THE PARAMETRIC TOOLS, IN THE PRODUCT THAT SHIPS. This block is
                                 //    why `ParametricSketchHost` existed. `HostHasFeature` is
                                 //    `constexpr`, so the texture-only product compiles this away
@@ -1401,6 +1442,25 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     SketchView.FieldOfViewDegrees =
                                         SceneApplied.ViewportSkyCamera.FieldOfViewDegrees;
                                     SketchView.Orientation = SketchOrientation;
+
+                                    // 🔴 SETTLED ORTHOGRAPHIC WORK USES THE SAME RESOLVED CAMERA EVERYWHERE.
+                                    //    The free camera is the right source while the perspective transit is
+                                    //    moving, but once the view is parallel the old path projected world
+                                    //    drawing through the free eye and mouse placement through an orbit
+                                    //    standing. Top/Front/Side could therefore disagree about the plane
+                                    //    even though both paths used the same scale. Resolve the settled
+                                    //    camera from the active workplane and standing, then pass that one
+                                    //    frame to placement, snapping, picking, rendering and the gizmo.
+                                    SceneCamera = LeafPerspective
+                                        ? ResolveFreeCamera(
+                                            { SceneApplied.CameraPosition[0], SceneApplied.CameraPosition[1],
+                                              SceneApplied.CameraPosition[2] },
+                                            SceneApplied.ViewportSkyCamera.AzimuthDegrees,
+                                            SceneApplied.ViewportSkyCamera.ElevationDegrees,
+                                            SceneApplied.ViewportSkyCamera.FieldOfViewDegrees,
+                                            true, SketchView.OrthoScale)
+                                        : ResolveOrbitCamera(SketchBasis, SketchView, false);
+
                                     // 🔴 The workplane tool is offered the press FIRST and consumes
                                     //    it, or the click that places a plane is also read as the
                                     //    first point of a curve -- drawn onto the plane it replaced.
@@ -1535,31 +1595,8 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                                       OpenedScene, OpenedSceneStanding,
                                                       WorkspaceSceneRows, SceneApplied,
                                                       CodexMetresToMetres);
-                                {
-                                    CubeBasis GizmoBasis = CubeBasisFromYawPitch(
-                                        SceneApplied.ViewportSkyCamera.AzimuthDegrees,
-                                        SceneApplied.ViewportSkyCamera.ElevationDegrees);
-                                    const EditorPanelConfiguration& PanelDeclaredForGizmo = PanelConfiguration[Index];
-                                    if (BackgroundPointer.ContactPressed &&
-                                        LeafBody.Encloses(BackgroundPointer.PositionX, BackgroundPointer.PositionY))
-                                    {
-                                        const Deliver<ViewportOrientation> Hit = HitOrientationWidget(
-                                            LeafBody, GizmoBasis, BackgroundPointer.PositionX, BackgroundPointer.PositionY,
-                                            PanelDeclaredForGizmo.Gizmo == PanelGizmo::Cad);
-                                        if (Hit.Resolved)
-                                        {
-                                            double Yaw = EditorCamera.YawDegrees;
-                                            double Pitch = EditorCamera.PitchDegrees;
-                                            OrientationYawPitch(Hit.Resolve(), Yaw, Pitch);
-                                            EditorCamera.YawDegrees = Yaw;
-                                            EditorCamera.PitchDegrees = Pitch;
-                                            EditorCamera.Snap();
-                                            GizmoBasis = CubeBasisFromYawPitch(Yaw, Pitch);
-                                        }
-                                    }
-                                    RecordOrientationWidget(Viewport.Surface(), LeafBody, GizmoBasis,
-                                                              PanelDeclaredForGizmo.Gizmo == PanelGizmo::Cad);
-                                }
+                                RecordOrientationWidget(Viewport.Surface(), LeafBody, GizmoBasis,
+                                                          PanelDeclaredForGizmo.Gizmo == PanelGizmo::Cad);
 
                                 // 📐 The ground lattice is no longer recorded here. It is solved per
                                 //    pixel in the overlay pass's mode 3, from the camera pushed below,
@@ -1579,28 +1616,27 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     Pose.Standing = ExactOrthographicPlane
                                                   && PanelDeclared.Lattice != PanelLatticePresentation::None;
 
-                                    const double Yaw   = SceneApplied.ViewportSkyCamera.AzimuthDegrees
-                                                       * 3.14159265358979323846 / 180.0;
-                                    const double Pitch = SceneApplied.ViewportSkyCamera.ElevationDegrees
-                                                       * 3.14159265358979323846 / 180.0;
-                                    const double CosP = std::cos(Pitch), SinP = std::sin(Pitch);
-                                    const double SinY = std::sin(Yaw),   CosY = std::cos(Yaw);
+                                    // 🔴 The analytic grid consumes the same frame as the settled camera.
+                                    //    In particular, Front/Back and Left/Right may have their eye on
+                                    //    Z=0 or X=0; the resolved orthographic standing moves the frame
+                                    //    to a valid side of the active plane while preserving the screen
+                                    //    basis used by placement and rendering.
+                                    const ViewFrame& GridFrame = SceneCamera.Frame;
+                                    Pose.EyeX = static_cast<float>(GridFrame.Eye.Left);
+                                    Pose.EyeY = static_cast<float>(GridFrame.Eye.Up);
+                                    Pose.EyeZ = static_cast<float>(GridFrame.Eye.Forward);
 
-                                    Pose.EyeX = static_cast<float>(SceneApplied.CameraPosition[0]);
-                                    Pose.EyeY = static_cast<float>(SceneApplied.CameraPosition[1]);
-                                    Pose.EyeZ = static_cast<float>(SceneApplied.CameraPosition[2]);
+                                    Pose.ForwardX = static_cast<float>(GridFrame.Forward.Left);
+                                    Pose.ForwardY = static_cast<float>(GridFrame.Forward.Up);
+                                    Pose.ForwardZ = static_cast<float>(GridFrame.Forward.Forward);
+                                    Pose.RightX   = static_cast<float>(GridFrame.Right.Left);
+                                    Pose.RightY   = static_cast<float>(GridFrame.Right.Up);
+                                    Pose.RightZ   = static_cast<float>(GridFrame.Right.Forward);
+                                    Pose.UpX      = static_cast<float>(GridFrame.Up.Left);
+                                    Pose.UpY      = static_cast<float>(GridFrame.Up.Up);
+                                    Pose.UpZ      = static_cast<float>(GridFrame.Up.Forward);
 
-                                    Pose.ForwardX = static_cast<float>(CosP * SinY);
-                                    Pose.ForwardY = static_cast<float>(SinP);
-                                    Pose.ForwardZ = static_cast<float>(CosP * CosY);
-                                    Pose.RightX   = static_cast<float>(CosY);
-                                    Pose.RightY   = 0.0f;
-                                    Pose.RightZ   = static_cast<float>(-SinY);
-                                    Pose.UpX      = static_cast<float>(-SinP * SinY);
-                                    Pose.UpY      = static_cast<float>(CosP);
-                                    Pose.UpZ      = static_cast<float>(-SinP * CosY);
-
-                                    const double HalfV = SceneApplied.ViewportSkyCamera.FieldOfViewDegrees
+                                    const double HalfV = SceneCamera.FieldOfViewDegrees
                                                        * 0.5 * 3.14159265358979323846 / 180.0;
                                     const double Aspect = (LeafBody.Height() > 0.0f)
                                                         ? static_cast<double>(LeafBody.Width())

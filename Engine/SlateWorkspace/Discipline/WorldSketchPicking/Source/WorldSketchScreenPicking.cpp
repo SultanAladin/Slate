@@ -2,7 +2,7 @@
 //                                              WORLDSKETCHSCREENPICKING.CPP
 //============================================================================================================================================
 
-#include "SlateWorkspace/Discipline/WorldSketchPicking/Api/WorldSketchPicking.h"
+#include "SlateWorkspace/Discipline/WorldSketchPicking/Api/WorldSketchScreenPicking.h"
 
 #include "SlateShape/Sketch/SketchPolyline/Api/SketchPolyline.h"
 #include "SlateShape/World/WorldSketchAnalysis/Api/WorldSketchAnalysis.h"

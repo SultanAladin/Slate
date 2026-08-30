@@ -9,7 +9,7 @@
 // 🔴 This unit is deliberately camera-free. It answers "what is this name, and where does it stand?" and
 //    nothing about where the artist is pointing — the screen-space ray that turns a pointer into one of
 //    these names is a viewport concern and lives in
-//    `SlateWorkspace/Discipline/WorldSketchPicking/Api/WorldSketchPicking.h`, which may reach this header.
+//    `SlateWorkspace/Discipline/WorldSketchPicking/Api/WorldSketchScreenPicking.h`, which may reach this header.
 
 #pragma once
 
