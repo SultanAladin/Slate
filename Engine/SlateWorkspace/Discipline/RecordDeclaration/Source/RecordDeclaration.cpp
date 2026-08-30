@@ -8,6 +8,29 @@ namespace Slate
 {
 
 
+const char* FamilyFolderName(WorkspaceShapeFamily Family)
+{
+    switch (Family)
+    {
+        case WorkspaceShapeFamily::Point:         return "Points";
+        case WorkspaceShapeFamily::Line:          return "Lines";
+        case WorkspaceShapeFamily::CircularArc:   return "Circular Arcs";
+        case WorkspaceShapeFamily::Bezier:        return "Bezier";
+        case WorkspaceShapeFamily::Hermite:       return "Hermite";
+        case WorkspaceShapeFamily::BasisSpline:   return "Basis Splines";
+        case WorkspaceShapeFamily::Nurbs:         return "NURBS";
+        case WorkspaceShapeFamily::Polygon:       return "Polygons";
+        case WorkspaceShapeFamily::Rectangle:     return "Rectangles";
+        case WorkspaceShapeFamily::Slot:          return "Slots";
+        case WorkspaceShapeFamily::Circle:        return "Circles";
+        case WorkspaceShapeFamily::Ellipse:       return "Ellipses";
+        case WorkspaceShapeFamily::EllipticalArc: return "Elliptical Arcs";
+        case WorkspaceShapeFamily::Profile:       return "Profiles";
+        case WorkspaceShapeFamily::Construction:  return "Construction";
+        default:                                  return "Unclassified";
+    }
+}
+
 WorkspaceRecordName EnsureNamedFolder(WorkspaceNameIndex& Naming,
                                       WorkspaceRecordStructure& Records,
                                       WorkspaceCategory Category,
@@ -50,12 +73,15 @@ WorkspaceRecordName ResolveCategoryFolder(const WorkspaceRecordStructure& Record
 WorkspaceRecordName DeclareWorkspaceCurve(WorkspaceNameIndex& Naming,
                                           WorkspaceRecordStructure& Records,
                                           SketchCurveName Curve,
-                                          bool Construction)
+                                          bool Construction,
+                                          WorkspaceShapeFamily Family)
 {
     WorkspaceRecord Record = {};
     Record.Subject      = WorkspaceRecordSubject::OpenCurve;
+    Record.Family       = Construction ? WorkspaceShapeFamily::Construction : Family;
+    const WorkspaceShapeFamily FolderFamily = Construction ? WorkspaceShapeFamily::Construction : Family;
     Record.ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch,
-                                             Construction ? "Construction" : "Curves");
+                                             FamilyFolderName(FolderFamily));
     Record.Naming       = Construction
                         ? std::string("Construction ") + Naming.Issue(WorkspaceRecordSubject::OpenCurve)
                         : Naming.Issue(WorkspaceRecordSubject::OpenCurve);
@@ -66,11 +92,14 @@ WorkspaceRecordName DeclareWorkspaceCurve(WorkspaceNameIndex& Naming,
 
 WorkspaceRecordName DeclareWorkspaceProfile(WorkspaceNameIndex& Naming,
                                             WorkspaceRecordStructure& Records,
-                                            ProfileNameInFeature Profile)
+                                            ProfileNameInFeature Profile,
+                                            WorkspaceShapeFamily Family)
 {
     WorkspaceRecord Record = {};
     Record.Subject      = WorkspaceRecordSubject::ClosedProfile;
-    Record.ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch, "Profiles");
+    Record.Family       = Family;
+    Record.ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch,
+                                             FamilyFolderName(Family));
     Record.Naming       = Naming.Issue(WorkspaceRecordSubject::ClosedProfile);
     Record.Profile      = Profile;
     Record.ClosedSemantic          = true;
@@ -108,7 +137,9 @@ WorkspaceRecordName DeclareWorkspacePoint(WorkspaceNameIndex& Naming,
 {
     WorkspaceRecord Record = {};
     Record.Subject      = WorkspaceRecordSubject::Point;
-    Record.ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch, "Points");
+    Record.Family       = WorkspaceShapeFamily::Point;
+    Record.ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch,
+                                             FamilyFolderName(WorkspaceShapeFamily::Point));
     Record.Naming       = Naming.Issue(WorkspaceRecordSubject::Point);
     Record.SketchPoint  = Point;
     return Records.Declare(Record);

@@ -151,7 +151,7 @@ Deliver<WorkspaceRecordName> DeclareLine(WorkspaceNameIndex& Naming,
                                     const SealedPlacement& Placed)
 {
         const SketchCurveName Curve = Sketch.DeclareLine(Placed.Anchors[0], Placed.Anchors[1]);
-        const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction);
+        const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction, WorkspaceShapeFamily::Line);
         std::vector<WorkspaceRecordName> Written = { Record };
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming),
                        Placed.Construction ? "Create Construction Curve" : "Create Curve", { Record },
@@ -239,7 +239,7 @@ Deliver<WorkspaceRecordName> DeclarePolyline(WorkspaceNameIndex& Naming,
             Profile.DeclareLoop(Loop);
 
             const WorkspaceRecordName Record =
-                DeclareWorkspaceProfile(Naming, Records, Sketch.DeclareProfile(Profile));
+                DeclareWorkspaceProfile(Naming, Records, Sketch.DeclareProfile(Profile), WorkspaceShapeFamily::Polygon);
             Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming),
                            "Create Closed Polyline", { Record }, Revisions.DeclaredCount() + 1u);
             return Deliver<WorkspaceRecordName>::Result(Record);
@@ -250,7 +250,7 @@ Deliver<WorkspaceRecordName> DeclarePolyline(WorkspaceNameIndex& Naming,
         for (std::uint32_t Index = 0u; Index < Curves.size(); ++Index)
         {
             SketchCurveName Curve = Curves[Index];
-            RecordsWritten.push_back(DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction));
+            RecordsWritten.push_back(DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction, WorkspaceShapeFamily::Polygon));
             AddLineAutoConstraints(Naming, Sketch, Plane, Records, Revisions, Curve,
                                    Placed.Anchors[Index], Placed.Anchors[Index + 1u],
                                    Placed.Placements.size() > Index ? &Placed.Placements[Index] : nullptr,
@@ -275,7 +275,7 @@ Deliver<WorkspaceRecordName> DeclareThreePointArc(WorkspaceNameIndex& Naming,
             return Deliver<WorkspaceRecordName>::Refuse({ RefusalReason::ContentUnsupported,
                                                           "the arc points are collinear" });
         const SketchCurveName Curve = Sketch.DeclareThreePointArc(Placed.Anchors[0], Placed.Anchors[1], Placed.Anchors[2]);
-        const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction);
+        const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction, WorkspaceShapeFamily::CircularArc);
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming),
                        Placed.Construction ? "Create Construction Arc" : "Create Arc", { Record },
                        Revisions.DeclaredCount() + 1u);
@@ -304,7 +304,7 @@ Deliver<WorkspaceRecordName> DeclareCentredArc(WorkspaceNameIndex& Naming,
             Sweep += 2.0 * CommitPi;
         const CircularArcCurve Arc = { Centre, Plane.Normal, Normalize(Difference(Centre, Start)), {}, false, Radius, Sweep };
         const SketchCurveName Curve = Sketch.DeclareCurve(CurveSpecification::DeclareCircularArc(Arc, { 0.0, 1.0 }));
-        const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction);
+        const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction, WorkspaceShapeFamily::CircularArc);
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming),
                        Placed.Method == PlacementMethod::Tangent ? "Create Tangent Arc" : "Create Centred Arc", { Record },
                        Revisions.DeclaredCount() + 1u);
@@ -328,7 +328,7 @@ Deliver<WorkspaceRecordName> DeclareEllipticalArc(WorkspaceNameIndex& Naming,
         const EllipticalArcCurve Arc = { Centre, Plane.Normal, Plane.AlongDirection,
                                          Major, Minor, 0.0, EndAngle <= 0.0 ? EndAngle + 2.0 * CommitPi : EndAngle };
         const SketchCurveName Curve = Sketch.DeclareCurve(CurveSpecification::DeclareEllipticalArc(Arc, { 0.0, 1.0 }));
-        const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction);
+        const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction, WorkspaceShapeFamily::EllipticalArc);
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Elliptical Arc", { Record },
                        Revisions.DeclaredCount() + 1u);
         return Deliver<WorkspaceRecordName>::Result(Record);
@@ -348,7 +348,7 @@ Deliver<WorkspaceRecordName> DeclareBasisSpline(WorkspaceNameIndex& Naming,
         Spline.Degree = std::min<std::uint32_t>(3u, static_cast<std::uint32_t>(Spline.ControlPoints.size() - 1u));
         Spline.Periodic = false;
         const SketchCurveName Curve = Sketch.DeclareBasisSpline(Spline);
-        const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction);
+        const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction, WorkspaceShapeFamily::BasisSpline);
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Basis Spline", { Record },
                        Revisions.DeclaredCount() + 1u);
         return Deliver<WorkspaceRecordName>::Result(Record);
@@ -369,7 +369,7 @@ Deliver<WorkspaceRecordName> DeclareRationalSpline(WorkspaceNameIndex& Naming,
         Spline.Degree = std::min<std::uint32_t>(3u, static_cast<std::uint32_t>(Spline.ControlPoints.size() - 1u));
         Spline.Periodic = false;
         const SketchCurveName Curve = Sketch.DeclareRationalSpline(Spline);
-        const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction);
+        const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction, WorkspaceShapeFamily::Nurbs);
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create NURBS Curve", { Record },
                        Revisions.DeclaredCount() + 1u);
         return Deliver<WorkspaceRecordName>::Result(Record);
@@ -402,7 +402,7 @@ Deliver<WorkspaceRecordName> DeclareHermite(WorkspaceNameIndex& Naming,
         for (const CurveSpecification& Span : Spans)
         {
             const SketchCurveName Curve = Sketch.DeclareCurve(Span);
-            Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction);
+            Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction, WorkspaceShapeFamily::Hermite);
         }
 
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Hermite Curve", { Record },
@@ -430,13 +430,13 @@ Deliver<WorkspaceRecordName> DeclareDiameterCircle(WorkspaceNameIndex& Naming,
                                                                          : Sketch.DeclareCircleProfile(Circle, Plane);
         if (Profile.Resolved)
         {
-            const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve());
+            const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve(), WorkspaceShapeFamily::Circle);
             Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Diameter Circle", { Record },
                            Revisions.DeclaredCount() + 1u);
             return Deliver<WorkspaceRecordName>::Result(Record);
         }
         const SketchCurveName Curve = Sketch.DeclareCircle(Circle);
-        const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, true);
+        const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, true, WorkspaceShapeFamily::Circle);
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Construction Diameter Circle", { Record },
                        Revisions.DeclaredCount() + 1u);
         return Deliver<WorkspaceRecordName>::Result(Record);
@@ -459,7 +459,7 @@ Deliver<WorkspaceRecordName> DeclareThreePointCircle(WorkspaceNameIndex& Naming,
         const Deliver<ProfileNameInFeature> Profile = Sketch.DeclareCircleProfile(Circle, Plane);
         if (!Profile.Resolved)
             return Deliver<WorkspaceRecordName>::Refuse(Profile.Error);
-        const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve());
+        const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve(), WorkspaceShapeFamily::Circle);
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Three Point Circle", { Record },
                        Revisions.DeclaredCount() + 1u);
         return Deliver<WorkspaceRecordName>::Result(Record);
@@ -486,7 +486,7 @@ Deliver<WorkspaceRecordName> DeclarePolygon(WorkspaceNameIndex& Naming,
             Placed.Anchors[0], Radius, Sides, Plane, Difference(Placed.Anchors[0], Placed.Anchors.back()));
         if (!Profile.Resolved)
             return Deliver<WorkspaceRecordName>::Refuse(Profile.Error);
-        const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve());
+        const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve(), WorkspaceShapeFamily::Polygon);
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Polygon", { Record },
                        Revisions.DeclaredCount() + 1u);
         return Deliver<WorkspaceRecordName>::Result(Record);
@@ -505,7 +505,7 @@ Deliver<WorkspaceRecordName> DeclareSlot(WorkspaceNameIndex& Naming,
         const Deliver<ProfileNameInFeature> Profile = Sketch.DeclareSlot(Placed.Anchors[0], Placed.Anchors[1], Radius, Plane);
         if (!Profile.Resolved)
             return Deliver<WorkspaceRecordName>::Refuse(Profile.Error);
-        const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve());
+        const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve(), WorkspaceShapeFamily::Slot);
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Slot", { Record },
                        Revisions.DeclaredCount() + 1u);
         return Deliver<WorkspaceRecordName>::Result(Record);
@@ -534,7 +534,7 @@ Deliver<WorkspaceRecordName> DeclareThreePointRectangle(WorkspaceNameIndex& Nami
         const SketchCurveName DA = Sketch.DeclareLine(D, A);
         Loop.Traversal = { { { AB.IssuedIndex }, true }, { { BC.IssuedIndex }, true }, { { CD.IssuedIndex }, true }, { { DA.IssuedIndex }, true } };
         Profile.DeclareLoop(Loop);
-        const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Sketch.DeclareProfile(Profile));
+        const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Sketch.DeclareProfile(Profile), WorkspaceShapeFamily::Rectangle);
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Three Point Rectangle", { Record },
                        Revisions.DeclaredCount() + 1u);
         return Deliver<WorkspaceRecordName>::Result(Record);
@@ -605,7 +605,7 @@ Deliver<WorkspaceRecordName> DeclareEllipse(WorkspaceNameIndex& Naming,
         if (Placed.Construction)
         {
             const SketchCurveName Curve = Sketch.DeclareEllipse(Ellipse);
-            const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, true);
+            const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, true, WorkspaceShapeFamily::Ellipse);
             Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Construction Ellipse", { Record },
                            Revisions.DeclaredCount() + 1u);
             return Deliver<WorkspaceRecordName>::Result(Record);
@@ -613,7 +613,7 @@ Deliver<WorkspaceRecordName> DeclareEllipse(WorkspaceNameIndex& Naming,
         const Deliver<ProfileNameInFeature> Profile = Sketch.DeclareEllipseProfile(Ellipse, Plane);
         if (!Profile.Resolved)
             return Deliver<WorkspaceRecordName>::Refuse(Profile.Error);
-        const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve());
+        const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve(), WorkspaceShapeFamily::Ellipse);
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Ellipse Profile", { Record },
                        Revisions.DeclaredCount() + 1u);
         return Deliver<WorkspaceRecordName>::Result(Record);
@@ -629,7 +629,7 @@ Deliver<WorkspaceRecordName> DeclareBezier(WorkspaceNameIndex& Naming,
                                     const SealedPlacement& Placed)
 {
         const SketchCurveName Curve = Sketch.DeclareBezier(Placed.Anchors);
-        const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction);
+        const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction, WorkspaceShapeFamily::Bezier);
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming),
                        Placed.Construction ? "Create Construction Bezier" : "Create Bezier", { Record },
                        Revisions.DeclaredCount() + 1u);
@@ -655,7 +655,7 @@ Deliver<WorkspaceRecordName> DeclareCentreRadiusCircle(WorkspaceNameIndex& Namin
         if (Placed.Construction)
         {
             const SketchCurveName Curve = Sketch.DeclareCircle(Circle);
-            const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, true);
+            const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, true, WorkspaceShapeFamily::Circle);
             Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming),
                            "Create Construction Circle", { Record },
                            Revisions.DeclaredCount() + 1u);
@@ -665,7 +665,7 @@ Deliver<WorkspaceRecordName> DeclareCentreRadiusCircle(WorkspaceNameIndex& Namin
         const Deliver<ProfileNameInFeature> Profile = Sketch.DeclareCircleProfile(Circle, Plane);
         if (!Profile.Resolved)
             return Deliver<WorkspaceRecordName>::Refuse(Profile.Error);
-        const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve());
+        const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve(), WorkspaceShapeFamily::Circle);
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Profile", { Record },
                        Revisions.DeclaredCount() + 1u);
         DimensionSpecification RadiusDimension = {};
@@ -718,7 +718,7 @@ Deliver<WorkspaceRecordName> DeclareCentredRectangle(WorkspaceNameIndex& Naming,
         const SketchCurveName DA = Sketch.DeclareLine(D, A);
         Loop.Traversal = { { { AB.IssuedIndex }, true }, { { BC.IssuedIndex }, true }, { { CD.IssuedIndex }, true }, { { DA.IssuedIndex }, true } };
         Profile.DeclareLoop(Loop);
-        const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Sketch.DeclareProfile(Profile));
+        const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Sketch.DeclareProfile(Profile), WorkspaceShapeFamily::Rectangle);
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Center Rectangle", { Record },
                        Revisions.DeclaredCount() + 1u);
         return Deliver<WorkspaceRecordName>::Result(Record);
@@ -764,7 +764,7 @@ Deliver<WorkspaceRecordName> DeclareExtentRectangle(WorkspaceNameIndex& Naming,
                            { { CD.IssuedIndex }, true }, { { DA.IssuedIndex }, true } };
         Profile.DeclareLoop(Loop);
         const ProfileNameInFeature ProfileName = Sketch.DeclareProfile(Profile);
-        const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, ProfileName);
+        const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, ProfileName, WorkspaceShapeFamily::Rectangle);
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Profile", { Record },
                        Revisions.DeclaredCount() + 1u);
         return Deliver<WorkspaceRecordName>::Result(Record);

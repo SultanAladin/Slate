@@ -37,14 +37,16 @@ WorkspaceRecordName ResolveCategoryFolder(const WorkspaceRecordStructure& Record
 WorkspaceRecordName DeclareWorkspaceCurve(WorkspaceNameIndex& Naming,
                                           WorkspaceRecordStructure& Records,
                                           SketchCurveName Curve,
-                                          bool Construction = false);
+                                          bool Construction = false,
+                                          WorkspaceShapeFamily Family = WorkspaceShapeFamily::Unknown);
 
 /// 🧩 Writes a closed profile into the directory.
 /// note 📝 A profile is closed and cappable by construction; both semantics are set here rather than left
 ///       to the caller, because a profile that is not closed is not a profile.
 WorkspaceRecordName DeclareWorkspaceProfile(WorkspaceNameIndex& Naming,
                                             WorkspaceRecordStructure& Records,
-                                            ProfileNameInFeature Profile);
+                                            ProfileNameInFeature Profile,
+                                            WorkspaceShapeFamily Family = WorkspaceShapeFamily::Profile);
 
 /// 🧩 Writes a dimension into the directory, under the annotation folder.
 WorkspaceRecordName DeclareWorkspaceDimension(WorkspaceNameIndex& Naming,
