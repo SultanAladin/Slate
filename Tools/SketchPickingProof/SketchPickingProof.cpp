@@ -182,7 +182,7 @@ void ProveOwnership()
     {
         Bench ProfileOnly;
         const Deliver<ProfileNameInFeature> Triangle =
-            ProfileOnly.Sketch.DeclareRegularPolygon({ 0.0, 0.0, 0.0 }, 20.0, 3u, { 1.0, 0.0, 0.0 });
+            ProfileOnly.Sketch.DeclareRegularPolygon({ 0.0, 0.0, 0.0 }, 20.0, 3u, SpatialDirection{ 1.0, 0.0, 0.0 });
         Claim(Triangle.Resolved, "a profile-only triangle can be declared");
         if (Triangle.Resolved)
         {

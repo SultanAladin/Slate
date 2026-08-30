@@ -392,7 +392,7 @@ void ProveEditableSelectionTracksMovedPoint()
     SketchStructure Sketch;
     Sketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 } });
     const Deliver<ProfileNameInFeature> Triangle =
-        Sketch.DeclareRegularPolygon({ 0.0, 0.0, 0.0 }, 20.0, 3u, { 1.0, 0.0, 0.0 });
+        Sketch.DeclareRegularPolygon({ 0.0, 0.0, 0.0 }, 20.0, 3u, SpatialDirection{ 1.0, 0.0, 0.0 });
     Claim(Triangle.Resolved, "a profile-only triangle can be declared");
     if (!Triangle.Resolved)
         return;

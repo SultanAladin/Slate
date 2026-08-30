@@ -133,7 +133,7 @@ int main()
 
         ProfileSketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 } });
         const Deliver<ProfileNameInFeature> Square =
-            ProfileSketch.DeclareRegularPolygon({ 0.0, 0.0, 0.0 }, 40.0, 4u, { 1.0, 0.0, 0.0 });
+            ProfileSketch.DeclareRegularPolygon({ 0.0, 0.0, 0.0 }, 40.0, 4u, SpatialDirection{ 1.0, 0.0, 0.0 });
         Require(Square.Resolved, "a closed profile can be declared for face picking");
         if (Square.Resolved)
         {
@@ -166,7 +166,7 @@ int main()
 
         TriangleSketch.DeclarePlane({ { 0.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 } });
         const Deliver<ProfileNameInFeature> Triangle =
-            TriangleSketch.DeclareRegularPolygon({ 0.0, 0.0, 0.0 }, 40.0, 3u, { 1.0, 0.0, 0.0 });
+            TriangleSketch.DeclareRegularPolygon({ 0.0, 0.0, 0.0 }, 40.0, 3u, SpatialDirection{ 1.0, 0.0, 0.0 });
         Require(Triangle.Resolved, "a closed triangle can be declared for element picking");
         if (Triangle.Resolved)
         {

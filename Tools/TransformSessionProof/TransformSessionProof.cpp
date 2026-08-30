@@ -240,7 +240,7 @@ struct ProfileTriangleBench
         View.Distance = 240.0;
 
         const Deliver<ProfileNameInFeature> Triangle =
-            Sketch.DeclareRegularPolygon({ 0.0, 0.0, 0.0 }, 24.0, 3u, { 1.0, 0.0, 0.0 });
+            Sketch.DeclareRegularPolygon({ 0.0, 0.0, 0.0 }, 24.0, 3u, SpatialDirection{ 1.0, 0.0, 0.0 });
         if (!Triangle.Resolved)
             return;
 
