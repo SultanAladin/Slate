@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <cmath>
+
 #include "Shared/OverlayGeometry.slang.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/ViewportProjection.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/CadProjection.h"
@@ -25,6 +27,29 @@ struct ViewportRuntimeState
     bool                    WasParallel = false;
     std::uint32_t           UploadedOverlayGeneration = 0u;
     float                   UploadedOverlayScale = 0.0f;
+
+    void BeginFrame()
+    {
+        Overlay.Reset();
+    }
+
+    void InvalidateOverlayUpload()
+    {
+        UploadedOverlayGeneration = 0u;
+        UploadedOverlayScale = 0.0f;
+    }
+
+    bool NeedsOverlayUpload(float DrawablePixelScale) const
+    {
+        return Overlay.Generation != UploadedOverlayGeneration
+            || std::fabs(UploadedOverlayScale - DrawablePixelScale) > 1.0e-6f;
+    }
+
+    void MarkOverlayUploaded(float DrawablePixelScale)
+    {
+        UploadedOverlayGeneration = Overlay.Generation;
+        UploadedOverlayScale = DrawablePixelScale;
+    }
 };
 
 } // namespace Slate

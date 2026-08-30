@@ -865,8 +865,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                 }
                 for (std::uint32_t Index = 0u; Index < PanelStructure::RecordLimit; ++Index)
                 {
-                    ViewportRuntime[Index].UploadedOverlayGeneration = 0u;
-                    ViewportRuntime[Index].UploadedOverlayScale = 0.0f;
+                    ViewportRuntime[Index].InvalidateOverlayUpload();
                 }
             }
 
@@ -1202,7 +1201,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                 // owned by this leaf rather than by the application-wide host.
                                 ViewportStanding& SketchView = ViewportRuntime[Leaf].Standing;
                                 OverlayGeometry& LeafOverlay = LeafRuntime.Overlay;
-                                LeafOverlay.Reset();
+                                LeafRuntime.BeginFrame();
 
                                 // 🔴 One press, one claimant. Scene selection, the workplane tool and
                                 //    the drawing tools all read the same pointer, so the first to take
@@ -2465,12 +2464,10 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                     OverlayGeometry& LeafOverlay = LeafRuntime.Overlay;
 
                     const float DrawablePixelScale = static_cast<float>(ViewportDrawable.Factor);
-                    if (LeafOverlay.Generation != LeafRuntime.UploadedOverlayGeneration
-                        || std::fabs(LeafRuntime.UploadedOverlayScale - DrawablePixelScale) > 1.0e-6f)
+                    if (LeafRuntime.NeedsOverlayUpload(DrawablePixelScale))
                     {
                         Overlay.Upload(LeafOverlay, DrawablePixelScale);
-                        LeafRuntime.UploadedOverlayGeneration = LeafOverlay.Generation;
-                        LeafRuntime.UploadedOverlayScale = DrawablePixelScale;
+                        LeafRuntime.MarkOverlayUploaded(DrawablePixelScale);
                     }
 
                     const PlaneExtent& LogicalLeafRect = ViewportLeafRects[ViewportIndex];
