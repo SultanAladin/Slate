@@ -866,7 +866,7 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
                 SetSketchPick(SelectionSet, DirectoryPick, true);
         }
     }
-    if (SelectedRecord.Assigned())
+    if (DirectoryChanged && SelectedRecord.Assigned())
     {
         const SketchPick* Current = SelectionSet.Active();
         if (Current == nullptr || Current->Record.IssuedIndex != SelectedRecord.IssuedIndex)
