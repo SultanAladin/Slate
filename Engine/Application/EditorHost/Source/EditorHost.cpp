@@ -97,8 +97,6 @@ constexpr std::uint32_t InitialHeight = 720u;    // [px]
 constexpr const char* WindowTitle = "Slate \u2014 Editor";
 constexpr const char* HostName    = "EditorHost";
 
-
-
 // 📝 The workspace ground the interface is recorded over. Stated here because it is the one visual decision
 //    this host makes; everything else it presents belongs to a panel.
 //------------------------------------------------------------------------------------------------------------------------
@@ -1591,14 +1589,17 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     //    nothing, and every press reaches the picker.
                                     ProjectWorkspaceDirectory(SketchRecords, SketchDirectoryRows);
                                     if (ParametricToolsApplied.ActiveSubject == ParametricToolSubject::Select
-                                     || SketchWorldTransform.Engaged())
+                                     || SketchWorldTransform.Engaged()
+                                     || IsConstraintTool(ParametricToolsApplied.ActiveSubject))
                                     {
                                         DriveViewportSelectionAndTransformWorldBacked(
                                             LeafBody, BackgroundPointer,
                                             SketchViewportText,
+                                            ParametricToolsApplied.ActiveSubject,
                                             SketchSelection, SketchGizmo,
                                             SceneCamera,
                                             SketchDirectoryRows, SketchDirectoryApplied,
+                                            SketchNaming,
                                             Sketch, SketchWorld, SketchWorldMapping,
                                             SketchRecords, SketchRevisions,
                                             SketchPendingSelection, SketchSemanticSelection,

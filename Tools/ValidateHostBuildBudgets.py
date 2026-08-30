@@ -136,6 +136,32 @@ def main() -> int:
     require("SketchStructure/Api" not in world_snap and "ResolveSketchBasis" not in world_snap,
             "world snapping must not depend on the compatibility sketch or sketch basis")
 
+    # 🔴 CONSTRAINTS FOLLOW SNAP'S AUTHORITY BOUNDARY. A world constraint that is merely mirrored into
+    #    the old solver is still sketch-native in practice: the next solve can move the compatibility
+    #    geometry away from the world model. These checks name the world declaration, semantic authoring,
+    #    and world solve seams independently so an implementation cannot satisfy the integration call by
+    #    routing through `SketchStructure`.
+    world_structure = read("Engine/SlateShape/World/WorldSketchStructure/Api/WorldSketchStructure.h")
+    world_authoring = read("Engine/SlateWorkspace/Discipline/WorldSketchConstraintAuthoring/Source/WorldSketchConstraintAuthoring.cpp")
+    world_constraint_solver = read("Engine/SlateShape/World/WorldSketchConstraintSolver/Source/WorldSketchConstraintSolver.cpp")
+    require("WorldConstraintName" in world_structure and "DeclareConstraint" in world_structure
+            and "Resolve(WorldConstraintName" in world_structure,
+            "the world sketch must own constraint identifiers, storage, and resolution")
+    require("const WorldPick& Primary" in read("Engine/SlateWorkspace/Discipline/WorldSketchConstraintAuthoring/Api/WorldSketchConstraintAuthoring.h")
+            and "DeclareWorldConstraintFrom" in world_authoring
+            and "SketchStructure/Api" not in world_authoring,
+            "world constraint authoring must consume semantic world picks without the compatibility sketch")
+    require("ApplyWorldConstraint(" in world_constraint_solver
+            and "EnforceWorldSketchPoint" in world_constraint_solver
+            and "SketchStructure/Api" not in world_constraint_solver,
+            "world constraints must solve against world geometry rather than the sketch solver")
+    require("ApplyViewportWorldConstraintTool(" in interaction
+            and "ApplyWorldSketchToSketch(World, Mapping, Sketch)" in interaction,
+            "the viewport must apply world constraints before mirroring compatibility geometry")
+    require("IsConstraintTool(ParametricToolsApplied.ActiveSubject)" in editor
+            and "ParametricToolsApplied.ActiveSubject," in editor,
+            "constraint tools must enter the world-backed interaction arm")
+
     # 📝 The plural is checked above: a Hermite and a polyline draw more than one span, and asking for
     #    the singular is what drew the first two Hermite points and left the rest as bare points.
 

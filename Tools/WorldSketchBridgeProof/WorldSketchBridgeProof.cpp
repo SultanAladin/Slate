@@ -45,6 +45,7 @@ struct Bench
     SketchStructure Sketch = {};
     WorldSketchStructure World = {};
     WorldSketchMapping Mapping = {};
+    WorkspaceNameIndex Naming = {};
     WorkspaceRecordStructure Records = {};
     WorkspaceRevisionSequence Revisions = {};
     WorkspaceDirectoryProjection Directory = {};
@@ -115,8 +116,8 @@ struct Bench
     {
         Overlay.Reset();
         DriveViewportSelectionAndTransformWorldBacked(
-            Extent, Pointer, Text, Selection, Gizmo, Camera,
-            Directory, WorkspaceApplied,
+            Extent, Pointer, Text, ParametricToolSubject::Select, Selection, Gizmo, Camera,
+            Directory, WorkspaceApplied, Naming,
             Sketch, World, Mapping, Records, Revisions,
             PendingSelection, SemanticSelection, HoveredSelection,
             Transform, Overlay, PointerTaken,
@@ -242,9 +243,39 @@ void ProveWorldBackedViewportFlow()
           "and a committed drag seals one sketch revision for undo/redo");
 }
 
+void ProveWorldConstraintCompatibilityMirror()
+{
+    std::printf("\n4. World constraints mirror into compatibility records after world solving\n");
+
+    Bench Stage;
+    WorldPick Primary = {};
+    Primary.Subject = WorldPickSubject::Curve;
+    Primary.Curve = { 1u };
+    WorldPick Secondary = {};
+    Secondary.Subject = WorldPickSubject::Curve;
+    Secondary.Curve = { 2u };
+
+    const bool Applied = ApplyViewportWorldConstraintTool(
+        ParametricToolSubject::ParallelConstraint, Stage.Naming,
+        Stage.World, Stage.Mapping, Stage.Sketch, Stage.Records, Stage.Revisions,
+        Primary, Secondary, Stage.PendingSelection);
+    Claim(Applied, "semantic world curve picks author and apply a world constraint through interaction");
+    Claim(Stage.World.ConstraintCount() == 1u && Stage.Sketch.Constraints().size() == 1u,
+          "the world constraint and its compatibility specification are both stored");
+    Claim(Stage.Mapping.Constraints.size() == 1u
+       && Stage.Mapping.Constraints[0u].World.IssuedIndex == 1u
+       && Stage.Mapping.Constraints[0u].Sketch.IssuedIndex == 1u,
+          "world and compatibility constraint identifiers are mapped explicitly");
+    Claim(Stage.PendingSelection.Assigned() && Stage.Revisions.DeclaredCount() == 1u,
+          "the mirrored constraint writes a workspace record and one undo revision");
+    const SpatialPoint CompatibilityEnd = Stage.Sketch.Curves()[1u].Geometry.HeldLine().Terminus;
+    Claim(SamePoint(CompatibilityEnd, { 200.0, 0.0, 40.0 }),
+          "the compatibility geometry follows the solved world geometry");
+}
+
 void ProveWorldBackedRenderingAndPreview()
 {
-    std::printf("\n4. The persistent world sketch renders directly and preview appends in screen space\n");
+    std::printf("\n5. The persistent world sketch renders directly and preview appends in screen space\n");
 
     Bench Stage;
     DeclaredWorldCurve* Raised = Stage.World.Resolve(WorldCurveName{ 2u });
@@ -276,7 +307,7 @@ void ProveWorldBackedRenderingAndPreview()
 
 void ProveOverlayUsesExplicitWorldBasis()
 {
-    std::printf("\n5. Compatibility overlays can be projected from the active basis\n");
+    std::printf("\n6. Compatibility overlays can be projected from the active basis\n");
 
     const PlaneExtent Extent = { 0.0f, 0.0f, 800.0f, 600.0f };
     const ViewportStanding View = {};
@@ -312,6 +343,7 @@ int main()
     ProveMirrorAndPickMapping();
     ProveWorldNameMappingSurvivesDifferentIssuance();
     ProveWorldBackedViewportFlow();
+    ProveWorldConstraintCompatibilityMirror();
     ProveWorldBackedRenderingAndPreview();
     ProveOverlayUsesExplicitWorldBasis();
 

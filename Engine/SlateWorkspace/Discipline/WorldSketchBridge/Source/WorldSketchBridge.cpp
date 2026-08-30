@@ -258,6 +258,40 @@ SketchControlName ResolveSketchControlForWorldControl(const WorldSketchMapping& 
     return { (SketchCurve.IssuedIndex << 12u) | (Control.IssuedIndex & 0xFFFu) };
 }
 
+WorldConstraintReference ResolveWorldConstraintReference(const ReferenceSpecification& Reference,
+                                                         const WorldSketchMapping& Mapping)
+{
+    WorldConstraintReference Delivered = {};
+    if (Reference.Subject == ReferenceSubject::SketchCurve && Reference.SketchCurve.Assigned())
+    {
+        Delivered.Subject = WorldConstraintReferenceSubject::Curve;
+        Delivered.Curve = ResolveWorldCurveForSketchCurve(Mapping, Reference.SketchCurve);
+    }
+    else if (Reference.Subject == ReferenceSubject::SketchPoint && Reference.SketchPoint.Assigned())
+    {
+        Delivered.Subject = WorldConstraintReferenceSubject::Point;
+        Delivered.Point = ResolveWorldPointForSketchPoint(Mapping, Reference.SketchPoint).IssuedIndex;
+    }
+    return Delivered;
+}
+
+ReferenceSpecification ResolveSketchConstraintReference(const WorldConstraintReference& Reference,
+                                                        const WorldSketchMapping& Mapping)
+{
+    ReferenceSpecification Delivered = {};
+    if (Reference.Subject == WorldConstraintReferenceSubject::Curve && Reference.Curve.Assigned())
+    {
+        Delivered.Subject = ReferenceSubject::SketchCurve;
+        Delivered.SketchCurve = ResolveSketchCurveForWorldCurve(Mapping, Reference.Curve);
+    }
+    else if (Reference.Subject == WorldConstraintReferenceSubject::Point && Reference.Point != 0u)
+    {
+        Delivered.Subject = ReferenceSubject::SketchPoint;
+        Delivered.SketchPoint = ResolveSketchPointForWorldPoint(Mapping, { Reference.Point });
+    }
+    return Delivered;
+}
+
 } // namespace
 
 WorldCurveName ResolveWorldCurveForSketchCurve(const WorldSketchMapping& Mapping,
@@ -280,6 +314,28 @@ SketchCurveName ResolveSketchCurveForWorldCurve(const WorldSketchMapping& Mappin
         if (Reference.World.IssuedIndex == Curve.IssuedIndex)
             return Reference.Sketch;
     return { Curve.IssuedIndex };
+}
+
+WorldConstraintName ResolveWorldConstraintForSketchConstraint(const WorldSketchMapping& Mapping,
+                                                              ConstraintName Constraint)
+{
+    if (!Constraint.Assigned())
+        return {};
+    for (const WorldSketchConstraintReference& Reference : Mapping.Constraints)
+        if (Reference.Sketch.IssuedIndex == Constraint.IssuedIndex)
+            return Reference.World;
+    return { Constraint.IssuedIndex };
+}
+
+ConstraintName ResolveSketchConstraintForWorldConstraint(const WorldSketchMapping& Mapping,
+                                                         WorldConstraintName Constraint)
+{
+    if (!Constraint.Assigned())
+        return {};
+    for (const WorldSketchConstraintReference& Reference : Mapping.Constraints)
+        if (Reference.World.IssuedIndex == Constraint.IssuedIndex)
+            return Reference.Sketch;
+    return { Constraint.IssuedIndex };
 }
 
 SketchSnapPlacement ResolveCompatibilitySnap(const WorldSnapPlacement& Snapped,
@@ -308,6 +364,7 @@ bool MirrorSketchIntoWorldSketch(const SketchStructure& Sketch,
     Declared.Reclaim();
     Mapping.Curves.clear();
     Mapping.Loops.clear();
+    Mapping.Constraints.clear();
 
     const WorldPlacementFrame SketchSupport = ResolveSketchSupportFrame(Sketch);
     std::vector<WorldPlacementFrame> CurveSupports(Sketch.Curves().size(), SketchSupport);
@@ -336,6 +393,20 @@ bool MirrorSketchIntoWorldSketch(const SketchStructure& Sketch,
         Mapping.Curves.push_back({ WorldCurve, { static_cast<std::uint32_t>(CurveIndex + 1u) } });
     }
 
+    for (std::uint32_t ConstraintIndex = 1u;
+         ConstraintIndex <= Sketch.Constraints().size(); ++ConstraintIndex)
+    {
+        const ConstraintSpecification& Source = Sketch.Constraints()[ConstraintIndex - 1u];
+        WorldConstraintSpecification Mirrored = {};
+        Mirrored.Subject = static_cast<WorldConstraintSubject>(static_cast<std::uint32_t>(Source.Subject));
+        Mirrored.Primary = ResolveWorldConstraintReference(Source.Primary, Mapping);
+        Mirrored.Secondary = ResolveWorldConstraintReference(Source.Secondary, Mapping);
+        const WorldConstraintName WorldConstraint = Declared.DeclareConstraint(Mirrored);
+        if (!WorldConstraint.Assigned())
+            return false;
+        Mapping.Constraints.push_back({ WorldConstraint, { ConstraintIndex } });
+    }
+
     for (std::uint32_t ProfileIndex = 0u; ProfileIndex < Sketch.Profiles().size(); ++ProfileIndex)
     {
         const ProfileSpecification& Profile = Sketch.Profiles()[ProfileIndex];
@@ -352,6 +423,28 @@ bool MirrorSketchIntoWorldSketch(const SketchStructure& Sketch,
     }
 
     return true;
+}
+
+bool MirrorWorldConstraintIntoSketch(const WorldSketchStructure& Declared,
+                                     const WorldSketchMapping& Mapping,
+                                     WorldConstraintName WorldConstraint,
+                                     SketchStructure& Sketch,
+                                     ConstraintName& SketchConstraint)
+{
+    SketchConstraint = {};
+    const WorldConstraintSpecification* Source = Declared.Resolve(WorldConstraint);
+    if (Source == nullptr || !Source->Declared())
+        return false;
+
+    ConstraintSpecification Mirrored = {};
+    Mirrored.Subject = static_cast<ConstraintSubject>(static_cast<std::uint32_t>(Source->Subject));
+    Mirrored.Primary = ResolveSketchConstraintReference(Source->Primary, Mapping);
+    Mirrored.Secondary = ResolveSketchConstraintReference(Source->Secondary, Mapping);
+    if (!Mirrored.Declared())
+        return false;
+
+    SketchConstraint = Sketch.DeclareConstraint(Mirrored);
+    return SketchConstraint.Assigned();
 }
 
 bool ApplyWorldSketchToSketch(const WorldSketchStructure& Declared,

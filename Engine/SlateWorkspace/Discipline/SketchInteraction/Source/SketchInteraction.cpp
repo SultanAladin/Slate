@@ -20,6 +20,9 @@
 #include "SlateWorkspace/Discipline/WorldSketchInteraction/Api/WorldSketchInteraction.h"
 #include "SlateWorkspace/Discipline/WorldSketchBridge/Api/WorldSketchBridge.h"
 #include "SlateShape/World/WorldSketchSnap/Api/WorldSketchSnap.h"
+#include "SlateShape/World/WorldSketchConstraintSolver/Api/WorldSketchConstraintSolver.h"
+#include "SlateWorkspace/Discipline/WorldSketchPicking/Api/WorldSketchPicking.h"
+#include "SlateWorkspace/Discipline/WorldSketchConstraintAuthoring/Api/WorldSketchConstraintAuthoring.h"
 
 #include <algorithm>
 #include <cmath>
@@ -533,6 +536,12 @@ bool ApplyDimensionTextEdit(const TextInputCondition& TextInput,
     return true;
 }
 
+bool IsConstraintTool(ParametricToolSubject Tool)
+{
+    ConstraintSubject Subject = ConstraintSubject::Fixed;
+    return SelectedConstraint(Tool, Subject);
+}
+
 bool ApplyViewportConstraintTool(ParametricToolSubject Tool,
                                  WorkspaceNameIndex& Naming,
                                  SketchStructure& Sketch,
@@ -562,6 +571,50 @@ bool ApplyViewportConstraintTool(ParametricToolSubject Tool,
         return false;
 
     PendingSelection = Committed.Delivered;
+    return true;
+}
+
+bool ApplyViewportWorldConstraintTool(ParametricToolSubject Tool,
+                                      WorkspaceNameIndex& Naming,
+                                      WorldSketchStructure& World,
+                                      WorldSketchMapping& Mapping,
+                                      SketchStructure& Sketch,
+                                      WorkspaceRecordStructure& Records,
+                                      WorkspaceRevisionSequence& Revisions,
+                                      const WorldPick& ActiveSelection,
+                                      const WorldPick& HoveredSelection,
+                                      WorkspaceRecordName& PendingSelection)
+{
+    ConstraintSubject SketchSubject = ConstraintSubject::Fixed;
+    if (!SelectedConstraint(Tool, SketchSubject) || !ActiveSelection.Standing())
+        return false;
+
+    const WorldConstraintSubject WorldSubject =
+        static_cast<WorldConstraintSubject>(static_cast<std::uint32_t>(SketchSubject));
+    const Deliver<WorldConstraintSpecification> Declared =
+        DeclareWorldConstraintFrom(WorldSubject, ActiveSelection, HoveredSelection);
+    if (!Declared)
+        return false;
+
+    const WorldConstraintName WorldName = World.DeclareConstraint(Declared.Resolve());
+    if (!WorldName.Assigned() || !ApplyWorldConstraint(World, WorldName))
+        return false;
+    if (!ApplyWorldSketchToSketch(World, Mapping, Sketch))
+        return false;
+
+    ConstraintName SketchName = {};
+    if (!MirrorWorldConstraintIntoSketch(World, Mapping, WorldName, Sketch, SketchName))
+        return false;
+    Mapping.Constraints.push_back({ WorldName, SketchName });
+
+    const WorkspaceRecordName Record = DeclareWorkspaceConstraint(Naming, Records, SketchName);
+    if (!Record.Assigned())
+        return false;
+    const WorkspaceRecord* Written = Records.Resolve(Record);
+    const std::string Label = Written != nullptr ? Written->Naming : "Constraint";
+    Revisions.Seal("Declared " + Label, "Create Constraint", { Record },
+                   Revisions.DeclaredCount() + 1u);
+    PendingSelection = Record;
     return true;
 }
 
@@ -832,11 +885,13 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
 void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
                                                    const PointerCondition& Pointer,
                                                    const TextInputCondition& TextInput,
+                                                   ParametricToolSubject ActiveTool,
                                                    const SelectionOptions& Selection,
                                                    const GizmoOptions& Gizmo,
                                                    const ResolvedCamera& Camera,
                                                    const WorkspaceDirectoryProjection& Directory,
                                                    const ParametricWorkspaceContext& WorkspaceApplied,
+                                                   WorkspaceNameIndex& Naming,
                                                    SketchStructure& Sketch,
                                                    WorldSketchStructure& World,
                                                    WorldSketchMapping& Mapping,
@@ -889,6 +944,27 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
     if (ActiveSketchSelection.Standing())
         ResolveWorldPickForSketchPick(Sketch, Records, World, Mapping, ActiveSketchSelection, WorldSemantic);
 
+    ConstraintSubject WorldConstraintSubject = ConstraintSubject::Fixed;
+    const bool WorldConstraintTool = SelectedConstraint(ActiveTool, WorldConstraintSubject);
+    bool WorldConstraintCommitted = false;
+    if (!Transform.Engaged() && !PointerTaken && Pointer.ContactPressed && WorldConstraintTool)
+    {
+        ResolveWorldSketchPickForElement(World, Camera, Extent,
+                                         Pointer.PositionX, Pointer.PositionY,
+                                         Selection.ResolvedTolerance(),
+                                         ResolveToolSelectionElement(ActiveTool, Selection),
+                                         WorldHovered);
+        if (ApplyViewportWorldConstraintTool(ActiveTool, Naming, World, Mapping, Sketch,
+                                             Records, Revisions, WorldSemantic, WorldHovered,
+                                             PendingSelection))
+        {
+            PointerTaken = true;
+            WorldConstraintCommitted = true;
+            // The active world pick remains the semantic selection. Only the compatibility record changes.
+            SemanticSelection = ActiveSketchSelection;
+        }
+    }
+
     const bool WasEngaged = Transform.Engaged();
     const bool WasAwaitingRelease = Transform.AwaitingRelease;
     const bool WasChanged = Transform.Changed;
@@ -909,7 +985,7 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
     if (!ResolveSketchPickForWorldPick(Sketch, Records, Mapping, WorldHovered, HoveredSelection))
         HoveredSelection = {};
 
-    if (SemanticSelection.Record.Assigned())
+    if (!WorldConstraintCommitted && SemanticSelection.Record.Assigned())
         PendingSelection = SemanticSelection.Record;
 
     const bool Committed = WasEngaged && WasChanged && !Transform.Engaged() && !TextInput.CancelPressed &&

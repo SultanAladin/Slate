@@ -27,6 +27,75 @@ struct WorldLoopName
     bool Assigned() const { return IssuedIndex != 0u; }
 };
 
+struct WorldConstraintName
+{
+    std::uint32_t IssuedIndex = 0u;
+    bool Assigned() const { return IssuedIndex != 0u; }
+};
+
+enum class WorldConstraintSubject : std::uint32_t
+{
+    Coincident = 0u,
+    Horizontal = 1u,
+    Vertical = 2u,
+    Parallel = 3u,
+    Perpendicular = 4u,
+    Tangent = 5u,
+    Equal = 6u,
+    Fixed = 7u,
+    SubjectCount = 8u
+};
+
+enum class WorldConstraintReferenceSubject : std::uint32_t
+{
+    None = 0u,
+    Curve = 1u,
+    Point = 2u
+};
+
+struct WorldConstraintReference
+{
+    WorldConstraintReferenceSubject Subject = WorldConstraintReferenceSubject::None;
+    WorldCurveName Curve = {};
+    std::uint32_t Point = 0u;
+
+    bool Declared() const
+    {
+        return (Subject == WorldConstraintReferenceSubject::Curve && Curve.Assigned())
+            || (Subject == WorldConstraintReferenceSubject::Point && Point != 0u);
+    }
+};
+
+struct WorldConstraintSpecification
+{
+    WorldConstraintSubject Subject = WorldConstraintSubject::Fixed;
+    WorldConstraintReference Primary = {};
+    WorldConstraintReference Secondary = {};
+
+    bool Declared() const
+    {
+        switch (Subject)
+        {
+            case WorldConstraintSubject::Coincident:
+                return Primary.Subject == WorldConstraintReferenceSubject::Point
+                    && Secondary.Subject == WorldConstraintReferenceSubject::Point
+                    && Primary.Declared() && Secondary.Declared();
+            case WorldConstraintSubject::Horizontal:
+            case WorldConstraintSubject::Vertical:
+            case WorldConstraintSubject::Fixed:
+                return Primary.Declared();
+            case WorldConstraintSubject::Parallel:
+            case WorldConstraintSubject::Perpendicular:
+            case WorldConstraintSubject::Tangent:
+            case WorldConstraintSubject::Equal:
+                return Primary.Declared() && Secondary.Declared();
+            case WorldConstraintSubject::SubjectCount:
+                return false;
+        }
+        return false;
+    }
+};
+
 struct WorldPlacementFrame
 {
     SpatialPoint Origin = {};
@@ -60,6 +129,7 @@ public:
     WorldCurveName DeclareCurve(const CurveSpecification& Incoming,
                                 const WorldPlacementFrame& SupportFrame);
     WorldLoopName DeclareLoop(const DeclaredWorldLoop& Incoming);
+    WorldConstraintName DeclareConstraint(const WorldConstraintSpecification& Incoming);
 
     bool DeclareCurveSupportFrame(WorldCurveName Subject,
                                   const WorldPlacementFrame& SupportFrame);
@@ -99,6 +169,8 @@ public:
     DeclaredWorldCurve* Resolve(WorldCurveName Subject);
     const DeclaredWorldLoop* Resolve(WorldLoopName Subject) const;
     DeclaredWorldLoop* Resolve(WorldLoopName Subject);
+    const WorldConstraintSpecification* Resolve(WorldConstraintName Subject) const;
+    WorldConstraintSpecification* Resolve(WorldConstraintName Subject);
 
     void ResolveCurves(std::vector<CurveSpecification>& Delivered) const;
 
@@ -108,12 +180,16 @@ public:
     std::vector<DeclaredWorldLoop>& Loops() { return HeldLoops; }
     std::uint32_t CurveCount() const { return static_cast<std::uint32_t>(HeldCurves.size()); }
     std::uint32_t LoopCount() const { return static_cast<std::uint32_t>(HeldLoops.size()); }
+    std::uint32_t ConstraintCount() const { return static_cast<std::uint32_t>(HeldConstraints.size()); }
+    const std::vector<WorldConstraintSpecification>& Constraints() const { return HeldConstraints; }
+    std::vector<WorldConstraintSpecification>& Constraints() { return HeldConstraints; }
     bool Declared() const;
     void Reclaim();
 
 private:
     std::vector<DeclaredWorldCurve> HeldCurves = {};
     std::vector<DeclaredWorldLoop> HeldLoops = {};
+    std::vector<WorldConstraintSpecification> HeldConstraints = {};
 };
 
 void ResolveWorldPlacementCoordinates(const WorldPlacementFrame& Frame,

@@ -100,6 +100,8 @@ bool ApplyDimensionTextEdit(const TextInputCondition& TextInput,
                             WorkspaceRevisionSequence& Revisions,
                             WorkspaceRecordName SelectedRecord);
 
+bool IsConstraintTool(ParametricToolSubject Tool);
+
 bool ApplyViewportConstraintTool(ParametricToolSubject Tool,
                                  WorkspaceNameIndex& Naming,
                                  SketchStructure& Sketch,
@@ -108,6 +110,17 @@ bool ApplyViewportConstraintTool(ParametricToolSubject Tool,
                                  const SketchPick& ActiveSelection,
                                  const SketchPick& HoveredSelection,
                                  WorkspaceRecordName& PendingSelection);
+
+bool ApplyViewportWorldConstraintTool(ParametricToolSubject Tool,
+                                      WorkspaceNameIndex& Naming,
+                                      WorldSketchStructure& World,
+                                      WorldSketchMapping& Mapping,
+                                      SketchStructure& Sketch,
+                                      WorkspaceRecordStructure& Records,
+                                      WorkspaceRevisionSequence& Revisions,
+                                      const WorldPick& ActiveSelection,
+                                      const WorldPick& HoveredSelection,
+                                      WorkspaceRecordName& PendingSelection);
 
 bool CommitCurveSet(WorkspaceNameIndex& Naming,
                     WorkspaceRecordStructure& Records,
@@ -158,11 +171,13 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
 void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
                                                    const PointerCondition& Pointer,
                                                    const TextInputCondition& TextInput,
+                                                   ParametricToolSubject ActiveTool,
                                                    const SelectionOptions& Selection,
                                                    const GizmoOptions& Gizmo,
                                                    const ResolvedCamera& Camera,
                                                    const WorkspaceDirectoryProjection& Directory,
                                                    const ParametricWorkspaceContext& WorkspaceApplied,
+                                                   WorkspaceNameIndex& Naming,
                                                    SketchStructure& Sketch,
                                                    WorldSketchStructure& World,
                                                    WorldSketchMapping& Mapping,

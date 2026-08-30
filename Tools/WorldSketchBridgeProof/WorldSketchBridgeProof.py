@@ -23,11 +23,13 @@ SUPPORTING = [
     "Engine/SlateWorkspace/Discipline/TransformSequence/Source/TransformSequence.cpp",
     "Engine/SlateWorkspace/Discipline/ViewportProjection/Source/ViewportProjection.cpp",
     "Engine/SlateWorkspace/Discipline/WorldSketchPicking/Source/WorldSketchScreenPicking.cpp",
+    "Engine/SlateWorkspace/Discipline/WorldSketchConstraintAuthoring/Source/WorldSketchConstraintAuthoring.cpp",
     "Engine/SlateWorkspace/Discipline/WorldSketchRenderingProjection/Source/WorldSketchRenderingProjection.cpp",
     "Engine/SlateShape/World/WorldSketchEditing/Source/WorldSketchEditing.cpp",
     "Engine/SlateShape/World/WorldSketchPicking/Source/WorldSketchPicking.cpp",
     "Engine/SlateShape/World/WorldSketchAnalysis/Source/WorldSketchAnalysis.cpp",
     "Engine/SlateShape/World/WorldSketchStructure/Source/WorldSketchStructure.cpp",
+    "Engine/SlateShape/World/WorldSketchConstraintSolver/Source/WorldSketchConstraintSolver.cpp",
     "Engine/SlateShape/World/WorldSketchSnap/Source/WorldSketchSnap.cpp",
     "Engine/SlateShape/Sketch/SketchSelection/Source/SketchSelection.cpp",
     "Engine/SlateWorkspace/Discipline/SketchPicking/Source/SketchPicking.cpp",
@@ -53,6 +55,7 @@ SUPPORTING = [
     "Engine/SlateShape/Topology/SolidStructure/Source/SolidStructure.cpp",
     "Engine/SlateShape/Reference/ReferenceSpecification/Source/ReferenceSpecification.cpp",
     "Engine/SlateShape/Record/WorkspaceRecordStructure/Source/WorkspaceRecordStructure.cpp",
+    "Engine/SlateShape/Record/WorkspaceNameIndex/Source/WorkspaceNameIndex.cpp",
     "Engine/SlateShape/Record/WorkspaceRevisionSequence/Source/WorkspaceRevisionSequence.cpp",
 ]
 

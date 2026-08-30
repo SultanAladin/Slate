@@ -36,22 +36,39 @@ struct WorldSketchLoopReference
     std::uint32_t ProfileLoopIndex = 0u;
 };
 
+struct WorldSketchConstraintReference
+{
+    WorldConstraintName World = {};
+    ConstraintName Sketch = {};
+};
+
 struct WorldSketchMapping
 {
     std::vector<WorldSketchCurveReference> Curves = {};
     std::vector<WorldSketchLoopReference> Loops = {};
+    std::vector<WorldSketchConstraintReference> Constraints = {};
 };
 
 WorldCurveName ResolveWorldCurveForSketchCurve(const WorldSketchMapping& Mapping,
                                                SketchCurveName Curve);
 SketchCurveName ResolveSketchCurveForWorldCurve(const WorldSketchMapping& Mapping,
                                                 WorldCurveName Curve);
+WorldConstraintName ResolveWorldConstraintForSketchConstraint(const WorldSketchMapping& Mapping,
+                                                              ConstraintName Constraint);
+ConstraintName ResolveSketchConstraintForWorldConstraint(const WorldSketchMapping& Mapping,
+                                                         WorldConstraintName Constraint);
 SketchSnapPlacement ResolveCompatibilitySnap(const WorldSnapPlacement& Snapped,
                                              const WorldSketchMapping& Mapping);
 
 bool MirrorSketchIntoWorldSketch(const SketchStructure& Sketch,
                                 WorldSketchStructure& Declared,
                                 WorldSketchMapping& Mapping);
+
+bool MirrorWorldConstraintIntoSketch(const WorldSketchStructure& Declared,
+                                     const WorldSketchMapping& Mapping,
+                                     WorldConstraintName WorldConstraint,
+                                     SketchStructure& Sketch,
+                                     ConstraintName& SketchConstraint);
 
 bool ApplyWorldSketchToSketch(const WorldSketchStructure& Declared,
                              SketchStructure& Sketch);

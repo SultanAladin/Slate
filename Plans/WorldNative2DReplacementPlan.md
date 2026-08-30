@@ -119,3 +119,28 @@ The world authoring model now owns semantic snap resolution. `WorldSketchSnap` a
   - `WorldSketchFoundationProof`
   - `SketchDrawingProof`
   - `WorkplaneCatalogueProof`
+
+## World-native semantic constraints
+
+World constraint authoring now follows the same authority boundary as snapping. `WorldSketchStructure` owns
+`WorldConstraintName`, `WorldConstraintSubject`, semantic references, and stored specifications. The
+camera-free `WorldSketchConstraintAuthoring` unit builds those specifications from `WorldPick` values, while
+`WorldSketchConstraintSolver` evaluates and applies supported relationships directly to world curves and
+points. The solver preserves authored support frames while enforcing horizontal and vertical relationships.
+
+The workspace constraint interaction resolves screen picks into semantic `WorldPick` values, declares and
+solves the world constraint first, then mirrors only the resulting compatibility `ConstraintSpecification`
+and workspace record. `WorldSketchMapping` records the world/compatibility constraint pairing alongside curve
+and loop mappings. Existing sketch-only constraint authoring remains available for the deliberate legacy path;
+world-backed interaction routes constraint tools through the world authoring seam.
+
+### World-constraint acceptance
+- Constraint specifications and identifiers are owned by `WorldSketchStructure`, not by `SketchStructure`.
+- Constraint authoring consumes semantic world curve and point picks, without `SketchPick` or camera state.
+- Coincident, horizontal, vertical, parallel, perpendicular, equal, tangent, and fixed world relationships
+  have declared subjects; the solver applies the supported line/curve cases directly to world geometry.
+- Compatibility constraints and workspace records are mirrored after world application, with mapping and
+  revision state preserved.
+- World constraint authoring and solving do not rebuild or solve through the compatibility sketch.
+- `WorldSketchConstraintProof`, world bridge/interaction proofs, strict compilation, partition checks, and
+  host-budget checks remain green.
