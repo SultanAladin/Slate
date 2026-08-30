@@ -7,6 +7,30 @@
 namespace Slate
 {
 
+
+WorkspaceRecordName EnsureNamedFolder(WorkspaceNameIndex& Naming,
+                                      WorkspaceRecordStructure& Records,
+                                      WorkspaceCategory Category,
+                                      const char* FolderName)
+{
+    for (std::uint32_t Index = 1u; Index <= Records.DeclaredCount(); ++Index)
+    {
+        const WorkspaceRecord* Existing = Records.Resolve({ Index });
+        if (Existing != nullptr && Existing->Subject == WorkspaceRecordSubject::Folder &&
+            Existing->FolderCategory == Category && !Existing->ParentFolder.Assigned() &&
+            Existing->Naming == FolderName)
+            return { Index };
+    }
+
+    WorkspaceRecord Folder = {};
+    Folder.Subject = WorkspaceRecordSubject::Folder;
+    Folder.FolderCategory = Category;
+    Folder.Naming = FolderName;
+    Folder.AutoNamed = false;
+    static_cast<void>(Naming);
+    return Records.Declare(Folder);
+}
+
 WorkspaceRecordName ResolveCategoryFolder(const WorkspaceRecordStructure& Records,
                                           WorkspaceCategory Category)
 {
@@ -30,7 +54,7 @@ WorkspaceRecordName DeclareWorkspaceCurve(WorkspaceNameIndex& Naming,
 {
     WorkspaceRecord Record = {};
     Record.Subject      = WorkspaceRecordSubject::OpenCurve;
-    Record.ParentFolder = ResolveCategoryFolder(Records, WorkspaceCategory::Sketch);
+    Record.ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch, "Curves");
     Record.Naming       = Construction
                         ? std::string("Construction ") + Naming.Issue(WorkspaceRecordSubject::OpenCurve)
                         : Naming.Issue(WorkspaceRecordSubject::OpenCurve);
@@ -45,7 +69,7 @@ WorkspaceRecordName DeclareWorkspaceProfile(WorkspaceNameIndex& Naming,
 {
     WorkspaceRecord Record = {};
     Record.Subject      = WorkspaceRecordSubject::ClosedProfile;
-    Record.ParentFolder = ResolveCategoryFolder(Records, WorkspaceCategory::Sketch);
+    Record.ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch, "Profiles");
     Record.Naming       = Naming.Issue(WorkspaceRecordSubject::ClosedProfile);
     Record.Profile      = Profile;
     Record.ClosedSemantic          = true;
@@ -83,7 +107,7 @@ WorkspaceRecordName DeclareWorkspacePoint(WorkspaceNameIndex& Naming,
 {
     WorkspaceRecord Record = {};
     Record.Subject      = WorkspaceRecordSubject::Point;
-    Record.ParentFolder = ResolveCategoryFolder(Records, WorkspaceCategory::Sketch);
+    Record.ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch, "Points");
     Record.Naming       = Naming.Issue(WorkspaceRecordSubject::Point);
     Record.SketchPoint  = Point;
     return Records.Declare(Record);
