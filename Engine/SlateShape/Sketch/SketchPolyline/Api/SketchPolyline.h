@@ -35,6 +35,12 @@ namespace Slate
 std::uint32_t ResolveCurveStepCount(const CurveSpecification& Geometry,
                                     std::uint32_t Floor = 48u);
 
+/// 🧩 Raises the curvature-aware floor for a viewport-dependent detail scale. The scale is bounded so
+///    close zoom improves quality without allowing one curve to exhaust the bounded CAD packet.
+std::uint32_t ResolveCurveStepCountForDetail(const CurveSpecification& Geometry,
+                                             std::uint32_t Floor,
+                                             double DetailScale);
+
 /// 🧩 The most chords any one curve may be given, however large it is drawn.
 constexpr std::uint32_t CurveStepLimit = 512u;
 

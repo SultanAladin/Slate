@@ -831,6 +831,12 @@ bool ProjectWorldPlacementPreview(const ResolvedCamera& Camera,
                                   const SketchRenderingStyle& Style)
 {
     const PlaneExtent PhysicalExtent = Drawable.ToPhysical(LogicalExtent);
+    const double Distance = std::sqrt(Camera.Frame.Eye.Left * Camera.Frame.Eye.Left
+                                    + Camera.Frame.Eye.Up * Camera.Frame.Eye.Up
+                                    + Camera.Frame.Eye.Forward * Camera.Frame.Eye.Forward);
+    const double DetailScale = Camera.Perspective
+                             ? std::sqrt(12.0 / std::max(Distance, 0.25))
+                             : std::sqrt(std::max(Camera.OrthoScale, 1.0) / 48.0);
     bool Appended = false;
 
     for (const CurveSpecification& Span : Geometry)
@@ -839,7 +845,8 @@ bool ProjectWorldPlacementPreview(const ResolvedCamera& Camera,
             continue;
 
         std::vector<SpatialPoint> Polyline;
-        AppendCurvePolyline(Span, Polyline, Style.CurveSteps);
+        AppendCurvePolyline(Span, Polyline,
+                             ResolveCurveStepCountForDetail(Span, Style.CurveSteps, DetailScale));
         for (std::size_t Index = 0u; Index + 1u < Polyline.size(); ++Index)
         {
             AppendClippedSegment(Camera, PhysicalExtent,

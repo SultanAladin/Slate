@@ -291,6 +291,16 @@ std::uint32_t ResolveCurveStepCount(const CurveSpecification& Geometry,
     return std::clamp(std::max(Wanted, Floor), 2u, CurveStepLimit);
 }
 
+std::uint32_t ResolveCurveStepCountForDetail(const CurveSpecification& Geometry,
+                                             std::uint32_t Floor,
+                                             double DetailScale)
+{
+    const double BoundedScale = std::clamp(DetailScale, 1.0, 8.0);
+    const std::uint32_t DetailedFloor = static_cast<std::uint32_t>(
+        std::ceil(static_cast<double>(Floor) * BoundedScale));
+    return ResolveCurveStepCount(Geometry, DetailedFloor);
+}
+
 void AppendCurvePolyline(const CurveSpecification& Geometry,
                          std::vector<SpatialPoint>& Polyline,
                          std::uint32_t StepCount)

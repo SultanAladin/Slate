@@ -136,10 +136,7 @@ Unsigned32 ResolveViewportCurveStepFloor(const ResolvedCamera& Camera,
         Detail = std::sqrt(12.0 / std::max(Distance, 0.25));
     }
 
-    const double Bounded = std::clamp(Detail, 1.0, 8.0);
-    const std::uint32_t AdaptiveFloor = static_cast<std::uint32_t>(
-        std::ceil(static_cast<double>(Floor) * Bounded));
-    return ResolveCurveStepCount(Geometry, AdaptiveFloor);
+    return ResolveCurveStepCountForDetail(Geometry, Floor, Detail);
 }
 
 bool ResolveCurvePolyline(const WorldSketchStructure& Declared,
