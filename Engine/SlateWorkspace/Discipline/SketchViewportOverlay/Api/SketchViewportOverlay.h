@@ -136,6 +136,16 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
 
 void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
                                     const PlaneExtent& Extent,
+                                    const SpatialBasis& Basis,
+                                    const ViewportStanding& View,
+                                    bool Perspective,
+                                    const SketchStructure& Sketch,
+                                    const WorkspaceRecordStructure& Records,
+                                    const SketchPick& Hovered,
+                                    const SketchSelectionSet& Selected);
+
+void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
+                                    const PlaneExtent& Extent,
                                     const ResolvedCamera& Camera,
                                     const WorldSketchStructure& Declared,
                                     const WorldPick& Hovered,

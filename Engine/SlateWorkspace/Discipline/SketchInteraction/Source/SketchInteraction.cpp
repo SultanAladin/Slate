@@ -1001,7 +1001,7 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
     }
 
     RecordViewportSelectionOverlay(Overlay, Extent, Basis, View, Perspective,
-                                   Sketch, Records, HoveredSelection, ActiveSelection);
+                                   Sketch, Records, HoveredSelection, SelectionSet);
     // 📝 The selection outline is drawn either way: knowing WHAT is selected is not the same question as
     //    wanting handles on it, and hiding the gizmo must not hide the selection.
     if (Gizmo.Shown && SelectStanding)
