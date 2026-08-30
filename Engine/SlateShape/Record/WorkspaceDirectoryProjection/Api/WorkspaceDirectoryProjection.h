@@ -28,6 +28,7 @@ struct WorkspaceDirectoryRow
     WorkspaceCategory Category = WorkspaceCategory::Sketch;
     WorkspaceRecordName Record = {};
     WorkspaceRecordSubject Subject = WorkspaceRecordSubject::Folder;
+    WorkspaceShapeFamily Family = WorkspaceShapeFamily::Unknown;
     std::uint32_t Depth = 0u;
     std::uint32_t Enclosing = 0xFFFFFFFFu;
     std::uint32_t EnclosedCount = 0u;
@@ -49,6 +50,7 @@ struct WorkspaceDirectoryProjection
 
 const char* WorkspaceCategoryText(WorkspaceCategory Category);
 const char* WorkspaceRecordSubjectText(WorkspaceRecordSubject Subject);
+const char* WorkspaceShapeFamilyText(WorkspaceShapeFamily Family);
 const char* WorkspaceDirectoryCategoryTags(WorkspaceCategory Category);
 const char* WorkspaceDirectorySubjectTags(WorkspaceRecordSubject Subject, bool ClosedSemantic);
 

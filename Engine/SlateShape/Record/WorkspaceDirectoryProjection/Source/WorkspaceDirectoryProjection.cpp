@@ -117,6 +117,7 @@ private:
         Row.Role = WorkspaceDirectoryRowRole::CategoryRoot;
         Row.Category = Category;
         Row.Subject = WorkspaceRecordSubject::Folder;
+        Row.Family = WorkspaceShapeFamily::Unknown;
         Row.Depth = 0u;
         Row.Enclosing = NoDirectoryParent;
         Row.StableIdentity = CategoryIdentity(Category);
@@ -147,6 +148,7 @@ private:
         Row.Category = PresentedCategoryOfRecord(*Held);
         Row.Record = RecordName;
         Row.Subject = Held->Subject;
+        Row.Family = Held->Family;
         Row.Depth = Depth;
         Row.Enclosing = ParentRow;
         Row.StableIdentity = static_cast<std::uint64_t>(RecordName.IssuedIndex);
@@ -216,6 +218,37 @@ const char* WorkspaceRecordSubjectText(WorkspaceRecordSubject Subject)
             return "Record";
     }
     return "Record";
+}
+
+const char* WorkspaceShapeFamilyText(WorkspaceShapeFamily Family)
+{
+    switch (Family)
+    {
+        case WorkspaceShapeFamily::Point:         return "Point";
+        case WorkspaceShapeFamily::Line:          return "Line";
+        case WorkspaceShapeFamily::CircularArc:   return "Circular Arc";
+        case WorkspaceShapeFamily::Bezier:        return "Bezier";
+        case WorkspaceShapeFamily::Hermite:       return "Hermite";
+        case WorkspaceShapeFamily::BasisSpline:   return "Basis Spline";
+        case WorkspaceShapeFamily::Nurbs:         return "NURBS";
+        case WorkspaceShapeFamily::Polygon:       return "Polygon";
+        case WorkspaceShapeFamily::Rectangle:     return "Rectangle";
+        case WorkspaceShapeFamily::Slot:          return "Slot";
+        case WorkspaceShapeFamily::Circle:        return "Circle";
+        case WorkspaceShapeFamily::Ellipse:       return "Ellipse";
+        case WorkspaceShapeFamily::EllipticalArc: return "Elliptical Arc";
+        case WorkspaceShapeFamily::Profile:       return "Profile";
+        case WorkspaceShapeFamily::Surface:       return "Surface";
+        case WorkspaceShapeFamily::Solid:         return "Solid";
+        case WorkspaceShapeFamily::Dimension:     return "Dimension";
+        case WorkspaceShapeFamily::Constraint:    return "Constraint";
+        case WorkspaceShapeFamily::Workplane:     return "Workplane";
+        case WorkspaceShapeFamily::Construction:  return "Construction";
+        case WorkspaceShapeFamily::Unknown:
+        case WorkspaceShapeFamily::ShapeFamilyCount:
+            return "Unclassified";
+    }
+    return "Unclassified";
 }
 
 const char* WorkspaceDirectoryCategoryTags(WorkspaceCategory Category)
