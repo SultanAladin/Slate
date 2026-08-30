@@ -687,7 +687,9 @@ void SetSketchPick(SketchSelectionSet& Set, const SketchPick& Pick, bool Additiv
         Set.Items.erase(Set.Items.begin() + static_cast<std::ptrdiff_t>(Index));
         return;
     }
-    Set.Items.push_back(Pick);
+    // The most recently added item is the active item. This keeps the visible marker and
+    // directory focus on the thing just Shift-clicked while the complete set remains selected.
+    Set.Items.insert(Set.Items.begin(), Pick);
 }
 
 void RefreshSketchSelectionPositions(SketchSelectionSet& Set,

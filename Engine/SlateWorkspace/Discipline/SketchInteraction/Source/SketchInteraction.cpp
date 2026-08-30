@@ -222,8 +222,11 @@ void DriveViewport(const PlaneExtent& Extent,
         SpatialDirection Pan = {};
         if (Camera.LeftHeld)  Pan = Added(Pan, Scaled(Frame.Right, -Distance));
         if (Camera.RightHeld) Pan = Added(Pan, Scaled(Frame.Right, Distance));
-        if (Camera.ForwardHeld)  Pan = Added(Pan, Scaled(Frame.Up, Distance));
-        if (Camera.BackwardHeld) Pan = Added(Pan, Scaled(Frame.Up, -Distance));
+        // WASD follows the orthographic camera basis. Forward/backward must not be
+        // substituted with screen-up: on a top/side/front lock those are depth moves,
+        // not an accidental diagonal pan across the sketch.
+        if (Camera.ForwardHeld)  Pan = Added(Pan, Scaled(Frame.Forward, Distance));
+        if (Camera.BackwardHeld) Pan = Added(Pan, Scaled(Frame.Forward, -Distance));
         View.Focus = Added(View.Focus, Pan);
         if (Camera.UpHeld)
             View.OrthoScale = std::clamp(View.OrthoScale / (1.0 + ElapsedSeconds), 0.05, 40.0);
