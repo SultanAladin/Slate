@@ -140,6 +140,16 @@ void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
     if (HoveredHandle != nullptr)
         *HoveredHandle = ResolvedHandle;
 
+    // 🔴 Clicking empty viewport space is the standard CAD deselect gesture. It must happen
+    //    only after UI/gizmo hit testing has had first refusal, so a menu interaction cannot
+    //    clear the selection behind it.
+    if (!PointerTaken && !Transform.Engaged() && Pointer.ContactPressed &&
+        ResolvedHandle == GizmoHandle::None && !HoveredSelection.Standing())
+    {
+        SemanticSelection = {};
+        ActiveSelection = {};
+    }
+
     if (!PointerTaken && !Transform.Engaged() && Pointer.ContactPressed &&
         ResolvedHandle == GizmoHandle::None && HoveredSelection.Standing())
     {

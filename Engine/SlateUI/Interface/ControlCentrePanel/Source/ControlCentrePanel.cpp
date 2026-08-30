@@ -889,7 +889,7 @@ void ControlCentrePanel::ThemePage(const PlaneExtent& Extent, ControlCentreConfi
                                    const ThemeDeclaration& Theme, ThemeToken Accent)
 {
     const PlaneExtent Section = Spanning(Extent.MinimumX, Extent.MinimumY, Extent.Width(), 1340.0f);
-    Surface->Ground(Section, WithOpacity(Theme.Card, .72f), static_cast<float>(Configuration.Radius < 24u ? 24u : Configuration.Radius), CornerAll);
+    Surface->Ground(Section, WithOpacity(Theme.Card, 1.0f), static_cast<float>(Configuration.Radius < 24u ? 24u : Configuration.Radius), CornerAll);
     Surface->Edge(Section, Theme.Edge, 1.0f, static_cast<float>(Configuration.Radius < 24u ? 24u : Configuration.Radius), CornerAll);
     const float Inset = 28.0f;
     const float ContentLeft = Extent.MinimumX + Inset;
@@ -1095,7 +1095,7 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
 
     const PlaneExtent Section = Spanning(Extent.MinimumX, Extent.MinimumY, Extent.Width(),
                                          ContentBottom - Extent.MinimumY + 24.0f);
-    Surface->Ground(Section, WithOpacity(Theme.Card, .72f),
+    Surface->Ground(Section, WithOpacity(Theme.Card, 1.0f),
                     static_cast<float>(Configuration.Radius < 24u ? 24u : Configuration.Radius), CornerAll);
     Surface->Edge(Section, Theme.Edge, 1.0f,
                   static_cast<float>(Configuration.Radius < 24u ? 24u : Configuration.Radius), CornerAll);
