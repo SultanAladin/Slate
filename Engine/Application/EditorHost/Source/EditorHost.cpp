@@ -363,7 +363,6 @@ static std::uint32_t             SketchTrimKeep      = 0u;
     WorkspaceCadPass                 CadPass;
     std::uint32_t                    UploadedCadGeneration = 0xFFFFFFFFu;
     WorkspaceCadProjection           ViewportCadProjections[PanelStructure::RecordLimit] = {};
-    DrawableScale                    ViewportLeafScale = {};
     GeometryDeviceExchange           GeometryDevice = {};
     GeometryFileInterchange          GeometryTransfer = {};
     GeometryInterchange              ImportedGeometry = {};
@@ -378,6 +377,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
     bool                             GeometryAdmissionPending = false;
     bool                             EditorCameraLookLatched = false;
     std::uint32_t           OverlayGeneration[PanelStructure::RecordLimit] = {};   // [-] - per viewport leaf
+    float                    OverlayPixelScale[PanelStructure::RecordLimit] = {};   // [-] - uploaded drawable scale
 
     // 📝 One overlay record per viewport leaf, in STATIC storage: each record is ~70 KB and the
     //    automatic-storage budget (a quarter of a Windows thread stack) cannot hold eleven of them.
@@ -837,7 +837,10 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                     UploadedCadGeneration = 0xFFFFFFFFu;
                 }
                 for (std::uint32_t Index = 0u; Index < PanelStructure::RecordLimit; ++Index)
+                {
                     OverlayGeneration[Index] = 0u;
+                    OverlayPixelScale[Index] = 0.0f;
+                }
             }
 
             const DeviceOffering ResizedGeometryOffering = Lifetime.Offering();
@@ -897,6 +900,12 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                                static_cast<float>(Pass.Height));
 
             const PointerCondition& ForegroundPointer = Viewport.Surface().Pointer();
+            // 🔴 The interface and the swapchain use different pixel units on a scaled Windows
+            //    display. All pointer/projection work below stays in logical points; the GPU
+            //    overlay and CAD scissor are converted once through this measured display scale.
+            const DrawableScale ViewportDrawable = DrawableScale::Between(
+                Viewport.Surface().Display().Width,
+                static_cast<double>(Pass.Width));
             const PlaneExtent NorthInterior = Viewport.Drawers().Interior(DrawerBearing::North);
             const PlaneExtent SouthInterior = Viewport.Drawers().Interior(DrawerBearing::South);
 
@@ -1537,10 +1546,15 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     //    down but ran the wrong way left and right, and why drawn
                                     //    shapes appeared to sit on a surface that slid under them.
                                     //    The existing grid is the grid; the sketch draws onto it.
-                                    const DrawableScale SketchDrawable = DrawableScale::Between(
-                                        Viewport.Surface().Display().Width,
-                                        static_cast<double>(Pass.Width));
-                                    Discard(ProjectWorldBackedSketchRendering(SketchWorld, SceneCamera,
+                                    const DrawableScale SketchDrawable = ViewportDrawable;
+                                    // 🔴 The CAD packet is rasterised in physical framebuffer pixels. An
+                                    //    orthographic camera's scale is pixels per world unit, so the
+                                    //    render copy must carry the same logical-to-physical factor as
+                                    //    the packet extent. Picking keeps the logical camera unchanged.
+                                    ResolvedCamera RenderCamera = SceneCamera;
+                                    if (!RenderCamera.Perspective)
+                                        RenderCamera.OrthoScale *= SketchDrawable.Factor;
+                                    Discard(ProjectWorldBackedSketchRendering(SketchWorld, RenderCamera,
                                                                               LeafBody, SketchDrawable,
                                                                               SketchCadPacket));
 
@@ -1566,13 +1580,14 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                         // 📝 The wheel-chosen side count reaches the preview, so
                                         //    scrolling a polygon redraws it at the new resolution
                                         //    instead of showing an unchanging circle.
-                                        ResolvePlacementCurves(SketchTool.Subject(),
+                                        ResolvePlacementCurves(SketchBasis,
+                                                               SketchTool.Subject(),
                                                                SketchTool.Anchors(),
                                                                SketchTool.HoverPosition(),
                                                                PreviewSpans,
                                                                SketchTool.Resolution());
                                         static_cast<void>(ProjectWorldPlacementPreview(
-                                            SceneCamera, LeafBody, SketchDrawable, PreviewSpans,
+                                            RenderCamera, LeafBody, SketchDrawable, PreviewSpans,
                                             SketchTool.Anchors(), SketchTool.HoverPosition(),
                                             SketchCadPacket));
                                     }
@@ -1613,8 +1628,13 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     const bool ExactOrthographicPlane =
                                         !LeafPerspective && ResolveViewedWorkplane(SketchView.Orientation, ViewedWorkplane)
                                      && SketchWorkplanes.ActiveName() == SketchWorkplanes.StandingName(ViewedWorkplane);
-                                    Pose.Standing = ExactOrthographicPlane
-                                                  && PanelDeclared.Lattice != PanelLatticePresentation::None;
+                                    // 🔴 THE GRID MUST NOT DISAPPEAR IN PERSPECTIVE. Perspective uses the
+                                    //    default ground plane and the free camera frame; a settled axis
+                                    //    view uses the selected standard plane. During the transit the
+                                    //    scale remains zero so the shader stays perspective with the
+                                    //    scene instead of flattening early.
+                                    Pose.Standing = PanelDeclared.Lattice != PanelLatticePresentation::None
+                                                 && (LeafPerspective || ExactOrthographicPlane);
 
                                     // 🔴 The analytic grid consumes the same frame as the settled camera.
                                     //    In particular, Front/Back and Left/Right may have their eye on
@@ -1665,10 +1685,11 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     // 📝 The resolver reasons in double so the blend does not step;
                                     //    the fragment stage reads Real32, so narrow once, here, where
                                     //    it is visible, rather than letting the compiler do it quietly.
-                                    Pose.OrthoScale = static_cast<Real32>(ResolveTransitGroundScale(
-                                        Transit, SceneApplied.ViewportSkyCamera.FieldOfViewDegrees,
-                                        SketchView.OrthoScale, SketchView.Distance,
-                                        LeafBody.Height()));
+                                    Pose.OrthoScale = LeafPerspective ? 0.0f
+                                        : static_cast<Real32>(ResolveTransitGroundScale(
+                                            Transit, SceneApplied.ViewportSkyCamera.FieldOfViewDegrees,
+                                            SketchView.OrthoScale, SketchView.Distance,
+                                            LeafBody.Height()));
                                     Pose.LineWeight   = PanelDeclared.LatticeLineWeight;
                                     Pose.DotRadius    = PanelDeclared.LatticeDotRadius;
                                     Pose.Subdivisions = PanelDeclared.Subdivisions > 0u
@@ -1698,13 +1719,8 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                         // 🔴 Measured from the two extents seen THIS frame. A reported
                                         //    scale can be a frame stale after the window changes
                                         //    monitor, and a stale scale clips the wrong region.
-                                        const DrawableScale Drawable = DrawableScale::Between(
-                                            Viewport.Surface().Display().Width,
-                                            static_cast<double>(Pass.Width));
-
                                         ViewportCadProjections[ViewportLeafTally] =
                                             ResolveWorldSketchScreenProjection(Pass.Width, Pass.Height);
-                                        ViewportLeafScale = Drawable;
                                     }
 
                                     ++ViewportLeafTally;
@@ -2331,13 +2347,13 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                             // ⚠️ The CAD pass scissor is PHYSICAL. The leaf and the uncovered drawer
                             //    band are logical, so the clipped band is converted as one extent.
                             const PlaneExtent CadClip =
-                                ViewportLeafScale.ToPhysical(Spanning(LeafRect.MinimumX, CadClipY0,
-                                                                      LeafRect.Width(), CadClipY1 - CadClipY0));
+                                ViewportDrawable.ToPhysical(Spanning(LeafRect.MinimumX, CadClipY0,
+                                                                     LeafRect.Width(), CadClipY1 - CadClipY0));
 
                             // 🔴 The open menu is withheld here too, and converted to PHYSICAL first.
                             const PlaneExtent CadWithheld =
                                 WorkspacePanels.AnyPopupStanding()
-                                    ? ViewportLeafScale.ToPhysical(WorkspacePanels.PopupExtent())
+                                    ? ViewportDrawable.ToPhysical(WorkspacePanels.PopupExtent())
                                     : PlaneExtent{};
 
                             CadPass.RecordAround(Pass.Recording,
@@ -2359,22 +2375,25 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                     const std::uint32_t LeafIndex = ViewportLeafIndexs[ViewportIndex];
                     OverlayGeometry& LeafOverlay = ViewportOverlays[LeafIndex];
 
-                    if (LeafOverlay.Generation != OverlayGeneration[LeafIndex])
+                    const float DrawablePixelScale = static_cast<float>(ViewportDrawable.Factor);
+                    if (LeafOverlay.Generation != OverlayGeneration[LeafIndex]
+                        || std::fabs(OverlayPixelScale[LeafIndex] - DrawablePixelScale) > 1.0e-6f)
                     {
-                        Overlay.Upload(LeafOverlay);
+                        Overlay.Upload(LeafOverlay, DrawablePixelScale);
                         OverlayGeneration[LeafIndex] = LeafOverlay.Generation;
+                        OverlayPixelScale[LeafIndex] = DrawablePixelScale;
                     }
 
-                    const PlaneExtent& LeafRect = ViewportLeafRects[ViewportIndex];
+                    const PlaneExtent& LogicalLeafRect = ViewportLeafRects[ViewportIndex];
 
                     // 🔴 TWO RECTANGLES, DELIBERATELY. The leaf's WHOLE box is the camera's canvas and
                     //    is passed unchanged however much a drawer covers; the scissor is the part of
-                    //    it no drawer covers. Passing the clipped box for both is what made the grid
+                    //    it no drawer covers. Passing the clipped box for both was what made the grid
                     //    squash into the remaining space instead of simply being hidden there.
-                    const float ScissorY0 = std::max(LeafRect.MinimumY, UncoveredTop);
-                    const float ScissorY1 = std::min(LeafRect.MaximumY, UncoveredBottom);
+                    const float LogicalScissorY0 = std::max(LogicalLeafRect.MinimumY, UncoveredTop);
+                    const float LogicalScissorY1 = std::min(LogicalLeafRect.MaximumY, UncoveredBottom);
 
-                    if (ScissorY1 <= ScissorY0)
+                    if (LogicalScissorY1 <= LogicalScissorY0)
                         continue;
 
                     // 🔴 AND AN OPEN MENU HIDES THE BOX IT COVERS, for exactly the reason the drawers
@@ -2388,12 +2407,22 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                     const PlaneExtent Withheld = WorkspacePanels.AnyPopupStanding()
                                                  ? WorkspacePanels.PopupExtent() : PlaneExtent{};
 
+                    const PlaneExtent LeafRect = ViewportDrawable.ToPhysical(LogicalLeafRect);
+                    const PlaneExtent PhysicalScissor = ViewportDrawable.ToPhysical(
+                        Spanning(LogicalLeafRect.MinimumX, LogicalScissorY0, LogicalLeafRect.Width(),
+                                 LogicalScissorY1 - LogicalScissorY0));
+                    const PlaneExtent PhysicalWithheld = WorkspacePanels.AnyPopupStanding()
+                        ? ViewportDrawable.ToPhysical(Withheld) : PlaneExtent{};
+                    const float ScissorY0 = PhysicalScissor.MinimumY;
+                    const float ScissorY1 = PhysicalScissor.MaximumY;
+
                     Overlay.RecordAround(Pass.Recording, Pass.Width, Pass.Height,
                                          LeafRect.MinimumX, LeafRect.MinimumY,
                                          LeafRect.MaximumX, LeafRect.MaximumY,
-                                         LeafRect.MinimumX, ScissorY0, LeafRect.MaximumX, ScissorY1,
-                                         Withheld.MinimumX, Withheld.MinimumY,
-                                         Withheld.MaximumX, Withheld.MaximumY);
+                                         PhysicalScissor.MinimumX, ScissorY0,
+                                         PhysicalScissor.MaximumX, ScissorY1,
+                                         PhysicalWithheld.MinimumX, PhysicalWithheld.MinimumY,
+                                         PhysicalWithheld.MaximumX, PhysicalWithheld.MaximumY);
                 }
             }
         }

@@ -7,6 +7,7 @@
 
 #include "Foundation/DeliveryGuarantee.h"
 #include "SlateShape/Geometry/CurveSpecification/Api/CurveSpecification.h"
+#include "SlateShape/Geometry/SpatialBasis/Api/SpatialBasis.h"
 #include "SlateShape/Sketch/ConstraintSpecification/Api/ConstraintSpecification.h"
 #include "SlateShape/Sketch/SketchSnap/Api/SketchSnap.h"
 #include "SlateUI/Interface/ParametricTools/Api/ParametricToolsSpecification.h"
@@ -394,6 +395,15 @@ constexpr std::uint32_t PolygonSideDefault = 6u;
 
 /// in    Resolution  [-]  how many sides a polygon should preview with, from the wheel
 void ResolvePlacementCurves(SketchSubject Subject,
+                            const std::vector<SpatialPoint>& Anchors,
+                            const SpatialPoint& Hover,
+                            std::vector<CurveSpecification>& Delivered,
+                            std::uint32_t Resolution = PolygonSideDefault);
+
+/// 🧩 Basis-aware placement resolver for world-native preview paths. Rectangle corners are derived in
+///       the active plane rather than by assuming that world Up is the plane's second coordinate.
+void ResolvePlacementCurves(const SpatialBasis& Basis,
+                            SketchSubject Subject,
                             const std::vector<SpatialPoint>& Anchors,
                             const SpatialPoint& Hover,
                             std::vector<CurveSpecification>& Delivered,

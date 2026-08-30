@@ -29,6 +29,9 @@ struct WorldSketchTransformSession
     SpatialPoint Pivot = {};
     SpatialPoint StartReference = {};
     SpatialDirection AxisDirection = { 1.0, 0.0, 0.0 };
+    SpatialDirection RotationU = { 1.0, 0.0, 0.0 };
+    SpatialDirection RotationV = { 0.0, 1.0, 0.0 };
+    double StartDistance = 1.0;
     double PreviewValue = 0.0;
 
     TransformManner& Manner() { return Standing.Manner; }
@@ -66,7 +69,8 @@ bool StartWorldSketchTransformSession(const WorldSketchStructure& Declared,
                                      TransformRestriction Restriction,
                                      bool SlideAlongCurve,
                                      WorldSketchTransformSession& Session,
-                                     bool MouseDriven = false);
+                                     bool MouseDriven = false,
+                                     TransformManner Manner = TransformManner::Move);
 
 void UpdateWorldSketchTransformSession(const ResolvedCamera& Camera,
                                       const PlaneExtent& Extent,

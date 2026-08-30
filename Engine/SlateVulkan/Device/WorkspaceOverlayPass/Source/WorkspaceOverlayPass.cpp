@@ -382,10 +382,15 @@ Deliver<bool> WorkspaceOverlayPass::ConstructWorkspaceOverlayPass(const VulkanEx
     return Deliver<bool>::Result(true);
 }
 
-void WorkspaceOverlayPass::Upload(const OverlayGeometry& Overlay)
+void WorkspaceOverlayPass::Upload(const OverlayGeometry& Overlay, float PixelScale)
 {
-    // 📐 The ground is a pose, not geometry: copied whole, never tessellated.
+    // 📐 The ground is a pose, not geometry: copied whole, never tessellated. Its authored pixel fields
+    //    are scaled here alongside the screen-space records; its cell and world extents stay in metres.
+    const float PhysicalScale = PixelScale > 0.0f ? PixelScale : 1.0f;
     OverlayGround = Overlay.Ground;
+    OverlayGround.LineWeight *= PhysicalScale;
+    OverlayGround.DotRadius *= PhysicalScale;
+    OverlayGround.OrthoScale *= PhysicalScale;
 
     if (DeviceEdge == nullptr || MappedSlot == nullptr)
         return;
@@ -400,11 +405,11 @@ void WorkspaceOverlayPass::Upload(const OverlayGeometry& Overlay)
         const OverlayLine& Source = Overlay.Lines[Index];
         LineRecord& Written = *reinterpret_cast<LineRecord*>(Cursor);
 
-        Written.X0 = Source.X0;
-        Written.Y0 = Source.Y0;
-        Written.X1 = Source.X1;
-        Written.Y1 = Source.Y1;
-        Written.Thickness = Source.Thickness;
+        Written.X0 = Source.X0 * PhysicalScale;
+        Written.Y0 = Source.Y0 * PhysicalScale;
+        Written.X1 = Source.X1 * PhysicalScale;
+        Written.Y1 = Source.Y1 * PhysicalScale;
+        Written.Thickness = Source.Thickness * PhysicalScale;
         Written.Padding[0] = 0.0f;
         Written.Padding[1] = 0.0f;
         Written.Padding[2] = 0.0f;
@@ -423,9 +428,9 @@ void WorkspaceOverlayPass::Upload(const OverlayGeometry& Overlay)
         const OverlayDot& Source = Overlay.Dots[Index];
         DotRecord& Written = *reinterpret_cast<DotRecord*>(Cursor);
 
-        Written.X = Source.X;
-        Written.Y = Source.Y;
-        Written.Radius = Source.Radius;
+        Written.X = Source.X * PhysicalScale;
+        Written.Y = Source.Y * PhysicalScale;
+        Written.Radius = Source.Radius * PhysicalScale;
         Written.Padding = 0.0f;
         Written.R = static_cast<float>((Source.Packed >> 16u) & 0xFFu) / 255.0f;
         Written.G = static_cast<float>((Source.Packed >> 8u)  & 0xFFu) / 255.0f;
@@ -442,12 +447,12 @@ void WorkspaceOverlayPass::Upload(const OverlayGeometry& Overlay)
         const OverlayTriangle& Source = Overlay.Triangles[Index];
         TriangleRecord& Written = *reinterpret_cast<TriangleRecord*>(Cursor);
 
-        Written.X0 = Source.X0;
-        Written.Y0 = Source.Y0;
-        Written.X1 = Source.X1;
-        Written.Y1 = Source.Y1;
-        Written.X2 = Source.X2;
-        Written.Y2 = Source.Y2;
+        Written.X0 = Source.X0 * PhysicalScale;
+        Written.Y0 = Source.Y0 * PhysicalScale;
+        Written.X1 = Source.X1 * PhysicalScale;
+        Written.Y1 = Source.Y1 * PhysicalScale;
+        Written.X2 = Source.X2 * PhysicalScale;
+        Written.Y2 = Source.Y2 * PhysicalScale;
         Written.P0 = 0.0f;
         Written.P1 = 0.0f;
         Written.R = static_cast<float>((Source.Packed >> 16u) & 0xFFu) / 255.0f;

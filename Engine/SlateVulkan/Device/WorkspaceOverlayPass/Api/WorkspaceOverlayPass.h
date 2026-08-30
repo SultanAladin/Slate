@@ -68,14 +68,19 @@ public:
                             VkFormat                   ColourFormat);
 
     /// 🧩 Copies the CPU overlay record into the mapped vertex buffer.
-    /// in    Overlay  [-]  the panel's record; lines, dots and triangles are copied into their
-    ///                     own regions of the one buffer, converted to the shader's record shapes
+    /// in    Overlay      [-]  the panel's record; lines, dots and triangles are copied into their
+    ///                          own regions of the one buffer, converted to the shader's record shapes
+    /// in    PixelScale   [-]  logical UI points to physical framebuffer pixels; defaults to 1 for
+    ///                          an unscaled display
     /// note  🔴 Called BETWEEN frames, at most once per generation change: the buffer is
     ///        host-coherent and the previous frame's submission has completed, so the copy is
     ///        visible to the next draw with no barrier of its own.
+    /// note  🔴 Overlay records are authored beside the pointer in logical points, while this pass's
+    ///        viewport is the physical swapchain. Converting only the scissor leaves dots, gizmos and
+    ///        selection markers in a different coordinate system from the CAD pass.
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Upload(const OverlayGeometry& Overlay);
+    void Upload(const OverlayGeometry& Overlay, float PixelScale = 1.0f);
 
     /// 🧩 Records the overlay primitives inside the open dynamic-rendering scope, clipped to one
     ///    viewport leaf's box.

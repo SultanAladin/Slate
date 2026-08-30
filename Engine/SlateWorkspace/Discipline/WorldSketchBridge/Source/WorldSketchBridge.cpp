@@ -187,6 +187,7 @@ bool PlacementFormsProfile(const SealedPlacement& Placed)
 }
 
 bool ResolveWorldBackedPlacementCurves(const SealedPlacement& Placed,
+                                       const SpatialBasis& Basis,
                                        std::vector<CurveSpecification>& Delivered)
 {
     Delivered.clear();
@@ -197,7 +198,7 @@ bool ResolveWorldBackedPlacementCurves(const SealedPlacement& Placed,
     std::vector<SpatialPoint> Anchors = Placed.Anchors;
     const SpatialPoint Final = Anchors.back();
     Anchors.pop_back();
-    ResolvePlacementCurves(Placed.Subject, Anchors, Final, Delivered,
+    ResolvePlacementCurves(Basis, Placed.Subject, Anchors, Final, Delivered,
                            std::clamp(Placed.Resolution, PolygonSideMinimum, PolygonSideMaximum));
     return !Delivered.empty();
 }
@@ -979,7 +980,13 @@ bool CommitPlacementWorldBacked(const Workplane& ActiveWorkplane,
     else
     {
         std::vector<CurveSpecification> Geometry;
-        if (!ResolveWorldBackedPlacementCurves(Placed, Geometry))
+        const SpatialBasis PlacementBasis = SupportStanding
+            ? SpatialBasis{ Support.Origin,
+                            Normalize(Support.AlongDirection),
+                            Normalize(Cross(Normalize(Support.Normal), Normalize(Support.AlongDirection))),
+                            Normalize(Support.Normal) }
+            : SpatialBasis{};
+        if (!ResolveWorldBackedPlacementCurves(Placed, PlacementBasis, Geometry))
             return Rollback();
 
         WorldCurves.reserve(Geometry.size());

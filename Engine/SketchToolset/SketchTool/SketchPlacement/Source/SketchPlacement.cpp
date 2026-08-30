@@ -218,19 +218,51 @@ namespace
 //    happened to the ellipse, whose preview took the drag as its major axis while the commit
 //    measured along the plane's own axes and produced a visibly different figure on release.
 
-/// 🧩 The four sides of an axis-aligned rectangle spanning two opposite corners.
-void AppendRectangleSpans(const SpatialPoint& Corner, const SpatialPoint& Opposite,
+/// 🧩 The four sides of a rectangle spanning two opposite corners in the active plane.
+void AppendRectangleSpans(const SpatialBasis& Basis,
+                          const SpatialPoint& Corner,
+                          const SpatialPoint& Opposite,
                           std::vector<CurveSpecification>& Delivered)
 {
-    // 📝 The two remaining corners, exactly as `DeclareExtentRectangle` derives them: the height is
-    //    carried by the first corner so the rectangle lies flat on the plane it is drawn on.
-    const SpatialPoint Second = { Opposite.Left, Corner.Up, Corner.Forward };
-    const SpatialPoint Fourth = { Corner.Left, Corner.Up, Opposite.Forward };
+    const auto PlaneCoordinates = [&](const SpatialPoint& Position, double& Along, double& Across)
+    {
+        const SpatialDirection Offset = Difference(Basis.Origin, Position);
+        Along = Dot(Offset, Basis.Along);
+        Across = Dot(Offset, Basis.Across);
+    };
+    const auto PlanarPoint = [&](double Along, double Across)
+    {
+        return Added(Basis.Origin,
+                     Added(Scaled(Basis.Along, Along), Scaled(Basis.Across, Across)));
+    };
+
+    double CornerAlong = 0.0;
+    double CornerAcross = 0.0;
+    double OppositeAlong = 0.0;
+    double OppositeAcross = 0.0;
+    PlaneCoordinates(Corner, CornerAlong, CornerAcross);
+    PlaneCoordinates(Opposite, OppositeAlong, OppositeAcross);
+
+    // 🔴 NEVER MIX WORLD COORDINATES TO BUILD A PLANE-RELATIVE SHAPE. The old construction always
+    //    held world Up constant, which made an XY rectangle collapse one side to zero and made the
+    //    preview/commit look like a triangle. Build both intermediate corners in the resolved basis
+    //    used by the mouse, snapping all four vertices back onto the active plane.
+    const SpatialPoint Second = PlanarPoint(OppositeAlong, CornerAcross);
+    const SpatialPoint Fourth = PlanarPoint(CornerAlong, OppositeAcross);
 
     Delivered.push_back(CurveSpecification::DeclareLine(Corner, Second));
     Delivered.push_back(CurveSpecification::DeclareLine(Second, Opposite));
     Delivered.push_back(CurveSpecification::DeclareLine(Opposite, Fourth));
     Delivered.push_back(CurveSpecification::DeclareLine(Fourth, Corner));
+}
+
+void AppendRectangleSpans(const SpatialPoint& Corner, const SpatialPoint& Opposite,
+                          std::vector<CurveSpecification>& Delivered)
+{
+    // Compatibility callers historically use the ground XZ basis.
+    AppendRectangleSpans(
+        SpatialBasis{ {}, { 1.0, 0.0, 0.0 }, { 0.0, 0.0, 1.0 }, { 0.0, 1.0, 0.0 } },
+        Corner, Opposite, Delivered);
 }
 
 /// 🧩 The sides of a regular polygon about a centre, with the first vertex under the pointer.
@@ -548,6 +580,23 @@ void ResolvePlacementCurves(SketchSubject Subject,
 
         Delivered.push_back(CurveSpecification::DeclareHermite(Span, { 0.0, 1.0 }));
     }
+}
+
+void ResolvePlacementCurves(const SpatialBasis& Basis,
+                            SketchSubject Subject,
+                            const std::vector<SpatialPoint>& Anchors,
+                            const SpatialPoint& Hover,
+                            std::vector<CurveSpecification>& Delivered,
+                            std::uint32_t Resolution)
+{
+    if (Subject == SketchSubject::Rectangle && Anchors.size() + 1u >= 2u)
+    {
+        Delivered.clear();
+        AppendRectangleSpans(Basis, Anchors.front(), Hover, Delivered);
+        return;
+    }
+
+    ResolvePlacementCurves(Subject, Anchors, Hover, Delivered, Resolution);
 }
 
 } // namespace Slate

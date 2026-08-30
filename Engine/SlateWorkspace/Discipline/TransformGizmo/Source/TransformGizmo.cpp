@@ -308,6 +308,16 @@ GizmoHandle ResolveGizmoHandle(const GizmoScreenBasis& Screen,
 
     if (Manner == TransformManner::Move)
     {
+        // 🔴 TEST AXES BEFORE THE PLANAR SQUARE. The green normal arrow is also an edge of the
+        //    visible YZ square in a front-facing view; testing that square first made the arrow look
+        //    present but dead because the same pixels were always classified as free move.
+        if (ConeDistanceSquared(Screen.AlongX, Screen.AlongY) <= GizmoMeasure::MoveGrab * GizmoMeasure::MoveGrab)
+            return GizmoHandle::MoveX;
+        if (ConeDistanceSquared(Screen.AcrossX, Screen.AcrossY) <= GizmoMeasure::MoveGrab * GizmoMeasure::MoveGrab)
+            return GizmoHandle::MoveZ;
+        if (ConeDistanceSquared(Screen.NormalX, Screen.NormalY) <= GizmoMeasure::MoveGrab * GizmoMeasure::MoveGrab)
+            return GizmoHandle::MoveY;
+
         // 📝 The sketch's free-move plane is the HTML gizmo's XZ square — the square normal to +Y.
         const float PlaneX = Screen.PivotX + (Screen.AlongX + Screen.AcrossX) * static_cast<float>(GizmoMeasure::PlaneCentre);
         const float PlaneY = Screen.PivotY + (Screen.AlongY + Screen.AcrossY) * static_cast<float>(GizmoMeasure::PlaneCentre);
@@ -315,11 +325,6 @@ GizmoHandle ResolveGizmoHandle(const GizmoScreenBasis& Screen,
         const double LocalAcross = (PointerX - PlaneX) * Screen.AcrossX + (PointerY - PlaneY) * Screen.AcrossY;
         if (std::fabs(LocalAlong) <= GizmoMeasure::PlaneHalf && std::fabs(LocalAcross) <= GizmoMeasure::PlaneHalf)
             return GizmoHandle::MoveFree;
-
-        if (ConeDistanceSquared(Screen.AlongX, Screen.AlongY) <= GizmoMeasure::MoveGrab * GizmoMeasure::MoveGrab)
-            return GizmoHandle::MoveX;
-        if (ConeDistanceSquared(Screen.AcrossX, Screen.AcrossY) <= GizmoMeasure::MoveGrab * GizmoMeasure::MoveGrab)
-            return GizmoHandle::MoveZ;
 
         if (CentreDistanceSquared <= GizmoMeasure::CentreGrab * GizmoMeasure::CentreGrab * 0.25)
             return GizmoHandle::MoveFree;
@@ -352,6 +357,8 @@ GizmoHandle ResolveGizmoHandle(const GizmoScreenBasis& Screen,
             return GizmoHandle::ScaleX;
         if (CylinderDistanceSquared(Screen.AcrossX, Screen.AcrossY) <= GizmoMeasure::ScaleGrab * GizmoMeasure::ScaleGrab)
             return GizmoHandle::ScaleZ;
+        if (CylinderDistanceSquared(Screen.NormalX, Screen.NormalY) <= GizmoMeasure::ScaleGrab * GizmoMeasure::ScaleGrab)
+            return GizmoHandle::ScaleY;
         if (CentreDistanceSquared <= GizmoMeasure::CentreGrab * GizmoMeasure::CentreGrab * 0.25)
             return GizmoHandle::ScaleFree;
     }
@@ -365,10 +372,12 @@ TransformManner ResolveHandleManner(GizmoHandle Handle)
     {
         case GizmoHandle::MoveFree:
         case GizmoHandle::MoveX:
+        case GizmoHandle::MoveY:
         case GizmoHandle::MoveZ:      return TransformManner::Move;
         case GizmoHandle::Rotate:     return TransformManner::Rotate;
         case GizmoHandle::ScaleFree:
         case GizmoHandle::ScaleX:
+        case GizmoHandle::ScaleY:
         case GizmoHandle::ScaleZ:     return TransformManner::Scale;
         case GizmoHandle::None:       return TransformManner::Move;
     }
@@ -381,6 +390,8 @@ TransformRestriction ResolveHandleRestriction(GizmoHandle Handle)
     {
         case GizmoHandle::MoveX:
         case GizmoHandle::ScaleX:     return TransformRestriction::AxisX;
+        case GizmoHandle::MoveY:
+        case GizmoHandle::ScaleY:     return TransformRestriction::AxisY;
         case GizmoHandle::MoveZ:
         case GizmoHandle::ScaleZ:     return TransformRestriction::AxisZ;
         case GizmoHandle::Rotate:     return TransformRestriction::Screen;

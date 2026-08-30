@@ -99,13 +99,23 @@ SpatialDirection ResolvePerpendicularComponent(const SpatialDirection& Subject,
 
 SpatialDirection ResolveAxisDirection(const WorldSketchTransformSession& Session)
 {
-    if (Session.Restriction() == TransformRestriction::AxisX)
-        return { 1.0, 0.0, 0.0 };
-    if (Session.Restriction() == TransformRestriction::AxisY)
-        return { 0.0, 1.0, 0.0 };
-    if (Session.Restriction() == TransformRestriction::AxisZ)
-        return { 0.0, 0.0, 1.0 };
+    // The session stores the resolved world direction. For the three standard axis letters this is
+    // filled from the camera basis at start/update, so AxisY remains the visible green normal on an XY
+    // workplane rather than silently becoming world Y.
     return Normalize(Session.AxisDirection);
+}
+
+void ResolveCameraAxisDirection(const ResolvedCamera& Camera,
+                               WorldSketchTransformSession& Session)
+{
+    if (Session.Restriction() == TransformRestriction::AxisX)
+        Session.AxisDirection = Normalize(Camera.Basis.Along);
+    else if (Session.Restriction() == TransformRestriction::AxisY)
+        Session.AxisDirection = Normalize(Camera.Basis.Normal);
+    else if (Session.Restriction() == TransformRestriction::AxisZ)
+        Session.AxisDirection = Normalize(Camera.Basis.Across);
+    else if (Session.Restriction() == TransformRestriction::Screen)
+        Session.AxisDirection = Normalize(Camera.Frame.Forward);
 }
 
 bool ResolveAxisReference(const ResolvedCamera& Camera,
@@ -301,10 +311,38 @@ void ApplyWorldTransformPlacements(WorldSketchStructure& Declared,
                                    const WorldSketchTransformSession& Session,
                                    const SpatialDirection& Offset)
 {
+    const SpatialDirection Axis = Normalize(Session.AxisDirection);
+    const double SafeAxisLength = LengthSquared(Axis) > 1.0e-12 ? 1.0 : 0.0;
+    const double Value = Session.PreviewValue;
     for (std::size_t Index = 0u; Index < Session.Placements.size() && Index < Session.Origins.size(); ++Index)
     {
         const WorldPlacementSubject& Placement = Session.Placements[Index];
-        const SpatialPoint Position = Added(Session.Origins[Index], Offset);
+        const SpatialPoint Origin = Session.Origins[Index];
+        SpatialPoint Position = Origin;
+
+        if (Session.Manner() == TransformManner::Move)
+            Position = Added(Origin, Offset);
+        else if (Session.Manner() == TransformManner::Rotate && SafeAxisLength > 0.0)
+        {
+            const SpatialDirection Relative = Difference(Session.Pivot, Origin);
+            Position = Added(Session.Pivot,
+                             RotateAroundAxis(Relative, Axis, Value));
+        }
+        else if (Session.Manner() == TransformManner::Scale)
+        {
+            const SpatialDirection Relative = Difference(Session.Pivot, Origin);
+            const bool AxisLocked = Session.Restriction() == TransformRestriction::AxisX
+                                 || Session.Restriction() == TransformRestriction::AxisY
+                                 || Session.Restriction() == TransformRestriction::AxisZ;
+            const SpatialDirection Components = AxisLocked
+                ? Scaled(Axis, Dot(Relative, Axis))
+                : Relative;
+            const SpatialDirection ScaledRelative = Added(
+                Relative,
+                Scaled(Components, Value - 1.0));
+            Position = Added(Session.Pivot, ScaledRelative);
+        }
+
         if (Placement.ControlPlacement)
             Discard(EnforceWorldSketchControl(Declared, Placement.Control, Position));
         else
@@ -339,6 +377,9 @@ void ClearWorldSketchTransformSession(WorldSketchTransformSession& Session)
     Session.Pivot = {};
     Session.StartReference = {};
     Session.AxisDirection = { 1.0, 0.0, 0.0 };
+    Session.RotationU = { 1.0, 0.0, 0.0 };
+    Session.RotationV = { 0.0, 1.0, 0.0 };
+    Session.StartDistance = 1.0;
     Session.PreviewValue = 0.0;
     Session.Standing.Numeric[0] = '\0';
 }
@@ -352,7 +393,8 @@ bool StartWorldSketchTransformSession(const WorldSketchStructure& Declared,
                                      TransformRestriction Restriction,
                                      bool SlideAlongCurve,
                                      WorldSketchTransformSession& Session,
-                                     bool MouseDriven)
+                                     bool MouseDriven,
+                                     TransformManner Manner)
 {
     SpatialPoint Pivot = {};
     std::vector<WorldPlacementSubject> Placements;
@@ -360,11 +402,12 @@ bool StartWorldSketchTransformSession(const WorldSketchStructure& Declared,
         return false;
 
     ClearWorldSketchTransformSession(Session);
-    Session.Manner() = TransformManner::Move;
+    Session.Manner() = Manner;
     Session.Engaged() = true;
     Session.AwaitingRelease = MouseDriven;
     Session.Restriction() = Restriction;
-    Session.SlideAlongCurve() = SlideAlongCurve || Restriction == TransformRestriction::Curve;
+    Session.SlideAlongCurve() = Manner == TransformManner::Move
+                              && (SlideAlongCurve || Restriction == TransformRestriction::Curve);
     Session.Target = Target;
     Session.Pivot = Pivot;
     Session.Placements = Placements;
@@ -374,19 +417,49 @@ bool StartWorldSketchTransformSession(const WorldSketchStructure& Declared,
 
     Session.AxisDirection = Session.SlideAlongCurve() && Target.Curve.Assigned()
                           ? ResolveWorldCurveSlideDirection(Declared, Target.Curve, Target.Position)
-                          : ResolveAxisDirection(Session);
+                          : Session.AxisDirection;
+    if (!Session.SlideAlongCurve())
+        ResolveCameraAxisDirection(Camera, Session);
 
-    const bool AxisDrag = Session.Restriction() == TransformRestriction::AxisX
-                       || Session.Restriction() == TransformRestriction::AxisY
-                       || Session.Restriction() == TransformRestriction::AxisZ
-                       || Session.Restriction() == TransformRestriction::Curve;
-    const bool Resolved = AxisDrag
+    const bool AxisDrag = Manner == TransformManner::Move
+                       && (Session.Restriction() == TransformRestriction::AxisX
+                        || Session.Restriction() == TransformRestriction::AxisY
+                        || Session.Restriction() == TransformRestriction::AxisZ
+                        || Session.Restriction() == TransformRestriction::Curve);
+    const bool RotationDrag = Manner == TransformManner::Rotate;
+    const bool ScaleAxisDrag = Manner == TransformManner::Scale &&
+                              (Session.Restriction() == TransformRestriction::AxisX
+                            || Session.Restriction() == TransformRestriction::AxisY
+                            || Session.Restriction() == TransformRestriction::AxisZ);
+    const bool Resolved = RotationDrag
+                        ? ResolveDragReference(Camera, Extent, PointerX, PointerY,
+                                               Session.Pivot, Session.AxisDirection, Session.StartReference)
+                        : (AxisDrag || ScaleAxisDrag)
                         ? ResolveAxisReference(Camera, Extent, PointerX, PointerY,
                                                Session.Pivot, Session.AxisDirection, Session.StartReference)
                         : ResolveDragReference(Camera, Extent, PointerX, PointerY,
                                                Session.Pivot, Camera.Frame.Forward, Session.StartReference);
     if (!Resolved)
         Session.StartReference = Session.Pivot;
+
+    const SpatialDirection Initial = Difference(Session.Pivot, Session.StartReference);
+    Session.StartDistance = (ScaleAxisDrag)
+        ? Dot(Initial, Normalize(Session.AxisDirection))
+        : std::sqrt(LengthSquared(Initial));
+    if (std::fabs(Session.StartDistance) < 1.0e-4)
+        Session.StartDistance = 1.0;
+    if (Manner == TransformManner::Scale)
+        Session.PreviewValue = 1.0;
+    if (Manner == TransformManner::Rotate)
+    {
+        const SpatialDirection Axis = Normalize(Session.AxisDirection);
+        Session.RotationU = Normalize(Initial);
+        if (LengthSquared(Session.RotationU) <= 1.0e-12)
+            Session.RotationU = Normalize(Camera.Frame.Right);
+        Session.RotationV = Normalize(Cross(Axis, Session.RotationU));
+        if (LengthSquared(Session.RotationV) <= 1.0e-12)
+            Session.RotationV = Normalize(Camera.Frame.Up);
+    }
 
     return true;
 }
@@ -401,12 +474,23 @@ void UpdateWorldSketchTransformSession(const ResolvedCamera& Camera,
     if (!Session.Engaged())
         return;
 
+    ResolveCameraAxisDirection(Camera, Session);
+
+    const bool MoveAxisDrag = Session.Manner() == TransformManner::Move &&
+                            (Session.Restriction() == TransformRestriction::AxisX
+                          || Session.Restriction() == TransformRestriction::AxisY
+                          || Session.Restriction() == TransformRestriction::AxisZ
+                          || Session.Restriction() == TransformRestriction::Curve);
+    const bool RotateDrag = Session.Manner() == TransformManner::Rotate;
+    const bool ScaleAxisDrag = Session.Manner() == TransformManner::Scale &&
+                             (Session.Restriction() == TransformRestriction::AxisX
+                           || Session.Restriction() == TransformRestriction::AxisY
+                           || Session.Restriction() == TransformRestriction::AxisZ);
     SpatialPoint Reference = Session.StartReference;
-    const bool AxisDrag = Session.Restriction() == TransformRestriction::AxisX
-                       || Session.Restriction() == TransformRestriction::AxisY
-                       || Session.Restriction() == TransformRestriction::AxisZ
-                       || Session.Restriction() == TransformRestriction::Curve;
-    const bool Resolved = AxisDrag
+    const bool Resolved = RotateDrag
+                        ? ResolveDragReference(Camera, Extent, PointerX, PointerY,
+                                               Session.Pivot, Session.AxisDirection, Reference)
+                        : (MoveAxisDrag || ScaleAxisDrag)
                         ? ResolveAxisReference(Camera, Extent, PointerX, PointerY,
                                                Session.Pivot, ResolveAxisDirection(Session), Reference)
                         : ResolveDragReference(Camera, Extent, PointerX, PointerY,
@@ -414,24 +498,55 @@ void UpdateWorldSketchTransformSession(const ResolvedCamera& Camera,
     if (!Resolved)
         return;
 
-    SpatialDirection Offset = ResolveWorldOffset(Session, Reference);
-
+    SpatialDirection Offset = {};
+    double Value = 0.0;
     double Numeric = 0.0;
-    if (ResolveNumericOverride(Session.Standing, Numeric))
+    const bool HasNumeric = ResolveNumericOverride(Session.Standing, Numeric);
+    if (Session.Manner() == TransformManner::Move)
     {
-        if (AxisDrag)
-            Offset = Scaled(ResolveAxisDirection(Session), Numeric);
+        Offset = ResolveWorldOffset(Session, Reference);
+        if (HasNumeric)
+        {
+            if (MoveAxisDrag)
+                Offset = Scaled(ResolveAxisDirection(Session), Numeric);
+            else
+                Offset = { Numeric, 0.0, 0.0 };
+        }
+        Value = MoveAxisDrag ? Dot(Offset, ResolveAxisDirection(Session))
+                             : std::sqrt(LengthSquared(Offset));
+    }
+    else if (Session.Manner() == TransformManner::Rotate)
+    {
+        const SpatialDirection Relative = Difference(Session.Pivot, Reference);
+        Value = std::atan2(Dot(Relative, Session.RotationV),
+                           Dot(Relative, Session.RotationU));
+        if (HasNumeric)
+            Value = Numeric * ProjectionPi / 180.0;
+        while (Value > ProjectionPi) Value -= 2.0 * ProjectionPi;
+        while (Value < -ProjectionPi) Value += 2.0 * ProjectionPi;
+    }
+    else
+    {
+        const SpatialDirection Relative = Difference(Session.Pivot, Reference);
+        if (ScaleAxisDrag)
+            Value = Dot(Relative, Normalize(Session.AxisDirection)) / Session.StartDistance;
         else
-            Offset = { Numeric, 0.0, 0.0 };
+            Value = std::sqrt(LengthSquared(Relative)) / Session.StartDistance;
+        if (HasNumeric)
+            Value = Numeric;
+        Value = std::max(Value, 0.05);
     }
 
+    Session.PreviewValue = Value;
     RestoreWorldTransformPlacements(Declared, Session);
     ApplyWorldTransformPlacements(Declared, Session, Offset);
 
-    Session.PreviewValue = AxisDrag ? Dot(Offset, ResolveAxisDirection(Session))
-                                    : std::sqrt(LengthSquared(Offset));
-    if (LengthSquared(Offset) > 1.0e-18)
-        Session.Changed = true;
+    if (Session.Manner() == TransformManner::Move)
+        Session.Changed = LengthSquared(Offset) > 1.0e-18;
+    else if (Session.Manner() == TransformManner::Rotate)
+        Session.Changed = std::fabs(Value) > 1.0e-12;
+    else
+        Session.Changed = std::fabs(Value - 1.0) > 1.0e-12;
 }
 
 void CommitWorldSketchTransformSession(WorldSketchTransformSession& Session)

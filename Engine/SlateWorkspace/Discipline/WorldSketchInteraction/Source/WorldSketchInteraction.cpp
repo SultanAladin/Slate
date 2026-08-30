@@ -166,14 +166,12 @@ void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
 
         if (ResolvedHandle != GizmoHandle::None && Pointer.ContactPressed)
         {
-            if (ResolveHandleManner(ResolvedHandle) == TransformManner::Move)
-            {
-                PointerTaken = StartWorldSketchTransformSession(Declared, Camera, Extent,
-                                                               Pointer.PositionX, Pointer.PositionY,
-                                                               ActiveSelection,
-                                                               ResolveHandleRestriction(ResolvedHandle),
-                                                               false, Transform, true);
-            }
+            PointerTaken = StartWorldSketchTransformSession(Declared, Camera, Extent,
+                                                           Pointer.PositionX, Pointer.PositionY,
+                                                           ActiveSelection,
+                                                           ResolveHandleRestriction(ResolvedHandle),
+                                                           false, Transform, true,
+                                                           ResolveHandleManner(ResolvedHandle));
         }
         else if (Command.StartRequested && Command.StartManner == TransformManner::Move)
         {
@@ -205,6 +203,9 @@ void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
         {
             Transform.Restriction() = TransformRestriction::Curve;
             Transform.SlideAlongCurve() = true;
+            if (Transform.Target.Curve.Assigned())
+                Transform.AxisDirection = ResolveWorldCurveSlideDirection(
+                    Declared, Transform.Target.Curve, Transform.Target.Position);
         }
         else if (Command.RestrictionRequested)
         {

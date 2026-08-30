@@ -692,12 +692,22 @@ Deliver<WorkspaceRecordName> DeclareCentredRectangle(WorkspaceNameIndex& Naming,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
 {
+        const SpatialBasis Basis = ResolvePlacementBasis(Plane);
         const SpatialPoint Centre = Placed.Anchors[0];
-        const SpatialDirection Span = Difference(Centre, Placed.Anchors.back());
-        const SpatialPoint A = Added(Centre, Scaled(Span, -1.0));
+        double CentreAlong = 0.0, CentreAcross = 0.0;
+        double EndAlong = 0.0, EndAcross = 0.0;
+        ResolvePlaneCoordinates(Basis, Centre, CentreAlong, CentreAcross);
+        ResolvePlaneCoordinates(Basis, Placed.Anchors.back(), EndAlong, EndAcross);
+        const SpatialPoint A = ResolvePlanarPoint(Basis,
+                                                  CentreAlong + (CentreAlong - EndAlong),
+                                                  CentreAcross + (CentreAcross - EndAcross));
         const SpatialPoint C = Placed.Anchors.back();
-        const SpatialPoint B = { C.Left, A.Up, A.Forward };
-        const SpatialPoint D = { A.Left, A.Up, C.Forward };
+        const SpatialPoint B = ResolvePlanarPoint(Basis,
+                                                  EndAlong,
+                                                  CentreAcross + (CentreAcross - EndAcross));
+        const SpatialPoint D = ResolvePlanarPoint(Basis,
+                                                  CentreAlong + (CentreAlong - EndAlong),
+                                                  EndAcross);
         ProfileSpecification Profile;
         Profile.DeclarePlane({ Plane.Origin, Plane.Normal, Plane.AlongDirection });
         ProfileLoop Loop;
@@ -723,10 +733,14 @@ Deliver<WorkspaceRecordName> DeclareExtentRectangle(WorkspaceNameIndex& Naming,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
 {
+        const SpatialBasis Basis = ResolvePlacementBasis(Plane);
         const SpatialPoint A = Placed.Anchors[0];
         const SpatialPoint C = Placed.Anchors.back();
-        const SpatialPoint B = { C.Left, A.Up, A.Forward };
-        const SpatialPoint D = { A.Left, A.Up, C.Forward };
+        double AAlong = 0.0, AAcross = 0.0, CAlong = 0.0, CAcross = 0.0;
+        ResolvePlaneCoordinates(Basis, A, AAlong, AAcross);
+        ResolvePlaneCoordinates(Basis, C, CAlong, CAcross);
+        const SpatialPoint B = ResolvePlanarPoint(Basis, CAlong, AAcross);
+        const SpatialPoint D = ResolvePlanarPoint(Basis, AAlong, CAcross);
 
         ProfileSpecification Profile;
         Profile.DeclarePlane({ Plane.Origin, Plane.Normal, Plane.AlongDirection });

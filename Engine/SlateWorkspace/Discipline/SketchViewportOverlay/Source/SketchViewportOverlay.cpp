@@ -685,14 +685,14 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
     if (DrawScale)
     {
         AddCylinder(AxisX, AxisY, AxisZ, HoveredHandle == GizmoHandle::ScaleX ? Highlight : XPacked);
-        AddCylinder(AxisY, AxisX, AxisZ, YPacked);
+        AddCylinder(AxisY, AxisX, AxisZ, HoveredHandle == GizmoHandle::ScaleY ? Highlight : YPacked);
         AddCylinder(AxisZ, AxisX, AxisY, HoveredHandle == GizmoHandle::ScaleZ ? Highlight : ZPacked);
     }
 
     if (DrawMove)
     {
         AddCone(AxisX, AxisY, AxisZ, HoveredHandle == GizmoHandle::MoveX ? Highlight : XPacked);
-        AddCone(AxisY, AxisX, AxisZ, YPacked);
+        AddCone(AxisY, AxisX, AxisZ, HoveredHandle == GizmoHandle::MoveY ? Highlight : YPacked);
         AddCone(AxisZ, AxisX, AxisY, HoveredHandle == GizmoHandle::MoveZ ? Highlight : ZPacked);
     }
 
@@ -709,6 +709,11 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
         if (Transform.Restriction() == TransformRestriction::AxisX)
         {
             GuideAxis = AxisX;
+            Guided = true;
+        }
+        else if (Transform.Restriction() == TransformRestriction::AxisY)
+        {
+            GuideAxis = AxisY;
             Guided = true;
         }
         else if (Transform.Restriction() == TransformRestriction::AxisZ)
@@ -936,14 +941,14 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
     if (DrawScale)
     {
         AddCylinder(AxisX, AxisY, AxisZ, HoveredHandle == GizmoHandle::ScaleX ? Highlight : XPacked);
-        AddCylinder(AxisY, AxisX, AxisZ, YPacked);
+        AddCylinder(AxisY, AxisX, AxisZ, HoveredHandle == GizmoHandle::ScaleY ? Highlight : YPacked);
         AddCylinder(AxisZ, AxisX, AxisY, HoveredHandle == GizmoHandle::ScaleZ ? Highlight : ZPacked);
     }
 
     if (DrawMove)
     {
         AddCone(AxisX, AxisY, AxisZ, HoveredHandle == GizmoHandle::MoveX ? Highlight : XPacked);
-        AddCone(AxisY, AxisX, AxisZ, YPacked);
+        AddCone(AxisY, AxisX, AxisZ, HoveredHandle == GizmoHandle::MoveY ? Highlight : YPacked);
         AddCone(AxisZ, AxisX, AxisY, HoveredHandle == GizmoHandle::MoveZ ? Highlight : ZPacked);
     }
 
@@ -960,6 +965,11 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
         if (Transform.Restriction() == TransformRestriction::AxisX)
         {
             GuideAxis = AxisX;
+            Guided = true;
+        }
+        else if (Transform.Restriction() == TransformRestriction::AxisY)
+        {
+            GuideAxis = AxisY;
             Guided = true;
         }
         else if (Transform.Restriction() == TransformRestriction::AxisZ)

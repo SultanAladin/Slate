@@ -41,7 +41,11 @@ enum class GizmoHandle : std::uint32_t
     Rotate    = 4u,
     ScaleFree = 5u,
     ScaleX    = 6u,
-    ScaleZ    = 7u
+    ScaleZ    = 7u,
+    // 🧩 The green normal-axis handles are real controls too. They were drawn but had no enum value,
+    //    so hit testing returned no actionable handle and the press fell through to the viewport.
+    MoveY     = 8u,
+    ScaleY    = 9u
 };
 
 /// 🧩 The one table of measurements, in screen pixels.
