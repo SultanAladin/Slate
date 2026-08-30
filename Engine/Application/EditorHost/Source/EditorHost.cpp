@@ -26,6 +26,7 @@
 #include "SlateWorkspace/Discipline/ContentImportCommit/Api/ContentImportCommit.h"
 #include "SlateWorkspace/Discipline/SketchInteraction/Api/SketchInteraction.h"
 #include "SlateWorkspace/Discipline/SketchRevisionHistory/Api/SketchRevisionHistory.h"
+#include "SlateWorkspace/Discipline/SketchDirectoryPresentation/Api/SketchDirectoryPresentation.h"
 #include "SlateWorkspace/Discipline/ViewportLookInput/Api/ViewportLookInput.h"
 #include "SlateWorkspace/Discipline/WorldSketchBridge/Api/WorldSketchBridge.h"
 #include "SketchToolset/SketchTool/SelectionOptions/Api/SelectionOptions.h"
@@ -336,6 +337,8 @@ int main(int ArgumentCount, char** ArgumentValues)
     // 📝 Which record the outliner has highlighted, so a selection made in the tree and one made by
     //    clicking in the viewport are the same selection. Projected from the records each tick.
     static WorkspaceDirectoryProjection SketchDirectoryRows;
+    static SketchDirectoryPresentation SketchDirectoryPresented;
+    static bool SketchDirectorySeeded = false;
     static std::vector<SketchRevisionSnapshot> SketchRetreated;
     static std::vector<SketchRevisionSnapshot> SketchReinstated;
     // 🔴 SELECT AND THE GIZMO ARE ONE WIDGET. Choosing something and then moving it is one thing the
@@ -1575,6 +1578,12 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     //    `SelectedTool(...).Subject` is `None`, the drawing arm takes
                                     //    nothing, and every press reaches the picker.
                                     ProjectWorkspaceDirectory(SketchRecords, SketchDirectoryRows);
+                                    const Deliver<bool> DirectoryPresentation = SynchroniseParametricPresentation(
+                                        SketchRecords, SketchRevisions, SketchDirectoryRows,
+                                        SketchDirectoryPresented, SketchDirectoryApplied,
+                                        SketchPendingSelection, SketchDirectorySeeded);
+                                    if (!DirectoryPresentation.Resolved)
+                                        SketchDirectoryPresented.Reclaim();
                                     if (ParametricToolsApplied.ActiveSubject == ParametricToolSubject::Select
                                      || SketchWorldTransform.Engaged()
                                      || IsConstraintTool(ParametricToolsApplied.ActiveSubject))
@@ -1815,8 +1824,15 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                 break;
                             }
                             case PanelSubject::SketchDirectory:
-                                SketchDirectory.RecordOutliner(LeafBody, SketchDirectoryApplied,
-                                                               nullptr, 0u, nullptr, nullptr, 0u);
+                                SketchDirectory.RecordOutliner(
+                                    LeafBody, SketchDirectoryApplied,
+                                    SketchDirectoryPresented.DirectoryRows.empty()
+                                        ? nullptr : SketchDirectoryPresented.DirectoryRows.data(),
+                                    static_cast<std::uint32_t>(SketchDirectoryPresented.DirectoryRows.size()),
+                                    &SketchDirectoryPresented.Property,
+                                    SketchDirectoryPresented.RevisionRows.empty()
+                                        ? nullptr : SketchDirectoryPresented.RevisionRows.data(),
+                                    static_cast<std::uint32_t>(SketchDirectoryPresented.RevisionRows.size()));
                                 break;
 
                             case PanelSubject::ParametricTools:
