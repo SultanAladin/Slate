@@ -34,13 +34,14 @@ const char* FamilyFolderName(WorkspaceShapeFamily Family)
 WorkspaceRecordName EnsureNamedFolder(WorkspaceNameIndex& Naming,
                                       WorkspaceRecordStructure& Records,
                                       WorkspaceCategory Category,
-                                      const char* FolderName)
+                                      const char* FolderName,
+                                      WorkspaceRecordName ParentFolder = {})
 {
     for (std::uint32_t Index = 1u; Index <= Records.DeclaredCount(); ++Index)
     {
         const WorkspaceRecord* Existing = Records.Resolve({ Index });
         if (Existing != nullptr && Existing->Subject == WorkspaceRecordSubject::Folder &&
-            Existing->FolderCategory == Category && !Existing->ParentFolder.Assigned() &&
+            Existing->FolderCategory == Category && Existing->ParentFolder.IssuedIndex == ParentFolder.IssuedIndex &&
             Existing->Naming == FolderName)
             return { Index };
     }
@@ -48,6 +49,7 @@ WorkspaceRecordName EnsureNamedFolder(WorkspaceNameIndex& Naming,
     WorkspaceRecord Folder = {};
     Folder.Subject = WorkspaceRecordSubject::Folder;
     Folder.FolderCategory = Category;
+    Folder.ParentFolder = ParentFolder;
     Folder.Naming = FolderName;
     Folder.AutoNamed = false;
     static_cast<void>(Naming);
@@ -80,8 +82,18 @@ WorkspaceRecordName DeclareWorkspaceCurve(WorkspaceNameIndex& Naming,
     Record.Subject      = WorkspaceRecordSubject::OpenCurve;
     Record.Family       = Construction ? WorkspaceShapeFamily::Construction : Family;
     const WorkspaceShapeFamily FolderFamily = Construction ? WorkspaceShapeFamily::Construction : Family;
+    WorkspaceRecordName ParentFolder = {};
+    if (!Construction && (Family == WorkspaceShapeFamily::Line ||
+                          Family == WorkspaceShapeFamily::CircularArc ||
+                          Family == WorkspaceShapeFamily::Bezier ||
+                          Family == WorkspaceShapeFamily::Hermite ||
+                          Family == WorkspaceShapeFamily::BasisSpline ||
+                          Family == WorkspaceShapeFamily::Nurbs))
+    {
+        ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch, "Curves");
+    }
     Record.ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch,
-                                             FamilyFolderName(FolderFamily));
+                                             FamilyFolderName(FolderFamily), ParentFolder);
     Record.Naming       = Construction
                         ? std::string("Construction ") + Naming.Issue(WorkspaceRecordSubject::OpenCurve)
                         : Naming.Issue(WorkspaceRecordSubject::OpenCurve);
@@ -98,8 +110,15 @@ WorkspaceRecordName DeclareWorkspaceProfile(WorkspaceNameIndex& Naming,
     WorkspaceRecord Record = {};
     Record.Subject      = WorkspaceRecordSubject::ClosedProfile;
     Record.Family       = Family;
+    WorkspaceRecordName ParentFolder = {};
+    if (Family == WorkspaceShapeFamily::Polygon || Family == WorkspaceShapeFamily::Rectangle ||
+        Family == WorkspaceShapeFamily::Slot || Family == WorkspaceShapeFamily::Circle ||
+        Family == WorkspaceShapeFamily::Ellipse || Family == WorkspaceShapeFamily::EllipticalArc)
+    {
+        ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch, "Profiles");
+    }
     Record.ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch,
-                                             FamilyFolderName(Family));
+                                             FamilyFolderName(Family), ParentFolder);
     Record.Naming       = Naming.Issue(WorkspaceRecordSubject::ClosedProfile);
     Record.Profile      = Profile;
     Record.ClosedSemantic          = true;
