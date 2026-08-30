@@ -160,6 +160,7 @@ struct ParametricPropertyPresentation
     const char*           Naming         = "";
     const char*           Secondary      = "";
     ParametricRowSubject  Subject        = ParametricRowSubject::Point;
+    WorkspaceShapeFamily  Family         = WorkspaceShapeFamily::Unknown;
     ParametricCategory    Category       = ParametricCategory::Sketch;
     StableRowIdentity     Identity       = 0u;
     bool                  Visible        = true;

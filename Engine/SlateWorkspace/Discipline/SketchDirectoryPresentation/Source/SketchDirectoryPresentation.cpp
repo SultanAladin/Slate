@@ -330,7 +330,7 @@ Deliver<bool> BuildInspectorPresentation(const WorkspaceRecordStructure& Records
     const ParametricCategory Category = PresentedCategory(PresentedCategoryOfRecord(Held));
     const ParametricRowSubject Subject = PresentedRowSubject(
         WorkspaceDirectoryRow{ WorkspaceDirectoryRowRole::Record, PresentedCategoryOfRecord(Held), SubjectName,
-                               Held.Subject, 0u, 0xFFFFFFFFu, 0u, 0u, nullptr, nullptr,
+                               Held.Subject, Held.Family, 0u, 0xFFFFFFFFu, 0u, 0u, nullptr, nullptr,
                                Held.Visible, Held.Locked, Held.ClosedSemantic, Held.AutoNamed });
 
     Delivered.PropertyNaming = Held.Naming;
@@ -340,6 +340,7 @@ Deliver<bool> BuildInspectorPresentation(const WorkspaceRecordStructure& Records
     Delivered.Property.Naming         = Delivered.PropertyNaming.c_str();
     Delivered.Property.Secondary      = Delivered.PropertySecondary.c_str();
     Delivered.Property.Subject        = Subject;
+    Delivered.Property.Family         = Held.Family;
     Delivered.Property.Category       = Category;
     Delivered.Property.Identity       = static_cast<StableRowIdentity>(SubjectName.IssuedIndex);
     Delivered.Property.Visible        = Held.Visible;
@@ -365,6 +366,7 @@ Deliver<bool> BuildInspectorPresentation(const WorkspaceRecordStructure& Records
     Append("Record", IdentityRun("Record", SubjectName.IssuedIndex));
     Append("Category", ParametricCategoryText(Category));
     Append("Subject", ParametricRowText(Subject));
+    Append("Family", WorkspaceShapeFamilyText(Held.Family));
     Append("Visible", AffirmationText(Held.Visible));
     Append("Locked", AffirmationText(Held.Locked));
     Append("Auto Name", AffirmationText(Held.AutoNamed));
