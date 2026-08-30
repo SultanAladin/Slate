@@ -372,7 +372,7 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
         std::vector<std::vector<SpatialPoint>> Boundaries;
         for (const ProfileLoop& Loop : Sketch.Profiles()[Profile.IssuedIndex - 1u].HeldLoops())
         {
-            std::vector<SpatialPoint> Boundary;
+            std::vector<SpatialPoint> Perimeter;
             for (const ProfileCurveUse& Use : Loop.Traversal)
             {
                 if (!Use.TraversedCurve.Assigned() || Use.TraversedCurve.IssuedIndex > Sketch.Curves().size())
@@ -381,12 +381,12 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
                 AppendCurvePolyline(Sketch.Curves()[Use.TraversedCurve.IssuedIndex - 1u].Geometry, Segment, 24u);
                 if (Use.Reversed)
                     std::reverse(Segment.begin(), Segment.end());
-                if (!Boundary.empty() && !Segment.empty())
+                if (!Perimeter.empty() && !Segment.empty())
                     Segment.erase(Segment.begin());
-                Boundary.insert(Boundary.end(), Segment.begin(), Segment.end());
+                Perimeter.insert(Perimeter.end(), Segment.begin(), Segment.end());
             }
-            if (Boundary.size() >= 3u)
-                Boundaries.push_back(std::move(Boundary));
+            if (Perimeter.size() >= 3u)
+                Boundaries.push_back(std::move(Perimeter));
         }
 
         const auto Inside = [&](const std::vector<SpatialPoint>& Polygon, const SpatialPoint& Point)
@@ -418,8 +418,8 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
             // Even-odd winding is intentional here: an odd number of containing loops is
             // material, while an even number is a hole (including nested islands/holes).
             bool InSelectedProfile = false;
-            for (const std::vector<SpatialPoint>& Boundary : Boundaries)
-                if (Inside(Boundary, Centre))
+            for (const std::vector<SpatialPoint>& Perimeter : Boundaries)
+                if (Inside(Perimeter, Centre))
                     InSelectedProfile = !InSelectedProfile;
             if (!InSelectedProfile)
                 continue;
