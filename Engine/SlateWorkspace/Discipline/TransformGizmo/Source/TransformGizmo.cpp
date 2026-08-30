@@ -100,7 +100,7 @@ bool ResolveGizmoScreenBasis(const SpatialBasis& Basis,
         // 🔴 ORTHOGRAPHIC SCALE IS ALREADY A SCREEN RULER. Do not infer it from a world probe: a
         //    stale or nearly edge-on basis can make that probe disappear and fall back to one world
         //    unit per pixel, which is exactly the zoom-dependent balloon/collapse reported for the
-        //    gizmo. The viewport contract is pixels per world unit, so its reciprocal is authoritative.
+        //    gizmo. The viewport measure is pixels per world unit, so its reciprocal is authoritative.
         const double Scale = std::fabs(View.OrthoScale);
         Resolved.WorldPerPixel = 1.0 / std::max(Scale, 1.0e-6);
 

@@ -1394,7 +1394,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                         SceneApplied.ViewportSkyCamera.AzimuthDegrees,
                                         SceneApplied.ViewportSkyCamera.ElevationDegrees);
                                     // 🔴 Perspective is deliberately not allowed to inherit the last
-                                    //    orthographic plane. Blender-style perspective drafting has one
+                                    //    orthographic plane. Blender-style perspective authoring has one
                                     //    unambiguous authoring surface: the world floor (XZ, Y = 0).
                                     //    `ActivateViewedWorkplane` correctly refuses perspective for the
                                     //    general workplane tool, but the drawing path must explicitly
