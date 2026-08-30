@@ -262,8 +262,16 @@ Deliver<bool> BuildDirectoryPresentation(const WorkspaceDirectoryProjection& Sou
     {
         Delivered.DirectoryBacking.push_back({ Row.Naming != nullptr ? Row.Naming : "",
                                                Row.Tagged != nullptr ? Row.Tagged : "" });
-        const SketchDirectoryPresentation::DirectoryText& Backing = Delivered.DirectoryBacking.back();
-
+        SketchDirectoryPresentation::DirectoryText& Backing = Delivered.DirectoryBacking.back();
+        // Keep family searchable without changing the authored display name. This lets the panel filter
+        // for "bezier", "ellipse", or "construction" even when a record was custom-renamed.
+        const char* FamilyTag = WorkspaceShapeFamilyText(Row.Family);
+        if (FamilyTag != nullptr && FamilyTag[0] != '\0')
+        {
+            if (!Backing.Tagged.empty())
+                Backing.Tagged += " ";
+            Backing.Tagged += FamilyTag;
+        }
         ParametricDirectoryRow Presented = {};
         Presented.Naming         = Backing.Naming.c_str();
         Presented.Subject        = PresentedRowSubject(Row);
