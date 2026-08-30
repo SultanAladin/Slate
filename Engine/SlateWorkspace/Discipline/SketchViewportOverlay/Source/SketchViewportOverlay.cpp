@@ -379,7 +379,7 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
                     continue;
                 std::vector<SpatialPoint> Segment;
                 AppendCurvePolyline(Sketch.Curves()[Use.TraversedCurve.IssuedIndex - 1u].Geometry, Segment, 24u);
-                if (Use.Reversed)
+                if (!Use.SameSense)
                     std::reverse(Segment.begin(), Segment.end());
                 if (!Perimeter.empty() && !Segment.empty())
                     Segment.erase(Segment.begin());
