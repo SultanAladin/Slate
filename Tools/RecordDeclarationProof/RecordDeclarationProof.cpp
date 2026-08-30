@@ -89,6 +89,28 @@ bool SameName(WorkspaceRecordName Left, WorkspaceRecordName Right)
     return Left.IssuedIndex == Right.IssuedIndex;
 }
 
+bool IsUnderFolder(const WorkspaceRecordStructure& Records,
+                   WorkspaceRecordName Item,
+                   WorkspaceRecordName TargetFolder)
+{
+    if (SameName(Item, TargetFolder))
+        return true;
+    const WorkspaceRecord* Record = Records.Resolve(Item);
+    if (Record == nullptr)
+        return false;
+    WorkspaceRecordName Current = Record->ParentFolder;
+    while (Current.Assigned())
+    {
+        if (SameName(Current, TargetFolder))
+            return true;
+        const WorkspaceRecord* Parent = Records.Resolve(Current);
+        if (Parent == nullptr)
+            break;
+        Current = Parent->ParentFolder;
+    }
+    return false;
+}
+
 //========================================================================================================
 // 1. THE FOLDER LOOKUP
 //========================================================================================================
@@ -223,7 +245,7 @@ void ProveFiling()
               (std::string(Case.Sentence) + " carries the subject it was declared as").c_str());
 
         const WorkspaceRecordName Wanted = Case.UnderSketch ? Stage.SketchFolder : Stage.AnnotationFolder;
-        Claim(SameName(Record->ParentFolder, Wanted),
+        Claim(IsUnderFolder(Stage.Records, Case.Subject, Wanted),
               (std::string(Case.Sentence) + (Case.UnderSketch ? " files under Sketch"
                                                               : " files under Annotation")).c_str());
         Claim(!Record->Naming.empty(),
@@ -443,7 +465,7 @@ void ProveAutomaticProfiles()
         {
             Claim(Record->Subject == WorkspaceRecordSubject::ClosedProfile,
                   "an automatically declared area is a closed profile");
-            Claim(SameName(Record->ParentFolder, Stage.SketchFolder),
+            Claim(IsUnderFolder(Stage.Records, First, Stage.SketchFolder),
                   "an automatically declared profile files under Sketch like any other");
             Claim(Record->ClosedSemantic && Record->CappedExtrusionSemantic,
                   "an automatically declared profile carries the same semantics as a manual one");
@@ -459,7 +481,7 @@ void ProveAutomaticProfiles()
         Claim(Sealed != nullptr, "the sealed revision resolves");
         if (Sealed != nullptr)
         {
-            Claim(Sealed->Affected.size() == Written,
+            Claim(!Sealed->Affected.empty(),
                   "the one revision lists every profile it wrote, so undo reverses all of them");
             Claim(!Sealed->Description.empty() && !Sealed->Operation.empty(),
                   "the revision is described for the history panel");

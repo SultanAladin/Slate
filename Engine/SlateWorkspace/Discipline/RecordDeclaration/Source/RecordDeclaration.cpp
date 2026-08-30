@@ -81,7 +81,8 @@ WorkspaceRecordName DeclareWorkspaceCurve(WorkspaceNameIndex& Naming,
     WorkspaceRecord Record = {};
     Record.Subject      = WorkspaceRecordSubject::OpenCurve;
     Record.Family       = Construction ? WorkspaceShapeFamily::Construction : Family;
-    WorkspaceRecordName ParentFolder = {};
+    WorkspaceRecordName RootSketchFolder = ResolveCategoryFolder(Records, WorkspaceCategory::Sketch);
+    WorkspaceRecordName ParentFolder = RootSketchFolder;
     if (!Construction && (Family == WorkspaceShapeFamily::Line ||
                           Family == WorkspaceShapeFamily::CircularArc ||
                           Family == WorkspaceShapeFamily::Bezier ||
@@ -89,7 +90,7 @@ WorkspaceRecordName DeclareWorkspaceCurve(WorkspaceNameIndex& Naming,
                           Family == WorkspaceShapeFamily::BasisSpline ||
                           Family == WorkspaceShapeFamily::Nurbs))
     {
-        ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch, "Curves");
+        ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch, "Curves", RootSketchFolder);
     }
     // Curves are grouped directly under the single Curves folder. The family is metadata
     // on the row, not another folder level; this keeps one Bezier/Hermite/Spline as one
@@ -111,12 +112,13 @@ WorkspaceRecordName DeclareWorkspaceProfile(WorkspaceNameIndex& Naming,
     WorkspaceRecord Record = {};
     Record.Subject      = WorkspaceRecordSubject::ClosedProfile;
     Record.Family       = Family;
-    WorkspaceRecordName ParentFolder = {};
+    WorkspaceRecordName RootSketchFolder = ResolveCategoryFolder(Records, WorkspaceCategory::Sketch);
+    WorkspaceRecordName ParentFolder = RootSketchFolder;
     if (Family == WorkspaceShapeFamily::Polygon || Family == WorkspaceShapeFamily::Rectangle ||
         Family == WorkspaceShapeFamily::Slot || Family == WorkspaceShapeFamily::Circle ||
         Family == WorkspaceShapeFamily::Ellipse || Family == WorkspaceShapeFamily::EllipticalArc)
     {
-        ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch, "Profiles");
+        ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch, "Profiles", RootSketchFolder);
     }
     Record.ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch,
                                              FamilyFolderName(Family), ParentFolder);
@@ -158,8 +160,9 @@ WorkspaceRecordName DeclareWorkspacePoint(WorkspaceNameIndex& Naming,
     WorkspaceRecord Record = {};
     Record.Subject      = WorkspaceRecordSubject::Point;
     Record.Family       = WorkspaceShapeFamily::Point;
+    WorkspaceRecordName RootSketchFolder = ResolveCategoryFolder(Records, WorkspaceCategory::Sketch);
     Record.ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch,
-                                             FamilyFolderName(WorkspaceShapeFamily::Point));
+                                             FamilyFolderName(WorkspaceShapeFamily::Point), RootSketchFolder);
     Record.Naming       = Naming.Issue(WorkspaceRecordSubject::Point);
     Record.SketchPoint  = Point;
     return Records.Declare(Record);
