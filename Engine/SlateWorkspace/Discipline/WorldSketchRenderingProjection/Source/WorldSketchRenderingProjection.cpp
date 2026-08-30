@@ -116,8 +116,35 @@ void AppendClippedTriangle(const ResolvedCamera& Camera,
     }
 }
 
+Unsigned32 ResolveViewportCurveStepFloor(const ResolvedCamera& Camera,
+                                          const CurveSpecification& Geometry,
+                                          Unsigned32 Floor)
+{
+    // The geometry resolver supplies a curvature-aware floor. This second, view-aware floor prevents
+    // close orbit shots from exposing the underlying parameter chords: orthographic scale is pixels per
+    // world unit, while perspective detail falls with eye distance. The multiplier is bounded so a tiny
+    // zoom cannot exhaust the packet budget.
+    double Detail = 1.0;
+    if (!Camera.Perspective)
+    {
+        Detail = std::sqrt(std::max(Camera.OrthoScale, 1.0) / 48.0);
+    }
+    else
+    {
+        const SpatialPoint& Eye = Camera.Frame.Eye;
+        const double Distance = std::sqrt(Eye.Left * Eye.Left + Eye.Up * Eye.Up + Eye.Forward * Eye.Forward);
+        Detail = std::sqrt(12.0 / std::max(Distance, 0.25));
+    }
+
+    const double Bounded = std::clamp(Detail, 1.0, 8.0);
+    const std::uint32_t AdaptiveFloor = static_cast<std::uint32_t>(
+        std::ceil(static_cast<double>(Floor) * Bounded));
+    return ResolveCurveStepCount(Geometry, AdaptiveFloor);
+}
+
 bool ResolveCurvePolyline(const WorldSketchStructure& Declared,
                           WorldCurveName Subject,
+                          const ResolvedCamera& Camera,
                           Unsigned32 StepFloor,
                           std::vector<SpatialPoint>& Delivered)
 {
@@ -126,7 +153,8 @@ bool ResolveCurvePolyline(const WorldSketchStructure& Declared,
     if (Held == nullptr || !Held->Geometry.Declared())
         return false;
 
-    AppendCurvePolyline(Held->Geometry, Delivered, ResolveCurveStepCount(Held->Geometry, StepFloor));
+    AppendCurvePolyline(Held->Geometry, Delivered,
+                        ResolveViewportCurveStepFloor(Camera, Held->Geometry, StepFloor));
     return Delivered.size() >= 2u;
 }
 
@@ -293,7 +321,7 @@ Deliver<bool> ProjectWorldSketchRendering(const WorldSketchStructure& Declared,
     std::vector<SpatialPoint> Polyline;
     for (std::uint32_t CurveIndex = 1u; CurveIndex <= Declared.CurveCount(); ++CurveIndex)
     {
-        if (!ResolveCurvePolyline(Declared, { CurveIndex }, Style.CurveSteps, Polyline))
+        if (!ResolveCurvePolyline(Declared, { CurveIndex }, Camera, Style.CurveSteps, Polyline))
             continue;
 
         for (std::size_t PointIndex = 0u; PointIndex + 1u < Polyline.size(); ++PointIndex)
