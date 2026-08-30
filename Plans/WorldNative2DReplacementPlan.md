@@ -79,6 +79,17 @@ The next authority-reduction phase is now concrete: the two remaining compatibil
 
 The active-plane handoff is implemented. `PlacementCommit` now has an explicit-plane entry point used by drawing fallback and bridge compatibility commits, while the old sketch-plane overload remains available for deliberately legacy callers. Circle, ellipse, polygon, and slot profile declaration also have explicit-plane overloads, and every corresponding placement arm passes its active plane instead of reaching the sketch's stored plane. Grid, constraint-glyph, and profile-area overlay recording likewise accept an explicit `SpatialBasis`; sketch-only wrappers are isolated compatibility adapters.
 
+## World-first authoring handoff
+
+The world placement path is now authoritative for ordinary geometry creation. `CommitPlacementWorldBacked` imports a legacy sketch only when the world model is empty, declares new curves and loops in `WorldSketchStructure` first, and then appends the resulting geometry to `SketchStructure` for compatibility records and legacy consumers. World-backed viewport selection follows the same bootstrap-only import rule; normal frames no longer rebuild live world geometry from the sketch mirror. Dimension text editing remains an explicit compatibility seam until world dimensions are implemented.
+
+### World-first acceptance
+- A partial or stale compatibility sketch cannot erase existing world curves or loops during a new placement.
+- New world-backed geometry is declared before compatibility sketch geometry.
+- World transforms continue to mirror back into the sketch for records, revisions, and legacy consumers.
+- The bootstrap import remains available for opening legacy sketch data.
+- World-first placement and interaction proofs, structural budget checks, partition checks, and naming checks remain green.
+
 ## Validation plan
 - Strict compile:
   - `WorldSketchBridge.cpp`

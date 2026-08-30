@@ -841,6 +841,9 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
     const WorkspaceRecordName SelectedRecord = SelectedRecordIn(Directory, WorkspaceApplied);
     if (ApplyDimensionTextEdit(TextInput, Sketch, Records, Revisions, SelectedRecord))
     {
+        // 🧩 Dimensions remain a compatibility-authoring seam until world dimensions land. Keep this
+        //    explicit bridge narrow; ordinary world selection and transforms must not rebuild world
+        //    geometry from the sketch mirror.
         MirrorSketchIntoWorldSketch(Sketch, World, Mapping);
         PointerTaken = true;
     }
@@ -863,7 +866,10 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
         PointerTaken = true;
         return;
     }
-    MirrorSketchIntoWorldSketch(Sketch, World, Mapping);
+    // 🧩 Seed a world model only for a legacy document that has not been imported yet. Once world
+    //    geometry exists, the sketch is a compatibility mirror and cannot overwrite it on every frame.
+    if (World.CurveCount() == 0u && SketchHasCommittedGeometry(Sketch))
+        MirrorSketchIntoWorldSketch(Sketch, World, Mapping);
 
     WorldPick WorldSemantic = {};
     WorldPick WorldHovered = {};

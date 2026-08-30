@@ -1,10 +1,11 @@
 //============================================================================================================================================
 //                                                    WORLDSKETCHSKETCHBRIDGE.H
 //============================================================================================================================================
-// 🧩 Bridges the shipped sketch document to the world-sketch interaction and rendering path. Drawing still
-//    writes the sketch structure for now; this unit mirrors that geometry into a world sketch, maps picks
-//    between the two models, syncs transformed world geometry back into the sketch, and projects the
-//    resulting true-3D curves through the world renderer.
+// 🧩 Bridges the compatibility sketch document to the world-sketch interaction and rendering path. New
+//    geometry is authored in the world sketch first; this unit imports a legacy sketch only when the world
+//    model is empty, mirrors new world geometry for records and compatibility consumers, maps picks between
+//    the two models, syncs transformed world geometry back into the sketch, and projects true-3D curves
+//    through the world renderer.
 
 #pragma once
 

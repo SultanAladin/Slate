@@ -541,7 +541,10 @@ bool CommitPlacementWorldBacked(const Workplane& ActiveWorkplane,
         return SelectedRecord.Assigned();
     }
 
-    if (Declared.CurveCount() != static_cast<std::uint32_t>(Sketch.Curves().size()))
+    // 🧩 World geometry is the live authoring authority. Import the compatibility sketch only when the
+    //    world model has not been seeded yet; an already-live world model must never be rebuilt from a
+    //    stale or partial sketch mirror before a new placement.
+    if (Declared.CurveCount() == 0u && SketchHasCommittedGeometry(Sketch))
         MirrorSketchIntoWorldSketch(Sketch, Declared, Mapping);
 
     WorldPlacementFrame Support = ResolveWorkplaneSupportFrame(ActiveWorkplane);

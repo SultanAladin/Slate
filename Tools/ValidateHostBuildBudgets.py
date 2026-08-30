@@ -475,6 +475,17 @@ def main() -> int:
     bridge = read("Engine/SlateWorkspace/Discipline/WorldSketchBridge/Source/WorldSketchBridge.cpp")
     require("CommitPlacement(Naming, Sketch, ResolveSketchPlaneFromWorkplane(ActiveWorkplane)" in bridge,
             "world bridge compatibility commits must pass the active workplane plane explicitly")
+    world_commit = bridge[bridge.index("bool CommitPlacementWorldBacked("):]
+    require("Declared.CurveCount() == 0u && SketchHasCommittedGeometry(Sketch)" in world_commit,
+            "world-backed placement may import the sketch only while the world model is unseeded")
+    require("Declared.CurveCount() != static_cast<std::uint32_t>(Sketch.Curves().size())" not in world_commit,
+            "world-backed placement must not rebuild live world geometry from a partial sketch mirror")
+
+    interaction_world = interaction[interaction.index("void DriveViewportSelectionAndTransformWorldBacked("):]
+    require("World.CurveCount() == 0u && SketchHasCommittedGeometry(Sketch)" in interaction_world,
+            "world-backed selection may seed from a legacy sketch only while the world model is empty")
+    require(interaction_world.count("MirrorSketchIntoWorldSketch(Sketch, World, Mapping)") == 2,
+            "world interaction must limit sketch-to-world mirroring to bootstrap and explicit dimension compatibility")
 
     overlay = read("Engine/SlateWorkspace/Discipline/SketchViewportOverlay/Source/SketchViewportOverlay.cpp")
     require("const SpatialBasis& Basis" in overlay

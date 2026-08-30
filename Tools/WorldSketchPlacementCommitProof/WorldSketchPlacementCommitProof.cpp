@@ -86,9 +86,47 @@ void ProveRectangleCommitsAsWorldBackedProfile()
           "and the whole placement seals exactly one revision");
 }
 
+void ProveWorldAuthoringDoesNotRebuildFromStaleSketch()
+{
+    std::printf("\n2. New world authoring preserves live geometry when the compatibility mirror is stale\n");
+
+    Bench Stage;
+    SealedPlacement Rectangle = {};
+    Rectangle.Subject = SketchSubject::Rectangle;
+    Rectangle.Method = PlacementMethod::Extent;
+    Rectangle.Anchors = { { 0.0, 40.0, 0.0 }, { 100.0, 40.0, 80.0 } };
+    Rectangle.ClosedProfile = true;
+
+    WorkspaceRecordName RectangleRecord = {};
+    Claim(CommitPlacementWorldBacked(Stage.ActiveWorkplane, Stage.World, Stage.Mapping,
+                                     Stage.Naming, Stage.Sketch, Stage.Records, Stage.Revisions,
+                                     Rectangle, RectangleRecord),
+          "the initial placement establishes a live world sketch");
+
+    // A compatibility consumer has lost its curve rows, while the world model still owns the shape.
+    // The next placement must append to world geometry, not rebuild it from this partial mirror.
+    Stage.Sketch.Curves().clear();
+
+    SealedPlacement Point = {};
+    Point.Subject = SketchSubject::Point;
+    Point.Method = PlacementMethod::Extent;
+    Point.Anchors = { { 10.0, 40.0, 15.0 } };
+    WorkspaceRecordName PointRecord = {};
+    Claim(CommitPlacementWorldBacked(Stage.ActiveWorkplane, Stage.World, Stage.Mapping,
+                                     Stage.Naming, Stage.Sketch, Stage.Records, Stage.Revisions,
+                                     Point, PointRecord),
+          "the next placement still commits after the sketch mirror becomes partial");
+    Claim(Stage.World.CurveCount() == 5u && Stage.World.LoopCount() == 1u,
+          "and it appends the new world curve without deleting the existing world profile");
+    const DeclaredWorldCurve* Existing = Stage.World.Resolve(WorldCurveName{ 1u });
+    Claim(Existing != nullptr && Existing->SupportFrameStanding
+       && std::fabs(Existing->SupportFrame.Origin.Up - 40.0) < 1.0e-6,
+          "the original world geometry and its active support frame survive the stale mirror");
+}
+
 void ProveConstructionPolylineStaysWire()
 {
-    std::printf("\n2. Construction geometry stays wire-only when committed through the world path\n");
+    std::printf("\n3. Construction geometry stays wire-only when committed through the world path\n");
 
     Bench Stage;
     SealedPlacement Polyline = {};
@@ -114,7 +152,7 @@ void ProveConstructionPolylineStaysWire()
 
 void ProveExplicitProfileDeclarersTakeActivePlane()
 {
-    std::printf("\n3. Every compatibility profile declarer takes the active plane explicitly\n");
+    std::printf("\n4. Every compatibility profile declarer takes the active plane explicitly\n");
 
     struct Scenario
     {
@@ -157,7 +195,7 @@ void ProveExplicitProfileDeclarersTakeActivePlane()
 
 void ProvePointAndWorldBackedRendering()
 {
-    std::printf("\n4. Point placements still land, and off-plane edits render through the world projection\n");
+    std::printf("\n5. Point placements still land, and off-plane edits render through the world projection\n");
 
     Bench Stage;
     SealedPlacement Point = {};
@@ -193,7 +231,7 @@ void ProvePointAndWorldBackedRendering()
 
 void ProveCompatibilityCommitTakesExplicitPlane()
 {
-    std::printf("\n5. The compatibility commit can be given the active plane without changing the sketch's remembered plane\n");
+    std::printf("\n6. The compatibility commit can be given the active plane without changing the sketch's remembered plane\n");
 
     Bench Stage;
     const SketchPlane ActivePlane = { { 0.0, 40.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 } };
@@ -224,6 +262,7 @@ int main()
     std::printf("=========================================================================\n");
 
     ProveRectangleCommitsAsWorldBackedProfile();
+    ProveWorldAuthoringDoesNotRebuildFromStaleSketch();
     ProveConstructionPolylineStaysWire();
     ProveExplicitProfileDeclarersTakeActivePlane();
     ProvePointAndWorldBackedRendering();
