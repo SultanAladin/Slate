@@ -360,7 +360,6 @@ static std::uint32_t             SketchTrimKeep      = 0u;
     constexpr float SecondaryClickTravel = 4.0f;   // [px] - beyond this the gesture was a look
     // 📝 The sketch tools measure against an orbit standing; the editor flies a free camera. The
     //    standing is kept beside it and driven from the same yaw/pitch, so both describe one view.
-    static ViewportStanding          SketchView;
     // 🔴 HOW FAR THE PROJECTION HAS TRAVELLED BETWEEN ITS TWO ENDS. Pressing Ortho used to swap the
     //    projection between one tick and the next, so the whole scene jumped and the artist lost
     //    track of where they were looking. One per leaf, because two split viewports may be part-way
@@ -1199,6 +1198,9 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                             case PanelSubject::Viewport:
                             {
                                 ViewportRuntimeState& LeafRuntime = ViewportRuntime[Leaf];
+                                // The local alias keeps the viewport phase readable while the state remains
+                                // owned by this leaf rather than by the application-wide host.
+                                ViewportStanding& SketchView = ViewportRuntime[Index].Standing;
                                 OverlayGeometry& LeafOverlay = LeafRuntime.Overlay;
                                 LeafOverlay.Reset();
 
@@ -1306,7 +1308,8 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                         SketchContextMenu.Close();
                                 }
 
-                                ResolvedCamera SceneCamera = ResolveFreeCamera(
+                                ResolvedCamera& SceneCamera = ViewportRuntime[Index].Camera;
+                                SceneCamera = ResolveFreeCamera(
                                     { SceneApplied.CameraPosition[0], SceneApplied.CameraPosition[1],
                                       SceneApplied.CameraPosition[2] },
                                     SceneApplied.ViewportSkyCamera.AzimuthDegrees,
@@ -1468,6 +1471,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     //    basis below resolves from the workplane that just moved, so a
                                     //    Front or Side view re-reads the sketch basis in the same pass.
                                     const SpatialBasis SketchBasis = ResolveWorkplaneBasis(SketchWorkplanes.Active());
+                                    ViewportRuntime[Index].ActiveWorkplane = SketchWorkplanes.ActiveName();
                                     // 🔴 Do not reconstruct an orthographic standing every frame. That
                                     //    erased its Focus immediately after pan, which made middle/right
                                     //    drag appear dead. Seed it when entering ortho (and continuously
