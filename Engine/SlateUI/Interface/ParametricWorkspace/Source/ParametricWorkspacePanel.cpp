@@ -203,7 +203,7 @@ void ParametricWorkspacePanel::RecordSearchField(const PlaneExtent& Extent,
     const float Radius = Extent.Height() * 0.5f;
 
     Surface->Ground(Extent, Tinted.MenuLower, Radius, CornerAll);
-    Surface->Edge(Extent, Taken ? Faded(Tinted.Primary, 0.22f) : Tinted.Hairline,
+    Surface->Edge(Extent, Taken ? Tinted.Primary : Tinted.Hairline,
                   1.0f, Radius, CornerAll);
 
     const float GlyphExtent = 14.0f;
@@ -375,7 +375,7 @@ void ParametricWorkspacePanel::RecordDirectoryPage(const PlaneExtent& Extent,
         {
             const bool Expanded = Filtering || Current.Subject == ParametricRowSubject::CategoryRoot || Applied.RowExpanded[Index];
             Surface->Stroke(Expanded ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
-                            Chevron, Faded(Tinted.Faint, InteractiveDisclosure ? 1.0f : 0.65f));
+                            Chevron, Tinted.Faint);
         }
 
         const float GlyphLead = LeadX + Scaled.ChevronExtent + Scaled.PanePad;

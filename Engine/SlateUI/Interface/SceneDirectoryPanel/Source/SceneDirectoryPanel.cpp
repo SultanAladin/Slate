@@ -1455,9 +1455,9 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
         const float Coverage = Absent ? 0.5f : 1.0f;
 
         if (Taken)
-            Surface->Ground(Row, Faded(Tinted.EntityTaken, Coverage), Scaled.FieldRadius, CornerAll);
+            Surface->Ground(Row, Tinted.EntityTaken, Scaled.FieldRadius, CornerAll);
         else if (Hovered)
-            Surface->Ground(Row, Faded(Tinted.RowHovered, Coverage), Scaled.FieldRadius, CornerAll);
+            Surface->Ground(Row, Tinted.RowHovered, Scaled.FieldRadius, CornerAll);
 
         if (Taken)
         {
@@ -1465,7 +1465,7 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
                                               Row.MinimumY + (Row.Height() - Scaled.RailY) * 0.5f,
                                               Scaled.RailX, Scaled.RailY);
 
-            Surface->Ground(Rail, Faded(Tinted.EntityAccent, Coverage), 2.0f,
+            Surface->Ground(Rail, Tinted.EntityAccent, 2.0f,
                             CornerTrailingUpper | CornerTrailingLower);
         }
 
@@ -1629,7 +1629,7 @@ void SceneDirectoryPanel::RecordOutliner(const PlaneExtent& Extent, SceneDirecto
     RecordLeafHeader(DetailsHeader, EntityGlyph(Current.Subject), Hue,
                      Current.Naming, EntityText(Current.Subject));
     if (OnDetailsHeader)
-        Surface->Ground(DetailsHeader, Faded(Tinted.TileHovered, 0.18f), 0.0f, CornerNone);
+        Surface->Ground(DetailsHeader, Tinted.TileHovered, 0.0f, CornerNone);
     Surface->Stroke(SymbolSubject::ChevronRight,
                     Spanning(DetailsHeader.MaximumX - Scaled.HeaderPadX - 12.0f,
                              DetailsHeader.MinimumY + (DetailsHeader.Height() - 12.0f) * 0.5f,
@@ -2421,7 +2421,7 @@ void SceneDirectoryPanel::RecordPropertyCards(const PlaneExtent& Extent, SceneDi
         Surface->Ground(Spanning(Extent.MaximumX - 5.0f,
                                  Extent.MinimumY + (Extent.Height() - ThumbY) * Along,
                                  3.0f, ThumbY),
-                        Faded(Tinted.Muted, 0.55f), 1.5f, CornerAll);
+                        Tinted.Muted, 1.5f, CornerAll);
     }
 }
 
