@@ -797,6 +797,21 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
                                         bool KeepStart)
 {
     const WorkspaceRecordName SelectedRecord = SelectedRecordIn(Directory, WorkspaceApplied);
+    if (SelectionSet.Empty())
+    {
+        const std::uint32_t RowCount = static_cast<std::uint32_t>(Directory.Rows.size());
+        for (std::uint32_t RowIndex = 0u;
+             RowIndex < RowCount && RowIndex < ParametricWorkspaceContext::RowLimit;
+             ++RowIndex)
+        {
+            if (!WorkspaceApplied.RowSelected[RowIndex] ||
+                Directory.Rows[RowIndex].Role != WorkspaceDirectoryRowRole::Record)
+                continue;
+            SketchPick DirectoryPick = {};
+            if (ResolvePickForRecord(Sketch, Records, Directory.Rows[RowIndex].Record, DirectoryPick))
+                SetSketchPick(SelectionSet, DirectoryPick, true);
+        }
+    }
     if (SelectedRecord.Assigned())
     {
         const SketchPick* Current = SelectionSet.Active();
@@ -916,7 +931,8 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
         SetSketchPick(SelectionSet, HoveredSelection, Modifiers.Shifted);
         const SketchPick* SetActiveAfterClick = SelectionSet.Active();
         SemanticSelection = SetActiveAfterClick != nullptr ? *SetActiveAfterClick : SketchPick{};
-        PendingSelection = SemanticSelection.Record;
+        if (!Modifiers.Shifted)
+            PendingSelection = SemanticSelection.Record;
         PointerTaken = true;
     }
 
