@@ -797,9 +797,38 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
                                         bool KeepStart)
 {
     const WorkspaceRecordName SelectedRecord = SelectedRecordIn(Directory, WorkspaceApplied);
+    const std::uint32_t RowCount = static_cast<std::uint32_t>(Directory.Rows.size());
+    bool HasSelectedDirectoryRecord = false;
+    for (std::uint32_t RowIndex = 0u;
+         RowIndex < RowCount && RowIndex < ParametricWorkspaceContext::RowLimit;
+         ++RowIndex)
+        if (WorkspaceApplied.RowSelected[RowIndex] &&
+            Directory.Rows[RowIndex].Role == WorkspaceDirectoryRowRole::Record)
+            HasSelectedDirectoryRecord = true;
+
+    if (!HasSelectedDirectoryRecord && RowCount != 0u)
+        SelectionSet.Clear();
+    else if (HasSelectedDirectoryRecord)
+    {
+        for (std::size_t Index = 0u; Index < SelectionSet.Items.size(); )
+        {
+            bool Keep = false;
+            for (std::uint32_t RowIndex = 0u;
+                 RowIndex < RowCount && RowIndex < ParametricWorkspaceContext::RowLimit;
+                 ++RowIndex)
+                if (WorkspaceApplied.RowSelected[RowIndex] &&
+                    Directory.Rows[RowIndex].Role == WorkspaceDirectoryRowRole::Record &&
+                    Directory.Rows[RowIndex].Record.IssuedIndex == SelectionSet.Items[Index].Record.IssuedIndex)
+                    Keep = true;
+            if (Keep)
+                ++Index;
+            else
+                SelectionSet.Items.erase(SelectionSet.Items.begin() + static_cast<std::ptrdiff_t>(Index));
+        }
+    }
+
     if (SelectionSet.Empty())
     {
-        const std::uint32_t RowCount = static_cast<std::uint32_t>(Directory.Rows.size());
         for (std::uint32_t RowIndex = 0u;
              RowIndex < RowCount && RowIndex < ParametricWorkspaceContext::RowLimit;
              ++RowIndex)
