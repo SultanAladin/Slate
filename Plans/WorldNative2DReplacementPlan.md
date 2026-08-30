@@ -1,7 +1,7 @@
 # World-native 2D replacement plan
 
 ## Goal
-Replace the remaining sketch-basis 2D authoring path with a world-native workplane path, while keeping `WorldDraftStructure` as the live authoring authority and preserving the sketch document only as a compatibility mirror for records, revisions, outliner state, and legacy dimension fallback.
+Replace the remaining sketch-basis 2D authoring path with a world-native workplane path, while keeping `WorldSketchStructure` as the live authoring authority and preserving the sketch document only as a compatibility mirror for records, revisions, outliner state, and legacy dimension fallback.
 
 ## Immediate implementation scope
 1. Stop deriving draw-plane authority from `SketchStructure`.
@@ -44,19 +44,34 @@ Replace the remaining sketch-basis 2D authoring path with a world-native workpla
 - Sketch compatibility paths still sync back into persistent world state.
 - Proofs stay green.
 
+## Next-phase scope: semantic/workspace boundary and vocabulary
+
+The immediate workplane phase leaves one concrete follow-up, rather than a broad removal of sketch compatibility: the world-sketch semantic kernel must stay in `SlateShape`, while camera- and viewport-dependent services stay in `SlateWorkspace`, and the provisional `WorldDraft` vocabulary must be retired. This phase is limited to that boundary and its proof/build wiring.
+
+1. Rename the world authoring units, APIs, symbols, and owned proofs from `WorldDraft` to `WorldSketch`.
+2. Split world picking into camera-free semantic placements and pivots in `SlateShape`, plus screen-space ray picking in `SlateWorkspace`.
+3. Move world editing back to `SlateShape` because it consumes only semantic world picks; keep rendering projection, screen picking, interaction, transforms, and the bridge in `SlateWorkspace`.
+4. Keep `SketchSnap` shape-only by accepting an explicit `SketchPlane`; resolve the active workspace `Workplane` at the interaction call site.
+5. Re-aim structural and build-budget proofs at the renamed, partition-correct paths.
+
+### Next-phase acceptance
+- `VerifyPartition`, `VerifyNaming`, and `ValidateHostBuildBudgets` pass.
+- Shape units include no workspace headers, and screen picking is the only world-picking unit that consumes camera projection.
+- The renamed world-sketch proofs compile their shape and workspace seams independently and remain green.
+
 ## Validation plan
 - Strict compile:
-  - `WorldDraftSketchBridge.cpp`
+  - `WorldSketchBridge.cpp`
   - `SketchInteraction.cpp`
   - `EditorHost.cpp` with `-DSLATE_COMBINED_AUTHORING`
 - Proofs:
-  - `WorldDraftPlacementCommitProof`
-  - `WorldDraftSketchBridgeProof`
-  - `WorldDraftInteractionProof`
-  - `WorldDraftTransformSessionProof`
-  - `WorldDraftEditingProof`
-  - `WorldDraftPickingProof`
-  - `WorldDraftRenderProof`
-  - `WorldDraftFoundationProof`
+  - `WorldSketchPlacementCommitProof`
+  - `WorldSketchBridgeProof`
+  - `WorldSketchInteractionProof`
+  - `WorldSketchTransformSessionProof`
+  - `WorldSketchEditingProof`
+  - `WorldSketchPickingProof`
+  - `WorldSketchRenderProof`
+  - `WorldSketchFoundationProof`
   - `SketchDrawingProof`
   - `WorkplaneCatalogueProof`
