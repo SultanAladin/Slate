@@ -199,7 +199,14 @@ Real32x4 ResolveGround(Real32x2 Corner)
         }
         else
         {
-            PlaneStanding = false;
+            // 🔴 Free orthographic navigation has no cube face to name, but it still needs a
+            //    stable reference. Match perspective and use the world floor's XY coordinates
+            //    (Z = 0), rather than inheriting the last exact orthographic plane.
+            PlaneNormal = Real32x3(0.0, 0.0, 1.0);
+            PlaneAlong  = Real32x3(1.0, 0.0, 0.0);
+            PlaneAcross = Real32x3(0.0, 1.0, 0.0);
+            PlaneAxisAlong = 0u;
+            PlaneAxisAcross = 1u;
         }
     }
 

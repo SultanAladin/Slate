@@ -108,6 +108,7 @@ private:
     float MeasureBody(const OptionDeclaration* Declared, std::uint32_t DeclaredCount) const;
     float Scale() const;
 
+    void AdvanceHeaderDrag(const PlaneExtent& Header, bool& PointerTaken);
     void RecordHeader(const PlaneExtent& Header, const char* Title, SymbolSubject Glyph, bool& PointerTaken);
     void RecordPill(const PlaneExtent& Bounds, const char* Title, SymbolSubject Glyph, bool& PointerTaken);
     bool Pressed(ControlIdentity Target, const PlaneExtent& Extent);

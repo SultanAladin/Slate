@@ -1407,8 +1407,15 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     }
                                     else
                                     {
+                                        // 🔴 A free orthographic camera is not one of the six cube
+                                        //    standings. It nevertheless has the same authoring rule as
+                                        //    perspective: use the world XY floor at Z = 0, never the
+                                        //    previous Top/Front/Side plane.
+                                        const ViewportOrientation AuthoringOrientation =
+                                            SketchOrientation == ViewportOrientation::Isometric
+                                                ? ViewportOrientation::Front : SketchOrientation;
                                         static_cast<void>(ActivateViewedWorkplane(
-                                            SketchWorkplanes, SketchOrientation, false));
+                                            SketchWorkplanes, AuthoringOrientation, false));
                                     }
 
                                     // 🔴 The draw basis now comes from the ACTIVE WORKPLANE itself rather

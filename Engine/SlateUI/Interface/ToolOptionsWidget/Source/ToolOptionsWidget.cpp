@@ -187,6 +187,12 @@ Deliver<bool> ToolOptionsWidget::Record(const PlaneExtent& Bounds,
     const float Header = HeaderHeight * Applied;
     const float Body   = MeasureBody(Declared, Rows);
 
+    // 🔴 Resolve the header gesture before any geometry is recorded. Previously RecordHeader moved
+    //    PlacedX/PlacedY after Card and the clip rectangle had already been computed, so the header
+    //    followed one frame before the body and controls. That produced the visible lag and clipping
+    //    artifacts while dragging or resizing its viewport.
+    AdvanceHeaderDrag(Spanning(PlacedX, PlacedY, Width, Header), PointerTaken);
+
     // 🔴 THE WIDGET CANNOT BE DRAGGED OFF THE EDGE AND STRANDED. The reference clamps to the window; this
     //    clamps to the viewport leaf, which is the same guarantee against the extent that actually
     //    contains it. A widget dragged behind a drawer could never be dragged back.
@@ -291,15 +297,24 @@ void ToolOptionsWidget::RecordHeader(const PlaneExtent& Header, const char* Titl
             PointerTaken = true;
     }
 
-    // 🔴 THE HEADER IS THE GRIP, MINUS ITS BUTTONS. The reference refuses a drag that begins on a
-    //    `.hdr-btn`, or pressing collapse while moving the mouse a pixel would drag instead of collapse.
+}
+
+void ToolOptionsWidget::AdvanceHeaderDrag(const PlaneExtent& Header, bool& PointerTaken)
+{
+    const float Applied = Scale();
+    const float MiddleY = (Header.MinimumY + Header.MaximumY) * 0.5f;
+    const float ButtonY = MiddleY - HeaderButton * 0.5f * Applied;
+    const PlaneExtent HideExtent = Spanning(Header.MaximumX - (HeaderPadX + HeaderButton) * Applied,
+                                            ButtonY, HeaderButton * Applied, HeaderButton * Applied);
+    const PlaneExtent FoldExtent = Spanning(HideExtent.MinimumX - (HeaderButton + 6.0f) * Applied,
+                                            ButtonY, HeaderButton * Applied, HeaderButton * Applied);
     const bool OverAction = FoldExtent.Encloses(Pointer.PositionX, Pointer.PositionY)
                          || HideExtent.Encloses(Pointer.PositionX, Pointer.PositionY);
 
     if (!OverAction && Header.Encloses(Pointer.PositionX, Pointer.PositionY) && Pointer.ContactPressed)
     {
-        Dragging    = true;
-        Travelled   = false;
+        Dragging = true;
+        Travelled = false;
         DragOriginX = Pointer.PositionX - Header.MinimumX;
         DragOriginY = Pointer.PositionY - Header.MinimumY;
         Interaction.Grab(HeaderGrip, ControlPart::Body);
@@ -307,17 +322,12 @@ void ToolOptionsWidget::RecordHeader(const PlaneExtent& Header, const char* Titl
 
     if (Dragging)
     {
-        // 🔴 READ AS TRAVEL, NOT AS A POSITION. A drag that tracked `PositionX` directly would snap the
-        //    card's corner to the pointer on the first frame, however far into the header the artist
-        //    happened to press.
         if (Pointer.TravelX * Pointer.TravelX + Pointer.TravelY * Pointer.TravelY >
             DragThreshold * DragThreshold * Applied * Applied)
             Travelled = true;
-
         PlacedX = Pointer.PositionX - DragOriginX;
         PlacedY = Pointer.PositionY - DragOriginY;
         PointerTaken = true;
-
         if (!Pointer.ContactHeld || Pointer.ContactReleased)
             Dragging = false;
     }
