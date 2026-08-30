@@ -267,6 +267,7 @@ Deliver<bool> BuildDirectoryPresentation(const WorkspaceDirectoryProjection& Sou
         ParametricDirectoryRow Presented = {};
         Presented.Naming         = Backing.Naming.c_str();
         Presented.Subject        = PresentedRowSubject(Row);
+        Presented.Family         = Row.Family;
         Presented.Category       = PresentedCategory(Row.Category);
         Presented.Depth          = Row.Depth;
         Presented.Enclosing      = Row.Enclosing;

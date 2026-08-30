@@ -10,6 +10,7 @@
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/SymbolSpecification/Api/SymbolSpecification.h"
 #include "SlateUI/Interface/TreeMechanics/Api/TreeMechanics.h"
+#include "SlateShape/Record/WorkspaceRecordStructure/Api/WorkspaceRecordStructure.h"
 
 #include <cstdint>
 
@@ -106,6 +107,7 @@ struct ParametricDirectoryRow
 {
     const char*           Naming         = "";
     ParametricRowSubject  Subject        = ParametricRowSubject::Point;
+    WorkspaceShapeFamily  Family         = WorkspaceShapeFamily::Unknown;
     ParametricCategory    Category       = ParametricCategory::Sketch;
     std::uint32_t         Depth          = 0u;
     std::uint32_t         Enclosing      = 0xFFFFFFFFu;
