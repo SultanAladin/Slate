@@ -1526,6 +1526,9 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     // 🔴 The viewport driver was implemented but had no call site. This
                                     //    is the missing CAD navigation path: secondary drag pans an
                                     //    orthographic view, and perspective secondary drag orbits.
+                                    const CameraCondition FlyInput = Viewport.Seam().CameraInput(
+                                        LeafBody.Encloses(BackgroundPointer.PositionX, BackgroundPointer.PositionY)
+                                        && !PointerBehindDrawer);
                                     DriveViewport(LeafBody, NavigationPointer,
                                                   Viewport.Seam().Modifiers(), SketchView, LeafPerspective,
                                                   FlyInput, Pass.ElapsedMilliseconds / 1000.0);
