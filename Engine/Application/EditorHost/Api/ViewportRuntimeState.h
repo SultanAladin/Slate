@@ -9,8 +9,6 @@
 #include <cmath>
 
 #include "Shared/OverlayGeometry.slang.h"
-#include "Shared/WorkspaceCadPacket.slang.h"
-#include "Application/EditorHost/Api/CadPacketUploadState.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/ViewportProjection.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/CadProjection.h"
 #include "SlateWorkspace/Discipline/WorkplaneCatalogue/Api/WorkplaneCatalogue.h"
@@ -25,9 +23,7 @@ struct ViewportRuntimeState
     WorkplaneName           ActiveWorkplane = {};
     ResolvedCamera          Camera = {};
     OverlayGeometry         Overlay = {};
-    WorkspaceCadPacket      CadPacket = {};
     WorkspaceCadProjection  CadProjection = {};
-    CadPacketUploadState    CadUpload = {};
     bool                    WasParallel = false;
     std::uint32_t           UploadedOverlayGeneration = 0u;
     float                   UploadedOverlayScale = 0.0f;

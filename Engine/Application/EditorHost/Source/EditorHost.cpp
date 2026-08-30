@@ -366,6 +366,9 @@ static std::uint32_t             SketchTrimKeep      = 0u;
     //    track of where they were looking. One per leaf, because two split viewports may be part-way
     //    through opposite transits at the same time.
     static ViewportRuntimeState     ViewportRuntime[WorkspaceIndex::WorkspaceLimit];
+    // 📝 Static: the packet is large and is reused every frame.
+    static WorkspaceCadPacket        SketchCadPacket;
+
     static ParametricWorkspaceContext SketchDirectoryApplied;
     static ParametricToolsPanel    ParametricTools;
     static ParametricToolsContext  ParametricToolsApplied;
@@ -390,7 +393,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
     //    each triangle was a separate anti-aliased primitive with visible shared edges. The data still
     //    lives on the CPU; only the rasterisation moves.
     WorkspaceCadPass                 CadPass;
-
+    CadPacketUploadState              CadUploadState;
     GeometryDeviceExchange           GeometryDevice = {};
     GeometryFileInterchange          GeometryTransfer = {};
     GeometryInterchange              ImportedGeometry = {};
@@ -859,7 +862,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                                         OverlayCodec,
                                                         Lifetime.Offering().ColourTargetFormat));
                     // 📝 Force a re-upload: the vertex buffer went with the old pass.
-                    ViewportRuntime[Index].CadUpload.Invalidate();
+                    CadUploadState.Invalidate();
                 }
                 for (std::uint32_t Index = 0u; Index < PanelStructure::RecordLimit; ++Index)
                 {
@@ -1199,7 +1202,6 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                 // owned by this leaf rather than by the application-wide host.
                                 ViewportStanding& SketchView = ViewportRuntime[Leaf].Standing;
                                 OverlayGeometry& LeafOverlay = LeafRuntime.Overlay;
-                                WorkspaceCadPacket& SketchCadPacket = LeafRuntime.CadPacket;
                                 LeafRuntime.BeginFrame();
 
                                 // 🔴 One press, one claimant. Scene selection, the workplane tool and
@@ -2413,19 +2415,16 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                     if (CadPass.Standing())
                     {
                         const std::uint64_t CadFingerprint = FingerprintCadPacket(SketchCadPacket);
-                        if (LeafRuntime.CadUpload.NeedsUpload(CadFingerprint))
+                        if (CadUploadState.NeedsUpload(CadFingerprint))
                         {
                             CadPass.Upload(SketchCadPacket);
-                            LeafRuntime.CadUpload.MarkUploaded(CadFingerprint);
+                            CadUploadState.MarkUploaded(CadFingerprint);
                         }
 
                         for (std::uint32_t ViewportIndex = 0u;
                              UncoveredBottom > UncoveredTop && ViewportIndex < ViewportLeafTally;
                              ++ViewportIndex)
                         {
-                            const std::uint32_t LeafIndex = ViewportLeafIndexs[ViewportIndex];
-                            ViewportRuntimeState& LeafRuntime = ViewportRuntime[LeafIndex];
-                            WorkspaceCadPacket& SketchCadPacket = LeafRuntime.CadPacket;
                             const PlaneExtent& LeafRect = ViewportLeafRects[ViewportIndex];
                             const float CadClipY0 = std::max(LeafRect.MinimumY, UncoveredTop);
                             const float CadClipY1 = std::min(LeafRect.MaximumY, UncoveredBottom);
