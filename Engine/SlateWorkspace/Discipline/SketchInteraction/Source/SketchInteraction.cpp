@@ -797,6 +797,16 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
                                         bool KeepStart)
 {
     const WorkspaceRecordName SelectedRecord = SelectedRecordIn(Directory, WorkspaceApplied);
+    if (SelectedRecord.Assigned())
+    {
+        const SketchPick* Current = SelectionSet.Active();
+        if (Current == nullptr || Current->Record.IssuedIndex != SelectedRecord.IssuedIndex)
+        {
+            SketchPick DirectoryPick = {};
+            if (ResolvePickForRecord(Sketch, Records, SelectedRecord, DirectoryPick))
+                SetSketchPick(SelectionSet, DirectoryPick, false);
+        }
+    }
     if (ApplyDimensionTextEdit(TextInput, Sketch, Records, Revisions, SelectedRecord))
         PointerTaken = true;
     if (SemanticSelection.Standing() && SelectedRecord.Assigned() &&
