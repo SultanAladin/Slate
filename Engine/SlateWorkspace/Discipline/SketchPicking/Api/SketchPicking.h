@@ -64,6 +64,9 @@ struct SketchSelectionSet
 
 bool SameSketchPickIdentity(const SketchPick& Left, const SketchPick& Right);
 void SetSketchPick(SketchSelectionSet& Set, const SketchPick& Pick, bool Additive);
+void RefreshSketchSelectionPositions(SketchSelectionSet& Set,
+                                      const SketchStructure& Sketch,
+                                      const WorkspaceRecordStructure& Records);
 
 /// 🧩 One thing a transform will move.
 struct SketchPlacementSubject

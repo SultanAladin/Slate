@@ -828,8 +828,27 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
     if (SetActive != nullptr)
         SemanticSelection = *SetActive;
 
-    const SketchPick ActiveSelection =
+    SketchPick ActiveSelection =
         EditableSelection(Sketch, Records, SelectedRecord, PendingSelection, SemanticSelection);
+    if (SelectionSet.Items.size() > 1u)
+    {
+        SpatialPoint SharedPivot = {};
+        std::size_t PivotCount = 0u;
+        for (const SketchPick& Pick : SelectionSet.Items)
+        {
+            SharedPivot.Left += Pick.Position.Left;
+            SharedPivot.Up += Pick.Position.Up;
+            SharedPivot.Forward += Pick.Position.Forward;
+            ++PivotCount;
+        }
+        if (PivotCount != 0u)
+        {
+            ActiveSelection.Position = SharedPivot;
+            ActiveSelection.Position.Left /= static_cast<double>(PivotCount);
+            ActiveSelection.Position.Up /= static_cast<double>(PivotCount);
+            ActiveSelection.Position.Forward /= static_cast<double>(PivotCount);
+        }
+    }
     const bool SelectStanding = ActiveTool == ParametricToolSubject::Select;
 
     if (TextInput.DeletePressed && ActiveSelection.Record.Assigned())
@@ -986,6 +1005,7 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
             UpdateTransformSession(Basis, View, Perspective, Extent,
                                    Pointer.PositionX, Pointer.PositionY, Modifiers.Commanded,
                                    Sketch, Transform);
+            RefreshSketchSelectionPositions(SelectionSet, Sketch, Records);
             PointerTaken = true;
 
             if (Transform.AwaitingRelease)

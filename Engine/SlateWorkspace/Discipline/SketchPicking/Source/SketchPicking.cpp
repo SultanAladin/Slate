@@ -690,4 +690,41 @@ void SetSketchPick(SketchSelectionSet& Set, const SketchPick& Pick, bool Additiv
     Set.Items.push_back(Pick);
 }
 
+void RefreshSketchSelectionPositions(SketchSelectionSet& Set,
+                                      const SketchStructure& Sketch,
+                                      const WorkspaceRecordStructure& Records)
+{
+    for (SketchPick& Pick : Set.Items)
+    {
+        if (Pick.Subject == SketchPickSubject::Point)
+            ResolveSketchPointPosition(Sketch, Pick.Point, Pick.Position);
+        else if (Pick.Subject == SketchPickSubject::Curve)
+            ResolveCurvePivot(Sketch, Pick.Curve, Pick.Position);
+        else if (Pick.Subject == SketchPickSubject::Record)
+        {
+            SketchPick Refreshed = {};
+            if (ResolvePickForRecord(Sketch, Records, Pick.Record, Refreshed))
+                Pick.Position = Refreshed.Position;
+        }
+        else if (Pick.Subject == SketchPickSubject::Control)
+        {
+            for (std::uint32_t CurveIndex = 1u;
+                 CurveIndex <= Sketch.Curves().size() && Pick.Subject == SketchPickSubject::Control;
+                 ++CurveIndex)
+            {
+                std::vector<SketchControlPlacement> Controls;
+                if (!ResolveSketchControls(Sketch, { CurveIndex }, Controls))
+                    continue;
+                for (const SketchControlPlacement& Control : Controls)
+                    if (Control.Name.IssuedIndex == Pick.Control.IssuedIndex)
+                    {
+                        Pick.Position = Control.Position;
+                        CurveIndex = static_cast<std::uint32_t>(Sketch.Curves().size());
+                        break;
+                    }
+            }
+        }
+    }
+}
+
 }   // namespace Slate
