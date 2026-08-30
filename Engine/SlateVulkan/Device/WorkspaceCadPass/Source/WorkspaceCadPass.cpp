@@ -333,6 +333,15 @@ void WorkspaceCadPass::Upload(const WorkspaceCadPacket& Packet)
     if (DeviceEdge == nullptr || MappedSlot == nullptr)
         return;
 
+    // This pass owns one persistently mapped buffer, while the frame scheduler permits several
+    // command buffers to remain in flight. Waiting before replacing the packet prevents a later CPU
+    // write from racing a previous frame's vertex fetch. This is deliberately limited to packet
+    // changes (the host fingerprints unchanged packets and does not call Upload for idle frames).
+    const VkDevice Active = DeviceEdge->ActiveDevice();
+    if (Active == VK_NULL_HANDLE)
+        return;
+    static_cast<void>(vkDeviceWaitIdle(Active));
+
     std::uint8_t* Cursor = MappedSlot;
     for (std::uint32_t Index = 0u; Index < Packet.SegmentCount && Index < SegmentCapacity; ++Index)
     {
