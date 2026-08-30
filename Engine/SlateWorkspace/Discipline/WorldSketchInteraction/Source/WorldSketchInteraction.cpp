@@ -173,20 +173,23 @@ void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
                                                            false, Transform, true,
                                                            ResolveHandleManner(ResolvedHandle));
         }
-        else if (Command.StartRequested && Command.StartManner == TransformManner::Move)
+        else if (Command.StartRequested)
         {
-            const bool Slide = ResolveSlideRequested(Command.MoveTapCount,
+            const bool Slide = Command.StartManner == TransformManner::Move
+                            && ResolveSlideRequested(Command.MoveTapCount,
                                                      SessionMilliseconds,
                                                      LastGPressedMilliseconds,
                                                      ActiveSelection.Curve.Assigned());
             if (Command.MoveTapCount > 0u)
                 LastGPressedMilliseconds = SessionMilliseconds;
+            const TransformRestriction Restriction =
+                Slide ? TransformRestriction::Curve
+                      : (Command.StartManner == TransformManner::Rotate
+                           ? TransformRestriction::Screen : TransformRestriction::Free);
             PointerTaken = StartWorldSketchTransformSession(Declared, Camera, Extent,
                                                            Pointer.PositionX, Pointer.PositionY,
-                                                           ActiveSelection,
-                                                           Slide ? TransformRestriction::Curve
-                                                                 : TransformRestriction::Free,
-                                                           Slide, Transform, false);
+                                                           ActiveSelection, Restriction, Slide,
+                                                           Transform, false, Command.StartManner);
         }
     }
 

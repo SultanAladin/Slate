@@ -93,7 +93,38 @@ bool ResolveGizmoScreenBasis(const SpatialBasis& Basis,
 {
     Resolved = {};
     if (!ProjectSpatialPoint(Basis, View, Perspective, Extent, Pivot, Resolved.PivotX, Resolved.PivotY))
-        return false;
+    {
+        // 🔴 A CAD manipulator is a screen control, not scene geometry. At extreme zoom the
+        //    selected pivot can cross the near clip or sit behind the eye; rejecting the whole
+        //    gizmo made it disappear exactly when close inspection was needed. Keep the control
+        //    seated at the leaf centre and retain the camera-facing axis directions. The transform
+        //    session still uses the real pivot and camera for its math; this is only the visual
+        //    fallback that keeps the handles reachable.
+        if (!Perspective)
+            return false;
+        Resolved.PivotX = (Extent.MinimumX + Extent.MaximumX) * 0.5f;
+        Resolved.PivotY = (Extent.MinimumY + Extent.MaximumY) * 0.5f;
+        const ViewFrame FallbackFrame = ResolveViewportFrame(Basis, View, true);
+        const double TanHalf = std::tan(View.FieldOfViewDegrees * 0.5 * ProjectionPi / 180.0);
+        const double Height = std::max(static_cast<double>(Extent.Height()), 1.0);
+        Resolved.WorldPerPixel = std::clamp(
+            std::fabs(View.Distance) * TanHalf / (Height * 0.5), 1.0e-5, 1.0e3);
+        const auto FallbackDirection = [&](const SpatialDirection& Axis, float& X, float& Y)
+        {
+            const double ProjectedX = Dot(Axis, FallbackFrame.Right);
+            const double ProjectedY = -Dot(Axis, FallbackFrame.Up);
+            const double Length = std::sqrt(ProjectedX * ProjectedX + ProjectedY * ProjectedY);
+            if (Length > 1.0e-6)
+            {
+                X = static_cast<float>(ProjectedX / Length);
+                Y = static_cast<float>(ProjectedY / Length);
+            }
+        };
+        FallbackDirection(Basis.Along, Resolved.AlongX, Resolved.AlongY);
+        FallbackDirection(Basis.Across, Resolved.AcrossX, Resolved.AcrossY);
+        FallbackDirection(Basis.Normal, Resolved.NormalX, Resolved.NormalY);
+        return true;
+    }
 
     if (!Perspective)
     {

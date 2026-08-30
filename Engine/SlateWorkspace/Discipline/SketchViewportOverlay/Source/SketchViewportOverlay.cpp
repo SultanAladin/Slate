@@ -656,10 +656,13 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
             }
     };
 
-    const bool Universal = !Transform.Engaged();
-    const bool DrawMove = Universal || Transform.Manner() == TransformManner::Move;
-    const bool DrawRotate = Universal || Transform.Manner() == TransformManner::Rotate;
-    const bool DrawScale = Universal || Transform.Manner() == TransformManner::Scale;
+    // 🔴 A mode key starts a real transform session before the next redraw. The old Universal arm
+    //    rendered move, rotate and scale together whenever the session was idle, so pressing G/R/S
+    //    could never present the one relevant CAD manipulator. An idle selection defaults to Move;
+    //    once G, R or S starts a session, only that session's family is emitted.
+    const bool DrawMove = !Transform.Engaged() || Transform.Manner() == TransformManner::Move;
+    const bool DrawRotate = Transform.Engaged() && Transform.Manner() == TransformManner::Rotate;
+    const bool DrawScale = Transform.Engaged() && Transform.Manner() == TransformManner::Scale;
 
     if (DrawMove)
     {
@@ -912,10 +915,11 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
             }
     };
 
-    const bool Universal = !Transform.Engaged();
-    const bool DrawMove = Universal || Transform.Manner() == TransformManner::Move;
-    const bool DrawRotate = Universal || Transform.Manner() == TransformManner::Rotate;
-    const bool DrawScale = Universal || Transform.Manner() == TransformManner::Scale;
+    // 🔴 The active transform family is the only family drawn. Idle selection shows Move as the
+    //    neutral default; a live G/R/S session selects exactly one corresponding manipulator.
+    const bool DrawMove = !Transform.Engaged() || Transform.Manner() == TransformManner::Move;
+    const bool DrawRotate = Transform.Engaged() && Transform.Manner() == TransformManner::Rotate;
+    const bool DrawScale = Transform.Engaged() && Transform.Manner() == TransformManner::Scale;
 
     if (DrawMove)
     {
