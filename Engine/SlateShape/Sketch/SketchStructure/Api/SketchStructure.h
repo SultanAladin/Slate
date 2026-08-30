@@ -54,19 +54,34 @@ public:
     Deliver<bool> DeclarePolyline(const std::vector<SpatialPoint>& Positions,
                                   std::vector<SketchCurveName>& DeclaredCurves);
     Deliver<ProfileNameInFeature> DeclareCircleProfile(const CircleCurve& Declared);
+    Deliver<ProfileNameInFeature> DeclareCircleProfile(const CircleCurve& Declared,
+                                                       const SketchPlane& ActivePlane);
     Deliver<ProfileNameInFeature> DeclareEllipseProfile(const EllipseCurve& Declared);
+    Deliver<ProfileNameInFeature> DeclareEllipseProfile(const EllipseCurve& Declared,
+                                                       const SketchPlane& ActivePlane);
     Deliver<ProfileNameInFeature> DeclareOvalProfile(const EllipseCurve& Declared);
+    Deliver<ProfileNameInFeature> DeclareOvalProfile(const EllipseCurve& Declared,
+                                                     const SketchPlane& ActivePlane);
     /// in  StartDirection  [-]  where the FIRST corner sits, so the polygon follows the drag
     /// note 🔴 A zero-length direction keeps the old behaviour of starting on the plane's own axis.
     ///       Without this the first corner always lay along `AlongDirection`, so the committed
-    ///       polygon was rotated away from the one the artist had just dragged out and previewed.
+    ///       polygon was rotated away from the one the artist had just dragged and previewed.
     Deliver<ProfileNameInFeature> DeclareRegularPolygon(const SpatialPoint& Centre,
                                                         double Radius,
                                                         std::uint32_t SideCount,
                                                         const SpatialDirection& StartDirection = {});
+    Deliver<ProfileNameInFeature> DeclareRegularPolygon(const SpatialPoint& Centre,
+                                                        double Radius,
+                                                        std::uint32_t SideCount,
+                                                        const SketchPlane& ActivePlane,
+                                                        const SpatialDirection& StartDirection = {});
     Deliver<ProfileNameInFeature> DeclareSlot(const SpatialPoint& StartPoint,
                                               const SpatialPoint& EndPoint,
                                               double Radius);
+    Deliver<ProfileNameInFeature> DeclareSlot(const SpatialPoint& StartPoint,
+                                              const SpatialPoint& EndPoint,
+                                              double Radius,
+                                              const SketchPlane& ActivePlane);
 
     const SketchPlane& HeldPlane() const { return Plane; }
 

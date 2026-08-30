@@ -92,13 +92,13 @@ void RecordViewportStateReadout(RecordingSurface& Surface,
 
 void RecordConstraintGlyphs(RecordingSurface& Surface,
                             const PlaneExtent& Extent,
+                            const SpatialBasis& Basis,
                             const SketchStructure& Sketch,
                             const ViewportStanding& View,
                             bool Perspective)
 {
     if (!Sketch.Declared())
         return;
-    const SpatialBasis Basis = ResolveSketchBasis(Sketch);
     for (const ConstraintSpecification& Constraint : Sketch.Constraints())
     {
         SpatialPoint Anchor = {};
@@ -114,15 +114,26 @@ void RecordConstraintGlyphs(RecordingSurface& Surface,
     }
 }
 
+void RecordConstraintGlyphs(RecordingSurface& Surface,
+                            const PlaneExtent& Extent,
+                            const SketchStructure& Sketch,
+                            const ViewportStanding& View,
+                            bool Perspective)
+{
+    if (!Sketch.PlaneDeclared())
+        return;
+    RecordConstraintGlyphs(Surface, Extent, ResolveSketchBasis(Sketch), Sketch, View, Perspective);
+}
+
 void RecordProfileAreaOverlay(RecordingSurface& Surface,
                                 const PlaneExtent& Extent,
+                                const SpatialBasis& Basis,
                                 const SketchStructure& Sketch,
                                 const ViewportStanding& View,
                                 bool Perspective)
 {
     if (!Sketch.Declared())
         return;
-    const SpatialBasis Basis = ResolveSketchBasis(Sketch);
     const ProfileAreaAnalysis Analysis = AnalyzeProfileAreas(Sketch, 0.05);
 
     for (const ProfileAreaTriangle& Triangle : Analysis.Triangles)
@@ -180,6 +191,17 @@ void RecordProfileAreaOverlay(RecordingSurface& Surface,
         Surface.TextRun(X0 + 8.0f, Y0 - 8.0f, Tone,
                         Issue.Subject == ProfileAreaIssueSubject::SelfIntersection ? "self-intersection" : "profile gap", 10.0f);
     }
+}
+
+void RecordProfileAreaOverlay(RecordingSurface& Surface,
+                                const PlaneExtent& Extent,
+                                const SketchStructure& Sketch,
+                                const ViewportStanding& View,
+                                bool Perspective)
+{
+    if (!Sketch.PlaneDeclared())
+        return;
+    RecordProfileAreaOverlay(Surface, Extent, ResolveSketchBasis(Sketch), Sketch, View, Perspective);
 }
 
 void RecordProfileValidationReadout(RecordingSurface& Surface,
@@ -243,17 +265,13 @@ ThemeToken SnapToneFor(SketchSnapSubject Subject)
 
 void RecordViewportGridOverlay(OverlayGeometry& Overlay,
                                const PlaneExtent& Extent,
-                               const SketchStructure& Sketch,
+                               const SpatialBasis& Basis,
                                const ViewportStanding& View,
                                bool Perspective,
                                const EditorPanelConfiguration& Configuration)
 {
     if (Configuration.Lattice == PanelLatticePresentation::None)
         return;
-
-    const SpatialBasis Basis = Sketch.Declared()
-        ? ResolveSketchBasis(Sketch)
-        : SpatialBasis{ {}, { 1.0, 0.0, 0.0 }, { 0.0, 0.0, 1.0 }, { 0.0, 1.0, 0.0 } };
     const double Step = std::max(Configuration.LatticeCellMetres * static_cast<double>(Configuration.LatticeScale), 1.0);
     const std::uint32_t Subdivisions = std::max(Configuration.Subdivisions, 2u);
     const std::int32_t Count = Perspective ? 40 : 80;
@@ -285,6 +303,19 @@ void RecordViewportGridOverlay(OverlayGeometry& Overlay,
         ProjectViewportPoint(Basis, View, Perspective, Extent, 0.0, -Count * Step, X0, Y0) &&
         ProjectViewportPoint(Basis, View, Perspective, Extent, 0.0, Count * Step, X1, Y1))
         Overlay.AddLine(X0, Y0, X1, Y1, PackOverlayColour(0x5Au, 0x8Bu, 0xFCu, 208u), 1.6f);
+}
+
+void RecordViewportGridOverlay(OverlayGeometry& Overlay,
+                               const PlaneExtent& Extent,
+                               const SketchStructure& Sketch,
+                               const ViewportStanding& View,
+                               bool Perspective,
+                               const EditorPanelConfiguration& Configuration)
+{
+    const SpatialBasis Basis = Sketch.Declared()
+        ? ResolveSketchBasis(Sketch)
+        : SpatialBasis{ {}, { 1.0, 0.0, 0.0 }, { 0.0, 0.0, 1.0 }, { 0.0, 1.0, 0.0 } };
+    RecordViewportGridOverlay(Overlay, Extent, Basis, View, Perspective, Configuration);
 }
 
 void AppendOverlayCircle(OverlayGeometry& Overlay,

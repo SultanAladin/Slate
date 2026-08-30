@@ -64,11 +64,29 @@ void RecordViewportStateReadout(RecordingSurface& Surface,
                                 bool Perspective,
                                 const WorkspaceCadPacket& Packet);
 
+/// 🧩 World-native callers provide the active draw basis explicitly; the sketch remains only the
+/// compatibility source for constraints and profile diagnostics.
+void RecordConstraintGlyphs(RecordingSurface& Surface,
+                            const PlaneExtent& Extent,
+                            const SpatialBasis& Basis,
+                            const SketchStructure& Sketch,
+                            const ViewportStanding& View,
+                            bool Perspective);
+
+/// 🧩 World-native callers provide the active draw basis explicitly; the sketch remains only the
+/// compatibility source for constraints and profile diagnostics.
 void RecordConstraintGlyphs(RecordingSurface& Surface,
                             const PlaneExtent& Extent,
                             const SketchStructure& Sketch,
                             const ViewportStanding& View,
                             bool Perspective);
+
+void RecordProfileAreaOverlay(RecordingSurface& Surface,
+                                const PlaneExtent& Extent,
+                                const SpatialBasis& Basis,
+                                const SketchStructure& Sketch,
+                                const ViewportStanding& View,
+                                bool Perspective);
 
 void RecordProfileAreaOverlay(RecordingSurface& Surface,
                                 const PlaneExtent& Extent,
@@ -81,6 +99,16 @@ void RecordProfileValidationReadout(RecordingSurface& Surface,
                                     const SketchStructure& Sketch);
 
 
+/// 🧩 The explicit-basis entry point keeps the active workplane authoritative when this legacy
+/// compatibility overlay is requested by a secondary viewport.
+void RecordViewportGridOverlay(OverlayGeometry& Overlay,
+                               const PlaneExtent& Extent,
+                               const SpatialBasis& Basis,
+                               const ViewportStanding& View,
+                               bool Perspective,
+                               const EditorPanelConfiguration& Configuration);
+
+/// 🧩 Compatibility wrapper for callers that still own only a sketch document.
 void RecordViewportGridOverlay(OverlayGeometry& Overlay,
                                const PlaneExtent& Extent,
                                const SketchStructure& Sketch,

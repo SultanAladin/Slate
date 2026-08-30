@@ -112,6 +112,16 @@ Deliver<WorkspaceRecordName> CommitPlacement(WorkspaceNameIndex& Naming,
                                              WorkspaceRevisionSequence& Revisions,
                                              const SealedPlacement& Placed);
 
+/// 🧩 World-native callers supply the active authoring plane explicitly. This keeps the compatibility
+/// sketch's remembered plane out of the placement decision while retaining the legacy overload above for
+/// callers that are intentionally operating on the sketch document.
+Deliver<WorkspaceRecordName> CommitPlacement(WorkspaceNameIndex& Naming,
+                                             SketchStructure& Sketch,
+                                             const SketchPlane& ActivePlane,
+                                             WorkspaceRecordStructure& Records,
+                                             WorkspaceRevisionSequence& Revisions,
+                                             const SealedPlacement& Placed);
+
 /// 🧩 Whether this unit can declare a given pair, without declaring anything.
 /// note 📝 Lets the toolset refuse a combination at the point the artist picks it, rather than after they
 ///       have placed every anchor. `AcceptedBy` says the catalogue allows the pair; this says the

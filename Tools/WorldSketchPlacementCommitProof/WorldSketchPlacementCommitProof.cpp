@@ -1,4 +1,5 @@
 #include "SlateWorkspace/Discipline/WorldSketchBridge/Api/WorldSketchBridge.h"
+#include "SlateWorkspace/Discipline/PlacementCommit/Api/PlacementCommit.h"
 
 #include <cstdio>
 #include <cmath>
@@ -111,9 +112,52 @@ void ProveConstructionPolylineStaysWire()
           "and the multi-span construction draw is still one undo step");
 }
 
+void ProveExplicitProfileDeclarersTakeActivePlane()
+{
+    std::printf("\n3. Every compatibility profile declarer takes the active plane explicitly\n");
+
+    struct Scenario
+    {
+        SketchSubject Subject;
+        PlacementMethod Method;
+        std::vector<SpatialPoint> Anchors;
+    };
+
+    const Scenario Scenarios[] = {
+        { SketchSubject::Circle, PlacementMethod::Centred,
+          { { 0.0, 40.0, 0.0 }, { 60.0, 40.0, 0.0 } } },
+        { SketchSubject::Ellipse, PlacementMethod::Centred,
+          { { 0.0, 40.0, 0.0 }, { 100.0, 40.0, 40.0 } } },
+        { SketchSubject::Polygon, PlacementMethod::Centred,
+          { { 0.0, 40.0, 0.0 }, { 100.0, 40.0, 40.0 } } },
+        { SketchSubject::Slot, PlacementMethod::Extent,
+          { { 0.0, 40.0, 0.0 }, { 100.0, 40.0, 0.0 }, { 100.0, 40.0, 20.0 } } }
+    };
+
+    for (const Scenario& Case : Scenarios)
+    {
+        Bench Stage;
+        SealedPlacement Placement = {};
+        Placement.Subject = Case.Subject;
+        Placement.Method = Case.Method;
+        Placement.Anchors = Case.Anchors;
+        const SketchPlane ActivePlane = { { 0.0, 40.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 } };
+
+        const Deliver<WorkspaceRecordName> Result =
+            CommitPlacement(Stage.Naming, Stage.Sketch, ActivePlane,
+                            Stage.Records, Stage.Revisions, Placement);
+        Claim(Result.Resolved, "each supported profile placement accepts its active plane");
+        Claim(!Stage.Sketch.Profiles().empty()
+           && std::fabs(Stage.Sketch.Profiles().back().HeldPlane().Origin.Up - 40.0) < 1.0e-6,
+              "the profile geometry is declared on the supplied active plane");
+        Claim(std::fabs(Stage.Sketch.HeldPlane().Origin.Up) < 1.0e-6,
+              "the explicit profile path leaves the sketch's remembered plane untouched");
+    }
+}
+
 void ProvePointAndWorldBackedRendering()
 {
-    std::printf("\n3. Point placements still land, and off-plane edits render through the world projection\n");
+    std::printf("\n4. Point placements still land, and off-plane edits render through the world projection\n");
 
     Bench Stage;
     SealedPlacement Point = {};
@@ -147,6 +191,30 @@ void ProvePointAndWorldBackedRendering()
           "the committed point's supporting geometry still renders through the world-backed projection");
 }
 
+void ProveCompatibilityCommitTakesExplicitPlane()
+{
+    std::printf("\n5. The compatibility commit can be given the active plane without changing the sketch's remembered plane\n");
+
+    Bench Stage;
+    const SketchPlane ActivePlane = { { 0.0, 40.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 } };
+    SealedPlacement Rectangle = {};
+    Rectangle.Subject = SketchSubject::Rectangle;
+    Rectangle.Method = PlacementMethod::Extent;
+    Rectangle.Anchors = { { 0.0, 40.0, 0.0 }, { 100.0, 40.0, 80.0 } };
+
+    const Deliver<WorkspaceRecordName> Result =
+        CommitPlacement(Stage.Naming, Stage.Sketch, ActivePlane,
+                        Stage.Records, Stage.Revisions, Rectangle);
+    Claim(Result.Resolved,
+          "the compatibility fallback accepts an explicit active authoring plane");
+    const WorkspaceRecordName Selected = Result.Resolve();
+    Claim(Selected.Assigned() && !Stage.Sketch.Profiles().empty()
+       && std::fabs(Stage.Sketch.Profiles().back().HeldPlane().Origin.Up - 40.0) < 1.0e-6,
+          "and builds its compatibility profile on that active plane rather than the stale sketch plane");
+    Claim(std::fabs(Stage.Sketch.HeldPlane().Origin.Up) < 1.0e-6,
+          "while leaving the sketch's legacy global plane untouched for compatibility consumers");
+}
+
 } // namespace
 
 int main()
@@ -157,7 +225,9 @@ int main()
 
     ProveRectangleCommitsAsWorldBackedProfile();
     ProveConstructionPolylineStaysWire();
+    ProveExplicitProfileDeclarersTakeActivePlane();
     ProvePointAndWorldBackedRendering();
+    ProveCompatibilityCommitTakesExplicitPlane();
 
     std::printf("\n=========================================================================\n");
     std::printf("%u claims, %u failures -> %s\n", Claims, Failures,

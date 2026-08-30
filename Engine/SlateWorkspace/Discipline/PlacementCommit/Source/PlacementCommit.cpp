@@ -19,6 +19,13 @@ namespace
 
 constexpr double CommitPi = 3.14159265358979323846;
 
+SpatialBasis ResolvePlacementBasis(const SketchPlane& Plane)
+{
+    const SpatialDirection Along = Normalize(Plane.AlongDirection);
+    const SpatialDirection Normal = Normalize(Plane.Normal);
+    return { Plane.Origin, Along, Normalize(Cross(Normal, Along)), Normal };
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    SHARED BY THE ARMS
 //------------------------------------------------------------------------------------------------------------------------
@@ -88,6 +95,7 @@ bool ResolveThreePointCircle(const SpatialPoint& A,
 
 void AddLineAutoConstraints(WorkspaceNameIndex& Naming,
                             SketchStructure& Sketch,
+                            const SketchPlane& Plane,
                             WorkspaceRecordStructure& Records,
                             PlacementJournal& Revisions,
                             SketchCurveName Curve,
@@ -97,7 +105,7 @@ void AddLineAutoConstraints(WorkspaceNameIndex& Naming,
                             const SketchSnapPlacement* EndSnap,
                             std::vector<WorkspaceRecordName>& Written)
 {
-    const SpatialBasis Basis = ResolveSketchBasis(Sketch);
+    const SpatialBasis Basis = ResolvePlacementBasis(Plane);
     double StartAlong = 0.0, StartAcross = 0.0, EndAlong = 0.0, EndAcross = 0.0;
     ResolvePlaneCoordinates(Basis, StartPoint, StartAlong, StartAcross);
     ResolvePlaneCoordinates(Basis, EndPoint, EndAlong, EndAcross);
@@ -137,6 +145,7 @@ void AddLineAutoConstraints(WorkspaceNameIndex& Naming,
 
 Deliver<WorkspaceRecordName> DeclareLine(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
+                                    const SketchPlane& Plane,
                                     WorkspaceRecordStructure& Records,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
@@ -147,7 +156,7 @@ Deliver<WorkspaceRecordName> DeclareLine(WorkspaceNameIndex& Naming,
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming),
                        Placed.Construction ? "Create Construction Curve" : "Create Curve", { Record },
                        Revisions.DeclaredCount() + 1u);
-        AddLineAutoConstraints(Naming, Sketch, Records, Revisions, Curve,
+        AddLineAutoConstraints(Naming, Sketch, Plane, Records, Revisions, Curve,
                                Placed.Anchors[0], Placed.Anchors[1],
                                Placed.Placements.size() > 0u ? &Placed.Placements[0] : nullptr,
                                Placed.Placements.size() > 1u ? &Placed.Placements[1] : nullptr,
@@ -159,11 +168,12 @@ Deliver<WorkspaceRecordName> DeclareLine(WorkspaceNameIndex& Naming,
 
 Deliver<WorkspaceRecordName> DeclarePoint(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
+                                    const SketchPlane& Plane,
                                     WorkspaceRecordStructure& Records,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
 {
-        const SpatialPoint Tip = Added(Placed.Anchors.back(), Scaled(Normalize(Sketch.HeldPlane().AlongDirection), 0.001));
+        const SpatialPoint Tip = Added(Placed.Anchors.back(), Scaled(Normalize(Plane.AlongDirection), 0.001));
         const SketchCurveName Curve = Sketch.DeclareLine(Placed.Anchors.back(), Tip);
         const WorkspaceRecordName Record = DeclareWorkspacePoint(Naming, Records, EncodePlacedPointName(Curve, 0u));
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Point", { Record },
@@ -198,6 +208,7 @@ bool ClosesOnItself(const std::vector<SpatialPoint>& Anchors)
 
 Deliver<WorkspaceRecordName> DeclarePolyline(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
+                                    const SketchPlane& Plane,
                                     WorkspaceRecordStructure& Records,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
@@ -219,8 +230,8 @@ Deliver<WorkspaceRecordName> DeclarePolyline(WorkspaceNameIndex& Naming,
             && ClosesOnItself(Placed.Anchors))
         {
             ProfileSpecification Profile;
-            Profile.DeclarePlane({ Sketch.HeldPlane().Origin, Sketch.HeldPlane().Normal,
-                                   Sketch.HeldPlane().AlongDirection });
+            Profile.DeclarePlane({ Plane.Origin, Plane.Normal,
+                                   Plane.AlongDirection });
             ProfileLoop Loop;
             Loop.Orientation = ProfileLoopOrientation::Outer;
             for (const SketchCurveName& Curve : Curves)
@@ -240,7 +251,7 @@ Deliver<WorkspaceRecordName> DeclarePolyline(WorkspaceNameIndex& Naming,
         {
             SketchCurveName Curve = Curves[Index];
             RecordsWritten.push_back(DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction));
-            AddLineAutoConstraints(Naming, Sketch, Records, Revisions, Curve,
+            AddLineAutoConstraints(Naming, Sketch, Plane, Records, Revisions, Curve,
                                    Placed.Anchors[Index], Placed.Anchors[Index + 1u],
                                    Placed.Placements.size() > Index ? &Placed.Placements[Index] : nullptr,
                                    Placed.Placements.size() > Index + 1u ? &Placed.Placements[Index + 1u] : nullptr,
@@ -255,6 +266,7 @@ Deliver<WorkspaceRecordName> DeclarePolyline(WorkspaceNameIndex& Naming,
 
 Deliver<WorkspaceRecordName> DeclareThreePointArc(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
+                                    const SketchPlane& /*Plane*/,
                                     WorkspaceRecordStructure& Records,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
@@ -274,6 +286,7 @@ Deliver<WorkspaceRecordName> DeclareThreePointArc(WorkspaceNameIndex& Naming,
 
 Deliver<WorkspaceRecordName> DeclareCentredArc(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
+                                    const SketchPlane& Plane,
                                     WorkspaceRecordStructure& Records,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
@@ -289,7 +302,7 @@ Deliver<WorkspaceRecordName> DeclareCentredArc(WorkspaceNameIndex& Naming,
         double Sweep = A1 - A0;
         if (Sweep <= 0.0)
             Sweep += 2.0 * CommitPi;
-        const CircularArcCurve Arc = { Centre, Sketch.HeldPlane().Normal, Normalize(Difference(Centre, Start)), {}, false, Radius, Sweep };
+        const CircularArcCurve Arc = { Centre, Plane.Normal, Normalize(Difference(Centre, Start)), {}, false, Radius, Sweep };
         const SketchCurveName Curve = Sketch.DeclareCurve(CurveSpecification::DeclareCircularArc(Arc, { 0.0, 1.0 }));
         const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction);
         Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming),
@@ -302,6 +315,7 @@ Deliver<WorkspaceRecordName> DeclareCentredArc(WorkspaceNameIndex& Naming,
 
 Deliver<WorkspaceRecordName> DeclareEllipticalArc(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
+                                    const SketchPlane& Plane,
                                     WorkspaceRecordStructure& Records,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
@@ -311,7 +325,7 @@ Deliver<WorkspaceRecordName> DeclareEllipticalArc(WorkspaceNameIndex& Naming,
         const double Minor = std::max(std::abs(Placed.Anchors[1].Forward - Centre.Forward), Major * 0.5);
         const double EndAngle = std::atan2((Placed.Anchors[2].Forward - Centre.Forward) / Minor,
                                            (Placed.Anchors[2].Left - Centre.Left) / Major);
-        const EllipticalArcCurve Arc = { Centre, Sketch.HeldPlane().Normal, Sketch.HeldPlane().AlongDirection,
+        const EllipticalArcCurve Arc = { Centre, Plane.Normal, Plane.AlongDirection,
                                          Major, Minor, 0.0, EndAngle <= 0.0 ? EndAngle + 2.0 * CommitPi : EndAngle };
         const SketchCurveName Curve = Sketch.DeclareCurve(CurveSpecification::DeclareEllipticalArc(Arc, { 0.0, 1.0 }));
         const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction);
@@ -324,6 +338,7 @@ Deliver<WorkspaceRecordName> DeclareEllipticalArc(WorkspaceNameIndex& Naming,
 
 Deliver<WorkspaceRecordName> DeclareBasisSpline(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
+                                    const SketchPlane& /*Plane*/,
                                     WorkspaceRecordStructure& Records,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
@@ -343,6 +358,7 @@ Deliver<WorkspaceRecordName> DeclareBasisSpline(WorkspaceNameIndex& Naming,
 
 Deliver<WorkspaceRecordName> DeclareRationalSpline(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
+                                    const SketchPlane& /*Plane*/,
                                     WorkspaceRecordStructure& Records,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
@@ -363,6 +379,7 @@ Deliver<WorkspaceRecordName> DeclareRationalSpline(WorkspaceNameIndex& Naming,
 
 Deliver<WorkspaceRecordName> DeclareHermite(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
+                                    const SketchPlane& /*Plane*/,
                                     WorkspaceRecordStructure& Records,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
@@ -397,6 +414,7 @@ Deliver<WorkspaceRecordName> DeclareHermite(WorkspaceNameIndex& Naming,
 
 Deliver<WorkspaceRecordName> DeclareDiameterCircle(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
+                                    const SketchPlane& Plane,
                                     WorkspaceRecordStructure& Records,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
@@ -407,9 +425,9 @@ Deliver<WorkspaceRecordName> DeclareDiameterCircle(WorkspaceNameIndex& Naming,
         const double Radius = std::sqrt(LengthSquared(Difference(Centre, A)));
         if (Radius <= 1.0e-6)
             return Deliver<WorkspaceRecordName>::Refuse({ RefusalReason::ContentUnsupported, "the circle radius is too small" });
-        const CircleCurve Circle = { Centre, Sketch.HeldPlane().Normal, Normalize(Difference(Centre, A)), Radius };
+        const CircleCurve Circle = { Centre, Plane.Normal, Normalize(Difference(Centre, A)), Radius };
         const Deliver<ProfileNameInFeature> Profile = Placed.Construction ? Deliver<ProfileNameInFeature>::Refuse({ RefusalReason::ContentUnsupported, "construction circle" })
-                                                                         : Sketch.DeclareCircleProfile(Circle);
+                                                                         : Sketch.DeclareCircleProfile(Circle, Plane);
         if (Profile.Resolved)
         {
             const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve());
@@ -428,6 +446,7 @@ Deliver<WorkspaceRecordName> DeclareDiameterCircle(WorkspaceNameIndex& Naming,
 
 Deliver<WorkspaceRecordName> DeclareThreePointCircle(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
+                                    const SketchPlane& Plane,
                                     WorkspaceRecordStructure& Records,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
@@ -436,8 +455,8 @@ Deliver<WorkspaceRecordName> DeclareThreePointCircle(WorkspaceNameIndex& Naming,
         double Radius = 0.0;
         if (!ResolveThreePointCircle(Placed.Anchors[0], Placed.Anchors[1], Placed.Anchors[2], Centre, Radius))
             return Deliver<WorkspaceRecordName>::Refuse({ RefusalReason::ContentUnsupported, "the circle points are collinear" });
-        const CircleCurve Circle = { Centre, Sketch.HeldPlane().Normal, Normalize(Difference(Centre, Placed.Anchors[0])), Radius };
-        const Deliver<ProfileNameInFeature> Profile = Sketch.DeclareCircleProfile(Circle);
+        const CircleCurve Circle = { Centre, Plane.Normal, Normalize(Difference(Centre, Placed.Anchors[0])), Radius };
+        const Deliver<ProfileNameInFeature> Profile = Sketch.DeclareCircleProfile(Circle, Plane);
         if (!Profile.Resolved)
             return Deliver<WorkspaceRecordName>::Refuse(Profile.Error);
         const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve());
@@ -450,6 +469,7 @@ Deliver<WorkspaceRecordName> DeclareThreePointCircle(WorkspaceNameIndex& Naming,
 
 Deliver<WorkspaceRecordName> DeclarePolygon(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
+                                    const SketchPlane& Plane,
                                     WorkspaceRecordStructure& Records,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
@@ -463,7 +483,7 @@ Deliver<WorkspaceRecordName> DeclarePolygon(WorkspaceNameIndex& Naming,
         const std::uint32_t Sides = std::clamp(Placed.Resolution, PolygonSideMinimum, PolygonSideMaximum);
         // 📝 The drag direction is handed on, so the committed polygon is the previewed one.
         const Deliver<ProfileNameInFeature> Profile = Sketch.DeclareRegularPolygon(
-            Placed.Anchors[0], Radius, Sides, Difference(Placed.Anchors[0], Placed.Anchors.back()));
+            Placed.Anchors[0], Radius, Sides, Plane, Difference(Placed.Anchors[0], Placed.Anchors.back()));
         if (!Profile.Resolved)
             return Deliver<WorkspaceRecordName>::Refuse(Profile.Error);
         const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve());
@@ -476,12 +496,13 @@ Deliver<WorkspaceRecordName> DeclarePolygon(WorkspaceNameIndex& Naming,
 
 Deliver<WorkspaceRecordName> DeclareSlot(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
+                                    const SketchPlane& Plane,
                                     WorkspaceRecordStructure& Records,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
 {
         const double Radius = std::sqrt(LengthSquared(Difference(Placed.Anchors[1], Placed.Anchors[2])));
-        const Deliver<ProfileNameInFeature> Profile = Sketch.DeclareSlot(Placed.Anchors[0], Placed.Anchors[1], Radius);
+        const Deliver<ProfileNameInFeature> Profile = Sketch.DeclareSlot(Placed.Anchors[0], Placed.Anchors[1], Radius, Plane);
         if (!Profile.Resolved)
             return Deliver<WorkspaceRecordName>::Refuse(Profile.Error);
         const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve());
@@ -494,6 +515,7 @@ Deliver<WorkspaceRecordName> DeclareSlot(WorkspaceNameIndex& Naming,
 
 Deliver<WorkspaceRecordName> DeclareThreePointRectangle(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
+                                    const SketchPlane& Plane,
                                     WorkspaceRecordStructure& Records,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
@@ -503,7 +525,7 @@ Deliver<WorkspaceRecordName> DeclareThreePointRectangle(WorkspaceNameIndex& Nami
         const SpatialPoint C = Placed.Anchors[2];
         const SpatialPoint D = Added(A, Difference(B, C));
         ProfileSpecification Profile;
-        Profile.DeclarePlane({ Sketch.HeldPlane().Origin, Sketch.HeldPlane().Normal, Sketch.HeldPlane().AlongDirection });
+        Profile.DeclarePlane({ Plane.Origin, Plane.Normal, Plane.AlongDirection });
         ProfileLoop Loop;
         Loop.Orientation = ProfileLoopOrientation::Outer;
         const SketchCurveName AB = Sketch.DeclareLine(A, B);
@@ -522,6 +544,7 @@ Deliver<WorkspaceRecordName> DeclareThreePointRectangle(WorkspaceNameIndex& Nami
 
 Deliver<WorkspaceRecordName> DeclareDimension(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
+                                    const SketchPlane& /*Plane*/,
                                     WorkspaceRecordStructure& Records,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
@@ -547,6 +570,7 @@ Deliver<WorkspaceRecordName> DeclareDimension(WorkspaceNameIndex& Naming,
 
 Deliver<WorkspaceRecordName> DeclareEllipse(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
+                                    const SketchPlane& Plane,
                                     WorkspaceRecordStructure& Records,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
@@ -576,7 +600,7 @@ Deliver<WorkspaceRecordName> DeclareEllipse(WorkspaceNameIndex& Naming,
                 Minor = Stated;
         }
 
-        const EllipseCurve Ellipse = { Placed.Anchors[0], Sketch.HeldPlane().Normal,
+        const EllipseCurve Ellipse = { Placed.Anchors[0], Plane.Normal,
                                        Normalize(Span), Major, Minor };
         if (Placed.Construction)
         {
@@ -586,7 +610,7 @@ Deliver<WorkspaceRecordName> DeclareEllipse(WorkspaceNameIndex& Naming,
                            Revisions.DeclaredCount() + 1u);
             return Deliver<WorkspaceRecordName>::Result(Record);
         }
-        const Deliver<ProfileNameInFeature> Profile = Sketch.DeclareEllipseProfile(Ellipse);
+        const Deliver<ProfileNameInFeature> Profile = Sketch.DeclareEllipseProfile(Ellipse, Plane);
         if (!Profile.Resolved)
             return Deliver<WorkspaceRecordName>::Refuse(Profile.Error);
         const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve());
@@ -599,6 +623,7 @@ Deliver<WorkspaceRecordName> DeclareEllipse(WorkspaceNameIndex& Naming,
 
 Deliver<WorkspaceRecordName> DeclareBezier(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
+                                    const SketchPlane& /*Plane*/,
                                     WorkspaceRecordStructure& Records,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
@@ -615,6 +640,7 @@ Deliver<WorkspaceRecordName> DeclareBezier(WorkspaceNameIndex& Naming,
 
 Deliver<WorkspaceRecordName> DeclareCentreRadiusCircle(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
+                                    const SketchPlane& Plane,
                                     WorkspaceRecordStructure& Records,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
@@ -625,7 +651,7 @@ Deliver<WorkspaceRecordName> DeclareCentreRadiusCircle(WorkspaceNameIndex& Namin
             return Deliver<WorkspaceRecordName>::Refuse({ RefusalReason::ContentUnsupported,
                                                           "the circle radius is too small" });
 
-        const CircleCurve Circle = { Placed.Anchors[0], Sketch.HeldPlane().Normal, Normalize(Radius), RadiusLength };
+        const CircleCurve Circle = { Placed.Anchors[0], Plane.Normal, Normalize(Radius), RadiusLength };
         if (Placed.Construction)
         {
             const SketchCurveName Curve = Sketch.DeclareCircle(Circle);
@@ -636,7 +662,7 @@ Deliver<WorkspaceRecordName> DeclareCentreRadiusCircle(WorkspaceNameIndex& Namin
             return Deliver<WorkspaceRecordName>::Result(Record);
         }
 
-        const Deliver<ProfileNameInFeature> Profile = Sketch.DeclareCircleProfile(Circle);
+        const Deliver<ProfileNameInFeature> Profile = Sketch.DeclareCircleProfile(Circle, Plane);
         if (!Profile.Resolved)
             return Deliver<WorkspaceRecordName>::Refuse(Profile.Error);
         const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve());
@@ -661,6 +687,7 @@ Deliver<WorkspaceRecordName> DeclareCentreRadiusCircle(WorkspaceNameIndex& Namin
 
 Deliver<WorkspaceRecordName> DeclareCentredRectangle(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
+                                    const SketchPlane& Plane,
                                     WorkspaceRecordStructure& Records,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
@@ -672,7 +699,7 @@ Deliver<WorkspaceRecordName> DeclareCentredRectangle(WorkspaceNameIndex& Naming,
         const SpatialPoint B = { C.Left, A.Up, A.Forward };
         const SpatialPoint D = { A.Left, A.Up, C.Forward };
         ProfileSpecification Profile;
-        Profile.DeclarePlane({ Sketch.HeldPlane().Origin, Sketch.HeldPlane().Normal, Sketch.HeldPlane().AlongDirection });
+        Profile.DeclarePlane({ Plane.Origin, Plane.Normal, Plane.AlongDirection });
         ProfileLoop Loop;
         Loop.Orientation = ProfileLoopOrientation::Outer;
         const SketchCurveName AB = Sketch.DeclareLine(A, B);
@@ -691,6 +718,7 @@ Deliver<WorkspaceRecordName> DeclareCentredRectangle(WorkspaceNameIndex& Naming,
 
 Deliver<WorkspaceRecordName> DeclareExtentRectangle(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
+                                    const SketchPlane& Plane,
                                     WorkspaceRecordStructure& Records,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
@@ -701,7 +729,7 @@ Deliver<WorkspaceRecordName> DeclareExtentRectangle(WorkspaceNameIndex& Naming,
         const SpatialPoint D = { A.Left, A.Up, C.Forward };
 
         ProfileSpecification Profile;
-        Profile.DeclarePlane({ Sketch.HeldPlane().Origin, Sketch.HeldPlane().Normal, Sketch.HeldPlane().AlongDirection });
+        Profile.DeclarePlane({ Plane.Origin, Plane.Normal, Plane.AlongDirection });
         ProfileLoop Loop;
         Loop.Orientation = ProfileLoopOrientation::Outer;
         const SketchCurveName AB = Sketch.DeclareLine(A, B);
@@ -740,6 +768,7 @@ struct CommitRow
     std::uint32_t   Required;
     Deliver<WorkspaceRecordName> (*Declare)(WorkspaceNameIndex&,
                                             SketchStructure&,
+                                            const SketchPlane&,
                                             WorkspaceRecordStructure&,
                                             PlacementJournal&,
                                             const SealedPlacement&);
@@ -828,35 +857,61 @@ bool CommitSupported(SketchSubject Subject, PlacementMethod Method)
     return ResolveCommitRow(Subject, Method) != nullptr;
 }
 
-Deliver<WorkspaceRecordName> CommitPlacement(WorkspaceNameIndex& Naming,
-                                             SketchStructure& Sketch,
-                                             WorkspaceRecordStructure& Records,
-                                             WorkspaceRevisionSequence& Revisions,
-                                             const SealedPlacement& Placed)
+namespace
+{
+
+Deliver<WorkspaceRecordName> CommitPlacementAtPlane(WorkspaceNameIndex& Naming,
+                                                    SketchStructure& Sketch,
+                                                    const SketchPlane& Plane,
+                                                    WorkspaceRecordStructure& Records,
+                                                    WorkspaceRevisionSequence& Revisions,
+                                                    const SealedPlacement& Placed)
 {
     const CommitRow* Row = ResolveCommitRow(Placed.Subject, Placed.Method);
     if (Row == nullptr)
         return Deliver<WorkspaceRecordName>::Refuse({ RefusalReason::ContentUnsupported,
                                                       "that shape cannot be placed that way" });
 
-    // ⚠️ Counted here, once, rather than repeated in every arm. A dimension is measured by its resolved
-    //    placements rather than by bare anchors, which is the one exception.
     const std::size_t Standing = Placed.Subject == SketchSubject::Dimension ? Placed.Placements.size()
                                                                             : Placed.Anchors.size();
     if (Standing < Row->Required)
         return Deliver<WorkspaceRecordName>::Refuse({ RefusalReason::ContentUnsupported,
                                                       "the placement has too few anchors" });
 
-    // 🔴 One journal per placement, closed once. Every arm below writes into it — including the
-    //    auto-constraints a line brings with it and the radius dimension a circle declares for itself —
-    //    and the whole placement becomes a single step in the history.
     PlacementJournal Journal(Revisions);
-    const Deliver<WorkspaceRecordName> Made = Row->Declare(Naming, Sketch, Records, Journal, Placed);
+    const Deliver<WorkspaceRecordName> Made = Row->Declare(Naming, Sketch, Plane, Records, Journal, Placed);
     if (!Made.Resolved)
         return Made;
 
     Journal.Close();
     return Made;
+}
+
+} // namespace
+
+Deliver<WorkspaceRecordName> CommitPlacement(WorkspaceNameIndex& Naming,
+                                             SketchStructure& Sketch,
+                                             WorkspaceRecordStructure& Records,
+                                             WorkspaceRevisionSequence& Revisions,
+                                             const SealedPlacement& Placed)
+{
+    if (!Sketch.PlaneDeclared())
+        return Deliver<WorkspaceRecordName>::Refuse({ RefusalReason::ContentUnsupported,
+                                                      "the compatibility sketch has no authoring plane" });
+    return CommitPlacementAtPlane(Naming, Sketch, Sketch.HeldPlane(), Records, Revisions, Placed);
+}
+
+Deliver<WorkspaceRecordName> CommitPlacement(WorkspaceNameIndex& Naming,
+                                             SketchStructure& Sketch,
+                                             const SketchPlane& ActivePlane,
+                                             WorkspaceRecordStructure& Records,
+                                             WorkspaceRevisionSequence& Revisions,
+                                             const SealedPlacement& Placed)
+{
+    if (!ActivePlane.Declared())
+        return Deliver<WorkspaceRecordName>::Refuse({ RefusalReason::ContentUnsupported,
+                                                      "the active authoring plane is not declared" });
+    return CommitPlacementAtPlane(Naming, Sketch, ActivePlane, Records, Revisions, Placed);
 }
 
 Deliver<WorkspaceRecordName> CommitConstraint(WorkspaceNameIndex& Naming,

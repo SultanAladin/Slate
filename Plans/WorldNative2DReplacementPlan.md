@@ -59,6 +59,26 @@ The immediate workplane phase leaves one concrete follow-up, rather than a broad
 - Shape units include no workspace headers, and screen picking is the only world-picking unit that consumes camera projection.
 - The renamed world-sketch proofs compile their shape and workspace seams independently and remain green.
 
+## Active-plane compatibility handoff
+
+The next authority-reduction phase is now concrete: the two remaining compatibility-oriented viewport paths must accept the active world plane explicitly instead of deriving a new placement or overlay basis from the sketch document.
+
+1. `PlacementCommit` receives an explicit `SketchPlane` for active fallback commits. Its legacy overload remains available only for callers intentionally operating on the compatibility sketch.
+2. Placement declarers and auto-constraint measurement use that supplied plane directly, so stale `SketchStructure::HeldPlane()` state cannot redirect a workplane placement.
+3. `SketchViewportOverlay` exposes explicit-`SpatialBasis` entry points for the grid, constraint glyphs, and profile diagnostics. Existing sketch-only wrappers remain as legacy compatibility adapters.
+4. The world-backed interaction and bridge paths use the explicit active plane when they reach compatibility commit behavior; world geometry and selection remain authoritative.
+
+### Active-plane acceptance
+- A compatibility fallback commit on an active plane writes profile geometry on that plane without rewriting the sketch's remembered global plane.
+- Circle, ellipse, polygon, and slot profile declarers retain that active-plane routing rather than falling back to the stored sketch plane.
+- An overlay recorded with an explicit active basis changes when that basis changes, without consulting the sketch basis.
+- Legacy wrappers remain available, but no active workplane path calls the sketch-basis resolver.
+- Placement, bridge, interaction, drawing, and world-sketch proofs stay green.
+
+## Current phase result
+
+The active-plane handoff is implemented. `PlacementCommit` now has an explicit-plane entry point used by drawing fallback and bridge compatibility commits, while the old sketch-plane overload remains available for deliberately legacy callers. Circle, ellipse, polygon, and slot profile declaration also have explicit-plane overloads, and every corresponding placement arm passes its active plane instead of reaching the sketch's stored plane. Grid, constraint-glyph, and profile-area overlay recording likewise accept an explicit `SpatialBasis`; sketch-only wrappers are isolated compatibility adapters.
+
 ## Validation plan
 - Strict compile:
   - `WorldSketchBridge.cpp`

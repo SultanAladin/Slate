@@ -448,6 +448,39 @@ def main() -> int:
             "Sketch.DeclarePlane(ResolveSketchPlaneFromWorkplane(Workplanes.Active()))" in interaction,
             "a placed workplane must join the catalogue and be adopted, never overwrite the sketch plane blind")
 
+    # 🔴 The compatibility path is still needed for dimensions and legacy refusal fallback, but it must
+    #    not silently choose its plane from the sketch document when an active workplane is available.
+    placement = read("Engine/SlateWorkspace/Discipline/PlacementCommit/Source/PlacementCommit.cpp")
+    require("const SketchPlane& Plane" in placement and "ResolvePlacementBasis(Plane)" in placement,
+            "placement declarers must receive and measure against an explicit authoring plane")
+    require("ResolveSketchBasis(" not in placement,
+            "placement commit must not resolve its active basis through the sketch-basis compatibility unit")
+    sketch_structure = read("Engine/SlateShape/Sketch/SketchStructure/Source/SketchStructure.cpp")
+    for ExplicitProfile, Why in (
+            ("DeclareCircleProfile(const CircleCurve& Declared,", "circle profiles must accept an explicit active plane"),
+            ("DeclareEllipseProfile(const EllipseCurve& Declared,", "ellipse profiles must accept an explicit active plane"),
+            ("DeclareRegularPolygon(const SpatialPoint& Centre,", "polygon profiles must accept an explicit active plane"),
+            ("DeclareSlot(const SpatialPoint& StartPoint,", "slot profiles must accept an explicit active plane")):
+        require(ExplicitProfile in sketch_structure and "const SketchPlane& ActivePlane" in sketch_structure,
+                Why)
+    for ExplicitCall, Why in (
+            ("Sketch.DeclareCircleProfile(Circle, Plane)", "circle placement must pass its active plane to profile declaration"),
+            ("Sketch.DeclareEllipseProfile(Ellipse, Plane)", "ellipse placement must pass its active plane to profile declaration"),
+            ("Placed.Anchors[0], Radius, Sides, Plane,", "polygon placement must pass its active plane to profile declaration"),
+            ("Sketch.DeclareSlot(Placed.Anchors[0], Placed.Anchors[1], Radius, Plane)",
+             "slot placement must pass its active plane to profile declaration")):
+        require(ExplicitCall in placement, Why)
+    require("CommitPlacement(Naming, Sketch, ResolveSketchPlaneFromWorkplane(Workplanes.Active())" in interaction,
+            "drawing fallback commits must pass the active workplane plane explicitly")
+    bridge = read("Engine/SlateWorkspace/Discipline/WorldSketchBridge/Source/WorldSketchBridge.cpp")
+    require("CommitPlacement(Naming, Sketch, ResolveSketchPlaneFromWorkplane(ActiveWorkplane)" in bridge,
+            "world bridge compatibility commits must pass the active workplane plane explicitly")
+
+    overlay = read("Engine/SlateWorkspace/Discipline/SketchViewportOverlay/Source/SketchViewportOverlay.cpp")
+    require("const SpatialBasis& Basis" in overlay
+            and "RecordViewportGridOverlay(Overlay, Extent, Basis, View, Perspective, Configuration)" in overlay,
+            "compatibility overlays must expose an explicit world basis entry point")
+
     # 🔴 `DeviceOffering` and `InterfaceAttachment` were nine identical fields in two units, with a
     #    hand-written `Attach` copying each one across — and `Attach` itself was DEFINED TWICE, which
     #    only became visible once the types were unified. A field added to one side and forgotten on

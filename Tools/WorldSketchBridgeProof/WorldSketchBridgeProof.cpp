@@ -1,5 +1,6 @@
 #include "SlateWorkspace/Discipline/WorldSketchBridge/Api/WorldSketchBridge.h"
 #include "SlateWorkspace/Discipline/SketchInteraction/Api/SketchInteraction.h"
+#include "SlateWorkspace/Discipline/SketchViewportOverlay/Api/SketchViewportOverlay.h"
 
 #include <cmath>
 #include <cstdio>
@@ -253,6 +254,33 @@ void ProveWorldBackedRenderingAndPreview()
           "and it contributes both anchor markers and the moving hover marker");
 }
 
+void ProveOverlayUsesExplicitWorldBasis()
+{
+    std::printf("\n4. Compatibility overlays can be projected from the active basis\n");
+
+    const PlaneExtent Extent = { 0.0f, 0.0f, 800.0f, 600.0f };
+    const ViewportStanding View = {};
+    const EditorPanelConfiguration Configuration = {};
+    const SpatialBasis Active = { { 0.0, 40.0, 0.0 },
+                                  { 1.0, 0.0, 0.0 },
+                                  { 0.0, 0.0, 1.0 },
+                                  { 0.0, 1.0, 0.0 } };
+    const SpatialBasis Shifted = { { 120.0, 40.0, 0.0 },
+                                   { 1.0, 0.0, 0.0 },
+                                   { 0.0, 0.0, 1.0 },
+                                   { 0.0, 1.0, 0.0 } };
+    OverlayGeometry ActiveOverlay = {};
+    OverlayGeometry ShiftedOverlay = {};
+    RecordViewportGridOverlay(ActiveOverlay, Extent, Active, View, false, Configuration);
+    RecordViewportGridOverlay(ShiftedOverlay, Extent, Shifted, View, false, Configuration);
+
+    Claim(ActiveOverlay.LineCount > 0u && ShiftedOverlay.LineCount > 0u,
+          "the explicit active-basis grid entry point records the compatibility lattice");
+    Claim(std::fabs(ActiveOverlay.Lines[0u].X0 - ShiftedOverlay.Lines[0u].X0) > 1.0e-4f
+       || std::fabs(ActiveOverlay.Lines[0u].X1 - ShiftedOverlay.Lines[0u].X1) > 1.0e-4f,
+          "and changing the supplied workplane basis changes the projected overlay rather than reading the sketch basis");
+}
+
 } // namespace
 
 int main()
@@ -264,6 +292,7 @@ int main()
     ProveMirrorAndPickMapping();
     ProveWorldBackedViewportFlow();
     ProveWorldBackedRenderingAndPreview();
+    ProveOverlayUsesExplicitWorldBasis();
 
     std::printf("\n=========================================================================\n");
     std::printf("%u claims, %u failures -> %s\n", Claims, Failures,

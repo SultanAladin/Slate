@@ -531,7 +531,9 @@ bool CommitPlacementWorldBacked(const Workplane& ActiveWorkplane,
         if ((!Sketch.PlaneDeclared() || !SketchHasCommittedGeometry(Sketch)) && WorkplaneDeclared(ActiveWorkplane))
             Sketch.DeclarePlane(ResolveSketchPlaneFromWorkplane(ActiveWorkplane));
 
-        const Deliver<WorkspaceRecordName> Record = CommitPlacement(Naming, Sketch, Records, Revisions, Placed);
+        const Deliver<WorkspaceRecordName> Record =
+            CommitPlacement(Naming, Sketch, ResolveSketchPlaneFromWorkplane(ActiveWorkplane),
+                            Records, Revisions, Placed);
         if (!Record.Resolved)
             return false;
         MirrorSketchIntoWorldSketch(Sketch, Declared, Mapping);

@@ -484,7 +484,9 @@ void DriveDrawingWithModifiers(const PlaneExtent& Extent,
                                   Sealed, PendingSelection))
         return;
 
-    const Deliver<WorkspaceRecordName> Record = CommitPlacement(Naming, Sketch, Records, Revisions, Sealed);
+    const Deliver<WorkspaceRecordName> Record =
+        CommitPlacement(Naming, Sketch, ResolveSketchPlaneFromWorkplane(Workplanes.Active()),
+                        Records, Revisions, Sealed);
     AdoptCommittedShape(Sealed.Subject, Naming, Sketch, Records, Revisions, Record, PendingSelection);
     MirrorSketchIntoWorldSketch(Sketch, World, Mapping);
 }
