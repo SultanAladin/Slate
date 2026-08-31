@@ -113,6 +113,8 @@ void TranslateCurveRigidly(DeclaredWorldCurve& Held,
             break;
 
         case CurveSubject::Hermite:
+            for (SpatialPoint& Point : Held.Geometry.HeldHermite().ControlPoints)
+                Point = Added(Point, Offset);
             Held.Geometry.HeldHermite().StartPoint = Added(Held.Geometry.HeldHermite().StartPoint, Offset);
             Held.Geometry.HeldHermite().EndPoint = Added(Held.Geometry.HeldHermite().EndPoint, Offset);
             break;
@@ -359,6 +361,28 @@ Deliver<bool> EnforceWorldSketchPoint(WorldSketchStructure& Declared,
             return Deliver<bool>::Result(true);
 
         case CurveSubject::Hermite:
+            if (Held->Geometry.HeldHermite().ControlPoints.size() >= 2u)
+            {
+                if (LocalIndex < Held->Geometry.HeldHermite().ControlPoints.size())
+                {
+                    Held->Geometry.HeldHermite().ControlPoints[LocalIndex] = Position;
+                    if (LocalIndex == 0u)
+                        Held->Geometry.HeldHermite().StartPoint = Position;
+                    if (LocalIndex + 1u == Held->Geometry.HeldHermite().ControlPoints.size())
+                        Held->Geometry.HeldHermite().EndPoint = Position;
+                    if (Held->Geometry.HeldHermite().Tangents.size() < Held->Geometry.HeldHermite().ControlPoints.size())
+                        Held->Geometry.HeldHermite().Tangents.resize(Held->Geometry.HeldHermite().ControlPoints.size());
+                    for (std::size_t i = 0u; i < Held->Geometry.HeldHermite().ControlPoints.size(); ++i)
+                    {
+                        const SpatialPoint& Before = (i == 0u) ? Held->Geometry.HeldHermite().ControlPoints[0] : Held->Geometry.HeldHermite().ControlPoints[i - 1u];
+                        const SpatialPoint& After = (i + 1u == Held->Geometry.HeldHermite().ControlPoints.size()) ? Held->Geometry.HeldHermite().ControlPoints[i] : Held->Geometry.HeldHermite().ControlPoints[i + 1u];
+                        Held->Geometry.HeldHermite().Tangents[i] = Scaled(Difference(Before, After), 0.5);
+                    }
+                    InvalidateCurveSupportFrame(*Held);
+                    return Deliver<bool>::Result(true);
+                }
+                return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the world hermite point is absent" });
+            }
             if (LocalIndex == 0u) Held->Geometry.HeldHermite().StartPoint = Position;
             else if (LocalIndex == 1u) Held->Geometry.HeldHermite().EndPoint = Position;
             else return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the world hermite point is absent" });
@@ -507,6 +531,19 @@ Deliver<bool> EnforceWorldSketchControl(WorldSketchStructure& Declared,
             return Deliver<bool>::Result(true);
 
         case CurveSubject::Hermite:
+            if (Held->Geometry.HeldHermite().ControlPoints.size() >= 2u)
+            {
+                if (LocalIndex < Held->Geometry.HeldHermite().ControlPoints.size())
+                {
+                    if (Held->Geometry.HeldHermite().Tangents.size() <= LocalIndex)
+                        Held->Geometry.HeldHermite().Tangents.resize(Held->Geometry.HeldHermite().ControlPoints.size());
+                    Held->Geometry.HeldHermite().Tangents[LocalIndex] =
+                        Difference(Held->Geometry.HeldHermite().ControlPoints[LocalIndex], Position);
+                    InvalidateCurveSupportFrame(*Held);
+                    return Deliver<bool>::Result(true);
+                }
+                return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the world hermite control is unsupported" });
+            }
             if (ControlSubject == WorldControlSubject::StartTangent)
             {
                 Held->Geometry.HeldHermite().StartTangent = Difference(Held->Geometry.HeldHermite().StartPoint, Position);

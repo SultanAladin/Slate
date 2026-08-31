@@ -113,9 +113,19 @@ bool ResolveWorldSketchPoints(const WorldSketchStructure& Declared,
             return true;
 
         case CurveSubject::Hermite:
-            Resolved.push_back({ EncodePointName(SourceCurve, 0u), SourceCurve, Held->Geometry.HeldHermite().StartPoint });
-            Resolved.push_back({ EncodePointName(SourceCurve, 1u), SourceCurve, Held->Geometry.HeldHermite().EndPoint });
+        {
+            const HermiteCurve& Hermite = Held->Geometry.HeldHermite();
+            if (Hermite.ControlPoints.size() >= 2u)
+            {
+                for (std::uint32_t PointIndex = 0u; PointIndex < Hermite.ControlPoints.size(); ++PointIndex)
+                    Resolved.push_back({ EncodePointName(SourceCurve, PointIndex), SourceCurve,
+                                         Hermite.ControlPoints[PointIndex] });
+                return true;
+            }
+            Resolved.push_back({ EncodePointName(SourceCurve, 0u), SourceCurve, Hermite.StartPoint });
+            Resolved.push_back({ EncodePointName(SourceCurve, 1u), SourceCurve, Hermite.EndPoint });
             return true;
+        }
 
         case CurveSubject::SubjectCount:
             return false;
@@ -220,6 +230,19 @@ bool ResolveWorldSketchControls(const WorldSketchStructure& Declared,
         case CurveSubject::Hermite:
         {
             const HermiteCurve& Hermite = Held->Geometry.HeldHermite();
+            if (Hermite.ControlPoints.size() >= 2u)
+            {
+                for (std::uint32_t PointIndex = 0u; PointIndex < Hermite.ControlPoints.size(); ++PointIndex)
+                {
+                    const SpatialDirection Tangent = Hermite.Tangents.size() > PointIndex
+                                                   ? Hermite.Tangents[PointIndex]
+                                                   : SpatialDirection{};
+                    Resolved.push_back({ EncodeControlName(SourceCurve, WorldControlSubject::ControlPoint, PointIndex), SourceCurve,
+                                         WorldControlSubject::ControlPoint, PointIndex,
+                                         Added(Hermite.ControlPoints[PointIndex], Tangent) });
+                }
+                return true;
+            }
             Resolved.push_back({ EncodeControlName(SourceCurve, WorldControlSubject::StartTangent, 0u), SourceCurve,
                                  WorldControlSubject::StartTangent, 0u,
                                  Added(Hermite.StartPoint, Hermite.StartTangent) });
@@ -290,6 +313,11 @@ bool ResolveWorldCurvePivot(const WorldSketchStructure& Declared,
         case CurveSubject::Hermite:
         {
             const HermiteCurve& Hermite = Held->Geometry.HeldHermite();
+            if (Hermite.ControlPoints.size() >= 2u)
+            {
+                Pivot = Hermite.ControlPoints[Hermite.ControlPoints.size() / 2u];
+                return true;
+            }
             Pivot = { (Hermite.StartPoint.Left + Hermite.EndPoint.Left) * 0.5,
                       (Hermite.StartPoint.Up + Hermite.EndPoint.Up) * 0.5,
                       (Hermite.StartPoint.Forward + Hermite.EndPoint.Forward) * 0.5 };

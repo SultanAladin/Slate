@@ -384,32 +384,30 @@ Deliver<WorkspaceRecordName> DeclareHermite(WorkspaceNameIndex& Naming,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
 {
-        // 🔴 THE WHOLE CHAIN, NOT ONE SPAN. This read the four anchors as
-        //    {start, end, tangent, tangent}, so a Hermite spent four clicks producing ONE span and
-        //    silently discarded every anchor after the fourth -- the artist placed eight points and
-        //    got one short curve plus a row of stray points. Every anchor is a point the curve passes
-        //    THROUGH, and the tangents come from its neighbours, which is what `ResolvePlacementCurves`
-        //    already previews. Preview and commit must agree, so both build it the same way.
-        std::vector<CurveSpecification> Spans;
-        ResolvePlacementCurves(SketchSubject::Hermite,
-                               { Placed.Anchors.begin(), Placed.Anchors.end() - 1u },
-                               Placed.Anchors.back(), Spans);
-        if (Spans.empty())
-            return Deliver<WorkspaceRecordName>::Refuse({ RefusalReason::ContentUnsupported,
-                                                          "a Hermite curve requires two distinct positions" });
+    if (Placed.Anchors.size() < 2u)
+        return Deliver<WorkspaceRecordName>::Refuse({ RefusalReason::ContentUnsupported,
+                                                      "a Hermite curve requires at least two distinct positions" });
 
-        WorkspaceRecordName Record = {};
-        for (const CurveSpecification& Span : Spans)
-        {
-            const SketchCurveName Curve = Sketch.DeclareCurve(Span);
-            Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction, WorkspaceShapeFamily::Hermite);
-        }
+    HermiteCurve Hermite;
+    Hermite.ControlPoints = Placed.Anchors;
+    Hermite.StartPoint = Placed.Anchors.front();
+    Hermite.EndPoint = Placed.Anchors.back();
+    Hermite.Tangents.resize(Placed.Anchors.size());
+    for (std::size_t i = 0u; i < Placed.Anchors.size(); ++i)
+    {
+        const SpatialPoint& Before = (i == 0u) ? Placed.Anchors[0] : Placed.Anchors[i - 1u];
+        const SpatialPoint& After = (i + 1u == Placed.Anchors.size()) ? Placed.Anchors[i] : Placed.Anchors[i + 1u];
+        Hermite.Tangents[i] = Scaled(Difference(Before, After), 0.5);
+    }
+    Hermite.StartTangent = Hermite.Tangents.front();
+    Hermite.EndTangent = Hermite.Tangents.back();
 
-        Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Hermite Curve", { Record },
-                       Revisions.DeclaredCount() + 1u);
-        return Deliver<WorkspaceRecordName>::Result(Record);
-    return Deliver<WorkspaceRecordName>::Refuse({ RefusalReason::ContentUnsupported,
-                                                  "the placement does not describe a shape" });
+    const SketchCurveName Curve = Sketch.DeclareCurve(CurveSpecification::DeclareHermite(Hermite, { 0.0, 1.0 }));
+    const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction, WorkspaceShapeFamily::Hermite);
+
+    Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Hermite Curve", { Record },
+                   Revisions.DeclaredCount() + 1u);
+    return Deliver<WorkspaceRecordName>::Result(Record);
 }
 
 Deliver<WorkspaceRecordName> DeclareDiameterCircle(WorkspaceNameIndex& Naming,

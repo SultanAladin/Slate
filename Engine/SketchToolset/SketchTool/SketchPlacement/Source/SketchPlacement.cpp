@@ -429,12 +429,20 @@ CurveSpecification ResolvePlacementCurve(SketchSubject Subject,
         case SketchSubject::Hermite:
             if (Points.size() >= 2u)
             {
-                HermiteCurve Span;
-                Span.StartPoint   = Points[0];
-                Span.EndPoint     = Points[1];
-                Span.StartTangent = Difference(Points[0], Points[1]);
-                Span.EndTangent   = Span.StartTangent;
-                return CurveSpecification::DeclareHermite(Span, { 0.0, 1.0 });
+                HermiteCurve Hermite;
+                Hermite.ControlPoints = Points;
+                Hermite.StartPoint = Points.front();
+                Hermite.EndPoint = Points.back();
+                Hermite.Tangents.resize(Points.size());
+                for (std::size_t i = 0u; i < Points.size(); ++i)
+                {
+                    const SpatialPoint& Before = (i == 0u) ? Points[0] : Points[i - 1u];
+                    const SpatialPoint& After = (i + 1u == Points.size()) ? Points[i] : Points[i + 1u];
+                    Hermite.Tangents[i] = Scaled(Difference(Before, After), 0.5);
+                }
+                Hermite.StartTangent = Hermite.Tangents.front();
+                Hermite.EndTangent = Hermite.Tangents.back();
+                return CurveSpecification::DeclareHermite(Hermite, { 0.0, 1.0 });
             }
             break;
 
@@ -547,39 +555,9 @@ void ResolvePlacementCurves(SketchSubject Subject,
         return;
     }
 
-    if (Subject != SketchSubject::Hermite || Points.size() < 3u)
-    {
-        const CurveSpecification Single = ResolvePlacementCurve(Subject, Anchors, Hover);
-        if (Single.Declared())
-            Delivered.push_back(Single);
-        return;
-    }
-
-    // 🔴 CATMULL-ROM TANGENTS. Every anchor is a point the curve passes THROUGH, and the tangent at
-    //    an interior point is half the vector between its neighbours -- so the spans meet with equal
-    //    tangents and the chain is continuous and smooth. The end points reuse their only chord,
-    //    which makes the first and last spans behave like the two-point case.
-    //
-    // 🔴 This is what makes the tool usable. Read as {start, end, tangent, tangent}, a Hermite spent
-    //    FOUR clicks on ONE span and ignored every click after that -- the reported "renders the
-    //    first 2 points as a curve, other places are just points". Now the Nth click adds the
-    //    (N-1)th span and the whole chain redraws.
-    for (std::size_t Index = 0u; Index + 1u < Points.size(); ++Index)
-    {
-        const SpatialPoint& From = Points[Index];
-        const SpatialPoint& To   = Points[Index + 1u];
-
-        const SpatialPoint& Before = Index == 0u ? From : Points[Index - 1u];
-        const SpatialPoint& After  = Index + 2u < Points.size() ? Points[Index + 2u] : To;
-
-        HermiteCurve Span;
-        Span.StartPoint   = From;
-        Span.EndPoint     = To;
-        Span.StartTangent = Scaled(Difference(Before, To), 0.5);
-        Span.EndTangent   = Scaled(Difference(From, After), 0.5);
-
-        Delivered.push_back(CurveSpecification::DeclareHermite(Span, { 0.0, 1.0 }));
-    }
+    const CurveSpecification Single = ResolvePlacementCurve(Subject, Anchors, Hover);
+    if (Single.Declared())
+        Delivered.push_back(Single);
 }
 
 void ResolvePlacementCurves(const SpatialBasis& Basis,

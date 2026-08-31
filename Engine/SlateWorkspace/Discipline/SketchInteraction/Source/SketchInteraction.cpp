@@ -10,6 +10,7 @@
 #include "SlateShape/Sketch/ProfileReshape/Api/ProfileReshape.h"
 #include "SlateShape/Sketch/SketchEditing/Api/SketchEditing.h"
 #include "SlateWorkspace/Discipline/ConstraintAuthoring/Api/ConstraintAuthoring.h"
+#include "SlateWorkspace/Discipline/OrientationCube/Api/OrientationStanding.h"
 #include "SlateWorkspace/Discipline/RecordDeclaration/Api/RecordDeclaration.h"
 #include "SlateWorkspace/Discipline/SketchViewportOverlay/Api/SketchViewportOverlay.h"
 #include "SlateWorkspace/Discipline/ToolAvailability/Api/ToolAvailability.h"
@@ -211,9 +212,10 @@ void DriveViewport(const PlaneExtent& Extent,
     const SpatialBasis Basis = { {}, {1.0, 0.0, 0.0}, {0.0, 0.0, 1.0}, {0.0, 1.0, 0.0} };
     const ViewFrame Frame = ResolveViewportFrame(Basis, View, Perspective);
 
-    // Orthographic navigation remains interactive: while the camera-look gesture is held, WASD pans
-    // the standing in screen space and E/Q changes zoom. This avoids treating orthographic mode as a
-    // frozen projection while preserving the perspective orbit/pan controls below.
+    // Orthographic navigation: while the camera-look gesture is held, A/D pans along the camera's
+    // screen-right axis, and E/Q changes zoom (E zooms in, Q zooms out). In locked axis views (Top,
+    // Bottom, Left, Right, Front, Back), depth travel is restricted, while in free isometric view
+    // W/S travels along the camera's forward vector.
     if (!Perspective && Camera.LookHeld)
     {
         const double PixelsPerSecond = 600.0;
@@ -222,16 +224,16 @@ void DriveViewport(const PlaneExtent& Extent,
         SpatialDirection Pan = {};
         if (Camera.LeftHeld)  Pan = Added(Pan, Scaled(Frame.Right, -Distance));
         if (Camera.RightHeld) Pan = Added(Pan, Scaled(Frame.Right, Distance));
-        // WASD follows the orthographic camera basis. Forward/backward must not be
-        // substituted with screen-up: on a top/side/front lock those are depth moves,
-        // not an accidental diagonal pan across the sketch.
-        if (Camera.ForwardHeld)  Pan = Added(Pan, Scaled(Frame.Forward, Distance));
-        if (Camera.BackwardHeld) Pan = Added(Pan, Scaled(Frame.Forward, -Distance));
+        if (View.Orientation == ViewportOrientation::Isometric)
+        {
+            if (Camera.ForwardHeld)  Pan = Added(Pan, Scaled(Frame.Forward, Distance));
+            if (Camera.BackwardHeld) Pan = Added(Pan, Scaled(Frame.Forward, -Distance));
+        }
         View.Focus = Added(View.Focus, Pan);
         if (Camera.UpHeld)
-            View.OrthoScale = std::clamp(View.OrthoScale / (1.0 + ElapsedSeconds), 0.05, 40.0);
-        if (Camera.DownHeld)
             View.OrthoScale = std::clamp(View.OrthoScale * (1.0 + ElapsedSeconds), 0.05, 40.0);
+        if (Camera.DownHeld)
+            View.OrthoScale = std::clamp(View.OrthoScale / (1.0 + ElapsedSeconds), 0.05, 40.0);
     }
 
     if (!Pointer.SecondaryHeld)
@@ -239,9 +241,17 @@ void DriveViewport(const PlaneExtent& Extent,
 
     if (!Modifiers.Shifted)
     {
+        if (View.Orientation != ViewportOrientation::Isometric)
+        {
+            double StartYaw = View.OrbitYaw;
+            double StartPitch = View.OrbitPitch;
+            OrientationYawPitch(View.Orientation, StartYaw, StartPitch);
+            View.OrbitYaw = StartYaw;
+            View.OrbitPitch = StartPitch;
+            View.Orientation = ViewportOrientation::Isometric;
+        }
         View.OrbitYaw -= static_cast<double>(Pointer.TravelX) * 0.35;
         View.OrbitPitch = std::clamp(View.OrbitPitch + static_cast<double>(Pointer.TravelY) * 0.25, -89.0, 89.0);
-        View.Orientation = ViewportOrientation::Isometric;
         return;
     }
 
@@ -1136,6 +1146,7 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
 void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
                                                    const PointerCondition& Pointer,
                                                    const TextInputCondition& TextInput,
+                                                   const ModifierCondition& Modifiers,
                                                    ParametricToolSubject ActiveTool,
                                                    const SelectionOptions& Selection,
                                                    const GizmoOptions& Gizmo,
@@ -1150,6 +1161,7 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
                                                    WorkspaceRevisionSequence& Revisions,
                                                    WorkspaceRecordName& PendingSelection,
                                                    SketchPick& SemanticSelection,
+                                                   SketchSelectionSet& SelectionSet,
                                                    SketchPick& HoveredSelection,
                                                    WorldSketchTransformSession& Transform,
                                                    OverlayGeometry& Overlay,
@@ -1185,21 +1197,29 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
         MirrorSketchIntoWorldSketch(Sketch, World, Mapping);
         PointerTaken = true;
     }
-    if (SemanticSelection.Standing() && SelectedRecord.Assigned() &&
-        SemanticSelection.Record.IssuedIndex != SelectedRecord.IssuedIndex &&
-        (!PendingSelection.Assigned() || PendingSelection.IssuedIndex != SemanticSelection.Record.IssuedIndex))
-        SemanticSelection = {};
+
+    if (SemanticSelection.Standing() && SelectionSet.Empty())
+        SetSketchPick(SelectionSet, SemanticSelection, false);
+
+    const SketchPick* SetActive = SelectionSet.Active();
+    if (SetActive != nullptr)
+        SemanticSelection = *SetActive;
 
     const SketchPick ActiveSketchSelection =
         EditableSelection(Sketch, Records, SelectedRecord, PendingSelection, SemanticSelection);
 
     if (TextInput.DeletePressed && ActiveSketchSelection.Record.Assigned())
     {
-        Discard(Records.ToggleVisible(ActiveSketchSelection.Record, false));
+        for (const SketchPick& Item : SelectionSet.Items)
+        {
+            if (Item.Record.Assigned())
+                Discard(Records.ToggleVisible(Item.Record, false));
+        }
         Revisions.Seal("Deleted selected sketch record", "Delete Sketch Record", { ActiveSketchSelection.Record },
                        Revisions.DeclaredCount() + 1u);
         PendingSelection = {};
         SemanticSelection = {};
+        SelectionSet.Clear();
         HoveredSelection = {};
         PointerTaken = true;
         return;
@@ -1209,10 +1229,22 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
     if (World.CurveCount() == 0u && SketchHasCommittedGeometry(Sketch))
         MirrorSketchIntoWorldSketch(Sketch, World, Mapping);
 
-    WorldPick WorldSemantic = {};
+    WorldSelectionSet WorldSelection = {};
+    for (const SketchPick& Pick : SelectionSet.Items)
+    {
+        WorldPick WPick = {};
+        if (ResolveWorldPickForSketchPick(Sketch, Records, World, Mapping, Pick, WPick))
+            SetWorldPick(WorldSelection, WPick, true);
+    }
+    if (WorldSelection.Empty() && ActiveSketchSelection.Standing())
+    {
+        WorldPick WPick = {};
+        if (ResolveWorldPickForSketchPick(Sketch, Records, World, Mapping, ActiveSketchSelection, WPick))
+            SetWorldPick(WorldSelection, WPick, false);
+    }
+
+    WorldPick WorldSemantic = WorldSelection.Active() ? *WorldSelection.Active() : WorldPick{};
     WorldPick WorldHovered = {};
-    if (ActiveSketchSelection.Standing())
-        ResolveWorldPickForSketchPick(Sketch, Records, World, Mapping, ActiveSketchSelection, WorldSemantic);
 
     ConstraintSubject WorldConstraintSubject = ConstraintSubject::Fixed;
     const bool WorldConstraintTool = SelectedConstraint(ActiveTool, WorldConstraintSubject);
@@ -1241,17 +1273,25 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
     const TransformManner WasManner = Transform.Manner();
 
     GizmoHandle HoveredHandle = GizmoHandle::None;
-    DriveWorldSketchSelectionAndTransform(Extent, Pointer, TextInput,
+    DriveWorldSketchSelectionAndTransform(Extent, Pointer, TextInput, Modifiers,
                                          Selection, Gizmo, Camera,
-                                         World, WorldSemantic, WorldHovered,
+                                         World, WorldSelection, WorldSemantic, WorldHovered,
                                          Transform, PointerTaken,
                                          SessionMilliseconds, LastGPressedMilliseconds,
                                          &HoveredHandle);
 
     ApplyWorldSketchToSketch(World, Mapping, Sketch);
 
+    SelectionSet.Clear();
+    for (const WorldPick& WPick : WorldSelection.Items)
+    {
+        SketchPick SPick = {};
+        if (ResolveSketchPickForWorldPick(Sketch, Records, Mapping, WPick, SPick))
+            SetSketchPick(SelectionSet, SPick, true);
+    }
+
     if (!ResolveSketchPickForWorldPick(Sketch, Records, Mapping, WorldSemantic, SemanticSelection))
-        SemanticSelection = {};
+        SemanticSelection = SelectionSet.Active() ? *SelectionSet.Active() : SketchPick{};
     if (!ResolveSketchPickForWorldPick(Sketch, Records, Mapping, WorldHovered, HoveredSelection))
         HoveredSelection = {};
 
@@ -1269,9 +1309,27 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
                            "Edit Sketch", { SemanticSelection.Record }, Revisions.DeclaredCount() + 1u);
     }
 
-    RecordViewportSelectionOverlay(Overlay, Extent, Camera, World, WorldHovered, WorldSemantic);
+    RecordViewportSelectionOverlay(Overlay, Extent, Camera, World, WorldHovered, WorldSelection);
     if (Gizmo.Shown && WorldSemantic.Standing())
-        RecordViewportGizmo(Overlay, Extent, Camera, WorldSemantic, HoveredHandle, Transform);
+    {
+        WorldPick GizmoPick = WorldSemantic;
+        if (WorldSelection.Items.size() > 1u)
+        {
+            SpatialPoint Centroid = {};
+            for (const WorldPick& Item : WorldSelection.Items)
+            {
+                Centroid.Left += Item.Position.Left;
+                Centroid.Up += Item.Position.Up;
+                Centroid.Forward += Item.Position.Forward;
+            }
+            const double Count = static_cast<double>(WorldSelection.Items.size());
+            Centroid.Left /= Count;
+            Centroid.Up /= Count;
+            Centroid.Forward /= Count;
+            GizmoPick.Position = Centroid;
+        }
+        RecordViewportGizmo(Overlay, Extent, Camera, GizmoPick, HoveredHandle, Transform);
+    }
 }
 
 }   // namespace Slate

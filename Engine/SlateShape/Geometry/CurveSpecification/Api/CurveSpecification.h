@@ -112,6 +112,8 @@ struct RationalSplineCurve
 
 struct HermiteCurve
 {
+    std::vector<SpatialPoint> ControlPoints = {};
+    std::vector<SpatialDirection> Tangents = {};
     SpatialPoint StartPoint = {};
     SpatialPoint EndPoint = {};
     SpatialDirection StartTangent = {};

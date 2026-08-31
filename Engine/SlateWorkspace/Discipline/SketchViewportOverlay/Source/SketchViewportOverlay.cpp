@@ -363,13 +363,20 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
         }
     };
 
+    const auto RecordProfile = [&](ProfileNameInFeature Profile, std::uint32_t Packed, float Thickness)
+    {
+        if (!Profile.Assigned() || Profile.IssuedIndex > Sketch.Profiles().size())
+            return;
+        for (const ProfileLoop& Loop : Sketch.Profiles()[Profile.IssuedIndex - 1u].HeldLoops())
+            for (const ProfileCurveUse& Use : Loop.Traversal)
+                RecordCurve({ Use.TraversedCurve.IssuedIndex }, Packed, Thickness);
+    };
+
     const auto RecordProfileFill = [&](ProfileNameInFeature Profile)
     {
         if (!Profile.Assigned() || Profile.IssuedIndex > Sketch.Profiles().size())
             return;
         const std::uint32_t Fill = PackOverlayColour(0x5Bu, 0x8Cu, 0xFFu, 64u);
-        const ProfileAreaAnalysis Analysis = AnalyzeProfileAreas(Sketch, 0.05);
-        std::vector<std::vector<SpatialPoint>> Boundaries;
         for (const ProfileLoop& Loop : Sketch.Profiles()[Profile.IssuedIndex - 1u].HeldLoops())
         {
             std::vector<SpatialPoint> Perimeter;
@@ -386,68 +393,18 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
                 Perimeter.insert(Perimeter.end(), Segment.begin(), Segment.end());
             }
             if (Perimeter.size() >= 3u)
-                Boundaries.push_back(std::move(Perimeter));
-        }
-
-        const auto Inside = [&](const std::vector<SpatialPoint>& Polygon, const SpatialPoint& Point)
-        {
-            double PointAlong = 0.0, PointAcross = 0.0;
-            ResolvePlaneCoordinates(Basis, Point, PointAlong, PointAcross);
-            bool Hit = false;
-            for (std::size_t Index = 0u, Previous = Polygon.size() - 1u;
-                 Index < Polygon.size(); Previous = Index++)
             {
-                double AlongA = 0.0, AcrossA = 0.0, AlongB = 0.0, AcrossB = 0.0;
-                ResolvePlaneCoordinates(Basis, Polygon[Index], AlongA, AcrossA);
-                ResolvePlaneCoordinates(Basis, Polygon[Previous], AlongB, AcrossB);
-                const bool Crosses = ((AcrossA > PointAcross) != (AcrossB > PointAcross)) &&
-                    (PointAlong < (AlongB - AlongA) * (PointAcross - AcrossA) /
-                                  (AcrossB - AcrossA + 1.0e-30) + AlongA);
-                if (Crosses)
-                    Hit = !Hit;
+                for (std::size_t Index = 1u; Index + 1u < Perimeter.size(); ++Index)
+                {
+                    float X0 = 0.0f, Y0 = 0.0f, X1 = 0.0f, Y1 = 0.0f, X2 = 0.0f, Y2 = 0.0f;
+                    if (ProjectSpatialPoint(Basis, View, Perspective, Extent, Perimeter[0], X0, Y0) &&
+                        ProjectSpatialPoint(Basis, View, Perspective, Extent, Perimeter[Index], X1, Y1) &&
+                        ProjectSpatialPoint(Basis, View, Perspective, Extent, Perimeter[Index + 1u], X2, Y2))
+                        Overlay.AddTriangle(X0, Y0, X1, Y1, X2, Y2, Fill);
+                }
             }
-            return Hit;
-        };
-
-        for (const ProfileAreaTriangle& Triangle : Analysis.Triangles)
-        {
-            const SpatialPoint Centre{
-                (Triangle.A.Left + Triangle.B.Left + Triangle.C.Left) / 3.0,
-                (Triangle.A.Up + Triangle.B.Up + Triangle.C.Up) / 3.0,
-                (Triangle.A.Forward + Triangle.B.Forward + Triangle.C.Forward) / 3.0 };
-            // Even-odd winding is intentional here: an odd number of containing loops is
-            // material, while an even number is a hole (including nested islands/holes).
-            bool InSelectedProfile = false;
-            for (const std::vector<SpatialPoint>& Perimeter : Boundaries)
-                if (Inside(Perimeter, Centre))
-                    InSelectedProfile = !InSelectedProfile;
-            if (!InSelectedProfile)
-                continue;
-
-            float X0 = 0.0f, Y0 = 0.0f, X1 = 0.0f, Y1 = 0.0f, X2 = 0.0f, Y2 = 0.0f;
-            if (ProjectSpatialPoint(Basis, View, Perspective, Extent, Triangle.A, X0, Y0) &&
-                ProjectSpatialPoint(Basis, View, Perspective, Extent, Triangle.B, X1, Y1) &&
-                ProjectSpatialPoint(Basis, View, Perspective, Extent, Triangle.C, X2, Y2))
-                Overlay.AddTriangle(X0, Y0, X1, Y1, X2, Y2, Fill);
         }
     };
-
-    if (Selected.Standing())
-    {
-        if (Selected.Subject == SketchPickSubject::Curve)
-            RecordCurve(Selected.Curve, PackOverlayColour(0x5Bu, 0x8Cu, 0xFFu, 255u), 2.4f);
-        else if (Selected.Subject == SketchPickSubject::Record)
-        {
-            const WorkspaceRecord* Record = Records.Resolve(Selected.Record);
-            if (Record != nullptr && Record->Profile.Assigned() && Record->Profile.IssuedIndex <= Sketch.Profiles().size())
-            {
-                RecordProfileFill(Record->Profile);
-                for (const ProfileLoop& Loop : Sketch.Profiles()[Record->Profile.IssuedIndex - 1u].HeldLoops())
-                    for (const ProfileCurveUse& Use : Loop.Traversal)
-                        RecordCurve({ Use.TraversedCurve.IssuedIndex }, PackOverlayColour(0x5Bu, 0x8Cu, 0xFFu, 255u), 2.2f);
-            }
-        }
-    }
 
     const auto RecordPoint = [&](const SketchPick& Subject, std::uint32_t Outer, std::uint32_t Inner)
     {
@@ -459,23 +416,44 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
         AppendOverlayCircle(Overlay, X, Y, 8.0f, Outer, 1.6f);
     };
 
-    if (Selected.Subject == SketchPickSubject::Point || Selected.Subject == SketchPickSubject::Control)
-        RecordPoint(Selected, PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 224u), PackOverlayColour(0x5Bu, 0x8Cu, 0xFFu, 255u));
-
-    if (Hovered.Subject == SketchPickSubject::Curve)
-        RecordCurve(Hovered.Curve, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 208u), 1.8f);
-    else if (Hovered.Subject == SketchPickSubject::Record)
+    if (Selected.Standing())
     {
-        const WorkspaceRecord* Record = Records.Resolve(Hovered.Record);
-        if (Record != nullptr && Record->Profile.Assigned() && Record->Profile.IssuedIndex <= Sketch.Profiles().size())
-            for (const ProfileLoop& Loop : Sketch.Profiles()[Record->Profile.IssuedIndex - 1u].HeldLoops())
-                for (const ProfileCurveUse& Use : Loop.Traversal)
-                    RecordCurve({ Use.TraversedCurve.IssuedIndex }, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 208u), 1.8f);
+        if (Selected.Subject == SketchPickSubject::Curve)
+            RecordCurve(Selected.Curve, PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 255u), 2.5f);
+        else if (Selected.Subject == SketchPickSubject::Record)
+        {
+            const WorkspaceRecord* Record = Records.Resolve(Selected.Record);
+            if (Record != nullptr && Record->Subject == WorkspaceRecordSubject::ClosedProfile)
+            {
+                RecordProfile(Record->Profile, PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 255u), 2.5f);
+                RecordProfileFill(Record->Profile);
+            }
+        }
+        else if (Selected.Subject == SketchPickSubject::Control)
+        {
+            RecordPoint(Selected, PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 255u), PackOverlayColour(0xECu, 0x48u, 0x99u, 255u));
+        }
         else
-            RecordPoint(Hovered, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 208u), PackOverlayColour(0xFBu, 0xBFu, 0x24u, 180u));
+        {
+            RecordPoint(Selected, PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 255u), PackOverlayColour(0x06u, 0xB6u, 0xD4u, 255u));
+        }
     }
-    else if (Hovered.Standing())
-        RecordPoint(Hovered, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 208u), PackOverlayColour(0xFBu, 0xBFu, 0x24u, 180u));
+
+    if (Hovered.Standing())
+    {
+        if (Hovered.Subject == SketchPickSubject::Curve)
+            RecordCurve(Hovered.Curve, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 220u), 2.0f);
+        else if (Hovered.Subject == SketchPickSubject::Record)
+        {
+            const WorkspaceRecord* Record = Records.Resolve(Hovered.Record);
+            if (Record != nullptr && Record->Subject == WorkspaceRecordSubject::ClosedProfile)
+                RecordProfile(Record->Profile, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 220u), 2.0f);
+        }
+        else if (Hovered.Subject == SketchPickSubject::Control)
+            RecordPoint(Hovered, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 255u), PackOverlayColour(0xECu, 0x48u, 0x99u, 255u));
+        else
+            RecordPoint(Hovered, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 255u), PackOverlayColour(0x06u, 0xB6u, 0xD4u, 255u));
+    }
 }
 
 void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
@@ -490,7 +468,11 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
 {
     for (const SketchPick& Pick : Selected.Items)
         RecordViewportSelectionOverlay(Overlay, Extent, Basis, View, Perspective,
-                                       Sketch, Records, Hovered, Pick);
+                                       Sketch, Records, SketchPick{}, Pick);
+
+    if (Hovered.Standing())
+        RecordViewportSelectionOverlay(Overlay, Extent, Basis, View, Perspective,
+                                       Sketch, Records, Hovered, SketchPick{});
 }
 
 void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
@@ -533,11 +515,25 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
         float Y = 0.0f;
         if (!ProjectFromCamera(Camera, Extent, Subject.Position, X, Y))
             return;
-        // 🔴 Vertex/control markers are intentionally larger than the curve stroke. A tiny 4 px
-        //    marker made middle Bezier controls effectively invisible and only the end anchors felt
-        //    selectable at normal CAD zoom.
-        Overlay.AddDot(X, Y, Inner, 7.0f);
-        AppendOverlayCircle(Overlay, X, Y, 11.0f, Outer, 2.0f);
+        Overlay.AddDot(X, Y, Inner, 5.0f);
+        AppendOverlayCircle(Overlay, X, Y, 9.0f, Outer, 2.0f);
+    };
+
+    const auto RecordPoints = [&](WorldCurveName Curve)
+    {
+        std::vector<WorldPointPlacement> Points;
+        if (!ResolveWorldSketchPoints(Declared, Curve, Points))
+            return;
+        for (const WorldPointPlacement& Pt : Points)
+        {
+            WorldPick Point = {};
+            Point.Subject = WorldPickSubject::Point;
+            Point.Point = Pt.Name;
+            Point.Curve = Pt.SourceCurve;
+            Point.Position = Pt.Position;
+            RecordPoint(Point, PackOverlayColour(0x06u, 0xB6u, 0xD4u, 255u),
+                        PackOverlayColour(0x0Eu, 0x74u, 0x90u, 255u));
+        }
     };
 
     const auto RecordControls = [&](WorldCurveName Curve)
@@ -545,15 +541,29 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
         std::vector<WorldControlPlacement> Controls;
         if (!ResolveWorldSketchControls(Declared, Curve, Controls))
             return;
-        for (const WorldControlPlacement& Control : Controls)
+        std::vector<WorldPointPlacement> Points;
+        static_cast<void>(ResolveWorldSketchPoints(Declared, Curve, Points));
+
+        for (std::size_t i = 0u; i < Controls.size(); ++i)
         {
+            const WorldControlPlacement& Control = Controls[i];
+            if (i < Points.size())
+            {
+                float X0 = 0.0f, Y0 = 0.0f, X1 = 0.0f, Y1 = 0.0f;
+                if (ProjectFromCamera(Camera, Extent, Points[i].Position, X0, Y0) &&
+                    ProjectFromCamera(Camera, Extent, Control.Position, X1, Y1))
+                {
+                    Overlay.AddLine(X0, Y0, X1, Y1, PackOverlayColour(0xECu, 0x48u, 0x99u, 140u), 1.2f);
+                }
+            }
+
             WorldPick Point = {};
             Point.Subject = WorldPickSubject::Control;
             Point.Control = Control.Name;
             Point.Curve = Control.SourceCurve;
             Point.Position = Control.Position;
-            RecordPoint(Point, PackOverlayColour(0xF4u, 0xB8u, 0x4Au, 255u),
-                        PackOverlayColour(0x1Bu, 0x1Fu, 0x2Au, 255u));
+            RecordPoint(Point, PackOverlayColour(0xECu, 0x48u, 0x99u, 255u),
+                        PackOverlayColour(0x9Du, 0x17u, 0x4Du, 255u));
         }
     };
 
@@ -561,34 +571,57 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
     {
         if (Selected.Subject == WorldPickSubject::Curve)
         {
-            RecordCurve(Selected.Curve, PackOverlayColour(0x5Bu, 0x8Cu, 0xFFu, 255u), 2.4f);
+            RecordCurve(Selected.Curve, PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 255u), 2.5f);
+            RecordPoints(Selected.Curve);
             RecordControls(Selected.Curve);
         }
         else if (Selected.Subject == WorldPickSubject::Loop)
         {
-            RecordLoop(Selected.Loop, PackOverlayColour(0x5Bu, 0x8Cu, 0xFFu, 255u), 2.2f);
+            RecordLoop(Selected.Loop, PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 255u), 2.5f);
             const DeclaredWorldLoop* Loop = Declared.Resolve(Selected.Loop);
             if (Loop != nullptr)
                 for (const WorldCurveUse& Use : Loop->Traversal)
+                {
+                    RecordPoints(Use.TraversedCurve);
                     RecordControls(Use.TraversedCurve);
+                }
+        }
+        else if (Selected.Subject == WorldPickSubject::Point)
+        {
+            RecordPoints(Selected.Curve);
+            RecordControls(Selected.Curve);
+            RecordPoint(Selected, PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 255u), PackOverlayColour(0x06u, 0xB6u, 0xD4u, 255u));
+        }
+        else if (Selected.Subject == WorldPickSubject::Control)
+        {
+            RecordPoints(Selected.Curve);
+            RecordControls(Selected.Curve);
+            RecordPoint(Selected, PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 255u), PackOverlayColour(0xECu, 0x48u, 0x99u, 255u));
         }
     }
 
-    if (Selected.Subject == WorldPickSubject::Point || Selected.Subject == WorldPickSubject::Control)
-    {
-        RecordPoint(Selected, PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 224u), PackOverlayColour(0x5Bu, 0x8Cu, 0xFFu, 255u));
-        // 🔴 Vertex/control selection exposes the complete control set for the source curve,
-        //    not only its first and last anchors. This is what makes middle Bezier, Hermite,
-        //    spline and NURBS controls directly visible and pickable.
-        RecordControls(Selected.Curve);
-    }
-
     if (Hovered.Subject == WorldPickSubject::Curve)
-        RecordCurve(Hovered.Curve, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 208u), 1.8f);
+        RecordCurve(Hovered.Curve, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 220u), 2.0f);
     else if (Hovered.Subject == WorldPickSubject::Loop)
-        RecordLoop(Hovered.Loop, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 208u), 1.8f);
-    else if (Hovered.Standing())
-        RecordPoint(Hovered, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 208u), PackOverlayColour(0xFBu, 0xBFu, 0x24u, 180u));
+        RecordLoop(Hovered.Loop, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 220u), 2.0f);
+    else if (Hovered.Subject == WorldPickSubject::Point)
+        RecordPoint(Hovered, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 255u), PackOverlayColour(0x06u, 0xB6u, 0xD4u, 255u));
+    else if (Hovered.Subject == WorldPickSubject::Control)
+        RecordPoint(Hovered, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 255u), PackOverlayColour(0xECu, 0x48u, 0x99u, 255u));
+}
+
+void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
+                                    const PlaneExtent& Extent,
+                                    const ResolvedCamera& Camera,
+                                    const WorldSketchStructure& Declared,
+                                    const WorldPick& Hovered,
+                                    const WorldSelectionSet& Selected)
+{
+    for (const WorldPick& Pick : Selected.Items)
+        RecordViewportSelectionOverlay(Overlay, Extent, Camera, Declared, WorldPick{}, Pick);
+
+    if (Hovered.Standing())
+        RecordViewportSelectionOverlay(Overlay, Extent, Camera, Declared, Hovered, WorldPick{});
 }
 
 void RecordViewportGizmo(OverlayGeometry& Overlay,

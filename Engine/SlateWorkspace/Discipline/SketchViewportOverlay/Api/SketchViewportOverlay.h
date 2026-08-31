@@ -151,6 +151,13 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
                                     const WorldPick& Hovered,
                                     const WorldPick& Selected);
 
+void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
+                                    const PlaneExtent& Extent,
+                                    const ResolvedCamera& Camera,
+                                    const WorldSketchStructure& Declared,
+                                    const WorldPick& Hovered,
+                                    const WorldSelectionSet& Selected);
+
 void RecordViewportGizmo(OverlayGeometry& Overlay,
                          const PlaneExtent& Extent,
                          const SpatialBasis& Basis,

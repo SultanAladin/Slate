@@ -44,6 +44,18 @@ struct WorldSketchTransformSession
     TransformRestriction Restriction() const { return Standing.Restriction; }
 };
 
+struct WorldSelectionSet
+{
+    std::vector<WorldPick> Items = {};
+
+    bool Empty() const { return Items.empty(); }
+    const WorldPick* Active() const { return Items.empty() ? nullptr : &Items.front(); }
+    void Clear() { Items.clear(); }
+};
+
+bool SameWorldPickIdentity(const WorldPick& Left, const WorldPick& Right);
+void SetWorldPick(WorldSelectionSet& Set, const WorldPick& Pick, bool Additive);
+
 bool ResolveWorldTransformPlacements(const WorldSketchStructure& Declared,
                                      const WorldPick& Target,
                                      SpatialPoint& Pivot,
@@ -66,6 +78,18 @@ bool StartWorldSketchTransformSession(const WorldSketchStructure& Declared,
                                      float PointerX,
                                      float PointerY,
                                      const WorldPick& Target,
+                                     TransformRestriction Restriction,
+                                     bool SlideAlongCurve,
+                                     WorldSketchTransformSession& Session,
+                                     bool MouseDriven = false,
+                                     TransformManner Manner = TransformManner::Move);
+
+bool StartWorldSketchTransformSession(const WorldSketchStructure& Declared,
+                                     const ResolvedCamera& Camera,
+                                     const PlaneExtent& Extent,
+                                     float PointerX,
+                                     float PointerY,
+                                     const WorldSelectionSet& SelectionSet,
                                      TransformRestriction Restriction,
                                      bool SlideAlongCurve,
                                      WorldSketchTransformSession& Session,

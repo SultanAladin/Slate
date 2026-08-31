@@ -58,6 +58,7 @@ namespace
                 for (SpatialPoint& Point : Shifted.HeldRationalSpline().ControlPoints) Point = Added(Point, Offset);
                 break;
             case CurveSubject::Hermite:
+                for (SpatialPoint& Point : Shifted.HeldHermite().ControlPoints) Point = Added(Point, Offset);
                 Shifted.HeldHermite().StartPoint = Added(Shifted.HeldHermite().StartPoint, Offset);
                 Shifted.HeldHermite().EndPoint = Added(Shifted.HeldHermite().EndPoint, Offset);
                 break;
@@ -102,6 +103,7 @@ namespace
                 for (SpatialPoint& Point : Mirrored.HeldRationalSpline().ControlPoints) Point = MirrorPoint(Point, AxisStart, AxisEnd);
                 break;
             case CurveSubject::Hermite:
+                for (SpatialPoint& Point : Mirrored.HeldHermite().ControlPoints) Point = MirrorPoint(Point, AxisStart, AxisEnd);
                 Mirrored.HeldHermite().StartPoint = MirrorPoint(Mirrored.HeldHermite().StartPoint, AxisStart, AxisEnd);
                 Mirrored.HeldHermite().EndPoint = MirrorPoint(Mirrored.HeldHermite().EndPoint, AxisStart, AxisEnd);
                 break;
@@ -300,6 +302,7 @@ Deliver<PatternResult> DeclareRadialPattern(SketchStructure& Declared,
                     for (SpatialPoint& Point : Rotated.HeldRationalSpline().ControlPoints) RotatePoint(Point);
                     break;
                 case CurveSubject::Hermite:
+                    for (SpatialPoint& Point : Rotated.HeldHermite().ControlPoints) RotatePoint(Point);
                     RotatePoint(Rotated.HeldHermite().StartPoint);
                     RotatePoint(Rotated.HeldHermite().EndPoint);
                     break;

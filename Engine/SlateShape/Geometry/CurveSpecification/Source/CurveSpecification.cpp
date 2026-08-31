@@ -215,6 +215,8 @@ bool CurveSpecification::Declared() const
                 && RationalSpline.Degree < RationalSpline.ControlPoints.size();
 
         case CurveSubject::Hermite:
+            if (Hermite.ControlPoints.size() >= 2u)
+                return true;
             return (Hermite.StartPoint.Left != Hermite.EndPoint.Left
                  || Hermite.StartPoint.Up != Hermite.EndPoint.Up
                  || Hermite.StartPoint.Forward != Hermite.EndPoint.Forward)

@@ -1,10 +1,7 @@
-//============================================================================================================================================
-//                                                  WORLDSKETCHTRANSFORMSESSION.CPP
-//============================================================================================================================================
-
 #include "SlateWorkspace/Discipline/WorldSketchTransformSession/Api/WorldSketchTransformSession.h"
 
 #include "SlateShape/Sketch/SketchPolyline/Api/SketchPolyline.h"
+#include "SlateShape/World/WorldSketchPicking/Api/WorldSketchPicking.h"
 
 #include <algorithm>
 #include <cmath>
@@ -401,6 +398,170 @@ bool StartWorldSketchTransformSession(const WorldSketchStructure& Declared,
     if (!ResolveWorldTransformPlacements(Declared, Target, Pivot, Placements))
         return false;
 
+    ClearWorldSketchTransformSession(Session);
+    Session.Manner() = Manner;
+    Session.Engaged() = true;
+    Session.AwaitingRelease = MouseDriven;
+    Session.Restriction() = Restriction;
+    Session.SlideAlongCurve() = Manner == TransformManner::Move
+                              && (SlideAlongCurve || Restriction == TransformRestriction::Curve);
+    Session.Target = Target;
+    Session.Pivot = Pivot;
+    Session.Placements = Placements;
+    Session.Origins.reserve(Placements.size());
+    for (const WorldPlacementSubject& Placement : Placements)
+        Session.Origins.push_back(Placement.Position);
+
+    Session.AxisDirection = Session.SlideAlongCurve() && Target.Curve.Assigned()
+                          ? ResolveWorldCurveSlideDirection(Declared, Target.Curve, Target.Position)
+                          : Session.AxisDirection;
+    if (!Session.SlideAlongCurve())
+        ResolveCameraAxisDirection(Camera, Session);
+
+    const bool AxisDrag = Manner == TransformManner::Move
+                       && (Session.Restriction() == TransformRestriction::AxisX
+                        || Session.Restriction() == TransformRestriction::AxisY
+                        || Session.Restriction() == TransformRestriction::AxisZ
+                        || Session.Restriction() == TransformRestriction::Curve);
+    const bool RotationDrag = Manner == TransformManner::Rotate;
+    const bool ScaleAxisDrag = Manner == TransformManner::Scale &&
+                              (Session.Restriction() == TransformRestriction::AxisX
+                            || Session.Restriction() == TransformRestriction::AxisY
+                            || Session.Restriction() == TransformRestriction::AxisZ);
+    const bool Resolved = RotationDrag
+                        ? ResolveDragReference(Camera, Extent, PointerX, PointerY,
+                                               Session.Pivot, Session.AxisDirection, Session.StartReference)
+                        : (AxisDrag || ScaleAxisDrag)
+                        ? ResolveAxisReference(Camera, Extent, PointerX, PointerY,
+                                               Session.Pivot, Session.AxisDirection, Session.StartReference)
+                        : ResolveDragReference(Camera, Extent, PointerX, PointerY,
+                                               Session.Pivot, Camera.Frame.Forward, Session.StartReference);
+    if (!Resolved)
+        Session.StartReference = Session.Pivot;
+
+    const SpatialDirection Initial = Difference(Session.Pivot, Session.StartReference);
+    Session.StartDistance = (ScaleAxisDrag)
+        ? Dot(Initial, Normalize(Session.AxisDirection))
+        : std::sqrt(LengthSquared(Initial));
+    if (std::fabs(Session.StartDistance) < 1.0e-4)
+        Session.StartDistance = 1.0;
+    if (Manner == TransformManner::Scale)
+        Session.PreviewValue = 1.0;
+    if (Manner == TransformManner::Rotate)
+    {
+        const SpatialDirection Axis = Normalize(Session.AxisDirection);
+        Session.RotationU = Normalize(Initial);
+        if (LengthSquared(Session.RotationU) <= 1.0e-12)
+            Session.RotationU = Normalize(Camera.Frame.Right);
+        Session.RotationV = Normalize(Cross(Axis, Session.RotationU));
+        if (LengthSquared(Session.RotationV) <= 1.0e-12)
+            Session.RotationV = Normalize(Camera.Frame.Up);
+    }
+
+    return true;
+}
+
+bool SameWorldPickIdentity(const WorldPick& Left, const WorldPick& Right)
+{
+    if (Left.Subject != Right.Subject)
+        return false;
+    if (Left.Subject == WorldPickSubject::Point)
+        return Left.Point.IssuedIndex == Right.Point.IssuedIndex;
+    if (Left.Subject == WorldPickSubject::Control)
+        return Left.Control.IssuedIndex == Right.Control.IssuedIndex;
+    if (Left.Subject == WorldPickSubject::Curve)
+        return Left.Curve.IssuedIndex == Right.Curve.IssuedIndex;
+    if (Left.Subject == WorldPickSubject::Loop)
+        return Left.Loop.IssuedIndex == Right.Loop.IssuedIndex;
+    return false;
+}
+
+void SetWorldPick(WorldSelectionSet& Set, const WorldPick& Pick, bool Additive)
+{
+    if (!Pick.Standing())
+    {
+        if (!Additive)
+            Set.Clear();
+        return;
+    }
+    if (!Additive)
+    {
+        Set.Items = { Pick };
+        return;
+    }
+    for (std::size_t Index = 0u; Index < Set.Items.size(); ++Index)
+    {
+        if (SameWorldPickIdentity(Set.Items[Index], Pick))
+        {
+            Set.Items.erase(Set.Items.begin() + Index);
+            return;
+        }
+    }
+    Set.Items.insert(Set.Items.begin(), Pick);
+}
+
+bool StartWorldSketchTransformSession(const WorldSketchStructure& Declared,
+                                     const ResolvedCamera& Camera,
+                                     const PlaneExtent& Extent,
+                                     float PointerX,
+                                     float PointerY,
+                                     const WorldSelectionSet& SelectionSet,
+                                     TransformRestriction Restriction,
+                                     bool SlideAlongCurve,
+                                     WorldSketchTransformSession& Session,
+                                     bool MouseDriven,
+                                     TransformManner Manner)
+{
+    const WorldPick* Active = SelectionSet.Active();
+    if (Active == nullptr)
+        return false;
+
+    SpatialPoint Pivot = {};
+    std::vector<WorldPlacementSubject> Placements;
+    std::size_t PivotCount = 0u;
+
+    for (const WorldPick& Pick : SelectionSet.Items)
+    {
+        SpatialPoint PickPivot = {};
+        std::vector<WorldPlacementSubject> PickPlacements;
+        if (!ResolveWorldTransformPlacements(Declared, Pick, PickPivot, PickPlacements))
+            continue;
+        Pivot.Left += PickPivot.Left;
+        Pivot.Up += PickPivot.Up;
+        Pivot.Forward += PickPivot.Forward;
+        ++PivotCount;
+        for (const WorldPlacementSubject& Placement : PickPlacements)
+        {
+            bool Found = false;
+            for (const WorldPlacementSubject& Existing : Placements)
+            {
+                if (Placement.ControlPlacement == Existing.ControlPlacement)
+                {
+                    if (Placement.ControlPlacement && Placement.Control.IssuedIndex == Existing.Control.IssuedIndex)
+                    {
+                        Found = true;
+                        break;
+                    }
+                    if (!Placement.ControlPlacement && Placement.Point.IssuedIndex == Existing.Point.IssuedIndex)
+                    {
+                        Found = true;
+                        break;
+                    }
+                }
+            }
+            if (!Found)
+                Placements.push_back(Placement);
+        }
+    }
+
+    if (PivotCount == 0u || Placements.empty())
+        return false;
+
+    Pivot.Left /= static_cast<double>(PivotCount);
+    Pivot.Up /= static_cast<double>(PivotCount);
+    Pivot.Forward /= static_cast<double>(PivotCount);
+
+    const WorldPick& Target = *Active;
     ClearWorldSketchTransformSession(Session);
     Session.Manner() = Manner;
     Session.Engaged() = true;

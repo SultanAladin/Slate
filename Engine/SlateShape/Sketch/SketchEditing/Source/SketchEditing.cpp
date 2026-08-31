@@ -159,6 +159,17 @@ Deliver<bool> EnforceSketchPoint(SketchStructure& Declared,
             return Deliver<bool>::Result(true);
 
         case CurveSubject::Hermite:
+            if (Held->Geometry.HeldHermite().ControlPoints.size() >= 2u)
+            {
+                if (LocalIndex < Held->Geometry.HeldHermite().ControlPoints.size())
+                {
+                    Held->Geometry.HeldHermite().ControlPoints[LocalIndex] = Position;
+                    if (LocalIndex == 0u) Held->Geometry.HeldHermite().StartPoint = Position;
+                    if (LocalIndex + 1u == Held->Geometry.HeldHermite().ControlPoints.size()) Held->Geometry.HeldHermite().EndPoint = Position;
+                    return Deliver<bool>::Result(true);
+                }
+                return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the hermite point is absent" });
+            }
             if (LocalIndex == 0u) Held->Geometry.HeldHermite().StartPoint = Position;
             else if (LocalIndex == 1u) Held->Geometry.HeldHermite().EndPoint = Position;
             else return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the hermite point is absent" });

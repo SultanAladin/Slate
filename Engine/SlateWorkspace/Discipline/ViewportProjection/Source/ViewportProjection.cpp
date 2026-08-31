@@ -127,13 +127,13 @@ ViewFrame ResolveViewportFrame(const SpatialBasis& Basis, const ViewportStanding
                          WorldX, WorldY, WorldZ };
             case ViewportOrientation::Back:
                 return { Added(View.Focus, Scaled(WorldZ, 100.0)),
-                         WorldX, Negated(WorldY), Negated(WorldZ) };
+                         Negated(WorldX), WorldY, Negated(WorldZ) };
             case ViewportOrientation::Left:
                 return { Added(View.Focus, Scaled(WorldX, -100.0)),
-                         WorldZ, WorldY, WorldX };
+                         Negated(WorldZ), WorldY, WorldX };
             case ViewportOrientation::Right:
                 return { Added(View.Focus, Scaled(WorldX, 100.0)),
-                         Negated(WorldZ), WorldY, Negated(WorldX) };
+                         WorldZ, WorldY, Negated(WorldX) };
             case ViewportOrientation::Isometric:
                 break;
         }

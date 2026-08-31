@@ -184,6 +184,49 @@ namespace
     SpatialPoint EvaluateHermite(const HermiteCurve& Curve,
                                  double Parameter)
     {
+        if (Curve.ControlPoints.size() >= 2u)
+        {
+            const std::size_t SpanCount = Curve.ControlPoints.size() - 1u;
+            const double ScaledParam = std::clamp(Parameter, 0.0, 1.0) * static_cast<double>(SpanCount);
+            std::size_t SpanIndex = static_cast<std::size_t>(std::floor(ScaledParam));
+            if (SpanIndex >= SpanCount)
+                SpanIndex = SpanCount - 1u;
+            const double LocalParam = ScaledParam - static_cast<double>(SpanIndex);
+
+            const SpatialPoint& P0 = Curve.ControlPoints[SpanIndex];
+            const SpatialPoint& P1 = Curve.ControlPoints[SpanIndex + 1u];
+
+            SpatialDirection T0 = {};
+            if (Curve.Tangents.size() > SpanIndex)
+                T0 = Curve.Tangents[SpanIndex];
+            else
+            {
+                const SpatialPoint& Before = (SpanIndex == 0u) ? P0 : Curve.ControlPoints[SpanIndex - 1u];
+                T0 = Scaled(Difference(Before, P1), 0.5);
+            }
+
+            SpatialDirection T1 = {};
+            if (Curve.Tangents.size() > SpanIndex + 1u)
+                T1 = Curve.Tangents[SpanIndex + 1u];
+            else
+            {
+                const SpatialPoint& After = (SpanIndex + 2u < Curve.ControlPoints.size()) ? Curve.ControlPoints[SpanIndex + 2u] : P1;
+                T1 = Scaled(Difference(P0, After), 0.5);
+            }
+
+            const double Square = LocalParam * LocalParam;
+            const double Cube = Square * LocalParam;
+            const double H00 = 2.0 * Cube - 3.0 * Square + 1.0;
+            const double H10 = Cube - 2.0 * Square + LocalParam;
+            const double H01 = -2.0 * Cube + 3.0 * Square;
+            const double H11 = Cube - Square;
+            return {
+                H00 * P0.Left + H10 * T0.Left + H01 * P1.Left + H11 * T1.Left,
+                H00 * P0.Up + H10 * T0.Up + H01 * P1.Up + H11 * T1.Up,
+                H00 * P0.Forward + H10 * T0.Forward + H01 * P1.Forward + H11 * T1.Forward
+            };
+        }
+
         const double Square = Parameter * Parameter;
         const double Cube = Square * Parameter;
         const double H00 = 2.0 * Cube - 3.0 * Square + 1.0;
@@ -276,10 +319,13 @@ std::uint32_t ResolveCurveStepCount(const CurveSpecification& Geometry,
         case CurveSubject::Hermite:
         {
             const HermiteCurve& Hermite = Geometry.HeldHermite();
-            Wanted = StepsForControlPolygon({ Hermite.StartPoint,
-                                              Added(Hermite.StartPoint, Hermite.StartTangent),
-                                              Added(Hermite.EndPoint, Hermite.EndTangent),
-                                              Hermite.EndPoint });
+            if (Hermite.ControlPoints.size() >= 2u)
+                Wanted = StepsForControlPolygon(Hermite.ControlPoints);
+            else
+                Wanted = StepsForControlPolygon({ Hermite.StartPoint,
+                                                  Added(Hermite.StartPoint, Hermite.StartTangent),
+                                                  Added(Hermite.EndPoint, Hermite.EndTangent),
+                                                  Hermite.EndPoint });
             break;
         }
 

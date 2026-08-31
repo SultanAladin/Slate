@@ -82,23 +82,14 @@ WorkspaceRecordName DeclareWorkspaceCurve(WorkspaceNameIndex& Naming,
     Record.Subject      = WorkspaceRecordSubject::OpenCurve;
     Record.Family       = Construction ? WorkspaceShapeFamily::Construction : Family;
     WorkspaceRecordName RootSketchFolder = ResolveCategoryFolder(Records, WorkspaceCategory::Sketch);
-    WorkspaceRecordName ParentFolder = RootSketchFolder;
-    if (!Construction && (Family == WorkspaceShapeFamily::Line ||
-                          Family == WorkspaceShapeFamily::CircularArc ||
-                          Family == WorkspaceShapeFamily::Bezier ||
-                          Family == WorkspaceShapeFamily::Hermite ||
-                          Family == WorkspaceShapeFamily::BasisSpline ||
-                          Family == WorkspaceShapeFamily::Nurbs))
-    {
-        ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch, "Curves", RootSketchFolder);
-    }
+    WorkspaceRecordName ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch, "Curves", RootSketchFolder);
     // Curves are grouped directly under the single Curves folder. The family is metadata
     // on the row, not another folder level; this keeps one Bezier/Hermite/Spline as one
     // curve entry instead of presenting a misleading nested family tree.
     Record.ParentFolder = ParentFolder;
     Record.Naming       = Construction
-                        ? std::string("Construction ") + Naming.Issue(WorkspaceRecordSubject::OpenCurve)
-                        : Naming.Issue(WorkspaceRecordSubject::OpenCurve);
+                        ? std::string("Construction ") + Naming.Issue(WorkspaceRecordSubject::OpenCurve, Family)
+                        : Naming.Issue(WorkspaceRecordSubject::OpenCurve, Family);
     Record.SketchCurve  = Curve;
     Record.ConstructionSemantic = Construction;
     return Records.Declare(Record);

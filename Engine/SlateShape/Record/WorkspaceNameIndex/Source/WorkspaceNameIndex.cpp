@@ -5,32 +5,80 @@
 #include "SlateShape/Record/WorkspaceNameIndex/Api/WorkspaceNameIndex.h"
 #include "SlateShape/Record/WorkspaceRecordStructure/Api/WorkspaceRecordStructure.h"
 
+#include <cstdio>
+
 namespace Slate
 {
 
-std::string WorkspaceNameIndex::Issue(WorkspaceRecordSubject Subject)
+namespace
+{
+std::string FormatPaddedName(const char* Prefix, std::uint32_t Index)
+{
+    char Buffer[64];
+    std::snprintf(Buffer, sizeof(Buffer), "%s_%03u", Prefix, Index);
+    return std::string(Buffer);
+}
+} // namespace
+
+std::string WorkspaceNameIndex::Issue(WorkspaceRecordSubject Subject, WorkspaceShapeFamily Family)
 {
     switch (Subject)
     {
-        case WorkspaceRecordSubject::Point:         return "Point_" + std::to_string(++PointCount);
-        case WorkspaceRecordSubject::OpenCurve:     return "Line_" + std::to_string(++CurveCount);
-        case WorkspaceRecordSubject::ClosedProfile: return "Profile_" + std::to_string(++ProfileCount);
-        case WorkspaceRecordSubject::ThinSurface:   return "ThinSurface_" + std::to_string(++SurfaceCount);
-        case WorkspaceRecordSubject::Solid:         return "Solid_" + std::to_string(++SolidCount);
-        case WorkspaceRecordSubject::Dimension:     return "Dimension_" + std::to_string(++DimensionCount);
-        case WorkspaceRecordSubject::Constraint:    return "Constraint_" + std::to_string(++ConstraintCount);
-        case WorkspaceRecordSubject::Pattern:       return "Pattern_" + std::to_string(++PatternCount);
-        case WorkspaceRecordSubject::Mirror:        return "Mirror_" + std::to_string(++MirrorCount);
-        case WorkspaceRecordSubject::Folder:        return "Folder_" + std::to_string(++FolderCount);
-        case WorkspaceRecordSubject::SubjectCount:  return "Unnamed_0";
+        case WorkspaceRecordSubject::Point:
+            return FormatPaddedName("Point", ++PointCount);
+
+        case WorkspaceRecordSubject::OpenCurve:
+        {
+            switch (Family)
+            {
+                case WorkspaceShapeFamily::Hermite:
+                    return FormatPaddedName("HermiteCurve", ++HermiteCount);
+                case WorkspaceShapeFamily::Bezier:
+                    return FormatPaddedName("BezierCurve", ++BezierCount);
+                case WorkspaceShapeFamily::BasisSpline:
+                    return FormatPaddedName("SplineCurve", ++SplineCount);
+                case WorkspaceShapeFamily::Nurbs:
+                    return FormatPaddedName("NurbsCurve", ++NurbsCount);
+                case WorkspaceShapeFamily::CircularArc:
+                    return FormatPaddedName("ArcCurve", ++ArcCount);
+                case WorkspaceShapeFamily::EllipticalArc:
+                    return FormatPaddedName("EllipticalArcCurve", ++EllipticalArcCount);
+                case WorkspaceShapeFamily::Circle:
+                    return FormatPaddedName("CircleCurve", ++CircleCount);
+                case WorkspaceShapeFamily::Ellipse:
+                    return FormatPaddedName("EllipseCurve", ++EllipseCount);
+                case WorkspaceShapeFamily::Line:
+                default:
+                    return FormatPaddedName("LineCurve", ++LineCount);
+            }
+        }
+
+        case WorkspaceRecordSubject::ClosedProfile: return FormatPaddedName("Profile", ++ProfileCount);
+        case WorkspaceRecordSubject::ThinSurface:   return FormatPaddedName("ThinSurface", ++SurfaceCount);
+        case WorkspaceRecordSubject::Solid:         return FormatPaddedName("Solid", ++SolidCount);
+        case WorkspaceRecordSubject::Dimension:     return FormatPaddedName("Dimension", ++DimensionCount);
+        case WorkspaceRecordSubject::Constraint:    return FormatPaddedName("Constraint", ++ConstraintCount);
+        case WorkspaceRecordSubject::Pattern:       return FormatPaddedName("Pattern", ++PatternCount);
+        case WorkspaceRecordSubject::Mirror:        return FormatPaddedName("Mirror", ++MirrorCount);
+        case WorkspaceRecordSubject::Folder:        return FormatPaddedName("Folder", ++FolderCount);
+        case WorkspaceRecordSubject::SubjectCount:  return "Unnamed_000";
     }
-    return "Unnamed_0";
+    return "Unnamed_000";
 }
 
 void WorkspaceNameIndex::Reclaim()
 {
     PointCount = 0u;
     CurveCount = 0u;
+    LineCount = 0u;
+    ArcCount = 0u;
+    CircleCount = 0u;
+    EllipseCount = 0u;
+    EllipticalArcCount = 0u;
+    BezierCount = 0u;
+    HermiteCount = 0u;
+    SplineCount = 0u;
+    NurbsCount = 0u;
     ProfileCount = 0u;
     SurfaceCount = 0u;
     SolidCount = 0u;

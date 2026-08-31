@@ -1204,9 +1204,10 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                         PanelDeclaredForGizmo.Gizmo == PanelGizmo::Cad);
                                     if (Hit.Resolved)
                                     {
+                                        const ViewportOrientation TargetOrientation = Hit.Resolve();
                                         double Yaw = EditorCamera.YawDegrees;
                                         double Pitch = EditorCamera.PitchDegrees;
-                                        OrientationYawPitch(Hit.Resolve(), Yaw, Pitch);
+                                        OrientationYawPitch(TargetOrientation, Yaw, Pitch);
                                         EditorCamera.YawDegrees = Yaw;
                                         EditorCamera.PitchDegrees = Pitch;
                                         EditorCamera.Snap();
@@ -1218,6 +1219,12 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                         SceneApplied.CameraRotation[1] = EditorCamera.LaggedPitchDegrees;
                                         SceneApplied.EntityRotation[6u][0] = EditorCamera.LaggedYawDegrees;
                                         SceneApplied.EntityRotation[6u][1] = EditorCamera.LaggedPitchDegrees;
+
+                                        SketchView.Orientation = TargetOrientation;
+                                        SketchView.OrbitYaw = Yaw;
+                                        SketchView.OrbitPitch = Pitch;
+                                        static_cast<void>(ActivateViewedWorkplane(SketchWorkplanes, TargetOrientation, false));
+
                                         PointerTaken = true;
                                         FrameContext.Dispatch.AdoptLegacyOwner(PointerOwner::OrientationWidget);
                                         GizmoBasis = CubeBasisFromYawPitch(EditorCamera.LaggedYawDegrees,
@@ -1395,22 +1402,6 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     //    resolve to one frame (verified over 225 orientations).
                                     const double PreservedScale = SketchView.OrthoScale;
 
-                                    // 🔴 THE CURRENT SKETCH OWNS ONE AUTHORING PLANE. Re-seating that plane
-                                    //    after geometry already exists re-interprets every committed curve and
-                                    //    profile through a different basis, which is exactly why the earlier XY
-                                    //    shape appeared to float and spin when a Front or Side view was chosen.
-                                    //    Until the world-space 3D path lands, only an empty sketch may adopt the
-                                    //    plane an orthographic view looks at.
-                                    const ViewportOrientation SketchOrientation = ResolveCameraOrientation(
-                                        SceneApplied.ViewportSkyCamera.AzimuthDegrees,
-                                        SceneApplied.ViewportSkyCamera.ElevationDegrees);
-                                    // 🔴 Perspective is deliberately not allowed to inherit the last
-                                    //    orthographic plane. Blender-style perspective authoring has one
-                                    //    unambiguous authoring surface: the world floor (XZ, Y = 0).
-                                    //    `ActivateViewedWorkplane` correctly refuses perspective for the
-                                    //    general workplane tool, but the drawing path must explicitly
-                                    //    restore Ground here; otherwise Front/Left/Bottom leaves leak
-                                    //    their previous XY/YZ/XZ basis into the next perspective frame.
                                     if (LeafPerspective)
                                     {
                                         static_cast<void>(SketchWorkplanes.Activate(
@@ -1418,21 +1409,18 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     }
                                     else
                                     {
-                                        // 🔴 A free orthographic camera is not one of the six cube
-                                        //    standings. It nevertheless has the same authoring rule as
-                                        //    perspective: use the world XY floor at Z = 0, never the
-                                        //    previous Top/Front/Side plane.
-                                        const ViewportOrientation AuthoringOrientation =
-                                            SketchOrientation == ViewportOrientation::Isometric
-                                                ? ViewportOrientation::Front : SketchOrientation;
-                                        static_cast<void>(ActivateViewedWorkplane(
-                                            SketchWorkplanes, AuthoringOrientation, false));
+                                        if (SketchView.Orientation != ViewportOrientation::Isometric)
+                                        {
+                                            static_cast<void>(ActivateViewedWorkplane(
+                                                SketchWorkplanes, SketchView.Orientation, false));
+                                        }
+                                        else
+                                        {
+                                            static_cast<void>(SketchWorkplanes.Activate(
+                                                SketchWorkplanes.StandingName(StandingWorkplane::Ground)));
+                                        }
                                     }
 
-                                    // 🔴 The draw basis now comes from the ACTIVE WORKPLANE itself rather
-                                    //    than from the sketch's one global plane. That is the actual 2D
-                                    //    replacement seam: view changes can pick the next authoring plane
-                                    //    without reinterpreting geometry already mirrored into the sketch.
                                     const bool SketchHasCommittedGeometry =
                                         !Sketch.Curves().empty() || !Sketch.Profiles().empty();
                                     if (!Sketch.PlaneDeclared() || !SketchHasCommittedGeometry)
@@ -1440,17 +1428,9 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                                               SketchWorkplanes.Active().Normal,
                                                               SketchWorkplanes.Active().Along });
 
-                                    // 🔴 THE BASIS IS READ AFTER THE ACTIVE PLANE IS SYNCHRONISED.
-                                    //    `ActivateViewedWorkplane` above re-seats the authoring plane; the
-                                    //    basis below resolves from the workplane that just moved, so a
-                                    //    Front or Side view re-reads the sketch basis in the same pass.
                                     const SpatialBasis SketchBasis = ResolveWorkplaneBasis(SketchWorkplanes.Active());
                                     ViewportRuntime[Leaf].ActiveWorkplane = SketchWorkplanes.ActiveName();
-                                    // 🔴 Do not reconstruct an orthographic standing every frame. That
-                                    //    erased its Focus immediately after pan, which made middle/right
-                                    //    drag appear dead. Seed it when entering ortho (and continuously
-                                    //    while perspective is active); thereafter the standing itself is
-                                    //    the source of truth for the orthographic camera.
+
                                     const bool EnteredParallel = !ViewportRuntime[Leaf].WasParallel && !LeafPerspective;
                                     if (LeafPerspective || EnteredParallel)
                                     {
@@ -1463,23 +1443,23 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                         SketchView.OrthoScale = PreservedScale;
                                     }
 
-                                    // 🔴 ONE LENS FOR THE SKETCH AND THE GROUND IT SITS ON. The
-                                    //    analytic grid is posed below with the scene camera's field
-                                    //    of view; sketch geometry used a hardcoded CAD angle of 42°
-                                    //    against the scene's 60°. Same eye, same orientation, two
-                                    //    lenses -- tan(30°)/tan(21°) = 1.504, so a shape the grid
-                                    //    placed halfway up the leaf was drawn three quarters of the
-                                    //    way up, and the error grew with distance from the centre.
-                                    //    That is the "floating in mid-air": not a wrong plane, a
-                                    //    wrong lens.
                                     SketchView.FieldOfViewDegrees =
                                         SceneApplied.ViewportSkyCamera.FieldOfViewDegrees;
-                                    SketchView.Orientation = SketchOrientation;
 
-                                    // 🔴 Keep the wheel mutation in the host's frame phase so the active
-                                    //    leaf owns it exactly once. The navigation helper below receives
-                                    //    a wheel-neutral copy and handles pan/orbit only; this avoids
-                                    //    applying the same notch twice while retaining one visible state.
+                                    if (!LeafPerspective)
+                                    {
+                                        double ViewYaw = SketchView.OrbitYaw;
+                                        double ViewPitch = SketchView.OrbitPitch;
+                                        if (SketchView.Orientation != ViewportOrientation::Isometric)
+                                            OrientationYawPitch(SketchView.Orientation, ViewYaw, ViewPitch);
+                                        SceneApplied.ViewportSkyCamera.AzimuthDegrees = static_cast<float>(ViewYaw);
+                                        SceneApplied.ViewportSkyCamera.ElevationDegrees = static_cast<float>(ViewPitch);
+                                        SceneApplied.CameraRotation[0] = ViewYaw;
+                                        SceneApplied.CameraRotation[1] = ViewPitch;
+                                        SceneApplied.EntityRotation[6u][0] = ViewYaw;
+                                        SceneApplied.EntityRotation[6u][1] = ViewPitch;
+                                    }
+
                                     if (!LeafPerspective && LeafBody.Encloses(BackgroundPointer.PositionX,
                                                                               BackgroundPointer.PositionY) &&
                                         BackgroundPointer.WheelY != 0.0f)
@@ -1493,9 +1473,6 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     }
                                     PointerCondition NavigationPointer = BackgroundPointer;
                                     NavigationPointer.WheelY = 0.0f;
-                                    // 🔴 The viewport driver was implemented but had no call site. This
-                                    //    is the missing CAD navigation path: secondary drag pans an
-                                    //    orthographic view, and perspective secondary drag orbits.
                                     const CameraCondition FlyInput = Viewport.Seam().CameraInput(
                                         LeafBody.Encloses(BackgroundPointer.PositionX, BackgroundPointer.PositionY)
                                         && !PointerBehindDrawer);
@@ -1504,14 +1481,6 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                                   FlyInput, Pass.ElapsedMilliseconds / 1000.0);
                                     ViewportRuntime[Leaf].WasParallel = !LeafPerspective;
 
-                                    // 🔴 SETTLED ORTHOGRAPHIC WORK USES THE SAME RESOLVED CAMERA EVERYWHERE.
-                                    //    The free camera is the right source while the perspective transit is
-                                    //    moving, but once the view is parallel the old path projected world
-                                    //    drawing through the free eye and mouse placement through an orbit
-                                    //    standing. Top/Front/Side could therefore disagree about the plane
-                                    //    even though both paths used the same scale. Resolve the settled
-                                    //    camera from the active workplane and standing, then pass that one
-                                    //    frame to placement, snapping, picking, rendering and the gizmo.
                                     SceneCamera = LeafPerspective
                                         ? ResolveFreeCamera(
                                             { SceneApplied.CameraPosition[0], SceneApplied.CameraPosition[1],
@@ -1565,7 +1534,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     {
                                         DriveViewportSelectionAndTransformWorldBacked(
                                             LeafBody, BackgroundPointer,
-                                            SketchViewportText,
+                                            SketchViewportText, Viewport.Seam().Modifiers(),
                                             ParametricToolsApplied.ActiveSubject,
                                             SketchSelection, SketchGizmo,
                                             SceneCamera,
@@ -1574,6 +1543,7 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                             Sketch, SketchWorld, SketchWorldMapping,
                                             SketchRecords, SketchRevisions,
                                             SketchPendingSelection, SketchSemanticSelection,
+                                            SketchSelectionSetState,
                                             SketchHoveredSelection, SketchWorldTransform, LeafOverlay,
                                             PointerTaken, SketchSessionMilliseconds,
                                             SketchLastMovePressed);

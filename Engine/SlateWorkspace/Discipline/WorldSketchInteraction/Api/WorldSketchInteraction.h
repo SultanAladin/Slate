@@ -18,13 +18,18 @@ namespace Slate
 bool RefreshWorldSketchPick(const WorldSketchStructure& Declared,
                            WorldPick& Pick);
 
+void RefreshWorldSelectionSet(const WorldSketchStructure& Declared,
+                              WorldSelectionSet& Set);
+
 void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
                                           const PointerCondition& Pointer,
                                           const TextInputCondition& TextInput,
+                                          const ModifierCondition& Modifiers,
                                           const SelectionOptions& Selection,
                                           const GizmoOptions& Gizmo,
                                           const ResolvedCamera& Camera,
                                           WorldSketchStructure& Declared,
+                                          WorldSelectionSet& SelectionSet,
                                           WorldPick& SemanticSelection,
                                           WorldPick& HoveredSelection,
                                           WorldSketchTransformSession& Transform,

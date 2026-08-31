@@ -91,13 +91,26 @@ bool RefreshWorldSketchPick(const WorldSketchStructure& Declared,
     return false;
 }
 
+void RefreshWorldSelectionSet(const WorldSketchStructure& Declared, WorldSelectionSet& Set)
+{
+    for (auto It = Set.Items.begin(); It != Set.Items.end(); )
+    {
+        if (!RefreshWorldSketchPick(Declared, *It))
+            It = Set.Items.erase(It);
+        else
+            ++It;
+    }
+}
+
 void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
                                           const PointerCondition& Pointer,
                                           const TextInputCondition& TextInput,
+                                          const ModifierCondition& Modifiers,
                                           const SelectionOptions& Selection,
                                           const GizmoOptions& Gizmo,
                                           const ResolvedCamera& Camera,
                                           WorldSketchStructure& Declared,
+                                          WorldSelectionSet& SelectionSet,
                                           WorldPick& SemanticSelection,
                                           WorldPick& HoveredSelection,
                                           WorldSketchTransformSession& Transform,
@@ -116,10 +129,30 @@ void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
                                         Selection.ResolvedTolerance(),
                                         Selection.Element, HoveredSelection);
 
-    WorldPick ActiveSelection = ResolveActiveSelection(SemanticSelection);
-    RefreshWorldSketchPick(Declared, ActiveSelection);
-    if (SemanticSelection.Standing())
-        RefreshWorldSketchPick(Declared, SemanticSelection);
+    if (SemanticSelection.Standing() && SelectionSet.Empty())
+        SetWorldPick(SelectionSet, SemanticSelection, false);
+
+    RefreshWorldSelectionSet(Declared, SelectionSet);
+
+    const WorldPick* Active = SelectionSet.Active();
+    WorldPick ActiveSelection = Active != nullptr ? *Active : WorldPick{};
+    SemanticSelection = ActiveSelection;
+
+    if (SelectionSet.Items.size() > 1u)
+    {
+        SpatialPoint Centroid = {};
+        for (const WorldPick& Item : SelectionSet.Items)
+        {
+            Centroid.Left += Item.Position.Left;
+            Centroid.Up += Item.Position.Up;
+            Centroid.Forward += Item.Position.Forward;
+        }
+        const double Count = static_cast<double>(SelectionSet.Items.size());
+        Centroid.Left /= Count;
+        Centroid.Up /= Count;
+        Centroid.Forward /= Count;
+        ActiveSelection.Position = Centroid;
+    }
 
     GizmoHandle ResolvedHandle = GizmoHandle::None;
     if (Gizmo.Shown && !Transform.Engaged() && ActiveSelection.Standing())
@@ -137,30 +170,36 @@ void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
     if (!PointerTaken && !Transform.Engaged() && Pointer.ContactPressed &&
         ResolvedHandle == GizmoHandle::None && !HoveredSelection.Standing())
     {
-        SemanticSelection = {};
-        ActiveSelection = {};
+        if (!Modifiers.Shifted)
+        {
+            SelectionSet.Clear();
+            SemanticSelection = {};
+            ActiveSelection = {};
+        }
     }
 
     if (!PointerTaken && !Transform.Engaged() && Pointer.ContactPressed &&
         ResolvedHandle == GizmoHandle::None && HoveredSelection.Standing())
     {
-        SemanticSelection = HoveredSelection;
-        PointerTaken = true;
+        SetWorldPick(SelectionSet, HoveredSelection, Modifiers.Shifted);
+        const WorldPick* UpdatedActive = SelectionSet.Active();
+        SemanticSelection = UpdatedActive != nullptr ? *UpdatedActive : WorldPick{};
         ActiveSelection = SemanticSelection;
+        PointerTaken = true;
     }
 
     const TransformCommandIntake Command =
         ResolveTransformCommand(TextInput.Intake, TextInput.IntakeCount, Transform.Engaged(), Transform.Manner());
 
-    if (!Transform.Engaged() && ActiveSelection.Standing() && Extent.Encloses(Pointer.PositionX, Pointer.PositionY))
+    if (!Transform.Engaged() && !SelectionSet.Empty() && Extent.Encloses(Pointer.PositionX, Pointer.PositionY))
     {
         if (ResolvedHandle == GizmoHandle::None && !PointerTaken && Pointer.ContactHeld &&
             !Pointer.ContactPressed && (std::fabs(Pointer.TravelX) + std::fabs(Pointer.TravelY)) > 0.0f &&
-            HoveredSelection.Standing() && SamePickIdentity(HoveredSelection, ActiveSelection))
+            HoveredSelection.Standing())
         {
             PointerTaken = StartWorldSketchTransformSession(Declared, Camera, Extent,
                                                            Pointer.PositionX, Pointer.PositionY,
-                                                           ActiveSelection,
+                                                           SelectionSet,
                                                            TransformRestriction::Free,
                                                            false, Transform, true);
         }
@@ -169,7 +208,7 @@ void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
         {
             PointerTaken = StartWorldSketchTransformSession(Declared, Camera, Extent,
                                                            Pointer.PositionX, Pointer.PositionY,
-                                                           ActiveSelection,
+                                                           SelectionSet,
                                                            ResolveHandleRestriction(ResolvedHandle),
                                                            false, Transform, true,
                                                            ResolveHandleManner(ResolvedHandle));
@@ -189,7 +228,7 @@ void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
                            ? TransformRestriction::Screen : TransformRestriction::Free);
             PointerTaken = StartWorldSketchTransformSession(Declared, Camera, Extent,
                                                            Pointer.PositionX, Pointer.PositionY,
-                                                           ActiveSelection, Restriction, Slide,
+                                                           SelectionSet, Restriction, Slide,
                                                            Transform, false, Command.StartManner);
         }
     }
@@ -227,7 +266,9 @@ void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
         if (TextInput.CancelPressed)
         {
             CancelWorldSketchTransformSession(Declared, Transform);
-            RefreshWorldSketchPick(Declared, SemanticSelection);
+            RefreshWorldSelectionSet(Declared, SelectionSet);
+            const WorldPick* CurrentActive = SelectionSet.Active();
+            SemanticSelection = CurrentActive != nullptr ? *CurrentActive : WorldPick{};
             PointerTaken = true;
         }
         else
@@ -235,7 +276,9 @@ void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
             UpdateWorldSketchTransformSession(Camera, Extent,
                                              Pointer.PositionX, Pointer.PositionY,
                                              Declared, Transform);
-            RefreshWorldSketchPick(Declared, SemanticSelection);
+            RefreshWorldSelectionSet(Declared, SelectionSet);
+            const WorldPick* CurrentActive = SelectionSet.Active();
+            SemanticSelection = CurrentActive != nullptr ? *CurrentActive : WorldPick{};
             PointerTaken = true;
 
             if (Transform.AwaitingRelease)

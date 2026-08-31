@@ -1080,12 +1080,19 @@ bool CommitPlacementWorldBacked(const Workplane& ActiveWorkplane,
     }
     else
     {
-        for (const SketchCurveName& Curve : SketchCurves)
+        if (Placed.Subject == SketchSubject::Hermite && !SketchCurves.empty())
         {
-            WorkspaceShapeFamily Family = WorkspaceShapeFamily::Unknown;
-            if (Curve.Assigned() && Curve.IssuedIndex <= Sketch.Curves().size())
-                Family = FamilyOfCurve(Sketch.Curves()[Curve.IssuedIndex - 1u].Geometry);
-            Written.push_back(DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction, Family));
+            Written.push_back(DeclareWorkspaceCurve(Naming, Records, SketchCurves.front(), Placed.Construction, WorkspaceShapeFamily::Hermite));
+        }
+        else
+        {
+            for (const SketchCurveName& Curve : SketchCurves)
+            {
+                WorkspaceShapeFamily Family = WorkspaceShapeFamily::Unknown;
+                if (Curve.Assigned() && Curve.IssuedIndex <= Sketch.Curves().size())
+                    Family = FamilyOfCurve(Sketch.Curves()[Curve.IssuedIndex - 1u].Geometry);
+                Written.push_back(DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction, Family));
+            }
         }
         SelectedRecord = Written.empty() ? WorkspaceRecordName{} : Written.front();
     }
