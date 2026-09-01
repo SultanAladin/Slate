@@ -200,14 +200,22 @@ Real32x4 ResolveGround(Real32x2 Corner)
         }
         else
         {
-            // 🔴 Free orthographic navigation has no cube face to name, but it still needs a
-            //    stable reference. Match perspective and use the world floor's XY coordinates
-            //    (Z = 0), rather than inheriting the last exact orthographic plane.
-            PlaneNormal = Real32x3(0.0, 0.0, 1.0);
+            // 🔴 THE FLOOR, AND ONLY THE FLOOR, ONCE THE VIEW IS OFF-AXIS. Free orthographic
+            //    navigation has no cube face to name, so it must fall back to the same ground
+            //    every other free view stands on.
+            //
+            // 🔴 This branch USED to name (0,0,1) -- the FRONT wall -- while claiming in its own
+            //    comment to "match perspective and use the world floor". It did neither. The world
+            //    here is Y-UP (`SpatialPoint` is Left/Up/Forward = X/Y/Z), so the floor is Y = 0
+            //    with normal (0,1,0), which is exactly what the perspective default above and the
+            //    Top/Bottom arm both use. Naming Z made the grid stand up on edge like a wall the
+            //    moment the artist orbited off an exact axis view, and it disagreed with the very
+            //    plane the same shader draws in perspective.
+            PlaneNormal = Real32x3(0.0, 1.0, 0.0);
             PlaneAlong  = Real32x3(1.0, 0.0, 0.0);
-            PlaneAcross = Real32x3(0.0, 1.0, 0.0);
-            PlaneAxisAlong = 0u;
-            PlaneAxisAcross = 1u;
+            PlaneAcross = Real32x3(0.0, 0.0, 1.0);
+            PlaneAxisAlong = 0u;   // X
+            PlaneAxisAcross = 2u;  // Z
         }
     }
 

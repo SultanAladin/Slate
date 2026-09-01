@@ -287,17 +287,13 @@ void AppendRectangleSpans(const SpatialBasis& Basis,
     Delivered.push_back(CurveSpecification::DeclareLine(Fourth, Corner));
 }
 
-void AppendRectangleSpans(const SpatialPoint& Corner, const SpatialPoint& Opposite,
-                          std::vector<CurveSpecification>& Delivered)
-{
-    // Compatibility callers historically use the ground XZ basis.
-    AppendRectangleSpans(
-        SpatialBasis{ {}, { 1.0, 0.0, 0.0 }, { 0.0, 0.0, 1.0 }, { 0.0, 1.0, 0.0 } },
-        Corner, Opposite, Delivered);
-}
-
 /// 🧩 The sides of a regular polygon about a centre, with the first vertex under the pointer.
-void AppendPolygonSpans(const SpatialPoint& Centre, const SpatialPoint& Vertex,
+/// 🔴 THE NORMAL IS THE PLANE'S, NOT THE WORLD'S. This rotated the spoke about a hardcoded world up,
+///    so a polygon drawn on the Front or Right workplane was laid out FLAT ON THE FLOOR and seen
+///    edge-on -- the face pointed away from the camera instead of at it. Every vertex now stays in
+///    the plane the artist is drawing on, which is the same rule `AppendRectangleSpans` already kept.
+void AppendPolygonSpans(const SpatialDirection& Normal,
+                        const SpatialPoint& Centre, const SpatialPoint& Vertex,
                         std::uint32_t Sides, std::vector<CurveSpecification>& Delivered)
 {
     const std::uint32_t Resolved = Sides < PolygonSideMinimum ? PolygonSideMinimum
@@ -308,9 +304,8 @@ void AppendPolygonSpans(const SpatialPoint& Centre, const SpatialPoint& Vertex,
     if (!(Radius > 1.0e-6))
         return;
 
-    // 📝 Rotated about the plane's normal, which for a sketch drawn on the ground is world up. The
-    //    first vertex sits exactly under the pointer so the polygon visibly follows the drag.
-    const SpatialDirection Normal = { 0.0, 1.0, 0.0 };
+    // 📝 Rotated about the plane's own normal, so the first vertex sits exactly under the pointer
+    //    and the polygon visibly follows the drag in the plane it belongs to.
     const double Turn = 6.283185307179586 / static_cast<double>(Resolved);
 
     SpatialPoint Previous = Vertex;
@@ -362,9 +357,16 @@ void AppendSlotPlacement(const std::vector<SpatialPoint>& Points,
 
 }   // namespace
 
-CurveSpecification ResolvePlacementCurve(SketchSubject Subject,
-                                         const std::vector<SpatialPoint>& Anchors,
-                                         const SpatialPoint& Hover)
+/// 🧩 The one curve a placement describes, resolved in the plane it is being drawn on.
+/// 🔴 THE PLANE HAD TO BE THREADED IN. `Circle` and `Ellipse` both wrote a HARDCODED world-up normal,
+///    so a round shape drawn on any workplane but the ground was declared lying flat on the floor.
+///    Seen from the camera that drew it, the face pointed ninety degrees away -- visible as a shape
+///    that would not face the artist, and as a fill that vanished edge-on. A curve's normal is the
+///    normal of the plane the artist drew it on; nothing else can supply it.
+CurveSpecification ResolvePlacementCurveInPlane(const SpatialDirection& Normal,
+                                                SketchSubject Subject,
+                                                const std::vector<SpatialPoint>& Anchors,
+                                                const SpatialPoint& Hover)
 {
     // 📝 The hover is the anchor the artist has not committed to yet, so every subject below sees the
     //    same list the commit will see: the anchors taken, plus where the pointer is now.
@@ -462,7 +464,7 @@ CurveSpecification ResolvePlacementCurve(SketchSubject Subject,
                 {
                     CircleCurve Round;
                     Round.Centre         = Points[0];
-                    Round.Normal         = { 0.0, 1.0, 0.0 };
+                    Round.Normal         = Normal;
                     Round.StartDirection = Normalize(Difference(Points[0], Points[1]));
                     Round.Radius         = Radius;
                     return CurveSpecification::DeclareCircle(Round);
@@ -485,7 +487,7 @@ CurveSpecification ResolvePlacementCurve(SketchSubject Subject,
                 {
                     EllipseCurve Round;
                     Round.Centre         = Points[0];
-                    Round.Normal         = { 0.0, 1.0, 0.0 };
+                    Round.Normal         = Normal;
                     Round.MajorDirection = Normalize(Span);
                     Round.MajorRadius    = Major;
                     Round.MinorRadius    = Points.size() >= 3u
@@ -511,11 +513,21 @@ CurveSpecification ResolvePlacementCurve(SketchSubject Subject,
     return {};
 }
 
-void ResolvePlacementCurves(SketchSubject Subject,
-                            const std::vector<SpatialPoint>& Anchors,
-                            const SpatialPoint& Hover,
-                            std::vector<CurveSpecification>& Delivered,
-                            std::uint32_t Resolution)
+CurveSpecification ResolvePlacementCurve(SketchSubject Subject,
+                                         const std::vector<SpatialPoint>& Anchors,
+                                         const SpatialPoint& Hover)
+{
+    // 📝 Callers with no plane to offer keep the historic ground normal. Every path that KNOWS the
+    //    workplane goes through the basis-aware overloads instead, which is what the live tool does.
+    return ResolvePlacementCurveInPlane({ 0.0, 1.0, 0.0 }, Subject, Anchors, Hover);
+}
+
+void ResolvePlacementCurvesInPlane(const SpatialBasis& Basis,
+                                   SketchSubject Subject,
+                                   const std::vector<SpatialPoint>& Anchors,
+                                   const SpatialPoint& Hover,
+                                   std::vector<CurveSpecification>& Delivered,
+                                   std::uint32_t Resolution)
 {
     Delivered.clear();
 
@@ -541,7 +553,7 @@ void ResolvePlacementCurves(SketchSubject Subject,
     //    two corners the commit uses, so what is dragged out is what lands.
     if (Subject == SketchSubject::Rectangle && Points.size() >= 2u)
     {
-        AppendRectangleSpans(Points.front(), Points.back(), Delivered);
+        AppendRectangleSpans(Basis, Points.front(), Points.back(), Delivered);
         return;
     }
 
@@ -550,7 +562,7 @@ void ResolvePlacementCurves(SketchSubject Subject,
     //    actual sides, at the resolution the wheel has reached.
     if (Subject == SketchSubject::Polygon && Points.size() >= 2u)
     {
-        AppendPolygonSpans(Points.front(), Points.back(), Resolution, Delivered);
+        AppendPolygonSpans(Basis.Normal, Points.front(), Points.back(), Resolution, Delivered);
         return;
     }
 
@@ -559,15 +571,34 @@ void ResolvePlacementCurves(SketchSubject Subject,
     //    preview goes through the overload below, which is told the phase instead of inferring it.
     if (Subject == SketchSubject::Slot && Points.size() >= 2u)
     {
-        AppendSlotPlacement(Points, Points.size() >= 3u, SpatialDirection{ 0.0, 1.0, 0.0 }, Delivered);
+        AppendSlotPlacement(Points, Points.size() >= 3u, Basis.Normal, Delivered);
         return;
     }
 
-    const CurveSpecification Single = ResolvePlacementCurve(Subject, Anchors, Hover);
+    const CurveSpecification Single = ResolvePlacementCurveInPlane(Basis.Normal, Subject, Anchors, Hover);
     if (Single.Declared())
         Delivered.push_back(Single);
 }
 
+/// 📝 The plane-less plural keeps the historic ground basis, so callers that never knew a workplane
+///    behave exactly as before. There is still ONE table of subjects behind both.
+void ResolvePlacementCurves(SketchSubject Subject,
+                            const std::vector<SpatialPoint>& Anchors,
+                            const SpatialPoint& Hover,
+                            std::vector<CurveSpecification>& Delivered,
+                            std::uint32_t Resolution)
+{
+    ResolvePlacementCurvesInPlane(
+        SpatialBasis{ {}, { 1.0, 0.0, 0.0 }, { 0.0, 0.0, 1.0 }, { 0.0, 1.0, 0.0 } },
+        Subject, Anchors, Hover, Delivered, Resolution);
+}
+
+/// 🔴 EVERY SUBJECT NOW GETS THE PLANE, NOT JUST TWO OF THEM. This used to special-case `Rectangle`
+///    and `Slot` and then hand everything else to the plane-less plural, which assumed the ground.
+///    That is why the two shapes somebody had already chased were correct while `Circle`, `Ellipse`
+///    and `Polygon` were still drawn lying on the floor whatever workplane was active. A per-subject
+///    exception list is the same structural fault as a per-subject `else if` chain: it is silently
+///    wrong for whatever nobody remembered to add. There is one plane-aware table now.
 void ResolvePlacementCurves(const SpatialBasis& Basis,
                             SketchSubject Subject,
                             const std::vector<SpatialPoint>& Anchors,
@@ -575,26 +606,7 @@ void ResolvePlacementCurves(const SpatialBasis& Basis,
                             std::vector<CurveSpecification>& Delivered,
                             std::uint32_t Resolution)
 {
-    if (Subject == SketchSubject::Rectangle && Anchors.size() + 1u >= 2u)
-    {
-        Delivered.clear();
-        AppendRectangleSpans(Basis, Anchors.front(), Hover, Delivered);
-        return;
-    }
-
-    // 🔴 A SLOT THICKENS IN THE PLANE IT IS DRAWN ON. The subject-only path has no plane to measure
-    //    against and assumed world Up, so a slot drawn on any other workplane offset its sides out of
-    //    that plane entirely. Where a basis is known it is used.
-    if (Subject == SketchSubject::Slot && Anchors.size() + 1u >= 2u)
-    {
-        Delivered.clear();
-        std::vector<SpatialPoint> Points = Anchors;
-        Points.push_back(Hover);
-        AppendSlotPlacement(Points, Points.size() >= 3u, Basis.Normal, Delivered);
-        return;
-    }
-
-    ResolvePlacementCurves(Subject, Anchors, Hover, Delivered, Resolution);
+    ResolvePlacementCurvesInPlane(Basis, Subject, Anchors, Hover, Delivered, Resolution);
 }
 
 void ResolvePlacementCurves(const SketchPlacement& Placing,

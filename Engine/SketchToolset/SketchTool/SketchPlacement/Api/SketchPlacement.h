@@ -367,6 +367,21 @@ CurveSpecification ResolvePlacementCurve(SketchSubject Subject,
                                          const std::vector<SpatialPoint>& Anchors,
                                          const SpatialPoint& Hover);
 
+/// 🧩 The same single curve, resolved in the plane the artist is actually drawing on.
+/// in    Normal   [-]  the active workplane's normal, which becomes the curve's own
+/// note  🔴 A ROUND SHAPE'S NORMAL IS ITS PLANE'S NORMAL. `Circle` and `Ellipse` wrote a hardcoded
+///        world Up, so either drawn on the Front, Back, Left or Right workplane was declared lying
+///        flat on the ground: the face pointed ninety degrees away from the camera that drew it,
+///        which is why an ellipse would not face the artist and its fill disappeared edge-on.
+/// note  📝 The plane-less overload above still exists and still assumes the ground, for callers that
+///        genuinely have no workplane. Anything that knows one should call this.
+/// cost  🚩
+/// tag   api, nonthrowing
+CurveSpecification ResolvePlacementCurveInPlane(const SpatialDirection& Normal,
+                                                SketchSubject Subject,
+                                                const std::vector<SpatialPoint>& Anchors,
+                                                const SpatialPoint& Hover);
+
 /// 🧩 Every curve an in-progress placement describes, for the subjects that draw more than one.
 /// in    Subject    [-]  what is being placed
 /// in    Anchors    [-]  the anchors taken so far
@@ -393,8 +408,19 @@ void ResolvePlacementCurves(SketchSubject Subject,
                             std::vector<CurveSpecification>& Delivered,
                             std::uint32_t Resolution = PolygonSideDefault);
 
-/// 🧩 Basis-aware placement resolver for world-native preview paths. Rectangle corners are derived in
-///       the active plane rather than by assuming that world Up is the plane's second coordinate.
+/// 🧩 Every curve a placement describes, resolved in the plane it is being drawn on.
+/// note  🔴 EVERY SUBJECT, not an exception list. This once special-cased `Rectangle` and `Slot` and
+///        handed the rest to the plane-less plural, so `Circle`, `Ellipse` and `Polygon` stayed flat
+///        on the floor no matter which workplane was active.
+void ResolvePlacementCurvesInPlane(const SpatialBasis& Basis,
+                                   SketchSubject Subject,
+                                   const std::vector<SpatialPoint>& Anchors,
+                                   const SpatialPoint& Hover,
+                                   std::vector<CurveSpecification>& Delivered,
+                                   std::uint32_t Resolution = PolygonSideDefault);
+
+/// 🧩 Basis-aware placement resolver for world-native preview paths. Every subject is derived in the
+///       active plane rather than by assuming that world Up is the plane's second coordinate.
 void ResolvePlacementCurves(const SpatialBasis& Basis,
                             SketchSubject Subject,
                             const std::vector<SpatialPoint>& Anchors,
