@@ -197,8 +197,10 @@ Deliver<SketchCreationResult> FinishSketchCreation(SketchStructure& Declared,
 
         case SketchCreationSubject::Slot:
         {
-            const SpatialDirection RadiusDirection = Difference(Context.Anchors[0], Context.Anchors[2]);
-            const double Radius = std::sqrt(LengthSquared(RadiusDirection));
+            // 📝 The same perpendicular measure the tool previews and the commit uses, so a slot
+            //    created through this path is the one that was dragged out.
+            const std::vector<SpatialPoint> Spine = { Context.Anchors[0], Context.Anchors[1] };
+            const double Radius = ResolveSpineDistance(Spine, Context.Anchors[2]);
             const Deliver<ProfileNameInFeature> Profile = Declared.DeclareSlot(Context.Anchors[0], Context.Anchors[1], Radius);
             if (!Profile)
                 return Deliver<SketchCreationResult>::Refuse(Profile.Error);

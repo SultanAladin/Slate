@@ -481,8 +481,12 @@ Deliver<WorkspaceRecordName> DeclareSlot(WorkspaceNameIndex& Naming,
     if (Placed.Anchors.size() < 3u)
         return Deliver<WorkspaceRecordName>::Refuse({ RefusalReason::ContentUnsupported, "a slot requires spine points and a radius" });
 
+    // 🔴 THE THICKNESS IS MEASURED TO THE SPINE, NOT TO ITS LAST POINT, and the preview measures it the
+    //    same way. Taking it from the last point made the committed slot disagree with the previewed
+    //    one by however far along the run the pointer had been: a pointer 20 out from the middle of a
+    //    spine 100 long committed a radius of 53.852.
     std::vector<SpatialPoint> Spine(Placed.Anchors.begin(), Placed.Anchors.end() - 1);
-    const double Radius = std::sqrt(LengthSquared(Difference(Spine.back(), Placed.Anchors.back())));
+    const double Radius = ResolveSpineDistance(Spine, Placed.Anchors.back());
     if (Radius <= 1.0e-6)
         return Deliver<WorkspaceRecordName>::Refuse({ RefusalReason::ContentUnsupported, "the slot radius is too small" });
 

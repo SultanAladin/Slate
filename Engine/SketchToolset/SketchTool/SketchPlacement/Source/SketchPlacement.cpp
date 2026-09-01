@@ -44,13 +44,13 @@ void SketchPlacement::Declare(SketchSubject Subject, PlacementMethod Method, boo
 
 void SketchPlacement::Abandon()
 {
-    Placing              = SketchSubject::None;
-    PlacingMethod        = PlacementMethod::Extent;
-    ConstructionDeclared = false;
-    HoverTaken           = false;
-    HoverAt              = {};
-    HoverSnap            = {};
-    SpineFinished        = false;
+    Placing               = SketchSubject::None;
+    PlacingMethod         = PlacementMethod::Extent;
+    ConstructionDeclared  = false;
+    HoverTaken            = false;
+    HoverAt               = {};
+    HoverSnap             = {};
+    SpineFinishedDeclared = false;
 
     // 📝 `clear` rather than assigning `{}`: the placement is reused every time the artist draws another
     //    shape with the same tool, so keeping the reserved extent means the common case allocates once.
@@ -114,18 +114,18 @@ PlacementArrival SketchPlacement::Anchor(bool Terminating)
 
     if (Placing == SketchSubject::Slot)
     {
-        if (!SpineFinished)
+        if (!SpineFinishedDeclared)
         {
             if (Terminating && Taken.size() >= 2u)
             {
-                SpineFinished = true;
+                SpineFinishedDeclared = true;
                 return PlacementArrival::Anchored;
             }
             Taken.push_back(HoverAt);
             TakenPlacements.push_back(HoverSnap);
             if (Terminating && Taken.size() >= 2u)
             {
-                SpineFinished = true;
+                SpineFinishedDeclared = true;
                 return PlacementArrival::Anchored;
             }
             return PlacementArrival::Anchored;
@@ -134,7 +134,7 @@ PlacementArrival SketchPlacement::Anchor(bool Terminating)
         {
             Taken.push_back(HoverAt);
             TakenPlacements.push_back(HoverSnap);
-            SpineFinished = false;
+            SpineFinishedDeclared = false;
             return PlacementArrival::Complete;
         }
     }
@@ -215,8 +215,8 @@ SealedPlacement SketchPlacement::Seal()
     //    a line the artist still has the line tool.
     Taken.clear();
     TakenPlacements.clear();
-    HoverTaken    = false;
-    SpineFinished = false;
+    HoverTaken            = false;
+    SpineFinishedDeclared = false;
 
     return Sealed;
 }
@@ -324,120 +324,40 @@ void AppendPolygonSpans(const SpatialPoint& Centre, const SpatialPoint& Vertex,
     }
 }
 
-/// 🧩 The two sides, corner fillets/joins, and two end caps of a slot around a polyline.
-/// note 🔴 The caps sweep the LONG way round, over the ends, or they bite into the slot's own body.
-void AppendSlotSpans(const std::vector<SpatialPoint>& Spine, double Radius,
-                     std::vector<CurveSpecification>& Delivered)
+/// 🧩 A slot placement previewed at the phase it has actually reached.
+/// in    Points         [-]  the anchors taken, with the hover appended as the uncommitted one
+/// in    SpineFinished  [-]  whether the accepting press has locked the spine
+/// in    Normal         [-]  the plane the slot is drawn in
+/// note  🔴 THE OUTLINE ITSELF IS DECLARED BY `SlateShape`, so the preview and the commit are the SAME
+///        geometry rather than two constructions that agree only until one is edited. They had already
+///        drifted apart in the same place: both joined consecutive offset runs with a straight chord,
+///        so every bend drew a bevel cutting through the slot's own body.
+/// note  🔴 WHILE THE SPINE IS BEING DRAWN A SLOT IS A POLYLINE. It has no thickness yet -- the artist
+///        has not said what it is -- so drawing one would be inventing a number they never gave.
+void AppendSlotPlacement(const std::vector<SpatialPoint>& Points,
+                         bool SpineFinished,
+                         const SpatialDirection& Normal,
+                         std::vector<CurveSpecification>& Delivered)
 {
-    if (!(Radius > 1.0e-6) || Spine.size() < 2u)
+    if (Points.size() < 2u)
         return;
 
-    const SpatialDirection Normal = { 0.0, 1.0, 0.0 };
-    constexpr double HalfTurn = 3.141592653589793;
-
-    if (Spine.size() == 2u)
+    // 📝 Phase one: the spine is still being clicked out, so it previews exactly as a polyline does --
+    //    every leg taken stays on screen while the next one follows the pointer.
+    if (!SpineFinished)
     {
-        const SpatialPoint& StartPoint = Spine[0];
-        const SpatialPoint& EndPoint = Spine[1];
-        const SpatialDirection AxisOffset = Difference(StartPoint, EndPoint);
-        if (!(LengthSquared(AxisOffset) > 0.0))
-            return;
-
-        const SpatialDirection Side = Normalize(Cross(Normal, Normalize(AxisOffset)));
-
-        Delivered.push_back(CurveSpecification::DeclareLine(
-            Added(StartPoint, Scaled(Side, Radius)), Added(EndPoint, Scaled(Side, Radius))));
-        Delivered.push_back(CurveSpecification::DeclareLine(
-            Added(EndPoint, Scaled(Side, -Radius)), Added(StartPoint, Scaled(Side, -Radius))));
-
-        CircularArcCurve StartCap = {};
-        StartCap.Centre         = StartPoint;
-        StartCap.Normal         = Normal;
-        StartCap.StartDirection = Negated(Side);
-        StartCap.Radius         = Radius;
-        StartCap.SweepRadians   = -HalfTurn;
-
-        CircularArcCurve EndCap = {};
-        EndCap.Centre         = EndPoint;
-        EndCap.Normal         = Normal;
-        EndCap.StartDirection = Side;
-        EndCap.Radius         = Radius;
-        EndCap.SweepRadians   = -HalfTurn;
-
-        Delivered.push_back(CurveSpecification::DeclareCircularArc(StartCap, { 0.0, 1.0 }));
-        Delivered.push_back(CurveSpecification::DeclareCircularArc(EndCap, { 0.0, 1.0 }));
+        for (std::size_t Index = 0u; Index + 1u < Points.size(); ++Index)
+            if (LengthSquared(Difference(Points[Index], Points[Index + 1u])) > 0.0)
+                Delivered.push_back(CurveSpecification::DeclareLine(Points[Index], Points[Index + 1u]));
         return;
     }
 
-    const std::size_t SegmentCount = Spine.size() - 1u;
-    std::vector<SpatialDirection> SideDirs;
-    SideDirs.reserve(SegmentCount);
-    for (std::size_t i = 0u; i < SegmentCount; ++i)
-    {
-        const SpatialDirection AxisOffset = Difference(Spine[i], Spine[i + 1u]);
-        if (LengthSquared(AxisOffset) <= 1.0e-12)
-            continue;
-        const SpatialDirection AxisDir = Normalize(AxisOffset);
-        SideDirs.push_back(Normalize(Cross(Normal, AxisDir)));
-    }
-
-    if (SideDirs.empty())
-        return;
-
-    for (std::size_t i = 0u; i < SegmentCount; ++i)
-    {
-        const SpatialDirection& Side = SideDirs[i];
-        const SpatialPoint StartUpper = Added(Spine[i], Scaled(Side, Radius));
-        const SpatialPoint EndUpper = Added(Spine[i + 1u], Scaled(Side, Radius));
-        Delivered.push_back(CurveSpecification::DeclareLine(StartUpper, EndUpper));
-
-        if (i + 1u < SegmentCount)
-        {
-            const SpatialDirection& NextSide = SideDirs[i + 1u];
-            const SpatialPoint NextStartUpper = Added(Spine[i + 1u], Scaled(NextSide, Radius));
-            if (LengthSquared(Difference(EndUpper, NextStartUpper)) > 1.0e-8)
-                Delivered.push_back(CurveSpecification::DeclareLine(EndUpper, NextStartUpper));
-        }
-    }
-
-    CircularArcCurve EndCap = {};
-    EndCap.Centre         = Spine.back();
-    EndCap.Normal         = Normal;
-    EndCap.StartDirection = SideDirs.back();
-    EndCap.Radius         = Radius;
-    EndCap.SweepRadians   = -HalfTurn;
-    Delivered.push_back(CurveSpecification::DeclareCircularArc(EndCap, { 0.0, 1.0 }));
-
-    for (std::size_t i = SegmentCount; i > 0u; --i)
-    {
-        const std::size_t segIdx = i - 1u;
-        const SpatialDirection& Side = SideDirs[segIdx];
-        const SpatialPoint EndLower = Added(Spine[segIdx + 1u], Scaled(Side, -Radius));
-        const SpatialPoint StartLower = Added(Spine[segIdx], Scaled(Side, -Radius));
-        Delivered.push_back(CurveSpecification::DeclareLine(EndLower, StartLower));
-
-        if (segIdx > 0u)
-        {
-            const SpatialDirection& PriorSide = SideDirs[segIdx - 1u];
-            const SpatialPoint PriorEndLower = Added(Spine[segIdx], Scaled(PriorSide, -Radius));
-            if (LengthSquared(Difference(StartLower, PriorEndLower)) > 1.0e-8)
-                Delivered.push_back(CurveSpecification::DeclareLine(StartLower, PriorEndLower));
-        }
-    }
-
-    CircularArcCurve StartCap = {};
-    StartCap.Centre         = Spine.front();
-    StartCap.Normal         = Normal;
-    StartCap.StartDirection = Negated(SideDirs.front());
-    StartCap.Radius         = Radius;
-    StartCap.SweepRadians   = -HalfTurn;
-    Delivered.push_back(CurveSpecification::DeclareCircularArc(StartCap, { 0.0, 1.0 }));
-}
-
-void AppendSlotSpans(const SpatialPoint& StartPoint, const SpatialPoint& EndPoint, double Radius,
-                     std::vector<CurveSpecification>& Delivered)
-{
-    AppendSlotSpans(std::vector<SpatialPoint>{ StartPoint, EndPoint }, Radius, Delivered);
+    // 🔴 THE THICKNESS IS THE PERPENDICULAR DISTANCE TO THE SPINE, NOT THE DISTANCE TO ITS LAST POINT.
+    //    Measuring from the last point made the thickness depend on where along the run the pointer
+    //    was: dragging 20 out from the middle of a spine 100 long reported 53.852 and committed a slot
+    //    nearly three times too thick. `ResolveSpineDistance` measures what the artist is pointing at.
+    const std::vector<SpatialPoint> Spine(Points.begin(), Points.end() - 1u);
+    AppendSlotOutline(Spine, ResolveSpineDistance(Spine, Points.back()), Normal, Delivered);
 }
 
 }   // namespace
@@ -634,23 +554,13 @@ void ResolvePlacementCurves(SketchSubject Subject,
         return;
     }
 
-    // 🔴 A polyline slot previews its spine while drawing anchors, and the full offset slot once radius is dragged.
-    if (Subject == SketchSubject::Slot)
+    // 📝 Without a placement to read the phase from, a slot is taken to be complete when a point
+    //    beyond the spine's two is present -- which is what a SEALED slot always looks like. The live
+    //    preview goes through the overload below, which is told the phase instead of inferring it.
+    if (Subject == SketchSubject::Slot && Points.size() >= 2u)
     {
-        if (Points.size() >= 3u)
-        {
-            std::vector<SpatialPoint> Spine(Points.begin(), Points.end() - 1);
-            const double Radius = std::sqrt(LengthSquared(Difference(Spine.back(), Points.back())));
-            AppendSlotSpans(Spine, Radius, Delivered);
-            return;
-        }
-        else if (Points.size() >= 2u)
-        {
-            for (std::size_t Index = 0u; Index + 1u < Points.size(); ++Index)
-                if (LengthSquared(Difference(Points[Index], Points[Index + 1u])) > 0.0)
-                    Delivered.push_back(CurveSpecification::DeclareLine(Points[Index], Points[Index + 1u]));
-            return;
-        }
+        AppendSlotPlacement(Points, Points.size() >= 3u, SpatialDirection{ 0.0, 1.0, 0.0 }, Delivered);
+        return;
     }
 
     const CurveSpecification Single = ResolvePlacementCurve(Subject, Anchors, Hover);
@@ -672,7 +582,44 @@ void ResolvePlacementCurves(const SpatialBasis& Basis,
         return;
     }
 
+    // 🔴 A SLOT THICKENS IN THE PLANE IT IS DRAWN ON. The subject-only path has no plane to measure
+    //    against and assumed world Up, so a slot drawn on any other workplane offset its sides out of
+    //    that plane entirely. Where a basis is known it is used.
+    if (Subject == SketchSubject::Slot && Anchors.size() + 1u >= 2u)
+    {
+        Delivered.clear();
+        std::vector<SpatialPoint> Points = Anchors;
+        Points.push_back(Hover);
+        AppendSlotPlacement(Points, Points.size() >= 3u, Basis.Normal, Delivered);
+        return;
+    }
+
     ResolvePlacementCurves(Subject, Anchors, Hover, Delivered, Resolution);
+}
+
+void ResolvePlacementCurves(const SketchPlacement& Placing,
+                            const SpatialBasis& Basis,
+                            std::vector<CurveSpecification>& Delivered)
+{
+    Delivered.clear();
+
+    if (!Placing.Standing() || !Placing.HoverStanding())
+        return;
+
+    // 🔴 THE PHASE COMES FROM THE TOOL, WHICH IS THE ONLY THING THAT KNOWS IT. Every other subject is
+    //    decided by its anchor count alone, but a slot is drawn in two phases through one anchor list,
+    //    so the same three points mean a spine still being drawn before the accepting press and a
+    //    thickened slot after it.
+    if (Placing.Subject() == SketchSubject::Slot && !Placing.Anchors().empty())
+    {
+        std::vector<SpatialPoint> Points = Placing.Anchors();
+        Points.push_back(Placing.HoverPosition());
+        AppendSlotPlacement(Points, Placing.SpineFinished(), Basis.Normal, Delivered);
+        return;
+    }
+
+    ResolvePlacementCurves(Basis, Placing.Subject(), Placing.Anchors(), Placing.HoverPosition(),
+                           Delivered, Placing.Resolution());
 }
 
 } // namespace Slate

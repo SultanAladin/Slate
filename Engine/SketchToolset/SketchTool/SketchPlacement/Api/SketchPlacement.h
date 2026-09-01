@@ -9,6 +9,7 @@
 #include "SlateShape/Geometry/CurveSpecification/Api/CurveSpecification.h"
 #include "SlateShape/Geometry/SpatialBasis/Api/SpatialBasis.h"
 #include "SlateShape/Sketch/ConstraintSpecification/Api/ConstraintSpecification.h"
+#include "SlateShape/Sketch/SketchStructure/Api/SketchStructure.h"
 #include "SlateShape/Sketch/SketchSnap/Api/SketchSnap.h"
 #include "SlateUI/Interface/ParametricTools/Api/ParametricToolsSpecification.h"
 
@@ -401,6 +402,7 @@ void ResolvePlacementCurves(const SpatialBasis& Basis,
                             std::vector<CurveSpecification>& Delivered,
                             std::uint32_t Resolution = PolygonSideDefault);
 
+
 /// 🧩 The anchors of one finished placement, moved out of the placement that took them.
 /// note  📝 Returned by value from `Seal`, so the placement it came from is already reset. There is no
 ///        window in which a sealed placement and the tool that produced it both hold the same anchors.
@@ -561,6 +563,19 @@ public:
     /// tag   api, nonallocating, nonthrowing
     std::uint32_t Resolution() const { return SideCount; }
 
+    /// 🧩 Whether a slot's spine is locked, so the pointer now measures its thickness.
+    /// out   -  [-]  false while the spine is still being clicked out, true after the accepting press
+    /// note  🔴 THE PREVIEW CANNOT INFER THIS FROM THE ANCHOR COUNT and it tried to, because the phase
+    ///        was held privately here and never published. A slot is drawn in two phases through one
+    ///        anchor list, so three anchors mean "a three-point spine being drawn" before the accepting
+    ///        press and "a two-point spine plus a thickness" after it. Counting alone therefore drew a
+    ///        thick slot over a spine still being clicked out, and left a locked spine previewing as a
+    ///        bare polyline with no thickness at all — the artist pressed Enter and nothing changed.
+    /// note  📝 Meaningless for every other subject, and false there.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    bool SpineFinished() const { return SpineFinishedDeclared; }
+
 private:
 
     SketchSubject                    Placing              = SketchSubject::None;     // [-]
@@ -575,7 +590,20 @@ private:
     //    the state the extrude and loft operations need.
     bool                             ClosedProfileDeclared = true;                   // [-]
     std::uint32_t                    SideCount            = PolygonSideDefault;      // [-] - polygon only
-    bool                             SpineFinished        = false;                   // [-] - polyline slot only
+    bool                             SpineFinishedDeclared = false;                  // [-] - polyline slot only
 };
+
+/// 🧩 A whole placement in progress, previewed as the shape it will commit to.
+/// in    Placing    [-]  the tool holding the anchors, the hover and the phase it has reached
+/// in    Basis      [-]  the active plane, so the slot thickens in it and not about world Up
+/// out   Delivered  [-]  cleared, then filled
+/// note  🔴 THE PREVIEW MUST BE TOLD THE PHASE, NOT LEFT TO GUESS IT. Passing anchors alone is what
+///        made a slot undrawable: the resolver saw a list of points with no way to know whether the
+///        last one was another spine click or the pointer setting the thickness.
+/// cost  🚩
+/// tag   api, nonthrowing
+void ResolvePlacementCurves(const SketchPlacement& Placing,
+                            const SpatialBasis& Basis,
+                            std::vector<CurveSpecification>& Delivered);
 
 }   // namespace Slate

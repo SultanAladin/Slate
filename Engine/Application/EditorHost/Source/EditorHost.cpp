@@ -1615,12 +1615,11 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                         // 📝 The wheel-chosen side count reaches the preview, so
                                         //    scrolling a polygon redraws it at the new resolution
                                         //    instead of showing an unchanging circle.
-                                        ResolvePlacementCurves(SketchBasis,
-                                                               SketchTool.Subject(),
-                                                               SketchTool.Anchors(),
-                                                               SketchTool.HoverPosition(),
-                                                               PreviewSpans,
-                                                               SketchTool.Resolution());
+                                        // 🔴 The WHOLE tool is passed, not its anchors: a slot is
+                                        //    drawn in two phases through one anchor list, so the
+                                        //    resolver has to be told which phase it is in rather
+                                        //    than counting points and guessing.
+                                        ResolvePlacementCurves(SketchTool, SketchBasis, PreviewSpans);
                                         static_cast<void>(ProjectWorldPlacementPreview(
                                             RenderCamera, LeafBody, SketchDrawable, PreviewSpans,
                                             SketchTool.Anchors(), SketchTool.HoverPosition(),
