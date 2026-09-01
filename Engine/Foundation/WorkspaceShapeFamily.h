@@ -29,7 +29,6 @@ enum class WorkspaceShapeFamily : std::uint32_t
 
     Circle,
     Ellipse,
-    EllipticalArc,
 
     Profile,
     Surface,

@@ -145,6 +145,20 @@ WorkspaceRecordName SelectedRecordIn(const WorkspaceDirectoryProjection& Directo
     return Row.Role == WorkspaceDirectoryRowRole::Record ? Row.Record : WorkspaceRecordName{};
 }
 
+void SelectedRecordsIn(const WorkspaceDirectoryProjection& Directory,
+                       const ParametricWorkspaceContext& Applied,
+                       std::vector<WorkspaceRecordName>& Selected)
+{
+    Selected.clear();
+    const std::uint32_t Reach = std::min(static_cast<std::uint32_t>(Directory.Rows.size()),
+                                         ParametricWorkspaceContext::RowLimit);
+    for (std::uint32_t Index = 0u; Index < Reach; ++Index)
+    {
+        if (Applied.RowSelected[Index] && Directory.Rows[Index].Role == WorkspaceDirectoryRowRole::Record)
+            Selected.push_back(Directory.Rows[Index].Record);
+    }
+}
+
 bool AnyRowSelected(const ParametricWorkspaceContext& Applied, std::uint32_t RowCount)
 {
     // ⚠️ Bounded by BOTH the count asked for and the storage the context actually has. The host's version

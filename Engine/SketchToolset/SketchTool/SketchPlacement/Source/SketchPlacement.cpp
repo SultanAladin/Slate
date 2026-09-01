@@ -50,6 +50,7 @@ void SketchPlacement::Abandon()
     HoverTaken           = false;
     HoverAt              = {};
     HoverSnap            = {};
+    SpineFinished        = false;
 
     // 📝 `clear` rather than assigning `{}`: the placement is reused every time the artist draws another
     //    shape with the same tool, so keeping the reserved extent means the common case allocates once.
@@ -102,12 +103,41 @@ PlacementArrival SketchPlacement::Anchor(bool Terminating)
         return PlacementArrival::Ignored;
 
     const PlacementDeclaration Declared = DeclaredPlacement(Placing, PlacingMethod);
+    if (Declared.Required == 0u)
+        return PlacementArrival::Ignored;
 
     // 🔴 A `Resolved` closure measures between features, so an unsnapped contact is not an anchor at all.
     //    Refusing it lets a dimension tool ignore empty space without the caller knowing dimensions are
     //    special.
     if (Declared.Closure == PlacementClosure::Resolved && !HoverSnap.Resolved())
         return PlacementArrival::Ignored;
+
+    if (Placing == SketchSubject::Slot)
+    {
+        if (!SpineFinished)
+        {
+            if (Terminating && Taken.size() >= 2u)
+            {
+                SpineFinished = true;
+                return PlacementArrival::Anchored;
+            }
+            Taken.push_back(HoverAt);
+            TakenPlacements.push_back(HoverSnap);
+            if (Terminating && Taken.size() >= 2u)
+            {
+                SpineFinished = true;
+                return PlacementArrival::Anchored;
+            }
+            return PlacementArrival::Anchored;
+        }
+        else
+        {
+            Taken.push_back(HoverAt);
+            TakenPlacements.push_back(HoverSnap);
+            SpineFinished = false;
+            return PlacementArrival::Complete;
+        }
+    }
 
     // 🔴 ENTER ENDS THE SHAPE, IT DOES NOT PLACE A POINT. A terminating press anchored the hover
     //    FIRST and asked about termination afterwards, so pressing Enter to finish a polyline left a
@@ -185,7 +215,8 @@ SealedPlacement SketchPlacement::Seal()
     //    a line the artist still has the line tool.
     Taken.clear();
     TakenPlacements.clear();
-    HoverTaken = false;
+    HoverTaken    = false;
+    SpineFinished = false;
 
     return Sealed;
 }
@@ -293,44 +324,120 @@ void AppendPolygonSpans(const SpatialPoint& Centre, const SpatialPoint& Vertex,
     }
 }
 
-/// 🧩 The two sides and two end caps of a slot.
+/// 🧩 The two sides, corner fillets/joins, and two end caps of a slot around a polyline.
 /// note 🔴 The caps sweep the LONG way round, over the ends, or they bite into the slot's own body.
-void AppendSlotSpans(const SpatialPoint& StartPoint, const SpatialPoint& EndPoint, double Radius,
+void AppendSlotSpans(const std::vector<SpatialPoint>& Spine, double Radius,
                      std::vector<CurveSpecification>& Delivered)
 {
-    if (!(Radius > 1.0e-6))
-        return;
-
-    const SpatialDirection AxisOffset = Difference(StartPoint, EndPoint);
-    if (!(LengthSquared(AxisOffset) > 0.0))
+    if (!(Radius > 1.0e-6) || Spine.size() < 2u)
         return;
 
     const SpatialDirection Normal = { 0.0, 1.0, 0.0 };
-    const SpatialDirection Side   = Normalize(Cross(Normal, Normalize(AxisOffset)));
-
-    Delivered.push_back(CurveSpecification::DeclareLine(
-        Added(StartPoint, Scaled(Side, Radius)), Added(EndPoint, Scaled(Side, Radius))));
-    Delivered.push_back(CurveSpecification::DeclareLine(
-        Added(EndPoint, Scaled(Side, -Radius)), Added(StartPoint, Scaled(Side, -Radius))));
-
     constexpr double HalfTurn = 3.141592653589793;
 
-    CircularArcCurve StartCap = {};
-    StartCap.Centre         = StartPoint;
-    StartCap.Normal         = Normal;
-    StartCap.StartDirection = Negated(Side);
-    StartCap.Radius         = Radius;
-    StartCap.SweepRadians   = -HalfTurn;
+    if (Spine.size() == 2u)
+    {
+        const SpatialPoint& StartPoint = Spine[0];
+        const SpatialPoint& EndPoint = Spine[1];
+        const SpatialDirection AxisOffset = Difference(StartPoint, EndPoint);
+        if (!(LengthSquared(AxisOffset) > 0.0))
+            return;
+
+        const SpatialDirection Side = Normalize(Cross(Normal, Normalize(AxisOffset)));
+
+        Delivered.push_back(CurveSpecification::DeclareLine(
+            Added(StartPoint, Scaled(Side, Radius)), Added(EndPoint, Scaled(Side, Radius))));
+        Delivered.push_back(CurveSpecification::DeclareLine(
+            Added(EndPoint, Scaled(Side, -Radius)), Added(StartPoint, Scaled(Side, -Radius))));
+
+        CircularArcCurve StartCap = {};
+        StartCap.Centre         = StartPoint;
+        StartCap.Normal         = Normal;
+        StartCap.StartDirection = Negated(Side);
+        StartCap.Radius         = Radius;
+        StartCap.SweepRadians   = -HalfTurn;
+
+        CircularArcCurve EndCap = {};
+        EndCap.Centre         = EndPoint;
+        EndCap.Normal         = Normal;
+        EndCap.StartDirection = Side;
+        EndCap.Radius         = Radius;
+        EndCap.SweepRadians   = -HalfTurn;
+
+        Delivered.push_back(CurveSpecification::DeclareCircularArc(StartCap, { 0.0, 1.0 }));
+        Delivered.push_back(CurveSpecification::DeclareCircularArc(EndCap, { 0.0, 1.0 }));
+        return;
+    }
+
+    const std::size_t SegmentCount = Spine.size() - 1u;
+    std::vector<SpatialDirection> SideDirs;
+    SideDirs.reserve(SegmentCount);
+    for (std::size_t i = 0u; i < SegmentCount; ++i)
+    {
+        const SpatialDirection AxisOffset = Difference(Spine[i], Spine[i + 1u]);
+        if (LengthSquared(AxisOffset) <= 1.0e-12)
+            continue;
+        const SpatialDirection AxisDir = Normalize(AxisOffset);
+        SideDirs.push_back(Normalize(Cross(Normal, AxisDir)));
+    }
+
+    if (SideDirs.empty())
+        return;
+
+    for (std::size_t i = 0u; i < SegmentCount; ++i)
+    {
+        const SpatialDirection& Side = SideDirs[i];
+        const SpatialPoint StartUpper = Added(Spine[i], Scaled(Side, Radius));
+        const SpatialPoint EndUpper = Added(Spine[i + 1u], Scaled(Side, Radius));
+        Delivered.push_back(CurveSpecification::DeclareLine(StartUpper, EndUpper));
+
+        if (i + 1u < SegmentCount)
+        {
+            const SpatialDirection& NextSide = SideDirs[i + 1u];
+            const SpatialPoint NextStartUpper = Added(Spine[i + 1u], Scaled(NextSide, Radius));
+            if (LengthSquared(Difference(EndUpper, NextStartUpper)) > 1.0e-8)
+                Delivered.push_back(CurveSpecification::DeclareLine(EndUpper, NextStartUpper));
+        }
+    }
 
     CircularArcCurve EndCap = {};
-    EndCap.Centre         = EndPoint;
+    EndCap.Centre         = Spine.back();
     EndCap.Normal         = Normal;
-    EndCap.StartDirection = Side;
+    EndCap.StartDirection = SideDirs.back();
     EndCap.Radius         = Radius;
     EndCap.SweepRadians   = -HalfTurn;
-
-    Delivered.push_back(CurveSpecification::DeclareCircularArc(StartCap, { 0.0, 1.0 }));
     Delivered.push_back(CurveSpecification::DeclareCircularArc(EndCap, { 0.0, 1.0 }));
+
+    for (std::size_t i = SegmentCount; i > 0u; --i)
+    {
+        const std::size_t segIdx = i - 1u;
+        const SpatialDirection& Side = SideDirs[segIdx];
+        const SpatialPoint EndLower = Added(Spine[segIdx + 1u], Scaled(Side, -Radius));
+        const SpatialPoint StartLower = Added(Spine[segIdx], Scaled(Side, -Radius));
+        Delivered.push_back(CurveSpecification::DeclareLine(EndLower, StartLower));
+
+        if (segIdx > 0u)
+        {
+            const SpatialDirection& PriorSide = SideDirs[segIdx - 1u];
+            const SpatialPoint PriorEndLower = Added(Spine[segIdx], Scaled(PriorSide, -Radius));
+            if (LengthSquared(Difference(StartLower, PriorEndLower)) > 1.0e-8)
+                Delivered.push_back(CurveSpecification::DeclareLine(StartLower, PriorEndLower));
+        }
+    }
+
+    CircularArcCurve StartCap = {};
+    StartCap.Centre         = Spine.front();
+    StartCap.Normal         = Normal;
+    StartCap.StartDirection = Negated(SideDirs.front());
+    StartCap.Radius         = Radius;
+    StartCap.SweepRadians   = -HalfTurn;
+    Delivered.push_back(CurveSpecification::DeclareCircularArc(StartCap, { 0.0, 1.0 }));
+}
+
+void AppendSlotSpans(const SpatialPoint& StartPoint, const SpatialPoint& EndPoint, double Radius,
+                     std::vector<CurveSpecification>& Delivered)
+{
+    AppendSlotSpans(std::vector<SpatialPoint>{ StartPoint, EndPoint }, Radius, Delivered);
 }
 
 }   // namespace
@@ -360,27 +467,7 @@ CurveSpecification ResolvePlacementCurve(SketchSubject Subject,
                 return CurveSpecification::DeclareLine(Points[Points.size() - 2u], Points.back());
             break;
 
-        // 🔴 An elliptical arc previews as the ellipse it is being cut from until three anchors state
-        //    the sweep, which is far better feedback than the nothing it previewed before.
-        case SketchSubject::EllipticalArc:
-            if (Points.size() >= 2u)
-            {
-                const SpatialDirection Span = Difference(Points[0], Points[1]);
-                const double Major = std::sqrt(LengthSquared(Span));
-                if (Major > 1.0e-6)
-                {
-                    EllipseCurve Round;
-                    Round.Centre         = Points[0];
-                    Round.Normal         = { 0.0, 1.0, 0.0 };
-                    Round.MajorDirection = Normalize(Span);
-                    Round.MajorRadius    = Major;
-                    Round.MinorRadius    = Points.size() >= 3u
-                        ? std::max(std::sqrt(LengthSquared(Difference(Points[0], Points[2]))), 1.0e-6)
-                        : Major * 0.5;
-                    return CurveSpecification::DeclareEllipse(Round);
-                }
-            }
-            break;
+
 
         case SketchSubject::Arc:
             if (Points.size() >= 3u)
@@ -481,8 +568,9 @@ CurveSpecification ResolvePlacementCurve(SketchSubject Subject,
                     Round.Normal         = { 0.0, 1.0, 0.0 };
                     Round.MajorDirection = Normalize(Span);
                     Round.MajorRadius    = Major;
-                    // 📝 Matches the commit: a minor axis that has not been stated is half the major.
-                    Round.MinorRadius    = Major * 0.5;
+                    Round.MinorRadius    = Points.size() >= 3u
+                        ? std::max(std::sqrt(LengthSquared(Difference(Points[0], Points[2]))), 1.0e-6)
+                        : Major * 0.5;
                     return CurveSpecification::DeclareEllipse(Round);
                 }
             }
@@ -546,13 +634,23 @@ void ResolvePlacementCurves(SketchSubject Subject,
         return;
     }
 
-    // 🔴 A SLOT PREVIEWED AS ITS AXIS. Two sides and two end caps, the same construction the commit
-    //    declares -- including the caps bulging OUTWARD, which is what the commit itself got wrong.
-    if (Subject == SketchSubject::Slot && Points.size() >= 3u)
+    // 🔴 A polyline slot previews its spine while drawing anchors, and the full offset slot once radius is dragged.
+    if (Subject == SketchSubject::Slot)
     {
-        AppendSlotSpans(Points[0], Points[1],
-                        std::sqrt(LengthSquared(Difference(Points[1], Points[2]))), Delivered);
-        return;
+        if (Points.size() >= 3u)
+        {
+            std::vector<SpatialPoint> Spine(Points.begin(), Points.end() - 1);
+            const double Radius = std::sqrt(LengthSquared(Difference(Spine.back(), Points.back())));
+            AppendSlotSpans(Spine, Radius, Delivered);
+            return;
+        }
+        else if (Points.size() >= 2u)
+        {
+            for (std::size_t Index = 0u; Index + 1u < Points.size(); ++Index)
+                if (LengthSquared(Difference(Points[Index], Points[Index + 1u])) > 0.0)
+                    Delivered.push_back(CurveSpecification::DeclareLine(Points[Index], Points[Index + 1u]));
+            return;
+        }
     }
 
     const CurveSpecification Single = ResolvePlacementCurve(Subject, Anchors, Hover);

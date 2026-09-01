@@ -24,7 +24,6 @@ const char* FamilyFolderName(WorkspaceShapeFamily Family)
         case WorkspaceShapeFamily::Slot:          return "Slots";
         case WorkspaceShapeFamily::Circle:        return "Circles";
         case WorkspaceShapeFamily::Ellipse:       return "Ellipses";
-        case WorkspaceShapeFamily::EllipticalArc: return "Elliptical Arcs";
         case WorkspaceShapeFamily::Profile:       return "Profiles";
         case WorkspaceShapeFamily::Construction:  return "Construction";
         default:                                  return "Unclassified";
@@ -104,16 +103,9 @@ WorkspaceRecordName DeclareWorkspaceProfile(WorkspaceNameIndex& Naming,
     Record.Subject      = WorkspaceRecordSubject::ClosedProfile;
     Record.Family       = Family;
     WorkspaceRecordName RootSketchFolder = ResolveCategoryFolder(Records, WorkspaceCategory::Sketch);
-    WorkspaceRecordName ParentFolder = RootSketchFolder;
-    if (Family == WorkspaceShapeFamily::Polygon || Family == WorkspaceShapeFamily::Rectangle ||
-        Family == WorkspaceShapeFamily::Slot || Family == WorkspaceShapeFamily::Circle ||
-        Family == WorkspaceShapeFamily::Ellipse || Family == WorkspaceShapeFamily::EllipticalArc)
-    {
-        ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch, "Profiles", RootSketchFolder);
-    }
     Record.ParentFolder = EnsureNamedFolder(Naming, Records, WorkspaceCategory::Sketch,
-                                             FamilyFolderName(Family), ParentFolder);
-    Record.Naming       = Naming.Issue(WorkspaceRecordSubject::ClosedProfile);
+                                            FamilyFolderName(Family), RootSketchFolder);
+    Record.Naming       = Naming.Issue(WorkspaceRecordSubject::ClosedProfile, Family);
     Record.Profile      = Profile;
     Record.ClosedSemantic          = true;
     Record.CappedExtrusionSemantic = true;

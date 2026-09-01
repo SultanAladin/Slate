@@ -313,28 +313,7 @@ Deliver<WorkspaceRecordName> DeclareCentredArc(WorkspaceNameIndex& Naming,
                                                   "the placement does not describe a shape" });
 }
 
-Deliver<WorkspaceRecordName> DeclareEllipticalArc(WorkspaceNameIndex& Naming,
-                                    SketchStructure& Sketch,
-                                    const SketchPlane& Plane,
-                                    WorkspaceRecordStructure& Records,
-                                    PlacementJournal& Revisions,
-                                    const SealedPlacement& Placed)
-{
-        const SpatialPoint Centre = Placed.Anchors[0];
-        const double Major = std::max(std::abs(Placed.Anchors[1].Left - Centre.Left), 1.0e-6);
-        const double Minor = std::max(std::abs(Placed.Anchors[1].Forward - Centre.Forward), Major * 0.5);
-        const double EndAngle = std::atan2((Placed.Anchors[2].Forward - Centre.Forward) / Minor,
-                                           (Placed.Anchors[2].Left - Centre.Left) / Major);
-        const EllipticalArcCurve Arc = { Centre, Plane.Normal, Plane.AlongDirection,
-                                         Major, Minor, 0.0, EndAngle <= 0.0 ? EndAngle + 2.0 * CommitPi : EndAngle };
-        const SketchCurveName Curve = Sketch.DeclareCurve(CurveSpecification::DeclareEllipticalArc(Arc, { 0.0, 1.0 }));
-        const WorkspaceRecordName Record = DeclareWorkspaceCurve(Naming, Records, Curve, Placed.Construction, WorkspaceShapeFamily::EllipticalArc);
-        Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Elliptical Arc", { Record },
-                       Revisions.DeclaredCount() + 1u);
-        return Deliver<WorkspaceRecordName>::Result(Record);
-    return Deliver<WorkspaceRecordName>::Refuse({ RefusalReason::ContentUnsupported,
-                                                  "the placement does not describe a shape" });
-}
+
 
 Deliver<WorkspaceRecordName> DeclareBasisSpline(WorkspaceNameIndex& Naming,
                                     SketchStructure& Sketch,
@@ -499,16 +478,21 @@ Deliver<WorkspaceRecordName> DeclareSlot(WorkspaceNameIndex& Naming,
                                     PlacementJournal& Revisions,
                                     const SealedPlacement& Placed)
 {
-        const double Radius = std::sqrt(LengthSquared(Difference(Placed.Anchors[1], Placed.Anchors[2])));
-        const Deliver<ProfileNameInFeature> Profile = Sketch.DeclareSlot(Placed.Anchors[0], Placed.Anchors[1], Radius, Plane);
-        if (!Profile.Resolved)
-            return Deliver<WorkspaceRecordName>::Refuse(Profile.Error);
-        const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve(), WorkspaceShapeFamily::Slot);
-        Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Slot", { Record },
-                       Revisions.DeclaredCount() + 1u);
-        return Deliver<WorkspaceRecordName>::Result(Record);
-    return Deliver<WorkspaceRecordName>::Refuse({ RefusalReason::ContentUnsupported,
-                                                  "the placement does not describe a shape" });
+    if (Placed.Anchors.size() < 3u)
+        return Deliver<WorkspaceRecordName>::Refuse({ RefusalReason::ContentUnsupported, "a slot requires spine points and a radius" });
+
+    std::vector<SpatialPoint> Spine(Placed.Anchors.begin(), Placed.Anchors.end() - 1);
+    const double Radius = std::sqrt(LengthSquared(Difference(Spine.back(), Placed.Anchors.back())));
+    if (Radius <= 1.0e-6)
+        return Deliver<WorkspaceRecordName>::Refuse({ RefusalReason::ContentUnsupported, "the slot radius is too small" });
+
+    const Deliver<ProfileNameInFeature> Profile = Sketch.DeclarePolylineSlot(Spine, Radius, Plane);
+    if (!Profile.Resolved)
+        return Deliver<WorkspaceRecordName>::Refuse(Profile.Error);
+    const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, Profile.Resolve(), WorkspaceShapeFamily::Slot);
+    Revisions.Seal("Declared " + std::string(Records.Resolve(Record)->Naming), "Create Slot", { Record },
+                   Revisions.DeclaredCount() + 1u);
+    return Deliver<WorkspaceRecordName>::Result(Record);
 }
 
 Deliver<WorkspaceRecordName> DeclareThreePointRectangle(WorkspaceNameIndex& Naming,
@@ -577,10 +561,8 @@ Deliver<WorkspaceRecordName> DeclareEllipse(WorkspaceNameIndex& Naming,
         //    PLANE'S OWN AXES -- |Δalong| by |Δacross| -- and then declared the major axis along the
         //    plane's `AlongDirection` regardless of where the artist had actually dragged. Dragging
         //    to (150, 60) previewed a 161.6-long ellipse tilted 22° and committed a 150 by 60 one
-        //    lying flat, so the shape visibly jumped on release and never matched the drag. The
-        //    commit now reads the drag exactly as the preview does: the pointer lies ON the major
-        //    axis, which is the only reading under which what is dragged is what lands.
-        const SpatialDirection Span = Difference(Placed.Anchors[0], Placed.Anchors.back());
+        const SpatialPoint MajorAnchor = Placed.Anchors.size() >= 2u ? Placed.Anchors[1] : Placed.Anchors.back();
+        const SpatialDirection Span = Difference(Placed.Anchors[0], MajorAnchor);
         const double Major = std::sqrt(LengthSquared(Span));
         if (Major <= 1.0e-6)
             return Deliver<WorkspaceRecordName>::Refuse({ RefusalReason::ContentUnsupported,
@@ -593,7 +575,7 @@ Deliver<WorkspaceRecordName> DeclareEllipse(WorkspaceNameIndex& Naming,
         if (Placed.Anchors.size() >= 3u)
         {
             const double Stated = std::sqrt(LengthSquared(
-                Difference(Placed.Anchors[0], Placed.Anchors[1])));
+                Difference(Placed.Anchors[0], Placed.Anchors[2])));
             if (Stated > 1.0e-6)
                 Minor = Stated;
         }
@@ -796,7 +778,7 @@ constexpr CommitRow CommitTable[] =
     { SketchSubject::RationalSpline, PlacementMethod::Extent,     3u, DeclareRationalSpline },
     { SketchSubject::Hermite,        PlacementMethod::Extent,     2u, DeclareHermite },
     { SketchSubject::Dimension,      PlacementMethod::Extent,     2u, DeclareDimension },
-    { SketchSubject::Slot,           PlacementMethod::Extent,     3u, DeclareSlot },
+    { SketchSubject::Slot,           PlacementMethod::Extent,     2u, DeclareSlot },
 
     // 🔴 The arc arms the host could never reach. `Centred` and `Tangent` both take a centre, a start
     //    and an end; `ThreePoint` and the bare method take three points ON the arc. Those are different
@@ -806,18 +788,14 @@ constexpr CommitRow CommitTable[] =
     { SketchSubject::Arc,            PlacementMethod::Centred,    3u, DeclareCentredArc },
     { SketchSubject::Arc,            PlacementMethod::Tangent,    3u, DeclareCentredArc },
 
-    { SketchSubject::EllipticalArc,  PlacementMethod::Extent,     3u, DeclareEllipticalArc },
-    { SketchSubject::EllipticalArc,  PlacementMethod::ThreePoint, 3u, DeclareEllipticalArc },
-    { SketchSubject::EllipticalArc,  PlacementMethod::Centred,    3u, DeclareEllipticalArc },
-
     { SketchSubject::Circle,         PlacementMethod::Extent,     2u, DeclareCentreRadiusCircle },
     { SketchSubject::Circle,         PlacementMethod::Centred,    2u, DeclareCentreRadiusCircle },
     { SketchSubject::Circle,         PlacementMethod::Diameter,   2u, DeclareDiameterCircle },
     { SketchSubject::Circle,         PlacementMethod::ThreePoint, 3u, DeclareThreePointCircle },
 
-    { SketchSubject::Ellipse,        PlacementMethod::Extent,     2u, DeclareEllipse },
-    { SketchSubject::Ellipse,        PlacementMethod::Centred,    2u, DeclareEllipse },
-    { SketchSubject::Ellipse,        PlacementMethod::Diameter,   2u, DeclareEllipse },
+    { SketchSubject::Ellipse,        PlacementMethod::Extent,     3u, DeclareEllipse },
+    { SketchSubject::Ellipse,        PlacementMethod::Centred,    3u, DeclareEllipse },
+    { SketchSubject::Ellipse,        PlacementMethod::Diameter,   3u, DeclareEllipse },
 
     { SketchSubject::Rectangle,      PlacementMethod::Extent,     2u, DeclareExtentRectangle },
     { SketchSubject::Rectangle,      PlacementMethod::Centred,    2u, DeclareCentredRectangle },

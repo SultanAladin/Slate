@@ -63,7 +63,8 @@ bool ResolveWorldTransformPlacements(const WorldSketchStructure& Declared,
 
 SpatialDirection ResolveWorldCurveSlideDirection(const WorldSketchStructure& Declared,
                                                  WorldCurveName Curve,
-                                                 const SpatialPoint& NearPosition);
+                                                 const SpatialPoint& NearPosition,
+                                                 const SpatialDirection& MotionDelta = {});
 
 void ApplyWorldTransformPlacements(WorldSketchStructure& Declared,
                                    const WorldSketchTransformSession& Session,

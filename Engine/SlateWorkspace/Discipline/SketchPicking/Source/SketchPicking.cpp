@@ -346,6 +346,11 @@ bool ResolveCurvePivot(const SketchStructure& Sketch, SketchCurveName Curve, Spa
         case CurveSubject::Hermite:
         {
             const HermiteCurve& Hermite = Geometry.HeldHermite();
+            if (Hermite.ControlPoints.size() >= 2u)
+            {
+                Pivot = Hermite.ControlPoints[Hermite.ControlPoints.size() / 2u];
+                return true;
+            }
             Pivot = { (Hermite.StartPoint.Left + Hermite.EndPoint.Left) * 0.5,
                       (Hermite.StartPoint.Up + Hermite.EndPoint.Up) * 0.5,
                       (Hermite.StartPoint.Forward + Hermite.EndPoint.Forward) * 0.5 };

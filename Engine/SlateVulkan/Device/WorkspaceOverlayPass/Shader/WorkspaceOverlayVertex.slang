@@ -143,6 +143,7 @@ struct WorkspaceOverlayVertexOutput
 {
     Real32x4   Position : SV_Position;
     Real32x4   Colour   : COLOR0;
+    Real32x2   Local    : TEXCOORD0;
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -162,6 +163,7 @@ WorkspaceOverlayVertexOutput main(Unsigned32 VertexIndex : SV_VertexID)
     //    `Shared/OverlayTransform.slang.h`, compiled by both the shader toolchain and the host.
     Real32x2 Position = Real32x2(0.0, 0.0);
     Real32x4 Colour   = Real32x4(1.0, 1.0, 1.0, 1.0);
+    Real32x2 Local    = Real32x2(0.0, 0.0);
 
     if (Push.Draw == WorkspaceOverlayLineDraw)
     {
@@ -193,7 +195,8 @@ WorkspaceOverlayVertexOutput main(Unsigned32 VertexIndex : SV_VertexID)
         const Real32 X = ((Corner == 1u) || (Corner == 3u)) ?  1.0 : -1.0;
         const Real32 Y = (Corner >= 2u)                       ?  1.0 : -1.0;
 
-        Position = Dot.Centre + Real32x2(X, Y) * Dot.Radius;
+        Local    = Real32x2(X, Y);
+        Position = Dot.Centre + Local * Dot.Radius;
         Colour   = Dot.Colour;
     }
     else if (Push.Draw == WorkspaceOverlayGroundGridDraw)
@@ -227,6 +230,7 @@ WorkspaceOverlayVertexOutput main(Unsigned32 VertexIndex : SV_VertexID)
                                OverlayNdcY(Position.y, Push.DisplayHeight),
                                0.0, 1.0);
     Output.Colour   = Colour;
+    Output.Local    = Local;
 
     return Output;
 }

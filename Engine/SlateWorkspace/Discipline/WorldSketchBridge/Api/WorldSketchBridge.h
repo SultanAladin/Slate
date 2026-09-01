@@ -119,6 +119,7 @@ Deliver<bool> ProjectWorldBackedSketchRendering(const SketchStructure& Sketch,
                                                 const PlaneExtent& LogicalExtent,
                                                 const DrawableScale& Drawable,
                                                 WorkspaceCadPacket& Delivered,
+                                                const WorldSelectionSet& Selection = {},
                                                 const WorldSketchRenderingStyle& Style = {},
                                                 double ClosureTolerance = 0.01,
                                                 double CoplanarTolerance = 0.01);
@@ -147,6 +148,7 @@ Deliver<bool> ProjectWorldBackedSketchRendering(const WorldSketchStructure& Decl
                                                 const PlaneExtent& LogicalExtent,
                                                 const DrawableScale& Drawable,
                                                 WorkspaceCadPacket& Delivered,
+                                                const WorldSelectionSet& Selection = {},
                                                 const WorldSketchRenderingStyle& Style = {},
                                                 double ClosureTolerance = 0.01,
                                                 double CoplanarTolerance = 0.01);

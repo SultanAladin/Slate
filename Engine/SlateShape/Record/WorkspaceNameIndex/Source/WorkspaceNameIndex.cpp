@@ -41,8 +41,6 @@ std::string WorkspaceNameIndex::Issue(WorkspaceRecordSubject Subject, WorkspaceS
                     return FormatPaddedName("NurbsCurve", ++NurbsCount);
                 case WorkspaceShapeFamily::CircularArc:
                     return FormatPaddedName("ArcCurve", ++ArcCount);
-                case WorkspaceShapeFamily::EllipticalArc:
-                    return FormatPaddedName("EllipticalArcCurve", ++EllipticalArcCount);
                 case WorkspaceShapeFamily::Circle:
                     return FormatPaddedName("CircleCurve", ++CircleCount);
                 case WorkspaceShapeFamily::Ellipse:
@@ -53,7 +51,25 @@ std::string WorkspaceNameIndex::Issue(WorkspaceRecordSubject Subject, WorkspaceS
             }
         }
 
-        case WorkspaceRecordSubject::ClosedProfile: return FormatPaddedName("Profile", ++ProfileCount);
+        case WorkspaceRecordSubject::ClosedProfile:
+        {
+            switch (Family)
+            {
+                case WorkspaceShapeFamily::Circle:
+                    return FormatPaddedName("Circle", ++CircleCount);
+                case WorkspaceShapeFamily::Ellipse:
+                    return FormatPaddedName("Ellipse", ++EllipseCount);
+                case WorkspaceShapeFamily::Rectangle:
+                    return FormatPaddedName("Rectangle", ++RectangleCount);
+                case WorkspaceShapeFamily::Polygon:
+                    return FormatPaddedName("Polygon", ++PolygonCount);
+                case WorkspaceShapeFamily::Slot:
+                    return FormatPaddedName("Slot", ++SlotCount);
+                default:
+                    return FormatPaddedName("Profile", ++ProfileCount);
+            }
+        }
+
         case WorkspaceRecordSubject::ThinSurface:   return FormatPaddedName("ThinSurface", ++SurfaceCount);
         case WorkspaceRecordSubject::Solid:         return FormatPaddedName("Solid", ++SolidCount);
         case WorkspaceRecordSubject::Dimension:     return FormatPaddedName("Dimension", ++DimensionCount);
@@ -74,7 +90,9 @@ void WorkspaceNameIndex::Reclaim()
     ArcCount = 0u;
     CircleCount = 0u;
     EllipseCount = 0u;
-    EllipticalArcCount = 0u;
+    RectangleCount = 0u;
+    PolygonCount = 0u;
+    SlotCount = 0u;
     BezierCount = 0u;
     HermiteCount = 0u;
     SplineCount = 0u;

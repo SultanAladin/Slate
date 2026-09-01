@@ -331,10 +331,20 @@ bool SessionSequence::Seal(const SessionPass& Pass)
 
     Discard(Lifetime.BeginDisplay());
 
-    // 🔴 Read. A rejected Record presents the cleared ground with nothing on it, which is indistinguishable
-    //    from a panel that drew nothing, so the refusal is named here.
-    if (!Viewport.Record(Pass.Recording))
-        std::printf("%s \u2014 the interface content was not recorded\n", Naming);
+    // 🔴 Record the background and docked windows (including the Viewport window ground)
+    //    so the 3D viewport scene and overlay passes render on top of the window ground.
+    if (!Viewport.RecordBeneath(Pass.Recording))
+        std::printf("%s \u2014 the interface background was not recorded\n", Naming);
+
+    return true;
+}
+
+bool SessionSequence::RecordInterface(const SessionPass& Pass)
+{
+    // 🔴 Record the foreground layer (drawers, floating tool options, popups) ON TOP
+    //    of the 3D viewport passes, ensuring full opacity without bleed-through.
+    if (!Viewport.RecordAbove(Pass.Recording))
+        std::printf("%s \u2014 the interface foreground was not recorded\n", Naming);
 
     return true;
 }

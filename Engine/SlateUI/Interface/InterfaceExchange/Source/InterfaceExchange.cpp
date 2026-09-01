@@ -718,7 +718,56 @@ Deliver<bool> InterfaceExchange::Record(VkCommandBuffer CommandRecording)
         return Deliver<bool>::Result(true);
     }
 
-    ImGui_ImplVulkan_RenderDrawData(AssembledContent, CommandRecording);
+    ImGui_ImplVulkan_RenderDrawDataBand(AssembledContent, CommandRecording, 0);
+    ContentAssembled = false;
+
+    return Deliver<bool>::Result(true);
+}
+
+Deliver<bool> InterfaceExchange::RecordBeneath(VkCommandBuffer CommandRecording)
+{
+    if (!ContentAssembled)
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "nothing has been sealed for recording" });
+
+    if (CommandRecording == VK_NULL_HANDLE)
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "no command recording was supplied" });
+
+    ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
+
+    ImDrawData* AssembledContent = ImGui::GetDrawData();
+
+    if (AssembledContent == nullptr)
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the sealed content was not assembled" });
+
+    if (AssembledContent->DisplaySize.x <= 0.0f || AssembledContent->DisplaySize.y <= 0.0f)
+        return Deliver<bool>::Result(true);
+
+    ImGui_ImplVulkan_RenderDrawDataBand(AssembledContent, CommandRecording, 1);
+    return Deliver<bool>::Result(true);
+}
+
+Deliver<bool> InterfaceExchange::RecordAbove(VkCommandBuffer CommandRecording)
+{
+    if (!ContentAssembled)
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "nothing has been sealed for recording" });
+
+    if (CommandRecording == VK_NULL_HANDLE)
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "no command recording was supplied" });
+
+    ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
+
+    ImDrawData* AssembledContent = ImGui::GetDrawData();
+
+    if (AssembledContent == nullptr)
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the sealed content was not assembled" });
+
+    if (AssembledContent->DisplaySize.x <= 0.0f || AssembledContent->DisplaySize.y <= 0.0f)
+    {
+        ContentAssembled = false;
+        return Deliver<bool>::Result(true);
+    }
+
+    ImGui_ImplVulkan_RenderDrawDataBand(AssembledContent, CommandRecording, 2);
     ContentAssembled = false;
 
     return Deliver<bool>::Result(true);

@@ -158,10 +158,6 @@ void ViewportSequence::RecordDrawers()
     Discard(SurfaceOwned.SwitchLayer(RecordingSurface::ShellLayer::Above));
 
     DrawersOwned.Record(SurfaceOwned);
-
-    // 📝 Returned to the ground layer, so anything recorded after the drawers this tick lands beneath the
-    //    windows again rather than inheriting the overlay.
-    Discard(SurfaceOwned.SwitchLayer(RecordingSurface::ShellLayer::Beneath));
 }
 
 void ViewportSequence::DrawerPanels()
@@ -173,9 +169,7 @@ Deliver<bool> ViewportSequence::SealPanels()
 {
     PanelsOpen = false;
 
-    // 🔴 The surface is retired at the seal, not at the next Advance. Between the two, the assembled
-    //    content is finished and immutable; a panel that kept a reference and recorded into it would build
-    //    commands that cost time and are then discarded, with nothing reporting that they were lost.
+    Discard(SurfaceOwned.SwitchLayer(RecordingSurface::ShellLayer::Beneath));
     SurfaceOwned.Retire();
 
     return Interface.Seal();
@@ -200,6 +194,16 @@ Deliver<bool> ViewportSequence::Renegotiate(std::uint32_t MinimumImageCount, std
 Deliver<bool> ViewportSequence::Record(VkCommandBuffer CommandRecording)
 {
     return Interface.Record(CommandRecording);
+}
+
+Deliver<bool> ViewportSequence::RecordBeneath(VkCommandBuffer CommandRecording)
+{
+    return Interface.RecordBeneath(CommandRecording);
+}
+
+Deliver<bool> ViewportSequence::RecordAbove(VkCommandBuffer CommandRecording)
+{
+    return Interface.RecordAbove(CommandRecording);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

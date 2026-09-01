@@ -104,6 +104,12 @@ public:
     /// tag   api, nonthrowing
     Deliver<bool> Record(VkCommandBuffer CommandRecording);
 
+    /// 🧩 Records the background and docked windows.
+    Deliver<bool> RecordBeneath(VkCommandBuffer CommandRecording);
+
+    /// 🧩 Records the foreground layer (drawers, tool options, popups).
+    Deliver<bool> RecordAbove(VkCommandBuffer CommandRecording);
+
     /// 🧩 The two drawers, for the host to query pose and extent.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing

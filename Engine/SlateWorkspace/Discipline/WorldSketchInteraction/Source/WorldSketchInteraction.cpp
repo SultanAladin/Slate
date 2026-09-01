@@ -38,12 +38,11 @@ bool SamePickIdentity(const WorldPick& Left,
 }
 
 GizmoHandle ResolveUniversalGizmoHandle(const GizmoScreenBasis& Screen,
+                                        TransformManner Manner,
                                         float PointerX,
                                         float PointerY)
 {
-    // No active G/R/S session means only the visible move gizmo may claim a press. Probing scale and
-    // rotation as fallbacks made their overlapping geometry actionable even though their visuals were hidden.
-    return ResolveGizmoHandle(Screen, TransformManner::Move, PointerX, PointerY);
+    return ResolveGizmoHandle(Screen, Manner, PointerX, PointerY);
 }
 
 WorldPick ResolveActiveSelection(const WorldPick& SemanticSelection)
@@ -79,16 +78,27 @@ bool RefreshWorldSketchPick(const WorldSketchStructure& Declared,
         }
 
         case WorldPickSubject::Curve:
-            return ResolveWorldCurvePivot(Declared, Pick.Curve, Pick.Position);
-
         case WorldPickSubject::Loop:
-            return ResolveWorldLoopPivot(Declared, Pick.Loop, Pick.Position);
+            return true;
 
         case WorldPickSubject::None:
             return false;
     }
 
     return false;
+}
+
+bool ResolveCurvePolyline(const WorldSketchStructure& Declared,
+                          WorldCurveName Curve,
+                          std::vector<SpatialPoint>& Polyline)
+{
+    const DeclaredWorldCurve* Held = Declared.Resolve(Curve);
+    if (Held == nullptr || !Held->Geometry.Declared())
+        return false;
+
+    Polyline.clear();
+    AppendCurvePolyline(Held->Geometry, Polyline, 48u);
+    return !Polyline.empty();
 }
 
 void RefreshWorldSelectionSet(const WorldSketchStructure& Declared, WorldSelectionSet& Set)
@@ -155,18 +165,20 @@ void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
     }
 
     GizmoHandle ResolvedHandle = GizmoHandle::None;
+    const TransformManner ActiveGizmoManner = Transform.Engaged() ? Transform.Manner() : static_cast<TransformManner>(Gizmo.Manner);
     if (Gizmo.Shown && !Transform.Engaged() && ActiveSelection.Standing())
     {
         GizmoScreenBasis Screen = {};
         if (ResolveGizmoScreenBasis(Camera, Extent, ActiveSelection.Position, Screen))
-            ResolvedHandle = ResolveUniversalGizmoHandle(Screen, Pointer.PositionX, Pointer.PositionY);
+            ResolvedHandle = ResolveUniversalGizmoHandle(Screen, ActiveGizmoManner, Pointer.PositionX, Pointer.PositionY);
     }
     if (HoveredHandle != nullptr)
         *HoveredHandle = ResolvedHandle;
 
-    // 🔴 Clicking empty viewport space is the standard CAD deselect gesture. It must happen
-    //    only after UI/gizmo hit testing has had first refusal, so a menu interaction cannot
-    //    clear the selection behind it.
+    if (ResolvedHandle != GizmoHandle::None)
+        HoveredSelection = {};
+
+    // 🔴 Clicking empty viewport space is the standard CAD deselect gesture.
     if (!PointerTaken && !Transform.Engaged() && Pointer.ContactPressed &&
         ResolvedHandle == GizmoHandle::None && !HoveredSelection.Standing())
     {
@@ -175,6 +187,7 @@ void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
             SelectionSet.Clear();
             SemanticSelection = {};
             ActiveSelection = {};
+            PointerTaken = true;
         }
     }
 
@@ -215,11 +228,12 @@ void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
         }
         else if (Command.StartRequested)
         {
+            const_cast<GizmoOptions&>(Gizmo).Manner = static_cast<GizmoManner>(Command.StartManner);
             const bool Slide = Command.StartManner == TransformManner::Move
                             && ResolveSlideRequested(Command.MoveTapCount,
                                                      SessionMilliseconds,
                                                      LastGPressedMilliseconds,
-                                                     ActiveSelection.Curve.Assigned());
+                                                     ActiveSelection.Standing());
             if (Command.MoveTapCount > 0u)
                 LastGPressedMilliseconds = SessionMilliseconds;
             const TransformRestriction Restriction =
@@ -238,7 +252,7 @@ void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
         const bool SlideRequested = ResolveSlideRequested(Command.MoveTapCount,
                                                           SessionMilliseconds,
                                                           LastGPressedMilliseconds,
-                                                          Transform.Target.Curve.Assigned());
+                                                          Transform.Target.Standing());
         if (Command.MoveTapCount > 0u)
             LastGPressedMilliseconds = SessionMilliseconds;
 
@@ -246,7 +260,7 @@ void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
         {
             Transform.Restriction() = TransformRestriction::Curve;
             Transform.SlideAlongCurve() = true;
-            if (Transform.Target.Curve.Assigned())
+            if (Transform.Target.Standing())
                 Transform.AxisDirection = ResolveWorldCurveSlideDirection(
                     Declared, Transform.Target.Curve, Transform.Target.Position);
         }

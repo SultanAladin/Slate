@@ -32,7 +32,7 @@ WorkspaceShapeFamily FamilyOfCurve(const CurveSpecification& Curve)
         case CurveSubject::Line:          return WorkspaceShapeFamily::Line;
         case CurveSubject::CircularArc:   return WorkspaceShapeFamily::CircularArc;
         case CurveSubject::Circle:        return WorkspaceShapeFamily::Circle;
-        case CurveSubject::EllipticalArc: return WorkspaceShapeFamily::EllipticalArc;
+        case CurveSubject::EllipticalArc:
         case CurveSubject::Ellipse:       return WorkspaceShapeFamily::Ellipse;
         case CurveSubject::Bezier:        return WorkspaceShapeFamily::Bezier;
         case CurveSubject::BasisSpline:   return WorkspaceShapeFamily::BasisSpline;
@@ -774,6 +774,8 @@ bool ResolveSketchPickForWorldPick(const SketchStructure& Sketch,
             Resolved.Curve = ResolveSketchCurveForWorldCurve(Mapping,
                                                               { Selection.Point.IssuedIndex >> 8u });
             Resolved.Record = ResolveRecordForPoint(Sketch, Records, Resolved.Point);
+            if (!Resolved.Record.Assigned() && Resolved.Curve.Assigned())
+                Resolved.Record = ResolveRecordForCurve(Sketch, Records, Resolved.Curve);
             return ResolveSketchPointPosition(Sketch, Resolved.Point, Resolved.Position);
 
         case WorldPickSubject::Control:
@@ -815,6 +817,7 @@ Deliver<bool> ProjectWorldBackedSketchRendering(const SketchStructure& Sketch,
                                                 const PlaneExtent& LogicalExtent,
                                                 const DrawableScale& Drawable,
                                                 WorkspaceCadPacket& Delivered,
+                                                const WorldSelectionSet& Selection,
                                                 const WorldSketchRenderingStyle& Style,
                                                 double ClosureTolerance,
                                                 double CoplanarTolerance)
@@ -823,7 +826,7 @@ Deliver<bool> ProjectWorldBackedSketchRendering(const SketchStructure& Sketch,
     WorldSketchMapping Mapping;
     MirrorSketchIntoWorldSketch(Sketch, World, Mapping);
     return ProjectWorldBackedSketchRendering(World, Camera, LogicalExtent, Drawable,
-                                             Delivered, Style, ClosureTolerance, CoplanarTolerance);
+                                             Delivered, Selection, Style, ClosureTolerance, CoplanarTolerance);
 }
 
 Deliver<bool> ProjectWorldBackedSketchRendering(const WorldSketchStructure& Declared,
@@ -831,12 +834,13 @@ Deliver<bool> ProjectWorldBackedSketchRendering(const WorldSketchStructure& Decl
                                                 const PlaneExtent& LogicalExtent,
                                                 const DrawableScale& Drawable,
                                                 WorkspaceCadPacket& Delivered,
+                                                const WorldSelectionSet& Selection,
                                                 const WorldSketchRenderingStyle& Style,
                                                 double ClosureTolerance,
                                                 double CoplanarTolerance)
 {
     return ProjectWorldSketchRendering(Declared, Camera, Drawable.ToPhysical(LogicalExtent),
-                                      Delivered, Style, ClosureTolerance, CoplanarTolerance);
+                                       Delivered, Selection, Style, ClosureTolerance, CoplanarTolerance);
 }
 
 bool ProjectWorldPlacementPreview(const ResolvedCamera& Camera,
@@ -1074,7 +1078,18 @@ bool CommitPlacementWorldBacked(const Workplane& ActiveWorkplane,
 
         const ProfileNameInFeature DeclaredProfile = Sketch.DeclareProfile(Shape);
         Mapping.Loops.push_back({ WorldLoop, DeclaredProfile, 0u });
-        const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, DeclaredProfile);
+        WorkspaceShapeFamily Family = WorkspaceShapeFamily::Profile;
+        if (Placed.Subject == SketchSubject::Circle)
+            Family = WorkspaceShapeFamily::Circle;
+        else if (Placed.Subject == SketchSubject::Ellipse)
+            Family = WorkspaceShapeFamily::Ellipse;
+        else if (Placed.Subject == SketchSubject::Rectangle)
+            Family = WorkspaceShapeFamily::Rectangle;
+        else if (Placed.Subject == SketchSubject::Polygon)
+            Family = WorkspaceShapeFamily::Polygon;
+        else if (Placed.Subject == SketchSubject::Slot)
+            Family = WorkspaceShapeFamily::Slot;
+        const WorkspaceRecordName Record = DeclareWorkspaceProfile(Naming, Records, DeclaredProfile, Family);
         Written.push_back(Record);
         SelectedRecord = Record;
     }

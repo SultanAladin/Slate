@@ -132,9 +132,19 @@ bool ResolveSketchPoints(const SketchStructure& Declared,
             return true;
 
         case CurveSubject::Hermite:
-            Resolved.push_back({ EncodePointName(SourceCurve, 0u), SourceCurve, Held->Geometry.HeldHermite().StartPoint });
-            Resolved.push_back({ EncodePointName(SourceCurve, 1u), SourceCurve, Held->Geometry.HeldHermite().EndPoint });
+        {
+            const HermiteCurve& Hermite = Held->Geometry.HeldHermite();
+            if (Hermite.ControlPoints.size() >= 2u)
+            {
+                for (std::uint32_t PointIndex = 0u; PointIndex < Hermite.ControlPoints.size(); ++PointIndex)
+                    Resolved.push_back({ EncodePointName(SourceCurve, PointIndex), SourceCurve,
+                                         Hermite.ControlPoints[PointIndex] });
+                return true;
+            }
+            Resolved.push_back({ EncodePointName(SourceCurve, 0u), SourceCurve, Hermite.StartPoint });
+            Resolved.push_back({ EncodePointName(SourceCurve, 1u), SourceCurve, Hermite.EndPoint });
             return true;
+        }
 
         case CurveSubject::SubjectCount:
             return false;
@@ -161,8 +171,6 @@ bool ResolveSketchControls(const SketchStructure& Declared,
         case CurveSubject::CircularArc:
         {
             const CircularArcCurve& Arc = Held->Geometry.HeldCircularArc();
-            Resolved.push_back({ EncodeControlName(SourceCurve, SketchControlSubject::Centre, 0u), SourceCurve,
-                                 SketchControlSubject::Centre, 0u, Arc.Centre });
             Resolved.push_back({ EncodeControlName(SourceCurve, SketchControlSubject::Radius, 0u), SourceCurve,
                                  SketchControlSubject::Radius, 0u,
                                  Added(Arc.Centre, Scaled(Normalize(Arc.StartDirection), Arc.Radius)) });
@@ -177,8 +185,6 @@ bool ResolveSketchControls(const SketchStructure& Declared,
         case CurveSubject::Circle:
         {
             const CircleCurve& Circle = Held->Geometry.HeldCircle();
-            Resolved.push_back({ EncodeControlName(SourceCurve, SketchControlSubject::Centre, 0u), SourceCurve,
-                                 SketchControlSubject::Centre, 0u, Circle.Centre });
             Resolved.push_back({ EncodeControlName(SourceCurve, SketchControlSubject::Radius, 0u), SourceCurve,
                                  SketchControlSubject::Radius, 0u,
                                  Added(Circle.Centre, Scaled(Normalize(Circle.StartDirection), Circle.Radius)) });
@@ -190,8 +196,6 @@ bool ResolveSketchControls(const SketchStructure& Declared,
             const EllipticalArcCurve& Arc = Held->Geometry.HeldEllipticalArc();
             const SpatialDirection MajorDirection = Normalize(Arc.MajorDirection);
             const SpatialDirection MinorDirection = Normalize(Cross(Arc.Normal, MajorDirection));
-            Resolved.push_back({ EncodeControlName(SourceCurve, SketchControlSubject::Centre, 0u), SourceCurve,
-                                 SketchControlSubject::Centre, 0u, Arc.Centre });
             Resolved.push_back({ EncodeControlName(SourceCurve, SketchControlSubject::MajorAxis, 0u), SourceCurve,
                                  SketchControlSubject::MajorAxis, 0u,
                                  Added(Arc.Centre, Scaled(MajorDirection, Arc.MajorRadius)) });
@@ -206,14 +210,18 @@ bool ResolveSketchControls(const SketchStructure& Declared,
             const EllipseCurve& Ellipse = Held->Geometry.HeldEllipse();
             const SpatialDirection MajorDirection = Normalize(Ellipse.MajorDirection);
             const SpatialDirection MinorDirection = Normalize(Cross(Ellipse.Normal, MajorDirection));
-            Resolved.push_back({ EncodeControlName(SourceCurve, SketchControlSubject::Centre, 0u), SourceCurve,
-                                 SketchControlSubject::Centre, 0u, Ellipse.Centre });
             Resolved.push_back({ EncodeControlName(SourceCurve, SketchControlSubject::MajorAxis, 0u), SourceCurve,
                                  SketchControlSubject::MajorAxis, 0u,
                                  Added(Ellipse.Centre, Scaled(MajorDirection, Ellipse.MajorRadius)) });
+            Resolved.push_back({ EncodeControlName(SourceCurve, SketchControlSubject::MajorAxis, 1u), SourceCurve,
+                                 SketchControlSubject::MajorAxis, 1u,
+                                 Added(Ellipse.Centre, Scaled(MajorDirection, -Ellipse.MajorRadius)) });
             Resolved.push_back({ EncodeControlName(SourceCurve, SketchControlSubject::MinorAxis, 0u), SourceCurve,
                                  SketchControlSubject::MinorAxis, 0u,
                                  Added(Ellipse.Centre, Scaled(MinorDirection, Ellipse.MinorRadius)) });
+            Resolved.push_back({ EncodeControlName(SourceCurve, SketchControlSubject::MinorAxis, 1u), SourceCurve,
+                                 SketchControlSubject::MinorAxis, 1u,
+                                 Added(Ellipse.Centre, Scaled(MinorDirection, -Ellipse.MinorRadius)) });
             return true;
         }
 
@@ -238,6 +246,19 @@ bool ResolveSketchControls(const SketchStructure& Declared,
         case CurveSubject::Hermite:
         {
             const HermiteCurve& Hermite = Held->Geometry.HeldHermite();
+            if (Hermite.ControlPoints.size() >= 2u)
+            {
+                for (std::uint32_t PointIndex = 0u; PointIndex < Hermite.ControlPoints.size(); ++PointIndex)
+                {
+                    const SpatialDirection Tangent = Hermite.Tangents.size() > PointIndex
+                                                   ? Hermite.Tangents[PointIndex]
+                                                   : SpatialDirection{};
+                    Resolved.push_back({ EncodeControlName(SourceCurve, SketchControlSubject::ControlPoint, PointIndex), SourceCurve,
+                                         SketchControlSubject::ControlPoint, PointIndex,
+                                         Added(Hermite.ControlPoints[PointIndex], Tangent) });
+                }
+                return true;
+            }
             Resolved.push_back({ EncodeControlName(SourceCurve, SketchControlSubject::StartTangent, 0u), SourceCurve,
                                  SketchControlSubject::StartTangent, 0u,
                                  Added(Hermite.StartPoint, Hermite.StartTangent) });

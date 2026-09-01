@@ -205,18 +205,18 @@ bool ResolveCurvePolyline(const WorldSketchStructure& Declared,
 SpatialDirection ResolveWorldOffset(const WorldSketchTransformSession& Session,
                                     const SpatialPoint& Reference)
 {
+    const SpatialDirection Delta = Difference(Session.StartReference, Reference);
     if (Session.Restriction() == TransformRestriction::AxisX
      || Session.Restriction() == TransformRestriction::AxisY
      || Session.Restriction() == TransformRestriction::AxisZ
      || Session.Restriction() == TransformRestriction::Curve)
     {
         const SpatialDirection Axis = ResolveAxisDirection(Session);
-        const double Started = Dot(Difference(Session.Pivot, Session.StartReference), Axis);
-        const double Current = Dot(Difference(Session.Pivot, Reference), Axis);
-        return Scaled(Axis, Current - Started);
+        const double Projection = Dot(Delta, Axis);
+        return Scaled(Axis, Projection);
     }
 
-    return Difference(Session.StartReference, Reference);
+    return Delta;
 }
 
 } // namespace
@@ -273,35 +273,90 @@ bool ResolveWorldTransformPlacements(const WorldSketchStructure& Declared,
 
 SpatialDirection ResolveWorldCurveSlideDirection(const WorldSketchStructure& Declared,
                                                  WorldCurveName Curve,
-                                                 const SpatialPoint& NearPosition)
+                                                 const SpatialPoint& NearPosition,
+                                                 const SpatialDirection& MotionDelta)
 {
-    std::vector<SpatialPoint> Polyline;
-    if (!ResolveCurvePolyline(Declared, Curve, Polyline))
-        return { 1.0, 0.0, 0.0 };
+    std::vector<SpatialDirection> Candidates;
 
-    double BestDistanceSquared = 1.0e30;
-    SpatialDirection BestDirection = { 1.0, 0.0, 0.0 };
-    for (std::size_t Index = 0u; Index + 1u < Polyline.size(); ++Index)
+    const auto CollectFromCurve = [&](WorldCurveName TargetCurve)
     {
-        const SpatialPoint& StartPoint = Polyline[Index];
-        const SpatialPoint& EndPoint = Polyline[Index + 1u];
-        const SpatialDirection Segment = Difference(StartPoint, EndPoint);
-        const double SegmentLengthSquared = LengthSquared(Segment);
-        if (SegmentLengthSquared <= 1.0e-12)
-            continue;
+        std::vector<SpatialPoint> Polyline;
+        if (!ResolveCurvePolyline(Declared, TargetCurve, Polyline) || Polyline.size() < 2u)
+            return;
 
-        const SpatialDirection Offset = Difference(StartPoint, NearPosition);
-        const double Parameter = std::clamp(Dot(Offset, Segment) / SegmentLengthSquared, 0.0, 1.0);
-        const SpatialPoint Closest = Added(StartPoint, Scaled(Segment, Parameter));
-        const double CandidateDistanceSquared = LengthSquared(Difference(Closest, NearPosition));
-        if (CandidateDistanceSquared < BestDistanceSquared)
+        double BestDistanceSquared = 1.0e30;
+        std::size_t BestIndex = 0u;
+        for (std::size_t Index = 0u; Index + 1u < Polyline.size(); ++Index)
         {
-            BestDistanceSquared = CandidateDistanceSquared;
-            BestDirection = Normalize(Segment);
+            const SpatialPoint& StartPoint = Polyline[Index];
+            const SpatialPoint& EndPoint = Polyline[Index + 1u];
+            const SpatialDirection Segment = Difference(StartPoint, EndPoint);
+            const double SegmentLengthSquared = LengthSquared(Segment);
+            if (SegmentLengthSquared <= 1.0e-12)
+                continue;
+
+            const SpatialDirection Offset = Difference(StartPoint, NearPosition);
+            const double Parameter = std::clamp(Dot(Offset, Segment) / SegmentLengthSquared, 0.0, 1.0);
+            const SpatialPoint Closest = Added(StartPoint, Scaled(Segment, Parameter));
+            const double CandidateDistanceSquared = LengthSquared(Difference(Closest, NearPosition));
+            if (CandidateDistanceSquared < BestDistanceSquared)
+            {
+                BestDistanceSquared = CandidateDistanceSquared;
+                BestIndex = Index;
+            }
         }
+
+        if (BestDistanceSquared < 1.0)
+        {
+            const SpatialPoint& P0 = Polyline[BestIndex];
+            const SpatialPoint& P1 = Polyline[BestIndex + 1u];
+            const SpatialDirection Forward = Normalize(Difference(P0, P1));
+            Candidates.push_back(Forward);
+            Candidates.push_back(Negated(Forward));
+
+            if (BestIndex > 0u)
+            {
+                const SpatialDirection Prior = Normalize(Difference(P0, Polyline[BestIndex - 1u]));
+                Candidates.push_back(Prior);
+                Candidates.push_back(Negated(Prior));
+            }
+            if (BestIndex + 2u < Polyline.size())
+            {
+                const SpatialDirection Next = Normalize(Difference(P1, Polyline[BestIndex + 2u]));
+                Candidates.push_back(Next);
+                Candidates.push_back(Negated(Next));
+            }
+        }
+    };
+
+    if (Curve.Assigned())
+        CollectFromCurve(Curve);
+    else
+    {
+        for (std::uint32_t Index = 1u; Index <= Declared.CurveCount(); ++Index)
+            CollectFromCurve({ Index });
     }
 
-    return BestDirection;
+    if (Candidates.empty())
+        return { 1.0, 0.0, 0.0 };
+
+    if (LengthSquared(MotionDelta) > 1.0e-10)
+    {
+        double BestDot = -1.0e30;
+        SpatialDirection BestDir = Candidates.front();
+        for (const SpatialDirection& Candidate : Candidates)
+        {
+            const double Alignment = Dot(Candidate, MotionDelta);
+            if (Alignment > BestDot)
+            {
+                BestDot = Alignment;
+                BestDir = Candidate;
+            }
+        }
+        return BestDir;
+    }
+
+    return Candidates.front();
 }
 
 void ApplyWorldTransformPlacements(WorldSketchStructure& Declared,
@@ -656,8 +711,7 @@ void UpdateWorldSketchTransformSession(const ResolvedCamera& Camera,
                                                Session.Pivot, ResolveAxisDirection(Session), Reference)
                         : ResolveDragReference(Camera, Extent, PointerX, PointerY,
                                                Session.Pivot, Camera.Frame.Forward, Reference);
-    if (!Resolved)
-        return;
+    static_cast<void>(Resolved);
 
     SpatialDirection Offset = {};
     double Value = 0.0;

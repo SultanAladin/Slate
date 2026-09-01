@@ -1358,9 +1358,19 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                             SelectRows[2].Caption = "Show gizmo";
                                             SelectRows[2].Taken   = &SketchGizmo.Shown;
 
+                                            Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
+
+
                                             Discard(SketchToolOptions.Record(
+
+
                                                 LeafBody, "Selection", SymbolSubject::CrosshairCentre,
+
+
                                                 SelectRows, 3u, PointerTaken));
+
+
+                                            Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Beneath));
                                             if (PointerTaken && FrameContext.Dispatch.Owner == PointerOwner::None)
                                                 FrameContext.Dispatch.AdoptLegacyOwner(PointerOwner::PanelControl);
 
@@ -1525,46 +1535,25 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     const Deliver<bool> DirectoryPresentation = SynchroniseParametricPresentation(
                                         SketchRecords, SketchRevisions, SketchDirectoryRows,
                                         SketchDirectoryPresented, SketchDirectoryApplied,
-                                        SketchPendingSelection, SketchDirectorySeeded);
+                                        SketchPendingSelection, SketchDirectorySeeded,
+                                        &SketchSelectionSetState);
                                     if (!DirectoryPresentation.Resolved)
                                         SketchDirectoryPresented.Reclaim();
-                                    if (ParametricToolsApplied.ActiveSubject == ParametricToolSubject::Select
-                                     || SketchWorldTransform.Engaged()
-                                     || IsConstraintTool(ParametricToolsApplied.ActiveSubject))
-                                    {
-                                        DriveViewportSelectionAndTransformWorldBacked(
-                                            LeafBody, BackgroundPointer,
-                                            SketchViewportText, Viewport.Seam().Modifiers(),
-                                            ParametricToolsApplied.ActiveSubject,
-                                            SketchSelection, SketchGizmo,
-                                            SceneCamera,
-                                            SketchDirectoryRows, SketchDirectoryApplied,
-                                            SketchNaming,
-                                            Sketch, SketchWorld, SketchWorldMapping,
-                                            SketchRecords, SketchRevisions,
-                                            SketchPendingSelection, SketchSemanticSelection,
-                                            SketchSelectionSetState,
-                                            SketchHoveredSelection, SketchWorldTransform, LeafOverlay,
-                                            PointerTaken, SketchSessionMilliseconds,
-                                            SketchLastMovePressed);
-                                    }
-                                    else
-                                    {
-                                        DriveViewportSelectionAndTransform(
-                                            LeafBody, BackgroundPointer,
-                                            SketchViewportText, Viewport.Seam().Modifiers(),
-                                            SketchBasis, SketchView, LeafPerspective,
-                                            ParametricToolsApplied.ActiveSubject, SketchSelection, SketchGizmo,
-                                            SketchNaming, SketchDirectoryRows, SketchDirectoryApplied,
-                                            Sketch, SketchRecords, SketchRevisions,
-                                            SketchPendingSelection, SketchSemanticSelection,
-                                            SketchSelectionSetState, SketchHoveredSelection, SketchTransform, LeafOverlay,
-                                            PointerTaken, SketchSessionMilliseconds,
-                                            SketchLastMovePressed,
-                                            static_cast<double>(SketchCornerDistance),
-                                            SketchTrimKeep == 0u);
-                                        MirrorSketchIntoWorldSketch(Sketch, SketchWorld, SketchWorldMapping);
-                                    }
+                                    DriveViewportSelectionAndTransformWorldBacked(
+                                         LeafBody, BackgroundPointer,
+                                         SketchViewportText, Viewport.Seam().Modifiers(),
+                                         ParametricToolsApplied.ActiveSubject,
+                                         SketchSelection, SketchGizmo,
+                                         SceneCamera,
+                                         SketchDirectoryRows, SketchDirectoryApplied,
+                                         SketchNaming,
+                                         Sketch, SketchWorld, SketchWorldMapping,
+                                         SketchRecords, SketchRevisions,
+                                         SketchPendingSelection, SketchSemanticSelection,
+                                         SketchSelectionSetState,
+                                         SketchHoveredSelection, SketchWorldTransform, LeafOverlay,
+                                         PointerTaken, SketchSessionMilliseconds,
+                                         SketchLastMovePressed);
 
                                     if (PointerTaken && FrameContext.Dispatch.Owner == PointerOwner::None)
                                     {
@@ -1593,9 +1582,16 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     ResolvedCamera RenderCamera = SceneCamera;
                                     if (!RenderCamera.Perspective)
                                         RenderCamera.OrthoScale *= SketchDrawable.Factor;
+                                    WorldSelectionSet ActiveWorldSelection = {};
+                                    for (const SketchPick& Item : SketchSelectionSetState.Items)
+                                    {
+                                        WorldPick WPick = {};
+                                        if (ResolveWorldPickForSketchPick(Sketch, SketchRecords, SketchWorld, SketchWorldMapping, Item, WPick))
+                                            SetWorldPick(ActiveWorldSelection, WPick, true);
+                                    }
                                     Discard(ProjectWorldBackedSketchRendering(SketchWorld, RenderCamera,
                                                                               LeafBody, SketchDrawable,
-                                                                              SketchCadPacket));
+                                                                              SketchCadPacket, ActiveWorldSelection));
 
                                     // 🔴 THE SHAPE BEING DRAWN GOES IN THE SAME PACKET AS THE SHAPES
                                     //    ALREADY DRAWN, so the GPU pass rasterises both and NOTHING
@@ -1651,8 +1647,10 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                                       OpenedScene, OpenedSceneStanding,
                                                       WorkspaceSceneRows, SceneApplied,
                                                       CodexMetresToMetres);
+                                Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
                                 RecordOrientationWidget(Viewport.Surface(), LeafBody, GizmoBasis,
-                                                          PanelDeclaredForGizmo.Gizmo == PanelGizmo::Cad);
+                                                        PanelDeclaredForGizmo.Gizmo == PanelGizmo::Cad);
+                                Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Beneath));
 
                                 // 📐 The ground lattice is no longer recorded here. It is solved per
                                 //    pixel in the overlay pass's mode 3, from the camera pushed below,
@@ -1818,7 +1816,11 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                 }
 
                                 const ParametricToolSubject Before = ParametricToolsApplied.ActiveSubject;
+                                Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
+
                                 ParametricTools.Record(LeafBody, ParametricToolsApplied);
+
+                                Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Beneath));
 
                                 // 🔴 CHOOSING A CONSTRUCTION TOOL RAISES ITS POPUP. This is the whole
                                 //    gesture: the tile starts the operation, the popup asks how far, and
@@ -1952,7 +1954,6 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                 }
 
                 Viewport.Seam().LeaveWorkspaceWindow();
-                Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Beneath));
 
                 // ⚠️ Recorded, never acted on inside the sweep. Withdrawing here edits the set being walked.
                 if (!Current)
@@ -2035,7 +2036,8 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                Viewport.Seam().Modifiers());
             SketchDirectory.Advance(BackgroundPointer, Pass.ElapsedMilliseconds,
                                     SketchDirectoryApplied,
-                                    TabPressed && !PointerBehindDrawer);
+                                    TabPressed && !PointerBehindDrawer,
+                                    Viewport.Seam().Modifiers());
 
             // 📝 The search field: while it holds the contact, the seam's typed run feeds the
             //    directory's retention run, and Backspace / Escape edit it. Gated on the panel's own
@@ -2203,7 +2205,6 @@ static std::uint32_t             SketchTrimKeep      = 0u;
 
             if (BrowserInterior.Width() > 0.0f && BrowserInterior.Height() > 0.0f)
             {
-                Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
                 ThemeToken DrawerGround = Viewport.Appearance().Colour.SurfaceCurrent;
                 DrawerGround.Opacity = 255u;
                 Viewport.Surface().Ground(BrowserInterior, DrawerGround, 0.0f, CornerNone);
@@ -2265,7 +2266,6 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                 // 🔴 Declared every tick or lost. Without it the drawer owns every contact inside its own
                 //    body, so taking a record or dragging the lattice slides the drawer instead.
                 ContentBrowser.Exclude(Viewport.Drawers(), DrawerBearing::South);
-                Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Beneath));
             }
 
             const PlaneExtent ControlInterior = Viewport.Drawers().Interior(DrawerBearing::North);
@@ -2274,7 +2274,6 @@ static std::uint32_t             SketchTrimKeep      = 0u;
             //    current choice; the viewport re-states them after each resolve.
             Viewport.ApplyTypographyRoles(ControlCentreValues.TypographySize,
                                           ControlCentreValues.TypographyWeight);
-            Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Above));
             if (ControlInterior.Width() > 0.0f && ControlInterior.Height() > 0.0f)
             {
                 ThemeToken DrawerGround = Viewport.Appearance().Colour.SurfaceCurrent;
@@ -2316,7 +2315,6 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                 }
             }
             ControlCentre.Exclude(Viewport.Drawers());
-            Discard(Viewport.Surface().SwitchLayer(RecordingSurface::ShellLayer::Beneath));
 
             // 🧩 Admission is deliberately drained while the host command recording is open and before the
             // interface begins the display scope. The imported packet has already travelled through source drain,
@@ -2465,6 +2463,12 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                          PhysicalWithheld.MinimumX, PhysicalWithheld.MinimumY,
                                          PhysicalWithheld.MaximumX, PhysicalWithheld.MaximumY);
                 }
+
+                // 🔴 THE INTERFACE IS RECORDED ON TOP OF THE VIEWPORTS. This ensures that floating
+                //    panels (like Selection Tool Options), context menus, docked windows, and the
+                //    Control Centre / Content Browser strips/drawers are drawn with full opacity over
+                //    all 3D viewport grid lines, axes, and sketch curves.
+                Session.RecordInterface(Pass);
             }
         }
 

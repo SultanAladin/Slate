@@ -70,3 +70,14 @@ and update it whenever a folder or subsystem is added, moved, or renamed.
 - Vendor spellings are verbatim: `VkBuffer`, `VkPipeline`, `ImDrawData`.
 - Do not reference any rules outside of the project or memory.
 
+---
+
+## 📝 Vendored Dependencies & ImGui Multi-Band Extension
+
+- `ExternalPackages/imgui/backends/imgui_impl_vulkan.h` and `imgui_impl_vulkan.cpp` contain an engine extension:
+  - `ImGui_ImplVulkan_RenderDrawDataBand(draw_data, command_buffer, band_mode, pipeline)` where `band_mode` selects:
+    - `0`: All draw lists
+    - `1`: Beneath band (background + docked window grounds)
+    - `2`: Above band (foreground draw lists: drawers, tool options, context menus, and popups)
+  - This allows the engine to render the 3D viewport CAD/overlay passes between the window grounds and the foreground UI with 100% solid opacity without vertex buffer reallocation.
+

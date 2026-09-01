@@ -195,6 +195,12 @@ public:
     /// tag   api, nonthrowing
     Deliver<bool> Record(VkCommandBuffer CommandRecording);
 
+    /// 🧩 Records the background and docked windows (the lower interface band).
+    Deliver<bool> RecordBeneath(VkCommandBuffer CommandRecording);
+
+    /// 🧩 Records the foreground layer (drawers, tool options, popups).
+    Deliver<bool> RecordAbove(VkCommandBuffer CommandRecording);
+
     /// 🧩 Whether the interface has taken the pointer, so that `22` must not treat it as a canvas stroke.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing

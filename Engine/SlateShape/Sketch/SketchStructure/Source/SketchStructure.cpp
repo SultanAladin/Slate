@@ -352,6 +352,119 @@ Deliver<ProfileNameInFeature> SketchStructure::DeclareSlot(const SpatialPoint& S
     return Deliver<ProfileNameInFeature>::Result(DeclareProfile(Profile));
 }
 
+Deliver<ProfileNameInFeature> SketchStructure::DeclarePolylineSlot(const std::vector<SpatialPoint>& Spine,
+                                                                   double Radius)
+{
+    return DeclarePolylineSlot(Spine, Radius, Plane);
+}
+
+Deliver<ProfileNameInFeature> SketchStructure::DeclarePolylineSlot(const std::vector<SpatialPoint>& Spine,
+                                                                   double Radius,
+                                                                   const SketchPlane& ActivePlane)
+{
+    if (!ActivePlane.Declared())
+        return Deliver<ProfileNameInFeature>::Refuse({ RefusalReason::ContentUnsupported, "the sketch plane is not declared" });
+    if (Radius <= 0.0)
+        return Deliver<ProfileNameInFeature>::Refuse({ RefusalReason::ContentUnsupported, "the slot requires a positive radius" });
+    if (Spine.size() < 2u)
+        return Deliver<ProfileNameInFeature>::Refuse({ RefusalReason::ContentUnsupported, "the slot requires at least two points" });
+
+    if (Spine.size() == 2u)
+        return DeclareSlot(Spine[0], Spine[1], Radius, ActivePlane);
+
+    constexpr double HalfTurn = 3.141592653589793;
+    const std::size_t SegmentCount = Spine.size() - 1u;
+
+    std::vector<SpatialDirection> SideDirs;
+    SideDirs.reserve(SegmentCount);
+    for (std::size_t i = 0u; i < SegmentCount; ++i)
+    {
+        const SpatialDirection AxisOffset = Difference(Spine[i], Spine[i + 1u]);
+        if (LengthSquared(AxisOffset) <= 1.0e-12)
+            continue;
+        const SpatialDirection AxisDir = Normalize(AxisOffset);
+        SideDirs.push_back(Normalize(Cross(ActivePlane.Normal, AxisDir)));
+    }
+
+    if (SideDirs.empty())
+        return Deliver<ProfileNameInFeature>::Refuse({ RefusalReason::ContentUnsupported, "the slot spine points are degenerate" });
+
+    std::vector<SketchCurveName> ForwardCurves;
+    std::vector<SketchCurveName> BackwardCurves;
+
+    for (std::size_t i = 0u; i < SegmentCount; ++i)
+    {
+        const SpatialDirection& Side = SideDirs[i];
+        const SpatialPoint StartUpper = Added(Spine[i], Scaled(Side, Radius));
+        const SpatialPoint EndUpper = Added(Spine[i + 1u], Scaled(Side, Radius));
+        const SketchCurveName LineCurv = DeclareLine(StartUpper, EndUpper);
+        ForwardCurves.push_back(LineCurv);
+
+        if (i + 1u < SegmentCount)
+        {
+            const SpatialDirection& NextSide = SideDirs[i + 1u];
+            const SpatialPoint NextStartUpper = Added(Spine[i + 1u], Scaled(NextSide, Radius));
+            if (LengthSquared(Difference(EndUpper, NextStartUpper)) > 1.0e-8)
+            {
+                const SketchCurveName JoinLine = DeclareLine(EndUpper, NextStartUpper);
+                ForwardCurves.push_back(JoinLine);
+            }
+        }
+    }
+
+    CircularArcCurve EndCap = {};
+    EndCap.Centre         = Spine.back();
+    EndCap.Normal         = ActivePlane.Normal;
+    EndCap.StartDirection = SideDirs.back();
+    EndCap.Radius         = Radius;
+    EndCap.SweepRadians   = -HalfTurn;
+    const SketchCurveName EndArc = DeclareCurve(CurveSpecification::DeclareCircularArc(EndCap, { 0.0, 1.0 }));
+
+    for (std::size_t i = SegmentCount; i > 0u; --i)
+    {
+        const std::size_t segIdx = i - 1u;
+        const SpatialDirection& Side = SideDirs[segIdx];
+        const SpatialPoint EndLower = Added(Spine[segIdx + 1u], Scaled(Side, -Radius));
+        const SpatialPoint StartLower = Added(Spine[segIdx], Scaled(Side, -Radius));
+        const SketchCurveName LineCurv = DeclareLine(EndLower, StartLower);
+        BackwardCurves.push_back(LineCurv);
+
+        if (segIdx > 0u)
+        {
+            const SpatialDirection& PriorSide = SideDirs[segIdx - 1u];
+            const SpatialPoint PriorEndLower = Added(Spine[segIdx], Scaled(PriorSide, -Radius));
+            if (LengthSquared(Difference(StartLower, PriorEndLower)) > 1.0e-8)
+            {
+                const SketchCurveName JoinLine = DeclareLine(StartLower, PriorEndLower);
+                BackwardCurves.push_back(JoinLine);
+            }
+        }
+    }
+
+    CircularArcCurve StartCap = {};
+    StartCap.Centre         = Spine.front();
+    StartCap.Normal         = ActivePlane.Normal;
+    StartCap.StartDirection = Negated(SideDirs.front());
+    StartCap.Radius         = Radius;
+    StartCap.SweepRadians   = -HalfTurn;
+    const SketchCurveName StartArc = DeclareCurve(CurveSpecification::DeclareCircularArc(StartCap, { 0.0, 1.0 }));
+
+    ProfileSpecification Profile;
+    Profile.DeclarePlane({ ActivePlane.Origin, ActivePlane.Normal, ActivePlane.AlongDirection });
+    ProfileLoop Loop;
+    Loop.Orientation = ProfileLoopOrientation::Outer;
+
+    for (const SketchCurveName& Curv : ForwardCurves)
+        Loop.Traversal.push_back({ CurveReferenceOf(Curv), true });
+    Loop.Traversal.push_back({ CurveReferenceOf(EndArc), true });
+    for (const SketchCurveName& Curv : BackwardCurves)
+        Loop.Traversal.push_back({ CurveReferenceOf(Curv), true });
+    Loop.Traversal.push_back({ CurveReferenceOf(StartArc), true });
+
+    Profile.DeclareLoop(Loop);
+    return Deliver<ProfileNameInFeature>::Result(DeclareProfile(Profile));
+}
+
 bool SketchStructure::Declared() const
 {
     if (!PlaneStanding || !Plane.Declared())

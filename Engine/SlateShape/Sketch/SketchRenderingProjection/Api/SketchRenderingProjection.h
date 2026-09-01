@@ -27,7 +27,7 @@ struct SketchRenderingStyle
     Unsigned32 ProfileFillColour = PackWorkspaceCadColour(96u, 165u, 250u, 52u);
     Unsigned32 SurfaceFillColour = PackWorkspaceCadColour(52u, 211u, 153u, 60u);
     Unsigned32 SolidFillColour = PackWorkspaceCadColour(16u, 185u, 129u, 84u);
-    Unsigned32 PointColour = PackWorkspaceCadColour(244u, 244u, 245u, 255u);
+    Unsigned32 PointColour = PackWorkspaceCadColour(16u, 185u, 129u, 255u);
     Unsigned32 ConstraintColour = PackWorkspaceCadColour(168u, 85u, 247u, 255u);
     Unsigned32 DimensionColour = PackWorkspaceCadColour(245u, 158u, 11u, 255u);
     Real32 CurveThickness = 1.6f;
@@ -41,7 +41,7 @@ struct SketchRenderingStyle
     // 🔴 The shape under the pointer and the anchors shaping it. The preview reads warmer than the
     //    committed blue so an artist can tell at a glance what is placed and what is still being drawn.
     Unsigned32 PreviewCurveColour = PackWorkspaceCadColour(91u, 140u, 255u, 235u);
-    Unsigned32 ControlColour = PackWorkspaceCadColour(250u, 204u, 21u, 255u);
+    Unsigned32 ControlColour = PackWorkspaceCadColour(168u, 85u, 247u, 255u);
     Real32 ControlRadius = 4.0f;
 };
 

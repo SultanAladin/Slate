@@ -236,7 +236,6 @@ const char* WorkspaceShapeFamilyText(WorkspaceShapeFamily Family)
         case WorkspaceShapeFamily::Slot:          return "Slot";
         case WorkspaceShapeFamily::Circle:        return "Circle";
         case WorkspaceShapeFamily::Ellipse:       return "Ellipse";
-        case WorkspaceShapeFamily::EllipticalArc: return "Elliptical Arc";
         case WorkspaceShapeFamily::Profile:       return "Profile";
         case WorkspaceShapeFamily::Surface:       return "Surface";
         case WorkspaceShapeFamily::Solid:         return "Solid";

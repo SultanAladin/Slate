@@ -169,11 +169,6 @@ const ToolEntry SketchDrawTools[] =
       0u, 0u, 0u, 0u, 0u, 0u, 0u,
       { { "Snap", "Grid" }, { "Construction", "On" } }, 2u },
 
-    { "Elliptical Arc", "", SymbolSubject::CurveTangent, ParametricToolDimension::Nothing,
-      false, true, false, false, false, false, false, false, false, false, false, false, false, false,
-      0u, 0u, 0u, 0u, 0u, 0u, 0u,
-      { { "Defined By", "centre + radii + sweep" } }, 1u },
-
     { "Bezier", "", SymbolSubject::CurveTangent, ParametricToolDimension::Nothing,
       false, true, false, false, false, false, false, false, false, false, false, false, false, false,
       0u, 0u, 0u, 0u, 0u, 0u, 0u,
@@ -560,14 +555,13 @@ ParametricToolSubject ToolSubjectOf(std::uint32_t BandIndex, std::uint32_t ToolI
                  : ToolIndex == 4u ? ParametricToolSubject::Arc
                  : ToolIndex == 5u ? ParametricToolSubject::Ellipse
                  : ToolIndex == 6u ? ParametricToolSubject::Point
-                 : ToolIndex == 7u ? ParametricToolSubject::EllipticalArc
-                 : ToolIndex == 8u ? ParametricToolSubject::BezierCurve
-                 : ToolIndex == 9u ? ParametricToolSubject::HermiteCurve
-                 : ToolIndex == 10u ? ParametricToolSubject::BasisSpline
-                 : ToolIndex == 11u ? ParametricToolSubject::RationalSpline
-                 : ToolIndex == 12u ? ParametricToolSubject::ConstructionLine
-                 : ToolIndex == 13u ? ParametricToolSubject::TangentArc
-                 : ToolIndex == 14u ? ParametricToolSubject::Polygon
+                 : ToolIndex == 7u ? ParametricToolSubject::BezierCurve
+                 : ToolIndex == 8u ? ParametricToolSubject::HermiteCurve
+                 : ToolIndex == 9u ? ParametricToolSubject::BasisSpline
+                 : ToolIndex == 10u ? ParametricToolSubject::RationalSpline
+                 : ToolIndex == 11u ? ParametricToolSubject::ConstructionLine
+                 : ToolIndex == 12u ? ParametricToolSubject::TangentArc
+                 : ToolIndex == 13u ? ParametricToolSubject::Polygon
                                     : ParametricToolSubject::Slot;
         case 1u:
             return ToolIndex == 0u ? ParametricToolSubject::Fillet

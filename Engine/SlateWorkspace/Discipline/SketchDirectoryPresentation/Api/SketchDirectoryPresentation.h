@@ -127,6 +127,8 @@ void SeatParametricContext(const WorkspaceDirectoryProjection& Directory,
                            ParametricWorkspaceContext& Applied,
                            bool& Seeded);
 
+struct SketchSelectionSet;
+
 /// 🧩 Brings the whole sketch directory presentation up to date after the records change.
 /// note 📝 Directory, inspector, revision list and selection in one call, because they are only ever
 ///       correct together — a directory rebuilt without reseating the context shows rows that select the
@@ -137,6 +139,7 @@ Deliver<bool> SynchroniseParametricPresentation(const WorkspaceRecordStructure& 
                                                 SketchDirectoryPresentation& Bridge,
                                                 ParametricWorkspaceContext& Applied,
                                                 WorkspaceRecordName& PendingSelection,
-                                                bool& Seeded);
+                                                bool& Seeded,
+                                                const SketchSelectionSet* SelectionSet = nullptr);
 
 }   // namespace Slate

@@ -309,6 +309,7 @@ Deliver<bool> ProjectWorldSketchRendering(const WorldSketchStructure& Declared,
                                          const ResolvedCamera& Camera,
                                          const PlaneExtent& PhysicalExtent,
                                          WorkspaceCadPacket& Delivered,
+                                         const WorldSelectionSet& Selection,
                                          const WorldSketchRenderingStyle& Style,
                                          double ClosureTolerance,
                                          double CoplanarTolerance)
@@ -321,16 +322,69 @@ Deliver<bool> ProjectWorldSketchRendering(const WorldSketchStructure& Declared,
         if (!ResolveCurvePolyline(Declared, { CurveIndex }, Camera, Style.CurveSteps, Polyline))
             continue;
 
+        bool IsSelectedCurve = false;
+        for (const WorldPick& Pick : Selection.Items)
+        {
+            if (Pick.Subject == WorldPickSubject::Curve && Pick.Curve.IssuedIndex == CurveIndex)
+            {
+                IsSelectedCurve = true;
+                break;
+            }
+            if (Pick.Subject == WorldPickSubject::Point && Pick.Curve.IssuedIndex == CurveIndex)
+            {
+                IsSelectedCurve = true;
+                break;
+            }
+            if (Pick.Subject == WorldPickSubject::Control && Pick.Curve.IssuedIndex == CurveIndex)
+            {
+                IsSelectedCurve = true;
+                break;
+            }
+            if (Pick.Subject == WorldPickSubject::Loop && Pick.Loop.Assigned())
+            {
+                const DeclaredWorldLoop* Loop = Declared.Resolve(Pick.Loop);
+                if (Loop != nullptr)
+                {
+                    for (const WorldCurveUse& Use : Loop->Traversal)
+                    {
+                        if (Use.TraversedCurve.IssuedIndex == CurveIndex)
+                        {
+                            IsSelectedCurve = true;
+                            break;
+                        }
+                    }
+                }
+                if (IsSelectedCurve)
+                    break;
+            }
+        }
+
+        const Unsigned32 LineColour = IsSelectedCurve ? Style.SelectedCurveColour : Style.CurveColour;
+        const Real32 LineThickness = IsSelectedCurve ? Style.SelectedCurveThickness : Style.CurveThickness;
+
         for (std::size_t PointIndex = 0u; PointIndex + 1u < Polyline.size(); ++PointIndex)
             AppendClippedSegment(Camera, PhysicalExtent,
                                  Polyline[PointIndex], Polyline[PointIndex + 1u],
-                                 Style.CurveColour, Style.CurveThickness, Delivered);
+                                 LineColour, LineThickness, Delivered);
     }
 
     const WorldSketchAnalysis Analysis = AnalyzeWorldSketch(Declared, Style.CurveSteps,
                                                           ClosureTolerance, CoplanarTolerance);
     for (const WorldLoopAnalysisRecord& Loop : Analysis.Loops)
-        AppendFillForLoop(Loop, Camera, PhysicalExtent, Style.FillColour, Delivered);
+    {
+        bool IsSelectedLoop = false;
+        for (const WorldPick& Pick : Selection.Items)
+        {
+            if (Pick.Subject == WorldPickSubject::Loop && Pick.Loop.IssuedIndex == Loop.Loop.IssuedIndex)
+            {
+                IsSelectedLoop = true;
+                break;
+            }
+        }
+        AppendFillForLoop(Loop, Camera, PhysicalExtent,
+                          IsSelectedLoop ? Style.SelectedFillColour : Style.FillColour,
+                          Delivered);
+    }
 
     return Deliver<bool>::Result(true);
 }

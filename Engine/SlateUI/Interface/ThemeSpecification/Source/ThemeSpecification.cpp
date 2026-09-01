@@ -22,7 +22,7 @@ namespace
 //    silently into the standing copy.
 constexpr ThemeDeclaration TranscribedThemes[ThemeLimit] = {
     {"OLED", Covering(0x000000u), Covering(0x09090Bu), Covering(0xF4F4F5u), Covering(0x71717Au),
-     Partial(0x27272Au, .80), Covering(0x121214u), Covering(0x000000u), Covering(0x121214u),
+     Covering(0x27272Au), Covering(0x121214u), Covering(0x000000u), Covering(0x121214u),
      Covering(0x09090Bu), Covering(0x151517u), Covering(0x222223u),
      Covering(0x1E1E20u), Covering(0x2A2A2Cu)},
     {"Dark", Covering(0x0A0A0Au), Covering(0x18181Bu), Covering(0xF4F4F5u), Covering(0xA1A1AAu),
@@ -38,11 +38,11 @@ constexpr ThemeDeclaration TranscribedThemes[ThemeLimit] = {
      Covering(0xE8D5B5u), Covering(0xE3C99Du), Covering(0xE1C291u),
      Covering(0xEAD2A6u), Covering(0xE6C897u)},
     {"Lavender", Covering(0x0F0A1Cu), Covering(0x17102Bu), Covering(0xF3E8FFu), Covering(0xC084FCu),
-     Partial(0x581C87u, .50), Covering(0x1D1438u), Covering(0x1F163Du), Covering(0x2D2054u),
+     Covering(0x581C87u), Covering(0x1D1438u), Covering(0x1F163Du), Covering(0x2D2054u),
      Covering(0x23174Au), Covering(0x47366Eu), Covering(0x6B5692u),
      Covering(0x4F3E76u), Covering(0x715B98u)},
     {"Nord", Covering(0x09111Cu), Covering(0x0F1B2Du), Covering(0xDBEAFEu), Covering(0x60A5FAu),
-     Partial(0x1E3A8Au, .50), Covering(0x15253Du), Covering(0x1A2D4Au), Covering(0x264066u),
+     Covering(0x1E3A8Au), Covering(0x15253Du), Covering(0x1A2D4Au), Covering(0x264066u),
      Covering(0x1C3152u), Covering(0x344F74u), Covering(0x4C6C96u),
      Covering(0x3C5B84u), Covering(0x5275A2u)}};
 

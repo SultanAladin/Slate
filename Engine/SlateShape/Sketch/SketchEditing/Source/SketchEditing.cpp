@@ -270,7 +270,6 @@ Deliver<bool> EnforceSketchControl(SketchStructure& Declared,
         case CurveSubject::Ellipse:
         {
             EllipseCurve& Ellipse = Held->Geometry.HeldEllipse();
-            const SpatialDirection MajorDirection = Normalize(Ellipse.MajorDirection);
             switch (ControlSubject)
             {
                 case SketchControlSubject::Centre:
@@ -278,11 +277,13 @@ Deliver<bool> EnforceSketchControl(SketchStructure& Declared,
                     return Deliver<bool>::Result(true);
                 case SketchControlSubject::MajorAxis:
                     Ellipse.MajorRadius = std::sqrt(LengthSquared(Difference(Ellipse.Centre, Position)));
-                    Ellipse.MajorDirection = Normalize(Difference(Ellipse.Centre, Position));
+                    if (LocalIndex == 0u)
+                        Ellipse.MajorDirection = Normalize(Difference(Ellipse.Centre, Position));
+                    else if (LocalIndex == 1u)
+                        Ellipse.MajorDirection = Normalize(Difference(Position, Ellipse.Centre));
                     return Deliver<bool>::Result(true);
                 case SketchControlSubject::MinorAxis:
                     Ellipse.MinorRadius = std::sqrt(LengthSquared(Difference(Ellipse.Centre, Position)));
-                    (void)MajorDirection;
                     return Deliver<bool>::Result(true);
                 default:
                     return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the ellipse control is unsupported" });
@@ -308,6 +309,18 @@ Deliver<bool> EnforceSketchControl(SketchStructure& Declared,
             return Deliver<bool>::Result(true);
 
         case CurveSubject::Hermite:
+            if (Held->Geometry.HeldHermite().ControlPoints.size() >= 2u)
+            {
+                if (LocalIndex < Held->Geometry.HeldHermite().ControlPoints.size())
+                {
+                    if (Held->Geometry.HeldHermite().Tangents.size() <= LocalIndex)
+                        Held->Geometry.HeldHermite().Tangents.resize(Held->Geometry.HeldHermite().ControlPoints.size());
+                    Held->Geometry.HeldHermite().Tangents[LocalIndex] =
+                        Difference(Held->Geometry.HeldHermite().ControlPoints[LocalIndex], Position);
+                    return Deliver<bool>::Result(true);
+                }
+                return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the hermite control is unsupported" });
+            }
             if (ControlSubject == SketchControlSubject::StartTangent)
             {
                 Held->Geometry.HeldHermite().StartTangent = Difference(Held->Geometry.HeldHermite().StartPoint, Position);

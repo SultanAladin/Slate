@@ -45,15 +45,14 @@ enum class SketchSubject : std::uint32_t
     Circle         =  5u,
     Ellipse        =  6u,
     Arc            =  7u,   // [-] - a circular arc
-    EllipticalArc  =  8u,
-    Polygon        =  9u,   // [-] - regular, n-sided
-    Slot           = 10u,   // [-] - two centres and a radius; `DeclareSlot`, no other shape produces it
-    Bezier         = 11u,
-    BasisSpline    = 12u,
-    RationalSpline = 13u,   // [-] - NURBS
-    Hermite        = 14u,
-    Dimension      = 15u,   // [-] - measures between two resolved features; places no curve
-    SubjectCount   = 16u    // [-] - the closed count, never a subject
+    Polygon        =  8u,   // [-] - regular, n-sided
+    Slot           =  9u,   // [-] - two centres and a radius; `DeclareSlot`, no other shape produces it
+    Bezier         = 10u,
+    BasisSpline    = 11u,
+    RationalSpline = 12u,   // [-] - NURBS
+    Hermite        = 13u,
+    Dimension      = 14u,   // [-] - measures between two resolved features; places no curve
+    SubjectCount   = 15u    // [-] - the closed count, never a subject
 };
 
 /// 🧩 How the artist points at a shape. HOW it is drawn, never what.
@@ -113,9 +112,6 @@ constexpr bool AcceptedBy(SketchSubject Subject, PlacementMethod Method)
             return Method == PlacementMethod::Centred ||
                    Method == PlacementMethod::ThreePoint ||
                    Method == PlacementMethod::Tangent;
-
-        case SketchSubject::EllipticalArc:
-            return Method == PlacementMethod::Centred || Method == PlacementMethod::ThreePoint;
 
         case SketchSubject::Polygon:
             return Method == PlacementMethod::Centred;
@@ -187,7 +183,6 @@ constexpr PlacementDeclaration DeclaredPlacement(SketchSubject Subject,
             case SketchSubject::Rectangle:     return { 3u, PlacementClosure::Sufficient, true,  "3-Point Rectangle" };
             case SketchSubject::Circle:        return { 3u, PlacementClosure::Sufficient, true,  "3-Point Circle" };
             case SketchSubject::Arc:           return { 3u, PlacementClosure::Sufficient, false, "3-Point Arc" };
-            case SketchSubject::EllipticalArc: return { 3u, PlacementClosure::Sufficient, false, "3-Point Elliptical Arc" };
             default:                           return { 0u, PlacementClosure::Sufficient, false, "" };
         }
     }
@@ -198,10 +193,9 @@ constexpr PlacementDeclaration DeclaredPlacement(SketchSubject Subject,
         {
             case SketchSubject::Rectangle:     return { 2u, PlacementClosure::Sufficient, true,  "Centred Rectangle" };
             case SketchSubject::Circle:        return { 2u, PlacementClosure::Sufficient, true,  "Centred Circle" };
-            case SketchSubject::Ellipse:       return { 2u, PlacementClosure::Sufficient, true,  "Centred Ellipse" };
+            case SketchSubject::Ellipse:       return { 3u, PlacementClosure::Sufficient, true,  "Centred Ellipse" };
             case SketchSubject::Polygon:       return { 2u, PlacementClosure::Sufficient, true,  "Polygon" };
             case SketchSubject::Arc:           return { 3u, PlacementClosure::Sufficient, false, "Centred Arc" };
-            case SketchSubject::EllipticalArc: return { 3u, PlacementClosure::Sufficient, false, "Centred Elliptical Arc" };
             default:                           return { 0u, PlacementClosure::Sufficient, false, "" };
         }
     }
@@ -211,7 +205,7 @@ constexpr PlacementDeclaration DeclaredPlacement(SketchSubject Subject,
         switch (Subject)
         {
             case SketchSubject::Circle:  return { 2u, PlacementClosure::Sufficient, true, "Diameter Circle" };
-            case SketchSubject::Ellipse: return { 2u, PlacementClosure::Sufficient, true, "Diameter Ellipse" };
+            case SketchSubject::Ellipse: return { 3u, PlacementClosure::Sufficient, true, "Diameter Ellipse" };
             default:                     return { 0u, PlacementClosure::Sufficient, false, "" };
         }
     }
@@ -226,10 +220,9 @@ constexpr PlacementDeclaration DeclaredPlacement(SketchSubject Subject,
         case SketchSubject::Line:           return { 2u, PlacementClosure::Sufficient, false, "Line" };
         case SketchSubject::Rectangle:      return { 2u, PlacementClosure::Sufficient, true,  "Rectangle" };
         case SketchSubject::Circle:         return { 2u, PlacementClosure::Sufficient, true,  "Circle" };
-        case SketchSubject::Ellipse:        return { 2u, PlacementClosure::Sufficient, true,  "Ellipse" };
+        case SketchSubject::Ellipse:        return { 3u, PlacementClosure::Sufficient, true,  "Ellipse" };
         case SketchSubject::Arc:            return { 3u, PlacementClosure::Sufficient, false, "Arc" };
-        case SketchSubject::EllipticalArc:  return { 3u, PlacementClosure::Sufficient, false, "Elliptical Arc" };
-        case SketchSubject::Slot:           return { 3u, PlacementClosure::Sufficient, true,  "Slot" };
+        case SketchSubject::Slot:           return { 2u, PlacementClosure::Terminated, true,  "Slot" };
         case SketchSubject::Polyline:       return { 2u, PlacementClosure::Terminated, false, "Polyline" };
         case SketchSubject::Bezier:         return { 2u, PlacementClosure::Terminated, false, "Bezier" };
         case SketchSubject::BasisSpline:    return { 3u, PlacementClosure::Terminated, false, "Basis Spline" };
@@ -286,7 +279,6 @@ constexpr SketchToolSelection SelectedTool(ParametricToolSubject Tile)
         case ParametricToolSubject::Circle:               return { SketchSubject::Circle,         PlacementMethod::Centred };
         case ParametricToolSubject::Ellipse:              return { SketchSubject::Ellipse,        PlacementMethod::Centred };
         case ParametricToolSubject::Arc:                  return { SketchSubject::Arc,            PlacementMethod::ThreePoint };
-        case ParametricToolSubject::EllipticalArc:        return { SketchSubject::EllipticalArc,  PlacementMethod::ThreePoint };
         case ParametricToolSubject::Polygon:              return { SketchSubject::Polygon,        PlacementMethod::Centred };
         case ParametricToolSubject::Slot:                 return { SketchSubject::Slot,           PlacementMethod::Extent };
         case ParametricToolSubject::LinearDimension:      return { SketchSubject::Dimension,      PlacementMethod::Extent };
@@ -583,6 +575,7 @@ private:
     //    the state the extrude and loft operations need.
     bool                             ClosedProfileDeclared = true;                   // [-]
     std::uint32_t                    SideCount            = PolygonSideDefault;      // [-] - polygon only
+    bool                             SpineFinished        = false;                   // [-] - polyline slot only
 };
 
 }   // namespace Slate

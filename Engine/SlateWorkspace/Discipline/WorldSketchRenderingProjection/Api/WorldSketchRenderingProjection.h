@@ -12,6 +12,7 @@
 #include "Shared/WorkspaceCadPacket.slang.h"
 #include "SlateShape/World/WorldSketchStructure/Api/WorldSketchStructure.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/ViewportProjection.h"
+#include "SlateWorkspace/Discipline/WorldSketchTransformSession/Api/WorldSketchTransformSession.h"
 
 namespace Slate
 {
@@ -19,8 +20,11 @@ namespace Slate
 struct WorldSketchRenderingStyle
 {
     Unsigned32 CurveColour = PackWorkspaceCadColour(96u, 165u, 250u, 255u);
+    Unsigned32 SelectedCurveColour = PackWorkspaceCadColour(255u, 255u, 255u, 255u);
     Unsigned32 FillColour = PackWorkspaceCadColour(96u, 165u, 250u, 52u);
+    Unsigned32 SelectedFillColour = PackWorkspaceCadColour(255u, 255u, 255u, 75u);
     Real32 CurveThickness = 1.6f;
+    Real32 SelectedCurveThickness = 2.4f;
     Unsigned32 CurveSteps = 48u;
 };
 
@@ -36,6 +40,7 @@ Deliver<bool> ProjectWorldSketchRendering(const WorldSketchStructure& Declared,
                                          const ResolvedCamera& Camera,
                                          const PlaneExtent& PhysicalExtent,
                                          WorkspaceCadPacket& Delivered,
+                                         const WorldSelectionSet& Selection = {},
                                          const WorldSketchRenderingStyle& Style = {},
                                          double ClosureTolerance = 0.01,
                                          double CoplanarTolerance = 0.01);

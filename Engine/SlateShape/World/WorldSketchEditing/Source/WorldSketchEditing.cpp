@@ -454,10 +454,16 @@ Deliver<bool> EnforceWorldSketchControl(WorldSketchStructure& Declared,
                     InvalidateCurveSupportFrame(*Held);
                     return Deliver<bool>::Result(true);
                 case WorldControlSubject::Radius:
-                    Circle.StartDirection = Normalize(Difference(Circle.Centre, Position));
-                    Circle.Radius = std::sqrt(LengthSquared(Difference(Circle.Centre, Position)));
+                {
+                    const double Dist = std::sqrt(LengthSquared(Difference(Circle.Centre, Position)));
+                    if (Dist > 1.0e-6)
+                    {
+                        Circle.StartDirection = Normalize(Difference(Circle.Centre, Position));
+                        Circle.Radius = Dist;
+                    }
                     InvalidateCurveSupportFrame(*Held);
                     return Deliver<bool>::Result(true);
+                }
                 default:
                     return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the world circle control is unsupported" });
             }
@@ -496,14 +502,27 @@ Deliver<bool> EnforceWorldSketchControl(WorldSketchStructure& Declared,
                     InvalidateCurveSupportFrame(*Held);
                     return Deliver<bool>::Result(true);
                 case WorldControlSubject::MajorAxis:
-                    Ellipse.MajorRadius = std::sqrt(LengthSquared(Difference(Ellipse.Centre, Position)));
-                    Ellipse.MajorDirection = Normalize(Difference(Ellipse.Centre, Position));
+                {
+                    const double Dist = std::sqrt(LengthSquared(Difference(Ellipse.Centre, Position)));
+                    if (Dist > 1.0e-6)
+                    {
+                        Ellipse.MajorRadius = Dist;
+                        if (LocalIndex == 0u)
+                            Ellipse.MajorDirection = Normalize(Difference(Ellipse.Centre, Position));
+                        else if (LocalIndex == 1u)
+                            Ellipse.MajorDirection = Normalize(Difference(Position, Ellipse.Centre));
+                    }
                     InvalidateCurveSupportFrame(*Held);
                     return Deliver<bool>::Result(true);
+                }
                 case WorldControlSubject::MinorAxis:
-                    Ellipse.MinorRadius = std::sqrt(LengthSquared(Difference(Ellipse.Centre, Position)));
+                {
+                    const double Dist = std::sqrt(LengthSquared(Difference(Ellipse.Centre, Position)));
+                    if (Dist > 1.0e-6)
+                        Ellipse.MinorRadius = Dist;
                     InvalidateCurveSupportFrame(*Held);
                     return Deliver<bool>::Result(true);
+                }
                 default:
                     return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the world ellipse control is unsupported" });
             }

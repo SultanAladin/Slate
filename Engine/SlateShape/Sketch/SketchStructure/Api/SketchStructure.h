@@ -82,6 +82,11 @@ public:
                                               const SpatialPoint& EndPoint,
                                               double Radius,
                                               const SketchPlane& ActivePlane);
+    Deliver<ProfileNameInFeature> DeclarePolylineSlot(const std::vector<SpatialPoint>& Spine,
+                                                      double Radius);
+    Deliver<ProfileNameInFeature> DeclarePolylineSlot(const std::vector<SpatialPoint>& Spine,
+                                                      double Radius,
+                                                      const SketchPlane& ActivePlane);
 
     const SketchPlane& HeldPlane() const { return Plane; }
 

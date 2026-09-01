@@ -152,8 +152,6 @@ bool ResolveWorldSketchControls(const WorldSketchStructure& Declared,
         case CurveSubject::CircularArc:
         {
             const CircularArcCurve& Arc = Held->Geometry.HeldCircularArc();
-            Resolved.push_back({ EncodeControlName(SourceCurve, WorldControlSubject::Centre, 0u), SourceCurve,
-                                 WorldControlSubject::Centre, 0u, Arc.Centre });
             Resolved.push_back({ EncodeControlName(SourceCurve, WorldControlSubject::Radius, 0u), SourceCurve,
                                  WorldControlSubject::Radius, 0u,
                                  Added(Arc.Centre, Scaled(Normalize(Arc.StartDirection), Arc.Radius)) });
@@ -167,7 +165,8 @@ bool ResolveWorldSketchControls(const WorldSketchStructure& Declared,
         {
             const CircleCurve& Circle = Held->Geometry.HeldCircle();
             Resolved.push_back({ EncodeControlName(SourceCurve, WorldControlSubject::Centre, 0u), SourceCurve,
-                                 WorldControlSubject::Centre, 0u, Circle.Centre });
+                                 WorldControlSubject::Centre, 0u,
+                                 Circle.Centre });
             Resolved.push_back({ EncodeControlName(SourceCurve, WorldControlSubject::Radius, 0u), SourceCurve,
                                  WorldControlSubject::Radius, 0u,
                                  Added(Circle.Centre, Scaled(Normalize(Circle.StartDirection), Circle.Radius)) });
@@ -180,7 +179,8 @@ bool ResolveWorldSketchControls(const WorldSketchStructure& Declared,
             const SpatialDirection MajorDirection = Normalize(Arc.MajorDirection);
             const SpatialDirection MinorDirection = Normalize(Cross(Arc.Normal, MajorDirection));
             Resolved.push_back({ EncodeControlName(SourceCurve, WorldControlSubject::Centre, 0u), SourceCurve,
-                                 WorldControlSubject::Centre, 0u, Arc.Centre });
+                                 WorldControlSubject::Centre, 0u,
+                                 Arc.Centre });
             Resolved.push_back({ EncodeControlName(SourceCurve, WorldControlSubject::MajorAxis, 0u), SourceCurve,
                                  WorldControlSubject::MajorAxis, 0u,
                                  Added(Arc.Centre, Scaled(MajorDirection, Arc.MajorRadius)) });
@@ -196,13 +196,20 @@ bool ResolveWorldSketchControls(const WorldSketchStructure& Declared,
             const SpatialDirection MajorDirection = Normalize(Ellipse.MajorDirection);
             const SpatialDirection MinorDirection = Normalize(Cross(Ellipse.Normal, MajorDirection));
             Resolved.push_back({ EncodeControlName(SourceCurve, WorldControlSubject::Centre, 0u), SourceCurve,
-                                 WorldControlSubject::Centre, 0u, Ellipse.Centre });
+                                 WorldControlSubject::Centre, 0u,
+                                 Ellipse.Centre });
             Resolved.push_back({ EncodeControlName(SourceCurve, WorldControlSubject::MajorAxis, 0u), SourceCurve,
                                  WorldControlSubject::MajorAxis, 0u,
                                  Added(Ellipse.Centre, Scaled(MajorDirection, Ellipse.MajorRadius)) });
+            Resolved.push_back({ EncodeControlName(SourceCurve, WorldControlSubject::MajorAxis, 1u), SourceCurve,
+                                 WorldControlSubject::MajorAxis, 1u,
+                                 Added(Ellipse.Centre, Scaled(MajorDirection, -Ellipse.MajorRadius)) });
             Resolved.push_back({ EncodeControlName(SourceCurve, WorldControlSubject::MinorAxis, 0u), SourceCurve,
                                  WorldControlSubject::MinorAxis, 0u,
                                  Added(Ellipse.Centre, Scaled(MinorDirection, Ellipse.MinorRadius)) });
+            Resolved.push_back({ EncodeControlName(SourceCurve, WorldControlSubject::MinorAxis, 1u), SourceCurve,
+                                 WorldControlSubject::MinorAxis, 1u,
+                                 Added(Ellipse.Centre, Scaled(MinorDirection, -Ellipse.MinorRadius)) });
             return true;
         }
 

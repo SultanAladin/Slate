@@ -136,15 +136,17 @@ public:
     /// tag   api, nonthrowing
     SessionPass Await();
 
-    /// 🧩 Seals the interface content, opens the display scope, and records the interface into the tick.
-    /// out   Sealed  [-]  true when the interface content was assembled and recorded; false when it was
-    ///                     abandoned, in which case the cleared ground is what the artist sees this tick
-    /// note  🔴 Called after the product has recorded its panels and BEFORE `Complete`. A product that
-    ///        records device work of its own — an overlay, a scene pass — does it after this returns true,
-    ///        because the display scope is open from that point until `Complete` closes it.
+    /// 🧩 Seals the interface content, opens the display scope, and prepares the recording pass.
+    /// out   Sealed  [-]  true when the interface content was assembled and display opened
     /// cost  🚩
     /// tag   api, nonthrowing
     bool Seal(const SessionPass& Pass);
+
+    /// 🧩 Records the interface on top of the open display scope.
+    /// out   Recorded [-] true when the interface commands were recorded into the command buffer
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    bool RecordInterface(const SessionPass& Pass);
 
     /// 🧩 Closes the rendering scope, submits, presents, and advances the cycle.
     /// out   Continuing  [-]  false when the loop must end

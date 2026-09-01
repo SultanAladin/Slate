@@ -1139,7 +1139,7 @@ void DriveViewportSelectionAndTransform(const PlaneExtent& Extent,
             }
         }
         RecordViewportGizmo(Overlay, Extent, Basis, View, Perspective,
-                            GizmoSelection, HoveredHandle, Transform);
+                            GizmoSelection, HoveredHandle, Transform, static_cast<TransformManner>(Gizmo.Manner));
     }
 }
 
@@ -1152,7 +1152,7 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
                                                    const GizmoOptions& Gizmo,
                                                    const ResolvedCamera& Camera,
                                                    const WorkspaceDirectoryProjection& Directory,
-                                                   const ParametricWorkspaceContext& WorkspaceApplied,
+                                                   ParametricWorkspaceContext& WorkspaceApplied,
                                                    WorkspaceNameIndex& Naming,
                                                    SketchStructure& Sketch,
                                                    WorldSketchStructure& World,
@@ -1198,6 +1198,76 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
         PointerTaken = true;
     }
 
+    const std::uint32_t RowCount = static_cast<std::uint32_t>(Directory.Rows.size());
+    if (!Transform.Engaged())
+    {
+        std::uint64_t DirectorySignature = 0u;
+        for (std::uint32_t Index = 0u; Index < RowCount && Index < ParametricWorkspaceContext::RowLimit; ++Index)
+        {
+            if (WorkspaceApplied.RowSelected[Index])
+                DirectorySignature ^= (static_cast<std::uint64_t>(Index + 1u) * 0x9E3779B97F4A7C15ULL);
+        }
+        const bool DirectoryChanged = SelectionSet.DirectorySignatureValid &&
+                                      SelectionSet.DirectorySignature != DirectorySignature;
+
+        if (DirectoryChanged)
+        {
+            for (std::size_t Index = 0u; Index < SelectionSet.Items.size(); )
+            {
+                const SketchPick& Item = SelectionSet.Items[Index];
+                bool StillSelectedInDirectory = false;
+                for (std::uint32_t Row = 0u; Row < RowCount && Row < ParametricWorkspaceContext::RowLimit; ++Row)
+                {
+                    if (WorkspaceApplied.RowSelected[Row] &&
+                        Directory.Rows[Row].Role == WorkspaceDirectoryRowRole::Record &&
+                        Directory.Rows[Row].Record.IssuedIndex == Item.Record.IssuedIndex)
+                    {
+                        StillSelectedInDirectory = true;
+                        break;
+                    }
+                }
+                if (StillSelectedInDirectory)
+                    ++Index;
+                else
+                    SelectionSet.Items.erase(SelectionSet.Items.begin() + static_cast<std::ptrdiff_t>(Index));
+            }
+        }
+
+        SelectionSet.DirectorySignature = DirectorySignature;
+        SelectionSet.DirectorySignatureValid = true;
+
+        for (std::uint32_t RowIndex = 0u;
+             RowIndex < RowCount && RowIndex < ParametricWorkspaceContext::RowLimit;
+             ++RowIndex)
+        {
+            if (!WorkspaceApplied.RowSelected[RowIndex] ||
+                Directory.Rows[RowIndex].Role != WorkspaceDirectoryRowRole::Record)
+                continue;
+
+            const WorkspaceRecordName RowRecord = Directory.Rows[RowIndex].Record;
+            bool AlreadyRepresented = false;
+            for (const SketchPick& Pick : SelectionSet.Items)
+                if (Pick.Record.IssuedIndex == RowRecord.IssuedIndex)
+                    AlreadyRepresented = true;
+            if (!AlreadyRepresented)
+            {
+                SketchPick DirectoryPick = {};
+                if (ResolvePickForRecord(Sketch, Records, RowRecord, DirectoryPick))
+                    SetSketchPick(SelectionSet, DirectoryPick, true);
+            }
+        }
+        if (DirectoryChanged && SelectedRecord.Assigned())
+        {
+            const SketchPick* Current = SelectionSet.Active();
+            if (Current == nullptr || Current->Record.IssuedIndex != SelectedRecord.IssuedIndex)
+            {
+                SketchPick DirectoryPick = {};
+                if (ResolvePickForRecord(Sketch, Records, SelectedRecord, DirectoryPick))
+                    SetSketchPick(SelectionSet, DirectoryPick, false);
+            }
+        }
+    }
+
     if (SemanticSelection.Standing() && SelectionSet.Empty())
         SetSketchPick(SelectionSet, SemanticSelection, false);
 
@@ -1205,8 +1275,11 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
     if (SetActive != nullptr)
         SemanticSelection = *SetActive;
 
-    const SketchPick ActiveSketchSelection =
-        EditableSelection(Sketch, Records, SelectedRecord, PendingSelection, SemanticSelection);
+    SketchPick ActiveSketchSelection = {};
+    if (SelectionSet.Active() != nullptr)
+        ActiveSketchSelection = EditableSelection(Sketch, Records, SelectedRecord, PendingSelection, SemanticSelection);
+    else if (PendingSelection.Assigned())
+        ActiveSketchSelection = EditableSelection(Sketch, Records, SelectedRecord, PendingSelection, SemanticSelection);
 
     if (TextInput.DeletePressed && ActiveSketchSelection.Record.Assigned())
     {
@@ -1295,8 +1368,24 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
     if (!ResolveSketchPickForWorldPick(Sketch, Records, Mapping, WorldHovered, HoveredSelection))
         HoveredSelection = {};
 
-    if (!WorldConstraintCommitted && SemanticSelection.Record.Assigned())
-        PendingSelection = SemanticSelection.Record;
+    if (SelectionSet.Empty())
+    {
+        for (std::uint32_t Index = 0u; Index < ParametricWorkspaceContext::RowLimit; ++Index)
+            WorkspaceApplied.RowSelected[Index] = false;
+        SelectionSet.DirectorySignature = 0u;
+        SelectionSet.DirectorySignatureValid = true;
+    }
+    else
+    {
+        std::uint64_t NewSig = 0u;
+        for (std::uint32_t Index = 0u; Index < RowCount && Index < ParametricWorkspaceContext::RowLimit; ++Index)
+        {
+            if (WorkspaceApplied.RowSelected[Index])
+                NewSig ^= (static_cast<std::uint64_t>(Index + 1u) * 0x9E3779B97F4A7C15ULL);
+        }
+        SelectionSet.DirectorySignature = NewSig;
+        SelectionSet.DirectorySignatureValid = true;
+    }
 
     const bool Committed = WasEngaged && WasChanged && !Transform.Engaged() && !TextInput.CancelPressed &&
                          ((WasAwaitingRelease && Pointer.ContactReleased)
@@ -1328,7 +1417,7 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
             Centroid.Forward /= Count;
             GizmoPick.Position = Centroid;
         }
-        RecordViewportGizmo(Overlay, Extent, Camera, GizmoPick, HoveredHandle, Transform);
+        RecordViewportGizmo(Overlay, Extent, Camera, GizmoPick, HoveredHandle, Transform, static_cast<TransformManner>(Gizmo.Manner));
     }
 }
 

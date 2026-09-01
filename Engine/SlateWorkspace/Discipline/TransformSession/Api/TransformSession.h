@@ -87,7 +87,8 @@ bool ResolveTransformPlacements(const SketchStructure& Sketch,
 SpatialDirection ResolveCurveSlideDirection(const SpatialBasis& Basis,
                                             const SketchStructure& Sketch,
                                             SketchCurveName Curve,
-                                            const SpatialPoint& NearPosition);
+                                            const SpatialPoint& NearPosition,
+                                            const SpatialDirection& MotionDelta = {});
 
 /// 🧩 Writes the transformed positions into the sketch.
 /// note 🔴 Reads from `Origins`, NOT from the live geometry. Every frame applies one transform to the

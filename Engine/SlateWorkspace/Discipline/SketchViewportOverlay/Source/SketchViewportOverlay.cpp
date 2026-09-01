@@ -406,53 +406,33 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
         }
     };
 
-    const auto RecordPoint = [&](const SketchPick& Subject, std::uint32_t Outer, std::uint32_t Inner)
+    const auto RecordPoint = [&](const SketchPick& Subject, std::uint32_t FillColour, float Radius = 5.5f)
     {
         float X = 0.0f;
         float Y = 0.0f;
         if (!ProjectSpatialPoint(Basis, View, Perspective, Extent, Subject.Position, X, Y))
             return;
-        Overlay.AddDot(X, Y, Inner, 4.5f);
-        AppendOverlayCircle(Overlay, X, Y, 8.0f, Outer, 1.6f);
+        Overlay.AddDot(X, Y, FillColour, Radius);
     };
 
     if (Selected.Standing())
     {
-        if (Selected.Subject == SketchPickSubject::Curve)
-            RecordCurve(Selected.Curve, PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 255u), 2.5f);
-        else if (Selected.Subject == SketchPickSubject::Record)
+        if (Selected.Subject == SketchPickSubject::Control)
         {
-            const WorkspaceRecord* Record = Records.Resolve(Selected.Record);
-            if (Record != nullptr && Record->Subject == WorkspaceRecordSubject::ClosedProfile)
-            {
-                RecordProfile(Record->Profile, PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 255u), 2.5f);
-                RecordProfileFill(Record->Profile);
-            }
+            RecordPoint(Selected, PackOverlayColour(0xA8u, 0x55u, 0xF7u, 255u), 6.5f);
         }
-        else if (Selected.Subject == SketchPickSubject::Control)
+        else if (Selected.Subject == SketchPickSubject::Point)
         {
-            RecordPoint(Selected, PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 255u), PackOverlayColour(0xECu, 0x48u, 0x99u, 255u));
-        }
-        else
-        {
-            RecordPoint(Selected, PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 255u), PackOverlayColour(0x06u, 0xB6u, 0xD4u, 255u));
+            RecordPoint(Selected, PackOverlayColour(0x10u, 0xB9u, 0x81u, 255u), 6.5f);
         }
     }
 
     if (Hovered.Standing())
     {
-        if (Hovered.Subject == SketchPickSubject::Curve)
-            RecordCurve(Hovered.Curve, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 220u), 2.0f);
-        else if (Hovered.Subject == SketchPickSubject::Record)
-        {
-            const WorkspaceRecord* Record = Records.Resolve(Hovered.Record);
-            if (Record != nullptr && Record->Subject == WorkspaceRecordSubject::ClosedProfile)
-                RecordProfile(Record->Profile, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 220u), 2.0f);
-        }
-        else if (Hovered.Subject == SketchPickSubject::Control)
-            RecordPoint(Hovered, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 255u), PackOverlayColour(0xECu, 0x48u, 0x99u, 255u));
-        else
-            RecordPoint(Hovered, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 255u), PackOverlayColour(0x06u, 0xB6u, 0xD4u, 255u));
+        if (Hovered.Subject == SketchPickSubject::Control)
+            RecordPoint(Hovered, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 255u), 6.0f);
+        else if (Hovered.Subject == SketchPickSubject::Point)
+            RecordPoint(Hovered, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 255u), 6.0f);
     }
 }
 
@@ -482,41 +462,13 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
                                     const WorldPick& Hovered,
                                     const WorldPick& Selected)
 {
-    const auto RecordCurve = [&](WorldCurveName Curve, std::uint32_t Packed, float Thickness)
-    {
-        if (!Curve.Assigned() || Curve.IssuedIndex > Declared.CurveCount())
-            return;
-        std::vector<SpatialPoint> Polyline;
-        const DeclaredWorldCurve* Held = Declared.Resolve(Curve);
-        if (Held == nullptr || !Held->Geometry.Declared())
-            return;
-        AppendCurvePolyline(Held->Geometry, Polyline, 48u);
-        for (std::size_t Index = 0u; Index + 1u < Polyline.size(); ++Index)
-        {
-            float X0 = 0.0f, Y0 = 0.0f, X1 = 0.0f, Y1 = 0.0f;
-            if (ProjectFromCamera(Camera, Extent, Polyline[Index], X0, Y0) &&
-                ProjectFromCamera(Camera, Extent, Polyline[Index + 1u], X1, Y1))
-                Overlay.AddLine(X0, Y0, X1, Y1, Packed, Thickness);
-        }
-    };
-
-    const auto RecordLoop = [&](WorldLoopName Loop, std::uint32_t Packed, float Thickness)
-    {
-        const DeclaredWorldLoop* Held = Declared.Resolve(Loop);
-        if (Held == nullptr)
-            return;
-        for (const WorldCurveUse& Use : Held->Traversal)
-            RecordCurve(Use.TraversedCurve, Packed, Thickness);
-    };
-
-    const auto RecordPoint = [&](const WorldPick& Subject, std::uint32_t Outer, std::uint32_t Inner)
+    const auto RecordPoint = [&](const WorldPick& Subject, std::uint32_t FillColour, float Radius = 5.5f)
     {
         float X = 0.0f;
         float Y = 0.0f;
         if (!ProjectFromCamera(Camera, Extent, Subject.Position, X, Y))
             return;
-        Overlay.AddDot(X, Y, Inner, 5.0f);
-        AppendOverlayCircle(Overlay, X, Y, 9.0f, Outer, 2.0f);
+        Overlay.AddDot(X, Y, FillColour, Radius);
     };
 
     const auto RecordPoints = [&](WorldCurveName Curve)
@@ -531,8 +483,7 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
             Point.Point = Pt.Name;
             Point.Curve = Pt.SourceCurve;
             Point.Position = Pt.Position;
-            RecordPoint(Point, PackOverlayColour(0x06u, 0xB6u, 0xD4u, 255u),
-                        PackOverlayColour(0x0Eu, 0x74u, 0x90u, 255u));
+            RecordPoint(Point, PackOverlayColour(0x10u, 0xB9u, 0x81u, 255u), 5.5f);
         }
     };
 
@@ -541,29 +492,16 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
         std::vector<WorldControlPlacement> Controls;
         if (!ResolveWorldSketchControls(Declared, Curve, Controls))
             return;
-        std::vector<WorldPointPlacement> Points;
-        static_cast<void>(ResolveWorldSketchPoints(Declared, Curve, Points));
 
         for (std::size_t i = 0u; i < Controls.size(); ++i)
         {
             const WorldControlPlacement& Control = Controls[i];
-            if (i < Points.size())
-            {
-                float X0 = 0.0f, Y0 = 0.0f, X1 = 0.0f, Y1 = 0.0f;
-                if (ProjectFromCamera(Camera, Extent, Points[i].Position, X0, Y0) &&
-                    ProjectFromCamera(Camera, Extent, Control.Position, X1, Y1))
-                {
-                    Overlay.AddLine(X0, Y0, X1, Y1, PackOverlayColour(0xECu, 0x48u, 0x99u, 140u), 1.2f);
-                }
-            }
-
             WorldPick Point = {};
             Point.Subject = WorldPickSubject::Control;
             Point.Control = Control.Name;
             Point.Curve = Control.SourceCurve;
             Point.Position = Control.Position;
-            RecordPoint(Point, PackOverlayColour(0xECu, 0x48u, 0x99u, 255u),
-                        PackOverlayColour(0x9Du, 0x17u, 0x4Du, 255u));
+            RecordPoint(Point, PackOverlayColour(0xA8u, 0x55u, 0xF7u, 255u), 5.5f);
         }
     };
 
@@ -571,13 +509,11 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
     {
         if (Selected.Subject == WorldPickSubject::Curve)
         {
-            RecordCurve(Selected.Curve, PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 255u), 2.5f);
             RecordPoints(Selected.Curve);
             RecordControls(Selected.Curve);
         }
         else if (Selected.Subject == WorldPickSubject::Loop)
         {
-            RecordLoop(Selected.Loop, PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 255u), 2.5f);
             const DeclaredWorldLoop* Loop = Declared.Resolve(Selected.Loop);
             if (Loop != nullptr)
                 for (const WorldCurveUse& Use : Loop->Traversal)
@@ -590,24 +526,20 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
         {
             RecordPoints(Selected.Curve);
             RecordControls(Selected.Curve);
-            RecordPoint(Selected, PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 255u), PackOverlayColour(0x06u, 0xB6u, 0xD4u, 255u));
+            RecordPoint(Selected, PackOverlayColour(255u, 255u, 255u, 255u), 7.0f);
         }
         else if (Selected.Subject == WorldPickSubject::Control)
         {
             RecordPoints(Selected.Curve);
             RecordControls(Selected.Curve);
-            RecordPoint(Selected, PackOverlayColour(0xFFu, 0xFFu, 0xFFu, 255u), PackOverlayColour(0xECu, 0x48u, 0x99u, 255u));
+            RecordPoint(Selected, PackOverlayColour(255u, 255u, 255u, 255u), 7.0f);
         }
     }
 
-    if (Hovered.Subject == WorldPickSubject::Curve)
-        RecordCurve(Hovered.Curve, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 220u), 2.0f);
-    else if (Hovered.Subject == WorldPickSubject::Loop)
-        RecordLoop(Hovered.Loop, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 220u), 2.0f);
-    else if (Hovered.Subject == WorldPickSubject::Point)
-        RecordPoint(Hovered, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 255u), PackOverlayColour(0x06u, 0xB6u, 0xD4u, 255u));
+    if (Hovered.Subject == WorldPickSubject::Point)
+        RecordPoint(Hovered, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 255u), 6.0f);
     else if (Hovered.Subject == WorldPickSubject::Control)
-        RecordPoint(Hovered, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 255u), PackOverlayColour(0xECu, 0x48u, 0x99u, 255u));
+        RecordPoint(Hovered, PackOverlayColour(0xFBu, 0xBFu, 0x24u, 255u), 6.0f);
 }
 
 void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
@@ -631,7 +563,8 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
                          bool Perspective,
                          const SketchPick& Selected,
                          GizmoHandle HoveredHandle,
-                         const TransformSession& Transform)
+                         const TransformSession& Transform,
+                         TransformManner Manner)
 {
     if (!Selected.Standing())
         return;
@@ -640,9 +573,7 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
     if (!ResolveGizmoScreenBasis(Basis, View, Perspective, Extent, Selected.Position, Screen))
         return;
 
-    // 🔴 EVERY MAGNITUDE BELOW IS A PIXEL COUNT FROM `GizmoMeasure`, CONVERTED TO WORLD HERE. The HTML
-    //    reference is authored in world-space ratios; the sketch gizmo stays the same size on screen by
-    //    converting those ratios through one ruler at the pivot and building the same primitives there.
+    // 🔴 EVERY MAGNITUDE BELOW IS A PIXEL COUNT FROM `GizmoMeasure`, CONVERTED TO WORLD HERE.
     const auto Px = [&](double Pixels) { return GizmoWorld(Screen, Pixels); };
 
     const ViewFrame Frame = ResolveViewportFrame(Basis, View, Perspective);
@@ -810,13 +741,10 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
             }
     };
 
-    // 🔴 A mode key starts a real transform session before the next redraw. The old Universal arm
-    //    rendered move, rotate and scale together whenever the session was idle, so pressing G/R/S
-    //    could never present the one relevant CAD manipulator. An idle selection defaults to Move;
-    //    once G, R or S starts a session, only that session's family is emitted.
-    const bool DrawMove = !Transform.Engaged() || Transform.Manner() == TransformManner::Move;
-    const bool DrawRotate = Transform.Engaged() && Transform.Manner() == TransformManner::Rotate;
-    const bool DrawScale = Transform.Engaged() && Transform.Manner() == TransformManner::Scale;
+    const TransformManner ActiveManner = Transform.Engaged() ? Transform.Manner() : Manner;
+    const bool DrawMove = ActiveManner == TransformManner::Move;
+    const bool DrawRotate = ActiveManner == TransformManner::Rotate;
+    const bool DrawScale = ActiveManner == TransformManner::Scale;
     const auto Visible = [](float X, float Y)
     {
         return X * X + Y * Y > 0.01f;
@@ -905,7 +833,8 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
                          const ResolvedCamera& Camera,
                          const WorldPick& Selected,
                          GizmoHandle HoveredHandle,
-                         const WorldSketchTransformSession& Transform)
+                         const WorldSketchTransformSession& Transform,
+                         TransformManner Manner)
 {
     if (!Selected.Standing())
         return;
@@ -1083,9 +1012,10 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
 
     // 🔴 The active transform family is the only family drawn. Idle selection shows Move as the
     //    neutral default; a live G/R/S session selects exactly one corresponding manipulator.
-    const bool DrawMove = !Transform.Engaged() || Transform.Manner() == TransformManner::Move;
-    const bool DrawRotate = Transform.Engaged() && Transform.Manner() == TransformManner::Rotate;
-    const bool DrawScale = Transform.Engaged() && Transform.Manner() == TransformManner::Scale;
+    const TransformManner ActiveManner = Transform.Engaged() ? Transform.Manner() : Manner;
+    const bool DrawMove = ActiveManner == TransformManner::Move;
+    const bool DrawRotate = ActiveManner == TransformManner::Rotate;
+    const bool DrawScale = ActiveManner == TransformManner::Scale;
     const auto Visible = [](float X, float Y)
     {
         return X * X + Y * Y > 0.01f;

@@ -25,6 +25,7 @@ struct WorkspaceOverlayVertexOutput
 {
     Real32x4   Position : SV_Position;
     Real32x4   Colour   : COLOR0;
+    Real32x2   Local    : TEXCOORD0;
 };
 
 // 📐 The same push constant the vertex stage declares — Slang requires the
@@ -377,6 +378,18 @@ Real32x4 main(WorkspaceOverlayVertexOutput Input) : SV_Target
 {
     if (Push.Draw == WorkspaceOverlayGroundGridDraw)
         return ResolveGround(Input.Colour.xy);
+
+    if (Push.Draw == WorkspaceOverlayDotDraw)
+    {
+        const Real32 DistSquared = dot(Input.Local, Input.Local);
+        if (DistSquared > 1.0)
+            discard;
+
+        const Real32 RadialDistance = sqrt(DistSquared);
+        const Real32 Delta          = fwidth(RadialDistance);
+        const Real32 Coverage       = 1.0 - smoothstep(1.0 - max(Delta, 0.001), 1.0, RadialDistance);
+        return Real32x4(Input.Colour.rgb, Input.Colour.a * Coverage);
+    }
 
     return Input.Colour;
 }

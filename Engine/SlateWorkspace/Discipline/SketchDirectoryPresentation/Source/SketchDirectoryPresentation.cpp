@@ -3,6 +3,7 @@
 //============================================================================================================================================
 
 #include "SlateWorkspace/Discipline/SketchDirectoryPresentation/Api/SketchDirectoryPresentation.h"
+#include "SlateWorkspace/Discipline/SketchPicking/Api/SketchPicking.h"
 
 #include <algorithm>
 #include <string>
@@ -39,43 +40,29 @@ void SeatParametricContext(const WorkspaceDirectoryProjection& Directory,
                            ParametricWorkspaceContext& Applied,
                            bool& Seeded)
 {
-    const std::uint32_t RowCount = std::min<std::uint32_t>(
-        static_cast<std::uint32_t>(Directory.Rows.size()), ParametricWorkspaceContext::RowLimit);
-
-    for (std::uint32_t Index = RowCount; Index < ParametricWorkspaceContext::RowLimit; ++Index)
-    {
-        Applied.RowExpanded[Index] = false;
-        Applied.RowSelected[Index] = false;
-    }
-
-    if (RowCount == 0u)
-    {
-        Applied.RowTaken = 0u;
-        Applied.RowSelectionAnchor = 0u;
-        return;
-    }
-
-    if (!Seeded)
+    if (Directory.Rows.empty())
     {
         for (std::uint32_t Index = 0u; Index < ParametricWorkspaceContext::RowLimit; ++Index)
             Applied.RowSelected[Index] = false;
-
-        for (std::uint32_t Index = 0u; Index < RowCount; ++Index)
-            if (Directory.Rows[Index].Subject == WorkspaceRecordSubject::Folder)
-                Applied.RowExpanded[Index] = true;
-
-        const std::uint32_t Initial = InitialRowIn(Directory);
-        Applied.RowTaken = Initial;
-        Applied.RowSelectionAnchor = Initial;
-        Applied.RowSelected[Initial] = true;
-        Seeded = true;
+        Applied.RowTaken = 0u;
+        Applied.RowSelectionAnchor = 0u;
+        Seeded = false;
         return;
     }
 
-    if (Applied.RowTaken >= RowCount || !AnyRowSelected(Applied, RowCount))
+    const std::uint32_t DeclaredCount = static_cast<std::uint32_t>(Directory.Rows.size());
+    for (std::uint32_t Index = DeclaredCount; Index < ParametricWorkspaceContext::RowLimit; ++Index)
+        Applied.RowSelected[Index] = false;
+
+    if (!Seeded)
     {
-        for (std::uint32_t Index = 0u; Index < RowCount; ++Index)
+        Seeded = true;
+        for (std::uint32_t Index = 0u; Index < ParametricWorkspaceContext::RowLimit; ++Index)
             Applied.RowSelected[Index] = false;
+
+        for (std::uint32_t Index = 0u; Index < DeclaredCount; ++Index)
+            if (Directory.Rows[Index].Subject == WorkspaceRecordSubject::Folder)
+                Applied.RowExpanded[Index] = true;
 
         const std::uint32_t Initial = InitialRowIn(Directory);
         Applied.RowTaken = Initial;
@@ -90,7 +77,8 @@ Deliver<bool> SynchroniseParametricPresentation(const WorkspaceRecordStructure& 
                                                 SketchDirectoryPresentation& Bridge,
                                                 ParametricWorkspaceContext& Applied,
                                                 WorkspaceRecordName& PendingSelection,
-                                                bool& Seeded)
+                                                bool& Seeded,
+                                                const SketchSelectionSet* SelectionSet)
 {
     ProjectWorkspaceDirectory(Records, Directory);
 
@@ -111,7 +99,40 @@ Deliver<bool> SynchroniseParametricPresentation(const WorkspaceRecordStructure& 
             Applied.RowSelectionAnchor = Row.Resolve();
             Applied.RowSelected[Row.Resolve()] = true;
         }
+        if (SelectionSet != nullptr && (SelectionSet->Empty() || SelectionSet->Active()->Subject == SketchPickSubject::Record))
+        {
+            SketchSelectionSet* MutableSet = const_cast<SketchSelectionSet*>(SelectionSet);
+            MutableSet->Clear();
+            SketchPick Pick = {};
+            Pick.Record = PendingSelection;
+            SetSketchPick(*MutableSet, Pick, false);
+        }
         PendingSelection = {};
+    }
+    else if (SelectionSet != nullptr && !SelectionSet->Empty())
+    {
+        for (std::uint32_t Index = 0u; Index < ParametricWorkspaceContext::RowLimit; ++Index)
+            Applied.RowSelected[Index] = false;
+
+        std::uint32_t PrimaryRow = ParametricWorkspaceContext::RowLimit;
+        for (const SketchPick& Item : SelectionSet->Items)
+        {
+            if (Item.Record.Assigned())
+            {
+                const Deliver<std::uint32_t> Row = ResolveWorkspaceDirectoryRow(Directory, Item.Record);
+                if (Row.Resolved && Row.Resolve() < ParametricWorkspaceContext::RowLimit)
+                {
+                    Applied.RowSelected[Row.Resolve()] = true;
+                    if (PrimaryRow == ParametricWorkspaceContext::RowLimit)
+                        PrimaryRow = Row.Resolve();
+                }
+            }
+        }
+        if (PrimaryRow < ParametricWorkspaceContext::RowLimit)
+        {
+            Applied.RowTaken = PrimaryRow;
+            Applied.RowSelectionAnchor = PrimaryRow;
+        }
     }
 
     const std::uint32_t RowCount = static_cast<std::uint32_t>(Directory.Rows.size());

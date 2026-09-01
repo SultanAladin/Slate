@@ -29,7 +29,9 @@ private:
     std::uint32_t ArcCount = 0u;
     std::uint32_t CircleCount = 0u;
     std::uint32_t EllipseCount = 0u;
-    std::uint32_t EllipticalArcCount = 0u;
+    std::uint32_t RectangleCount = 0u;
+    std::uint32_t PolygonCount = 0u;
+    std::uint32_t SlotCount = 0u;
     std::uint32_t BezierCount = 0u;
     std::uint32_t HermiteCount = 0u;
     std::uint32_t SplineCount = 0u;

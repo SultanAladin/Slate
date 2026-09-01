@@ -16,6 +16,14 @@
 namespace Slate
 {
 
+/// 🧩 Transform manner requested on the gizmo.
+enum class GizmoManner : std::uint32_t
+{
+    Move   = 0u,
+    Rotate = 1u,
+    Scale  = 2u
+};
+
 /// 🧩 Which kind of element a pick is allowed to return.
 /// note  🔴 Five modes, each mapping onto what a sketch actually HAS and named the way an artist names it:
 ///          Vertex → an endpoint or a Bezier control handle (Point, Control)
@@ -103,6 +111,7 @@ struct SelectionOptions
 struct GizmoOptions
 {
     bool Shown = true;   // [-] - whether the gizmo is drawn for a standing selection
+    GizmoManner Manner = GizmoManner::Move;
 };
 
 }   // namespace Slate

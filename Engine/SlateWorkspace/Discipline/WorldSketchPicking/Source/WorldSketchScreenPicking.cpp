@@ -219,7 +219,7 @@ bool ResolveNearestWorldSketchPoint(const WorldSketchStructure& Declared,
             const double DX = static_cast<double>(CandidateX) - static_cast<double>(ScreenX);
             const double DY = static_cast<double>(CandidateY) - static_cast<double>(ScreenY);
             const PickMetric Candidate = { std::sqrt(DX * DX + DY * DY), Depth };
-            if (Candidate.ScreenDistance <= MaximumDistancePixels && BetterMetric(Candidate, Metric))
+            if (Candidate.ScreenDistance <= MaximumDistancePixels && (!Found || BetterMetric(Candidate, Metric)))
             {
                 Metric = Candidate;
                 Resolved = Point;
@@ -263,7 +263,7 @@ bool ResolveNearestWorldSketchControl(const WorldSketchStructure& Declared,
             const double DX = static_cast<double>(CandidateX) - static_cast<double>(ScreenX);
             const double DY = static_cast<double>(CandidateY) - static_cast<double>(ScreenY);
             const PickMetric Candidate = { std::sqrt(DX * DX + DY * DY), Depth };
-            if (Candidate.ScreenDistance <= MaximumDistancePixels && BetterMetric(Candidate, Metric))
+            if (Candidate.ScreenDistance <= MaximumDistancePixels && (!Found || BetterMetric(Candidate, Metric)))
             {
                 Metric = Candidate;
                 Resolved = Control;
@@ -325,7 +325,7 @@ bool ResolveNearestWorldSketchCurve(const WorldSketchStructure& Declared,
                 continue;
 
             const PickMetric Candidate = { CandidateDistance, Depth };
-            if (BetterMetric(Candidate, Metric))
+            if (!Found || BetterMetric(Candidate, Metric))
             {
                 Metric = Candidate;
                 Resolved = { CurveIndex };
@@ -372,7 +372,7 @@ bool ResolveNearestWorldSketchLoop(const WorldSketchStructure& Declared,
             continue;
 
         const PickMetric Candidate = { 0.0, Depth };
-        if (BetterMetric(Candidate, Metric))
+        if (!Found || BetterMetric(Candidate, Metric))
         {
             Metric = Candidate;
             Resolved = Loop.Loop;

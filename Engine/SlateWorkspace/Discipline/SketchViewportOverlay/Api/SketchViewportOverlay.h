@@ -165,14 +165,16 @@ void RecordViewportGizmo(OverlayGeometry& Overlay,
                          bool Perspective,
                          const SketchPick& Selected,
                          GizmoHandle HoveredHandle,
-                         const TransformSession& Transform);
+                         const TransformSession& Transform,
+                         TransformManner Manner = TransformManner::Move);
 
 void RecordViewportGizmo(OverlayGeometry& Overlay,
                          const PlaneExtent& Extent,
                          const ResolvedCamera& Camera,
                          const WorldPick& Selected,
                          GizmoHandle HoveredHandle,
-                         const WorldSketchTransformSession& Transform);
+                         const WorldSketchTransformSession& Transform,
+                         TransformManner Manner = TransformManner::Move);
 
 void RecordViewportTransformReadout(RecordingSurface& Surface,
                                     const PlaneExtent& Extent,

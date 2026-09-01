@@ -148,39 +148,93 @@ bool ResolveTransformPlacements(const SketchStructure& Sketch,
 SpatialDirection ResolveCurveSlideDirection(const SpatialBasis& Basis,
                                             const SketchStructure& Sketch,
                                             SketchCurveName Curve,
-                                            const SpatialPoint& NearPosition)
+                                            const SpatialPoint& NearPosition,
+                                            const SpatialDirection& MotionDelta)
 {
-    if (!Curve.Assigned() || Curve.IssuedIndex > Sketch.Curves().size())
-        return Basis.Along;
+    std::vector<SpatialDirection> Candidates;
 
-    std::vector<SpatialPoint> Polyline;
-    AppendCurvePolyline(Sketch.Curves()[Curve.IssuedIndex - 1u].Geometry, Polyline, 48u);
-    if (Polyline.size() < 2u)
-        return Basis.Along;
-
-    double BestDistanceSquared = 1.0e30;
-    SpatialDirection BestDirection = Basis.Along;
-    for (std::size_t Index = 0u; Index + 1u < Polyline.size(); ++Index)
+    const auto CollectFromCurve = [&](const CurveSpecification& Geometry)
     {
-        const SpatialPoint& StartPoint = Polyline[Index];
-        const SpatialPoint& EndPoint = Polyline[Index + 1u];
-        const SpatialDirection Segment = Difference(StartPoint, EndPoint);
-        const double SegmentLengthSquared = LengthSquared(Segment);
-        if (SegmentLengthSquared <= 1.0e-12)
-            continue;
+        std::vector<SpatialPoint> Polyline;
+        AppendCurvePolyline(Geometry, Polyline, 48u);
+        if (Polyline.size() < 2u)
+            return;
 
-        const SpatialDirection Offset = Difference(StartPoint, NearPosition);
-        const double Parameter = std::clamp(Dot(Offset, Segment) / SegmentLengthSquared, 0.0, 1.0);
-        const SpatialPoint Closest = Added(StartPoint, Scaled(Segment, Parameter));
-        const double CandidateDistanceSquared = LengthSquared(Difference(Closest, NearPosition));
-        if (CandidateDistanceSquared < BestDistanceSquared)
+        double BestDistanceSquared = 1.0e30;
+        std::size_t BestIndex = 0u;
+        for (std::size_t Index = 0u; Index + 1u < Polyline.size(); ++Index)
         {
-            BestDistanceSquared = CandidateDistanceSquared;
-            BestDirection = Normalize(Segment);
+            const SpatialPoint& StartPoint = Polyline[Index];
+            const SpatialPoint& EndPoint = Polyline[Index + 1u];
+            const SpatialDirection Segment = Difference(StartPoint, EndPoint);
+            const double SegmentLengthSquared = LengthSquared(Segment);
+            if (SegmentLengthSquared <= 1.0e-12)
+                continue;
+
+            const SpatialDirection Offset = Difference(StartPoint, NearPosition);
+            const double Parameter = std::clamp(Dot(Offset, Segment) / SegmentLengthSquared, 0.0, 1.0);
+            const SpatialPoint Closest = Added(StartPoint, Scaled(Segment, Parameter));
+            const double CandidateDistanceSquared = LengthSquared(Difference(Closest, NearPosition));
+            if (CandidateDistanceSquared < BestDistanceSquared)
+            {
+                BestDistanceSquared = CandidateDistanceSquared;
+                BestIndex = Index;
+            }
         }
+
+        if (BestDistanceSquared < 1.0)
+        {
+            const SpatialPoint& P0 = Polyline[BestIndex];
+            const SpatialPoint& P1 = Polyline[BestIndex + 1u];
+            const SpatialDirection Forward = Normalize(Difference(P0, P1));
+            Candidates.push_back(Forward);
+            Candidates.push_back(Negated(Forward));
+
+            if (BestIndex > 0u)
+            {
+                const SpatialDirection Prior = Normalize(Difference(P0, Polyline[BestIndex - 1u]));
+                Candidates.push_back(Prior);
+                Candidates.push_back(Negated(Prior));
+            }
+            if (BestIndex + 2u < Polyline.size())
+            {
+                const SpatialDirection Next = Normalize(Difference(P1, Polyline[BestIndex + 2u]));
+                Candidates.push_back(Next);
+                Candidates.push_back(Negated(Next));
+            }
+        }
+    };
+
+    if (Curve.Assigned() && Curve.IssuedIndex <= Sketch.Curves().size())
+    {
+        CollectFromCurve(Sketch.Curves()[Curve.IssuedIndex - 1u].Geometry);
+    }
+    else
+    {
+        for (const auto& CurveEntry : Sketch.Curves())
+            CollectFromCurve(CurveEntry.Geometry);
     }
 
-    return BestDirection;
+    if (Candidates.empty())
+        return Basis.Along;
+
+    if (LengthSquared(MotionDelta) > 1.0e-10)
+    {
+        double BestDot = -1.0e30;
+        SpatialDirection BestDir = Candidates.front();
+        for (const SpatialDirection& Candidate : Candidates)
+        {
+            const double Alignment = Dot(Candidate, MotionDelta);
+            if (Alignment > BestDot)
+            {
+                BestDot = Alignment;
+                BestDir = Candidate;
+            }
+        }
+        return BestDir;
+    }
+
+    return Candidates.front();
 }
 
 void ApplyTransformPlacements(SketchStructure& Sketch,
@@ -376,6 +430,10 @@ void UpdateTransformSession(const SpatialBasis& Basis,
         AlongOffset = 0.0;
     else if (Session.Restriction() == TransformRestriction::Curve)
     {
+        const SpatialPoint CurrentProbe = ResolvePlanarPoint(Basis, Along, Across);
+        const SpatialDirection MotionDelta = Difference(Session.Pivot, CurrentProbe);
+        Session.CurveDirection = ResolveCurveSlideDirection(Basis, Sketch, Session.Target.Curve, Session.Pivot, MotionDelta);
+
         const double AlongDirection = Dot(Session.CurveDirection, Basis.Along);
         const double AcrossDirection = Dot(Session.CurveDirection, Basis.Across);
         const double Projection = AlongOffset * AlongDirection + AcrossOffset * AcrossDirection;

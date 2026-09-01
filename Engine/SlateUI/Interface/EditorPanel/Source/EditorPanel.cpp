@@ -188,7 +188,11 @@ Deliver<bool> EditorPanel::Record(const PlaneExtent& Extent,
 
 void EditorPanel::RecordDeferredPopups(PanelStructure& Partition, EditorPanelConfiguration& Configuration)
 {
+    if (Surface != nullptr)
+        Discard(Surface->SwitchLayer(RecordingSurface::ShellLayer::Above));
     RecordDeferred(Partition, Configuration);
+    if (Surface != nullptr)
+        Discard(Surface->SwitchLayer(RecordingSurface::ShellLayer::Beneath));
 }
 
 bool EditorPanel::PointerCaptured(std::uint32_t PresentationIndex) const

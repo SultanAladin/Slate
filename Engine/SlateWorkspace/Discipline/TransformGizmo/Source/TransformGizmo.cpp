@@ -260,55 +260,34 @@ bool ResolveGizmoScreenBasis(const ResolvedCamera& Camera,
         return true;
     }
 
-    double ProbeWorld = 24.0;
-    bool Measured = false;
+    const double CameraZ = Dot(Difference(Camera.Frame.Eye, Pivot), Camera.Frame.Forward);
+    if (CameraZ <= 0.01)
+        return false;
 
-    const auto Probe = [&](const SpatialDirection& Direction, float& DirX, float& DirY)
+    const double TanHalf = std::tan(Camera.FieldOfViewDegrees * 0.5 * ProjectionPi / 180.0);
+    const double Focal   = (Extent.Height() * 0.5) / std::max(TanHalf, 1.0e-5);
+    Resolved.WorldPerPixel = std::clamp(CameraZ / Focal, 1.0e-5, 100.0);
+
+    const auto Direction = [&](const SpatialDirection& Axis, float& X, float& Y)
     {
-        float X = 0.0f;
-        float Y = 0.0f;
-        if (!ProjectFromCamera(Camera, Extent, Added(Pivot, Scaled(Direction, ProbeWorld)), X, Y))
+        float ProjectedX = 0.0f;
+        float ProjectedY = 0.0f;
+        const double Probe = Resolved.WorldPerPixel * 40.0;
+        if (!ProjectFromCamera(Camera, Extent, Added(Pivot, Scaled(Axis, Probe)), ProjectedX, ProjectedY))
             return;
 
-        const double DX = static_cast<double>(X) - Resolved.PivotX;
-        const double DY = static_cast<double>(Y) - Resolved.PivotY;
+        const double DX = static_cast<double>(ProjectedX) - Resolved.PivotX;
+        const double DY = static_cast<double>(ProjectedY) - Resolved.PivotY;
         const double Length = std::sqrt(DX * DX + DY * DY);
-        if (Length <= 1.0e-4)
-            return;
-
-        DirX = static_cast<float>(DX / Length);
-        DirY = static_cast<float>(DY / Length);
-
-        const double Candidate = ProbeWorld / Length;
-        if (!Measured || Candidate < Resolved.WorldPerPixel)
+        if (Length > 1.0e-4)
         {
-            Resolved.WorldPerPixel = Candidate;
-            Measured = true;
+            X = static_cast<float>(DX / Length);
+            Y = static_cast<float>(DY / Length);
         }
     };
-
-    Probe(Camera.Basis.Along, Resolved.AlongX, Resolved.AlongY);
-    Probe(Camera.Basis.Across, Resolved.AcrossX, Resolved.AcrossY);
-    Probe(Camera.Basis.Normal, Resolved.NormalX, Resolved.NormalY);
-
-    // 🔴 PERSPECTIVE IS NON-LINEAR. Re-measure the actual table span rather than trusting one long
-    //    world probe; this keeps a close or distant pivot from making the drawn handle balloon or
-    //    collapse as the camera zooms.
-    for (std::uint32_t Iteration = 0u; Measured && Iteration < 4u; ++Iteration)
-    {
-        ProbeWorld = Resolved.WorldPerPixel * GizmoMeasure::AxisEnd;
-        if (ProbeWorld <= 1.0e-6)
-            break;
-
-        Measured = false;
-        Probe(Camera.Basis.Along, Resolved.AlongX, Resolved.AlongY);
-        Probe(Camera.Basis.Across, Resolved.AcrossX, Resolved.AcrossY);
-        Probe(Camera.Basis.Normal, Resolved.NormalX, Resolved.NormalY);
-    }
-
-    if (!Measured)
-        Resolved.WorldPerPixel = 1.0;
-
+    Direction(Camera.Basis.Along, Resolved.AlongX, Resolved.AlongY);
+    Direction(Camera.Basis.Across, Resolved.AcrossX, Resolved.AcrossY);
+    Direction(Camera.Basis.Normal, Resolved.NormalX, Resolved.NormalY);
     return true;
 }
 
@@ -321,8 +300,8 @@ GizmoHandle ResolveGizmoHandle(const GizmoScreenBasis& Screen,
 
     const auto ConeDistanceSquared = [&](float DirX, float DirY)
     {
-        const float BaseX = Screen.PivotX + DirX * static_cast<float>(GizmoMeasure::AxisEnd - GizmoMeasure::ConeLength);
-        const float BaseY = Screen.PivotY + DirY * static_cast<float>(GizmoMeasure::AxisEnd - GizmoMeasure::ConeLength);
+        const float BaseX = Screen.PivotX + DirX * 12.0f;
+        const float BaseY = Screen.PivotY + DirY * 12.0f;
         const float TipX  = Screen.PivotX + DirX * static_cast<float>(GizmoMeasure::AxisEnd);
         const float TipY  = Screen.PivotY + DirY * static_cast<float>(GizmoMeasure::AxisEnd);
         return DistanceToSegmentSquared(PointerX, PointerY, BaseX, BaseY, TipX, TipY);
@@ -330,10 +309,10 @@ GizmoHandle ResolveGizmoHandle(const GizmoScreenBasis& Screen,
 
     const auto CylinderDistanceSquared = [&](float DirX, float DirY)
     {
-        const float StartX = Screen.PivotX + DirX * static_cast<float>(GizmoMeasure::ScaleCentre - GizmoMeasure::ScaleLength * 0.5);
-        const float StartY = Screen.PivotY + DirY * static_cast<float>(GizmoMeasure::ScaleCentre - GizmoMeasure::ScaleLength * 0.5);
-        const float EndX   = Screen.PivotX + DirX * static_cast<float>(GizmoMeasure::ScaleCentre + GizmoMeasure::ScaleLength * 0.5);
-        const float EndY   = Screen.PivotY + DirY * static_cast<float>(GizmoMeasure::ScaleCentre + GizmoMeasure::ScaleLength * 0.5);
+        const float StartX = Screen.PivotX + DirX * 12.0f;
+        const float StartY = Screen.PivotY + DirY * 12.0f;
+        const float EndX   = Screen.PivotX + DirX * static_cast<float>(GizmoMeasure::AxisEnd);
+        const float EndY   = Screen.PivotY + DirY * static_cast<float>(GizmoMeasure::AxisEnd);
         return DistanceToSegmentSquared(PointerX, PointerY, StartX, StartY, EndX, EndY);
     };
 

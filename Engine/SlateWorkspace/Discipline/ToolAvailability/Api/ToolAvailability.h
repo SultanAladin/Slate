@@ -65,6 +65,11 @@ ToolAvailability AvailabilityFor(WorkspaceRecordSubject Subject);
 WorkspaceRecordName SelectedRecordIn(const WorkspaceDirectoryProjection& Directory,
                                      const ParametricWorkspaceContext& Applied);
 
+/// 🧩 All records ticked in the directory's multi-selection context.
+void SelectedRecordsIn(const WorkspaceDirectoryProjection& Directory,
+                       const ParametricWorkspaceContext& Applied,
+                       std::vector<WorkspaceRecordName>& Selected);
+
 /// 🧩 Whether any row at all is ticked.
 /// cost ✔️
 /// tag  api, nonallocating, nonthrowing
