@@ -613,7 +613,7 @@ struct SlotCandidate
 };
 
 /// 🧩 A surviving fragment of the boundary: a straight run, or a turn about a vertex.
-struct SlotBoundaryPiece
+struct SlotOutlineFragment
 {
     bool        Arc        = false;
     PlanarPoint Start      = {};
@@ -719,7 +719,7 @@ void IntersectSlotCircles(SlotCandidate& First, SlotCandidate& Second, double Ra
 
 void AppendCandidateFragments(const SlotCandidate& Candidate,
                               double Radius,
-                              std::vector<SlotBoundaryPiece>& Pieces)
+                              std::vector<SlotOutlineFragment>& Pieces)
 {
     std::vector<double> Ordered = Candidate.Splits;
     std::sort(Ordered.begin(), Ordered.end());
@@ -735,7 +735,7 @@ void AppendCandidateFragments(const SlotCandidate& Candidate,
         const PlanarPoint Reach = PlanarReach(Candidate.Start, Candidate.End);
         for (std::size_t Index = 0u; Index + 1u < Bounds.size(); ++Index)
         {
-            SlotBoundaryPiece Piece;
+            SlotOutlineFragment Piece;
             Piece.Start = PlanarSum(Candidate.Start, PlanarScaledBy(Reach, Bounds[Index]));
             Piece.End   = PlanarSum(Candidate.Start, PlanarScaledBy(Reach, Bounds[Index + 1u]));
             Pieces.push_back(Piece);
@@ -754,7 +754,7 @@ void AppendCandidateFragments(const SlotCandidate& Candidate,
     //    first point; it is emitted as one closed turn rather than dropped.
     if (Bounds.empty())
     {
-        SlotBoundaryPiece Piece;
+        SlotOutlineFragment Piece;
         Piece.Arc       = true;
         Piece.Centre    = Candidate.Centre;
         Piece.StartTurn = 0.0;
@@ -773,7 +773,7 @@ void AppendCandidateFragments(const SlotCandidate& Candidate,
         if (To - From <= SlotJunctionTolerance)
             continue;
 
-        SlotBoundaryPiece Piece;
+        SlotOutlineFragment Piece;
         Piece.Arc       = true;
         Piece.Centre    = Candidate.Centre;
         Piece.StartTurn = From;
@@ -784,16 +784,16 @@ void AppendCandidateFragments(const SlotCandidate& Candidate,
     }
 }
 
-PlanarPoint ResolveFragmentMidpoint(const SlotBoundaryPiece& Piece, double Radius)
+PlanarPoint ResolveFragmentMidpoint(const SlotOutlineFragment& Piece, double Radius)
 {
     if (!Piece.Arc)
         return PlanarSum(Piece.Start, PlanarScaledBy(PlanarReach(Piece.Start, Piece.End), 0.5));
     return PointOnSlotCircle(Piece.Centre, Radius, Piece.StartTurn + Piece.SweepTurn * 0.5);
 }
 
-SlotBoundaryPiece ReversedFragment(const SlotBoundaryPiece& Piece)
+SlotOutlineFragment ReversedFragment(const SlotOutlineFragment& Piece)
 {
-    SlotBoundaryPiece Turned = Piece;
+    SlotOutlineFragment Turned = Piece;
     Turned.Start = Piece.End;
     Turned.End   = Piece.Start;
     if (Piece.Arc)
@@ -805,7 +805,7 @@ SlotBoundaryPiece ReversedFragment(const SlotBoundaryPiece& Piece)
 }
 
 /// 🧩 The direction of travel as a fragment leaves its start, and as it arrives at its end.
-PlanarPoint ResolveFragmentDeparture(const SlotBoundaryPiece& Piece)
+PlanarPoint ResolveFragmentDeparture(const SlotOutlineFragment& Piece)
 {
     if (!Piece.Arc)
         return PlanarUnit(PlanarReach(Piece.Start, Piece.End));
@@ -814,7 +814,7 @@ PlanarPoint ResolveFragmentDeparture(const SlotBoundaryPiece& Piece)
     return { -std::sin(Piece.StartTurn) * Facing, std::cos(Piece.StartTurn) * Facing };
 }
 
-PlanarPoint ResolveFragmentArrival(const SlotBoundaryPiece& Piece)
+PlanarPoint ResolveFragmentArrival(const SlotOutlineFragment& Piece)
 {
     if (!Piece.Arc)
         return PlanarUnit(PlanarReach(Piece.Start, Piece.End));
@@ -832,10 +832,10 @@ PlanarPoint ResolveFragmentArrival(const SlotBoundaryPiece& Piece)
 ///        close" and threw the whole union away. The turn is what distinguishes them — the boundary
 ///        always continues along the sharpest RIGHT turn available, which is the branch that hugs the
 ///        region rather than cutting across it.
-bool TraceSlotLoops(const std::vector<SlotBoundaryPiece>& Pieces,
+bool TraceSlotLoops(const std::vector<SlotOutlineFragment>& Pieces,
                     double Radius,
                     double Reach,
-                    std::vector<std::vector<SlotBoundaryPiece>>& Loops)
+                    std::vector<std::vector<SlotOutlineFragment>>& Loops)
 {
     // 🔴 THE TOLERANCE HAS TO FOLLOW THE COORDINATES, NOT ONLY THE RADIUS. A junction found by the
     //    tangent branch above resolves to about √ε of the numbers it was computed from, so on a spine
@@ -852,7 +852,7 @@ bool TraceSlotLoops(const std::vector<SlotBoundaryPiece>& Pieces,
             continue;
 
         Taken[Seed] = true;
-        std::vector<SlotBoundaryPiece> Loop = { Pieces[Seed] };
+        std::vector<SlotOutlineFragment> Loop = { Pieces[Seed] };
 
         const PlanarPoint Head    = Pieces[Seed].Start;
         PlanarPoint       Tail    = Pieces[Seed].End;
@@ -898,11 +898,11 @@ bool TraceSlotLoops(const std::vector<SlotBoundaryPiece>& Pieces,
     return !Loops.empty();
 }
 
-double ResolveLoopArea(const std::vector<SlotBoundaryPiece>& Loop, double Radius)
+double ResolveLoopArea(const std::vector<SlotOutlineFragment>& Loop, double Radius)
 {
     std::vector<PlanarPoint> Outline;
 
-    for (const SlotBoundaryPiece& Piece : Loop)
+    for (const SlotOutlineFragment& Piece : Loop)
     {
         if (!Piece.Arc)
         {
@@ -923,9 +923,9 @@ double ResolveLoopArea(const std::vector<SlotBoundaryPiece>& Loop, double Radius
     return 0.5 * Twice;
 }
 
-std::vector<SlotBoundaryPiece> ReversedLoop(const std::vector<SlotBoundaryPiece>& Loop)
+std::vector<SlotOutlineFragment> ReversedLoop(const std::vector<SlotOutlineFragment>& Loop)
 {
-    std::vector<SlotBoundaryPiece> Turned;
+    std::vector<SlotOutlineFragment> Turned;
     Turned.reserve(Loop.size());
     for (std::size_t Index = Loop.size(); Index > 0u; --Index)
         Turned.push_back(ReversedFragment(Loop[Index - 1u]));
@@ -934,7 +934,7 @@ std::vector<SlotBoundaryPiece> ReversedLoop(const std::vector<SlotBoundaryPiece>
 
 /// 🧩 Rejoins fragments that were only ever cut apart by a grazing contact, so the loop carries the
 ///    fewest spans that describe it — one line per straight run, one arc per turn.
-void MergeLoopFragments(std::vector<SlotBoundaryPiece>& Loop, double Radius, double Reach)
+void MergeLoopFragments(std::vector<SlotOutlineFragment>& Loop, double Radius, double Reach)
 {
     const double Tolerance = std::max(Radius, Reach) * SlotStitchTolerance;
 
@@ -948,8 +948,8 @@ void MergeLoopFragments(std::vector<SlotBoundaryPiece>& Loop, double Radius, dou
             if (Next == Index)
                 break;
 
-            SlotBoundaryPiece&       Current   = Loop[Index];
-            const SlotBoundaryPiece& Following = Loop[Next];
+            SlotOutlineFragment&       Current   = Loop[Index];
+            const SlotOutlineFragment& Following = Loop[Next];
 
             if (Current.Arc != Following.Arc)
                 continue;
@@ -1060,16 +1060,16 @@ bool AppendSlotUnionOutline(const std::vector<SpatialPoint>& Run,
     //    does; the offset walk had no such test and so drew it.
     const double InsideLimit = Radius * (1.0 - SlotJunctionTolerance);
 
-    std::vector<SlotBoundaryPiece> Fragments;
+    std::vector<SlotOutlineFragment> Fragments;
     for (const SlotCandidate& Candidate : Candidates)
     {
-        std::vector<SlotBoundaryPiece> Cut;
+        std::vector<SlotOutlineFragment> Cut;
         AppendCandidateFragments(Candidate, Radius, Cut);
 
         // 📝 A run cut at two coincident crossings leaves a fragment of no length, whose direction of
         //    travel is undefined; it is not part of the boundary and would only give the walk a turn it
         //    cannot measure.
-        for (const SlotBoundaryPiece& Piece : Cut)
+        for (const SlotOutlineFragment& Piece : Cut)
         {
             if (!Piece.Arc && PlanarSpan(Piece.Start, Piece.End) <= Reach * SlotStitchTolerance)
                 continue;
@@ -1083,7 +1083,7 @@ bool AppendSlotUnionOutline(const std::vector<SpatialPoint>& Run,
 
     // ④ Stitch, then take the enclosing loop. A spine that crosses itself encircles holes as well, and
     //    the profile this feeds carries one outer loop.
-    std::vector<std::vector<SlotBoundaryPiece>> Loops;
+    std::vector<std::vector<SlotOutlineFragment>> Loops;
     if (!TraceSlotLoops(Fragments, Radius, Reach, Loops))
         return false;
 
@@ -1099,13 +1099,13 @@ bool AppendSlotUnionOutline(const std::vector<SpatialPoint>& Run,
         }
     }
 
-    std::vector<SlotBoundaryPiece> Outer = Loops[Widest];
+    std::vector<SlotOutlineFragment> Outer = Loops[Widest];
     if (ResolveLoopArea(Outer, Radius) < 0.0)
         Outer = ReversedLoop(Outer);
 
     MergeLoopFragments(Outer, Radius, Reach);
 
-    for (const SlotBoundaryPiece& Piece : Outer)
+    for (const SlotOutlineFragment& Piece : Outer)
     {
         if (!Piece.Arc)
         {
