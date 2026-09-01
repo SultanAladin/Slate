@@ -16,6 +16,7 @@
 #pragma once
 
 #include "Foundation/DeliveryGuarantee.h"
+#include "Foundation/MeasureDisplay.h"
 #include "SlateUI/Interface/ParametricTools/Api/ParametricToolsSpecification.h"
 #include "SlateShape/World/WorldSketchStructure/Api/WorldSketchStructure.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
@@ -49,9 +50,18 @@ struct SketchOperationState
     /// 🧩 The tool the state was last prepared for, so a change of tool can clear it.
     ParametricToolSubject Prepared = ParametricToolSubject::Select;
 
-    /// 🧩 The figure the readout edits, shared by the drag and the typed value.
+    /// 🧩 The unit the readout shows figures in. Millimetres are what is stored, always.
+    /// note  🔴 THE SAME ARRANGEMENT THE ANNOTATION BAND ALREADY USES, and for the same reason: the model
+    ///        has exactly one unit and the artist has whichever one they are working in. An artist
+    ///        working in metres was given a millimetre slider -- a 50 mm range on a part half a metre
+    ///        across, so the control was useless long before the number was wrong.
+    MeasureUnit Unit = MeasureUnit::Millimetre;
+
+    /// 🧩 The figure the readout edits, shared by the drag and the typed value, in the DISPLAYED unit.
     /// note  🔴 A FLOAT BECAUSE THE OPTION ROWS TAKE A FLOAT, and the session keeps a double. The two are
     ///        synchronised at the seam rather than at either end, so neither has to know about the other.
+    /// note  🔴 DISPLAYED, NOT STORED. The sessions beneath work in millimetres and never learn that any
+    ///        other unit exists; the conversion happens once in each direction, at the readout.
     float Figure = 4.0f;
 };
 

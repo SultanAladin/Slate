@@ -87,8 +87,12 @@ void OptionControlPalette::RecordSlider(const PlaneExtent& Row, OptionDeclaratio
 
     Surface->Ground(Pill, ValueNumber, ValueRadius * Applied, CornerAll);
 
+    // 📝 The row's own precision, held inside what the field can show. A caller asking for more places
+    //    than the pill can hold would truncate mid-number, which reads as a wrong value rather than a
+    //    clipped one.
     char Written[32] = {};
-    std::snprintf(Written, sizeof(Written), "%.2f", static_cast<double>(*Declared.Reading));
+    const int Places = static_cast<int>(Declared.Places > 6u ? 6u : Declared.Places);
+    std::snprintf(Written, sizeof(Written), "%.*f", Places, static_cast<double>(*Declared.Reading));
     Surface->TextRun(Pill.MinimumX + 12.0f * Applied,
                      (Pill.MinimumY + Pill.MaximumY) * 0.5f + ValuePoint * 0.36f * Applied,
                      ColourValue, Written, ValuePoint * Applied);

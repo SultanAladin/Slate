@@ -95,6 +95,12 @@ struct OptionDeclaration
     float               Minimum     = 0.0f;      // [-]
     float               Maximum     = 1.0f;      // [-]
 
+    // 🔴 HOW MANY DECIMAL PLACES THE VALUE IS WORTH SHOWING. Two is right for millimetres and wrong for
+    //    everything else: a five-millimetre fillet shown in metres reads "0.01" at two places, which is
+    //    both inaccurate and unreadable as a control -- the artist cannot see their own value change.
+    //    The row states its own precision because only the caller knows what its number means.
+    std::uint32_t       Places      = 2u;        // [-] - decimal places for a slider's value
+
     std::uint32_t*      Selected    = nullptr;   // [-] - the caller's index, for a segmented row or swatches
     const char* const*  Options     = nullptr;   // [-] - the segmented captions
     const SymbolSubject* Glyphs     = nullptr;   // [-] - optional, one per option; drawn instead of the caption

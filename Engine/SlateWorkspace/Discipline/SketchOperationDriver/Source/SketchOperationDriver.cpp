@@ -217,8 +217,10 @@ void DriveSketchOperations(const PlaneExtent& Bounds,
         if (!State.Corner.PopupStanding() && Readout.Standing())
             Readout.Close();
 
+        // 🔴 SHOWN IN THE ARTIST'S UNIT. The session's radius is millimetres; the readout is whatever
+        //    the panel says. Publishing the raw figure is what put 500 in a box labelled metres.
         if (State.Corner.Phase == CornerPhase::Dragging || State.Corner.Phase == CornerPhase::Pending)
-            State.Figure = static_cast<float>(State.Corner.Radius);
+            State.Figure = static_cast<float>(ToDisplay(State.Corner.Radius, State.Unit));
 
         if (State.Corner.Phase != CornerPhase::Idle)
             PointerTaken = true;
@@ -251,7 +253,7 @@ void DriveSketchOperations(const PlaneExtent& Bounds,
 
         if (State.Operation.Phase == OperationPhase::Dragging ||
             State.Operation.Phase == OperationPhase::Pending)
-            State.Figure = static_cast<float>(State.Operation.Distance);
+            State.Figure = static_cast<float>(ToDisplay(State.Operation.Distance, State.Unit));
 
         if (State.Operation.Phase != OperationPhase::Idle)
             PointerTaken = true;
@@ -273,14 +275,22 @@ void DriveSketchOperations(const PlaneExtent& Bounds,
     OptionDeclaration Rows[1] = {};
     Rows[0].Kind    = OptionControl::Slider;
     Rows[0].Caption = ActiveTool == ParametricToolSubject::Offset ? "Distance" : "Radius";
-    Rows[0].Unit    = "mm";
+    Rows[0].Unit    = MeasureUnitSuffix(State.Unit);
     Rows[0].Reading = &State.Figure;
+    Rows[0].Places  = MeasureUnitPlaces(State.Unit);
 
     // 🔴 THE SLIDER'S RANGE IS THE GESTURE'S OWN CLAMP, not a constant. A readout that let the artist
     //    type or drag past the limit would be a way around the clamp rather than a way to be precise
     //    inside it, and the operation would refuse at a number the readout had just offered.
-    Rows[0].Minimum = ActiveTool == ParametricToolSubject::Offset ? -static_cast<float>(Limit) : 0.0f;
-    Rows[0].Maximum = static_cast<float>(Limit > 0.0 ? Limit : 1.0);
+    // 🔴 AND THE CLAMP IS CONVERTED WITH THE FIGURE. The limit is millimetres like everything else in
+    //    the session; leaving it unconverted while the reading is shown in metres made the slider run
+    //    to 50 when the value it carried could only ever reach 0.05 -- the whole travel bunched into
+    //    the first thousandth of the track, which is what made it feel hopelessly coarse.
+    const double ShownLimit = ToDisplay(Limit, State.Unit);
+
+    Rows[0].Minimum = ActiveTool == ParametricToolSubject::Offset
+                    ? -static_cast<float>(ShownLimit) : 0.0f;
+    Rows[0].Maximum = static_cast<float>(ShownLimit > 0.0 ? ShownLimit : ToDisplay(1.0, State.Unit));
 
     PopupDeclaration Declared = {};
     Declared.Title    = Title;
@@ -297,9 +307,13 @@ void DriveSketchOperations(const PlaneExtent& Bounds,
 
     // 📝 The figure the artist may have typed goes back through the session's clamp before it is used,
     //    so the drag and the readout cannot disagree about what the largest legal value is.
+    // 🔴 CONVERTED ON THE WAY IN, ONCE, exactly as the annotation band does it. Type 0.05 with metres
+    //    showing and the session is asked for 50 millimetres; the sessions never learn metres exist.
+    const double TypedMillimetres = ToMillimetres(static_cast<double>(State.Figure), State.Unit);
+
     if (CornerMannerFor(ActiveTool, Manner))
     {
-        DeclareCornerRadius(State.Corner, static_cast<double>(State.Figure));
+        DeclareCornerRadius(State.Corner, TypedMillimetres);
         if (Verdict.Delivered == PopupVerdict::Applied)
         {
             WorldCurveName Produced = {};
@@ -312,7 +326,7 @@ void DriveSketchOperations(const PlaneExtent& Bounds,
     }
     else
     {
-        DeclareOperationDistance(State.Operation, static_cast<double>(State.Figure));
+        DeclareOperationDistance(State.Operation, TypedMillimetres);
         if (Verdict.Delivered == PopupVerdict::Applied)
         {
             std::vector<WorldCurveName> Produced;

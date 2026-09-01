@@ -175,6 +175,7 @@ void DriveAnnotations(const PlaneExtent& Bounds,
     Rows[0].Caption = "Value";
     Rows[0].Unit    = MeasureUnitSuffix(State.Unit);
     Rows[0].Reading = &State.Figure;
+    Rows[0].Places  = MeasureUnitPlaces(State.Unit);
     Rows[0].Minimum = 0.0f;
 
     // 📝 A dimension has no natural upper bound, so the range simply follows the value: it is an entry
