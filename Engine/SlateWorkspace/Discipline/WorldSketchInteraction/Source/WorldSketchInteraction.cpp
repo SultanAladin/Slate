@@ -91,6 +91,64 @@ void RefreshWorldSelectionSet(const WorldSketchStructure& Declared, WorldSelecti
     }
 }
 
+namespace
+{
+
+/// 🧩 The element mode a pick of this kind belongs to.
+SelectionElement ElementOfWorldPick(WorldPickSubject Subject)
+{
+    switch (Subject)
+    {
+        case WorldPickSubject::Point:
+        case WorldPickSubject::Control:
+            return SelectionElement::Vertex;
+
+        case WorldPickSubject::Curve:
+            return SelectionElement::Edge;
+
+        case WorldPickSubject::Loop:
+            return SelectionElement::Face;
+
+        case WorldPickSubject::None:
+            break;
+    }
+    return SelectionElement::Free;
+}
+
+/// 🧩 Whether the standing mode still admits a pick that is already selected.
+/// note  🔴 THE MODE MUST JUDGE A SELECTION, NOT ONLY MAKE ONE. The picker consults the mode while it
+///        decides what the pointer is over, so it governs picks born under the pointer and nothing else.
+///        A selection reaches this set by other roads too — seeded from the outliner row through the
+///        compatibility bridge, or simply left standing when the artist changes mode — and none of them
+///        asked. That is how a vertex came to be selected in Edge mode: the gizmo drew for it, and the
+///        drag then refused it, because selecting and transforming answered to different authorities.
+/// note  📝 `Object` admits whatever a whole-shape pick resolves to, which is a curve or a loop; it is a
+///        statement about what is RETURNED, not a fourth kind of element.
+bool SelectionModeAdmits(const SelectionOptions& Selection, const WorldPick& Pick)
+{
+    if (!Pick.Standing())
+        return false;
+    if (Selection.Element == SelectionElement::Free)
+        return true;
+    if (Selection.Element == SelectionElement::Object)
+        return Pick.Subject == WorldPickSubject::Curve || Pick.Subject == WorldPickSubject::Loop;
+    return ElementOfWorldPick(Pick.Subject) == Selection.Element;
+}
+
+/// 🧩 Drops every selected pick the standing mode no longer admits.
+void RetainAdmissibleSelection(const SelectionOptions& Selection, WorldSelectionSet& Set)
+{
+    for (auto It = Set.Items.begin(); It != Set.Items.end(); )
+    {
+        if (!SelectionModeAdmits(Selection, *It))
+            It = Set.Items.erase(It);
+        else
+            ++It;
+    }
+}
+
+}   // namespace
+
 void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
                                           const PointerCondition& Pointer,
                                           const TextInputCondition& TextInput,
@@ -118,10 +176,19 @@ void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
                                         Selection.ResolvedTolerance(),
                                         Selection.Element, HoveredSelection);
 
-    if (SemanticSelection.Standing() && SelectionSet.Empty())
+    // 🔴 THE SEED IS FILTERED TOO. This arm adopts whatever the host handed down — the outliner row,
+    //    mirrored through the compatibility bridge — and that road never passed the picker, so an
+    //    unadmitted kind entered the set here and drew a gizmo the drag would refuse.
+    if (SemanticSelection.Standing() && SelectionSet.Empty() &&
+        SelectionModeAdmits(Selection, SemanticSelection))
         SetWorldPick(SelectionSet, SemanticSelection, false);
 
     RefreshWorldSelectionSet(Declared, SelectionSet);
+
+    // 📝 Applied every frame rather than only when the mode changes, because the mode is owned by the
+    //    host widget and this layer is never told that it moved.
+    if (!Transform.Engaged())
+        RetainAdmissibleSelection(Selection, SelectionSet);
 
     const WorldPick* Active = SelectionSet.Active();
     WorldPick ActiveSelection = Active != nullptr ? *Active : WorldPick{};

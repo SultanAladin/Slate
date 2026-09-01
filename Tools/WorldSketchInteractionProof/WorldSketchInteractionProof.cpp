@@ -735,6 +735,88 @@ void ProveCornerSlidesAlongEitherEdge()
 
 } // namespace
 
+void ProveSelectionModeGovernsTheGizmo()
+{
+    std::printf("\n10. The element mode governs what may be SELECTED, not merely what may be picked\n");
+
+    // 🔴 SELECTING AND TRANSFORMING ANSWERED TO DIFFERENT AUTHORITIES. The picker consulted the element
+    //    mode, so it never returned a vertex in Edge mode — but a selection also arrives by other roads,
+    //    seeded from the outliner row through the compatibility bridge, and that road asked nothing. A
+    //    vertex therefore became the standing selection in Edge mode, the gizmo drew for it, and the very
+    //    next frame the drag refused it: the gizmo appeared and vanished, and nothing could be moved.
+    //    An inadmissible pick must be a no-op with no gizmo at all.
+    {
+        Bench Stage;
+        Stage.Selection.Element = SelectionElement::Edge;
+        Stage.SemanticSelection = Stage.VertexPick();
+        Claim(Stage.SemanticSelection.Standing(), "a vertex pick is available to seed with");
+
+        PointerCondition Idle = {};
+        Idle.PositionX = 4.0f;
+        Idle.PositionY = 4.0f;
+        bool PointerTaken = false;
+        GizmoHandle HoveredHandle = GizmoHandle::None;
+        Stage.Drive(Idle, {}, Stage.Perspective, 1000.0, PointerTaken, &HoveredHandle);
+
+        Claim(!Stage.SemanticSelection.Standing(),
+              "a VERTEX seeded from the outliner is refused while the mode reads Edge");
+        Claim(Stage.SelectionSet.Empty(),
+              "and it never enters the selection set, so no gizmo is drawn for it");
+    }
+
+    // The same seed under the mode that owns it is kept, so the filter is a filter and not a ban.
+    {
+        Bench Stage;
+        Stage.Selection.Element = SelectionElement::Vertex;
+        Stage.SemanticSelection = Stage.VertexPick();
+
+        PointerCondition Idle = {};
+        Idle.PositionX = 4.0f;
+        Idle.PositionY = 4.0f;
+        bool PointerTaken = false;
+        Stage.Drive(Idle, {}, Stage.Perspective, 1000.0, PointerTaken);
+
+        Claim(Stage.SemanticSelection.Subject == WorldPickSubject::Point,
+              "the same vertex IS kept when the mode reads Vertex");
+        Claim(Stage.SelectionSet.Items.size() == 1u,
+              "and it stands as the one selected item");
+    }
+
+    // Changing mode with something already selected drops it, rather than leaving a gizmo
+    // for a kind the drag would then refuse.
+    {
+        Bench Stage;
+        Stage.Selection.Element = SelectionElement::Edge;
+        const WorldPick Edge = Stage.EdgePick();
+        float X = 0.0f;
+        float Y = 0.0f;
+        Claim(ProjectFromCamera(Stage.Perspective, Stage.Extent, Edge.Position, X, Y),
+              "the edge pivot projects");
+
+        PointerCondition Click = {};
+        Click.PositionX = X;
+        Click.PositionY = Y;
+        Click.ContactPressed = true;
+        bool PointerTaken = false;
+        Stage.Drive(Click, {}, Stage.Perspective, 1000.0, PointerTaken);
+        Claim(Stage.SemanticSelection.Subject == WorldPickSubject::Curve,
+              "an edge is selected while the mode reads Edge");
+
+        Stage.Selection.Element = SelectionElement::Vertex;
+        PointerCondition Idle = {};
+        Idle.PositionX = X;
+        Idle.PositionY = Y;
+        bool SecondTaken = false;
+        GizmoHandle HoveredHandle = GizmoHandle::None;
+        Stage.Drive(Idle, {}, Stage.Perspective, 1016.0, SecondTaken, &HoveredHandle);
+
+        Claim(!Stage.SemanticSelection.Standing(),
+              "switching to Vertex mode drops the standing edge instead of keeping a dead gizmo");
+        Claim(HoveredHandle == GizmoHandle::None,
+              "and no gizmo handle is offered for it");
+    }
+}
+
 int main()
 {
     std::printf("=========================================================================\n");
@@ -750,6 +832,7 @@ int main()
     ProveSlideRunsBothWays();
     ProveSlideReversesMidDrag();
     ProveCornerSlidesAlongEitherEdge();
+    ProveSelectionModeGovernsTheGizmo();
 
     std::printf("\n=========================================================================\n");
     std::printf("%u claims, %u failures -> %s\n", Claims, Failures,

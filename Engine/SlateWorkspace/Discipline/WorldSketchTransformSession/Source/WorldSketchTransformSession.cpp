@@ -821,10 +821,22 @@ void UpdateWorldSketchTransformSession(const ResolvedCamera& Camera,
         Offset = ResolveWorldOffset(Session, Reference);
         if (HasNumeric)
         {
-            if (MoveAxisDrag)
-                Offset = Scaled(ResolveAxisDirection(Session), Numeric);
-            else
-                Offset = { Numeric, 0.0, 0.0 };
+            // 🔴 A TYPED DISTANCE NEEDS A DIRECTION, AND AN UNCONSTRAINED MOVE HAS NONE. This wrote
+            //    `{ Numeric, 0, 0 }` — world X — so `G 30` slid the selection thirty along an axis the
+            //    artist never named and which had nothing to do with where they were looking. It read as
+            //    "numeric entry always goes to X", and it is why a plain grab appeared to travel parallel
+            //    to the camera: X is simply what the default view faces.
+            //
+            // 📝 A free grab therefore IGNORES the number until an axis is chosen, which is exactly how
+            //    Blender reads it: `G 30` does nothing, `G Z 30` moves thirty along Z. The digits are
+            //    kept, not discarded — pressing an axis key mid-command applies them at once, so the
+            //    artist may type the distance before or after naming the direction.
+            //
+            // ⚠️ The pointer stops driving the move the moment a digit is typed, as it does for a
+            //    constrained one — a half-typed distance must not leave the selection drifting under the
+            //    mouse. With no axis yet named that leaves it exactly where it started.
+            Offset = MoveAxisDrag ? Scaled(ResolveAxisDirection(Session), Numeric)
+                                  : SpatialDirection{ 0.0, 0.0, 0.0 };
         }
         Value = MoveAxisDrag ? Dot(Offset, ResolveAxisDirection(Session))
                              : std::sqrt(LengthSquared(Offset));

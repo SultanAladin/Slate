@@ -252,6 +252,36 @@ void ProveCurveSlideAndNumeric()
     Claim(Held != nullptr && SamePoint(Held->Geometry.HeldLine().Origin, { 0.0, 15.0, 0.0 })
                          && SamePoint(Held->Geometry.HeldLine().Terminus, { 100.0, 15.0, 100.0 }),
           "numeric override on AxisY performs a true 3D vertical move without needing pointer travel");
+
+    // 🔴 A TYPED DISTANCE WITHOUT AN AXIS USED TO GO TO WORLD X. `Offset` was written as
+    //    `{ Numeric, 0, 0 }` for an unrestricted move, so `G 30` slid the selection thirty along an axis
+    //    the artist never named — the behaviour that read as "a plain grab travels parallel to the
+    //    camera", X being simply what the default view faces. Blender's reading is the correct one: a
+    //    distance needs a direction, so `G 30` waits and `G Z 30` moves.
+    CancelWorldSketchTransformSession(Sketch, Session);
+    Claim(StartWorldSketchTransformSession(Sketch, Camera, Extent, StartX, StartY, Pick,
+                                          TransformRestriction::Free, false, Session),
+          "an unrestricted move starts");
+    AppendTransformNumericRun(Session.Standing.Numeric, TransformNumericLimit, "30");
+    UpdateWorldSketchTransformSession(Camera, Extent, StartX, StartY, Sketch, Session);
+    Held = Sketch.Resolve(Diagonal);
+    Claim(Held != nullptr && SamePoint(Held->Geometry.HeldLine().Origin, { 0.0, 0.0, 0.0 })
+                         && SamePoint(Held->Geometry.HeldLine().Terminus, { 100.0, 0.0, 100.0 }),
+          "G 30 with no axis named moves NOTHING -- it does not run away down world X");
+    Claim(!Session.Changed,
+          "and the session reports no change, so a confirm would seal nothing");
+
+    // Naming the axis afterwards applies the distance already typed.
+    CancelWorldSketchTransformSession(Sketch, Session);
+    Claim(StartWorldSketchTransformSession(Sketch, Camera, Extent, StartX, StartY, Pick,
+                                          TransformRestriction::AxisZ, false, Session),
+          "and G Z 30 starts on an axis");
+    AppendTransformNumericRun(Session.Standing.Numeric, TransformNumericLimit, "30");
+    UpdateWorldSketchTransformSession(Camera, Extent, StartX, StartY, Sketch, Session);
+    Held = Sketch.Resolve(Diagonal);
+    Claim(Held != nullptr && SamePoint(Held->Geometry.HeldLine().Origin, { 0.0, 0.0, 30.0 })
+                         && SamePoint(Held->Geometry.HeldLine().Terminus, { 100.0, 0.0, 130.0 }),
+          "G Z 30 moves thirty along Z -- the distance applies once a direction exists");
 }
 
 void ProveRepeatedStaleVertexMove()
