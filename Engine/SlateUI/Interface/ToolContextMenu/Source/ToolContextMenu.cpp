@@ -2,8 +2,10 @@
 //                                                        TOOLCONTEXTMENU.CPP
 //============================================================================================================================================
 // 📐 The frame is this unit's; the controls inside it are `OptionControls`, the same ones the options
-//    widget presents. Placement is `PlaceMenuClear` in Foundation.
+//    widget presents. Placement is `PlaceInCorner` below: pinned bottom-right, stepping up past any
+//    widget it was told to avoid.
 
+#include "Foundation/ExtentBands.h"
 #include "SlateUI/Interface/ToolContextMenu/Api/ToolContextMenu.h"
 
 namespace Slate
@@ -15,24 +17,6 @@ namespace
 // 📐 A lighter accent for the hovered Apply, so the primary action answers the pointer the way every
 //    other control in this family does.
 constexpr ThemeToken AccentHover = Covering(0x5d9ee8u);
-
-// 📐 Converts between the interface's extent and the layer-neutral band the placement arithmetic uses.
-//    This is the only seam between the two, deliberately: `Foundation` may not name an interface type.
-ExtentBand AsBand(const PlaneExtent& Extent)
-{
-    ExtentBand Band;
-    Band.MinimumX = Extent.MinimumX;
-    Band.MinimumY = Extent.MinimumY;
-    Band.MaximumX = Extent.MaximumX;
-    Band.MaximumY = Extent.MaximumY;
-    return Band;
-}
-
-PlaneExtent AsExtent(const ExtentBand& Band)
-{
-    return Spanning(Band.MinimumX, Band.MinimumY,
-                    Band.MaximumX - Band.MinimumX, Band.MaximumY - Band.MinimumY);
-}
 
 }   // namespace
 
@@ -132,10 +116,9 @@ bool ToolContextMenu::Pressed(ControlIdentity Target, const PlaneExtent& Extent)
 //                                                      OPEN AND CLOSE
 //------------------------------------------------------------------------------------------------------------------------
 
-void ToolContextMenu::Open(const PlaneExtent& Anchor)
+void ToolContextMenu::Open()
 {
-    Anchored = Anchor;
-    Opened   = true;
+    Opened = true;
 }
 
 void ToolContextMenu::Close()
@@ -180,6 +163,40 @@ float ToolContextMenu::MeasureBody(const PopupDeclaration& Declared) const
 }
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                       PLACEMENT
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 The bottom-right of the bounds, stepped UP past anything it was told to avoid.
+/// 🔴 UP, NOT AROUND. The retired placement searched every corner and took the first free one, so the
+///    readout jumped between corners as widgets came and went. Keeping the right edge and rising past an
+///    obstruction moves it as little as possible while still never covering one -- and it stays where the
+///    artist last looked for it.
+PlaneExtent ToolContextMenu::PlaceInCorner(const PlaneExtent& Bounds, float Width, float Height) const
+{
+    // 📝 The arithmetic lives in `Foundation/ExtentBands.h` beside `PlaceMenuClear`, so it is constexpr
+    //    and can be proven without a surface, a device or a window. This is only the seam.
+    ExtentBand Frame = {};
+    ExtentBand Blocked[AvoidLimit] = {};
+    for (std::uint32_t Index = 0u; Index < AvoidCount; ++Index)
+    {
+        Blocked[Index].MinimumX = Avoided[Index].MinimumX;
+        Blocked[Index].MinimumY = Avoided[Index].MinimumY;
+        Blocked[Index].MaximumX = Avoided[Index].MaximumX;
+        Blocked[Index].MaximumY = Avoided[Index].MaximumY;
+    }
+
+    ExtentBand Bound = {};
+    Bound.MinimumX = Bounds.MinimumX;
+    Bound.MinimumY = Bounds.MinimumY;
+    Bound.MaximumX = Bounds.MaximumX;
+    Bound.MaximumY = Bounds.MaximumY;
+
+    PlaceReadoutCorner(Bound, Width, Height, Blocked, AvoidCount, EdgeGap * Scale(), Frame);
+    return Spanning(Frame.MinimumX, Frame.MinimumY,
+                    Frame.MaximumX - Frame.MinimumX, Frame.MaximumY - Frame.MinimumY);
+}
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                        RECORD
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -190,10 +207,13 @@ Deliver<PopupVerdict> ToolContextMenu::Record(const PlaneExtent& Bounds,
     const std::uint32_t Rows = Declared.RowCount < RowLimit ? Declared.RowCount : RowLimit;
 
     // 🔴 THE AVOID LIST IS SPENT BY EVERY RECORD, taken or not. Boxes are declared from what was actually
-    //    drawn this tick, so carrying them forward would steer the popup around a widget that has since
-    //    moved or gone.
-    const std::uint32_t Declaredkeep = AvoidCount;
-    AvoidCount = 0u;
+    //    drawn this tick, so carrying them forward would steer the readout around a widget that has since
+    //    moved or gone. `PlaceInCorner` reads the list, so it is cleared only once the frame is placed.
+    struct AvoidSpend
+    {
+        std::uint32_t* Count;
+        ~AvoidSpend() { *Count = 0u; }
+    } Spend{ &AvoidCount };
 
     if (!Opened || Declared.Rows == nullptr || Rows == 0u)
     {
@@ -205,25 +225,7 @@ Deliver<PopupVerdict> ToolContextMenu::Record(const PlaneExtent& Bounds,
     const float Width   = PopupWidth * Applied;
     const float Height  = HeadHeight * Applied + MeasureBody(Declared) + FootHeight * Applied;
 
-    // 📐 The placement arithmetic is layer-neutral and lives in Foundation, so it can be proven without
-    //    a surface. Here it is only fed and its answer converted back.
-    ExtentBand Blocked[AvoidLimit] = {};
-    for (std::uint32_t Index = 0u; Index < Declaredkeep; ++Index)
-        Blocked[Index] = AsBand(Avoided[Index]);
-
-    ExtentBand Placed = {};
-    if (!PlaceMenuClear(AsBand(Bounds), AsBand(Anchored), Width, Height,
-                        Blocked, Declaredkeep, AnchorGap * Applied, Placed))
-    {
-        // ⚠️ NOTHING IS DRAWN WHEN NOTHING FITS. Drawing it anyway over a widget is the one thing this
-        //    unit exists to prevent, and a popup that silently half-appears is worse than one that does
-        //    not open at all.
-        Occupied = {};
-        Opened   = false;
-        return Deliver<PopupVerdict>::Result(PopupVerdict::Cancelled);
-    }
-
-    const PlaneExtent Frame = AsExtent(Placed);
+    const PlaneExtent Frame = PlaceInCorner(Bounds, Width, Height);
     Occupied = Frame;
 
     const PlaneExtent Head = Spanning(Frame.MinimumX, Frame.MinimumY, Frame.Width(), HeadHeight * Applied);
@@ -324,11 +326,12 @@ Deliver<PopupVerdict> ToolContextMenu::Record(const PlaneExtent& Bounds,
         return Deliver<PopupVerdict>::Result(PopupVerdict::Cancelled);
     }
 
-    // 📝 A press outside the popup and outside what it was opened from is a dismissal. Testing the anchor
-    //    too means pressing the tile that raised it does not immediately cancel what it raised.
+    // 📝 A press outside the readout dismisses it.
+    // ⚠️ NOT while a drag is still running. The gesture that raises this readout is itself a press in the
+    //    viewport, so treating any outside press as a dismissal would close it on the very frame it
+    //    opened. The caller keeps it open by not forwarding the pointer until the drag is released.
     if (Pointer.ContactPressed &&
-        !Frame.Encloses(Pointer.PositionX, Pointer.PositionY) &&
-        !Anchored.Encloses(Pointer.PositionX, Pointer.PositionY))
+        !Frame.Encloses(Pointer.PositionX, Pointer.PositionY))
     {
         Close();
         return Deliver<PopupVerdict>::Result(PopupVerdict::Cancelled);

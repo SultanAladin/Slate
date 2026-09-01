@@ -51,7 +51,6 @@ SUPPORTING = [ROOT / Relative for Relative in [
     "Engine/SlateShape/Sketch/DimensionSolver/Source/DimensionSolver.cpp",
     "Engine/SlateShape/Sketch/SketchAnalysis/Source/SketchAnalysis.cpp",
     "Engine/SlateShape/Sketch/ProfileBoolean/Source/ProfileBoolean.cpp",
-    "Engine/SlateShape/Sketch/ProfileCorner/Source/ProfileCorner.cpp",
     "Engine/SlateShape/Sketch/ProfileReshape/Source/ProfileReshape.cpp",
     "Engine/SlateShape/Sketch/SketchPolyline/Source/SketchPolyline.cpp",
     "Engine/SlateShape/Sketch/ConstraintSpecification/Source/ConstraintSpecification.cpp",

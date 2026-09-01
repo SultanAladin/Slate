@@ -287,6 +287,78 @@ int main()
         Claim(Folded, "the placement search is a constant expression");
     }
 
+    // ⑪ THE READOUT CORNER. `PlaceReadoutCorner` is a different contract from `PlaceMenuClear` and is
+    //    proven as one: it is PINNED bottom-right, it steps UP rather than hopping corners, and it never
+    //    refuses -- because a figure the artist is reading mid-drag must not move or disappear.
+    {
+        std::printf("  \u246a the readout pins bottom-right, rises past widgets, and never refuses\n");
+        constexpr ExtentBand Leaf{ 0.0f, 0.0f, 800.0f, 600.0f };
+        constexpr float Gap = 12.0f;
+        constexpr float Width = 196.0f;
+        constexpr float Height = 120.0f;
+
+        // ① Unobstructed: hard against the bottom-right, one gap clear of both edges.
+        {
+            ExtentBand Placed{};
+            PlaceReadoutCorner(Leaf, Width, Height, nullptr, 0u, Gap, Placed);
+            Claim(Placed.MaximumX == 800.0f - Gap, "the readout's right edge is one gap from the leaf's");
+            Claim(Placed.MaximumY == 600.0f - Gap, "and its bottom edge likewise");
+            Claim(Placed.MaximumX - Placed.MinimumX == Width, "at the width asked for");
+            Claim(Placed.MaximumY - Placed.MinimumY == Height, "and the height");
+        }
+
+        // ② A widget in that corner pushes it UP, and it keeps the same right edge.
+        {
+            const ExtentBand Widget{ 560.0f, 420.0f, 800.0f, 600.0f };
+            ExtentBand Placed{};
+            PlaceReadoutCorner(Leaf, Width, Height, &Widget, 1u, Gap, Placed);
+            Claim(!ExtentsIntersect(Placed, Widget), "an obstructed readout does not overlap the widget");
+            Claim(Placed.MaximumX == 800.0f - Gap,
+                  "and it holds the right edge rather than hopping to another corner");
+            Claim(Placed.MaximumY == 420.0f - Gap, "having risen to sit just above the widget");
+        }
+
+        // ③ TWO STACKED WIDGETS. One pass is not enough -- rising past the lower one lands it on the
+        //    upper -- which is why the placement iterates. A single-pass implementation fails here.
+        {
+            // 🔴 THE ORDER IS THE POINT. The higher widget is listed FIRST, so one sweep of the list
+            //    rises past it and then past the lower one -- landing at 420-12-120 = 288, which is
+            //    inside the higher widget it had already cleared. Only a second pass catches that, and
+            //    a single-pass implementation passes a fixture whose widgets happen to be listed
+            //    bottom-up. This ordering is what makes the claim mean anything.
+            const ExtentBand Widgets[2] = { { 560.0f, 250.0f, 800.0f, 400.0f },
+                                            { 560.0f, 420.0f, 800.0f, 600.0f } };
+            ExtentBand Placed{};
+            PlaceReadoutCorner(Leaf, Width, Height, Widgets, 2u, Gap, Placed);
+            Claim(!ExtentsIntersect(Placed, Widgets[0]) && !ExtentsIntersect(Placed, Widgets[1]),
+                  "it clears BOTH of two stacked widgets, not merely the first it met");
+            Claim(Placed.MaximumY == 250.0f - Gap, "coming to rest above the higher one");
+        }
+
+        // ④ IT NEVER REFUSES. A widget covering the whole leaf leaves nowhere clear, and the readout is
+        //    clamped inside the bounds rather than vanishing. This is the deliberate difference from
+        //    `PlaceMenuClear`, which returns false in exactly this case.
+        {
+            const ExtentBand Everything{ 0.0f, 0.0f, 800.0f, 600.0f };
+            ExtentBand Placed{};
+            PlaceReadoutCorner(Leaf, Width, Height, &Everything, 1u, Gap, Placed);
+            Claim(Placed.MinimumY == Gap, "with nowhere clear it clamps to the top of the leaf");
+            Claim(Placed.MinimumY >= Leaf.MinimumY && Placed.MaximumX <= Leaf.MaximumX,
+                  "and stays inside the leaf rather than disappearing off it");
+        }
+
+        // ⑤ And it folds at compile time, like its neighbour.
+        constexpr ExtentBand Folded = []
+        {
+            ExtentBand Placed{};
+            PlaceReadoutCorner(ExtentBand{ 0.0f, 0.0f, 800.0f, 600.0f }, 196.0f, 120.0f,
+                               nullptr, 0u, 12.0f, Placed);
+            return Placed;
+        }();
+        static_assert(Folded.MaximumX == 788.0f, "the readout placement must fold in a constant expression");
+        Claim(Folded.MaximumX == 788.0f, "the readout placement is a constant expression");
+    }
+
     std::printf("\n[MenuPlacement] %u claims, %u failures\n\n", Claims, Failures);
     return Failures == 0u ? 0 : 1;
 }

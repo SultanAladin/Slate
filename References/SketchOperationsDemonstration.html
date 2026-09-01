@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Slate — 2D sketch operations, demonstrated</title>
+<style>
+  :root{
+    --page:#050505; --card:#121212; --well:#1A1A1A; --wellhover:#222222;
+    --line:#2A2A2A; --quiet:#333333;
+    --ink:#F5F5F5; --ink2:#A1A1A1; --ink3:#737373;
+    --accent:#4A8FDA; --accent2:#5d9ee8;
+    --geom:#D4D4D4; --ghost:#525252; --cut:#FC5A5A; --new:#4ADE80; --hint:#FBBF24;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);
+       font:14px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  header{padding:34px 40px 10px;max-width:1180px;margin:0 auto}
+  h1{font-size:24px;font-weight:650;margin:0 0 6px;letter-spacing:-.01em}
+  header p{color:var(--ink2);margin:0;max-width:70ch}
+  main{max-width:1180px;margin:0 auto;padding:14px 40px 70px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:20px;
+          padding:24px 26px;margin:22px 0}
+  h2{font-size:17px;font-weight:650;margin:0 0 2px;display:flex;align-items:center;gap:10px}
+  h2 .tag{font-size:11px;font-weight:600;color:var(--ink3);border:1px solid var(--line);
+          border-radius:999px;padding:2px 9px;letter-spacing:.04em;text-transform:uppercase}
+  .lede{color:var(--ink2);margin:0 0 18px;max-width:80ch}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media (max-width:900px){.row{grid-template-columns:1fr}}
+  .demo{background:var(--well);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
+  .demo h3{font-size:12px;font-weight:600;color:var(--ink2);margin:0 0 10px;
+           text-transform:uppercase;letter-spacing:.06em}
+  svg{display:block;width:100%;height:auto;border-radius:9px;background:#0D0D0D}
+  .cap{color:var(--ink3);font-size:12.5px;margin:10px 2px 0;line-height:1.5}
+  .cap b{color:var(--ink2);font-weight:600}
+  .legend{display:flex;flex-wrap:wrap;gap:16px;margin:16px 0 0;padding-top:14px;
+          border-top:1px solid var(--line)}
+  .legend span{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink2)}
+  .sw{width:16px;height:3px;border-radius:2px;display:inline-block}
+  .note{background:var(--well);border-left:2px solid var(--accent);border-radius:0 9px 9px 0;
+        padding:12px 16px;margin:16px 0 0;color:var(--ink2);font-size:13px}
+  .note b{color:var(--ink)}
+  table{width:100%;border-collapse:collapse;margin-top:6px;font-size:13.5px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--ink3);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+  td:first-child{color:var(--ink);font-weight:600;white-space:nowrap;width:1%}
+  td.have{color:var(--new)}
+  .grid-bg{stroke:#1C1C1C;stroke-width:1}
+  text{font:11px ui-sans-serif,system-ui,sans-serif;fill:var(--ink3)}
+  text.lbl{fill:var(--ink2);font-weight:600}
+  .pill{fill:#1A1A1A;stroke:#2A2A2A}
+</style>
+</head>
+<body>
+<header>
+  <h1>Two-dimensional sketch operations</h1>
+  <p>How <b>Extend</b>, <b>Offset</b>, <b>Trim</b> and <b>Cut</b> behave, drawn to scale. Each pane shows
+     the state before the click on the left and the result on the right; the pointer position that
+     produced the result is marked. This is a specification to agree on, not a screenshot of the editor.</p>
+</header>
+<main>
+
+<!-- ────────────────────────────────  EXTEND  ──────────────────────────────── -->
+<section>
+  <h2>Extend <span class="tag">grow to meet</span></h2>
+  <p class="lede">
+    Extend lengthens an open end of a curve <em>along its own direction</em> until it runs into another
+    curve. You point at the end you want to grow — not at the target — and the tool finds the first thing
+    that end would hit if it kept going. Nothing else about the curve moves: the far end, and the curve's
+    direction, are untouched. If the end would hit nothing, the tool refuses rather than guessing a length.
+  </p>
+
+  <div class="row">
+    <div class="demo">
+      <h3>① The ordinary case — extend to a wall</h3>
+      <svg viewBox="0 0 420 240">
+        <g class="grid-bg">
+          <path d="M0 40H420M0 80H420M0 120H420M0 160H420M0 200H420" fill="none"/>
+          <path d="M40 0V240M80 0V240M120 0V240M160 0V240M200 0V240M240 0V240M280 0V240M320 0V240M360 0V240" fill="none"/>
+        </g>
+        <!-- target wall -->
+        <line x1="300" y1="30" x2="300" y2="210" stroke="var(--geom)" stroke-width="2.5"/>
+        <text x="306" y="46">target</text>
+        <!-- original -->
+        <line x1="60" y1="150" x2="180" y2="110" stroke="var(--geom)" stroke-width="2.5"/>
+        <!-- ghost of the extension -->
+        <line x1="180" y1="110" x2="300" y2="70" stroke="var(--new)" stroke-width="2.5"
+              stroke-dasharray="6 5"/>
+        <circle cx="300" cy="70" r="4.5" fill="var(--new)"/>
+        <!-- pointer -->
+        <circle cx="176" cy="112" r="9" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+        <circle cx="176" cy="112" r="2.5" fill="var(--accent)"/>
+        <text class="lbl" x="120" y="176">you click this end</text>
+        <text x="196" y="96" fill="var(--new)">grows along its own direction</text>
+      </svg>
+      <p class="cap">The line keeps its <b>direction</b> and its far end. Only the clicked end travels,
+         and it stops the instant it reaches the target.</p>
+    </div>
+
+    <div class="demo">
+      <h3>② Which end you click decides which end grows</h3>
+      <svg viewBox="0 0 420 240">
+        <g class="grid-bg">
+          <path d="M0 40H420M0 80H420M0 120H420M0 160H420M0 200H420" fill="none"/>
+          <path d="M40 0V240M80 0V240M120 0V240M160 0V240M200 0V240M240 0V240M280 0V240M320 0V240M360 0V240" fill="none"/>
+        </g>
+        <line x1="60" y1="40" x2="60" y2="200" stroke="var(--geom)" stroke-width="2.5"/>
+        <line x1="360" y1="40" x2="360" y2="200" stroke="var(--geom)" stroke-width="2.5"/>
+        <line x1="170" y1="120" x2="260" y2="120" stroke="var(--geom)" stroke-width="2.5"/>
+        <line x1="60" y1="120" x2="170" y2="120" stroke="var(--new)" stroke-width="2.5" stroke-dasharray="6 5"/>
+        <circle cx="60" cy="120" r="4.5" fill="var(--new)"/>
+        <circle cx="174" cy="120" r="9" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+        <circle cx="174" cy="120" r="2.5" fill="var(--accent)"/>
+        <text x="196" y="112" fill="var(--ghost)">right end untouched</text>
+        <text class="lbl" x="86" y="148">clicked the LEFT end → grew left</text>
+      </svg>
+      <p class="cap">The same curve, the same two walls. Extend is <b>directional</b>: it always grows the
+         end nearest your click.</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>The two decisions I need from you.</b>
+    ① When the extended end would cross <em>several</em> curves, I stop at the <b>first</b> one — the
+    nearest. Plasticity does the same. ② When it would hit <em>nothing</em>, I refuse and leave the sketch
+    alone, rather than extending by some arbitrary default length. Say if you would rather it extended to
+    the sketch's outer bounds instead.
+  </div>
+</section>
+
+<!-- ────────────────────────────────  OFFSET  ──────────────────────────────── -->
+<section>
+  <h2>Offset <span class="tag">parallel copy</span></h2>
+  <p class="lede">
+    Offset makes a <em>new</em> curve running parallel to the one you point at, at a fixed distance from
+    it — the original is never modified. You drag to set the distance and the side, exactly as with the
+    fillet; the popup shows the figure and takes an exact one back. Crossing the original with the pointer
+    flips the offset to the other side, so one gesture covers both.
+  </p>
+
+  <div class="row">
+    <div class="demo">
+      <h3>③ An open path — every segment moves out together</h3>
+      <svg viewBox="0 0 420 240">
+        <g class="grid-bg">
+          <path d="M0 40H420M0 80H420M0 120H420M0 160H420M0 200H420" fill="none"/>
+          <path d="M40 0V240M80 0V240M120 0V240M160 0V240M200 0V240M240 0V240M280 0V240M320 0V240M360 0V240" fill="none"/>
+        </g>
+        <polyline points="70,180 150,90 260,90 330,160" fill="none"
+                  stroke="var(--geom)" stroke-width="2.5" stroke-linejoin="round"/>
+        <polyline points="70,215 163,110 253,110 355,213" fill="none"
+                  stroke="var(--new)" stroke-width="2.5" stroke-linejoin="round"/>
+        <g stroke="var(--hint)" stroke-width="1" stroke-dasharray="3 3">
+          <line x1="150" y1="90" x2="163" y2="110"/>
+          <line x1="260" y1="90" x2="253" y2="110"/>
+        </g>
+        <text x="180" y="134" fill="var(--hint)">distance is the same everywhere</text>
+        <text class="lbl" x="70" y="76">original, unchanged</text>
+        <text x="288" y="196" fill="var(--new)">offset copy</text>
+      </svg>
+      <p class="cap">The corners of the copy sit where the two offset legs <b>intersect</b> — not where the
+         original corner was pushed sideways. That is what keeps the distance constant round a bend.</p>
+    </div>
+
+    <div class="demo">
+      <h3>④ A closed loop — inward shrinks, outward grows</h3>
+      <svg viewBox="0 0 420 240">
+        <g class="grid-bg">
+          <path d="M0 40H420M0 80H420M0 120H420M0 160H420M0 200H420" fill="none"/>
+          <path d="M40 0V240M80 0V240M120 0V240M160 0V240M200 0V240M240 0V240M280 0V240M320 0V240M360 0V240" fill="none"/>
+        </g>
+        <rect x="150" y="70" width="130" height="100" rx="4" fill="none"
+              stroke="var(--geom)" stroke-width="2.5"/>
+        <rect x="120" y="40" width="190" height="160" rx="4" fill="none"
+              stroke="var(--new)" stroke-width="2.5"/>
+        <rect x="178" y="98" width="74" height="44" rx="3" fill="none"
+              stroke="var(--new)" stroke-width="2.5" stroke-dasharray="5 4"/>
+        <circle cx="330" cy="120" r="9" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+        <circle cx="330" cy="120" r="2.5" fill="var(--accent)"/>
+        <text x="316" y="34" fill="var(--new)">drag out</text>
+        <text x="190" y="128" fill="var(--new)">drag in</text>
+      </svg>
+      <p class="cap">Drag <b>outward</b> and the loop grows; drag <b>through</b> it and the same gesture
+         produces the inward copy. An inward offset larger than the shape can take collapses it — so the
+         drag is clamped, exactly as the fillet is.</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>The awkward case, stated rather than hidden.</b> Offsetting a loop inward far enough makes short
+    edges vanish and the copy self-intersect. Serious CAD removes those edges and re-stitches the result.
+    My proposal: <b>clamp the drag</b> at the distance where the first edge would collapse, so the artist
+    sees it stop. Full self-intersection cleanup is a much larger piece of work and I would rather do it
+    deliberately than half-do it here.
+  </div>
+</section>
+
+<!-- ─────────────────────────────  TRIM AND CUT  ───────────────────────────── -->
+<section>
+  <h2>Trim and Cut <span class="tag">the pair that is easy to confuse</span></h2>
+  <p class="lede">
+    These two are opposites and they are worth putting side by side. <b>Cut</b> adds a division and
+    <em>removes nothing</em>. <b>Trim</b> removes a piece between two existing divisions. Cut first, then
+    trim what the cut created — that is the ordinary workflow.
+  </p>
+
+  <div class="row">
+    <div class="demo">
+      <h3>⑤ Cut — a point divides, nothing is lost</h3>
+      <svg viewBox="0 0 420 240">
+        <g class="grid-bg">
+          <path d="M0 40H420M0 80H420M0 120H420M0 160H420M0 200H420" fill="none"/>
+          <path d="M40 0V240M80 0V240M120 0V240M160 0V240M200 0V240M240 0V240M280 0V240M320 0V240M360 0V240" fill="none"/>
+        </g>
+        <circle cx="130" cy="120" r="62" fill="rgba(74,143,218,.10)"
+                stroke="var(--geom)" stroke-width="2.5"/>
+        <text class="lbl" x="98" y="212">one closed loop</text>
+
+        <path d="M232 120 L262 112 L262 128 Z" fill="var(--ink3)"/>
+
+        <g transform="translate(160,0)">
+          <path d="M162 58 A62 62 0 0 1 162 182" fill="none" stroke="var(--new)" stroke-width="3"/>
+          <path d="M162 182 A62 62 0 0 1 162 58" fill="none" stroke="var(--accent)" stroke-width="3"/>
+          <circle cx="130" cy="120" r="62" fill="rgba(74,143,218,.10)" stroke="none"/>
+          <circle cx="162" cy="58" r="4.5" fill="var(--hint)"/>
+          <circle cx="162" cy="182" r="4.5" fill="var(--hint)"/>
+          <text x="30" y="212" fill="var(--ink2)">two edges, still one closed loop</text>
+        </g>
+      </svg>
+      <p class="cap">Two cut points turn one circle into <b>two arcs</b>. Together they still close, so the
+         transparent fill <b>stays</b>. Nothing was deleted — only divided.</p>
+    </div>
+
+    <div class="demo">
+      <h3>⑥ Trim — a piece between two divisions is removed</h3>
+      <svg viewBox="0 0 420 240">
+        <g class="grid-bg">
+          <path d="M0 40H420M0 80H420M0 120H420M0 160H420M0 200H420" fill="none"/>
+          <path d="M40 0V240M80 0V240M120 0V240M160 0V240M200 0V240M240 0V240M280 0V240M320 0V240M360 0V240" fill="none"/>
+        </g>
+        <circle cx="130" cy="120" r="62" fill="rgba(74,143,218,.10)"
+                stroke="var(--geom)" stroke-width="2.5"/>
+        <circle cx="162" cy="58" r="4.5" fill="var(--hint)"/>
+        <circle cx="162" cy="182" r="4.5" fill="var(--hint)"/>
+        <circle cx="186" cy="120" r="9" fill="none" stroke="var(--cut)" stroke-width="1.5"/>
+        <circle cx="186" cy="120" r="2.5" fill="var(--cut)"/>
+        <text x="150" y="216" fill="var(--cut)">click the piece to lose</text>
+
+        <path d="M232 120 L262 112 L262 128 Z" fill="var(--ink3)"/>
+
+        <g transform="translate(160,0)">
+          <path d="M162 182 A62 62 0 0 1 162 58" fill="none" stroke="var(--geom)" stroke-width="2.5"/>
+          <path d="M162 58 A62 62 0 0 1 162 182" fill="none" stroke="var(--quiet)" stroke-width="1.5"
+                stroke-dasharray="4 5"/>
+          <circle cx="162" cy="58" r="4.5" fill="var(--hint)"/>
+          <circle cx="162" cy="182" r="4.5" fill="var(--hint)"/>
+          <text x="24" y="212" fill="var(--ink2)">open path — no fill</text>
+        </g>
+      </svg>
+      <p class="cap">The clicked arc is <b>deleted</b>. What remains is an open <b>C</b>, so the fill
+         withdraws — the same rule the <code>G Y</code> lift already follows: a face needs a closed loop.</p>
+    </div>
+  </div>
+
+  <div class="demo" style="margin-top:18px">
+    <h3>⑦ Your rule for the fill, drawn out</h3>
+    <svg viewBox="0 0 900 210">
+      <g class="grid-bg">
+        <path d="M0 42H900M0 84H900M0 126H900M0 168H900" fill="none"/>
+      </g>
+      <!-- A -->
+      <g transform="translate(20,0)">
+        <circle cx="90" cy="100" r="58" fill="rgba(74,143,218,.12)" stroke="var(--geom)" stroke-width="2.5"/>
+        <text class="lbl" x="46" y="188">O — one loop</text>
+        <text x="60" y="30" fill="var(--new)">filled</text>
+      </g>
+      <!-- B -->
+      <g transform="translate(240,0)">
+        <path d="M122 42 A58 58 0 1 0 122 158" fill="rgba(74,143,218,.12)" stroke="none"/>
+        <path d="M122 42 A58 58 0 1 0 122 158" fill="none" stroke="var(--accent)" stroke-width="3"/>
+        <path d="M122 42 A58 58 0 0 1 122 158" fill="none" stroke="var(--new)" stroke-width="3"/>
+        <circle cx="122" cy="42" r="4.5" fill="var(--hint)"/>
+        <circle cx="122" cy="158" r="4.5" fill="var(--hint)"/>
+        <text class="lbl" x="30" y="188">C + the missing piece — two edges</text>
+        <text x="86" y="30" fill="var(--new)">still filled</text>
+      </g>
+      <!-- C -->
+      <g transform="translate(600,0)">
+        <path d="M152 42 A58 58 0 1 0 152 158" fill="none" stroke="var(--accent)" stroke-width="3"/>
+        <circle cx="152" cy="42" r="4.5" fill="var(--hint)"/>
+        <circle cx="152" cy="158" r="4.5" fill="var(--hint)"/>
+        <text class="lbl" x="58" y="188">C alone — the piece is gone</text>
+        <text x="96" y="30" fill="var(--cut)">not filled</text>
+      </g>
+    </svg>
+    <p class="cap">
+      This is the rule as you stated it, and it is exactly what the engine already does. Filling asks one
+      question — <b>do the edges present close a loop?</b> — and never asks how many edges there are or
+      whether somebody cut them. Cutting an <b>O</b> into a <b>C</b> plus its missing piece leaves two
+      edges that still close, so the fill stays. Delete the missing piece and they no longer close, so it
+      goes. No special case is needed for cut, because cut removes nothing.
+    </p>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw" style="background:var(--geom)"></i>existing geometry</span>
+    <span><i class="sw" style="background:var(--new)"></i>what the operation creates</span>
+    <span><i class="sw" style="background:var(--accent)"></i>the other half / the pointer</span>
+    <span><i class="sw" style="background:var(--cut)"></i>what is removed</span>
+    <span><i class="sw" style="background:var(--hint)"></i>a division point</span>
+    <span><i class="sw" style="background:var(--quiet)"></i>gone</span>
+  </div>
+</section>
+
+<!-- ────────────────────────────  WHAT IS MISSING  ─────────────────────────── -->
+<section>
+  <h2>Other 2D operations worth having <span class="tag">excluding booleans</span></h2>
+  <p class="lede">
+    You asked what else belongs in this family. These are the ones a 2D sketcher is normally expected to
+    have. The right-hand column is my honest read of where Slate stands today.
+  </p>
+  <table>
+    <tr><th>Operation</th><th>What it does</th><th>Today</th></tr>
+
+    <tr><td>Mirror</td>
+        <td>Reflects selected curves across a line or axis, optionally keeping the original. The single
+            most-used sketch operation after trim.</td>
+        <td class="have">tile exists, no geometry</td></tr>
+
+    <tr><td>Linear&nbsp;array</td>
+        <td>Repeats a selection along a direction, n times at a spacing. Wants the same drag-plus-popup
+            gesture as the fillet.</td>
+        <td class="have">tile exists, no geometry</td></tr>
+
+    <tr><td>Circular&nbsp;array</td>
+        <td>Repeats a selection about a centre through a total angle. Distinct enough from the linear
+            case to be its own tool.</td>
+        <td>absent</td></tr>
+
+    <tr><td>Split&nbsp;at&nbsp;intersection</td>
+        <td>Divides <em>every</em> curve at <em>every</em> crossing in one action. Cut does one point at
+            a time; this is the bulk form, and it is what makes trim pleasant to use.</td>
+        <td>absent</td></tr>
+
+    <tr><td>Join&nbsp;/&nbsp;merge</td>
+        <td>The inverse of cut: two collinear or tangent edges sharing an end become one. Sketches
+            accumulate needless divisions without it.</td>
+        <td>absent</td></tr>
+
+    <tr><td>Close&nbsp;/&nbsp;bridge</td>
+        <td>Draws the shortest segment between two open ends, so a nearly-closed path becomes fillable
+            without hand-drawing the last edge.</td>
+        <td>absent</td></tr>
+
+    <tr><td>Project&nbsp;/&nbsp;reference</td>
+        <td>Pulls existing 3D edges onto the active workplane as sketch curves. The usual way a second
+            sketch is aligned to the first.</td>
+        <td>absent</td></tr>
+
+    <tr><td>Convert&nbsp;to&nbsp;construction</td>
+        <td>Flags a curve as reference-only: it constrains and snaps, but never forms a profile and is
+            never extruded.</td>
+        <td class="have">the flag exists on placements</td></tr>
+
+    <tr><td>Scale&nbsp;/&nbsp;rotate&nbsp;selection</td>
+        <td>About a picked origin, with a numeric entry. The transform session already does move; these
+            are the same session with a different manner.</td>
+        <td class="have">session supports all three</td></tr>
+
+    <tr><td>Explode</td>
+        <td>Breaks a rectangle, polygon or slot back into its individual edges, so one edge can be
+            edited without the whole shape.</td>
+        <td>absent</td></tr>
+
+    <tr><td>Fill</td>
+        <td>The tool you asked me to add without behaviour. Worth noting the <em>rendering</em> of the
+            fill is already automatic — a closed planar loop draws its transparent face with no tool at
+            all. So this tile most likely means "make this region a real face I can extrude", which is a
+            different and larger thing.</td>
+        <td class="have">tile only, as requested</td></tr>
+  </table>
+
+  <div class="note">
+    <b>One thing I would question.</b> Since a closed planar loop already fills itself automatically, a
+    <b>Fill</b> tool has nothing to switch on. If what you want is <em>"treat this enclosed region as a
+    face"</em> — including regions bounded by several separate curves that merely overlap — that is
+    region detection, and it is closer to a boolean than to the operations above. Worth deciding before I
+    give the tile behaviour.
+  </div>
+</section>
+
+</main>
+</body>
+</html>

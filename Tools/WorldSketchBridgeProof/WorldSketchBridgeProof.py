@@ -43,7 +43,6 @@ SUPPORTING = [
     "Engine/SlateShape/Sketch/DimensionSpecification/Source/DimensionSpecification.cpp",
     "Engine/SlateShape/Sketch/SketchPolyline/Source/SketchPolyline.cpp",
     "Engine/SlateShape/Sketch/DimensionSolver/Source/DimensionSolver.cpp",
-    "Engine/SlateShape/Sketch/ProfileCorner/Source/ProfileCorner.cpp",
     "Engine/SlateShape/Sketch/ProfilePattern/Source/ProfilePattern.cpp",
     "Engine/SlateShape/Sketch/ProfileReshape/Source/ProfileReshape.cpp",
     "Engine/SlateWorkspace/Discipline/ConstraintAuthoring/Source/ConstraintAuthoring.cpp",

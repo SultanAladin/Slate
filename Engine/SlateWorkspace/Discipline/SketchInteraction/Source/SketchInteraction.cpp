@@ -5,7 +5,6 @@
 #include "SlateWorkspace/Discipline/SketchInteraction/Api/SketchInteraction.h"
 
 #include "SlateShape/Sketch/DimensionSolver/Api/DimensionSolver.h"
-#include "SlateShape/Sketch/ProfileCorner/Api/ProfileCorner.h"
 #include "SlateShape/Sketch/ProfilePattern/Api/ProfilePattern.h"
 #include "SlateShape/Sketch/ProfileReshape/Api/ProfileReshape.h"
 #include "SlateShape/Sketch/SketchEditing/Api/SketchEditing.h"

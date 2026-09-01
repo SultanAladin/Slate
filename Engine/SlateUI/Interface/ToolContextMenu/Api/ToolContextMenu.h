@@ -1,29 +1,33 @@
 //============================================================================================================================================
 //                                                         TOOLCONTEXTMENU.H
 //============================================================================================================================================
-// 🧩 The popup a construction tool raises to ask for its parameters — Bevel's distance, Chamfer's setback
-//    — placed in a corner that is free, and never on top of another widget.
+// 🧩 The small readout an operation raises while it is being dragged — the fillet's radius, the chamfer's
+//    setback — showing the figure live and taking an exact one back from the keyboard.
 //
-// 🔴 THIS IS A PARAMETER POPUP, NOT A COMMAND LIST. It was first built as a menu of five rows — Bevel,
-//    Chamfer, Trim, Cut, Add — and that was wrong. The tools already have tiles in the catalogue; a menu
-//    listing them again is a second way to start the same command. What the artist has no way to say is
-//    HOW FAR: the bevel distance, the chamfer setback, the number of segments. So the popup carries the
-//    tool's parameters and an Apply/Cancel pair, and it appears AFTER the tool is chosen.
+// 🔴 IT IS THE SAME FIGURE THE DRAG IS SETTING, NOT A COPY OF IT. `Rows` point AT the tool's own datum
+//    and are written through, so typing 12.5 while dragging and then dragging again continues from 12.5.
+//    A popup holding its own copy would have to be synchronised every frame, and would drift the first
+//    time somebody forgot.
 //
-// 🔴 IT IS THE OPTIONS WIDGET'S BODY IN A SMALLER FRAME. `References/ToolOptionsWidget.html` defines one
-//    grammar of controls — slider, segmented, toggle, swatches — and this popup presents exactly that
-//    grammar, through the very same renderers, so a slider here cannot drift from a slider there. The
-//    difference is the frame: a popup is transient, anchored, and ends in Apply or Cancel, where the
-//    widget persists and edits live.
+// 🔴 IT IS PINNED TO THE BOTTOM-RIGHT, NOT ANCHORED TO THE GESTURE. The retired version placed itself in
+//    whichever corner was free relative to the thing that raised it, so it MOVED between operations and
+//    sometimes between frames of the same one -- and the artist had to go and find it. A readout the eye
+//    can return to is worth more than one that follows the pointer, and a readout under the pointer is
+//    covered by the very thing being dragged. It still refuses to overlap the widgets it is told about,
+//    but it steps aside by moving UP, keeping the right edge, rather than hopping corners.
 //
-// 🔴 THE PLACEMENT IS STILL THE FEATURE. A popup that lands on top of the options widget hides the thing
-//    the artist just used. The corner is chosen against the boxes actually occupied this tick, not
-//    against a layout someone assumed. `PlaceMenuClear` does the arithmetic; this unit does the drawing.
+// 🔴 IT IS SMALL. The retired popup was 260 px wide with a 44 px head, a 52 px foot and 44 px rows -- a
+//    third of a viewport to ask for one number. This is a compact readout: one caption line, one value,
+//    and the parameter rows that actually vary. Apply and Cancel are on it because a drag that has been
+//    released has to be confirmable without going back to the pointer.
+//
+// 🔴 IT LOOKS LIKE THE SELECT TOOL'S OPTIONS. It draws through the SAME `OptionControlPalette` the
+//    options widget uses, so a slider here is the same slider there, by construction rather than by two
+//    people drawing the same thing twice.
 
 #pragma once
 
 #include "Foundation/DeliveryGuarantee.h"
-#include "Foundation/ExtentBands.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/ControlIndex/Api/ControlIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
@@ -77,21 +81,23 @@ public:
     static constexpr std::uint32_t OptionLimit = 8u;      // [-] - options within one segmented row
     static constexpr std::uint32_t AvoidLimit  = 8u;      // [-] - boxes it can be asked to avoid
 
-    // 📐 Narrower than the 300 px options card, because a popup asks for two or three figures rather than
-    //    holding a whole tool's settings — but every inner measure is the reference's own.
-    static constexpr float PopupWidth   = 260.0f;   // [px]
-    static constexpr float HeadHeight   = 44.0f;    // [px]
-    static constexpr float FootHeight   = 52.0f;    // [px] - the Apply / Cancel pair
-    static constexpr float BodyPadding  = 14.0f;    // [px]
-    static constexpr float BodyGap      = 14.0f;    // [px]
-    static constexpr float RowHeight    = 44.0f;    // [px] - `--row-h`
-    static constexpr float SegmentHeight = 40.0f;   // [px]
-    static constexpr float CaptionPoint =  12.0f;   // [px]
-    static constexpr float CaptionGap   =   8.0f;   // [px]
-    static constexpr float PopupRadius  = 20.0f;    // [px] - `--panel-radius`
-    static constexpr float ActionHeight = 36.0f;    // [px]
-    static constexpr float ActionRadius = 12.0f;    // [px]
-    static constexpr float AnchorGap    =  6.0f;    // [px] - clear distance from the anchor
+    // 📐 A READOUT, NOT A PANEL. Every measure here is deliberately smaller than the 300 px options card
+    //    and the retired popup that copied it. The reference's proportions are kept; the frame is not.
+    static constexpr float PopupWidth   = 196.0f;   // [px] - wide enough for a caption and a figure
+    static constexpr float HeadHeight   = 30.0f;    // [px] - the operation's name and glyph
+    static constexpr float FootHeight   = 34.0f;    // [px] - the Apply / Cancel pair
+    static constexpr float BodyPadding  = 10.0f;    // [px]
+    static constexpr float BodyGap      =  8.0f;    // [px]
+    static constexpr float RowHeight    = 34.0f;    // [px]
+    static constexpr float SegmentHeight = 30.0f;   // [px]
+    static constexpr float CaptionPoint =  11.0f;   // [px]
+    static constexpr float CaptionGap   =   5.0f;   // [px]
+    static constexpr float PopupRadius  = 14.0f;    // [px]
+    static constexpr float ActionHeight = 26.0f;    // [px]
+    static constexpr float ActionRadius = 9.0f;     // [px]
+
+    // 📐 Clear of the viewport's own edges, so the readout does not sit flush against the corner.
+    static constexpr float EdgeGap      = 12.0f;    // [px]
 
     Deliver<bool> ConstructToolContextMenu(MotionIntegrator& Motion,
                                            RecordingSurface& Surface,
@@ -99,10 +105,10 @@ public:
 
     void Advance(const PointerCondition& Sampled, double Elapsed);
 
-    /// 🧩 Opens the popup against an anchor — the tile pressed, or the point clicked in the viewport.
-    /// in    Anchor  [px] what the popup belongs to; it is placed in a free corner of this
-    /// note  📝 Opening an already-open popup moves it, which is what a second tool press should do.
-    void Open(const PlaneExtent& Anchor);
+    /// 🧩 Opens the readout. It always appears in the bottom-right of the bounds given to `Record`.
+    /// note  🔴 NO ANCHOR ARGUMENT, deliberately. The corner is fixed so the artist's eye can return to
+    ///        it; taking an anchor is what let the retired version wander between operations.
+    void Open();
 
     /// 🧩 Closes the popup. Safe when it is already closed.
     void Close();
@@ -139,6 +145,7 @@ private:
 
     float Scale() const;
     float MeasureBody(const PopupDeclaration& Declared) const;
+    PlaneExtent PlaceInCorner(const PlaneExtent& Bounds, float Width, float Height) const;
     bool  Pressed(ControlIdentity Target, const PlaneExtent& Extent);
 
     MotionIntegrator*   Motion      = nullptr;
@@ -157,7 +164,6 @@ private:
     PlaneExtent   Avoided[AvoidLimit] = {};
     std::uint32_t AvoidCount          = 0u;
 
-    PlaneExtent Anchored = {};   // [px] - what it was opened against
     PlaneExtent Occupied = {};   // [px] - what it drew this tick
     bool        Opened   = false;
 };

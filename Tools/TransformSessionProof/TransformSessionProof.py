@@ -27,7 +27,6 @@ SUPPORTING = [
     "Engine/SlateShape/Sketch/SketchAnalysis/Source/SketchAnalysis.cpp",
     "Engine/SlateShape/Sketch/ProfileArea/Source/ProfileArea.cpp",
     "Engine/SlateShape/Sketch/ProfileBoolean/Source/ProfileBoolean.cpp",
-    "Engine/SlateShape/Sketch/ProfileCorner/Source/ProfileCorner.cpp",
     "Engine/SlateShape/Sketch/ProfileReshape/Source/ProfileReshape.cpp",
     "Engine/SlateShape/Sketch/SketchPolyline/Source/SketchPolyline.cpp",
     "Engine/SlateShape/Sketch/ConstraintSpecification/Source/ConstraintSpecification.cpp",

@@ -251,4 +251,56 @@ constexpr bool PlaceMenuClear(const ExtentBand& Bounds, const ExtentBand& Anchor
     return false;
 }
 
+/// 🧩 Pins a readout to the bottom-right of the bounds, stepping it UP past anything it must not cover.
+/// in    Bounds         [px] the leaf the readout must stay inside
+/// in    Width, Height  [px] the readout's size
+/// in    Occupied       [-]  boxes it must not overlap; may be null when the count is zero
+/// in    Gap            [px] clear distance from the bounds' edges and from each obstruction
+/// out   Placed         [-]  always written; the readout is placed even when it must overlap
+/// note  🔴 UP, NOT AROUND, AND IT NEVER REFUSES. `PlaceMenuClear` searches every corner and refuses when
+///        none is free, which is right for a menu hanging off a tile. A readout the artist is watching
+///        while they drag must be in ONE known place and must always be visible: a readout that hops
+///        corners has to be hunted for, and a readout that refuses has silently taken the figure away
+///        mid-gesture. So this keeps the right edge, rises past obstructions, and clamps rather than
+///        refusing.
+/// note  ⚠️ Clamped to the top of the bounds as a last resort. Overlapping a widget is bad; vanishing
+///        while the artist is reading it is worse, and that is a deliberate ordering.
+/// note  📝 Bounded at one pass per obstruction. Each pass only ever moves the readout upward, so the
+///        loop cannot cycle.
+/// cost  ✔️
+/// tag   guarantee, nonallocating, nonthrowing
+constexpr void PlaceReadoutCorner(const ExtentBand& Bounds, float Width, float Height,
+                                  const ExtentBand* Occupied, std::uint32_t OccupiedCount,
+                                  float Gap, ExtentBand& Placed)
+{
+    const float LeftEdge = Bounds.MaximumX - Gap - Width;
+    float TopEdge        = Bounds.MaximumY - Gap - Height;
+
+    for (std::uint32_t Pass = 0u; Pass < OccupiedCount; ++Pass)
+    {
+        bool Moved = false;
+        for (std::uint32_t Index = 0u; Index < OccupiedCount; ++Index)
+        {
+            const ExtentBand& Blocked = Occupied[Index];
+            const bool Overlaps = LeftEdge < Blocked.MaximumX && LeftEdge + Width  > Blocked.MinimumX &&
+                                  TopEdge  < Blocked.MaximumY && TopEdge  + Height > Blocked.MinimumY;
+            if (Overlaps)
+            {
+                TopEdge = Blocked.MinimumY - Gap - Height;
+                Moved = true;
+            }
+        }
+        if (!Moved)
+            break;
+    }
+
+    if (TopEdge < Bounds.MinimumY + Gap)
+        TopEdge = Bounds.MinimumY + Gap;
+
+    Placed.MinimumX = LeftEdge;
+    Placed.MinimumY = TopEdge;
+    Placed.MaximumX = LeftEdge + Width;
+    Placed.MaximumY = TopEdge + Height;
+}
+
 }   // namespace Slate

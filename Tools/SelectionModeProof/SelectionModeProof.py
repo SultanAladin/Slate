@@ -37,7 +37,6 @@ SUPPORTING = [
     "Engine/SlateShape/Sketch/ProfileArea/Source/ProfileArea.cpp",
     "Engine/SlateShape/Sketch/ProfileBoolean/Source/ProfileBoolean.cpp",
     "Engine/SlateShape/Sketch/ProfileClosure/Source/ProfileClosure.cpp",
-    "Engine/SlateShape/Sketch/ProfileCorner/Source/ProfileCorner.cpp",
     "Engine/SlateShape/Sketch/ProfilePattern/Source/ProfilePattern.cpp",
     "Engine/SlateShape/Sketch/ProfileReshape/Source/ProfileReshape.cpp",
     "Engine/SlateShape/Sketch/ProfileSolver/Source/ProfileSolver.cpp",
