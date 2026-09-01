@@ -22,6 +22,7 @@ SUPPORTING = [
     "Engine/SlateWorkspace/Discipline/ToolAvailability/Source/ToolAvailability.cpp",
     "Engine/SlateWorkspace/Discipline/TransformSequence/Source/TransformSequence.cpp",
     "Engine/SlateWorkspace/Discipline/ViewportProjection/Source/ViewportProjection.cpp",
+    "Engine/SlateWorkspace/Discipline/OrientationCube/Source/OrientationStanding.cpp",
     "Engine/SlateWorkspace/Discipline/WorldSketchPicking/Source/WorldSketchScreenPicking.cpp",
     "Engine/SlateWorkspace/Discipline/WorldSketchConstraintAuthoring/Source/WorldSketchConstraintAuthoring.cpp",
     "Engine/SlateWorkspace/Discipline/WorldSketchRenderingProjection/Source/WorldSketchRenderingProjection.cpp",

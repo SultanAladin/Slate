@@ -54,6 +54,7 @@ SUPPORTING = [
     "Engine/SlateWorkspace/Discipline/TransformSequence/Source/TransformSequence.cpp",
     "Engine/SlateWorkspace/Discipline/ViewportProjection/Source/SketchBasis.cpp",
     "Engine/SlateWorkspace/Discipline/ViewportProjection/Source/ViewportProjection.cpp",
+    "Engine/SlateWorkspace/Discipline/OrientationCube/Source/OrientationStanding.cpp",
 ]
 
 INCLUDES = ["-I", ".", "-I", "Engine", "-I", "Tools/VulkanParseStub"]

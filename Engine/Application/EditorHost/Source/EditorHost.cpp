@@ -1059,24 +1059,37 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                 bool PointerOverViewport = false;
                 const PointerCondition& Pointer = Viewport.Surface().Pointer();
 
+                // 🔴 THE HOVERED LEAF DECIDES, NOT LEAF ZERO. The free fly eye was advanced from the
+                //    pointer being over ANY viewport, with no projection test at all, so a right-drag
+                //    with WASD in a Top view panned the orthographic focus AND flew the hidden
+                //    perspective eye sideways along an unrelated yaw. The next parallel transition then
+                //    rebuilt the sketch standing from that drifted eye and the view appeared to
+                //    teleport. While the leaf under the pointer is parallel, the orthographic standing
+                //    is the only camera that moves.
+                bool HoveredLeafPerspective = false;
                 for (std::uint32_t Leaf = 0u; Leaf < WorkspacePanels.LeafCount(); ++Leaf)
                 {
                     if (WorkspacePanels.LeafSubject(Leaf) == PanelSubject::Viewport &&
                         WorkspacePanels.LeafBody(Leaf).Encloses(Pointer.PositionX, Pointer.PositionY))
                     {
                         PointerOverViewport = true;
+                        HoveredLeafPerspective = PanelConfiguration[Leaf].Perspective;
                         break;
                     }
                 }
 
                 if (Pointer.SecondaryPressed)
-                    EditorCameraLookLatched = PointerOverViewport && !PointerBehindDrawer;
+                {
+                    EditorCameraLookLatched = PointerOverViewport && !PointerBehindDrawer
+                                            && HoveredLeafPerspective;
+                }
                 if (Pointer.SecondaryReleased || !Pointer.SecondaryHeld)
                     EditorCameraLookLatched = false;
 
                 CameraCondition FlyInput = Viewport.Seam().CameraInput(
                     (PointerOverViewport || EditorCameraLookLatched)
-                    && !PointerBehindDrawer);
+                    && !PointerBehindDrawer
+                    && HoveredLeafPerspective);
 
                 // A direct XYZ edit in the Editor Camera's Transform card is consumed before navigation.
                 // The transform synchronizer distinguishes it from the values the camera published last tick,
@@ -1470,25 +1483,20 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                         SceneApplied.EntityRotation[6u][1] = ViewPitch;
                                     }
 
-                                    if (!LeafPerspective && LeafBody.Encloses(BackgroundPointer.PositionX,
-                                                                              BackgroundPointer.PositionY) &&
-                                        BackgroundPointer.WheelY != 0.0f)
-                                    {
-                                        constexpr double ZoomStep = 1.1;
-                                        SketchView.OrthoScale = std::clamp(
-                                            BackgroundPointer.WheelY > 0.0f
-                                                ? SketchView.OrthoScale * ZoomStep
-                                                : SketchView.OrthoScale / ZoomStep,
-                                            0.05, 40.0);
-                                    }
-                                    PointerCondition NavigationPointer = BackgroundPointer;
-                                    NavigationPointer.WheelY = 0.0f;
+                                    // 🔴 THE WHEEL IS SPENT ONCE, INSIDE `DriveViewport`. A second zoom
+                                    //    arm stood here and then zeroed `WheelY` before the call, which
+                                    //    made the navigation unit's own wheel handling -- including the
+                                    //    entire cursor anchor and the perspective dolly -- unreachable
+                                    //    from the editor. Two implementations of one rule, and the live
+                                    //    one was the weaker: sign-only, centre-anchored, clamped to a
+                                    //    range the artist hit constantly.
                                     const CameraCondition FlyInput = Viewport.Seam().CameraInput(
                                         LeafBody.Encloses(BackgroundPointer.PositionX, BackgroundPointer.PositionY)
                                         && !PointerBehindDrawer);
-                                    DriveViewport(LeafBody, NavigationPointer,
+                                    DriveViewport(LeafBody, BackgroundPointer,
                                                   Viewport.Seam().Modifiers(), SketchView, LeafPerspective,
-                                                  FlyInput, Pass.ElapsedMilliseconds / 1000.0);
+                                                  FlyInput, Pass.ElapsedMilliseconds / 1000.0,
+                                                  ViewportRuntime[Leaf].Navigation);
                                     ViewportRuntime[Leaf].WasParallel = !LeafPerspective;
 
                                     SceneCamera = LeafPerspective

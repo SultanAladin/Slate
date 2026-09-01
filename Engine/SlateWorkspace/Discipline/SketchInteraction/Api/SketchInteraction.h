@@ -31,6 +31,7 @@
 #include "SketchToolset/SketchTool/SelectionOptions/Api/SelectionOptions.h"
 #include "SlateWorkspace/Discipline/SketchPicking/Api/SketchPicking.h"
 #include "SlateWorkspace/Discipline/TransformSession/Api/TransformSession.h"
+#include "SlateWorkspace/Discipline/ViewportNavigation/Api/ViewportNavigation.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/ViewportProjection.h"
 #include "SlateWorkspace/Discipline/WorkplaneCatalogue/Api/WorkplaneCatalogue.h"
 #include "SlateWorkspace/Discipline/WorldSketchTransformSession/Api/WorldSketchTransformSession.h"
@@ -45,13 +46,10 @@ namespace Slate
 //                                                      MOVING THE VIEW
 //------------------------------------------------------------------------------------------------------------------------
 
-void DriveViewport(const PlaneExtent& Extent,
-                   const PointerCondition& Pointer,
-                   const ModifierCondition& Modifiers,
-                   ViewportStanding& View,
-                   bool Perspective,
-                   const CameraCondition& Camera,
-                   double ElapsedSeconds);
+// 📝 `DriveViewport`, the navigation conventions it obeys, and the gesture latch it needs now live in
+//    `SlateWorkspace/Discipline/ViewportNavigation`. Moving the camera is not the same job as driving a
+//    sketch tool, and keeping them in one translation unit meant the navigation arm could not be proven
+//    without linking the entire sketch stack behind it. Included here so existing callers still reach it.
 
 void AdoptCommittedShape(SketchSubject Subject,
                          WorkspaceNameIndex& Naming,

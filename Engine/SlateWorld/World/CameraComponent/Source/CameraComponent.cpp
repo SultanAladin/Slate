@@ -63,11 +63,17 @@ void CameraComponent::Advance(double Seconds, const CameraCondition& Input, cons
         std::sin(Pitch),
         CosPitch * std::cos(Yaw)
     };
+    // 🔴 RIGHT IS NOT SCALED BY THE PITCH. It carried a `CosPitch` factor on both terms, which is not a
+    //    unit vector: strafing ran at cos(pitch) of the forward speed, so A/D weakened as the artist
+    //    looked down and all but stopped near vertical -- 17% of forward speed at 80°, 0.2% at 89.9°,
+    //    which is the pitch the Top view sits at. The keys were not inverted there; they were dead,
+    //    while W/S kept full speed because `Forward` IS a unit vector. Right is the yaw's perpendicular
+    //    in the ground plane and does not depend on pitch at all.
     const double Right[3] =
     {
-        CosPitch * std::cos(Yaw),
+        std::cos(Yaw),
         0.0,
-        -CosPitch * std::sin(Yaw)
+        -std::sin(Yaw)
     };
 
     double Velocity[3] = { 0.0, 0.0, 0.0 };

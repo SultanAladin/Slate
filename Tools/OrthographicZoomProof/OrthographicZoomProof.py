@@ -15,6 +15,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 OWNED = [
     "Tools/OrthographicZoomProof/OrthographicZoomProof.cpp",
     "Engine/SlateWorkspace/Discipline/ViewportProjection/Source/ViewportProjection.cpp",
+    "Engine/SlateWorkspace/Discipline/OrientationCube/Source/OrientationStanding.cpp",
 ]
 
 SUPPORTING = [

@@ -194,8 +194,17 @@ void ProveActiveWorldPlaneViews()
 
     View.Orientation = ViewportOrientation::Left;
     const ViewFrame Left = ResolveViewportFrame(YZ, View, false);
-    Claim(Near(Left.Right.Forward, 1.0) && Near(Left.Up.Up, 1.0) && Near(Left.Forward.Left, 1.0),
+    // 🔴 SCREEN-RIGHT IN THE LEFT VIEW IS -Z, NOT +Z. This claim demanded +Z, and it has been failing
+    //    at every commit since it was written. It is the claim that is wrong: with Up at +Y and Forward
+    //    at +X, a screen-right of +Z gives Cross(Right, Up) = -X, which is the NEGATION of Forward -- a
+    //    left-handed frame. Every one of the six orthographic frames is right-handed, verified by
+    //    Cross(Right, Up) == Forward, and -Z is the only screen-right that keeps Left among them.
+    Claim(Near(Left.Right.Forward, -1.0) && Near(Left.Up.Up, 1.0) && Near(Left.Forward.Left, 1.0),
           "the Left frame looks at YZ instead of inheriting XY state");
+    Claim(Near(Left.Right.Up * Left.Up.Forward - Left.Right.Forward * Left.Up.Up, Left.Forward.Left)
+       && Near(Left.Right.Forward * Left.Up.Left - Left.Right.Left * Left.Up.Forward, Left.Forward.Up)
+       && Near(Left.Right.Left * Left.Up.Up - Left.Right.Up * Left.Up.Left, Left.Forward.Forward),
+          "the Left frame is right-handed, so Cross(Right, Up) is its Forward");
 
     const SpatialPoint YZPoint = ResolvePlanarPoint(YZ, 11.0, 7.0);
     float LeftX = 0.0f;
@@ -238,10 +247,18 @@ void ProveOrientation()
     Claim(Near(Perspective.OrbitYaw, 180.0) && Near(Perspective.OrbitPitch, 0.0), "front orbits toward +Z at yaw 180");
     ApplyViewportOrientation(Perspective, ViewportOrientation::Back, true);
     Claim(Near(Perspective.OrbitYaw, 0.0), "back orbits toward -Z at yaw 0");
+    // 🔴 LEFT IS +90 AND RIGHT IS -90, MEASURED AGAINST THE ORTHOGRAPHIC TABLE RATHER THAN ASSERTED.
+    //    These two claims used to demand the opposite, because `ApplyViewportOrientation` carried its own
+    //    table of angles that disagreed with `OrientationYawPitch` on exactly Top, Left and Right. The
+    //    free-camera forward for a yaw is (sin yaw, 0, cos yaw), so yaw +90 looks along +X -- and the
+    //    orthographic frame table's Forward for Left IS +X. The retired -90 looked along -X, which is
+    //    the Right view. The proof was pinning the defect: an artist leaving a Left view through this
+    //    function landed 180° from where the orientation cube said Left was, and the horizontal axis
+    //    read mirrored from that moment on. §7 below now holds both tables to one answer.
     ApplyViewportOrientation(Perspective, ViewportOrientation::Left, true);
-    Claim(Near(Perspective.OrbitYaw, -90.0), "left orbits to -90");
+    Claim(Near(Perspective.OrbitYaw, 90.0), "left orbits to +90, matching the ortho frame's +X forward");
     ApplyViewportOrientation(Perspective, ViewportOrientation::Right, true);
-    Claim(Near(Perspective.OrbitYaw, 90.0), "right orbits to 90");
+    Claim(Near(Perspective.OrbitYaw, -90.0), "right orbits to -90, matching the ortho frame's -X forward");
     ApplyViewportOrientation(Perspective, ViewportOrientation::Isometric, true);
     Claim(Near(Perspective.OrbitYaw, 45.0) && Near(Perspective.OrbitPitch, 30.0), "isometric orbits to 45, 30");
 

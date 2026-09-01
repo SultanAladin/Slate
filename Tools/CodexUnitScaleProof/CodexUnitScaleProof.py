@@ -30,6 +30,7 @@ SUPPORTING = [
     "Engine/SlateDocument/Document/MaterialSpecification/Source/MaterialSpecification.cpp",
     "Engine/SlateWorkspace/Discipline/ViewportProjection/Source/SketchBasis.cpp",
     "Engine/SlateWorkspace/Discipline/ViewportProjection/Source/ViewportProjection.cpp",
+    "Engine/SlateWorkspace/Discipline/OrientationCube/Source/OrientationStanding.cpp",
     "Engine/SlateWorkspace/Discipline/WorkplaneStanding/Source/WorkplaneStanding.cpp",
 ]
 

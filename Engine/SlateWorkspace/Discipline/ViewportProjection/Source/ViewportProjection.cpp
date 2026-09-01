@@ -8,6 +8,14 @@
 
 namespace Slate
 {
+// ⚠️ DECLARED, NOT INCLUDED. `OrientationStanding.h` includes this header to reach `ViewportOrientation`,
+//    so including it back would close a cycle. The one table of view angles lives in that unit and this
+//    is how the projection asks it, rather than keeping a second copy that can disagree.
+void OrientationYawPitch(ViewportOrientation Orientation, double& YawDegrees, double& PitchDegrees);
+}
+
+namespace Slate
+{
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE PLANE THE SKETCH IS ON
@@ -42,46 +50,30 @@ void ApplyViewportOrientation(ViewportStanding& View, ViewportOrientation Orient
     if (!Perspective)
         return;
 
-    switch (Orientation)
+    // 🔴 ONE TABLE OF ANGLES, ASKED -- NOT A SECOND ONE WRITTEN HERE. The table this function used to
+    //    carry disagreed with `OrientationYawPitch` on three of the seven entries: Top was yaw 0 against
+    //    180, Left was -90 against +90, and Right was +90 against -90. Both headers claimed the two
+    //    "use the same signs". Measured against the orthographic frame table, the angles that used to
+    //    stand here reproduce the wrong screen-right for Top, Bottom, Left and Right -- so an artist who
+    //    left a locked view through this function found A/D and the horizontal drag MIRRORED, while one
+    //    who left through `DriveViewport` (which asks `OrientationYawPitch`) did not. That is the
+    //    "A and D are inverted, but only sometimes" report.
+    //
+    // ⚠️ The pitch is still held one degree short of vertical: at exactly ±90° the yaw reference is
+    //    ambiguous. `OrientationYawPitch` states ±89.9, and the clamp below keeps whatever it answers
+    //    inside the range the orbit arm accepts.
+    if (Orientation == ViewportOrientation::Isometric)
     {
-        case ViewportOrientation::Isometric:
-            View.OrbitYaw   = 45.0;
-            View.OrbitPitch = 30.0;
-            break;
-
-        // ⚠️ 89°, not 90°. At exactly 90° the orbit's yaw reference becomes ambiguous, so the frame
-        //    is kept one degree short while still looking at the named world plane. The free-camera table
-        //    in `OrientationYawPitch` uses the same signs and front/back directions.
-        case ViewportOrientation::Top:
-            View.OrbitYaw   = 0.0;
-            View.OrbitPitch = -89.0;
-            break;
-
-        case ViewportOrientation::Bottom:
-            View.OrbitYaw   = 0.0;
-            View.OrbitPitch = 89.0;
-            break;
-
-        case ViewportOrientation::Front:
-            View.OrbitYaw   = 180.0;
-            View.OrbitPitch = 0.0;
-            break;
-
-        case ViewportOrientation::Back:
-            View.OrbitYaw   = 0.0;
-            View.OrbitPitch = 0.0;
-            break;
-
-        case ViewportOrientation::Left:
-            View.OrbitYaw   = -90.0;
-            View.OrbitPitch = 0.0;
-            break;
-
-        case ViewportOrientation::Right:
-            View.OrbitYaw   = 90.0;
-            View.OrbitPitch = 0.0;
-            break;
+        View.OrbitYaw   = 45.0;
+        View.OrbitPitch = 30.0;
+        return;
     }
+
+    double Yaw   = View.OrbitYaw;
+    double Pitch = View.OrbitPitch;
+    OrientationYawPitch(Orientation, Yaw, Pitch);
+    View.OrbitYaw   = Yaw;
+    View.OrbitPitch = std::clamp(Pitch, -89.0, 89.0);
 }
 
 const char* OrientationText(ViewportOrientation Orientation)

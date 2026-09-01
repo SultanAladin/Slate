@@ -27,6 +27,7 @@ SUPPORTING = [
     "Engine/SlateWorkspace/Discipline/ViewportProjection/Source/CadProjection.cpp",
     "Engine/SlateWorkspace/Discipline/ViewportProjection/Source/SketchBasis.cpp",
     "Engine/SlateWorkspace/Discipline/ViewportProjection/Source/ViewportProjection.cpp",
+    "Engine/SlateWorkspace/Discipline/OrientationCube/Source/OrientationStanding.cpp",
     "Engine/SketchToolset/SketchTool/SketchPlacement/Source/SketchPlacement.cpp",
     "Engine/SlateShape/Sketch/ConstraintSolver/Source/ConstraintSolver.cpp",
     "Engine/SlateShape/Sketch/ConstraintSpecification/Source/ConstraintSpecification.cpp",

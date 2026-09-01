@@ -50,6 +50,23 @@ enum class ViewportOrientation : std::uint32_t
 /// 🧩 The vertical angle a perspective viewport subtends by default, in degrees.
 constexpr double CadPerspectiveFieldOfViewDegrees = 42.0;
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                              HOW FAR THE VIEW MAY ZOOM
+//------------------------------------------------------------------------------------------------------------------------
+// 🔴 THE RETIRED RANGE WAS [0.05, 40] PIXELS PER UNIT AND THE ARTIST HIT BOTH ENDS CONSTANTLY. In a
+//    millimetre document the ceiling is 40 px/mm, so a 0.1 mm feature could never be filled; the floor is
+//    20 mm/px, so a 500 m assembly could never be framed. Zoom simply stopped, with no feedback, which
+//    reads as "zoom doesn't work". These bounds span roughly a micrometre to a kilometre across a leaf.
+//
+// 📝 `OrthoScale` is pixels per world unit in LOGICAL points. The conversion to physical device pixels
+//    belongs to `ResolveCadProjection` and to nothing else, so a scaled display does not enter here.
+
+constexpr double OrthoScaleFloor = 1.0e-3;    // [px/unit] - a kilometre across the leaf
+constexpr double OrthoScaleLimit = 1.0e5;     // [px/unit] - a micrometre across the leaf
+
+constexpr double PerspectiveDistanceFloor = 0.01;     // [unit]
+constexpr double PerspectiveDistanceLimit = 1.0e6;    // [unit]
+
 /// 🧩 Everything the viewport remembers about where it is looking from.
 struct ViewportStanding
 {

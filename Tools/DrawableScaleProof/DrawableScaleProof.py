@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCES = [
     ROOT / "Tools/DrawableScaleProof/DrawableScaleProof.cpp",
     ROOT / "Engine/SlateWorkspace/Discipline/ViewportProjection/Source/ViewportProjection.cpp",
+    ROOT / "Engine/SlateWorkspace/Discipline/OrientationCube/Source/OrientationStanding.cpp",
 ]
 
 for Source in SOURCES:

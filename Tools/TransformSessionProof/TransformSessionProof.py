@@ -20,6 +20,7 @@ OWNED = [
 SUPPORTING = [
     "Engine/SlateWorkspace/Discipline/SketchPicking/Source/SketchPicking.cpp",
     "Engine/SlateWorkspace/Discipline/ViewportProjection/Source/ViewportProjection.cpp",
+    "Engine/SlateWorkspace/Discipline/OrientationCube/Source/OrientationStanding.cpp",
     "Engine/SlateWorkspace/Discipline/TransformSequence/Source/TransformSequence.cpp",
     "Engine/SlateShape/Sketch/ConstraintSolver/Source/ConstraintSolver.cpp",
     "Engine/SlateShape/Sketch/DimensionSolver/Source/DimensionSolver.cpp",

@@ -22,6 +22,7 @@ SUPPORTING = [
     "Engine/SlateShape/Operation/ExtrusionSpecification/Source/ExtrusionSpecification.cpp",
     "Engine/SlateShape/Topology/SolidStructure/Source/SolidStructure.cpp",
     "Engine/SlateWorkspace/Discipline/ViewportProjection/Source/ViewportProjection.cpp",
+    "Engine/SlateWorkspace/Discipline/OrientationCube/Source/OrientationStanding.cpp",
 ]
 
 INCLUDES = ["-I", ".", "-I", "Engine", "-I", "Tools/VulkanParseStub"]

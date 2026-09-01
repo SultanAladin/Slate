@@ -27,6 +27,7 @@ SUPPORTING = [
     "Engine/SlateShape/Sketch/SketchStructure/Source/SketchStructure.cpp",
     "Engine/SlateWorkspace/Discipline/ViewportProjection/Source/SketchBasis.cpp",
     "Engine/SlateWorkspace/Discipline/ViewportProjection/Source/ViewportProjection.cpp",
+    "Engine/SlateWorkspace/Discipline/OrientationCube/Source/OrientationStanding.cpp",
     "Engine/SlateWorkspace/Discipline/WorkplaneStanding/Source/WorkplaneStanding.cpp",
 ]
 

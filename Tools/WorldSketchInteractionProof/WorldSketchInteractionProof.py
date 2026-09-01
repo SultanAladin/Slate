@@ -17,6 +17,7 @@ OWNED = [
 SUPPORTING = [
     "Engine/SlateWorkspace/Discipline/TransformSequence/Source/TransformSequence.cpp",
     "Engine/SlateWorkspace/Discipline/ViewportProjection/Source/ViewportProjection.cpp",
+    "Engine/SlateWorkspace/Discipline/OrientationCube/Source/OrientationStanding.cpp",
     "Engine/SlateWorkspace/Discipline/WorldSketchPicking/Source/WorldSketchScreenPicking.cpp",
     "Engine/SlateShape/World/WorldSketchEditing/Source/WorldSketchEditing.cpp",
     "Engine/SlateShape/World/WorldSketchPicking/Source/WorldSketchPicking.cpp",
