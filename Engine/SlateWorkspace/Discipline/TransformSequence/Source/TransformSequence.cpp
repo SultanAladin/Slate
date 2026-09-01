@@ -92,9 +92,23 @@ TransformCommandIntake ResolveTransformCommand(const char* Intake,
         //    test, and vanished — the rotation then happened anyway, about the plane normal, because that
         //    is the only rotation a planar sketch has. Correct by accident and silent about it: the
         //    readout said "R 35", so the artist could not tell whether the axis had been understood.
-        //    It is accepted for rotation, where it is the true axis, and refused elsewhere.
+        //
+        // 🔴 AND Y IS A TRANSLATION AXIS TOO, NOW THAT THE SKETCH IS HELD IN THE WORLD. It was refused
+        //    for Move and Scale on the grounds that "a planar sketch cannot travel along its own normal",
+        //    which was true when a sketch was a pair of plane coordinates. `WorldSketchStructure` holds
+        //    real `SpatialPoint`s, `ResolveAxisDirection` already answers `Basis.Normal` for `AxisY`, and
+        //    `ResolveWorldOffset` already projects onto it — every piece was in place except this gate,
+        //    so `G Y 30` read the G, dropped the Y, spent the 30 on nothing and moved not at all.
+        //
+        // 📝 Lifting a loop off its plane is exactly what makes it non-coplanar, and a non-coplanar loop
+        //    cannot be filled. Nothing has to be switched off by hand for that: `AnalyzeWorldSketch`
+        //    measures the deviation each time it runs and sets `FillEligible = Coplanar`, so the fill
+        //    withdraws itself the moment the geometry stops supporting one, and returns if the artist
+        //    moves it back. Refusing the axis to protect the fill would have been the wrong guard.
         if ((Character == 'y' || Character == 'Y') && MannerStanding &&
-            WorkingManner == TransformManner::Rotate)
+            (WorkingManner == TransformManner::Rotate ||
+             WorkingManner == TransformManner::Move ||
+             WorkingManner == TransformManner::Scale))
         {
             Resolved.RestrictionRequested = true;
             Resolved.Restriction          = TransformRestriction::AxisY;

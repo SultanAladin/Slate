@@ -129,12 +129,25 @@ void ProveRestricting()
     Claim(Typed("y", true, TransformManner::Rotate).Restriction == TransformRestriction::AxisY,
           "y restricts a rotation already standing");
 
-    // ⚠️ And the converse: Y names no translation a planar sketch can perform, so it is refused for
-    //    move and scale exactly as X and Z are refused for rotation.
-    Claim(!Typed("y", true, TransformManner::Move).RestrictionRequested,
-          "y must not restrict a move — a planar sketch cannot travel along its own normal");
-    Claim(!Typed("y", true, TransformManner::Scale).RestrictionRequested,
-          "nor a scale");
+    // 🔴 Y IS A TRANSLATION AXIS. These two claims used to demand the opposite, on the grounds that a
+    //    planar sketch cannot travel along its own normal — true of a pair of plane coordinates, and no
+    //    longer true of `WorldSketchStructure`, which holds real spatial points. `G Y 30` was reading the
+    //    G, dropping the Y and spending the 30 on nothing, so the shape did not move at all.
+    Claim(Typed("y", true, TransformManner::Move).RestrictionRequested &&
+          Typed("y", true, TransformManner::Move).Restriction == TransformRestriction::AxisY,
+          "y restricts a move to the plane normal, lifting the sketch off its plane");
+    Claim(Typed("y", true, TransformManner::Scale).RestrictionRequested &&
+          Typed("y", true, TransformManner::Scale).Restriction == TransformRestriction::AxisY,
+          "and a scale");
+
+    // 📝 The artist's own spelling: the axis letter must not swallow the distance behind it.
+    const TransformCommandIntake Lifted = Typed("gy30");
+    Claim(Lifted.StartRequested && Lifted.StartManner == TransformManner::Move,
+          "G Y 30 starts a move");
+    Claim(Lifted.RestrictionRequested && Lifted.Restriction == TransformRestriction::AxisY,
+          "and the Y is read as the plane normal");
+    Claim(std::string(Lifted.NumericAppend) == "30",
+          "and the 30 reaches the numeric run past the axis letter");
 
     // The last axis letter wins, so an artist correcting X to Z gets Z.
     Claim(Typed("xz", true, TransformManner::Move).Restriction == TransformRestriction::AxisZ,

@@ -1,9 +1,12 @@
 // 🧩 Phase-5 proof for interactive world-space transforms.
 
 #include "SlateWorkspace/Discipline/WorldSketchTransformSession/Api/WorldSketchTransformSession.h"
+#include "SlateShape/World/WorldSketchAnalysis/Api/WorldSketchAnalysis.h"
+#include "SlateShape/World/WorldSketchEditing/Api/WorldSketchEditing.h"
 
 #include <cmath>
 #include <cstdio>
+#include <string>
 
 using namespace Slate;
 
@@ -26,6 +29,15 @@ void Claim(bool Held, const char* Sentence)
 bool Near(double Left, double Right, double Tolerance = 1.0e-4)
 {
     return std::fabs(Left - Right) <= Tolerance;
+}
+
+bool SameDirection(const SpatialDirection& Left,
+                   const SpatialDirection& Right,
+                   double Tolerance = 1.0e-6)
+{
+    return Near(Left.Left, Right.Left, Tolerance)
+        && Near(Left.Up, Right.Up, Tolerance)
+        && Near(Left.Forward, Right.Forward, Tolerance);
 }
 
 bool SamePoint(const SpatialPoint& Left,
@@ -334,6 +346,131 @@ void ProveRepeatedStaleVertexMove()
           "and the neighbouring edge still shares that same moved corner instead of splitting away");
 }
 
+//----------------------------------------------------------------------------------------------------
+// 🔴 `G Y 30` MUST LIFT A FILLED LOOP OFF ITS PLANE, AND THE FILL MUST WITHDRAW ITSELF.
+//----------------------------------------------------------------------------------------------------
+// The whole chain is walked here rather than any one link of it: the artist's keystrokes through
+// `ResolveTransformCommand`, the restriction they name into `StartWorldSketchTransformSession`, the
+// geometry the session writes, and the face eligibility `AnalyzeWorldSketch` reports afterwards.
+//
+// 🔴 The keyboard gate refused `y` for `Move`, so the G was read, the Y was dropped, the 30 was spent on
+//    nothing and the shape did not move at all. Every piece behind the gate was already in place --
+//    `ResolveAxisDirection` answers `Basis.Normal` for `AxisY` and `ResolveWorldOffset` projects onto it.
+//
+// 📝 And nothing has to switch the fill off by hand. A loop lifted clean off its plane stays coplanar and
+//    stays fillable; it is a loop lifted UNEVENLY that stops being a face, and `AnalyzeWorldSketch`
+//    withdraws the eligibility itself by measuring the deviation. Both halves are claimed below.
+void ProveTypedVerticalMoveLiftsAndDropsTheFill()
+{
+    std::printf("\n6. G Y 30 lifts the loop off its plane, and the fill withdraws itself\n");
+
+    // 📝 A square laid flat on the ground, because `AxisY` is the ACTIVE WORKPLANE's normal rather than a
+    //    world letter -- `ResolveCameraAxisDirection` answers `Camera.Basis.Normal`, which is world Y for
+    //    the ground. A square standing on the Front frame would have slid within its own plane instead,
+    //    which is why `Bench`'s square is not reused here.
+    Bench Stage;
+    const WorldPlacementFrame Ground = {{ 0.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }};
+
+    WorldSketchStructure Sketch;
+    const WorldCurveName AB = Sketch.DeclareLine({ 0.0, 0.0, 0.0 }, { 100.0, 0.0, 0.0 }, Ground);
+    const WorldCurveName BC = Sketch.DeclareLine({ 100.0, 0.0, 0.0 }, { 100.0, 0.0, 100.0 }, Ground);
+    const WorldCurveName CD = Sketch.DeclareLine({ 100.0, 0.0, 100.0 }, { 0.0, 0.0, 100.0 }, Ground);
+    const WorldCurveName DA = Sketch.DeclareLine({ 0.0, 0.0, 100.0 }, { 0.0, 0.0, 0.0 }, Ground);
+    const WorldLoopName Loop = Sketch.DeclareLoop({ { { AB, true }, { BC, true },
+                                                      { CD, true }, { DA, true } } });
+
+    const auto FillStandsFor = [&Sketch, &Loop](bool& Closed, bool& Filled)
+    {
+        Closed = false;
+        Filled = false;
+        const WorldSketchAnalysis Report = AnalyzeWorldSketch(Sketch);
+        for (const WorldLoopAnalysisRecord& Held : Report.Loops)
+            if (Held.Loop.IssuedIndex == Loop.IssuedIndex)
+            {
+                Closed = Held.Closed;
+                Filled = Held.FillEligible;
+            }
+    };
+
+    bool Closed = false;
+    bool Filled = false;
+    FillStandsFor(Closed, Filled);
+    Claim(Closed && Filled, "the square starts closed, planar and fillable");
+
+    // ① The artist types G, then Y, then 30. The grammar must carry all three.
+    //    🔴 It used to carry only the G. `y` was accepted for `Rotate` alone, so the axis letter was
+    //       dropped and the 30 was spent on a move with nothing to move along.
+    const TransformCommandIntake Started =
+        ResolveTransformCommand("g", 1u, false, TransformManner::Move);
+    Claim(Started.StartRequested && Started.StartManner == TransformManner::Move, "G starts a move");
+
+    const TransformCommandIntake Axis = ResolveTransformCommand("y", 1u, true, TransformManner::Move);
+    Claim(Axis.RestrictionRequested && Axis.Restriction == TransformRestriction::AxisY,
+          "Y names the plane normal for a MOVE, rather than being dropped as it was");
+
+    const TransformCommandIntake Amount = ResolveTransformCommand("30", 2u, true, TransformManner::Move);
+    Claim(std::string(Amount.NumericAppend) == "30", "and the 30 survives the axis letter");
+
+    // ② That restriction drives a real session, with no pointer travel at all.
+    WorldPick Pick = {};
+    Pick.Subject = WorldPickSubject::Loop;
+    Pick.Loop = Loop;
+    Claim(ResolveWorldLoopPivot(Sketch, Loop, Pick.Position), "the lifted loop has a pivot to move about");
+
+    float StartX = 0.0f;
+    float StartY = 0.0f;
+    Claim(ProjectFromCamera(Stage.OrthoView, Stage.Extent, Pick.Position, StartX, StartY),
+          "the loop pivot projects for the start of the typed move");
+
+    WorldSketchTransformSession Session;
+    Claim(StartWorldSketchTransformSession(Sketch, Stage.OrthoView, Stage.Extent,
+                                           StartX, StartY, Pick,
+                                           Axis.Restriction, false, Session),
+          "the typed axis starts a session along the plane normal");
+    Claim(SameDirection(Session.AxisDirection, { 0.0, 1.0, 0.0 }),
+          "and that session travels along the workplane normal, not a screen direction");
+
+    AppendTransformNumericRun(Session.Standing.Numeric, TransformNumericLimit, Amount.NumericAppend);
+    UpdateWorldSketchTransformSession(Stage.OrthoView, Stage.Extent, StartX, StartY, Sketch, Session);
+
+    const DeclaredWorldCurve* HeldAB = Sketch.Resolve(AB);
+    const DeclaredWorldCurve* HeldCD = Sketch.Resolve(CD);
+    Claim(HeldAB != nullptr && SamePoint(HeldAB->Geometry.HeldLine().Origin, { 0.0, 30.0, 0.0 })
+       && SamePoint(HeldAB->Geometry.HeldLine().Terminus, { 100.0, 30.0, 0.0 }),
+          "G Y 30 lifts the loop thirty off its plane instead of doing nothing at all");
+    Claim(HeldCD != nullptr && SamePoint(HeldCD->Geometry.HeldLine().Origin, { 100.0, 30.0, 100.0 })
+       && SamePoint(HeldCD->Geometry.HeldLine().Terminus, { 0.0, 30.0, 100.0 }),
+          "and the far edge travels with it, so the loop stays rigid");
+
+    // ③ Lifted flat, it is still a face. This is the half that must KEEP its fill: the gate was never
+    //    about the axis, so refusing the axis to protect the fill would have been the wrong guard.
+    FillStandsFor(Closed, Filled);
+    Claim(Closed && Filled, "a rigid lift keeps the loop planar, so the fill correctly stays");
+
+    // ④ Now lift ONE corner. The loop stays closed, and the fill withdraws itself with no code asking it
+    //    to -- `AnalyzeWorldSketch` re-measures coplanarity on every pass.
+    std::vector<WorldPointPlacement> Points;
+    Claim(ResolveWorldSketchPoints(Sketch, BC, Points) && Points.size() == 2u,
+          "the corner to skew is an endpoint of one edge");
+    Claim(!!MoveWorldSketchPoint(Sketch, Points[1u].Name, { 0.0, 45.0, 0.0 }),
+          "lifting a single corner clear of the lifted plane succeeds");
+
+    FillStandsFor(Closed, Filled);
+    Claim(Closed, "the skewed loop is still one closed loop");
+    Claim(!Filled, "and the fill withdraws itself, because a non-planar loop cannot be a flat face");
+
+    // ⑤ And it comes back. The withdrawal is a measurement, not a latch.
+    // 📝 The point name is re-resolved rather than reused: a move re-declares the placement, so the old
+    //    name is stale by now. Section 5 above exists because of exactly that.
+    std::vector<WorldPointPlacement> Again;
+    Claim(ResolveWorldSketchPoints(Sketch, BC, Again) && Again.size() == 2u,
+          "the skewed corner can be found again");
+    Claim(!!MoveWorldSketchPoint(Sketch, Again[1u].Name, { 0.0, -45.0, 0.0 }),
+          "the skewed corner returns to the lifted plane");
+    FillStandsFor(Closed, Filled);
+    Claim(Closed && Filled, "and the fill returns with it, rather than staying lost");
+}
+
 } // namespace
 
 int main()
@@ -347,6 +484,7 @@ int main()
     ProveAxisLockedZMove();
     ProveCurveSlideAndNumeric();
     ProveRepeatedStaleVertexMove();
+    ProveTypedVerticalMoveLiftsAndDropsTheFill();
 
     std::printf("\n=========================================================================\n");
     std::printf("%u claims, %u failures -> %s\n", Claims, Failures,
