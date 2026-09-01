@@ -1,0 +1,715 @@
+//============================================================================================================================================
+//                                                       SKETCHOPERATIONPROOF.CPP
+//============================================================================================================================================
+// 🧩 Executes Cut, Trim, Extend, Offset and Fill -- the five operations that act on curves already drawn --
+//    and proves each against what the operation MEANS rather than against a recording of what it did.
+//
+// 🔴 CUT DIVIDES AND KEEPS EVERYTHING; TRIM DIVIDES AND THROWS ONE PIECE AWAY. That distinction is the
+//    whole reason both exist, and section 1 measures it by TOTAL LENGTH: after a cut the pieces still sum
+//    to the original, and after a trim they do not. Length is the property neither operation can fake.
+//
+// 🔴 A TRIM THROUGH THE MIDDLE LEAVES TWO CURVES, NOT ONE. The tempting implementation shortens the
+//    subject and returns it, which silently loses everything beyond the far crossing. Section 2 trims the
+//    middle out of a line crossed twice and insists both surviving pieces are there.
+//
+// 🔴 AN OFFSET'S CORNERS ARE WHERE THE PUSHED LEGS MEET. Pushing each corner sideways along its own normal
+//    looks right on a straight run and is wrong at every bend -- the distance stops being constant, which
+//    is the one property an offset has. Section 4 measures the perpendicular distance from the offset back
+//    to the original at many points along it, including across the corner, and demands they all agree.
+//
+// 🔴 A CIRCLE INSIDE A CIRCLE IS A TUBE. Both rings are closed and planar, so judged on their own merits
+//    both fill and the inner disc is painted over the hole it is meant to be. Section 5 proves the nesting
+//    depth decides it, that a third ring inside the hole is material again, and that rings on different
+//    planes do not nest however they line up when flattened.
+//
+// 📝 Negative-tested. Cutting forwards instead of backwards, clamping the offset's sign rather than its
+//    magnitude, dropping the far piece of an interior trim, and filling by geometry alone each refute a
+//    section below. A gate never seen to fail proves nothing.
+
+#include "SlateShape/Sketch/SketchPolyline/Api/SketchPolyline.h"
+#include "SlateShape/World/WorldSketchAnalysis/Api/WorldSketchAnalysis.h"
+#include "SlateWorkspace/Discipline/SketchOperationSession/Api/SketchOperationSession.h"
+
+#include <cmath>
+#include <cstdio>
+#include <vector>
+
+using namespace Slate;
+
+namespace {
+
+unsigned Claims = 0u;
+unsigned Failures = 0u;
+
+void Claim(bool Held, const char* Stated)
+{
+    ++Claims;
+    if (!Held)
+    {
+        std::printf("    FAIL  %s\n", Stated);
+        ++Failures;
+    }
+}
+
+bool Near(double Left, double Right, double Tolerance = 1.0e-6)
+{
+    return std::fabs(Left - Right) <= Tolerance;
+}
+
+bool SamePoint(const SpatialPoint& Left, const SpatialPoint& Right, double Tolerance = 1.0e-6)
+{
+    return std::sqrt(LengthSquared(Difference(Left, Right))) <= Tolerance;
+}
+
+double LengthOf(const WorldSketchStructure& Sketch, WorldCurveName Name)
+{
+    const DeclaredWorldCurve* Held = Sketch.Resolve(Name);
+    if (Held == nullptr || !Held->Geometry.Declared())
+        return 0.0;
+
+    std::vector<SpatialPoint> Polyline;
+    AppendCurvePolyline(Held->Geometry, Polyline, 256u);
+    double Total = 0.0;
+    for (std::size_t Index = 1u; Index < Polyline.size(); ++Index)
+        Total += std::sqrt(LengthSquared(Difference(Polyline[Index], Polyline[Index - 1u])));
+    return Total;
+}
+
+/// 🧩 The perpendicular distance from a point to the INFINITE line a curve lies on.
+/// 🔴 THE INFINITE LINE, DELIBERATELY. An offset leg is parallel to its original, and parallelism is a
+///    property of the LINE. Measuring to the segment would report the distance to an endpoint wherever
+///    the foot fell outside it -- which at a mitred corner it always does, and the true invariant would
+///    be hidden behind an artefact of where the original happens to stop.
+double DistanceToLineOf(const WorldSketchStructure& Sketch, WorldCurveName Name, const SpatialPoint& Probe)
+{
+    const DeclaredWorldCurve* Held = Sketch.Resolve(Name);
+    if (Held == nullptr || Held->Geometry.Subject() != CurveSubject::Line)
+        return 1.0e30;
+
+    const LineCurve& Line = Held->Geometry.HeldLine();
+    const SpatialDirection Span = Difference(Line.Origin, Line.Terminus);
+    const double Length = std::sqrt(LengthSquared(Span));
+    if (!(Length > 1.0e-12))
+        return std::sqrt(LengthSquared(Difference(Line.Origin, Probe)));
+
+    const SpatialDirection Along = Normalize(Span);
+    const double Projected = Dot(Difference(Line.Origin, Probe), Along);
+    const SpatialPoint Foot = Added(Line.Origin, Scaled(Along, Projected));
+    return std::sqrt(LengthSquared(Difference(Foot, Probe)));
+}
+
+/// 🧩 The shortest distance from a point to a curve, through its tessellation.
+double DistanceToCurve(const WorldSketchStructure& Sketch, WorldCurveName Name, const SpatialPoint& Probe)
+{
+    const DeclaredWorldCurve* Held = Sketch.Resolve(Name);
+    if (Held == nullptr)
+        return 1.0e30;
+
+    std::vector<SpatialPoint> Polyline;
+    AppendCurvePolyline(Held->Geometry, Polyline, 256u);
+
+    double Nearest = 1.0e30;
+    for (std::size_t Index = 1u; Index < Polyline.size(); ++Index)
+    {
+        const SpatialPoint& Start = Polyline[Index - 1u];
+        const SpatialPoint& End = Polyline[Index];
+        // 📝 `Difference(From, To)` is To minus From. Both spans here run FROM the segment's start.
+        const SpatialDirection Span = Difference(Start, End);
+        const double SpanSquared = LengthSquared(Span);
+        double Parameter = 0.0;
+        if (SpanSquared > 1.0e-18)
+            Parameter = Dot(Difference(Start, Probe), Span) / SpanSquared;
+        Parameter = Parameter < 0.0 ? 0.0 : (Parameter > 1.0 ? 1.0 : Parameter);
+        const SpatialPoint Foot = { Start.Left    + Span.Left    * Parameter,
+                                    Start.Up      + Span.Up      * Parameter,
+                                    Start.Forward + Span.Forward * Parameter };
+        const double Distance = std::sqrt(LengthSquared(Difference(Probe, Foot)));
+        if (Distance < Nearest)
+            Nearest = Distance;
+    }
+    return Nearest;
+}
+
+const WorldPlacementFrame Ground = {{ 0.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }};
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                          1. CUT DIVIDES AND KEEPS EVERYTHING
+//------------------------------------------------------------------------------------------------------------------------
+
+void ProveCutKeepsEverything()
+{
+    std::printf("\n1. Cut divides a curve and loses nothing\n");
+
+    WorldSketchStructure Sketch;
+    const WorldCurveName Line = Sketch.DeclareLine({ 0.0, 0.0, 0.0 }, { 100.0, 0.0, 0.0 }, Ground);
+    const double Original = LengthOf(Sketch, Line);
+    Claim(Near(Original, 100.0), "the line is a hundred units long");
+
+    WorldCurveName Leading = {};
+    WorldCurveName Trailing = {};
+    Claim(CutWorldCurve(Sketch, Line, { 30.0, 0.0, 0.0 }, Leading, Trailing)
+              == OperationVerdict::Produced,
+          "cutting thirty units along succeeds");
+
+    // 🔴 THE SUBJECT SURVIVES AS THE LEADING PIECE. Declaring two new curves and retiring the original
+    //    would invalidate every loop, constraint and selection that names it -- so the cut shortens the
+    //    subject in place and declares only the piece that did not exist before.
+    Claim(Leading.IssuedIndex == Line.IssuedIndex, "the subject itself is the leading piece");
+    Claim(Trailing.Assigned() && Trailing.IssuedIndex != Line.IssuedIndex,
+          "and only the trailing piece is newly declared");
+
+    const double Front = LengthOf(Sketch, Leading);
+    const double Back = LengthOf(Sketch, Trailing);
+    Claim(Near(Front, 30.0), "the leading piece is thirty units");
+    Claim(Near(Back, 70.0), "the trailing piece is seventy units");
+
+    // 📐 The claim that separates Cut from Trim, stated as arithmetic: nothing was removed.
+    Claim(Near(Front + Back, Original), "and together they are exactly the original length");
+
+    const DeclaredWorldCurve* HeldFront = Sketch.Resolve(Leading);
+    const DeclaredWorldCurve* HeldBack = Sketch.Resolve(Trailing);
+    Claim(HeldFront != nullptr && SamePoint(HeldFront->Geometry.HeldLine().Terminus, { 30.0, 0.0, 0.0 }),
+          "the pieces meet exactly at the cut point");
+    Claim(HeldBack != nullptr && SamePoint(HeldBack->Geometry.HeldLine().Origin, { 30.0, 0.0, 0.0 }),
+          "with no gap and no overlap");
+
+    // ⚠️ A cut at an endpoint would declare a zero-length curve for every later measure to defend
+    //    itself against. It refuses, and says which reason.
+    WorldSketchStructure Edge;
+    const WorldCurveName Short = Edge.DeclareLine({ 0.0, 0.0, 0.0 }, { 50.0, 0.0, 0.0 }, Ground);
+    WorldCurveName A = {}, B = {};
+    Claim(CutWorldCurve(Edge, Short, { 0.0, 0.0, 0.0 }, A, B) == OperationVerdict::PointAtEnd,
+          "cutting at the origin refuses as a point-at-end");
+    Claim(CutWorldCurve(Edge, Short, { 50.0, 0.0, 0.0 }, A, B) == OperationVerdict::PointAtEnd,
+          "and so does cutting at the terminus");
+    Claim(CutWorldCurve(Edge, Short, { 25.0, 0.0, 40.0 }, A, B) == OperationVerdict::PointNotOnCurve,
+          "a point off the curve refuses as not-on-curve");
+    Claim(Edge.CurveCount() == 1u, "and every refusal left the sketch exactly as it was");
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                       2. A CUT AT EVERY CROSSING, BACK TO FRONT
+//------------------------------------------------------------------------------------------------------------------------
+
+void ProveCutAtCrossings()
+{
+    std::printf("\n2. Cutting at every crossing divides in the right places\n");
+
+    WorldSketchStructure Sketch;
+    const WorldCurveName Spine = Sketch.DeclareLine({ 0.0, 0.0, 0.0 }, { 100.0, 0.0, 0.0 }, Ground);
+    Sketch.DeclareLine({ 25.0, 0.0, -20.0 }, { 25.0, 0.0, 20.0 }, Ground);
+    Sketch.DeclareLine({ 60.0, 0.0, -20.0 }, { 60.0, 0.0, 20.0 }, Ground);
+
+    std::vector<WorldCurveName> Produced;
+    Claim(CutWorldCurveAtCrossings(Sketch, Spine, Produced) == OperationVerdict::Produced,
+          "a line crossed twice cuts at both crossings");
+    Claim(Produced.size() == 3u, "leaving three pieces");
+
+    // 🔴 THE PIECES MUST BE 25, 35 AND 40 -- IN THAT ORDER. Cutting front to back is the bug this claim
+    //    exists to catch: the first cut shortens the subject, so the second crossing's distance, measured
+    //    against the ORIGINAL span, then falls beyond the shortened curve and lands in the wrong place.
+    //    Cutting back to front leaves every not-yet-used parameter measured against untouched geometry.
+    double Total = 0.0;
+    if (Produced.size() == 3u)
+    {
+        Claim(Near(LengthOf(Sketch, Produced[0u]), 25.0), "the first piece runs to the first crossing");
+        Claim(Near(LengthOf(Sketch, Produced[1u]), 35.0), "the second spans the two crossings");
+        Claim(Near(LengthOf(Sketch, Produced[2u]), 40.0), "the third runs from the last crossing to the end");
+        for (const WorldCurveName& Piece : Produced)
+            Total += LengthOf(Sketch, Piece);
+    }
+    Claim(Near(Total, 100.0), "and the three pieces still sum to the original hundred");
+
+    WorldSketchStructure Lonely;
+    const WorldCurveName Alone = Lonely.DeclareLine({ 0.0, 0.0, 0.0 }, { 100.0, 0.0, 0.0 }, Ground);
+    std::vector<WorldCurveName> None;
+    Claim(CutWorldCurveAtCrossings(Lonely, Alone, None) == OperationVerdict::NoIntersection,
+          "a line nothing crosses refuses as no-intersection");
+    Claim(Lonely.CurveCount() == 1u, "and is left whole");
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                        3. TRIM REMOVES WHAT WAS POINTED AT
+//------------------------------------------------------------------------------------------------------------------------
+
+void ProveTrimRemovesThePiece()
+{
+    std::printf("\n3. Trim removes the piece under the pointer, and keeps the rest\n");
+
+    // ① An interior trim: a line crossed twice, pointed at between the crossings.
+    WorldSketchStructure Sketch;
+    const WorldCurveName Spine = Sketch.DeclareLine({ 0.0, 0.0, 0.0 }, { 100.0, 0.0, 0.0 }, Ground);
+    Sketch.DeclareLine({ 25.0, 0.0, -20.0 }, { 25.0, 0.0, 20.0 }, Ground);
+    Sketch.DeclareLine({ 60.0, 0.0, -20.0 }, { 60.0, 0.0, 20.0 }, Ground);
+
+    std::vector<WorldCurveName> Remaining;
+    Claim(TrimWorldCurve(Sketch, Spine, { 40.0, 0.0, 0.0 }, Remaining) == OperationVerdict::Produced,
+          "pointing between the crossings trims that span");
+
+    // 🔴 TWO PIECES SURVIVE, NOT ONE. Shortening the subject and returning it loses everything past the
+    //    far crossing -- forty units of line that simply vanish. This claim is the whole reason
+    //    `TrimWorldCurve` reports a vector rather than shortening in place.
+    Claim(Remaining.size() == 2u, "and TWO pieces survive, one either side of the removed span");
+
+    double Total = 0.0;
+    for (const WorldCurveName& Piece : Remaining)
+        Total += LengthOf(Sketch, Piece);
+    Claim(Near(Total, 65.0), "the survivors are the 25 before and the 40 after -- 65 units");
+    Claim(Total < 100.0, "which is LESS than the original: a trim removes, where a cut does not");
+
+    // 📝 The removed span is genuinely gone: nothing in the sketch passes through its middle any more.
+    bool AnythingAtForty = false;
+    for (const WorldCurveName& Piece : Remaining)
+        if (DistanceToCurve(Sketch, Piece, { 40.0, 0.0, 0.0 }) < 1.0e-6)
+            AnythingAtForty = true;
+    Claim(!AnythingAtForty, "and no surviving piece still passes through where the artist pointed");
+
+    // ② An overhang: crossed once, pointed at beyond the crossing.
+    WorldSketchStructure Overhang;
+    const WorldCurveName Long = Overhang.DeclareLine({ 0.0, 0.0, 0.0 }, { 100.0, 0.0, 0.0 }, Ground);
+    Overhang.DeclareLine({ 70.0, 0.0, -20.0 }, { 70.0, 0.0, 20.0 }, Ground);
+
+    std::vector<WorldCurveName> Kept;
+    Claim(TrimWorldCurve(Overhang, Long, { 90.0, 0.0, 0.0 }, Kept) == OperationVerdict::Produced,
+          "pointing past a single crossing trims the overhang");
+    Claim(Kept.size() == 1u, "leaving one piece");
+    Claim(Kept.size() == 1u && Near(LengthOf(Overhang, Kept[0u]), 70.0),
+          "which runs from the free end to the crossing");
+
+    // ⚠️ With nothing crossing it at all, trimming would remove the whole curve. That is a deletion,
+    //    and a tool that deletes when the artist expected a trim is worse than one that declines.
+    WorldSketchStructure Bare;
+    const WorldCurveName Only = Bare.DeclareLine({ 0.0, 0.0, 0.0 }, { 100.0, 0.0, 0.0 }, Ground);
+    std::vector<WorldCurveName> Nothing;
+    Claim(TrimWorldCurve(Bare, Only, { 50.0, 0.0, 0.0 }, Nothing) == OperationVerdict::NoIntersection,
+          "a line nothing crosses refuses to be trimmed away entirely");
+    Claim(Bare.CurveCount() == 1u, "and survives the refusal intact");
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                          4. EXTEND MEETS THE NEAREST CURVE
+//------------------------------------------------------------------------------------------------------------------------
+
+void ProveExtendMeetsTheNearest()
+{
+    std::printf("\n4. Extend grows the nearer end to the FIRST thing it meets\n");
+
+    WorldSketchStructure Sketch;
+    const WorldCurveName Stub = Sketch.DeclareLine({ 0.0, 0.0, 0.0 }, { 40.0, 0.0, 0.0 }, Ground);
+    Sketch.DeclareLine({ 70.0, 0.0, -30.0 }, { 70.0, 0.0, 30.0 }, Ground);   // [-] - the near wall
+    Sketch.DeclareLine({ 95.0, 0.0, -30.0 }, { 95.0, 0.0, 30.0 }, Ground);   // [-] - a further wall
+
+    SpatialPoint Landing = {};
+    Claim(EvaluateWorldExtend(Sketch, Stub, { 38.0, 0.0, 0.0 }, Landing) == OperationVerdict::Produced,
+          "the dry run reports the extend would succeed");
+
+    // 🔴 THE NEAR WALL, AT 70 -- NOT THE FAR ONE AT 95. "Extend to meet" means the first crossing; a
+    //    version taking the furthest looks identical on any fixture with only one wall, which is why
+    //    this fixture has two.
+    Claim(SamePoint(Landing, { 70.0, 0.0, 0.0 }), "and would land on the NEARER wall, not the further");
+
+    Claim(ExtendWorldCurve(Sketch, Stub, { 38.0, 0.0, 0.0 }) == OperationVerdict::Produced,
+          "performing it succeeds");
+    const DeclaredWorldCurve* Held = Sketch.Resolve(Stub);
+    Claim(Held != nullptr && SamePoint(Held->Geometry.HeldLine().Terminus, { 70.0, 0.0, 0.0 }),
+          "the terminus travelled to the wall");
+    Claim(Held != nullptr && SamePoint(Held->Geometry.HeldLine().Origin, { 0.0, 0.0, 0.0 }),
+          "and the far end did NOT move");
+    Claim(Near(LengthOf(Sketch, Stub), 70.0), "so the line is now seventy units");
+
+    // ② The other end. Pointing near the origin must grow the origin, whatever the curve's direction.
+    WorldSketchStructure Backward;
+    const WorldCurveName Middle = Backward.DeclareLine({ 50.0, 0.0, 0.0 }, { 90.0, 0.0, 0.0 }, Ground);
+    Backward.DeclareLine({ 10.0, 0.0, -30.0 }, { 10.0, 0.0, 30.0 }, Ground);
+
+    Claim(ExtendWorldCurve(Backward, Middle, { 52.0, 0.0, 0.0 }) == OperationVerdict::Produced,
+          "pointing near the origin extends the origin");
+    const DeclaredWorldCurve* Grown = Backward.Resolve(Middle);
+    Claim(Grown != nullptr && SamePoint(Grown->Geometry.HeldLine().Origin, { 10.0, 0.0, 0.0 }),
+          "which travels backwards to the wall behind it");
+    Claim(Grown != nullptr && SamePoint(Grown->Geometry.HeldLine().Terminus, { 90.0, 0.0, 0.0 }),
+          "while the terminus stays put");
+
+    // ⚠️ Nothing to meet. Extending by some invented default would produce geometry the artist neither
+    //    asked for nor could predict, so it refuses and the preview shows nothing.
+    WorldSketchStructure Empty;
+    const WorldCurveName Free = Empty.DeclareLine({ 0.0, 0.0, 0.0 }, { 40.0, 0.0, 0.0 }, Ground);
+    Claim(ExtendWorldCurve(Empty, Free, { 38.0, 0.0, 0.0 }) == OperationVerdict::NoIntersection,
+          "with nothing ahead it refuses rather than inventing a length");
+    Claim(Near(LengthOf(Empty, Free), 40.0), "and the line keeps its original length");
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                       5. AN OFFSET IS EVERYWHERE THE SAME DISTANCE
+//------------------------------------------------------------------------------------------------------------------------
+
+void ProveOffsetHoldsItsDistance()
+{
+    std::printf("\n5. An offset holds its distance, corners included\n");
+
+    // 📝 An L, deliberately: a straight run alone cannot tell a correct offset from one that pushes each
+    //    endpoint sideways, because on a straight run the two agree exactly. The bend is the whole test.
+    WorldSketchStructure Sketch;
+    const WorldCurveName AB = Sketch.DeclareLine({ 0.0, 0.0, 0.0 },   { 100.0, 0.0, 0.0 },   Ground);
+    const WorldCurveName BC = Sketch.DeclareLine({ 100.0, 0.0, 0.0 }, { 100.0, 0.0, 100.0 }, Ground);
+    const std::vector<WorldCurveName> Chain = { AB, BC };
+
+    std::vector<WorldCurveName> Produced;
+    Claim(OffsetWorldChain(Sketch, Chain, Ground, 10.0, Produced) == OperationVerdict::Produced,
+          "a ten-unit offset of a bent chain succeeds");
+    Claim(Produced.size() == 2u, "producing one curve per input curve");
+
+    Claim(Near(LengthOf(Sketch, AB), 100.0) && Near(LengthOf(Sketch, BC), 100.0),
+          "the original chain is untouched -- an offset is always a new curve");
+
+    // 🔴 EACH OFFSET LEG IS PARALLEL TO ITS OWN ORIGINAL, AT EXACTLY TEN, ALONG ITS WHOLE LENGTH. This
+    //    is the claim a corner-pushing offset fails: pushing the shared corner B along the AVERAGE of the
+    //    two normals lands it at about (107.07, -7.07), so the first offset leg runs from ten units out
+    //    to seven and is not parallel to anything. Sampling only the ends would let that through, since
+    //    the far end of each leg is right; sampling the whole length is what catches it.
+    unsigned Sampled = 0u;
+    unsigned Wrong = 0u;
+    for (std::size_t Leg = 0u; Leg < Produced.size() && Leg < Chain.size(); ++Leg)
+    {
+        const DeclaredWorldCurve* Held = Sketch.Resolve(Produced[Leg]);
+        if (Held == nullptr)
+            continue;
+
+        std::vector<SpatialPoint> Polyline;
+        AppendCurvePolyline(Held->Geometry, Polyline, 64u);
+        for (const SpatialPoint& Point : Polyline)
+        {
+            ++Sampled;
+            if (!Near(DistanceToLineOf(Sketch, Chain[Leg], Point), 10.0, 1.0e-6))
+                ++Wrong;
+        }
+    }
+    Claim(Sampled >= 4u, "the offset was sampled along its whole length");
+    Claim(Wrong == 0u, "and EVERY sample sits exactly ten units from the leg it offsets");
+
+    // 📝 The mitred corner is FURTHER than ten from the original corner, and that is correct rather
+    //    than a defect: the intersection of two lines each ten units out is ten-root-two out at a right
+    //    angle. A corner held at ten would leave a gap on the outside of the bend.
+    const DeclaredWorldCurve* Mitre = Produced.size() == 2u ? Sketch.Resolve(Produced[0u]) : nullptr;
+    Claim(Mitre != nullptr &&
+              Near(std::sqrt(LengthSquared(Difference(SpatialPoint{ 100.0, 0.0, 0.0 },
+                                                      Mitre->Geometry.HeldLine().Terminus))),
+                   10.0 * std::sqrt(2.0)),
+          "and the mitred corner stands ten-root-two out, where the two offset lines actually meet");
+
+    // ② The corner of the offset is where the two pushed legs MEET, which for a right angle offset
+    //    outward by ten is a point ten units out along both axes.
+    const DeclaredWorldCurve* FirstOffset = Produced.size() == 2u ? Sketch.Resolve(Produced[0u]) : nullptr;
+    const DeclaredWorldCurve* SecondOffset = Produced.size() == 2u ? Sketch.Resolve(Produced[1u]) : nullptr;
+    Claim(FirstOffset != nullptr && SecondOffset != nullptr &&
+              SamePoint(FirstOffset->Geometry.HeldLine().Terminus,
+                        SecondOffset->Geometry.HeldLine().Origin),
+          "the offset legs meet at a shared corner, leaving no gap");
+
+    // ③ The sign chooses the side, and the two sides are mirror images about the original.
+    std::vector<WorldCurveName> Other;
+    Claim(OffsetWorldChain(Sketch, Chain, Ground, -10.0, Other) == OperationVerdict::Produced,
+          "a negative distance offsets the other way");
+    const DeclaredWorldCurve* Left = Produced.empty() ? nullptr : Sketch.Resolve(Produced[0u]);
+    const DeclaredWorldCurve* Right = Other.empty() ? nullptr : Sketch.Resolve(Other[0u]);
+    Claim(Left != nullptr && Right != nullptr &&
+              !SamePoint(Left->Geometry.HeldLine().Origin, Right->Geometry.HeldLine().Origin),
+          "and lands somewhere else entirely");
+
+    // ④ Zero is not an offset.
+    std::vector<WorldCurveName> Nothing;
+    Claim(OffsetWorldChain(Sketch, Chain, Ground, 0.0, Nothing) == OperationVerdict::DistanceNotPositive,
+          "a zero distance refuses -- that is a copy, not an offset");
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                          6. THE OFFSET STATES ITS OWN LIMIT
+//------------------------------------------------------------------------------------------------------------------------
+
+void ProveOffsetLimit()
+{
+    std::printf("\n6. An offset states the distance at which it would collapse\n");
+
+    // 📝 A narrow rectangle: offsetting inward by half the short side collapses it to a line, and
+    //    anything beyond that turns it inside out.
+    WorldSketchStructure Sketch;
+    const WorldCurveName AB = Sketch.DeclareLine({ 0.0, 0.0, 0.0 },    { 200.0, 0.0, 0.0 },  Ground);
+    const WorldCurveName BC = Sketch.DeclareLine({ 200.0, 0.0, 0.0 },  { 200.0, 0.0, 40.0 }, Ground);
+    const WorldCurveName CD = Sketch.DeclareLine({ 200.0, 0.0, 40.0 }, { 0.0, 0.0, 40.0 },   Ground);
+    const WorldCurveName DA = Sketch.DeclareLine({ 0.0, 0.0, 40.0 },   { 0.0, 0.0, 0.0 },    Ground);
+    const std::vector<WorldCurveName> Ring = { AB, BC, CD, DA };
+
+    const double Limit = ResolveOffsetLimit(Sketch, Ring, Ground);
+    Claim(Limit > 0.0, "the chain reports a positive limit");
+
+    // 🔴 THE LIMIT IS THE EDGE OF WHAT WORKS, from both sides. A limit that is merely SAFE could be
+    //    reported as one and pass; this insists that just inside it succeeds and just outside it fails.
+    std::vector<WorldCurveName> Inside;
+    Claim(OffsetWorldChain(Sketch, Ring, Ground, -(Limit * 0.99), Inside) == OperationVerdict::Produced,
+          "just inside the limit still offsets");
+
+    std::vector<WorldCurveName> Beyond;
+    Claim(OffsetWorldChain(Sketch, Ring, Ground, -(Limit * 1.1), Beyond) == OperationVerdict::WouldCollapse,
+          "and just beyond it refuses as a collapse rather than folding inside out");
+
+    // 📝 A forty-unit-wide rectangle collapses at twenty. The limit is geometry, not a guess.
+    Claim(Limit < 21.0 && Limit > 19.0, "and the limit of a forty-wide rectangle is about twenty");
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                         7. FILL IS A WISH, NESTING IS A RULE
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 A ring of `Sides` straight curves approximating a circle, declared as a closed loop.
+WorldLoopName DeclareRing(WorldSketchStructure& Sketch,
+                          const SpatialPoint& Centre,
+                          double Radius,
+                          const WorldPlacementFrame& Frame,
+                          unsigned Sides = 24u)
+{
+    std::vector<SpatialPoint> Points;
+    for (unsigned Step = 0u; Step < Sides; ++Step)
+    {
+        const double Angle = 6.283185307179586 * static_cast<double>(Step) / static_cast<double>(Sides);
+        const double Along = std::cos(Angle) * Radius;
+        const double Across = std::sin(Angle) * Radius;
+        Points.push_back({ Centre.Left + Frame.AlongDirection.Left * Along
+                               + (Frame.Normal.Up * Frame.AlongDirection.Forward
+                                  - Frame.Normal.Forward * Frame.AlongDirection.Up) * Across,
+                           Centre.Up + Frame.AlongDirection.Up * Along
+                               + (Frame.Normal.Forward * Frame.AlongDirection.Left
+                                  - Frame.Normal.Left * Frame.AlongDirection.Forward) * Across,
+                           Centre.Forward + Frame.AlongDirection.Forward * Along
+                               + (Frame.Normal.Left * Frame.AlongDirection.Up
+                                  - Frame.Normal.Up * Frame.AlongDirection.Left) * Across });
+    }
+
+    std::vector<WorldCurveUse> Traversal;
+    for (unsigned Step = 0u; Step < Sides; ++Step)
+    {
+        const WorldCurveName Edge =
+            Sketch.DeclareLine(Points[Step], Points[(Step + 1u) % Sides], Frame);
+        Traversal.push_back({ Edge, true });
+    }
+    return Sketch.DeclareLoop({ Traversal });
+}
+
+const WorldLoopAnalysisRecord* RecordFor(const WorldSketchAnalysis& Analysis, WorldLoopName Name)
+{
+    for (const WorldLoopAnalysisRecord& Record : Analysis.Loops)
+        if (Record.Loop.IssuedIndex == Name.IssuedIndex)
+            return &Record;
+    return nullptr;
+}
+
+void ProveFillAndNesting()
+{
+    std::printf("\n7. Fill is the artist's wish; nesting is geometry's rule\n");
+
+    // ① A circle inside a circle is a TUBE.
+    WorldSketchStructure Sketch;
+    const WorldLoopName Outer = DeclareRing(Sketch, { 0.0, 0.0, 0.0 }, 100.0, Ground);
+    const WorldLoopName Inner = DeclareRing(Sketch, { 0.0, 0.0, 0.0 }, 40.0, Ground);
+
+    WorldSketchAnalysis Analysis = AnalyzeWorldSketch(Sketch, 48u, 0.05, 0.05);
+    const WorldLoopAnalysisRecord* OuterRecord = RecordFor(Analysis, Outer);
+    const WorldLoopAnalysisRecord* InnerRecord = RecordFor(Analysis, Inner);
+
+    Claim(OuterRecord != nullptr && InnerRecord != nullptr, "both rings are analysed");
+    Claim(OuterRecord != nullptr && OuterRecord->Closed && OuterRecord->Coplanar,
+          "the outer ring is closed and planar");
+    Claim(InnerRecord != nullptr && InnerRecord->Closed && InnerRecord->Coplanar,
+          "and so, on its own merits, is the inner one");
+
+    // 🔴 THIS IS THE TUBE. Both rings pass every geometric test for filling, and filling both is exactly
+    //    the bug: the inner disc is painted over the hole. Depth decides it instead.
+    Claim(OuterRecord != nullptr && OuterRecord->Nesting == 0u, "the outer ring is enclosed by nothing");
+    Claim(InnerRecord != nullptr && InnerRecord->Nesting == 1u, "the inner ring is enclosed by one loop");
+    Claim(InnerRecord != nullptr && InnerRecord->Hole, "so the inner ring is a HOLE");
+    Claim(OuterRecord != nullptr && !OuterRecord->Hole, "and the outer ring is not");
+    Claim(OuterRecord != nullptr && OuterRecord->FillEligible, "the outer ring fills");
+    Claim(InnerRecord != nullptr && !InnerRecord->FillEligible,
+          "the inner ring does NOT -- so a circle in a circle draws as a tube, not a disc");
+    Claim(InnerRecord != nullptr && InnerRecord->Container.IssuedIndex == Outer.IssuedIndex,
+          "and the hole names the face it is a hole in");
+
+    // ② An island inside the hole is material again. Depth two, even, filled.
+    const WorldLoopName Island = DeclareRing(Sketch, { 0.0, 0.0, 0.0 }, 15.0, Ground);
+    Analysis = AnalyzeWorldSketch(Sketch, 48u, 0.05, 0.05);
+    const WorldLoopAnalysisRecord* IslandRecord = RecordFor(Analysis, Island);
+    Claim(IslandRecord != nullptr && IslandRecord->Nesting == 2u, "a third ring inside the hole is depth two");
+    Claim(IslandRecord != nullptr && !IslandRecord->Hole, "which is EVEN, so it is material again");
+    Claim(IslandRecord != nullptr && IslandRecord->FillEligible, "and it fills");
+    Claim(IslandRecord != nullptr && IslandRecord->Container.IssuedIndex == Inner.IssuedIndex,
+          "sitting directly inside the hole rather than inside the outermost ring");
+
+    // ③ Rings on different planes do not nest, however they line up when flattened.
+    WorldSketchStructure Perpendicular;
+    const WorldPlacementFrame Wall = {{ 0.0, 0.0, 0.0 }, { 0.0, 0.0, 1.0 }, { 1.0, 0.0, 0.0 }};
+    const WorldLoopName Floor = DeclareRing(Perpendicular, { 0.0, 0.0, 0.0 }, 100.0, Ground);
+    const WorldLoopName Upright = DeclareRing(Perpendicular, { 0.0, 0.0, 0.0 }, 40.0, Wall);
+    const WorldSketchAnalysis Split = AnalyzeWorldSketch(Perpendicular, 48u, 0.05, 0.05);
+
+    const WorldLoopAnalysisRecord* FloorRecord = RecordFor(Split, Floor);
+    const WorldLoopAnalysisRecord* UprightRecord = RecordFor(Split, Upright);
+    Claim(FloorRecord != nullptr && FloorRecord->Nesting == 0u, "a ring on the floor nests in nothing");
+    Claim(UprightRecord != nullptr && UprightRecord->Nesting == 0u,
+          "and a ring on a WALL is not inside it, however the two overlap when flattened");
+    Claim(UprightRecord != nullptr && !UprightRecord->Hole, "so neither becomes a hole in the other");
+
+    // ④ Fill is a WISH, and the wish is what the toggle writes.
+    Claim(WorldLoopFillWanted(Sketch, Outer), "a loop wants its fill by default");
+    Claim(DeclareWorldLoopFill(Sketch, Outer, false), "the Fill tool turns it off");
+    Claim(!WorldLoopFillWanted(Sketch, Outer), "and the wish is remembered");
+
+    Analysis = AnalyzeWorldSketch(Sketch, 48u, 0.05, 0.05);
+    OuterRecord = RecordFor(Analysis, Outer);
+    Claim(OuterRecord != nullptr && OuterRecord->Closed && OuterRecord->Coplanar,
+          "the ring is still perfectly fillable geometry");
+    Claim(OuterRecord != nullptr && !OuterRecord->FillEligible,
+          "but is not filled, because the artist said not to -- the wish overrides the geometry");
+
+    Claim(DeclareWorldLoopFill(Sketch, Outer, true), "toggling it back on succeeds");
+    Analysis = AnalyzeWorldSketch(Sketch, 48u, 0.05, 0.05);
+    OuterRecord = RecordFor(Analysis, Outer);
+    Claim(OuterRecord != nullptr && OuterRecord->FillEligible, "and the face returns");
+
+    // ⑤ Wishing an open loop filled records the wish and fills nothing.
+    WorldSketchStructure Open;
+    const WorldCurveName One = Open.DeclareLine({ 0.0, 0.0, 0.0 },   { 100.0, 0.0, 0.0 },   Ground);
+    const WorldCurveName Two = Open.DeclareLine({ 100.0, 0.0, 0.0 }, { 100.0, 0.0, 100.0 }, Ground);
+    const WorldLoopName Gap = Open.DeclareLoop({ { { One, true }, { Two, true } } });
+
+    Claim(DeclareWorldLoopFill(Open, Gap, true), "an open loop accepts the wish");
+    const WorldSketchAnalysis Unclosed = AnalyzeWorldSketch(Open, 48u, 0.05, 0.05);
+    const WorldLoopAnalysisRecord* GapRecord = RecordFor(Unclosed, Gap);
+    Claim(GapRecord != nullptr && !GapRecord->Closed, "the loop is not closed");
+    Claim(GapRecord != nullptr && !GapRecord->FillEligible,
+          "and does not fill -- Fill cannot make an open loop fillable, and does not pretend to");
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                          8. THE GESTURES, START TO FINISH
+//------------------------------------------------------------------------------------------------------------------------
+
+void ProveTheGestures()
+{
+    std::printf("\n8. The gestures: a click for the click operations, a drag for the one with a figure\n");
+
+    // ① Trim: hover, then release. No readout, because there is no figure to set.
+    WorldSketchStructure Sketch;
+    const WorldCurveName Spine = Sketch.DeclareLine({ 0.0, 0.0, 0.0 }, { 100.0, 0.0, 0.0 }, Ground);
+    Sketch.DeclareLine({ 70.0, 0.0, -20.0 }, { 70.0, 0.0, 20.0 }, Ground);
+
+    SketchOperationSession Session;
+    Session.Manner = OperationManner::Trim;
+    const std::vector<WorldCurveName> NoChain;
+
+    AdvanceSketchOperationSession(Sketch, NoChain, Ground, { { 400.0, 0.0, 400.0 }, false, false, false },
+                                  Session);
+    Claim(Session.Phase == OperationPhase::Idle, "with the pointer nowhere near a curve, nothing is armed");
+    Claim(!Session.Target.Assigned(), "and no target is named");
+
+    AdvanceSketchOperationSession(Sketch, NoChain, Ground, { { 90.0, 0.0, 0.0 }, false, false, false },
+                                  Session);
+    Claim(Session.Phase == OperationPhase::Ready, "hovering the overhang arms the trim");
+    Claim(Session.Target.IssuedIndex == Spine.IssuedIndex, "on the curve under the pointer");
+
+    // 🔴 NO READOUT FOR A CLICK OPERATION. A popup asking Apply for a click already made is a second
+    //    confirmation of a decision already taken.
+    Claim(!Session.ReadoutStanding(), "and raises NO readout, because a trim has no figure to set");
+
+    AdvanceSketchOperationSession(Sketch, NoChain, Ground, { { 90.0, 0.0, 0.0 }, false, false, true },
+                                  Session);
+    Claim(Session.Phase == OperationPhase::Applied, "releasing performs it");
+
+    std::vector<WorldCurveName> Produced;
+    Claim(PerformSketchOperation(Sketch, NoChain, Ground, Session, Produced) == OperationVerdict::Produced,
+          "and the operation runs");
+    Claim(Produced.size() == 1u && Near(LengthOf(Sketch, Produced[0u]), 70.0),
+          "leaving the seventy units up to the crossing");
+    Claim(Session.Phase == OperationPhase::Idle, "the session returns to hunting for the next one");
+
+    // ② Offset: hover, press, drag, clamp, release to the readout, type, apply.
+    WorldSketchStructure Ring;
+    const WorldCurveName AB = Ring.DeclareLine({ 0.0, 0.0, 0.0 },    { 200.0, 0.0, 0.0 },  Ground);
+    const WorldCurveName BC = Ring.DeclareLine({ 200.0, 0.0, 0.0 },  { 200.0, 0.0, 40.0 }, Ground);
+    const WorldCurveName CD = Ring.DeclareLine({ 200.0, 0.0, 40.0 }, { 0.0, 0.0, 40.0 },   Ground);
+    const WorldCurveName DA = Ring.DeclareLine({ 0.0, 0.0, 40.0 },   { 0.0, 0.0, 0.0 },    Ground);
+    const std::vector<WorldCurveName> Chain = { AB, BC, CD, DA };
+
+    SketchOperationSession Drag;
+    Drag.Manner = OperationManner::Offset;
+
+    AdvanceSketchOperationSession(Ring, Chain, Ground, { { 0.0, 0.0, -5.0 }, false, false, false }, Drag);
+    Claim(Drag.Phase == OperationPhase::Ready, "with a chain chosen, the offset is armed");
+    Claim(Drag.Limit > 0.0, "and it knows the distance at which it would collapse");
+    Claim(!Drag.ReadoutStanding(), "no readout yet -- nothing has been dragged");
+
+    AdvanceSketchOperationSession(Ring, Chain, Ground, { { 0.0, 0.0, -5.0 }, true, true, false }, Drag);
+    Claim(Drag.Phase == OperationPhase::Dragging, "pressing begins the drag");
+    Claim(Drag.ReadoutStanding(), "and NOW the readout stands, because there is a figure to show");
+
+    AdvanceSketchOperationSession(Ring, Chain, Ground, { { 100.0, 0.0, -12.0 }, false, true, false }, Drag);
+    Claim(Near(std::fabs(Drag.Distance), 12.0, 1.0e-6), "the figure follows the pointer");
+    Claim(!Drag.Clamped, "within the limit, nothing is clamped");
+
+    // 🔴 THE CLAMP BINDS THE MAGNITUDE AND KEEPS THE SIGN. Clamping the signed value would flip an
+    //    inward drag outward at the limit, which is a very confusing thing to watch happen.
+    const double Sign = Drag.Distance < 0.0 ? -1.0 : 1.0;
+    AdvanceSketchOperationSession(Ring, Chain, Ground, { { 100.0, 0.0, -900.0 }, false, true, false }, Drag);
+    Claim(Drag.Clamped, "dragging far past the limit clamps");
+    Claim(Near(std::fabs(Drag.Distance), Drag.Limit, 1.0e-9), "at exactly the limit");
+    Claim((Drag.Distance < 0.0 ? -1.0 : 1.0) == Sign, "and on the SAME SIDE it was being dragged");
+
+    const std::uint32_t Before = Ring.CurveCount();
+    AdvanceSketchOperationSession(Ring, Chain, Ground, { { 100.0, 0.0, -12.0 }, false, false, true }, Drag);
+    Claim(Drag.Phase == OperationPhase::Pending, "releasing hands the figure to the readout");
+    Claim(Drag.ReadoutStanding(), "which is still standing");
+    Claim(Ring.CurveCount() == Before, "and writes NOTHING -- the release is not the commit");
+
+    // ③ A typed figure is the same number, through the same clamp.
+    DeclareOperationDistance(Drag, -8.0);
+    Claim(Near(Drag.Distance, -8.0), "a typed figure replaces the dragged one");
+    DeclareOperationDistance(Drag, -900.0);
+    Claim(Near(std::fabs(Drag.Distance), Drag.Limit, 1.0e-9),
+          "and passes the same clamp -- the readout is a way to be precise, not a way around the limit");
+
+    DeclareOperationDistance(Drag, -8.0);
+    std::vector<WorldCurveName> Offset;
+    Claim(PerformSketchOperation(Ring, Chain, Ground, Drag, Offset) == OperationVerdict::Produced,
+          "Apply performs the offset");
+    Claim(Offset.size() == 4u, "producing four curves for the four sides");
+    Claim(Ring.CurveCount() == Before + 4u, "and only now does the sketch grow");
+
+    // ④ Cancelling writes nothing, because nothing was ever written.
+    SketchOperationSession Abandoned;
+    Abandoned.Manner = OperationManner::Offset;
+    AdvanceSketchOperationSession(Ring, Chain, Ground, { { 0.0, 0.0, -5.0 }, true, true, false }, Abandoned);
+    AdvanceSketchOperationSession(Ring, Chain, Ground, { { 0.0, 0.0, -15.0 }, false, false, true },
+                                  Abandoned);
+    const std::uint32_t Standing = Ring.CurveCount();
+    CancelSketchOperationSession(Abandoned);
+    Claim(Abandoned.Phase == OperationPhase::Idle, "cancelling returns the session to idle");
+    Claim(!Abandoned.ReadoutStanding(), "the readout goes away");
+    Claim(Ring.CurveCount() == Standing, "and the sketch is untouched");
+}
+
+} // namespace
+
+int main()
+{
+    std::printf("SketchOperationProof -- cut, trim, extend, offset and fill, executed\n");
+
+    ProveCutKeepsEverything();
+    ProveCutAtCrossings();
+    ProveTrimRemovesThePiece();
+    ProveExtendMeetsTheNearest();
+    ProveOffsetHoldsItsDistance();
+    ProveOffsetLimit();
+    ProveFillAndNesting();
+    ProveTheGestures();
+
+    std::printf("\n%u claims, %u failures\n", Claims, Failures);
+    return Failures == 0u ? 0 : 1;
+}

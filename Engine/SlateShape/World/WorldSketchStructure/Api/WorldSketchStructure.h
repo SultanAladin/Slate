@@ -195,6 +195,14 @@ struct WorldCurveUse
 struct DeclaredWorldLoop
 {
     std::vector<WorldCurveUse> Traversal = {};
+
+    /// 🧩 Whether the artist wants this loop's face drawn at all.
+    /// note  🔴 A WISH, NOT A CAPABILITY. Whether a loop CAN be filled is decided by geometry and
+    ///        recomputed every analysis pass -- closed, planar. Whether it SHOULD be is the artist's,
+    ///        and it has to live here because nothing about the geometry records it. The Fill tool
+    ///        toggles this; it does not and cannot make an open loop fillable.
+    /// note  📝 True by default, so every shape drawn before this existed still fills as it did.
+    bool FillWanted = true;
 };
 
 class WorldSketchStructure

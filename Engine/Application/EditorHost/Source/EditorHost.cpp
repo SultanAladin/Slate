@@ -32,6 +32,7 @@
 #include "SketchToolset/SketchTool/SelectionOptions/Api/SelectionOptions.h"
 #include "SlateUI/Interface/ToolOptionsWidget/Api/ToolOptionsWidget.h"
 #include "SlateUI/Interface/ToolContextMenu/Api/ToolContextMenu.h"
+#include "SlateWorkspace/Discipline/SketchOperationDriver/Api/SketchOperationDriver.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/SketchBasis.h"
 #include "SlateWorkspace/Discipline/WorkplaneCatalogue/Api/WorkplaneCatalogue.h"
 #include "Foundation/DeliveryGuarantee.h"
@@ -317,16 +318,11 @@ int main(int ArgumentCount, char** ArgumentValues)
     static ToolOptionsWidget         SketchToolOptions;
     static ToolContextMenu           SketchContextMenu;
 
-// 📐 The construction tool awaiting its parameters, and the figures it asks for. These live beside the
-//    popup rather than inside it because the popup edits the caller's data in place -- it owns nothing,
-//    so the numbers have to belong to someone, and the host is who runs the operation.
-static ParametricToolSubject     SketchBuildTool     = ParametricToolSubject::Select;
-[[maybe_unused]] static bool                      SketchBuildApply    = false;
-static float                     SketchCornerDistance = 4.0f;
-static std::uint32_t             SketchTrimKeep      = 0u;
-[[maybe_unused]] constexpr float                  SketchCornerMinimum = 0.1f;
-[[maybe_unused]] constexpr float                  SketchCornerMaximum = 50.0f;
-[[maybe_unused]] static const char* const         SketchTrimSides[2]  = { "Start", "End" };
+// 🔴 ONE STATE FOR ALL SEVEN OPERATIONS, and the host holds nothing else about them. What used to sit
+//    here -- a tool, an apply flag, a distance, a trim side and two magic-number bounds -- was the
+//    operations' own state spread across the host, where none of it could be proven. It now lives in
+//    `SketchOperationState` and is driven by `DriveSketchOperations`, which is proven headlessly.
+static SketchOperationState      SketchOperations    = {};
     // 📝 A right-press is a look while it travels and a menu when it does not. The distance is summed
     //    across the hold, because on the release tick the per-tick travel has already fallen to zero.
     static float SecondaryTravel = 0.0f;   // [px] - summed over the current secondary hold
@@ -954,8 +950,8 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                 ParametricToolsApplied.ActiveSubject = ParametricToolSubject::Select;
                 ParametricToolsApplied.Page = ParametricToolPage::Catalogue;
                 SketchTool.Abandon();
-                SketchBuildApply = false;
-                SketchBuildTool = ParametricToolSubject::Select;
+                CancelCornerDragSession(SketchOperations.Corner);
+                CancelSketchOperationSession(SketchOperations.Operation);
                 SketchContextMenu.Close();
             }
 
@@ -981,8 +977,8 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                 {
                     SketchHoveredSelection = {};
                     SketchTransform = {};
-                    SketchBuildApply = false;
-                    SketchBuildTool = ParametricToolSubject::Select;
+                    CancelCornerDragSession(SketchOperations.Corner);
+                    CancelSketchOperationSession(SketchOperations.Operation);
                     SketchContextMenu.Close();
                 }
             }
@@ -1298,8 +1294,16 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                     //    secondary-click gesture no longer reopens a construction popup.
                                     //    A dormant popup must stay shut even when an old tool state
                                     //    survives into this frame.
-                                    if (SketchBuildTool != ParametricToolSubject::Select)
+                                    // 🔴 A RIGHT-CLICK ABANDONS THE OPERATION, not merely its readout.
+                                    //    Closing the popup alone would leave the gesture pending, and
+                                    //    the next Apply from anywhere would commit a figure the artist
+                                    //    had already dismissed.
+                                    if (SketchContextMenu.Standing())
+                                    {
+                                        CancelCornerDragSession(SketchOperations.Corner);
+                                        CancelSketchOperationSession(SketchOperations.Operation);
                                         SketchContextMenu.Close();
+                                    }
                                 }
 
                                 ResolvedCamera& SceneCamera = ViewportRuntime[Leaf].Camera;
@@ -1405,13 +1409,53 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                             SketchContextMenu.Avoid({});
                                         }
 
-                                        // 🔴 OPERATIONS ARE PARKED FOR NOW. The catalogue still shows the
-                                        //    tiles, but no build popup or legacy edit algorithm is allowed
-                                        //    to run until the GPU-only viewport and the targeting rules are
-                                        //    rebuilt cleanly.
-                                        SketchContextMenu.Close();
-                                        SketchBuildApply = false;
-                                        SketchBuildTool = ParametricToolSubject::Select;
+                                        // 🔴 THE OPERATIONS RUN HERE, AND ONLY THE READOUT IS THE HOST'S
+                                        //    BUSINESS. This gate used to be parked shut; it is open now
+                                        //    that the seven operations are rebuilt on the world sketch and
+                                        //    proven headlessly. The host contributes exactly two things
+                                        //    the arm cannot know: the box the readout must dodge, which
+                                        //    only the host can see, and the standing selection an Offset
+                                        //    copies. Everything else is inside the arm.
+                                        if (OperationToolStanding(ParametricToolsApplied.ActiveSubject))
+                                        {
+                                            // 📝 An Offset copies what is selected. The picks are already
+                                            //    resolved to world names for the renderer just below; the
+                                            //    curves among them are the chain.
+                                            std::vector<WorldCurveName> OperationChain;
+                                            for (const SketchPick& Item : SketchSelectionSetState.Items)
+                                            {
+                                                WorldPick Held = {};
+                                                if (ResolveWorldPickForSketchPick(Sketch, SketchRecords,
+                                                                                  SketchWorld,
+                                                                                  SketchWorldMapping,
+                                                                                  Item, Held) &&
+                                                    Held.Subject == WorldPickSubject::Curve)
+                                                    OperationChain.push_back(Held.Curve);
+                                            }
+
+                                            Discard(Viewport.Surface().SwitchLayer(
+                                                RecordingSurface::ShellLayer::Above));
+
+                                            bool OperationTaken = false;
+                                            DriveSketchOperations(LeafBody, BackgroundPointer, SceneCamera,
+                                                                  ParametricToolsApplied.ActiveSubject,
+                                                                  ResolveWorkplacementFrame(
+                                                                      SketchWorkplanes.Active()),
+                                                                  OperationChain, SketchWorld,
+                                                                  SketchOperations, SketchContextMenu,
+                                                                  OperationTaken);
+
+                                            Discard(Viewport.Surface().SwitchLayer(
+                                                RecordingSurface::ShellLayer::Beneath));
+
+                                            if (OperationTaken)
+                                            {
+                                                PointerTaken = true;
+                                                if (FrameContext.Dispatch.Owner == PointerOwner::None)
+                                                    FrameContext.Dispatch.AdoptLegacyOwner(
+                                                        PointerOwner::DrawingTool);
+                                            }
+                                        }
                                     }
 
                                     // 🔴 ONE CAMERA, NOT TWO. The orbit angles were copied straight off
@@ -1835,19 +1879,17 @@ static std::uint32_t             SketchTrimKeep      = 0u;
                                 //    value matters -- reading the value alone would reopen the popup
                                 //    every frame the tile stayed active, including the frame after the
                                 //    artist cancelled it.
+                                // 🔴 CHOOSING A DIFFERENT OPERATION ABANDONS THE ONE IN FLIGHT. The tile
+                                //    no longer raises a popup by itself -- the popup belongs to the
+                                //    GESTURE, and appears when there is a figure to show. What the tile
+                                //    change must do is make sure a half-dragged fillet does not survive
+                                //    into Trim and apply itself later under the wrong tool.
                                 const ParametricToolSubject Chosen = ParametricToolsApplied.ActiveSubject;
-                                const bool OperationVisualOnly =
-                                    Chosen == ParametricToolSubject::Fillet  ||
-                                    Chosen == ParametricToolSubject::Chamfer ||
-                                    Chosen == ParametricToolSubject::Trim    ||
-                                    Chosen == ParametricToolSubject::Extend  ||
-                                    Chosen == ParametricToolSubject::Offset  ||
-                                    Chosen == ParametricToolSubject::Cut;
-
-                                if (Chosen != Before && OperationVisualOnly)
+                                if (Chosen != Before &&
+                                    (OperationToolStanding(Chosen) || OperationToolStanding(Before)))
                                 {
-                                    SketchBuildTool = ParametricToolSubject::Select;
-                                    SketchBuildApply = false;
+                                    CancelCornerDragSession(SketchOperations.Corner);
+                                    CancelSketchOperationSession(SketchOperations.Operation);
                                     SketchContextMenu.Close();
                                 }
                                 break;

@@ -373,19 +373,74 @@
         <td>absent</td></tr>
 
     <tr><td>Fill</td>
-        <td>The tool you asked me to add without behaviour. Worth noting the <em>rendering</em> of the
-            fill is already automatic — a closed planar loop draws its transparent face with no tool at
-            all. So this tile most likely means "make this region a real face I can extrude", which is a
-            different and larger thing.</td>
-        <td class="have">tile only, as requested</td></tr>
+        <td>Turns a closed loop's transparent face on and off, and decides which side of a nested pair is
+            material. Later this is what separates a hollow extrude from a solid one.</td>
+        <td class="have">built &amp; proven</td></tr>
   </table>
 
   <div class="note">
-    <b>One thing I would question.</b> Since a closed planar loop already fills itself automatically, a
-    <b>Fill</b> tool has nothing to switch on. If what you want is <em>"treat this enclosed region as a
-    face"</em> — including regions bounded by several separate curves that merely overlap — that is
-    region detection, and it is closer to a boolean than to the operations above. Worth deciding before I
-    give the tile behaviour.
+    <b>Answered, and built.</b> Fill is a <em>wish</em>, recorded per loop, and it overrides geometry that
+    would otherwise fill itself. It cannot make an open loop fillable — toggling one on records the wish
+    and takes effect the moment the loop closes. The nesting half is below.
+  </div>
+</section>
+
+<!-- ────────────────────────────  FILL AND NESTING  ─────────────────────────── -->
+<section>
+  <h2>Fill <span class="tag">a circle inside a circle is a tube</span></h2>
+  <p class="lede">
+    Two rings. Both are closed, both are planar, so judged on their own merits <em>both</em> fill — and
+    that is exactly the bug: the inner disc gets painted straight over the hole it is supposed to be.
+    Depth settles it instead. Even is material, odd is a hole.
+  </p>
+
+  <svg viewBox="0 0 900 210" role="img">
+    <!-- wrong -->
+    <g transform="translate(20,0)">
+      <circle cx="110" cy="100" r="80" fill="var(--geom)" fill-opacity="0.28"
+              stroke="var(--geom)" stroke-width="3"/>
+      <circle cx="110" cy="100" r="38" fill="var(--geom)" fill-opacity="0.28"
+              stroke="var(--geom)" stroke-width="3"/>
+      <text class="lbl" x="34" y="198">each loop filled on its own merit</text>
+      <text x="70" y="26" fill="var(--cut)">a solid disc — wrong</text>
+    </g>
+
+    <!-- the rule -->
+    <g transform="translate(310,0)">
+      <circle cx="110" cy="100" r="80" fill="none" stroke="var(--hint)" stroke-width="2"
+              stroke-dasharray="4 4"/>
+      <circle cx="110" cy="100" r="38" fill="none" stroke="var(--hint)" stroke-width="2"
+              stroke-dasharray="4 4"/>
+      <text x="96" y="66" fill="var(--accent)">depth 0</text>
+      <text x="88" y="105" fill="var(--accent)">depth 1</text>
+      <text class="lbl" x="18" y="198">count how many loops enclose each one</text>
+      <text x="64" y="26" fill="var(--accent)">even = material, odd = hole</text>
+    </g>
+
+    <!-- right -->
+    <g transform="translate(600,0)">
+      <path d="M110 20 A80 80 0 1 0 110 180 A80 80 0 1 0 110 20 Z
+               M110 62 A38 38 0 1 1 110 138 A38 38 0 1 1 110 62 Z"
+            fill="var(--new)" fill-opacity="0.30" fill-rule="evenodd"
+            stroke="var(--new)" stroke-width="3"/>
+      <text class="lbl" x="54" y="198">the hole is cut, not painted over</text>
+      <text x="86" y="26" fill="var(--new)">a tube — right</text>
+    </g>
+  </svg>
+
+  <p class="cap">
+    A third ring inside the hole is depth&nbsp;2 — even — so it fills again, as an island in the middle
+    of the tube. That falls out of the same rule rather than needing another one. Rings on <em>different
+    planes</em> never nest, however neatly they line up when flattened: a circle on the floor and a circle
+    on a wall are two faces, not a tube.
+  </p>
+
+  <div class="note">
+    <b>Why the hole is cut rather than drawn over.</b> The fill is transparent. A hole painted in the
+    background colour would be a visible disc rather than a gap, and would still be there the moment the
+    background changed. So the hole is stitched into the outline <em>before</em> the triangles are made:
+    walk the outer ring to the nearest point, cross into the inner ring, walk it the other way round, and
+    cross back. The result is one outline whose interior is the material between the rings.
   </div>
 </section>
 

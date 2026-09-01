@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <vector>
 
 namespace Slate
@@ -248,7 +249,85 @@ bool ClipEars(const std::vector<PlanarVertex>& Outline,
     return true;
 }
 
+/// 🧩 Flattens a loop's outline into its own plane, wound anticlockwise.
+std::vector<PlanarVertex> FlattenOutline(const WorldPlacementFrame& Frame,
+                                         const std::vector<SpatialPoint>& Points)
+{
+    std::vector<PlanarVertex> Outline;
+    Outline.reserve(Points.size());
+    for (const SpatialPoint& Point : Points)
+    {
+        double Along = 0.0;
+        double Across = 0.0;
+        ResolveWorldPlacementCoordinates(Frame, Point, Along, Across);
+        Outline.push_back({ Along, Across, Point });
+    }
+
+    if (SignedArea(Outline) < 0.0)
+        std::reverse(Outline.begin(), Outline.end());
+    return Outline;
+}
+
+/// 🧩 The vertex of a hole nearest a vertex of the outline it sits in, as a pair of indices.
+void FindBridge(const std::vector<PlanarVertex>& Outline,
+                const std::vector<PlanarVertex>& Hole,
+                std::size_t& OuterAt,
+                std::size_t& InnerAt)
+{
+    OuterAt = 0u;
+    InnerAt = 0u;
+    double Nearest = std::numeric_limits<double>::max();
+
+    for (std::size_t Outer = 0u; Outer < Outline.size(); ++Outer)
+        for (std::size_t Inner = 0u; Inner < Hole.size(); ++Inner)
+        {
+            const double Across = Outline[Outer].Across - Hole[Inner].Across;
+            const double Along = Outline[Outer].Along - Hole[Inner].Along;
+            const double Distance = Along * Along + Across * Across;
+            if (Distance < Nearest)
+            {
+                Nearest = Distance;
+                OuterAt = Outer;
+                InnerAt = Inner;
+            }
+        }
+}
+
+/// 🧩 Cuts a hole into an outline, giving one outline that walks in and back out again.
+/// 🔴 THIS IS HOW A CIRCLE INSIDE A CIRCLE BECOMES A TUBE. Ear clipping fills a single closed outline
+///    and knows nothing of holes, so the hole is stitched INTO the outline: walk the outer ring to the
+///    nearest vertex, cross the bridge, walk the hole the OTHER WAY round, and cross back. The result is
+///    one degenerate-but-simple outline whose interior is the material between the rings, which ear
+///    clipping then handles with no idea that a hole was ever involved.
+/// 📝 The hole is reversed because a hole must wind against its container. Two rings wound the same way
+///    would leave the bridge crossing itself and the ears would clip the hole shut.
+void StitchHole(std::vector<PlanarVertex>& Outline, const std::vector<PlanarVertex>& Hole)
+{
+    if (Hole.size() < 3u || Outline.size() < 3u)
+        return;
+
+    std::vector<PlanarVertex> Reversed(Hole.rbegin(), Hole.rend());
+
+    std::size_t OuterAt = 0u;
+    std::size_t InnerAt = 0u;
+    FindBridge(Outline, Reversed, OuterAt, InnerAt);
+
+    std::vector<PlanarVertex> Stitched;
+    Stitched.reserve(Outline.size() + Reversed.size() + 2u);
+
+    for (std::size_t Step = 0u; Step <= OuterAt; ++Step)
+        Stitched.push_back(Outline[Step]);
+    for (std::size_t Step = 0u; Step < Reversed.size(); ++Step)
+        Stitched.push_back(Reversed[(InnerAt + Step) % Reversed.size()]);
+    Stitched.push_back(Reversed[InnerAt]);
+    for (std::size_t Step = OuterAt; Step < Outline.size(); ++Step)
+        Stitched.push_back(Outline[Step]);
+
+    Outline.swap(Stitched);
+}
+
 void AppendFillForLoop(const WorldLoopAnalysisRecord& Loop,
+                       const std::vector<WorldLoopAnalysisRecord>& Everything,
                        const ResolvedCamera& Camera,
                        const PlaneExtent& Extent,
                        Unsigned32 Packed,
@@ -257,18 +336,20 @@ void AppendFillForLoop(const WorldLoopAnalysisRecord& Loop,
     if (!Loop.FillEligible || !Loop.SupportFrame.Declared() || Loop.Outline.size() < 3u)
         return;
 
-    std::vector<PlanarVertex> Outline;
-    Outline.reserve(Loop.Outline.size());
-    for (const SpatialPoint& Point : Loop.Outline)
-    {
-        double Along = 0.0;
-        double Across = 0.0;
-        ResolveWorldPlacementCoordinates(Loop.SupportFrame, Point, Along, Across);
-        Outline.push_back({ Along, Across, Point });
-    }
+    std::vector<PlanarVertex> Outline = FlattenOutline(Loop.SupportFrame, Loop.Outline);
 
-    if (SignedArea(Outline) < 0.0)
-        std::reverse(Outline.begin(), Outline.end());
+    // 🔴 THE HOLES ARE CUT BEFORE THE EARS ARE CLIPPED, never painted over afterwards. The fill is
+    //    transparent, so a hole drawn on top in the background colour would be a visible disc rather
+    //    than a gap, and would still be there when the background changed.
+    for (const WorldLoopAnalysisRecord& Other : Everything)
+    {
+        if (!Other.Hole || Other.Outline.size() < 3u)
+            continue;
+        if (Other.Container.IssuedIndex != Loop.Loop.IssuedIndex)
+            continue;
+
+        StitchHole(Outline, FlattenOutline(Loop.SupportFrame, Other.Outline));
+    }
 
     std::vector<Unsigned32> Triangles;
     if (!ClipEars(Outline, Triangles))
@@ -381,7 +462,7 @@ Deliver<bool> ProjectWorldSketchRendering(const WorldSketchStructure& Declared,
                 break;
             }
         }
-        AppendFillForLoop(Loop, Camera, PhysicalExtent,
+        AppendFillForLoop(Loop, Analysis.Loops, Camera, PhysicalExtent,
                           IsSelectedLoop ? Style.SelectedFillColour : Style.FillColour,
                           Delivered);
     }
