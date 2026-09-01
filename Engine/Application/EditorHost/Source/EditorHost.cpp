@@ -1423,100 +1423,6 @@ static std::vector<DimensionFigureChip> SketchDimensionFigures;
                                             SketchContextMenu.Avoid({});
                                         }
 
-                                        // 🔴 THE OPERATIONS RUN HERE, AND ONLY THE READOUT IS THE HOST'S
-                                        //    BUSINESS. This gate used to be parked shut; it is open now
-                                        //    that the seven operations are rebuilt on the world sketch and
-                                        //    proven headlessly. The host contributes exactly two things
-                                        //    the arm cannot know: the box the readout must dodge, which
-                                        //    only the host can see, and the standing selection an Offset
-                                        //    copies. Everything else is inside the arm.
-                                        if (OperationToolStanding(ParametricToolsApplied.ActiveSubject))
-                                        {
-                                            // 📝 An Offset copies what is selected. The picks are already
-                                            //    resolved to world names for the renderer just below; the
-                                            //    curves among them are the chain.
-                                            std::vector<WorldCurveName> OperationChain;
-                                            for (const SketchPick& Item : SketchSelectionSetState.Items)
-                                            {
-                                                WorldPick Held = {};
-                                                if (ResolveWorldPickForSketchPick(Sketch, SketchRecords,
-                                                                                  SketchWorld,
-                                                                                  SketchWorldMapping,
-                                                                                  Item, Held) &&
-                                                    Held.Subject == WorldPickSubject::Curve)
-                                                    OperationChain.push_back(Held.Curve);
-                                            }
-
-                                            Discard(Viewport.Surface().SwitchLayer(
-                                                RecordingSurface::ShellLayer::Above));
-
-                                            bool OperationTaken = false;
-                                            DriveSketchOperations(LeafBody, BackgroundPointer, SceneCamera,
-                                                                  ParametricToolsApplied.ActiveSubject,
-                                                                  ResolveWorkplacementFrame(
-                                                                      SketchWorkplanes.Active()),
-                                                                  OperationChain, SketchWorld,
-                                                                  SketchOperations, SketchContextMenu,
-                                                                  OperationTaken);
-
-                                            Discard(Viewport.Surface().SwitchLayer(
-                                                RecordingSurface::ShellLayer::Beneath));
-
-                                            if (OperationTaken)
-                                            {
-                                                PointerTaken = true;
-                                                if (FrameContext.Dispatch.Owner == PointerOwner::None)
-                                                    FrameContext.Dispatch.AdoptLegacyOwner(
-                                                        PointerOwner::DrawingTool);
-                                            }
-                                        }
-
-                                        // 🔴 THE ANNOTATION BAND RUNS HERE, and the host's whole
-                                        //    contribution is one pick. The band was written, given
-                                        //    thirteen tiles, and then reachable from nowhere: no
-                                        //    `BandEntry` listed it and `ToolSubjectOf` had no case for
-                                        //    it, so every tile reported `Select`. Both halves are fixed
-                                        //    in the panel; this is the third -- the tools now exist,
-                                        //    resolve to their own subjects, and are finally driven.
-                                        //
-                                        // 📝 A dimension is placed against something, so what the
-                                        //    pointer is over has to be resolved before the arm can be
-                                        //    asked. The same screen picker the selection uses answers
-                                        //    it, at the same tolerance, so a dimension grabs exactly
-                                        //    what a click would have selected.
-                                        if (AnnotationToolStanding(ParametricToolsApplied.ActiveSubject))
-                                        {
-                                            WorldPick AnnotationHover = {};
-                                            static_cast<void>(ResolveWorldSketchPick(
-                                                SketchWorld, SceneCamera, LeafBody,
-                                                static_cast<float>(BackgroundPointer.PositionX),
-                                                static_cast<float>(BackgroundPointer.PositionY),
-                                                SketchSelection.ResolvedTolerance(),
-                                                AnnotationHover));
-
-                                            Discard(Viewport.Surface().SwitchLayer(
-                                                RecordingSurface::ShellLayer::Above));
-
-                                            bool AnnotationTaken = false;
-                                            DriveAnnotations(LeafBody, BackgroundPointer, SceneCamera,
-                                                             ParametricToolsApplied.ActiveSubject,
-                                                             ResolveWorkplacementFrame(
-                                                                 SketchWorkplanes.Active()),
-                                                             AnnotationHover, SketchWorld,
-                                                             SketchAnnotations, SketchContextMenu,
-                                                             AnnotationTaken);
-
-                                            Discard(Viewport.Surface().SwitchLayer(
-                                                RecordingSurface::ShellLayer::Beneath));
-
-                                            if (AnnotationTaken)
-                                            {
-                                                PointerTaken = true;
-                                                if (FrameContext.Dispatch.Owner == PointerOwner::None)
-                                                    FrameContext.Dispatch.AdoptLegacyOwner(
-                                                        PointerOwner::DrawingTool);
-                                            }
-                                        }
                                     }
 
                                     // 🔴 ONE CAMERA, NOT TWO. The orbit angles were copied straight off
@@ -1613,6 +1519,116 @@ static std::vector<DimensionFigureChip> SketchDimensionFigures;
                                             SceneApplied.ViewportSkyCamera.FieldOfViewDegrees,
                                             true, SketchView.OrthoScale)
                                         : ResolveOrbitCamera(SketchBasis, SketchView, false);
+
+                                    // 🔴 THE OPERATIONS RUN AFTER THE CAMERA THEY AIM THROUGH IS SETTLED.
+                                    //    They used to run further up, against `SceneCamera` as it stood
+                                    //    at the top of the leaf -- but on an ORTHOGRAPHIC leaf that value
+                                    //    is replaced a few lines above by an ORBIT camera resolved from
+                                    //    the sketch basis, and the two are genuinely different cameras:
+                                    //    measured over four yaws their forward vectors disagree by a dot
+                                    //    of -0.42 and their eyes sit 100 units apart. Every operation
+                                    //    therefore un-projected the pointer through a camera the artist
+                                    //    was not looking through, landed somewhere else entirely on the
+                                    //    workplane, reached no curve and no corner, and did nothing --
+                                    //    which is exactly the report. In PERSPECTIVE the two agree
+                                    //    exactly (dot +1.000000), which is why this looked intermittent
+                                    //    rather than broken.
+                                    //
+                                    // 📝 It also puts them after the active workplane has been chosen for
+                                    //    this frame, so the plane they intersect is the one being drawn on
+                                    //    rather than the one left standing by the previous frame.
+                                    //
+                                    // 📝 ONLY THE READOUT IS THE HOST'S BUSINESS. It contributes exactly
+                                    //    two things the arm cannot know: the box the readout must dodge,
+                                    //    which only the host can see, and the standing selection an
+                                    //    Offset copies. Everything else is inside the arm.
+                                    if (OperationToolStanding(ParametricToolsApplied.ActiveSubject))
+                                    {
+                                        // 📝 An Offset copies what is selected. The picks are already
+                                        //    resolved to world names for the renderer just below; the
+                                        //    curves among them are the chain.
+                                        std::vector<WorldCurveName> OperationChain;
+                                        for (const SketchPick& Item : SketchSelectionSetState.Items)
+                                        {
+                                            WorldPick Held = {};
+                                            if (ResolveWorldPickForSketchPick(Sketch, SketchRecords,
+                                                                              SketchWorld,
+                                                                              SketchWorldMapping,
+                                                                              Item, Held) &&
+                                                Held.Subject == WorldPickSubject::Curve)
+                                                OperationChain.push_back(Held.Curve);
+                                        }
+
+                                        Discard(Viewport.Surface().SwitchLayer(
+                                            RecordingSurface::ShellLayer::Above));
+
+                                        bool OperationTaken = false;
+                                        DriveSketchOperations(LeafBody, BackgroundPointer, SceneCamera,
+                                                              ParametricToolsApplied.ActiveSubject,
+                                                              ResolveWorkplacementFrame(
+                                                                  SketchWorkplanes.Active()),
+                                                              OperationChain, SketchWorld,
+                                                              SketchOperations, SketchContextMenu,
+                                                              OperationTaken);
+
+                                        Discard(Viewport.Surface().SwitchLayer(
+                                            RecordingSurface::ShellLayer::Beneath));
+
+                                        if (OperationTaken)
+                                        {
+                                            PointerTaken = true;
+                                            if (FrameContext.Dispatch.Owner == PointerOwner::None)
+                                                FrameContext.Dispatch.AdoptLegacyOwner(
+                                                    PointerOwner::DrawingTool);
+                                        }
+                                    }
+
+                                    // 🔴 THE ANNOTATION BAND RUNS HERE, and the host's whole
+                                    //    contribution is one pick. The band was written, given
+                                    //    thirteen tiles, and then reachable from nowhere: no
+                                    //    `BandEntry` listed it and `ToolSubjectOf` had no case for
+                                    //    it, so every tile reported `Select`. Both halves are fixed
+                                    //    in the panel; this is the third -- the tools now exist,
+                                    //    resolve to their own subjects, and are finally driven.
+                                    //
+                                    // 📝 A dimension is placed against something, so what the
+                                    //    pointer is over has to be resolved before the arm can be
+                                    //    asked. The same screen picker the selection uses answers
+                                    //    it, at the same tolerance, so a dimension grabs exactly
+                                    //    what a click would have selected.
+                                    if (AnnotationToolStanding(ParametricToolsApplied.ActiveSubject))
+                                    {
+                                        WorldPick AnnotationHover = {};
+                                        static_cast<void>(ResolveWorldSketchPick(
+                                            SketchWorld, SceneCamera, LeafBody,
+                                            static_cast<float>(BackgroundPointer.PositionX),
+                                            static_cast<float>(BackgroundPointer.PositionY),
+                                            SketchSelection.ResolvedTolerance(),
+                                            AnnotationHover));
+
+                                        Discard(Viewport.Surface().SwitchLayer(
+                                            RecordingSurface::ShellLayer::Above));
+
+                                        bool AnnotationTaken = false;
+                                        DriveAnnotations(LeafBody, BackgroundPointer, SceneCamera,
+                                                         ParametricToolsApplied.ActiveSubject,
+                                                         ResolveWorkplacementFrame(
+                                                             SketchWorkplanes.Active()),
+                                                         AnnotationHover, SketchWorld,
+                                                         SketchAnnotations, SketchContextMenu,
+                                                         AnnotationTaken);
+
+                                        Discard(Viewport.Surface().SwitchLayer(
+                                            RecordingSurface::ShellLayer::Beneath));
+
+                                        if (AnnotationTaken)
+                                        {
+                                            PointerTaken = true;
+                                            if (FrameContext.Dispatch.Owner == PointerOwner::None)
+                                                FrameContext.Dispatch.AdoptLegacyOwner(
+                                                    PointerOwner::DrawingTool);
+                                        }
+                                    }
 
                                     // 🔴 The workplane tool is offered the press FIRST and consumes
                                     //    it, or the click that places a plane is also read as the

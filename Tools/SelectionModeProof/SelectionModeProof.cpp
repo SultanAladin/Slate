@@ -318,6 +318,26 @@ int main()
         Require(Host.find("SketchPick& Held = SketchSemanticSelection") != std::string::npos,
                 "and the dimension is read from what is selected, not from what could be");
 
+        // 🔴 THE OPERATIONS MUST BE DRIVEN AFTER THE FRAME'S CAMERA IS SETTLED, and this is a fact about
+        //    SOURCE ORDER that no headless proof of the sessions can reach. `SceneCamera` is assigned
+        //    near the top of the leaf and then REASSIGNED further down; on an orthographic leaf the
+        //    second value is an ORBIT camera resolved from the sketch basis, which is a genuinely
+        //    different camera from the free one above it -- forward vectors disagreeing by a dot of
+        //    -0.42, eyes 100 units apart. Driving the operations against the earlier value un-projected
+        //    the pointer through a camera the artist was not looking through, so the probe landed
+        //    somewhere else on the workplane, reached no curve and no corner, and every operation
+        //    silently did nothing. In perspective the two agree exactly, which is what made it look
+        //    intermittent. The sessions were correct throughout; only the order was wrong.
+        const std::size_t OrbitAt     = Host.find(": ResolveOrbitCamera(SketchBasis, SketchView, false);");
+        const std::size_t OperationAt = Host.find("DriveSketchOperations(");
+        const std::size_t AnnotateAt  = Host.find("DriveAnnotations(");
+
+        Require(OrbitAt != std::string::npos, "the host settles the leaf camera before drawing");
+        Require(OperationAt != std::string::npos && OrbitAt < OperationAt,
+                "and drives the operations AFTER it, or they aim through the wrong camera");
+        Require(AnnotateAt != std::string::npos && OrbitAt < AnnotateAt,
+                "and the annotations likewise, since a dimension is placed through the same projection");
+
         // 🔴 CUT HAD NO TILE. The subject, the geometry and the apply arm all existed; no band listed it,
         //    so none of it was reachable.
         const std::string Panel =
