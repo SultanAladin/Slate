@@ -233,8 +233,14 @@ void DriveSketchOperations(const PlaneExtent& Bounds,
         State.Operation.Manner = Operating;
         State.Chain = Selection;
 
+        // 🔴 THE SAME VIEW-DERIVED REACH THE CORNER GESTURE TAKES. Reaching a curve is the whole
+        //    precondition of Cut, Trim, Extend and Fill, so a reach fixed in world units is the whole
+        //    reason they did nothing at metre scale.
+        const double OperationReach = OperationProbeReachPixels * WorldUnitsPerPixel(Camera, Bounds, Probe);
+
         AdvanceSketchOperationSession(World, State.Chain, Workplane,
-                                      { Probe, Pressed, Held, Released }, State.Operation);
+                                      { Probe, Pressed, Held, Released, OperationReach },
+                                      State.Operation);
 
         // 🔴 THE CLICK OPERATIONS COMMIT HERE AND RAISE NOTHING. Only Offset carries a figure, so only
         //    Offset reaches the readout at all -- which is why the popup is asked about the session's

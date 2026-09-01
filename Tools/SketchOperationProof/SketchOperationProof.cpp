@@ -695,6 +695,111 @@ void ProveTheGestures()
     Claim(Ring.CurveCount() == Standing, "and the sketch is untouched");
 }
 
+//----------------------------------------------------------------------------------------------------
+// 🔴 THE TWO REASONS THE OPERATIONS "DID NOTHING".
+//----------------------------------------------------------------------------------------------------
+// Every claim above passes and yet Cut, Trim, Extend and Fill were all dead in the editor. Both causes
+// are in the seam between the pointer and the session, which is precisely what the sections above never
+// exercise: they hand the session a probe already sitting on the geometry, at a zoom nobody chose.
+//
+// ① THE REACH WAS A FIXED WORLD DISTANCE. Reaching a curve is the ENTIRE precondition of the four click
+//    operations. `OperationProbeReach` is 8 world units, so at metre scale it is a fraction of a pixel:
+//    the probe never lands inside it, the session reports `SubjectMissing`, and nothing the artist
+//    clicks does anything at all.
+//
+// ② FILL NEVER NAMED ITS LOOP. `Session.Loop` was cleared on cancel and read on apply, and nothing in
+//    between ever wrote it -- so the apply resolved a default name and was refused every time. Section 7
+//    above missed it entirely because it calls `DeclareWorldLoopFill` directly, never through a gesture.
+void ProveTheReachAndTheFillSubject()
+{
+    std::printf("\n9. The reach follows the zoom, and Fill names the loop it is pointing at\n");
+
+    // ① The defect as arithmetic. `OrthoScale` is pixels per world unit.
+    const double ZoomedIn  = 10.0;    // [px/unit] - a small part filling the leaf
+    const double ZoomedOut = 0.05;    // [px/unit] - ten metres across the leaf
+
+    Claim(OperationProbeReach * ZoomedOut < 1.0,
+          "the fixed world reach is SUB-PIXEL at metre scale, which is why the tools looked dead");
+
+    const double ReachIn  = OperationProbeReachPixels / ZoomedIn;
+    const double ReachOut = OperationProbeReachPixels / ZoomedOut;
+    Claim(Near(ReachIn * ZoomedIn, OperationProbeReachPixels, 1.0e-9) &&
+          Near(ReachOut * ZoomedOut, OperationProbeReachPixels, 1.0e-9),
+          "a pixel-derived reach is worth the same pixels at both zooms");
+
+    // ② A trim aimed 30 units off the line: far outside the 8-unit default, well inside the zoomed-out
+    //    reach. This is exactly the press the editor used to ignore.
+    WorldSketchStructure Sketch;
+    const WorldCurveName Spine = Sketch.DeclareLine({ 0.0, 0.0, 0.0 }, { 100.0, 0.0, 0.0 }, Ground);
+    Sketch.DeclareLine({ 70.0, 0.0, -40.0 }, { 70.0, 0.0, 40.0 }, Ground);
+
+    const std::vector<WorldCurveName> NoChain;
+    // 📝 Placed beyond the crossing's own extent as well as off the spine, so the nearest curve is
+    //    unambiguously the spine: at x=95 the crossing line is 25 away and the spine is 20.
+    const SpatialPoint Off = { 95.0, 0.0, 20.0 };   // 20 units clear of the spine
+
+    SketchOperationSession Missed;
+    Missed.Manner = OperationManner::Trim;
+    AdvanceSketchOperationSession(Sketch, NoChain, Ground, { Off, false, false, false, 0.0 }, Missed);
+    Claim(Missed.Phase == OperationPhase::Idle,
+          "with no reach stated, the default is too small and the trim never arms");
+
+    SketchOperationSession Reached;
+    Reached.Manner = OperationManner::Trim;
+    AdvanceSketchOperationSession(Sketch, NoChain, Ground, { Off, false, false, false, ReachOut }, Reached);
+    Claim(Reached.Phase == OperationPhase::Ready,
+          "the SAME probe arms the trim once the zoomed-out reach is stated");
+    Claim(Reached.Target.IssuedIndex == Spine.IssuedIndex, "on the curve actually nearest it");
+
+    // ③ And it must still narrow: zoomed in, that probe is correctly out of reach.
+    SketchOperationSession Tight;
+    Tight.Manner = OperationManner::Trim;
+    AdvanceSketchOperationSession(Sketch, NoChain, Ground, { Off, false, false, false, ReachIn }, Tight);
+    Claim(Tight.Phase == OperationPhase::Idle,
+          "and zoomed in the same probe is out of reach -- the reach narrows as well as widens");
+
+    // ④ FILL, DRIVEN AS A GESTURE RATHER THAN CALLED DIRECTLY.
+    WorldSketchStructure Shape;
+    const WorldCurveName AB = Shape.DeclareLine({ 0.0, 0.0, 0.0 },     { 100.0, 0.0, 0.0 },   Ground);
+    const WorldCurveName BC = Shape.DeclareLine({ 100.0, 0.0, 0.0 },   { 100.0, 0.0, 100.0 }, Ground);
+    const WorldCurveName CD = Shape.DeclareLine({ 100.0, 0.0, 100.0 }, { 0.0, 0.0, 100.0 },   Ground);
+    const WorldCurveName DA = Shape.DeclareLine({ 0.0, 0.0, 100.0 },   { 0.0, 0.0, 0.0 },     Ground);
+    const WorldLoopName Face = Shape.DeclareLoop({ { { AB, true }, { BC, true },
+                                                    { CD, true }, { DA, true } } });
+
+    SketchOperationSession Filling;
+    Filling.Manner = OperationManner::Fill;
+
+    AdvanceSketchOperationSession(Shape, NoChain, Ground, { { 50.0, 0.0, 2.0 }, false, false, false, 0.0 },
+                                  Filling);
+    Claim(Filling.Phase == OperationPhase::Ready, "hovering an edge of the square arms the fill");
+    Claim(Filling.Loop.IssuedIndex == Face.IssuedIndex,
+          "and NAMES THE LOOP that edge belongs to -- nothing ever wrote this, so Fill could not work");
+
+    Claim(WorldLoopFillWanted(Shape, Face), "the face is wanted to begin with");
+
+    AdvanceSketchOperationSession(Shape, NoChain, Ground, { { 50.0, 0.0, 2.0 }, false, false, true, 0.0 },
+                                  Filling);
+    Claim(Filling.Phase == OperationPhase::Applied, "releasing performs it");
+
+    std::vector<WorldCurveName> Nothing;
+    Claim(PerformSketchOperation(Shape, NoChain, Ground, Filling, Nothing) == OperationVerdict::Produced,
+          "and the fill toggle actually runs, instead of refusing a loop it was never given");
+    Claim(!WorldLoopFillWanted(Shape, Face), "the face is switched off, which is what the artist asked");
+
+    // ⑤ Pointing at a curve no loop uses has no face to toggle, and says so rather than pretending.
+    WorldSketchStructure Loose;
+    Loose.DeclareLine({ 0.0, 0.0, 0.0 }, { 100.0, 0.0, 0.0 }, Ground);
+
+    SketchOperationSession Stray;
+    Stray.Manner = OperationManner::Fill;
+    AdvanceSketchOperationSession(Loose, NoChain, Ground, { { 50.0, 0.0, 2.0 }, false, false, false, 0.0 },
+                                  Stray);
+    Claim(!Stray.Loop.Assigned(), "a lone line belongs to no loop");
+    Claim(Stray.Preview == OperationVerdict::SubjectMissing,
+          "and the preview reports there is nothing to fill, rather than arming a refusal");
+}
+
 } // namespace
 
 int main()
@@ -709,6 +814,7 @@ int main()
     ProveOffsetLimit();
     ProveFillAndNesting();
     ProveTheGestures();
+    ProveTheReachAndTheFillSubject();
 
     std::printf("\n%u claims, %u failures\n", Claims, Failures);
     return Failures == 0u ? 0 : 1;

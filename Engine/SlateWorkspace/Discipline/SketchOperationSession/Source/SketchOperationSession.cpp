@@ -50,10 +50,11 @@ double DistanceToCurve(const CurveSpecification& Geometry, const SpatialPoint& P
 }
 
 /// 🧩 The curve nearest the pointer, within reach.
-WorldCurveName CurveNear(const WorldSketchStructure& Declared, const SpatialPoint& Probe)
+/// 📝 The reach is the frame's, so the target holds its size on screen at every zoom.
+WorldCurveName CurveNear(const WorldSketchStructure& Declared, const SpatialPoint& Probe, double Reach)
 {
     WorldCurveName Found = {};
-    double Nearest = OperationProbeReach;
+    double Nearest = Reach;
 
     // 📝 A curve's name is its position in the list, one-based. The list carries no name of its own, so
     //    the index is recovered here rather than read off the record.
@@ -68,6 +69,29 @@ WorldCurveName CurveNear(const WorldSketchStructure& Declared, const SpatialPoin
         }
     }
     return Found;
+}
+
+/// 🧩 The loop that traverses a named curve, if any does.
+/// 🔴 FILL HAD NO WAY TO NAME ITS SUBJECT AT ALL. `Session.Loop` was cleared on cancel and read on
+///    apply, and nothing in between ever wrote it -- so `DeclareWorldLoopFill` was handed a default
+///    `WorldLoopName`, `Resolve` refused it, and Fill could not work however the artist clicked. The
+///    curve under the pointer is already known; the loop that uses it is the loop being pointed at.
+/// 📝 The first loop that traverses the curve. A curve shared by two loops is a seam, and the artist
+///    pointing at it has named both equally; taking the first is a stated choice rather than an
+///    accident, and the alternative -- refusing an ambiguous seam -- would make the tool feel broken at
+///    exactly the places a shape is most likely to need it.
+WorldLoopName LoopTraversing(const WorldSketchStructure& Declared, WorldCurveName Curve)
+{
+    if (!Curve.Assigned())
+        return {};
+
+    const std::vector<DeclaredWorldLoop>& Held = Declared.Loops();
+    for (std::size_t Index = 0u; Index < Held.size(); ++Index)
+        for (const WorldCurveUse& Use : Held[Index].Traversal)
+            if (Use.TraversedCurve.IssuedIndex == Curve.IssuedIndex)
+                return WorldLoopName{ static_cast<std::uint32_t>(Index + 1u) };
+
+    return {};
 }
 
 /// 🧩 Holds a figure inside what the geometry accepts, recording whether it had to.
@@ -159,7 +183,11 @@ void AdvanceSketchOperationSession(const WorldSketchStructure& Declared,
     }
 
     // ③ Hunting. What is under the pointer, and what would happen to it?
-    Session.Target = CurveNear(Declared, Pointer.Probe);
+    // 🔴 THE FRAME'S OWN REACH, so a curve is as easy to hit at ten metres as at ten millimetres. The
+    //    constant remains the fallback for a caller that states nothing.
+    const double Reach = Pointer.Reach > 0.0 ? Pointer.Reach : OperationProbeReach;
+
+    Session.Target = CurveNear(Declared, Pointer.Probe, Reach);
     Session.Probe = Pointer.Probe;
     Session.Clamped = false;
 
@@ -191,9 +219,18 @@ void AdvanceSketchOperationSession(const WorldSketchStructure& Declared,
             Session.Preview = EvaluateWorldExtend(Declared, Session.Target, Pointer.Probe, Session.Landing);
             break;
 
+        case OperationManner::Fill:
+            // 🔴 FILL ACTS ON A LOOP, AND THE LOOP IS NAMED HERE. Nothing used to write `Session.Loop`,
+            //    so the apply below resolved a default name, was refused, and the tool did nothing at
+            //    all. Pointing at a curve names the loop that traverses it; pointing at a curve no loop
+            //    uses is a curve with no face to toggle, and the preview says so rather than pretending.
+            Session.Loop = LoopTraversing(Declared, Session.Target);
+            Session.Preview = Session.Loop.Assigned() ? OperationVerdict::Produced
+                                                      : OperationVerdict::SubjectMissing;
+            break;
+
         case OperationManner::Cut:
         case OperationManner::Trim:
-        case OperationManner::Fill:
         default:
             // 📝 Cut and Trim are cheap enough to attempt on a copy, but a copy of the whole sketch every
             //    frame is not. Reaching a curve is the whole of their precondition, so reaching one is

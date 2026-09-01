@@ -73,6 +73,17 @@ struct OperationPointerFrame
     bool         Pressed  = false;
     bool         Held     = false;
     bool         Released = false;
+
+    // 🔴 HOW FAR THE PROBE MAY BE FROM A CURVE, IN WORLD UNITS, FOR THIS FRAME'S VIEW. Reaching a curve
+    //    is the ENTIRE precondition of Cut, Trim, Extend and Fill -- miss it and the session reports
+    //    `SubjectMissing`, stays `Idle`, and the tool does nothing whatever the artist clicks. A reach
+    //    fixed in world units is only the right size at one zoom: at metre scale eight millimetres is a
+    //    fraction of a pixel, so the curve can never be reached and all four operations look dead. The
+    //    caller converts a constant PIXEL reach through the standing camera, exactly as the corner
+    //    gesture and the curve picker do.
+    // 📝 Zero means "the caller did not say", and the gesture falls back to `OperationProbeReach` so an
+    //    existing caller keeps working exactly as it did.
+    double       Reach    = 0.0;     // [-] - world-space probe reach for this frame; 0 uses the default
 };
 
 /// 🧩 Everything a gesture remembers between frames.
@@ -114,7 +125,13 @@ struct SketchOperationSession
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 How far from a curve the pointer may be and still name it, in world units.
+/// note  ⚠️ The FALLBACK only, used when a frame states no `Reach` of its own. A fixed world reach is
+///        correct at exactly one zoom; see `OperationPointerFrame::Reach`, which every live caller sets.
 constexpr double OperationProbeReach = 8.0;
+
+/// 🧩 The same reach expressed the way the artist experiences it: a target of constant size on screen.
+/// 📝 Matched to the corner gesture's, so a curve is no harder to hit than a corner of it.
+constexpr double OperationProbeReachPixels = 12.0;
 
 /// 🧩 Advances the gesture by one frame, changing nothing.
 /// in    Chain    [-] for Offset, the curves being copied; ignored by the other manners
