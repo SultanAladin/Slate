@@ -44,7 +44,9 @@ struct Bench
     ResolvedCamera Perspective = ResolveFreeCamera({ 0.0, 50.0, -300.0 }, 0.0, 0.0, 60.0, true, 1.0);
     ResolvedCamera Ortho = ResolveFreeCamera({ -250.0, 160.0, -250.0 }, 45.0, -20.0, 60.0, false, 3.0);
     SelectionOptions Selection = {};
+    ModifierCondition Modifiers = {};
     GizmoOptions Gizmo = {};
+    WorldSelectionSet SelectionSet = {};
     WorldPick SemanticSelection = {};
     WorldPick HoveredSelection = {};
     WorldSketchTransformSession Transform = {};
@@ -101,9 +103,9 @@ struct Bench
                bool& PointerTaken,
                GizmoHandle* HoveredHandle = nullptr)
     {
-        DriveWorldSketchSelectionAndTransform(Extent, Pointer, Text,
+        DriveWorldSketchSelectionAndTransform(Extent, Pointer, Text, Modifiers,
                                              Selection, Gizmo, Camera,
-                                             Sketch, SemanticSelection, HoveredSelection,
+                                             Sketch, SelectionSet, SemanticSelection, HoveredSelection,
                                              Transform, PointerTaken,
                                              Milliseconds, LastGPressedMilliseconds,
                                              HoveredHandle);
@@ -365,9 +367,11 @@ void ProveCurveSlideGesture()
     Start.Intake[0] = 'g';
     Start.Intake[1] = '\0';
     Start.IntakeCount = 1u;
-    DriveWorldSketchSelectionAndTransform(Extent, Pointer, Start,
+    WorldSelectionSet SelectionSet = {};
+    SetWorldPick(SelectionSet, Semantic, false);
+    DriveWorldSketchSelectionAndTransform(Extent, Pointer, Start, {},
                                          Selection, Gizmo, Camera,
-                                         Sketch, Semantic, Hovered, Transform,
+                                         Sketch, SelectionSet, Semantic, Hovered, Transform,
                                          PointerTaken, 1200.0, LastG, nullptr);
     Claim(Transform.Engaged(),
           "a second G within the tap window starts a session");
@@ -386,9 +390,9 @@ void ProveCurveSlideGesture()
     Pointer.TravelX = EndX - PivotX;
     Pointer.TravelY = EndY - PivotY;
     PointerTaken = false;
-    DriveWorldSketchSelectionAndTransform(Extent, Pointer, {},
+    DriveWorldSketchSelectionAndTransform(Extent, Pointer, {}, {},
                                          Selection, Gizmo, Camera,
-                                         Sketch, Semantic, Hovered, Transform,
+                                         Sketch, SelectionSet, Semantic, Hovered, Transform,
                                          PointerTaken, 1216.0, LastG, nullptr);
 
     const DeclaredWorldCurve* Held = Sketch.Resolve(Diagonal);
@@ -398,6 +402,335 @@ void ProveCurveSlideGesture()
        && SamePoint(Held->Geometry.HeldLine().Terminus,
                     Added(SpatialPoint{ 100.0, 0.0, 100.0 }, Scaled(Slide, 25.0))),
           "updating the slide session moves the curve only along its own direction");
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                        6. ONE G MOVES IN SCREEN SPACE
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🔴 A SINGLE G USED TO BECOME A CURVE SLIDE. The start arm stamped `LastGPressedMilliseconds` and the
+///    engaged arm then re-read the SAME tap in the same frame — one tap, zero elapsed, inside the 350 ms
+///    window — so every plain G satisfied the double-tap gesture and locked itself to a tangent. What the
+///    artist saw was geometry running along its own edge instead of following the mouse.
+void ProveSingleTapMovesWithTheMouse()
+{
+    std::printf("\n6. One G moves in screen space, following the mouse rather than an axis\n");
+
+    Bench Stage;
+    Stage.Selection.Element = SelectionElement::Object;
+    Stage.Gizmo.Shown = false;
+
+    WorldPick Whole = {};
+    Whole.Subject = WorldPickSubject::Loop;
+    Whole.Loop = Stage.Loop;
+    ResolveWorldLoopPivot(Stage.Sketch, Stage.Loop, Whole.Position);
+    Stage.SemanticSelection = Whole;
+    SetWorldPick(Stage.SelectionSet, Whole, false);
+
+    float PivotX = 0.0f;
+    float PivotY = 0.0f;
+    Claim(ProjectFromCamera(Stage.Perspective, Stage.Extent, Whole.Position, PivotX, PivotY),
+          "the loop pivot projects for a keyboard-started move");
+
+    PointerCondition Pointer = {};
+    Pointer.PositionX = PivotX;
+    Pointer.PositionY = PivotY;
+
+    TextInputCondition Start = {};
+    Start.Intake[0] = 'g';
+    Start.Intake[1] = '\0';
+    Start.IntakeCount = 1u;
+    bool PointerTaken = false;
+    Stage.Drive(Pointer, Start, Stage.Perspective, 7000.0, PointerTaken);
+
+    Claim(Stage.Transform.Engaged(),
+          "a single G with a standing selection starts a move");
+    Claim(!Stage.Transform.SlideAlongCurve(),
+          "and that move is NOT a curve slide — one tap is not the double-tap gesture");
+    Claim(Stage.Transform.Restriction() == TransformRestriction::Free,
+          "a single G leaves the move unrestricted, which is what screen-space means");
+
+    // 🔴 The whole claim of screen-space movement in one line: wherever the mouse goes, the geometry
+    //    draws under it. Both screen axes are exercised, because a move that tracked only one of them
+    //    would still read as "parallel to an axis" to the artist.
+    const float TravelX[4] = {  160.0f, -160.0f,    0.0f,  110.0f };
+    const float TravelY[4] = {    0.0f,    0.0f, -140.0f, -90.0f };
+    const char* Sentence[4] = { "dragging right draws the shape under the pointer",
+                                "dragging left draws the shape under the pointer",
+                                "dragging up draws the shape under the pointer",
+                                "dragging diagonally draws the shape under the pointer" };
+
+    for (std::size_t Index = 0u; Index < 4u; ++Index)
+    {
+        Bench Local;
+        Local.Selection.Element = SelectionElement::Object;
+        Local.Gizmo.Shown = false;
+        WorldPick LocalWhole = {};
+        LocalWhole.Subject = WorldPickSubject::Loop;
+        LocalWhole.Loop = Local.Loop;
+        ResolveWorldLoopPivot(Local.Sketch, Local.Loop, LocalWhole.Position);
+        Local.SemanticSelection = LocalWhole;
+        SetWorldPick(Local.SelectionSet, LocalWhole, false);
+
+        PointerCondition Begin = {};
+        Begin.PositionX = PivotX;
+        Begin.PositionY = PivotY;
+        bool Taken = false;
+        Local.Drive(Begin, Start, Local.Perspective, 7100.0, Taken);
+
+        PointerCondition Moved = Begin;
+        Moved.PositionX = PivotX + TravelX[Index];
+        Moved.PositionY = PivotY + TravelY[Index];
+        Taken = false;
+        Local.Drive(Moved, {}, Local.Perspective, 7116.0, Taken);
+
+        SpatialPoint Landed = {};
+        ResolveWorldLoopPivot(Local.Sketch, Local.Loop, Landed);
+        float DrawnX = 0.0f;
+        float DrawnY = 0.0f;
+        Claim(ProjectFromCamera(Local.Perspective, Local.Extent, Landed, DrawnX, DrawnY)
+           && Near(DrawnX, Moved.PositionX, 0.5)
+           && Near(DrawnY, Moved.PositionY, 0.5),
+              Sentence[Index]);
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                       7. G G SLIDES BOTH WAYS ALONG THE CURVE
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🔴 A SLIDE ONLY EVER RAN ONE WAY. The tangent was chosen once, from a motion hint that defaulted to
+///    `SpatialDirection{}` — which is `(0, 0, 1)`, not zero — so the branch nearest world +Z always won and
+///    the drag was projected onto it for the whole session. Dragging back down the line drove the
+///    projection negative against a frozen direction instead of following the other way.
+void ProveSlideRunsBothWays()
+{
+    std::printf("\n7. G G slides along the curve in both directions\n");
+
+    const PlaneExtent Extent = { 0.0f, 0.0f, 800.0f, 600.0f };
+    const ResolvedCamera Camera = ResolveFreeCamera({ -200.0, 150.0, -200.0 }, 45.0, -25.0, 60.0, true, 1.0);
+
+    // 📝 Declared from +Z toward -Z on purpose: the stored tangent runs OPPOSITE world +Z, which is the
+    //    exact geometry the defaulted hint used to override.
+    const double Aimed[2] = { 30.0, -30.0 };
+    const char* Sentence[2] = { "sliding forward along the line follows the pointer",
+                                "sliding backward along the same line follows the pointer too" };
+
+    for (std::size_t Index = 0u; Index < 2u; ++Index)
+    {
+        WorldSketchStructure Sketch;
+        const WorldPlacementFrame Support = {{}, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }};
+        const WorldCurveName Line = Sketch.DeclareLine({ 0.0, 0.0, 80.0 }, { 0.0, 0.0, -80.0 }, Support);
+
+        SelectionOptions Selection = {};
+        Selection.Element = SelectionElement::Edge;
+        GizmoOptions Gizmo = {};
+        WorldPick Semantic = {};
+        Semantic.Subject = WorldPickSubject::Curve;
+        Semantic.Curve = Line;
+        ResolveWorldCurvePivot(Sketch, Line, Semantic.Position);
+        const SpatialPoint Anchor = Semantic.Position;
+        WorldPick Hovered = {};
+        WorldSelectionSet SelectionSet = {};
+        SetWorldPick(SelectionSet, Semantic, false);
+        WorldSketchTransformSession Transform = {};
+        double LastG = 0.0;
+        bool PointerTaken = false;
+
+        float PivotX = 0.0f;
+        float PivotY = 0.0f;
+        Claim(ProjectFromCamera(Camera, Extent, Anchor, PivotX, PivotY),
+              "the curve pivot projects for the slide gesture");
+
+        PointerCondition Pointer = {};
+        Pointer.PositionX = PivotX;
+        Pointer.PositionY = PivotY;
+
+        TextInputCondition DoubleTap = {};
+        DoubleTap.Intake[0] = 'g';
+        DoubleTap.Intake[1] = 'g';
+        DoubleTap.Intake[2] = '\0';
+        DoubleTap.IntakeCount = 2u;
+        DriveWorldSketchSelectionAndTransform(Extent, Pointer, DoubleTap, {}, Selection, Gizmo, Camera,
+                                              Sketch, SelectionSet, Semantic, Hovered, Transform,
+                                              PointerTaken, 8000.0, LastG, nullptr);
+        if (Index == 0u)
+            Claim(Transform.SlideAlongCurve() && Transform.Restriction() == TransformRestriction::Curve,
+                  "two G in one frame begin a slide along the curve");
+
+        const SpatialDirection Aim = { 0.0, 0.0, Aimed[Index] };
+        float TargetX = 0.0f;
+        float TargetY = 0.0f;
+        Claim(ProjectFromCamera(Camera, Extent, Added(Anchor, Aim), TargetX, TargetY),
+              "the aimed point along the line projects");
+        Pointer.PositionX = TargetX;
+        Pointer.PositionY = TargetY;
+        PointerTaken = false;
+        DriveWorldSketchSelectionAndTransform(Extent, Pointer, {}, {}, Selection, Gizmo, Camera,
+                                              Sketch, SelectionSet, Semantic, Hovered, Transform,
+                                              PointerTaken, 8016.0, LastG, nullptr);
+
+        const DeclaredWorldCurve* Held = Sketch.Resolve(Line);
+        Claim(Held != nullptr
+           && SamePoint(Held->Geometry.HeldLine().Origin, Added(SpatialPoint{ 0.0, 0.0, 80.0 }, Aim))
+           && SamePoint(Held->Geometry.HeldLine().Terminus, Added(SpatialPoint{ 0.0, 0.0, -80.0 }, Aim)),
+              Sentence[Index]);
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                    8. ONE SLIDE REVERSES WITHIN A SINGLE SESSION
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🔴 The two directions above are each proven from a fresh session, which a frozen tangent could still
+///    satisfy if it were re-chosen only at the tap. This drives ONE session forward, back through the
+///    start, and out the far side, which only a per-frame tangent choice can follow.
+void ProveSlideReversesMidDrag()
+{
+    std::printf("\n8. A single slide session reverses when the mouse comes back\n");
+
+    const PlaneExtent Extent = { 0.0f, 0.0f, 800.0f, 600.0f };
+    const ResolvedCamera Camera = ResolveFreeCamera({ -200.0, 150.0, -200.0 }, 45.0, -25.0, 60.0, true, 1.0);
+
+    WorldSketchStructure Sketch;
+    const WorldPlacementFrame Support = {{}, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }};
+    const WorldCurveName Line = Sketch.DeclareLine({ 0.0, 0.0, 0.0 }, { 140.0, 0.0, 0.0 }, Support);
+
+    SelectionOptions Selection = {};
+    Selection.Element = SelectionElement::Edge;
+    GizmoOptions Gizmo = {};
+    WorldPick Semantic = {};
+    Semantic.Subject = WorldPickSubject::Curve;
+    Semantic.Curve = Line;
+    ResolveWorldCurvePivot(Sketch, Line, Semantic.Position);
+    const SpatialPoint Anchor = Semantic.Position;
+    WorldPick Hovered = {};
+    WorldSelectionSet SelectionSet = {};
+    SetWorldPick(SelectionSet, Semantic, false);
+    WorldSketchTransformSession Transform = {};
+    double LastG = 0.0;
+    bool PointerTaken = false;
+
+    float PivotX = 0.0f;
+    float PivotY = 0.0f;
+    Claim(ProjectFromCamera(Camera, Extent, Anchor, PivotX, PivotY),
+          "the line pivot projects for a sweeping slide");
+
+    PointerCondition Pointer = {};
+    Pointer.PositionX = PivotX;
+    Pointer.PositionY = PivotY;
+    TextInputCondition DoubleTap = {};
+    DoubleTap.Intake[0] = 'g';
+    DoubleTap.Intake[1] = 'g';
+    DoubleTap.Intake[2] = '\0';
+    DoubleTap.IntakeCount = 2u;
+    DriveWorldSketchSelectionAndTransform(Extent, Pointer, DoubleTap, {}, Selection, Gizmo, Camera,
+                                          Sketch, SelectionSet, Semantic, Hovered, Transform,
+                                          PointerTaken, 8500.0, LastG, nullptr);
+
+    const double Sweep[5] = { 35.0, 60.0, 10.0, -25.0, -55.0 };
+    double Time = 8516.0;
+    bool Tracked = true;
+    for (std::size_t Index = 0u; Index < 5u; ++Index)
+    {
+        const SpatialDirection Aim = { Sweep[Index], 0.0, 0.0 };
+        float TargetX = 0.0f;
+        float TargetY = 0.0f;
+        ProjectFromCamera(Camera, Extent, Added(Anchor, Aim), TargetX, TargetY);
+        Pointer.PositionX = TargetX;
+        Pointer.PositionY = TargetY;
+        PointerTaken = false;
+        DriveWorldSketchSelectionAndTransform(Extent, Pointer, {}, {}, Selection, Gizmo, Camera,
+                                              Sketch, SelectionSet, Semantic, Hovered, Transform,
+                                              PointerTaken, Time, LastG, nullptr);
+        Time += 16.0;
+
+        const DeclaredWorldCurve* Held = Sketch.Resolve(Line);
+        if (Held == nullptr || !Near(Held->Geometry.HeldLine().Origin.Left, Sweep[Index]))
+            Tracked = false;
+    }
+    Claim(Tracked,
+          "the geometry follows the pointer through the reversal instead of sticking to one sense");
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                    9. A CORNER SLIDES ALONG EITHER EDGE IT JOINS
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🔴 Only the curve the pick happened to record was searched for tangents, so a vertex where two curves
+///    meet could leave along one of them and was projected sideways onto it when the artist aimed down the
+///    other. Blender lets a corner slide along whichever edge the mouse indicates.
+void ProveCornerSlidesAlongEitherEdge()
+{
+    std::printf("\n9. A corner joining two edges slides along whichever the mouse indicates\n");
+
+    const PlaneExtent Extent = { 0.0f, 0.0f, 800.0f, 600.0f };
+    const ResolvedCamera Camera = ResolveFreeCamera({ -200.0, 150.0, -200.0 }, 45.0, -25.0, 60.0, true, 1.0);
+
+    const SpatialDirection Aims[4] = { {  30.0, 0.0,   0.0 }, { -30.0, 0.0,   0.0 },
+                                       {   0.0, 0.0,  30.0 }, {   0.0, 0.0, -30.0 } };
+    const char* Sentence[4] = { "the corner slides out along its first edge",
+                                "and back along that same edge",
+                                "and out along the second edge that meets there",
+                                "and back along that second edge" };
+
+    for (std::size_t Index = 0u; Index < 4u; ++Index)
+    {
+        WorldSketchStructure Sketch;
+        const WorldPlacementFrame Support = {{}, { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }};
+        const WorldCurveName AlongX = Sketch.DeclareLine({ 0.0, 0.0, 0.0 }, { 120.0, 0.0, 0.0 }, Support);
+        static_cast<void>(Sketch.DeclareLine({ 0.0, 0.0, 0.0 }, { 0.0, 0.0, 120.0 }, Support));
+
+        std::vector<WorldPointPlacement> Points;
+        ResolveWorldSketchPoints(Sketch, AlongX, Points);
+
+        SelectionOptions Selection = {};
+        Selection.Element = SelectionElement::Vertex;
+        GizmoOptions Gizmo = {};
+        WorldPick Semantic = {};
+        Semantic.Subject = WorldPickSubject::Point;
+        Semantic.Point = Points[0u].Name;
+        Semantic.Curve = AlongX;
+        Semantic.Position = Points[0u].Position;
+        WorldPick Hovered = {};
+        WorldSelectionSet SelectionSet = {};
+        SetWorldPick(SelectionSet, Semantic, false);
+        WorldSketchTransformSession Transform = {};
+        double LastG = 0.0;
+        bool PointerTaken = false;
+
+        float PivotX = 0.0f;
+        float PivotY = 0.0f;
+        ProjectFromCamera(Camera, Extent, Semantic.Position, PivotX, PivotY);
+        PointerCondition Pointer = {};
+        Pointer.PositionX = PivotX;
+        Pointer.PositionY = PivotY;
+
+        TextInputCondition DoubleTap = {};
+        DoubleTap.Intake[0] = 'g';
+        DoubleTap.Intake[1] = 'g';
+        DoubleTap.Intake[2] = '\0';
+        DoubleTap.IntakeCount = 2u;
+        DriveWorldSketchSelectionAndTransform(Extent, Pointer, DoubleTap, {}, Selection, Gizmo, Camera,
+                                              Sketch, SelectionSet, Semantic, Hovered, Transform,
+                                              PointerTaken, 8800.0, LastG, nullptr);
+
+        float TargetX = 0.0f;
+        float TargetY = 0.0f;
+        ProjectFromCamera(Camera, Extent, Added(SpatialPoint{ 0.0, 0.0, 0.0 }, Aims[Index]),
+                          TargetX, TargetY);
+        Pointer.PositionX = TargetX;
+        Pointer.PositionY = TargetY;
+        PointerTaken = false;
+        DriveWorldSketchSelectionAndTransform(Extent, Pointer, {}, {}, Selection, Gizmo, Camera,
+                                              Sketch, SelectionSet, Semantic, Hovered, Transform,
+                                              PointerTaken, 8816.0, LastG, nullptr);
+
+        const DeclaredWorldCurve* Held = Sketch.Resolve(AlongX);
+        Claim(Held != nullptr
+           && SamePoint(Held->Geometry.HeldLine().Origin, Added(SpatialPoint{ 0.0, 0.0, 0.0 }, Aims[Index])),
+              Sentence[Index]);
+    }
 }
 
 } // namespace
@@ -413,6 +746,10 @@ int main()
     ProveGizmoAxisStartAndCancel();
     ProveKeyboardRestrictionAndNumeric();
     ProveCurveSlideGesture();
+    ProveSingleTapMovesWithTheMouse();
+    ProveSlideRunsBothWays();
+    ProveSlideReversesMidDrag();
+    ProveCornerSlidesAlongEitherEdge();
 
     std::printf("\n=========================================================================\n");
     std::printf("%u claims, %u failures -> %s\n", Claims, Failures,

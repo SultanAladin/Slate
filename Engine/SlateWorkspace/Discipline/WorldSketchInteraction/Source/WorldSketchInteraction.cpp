@@ -15,39 +15,12 @@ namespace Slate
 namespace
 {
 
-bool SamePickIdentity(const WorldPick& Left,
-                      const WorldPick& Right)
-{
-    if (Left.Subject != Right.Subject)
-        return false;
-
-    switch (Left.Subject)
-    {
-        case WorldPickSubject::Point:
-            return Left.Point.IssuedIndex == Right.Point.IssuedIndex;
-        case WorldPickSubject::Control:
-            return Left.Control.IssuedIndex == Right.Control.IssuedIndex;
-        case WorldPickSubject::Curve:
-            return Left.Curve.IssuedIndex == Right.Curve.IssuedIndex;
-        case WorldPickSubject::Loop:
-            return Left.Loop.IssuedIndex == Right.Loop.IssuedIndex;
-        case WorldPickSubject::None:
-            return true;
-    }
-    return false;
-}
-
 GizmoHandle ResolveUniversalGizmoHandle(const GizmoScreenBasis& Screen,
                                         TransformManner Manner,
                                         float PointerX,
                                         float PointerY)
 {
     return ResolveGizmoHandle(Screen, Manner, PointerX, PointerY);
-}
-
-WorldPick ResolveActiveSelection(const WorldPick& SemanticSelection)
-{
-    return SemanticSelection;
 }
 
 } // namespace
@@ -77,9 +50,15 @@ bool RefreshWorldSketchPick(const WorldSketchStructure& Declared,
             return false;
         }
 
+        // 🔴 A CURVE AND A LOOP KEPT A STALE PIVOT. Both arms reported the pick still valid and left
+        //    `Position` holding wherever the geometry stood when it was FIRST picked, so after a move the
+        //    gizmo, the centroid of a multiple selection and the slide anchor all addressed the old place.
+        //    A refresh that refuses to re-read the position is not a refresh.
         case WorldPickSubject::Curve:
+            return ResolveWorldCurvePivot(Declared, Pick.Curve, Pick.Position);
+
         case WorldPickSubject::Loop:
-            return true;
+            return ResolveWorldLoopPivot(Declared, Pick.Loop, Pick.Position);
 
         case WorldPickSubject::None:
             return false;
@@ -204,6 +183,10 @@ void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
     const TransformCommandIntake Command =
         ResolveTransformCommand(TextInput.Intake, TextInput.IntakeCount, Transform.Engaged(), Transform.Manner());
 
+    // 📝 Set by the start arm below so the engaged arm can tell "this session began on this very frame"
+    //    from "a session was already standing and the artist has now tapped G again".
+    bool StartedThisFrame = false;
+
     if (!Transform.Engaged() && !SelectionSet.Empty() && Extent.Encloses(Pointer.PositionX, Pointer.PositionY))
     {
         if (ResolvedHandle == GizmoHandle::None && !PointerTaken && Pointer.ContactHeld &&
@@ -244,16 +227,24 @@ void DriveWorldSketchSelectionAndTransform(const PlaneExtent& Extent,
                                                            Pointer.PositionX, Pointer.PositionY,
                                                            SelectionSet, Restriction, Slide,
                                                            Transform, false, Command.StartManner);
+            StartedThisFrame = Transform.Engaged();
         }
     }
 
     if (Transform.Engaged())
     {
-        const bool SlideRequested = ResolveSlideRequested(Command.MoveTapCount,
+        // 🔴 ONE G BECAME A SLIDE. The arm above stamps `LastGPressedMilliseconds = SessionMilliseconds`
+        //    when it starts the move, and this arm then asked the same question again in the SAME frame —
+        //    one tap, zero milliseconds since the last tap, which is inside the 350 ms window. Every plain
+        //    G therefore satisfied the double-tap gesture instantly and locked itself to a curve tangent,
+        //    which is why a single G moved along the geometry instead of following the mouse. A frame that
+        //    has just started a session has already spent its taps, so this arm must not read them again.
+        const bool SlideRequested = !StartedThisFrame
+                                 && ResolveSlideRequested(Command.MoveTapCount,
                                                           SessionMilliseconds,
                                                           LastGPressedMilliseconds,
                                                           Transform.Target.Standing());
-        if (Command.MoveTapCount > 0u)
+        if (Command.MoveTapCount > 0u && !StartedThisFrame)
             LastGPressedMilliseconds = SessionMilliseconds;
 
         if (SlideRequested)

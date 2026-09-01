@@ -102,9 +102,27 @@ SpatialDirection ResolveAxisDirection(const WorldSketchTransformSession& Session
     return Normalize(Session.AxisDirection);
 }
 
+/// 🧩 Where the pointer lands on the camera plane through the pivot, which is the surface a free move and
+///    a slide's motion hint are both measured on.
+bool ResolveViewPlaneReference(const ResolvedCamera& Camera,
+                               const PlaneExtent& Extent,
+                               float ScreenX,
+                               float ScreenY,
+                               const SpatialPoint& Pivot,
+                               SpatialPoint& Reference)
+{
+    return ResolveDragReference(Camera, Extent, ScreenX, ScreenY, Pivot, Camera.Frame.Forward, Reference);
+}
+
 void ResolveCameraAxisDirection(const ResolvedCamera& Camera,
                                WorldSketchTransformSession& Session)
 {
+    // 🔴 A SLIDE OWNS ITS OWN DIRECTION AND MUST NOT BE OVERWRITTEN HERE. `Curve` is not an axis letter;
+    //    the tangent is chosen from the geometry under the pick and re-chosen against pointer motion each
+    //    frame. Falling through to the axis arms below would have replaced it with a camera axis.
+    if (Session.Restriction() == TransformRestriction::Curve)
+        return;
+
     if (Session.Restriction() == TransformRestriction::AxisX)
         Session.AxisDirection = Normalize(Camera.Basis.Along);
     else if (Session.Restriction() == TransformRestriction::AxisY)
@@ -329,17 +347,32 @@ SpatialDirection ResolveWorldCurveSlideDirection(const WorldSketchStructure& Dec
         }
     };
 
+    // 🔴 A CORNER COULD ONLY LEAVE ALONG ONE OF ITS EDGES. Only the curve the pick happened to record was
+    //    searched, so a vertex where two curves meet offered the tangents of one of them and the artist
+    //    could not slide out along the other — the drag was projected onto the wrong edge instead. Every
+    //    curve that actually passes through the anchor now contributes its tangents; the distance gate
+    //    inside `CollectFromCurve` is what keeps unrelated geometry out.
+    //
+    // 📝 The recorded curve is collected FIRST so its tangents sit at the head of the candidates, which is
+    //    what an omitted motion hint falls back to.
     if (Curve.Assigned())
         CollectFromCurve(Curve);
-    else
+
+    for (std::uint32_t Index = 1u; Index <= Declared.CurveCount(); ++Index)
     {
-        for (std::uint32_t Index = 1u; Index <= Declared.CurveCount(); ++Index)
-            CollectFromCurve({ Index });
+        if (Curve.Assigned() && Index == Curve.IssuedIndex)
+            continue;
+        CollectFromCurve({ Index });
     }
 
     if (Candidates.empty())
         return { 1.0, 0.0, 0.0 };
 
+    // 🔴 THE HINT USED TO ARRIVE AS `(0, 0, 1)` WHENEVER IT WAS OMITTED, because that is what a default
+    //    `SpatialDirection` holds — not zero. Every caller that meant "no preference" was therefore
+    //    silently asking for the tangent nearest world +Z, so a line drawn toward -Z locked to the branch
+    //    running the wrong way and a slide along it refused to reverse. The default is zero now, and this
+    //    test is what makes an omitted hint mean nothing rather than mean +Z.
     if (LengthSquared(MotionDelta) > 1.0e-10)
     {
         double BestDot = -1.0e30;
@@ -433,6 +466,9 @@ void ClearWorldSketchTransformSession(WorldSketchTransformSession& Session)
     Session.RotationV = { 0.0, 1.0, 0.0 };
     Session.StartDistance = 1.0;
     Session.PreviewValue = 0.0;
+    Session.StartPointerX = 0.0f;
+    Session.StartPointerY = 0.0f;
+    Session.SlideReference = {};
     Session.Standing.Numeric[0] = '\0';
 }
 
@@ -493,6 +529,14 @@ bool StartWorldSketchTransformSession(const WorldSketchStructure& Declared,
                                                Session.Pivot, Camera.Frame.Forward, Session.StartReference);
     if (!Resolved)
         Session.StartReference = Session.Pivot;
+
+    // 📝 Retained so a slide that changes branch mid-drag can re-resolve its start reference on the plane
+    //    the NEW tangent implies, rather than measuring the offset across two different planes.
+    Session.StartPointerX = PointerX;
+    Session.StartPointerY = PointerY;
+    Session.SlideReference = Session.Pivot;
+    static_cast<void>(ResolveViewPlaneReference(Camera, Extent, PointerX, PointerY,
+                                                Session.Pivot, Session.SlideReference));
 
     const SpatialDirection Initial = Difference(Session.Pivot, Session.StartReference);
     Session.StartDistance = (ScaleAxisDrag)
@@ -658,6 +702,14 @@ bool StartWorldSketchTransformSession(const WorldSketchStructure& Declared,
     if (!Resolved)
         Session.StartReference = Session.Pivot;
 
+    // 📝 Retained so a slide that changes branch mid-drag can re-resolve its start reference on the plane
+    //    the NEW tangent implies, rather than measuring the offset across two different planes.
+    Session.StartPointerX = PointerX;
+    Session.StartPointerY = PointerY;
+    Session.SlideReference = Session.Pivot;
+    static_cast<void>(ResolveViewPlaneReference(Camera, Extent, PointerX, PointerY,
+                                                Session.Pivot, Session.SlideReference));
+
     const SpatialDirection Initial = Difference(Session.Pivot, Session.StartReference);
     Session.StartDistance = (ScaleAxisDrag)
         ? Dot(Initial, Normalize(Session.AxisDirection))
@@ -691,6 +743,53 @@ void UpdateWorldSketchTransformSession(const ResolvedCamera& Camera,
         return;
 
     ResolveCameraAxisDirection(Camera, Session);
+
+    // 🔴 A SLIDE ONLY EVER RAN ONE WAY. The tangent was chosen once, at the tap, from a hint that was
+    //    really `(0, 0, 1)`, and then never revisited — so the branch it happened to pick was the only
+    //    branch the whole drag could use, and dragging back down the line drove the projection negative
+    //    against a fixed direction instead of following the other way. The tangent is re-chosen here from
+    //    where the pointer actually is, every frame, so pushing the mouse the other way selects the
+    //    opposite candidate and a corner can leave along either edge that meets there.
+    //
+    // 📝 The motion is measured on the camera plane through the pivot, which is the same surface a free
+    //    move reads, so the hint is in the artist's terms — where the mouse went — rather than in the
+    //    terms of whichever plane the previous tangent implied.
+    // ⚠️ A typed amount takes the drag over completely, so the tangent freezes at whatever the pointer
+    //    last chose. Letting the mouse keep steering would silently reverse a typed `G G 12` on a stray
+    //    pixel of travel, which is exactly the surprise numeric entry exists to avoid.
+    double SteeringNumeric = 0.0;
+    const bool NumericStanding = ResolveNumericOverride(Session.Standing, SteeringNumeric);
+
+    if ((Session.SlideAlongCurve() || Session.Restriction() == TransformRestriction::Curve)
+     && !NumericStanding)
+    {
+        SpatialPoint ViewReference = Session.SlideReference;
+        if (ResolveViewPlaneReference(Camera, Extent, PointerX, PointerY, Session.Pivot, ViewReference))
+        {
+            const SpatialDirection Motion = Difference(Session.SlideReference, ViewReference);
+            if (LengthSquared(Motion) > 1.0e-10)
+            {
+                const SpatialDirection Chosen = ResolveWorldCurveSlideDirection(
+                    Declared, Session.Target.Curve, Session.Pivot, Motion);
+
+                // ⚠️ Re-seat the reference only when the tangent genuinely changes sense. The reference
+                //    plane is built from the tangent, so replacing the tangent without re-resolving the
+                //    start point measures the offset across two different planes and the geometry jumps.
+                if (Dot(Chosen, Session.AxisDirection) < 0.0)
+                {
+                    Session.AxisDirection = Chosen;
+                    SpatialPoint Reseated = Session.StartReference;
+                    if (ResolveAxisReference(Camera, Extent, Session.StartPointerX, Session.StartPointerY,
+                                             Session.Pivot, Chosen, Reseated))
+                        Session.StartReference = Reseated;
+                }
+                else
+                {
+                    Session.AxisDirection = Chosen;
+                }
+            }
+        }
+    }
 
     const bool MoveAxisDrag = Session.Manner() == TransformManner::Move &&
                             (Session.Restriction() == TransformRestriction::AxisX
