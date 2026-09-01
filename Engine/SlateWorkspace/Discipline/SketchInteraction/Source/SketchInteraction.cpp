@@ -4,6 +4,8 @@
 
 #include "SlateWorkspace/Discipline/SketchInteraction/Api/SketchInteraction.h"
 
+#include "SlateWorkspace/Discipline/AnnotationIntent/Api/AnnotationIntent.h"
+
 #include "SlateShape/Sketch/DimensionSolver/Api/DimensionSolver.h"
 #include "SlateShape/Sketch/ProfilePattern/Api/ProfilePattern.h"
 #include "SlateShape/Sketch/ProfileReshape/Api/ProfileReshape.h"
@@ -1239,9 +1241,16 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
     WorldPick WorldSemantic = WorldSelection.Active() ? *WorldSelection.Active() : WorldPick{};
     WorldPick WorldHovered = {};
 
+    // 🔴 THE ANNOTATION BAND OWNS THE CONSTRAINT TILES NOW, so this path must not also claim them. It
+    //    was unreachable when it was written -- no band listed the annotation tools, so no constraint
+    //    tile could ever be the active subject and this branch never ran. Opening that band turned it
+    //    into a SECOND live handler for the same tiles, reached with different pick semantics, and two
+    //    handlers for one click is how a constraint gets applied twice from one press.
+    // 📝 `AnnotationToolStanding` is the single answer to "does the annotation band own this tool", so
+    //    the two arms cannot drift apart as tiles are added.
     ConstraintSubject WorldConstraintSubject = ConstraintSubject::Fixed;
-    const bool WorldConstraintTool = SelectedConstraint(ActiveTool, WorldConstraintSubject);
-    bool WorldConstraintCommitted = false;
+    const bool WorldConstraintTool = SelectedConstraint(ActiveTool, WorldConstraintSubject) &&
+                                     !AnnotationToolStanding(ActiveTool);
     if (!Transform.Engaged() && !PointerTaken && Pointer.ContactPressed && WorldConstraintTool)
     {
         ResolveWorldSketchPickForElement(World, Camera, Extent,
@@ -1254,7 +1263,6 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
                                              PendingSelection))
         {
             PointerTaken = true;
-            WorldConstraintCommitted = true;
             // The active world pick remains the semantic selection. Only the compatibility record changes.
             SemanticSelection = ActiveSketchSelection;
         }

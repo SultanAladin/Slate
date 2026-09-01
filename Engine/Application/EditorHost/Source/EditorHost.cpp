@@ -33,6 +33,9 @@
 #include "SlateUI/Interface/ToolOptionsWidget/Api/ToolOptionsWidget.h"
 #include "SlateUI/Interface/ToolContextMenu/Api/ToolContextMenu.h"
 #include "SlateWorkspace/Discipline/SketchOperationDriver/Api/SketchOperationDriver.h"
+#include "SlateWorkspace/Discipline/AnnotationDriver/Api/AnnotationDriver.h"
+#include "SlateWorkspace/Discipline/WorldSketchDimensionProjection/Api/WorldSketchDimensionProjection.h"
+#include "SlateWorkspace/Discipline/WorldSketchPicking/Api/WorldSketchScreenPicking.h"
 #include "SlateWorkspace/Discipline/ViewportProjection/Api/SketchBasis.h"
 #include "SlateWorkspace/Discipline/WorkplaneCatalogue/Api/WorkplaneCatalogue.h"
 #include "Foundation/DeliveryGuarantee.h"
@@ -323,6 +326,17 @@ int main(int ArgumentCount, char** ArgumentValues)
 //    operations' own state spread across the host, where none of it could be proven. It now lives in
 //    `SketchOperationState` and is driven by `DriveSketchOperations`, which is proven headlessly.
 static SketchOperationState      SketchOperations    = {};
+
+// 🔴 ONE STATE FOR THE WHOLE ANNOTATION BAND, held for the same reason as the operations state beside
+//    it: dimensioning is a gesture that spans frames -- pick, drag, release, type -- and the frame
+//    function cannot remember any of it. Everything provable lives in `AnnotationState`; the host holds
+//    the variable and nothing else about how annotation behaves.
+static AnnotationState           SketchAnnotations   = {};
+
+// 📝 The figure chips the dimension projection hands back, so the labels can be drawn with the
+//    interface's text recorder and hit-tested for the double-click that opens an edit. Rebuilt every
+//    frame by the projection; never a source of truth.
+static std::vector<DimensionFigureChip> SketchDimensionFigures;
     // 📝 A right-press is a look while it travels and a menu when it does not. The distance is summed
     //    across the hold, because on the release tick the per-tick travel has already fallen to zero.
     static float SecondaryTravel = 0.0f;   // [px] - summed over the current secondary hold
@@ -1456,6 +1470,53 @@ static SketchOperationState      SketchOperations    = {};
                                                         PointerOwner::DrawingTool);
                                             }
                                         }
+
+                                        // 🔴 THE ANNOTATION BAND RUNS HERE, and the host's whole
+                                        //    contribution is one pick. The band was written, given
+                                        //    thirteen tiles, and then reachable from nowhere: no
+                                        //    `BandEntry` listed it and `ToolSubjectOf` had no case for
+                                        //    it, so every tile reported `Select`. Both halves are fixed
+                                        //    in the panel; this is the third -- the tools now exist,
+                                        //    resolve to their own subjects, and are finally driven.
+                                        //
+                                        // 📝 A dimension is placed against something, so what the
+                                        //    pointer is over has to be resolved before the arm can be
+                                        //    asked. The same screen picker the selection uses answers
+                                        //    it, at the same tolerance, so a dimension grabs exactly
+                                        //    what a click would have selected.
+                                        if (AnnotationToolStanding(ParametricToolsApplied.ActiveSubject))
+                                        {
+                                            WorldPick AnnotationHover = {};
+                                            static_cast<void>(ResolveWorldSketchPick(
+                                                SketchWorld, SceneCamera, LeafBody,
+                                                static_cast<float>(BackgroundPointer.PositionX),
+                                                static_cast<float>(BackgroundPointer.PositionY),
+                                                SketchSelection.ResolvedTolerance(),
+                                                AnnotationHover));
+
+                                            Discard(Viewport.Surface().SwitchLayer(
+                                                RecordingSurface::ShellLayer::Above));
+
+                                            bool AnnotationTaken = false;
+                                            DriveAnnotations(LeafBody, BackgroundPointer, SceneCamera,
+                                                             ParametricToolsApplied.ActiveSubject,
+                                                             ResolveWorkplacementFrame(
+                                                                 SketchWorkplanes.Active()),
+                                                             AnnotationHover, SketchWorld,
+                                                             SketchAnnotations, SketchContextMenu,
+                                                             AnnotationTaken);
+
+                                            Discard(Viewport.Surface().SwitchLayer(
+                                                RecordingSurface::ShellLayer::Beneath));
+
+                                            if (AnnotationTaken)
+                                            {
+                                                PointerTaken = true;
+                                                if (FrameContext.Dispatch.Owner == PointerOwner::None)
+                                                    FrameContext.Dispatch.AdoptLegacyOwner(
+                                                        PointerOwner::DrawingTool);
+                                            }
+                                        }
                                     }
 
                                     // 🔴 ONE CAMERA, NOT TWO. The orbit angles were copied straight off
@@ -1644,6 +1705,53 @@ static SketchOperationState      SketchOperations    = {};
                                     Discard(ProjectWorldBackedSketchRendering(SketchWorld, RenderCamera,
                                                                               LeafBody, SketchDrawable,
                                                                               SketchCadPacket, ActiveWorldSelection));
+
+                                    // 🔴 THE DIMENSIONS GO IN THE SAME PACKET AS THE CURVES, appended
+                                    //    after them and before the preview, so annotation rasterises
+                                    //    on the GPU with everything else rather than becoming the one
+                                    //    thing walked into draw lists by hand every frame.
+                                    // 📝 The extent is the PHYSICAL one the curves were just projected
+                                    //    into -- `SketchDrawable.Body` -- because the packet is in
+                                    //    framebuffer pixels. Passing the logical leaf here would put
+                                    //    every figure at the wrong place on a scaled display.
+                                    Discard(ProjectWorldSketchDimensions(
+                                        SketchWorld, RenderCamera,
+                                        SketchDrawable.ToPhysical(LeafBody),
+                                        SketchAnnotations.Unit, SketchCadPacket,
+                                        SketchDimensionFigures));
+
+                                    // 🔴 THE LINE WORK IS ON THE GPU; ONLY THE FIGURES COME BACK. The
+                                    //    CAD packet carries segments, triangles and markers -- it has
+                                    //    no glyphs, and giving it any would mean a font atlas in the
+                                    //    shared shader header. So the chips are drawn here, with the
+                                    //    same text recorder as the rest of the interface.
+                                    // 📝 Back in LOGICAL points: the chips came out of the projection
+                                    //    in framebuffer pixels, and the recorder works in the units the
+                                    //    interface reports.
+                                    for (const DimensionFigureChip& Chip : SketchDimensionFigures)
+                                    {
+                                        const float Scale = static_cast<float>(SketchDrawable.Factor);
+                                        if (Scale <= 0.0f)
+                                            continue;
+
+                                        const PlaneExtent ChipBody = {
+                                            Chip.Body.MinimumX / Scale, Chip.Body.MinimumY / Scale,
+                                            Chip.Body.MaximumX / Scale, Chip.Body.MaximumY / Scale
+                                        };
+                                        if (!LeafBody.Encloses(ChipBody.MinimumX, ChipBody.MinimumY))
+                                            continue;
+
+                                        // 📝 A backing chip, because a figure drawn straight over the
+                                        //    geometry it measures is unreadable exactly where it
+                                        //    matters most -- on top of a dense drawing.
+                                        Viewport.Surface().Ground(ChipBody, Partial(0x12121au, 0.82),
+                                                                  3.0f);
+                                        Viewport.Surface().TextRun(
+                                            Chip.TextX / Scale,
+                                            Chip.TextY / Scale + 10.0f,
+                                            Chip.Selected ? ColourPrimary : ColourValue,
+                                            Chip.Figure, 12.0f);
+                                    }
 
                                     // 🔴 THE SHAPE BEING DRAWN GOES IN THE SAME PACKET AS THE SHAPES
                                     //    ALREADY DRAWN, so the GPU pass rasterises both and NOTHING

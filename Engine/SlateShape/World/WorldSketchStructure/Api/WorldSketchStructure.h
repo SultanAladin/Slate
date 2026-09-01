@@ -143,6 +143,20 @@ struct WorldDimensionSpecification
     WorldDimensionReference Secondary = {};
     double Target = 0.0;
 
+    /// 🧩 How far to the side of the measured geometry the dimension line is drawn, in millimetres.
+    /// note  🔴 SIGNED, AND THE SIGN IS THE SIDE. It is the projection of the artist's pointer onto the
+    ///        measured edge's perpendicular, so crossing to the other side of the edge makes it negative
+    ///        and the dimension flips over on its own. No branch decides which side; the arithmetic does.
+    /// note  📝 A PLACEMENT, NOT A MEASUREMENT. This is the only thing about a dimension the artist
+    ///        positions by hand, and the only field that is not recomputed from the geometry every frame.
+    double Offset = 0.0;
+
+    /// 🧩 Where a radial or diameter dimension sits around its circle, in radians.
+    /// note  📝 Meaningless for the linear subjects, which use `Offset` alone. A round dimension is placed
+    ///        in polar terms -- an angle around the centre and a stand-off from the rim -- because that is
+    ///        how it is dragged, and storing it any other way would make the drag lossy.
+    double Angle = 0.0;
+
     bool Declared() const
     {
         switch (Subject)

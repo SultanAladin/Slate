@@ -17,7 +17,12 @@ namespace
 constexpr double HoverOver = 120.0;
 constexpr float RunLeading = 1.30f;
 constexpr float LeftPaneX = 196.0f;
-constexpr std::uint32_t BandCount = 2u;
+// 🔴 THREE BANDS, NOT TWO. `AnnotationTools` -- thirteen dimension and constraint tiles -- was defined
+//    in this very file and referenced NOWHERE: the bands array listed only two, so every one of those
+//    tiles was unreachable from the catalogue. Nothing failed to compile and no gate went red, because a
+//    table nobody indexes into is still perfectly valid C++. Same shape of defect as the Select tool
+//    being implemented and never called.
+constexpr std::uint32_t BandCount = 3u;
 constexpr std::uint32_t PresetCount = 9u;
 
 struct OptionEntry
@@ -492,6 +497,8 @@ const BandEntry Bands[BandCount] =
       static_cast<std::uint32_t>(sizeof(SketchDrawTools) / sizeof(SketchDrawTools[0])) },
     { "Operations", SymbolSubject::FilletRadius, SketchModifyTools,
       static_cast<std::uint32_t>(sizeof(SketchModifyTools) / sizeof(SketchModifyTools[0])) },
+    { "Annotation", SymbolSubject::ConstraintDimension, AnnotationTools,
+      static_cast<std::uint32_t>(sizeof(AnnotationTools) / sizeof(AnnotationTools[0])) },
 };
 
 const PresetEntry Presets[PresetCount] =
@@ -570,6 +577,24 @@ ParametricToolSubject ToolSubjectOf(std::uint32_t BandIndex, std::uint32_t ToolI
                  : ToolIndex == 3u ? ParametricToolSubject::Extend
                  : ToolIndex == 4u ? ParametricToolSubject::Offset
                                     : ParametricToolSubject::Cut;
+        // 🔴 THIS CASE WAS MISSING, AND THAT WAS HALF THE DEFECT. `AnnotationTools` existed with thirteen
+        //    tiles and no band listed it, so it could not be reached; and even once reached, every tile
+        //    fell through to `default` and reported `Select`. Both halves had to be wrong for the
+        //    symptom to be "the dimension tools do nothing" rather than a crash.
+        case 2u:
+            return ToolIndex == 0u  ? ParametricToolSubject::LinearDimension
+                 : ToolIndex == 1u  ? ParametricToolSubject::AngularDimension
+                 : ToolIndex == 2u  ? ParametricToolSubject::RadialDimension
+                 : ToolIndex == 3u  ? ParametricToolSubject::HorizontalConstraint
+                 : ToolIndex == 4u  ? ParametricToolSubject::VerticalConstraint
+                 : ToolIndex == 5u  ? ParametricToolSubject::CoincidentConstraint
+                 : ToolIndex == 6u  ? ParametricToolSubject::ParallelConstraint
+                 : ToolIndex == 7u  ? ParametricToolSubject::PerpendicularConstraint
+                 : ToolIndex == 8u  ? ParametricToolSubject::TangentConstraint
+                 : ToolIndex == 9u  ? ParametricToolSubject::EqualConstraint
+                 : ToolIndex == 10u ? ParametricToolSubject::MidpointConstraint
+                 : ToolIndex == 11u ? ParametricToolSubject::SymmetryConstraint
+                                    : ParametricToolSubject::ConcentricConstraint;
         default:
             return ParametricToolSubject::Select;
     }

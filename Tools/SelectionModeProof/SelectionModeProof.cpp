@@ -340,11 +340,28 @@ int main()
         const std::size_t HideEnds = Panel.find("\n}", HideAt);
         const std::string HideBody = Panel.substr(HideAt, HideEnds > HideAt ? HideEnds - HideAt : 0u);
 
-        Require(Panel.find("BandCount = 2u") != std::string::npos,
-                "the catalogue has been reduced to the two requested bands");
+        // 🔴 THREE BANDS NOW, AND THIS CLAIM WAS CHANGED DELIBERATELY. It pinned `BandCount = 2u` while
+        //    the catalogue was intentionally reduced to a drawing band and an operations band. The
+        //    Annotation band -- thirteen dimension and constraint tiles -- has since been asked for and
+        //    built, so a proof still demanding exactly two would be enforcing a decision that has been
+        //    superseded. What the claim protects is unchanged: the two original bands are still there
+        //    under their agreed names, and no band has been dropped to make room.
+        Require(Panel.find("BandCount = 3u") != std::string::npos,
+                "the catalogue carries the drawing, operations and annotation bands");
         Require(Panel.find("2DPrimitives") != std::string::npos
-             && Panel.find("Operations") != std::string::npos,
-                "and those bands are renamed to 2DPrimitives and Operations");
+             && Panel.find("Operations") != std::string::npos
+             && Panel.find("\"Annotation\"") != std::string::npos,
+                "named 2DPrimitives, Operations and Annotation");
+
+        // 🔴 A BAND THAT NOTHING INDEXES INTO IS UNREACHABLE, AND COMPILES PERFECTLY. `AnnotationTools`
+        //    was defined in the catalogue for exactly that reason and could not be chosen, because the
+        //    bands array listed two entries. Listing it is only half the fix: `ToolSubjectOf` also had
+        //    no case for the band, so every tile in it would have reported `Select`.
+        Require(Panel.find("AnnotationTools") != std::string::npos,
+                "the annotation tiles are listed by a band rather than defined and orphaned");
+        Require(Panel.find("ParametricToolSubject::LinearDimension") != std::string::npos
+             && Panel.find("ParametricToolSubject::RadialDimension") != std::string::npos,
+                "and the band maps its indices onto dimension subjects rather than falling back to Select");
         Require(GateBody.find("return false;") != std::string::npos,
                 "operations are no longer gated while the menu is being reduced to a visual-only shell");
         Require(HideBody.find("return false;") != std::string::npos,

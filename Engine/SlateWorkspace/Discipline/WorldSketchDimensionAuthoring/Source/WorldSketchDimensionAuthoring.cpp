@@ -14,7 +14,15 @@ const WorldDimensionDeclaration WorldDimensionTable[] =
 {
     { WorldDimensionSubject::Horizontal, WorldDimensionDemand::OneReference,  "Horizontal" },
     { WorldDimensionSubject::Vertical,   WorldDimensionDemand::OneReference,  "Vertical"   },
-    { WorldDimensionSubject::Aligned,    WorldDimensionDemand::TwoReferences, "Aligned"    },
+    // 🔴 ONE REFERENCE, NOT TWO, AND THE SPECIFICATION ALWAYS SAID SO. `WorldDimensionSpecification`
+    //    accepts an aligned dimension naming a single CURVE -- a curve already names both of its ends,
+    //    and demanding a second reference for it asks the artist to say the same thing twice. This table
+    //    demanded two regardless, so authoring a length off one edge was refused here and then would have
+    //    been accepted by the very structure it was being authored into. The two disagreed; the structure
+    //    is authoritative, because it is what the solver and the renderer both read.
+    // 📝 A dimension between two POINTS still needs both, and still gets both: `Declared()` enforces that
+    //    directly, so nothing is loosened by counting one here.
+    { WorldDimensionSubject::Aligned,    WorldDimensionDemand::OneReference,  "Aligned"    },
     { WorldDimensionSubject::Radius,     WorldDimensionDemand::OneReference,  "Radius"     },
     { WorldDimensionSubject::Diameter,   WorldDimensionDemand::OneReference,  "Diameter"   },
     { WorldDimensionSubject::Angle,      WorldDimensionDemand::TwoReferences, "Angle"      },

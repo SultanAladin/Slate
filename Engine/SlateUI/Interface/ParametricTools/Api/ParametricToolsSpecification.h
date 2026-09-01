@@ -99,7 +99,13 @@ enum class ParametricToolSubject : std::uint32_t
     BezierCurve = 57u,
     HermiteCurve = 58u,
     RationalSpline = 59u,
-    SubjectCount = 60u
+    // 📝 `LinearDimension` at 34u already existed; the other two kinds of dimension did not, so the
+    //    Annotation band had no subject to report for its Angular and Radial tiles. Appended rather than
+    //    slotted in beside 34u, because these values are written into saved documents and renumbering
+    //    would silently reinterpret every stored tool.
+    AngularDimension = 60u,
+    RadialDimension = 61u,
+    SubjectCount = 62u
 };
 
 struct ParametricToolsContext
