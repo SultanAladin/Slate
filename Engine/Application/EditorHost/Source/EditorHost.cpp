@@ -1753,6 +1753,32 @@ static std::vector<DimensionFigureChip> SketchDimensionFigures;
                                             Chip.Figure, 12.0f);
                                     }
 
+                                    // 🔴 A WITHDRAWN CONSTRAINT IS REPORTED, NEVER SILENT. The dimension
+                                    //    outranks the constraints, so typing a length can dissolve a
+                                    //    relation the artist set up earlier. Doing that quietly is how a
+                                    //    modeller loses the artist's trust in its own model; saying so
+                                    //    turns the same act into a tool doing what it was told.
+                                    // 📝 Drawn where the work is rather than in a status bar nobody
+                                    //    reads, and only while the notice is fresh.
+                                    if (SketchAnnotations.NoticeStanding())
+                                    {
+                                        char Notice[96] = {};
+                                        std::snprintf(Notice, sizeof(Notice),
+                                                      SketchAnnotations.RetiredCount == 1u
+                                                          ? "Dimension applied - %u constraint withdrawn"
+                                                          : "Dimension applied - %u constraints withdrawn",
+                                                      SketchAnnotations.RetiredCount);
+
+                                        const PlaneExtent NoticeBody =
+                                            Spanning(LeafBody.MinimumX + 12.0f,
+                                                     LeafBody.MinimumY + 12.0f, 268.0f, 24.0f);
+                                        Viewport.Surface().Ground(NoticeBody,
+                                                                  Partial(0x2a2118u, 0.92f), 4.0f);
+                                        Viewport.Surface().TextRun(NoticeBody.MinimumX + 10.0f,
+                                                                   NoticeBody.MinimumY + 16.0f,
+                                                                   Covering(0xfacc15u), Notice, 12.0f);
+                                    }
+
                                     // 🔴 THE SHAPE BEING DRAWN GOES IN THE SAME PACKET AS THE SHAPES
                                     //    ALREADY DRAWN, so the GPU pass rasterises both and NOTHING
                                     //    about sketch geometry is left on the CPU. It was the last

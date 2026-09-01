@@ -48,6 +48,7 @@ SOURCES = [
     ROOT / "Engine/SlateWorkspace/Discipline/ViewportProjection/Source/ViewportProjection.cpp",
     ROOT / "Engine/SlateWorkspace/Discipline/OrientationCube/Source/OrientationStanding.cpp",
     ROOT / "Engine/SlateShape/World/WorldSketchDimensionSolver/Source/WorldSketchDimensionSolver.cpp",
+    ROOT / "Engine/SlateShape/World/WorldSketchAnnotationPriority/Source/WorldSketchAnnotationPriority.cpp",
     ROOT / "Engine/SlateShape/World/WorldSketchConstraintSolver/Source/WorldSketchConstraintSolver.cpp",
     ROOT / "Engine/SlateShape/World/WorldSketchPicking/Source/WorldSketchPicking.cpp",
     ROOT / "Engine/SlateShape/World/WorldSketchEditing/Source/WorldSketchEditing.cpp",

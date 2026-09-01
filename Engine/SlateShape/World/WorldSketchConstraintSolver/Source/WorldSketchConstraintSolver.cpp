@@ -178,6 +178,11 @@ WorldConstraintDisposition EvaluateWorldConstraints(const WorldSketchStructure& 
 
     for (const WorldConstraintSpecification& Constraint : Declared.Constraints())
     {
+        // 📝 A retired constraint was withdrawn because a dimension contradicted it. It is kept as a
+        //    record and enforces nothing, so it is not judged here either -- reporting the sketch
+        //    invalid on account of a rule nobody applies would fail the whole solve for no reason.
+        if (Constraint.Retired)
+            continue;
         if (!Constraint.Declared())
             return WorldConstraintDisposition::InvalidWorldSketch;
         switch (Constraint.Subject)
@@ -234,6 +239,14 @@ Deliver<bool> ApplyWorldConstraint(WorldSketchStructure& Declared,
         return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the world sketch is not declared" });
 
     const WorldConstraintSpecification& Constraint = Declared.Constraints()[Subject.IssuedIndex - 1u];
+
+    // 🔴 A RETIRED CONSTRAINT IS NOT ENFORCED, and this is where retirement actually takes effect.
+    //    Marking the record and still solving it would change nothing at all. Reported as success
+    //    because nothing went wrong: the constraint was deliberately withdrawn, and `ApplyWorldConstraints`
+    //    would abandon the whole sweep on a refusal.
+    if (Constraint.Retired)
+        return Deliver<bool>::Result(true);
+
     switch (Constraint.Subject)
     {
         case WorldConstraintSubject::Coincident:

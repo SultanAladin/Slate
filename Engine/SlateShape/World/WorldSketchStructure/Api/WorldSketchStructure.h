@@ -72,6 +72,18 @@ struct WorldConstraintSpecification
     WorldConstraintReference Primary = {};
     WorldConstraintReference Secondary = {};
 
+    /// 🧩 Set when this constraint has been withdrawn because a dimension contradicted it.
+    /// note  🔴 RETIRED IN PLACE, NEVER ERASED, and this is not a stylistic choice. A
+    ///        `WorldConstraintName` IS its 1-based position in the constraints vector, and
+    ///        `WorldSketchMapping` stores those names across frames. Erasing element 2 would silently
+    ///        renumber every constraint after it, so each stored name would then point at its
+    ///        neighbour -- the drawing would keep solving, against the wrong relations, with nothing
+    ///        reporting an error. A retired constraint keeps its index and is skipped by the solver.
+    /// note  📝 Deliberately NOT part of `Declared()`. A retired constraint is still a well-formed
+    ///        record of something the artist once asked for; it is simply no longer enforced. Folding
+    ///        it into `Declared()` would make `EvaluateWorldConstraints` call the whole sketch invalid.
+    bool Retired = false;
+
     bool Declared() const
     {
         switch (Subject)

@@ -54,6 +54,21 @@ struct AnnotationState
     ///        millimetres would make the readout show 4200 when the panel says metres.
     float Figure = 0.0f;
 
+    /// 🧩 How many constraints the last commit withdrew to make the typed value hold.
+    /// note  📝 Zero for an ordinary edit. Non-zero is a SUCCESS that cost something, and the host
+    ///        reports it -- the artist needs to know a relation they authored is no longer enforced.
+    std::uint32_t RetiredCount = 0u;
+
+    /// 🧩 How many more frames the withdrawal notice should be shown for.
+    /// note  🔴 A NOTICE MUST EXPIRE BY ITSELF. `RetiredCount` is only ever written when a commit
+    ///        happens, so a host keyed on it alone would draw the message from the first retirement
+    ///        until the editor closed -- and a banner that never leaves is one the artist stops seeing,
+    ///        which defeats the entire point of reporting the withdrawal.
+    std::uint32_t NoticeFramesLeft = 0u;
+
+    /// 🧩 Whether the withdrawal notice should be drawn this frame.
+    bool NoticeStanding() const { return RetiredCount > 0u && NoticeFramesLeft > 0u; }
+
     /// 🧩 Set for one frame when the last commit was refused by the solver.
     /// note  📝 Worth surfacing. A dimension that silently declines to take a value looks like a broken
     ///        text box; one that says the sketch cannot take that value is telling the truth.

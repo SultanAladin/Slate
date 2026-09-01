@@ -31,6 +31,7 @@
 #include "SlateShape/World/WorldSketchStructure/Api/WorldSketchStructure.h"
 
 #include <cstdint>
+#include <vector>
 
 namespace Slate
 {
@@ -59,7 +60,14 @@ enum class AnnotationVerdict : std::uint32_t
     GeometryAbsent    = 3u,
     ValueNotPositive  = 4u,
     SolverRefused     = 5u,   // [-] - the sketch cannot take that value; nothing was changed
-    NothingToApply    = 6u
+    NothingToApply    = 6u,
+
+    /// 🧩 The value was taken, and constraints were withdrawn to make room for it.
+    /// note  🔴 A SUCCESS, NOT A WARNING, and it is separate from `Produced` only so the artist can be
+    ///        TOLD. A dimension silently dissolving a Parallel the artist set up an hour ago is the kind
+    ///        of helpfulness that destroys trust in a modeller; the same act, reported, is a tool doing
+    ///        what it was asked.
+    ProducedByRetiringConstraints = 7u
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -103,6 +111,12 @@ struct AnnotationSession
     /// note  📝 A dimension that is only measuring is not driving anything, so applying it must not
     ///        disturb geometry that is already correct.
     bool Driving = false;
+
+    /// 🧩 The constraints withdrawn by the last apply, so the artist can be told what was given up.
+    /// note  🔴 KEPT SO IT CAN BE REPORTED. Retiring a constraint the artist set up earlier is a real
+    ///        loss, and a modeller that does it silently is one nobody can trust with a drawing they
+    ///        care about. Cleared at the start of every apply, so it never describes an older edit.
+    std::vector<WorldConstraintName> RetiredConstraints = {};
 
     bool ReadoutStanding() const
     {

@@ -27,6 +27,9 @@
 //    straight into the target, and converting on the way in as well as out each refute a section below.
 
 #include "Foundation/MeasureDisplay.h"
+#include "SlateShape/World/WorldSketchAnnotationPriority/Api/WorldSketchAnnotationPriority.h"
+#include "SlateShape/World/WorldSketchConstraintSolver/Api/WorldSketchConstraintSolver.h"
+#include "SlateShape/World/WorldSketchDimensionSolver/Api/WorldSketchDimensionSolver.h"
 #include "SlateShape/World/WorldSketchDimensionGeometry/Api/WorldSketchDimensionGeometry.h"
 #include "SlateWorkspace/Discipline/AnnotationIntent/Api/AnnotationIntent.h"
 #include "SlateWorkspace/Discipline/AnnotationSession/Api/AnnotationSession.h"
@@ -78,6 +81,31 @@ WorldDimensionName DimensionOnCurve(WorldSketchStructure& Sketch,
     Declared.Primary.Curve = Curve;
     Declared.Target = Target;
     return Sketch.DeclareDimension(Declared);
+}
+
+/// 🧩 Declares a constraint between two whole curves, the way the annotation band does.
+WorldConstraintName ConstraintBetween(WorldSketchStructure& Sketch,
+                                      WorldConstraintSubject Subject,
+                                      WorldCurveName Primary,
+                                      WorldCurveName Secondary)
+{
+    WorldConstraintSpecification Declared = {};
+    Declared.Subject = Subject;
+    Declared.Primary.Subject = WorldConstraintReferenceSubject::Curve;
+    Declared.Primary.Curve = Primary;
+    Declared.Secondary.Subject = WorldConstraintReferenceSubject::Curve;
+    Declared.Secondary.Curve = Secondary;
+    return Sketch.DeclareConstraint(Declared);
+}
+
+/// 🧩 How long a line curve currently is.
+double LengthOf(const WorldSketchStructure& Sketch, WorldCurveName Curve)
+{
+    const DeclaredWorldCurve* Held = Sketch.Resolve(Curve);
+    if (Held == nullptr)
+        return 0.0;
+    const LineCurve Line = Held->Geometry.HeldLine();
+    return std::sqrt(LengthSquared(Difference(Line.Origin, Line.Terminus)));
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -675,6 +703,153 @@ void ProveDimensionsAreDrawn()
     Claim(NoFigures.empty(), "and leaves no figure floating at world zero");
 }
 
+
+//------------------------------------------------------------------------------------------------------------------------
+//                        10. A DIMENSION OUTRANKS A CONSTRAINT THAT CONTRADICTS IT
+//------------------------------------------------------------------------------------------------------------------------
+
+void ProveDimensionsOutrankConstraints()
+{
+    std::printf("\n10. A typed dimension beats a constraint that contradicts it, and only that one\n");
+
+    // ── The artist's case, exactly: two lines held Equal, then one typed to a different length ──────
+    WorldSketchStructure Sketch;
+    const WorldCurveName Left  = Sketch.DeclareLine({ 0.0, 0.0, 0.0 },  { 55.0, 0.0, 0.0 },  Ground);
+    const WorldCurveName Right = Sketch.DeclareLine({ 0.0, 0.0, 30.0 }, { 55.0, 0.0, 30.0 }, Ground);
+
+    const WorldConstraintName Equal =
+        ConstraintBetween(Sketch, WorldConstraintSubject::Equal, Left, Right);
+    Claim(Equal.Assigned(), "two lines of 55 are held Equal");
+
+    // 📝 BOTH lines are dimensioned, and that is the artist's case rather than a convenience. The
+    //    constraint solvers are directional: `Equal` drags its secondary to match its primary, so an
+    //    edit to the primary propagates and the edited dimension is never itself violated. What the
+    //    Equal breaks is the OTHER line's stated length, and a dimension is what states it.
+    const WorldDimensionName Length =
+        DimensionOnCurve(Sketch, Left, WorldDimensionSubject::Aligned, 55.0);
+    const WorldDimensionName Peer =
+        DimensionOnCurve(Sketch, Right, WorldDimensionSubject::Aligned, 55.0);
+    Claim(Length.Assigned() && Peer.Assigned(), "and each carries a length dimension of 55");
+
+    // ① The conflict is FOUND, and it is found by experiment rather than by a table.
+    std::vector<WorldConstraintName> Offending;
+    Claim(ResolveContradictingConstraints(Sketch, Length, 65.0, Offending).Resolved,
+          "asking for 65 resolves");
+    Claim(Offending.size() == 1u, "and exactly one constraint is found to be in the way");
+    Claim(!Offending.empty() && Offending[0u].IssuedIndex == Equal.IssuedIndex,
+          "namely the Equal that would drag the line back to 55");
+
+    // ② 🔴 THE DIMENSION WINS. The value is taken and the Equal is withdrawn.
+    AnnotationPriorityOutcome Outcome = {};
+    Claim(ApplyDimensionOverConstraints(Sketch, Length, 65.0, Outcome).Resolved,
+          "typing 65 is accepted rather than refused");
+    Claim(Outcome.Applied, "the outcome reports it applied");
+    Claim(Outcome.Retired.size() == 1u, "having retired exactly one constraint");
+    Claim(Near(LengthOf(Sketch, Left), 65.0, 1.0e-3),
+          "the dimensioned line is now 65 -- the number the artist typed");
+
+    const WorldConstraintSpecification* Withdrawn = Sketch.Resolve(Equal);
+    Claim(Withdrawn != nullptr && Withdrawn->Retired, "and the Equal is marked retired");
+
+    // ③ 🔴 RETIRED IN PLACE, NOT ERASED. A constraint's NAME is its position, and those names are stored
+    //    in `WorldSketchMapping` across frames. Erasing would renumber every later constraint so each
+    //    stored name would quietly point at its neighbour -- and the sketch would keep solving, against
+    //    the wrong relations, with nothing reporting a fault.
+    Claim(Sketch.ConstraintCount() == 1u,
+          "the constraint keeps its slot, so no later name is renumbered underneath a holder");
+
+    // ④ 🔴 A RETIRED CONSTRAINT ACTUALLY STOPS ACTING. Marking the record and still solving it would
+    //    change precisely nothing, so the other line must NOT be dragged to 65 by the dead Equal.
+    Claim(ApplyWorldConstraints(Sketch).Resolved, "the remaining constraints re-settle");
+    Claim(Near(LengthOf(Sketch, Left), 65.0, 1.0e-3), "the typed length survives the re-solve");
+    Claim(Near(LengthOf(Sketch, Right), 55.0, 1.0e-3),
+          "and the other line stays 55 -- the retired Equal enforces nothing");
+    Claim(Near(ResolveWorldDimensionValue(Sketch, Peer).Delivered, 55.0, 1.0e-3),
+          "so the other line's own dimension is still telling the truth");
+
+    // ⑤ 🔴 ONLY WHAT ACTUALLY FIGHTS IS RETIRED. A Parallel does not care how long the lines are, so
+    //    typing a length must leave it exactly where it is. Retiring every constraint that merely
+    //    TOUCHES the dimensioned curve would be far simpler and would dismantle the artist's model.
+    WorldSketchStructure Spared;
+    const WorldCurveName First  = Spared.DeclareLine({ 0.0, 0.0, 0.0 },  { 40.0, 0.0, 0.0 },  Ground);
+    const WorldCurveName Second = Spared.DeclareLine({ 0.0, 0.0, 20.0 }, { 40.0, 0.0, 20.0 }, Ground);
+
+    const WorldConstraintName Parallel =
+        ConstraintBetween(Spared, WorldConstraintSubject::Parallel, First, Second);
+    const WorldDimensionName Span =
+        DimensionOnCurve(Spared, First, WorldDimensionSubject::Aligned, 40.0);
+
+    std::vector<WorldConstraintName> Innocent;
+    Claim(ResolveContradictingConstraints(Spared, Span, 90.0, Innocent).Resolved,
+          "a length change resolves against a Parallel");
+    Claim(Innocent.empty(), "and finds NOTHING in the way -- Parallel is about angle, not length");
+
+    AnnotationPriorityOutcome Kept = {};
+    Claim(ApplyDimensionOverConstraints(Spared, Span, 90.0, Kept).Resolved, "so 90 applies");
+    Claim(Kept.Retired.empty(), "retiring nothing at all");
+    const WorldConstraintSpecification* Standing = Spared.Resolve(Parallel);
+    Claim(Standing != nullptr && !Standing->Retired, "the Parallel is left standing");
+
+    // ⑥ A dimension already satisfied costs nothing.
+    WorldSketchStructure Settled;
+    const WorldCurveName Only = Settled.DeclareLine({ 0.0, 0.0, 0.0 }, { 70.0, 0.0, 0.0 }, Ground);
+    const WorldDimensionName Same = DimensionOnCurve(Settled, Only, WorldDimensionSubject::Aligned, 70.0);
+    AnnotationPriorityOutcome Quiet = {};
+    Claim(ApplyDimensionOverConstraints(Settled, Same, 70.0, Quiet).Resolved,
+          "re-typing the value a line already has succeeds");
+    Claim(Quiet.Retired.empty(), "and withdraws nothing");
+
+    // ⑦ The limit is a limit, not an approximation: exactly at it still succeeds.
+    WorldSketchStructure AtLimit;
+    const WorldCurveName Anchor = AtLimit.DeclareLine({ 0.0, 0.0, 0.0 }, { 50.0, 0.0, 0.0 }, Ground);
+    for (unsigned Extra = 0u; Extra < AnnotationPriorityRetirementLimit; ++Extra)
+    {
+        const double Row = 10.0 * static_cast<double>(Extra + 1u);
+        const WorldCurveName Neighbour =
+            AtLimit.DeclareLine({ 0.0, 0.0, Row }, { 50.0, 0.0, Row }, Ground);
+        static_cast<void>(ConstraintBetween(AtLimit, WorldConstraintSubject::Equal, Anchor, Neighbour));
+        static_cast<void>(DimensionOnCurve(AtLimit, Neighbour, WorldDimensionSubject::Aligned, 50.0));
+    }
+    const WorldDimensionName Edged =
+        DimensionOnCurve(AtLimit, Anchor, WorldDimensionSubject::Aligned, 50.0);
+
+    AnnotationPriorityOutcome Boundary = {};
+    Claim(ApplyDimensionOverConstraints(AtLimit, Edged, 75.0, Boundary).Resolved,
+          "an edit retiring exactly the limit is allowed");
+    Claim(Boundary.Retired.size() == AnnotationPriorityRetirementLimit,
+          "and retires exactly that many");
+    Claim(!Boundary.RefusedAsTooCostly, "without being called too costly");
+
+    // ⑧ ⚠️ An edit that would dismantle the model is refused WHOLE rather than half-done.
+    WorldSketchStructure Crowded;
+    const WorldCurveName Driven = Crowded.DeclareLine({ 0.0, 0.0, 0.0 }, { 50.0, 0.0, 0.0 }, Ground);
+    for (unsigned Extra = 0u; Extra < 6u; ++Extra)
+    {
+        const double Row = 10.0 * static_cast<double>(Extra + 1u);
+        const WorldCurveName Neighbour =
+            Crowded.DeclareLine({ 0.0, 0.0, Row }, { 50.0, 0.0, Row }, Ground);
+        static_cast<void>(ConstraintBetween(Crowded, WorldConstraintSubject::Equal, Driven, Neighbour));
+        static_cast<void>(DimensionOnCurve(Crowded, Neighbour, WorldDimensionSubject::Aligned, 50.0));
+    }
+    const WorldDimensionName Crowd =
+        DimensionOnCurve(Crowded, Driven, WorldDimensionSubject::Aligned, 50.0);
+
+    const WorldSketchStructure Untouched = Crowded;
+    AnnotationPriorityOutcome Costly = {};
+    Claim(!ApplyDimensionOverConstraints(Crowded, Crowd, 120.0, Costly).Resolved,
+          "an edit that would withdraw six constraints is refused");
+    Claim(Costly.RefusedAsTooCostly, "and says WHY it was refused, rather than just failing");
+    Claim(Costly.Retired.empty(), "having retired nothing");
+    Claim(Crowded.ConstraintCount() == Untouched.ConstraintCount(),
+          "the drawing is left exactly as it was");
+    bool NoneRetired = true;
+    for (const WorldConstraintSpecification& Each : Crowded.Constraints())
+        if (Each.Retired)
+            NoneRetired = false;
+    Claim(NoneRetired, "with not one constraint quietly marked on the way out");
+    Claim(Near(LengthOf(Crowded, Driven), 50.0, 1.0e-3), "and the line still its original length");
+}
+
 } // namespace
 
 int main()
@@ -690,6 +865,7 @@ int main()
     ProveTheTilesAreWired();
     ProvePickGathering();
     ProveDimensionsAreDrawn();
+    ProveDimensionsOutrankConstraints();
 
     std::printf("\n%u claims, %u failures\n", Claims, Failures);
     return Failures == 0u ? 0 : 1;

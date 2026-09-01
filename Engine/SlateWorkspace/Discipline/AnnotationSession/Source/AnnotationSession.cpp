@@ -4,6 +4,7 @@
 
 #include "SlateWorkspace/Discipline/AnnotationSession/Api/AnnotationSession.h"
 
+#include "SlateShape/World/WorldSketchAnnotationPriority/Api/WorldSketchAnnotationPriority.h"
 #include "SlateShape/World/WorldSketchDimensionSolver/Api/WorldSketchDimensionSolver.h"
 #include "SlateWorkspace/Discipline/WorldSketchConstraintAuthoring/Api/WorldSketchConstraintAuthoring.h"
 #include "SlateWorkspace/Discipline/WorldSketchDimensionAuthoring/Api/WorldSketchDimensionAuthoring.h"
@@ -282,27 +283,31 @@ AnnotationVerdict ApplyAnnotation(WorldSketchStructure& Declared, AnnotationSess
     if (Held == nullptr)
         return AnnotationVerdict::GeometryAbsent;
 
-    // 🔴 THE SKETCH IS COPIED BEFORE THE SOLVER TOUCHES IT, and the copy is kept unless the solve
-    //    succeeds. A solver that gets partway and then fails would otherwise leave the drawing in a state
-    //    satisfying neither the old value nor the new one -- and the artist would have no way back.
-    const double Restore = Held->Target;
-    WorldSketchStructure Trial = Declared;
+    static_cast<void>(Held);
 
-    WorldDimensionSpecification* Trying = Trial.Resolve(Session.Placed);
-    if (Trying == nullptr)
-        return AnnotationVerdict::GeometryAbsent;
-    Trying->Target = Session.Figure;
+    // 🔴 THE DIMENSION OUTRANKS THE CONSTRAINTS, and this call is where that is decided. Two lines held
+    //    Equal, one of them typed to 65 while the other reads 55, cannot both be true; refusing the edit
+    //    would leave the artist arguing with a drawing that will not name which of its own past rules is
+    //    in the way. The number they just typed is the clearer statement of intent, so it wins and the
+    //    contradicting constraint is withdrawn.
+    // 📝 Only what actually fights is retired, decided by experiment rather than by a table of subject
+    //    pairs -- a Parallel that does not care about length is left exactly where it is.
+    // 📝 The sketch is written only on success, inside the call.
+    Session.RetiredConstraints.clear();
 
-    const Deliver<bool> Solved = ApplyWorldDimension(Trial, Session.Placed);
+    AnnotationPriorityOutcome Outcome = {};
+    const Deliver<bool> Solved =
+        ApplyDimensionOverConstraints(Declared, Session.Placed, Session.Figure, Outcome);
     if (!Solved.Resolved)
-    {
-        Held->Target = Restore;
         return AnnotationVerdict::SolverRefused;
-    }
 
-    Declared = Trial;
+    Session.RetiredConstraints = Outcome.Retired;
     Session.Phase = AnnotationPhase::Applied;
-    return AnnotationVerdict::Produced;
+
+    // 📝 Reported distinctly so the artist can be told what was given up. Silently dissolving a relation
+    //    they set up earlier is how a modeller loses their trust.
+    return Outcome.Retired.empty() ? AnnotationVerdict::Produced
+                                   : AnnotationVerdict::ProducedByRetiringConstraints;
 }
 
 //------------------------------------------------------------------------------------------------------------------------

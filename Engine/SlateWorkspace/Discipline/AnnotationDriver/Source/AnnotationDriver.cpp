@@ -84,6 +84,11 @@ void DriveAnnotations(const PlaneExtent& Bounds,
 {
     State.Refused = false;
 
+    // 📝 The withdrawal notice ages on every frame, whatever tool is held, so it expires on its own
+    //    rather than lingering until the next annotation happens to be applied.
+    if (State.NoticeFramesLeft > 0u)
+        --State.NoticeFramesLeft;
+
     // 🔴 CHANGING TOOL ABANDONS WHATEVER WAS IN FLIGHT, exactly as it does for the operations. A
     //    half-placed dimension left standing would attach itself to the next tool's picks.
     if (ActiveTool != State.Prepared)
@@ -199,7 +204,20 @@ void DriveAnnotations(const PlaneExtent& Bounds,
             // 🔴 A SOLVER REFUSAL LEAVES THE DRAWING ALONE and is reported, rather than being swallowed.
             //    This is the entire reason typed edits go through the solver instead of straight into the
             //    parameters: the sketch is allowed to say no.
-            State.Refused = ApplyAnnotation(World, State.Session) == AnnotationVerdict::SolverRefused;
+            const AnnotationVerdict Applied = ApplyAnnotation(World, State.Session);
+            State.Refused = Applied == AnnotationVerdict::SolverRefused;
+
+            // 🔴 WHAT THE EDIT COST IS CARRIED OUT OF THE SESSION BEFORE IT IS CLEARED. The dimension
+            //    outranks the constraints, so a typed value can withdraw a relation the artist set up
+            //    earlier -- and they are told, because a modeller that quietly dissolves the artist's
+            //    own rules is one they will stop trusting with work they care about.
+            State.RetiredCount = Applied == AnnotationVerdict::ProducedByRetiringConstraints
+                                     ? static_cast<std::uint32_t>(State.Session.RetiredConstraints.size())
+                                     : 0u;
+
+            // 📝 About four seconds at sixty frames -- long enough to read, short enough that it is
+            //    gone before it becomes part of the furniture.
+            State.NoticeFramesLeft = State.RetiredCount > 0u ? 240u : 0u;
         }
         if (!State.Refused)
             CancelAnnotationSession(World, State.Session);
