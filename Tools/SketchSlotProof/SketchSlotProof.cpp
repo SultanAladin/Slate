@@ -270,6 +270,77 @@ int main()
         Claim(ToBack > 53.0, "the retired measure would have given more than 53");
     }
 
+    // 🔴 THE CASES A CORNER RULE CANNOT REACH. Deciding each corner from the two segments that meet
+    //    there is only right while the bend is a LOCAL event, and the artist leaves that regime by
+    //    accident: a turn approaching a reversal drives the mitre past its limit, and a thickness
+    //    larger than the leg beside it makes a whole segment's offset run overshoot the far vertex.
+    //    Both used to emit an edge lying INSIDE the slot -- the bevel seen cutting through the body.
+    //    The boundary is built as the union it is defined to be, so the measure below is the whole
+    //    claim: no boundary point may be nearer the spine than the radius, at any turn, at any
+    //    thickness. Each of these was verified to fail before the union was written.
+    std::printf("\n6. The extremes: every turn, and thickness beyond the leg\n");
+    {
+        std::size_t Checked = 0u;
+        double      DeepestBite = 0.0;
+        std::size_t WorstCrossings = 0u;
+        double      WidestGap = 0.0;
+
+        const auto Measure = [&](const std::vector<SpatialPoint>& Spine, double Radius)
+        {
+            std::vector<CurveSpecification> Spans;
+            AppendSlotOutline(Spine, Radius, { 0.0, 1.0, 0.0 }, Spans);
+            if (Spans.empty())
+            {
+                DeepestBite = Radius;
+                return;
+            }
+            const auto Outline = Tessellate(Spans);
+            for (const auto& Point : Outline)
+                DeepestBite = std::max(DeepestBite, (Radius - ResolveSpineDistance(Spine, Point)) / Radius);
+            WorstCrossings = std::max(WorstCrossings, SelfIntersections(Outline));
+            WidestGap      = std::max(WidestGap, WorstGap(Spans) / Radius);
+            ++Checked;
+        };
+
+        // Every corner from a hairpin one way to a hairpin the other.
+        for (int Degrees = 178; Degrees >= 2; Degrees -= 4)
+        {
+            const double Turn = static_cast<double>(Degrees) * 3.14159265358979 / 180.0;
+            Measure({ {0,0,0}, {100,0,0}, {100 + 100 * std::cos(Turn), 0, 100 * std::sin(Turn)} }, 20.0);
+            Measure({ {0,0,0}, {100,0,0}, {100 - 100 * std::cos(Turn), 0, 100 * std::sin(Turn)} }, 20.0);
+        }
+
+        // Thickness that swallows the leg beside it, and then the whole spine.
+        for (const double Radius : { 5.0, 20.0, 40.0, 60.0, 100.0 })
+        {
+            Measure({ {0,0,0}, {100,0,0}, {100,0,30} }, Radius);
+            Measure({ {0,0,0}, {40,0,0},  {40,0,40}  }, Radius);
+        }
+
+        // A spine that crosses itself, and one drawn far from the origin.
+        for (const double Radius : { 8.0, 15.0, 25.0 })
+            Measure({ {0,0,0}, {100,0,0}, {100,0,60}, {50,0,-30}, {50,0,80} }, Radius);
+        Measure({ {50000,0,50000}, {50100,0,50000}, {50100,0,50100} }, 60.0);
+
+        // 🔴 A THIN SLOT ON A LONG SPINE FAR FROM THE ORIGIN. The junctions here are found where an
+        //    offset run runs TANGENT to a vertex disc, and a tangency resolves only to about the square
+        //    root of the precision of the numbers it came from — so on a spine 240 long two fragments
+        //    that meet at one point can land 1.7e-6 apart. A stitch tolerance scaled to the radius alone
+        //    admitted 4e-7 of that, declared the loop open, and threw a perfectly well formed union
+        //    away. These two spines are the ones that were seen doing it.
+        for (const double Radius : { 4.0, 12.0 })
+        {
+            Measure({ {-53.846,0,22.742},  {57.112,0,-81.072}, {-9.862,0,2.419}   }, Radius);
+            Measure({ {-44.643,0,-101.591},{110.084,0,57.266}, {-13.204,0,-22.462} }, Radius);
+        }
+
+        std::printf("    %zu extreme slots: deepest bite %.3e of the radius, %zu crossings, widest gap %.1e\n",
+                    Checked, DeepestBite, WorstCrossings, WidestGap);
+        Claim(WorstCrossings == 0u, "no extreme slot's boundary crosses itself");
+        Claim(DeepestBite < 1.0e-5, "and no part of it lies INSIDE the slot -- no bevel cuts the body");
+        Claim(WidestGap < 1.0e-5, "and every one of them still closes");
+    }
+
     std::printf("\n%s\n\n", Failures == 0 ? "PROVEN" : "REFUTED");
     return Failures == 0 ? 0 : 1;
 }

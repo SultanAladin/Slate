@@ -469,6 +469,664 @@ void AppendSlotCap(const SpatialPoint& Centre,
     Delivered.push_back(CurveSpecification::DeclareCircularArc(Cap, { 0.0, 1.0 }));
 }
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                              SLOT BOUNDARY BY UNION
+//------------------------------------------------------------------------------------------------------------------------
+
+// 🔴 THE OFFSET WALK ABOVE DECIDES EVERY CORNER FROM THE TWO SEGMENTS THAT MEET THERE, and that is only
+//    ever right when the bend is a LOCAL event. It stops being local in two ways the artist reaches by
+//    accident. A turn approaching a full reversal drives the mitre past its limit, so both runs are
+//    pulled onto the spine vertex and the inner boundary doubles back through the slot. And a radius
+//    larger than the leg beside it makes the offset run overshoot the far vertex entirely, so a segment
+//    that is wholly swallowed by its neighbours' discs still contributes an edge — one that lies inside
+//    the slot it belongs to. Both draw the bevel that cuts through the body.
+//
+// 🔴 NO CORNER RULE FIXES THAT, because the defect is not at the corner: it is that the swept region is a
+//    UNION and the walk never unions anything. The boundary is built here as the union actually defines
+//    it — every offset run and every vertex disc is cut at its crossings, each fragment is kept only if
+//    it is still a full radius from the spine, and the survivors are stitched into the loop. A fragment
+//    that another part of the slot has swallowed measures closer than the radius and is dropped, which is
+//    exactly the test the two cases above fail.
+
+constexpr double SlotFullTurn = 6.283185307179586;
+
+// 📝 Both are relative to the slot radius, so a slot 0.1 across and one 1000 across are judged alike.
+constexpr double SlotJunctionTolerance = 1.0e-9;
+constexpr double SlotStitchTolerance   = 1.0e-7;
+
+/// 🧩 The sketch plane as an origin and two in-plane axes, so the union is solved in two dimensions.
+struct SlotFrame
+{
+    SpatialPoint     Origin = {};
+    SpatialDirection Along  = {};
+    SpatialDirection Across = {};
+    SpatialDirection Normal = {};
+};
+
+PlanarPoint ProjectIntoSlotFrame(const SlotFrame& Frame, const SpatialPoint& Position)
+{
+    const SpatialDirection Reach = Difference(Frame.Origin, Position);
+    return { Dot(Reach, Frame.Along), Dot(Reach, Frame.Across) };
+}
+
+SpatialPoint LiftFromSlotFrame(const SlotFrame& Frame, const PlanarPoint& Position)
+{
+    return Added(Added(Frame.Origin, Scaled(Frame.Along, Position.Along)),
+                 Scaled(Frame.Across, Position.Across));
+}
+
+PlanarPoint PlanarSum(const PlanarPoint& Left, const PlanarPoint& Right)
+{
+    return { Left.Along + Right.Along, Left.Across + Right.Across };
+}
+
+PlanarPoint PlanarReach(const PlanarPoint& From, const PlanarPoint& To)
+{
+    return { To.Along - From.Along, To.Across - From.Across };
+}
+
+PlanarPoint PlanarScaledBy(const PlanarPoint& Subject, double Amount)
+{
+    return { Subject.Along * Amount, Subject.Across * Amount };
+}
+
+double PlanarDot(const PlanarPoint& Left, const PlanarPoint& Right)
+{
+    return Left.Along * Right.Along + Left.Across * Right.Across;
+}
+
+double PlanarCross(const PlanarPoint& Left, const PlanarPoint& Right)
+{
+    return Left.Along * Right.Across - Left.Across * Right.Along;
+}
+
+double PlanarLengthSquared(const PlanarPoint& Subject)
+{
+    return PlanarDot(Subject, Subject);
+}
+
+double PlanarSpan(const PlanarPoint& From, const PlanarPoint& To)
+{
+    return std::sqrt(PlanarLengthSquared(PlanarReach(From, To)));
+}
+
+/// 📝 A quarter turn about the plane normal — what `Cross(Normal, Along)` reduces to inside the plane.
+PlanarPoint PlanarQuarterTurn(const PlanarPoint& Subject)
+{
+    return { -Subject.Across, Subject.Along };
+}
+
+PlanarPoint PlanarUnit(const PlanarPoint& Subject)
+{
+    const double Length = std::sqrt(PlanarLengthSquared(Subject));
+    if (!(Length > 0.0))
+        return {};
+    return { Subject.Along / Length, Subject.Across / Length };
+}
+
+PlanarPoint PointOnSlotCircle(const PlanarPoint& Centre, double Radius, double Turn)
+{
+    return { Centre.Along + Radius * std::cos(Turn), Centre.Across + Radius * std::sin(Turn) };
+}
+
+double NormalizedTurn(double Radians)
+{
+    double Wrapped = std::fmod(Radians, SlotFullTurn);
+    if (Wrapped < 0.0)
+        Wrapped += SlotFullTurn;
+    return Wrapped;
+}
+
+/// 🧩 The in-plane twin of `ResolveSpineDistance` — the perpendicular reach to the nearest spine segment.
+double ResolvePlanarSpineDistance(const std::vector<PlanarPoint>& Spine, const PlanarPoint& Reference)
+{
+    if (Spine.empty())
+        return 0.0;
+
+    double Nearest = PlanarSpan(Spine.front(), Reference);
+
+    for (std::size_t Index = 0u; Index + 1u < Spine.size(); ++Index)
+    {
+        const PlanarPoint Along = PlanarReach(Spine[Index], Spine[Index + 1u]);
+        const double      Span  = PlanarLengthSquared(Along);
+        if (Span <= SlotDegenerateLengthSquared)
+            continue;
+
+        const PlanarPoint Reach    = PlanarReach(Spine[Index], Reference);
+        const double      Fraction = std::clamp(PlanarDot(Reach, Along) / Span, 0.0, 1.0);
+        const PlanarPoint Foot     = PlanarSum(Spine[Index], PlanarScaledBy(Along, Fraction));
+
+        Nearest = std::min(Nearest, PlanarSpan(Foot, Reference));
+    }
+
+    return Nearest;
+}
+
+/// 🧩 One whole offset run or one whole vertex disc, with the parameters it must be cut at.
+struct SlotCandidate
+{
+    bool                Arc    = false;
+    PlanarPoint         Start  = {};
+    PlanarPoint         End    = {};
+    PlanarPoint         Centre = {};
+    std::vector<double> Splits = {};
+};
+
+/// 🧩 A surviving fragment of the boundary: a straight run, or a turn about a vertex.
+struct SlotBoundaryPiece
+{
+    bool        Arc        = false;
+    PlanarPoint Start      = {};
+    PlanarPoint End        = {};
+    PlanarPoint Centre     = {};
+    double      StartTurn  = 0.0;
+    double      SweepTurn  = 0.0;
+};
+
+void RecordLineSplit(SlotCandidate& Line, double Fraction)
+{
+    if (Fraction > SlotJunctionTolerance && Fraction < 1.0 - SlotJunctionTolerance)
+        Line.Splits.push_back(Fraction);
+}
+
+void RecordArcSplit(SlotCandidate& Arc, const PlanarPoint& At)
+{
+    Arc.Splits.push_back(NormalizedTurn(std::atan2(At.Across - Arc.Centre.Across,
+                                                   At.Along  - Arc.Centre.Along)));
+}
+
+void IntersectSlotLines(SlotCandidate& First, SlotCandidate& Second)
+{
+    const PlanarPoint FirstReach  = PlanarReach(First.Start, First.End);
+    const PlanarPoint SecondReach = PlanarReach(Second.Start, Second.End);
+
+    const double Scale       = std::sqrt(PlanarLengthSquared(FirstReach) * PlanarLengthSquared(SecondReach));
+    const double Denominator = PlanarCross(FirstReach, SecondReach);
+    if (!(Scale > 0.0) || std::fabs(Denominator) <= Scale * SlotJunctionTolerance)
+        return;
+
+    const PlanarPoint Between       = PlanarReach(First.Start, Second.Start);
+    const double      FirstFraction  = PlanarCross(Between, SecondReach) / Denominator;
+    const double      SecondFraction = PlanarCross(Between, FirstReach) / Denominator;
+
+    if (FirstFraction  < -SlotJunctionTolerance || FirstFraction  > 1.0 + SlotJunctionTolerance)
+        return;
+    if (SecondFraction < -SlotJunctionTolerance || SecondFraction > 1.0 + SlotJunctionTolerance)
+        return;
+
+    RecordLineSplit(First, FirstFraction);
+    RecordLineSplit(Second, SecondFraction);
+}
+
+void IntersectSlotLineWithCircle(SlotCandidate& Line, SlotCandidate& Circle, double Radius)
+{
+    const PlanarPoint Reach  = PlanarReach(Line.Start, Line.End);
+    const PlanarPoint Offset = PlanarReach(Circle.Centre, Line.Start);
+
+    const double Quadratic = PlanarLengthSquared(Reach);
+    if (!(Quadratic > 0.0))
+        return;
+
+    const double Linear       = 2.0 * PlanarDot(Reach, Offset);
+    const double Constant     = PlanarLengthSquared(Offset) - Radius * Radius;
+    const double Discriminant = Linear * Linear - 4.0 * Quadratic * Constant;
+
+    // 🔴 A GRAZING CONTACT IS THE ORDINARY CASE HERE, NOT A RARE ONE. Every offset run is parallel to
+    //    its segment at exactly the slot radius, so it is TANGENT to the disc at each end of that
+    //    segment — and a tangent puts this discriminant on zero, where rounding leaves it at ±1e-16 at
+    //    random. Refusing every negative value therefore dropped the cut at a tangency about half the
+    //    time, leaving the disc uncut where a run meets it and the loop unable to close.
+    const double Grazing = 4.0 * Quadratic * Radius * Radius * SlotJunctionTolerance;
+    if (Discriminant < -Grazing)
+        return;
+
+    const double Root = std::sqrt(std::max(Discriminant, 0.0));
+
+    for (const double Fraction : { (-Linear - Root) / (2.0 * Quadratic),
+                                   (-Linear + Root) / (2.0 * Quadratic) })
+    {
+        if (Fraction < -SlotJunctionTolerance || Fraction > 1.0 + SlotJunctionTolerance)
+            continue;
+
+        RecordLineSplit(Line, Fraction);
+        RecordArcSplit(Circle, PlanarSum(Line.Start, PlanarScaledBy(Reach, Fraction)));
+    }
+}
+
+void IntersectSlotCircles(SlotCandidate& First, SlotCandidate& Second, double Radius)
+{
+    const PlanarPoint Between     = PlanarReach(First.Centre, Second.Centre);
+    const double      SpanSquared = PlanarLengthSquared(Between);
+    if (SpanSquared <= SlotDegenerateLengthSquared)
+        return;
+
+    const double Span = std::sqrt(SpanSquared);
+    if (Span >= 2.0 * Radius)
+        return;
+
+    const double      Half     = Span * 0.5;
+    const double      Height   = std::sqrt(std::max(Radius * Radius - Half * Half, 0.0));
+    const PlanarPoint Middle   = PlanarSum(First.Centre, PlanarScaledBy(Between, 0.5));
+    const PlanarPoint Sideways = PlanarScaledBy(PlanarQuarterTurn(PlanarUnit(Between)), Height);
+
+    for (const PlanarPoint& At : { PlanarSum(Middle, Sideways),
+                                   PlanarSum(Middle, PlanarScaledBy(Sideways, -1.0)) })
+    {
+        RecordArcSplit(First, At);
+        RecordArcSplit(Second, At);
+    }
+}
+
+void AppendCandidateFragments(const SlotCandidate& Candidate,
+                              double Radius,
+                              std::vector<SlotBoundaryPiece>& Pieces)
+{
+    std::vector<double> Ordered = Candidate.Splits;
+    std::sort(Ordered.begin(), Ordered.end());
+
+    if (!Candidate.Arc)
+    {
+        std::vector<double> Bounds = { 0.0 };
+        for (const double Value : Ordered)
+            if (Value > Bounds.back() + SlotJunctionTolerance && Value < 1.0 - SlotJunctionTolerance)
+                Bounds.push_back(Value);
+        Bounds.push_back(1.0);
+
+        const PlanarPoint Reach = PlanarReach(Candidate.Start, Candidate.End);
+        for (std::size_t Index = 0u; Index + 1u < Bounds.size(); ++Index)
+        {
+            SlotBoundaryPiece Piece;
+            Piece.Start = PlanarSum(Candidate.Start, PlanarScaledBy(Reach, Bounds[Index]));
+            Piece.End   = PlanarSum(Candidate.Start, PlanarScaledBy(Reach, Bounds[Index + 1u]));
+            Pieces.push_back(Piece);
+        }
+        return;
+    }
+
+    std::vector<double> Bounds;
+    for (const double Value : Ordered)
+        if (Bounds.empty() || Value > Bounds.back() + SlotJunctionTolerance)
+            Bounds.push_back(Value);
+    if (Bounds.size() >= 2u && Bounds.front() + SlotFullTurn - Bounds.back() <= SlotJunctionTolerance)
+        Bounds.pop_back();
+
+    // 📝 A disc nothing reaches is a whole circle, which is the slot of a spine that never left its
+    //    first point; it is emitted as one closed turn rather than dropped.
+    if (Bounds.empty())
+    {
+        SlotBoundaryPiece Piece;
+        Piece.Arc       = true;
+        Piece.Centre    = Candidate.Centre;
+        Piece.StartTurn = 0.0;
+        Piece.SweepTurn = SlotFullTurn;
+        Piece.Start     = PointOnSlotCircle(Candidate.Centre, Radius, 0.0);
+        Piece.End       = Piece.Start;
+        Pieces.push_back(Piece);
+        return;
+    }
+
+    for (std::size_t Index = 0u; Index < Bounds.size(); ++Index)
+    {
+        const double From = Bounds[Index];
+        const double To   = (Index + 1u < Bounds.size()) ? Bounds[Index + 1u]
+                                                         : Bounds.front() + SlotFullTurn;
+        if (To - From <= SlotJunctionTolerance)
+            continue;
+
+        SlotBoundaryPiece Piece;
+        Piece.Arc       = true;
+        Piece.Centre    = Candidate.Centre;
+        Piece.StartTurn = From;
+        Piece.SweepTurn = To - From;
+        Piece.Start     = PointOnSlotCircle(Candidate.Centre, Radius, From);
+        Piece.End       = PointOnSlotCircle(Candidate.Centre, Radius, To);
+        Pieces.push_back(Piece);
+    }
+}
+
+PlanarPoint ResolveFragmentMidpoint(const SlotBoundaryPiece& Piece, double Radius)
+{
+    if (!Piece.Arc)
+        return PlanarSum(Piece.Start, PlanarScaledBy(PlanarReach(Piece.Start, Piece.End), 0.5));
+    return PointOnSlotCircle(Piece.Centre, Radius, Piece.StartTurn + Piece.SweepTurn * 0.5);
+}
+
+SlotBoundaryPiece ReversedFragment(const SlotBoundaryPiece& Piece)
+{
+    SlotBoundaryPiece Turned = Piece;
+    Turned.Start = Piece.End;
+    Turned.End   = Piece.Start;
+    if (Piece.Arc)
+    {
+        Turned.StartTurn = NormalizedTurn(Piece.StartTurn + Piece.SweepTurn);
+        Turned.SweepTurn = -Piece.SweepTurn;
+    }
+    return Turned;
+}
+
+/// 🧩 The direction of travel as a fragment leaves its start, and as it arrives at its end.
+PlanarPoint ResolveFragmentDeparture(const SlotBoundaryPiece& Piece)
+{
+    if (!Piece.Arc)
+        return PlanarUnit(PlanarReach(Piece.Start, Piece.End));
+
+    const double Facing = (Piece.SweepTurn >= 0.0) ? 1.0 : -1.0;
+    return { -std::sin(Piece.StartTurn) * Facing, std::cos(Piece.StartTurn) * Facing };
+}
+
+PlanarPoint ResolveFragmentArrival(const SlotBoundaryPiece& Piece)
+{
+    if (!Piece.Arc)
+        return PlanarUnit(PlanarReach(Piece.Start, Piece.End));
+
+    const double Facing = (Piece.SweepTurn >= 0.0) ? 1.0 : -1.0;
+    const double Finish = Piece.StartTurn + Piece.SweepTurn;
+    return { -std::sin(Finish) * Facing, std::cos(Finish) * Facing };
+}
+
+/// 🧩 Walks the surviving fragments into closed loops.
+/// note  🔴 MORE THAN TWO FRAGMENTS MEET AT A PINCH POINT, and a walk that simply took the nearest
+///        unused end could not tell them apart. Where a spine crosses itself four boundary fragments
+///        share one point, so the nearest-end rule paired them at random: two of the four joined into
+///        a short circuit and the rest were stranded as an open chain, which read as "this does not
+///        close" and threw the whole union away. The turn is what distinguishes them — the boundary
+///        always continues along the sharpest RIGHT turn available, which is the branch that hugs the
+///        region rather than cutting across it.
+bool TraceSlotLoops(const std::vector<SlotBoundaryPiece>& Pieces,
+                    double Radius,
+                    double Reach,
+                    std::vector<std::vector<SlotBoundaryPiece>>& Loops)
+{
+    // 🔴 THE TOLERANCE HAS TO FOLLOW THE COORDINATES, NOT ONLY THE RADIUS. A junction found by the
+    //    tangent branch above resolves to about √ε of the numbers it was computed from, so on a spine
+    //    240 long the two fragments meeting at one point can land 1.7e-6 apart while a tolerance of
+    //    radius × 1e-7 admitted only 4e-7. The ends were genuinely the same point and the walk called
+    //    them different, so a slot that was perfectly well formed fell back to the offset walk purely
+    //    because it had been drawn far from the origin.
+    const double      Tolerance = std::max(Radius, Reach) * SlotStitchTolerance;
+    std::vector<bool> Taken(Pieces.size(), false);
+
+    for (std::size_t Seed = 0u; Seed < Pieces.size(); ++Seed)
+    {
+        if (Taken[Seed])
+            continue;
+
+        Taken[Seed] = true;
+        std::vector<SlotBoundaryPiece> Loop = { Pieces[Seed] };
+
+        const PlanarPoint Head    = Pieces[Seed].Start;
+        PlanarPoint       Tail    = Pieces[Seed].End;
+        PlanarPoint       Arrival = ResolveFragmentArrival(Pieces[Seed]);
+
+        while (PlanarSpan(Tail, Head) > Tolerance)
+        {
+            std::size_t Best     = Pieces.size();
+            double      Sharpest = 0.0;
+
+            for (std::size_t Index = 0u; Index < Pieces.size(); ++Index)
+            {
+                if (Taken[Index] || PlanarSpan(Tail, Pieces[Index].Start) > Tolerance)
+                    continue;
+
+                // 📝 Measured from the direction already being travelled, so a straight-on
+                //    continuation scores zero and a hard right scores least.
+                const PlanarPoint Departure = ResolveFragmentDeparture(Pieces[Index]);
+                const double      Turn      = std::atan2(PlanarCross(Arrival, Departure),
+                                                         PlanarDot(Arrival, Departure));
+
+                if (Best >= Pieces.size() || Turn < Sharpest)
+                {
+                    Sharpest = Turn;
+                    Best     = Index;
+                }
+            }
+
+            // ⚠️ An open chain means the fragments do not describe a closed region, which the caller
+            //    answers by keeping the offset walk rather than emitting a boundary with a hole in it.
+            if (Best >= Pieces.size())
+                return false;
+
+            Taken[Best] = true;
+            Loop.push_back(Pieces[Best]);
+            Tail    = Loop.back().End;
+            Arrival = ResolveFragmentArrival(Loop.back());
+        }
+
+        Loops.push_back(Loop);
+    }
+
+    return !Loops.empty();
+}
+
+double ResolveLoopArea(const std::vector<SlotBoundaryPiece>& Loop, double Radius)
+{
+    std::vector<PlanarPoint> Outline;
+
+    for (const SlotBoundaryPiece& Piece : Loop)
+    {
+        if (!Piece.Arc)
+        {
+            Outline.push_back(Piece.Start);
+            continue;
+        }
+
+        constexpr std::size_t Steps = 24u;
+        for (std::size_t Step = 0u; Step < Steps; ++Step)
+            Outline.push_back(PointOnSlotCircle(Piece.Centre, Radius,
+                Piece.StartTurn + Piece.SweepTurn * (static_cast<double>(Step) / static_cast<double>(Steps))));
+    }
+
+    double Twice = 0.0;
+    for (std::size_t Index = 0u; Index < Outline.size(); ++Index)
+        Twice += PlanarCross(Outline[Index], Outline[(Index + 1u) % Outline.size()]);
+
+    return 0.5 * Twice;
+}
+
+std::vector<SlotBoundaryPiece> ReversedLoop(const std::vector<SlotBoundaryPiece>& Loop)
+{
+    std::vector<SlotBoundaryPiece> Turned;
+    Turned.reserve(Loop.size());
+    for (std::size_t Index = Loop.size(); Index > 0u; --Index)
+        Turned.push_back(ReversedFragment(Loop[Index - 1u]));
+    return Turned;
+}
+
+/// 🧩 Rejoins fragments that were only ever cut apart by a grazing contact, so the loop carries the
+///    fewest spans that describe it — one line per straight run, one arc per turn.
+void MergeLoopFragments(std::vector<SlotBoundaryPiece>& Loop, double Radius, double Reach)
+{
+    const double Tolerance = std::max(Radius, Reach) * SlotStitchTolerance;
+
+    for (bool Merged = true; Merged && Loop.size() > 1u; )
+    {
+        Merged = false;
+
+        for (std::size_t Index = 0u; Index < Loop.size(); ++Index)
+        {
+            const std::size_t Next = (Index + 1u) % Loop.size();
+            if (Next == Index)
+                break;
+
+            SlotBoundaryPiece&       Current   = Loop[Index];
+            const SlotBoundaryPiece& Following = Loop[Next];
+
+            if (Current.Arc != Following.Arc)
+                continue;
+
+            if (!Current.Arc)
+            {
+                const PlanarPoint First  = PlanarReach(Current.Start, Current.End);
+                const PlanarPoint Second = PlanarReach(Following.Start, Following.End);
+                const double      Scale  = std::sqrt(PlanarLengthSquared(First) * PlanarLengthSquared(Second));
+
+                if (!(Scale > 0.0) || std::fabs(PlanarCross(First, Second)) > Scale * SlotJunctionTolerance)
+                    continue;
+                if (PlanarDot(First, Second) <= 0.0)
+                    continue;
+
+                Current.End = Following.End;
+            }
+            else
+            {
+                if (PlanarSpan(Current.Centre, Following.Centre) > Tolerance)
+                    continue;
+                if (Current.SweepTurn * Following.SweepTurn <= 0.0)
+                    continue;
+                if (std::fabs(Current.SweepTurn + Following.SweepTurn) >= SlotFullTurn)
+                    continue;
+
+                Current.SweepTurn += Following.SweepTurn;
+                Current.End        = Following.End;
+            }
+
+            Loop.erase(Loop.begin() + static_cast<std::ptrdiff_t>(Next));
+            Merged = true;
+            break;
+        }
+    }
+}
+
+/// 🧩 Builds the slot boundary as the union of its offset runs and vertex discs.
+/// out   Delivered  [-]  the closed outline, appended in traversal order
+/// err   returns false and appends nothing when the fragments do not close
+bool AppendSlotUnionOutline(const std::vector<SpatialPoint>& Run,
+                            double Radius,
+                            const SpatialDirection& PlaneNormal,
+                            std::vector<CurveSpecification>& Delivered)
+{
+    SlotFrame Frame;
+    Frame.Origin = Run.front();
+    Frame.Normal = PlaneNormal;
+    Frame.Along  = Normalize(Difference(Run.front(), Run[1]));
+    Frame.Across = Normalize(Cross(PlaneNormal, Frame.Along));
+
+    std::vector<PlanarPoint> Spine;
+    Spine.reserve(Run.size());
+    for (const SpatialPoint& Point : Run)
+        Spine.push_back(ProjectIntoSlotFrame(Frame, Point));
+
+    // 📝 How far the construction reaches from its own origin, which is what its rounding scales with.
+    double Reach = Radius;
+    for (const PlanarPoint& Point : Spine)
+        Reach = std::max(Reach, std::sqrt(PlanarLengthSquared(Point)) + Radius);
+
+    // ① Every offset run and every vertex disc, before any of them is cut.
+    std::vector<SlotCandidate> Candidates;
+    for (std::size_t Index = 0u; Index + 1u < Spine.size(); ++Index)
+    {
+        const PlanarPoint Along    = PlanarUnit(PlanarReach(Spine[Index], Spine[Index + 1u]));
+        const PlanarPoint Sideways = PlanarScaledBy(PlanarQuarterTurn(Along), Radius);
+
+        // 🔴 EACH RUN IS LAID DOWN ALREADY FACING THE WAY THE BOUNDARY TRAVELS, so the walk never has to
+        //    choose an orientation for it. The whole outline is traversed with the slot on the LEFT, and
+        //    for a run offset to one side that fixes its direction: the far side runs back against the
+        //    segment, the near side runs with it. Leaving them unoriented let the walk consume a run
+        //    backwards at a pinch point, which stranded the fragments that needed it the other way.
+        SlotCandidate Far;
+        Far.Start = PlanarSum(Spine[Index + 1u], Sideways);
+        Far.End   = PlanarSum(Spine[Index],      Sideways);
+        Candidates.push_back(Far);
+
+        SlotCandidate Near;
+        Near.Start = PlanarSum(Spine[Index],      PlanarScaledBy(Sideways, -1.0));
+        Near.End   = PlanarSum(Spine[Index + 1u], PlanarScaledBy(Sideways, -1.0));
+        Candidates.push_back(Near);
+    }
+    for (const PlanarPoint& Vertex : Spine)
+    {
+        SlotCandidate Disc;
+        Disc.Arc    = true;
+        Disc.Centre = Vertex;
+        Candidates.push_back(Disc);
+    }
+
+    // ② Cut each one everywhere another crosses it.
+    for (std::size_t First = 0u; First < Candidates.size(); ++First)
+        for (std::size_t Second = First + 1u; Second < Candidates.size(); ++Second)
+        {
+            if (!Candidates[First].Arc && !Candidates[Second].Arc)
+                IntersectSlotLines(Candidates[First], Candidates[Second]);
+            else if (Candidates[First].Arc && Candidates[Second].Arc)
+                IntersectSlotCircles(Candidates[First], Candidates[Second], Radius);
+            else if (Candidates[First].Arc)
+                IntersectSlotLineWithCircle(Candidates[Second], Candidates[First], Radius);
+            else
+                IntersectSlotLineWithCircle(Candidates[First], Candidates[Second], Radius);
+        }
+
+    // ③ Keep only the fragments the swept disc has not swallowed. A fragment inside the slot measures
+    //    nearer to the spine than the radius, which is precisely what a corner cutting through the body
+    //    does; the offset walk had no such test and so drew it.
+    const double InsideLimit = Radius * (1.0 - SlotJunctionTolerance);
+
+    std::vector<SlotBoundaryPiece> Fragments;
+    for (const SlotCandidate& Candidate : Candidates)
+    {
+        std::vector<SlotBoundaryPiece> Cut;
+        AppendCandidateFragments(Candidate, Radius, Cut);
+
+        // 📝 A run cut at two coincident crossings leaves a fragment of no length, whose direction of
+        //    travel is undefined; it is not part of the boundary and would only give the walk a turn it
+        //    cannot measure.
+        for (const SlotBoundaryPiece& Piece : Cut)
+        {
+            if (!Piece.Arc && PlanarSpan(Piece.Start, Piece.End) <= Reach * SlotStitchTolerance)
+                continue;
+            if (ResolvePlanarSpineDistance(Spine, ResolveFragmentMidpoint(Piece, Radius)) >= InsideLimit)
+                Fragments.push_back(Piece);
+        }
+    }
+
+    if (Fragments.empty())
+        return false;
+
+    // ④ Stitch, then take the enclosing loop. A spine that crosses itself encircles holes as well, and
+    //    the profile this feeds carries one outer loop.
+    std::vector<std::vector<SlotBoundaryPiece>> Loops;
+    if (!TraceSlotLoops(Fragments, Radius, Reach, Loops))
+        return false;
+
+    std::size_t Widest = 0u;
+    double      Extent = std::fabs(ResolveLoopArea(Loops.front(), Radius));
+    for (std::size_t Index = 1u; Index < Loops.size(); ++Index)
+    {
+        const double Measured = std::fabs(ResolveLoopArea(Loops[Index], Radius));
+        if (Measured > Extent)
+        {
+            Extent = Measured;
+            Widest = Index;
+        }
+    }
+
+    std::vector<SlotBoundaryPiece> Outer = Loops[Widest];
+    if (ResolveLoopArea(Outer, Radius) < 0.0)
+        Outer = ReversedLoop(Outer);
+
+    MergeLoopFragments(Outer, Radius, Reach);
+
+    for (const SlotBoundaryPiece& Piece : Outer)
+    {
+        if (!Piece.Arc)
+        {
+            Delivered.push_back(CurveSpecification::DeclareLine(LiftFromSlotFrame(Frame, Piece.Start),
+                                                                LiftFromSlotFrame(Frame, Piece.End)));
+            continue;
+        }
+
+        CircularArcCurve Arc = {};
+        Arc.Centre         = LiftFromSlotFrame(Frame, Piece.Centre);
+        Arc.Normal         = Frame.Normal;
+        Arc.StartDirection = Added(Scaled(Frame.Along,  std::cos(Piece.StartTurn)),
+                                   Scaled(Frame.Across, std::sin(Piece.StartTurn)));
+        Arc.Radius         = Radius;
+        Arc.SweepRadians   = Piece.SweepTurn;
+        Delivered.push_back(CurveSpecification::DeclareCircularArc(Arc, { 0.0, 1.0 }));
+    }
+
+    return true;
+}
+
 }   // namespace
 
 void AppendSlotOutline(const std::vector<SpatialPoint>& Spine,
@@ -481,6 +1139,15 @@ void AppendSlotOutline(const std::vector<SpatialPoint>& Spine,
         return;
 
     const SpatialDirection PlaneNormal = Normalize(Normal);
+
+    // 📝 The union is the definition, so it is what is asked first. The offset walk below remains as the
+    //    answer of last resort: it is wrong only where the swept region overlaps itself, and it always
+    //    closes, so a boundary that failed to stitch is better served by it than by nothing.
+    const std::size_t Standing = Delivered.size();
+    if (AppendSlotUnionOutline(Run, Radius, PlaneNormal, Delivered))
+        return;
+
+    Delivered.resize(Standing);
 
     const SpatialDirection FirstAlong = Normalize(Difference(Run.front(), Run[1]));
     const SpatialDirection LastAlong  = Normalize(Difference(Run[Run.size() - 2u], Run.back()));
