@@ -74,25 +74,25 @@ CurveSpecification CurveSpecification::DeclareThreePointArc(const SpatialPoint& 
         const SpatialPoint Centre = Added(StartPoint, Scaled(CentreOffset, 1.0 / Denominator));
         const SpatialDirection Normal = Normalize(Perpendicular);
         const SpatialDirection StartDirection = Normalize(Difference(Centre, StartPoint));
-        const SpatialDirection ThroughDirection = Normalize(Difference(Centre, ThroughPoint));
         const SpatialDirection EndDirection = Normalize(Difference(Centre, EndPoint));
         const double Radius = std::sqrt(LengthSquared(Difference(Centre, StartPoint)));
-        // ⚠️ `std::acos` cannot tell a turn one way from a turn the other — it only ever answers 0..pi.
-        //    The middle point says which way round the arc goes: if it does NOT lie on the short way from
-        //    start to end, the arc is the long way round. Clamped because a dot product of exactly
-        //    ±1.0000000001 from rounding makes `acos` return NaN, and a NaN sweep draws nothing at all.
-        const auto AngleBetween = [](const SpatialDirection& From, const SpatialDirection& To)
-        {
-            double Cosine = Dot(From, To);
-            Cosine = Cosine < -1.0 ? -1.0 : (Cosine > 1.0 ? 1.0 : Cosine);
-            return std::acos(Cosine);
-        };
 
-        double Sweep = AngleBetween(StartDirection, EndDirection);
-        const double ThroughSweep = AngleBetween(StartDirection, ThroughDirection);
-        const double ThroughToEnd  = AngleBetween(ThroughDirection, EndDirection);
-        if (ThroughSweep > Sweep || ThroughToEnd > Sweep)
-            Sweep = 6.283185307179586 - Sweep;
+        // 🔴 THE SWEEP IS MEASURED ABOUT THE NORMAL, NOT COMPARED AGAINST THE MIDDLE POINT.
+        //    `Perpendicular` is (start->through) x (start->end), so it is by construction the normal
+        //    that turns start toward through and then toward end POSITIVELY. The arc is therefore
+        //    always the positive turn from start to end about it, and the middle point needs no vote.
+        //
+        //    The retired reading asked `acos` for three unsigned 0..pi angles and inferred the long way
+        //    round from `ThroughSweep > Sweep || ThroughToEnd > Sweep`. That test is not equivalent.
+        //    For a true sweep in 181..240 degrees BOTH sub-angles still fit inside the unsigned
+        //    `acos` answer, so the arc was silently kept at `2pi - Sweep` — the SHORT way — and the
+        //    artist saw the arc stop short of the pointer instead of following it. At a true 240 it
+        //    delivered 120, half the arc asked for; at 200 it delivered 160, the 80% the defect report
+        //    described. Every sweep outside that band happened to agree, which is why the arc looked
+        //    correct until it was dragged past a half turn.
+        const double Turn = std::atan2(Dot(Cross(StartDirection, EndDirection), Normal),
+                                       Dot(StartDirection, EndDirection));
+        const double Sweep = Turn < 0.0 ? Turn + 6.283185307179586 : Turn;
 
         Held.CircularArc = { Centre, Normal, StartDirection, ThroughPoint, true, Radius, Sweep };
     }
