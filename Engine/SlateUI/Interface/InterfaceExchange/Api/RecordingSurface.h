@@ -238,6 +238,15 @@ public:
     ///        depth and stamps a new tick ordinal — performing all three merely to move the drawers above
     ///        the windows sampled the pointer twice within one tick and discarded any confine the caller
     ///        was holding. This changes the destination list and nothing else.
+    /// note  🔴 `Beneath` RETURNS TO THE WORKSPACE WINDOW when one stands entered, rather than to the
+    ///        background list. Every caller of this pair raises one small thing — a tool options card, a
+    ///        context menu, the orientation widget — and then asks to be put back where it was. Inside a
+    ///        workspace window "where it was" is that WINDOW's list, and answering with the background list
+    ///        silently redirected everything recorded afterwards: the second viewport leaf's sky went to the
+    ///        background, the leaf's own ground and "3D VIEWPORT RENDER TARGET" caption were recorded into
+    ///        the window over the top of it, and the sky vanished behind the placeholder while the grid —
+    ///        a separate pass, recorded between the bands — carried on drawing. `SwitchToWindow` states the
+    ///        window to return to; `LeaveWindow` withdraws it.
     /// note  ⚠️ Refuses when no tick stands adopted, so a layer change cannot open one by accident.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
@@ -247,9 +256,19 @@ public:
     /// out   Result  [-]  refuses when no tick or no workspace window stands open
     /// note  Used only between `InterfaceExchange::EnterWorkspaceWindow` and `LeaveWorkspaceWindow` so panel
     ///       content clips and orders with its own dockable window instead of the global shell layers.
+    /// post  a later `SwitchLayer(Beneath)` returns here rather than to the background list
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     Deliver<bool> SwitchToWindow();
+
+    /// 🧩 Withdraws the remembered workspace window, so `SwitchLayer(Beneath)` means the background again.
+    /// note  🔴 Called by whoever left the workspace window, immediately after leaving it. Without this the
+    ///        surface keeps naming a window that has been ended, and the next restore hands back a list
+    ///        belonging to a panel the caller is no longer recording.
+    /// post  subsequent recordings land on the background list
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    void LeaveWindow();
 
     /// 🧩 What the pointer did this tick.
     /// cost  ✔️
@@ -512,6 +531,12 @@ private:
     //    late recording wrote into content nothing would ever assemble — no refusal, no diagnostic, and the
     //    only symptom a panel that silently failed to appear.
     void*             CommandSlot   = nullptr;   // [-] - opaque; the ImGui spelling stays in the source file
+
+    // 🔴 The workspace window a restore returns to. `SwitchToWindow` stamps it, `LeaveWindow`, `Retire` and
+    //    `Reset` clear it, and `SwitchLayer(Beneath)` prefers it over the background list. It is the whole
+    //    of the second-panel sky defect: a restore is "put me back", and inside a window that is the
+    //    window, not the shell.
+    void*             WindowSlot    = nullptr;   // [-] - opaque; borrowed from the vendor for the tick
     PointerCondition  SampledPointer = {};       // [-] - sampled once, at Adopt
     TextInputCondition SampledText    = {};       // [-] - sampled once, at Adopt
     DisplayCondition  SampledDisplay = {};       // [-] - sampled once, at Adopt

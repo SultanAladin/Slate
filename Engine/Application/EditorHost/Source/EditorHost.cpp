@@ -2138,6 +2138,11 @@ static std::vector<DimensionFigureChip> SketchDimensionFigures;
 
                 Viewport.Seam().LeaveWorkspaceWindow();
 
+                // 🔴 The surface is told as well as the seam. The window's list has just ended, so a
+                //    restore made after this point must mean the background again rather than a panel
+                //    that is no longer being recorded.
+                Viewport.Surface().LeaveWindow();
+
                 // ⚠️ Recorded, never acted on inside the sweep. Withdrawing here edits the set being walked.
                 if (!Current)
                     Withdrawing = Index;

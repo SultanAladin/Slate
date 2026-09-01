@@ -142,9 +142,21 @@ Deliver<bool> RecordingSurface::SwitchLayer(ShellLayer Layer)
 
     // 📝 The destination list and nothing else. The pointer, the display condition, the confine depth and
     //    the tick ordinal all belong to the adoption and are left exactly as the tick found them.
-    CommandSlot = (Layer == ShellLayer::Above)
-                ? static_cast<void*>(ImGui::GetForegroundDrawList())
-                : static_cast<void*>(ImGui::GetBackgroundDrawList());
+    // 🔴 A RESTORE RETURNS TO THE WORKSPACE WINDOW, when one stands. Every caller of this pair raises one
+    //    small thing above the windows and then asks to be put back; inside a panel, "back" is that panel's
+    //    own list. Answering with the background list is what made the SECOND viewport leaf lose its sky:
+    //    the first leaf's orientation widget switched Above and restored to the BACKGROUND, so the next
+    //    leaf's sky geometry — and every leaf recorded after it — was laid behind the workspace window
+    //    instead of inside it, and the leaf's own ground plus its "3D VIEWPORT RENDER TARGET" placeholder
+    //    were then drawn over the top of it. The grid never moved, because the overlay pass is recorded
+    //    between the two interface bands rather than through this surface, which is exactly the reported
+    //    shape of the defect: grid yes, sky no, placeholder showing.
+    if (Layer == ShellLayer::Above)
+        CommandSlot = static_cast<void*>(ImGui::GetForegroundDrawList());
+    else if (WindowSlot != nullptr)
+        CommandSlot = WindowSlot;
+    else
+        CommandSlot = static_cast<void*>(ImGui::GetBackgroundDrawList());
 
     if (CommandSlot == nullptr)
         return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no command list is open" });
@@ -160,8 +172,17 @@ Deliver<bool> RecordingSurface::SwitchToWindow()
     if (ImGui::GetCurrentContext() == nullptr)
         return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no interface context is current" });
 
+    // 📝 Remembered as well as adopted, so a later restore knows there is a window to return to.
     CommandSlot = static_cast<void*>(ImGui::GetWindowDrawList());
+    WindowSlot  = CommandSlot;
     return Deliver<bool>::Result(true);
+}
+
+void RecordingSurface::LeaveWindow()
+{
+    // 📝 The list belongs to the vendor and ends with the window; only this surface's claim on it is
+    //    dropped. The standing slot is left alone — whoever leaves the window states its next destination.
+    WindowSlot = nullptr;
 }
 
 void RecordingSurface::Retire()
@@ -170,6 +191,7 @@ void RecordingSurface::Retire()
     //    it is dropped. Clearing the slot is what makes every later recording refuse — each of them tests
     //    the slot and nothing else, which is the whole of the mechanism.
     CommandSlot  = nullptr;
+    WindowSlot   = nullptr;
     ConfineDepth = 0u;
 }
 
@@ -183,6 +205,7 @@ void RecordingSurface::Reset()
     // 📝 The clip stack belongs to the vendor's own list and is released by the tick that owned it. Only
     //    this surface's reckoning of the depth is dropped here.
     CommandSlot    = nullptr;
+    WindowSlot     = nullptr;
     SampledPointer = {};
     SampledText    = {};
     SampledDisplay = {};
