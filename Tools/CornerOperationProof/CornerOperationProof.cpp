@@ -596,6 +596,84 @@ void ProveTheDragGesture()
           "and produces a straight cut rather than an arc");
 }
 
+//----------------------------------------------------------------------------------------------------
+// 🔴 A CORNER MUST BE AS EASY TO GRAB AT TEN METRES AS AT TEN MILLIMETRES.
+//----------------------------------------------------------------------------------------------------
+// The reported defect: Fillet and Chamfer "do nothing". Every claim above passes, because every claim
+// above hands the resolver `CornerProbeReach` -- a fixed WORLD distance -- and never asks what that
+// distance is worth on screen. It is worth everything at one zoom and nothing at any other.
+//
+// 📝 The gesture now takes the reach per frame, so the host can convert a constant PIXEL target through
+//    the standing camera. These claims fix that contract in place: the reach must scale, and a session
+//    given a scaled reach must find its corner at any zoom.
+void ProveTheReachFollowsTheZoom()
+{
+    std::printf("\n7. The corner target stays the same size on screen at every zoom\n");
+
+    Square Stage;
+
+    // ① The defect itself, stated as arithmetic. `OrthoScale` is pixels per world unit, so the fixed
+    //    world reach is worth `CornerProbeReach * OrthoScale` pixels -- which collapses as the artist
+    //    zooms out to see a metre-scale part.
+    const double ZoomedIn  = 10.0;    // [px/unit] - a small part filling the leaf
+    const double ZoomedOut = 0.05;    // [px/unit] - ten metres across the leaf
+
+    Claim(CornerProbeReach * ZoomedIn > 100.0,
+          "the fixed world reach is a huge target when zoomed in");
+    Claim(CornerProbeReach * ZoomedOut < 1.0,
+          "and a SUB-PIXEL one when zoomed out -- which is why the tool looked dead");
+
+    // ② Converted from pixels, the reach grows as the view widens, so the target holds its size.
+    const double ReachIn  = CornerProbeReachPixels / ZoomedIn;
+    const double ReachOut = CornerProbeReachPixels / ZoomedOut;
+
+    Claim(ReachOut > ReachIn, "a pixel-derived reach widens as the artist zooms out");
+    Claim(Near(ReachIn * ZoomedIn, CornerProbeReachPixels, 1.0e-9) &&
+          Near(ReachOut * ZoomedOut, CornerProbeReachPixels, 1.0e-9),
+          "and is worth the SAME number of pixels at both zooms, which is the whole point");
+
+    // ③ The gesture honours it. Twenty units from the corner is far outside the 12-unit default, so this
+    //    is exactly the press that used to be ignored; with the zoomed-out reach it must land.
+    const SpatialPoint NearCorner = { 100.0, 0.0, 20.0 };   // 20 units along one leg, well past the default
+
+    CornerDragSession Ignored;
+    Ignored.Manner = CornerManner::Fillet;
+    AdvanceCornerDragSession(Stage.Sketch, { NearCorner, false, false, false, 0.0 }, Ignored);
+    Claim(Ignored.Phase == CornerPhase::Idle,
+          "with no reach stated, a probe 20 units out falls back to the 12-unit default and finds nothing");
+
+    CornerDragSession Honoured;
+    Honoured.Manner = CornerManner::Fillet;
+    AdvanceCornerDragSession(Stage.Sketch, { NearCorner, false, false, false, ReachOut }, Honoured);
+    Claim(Honoured.Phase == CornerPhase::Hovering,
+          "the SAME probe finds its corner once the zoomed-out reach is stated");
+    Claim(Honoured.Phase == CornerPhase::Hovering &&
+          SamePoint(Honoured.Target.Position, { 100.0, 0.0, 0.0 }),
+          "and it is the corner actually nearest the pointer");
+
+    // ④ A stated reach must not make the tool grab corners the artist is nowhere near: zoomed IN, the
+    //    same 20-unit probe must still find nothing.
+    CornerDragSession Tight;
+    Tight.Manner = CornerManner::Fillet;
+    AdvanceCornerDragSession(Stage.Sketch, { NearCorner, false, false, false, ReachIn }, Tight);
+    Claim(Tight.Phase == CornerPhase::Idle,
+          "and zoomed in, that same probe is correctly out of reach -- the reach narrows as well as widens");
+
+    // ⑤ The whole gesture still completes when the reach comes from the view rather than the constant.
+    CornerDragSession Session;
+    Session.Manner = CornerManner::Fillet;
+    AdvanceCornerDragSession(Stage.Sketch, { NearCorner, true, true, false, ReachOut }, Session);
+    Claim(Session.Phase == CornerPhase::Dragging, "a press on that corner starts the drag");
+    Claim(Session.Radius > 0.0, "and the radius follows the pointer");
+
+    AdvanceCornerDragSession(Stage.Sketch, { NearCorner, false, false, true, ReachOut }, Session);
+    Claim(Session.Phase == CornerPhase::Pending, "the release hands the figure to the popup");
+
+    WorldCurveName Produced = {};
+    Claim(ApplyCornerDragSession(Stage.Sketch, Session, Produced) == CornerVerdict::Produced,
+          "and Apply writes the fillet, at a zoom where the tool used to be unusable");
+}
+
 } // namespace
 
 int main()
@@ -611,6 +689,7 @@ int main()
     ProveALoopSurvivesBeingFilleted();
     ProveCornersAreFound();
     ProveTheDragGesture();
+    ProveTheReachFollowsTheZoom();
 
     std::printf("\n=========================================================================\n");
     std::printf("%u claims, %u failures -> %s\n", Claims, Failures,

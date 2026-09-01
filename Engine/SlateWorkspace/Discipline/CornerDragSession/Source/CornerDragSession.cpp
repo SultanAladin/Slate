@@ -59,8 +59,14 @@ void AdvanceCornerDragSession(const WorldSketchStructure& Declared,
     }
 
     // ③ Otherwise the tool is looking for a corner under the pointer.
+    // 🔴 THE FRAME'S OWN REACH, so the corner stays the same size on screen at every zoom. A reach fixed
+    //    in world units is hittable at one zoom only -- at metre scale 12 mm is sub-pixel, nothing is
+    //    ever found, and the tool looks dead. The constant remains the fallback for a caller that states
+    //    nothing.
+    const double Reach = Pointer.Reach > 0.0 ? Pointer.Reach : CornerProbeReach;
+
     const Deliver<WorldCornerTarget> Found =
-        ResolveWorldCornerNear(Declared, Pointer.Probe, CornerProbeReach);
+        ResolveWorldCornerNear(Declared, Pointer.Probe, Reach);
 
     if (!Found)
     {

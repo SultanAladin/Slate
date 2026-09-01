@@ -76,6 +76,33 @@ bool PointerOnWorkplane(const ResolvedCamera& Camera,
     return ResolveWorldPlacementIntersection(Workplane, RayOrigin, RayDirection, Position);
 }
 
+/// 🧩 How many world units one screen pixel spans, at a stated point, under this camera.
+/// 🔴 THE WHOLE REASON FILLET AND CHAMFER LOOKED DEAD. A probe reach fixed in world units is hittable at
+///    exactly one zoom: at metre scale a twelve-millimetre reach is a fraction of a pixel, so the pointer
+///    can never land inside it, no corner is ever resolved, and the tool never leaves `Idle`. Converting a
+///    constant PIXEL reach through the camera keeps the target the same size on screen however far in or
+///    out the artist is, which is what the curve picker has always done.
+/// 📝 Orthographic is exact -- `OrthoScale` IS pixels per world unit. Perspective varies with depth, so it
+///    is measured at the probe: the span of one pixel at that distance along the view.
+double WorldUnitsPerPixel(const ResolvedCamera& Camera,
+                          const PlaneExtent& Extent,
+                          const SpatialPoint& At)
+{
+    if (!Camera.Perspective)
+        return 1.0 / std::max(Camera.OrthoScale, 1.0e-6);
+
+    const double Height = std::max(static_cast<double>(Extent.Height()), 1.0);
+    const double TanHalf = std::tan(Camera.FieldOfViewDegrees * 0.5 * ProjectionPi / 180.0);
+
+    // 📐 Depth along the view direction, not the straight-line distance: a point off to the side of a
+    //    perspective frustum is further from the eye than it is deep, and using the longer figure would
+    //    quietly widen the reach toward the edges of the leaf.
+    const double Depth = std::abs(Dot(Difference(Camera.Frame.Eye, At),
+                                      Normalize(Camera.Frame.Forward)));
+
+    return 2.0 * std::max(Depth, 1.0e-6) * TanHalf / Height;
+}
+
 /// 🧩 Which corner manner a tool asks for, and whether it asks for one at all.
 bool CornerMannerFor(ParametricToolSubject Subject, CornerManner& Manner)
 {
@@ -177,7 +204,13 @@ void DriveSketchOperations(const PlaneExtent& Bounds,
     if (CornerMannerFor(ActiveTool, Manner))
     {
         State.Corner.Manner = Manner;
-        AdvanceCornerDragSession(World, { Probe, Pressed, Held, Released }, State.Corner);
+
+        // 🔴 A REACH THE ARTIST CAN SEE. Converted from a constant pixel target through this frame's
+        //    camera, so grabbing a corner takes the same gesture whether the part is ten millimetres
+        //    or ten metres across.
+        const double Reach = CornerProbeReachPixels * WorldUnitsPerPixel(Camera, Bounds, Probe);
+
+        AdvanceCornerDragSession(World, { Probe, Pressed, Held, Released, Reach }, State.Corner);
 
         if (State.Corner.PopupStanding() && !Readout.Standing())
             Readout.Open();

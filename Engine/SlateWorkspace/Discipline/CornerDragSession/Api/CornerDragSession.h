@@ -62,6 +62,17 @@ struct CornerPointerFrame
     bool         Pressed  = false;   // [-] - the primary button went down this frame
     bool         Held     = false;   // [-] - it is still down
     bool         Released = false;   // [-] - it came up this frame
+
+    // 🔴 HOW FAR THE PROBE MAY BE FROM A CORNER, IN WORLD UNITS, FOR THIS FRAME'S VIEW. A corner is a
+    //    single point, so the reach is what makes it hittable at all -- and a reach fixed in world units
+    //    is only hittable at one zoom. At metre scale a 12 mm reach is well under a pixel: the pointer
+    //    can never get inside it, `ResolveWorldCornerNear` refuses every frame, the session never leaves
+    //    `Idle`, and Fillet and Chamfer appear to do nothing whatsoever. The caller converts a constant
+    //    PIXEL reach through the standing camera, so the target stays the same size on screen at every
+    //    zoom -- which is what every other picking path in the engine already does.
+    // 📝 Zero means "the caller did not say", and the gesture falls back to `CornerProbeReach` so an
+    //    existing caller keeps working exactly as it did.
+    double       Reach    = 0.0;     // [-] - world-space probe reach for this frame; 0 uses the default
 };
 
 /// 🧩 Everything the gesture remembers between frames.
@@ -86,7 +97,14 @@ struct CornerDragSession
 /// 🧩 How far from a corner the pointer may be and still name it, in world units.
 /// 📝 Generous on purpose: a corner is a single point, and requiring pixel accuracy on a point makes a
 ///    tool feel broken long before it is.
+/// note  ⚠️ The FALLBACK only, used when a frame states no `Reach` of its own. A fixed world reach is
+///        correct at exactly one zoom; see `CornerPointerFrame::Reach`, which every live caller sets.
 constexpr double CornerProbeReach = 12.0;
+
+/// 🧩 The same reach expressed the way the artist experiences it: a target of constant size on screen.
+/// 📝 Matched to the selection tolerance the picker already uses, so a corner is as easy to grab as the
+///    curve it belongs to rather than having a second, stricter rule nobody stated.
+constexpr double CornerProbeReachPixels = 12.0;
 
 /// 🧩 Advances the gesture by one frame.
 /// in    Declared  [-] the sketch, read only; nothing is mutated until `ApplyCornerDragSession`
