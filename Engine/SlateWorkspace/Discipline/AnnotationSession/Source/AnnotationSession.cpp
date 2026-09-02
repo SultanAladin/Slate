@@ -25,6 +25,15 @@ constexpr bool RoundSubject(WorldDimensionSubject Subject)
     return Subject == WorldDimensionSubject::Radius || Subject == WorldDimensionSubject::Diameter;
 }
 
+/// 🧩 The stand-off a dimension is born holding, as a fraction of the size it measures.
+/// 📐 A dimension declared at offset zero draws its line straight down the edge it measures, so the
+///    number sits on top of the geometry and every dimension on a shape overlaps every other one.
+/// 🔴 PROPORTIONAL, NOT A FIXED DISTANCE. A fixed stand-off in world units is legible on the one
+///    drawing it was tuned for and useless on every other: 30 units clears a 100-unit edge and buries
+///    a 5-unit one, while vanishing entirely beside a 5000-unit one. A fraction of the measurement
+///    reads the same at every scale the artist works at, from millimetres to kilometres.
+constexpr double DimensionBirthFraction = 0.35;
+
 /// 🧩 A pick, as a dimension reference.
 WorldDimensionReference ReferenceOf(const WorldPick& Held)
 {
@@ -186,7 +195,15 @@ AnnotationVerdict OfferAnnotationPick(WorldSketchStructure& Declared,
     if (!Authored.Resolved)
         return AnnotationVerdict::PicksUnsuitable;
 
-    Session.Placed = Declared.DeclareDimension(Authored.Delivered);
+    // 🔴 BORN STANDING OFF ITS OWN EDGE. A dimension declared at offset zero draws its line straight
+    //    along the geometry it measures, so the figure sits on the edge and several dimensions on one
+    //    shape lie across each other. Placing it out to the side at birth means the very first frame
+    //    the artist sees is already readable, and the drag that follows only refines it.
+    WorldDimensionSpecification Born = Authored.Delivered;
+    if (!(std::fabs(Born.Offset) > 0.0))
+        Born.Offset = std::fabs(Measured) * DimensionBirthFraction;
+
+    Session.Placed = Declared.DeclareDimension(Born);
     if (!Session.Placed.Assigned())
         return AnnotationVerdict::GeometryAbsent;
 
@@ -194,6 +211,35 @@ AnnotationVerdict OfferAnnotationPick(WorldSketchStructure& Declared,
     Session.Driving = false;
     Session.Phase = AnnotationPhase::Placing;
     return AnnotationVerdict::Produced;
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+
+bool GraspDeclaredDimension(const WorldSketchStructure& Declared,
+                            WorldDimensionName Subject,
+                            AnnotationSession& Session)
+{
+    if (!Subject.Assigned())
+        return false;
+
+    const WorldDimensionSpecification* Held = Declared.Resolve(Subject);
+    if (Held == nullptr)
+        return false;
+
+    // 🔴 THE DIMENSION ALREADY EXISTS, SO NOTHING IS DECLARED HERE. This re-enters the placing gesture
+    //    on a dimension that was committed earlier; declaring a second one would leave the first behind
+    //    as a duplicate the artist never asked for and cannot see under the one they are dragging.
+    Session.Constraining = false;
+    Session.Dimension    = Held->Subject;
+    Session.Placed       = Subject;
+    Session.Figure       = Held->Target;
+
+    // 📝 Not driving until the artist types again. Re-placing a dimension moves the annotation, and
+    //    moving an annotation must never be a reason to move the geometry underneath it.
+    Session.Driving      = false;
+    Session.Phase        = AnnotationPhase::Placing;
+    Session.RetiredConstraints.clear();
+    return true;
 }
 
 //------------------------------------------------------------------------------------------------------------------------

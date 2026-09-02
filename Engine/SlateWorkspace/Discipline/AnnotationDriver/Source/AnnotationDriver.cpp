@@ -77,6 +77,7 @@ void DriveAnnotations(const PlaneExtent& Bounds,
                       ParametricToolSubject ActiveTool,
                       const WorldPlacementFrame& Workplane,
                       const WorldPick& Hovered,
+                      WorldDimensionName FigureUnderPointer,
                       WorldSketchStructure& World,
                       AnnotationState& State,
                       ToolContextMenu& Readout,
@@ -113,7 +114,17 @@ void DriveAnnotations(const PlaneExtent& Bounds,
     //------------------------------------------------------------------------------------------------------------------------
     // ① Picking.
     //------------------------------------------------------------------------------------------------------------------------
-    if (Pointer.ContactPressed && Hovered.Standing() &&
+    // 🔴 AN EXISTING DIMENSION IS GRASPED BEFORE A NEW ONE IS STARTED. The figure chip sits over the
+    //    geometry it measures, so a press that lands on it would otherwise pick the curve underneath and
+    //    declare a second dimension on top of the first -- and the first could never be moved again.
+    if (Pointer.ContactPressed && FigureUnderPointer.Assigned() &&
+        State.Session.Phase != AnnotationPhase::Placing &&
+        GraspDeclaredDimension(World, FigureUnderPointer, State.Session))
+    {
+        State.Figure = static_cast<float>(ToDisplay(State.Session.Figure, State.Unit));
+        PointerTaken = true;
+    }
+    else if (Pointer.ContactPressed && Hovered.Standing() &&
         State.Session.Phase != AnnotationPhase::Placing &&
         State.Session.Phase != AnnotationPhase::Editing)
     {

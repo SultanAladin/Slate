@@ -137,6 +137,17 @@ AnnotationVerdict OfferAnnotationPick(WorldSketchStructure& Declared,
                                       const WorldPick& Offered,
                                       AnnotationSession& Session);
 
+/// 🧩 Takes hold of a dimension that was placed earlier, so it can be dragged somewhere else.
+/// out   Session  [-] re-enters `Placing` on the named dimension
+/// note  🔴 DECLARES NOTHING. The dimension already exists; this only points the gesture at it. Once a
+///        dimension has been committed there is otherwise no way back to it, and an annotation that can
+///        never be moved again is one the artist has to delete and redo to tidy up a drawing.
+/// note  📝 Refuses an unassigned or already-deleted name, so a stale hit-test result is harmless.
+/// tag   api, nonthrowing
+bool GraspDeclaredDimension(const WorldSketchStructure& Declared,
+                            WorldDimensionName Subject,
+                            AnnotationSession& Session);
+
 /// 🧩 Moves a placed dimension to wherever the pointer is, in one call.
 /// note  📝 Writes `Offset` and, for round dimensions, `Angle`. Both are placement; neither touches the
 ///        geometry being measured, so dragging a dimension can never alter the drawing.

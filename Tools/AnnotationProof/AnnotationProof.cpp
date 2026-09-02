@@ -38,6 +38,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <string>
 #include <vector>
 
 using namespace Slate;
@@ -708,6 +709,152 @@ void ProveDimensionsAreDrawn()
 //                        10. A DIMENSION OUTRANKS A CONSTRAINT THAT CONTRADICTS IT
 //------------------------------------------------------------------------------------------------------------------------
 
+//------------------------------------------------------------------------------------------------------------------------
+//                              11. A NEW DIMENSION IS ALREADY READABLE, AND CAN STILL BE MOVED
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🔴 THE CRISS-CROSS BUG, PINNED DOWN. A dimension declared at offset zero draws its line straight down
+///    the edge it measures. On a single edge that merely looks wrong; on a rectangle all four dimensions
+///    land on the four sides at once and the figures pile onto the geometry, which is exactly what
+///    "the lines criss-cross and sit in the wrong place" describes.
+void ProveDimensionsStandOffTheirOwnEdge()
+{
+    std::printf("\n11. A dimension is born beside its edge rather than on top of it\n");
+
+    // 📐 A 100 x 60 rectangle, drawn as a closed run.
+    WorldSketchStructure Sketch;
+    const WorldCurveName Bottom = Sketch.DeclareLine({ 0.0, 0.0, 0.0 },   { 100.0, 0.0, 0.0 },  Ground);
+    const WorldCurveName Right  = Sketch.DeclareLine({ 100.0, 0.0, 0.0 }, { 100.0, 0.0, 60.0 }, Ground);
+    const WorldCurveName Top    = Sketch.DeclareLine({ 100.0, 0.0, 60.0 },{ 0.0, 0.0, 60.0 },   Ground);
+    const WorldCurveName Left   = Sketch.DeclareLine({ 0.0, 0.0, 60.0 },  { 0.0, 0.0, 0.0 },    Ground);
+
+    const WorldCurveName Edges[] = { Bottom, Right, Top, Left };
+    const char* Naming[] = { "the bottom", "the right", "the top", "the left" };
+
+    for (unsigned Index = 0u; Index < 4u; ++Index)
+    {
+        AnnotationSession Session;
+        Session.Dimension = WorldDimensionSubject::Aligned;
+
+        WorldPick Offered = {};
+        Offered.Subject = WorldPickSubject::Curve;
+        Offered.Curve   = Edges[Index];
+
+        Claim(OfferAnnotationPick(Sketch, Offered, Session) == AnnotationVerdict::Produced,
+              std::string(Naming[Index]).append(" edge takes a dimension").c_str());
+
+        const WorldDimensionSpecification* Held = Sketch.Resolve(Session.Placed);
+        Claim(Held != nullptr && std::fabs(Held->Offset) > 0.0,
+              std::string(Naming[Index])
+                  .append(" dimension is born standing off, not at offset zero").c_str());
+
+        const Deliver<DimensionGeometry> Drawn = ResolveDimensionGeometry(Sketch, Session.Placed);
+        Claim(!!Drawn.Resolved, std::string(Naming[Index]).append(" dimension draws").c_str());
+        if (!Drawn.Resolved)
+            continue;
+
+        const DimensionGeometry& Shown = Drawn.Delivered;
+
+        // ① THE LINE IS NOT ON THE EDGE. This is the whole complaint, stated as arithmetic.
+        Claim(!SamePoint(Shown.LineStart, Shown.MeasuredStart, 1.0e-3) &&
+              !SamePoint(Shown.LineEnd, Shown.MeasuredEnd, 1.0e-3),
+              std::string(Naming[Index])
+                  .append(" dimension line is clear of the edge it measures").c_str());
+
+        // ② AND IT IS PARALLEL TO IT. Standing off in some arbitrary direction would clear the edge and
+        //    still be wrong; the reference drags the dimension out perpendicular, keeping it parallel.
+        const SpatialDirection AlongEdge = Normalize(Difference(Shown.MeasuredStart, Shown.MeasuredEnd));
+        const SpatialDirection AlongLine = Normalize(Difference(Shown.LineStart, Shown.LineEnd));
+        Claim(Near(std::fabs(Dot(AlongEdge, AlongLine)), 1.0, 1.0e-9),
+              std::string(Naming[Index])
+                  .append(" dimension line stays parallel to its edge").c_str());
+
+        // ③ AND IT STILL MEASURES THE TRUTH. A stand-off that altered the figure would be far worse
+        //    than one that overlapped.
+        Claim(Near(Shown.Measured, Index % 2u == 0u ? 100.0 : 60.0),
+              std::string(Naming[Index]).append(" dimension still reads its real length").c_str());
+    }
+
+    // 🔴 PROPORTIONAL, NOT A FIXED NUMBER OF MILLIMETRES. The same gesture on a drawing a thousand times
+    //    larger must stand off a thousand times further, or the dimension vanishes onto the geometry
+    //    again -- the identical defect, merely at a scale nobody tested.
+    WorldSketchStructure Huge;
+    const WorldCurveName LongEdge =
+        Huge.DeclareLine({ 0.0, 0.0, 0.0 }, { 100000.0, 0.0, 0.0 }, Ground);
+
+    AnnotationSession Large;
+    Large.Dimension = WorldDimensionSubject::Aligned;
+    WorldPick Reaching = {};
+    Reaching.Subject = WorldPickSubject::Curve;
+    Reaching.Curve   = LongEdge;
+    static_cast<void>(OfferAnnotationPick(Huge, Reaching, Large));
+
+    const WorldDimensionSpecification* Stretched = Huge.Resolve(Large.Placed);
+    Claim(Stretched != nullptr && std::fabs(Stretched->Offset) > 1000.0,
+          "a hundred-metre edge stands its dimension off by metres, not by millimetres");
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🔴 A DIMENSION THAT CANNOT BE MOVED AGAIN IS STUCK. Placement was reachable only during the gesture
+///    that created it: once committed there was no way back, so a dimension that landed badly had to be
+///    deleted and redone. The reference lets the artist drag any dimension at any time.
+void ProveAPlacedDimensionCanBeMovedAgain()
+{
+    std::printf("\n12. A dimension placed earlier can be taken hold of and dragged somewhere else\n");
+
+    WorldSketchStructure Sketch;
+    const WorldCurveName Edge = Sketch.DeclareLine({ 0.0, 0.0, 0.0 }, { 100.0, 0.0, 0.0 }, Ground);
+
+    AnnotationSession First;
+    First.Dimension = WorldDimensionSubject::Aligned;
+    WorldPick Offered = {};
+    Offered.Subject = WorldPickSubject::Curve;
+    Offered.Curve   = Edge;
+    Claim(OfferAnnotationPick(Sketch, Offered, First) == AnnotationVerdict::Produced,
+          "a dimension is placed");
+
+    const WorldDimensionName Placed = First.Placed;
+    DragAnnotationTo(Sketch, { 50.0, 0.0, 20.0 }, First);
+    static_cast<void>(ApplyAnnotation(Sketch, First));
+    CancelAnnotationSession(Sketch, First);
+
+    const std::uint32_t AfterFirst = Sketch.DimensionCount();
+
+    // ① A FRESH GESTURE TAKES HOLD OF THE ONE ALREADY THERE.
+    AnnotationSession Second;
+    Claim(GraspDeclaredDimension(Sketch, Placed, Second),
+          "a committed dimension can be grasped again");
+    Claim(Second.Phase == AnnotationPhase::Placing,
+          "and doing so re-enters the placing gesture");
+    Claim(Second.Placed.IssuedIndex == Placed.IssuedIndex,
+          "on that very dimension, not a new one");
+
+    // ② NOTHING WAS DECLARED. Grasping that quietly made a second dimension would leave a duplicate
+    //    stacked under the one being dragged, invisible until the artist moved it.
+    Claim(Sketch.DimensionCount() == AfterFirst,
+          "grasping declares nothing -- no duplicate is left behind");
+
+    // ③ AND IT ACTUALLY MOVES.
+    DragAnnotationTo(Sketch, { 50.0, 0.0, -45.0 }, Second);
+    const WorldDimensionSpecification* Moved = Sketch.Resolve(Placed);
+    Claim(Moved != nullptr && Near(std::fabs(Moved->Offset), 45.0),
+          "and the drag moves the dimension that was already there");
+
+    // ④ MOVING IS NOT DRIVING. Repositioning an annotation must never move the drawing under it.
+    Claim(!Second.Driving, "re-placing a dimension does not make it drive the geometry");
+    const DeclaredWorldCurve* Untouched = Sketch.Resolve(Edge);
+    Claim(Untouched != nullptr &&
+          SamePoint(Untouched->Geometry.HeldLine().Terminus, { 100.0, 0.0, 0.0 }),
+          "and the edge it measures has not moved");
+
+    // ⑤ A STALE NAME IS HARMLESS.
+    Claim(!GraspDeclaredDimension(Sketch, WorldDimensionName{}, Second),
+          "grasping nothing refuses rather than pretending");
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+
 void ProveDimensionsOutrankConstraints()
 {
     std::printf("\n10. A typed dimension beats a constraint that contradicts it, and only that one\n");
@@ -866,6 +1013,8 @@ int main()
     ProvePickGathering();
     ProveDimensionsAreDrawn();
     ProveDimensionsOutrankConstraints();
+    ProveDimensionsStandOffTheirOwnEdge();
+    ProveAPlacedDimensionCanBeMovedAgain();
 
     std::printf("\n%u claims, %u failures\n", Claims, Failures);
     return Failures == 0u ? 0 : 1;

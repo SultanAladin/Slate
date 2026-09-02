@@ -26,6 +26,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <string>
 #include <vector>
 
 using namespace Slate;
@@ -251,11 +252,11 @@ void ProveFilletAtAnObliqueAngle()
     }
 
     // 📐 A SHARP angle eats far more leg than a blunt one, and the limit must follow. At 60 degrees a
-    //    100-long shorter leg gives reach 50 and so a limit of 50*tan(30) = 28.867513.
+    //    100-long shorter leg gives reach 100 and so a limit of 100*tan(30) = 57.735027.
     WorldSketchStructure Sharp;
     const WorldCurveName SharpA = Sharp.DeclareLine(Corner, { 100.0, 0.0, 0.0 });
     const WorldCurveName SharpB = Sharp.DeclareLine(Corner, { 100.0 * 0.5, 0.0, 100.0 * 0.8660254037844386 });
-    Claim(Near(ResolveCornerLimit(Sharp, SharpA, SharpB), 28.867513459481287, 1.0e-9),
+    Claim(Near(ResolveCornerLimit(Sharp, SharpA, SharpB), 57.735026918962575, 1.0e-9),
           "and the limit tracks the angle, not merely the leg length");
 }
 
@@ -316,15 +317,20 @@ void ProveTheClampAndTheRefusals()
 
     Elbow Stage;
 
-    // 📐 Right angle, legs 100 and 60. The clamp allows half the SHORTER leg: reach 30, and at 90 degrees
-    //    the radius equals the reach, so the limit is 30.
+    // 📐 Right angle, legs 100 and 60. The clamp allows the WHOLE of the shorter leg: reach 60, and at
+    //    90 degrees the radius equals the reach, so the limit is 60.
     const double Limit = ResolveCornerLimit(Stage.Sketch, Stage.AB, Stage.BC);
-    Claim(Near(Limit, 30.0), "the limit is half the shorter leg, not half the longer one");
+    Claim(Near(Limit, 60.0), "the limit is the whole shorter leg, not the longer one and not half");
 
-    Claim(EvaluateWorldCorner(Stage.Sketch, Stage.AB, Stage.BC, 29.9) == CornerVerdict::Produced,
+    Claim(EvaluateWorldCorner(Stage.Sketch, Stage.AB, Stage.BC, 59.9) == CornerVerdict::Produced,
           "just inside the limit is accepted");
-    Claim(EvaluateWorldCorner(Stage.Sketch, Stage.AB, Stage.BC, 30.1) == CornerVerdict::RadiusBeyondLimit,
+    Claim(EvaluateWorldCorner(Stage.Sketch, Stage.AB, Stage.BC, 60.1) == CornerVerdict::RadiusBeyondLimit,
           "just outside it is refused, and says so");
+
+    // 🔴 THE WHOLE LEG IS REACHABLE. A fillet that consumes its shorter leg entirely is the largest one
+    //    the geometry admits, and the artist is entitled to ask for exactly it.
+    Claim(EvaluateWorldCorner(Stage.Sketch, Stage.AB, Stage.BC, Limit) == CornerVerdict::Produced,
+          "and the limit itself is accepted, so the whole leg can be eaten");
 
     Claim(EvaluateWorldCorner(Stage.Sketch, Stage.AB, Stage.BC, 0.0) == CornerVerdict::RadiusNotPositive,
           "a zero radius is refused as a zero radius, not as a limit");
@@ -448,7 +454,7 @@ void ProveCornersAreFound()
     for (const WorldCornerTarget& Held : Corners)
     {
         Claim(Near(Held.Radians, 1.5707963267948966, 1.0e-9), "each is a right angle");
-        Claim(Near(Held.Limit, 50.0), "and each accepts up to half an edge");
+        Claim(Near(Held.Limit, 100.0), "and each accepts up to a whole edge");
     }
 
     const Deliver<WorldCornerTarget> Near1 =
@@ -497,7 +503,7 @@ void ProveTheDragGesture()
     Pointer.Probe = { 2.0, 0.0, 2.0 };
     AdvanceCornerDragSession(Stage.Sketch, Pointer, Session);
     Claim(Session.Phase == CornerPhase::Hovering, "hovering the corner highlights it");
-    Claim(Near(Session.Limit, 30.0), "and the session already knows the corner's limit");
+    Claim(Near(Session.Limit, 60.0), "and the session already knows the corner's limit");
     Claim(!Session.PopupStanding(), "hovering alone raises no popup");
 
     // ③ Pressing and dragging sets the radius from the pointer's distance.
@@ -517,7 +523,7 @@ void ProveTheDragGesture()
     // ④ THE CLAMP. Dragging far past the limit holds at the limit and keeps going.
     Pointer.Probe = { -400.0, 0.0, 0.0 };
     AdvanceCornerDragSession(Stage.Sketch, Pointer, Session);
-    Claim(Near(Session.Radius, 30.0), "dragging past the limit holds the radius AT the limit");
+    Claim(Near(Session.Radius, 60.0), "dragging past the limit holds the radius AT the limit");
     Claim(Session.Clamped, "and says it is clamped, so the interface can show it");
     Claim(Session.Phase == CornerPhase::Dragging, "rather than refusing and dropping the gesture");
 
@@ -540,7 +546,7 @@ void ProveTheDragGesture()
           "and the pointer no longer steals it back while the popup is pending");
 
     DeclareCornerRadius(Stage.Sketch, Session, 900.0);
-    Claim(Near(Session.Radius, 30.0), "a typed figure past the limit clamps exactly as a drag does");
+    Claim(Near(Session.Radius, 60.0), "a typed figure past the limit clamps exactly as a drag does");
     DeclareCornerRadius(Stage.Sketch, Session, 12.5);
 
     // ⑦ Apply is what writes.
@@ -750,6 +756,91 @@ void ProveTheReachFollowsTheZoom()
           "and Apply writes the fillet, at a zoom where the tool used to be unusable");
 }
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                      9. THE SAME TOOL AT EVERY SCALE AN ARTIST WORKS AT
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 📐 A right-angled corner whose legs are `Leg` long, filleted across six orders of magnitude:
+///    5 mm, 5 cm, 5 m and 5 km, with the model's unit being the millimetre.
+/// 🔴 THE POINT IS THAT NOTHING HERE IS ABSOLUTE. A tolerance, a clamp or a default expressed as a fixed
+///    number of millimetres works on the drawing it was tuned for and silently fails on every other. A
+///    5 m corner that can only be filleted to a few millimetres is the exact symptom, and it is invisible
+///    to any proof that only ever tests one size.
+void ProveEveryScaleFilletsTheSame()
+{
+    std::printf("\n9. A corner fillets the same way from millimetres to kilometres\n");
+
+    struct Scale
+    {
+        const char* Naming;
+        double      Leg;
+    };
+
+    const Scale Scales[] = { { "5 mm", 5.0 },
+                             { "5 cm", 50.0 },
+                             { "5 m",  5000.0 },
+                             { "5 km", 5000000.0 } };
+
+    for (const Scale& Held : Scales)
+    {
+        WorldSketchStructure Sketch;
+        const SpatialPoint Corner = { Held.Leg, 0.0, 0.0 };
+        const WorldCurveName AB = Sketch.DeclareLine({ 0.0, 0.0, 0.0 }, Corner);
+        const WorldCurveName BC = Sketch.DeclareLine(Corner, { Held.Leg, 0.0, Held.Leg });
+
+        // ① The limit is the whole leg, at every scale -- it is a proportion, not a constant.
+        const double Limit = ResolveCornerLimit(Sketch, AB, BC);
+        Claim(Near(Limit, Held.Leg, Held.Leg * 1.0e-9),
+              std::string("at ").append(Held.Naming)
+                  .append(" the limit is the whole leg, not some fixed small radius").c_str());
+
+        // ② A radius at one percent of the leg is accepted -- the small end still works.
+        Claim(EvaluateWorldCorner(Sketch, AB, BC, Held.Leg * 0.01) == CornerVerdict::Produced,
+              std::string("at ").append(Held.Naming).append(" a small fillet is accepted").c_str());
+
+        // ③ A radius at the limit is accepted: the artist may eat the entire leg.
+        Claim(EvaluateWorldCorner(Sketch, AB, BC, Limit) == CornerVerdict::Produced,
+              std::string("at ").append(Held.Naming)
+                  .append(" a fillet consuming the whole leg is accepted").c_str());
+
+        // ④ And past it is still refused, so the clamp has not simply been removed.
+        Claim(EvaluateWorldCorner(Sketch, AB, BC, Limit * 1.01) == CornerVerdict::RadiusBeyondLimit,
+              std::string("at ").append(Held.Naming).append(" past the limit is still refused").c_str());
+
+        // ⑤ THE ARC IS ACTUALLY TANGENT AT THIS SCALE, not merely permitted. A limit that accepts a
+        //    radius the geometry cannot honour would pass every claim above and draw nonsense.
+        const double Radius = Limit * 0.5;
+        WorldCurveName Arc = {};
+        Claim(ApplyWorldCorner(Sketch, AB, BC, Radius, false, Arc) == CornerVerdict::Produced,
+              std::string("at ").append(Held.Naming)
+                  .append(" the fillet is written into the sketch").c_str());
+
+        const DeclaredWorldCurve* HeldArc = Sketch.Resolve(Arc);
+        if (HeldArc != nullptr && HeldArc->Geometry.Subject() == CurveSubject::CircularArc)
+        {
+            const CircularArcCurve& Round = HeldArc->Geometry.HeldCircularArc();
+
+            // 📐 A RELATIVE TOLERANCE, because an absolute one is the very bug being hunted: 1e-6 mm is
+            //    unreachable on a 5 km drawing and meaninglessly loose on a 5 mm one.
+            const double Slack = Radius * 1.0e-9;
+            Claim(Near(Round.Radius, Radius, Slack),
+                  std::string("at ").append(Held.Naming)
+                      .append(" the arc carries the radius asked for").c_str());
+            Claim(Near(DistanceToLine(Round.Centre, { 0.0, 0.0, 0.0 }, Corner), Radius, Slack),
+                  std::string("at ").append(Held.Naming)
+                      .append(" its centre sits one radius off the first leg").c_str());
+            Claim(Near(DistanceToLine(Round.Centre, Corner, { Held.Leg, 0.0, Held.Leg }), Radius, Slack),
+                  std::string("at ").append(Held.Naming)
+                      .append(" and one radius off the second -- tangent at this scale too").c_str());
+        }
+        else
+        {
+            Claim(false, std::string("at ").append(Held.Naming)
+                             .append(" an arc joins the two legs").c_str());
+        }
+    }
+}
+
 } // namespace
 
 int main()
@@ -767,6 +858,7 @@ int main()
     ProveTheDragGesture();
     ProveTheDragIsVisible();
     ProveTheReachFollowsTheZoom();
+    ProveEveryScaleFilletsTheSame();
 
     std::printf("\n=========================================================================\n");
     std::printf("%u claims, %u failures -> %s\n", Claims, Failures,

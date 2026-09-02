@@ -1614,9 +1614,14 @@ static std::vector<DimensionFigureChip> SketchDimensionFigures;
                                                          ParametricToolsApplied.ActiveSubject,
                                                          ResolveWorkplacementFrame(
                                                              SketchWorkplanes.Active()),
-                                                         AnnotationHover, SketchWorld,
-                                                         SketchAnnotations, SketchContextMenu,
-                                                         AnnotationTaken);
+                                        AnnotationHover,
+                                        ResolveDimensionFigureAt(
+                                            SketchDimensionFigures,
+                                            BackgroundPointer.PositionX,
+                                            BackgroundPointer.PositionY),
+                                        SketchWorld,
+                                        SketchAnnotations, SketchContextMenu,
+                                        AnnotationTaken);
 
                                         Discard(Viewport.Surface().SwitchLayer(
                                             RecordingSurface::ShellLayer::Beneath));

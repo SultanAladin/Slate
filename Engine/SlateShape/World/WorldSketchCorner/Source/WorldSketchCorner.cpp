@@ -142,12 +142,14 @@ double ResolveCornerLimit(const WorldSketchStructure& Declared,
     if (Radians <= CollinearTolerance || Radians >= 3.141592653589793 - CollinearTolerance)
         return 0.0;
 
-    // 📐 Invert the tangent reach: the longest reach that fits is half the shorter leg, so the largest
-    //    radius is that reach times tan(theta/2).
-    // 🔴 HALF, NOT ALL, OF THE SHORTER LEG. A rectangle filleted at every corner has two corners eating
-    //    into each edge from opposite ends. Allowing a full leg would let the first corner consume the
-    //    edge the second one needs, and the second would then refuse for reasons the artist cannot see.
-    const double Reach = std::min(LeftLeg.Length, RightLeg.Length) * 0.5;
+    // 📐 Invert the tangent reach: the longest reach that fits is the whole of the shorter leg, so the
+    //    largest radius is that reach times tan(theta/2).
+    // 🔴 ALL OF THE SHORTER LEG, NOT HALF. The radius the artist may ask for is bounded by the geometry
+    //    that is actually there, and a leg is as long as it is. Reserving half of it for some second
+    //    corner that may never be drawn refuses radii that fit perfectly well, and refuses them for a
+    //    reason the artist cannot see. A corner that later eats an edge another corner needs is caught
+    //    when that second corner is evaluated, against the leg length as it stands by then.
+    const double Reach = std::min(LeftLeg.Length, RightLeg.Length);
     return Reach * std::tan(Radians * 0.5);
 }
 
@@ -179,9 +181,11 @@ CornerVerdict EvaluateWorldCorner(const WorldSketchStructure& Declared,
     if (!(Radius > 0.0))
         return CornerVerdict::RadiusNotPositive;
 
+    // 🔴 THE SAME WHOLE-LEG BOUND `ResolveCornerLimit` REPORTS. If this test were stricter than the
+    //    limit the readout shows, the artist would type the number they were offered and be refused.
     const double Reach = TangentReach(Radius, Radians);
-    if (Reach > LeftLeg.Length * 0.5 + JunctionTolerance ||
-        Reach > RightLeg.Length * 0.5 + JunctionTolerance)
+    if (Reach > LeftLeg.Length + JunctionTolerance ||
+        Reach > RightLeg.Length + JunctionTolerance)
         return CornerVerdict::RadiusBeyondLimit;
 
     SpatialDirection Normal = {};

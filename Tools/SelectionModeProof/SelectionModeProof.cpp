@@ -360,25 +360,34 @@ int main()
         const std::size_t HideEnds = Panel.find("\n}", HideAt);
         const std::string HideBody = Panel.substr(HideAt, HideEnds > HideAt ? HideEnds - HideAt : 0u);
 
-        // 🔴 THREE BANDS NOW, AND THIS CLAIM WAS CHANGED DELIBERATELY. It pinned `BandCount = 2u` while
-        //    the catalogue was intentionally reduced to a drawing band and an operations band. The
-        //    Annotation band -- thirteen dimension and constraint tiles -- has since been asked for and
-        //    built, so a proof still demanding exactly two would be enforcing a decision that has been
-        //    superseded. What the claim protects is unchanged: the two original bands are still there
-        //    under their agreed names, and no band has been dropped to make room.
-        Require(Panel.find("BandCount = 3u") != std::string::npos,
-                "the catalogue carries the drawing, operations and annotation bands");
+        // 🔴 FOUR BANDS NOW, AND THIS CLAIM WAS CHANGED DELIBERATELY -- TWICE. It first pinned
+        //    `BandCount = 2u` while the catalogue was intentionally a drawing band and an operations
+        //    band; the annotation tiles were then asked for and built, making three. They have now been
+        //    split into dimensions and constraints, because a dimension states what a size IS and may
+        //    drive the geometry, while a constraint states a relation that must HOLD and drives nothing.
+        //    A proof demanding the old count would be enforcing a decision that has been superseded.
+        //    What the claim protects is unchanged: no band has been dropped to make room.
+        Require(Panel.find("BandCount = 4u") != std::string::npos,
+                "the catalogue carries the drawing, operations, dimension and constraint bands");
         Require(Panel.find("2DPrimitives") != std::string::npos
              && Panel.find("Operations") != std::string::npos
-             && Panel.find("\"Annotation\"") != std::string::npos,
-                "named 2DPrimitives, Operations and Annotation");
+             && Panel.find("\"Dimensions\"") != std::string::npos
+             && Panel.find("\"Constraints\"") != std::string::npos,
+                "named 2DPrimitives, Operations, Dimensions and Constraints");
 
-        // 🔴 A BAND THAT NOTHING INDEXES INTO IS UNREACHABLE, AND COMPILES PERFECTLY. `AnnotationTools`
-        //    was defined in the catalogue for exactly that reason and could not be chosen, because the
-        //    bands array listed two entries. Listing it is only half the fix: `ToolSubjectOf` also had
-        //    no case for the band, so every tile in it would have reported `Select`.
-        Require(Panel.find("AnnotationTools") != std::string::npos,
-                "the annotation tiles are listed by a band rather than defined and orphaned");
+        // 🔴 A BAND THAT NOTHING INDEXES INTO IS UNREACHABLE, AND COMPILES PERFECTLY. The annotation
+        //    tiles were defined in the catalogue for exactly that reason and could not be chosen,
+        //    because the bands array listed two entries. Listing them is only half the fix:
+        //    `ToolSubjectOf` also had no case for the band, so every tile would have reported `Select`.
+        Require(Panel.find("DimensionTools") != std::string::npos
+             && Panel.find("ConstraintTools") != std::string::npos,
+                "the annotation tiles are listed by bands rather than defined and orphaned");
+
+        // 🔴 THE TWO KINDS ARE SEPARATELY REACHABLE. Splitting the table but leaving one band pointing at
+        //    it would put the heading in the interface and still hand the artist a single list.
+        Require(Panel.find("case 3u:") != std::string::npos
+             && Panel.find("ParametricToolSubject::HorizontalConstraint") != std::string::npos,
+                "and the constraint band maps its own indices rather than sharing the dimensions'");
         Require(Panel.find("ParametricToolSubject::LinearDimension") != std::string::npos
              && Panel.find("ParametricToolSubject::RadialDimension") != std::string::npos,
                 "and the band maps its indices onto dimension subjects rather than falling back to Select");
