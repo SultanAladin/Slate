@@ -57,10 +57,17 @@
   .view{flex:0 0 50%;height:100%;display:flex;min-width:0;}
 
   .tree-pane{flex:0 0 48%;min-width:0;display:flex;flex-direction:column;
-    border-right:1px solid rgba(255,255,255,.06);}
+    border-right:1px solid rgba(255,255,255,.06);
+    transition:flex-basis .32s var(--ease),border-color .32s var(--ease);}
   .det-pane{flex:1;min-width:0;display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:none;
-    padding:14px 18px 16px;}
+    padding:14px 18px 16px;overflow-x:hidden;
+    transition:opacity .22s var(--ease),padding .32s var(--ease);}
   .det-pane::-webkit-scrollbar{display:none;}
+  /* compact mode — stack only, details hidden */
+  .view.compact .tree-pane{flex-basis:100%;border-right-color:transparent;}
+  .view.compact .det-pane{opacity:0;padding-left:0;padding-right:0;pointer-events:none;}
+  .iconbtn.on{background:var(--accent);color:#000;}
+  .iconbtn.on:hover{background:#e6e6e6;color:#000;}
 
   /* ── tools row (LayerstackV1 pattern) ───────────────────────────── */
   .tools{display:flex;align-items:center;gap:6px;padding:12px 14px 8px;}
@@ -75,6 +82,8 @@
     transition:background .13s var(--ease),color .13s var(--ease),border-color .13s var(--ease),transform .12s var(--ease);}
   .tico:hover{background:rgba(255,255,255,.08);color:var(--text);border-color:var(--stroke);}
   .tico:active{transform:scale(.93);}
+  .tico.add{background:var(--accent);color:#000;border-radius:50%;}
+  .tico.add:hover{background:#e6e6e6;color:#000;}
   .filter-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:0 14px 8px;}
   .filter-row:empty{display:none;}
   .pill{
@@ -334,20 +343,24 @@
     <span class="h-title" id="hTitle">Layer Stack</span>
     <span class="h-sub" id="hSub">Material · M_Hull_Painted</span>
     <span class="spacer"></span>
-    <button class="iconbtn" id="btnAdd" title="Add layer">＋</button>
-    <button class="iconbtn props" id="btnProps" title="Open properties" disabled>›</button>
+    <button class="iconbtn" id="btnCompact" title="Compact — stack only">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M14 4v16"/></svg>
+    </button>
   </div>
 
   <div class="view-wrap">
     <div class="view-track" id="viewTrack">
       <!-- view 0 : [ stack | details ] -->
-      <div class="view">
+      <div class="view" id="stackView">
         <div class="tree-pane">
           <div class="tools">
             <label class="search">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
               <input id="q" placeholder="Filter layers…" spellcheck="false">
             </label>
+            <button class="tico add" id="btnAdd" title="Add layer">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
             <button class="tico" id="btnFilter" title="Filter by type">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v5l-4 2v-7z"/></svg>
             </button>
@@ -514,7 +527,8 @@ const isDescendant=(anc,x)=>{ let p=x.parent; while(p){ if(p===anc) return true;
 
 /* ── whole-card slide ─────────────────────────────────────────────── */
 const viewTrack=document.getElementById('viewTrack');
-const btnProps=document.getElementById('btnProps'), btnBack=document.getElementById('btnBack'), btnAdd=document.getElementById('btnAdd');
+const btnCompact=document.getElementById('btnCompact'), btnBack=document.getElementById('btnBack'), btnAdd=document.getElementById('btnAdd');
+const stackView=document.getElementById('stackView');
 const hTitle=document.getElementById('hTitle'), hSub=document.getElementById('hSub');
 function viewTo(i){
   view=i;
@@ -522,13 +536,17 @@ function viewTo(i){
   const n=current();
   if(i===1&&n){
     hTitle.textContent=n.name; hSub.textContent=typeLabel(n)+(n.type==='mask'?' Properties':' Layer');
-    btnBack.style.display=''; btnProps.style.display='none'; btnAdd.style.display='none';
+    btnBack.style.display=''; btnCompact.style.display='none';
   }else{
     hTitle.textContent='Layer Stack'; hSub.textContent='Material · M_Hull_Painted';
-    btnBack.style.display='none'; btnProps.style.display=''; btnAdd.style.display='';
+    btnBack.style.display='none'; btnCompact.style.display='';
   }
 }
-btnProps.addEventListener('click',()=>{ if(current()){ renderProps(); viewTo(1); } });
+btnCompact.addEventListener('click',()=>{
+  const on=stackView.classList.toggle('compact');
+  btnCompact.classList.toggle('on',on);
+  btnCompact.title=on?'Expand — show details':'Compact — stack only';
+});
 btnBack.addEventListener('click',()=>{ viewTo(0); renderTree(); renderDetails(); });
 
 /* ── rename ───────────────────────────────────────────────────────── */
@@ -557,7 +575,6 @@ let rowIndex=[];
 function updateSel(){
   rowIndex.forEach(({n,row})=>row.classList.toggle('sel',n.id===selId));
   document.getElementById('footSel').textContent=current()?current().name:'0 selected';
-  btnProps.disabled=!current();
 }
 function subLine(n){
   if(n.type==='mask') return '';
@@ -732,10 +749,11 @@ function renderDetails(){
   }
   detEl.innerHTML=
     `<div class="det-hero">${thumbHTML(n)}
-      <div><div class="dn name-edit" id="detName" title="Double-click to rename">${n.name}</div>
-      <div class="dt">${typeLabel(n).toLowerCase()}${n.type!=='mask'?` · ${n.blend.toLowerCase()} · ${n.opacity}%`:` · ${n.blend.toLowerCase()} · ${n.density}%`}${n.kids.length?` · ${n.kids.length} children`:''}</div></div></div>`+
-    alertHTML+settings+
-    `<div class="det-open-hint">Press &nbsp;<b style="color:var(--text)">›</b>&nbsp; in the header for full properties</div>`;
+      <div style="flex:1;min-width:0"><div class="dn name-edit" id="detName" title="Double-click to rename">${n.name}</div>
+      <div class="dt">${typeLabel(n).toLowerCase()}${n.type!=='mask'?` · ${n.blend.toLowerCase()} · ${n.opacity}%`:` · ${n.blend.toLowerCase()} · ${n.density}%`}${n.kids.length?` · ${n.kids.length} children`:''}</div></div>
+      <button class="iconbtn props" id="detProps" title="Open full properties">›</button></div>`+
+    alertHTML+settings;
+  document.getElementById('detProps').addEventListener('click',()=>{ renderProps(); viewTo(1); });
   document.getElementById('detVis').addEventListener('click',()=>{n.vis=!n.vis;renderTree();renderDetails();});
   const dn=document.getElementById('detName');
   dn.addEventListener('dblclick',()=>startRename(n,dn,()=>{renderTree();renderDetails();}));
@@ -812,7 +830,7 @@ btnAdd.addEventListener('click',e=>{
     stack.unshift(nl); selId=nl.id; renderTree(); renderDetails();
   }));
   const r=e.currentTarget.getBoundingClientRect();
-  place(popMenu,r.right-200,r.bottom+6);
+  place(popMenu,r.left,r.bottom+6);
 });
 function openCtx(x,y,n){
   const isMask=n.type==='mask', isFolder=n.type==='folder';
