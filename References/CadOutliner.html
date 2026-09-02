@@ -6,19 +6,19 @@
 <title>Slate — CAD Outliner</title>
 <style>
   /* ══════════════════════════════════════════════════════════════════
-     CAD OUTLINER — feature tree for a part, OutlinerV2 pattern:
-     whole-card slide to per-feature Properties, nav in header only.
-     Proper folder structure: Reference / Sketches / Curves / Polygons /
-     Solids / Booleans — boolean operations carry their operands as
-     child nodes. Each feature type gets its own CAD property cards.
+     CAD OUTLINER — same shell as OutlinerV2:
+     [ Feature tree | details ] → whole-card slide → [ Feature properties ].
+     Nav lives in the HEADER only. Proper folder structure:
+     Reference / Sketches / Curves / Polygons / Solids / Booleans,
+     boolean operands as child nodes.
      ══════════════════════════════════════════════════════════════════ */
   :root{
     --bg:#050505; --panel:#121212; --inset:#1a1a1a; --field:#000;
     --raised:#222; --selected:#2a2a2a;
     --text:#f0f0f0; --text-dim:#888; --text-faint:#5c5c5c;
     --accent:#fff; --hi:#6c77ff; --danger:#ef4444;
-    --ax-x:#ef5350; --ax-y:#69d06d; --ax-z:#5b8cff;
     --warn:#ef4444; --caution:#f59e0b;
+    --ax-x:#ef5350; --ax-y:#69d06d; --ax-z:#5b8cff;
     --hue-sketch:#3b82f6; --hue-curve:#10b981; --hue-poly:#f59e0b;
     --hue-solid:#8b5cf6; --hue-bool:#ef7b45; --hue-ref:#6a6a6a;
     --r-panel:24px; --r-inset:18px; --r-pill:999px;
@@ -29,7 +29,7 @@
   body{background:var(--bg); color:var(--text); display:flex; align-items:center; justify-content:center; padding:28px; overflow:hidden;}
 
   .card{
-    width:min(560px,96vw); height:min(720px,92vh);
+    width:min(1000px,96vw); height:min(680px,92vh);
     background:var(--panel); border-radius:var(--r-panel);
     box-shadow:0 24px 70px rgba(0,0,0,.65);
     display:flex; flex-direction:column; overflow:hidden;
@@ -51,9 +51,17 @@
   .iconbtn.props:hover{background:#e6e6e6;}
   .iconbtn:disabled{opacity:.35;pointer-events:none;}
 
+  /* whole-card slide */
   .view-wrap{flex:1;overflow:hidden;min-height:0;}
   .view-track{display:flex;width:200%;height:100%;transition:transform .34s var(--ease);}
-  .view{flex:0 0 50%;height:100%;display:flex;flex-direction:column;min-width:0;}
+  .view{flex:0 0 50%;height:100%;display:flex;min-width:0;}
+
+  /* view 0 : [ tree | details ] */
+  .tree-pane{flex:0 0 52%;min-width:0;display:flex;flex-direction:column;
+    border-right:1px solid rgba(255,255,255,.06);}
+  .det-pane{flex:1;min-width:0;display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:none;
+    padding:14px 18px 16px;}
+  .det-pane::-webkit-scrollbar{display:none;}
 
   .sec-label{font-size:10px;letter-spacing:1.6px;color:var(--text-faint);text-transform:uppercase;padding:14px 20px 8px;}
   .divider{height:1px;background:rgba(255,255,255,.07);margin:0 20px 8px;}
@@ -101,7 +109,7 @@
   .row .vis:hover{color:var(--text);}
   .row .vis.off{color:#3a3a3a;}
 
-  /* properties */
+  /* view 1 : properties */
   .props-scroll{flex:1;overflow-y:auto;scrollbar-width:none;padding:14px 20px 16px;}
   .props-scroll::-webkit-scrollbar{display:none;}
   .pcard{background:var(--inset);border-radius:var(--r-inset);padding:14px 16px 16px;margin-bottom:12px;
@@ -111,22 +119,59 @@
   .prow{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
   .prow:last-child{margin-bottom:0;}
   .prow .pl{flex:0 0 96px;font-size:11.5px;color:var(--text-dim);}
+
+  /* renamable name */
+  .name-edit{font-size:12.5px;cursor:text;padding:4px 8px;margin:-4px -8px;border-radius:6px;
+    transition:background .15s var(--ease);}
+  .name-edit:hover{background:rgba(255,255,255,.05);}
+  .name-edit input{background:var(--field);border:1px solid var(--hi);color:var(--text);
+    font-size:12.5px;padding:2px 6px;outline:none;border-radius:0;width:180px;}
+
+  /* tags / tokens */
+  .tags{display:flex;flex-wrap:wrap;gap:6px;flex:1;align-items:center;}
+  .tagp{height:24px;padding:0 4px 0 10px;border-radius:var(--r-pill);background:var(--raised);
+    font-size:11px;display:flex;align-items:center;gap:5px;animation:pillIn .22s var(--ease);}
+  .tagp .tx{width:16px;height:16px;border-radius:50%;border:none;cursor:pointer;background:transparent;
+    color:var(--text-dim);font-size:10px;display:grid;place-items:center;
+    transition:background .15s var(--ease),color .15s var(--ease);}
+  .tagp .tx:hover{background:var(--danger);color:#fff;}
+  .tag-in{height:24px;min-width:76px;width:76px;border-radius:var(--r-pill);border:1px dashed #3a3a3a;
+    background:transparent;color:var(--text);font-size:11px;padding:0 10px;outline:none;user-select:text;
+    transition:border-color .18s var(--ease);}
+  .tag-in::placeholder{color:var(--text-faint);}
+  .tag-in:focus{border-color:#666;}
+
+  /* colour swatches */
+  .swatches{display:flex;flex-wrap:wrap;gap:8px;flex:1;align-items:center;}
+  .swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:1px solid rgba(255,255,255,.12);
+    transition:transform .15s var(--ease),box-shadow .15s var(--ease);}
+  .swatch:hover{transform:scale(1.15);}
+  .swatch.on{box-shadow:0 0 0 2px var(--panel),0 0 0 4px #fff;}
+  .swatch.none{background:transparent;position:relative;}
+  .swatch.none::after{content:"";position:absolute;left:2px;right:2px;top:50%;height:1.5px;background:var(--danger);
+    transform:rotate(-45deg);}
+
+  /* vec3 — coloured axes */
   .vec3{display:flex;gap:6px;flex:1;}
   .cell{flex:1;height:28px;border-radius:var(--r-pill);background:var(--field);
     display:flex;align-items:center;gap:6px;padding:0 10px;}
   .cell b{font-size:9.5px;font-weight:700;}
   .cell b.ax-x{color:var(--ax-x);} .cell b.ax-y{color:var(--ax-y);} .cell b.ax-z{color:var(--ax-z);}
   .cell input{flex:1;width:100%;min-width:0;background:transparent;border:none;color:var(--text);font-size:11.5px;outline:none;text-align:right;}
-  .sld{flex:1;display:flex;align-items:center;gap:10px;}
-  .sld .track{flex:1;height:20px;position:relative;cursor:pointer;touch-action:none;}
-  .sld .track::before{content:"";position:absolute;left:0;right:0;top:50%;height:4px;
-    transform:translateY(-50%);border-radius:2px;background:#2c2c2c;}
-  .sld .fill{position:absolute;left:0;top:50%;height:4px;transform:translateY(-50%);
-    border-radius:2px;background:var(--accent);pointer-events:none;}
-  .sld .knob{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:var(--accent);
-    transform:translate(-50%,-50%);pointer-events:none;transition:transform .15s var(--ease);}
-  .sld .track:hover .knob,.sld.drag .knob{transform:translate(-50%,-50%) scale(1.3);}
-  .sld .val{flex:0 0 52px;text-align:right;font-size:11px;color:var(--text-dim);font-variant-numeric:tabular-nums;}
+
+  /* slider — kit style: [number|unit] pill + flat pill range, no shadows */
+  .sldv{flex:0 0 96px;height:28px;border-radius:var(--r-pill);overflow:hidden;display:flex;align-items:stretch;}
+  .sldv .num{flex:1;min-width:0;background:var(--field);color:var(--text);font-size:11.5px;font-weight:600;
+    display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;}
+  .sldv .unit{flex:0 0 30px;background:var(--inset);color:var(--text-faint);font-size:10px;
+    display:flex;align-items:center;justify-content:center;border-left:1px solid rgba(255,255,255,.06);}
+  input.sld{flex:1;min-width:60px;appearance:none;-webkit-appearance:none;height:22px;border-radius:var(--r-pill);
+    background:linear-gradient(to right,#7a7a7a 50%,var(--raised) 50%);outline:none;cursor:pointer;border:none;}
+  input.sld::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:20px;height:20px;border-radius:50%;
+    background:#e0e0e0;border:none;transition:transform .12s var(--ease);}
+  input.sld:active::-webkit-slider-thumb{transform:scale(1.1);}
+  input.sld::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#e0e0e0;border:none;}
+
   .sw{width:36px;height:20px;border-radius:var(--r-pill);background:#2c2c2c;position:relative;cursor:pointer;
     transition:background .2s var(--ease);flex:0 0 36px;}
   .sw::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#777;
@@ -143,8 +188,15 @@
   .oprow .on{flex:1;font-size:12px;}
   .oprow .ot{font-size:9.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--text-faint);
     background:var(--inset);border-radius:var(--r-pill);padding:3px 8px;}
-  .empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
     color:var(--text-faint);font-size:12px;}
+
+  /* details summary */
+  .det-hero{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .det-hero .di{width:40px;height:40px;border-radius:12px;background:var(--field);display:grid;place-items:center;}
+  .det-hero .dn{font-size:13.5px;font-weight:600;}
+  .det-hero .dt{font-size:10.5px;color:var(--text-faint);letter-spacing:.6px;text-transform:uppercase;margin-top:2px;}
+  .det-open-hint{font-size:11px;color:var(--text-faint);text-align:center;padding:10px 0 2px;}
 
   /* popups */
   .menu{position:fixed;z-index:900;min-width:200px;background:var(--panel);border-radius:14px;
@@ -174,17 +226,20 @@
 
   <div class="view-wrap">
     <div class="view-track" id="viewTrack">
-      <!-- view 0 : feature tree -->
+      <!-- view 0 : [ feature tree | details ] -->
       <div class="view">
-        <div class="sec-label">Filter</div>
-        <div class="filter-row" id="filterRow">
-          <button class="addfilter" id="btnFilter">＋ &nbsp;Add filter</button>
+        <div class="tree-pane">
+          <div class="sec-label">Filter</div>
+          <div class="filter-row" id="filterRow">
+            <button class="addfilter" id="btnFilter">＋ &nbsp;Add filter</button>
+          </div>
+          <div class="divider"></div>
+          <div class="sec-label">Feature Tree</div>
+          <div class="tree" id="tree"></div>
         </div>
-        <div class="divider"></div>
-        <div class="sec-label">Feature Tree</div>
-        <div class="tree" id="tree"></div>
+        <div class="det-pane" id="details"></div>
       </div>
-      <!-- view 1 : per-feature properties -->
+      <!-- view 1 : feature properties -->
       <div class="view">
         <div class="props-scroll" id="props"></div>
       </div>
@@ -204,32 +259,43 @@
 <script>
 (()=>{ "use strict";
 const S=(p,c)=>`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${c||'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
-const IC={
-  part   :c=>S('<path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M12 22V12L3 7M12 12l9-5"/>',c||'#e8e8e8'),
-  folder :c=>S('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',c||'#c9a24b'),
-  origin :c=>S('<circle cx="12" cy="12" r="3"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/>',c||'var(--hue-ref)'),
-  plane  :c=>S('<path d="M3 17 9 5h12l-6 12z"/>',c||'var(--hue-ref)'),
-  axis   :c=>S('<path d="M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4"/>',c||'var(--hue-ref)'),
-  sketch :c=>S('<path d="M4 20 20 4M4 20h6M4 20v-6"/><circle cx="20" cy="4" r="2"/>',c||'var(--hue-sketch)'),
-  curve  :c=>S('<path d="M3 20c8 0 4-16 12-16 3 0 6 3 6 3"/>',c||'var(--hue-curve)'),
-  helix  :c=>S('<path d="M6 4c8 0 12 2 12 4s-4 4-12 4 12 2 12 4-4 4-12 4"/>',c||'var(--hue-curve)'),
-  spline :c=>S('<path d="M3 17c5-10 13 8 18-6"/><circle cx="3" cy="17" r="1.6"/><circle cx="21" cy="11" r="1.6"/>',c||'var(--hue-curve)'),
-  polygon:c=>S('<path d="M12 3 20 8.5v7L12 21l-8-5.5v-7z"/>',c||'var(--hue-poly)'),
-  extrude:c=>S('<rect x="5" y="12" width="14" height="8"/><path d="M12 9V3M9 6l3-3 3 3"/>',c||'var(--hue-solid)'),
-  revolve:c=>S('<path d="M12 3v18"/><path d="M12 7c5 0 8 1.5 8 3.5S17 14 12 14"/><path d="m17 12 3 2-4 1"/>',c||'var(--hue-solid)'),
-  sweep  :c=>S('<circle cx="5" cy="18" r="2.5"/><path d="M7 16C12 12 14 9 19 5"/><circle cx="19" cy="5" r="1.4"/>',c||'var(--hue-solid)'),
-  fillet :c=>S('<path d="M20 20H8a4 4 0 0 1-4-4V4"/><path d="M4 12a8 8 0 0 0 8 8"/>',c||'var(--hue-solid)'),
-  bool   :c=>S('<circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/>',c||'var(--hue-bool)'),
-  operand:c=>S('<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>',c||'#7a7a7a'),
-  warn   :c=>S('<path d="m12 3 10 18H2z"/><path d="M12 10v4M12 17.5v.5"/>',c),
-  eye    :()=>S('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>'),
-  eyeoff :()=>S('<path d="M2 12s3.5-7 10-7c2 0 3.8.7 5.3 1.6M22 12s-3.5 7-10 7c-2 0-3.8-.7-5.3-1.6"/><path d="m3 3 18 18"/>'),
-  chev   :()=>S('<path d="m9 6 6 6-6 6"/>'),
+const S2=(p,c,sz)=>`<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="${c||'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const PATHS={
+  part   :'<path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M12 22V12L3 7M12 12l9-5"/>',
+  folder :'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  origin :'<circle cx="12" cy="12" r="3"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/>',
+  plane  :'<path d="M3 17 9 5h12l-6 12z"/>',
+  axis   :'<path d="M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4"/>',
+  sketch :'<path d="M4 20 20 4M4 20h6M4 20v-6"/><circle cx="20" cy="4" r="2"/>',
+  curve  :'<path d="M3 20c8 0 4-16 12-16 3 0 6 3 6 3"/>',
+  helix  :'<path d="M6 4c8 0 12 2 12 4s-4 4-12 4 12 2 12 4-4 4-12 4"/>',
+  spline :'<path d="M3 17c5-10 13 8 18-6"/><circle cx="3" cy="17" r="1.6"/><circle cx="21" cy="11" r="1.6"/>',
+  polygon:'<path d="M12 3 20 8.5v7L12 21l-8-5.5v-7z"/>',
+  extrude:'<rect x="5" y="12" width="14" height="8"/><path d="M12 9V3M9 6l3-3 3 3"/>',
+  revolve:'<path d="M12 3v18"/><path d="M12 7c5 0 8 1.5 8 3.5S17 14 12 14"/><path d="m17 12 3 2-4 1"/>',
+  sweep  :'<circle cx="5" cy="18" r="2.5"/><path d="M7 16C12 12 14 9 19 5"/><circle cx="19" cy="5" r="1.4"/>',
+  fillet :'<path d="M20 20H8a4 4 0 0 1-4-4V4"/><path d="M4 12a8 8 0 0 0 8 8"/>',
+  bool   :'<circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/>',
+  operand:'<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>',
 };
+const DEF_COL={part:'#e8e8e8',folder:'#c9a24b',origin:'#6a6a6a',plane:'#6a6a6a',axis:'#6a6a6a',
+  sketch:'#3b82f6',curve:'#10b981',helix:'#10b981',spline:'#10b981',polygon:'#f59e0b',
+  extrude:'#8b5cf6',revolve:'#8b5cf6',sweep:'#8b5cf6',fillet:'#8b5cf6',bool:'#ef7b45',operand:'#7a7a7a'};
+const icon=(n,sz)=>S2(PATHS[n.type]||PATHS.part, n.color||DEF_COL[n.type]||'#9aa0a6', sz||14);
+const IC={
+  warn :c=>S('<path d="m12 3 10 18H2z"/><path d="M12 10v4M12 17.5v.5"/>',c),
+  eye  :()=>S('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>'),
+  eyeoff:()=>S('<path d="M2 12s3.5-7 10-7c2 0 3.8.7 5.3 1.6M22 12s-3.5 7-10 7c-2 0-3.8-.7-5.3-1.6"/><path d="m3 3 18 18"/>'),
+  chev :()=>S('<path d="m9 6 6 6-6 6"/>'),
+  part :()=>S(PATHS.part),
+  operand:()=>S(PATHS.operand,'#7a7a7a'),
+};
+const PALETTE=['#c9a24b','#ef5350','#f59e0b','#22c55e','#3b82f6','#8b5cf6','#ec4899','#9aa0a6'];
 
 /* ── model — proper folder structure ─────────────────────────────── */
 let UID=0;
-const N=(name,type,kids,extra)=>({id:++UID,name,type,kids:kids||[],open:true,vis:true,warn:null,tag:null,...(extra||{})});
+const N=(name,type,kids,extra)=>({id:++UID,name,type,kids:kids||[],open:true,vis:true,warn:null,tag:null,
+  tags:[],color:null,...(extra||{})});
 const scene=[
   N('Part_Bracket','part',[
     N('Reference','folder',[
@@ -283,7 +349,7 @@ function viewTo(i){
   viewTrack.style.transform=`translateX(-${i*50}%)`;
   const n=current();
   if(i===1&&n){
-    hTitle.textContent=n.name; hSub.textContent=TYPE_LABEL[n.type]+' Feature';
+    hTitle.textContent=n.name; hSub.textContent=TYPE_LABEL[n.type]+' Properties';
     btnBack.style.display=''; btnProps.style.display='none'; btnAdd.style.display='none';
   }else{
     hTitle.textContent='CAD Outliner'; hSub.textContent='Part · Part_Bracket';
@@ -291,7 +357,17 @@ function viewTo(i){
   }
 }
 btnProps.addEventListener('click',()=>{ if(current()){ renderProps(); viewTo(1); } });
-btnBack.addEventListener('click',()=>viewTo(0));
+btnBack.addEventListener('click',()=>{ viewTo(0); renderTree(); renderDetails(); });
+
+/* ── rename helper ────────────────────────────────────────────────── */
+function startRename(n,nmEl,after){
+  nmEl.innerHTML=`<input value="${n.name.replace(/"/g,'&quot;')}">`;
+  const inp=nmEl.querySelector('input'); inp.focus(); inp.select();
+  const done=ok=>{ if(ok&&inp.value.trim()) n.name=inp.value.trim(); after(); };
+  inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter')done(true); if(ev.key==='Escape')done(false); });
+  inp.addEventListener('blur',()=>done(true));
+  inp.addEventListener('pointerdown',e=>e.stopPropagation());
+}
 
 /* ── tree ─────────────────────────────────────────────────────────── */
 const treeEl=document.getElementById('tree');
@@ -303,7 +379,7 @@ function passFilter(n){
 }
 function renderTree(){
   reflat(); treeEl.innerHTML='';
-  const build=(list,host)=>{
+  const build=list=>{
     list.forEach(n=>{
       if(!passFilter(n)) return;
       const row=document.createElement('div');
@@ -312,7 +388,7 @@ function renderTree(){
       const leaf=!n.kids.length;
       row.innerHTML=
         `<span class="tw ${leaf?'leaf':''} ${n.open?'open':''}">${IC.chev()}</span>`+
-        `<span class="ni">${(IC[n.type]||IC.part)()}</span>`+
+        `<span class="ni">${icon(n)}</span>`+
         `<span class="nm" data-nm>${n.name}</span>`+
         (n.tag?`<span class="tag">${n.tag}</span>`:'')+
         (n.op?`<span class="tag">${n.op}</span>`:'')+
@@ -321,29 +397,55 @@ function renderTree(){
       const tw=row.querySelector('.tw');
       if(!leaf) tw.addEventListener('click',e=>{e.stopPropagation();n.open=!n.open;renderTree();});
       const vb=row.querySelector('.vis');
-      if(vb) vb.addEventListener('click',e=>{e.stopPropagation();n.vis=!n.vis;renderTree();});
-      row.addEventListener('click',()=>{ selId=n.id; renderTree(); });
+      if(vb) vb.addEventListener('click',e=>{e.stopPropagation();n.vis=!n.vis;renderTree();renderDetails();});
+      row.addEventListener('click',()=>{ selId=n.id; renderTree(); renderDetails(); });
       row.addEventListener('dblclick',e=>{
         if(e.target.closest('.tw,.vis')||n.type==='operand') return;
-        const nm=row.querySelector('[data-nm]');
-        nm.innerHTML=`<input value="${n.name.replace(/"/g,'&quot;')}">`;
-        const inp=nm.querySelector('input'); inp.focus(); inp.select();
-        const done=ok=>{ if(ok&&inp.value.trim()) n.name=inp.value.trim(); renderTree(); };
-        inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter')done(true); if(ev.key==='Escape')done(false); });
-        inp.addEventListener('blur',()=>done(true));
+        startRename(n,row.querySelector('[data-nm]'),()=>{renderTree();renderDetails();});
       });
       row.addEventListener('contextmenu',e=>{
-        e.preventDefault(); selId=n.id; renderTree(); openCtx(e.clientX,e.clientY,n);
+        e.preventDefault(); selId=n.id; renderTree(); renderDetails(); openCtx(e.clientX,e.clientY,n);
       });
-      host.appendChild(row);
-      if(!leaf&&n.open) build(n.kids,host);
+      treeEl.appendChild(row);
+      if(!leaf&&n.open) build(n.kids);
     });
   };
-  build(scene,treeEl);
+  build(scene);
   const feats=flat.filter(n=>!['part','folder','operand'].includes(n.type)).length;
   document.getElementById('footInfo').textContent=`${feats} features · ${filters.size?[...filters].join(', '):'no filters'}`;
   document.getElementById('footSel').textContent=current()?current().name:'0 selected';
   btnProps.disabled=!current();
+}
+
+/* ── details pane (view 0, right side) ────────────────────────────── */
+const detEl=document.getElementById('details');
+function renderDetails(){
+  const n=current();
+  if(!n){
+    detEl.innerHTML=`<div class="empty">${IC.part()}<span>Select a feature to inspect it</span></div>`;
+    return;
+  }
+  detEl.innerHTML=
+    `<div class="det-hero"><div class="di">${icon(n,22)}</div>
+      <div><div class="dn name-edit" id="detName" title="Double-click to rename">${n.name}</div>
+      <div class="dt">${TYPE_LABEL[n.type]}${n.op?` · ${n.op}`:''}${n.tag?` · ${n.tag}`:''}${n.kids.length?` · ${n.kids.length} children`:''}</div></div></div>`+
+    `<div class="pcard"><h4>Feature</h4>`+
+      (n.type!=='operand'
+        ?`<div class="prow"><span class="pl">Active</span><div class="sw ${n.vis?'on':''}" id="detVis"></div><span style="flex:1"></span></div>`
+        :`<div class="prow"><span class="pl">Role</span><span style="font-size:12px;color:var(--text-dim)">${n.tag||'—'}</span></div>`)+
+      (n.warn?`<div class="prow"><span class="pl">Status</span><span class="badge">${IC.warn(n.warn==='warn'?'#ef4444':'#f59e0b')}</span><span style="font-size:11px;color:var(--text-dim)">${n.warn==='warn'?'Failed to rebuild':'Under-constrained'}</span></div>`:'')+
+      `<div class="prow"><span class="pl">Tags</span><div class="tags">${
+        n.tags.length?n.tags.map(t=>`<span class="tagp">${t}</span>`).join(''):'<span style="font-size:11px;color:var(--text-faint)">none</span>'
+      }</div></div>`+
+      `<div class="prow"><span class="pl">Colour</span>${
+        n.color?`<div class="swatch" style="background:${n.color};cursor:default"></div>`
+               :'<span style="font-size:11px;color:var(--text-faint)">default</span>'}</div>`+
+    `</div>`+
+    `<div class="det-open-hint">Press &nbsp;<b style="color:var(--text)">›</b>&nbsp; in the header for full properties</div>`;
+  const dv=document.getElementById('detVis');
+  if(dv) dv.addEventListener('click',()=>{n.vis=!n.vis;renderTree();renderDetails();});
+  const dn=document.getElementById('detName');
+  if(n.type!=='operand') dn.addEventListener('dblclick',()=>startRename(n,dn,()=>{renderTree();renderDetails();}));
 }
 
 /* ── popups ───────────────────────────────────────────────────────── */
@@ -364,7 +466,7 @@ document.getElementById('btnFilter').addEventListener('click',e=>{
   e.stopPropagation();
   const opts=Object.keys(FILTER_MAP).filter(f=>!filters.has(f));
   popMenu.innerHTML=`<div class="mh">Add Filter</div>`+
-    (opts.length?opts.map(f=>`<div class="mi" data-f="${f}">${(IC[FILTER_MAP[f][0]]||IC.part)()} ${f}</div>`).join('')
+    (opts.length?opts.map(f=>`<div class="mi" data-f="${f}">${S(PATHS[FILTER_MAP[f][0]],DEF_COL[FILTER_MAP[f][0]])} ${f}</div>`).join('')
                 :'<div class="mi dis">All filters active</div>');
   popMenu.querySelectorAll('[data-f]').forEach(mi=>mi.addEventListener('click',()=>{
     filters.add(mi.dataset.f); closeMenus(); renderFilters(); renderTree();
@@ -388,23 +490,16 @@ btnAdd.addEventListener('click',e=>{
   e.stopPropagation();
   popMenu.innerHTML=
     `<div class="mh">Sketch & Curves</div>`+
-    `<div class="mi" data-t="sketch">${IC.sketch()} Sketch</div>`+
-    `<div class="mi" data-t="spline">${IC.spline()} Spline</div>`+
-    `<div class="mi" data-t="helix">${IC.helix()} Helix</div>`+
-    `<div class="mi" data-t="polygon">${IC.polygon()} Polygon</div>`+
+    ['sketch','spline','helix','polygon'].map(t=>`<div class="mi" data-t="${t}">${S(PATHS[t],DEF_COL[t])} ${TYPE_LABEL[t]}</div>`).join('')+
     `<div class="msep"></div><div class="mh">Solids & Booleans</div>`+
-    `<div class="mi" data-t="extrude">${IC.extrude()} Extrude</div>`+
-    `<div class="mi" data-t="revolve">${IC.revolve()} Revolve</div>`+
-    `<div class="mi" data-t="sweep">${IC.sweep()} Sweep</div>`+
-    `<div class="mi" data-t="fillet">${IC.fillet()} Fillet</div>`+
-    `<div class="mi" data-t="bool">${IC.bool()} Boolean</div>`;
+    ['extrude','revolve','sweep','fillet','bool'].map(t=>`<div class="mi" data-t="${t}">${S(PATHS[t],DEF_COL[t])} ${TYPE_LABEL[t]}</div>`).join('');
   popMenu.querySelectorAll('[data-t]').forEach(mi=>mi.addEventListener('click',()=>{
     const t=mi.dataset.t; closeMenus();
     const folder=scene[0].kids.find(k=>k.name===FOLDER_OF[t]);
     const nn=N('New_'+TYPE_LABEL[t],t,[],t==='bool'?{op:'Union'}:{});
     (folder?folder.kids:scene[0].kids).push(nn);
     if(folder) folder.open=true;
-    selId=nn.id; renderTree();
+    selId=nn.id; renderTree(); renderDetails();
   }));
   const r=e.currentTarget.getBoundingClientRect();
   place(popMenu,r.right-200,r.bottom+6);
@@ -424,51 +519,35 @@ function openCtx(x,y,n){
     if(a==='dup'){ (n.parent?n.parent.kids:scene).push(N(n.name+'_Copy',n.type,[],{op:n.op})); }
     if(a==='del'){ const arr=n.parent?n.parent.kids:scene; const i=arr.indexOf(n); if(i>-1)arr.splice(i,1);
       if(selId===n.id){ selId=null; if(view===1)viewTo(0); } }
-    renderTree();
+    renderTree(); renderDetails();
   }));
   place(ctxMenu,x,y);
 }
 
-/* ── per-feature CAD property cards ───────────────────────────────── */
+/* ── property builders ────────────────────────────────────────────── */
 const card=(t,i)=>`<div class="pcard"><h4>${t}</h4>${i}</div>`;
+const AXES=[['X','ax-x'],['Y','ax-y'],['Z','ax-z']];
 const rowVec3=(l,v)=>`<div class="prow"><span class="pl">${l}</span><div class="vec3">${
-  [['X','ax-x'],['Y','ax-y'],['Z','ax-z']].map((a,i)=>`<div class="cell"><b class="${a[1]}">${a[0]}</b><input value="${v[i]}"></div>`).join('')}</div></div>`;
-const rowSlider=(l,val,min,max,u)=>
-  `<div class="prow"><span class="pl">${l}</span><div class="sld" data-min="${min}" data-max="${max}" data-val="${val}" data-unit="${u||''}">
-    <div class="track"><div class="fill"></div><div class="knob"></div></div><span class="val"></span></div></div>`;
-function wireSlider(s){
-  const tr=s.querySelector('.track'), fill=s.querySelector('.fill'), knob=s.querySelector('.knob'), val=s.querySelector('.val');
-  const min=+s.dataset.min, max=+s.dataset.max, unit=s.dataset.unit||'';
-  const dec=(max-min)<=20?1:0;
-  let v=+s.dataset.val;
-  const paint=()=>{
-    const p=(v-min)/(max-min);
-    fill.style.width=(p*100)+'%'; knob.style.left=(p*100)+'%';
-    val.textContent=v.toFixed(dec)+unit;
-  };
-  const fromX=x=>{
-    const r=tr.getBoundingClientRect();
-    const p=Math.max(0,Math.min(1,(x-r.left)/r.width));
-    v=+(min+p*(max-min)).toFixed(dec); s.dataset.val=v; paint();
-  };
-  tr.addEventListener('pointerdown',e=>{ e.preventDefault(); tr.setPointerCapture(e.pointerId); s.classList.add('drag'); fromX(e.clientX); });
-  tr.addEventListener('pointermove',e=>{ if(s.classList.contains('drag')) fromX(e.clientX); });
-  const end=()=>s.classList.remove('drag');
-  tr.addEventListener('pointerup',end);
-  tr.addEventListener('pointercancel',end);
-  paint();
-}
-
+  AXES.map((a,i)=>`<div class="cell"><b class="${a[1]}">${a[0]}</b><input value="${v[i]}"></div>`).join('')}</div></div>`;
+const rowSlider=(l,val,min,max,u)=>{
+  const unit=(u||'').trim(), step=(max-min)<=20?0.1:1;
+  return `<div class="prow"><span class="pl">${l}</span><div class="sldv"><span class="num">${val}</span>${unit?`<span class="unit">${unit}</span>`:''}</div><input type="range" class="sld" min="${min}" max="${max}" step="${step}" value="${val}"></div>`;
+};
 const rowSwitch=(l,on)=>`<div class="prow"><span class="pl">${l}</span><div class="sw ${on?'on':''}"></div><span style="flex:1"></span></div>`;
 const rowSeg=(l,opts,on)=>`<div class="prow"><span class="pl">${l}</span><div class="seg">${
   opts.map(o=>`<button class="${o===on?'on':''}">${o}</button>`).join('')}</div></div>`;
 const rowText=(l,v)=>`<div class="prow"><span class="pl">${l}</span><span style="font-size:12px;color:var(--text-dim)">${v}</span></div>`;
 
 function cardsFor(n){
-  let html=card('Feature',
-    rowText('Name',n.name)+rowText('Type',TYPE_LABEL[n.type])+
+  const esc=s=>String(s).replace(/"/g,'&quot;');
+  let html=`<div class="pcard"><h4>Feature</h4>`+
+    `<div class="prow"><span class="pl">Name</span><span class="name-edit" id="propName" title="Double-click to rename">${esc(n.name)}</span></div>`+
+    rowText('Type',TYPE_LABEL[n.type])+
     (n.type!=='operand'?rowSwitch('Active',n.vis):rowText('Role',n.tag||'—'))+
-    (n.warn?rowText('Status',n.warn==='warn'?'⚠ Failed to rebuild':'⚠ Under-constrained'):''));
+    `<div class="prow"><span class="pl">Tags</span><div class="tags" id="tagWrap"></div></div>`+
+    `<div class="prow"><span class="pl">Colour</span><div class="swatches" id="swWrap"></div></div>`+
+    (n.warn?rowText('Status',n.warn==='warn'?'⚠ Failed to rebuild':'⚠ Under-constrained'):'')+
+  `</div>`;
   switch(n.type){
     case 'part':
       html+=card('Part',
@@ -547,11 +626,50 @@ function cardsFor(n){
   return html;
 }
 
+/* Feature card wiring: rename / tags / colour */
+function wireItem(n){
+  const pn=document.getElementById('propName');
+  if(n.type!=='operand') pn.addEventListener('dblclick',()=>startRename(n,pn,()=>{renderProps();hTitle.textContent=n.name;renderTree();renderDetails();}));
+  const wrap=document.getElementById('tagWrap');
+  const paintTags=()=>{
+    wrap.innerHTML=n.tags.map((t,i)=>`<span class="tagp">${t}<button class="tx" data-i="${i}">✕</button></span>`).join('')+
+      `<input class="tag-in" placeholder="＋ tag">`;
+    wrap.querySelectorAll('.tx').forEach(b=>b.addEventListener('click',()=>{n.tags.splice(+b.dataset.i,1);paintTags();renderDetails();}));
+    const inp=wrap.querySelector('.tag-in');
+    const commit=()=>{ const v=inp.value.trim(); if(v&&!n.tags.includes(v)){n.tags.push(v);paintTags();renderDetails();} else inp.value=''; };
+    inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){commit();} });
+    inp.addEventListener('blur',()=>{ if(inp.value.trim()) commit(); });
+  };
+  paintTags();
+  const sw=document.getElementById('swWrap');
+  const paintSw=()=>{
+    sw.innerHTML=`<div class="swatch none ${!n.color?'on':''}" title="Default"></div>`+
+      PALETTE.map(c=>`<div class="swatch ${n.color===c?'on':''}" data-c="${c}" style="background:${c}"></div>`).join('');
+    sw.querySelector('.none').addEventListener('click',()=>{n.color=null;paintSw();renderTree();renderDetails();});
+    sw.querySelectorAll('[data-c]').forEach(d=>d.addEventListener('click',()=>{n.color=d.dataset.c;paintSw();renderTree();renderDetails();}));
+  };
+  paintSw();
+}
+
+/* kit slider wiring */
+function wireSlider(s){
+  const num=s.closest('.prow').querySelector('.num');
+  const min=+s.min, max=+s.max;
+  const paint=()=>{
+    const p=((+s.value-min)/(max-min))*100;
+    s.style.background=`linear-gradient(to right,#7a7a7a ${p}%,var(--raised) ${p}%)`;
+    if(num) num.textContent=+s.value;
+  };
+  s.addEventListener('input',paint);
+  paint();
+}
+
 const propsEl=document.getElementById('props');
 function renderProps(){
   const n=current();
   if(!n){ propsEl.innerHTML=`<div class="empty">${IC.part()}<span>Select a feature first</span></div>`; return; }
   propsEl.innerHTML=cardsFor(n);
+  wireItem(n);
   propsEl.querySelectorAll('.sld').forEach(wireSlider);
   propsEl.querySelectorAll('.sw').forEach(sw=>sw.addEventListener('click',()=>sw.classList.toggle('on')));
   propsEl.querySelectorAll('.seg').forEach(seg=>seg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
@@ -560,7 +678,7 @@ function renderProps(){
 }
 
 /* boot */
-renderTree(); viewTo(0);
+renderTree(); renderDetails(); viewTo(0);
 })();
 </script>
 </body>
