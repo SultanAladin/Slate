@@ -81,14 +81,18 @@
   .pill .px:hover{background:var(--danger);color:#fff;}
 
   /* tree */
-  .tree{flex:1;overflow-y:auto;padding:0 12px 10px;scrollbar-width:none;}
+  .tree{flex:1;overflow-y:auto;padding:0 12px 10px;scrollbar-width:none;position:relative;}
   .tree::-webkit-scrollbar{display:none;}
+  .dropline{position:absolute;left:10px;right:10px;height:2px;background:var(--accent);border-radius:1px;
+    display:none;pointer-events:none;z-index:5;}
   .row{
     display:flex;align-items:center;gap:8px;height:32px;padding:0 8px;cursor:pointer;
     border-radius:0;transition:background .14s var(--ease);
   }
   .row:hover{background:#1c1c1c;}
   .row.sel{background:var(--selected);box-shadow:inset 2px 0 0 var(--accent);}
+  .row.dragging{opacity:.35;}
+  .row.drop-into{outline:1.5px dashed var(--hi);outline-offset:-2px;background:rgba(108,119,255,.08);}
   .row .tw{width:16px;height:16px;flex:0 0 16px;display:grid;place-items:center;color:var(--text-faint);
     transition:transform .18s var(--ease);cursor:pointer;}
   .row .tw.open{transform:rotate(90deg);}
@@ -153,7 +157,7 @@
   .vec3{display:flex;gap:6px;flex:1;}
   .cell{flex:1;height:28px;border-radius:var(--r-pill);background:var(--field);
     display:flex;align-items:center;gap:6px;padding:0 10px;}
-  .cell b{font-size:9.5px;font-weight:700;}
+  .cell b{font-size:12px;font-weight:700;}
   .cell b.ax-x{color:var(--ax-x);}
   .cell b.ax-y{color:var(--ax-y);}
   .cell b.ax-z{color:var(--ax-z);}
@@ -334,6 +338,65 @@ btnBack.addEventListener('click',()=>{ viewTo(0); renderTree(); renderDetails();
 
 /* ── tree ─────────────────────────────────────────────────────────── */
 const treeEl=document.getElementById('tree');
+
+/* ── drag: reorder (drop into folders/layers to re-parent) ─────────────────────────────────── */
+const dropLine=document.createElement('div'); dropLine.className='dropline';
+let rowIndex=[];
+let drag=null, dragMoved=false;
+const isDescendant=(anc,x)=>{ let p=x.parent; while(p){ if(p===anc) return true; p=p.parent; } return false; };
+const CAN_INTO=t=>['folder','layer'].includes(t.type);
+function dragStart(e,n,row){
+  
+  drag={n,row,x0:e.clientX,y0:e.clientY,started:false,target:null,zone:null};
+  const mv=ev=>dragMove(ev), up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);dragEnd();};
+  addEventListener('pointermove',mv); addEventListener('pointerup',up);
+}
+function dragMove(e){
+  if(!drag) return;
+  if(!drag.started){
+    if(Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0)<6) return;
+    drag.started=true; dragMoved=true; drag.row.classList.add('dragging');
+  }
+  rowIndex.forEach(({row})=>row.classList.remove('drop-into'));
+  dropLine.style.display='none'; drag.target=null; drag.zone=null;
+  for(const ent of rowIndex){
+    if(ent.n===drag.n||isDescendant(drag.n,ent.n)) continue;
+    const r=ent.row.getBoundingClientRect();
+    if(e.clientY<r.top||e.clientY>r.bottom) continue;
+    const t=(e.clientY-r.top)/r.height;
+    if(CAN_INTO(ent.n)&&t>0.3&&t<0.7){ drag.target=ent; drag.zone='into'; ent.row.classList.add('drop-into'); }
+    else{
+      drag.target=ent; drag.zone=t<0.5?'before':'after';
+      const tr=treeEl.getBoundingClientRect();
+      dropLine.style.top=((drag.zone==='before'?r.top:r.bottom)-tr.top+treeEl.scrollTop-1)+'px';
+      dropLine.style.display='block';
+    }
+    break;
+  }
+}
+function dragEnd(){
+  if(!drag) return;
+  const d=drag; drag=null;
+  d.row.classList.remove('dragging');
+  rowIndex.forEach(({row})=>row.classList.remove('drop-into'));
+  dropLine.style.display='none';
+  if(!d.started||!d.target) return;
+  const n=d.n, t=d.target.n;
+  const srcArr=n.parent?n.parent.kids:scene;
+  const si=srcArr.indexOf(n); if(si>-1) srcArr.splice(si,1);
+  if(d.zone==='into'){ t.kids.push(n); t.open=true; }
+  else{
+    const dstArr=t.parent?t.parent.kids:scene;
+    dstArr.splice(dstArr.indexOf(t)+(d.zone==='after'?1:0),0,n);
+  }
+  renderTree(); renderDetails();
+}
+
+function updateSel(){
+  rowIndex.forEach(({n,row})=>row.classList.toggle('sel',sel.has(n.id)));
+  document.getElementById('footSel').textContent=`${sel.size} selected`;
+  btnProps.disabled=!current();
+}
 function passFilter(n){
   if(!filters.size) return true;
   if(filters.has(TYPE_LABEL[n.type])) return true;
@@ -348,7 +411,7 @@ function startRename(n,nmEl,after){
   inp.addEventListener('pointerdown',e=>e.stopPropagation());
 }
 function renderTree(){
-  reflat(); treeEl.innerHTML='';
+  reflat(); treeEl.innerHTML=''; rowIndex=[]; treeEl.appendChild(dropLine);
   const build=list=>{
     list.forEach(n=>{
       if(!passFilter(n)) return;
@@ -366,13 +429,14 @@ function renderTree(){
       if(!leaf) tw.addEventListener('click',e=>{e.stopPropagation();n.open=!n.open;renderTree();});
       row.querySelector('.vis').addEventListener('click',e=>{e.stopPropagation();n.vis=!n.vis;renderTree();renderDetails();});
       row.addEventListener('click',e=>{
+        if(dragMoved){dragMoved=false;return;}
         if(e.ctrlKey||e.metaKey){ sel.has(n.id)?sel.delete(n.id):sel.add(n.id); }
         else if(e.shiftKey&&lastSel!=null){
           const vis=flat.filter(passFilter);
           const a=vis.findIndex(x=>x.id===lastSel), b=vis.findIndex(x=>x.id===n.id);
           if(a>-1&&b>-1){ sel.clear(); vis.slice(Math.min(a,b),Math.max(a,b)+1).forEach(x=>sel.add(x.id)); }
         }else{ sel.clear(); sel.add(n.id); }
-        lastSel=n.id; renderTree(); renderDetails();
+        lastSel=n.id; updateSel(); renderDetails();
       });
       row.addEventListener('dblclick',e=>{
         if(e.target.closest('.tw,.vis')) return;
@@ -383,7 +447,9 @@ function renderTree(){
         if(!sel.has(n.id)){ sel.clear(); sel.add(n.id); lastSel=n.id; renderTree(); renderDetails(); }
         openCtx(e.clientX,e.clientY,n);
       });
+      row.addEventListener('pointerdown',e=>{ if(e.button===0&&!e.target.closest('.tw,.vis,input')) dragStart(e,n,row); });
       treeEl.appendChild(row);
+      rowIndex.push({n,row});
       if(!leaf&&n.open) build(n.kids);
     });
   };
