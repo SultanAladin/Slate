@@ -967,6 +967,29 @@ static std::vector<DimensionFigureChip> SketchDimensionFigures;
                 CancelCornerDragSession(SketchOperations.Corner);
                 CancelSketchOperationSession(SketchOperations.Operation);
                 SketchContextMenu.Close();
+
+                // 🔴 Q DID NOT REACH SELECT WHILE AN OPERATION STOOD, AND THIS IS WHY. The catalogue
+                //    reads its tiles through the SHARED control index, whose release latch is retired by
+                //    `ParametricInteraction.Advance` -- which runs near the END of the frame, long after
+                //    this handler. A tile the pointer still rests on therefore carries a release into the
+                //    NEXT frame, where `ParametricToolsPanel::Record` re-reads it and re-assigns
+                //    `ActiveSubject` from the tile. The tool was set to Select here and put straight back
+                //    to Fillet before anything drew, so the artist saw the operation refuse to let go.
+                //    Dropping the grab makes the keyboard the authority for the frame it arrives in.
+                ParametricInteraction.Abandon();
+
+                // 🔴 THE PREPARED TOOL IS THE DRIVER'S ONLY MEMORY, and the driver is not called at all
+                //    while Select stands -- the host gates it on `OperationToolStanding`. Cancelling the
+                //    sessions without retiring `Prepared` leaves it naming the abandoned operation, so
+                //    re-entering that same tool later finds `ActiveTool == Prepared`, skips the
+                //    tool-change cancel, and resumes against state the artist already dismissed.
+                SketchOperations.Prepared = ParametricToolSubject::Select;
+
+                // 📝 The band and tile are carried back with the subject. They are what the settings page
+                //    titles itself from, so leaving them on the abandoned operation kept its name and its
+                //    options on screen underneath a Select that had already taken effect.
+                ParametricToolsApplied.ActiveBand = 0u;
+                ParametricToolsApplied.ActiveTool = 0u;
             }
 
             const bool RevertPressed = Viewport.Seam().KeyPressed(KeySubject::Revert)

@@ -312,6 +312,32 @@ int main()
         Require(Host.find("ParametricToolsApplied.WorkplaneActivation = Sketch.Declared()") != std::string::npos,
                 "the workplane standing is the sketch's, not a preset button's");
 
+        // 🔴 Q MUST ACTUALLY REACH SELECT, AND SOURCE ORDER IS THE WHOLE DEFECT. The catalogue's tiles
+        //    are read through the SHARED `ParametricInteraction`, whose release latch is retired by its
+        //    `Advance` -- and that `Advance` sits near the end of the frame, hundreds of lines BELOW the
+        //    Q handler. A tile still under the pointer therefore carries a release into the next frame,
+        //    where the panel re-reads it and re-assigns `ActiveSubject` from the tile, putting the
+        //    operation straight back after the key had already cleared it. The reported symptom was that
+        //    operations would not return to Select. Only dropping the grab in the handler settles it, and
+        //    only source order can say so -- no headless run of the sessions can see this.
+        const std::size_t ChooseAt   = Host.find("KeySubject::ChooseSelect");
+        const std::size_t AbandonAt  = Host.find("ParametricInteraction.Abandon()");
+        const std::size_t AdvanceAt  = Host.find("ParametricInteraction.Advance(");
+        Require(ChooseAt != std::string::npos, "the host answers Q at all");
+        Require(AbandonAt != std::string::npos && ChooseAt < AbandonAt,
+                "and Q drops the catalogue's standing grab, or a hovered tile re-asserts the tool");
+        Require(AdvanceAt != std::string::npos && AbandonAt < AdvanceAt,
+                "and drops it while the release still stands, before the index retires it");
+
+        // 🔴 THE DRIVER'S MEMORY IS RETIRED WITH THE SESSIONS. `Prepared` is the only record of which
+        //    tool the state belongs to, and the driver never runs while Select stands -- so cancelling
+        //    the sessions without clearing it leaves it naming the abandoned operation. Re-entering that
+        //    same tool then finds `ActiveTool == Prepared`, skips the tool-change cancel, and resumes a
+        //    gesture the artist had already dismissed with Q.
+        const std::size_t PreparedAt = Host.find("SketchOperations.Prepared = ParametricToolSubject::Select");
+        Require(PreparedAt != std::string::npos && ChooseAt < PreparedAt,
+                "and Q retires the driver's prepared tool, so re-entering it starts clean");
+
         // 🔴 THE SOURCE OF THE DIMENSION IS THE STANDING PICK. Read from the widget's mode instead and
         //    the catalogue would offer edge operations because the artist was LOOKING at Edge mode,
         //    rather than because an edge is actually held.
