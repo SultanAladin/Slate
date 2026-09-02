@@ -90,6 +90,19 @@ bool MirrorWorldDimensionIntoSketch(const WorldSketchStructure& Declared,
                                     SketchStructure& Sketch,
                                     DimensionName& SketchDimension);
 
+/// 🧩 Pairs world curves that have no compatibility twin yet, declaring one for each.
+/// out   Mapping  [-] gains an entry per adopted curve
+/// out   Adopted  [-] true when at least one curve was newly paired
+/// note  🔴 AN OPERATION DECLARES INTO THE WORLD MODEL ALONE. A fillet arc has no mapping entry, so the
+///        writeback below -- which walks the mapping -- cannot see it, and neither can picking, the
+///        outliner or the gizmo, all of which read the compatibility sketch. Without this the artist can
+///        see a new curve and never select it.
+/// note  📝 Idempotent: a curve already paired is left alone, so calling it every frame is free.
+/// tag   api, nonthrowing
+bool AdoptWorldSketchCurvesIntoSketch(const WorldSketchStructure& Declared,
+                                      WorldSketchMapping& Mapping,
+                                      SketchStructure& Sketch);
+
 bool ApplyWorldSketchToSketch(const WorldSketchStructure& Declared,
                              SketchStructure& Sketch);
 

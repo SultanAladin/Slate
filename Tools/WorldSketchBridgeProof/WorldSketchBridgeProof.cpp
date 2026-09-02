@@ -1,3 +1,4 @@
+#include "SlateShape/World/WorldSketchCorner/Api/WorldSketchCorner.h"
 #include "SlateWorkspace/Discipline/WorldSketchBridge/Api/WorldSketchBridge.h"
 #include "SlateWorkspace/Discipline/SketchInteraction/Api/SketchInteraction.h"
 #include "SlateWorkspace/Discipline/SketchViewportOverlay/Api/SketchViewportOverlay.h"
@@ -52,6 +53,7 @@ struct Bench
     ParametricWorkspaceContext WorkspaceApplied = {};
     WorkspaceRecordName PendingSelection = {};
     SketchPick SemanticSelection = {};
+    SketchSelectionSet SelectionSet = {};
     SketchPick HoveredSelection = {};
     WorldSketchTransformSession Transform = {};
     SelectionOptions Selection = {};
@@ -115,15 +117,76 @@ struct Bench
                bool& PointerTaken)
     {
         Overlay.Reset();
+        // 📝 The arm gained a modifier condition and a multi-selection set after this bench was
+        //    written, and the bench was never re-aimed -- so this proof stopped compiling and stopped
+        //    being run at all. Both are defaulted here: the flow under test is single-selection.
+        const ModifierCondition Plain = {};
         DriveViewportSelectionAndTransformWorldBacked(
-            Extent, Pointer, Text, ParametricToolSubject::Select, Selection, Gizmo, Camera,
+            Extent, Pointer, Text, Plain, ParametricToolSubject::Select, Selection, Gizmo, Camera,
             Directory, WorkspaceApplied, Naming,
             Sketch, World, Mapping, Records, Revisions,
-            PendingSelection, SemanticSelection, HoveredSelection,
+            PendingSelection, SemanticSelection, SelectionSet, HoveredSelection,
             Transform, Overlay, PointerTaken,
             Milliseconds, LastGPressedMilliseconds);
     }
 };
+
+/// 🔴 AN OPERATION DECLARES INTO THE WORLD MODEL ALONE, AND PICKING READS THE COMPATIBILITY SKETCH.
+///    `ApplyWorldSketchToSketch` walks the MAPPING, so a curve with no mapping entry -- every fillet arc,
+///    every chamfer chord, every second half of a cut -- was copied nowhere. The artist could see the new
+///    curve, because it is drawn from the world model, and could never select it, because selection asks
+///    the sketch. That is the "it shows for a frame then cancels" defect.
+void ProveOperationCurvesReachTheCompatibilitySketch()
+{
+    std::printf("\n10. A curve an operation declares becomes selectable, not merely visible\n");
+
+    Bench Stage;
+
+    const std::size_t SketchBefore  = Stage.Sketch.Curves().size();
+    const std::size_t MappedBefore  = Stage.Mapping.Curves.size();
+    Claim(SketchBefore == 4u && MappedBefore == 4u, "the bench starts with four paired curves");
+
+    // 📐 A fillet, declared straight into the world model exactly as the operation driver does it.
+    WorldCurveName Arc = {};
+    Claim(ApplyWorldCorner(Stage.World, { 1u }, { 2u }, 20.0, false, Arc) == CornerVerdict::Produced,
+          "a corner is filleted in the world model");
+    Claim(Stage.World.CurveCount() == 5u, "which leaves the world model holding five curves");
+
+    // ① BEFORE ADOPTION THE MIRROR HAS NOT HEARD OF IT. Stated so the fix is measured, not assumed.
+    Claim(Stage.Sketch.Curves().size() == SketchBefore,
+          "the compatibility sketch has not heard of the arc yet");
+
+    // ② ADOPTION PAIRS IT.
+    Claim(AdoptWorldSketchCurvesIntoSketch(Stage.World, Stage.Mapping, Stage.Sketch),
+          "adopting reports that it paired something");
+    Claim(Stage.Mapping.Curves.size() == 5u, "the mapping now pairs all five curves");
+    Claim(Stage.Sketch.Curves().size() == 5u, "and the compatibility sketch holds five as well");
+
+    bool Paired = false;
+    for (const WorldSketchCurveReference& Reference : Stage.Mapping.Curves)
+        if (Reference.World.IssuedIndex == Arc.IssuedIndex)
+            Paired = Reference.Sketch.Assigned();
+    Claim(Paired, "the arc specifically is paired to a sketch curve");
+
+    // ③ AND THE PAIRING IS WHAT MAKES IT SELECTABLE. A world pick on the arc must resolve to a sketch
+    //    pick, because that is the direction selection actually travels.
+    WorldPick OnArc = {};
+    OnArc.Subject = WorldPickSubject::Curve;
+    OnArc.Curve   = Arc;
+    SketchPick Reached = {};
+    Claim(ResolveSketchPickForWorldPick(Stage.Sketch, Stage.Records, Stage.Mapping, OnArc, Reached),
+          "and a pick on the arc resolves into the compatibility sketch -- so it can be selected");
+
+    // ④ IDEMPOTENT. Called every frame, it must not keep declaring duplicates.
+    Claim(!AdoptWorldSketchCurvesIntoSketch(Stage.World, Stage.Mapping, Stage.Sketch),
+          "a second adoption pairs nothing new");
+    Claim(Stage.Sketch.Curves().size() == 5u, "and declares no duplicate curve");
+
+    // ⑤ THE WRITEBACK STILL AGREES. Adoption that broke the geometry copy would trade one defect
+    //    for another.
+    Claim(ApplyWorldSketchToSketch(Stage.World, Stage.Mapping, Stage.Sketch),
+          "and the geometry writeback still succeeds across the widened mapping");
+}
 
 void ProveMirrorAndPickMapping()
 {
@@ -447,6 +510,7 @@ int main()
     ProveWorldDimensionTextEdit();
     ProveWorldBackedRenderingAndPreview();
     ProveOverlayUsesExplicitWorldBasis();
+    ProveOperationCurvesReachTheCompatibilitySketch();
 
     std::printf("\n=========================================================================\n");
     std::printf("%u claims, %u failures -> %s\n", Claims, Failures,

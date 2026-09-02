@@ -406,36 +406,61 @@ void ProveALoopSurvivesBeingFilleted()
     Claim(ApplyWorldCorner(Stage.Sketch, Stage.AB, Stage.BC, 25.0, false, Arc) == CornerVerdict::Produced,
           "a corner of the square is filleted");
 
+    // 🔴 THE ARC IS SPLICED INTO THE TRAVERSAL, AND THIS CLAIM WAS INVERTED. It used to assert that the
+    //    loop kept its four original curves and was "momentarily open, because the new arc is not yet in
+    //    its traversal" -- stating the gap as the caller's job to stitch. NO CALLER EVER DID. Shortening
+    //    the legs without adding the arc leaves the walk discontinuous, so the loop stops being closed,
+    //    stops being fillable, and the face disappears: on screen that reads as the original outline with
+    //    an arc lying on top of it, which is exactly what was reported. A proof that documents a gap
+    //    instead of refusing it is a proof that protects the defect.
     const DeclaredWorldLoop* Held = Stage.Sketch.Resolve(Stage.Loop);
-    Claim(Held != nullptr && Held->Traversal.size() == 4u,
-          "the loop still names its four original curves");
+    Claim(Held != nullptr && Held->Traversal.size() == 5u,
+          "the loop now walks five curves -- the four legs and the arc between two of them");
     Claim(Held != nullptr && Held->Traversal[0].TraversedCurve.IssuedIndex == Stage.AB.IssuedIndex,
           "and the filleted leg is still the very curve the loop traverses");
+    Claim(Held != nullptr && Held->Traversal[1].TraversedCurve.IssuedIndex == Arc.IssuedIndex,
+          "with the arc inserted directly after the leg it was built from");
 
-    // 📝 The loop is not yet re-closed: the arc exists but the traversal does not include it, so there is
-    //    a 25-unit gap. That is the caller's job to stitch and is stated here rather than assumed away.
+    // 🔴 AND THE LOOP IS STILL CLOSED, WITH NO STITCHING BY THE CALLER. This is the claim that makes the
+    //    face survive a fillet.
     LoopStands(Closed, Filled);
-    Claim(!Closed, "the loop is momentarily open, because the new arc is not yet in its traversal");
+    Claim(Closed, "the loop is still closed, because the arc bridges the gap the fillet opened");
+    Claim(Filled, "and still fillable, because a rounded corner is still planar");
 
-    // 🔴 STITCHING THE ARC IN CLOSES IT AGAIN. This is what a caller must do, and proving it here means
-    //    the geometry genuinely supports it rather than merely looking as though it should.
-    DeclaredWorldLoop Restitched;
-    Restitched.Traversal = { { Stage.AB, true }, { Arc, true }, { Stage.BC, true },
-                             { Stage.CD, true }, { Stage.DA, true } };
-    const WorldLoopName Rebuilt = Stage.Sketch.DeclareLoop(Restitched);
-    Claim(Rebuilt.Assigned(), "the arc can be stitched into a five-curve traversal");
+    // 📐 EVERY corner of the square can be rounded, one after another, and the loop survives all four.
+    //    The second fillet was reported as erasing the first; a traversal that lost its arc each time is
+    //    precisely how that would look.
+    WorldCurveName Second = {};
+    Claim(ApplyWorldCorner(Stage.Sketch, Stage.BC, Stage.CD, 20.0, false, Second) == CornerVerdict::Produced,
+          "a second corner is filleted");
+    WorldCurveName Third = {};
+    Claim(ApplyWorldCorner(Stage.Sketch, Stage.CD, Stage.DA, 15.0, false, Third) == CornerVerdict::Produced,
+          "and a third");
+    WorldCurveName Fourth = {};
+    Claim(ApplyWorldCorner(Stage.Sketch, Stage.DA, Stage.AB, 10.0, true, Fourth) == CornerVerdict::Produced,
+          "and the fourth is chamfered rather than rounded");
 
-    const WorldSketchAnalysis After = AnalyzeWorldSketch(Stage.Sketch);
-    bool RebuiltClosed = false;
-    bool RebuiltFilled = false;
-    for (const WorldLoopAnalysisRecord& Record : After.Loops)
-        if (Record.Loop.IssuedIndex == Rebuilt.IssuedIndex)
-        {
-            RebuiltClosed = Record.Closed;
-            RebuiltFilled = Record.FillEligible;
-        }
-    Claim(RebuiltClosed, "and the restitched loop is closed again");
-    Claim(RebuiltFilled, "and fillable, because a rounded corner is still planar");
+    const DeclaredWorldLoop* Rounded = Stage.Sketch.Resolve(Stage.Loop);
+    Claim(Rounded != nullptr && Rounded->Traversal.size() == 8u,
+          "the loop walks eight curves -- four legs and four corners");
+
+    LoopStands(Closed, Filled);
+    Claim(Closed, "and is STILL closed after all four corners, not erased by the last one");
+    Claim(Filled, "and still fillable");
+
+    // 🔴 EVERY CORNER CURVE IS DISTINCT AND ALL FOUR SURVIVE. "Filleting a new corner erases the first"
+    //    would show up here as a repeated or missing name.
+    bool AllPresent = Rounded != nullptr;
+    for (const WorldCurveName& Corner : { Arc, Second, Third, Fourth })
+    {
+        bool Found = false;
+        if (Rounded != nullptr)
+            for (const WorldCurveUse& Use : Rounded->Traversal)
+                if (Use.TraversedCurve.IssuedIndex == Corner.IssuedIndex)
+                    Found = true;
+        AllPresent = AllPresent && Found;
+    }
+    Claim(AllPresent, "and all four corner curves are still in the walk -- none replaced another");
 }
 
 //------------------------------------------------------------------------------------------------------------------------

@@ -647,6 +647,50 @@ bool ApplyWorldSketchToSketch(const WorldSketchStructure& Declared,
     return true;
 }
 
+bool AdoptWorldSketchCurvesIntoSketch(const WorldSketchStructure& Declared,
+                                     WorldSketchMapping& Mapping,
+                                     SketchStructure& Sketch)
+{
+    // 🔴 AN OPERATION DECLARES INTO THE WORLD MODEL ALONE, AND THE MIRROR NEVER HEARS ABOUT IT.
+    //    `ApplyWorldSketchToSketch` walks the MAPPING, so it can only ever refresh curves that were
+    //    already paired. A fillet arc, a chamfer chord or a cut's second half exists solely in the world
+    //    model, has no mapping entry, and is therefore invisible to the compatibility sketch -- which is
+    //    what picking, the outliner and the selection gizmo all read. That is why a new fillet could be
+    //    seen but never selected: it was drawn from the world model and picked from the sketch, and the
+    //    two disagreed about how many curves existed.
+    // 📝 Pairing only. Geometry is copied by the writeback above; this closes the gap in the mapping so
+    //    that writeback has something to walk.
+    bool Adopted = false;
+
+    for (std::uint32_t CurveIndex = 1u; CurveIndex <= Declared.CurveCount(); ++CurveIndex)
+    {
+        const WorldCurveName World = { CurveIndex };
+
+        bool Paired = false;
+        for (const WorldSketchCurveReference& Reference : Mapping.Curves)
+            if (Reference.World.IssuedIndex == CurveIndex)
+            {
+                Paired = true;
+                break;
+            }
+        if (Paired)
+            continue;
+
+        const DeclaredWorldCurve* Source = Declared.Resolve(World);
+        if (Source == nullptr)
+            continue;
+
+        const SketchCurveName Mirrored = Sketch.DeclareCurve(Source->Geometry);
+        if (!Mirrored.Assigned())
+            continue;
+
+        Mapping.Curves.push_back({ World, Mirrored });
+        Adopted = true;
+    }
+
+    return Adopted;
+}
+
 WorkspaceRecordName ResolveRecordForWorldLoop(const WorkspaceRecordStructure& Records,
                                               const WorldSketchMapping& Mapping,
                                               WorldLoopName Loop)

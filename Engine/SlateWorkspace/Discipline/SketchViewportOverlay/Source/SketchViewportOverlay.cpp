@@ -348,6 +348,10 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
                                     const SketchPick& Hovered,
                                     const SketchPick& Selected)
 {
+    // 📝 The overlay once gated what it drew on record visibility and no longer does -- what is picked is
+    //    what is outlined. The parameter is kept so the two overloads and every call site stay one shape.
+    static_cast<void>(Records);
+
     const auto RecordCurve = [&](SketchCurveName Curve, std::uint32_t Packed, float Thickness)
     {
         if (!Curve.Assigned() || Curve.IssuedIndex > Sketch.Curves().size())
@@ -405,6 +409,14 @@ void RecordViewportSelectionOverlay(OverlayGeometry& Overlay,
             }
         }
     };
+
+    // 🔴 CURVE AND PROFILE HIGHLIGHTING MOVED TO THE WORLD-BACKED OVERLAY and these never ran again.
+    //    They are kept, unused, because the compatibility arm above still calls this overload and the
+    //    two must stay the same shape; deleting them would fork the pair. Only the point highlights
+    //    below are still drawn from here.
+    static_cast<void>(RecordCurve);
+    static_cast<void>(RecordProfile);
+    static_cast<void>(RecordProfileFill);
 
     const auto RecordPoint = [&](const SketchPick& Subject, std::uint32_t FillColour, float Radius = 5.5f)
     {

@@ -26,6 +26,8 @@ SUPPORTING = [
     "Engine/SlateWorkspace/Discipline/WorldSketchPicking/Source/WorldSketchScreenPicking.cpp",
     "Engine/SlateWorkspace/Discipline/WorldSketchConstraintAuthoring/Source/WorldSketchConstraintAuthoring.cpp",
     "Engine/SlateWorkspace/Discipline/WorldSketchRenderingProjection/Source/WorldSketchRenderingProjection.cpp",
+    "Engine/SlateShape/World/WorldSketchCorner/Source/WorldSketchCorner.cpp",
+    "Engine/SlateWorkspace/Discipline/AnnotationIntent/Source/AnnotationIntent.cpp",
     "Engine/SlateShape/World/WorldSketchEditing/Source/WorldSketchEditing.cpp",
     "Engine/SlateShape/World/WorldSketchPicking/Source/WorldSketchPicking.cpp",
     "Engine/SlateShape/World/WorldSketchAnalysis/Source/WorldSketchAnalysis.cpp",

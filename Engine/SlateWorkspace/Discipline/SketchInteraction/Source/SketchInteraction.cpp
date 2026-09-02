@@ -1281,6 +1281,12 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
                                          SessionMilliseconds, LastGPressedMilliseconds,
                                          &HoveredHandle);
 
+    // 🔴 ADOPT BEFORE WRITING BACK. An operation that ran earlier this frame -- a fillet, a chamfer, a
+    //    cut -- declared its curve into the world model only. The writeback walks the MAPPING, so an
+    //    unpaired curve is skipped and stays invisible to picking, which reads the compatibility sketch.
+    //    Pairing first is what lets a freshly filleted arc be selected at all.
+    static_cast<void>(AdoptWorldSketchCurvesIntoSketch(World, Mapping, Sketch));
+
     ApplyWorldSketchToSketch(World, Mapping, Sketch);
 
     SelectionSet.Clear();
@@ -1295,6 +1301,16 @@ void DriveViewportSelectionAndTransformWorldBacked(const PlaneExtent& Extent,
         SemanticSelection = SelectionSet.Active() ? *SelectionSet.Active() : SketchPick{};
     if (!ResolveSketchPickForWorldPick(Sketch, Records, Mapping, WorldHovered, HoveredSelection))
         HoveredSelection = {};
+
+    // 🔴 THE OUTLINER FOLLOWS THE VIEWPORT. The compatibility arm syncs `PendingSelection` to whatever
+    //    was picked; this arm resolved the semantic selection and then left the pending record behind,
+    //    so clicking an edge in the viewport highlighted it there and selected nothing in the directory.
+    //    Everything downstream that asks "what is selected" through the record -- the outliner row, the
+    //    editable selection, the delete path -- was reading a stale answer.
+    // 📝 Only when a pick actually stands. Clearing it here would fight the empty-click branch that
+    //    deliberately drops the selection.
+    if (SemanticSelection.Record.Assigned())
+        PendingSelection = SemanticSelection.Record;
 
     if (SelectionSet.Empty())
     {

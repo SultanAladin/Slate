@@ -319,6 +319,41 @@ CornerVerdict ApplyWorldCorner(WorldSketchStructure& Declared,
     (LeftLeg.CornerIsOrigin  ? FirstLine.Origin  : FirstLine.Terminus)  = EnterPoint;
     (RightLeg.CornerIsOrigin ? SecondLine.Origin : SecondLine.Terminus) = ExitPoint;
 
+    // 🔴 AND THE NEW CURVE IS SPLICED INTO EVERY LOOP THAT WALKED THE CORNER. Shortening the legs keeps
+    //    their names valid, but it leaves a GAP: the loop still runs first-leg then second-leg, and the
+    //    two no longer meet. A gapped traversal is not closed, so the analysis stops calling the loop
+    //    fillable and the face vanishes -- the shape reads as "the old outline with an arc lying on top"
+    //    rather than as a rounded rectangle. The arc has to become part of the walk, between the two
+    //    legs it joins, or the loop is no longer a description of the shape on screen.
+    for (DeclaredWorldLoop& Walked : Declared.Loops())
+    {
+        std::vector<WorldCurveUse>& Traversal = Walked.Traversal;
+        if (Traversal.size() < 2u)
+            continue;
+
+        for (std::size_t Step = 0u; Step < Traversal.size(); ++Step)
+        {
+            const std::size_t Next = (Step + 1u) % Traversal.size();
+            const std::uint32_t Here  = Traversal[Step].TraversedCurve.IssuedIndex;
+            const std::uint32_t There = Traversal[Next].TraversedCurve.IssuedIndex;
+
+            // 📝 Either order: the loop may walk the corner first-then-second or the other way about,
+            //    and both are the same corner.
+            const bool Forward = Here == First.IssuedIndex  && There == Second.IssuedIndex;
+            const bool Reverse = Here == Second.IssuedIndex && There == First.IssuedIndex;
+            if (!Forward && !Reverse)
+                continue;
+
+            // 📝 Inserted AFTER `Step`, which is where the gap now is. The sense follows the walk, so a
+            //    loop traversed backwards still reads continuously through the new curve.
+            WorldCurveUse Bridging = {};
+            Bridging.TraversedCurve = Joined;
+            Bridging.SameSense      = Forward;
+            Traversal.insert(Traversal.begin() + static_cast<std::ptrdiff_t>(Step) + 1, Bridging);
+            break;
+        }
+    }
+
     Produced = Joined;
     return CornerVerdict::Produced;
 }
