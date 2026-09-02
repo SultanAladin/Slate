@@ -210,6 +210,18 @@ struct DeclaredWorldCurve
     CurveSpecification Geometry = {};
     WorldPlacementFrame SupportFrame = {};
     bool SupportFrameStanding = false;
+
+    /// 🧩 Set when this curve has been withdrawn -- trimmed away, or otherwise removed by an operation.
+    /// note  🔴 RETIRED IN PLACE, NEVER ERASED, for exactly the reason a constraint is. A
+    ///        `WorldCurveName` IS its 1-based position in `HeldCurves`, and `WorldSketchMapping`,
+    ///        every loop's `Traversal`, and both the constraint and dimension references all store
+    ///        those names ACROSS FRAMES. Erasing element 2 would silently renumber every curve after
+    ///        it, so each stored name would then address its neighbour -- the sketch would keep
+    ///        drawing, against the wrong curves, with nothing reporting an error.
+    /// note  📝 A retired curve is skipped by `Retired`-aware callers and, because a withdrawn curve
+    ///        also mirrors as undeclared geometry, by the forty-odd places that already ask
+    ///        `Geometry.Declared()` before using one. Both gates agree; neither is load-bearing alone.
+    bool Retired = false;
 };
 
 struct WorldCurveUse
@@ -283,6 +295,17 @@ public:
     WorldConstraintSpecification* Resolve(WorldConstraintName Subject);
     const WorldDimensionSpecification* Resolve(WorldDimensionName Subject) const;
     WorldDimensionSpecification* Resolve(WorldDimensionName Subject);
+
+    /// 🧩 Withdraws a curve, and every loop use and constraint that named it.
+    /// in    Subject   [-]  the curve to retire; an unassigned or already-retired name is refused
+    /// out   Retired   [-]  whether this call was the one that retired it
+    /// note  🔴 THE DEPENDENTS GO WITH IT. A loop still traversing a withdrawn curve is a walk with a
+    ///        hole in it that still reports itself closed, so the face would keep filling across
+    ///        geometry the artist just removed.
+    /// note  📝 The curve keeps its index. See `DeclaredWorldCurve::Retired` for why erasing is unsafe.
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    bool RetireCurve(WorldCurveName Subject);
 
     void ResolveCurves(std::vector<CurveSpecification>& Delivered) const;
 

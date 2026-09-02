@@ -1065,7 +1065,13 @@ static std::vector<DimensionFigureChip> SketchDimensionFigures;
                                               SketchSemanticSelection),
                 SketchRetreated, SketchReinstated);
             SketchToolOptions.Advance(BackgroundPointer, Pass.ElapsedMilliseconds);
-            SketchContextMenu.Advance(BackgroundPointer, Pass.ElapsedMilliseconds);
+            // 🔴 THE READOUT HEARS THE KEYBOARD. Enter applies the standing operation and Escape
+            //    cancels it. Advanced with the pointer alone, the popup could only be committed by
+            //    clicking a small button at its foot -- so an artist who had just typed a figure
+            //    pressed Enter, nothing happened, and the operation read as refusing to apply.
+            // 📝 The same filtered text the sketch arm reads, so a keystroke made while the look
+            //    gesture is held still belongs to navigation rather than to this.
+            SketchContextMenu.Advance(BackgroundPointer, SketchViewportText, Pass.ElapsedMilliseconds);
             WorkspacePanels.Advance(BackgroundPointer, Pass.ElapsedMilliseconds);
 
             // 🔴 THE TOOL PANEL ADVANCES BEFORE THE VIEWPORT READS THE ACTIVE TOOL. It used to run at

@@ -231,6 +231,47 @@ WorldDimensionSpecification* WorldSketchStructure::Resolve(WorldDimensionName Su
     return &HeldDimensions[Subject.IssuedIndex - 1u];
 }
 
+bool WorldSketchStructure::RetireCurve(WorldCurveName Subject)
+{
+    DeclaredWorldCurve* const Held = Resolve(Subject);
+    if (Held == nullptr || Held->Retired)
+        return false;
+
+    Held->Retired = true;
+
+    // 🔴 THE LOOP USES GO WITH THE CURVE. A traversal still naming a withdrawn curve is a walk with a
+    //    hole in it that still reports itself closed, so the face would keep filling across geometry
+    //    the artist just removed. Dropping the use is what makes the loop honestly open.
+    for (DeclaredWorldLoop& Loop : HeldLoops)
+    {
+        for (std::size_t Step = Loop.Traversal.size(); Step-- > 0u; )
+        {
+            if (Loop.Traversal[Step].TraversedCurve.IssuedIndex == Subject.IssuedIndex)
+                Loop.Traversal.erase(Loop.Traversal.begin() + static_cast<std::ptrdiff_t>(Step));
+        }
+    }
+
+    // 📝 A constraint against a curve that is gone has nothing left to relate, so it is retired in
+    //    place -- the same treatment, for the same naming reason, that a contradicted constraint gets.
+    // ⚠️ DIMENSIONS ARE DELIBERATELY LEFT ALONE. `WorldDimensionSpecification` carries no `Retired`
+    //    flag, and inventing one here would be a second, unproven withdrawal mechanism bolted on in
+    //    passing. A dimension against a withdrawn curve already reads as undeclared through the curve.
+    const auto NamesSubject = [Subject](const WorldConstraintReference& Reference)
+    {
+        if (Reference.Subject == WorldConstraintReferenceSubject::Curve)
+            return Reference.Curve.IssuedIndex == Subject.IssuedIndex;
+        if (Reference.Subject == WorldConstraintReferenceSubject::Point)
+            return (Reference.Point >> 8u) == Subject.IssuedIndex;
+        return false;
+    };
+
+    for (WorldConstraintSpecification& Constraint : HeldConstraints)
+        if (NamesSubject(Constraint.Primary) || NamesSubject(Constraint.Secondary))
+            Constraint.Retired = true;
+
+    return true;
+}
+
 void WorldSketchStructure::ResolveCurves(std::vector<CurveSpecification>& Delivered) const
 {
     Delivered.clear();
@@ -243,6 +284,11 @@ bool WorldSketchStructure::Declared() const
 {
     for (const DeclaredWorldCurve& Curve : HeldCurves)
     {
+        // 📝 A retired curve is a well-formed record of geometry that has been withdrawn, exactly as a
+        //    retired constraint is. Judging it as live would make the whole sketch report itself
+        //    invalid the moment anything was trimmed away.
+        if (Curve.Retired)
+            continue;
         if (!Curve.Geometry.Declared())
             return false;
         if (Curve.SupportFrameStanding && !Curve.SupportFrame.Declared())

@@ -187,10 +187,17 @@ bool CrossingParameter(const LineCurve& Subject, const LineCurve& Other, double&
     return true;
 }
 
-/// 🧩 Every crossing along a curve, as sorted parameters, excluding the curve's own ends.
+/// 🧩 Every division along a curve, as sorted parameters.
+/// in   KeepEnds  [-]  whether a junction AT the curve's own start or end counts
+/// note 🔴 THE TWO CALLERS WANT DIFFERENT ANSWERS, and conflating them is why Trim did nothing on
+///      ordinary geometry. CUT divides a curve in two, so a junction at an end divides nothing and must
+///      be discarded. TRIM removes the span BETWEEN two divisions, and for a rectangle's edge those two
+///      divisions ARE its corners -- discard them and Trim finds no bounds, refuses, and the tool reads
+///      as a no-op. The ends are bounds for one and noise for the other.
 void CollectCrossings(const WorldSketchStructure& Declared,
                       WorldCurveName Subject,
-                      std::vector<double>& Parameters)
+                      std::vector<double>& Parameters,
+                      bool KeepEnds = false)
 {
     Parameters.clear();
     const LineCurve* SubjectLine = ResolveLine(Declared, Subject);
@@ -208,10 +215,13 @@ void CollectCrossings(const WorldSketchStructure& Declared,
         double Parameter = 0.0;
         if (!CrossingParameter(*SubjectLine, *OtherLine, Parameter))
             continue;
-        // ⚠️ A crossing at an endpoint is a junction, not a division. Cutting there produces nothing.
-        if (Parameter <= 1.0e-9 || Parameter >= 1.0 - 1.0e-9)
+        if (Parameter < -1.0e-9 || Parameter > 1.0 + 1.0e-9)
             continue;
-        Parameters.push_back(Parameter);
+        // ⚠️ A junction at an endpoint divides nothing, so Cut discards it. Trim keeps it, because it
+        //    is what bounds the first and last spans of the curve.
+        if (!KeepEnds && (Parameter <= 1.0e-9 || Parameter >= 1.0 - 1.0e-9))
+            continue;
+        Parameters.push_back(std::clamp(Parameter, 0.0, 1.0));
     }
 
     std::sort(Parameters.begin(), Parameters.end());
@@ -340,12 +350,14 @@ OperationVerdict TrimWorldCurve(WorldSketchStructure& Declared,
 
     const double At = std::clamp(ParameterAlong(Original, Probe), 0.0, 1.0);
 
+    // 🔴 THE ENDS COUNT AS BOUNDS FOR A TRIM. A rectangle's edge is divided only by its two corners,
+    //    and discarding those left this search empty -- so Trim refused on every ordinary shape.
     std::vector<double> Parameters;
-    CollectCrossings(Declared, Subject, Parameters);
+    CollectCrossings(Declared, Subject, Parameters, true);
     if (Parameters.empty())
         return OperationVerdict::NoIntersection;
 
-    // 📐 The bounds of the piece the probe sits in: the nearest crossing below it and the nearest above.
+    // 📐 The bounds of the piece the probe sits in: the nearest division below it and the nearest above.
     //    Absent either, that side runs to the curve's own end -- which is how an overhang is trimmed.
     double Lower = 0.0;
     double Upper = 1.0;
@@ -357,17 +369,29 @@ OperationVerdict TrimWorldCurve(WorldSketchStructure& Declared,
         else if (!HasUpper)  { Upper = Parameter; HasUpper = true; }
     }
 
-    // 📝 A curve with crossings, probed in a piece bounded by neither, would be removed entirely. That is
-    //    a deletion, not a trim, and the artist has a delete for it.
+    // 📝 Nothing bounds the piece on either side, so the whole curve is the piece. That is a deletion
+    //    rather than a trim, and the artist has a delete for it.
     if (!HasLower && !HasUpper)
         return OperationVerdict::NoIntersection;
 
     const SpatialPoint LowerPoint = PointAt(Original, Lower);
     const SpatialPoint UpperPoint = PointAt(Original, Upper);
 
+    // 🔴 THE SPAN IS THE WHOLE CURVE, SO THE CURVE GOES. This is the ordinary case on a closed profile:
+    //    the two divisions bounding a rectangle's edge are its own corners, and the piece between them
+    //    is the entire edge. Shortening it to nothing would leave a degenerate curve behind that still
+    //    drew, still picked and still counted; retiring it removes it and takes its loop uses with it,
+    //    so the profile honestly opens where the artist trimmed.
+    if (Lower <= 1.0e-9 && Upper >= 1.0 - 1.0e-9)
+    {
+        if (!Declared.RetireCurve(Subject))
+            return OperationVerdict::SubjectMissing;
+        return OperationVerdict::Produced;
+    }
+
     // 🔴 A TRIM THROUGH THE MIDDLE LEAVES TWO PIECES, and both must be kept. Treating the result as one
     //    shortened curve silently discards the far side of the shape.
-    if (HasLower && HasUpper)
+    if (HasLower && HasUpper && Lower > 1.0e-9 && Upper < 1.0 - 1.0e-9)
     {
         const WorldCurveName Far = DeclareLike(Declared, Subject, UpperPoint, Original.Terminus);
         if (!Far.Assigned())
@@ -378,9 +402,9 @@ OperationVerdict TrimWorldCurve(WorldSketchStructure& Declared,
         return OperationVerdict::Produced;
     }
 
-    // 📝 An overhang: one bound is a crossing, the other is the curve's free end. The subject survives as
-    //    the piece that is kept, so nothing that names it is disturbed.
-    if (HasLower)
+    // 📝 An overhang, or a span running to one end: the subject survives as the piece that is KEPT, so
+    //    nothing that names it is disturbed.
+    if (Upper >= 1.0 - 1.0e-9)
         Declared.Resolve(Subject)->Geometry.HeldLine().Terminus = LowerPoint;
     else
         Declared.Resolve(Subject)->Geometry.HeldLine().Origin = UpperPoint;
@@ -413,12 +437,15 @@ OperationVerdict EvaluateWorldTrim(const WorldSketchStructure& Declared,
 
     const double At = std::clamp(ParameterAlong(Original, Probe), 0.0, 1.0);
 
+    // 🔴 KEEPING THE ENDS, exactly as the commit does. The preview is the commit's own answer asked in
+    //    advance, so the two searches must be the same search -- a preview that discarded the corner
+    //    junctions would highlight nothing on the very shapes the trim now handles.
     std::vector<double> Parameters;
-    CollectCrossings(Declared, Subject, Parameters);
+    CollectCrossings(Declared, Subject, Parameters, true);
     if (Parameters.empty())
         return OperationVerdict::NoIntersection;
 
-    // 📐 The same bracket the trim resolves: the nearest crossing below the probe and the nearest above,
+    // 📐 The same bracket the trim resolves: the nearest division below the probe and the nearest above,
     //    each falling back to the curve's own end so an overhang reads as a piece rather than as nothing.
     double Lower = 0.0;
     double Upper = 1.0;

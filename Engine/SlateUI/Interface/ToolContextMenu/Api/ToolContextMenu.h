@@ -105,6 +105,16 @@ public:
 
     void Advance(const PointerCondition& Sampled, double Elapsed);
 
+    /// 🧩 Overload that also samples the keyboard, so Enter applies and Escape cancels.
+    /// in    Typed  [-]  this tick's text-input condition; only Accept and Cancel are read
+    /// note  🔴 THE READOUT WAS POINTER-ONLY, and an artist who has just typed a figure into it has
+    ///        their hands on the keyboard, not the mouse. Enter is how a figure is committed everywhere
+    ///        else in this shell; the readout ignoring it is why an operation could be set up and then
+    ///        appear to do nothing until the artist found the small Apply button at its foot.
+    /// note  📝 An overload rather than a changed signature, because callers that raise no readout have
+    ///        no keyboard to offer and should not be made to invent one.
+    void Advance(const PointerCondition& Sampled, const TextInputCondition& Typed, double Elapsed);
+
     /// 🧩 Opens the readout. It always appears in the bottom-right of the bounds given to `Record`.
     /// note  🔴 NO ANCHOR ARGUMENT, deliberately. The corner is fixed so the artist's eye can return to
     ///        it; taking an anchor is what let the retired version wander between operations.
@@ -166,6 +176,12 @@ private:
 
     PlaneExtent Occupied = {};   // [px] - what it drew this tick
     bool        Opened   = false;
+
+    /// 🧩 This tick's keyboard verdict, sampled by `Advance` and consumed once by `Record`.
+    /// note  📝 Held rather than passed, so the keyboard arrives by the same route the pointer does and
+    ///        `Record` keeps the signature every caller already states.
+    bool AcceptTyped = false;
+    bool CancelTyped = false;
 };
 
 }   // namespace Slate

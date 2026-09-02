@@ -317,6 +317,61 @@ void ProveTrimRemovesThePiece()
     //    trustworthy rather than decorative.
     Claim(Near(JunctionFrom.Left, 30.0) && Near(JunctionTo.Left, 70.0),
           "and the highlight spanned exactly the piece the commit removed");
+
+    // ④ 🔴 THE REPORTED CASE, WHOLE: A PLAIN RECTANGLE. Hover an edge, click it, the edge goes. Every
+    //    division bounding a rectangle's edge is one of its own CORNERS, and the search discarded a
+    //    junction sitting at either end of the subject -- correct for Cut, which divides a curve and
+    //    gains nothing from a division at an end, and fatal for Trim, whose bounds those corners ARE.
+    //    Finding none, Trim refused, so it neither highlighted nor removed: a no-op, exactly as reported.
+    WorldSketchStructure Rectangle;
+    const WorldCurveName Bottom = Rectangle.DeclareLine({ 0.0, 0.0, 0.0 }, { 100.0, 0.0, 0.0 }, Ground);
+    const WorldCurveName Right  = Rectangle.DeclareLine({ 100.0, 0.0, 0.0 }, { 100.0, 0.0, 60.0 }, Ground);
+    const WorldCurveName Top    = Rectangle.DeclareLine({ 100.0, 0.0, 60.0 }, { 0.0, 0.0, 60.0 }, Ground);
+    const WorldCurveName Left   = Rectangle.DeclareLine({ 0.0, 0.0, 60.0 }, { 0.0, 0.0, 0.0 }, Ground);
+
+    DeclaredWorldLoop Perimeter;
+    for (const WorldCurveName& Side : { Bottom, Right, Top, Left })
+        Perimeter.Traversal.push_back({ Side, true });
+    Rectangle.Loops().push_back(Perimeter);
+
+    SpatialPoint EdgeFrom = {};
+    SpatialPoint EdgeTo   = {};
+    Claim(EvaluateWorldTrim(Rectangle, Bottom, { 50.0, 0.0, 0.0 }, EdgeFrom, EdgeTo)
+              == OperationVerdict::Produced,
+          "hovering a plain rectangle's edge previews a trim, where it used to promise nothing");
+    Claim(Near(EdgeFrom.Left, 0.0) && Near(EdgeTo.Left, 100.0),
+          "and the highlight is the WHOLE edge, corner to corner -- the piece between two divisions");
+
+    std::vector<WorldCurveName> EdgeKept;
+    Claim(TrimWorldCurve(Rectangle, Bottom, { 50.0, 0.0, 0.0 }, EdgeKept) == OperationVerdict::Produced,
+          "and clicking it trims");
+
+    const DeclaredWorldCurve* const Trimmed = Rectangle.Resolve(Bottom);
+    Claim(Trimmed != nullptr && Trimmed->Retired,
+          "the edge is RETIRED -- genuinely removed, not shortened to a degenerate stub");
+    Claim(EdgeKept.empty(), "and no piece of it survives, because the whole span was the piece");
+
+    // 🔴 THE LOOP LOSES THE USE WITH THE CURVE. A traversal still naming a withdrawn curve is a walk
+    //    with a hole that still reports itself closed, so the face would keep filling across geometry
+    //    the artist just removed.
+    Claim(Rectangle.Loops()[0u].Traversal.size() == 3u,
+          "the perimeter now walks three sides, not four");
+    for (const WorldCurveUse& Use : Rectangle.Loops()[0u].Traversal)
+        Claim(Use.TraversedCurve.IssuedIndex != Bottom.IssuedIndex,
+              "and no surviving use still names the trimmed edge");
+
+    // ⚠️ The index is KEPT. A WorldCurveName is its position, and the mapping, the loops and every
+    //    constraint store those names across frames -- so erasing would renumber the three survivors
+    //    and each stored name would silently address its neighbour.
+    Claim(Rectangle.CurveCount() == 4u,
+          "the curve KEEPS its index, so nothing stored across frames is renumbered");
+    Claim(Rectangle.Declared(),
+          "and the sketch is still well-formed, because a retired curve is not judged as live");
+
+    Claim(Near(LengthOf(Rectangle, Right), 60.0)
+       && Near(LengthOf(Rectangle, Top), 100.0)
+       && Near(LengthOf(Rectangle, Left), 60.0),
+          "and the other three sides are untouched");
 }
 
 //------------------------------------------------------------------------------------------------------------------------

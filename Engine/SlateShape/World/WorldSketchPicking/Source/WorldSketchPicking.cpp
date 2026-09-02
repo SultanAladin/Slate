@@ -45,7 +45,9 @@ bool ResolveWorldSketchPoints(const WorldSketchStructure& Declared,
     Resolved.clear();
 
     const DeclaredWorldCurve* Held = ResolveCurve(Declared, SourceCurve);
-    if (Held == nullptr || !Held->Geometry.Declared())
+    // 📝 A retired curve has been withdrawn by an operation. It keeps its index so every stored
+    //    name still addresses the curve it always did, and it answers here as though absent.
+    if (Held == nullptr || Held->Retired || !Held->Geometry.Declared())
         return false;
 
     switch (Held->Geometry.Subject())
@@ -141,7 +143,9 @@ bool ResolveWorldSketchControls(const WorldSketchStructure& Declared,
     Resolved.clear();
 
     const DeclaredWorldCurve* Held = ResolveCurve(Declared, SourceCurve);
-    if (Held == nullptr || !Held->Geometry.Declared())
+    // 📝 A retired curve has been withdrawn by an operation. It keeps its index so every stored
+    //    name still addresses the curve it always did, and it answers here as though absent.
+    if (Held == nullptr || Held->Retired || !Held->Geometry.Declared())
         return false;
 
     switch (Held->Geometry.Subject())
@@ -271,7 +275,9 @@ bool ResolveWorldCurvePivot(const WorldSketchStructure& Declared,
                             SpatialPoint& Pivot)
 {
     const DeclaredWorldCurve* Held = ResolveCurve(Declared, Curve);
-    if (Held == nullptr || !Held->Geometry.Declared())
+    // 📝 A retired curve has been withdrawn by an operation. It keeps its index so every stored
+    //    name still addresses the curve it always did, and it answers here as though absent.
+    if (Held == nullptr || Held->Retired || !Held->Geometry.Declared())
         return false;
 
     switch (Held->Geometry.Subject())

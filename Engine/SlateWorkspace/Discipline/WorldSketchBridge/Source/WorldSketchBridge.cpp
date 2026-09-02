@@ -622,7 +622,11 @@ bool ApplyWorldSketchToSketch(const WorldSketchStructure& Declared,
         const DeclaredWorldCurve* Source = Declared.Resolve(WorldCurveName{ CurveIndex });
         if (Source == nullptr)
             return false;
-        Sketch.Curves()[CurveIndex - 1u].Geometry = Source->Geometry;
+        // 📝 A retired curve mirrors as UNDECLARED geometry rather than as its last shape. The twin
+        //    keeps its index, so nothing renumbers; what it loses is anything for the compatibility
+        //    readers to draw or pick, which is the whole point of having withdrawn it.
+        Sketch.Curves()[CurveIndex - 1u].Geometry =
+            Source->Retired ? CurveSpecification{} : Source->Geometry;
     }
 
     return true;
@@ -641,7 +645,10 @@ bool ApplyWorldSketchToSketch(const WorldSketchStructure& Declared,
         if (Source == nullptr || !Reference.Sketch.Assigned()
          || Reference.Sketch.IssuedIndex > Sketch.Curves().size())
             return false;
-        Sketch.Curves()[Reference.Sketch.IssuedIndex - 1u].Geometry = Source->Geometry;
+        // 📝 As above: a withdrawn curve mirrors as undeclared, so the twin stops drawing and picking
+        //    without either side renumbering.
+        Sketch.Curves()[Reference.Sketch.IssuedIndex - 1u].Geometry =
+            Source->Retired ? CurveSpecification{} : Source->Geometry;
     }
 
     return true;
@@ -677,7 +684,9 @@ bool AdoptWorldSketchCurvesIntoSketch(const WorldSketchStructure& Declared,
             continue;
 
         const DeclaredWorldCurve* Source = Declared.Resolve(World);
-        if (Source == nullptr)
+        // ⚠️ A retired curve is never adopted. Pairing one would declare a fresh sketch twin for
+        //    geometry that has just been withdrawn, putting the trimmed edge straight back.
+        if (Source == nullptr || Source->Retired)
             continue;
 
         const SketchCurveName Mirrored = Sketch.DeclareCurve(Source->Geometry);

@@ -338,6 +338,30 @@ int main()
         Require(PreparedAt != std::string::npos && ChooseAt < PreparedAt,
                 "and Q retires the driver's prepared tool, so re-entering it starts clean");
 
+        // 🔴 ENTER APPLIES THE STANDING OPERATION. The readout was advanced with the POINTER alone, so
+        //    the only way to commit was to click a small button at its foot -- an artist who had just
+        //    typed a figure pressed Enter, nothing happened, and the operation read as refusing to
+        //    apply. The keyboard has to be handed to the popup for its Accept to exist at all, and only
+        //    the host can do that, so only source order can state it.
+        Require(Host.find("SketchContextMenu.Advance(BackgroundPointer, SketchViewportText,")
+                    != std::string::npos,
+                "the operation readout is advanced with the keyboard, so Enter can apply it");
+
+        const std::string Popup =
+            ReadWhole("Engine/SlateUI/Interface/ToolContextMenu/Source/ToolContextMenu.cpp");
+        Require(!Popup.empty(), "the readout source is readable");
+        Require(Popup.find("Pressed(ApplyAction, ApplyExtent) || AcceptedByKey") != std::string::npos,
+                "with Enter standing in for the Apply button, not merely beside it");
+        Require(Popup.find("Pressed(CancelAction, CancelExtent) || CancelledByKey") != std::string::npos,
+                "and Escape for Cancel");
+
+        // ⚠️ CONSUMED ONCE. A key left standing would re-apply on every frame it was held, which on a
+        //    destructive operation is far worse than a key that does nothing.
+        const std::size_t ConsumedAt = Popup.find("AcceptTyped = false;");
+        const std::size_t ActedAt    = Popup.find("const bool TookApply");
+        Require(ConsumedAt != std::string::npos && ActedAt != std::string::npos && ConsumedAt < ActedAt,
+                "and the key is consumed before it is acted on, so holding Enter applies once");
+
         // 🔴 THE SOURCE OF THE DIMENSION IS THE STANDING PICK. Read from the widget's mode instead and
         //    the catalogue would offer edge operations because the artist was LOOKING at Edge mode,
         //    rather than because an edge is actually held.

@@ -79,6 +79,20 @@ void ToolContextMenu::Advance(const PointerCondition& Sampled, double Elapsed)
     Pointer = Sampled;
     Controls.Observe(Sampled);
     Interaction.Advance(Sampled, Elapsed);
+
+    // 📝 The pointer-only route offers no keyboard, so neither key stands this tick. Stated rather
+    //    than left over from the previous tick, which would fire Apply a frame late.
+    AcceptTyped = false;
+    CancelTyped = false;
+}
+
+void ToolContextMenu::Advance(const PointerCondition& Sampled,
+                              const TextInputCondition& Typed,
+                              double Elapsed)
+{
+    Advance(Sampled, Elapsed);
+    AcceptTyped = Typed.AcceptPressed;
+    CancelTyped = Typed.CancelPressed;
 }
 
 void ToolContextMenu::Reset()
@@ -305,8 +319,19 @@ Deliver<PopupVerdict> ToolContextMenu::Record(const PlaneExtent& Bounds,
 
     Surface->Release();
 
-    const bool TookApply  = Pressed(ApplyAction, ApplyExtent);
-    const bool TookCancel = Pressed(CancelAction, CancelExtent);
+    // 🔴 ENTER IS APPLY AND ESCAPE IS CANCEL. The artist sets the figure by dragging or by typing, and
+    //    both leave the hands away from the two small buttons at the foot of the readout. Enter is what
+    //    commits a value everywhere else in this shell, so a readout that ignored it read as an
+    //    operation that would not apply at all.
+    // ⚠️ Consumed here, once, so a key held down cannot re-apply on every frame it is held -- which on
+    //    a destructive operation is far worse than a key that does nothing.
+    const bool AcceptedByKey  = AcceptTyped;
+    const bool CancelledByKey = CancelTyped;
+    AcceptTyped = false;
+    CancelTyped = false;
+
+    const bool TookApply  = Pressed(ApplyAction, ApplyExtent) || AcceptedByKey;
+    const bool TookCancel = Pressed(CancelAction, CancelExtent) || CancelledByKey;
 
     // 🔴 THE WHOLE FRAME SWALLOWS THE CONTACT. Without this a press that misses every control but lands
     //    on the popup falls through to the viewport and deselects the very thing the popup is about to

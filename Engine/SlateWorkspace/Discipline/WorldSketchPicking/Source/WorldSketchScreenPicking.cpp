@@ -125,7 +125,9 @@ bool ResolveCurvePolyline(const WorldSketchStructure& Declared,
 {
     Polyline.clear();
     const DeclaredWorldCurve* Held = ResolveCurve(Declared, Curve);
-    if (Held == nullptr || !Held->Geometry.Declared())
+    // 📝 A retired curve has been withdrawn by an operation. It keeps its index so every stored
+    //    name still addresses the curve it always did, and it answers here as though absent.
+    if (Held == nullptr || Held->Retired || !Held->Geometry.Declared())
         return false;
 
     AppendCurvePolyline(Held->Geometry, Polyline, 48u);
