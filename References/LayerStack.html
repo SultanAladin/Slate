@@ -131,15 +131,26 @@
   .name input{width:100%;font:inherit;font-weight:600;color:var(--text);background:#000;
     border:1px solid #fff;border-radius:6px;padding:1px 7px;outline:none;}
 
-  /* attached mask rows — dashed, mono uppercase (V1 .attach/.msk) */
-  .row.msk{min-height:36px;background:rgba(255,255,255,.022);border:1px dashed var(--stroke);}
-  .row.msk:hover{background:rgba(255,255,255,.05);}
+  /* attached mask rows — dotted, mono uppercase (V1 .attach/.msk) */
+  .row.msk{min-height:36px;background:rgba(255,255,255,.022);border:1px dotted rgba(255,255,255,.22);}
+  .row.msk:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.32);}
   .row.msk.sel{background:var(--selected);border-style:solid;border-color:var(--stroke-2);}
   .row.msk .name{font:700 10.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);}
+  .row.msk .ctag{background:repeating-linear-gradient(180deg,var(--c,#888) 0 2px,transparent 2px 6px);opacity:.9;}
   .attach{position:absolute;width:14px;align-self:stretch;pointer-events:none;}
-  .row.msk .conn{position:relative;width:12px;flex:0 0 12px;align-self:stretch;}
-  .row.msk .conn::before{content:"";position:absolute;left:5px;top:-8px;height:26px;width:1px;background:var(--stroke-2);opacity:.6;}
-  .row.msk .conn::after{content:"";position:absolute;left:5px;top:18px;width:9px;height:1px;background:var(--stroke-2);opacity:.6;}
+  .row.msk .conn{position:relative;width:14px;flex:0 0 14px;align-self:stretch;pointer-events:none;}
+  .row.msk .conn::before{content:"";position:absolute;left:5px;top:-9px;bottom:calc(50% - 1px);width:0;
+    border-left:1px dotted rgba(255,255,255,.45);}
+  .row.msk .conn::after{content:"";position:absolute;left:5px;top:calc(50% - 1px);width:12px;height:0;
+    border-top:1px dotted rgba(255,255,255,.45);}
+  .row.msk .conn i{position:absolute;left:15px;top:calc(50% - 2px);width:3px;height:3px;border-radius:50%;
+    background:rgba(255,255,255,.5);}
+
+  /* warning / caution badges (kit alert colours: red=warning, orange=caution) */
+  .wico{width:20px;height:20px;flex:0 0 20px;display:grid;place-items:center;cursor:help;
+    animation:wpop .26s cubic-bezier(.34,1.5,.64,1) both;}
+  @keyframes wpop{from{transform:scale(.4);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .wico.warning{color:var(--danger);} .wico.caution{color:#f76b15;}
 
   .eye{width:24px;height:24px;flex:0 0 24px;border:none;background:transparent;color:var(--text-dim);
     cursor:pointer;display:grid;place-items:center;opacity:.55;transition:color .15s var(--ease),opacity .15s;}
@@ -269,6 +280,17 @@
   .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
     color:var(--text-faint);font-size:12px;}
 
+  /* alert card in details (kit alert style) */
+  .alert{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;margin-bottom:12px;
+    animation:cardIn .28s var(--ease);}
+  .alert svg{flex:0 0 15px;margin-top:1px;}
+  .alert .at{font-size:11px;color:var(--text-dim);line-height:1.45;}
+  .alert .at b{display:block;font:700 9.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;margin-bottom:3px;}
+  .alert.warning{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.35);}
+  .alert.warning .at b{color:var(--danger);}
+  .alert.caution{background:rgba(247,107,21,.08);border:1px solid rgba(247,107,21,.35);}
+  .alert.caution .at b{color:#f76b15;}
+
   .det-hero{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
   .det-hero .di{width:44px;height:44px;flex:0 0 44px;position:relative;box-shadow:0 0 0 1px rgba(255,255,255,.15);}
   .det-hero .dn{font-size:13.5px;font-weight:600;}
@@ -365,6 +387,7 @@ const PATHS={
   eye    :'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
   eyeoff :'<path d="M2 12s3.5-7 10-7c2 0 3.8.7 5.3 1.6M22 12s-3.5 7-10 7c-2 0-3.8-.7-5.3-1.6"/><path d="m3 3 18 18"/>',
   chevd  :'<polyline points="6 9 12 15 18 9"/>',
+  warn   :'<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
 };
 /* LayerstackV1 colour tags */
 const COLORS=['#e5484d','#f76b15','#ffc53d','#46a758','#12a594','#8ab4d8','#9b8cf0','#e93d82','#8b8d98','#b0e64c'];
@@ -422,24 +445,28 @@ function chDefaults(ids){
 const L=(name,type,extra)=>{
   const e=extra||{};
   const channels=e.channels||['base','rough','metal'];
-  return {id:++UID,name,type,kids:e.kids||[],open:true,vis:true,opacity:e.opacity??100,blend:'Normal',
+  return {id:++UID,name,type,kids:e.kids||[],open:true,vis:true,opacity:e.opacity??100,blend:e.blend||'Normal',
+    res:e.res||'2048 × 2048',warn:e.warn||null,
     color:e.color||COLORS[UID%COLORS.length],channels,chan:chDefaults(channels),chOpen:{},decal:e.decal,text:e.text};
 };
 const F=(name,color,kids)=>({id:++UID,name,type:'folder',kids:kids||[],open:true,vis:true,opacity:100,blend:'Passthrough',
-  color:color||'#8ab4d8',channels:[],chan:{},chOpen:{}});
-const M=name=>({id:++UID,name,type:'mask',kids:[],open:true,vis:true,invert:false,feather:12,density:100,src:'Paint',color:'#8b8d98'});
+  warn:null,color:color||'#8ab4d8',channels:[],chan:{},chOpen:{}});
+const M=name=>({id:++UID,name,type:'mask',kids:[],open:true,vis:true,invert:false,feather:12,density:100,src:'Paint',
+  blend:'Multiply',warn:null,color:'#8b8d98'});
 
 const stack=[
   F('Decals','#8ab4d8',[
     L('Decal_SerialText','decal',{decal:'text',text:'HULL-7741-A',channels:['base','rough'],color:'#8ab4d8'}),
-    L('Decal_Insignia','decal',{decal:'image',channels:['base','norm'],color:'#9b8cf0'}),
-    L('Pattern_HexPanel','decal',{decal:'pattern',channels:['base','rough','norm'],color:'#12a594'}),
+    L('Decal_Insignia','decal',{decal:'image',channels:['base','norm'],color:'#9b8cf0',
+      warn:{lvl:'caution',msg:'Source image not found — rendering placeholder.'}}),
+    L('Pattern_HexPanel','decal',{decal:'pattern',channels:['base','rough','norm'],color:'#12a594',
+      warn:{lvl:'warning',msg:'Resolution mismatch — layer is 2048² but material budget is 4096².'}}),
   ]),
   F('Paint','#f76b15',[
     L('Paint_Weathering','paint',{channels:['base','rough','height'],color:'#f76b15'}),
-    L('Paint_EdgeHighlights','paint',{channels:['base'],color:'#ffc53d',opacity:70}),
+    L('Paint_EdgeHighlights','paint',{channels:['base'],color:'#ffc53d',opacity:70,blend:'Add'}),
   ]),
-  L('Fill_BaseSteel','fill',{channels:['base','rough','metal','ao'],color:'#8b8d98'}),
+  L('Fill_BaseSteel','fill',{channels:['base','rough','metal','ao'],color:'#8b8d98',res:'4096 × 4096'}),
 ];
 stack[0].kids[0].kids.push(M('Mask_Fade'));
 stack[1].kids[0].kids.push(M('Mask_EdgeWear'));
@@ -528,10 +555,11 @@ function renderTree(){
       const leaf=!n.kids.length;
       row.innerHTML=
         `<span class="ctag"></span>`+
-        (isMask?'<span class="conn"></span>'
+        (isMask?'<span class="conn"><i></i></span>'
                :`<button class="tw ${leaf?'void':''} ${n.open?'':'closed'}">${S(PATHS.chevd,null,11)}</button>`)+
         thumbHTML(n,isMask)+
         `<div class="meta"><div class="name" data-nm>${n.name}</div>${subLine(n)}</div>`+
+        (n.warn?`<span class="wico ${n.warn.lvl}" title="${n.warn.msg.replace(/"/g,'&quot;')}">${S(PATHS.warn,null,13)}</span>`:'')+
         `<button class="eye ${n.vis?'':'off'}">${n.vis?S(PATHS.eye,null,13):S(PATHS.eyeoff,null,13)}</button>`;
       const tw=row.querySelector('.tw');
       if(tw&&!leaf) tw.addEventListener('click',e=>{e.stopPropagation();n.open=!n.open;renderTree();});
@@ -608,8 +636,15 @@ function dragEnd(){
   renderTree(); renderDetails();
 }
 
-/* ── details pane ─────────────────────────────────────────────────── */
+/* ── details pane — settings of the selected component ────────────── */
 const detEl=document.getElementById('details');
+const BLENDS=['Normal','Multiply','Screen','Overlay','Add','Subtract','Darken','Lighten'];
+const MASK_BLENDS=['Multiply','Add','Subtract'];
+const RES_OPTS=['512 × 512','1024 × 1024','2048 × 2048','4096 × 4096','Match material'];
+const rowPick=(l,v,key)=>`<div class="prow"><span class="pl">${l}</span><div class="pickbar" data-dd="${key}"><span class="pname">${v}</span><span class="caret">▾</span></div></div>`;
+const rowSlideF=(l,val,min,max,u,f)=>rowSlider(l,val,min,max,u).replace('class="sld"',`class="sld" data-f="${f}"`);
+const enabledRow=n=>`<div class="prow"><span class="pl">Enabled</span><div class="sw ${n.vis?'on':''}" id="detVis"></div><span style="flex:1"></span></div>`;
+
 function renderDetails(){
   const n=current();
   if(!n){
@@ -617,26 +652,66 @@ function renderDetails(){
     return;
   }
   const mask=n.kids.find(k=>k.type==='mask');
+  const alertHTML=n.warn
+    ?`<div class="alert ${n.warn.lvl}">${S(PATHS.warn,n.warn.lvl==='warning'?'#ef4444':'#f76b15',15)}<div class="at"><b>${n.warn.lvl}</b>${n.warn.msg}</div></div>`
+    :'';
+  let settings;
+  if(n.type==='mask'){
+    settings=card('Mask Settings',
+      enabledRow(n)+
+      rowPick('Blend',n.blend,'mblend')+
+      rowSlideF('Density',n.density,0,100,'%','density')+
+      rowSlideF('Feather',n.feather,0,64,' px','feather')+
+      `<div class="prow"><span class="pl">Invert</span><div class="sw ${n.invert?'on':''}" id="detInv"></div><span style="flex:1"></span></div>`+
+      rowText('Masking',n.parent?n.parent.name:'—')+
+      rowText('Source',n.src));
+  }else if(n.type==='folder'){
+    settings=card('Folder Settings',
+      enabledRow(n)+
+      rowPick('Blend mode',n.blend,'fblend')+
+      rowSlideF('Opacity',n.opacity,0,100,'%','opacity')+
+      rowText('Items',String(n.kids.length)));
+  }else{
+    settings=card('Layer Settings',
+      enabledRow(n)+
+      rowPick('Blend mode',n.blend,'blend')+
+      rowSlideF('Opacity',n.opacity,0,100,'%','opacity')+
+      rowPick('Resolution',n.res,'res')+
+      rowText('Mask',mask?mask.name:'none')+
+      `<div class="prow"><span class="pl">Channels</span><div class="mini-chips">${
+        n.channels.map(id=>{const c=CH(id);return `<span class="mini-chip"><i style="background:${c.hue}"></i>${c.name}</span>`;}).join('')
+      }</div></div>`);
+  }
   detEl.innerHTML=
     `<div class="det-hero">${thumbHTML(n)}
       <div><div class="dn name-edit" id="detName" title="Double-click to rename">${n.name}</div>
-      <div class="dt">${typeLabel(n).toLowerCase()}${n.type!=='mask'?` · ${n.blend.toLowerCase()} · ${n.opacity}%`:''}${n.kids.length?` · ${n.kids.length} children`:''}</div></div></div>`+
-    `<div class="pcard"><h4>${n.type==='mask'?'Mask':(n.type==='folder'?'Folder':'Layer')}</h4>`+
-      `<div class="prow"><span class="pl">Enabled</span><div class="sw ${n.vis?'on':''}" id="detVis"></div><span style="flex:1"></span></div>`+
-      (n.type==='mask'
-        ?`<div class="prow"><span class="pl">Masking</span><span style="font-size:11.5px;color:var(--text-dim)">${n.parent?n.parent.name:'—'}</span></div>`+
-         `<div class="prow"><span class="pl">Source</span><span style="font-size:11.5px;color:var(--text-dim)">${n.src}</span></div>`
-        :n.type==='folder'
-        ?`<div class="prow"><span class="pl">Items</span><span style="font-size:11.5px;color:var(--text-dim)">${n.kids.length}</span></div>`
-        :`<div class="prow"><span class="pl">Mask</span><span style="font-size:11.5px;color:var(--text-dim)">${mask?mask.name:'none'}</span></div>`+
-         `<div class="prow"><span class="pl">Channels</span><div class="mini-chips">${
-            n.channels.map(id=>{const c=CH(id);return `<span class="mini-chip"><i style="background:${c.hue}"></i>${c.name}</span>`;}).join('')
-          }</div></div>`)+
-    `</div>`+
+      <div class="dt">${typeLabel(n).toLowerCase()}${n.type!=='mask'?` · ${n.blend.toLowerCase()} · ${n.opacity}%`:` · ${n.blend.toLowerCase()} · ${n.density}%`}${n.kids.length?` · ${n.kids.length} children`:''}</div></div></div>`+
+    alertHTML+settings+
     `<div class="det-open-hint">Press &nbsp;<b style="color:var(--text)">›</b>&nbsp; in the header for full properties</div>`;
   document.getElementById('detVis').addEventListener('click',()=>{n.vis=!n.vis;renderTree();renderDetails();});
   const dn=document.getElementById('detName');
   dn.addEventListener('dblclick',()=>startRename(n,dn,()=>{renderTree();renderDetails();}));
+  const inv=document.getElementById('detInv');
+  if(inv) inv.addEventListener('click',()=>{n.invert=!n.invert;renderDetails();});
+  detEl.querySelectorAll('.sld').forEach(s=>{
+    wireSlider(s);
+    const f=s.dataset.f;
+    if(f){ s.addEventListener('input',()=>{n[f]=+s.value;}); s.addEventListener('change',()=>{renderTree();renderDetails();}); }
+  });
+  detEl.querySelectorAll('[data-dd]').forEach(pb=>pb.addEventListener('click',e=>{
+    e.stopPropagation();
+    const key=pb.dataset.dd;
+    const opts=key==='res'?RES_OPTS:key==='mblend'?MASK_BLENDS:key==='fblend'?['Passthrough',...BLENDS]:BLENDS;
+    const cur=key==='res'?n.res:n.blend;
+    popMenu.innerHTML=`<div class="mh">${key==='res'?'Resolution':'Blend mode'}</div>`+
+      opts.map(o=>`<div class="mi" data-o="${o}">${o}${o===cur?'<span class="note">✓</span>':''}</div>`).join('');
+    popMenu.querySelectorAll('[data-o]').forEach(mi=>mi.addEventListener('click',()=>{
+      if(key==='res') n.res=mi.dataset.o; else n.blend=mi.dataset.o;
+      closeMenus(); renderDetails(); renderTree();
+    }));
+    const r=pb.getBoundingClientRect();
+    place(popMenu,r.left,r.bottom+6);
+  }));
 }
 
 /* ── popups ───────────────────────────────────────────────────────── */
