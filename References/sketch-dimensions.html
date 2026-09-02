@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Slate — Dimension Lines &amp; Constraints</title>
+<style>
+  :root{
+    --bg:#14171c; --panel:#1c2128; --line:#2b323c; --ink:#e6ebf2; --dim:#8b96a5;
+    --accent:#4ea1ff; --geo:#c9d4e2; --sel:#ffb44e; --hov:#7fd1ff;
+    --con:#5ad19a; --dimcol:#ff8f5a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font:13px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+  #app{display:flex;height:100%}
+  #side{width:262px;flex:none;background:var(--panel);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;overflow:auto}
+  #side h1{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);
+    margin:0;padding:16px 16px 10px}
+  .grp{padding:10px 16px 14px;border-top:1px solid var(--line)}
+  .grp h2{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:0 0 8px}
+  .seg{display:flex;gap:4px}
+  .seg button{flex:1;background:#232a33;border:1px solid var(--line);color:var(--ink);
+    padding:6px 0;border-radius:5px;cursor:pointer;font:inherit;font-size:12px}
+  .seg button.on{background:var(--accent);border-color:var(--accent);color:#05121f;font-weight:600}
+  label.chk{display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;color:#c3ccd8}
+  label.chk input{accent-color:var(--accent)}
+  .kv{display:flex;justify-content:space-between;padding:3px 0;color:#aab4c2}
+  .kv b{color:var(--ink);font-weight:600}
+  ol{margin:0;padding-left:18px;color:#aab4c2}
+  ol li{margin:5px 0}
+  kbd{background:#2b323c;border:1px solid #39424f;border-bottom-width:2px;border-radius:4px;
+    padding:1px 5px;font:11px/1.4 ui-monospace,Menlo,monospace;color:#dbe4ef}
+  #stage{flex:1;position:relative;min-width:0}
+  canvas{display:block;width:100%;height:100%;cursor:crosshair}
+  #hud{position:absolute;left:14px;bottom:12px;color:#7d8794;font:11px ui-monospace,Menlo,monospace;
+    pointer-events:none;text-shadow:0 1px 3px #000}
+  #tip{position:absolute;padding:5px 9px;background:#0c1015ee;border:1px solid #39424f;border-radius:6px;
+    font-size:11px;pointer-events:none;opacity:0;transition:opacity .1s;white-space:nowrap;z-index:5}
+  #edit{position:absolute;display:none;z-index:6;background:#0c1015;border:2px solid var(--accent);
+    border-radius:6px;padding:3px 6px;color:#fff;font:600 14px ui-monospace,Menlo,monospace;
+    width:104px;text-align:center;outline:none}
+  #legend{position:absolute;right:14px;top:12px;background:#0c1015cc;border:1px solid var(--line);
+    border-radius:8px;padding:10px 12px;font-size:11px;color:#aab4c2;pointer-events:none}
+  #legend div{display:flex;align-items:center;gap:7px;margin:3px 0}
+  .swatch{width:10px;height:10px;border-radius:50%;flex:none}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="side">
+    <h1>Dimensions</h1>
+
+    <div class="grp">
+      <h2>Display unit</h2>
+      <div class="seg" id="units">
+        <button data-u="mm" class="on">mm</button>
+        <button data-u="cm">cm</button>
+        <button data-u="m">m</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <h2>Overlay</h2>
+      <label class="chk"><input type="checkbox" id="cShow" checked> Constraint widgets</label>
+      <label class="chk"><input type="checkbox" id="cGrid" checked> Grid</label>
+      <label class="chk"><input type="checkbox" id="cVert" checked> Vertices</label>
+    </div>
+
+    <div class="grp">
+      <h2>How to use</h2>
+      <ol>
+        <li><b>Drag off an edge</b> to pull out a linear dimension.</li>
+        <li><b>Drag off a circle</b> for ⌀ diameter — hold <kbd>Alt</kbd> for R radius.</li>
+        <li><b>Drag off a fillet arc</b> for its R radius.</li>
+        <li><b>Double-click</b> any dimension value to type a new one — geometry updates as you type.</li>
+        <li>Drag an existing dimension to reposition it.</li>
+        <li>Click a <span style="color:var(--con)">green widget</span> to toggle that constraint.</li>
+        <li><kbd>Wheel</kbd> zoom at cursor · <kbd>Middle</kbd>/<kbd>Space</kbd> pan · <kbd>Del</kbd> remove dim</li>
+      </ol>
+    </div>
+
+    <div class="grp">
+      <h2>Selection</h2>
+      <div class="kv"><span>Entity</span><b id="iEnt">—</b></div>
+      <div class="kv"><span>Measure</span><b id="iVal">—</b></div>
+      <div class="kv"><span>Dimensions</span><b id="iCount">0</b></div>
+    </div>
+
+    <div class="grp">
+      <h2>Constraint glyphs</h2>
+      <div class="kv"><span>H / V</span><b>horizontal / vertical</b></div>
+      <div class="kv"><span>∥ / ⟂</span><b>parallel / perpendicular</b></div>
+      <div class="kv"><span>= / ⌒</span><b>equal / tangent</b></div>
+      <div class="kv"><span>● / ⌾</span><b>coincident / concentric</b></div>
+    </div>
+  </div>
+
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="hud"></div>
+    <div id="tip"></div>
+    <input id="edit" autocomplete="off">
+    <div id="legend">
+      <div><span class="swatch" style="background:#c9d4e2"></span>geometry</div>
+      <div><span class="swatch" style="background:#ff8f5a"></span>dimension</div>
+      <div><span class="swatch" style="background:#5ad19a"></span>constraint</div>
+      <div><span class="swatch" style="background:#ffb44e"></span>selected</div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================================
+   Units — the model is millimetres throughout; only display converts.
+   ========================================================================= */
+const UNIT = { mm:{f:1,d:1}, cm:{f:0.1,d:2}, m:{f:0.001,d:3} };
+let unit = "mm";
+const toDisp = v => v * UNIT[unit].f;
+const toMM   = v => v / UNIT[unit].f;
+const fmt    = v => toDisp(v).toFixed(UNIT[unit].d).replace(/\.?0+$/,"") || "0";
+const label  = v => fmt(v) + " " + unit;
+
+/* ============================================================================
+   Model — five parametric shapes. Parametric, not free points, so that a
+   dimension edit has an unambiguous thing to drive.
+   ========================================================================= */
+const shapes = [
+  { id:"rect",  type:"rect",   x: 46, y: 42, w:104, h: 68,
+    cons:{ top:"H", bottom:"H", left:"V", right:"V" } },
+
+  { id:"circ",  type:"circle", cx:246, cy: 82, r: 34,
+    cons:{ c:"⌾" } },
+
+  { id:"tri",   type:"tri",    p0:{x: 48,y:232}, p1:{x:158,y:232}, p2:{x:104,y:150},
+    cons:{ e0:"H", e1:"=", e2:"=" } },
+
+  { id:"elbow", type:"elbow",  ox:214, oy:236, legA: 96, legB: 82, r: 26,
+    cons:{ la:"H", lb:"V", arc:"⌒" } },
+
+  { id:"free",  type:"line",   a:{x:352,y: 44}, b:{x:430,y:126},
+    cons:{ l:"∥" } }
+];
+const shapeById = id => shapes.find(s => s.id === id);
+
+/* Entities are rebuilt from parameters every frame. */
+function entitiesOf(s){
+  const E = [];
+  if (s.type === "rect"){
+    const {x,y,w,h} = s;
+    const tl={x,y}, tr={x:x+w,y}, br={x:x+w,y:y+h}, bl={x,y:y+h};
+    E.push({k:"top",   t:"line", a:tl, b:tr},
+           {k:"right", t:"line", a:tr, b:br},
+           {k:"bottom",t:"line", a:br, b:bl},
+           {k:"left",  t:"line", a:bl, b:tl});
+  } else if (s.type === "circle"){
+    E.push({k:"c", t:"circle", c:{x:s.cx,y:s.cy}, r:s.r});
+  } else if (s.type === "tri"){
+    E.push({k:"e0", t:"line", a:s.p0, b:s.p1},
+           {k:"e1", t:"line", a:s.p1, b:s.p2},
+           {k:"e2", t:"line", a:s.p2, b:s.p0});
+  } else if (s.type === "line"){
+    E.push({k:"l", t:"line", a:s.a, b:s.b});
+  } else if (s.type === "elbow"){
+    // Right-angled elbow with a true tangent fillet at the corner.
+    const C = {x:s.ox, y:s.oy};
+    const A = {x:s.ox - s.legA, y:s.oy};       // horizontal leg
+    const B = {x:s.ox, y:s.oy - s.legB};       // vertical leg
+    const uA = norm(sub(A,C)), uB = norm(sub(B,C));
+    const ang = Math.acos(clamp(dot(uA,uB),-1,1));
+    const maxR = Math.min(s.legA, s.legB) * Math.tan(ang/2) * 0.98;
+    const r = clamp(s.r, 1, maxR);
+    const t = r / Math.tan(ang/2);
+    const T1 = add(C, mul(uA,t)), T2 = add(C, mul(uB,t));
+    const bis = norm(add(uA,uB));
+    const cen = add(C, mul(bis, r/Math.sin(ang/2)));
+    E.push({k:"la",  t:"line", a:A,  b:T1},
+           {k:"lb",  t:"line", a:T2, b:B},
+           {k:"arc", t:"arc",  c:cen, r:r, t1:T1, t2:T2});
+  }
+  E.forEach(e => e.owner = s.id);
+  return E;
+}
+function allEntities(){ return shapes.flatMap(entitiesOf); }
+function findEntity(owner,k){ return entitiesOf(shapeById(owner)).find(e=>e.k===k); }
+
+/* vector helpers */
+const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y});
+const add=(a,b)=>({x:a.x+b.x,y:a.y+b.y});
+const mul=(a,s)=>({x:a.x*s,y:a.y*s});
+const dot=(a,b)=>a.x*b.x+a.y*b.y;
+const len=a=>Math.hypot(a.x,a.y);
+const norm=a=>{const l=len(a)||1;return{x:a.x/l,y:a.y/l};};
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const mid=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
+
+/* measure of an entity, in mm */
+function measure(e){
+  if (e.t === "line") return len(sub(e.b,e.a));
+  if (e.t === "circle") return e.r*2;
+  if (e.t === "arc") return e.r;
+  return 0;
+}
+
+/* ============================================================================
+   Driving a dimension — the edit path. Each target names exactly one parameter
+   (or one derived move), so typing a value is deterministic and instant.
+   ========================================================================= */
+function applyValue(dim, mmValue){
+  const s = shapeById(dim.owner);
+  const v = Math.max(0.5, mmValue);
+  if (s.type === "rect"){
+    if (dim.key==="top"||dim.key==="bottom") s.w = v; else s.h = v;
+  } else if (s.type === "circle"){
+    s.r = dim.kind === "radius" ? v : v/2;
+  } else if (s.type === "elbow"){
+    if (dim.key === "arc") s.r = v;
+    else if (dim.key === "la") s.legA = v;
+    else s.legB = v;
+  } else if (s.type === "line"){
+    const d = norm(sub(s.b, s.a));
+    s.b = add(s.a, mul(d, v));
+  } else if (s.type === "tri"){
+    // Move the trailing endpoint of the edge along its own direction.
+    const map = { e0:["p0","p1"], e1:["p1","p2"], e2:["p2","p0"] };
+    const [ka,kb] = map[dim.key];
+    const d = norm(sub(s[kb], s[ka]));
+    s[kb] = add(s[ka], mul(d, v));
+  }
+}
+
+/* ============================================================================
+   Dimensions
+   ========================================================================= */
+let dims = [];
+let dimSeq = 0;
+/* seed a couple so the drawing reads as a real sketch on load */
+dims.push({id:++dimSeq, owner:"rect", key:"bottom", kind:"linear", off: 34});
+dims.push({id:++dimSeq, owner:"circ", key:"c",      kind:"diameter", off: 30, ang:-0.6});
+
+/* ============================================================================
+   Camera — cursor-anchored zoom, which is the behaviour the viewport wants.
+   ========================================================================= */
+const cam = { x:240, y:150, z:1.9 };
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+let W=0, H=0, DPR=1;
+function resize(){
+  DPR = window.devicePixelRatio || 1;
+  const r = cv.getBoundingClientRect();
+  W = r.width; H = r.height;
+  cv.width = Math.round(W*DPR); cv.height = Math.round(H*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  draw();
+}
+const S = p => ({ x:(p.x-cam.x)*cam.z + W/2, y:(p.y-cam.y)*cam.z + H/2 });
+const Wl = p => ({ x:(p.x-W/2)/cam.z + cam.x, y:(p.y-H/2)/cam.z + cam.y });
+
+/* ============================================================================
+   Picking
+   ========================================================================= */
+function distToSeg(p,a,b){
+  const ab=sub(b,a), t=clamp(dot(sub(p,a),ab)/(dot(ab,ab)||1),0,1);
+  return len(sub(p, add(a, mul(ab,t))));
+}
+function pickEntity(sp){
+  const tol = 9/cam.z, wp = Wl(sp);
+  let best=null, bd=tol;
+  for (const e of allEntities()){
+    let d;
+    if (e.t==="line") d = distToSeg(wp,e.a,e.b);
+    else if (e.t==="circle") d = Math.abs(len(sub(wp,e.c)) - e.r);
+    else {
+      d = Math.abs(len(sub(wp,e.c)) - e.r);
+      const A=Math.atan2(wp.y-e.c.y, wp.x-e.c.x);
+      if (!angleBetween(A, arcAngles(e))) d = 1e9;
+    }
+    if (d < bd){ bd=d; best=e; }
+  }
+  return best;
+}
+function arcAngles(e){
+  let a1=Math.atan2(e.t1.y-e.c.y, e.t1.x-e.c.x);
+  let a2=Math.atan2(e.t2.y-e.c.y, e.t2.x-e.c.x);
+  let d=a2-a1; while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI;
+  return {a1, a2:a1+d, ccw:d<0};
+}
+function angleBetween(A,{a1,a2}){
+  const lo=Math.min(a1,a2), hi=Math.max(a1,a2);
+  for(let k=-2;k<=2;k++){ const a=A+k*2*Math.PI; if(a>=lo&&a<=hi) return true; }
+  return false;
+}
+/* geometry of a placed dimension, in world space */
+function dimGeom(d){
+  const e = findEntity(d.owner, d.key);
+  if (!e) return null;
+  if (d.kind === "linear"){
+    const u = norm(sub(e.b,e.a)), n = {x:-u.y, y:u.x};
+    const A = add(e.a, mul(n,d.off)), B = add(e.b, mul(n,d.off));
+    return { kind:"linear", e, A, B, u, n, text: label(measure(e)), anchor: mid(A,B) };
+  }
+  if (d.kind === "diameter"){
+    const u = {x:Math.cos(d.ang||0), y:Math.sin(d.ang||0)};
+    const A = add(e.c, mul(u,-e.r)), B = add(e.c, mul(u,e.r));
+    const T = add(B, mul(u, d.off));
+    return { kind:"diameter", e, A, B, T, u, text:"⌀ "+label(e.r*2), anchor:T };
+  }
+  // radius (circle or fillet arc)
+  const base = e.t==="circle" ? e.c : e.c;
+  const a = d.ang!==undefined ? d.ang : (e.t==="arc" ? (arcAngles(e).a1+arcAngles(e).a2)/2 : -0.6);
+  const u = {x:Math.cos(a), y:Math.sin(a)};
+  const P = add(base, mul(u, e.r));
+  const T = add(P, mul(u, Math.max(d.off, 6)));
+  return { kind:"radius", e, C:base, P, T, u, text:"R "+label(e.r), anchor:T };
+}
+function pickDim(sp){
+  for (let i=dims.length-1;i>=0;i--){
+    const g = dimGeom(dims[i]); if(!g) continue;
+    const a = S(g.anchor);
+    if (Math.hypot(sp.x-a.x, sp.y-a.y) < 34) return dims[i];
+    if (g.kind==="linear" && distToSeg(Wl(sp), g.A, g.B) < 8/cam.z) return dims[i];
+  }
+  return null;
+}
+/* constraint widget hit — screen space */
+function constraintWidgets(){
+  const out=[];
+  if (!document.getElementById("cShow").checked) return out;
+  for (const s of shapes){
+    for (const e of entitiesOf(s)){
+      const g = s.cons[e.k]; if(!g) continue;
+      let p, n;
+      if (e.t==="line"){ const u=norm(sub(e.b,e.a)); n={x:-u.y,y:u.x}; p=mid(e.a,e.b); }
+      else if (e.t==="circle"){ n={x:0,y:-1}; p={x:e.c.x, y:e.c.y-e.r}; }
+      else { const aa=arcAngles(e), am=(aa.a1+aa.a2)/2; n={x:Math.cos(am),y:Math.sin(am)}; p=add(e.c,mul(n,e.r)); }
+      const sp = S(p);
+      out.push({ owner:s.id, key:e.k, glyph:g, x:sp.x + n.x*21, y:sp.y + n.y*21,
+                 off: disabled.has(s.id+":"+e.k) });
+    }
+  }
+  return out;
+}
+const disabled = new Set();
+
+/* ============================================================================
+   Interaction state
+   ========================================================================= */
+let hoverEnt=null, hoverDim=null, hoverCon=null, selEnt=null, selDim=null;
+let drag=null;   // {mode, ...}
+let space=false;
+
+const tip = document.getElementById("tip");
+const editBox = document.getElementById("edit");
+
+function evPos(ev){ const r=cv.getBoundingClientRect(); return {x:ev.clientX-r.left, y:ev.clientY-r.top}; }
+
+cv.addEventListener("mousedown", ev=>{
+  const sp = evPos(ev);
+  if (ev.button===1 || space){ drag={mode:"pan", sp, cx:cam.x, cy:cam.y}; ev.preventDefault(); return; }
+  if (ev.button!==0) return;
+  commitEdit();
+
+  const con = constraintWidgets().find(c=>Math.hypot(sp.x-c.x,sp.y-c.y)<13);
+  if (con){ const k=con.owner+":"+con.key; disabled.has(k)?disabled.delete(k):disabled.add(k); draw(); return; }
+
+  const d = pickDim(sp);
+  if (d){ selDim=d; selEnt=null; drag={mode:"movedim", d, sp}; draw(); return; }
+
+  const e = pickEntity(sp);
+  if (e){
+    selEnt = e; selDim = null;
+    drag = { mode:"maybe", e, sp, alt:ev.altKey };
+    draw(); return;
+  }
+  selEnt=null; selDim=null; draw();
+});
+
+window.addEventListener("mousemove", ev=>{
+  const sp = evPos(ev);
+  if (drag){
+    if (drag.mode==="pan"){
+      cam.x = drag.cx - (sp.x-drag.sp.x)/cam.z;
+      cam.y = drag.cy - (sp.y-drag.sp.y)/cam.z;
+      draw(); return;
+    }
+    if (drag.mode==="maybe" && Math.hypot(sp.x-drag.sp.x, sp.y-drag.sp.y) > 4){
+      // A drag off an entity pulls out a dimension.
+      const e = drag.e;
+      const kind = e.t==="line" ? "linear" : e.t==="arc" ? "radius"
+                 : (drag.alt || ev.altKey) ? "radius" : "diameter";
+      const nd = { id:++dimSeq, owner:e.owner, key:e.k, kind, off:0, ang:0, fresh:true };
+      dims.push(nd);
+      drag = { mode:"pulldim", d:nd, e };
+    }
+    if (drag.mode==="pulldim" || drag.mode==="movedim"){
+      const d = drag.d, e = findEntity(d.owner,d.key), wp = Wl(sp);
+      if (d.kind==="linear"){
+        const u=norm(sub(e.b,e.a)), n={x:-u.y,y:u.x};
+        d.off = dot(sub(wp, mid(e.a,e.b)), n);
+      } else {
+        const c = e.c, v = sub(wp,c);
+        d.ang = Math.atan2(v.y, v.x);
+        d.off = Math.max(len(v) - e.r, 4);
+      }
+      selDim = d; selEnt = null;
+      draw(); return;
+    }
+    return;
+  }
+  // hover
+  const con = constraintWidgets().find(c=>Math.hypot(sp.x-c.x,sp.y-c.y)<13);
+  const d = con ? null : pickDim(sp);
+  const e = (con||d) ? null : pickEntity(sp);
+  const changed = con!==hoverCon || d!==hoverDim || e!==hoverEnt;
+  hoverCon=con; hoverDim=d; hoverEnt=e;
+  if (con){
+    showTip(sp, CON_NAME[con.glyph] + (con.off ? " (suppressed)" : "") + " — click to toggle");
+    cv.style.cursor="pointer";
+  } else if (d){ showTip(sp,"double-click to edit · drag to reposition"); cv.style.cursor="move"; }
+  else if (e){ showTip(sp, e.t==="line" ? "drag out for a linear dimension"
+                        : e.t==="arc" ? "drag out for R radius"
+                        : "drag out for ⌀ · Alt-drag for R"); cv.style.cursor="pointer"; }
+  else { tip.style.opacity=0; cv.style.cursor = space?"grab":"crosshair"; }
+  if (changed) draw();
+});
+
+window.addEventListener("mouseup", ()=>{
+  if (drag && drag.mode==="maybe"){ /* click only: selection already set */ }
+  if (drag && drag.mode==="pulldim") delete drag.d.fresh;
+  drag=null;
+});
+
+cv.addEventListener("dblclick", ev=>{
+  const sp = evPos(ev);
+  const d = pickDim(sp);
+  if (d) openEdit(d);
+});
+
+cv.addEventListener("wheel", ev=>{
+  ev.preventDefault();
+  const sp = evPos(ev);
+  const before = Wl(sp);
+  const f = Math.pow(1.0015, -ev.deltaY);
+  cam.z = clamp(cam.z*f, 0.25, 14);
+  const after = Wl(sp);
+  cam.x += before.x - after.x;      // cursor-anchored: the point under the pointer stays put
+  cam.y += before.y - after.y;
+  draw();
+},{passive:false});
+
+window.addEventListener("keydown", ev=>{
+  if (ev.code==="Space" && document.activeElement!==editBox){ space=true; cv.style.cursor="grab"; }
+  if ((ev.key==="Delete"||ev.key==="Backspace") && selDim && document.activeElement!==editBox){
+    dims = dims.filter(x=>x!==selDim); selDim=null; draw();
+  }
+  if (ev.key==="Escape"){ editBox.style.display="none"; selDim=null; selEnt=null; draw(); }
+});
+window.addEventListener("keyup", ev=>{ if(ev.code==="Space"){space=false; cv.style.cursor="crosshair";} });
+
+/* ---- inline realtime editing ---- */
+let editing=null;
+function openEdit(d){
+  const g = dimGeom(d); if(!g) return;
+  editing = d; selDim = d;
+  const a = S(g.anchor);
+  const raw = d.kind==="diameter" ? g.e.r*2 : d.kind==="radius" ? g.e.r : measure(g.e);
+  editBox.value = fmt(raw);
+  editBox.style.left = (a.x-52)+"px";
+  editBox.style.top  = (a.y-15)+"px";
+  editBox.style.display = "block";
+  editBox.focus(); editBox.select();
+  draw();
+}
+editBox.addEventListener("input", ()=>{
+  if (!editing) return;
+  const v = parseFloat(editBox.value.replace(",","."));
+  if (isFinite(v) && v>0){ applyValue(editing, toMM(v)); draw(); }   // realtime
+});
+editBox.addEventListener("keydown", ev=>{
+  if (ev.key==="Enter"){ commitEdit(); }
+  if (ev.key==="Escape"){ editBox.style.display="none"; editing=null; draw(); }
+  ev.stopPropagation();
+});
+editBox.addEventListener("blur", commitEdit);
+function commitEdit(){
+  if (!editing) return;
+  const v = parseFloat(editBox.value.replace(",","."));
+  if (isFinite(v) && v>0) applyValue(editing, toMM(v));
+  editing=null; editBox.style.display="none"; draw();
+}
+function showTip(sp,t){
+  tip.textContent=t; tip.style.opacity=1;
+  tip.style.left=(sp.x+14)+"px"; tip.style.top=(sp.y+16)+"px";
+}
+
+const CON_NAME = { "H":"Horizontal", "V":"Vertical", "∥":"Parallel", "⟂":"Perpendicular",
+                   "=":"Equal length", "⌒":"Tangent", "●":"Coincident", "⌾":"Concentric" };
+
+/* ============================================================================
+   Drawing
+   ========================================================================= */
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle="#14171c"; ctx.fillRect(0,0,W,H);
+  if (document.getElementById("cGrid").checked) grid();
+  axes();
+
+  // geometry
+  for (const s of shapes){
+    for (const e of entitiesOf(s)){
+      const isSel = selEnt && selEnt.owner===e.owner && selEnt.k===e.k;
+      const isHov = hoverEnt && hoverEnt.owner===e.owner && hoverEnt.k===e.k;
+      strokeEntity(e, isSel ? "#ffb44e" : isHov ? "#7fd1ff" : "#c9d4e2", isSel?2.6:isHov?2.3:1.9);
+    }
+    if (document.getElementById("cVert").checked) verts(s);
+  }
+
+  for (const d of dims) drawDim(d, d===selDim, d===hoverDim);
+  for (const c of constraintWidgets()) drawCon(c);
+
+  // hud + panel
+  document.getElementById("hud").textContent =
+    `zoom ${cam.z.toFixed(2)} px/mm   ·   ${dims.length} dimension${dims.length===1?"":"s"}   ·   unit ${unit}`;
+  document.getElementById("iCount").textContent = dims.length;
+  const e = selEnt || (selDim && findEntity(selDim.owner, selDim.key));
+  document.getElementById("iEnt").textContent = e ? (e.owner+" · "+e.k) : "—";
+  document.getElementById("iVal").textContent = e
+    ? (e.t==="circle" ? "⌀ "+label(e.r*2) : e.t==="arc" ? "R "+label(e.r) : label(measure(e))) : "—";
+}
+
+function grid(){
+  const step = cam.z < 0.8 ? 50 : cam.z < 2.5 ? 10 : 5;
+  const tl = Wl({x:0,y:0}), br = Wl({x:W,y:H});
+  ctx.lineWidth = 1;
+  for (let x=Math.floor(tl.x/step)*step; x<br.x; x+=step){
+    const p=S({x,y:0}); ctx.strokeStyle = (x%50===0)?"#232a33":"#1b2027";
+    ctx.beginPath(); ctx.moveTo(p.x,0); ctx.lineTo(p.x,H); ctx.stroke();
+  }
+  for (let y=Math.floor(tl.y/step)*step; y<br.y; y+=step){
+    const p=S({x:0,y}); ctx.strokeStyle = (y%50===0)?"#232a33":"#1b2027";
+    ctx.beginPath(); ctx.moveTo(0,p.y); ctx.lineTo(W,p.y); ctx.stroke();
+  }
+}
+function axes(){
+  const o=S({x:0,y:0});
+  ctx.lineWidth=1.4;
+  ctx.strokeStyle="#4a3030"; ctx.beginPath(); ctx.moveTo(0,o.y); ctx.lineTo(W,o.y); ctx.stroke();
+  ctx.strokeStyle="#2f4438"; ctx.beginPath(); ctx.moveTo(o.x,0); ctx.lineTo(o.x,H); ctx.stroke();
+}
+function strokeEntity(e,col,lw){
+  ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.lineCap="round"; ctx.beginPath();
+  if (e.t==="line"){ const a=S(e.a),b=S(e.b); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); }
+  else if (e.t==="circle"){ const c=S(e.c); ctx.arc(c.x,c.y,e.r*cam.z,0,Math.PI*2); }
+  else { const c=S(e.c), aa=arcAngles(e); ctx.arc(c.x,c.y,e.r*cam.z, Math.min(aa.a1,aa.a2), Math.max(aa.a1,aa.a2)); }
+  ctx.stroke();
+}
+function verts(s){
+  const pts=[];
+  for (const e of entitiesOf(s)){
+    if (e.t==="line"){ pts.push(e.a,e.b); }
+    else if (e.t==="circle") pts.push(e.c);
+    else pts.push(e.c);
+  }
+  ctx.fillStyle="#2c3846"; ctx.strokeStyle="#7f8fa2"; ctx.lineWidth=1.2;
+  for (const p of pts){ const q=S(p);
+    ctx.beginPath(); ctx.rect(q.x-2.6,q.y-2.6,5.2,5.2); ctx.fill(); ctx.stroke(); }
+}
+function arrow(p,dir,col){
+  const u=norm(dir), n={x:-u.y,y:u.x}, L=9, Wd=3.2;
+  ctx.fillStyle=col; ctx.beginPath();
+  ctx.moveTo(p.x,p.y);
+  ctx.lineTo(p.x-u.x*L+n.x*Wd, p.y-u.y*L+n.y*Wd);
+  ctx.lineTo(p.x-u.x*L-n.x*Wd, p.y-u.y*L-n.y*Wd);
+  ctx.closePath(); ctx.fill();
+}
+function textChip(p, txt, col, active){
+  ctx.font = "600 13px ui-monospace, Menlo, monospace";
+  const w = ctx.measureText(txt).width + 14, h = 21;
+  ctx.fillStyle = active ? "#3a2a18" : "#0e1319";
+  ctx.strokeStyle = col; ctx.lineWidth = active ? 2 : 1.2;
+  const x=p.x-w/2, y=p.y-h/2, r=5;
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = col; ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText(txt, p.x, p.y+0.5);
+}
+function drawDim(d, sel, hov){
+  const g = dimGeom(d); if(!g) return;
+  const col = sel ? "#ffb44e" : hov ? "#ffc18a" : "#ff8f5a";
+  ctx.lineWidth = 1.4; ctx.strokeStyle = col;
+
+  if (g.kind === "linear"){
+    const a=S(g.e.a), b=S(g.e.b), A=S(g.A), B=S(g.B);
+    const u=norm(sub(S(g.B),S(g.A)));
+    ctx.setLineDash([]);
+    // extension lines, with the small gap CAD drawings use
+    ctx.beginPath();
+    ext(a,A); ext(b,B);
+    ctx.stroke();
+    // dimension line
+    ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke();
+    arrow(A, {x:-u.x,y:-u.y}, col); arrow(B, u, col);
+    textChip(S(g.anchor), g.text, col, sel);
+  }
+  else if (g.kind === "diameter"){
+    const A=S(g.A), B=S(g.B), T=S(g.T), u=norm(sub(B,A));
+    ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke();
+    arrow(A,{x:-u.x,y:-u.y},col); arrow(B,u,col);
+    ctx.beginPath(); ctx.moveTo(B.x,B.y); ctx.lineTo(T.x,T.y); ctx.stroke();
+    textChip(T, g.text, col, sel);
+  }
+  else {
+    const C=S(g.C), P=S(g.P), T=S(g.T), u=norm(sub(P,C));
+    ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(C.x,C.y); ctx.lineTo(P.x,P.y); ctx.stroke();
+    ctx.setLineDash([]);
+    arrow(P,u,col);
+    ctx.beginPath(); ctx.moveTo(P.x,P.y); ctx.lineTo(T.x,T.y); ctx.stroke();
+    ctx.fillStyle=col; ctx.beginPath(); ctx.arc(C.x,C.y,2.6,0,Math.PI*2); ctx.fill();
+    textChip(T, g.text, col, sel);
+  }
+  function ext(from,to){
+    const u=norm(sub(to,from)); const s=add(from,mul(u,5)), e2=add(to,mul(u,7));
+    ctx.moveTo(s.x,s.y); ctx.lineTo(e2.x,e2.y);
+  }
+}
+function drawCon(c){
+  const on = !c.off;
+  const isHov = hoverCon && hoverCon.owner===c.owner && hoverCon.key===c.key;
+  ctx.beginPath(); ctx.arc(c.x,c.y,isHov?11:9.5,0,Math.PI*2);
+  ctx.fillStyle = on ? "#12241c" : "#1d1f22";
+  ctx.strokeStyle = on ? (isHov?"#8fe8bd":"#5ad19a") : "#4a5260";
+  ctx.lineWidth = isHov?2:1.5; ctx.fill(); ctx.stroke();
+  ctx.fillStyle = on ? "#5ad19a" : "#5d6674";
+  ctx.font="700 10px -apple-system,Segoe UI,Roboto,sans-serif";
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText(c.glyph, c.x, c.y+0.5);
+  if (!on){ ctx.strokeStyle="#7b8494"; ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.moveTo(c.x-6,c.y+6); ctx.lineTo(c.x+6,c.y-6); ctx.stroke(); }
+}
+
+/* ---- panel wiring ---- */
+document.getElementById("units").addEventListener("click", ev=>{
+  const b = ev.target.closest("button"); if(!b) return;
+  unit = b.dataset.u;
+  [...ev.currentTarget.children].forEach(x=>x.classList.toggle("on", x===b));
+  if (editing){ const g=dimGeom(editing);
+    const raw = editing.kind==="diameter"?g.e.r*2:editing.kind==="radius"?g.e.r:measure(g.e);
+    editBox.value = fmt(raw); }
+  draw();
+});
+["cShow","cGrid","cVert"].forEach(id=>
+  document.getElementById(id).addEventListener("change", draw));
+
+window.addEventListener("resize", resize);
+resize();
+</script>
+</body>
+</html>
