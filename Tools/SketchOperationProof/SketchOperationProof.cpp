@@ -284,6 +284,39 @@ void ProveTrimRemovesThePiece()
     Claim(TrimWorldCurve(Bare, Only, { 50.0, 0.0, 0.0 }, Nothing) == OperationVerdict::NoIntersection,
           "a line nothing crosses refuses to be trimmed away entirely");
     Claim(Bare.CurveCount() == 1u, "and survives the refusal intact");
+
+    // ③ 🔴 A T-JUNCTION IS A DIVISION, AND TRIM COULD NOT SEE ONE. Every case above is built from
+    //    segments that cross THROUGH the subject, and the crossing test accepted only that transversal
+    //    case -- it discarded a `Touching`, which is precisely one segment's endpoint landing on the
+    //    other. But a T-junction is how divisions are actually drawn: a line stopping ON an edge, and a
+    //    rectangle's own corners. So on ordinary geometry Trim found no bounds, refused, highlighted
+    //    nothing and removed nothing -- which is the report. The claims above all passed throughout,
+    //    because every one of them was built from the one shape the defect did not touch.
+    WorldSketchStructure Junction;
+    const WorldCurveName Edge = Junction.DeclareLine({ 0.0, 0.0, 0.0 }, { 100.0, 0.0, 0.0 }, Ground);
+    Junction.DeclareLine({ 30.0, 0.0, 0.0 }, { 30.0, 0.0, 40.0 }, Ground);   // stops ON the edge
+    Junction.DeclareLine({ 70.0, 0.0, 0.0 }, { 70.0, 0.0, 40.0 }, Ground);   // and so does this
+
+    SpatialPoint JunctionFrom = {};
+    SpatialPoint JunctionTo   = {};
+    Claim(EvaluateWorldTrim(Junction, Edge, { 50.0, 0.0, 0.0 }, JunctionFrom, JunctionTo)
+              == OperationVerdict::Produced,
+          "a piece bounded by two T-junctions previews, so the artist SEES what will go");
+
+    std::vector<WorldCurveName> JunctionKept;
+    Claim(TrimWorldCurve(Junction, Edge, { 50.0, 0.0, 0.0 }, JunctionKept) == OperationVerdict::Produced,
+          "and it trims, where before it refused because neither bound was a crossing");
+    Claim(JunctionKept.size() == 2u, "leaving the two stubs either side of the junctions");
+
+    double JunctionTotal = 0.0;
+    for (const WorldCurveName& Piece : JunctionKept)
+        JunctionTotal += LengthOf(Junction, Piece);
+    Claim(Near(JunctionTotal, 60.0), "which measure 30 and 30 -- the middle 40 is gone");
+
+    // 📝 The preview and the commit agree about WHICH span goes, which is what makes the highlight
+    //    trustworthy rather than decorative.
+    Claim(Near(JunctionFrom.Left, 30.0) && Near(JunctionTo.Left, 70.0),
+          "and the highlight spanned exactly the piece the commit removed");
 }
 
 //------------------------------------------------------------------------------------------------------------------------

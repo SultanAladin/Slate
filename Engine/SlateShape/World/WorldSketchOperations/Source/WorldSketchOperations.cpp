@@ -137,7 +137,13 @@ void PlaneCoordinates(const SharedPlane& Frame, const SpatialPoint& Position, do
 }
 
 /// 🧩 Where another curve crosses the subject, as a parameter along the subject.
-/// out  false when they do not cross, are parallel, or cross outside the plane they were compared in.
+/// 🧩 Whether two segments meet at all, and where along the subject, counting TOUCHES as well as crossings.
+/// out  false when they do not meet, are parallel, or meet outside the plane they were compared in.
+/// note 🔴 A TOUCH IS A DIVISION. The classifier separates a transversal crossing from a touch -- one
+///      segment's endpoint landing on the other -- and only the crossing was ever accepted here. But a
+///      T-junction IS a touch, and so is a rectangle's corner, and those are the divisions an artist
+///      actually draws. Accepting only crossings meant Trim could find nothing to bound a piece on any
+///      ordinary shape, and refused; see `CollectCrossings`.
 bool CrossingParameter(const LineCurve& Subject, const LineCurve& Other, double& Parameter)
 {
     SharedPlane Frame;
@@ -162,8 +168,11 @@ bool CrossingParameter(const LineCurve& Subject, const LineCurve& Other, double&
         !SamePoint(FlatDelta, Other.Terminus, OnCurveTolerance))
         return false;
 
-    if (ClassifySegmentIntersection(AlphaX, AlphaY, BetaX, BetaY, GammaX, GammaY, DeltaX, DeltaY)
-            != SlateIntersectionCrossing)
+    // 📝 Collinear and Disjoint are still refused. Two segments lying along one another share no single
+    //    division point, and disjoint ones share nothing at all.
+    const Signed32 Meeting = ClassifySegmentIntersection(AlphaX, AlphaY, BetaX, BetaY,
+                                                         GammaX, GammaY, DeltaX, DeltaY);
+    if (Meeting != SlateIntersectionCrossing && Meeting != SlateIntersectionTouching)
         return false;
 
     double CrossingX = 0.0;
