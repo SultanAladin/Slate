@@ -19,6 +19,7 @@
     --raised:#222; --selected:#2a2a2a;
     --text:#f0f0f0; --text-dim:#888; --text-faint:#5c5c5c;
     --accent:#fff; --hi:#6c77ff; --danger:#ef4444;
+    --ax-x:#ef5350; --ax-y:#69d06d; --ax-z:#5b8cff;
     --hue-paint:#f97316; --hue-fill:#8b5cf6; --hue-decal:#3b82f6; --hue-gen:#10b981; --hue-mask:#e8e8e8;
     --r-panel:24px; --r-inset:18px; --r-pill:999px;
     --ease:cubic-bezier(.22,.61,.36,1);
@@ -95,14 +96,18 @@
   .vec3{display:flex;gap:6px;flex:1;}
   .cell{flex:1;height:28px;border-radius:var(--r-pill);background:var(--field);
     display:flex;align-items:center;gap:6px;padding:0 10px;}
-  .cell b{font-size:9.5px;color:var(--text-faint);font-weight:700;}
+  .cell b{font-size:9.5px;font-weight:700;}
+  .cell b.ax-x{color:var(--ax-x);} .cell b.ax-y{color:var(--ax-y);} .cell b.ax-z{color:var(--ax-z);}
   .cell input{flex:1;width:100%;min-width:0;background:transparent;border:none;color:var(--text);font-size:11.5px;outline:none;text-align:right;}
   .sld{flex:1;display:flex;align-items:center;gap:10px;}
-  .sld .track{flex:1;height:4px;border-radius:2px;background:#2c2c2c;position:relative;cursor:pointer;}
-  .sld .fill{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:var(--accent);}
+  .sld .track{flex:1;height:20px;position:relative;cursor:pointer;touch-action:none;}
+  .sld .track::before{content:"";position:absolute;left:0;right:0;top:50%;height:4px;
+    transform:translateY(-50%);border-radius:2px;background:#2c2c2c;}
+  .sld .fill{position:absolute;left:0;top:50%;height:4px;transform:translateY(-50%);
+    border-radius:2px;background:var(--accent);pointer-events:none;}
   .sld .knob{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:var(--accent);
-    transform:translate(-50%,-50%);transition:transform .15s var(--ease);}
-  .sld .track:hover .knob{transform:translate(-50%,-50%) scale(1.25);}
+    transform:translate(-50%,-50%);pointer-events:none;transition:transform .15s var(--ease);}
+  .sld .track:hover .knob,.sld.drag .knob{transform:translate(-50%,-50%) scale(1.3);}
   .sld .val{flex:0 0 48px;text-align:right;font-size:11px;color:var(--text-dim);font-variant-numeric:tabular-nums;}
   .sw{width:36px;height:20px;border-radius:var(--r-pill);background:#2c2c2c;position:relative;cursor:pointer;
     transition:background .2s var(--ease);flex:0 0 36px;}
@@ -141,7 +146,7 @@
   .chan-head .dot{width:8px;height:8px;border-radius:50%;}
   .chan-head .cn{font-size:11.5px;font-weight:600;flex:1;}
   .chan .prow .pl{flex-basis:70px;}
-  .chan .sld .track{background:#1e1e1e;}
+  .chan .sld .track::before{background:#1e1e1e;}
 
   .empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
     color:var(--text-faint);font-size:12px;}
@@ -368,13 +373,33 @@ function openCtx(x,y,n,isMask){
 const esc=s=>String(s??'').replace(/"/g,'&quot;');
 const card=(t,i,extraHead)=>`<div class="pcard"><h4>${t}${extraHead||''}</h4>${i}</div>`;
 const rowVec3=(l,v)=>`<div class="prow"><span class="pl">${l}</span><div class="vec3">${
-  ['X','Y','Z'].map((a,i)=>`<div class="cell"><b>${a}</b><input value="${v[i]}"></div>`).join('')}</div></div>`;
-const rowSlider=(l,val,min,max,u)=>{
-  const pct=((val-min)/(max-min))*100;
-  return `<div class="prow"><span class="pl">${l}</span><div class="sld" data-min="${min}" data-max="${max}" data-unit="${u||''}">
-    <div class="track"><div class="fill" style="width:${pct}%"></div><div class="knob" style="left:${pct}%"></div></div>
-    <span class="val">${val}${u||''}</span></div></div>`;
-};
+  [['X','ax-x'],['Y','ax-y'],['Z','ax-z']].map((a,i)=>`<div class="cell"><b class="${a[1]}">${a[0]}</b><input value="${v[i]}"></div>`).join('')}</div></div>`;
+const rowSlider=(l,val,min,max,u)=>
+  `<div class="prow"><span class="pl">${l}</span><div class="sld" data-min="${min}" data-max="${max}" data-val="${val}" data-unit="${u||''}">
+    <div class="track"><div class="fill"></div><div class="knob"></div></div><span class="val"></span></div></div>`;
+function wireSlider(s){
+  const tr=s.querySelector('.track'), fill=s.querySelector('.fill'), knob=s.querySelector('.knob'), val=s.querySelector('.val');
+  const min=+s.dataset.min, max=+s.dataset.max, unit=s.dataset.unit||'';
+  const dec=(max-min)<=20?1:0;
+  let v=+s.dataset.val;
+  const paint=()=>{
+    const p=(v-min)/(max-min);
+    fill.style.width=(p*100)+'%'; knob.style.left=(p*100)+'%';
+    val.textContent=v.toFixed(dec)+unit;
+  };
+  const fromX=x=>{
+    const r=tr.getBoundingClientRect();
+    const p=Math.max(0,Math.min(1,(x-r.left)/r.width));
+    v=+(min+p*(max-min)).toFixed(dec); s.dataset.val=v; paint();
+  };
+  tr.addEventListener('pointerdown',e=>{ e.preventDefault(); tr.setPointerCapture(e.pointerId); s.classList.add('drag'); fromX(e.clientX); });
+  tr.addEventListener('pointermove',e=>{ if(s.classList.contains('drag')) fromX(e.clientX); });
+  const end=()=>s.classList.remove('drag');
+  tr.addEventListener('pointerup',end);
+  tr.addEventListener('pointercancel',end);
+  paint();
+}
+
 const rowSwitch=(l,on)=>`<div class="prow"><span class="pl">${l}</span><div class="sw ${on?'on':''}"></div><span style="flex:1"></span></div>`;
 const rowChip=(l,c,t)=>`<div class="prow"><span class="pl">${l}</span><div class="chipc" style="background:${c}"></div><span style="font-size:11px;color:var(--text-dim)">${t||c}</span></div>`;
 const rowSeg=(l,opts,on)=>`<div class="prow"><span class="pl">${l}</span><div class="seg">${
@@ -497,23 +522,7 @@ function renderProps(){
   const dt=document.getElementById('decalText');
   if(dt) dt.addEventListener('input',()=>{ n.text=dt.value; });
   /* wire sliders / switches / segs */
-  propsEl.querySelectorAll('.sld').forEach(s=>{
-    const tr=s.querySelector('.track'), fill=s.querySelector('.fill'), knob=s.querySelector('.knob'), val=s.querySelector('.val');
-    const min=+s.dataset.min, max=+s.dataset.max, unit=s.dataset.unit;
-    const setFromX=x=>{
-      const r=tr.getBoundingClientRect();
-      const p=Math.max(0,Math.min(1,(x-r.left)/r.width));
-      fill.style.width=(p*100)+'%'; knob.style.left=(p*100)+'%';
-      const v=min+p*(max-min);
-      val.textContent=(max-min>20?Math.round(v):v.toFixed(1))+unit;
-    };
-    tr.addEventListener('pointerdown',e=>{
-      tr.setPointerCapture(e.pointerId); setFromX(e.clientX);
-      const mv=ev=>setFromX(ev.clientX);
-      tr.addEventListener('pointermove',mv);
-      tr.addEventListener('pointerup',()=>tr.removeEventListener('pointermove',mv),{once:true});
-    });
-  });
+  propsEl.querySelectorAll('.sld').forEach(wireSlider);
   propsEl.querySelectorAll('.sw').forEach(sw=>sw.addEventListener('click',()=>sw.classList.toggle('on')));
   propsEl.querySelectorAll('.seg').forEach(seg=>seg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
     seg.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
