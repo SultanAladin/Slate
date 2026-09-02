@@ -28,6 +28,17 @@ double HoldWithinLimit(double Asked, double Limit, bool& Clamped)
     return std::clamp(Asked, 0.0, Limit);
 }
 
+/// 🧩 Refreshes the shape the current radius would produce, so the caller has something to draw.
+/// 📝 Asked of the same derivation the commit uses, so the preview cannot drift from the result.
+void RefreshShape(const WorldSketchStructure& Declared, CornerDragSession& Session)
+{
+    Session.Shaped =
+        EvaluateWorldCornerShape(Declared, Session.Target.First, Session.Target.Second,
+                                 Session.Radius, Session.Manner == CornerManner::Chamfer,
+                                 Session.EnterPoint, Session.Through, Session.ExitPoint)
+        == CornerVerdict::Produced;
+}
+
 } // namespace
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -50,6 +61,7 @@ void AdvanceCornerDragSession(const WorldSketchStructure& Declared,
     {
         Session.Radius = HoldWithinLimit(AskedRadius(Session, Pointer.Probe),
                                          Session.Limit, Session.Clamped);
+        RefreshShape(Declared, Session);
 
         // 🔴 THE RELEASE DOES NOT APPLY. It hands the figure to the popup, which is what gives the artist
         //    somewhere to type an exact number before anything is written.
@@ -75,6 +87,7 @@ void AdvanceCornerDragSession(const WorldSketchStructure& Declared,
         Session.Limit   = 0.0;
         Session.Radius  = 0.0;
         Session.Clamped = false;
+        Session.Shaped  = false;
         return;
     }
 
@@ -87,14 +100,27 @@ void AdvanceCornerDragSession(const WorldSketchStructure& Declared,
         Session.Phase  = CornerPhase::Dragging;
         Session.Radius = HoldWithinLimit(AskedRadius(Session, Pointer.Probe),
                                          Session.Limit, Session.Clamped);
+        RefreshShape(Declared, Session);
+    }
+    else
+    {
+        // 📝 Merely hovering has no radius yet, so there is nothing to draw beyond the corner marker.
+        Session.Shaped = false;
     }
 }
 
-void DeclareCornerRadius(CornerDragSession& Session, double Radius)
+void DeclareCornerRadius(const WorldSketchStructure& Declared,
+                         CornerDragSession& Session,
+                         double Radius)
 {
     // 📝 Clamped on the way in, so a figure typed past the limit behaves exactly as a drag past it does.
     //    Two different answers for the same number would be indefensible.
     Session.Radius = HoldWithinLimit(Radius, Session.Limit, Session.Clamped);
+
+    // 🔴 A TYPED FIGURE MOVES THE PREVIEW TOO. The readout and the drag write the same radius, so they
+    //    must refresh the same drawing; leaving this out would freeze the preview the moment the artist
+    //    reached for the keyboard.
+    RefreshShape(Declared, Session);
 }
 
 CornerVerdict ApplyCornerDragSession(WorldSketchStructure& Declared,

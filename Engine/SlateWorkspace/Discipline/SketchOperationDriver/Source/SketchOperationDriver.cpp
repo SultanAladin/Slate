@@ -4,11 +4,13 @@
 
 #include "SlateWorkspace/Discipline/SketchOperationDriver/Api/SketchOperationDriver.h"
 
+#include "SlateShape/Sketch/SketchPolyline/Api/SketchPolyline.h"
 #include "SlateShape/World/WorldSketchAnalysis/Api/WorldSketchAnalysis.h"
 #include "SlateUI/Interface/OptionControls/Api/OptionControls.h"
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 
 namespace Slate
 {
@@ -271,38 +273,35 @@ void DriveSketchOperations(const PlaneExtent& Bounds,
     if (!Readout.Standing())
         return;
 
-    const double Limit = CornerMannerFor(ActiveTool, Manner) ? State.Corner.Limit
-                                                             : State.Operation.Limit;
-
     const char* Title = "";
     SymbolSubject Glyph = SymbolSubject::SubjectCount;
     TitleFor(ActiveTool, Title, Glyph);
 
+    // 🔴 THE FIGURE MOVES INTO THE HEADING, because the row that used to state it has gone. A readout
+    //    that named the operation but not its value would leave the artist dragging blind -- the very
+    //    complaint the preview is being added to answer.
+    // 📝 Written into the state's own buffer rather than a local, because `PopupDeclaration::Title` is
+    //    BORROWED and read after this function returns; a stack buffer here would dangle.
+    std::snprintf(State.Heading, sizeof(State.Heading), "%s  %.*f %s",
+                  Title,
+                  static_cast<int>(MeasureUnitPlaces(State.Unit)),
+                  static_cast<double>(State.Figure),
+                  MeasureUnitSuffix(State.Unit));
+
+    // 🔴 NO SLIDER. The artist asked for it gone, and the gesture is the reason it can go: the DRAG sets
+    //    the figure, so a track in the readout was a second way to do the thing the pointer was already
+    //    doing -- and the one that had to be dragged with the other hand while the first held the corner.
+    //    The readout states the figure and offers Apply and Cancel; the pointer sets it.
+    // 📝 The clamp still governs. It is applied to the drag and to any typed figure in the session
+    //    itself, so removing the track removes a control, not a rule.
     OptionDeclaration Rows[1] = {};
-    Rows[0].Kind    = OptionControl::Slider;
-    Rows[0].Caption = ActiveTool == ParametricToolSubject::Offset ? "Distance" : "Radius";
-    Rows[0].Unit    = MeasureUnitSuffix(State.Unit);
-    Rows[0].Reading = &State.Figure;
-    Rows[0].Places  = MeasureUnitPlaces(State.Unit);
-
-    // 🔴 THE SLIDER'S RANGE IS THE GESTURE'S OWN CLAMP, not a constant. A readout that let the artist
-    //    type or drag past the limit would be a way around the clamp rather than a way to be precise
-    //    inside it, and the operation would refuse at a number the readout had just offered.
-    // 🔴 AND THE CLAMP IS CONVERTED WITH THE FIGURE. The limit is millimetres like everything else in
-    //    the session; leaving it unconverted while the reading is shown in metres made the slider run
-    //    to 50 when the value it carried could only ever reach 0.05 -- the whole travel bunched into
-    //    the first thousandth of the track, which is what made it feel hopelessly coarse.
-    const double ShownLimit = ToDisplay(Limit, State.Unit);
-
-    Rows[0].Minimum = ActiveTool == ParametricToolSubject::Offset
-                    ? -static_cast<float>(ShownLimit) : 0.0f;
-    Rows[0].Maximum = static_cast<float>(ShownLimit > 0.0 ? ShownLimit : ToDisplay(1.0, State.Unit));
+    const std::uint32_t RowCount = 0u;
 
     PopupDeclaration Declared = {};
-    Declared.Title    = Title;
+    Declared.Title    = State.Heading;
     Declared.Glyph    = Glyph;
     Declared.Rows     = Rows;
-    Declared.RowCount = 1u;
+    Declared.RowCount = RowCount;
 
     bool ReadoutTaken = false;
     const Deliver<PopupVerdict> Verdict = Readout.Record(Bounds, Declared, ReadoutTaken);
@@ -319,7 +318,7 @@ void DriveSketchOperations(const PlaneExtent& Bounds,
 
     if (CornerMannerFor(ActiveTool, Manner))
     {
-        DeclareCornerRadius(State.Corner, TypedMillimetres);
+        DeclareCornerRadius(World, State.Corner, TypedMillimetres);
         if (Verdict.Delivered == PopupVerdict::Applied)
         {
             WorldCurveName Produced = {};
@@ -344,6 +343,176 @@ void DriveSketchOperations(const PlaneExtent& Bounds,
             CancelSketchOperationSession(State.Operation);
         }
     }
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     WHAT IT SHOWS
+//------------------------------------------------------------------------------------------------------------------------
+
+namespace
+{
+
+/// 🧩 Draws one world-space segment into the packet, if both ends are on screen.
+/// 📝 Skipped rather than clipped when an end falls behind the eye. A preview is a hint; a hint that has
+///    to be clipped correctly is a renderer, and this is not one.
+bool AppendPreviewSegment(const ResolvedCamera& Camera,
+                          const PlaneExtent& Extent,
+                          const SpatialPoint& From,
+                          const SpatialPoint& To,
+                          Unsigned32 Colour,
+                          Real32 Thickness,
+                          WorkspaceCadPacket& Delivered)
+{
+    float FromX = 0.0f;
+    float FromY = 0.0f;
+    float ToX   = 0.0f;
+    float ToY   = 0.0f;
+    if (!ProjectFromCamera(Camera, Extent, From, FromX, FromY) ||
+        !ProjectFromCamera(Camera, Extent, To, ToX, ToY))
+        return false;
+
+    Delivered.AddSegment(FromX, FromY, ToX, ToY, Colour, Thickness);
+    return true;
+}
+
+} // namespace
+
+Deliver<bool> ProjectOperationPreview(const SketchOperationState& State,
+                                      ParametricToolSubject ActiveTool,
+                                      const ResolvedCamera& Camera,
+                                      const PlaneExtent& PhysicalExtent,
+                                      WorkspaceCadPacket& Delivered,
+                                      const OperationPreviewStyle& Style)
+{
+    if (!OperationToolStanding(ActiveTool))
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported,
+                                       "the active tool is not one of the seven operations" });
+
+    bool Appended = false;
+
+    //--------------------------------------------------------------------------------------------------------------------
+    // ① Fillet and Chamfer: the corner that would replace the sharp one.
+    //--------------------------------------------------------------------------------------------------------------------
+    CornerManner Manner = CornerManner::Fillet;
+    if (CornerMannerFor(ActiveTool, Manner))
+    {
+        const CornerDragSession& Corner = State.Corner;
+
+        // 📝 The corner itself, marked as soon as it is under the pointer. This alone answers "is the
+        //    tool seeing anything?", which is the question the artist asks first.
+        if (Corner.Phase != CornerPhase::Idle && Corner.Target.Declared())
+        {
+            float MarkX = 0.0f;
+            float MarkY = 0.0f;
+            if (ProjectFromCamera(Camera, PhysicalExtent, Corner.Target.Position, MarkX, MarkY))
+            {
+                Delivered.AddMarker(MarkX, MarkY, Style.MarkerColour, Style.MarkerRadius,
+                                    WorkspaceCadMarkerSubject::SketchControl);
+                Appended = true;
+            }
+        }
+
+        // 🔴 THE SHAPE THE RADIUS WOULD PRODUCE. Tessellated through the SAME three-point arc the commit
+        //    declares, so what is drawn is what gets written rather than a circle that resembles it.
+        if (Corner.Shaped)
+        {
+            const CurveSpecification Preview =
+                Corner.Manner == CornerManner::Chamfer
+                    ? CurveSpecification::DeclareLine(Corner.EnterPoint, Corner.ExitPoint)
+                    : CurveSpecification::DeclareThreePointArc(Corner.EnterPoint, Corner.Through,
+                                                               Corner.ExitPoint);
+
+            if (Preview.Declared())
+            {
+                std::vector<SpatialPoint> Polyline;
+                AppendCurvePolyline(Preview, Polyline, Style.ArcSteps);
+                for (std::size_t Index = 0u; Index + 1u < Polyline.size(); ++Index)
+                    Appended = AppendPreviewSegment(Camera, PhysicalExtent,
+                                                    Polyline[Index], Polyline[Index + 1u],
+                                                    Style.AddingColour, Style.Thickness, Delivered)
+                             || Appended;
+            }
+
+            // 📝 The two tangent points, so the artist can see how much of each leg is being eaten.
+            for (const SpatialPoint& Tangent : { Corner.EnterPoint, Corner.ExitPoint })
+            {
+                float TangentX = 0.0f;
+                float TangentY = 0.0f;
+                if (ProjectFromCamera(Camera, PhysicalExtent, Tangent, TangentX, TangentY))
+                {
+                    Delivered.AddMarker(TangentX, TangentY, Style.AddingColour,
+                                        Style.MarkerRadius * 0.7f,
+                                        WorkspaceCadMarkerSubject::SketchControl);
+                    Appended = true;
+                }
+            }
+        }
+
+        return Appended
+             ? Deliver<bool>::Result(true)
+             : Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported,
+                                       "no corner is under the pointer, so there is nothing to preview" });
+    }
+
+    //--------------------------------------------------------------------------------------------------------------------
+    // ② Trim and Cut: what would be removed, and where the division would fall.
+    //--------------------------------------------------------------------------------------------------------------------
+    const SketchOperationSession& Operating = State.Operation;
+    if (Operating.Preview != OperationVerdict::Produced)
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported,
+                                       "the operation would refuse here, so nothing is promised" });
+
+    if (Operating.Manner == OperationManner::Trim)
+    {
+        // 🔴 IN RED, BECAUSE IT IS ABOUT TO BE DELETED. Trim resolves its own bounds, so without this the
+        //    artist cannot tell which of several segments a click will take -- and finding out by
+        //    clicking is destructive.
+        Appended = AppendPreviewSegment(Camera, PhysicalExtent,
+                                        Operating.DepartingFrom, Operating.DepartingTo,
+                                        Style.RemovingColour, Style.Thickness * 1.6f, Delivered)
+                 || Appended;
+
+        for (const SpatialPoint& End : { Operating.DepartingFrom, Operating.DepartingTo })
+        {
+            float EndX = 0.0f;
+            float EndY = 0.0f;
+            if (ProjectFromCamera(Camera, PhysicalExtent, End, EndX, EndY))
+            {
+                Delivered.AddMarker(EndX, EndY, Style.RemovingColour, Style.MarkerRadius * 0.7f,
+                                    WorkspaceCadMarkerSubject::SketchControl);
+                Appended = true;
+            }
+        }
+    }
+    else if (Operating.Manner == OperationManner::Cut)
+    {
+        // 📝 One marker, on the curve, exactly where the two pieces will meet.
+        float CutX = 0.0f;
+        float CutY = 0.0f;
+        if (ProjectFromCamera(Camera, PhysicalExtent, Operating.Division, CutX, CutY))
+        {
+            Delivered.AddMarker(CutX, CutY, Style.MarkerColour, Style.MarkerRadius,
+                                WorkspaceCadMarkerSubject::SketchControl);
+            Appended = true;
+        }
+    }
+    else if (Operating.Manner == OperationManner::Extend)
+    {
+        // 📝 Extend already knew where it would land; it simply had nowhere to say so.
+        float LandX = 0.0f;
+        float LandY = 0.0f;
+        if (ProjectFromCamera(Camera, PhysicalExtent, Operating.Landing, LandX, LandY))
+        {
+            Delivered.AddMarker(LandX, LandY, Style.AddingColour, Style.MarkerRadius,
+                                WorkspaceCadMarkerSubject::SketchControl);
+            Appended = true;
+        }
+    }
+
+    return Appended
+         ? Deliver<bool>::Result(true)
+         : Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported,
+                                   "this manner draws no preview" });
 }
 
 } // namespace Slate

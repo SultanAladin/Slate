@@ -800,6 +800,127 @@ void ProveTheReachAndTheFillSubject()
           "and the preview reports there is nothing to fill, rather than arming a refusal");
 }
 
+//----------------------------------------------------------------------------------------------------
+// 🔴 THE PREVIEWS. WHAT THE ARTIST IS SHOWN BEFORE THEY COMMIT.
+//----------------------------------------------------------------------------------------------------
+// The operations all worked and none of them said so. Trim resolved the piece it would delete and drew
+// nothing; Cut snapped a division point and drew nothing; both reported `Produced` merely because a
+// curve was in reach, so they promised success at places the commit then refused. What is proven here is
+// that the preview and the commit are the SAME answer -- not two opinions that happen to agree today.
+void ProveThePreviews()
+{
+    std::printf("\n10. Trim and Cut say what they are about to do\n");
+
+    const std::vector<WorldCurveName> NoChain;
+
+    // A spine crossed twice, so it has three pieces: [0,30], [30,70], [70,100].
+    WorldSketchStructure Sketch;
+    const WorldCurveName Spine = Sketch.DeclareLine({ 0.0, 0.0, 0.0 }, { 100.0, 0.0, 0.0 }, Ground);
+    Sketch.DeclareLine({ 30.0, 0.0, -20.0 }, { 30.0, 0.0, 20.0 }, Ground);
+    Sketch.DeclareLine({ 70.0, 0.0, -20.0 }, { 70.0, 0.0, 20.0 }, Ground);
+
+    // ① THE MIDDLE PIECE. Pointing between the crossings must name exactly that span.
+    SpatialPoint From = {};
+    SpatialPoint To   = {};
+    Claim(EvaluateWorldTrim(Sketch, Spine, { 50.0, 0.0, 0.0 }, From, To) == OperationVerdict::Produced,
+          "a trim between two crossings is offered");
+    Claim(Near(From.Left, 30.0, 1.0e-9) && Near(To.Left, 70.0, 1.0e-9),
+          "and the span it names is the piece BETWEEN them -- what the click will delete");
+
+    // ② THE OVERHANG. Beyond the last crossing the piece runs to the curve's own end.
+    Claim(EvaluateWorldTrim(Sketch, Spine, { 85.0, 0.0, 0.0 }, From, To) == OperationVerdict::Produced,
+          "an overhang past the last crossing is offered");
+    Claim(Near(From.Left, 70.0, 1.0e-9) && Near(To.Left, 100.0, 1.0e-9),
+          "and it runs from that crossing to the free end");
+
+    // ③ THE PREVIEW IS THE COMMIT. Whatever span was promised is the span that actually goes.
+    Claim(EvaluateWorldTrim(Sketch, Spine, { 50.0, 0.0, 0.0 }, From, To) == OperationVerdict::Produced,
+          "the middle piece is promised again");
+    {
+        WorldSketchStructure Copy = Sketch;
+        std::vector<WorldCurveName> Remaining;
+        Claim(TrimWorldCurve(Copy, Spine, { 50.0, 0.0, 0.0 }, Remaining) == OperationVerdict::Produced,
+              "and performing it succeeds");
+        const LineCurve& Kept = Copy.Resolve(Spine)->Geometry.HeldLine();
+        Claim(Near(Kept.Terminus.Left, From.Left, 1.0e-9),
+              "the piece that survives ends exactly where the promise began -- one answer, not two");
+    }
+
+    // ④ A CURVE WITH NOTHING CROSSING IT HAS NOTHING TO TRIM, and must not be highlighted.
+    WorldSketchStructure Lone;
+    const WorldCurveName Free = Lone.DeclareLine({ 0.0, 0.0, 0.0 }, { 100.0, 0.0, 0.0 }, Ground);
+    Claim(EvaluateWorldTrim(Lone, Free, { 50.0, 0.0, 0.0 }, From, To) == OperationVerdict::NoIntersection,
+          "an uncrossed curve offers no trim, rather than promising to delete the whole thing");
+
+    // ⑤ CUT SNAPS ONTO THE CURVE. The marker must sit on the line, not beside it.
+    // 📝 `OnCurveTolerance` is 1e-3, so the probe must genuinely be ON the curve -- the driver hands
+    //    over a point already intersected with the workplane, not a raw pointer position. A probe a
+    //    few units clear is correctly refused, which claim ⑨ below states outright.
+    SpatialPoint Division = {};
+    Claim(EvaluateWorldCut(Sketch, Spine, { 42.0, 0.0, 1.0e-4 }, Division) == OperationVerdict::Produced,
+          "a cut on the line is offered");
+    Claim(Near(Division.Forward, 0.0, 1.0e-9) && Near(Division.Left, 42.0, 1.0e-9),
+          "and the point is SNAPPED onto it, so the marker cannot float beside the curve it cuts");
+
+    Claim(EvaluateWorldCut(Sketch, Spine, { 42.0, 0.0, 3.0 }, Division) == OperationVerdict::PointNotOnCurve,
+          "and a probe genuinely off the curve is refused rather than cut at the nearest guess");
+
+    // ⑥ AND IT REFUSES AT THE ENDS, where a cut would make a zero-length piece.
+    Claim(EvaluateWorldCut(Sketch, Spine, { 0.0, 0.0, 0.0 }, Division) == OperationVerdict::PointAtEnd,
+          "cutting at the very start is refused, so no marker promises it");
+
+    // ⑦ THE SESSION CARRIES ALL OF IT, which is what the renderer reads.
+    SketchOperationSession Trimming;
+    Trimming.Manner = OperationManner::Trim;
+    AdvanceSketchOperationSession(Sketch, NoChain, Ground,
+                                  { { 50.0, 0.0, 0.0 }, false, false, false, 12.0 }, Trimming);
+    Claim(Trimming.Preview == OperationVerdict::Produced, "the session previews the trim");
+    Claim(Near(Trimming.DepartingFrom.Left, 30.0, 1.0e-9) &&
+          Near(Trimming.DepartingTo.Left, 70.0, 1.0e-9),
+          "and publishes the doomed span for the renderer to draw in red");
+
+    // ⑧ HOVERING AN UNCROSSED CURVE MUST NOT ARM. This used to report `Produced` on reach alone.
+    SketchOperationSession Hopeless;
+    Hopeless.Manner = OperationManner::Trim;
+    AdvanceSketchOperationSession(Lone, NoChain, Ground,
+                                  { { 50.0, 0.0, 0.0 }, false, false, false, 12.0 }, Hopeless);
+    Claim(Hopeless.Preview != OperationVerdict::Produced,
+          "a trim that cannot succeed no longer previews as though it can");
+
+    // ⑨ 🔴 THE PROBE IS SNAPPED ONTO THE CURVE, AND THIS IS WHAT ACTUALLY KILLED TRIM AND CUT IN THE APP.
+    //    Reaching a curve is deliberately generous -- twelve PIXELS, which at metre scale is a long way
+    //    in world units -- but both operations refuse a probe more than `OnCurveTolerance` (1e-3) off the
+    //    line. So the gesture named a curve, armed on it, and was then refused by the very operation it
+    //    had armed. The artist clicks a line, the tool clearly sees it, and nothing happens.
+    SketchOperationSession Offline;
+    Offline.Manner = OperationManner::Trim;
+    AdvanceSketchOperationSession(Sketch, NoChain, Ground,
+                                  { { 50.0, 0.0, 0.5 }, false, false, false, 12.0 }, Offline);
+    Claim(Offline.Target.IssuedIndex == Spine.IssuedIndex,
+          "a probe half a unit off the line still reaches the curve, as it should");
+    Claim(Near(Offline.Probe.Forward, 0.0, 1.0e-9),
+          "and the probe is SNAPPED onto it, closing the gap between what may be reached and what is accepted");
+    Claim(Offline.Preview == OperationVerdict::Produced,
+          "so the trim previews instead of being refused for being off the line");
+
+    AdvanceSketchOperationSession(Sketch, NoChain, Ground,
+                                  { { 50.0, 0.0, 0.5 }, false, false, true, 12.0 }, Offline);
+    {
+        WorldSketchStructure Copy = Sketch;
+        std::vector<WorldCurveName> Produced;
+        Claim(PerformSketchOperation(Copy, NoChain, Ground, Offline, Produced)
+                  == OperationVerdict::Produced,
+              "and performing it succeeds, where the raw pointer position was refused outright");
+    }
+
+    SketchOperationSession Cutting;
+    Cutting.Manner = OperationManner::Cut;
+    AdvanceSketchOperationSession(Sketch, NoChain, Ground,
+                                  { { 42.0, 0.0, 1.0e-4 }, false, false, false, 12.0 }, Cutting);
+    Claim(Near(Cutting.Division.Left, 42.0, 1.0e-9) && Near(Cutting.Division.Forward, 0.0, 1.0e-9),
+          "and Cut publishes the division point, snapped onto the curve");
+}
+
 } // namespace
 
 int main()
@@ -815,6 +936,7 @@ int main()
     ProveFillAndNesting();
     ProveTheGestures();
     ProveTheReachAndTheFillSubject();
+    ProveThePreviews();
 
     std::printf("\n%u claims, %u failures\n", Claims, Failures);
     return Failures == 0u ? 0 : 1;

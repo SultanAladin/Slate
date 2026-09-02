@@ -101,6 +101,19 @@ struct SketchOperationSession
     /// 🧩 Where an Extend would land, meaningful when `Preview` is `Produced` and the manner is Extend.
     SpatialPoint Landing = {};
 
+    /// 🧩 The span a Trim would remove, meaningful when `Preview` is `Produced` and the manner is Trim.
+    /// note  🔴 THE ARTIST MUST SEE WHAT A CLICK WILL DELETE. Trim finds its own bounds, so without this
+    ///        the artist is guessing which segment goes -- and a wrong guess destroys work. Carried on
+    ///        the session because the session already asked; recomputing it in the renderer would be a
+    ///        second opinion that could differ from the one the commit acts on.
+    SpatialPoint DepartingFrom = {};
+    SpatialPoint DepartingTo   = {};
+
+    /// 🧩 Where a Cut would divide, meaningful when `Preview` is `Produced` and the manner is Cut.
+    /// note  📝 Snapped onto the curve by the same call that performs the cut, so the marker sits exactly
+    ///        where the division will be rather than wherever the pointer happens to be.
+    SpatialPoint Division = {};
+
     /// 🧩 Where the pointer was when the target was named.
     /// note  🔴 REMEMBERED, NOT RE-READ AT COMMIT. Cut divides where the artist clicked and Trim removes
     ///        the piece they pointed at, so both need the position of the click and not of wherever the

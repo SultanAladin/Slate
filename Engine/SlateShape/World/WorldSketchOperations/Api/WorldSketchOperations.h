@@ -108,6 +108,34 @@ OperationVerdict TrimWorldCurve(WorldSketchStructure& Declared,
                                 const SpatialPoint& Probe,
                                 std::vector<WorldCurveName>& Remaining);
 
+/// 🧩 Which span of a curve a trim would remove, without changing anything.
+/// out   DepartingFrom  [-] one end of the piece that would go
+/// out   DepartingTo    [-] the other end of it
+/// note  🔴 THE PREVIEW THE ARTIST NEEDS BEFORE COMMITTING. Trim finds its own bounds -- the nearest
+///        crossing either side of the probe -- so until the piece is drawn the artist is guessing which
+///        of several segments a click will delete, and a wrong guess is destructive. It answers with the
+///        SAME crossing search `TrimWorldCurve` uses, so the highlight is the geometry that will go
+///        rather than a second opinion about it.
+/// note  📝 Refuses for exactly the reasons the trim itself refuses, so a span is only reported when a
+///        trim would actually succeed.
+/// tag   api, nonthrowing
+OperationVerdict EvaluateWorldTrim(const WorldSketchStructure& Declared,
+                                   WorldCurveName Subject,
+                                   const SpatialPoint& Probe,
+                                   SpatialPoint& DepartingFrom,
+                                   SpatialPoint& DepartingTo);
+
+/// 🧩 Where a cut would divide a curve, without changing anything.
+/// out   Division  [-] the point on the curve the artist's click snaps to
+/// note  🔴 SNAPPED ONTO THE CURVE, exactly as the cut snaps it. Drawing the raw probe would put the
+///        marker beside the line it claims to be cutting, and at the ends it would promise a cut the
+///        operation refuses.
+/// tag   api, nonthrowing
+OperationVerdict EvaluateWorldCut(const WorldSketchStructure& Declared,
+                                  WorldCurveName Subject,
+                                  const SpatialPoint& Probe,
+                                  SpatialPoint& Division);
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                         EXTEND
 //------------------------------------------------------------------------------------------------------------------------

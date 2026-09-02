@@ -86,6 +86,17 @@ struct CornerDragSession
     double Limit   = 0.0;    // [-] - the largest this corner accepts; the drag is held at it
     bool   Clamped = false;  // [-] - whether the pointer is asking for more than the limit
 
+    /// 🧩 The corner the current radius would produce: the two tangent points and a point between them.
+    /// note  🔴 THE WHOLE REASON THE TOOL FELT DEAD. Nothing was drawn between grabbing the corner and
+    ///        pressing Apply, so the artist dragged a slider while the shape stayed visibly sharp and had
+    ///        no way to tell a working fillet from a broken one. Refreshed every frame the radius moves.
+    /// note  📝 Meaningful only while `Shaped` is true; a corner too tight to take the radius has no
+    ///        shape to draw, and drawing a stale one would be worse than drawing nothing.
+    SpatialPoint EnterPoint = {};
+    SpatialPoint Through    = {};
+    SpatialPoint ExitPoint  = {};
+    bool         Shaped     = false;
+
     /// 🧩 Whether a popup should be on screen for this session.
     bool PopupStanding() const { return Phase == CornerPhase::Dragging || Phase == CornerPhase::Pending; }
 };
@@ -126,7 +137,9 @@ void AdvanceCornerDragSession(const WorldSketchStructure& Declared,
 /// note  🔴 THE SAME FIELD THE DRAG WRITES. The typed value and the dragged value are one number, so
 ///        typing then dragging continues from what was typed rather than jumping back.
 /// tag   api, nonthrowing
-void DeclareCornerRadius(CornerDragSession& Session, double Radius);
+void DeclareCornerRadius(const WorldSketchStructure& Declared,
+                         CornerDragSession& Session,
+                         double Radius);
 
 /// 🧩 Commits the pending operation to the sketch.
 /// out   Produced  [-] the arc or chamfer that was declared

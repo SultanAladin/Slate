@@ -116,6 +116,28 @@ CornerVerdict EvaluateWorldCorner(const WorldSketchStructure& Declared,
                                   WorldCurveName Second,
                                   double Radius);
 
+/// 🧩 The shape a corner operation would produce, without changing anything.
+/// in    Chamfer     [-] true describes the straight chord; false the rounded arc
+/// out   EnterPoint  [-] where the new curve meets the first leg
+/// out   Through     [-] a point on the new curve between its ends -- the arc's far point, or the
+///                       chord's midpoint, so both manners answer in the same shape
+/// out   ExitPoint   [-] where it meets the second leg
+/// note  🔴 THE PREVIEW THE ARTIST DRAGS AGAINST. Until this existed there was no way to see a fillet
+///        without committing it, so the artist dragged a slider and watched a sharp corner stay sharp
+///        with no way to tell a working tool from a broken one.
+/// note  🔴 `ApplyWorldCorner` CALLS THIS RATHER THAN REPEATING IT, so what is drawn and what is written
+///        are one derivation. A preview that computes the same shape a second way is a preview that will
+///        eventually disagree with the commit.
+/// tag   api, nonthrowing
+CornerVerdict EvaluateWorldCornerShape(const WorldSketchStructure& Declared,
+                                       WorldCurveName First,
+                                       WorldCurveName Second,
+                                       double Radius,
+                                       bool Chamfer,
+                                       SpatialPoint& EnterPoint,
+                                       SpatialPoint& Through,
+                                       SpatialPoint& ExitPoint);
+
 /// 🧩 Rounds a corner with an arc, or cuts it with a straight chamfer.
 /// in    Declared  [-] the sketch, mutated in place
 /// in    First     [-] one leg of the junction

@@ -193,6 +193,57 @@ CornerVerdict EvaluateWorldCorner(const WorldSketchStructure& Declared,
 
 //------------------------------------------------------------------------------------------------------------------------
 
+CornerVerdict EvaluateWorldCornerShape(const WorldSketchStructure& Declared,
+                                       WorldCurveName First,
+                                       WorldCurveName Second,
+                                       double Radius,
+                                       bool Chamfer,
+                                       SpatialPoint& EnterPoint,
+                                       SpatialPoint& Through,
+                                       SpatialPoint& ExitPoint)
+{
+    EnterPoint = {};
+    Through    = {};
+    ExitPoint  = {};
+
+    const CornerVerdict Verdict = EvaluateWorldCorner(Declared, First, Second, Radius);
+    if (Verdict != CornerVerdict::Produced)
+        return Verdict;
+
+    Leg LeftLeg;
+    Leg RightLeg;
+    if (!OrientLegs(Declared, First, Second, LeftLeg, RightLeg))
+        return CornerVerdict::NoSharedEndpoint;
+
+    const double Radians = CornerRadians(LeftLeg, RightLeg);
+    const double Reach   = TangentReach(Radius, Radians);
+
+    EnterPoint = Added(LeftLeg.Corner,  Scaled(LeftLeg.Outward,  Reach));
+    ExitPoint  = Added(RightLeg.Corner, Scaled(RightLeg.Outward, Reach));
+
+    // 📝 A chamfer is the straight chord, so its midpoint is simply halfway along it. Reporting one keeps
+    //    the two manners the same shape of answer and spares every caller a special case.
+    if (Chamfer)
+    {
+        Through = Added(EnterPoint, Scaled(Difference(EnterPoint, ExitPoint), 0.5));
+        return CornerVerdict::Produced;
+    }
+
+    const SpatialDirection BisectorSpan = Added(LeftLeg.Outward, RightLeg.Outward);
+    if (LengthSquared(BisectorSpan) <= 1.0e-18)
+        return CornerVerdict::Collinear;
+
+    const SpatialDirection Bisector = Normalize(BisectorSpan);
+    const double CentreDistance = Radius / std::sin(Radians * 0.5);
+    const SpatialPoint Centre = Added(LeftLeg.Corner, Scaled(Bisector, CentreDistance));
+    const SpatialDirection Inward = Normalize(Difference(Centre, LeftLeg.Corner));
+
+    Through = Added(Centre, Scaled(Inward, Radius));
+    return CornerVerdict::Produced;
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+
 CornerVerdict ApplyWorldCorner(WorldSketchStructure& Declared,
                                WorldCurveName First,
                                WorldCurveName Second,
@@ -213,12 +264,15 @@ CornerVerdict ApplyWorldCorner(WorldSketchStructure& Declared,
     if (!OrientLegs(Declared, First, Second, LeftLeg, RightLeg))
         return CornerVerdict::NoSharedEndpoint;
 
-    const double Radians = CornerRadians(LeftLeg, RightLeg);
-    const double Reach   = TangentReach(Radius, Radians);
-
-    // 📐 Where the new curve meets each leg: `Reach` out from the corner, along that leg.
-    const SpatialPoint EnterPoint = Added(LeftLeg.Corner,  Scaled(LeftLeg.Outward,  Reach));
-    const SpatialPoint ExitPoint  = Added(RightLeg.Corner, Scaled(RightLeg.Outward, Reach));
+    // 🔴 THE PREVIEW'S OWN ANSWER, so the arc the artist was shown is the arc that gets written. Deriving
+    //    the shape twice -- once to draw and once to commit -- is how a preview starts lying.
+    SpatialPoint EnterPoint = {};
+    SpatialPoint Through    = {};
+    SpatialPoint ExitPoint  = {};
+    const CornerVerdict Shaped =
+        EvaluateWorldCornerShape(Declared, First, Second, Radius, Chamfer, EnterPoint, Through, ExitPoint);
+    if (Shaped != CornerVerdict::Produced)
+        return Shaped;
 
     // 📝 The support frame is inherited from the first leg, so the rounded corner belongs to the same
     //    workplane the geometry it joins does.
@@ -236,24 +290,8 @@ CornerVerdict ApplyWorldCorner(WorldSketchStructure& Declared,
     }
     else
     {
-        // 📐 The arc's midpoint. The centre sits along the angle bisector at `Radius / sin(theta/2)`, and
-        //    the arc's near point is `Radius` back from it towards the corner.
-        // 🔴 BISECT BY SUMMING THE TWO UNIT OUTWARD DIRECTIONS. Building the bisector from a cross
-        //    product would have needed a handedness convention, and would then have rounded the corner
-        //    the wrong way round for exactly half of all corners.
-        const SpatialDirection BisectorSpan = Added(LeftLeg.Outward, RightLeg.Outward);
-        if (LengthSquared(BisectorSpan) <= 1.0e-18)
-            return CornerVerdict::Collinear;
-        const SpatialDirection Bisector = Normalize(BisectorSpan);
-
-        const double CentreDistance = Radius / std::sin(Radians * 0.5);
-        const SpatialPoint Centre = Added(LeftLeg.Corner, Scaled(Bisector, CentreDistance));
-
-        // 📐 From the centre, back towards the corner by the radius: the point on the arc furthest into
-        //    the corner, which is the through-point a three-point arc needs.
-        const SpatialDirection Inward = Normalize(Difference(Centre, LeftLeg.Corner));
-        const SpatialPoint Through = Added(Centre, Scaled(Inward, Radius));
-
+        // 📐 The through-point came from the shared derivation above -- the point on the arc furthest
+        //    into the corner, which is what a three-point arc needs.
         Joined = FrameStanding
             ? Declared.DeclareThreePointArc(EnterPoint, Through, ExitPoint, Frame)
             : Declared.DeclareThreePointArc(EnterPoint, Through, ExitPoint);

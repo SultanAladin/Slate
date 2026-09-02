@@ -533,15 +533,15 @@ void ProveTheDragGesture()
 
     // ⑥ Typing an exact figure writes the SAME field the drag wrote.
     Pointer.Released = false;
-    DeclareCornerRadius(Session, 12.5);
+    DeclareCornerRadius(Stage.Sketch, Session, 12.5);
     Claim(Near(Session.Radius, 12.5), "a typed figure replaces the dragged one");
     AdvanceCornerDragSession(Stage.Sketch, Pointer, Session);
     Claim(Near(Session.Radius, 12.5),
           "and the pointer no longer steals it back while the popup is pending");
 
-    DeclareCornerRadius(Session, 900.0);
+    DeclareCornerRadius(Stage.Sketch, Session, 900.0);
     Claim(Near(Session.Radius, 30.0), "a typed figure past the limit clamps exactly as a drag does");
-    DeclareCornerRadius(Session, 12.5);
+    DeclareCornerRadius(Stage.Sketch, Session, 12.5);
 
     // ⑦ Apply is what writes.
     WorldCurveName Produced = {};
@@ -594,6 +594,82 @@ void ProveTheDragGesture()
     const DeclaredWorldCurve* HeldChord = Third.Sketch.Resolve(Chord);
     Claim(HeldChord != nullptr && HeldChord->Geometry.Subject() == CurveSubject::Line,
           "and produces a straight cut rather than an arc");
+}
+
+//----------------------------------------------------------------------------------------------------
+// 🔴 THE ARTIST MUST SEE THE FILLET BEFORE THEY COMMIT IT.
+//----------------------------------------------------------------------------------------------------
+// The reported defect, in the artist's words: "I hover a vertex, left-click drag, the context menu shows
+// a slider and a value, but visibly it looks like a sharp rectangle." Every claim above passes, because
+// every claim above APPLIES the corner and then measures the geometry. None of them asks the question
+// the artist was actually asking: what is on screen DURING the drag? The answer was nothing at all --
+// the session knew the radius and had no way to describe the shape it implied, so there was nothing for
+// a renderer to draw and no way to tell a working tool from a broken one.
+void ProveTheDragIsVisible()
+{
+    std::printf("\n8. The shape is described while it is being dragged, not only once applied\n");
+
+    Square Stage;
+
+    CornerDragSession Session;
+    Session.Manner = CornerManner::Fillet;
+
+    // ① Merely hovering has no radius, so there is nothing to draw beyond the corner marker.
+    AdvanceCornerDragSession(Stage.Sketch, { { 100.0, 0.0, 0.0 }, false, false, false, 12.0 }, Session);
+    Claim(Session.Phase == CornerPhase::Hovering, "hovering the corner finds it");
+    Claim(!Session.Shaped, "and describes no shape yet, because no radius has been asked for");
+
+    // ② Dragging away from the corner must produce a describable shape EVERY frame.
+    AdvanceCornerDragSession(Stage.Sketch, { { 100.0, 0.0, 0.0 }, true, true, false, 12.0 }, Session);
+    AdvanceCornerDragSession(Stage.Sketch, { { 80.0, 0.0, 20.0 }, false, true, false, 12.0 }, Session);
+    Claim(Session.Phase == CornerPhase::Dragging, "the drag is under way");
+    Claim(Session.Radius > 0.0, "with a radius");
+    Claim(Session.Shaped, "AND A SHAPE TO DRAW -- the whole of what was missing");
+
+    // ③ The shape must be the real fillet: both tangent points exactly one radius from the corner along
+    //    their own legs, which is the definition the applied arc satisfies.
+    const SpatialPoint Corner = { 100.0, 0.0, 0.0 };
+    const double Reach = std::sqrt(LengthSquared(Difference(Session.EnterPoint, Corner)));
+    Claim(Near(std::sqrt(LengthSquared(Difference(Session.ExitPoint, Corner))), Reach),
+          "the two tangent points are the same distance out from the corner");
+    Claim(Near(Session.EnterPoint.Forward, 0.0) && Near(Session.ExitPoint.Left, 100.0),
+          "and each lies on its own leg");
+
+    // ④ 🔴 THE PREVIEW IS THE COMMIT. What was drawn must be what gets written -- otherwise the artist
+    //    aims with one shape and receives another, which is worse than drawing nothing.
+    const SpatialPoint DrawnEnter = Session.EnterPoint;
+    const SpatialPoint DrawnExit  = Session.ExitPoint;
+
+    AdvanceCornerDragSession(Stage.Sketch, { { 80.0, 0.0, 20.0 }, false, false, true, 12.0 }, Session);
+    WorldCurveName Produced = {};
+    Claim(ApplyCornerDragSession(Stage.Sketch, Session, Produced) == CornerVerdict::Produced,
+          "applying succeeds");
+
+    // 📝 The arc is stored as a centre and a sweep, so it is compared where it can be seen: the ends of
+    //    the polyline the renderer draws must be the tangent points the preview promised.
+    const CurveSpecification& Written = Stage.Sketch.Resolve(Produced)->Geometry;
+    std::vector<SpatialPoint> Drawn;
+    AppendCurvePolyline(Written, Drawn, 32u);
+    Claim(!Drawn.empty() && SamePoint(Drawn.front(), DrawnEnter, 1.0e-4) &&
+          SamePoint(Drawn.back(), DrawnExit, 1.0e-4),
+          "and the arc written is the arc that was previewed -- one derivation, not two");
+
+    // ⑤ A chamfer describes the straight chord between the same two points.
+    Square Bevelled;
+    CornerDragSession Cutting;
+    Cutting.Manner = CornerManner::Chamfer;
+    AdvanceCornerDragSession(Bevelled.Sketch, { { 100.0, 0.0, 0.0 }, true, true, false, 12.0 }, Cutting);
+    AdvanceCornerDragSession(Bevelled.Sketch, { { 85.0, 0.0, 15.0 }, false, true, false, 12.0 }, Cutting);
+    Claim(Cutting.Shaped, "a chamfer describes a shape while dragging too");
+    Claim(Near(std::sqrt(LengthSquared(Difference(Cutting.EnterPoint, Cutting.Through))),
+               std::sqrt(LengthSquared(Difference(Cutting.Through, Cutting.ExitPoint)))),
+          "and its midpoint is halfway along the chord, so both manners answer in the same shape");
+
+    // ⑥ A typed figure moves the preview as well, or it freezes the moment the artist uses the keyboard.
+    const SpatialPoint BeforeTyping = Cutting.EnterPoint;
+    DeclareCornerRadius(Bevelled.Sketch, Cutting, 5.0);
+    Claim(Cutting.Shaped && !SamePoint(Cutting.EnterPoint, BeforeTyping),
+          "typing an exact figure redraws the preview rather than leaving a stale one");
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -689,6 +765,7 @@ int main()
     ProveALoopSurvivesBeingFilleted();
     ProveCornersAreFound();
     ProveTheDragGesture();
+    ProveTheDragIsVisible();
     ProveTheReachFollowsTheZoom();
 
     std::printf("\n=========================================================================\n");

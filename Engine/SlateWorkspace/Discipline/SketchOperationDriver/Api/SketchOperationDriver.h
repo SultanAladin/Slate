@@ -17,6 +17,7 @@
 
 #include "Foundation/DeliveryGuarantee.h"
 #include "Foundation/MeasureDisplay.h"
+#include "Shared/WorkspaceCadPacket.slang.h"
 #include "SlateUI/Interface/ParametricTools/Api/ParametricToolsSpecification.h"
 #include "SlateShape/World/WorldSketchStructure/Api/WorldSketchStructure.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
@@ -63,6 +64,11 @@ struct SketchOperationState
     /// note  🔴 DISPLAYED, NOT STORED. The sessions beneath work in millimetres and never learn that any
     ///        other unit exists; the conversion happens once in each direction, at the readout.
     float Figure = 4.0f;
+
+    /// 🧩 The readout's heading, which carries the live figure now that no row states it.
+    /// note  🔴 HELD HERE BECAUSE THE POPUP BORROWS IT. `PopupDeclaration::Title` is a pointer read after
+    ///        the driver returns, so the text must outlive the call -- a local buffer would dangle.
+    char Heading[64] = {};
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -111,5 +117,43 @@ void DriveSketchOperations(const PlaneExtent& Bounds,
                            SketchOperationState& State,
                            ToolContextMenu& Readout,
                            bool& PointerTaken);
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     WHAT IT SHOWS
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 How the operation previews are drawn.
+/// note  📝 Amber for a shape that will be ADDED, red for geometry that will be REMOVED. The pair is the
+///        one convention the artist has to learn, and it holds across all four tools.
+struct OperationPreviewStyle
+{
+    Unsigned32 AddingColour   = PackWorkspaceCadColour(251u, 191u, 36u, 255u);   // [-] - amber: appears
+    Unsigned32 RemovingColour = PackWorkspaceCadColour(248u, 113u, 113u, 255u);  // [-] - red: goes away
+    Unsigned32 MarkerColour   = PackWorkspaceCadColour(251u, 191u, 36u, 255u);
+    Real32     Thickness      = 2.2f;    // [px] - heavier than a curve, so it reads as an overlay
+    Real32     MarkerRadius   = 4.5f;    // [px]
+    Unsigned32 ArcSteps       = 24u;     // [-] - enough that a filleted corner reads as round
+};
+
+/// 🧩 Draws what the standing operation would do, into the same packet the sketch is drawn in.
+/// in    PhysicalExtent  [px] the leaf in FRAMEBUFFER pixels, as the curves were projected into
+/// out   Delivered       [-]  appended to; never cleared, so it layers over the sketch
+/// out   Result          [-]  whether anything was appended
+///
+/// 🔴 THIS IS THE HALF THAT WAS MISSING. Every operation resolved its target, previewed its verdict and
+///    committed correctly, and NONE of it was ever drawn -- so a fillet looked like a sharp corner until
+///    the moment it was applied, and Trim and Cut asked the artist to click without saying what would be
+///    destroyed. The geometry was never the defect; the silence was.
+///
+/// 📝 Reads the sessions and draws; it decides nothing. Whatever the gesture resolved is what appears,
+///    which is why the preview cannot contradict the commit.
+/// cost  🚩🚩
+/// tag   api, nonthrowing
+Deliver<bool> ProjectOperationPreview(const SketchOperationState& State,
+                                      ParametricToolSubject ActiveTool,
+                                      const ResolvedCamera& Camera,
+                                      const PlaneExtent& PhysicalExtent,
+                                      WorkspaceCadPacket& Delivered,
+                                      const OperationPreviewStyle& Style = {});
 
 } // namespace Slate

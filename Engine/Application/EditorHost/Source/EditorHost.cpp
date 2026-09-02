@@ -1736,6 +1736,20 @@ static std::vector<DimensionFigureChip> SketchDimensionFigures;
                                         SketchAnnotations.Unit, SketchCadPacket,
                                         SketchDimensionFigures));
 
+                                    // 🔴 AND THE OPERATION'S PREVIEW ON TOP OF BOTH. Every operation
+                                    //    resolved its target and its verdict correctly and NONE of it
+                                    //    was ever drawn, so a fillet showed a slider while the corner
+                                    //    stayed visibly sharp, and Trim and Cut asked for a click
+                                    //    without saying what would be destroyed. The geometry was never
+                                    //    the defect; nothing was putting it on screen.
+                                    // 📝 Last into the packet, so it layers over the curves it
+                                    //    describes, and in the same PHYSICAL extent they were projected
+                                    //    into.
+                                    Discard(ProjectOperationPreview(
+                                        SketchOperations, ParametricToolsApplied.ActiveSubject,
+                                        RenderCamera, SketchDrawable.ToPhysical(LeafBody),
+                                        SketchCadPacket));
+
                                     // 🔴 THE LINE WORK IS ON THE GPU; ONLY THE FIGURES COME BACK. The
                                     //    CAD packet carries segments, triangles and markers -- it has
                                     //    no glyphs, and giving it any would mean a font atlas in the

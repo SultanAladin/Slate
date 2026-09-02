@@ -381,6 +381,88 @@ OperationVerdict TrimWorldCurve(WorldSketchStructure& Declared,
 }
 
 //------------------------------------------------------------------------------------------------------------------------
+
+OperationVerdict EvaluateWorldTrim(const WorldSketchStructure& Declared,
+                                   WorldCurveName Subject,
+                                   const SpatialPoint& Probe,
+                                   SpatialPoint& DepartingFrom,
+                                   SpatialPoint& DepartingTo)
+{
+    DepartingFrom = {};
+    DepartingTo   = {};
+
+    // 🔴 EVERY REFUSAL THE TRIM MAKES, IN THE SAME ORDER. A preview that accepted a case the commit
+    //    refuses would highlight a piece and then leave it there when the artist clicked -- which reads
+    //    as the tool being broken rather than as the trim being impossible.
+    const OperationVerdict Classified = ClassifySubject(Declared, Subject);
+    if (Classified != OperationVerdict::Produced)
+        return Classified;
+
+    const LineCurve Original = *ResolveLine(Declared, Subject);
+    if (DistanceToInfiniteLine(Original, Probe) > OnCurveTolerance)
+        return OperationVerdict::PointNotOnCurve;
+
+    const double At = std::clamp(ParameterAlong(Original, Probe), 0.0, 1.0);
+
+    std::vector<double> Parameters;
+    CollectCrossings(Declared, Subject, Parameters);
+    if (Parameters.empty())
+        return OperationVerdict::NoIntersection;
+
+    // 📐 The same bracket the trim resolves: the nearest crossing below the probe and the nearest above,
+    //    each falling back to the curve's own end so an overhang reads as a piece rather than as nothing.
+    double Lower = 0.0;
+    double Upper = 1.0;
+    bool HasLower = false;
+    bool HasUpper = false;
+    for (const double Parameter : Parameters)
+    {
+        if (Parameter <= At) { Lower = Parameter; HasLower = true; }
+        else if (!HasUpper)  { Upper = Parameter; HasUpper = true; }
+    }
+
+    if (!HasLower && !HasUpper)
+        return OperationVerdict::NoIntersection;
+
+    // 📝 The piece that GOES is the one the probe sits in, which is bounded by the pair just found. The
+    //    trim keeps everything outside it.
+    DepartingFrom = PointAt(Original, Lower);
+    DepartingTo   = PointAt(Original, Upper);
+    return OperationVerdict::Produced;
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+
+OperationVerdict EvaluateWorldCut(const WorldSketchStructure& Declared,
+                                  WorldCurveName Subject,
+                                  const SpatialPoint& Probe,
+                                  SpatialPoint& Division)
+{
+    Division = {};
+
+    const OperationVerdict Classified = ClassifySubject(Declared, Subject);
+    if (Classified != OperationVerdict::Produced)
+        return Classified;
+
+    const LineCurve Original = *ResolveLine(Declared, Subject);
+
+    if (DistanceToInfiniteLine(Original, Probe) > OnCurveTolerance)
+        return OperationVerdict::PointNotOnCurve;
+
+    const double Parameter = ParameterAlong(Original, Probe);
+    if (Parameter < -1.0e-9 || Parameter > 1.0 + 1.0e-9)
+        return OperationVerdict::PointNotOnCurve;
+
+    // 🔴 THE END CASE IS A REFUSAL, NOT A CUT AT THE END. Cutting where a curve already stops produces a
+    //    zero-length piece, so the marker must not appear there either.
+    if (Parameter <= 1.0e-9 || Parameter >= 1.0 - 1.0e-9)
+        return OperationVerdict::PointAtEnd;
+
+    Division = PointAt(Original, Parameter);
+    return OperationVerdict::Produced;
+}
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                         EXTEND
 //------------------------------------------------------------------------------------------------------------------------
 

@@ -71,6 +71,53 @@ WorldCurveName CurveNear(const WorldSketchStructure& Declared, const SpatialPoin
     return Found;
 }
 
+/// 🧩 The point on a named curve nearest the pointer.
+/// 🔴 THE PROBE MUST BE ON THE CURVE BEFORE THE OPERATIONS SEE IT. Reaching a curve is deliberately
+///    generous -- twelve PIXELS, which at metre scale is a long way in world units -- but Cut and Trim
+///    both refuse a probe further than `OnCurveTolerance` (one thousandth of a unit) from the line. So
+///    the gesture would name a curve, arm, and then be refused by the very operation it had armed: the
+///    artist clicks a line, the tool highlights it, and nothing happens. Snapping here closes the gap
+///    between what the pointer may reach and what the operation will accept.
+/// 📝 Measured along the tessellation, exactly as `DistanceToCurve` measures, so the snapped point lies
+///    on the polyline the artist can actually see.
+SpatialPoint PointOnCurveNear(const CurveSpecification& Geometry, const SpatialPoint& Probe)
+{
+    std::vector<SpatialPoint> Polyline;
+    AppendCurvePolyline(Geometry, Polyline, 48u);
+    if (Polyline.size() < 2u)
+        return Probe;
+
+    SpatialPoint Best = Polyline.front();
+    double Nearest = std::numeric_limits<double>::max();
+
+    for (std::size_t Index = 1u; Index < Polyline.size(); ++Index)
+    {
+        const SpatialPoint& Start = Polyline[Index - 1u];
+        const SpatialPoint& End   = Polyline[Index];
+
+        const SpatialDirection Span = Difference(Start, End);
+        const double Length = LengthSquared(Span);
+
+        // 📐 The projection of the probe onto this chord, held inside it so the answer is a point on the
+        //    segment rather than on the infinite line through it.
+        const double Parameter = Length <= 1.0e-18
+            ? 0.0
+            : std::clamp(Dot(Difference(Start, Probe), Span) / Length, 0.0, 1.0);
+
+        const SpatialPoint Candidate = { Start.Left    + Span.Left    * Parameter,
+                                         Start.Up      + Span.Up      * Parameter,
+                                         Start.Forward + Span.Forward * Parameter };
+
+        const double Distance = LengthSquared(Difference(Candidate, Probe));
+        if (Distance < Nearest)
+        {
+            Nearest = Distance;
+            Best = Candidate;
+        }
+    }
+    return Best;
+}
+
 /// 🧩 The loop that traverses a named curve, if any does.
 /// 🔴 FILL HAD NO WAY TO NAME ITS SUBJECT AT ALL. `Session.Loop` was cleared on cancel and read on
 ///    apply, and nothing in between ever wrote it -- so `DeclareWorldLoopFill` was handed a default
@@ -188,7 +235,19 @@ void AdvanceSketchOperationSession(const WorldSketchStructure& Declared,
     const double Reach = Pointer.Reach > 0.0 ? Pointer.Reach : OperationProbeReach;
 
     Session.Target = CurveNear(Declared, Pointer.Probe, Reach);
-    Session.Probe = Pointer.Probe;
+
+    // 🔴 SNAPPED ONTO THE CURVE THAT WAS JUST FOUND. Reaching one is generous by design; Cut and Trim
+    //    are not, and refuse anything further than a thousandth of a unit off the line. Storing the raw
+    //    pointer here is what let the gesture arm on a curve the operation would then refuse -- the
+    //    artist clicks the line and nothing happens. The snapped point is also what Cut divides at and
+    //    what Trim measures its piece from, so it must be the one remembered.
+    const DeclaredWorldCurve* const Reached =
+        Session.Target.Assigned() ? Declared.Resolve(Session.Target) : nullptr;
+
+    Session.Probe = Reached != nullptr && Reached->Geometry.Declared()
+                  ? PointOnCurveNear(Reached->Geometry, Pointer.Probe)
+                  : Pointer.Probe;
+
     Session.Clamped = false;
 
     if (Session.Manner == OperationManner::Offset)
@@ -216,7 +275,7 @@ void AdvanceSketchOperationSession(const WorldSketchStructure& Declared,
     switch (Session.Manner)
     {
         case OperationManner::Extend:
-            Session.Preview = EvaluateWorldExtend(Declared, Session.Target, Pointer.Probe, Session.Landing);
+            Session.Preview = EvaluateWorldExtend(Declared, Session.Target, Session.Probe, Session.Landing);
             break;
 
         case OperationManner::Fill:
@@ -229,12 +288,26 @@ void AdvanceSketchOperationSession(const WorldSketchStructure& Declared,
                                                       : OperationVerdict::SubjectMissing;
             break;
 
-        case OperationManner::Cut:
         case OperationManner::Trim:
+            // 🔴 THE PIECE THAT WOULD GO, RESOLVED EVERY FRAME. This used to answer `Produced` merely
+            //    because a curve was in reach, which promised a trim at places the commit then refused
+            //    -- a curve with no crossings, or a probe off the line -- and left the artist clicking
+            //    at nothing. Asking the real dry run costs one crossing search and makes the highlight
+            //    and the refusal agree, because they are now the same answer.
+            Session.Preview = EvaluateWorldTrim(Declared, Session.Target, Session.Probe,
+                                                Session.DepartingFrom, Session.DepartingTo);
+            break;
+
+        case OperationManner::Cut:
+            // 🔴 AND THE POINT THE CUT WOULD FALL ON, snapped onto the curve. Reaching a curve was the
+            //    whole of this preview too, so Cut reported success while hovering the very ends it
+            //    refuses to divide.
+            Session.Preview = EvaluateWorldCut(Declared, Session.Target, Session.Probe,
+                                               Session.Division);
+            break;
+
         default:
-            // 📝 Cut and Trim are cheap enough to attempt on a copy, but a copy of the whole sketch every
-            //    frame is not. Reaching a curve is the whole of their precondition, so reaching one is
-            //    the whole of their preview; the operation itself reports anything finer on release.
+            // 📝 Anything without a dry run of its own is previewed by having reached a curve at all.
             Session.Preview = OperationVerdict::Produced;
             break;
     }
@@ -330,6 +403,13 @@ void CancelSketchOperationSession(SketchOperationSession& Session)
     Session.Target = {};
     Session.Loop = {};
     Session.Preview = OperationVerdict::SubjectMissing;
+
+    // 📝 The preview geometry goes with the preview. A stale span left standing here is a highlight over
+    //    a piece the artist is no longer pointing at, which is worse than no highlight at all.
+    Session.DepartingFrom = {};
+    Session.DepartingTo = {};
+    Session.Division = {};
+    Session.Landing = {};
 }
 
 //------------------------------------------------------------------------------------------------------------------------
