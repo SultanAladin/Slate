@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slate — Layer Stack</title>
+<style>
+  /* ══════════════════════════════════════════════════════════════════
+     LAYER STACK — paint layering system, OutlinerV2 pattern:
+     whole-card slide to a per-type Properties slide, nav in header only.
+     Layer types: Paint (PBR) · Fill (material) · Decal (text/svg/image/pattern).
+     A mask is a CHILD NODE under its layer; selecting it shows Mask Properties.
+     Channels UI follows ChannelPropertyPanel.html: chips + grouped add-menu
+     + one per-channel editor panel (Value/Paint/Generator source) — on every
+     entry EXCEPT masks.
+     ══════════════════════════════════════════════════════════════════ */
+  :root{
+    --bg:#050505; --panel:#121212; --inset:#1a1a1a; --field:#000;
+    --raised:#222; --selected:#2a2a2a;
+    --text:#f0f0f0; --text-dim:#888; --text-faint:#5c5c5c;
+    --accent:#fff; --hi:#6c77ff; --danger:#ef4444;
+    --hue-paint:#f97316; --hue-fill:#8b5cf6; --hue-decal:#3b82f6; --hue-gen:#10b981; --hue-mask:#e8e8e8;
+    --r-panel:24px; --r-inset:18px; --r-pill:999px;
+    --ease:cubic-bezier(.22,.61,.36,1);
+  }
+  *{box-sizing:border-box; margin:0; padding:0; font-family:'Segoe UI',system-ui,sans-serif; user-select:none;}
+  html,body{height:100%;}
+  body{background:var(--bg); color:var(--text); display:flex; align-items:center; justify-content:center; padding:28px; overflow:hidden;}
+
+  .card{
+    width:min(560px,96vw); height:min(720px,92vh);
+    background:var(--panel); border-radius:var(--r-panel);
+    box-shadow:0 24px 70px rgba(0,0,0,.65);
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  .card-head,.card-foot{flex:0 0 auto; display:flex; align-items:center; gap:12px; padding:0 20px;}
+  .card-head{height:56px; border-bottom:1px solid rgba(255,255,255,.06);}
+  .card-foot{height:42px; border-top:1px solid rgba(255,255,255,.06); color:var(--text-faint); font-size:11.5px;}
+  .h-title{font-size:14px;font-weight:600;letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .h-sub{font-size:11px;color:var(--text-faint);}
+  .spacer{flex:1;}
+  .iconbtn{
+    width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;
+    background:var(--raised);color:var(--text-dim);display:grid;place-items:center;
+    transition:background .18s var(--ease),color .18s var(--ease),transform .18s var(--ease);
+  }
+  .iconbtn:hover{background:#2e2e2e;color:var(--text);transform:scale(1.08);}
+  .iconbtn:active{transform:scale(.94);}
+  .iconbtn.props{background:var(--accent);color:#000;}
+  .iconbtn.props:hover{background:#e6e6e6;}
+  .iconbtn:disabled{opacity:.35;pointer-events:none;}
+
+  .view-wrap{flex:1;overflow:hidden;min-height:0;}
+  .view-track{display:flex;width:200%;height:100%;transition:transform .34s var(--ease);}
+  .view{flex:0 0 50%;height:100%;display:flex;flex-direction:column;min-width:0;}
+
+  .sec-label{font-size:10px;letter-spacing:1.6px;color:var(--text-faint);text-transform:uppercase;padding:14px 20px 8px;}
+  .divider{height:1px;background:rgba(255,255,255,.07);margin:0 20px 8px;}
+
+  /* stack list */
+  .tree{flex:1;overflow-y:auto;padding:0 12px 10px;scrollbar-width:none;}
+  .tree::-webkit-scrollbar{display:none;}
+  .row{
+    display:flex;align-items:center;gap:8px;height:36px;padding:0 8px;cursor:pointer;
+    border-radius:0;transition:background .14s var(--ease);
+  }
+  .row:hover{background:#1c1c1c;}
+  .row.sel{background:var(--selected);box-shadow:inset 2px 0 0 var(--accent);}
+  .row .ni{width:24px;height:24px;flex:0 0 24px;border-radius:6px;display:grid;place-items:center;background:var(--field);}
+  .row.mask-row .ni{background:transparent;}
+  .row .nm{font-size:12.5px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .row .nm input{width:100%;background:var(--field);border:1px solid var(--hi);color:var(--text);
+    font-size:12.5px;padding:2px 6px;outline:none;border-radius:0;}
+  .row .sub{font-size:10px;color:var(--text-faint);letter-spacing:.5px;text-transform:uppercase;}
+  .row .vis{width:22px;height:22px;flex:0 0 22px;border:none;background:transparent;color:var(--text-faint);
+    cursor:pointer;display:grid;place-items:center;transition:color .15s var(--ease);}
+  .row .vis:hover{color:var(--text);}
+  .row .vis.off{color:#3a3a3a;}
+  .mask-link{width:14px;flex:0 0 14px;align-self:stretch;position:relative;}
+  .mask-link::before{content:"";position:absolute;left:6px;top:-6px;bottom:50%;width:1px;background:#333;}
+  .mask-link::after{content:"";position:absolute;left:6px;top:50%;width:8px;height:1px;background:#333;}
+
+  /* properties view */
+  .props-scroll{flex:1;overflow-y:auto;scrollbar-width:none;padding:14px 20px 16px;}
+  .props-scroll::-webkit-scrollbar{display:none;}
+  .pcard{background:var(--inset);border-radius:var(--r-inset);padding:14px 16px 16px;margin-bottom:12px;
+    animation:cardIn .28s var(--ease);}
+  @keyframes cardIn{from{transform:translateY(8px);opacity:0;}to{transform:none;opacity:1;}}
+  .pcard h4{font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-faint);margin-bottom:12px;
+    display:flex;align-items:center;gap:8px;}
+  .pcard h4 .spacer{flex:1;}
+  .prow{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .prow:last-child{margin-bottom:0;}
+  .prow .pl{flex:0 0 92px;font-size:11.5px;color:var(--text-dim);}
+  .vec3{display:flex;gap:6px;flex:1;}
+  .cell{flex:1;height:28px;border-radius:var(--r-pill);background:var(--field);
+    display:flex;align-items:center;gap:6px;padding:0 10px;}
+  .cell b{font-size:9.5px;color:var(--text-faint);font-weight:700;}
+  .cell input{flex:1;width:100%;min-width:0;background:transparent;border:none;color:var(--text);font-size:11.5px;outline:none;text-align:right;}
+  .sld{flex:1;display:flex;align-items:center;gap:10px;}
+  .sld .track{flex:1;height:4px;border-radius:2px;background:#2c2c2c;position:relative;cursor:pointer;}
+  .sld .fill{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:var(--accent);}
+  .sld .knob{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:var(--accent);
+    transform:translate(-50%,-50%);transition:transform .15s var(--ease);}
+  .sld .track:hover .knob{transform:translate(-50%,-50%) scale(1.25);}
+  .sld .val{flex:0 0 48px;text-align:right;font-size:11px;color:var(--text-dim);font-variant-numeric:tabular-nums;}
+  .sw{width:36px;height:20px;border-radius:var(--r-pill);background:#2c2c2c;position:relative;cursor:pointer;
+    transition:background .2s var(--ease);flex:0 0 36px;}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#777;
+    transition:left .2s var(--ease),background .2s var(--ease);}
+  .sw.on{background:var(--accent);}
+  .sw.on::after{left:19px;background:#000;}
+  .chipc{width:28px;height:28px;border-radius:8px;border:1px solid rgba(255,255,255,.12);cursor:pointer;}
+  .seg{display:flex;background:var(--field);border-radius:var(--r-pill);padding:3px;flex:1;}
+  .seg button{flex:1;height:24px;border:none;border-radius:var(--r-pill);background:transparent;color:var(--text-dim);
+    font-size:10.5px;cursor:pointer;transition:background .18s var(--ease),color .18s var(--ease);}
+  .seg button.on{background:var(--accent);color:#000;font-weight:600;}
+  .txt{flex:1;height:30px;border-radius:var(--r-pill);background:var(--field);border:none;color:var(--text);
+    font-size:12px;padding:0 12px;outline:none;user-select:text;}
+  .txt:focus{box-shadow:0 0 0 1px var(--hi);}
+
+  /* channels — chip region + per-channel panels */
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+  .chip{
+    height:26px;padding:0 5px 0 10px;border-radius:var(--r-pill);background:#fff;color:#000;
+    font-size:11px;font-weight:600;display:flex;align-items:center;gap:6px;animation:pillIn .22s var(--ease);
+  }
+  @keyframes pillIn{from{transform:scale(.7);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .chip .dot{width:8px;height:8px;border-radius:50%;}
+  .chip .cx{width:16px;height:16px;border-radius:50%;border:none;cursor:pointer;background:transparent;color:#000;
+    font-size:10px;display:grid;place-items:center;transition:background .15s var(--ease),color .15s var(--ease);}
+  .chip .cx:hover{background:var(--danger);color:#fff;}
+  .addchip{
+    height:26px;padding:0 12px;border-radius:var(--r-pill);border:1px dashed #3a3a3a;background:transparent;
+    color:var(--text-dim);font-size:11px;cursor:pointer;transition:color .18s var(--ease),border-color .18s var(--ease);
+  }
+  .addchip:hover{color:var(--text);border-color:#555;}
+  .chan{background:var(--field);border-radius:12px;padding:10px 12px;margin-bottom:8px;}
+  .chan:last-child{margin-bottom:0;}
+  .chan-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .chan-head .dot{width:8px;height:8px;border-radius:50%;}
+  .chan-head .cn{font-size:11.5px;font-weight:600;flex:1;}
+  .chan .prow .pl{flex-basis:70px;}
+  .chan .sld .track{background:#1e1e1e;}
+
+  .empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    color:var(--text-faint);font-size:12px;}
+
+  /* popups */
+  .menu{position:fixed;z-index:900;min-width:200px;background:var(--panel);border-radius:14px;
+    box-shadow:0 18px 50px rgba(0,0,0,.7);padding:6px;display:none;animation:menuIn .16s var(--ease);}
+  @keyframes menuIn{from{transform:scale(.92);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .menu.show{display:block;}
+  .menu .mh{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-faint);padding:8px 12px 6px;}
+  .menu .mi{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer;
+    font-size:12px;transition:background .14s var(--ease);}
+  .menu .mi:hover{background:var(--raised);}
+  .menu .mi.dis{color:var(--text-faint);pointer-events:none;}
+  .menu .msep{height:1px;background:rgba(255,255,255,.07);margin:5px 8px;}
+  svg{display:block;}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="card-head">
+    <button class="iconbtn" id="btnBack" title="Back to stack" style="display:none">‹</button>
+    <span class="h-title" id="hTitle">Layer Stack</span>
+    <span class="h-sub" id="hSub">Material · M_Hull_Painted</span>
+    <span class="spacer"></span>
+    <button class="iconbtn" id="btnAdd" title="Add layer">＋</button>
+    <button class="iconbtn props" id="btnProps" title="Open properties" disabled>›</button>
+  </div>
+
+  <div class="view-wrap">
+    <div class="view-track" id="viewTrack">
+      <!-- view 0 : stack -->
+      <div class="view">
+        <div class="sec-label">Layers · top renders last</div>
+        <div class="divider"></div>
+        <div class="tree" id="tree"></div>
+      </div>
+      <!-- view 1 : per-type properties -->
+      <div class="view">
+        <div class="props-scroll" id="props"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-foot">
+    <span id="footInfo">—</span>
+    <span class="spacer"></span>
+    <span id="footSel">0 selected</span>
+  </div>
+</div>
+
+<div class="menu" id="popMenu"></div>
+<div class="menu" id="ctxMenu"></div>
+
+<script>
+(()=>{ "use strict";
+const S=(p,c)=>`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${c||'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const IC={
+  paint  :c=>S('<path d="M18 3a3 3 0 0 1 3 3c0 6-6 4-8 8-1.5 3 0 7-4 7a6 6 0 0 1-6-6C3 7 12 3 18 3z"/><circle cx="7.5" cy="14.5" r="1"/><circle cx="10" cy="9.5" r="1"/><circle cx="15" cy="7.5" r="1"/>',c||'var(--hue-paint)'),
+  fill   :c=>S('<path d="m7 2 10 10-8 8L2 13z"/><path d="M20 15s2 2.5 2 4a2 2 0 0 1-4 0c0-1.5 2-4 2-4z"/>',c||'var(--hue-fill)'),
+  decal  :c=>S('<rect x="3" y="3" width="18" height="18" rx="3"/><path d="m8 13 2.5 3L14 11l4 6H6z"/>',c||'var(--hue-decal)'),
+  text   :c=>S('<path d="M4 6V4h16v2M12 4v16M9 20h6"/>',c||'var(--hue-decal)'),
+  svg    :c=>S('<path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="8"/>',c||'var(--hue-decal)'),
+  pattern:c=>S('<path d="M12 3 4.5 7.5v9L12 21l7.5-4.5v-9z"/><path d="M12 3v9m0 0-7.5 4.5M12 12l7.5 4.5"/>',c||'var(--hue-gen)'),
+  mask   :c=>S('<path d="M3 8c0-1.8 4-3.5 9-3.5S21 6.2 21 8c0 5.5-3.2 10-6.2 10-1.6 0-2-1.4-2.8-1.4S10 18 8.2 18C5.2 18 3 13.5 3 8z"/><path d="M7 10.2c1.3-1 2.8-1 4 .2M13 10.4c1.2-1.2 2.7-1.2 4-.2"/>',c||'var(--hue-mask)'),
+  eye    :()=>S('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>'),
+  eyeoff :()=>S('<path d="M2 12s3.5-7 10-7c2 0 3.8.7 5.3 1.6M22 12s-3.5 7-10 7c-2 0-3.8-.7-5.3-1.6"/><path d="m3 3 18 18"/>'),
+  stack  :()=>S('<path d="M12 3 2 8l10 5 10-5z"/><path d="m2 13 10 5 10-5"/>'),
+};
+
+/* ── channels ─────────────────────────────────────────────────────── */
+const CH_LIST=[
+  {id:'base', name:'Base Colour', dot:'#e8b04b', group:'Core',    kind:'color'},
+  {id:'rough',name:'Roughness',   dot:'#9aa0a6', group:'Core',    kind:'scalar', def:55},
+  {id:'metal',name:'Metallic',    dot:'#c0c6ff', group:'Core',    kind:'scalar', def:10},
+  {id:'norm', name:'Normal',      dot:'#8f6bff', group:'Surface', kind:'strength', def:100},
+  {id:'height',name:'Height',     dot:'#6bd0ff', group:'Surface', kind:'scalar', def:50},
+  {id:'ao',   name:'Ambient Occ', dot:'#7a7a7a', group:'Surface', kind:'scalar', def:80},
+  {id:'opac', name:'Opacity',     dot:'#f0f0f0', group:'Extra',   kind:'scalar', def:100},
+  {id:'emis', name:'Emissive',    dot:'#ff6b6b', group:'Extra',   kind:'color'},
+];
+const CH=id=>CH_LIST.find(c=>c.id===id);
+
+/* ── model — masks are CHILD NODES ────────────────────────────────── */
+let UID=0;
+const L=(name,type,extra)=>({id:++UID,name,type,vis:true,opacity:100,blend:'Normal',
+  channels:['base','rough','metal'],chSrc:{},mask:null,...(extra||{})});
+const M=(name)=>({id:++UID,name,type:'mask',vis:true,invert:false,feather:12,density:100,src:'Paint'});
+const stack=[
+  L('Paint_Weathering','paint',{channels:['base','rough','height'],mask:M('Mask_EdgeWear')}),
+  L('Decal_SerialText','decal',{decal:'text',text:'HULL-7741-A',channels:['base','rough'],mask:M('Mask_Fade')}),
+  L('Decal_Insignia','decal',{decal:'image',channels:['base','norm']}),
+  L('Pattern_HexPanel','decal',{decal:'pattern',channels:['base','rough','norm']}),
+  L('Fill_BaseSteel','fill',{channels:['base','rough','metal','ao'],mask:M('Mask_Dirt')}),
+];
+const TYPE_LABEL={paint:'Paint',fill:'Fill',decal:'Decal',mask:'Mask'};
+const DECAL_LABEL={text:'Text Decal',svg:'SVG Decal',image:'Image Decal',pattern:'Pattern Decal'};
+const typeIcon=n=>n.type==='decal'?(IC[n.decal]||IC.decal)():(IC[n.type]||IC.stack)();
+const typeLabel=n=>n.type==='decal'?DECAL_LABEL[n.decal]:TYPE_LABEL[n.type];
+
+const all=()=>{ const out=[]; stack.forEach(l=>{ out.push(l); if(l.mask){ l.mask.parent=l; out.push(l.mask); } }); return out; };
+let selId=null; let view=0;
+const current=()=>all().find(x=>x.id===selId)||null;
+
+/* ── whole-card slide (header-only nav) ───────────────────────────── */
+const viewTrack=document.getElementById('viewTrack');
+const btnProps=document.getElementById('btnProps'), btnBack=document.getElementById('btnBack'), btnAdd=document.getElementById('btnAdd');
+const hTitle=document.getElementById('hTitle'), hSub=document.getElementById('hSub');
+function viewTo(i){
+  view=i;
+  viewTrack.style.transform=`translateX(-${i*50}%)`;
+  const n=current();
+  if(i===1&&n){
+    hTitle.textContent=n.name; hSub.textContent=typeLabel(n)+(n.type==='mask'?' Properties':' Layer');
+    btnBack.style.display=''; btnProps.style.display='none'; btnAdd.style.display='none';
+  }else{
+    hTitle.textContent='Layer Stack'; hSub.textContent='Material · M_Hull_Painted';
+    btnBack.style.display='none'; btnProps.style.display=''; btnAdd.style.display='';
+  }
+}
+btnProps.addEventListener('click',()=>{ if(current()){ renderProps(); viewTo(1); } });
+btnBack.addEventListener('click',()=>viewTo(0));
+
+/* ── stack render ─────────────────────────────────────────────────── */
+const treeEl=document.getElementById('tree');
+function renderTree(){
+  treeEl.innerHTML='';
+  stack.forEach(l=>{
+    treeEl.appendChild(rowFor(l,false));
+    if(l.mask) treeEl.appendChild(rowFor(l.mask,true));
+  });
+  const masks=stack.filter(l=>l.mask).length;
+  document.getElementById('footInfo').textContent=`${stack.length} layers · ${masks} masks`;
+  document.getElementById('footSel').textContent=current()?current().name:'0 selected';
+  btnProps.disabled=!current();
+}
+function rowFor(n,isMask){
+  const row=document.createElement('div');
+  row.className='row'+(n.id===selId?' sel':'')+(isMask?' mask-row':'');
+  row.style.paddingLeft=isMask?'26px':'8px';
+  row.innerHTML=
+    (isMask?'<span class="mask-link"></span>':'')+
+    `<span class="ni">${isMask?IC.mask():typeIcon(n)}</span>`+
+    `<span class="nm" data-nm>${n.name}</span>`+
+    `<span class="sub">${typeLabel(n)}</span>`+
+    `<button class="vis ${n.vis?'':'off'}">${n.vis?IC.eye():IC.eyeoff()}</button>`;
+  row.querySelector('.vis').addEventListener('click',e=>{e.stopPropagation();n.vis=!n.vis;renderTree();});
+  row.addEventListener('click',()=>{ selId=n.id; renderTree(); });
+  row.addEventListener('dblclick',e=>{
+    if(e.target.closest('.vis')) return;
+    const nm=row.querySelector('[data-nm]');
+    nm.innerHTML=`<input value="${n.name.replace(/"/g,'&quot;')}">`;
+    const inp=nm.querySelector('input'); inp.focus(); inp.select();
+    const done=ok=>{ if(ok&&inp.value.trim()) n.name=inp.value.trim(); renderTree(); };
+    inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter')done(true); if(ev.key==='Escape')done(false); });
+    inp.addEventListener('blur',()=>done(true));
+  });
+  row.addEventListener('contextmenu',e=>{
+    e.preventDefault(); selId=n.id; renderTree(); openCtx(e.clientX,e.clientY,n,isMask);
+  });
+  return row;
+}
+
+/* ── popups ───────────────────────────────────────────────────────── */
+const popMenu=document.getElementById('popMenu'), ctxMenu=document.getElementById('ctxMenu');
+function place(menu,x,y){
+  menu.classList.add('show');
+  const r=menu.getBoundingClientRect();
+  let px=x, py=y;
+  if(py+r.height>innerHeight-10) py=Math.max(10,y-r.height);
+  if(px+r.width>innerWidth-10)  px=innerWidth-10-r.width;
+  menu.style.left=px+'px'; menu.style.top=py+'px';
+}
+function closeMenus(){popMenu.classList.remove('show');ctxMenu.classList.remove('show');}
+addEventListener('pointerdown',e=>{ if(!e.target.closest('.menu')) closeMenus(); });
+addEventListener('blur',closeMenus);
+
+btnAdd.addEventListener('click',e=>{
+  e.stopPropagation();
+  popMenu.innerHTML=
+    `<div class="mh">Add Layer</div>`+
+    `<div class="mi" data-t="paint">${IC.paint()} Paint — PBR paint</div>`+
+    `<div class="mi" data-t="fill">${IC.fill()} Fill — material</div>`+
+    `<div class="msep"></div><div class="mh">Decal</div>`+
+    `<div class="mi" data-t="text">${IC.text()} Text</div>`+
+    `<div class="mi" data-t="svg">${IC.svg()} SVG</div>`+
+    `<div class="mi" data-t="image">${IC.decal()} Image</div>`+
+    `<div class="mi" data-t="pattern">${IC.pattern()} Pattern generator</div>`;
+  popMenu.querySelectorAll('.mi').forEach(mi=>mi.addEventListener('click',()=>{
+    const t=mi.dataset.t; closeMenus();
+    const nl=(t==='paint'||t==='fill')?L('New_'+TYPE_LABEL[t],t):L('New_'+DECAL_LABEL[t].replace(' ','_'),'decal',{decal:t,text:t==='text'?'TEXT':undefined});
+    stack.unshift(nl); selId=nl.id; renderTree();
+  }));
+  const r=e.currentTarget.getBoundingClientRect();
+  place(popMenu,r.right-200,r.bottom+6);
+});
+function openCtx(x,y,n,isMask){
+  ctxMenu.innerHTML=
+    `<div class="mh">${n.name}</div>`+
+    `<div class="mi" data-a="props">Properties…</div>`+
+    (!isMask?`<div class="mi ${n.mask?'dis':''}" data-a="mask">${IC.mask('currentColor')} Add mask</div>`:'')+
+    (!isMask?`<div class="mi" data-a="dup">Duplicate</div>`:'')+
+    `<div class="mi" data-a="vis">${n.vis?'Disable':'Enable'}</div>`+
+    `<div class="msep"></div>`+
+    `<div class="mi" data-a="del" style="color:var(--danger)">${isMask?'Remove mask':'Delete layer'}</div>`;
+  ctxMenu.querySelectorAll('.mi').forEach(mi=>mi.addEventListener('click',()=>{
+    const a=mi.dataset.a; closeMenus();
+    if(a==='props'){ renderProps(); viewTo(1); return; }
+    if(a==='vis'){ n.vis=!n.vis; }
+    if(a==='mask'&&!n.mask){ n.mask=M('Mask_'+n.name.split('_').pop()); selId=n.mask.id; }
+    if(a==='dup'){ const i=stack.indexOf(n); stack.splice(i,0,L(n.name+'_Copy',n.type,{decal:n.decal,text:n.text,channels:[...n.channels]})); }
+    if(a==='del'){
+      if(isMask){ n.parent.mask=null; }
+      else{ const i=stack.indexOf(n); if(i>-1)stack.splice(i,1); }
+      if(selId===n.id){ selId=null; if(view===1)viewTo(0); }
+    }
+    renderTree();
+  }));
+  place(ctxMenu,x,y);
+}
+
+/* ── property builders ────────────────────────────────────────────── */
+const esc=s=>String(s??'').replace(/"/g,'&quot;');
+const card=(t,i,extraHead)=>`<div class="pcard"><h4>${t}${extraHead||''}</h4>${i}</div>`;
+const rowVec3=(l,v)=>`<div class="prow"><span class="pl">${l}</span><div class="vec3">${
+  ['X','Y','Z'].map((a,i)=>`<div class="cell"><b>${a}</b><input value="${v[i]}"></div>`).join('')}</div></div>`;
+const rowSlider=(l,val,min,max,u)=>{
+  const pct=((val-min)/(max-min))*100;
+  return `<div class="prow"><span class="pl">${l}</span><div class="sld" data-min="${min}" data-max="${max}" data-unit="${u||''}">
+    <div class="track"><div class="fill" style="width:${pct}%"></div><div class="knob" style="left:${pct}%"></div></div>
+    <span class="val">${val}${u||''}</span></div></div>`;
+};
+const rowSwitch=(l,on)=>`<div class="prow"><span class="pl">${l}</span><div class="sw ${on?'on':''}"></div><span style="flex:1"></span></div>`;
+const rowChip=(l,c,t)=>`<div class="prow"><span class="pl">${l}</span><div class="chipc" style="background:${c}"></div><span style="font-size:11px;color:var(--text-dim)">${t||c}</span></div>`;
+const rowSeg=(l,opts,on)=>`<div class="prow"><span class="pl">${l}</span><div class="seg">${
+  opts.map(o=>`<button class="${o===on?'on':''}">${o}</button>`).join('')}</div></div>`;
+const rowText=(l,v)=>`<div class="prow"><span class="pl">${l}</span><span style="font-size:12px;color:var(--text-dim)">${v}</span></div>`;
+const rowInput=(l,v,id)=>`<div class="prow"><span class="pl">${l}</span><input class="txt" ${id?`id="${id}"`:''} value="${esc(v)}"></div>`;
+
+/* channels card — chips + grouped add-menu + per-channel editors */
+function channelsCard(n){
+  const chips=n.channels.map(id=>{
+    const c=CH(id);
+    return `<div class="chip"><span class="dot" style="background:${c.dot}"></span>${c.name}<button class="cx" data-rm="${id}">✕</button></div>`;
+  }).join('')+`<button class="addchip" id="addChan">＋ Add channel</button>`;
+  const panels=n.channels.map(id=>{
+    const c=CH(id); const src=n.chSrc[id]||'Value';
+    let ed='';
+    if(c.kind==='color') ed=rowChip('Colour',id==='emis'?'#ff5a3c':'#8d6f4e',id==='emis'?'Emissive tint':'Albedo tint')+rowSlider('Tint mix',100,0,100,'%');
+    if(c.kind==='scalar') ed=rowSlider('Value',c.def,0,100,'%');
+    if(c.kind==='strength') ed=rowSlider('Strength',c.def,0,200,'%');
+    return `<div class="chan"><div class="chan-head"><span class="dot" style="background:${c.dot}"></span><span class="cn">${c.name}</span></div>`+
+      rowSeg('Source',['Value','Paint','Generator'],src)+ed+`</div>`;
+  }).join('');
+  return card('Channels',`<div class="chips">${chips}</div>`+panels);
+}
+function wireChannels(n){
+  propsEl.querySelectorAll('[data-rm]').forEach(b=>b.addEventListener('click',()=>{
+    n.channels=n.channels.filter(id=>id!==b.dataset.rm); renderProps();
+  }));
+  const add=document.getElementById('addChan');
+  if(add) add.addEventListener('click',e=>{
+    e.stopPropagation();
+    const avail=CH_LIST.filter(c=>!n.channels.includes(c.id));
+    let html='';
+    ['Core','Surface','Extra'].forEach(g=>{
+      const items=avail.filter(c=>c.group===g);
+      if(items.length) html+=`<div class="mh">${g}</div>`+items.map(c=>
+        `<div class="mi" data-ch="${c.id}"><span class="dot" style="width:8px;height:8px;border-radius:50%;background:${c.dot}"></span>${c.name}</div>`).join('');
+    });
+    popMenu.innerHTML=`<div class="mh">Add Channel</div>`+(html||'<div class="mi dis">All channels active</div>');
+    popMenu.querySelectorAll('[data-ch]').forEach(mi=>mi.addEventListener('click',()=>{
+      n.channels.push(mi.dataset.ch); closeMenus(); renderProps();
+    }));
+    const r=add.getBoundingClientRect();
+    place(popMenu,r.left,r.bottom+6);
+  });
+}
+
+/* per-type property slides */
+function cardsFor(n){
+  if(n.type==='mask'){
+    return card('Mask Properties',
+        rowText('Masking',n.parent?n.parent.name:'—')+
+        rowSeg('Source',['Paint','Generator','Texture'],n.src)+
+        rowSlider('Density',n.density,0,100,'%')+
+        rowSlider('Feather',n.feather,0,64,' px')+
+        rowSwitch('Invert',n.invert))+
+      card('Generator',
+        rowSeg('Type',['Wear','Dirt','Noise'],'Wear')+
+        rowSlider('Scale',40,1,100,'')+
+        rowSlider('Contrast',65,0,100,'%')+
+        rowSlider('Seed',7,0,99,''));
+  }
+  let html=card('Layer',
+    rowText('Type',typeLabel(n))+
+    rowSeg('Blend',['Normal','Multiply','Add'],n.blend)+
+    rowSlider('Opacity',n.opacity,0,100,'%')+
+    rowSwitch('Enabled',n.vis));
+  if(n.type==='paint'){
+    html+=card('Stroke Painting',
+      rowSlider('Brush size',48,1,256,' px')+
+      rowSlider('Flow',80,0,100,'%')+
+      rowSlider('Hardness',65,0,100,'%')+
+      rowSlider('Spacing',12,1,50,'%')+
+      rowSwitch('Pressure → size',true)+
+      rowSwitch('Pressure → flow',false)+
+      rowSwitch('Symmetry X',false));
+  }else if(n.type==='fill'){
+    html+=card('Fill Material',
+      rowText('Material','M_Steel_Brushed')+
+      rowSeg('Projection',['UV','Triplanar'],'Triplanar')+
+      rowSlider('Tiling',4,1,32,'×')+
+      rowSlider('Rotation',0,0,360,'°'));
+  }else if(n.type==='decal'){
+    if(n.decal==='text'){
+      html+=card('Text Decal',
+        rowInput('Text',n.text||'TEXT','decalText')+
+        rowText('Font','Industry_Stencil')+
+        rowSlider('Size',24,4,128,' cm'));
+      html+=card('3D Decal Stamp',
+        rowVec3('Position',['1.24','0.85','-0.40'])+
+        rowVec3('Rotation',['0.0°','90.0°','0.0°'])+
+        rowVec3('Scale',['1.00','1.00','1.00'])+
+        rowSlider('Projection depth',8,1,50,' cm'));
+    }else if(n.decal==='pattern'){
+      html+=card('Pattern Generator',
+        rowSeg('Pattern',['Hex','Grid','Stripes'],'Hex')+
+        rowSlider('Cell size',18,2,64,' cm')+
+        rowSlider('Line width',3,1,16,' mm')+
+        rowSlider('Bevel',20,0,100,'%')+
+        rowSlider('Seed',3,0,99,''));
+    }else{
+      html+=card((n.decal==='svg'?'SVG':'Image')+' Decal',
+        rowText('Source',n.decal==='svg'?'insignia_07.svg':'insignia_07.png')+
+        rowSlider('Size',60,4,200,' cm')+
+        rowSlider('Rotation',0,0,360,'°')+
+        rowSwitch('Keep aspect',true));
+    }
+  }
+  /* channels — every entry except masks */
+  html+=channelsCard(n);
+  return html;
+}
+
+const propsEl=document.getElementById('props');
+function renderProps(){
+  const n=current();
+  if(!n){ propsEl.innerHTML=`<div class="empty">${IC.stack()}<span>Select a layer first</span></div>`; return; }
+  propsEl.innerHTML=cardsFor(n);
+  if(n.type!=='mask') wireChannels(n);
+  const dt=document.getElementById('decalText');
+  if(dt) dt.addEventListener('input',()=>{ n.text=dt.value; });
+  /* wire sliders / switches / segs */
+  propsEl.querySelectorAll('.sld').forEach(s=>{
+    const tr=s.querySelector('.track'), fill=s.querySelector('.fill'), knob=s.querySelector('.knob'), val=s.querySelector('.val');
+    const min=+s.dataset.min, max=+s.dataset.max, unit=s.dataset.unit;
+    const setFromX=x=>{
+      const r=tr.getBoundingClientRect();
+      const p=Math.max(0,Math.min(1,(x-r.left)/r.width));
+      fill.style.width=(p*100)+'%'; knob.style.left=(p*100)+'%';
+      const v=min+p*(max-min);
+      val.textContent=(max-min>20?Math.round(v):v.toFixed(1))+unit;
+    };
+    tr.addEventListener('pointerdown',e=>{
+      tr.setPointerCapture(e.pointerId); setFromX(e.clientX);
+      const mv=ev=>setFromX(ev.clientX);
+      tr.addEventListener('pointermove',mv);
+      tr.addEventListener('pointerup',()=>tr.removeEventListener('pointermove',mv),{once:true});
+    });
+  });
+  propsEl.querySelectorAll('.sw').forEach(sw=>sw.addEventListener('click',()=>sw.classList.toggle('on')));
+  propsEl.querySelectorAll('.seg').forEach(seg=>seg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+    seg.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  })));
+}
+
+/* boot */
+renderTree(); viewTo(0);
+})();
+</script>
+</body>
+</html>
