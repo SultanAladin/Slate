@@ -158,7 +158,6 @@ svg{display:block}
 .vpill{
   display:flex;align-items:stretch;height:var(--ctl-h);width:118px;flex-shrink:0;
   border-radius:var(--r-pill);overflow:hidden;border:1px solid var(--stroke);
-  box-shadow:inset 0 2px 6px rgba(0,0,0,.5);
 }
 .vpill .num{flex:1;background:var(--field);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;letter-spacing:.4px;font-variant-numeric:tabular-nums}
 .vpill .unit{width:44px;background:var(--inset);border-left:1px solid var(--stroke);display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:12.5px;font-weight:500}
@@ -167,22 +166,22 @@ svg{display:block}
 input[type=range].slider{
   appearance:none;-webkit-appearance:none;outline:none;flex:1;min-width:80px;
   height:28px;border-radius:var(--r-pill);cursor:pointer;
-  border:1px solid rgba(0,0,0,.4);box-shadow:inset 0 2px 6px rgba(0,0,0,.5);
+  border:none;
   background:linear-gradient(to right,#7a7a7a 50%,var(--raised) 50%);
 }
 input[type=range].slider::-webkit-slider-thumb{
   appearance:none;-webkit-appearance:none;width:26px;height:26px;border-radius:50%;
-  background:#e0e0e0;box-shadow:0 4px 10px rgba(0,0,0,.5);border:none;
+  background:#e0e0e0;border:none;
   transition:transform .12s var(--ease);
 }
 input[type=range].slider::-moz-range-thumb{
   width:26px;height:26px;border-radius:50%;background:#e0e0e0;
-  box-shadow:0 4px 10px rgba(0,0,0,.5);border:none;
+  border:none;
 }
 input[type=range].slider:active::-webkit-slider-thumb{transform:scale(1.1)}
 
 /* 2) thin slider — quiet variant for dense property panels */
-input[type=range].slider.thin{height:10px;box-shadow:inset 0 1px 3px rgba(0,0,0,.6)}
+input[type=range].slider.thin{height:10px}
 input[type=range].slider.thin::-webkit-slider-thumb{width:18px;height:18px}
 input[type=range].slider.thin::-moz-range-thumb{width:18px;height:18px}
 
@@ -199,7 +198,6 @@ input[type=range].slider.hi{background:linear-gradient(to right,var(--hi) 50%,va
 .scrub{
   flex:1;min-width:80px;height:var(--ctl-h);border-radius:var(--r-pill);
   background:var(--field);border:1px solid var(--stroke);
-  box-shadow:inset 0 2px 6px rgba(0,0,0,.5);
   display:flex;align-items:center;justify-content:space-between;
   padding:0 16px;cursor:ew-resize;position:relative;overflow:hidden;
 }
@@ -207,7 +205,7 @@ input[type=range].slider.hi{background:linear-gradient(to right,var(--hi) 50%,va
 .scrub .sl{color:var(--text-faint);font-size:12px;font-weight:500;z-index:1}
 .scrub .sv{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;z-index:1}
 .scrub:hover{border-color:var(--stroke-strong)}
-.scrub.dragging{border-color:var(--hi);box-shadow:inset 0 2px 6px rgba(0,0,0,.5),0 0 0 1px rgba(108,119,255,.35)}
+.scrub.dragging{border-color:var(--hi);box-shadow:0 0 0 1px rgba(108,119,255,.35)}
 
 /* ============================================================
    TOGGLES / CHECKS / SWITCH
@@ -234,7 +232,6 @@ input[type=range].slider.hi{background:linear-gradient(to right,var(--hi) 50%,va
 .switch::after{
   content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;
   background:#bdbdbd;transition:transform .18s var(--ease),background .18s var(--ease);
-  box-shadow:0 2px 6px rgba(0,0,0,.5);
 }
 .switch[data-on="true"]{background:var(--accent)}
 .switch[data-on="true"]::after{transform:translateX(20px);background:#111}
@@ -245,7 +242,6 @@ input[type=range].slider.hi{background:linear-gradient(to right,var(--hi) 50%,va
 .field{
   flex:1;height:var(--ctl-h);border-radius:var(--r-pill);
   background:var(--field);border:1px solid var(--stroke);
-  box-shadow:inset 0 2px 6px rgba(0,0,0,.5);
   display:flex;align-items:center;gap:10px;padding:0 16px;min-width:0;
 }
 .field:focus-within{border-color:var(--stroke-strong)}
@@ -261,7 +257,6 @@ input[type=range].slider.hi{background:linear-gradient(to right,var(--hi) 50%,va
 .dd-btn{
   display:flex;align-items:stretch;height:var(--ctl-h);border-radius:var(--r-pill);
   overflow:hidden;border:1px solid var(--stroke);cursor:pointer;
-  box-shadow:inset 0 2px 6px rgba(0,0,0,.5);
 }
 .dd-btn .cur{flex:1;background:var(--field);display:flex;align-items:center;padding:0 16px;font-size:13.5px;font-weight:500;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dd-btn .caret{width:44px;background:var(--inset);border-left:1px solid var(--stroke);display:flex;align-items:center;justify-content:center;color:var(--text-dim);transition:background .15s var(--ease)}
@@ -285,7 +280,7 @@ input[type=range].slider.hi{background:linear-gradient(to right,var(--hi) 50%,va
 /* ============================================================
    LIST VIEW  (single + multi select, ctx-menu enabled)
    ============================================================ */
-.listwell{background:var(--inset);border:1px solid var(--stroke);border-radius:var(--r-inset);padding:6px;box-shadow:inset 0 2px 8px rgba(0,0,0,.4)}
+.listwell{background:var(--inset);border:1px solid var(--stroke);border-radius:var(--r-inset);padding:6px}
 .list-item{
   position:relative;display:flex;align-items:center;gap:10px;
   height:var(--row-h);padding:0 14px;cursor:pointer;border-radius:10px;
@@ -303,7 +298,7 @@ input[type=range].slider.hi{background:linear-gradient(to right,var(--hi) 50%,va
 /* ============================================================
    HIERARCHY / TREE  (expand, visibility, drag re-parenting)
    ============================================================ */
-.tree{background:var(--inset);border:1px solid var(--stroke);border-radius:var(--r-inset);padding:6px;box-shadow:inset 0 2px 8px rgba(0,0,0,.4);min-height:120px}
+.tree{background:var(--inset);border:1px solid var(--stroke);border-radius:var(--r-inset);padding:6px;min-height:120px}
 .tnode{position:relative}
 .trow{
   position:relative;display:flex;align-items:center;gap:6px;
