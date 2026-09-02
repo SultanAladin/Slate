@@ -160,16 +160,18 @@
   .cell input{flex:1;width:100%;min-width:0;background:transparent;border:none;color:var(--text);font-size:11.5px;outline:none;text-align:right;}
 
   /* slider — tall hit area, pointer-captured drag, no stuck states */
-  .sld{flex:1;display:flex;align-items:center;gap:10px;}
-  .sld .track{flex:1;height:20px;position:relative;cursor:pointer;touch-action:none;}
-  .sld .track::before{content:"";position:absolute;left:0;right:0;top:50%;height:4px;
-    transform:translateY(-50%);border-radius:2px;background:#2c2c2c;}
-  .sld .fill{position:absolute;left:0;top:50%;height:4px;transform:translateY(-50%);
-    border-radius:2px;background:var(--accent);pointer-events:none;}
-  .sld .knob{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:var(--accent);
-    transform:translate(-50%,-50%);pointer-events:none;transition:transform .15s var(--ease);}
-  .sld .track:hover .knob,.sld.drag .knob{transform:translate(-50%,-50%) scale(1.3);}
-  .sld .val{flex:0 0 52px;text-align:right;font-size:11px;color:var(--text-dim);font-variant-numeric:tabular-nums;}
+  /* slider — kit style: [number|unit] pill + flat pill range, no shadows */
+  .sldv{flex:0 0 96px;height:28px;border-radius:var(--r-pill);overflow:hidden;display:flex;align-items:stretch;}
+  .sldv .num{flex:1;min-width:0;background:var(--field);color:var(--text);font-size:11.5px;font-weight:600;
+    display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;}
+  .sldv .unit{flex:0 0 30px;background:var(--inset);color:var(--text-faint);font-size:10px;
+    display:flex;align-items:center;justify-content:center;border-left:1px solid rgba(255,255,255,.06);}
+  input.sld{flex:1;min-width:60px;appearance:none;-webkit-appearance:none;height:22px;border-radius:var(--r-pill);
+    background:linear-gradient(to right,#7a7a7a 50%,var(--raised) 50%);outline:none;cursor:pointer;border:none;}
+  input.sld::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:20px;height:20px;border-radius:50%;
+    background:#e0e0e0;border:none;transition:transform .12s var(--ease);}
+  input.sld:active::-webkit-slider-thumb{transform:scale(1.1);}
+  input.sld::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#e0e0e0;border:none;}
 
   .sw{width:36px;height:20px;border-radius:var(--r-pill);background:#2c2c2c;position:relative;cursor:pointer;
     transition:background .2s var(--ease);flex:0 0 36px;}
@@ -499,9 +501,10 @@ const card=(t,i)=>`<div class="pcard"><h4>${t}</h4>${i}</div>`;
 const AXES=[['X','ax-x'],['Y','ax-y'],['Z','ax-z']];
 const rowVec3=(l,v)=>`<div class="prow"><span class="pl">${l}</span><div class="vec3">${
   AXES.map((a,i)=>`<div class="cell"><b class="${a[1]}">${a[0]}</b><input value="${v[i]}"></div>`).join('')}</div></div>`;
-const rowSlider=(l,val,min,max,u)=>
-  `<div class="prow"><span class="pl">${l}</span><div class="sld" data-min="${min}" data-max="${max}" data-val="${val}" data-unit="${u||''}">
-    <div class="track"><div class="fill"></div><div class="knob"></div></div><span class="val"></span></div></div>`;
+const rowSlider=(l,val,min,max,u)=>{
+  const unit=(u||'').trim(), step=(max-min)<=20?0.1:1;
+  return `<div class="prow"><span class="pl">${l}</span><div class="sldv"><span class="num">${val}</span>${unit?`<span class="unit">${unit}</span>`:''}</div><input type="range" class="sld" min="${min}" max="${max}" step="${step}" value="${val}"></div>`;
+};
 const rowSwitch=(l,on)=>`<div class="prow"><span class="pl">${l}</span><div class="sw ${on?'on':''}"></div><span style="flex:1"></span></div>`;
 const rowChip=(l,c,t)=>`<div class="prow"><span class="pl">${l}</span><div class="chip" style="background:${c}"></div><span style="font-size:11px;color:var(--text-dim)">${t||c}</span></div>`;
 const rowText=(l,v)=>`<div class="prow"><span class="pl">${l}</span><span style="font-size:12px;color:var(--text-dim)">${v}</span></div>`;
@@ -582,25 +585,14 @@ function wireItem(n){
 
 /* robust flat slider: pointer capture, no stuck listeners */
 function wireSlider(s){
-  const tr=s.querySelector('.track'), fill=s.querySelector('.fill'), knob=s.querySelector('.knob'), val=s.querySelector('.val');
-  const min=+s.dataset.min, max=+s.dataset.max, unit=s.dataset.unit||'';
-  const dec=(max-min)<=20?1:0;
-  let v=+s.dataset.val;
+  const num=s.closest('.prow').querySelector('.num');
+  const min=+s.min, max=+s.max;
   const paint=()=>{
-    const p=(v-min)/(max-min);
-    fill.style.width=(p*100)+'%'; knob.style.left=(p*100)+'%';
-    val.textContent=v.toFixed(dec)+unit;
+    const p=((+s.value-min)/(max-min))*100;
+    s.style.background=`linear-gradient(to right,#7a7a7a ${p}%,var(--raised) ${p}%)`;
+    if(num) num.textContent=+s.value;
   };
-  const fromX=x=>{
-    const r=tr.getBoundingClientRect();
-    const p=Math.max(0,Math.min(1,(x-r.left)/r.width));
-    v=+(min+p*(max-min)).toFixed(dec); s.dataset.val=v; paint();
-  };
-  tr.addEventListener('pointerdown',e=>{ e.preventDefault(); tr.setPointerCapture(e.pointerId); s.classList.add('drag'); fromX(e.clientX); });
-  tr.addEventListener('pointermove',e=>{ if(s.classList.contains('drag')) fromX(e.clientX); });
-  const end=()=>s.classList.remove('drag');
-  tr.addEventListener('pointerup',end);
-  tr.addEventListener('pointercancel',end);
+  s.addEventListener('input',paint);
   paint();
 }
 
