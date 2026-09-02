@@ -14,7 +14,7 @@
      ══════════════════════════════════════════════════════════════════ */
   :root{
     --bg:#050505; --panel:#121212; --inset:#1a1a1a; --field:#000;
-    --raised:#222; --selected:#202020;
+    --raised:#222; --selected:#2a2a2a;
     --row:#0d0d0d; --row-h:#161616;
     --stroke:rgba(255,255,255,.075); --stroke-2:rgba(255,255,255,.18);
     --text:#f0f0f0; --text-dim:#888; --text-faint:#5c5c5c;
@@ -77,10 +77,10 @@
   .search svg{flex:0 0 13px;}
   .search input{flex:1;min-width:0;background:none;border:0;outline:none;color:var(--text);font-size:12px;user-select:text;}
   .search input::placeholder{color:var(--text-faint);}
-  .tico{width:28px;height:28px;flex:0 0 28px;display:grid;place-items:center;border-radius:9px;
-    border:1px solid transparent;background:transparent;color:var(--text-dim);cursor:pointer;
+  .tico{width:28px;height:28px;flex:0 0 28px;display:grid;place-items:center;border-radius:50%;
+    border:1px solid transparent;background:var(--raised);color:var(--text-dim);cursor:pointer;
     transition:background .13s var(--ease),color .13s var(--ease),border-color .13s var(--ease),transform .12s var(--ease);}
-  .tico:hover{background:rgba(255,255,255,.08);color:var(--text);border-color:var(--stroke);}
+  .tico:hover{background:#2e2e2e;color:var(--text);}
   .tico:active{transform:scale(.93);}
   .tico.add{background:var(--accent);color:#000;border-radius:50%;}
   .tico.add:hover{background:#e6e6e6;color:#000;}
@@ -138,22 +138,24 @@
   .subl b{font-weight:600;color:var(--text-dim);}
   .subl s{width:3px;height:3px;background:currentColor;opacity:.5;flex:0 0 3px;text-decoration:none;border-radius:50%;}
   .name input{width:100%;font:inherit;font-weight:600;color:var(--text);background:#000;
-    border:1px solid #fff;border-radius:6px;padding:1px 7px;outline:none;}
+    border:1px solid #fff;border-radius:0;padding:1px 7px;outline:none;}
 
-  /* attached mask rows — dotted, mono uppercase (V1 .attach/.msk) */
-  .row.msk{min-height:36px;background:rgba(255,255,255,.022);border:1px dotted rgba(255,255,255,.22);}
-  .row.msk:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.32);}
+  /* attached mask rows — dotted in the parent component's colour */
+  .row.msk{min-height:36px;background:color-mix(in srgb,var(--c,#888) 4%,transparent);
+    border:1px dotted color-mix(in srgb,var(--c,#888) 50%,transparent);}
+  .row.msk:hover{background:color-mix(in srgb,var(--c,#888) 8%,transparent);
+    border-color:color-mix(in srgb,var(--c,#888) 75%,transparent);}
   .row.msk.sel{background:var(--selected);border-style:solid;border-color:var(--stroke-2);}
   .row.msk .name{font:700 10.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);}
   .row.msk .ctag{background:repeating-linear-gradient(180deg,var(--c,#888) 0 2px,transparent 2px 6px);opacity:.9;}
   .attach{position:absolute;width:14px;align-self:stretch;pointer-events:none;}
   .row.msk .conn{position:relative;width:14px;flex:0 0 14px;align-self:stretch;pointer-events:none;}
   .row.msk .conn::before{content:"";position:absolute;left:5px;top:-9px;bottom:calc(50% - 1px);width:0;
-    border-left:1px dotted rgba(255,255,255,.45);}
+    border-left:1px dotted color-mix(in srgb,var(--c,#888) 70%,transparent);}
   .row.msk .conn::after{content:"";position:absolute;left:5px;top:calc(50% - 1px);width:12px;height:0;
-    border-top:1px dotted rgba(255,255,255,.45);}
+    border-top:1px dotted color-mix(in srgb,var(--c,#888) 70%,transparent);}
   .row.msk .conn i{position:absolute;left:15px;top:calc(50% - 2px);width:3px;height:3px;border-radius:50%;
-    background:rgba(255,255,255,.5);}
+    background:color-mix(in srgb,var(--c,#888) 80%,transparent);}
 
   /* warning / caution badges (kit alert colours: red=warning, orange=caution) */
   .wico{width:20px;height:20px;flex:0 0 20px;display:grid;place-items:center;cursor:help;
