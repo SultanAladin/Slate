@@ -74,7 +74,7 @@ export class SurfaceProjection
         Pass.setVertexBuffer(0, VertexRecords);
         Scene.Occupants.forEach((Occupant, Index) =>
         {
-            if (!(Occupant.Roles & OccupantRole.Raster))
+            if (!(Occupant.Roles & OccupantRole.Raster) || !Occupant.Placed)
                 return;
             const Set = Scene.FacetSets[Occupant.FacetSet];
             Pass.draw(Set.VertexCount, 1, Set.FirstVertex, Index);

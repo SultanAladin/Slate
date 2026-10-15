@@ -7,7 +7,7 @@ import { RetrieveFacetStream } from "./FacetCodec.js";
 import { CourseMaterial } from "./MaterialSpecification.js";
 import * as Course from "./CourseStructure.js";
 import { VehicleGeometry, ResolveCoMAuthoredZ } from "./VehicleSpecification.js";
-import { ConstructIdentityTransform, ConstructRigidTransform, TransformBounds, InvertTransform,
+import { ConstructIdentityTransform, ConstructRigidTransform, ConstructAxisQuaternion, TransformBounds, InvertTransform,
          SubtractVector, CrossVector, NormalizeVector } from "./TransformProjection.js";
 
 // 📝 What an occupant takes part in. A ground tile only owns a surface card; the ground occupant is only rastered,
@@ -16,7 +16,8 @@ export const OccupantRole = Object.freeze({
     Raster:   1,   // [-] - drawn into the surface projection and the shadow depth
     Distance: 2,   // [-] - unioned into the scene distance field from its own distance volume
     Cards:    4,   // [-] - owns surface cards in the card depot
-    Dynamic:  8    // [-] - transform may change every frame
+    Dynamic:  8,   // [-] - transform may change every frame
+    Stress:   16   // [-] - stress population: parked far below the course until the panel places it
 });
 
 export const VertexStride = 32;   // [B] - position.xyz, family (u32), normal.xyz, pad
@@ -51,6 +52,21 @@ const IlluminationLayout = Object.freeze({
     KerbSegmentLength: 4.0                  // [m]
 });
 
+// 📝 The stress population: 80 crates and blocks in two rows flanking each side of the course, never on the driving
+//    line. Every volume and card is built at bring-up; placing only teleports, so the field, the cards and the gather
+//    take the whole population at once. ParkPosition is far beneath every cascade window, where nothing samples them.
+const StressLayout = Object.freeze({
+    ParkPosition:  [0.0, 0.0, -1000.0],   // [m]  - shared parking transform
+    FirstX:        -28.0,                 // [m]  - first column centre
+    StepX:         4.0,                   // [m]  - between columns
+    CountX:        20,                    // [-]  - columns per row
+    RowOffsetsY:   [6.9, 8.1],            // [m]  - row centres per side, inside the walls (y ±9.2)
+    CrateExtent:   [1.2, 1.2, 1.2],       // [m]
+    BlockExtent:   [0.9, 0.9, 2.1],       // [m]
+    CardDensity:   10.0,                  // [texel/m] coarse — flat materials need little
+    DistanceVoxel: 0.05                   // [m/texel]
+});
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   SCENE STRUCTURE
 //------------------------------------------------------------------------------------------------------------------------
@@ -65,6 +81,8 @@ export class SceneStructure
         this.GroundTiles      = { First: -1, Strips: [-1, -1, -1, -1] };
         this.GroundOccupant   = -1;
         this.DistanceCount    = 0;
+        this.StressOccupants  = [];
+        this.StressPlaced     = false;
     }
 
     async ConstructScene(ArchiveFolder)
@@ -104,6 +122,41 @@ export class SceneStructure
             this.VehicleOccupants.Wheels[Wheel] = this.ConstructOccupant(WheelNames[Wheel], Set, ConstructIdentityTransform(), VehicleRoles);
         }
 
+        // ② the stress population, parked: dynamic like the vehicle (so the field, the cards and the reservoirs treat
+        //    its motion identically) but placed nowhere until the panel asks. Its two facet sets join the volume stack
+        //    and the card packing at bring-up like any other set.
+        const StressRoles = OccupantRole.Raster | OccupantRole.Distance | OccupantRole.Cards | OccupantRole.Dynamic
+                          | OccupantRole.Stress;
+        const CrateSet = this.ConstructFacetSet("Stress crate", Course.EmitBoxFacets(...StressLayout.CrateExtent,
+                                                                                     CourseMaterial.StressCrate),
+                                                StressLayout.DistanceVoxel, StressLayout.CardDensity);
+        const BlockSet = this.ConstructFacetSet("Stress block", Course.EmitBoxFacets(...StressLayout.BlockExtent,
+                                                                                     CourseMaterial.StressSlate),
+                                                StressLayout.DistanceVoxel, StressLayout.CardDensity);
+        const ParkTransform = ProjectTranslation(...StressLayout.ParkPosition);
+        const OverrideCycle = [-1, -1, CourseMaterial.WallCrimson, CourseMaterial.WallViridian, CourseMaterial.WallCobalt,
+                               CourseMaterial.WallChalk, CourseMaterial.TunnelConcrete, CourseMaterial.Cone];
+        for (let Side = 0; Side < 2; ++Side)
+        {
+            for (const RowOffset of StressLayout.RowOffsetsY)
+            {
+                for (let Column = 0; Column < StressLayout.CountX; ++Column)
+                {
+                    const Index  = this.StressOccupants.length;
+                    const Centre = [StressLayout.FirstX + Column * StressLayout.StepX, (Side ? -1.0 : 1.0) * RowOffset];
+                    const Set    = (Index & 1) ? BlockSet : CrateSet;
+                    const Yaw    = ConstructAxisQuaternion([0.0, 0.0, 1.0], Index * 137.5 * Math.PI / 180.0);
+                    const Occupant = this.ConstructOccupant(`Stress object ${Index}`, Set, ParkTransform, StressRoles,
+                                                            OverrideCycle[Index % OverrideCycle.length]);
+                    const Record = this.Occupants[Occupant];
+                    Record.Placed              = false;
+                    Record.StressParkTransform  = ParkTransform;
+                    Record.StressSceneTransform = ConstructRigidTransform([Centre[0], Centre[1], 0.0], Yaw);
+                    Record.StressAnchor         = Centre;
+                    this.StressOccupants.push(Occupant);
+                }
+            }
+        }
         this.DynamicCount = this.Occupants.length;
         this.ConstructOccupant("Ramp", RampSet, ConstructIdentityTransform(), StaticRoles);
         const KerbSegments = Math.round((Course.KerbConstants.FarX - Course.KerbConstants.NearX) / IlluminationLayout.KerbSegmentLength);
@@ -142,7 +195,8 @@ export class SceneStructure
                                    ProjectTranslation(CentreX, 0.0, IlluminationLayout.TunnelWallExtent[2]), StaticRoles);
         }
         this.DistanceCount = this.Occupants.length;
-        const ObstacleSets = new Set([ConeSet, WallSet, TunnelWallSet, TunnelRoofSet]);
+        // 📝 The hull collides with cones, walls, the tunnel and the stress population once it is placed.
+        const ObstacleSets = new Set([ConeSet, WallSet, TunnelWallSet, TunnelRoofSet, CrateSet, BlockSet]);
         for (const Occupant of this.Occupants)
             Occupant.Obstacle = ObstacleSets.has(Occupant.FacetSet);
 
@@ -210,7 +264,8 @@ export class SceneStructure
             CardMaximum:       Set.LocalMaximum.slice(),
             CardDensity:       Set.CardDensity,
             FirstCard:         0,
-            CardCount:         0
+            CardCount:         0,
+            Placed:            true
         });
         return this.Occupants.length - 1;
     }
@@ -279,7 +334,7 @@ export class SceneStructure
         const Bounds = [];
         this.Occupants.forEach((Occupant, Index) =>
         {
-            if (Occupant.Obstacle)
+            if (Occupant.Obstacle && Occupant.Placed)
                 Bounds.push(this.QueryWorldBounds(Index));
         });
         return Bounds;
@@ -297,6 +352,41 @@ export class SceneStructure
     {
         const Record = this.Occupants[Occupant];
         Record.PreviousTransform = Record.Transform;
+    }
+
+    //--------------------------------------------------------------------------------------------------------------------
+    //                                                 STRESS POPULATION
+    //--------------------------------------------------------------------------------------------------------------------
+
+    // 📝 Places or parks the stress population. AssignOccupantTransform retains the previous transform, so the moved-
+    //    bounds schedule invalidates the field around both ends of every teleport — the same path a respawned vehicle
+    //    takes — and the per-frame record upload carries the new transforms without any special case.
+    PlaceStressOccupants(Placed)
+    {
+        this.StressPlaced = Placed;
+        for (const OccupantIndex of this.StressOccupants)
+        {
+            const Record = this.Occupants[OccupantIndex];
+            Record.Placed = Placed;
+            this.AssignOccupantTransform(OccupantIndex, Placed ? Record.StressSceneTransform : Record.StressParkTransform);
+        }
+    }
+
+    // 📝 Orbits every stress object around its anchor with a per-object phase and spin, so the field rebuilds, the card
+    //    relighting and the gather all carry a population in continuous motion — the exhibit under load.
+    AdvanceStressOccupants(ElapsedSeconds)
+    {
+        this.StressOccupants.forEach((OccupantIndex, Index) =>
+        {
+            const Record = this.Occupants[OccupantIndex];
+            const Phase  = Index * 1.7;
+            const Angle  = ElapsedSeconds * (0.30 + 0.07 * (Index % 5)) + Phase;
+            const Radius = 0.45 + 0.06 * (Index % 7);
+            const Position = [Record.StressAnchor[0] + Math.cos(Angle) * Radius,
+                              Record.StressAnchor[1] + Math.sin(Angle) * Radius, 0.0];
+            const Yaw = ConstructAxisQuaternion([0.0, 0.0, 1.0], ElapsedSeconds * (0.40 + 0.09 * (Index % 4)) + Phase);
+            this.AssignOccupantTransform(OccupantIndex, ConstructRigidTransform(Position, Yaw));
+        });
     }
 
     //--------------------------------------------------------------------------------------------------------------------

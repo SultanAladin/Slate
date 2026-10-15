@@ -23,6 +23,7 @@ export class SurfaceCardDepot
         this.StaticTiles   = [];
         this.Cursor        = 0;
         this.WarmFrames    = 6;
+        this.StressCaptured = false;
         this.ScheduledTiles = 0;
         this.OccupiedTexels = 0;
     }
@@ -86,22 +87,41 @@ export class SurfaceCardDepot
         this.GroundFirstCard = Scene.Occupants[Scene.GroundTiles.First].FirstCard;
         this.GroundStripCard = Scene.Occupants[Scene.GroundTiles.Strips[0]].FirstCard;
 
+        this.OccupiedTexels = 0;
+        this.Cards.forEach((Card) =>
+        {
+            this.OccupiedTexels += Card.TexelExtent[0] * Card.TexelExtent[1];
+        });
+        this.RebuildTileAssignments(Scene);
+    }
+
+    // 📝 Which tiles the relighting schedule carries. The vehicle's tiles relight every frame it moves; a placed stress
+    //    object orbits into that set while drifting and round-robins with the statics while resting; a parked one is
+    //    sampled by nothing and is scheduled nowhere.
+    RebuildTileAssignments(Scene, StressDrifting = false)
+    {
         this.DynamicTiles = [];
         this.StaticTiles = [];
-        this.OccupiedTexels = 0;
         this.Cards.forEach((Card, CardIndex) =>
         {
-            const Dynamic = (Scene.Occupants[Card.Occupant].Roles & OccupantRole.Dynamic) !== 0;
-            this.OccupiedTexels += Card.TexelExtent[0] * Card.TexelExtent[1];
+            const Occupant   = Scene.Occupants[Card.Occupant];
+            const Stress     = (Occupant.Roles & OccupantRole.Stress) !== 0;
+            const EveryFrame = Occupant.Placed && (Occupant.Roles & OccupantRole.Dynamic) !== 0
+                             && (!Stress || StressDrifting);
+            const RoundRobin = Stress ? (Occupant.Placed && !StressDrifting)
+                                      : (Occupant.Roles & OccupantRole.Dynamic) === 0;
+            if (!EveryFrame && !RoundRobin)
+                return;
             for (let TileY = 0; TileY < Math.ceil(Card.TexelExtent[1] / 8); ++TileY)
             {
                 for (let TileX = 0; TileX < Math.ceil(Card.TexelExtent[0] / 8); ++TileX)
                 {
                     const Assignment = [CardIndex, (TileY << 16) | TileX];
-                    (Dynamic ? this.DynamicTiles : this.StaticTiles).push(Assignment);
+                    (EveryFrame ? this.DynamicTiles : this.StaticTiles).push(Assignment);
                 }
             }
         });
+        this.Cursor = this.StaticTiles.length > 0 ? this.Cursor % this.StaticTiles.length : 0;
     }
 
     PackCards()
@@ -178,8 +198,15 @@ export class SurfaceCardDepot
         this.SiteStride   = Extent / 4;
         this.CardRecords  = this.Exchange.ConstructRecordsFrom(this.EncodeCardRecords(), GPUBufferUsage.STORAGE, "Card records");
         this.SiteRecords  = this.Exchange.ConstructRecords(this.SiteStride * this.SiteStride * 16, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, "Radiosity sites");
-        const TileCapacity = Math.max(1, this.DynamicTiles.length + this.StaticTiles.length);
-        this.TileRecords  = this.Exchange.ConstructRecords(TileCapacity * 8, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, "Card tiles");
+        // 📝 Sized for the worst case — every card's tiles at once, which a warm relight after the stress population
+        //    is placed can schedule, beyond the lists' bring-up extent.
+        let TileCapacity = 0;
+        this.Cards.forEach((Card) =>
+        {
+            TileCapacity += Math.ceil(Card.TexelExtent[0] / 8) * Math.ceil(Card.TexelExtent[1] / 8);
+        });
+        this.TileRecords  = this.Exchange.ConstructRecords(Math.max(1, TileCapacity) * 8, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+                                                           "Card tiles");
         this.WorkRecords  = this.Exchange.ConstructRecords(16, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST, "Card work");
 
         const Compute = GPUShaderStage.COMPUTE;
@@ -232,24 +259,37 @@ export class SurfaceCardDepot
     //                                                   CAPTURE
     //--------------------------------------------------------------------------------------------------------------------
 
-    CaptureCards(Scene, VertexRecords)
+    // 📝 OnlyStress captures the parked stress population's cards the first time it is placed: the pass loads instead
+    //    of clearing so the depot's existing texels survive. The capture is in each occupant's own frame, so where the
+    //    occupant currently stands is irrelevant.
+    CaptureCards(Scene, VertexRecords, OnlyStress = false)
     {
+        const Selected = [];
+        this.Cards.forEach((Card, Index) =>
+        {
+            const Stress = (Scene.Occupants[Card.Occupant].Roles & OccupantRole.Stress) !== 0;
+            if (Stress === OnlyStress)
+                Selected.push({ Card, Index });
+        });
+        if (Selected.length === 0)
+            return;
         const Device = this.Exchange.Device;
         const Extent = this.Configuration.Extent;
         const DepthAttachment = this.Exchange.ConstructTexture({ label: "Card capture depth", size: [Extent, Extent],
                                                                  format: "depth32float", usage: GPUTextureUsage.RENDER_ATTACHMENT });
         const Encoder = Device.createCommandEncoder({ label: "Card capture" });
-        const Clear = (View, Value) => ({ view: View, clearValue: Value, loadOp: "clear", storeOp: "store" });
+        const Load = OnlyStress ? "load" : "clear";
+        const Attach = (View, Value) => ({ view: View, clearValue: Value, loadOp: Load, storeOp: "store" });
         const Pass = Encoder.beginRenderPass({
             label: "Card capture",
-            colorAttachments: [Clear(this.Views.Albedo, [0, 0, 0, 0]), Clear(this.Views.Normal, [0.5, 0.5, 1, 0]),
-                               Clear(this.Views.Emission, [0, 0, 0, 0]), Clear(this.Views.Depth, [4, 0, 0, 0])],
+            colorAttachments: [Attach(this.Views.Albedo, [0, 0, 0, 0]), Attach(this.Views.Normal, [0.5, 0.5, 1, 0]),
+                               Attach(this.Views.Emission, [0, 0, 0, 0]), Attach(this.Views.Depth, [4, 0, 0, 0])],
             depthStencilAttachment: { view: DepthAttachment.createView(), depthClearValue: 1.0, depthLoadOp: "clear", depthStoreOp: "discard" }
         });
         Pass.setPipeline(this.CaptureProgram);
         Pass.setBindGroup(0, this.CaptureGroup);
         Pass.setVertexBuffer(0, VertexRecords);
-        this.Cards.forEach((Card, Index) =>
+        Selected.forEach(({ Card, Index }) =>
         {
             const Set = Scene.FacetSets[Scene.Occupants[Card.Occupant].FacetSet];
             Pass.setViewport(Card.TexelOrigin[0], Card.TexelOrigin[1], Card.TexelExtent[0], Card.TexelExtent[1], 0.0, 1.0);

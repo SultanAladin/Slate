@@ -77,6 +77,7 @@ class IlluminationHost
             Indirect: true, ScreenTraversal: true, TemporalReuse: true, SpatialReuse: true, VisibilityReuse: true, RadianceRefresh: true,
             SpatialCount: 5, SpatialRadius: 20, TemporalTallyLimit: 20, IndirectScale: 1.0, VarianceKernel: true, Reflection: true,
             Antialias: true, TraceScale: 2, FreezeDistance: false, CardRadiosity: true, CardTileBudget: this.Grade.TileBudget,
+            StressDrift: false,
             Quality: ["low", "medium", "high"].indexOf(this.GradeName)
         };
         if (Query.has("preset"))
@@ -225,6 +226,12 @@ class IlluminationHost
                 this.ReconstructScreenTargets();
             else if (Key === "FreezeDistance")
                 this.Distance.Frozen = this.Settings.FreezeDistance;
+            else if (Key === "ToggleStress")
+                this.ToggleStressPopulation();
+            else if (Key === "StressDrift")
+                this.Cards.RebuildTileAssignments(this.Scene, this.Settings.StressDrift);
+            else if (Key === "FoldInterface")
+                document.body.classList.toggle("ui-folded");
             else if (Key === "Quality")
             {
                 const Query = new URLSearchParams(location.search);
@@ -249,6 +256,8 @@ class IlluminationHost
                 this.ToggleCamera();
             if (Event.code === "KeyR" && !Event.repeat)
                 this.RespawnVehicle();
+            if (Event.code === "KeyH" && !Event.repeat)
+                document.body.classList.toggle("ui-folded");
             this.Keys.add(Event.code);
         });
         window.addEventListener("keyup", (Event) => this.Keys.delete(Event.code));
@@ -304,6 +313,25 @@ class IlluminationHost
         this.Driver.Reset();
         this.Chase.Seeded = false;
         this.PriorValid = false;
+    }
+
+    // 📝 The stress test: capture the population's cards on first placement (they are captured in each occupant's own
+    //    frame, so parking never mattered), teleport them in — the moved-bounds schedule invalidates the field around
+    //    both ends, exactly as a respawn does — and hand the vehicle their collision bounds.
+    ToggleStressPopulation()
+    {
+        const Placing = !this.Scene.StressPlaced;
+        if (Placing && !this.Cards.StressCaptured)
+        {
+            this.Cards.CaptureCards(this.Scene, this.VertexRecords, true);
+            this.Cards.StressCaptured = true;
+        }
+        this.Scene.PlaceStressOccupants(Placing);
+        this.Cards.RebuildTileAssignments(this.Scene, this.Settings.StressDrift);
+        if (Placing)
+            this.Cards.WarmFrames = Math.max(this.Cards.WarmFrames, 3);
+        this.Vehicle.Obstacles = this.Scene.QueryObstacleBounds();
+        this.Panel.AssignStressMode(Placing);
     }
 
     //--------------------------------------------------------------------------------------------------------------------
@@ -467,6 +495,11 @@ class IlluminationHost
         const Command = this.ScriptedInput ? this.ScriptedInput : this.Driver.Advance(Keys, Δτ);
         this.Vehicle.Advance(Command, this.FixedStep ? this.FixedStep : Δτ);
         this.PositionVehicle();
+        if (this.Scene.StressPlaced && this.Settings.StressDrift)
+        {
+            this.Scene.AdvanceStressOccupants(performance.now() * 0.001);
+            this.Vehicle.Obstacles = this.Scene.QueryObstacleBounds();
+        }
 
         // ② camera, light, cascade focus
         const Camera = this.ResolveCamera(Δτ);
@@ -591,12 +624,14 @@ class IlluminationHost
             `GDF bricks rewritten  ${Rewritten}${this.Distance.Frozen ? "  (frozen)" : ""}`,
             `Card tiles relit  ${this.Cards.ScheduledTiles}`
         ];
+        if (this.Scene.StressPlaced)
+            Lines.push(`Stress objects  ${this.Scene.StressOccupants.length} placed${this.Settings.StressDrift ? " · drifting" : ""}`);
         if (this.Metrics.Enabled)
         {
             const Durations = Object.entries(this.Metrics.Durations).filter(([, Milliseconds]) => Milliseconds > 0.0);
             Lines.push(...Durations.map(([Name, Milliseconds]) => `  ${Name.padEnd(24)}${Milliseconds.toFixed(2).padStart(7)} ms`));
         }
-        Lines.push("W/S throttle·brake  A/D steer  Space handbrake  R respawn  F8 free camera  drag orbit");
+        Lines.push("W/S throttle·brake  A/D steer  Space handbrake  R respawn  F8 free camera  H hide UI  drag orbit");
         const Resolution = this.Grade.ClipResolution;
         const FieldLines = this.Distance.Clips.map((Clip, Level) =>
             `cascade ${Level}: ${Resolution}³ · voxel ${(Clip.VoxelExtent * 100).toFixed(1)} cm · span ${(Clip.VoxelExtent * Resolution).toFixed(0)} m`);

@@ -27,7 +27,9 @@ export const CourseMaterial = Object.freeze({
     WallViridian:    17,
     WallChalk:       18,
     WallCobalt:      19,
-    TunnelConcrete:  20
+    TunnelConcrete:  20,
+    StressCrate:     21,
+    StressSlate:     22
 });
 
 // 📝 The flake headroom and sweep follow DriveSceneAuthor: MetalicCoat (0.680005, 0.800458, 0) × 0.78, coat roughness
@@ -90,6 +92,10 @@ export function ConstructMaterialSpecification()
     Materials[CourseMaterial.WallChalk]      = Dielectric(0.80, 0.80, 0.78, 0.75);
     Materials[CourseMaterial.WallCobalt]     = Dielectric(0.07, 0.20, 0.72, 0.65);
     Materials[CourseMaterial.TunnelConcrete] = Dielectric(0.56, 0.55, 0.52, 0.85);
+
+    // 📝 The stress population's own families; most objects also carry a wall-material override for colour variety.
+    Materials[CourseMaterial.StressCrate]    = Dielectric(0.62, 0.42, 0.10, 0.55);
+    Materials[CourseMaterial.StressSlate]    = Dielectric(0.28, 0.33, 0.41, 0.45);
     return Materials;
 }
 

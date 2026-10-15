@@ -120,6 +120,7 @@ export class ControlPanel
         View.appendChild(CameraRow);
         this.CameraButton = Button(CameraRow, "Free camera (F8)", () => this.OnChange("ToggleCamera"));
         Button(CameraRow, "Respawn vehicle (R)", () => this.OnChange("Respawn"));
+        Button(CameraRow, "Hide UI (H)", () => this.OnChange("FoldInterface"));
 
         const Lighting = Section("Lighting");
         const Presets = document.createElement("div");
@@ -164,6 +165,13 @@ export class ControlPanel
         this.DepotReadout = document.createElement("pre");
         this.DepotReadout.className = "panel-readout";
         Depot.appendChild(this.DepotReadout);
+
+        const Stress = Section("Stress test");
+        const StressRow = document.createElement("div");
+        StressRow.className = "panel-buttons";
+        Stress.appendChild(StressRow);
+        this.StressButton = Button(StressRow, "Populate 80 stress objects", () => this.OnChange("ToggleStress"));
+        Toggle(Stress, "Drift (orbit) motion", "StressDrift");
     }
 
     ApplyPreset(Name)
@@ -192,6 +200,11 @@ export class ControlPanel
     AssignCameraMode(Free)
     {
         this.CameraButton.textContent = Free ? "Chase camera (F8)" : "Free camera (F8)";
+    }
+
+    AssignStressMode(Placed)
+    {
+        this.StressButton.textContent = Placed ? "Clear stress objects" : "Populate 80 stress objects";
     }
 
     // 📝 Readouts refresh at 5 Hz; the measurements are smoothed upstream.
