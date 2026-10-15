@@ -99,5 +99,6 @@ fn IntegrateDirectRadiance(@builtin(global_invocation_id) Invocation: vec3u)
         Visibility = ResolveCascadeVisibility(Position, Normal);
     }
     let Radiance = Frame.SunIlluminance * Visibility * ResolveDirectReflectance(Surface, Normal, View, Frame.SunDirection);
-    textureStore(DirectTarget, vec2i(Pixel), vec4f(Radiance, 1.0));
+    // 📝 w carries the sun visibility, so the recombination can rebuild the Lambertian exitance a surface card stores.
+    textureStore(DirectTarget, vec2i(Pixel), vec4f(Radiance, Visibility));
 }

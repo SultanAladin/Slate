@@ -18,7 +18,7 @@ export class DisplayProjection
         const Compute = GPUShaderStage.COMPUTE;
         this.RecombineLayout = this.Exchange.ConstructDescriptorLayout(
             ["Uniform", "StorageRead", "Texture2D", "TextureDepth2D", "Texture2D", "Texture2D", "Texture2D", "Texture2D", "Texture2D",
-             "Texture2D", "StorageTexture2D:rgba16float"], Compute, "Display recombination");
+             "Texture2D", "StorageTexture2D:rgba16float", "StorageTexture2D:rgba16float"], Compute, "Display recombination");
         this.AntialiasLayout = this.Exchange.ConstructDescriptorLayout(
             ["Uniform", "Texture2D", "Texture2D", "Texture2D", "Sampler", "StorageTexture2D:rgba16float"], Compute, "Display antialias");
         this.ExposureLayout = this.Exchange.ConstructDescriptorLayout(["Uniform", "Texture2D", "Storage"], Compute, "Display exposure");
@@ -49,12 +49,15 @@ export class DisplayProjection
         const Recombined = Construct("Recombined radiance");
         const Inspection = Construct("Inspection radiance");
         const Resolved   = [Construct("Resolved radiance A"), Construct("Resolved radiance B")];
-        this.Textures = [Recombined, Inspection, ...Resolved];
+        // 📝 Diffuse exitance per pixel, never an inspection signal: the next frame's screen traces read it.
+        const Exitance   = Construct("Diffuse exitance");
+        this.Textures = [Recombined, Inspection, ...Resolved, Exitance];
         this.ScreenExtent = ScreenExtent;
-        this.Views = { Recombined: Recombined.createView(), Inspection: Inspection.createView(), Resolved: Resolved.map((Texture) => Texture.createView()) };
+        this.Views = { Recombined: Recombined.createView(), Inspection: Inspection.createView(), Resolved: Resolved.map((Texture) => Texture.createView()),
+                       Exitance: Exitance.createView() };
         this.RecombineGroup = this.Exchange.ConstructDescriptorGroup(this.RecombineLayout,
             [this.FrameRecords, this.MaterialRecords, Surface.Views.Attributes, Surface.Views.Depth, Surface.Views.Direct, Diffuse.Views.Screen,
-             Glossy.Views.Screen, Resampling.Views.Irradiance, this.Views.Inspection, Cards.Views.Final, this.Views.Recombined]);
+             Glossy.Views.Screen, Resampling.Views.Irradiance, this.Views.Inspection, Cards.Views.Final, this.Views.Recombined, this.Views.Exitance]);
         this.AntialiasGroups = [0, 1].map((Parity) => this.Exchange.ConstructDescriptorGroup(this.AntialiasLayout,
             [this.FrameRecords, this.Views.Recombined, this.Views.Resolved[1 - Parity], Surface.Views.Motion, this.LinearClamp, this.Views.Resolved[Parity]]));
         this.ExposureGroups = [0, 1].map((Parity) => this.Exchange.ConstructDescriptorGroup(this.ExposureLayout,

@@ -13,6 +13,7 @@ import { SurfaceCardDepot } from "./SurfaceCardDepot.js";
 import { AtmosphereIntegrator } from "./AtmosphereIntegrator.js";
 import { ShadowProjection } from "./ShadowProjection.js";
 import { SurfaceProjection } from "./SurfaceProjection.js";
+import { NearestDepthSpace } from "./NearestDepthSpace.js";
 import { ResamplingSequence } from "./ResamplingSequence.js";
 import { VarianceIntegrator } from "./VarianceIntegrator.js";
 import { DisplayProjection } from "./DisplayProjection.js";
@@ -31,26 +32,30 @@ const ShaderSources = [
     "AtmosphereScattering.wgsl", "SurfaceReflectance.wgsl", "ShadowRaster.wgsl", "SurfaceRaster.wgsl", "DirectRadiance.wgsl",
     "ReservoirRecords.wgsl", "ReservoirTemporal.wgsl", "ReservoirSpatial.wgsl", "ReflectionTraversal.wgsl", "VarianceTemporal.wgsl",
     "VarianceWavelet.wgsl", "VarianceUpsample.wgsl", "InspectionMarch.wgsl", "DisplayRecombination.wgsl", "DisplayAntialias.wgsl",
-    "DisplayExposure.wgsl", "DisplayPresent.wgsl"
+    "DisplayExposure.wgsl", "DisplayPresent.wgsl", "ScreenTraversal.wgsl", "NearestDepthTransfer.wgsl", "NearestDepthReduction.wgsl"
 ];
 
 // 📝 Quality grades trade cascade resolution, card density and traversal length; selected with ?quality=low|medium|high.
+//    ScreenSteps bounds the nearest-depth walk of a screen trace (Lumen's screen-trace iteration limit).
 const QualityGrades = {
     high:   { ClipResolution: 128, FinestVoxel: 0.125, CardExtent: 2048, CardDensity: 1.0,  VoxelScale: 1.0, ShadowExtent: 2048,
-              Steps: 96, RenderScale: 1.0,  TileBudget: 2048, PixelLimit: 1920 * 1080 },
+              Steps: 96, ScreenSteps: 64, RenderScale: 1.0,  TileBudget: 2048, PixelLimit: 1920 * 1080 },
     medium: { ClipResolution: 96,  FinestVoxel: 0.16,  CardExtent: 2048, CardDensity: 0.75, VoxelScale: 1.4, ShadowExtent: 2048,
-              Steps: 80, RenderScale: 0.85, TileBudget: 1024, PixelLimit: 1600 * 900 },
+              Steps: 80, ScreenSteps: 48, RenderScale: 0.85, TileBudget: 1024, PixelLimit: 1600 * 900 },
     low:    { ClipResolution: 64,  FinestVoxel: 0.25,  CardExtent: 1024, CardDensity: 0.5,  VoxelScale: 2.2, ShadowExtent: 1024,
-              Steps: 64, RenderScale: 0.6,  TileBudget: 384,  PixelLimit: 1280 * 720 }
+              Steps: 64, ScreenSteps: 32, RenderScale: 0.6,  TileBudget: 384,  PixelLimit: 1280 * 720 }
 };
 
+const CameraNear = 0.05;   // [m] - near plane of the reversed infinite projection; device depth = CameraNear / view depth
+
 const FeatureBits = { Indirect: 1, TemporalReuse: 2, SpatialReuse: 4, VisibilityReuse: 8, VarianceKernel: 16, Reflection: 32,
-                      CardRadiosity: 64, Antialias: 128, DirectShadow: 256, AutoExposure: 512, RadianceRefresh: 1024 };
+                      CardRadiosity: 64, Antialias: 128, DirectShadow: 256, AutoExposure: 512, RadianceRefresh: 1024,
+                      ScreenTraversal: 4096 };
 
 const TemporalRestartBit = 2048;   // [-] FeatureTemporalRestart in SceneRecords.wgsl
 
-const PassNames = ["Distance union", "Card lighting", "Shadow", "Surface", "Direct", "ReSTIR GI", "Diffuse reconstruction",
-                   "Reflection", "Glossy reconstruction", "Resolve"];
+const PassNames = ["Distance union", "Card lighting", "Shadow", "Surface", "Depth pyramid", "Direct", "ReSTIR GI",
+                   "Diffuse reconstruction", "Reflection", "Glossy reconstruction", "Resolve"];
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       BRING-UP
@@ -69,7 +74,7 @@ class IlluminationHost
             Inspection: Number(Query.get("inspection") || 0), DistanceInspection: 1, InsetEnabled: true, SliceHeight: 0.6,
             SunElevation: 38.0, SunAzimuth: 145.0, SolarIlluminance: 12.0, SkyScale: 1.0, EmissionScale: 1.0,
             ExposureCompensation: 0.0, AutoExposure: true, DirectShadow: true,
-            Indirect: true, TemporalReuse: true, SpatialReuse: true, VisibilityReuse: true, RadianceRefresh: true,
+            Indirect: true, ScreenTraversal: true, TemporalReuse: true, SpatialReuse: true, VisibilityReuse: true, RadianceRefresh: true,
             SpatialCount: 5, SpatialRadius: 20, TemporalTallyLimit: 20, IndirectScale: 1.0, VarianceKernel: true, Reflection: true,
             Antialias: true, TraceScale: 2, FreezeDistance: false, CardRadiosity: true, CardTileBudget: this.Grade.TileBudget,
             Quality: ["low", "medium", "high"].indexOf(this.GradeName)
@@ -150,6 +155,8 @@ class IlluminationHost
         Device.queue.writeBuffer(this.OccupantRecords, 0, this.Scene.EncodeOccupantRecords(this.Volumes));
         this.Constants = {
             MaximumTraversalSteps: { Type: "u32", Value: this.Grade.Steps },
+            ScreenTraversalSteps:  { Type: "u32", Value: this.Grade.ScreenSteps },
+            CameraNear:            { Type: "f32", Value: CameraNear },
             GroundPadMinimum:      { Type: "f32", Value: GroundLayout.PadMinimum },
             GroundTileExtent:      { Type: "f32", Value: GroundLayout.TileExtent },
             GroundTileCount:       { Type: "u32", Value: GroundLayout.TileCount },
@@ -176,8 +183,11 @@ class IlluminationHost
         this.ReportProgress("Compiling surface and resampling programs", 0.84);
         this.Surface = new SurfaceProjection(this.Exchange, this.Shaders);
         await this.Surface.ConstructPrograms(this.FrameRecords, this.OccupantRecords, this.MaterialRecords);
+        this.NearestDepth = new NearestDepthSpace(this.Exchange, this.Shaders);
+        await this.NearestDepth.ConstructPrograms();
         this.Resampling = new ResamplingSequence(this.Exchange, this.Shaders);
-        await this.Resampling.ConstructPrograms(this.FrameRecords, this.MaterialRecords, this.Distance.TraversalLayout, this.Cards.SamplingLayout);
+        await this.Resampling.ConstructPrograms(this.FrameRecords, this.MaterialRecords, this.Distance.TraversalLayout, this.Cards.SamplingLayout,
+                                                this.NearestDepth.TraversalLayout);
         this.Diffuse = new VarianceIntegrator(this.Exchange, this.Shaders, "Diffuse", { MinimumWeight: 0.08, TallyLimit: 24, WaveletIterations: 3, ColourSigma: 4.0 });
         await this.Diffuse.ConstructPrograms(this.FrameRecords);
         this.Glossy = new VarianceIntegrator(this.Exchange, this.Shaders, "Glossy", { MinimumWeight: 0.12, TallyLimit: 12, WaveletIterations: 2, ColourSigma: 3.0 });
@@ -319,12 +329,14 @@ class IlluminationHost
         this.TraceScaleUsed = Scale;
         this.TraceExtent = [Math.ceil(Width / Scale), Math.ceil(Height / Scale)];
         this.Surface.ConstructTargets(Width, Height, this.Shadow, this.Atmosphere);
+        this.NearestDepth.ConstructTargets(this.ScreenExtent, this.Surface);
         this.Resampling.ConstructTargets(this.TraceExtent, this.Surface);
         this.Diffuse.ConstructTargets(this.TraceExtent, this.ScreenExtent, this.Surface,
                                       [this.Resampling.Views.Irradiance, this.Resampling.Views.Irradiance], this.Resampling.Views.Guides);
         this.Glossy.ConstructTargets(this.TraceExtent, this.ScreenExtent, this.Surface,
                                      [this.Resampling.Views.Reflection, this.Resampling.Views.Reflection], this.Resampling.Views.Guides);
         this.Display.ConstructTargets(this.ScreenExtent, this.Surface, this.Resampling, this.Diffuse, this.Glossy, this.Cards);
+        this.NearestDepth.ConstructTraversalGroups(this.Surface, this.Display);
         this.PriorValid = false;
         if (this.Capture)
         {
@@ -374,7 +386,7 @@ class IlluminationHost
         }
         const Forward = NormalizeVector(SubtractVector(Target, Eye));
         return { Position: Eye, Target, Forward, VerticalFieldOfView: FieldOfView * Math.PI / 180.0,
-                 Aspect: this.ScreenExtent[0] / this.ScreenExtent[1], Near: 0.05 };
+                 Aspect: this.ScreenExtent[0] / this.ScreenExtent[1], Near: CameraNear };
     }
 
     EncodeFrameRecord(Camera, Light)
@@ -493,16 +505,21 @@ class IlluminationHost
             this.Cards.RecordLighting(Encoder, this.Distance.TraversalGroup, this.SamplingGroup, this.Settings.CardRadiosity,
                                       this.Metrics.QueryWrites("Card lighting"));
         this.Surface.RecordSurface(Encoder, this.Scene, this.VertexRecords, this.Metrics.QueryWrites("Surface"));
+        // 📝 Rebuilt even while screen traces are off, so the prior pyramid is never stale when they are switched on.
+        this.NearestDepth.RecordReduction(Encoder, Parity, this.Metrics.QueryWrites("Depth pyramid"));
+        const ScreenGroup = this.NearestDepth.TraversalGroups[Parity];
         if (Included("Direct"))
             this.Surface.RecordDirect(Encoder, this.Metrics.QueryWrites("Direct"));
         if (this.Settings.Indirect && Included("Resampling"))
         {
-            this.Resampling.RecordResampling(Encoder, Parity, this.Distance.TraversalGroup, this.SamplingGroup, this.Metrics.QueryWrites("ReSTIR GI"));
+            this.Resampling.RecordResampling(Encoder, Parity, this.Distance.TraversalGroup, this.SamplingGroup, ScreenGroup,
+                                             this.Metrics.QueryWrites("ReSTIR GI"));
             if (Included("Diffuse"))
                 this.Diffuse.Record(Encoder, Parity, this.Settings.VarianceKernel, this.Metrics.QueryWrites("Diffuse reconstruction"));
             if (this.Settings.Reflection && Included("Reflection"))
             {
-                this.Resampling.RecordReflection(Encoder, this.Distance.TraversalGroup, this.SamplingGroup, this.Metrics.QueryWrites("Reflection"));
+                this.Resampling.RecordReflection(Encoder, this.Distance.TraversalGroup, this.SamplingGroup, ScreenGroup,
+                                                 this.Metrics.QueryWrites("Reflection"));
                 this.Glossy.Record(Encoder, Parity, this.Settings.VarianceKernel, this.Metrics.QueryWrites("Glossy reconstruction"));
             }
         }

@@ -1,19 +1,22 @@
 //============================================================================================================================================
 //                                                          RESERVOIRTEMPORAL.WGSL
 //============================================================================================================================================
-// 🧩 ReSTIR GI initial candidate and temporal reuse: a cosine ray through the scene distance field, then the prior reservoir.
+// 🧩 ReSTIR GI initial candidate and temporal reuse: a cosine ray (screen, then scene distance field), then the prior reservoir.
 
 // 📝 Per resampling pixel:
 //    ① the primary surface (x_v, n_v) is read from the surface projection and written to this frame's guide;
-//    ② one cosine-weighted ray is traced through the ONE scene distance field; its hit radiance is read from the
-//       surface cards (or the sky on an escape) — this is the candidate, with source pdf cosθ/π;
+//    ② one cosine-weighted ray is traced — first across the screen through the nearest-depth pyramid, then, where the
+//       screen cannot settle it, through the ONE scene distance field from the last point the screen proved unoccluded;
+//       its radiance is the sample exitance at the hit (or the sky on an escape) — this is the candidate, with source
+//       pdf cosθ/π whichever tracer answered;
 //    ③ the prior frame's reservoir is found by motion reprojection and validated against the prior guide; its
-//       reconnection vertex is carried with its occupant's motion, its radiance re-read from this frame's cards, and
+//       reconnection vertex is carried with its occupant's motion, its radiance re-resolved by the same exitance rule, and
 //       (on a rotating quarter of pixels) its visibility re-traced, so a vehicle driving between x_v and x_s darkens
 //       the reuse instead of leaving a ghost; M is clamped to TemporalTallyLimit;
 //    ④ W = Σw / (M · p̂(y)) is stored for the spatial pass and for the next frame.
 
 //! include "CardSampling.wgsl"
+//! include "ScreenTraversal.wgsl"
 //! include "ReservoirRecords.wgsl"
 //! include "DiscrepancySequence.wgsl"
 
@@ -55,8 +58,8 @@ fn RefreshSampleRadiance(Sample: ReservoirSample) -> vec3f
         return SampleSkyRadiance(-Sample.Normal);
     }
     let Level = ResolveFinestClip(Sample.Position, 1.0);
-    let Card = SampleCardRadiance(Sample.Position, Sample.Normal, Sample.Identity, ResolveCardTolerance(Level));
-    return select(Sample.Radiance, Card.rgb, Card.w > 0.0);
+    let Exitance = ResolveSampleExitance(Sample.Position, Sample.Normal, Sample.Identity, ResolveCardTolerance(Level));
+    return select(Sample.Radiance, Exitance.rgb, Exitance.w > 0.0);
 }
 
 @compute @workgroup_size(8, 8)
@@ -87,25 +90,42 @@ fn ResampleTemporal(@builtin(global_invocation_id) Invocation: vec3u)
     textureStore(GuideTarget, vec2i(TracePixel), vec4f(EncodeOctahedral(Normal), ViewDepth, 1.0 + ExpectedDepth));
     var Seed = ConstructPixelSeed(TracePixel, Frame.FrameIndex, 11u);
 
-    // ② initial candidate through the scene distance field
+    // ② initial candidate: the screen first, then the scene distance field from where the screen lost the ray
     let Pair      = ProjectTemporalPair(TracePixel, Frame.FrameIndex, 3u);
     let Direction = ConstructTangentFrame(Normal) * ProjectCosineHemisphere(Pair);
     let Bias      = ResolveSurfaceBias(Position);
-    let Hit       = TraverseSceneDistance(Position + Normal * Bias, Direction, 0.5 * Bias, 300.0, 0.0);
-    var Candidate: ReservoirSample;
-    if (Hit.Hit)
+    var Strike: ScreenHit;
+    if (FeatureEnabled(Frame, FeatureScreenTraversal))
     {
-        Candidate.Position = Hit.Position;
-        Candidate.Normal   = Hit.Normal;
-        Candidate.Identity = Hit.Identity;
-        Candidate.Radiance = ResolveTraversalRadiance(Hit, Direction);
+        Strike = TraverseScreenDepth(Position + Normal * ResolveScreenBias(ViewDepth), Direction, 300.0, ScreenTraversalSteps);
+    }
+    var Candidate: ReservoirSample;
+    if (Strike.Hit)
+    {
+        Candidate.Position = Strike.Position;
+        Candidate.Normal   = Strike.Normal;
+        Candidate.Identity = Strike.Identity;
+        Candidate.Radiance = ResolveStrikeRadiance(Strike);
     }
     else
     {
-        Candidate.Position = Position + Direction * SkyReach;
-        Candidate.Normal   = -Direction;
-        Candidate.Identity = SkyIdentity;
-        Candidate.Radiance = SampleSkyRadiance(Direction);
+        // 📝 Backed off by one bias so a surface the screen saw the ray reach is still found by the distance field.
+        let Resume = max(0.5 * Bias, Strike.Travel - Bias);
+        let Hit = TraverseSceneDistance(Position + Normal * Bias, Direction, Resume, 300.0, 0.0);
+        if (Hit.Hit)
+        {
+            Candidate.Position = Hit.Position;
+            Candidate.Normal   = Hit.Normal;
+            Candidate.Identity = Hit.Identity;
+            Candidate.Radiance = ResolveContinuedRadiance(Hit, Direction);
+        }
+        else
+        {
+            Candidate.Position = Position + Direction * SkyReach;
+            Candidate.Normal   = -Direction;
+            Candidate.Identity = SkyIdentity;
+            Candidate.Radiance = SampleSkyRadiance(Direction);
+        }
     }
     let Cosine    = max(dot(Normal, Direction), 0.0);
     let SourcePdf = Cosine * InversePi;

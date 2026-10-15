@@ -138,6 +138,7 @@ export class ControlPanel
 
         const Gather = Section("Final gather · ReSTIR GI");
         Toggle(Gather, "Indirect lighting", "Indirect");
+        Toggle(Gather, "Screen traces, then distance field", "ScreenTraversal");
         Toggle(Gather, "Temporal reuse", "TemporalReuse");
         Toggle(Gather, "Spatial reuse", "SpatialReuse");
         Toggle(Gather, "Visibility validation", "VisibilityReuse");

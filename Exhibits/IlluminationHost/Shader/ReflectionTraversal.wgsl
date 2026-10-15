@@ -1,13 +1,16 @@
 //============================================================================================================================================
 //                                                         REFLECTIONTRAVERSAL.WGSL
 //============================================================================================================================================
-// 🧩 Glossy reflection rays: a GGX visible-normal sample per resampling pixel, traced through the scene distance field.
+// 🧩 Glossy reflection rays: a GGX visible-normal sample per resampling pixel, traced across the screen, then the distance field.
 
-// 📝 The specular counterpart of the indirect candidate: the reflected ray reads card radiance where it lands and the
-//    sky where it escapes. Surfaces rougher than RoughnessCutoff are left to the resolve, which substitutes the
-//    diffuse irradiance there exactly as Lumen reuses its diffuse gather for rough reflections.
+// 📝 The specular counterpart of the indirect candidate, traced the same two-part way: across the screen through the
+//    nearest-depth pyramid, then through the scene distance field from the last point the screen proved unoccluded.
+//    The ray reads the sample exitance where it lands and the sky where it escapes. Surfaces rougher than
+//    RoughnessCutoff are left to the resolve, which substitutes the diffuse irradiance there exactly as Lumen reuses
+//    its diffuse gather for rough reflections.
 
 //! include "CardSampling.wgsl"
+//! include "ScreenTraversal.wgsl"
 //! include "SurfaceReflectance.wgsl"
 //! include "PackingCodec.wgsl"
 //! include "DiscrepancySequence.wgsl"
@@ -71,7 +74,22 @@ fn TraverseReflection(@builtin(global_invocation_id) Invocation: vec3u)
         Direction = reflect(-View, Normal);
     }
     let Bias = ResolveSurfaceBias(Position);
-    let Hit = TraverseSceneDistance(Position + Normal * Bias, Direction, 0.5 * Bias, 300.0, Roughness * 0.05);
-    let Radiance = ResolveTraversalRadiance(Hit, Direction);
+    var Strike: ScreenHit;
+    if (FeatureEnabled(Frame, FeatureScreenTraversal))
+    {
+        Strike = TraverseScreenDepth(Position + Normal * ResolveScreenBias(ResolveViewDepth(Position)), Direction, 300.0,
+                                     ScreenTraversalSteps);
+    }
+    var Radiance: vec3f;
+    if (Strike.Hit)
+    {
+        Radiance = ResolveStrikeRadiance(Strike);
+    }
+    else
+    {
+        let Resume = max(0.5 * Bias, Strike.Travel - Bias);
+        let Hit = TraverseSceneDistance(Position + Normal * Bias, Direction, Resume, 300.0, Roughness * 0.05);
+        Radiance = ResolveContinuedRadiance(Hit, Direction);
+    }
     textureStore(ReflectionTarget, vec2i(TracePixel), vec4f(min(Radiance, vec3f(200.0)), 1.0));
 }

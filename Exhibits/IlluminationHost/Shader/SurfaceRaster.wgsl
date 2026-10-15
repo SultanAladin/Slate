@@ -5,22 +5,24 @@
 
 //! include "FrameDescriptor.wgsl"
 //! include "PackingCodec.wgsl"
+//! include "DistanceRecords.wgsl"
 
 @group(0) @binding(1) var<storage, read> Occupants : array<OccupantRecord>;
 
 struct SurfaceVarying
 {
-    @builtin(position) Position             : vec4f,
-    @location(0) Normal                     : vec3f,
-    @location(1) @interpolate(flat) Family  : u32,
-    @location(2) CurrentClip                : vec4f,
-    @location(3) PreviousClip               : vec4f,
-    @location(4) WorldPosition              : vec3f,
+    @builtin(position) Position              : vec4f,
+    @location(0) Normal                      : vec3f,
+    @location(1) @interpolate(flat) Family   : u32,
+    @location(2) CurrentClip                 : vec4f,
+    @location(3) PreviousClip                : vec4f,
+    @location(4) WorldPosition               : vec3f,
+    @location(5) @interpolate(flat) Identity : u32,
 }
 
 struct SurfaceTargets
 {
-    @location(0) Attributes : vec4f,   // xy octahedral shading normal, z material family, w 1
+    @location(0) Attributes : vec4f,   // xy octahedral shading normal, z material family, w occupant identity
     @location(1) Motion     : vec2f,   // [px] current minus previous screen position
 }
 
@@ -38,6 +40,10 @@ fn SurfaceVertex(@location(0) Position: vec3f, @location(1) Family: u32, @locati
     Varying.Normal        = (Occupant.LocalToWorld * vec4f(Normal, 0.0)).xyz;
     Varying.Family        = select(Family, Occupant.MaterialOverride, Occupant.MaterialOverride != NoMaterialOverride);
     Varying.WorldPosition = World.xyz;
+    // 📝 The identity a screen trace reports for this surface, in the distance field's vocabulary: the occupant index for
+    //    every carded occupant, GroundIdentity for the course plane, whose cards belong to the ground tiles. Identities
+    //    stay below 2048, so the half-float attribute holds them exactly.
+    Varying.Identity      = select(GroundIdentity, OccupantIndex, (Occupant.Roles & RoleCards) != 0u);
     return Varying;
 }
 
@@ -58,7 +64,7 @@ fn SurfaceFragment(Varying: SurfaceVarying) -> SurfaceTargets
         Normal = -Normal;
     }
     var Targets: SurfaceTargets;
-    Targets.Attributes = vec4f(EncodeOctahedral(Normal), f32(Varying.Family), 1.0);
+    Targets.Attributes = vec4f(EncodeOctahedral(Normal), f32(Varying.Family), f32(Varying.Identity));
     Targets.Motion     = ProjectScreenPixel(Varying.CurrentClip) - ProjectScreenPixel(Varying.PreviousClip);
     return Targets;
 }
