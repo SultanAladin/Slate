@@ -712,7 +712,7 @@ class Preview
 
         if (!this.paused)
         {
-            const timestamps = this.canTime ? { querySet: this.querySet, beginningOfPassIndex: 0, endOfPassIndex: 1 } : undefined;
+            const timestamps = this.canTime ? { querySet: this.querySet, beginningOfPassWriteIndex: 0, endOfPassWriteIndex: 1 } : undefined;
             const pass = encoder.beginComputePass({ timestampWrites: timestamps });
             let current = -1;
             for (const dispatch of this.dispatches)
@@ -868,7 +868,7 @@ async function main()
     const say = (text) => { status.textContent = text; };
 
     if (!navigator.gpu) { say("WebGPU is not available in this browser. Chrome 113+, Edge 113+, Safari 18+ or Firefox 141+ with WebGPU enabled."); return; }
-    const adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
+    const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) { say("No WebGPU adapter was offered."); return; }
     const features = [];
     if (adapter.features.has("timestamp-query")) features.push("timestamp-query");
