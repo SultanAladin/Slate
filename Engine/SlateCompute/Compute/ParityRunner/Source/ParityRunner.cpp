@@ -16,6 +16,7 @@
 #include "Shared/ReflectionProjection.slang.h"
 #include "Shared/ToneProjection.slang.h"
 #include "Shared/TransmissionProjection.slang.h"
+#include "Shared/TyreConstraintProjection.slang.h"
 #include "Shared/SampleProjection.slang.h"
 
 #include <cstring>
@@ -759,6 +760,57 @@ const std::vector<ParityReport>& ParityRunner::Compare()
 
                 if (ProjectAccumulatedCount(CountLimit, CountLimit) != CountLimit)
                     ++Report.DisagreeingCount;
+            }
+
+            Report.SampleCount = SampleSpan;
+        }
+        else if (std::strcmp(Held.EntryName, "ProjectCord") == 0)
+        {
+            // 📐 The one invariant a cord projection cannot be allowed to lose on either toolchain: the two
+            //    corrections carry equal and opposite momentum, mₐ Δxₐ = −m_b Δx_b, so a sweep of cords moves no
+            //    centre of mass. And a rigid cord — zero compliance, both ends free — closes exactly: the
+            //    corrected length is the rest length to within a few units in the last place of a single.
+            constexpr std::uint32_t SampleSpan = 256u;
+
+            for (std::uint32_t Index = 0u; Index < SampleSpan; ++Index)
+            {
+                const Real32 Angle   = static_cast<Real32>(Index) * 0.0245f;
+                const Real32 Stretch = 0.8f + 0.4f * static_cast<Real32>(Index % 17u) / 16.0f;
+                const Real32 Rest    = 0.015f;
+
+                const Real32 AX = 0.3f, AY = 0.3f, AZ = 0.3f;
+                const Real32 BX = AX + Rest * Stretch * std::cos(Angle);
+                const Real32 BY = AY + Rest * Stretch * std::sin(Angle) * 0.6f;
+                const Real32 BZ = AZ + Rest * Stretch * std::sin(Angle) * 0.8f;
+
+                const Real32 InverseMassA = 1.0f / 0.027f;
+                const Real32 InverseMassB = Index % 3u == 0u ? 1.0f / 0.054f : InverseMassA;
+
+                Real32 Multiplier = 0.0f;
+                Real32 DAX = 0.0f, DAY = 0.0f, DAZ = 0.0f, DBX = 0.0f, DBY = 0.0f, DBZ = 0.0f;
+
+                ProjectCord(AX, AY, AZ, InverseMassA, BX, BY, BZ, InverseMassB, Rest, 0.0f, 1.0f / 1920.0f,
+                            Multiplier, DAX, DAY, DAZ, DBX, DBY, DBZ);
+
+                const Real64 MomentumX = static_cast<Real64>(DAX) / InverseMassA + static_cast<Real64>(DBX) / InverseMassB;
+                const Real64 MomentumY = static_cast<Real64>(DAY) / InverseMassA + static_cast<Real64>(DBY) / InverseMassB;
+                const Real64 MomentumZ = static_cast<Real64>(DAZ) / InverseMassA + static_cast<Real64>(DBZ) / InverseMassB;
+
+                if (std::fabs(MomentumX) > 1.0e-9 || std::fabs(MomentumY) > 1.0e-9 || std::fabs(MomentumZ) > 1.0e-9)
+                    ++Report.DisagreeingCount;
+
+                const Real64 ClosedX = static_cast<Real64>(AX + DAX) - static_cast<Real64>(BX + DBX);
+                const Real64 ClosedY = static_cast<Real64>(AY + DAY) - static_cast<Real64>(BY + DBY);
+                const Real64 ClosedZ = static_cast<Real64>(AZ + DAZ) - static_cast<Real64>(BZ + DBZ);
+                const Real64 Closed  = std::sqrt(ClosedX * ClosedX + ClosedY * ClosedY + ClosedZ * ClosedZ);
+
+                // 📝 The deviation in units in the last place of a single at the coordinates' magnitude, which is
+                //    where the correction is rounded — every sample's coordinates lie in the half-open [¼, ½).
+                const Real64 Deviation = std::fabs(Closed - static_cast<Real64>(Rest))
+                                       / static_cast<Real64>(std::nextafter(0.25f, 1.0f) - 0.25f);
+
+                if (Deviation > Report.LargestDeviation)
+                    Report.LargestDeviation = Deviation;
             }
 
             Report.SampleCount = SampleSpan;

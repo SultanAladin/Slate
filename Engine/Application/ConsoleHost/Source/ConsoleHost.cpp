@@ -49,6 +49,7 @@
 #include "SlateCompute/Compute/DisplayProjection/Api/DisplayProjection.h"
 #include "SlateCompute/Compute/SeamSpecification/Api/SeamSpecification.h"
 #include "SlateCompute/Compute/DomainSpace/Api/DomainSpace.h"
+#include "SlateCompute/Compute/TyreSolver/Api/TyreSolver.h"
 #include "SlateCompute/Compute/ChartPartition/Api/ChartPartition.h"
 #include "SlateDocument/Document/BrushSpecification/Api/BrushSpecification.h"
 #include "SlateDocument/Document/SurfaceLayerSequence/Api/SurfaceLayerSequence.h"
@@ -1116,6 +1117,17 @@ void VerifyParity()
            Runner.Register(SphericalEntry).Resolved,
            "[-] compared against a bound, never for equality");
 
+    // 🔴 The tyre solver's cord projection runs on the device every substep and on the host as the reference the
+    //    device recording is proved against; it is registered Bounded because the closure of a rigid cord is a
+    //    square root away from exact, and the bound is units in the last place of a single at the rest length.
+    Slate::ParityRegistration CordEntry;
+    CordEntry.EntryName = "ProjectCord";
+    CordEntry.Reserved   = Slate::PrecisionGuarantee::Bounded;
+
+    Report("The tyre cord projection registers",
+           Runner.Register(CordEntry).Resolved,
+           "[-] momentum conserved; a rigid cord closes within the bound");
+
     // 🔴 `28` §2's three surfaces are baked on the host and sampled on the device through the same two mappings,
     //    so both of them cross the toolchain seam in both directions and both are covered here. Neither is
     //    compared against a second implementation of itself: ① is compared as an inversion of its own parameter
@@ -1170,7 +1182,7 @@ void VerifyParity()
 
     const std::vector<Slate::ParityReport>& Reports = Runner.Compare();
 
-    Report("One report per registration", Reports.size() == 14u, "[-] in registration order");
+    Report("One report per registration", Reports.size() == 15u, "[-] in registration order");
 
     if (!Reports.empty())
     {
@@ -1198,7 +1210,7 @@ void VerifyParity()
     // 📝 Every report is measured rather than the tail from a counted position. An exact arm compares bit for
     //    bit and leaves its deviation at nothing, so the bound holds over it trivially — and the check no
     //    longer has to be corrected each time a registration is added ahead of the bounded ones.
-    bool EveryBoundHeld = Reports.size() == 14u;
+    bool EveryBoundHeld = Reports.size() == 15u;
 
     for (const Slate::ParityReport& Held : Reports)
     {
@@ -3497,6 +3509,107 @@ void VerifyRadianceChain()
 }   // namespace
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                     THE TYRE SOLVER
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📝 The host form of the device solver, which is the reference the device recording is compared to. The checks are
+//    physical rather than numerical: an inflated tyre holds its moulded size, an unloaded one reports no load, and
+//    a quarter car's weight pressed into it produces that weight back through the accumulators — the figure the
+//    vehicle reads two frames later from `TyreDeviceExchange::Load`.
+void VerifyTyre()
+{
+    std::printf("TyreSolver\n");
+
+    Slate::TyreSpecification Declared;
+
+    Report("The default tyre validates", Declared.Validate().Resolved, "[-] 225/45 R17 at 2.2 bar");
+
+    Slate::TyreSpecification Flat = Declared;
+    Flat.OuterRadius = Flat.RimRadius;
+
+    Report("A tyre with no section is rejected", !Flat.Validate().Resolved, "[-] the sidewall must stand somewhere");
+
+    Slate::Deliver<Slate::TyreLattice> Constructed = Slate::ConstructTyreLattice(Declared, 1u);
+
+    Report("One tyre constructs", Constructed.Resolved, "[-] sixteen rings by sixty-four segments");
+
+    if (!Constructed.Resolved)
+        return;
+
+    Slate::TyreLattice Lattice = Constructed.Resolve();
+
+    Report("The cords are coloured for the device",
+           Lattice.Colours.size() == 8u && Lattice.Cords.size() > 3000u,
+           "[-] eight independent runs; no two cords of a run share a particle");
+
+    // ① Inflated in the air for half a second — the moulded radius must hold within a quarter of a percent.
+    Slate::HubPose Airborne;
+    Airborne.Y = 1.0;
+
+    Discard(Slate::PlaceTyre(Lattice, 0u, Airborne));
+    Discard(Slate::DeclareGround(Lattice, 0u, -10.0));
+
+    const Slate::TyreStepSpecification Stepping;
+
+    Slate::ConvergentResult<Slate::ContactLoad> Frame;
+
+    for (std::uint32_t Index = 0u; Index < 30u; ++Index)
+        Frame = Slate::SolveTyreFrame(Lattice, Stepping);
+
+    double Radius = 0.0;
+
+    for (const Slate::TyreParticleRecord& Particle : Lattice.Particles)
+    {
+        const double Reach = std::sqrt(Particle.X * Particle.X + (Particle.Y - 1.0) * (Particle.Y - 1.0));
+
+        if (Reach > Radius)
+            Radius = Reach;
+    }
+
+    Report("The inflated tyre keeps its moulded radius",
+           std::fabs(Radius - Declared.OuterRadius) < 0.0025 * Declared.OuterRadius,
+           "[m] the shape block holds the gas law against the cords; no balloon");
+
+    Report("An airborne tyre carries no load",
+           Frame.Approximation.ForceY == 0.0 && Frame.Approximation.PatchLength == 0.0,
+           "[N] nothing touched the plane");
+
+    Report("The airborne sweep converges", Frame.Cause == Slate::TerminationCause::CriterionSatisfied,
+           "[m] the last sweep's largest correction is below the tolerance");
+
+    // ② Pressed thirteen millimetres into the ground with the hub held — a quarter car's weight comes back.
+    Slate::HubPose Pressed;
+    Pressed.Y = Radius - 0.013;
+
+    Discard(Slate::DeclareGround(Lattice, 0u, 0.0));
+    Discard(Slate::PlaceTyre(Lattice, 0u, Pressed));
+
+    for (std::uint32_t Index = 0u; Index < 60u; ++Index)
+    {
+        Discard(Slate::DeclareHubMotion(Lattice, 0u, Pressed, Pressed));
+        Frame = Slate::SolveTyreFrame(Lattice, Stepping);
+    }
+
+    const Slate::ContactLoad& Load = Frame.Approximation;
+
+    Report("The pressed tyre returns a quarter car's weight",
+           Load.ForceY > 2800.0 && Load.ForceY < 4200.0,
+           "[N] 13 mm at about 270 kN/m; the normal load the vehicle reads");
+
+    Report("The contact patch has a footprint",
+           Load.PatchLength > 0.10 && Load.PatchLength < 0.30 && Load.PatchWidth > 0.06 && Load.PatchWidth < 0.20,
+           "[m] longer than it is wide, as a radial's is");
+
+    Report("A held hub sees no longitudinal force",
+           std::fabs(Load.ForceX) < 0.05 * Load.ForceY,
+           "[N] static friction has nothing to resist");
+
+    Report("The penetration is a fraction of the deflection",
+           Load.Penetration < 0.003,
+           "[m] solver health: how far a substep let the tread sink before projecting it out");
+}
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                       THE HOST
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -3568,6 +3681,9 @@ int main()
     std::printf("\n");
 
     VerifyRadianceChain();
+    std::printf("\n");
+
+    VerifyTyre();
     std::printf("\n");
 
     if (RejectedCount == 0)
