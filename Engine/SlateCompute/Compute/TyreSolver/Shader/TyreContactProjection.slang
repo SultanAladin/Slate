@@ -108,18 +108,18 @@ void main(Unsigned32x3 Dispatched : SV_DispatchThreadID)
     const Real32 ArmY = Current.Y - CentreY;
     const Real32 ArmZ = Current.Z - CentreZ;
 
-    InterlockedAdd(Accumulators[Base + AccumulatorForceX],  EncodeFixed(ForceX, LoadFixedScale));
-    InterlockedAdd(Accumulators[Base + AccumulatorForceY],  EncodeFixed(ForceY, LoadFixedScale));
-    InterlockedAdd(Accumulators[Base + AccumulatorForceZ],  EncodeFixed(ForceZ, LoadFixedScale));
-    InterlockedAdd(Accumulators[Base + AccumulatorTorqueX], EncodeFixed(ArmY * ForceZ - ArmZ * ForceY, LoadFixedScale));
-    InterlockedAdd(Accumulators[Base + AccumulatorTorqueY], EncodeFixed(ArmZ * ForceX - ArmX * ForceZ, LoadFixedScale));
-    InterlockedAdd(Accumulators[Base + AccumulatorTorqueZ], EncodeFixed(ArmX * ForceY - ArmY * ForceX, LoadFixedScale));
-    InterlockedAdd(Accumulators[Base + AccumulatorContactCount], 1);
-    InterlockedMin(Accumulators[Base + AccumulatorPatchLeading],  EncodeFixed(Current.X, LengthFixedScale));
-    InterlockedMax(Accumulators[Base + AccumulatorPatchTrailing], EncodeFixed(Current.X, LengthFixedScale));
-    InterlockedMin(Accumulators[Base + AccumulatorPatchInner],    EncodeFixed(Current.Z, LengthFixedScale));
-    InterlockedMax(Accumulators[Base + AccumulatorPatchOuter],    EncodeFixed(Current.Z, LengthFixedScale));
-    InterlockedMax(Accumulators[Base + AccumulatorPenetration],   EncodeFixed(Penetration, LengthFixedScale));
+    Accumulators[Base + AccumulatorForceX].add(EncodeFixed(ForceX, LoadFixedScale));
+    Accumulators[Base + AccumulatorForceY].add(EncodeFixed(ForceY, LoadFixedScale));
+    Accumulators[Base + AccumulatorForceZ].add(EncodeFixed(ForceZ, LoadFixedScale));
+    Accumulators[Base + AccumulatorTorqueX].add(EncodeFixed(ArmY * ForceZ - ArmZ * ForceY, LoadFixedScale));
+    Accumulators[Base + AccumulatorTorqueY].add(EncodeFixed(ArmZ * ForceX - ArmX * ForceZ, LoadFixedScale));
+    Accumulators[Base + AccumulatorTorqueZ].add(EncodeFixed(ArmX * ForceY - ArmY * ForceX, LoadFixedScale));
+    Accumulators[Base + AccumulatorContactCount].add(1);
+    Accumulators[Base + AccumulatorPatchLeading].min(EncodeFixed(Current.X, LengthFixedScale));
+    Accumulators[Base + AccumulatorPatchTrailing].max(EncodeFixed(Current.X, LengthFixedScale));
+    Accumulators[Base + AccumulatorPatchInner].min(EncodeFixed(Current.Z, LengthFixedScale));
+    Accumulators[Base + AccumulatorPatchOuter].max(EncodeFixed(Current.Z, LengthFixedScale));
+    Accumulators[Base + AccumulatorPenetration].max(EncodeFixed(Penetration, LengthFixedScale));
 }
 
 }   // namespace Slate

@@ -39,11 +39,20 @@
 //    two ways is a condition true in only one of them, and that is worse than a condition checked once.
 #define SLATE_STATIC_ASSERT(Condition, Message)
 
+// 📝 🔴 The WebGPU target has no sixty-four-bit scalar at all, so under `SLATE_WEBGPU_TOOLCHAIN` the wide width is the
+//    narrow one. Every `Shared/` routine the browser preview compiles narrows its Real64 back to Real32 before it is
+//    stored — the widening is a guard against cancellation in an intermediate, not a result — so the Bounded
+//    guarantee those routines claim is still met there, at a wider bound; the Exact ones are not compiled for it.
+#if defined(SLATE_WEBGPU_TOOLCHAIN)
+typedef float    Real64;
+typedef uint     Unsigned64;
+#else
 typedef double   Real64;
+typedef uint64_t Unsigned64;
+#endif
 typedef float    Real32;
 typedef int      Signed32;
 typedef uint     Unsigned32;
-typedef uint64_t Unsigned64;
 
 #else
 

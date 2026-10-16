@@ -50,15 +50,19 @@ void main(Unsigned32x3 Grouped : SV_GroupID, Unsigned32x3 Local : SV_GroupThread
 
         for (Unsigned32 Column = 0u; Column <= Row; ++Column)
         {
-            const Real32 Entry = DecodeFixed(ShapeSums[Sums + Column * ShapeRowLimit + Row], ShapeEntryScale(Column, Row));
+            const Real32 Entry = DecodeFixed(ShapeSums[Sums + Column * ShapeRowLimit + Row].load(), ShapeEntryScale(Column, Row));
             ShapeMatrix[Matrix + Row * ShapeRowLimit + Column] = Entry + (Row == Column ? ScaledCompliance : 0.0f);
         }
 
-        const Real32 Value = DecodeFixed(ShapeSums[Values + Row], ShapeValueScale(Row));
+        const Real32 Value = DecodeFixed(ShapeSums[Values + Row].load(), ShapeValueScale(Row));
         ShapeAdvances[Rows + Row] = -(Value - Record.RestValue) - ScaledCompliance * ShapeMultipliers[Rows + Row];
     }
 
-    GroupMemoryBarrierWithGroupSync();
+    // 🔴 All memory, not group memory. The factor's scratch is a storage span, not groupshared, and the group
+    //    barrier alone orders only the latter: on SPIR-V it carries workgroup memory semantics, and on WGSL it
+    //    lowers to `workgroupBarrier()` with no `storageBarrier()` — a lane reading a column another lane just
+    //    wrote would be reading a stale cache line on either target, correctly on one driver.
+    AllMemoryBarrierWithGroupSync();
 
     // 📐 L Lᵀ = A, in place, column by column; a pivot that reads non-positive is a saturated sum and is clamped.
     for (Unsigned32 Column = 0u; Column < Order; ++Column)
@@ -70,7 +74,7 @@ void main(Unsigned32x3 Grouped : SV_GroupID, Unsigned32x3 Local : SV_GroupThread
 
         Pivot = Real32(SquareRoot(Real64(Pivot > 1.0e-30f ? Pivot : 1.0e-30f)));
 
-        GroupMemoryBarrierWithGroupSync();
+        AllMemoryBarrierWithGroupSync();
 
         if (Lane == 0u)
             ShapeMatrix[Matrix + Column * ShapeRowLimit + Column] = Pivot;
@@ -85,7 +89,7 @@ void main(Unsigned32x3 Grouped : SV_GroupID, Unsigned32x3 Local : SV_GroupThread
             ShapeMatrix[Matrix + Row * ShapeRowLimit + Column] = Sum / Pivot;
         }
 
-        GroupMemoryBarrierWithGroupSync();
+        AllMemoryBarrierWithGroupSync();
     }
 
     // 📐 L y = b forward, Lᵀ Δλ = y backward — sequential by nature, so one invocation does it.
@@ -113,14 +117,14 @@ void main(Unsigned32x3 Grouped : SV_GroupID, Unsigned32x3 Local : SV_GroupThread
         }
     }
 
-    GroupMemoryBarrierWithGroupSync();
+    AllMemoryBarrierWithGroupSync();
 
     for (Unsigned32 Row = Lane; Row < Order; Row += TyreGroupExtent)
         ShapeMultipliers[Rows + Row] += ShapeAdvances[Rows + Row];
 
     // 📝 The sums are this workgroup's alone once read, so it zeroes them for the next pass itself.
     for (Unsigned32 Slot = Lane; Slot < ShapeSumStride; Slot += TyreGroupExtent)
-        ShapeSums[Sums + Slot] = 0;
+        ShapeSums[Sums + Slot].store(0);
 }
 
 }   // namespace Slate

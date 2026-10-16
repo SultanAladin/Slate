@@ -33,12 +33,12 @@ void main(Unsigned32x3 Dispatched : SV_DispatchThreadID)
         const Unsigned32 Base = Tyre * TyreAccumulatorStride;
 
         for (Unsigned32 Slot = 0u; Slot < TyreAccumulatorStride; ++Slot)
-            Accumulators[Base + Slot] = 0;
+            Accumulators[Base + Slot].store(0);
 
-        Accumulators[Base + AccumulatorPatchLeading]  =  2147483647;
-        Accumulators[Base + AccumulatorPatchTrailing] = -2147483647;
-        Accumulators[Base + AccumulatorPatchInner]    =  2147483647;
-        Accumulators[Base + AccumulatorPatchOuter]    = -2147483647;
+        Accumulators[Base + AccumulatorPatchLeading].store(2147483647);
+        Accumulators[Base + AccumulatorPatchTrailing].store(-2147483647);
+        Accumulators[Base + AccumulatorPatchInner].store(2147483647);
+        Accumulators[Base + AccumulatorPatchOuter].store(-2147483647);
     }
 
     // 📝 The substep's starting positions were written by the previous velocity recovery, not here; only the

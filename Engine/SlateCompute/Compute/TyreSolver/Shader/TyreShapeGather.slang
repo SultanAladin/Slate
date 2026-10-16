@@ -143,16 +143,16 @@ void main(Unsigned32x3 Dispatched : SV_DispatchThreadID)
     const Real32 DiagonalScale = ShapeEntryScale(RingRow, RingRow);   // 📝 every length–length entry shares it
     const Real32 CrossScale    = ShapeEntryScale(0u, RingRow);        // 📝 every volume–length entry shares it
 
-    InterlockedAdd(ShapeSums[VolumeVolume],     EncodeFixed(WeightedDot(W, VX, VY, VZ, VX, VY, VZ), ShapeEntryScale(0u, 0u)));
-    InterlockedAdd(ShapeSums[RingRing],         EncodeFixed(WeightedDot(W, RX, RY, RZ, RX, RY, RZ), DiagonalScale));
-    InterlockedAdd(ShapeSums[MeridianMeridian], EncodeFixed(WeightedDot(W, MX, MY, MZ, MX, MY, MZ), DiagonalScale));
-    InterlockedAdd(ShapeSums[VolumeRing],       EncodeFixed(WeightedDot(W, VX, VY, VZ, RX, RY, RZ), CrossScale));
-    InterlockedAdd(ShapeSums[VolumeMeridian],   EncodeFixed(WeightedDot(W, VX, VY, VZ, MX, MY, MZ), CrossScale));
-    InterlockedAdd(ShapeSums[RingMeridian],     EncodeFixed(WeightedDot(W, RX, RY, RZ, MX, MY, MZ), DiagonalScale));
+    ShapeSums[VolumeVolume].add(EncodeFixed(WeightedDot(W, VX, VY, VZ, VX, VY, VZ), ShapeEntryScale(0u, 0u)));
+    ShapeSums[RingRing].add(EncodeFixed(WeightedDot(W, RX, RY, RZ, RX, RY, RZ), DiagonalScale));
+    ShapeSums[MeridianMeridian].add(EncodeFixed(WeightedDot(W, MX, MY, MZ, MX, MY, MZ), DiagonalScale));
+    ShapeSums[VolumeRing].add(EncodeFixed(WeightedDot(W, VX, VY, VZ, RX, RY, RZ), CrossScale));
+    ShapeSums[VolumeMeridian].add(EncodeFixed(WeightedDot(W, VX, VY, VZ, MX, MY, MZ), CrossScale));
+    ShapeSums[RingMeridian].add(EncodeFixed(WeightedDot(W, RX, RY, RZ, MX, MY, MZ), DiagonalScale));
 
-    InterlockedAdd(ShapeSums[Values + 0u],          EncodeFixed(Gradient.OwnedVolume,  ShapeValueScale(0u)));
-    InterlockedAdd(ShapeSums[Values + RingRow],     EncodeFixed(Gradient.RingEdge,     ShapeValueScale(RingRow)));
-    InterlockedAdd(ShapeSums[Values + MeridianRow], EncodeFixed(Gradient.MeridianEdge, ShapeValueScale(MeridianRow)));
+    ShapeSums[Values + 0u].add(EncodeFixed(Gradient.OwnedVolume,  ShapeValueScale(0u)));
+    ShapeSums[Values + RingRow].add(EncodeFixed(Gradient.RingEdge,     ShapeValueScale(RingRow)));
+    ShapeSums[Values + MeridianRow].add(EncodeFixed(Gradient.MeridianEdge, ShapeValueScale(MeridianRow)));
 }
 
 }   // namespace Slate

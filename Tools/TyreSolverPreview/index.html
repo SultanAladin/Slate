@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Slate — GPU XPBD tyre fleet (WebGPU preview)</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0d0f12; color: #d8dce2; font: 13px/1.45 ui-monospace, Menlo, Consolas, monospace; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  #panel { position: absolute; left: 12px; top: 12px; width: 340px; background: rgba(13,15,18,.86); border: 1px solid #2a2f37; border-radius: 6px; padding: 10px 12px; backdrop-filter: blur(4px); }
+  #panel h1 { font-size: 13px; margin: 0 0 6px; letter-spacing: .04em; color: #fff; }
+  #panel .row { display: flex; justify-content: space-between; gap: 8px; margin: 3px 0; }
+  #panel label { color: #9aa3ad; }
+  #panel input[type=range] { width: 150px; }
+  #panel select, #panel button { background: #171b21; color: #d8dce2; border: 1px solid #2a2f37; border-radius: 4px; padding: 2px 6px; font: inherit; }
+  #panel table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  #panel td { padding: 1px 2px; }
+  #panel td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  #status { color: #ffb86b; white-space: pre-wrap; }
+  #panel .hint { color: #6f7883; font-size: 11px; margin-top: 6px; }
+  .bar { height: 4px; background: #1d222a; border-radius: 2px; overflow: hidden; }
+  .bar > div { height: 100%; background: #5ec4ff; width: 0; }
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="panel">
+  <h1>GPU XPBD tyre fleet — the engine's .slang kernels on WebGPU</h1>
+  <div class="row"><label>cars (×4 tyres)</label><span><input id="cars" type="range" min="1" max="40" value="20"><b id="carsValue">20</b></span></div>
+  <div class="row"><label>speed [m/s]</label><span><input id="speed" type="range" min="0" max="30" value="15" step="1"><b id="speedValue">15</b></span></div>
+  <div class="row"><label>substeps / frame</label><span><input id="substeps" type="range" min="8" max="48" value="32" step="8"><b id="substepsValue">32</b></span></div>
+  <div class="row"><label>pressure [bar]</label><span><input id="pressure" type="range" min="0.6" max="3.0" value="2.2" step="0.1"><b id="pressureValue">2.2</b></span></div>
+  <div class="row"><label>watch car</label><span><select id="watch"></select> <button id="follow">follow: on</button> <button id="pause">pause</button></span></div>
+  <table>
+    <tr><td>frame</td><td class="n" id="frameMs">–</td><td>ms</td><td>compute GPU</td><td class="n" id="gpuMs">–</td><td>ms</td></tr>
+    <tr><td>tyres</td><td class="n" id="tyres">–</td><td></td><td>dispatches/frame</td><td class="n" id="dispatches">–</td><td></td></tr>
+    <tr><td>particles</td><td class="n" id="particles">–</td><td></td><td>load latency</td><td class="n">2</td><td>frames</td></tr>
+  </table>
+  <table id="loads">
+    <tr><td></td><td class="n">Fy [N]</td><td class="n">|Fxz| [N]</td><td class="n">defl [mm]</td><td class="n">contacts</td></tr>
+    <tr><td>front left</td><td class="n" id="fl0">–</td><td class="n" id="fl1">–</td><td class="n" id="fl2">–</td><td class="n" id="fl3">–</td></tr>
+    <tr><td>front right</td><td class="n" id="fr0">–</td><td class="n" id="fr1">–</td><td class="n" id="fr2">–</td><td class="n" id="fr3">–</td></tr>
+    <tr><td>rear left</td><td class="n" id="rl0">–</td><td class="n" id="rl1">–</td><td class="n" id="rl2">–</td><td class="n" id="rl3">–</td></tr>
+    <tr><td>rear right</td><td class="n" id="rr0">–</td><td class="n" id="rr1">–</td><td class="n" id="rr2">–</td><td class="n" id="rr3">–</td></tr>
+    <tr><td>Σ Fy / weight</td><td class="n" id="sum">–</td><td colspan="3"><div class="bar"><div id="sumBar"></div></div></td></tr>
+  </table>
+  <div id="status"></div>
+  <div class="hint">drag: orbit · wheel: zoom · F: follow · space: pause. Every tyre is 1024 particles, 3712 cords and an 81-row shape block, stepped 32× per frame on the GPU; the CPU vehicle sim reads each wheel's load back two frames late and integrates against the secant stiffness it implies.</div>
+</div>
+<script type="module" src="./TyreSolverPreview.js"></script>
+</body>
+</html>
