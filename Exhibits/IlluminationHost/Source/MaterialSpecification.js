@@ -97,6 +97,8 @@ export const CourseMaterial = Object.freeze({
     MirrorTrim:      78,
     TabletHousing:   80,
     RimBase:         81, // original MatTyre finish on METAL geometry; never shredded
+    // 📝 Polished metal for reflection checks: a near-mirror finish (roughness 0.06, metalness 1), so the glossy and triangle reflections show it.
+    PolishedSteel:   82,
     RimScrape:       79     // the rear-view mirror's housing and stem: CabinTrim's finish, fixed to the shell, not the cockpit
 });
 
@@ -210,6 +212,9 @@ export function ConstructMaterialSpecification()
     const Steel = Dielectric(0.10, 0.10, 0.11, 0.38);
     Steel.Metalness = 1.0;
     Materials[CourseMaterial.SteelDark]       = Steel;
+    const Polished = Dielectric(0.80, 0.81, 0.83, 0.06);
+    Polished.Metalness = 1.0;
+    Materials[CourseMaterial.PolishedSteel]   = Polished;
     const Warm = Dielectric(0.95, 0.90, 0.80, 0.30);
     Warm.Emission = [14.0, 10.2, 6.0];
     Materials[CourseMaterial.LampWarm]        = Warm;

@@ -64,6 +64,9 @@ export const LevelShapes = Object.freeze({
     GantryBeam:   { Emit: () => EmitBoxFacets(21.6, 0.5, 0.6, CourseMaterial.SteelDark), Voxel: 0.12, Cards: 4 },
     GantryLamp:   { Emit: () => EmitBoxFacets(20.0, 0.22, 0.10, CourseMaterial.GateLamp), Voxel: 0.1, Cards: 4 },
     SignPost:     { Emit: () => EmitBoxFacets(0.12, 0.12, 3.8, CourseMaterial.SteelDark), Voxel: 0.1, Cards: 0, Distance: false },
+    // 📝 Polished metal for reflection checks (CourseMaterial.PolishedSteel): a column and a flat panel, both in the distance field.
+    ChromeColumn: { Emit: () => EmitPrismFacets(0.45, 3.2, 16, CourseMaterial.PolishedSteel), Voxel: 0.05, Cards: 12 },
+    ChromePanel:  { Emit: () => EmitBoxFacets(6.0, 0.12, 3.0, CourseMaterial.PolishedSteel), Voxel: 0.05, Cards: 12 },
     TyreBarrier:  { Emit: () => EmitTyreBarrierFacets(6, 0.68, 0.33, 1.2), Voxel: 0.06, Cards: 12 }
 });
 
@@ -187,6 +190,11 @@ export function ResolveLevelPlacements()
         const Angle = Facing * Degrees;
         Place("PoleHead", `Light pole head ${Index}`, X + 0.7 * Math.cos(Angle), Y + 0.7 * Math.sin(Angle), 10.8, Angle);
     });
+
+    // ⑨ Polished metal for reflection checks: on open asphalt south-east of the course, clear of the cones and the racing line
+    for (let Index = 0; Index < 4; ++Index)
+        Place("ChromeColumn", `Chrome column ${Index}`, 100.0 + 4.0 * Index, -50.0);
+    Place("ChromePanel", "Chrome panel", 108.0, -54.0, 0.0, 0.0);
 
     return List;
 }

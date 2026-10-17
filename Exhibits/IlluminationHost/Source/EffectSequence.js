@@ -157,7 +157,7 @@ export class EffectSequence
             VertexLayouts: [],
             Primitive: { topology: "triangle-list", cullMode: "none" },
             DepthStencil: { format: "depth32float", depthWriteEnabled: true, depthCompare: "greater" },
-            Targets: [{ format: "rgba16float" }, { format: "rg16float" }]
+            Targets: [{ format: "rgba16float" }, { format: "rg16float" }, { format: "r16float" }]
         }, [this.Layout]);
     }
 
