@@ -14,3 +14,6 @@ imgui.ini
 
 # Proof gates build to a scratch directory; any object or binary beside a proof source is stale.
 Tools/*Proof/*.o
+
+# Installed packages for the exhibit and its validation harness (npm ci); regenerated, never committed.
+node_modules/
