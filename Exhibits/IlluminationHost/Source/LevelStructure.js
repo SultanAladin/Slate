@@ -5,7 +5,7 @@
 
 import { CourseMaterial } from "./MaterialSpecification.js";
 import { CourseConstants, KerbConstants, SpawnPoint, EmitQuad, EmitBoxFacets, EmitPanelFacets, EmitPrismFacets,
-         EmitExtrusionFacets, EmitConeFacets, EmitRampFacets, EmitTyreBarrierFacets } from "./CourseStructure.js";
+         EmitExtrusionFacets, EmitConeFacets, EmitRampFacets, EmitTyreBarrierFacets, EmitSphereFacets } from "./CourseStructure.js";
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      SHAPES
@@ -67,6 +67,11 @@ export const LevelShapes = Object.freeze({
     // 📝 Polished metal for reflection checks (CourseMaterial.PolishedSteel): a column and a flat panel, both in the distance field.
     ChromeColumn: { Emit: () => EmitPrismFacets(0.45, 3.2, 16, CourseMaterial.PolishedSteel), Voxel: 0.05, Cards: 12 },
     ChromePanel:  { Emit: () => EmitBoxFacets(6.0, 0.12, 3.0, CourseMaterial.PolishedSteel), Voxel: 0.05, Cards: 12 },
+    // 📝 The reflection test row: a plane mirror (thin along X, facing the spheres) and three 1 m spheres.
+    MirrorSheet:     { Emit: () => EmitBoxFacets(0.08, 2.0, 1.5, CourseMaterial.MirrorSheet), Voxel: 0.04, Cards: 6 },
+    AluminiumSphere: { Emit: () => EmitSphereFacets(0.5, 24, 12, CourseMaterial.AluminiumSphere), Voxel: 0.05, Cards: 12 },
+    GoldSphere:      { Emit: () => EmitSphereFacets(0.5, 24, 12, CourseMaterial.GoldSphere), Voxel: 0.05, Cards: 12 },
+    GlassSphere:     { Emit: () => EmitSphereFacets(0.5, 24, 12, CourseMaterial.GlassSphere), Voxel: 0.05, Cards: 12 },
     TyreBarrier:  { Emit: () => EmitTyreBarrierFacets(6, 0.68, 0.33, 1.2), Voxel: 0.06, Cards: 12 }
 });
 
@@ -195,6 +200,12 @@ export function ResolveLevelPlacements()
     for (let Index = 0; Index < 4; ++Index)
         Place("ChromeColumn", `Chrome column ${Index}`, 100.0 + 4.0 * Index, -50.0);
     Place("ChromePanel", "Chrome panel", 108.0, -54.0, 0.0, 0.0);
+
+    // ⑩ Mirror and spheres: aluminium, gold and glass on open asphalt, with the plane mirror facing them across 4 m.
+    Place("MirrorSheet", "Plane mirror", 124.0, -46.0, 0.0, 0.0);
+    Place("AluminiumSphere", "Aluminium sphere", 110.0, -42.0, 0.0, 0.0);
+    Place("GoldSphere", "Gold sphere", 113.0, -42.0, 0.0, 0.0);
+    Place("GlassSphere", "Glass sphere", 116.0, -42.0, 0.0, 0.0);
 
     return List;
 }
@@ -425,6 +436,7 @@ export const TrainingDrills = Object.freeze([
 export const ArenaZones = Object.freeze([
     { Name: "Start grid",  Position: [-40.0, 0.0],   Yaw: 0.0,   Note: "Main straight" },
     { Name: "Garage",      Position: [34.0, 20.0],   Yaw: 90.0,  Note: "Hangar & vehicle workshop" },
+    { Name: "Metal & glass", Position: [112.0, -30.0], Yaw: -90.0, Note: "Mirror and three spheres" },
     { Name: "Tunnel",      Position: [-36.0, -48.0], Yaw: 0.0,   Note: "Lamps in the dark" },
     { Name: "East Course", Position: [80.0, 0.0],    Yaw: 0.0,   Note: "Open proving grounds" },
     { Name: "Smash Alley", Position: [-16.0, -27.0], Yaw: 0.0,   Note: "Breakable objects" },

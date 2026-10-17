@@ -23,7 +23,7 @@ import { CaptureFrameCount, CaptureMatrix } from "./BenchmarkMetrics.js";
 export const InspectionModes = [
     ["Final image", 0], ["Direct sun only", 1], ["Indirect diffuse (GI)", 2], ["Indirect irradiance (denoised)", 3],
     ["ReSTIR irradiance (raw, no denoise)", 4], ["Glossy reflections", 5], ["Global distance field", 6],
-    ["Surface cards (texel space)", 7], ["Normals", 8], ["Albedo", 9]
+    ["Surface cards (texel space)", 7], ["Normals", 8], ["Albedo", 9], ["Fresnel reflectance (environment)", 10]
 ];
 
 export const DistanceInspections = [
@@ -851,12 +851,19 @@ function HexToRgb(Hex)
 
 function BuildLevel(Host, C, Body)
 {
-    const Zones = C.Card(Body, "Proving grounds", "Map", { Accent: Accent.Level, Index: 1, Subtitle: "Teleport the car" });
+    const S = Host.Settings;
+    const Test = C.Card(Body, "Metal & glass row", "Layers", { Accent: Accent.Level, Index: 1, Subtitle: "Mirror · aluminium · gold · glass" });
+    C.Muted(Test, "A plane mirror and three 1 m spheres on the open asphalt south-east of the course. Metals reflect in their own colour; the glass bends the " +
+                  "light behind it by its index of refraction, and every surface's reflectance follows Fresnel: F0 at normal incidence, rising toward grazing.");
+    Slider(C, Test, S, "GlassIndex", "Glass index of refraction", 1.0, 2.5, 0.01, "n", 2, ["Thin", "Dense"]);
+    C.Muted(Test, "Glass F0 = ((n − 1)/(n + 1))². At n = 1.5 that is 4 %. Inspection → Fresnel reflectance shows the environment reflectance per pixel.");
+
+    const Zones = C.Card(Body, "Proving grounds", "Map", { Accent: Accent.Level, Index: 2, Subtitle: "Teleport the car" });
     C.Muted(Zones, "A 216 × 120 m asphalt pad in a grass surround. West: the main straight with kerbs and a jump, a skidpad, a concrete burnout box, a smash alley of breakable props, a slatted hangar for bounce light, a container yard and a lit tunnel. East: the training arena — launch strip, slalom, moose test, cone bowling, spin box and a figure-8.");
     for (const Zone of LevelZones)
         C.LinkButton(Zones, `${Zone.Name} · ${Zone.Note}`, () => Host.TeleportVehicle(Zone));
 
-    const Budget = C.Card(Body, "Scene budget", "Cpu", { Accent: Accent.Level, Index: 2 });
+    const Budget = C.Card(Body, "Scene budget", "Cpu", { Accent: Accent.Level, Index: 3 });
     C.Stats(Budget, [["Occupants", () => Host.Scene.Occupants.length], ["In the field", () => Host.Scene.QueryUnionCount()],
                      ["Volumes", () => Host.Volumes.Volumes.length]]);
     C.Stats(Budget, [["Cards", () => Host.Cards.Cards.length], ["Draw runs", () => Host.Scene.DrawRuns.length],

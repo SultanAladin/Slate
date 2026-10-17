@@ -52,6 +52,7 @@ const InspectionDistance   : u32 = 6u;
 const InspectionCards      : u32 = 7u;
 const InspectionNormal     : u32 = 8u;
 const InspectionAlbedo     : u32 = 9u;
+const InspectionFresnel    : u32 = 10u;
 
 // 📝 Diffuse exitance: the Lambert radiance the surface gives off, ρ/π · E, with the sun, the fire and the lights, and the
 //    indirect irradiance the pixel itself shows (enclosure included), plus emission. The cards hold the same quantity, so a
@@ -166,6 +167,8 @@ fn ResolveRecombination(@builtin(global_invocation_id) Invocation: vec3u)
         case 5u: { Colour = Specular; }
         case 8u: { Colour = Normal * 0.5 + 0.5; }
         case 9u: { Colour = Surface.Albedo; }
+        // 📝 The environment reflectance per pixel: F0·A + B from the split-sum response, so Fresnel's rise toward grazing shows.
+        case 10u: { Colour = ResolveSpecularColour(Surface) * LayerResponse.x + vec3f(LayerResponse.y); }
         default: { }
     }
     textureStore(RecombinedTarget, Pixel, vec4f(CompositePlume(Colour, Pixel), 1.0));

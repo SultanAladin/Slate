@@ -138,6 +138,9 @@ struct MaterialRecord
     CoatRoughness : f32,     // [-]
     SpecularLevel : f32,     // [-]  dielectric F0
     Transmission  : f32,     // [-]
+    // 📝 Index of refraction; 0 keeps the surface opaque. The record is 64 bytes, its size rounded to 16 by WGSL: the
+    //    host writes 16 floats per material (MaterialRecordBytes in MaterialSpecification.js).
+    IndexOfRefraction : f32, // [-]  > 1 bends transmitted light by Snell's law (DisplayRefraction.wgsl)
 }
 
 //------------------------------------------------------------------------------------------------------------------------

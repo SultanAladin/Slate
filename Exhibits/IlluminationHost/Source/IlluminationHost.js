@@ -15,7 +15,7 @@ import { DeviceExchange } from "./DeviceExchange.js";
 import { ShaderInterchange } from "./ShaderInterchange.js";
 import { SceneStructure, OccupantStride, GroundLayout, OccupantRole } from "./FacetStructure.js";
 import { ConstructMaterialSpecification, EncodeMaterialRecords, CourseMaterial, MarkedFamilyFirst, MarkedFamilyLast,
-         MarkedFamilyExtraFirst, MarkedFamilyExtraLast } from "./MaterialSpecification.js";
+         MarkedFamilyExtraFirst, MarkedFamilyExtraLast, DefaultGlassIndex, FresnelF0FromIndex, MaterialRecordBytes } from "./MaterialSpecification.js";
 import { TyreMarkDepot, TyreMarkLayout } from "./TyreMarkDepot.js";
 import { OccupantDistanceSpace } from "./OccupantDistanceSpace.js";
 import { SceneDistanceSpace, ResolveMovedBounds } from "./SceneDistanceSpace.js";
@@ -63,7 +63,7 @@ const ShaderSources = [
     "CardSampling.wgsl", "CardCapture.wgsl", "CardIrradiance.wgsl", "CardDirect.wgsl", "CardRadiosity.wgsl", "CardFinal.wgsl",
     "AtmosphereScattering.wgsl", "SurfaceReflectance.wgsl", "ShadowRaster.wgsl", "SurfaceRaster.wgsl", "DirectRadiance.wgsl",
     "ReservoirRecords.wgsl", "ReservoirTemporal.wgsl", "ReservoirSpatial.wgsl", "ReflectionTraversal.wgsl", "VarianceTemporal.wgsl",
-    "VarianceWavelet.wgsl", "VarianceUpsample.wgsl", "InspectionMarch.wgsl", "DisplayRecombination.wgsl", "DisplayAntialias.wgsl",
+    "VarianceWavelet.wgsl", "VarianceUpsample.wgsl", "InspectionMarch.wgsl", "DisplayRecombination.wgsl", "DisplayRefraction.wgsl", "DisplayAntialias.wgsl",
     "DisplayExposure.wgsl", "DisplayPresent.wgsl", "FireIllumination.wgsl", "PlumeRecords.wgsl", "PlumeAdvection.wgsl", "PlumePressure.wgsl", "PlumeVorticity.wgsl", "PlumeMarch.wgsl",
     "FragmentDistance.wgsl", "EffectRecords.wgsl", "EffectRaster.wgsl", "VehicleVisual.wgsl", "SparkRaster.wgsl", "ForwardRaster.wgsl",
     "CabinOverlay.wgsl", "CabinVolume.wgsl", "LightClusterSpace.wgsl", "ScreenTraversal.wgsl", "TriangleHierarchyTraversal.wgsl", "NearestDepthTransfer.wgsl", "NearestDepthReduction.wgsl"
@@ -114,7 +114,7 @@ class IlluminationHost
             SmokeEnabled: true, SmokeResolution: 2, IgnitionMode: 0, ThermalGrip: false, LineLock: true,
             TyreMarks: true, TyreMarkStrength: 1.0,
             Gas: ConstructGasParameters(),
-            SunElevation: 38.0, SunAzimuth: 145.0, SolarIlluminance: 12.0, SkyScale: 1.0, EmissionScale: 1.0,
+            SunElevation: 38.0, SunAzimuth: 145.0, SolarIlluminance: 12.0, SkyScale: 1.0, EmissionScale: 1.0, GlassIndex: DefaultGlassIndex,
             ExposureCompensation: 0.0, AutoExposure: true, DirectShadow: true,
             Indirect: true, ScreenTraversal: false, ScreenIndirect: true, ScreenReflection: true, TriangleReflection: false,
             TemporalReuse: true, SpatialReuse: true, VisibilityReuse: true, RadianceRefresh: true,
@@ -380,6 +380,15 @@ class IlluminationHost
             this.ApplyPreset(this.PendingPreset);
     }
 
+    // 📝 The glass sphere's index of refraction: the bend and the Fresnel F0 that follows it, written into its record in place.
+    ApplyGlassIndex()
+    {
+        const Glass = this.Materials[CourseMaterial.GlassSphere];
+        Glass.IndexOfRefraction = this.Settings.GlassIndex;
+        Glass.SpecularLevel = FresnelF0FromIndex(this.Settings.GlassIndex);
+        this.Exchange.Device.queue.writeBuffer(this.MaterialRecords, CourseMaterial.GlassSphere * MaterialRecordBytes, EncodeMaterialRecords([Glass]));
+    }
+
     // 📝 Every editor edit lands here once its value is written: most settings are read each frame and need nothing;
     //    these rebuild something or act.
     ApplySetting(Key)
@@ -403,6 +412,8 @@ class IlluminationHost
             this.Stress.Assign(this.Stress.QueryCapacity());
         else if (Key === "StressMotion")
             this.Stress.AssignMotion(this.Settings.StressMotion);
+        else if (Key === "GlassIndex")
+            this.ApplyGlassIndex();
         else if (Key === "SmokeResolution")
             this.Smoke.ConstructScreenTargets(this.ScreenExtent, this.Surface, this.Display, this.Settings.SmokeResolution, this.TraceExtent);
         else if (Key === "CoolTyres")
