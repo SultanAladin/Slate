@@ -12,7 +12,7 @@ import { DeviceExchange } from "./DeviceExchange.js";
 import { ShaderInterchange } from "./ShaderInterchange.js";
 import { SceneStructure, OccupantStride, GroundLayout, OccupantRole } from "./FacetStructure.js";
 import { ConstructMaterialSpecification, EncodeMaterialRecords, CourseMaterial, MarkedFamilyFirst, MarkedFamilyLast,
-         MarkedFamilyExtraFirst, MarkedFamilyExtraLast } from "./MaterialSpecification.js";
+         MarkedFamilyExtraFirst, MarkedFamilyExtraLast, IorToF0 } from "./MaterialSpecification.js";
 import { TyreMarkDepot, TyreMarkLayout } from "./TyreMarkDepot.js";
 import { OccupantDistanceSpace } from "./OccupantDistanceSpace.js";
 import { SceneDistanceSpace, ResolveMovedBounds } from "./SceneDistanceSpace.js";
@@ -117,7 +117,7 @@ class IlluminationHost
             RadianceRefresh: true,
             SpatialCount: 5, SpatialRadius: 20, TemporalTallyLimit: 20, IndirectScale: 1.0, VarianceKernel: true, Reflection: true,
             TriangleReflection: Query.has("triangles"),
-            Antialias: true, TraceScale: 2, FreezeDistance: false, CardRadiosity: true, CardTileBudget: this.Grade.TileBudget,
+            Antialias: true, TraceScale: 2, FreezeDistance: false, CardRadiosity: true, CardTileBudget: this.Grade.TileBudget, GlassIor: 1.5,
             Quality: ["low", "medium", "high"].indexOf(this.GradeName),
             RenderScale: this.Grade.RenderScale, LightingPreset: "Custom", TestPlume: 0,
             // 📝 Tyres: cold pressures per axle [kPa], wear, failure and optional keyboard countersteer.
@@ -402,6 +402,20 @@ class IlluminationHost
             this.PriorValid = false;
         else if (Key === "ScreenTraversal")
             this.PriorValid = false;
+        else if (Key === "GlassIor")
+        {
+            // 📝 The garden glass keeps one index in the shader and one F0 in the record; the slider re-authors the
+            //    record from the IOR and re-uploads that one family — see VehicleAppearance for the single-record write.
+            const Ior = Math.max(1.0, Math.min(2.5, this.Settings.GlassIor));
+            if (this.Materials)
+            {
+                this.Materials[CourseMaterial.ShowcaseGlass].SpecularLevel = IorToF0(Ior);
+                if (this.Exchange && this.MaterialRecords)
+                    this.Exchange.Device.queue.writeBuffer(this.MaterialRecords, CourseMaterial.ShowcaseGlass * 48,
+                                                           EncodeMaterialRecords([this.Materials[CourseMaterial.ShowcaseGlass]]));
+                this.PriorValid = false;
+            }
+        }
         else if (Key.startsWith("StressAdd"))
             this.Stress.Add(Number(Key.slice(9)));
         else if (Key === "StressClear")

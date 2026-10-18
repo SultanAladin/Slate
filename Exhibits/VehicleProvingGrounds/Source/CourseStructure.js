@@ -258,6 +258,35 @@ export function EmitPrismFacets(Radius, Height, Sides, Family)
     return Facets;
 }
 
+// 📝 A UV sphere resting on the ground (centre at z = Radius, bottom-centre convention like the prism), outward
+//    counter-clockwise winding — the distance transfer classifies inside by back faces. Corner normals are the exact
+//    radial directions, so the raster shades it smooth; the pole bands collapse to fans with one degenerate triangle
+//    each, which rasterises to nothing and intersects nothing.
+export function EmitSphereFacets(Radius, Bands, Segments, Family)
+{
+    const Facets = [];
+    const Corner = (Band, Segment) =>
+    {
+        const Theta = Math.PI * Band / Bands;
+        const Phi = 2.0 * Math.PI * Segment / Segments;
+        const Normal = [Math.sin(Theta) * Math.cos(Phi), Math.sin(Theta) * Math.sin(Phi), Math.cos(Theta)];
+        return { Position: [Radius * Normal[0], Radius * Normal[1], Radius * (1.0 + Normal[2])], Normal };
+    };
+    for (let Band = 0; Band < Bands; ++Band)
+    {
+        for (let Segment = 0; Segment < Segments; ++Segment)
+        {
+            const P10 = Corner(Band + 1, Segment), P11 = Corner(Band + 1, Segment + 1), P01 = Corner(Band, Segment + 1);
+            const P00 = Corner(Band, Segment);
+            Facets.push({ Corners: [P10.Position, P11.Position, P01.Position],
+                          Normals: [P10.Normal, P11.Normal, P01.Normal], Family });
+            Facets.push({ Corners: [P10.Position, P01.Position, P00.Position],
+                          Normals: [P10.Normal, P01.Normal, P00.Normal], Family });
+        }
+    }
+    return Facets;
+}
+
 // 📝 A convex (y, z) profile, counter-clockwise seen from +X, extruded along x over Length and centred on x = 0.
 export function EmitExtrusionFacets(Profile, Length, Family)
 {

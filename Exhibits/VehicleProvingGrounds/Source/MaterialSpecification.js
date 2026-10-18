@@ -97,7 +97,14 @@ export const CourseMaterial = Object.freeze({
     MirrorTrim:      78,
     TabletHousing:   80,
     RimBase:         81, // original MatTyre finish on METAL geometry; never shredded
-    RimScrape:       79 // the rear-view mirror's housing and stem: CabinTrim's finish, fixed to the shell, not the cockpit
+    RimScrape:       79, // the rear-view mirror's housing and stem: CabinTrim's finish, fixed to the shell, not the cockpit
+    // 📝 The materials garden (showcase props by the start straight): a standing mirror, two metal spheres with
+    //    measured F0 colours, and a clear glass sphere whose IOR the inspector drives. Appended — never inserted —
+    //    so the Drive-aligned families above keep their indices.
+    Mirror:          82,
+    Aluminium:       83,
+    Gold:            84,
+    ShowcaseGlass:   85
 });
 
 export const MarkedFamilyFirst = CourseMaterial.Asphalt;   // [-]
@@ -123,6 +130,22 @@ function Dielectric(Red, Green, Blue, Roughness)
              CoatWeight: 0.0, CoatRoughness: 0.0, SpecularLevel: 0.04, Transmission: 0.0 };
 }
 
+// 📝 A metal: the albedo IS the specular F0 colour (linear space), no diffuse survives.
+function Metal(Red, Green, Blue, Roughness)
+{
+    return { Albedo: [Red, Green, Blue], Roughness, Metalness: 1.0, Emission: [0.0, 0.0, 0.0],
+             CoatWeight: 0.0, CoatRoughness: 0.0, SpecularLevel: 0.04, Transmission: 0.0 };
+}
+
+// 📐 Normal-incidence Fresnel reflectance of an air→dielectric interface: F0 = ((IOR − 1) / (IOR + 1))². The shaders
+//    invert this exact formula to recover the IOR from the authored F0, so one number drives both the Schlick split
+//    and the Snell bend and the two can never disagree.
+export function IorToF0(Ior)
+{
+    const Ratio = (Ior - 1.0) / (Ior + 1.0);
+    return Ratio * Ratio;
+}
+
 export function ConstructMaterialSpecification()
 {
     const Materials = [];
@@ -138,9 +161,12 @@ export function ConstructMaterialSpecification()
     Coat.CoatRoughness = 0.03;
     Materials[CourseMaterial.BodyCoat] = Coat;
 
-    // 📝 Smoked glazing over a dark cabin, carried as a near-black gloss.
+    // 📝 Smoked glazing: 26–30 % transmission over a dark cabin, carried as a near-black gloss. Transmission now has
+    //    a real meaning in the reflection pass (a transmitted segment behind the surface), which the cabin light path
+    //    is not verified for — so the car's glazing stays opaque until that path is proven, and only the showcase
+    //    glass opts in.
     const Glass = Dielectric(0.026, 0.028, 0.030, 0.02);
-    Glass.Transmission = 1.0;
+    Glass.Transmission = 0.0;
     Materials[CourseMaterial.VehicleGlass] = Glass;
 
     Materials[CourseMaterial.VehiclePlastic] = Dielectric(0.012, 0.014, 0.018, 0.50);
@@ -291,6 +317,17 @@ export function ConstructMaterialSpecification()
     const RimScrape = Dielectric(0.16, 0.17, 0.18, 0.46);
     RimScrape.Metalness = 0.25;
     Materials[CourseMaterial.RimScrape] = RimScrape;
+
+    // 📝 The materials garden: a standing mirror (glass over silver reads as bright metal at these scales), aluminium
+    //    and gold spheres in linear-space F0 colours, and a clear glass sphere — no diffuse at all, its F0 from the
+    //    default IOR 1.5 until the slider rewrites it.
+    Materials[CourseMaterial.Mirror]    = Metal(1.00, 1.00, 1.00, 0.02);
+    Materials[CourseMaterial.Aluminium] = Metal(0.91, 0.92, 0.92, 0.12);
+    Materials[CourseMaterial.Gold]      = Metal(1.00, 0.71, 0.29, 0.08);
+    const Showcase = Dielectric(0.0, 0.0, 0.0, 0.04);
+    Showcase.SpecularLevel = IorToF0(1.5);
+    Showcase.Transmission = 1.0;
+    Materials[CourseMaterial.ShowcaseGlass] = Showcase;
     return Materials;
 }
 

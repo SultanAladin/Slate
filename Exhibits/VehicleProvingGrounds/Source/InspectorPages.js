@@ -200,6 +200,7 @@ function BuildRender(Host, C, Body)
     C.Switch(Image, S, "DirectShadow", { Label: "Sun shadows", Detail: "Cascaded shadow depth" });
     C.Switch(Image, S, "Reflection", { Label: "Glossy reflections", Detail: "Distance-field traced, denoised" });
     C.Switch(Image, S, "TriangleReflection", { Label: "Triangle-traced reflections", Detail: "BVH mesh walk instead of the SDF (?triangles=1)" });
+    Slider(C, Image, S, "GlassIor", "Garden glass IOR", 1.0, 2.5, 0.01, "", 2, ["Air", "Dense"]);
     C.Switch(Image, S, "VarianceKernel", { Label: "Denoiser (SVGF)" });
     C.Switch(Image, S, "Antialias", { Label: "Temporal antialiasing", Detail: "Also resolves dithered tyre marks" });
 

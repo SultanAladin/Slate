@@ -5,7 +5,7 @@
 
 import { CourseMaterial } from "./MaterialSpecification.js";
 import { CourseConstants, KerbConstants, SpawnPoint, EmitQuad, EmitBoxFacets, EmitPanelFacets, EmitPrismFacets,
-         EmitExtrusionFacets, EmitConeFacets, EmitRampFacets, EmitTyreBarrierFacets } from "./CourseStructure.js";
+         EmitExtrusionFacets, EmitConeFacets, EmitRampFacets, EmitTyreBarrierFacets, EmitSphereFacets } from "./CourseStructure.js";
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      SHAPES
@@ -64,12 +64,22 @@ export const LevelShapes = Object.freeze({
     GantryBeam:   { Emit: () => EmitBoxFacets(21.6, 0.5, 0.6, CourseMaterial.SteelDark), Voxel: 0.12, Cards: 4 },
     GantryLamp:   { Emit: () => EmitBoxFacets(20.0, 0.22, 0.10, CourseMaterial.GateLamp), Voxel: 0.1, Cards: 4 },
     SignPost:     { Emit: () => EmitBoxFacets(0.12, 0.12, 3.8, CourseMaterial.SteelDark), Voxel: 0.1, Cards: 0, Distance: false },
-    TyreBarrier:  { Emit: () => EmitTyreBarrierFacets(6, 0.68, 0.33, 1.2), Voxel: 0.06, Cards: 12 }
+    TyreBarrier:  { Emit: () => EmitTyreBarrierFacets(6, 0.68, 0.33, 1.2), Voxel: 0.06, Cards: 12 },
+    // 📝 The materials garden: one shape per sphere so cards and field see the true family, and a framed mirror panel
+    //    whose −Y face (the road side) is the mirror.
+    GardenAluminium: { Emit: () => EmitSphereFacets(0.6, 16, 24, CourseMaterial.Aluminium), Voxel: 0.03, Cards: 16 },
+    GardenGold:      { Emit: () => EmitSphereFacets(0.6, 16, 24, CourseMaterial.Gold), Voxel: 0.03, Cards: 16 },
+    GardenGlass:     { Emit: () => EmitSphereFacets(0.6, 16, 24, CourseMaterial.ShowcaseGlass), Voxel: 0.03, Cards: 16 },
+    GardenMirror:    { Emit: () => EmitBoxFacets(2.4, 0.15, 2.0, CourseMaterial.SteelDark,
+                                                [CourseMaterial.SteelDark, CourseMaterial.SteelDark, CourseMaterial.SteelDark,
+                                                 CourseMaterial.SteelDark, CourseMaterial.SteelDark, CourseMaterial.Mirror]),
+                       Voxel: 0.08, Cards: 12 }
 });
 
 // 📝 Shapes the car collides with (as world boxes)
 const ColliderShapes = new Set(["HangarPanel", "HangarAccent", "Cabinet", "Container40", "Container20", "TunnelWall",
-                                "Tower", "Jersey", "TyreStack", "Pole", "FramePost", "TrafficPost", "TyreBarrier", "GantryPost"]);
+                                "Tower", "Jersey", "TyreStack", "Pole", "FramePost", "TrafficPost", "TyreBarrier", "GantryPost",
+                                "GardenAluminium", "GardenGold", "GardenGlass", "GardenMirror"]);
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    PLACEMENTS
@@ -187,6 +197,13 @@ export function ResolveLevelPlacements()
         const Angle = Facing * Degrees;
         Place("PoleHead", `Light pole head ${Index}`, X + 0.7 * Math.cos(Angle), Y + 0.7 * Math.sin(Angle), 10.8, Angle);
     });
+
+    // ⑨ Materials garden: metal and glass spheres plus a standing mirror, north of the start straight where the chase
+    //    camera sees them — clear of kerbs, poles, the skidpad ring and the drill zone edge.
+    Place("GardenAluminium", "Aluminium sphere", -34.0, 11.5);
+    Place("GardenGold", "Gold sphere", -31.5, 11.5);
+    Place("GardenGlass", "Glass sphere", -29.0, 11.5);
+    Place("GardenMirror", "Standing mirror", -26.5, 11.5);
 
     return List;
 }

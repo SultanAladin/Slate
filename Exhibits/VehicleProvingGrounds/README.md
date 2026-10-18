@@ -86,6 +86,24 @@ so scene exposure no longer bleaches its authored colours. Both brightness contr
 reach zero correctly; set the in-tablet and inspector brightness to 100% / 1 for
 normal viewing. Scene emission strength does not boost the UI.
 
+## Materials garden: mirror, metals and glass
+
+North of the start straight sit four reference pieces: a standing mirror panel, an
+aluminium sphere, a gold sphere and a glass sphere. The metals are full-metal
+records in measured linear-space F0 colours with a roughness ladder from
+mirror-smooth (0.02) to softly brushed (0.12), so the GGX lobe spread reads at a
+glance. The glass sphere splits each reflection ray Schlick-against-Snell: a
+reflected leg plus one refracted leg resumed past the far side, with grazing
+angles going fully reflective. One index drives both halves — the authored F0 is
+converted from the IOR, and the shader inverts that exact mapping — so the Fresnel
+strength and the bend can never disagree. **Exposure & image → Garden glass IOR**
+(1.0–2.5) re-authors the record live, from air to dense glass.
+
+This is a single-refraction approximation, not a full dielectric: the exit bend
+is skipped, there is no absorption tint, and the diffuse gather still treats the
+sphere as opaque, so what you see through it is the traced leg only. The car's
+own glass keeps its long-standing opaque look.
+
 ## Checks
 
 ```sh
@@ -97,6 +115,7 @@ npm --prefix Tools run test:stability
 npm --prefix Tools run validate
 npm --prefix Tools run validate:effects
 npm --prefix Tools run validate:slate
+npm --prefix Tools run validate:garden
 ```
 
 Dawn's null backend checks shader/pipeline/command validity, not rendered pixels.

@@ -128,20 +128,36 @@ fn ResolveRecombination(@builtin(global_invocation_id) Invocation: vec3u)
     let GlossRoughness = select(Surface.Roughness, Surface.CoatRoughness, Surface.CoatWeight > 0.0);
     let Reflection = textureLoad(ReflectionRadiance, Pixel, 0);
     var Glossy = Irradiance * InversePi;
-    if (FeatureEnabled(Frame, FeatureReflection) && FeatureEnabled(Frame, FeatureIndirect))
+    // 📝 Glass carries its Fresnel-weighted reflected-plus-transmitted sum in the target already, so it bypasses the
+    //    split-sum response below — multiplying again would blacken it toward F0.
+    if (Surface.Transmission > 0.5 && FeatureEnabled(Frame, FeatureIndirect))
+    {
+        Glossy = Reflection.rgb * Frame.IndirectScale * Enclosure;
+    }
+    else if (FeatureEnabled(Frame, FeatureReflection) && FeatureEnabled(Frame, FeatureIndirect))
     {
         Glossy = mix(Reflection.rgb * Frame.IndirectScale * Enclosure, Glossy, smoothstep(0.35, 0.5, GlossRoughness));
     }
-    let LayerResponse = ResolveEnvironmentResponse(NdotV, Surface.Roughness);
-    let LayerGlossy = select(Glossy, mix(Glossy, Irradiance * InversePi, smoothstep(0.3, 0.5, Surface.Roughness)), Surface.CoatWeight > 0.0);
-    var Indirect = Diffuse + LayerGlossy * (ResolveSpecularColour(Surface) * LayerResponse.x + LayerResponse.y);
-    var Specular = LayerGlossy * (ResolveSpecularColour(Surface) * LayerResponse.x + LayerResponse.y);
-    if (Surface.CoatWeight > 0.0)
+    var Indirect: vec3f;
+    var Specular: vec3f;
+    if (Surface.Transmission > 0.5)
     {
-        let CoatResponse = ResolveEnvironmentResponse(NdotV, Surface.CoatRoughness);
-        let CoatReflectance = (0.04 * CoatResponse.x + CoatResponse.y) * Surface.CoatWeight;
-        Indirect = Indirect * (1.0 - CoatReflectance) + Glossy * CoatReflectance;
-        Specular = Specular * (1.0 - CoatReflectance) + Glossy * CoatReflectance;
+        Indirect = Diffuse + Glossy;
+        Specular = Glossy;
+    }
+    else
+    {
+        let LayerResponse = ResolveEnvironmentResponse(NdotV, Surface.Roughness);
+        let LayerGlossy = select(Glossy, mix(Glossy, Irradiance * InversePi, smoothstep(0.3, 0.5, Surface.Roughness)), Surface.CoatWeight > 0.0);
+        Indirect = Diffuse + LayerGlossy * (ResolveSpecularColour(Surface) * LayerResponse.x + LayerResponse.y);
+        Specular = LayerGlossy * (ResolveSpecularColour(Surface) * LayerResponse.x + LayerResponse.y);
+        if (Surface.CoatWeight > 0.0)
+        {
+            let CoatResponse = ResolveEnvironmentResponse(NdotV, Surface.CoatRoughness);
+            let CoatReflectance = (0.04 * CoatResponse.x + CoatResponse.y) * Surface.CoatWeight;
+            Indirect = Indirect * (1.0 - CoatReflectance) + Glossy * CoatReflectance;
+            Specular = Specular * (1.0 - CoatReflectance) + Glossy * CoatReflectance;
+        }
     }
     var Colour = Direct.rgb + Indirect + Emission;
     switch (Frame.InspectionMode)

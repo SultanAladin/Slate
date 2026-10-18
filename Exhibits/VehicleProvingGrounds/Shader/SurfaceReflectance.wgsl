@@ -52,6 +52,14 @@ fn ResolveFresnel(F0: vec3f, Cosine: f32) -> vec3f
     return F0 + (vec3f(1.0) - F0) * Fifth;
 }
 
+// 📐 The air→dielectric IOR behind an authored F0: IOR = (1 + √F0) / (1 − √F0), the exact inverse of IorToF0, so the
+//    Schlick split and the Snell bend share one index. Clamped away from a perfect mirror, whose index is unbounded.
+fn ResolveDielectricIor(F0: f32) -> f32
+{
+    let Root = sqrt(clamp(F0, 0.0, 0.9));
+    return (1.0 + Root) / max(1.0 - Root, 1.0e-3);
+}
+
 // 📐 GGX / Trowbridge–Reitz distribution with α = roughness².
 fn ResolveGgxDistribution(NdotH: f32, Roughness: f32) -> f32
 {

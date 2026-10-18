@@ -8,7 +8,8 @@
 //    proved unoccluded. The world half is the scene distance field, or the triangle mesh while the triangle toggle is
 //    on. The ray reads the sample exitance where it lands and the sky where it escapes. Surfaces rougher than
 //    RoughnessCutoff are left to the resolve, which substitutes the diffuse irradiance there exactly as Lumen reuses
-//    its diffuse gather for rough reflections.
+//    its diffuse gather for rough reflections. Transmissive surfaces instead split Schlick-against-Snell: a reflected
+//    leg plus one refracted leg resumed past the far side.
 
 //! include "CardSampling.wgsl"
 //! include "ScreenTraversal.wgsl"
@@ -24,6 +25,11 @@
 
 const RoughnessCutoff : f32 = 0.5;
 
+// 📝 How far past the entry point a transmitted segment resumes: the SDF march reports an instant hit from inside, so
+//    the ray restarts past the far side instead. Must clear the thickest transmissive object — the garden's glass
+//    sphere is 1.2 m across.
+const TransmittedSlabOffset : f32 = 1.4;
+
 // 📐 Heitz 2018, "Sampling the GGX Distribution of Visible Normals"; view in tangent space, α = roughness².
 fn ProjectVisibleNormal(View: vec3f, α: f32, Pair: vec2f) -> vec3f
 {
@@ -38,6 +44,62 @@ fn ProjectVisibleNormal(View: vec3f, α: f32, Pair: vec2f) -> vec3f
     let P2 = mix(sqrt(max(0.0, 1.0 - P1 * P1)), Radius * sin(φ), Interpolant);
     let Hemisphere = P1 * T1 + P2 * T2 + sqrt(max(0.0, 1.0 - P1 * P1 - P2 * P2)) * Stretched;
     return normalize(vec3f(α * Hemisphere.x, α * Hemisphere.y, max(0.0, Hemisphere.z)));
+}
+
+// 📝 One world-tracer segment and its radiance — SDF or triangle mesh per the toggle, exitance-aware per the screen
+//    toggle. The shared tail of the glass legs below; the opaque path beneath keeps its own inline copy untouched.
+fn ResolveWorldSegment(Origin: vec3f, Direction: vec3f, MinimumTravel: f32, ConeSlope: f32) -> vec3f
+{
+    var Hit = TraverseSceneDistance(Origin, Direction, MinimumTravel, 300.0, ConeSlope);
+    if (FeatureEnabled(Frame, FeatureTriangleReflection))
+    {
+        Hit = ResolveTraversalHit(TraceSceneRay(Origin, Direction, MinimumTravel, 300.0));
+    }
+    if (FeatureEnabled(Frame, FeatureScreenTraversal))
+    {
+        return ResolveContinuedRadiance(Hit, Direction);
+    }
+    return ResolveTraversalRadiance(Hit, Direction);
+}
+
+// 📝 Glass: a Schlick split at the entry interface. The reflected leg walks the same screen-first path as every
+//    reflection; the transmitted leg refracts by Snell's law and resumes past the far side. One refraction only: the
+//    exit bend is skipped, a trapped ray is absorbed, and the transmitted leg never walks the screen.
+fn ResolveGlassRadiance(Position: vec3f, Normal: vec3f, View: vec3f, Direction: vec3f, Bias: f32, Roughness: f32,
+                        F0: f32) -> vec3f
+{
+    let Complement = 1.0 - clamp(dot(View, Normal), 0.0, 1.0);
+    var Share = F0 + (1.0 - F0) * Complement * Complement * Complement * Complement * Complement;
+    var Transmitted = vec3f(0.0);
+    let Bent = refract(-View, Normal, 1.0 / ResolveDielectricIor(F0));
+    if (dot(Bent, Bent) > 0.0)
+    {
+        Transmitted = ResolveWorldSegment(Position, Bent, TransmittedSlabOffset, 0.0);
+    }
+    else
+    {
+        Share = 1.0;
+    }
+    var Reflected: vec3f;
+    if (FeatureEnabled(Frame, FeatureScreenTraversal))
+    {
+        let Origin = Position + Normal * ResolveScreenBias(ResolveViewDepth(Position));
+        let Strike = TraverseScreenDepth(Origin, Direction, 300.0, ScreenTraversalSteps);
+        if (Strike.Hit)
+        {
+            Reflected = ResolveStrikeRadiance(Strike);
+        }
+        else
+        {
+            Reflected = ResolveWorldSegment(Position + Normal * Bias, Direction, max(0.5 * Bias, Strike.Travel - Bias),
+                                            Roughness * 0.05);
+        }
+    }
+    else
+    {
+        Reflected = ResolveWorldSegment(Position + Normal * Bias, Direction, 0.5 * Bias, Roughness * 0.05);
+    }
+    return Share * Reflected + (1.0 - Share) * Transmitted;
 }
 
 @compute @workgroup_size(8, 8)
@@ -79,7 +141,11 @@ fn TraverseReflection(@builtin(global_invocation_id) Invocation: vec3u)
     // 📝 The ray's world half, whichever tracer the triangle toggle selects: the distance field the exhibit has always
     //    taken, or the two-level mesh hierarchy. An if, not a select — the untaken path must not execute.
     var Radiance: vec3f;
-    if (FeatureEnabled(Frame, FeatureScreenTraversal))
+    if (Surface.Transmission > 0.5)
+    {
+        Radiance = ResolveGlassRadiance(Position, Normal, View, Direction, Bias, Roughness, Surface.SpecularLevel);
+    }
+    else if (FeatureEnabled(Frame, FeatureScreenTraversal))
     {
         let Origin = Position + Normal * ResolveScreenBias(ResolveViewDepth(Position));
         let Strike = TraverseScreenDepth(Origin, Direction, 300.0, ScreenTraversalSteps);
