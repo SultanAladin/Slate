@@ -14,3 +14,9 @@ imgui.ini
 
 # Proof gates build to a scratch directory; any object or binary beside a proof source is stale.
 Tools/*Proof/*.o
+
+# Vehicle proving-grounds exhibit (WebGPU): local installs and captures, never committed.
+Exhibits/VehicleProvingGrounds/node_modules/
+Exhibits/VehicleProvingGrounds/Tools/node_modules/
+Exhibits/VehicleProvingGrounds/*.png
+Exhibits/VehicleProvingGrounds/Tools/*.png
