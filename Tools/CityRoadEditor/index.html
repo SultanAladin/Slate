@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Slate City Road Editor — 2D / 3D quad-topology road network</title>
+<link rel="stylesheet" href="style.css">
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+</head><body>
+<header>
+  <div class="brand">🛣️ <b>Slate City Road Editor</b><span>2D graph editor → live 3D · clean quad topology · AAA game-ready network</span></div>
+  <div class="actions">
+    <button id="btnDemo" class="primary">▶ Load full city project</button>
+    <button id="btnNew">New</button><button id="btnUndo">↩ Undo</button>
+    <button id="btnSave">Save JSON</button><button id="btnLoad">Open JSON</button><input type="file" id="fileLoad" accept=".json" hidden>
+    <button id="btnOBJ">Export OBJ (quads)</button><button id="btnPNG">3D snapshot</button>
+  </div>
+</header>
+<main>
+  <aside id="left">
+    <h3>Tools</h3>
+    <div class="tools" id="tools">
+      <button data-tool="select" class="on">↖ Select / move node</button>
+      <button data-tool="road">✏️ Draw road</button>
+      <button data-tool="rail">🚆 Draw rail track</button>
+      <button data-tool="monorail">🚝 Draw monorail</button>
+      <button data-tool="raise">⛰️ Terrain raise</button>
+      <button data-tool="lower">🕳️ Terrain lower</button>
+      <button data-tool="flatten">▭ Terrain flatten</button>
+      <button data-tool="delete">🗑️ Delete road/track</button>
+    </div>
+    <p class="hint" id="toolHint">Drag a gold node to move a junction — all arms, markings and the 3D mesh rebuild. Wheel = zoom, drag empty space = pan.</p>
+    <h3>Road preset library</h3>
+    <div id="presets"></div>
+    <h3>Layers (3D)</h3>
+    <label><input type="checkbox" id="lyrBuildings" checked> Buildings (blocks)</label>
+    <label><input type="checkbox" id="lyrTrees" checked> Low-poly trees</label>
+    <label><input type="checkbox" id="lyrMarks" checked> Road markings &amp; decals</label>
+    <label><input type="checkbox" id="lyrRails" checked> Rail / monorail</label>
+    <label><input type="checkbox" id="lyrWater" checked> Water (river &amp; lake)</label>
+    <h3>Terrain brush</h3>
+    <label>Size <input type="range" id="brushSize" min="18" max="150" value="70"><span id="brushSizeVal">70 m</span></label>
+    <p class="hint">Paint terrain in 2D — roads re-grade (max 9 %), bridges form automatically where a road crosses water.</p>
+  </aside>
+
+  <section id="center">
+    <div id="pane2d"><div class="paneTitle">2D EDITOR — plan view (graph: nodes + edges, crossings auto-split &amp; merged)</div><canvas id="cv2d"></canvas></div>
+    <div id="pane3d"><div class="paneTitle">3D EDITOR — live reflection (orbit: drag · zoom: wheel · pan: right-drag) <span id="viewBtns"><button data-view="city">City</button><button data-view="bridge">River bridge</button><button data-view="junction">Y junction</button><button data-view="top">Top</button></span></div><div id="gl"></div></div>
+  </section>
+
+  <aside id="right">
+    <h3>Inspector</h3>
+    <div id="inspector"><p class="hint">Select a road in 2D to change its type, lanes and furniture. Changes rebuild the merged junction topology — neighbouring roads are never overlapped.</p></div>
+    <h3>✅ Topology validation</h3>
+    <div id="topology">—</div>
+    <h3>Marking set included</h3>
+    <ul class="marks">
+      <li>Zebra pedestrian crossings + stop lines + give-way arrows at every junction arm</li>
+      <li>Double-yellow / dashed centre lines, lane dashes, edge lines</li>
+      <li>Green bike lanes + bicycle decals, parking-bay ticks</li>
+      <li>Turn/direction arrows, bus-stop marking, median-nose chevron hatching</li>
+      <li>Raised speed bumps with yellow striping (residential / bike streets)</li>
+      <li>Bridge parapets + piers, rail sleepers + steel rails, monorail beam + pylons</li>
+      <li>Pavements/sidewalks with kerbs and dropped-kerb junction corners (ramps at crossings)</li>
+    </ul>
+    <h3>How junctions work</h3>
+    <p class="hint">Every crossing splits both roads into a shared node (never a “+” drawn over a “|”). Degree ≥ 3 nodes become one filleted patch: arms trimmed to the boundary, hub built ring→inner quads + n-quad centre. Output stays 100 % quads, welded, no degenerate faces.</p>
+  </aside>
+</main>
+<footer><span id="status">Ready.</span><span id="coords"></span></footer>
+<script type="module" src="js/app.js"></script>
+</body></html>
