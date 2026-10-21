@@ -209,3 +209,29 @@ test("scoped PBR fields compile, alter rendered pixels and survive self-containe
     });
     expect(Result.Failures).toEqual([]); expect(Result.Changed).toBe(true); expect(Result.Parity).toBe(true); expect(Result.Recovered).toBe(true);
 });
+
+
+test("layer sliders use the original inspector styling and retain range and numeric editing", async ({ page }) => {
+    await page.goto("/");
+    const Card = page.getByLabel("Clearcoat Roughness card", { exact: true });
+    const Range = Card.getByRole("slider", { name: "Roughness", exact: true });
+    await expect(Range).toBeVisible();
+    const Styles = await Range.evaluate(Input => {
+        const Original = document.createElement("div"); Original.className = "inspector-scroll";
+        Original.style.cssText = "position:fixed;left:-10000px;width:300px";
+        Original.append(Input.closest(".slider-field").cloneNode(true));
+        document.querySelector(".studio-material").append(Original);
+        const Read = (Element, Pseudo) => {
+            const Style = getComputedStyle(Element, Pseudo);
+            return Object.fromEntries(["height", "padding", "borderWidth", "borderRadius", "backgroundColor", "backgroundImage", "fontSize", "color"].map(Key => [Key, Style[Key]]));
+        };
+        const Actual = { Track: Read(Input), Thumb: Read(Input, "::-webkit-slider-thumb"), Value: Read(Input.closest(".slider-field").querySelector(".slider-value input")) };
+        const Reference = { Track: Read(Original.querySelector(".range-input")), Thumb: Read(Original.querySelector(".range-input"), "::-webkit-slider-thumb"), Value: Read(Original.querySelector(".slider-value input")) };
+        Original.remove(); return { Actual, Reference };
+    });
+    expect(Styles.Actual).toEqual(Styles.Reference);
+    await Range.focus(); await Range.press("ArrowRight");
+    await expect(Card.getByLabel("Roughness value", { exact: true })).toHaveValue("0.1");
+    await Card.getByLabel("Roughness value", { exact: true }).fill("0.42");
+    await expect(Range).toHaveValue("0.42");
+});
