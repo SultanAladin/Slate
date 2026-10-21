@@ -139,6 +139,12 @@ test("each layer field selects value, texture or an inline generator with only i
     await Roughness.getByLabel("Paint body Roughness source", { exact: true }).selectOption("texture");
     await expect(Roughness.getByLabel("Roughness value", { exact: true })).toHaveCount(0);
     await expect(Roughness.getByLabel("Roughness map maximum value", { exact: true })).toHaveCount(0);
+    await expect(Roughness.locator(".mw-card-output")).toHaveCount(0);
+    const Preview = Roughness.getByLabel("Square texture preview", { exact: true });
+    await expect(Preview).toBeVisible();
+    const Bounds = await Preview.boundingBox();
+    expect(Math.abs(Bounds.width - Bounds.height)).toBeLessThan(1);
+    await expect(Roughness.getByText("Load from file", { exact: true })).toBeVisible();
     const PNG = await page.evaluate(() => { const Canvas = document.createElement("canvas"); Canvas.width = Canvas.height = 2; const Context = Canvas.getContext("2d"); Context.fillStyle = "#808080"; Context.fillRect(0, 0, 2, 2); return Canvas.toDataURL().split(",")[1]; });
     await Roughness.getByLabel("Paint body Roughness texture", { exact: true }).setInputFiles({ name: "roughness.png", mimeType: "image/png", buffer: Buffer.from(PNG, "base64") });
     await expect(Roughness.getByAltText("Embedded channel source")).toBeVisible();
@@ -158,6 +164,7 @@ test("each layer field selects value, texture or an inline generator with only i
     await expect(Colour.getByLabel("Gradient start", { exact: true })).toHaveCount(0);
     await Roughness.getByLabel("Paint body Roughness source", { exact: true }).selectOption("value");
     await expect(Roughness.getByLabel("Roughness value", { exact: true })).toHaveValue("0.65");
+    await expect(Roughness.locator(".mw-card-output, .mw-texture-preview")).toHaveCount(0);
     await expect(Roughness.getByLabel("Fractal breakup generator sheet")).toHaveCount(0);
     await expect(Inspector.locator(".inspector-tabs").getByRole("button", { name: "Generators", exact: true })).toHaveCount(0);
 });

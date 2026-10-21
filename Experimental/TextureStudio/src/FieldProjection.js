@@ -5,7 +5,7 @@
 
 import * as THREE from "three";
 import { PbrChannels, ChannelAddress, ReadMaterialParameter, ResolveAddress } from "./MaterialSpecification.js";
-import { SampleGenerator } from "./FieldSpecification.js";
+import { SampleGenerator, CamouflagePalette } from "./FieldSpecification.js";
 const Prepared = new Map();
 const Completed = new Map();
 const Clamp = Quantity => Math.min(1, Math.max(0, Quantity));
@@ -72,14 +72,20 @@ export function SamplePbrField(Row, Horizontal, Vertical, Raster)
         {
             if (!Row.Procedure || !Row.GeneratorEnabled) return [0, 0, 0, 0];
             const θ = (Row.Inputs.angle || 0) * Math.PI / 180, HorizontalRotated = (Horizontal - .5) * Math.cos(θ) - (Vertical - .5) * Math.sin(θ), VerticalRotated = (Horizontal - .5) * Math.sin(θ) + (Vertical - .5) * Math.cos(θ);
-            Position = SampleGenerator(Row.Procedure, { scale: Row.Inputs.scale, seed: Row.Inputs.seed }, HorizontalRotated, VerticalRotated);
+            Position = SampleGenerator(Row.Procedure, { ...Row.Inputs, colourCount: Object.keys(Row.Inputs).filter(Key => /^colour\d+$/.test(Key)).length || 4 }, HorizontalRotated, VerticalRotated);
             Position = .5 + (Position - .5) * Row.Inputs.amount;
         }
         else if (Source.Mode === "radial") Position = Clamp(Math.hypot(Horizontal - .5, Vertical - .5) * 2);
         else if (Source.Mode === "conic") Position = (Math.atan2(Vertical - .5, Horizontal - .5) / (2 * Math.PI) + 1) % 1;
         else Position = Horizontal;
         const Stops = Source.Stops || ["#000000", "#ffffff"], Segment = Clamp(Position) * (Stops.length - 1), First = Math.min(Stops.length - 2, Math.floor(Segment));
-        Components = new THREE.Color(Stops[First]).lerp(new THREE.Color(Stops[First + 1]), Segment - First).toArray();
+        if (Row.Procedure?.startsWith("camouflage") && Source.Mode === "field")
+        {
+            const Palette = Object.entries(Row.Inputs).filter(([Key]) => /^colour\d+$/.test(Key)).sort(([First], [Second]) => Number(First.slice(6)) - Number(Second.slice(6))).map(([, Colour]) => Colour);
+            const Colours = Palette.length >= 2 ? Palette : CamouflagePalette, PositionInPalette = Clamp(Position) * (Colours.length - 1), Slot = Math.min(Colours.length - 2, Math.floor(PositionInPalette));
+            Components = Row.Procedure === "camouflage-smooth" ? new THREE.Color(Colours[Slot]).lerp(new THREE.Color(Colours[Slot + 1]), PositionInPalette - Slot).toArray() : new THREE.Color(Colours[Math.round(PositionInPalette)]).toArray();
+        }
+        else Components = new THREE.Color(Stops[First]).lerp(new THREE.Color(Stops[First + 1]), Segment - First).toArray();
     }
     if (Specification.Type === "scalar")
     {
@@ -141,7 +147,7 @@ export function AttachPbrFields(Material, Parameters)
     if (Rows.some(Row => ["thickness", "transmission"].includes(Row.Channel))) Material.transmission = Math.max(Material.transmission, .000001);
     if (Rows.some(Row => ["sheen", "sheenRoughness"].includes(Row.Channel))) Material.sheen = Math.max(Material.sheen, .000001);
     if (Rows.some(Row => Row.Channel === "anisotropy")) Material.anisotropy = Math.max(Material.anisotropy, .000001);
-    const Edge = 128, Columns = Math.min(8, Rows.length), Width = Edge * Columns, Height = Edge * Math.ceil(Rows.length / Columns), Atlas = new THREE.DataTexture(new Float32Array(Width * Height * 4), Width, Height, THREE.RGBAFormat, THREE.FloatType);
+    const Edge = Rows.some(Row => Row.Procedure === "camouflage-smooth") ? 512 : 128, Columns = Math.min(8, Rows.length), Width = Edge * Columns, Height = Edge * Math.ceil(Rows.length / Columns), Atlas = new THREE.DataTexture(new Float32Array(Width * Height * 4), Width, Height, THREE.RGBAFormat, THREE.FloatType);
     Atlas.minFilter = Atlas.magFilter = THREE.NearestFilter; Atlas.needsUpdate = true;
     let Disposed = false;
     Material.addEventListener("dispose", () => { Disposed = true; Atlas.dispose(); });
@@ -154,14 +160,16 @@ export function AttachPbrFields(Material, Parameters)
     }
     Material.userData.ready = Promise.all([Material.userData.ready, Prepared.get(Stamp).then(Result => { Completed.set(Stamp, Result); if (Completed.size > 8) Completed.delete(Completed.keys().next().value); if (!Disposed) { Atlas.image.data = Result.Pixels; Atlas.needsUpdate = true; } })]);
     const Existing = Material.onBeforeCompile, ProgramKey = Material.customProgramCacheKey;
-    Material.customProgramCacheKey = () => `${ProgramKey.call(Material)}-authoring-${Rows.map(Row => Row.Model + Row.Channel).join("-")}`;
+    Material.customProgramCacheKey = () => `${ProgramKey.call(Material)}-authoring-${Rows.map(Row => Row.Model + Row.Channel + (Row.Procedure === "camouflage-smooth" ? "-smooth" : "")).join("-")}`;
     Material.onBeforeCompile = Shader =>
     {
         Existing.call(Material, Shader);
         Shader.uniforms.uPbrFieldAtlas = { value: Atlas };
         Shader.uniforms.uPbrFieldSheenColour = { value: new THREE.Color(Parameters.sheenColor || "#ffffff") };
         Shader.vertexShader = `varying vec2 vPbrFieldUV;\n${Shader.vertexShader}`.replace("#include <begin_vertex>", "#include <begin_vertex>\nvPbrFieldUV=uv;");
-        Shader.fragmentShader = `varying vec2 vPbrFieldUV; uniform sampler2D uPbrFieldAtlas; uniform vec3 uPbrFieldSheenColour;\n${Rows.map((Row, Index) => `vec4 pbrField${Index}(){return texture2D(uPbrFieldAtlas,vec2((fract(vPbrFieldUV.x)*127.+.5+${(Index % Columns) * Edge}.)/${Width}.,(fract(vPbrFieldUV.y)*127.+.5+${Math.floor(Index / Columns) * Edge}.)/${Height}.));}`).join("\n")}\n${Shader.fragmentShader}`;
+        Shader.fragmentShader = `varying vec2 vPbrFieldUV; uniform sampler2D uPbrFieldAtlas; uniform vec3 uPbrFieldSheenColour;\n${Rows.map((Row, Index) => Row.Procedure === "camouflage-smooth" ? `
+vec4 pbrTexel${Index}(vec2 q){return texture2D(uPbrFieldAtlas,(mod(mod(q,${Edge}.)+${Edge}.,${Edge}.)+vec2(.5)+vec2(${(Index % Columns) * Edge}.,${Math.floor(Index / Columns) * Edge}.))/vec2(${Width}.,${Height}.));}
+vec4 pbrField${Index}(){vec2 q=fract(vPbrFieldUV)*${Edge}.;vec2 f=fract(q);q=floor(q);return mix(mix(pbrTexel${Index}(q),pbrTexel${Index}(q+vec2(1.,0.)),f.x),mix(pbrTexel${Index}(q+vec2(0.,1.)),pbrTexel${Index}(q+vec2(1.,1.)),f.x),f.y);}` : `vec4 pbrField${Index}(){return texture2D(uPbrFieldAtlas,vec2((fract(vPbrFieldUV.x)*${Edge - 1}.+.5+${(Index % Columns) * Edge}.)/${Width}.,(fract(vPbrFieldUV.y)*${Edge - 1}.+.5+${Math.floor(Index / Columns) * Edge}.)/${Height}.));}`).join("\n")}\n${Shader.fragmentShader}`;
         Shader.fragmentShader = Shader.fragmentShader.replace("#include <transmission_fragment>", THREE.ShaderChunk.transmission_fragment);
         const Before = (Marker, Code) => { Shader.fragmentShader = Shader.fragmentShader.replace(Marker, Code + "\n" + Marker); };
         const After = (Marker, Code) => { Shader.fragmentShader = Shader.fragmentShader.replace(Marker, Marker + "\n" + Code); };

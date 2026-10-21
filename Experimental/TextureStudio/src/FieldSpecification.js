@@ -24,8 +24,39 @@ function SmoothNoise(Horizontal, Vertical, Seed)
     return Top * (1 - BlendY) + Bottom * BlendY;
 }
 
+export const CamouflagePalette = Object.freeze(["#b5a477", "#566044", "#514334", "#232921"]);
+
+function SampleCamouflage(Source, Horizontal, Vertical)
+{
+    // 📝 Periodic coordinate warping keeps opposite tile edges identical without image assets.
+    const Frequency = Math.max(1, Math.round(Source.scale)), Seed = Source.seed;
+    const Periodic = (Horizontal, Vertical, Period, Salt) =>
+    {
+        const Column = Math.floor(Horizontal), Row = Math.floor(Vertical), FractionX = Horizontal - Column, FractionY = Vertical - Row;
+        const BlendX = FractionX * FractionX * (3 - 2 * FractionX), BlendY = FractionY * FractionY * (3 - 2 * FractionY);
+        const Cell = (Column, Row) => HashCell(((Column % Period) + Period) % Period, ((Row % Period) + Period) % Period, Salt);
+        return (Cell(Column, Row) * (1 - BlendX) + Cell(Column + 1, Row) * BlendX) * (1 - BlendY) + (Cell(Column, Row + 1) * (1 - BlendX) + Cell(Column + 1, Row + 1) * BlendX) * BlendY;
+    };
+    const Grid = 256 / Math.max(1, Source.pixelSize ?? 4);
+    const PositionX = (Source.smooth ? Horizontal + .5 : Math.floor((Horizontal + .5) * Grid) / Grid) * Frequency;
+    const PositionY = (Source.smooth ? Vertical + .5 : Math.floor((Vertical + .5) * Grid) / Grid) * Frequency;
+    const WarpedX = PositionX + (Periodic(PositionX, PositionY, Frequency, Seed + 17) - .5) * 2.4;
+    const WarpedY = PositionY + (Periodic(PositionX, PositionY, Frequency, Seed + 71) - .5) * 2.4;
+    const Field = Periodic(WarpedX, WarpedY, Frequency, Seed) * .78 + Periodic(WarpedX * 3, WarpedY * 3, Frequency * 3, Seed + 43) * .22;
+    const Count = Math.max(2, Math.min(8, Source.colourCount || 4));
+    let Band = 0;
+    for (let Index = 0; Index < Count - 1; ++Index)
+    {
+        const Threshold = Count === 2 ? .5 : .36 + Index * .28 / (Count - 2);
+        const Blend = Clamp((Field - Threshold) / Math.max(.001, Source.softness ?? .012) + .5);
+        Band += Source.smooth ? Blend * Blend * (3 - 2 * Blend) : Number(Field >= Threshold);
+    }
+    return Band / (Count - 1);
+}
+
 function SamplePattern(Mode, Source, RotatedX, RotatedY)
 {
+    if (Mode === "camouflage" || Mode === "camouflage-smooth") return SampleCamouflage({ ...Source, smooth: Mode === "camouflage-smooth" }, RotatedX, RotatedY);
     const Frequency = Source.scale;
     const PositionX = (RotatedX + 0.5) * Frequency;
     const PositionY = (RotatedY + 0.5) * Frequency;
@@ -65,6 +96,8 @@ function SamplePattern(Mode, Source, RotatedX, RotatedY)
 // 📝 Coordinates are centred and rotated; samples must be finite and normalized to [0, 1].
 // 📝 Only identities and settings are serialized. Imported material files never execute code.
 export const GeneratorDefinitions = Object.freeze([
+    { identity: 'camouflage-smooth', label: 'Military camouflage · Smooth', description: 'Organic flowing patches with smooth boundaries and an editable palette.' },
+    { identity: 'camouflage', label: 'Military camouflage · Pixelated', description: 'Seamless four-colour, domain-warped woodland-style patches; not an official uniform pattern.' },
     { identity: 'noise', label: 'Fractal noise', description: 'Four-octave smooth value noise.' },
     { identity: 'stripes', label: 'Directional grain', description: 'Periodic directional bands.' },
     { identity: 'checker', label: 'Checker tiles', description: 'Alternating square cells.' },

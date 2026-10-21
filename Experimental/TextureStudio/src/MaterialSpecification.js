@@ -4,7 +4,7 @@
 // 🧩 Separate PBR-layer addresses, procedural-field inputs and designer projections over shared material parameters.
 
 import { normalizeTextureSource } from "./textureSource.js";
-import { GeneratorDefinitions } from "./FieldSpecification.js";
+import { GeneratorDefinitions, CamouflagePalette } from "./FieldSpecification.js";
 import { getRecipe } from "./materialProfiles.js";
 export const AuthoringIdentity = () => globalThis.crypto.randomUUID();
 export const PbrChannels = Object.freeze({
@@ -214,7 +214,9 @@ export function DeclareCodedField(Parameters, Procedure, Name, Category)
 {
     const Result = structuredClone(Parameters), Identity = AuthoringIdentity();
     Result.Authoring.Generators.push({ Identity, Name: Name.slice(0, 80), Category: Category.slice(0, 60), Procedure, Enabled: true, Coded: true,
-        Inputs: ["scale", "seed", "angle", "amount"].map(Key => `field:${Identity}:${Key}`), Outputs: ["colour", "roughness", "metallic", "normal", "coverage"] });
+        Inputs: ["scale", "seed", "angle", "amount", ...(Procedure.startsWith("camouflage") ? ["colour0", "colour1", "colour2", "colour3", "softness", "pixelSize"] : [])].map(Key => `field:${Identity}:${Key}`), Outputs: ["colour", "roughness", "metallic", "normal", "coverage"] });
+    if (Procedure.startsWith("camouflage")) CamouflagePalette.forEach((Colour, Index) => { Result.Authoring.Inputs[`field:${Identity}:colour${Index}`] = Colour; });
+    if (Procedure.startsWith("camouflage")) { Result.Authoring.Inputs[`field:${Identity}:softness`] = .012; Result.Authoring.Inputs[`field:${Identity}:pixelSize`] = 4; }
     for (const [Key, Quantity] of Object.entries({ scale: 8, seed: 12, angle: 0, amount: 1 })) Result.Authoring.Inputs[`field:${Identity}:${Key}`] = Quantity;
     return Result;
 }

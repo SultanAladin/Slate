@@ -1,5 +1,5 @@
 import { AttachPbrFields } from "./FieldProjection.js";
-import { ResolveAuthoringParameters } from "./MaterialSpecification.js";
+import { DeclareMaterialAuthoring, DeclareCodedField, ResolveAuthoringParameters } from "./MaterialSpecification.js";
 import {
   attachSurfaceSources,
   patternGLSL,
@@ -753,11 +753,30 @@ export const materials = [
     filmVariation: 55,
     description: "A pearl finish with a delicate interference glow.",
   },
+  {
+    id: "woodland-camouflage-fabric", name: "Woodland Camouflage Fabric", category: "Fabric", label: "PROCEDURAL CAMOUFLAGE · WOVEN CLOTH",
+    type: 4, fabricMode: 0, weavePattern: "twill", color: "#566044", warpColor: "#787965", weftColor: "#62684e", colors: ["#b5a477", "#566044", "#514334", "#232921"],
+    roughness: .86, metalness: 0, depth: .35, coat: 0, detailScale: 68, grain: .7, sheen: .2, sheenRoughness: .8, camouflage: true,
+    description: "Editable woodland-style camouflage over woven cloth. Procedural colour, textile relief and soft fibre sheen.",
+  },
+  {
+    id: "camouflage-ballistic-polymer", name: "Camouflage Ballistic Polymer", category: "Plastic", label: "MATTE COMPOSITE LOOK · VISUAL MATERIAL ONLY",
+    type: 9, color: "#566044", colors: ["#b5a477", "#566044", "#514334", "#232921"], roughness: .68, metalness: 0, depth: .2,
+    coat: .04, coatRoughness: .55, detailScale: 110, grain: .45, ior: 1.53, camouflage: true,
+    description: "Camouflage on a matte, lightly textured ballistic-polymer-style surface. Appearance only: no ballistic rating or performance claim.",
+  },
   ...expandedCatalog(),
   ...architectureCatalog(),
   ...botanicalCatalog(),
   ...granularCatalog(),
-].map(normalizeMaterial);
+].map(normalizeMaterial).flatMap(Parameters => Parameters.camouflage ? [Parameters, { ...Parameters, id: `${Parameters.id}-smooth`, name: `${Parameters.name} · Smooth`, camouflageStyle: "camouflage-smooth" }] : [Parameters]).map(Parameters =>
+{
+  if (!Parameters.camouflage) return Parameters;
+  const Declared = { ...Parameters, Authoring: DeclareMaterialAuthoring(Parameters) };
+  const Result = DeclareCodedField(Declared, Parameters.camouflageStyle || "camouflage", Parameters.camouflageStyle ? "Smooth woodland camouflage" : "Woodland camouflage", "Camouflage");
+  Result.Authoring.Sources.color = { Mode: "field", Direct: true, Generator: Result.Authoring.Generators.at(-1).Identity };
+  return Result;
+});
 
 export function normalizeMaterial(input) {
   const p = input || {};
