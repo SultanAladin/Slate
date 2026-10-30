@@ -21,6 +21,7 @@
 #include "Engine/GeometryProcessing/Blend/RollingBallGeometry.h"
 #include "Engine/GeometryProcessing/Exchange/StepExchange.h"
 #include "Engine/GeometryProcessing/Local/FaceChange.h"
+#include "Engine/GeometryProcessing/Measurement/MinimumDistance.h"
 #include "Engine/GeometryProcessing/Sketch/SketchCatalogue.h"
 #include "Engine/GeometryProcessing/Sketch/SketchSolver.h"
 #include "Engine/GeometryProcessing/Sketch/SketchSpline.h"
@@ -455,7 +456,7 @@ std::string AuthorTile(SolidArcDocument& Document, const SolidArcConstructReques
 [[nodiscard]] SolidArcHistoryEntry Snapshot(const SolidArcDocument& Document, const std::string& Label)
 {
     return { Document.Tree, Document.Captions, Label, Document.Appearance, false, std::make_shared<const RegenerationCache>(Document.Replay),
-             Document.SummaryCheckpoint, Document.Summary };
+             Document.SummaryCheckpoint, Document.Summary, Document.Dimensions };
 }
 
 // 📝 Only the newest entries of each stack keep their checkpoints (memory bound); older ones replay when reached.
@@ -473,6 +474,7 @@ void TrimHistoryReplay(SolidArcDocument& Document)
 void Restore(SolidArcDocument& Document, SolidArcHistoryEntry Entry)
 {
     Document.Appearance = std::move(Entry.Appearance);
+    Document.Dimensions = std::move(Entry.Dimensions);
     if (Entry.AppearanceCondition) return;
     Document.Tree     = std::move(Entry.Tree);
     Document.Captions = std::move(Entry.Captions);
@@ -499,6 +501,7 @@ SolidArcCommandOutcome RunAppearanceCommand(SolidArcDocument& Document, const st
     if (!Outcome.Refusal.empty())
     {
         Document.Appearance  = std::move(Before.Appearance);
+        Document.Dimensions  = std::move(Before.Dimensions);
         Outcome.Milliseconds = ElapsedMs(Start);
         return Outcome;
     }
@@ -659,6 +662,7 @@ void RegenerateSolidArcDocumentDeferred(SolidArcDocument& Document, bool Capture
     std::erase_if(Document.Selection.Bodies, [&](const std::string& Key) { return !FindRegeneratedBody(Document, Key); });
     // Picked curves are SpaceCurves or sketches (loft sections, gizmo); either kind survives while its label still solves.
     std::erase_if(Document.Selection.Curves, [&](const std::string& Label) { return !Document.Regeneration.Curves.contains(Label) && !Document.Regeneration.Sketches.contains(Label); });
+    RefreshSolidArcDimensions(Document);
 }
 
 void SummarizeSolidArcDocument(SolidArcDocument& Document)
@@ -730,6 +734,8 @@ SolidArcCommandOutcome AdoptSolidArcPreview(SolidArcDocument& Document, SolidArc
     Document.Selection         = std::move(Preview.Selection);
     Document.Revision          = Preview.Revision;
     Document.Appearance        = std::move(Preview.Appearance);
+    if (!Preview.Dimensions.empty()) Document.Dimensions = std::move(Preview.Dimensions);
+    RefreshSolidArcDimensions(Document);
     Document.Replay            = std::move(Preview.Replay);
     Document.SummaryCheckpoint = std::move(Preview.SummaryCheckpoint);
     Document.UndoEntries.push_back(std::move(Before));
@@ -748,6 +754,7 @@ SolidArcDocument CloneSolidArcDocument(const SolidArcDocument& Source)
     Copy.Selection = Source.Selection;
     Copy.Appearance = Source.Appearance;
     Copy.DrawingSheet = Source.DrawingSheet;
+    Copy.Dimensions = Source.Dimensions;
     Copy.Replay     = Source.Replay;
     Copy.Summary    = Source.Summary;
     Copy.SummaryCheckpoint = Source.SummaryCheckpoint;
@@ -6330,6 +6337,751 @@ SolidArcCommandOutcome ApplySolidArcModifier(SolidArcDocument& Document, const s
     Outcome.AcceptedCondition = true;
     Outcome.Milliseconds      = ElapsedMs(Start);
     return Outcome;
+}
+
+SolidArcCommandOutcome RestoreSolidArcVisibility(SolidArcDocument& Document, const std::set<std::string>& HiddenBodies,
+                                                 const std::set<std::string>& HiddenCurves, const std::string& Label)
+{
+    return RunAppearanceCommand(Document, Label, [&]() -> std::string
+    {
+        std::set<std::string> PresentBodies;
+        for (const RegeneratedBody& Body : Document.Regeneration.Bodies) PresentBodies.insert(Body.Key);
+        std::set<std::string> FilteredBodies;
+        for (const std::string& Key : HiddenBodies) if (PresentBodies.contains(Key)) FilteredBodies.insert(Key);
+
+        std::set<std::string> FilteredCurves = Document.Appearance.RemovedCurves;            // RemovedCurves ⊂ HiddenCurves invariant
+        for (const FeatureStep& Step : Document.Tree.Steps)
+            if ((Step.Kind == FeatureStepKind::Sketch || Step.Kind == FeatureStepKind::SpaceCurve) && HiddenCurves.contains(Step.Label))
+                FilteredCurves.insert(Step.Label);
+
+        if (Document.Appearance.HiddenBodies == FilteredBodies && Document.Appearance.HiddenCurves == FilteredCurves)
+            return "visibility is already restored";
+        Document.Appearance.HiddenBodies = std::move(FilteredBodies);
+        Document.Appearance.HiddenCurves = std::move(FilteredCurves);
+        return {};
+    });
+}
+
+namespace
+{
+
+struct ResolvedDimensionOperand
+{
+    bool                        FoundCondition  = false;
+    MeasureTarget               Target          = {};
+    bool                        TargetCondition = false;
+    Vector3                     Point           = {};
+    Vector3                     SecondEndpoint  = {};
+    bool                        SegmentCondition = false;
+    double                      EdgeSpan        = 0.0;
+    bool                        RadialCondition = false;
+    Vector3                     Centre          = {};
+    Vector3                     Rim             = {};
+    double                      Radius          = 0.0;
+    Vector3                     PlaneNormal     = { 0.0, 0.0, 1.0 };
+    std::optional<Vector3>      LineDir         = {};
+    std::optional<Vector3>      FaceNormal      = {};
+};
+
+[[nodiscard]] Vector3 SafeUnitNormal(Vector3 Candidate, Vector3 Fallback = { 0.0, 0.0, 1.0 })
+{
+    const double Norm = Length(Candidate);
+    if (Norm > 1.0e-9) return Candidate * (1.0 / Norm);
+    const double FallNorm = Length(Fallback);
+    return FallNorm > 1.0e-9 ? Fallback * (1.0 / FallNorm) : Vector3{ 0.0, 0.0, 1.0 };
+}
+
+[[nodiscard]] Vector3 DefaultPlaneNormalForSpan(Vector3 Span)
+{
+    const Vector3 UnitSpan = SafeUnitNormal(Span, { 1.0, 0.0, 0.0 });
+    // Prefer horizontal XY witness lines unless the span itself is nearly vertical along Z.
+    if (std::abs(UnitSpan.Z) < 0.92) return { 0.0, 0.0, 1.0 };
+    return std::abs(UnitSpan.Y) < 0.92 ? Vector3{ 0.0, -1.0, 0.0 } : Vector3{ 1.0, 0.0, 0.0 };
+}
+
+[[nodiscard]] bool ComputeBodyBounds(const SolidArcDocument& Document, const std::string& BodyKey, Vector3& Low, Vector3& High)
+{
+    if (!Document.Partition) return false;
+    const RegeneratedBody* Body = FindRegeneratedBody(Document, BodyKey);
+    if (!Body || !Body->Body.PresentCondition()) return false;
+    const ModelPartition& Partition = *Document.Partition;
+    const BodyInventory   Inventory = Partition.CollectInventory(Body->Body);
+    bool Any = false;
+    const auto Include = [&](Vector3 Point)
+    {
+        if (!std::isfinite(Point.X) || !std::isfinite(Point.Y) || !std::isfinite(Point.Z)) return;
+        if (!Any) { Low = High = Point; Any = true; return; }
+        Low  = { std::min(Low.X, Point.X), std::min(Low.Y, Point.Y), std::min(Low.Z, Point.Z) };
+        High = { std::max(High.X, Point.X), std::max(High.Y, Point.Y), std::max(High.Z, Point.Z) };
+    };
+    for (const VertexToken Vertex : Inventory.Vertices) Include(Partition.Vertices.Resolve(Vertex).Position);
+    for (const EdgeToken Edge : Inventory.Edges)
+    {
+        const EdgeProfile& Profile = Partition.Edges.Resolve(Edge);
+        if (!Profile.Curve.PresentCondition()) continue;
+        const CurveGeometry& Curve = Partition.Curves.Resolve(Profile.Curve);
+        for (int Step = 0; Step <= 24; ++Step)
+        {
+            const double Parameter = Profile.IntervalLow + (Profile.IntervalHigh - Profile.IntervalLow) * (double(Step) / 24.0);
+            Include(EvaluateCurve(Curve, Parameter).Position);
+        }
+    }
+    return Any;
+}
+
+[[nodiscard]] ResolvedDimensionOperand ResolveDimensionOperand(const SolidArcDocument& Document, SolidArcSelectionKind Kind, const std::string& Name)
+{
+    ResolvedDimensionOperand Out;
+    if (Name.empty() || !Document.Partition) return Out;
+    const ModelPartition& Partition = *Document.Partition;
+    for (const RegeneratedBody& Body : Document.Regeneration.Bodies)
+    {
+        if (!Body.Body.PresentCondition()) continue;
+        const BodyInventory Inventory = Partition.CollectInventory(Body.Body);
+        if (Kind == SolidArcSelectionKind::Vertex)
+        {
+            for (const VertexToken Vertex : Inventory.Vertices)
+            {
+                const auto Found = Body.Naming.Vertices.find(Vertex.Slot);
+                if (Found == Body.Naming.Vertices.end() || Found->second != Name) continue;
+                Out.FoundCondition  = true;
+                Out.Target          = Vertex;
+                Out.TargetCondition = true;
+                Out.Point           = Partition.Vertices.Resolve(Vertex).Position;
+                return Out;
+            }
+        }
+        else if (Kind == SolidArcSelectionKind::Edge)
+        {
+            for (const EdgeToken Edge : Inventory.Edges)
+            {
+                const auto Found = Body.Naming.Edges.find(Edge.Slot);
+                if (Found == Body.Naming.Edges.end() || Found->second != Name) continue;
+                const EdgeProfile& Profile = Partition.Edges.Resolve(Edge);
+                Out.FoundCondition   = true;
+                Out.Target           = Edge;
+                Out.TargetCondition  = true;
+                Out.Point            = Partition.Vertices.Resolve(Profile.Start).Position;
+                Out.SecondEndpoint   = Partition.Vertices.Resolve(Profile.End).Position;
+                Out.SegmentCondition = Distance(Out.Point, Out.SecondEndpoint) > 1.0e-9;
+                Out.EdgeSpan         = MeasureEdgeLength(Partition, Edge);
+                Out.PlaneNormal      = DefaultPlaneNormalForSpan(Out.SecondEndpoint - Out.Point);
+                if (Profile.Curve.PresentCondition())
+                {
+                    const CurveGeometry& Curve = Partition.Curves.Resolve(Profile.Curve);
+                    if (const auto* Line = std::get_if<StraightLine>(&Curve))
+                    {
+                        Out.LineDir = SafeUnitNormal(Line->Direction, Out.SecondEndpoint - Out.Point);
+                    }
+                    else if (const auto* Arc = std::get_if<CircularArc>(&Curve))
+                    {
+                        Out.RadialCondition = true;
+                        Out.Centre          = Arc->Frame.Origin;
+                        Out.Radius          = Arc->Radius;
+                        Out.PlaneNormal     = SafeUnitNormal(Arc->Frame.ZAxis);
+                        const double Mid    = 0.5 * (Profile.IntervalLow + Profile.IntervalHigh);
+                        Out.Rim             = EvaluateCurve(Curve, Mid).Position;
+                    }
+                }
+                return Out;
+            }
+        }
+        else if (Kind == SolidArcSelectionKind::Face)
+        {
+            for (const FaceToken Face : Inventory.Faces)
+            {
+                const auto Found = Body.Naming.Faces.find(Face.Slot);
+                if (Found == Body.Naming.Faces.end() || Found->second != Name) continue;
+                const FaceProfile& Profile = Partition.Faces.Resolve(Face);
+                Out.FoundCondition  = true;
+                Out.Target          = Face;
+                Out.TargetCondition = true;
+                Vector3 Sum{};
+                int     Count = 0;
+                for (const LoopToken Loop : Profile.Loops)
+                    Partition.EnumerateLoopFins(Loop, [&](FinToken Fin)
+                    {
+                        const EdgeProfile& EdgeProf = Partition.Edges.Resolve(Partition.Fins.Resolve(Fin).Edge);
+                        Sum = Sum + Partition.Vertices.Resolve(EdgeProf.Start).Position;
+                        ++Count;
+                    });
+                if (Count > 0) Out.Point = Sum * (1.0 / double(Count));
+                if (Profile.Surface.PresentCondition())
+                {
+                    const SurfaceGeometry& Surface = Partition.Surfaces.Resolve(Profile.Surface);
+                    const double           Sense   = Profile.Sense == Orientation::Forward ? 1.0 : -1.0;
+                    if (const auto* Plane = std::get_if<PlaneSurface>(&Surface))
+                    {
+                        Out.FaceNormal  = SafeUnitNormal(Plane->Frame.ZAxis * Sense);
+                        Out.PlaneNormal = SafeUnitNormal(Plane->Frame.XAxis, { 0.0, 0.0, 1.0 });
+                    }
+                    else if (const auto* Cylinder = std::get_if<CylinderSurface>(&Surface))
+                    {
+                        Out.RadialCondition = true;
+                        Out.Radius          = Cylinder->Radius;
+                        Out.LineDir         = SafeUnitNormal(Cylinder->Frame.ZAxis);
+                        Out.PlaneNormal     = *Out.LineDir;
+                        const double Axial  = Count > 0 ? Dot(Out.Point - Cylinder->Frame.Origin, *Out.LineDir) : 0.0;
+                        Out.Centre          = Cylinder->Frame.Origin + (*Out.LineDir) * Axial;
+                        Out.Rim             = Out.Centre + SafeUnitNormal(Cylinder->Frame.XAxis, { 1.0, 0.0, 0.0 }) * Cylinder->Radius;
+                    }
+                    else if (const auto* Sphere = std::get_if<SphereSurface>(&Surface))
+                    {
+                        Out.RadialCondition = true;
+                        Out.Centre          = Sphere->Frame.Origin;
+                        Out.Radius          = Sphere->Radius;
+                        Out.PlaneNormal     = { 0.0, 0.0, 1.0 };
+                        Out.Rim             = Sphere->Frame.Origin + Vector3{ Sphere->Radius, 0.0, 0.0 };
+                    }
+                }
+                return Out;
+            }
+        }
+        else if (Kind == SolidArcSelectionKind::Body && Body.Key == Name)
+        {
+            Vector3 Low{}, High{};
+            if (ComputeBodyBounds(Document, Name, Low, High))
+            {
+                Out.FoundCondition = true;
+                Out.Point          = (Low + High) * 0.5;
+                if (!Inventory.Faces.empty())
+                {
+                    Out.Target          = Inventory.Faces.front();
+                    Out.TargetCondition = true;
+                }
+            }
+            return Out;
+        }
+    }
+    return Out;
+}
+
+[[nodiscard]] std::string NextDimensionId(const SolidArcDocument& Document)
+{
+    int Highest = 0;
+    for (const SolidArcDimension& Existing : Document.Dimensions)
+    {
+        if (Existing.Id.rfind("Dim", 0) == 0 && Existing.Id.size() > 3)
+        {
+            int Parsed = 0;
+            bool Digits = true;
+            for (size_t Index = 3; Index < Existing.Id.size(); ++Index)
+            {
+                if (!std::isdigit(static_cast<unsigned char>(Existing.Id[Index]))) { Digits = false; break; }
+                Parsed = Parsed * 10 + (Existing.Id[Index] - '0');
+            }
+            if (Digits) Highest = std::max(Highest, Parsed);
+        }
+    }
+    return "Dim" + std::to_string(Highest + 1);
+}
+
+void EvaluateLinearValue(SolidArcDimension& Dim)
+{
+    const Vector3 Delta = Dim.SecondPoint - Dim.FirstPoint;
+    if (Dim.AxisFilter == 0) Dim.Value = std::abs(Delta.X);
+    else if (Dim.AxisFilter == 1) Dim.Value = std::abs(Delta.Y);
+    else if (Dim.AxisFilter == 2) Dim.Value = std::abs(Delta.Z);
+    else Dim.Value = Length(Delta);
+}
+
+} // namespace
+
+void RefreshSolidArcDimensions(SolidArcDocument& Document)
+{
+    for (SolidArcDimension& Dim : Document.Dimensions)
+    {
+        if (!Dim.FirstName.empty() && Dim.FirstKind == SolidArcSelectionKind::Body && Dim.SecondName.empty() && Dim.AxisFilter >= 0 && Dim.AxisFilter < 3)
+        {
+            Vector3 Low{}, High{};
+            if (ComputeBodyBounds(Document, Dim.FirstName, Low, High))
+            {
+                if (Dim.AxisFilter == 0)
+                {
+                    Dim.FirstPoint  = { Low.X, Low.Y, Low.Z };
+                    Dim.SecondPoint = { High.X, Low.Y, Low.Z };
+                    Dim.PlaneNormal = { 0.0, 0.0, 1.0 };
+                }
+                else if (Dim.AxisFilter == 1)
+                {
+                    Dim.FirstPoint  = { High.X, Low.Y, Low.Z };
+                    Dim.SecondPoint = { High.X, High.Y, Low.Z };
+                    Dim.PlaneNormal = { 0.0, 0.0, 1.0 };
+                }
+                else
+                {
+                    Dim.FirstPoint  = { High.X, High.Y, Low.Z };
+                    Dim.SecondPoint = { High.X, High.Y, High.Z };
+                    Dim.PlaneNormal = { 0.0, -1.0, 0.0 };
+                }
+                EvaluateLinearValue(Dim);
+            }
+            continue;
+        }
+        if (Dim.FirstName.empty())
+        {
+            if (Dim.Kind == SolidArcDimensionKind::Linear) EvaluateLinearValue(Dim);
+            else if (Dim.Kind == SolidArcDimensionKind::Radius) Dim.Value = Distance(Dim.FirstPoint, Dim.SecondPoint);
+            else if (Dim.Kind == SolidArcDimensionKind::Diameter) Dim.Value = 2.0 * Distance(Dim.FirstPoint, Dim.SecondPoint);
+            continue;
+        }
+        const ResolvedDimensionOperand First = ResolveDimensionOperand(Document, Dim.FirstKind, Dim.FirstName);
+        if (!First.FoundCondition) continue;
+
+        if (Dim.SecondName.empty())
+        {
+            if ((Dim.Kind == SolidArcDimensionKind::Radius || Dim.Kind == SolidArcDimensionKind::Diameter) && First.RadialCondition)
+            {
+                Dim.FirstPoint  = First.Centre;
+                Dim.SecondPoint = First.Rim;
+                Dim.PlaneNormal = First.PlaneNormal;
+                Dim.Value       = Dim.Kind == SolidArcDimensionKind::Diameter ? 2.0 * First.Radius : First.Radius;
+            }
+            else if (Dim.Kind == SolidArcDimensionKind::Linear && First.SegmentCondition)
+            {
+                Dim.FirstPoint  = First.Point;
+                Dim.SecondPoint = First.SecondEndpoint;
+                EvaluateLinearValue(Dim);
+                if (Dim.AxisFilter < 0 && First.EdgeSpan > 0.0 && !First.LineDir.has_value()) Dim.Value = First.EdgeSpan;
+            }
+            continue;
+        }
+
+        const ResolvedDimensionOperand Second = ResolveDimensionOperand(Document, Dim.SecondKind, Dim.SecondName);
+        if (!Second.FoundCondition) continue;
+
+        if (Dim.Kind == SolidArcDimensionKind::Angular)
+        {
+            constexpr double RadToDeg = 180.0 / std::numbers::pi;
+            Vector3 RayA = First.LineDir.value_or(First.FaceNormal.value_or(Vector3{ 1.0, 0.0, 0.0 }));
+            Vector3 RayB = Second.LineDir.value_or(Second.FaceNormal.value_or(Vector3{ 0.0, 1.0, 0.0 }));
+            RayA = SafeUnitNormal(RayA, { 1.0, 0.0, 0.0 });
+            RayB = SafeUnitNormal(RayB, { 0.0, 1.0, 0.0 });
+            if (First.LineDir && Second.LineDir && Dot(RayA, RayB) < 0.0) RayB = RayB * -1.0;
+            const double Cosine = std::clamp(Dot(RayA, RayB), -1.0, 1.0);
+            Dim.Value       = std::acos(Cosine) * RadToDeg;
+            Dim.FirstPoint  = (First.Point + Second.Point) * 0.5;
+            Dim.SecondPoint = RayA;
+            Dim.Direction   = RayB;
+            Dim.PlaneNormal = SafeUnitNormal(Cross(RayA, RayB), { 0.0, 0.0, 1.0 });
+            continue;
+        }
+
+        if (Document.Partition && First.TargetCondition && Second.TargetCondition)
+        {
+            const DistanceMeasure Pair = MeasureMinimumDistance(*Document.Partition, First.Target, Second.Target);
+            if (Pair.Refusal.empty())
+            {
+                Dim.FirstPoint  = Pair.First;
+                Dim.SecondPoint = Pair.Second;
+                if (Dim.AxisFilter < 0) Dim.Value = Pair.Distance;
+                else EvaluateLinearValue(Dim);
+                continue;
+            }
+        }
+        Dim.FirstPoint  = First.Point;
+        Dim.SecondPoint = Second.Point;
+        EvaluateLinearValue(Dim);
+    }
+}
+
+const char* SolidArcDimensionKindLabel(SolidArcDimensionKind Kind) noexcept
+{
+    switch (Kind)
+    {
+    case SolidArcDimensionKind::Linear:   return "Linear";
+    case SolidArcDimensionKind::Radius:   return "Radius";
+    case SolidArcDimensionKind::Diameter: return "Diameter";
+    case SolidArcDimensionKind::Angular:  return "Angle";
+    }
+    return "Linear";
+}
+
+std::string FormatSolidArcDimension(const SolidArcDimension& Dimension)
+{
+    char Buffer[96];
+    const std::string Prefix = Dimension.Note.empty() ? std::string{} : (Dimension.Note + " ");
+    switch (Dimension.Kind)
+    {
+    case SolidArcDimensionKind::Angular:
+        std::snprintf(Buffer, sizeof(Buffer), "%s%.2f\xC2\xB0", Prefix.c_str(), Dimension.Value);
+        return Buffer;
+    case SolidArcDimensionKind::Radius:
+        std::snprintf(Buffer, sizeof(Buffer), "%sR%.4g m", Prefix.c_str(), Dimension.Value);
+        return Buffer;
+    case SolidArcDimensionKind::Diameter:
+        std::snprintf(Buffer, sizeof(Buffer), "%s\xC3\x98%.4g m", Prefix.c_str(), Dimension.Value);
+        return Buffer;
+    case SolidArcDimensionKind::Linear:
+    {
+        const char* AxisTag = Dimension.AxisFilter == 0 ? "dX " : Dimension.AxisFilter == 1 ? "dY " : Dimension.AxisFilter == 2 ? "dZ " : "";
+        std::snprintf(Buffer, sizeof(Buffer), "%s%s%.4g m", Prefix.c_str(), Dimension.Note.empty() ? AxisTag : "", Dimension.Value);
+        return Buffer;
+    }
+    }
+    return {};
+}
+
+SolidArcCommandOutcome AddSolidArcDimensionFromSelection(SolidArcDocument& Document, std::optional<SolidArcDimensionKind> PreferredKind, double Offset)
+{
+    return RunAppearanceCommand(Document, "Add dimension", [&]() -> std::string
+    {
+        // Collect ordered selection items across vertices, edges, faces, curves, and bodies.
+        struct PickEntry { SolidArcSelectionKind Kind; std::string Name; };
+        std::vector<PickEntry> Picks;
+        for (const std::string& Name : Document.Selection.Vertices) Picks.push_back({ SolidArcSelectionKind::Vertex, Name });
+        for (const std::string& Name : Document.Selection.Faces)    Picks.push_back({ SolidArcSelectionKind::Face, Name });
+        for (const std::string& Name : Document.Selection.Edges)    Picks.push_back({ SolidArcSelectionKind::Edge, Name });
+
+        if (Picks.size() == 1)
+        {
+            const ResolvedDimensionOperand Op = ResolveDimensionOperand(Document, Picks[0].Kind, Picks[0].Name);
+            if (!Op.FoundCondition) return "Dimension: selected entity could not be resolved";
+            if (Op.RadialCondition && PreferredKind != SolidArcDimensionKind::Linear)
+            {
+                SolidArcDimension Dim;
+                Dim.Id          = NextDimensionId(Document);
+                Dim.Kind        = PreferredKind == SolidArcDimensionKind::Radius ? SolidArcDimensionKind::Radius : SolidArcDimensionKind::Diameter;
+                Dim.FirstKind   = Picks[0].Kind;
+                Dim.FirstName   = Picks[0].Name;
+                Dim.FirstPoint  = Op.Centre;
+                Dim.SecondPoint = Op.Rim;
+                Dim.PlaneNormal = Op.PlaneNormal;
+                Dim.Offset      = Offset;
+                Dim.Value       = Dim.Kind == SolidArcDimensionKind::Diameter ? 2.0 * Op.Radius : Op.Radius;
+                Document.Dimensions.push_back(std::move(Dim));
+                return {};
+            }
+            if (Picks[0].Kind == SolidArcSelectionKind::Edge && Op.SegmentCondition)
+            {
+                SolidArcDimension Dim;
+                Dim.Id          = NextDimensionId(Document);
+                Dim.Kind        = SolidArcDimensionKind::Linear;
+                Dim.FirstKind   = SolidArcSelectionKind::Edge;
+                Dim.FirstName   = Picks[0].Name;
+                Dim.FirstPoint  = Op.Point;
+                Dim.SecondPoint = Op.SecondEndpoint;
+                Dim.PlaneNormal = Op.PlaneNormal;
+                Dim.Offset      = Offset;
+                Dim.Value       = Op.LineDir.has_value() ? Distance(Op.Point, Op.SecondEndpoint) : Op.EdgeSpan;
+                Document.Dimensions.push_back(std::move(Dim));
+                return {};
+            }
+            // Single planar/non-radial face: fall through to dimension its owning body's W × D × H envelope if no second pick.
+            const std::string OwnerBody = SolidArcBodyOfName(Document, Picks[0].Kind, Picks[0].Name);
+            if (!OwnerBody.empty() && PreferredKind != SolidArcDimensionKind::Angular && PreferredKind != SolidArcDimensionKind::Radius && PreferredKind != SolidArcDimensionKind::Diameter)
+            {
+                Vector3 Low{}, High{};
+                if (ComputeBodyBounds(Document, OwnerBody, Low, High))
+                {
+                    static const char* Notes[3] = { "W", "D", "H" };
+                    for (int Axis = 0; Axis < 3; ++Axis)
+                    {
+                        SolidArcDimension Dim;
+                        Dim.Id         = NextDimensionId(Document);
+                        Dim.Kind       = SolidArcDimensionKind::Linear;
+                        Dim.FirstKind  = SolidArcSelectionKind::Body;
+                        Dim.FirstName  = OwnerBody;
+                        Dim.AxisFilter = Axis;
+                        Dim.Offset     = Axis == 0 ? -std::abs(Offset) : std::abs(Offset);
+                        Dim.Note       = Notes[Axis];
+                        Document.Dimensions.push_back(std::move(Dim));
+                    }
+                    RefreshSolidArcDimensions(Document);
+                    return {};
+                }
+            }
+            return "Dimension: select an edge, circular/cylindrical face, two entities, or a body";
+        }
+
+        if (Picks.size() >= 2)
+        {
+            const ResolvedDimensionOperand First  = ResolveDimensionOperand(Document, Picks[0].Kind, Picks[0].Name);
+            const ResolvedDimensionOperand Second = ResolveDimensionOperand(Document, Picks[1].Kind, Picks[1].Name);
+            if (!First.FoundCondition || !Second.FoundCondition) return "Dimension: selected entities could not be resolved";
+
+            const bool BothDirectional = (First.LineDir.has_value() || First.FaceNormal.has_value()) && (Second.LineDir.has_value() || Second.FaceNormal.has_value());
+            bool AutoAngular = false;
+            if (BothDirectional && !PreferredKind.has_value())
+            {
+                const Vector3 DirA = SafeUnitNormal(First.LineDir.value_or(First.FaceNormal.value_or(Vector3{ 1.0, 0.0, 0.0 })));
+                const Vector3 DirB = SafeUnitNormal(Second.LineDir.value_or(Second.FaceNormal.value_or(Vector3{ 0.0, 1.0, 0.0 })));
+                const double  Cosine = std::abs(Dot(DirA, DirB));
+                if (Cosine < 0.9995) AutoAngular = true;
+            }
+            if (PreferredKind == SolidArcDimensionKind::Angular || AutoAngular)
+            {
+                if (!BothDirectional) return "Angle dimension needs two linear edges or planar/cylindrical faces";
+                SolidArcDimension Dim;
+                Dim.Id         = NextDimensionId(Document);
+                Dim.Kind       = SolidArcDimensionKind::Angular;
+                Dim.FirstKind  = Picks[0].Kind;
+                Dim.FirstName  = Picks[0].Name;
+                Dim.SecondKind = Picks[1].Kind;
+                Dim.SecondName = Picks[1].Name;
+                Dim.Offset     = Offset;
+                Document.Dimensions.push_back(std::move(Dim));
+                RefreshSolidArcDimensions(Document);
+                return {};
+            }
+
+            SolidArcDimension Dim;
+            Dim.Id          = NextDimensionId(Document);
+            Dim.Kind        = SolidArcDimensionKind::Linear;
+            Dim.FirstKind   = Picks[0].Kind;
+            Dim.FirstName   = Picks[0].Name;
+            Dim.SecondKind  = Picks[1].Kind;
+            Dim.SecondName  = Picks[1].Name;
+            Dim.FirstPoint  = First.Point;
+            Dim.SecondPoint = Second.Point;
+            Dim.Offset      = Offset;
+            Document.Dimensions.push_back(std::move(Dim));
+            RefreshSolidArcDimensions(Document);
+            Dim.PlaneNormal = DefaultPlaneNormalForSpan(Document.Dimensions.back().SecondPoint - Document.Dimensions.back().FirstPoint);
+            Document.Dimensions.back().PlaneNormal = Dim.PlaneNormal;
+            if (Document.Dimensions.back().Value < 1.0e-7 && BothDirectional)
+            {
+                // Intersecting edges / adjacent planar faces with 0 separation: default to clean Angular dimension!
+                Document.Dimensions.back().Kind = SolidArcDimensionKind::Angular;
+                RefreshSolidArcDimensions(Document);
+            }
+            return {};
+        }
+
+        // Sketch curve selection: dimension circle diameter / line span on the sketch plane.
+        if (!Document.Selection.Curves.empty())
+        {
+            const std::string& Label = Document.Selection.Curves.back();
+            for (const FeatureStep& Step : Document.Tree.Steps)
+            {
+                if (Step.Label != Label || Step.Kind != FeatureStepKind::Sketch) continue;
+                const auto SolvedIt = Document.Regeneration.Sketches.find(Label);
+                const SketchModel& Sketch = SolvedIt != Document.Regeneration.Sketches.end() ? SolvedIt->second : Step.Sketch;
+                OrthonormalFrame Plane = Step.Plane;
+                Plane.Origin = Plane.Origin + Plane.ZAxis * EvaluateFeatureValue(Document.Tree, Step.Elevation);
+                const auto ToWorld = [&](Vector2 Local) { return Plane.Origin + Plane.XAxis * Local.X + Plane.YAxis * Local.Y; };
+                if (Sketch.Curves.size() == 1 && (Sketch.Curves[0].Kind == SketchCurveKind::Circle || Sketch.Curves[0].Kind == SketchCurveKind::Arc) && Sketch.Curves[0].Centre >= 0)
+                {
+                    const Vector2 Centre2 = Sketch.Points[Sketch.Curves[0].Centre].Position;
+                    const double  Radius  = Sketch.Curves[0].Kind == SketchCurveKind::Circle ? Sketch.Curves[0].Radius
+                                          : Distance(Centre2, Sketch.Points[Sketch.Curves[0].Start].Position);
+                    SolidArcDimension Dim;
+                    Dim.Id          = NextDimensionId(Document);
+                    Dim.Kind        = PreferredKind == SolidArcDimensionKind::Radius ? SolidArcDimensionKind::Radius : SolidArcDimensionKind::Diameter;
+                    Dim.FirstPoint  = ToWorld(Centre2);
+                    Dim.SecondPoint = ToWorld({ Centre2.X + Radius, Centre2.Y });
+                    Dim.PlaneNormal = Plane.ZAxis;
+                    Dim.Offset      = Offset;
+                    Dim.Value       = Dim.Kind == SolidArcDimensionKind::Diameter ? 2.0 * Radius : Radius;
+                    Document.Dimensions.push_back(std::move(Dim));
+                    return {};
+                }
+                if (Sketch.Points.size() >= 2)
+                {
+                    Vector2 Low = Sketch.Points[0].Position, High = Low;
+                    for (const SketchPoint& Pt : Sketch.Points)
+                    {
+                        Low  = { std::min(Low.X, Pt.Position.X), std::min(Low.Y, Pt.Position.Y) };
+                        High = { std::max(High.X, Pt.Position.X), std::max(High.Y, Pt.Position.Y) };
+                    }
+                    if (High.X - Low.X > 1.0e-6)
+                    {
+                        SolidArcDimension DimX;
+                        DimX.Id          = NextDimensionId(Document);
+                        DimX.Kind        = SolidArcDimensionKind::Linear;
+                        DimX.FirstPoint  = ToWorld({ Low.X, Low.Y });
+                        DimX.SecondPoint = ToWorld({ High.X, Low.Y });
+                        DimX.PlaneNormal = Plane.ZAxis;
+                        DimX.Offset      = -std::abs(Offset);
+                        EvaluateLinearValue(DimX);
+                        Document.Dimensions.push_back(std::move(DimX));
+                    }
+                    if (High.Y - Low.Y > 1.0e-6)
+                    {
+                        SolidArcDimension DimY;
+                        DimY.Id          = NextDimensionId(Document);
+                        DimY.Kind        = SolidArcDimensionKind::Linear;
+                        DimY.FirstPoint  = ToWorld({ High.X, Low.Y });
+                        DimY.SecondPoint = ToWorld({ High.X, High.Y });
+                        DimY.PlaneNormal = Plane.ZAxis;
+                        DimY.Offset      = std::abs(Offset);
+                        EvaluateLinearValue(DimY);
+                        Document.Dimensions.push_back(std::move(DimY));
+                    }
+                    if (!Document.Dimensions.empty()) return {};
+                }
+            }
+        }
+
+        // Body selection: 2 bodies -> minimum clearance dimension; 1 body -> W × D × H overall bounding-box dimensions!
+        if (Document.Selection.Bodies.size() >= 2 && Document.Partition)
+        {
+            const RegeneratedBody* BodyA = FindRegeneratedBody(Document, Document.Selection.Bodies[0]);
+            const RegeneratedBody* BodyB = FindRegeneratedBody(Document, Document.Selection.Bodies[1]);
+            if (BodyA && BodyB)
+            {
+                const BodyInventory InvA = Document.Partition->CollectInventory(BodyA->Body);
+                const BodyInventory InvB = Document.Partition->CollectInventory(BodyB->Body);
+                double  BestDist = std::numeric_limits<double>::infinity();
+                Vector3 BestA{}, BestB{};
+                std::string FaceNameA, FaceNameB;
+                for (const FaceToken FA : InvA.Faces)
+                    for (const FaceToken FB : InvB.Faces)
+                    {
+                        const DistanceMeasure M = MeasureMinimumDistance(*Document.Partition, FA, FB);
+                        if (M.Refusal.empty() && M.Distance < BestDist)
+                        {
+                            BestDist = M.Distance;
+                            BestA    = M.First;
+                            BestB    = M.Second;
+                            if (const auto ItA = BodyA->Naming.Faces.find(FA.Slot); ItA != BodyA->Naming.Faces.end()) FaceNameA = ItA->second;
+                            if (const auto ItB = BodyB->Naming.Faces.find(FB.Slot); ItB != BodyB->Naming.Faces.end()) FaceNameB = ItB->second;
+                        }
+                    }
+                if (std::isfinite(BestDist))
+                {
+                    SolidArcDimension Dim;
+                    Dim.Id          = NextDimensionId(Document);
+                    Dim.Kind        = SolidArcDimensionKind::Linear;
+                    Dim.FirstKind   = SolidArcSelectionKind::Face;
+                    Dim.FirstName   = FaceNameA;
+                    Dim.SecondKind  = SolidArcSelectionKind::Face;
+                    Dim.SecondName  = FaceNameB;
+                    Dim.FirstPoint  = BestA;
+                    Dim.SecondPoint = BestB;
+                    Dim.PlaneNormal = DefaultPlaneNormalForSpan(BestB - BestA);
+                    Dim.Offset      = Offset;
+                    Dim.Value       = BestDist;
+                    Document.Dimensions.push_back(std::move(Dim));
+                    return {};
+                }
+            }
+        }
+        if (Document.Selection.Bodies.size() == 1)
+        {
+            const std::string& BodyKey = Document.Selection.Bodies.front();
+            Vector3 Low{}, High{};
+            if (!ComputeBodyBounds(Document, BodyKey, Low, High)) return "Dimension: selected body has no bounds";
+            static const char* Notes[3] = { "W", "D", "H" };
+            for (int Axis = 0; Axis < 3; ++Axis)
+            {
+                SolidArcDimension Dim;
+                Dim.Id         = NextDimensionId(Document);
+                Dim.Kind       = SolidArcDimensionKind::Linear;
+                Dim.FirstKind  = SolidArcSelectionKind::Body;
+                Dim.FirstName  = BodyKey;
+                Dim.AxisFilter = Axis;
+                Dim.Offset     = Axis == 0 ? -std::abs(Offset) : std::abs(Offset);
+                Dim.Note       = Notes[Axis];
+                Document.Dimensions.push_back(std::move(Dim));
+            }
+            RefreshSolidArcDimensions(Document);
+            return {};
+        }
+
+        return "Dimension: select an edge, circle/cylinder, two entities, or a body — or click 2 points in Dimension mode";
+    });
+}
+
+SolidArcCommandOutcome AddSolidArcPointDimension(SolidArcDocument& Document, Vector3 First, Vector3 Second, Vector3 PlaneNormal,
+                                                 double Offset, int AxisFilter, const std::string& FirstEntity,
+                                                 SolidArcSelectionKind FirstKind, const std::string& SecondEntity,
+                                                 SolidArcSelectionKind SecondKind)
+{
+    return RunAppearanceCommand(Document, "Place dimension", [&]() -> std::string
+    {
+        if (Distance(First, Second) < 1.0e-7) return "Dimension: start and end points coincide";
+        SolidArcDimension Dim;
+        Dim.Id          = NextDimensionId(Document);
+        Dim.Kind        = SolidArcDimensionKind::Linear;
+        Dim.FirstKind   = FirstKind;
+        Dim.FirstName   = FirstEntity;
+        Dim.SecondKind  = SecondKind;
+        Dim.SecondName  = SecondEntity;
+        Dim.FirstPoint  = First;
+        Dim.SecondPoint = Second;
+        Dim.PlaneNormal = SafeUnitNormal(PlaneNormal, DefaultPlaneNormalForSpan(Second - First));
+        Dim.Offset      = Offset;
+        Dim.AxisFilter  = std::clamp(AxisFilter, -1, 2);
+        EvaluateLinearValue(Dim);
+        if (Dim.Value < 1.0e-7) return "Dimension: zero projected span along the chosen axis";
+        Document.Dimensions.push_back(std::move(Dim));
+        RefreshSolidArcDimensions(Document);
+        return {};
+    });
+}
+
+SolidArcCommandOutcome UpdateSolidArcDimensionOffset(SolidArcDocument& Document, const std::string& Id, double Offset)
+{
+    return RunAppearanceCommand(Document, "Move dimension", [&]() -> std::string
+    {
+        for (SolidArcDimension& Dim : Document.Dimensions)
+        {
+            if (Dim.Id != Id) continue;
+            if (!std::isfinite(Offset)) return "Dimension: offset must be finite";
+            Dim.Offset = Offset;
+            return {};
+        }
+        return "no dimension " + Id;
+    });
+}
+
+SolidArcCommandOutcome ToggleSolidArcDimensionVisibility(SolidArcDocument& Document, const std::string& Id)
+{
+    return RunAppearanceCommand(Document, "Toggle dimension", [&]() -> std::string
+    {
+        for (SolidArcDimension& Dim : Document.Dimensions)
+        {
+            if (Dim.Id != Id) continue;
+            Dim.VisibleCondition = !Dim.VisibleCondition;
+            return {};
+        }
+        return "no dimension " + Id;
+    });
+}
+
+SolidArcCommandOutcome ToggleSolidArcDimensionRadialKind(SolidArcDocument& Document, const std::string& Id)
+{
+    return RunAppearanceCommand(Document, "Switch R / \xC3\x98", [&]() -> std::string
+    {
+        for (SolidArcDimension& Dim : Document.Dimensions)
+        {
+            if (Dim.Id != Id) continue;
+            if (Dim.Kind == SolidArcDimensionKind::Diameter)
+            {
+                Dim.Kind  = SolidArcDimensionKind::Radius;
+                Dim.Value *= 0.5;
+                return {};
+            }
+            if (Dim.Kind == SolidArcDimensionKind::Radius)
+            {
+                Dim.Kind  = SolidArcDimensionKind::Diameter;
+                Dim.Value *= 2.0;
+                return {};
+            }
+            return Id + " is not a radial / diametral dimension";
+        }
+        return "no dimension " + Id;
+    });
+}
+
+SolidArcCommandOutcome RemoveSolidArcDimension(SolidArcDocument& Document, const std::string& Id)
+{
+    return RunAppearanceCommand(Document, "Delete dimension", [&]() -> std::string
+    {
+        const size_t Removed = std::erase_if(Document.Dimensions, [&](const SolidArcDimension& Dim) { return Dim.Id == Id; });
+        return Removed > 0 ? std::string{} : ("no dimension " + Id);
+    });
+}
+
+SolidArcCommandOutcome ClearSolidArcDimensions(SolidArcDocument& Document)
+{
+    return RunAppearanceCommand(Document, "Clear dimensions", [&]() -> std::string
+    {
+        if (Document.Dimensions.empty()) return "no dimensions to clear";
+        Document.Dimensions.clear();
+        return {};
+    });
 }
 
 } // namespace Frontier::SolidArc

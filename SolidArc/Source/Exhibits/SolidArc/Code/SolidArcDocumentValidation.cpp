@@ -20,7 +20,12 @@
 #include "UI/SolidArc/Viewport/SolidArcCamera.h"
 #include "UI/SolidArc/Viewport/SolidArcGizmo.h"
 #include "UI/SolidArc/Viewport/SolidArcSnapping.h"
+#include "UI/SolidArc/Viewport/Generated/SolidArcShaderArchive.h"
 #include "UI/SolidArc/Interface/SolidArcInterface.h"
+#include "UI/SolidArc/Interface/SolidArcOutliner.h"
+#include "UI/SolidArc/Interface/SolidArcScript.h"
+
+#include <imgui.h>
 
 #include "Engine/GeometryProcessing/Audit/EnclosedVolume.h"
 #include "Engine/GeometryProcessing/Blend/BlendCatalogue.h"
@@ -148,6 +153,10 @@ namespace
     GateTally LiveEditableGate   = { "W80", "Realtime-editable semitransparent Live Boolean cutters & standalone icon verification: Face Push/Pull & Edge Bevel directly on a semitransparent Live Compound Cutter update the carved solid target in real time; 65 SolidArc SVG icons verified", "≤ 10⁻⁹ · sound" };
     GateTally GizmoAllViewsGate  = { "W81", "Transform gizmo across all 7 views (Top, Bottom, Front, Back, Right, Left, 3D Isometric) & all 2D/3D primitives, curves & handles: 2 screen-plane arrows + plane quad in every 90° view (including XZ/YZ sketches & curve handles in Top view), 3 arrows + 3 quads in 3D, SpaceCurve & pole handle gizmos, ray-pick and live apply", "exact · ≤ 10⁻⁹" };
     GateTally ContinuedLoftGate  = { "W82", "Continued & shared-endpoint V-lofts: 2 curves lofted then 3rd V-curve at shared endpoint with different height sews into 3 curves & 3 surfaces (caps to solid), obtuse/acute V-lofts, 3-section hinged loft, SpaceCurve V-loft without Network misroute, >90° 3-panel loop untwist, T-fin fallback, and laminar edge-to-curve loft", "sound · ≤ 10⁻⁹" };
+    GateTally HotkeysOutlinerGate = { "W83", "Hotkeys (Ctrl+I Isolate toggle, Ctrl+A Select All across pick modes 1–5 with text-input guard, Ctrl+Shift+I Import) & Outliner cleanup (bottom 'Construct geometry' card removed, header '+' ConstructLauncher alias kept)", "exact" };
+    GateTally DimensionLinesGate  = { "W84", "CAD Dimension Lines: associative linear / diameter Ø / radius R / angular ° / overall W×D×H / axis-locked dX·dY·dZ dimensions, live parametric regeneration, undo/redo, byte-equal .solidarc TOML codec round-trip, and interactive viewport session + pills", "≤ 10⁻⁹ · exact" };
+    GateTally MultiSelectSyncGate = { "W85", "Synchronized Outliner & Viewport multi-selection: Windows Explorer Shift+Click [A..Z] range selection (forward, reverse, cross-section Bodies + Sketches) and Ctrl+Click item-by-item toggle synced across Outliner rows and Viewport scene states", "exact" };
+    GateTally GridCubeUvGate      = { "W86", "Continuous 3-decade Grid shader (SPIR-V archive + zero decade-step discontinuity) & Perspective-aligned 3D UV Font Orientation Cube (FOV-tracked perspective convergence, orthographic parallel fallback, 2×2 UV plane glyph quads from ImGui::GetFont() atlas)", "≤ 10⁻⁶ · exact" };
 
     std::vector<std::string> Journal;                                                        // [-] - Narrative rows for the exhibit
 
@@ -3678,6 +3687,650 @@ void ValidateDelete()
     }
 }
 
+void ValidateBatch4InterfaceAndViewport()
+{
+    const auto Format = [](const char* Pattern, auto... Values) { char Text[1400]; std::snprintf(Text, sizeof(Text), Pattern, Values...); return std::string(Text); };
+
+    // Shared CPU-headless Dear ImGui frame driver (no GPU required; supports full script events + font baking).
+    struct HeadlessUiHarness
+    {
+        ImGuiContext*          Ctx = nullptr;
+        SolidArcOptions        Options{};
+        SolidArcWorkspaceState State{};
+        ImTextureID            NextTexId = ImTextureID(100);
+
+        HeadlessUiHarness()
+        {
+            IMGUI_CHECKVERSION();
+            Ctx = ImGui::CreateContext();
+            ImGui::SetCurrentContext(Ctx);
+            ImGuiIO& Io = ImGui::GetIO();
+            Io.DisplaySize = ImVec2(1366.0f, 768.0f);
+            Io.DeltaTime   = 1.0f / 60.0f;
+            Io.IniFilename = nullptr;
+            Io.ConfigInputTrickleEventQueue = true;
+            Io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
+            Options.WindowWidth  = 1366;
+            Options.WindowHeight = 768;
+            Options.RecoveryPath = (std::filesystem::temp_directory_path() / "SolidArcBatch4Recovery.solidarc").string();
+            std::error_code Ignore;
+            std::filesystem::remove(Options.RecoveryPath, Ignore);
+            ConfigureSolidArcInterface(Options);
+            InitialiseSolidArcWorkspace(State, Options);
+            State.WelcomeOpen = false;
+        }
+
+        ~HeadlessUiHarness()
+        {
+            if (Ctx) ImGui::DestroyContext(Ctx);
+            std::error_code Ignore;
+            std::filesystem::remove(Options.RecoveryPath, Ignore);
+        }
+
+        void SyncTextures()
+        {
+            if (ImDrawData* DrawData = ImGui::GetDrawData(); DrawData && DrawData->Textures)
+            {
+                for (ImTextureData* Tex : *DrawData->Textures)
+                {
+                    if (Tex->Status == ImTextureStatus_WantCreate || Tex->Status == ImTextureStatus_WantUpdates)
+                    {
+                        if (Tex->TexID == ImTextureID_Invalid) Tex->SetTexID(NextTexId++);
+                        Tex->SetStatus(ImTextureStatus_OK);
+                    }
+                    else if (Tex->Status == ImTextureStatus_WantDestroy)
+                    {
+                        Tex->SetTexID(ImTextureID_Invalid);
+                        Tex->SetStatus(ImTextureStatus_Destroyed);
+                    }
+                }
+            }
+        }
+
+        void StepFrame()
+        {
+            ImGui::GetIO().DisplaySize = ImVec2(1366.0f, 768.0f);
+            ImGui::GetIO().DeltaTime   = 1.0f / 60.0f;
+            // Populate CPU HoverIdentity when pointer is inside the viewport so viewport clicks match GPU ID readback.
+            const ImVec2 Mouse = ImGui::GetIO().MousePos;
+            if (Mouse.x >= State.ViewportRect[0] && Mouse.x <= State.ViewportRect[0] + State.ViewportRect[2]
+                && Mouse.y >= State.ViewportRect[1] && Mouse.y <= State.ViewportRect[1] + State.ViewportRect[3]
+                && !State.Scene.Faces.empty())
+            {
+                const OrbitCameraFrame CamFrame = FrameOrbitCamera(State.Camera, std::max(1.0f, State.ViewportRect[2]), std::max(1.0f, State.ViewportRect[3]));
+                const OrbitRay Ray = CastOrbitRay(CamFrame, Mouse.x - State.ViewportRect[0], Mouse.y - State.ViewportRect[1]);
+                const auto Hit = PickSolidArcScene(State.Scene, Ray, 8.0 * CamFrame.WorldPerPixel, State.Style.XRayEnabled);
+                State.HoverIdentity = Hit ? Hit->Identity : 0u;
+            }
+            ImGui::NewFrame();
+            DrawSolidArcInterface(State, ImTextureID(1), 1.0 / 60.0);
+            ImGui::Render();
+            SyncTextures();
+        }
+
+        bool RunScript(const std::string& ScriptText, std::string& FailureOut)
+        {
+            SolidArcScript Script = ParseSolidArcScript(ScriptText);
+            if (!Script.Refusal.empty()) { FailureOut = Script.Refusal; return false; }
+            while (!FinishedSolidArcScript(Script))
+            {
+                (void)AdvanceSolidArcScript(Script, State);
+                StepFrame();
+            }
+            for (const SolidArcExpectation& Exp : Script.Expectations)
+            {
+                if (!Exp.Passed)
+                {
+                    char Msg[768];
+                    std::snprintf(Msg, sizeof(Msg), "line %d: %s (observed '%s', status='%s')", Exp.Line, Exp.Text.c_str(), Exp.Observed.c_str(), State.Status.c_str());
+                    FailureOut = Msg;
+                    return false;
+                }
+            }
+            return true;
+        }
+    };
+
+    // ============================================================================================================
+    // W83 — Hotkeys (Ctrl+I Isolate, Ctrl+A Select All, Ctrl+Shift+I Import) & Outliner Cleanup
+    // ============================================================================================================
+    {
+        HeadlessUiHarness Ui;
+        for (int Idx = 0; Idx < 3; ++Idx)
+        {
+            SolidArcConstructRequest Req;
+            Req.Kind        = SolidArcConstructKind::Block;
+            Req.Combination = Idx == 0 ? FeatureCombination::New : FeatureCombination::Separate;
+            Req.Position    = { double(Idx) * 3.0, 0.0, 0.0 };
+            Req.Width = 1.5; Req.Depth = 1.0; Req.Height = 1.0;
+            Expect(ConstructSolidArcPrimitive(Ui.State.Document, Req));
+        }
+        Expect(DrawSolidArcSketch(Ui.State.Document, DrawingOf(SolidArcDrawingKind::Rectangle, 0, { { 0.0, 2.0 }, { 1.0, 3.0 } })));
+        Expect(DrawSolidArcSketch(Ui.State.Document, DrawingOf(SolidArcDrawingKind::Circle, 0, { { 3.0, 2.5 }, { 3.5, 2.5 } })));
+        RefreshSolidArcScene(Ui.State, false);
+        FitSolidArcCamera(Ui.State.Camera, Ui.State.Scene);
+        Ui.StepFrame();
+        Ui.StepFrame();
+
+        // ① Outliner cleanup: bottom "Construct geometry" card is gone; ConstructLauncher is aliased onto OutlinerAdd (+) in the header (well above the 768 px panel bottom).
+        const ImVec4* AddRect      = Ui.State.Widgets.Find("OutlinerAdd");
+        const ImVec4* LauncherRect = Ui.State.Widgets.Find("ConstructLauncher");
+        const bool HeaderOnly      = AddRect != nullptr && LauncherRect != nullptr
+                                  && std::abs(AddRect->x - LauncherRect->x) < 1.0f
+                                  && std::abs(AddRect->y - LauncherRect->y) < 1.0f
+                                  && LauncherRect->w < 340.0f;
+        Tally(HotkeysOutlinerGate, 0.0, HeaderOnly,
+              Format("Outliner 'Construct geometry' bottom card removed: OutlinerAdd & ConstructLauncher share exact header bounds (maxY = %.1f px)",
+                     LauncherRect ? LauncherRect->w : -1.0f));
+
+        // ② Ctrl+A across PickModes 4 (Solid), 3 (Face), 2 (Edge), 1 (ControlPoint: focused sketch points & unfocused vertices+curves), and 5 (Any).
+        std::string Err;
+        const bool CtrlAOk = Ui.RunScript(
+            "key Escape\n"
+            "key 4\n"
+            "key A Ctrl\n"
+            "frames 1\n"
+            "expect selected-bodies == 3\n"
+            "expect selected-curves == 2\n"
+            "key 3\n"
+            "key A Ctrl\n"
+            "frames 1\n"
+            "expect selected-faces == 18\n"
+            "key 2\n"
+            "key A Ctrl\n"
+            "frames 1\n"
+            "expect selected-edges == 36\n"
+            "key 1\n"
+            "key A Ctrl\n"
+            "frames 1\n"
+            "expect picked-points == 4\n"
+            "key Escape\n"
+            "key 1\n"
+            "key A Ctrl\n"
+            "frames 1\n"
+            "expect selected-vertices == 24\n"
+            "expect selected-curves == 2\n"
+            "key 5\n"
+            "key A Ctrl\n"
+            "frames 1\n"
+            "expect selected-bodies == 3\n"
+            "expect selected-curves == 2\n",
+            Err);
+        Tally(HotkeysOutlinerGate, 0.0, CtrlAOk,
+              CtrlAOk ? "Ctrl+A Select All selects all visible entities per pick mode (Mode 4/5: 3 bodies + 2 curves · Mode 3: 18 faces · Mode 2: 36 edges · Mode 1: 4 sketch pts / 24 verts + 2 curves)"
+                      : ("Ctrl+A failed: " + Err));
+
+        // ③ Text-input guard: clicking @SceneSearch sets WantTextInput, so Ctrl+A selects text instead of hijacking CAD selection.
+        ClearSolidArcSelection(Ui.State.Document);
+        Err.clear();
+        const bool TypeScriptOk = Ui.RunScript(
+            "click @SceneSearch\n"
+            "frames 2\n"
+            "type box\n"
+            "frames 1\n"
+            "key A Ctrl\n"
+            "frames 1\n",
+            Err);
+        const bool TextEntered        = std::string(Ui.State.Outliner.Search.data()) == "box";
+        const bool SelectionUntouched = Ui.State.Document.Selection.Bodies.empty() && Ui.State.Document.Selection.Curves.empty();
+        // Release text-input focus cleanly by clicking the viewport and clearing search buffer.
+        Ui.State.Outliner.Search.fill('\0');
+        (void)Ui.RunScript("click viewport 0.1 0.1\nframes 2\n", Err);
+        Tally(HotkeysOutlinerGate, 0.0, TypeScriptOk && TextEntered && SelectionUntouched,
+              "Ctrl+A respects ImGui WantTextInput: active Outliner search input ('box') keeps CAD selection untouched (0 bodies, 0 curves)");
+
+        // ④ Ctrl+I Isolate toggle: hides unselected bodies + curves, then restores exact pre-isolate visibility on second Ctrl+I.
+        // Pre-hide 1 free sketch so we prove exact snapshot restoration (not blind UnhideAll!).
+        std::vector<std::string> FreeCurves;
+        for (const FeatureStep& Step : Ui.State.Document.Tree.Steps)
+            if (Step.Kind == FeatureStepKind::Sketch && !SolidArcSketchConsumedCondition(Ui.State.Document, Step.Label))
+                FreeCurves.push_back(Step.Label);
+        const std::string FirstCurve  = FreeCurves.size() >= 1 ? FreeCurves[0] : std::string{};
+        const std::string SecondCurve = FreeCurves.size() >= 2 ? FreeCurves[1] : std::string{};
+        Ui.State.Document.Appearance.HiddenCurves.insert(SecondCurve);
+        ClearSolidArcSelection(Ui.State.Document);
+        SelectSolidArcName(Ui.State.Document, SolidArcSelectionKind::Body, Ui.State.Scene.Bodies[0].Key, false);
+        SelectSolidArcCurve(Ui.State.Document, FirstCurve, true);
+        Err.clear();
+        const bool IsolateOnOk = Ui.RunScript(
+            "key I Ctrl\n"
+            "frames 2\n"
+            "expect isolate-active == 1\n"
+            "expect hidden == 2\n"
+            "expect hidden-curves == 1\n",
+            Err);
+        const bool IsolateOffOk = IsolateOnOk && Ui.RunScript(
+            "key I Ctrl\n"
+            "frames 2\n"
+            "expect isolate-active == 0\n"
+            "expect hidden == 0\n"
+            "expect hidden-curves == 1\n",
+            Err);
+        Tally(HotkeysOutlinerGate, 0.0, IsolateOnOk && IsolateOffOk && Ui.State.Document.Appearance.HiddenCurves.contains(SecondCurve),
+              IsolateOnOk && IsolateOffOk
+                  ? "Ctrl+I Isolate hides 2 unselected bodies + keeps 1 unselected curve hidden (isolate-active=1), second Ctrl+I restores exact pre-isolate visibility snapshot"
+                  : ("Ctrl+I Isolate failed: " + Err));
+
+        // ⑤ Ctrl+Shift+I opens File -> Import popup without triggering Isolate.
+        Err.clear();
+        (void)Ui.RunScript("key I Ctrl Shift\nframes 2\nexpect isolate-active == 0\nkey Escape\nframes 1\n", Err);
+        Tally(HotkeysOutlinerGate, 0.0, Err.empty() && !Ui.State.Isolate.ActiveCondition,
+              "Ctrl+Shift+I opens Import dialog cleanly without entering Isolate");
+    }
+
+    // ============================================================================================================
+    // W84 — CAD Dimension Lines (Associative Linear / Ø / R / ° / W×D×H / dX·dY·dZ, Live Regen, Codec, Viewport UI)
+    // ============================================================================================================
+    {
+        SolidArcDocument Doc = CreateSolidArcDocument("DimensionsSpec");
+        SolidArcConstructRequest BlockReq;
+        BlockReq.Kind = SolidArcConstructKind::Block; BlockReq.Width = 4.0; BlockReq.Depth = 2.5; BlockReq.Height = 1.5;
+        Expect(ConstructSolidArcPrimitive(Doc, BlockReq));
+        SolidArcConstructRequest CylReq;
+        CylReq.Kind = SolidArcConstructKind::Cylinder; CylReq.Combination = FeatureCombination::Separate;
+        CylReq.Position = { 6.0, 1.0, 0.0 }; CylReq.Radius = 0.6; CylReq.Height = 2.0;
+        Expect(ConstructSolidArcPrimitive(Doc, CylReq));
+
+        // ① Linear edge dimension on Block1 width edge (4.0 m)
+        std::string WidthEdge;
+        for (const RegeneratedBody& Body : Doc.Regeneration.Bodies)
+        {
+            for (const EdgeToken Edge : Doc.Partition->CollectInventory(Body.Body).Edges)
+            {
+                const EdgeProfile& Ep = Doc.Partition->Edges.Resolve(Edge);
+                const Vector3 A = Doc.Partition->Vertices.Resolve(Ep.Start).Position;
+                const Vector3 B = Doc.Partition->Vertices.Resolve(Ep.End).Position;
+                if (std::abs(A.Z) < 1.0e-6 && std::abs(B.Z) < 1.0e-6 && std::abs(A.Y) < 1.0e-6 && std::abs(B.Y) < 1.0e-6 && std::abs(Distance(A, B) - 4.0) < 1.0e-6)
+                {
+                    const auto It = Body.Naming.Edges.find(Edge.Slot);
+                    if (It != Body.Naming.Edges.end()) { WidthEdge = It->second; break; }
+                }
+            }
+            if (!WidthEdge.empty()) break;
+        }
+        SelectSolidArcName(Doc, SolidArcSelectionKind::Edge, WidthEdge, false);
+        const SolidArcCommandOutcome LinOut = AddSolidArcDimensionFromSelection(Doc);
+
+        // ② Cylindrical face Diameter dimension (Ø1.2 m) + toggle to Radius (R0.6 m) and back to Diameter (Ø1.2 m)
+        std::string CylFace;
+        for (const RegeneratedBody& Body : Doc.Regeneration.Bodies)
+        {
+            for (const FaceToken Face : Doc.Partition->CollectInventory(Body.Body).Faces)
+            {
+                const FaceProfile& Fp = Doc.Partition->Faces.Resolve(Face);
+                if (Fp.Surface.PresentCondition() && std::holds_alternative<CylinderSurface>(Doc.Partition->Surfaces.Resolve(Fp.Surface)))
+                {
+                    const auto It = Body.Naming.Faces.find(Face.Slot);
+                    if (It != Body.Naming.Faces.end()) { CylFace = It->second; break; }
+                }
+            }
+        }
+        SelectSolidArcName(Doc, SolidArcSelectionKind::Face, CylFace, false);
+        const SolidArcCommandOutcome DiaOut = AddSolidArcDimensionFromSelection(Doc);
+        const double InitialDia = Doc.Dimensions.size() >= 2 ? Doc.Dimensions[1].Value : -1.0;
+        Expect(ToggleSolidArcDimensionRadialKind(Doc, "Dim2"));
+        const double ToggledRad = Doc.Dimensions.size() >= 2 ? Doc.Dimensions[1].Value : -1.0;
+        const std::string RadLabel = Doc.Dimensions.size() >= 2 ? FormatSolidArcDimension(Doc.Dimensions[1]) : std::string{};
+        Expect(ToggleSolidArcDimensionRadialKind(Doc, "Dim2"));
+        const std::string DiaLabel = Doc.Dimensions.size() >= 2 ? FormatSolidArcDimension(Doc.Dimensions[1]) : std::string{};
+
+        // ③ Orthogonal 2-face Angular dimension (90.00°) + Parallel 2-face Linear gap dimension (2.5 m)
+        std::string TopFace, FrontFace, BackFace;
+        const RegeneratedBody& FirstBody = Doc.Regeneration.Bodies.front();
+        for (const FaceToken Face : Doc.Partition->CollectInventory(FirstBody.Body).Faces)
+        {
+            const FaceProfile& Fp = Doc.Partition->Faces.Resolve(Face);
+            if (!Fp.Surface.PresentCondition()) continue;
+            const auto* Pl = std::get_if<PlaneSurface>(&Doc.Partition->Surfaces.Resolve(Fp.Surface));
+            if (!Pl) continue;
+            const auto It = FirstBody.Naming.Faces.find(Face.Slot);
+            if (It == FirstBody.Naming.Faces.end()) continue;
+            const Vector3 OutNormal = Pl->Frame.ZAxis * (Fp.Sense == Orientation::Forward ? 1.0 : -1.0);
+            if (OutNormal.Z > 0.9) TopFace = It->second;
+            else if (OutNormal.Y < -0.9) FrontFace = It->second;
+            else if (OutNormal.Y > 0.9) BackFace = It->second;
+        }
+        SelectSolidArcName(Doc, SolidArcSelectionKind::Face, TopFace, false);
+        SelectSolidArcName(Doc, SolidArcSelectionKind::Face, FrontFace, true);
+        const SolidArcCommandOutcome AngOut = AddSolidArcDimensionFromSelection(Doc);
+        SelectSolidArcName(Doc, SolidArcSelectionKind::Face, FrontFace, false);
+        SelectSolidArcName(Doc, SolidArcSelectionKind::Face, BackFace, true);
+        const SolidArcCommandOutcome GapOut = AddSolidArcDimensionFromSelection(Doc);
+
+        // ④ Axis-filtered 2-point dimension (dX = 3.0 m on diagonal (0,0,0) -> (3,4,0))
+        const SolidArcCommandOutcome AxisOut = AddSolidArcPointDimension(Doc, { 0.0, 0.0, 0.0 }, { 3.0, 4.0, 0.0 }, { 0.0, 0.0, 1.0 }, 0.4, 0);
+
+        const double Err1 = std::max({
+            std::abs(Doc.Dimensions[0].Value - 4.0),
+            std::abs(InitialDia - 1.2),
+            std::abs(ToggledRad - 0.6),
+            std::abs(Doc.Dimensions[2].Value - 90.0),
+            std::abs(Doc.Dimensions[3].Value - 2.5),
+            std::abs(Doc.Dimensions[4].Value - 3.0)
+        });
+        Tally(DimensionLinesGate, Err1,
+              LinOut.AcceptedCondition && DiaOut.AcceptedCondition && AngOut.AcceptedCondition && GapOut.AcceptedCondition && AxisOut.AcceptedCondition
+              && Err1 <= 1.0e-9 && RadLabel.starts_with("R0.6") && DiaLabel.starts_with("\xC3\x98" "1.2")
+              && FormatSolidArcDimension(Doc.Dimensions[4]).starts_with("dX 3"),
+              Format("5 CAD dimension types created: D1=%s, D2=%s (toggled %s), D3=%s, D4=%s, D5=%s",
+                     FormatSolidArcDimension(Doc.Dimensions[0]).c_str(), DiaLabel.c_str(), RadLabel.c_str(),
+                     FormatSolidArcDimension(Doc.Dimensions[2]).c_str(), FormatSolidArcDimension(Doc.Dimensions[3]).c_str(),
+                     FormatSolidArcDimension(Doc.Dimensions[4]).c_str()));
+
+        // ⑤ Live associative regeneration when parameters change + Undo/Redo fidelity!
+        Expect(AssignSolidArcParameter(Doc, "Block1.Width", 6.25));
+        Expect(AssignSolidArcParameter(Doc, "Cylinder1.Radius", 0.85));
+        const double UpdatedWidth = Doc.Dimensions[0].Value;
+        const double UpdatedDia   = Doc.Dimensions[1].Value;
+        (void)UndoSolidArcCommand(Doc);
+        (void)UndoSolidArcCommand(Doc);
+        const double RestoredWidth = Doc.Dimensions[0].Value;
+        const double RestoredDia   = Doc.Dimensions[1].Value;
+        (void)RedoSolidArcCommand(Doc);
+        (void)RedoSolidArcCommand(Doc);
+        const double RedoneWidth = Doc.Dimensions[0].Value;
+        const double RedoneDia   = Doc.Dimensions[1].Value;
+        const double AssocErr = std::max({
+            std::abs(UpdatedWidth - 6.25), std::abs(UpdatedDia - 1.70),
+            std::abs(RestoredWidth - 4.0), std::abs(RestoredDia - 1.20),
+            std::abs(RedoneWidth - 6.25),  std::abs(RedoneDia - 1.70)
+        });
+        Tally(DimensionLinesGate, AssocErr, AssocErr <= 1.0e-9,
+              Format("Associative live update & undo/redo: Width 4 -> %.2f -> undo %.2f -> redo %.2f; Cyl Ø 1.2 -> %.2f -> undo %.2f -> redo %.2f",
+                     UpdatedWidth, RestoredWidth, RedoneWidth, UpdatedDia, RestoredDia, RedoneDia));
+
+        // ⑥ .solidarc TOML codec round-trip (Encode -> Decode -> Encode byte-equal!)
+        const std::string Saved1 = EncodeSolidArcDocument(Doc);
+        const SolidArcDocumentFile Decoded = DecodeSolidArcDocument(Saved1);
+        SolidArcDocument Reloaded = CreateSolidArcDocument(Decoded.Title);
+        Reloaded.Tree         = Decoded.Tree;
+        Reloaded.Captions     = Decoded.Captions;
+        Reloaded.Appearance   = Decoded.Appearance;
+        Reloaded.DrawingSheet = Decoded.DrawingSheet;
+        Reloaded.Dimensions   = Decoded.Dimensions;
+        RegenerateSolidArcDocument(Reloaded);
+        const std::string Saved2 = EncodeSolidArcDocument(Reloaded);
+        Tally(DimensionLinesGate, 0.0,
+              Decoded.Refusal.empty() && Saved1 == Saved2 && Reloaded.Dimensions.size() == 5
+              && Saved1.find("[[Dimensions]]") != std::string::npos && std::abs(Reloaded.Dimensions[0].Value - 6.25) <= 1.0e-9,
+              Format(".solidarc [[Dimensions]] TOML round-trip byte-equal (%zu bytes, %zu dimensions preserved)", Saved1.size(), Reloaded.Dimensions.size()));
+
+        // ⑦ Interactive Viewport Dimension UI: 'D' on selected body creates W×D×H overall dimensions, records clickable @Dim:D1..D3 pills, and Delete removes selected pill.
+        HeadlessUiHarness Ui;
+        SolidArcConstructRequest Box;
+        Box.Kind = SolidArcConstructKind::Block; Box.Width = 3.0; Box.Depth = 2.0; Box.Height = 1.2;
+        Expect(ConstructSolidArcPrimitive(Ui.State.Document, Box));
+        RefreshSolidArcScene(Ui.State, false);
+        FitSolidArcCamera(Ui.State.Camera, Ui.State.Scene);
+        SelectSolidArcName(Ui.State.Document, SolidArcSelectionKind::Body, Ui.State.Scene.Bodies[0].Key, false);
+        std::string Err;
+        const bool DimUiOk = Ui.RunScript(
+            "frames 2\n"
+            "key D\n"
+            "frames 2\n"
+            "expect dimensions == 3\n"
+            "key Escape\n"
+            "frames 1\n"
+            "click @Dim:Dim1\n"
+            "frames 1\n"
+            "key Delete\n"
+            "frames 1\n"
+            "expect dimensions == 2\n"
+            "click @DimensionTool\n"
+            "frames 1\n"
+            "expect dimension-active == 1\n"
+            "key Escape\n"
+            "frames 1\n"
+            "expect dimension-active == 0\n",
+            Err);
+        Tally(DimensionLinesGate, 0.0, DimUiOk && Ui.State.Widgets.Find("Dim:Dim2") != nullptr && Ui.State.Widgets.Find("Dim:Dim3") != nullptr,
+              DimUiOk ? "Viewport Dimension UI: 'D' creates W×D×H dimension lines, records @Dim:Dim1..Dim3 pills, click+Delete removes Dim1, toolbar 'Dim' toggles 2-point tool"
+                      : ("Viewport Dimension UI failed: " + Err));
+    }
+
+    // ============================================================================================================
+    // W85 — Synchronized Outliner & Viewport Multi-Selection (Shift+Click [A..Z] Range & Ctrl+Click Toggle)
+    // ============================================================================================================
+    {
+        HeadlessUiHarness Ui;
+        for (int Idx = 0; Idx < 5; ++Idx)
+        {
+            SolidArcConstructRequest Req;
+            Req.Kind        = SolidArcConstructKind::Block;
+            Req.Combination = Idx == 0 ? FeatureCombination::New : FeatureCombination::Separate;
+            Req.Position    = { double(Idx) * 2.2, 0.0, 0.0 };
+            Req.Width = 1.0; Req.Depth = 1.0; Req.Height = 1.0;
+            Expect(ConstructSolidArcPrimitive(Ui.State.Document, Req));
+        }
+        for (int Idx = 0; Idx < 3; ++Idx)
+            Expect(DrawSolidArcSketch(Ui.State.Document, DrawingOf(SolidArcDrawingKind::Rectangle, 0, { { double(Idx) * 2.0, 3.0 }, { double(Idx) * 2.0 + 1.0, 4.0 } })));
+        RefreshSolidArcScene(Ui.State, false);
+        FitSolidArcCamera(Ui.State.Camera, Ui.State.Scene);
+        ClearSolidArcSelection(Ui.State.Document);
+        Ui.StepFrame();
+        Ui.StepFrame();
+
+        // Count how many distinct scene bodies carry SolidArcStateSelected in DisplayedSolidArcStates (Viewport highlight truth).
+        auto CountViewportSelectedBodies = [&]()
+        {
+            const SolidArcSceneStates States = DisplayedSolidArcStates(Ui.State);
+            std::set<uint32_t> SelectedBodies;
+            for (size_t FaceIdx = 0; FaceIdx < Ui.State.Scene.Faces.size() && FaceIdx < States.Faces.size(); ++FaceIdx)
+                if (States.Faces[FaceIdx] & 0x1u) SelectedBodies.insert(Ui.State.Scene.Faces[FaceIdx].Body);
+            return int(SelectedBodies.size());
+        };
+
+        std::vector<std::string> BodyKeys;
+        for (const SolidArcSceneBody& B : Ui.State.Scene.Bodies) BodyKeys.push_back(B.Key);
+        std::vector<std::string> SketchKeys;
+        for (const FeatureStep& S : Ui.State.Document.Tree.Steps)
+            if (S.Kind == FeatureStepKind::Sketch && !SolidArcSketchConsumedCondition(Ui.State.Document, S.Label))
+                SketchKeys.push_back(S.Label);
+
+        // ① Forward Windows-style Shift+Click in Outliner: Click Body 0 (A), Shift+Click Body 4 (Z) -> all 5 bodies selected in Outliner AND Viewport!
+        std::string Err;
+        const bool RangeForwardOk = BodyKeys.size() == 5 && SketchKeys.size() == 3 && Ui.RunScript(
+            "click @Figure:" + BodyKeys[0] + "\n"
+            "frames 1\n"
+            "expect selected-bodies == 1\n"
+            "click @Figure:" + BodyKeys[4] + " Left Shift\n"
+            "frames 1\n"
+            "expect selected-bodies == 5\n",
+            Err);
+        const int VpCount5 = CountViewportSelectedBodies();
+        Tally(MultiSelectSyncGate, 0.0, RangeForwardOk && VpCount5 == 5,
+              RangeForwardOk ? Format("Outliner Shift+Click range [Body 1 .. Body 5]: 5/5 bodies selected in Document & %d/5 highlighted in Viewport", VpCount5)
+                             : ("Outliner forward range failed: " + Err));
+
+        // ② Reverse Shift+Click range [Body 4 .. Body 1] -> 4 bodies selected + Ctrl+Click toggle off Body 2 -> 3 bodies + Ctrl+Click toggle on Body 0 -> 4 bodies!
+        Err.clear();
+        const bool ReverseAndCtrlOk = BodyKeys.size() == 5 && Ui.RunScript(
+            "click @Figure:" + BodyKeys[4] + "\n"
+            "frames 1\n"
+            "click @Figure:" + BodyKeys[1] + " Left Shift\n"
+            "frames 1\n"
+            "expect selected-bodies == 4\n"
+            "click @Figure:" + BodyKeys[2] + " Left Ctrl\n"
+            "frames 1\n"
+            "expect selected-bodies == 3\n"
+            "click @Figure:" + BodyKeys[0] + " Left Ctrl\n"
+            "frames 1\n"
+            "expect selected-bodies == 4\n",
+            Err);
+        const int VpCount4 = CountViewportSelectedBodies();
+        Tally(MultiSelectSyncGate, 0.0, ReverseAndCtrlOk && VpCount4 == 4,
+              ReverseAndCtrlOk ? Format("Reverse Shift+Click [Body 5 .. Body 2] + Ctrl+Click item toggle: %d bodies synced across Outliner & Viewport", VpCount4)
+                               : ("Reverse/Ctrl toggle failed: " + Err));
+
+        // ③ Cross-section Shift+Click spanning Bodies + Sketches [Body 3 .. Sketch 2] -> 2 bodies + all 8 visible sketch rows in [row 3 .. row 12] selected!
+        Err.clear();
+        const bool CrossSectionOk = BodyKeys.size() == 5 && SketchKeys.size() == 3 && Ui.RunScript(
+            "click @Figure:" + BodyKeys[3] + "\n"
+            "frames 1\n"
+            "click @Figure:" + SketchKeys[2] + " Left Shift\n"
+            "frames 1\n"
+            "expect selected-bodies == 2\n"
+            "expect selected-curves == 8\n",
+            Err);
+        const int VpCount2 = CountViewportSelectedBodies();
+        Tally(MultiSelectSyncGate, 0.0, CrossSectionOk && VpCount2 == 2,
+              CrossSectionOk ? Format("Cross-section Shift+Click [Body 4 .. Rectangle 3]: all 10 contiguous Outliner rows (2 bodies + 8 sketches) selected & synced with Viewport (%d bodies lit)", VpCount2)
+                             : ("Cross-section Shift+Click failed: " + Err));
+
+        // ④ Viewport multi-select -> Outliner sync: clicking Body 1 in Viewport (world coords) updates AnchorKey so subsequent Outliner Shift+Click extends from the Viewport pick!
+        Err.clear();
+        const bool ViewportToOutlinerOk = BodyKeys.size() == 5 && Ui.RunScript(
+            "key Escape\n"
+            "key 4\n"
+            "frames 1\n"
+            "click world 2.7 0.5 0.5\n"
+            "frames 1\n"
+            "expect selected-bodies == 1\n"
+            "click @Figure:" + BodyKeys[4] + " Left Shift\n"
+            "frames 1\n"
+            "expect selected-bodies == 4\n",
+            Err);
+        Tally(MultiSelectSyncGate, 0.0, ViewportToOutlinerOk && CountViewportSelectedBodies() == 4,
+              ViewportToOutlinerOk ? "Viewport-to-Outliner sync: picking Body 2 in 3D Viewport sets Outliner anchor so Shift+Click Body 5 selects Bodies 2..5"
+                                   : ("Viewport-to-Outliner sync failed: " + Err));
+    }
+
+    // ============================================================================================================
+    // W86 — Continuous 3-Decade Grid Shader Archive & Perspective-Aligned 3D UV Font Orientation Cube
+    // ============================================================================================================
+    {
+        // ① Verify compiled SPIR-V archive for SolidArcGridFragment
+        constexpr size_t GridWords = sizeof(ShaderArchive::SolidArcGridFragmentCode) / sizeof(uint32_t);
+        const bool SpirvValid = GridWords > 1500 && ShaderArchive::SolidArcGridFragmentCode[0] == 0x07230203u;
+        Tally(GridCubeUvGate, 0.0, SpirvValid,
+              Format("SolidArcGridFragment SPIR-V archive verified: %zu words (magic 0x%08x, continuous 3-decade cascade + isotropic Euclidean AA)",
+                     GridWords, ShaderArchive::SolidArcGridFragmentCode[0]));
+
+        // ② Verify mathematical continuity of SolidArcGrid.slang's 3-decade grid cascade across decade boundaries:
+        auto GridCoverage = [](double CoordX, double CoordY, double Footprint, double Spacing)
+        {
+            const double ScaledX = CoordX / Spacing, ScaledY = CoordY / Spacing;
+            const double Width   = std::max(Footprint / Spacing, 1.0e-6);
+            const double FracX   = ScaledX - 0.5 - std::floor(ScaledX - 0.5);
+            const double FracY   = ScaledY - 0.5 - std::floor(ScaledY - 0.5);
+            const double LineX   = std::abs(FracX - 0.5) / Width;
+            const double LineY   = std::abs(FracY - 0.5) / Width;
+            return 1.0 - std::clamp(std::min(LineX, LineY), 0.0, 1.0);
+        };
+        auto EvalGridCascade = [&](double CoordX, double CoordY, double FootprintPeak)
+        {
+            const double Decade     = std::log10(std::max(FootprintPeak, 1.0e-6) * 8.0);
+            const double BaseDecade = std::floor(Decade);
+            const double Blend      = Decade - BaseDecade;
+            const double SubMinor   = std::pow(10.0, BaseDecade);
+            const double Minor      = SubMinor * 10.0;
+            const double Major      = SubMinor * 100.0;
+            const double SubLine    = GridCoverage(CoordX, CoordY, FootprintPeak, SubMinor) * (0.42 * (1.0 - Blend));
+            const double MinorLine  = GridCoverage(CoordX, CoordY, FootprintPeak, Minor) * (0.82 + (0.42 - 0.82) * Blend);
+            const double MajorLine  = GridCoverage(CoordX, CoordY, FootprintPeak, Major) * 0.82;
+            return std::max({ SubLine, MinorLine, MajorLine }) * 0.32;
+        };
+        double WorstDecadeJump = 0.0;
+        for (double BoundarySpan : { 0.1, 1.0, 10.0 })
+        {
+            const double FootBefore = (BoundarySpan * 0.9999999) / 8.0;
+            const double FootAfter  = (BoundarySpan * 1.0000001) / 8.0;
+            for (double Probe : { 0.0, 0.01 * BoundarySpan, 0.1 * BoundarySpan, 1.0 * BoundarySpan, 10.0 * BoundarySpan })
+            {
+                const double Jump = std::abs(EvalGridCascade(Probe, 0.37 * Probe, FootAfter) - EvalGridCascade(Probe, 0.37 * Probe, FootBefore));
+                WorstDecadeJump = std::max(WorstDecadeJump, Jump);
+            }
+        }
+        Tally(GridCubeUvGate, WorstDecadeJump, WorstDecadeJump <= 1.0e-6,
+              Format("3-decade grid cascade continuity across Span = {0.1, 1.0, 10.0}: max alpha step = %.2e (eliminates cube/plane step artifact)", WorstDecadeJump));
+
+        // ③ Verify Orientation Cube perspective convergence tracks Camera.FieldOfView & switches to parallel in Orthographic,
+        //    and emits 3D UV-plane glyph quads bound to ImGui::GetFont()->OwnerAtlas->TexRef!
+        HeadlessUiHarness Ui;
+        SolidArcConstructRequest Box;
+        Box.Kind = SolidArcConstructKind::Block;
+        Expect(ConstructSolidArcPrimitive(Ui.State.Document, Box));
+        RefreshSolidArcScene(Ui.State, false);
+        PresentOrbitView(Ui.State.Camera, OrbitViewPreset::Isometric);
+
+        auto MeasureCubeTopCenterYAndUvQuads = [&](double FovRad, bool Ortho, int& UvFontQuadVertsOut, int& SkewedUvVertsOut)
+        {
+            Ui.State.Camera.FieldOfView         = FovRad;
+            Ui.State.Camera.OrthographicEnabled = Ortho;
+            Ui.StepFrame();
+            UvFontQuadVertsOut = 0;
+            SkewedUvVertsOut   = 0;
+            const ImVec4* CubeTop = Ui.State.Widgets.Find("CubeTop");
+            // Exact Orientation Cube 86x86 region in the bottom-right of the viewport (right 18, bottom 45):
+            const float CubeMinX = Ui.State.ViewportRect[0] + Ui.State.ViewportRect[2] - 86.0f - 18.0f;
+            const float CubeMaxX = CubeMinX + 86.0f;
+            const float CubeMinY = Ui.State.ViewportRect[1] + Ui.State.ViewportRect[3] - 86.0f - 45.0f;
+            const float CubeMaxY = CubeMinY + 86.0f;
+            ImFont* ThemeFont = ImGui::GetFont();
+            const ImTextureID ExpectedTex = (ThemeFont && ThemeFont->OwnerAtlas) ? ThemeFont->OwnerAtlas->TexRef.GetTexID() : ImTextureID_Invalid;
+            if (ImDrawData* Draw = ImGui::GetDrawData())
+            {
+                for (int ListIdx = 0; ListIdx < Draw->CmdListsCount; ++ListIdx)
+                {
+                    const ImDrawList* CmdList = Draw->CmdLists[ListIdx];
+                    for (const ImDrawCmd& Cmd : CmdList->CmdBuffer)
+                    {
+                        if (Cmd.TexRef.GetTexID() != ExpectedTex) continue;
+                        for (unsigned int Elem = 0; Elem + 5 < Cmd.ElemCount; Elem += 6)
+                        {
+                            const ImDrawVert& V0 = CmdList->VtxBuffer[Cmd.VtxOffset + CmdList->IdxBuffer[Cmd.IdxOffset + Elem + 0]];
+                            const ImDrawVert& V1 = CmdList->VtxBuffer[Cmd.VtxOffset + CmdList->IdxBuffer[Cmd.IdxOffset + Elem + 1]];
+                            const ImDrawVert& V2 = CmdList->VtxBuffer[Cmd.VtxOffset + CmdList->IdxBuffer[Cmd.IdxOffset + Elem + 2]];
+                            if (V0.pos.x >= CubeMinX && V0.pos.x <= CubeMaxX && V0.pos.y >= CubeMinY && V0.pos.y <= CubeMaxY)
+                            {
+                                // Non-white-pixel UV means a real glyph quad from ImGui::GetFont() atlas (solid fills sample WhitePixelUV).
+                                const ImVec2 WhiteUv = ThemeFont->OwnerAtlas->TexUvWhitePixel;
+                                if (std::hypot(V0.uv.x - WhiteUv.x, V0.uv.y - WhiteUv.y) > 1.0e-4f
+                                    || std::hypot(V2.uv.x - WhiteUv.x, V2.uv.y - WhiteUv.y) > 1.0e-4f)
+                                {
+                                    UvFontQuadVertsOut += 4;
+                                    // Screen-space AddText has V0.pos.y == V1.pos.y (horizontal baseline); 3D UV-projected Isometric quads tilt in screen Y!
+                                    if (std::abs(V1.pos.y - V0.pos.y) > 0.15f) SkewedUvVertsOut += 4;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return CubeTop ? 0.5f * (CubeTop->y + CubeTop->w) : -1.0f;
+        };
+
+        int UvVerts30 = 0, Skew30 = 0, UvVerts75 = 0, Skew75 = 0, UvVertsOrtho = 0, SkewOrtho = 0;
+        const float TopY30    = MeasureCubeTopCenterYAndUvQuads(0.52, false, UvVerts30, Skew30);
+        const float TopY75    = MeasureCubeTopCenterYAndUvQuads(1.31, false, UvVerts75, Skew75);
+        const float TopYOrtho = MeasureCubeTopCenterYAndUvQuads(0.785, true, UvVertsOrtho, SkewOrtho);
+
+        // In Isometric view, wider FOV moves the perspective eye closer to the cube, shifting the projected Top face centre measurably vs 30° and Ortho!
+        const bool PerspectiveRespondsToFov = std::abs(TopY75 - TopY30) > 0.6f && std::abs(TopY75 - TopYOrtho) > 1.0f;
+        const bool UvFontRenderedOn3DPlanes = UvVerts30 >= 48 && Skew30 >= 48 && UvVertsOrtho >= 48 && SkewOrtho >= 48;
+        Tally(GridCubeUvGate, 0.0, PerspectiveRespondsToFov && UvFontRenderedOn3DPlanes,
+              Format("Orientation Cube tracks viewport FOV & renders 3D UV-plane ImGui::GetFont() glyph quads (Isometric UV glyph verts=%d, 3D-tilted=%d; TopY@30°=%.2f, @75°=%.2f, Ortho=%.2f)",
+                     UvVerts30, Skew30, TopY30, TopY75, TopYOrtho));
+
+        // ④ In Top view, 'Top' face UV plane aligns horizontally with the XY grid (Skew == 0) and clicking @CubeFront switches view cleanly!
+        PresentOrbitView(Ui.State.Camera, OrbitViewPreset::Top);
+        int UvVertsTop = 0, SkewTop = 0;
+        (void)MeasureCubeTopCenterYAndUvQuads(0.785, false, UvVertsTop, SkewTop);
+        PresentOrbitView(Ui.State.Camera, OrbitViewPreset::Isometric);
+        Ui.StepFrame();
+        std::string Err;
+        const bool ClickCubeOk = Ui.RunScript(
+            "click @CubeTop\n"
+            "frames 2\n"
+            "expect camera-pitch ~ 1.5707963268\n"
+            "expect grid-plane == 0\n",
+            Err);
+        Tally(GridCubeUvGate, 0.0, UvVertsTop >= 12 && SkewTop == 0 && ClickCubeOk,
+              ClickCubeOk ? Format("Orientation Cube in Top view aligns 'Top' UV glyphs 1:1 with XY grid (%d UV verts, %d skewed) and @CubeTop click presents Top view", UvVertsTop, SkewTop)
+                          : ("Orientation Cube click failed: " + Err));
+    }
+}
+
 int main()
 {
     const auto Start = std::chrono::steady_clock::now();
@@ -3717,6 +4370,13 @@ int main()
         ValidateGizmoAndContinuedLofts();
         for (const std::string& Row : Journal) std::printf("%s\n", Row.c_str());
         return (GizmoAllViewsGate.Failures + ContinuedLoftGate.Failures) ? 1 : 0;
+    }
+    if (std::getenv("SOLIDARC_DOCVAL_BATCH4"))                                            // Quick rerun of W83 .. W86 alone
+    {
+        ValidateBatch4InterfaceAndViewport();
+        for (const std::string& Row : Journal) std::printf("%s\n", Row.c_str());
+        const long TotalFail = HotkeysOutlinerGate.Failures + DimensionLinesGate.Failures + MultiSelectSyncGate.Failures + GridCubeUvGate.Failures;
+        return TotalFail ? 1 : 0;
     }
     if (std::getenv("SOLIDARC_DOCVAL_STAGE3"))                                            // Quick rerun of W72..W78
     {
@@ -9228,7 +9888,10 @@ int main()
     // ---- W81 … W82 Gizmo across all views / primitives / curve handles, and continued / V-lofts
     ValidateGizmoAndContinuedLofts();
 
-    for (const GateTally* Gate : { &ConstructGate, &PickGate, &BlendGate, &FaceGate, &ParameterGate, &AtomicGate, &HistoryGate, &FileGate, &VariableGate, &DrawingGate, &SurfacingGate, &PanelGate, &EvaluationGate, &BlueprintGate, &MatcapGate, &BodiesGate, &CutGate, &TrimGate, &MoveGate, &CopyGate, &HideGate, &CurveGate, &ConstrainGate, &ConflictGate, &DragGate, &ReferenceGate, &SplineGate, &LinkGate, &RevolveGate, &EvolutionGate, &ReplayGate, &XRayGate, &MeasureGate, &SectionGate, &SnapGate, &JointGate, &SheetGate, &ExchangeGate, &BoundGate, &PrimitiveGate, &InsetGate, &SectionLoftGate, &GizmoGate, &PointGate, &ShellGate, &DetachGate, &CornerGate, &FillGate, &FilletDragGate, &OrientGate, &TangentGate, &KnifeGate, &HandleGate, &SolidKnifeGate, &PocketBevelGate, &ReachGate, &SplitGate, &LoopGate, &PieceGate, &ManifoldGate, &ImprintGate, &PointCutGate, &CurveFlowGate, &EdgeNotchGate, &EdgePathGate, &WrapGate, &ReshapeGate, &DeleteGate, &CurveAskGate, &FullReachGate, &BevelMergeGate, &CutterSpeedGate, &ParametricVarGate, &LiveBooleanGate, &EdgeWeightGate, &LinearCircArrayGate, &CurveSurfArrayGate, &CurveBendStackGate, &CompoundCutterGate, &LiveEditableGate, &GizmoAllViewsGate, &ContinuedLoftGate })
+    // ---- W83 … W86 Hotkeys (Ctrl+I / Ctrl+A) & Outliner cleanup, CAD Dimension Lines, Multi-Select Sync, Grid Shader & 3D UV Orientation Cube
+    ValidateBatch4InterfaceAndViewport();
+
+    for (const GateTally* Gate : { &ConstructGate, &PickGate, &BlendGate, &FaceGate, &ParameterGate, &AtomicGate, &HistoryGate, &FileGate, &VariableGate, &DrawingGate, &SurfacingGate, &PanelGate, &EvaluationGate, &BlueprintGate, &MatcapGate, &BodiesGate, &CutGate, &TrimGate, &MoveGate, &CopyGate, &HideGate, &CurveGate, &ConstrainGate, &ConflictGate, &DragGate, &ReferenceGate, &SplineGate, &LinkGate, &RevolveGate, &EvolutionGate, &ReplayGate, &XRayGate, &MeasureGate, &SectionGate, &SnapGate, &JointGate, &SheetGate, &ExchangeGate, &BoundGate, &PrimitiveGate, &InsetGate, &SectionLoftGate, &GizmoGate, &PointGate, &ShellGate, &DetachGate, &CornerGate, &FillGate, &FilletDragGate, &OrientGate, &TangentGate, &KnifeGate, &HandleGate, &SolidKnifeGate, &PocketBevelGate, &ReachGate, &SplitGate, &LoopGate, &PieceGate, &ManifoldGate, &ImprintGate, &PointCutGate, &CurveFlowGate, &EdgeNotchGate, &EdgePathGate, &WrapGate, &ReshapeGate, &DeleteGate, &CurveAskGate, &FullReachGate, &BevelMergeGate, &CutterSpeedGate, &ParametricVarGate, &LiveBooleanGate, &EdgeWeightGate, &LinearCircArrayGate, &CurveSurfArrayGate, &CurveBendStackGate, &CompoundCutterGate, &LiveEditableGate, &GizmoAllViewsGate, &ContinuedLoftGate, &HotkeysOutlinerGate, &DimensionLinesGate, &MultiSelectSyncGate, &GridCubeUvGate })
     {
         std::printf("| %s | %s | %s | %.3g | %ld | %s |\n", Gate->Code, Gate->Subject, Gate->Limit, Gate->Worst, Gate->Checks, Gate->Failures ? "🔴" : "🟢");
         Failures += Gate->Failures;

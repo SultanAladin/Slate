@@ -135,15 +135,6 @@ void LockGlyph(SolidArcSheet& Sheet, float CentreX, float CentreY, bool LockedCo
     Sheet.Line(CentreX - 3.0f, Top, CentreX - 3.0f, LockedCondition ? CentreY - 0.5f : Top + 1.0f, Ink, 1.2f);
 }
 
-// The ↗ of the Construct launcher (DM Sans has no U+2197): a 45° stroke with its two head strokes.
-void NorthEastArrow(SolidArcSheet& Sheet, float CentreX, float CentreY, ColorQuad Ink)
-{
-    const float Half = 3.5f;
-    Sheet.Line(CentreX - Half, CentreY + Half, CentreX + Half, CentreY - Half, Ink, 1.1f);
-    Sheet.Line(CentreX - 1.0f, CentreY - Half, CentreX + Half, CentreY - Half, Ink, 1.1f);
-    Sheet.Line(CentreX + Half, CentreY - Half, CentreX + Half, CentreY + 1.0f, Ink, 1.1f);
-}
-
 } // namespace
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -189,10 +180,13 @@ std::vector<SolidArcFigure> CollectSolidArcFigures(const SolidArcWorkspaceState&
             // Extruded / revolved sketches stay listed, so their leftover lines can be hidden or locked too.
             const auto Solved = Document.Regeneration.Sketches.find(Step.Label);
             if (SolidArcSketchConsumedCondition(Document, Step.Label)) Figure.Name += " sketch";
+            const auto Order         = std::find(Picked.Curves.begin(), Picked.Curves.end(), Step.Label);
             Figure.Source            = SolidArcFigureSource::Sketch;
             Figure.Icon              = SketchIcon(Solved != Document.Regeneration.Sketches.end() ? Solved->second : Step.Sketch);
-            Figure.SelectedCondition = State.FocusedStep == Step.Label;
-            Figure.Rank              = Figure.SelectedCondition ? 0 : -1;
+            Figure.Rank              = Order == Picked.Curves.end() ? -1 : int(Order - Picked.Curves.begin());
+            Figure.SelectedCondition = Figure.Rank >= 0
+                                    || (State.FocusedStep == Step.Label && Picked.Bodies.empty() && Picked.Faces.empty() && Picked.Edges.empty());
+            if (Figure.SelectedCondition && Figure.Rank < 0) Figure.Rank = 0;
         }
         else if (Step.Kind == FeatureStepKind::SpaceCurve)
         {
@@ -367,20 +361,24 @@ SolidArcOutlinerIntent ConstructSolidArcOutliner(SolidArcWorkspaceState& State, 
         Sheet.Icon(IconSymbol::SolidArcFolder, FoldCursor, CollectionCentre - 6.5f, 13.0f, Tint);
         Sheet.Text(FoldCursor + 13.0f + 8.0f, CollectionCentre, 11.0f, Tint, "Geometry collection");
         if (Press.ClickedCondition) Outliner.FoldedEnabled = !Outliner.FoldedEnabled;
-        if (IconButton(State, Sheet, "OutlinerAdd", Spanning(Right - 12.0f - 24.0f, CollectionCentre - 12.0f, 24.0f, 24.0f), IconSymbol::SolidArcPlus, 13.0f,
-                       SolidArcWash(0x08)))
+        const PlaneExtent AddSpan = Spanning(Right - 12.0f - 24.0f, CollectionCentre - 12.0f, 24.0f, 24.0f);
+        if (IconButton(State, Sheet, "OutlinerAdd", AddSpan, IconSymbol::SolidArcPlus, 13.0f, SolidArcWash(0x08)))
             Intent.Verb = SolidArcOutlinerVerb::Construct;
+        // Alias legacy @ConstructLauncher script target to the collection + button now that the bottom card is removed.
+        State.Widgets.Record("ConstructLauncher", ImVec2(AddSpan.MinimumX, AddSpan.MinimumY), ImVec2(AddSpan.MaximumX, AddSpan.MaximumY));
     }
     Y += CollectionHeight + 8.0f;
 
-    // #scene-rows — min 80 px, max 35vh, scrolls; .scene-row 39 px (compact 32), margin 0 10, padding 0 9 0 14, gap 9.
-    const std::string Query = Lowered(Outliner.Search.data());
+    // #scene-rows — fills available panel space above caption + footer, scrolls; .scene-row 39 px (compact 32).
+    const float FooterTop     = Panel.MaximumY - 1.0f - 32.0f;
+    const float CaptionHeight = 16.0f + 12.0f + 16.0f;
+    const std::string Query   = Lowered(Outliner.Search.data());
     std::vector<const SolidArcFigure*> Shown;
     for (const SolidArcFigure& Figure : Figures)
         if ((Outliner.Filter < 0 || static_cast<int>(Figure.Category) == Outliner.Filter) && Lowered(Figure.Name).find(Query) != std::string::npos)
             Shown.push_back(&Figure);
     const float Pitch      = Outliner.CompactEnabled ? CompactHeight : RowHeight;
-    const float Limit      = 0.35f * ImGui::GetIO().DisplaySize.y;
+    const float Limit      = std::max(80.0f, FooterTop - CaptionHeight - Y);
     const float EmptyBlock = 18.0f + 2.0f * 18.0f + 18.0f;                                   // .empty-note: padding 18, two 1.8 em lines
     const float RowsHeight = Outliner.FoldedEnabled ? 0.0f : std::clamp(Shown.empty() ? EmptyBlock : Pitch * float(Shown.size()), 80.0f, Limit);
     if (RowsHeight > 0.0f)
@@ -458,7 +456,36 @@ SolidArcOutlinerIntent ConstructSolidArcOutliner(SolidArcWorkspaceState& State, 
             {
                 Intent.Verb              = SolidArcOutlinerVerb::Pick;
                 Intent.Figure            = Figure;
-                Intent.AdditiveCondition = ImGui::GetIO().KeyShift || ImGui::GetIO().KeyCtrl;
+                Intent.ShiftCondition    = ImGui::GetIO().KeyShift;
+                Intent.CtrlCondition     = ImGui::GetIO().KeyCtrl;
+                Intent.AdditiveCondition = Intent.ShiftCondition || Intent.CtrlCondition;
+                if (Intent.ShiftCondition && Figure.Source != SolidArcFigureSource::Image)
+                {
+                    std::string Anchor = Outliner.AnchorKey;
+                    if (Anchor.empty())
+                    {
+                        for (const SolidArcFigure* Candidate : Shown)
+                            if (Candidate->SelectedCondition && Candidate->Source != SolidArcFigureSource::Image) { Anchor = Candidate->Key; break; }
+                    }
+                    ptrdiff_t AnchorIndex = -1;
+                    for (size_t Scan = 0; Scan < Shown.size(); ++Scan)
+                        if (Shown[Scan]->Key == Anchor) { AnchorIndex = static_cast<ptrdiff_t>(Scan); break; }
+                    if (AnchorIndex >= 0)
+                    {
+                        const ptrdiff_t ClickIndex = static_cast<ptrdiff_t>(Index);
+                        const ptrdiff_t StepDir    = AnchorIndex <= ClickIndex ? 1 : -1;
+                        for (ptrdiff_t CursorIdx = AnchorIndex; ; CursorIdx += StepDir)
+                        {
+                            const SolidArcFigure& RowFigure = *Shown[static_cast<size_t>(CursorIdx)];
+                            if (RowFigure.Source != SolidArcFigureSource::Image && !RowFigure.LockedCondition
+                                && !(RowFigure.HiddenCondition && RowFigure.Source != SolidArcFigureSource::Body))
+                            {
+                                Intent.RangeFigures.push_back(RowFigure);
+                            }
+                            if (CursorIdx == ClickIndex) break;
+                        }
+                    }
+                }
             }
         }
         ImGui::SetCursorScreenPos(ImVec2(Left, RowsTop));
@@ -473,33 +500,11 @@ SolidArcOutlinerIntent ConstructSolidArcOutliner(SolidArcWorkspaceState& State, 
     // .outliner-caption — padding 16 21, gap 6, 9 px #6d6d6d, link glyph 12.
     Sheet.Icon(IconSymbol::SolidArcLink, Left + 21.0f, Y + 16.0f, 12.0f, Ink(0x6d6d6d));
     Sheet.Text(Left + 21.0f + 12.0f + 6.0f, Y + 16.0f + 6.0f, 9.0f, Ink(0x6d6d6d), "Native B-rep · editable construction");
-    Y += 16.0f + 12.0f + 16.0f;
 
     // .panel-footer — min-height 32 at the bottom, #ffffff0a top border, padding 8 13, 9 px #737373, shield glyph 11.
-    const float FooterTop = Panel.MaximumY - 1.0f - 32.0f;
     Sheet.Line(Left, FooterTop + 0.5f, Right, FooterTop + 0.5f, SolidArcWash(0x0a));
     Sheet.Icon(IconSymbol::SolidArcShield, Left + 13.0f, FooterTop + 16.0f - 5.5f, 11.0f, Ink(0x737373));
     Sheet.Text(Left + 13.0f + 11.0f + 6.0f, FooterTop + 16.0f, 9.0f, Ink(0x737373), "Native geometry · Vulkan viewport");
-
-    // .construct-library — #ffffff08 top border, padding 16 12; .construct-launcher #202020, #ffffff12, radius 14, padding 16 12.
-    Sheet.Line(Left, Y + 0.5f, Right, Y + 0.5f, SolidArcWash(0x08));
-    const float       LineOne  = 13.0f * SolidArcStyleTokens::FontScale;
-    const float       LineTwo  = 10.0f * SolidArcStyleTokens::FontScale;
-    const PlaneExtent Launcher = Spanning(Left + 12.0f, Y + 1.0f + 16.0f, Width - 24.0f, LineOne + 7.0f + LineTwo + 32.0f + 2.0f);
-    if (Launcher.MaximumY < FooterTop)
-    {
-        const SolidArcPress Press = PressSolidArcRegion(State.Widgets, "ConstructLauncher", Launcher);
-        const ColorQuad     Tint  = Press.HoveredCondition ? Ink(0xffffff) : Ink(0xe0e0e0);
-        const float         Centre = 0.5f * (Launcher.MinimumY + Launcher.MaximumY);
-        Sheet.Box(Launcher, Press.HoveredCondition ? Ink(HoverFill) : Ink(0x202020), 14.0f, SolidArcWash(0x12));
-        Sheet.Icon(IconSymbol::SolidArcConstruct, Launcher.MinimumX + 13.0f, Centre - 8.5f, 17.0f, Tint);
-        const float TextLeft = Launcher.MinimumX + 13.0f + 17.0f + 9.0f;
-        const float TextTop  = Launcher.MinimumY + 17.0f;
-        Sheet.Text(TextLeft, TextTop + 0.5f * LineOne, 13.0f, Tint, "Construct geometry");
-        Sheet.Text(TextLeft, TextTop + LineOne + 7.0f + 0.5f * LineTwo, 10.0f, Ink(0x898989), "8 solids · 13 sketch tools · drawn in the viewport");
-        NorthEastArrow(Sheet, Launcher.MaximumX - 13.0f - 4.0f, Centre, Tint);
-        if (Press.ClickedCondition) Intent.Verb = SolidArcOutlinerVerb::Construct;
-    }
     Sheet.Surface().PopClip();
     return Intent;
 }

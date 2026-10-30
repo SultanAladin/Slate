@@ -620,6 +620,32 @@ struct SolidArcDrawingSheetSession
     int                   Exports         = 0;                                               // [-]  - Files written
 };
 
+struct SolidArcIsolateState
+{
+    bool                  ActiveCondition = false;                                           // [-] - Ctrl+I isolate toggle active
+    std::set<std::string> HiddenBodies    = {};                                              // [-] - Pre-isolate HiddenBodies snapshot
+    std::set<std::string> HiddenCurves    = {};                                              // [-] - Pre-isolate HiddenCurves snapshot
+};
+
+// 📝 Interactive 3D CAD Dimension Lines session (D / Dim toolbar button): snaps to vertices, midpoints, centres, curves,
+//    and grid points to place persistent linear, radial, diametral, angular, or bounding-box dimensions in the viewport.
+struct SolidArcDimensionSession
+{
+    bool                        ActiveCondition = false;                                     // [-]   - Interactive 2-point dimensioning active
+    int                         Stage           = 0;                                         // [-]   - 0 pick start · 1 pick end · 2 place offset
+    GeometryProcessing::Vector3 FirstPoint      = {};                                        // [len] - Snapped start anchor
+    GeometryProcessing::Vector3 SecondPoint     = {};                                        // [len] - Snapped end anchor
+    GeometryProcessing::Vector3 HoverPoint      = {};                                        // [len] - Live snapped hover point
+    bool                        HoverCondition  = false;                                     // [-]   - HoverPoint valid
+    std::string                 FirstEntity     = {};                                        // [-]   - Persistent vertex name if snapped
+    std::string                 SecondEntity    = {};                                        // [-]   - Persistent vertex name if snapped
+    GeometryProcessing::Vector3 PlaneNormal     = { 0.0, 0.0, 1.0 };                         // [-]   - Witness-line plane normal
+    double                      Offset          = 0.35;                                      // [len] - Witness-line offset
+    int                         AxisFilter      = -1;                                        // [-]   - -1 aligned, 0 ΔX, 1 ΔY, 2 ΔZ
+    std::string                 SelectedId      = {};                                        // [-]   - Clicked dimension line ID
+    std::string                 DraggingId      = {};                                        // [-]   - Dimension ID whose offset is being dragged
+};
+
 // 📝 STEP / STL exchange (priority 4 X4; Plasticity File → Import / Export, and Open / Save as by file type): Export…
 //    writes the selected bodies (else every shown body) beside the document as STEP AP214 or binary STL in millimetres;
 //    Import… reads .step / .stp (one Import step per solid, the file embedded) or VehicleCurves .toml.
@@ -806,6 +832,8 @@ struct SolidArcWorkspaceState
     SolidArcKnifeSession                  Knife          = {};                               // [-]   - Shift+K knife (KitOps-style cutters)
     SolidArcClipboard                     Clipboard      = {};                               // [-]   - Ctrl+C / Ctrl+V
     SolidArcMeasureSession                Measure        = {};                               // [-]   - I: Measure card + overlay
+    SolidArcIsolateState                  Isolate        = {};                               // [-]   - Ctrl+I: Isolate toggle snapshot
+    SolidArcDimensionSession              DimensionTool  = {};                               // [-]   - D / Dim: Interactive CAD dimension lines
     SolidArcSectionSession                Section        = {};                               // [-]   - Alt+S: section plane, caps, exact figures
     SolidArcDrawingSheetSession           DrawingSheet   = {};                               // [-]   - Alt+D: paper, views, dimensions, export
     SolidArcJointSession                  Joint          = {};                               // [-]   - Alt+J: joint card, origin glyphs, preview
@@ -885,6 +913,7 @@ struct SolidArcWorkspaceState
     double                                EdgeGroupWeight   = 1.0;                           // [-]   - Weight assigned to selected edges
     std::string                           EdgeGroupVariable = {};                            // [-]   - Optional variable bound to edge weight
     int                                   AddModifierKind   = 0;                             // [-]   - Selected ModifierKind in '+ Add Modifier'
+    bool                                  DimensionsEnabled = true;                          // [-]   - Persistent CAD dimension lines overlay
 };
 
 //------------------------------------------------------------------------------------------------------------------------

@@ -297,6 +297,17 @@ bool ObserveField(const SolidArcWorkspaceState& State, const std::string& Field,
     if (Field == "hidden") return Numeric(double(Document.Appearance.HiddenBodies.size()));
     if (Field == "hidden-curves") return Numeric(double(Document.Appearance.HiddenCurves.size()));
     if (Field == "removed-curves") return Numeric(double(Document.Appearance.RemovedCurves.size()));
+    if (Field == "isolate-active") return Numeric(State.Isolate.ActiveCondition ? 1 : 0);
+    if (Field == "dimensions") return Numeric(double(Document.Dimensions.size()));
+    if (Field == "dimension-active") return Numeric(State.DimensionTool.ActiveCondition ? 1 : 0);
+    if (Field == "dimension-text")
+    {
+        Text.clear();
+        for (const SolidArcDimension& Dim : Document.Dimensions)
+            Text += (Text.empty() ? "" : " · ") + Dim.Id + "=" + FormatSolidArcDimension(Dim);
+        Number = double(Document.Dimensions.size());
+        return true;
+    }
     if (Field == "outliner-hover") { Text = State.Outliner.HoveredCondition ? State.Outliner.Hovered.Key : std::string(); Number = State.Outliner.HoveredCondition ? 1.0 : 0.0; return true; }
     if (Field == "locked") return Numeric(double(Document.Appearance.LockedFigures.size()));
     if (Field == "face-plane") { Text = State.Drawing.FacePlaneCondition ? State.Drawing.FaceName : std::string(); Number = State.Drawing.FacePlaneCondition ? 1.0 : 0.0; return true; }

@@ -277,6 +277,36 @@ struct SolidArcBodySummary
 // 📝 One undo entry: the whole tree before the command (trees are small; replay rebuilds the body exactly). Recent entries
 //    also keep the replay checkpoints of that moment (shared, immutable), so undo / redo / a rolled-back command restore
 //    every step instead of replaying it.
+// 📝 Persistent associative CAD dimension annotation in 3D model space: Linear (aligned or ΔX/ΔY/ΔZ), Radius (R),
+//    Diameter (⌀), or Angular (°). When FirstName / SecondName reference persistent B-rep topology or curves,
+//    RefreshSolidArcDimensions recomputes exact endpoints / radii / angles on every regeneration.
+enum class SolidArcDimensionKind : uint8_t
+{
+    Linear   = 0,                                                                            // Point-to-point, edge length, clearance, or ΔX/ΔY/ΔZ
+    Radius   = 1,                                                                            // R callout on arc, circle, cylinder, or sphere
+    Diameter = 2,                                                                            // ⌀ callout on circle, cylinder, or sphere
+    Angular  = 3,                                                                            // ° arc between two lines or planar faces
+};
+
+struct SolidArcDimension
+{
+    std::string                 Id               = {};                                       // [-]     - Unique identifier ("Dim1", "Dim2", …)
+    SolidArcDimensionKind       Kind             = SolidArcDimensionKind::Linear;            // [-]     - Linear, Radius, Diameter, Angular
+    SolidArcSelectionKind       FirstKind        = SolidArcSelectionKind::Vertex;            // [-]     - First associative entity kind
+    std::string                 FirstName        = {};                                       // [-]     - Persistent name (empty: explicit point)
+    SolidArcSelectionKind       SecondKind       = SolidArcSelectionKind::Vertex;            // [-]     - Second associative entity kind
+    std::string                 SecondName       = {};                                       // [-]     - Persistent name (empty: explicit / single)
+    GeometryProcessing::Vector3 FirstPoint       = {};                                       // [len]   - Start point (or centre for R / ⌀ / ∠)
+    GeometryProcessing::Vector3 SecondPoint      = {};                                       // [len]   - End point (or rim point for R / ⌀)
+    GeometryProcessing::Vector3 PlaneNormal      = { 0.0, 0.0, 1.0 };                        // [-]     - Dimension plane normal
+    GeometryProcessing::Vector3 Direction        = { 1.0, 0.0, 0.0 };                        // [-]     - Secondary ray / reference axis
+    double                      Offset           = 0.35;                                     // [len]   - Witness-line offset in dimension plane
+    double                      Value            = 0.0;                                      // [m/deg] - Exact measured value
+    int                         AxisFilter       = -1;                                       // [-]     - -1 aligned, 0 ΔX, 1 ΔY, 2 ΔZ
+    bool                        VisibleCondition = true;                                     // [-]     - Drawn in the 3D viewport
+    std::string                 Note             = {};                                       // [-]     - Optional prefix / tag ("W", "D", "H")
+};
+
 struct SolidArcHistoryEntry
 {
     GeometryProcessing::FeatureTree              Tree     = {};                                        // [-] - Tree before the command
@@ -287,6 +317,7 @@ struct SolidArcHistoryEntry
     std::shared_ptr<const GeometryProcessing::RegenerationCache> Replay = {};                          // [-] - Checkpoints then (recent entries only)
     std::shared_ptr<const GeometryProcessing::ReplayCheckpoint>  SummaryCheckpoint = {};               // [-] - Checkpoint the summary below was measured on
     SolidArcBodySummary                                Summary = {};                         // [-] - Body figures then (reused when every step restores)
+    std::vector<SolidArcDimension>                     Dimensions = {};                      // [-] - Dimension lines before the command
 };
 
 // 📝 Section plane choice (Section card, Alt+S). World planes pass through Offset on their axis; the Face plane is the
@@ -353,6 +384,7 @@ struct SolidArcDocument
     std::vector<SolidArcImagePlane>            ImagePlanes  = {};                            // [-] - Blueprint references (saved, not in the history)
     SolidArcAppearance                         Appearance   = {};                            // [-] - Body / face matcaps (saved, undoable)
     SolidArcDrawingSheetSettings               DrawingSheet = {};                            // [-] - Alt+D sheet settings (saved, not in the history)
+    std::vector<SolidArcDimension>             Dimensions   = {};                            // [-] - Persistent 3D CAD dimension annotations (saved, undoable)
     GeometryProcessing::RegenerationCache                Replay       = {};                            // [-] - Step checkpoints of the last replay (incremental regeneration)
     std::shared_ptr<const GeometryProcessing::ReplayCheckpoint> SummaryCheckpoint = {};                // [-] - Final checkpoint Summary was measured on (figures reused when a
                                                                                              //       regeneration restores every step from it: undo / redo / clone)
@@ -977,5 +1009,30 @@ void                                 SelectSolidArcEdgeGroup(SolidArcDocument& D
 [[nodiscard]] SolidArcCommandOutcome ToggleSolidArcModifier(SolidArcDocument& Document, const std::string& Label);
 [[nodiscard]] SolidArcCommandOutcome RemoveSolidArcModifier(SolidArcDocument& Document, const std::string& Label);
 [[nodiscard]] SolidArcCommandOutcome ApplySolidArcModifier(SolidArcDocument& Document, const std::string& Label);
+
+// 💡 Isolate restore helper (Ctrl+I): restores a pre-isolate HiddenBodies / HiddenCurves snapshot as one undoable appearance step.
+[[nodiscard]] SolidArcCommandOutcome RestoreSolidArcVisibility(SolidArcDocument& Document, const std::set<std::string>& HiddenBodies,
+                                                               const std::set<std::string>& HiddenCurves, const std::string& Label = "Exit isolate");
+
+// 💡 Persistent CAD Dimension Lines (D): associative 3D linear, radial, diametral, angular, and bounding-box dimensions.
+void                                 RefreshSolidArcDimensions(SolidArcDocument& Document);
+[[nodiscard]] const char*            SolidArcDimensionKindLabel(SolidArcDimensionKind Kind) noexcept;
+[[nodiscard]] std::string            FormatSolidArcDimension(const SolidArcDimension& Dimension);
+[[nodiscard]] SolidArcCommandOutcome AddSolidArcDimensionFromSelection(SolidArcDocument& Document,
+                                                                       std::optional<SolidArcDimensionKind> PreferredKind = std::nullopt,
+                                                                       double Offset = 0.35);
+[[nodiscard]] SolidArcCommandOutcome AddSolidArcPointDimension(SolidArcDocument& Document, GeometryProcessing::Vector3 First,
+                                                               GeometryProcessing::Vector3 Second,
+                                                               GeometryProcessing::Vector3 PlaneNormal = { 0.0, 0.0, 1.0 },
+                                                               double Offset = 0.35, int AxisFilter = -1,
+                                                               const std::string& FirstEntity = {},
+                                                               SolidArcSelectionKind FirstKind = SolidArcSelectionKind::Vertex,
+                                                               const std::string& SecondEntity = {},
+                                                               SolidArcSelectionKind SecondKind = SolidArcSelectionKind::Vertex);
+[[nodiscard]] SolidArcCommandOutcome UpdateSolidArcDimensionOffset(SolidArcDocument& Document, const std::string& Id, double Offset);
+[[nodiscard]] SolidArcCommandOutcome ToggleSolidArcDimensionVisibility(SolidArcDocument& Document, const std::string& Id);
+[[nodiscard]] SolidArcCommandOutcome ToggleSolidArcDimensionRadialKind(SolidArcDocument& Document, const std::string& Id);
+[[nodiscard]] SolidArcCommandOutcome RemoveSolidArcDimension(SolidArcDocument& Document, const std::string& Id);
+[[nodiscard]] SolidArcCommandOutcome ClearSolidArcDimensions(SolidArcDocument& Document);
 
 } // namespace Frontier::SolidArc

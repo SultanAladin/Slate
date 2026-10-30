@@ -712,6 +712,30 @@ std::string EncodeSolidArcDocument(const SolidArcDocument& Document)
         Root.insert("Modifiers", std::move(Modifiers));
     }
     if (!Document.ImagePlanes.empty()) Root.insert("ImagePlanes", EncodeSolidArcImagePlanes(Document.ImagePlanes));
+    if (!Document.Dimensions.empty())
+    {
+        toml::array Dimensions;
+        for (const SolidArcDimension& Dim : Document.Dimensions)
+        {
+            toml::table Table{ { "Id", Dim.Id },
+                               { "Kind", static_cast<int64_t>(Dim.Kind) },
+                               { "FirstKind", static_cast<int64_t>(Dim.FirstKind) },
+                               { "FirstName", Dim.FirstName },
+                               { "SecondKind", static_cast<int64_t>(Dim.SecondKind) },
+                               { "SecondName", Dim.SecondName },
+                               { "FirstPoint", EncodeVector(Dim.FirstPoint) },
+                               { "SecondPoint", EncodeVector(Dim.SecondPoint) },
+                               { "PlaneNormal", EncodeVector(Dim.PlaneNormal) },
+                               { "Direction", EncodeVector(Dim.Direction) },
+                               { "Offset", Dim.Offset },
+                               { "Value", Dim.Value },
+                               { "AxisFilter", static_cast<int64_t>(Dim.AxisFilter) },
+                               { "Visible", Dim.VisibleCondition },
+                               { "Note", Dim.Note } };
+            Dimensions.push_back(std::move(Table));
+        }
+        Root.insert("Dimensions", std::move(Dimensions));
+    }
     if (!DefaultAppearanceCondition(Document.Appearance)) Root.insert("Appearance", EncodeAppearance(Document.Appearance));
     if (!DefaultSolidArcDrawingSheetCondition(Document.DrawingSheet)) Root.insert("DrawingSheet", EncodeDrawingSheet(Document.DrawingSheet));
     std::ostringstream Stream;
@@ -939,6 +963,37 @@ SolidArcDocumentFile DecodeSolidArcDocument(const std::string& Text)
             Modifier.MergeCondition   = View["Merge"].value_or(false);
             Modifier.Margin           = DecodeValue(View["Margin"], Modifier.Margin);
             File.Tree.Modifiers.push_back(std::move(Modifier));
+        }
+    }
+    if (const toml::array* Dimensions = Root["Dimensions"].as_array())
+    {
+        for (const toml::node& Node : *Dimensions)
+        {
+            const toml::node_view<const toml::node> View{ Node };
+            SolidArcDimension Dim;
+            Dim.Id = View["Id"].value_or(std::string{});
+            if (Dim.Id.empty()) { File.Refusal = "a dimension entry has no Id"; return File; }
+            const int64_t Kind = View["Kind"].value_or(int64_t{ 0 });
+            if (Kind < 0 || Kind > static_cast<int64_t>(SolidArcDimensionKind::Angular))
+            {
+                File.Refusal = "a dimension has an unknown Kind " + std::to_string(Kind);
+                return File;
+            }
+            Dim.Kind             = static_cast<SolidArcDimensionKind>(Kind);
+            Dim.FirstKind        = static_cast<SolidArcSelectionKind>(std::clamp<int64_t>(View["FirstKind"].value_or(int64_t{ 0 }), 0, 3));
+            Dim.FirstName        = View["FirstName"].value_or(std::string{});
+            Dim.SecondKind       = static_cast<SolidArcSelectionKind>(std::clamp<int64_t>(View["SecondKind"].value_or(int64_t{ 0 }), 0, 3));
+            Dim.SecondName       = View["SecondName"].value_or(std::string{});
+            Dim.FirstPoint       = DecodeVector(View["FirstPoint"], Dim.FirstPoint);
+            Dim.SecondPoint      = DecodeVector(View["SecondPoint"], Dim.SecondPoint);
+            Dim.PlaneNormal      = DecodeVector(View["PlaneNormal"], Dim.PlaneNormal);
+            Dim.Direction        = DecodeVector(View["Direction"], Dim.Direction);
+            Dim.Offset           = View["Offset"].value_or(0.35);
+            Dim.Value            = View["Value"].value_or(0.0);
+            Dim.AxisFilter       = static_cast<int>(View["AxisFilter"].value_or(int64_t{ -1 }));
+            Dim.VisibleCondition = View["Visible"].value_or(true);
+            Dim.Note             = View["Note"].value_or(std::string{});
+            File.Dimensions.push_back(std::move(Dim));
         }
     }
     return File;

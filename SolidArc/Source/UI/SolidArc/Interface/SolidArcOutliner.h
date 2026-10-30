@@ -82,14 +82,18 @@ struct SolidArcOutlinerState
     bool                 SearchFocusRequest = false;                                         // [-]  - Ctrl+F focuses the search
     bool                 HoveredCondition   = false;                                         // [-]  - The pointer is over a row (X / Delete deletes it)
     SolidArcFigure       Hovered            = {};                                            // [-]  - That row
+    std::string          AnchorKey          = {};                                            // [-]  - Anchor row key for Shift+Click [A..Z] range select
 };
 
 // One user action the Outliner asks the workspace to carry out (the workspace owns the commands and the status line).
 struct SolidArcOutlinerIntent
 {
-    SolidArcOutlinerVerb Verb              = SolidArcOutlinerVerb::None;                     // [-] - What was asked
-    SolidArcFigure       Figure            = {};                                             // [-] - Row it concerns
-    bool                 AdditiveCondition = false;                                          // [-] - Shift / Ctrl held on a pick
+    SolidArcOutlinerVerb        Verb              = SolidArcOutlinerVerb::None;              // [-] - What was asked
+    SolidArcFigure              Figure            = {};                                      // [-] - Row it concerns
+    bool                        AdditiveCondition = false;                                   // [-] - Shift / Ctrl held on a pick
+    bool                        ShiftCondition    = false;                                   // [-] - Shift held (contiguous [A..Z] range select)
+    bool                        CtrlCondition     = false;                                   // [-] - Ctrl held (item toggle)
+    std::vector<SolidArcFigure> RangeFigures      = {};                                      // [-] - Shown unlocked figures in [Anchor .. Clicked]
 };
 
 //------------------------------------------------------------------------------------------------------------------------
