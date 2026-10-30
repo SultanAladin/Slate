@@ -48,8 +48,14 @@ ImGuiKey KeyByName(const std::string& Name)
         { "A", ImGuiKey_A }, { "B", ImGuiKey_B }, { "C", ImGuiKey_C }, { "D", ImGuiKey_D }, { "E", ImGuiKey_E }, { "F", ImGuiKey_F },
         { "G", ImGuiKey_G }, { "H", ImGuiKey_H }, { "I", ImGuiKey_I }, { "J", ImGuiKey_J }, { "K", ImGuiKey_K }, { "L", ImGuiKey_L }, { "M", ImGuiKey_M }, { "N", ImGuiKey_N }, { "O", ImGuiKey_O }, { "P", ImGuiKey_P }, { "Q", ImGuiKey_Q }, { "R", ImGuiKey_R },
         { "S", ImGuiKey_S }, { "T", ImGuiKey_T }, { "U", ImGuiKey_U }, { "V", ImGuiKey_V }, { "W", ImGuiKey_W }, { "X", ImGuiKey_X }, { "Y", ImGuiKey_Y }, { "Z", ImGuiKey_Z },
-        { "1", ImGuiKey_1 }, { "2", ImGuiKey_2 }, { "3", ImGuiKey_3 }, { "4", ImGuiKey_4 }, { "5", ImGuiKey_5 },
-        { "Keypad1", ImGuiKey_Keypad1 }, { "Keypad3", ImGuiKey_Keypad3 }, { "Keypad5", ImGuiKey_Keypad5 }, { "Keypad7", ImGuiKey_Keypad7 },
+        { "0", ImGuiKey_0 }, { "1", ImGuiKey_1 }, { "2", ImGuiKey_2 }, { "3", ImGuiKey_3 }, { "4", ImGuiKey_4 }, { "5", ImGuiKey_5 },
+        { "6", ImGuiKey_6 }, { "7", ImGuiKey_7 }, { "8", ImGuiKey_8 }, { "9", ImGuiKey_9 },
+        { "Keypad0", ImGuiKey_Keypad0 }, { "Keypad1", ImGuiKey_Keypad1 }, { "Keypad2", ImGuiKey_Keypad2 }, { "Keypad3", ImGuiKey_Keypad3 },
+        { "Keypad4", ImGuiKey_Keypad4 }, { "Keypad5", ImGuiKey_Keypad5 }, { "Keypad6", ImGuiKey_Keypad6 }, { "Keypad7", ImGuiKey_Keypad7 },
+        { "Keypad8", ImGuiKey_Keypad8 }, { "Keypad9", ImGuiKey_Keypad9 },
+        { "KeypadDecimal", ImGuiKey_KeypadDecimal }, { "KeypadAdd", ImGuiKey_KeypadAdd },
+        { "KeypadSubtract", ImGuiKey_KeypadSubtract }, { "KeypadEnter", ImGuiKey_KeypadEnter },
+        { "Period", ImGuiKey_Period },
         { "Space", ImGuiKey_Space }, { "Enter", ImGuiKey_Enter }, { "Escape", ImGuiKey_Escape },
         { "Delete", ImGuiKey_Delete }, { "Backspace", ImGuiKey_Backspace }, { "Tab", ImGuiKey_Tab }, { "Home", ImGuiKey_Home }, { "End", ImGuiKey_End },
         { "LeftBracket", ImGuiKey_LeftBracket }, { "RightBracket", ImGuiKey_RightBracket }, { "Equal", ImGuiKey_Equal }, { "Minus", ImGuiKey_Minus },
@@ -547,6 +553,22 @@ bool ObserveField(const SolidArcWorkspaceState& State, const std::string& Field,
         return Numeric(Total);
     }
     if (Field == "pick-mode") return Numeric(int(State.PickMode));
+    if (Field == "split-layout") return Numeric(int(State.SplitView.Layout));
+    if (Field == "split-panes") return Numeric(SolidArcViewportPaneCount(State.SplitView.Layout));
+    if (Field == "active-pane") return Numeric(State.SplitView.ActivePane);
+    if (Field == "split-x") return Numeric(double(State.SplitView.SplitX));
+    if (Field == "split-y") return Numeric(double(State.SplitView.SplitY));
+    if (Field == "transform-axis") return Numeric(State.Transform.ActiveCondition ? State.Transform.Axis : -2);
+    if (Field == "transform-verb") return Numeric(State.Transform.ActiveCondition ? int(State.Transform.Verb) : -1);
+    if (Field == "gizmo-visible-handles")
+    {
+        uint32_t Mask = 0;
+        for (const SolidArcGizmoVertex& V : State.Style.Gizmo.Vertices)
+            if (V.Handle > 0 && V.Handle <= 13) Mask |= (1u << V.Handle);
+        int Count = 0;
+        for (int Bit = 1; Bit <= 13; ++Bit) if (Mask & (1u << Bit)) ++Count;
+        return Numeric(double(Count));
+    }
     if (Field == "surfaces") return Numeric(State.Style.SurfacesEnabled ? 1 : 0);
     if (Field == "xray") return Numeric(State.Style.XRayEnabled ? 1 : 0);
     if (Field == "gizmo-modes") return Numeric(double(State.Gizmo.Modes));                  // 1 move · 2 rotate · 4 scale (sums)

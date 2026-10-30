@@ -97,6 +97,17 @@ struct SolidArcViewportStyle
     SolidArcGizmoGeometry Gizmo        = {};                                                 // [-]   - Transform gizmo (CPU points, drawn last on cleared depth)
 };
 
+// One sub-viewport pane inside the shared offscreen Colour / Identity / Depth targets (Single = 1 pane, Split = 2..4 panes).
+struct SolidArcRasterPane
+{
+    int                   OffsetX = 0;                                                       // [px] - Scissor/viewport left within Colour target
+    int                   OffsetY = 0;                                                       // [px] - Scissor/viewport top within Colour target
+    uint32_t              Width   = 0;                                                       // [px] - Pane width
+    uint32_t              Height  = 0;                                                       // [px] - Pane height
+    OrbitCameraFrame      Frame   = {};                                                      // [-]  - Camera frame for this pane
+    SolidArcViewportStyle Style   = {};                                                      // [-]  - Per-pane GridPlane + scaled Gizmo
+};
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    RASTERIZATION
 //------------------------------------------------------------------------------------------------------------------------
@@ -132,6 +143,10 @@ public:
     // Records the viewport. ProbeX / ProbeY ≥ 0 copy that identity texel; ReadbackCondition copies both whole targets.
     void Record(VkCommandBuffer Commands, const OrbitCameraFrame& Frame, const SolidArcViewportStyle& Style, bool ReadbackCondition,
                 int ProbeX, int ProbeY);
+
+    // Records 1 … 4 split-viewport panes into the shared Colour / Identity / Depth targets with per-pane viewport + scissor.
+    void RecordPanes(VkCommandBuffer Commands, const std::vector<SolidArcRasterPane>& Panes, const float Background[4], bool ReadbackCondition,
+                     int ProbeX, int ProbeY);
 
     // Valid after the recorded work completed.
     [[nodiscard]] uint32_t        ProbedIdentity() const;

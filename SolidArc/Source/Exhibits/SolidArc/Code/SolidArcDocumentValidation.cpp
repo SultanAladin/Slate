@@ -157,6 +157,9 @@ namespace
     GateTally DimensionLinesGate  = { "W84", "CAD Dimension Lines: associative linear / diameter Ø / radius R / angular ° / overall W×D×H / axis-locked dX·dY·dZ dimensions, live parametric regeneration, undo/redo, byte-equal .solidarc TOML codec round-trip, and interactive viewport session + pills", "≤ 10⁻⁹ · exact" };
     GateTally MultiSelectSyncGate = { "W85", "Synchronized Outliner & Viewport multi-selection: Windows Explorer Shift+Click [A..Z] range selection (forward, reverse, cross-section Bodies + Sketches) and Ctrl+Click item-by-item toggle synced across Outliner rows and Viewport scene states", "exact" };
     GateTally GridCubeUvGate      = { "W86", "Continuous 3-decade Grid shader (SPIR-V archive + zero decade-step discontinuity) & Perspective-aligned 3D UV Font Orientation Cube (FOV-tracked perspective convergence, orthographic parallel fallback, 2×2 UV plane glyph quads from ImGui::GetFont() atlas)", "≤ 10⁻⁶ · exact" };
+    GateTally BlenderTransformGate = { "W87", "Blender-like G / R / S transforms: direct sequences (G Z 10, sign toggle '-', decimal, R Z 90, S Z 2, Shift+Axis plane), live modal gizmo with single-axis isolation + 3D axis constraint guide line, mouse drag & LMB handle drag, live G⇄R⇄S switching, and curve/point support", "≤ 10⁻⁹ · exact" };
+    GateTally NumpadCameraGate     = { "W88", "Blender Numpad camera hotkeys: 1/Ctrl+1 Front/Back, 3/Ctrl+3 Right/Left, 7/Ctrl+7 Top/Bottom, 0 Isometric, 9 180° opposite flip, 5 Perspective⇄Ortho toggle, 2/4/6/8 15° orbit & Ctrl pan, +/- zoom, Numpad . Frame Selection, and modal numeric input guard", "≤ 10⁻⁹ · exact" };
+    GateTally SplitViewportGate    = { "W89", "Multi-view docked Split Viewport (2, 3, or 4 simultaneous views): @ViewportSplit toolbar button & menu, Ctrl+Alt+Q Quad toggle, draggable internal X/Y/crosshair splitters (never undocking), per-pane cameras/grids/gizmos/Orientation Cubes, and cross-pane interaction", "exact" };
 
     std::vector<std::string> Journal;                                                        // [-] - Narrative rows for the exhibit
 
@@ -3687,109 +3690,109 @@ void ValidateDelete()
     }
 }
 
+// Shared CPU-headless Dear ImGui frame driver (no GPU required; supports full script events + font baking).
+struct HeadlessUiHarness
+{
+    ImGuiContext*                        Ctx = nullptr;
+    Frontier::SolidArc::SolidArcOptions  Options{};
+    Frontier::SolidArc::SolidArcWorkspaceState State{};
+    ImTextureID                          NextTexId = ImTextureID(100);
+
+    HeadlessUiHarness()
+    {
+        IMGUI_CHECKVERSION();
+        Ctx = ImGui::CreateContext();
+        ImGui::SetCurrentContext(Ctx);
+        ImGuiIO& Io = ImGui::GetIO();
+        Io.DisplaySize = ImVec2(1366.0f, 768.0f);
+        Io.DeltaTime   = 1.0f / 60.0f;
+        Io.IniFilename = nullptr;
+        Io.ConfigInputTrickleEventQueue = true;
+        Io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
+        Options.WindowWidth  = 1366;
+        Options.WindowHeight = 768;
+        Options.RecoveryPath = (std::filesystem::temp_directory_path() / "SolidArcBatchRecovery.solidarc").string();
+        std::error_code Ignore;
+        std::filesystem::remove(Options.RecoveryPath, Ignore);
+        Frontier::SolidArc::ConfigureSolidArcInterface(Options);
+        Frontier::SolidArc::InitialiseSolidArcWorkspace(State, Options);
+        State.WelcomeOpen = false;
+    }
+
+    ~HeadlessUiHarness()
+    {
+        if (Ctx) ImGui::DestroyContext(Ctx);
+        std::error_code Ignore;
+        std::filesystem::remove(Options.RecoveryPath, Ignore);
+    }
+
+    void SyncTextures()
+    {
+        if (ImDrawData* DrawData = ImGui::GetDrawData(); DrawData && DrawData->Textures)
+        {
+            for (ImTextureData* Tex : *DrawData->Textures)
+            {
+                if (Tex->Status == ImTextureStatus_WantCreate || Tex->Status == ImTextureStatus_WantUpdates)
+                {
+                    if (Tex->TexID == ImTextureID_Invalid) Tex->SetTexID(NextTexId++);
+                    Tex->SetStatus(ImTextureStatus_OK);
+                }
+                else if (Tex->Status == ImTextureStatus_WantDestroy)
+                {
+                    Tex->SetTexID(ImTextureID_Invalid);
+                    Tex->SetStatus(ImTextureStatus_Destroyed);
+                }
+            }
+        }
+    }
+
+    void StepFrame()
+    {
+        ImGui::GetIO().DisplaySize = ImVec2(1366.0f, 768.0f);
+        ImGui::GetIO().DeltaTime   = 1.0f / 60.0f;
+        // Populate CPU HoverIdentity when pointer is inside the viewport so viewport clicks match GPU ID readback.
+        const ImVec2 Mouse = ImGui::GetIO().MousePos;
+        if (Mouse.x >= State.ViewportRect[0] && Mouse.x <= State.ViewportRect[0] + State.ViewportRect[2]
+            && Mouse.y >= State.ViewportRect[1] && Mouse.y <= State.ViewportRect[1] + State.ViewportRect[3]
+            && !State.Scene.Faces.empty())
+        {
+            const Frontier::OrbitCameraFrame CamFrame = Frontier::FrameOrbitCamera(State.Camera, std::max(1.0f, State.ViewportRect[2]), std::max(1.0f, State.ViewportRect[3]));
+            const Frontier::OrbitRay Ray = Frontier::CastOrbitRay(CamFrame, Mouse.x - State.ViewportRect[0], Mouse.y - State.ViewportRect[1]);
+            const auto Hit = Frontier::SolidArc::PickSolidArcScene(State.Scene, Ray, 8.0 * CamFrame.WorldPerPixel, State.Style.XRayEnabled);
+            State.HoverIdentity = Hit ? Hit->Identity : 0u;
+        }
+        ImGui::NewFrame();
+        Frontier::SolidArc::DrawSolidArcInterface(State, ImTextureID(1), 1.0 / 60.0);
+        ImGui::Render();
+        SyncTextures();
+    }
+
+    bool RunScript(const std::string& ScriptText, std::string& FailureOut)
+    {
+        Frontier::SolidArc::SolidArcScript Script = Frontier::SolidArc::ParseSolidArcScript(ScriptText);
+        if (!Script.Refusal.empty()) { FailureOut = Script.Refusal; return false; }
+        while (!Frontier::SolidArc::FinishedSolidArcScript(Script))
+        {
+            (void)Frontier::SolidArc::AdvanceSolidArcScript(Script, State);
+            StepFrame();
+        }
+        for (const Frontier::SolidArc::SolidArcExpectation& Exp : Script.Expectations)
+        {
+            if (!Exp.Passed)
+            {
+                char Msg[768];
+                std::snprintf(Msg, sizeof(Msg), "line %d: %s (observed '%s', status='%s')", Exp.Line, Exp.Text.c_str(), Exp.Observed.c_str(), State.Status.c_str());
+                FailureOut = Msg;
+                return false;
+            }
+        }
+        return true;
+    }
+};
+
 void ValidateBatch4InterfaceAndViewport()
 {
     const auto Format = [](const char* Pattern, auto... Values) { char Text[1400]; std::snprintf(Text, sizeof(Text), Pattern, Values...); return std::string(Text); };
-
-    // Shared CPU-headless Dear ImGui frame driver (no GPU required; supports full script events + font baking).
-    struct HeadlessUiHarness
-    {
-        ImGuiContext*          Ctx = nullptr;
-        SolidArcOptions        Options{};
-        SolidArcWorkspaceState State{};
-        ImTextureID            NextTexId = ImTextureID(100);
-
-        HeadlessUiHarness()
-        {
-            IMGUI_CHECKVERSION();
-            Ctx = ImGui::CreateContext();
-            ImGui::SetCurrentContext(Ctx);
-            ImGuiIO& Io = ImGui::GetIO();
-            Io.DisplaySize = ImVec2(1366.0f, 768.0f);
-            Io.DeltaTime   = 1.0f / 60.0f;
-            Io.IniFilename = nullptr;
-            Io.ConfigInputTrickleEventQueue = true;
-            Io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
-            Options.WindowWidth  = 1366;
-            Options.WindowHeight = 768;
-            Options.RecoveryPath = (std::filesystem::temp_directory_path() / "SolidArcBatch4Recovery.solidarc").string();
-            std::error_code Ignore;
-            std::filesystem::remove(Options.RecoveryPath, Ignore);
-            ConfigureSolidArcInterface(Options);
-            InitialiseSolidArcWorkspace(State, Options);
-            State.WelcomeOpen = false;
-        }
-
-        ~HeadlessUiHarness()
-        {
-            if (Ctx) ImGui::DestroyContext(Ctx);
-            std::error_code Ignore;
-            std::filesystem::remove(Options.RecoveryPath, Ignore);
-        }
-
-        void SyncTextures()
-        {
-            if (ImDrawData* DrawData = ImGui::GetDrawData(); DrawData && DrawData->Textures)
-            {
-                for (ImTextureData* Tex : *DrawData->Textures)
-                {
-                    if (Tex->Status == ImTextureStatus_WantCreate || Tex->Status == ImTextureStatus_WantUpdates)
-                    {
-                        if (Tex->TexID == ImTextureID_Invalid) Tex->SetTexID(NextTexId++);
-                        Tex->SetStatus(ImTextureStatus_OK);
-                    }
-                    else if (Tex->Status == ImTextureStatus_WantDestroy)
-                    {
-                        Tex->SetTexID(ImTextureID_Invalid);
-                        Tex->SetStatus(ImTextureStatus_Destroyed);
-                    }
-                }
-            }
-        }
-
-        void StepFrame()
-        {
-            ImGui::GetIO().DisplaySize = ImVec2(1366.0f, 768.0f);
-            ImGui::GetIO().DeltaTime   = 1.0f / 60.0f;
-            // Populate CPU HoverIdentity when pointer is inside the viewport so viewport clicks match GPU ID readback.
-            const ImVec2 Mouse = ImGui::GetIO().MousePos;
-            if (Mouse.x >= State.ViewportRect[0] && Mouse.x <= State.ViewportRect[0] + State.ViewportRect[2]
-                && Mouse.y >= State.ViewportRect[1] && Mouse.y <= State.ViewportRect[1] + State.ViewportRect[3]
-                && !State.Scene.Faces.empty())
-            {
-                const OrbitCameraFrame CamFrame = FrameOrbitCamera(State.Camera, std::max(1.0f, State.ViewportRect[2]), std::max(1.0f, State.ViewportRect[3]));
-                const OrbitRay Ray = CastOrbitRay(CamFrame, Mouse.x - State.ViewportRect[0], Mouse.y - State.ViewportRect[1]);
-                const auto Hit = PickSolidArcScene(State.Scene, Ray, 8.0 * CamFrame.WorldPerPixel, State.Style.XRayEnabled);
-                State.HoverIdentity = Hit ? Hit->Identity : 0u;
-            }
-            ImGui::NewFrame();
-            DrawSolidArcInterface(State, ImTextureID(1), 1.0 / 60.0);
-            ImGui::Render();
-            SyncTextures();
-        }
-
-        bool RunScript(const std::string& ScriptText, std::string& FailureOut)
-        {
-            SolidArcScript Script = ParseSolidArcScript(ScriptText);
-            if (!Script.Refusal.empty()) { FailureOut = Script.Refusal; return false; }
-            while (!FinishedSolidArcScript(Script))
-            {
-                (void)AdvanceSolidArcScript(Script, State);
-                StepFrame();
-            }
-            for (const SolidArcExpectation& Exp : Script.Expectations)
-            {
-                if (!Exp.Passed)
-                {
-                    char Msg[768];
-                    std::snprintf(Msg, sizeof(Msg), "line %d: %s (observed '%s', status='%s')", Exp.Line, Exp.Text.c_str(), Exp.Observed.c_str(), State.Status.c_str());
-                    FailureOut = Msg;
-                    return false;
-                }
-            }
-            return true;
-        }
-    };
 
     // ============================================================================================================
     // W83 — Hotkeys (Ctrl+I Isolate, Ctrl+A Select All, Ctrl+Shift+I Import) & Outliner Cleanup
@@ -4331,6 +4334,394 @@ void ValidateBatch4InterfaceAndViewport()
     }
 }
 
+void ValidateBatch5TransformsNumpadAndSplitViews()
+{
+    using namespace Frontier;
+    using namespace Frontier::SolidArc;
+    using namespace Frontier::GeometryProcessing;
+    const auto Format = [](const char* Pattern, auto... Values) { char Text[1400]; std::snprintf(Text, sizeof(Text), Pattern, Values...); return std::string(Text); };
+
+    // =========================================================================================================
+    // W87 — Blender-like G / R / S Transforms (G Z 10, gizmo single-axis isolation, axis guide line, mouse + numeric)
+    // =========================================================================================================
+    {
+        HeadlessUiHarness Ui;
+        SolidArcConstructRequest BoxReq;
+        BoxReq.Kind     = SolidArcConstructKind::Block;
+        BoxReq.Position = { 0.0, 0.0, 0.0 };
+        BoxReq.Width    = 4.0;
+        BoxReq.Depth    = 1.0;
+        BoxReq.Height   = 2.0;
+        Expect(ConstructSolidArcPrimitive(Ui.State.Document, BoxReq));
+        RefreshSolidArcScene(Ui.State, false);
+        PresentOrbitView(Ui.State.Camera, OrbitViewPreset::Isometric);
+        Ui.StepFrame();
+
+        // ① Direct sequence: G -> Z -> 10 -> Enter moves the 4×1×2 block +10 along Z; G -> X -> 5 -> '-' -> Enter moves -5 along X!
+        SelectSolidArcName(Ui.State.Document, SolidArcSelectionKind::Body, Ui.State.Scene.Bodies[0].Key, false);
+        Ui.StepFrame();
+        std::string Err;
+        const bool DirectSeqOk = Ui.RunScript(
+            "key G\n"
+            "frames 1\n"
+            "expect transform == 1\n"
+            "expect gizmo-visible-handles == 7\n"
+            "key Z\n"
+            "frames 1\n"
+            "expect transform-axis == 2\n"
+            "expect gizmo-visible-handles == 1\n"
+            "type 10\n"
+            "frames 1\n"
+            "expect transform-readout contains Move z (0, 0, 10)\n"
+            "key Enter\n"
+            "frames 2\n"
+            "expect transform == 0\n"
+            "expect transform-commits == 1\n"
+            "expect volume ~ 8\n"
+            "expect sound == 1\n",
+            Err);
+        RefreshSolidArcScene(Ui.State, false);
+        const double ZShiftErr = std::max(std::abs(Ui.State.Scene.BoundsLow[2] - 10.0), std::abs(Ui.State.Scene.BoundsHigh[2] - 12.0));
+
+        // Sign flip ('-' typed AFTER digits, Blender style "5-" -> -5) + decimal ("2.5"):
+        std::string ErrSign;
+        const bool SignAndDecOk = Ui.RunScript(
+            "key G\n"
+            "frames 1\n"
+            "key X\n"
+            "frames 1\n"
+            "type 5-\n"
+            "frames 1\n"
+            "expect transform-readout contains Move x (-5, 0, 0)\n"
+            "key Enter\n"
+            "frames 2\n"
+            "key G\n"
+            "frames 1\n"
+            "key Y\n"
+            "frames 1\n"
+            "type 2.5\n"
+            "frames 1\n"
+            "key Enter\n"
+            "frames 2\n",
+            ErrSign);
+        RefreshSolidArcScene(Ui.State, false);
+        const double XYShiftErr = std::max<double>({
+            std::abs(Ui.State.Scene.BoundsLow[0] - (-5.0)),
+            std::abs(Ui.State.Scene.BoundsHigh[0] - (-1.0)),
+            std::abs(Ui.State.Scene.BoundsLow[1] - 2.5),
+            std::abs(Ui.State.Scene.BoundsHigh[1] - 3.5) });
+        Tally(BlenderTransformGate, std::max(ZShiftErr, XYShiftErr),
+              DirectSeqOk && SignAndDecOk && ZShiftErr <= 1.0e-9 && XYShiftErr <= 1.0e-9,
+              DirectSeqOk && SignAndDecOk
+                  ? Format("G Z 10, G X 5- (Blender sign flip), and G Y 2.5 land at exact bounds [%.1f..%.1f, %.1f..%.1f, %.1f..%.1f]",
+                           Ui.State.Scene.BoundsLow[0], Ui.State.Scene.BoundsHigh[0],
+                           Ui.State.Scene.BoundsLow[1], Ui.State.Scene.BoundsHigh[1],
+                           Ui.State.Scene.BoundsLow[2], Ui.State.Scene.BoundsHigh[2])
+                  : ("Direct sequence failed: " + Err + " " + ErrSign));
+
+        // ② Modal gizmo single-axis isolation + 3D axis guide line + live G ⇄ R ⇄ S verb switching + repeat-axis free toggle:
+        auto OnlyHandleInGizmo = [&](SolidArcGizmoHandle ExpectedHandle)
+        {
+            if (Ui.State.Style.Gizmo.Vertices.empty()) return false;
+            for (const SolidArcGizmoVertex& V : Ui.State.Style.Gizmo.Vertices)
+                if (V.Handle != uint32_t(ExpectedHandle)) return false;
+            return true;
+        };
+        auto HasBlueAxisGuideLineInDrawData = [&]()
+        {
+            ImDrawData* Draw = ImGui::GetDrawData();
+            if (!Draw) return false;
+            const ImU32 ExpectedBlue = IM_COL32(0x58, 0xb0, 0xff, 0xf2);
+            for (int L = 0; L < Draw->CmdListsCount; ++L)
+            {
+                const ImDrawList* CmdList = Draw->CmdLists[L];
+                for (const ImDrawVert& V : CmdList->VtxBuffer)
+                    if (V.col == ExpectedBlue) return true;
+            }
+            return false;
+        };
+
+        std::string ErrModal;
+        const bool OpenGZ = Ui.RunScript("key G\nframes 1\nkey Z\nframes 1\n", ErrModal);
+        const bool OnlyTransZ   = OpenGZ && OnlyHandleInGizmo(SolidArcGizmoHandle::TranslateZ)
+                               && Ui.State.Widgets.Find("GizmoTranslateZ") != nullptr
+                               && Ui.State.Widgets.Find("GizmoTranslateX") == nullptr
+                               && Ui.State.Widgets.Find("GizmoTranslateY") == nullptr;
+        const bool HasGuideLine = OpenGZ && HasBlueAxisGuideLineInDrawData();
+
+        const bool SwitchR      = Ui.RunScript("key R\nframes 1\n", ErrModal);
+        const bool OnlyRotZ     = SwitchR && OnlyHandleInGizmo(SolidArcGizmoHandle::RotateZ)
+                               && Ui.State.Widgets.Find("GizmoRotateZ") != nullptr
+                               && Ui.State.Widgets.Find("GizmoRotateX") == nullptr;
+
+        const bool SwitchS      = Ui.RunScript("key S\nframes 1\n", ErrModal);
+        const bool OnlyScaleZ   = SwitchS && OnlyHandleInGizmo(SolidArcGizmoHandle::ScaleZ)
+                               && Ui.State.Widgets.Find("GizmoScaleZ") != nullptr
+                               && Ui.State.Widgets.Find("GizmoScaleX") == nullptr;
+
+        // Pressing Z a second time releases the Z constraint so all 3 scale axes + centre ring reappear:
+        const bool ReleaseZ     = Ui.RunScript("key Z\nframes 1\nexpect transform-axis == -1\nexpect gizmo-visible-handles == 4\nkey Escape\nframes 1\n", ErrModal);
+        Tally(BlenderTransformGate, 0.0,
+              OnlyTransZ && HasGuideLine && OnlyRotZ && OnlyScaleZ && ReleaseZ,
+              Format("Modal gizmo isolates single locked axis handle (TranslateZ=%d, RotateZ=%d, ScaleZ=%d), draws 3D +Z guide line (%d), and toggles free on repeat Z (%d)",
+                     OnlyTransZ ? 1 : 0, OnlyRotZ ? 1 : 0, OnlyScaleZ ? 1 : 0, HasGuideLine ? 1 : 0, ReleaseZ ? 1 : 0));
+
+        // ③ Constrained G Z mouse drag + R Z 90 + S Z 2:
+        std::string ErrMouse;
+        FitSolidArcCamera(Ui.State.Camera, Ui.State.Scene);
+        Ui.State.Camera.Distance *= 1.6;
+        Ui.StepFrame();
+        const double ZBeforeDrag = Ui.State.Scene.BoundsLow[2];
+        const bool MouseDragGZ = Ui.RunScript(
+            "key Keypad1\n"
+            "frames 2\n"
+            "move world -3.0 3.0 11.0\n"
+            "frames 1\n"
+            "key G\n"
+            "frames 1\n"
+            "key Z\n"
+            "frames 1\n"
+            "move world -1.0 3.0 13.0\n"
+            "frames 2\n"
+            "expect transform-rigid == 1\n"
+            "click world -1.0 3.0 13.0\n"
+            "frames 2\n"
+            "expect transform == 0\n",
+            ErrMouse);
+        RefreshSolidArcScene(Ui.State, false);
+        // Even though pointer moved +2 along X and +2 along Z, Z-axis lock constrained X & Y strictly to 0 and moved +2.0 along Z!
+        const double DragAxisErr = std::max<double>({
+            std::abs(Ui.State.Scene.BoundsLow[0] - (-5.0)),
+            std::abs(Ui.State.Scene.BoundsLow[1] - 2.5),
+            std::abs((Ui.State.Scene.BoundsLow[2] - ZBeforeDrag) - 2.0) });
+
+        const bool RotAndScaleOk = Ui.RunScript(
+            "key R\nframes 1\nkey Z\nframes 1\ntype 90\nframes 1\nkey Enter\nframes 2\n"
+            "key S\nframes 1\nkey Z\nframes 1\nclick @TransformAmount\nkey A Ctrl\ntype 2\nkey Enter\nframes 2\n"
+            "expect volume ~ 16\n"
+            "expect sound == 1\n",
+            ErrMouse);
+        RefreshSolidArcScene(Ui.State, false);
+        const double SpanXAfter90 = Ui.State.Scene.BoundsHigh[0] - Ui.State.Scene.BoundsLow[0];
+        const double SpanYAfter90 = Ui.State.Scene.BoundsHigh[1] - Ui.State.Scene.BoundsLow[1];
+        const double SpanZAfterS2 = Ui.State.Scene.BoundsHigh[2] - Ui.State.Scene.BoundsLow[2];
+        const double RotScaleErr  = std::max<double>({ std::abs(SpanXAfter90 - 1.0), std::abs(SpanYAfter90 - 4.0), std::abs(SpanZAfterS2 - 4.0) });
+        Tally(BlenderTransformGate, std::max(DragAxisErr, RotScaleErr),
+              MouseDragGZ && RotAndScaleOk && DragAxisErr <= 1.0e-6 && RotScaleErr <= 1.0e-6,
+              MouseDragGZ && RotAndScaleOk
+                  ? Format("Mouse-dragged G Z constrains strictly to Z (+2.0 m, dX=0, dY=0); R Z 90 swaps 4x1 -> %.1fx%.1f; S Z 2 doubles height to %.1f (V=16)",
+                           SpanXAfter90, SpanYAfter90, SpanZAfterS2)
+                  : ("Mouse / R / S failed: " + ErrMouse));
+
+        // ④ 3D SpaceCurve G Z transform + Undo:
+        {
+            SolidArcWorkspaceState CurveState;
+            InitialiseSolidArcWorkspace(CurveState, {});
+            Expect(DrawSolidArcSpaceCurve(CurveState.Document, { { 0.0, 0.0, 0.0 }, { 1.0, 0.5, 0.2 }, { 2.0, 0.0, 0.0 } }, false));
+            const std::string CurveKey = CurveState.Document.Tree.Steps.back().Label;
+            SelectSolidArcCurve(CurveState.Document, CurveKey, false);
+
+            HeadlessUiHarness CurveUi;
+            CurveUi.State.Document = CloneSolidArcDocument(CurveState.Document);
+            RefreshSolidArcScene(CurveUi.State, false);
+            CurveUi.StepFrame();
+            std::string ErrC;
+            const bool CurveMoved = CurveUi.RunScript(
+                "key G\nframes 1\nkey Z\nframes 1\ntype 3\nframes 1\nkey Enter\nframes 2\n",
+                ErrC);
+            const double MovedZ0 = CurveUi.State.Document.Tree.Steps.back().Points.front().Z;
+            const bool UndoneOk  = UndoSolidArcCommand(CurveUi.State.Document);
+            const double UndoZ0  = CurveUi.State.Document.Tree.Steps.back().Points.front().Z;
+            Tally(BlenderTransformGate, std::max(std::abs(MovedZ0 - 3.0), std::abs(UndoZ0)),
+                  CurveMoved && UndoneOk && std::abs(MovedZ0 - 3.0) <= 1.0e-9 && std::abs(UndoZ0) <= 1.0e-9,
+                  CurveMoved ? Format("3D SpaceCurve G Z 3 shifts curve Z=%.2f and Ctrl+Z restores Z=%.2f", MovedZ0, UndoZ0)
+                             : ("SpaceCurve G Z failed: " + ErrC));
+        }
+    }
+
+    // =========================================================================================================
+    // W88 — Blender Numpad Camera Hotkeys (1/3/7 + Ctrl, 0 Iso, 9 Flip, 5 Ortho, 2/4/6/8 Orbit & Pan, +/-, .)
+    // =========================================================================================================
+    {
+        HeadlessUiHarness Ui;
+        SolidArcConstructRequest BoxReq;
+        BoxReq.Kind     = SolidArcConstructKind::Block;
+        BoxReq.Position = { 10.0, 20.0, 4.0 };
+        BoxReq.Width    = 2.0;
+        BoxReq.Depth    = 2.0;
+        BoxReq.Height   = 2.0;
+        Expect(ConstructSolidArcPrimitive(Ui.State.Document, BoxReq));
+        RefreshSolidArcScene(Ui.State, false);
+        Ui.StepFrame();
+
+        // ① All 7 standard views via Numpad 1 / Ctrl+1 / 3 / Ctrl+3 / 7 / Ctrl+7 / 0:
+        std::string Err;
+        const bool PresetsOk = Ui.RunScript(
+            "key Keypad1\nframes 1\nexpect grid-plane == 1\nexpect camera-pitch ~ 0\nexpect camera-yaw ~ -1.5707963268\n"
+            "key Keypad1 Ctrl\nframes 1\nexpect grid-plane == 1\nexpect camera-yaw ~ 1.5707963268\n"
+            "key Keypad3\nframes 1\nexpect grid-plane == 2\nexpect camera-yaw ~ 0\n"
+            "key Keypad3 Ctrl\nframes 1\nexpect grid-plane == 2\nexpect camera-yaw ~ 3.1415926536\n"
+            "key Keypad7\nframes 1\nexpect grid-plane == 0\nexpect camera-pitch ~ 1.5707963268\n"
+            "key Keypad7 Ctrl\nframes 1\nexpect grid-plane == 0\nexpect camera-pitch ~ -1.5707963268\n"
+            "key Keypad0\nframes 1\nexpect camera-pitch ~ 0.6154797087\n",
+            Err);
+        Tally(NumpadCameraGate, 0.0, PresetsOk,
+              PresetsOk ? "Numpad 1 / Ctrl+1 / 3 / Ctrl+3 / 7 / Ctrl+7 / 0 enter Front, Back, Right, Left, Top, Bottom, and Isometric views"
+                        : ("Numpad presets failed: " + Err));
+
+        // ② Numpad 5 Ortho/Persp toggle + Numpad 9 180° opposite flip (Front -> Back, Top -> Bottom):
+        const bool StartOrtho = Ui.State.Camera.OrthographicEnabled;
+        const bool OrthoFlipOk = Ui.RunScript(
+            "key Keypad5\nframes 1\n"
+            "key Keypad1\nframes 1\n"
+            "key Keypad9\nframes 1\nexpect camera-yaw ~ 1.5707963268\n"
+            "key Keypad7\nframes 1\n"
+            "key Keypad9\nframes 1\nexpect camera-pitch ~ -1.5707963268\n",
+            Err);
+        const bool ToggledOrtho = (Ui.State.Camera.OrthographicEnabled != StartOrtho);
+        Tally(NumpadCameraGate, 0.0, OrthoFlipOk && ToggledOrtho,
+              OrthoFlipOk && ToggledOrtho
+                  ? "Numpad 5 toggles Perspective ⇄ Orthographic and Numpad 9 flips Front→Back & Top→Bottom by 180°"
+                  : ("Numpad 5/9 failed: " + Err));
+
+        // ③ Numpad 4/6/8/2 15° orbit steps, Ctrl+Numpad pan, Numpad +/- zoom, and Numpad . Frame Selection:
+        PresentOrbitView(Ui.State.Camera, OrbitViewPreset::Front);
+        Ui.State.Camera.OrthographicEnabled = false;
+        Ui.StepFrame();
+        const double Yaw0  = Ui.State.Camera.Azimuth;
+        const double Dist0 = Ui.State.Camera.Distance;
+        const bool StepOrbitZoomOk = Ui.RunScript(
+            "key Keypad6\nframes 1\n"
+            "key Keypad8\nframes 1\n"
+            "key KeypadAdd\nframes 1\n",
+            Err);
+        const double StepRad = std::numbers::pi / 12.0;
+        const double OrbitStepErr = std::max(std::abs((Ui.State.Camera.Azimuth - Yaw0) - StepRad),
+                                             std::abs(Ui.State.Camera.Elevation - StepRad));
+        const bool ZoomedIn = Ui.State.Camera.Distance < Dist0;
+
+        const auto TargetBeforePan = Ui.State.Camera.Target;
+        (void)Ui.RunScript("key Keypad6 Ctrl\nframes 1\n", Err);
+        const double PanMoved = std::hypot(Ui.State.Camera.Target[0] - TargetBeforePan[0],
+                                           std::hypot(Ui.State.Camera.Target[1] - TargetBeforePan[1], Ui.State.Camera.Target[2] - TargetBeforePan[2]));
+
+        Ui.State.Camera.Target = { -100.0, -100.0, -100.0 };
+        (void)Ui.RunScript("key KeypadDecimal\nframes 1\n", Err);
+        const double FrameErr = std::max<double>({
+            std::abs(Ui.State.Camera.Target[0] - 11.0),
+            std::abs(Ui.State.Camera.Target[1] - 21.0),
+            std::abs(Ui.State.Camera.Target[2] - 5.0) });
+        Tally(NumpadCameraGate, std::max(OrbitStepErr, FrameErr),
+              StepOrbitZoomOk && OrbitStepErr <= 1.0e-9 && ZoomedIn && PanMoved > 1.0e-3 && FrameErr <= 1.0e-6,
+              Format("Numpad 6/8 orbit exact 15° steps (err=%.2e), Ctrl+Numpad pans (%.3f m), Numpad + dollies (%.2f -> %.2f), Numpad . frames target (11, 21, 5)",
+                     OrbitStepErr, PanMoved, Dist0, Ui.State.Camera.Distance));
+
+        // ④ Modal numeric guard: inside G Z, pressing Keypad7 types '7' into Transform.Typed and does NOT switch camera to Top!
+        PresentOrbitView(Ui.State.Camera, OrbitViewPreset::Front);
+        SelectSolidArcName(Ui.State.Document, SolidArcSelectionKind::Body, Ui.State.Scene.Bodies[0].Key, false);
+        Ui.StepFrame();
+        const bool GuardOk = Ui.RunScript(
+            "key G\nframes 1\nkey Z\nframes 1\nkey Keypad7\nframes 1\n"
+            "expect camera-pitch ~ 0\n"
+            "expect transform-readout contains Move z (0, 0, 7)\n"
+            "key Escape\nframes 1\n",
+            Err);
+        Tally(NumpadCameraGate, 0.0, GuardOk,
+              GuardOk ? "Modal numeric guard: Numpad digits inside G Z enter numeric distance '7' without rotating the camera"
+                      : ("Modal numeric guard failed: " + Err));
+    }
+
+    // =========================================================================================================
+    // W89 — Multi-View Docked Split Viewport (2, 3, or 4 views, UI button, draggable internal splitters, GPU panes)
+    // =========================================================================================================
+    {
+        HeadlessUiHarness Ui;
+        SolidArcConstructRequest BoxReq;
+        BoxReq.Kind     = SolidArcConstructKind::Block;
+        BoxReq.Position = { 0.0, 0.0, 0.0 };
+        BoxReq.Width    = 2.0;
+        BoxReq.Depth    = 2.0;
+        BoxReq.Height   = 2.0;
+        Expect(ConstructSolidArcPrimitive(Ui.State.Document, BoxReq));
+        RefreshSolidArcScene(Ui.State, false);
+        SelectSolidArcName(Ui.State.Document, SolidArcSelectionKind::Body, Ui.State.Scene.Bodies[0].Key, false);
+        Ui.StepFrame();
+
+        // ① @ViewportSplit UI button + menu switches cleanly through 2-Vertical, 2-Horizontal, 3-Views, and 4-Quad, plus Ctrl+Alt+Q toggle!
+        const bool HasSplitBtn = Ui.State.Widgets.Find("ViewportSplit") != nullptr;
+        std::string Err;
+        const bool MenuSwitchOk = Ui.RunScript(
+            "click @ViewportSplit\nframes 2\nclick @SplitTwoVertical\nframes 2\nexpect split-panes == 2\nexpect split-layout == 1\n"
+            "click @ViewportSplit\nframes 2\nclick @SplitTwoHorizontal\nframes 2\nexpect split-panes == 2\nexpect split-layout == 2\n"
+            "click @ViewportSplit\nframes 2\nclick @SplitThree\nframes 2\nexpect split-panes == 3\nexpect split-layout == 3\n"
+            "click @ViewportSplit\nframes 2\nclick @SplitQuad\nframes 2\nexpect split-panes == 4\nexpect split-layout == 4\n"
+            "key Q Ctrl Alt\nframes 2\nexpect split-panes == 1\n"
+            "key Q Ctrl Alt\nframes 2\nexpect split-panes == 4\n",
+            Err);
+        Tally(SplitViewportGate, 0.0, HasSplitBtn && MenuSwitchOk,
+              HasSplitBtn && MenuSwitchOk
+                  ? "@ViewportSplit toolbar menu switches 1 / 2-Side / 2-Stack / 3-Pane / 4-Quad layouts and Ctrl+Alt+Q toggles Quad view"
+                  : ("Split menu / shortcut failed: " + Err));
+
+        // ② Dragging internal splitters (@ViewportSplitterX, @ViewportSplitterY, @ViewportSplitterCross) resizes docked panes without undocking:
+        const auto FullBefore = Ui.State.SplitView.FullRect;
+        std::string ErrDrag;
+        const bool DragSplitOk = Ui.RunScript(
+            "drag left @ViewportSplitterCross by 140 70 8\n"
+            "frames 2\n",
+            ErrDrag);
+        const float MovedSplitX = Ui.State.SplitView.SplitX;
+        const float MovedSplitY = Ui.State.SplitView.SplitY;
+        const auto& R0 = Ui.State.SplitView.PaneRects[0];
+        const auto& R1 = Ui.State.SplitView.PaneRects[1];
+        const auto& R2 = Ui.State.SplitView.PaneRects[2];
+        const auto& R3 = Ui.State.SplitView.PaneRects[3];
+        const bool DockedPartitionExact =
+            std::abs((R0[2] + 4.0f + R1[2]) - FullBefore[2]) <= 1.5f &&
+            std::abs((R0[3] + 4.0f + R2[3]) - FullBefore[3]) <= 1.5f &&
+            R3[0] > R2[0] && R3[1] > R1[1];
+
+        const bool ResetOk = Ui.RunScript(
+            "click @ViewportSplit\nframes 2\nclick @SplitReset\nframes 2\nexpect split-x ~ 0.5\nexpect split-y ~ 0.5\n",
+            ErrDrag);
+        Tally(SplitViewportGate, 0.0,
+              DragSplitOk && MovedSplitX > 0.56f && MovedSplitY > 0.56f && DockedPartitionExact && ResetOk,
+              Format("Internal crosshair splitter drags SplitX=%.3f, SplitY=%.3f strictly inside docked FullRect (%.0fx%.0f) and @SplitReset restores 0.50/0.50",
+                     MovedSplitX, MovedSplitY, FullBefore[2], FullBefore[3]));
+
+        // ③ Multi-pane GPU raster descriptors (ComposeSolidArcRasterPanes): distinct ortho/3D grids, adapted gizmos, and active-pane routing!
+        const std::vector<SolidArcRasterPane> PanesIdle = ComposeSolidArcRasterPanes(Ui.State, 1280, 720);
+        const bool FourGpuPanes = PanesIdle.size() == 4
+            && PanesIdle[0].Style.GridPlane == 0                                             // Pane 0: Top (XY)
+            && PanesIdle[2].Style.GridPlane == 1                                             // Pane 2: Front (XZ)
+            && PanesIdle[3].Style.GridPlane == 2                                             // Pane 3: Right (YZ)
+            && !PanesIdle[0].Style.Gizmo.Vertices.empty()
+            && !PanesIdle[1].Style.Gizmo.Vertices.empty()
+            && !PanesIdle[2].Style.Gizmo.Vertices.empty()
+            && !PanesIdle[3].Style.Gizmo.Vertices.empty();
+
+        // Hovering Pane 2 (Front) switches active-pane to 2, and pressing G -> Z isolates TranslateZ across ALL 4 GPU panes simultaneously!
+        const ImVec2 Pane2Mid(R2[0] + 0.5f * R2[2], R2[1] + 0.5f * R2[3]);
+        char MoveCmd[128];
+        std::snprintf(MoveCmd, sizeof(MoveCmd), "move %.1f %.1f\nframes 2\nexpect active-pane == 2\nkey G\nframes 1\nkey Z\nframes 1\n", Pane2Mid.x, Pane2Mid.y);
+        const bool HoverAndGZOk = Ui.RunScript(MoveCmd, Err);
+        const std::vector<SolidArcRasterPane> PanesGZ = ComposeSolidArcRasterPanes(Ui.State, 1280, 720);
+        bool AllFourIsolateZ = PanesGZ.size() == 4;
+        for (const SolidArcRasterPane& P : PanesGZ)
+        {
+            if (P.Style.Gizmo.Vertices.empty()) AllFourIsolateZ = false;
+            for (const SolidArcGizmoVertex& V : P.Style.Gizmo.Vertices)
+                if (V.Handle != uint32_t(SolidArcGizmoHandle::TranslateZ)) AllFourIsolateZ = false;
+        }
+        (void)Ui.RunScript("type 4\nframes 1\nkey Enter\nframes 2\nexpect transform == 0\n", Err);
+        RefreshSolidArcScene(Ui.State, false);
+        Tally(SplitViewportGate, std::abs(Ui.State.Scene.BoundsLow[2] - 4.0),
+              FourGpuPanes && HoverAndGZOk && AllFourIsolateZ && std::abs(Ui.State.Scene.BoundsLow[2] - 4.0) <= 1.0e-9,
+              Format("4 GPU panes carry independent grids (XY/3D/XZ/YZ) & gizmos, hover switches active-pane=2, and G Z 4 isolates TranslateZ across all 4 views (Z=%.1f)",
+                     Ui.State.Scene.BoundsLow[2]));
+    }
+}
+
 int main()
 {
     const auto Start = std::chrono::steady_clock::now();
@@ -4376,6 +4767,13 @@ int main()
         ValidateBatch4InterfaceAndViewport();
         for (const std::string& Row : Journal) std::printf("%s\n", Row.c_str());
         const long TotalFail = HotkeysOutlinerGate.Failures + DimensionLinesGate.Failures + MultiSelectSyncGate.Failures + GridCubeUvGate.Failures;
+        return TotalFail ? 1 : 0;
+    }
+    if (std::getenv("SOLIDARC_DOCVAL_BATCH5"))                                            // Quick rerun of W87 .. W89 alone
+    {
+        ValidateBatch5TransformsNumpadAndSplitViews();
+        for (const std::string& Row : Journal) std::printf("%s\n", Row.c_str());
+        const long TotalFail = BlenderTransformGate.Failures + NumpadCameraGate.Failures + SplitViewportGate.Failures;
         return TotalFail ? 1 : 0;
     }
     if (std::getenv("SOLIDARC_DOCVAL_STAGE3"))                                            // Quick rerun of W72..W78
@@ -9891,7 +10289,10 @@ int main()
     // ---- W83 … W86 Hotkeys (Ctrl+I / Ctrl+A) & Outliner cleanup, CAD Dimension Lines, Multi-Select Sync, Grid Shader & 3D UV Orientation Cube
     ValidateBatch4InterfaceAndViewport();
 
-    for (const GateTally* Gate : { &ConstructGate, &PickGate, &BlendGate, &FaceGate, &ParameterGate, &AtomicGate, &HistoryGate, &FileGate, &VariableGate, &DrawingGate, &SurfacingGate, &PanelGate, &EvaluationGate, &BlueprintGate, &MatcapGate, &BodiesGate, &CutGate, &TrimGate, &MoveGate, &CopyGate, &HideGate, &CurveGate, &ConstrainGate, &ConflictGate, &DragGate, &ReferenceGate, &SplineGate, &LinkGate, &RevolveGate, &EvolutionGate, &ReplayGate, &XRayGate, &MeasureGate, &SectionGate, &SnapGate, &JointGate, &SheetGate, &ExchangeGate, &BoundGate, &PrimitiveGate, &InsetGate, &SectionLoftGate, &GizmoGate, &PointGate, &ShellGate, &DetachGate, &CornerGate, &FillGate, &FilletDragGate, &OrientGate, &TangentGate, &KnifeGate, &HandleGate, &SolidKnifeGate, &PocketBevelGate, &ReachGate, &SplitGate, &LoopGate, &PieceGate, &ManifoldGate, &ImprintGate, &PointCutGate, &CurveFlowGate, &EdgeNotchGate, &EdgePathGate, &WrapGate, &ReshapeGate, &DeleteGate, &CurveAskGate, &FullReachGate, &BevelMergeGate, &CutterSpeedGate, &ParametricVarGate, &LiveBooleanGate, &EdgeWeightGate, &LinearCircArrayGate, &CurveSurfArrayGate, &CurveBendStackGate, &CompoundCutterGate, &LiveEditableGate, &GizmoAllViewsGate, &ContinuedLoftGate, &HotkeysOutlinerGate, &DimensionLinesGate, &MultiSelectSyncGate, &GridCubeUvGate })
+    // ---- W87 … W89 Blender-like G / R / S transforms, Numpad camera hotkeys, and Multi-view docked Split Viewport
+    ValidateBatch5TransformsNumpadAndSplitViews();
+
+    for (const GateTally* Gate : { &ConstructGate, &PickGate, &BlendGate, &FaceGate, &ParameterGate, &AtomicGate, &HistoryGate, &FileGate, &VariableGate, &DrawingGate, &SurfacingGate, &PanelGate, &EvaluationGate, &BlueprintGate, &MatcapGate, &BodiesGate, &CutGate, &TrimGate, &MoveGate, &CopyGate, &HideGate, &CurveGate, &ConstrainGate, &ConflictGate, &DragGate, &ReferenceGate, &SplineGate, &LinkGate, &RevolveGate, &EvolutionGate, &ReplayGate, &XRayGate, &MeasureGate, &SectionGate, &SnapGate, &JointGate, &SheetGate, &ExchangeGate, &BoundGate, &PrimitiveGate, &InsetGate, &SectionLoftGate, &GizmoGate, &PointGate, &ShellGate, &DetachGate, &CornerGate, &FillGate, &FilletDragGate, &OrientGate, &TangentGate, &KnifeGate, &HandleGate, &SolidKnifeGate, &PocketBevelGate, &ReachGate, &SplitGate, &LoopGate, &PieceGate, &ManifoldGate, &ImprintGate, &PointCutGate, &CurveFlowGate, &EdgeNotchGate, &EdgePathGate, &WrapGate, &ReshapeGate, &DeleteGate, &CurveAskGate, &FullReachGate, &BevelMergeGate, &CutterSpeedGate, &ParametricVarGate, &LiveBooleanGate, &EdgeWeightGate, &LinearCircArrayGate, &CurveSurfArrayGate, &CurveBendStackGate, &CompoundCutterGate, &LiveEditableGate, &GizmoAllViewsGate, &ContinuedLoftGate, &HotkeysOutlinerGate, &DimensionLinesGate, &MultiSelectSyncGate, &GridCubeUvGate, &BlenderTransformGate, &NumpadCameraGate, &SplitViewportGate })
     {
         std::printf("| %s | %s | %s | %.3g | %ld | %s |\n", Gate->Code, Gate->Subject, Gate->Limit, Gate->Worst, Gate->Checks, Gate->Failures ? "🔴" : "🟢");
         Failures += Gate->Failures;

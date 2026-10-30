@@ -172,7 +172,7 @@ void Conclude(SolidArcWorkspaceState& State, const SolidArcCommandOutcome& Outco
 
 std::string FormatLength(double Value)
 {
-    return Compose("%.4g", Value);
+    return Compose("%.4g", std::abs(Value) < 1.0e-12 ? 0.0 : Value);
 }
 
 // 📝 HTML .inspector-card as an ImGui child: radius 22, #1a1a1a, #ffffff03 hairline, padding 18; its .section-heading (h3
@@ -3965,81 +3965,228 @@ constexpr double SweepSnap  = 0.01;                                             
 }
 
 // Typed digits / point / minus from this frame's characters; false when nothing numeric was typed.
+// Supports Blender-style '-' sign toggle at any point during entry (both "-10" and "10-" yield "-10"),
+// at most one decimal point, Backspace editing, and headless key fallback when InputQueueCharacters is empty.
 bool CollectTypedAmount(std::string& Typed)
 {
-    bool ChangedCondition = false;
-    for (const ImWchar Character : ImGui::GetIO().InputQueueCharacters)
+    bool     ChangedCondition = false;
+    ImGuiIO& Io               = ImGui::GetIO();
+    auto PushDigitOrSymbol = [&](char Ch)
     {
-        if ((Character >= '0' && Character <= '9') || Character == '.' || (Character == '-' && Typed.empty())) { Typed.push_back(char(Character)); ChangedCondition = true; }
+        if (Ch >= '0' && Ch <= '9')
+        {
+            Typed.push_back(Ch);
+            ChangedCondition = true;
+        }
+        else if (Ch == '.' && Typed.find('.') == std::string::npos)
+        {
+            Typed.push_back('.');
+            ChangedCondition = true;
+        }
+        else if (Ch == '-')
+        {
+            if (!Typed.empty() && Typed.front() == '-') Typed.erase(Typed.begin());
+            else Typed.insert(Typed.begin(), '-');
+            ChangedCondition = true;
+        }
+    };
+    if (!Io.InputQueueCharacters.empty())
+    {
+        for (const ImWchar Character : Io.InputQueueCharacters)
+            if (Character < 128) PushDigitOrSymbol(char(Character));
     }
-    if (ImGui::IsKeyPressed(ImGuiKey_Backspace, false) && !Typed.empty()) { Typed.pop_back(); ChangedCondition = true; }
+    else if (!Io.KeyCtrl && !Io.KeyAlt)
+    {
+        for (int Digit = 0; Digit <= 9; ++Digit)
+        {
+            if (ImGui::IsKeyPressed(ImGuiKey(int(ImGuiKey_0) + Digit), false) ||
+                ImGui::IsKeyPressed(ImGuiKey(int(ImGuiKey_Keypad0) + Digit), false))
+                PushDigitOrSymbol(char('0' + Digit));
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_Period, false) || ImGui::IsKeyPressed(ImGuiKey_KeypadDecimal, false))
+            PushDigitOrSymbol('.');
+        if (!Io.KeyShift && (ImGui::IsKeyPressed(ImGuiKey_Minus, false) || ImGui::IsKeyPressed(ImGuiKey_KeypadSubtract, false)))
+            PushDigitOrSymbol('-');
+    }
+    if (ImGui::IsKeyPressed(ImGuiKey_Backspace, false) && !Typed.empty())
+    {
+        Typed.pop_back();
+        ChangedCondition = true;
+    }
     return ChangedCondition;
 }
 
 [[nodiscard]] bool ParseTypedAmount(const std::string& Typed, double& Value)
 {
-    if (Typed.empty() || Typed == "-" || Typed == ".") return false;
+    if (Typed.empty() || Typed == "-" || Typed == "." || Typed == "-.") return false;
     char* End = nullptr;
     Value = std::strtod(Typed.c_str(), &End);
     return End && *End == '\0' && std::isfinite(Value);
 }
 
-// Centre of the bounds of the listed sketches' curves (solved, on their elevated planes): the pivot of G / R on 2D objects.
+[[nodiscard]] const CurveFitOutcome* FindFittedCurve(const SolidArcDocument& Document, const std::string& Label);
+[[nodiscard]] std::vector<std::string> PickedSketches(const SolidArcDocument& Document);
+
+// Centre of the bounds of the listed sketches / 3D space curves: the pivot of G / R / S on curve objects.
 [[nodiscard]] Vector3 MeasureSketchesCentre(const SolidArcDocument& Document, const std::vector<std::string>& Labels)
 {
     Vector3 Low{ 1.0e300, 1.0e300, 1.0e300 }, High{ -1.0e300, -1.0e300, -1.0e300 };
+    auto Include = [&](const Vector3& Point)
+    {
+        Low  = { std::min(Low.X, Point.X), std::min(Low.Y, Point.Y), std::min(Low.Z, Point.Z) };
+        High = { std::max(High.X, Point.X), std::max(High.Y, Point.Y), std::max(High.Z, Point.Z) };
+    };
     for (const FeatureStep& Step : Document.Tree.Steps)
     {
-        if (Step.Kind != FeatureStepKind::Sketch || std::find(Labels.begin(), Labels.end(), Step.Label) == Labels.end()) continue;
+        if (std::find(Labels.begin(), Labels.end(), Step.Label) == Labels.end()) continue;
+        if (Step.Kind == FeatureStepKind::SpaceCurve)
+        {
+            if (const CurveFitOutcome* Fit = FindFittedCurve(Document, Step.Label); Fit && Fit->Curve.Definition && !Fit->Curve.Definition->Poles.empty())
+                for (const Vector3& Pole : Fit->Curve.Definition->Poles) Include(Pole);
+            else
+                for (const Vector3& Point : Step.Points) Include(Point);
+            continue;
+        }
+        if (Step.Kind != FeatureStepKind::Sketch) continue;
         const auto Solved = Document.Regeneration.Sketches.find(Step.Label);
         if (Solved == Document.Regeneration.Sketches.end()) continue;
         const OrthonormalFrame Plane = ElevatedSketchPlane(Document, Step);
         for (const SketchCurve& Curve : Solved->second.Curves)
             for (const Vector2& Sample : SampleSketchCurve(Solved->second, Curve))
-            {
-                const Vector3 Point = PlacePlanePoint(Plane, Sample);
-                Low  = { std::min(Low.X, Point.X), std::min(Low.Y, Point.Y), std::min(Low.Z, Point.Z) };
-                High = { std::max(High.X, Point.X), std::max(High.Y, Point.Y), std::max(High.Z, Point.Z) };
-            }
+                Include(PlacePlanePoint(Plane, Sample));
     }
     return Low.X <= High.X ? (Low + High) * 0.5 : Vector3{};
 }
 
 void OpenTransformSession(SolidArcWorkspaceState& State, SolidArcTransformVerb Verb, bool DuplicateCondition)
 {
-    std::vector<std::string> Keys = PickedBodies(State.Document);
-    // No body picked: the picked 2D objects (sketches), else the focused sketch, move / turn / duplicate instead.
-    bool SketchCondition = false;
+    SolidArcTransformTarget  TargetKind   = SolidArcTransformTarget::Bodies;
+    std::vector<std::string> Keys         = PickedBodies(State.Document);
+    std::string              PointOwner   = {};
+    std::vector<int>         PointIndices = {};
+    Vector3                  Pivot        = {};
+    const char*              Noun         = "body(ies)";
+
+    if (!Keys.empty())
+    {
+        TargetKind = SolidArcTransformTarget::Bodies;
+        Pivot      = MeasureBodiesCentre(State.Scene, Keys);
+    }
+    else
+    {
+        // Mode 1 sub-object picks take priority before whole-curve fallback when control points / poles are explicitly picked.
+        if (!DuplicateCondition && (State.PickMode == SolidArcPickMode::ControlPoint || State.PickMode == SolidArcPickMode::Any))
+        {
+            if (!State.SketchPoints.Points.empty() && !State.SketchPoints.Sketch.empty())
+            {
+                if (const FeatureStep* Step = FindSketchStepByLabel(State.Document, State.SketchPoints.Sketch))
+                {
+                    const SketchModel&     Sketch = SolvedSketchOf(State.Document, *Step);
+                    const OrthonormalFrame Plane  = ElevatedSketchPlane(State.Document, *Step);
+                    Vector3 Sum{};
+                    int     Count = 0;
+                    for (int Pt : State.SketchPoints.Points)
+                        if (Pt >= 0 && Pt < int(Sketch.Points.size())) { Sum = Sum + PlacePlanePoint(Plane, Sketch.Points[Pt].Position); ++Count; }
+                    if (Count > 0)
+                    {
+                        TargetKind   = SolidArcTransformTarget::SketchPoints;
+                        Keys         = { State.SketchPoints.Sketch };
+                        PointOwner   = State.SketchPoints.Sketch;
+                        PointIndices = State.SketchPoints.Points;
+                        Pivot        = Sum * (1.0 / double(Count));
+                        Noun         = "point(s)";
+                    }
+                }
+            }
+            else if (!State.PoleDrag.PickedPoles.empty() && !State.PoleDrag.PickedLabel.empty())
+            {
+                if (const CurveFitOutcome* Fit = FindFittedCurve(State.Document, State.PoleDrag.PickedLabel); Fit && Fit->Curve.Definition)
+                {
+                    Vector3 Sum{};
+                    int     Count = 0;
+                    for (int Pole : State.PoleDrag.PickedPoles)
+                        if (Pole >= 0 && Pole < int(Fit->Curve.Definition->Poles.size())) { Sum = Sum + Fit->Curve.Definition->Poles[Pole]; ++Count; }
+                    if (Count > 0)
+                    {
+                        TargetKind   = SolidArcTransformTarget::CurvePoles;
+                        Keys         = { State.PoleDrag.PickedLabel };
+                        PointOwner   = State.PoleDrag.PickedLabel;
+                        PointIndices = State.PoleDrag.PickedPoles;
+                        Pivot        = Sum * (1.0 / double(Count));
+                        Noun         = "pole(s)";
+                    }
+                }
+            }
+            else if (!State.Document.Selection.Vertices.empty())
+            {
+                Vector3 Sum{};
+                int     Count = 0;
+                for (const SolidArcSceneVertex& Vertex : State.Scene.Vertices)
+                {
+                    if (std::find(State.Document.Selection.Vertices.begin(), State.Document.Selection.Vertices.end(), Vertex.Name) != State.Document.Selection.Vertices.end())
+                    {
+                        Sum = Sum + Vector3{ Vertex.Position[0], Vertex.Position[1], Vertex.Position[2] };
+                        ++Count;
+                    }
+                }
+                if (Count > 0)
+                {
+                    TargetKind = SolidArcTransformTarget::Vertices;
+                    Keys       = State.Document.Selection.Vertices;
+                    Pivot      = Sum * (1.0 / double(Count));
+                    Noun       = "vertex(es)";
+                }
+            }
+        }
+        if (Keys.empty())
+        {
+            Keys = PickedSketches(State.Document);
+            if (Keys.empty()) Keys = SelectedSketchLabels(State.Document);
+            if (Keys.empty() && FocusedSketchCondition(State)) Keys = { State.FocusedStep };
+            if (!Keys.empty())
+            {
+                TargetKind = SolidArcTransformTarget::Sketches;
+                Pivot      = MeasureSketchesCentre(State.Document, Keys);
+                Noun       = "sketch(es)";
+            }
+        }
+    }
+
     if (Keys.empty())
     {
-        Keys = SelectedSketchLabels(State.Document);
-        if (Keys.empty() && FocusedSketchCondition(State)) Keys = { State.FocusedStep };
-        SketchCondition = !Keys.empty();
+        Announce(State, std::string(DuplicateCondition ? "Duplicate" : TransformVerbLabel(Verb)) + " needs picked bodies (mode 4, or a face / edge of the body) or picked sketches");
+        return;
     }
-    if (Keys.empty()) { Announce(State, std::string(DuplicateCondition ? "Duplicate" : TransformVerbLabel(Verb)) + " needs picked bodies (mode 4, or a face / edge of the body) or picked sketches"); return; }
     SolidArcTransformSession& Transform = State.Transform;
     const int Commits = Transform.Commits;
     Transform                    = {};
     Transform.Commits            = Commits;
     Transform.ActiveCondition    = true;
     Transform.Verb               = Verb;
+    Transform.TargetKind         = TargetKind;
     Transform.DuplicateCondition = DuplicateCondition;
     Transform.Keys               = Keys;
-    Transform.SketchCondition    = SketchCondition;
-    Transform.Pivot              = SketchCondition ? MeasureSketchesCentre(State.Document, Keys) : MeasureBodiesCentre(State.Scene, Keys);
-    State.Drawing.ActiveCondition = false;
-    State.Trim.ActiveCondition    = false;
-    State.Fill.ActiveCondition    = false;
+    Transform.PointOwner         = PointOwner;
+    Transform.PointIndices       = PointIndices;
+    Transform.SketchCondition    = (TargetKind == SolidArcTransformTarget::Sketches);
+    Transform.Pivot              = Pivot;
+    Transform.DisplayPivot       = Pivot;
+    State.Drawing.ActiveCondition   = false;
+    State.Trim.ActiveCondition      = false;
+    State.Fill.ActiveCondition      = false;
     State.Constrain.ActiveCondition = false;
-    Announce(State, Compose("%s%s %d %s · X / Y / Z axis%s · type a value · click / Enter commits%s · Esc cancels", DuplicateCondition ? "Duplicate + " : "",
-                            TransformVerbLabel(Verb), int(Keys.size()), SketchCondition ? "sketch(es)" : "body(ies)", Verb == SolidArcTransformVerb::Move ? " · Shift+X / Y / Z plane" : "",
+    const int ShownCount = !PointIndices.empty() ? int(PointIndices.size()) : int(Keys.size());
+    Announce(State, Compose("%s%s %d %s · X / Y / Z axis%s · drag or type a value · click / Enter commits%s · Esc cancels",
+                            DuplicateCondition ? "Duplicate + " : "", TransformVerbLabel(Verb), ShownCount, Noun,
+                            (Verb == SolidArcTransformVerb::Move || Verb == SolidArcTransformVerb::Scale) ? " · Shift+X / Y / Z plane" : "",
                             DuplicateCondition ? " (at once: a copy in place)" : ""));
 }
 
 void CancelTransformSession(SolidArcWorkspaceState& State)
 {
-    State.Transform.ActiveCondition = false;
-    State.Transform.RigidCondition  = false;
+    State.Transform.ActiveCondition   = false;
+    State.Transform.LeftDragCondition = false;
+    State.Transform.RigidCondition    = false;
     State.Transform.Preview.reset();
     Announce(State, std::string(TransformVerbLabel(State.Transform.Verb)) + " cancelled");
 }
@@ -4049,32 +4196,241 @@ void CancelTransformSession(SolidArcWorkspaceState& State)
     return Length(Map.ColumnX - Vector3{ 1.0, 0.0, 0.0 }) + Length(Map.ColumnY - Vector3{ 0.0, 1.0, 0.0 }) + Length(Map.ColumnZ - Vector3{ 0.0, 0.0, 1.0 }) + Length(Map.Shift) < 1.0e-12;
 }
 
-// The session's command on Document: bodies (Duplicate / Transform steps) or sketches (copies / planes carried).
+// The session's command on Document: bodies, sketches/3D curves, or Mode-1 control points / poles / vertices.
 [[nodiscard]] SolidArcCommandOutcome RunTransform(SolidArcDocument& Document, const SolidArcTransformSession& Transform, const AffineMap& Map)
 {
-    if (Transform.SketchCondition)
-        return Transform.DuplicateCondition ? DuplicateSolidArcSketches(Document, Transform.Keys, Map) : PlaceSolidArcSketches(Document, Transform.Keys, Map, TransformVerbLabel(Transform.Verb));
-    return Transform.DuplicateCondition ? DuplicateSolidArcBodies(Document, Transform.Keys, Map) : TransformSolidArcBodies(Document, Transform.Keys, Map, TransformVerbLabel(Transform.Verb));
+    switch (Transform.TargetKind)
+    {
+    case SolidArcTransformTarget::Sketches:
+        return Transform.DuplicateCondition
+            ? DuplicateSolidArcSketches(Document, Transform.Keys, Map)
+            : PlaceSolidArcSketches(Document, Transform.Keys, Map, TransformVerbLabel(Transform.Verb));
+    case SolidArcTransformTarget::SketchPoints:
+    {
+        const FeatureStep* Step = Transform.PointOwner.empty() ? nullptr : FindSketchStepByLabel(Document, Transform.PointOwner);
+        if (!Step) break;
+        const SketchModel&     Sketch = SolvedSketchOf(Document, *Step);
+        const OrthonormalFrame Plane  = ElevatedSketchPlane(Document, *Step);
+        std::vector<Vector2>   Targets;
+        std::vector<Vector3>   Lifted;
+        for (int Pt : Transform.PointIndices)
+        {
+            if (Pt < 0 || Pt >= int(Sketch.Points.size())) return SolidArcCommandOutcome{ false, {}, "transform: sketch point out of range" };
+            const Vector3 Start = PlacePlanePoint(Plane, Sketch.Points[Pt].Position);
+            const Vector3 Moved = Map.ColumnX * Start.X + Map.ColumnY * Start.Y + Map.ColumnZ * Start.Z + Map.Shift;
+            Targets.push_back({ Dot(Moved - Plane.Origin, Plane.XAxis), Dot(Moved - Plane.Origin, Plane.YAxis) });
+            Lifted.push_back(Moved);
+        }
+        if (std::any_of(Lifted.begin(), Lifted.end(), [&](const Vector3& Moved) { return std::abs(Dot(Moved - Plane.Origin, Plane.ZAxis)) > 1.0e-9 * (1.0 + Length(Moved)); }))
+            return LiftSolidArcSketchPoints(Document, Transform.PointOwner, Plane, Transform.PointIndices, Lifted);
+        return DragSolidArcSketchPoints(Document, Transform.PointOwner, Transform.PointIndices, Targets);
+    }
+    case SolidArcTransformTarget::CurvePoles:
+    {
+        const CurveFitOutcome* Fit = Transform.PointOwner.empty() ? nullptr : FindFittedCurve(Document, Transform.PointOwner);
+        if (!Fit || !Fit->Curve.Definition) break;
+        std::vector<Vector3> Targets;
+        const std::vector<Vector3>& Poles = Fit->Curve.Definition->Poles;
+        for (int Pole : Transform.PointIndices)
+        {
+            if (Pole < 0 || Pole >= int(Poles.size())) return SolidArcCommandOutcome{ false, {}, "transform: curve pole out of range" };
+            const Vector3 Start = Poles[Pole];
+            Targets.push_back(Map.ColumnX * Start.X + Map.ColumnY * Start.Y + Map.ColumnZ * Start.Z + Map.Shift);
+        }
+        return MoveSolidArcPoles(Document, Transform.PointOwner, Transform.PointIndices, Targets);
+    }
+    case SolidArcTransformTarget::Vertices:
+    {
+        const std::vector<std::string> SavedEdges = Document.Selection.Edges, SavedVerts = Document.Selection.Vertices;
+        Document.Selection.Vertices = Transform.Keys;
+        Document.Selection.Edges.clear();
+        const SolidArcCommandOutcome Outcome = ReshapeSolidArcSelection(Document, Map, TransformVerbLabel(Transform.Verb));
+        if (Document.Selection.Edges.empty()) Document.Selection.Edges = SavedEdges;
+        if (!Outcome.AcceptedCondition) Document.Selection.Vertices = SavedVerts;
+        return Outcome;
+    }
+    case SolidArcTransformTarget::Bodies:
+        return Transform.DuplicateCondition
+            ? DuplicateSolidArcBodies(Document, Transform.Keys, Map)
+            : TransformSolidArcBodies(Document, Transform.Keys, Map, TransformVerbLabel(Transform.Verb));
+    }
+    return SolidArcCommandOutcome{ false, {}, "transform: nothing selected" };
 }
 
 void ApplyTransformSession(SolidArcWorkspaceState& State)
 {
     SolidArcTransformSession& Transform = State.Transform;
     if (!Transform.Refusal.empty()) { Announce(State, "Refused: " + Transform.Refusal); return; }
-    if (!Transform.DuplicateCondition && IdentityMapCondition(Transform.Map)) { Transform.ActiveCondition = false; Transform.RigidCondition = false; Transform.Preview.reset(); Announce(State, std::string(TransformVerbLabel(Transform.Verb)) + ": nothing changed"); return; }
+    if (!Transform.DuplicateCondition && IdentityMapCondition(Transform.Map))
+    {
+        Transform.ActiveCondition   = false;
+        Transform.LeftDragCondition = false;
+        Transform.RigidCondition    = false;
+        Transform.Preview.reset();
+        Announce(State, std::string(TransformVerbLabel(Transform.Verb)) + ": nothing changed");
+        return;
+    }
     const SolidArcCommandOutcome Outcome = RunTransform(State.Document, Transform, Transform.Map);
     if (Outcome.AcceptedCondition)
     {
         ++Transform.Commits;
-        Transform.ActiveCondition = false;
-        Transform.RigidCondition  = false;
+        Transform.ActiveCondition   = false;
+        Transform.LeftDragCondition = false;
+        Transform.RigidCondition    = false;
         Transform.Preview.reset();
-        if (!Transform.SketchCondition) State.PickMode = SolidArcPickMode::Solid;
+        if (Transform.TargetKind == SolidArcTransformTarget::Bodies) State.PickMode = SolidArcPickMode::Solid;
     }
     Conclude(State, Outcome);
 }
 
-// Pointer → affine map (see SolidArcTransformSession), then the staged preview when the map changed.
+// Builds the gizmo pose shown during a live G / R / S modal session:
+// - When unconstrained (Axis < 0): full Move / Rotate / Scale gizmo at DisplayPivot.
+// - When constrained to X / Y / Z (Axis >= 0, !PlaneCondition): hides all other handles so ONLY the chosen axis gizmo handle shows.
+// - When constrained to a plane (Shift+X / Y / Z): shows only the two in-plane handles + plane quad.
+[[nodiscard]] SolidArcGizmoPose MakeTransformSessionGizmoPose(const SolidArcTransformSession& Transform, const OrbitCameraFrame& Frame, SolidArcGizmoHandle& OutActiveHandle)
+{
+    SolidArcGizmoPose Pose{};
+    Pose.Origin  = Transform.DisplayPivot;
+    Pose.Axes[0] = { 1.0, 0.0, 0.0 };
+    Pose.Axes[1] = { 0.0, 1.0, 0.0 };
+    Pose.Axes[2] = { 0.0, 0.0, 1.0 };
+    Pose.Size    = MeasureGizmoSize(Frame, Pose.Origin, GizmoPixels);
+    Pose.Modes   = Transform.Verb == SolidArcTransformVerb::Move ? GizmoTranslate
+                 : Transform.Verb == SolidArcTransformVerb::Rotate ? GizmoRotate : GizmoScale;
+    OutActiveHandle = SolidArcGizmoHandle::None;
+    constexpr auto Bit = [](SolidArcGizmoHandle Handle) { return 1u << uint32_t(Handle); };
+    if (Transform.Axis >= 0 && Transform.Axis < 3)
+    {
+        if (!Transform.PlaneCondition)
+        {
+            const SolidArcGizmoHandle Base = Transform.Verb == SolidArcTransformVerb::Move ? SolidArcGizmoHandle::TranslateX
+                                           : Transform.Verb == SolidArcTransformVerb::Rotate ? SolidArcGizmoHandle::RotateX
+                                           : SolidArcGizmoHandle::ScaleX;
+            OutActiveHandle = SolidArcGizmoHandle(uint8_t(Base) + Transform.Axis);
+            Pose.Hidden     = ~Bit(OutActiveHandle);
+        }
+        else
+        {
+            const int U = (Transform.Axis + 1) % 3, V = (Transform.Axis + 2) % 3;
+            if (Transform.Verb == SolidArcTransformVerb::Move)
+            {
+                const auto HPlane = SolidArcGizmoHandle(uint8_t(SolidArcGizmoHandle::PlaneYZ) + Transform.Axis);
+                const auto HU     = SolidArcGizmoHandle(uint8_t(SolidArcGizmoHandle::TranslateX) + U);
+                const auto HV     = SolidArcGizmoHandle(uint8_t(SolidArcGizmoHandle::TranslateX) + V);
+                OutActiveHandle   = HPlane;
+                Pose.Hidden       = ~(Bit(HPlane) | Bit(HU) | Bit(HV));
+            }
+            else
+            {
+                const auto HU   = SolidArcGizmoHandle(uint8_t(SolidArcGizmoHandle::ScaleX) + U);
+                const auto HV   = SolidArcGizmoHandle(uint8_t(SolidArcGizmoHandle::ScaleX) + V);
+                OutActiveHandle = HU;
+                Pose.Hidden     = ~(Bit(HU) | Bit(HV));
+            }
+        }
+    }
+    return Pose;
+}
+
+// Viewport-spanning 3D axis constraint guide line(s) for active G / R / S sessions when X, Y, or Z is locked.
+// Clips endpoints against the camera near plane in 3D view space so perspective lines never flip behind the eye.
+void DrawTransformAxisOverlay(const SolidArcWorkspaceState& State, ImDrawList* Canvas, const OrbitCameraFrame& Frame)
+{
+    const SolidArcTransformSession& Transform = State.Transform;
+    if (!Transform.ActiveCondition) return;
+
+    auto ProjectClippedSegment = [&](const Vector3& WorldA, const Vector3& WorldB, ImVec2& OutA, ImVec2& OutB) -> bool
+    {
+        const Vector3 Eye{ Frame.Eye[0], Frame.Eye[1], Frame.Eye[2] };
+        const Vector3 Forward{ Frame.Forward[0], Frame.Forward[1], Frame.Forward[2] };
+        Vector3 PA = WorldA, PB = WorldB;
+        if (!Frame.OrthographicEnabled)
+        {
+            constexpr double NearClip = 0.05;
+            const double DA = Dot(PA - Eye, Forward);
+            const double DB = Dot(PB - Eye, Forward);
+            if (DA < NearClip && DB < NearClip) return false;
+            if (DA < NearClip)
+            {
+                const double T = (NearClip - DA) / std::max(1.0e-9, DB - DA);
+                PA = PA + (PB - PA) * T;
+            }
+            else if (DB < NearClip)
+            {
+                const double T = (NearClip - DB) / std::max(1.0e-9, DA - DB);
+                PB = PB + (PA - PB) * T;
+            }
+        }
+        return ProjectWorldPoint(State, Frame, PA, OutA) && ProjectWorldPoint(State, Frame, PB, OutB);
+    };
+
+    static const Vector3 WorldAxes[3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
+    static const char*   Labels[3]    = { "+X", "+Y", "+Z" };
+    static const ImU32   GlowCols[3]  = { IM_COL32(0xff, 0x55, 0x55, 0x42), IM_COL32(0x52, 0xe0, 0x7a, 0x42), IM_COL32(0x4d, 0xa3, 0xff, 0x42) };
+    static const ImU32   LineCols[3]  = { IM_COL32(0xff, 0x62, 0x62, 0xf2), IM_COL32(0x58, 0xe8, 0x82, 0xf2), IM_COL32(0x58, 0xb0, 0xff, 0xf2) };
+
+    const double Span = std::max(250.0, 30.0 * State.Camera.Distance);
+    auto DrawOneAxisLine = [&](int AxisIdx)
+    {
+        if (AxisIdx < 0 || AxisIdx > 2) return;
+        const Vector3 Dir = WorldAxes[AxisIdx];
+        ImVec2 PixNeg{}, PixPos{};
+        if (!ProjectClippedSegment(Transform.Pivot - Dir * Span, Transform.Pivot + Dir * Span, PixNeg, PixPos)) return;
+        Canvas->AddLine(PixNeg, PixPos, GlowCols[AxisIdx], 6.0f);
+        Canvas->AddLine(PixNeg, PixPos, LineCols[AxisIdx], 2.0f);
+
+        // Positive-direction indicator & "+X" / "+Y" / "+Z" badge at a comfortable screen offset from Pivot along +Axis.
+        const double TagWorld = std::max(1.0e-4, 108.0 * Frame.WorldPerPixel);
+        ImVec2       PivotPix{}, PosTagPix{};
+        if (ProjectClippedSegment(Transform.DisplayPivot, Transform.DisplayPivot + Dir * TagWorld, PivotPix, PosTagPix))
+        {
+            const float DX = PosTagPix.x - PivotPix.x, DY = PosTagPix.y - PivotPix.y;
+            const float Len = std::hypot(DX, DY);
+            if (Len > 12.0f)
+            {
+                const float UX = DX / Len, UY = DY / Len;
+                const ImVec2 Tip = PosTagPix;
+                const ImVec2 LeftWing(Tip.x - UX * 9.0f - UY * 4.5f, Tip.y - UY * 9.0f + UX * 4.5f);
+                const ImVec2 RightWing(Tip.x - UX * 9.0f + UY * 4.5f, Tip.y - UY * 9.0f - UX * 4.5f);
+                Canvas->AddTriangleFilled(Tip, LeftWing, RightWing, LineCols[AxisIdx]);
+                const ImVec2 BadgePos(Tip.x + UX * 8.0f + 4.0f, Tip.y + UY * 8.0f - 7.0f);
+                Canvas->AddText(ImVec2(BadgePos.x + 1.0f, BadgePos.y + 1.0f), IM_COL32(0x08, 0x0a, 0x0e, 0xd8), Labels[AxisIdx]);
+                Canvas->AddText(BadgePos, LineCols[AxisIdx], Labels[AxisIdx]);
+            }
+        }
+    };
+
+    if (Transform.Axis >= 0 && Transform.Axis < 3)
+    {
+        if (!Transform.PlaneCondition)
+        {
+            DrawOneAxisLine(Transform.Axis);
+        }
+        else
+        {
+            DrawOneAxisLine((Transform.Axis + 1) % 3);
+            DrawOneAxisLine((Transform.Axis + 2) % 3);
+        }
+    }
+
+    ImVec2 PivotPix{};
+    if (ProjectWorldPoint(State, Frame, Transform.Pivot, PivotPix))
+    {
+        Canvas->AddCircleFilled(PivotPix, 4.5f, IM_COL32(0xff, 0xd4, 0x54, 0xff));
+        Canvas->AddCircle(PivotPix, 6.5f, IM_COL32(0x10, 0x12, 0x18, 0xd8), 16, 1.5f);
+        if ((Transform.Verb == SolidArcTransformVerb::Rotate || Transform.Verb == SolidArcTransformVerb::Scale) && Transform.Typed.empty())
+        {
+            const ImVec2 Mouse = ImGui::GetIO().MousePos;
+            if (Mouse.x >= State.ViewportRect[0] && Mouse.x <= State.ViewportRect[0] + State.ViewportRect[2] &&
+                Mouse.y >= State.ViewportRect[1] && Mouse.y <= State.ViewportRect[1] + State.ViewportRect[3])
+            {
+                DrawDashedPolyline(Canvas, { PivotPix, Mouse }, IM_COL32(0xff, 0xd4, 0x54, 0xb8), 1.4f);
+            }
+        }
+    }
+}
+
+// Pointer → affine map (see SolidArcTransformSession), live gizmo geometry, then the staged preview when the map changed.
 void DriveTransformSession(SolidArcWorkspaceState& State, const OrbitCameraFrame& Frame, ImVec2 Local)
 {
     SolidArcTransformSession& Transform = State.Transform;
@@ -4091,6 +4447,29 @@ void DriveTransformSession(SolidArcWorkspaceState& State, const OrbitCameraFrame
             Transform.AnchorSource    = Transform.AnchorCondition ? std::string(SolidArcSnapLabel(Anchor.Kind)) + " " + Anchor.Source : std::string{};
         }
     }
+
+    // Check if an LMB press-and-drag starts on one of the modal gizmo's axis handles to constrain that axis automatically.
+    SolidArcGizmoHandle PreActive = SolidArcGizmoHandle::None;
+    const SolidArcGizmoPose PrePose = MakeTransformSessionGizmoPose(Transform, Frame, PreActive);
+    const SolidArcGizmoGeometry PreGeom = BuildSolidArcGizmo(PrePose, Frame, SolidArcGizmoHandle::None, PreActive);
+    if (State.ViewportHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+    {
+        const SolidArcGizmoHandle Hit = PickSolidArcGizmo(PreGeom, Frame, Local.x, Local.y, 7.0);
+        const int HitAxis = GizmoHandleAxis(Hit);
+        if (HitAxis >= 0)
+        {
+            Transform.Axis           = HitAxis;
+            Transform.PlaneCondition = (Hit >= SolidArcGizmoHandle::PlaneYZ && Hit <= SolidArcGizmoHandle::PlaneXY);
+            Transform.Start          = Io.MousePos;
+            Transform.StartLocal     = Local;
+        }
+    }
+    if (State.ViewportHovered && ImGui::IsMouseDown(ImGuiMouseButton_Left) &&
+        Io.MouseDragMaxDistanceSqr[ImGuiMouseButton_Left] > ClickTolerance * ClickTolerance)
+    {
+        Transform.LeftDragCondition = true;
+    }
+
     const Vector3 Forward{ Frame.Forward[0], Frame.Forward[1], Frame.Forward[2] };
     const Vector3 Axes[3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
     static const char* AxisNames[] = { "x", "y", "z" };
@@ -4114,12 +4493,17 @@ void DriveTransformSession(SolidArcWorkspaceState& State, const OrbitCameraFrame
         {
             // The pointer's two rays meet a plane through the pivot: facing the eye (free), containing the axis, or normal to it.
             Vector3 Normal = Forward;
+            bool    EyeParallelToAxis = false;
             if (Transform.Axis >= 0)
             {
                 const Vector3 Axis = Axes[Transform.Axis];
                 Normal = Transform.PlaneCondition ? Axis : Forward - Axis * Dot(Forward, Axis);
-                if (Length(Normal) < 1.0e-6) Normal = Vector3{ Frame.Up[0], Frame.Up[1], Frame.Up[2] };
-                Normal = Normal * (1.0 / Length(Normal));
+                if (Length(Normal) < 1.0e-4)
+                {
+                    EyeParallelToAxis = !Transform.PlaneCondition;
+                    Normal = Vector3{ Frame.Up[0], Frame.Up[1], Frame.Up[2] };
+                }
+                if (Length(Normal) > 1.0e-9) Normal = Normal * (1.0 / Length(Normal));
             }
             auto Meet = [&](ImVec2 At, Vector3& Hit)
             {
@@ -4140,6 +4524,12 @@ void DriveTransformSession(SolidArcWorkspaceState& State, const OrbitCameraFrame
                 if (Transform.Axis >= 0 && !Transform.PlaneCondition) Shift = Axes[Transform.Axis] * Dot(Shift, Axes[Transform.Axis]);
                 else if (Transform.Axis >= 0) Shift = Shift - Axes[Transform.Axis] * Dot(Shift, Axes[Transform.Axis]);
             }
+            else if (EyeParallelToAxis && Transform.Axis >= 0)
+            {
+                // Axis points straight at/away from camera (e.g. G Z in Top view): vertical mouse motion drives +Axis smoothly.
+                const double Raw = double(Transform.Start.y - Io.MousePos.y) * Frame.WorldPerPixel;
+                Shift = Axes[Transform.Axis] * Snap(Raw, MoveSnap);
+            }
             else
             {
                 if (Meet(Transform.StartLocal, From) && Meet(Local, To))
@@ -4150,9 +4540,11 @@ void DriveTransformSession(SolidArcWorkspaceState& State, const OrbitCameraFrame
                 Shift = { Snap(Shift.X, MoveSnap), Snap(Shift.Y, MoveSnap), Snap(Shift.Z, MoveSnap) };
             }
         }
-        Transform.Map     = TranslationMap(Shift);
-        Transform.Readout = Compose("Move%s%s (%s, %s, %s)", Transform.Axis < 0 ? " screen" : Transform.PlaneCondition ? " plane ⊥" : " ", Transform.Axis < 0 ? "" : AxisNames[Transform.Axis],
-                                    FormatLength(Shift.X).c_str(), FormatLength(Shift.Y).c_str(), FormatLength(Shift.Z).c_str());
+        Transform.DisplayPivot = Transform.Pivot + Shift;
+        Transform.CurrentValue = Transform.Axis == 1 ? Shift.Y : Transform.Axis == 2 ? Shift.Z : Shift.X;
+        Transform.Map          = TranslationMap(Shift);
+        Transform.Readout      = Compose("Move%s%s (%s, %s, %s)", Transform.Axis < 0 ? " screen" : Transform.PlaneCondition ? " plane ⊥" : " ", Transform.Axis < 0 ? "" : AxisNames[Transform.Axis],
+                                         FormatLength(Shift.X).c_str(), FormatLength(Shift.Y).c_str(), FormatLength(Shift.Z).c_str());
         if (!TypedCondition && State.Picker.Current.Kind != SolidArcSnapKind::None)
             Transform.Readout += std::string(" · ") + Transform.AnchorSource + " → " + SolidArcSnapLabel(State.Picker.Current.Kind) + " " + State.Picker.Current.Source;
         break;
@@ -4171,8 +4563,10 @@ void DriveTransformSession(SolidArcWorkspaceState& State, const OrbitCameraFrame
             if (Dot(Axis, Forward) > 0.0) Degrees = -Degrees;                                 // Axis points away from the eye
             Degrees = Snap(Degrees, TurnSnap);
         }
-        Transform.Map     = RotationMap(Transform.Pivot, Axis, Degrees * std::numbers::pi / 180.0);
-        Transform.Readout = Compose("Rotate %s %s°", Transform.Axis < 0 ? "screen" : AxisNames[Transform.Axis], FormatLength(Degrees).c_str());
+        Transform.DisplayPivot = Transform.Pivot;
+        Transform.CurrentValue = Degrees;
+        Transform.Map          = RotationMap(Transform.Pivot, Axis, Degrees * std::numbers::pi / 180.0);
+        Transform.Readout      = Compose("Rotate %s %s°", Transform.Axis < 0 ? "screen" : AxisNames[Transform.Axis], FormatLength(Degrees).c_str());
         break;
     }
     case SolidArcTransformVerb::Scale:
@@ -4182,16 +4576,55 @@ void DriveTransformSession(SolidArcWorkspaceState& State, const OrbitCameraFrame
         {
             const double First = std::hypot(Transform.Start.x - PivotPixel.x, Transform.Start.y - PivotPixel.y);
             const double Now   = std::hypot(Io.MousePos.x - PivotPixel.x, Io.MousePos.y - PivotPixel.y);
-            Factor = PivotCondition && First > 4.0 ? Snap(Now / First, FactorSnap) : 1.0;
+            Factor = PivotCondition && First > 4.0 ? std::max(0.05, Snap(Now / First, FactorSnap)) : 1.0;
         }
         Vector3 Factors{ Factor, Factor, Factor };
-        if (Transform.Axis >= 0) Factors = { Transform.Axis == 0 ? Factor : 1.0, Transform.Axis == 1 ? Factor : 1.0, Transform.Axis == 2 ? Factor : 1.0 };
-        Transform.Map     = ScalingMap(Transform.Pivot, Factors);
-        Transform.Readout = Compose("Scale %s ×%s", Transform.Axis < 0 ? "xyz" : AxisNames[Transform.Axis], FormatLength(Factor).c_str());
+        if (Transform.Axis >= 0 && !Transform.PlaneCondition)
+            Factors = { Transform.Axis == 0 ? Factor : 1.0, Transform.Axis == 1 ? Factor : 1.0, Transform.Axis == 2 ? Factor : 1.0 };
+        else if (Transform.Axis >= 0 && Transform.PlaneCondition)
+            Factors = { Transform.Axis == 0 ? 1.0 : Factor, Transform.Axis == 1 ? 1.0 : Factor, Transform.Axis == 2 ? 1.0 : Factor };
+        Transform.DisplayPivot = Transform.Pivot;
+        Transform.CurrentValue = Factor;
+        Transform.Map          = ScalingMap(Transform.Pivot, Factors);
+        Transform.Readout      = Compose("Scale %s%s ×%s", Transform.PlaneCondition ? "plane ⊥" : "", Transform.Axis < 0 ? "xyz" : AxisNames[Transform.Axis], FormatLength(Factor).c_str());
         break;
     }
     }
     if (!Transform.Typed.empty()) Transform.Readout += " · typed " + Transform.Typed;
+
+    // Emit the live modal gizmo (all axes when unconstrained; ONLY the locked axis handle when X / Y / Z is active).
+    SolidArcGizmoHandle ActiveHandle = SolidArcGizmoHandle::None;
+    const SolidArcGizmoPose ModalPose = MakeTransformSessionGizmoPose(Transform, Frame, ActiveHandle);
+    SolidArcGizmoGeometry ModalGeom   = BuildSolidArcGizmo(ModalPose, Frame, SolidArcGizmoHandle::None, ActiveHandle);
+    const SolidArcGizmoHandle HoverHandle = State.ViewportHovered
+        ? PickSolidArcGizmo(ModalGeom, Frame, Local.x, Local.y, 6.0)
+        : SolidArcGizmoHandle::None;
+    if (HoverHandle != SolidArcGizmoHandle::None && ActiveHandle == SolidArcGizmoHandle::None)
+        ModalGeom = BuildSolidArcGizmo(ModalPose, Frame, HoverHandle, SolidArcGizmoHandle::None);
+    State.Style.Gizmo = ModalGeom;
+
+    // Record visible modal gizmo handle widgets for automated inspection & picking.
+    {
+        uint32_t Drawn = 0;
+        for (const SolidArcGizmoVertex& Vertex : ModalGeom.Vertices) Drawn |= 1u << Vertex.Handle;
+        static const char* Keys[] = { "", "GizmoTranslateX", "GizmoTranslateY", "GizmoTranslateZ", "GizmoPlaneYZ", "GizmoPlaneXZ", "GizmoPlaneXY",
+                                      "GizmoRotateX", "GizmoRotateY", "GizmoRotateZ", "GizmoScaleX", "GizmoScaleY", "GizmoScaleZ", "GizmoCentre" };
+        for (int Code = 1; Code <= 13; ++Code)
+        {
+            if (!(Drawn & (1u << Code))) continue;
+            const int Axis = (Code - 1) % 3, U = (Axis + 1) % 3, V = (Axis + 2) % 3;
+            Vector3 LocalOff;
+            if (Code <= 3)       LocalOff = ModalPose.Axes[Axis] * 0.95;
+            else if (Code <= 6)  LocalOff = ModalPose.Axes[U] * 0.92 + ModalPose.Axes[V] * 0.82;
+            else if (Code <= 9)  LocalOff = (ModalPose.Axes[U] + ModalPose.Axes[V]) * (0.62 * 0.95 / std::numbers::sqrt2);
+            else if (Code <= 12) LocalOff = ModalPose.Axes[Axis] * 0.67;
+            else                 LocalOff = Vector3{ Frame.Right[0], Frame.Right[1], Frame.Right[2] } * 0.16;
+            ImVec2 Pixel;
+            if (ProjectWorldPoint(State, Frame, ModalPose.Origin + LocalOff * ModalPose.Size, Pixel))
+                State.Widgets.Record(Keys[Code], ImVec2(Pixel.x - 2.0f, Pixel.y - 2.0f), ImVec2(Pixel.x + 2.0f, Pixel.y + 2.0f));
+        }
+    }
+
     // Staged preview (one regeneration per distinct map).
     const AffineMap& Map = Transform.Map;
     const bool Same = Transform.StagedCondition && Length(Map.ColumnX - Transform.StagedMap.ColumnX) + Length(Map.ColumnY - Transform.StagedMap.ColumnY) + Length(Map.ColumnZ - Transform.StagedMap.ColumnZ)
@@ -4204,7 +4637,7 @@ void DriveTransformSession(SolidArcWorkspaceState& State, const OrbitCameraFrame
     if (!Transform.DuplicateCondition && IdentityMapCondition(Map)) { Transform.Preview.reset(); return; }
     const bool ReferencedByMod = std::any_of(Transform.Keys.begin(), Transform.Keys.end(),
                                              [&](const std::string& Key) { return SolidArcBodyReferencedByModifiersCondition(State.Document, Key); });
-    if (!Transform.DuplicateCondition && !Transform.SketchCondition && !ReferencedByMod)
+    if (!Transform.DuplicateCondition && Transform.TargetKind == SolidArcTransformTarget::Bodies && !ReferencedByMod)
     {
         // A move / rotate / scale of whole bodies: carry the shown triangles (the kernel runs once, on commit).
         SolidArcPhaseClock RigidClock(State.Profile, "transform preview · rigid");
@@ -4219,7 +4652,7 @@ void DriveTransformSession(SolidArcWorkspaceState& State, const OrbitCameraFrame
     const SolidArcCommandOutcome Outcome = RunTransform(*Transform.Preview, Transform, Map);
     if (!Outcome.AcceptedCondition) { Transform.Refusal = Legible(Outcome.Refusal); Transform.Preview.reset(); return; }
     // Sketch copies leave the bodies as they are (the overlay shows the preview's curves); a moved sketch may move a body.
-    if (Transform.SketchCondition && Transform.DuplicateCondition) return;
+    if (Transform.TargetKind == SolidArcTransformTarget::Sketches && Transform.DuplicateCondition) return;
     Transform.PreviewScene = BuildSolidArcScene(*Transform.Preview);
 }
 
@@ -9303,7 +9736,7 @@ void DrawMeasureOverlay(SolidArcWorkspaceState& State, ImDrawList* Canvas, const
 }
 
 void DrawSingleDimensionGraphic(SolidArcWorkspaceState& State, ImDrawList* Canvas, const OrbitCameraFrame& Frame,
-                                const SolidArcDimension& Dim, bool PreviewCondition, bool SelectedCondition)
+                                const SolidArcDimension& Dim, bool PreviewCondition, bool SelectedCondition, bool PrimaryPaneCondition = true)
 {
     if (!Dim.VisibleCondition && !PreviewCondition) return;
     constexpr ImU32 HaloColour    = IM_COL32(0x0c, 0x0e, 0x12, 0xd8);
@@ -9328,7 +9761,7 @@ void DrawSingleDimensionGraphic(SolidArcWorkspaceState& State, ImDrawList* Canva
         Canvas->AddRect(Low, High, SelectedCondition ? IM_COL32(0xff, 0xd6, 0x4d, 0xff) : IM_COL32(0xff, 0xff, 0xff, 0x2c), 6.0f, 0, SelectedCondition ? 1.5f : 1.0f);
         if (Font) Canvas->AddText(Font, FontPx, ImVec2(Mid.x - 0.5f * TextExtent.x, Mid.y - 0.5f * TextExtent.y), StrokeColour, LabelText.c_str());
         else Canvas->AddText(ImVec2(Mid.x - 0.5f * TextExtent.x, Mid.y - 0.5f * TextExtent.y), StrokeColour, LabelText.c_str());
-        if (!PreviewCondition && !Dim.Id.empty())
+        if (PrimaryPaneCondition && !PreviewCondition && !Dim.Id.empty())
         {
             State.Widgets.Record("Dim:" + Dim.Id, Low, High);
             const ImVec2 Mouse = ImGui::GetIO().MousePos;
@@ -9519,11 +9952,11 @@ void DrawSingleDimensionGraphic(SolidArcWorkspaceState& State, ImDrawList* Canva
     DrawPillAt(Mid);
 }
 
-void DrawDimensionsOverlay(SolidArcWorkspaceState& State, ImDrawList* Canvas, const OrbitCameraFrame& Frame)
+void DrawDimensionsOverlay(SolidArcWorkspaceState& State, ImDrawList* Canvas, const OrbitCameraFrame& Frame, bool PrimaryPaneCondition = true)
 {
     if (!State.DimensionsEnabled && !State.DimensionTool.ActiveCondition) return;
     // Handle live drag of an existing dimension's witness offset.
-    if (!State.DimensionTool.DraggingId.empty())
+    if (PrimaryPaneCondition && !State.DimensionTool.DraggingId.empty())
     {
         if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
         {
@@ -9568,7 +10001,7 @@ void DrawDimensionsOverlay(SolidArcWorkspaceState& State, ImDrawList* Canvas, co
 
     const SolidArcDocument& Shown = DisplayedSolidArcDocument(State);
     for (const SolidArcDimension& Dim : Shown.Dimensions)
-        DrawSingleDimensionGraphic(State, Canvas, Frame, Dim, false, State.DimensionTool.SelectedId == Dim.Id);
+        DrawSingleDimensionGraphic(State, Canvas, Frame, Dim, false, State.DimensionTool.SelectedId == Dim.Id, PrimaryPaneCondition);
 
     const SolidArcDimensionSession& Tool = State.DimensionTool;
     if (Tool.ActiveCondition && Tool.Stage >= 1)
@@ -9587,7 +10020,7 @@ void DrawDimensionsOverlay(SolidArcWorkspaceState& State, ImDrawList* Canvas, co
             const Vector3 Delta = Preview.SecondPoint - Preview.FirstPoint;
             Preview.Value = Preview.AxisFilter == 0 ? std::abs(Delta.X) : Preview.AxisFilter == 1 ? std::abs(Delta.Y)
                           : Preview.AxisFilter == 2 ? std::abs(Delta.Z) : Length(Delta);
-            DrawSingleDimensionGraphic(State, Canvas, Frame, Preview, true, false);
+            DrawSingleDimensionGraphic(State, Canvas, Frame, Preview, true, false, PrimaryPaneCondition);
         }
         ImVec2 AnchorPix{};
         if (ProjectWorldPoint(State, Frame, Tool.FirstPoint, AnchorPix))
@@ -10382,7 +10815,7 @@ void ApplyEdgePath(SolidArcWorkspaceState& State)
     std::vector<std::string>& Edges = State.Document.Selection.Edges;
     const auto Member = [&](const std::string& Candidate) { return std::find(Edges.begin(), Edges.end(), Candidate) != Edges.end(); };
     const auto Based  = [&](const std::string& Candidate) { return std::find(State.PathBase.begin(), State.PathBase.end(), Candidate) != State.PathBase.end(); };
-    for (const std::string Picked : std::vector<std::string>(Edges)) if (!Based(Picked)) SelectSolidArcName(State.Document, SolidArcSelectionKind::Edge, Picked, true);
+    for (const std::string& Picked : std::vector<std::string>(Edges)) if (!Based(Picked)) SelectSolidArcName(State.Document, SolidArcSelectionKind::Edge, Picked, true);
     for (const std::string& Kept : State.PathBase) if (!Member(Kept)) SelectSolidArcName(State.Document, SolidArcSelectionKind::Edge, Kept, true, State.PathBody);
     State.PathLast = SolidArcEdgePathBetween(State.Document, State.PathFrom, State.PathTo, State.PathMode, State.PathOtherSideCondition, State.PathBody);
     if (!State.PathLast.Refusal.empty())
@@ -11454,7 +11887,7 @@ struct CubeFace
 //    orthographic is active) so its perspective convergence tracks the grid during rotation, with face captions ("Top",
 //    "Bottom", "Front", "Back", "Right", "Left") textured directly onto the 3D UV tangent planes of the six faces from
 //    the active ImGui theme font atlas.
-bool DrawOrientationCube(SolidArcWorkspaceState& State, ImDrawList* Canvas, ImVec2 Corner, bool ClickCondition)
+bool DrawOrientationCube(SolidArcWorkspaceState& State, ImDrawList* Canvas, ImVec2 Corner, bool ClickCondition, bool PrimaryPaneCondition = true)
 {
     static const CubeFace Faces[] = {
         { { 0, 0, 1 }, OrbitViewPreset::Top, "Top" },     { { 0, 0, -1 }, OrbitViewPreset::Bottom, "Bottom" },
@@ -11647,11 +12080,14 @@ bool DrawOrientationCube(SolidArcWorkspaceState& State, ImDrawList* Canvas, ImVe
         Tip[Axis] += 1.10;
         Canvas->AddLine(Project(Root), Project(Tip), AxisColours[Axis], 2.1f);
     }
-    for (const CubeFace& Face : Faces)
+    if (PrimaryPaneCondition)
     {
-        const std::string Key = std::string("Cube") + Face.Label;
-        const ImVec2      Point = Project({ Face.Normal[0] * 1.0, Face.Normal[1] * 1.0, Face.Normal[2] * 1.0 });
-        State.Widgets.Record(Key, ImVec2(Point.x - 2, Point.y - 2), ImVec2(Point.x + 2, Point.y + 2));
+        for (const CubeFace& Face : Faces)
+        {
+            const std::string Key = std::string("Cube") + Face.Label;
+            const ImVec2      Point = Project({ Face.Normal[0] * 1.0, Face.Normal[1] * 1.0, Face.Normal[2] * 1.0 });
+            State.Widgets.Record(Key, ImVec2(Point.x - 2, Point.y - 2), ImVec2(Point.x + 2, Point.y + 2));
+        }
     }
     if (Hovered && ClickCondition)
     {
@@ -11694,6 +12130,258 @@ const char* CurrentViewLabel(const OrbitCamera& Camera)
         if (std::abs(Camera.Elevation - Probe.Elevation) < Tolerance && (Polar || std::abs(Turn) < Tolerance)) return OrbitViewLabel(Preset);
     }
     return "Orbit";
+}
+
+} // namespace
+
+int SolidArcViewportPaneCount(SolidArcViewportLayout Layout) noexcept
+{
+    switch (Layout)
+    {
+    case SolidArcViewportLayout::Single:        return 1;
+    case SolidArcViewportLayout::TwoVertical:   return 2;
+    case SolidArcViewportLayout::TwoHorizontal: return 2;
+    case SolidArcViewportLayout::Three:         return 3;
+    case SolidArcViewportLayout::Quad:          return 4;
+    }
+    return 1;
+}
+
+namespace
+{
+
+const char* ViewportLayoutShortLabel(SolidArcViewportLayout Layout) noexcept
+{
+    switch (Layout)
+    {
+    case SolidArcViewportLayout::Single:        return "1 View";
+    case SolidArcViewportLayout::TwoVertical:   return "2 Split |";
+    case SolidArcViewportLayout::TwoHorizontal: return "2 Split -";
+    case SolidArcViewportLayout::Three:         return "3 Views";
+    case SolidArcViewportLayout::Quad:          return "4 Quad";
+    }
+    return "1 View";
+}
+
+void ComputeSplitPaneRects(SolidArcSplitViewState& Split) noexcept
+{
+    const float X = Split.FullRect[0];
+    const float Y = Split.FullRect[1];
+    const float W = std::max(16.0f, Split.FullRect[2]);
+    const float H = std::max(16.0f, Split.FullRect[3]);
+    constexpr float Gap = 4.0f;
+    const float SX = std::clamp(Split.SplitX, 0.18f, 0.82f);
+    const float SY = std::clamp(Split.SplitY, 0.18f, 0.82f);
+    const float LeftW  = std::max(8.0f, std::floor((W - Gap) * SX));
+    const float RightW = std::max(8.0f, W - Gap - LeftW);
+    const float TopH   = std::max(8.0f, std::floor((H - Gap) * SY));
+    const float BotH   = std::max(8.0f, H - Gap - TopH);
+
+    for (auto& Rect : Split.PaneRects) Rect = { X, Y, W, H };
+    switch (Split.Layout)
+    {
+    case SolidArcViewportLayout::Single:
+        Split.PaneRects[0] = { X, Y, W, H };
+        break;
+    case SolidArcViewportLayout::TwoVertical:
+        Split.PaneRects[0] = { X, Y, LeftW, H };
+        Split.PaneRects[1] = { X + LeftW + Gap, Y, RightW, H };
+        break;
+    case SolidArcViewportLayout::TwoHorizontal:
+        Split.PaneRects[0] = { X, Y, W, TopH };
+        Split.PaneRects[1] = { X, Y + TopH + Gap, W, BotH };
+        break;
+    case SolidArcViewportLayout::Three:
+        Split.PaneRects[0] = { X, Y, LeftW, TopH };
+        Split.PaneRects[1] = { X, Y + TopH + Gap, LeftW, BotH };
+        Split.PaneRects[2] = { X + LeftW + Gap, Y, RightW, H };
+        break;
+    case SolidArcViewportLayout::Quad:
+        Split.PaneRects[0] = { X, Y, LeftW, TopH };
+        Split.PaneRects[1] = { X + LeftW + Gap, Y, RightW, TopH };
+        Split.PaneRects[2] = { X, Y + TopH + Gap, LeftW, BotH };
+        Split.PaneRects[3] = { X + LeftW + Gap, Y + TopH + Gap, RightW, BotH };
+        break;
+    }
+}
+
+OrbitCamera MakePresetPaneCamera(const OrbitCamera& Reference, OrbitViewPreset Preset, bool Orthographic) noexcept
+{
+    OrbitCamera Cam        = Reference;
+    Cam.OrthographicEnabled = Orthographic;
+    PresentOrbitView(Cam, Preset);
+    return Cam;
+}
+
+} // namespace
+
+void SetSolidArcViewportLayout(SolidArcWorkspaceState& State, SolidArcViewportLayout Layout)
+{
+    SolidArcSplitViewState& Split = State.SplitView;
+    const int PrevCount = SolidArcViewportPaneCount(Split.Layout);
+    if (PrevCount > 1 && Split.ActivePane >= 0 && Split.ActivePane < PrevCount)
+        Split.Cameras[Split.ActivePane] = State.Camera;
+
+    const OrbitCamera RefCam = State.Camera;
+    if (Layout != SolidArcViewportLayout::Single)
+        Split.LastMultiLayout = Layout;
+
+    if (Split.FullRect[2] <= 2.0f || Split.FullRect[3] <= 2.0f)
+        Split.FullRect = State.ViewportRect;
+
+    Split.Layout    = Layout;
+    Split.DraggingX = false;
+    Split.DraggingY = false;
+    Split.PopupPane = -1;
+
+    switch (Layout)
+    {
+    case SolidArcViewportLayout::Single:
+        Split.ActivePane = 0;
+        State.Camera     = RefCam;
+        Split.Cameras[0] = State.Camera;
+        break;
+    case SolidArcViewportLayout::TwoVertical:
+        Split.Cameras[0] = MakePresetPaneCamera(RefCam, OrbitViewPreset::Top, true);
+        Split.Cameras[1] = MakePresetPaneCamera(RefCam, OrbitViewPreset::Right, true);
+        Split.ActivePane = std::clamp(Split.ActivePane, 0, 1);
+        State.Camera     = Split.Cameras[Split.ActivePane];
+        break;
+    case SolidArcViewportLayout::TwoHorizontal:
+        Split.Cameras[0] = MakePresetPaneCamera(RefCam, OrbitViewPreset::Top, true);
+        Split.Cameras[1] = MakePresetPaneCamera(RefCam, OrbitViewPreset::Front, true);
+        Split.ActivePane = std::clamp(Split.ActivePane, 0, 1);
+        State.Camera     = Split.Cameras[Split.ActivePane];
+        break;
+    case SolidArcViewportLayout::Three:
+        Split.Cameras[0] = MakePresetPaneCamera(RefCam, OrbitViewPreset::Top, true);
+        Split.Cameras[1] = MakePresetPaneCamera(RefCam, OrbitViewPreset::Front, true);
+        Split.Cameras[2] = MakePresetPaneCamera(RefCam, OrbitViewPreset::Isometric, false);
+        Split.ActivePane = 2;
+        State.Camera     = Split.Cameras[Split.ActivePane];
+        break;
+    case SolidArcViewportLayout::Quad:
+        Split.Cameras[0] = MakePresetPaneCamera(RefCam, OrbitViewPreset::Top, true);
+        Split.Cameras[1] = MakePresetPaneCamera(RefCam, OrbitViewPreset::Isometric, false);
+        Split.Cameras[2] = MakePresetPaneCamera(RefCam, OrbitViewPreset::Front, true);
+        Split.Cameras[3] = MakePresetPaneCamera(RefCam, OrbitViewPreset::Right, true);
+        Split.ActivePane = 1;
+        State.Camera     = Split.Cameras[Split.ActivePane];
+        break;
+    }
+    Split.Initialised = true;
+    ComputeSplitPaneRects(Split);
+    State.ViewportRect    = Split.PaneRects[Split.ActivePane];
+    State.Style.GridPlane = ViewGridPlane(State.Camera);
+}
+
+std::vector<SolidArcRasterPane> ComposeSolidArcRasterPanes(const SolidArcWorkspaceState& State, uint32_t TargetWidth, uint32_t TargetHeight)
+{
+    std::vector<SolidArcRasterPane> Panes;
+    const int Count = SolidArcViewportPaneCount(State.SplitView.Layout);
+    if (Count <= 1 || TargetWidth == 0 || TargetHeight == 0)
+    {
+        SolidArcRasterPane Single{};
+        Single.OffsetX = 0;
+        Single.OffsetY = 0;
+        Single.Width   = std::max(1u, TargetWidth);
+        Single.Height  = std::max(1u, TargetHeight);
+        Single.Frame   = FrameOrbitCamera(State.Camera, Single.Width, Single.Height);
+        Single.Style   = State.Style;
+        Panes.push_back(std::move(Single));
+        return Panes;
+    }
+
+    SolidArcSplitViewState SplitCopy = State.SplitView;
+    if (SplitCopy.ActivePane >= 0 && SplitCopy.ActivePane < Count)
+        SplitCopy.Cameras[SplitCopy.ActivePane] = State.Camera;
+    ComputeSplitPaneRects(SplitCopy);
+
+    const float FullX = SplitCopy.FullRect[0];
+    const float FullY = SplitCopy.FullRect[1];
+    const float FullW = std::max(1.0f, SplitCopy.FullRect[2]);
+    const float FullH = std::max(1.0f, SplitCopy.FullRect[3]);
+    const float ScaleX = float(TargetWidth) / FullW;
+    const float ScaleY = float(TargetHeight) / FullH;
+
+    Panes.reserve(size_t(Count));
+    for (int Idx = 0; Idx < Count; ++Idx)
+    {
+        const auto& Rect = SplitCopy.PaneRects[Idx];
+        const int32_t PX = std::clamp(int32_t(std::round((Rect[0] - FullX) * ScaleX)), 0, int32_t(TargetWidth) - 1);
+        const int32_t PY = std::clamp(int32_t(std::round((Rect[1] - FullY) * ScaleY)), 0, int32_t(TargetHeight) - 1);
+        const uint32_t PW = std::max(1u, std::min(TargetWidth - uint32_t(PX), uint32_t(std::max(1.0f, std::round(Rect[2] * ScaleX)))));
+        const uint32_t PH = std::max(1u, std::min(TargetHeight - uint32_t(PY), uint32_t(std::max(1.0f, std::round(Rect[3] * ScaleY)))));
+
+        SolidArcRasterPane Pane{};
+        Pane.OffsetX         = PX;
+        Pane.OffsetY         = PY;
+        Pane.Width           = PW;
+        Pane.Height          = PH;
+        Pane.Frame           = FrameOrbitCamera(SplitCopy.Cameras[Idx], PW, PH);
+        Pane.Style           = State.Style;
+        Pane.Style.GridPlane = ViewGridPlane(SplitCopy.Cameras[Idx]);
+        Pane.Style.Gizmo     = {};
+
+        if (State.Transform.ActiveCondition)
+        {
+            SolidArcGizmoHandle ActiveH = SolidArcGizmoHandle::None;
+            const SolidArcGizmoPose Pose = MakeTransformSessionGizmoPose(State.Transform, Pane.Frame, ActiveH);
+            Pane.Style.Gizmo = BuildSolidArcGizmo(Pose, Pane.Frame, SolidArcGizmoHandle::None, ActiveH);
+        }
+        else if (Idx == SplitCopy.ActivePane)
+        {
+            Pane.Style.Gizmo = State.Style.Gizmo;
+        }
+        else if (GizmoAvailableCondition(State) && State.Gizmo.Target != SolidArcGizmoTarget::None)
+        {
+            // Adapt the gizmo cleanly to each secondary pane's camera (e.g., 2D XY in Top, 2D XZ in Front, 3D in Isometric).
+            SolidArcWorkspaceState TempState;
+            TempState.Camera                = SplitCopy.Cameras[Idx];
+            TempState.Gizmo.Target          = State.Gizmo.Target;
+            TempState.Gizmo.Names           = State.Gizmo.Names;
+            TempState.Gizmo.Points          = State.Gizmo.Points;
+            TempState.Gizmo.Modes           = State.Gizmo.Modes;
+            TempState.Gizmo.VertexCondition = State.Gizmo.VertexCondition;
+            TempState.Gizmo.FaceNormal      = State.Gizmo.FaceNormal;
+            TempState.Gizmo.Pose            = State.Gizmo.Pose;
+            FitGizmoToView(TempState);
+            TempState.Gizmo.Pose.Modes = State.Gizmo.Modes;
+            TempState.Gizmo.Pose.Size  = MeasureGizmoSize(Pane.Frame, TempState.Gizmo.Pose.Origin, GizmoPixels);
+            Pane.Style.Gizmo = BuildSolidArcGizmo(TempState.Gizmo.Pose, Pane.Frame, SolidArcGizmoHandle::None, State.Gizmo.Grab);
+        }
+        Panes.push_back(std::move(Pane));
+    }
+    return Panes;
+}
+
+namespace
+{
+
+void DrawSplitIconGlyph(SolidArcSheet& Sheet, float X, float Y, float Size, SolidArcViewportLayout Layout, ColorQuad Ink)
+{
+    const PlaneExtent Outer = Spanning(X, Y, Size, Size);
+    Sheet.Box(Outer, ColorQuad{ 0, 0, 0, 0 }, 2.5f, Ink);
+    const float MidX = X + 0.5f * Size;
+    const float MidY = Y + 0.5f * Size;
+    if (Layout == SolidArcViewportLayout::TwoVertical)
+    {
+        Sheet.Line(MidX, Y + 1.5f, MidX, Y + Size - 1.5f, Ink, 1.2f);
+    }
+    else if (Layout == SolidArcViewportLayout::TwoHorizontal)
+    {
+        Sheet.Line(X + 1.5f, MidY, X + Size - 1.5f, MidY, Ink, 1.2f);
+    }
+    else if (Layout == SolidArcViewportLayout::Three)
+    {
+        Sheet.Line(MidX, Y + 1.5f, MidX, Y + Size - 1.5f, Ink, 1.2f);
+        Sheet.Line(X + 1.5f, MidY, MidX, MidY, Ink, 1.2f);
+    }
+    else
+    {
+        Sheet.Line(MidX, Y + 1.5f, MidX, Y + Size - 1.5f, Ink, 1.2f);
+        Sheet.Line(X + 1.5f, MidY, X + Size - 1.5f, MidY, Ink, 1.2f);
+    }
 }
 
 // The ⌄ of a select, as two strokes (DM Sans has no chevron glyph).
@@ -11864,8 +12552,8 @@ void DrawViewportBar(SolidArcWorkspaceState& State, SolidArcSheet& Sheet, const 
     {
         const float Chip    = Stage >= 3 ? 28.0f : ChipFull;
         const float View    = Stage >= 5 ? 0.0f : Stage >= 4 ? 70.0f + 4.0f + 23.0f : 98.0f + 4.0f + 23.0f;
-        const float Display = (Stage >= 1 ? 51.0f : DisplayFull) + 4.0f + 15.0f;
-        const float Right   = 3.0f * (28.0f + 4.0f) + (Stage >= 2 ? 28.0f : ProjectFull);
+        const float Display = (Stage >= 1 ? 51.0f : DisplayFull) + 4.0f + 15.0f + (Stage >= 3 ? 0.0f : 86.0f);
+        const float Right   = 4.0f * (28.0f + 4.0f) + (Stage >= 2 ? 28.0f : ProjectFull);
         if (24.0f + Chip + View + Display + 8.0f + Right <= Bar.MaximumX - Bar.MinimumX) break;
     }
 
@@ -11937,6 +12625,71 @@ void DrawViewportBar(SolidArcWorkspaceState& State, SolidArcSheet& Sheet, const 
         if (DimPress.HoveredCondition)
             ImGui::SetTooltip("Dimension lines (D): add linear, radial or angular CAD dimensions");
         if (DimPress.ClickedCondition) TriggerDimensionShortcut(State);
+        Cursor = DimBox.MaximumX + 6.0f;
+    }
+
+    // Split-Viewport layout button & menu (docked 1 / 2 / 3 / 4 simultaneous views with draggable internal dividers).
+    {
+        const bool        SplitActive = State.SplitView.Layout != SolidArcViewportLayout::Single;
+        const char*       SplitText   = ViewportLayoutShortLabel(State.SplitView.Layout);
+        const float       SplitW      = Stage >= 3 ? 30.0f : (38.0f + Sheet.Measure(SplitText, 11.0f));
+        const PlaneExtent SplitBox    = Spanning(Cursor, Centre - 13.0f, SplitW, 26.0f);
+        const SolidArcPress SplitPress = PressSolidArcRegion(State.Widgets, "ViewportSplit", SplitBox);
+        if (SplitActive)
+            Sheet.Box(SplitBox, SolidArcInk(0x283d58), 13.0f, SolidArcInk(0x4d9fff, 0.55f));
+        else if (SplitPress.HoveredCondition)
+            Sheet.Box(SplitBox, SolidArcInk(0x292929), 13.0f);
+        const ColorQuad SplitInk = SolidArcInk(SplitActive || SplitPress.HoveredCondition ? 0xffffff : 0xa0a0a0);
+        DrawSplitIconGlyph(Sheet, SplitBox.MinimumX + (Stage >= 3 ? 8.0f : 9.0f), Centre - 6.5f, 13.0f,
+                           SplitActive ? State.SplitView.Layout : SolidArcViewportLayout::Quad, SplitInk);
+        if (Stage < 3)
+        {
+            Sheet.Text(SplitBox.MinimumX + 26.0f, Centre, 11.0f, SplitInk, SplitText);
+            SelectChevron(Sheet, SplitBox.MaximumX - 9.0f, Centre, SplitInk);
+        }
+        if (SplitPress.HoveredCondition)
+            ImGui::SetTooltip("Split viewport: 1, 2, 3 or 4 docked CAD views (Ctrl+Alt+Q toggles Quad · drag internal splitters)");
+        if (SplitPress.ClickedCondition) ImGui::OpenPopup("ViewportSplitMenu");
+        if (BeginSelectList("ViewportSplitMenu", ImVec2(SplitBox.MinimumX, SplitBox.MaximumY + 4.0f)))
+        {
+            static const struct { const char* Caption; const char* WidgetKey; SolidArcViewportLayout Mode; } SplitEntries[] = {
+                { "Single View (1)###SplitSingle",                      "SplitSingle",        SolidArcViewportLayout::Single },
+                { "2 Views · Left | Right###SplitTwoVertical",          "SplitTwoVertical",   SolidArcViewportLayout::TwoVertical },
+                { "2 Views · Top / Bottom###SplitTwoHorizontal",        "SplitTwoHorizontal", SolidArcViewportLayout::TwoHorizontal },
+                { "3 Views · Top + Front | 3D###SplitThree",            "SplitThree",         SolidArcViewportLayout::Three },
+                { "4 Views · Quad CAD (Ctrl+Alt+Q)###SplitQuad",        "SplitQuad",          SolidArcViewportLayout::Quad },
+            };
+            for (const auto& Entry : SplitEntries)
+            {
+                const bool Chosen = SelectListEntry(State, Entry.Caption, State.SplitView.Layout == Entry.Mode);
+                RegisterWidget(State, Entry.WidgetKey);
+                if (Chosen)
+                {
+                    SetSolidArcViewportLayout(State, Entry.Mode);
+                    Announce(State, std::string("Viewport layout: ") + ViewportLayoutShortLabel(Entry.Mode)
+                                  + (Entry.Mode == SolidArcViewportLayout::Single ? "" : " · drag internal dividers to resize panes"));
+                }
+            }
+            if (State.SplitView.Layout != SolidArcViewportLayout::Single)
+            {
+                if (SelectListEntry(State, "Reset Split Dividers (50 / 50)###SplitReset", false))
+                {
+                    State.SplitView.SplitX = 0.5f;
+                    State.SplitView.SplitY = 0.5f;
+                    ComputeSplitPaneRects(State.SplitView);
+                    Announce(State, "Split dividers reset to 50% / 50%");
+                }
+                RegisterWidget(State, "SplitReset");
+                if (!State.Scene.Faces.empty() && SelectListEntry(State, "Fit All Split Views###SplitFitAll", false))
+                {
+                    const int Cnt = SolidArcViewportPaneCount(State.SplitView.Layout);
+                    for (int P = 0; P < Cnt; ++P) FitSolidArcCamera(State.SplitView.Cameras[P], State.Scene);
+                    State.Camera = State.SplitView.Cameras[State.SplitView.ActivePane];
+                    Announce(State, "Fitted all split views");
+                }
+            }
+            EndSelectList();
+        }
     }
 
     // Right end, right to left: maximize, fit, edges (28 px icon buttons, gap 4), then the projection button.
@@ -12393,35 +13146,165 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
 
     const ImVec2 Image(Position.x, Position.y + ViewportBar);
     const ImVec2 Extent(Size.x, std::max(8.0f, Size.y - ViewportBar));                     // Construction history lives in the Inspector (History tab)
-    State.ViewportRect = { Image.x, Image.y, Extent.x, Extent.y };
+    State.SplitView.FullRect = { Image.x, Image.y, Extent.x, Extent.y };
+    const int    PaneCount   = SolidArcViewportPaneCount(State.SplitView.Layout);
+    const bool   MultiCondition = PaneCount > 1;
+    if (!MultiCondition)
+    {
+        State.ViewportRect           = { Image.x, Image.y, Extent.x, Extent.y };
+        State.SplitView.PaneRects[0] = State.ViewportRect;
+        State.SplitView.ActivePane   = 0;
+        State.SplitView.Cameras[0]   = State.Camera;
+    }
+    else
+    {
+        State.SplitView.ActivePane = std::clamp(State.SplitView.ActivePane, 0, PaneCount - 1);
+        State.SplitView.Cameras[State.SplitView.ActivePane] = State.Camera;
+        ComputeSplitPaneRects(State.SplitView);
+        State.ViewportRect = State.SplitView.PaneRects[State.SplitView.ActivePane];
+    }
+
     ImGui::SetCursorScreenPos(Image);
     ImGui::InvisibleButton("ViewportSurface", Extent, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight | ImGuiButtonFlags_MouseButtonMiddle);
     RegisterWidget(State, "ViewportSurface");
-    const bool Hovered = ImGui::IsItemHovered();
-    State.ViewportHovered = Hovered;
-    State.Style.Gizmo     = {};
+    const bool OuterHovered = ImGui::IsItemHovered();
+    State.Style.Gizmo       = {};
     if (State.DrawingSheet.ActiveCondition)
     {
         State.ViewportHovered = false;
-        DrawDrawingSheetPaper(State, Canvas, Image, Extent, Hovered);
+        DrawDrawingSheetPaper(State, Canvas, Image, Extent, OuterHovered);
         Canvas->AddText(ImVec2(Image.x + 14, Image.y + Extent.y - 26), MutedColour, "Drawing sheet: wheel zoom · middle / right drag pan · double-click fit · card: paper, angle, scale, views, title, export · Esc / Alt+D model");
         ImGui::End();
         ImGui::PopStyleVar(2);
         ImGui::PopStyleColor();
         return;
     }
-    Canvas->AddRectFilled(Image, ImVec2(Image.x + Extent.x, Image.y + Extent.y), IM_COL32(0x17, 0x1b, 0x23, 0xff));
+    Canvas->AddRectFilled(Image, ImVec2(Image.x + Extent.x, Image.y + Extent.y), IM_COL32(0x11, 0x14, 0x1a, 0xff));
     if (ViewportTexture) Canvas->AddImage(ViewportTexture, Image, ImVec2(Image.x + Extent.x, Image.y + Extent.y));
+
+    ImGuiIO& Io = ImGui::GetIO();
+
+    // Multi-view docked splitter bars & active-pane focus routing (never undocks; splitters resize panes in-place).
+    bool SplitterConsumed = false;
+    bool OverPaneHeader   = false;
+    if (MultiCondition)
+    {
+        SolidArcSplitViewState& Split = State.SplitView;
+        const bool HasX = (Split.Layout == SolidArcViewportLayout::TwoVertical || Split.Layout == SolidArcViewportLayout::Three || Split.Layout == SolidArcViewportLayout::Quad);
+        const bool HasY = (Split.Layout == SolidArcViewportLayout::TwoHorizontal || Split.Layout == SolidArcViewportLayout::Three || Split.Layout == SolidArcViewportLayout::Quad);
+        const float SplitLineX = Split.PaneRects[0][0] + Split.PaneRects[0][2] + 2.0f;
+        const float SplitLineY = Split.PaneRects[0][1] + Split.PaneRects[0][3] + 2.0f;
+        const float YSpanMaxX  = Split.Layout == SolidArcViewportLayout::Three ? (Split.PaneRects[0][0] + Split.PaneRects[0][2]) : (Image.x + Extent.x);
+
+        if (HasX)
+            State.Widgets.Record("ViewportSplitterX", ImVec2(SplitLineX - 5.0f, Image.y), ImVec2(SplitLineX + 5.0f, Image.y + Extent.y));
+        if (HasY)
+            State.Widgets.Record("ViewportSplitterY", ImVec2(Image.x, SplitLineY - 5.0f), ImVec2(YSpanMaxX, SplitLineY + 5.0f));
+        if (HasX && HasY)
+            State.Widgets.Record("ViewportSplitterCross", ImVec2(SplitLineX - 8.0f, SplitLineY - 8.0f), ImVec2(SplitLineX + 8.0f, SplitLineY + 8.0f));
+
+        if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
+        {
+            Split.DraggingX = false;
+            Split.DraggingY = false;
+        }
+        const bool NearX = HasX && OuterHovered && std::fabs(Io.MousePos.x - SplitLineX) <= 6.0f && Io.MousePos.y >= Image.y && Io.MousePos.y <= Image.y + Extent.y;
+        const bool NearY = HasY && OuterHovered && std::fabs(Io.MousePos.y - SplitLineY) <= 6.0f && Io.MousePos.x >= Image.x && Io.MousePos.x <= YSpanMaxX;
+        if (NearX || NearY || Split.DraggingX || Split.DraggingY)
+        {
+            const bool Both = (NearX && NearY) || (Split.DraggingX && Split.DraggingY);
+            ImGui::SetMouseCursor(Both ? ImGuiMouseCursor_ResizeAll : (NearX || Split.DraggingX) ? ImGuiMouseCursor_ResizeEW : ImGuiMouseCursor_ResizeNS);
+            if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+            {
+                if (NearX) Split.SplitX = 0.5f;
+                if (NearY) Split.SplitY = 0.5f;
+                ComputeSplitPaneRects(Split);
+            }
+            else if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+            {
+                Split.DraggingX = NearX;
+                Split.DraggingY = NearY;
+            }
+            SplitterConsumed = true;
+        }
+        if (Split.DraggingX || Split.DraggingY)
+        {
+            if (Split.DraggingX && Extent.x > 32.0f) Split.SplitX = std::clamp((Io.MousePos.x - Image.x) / Extent.x, 0.18f, 0.82f);
+            if (Split.DraggingY && Extent.y > 32.0f) Split.SplitY = std::clamp((Io.MousePos.y - Image.y) / Extent.y, 0.18f, 0.82f);
+            ComputeSplitPaneRects(Split);
+            SplitterConsumed = true;
+        }
+
+        // Check per-pane top-center view pill geometry before routing clicks into 3D scene picking.
+        for (int P = 0; P < PaneCount; ++P)
+        {
+            const auto& PR = Split.PaneRects[P];
+            const float BadgeW = 112.0f, BadgeH = 22.0f;
+            const float BX = PR[0] + 0.5f * (PR[2] - BadgeW);
+            const float BY = PR[1] + 8.0f;
+            State.Widgets.Record("PaneView:" + std::to_string(P), ImVec2(BX, BY), ImVec2(BX + BadgeW, BY + BadgeH));
+            if (OuterHovered && !SplitterConsumed && Io.MousePos.x >= BX && Io.MousePos.x <= BX + BadgeW && Io.MousePos.y >= BY && Io.MousePos.y <= BY + BadgeH)
+            {
+                OverPaneHeader = true;
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                {
+                    Split.Cameras[Split.ActivePane] = State.Camera;
+                    Split.ActivePane = P;
+                    State.Camera     = Split.Cameras[P];
+                    Split.PopupPane  = P;
+                    ImGui::OpenPopup("SplitPaneViewPopup");
+                }
+            }
+        }
+
+        // Switch active pane seamlessly when hovering or clicking inside another pane (when no drag gesture is held).
+        if (OuterHovered && !SplitterConsumed && !OverPaneHeader && !Split.DraggingX && !Split.DraggingY &&
+            !State.Gizmo.DragCondition && !State.Box.ActiveCondition &&
+            !(ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f) || ImGui::IsMouseDragging(ImGuiMouseButton_Right, ClickTolerance)))
+        {
+            for (int P = 0; P < PaneCount; ++P)
+            {
+                const auto& PR = Split.PaneRects[P];
+                if (Io.MousePos.x >= PR[0] && Io.MousePos.x <= PR[0] + PR[2] && Io.MousePos.y >= PR[1] && Io.MousePos.y <= PR[1] + PR[3])
+                {
+                    if (P != Split.ActivePane)
+                    {
+                        Split.Cameras[Split.ActivePane] = State.Camera;
+                        Split.ActivePane = P;
+                        State.Camera     = Split.Cameras[P];
+                        State.Style.GridPlane = ViewGridPlane(State.Camera);
+                        if (State.Transform.ActiveCondition && State.Transform.Typed.empty())
+                        {
+                            State.Transform.Start      = Io.MousePos;
+                            State.Transform.StartLocal = ImVec2(Io.MousePos.x - PR[0], Io.MousePos.y - PR[1]);
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        State.ViewportRect = Split.PaneRects[Split.ActivePane];
+    }
+
+    const ImVec2 ActiveOrigin(State.ViewportRect[0], State.ViewportRect[1]);
+    const ImVec2 ActiveExtent(State.ViewportRect[2], State.ViewportRect[3]);
+    const bool   Hovered = OuterHovered && !SplitterConsumed && !OverPaneHeader &&
+                           Io.MousePos.x >= ActiveOrigin.x && Io.MousePos.x <= ActiveOrigin.x + ActiveExtent.x &&
+                           Io.MousePos.y >= ActiveOrigin.y && Io.MousePos.y <= ActiveOrigin.y + ActiveExtent.y;
+    State.ViewportHovered = Hovered;
 
     // 📝 Gestures (Plasticity orbit-controls / viewport-selector): middle drag orbit (yaw about world z, elevation about
     //    camera right), right drag pan, wheel dolly; LMB click replaces the selection, Shift+click adds, Ctrl+click
     //    removes, Alt+click the edge loop, Ctrl+Alt+click the ring (Shift toggles, Blender), double-click the tangent chain. In a command: click edits the selection, right-click finishes.
-    ImGuiIO&     Io        = ImGui::GetIO();
-    const ImVec2 Local(Io.MousePos.x - Image.x, Io.MousePos.y - Image.y);
-    const ImVec2 CubeCorner(Image.x + Extent.x - CubeExtent - 18, Image.y + Extent.y - CubeExtent - 45);     // HTML .orientation: right 18, bottom 45
+    const ImVec2 Local(Io.MousePos.x - ActiveOrigin.x, Io.MousePos.y - ActiveOrigin.y);
+    const float  CubeRightPad  = !MultiCondition ? 18.0f : 14.0f;
+    const float  CubeBottomPad = (!MultiCondition || (ActiveOrigin.y + ActiveExtent.y >= Image.y + Extent.y - 4.0f)) ? 45.0f : 14.0f;
+    const ImVec2 CubeCorner(ActiveOrigin.x + ActiveExtent.x - CubeExtent - CubeRightPad, ActiveOrigin.y + ActiveExtent.y - CubeExtent - CubeBottomPad);
     const bool   LeftClick  = Hovered && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && Io.MouseDragMaxDistanceSqr[ImGuiMouseButton_Left] <= ClickTolerance * ClickTolerance;
     const bool   RightClick = Hovered && ImGui::IsMouseReleased(ImGuiMouseButton_Right) && Io.MouseDragMaxDistanceSqr[ImGuiMouseButton_Right] <= ClickTolerance * ClickTolerance;
-    const bool   OverCube   = DrawOrientationCube(State, Canvas, CubeCorner, LeftClick);
+    Canvas->PushClipRect(ActiveOrigin, ImVec2(ActiveOrigin.x + ActiveExtent.x, ActiveOrigin.y + ActiveExtent.y), true);
+    const bool   OverCube   = DrawOrientationCube(State, Canvas, CubeCorner, LeftClick, true);
+    Canvas->PopClipRect();
     const OrbitCameraFrame Frame = ViewportFrame(State);
     SolidArcNavigationPointer Navigation;
     Navigation.DeltaX              = Io.MouseDelta.x;
@@ -12429,7 +13312,7 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
     Navigation.WheelSteps          = Io.MouseWheel;
     Navigation.MiddleDragCondition = ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f);
     Navigation.RightDragCondition  = ImGui::IsMouseDragging(ImGuiMouseButton_Right, ClickTolerance);
-    Navigation.CapturedCondition   = ImGui::IsItemActive() || Hovered;
+    Navigation.CapturedCondition   = (ImGui::IsItemActive() || Hovered) && !SplitterConsumed;
     Navigation.HoveredCondition    = Hovered;
     // 💡 Drawing a polygon (or a prism), the wheel changes its sides instead of zooming (the HTML reference: up 3 → 4 …).
     if (Hovered && Io.MouseWheel != 0.0f && State.Drawing.ActiveCondition &&
@@ -12440,6 +13323,7 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
         Announce(State, Compose("%d sides", State.Drawing.Sides));
     }
     NavigateSolidArcPointer(State.Camera, Frame, Navigation);
+    if (MultiCondition) State.SplitView.Cameras[State.SplitView.ActivePane] = State.Camera;
     // Transform gizmo (no command running): a held or hovered handle owns the left button this frame.
     bool GizmoOwned = false;
     {
@@ -12456,7 +13340,7 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
     bool PointGesture = false;
     if ((State.PickMode == SolidArcPickMode::ControlPoint || State.PickMode == SolidArcPickMode::Any)
         && !State.Drawing.ActiveCondition && !State.Bevel.ActiveCondition && !State.Constrain.ActiveCondition
-        && !State.PoleDrag.ActiveCondition && !GizmoOwned)
+        && !State.Transform.ActiveCondition && !State.PoleDrag.ActiveCondition && !GizmoOwned)
     {
         if (!SketchPoints.DragCondition)
         {
@@ -12502,7 +13386,7 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
     SolidArcPoleDrag& Drag = State.PoleDrag;
     bool PoleGesture = false;
     if (!PointGesture && !GizmoOwned && (State.PickMode == SolidArcPickMode::ControlPoint || State.PickMode == SolidArcPickMode::Any)
-        && !State.Drawing.ActiveCondition && !State.Bevel.ActiveCondition && !State.Constrain.ActiveCondition)
+        && !State.Drawing.ActiveCondition && !State.Bevel.ActiveCondition && !State.Constrain.ActiveCondition && !State.Transform.ActiveCondition)
     {
         if (!Drag.ActiveCondition)
         {
@@ -12670,7 +13554,8 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
     else if (State.Transform.ActiveCondition)
     {
         DriveTransformSession(State, Frame, Local);
-        if ((LeftClick || RightClick) && !OverCube) ApplyTransformSession(State);   // Plasticity: click, right-click or Enter commits
+        const bool ReleasedDrag = State.Transform.LeftDragCondition && ImGui::IsMouseReleased(ImGuiMouseButton_Left);
+        if ((LeftClick || RightClick || ReleasedDrag) && !OverCube) ApplyTransformSession(State);   // Click, LMB drag-release, right-click or Enter commits
     }
     else if (State.Knife.ActiveCondition)
     {
@@ -12833,7 +13718,7 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
     }
 
     // Overlays: sketch curves, the drawing in progress, status pills (top-left), interaction hint (bottom-left).
-    Canvas->PushClipRect(Image, ImVec2(Image.x + Extent.x, Image.y + Extent.y), true);
+    Canvas->PushClipRect(ActiveOrigin, ImVec2(ActiveOrigin.x + ActiveExtent.x, ActiveOrigin.y + ActiveExtent.y), true);
     { SolidArcPhaseClock Clock(State.Profile, "overlay · DrawSketchOverlays"); DrawSketchOverlays(State, Canvas, Frame); }
     { SolidArcPhaseClock Clock(State.Profile, "overlay · DrawBodyVertices"); DrawBodyVertices(State, Canvas, Frame); }
     { SolidArcPhaseClock Clock(State.Profile, "overlay · DrawTrimPreview"); DrawTrimPreview(State, Canvas, Frame); }
@@ -12845,11 +13730,12 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
     { SolidArcPhaseClock Clock(State.Profile, "overlay · DrawBevelHandles"); DrawBevelHandles(State, Canvas, Frame); }
     { SolidArcPhaseClock Clock(State.Profile, "overlay · DrawSectionOutline"); DrawSectionOutline(State, Canvas, Frame); }
     { SolidArcPhaseClock Clock(State.Profile, "overlay · DrawMeasureOverlay"); DrawMeasureOverlay(State, Canvas, Frame); }
-    { SolidArcPhaseClock Clock(State.Profile, "overlay · DrawDimensionsOverlay"); DrawDimensionsOverlay(State, Canvas, Frame); }
+    { SolidArcPhaseClock Clock(State.Profile, "overlay · DrawDimensionsOverlay"); DrawDimensionsOverlay(State, Canvas, Frame, true); }
     { SolidArcPhaseClock Clock(State.Profile, "overlay · DrawJointOverlay"); DrawJointOverlay(State, Canvas, Frame); }
     { SolidArcPhaseClock Clock(State.Profile, "overlay · DrawCurveOverlays"); DrawCurveOverlays(State, Canvas, Frame); }
     if (State.DeviationEnabled) { SolidArcPhaseClock Clock(State.Profile, "overlay · DrawDeviationOverlay"); DrawDeviationOverlay(State, Canvas, Frame); }
     if (State.Drawing.ActiveCondition) { SolidArcPhaseClock Clock(State.Profile, "overlay · DrawDrawingPreview"); DrawDrawingPreview(State, Canvas, Frame); }
+    if (State.Transform.ActiveCondition) { DrawTransformAxisOverlay(State, Canvas, Frame); }
     { SolidArcPhaseClock Clock(State.Profile, "overlay · DrawSnapOverlay"); DrawSnapOverlay(State, Canvas, Frame); }
     if (State.Box.ActiveCondition && Io.MouseDragMaxDistanceSqr[ImGuiMouseButton_Left] > ClickTolerance * ClickTolerance)
     {
@@ -12859,6 +13745,129 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
         Canvas->AddRect(Low, High, IM_COL32(0x4d, 0x9f, 0xff, 0xcc));
     }
     Canvas->PopClipRect();
+
+    // Multi-view secondary panes: draw live 2D sketches, 3D curves, dimensions, axis guide lines, Orientation Cubes,
+    // per-pane view selector pills, active-pane focus border, and docked internal splitter handles.
+    if (MultiCondition)
+    {
+        const OrbitCamera            SavedCam  = State.Camera;
+        const std::array<float, 4>   SavedRect = State.ViewportRect;
+        const bool                   SavedHov  = State.ViewportHovered;
+        State.ViewportHovered = false;
+        for (int P = 0; P < PaneCount; ++P)
+        {
+            if (P == State.SplitView.ActivePane) continue;
+            const auto& PR = State.SplitView.PaneRects[P];
+            const ImVec2 PMin(PR[0], PR[1]), PMax(PR[0] + PR[2], PR[1] + PR[3]);
+            State.ViewportRect = PR;
+            State.Camera       = State.SplitView.Cameras[P];
+            const OrbitCameraFrame PFrame = ViewportFrame(State);
+            Canvas->PushClipRect(PMin, PMax, true);
+            DrawSketchOverlays(State, Canvas, PFrame);
+            DrawBodyVertices(State, Canvas, PFrame);
+            DrawSectionOutline(State, Canvas, PFrame);
+            DrawMeasureOverlay(State, Canvas, PFrame);
+            DrawDimensionsOverlay(State, Canvas, PFrame, false);
+            DrawCurveOverlays(State, Canvas, PFrame);
+            if (State.Drawing.ActiveCondition) DrawDrawingPreview(State, Canvas, PFrame);
+            if (State.Transform.ActiveCondition) DrawTransformAxisOverlay(State, Canvas, PFrame);
+            const float  SecBottomPad = (PMax.y >= Image.y + Extent.y - 4.0f) ? 45.0f : 14.0f;
+            const ImVec2 SecCube(PMax.x - CubeExtent - 14.0f, PMax.y - CubeExtent - SecBottomPad);
+            const bool   SecClick = OuterHovered && !SplitterConsumed && ImGui::IsMouseReleased(ImGuiMouseButton_Left) &&
+                                    Io.MouseDragMaxDistanceSqr[ImGuiMouseButton_Left] <= ClickTolerance * ClickTolerance &&
+                                    Io.MousePos.x >= SecCube.x && Io.MousePos.x <= SecCube.x + CubeExtent &&
+                                    Io.MousePos.y >= SecCube.y && Io.MousePos.y <= SecCube.y + CubeExtent;
+            DrawOrientationCube(State, Canvas, SecCube, SecClick, false);
+            if (SecClick) State.SplitView.Cameras[P] = State.Camera;
+            Canvas->PopClipRect();
+        }
+        State.Camera          = SavedCam;
+        State.ViewportRect    = SavedRect;
+        State.ViewportHovered = SavedHov;
+
+        // Draw crisp splitter bars and per-pane view selector pills inside the docked viewport.
+        Canvas->PushClipRect(Image, ImVec2(Image.x + Extent.x, Image.y + Extent.y), true);
+        const SolidArcSplitViewState& Split = State.SplitView;
+        const bool HasX = (Split.Layout == SolidArcViewportLayout::TwoVertical || Split.Layout == SolidArcViewportLayout::Three || Split.Layout == SolidArcViewportLayout::Quad);
+        const bool HasY = (Split.Layout == SolidArcViewportLayout::TwoHorizontal || Split.Layout == SolidArcViewportLayout::Three || Split.Layout == SolidArcViewportLayout::Quad);
+        const float SplitLineX = Split.PaneRects[0][0] + Split.PaneRects[0][2] + 2.0f;
+        const float SplitLineY = Split.PaneRects[0][1] + Split.PaneRects[0][3] + 2.0f;
+        const float YSpanMaxX  = Split.Layout == SolidArcViewportLayout::Three ? (Split.PaneRects[0][0] + Split.PaneRects[0][2]) : (Image.x + Extent.x);
+        if (HasX)
+        {
+            const ImU32 BarCol = Split.DraggingX ? IM_COL32(0x4d, 0x9f, 0xff, 0xff) : IM_COL32(0x2d, 0x33, 0x3f, 0xff);
+            Canvas->AddRectFilled(ImVec2(SplitLineX - 2.0f, Image.y), ImVec2(SplitLineX + 2.0f, Image.y + Extent.y), BarCol);
+            const float MidY = Image.y + 0.5f * Extent.y;
+            Canvas->AddLine(ImVec2(SplitLineX, MidY - 14.0f), ImVec2(SplitLineX, MidY + 14.0f), IM_COL32(0xd8, 0xe2, 0xf2, 0xb0), 1.5f);
+        }
+        if (HasY)
+        {
+            const ImU32 BarCol = Split.DraggingY ? IM_COL32(0x4d, 0x9f, 0xff, 0xff) : IM_COL32(0x2d, 0x33, 0x3f, 0xff);
+            Canvas->AddRectFilled(ImVec2(Image.x, SplitLineY - 2.0f), ImVec2(YSpanMaxX, SplitLineY + 2.0f), BarCol);
+            const float MidX = 0.5f * (Image.x + YSpanMaxX);
+            Canvas->AddLine(ImVec2(MidX - 14.0f, SplitLineY), ImVec2(MidX + 14.0f, SplitLineY), IM_COL32(0xd8, 0xe2, 0xf2, 0xb0), 1.5f);
+        }
+        if (HasX && HasY)
+        {
+            Canvas->AddCircleFilled(ImVec2(SplitLineX, SplitLineY), 4.0f,
+                                    (Split.DraggingX && Split.DraggingY) ? IM_COL32(0x66, 0xb5, 0xff, 0xff) : IM_COL32(0x88, 0x96, 0xab, 0xd8));
+        }
+
+        for (int P = 0; P < PaneCount; ++P)
+        {
+            const auto& PR = Split.PaneRects[P];
+            const bool  IsActive = (P == Split.ActivePane);
+            if (IsActive)
+                Canvas->AddRect(ImVec2(PR[0] + 1.0f, PR[1] + 1.0f), ImVec2(PR[0] + PR[2] - 1.0f, PR[1] + PR[3] - 1.0f),
+                                IM_COL32(0x4d, 0x9f, 0xff, 0x96), 0.0f, 0, 1.5f);
+
+            const OrbitCamera& PCam = Split.Cameras[P];
+            const std::string  BadgeTxt = std::string(CurrentViewLabel(PCam)) + (PCam.OrthographicEnabled ? " · Ortho" : " · Persp");
+            const float BadgeW = 112.0f, BadgeH = 22.0f;
+            const ImVec2 BMin(PR[0] + 0.5f * (PR[2] - BadgeW), PR[1] + 8.0f);
+            const ImVec2 BMax(BMin.x + BadgeW, BMin.y + BadgeH);
+            Canvas->AddRectFilled(BMin, BMax, IsActive ? IM_COL32(0x1b, 0x2a, 0x3e, 0xe6) : IM_COL32(0x16, 0x1a, 0x21, 0xd2), 11.0f);
+            Canvas->AddRect(BMin, BMax, IsActive ? IM_COL32(0x4d, 0x9f, 0xff, 0xaa) : IM_COL32(0xff, 0xff, 0xff, 0x1e), 11.0f);
+            const ImVec2 TxtSz = ImGui::CalcTextSize(BadgeTxt.c_str());
+            Canvas->AddText(ImVec2(BMin.x + 0.5f * (BadgeW - TxtSz.x) - 3.0f, BMin.y + 0.5f * (BadgeH - TxtSz.y)),
+                            IsActive ? IM_COL32(0xf4, 0xf8, 0xff, 0xff) : IM_COL32(0xb8, 0xc0, 0xcc, 0xff), BadgeTxt.c_str());
+            const float ChevX = BMax.x - 10.0f, ChevY = BMin.y + 0.5f * BadgeH;
+            Canvas->AddLine(ImVec2(ChevX - 3.0f, ChevY - 1.5f), ImVec2(ChevX, ChevY + 1.5f), IM_COL32(0xb8, 0xc0, 0xcc, 0xd8), 1.2f);
+            Canvas->AddLine(ImVec2(ChevX, ChevY + 1.5f), ImVec2(ChevX + 3.0f, ChevY - 1.5f), IM_COL32(0xb8, 0xc0, 0xcc, 0xd8), 1.2f);
+        }
+        Canvas->PopClipRect();
+
+        if (State.SplitView.PopupPane >= 0 && State.SplitView.PopupPane < PaneCount)
+        {
+            const auto& PopPR = State.SplitView.PaneRects[State.SplitView.PopupPane];
+            if (BeginSelectList("SplitPaneViewPopup", ImVec2(PopPR[0] + 0.5f * (PopPR[2] - 112.0f), PopPR[1] + 34.0f)))
+            {
+                OrbitCamera& TargetCam = State.SplitView.Cameras[State.SplitView.PopupPane];
+                const char* CurLbl = CurrentViewLabel(TargetCam);
+                for (OrbitViewPreset Preset : { OrbitViewPreset::Top, OrbitViewPreset::Bottom, OrbitViewPreset::Front, OrbitViewPreset::Back,
+                                                OrbitViewPreset::Right, OrbitViewPreset::Left, OrbitViewPreset::Isometric })
+                {
+                    const std::string Item = std::string(OrbitViewLabel(Preset)) + "###PanePreset" + OrbitViewLabel(Preset);
+                    if (SelectListEntry(State, Item, std::strcmp(CurLbl, OrbitViewLabel(Preset)) == 0))
+                    {
+                        PresentOrbitView(TargetCam, Preset);
+                        if (Preset != OrbitViewPreset::Isometric) TargetCam.OrthographicEnabled = true;
+                        if (State.SplitView.PopupPane == State.SplitView.ActivePane)
+                        {
+                            State.Camera = TargetCam;
+                            State.Style.GridPlane = ViewGridPlane(State.Camera);
+                        }
+                    }
+                }
+                if (SelectListEntry(State, TargetCam.OrthographicEnabled ? "Switch to Perspective (Numpad 5)###PaneProj" : "Switch to Parallel / Ortho (Numpad 5)###PaneProj", false))
+                {
+                    TargetCam.OrthographicEnabled = !TargetCam.OrthographicEnabled;
+                    if (State.SplitView.PopupPane == State.SplitView.ActivePane) State.Camera = TargetCam;
+                }
+                EndSelectList();
+            }
+        }
+    }
     {
         SolidArcSheet Label;
         Label.Begin();
@@ -12962,7 +13971,14 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
     {
         ImVec2 Below(Image.x + 72, Image.y + 64);
         const SolidArcTransformSession& Transform = State.Transform;
-        DrawStatusPill(Canvas, Below, Compose("%s%s · %d body(ies)", Transform.DuplicateCondition ? "Duplicate · " : "", Transform.Readout.c_str(), int(Transform.Keys.size())), Transform.Refusal.empty() ? ActiveColour : RefusalColour);
+        const ImU32 PillAccent = !Transform.Refusal.empty() ? RefusalColour
+                               : (Transform.Axis >= 0 && Transform.Axis < 3) ? AxisColours[Transform.Axis] : ActiveColour;
+        const char* KindLabel  = Transform.TargetKind == SolidArcTransformTarget::Sketches ? "sketch(es)"
+                               : Transform.TargetKind == SolidArcTransformTarget::SketchPoints ? "point(s)"
+                               : Transform.TargetKind == SolidArcTransformTarget::CurvePoles ? "pole(s)"
+                               : Transform.TargetKind == SolidArcTransformTarget::Vertices ? "vertex(es)" : "body(ies)";
+        const int   ItemCount  = !Transform.PointIndices.empty() ? int(Transform.PointIndices.size()) : int(Transform.Keys.size());
+        DrawStatusPill(Canvas, Below, Compose("%s%s · %d %s", Transform.DuplicateCondition ? "Duplicate · " : "", Transform.Readout.c_str(), ItemCount, KindLabel), PillAccent);
         if (!Transform.Refusal.empty()) DrawStatusPill(Canvas, Below, Transform.Refusal, RefusalColour);
     }
     if (State.Knife.ActiveCondition && !State.Knife.DrawPendingCondition)
@@ -13069,6 +14085,110 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    INSPECTOR
 //------------------------------------------------------------------------------------------------------------------------
+
+void DrawTransformSessionCard(SolidArcWorkspaceState& State)
+{
+    SolidArcTransformSession& Transform = State.Transform;
+    const char* Heading = Transform.DuplicateCondition ? "Duplicate + Move"
+                        : Transform.Verb == SolidArcTransformVerb::Move ? "Move (G)"
+                        : Transform.Verb == SolidArcTransformVerb::Rotate ? "Rotate (R)" : "Scale (S)";
+    BeginCard(Heading);
+
+    // Verb switcher: Move (G) · Rotate (R) · Scale (S)
+    const float Third = (ImGui::GetContentRegionAvail().x - 16.0f) / 3.0f;
+    if (ToggleButton(State, "Move (G)###TransVerbG", Transform.Verb == SolidArcTransformVerb::Move, ImVec2(Third, 0)))
+    {
+        Transform.Verb            = SolidArcTransformVerb::Move;
+        Transform.StagedCondition = false;
+    }
+    ImGui::SameLine();
+    if (ToggleButton(State, "Rotate (R)###TransVerbR", Transform.Verb == SolidArcTransformVerb::Rotate, ImVec2(Third, 0)))
+    {
+        Transform.Verb            = SolidArcTransformVerb::Rotate;
+        Transform.PlaneCondition  = false;
+        Transform.StagedCondition = false;
+    }
+    ImGui::SameLine();
+    if (ToggleButton(State, "Scale (S)###TransVerbS", Transform.Verb == SolidArcTransformVerb::Scale, ImVec2(Third, 0)))
+    {
+        Transform.Verb            = SolidArcTransformVerb::Scale;
+        Transform.StagedCondition = false;
+    }
+
+    // Single-axis lock buttons (isolates that axis gizmo handle + viewport guide line).
+    const float Quarter = (ImGui::GetContentRegionAvail().x - 24.0f) / 4.0f;
+    if (ToggleButton(State, "Free###TransAxisFree", Transform.Axis < 0, ImVec2(Quarter, 0)))
+    {
+        Transform.Axis            = -1;
+        Transform.PlaneCondition  = false;
+        Transform.StagedCondition = false;
+    }
+    static const char* AxisLabels[3] = { "X###TransAxisX", "Y###TransAxisY", "Z###TransAxisZ" };
+    for (int Axis = 0; Axis < 3; ++Axis)
+    {
+        ImGui::SameLine();
+        if (ToggleButton(State, AxisLabels[Axis], Transform.Axis == Axis && !Transform.PlaneCondition, ImVec2(Quarter, 0)))
+        {
+            if (Transform.Axis == Axis && !Transform.PlaneCondition) Transform.Axis = -1;
+            else { Transform.Axis = Axis; Transform.PlaneCondition = false; }
+            Transform.StagedCondition = false;
+        }
+    }
+
+    // Sync editable numeric field from either Typed string or live mouse-dragged CurrentValue when not actively typing in the widget.
+    const ImGuiID InputId = ImGui::GetID("###TransformAmount");
+    if (ImGui::GetActiveID() != InputId)
+    {
+        const std::string Shown = !Transform.Typed.empty() ? Transform.Typed : FormatLength(Transform.CurrentValue);
+        std::snprintf(Transform.ValueText.data(), Transform.ValueText.size(), "%s", Shown.c_str());
+    }
+    const char* FieldCaption = Transform.Verb == SolidArcTransformVerb::Move ? "Distance (m)###TransformAmount"
+                             : Transform.Verb == SolidArcTransformVerb::Rotate ? "Angle (deg)###TransformAmount"
+                             : "Factor###TransformAmount";
+    ImGui::SetNextItemWidth(115.0f);
+    const bool CommittedEnter = ImGui::InputText(FieldCaption, Transform.ValueText.data(), Transform.ValueText.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+    if (ImGui::IsItemEdited() || CommittedEnter)
+    {
+        double Parsed = 0.0;
+        if (ParseSolidArcLength(Transform.ValueText.data(), Parsed))
+        {
+            char Clean[48];
+            std::snprintf(Clean, sizeof(Clean), "%.8g", std::abs(Parsed) < 1.0e-12 ? 0.0 : Parsed);
+            Transform.Typed = Clean;
+            if (Transform.Axis < 0 && Transform.Verb == SolidArcTransformVerb::Move) Transform.Axis = 0;
+            Transform.StagedCondition = false;
+        }
+    }
+    RegisterWidget(State, "TransformAmount");
+    ImGui::SameLine();
+    if (PressButton(State, "Mouse###TransformMouse", ImVec2(0, 0), !Transform.Typed.empty()))
+    {
+        Transform.Typed.clear();
+        Transform.StagedCondition = false;
+    }
+
+    if (PressButton(State, "Apply (Enter)###TransformApply", RowSpan()))
+    {
+        ApplyTransformSession(State);
+        EndCard();
+        return;
+    }
+    ImGui::SameLine();
+    if (PressButton(State, "Cancel (Esc)###TransformCancel", RowSpan()))
+    {
+        CancelTransformSession(State);
+        EndCard();
+        return;
+    }
+    if (CommittedEnter)
+    {
+        // Re-evaluate map immediately from the newly committed Typed value before applying.
+        const OrbitCameraFrame CurFrame = FrameOrbitCamera(State.Camera, std::max(1.0f, State.ViewportRect[2]), std::max(1.0f, State.ViewportRect[3]));
+        DriveTransformSession(State, CurFrame, ImVec2(0.0f, 0.0f));
+        ApplyTransformSession(State);
+    }
+    EndCard();
+}
 
 void DrawBevelCard(SolidArcWorkspaceState& State)
 {
@@ -15433,6 +16553,7 @@ void DrawInspector(SolidArcWorkspaceState& State, ImVec2 Position, ImVec2 Size)
     else if (State.Boolean.ActiveCondition) DrawBooleanCard(State);
     else if (State.Joint.ActiveCondition) DrawJointCard(State);
     else if (State.Bevel.ActiveCondition) DrawBevelCard(State);
+    else if (State.Transform.ActiveCondition) DrawTransformSessionCard(State);
     else if (!State.Drawing.ActiveCondition)
     {
         if (!Picked) DrawIntroCards(State, Body);
@@ -15874,8 +16995,8 @@ void ApplyShortcuts(SolidArcWorkspaceState& State)
         return;
     }
 
-    // [command='move' | 'rotate' | 'scale' | 'duplicate'] — X / Y / Z axis, Shift+X / Y / Z plane (move), the verb's own key
-    // returns to screen / uniform, digits type the amount, Enter commits, Esc cancels.
+    // [command='move' | 'rotate' | 'scale' | 'duplicate'] — X / Y / Z axis (repeat toggles free), Shift+X / Y / Z plane,
+    // G / R / S switches verb or clears axis, digits type the amount ('-' flips sign), Enter commits, Esc cancels.
     if (State.Transform.ActiveCondition)
     {
         SolidArcTransformSession& Transform = State.Transform;
@@ -15886,13 +17007,45 @@ void ApplyShortcuts(SolidArcWorkspaceState& State)
         {
             static const ImGuiKey AxisKeys[] = { ImGuiKey_X, ImGuiKey_Y, ImGuiKey_Z };
             for (int Axis = 0; Axis < 3; ++Axis)
-                if (Pressed(AxisKeys[Axis]))                                                  // gizmo:move:x … · shift-z → xy plane …
+            {
+                if (Pressed(AxisKeys[Axis]))
                 {
-                    Transform.Axis           = Axis;
-                    Transform.PlaneCondition = Shift && Transform.Verb == SolidArcTransformVerb::Move;
+                    const bool WantPlane = Shift && (Transform.Verb == SolidArcTransformVerb::Move || Transform.Verb == SolidArcTransformVerb::Scale);
+                    if (Transform.Axis == Axis && Transform.PlaneCondition == WantPlane)
+                    {
+                        Transform.Axis           = -1;
+                        Transform.PlaneCondition = false;
+                    }
+                    else
+                    {
+                        Transform.Axis           = Axis;
+                        Transform.PlaneCondition = WantPlane;
+                    }
+                    Transform.StagedCondition = false;
                 }
-            const ImGuiKey Own = Transform.Verb == SolidArcTransformVerb::Move ? ImGuiKey_G : Transform.Verb == SolidArcTransformVerb::Rotate ? ImGuiKey_R : ImGuiKey_S;
-            if (Pressed(Own)) { Transform.Axis = -1; Transform.PlaneCondition = false; }       // gizmo:move:screen · rotate:screen · scale:xyz
+            }
+            const struct { ImGuiKey Key; SolidArcTransformVerb Verb; } VerbKeys[] = {
+                { ImGuiKey_G, SolidArcTransformVerb::Move },
+                { ImGuiKey_R, SolidArcTransformVerb::Rotate },
+                { ImGuiKey_S, SolidArcTransformVerb::Scale },
+            };
+            for (const auto& Entry : VerbKeys)
+            {
+                if (Pressed(Entry.Key))
+                {
+                    if (Transform.Verb == Entry.Verb)
+                    {
+                        Transform.Axis           = -1;
+                        Transform.PlaneCondition = false;
+                    }
+                    else
+                    {
+                        Transform.Verb = Entry.Verb;
+                        if (Transform.Verb == SolidArcTransformVerb::Rotate) Transform.PlaneCondition = false;
+                    }
+                    Transform.StagedCondition = false;
+                }
+            }
         }
         return;
     }
@@ -16005,14 +17158,46 @@ void ApplyShortcuts(SolidArcWorkspaceState& State)
         return;
     }
 
-    // Viewport navigation (any modifier state the keymap names).
-    SolidArcNavigationKeypad Keypad;
-    Keypad.FrontPressed      = Pressed(ImGuiKey_Keypad1);
-    Keypad.RightPressed      = Pressed(ImGuiKey_Keypad3);
-    Keypad.TopPressed        = Pressed(ImGuiKey_Keypad7);
-    Keypad.ProjectionPressed = Pressed(ImGuiKey_Keypad5);
-    Keypad.ControlCondition  = Control;
-    if (const std::optional<OrbitViewPreset> View = NavigateSolidArcKeypad(State.Camera, Keypad)) PresentView(State, *View);
+    // Blender-style Numpad camera navigation (1/Ctrl+1 Front/Back, 3/Ctrl+3 Right/Left, 7/Ctrl+7 Top/Bottom,
+    // 0 Isometric, 9 180° opposite flip, 5 Ortho/Persp, 2/4/6/8 15° orbit or Ctrl pan, +/- zoom, . Frame Selection).
+    if (!(State.Constrain.ActiveCondition && State.Constrain.PendingCondition))
+    {
+        SolidArcNavigationKeypad Keypad;
+        Keypad.FrontPressed      = Pressed(ImGuiKey_Keypad1);
+        Keypad.RightPressed      = Pressed(ImGuiKey_Keypad3);
+        Keypad.TopPressed        = Pressed(ImGuiKey_Keypad7);
+        Keypad.IsometricPressed  = Pressed(ImGuiKey_Keypad0);
+        Keypad.OppositePressed   = Pressed(ImGuiKey_Keypad9);
+        Keypad.ProjectionPressed = Pressed(ImGuiKey_Keypad5);
+        Keypad.OrbitDownPressed  = Pressed(ImGuiKey_Keypad2);
+        Keypad.OrbitLeftPressed  = Pressed(ImGuiKey_Keypad4);
+        Keypad.OrbitRightPressed = Pressed(ImGuiKey_Keypad6);
+        Keypad.OrbitUpPressed    = Pressed(ImGuiKey_Keypad8);
+        Keypad.ZoomInPressed     = Pressed(ImGuiKey_KeypadAdd);
+        Keypad.ZoomOutPressed    = Pressed(ImGuiKey_KeypadSubtract);
+        Keypad.ControlCondition  = Control;
+        const OrbitCameraFrame KFrame = ViewportFrame(State);
+        bool CamChanged = false;
+        if (const std::optional<OrbitViewPreset> View = NavigateSolidArcKeypad(State.Camera, Keypad, &KFrame, &CamChanged))
+        {
+            PresentView(State, *View);
+            if (SolidArcViewportPaneCount(State.SplitView.Layout) > 1)
+                State.SplitView.Cameras[State.SplitView.ActivePane] = State.Camera;
+            Announce(State, std::string("View ") + OrbitViewLabel(*View) + " (Numpad)");
+        }
+        else if (CamChanged)
+        {
+            State.Style.GridPlane = ViewGridPlane(State.Camera);
+            if (SolidArcViewportPaneCount(State.SplitView.Layout) > 1)
+                State.SplitView.Cameras[State.SplitView.ActivePane] = State.Camera;
+        }
+        if (Pressed(ImGuiKey_KeypadDecimal))
+        {
+            FrameSelection(State);
+            if (SolidArcViewportPaneCount(State.SplitView.Layout) > 1)
+                State.SplitView.Cameras[State.SplitView.ActivePane] = State.Camera;
+        }
+    }
 
     // [command='constrain'] — SolveSpace verbs on the picks, typed values, Delete removes a picked constraint (view keys live).
     if (State.Constrain.ActiveCondition)
@@ -16077,6 +17262,15 @@ void ApplyShortcuts(SolidArcWorkspaceState& State)
         {
             if (Shift) State.PopupRequest = "Save document";                                // file:save-as
             else SaveDocument(State, State.DocumentPath.empty() ? State.Options.DocumentPath : State.DocumentPath);
+        }
+        if (Alternate && Pressed(ImGuiKey_Q))
+        {
+            const SolidArcViewportLayout TargetLayout = State.SplitView.Layout == SolidArcViewportLayout::Single
+                ? State.SplitView.LastMultiLayout
+                : SolidArcViewportLayout::Single;
+            SetSolidArcViewportLayout(State, TargetLayout);
+            Announce(State, std::string("Viewport layout: ") + ViewportLayoutShortLabel(TargetLayout) + " (Ctrl+Alt+Q)");
+            return;
         }
         if (Pressed(ImGuiKey_O)) State.PopupRequest = "Open document";
         if (Pressed(ImGuiKey_A) && !Shift && !Alternate) SelectAll(State);                  // edit:select-all (Ctrl+A)

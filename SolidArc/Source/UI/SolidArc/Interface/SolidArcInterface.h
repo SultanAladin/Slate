@@ -385,23 +385,39 @@ enum class SolidArcTransformVerb : uint8_t
 //    rotate by the pointer's sweep about the pivot (screen axis or X / Y / Z); scale by its distance ratio to the pivot
 //    (uniform or one axis). Snaps 0.1 / 5° / ×0.1 unless Ctrl is held; typed digits override the pointer (m, °, ×).
 //    A staged document shows the result; click / Enter commits one command (one undo entry), Esc / right-click drops it.
+enum class SolidArcTransformTarget : uint8_t
+{
+    Bodies       = 0,                                                                        // Whole solid / sheet bodies
+    Sketches     = 1,                                                                        // 2D Sketch or 3D SpaceCurve steps
+    SketchPoints = 2,                                                                        // Mode-1 picked control points of a sketch
+    CurvePoles   = 3,                                                                        // Mode-1 picked poles of a fitted 3D curve
+    Vertices     = 4,                                                                        // Mode-1 picked B-rep vertices (direct reshape)
+};
+
 struct SolidArcTransformSession
 {
     bool                              ActiveCondition    = false;                            // [-]   - Session open
     SolidArcTransformVerb             Verb               = SolidArcTransformVerb::Move;      // [-]   - G / R / S
+    SolidArcTransformTarget           TargetKind         = SolidArcTransformTarget::Bodies;  // [-]   - Entity class transformed
     bool                              DuplicateCondition = false;                            // [-]   - Shift+D: commit copies
-    std::vector<std::string>          Keys               = {};                               // [-]   - Bodies moved
+    std::vector<std::string>          Keys               = {};                               // [-]   - Bodies / sketches / vertices moved
+    std::string                       PointOwner         = {};                               // [-]   - Sketch / curve label for point/pole targets
+    std::vector<int>                  PointIndices       = {};                               // [-]   - Picked sketch points or curve poles
     int                               Axis               = -1;                               // [-]   - −1 screen · 0 x · 1 y · 2 z
-    bool                              PlaneCondition     = false;                            // [-]   - Move in the plane normal to Axis
+    bool                              PlaneCondition     = false;                            // [-]   - Move / Scale in the plane normal to Axis
     bool                              StartCondition     = false;                            // [-]   - Pointer anchor taken
+    bool                              LeftDragCondition  = false;                            // [-]   - LMB held & dragged inside modal session
     ImVec2                            Start              = {};                               // [px]  - Anchor (screen)
     ImVec2                            StartLocal         = {};                               // [px]  - Anchor (viewport)
-    GeometryProcessing::Vector3                 Pivot              = {};                               // [len] - Bounds centre of the bodies
+    GeometryProcessing::Vector3                 Pivot              = {};                               // [len] - Bounds centre of the target
+    GeometryProcessing::Vector3                 DisplayPivot       = {};                               // [len] - Live shifted pivot for gizmo & axis line
     bool                              AnchorCondition    = false;                            // [-]   - Move started on an object snap
     GeometryProcessing::Vector3                 Anchor             = {};                               // [len] - That snap point (moves onto the target snap)
     std::string                       AnchorSource       = {};                               // [-]   - "Endpoint · Edge …"
     std::string                       Typed              = {};                               // [-]   - Typed amount
-    GeometryProcessing::AffineMap               Map                = {};                               // [-]   - Current map
+    double                            CurrentValue       = 0.0;                              // [-]   - Live scalar (m, °, ×) shown in Inspector numeric field
+    std::array<char, 48>              ValueText          = {};                               // [-]   - Editable numeric text buffer in Inspector session card
+    GeometryProcessing::AffineMap     Map                = {};                               // [-]   - Current map
     GeometryProcessing::AffineMap               StagedMap          = {};                               // [-]   - Map the preview shows
     bool                              StagedCondition    = false;                            // [-]   - A preview was built
     std::unique_ptr<SolidArcDocument> Preview            = {};                               // [-]   - Staged document
@@ -411,6 +427,32 @@ struct SolidArcTransformSession
     std::string                       Refusal            = {};                               // [-]   - Why commit is refused
     int                               Commits            = 0;                                // [-]   - Committed (script evidence)
     bool                              SketchCondition    = false;                            // [-]   - Keys are sketch steps (2D objects), no bodies picked
+};
+
+// 📝 Multi-view split layouts inside the docked Viewport panel (never undocked; draggable splitters adjust SplitX / SplitY).
+enum class SolidArcViewportLayout : uint8_t
+{
+    Single        = 0,                                                                       // 1 view (full viewport)
+    TwoVertical   = 1,                                                                       // 2 views side-by-side (Left | Right)
+    TwoHorizontal = 2,                                                                       // 2 views stacked (Top / Bottom)
+    Three         = 3,                                                                       // 3 views (Top-Left + Bottom-Left | Right)
+    Quad          = 4,                                                                       // 4 views CAD Quad (Top | 3D / Front | Right)
+};
+
+struct SolidArcSplitViewState
+{
+    SolidArcViewportLayout              Layout          = SolidArcViewportLayout::Single;    // [-]   - Active split layout
+    SolidArcViewportLayout              LastMultiLayout = SolidArcViewportLayout::Quad;      // [-]   - Restored on Ctrl+Alt+Q toggle
+    float                               SplitX          = 0.5f;                              // [0-1] - Vertical divider position
+    float                               SplitY          = 0.5f;                              // [0-1] - Horizontal divider position
+    int                                 ActivePane      = 0;                                 // [idx] - Focused pane (0 .. PaneCount-1)
+    bool                                Initialised     = false;                             // [-]   - Per-pane preset cameras seeded
+    bool                                DraggingX       = false;                             // [-]   - Dragging vertical splitter
+    bool                                DraggingY       = false;                             // [-]   - Dragging horizontal splitter
+    int                                 PopupPane       = -1;                                // [idx] - Pane whose view dropdown is open
+    std::array<OrbitCamera, 4>          Cameras         = {};                                // [-]   - Independent OrbitCamera per pane
+    std::array<std::array<float, 4>, 4> PaneRects       = {};                                // [px]  - Screen x, y, width, height per pane
+    std::array<float, 4>                FullRect        = { 0, 0, 1, 1 };                    // [px]  - Outer multi-pane viewport rect
 };
 
 // 📝 HTML .inspector-tabs: Geometry (the native cards), Transform (G / R / S), Topology (body audit, picks, history).
@@ -874,7 +916,8 @@ struct SolidArcWorkspaceState
     double                                AutosaveTimer  = -1.0;                             // [s]   - Countdown (< 0: idle)
     bool                                  WelcomeOpen    = false;                            // [-]   - Recovery prompt pending
     uint32_t                              HoverIdentity  = 0;                                // [-]   - GPU identity under the pointer
-    std::array<float, 4>                  ViewportRect   = { 0, 0, 1, 1 };                   // [px]  - x, y, width, height in the frame
+    std::array<float, 4>                  ViewportRect   = { 0, 0, 1, 1 };                   // [px]  - Active pane x, y, width, height in the frame
+    SolidArcSplitViewState                SplitView      = {};                               // [-]   - 1 / 2 / 3 / 4 docked split-viewport state
     bool                                  ViewportHovered = false;                           // [-]   - Pointer over the viewport
     std::string                           Status         = "Ready";                          // [-]   - Status line
     std::vector<std::string>              Journal        = {};                               // [-]   - Command log (newest last)
@@ -946,6 +989,11 @@ void RefreshSolidArcMatcaps(SolidArcWorkspaceState& State);
 
 // Per-face / per-edge state words for the displayed scene (selection, active operand, hover).
 [[nodiscard]] SolidArcSceneStates DisplayedSolidArcStates(const SolidArcWorkspaceState& State);
+
+// Split-viewport pane count (1, 2, 3, or 4), layout switcher, and GPU raster pane descriptor list.
+[[nodiscard]] int  SolidArcViewportPaneCount(SolidArcViewportLayout Layout) noexcept;
+void               SetSolidArcViewportLayout(SolidArcWorkspaceState& State, SolidArcViewportLayout Layout);
+[[nodiscard]] std::vector<SolidArcRasterPane> ComposeSolidArcRasterPanes(const SolidArcWorkspaceState& State, uint32_t TargetWidth, uint32_t TargetHeight);
 
 // Rebuilds the scene after a document change and marks the document dirty (autosave pending).
 void RefreshSolidArcScene(SolidArcWorkspaceState& State, bool DirtyCondition);

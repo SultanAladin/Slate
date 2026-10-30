@@ -645,6 +645,46 @@ void SolidArcRasterization::AssignStates(const std::vector<uint32_t>& FaceStates
 void SolidArcRasterization::Record(VkCommandBuffer Commands, const OrbitCameraFrame& Frame, const SolidArcViewportStyle& Style,
                                    bool ReadbackCondition, int ProbeX, int ProbeY)
 {
+    SolidArcRasterPane Whole;
+    Whole.OffsetX = 0;
+    Whole.OffsetY = 0;
+    Whole.Width   = Colour.Width;
+    Whole.Height  = Colour.Height;
+    Whole.Frame   = Frame;
+    Whole.Style   = Style;
+    RecordPanes(Commands, { std::move(Whole) }, Style.Background, ReadbackCondition, ProbeX, ProbeY);
+}
+
+void SolidArcRasterization::RecordPanes(VkCommandBuffer Commands, const std::vector<SolidArcRasterPane>& Panes, const float Background[4],
+                                        bool ReadbackCondition, int ProbeX, int ProbeY)
+{
+    // Pre-pack all panes' gizmo vertices before beginning dynamic rendering so GizmoBuffer never reallocates mid-pass.
+    std::vector<uint32_t> GizmoFirst(Panes.size(), 0u);
+    std::vector<uint32_t> GizmoCount(Panes.size(), 0u);
+    size_t TotalGizmoVerts = 0;
+    for (size_t Idx = 0; Idx < Panes.size(); ++Idx)
+    {
+        GizmoFirst[Idx] = uint32_t(TotalGizmoVerts);
+        GizmoCount[Idx] = uint32_t(Panes[Idx].Style.Gizmo.Vertices.size());
+        TotalGizmoVerts += Panes[Idx].Style.Gizmo.Vertices.size();
+    }
+    if (TotalGizmoVerts > 0 && GizmoPipeline)
+    {
+        const VkDeviceSize Needed = sizeof(SolidArcGizmoVertex) * TotalGizmoVerts;
+        if (GizmoBuffer.Size < Needed)
+        {
+            vkDeviceWaitIdle(Device->Device);
+            Device->DestroyBuffer(GizmoBuffer);
+            GizmoBuffer = Device->CreateBuffer(std::max<VkDeviceSize>(Needed * 2, 64 * 1024), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, true);
+        }
+        auto* Dst = static_cast<SolidArcGizmoVertex*>(GizmoBuffer.Mapped);
+        for (size_t Idx = 0; Idx < Panes.size(); ++Idx)
+        {
+            if (GizmoCount[Idx] > 0)
+                std::memcpy(Dst + GizmoFirst[Idx], Panes[Idx].Style.Gizmo.Vertices.data(), sizeof(SolidArcGizmoVertex) * GizmoCount[Idx]);
+        }
+    }
+
     // ① targets → attachments (contents discarded: everything is cleared)
     TransitionSolidArcImage(Commands, Colour.Image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     TransitionSolidArcImage(Commands, Identity.Image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
@@ -662,7 +702,7 @@ void SolidArcRasterization::Record(VkCommandBuffer Commands, const OrbitCameraFr
     ColourTargets[0].imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     ColourTargets[0].loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR;
     ColourTargets[0].storeOp     = VK_ATTACHMENT_STORE_OP_STORE;
-    std::memcpy(ColourTargets[0].clearValue.color.float32, Style.Background, sizeof(Style.Background));
+    std::memcpy(ColourTargets[0].clearValue.color.float32, Background, sizeof(float) * 4);
     ColourTargets[1] = ColourTargets[0];
     ColourTargets[1].imageView = Identity.View;
     ColourTargets[1].clearValue.color.uint32[0] = 0u;
@@ -696,169 +736,174 @@ void SolidArcRasterization::Record(VkCommandBuffer Commands, const OrbitCameraFr
     Rendering.pDepthAttachment     = &DepthTarget;
     vkCmdBeginRendering(Commands, &Rendering);
 
-    const VkViewport Viewport{ 0.0f, 0.0f, float(Colour.Width), float(Colour.Height), 0.0f, 1.0f };
-    const VkRect2D   Scissor{ { 0, 0 }, { Colour.Width, Colour.Height } };
-    vkCmdSetViewport(Commands, 0, 1, &Viewport);
-    vkCmdSetScissor(Commands, 0, 1, &Scissor);
-    vkCmdBindDescriptorSets(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0, 1, &BufferSet, 0, nullptr);
-
-    // ② surfaces, the grid and image planes behind them, then the edges pulled toward the eye (x-ray: see below)
-    SolidArcProjectionBlock Projection;
-    Narrow(Frame.ClipFromWorld, Projection.ClipFromWorld);
-    Narrow(Frame.Right, Projection.ViewRight, Frame.OrthographicEnabled ? 1.0f : 0.0f);
-    Narrow(Frame.Up, Projection.ViewUp, Style.ZebraStripes);
-    Narrow(Frame.Forward, Projection.ViewForward, Style.XRayEnabled ? std::clamp(Style.XRayOpacity, 0.01f, 1.0f) : 0.0f);
-    Projection.DisplayStroke[0] = float(Colour.Width);
-    Projection.DisplayStroke[1] = float(Colour.Height);
-    Projection.DisplayStroke[2] = Style.EdgeStroke;
-    Projection.DisplayStroke[3] = Style.EdgeDepthMargin;
-    // 📝 Section block (binding 2): (n, w) and (eye, enabled); written through the persistent mapping like the states.
-    if (SectionBuffer.Mapped)
+    if (!Panes.empty() && SectionBuffer.Mapped)
     {
-        const float Block[8] = { float(Style.SectionPlane[0]), float(Style.SectionPlane[1]), float(Style.SectionPlane[2]), float(Style.SectionPlane[3]),
-                                 float(Frame.Eye[0]), float(Frame.Eye[1]), float(Frame.Eye[2]), Style.SectionEnabled ? 1.0f : 0.0f };
+        const OrbitCameraFrame& FirstFrame = Panes.front().Frame;
+        const SolidArcViewportStyle& FirstStyle = Panes.front().Style;
+        const float Block[8] = { float(FirstStyle.SectionPlane[0]), float(FirstStyle.SectionPlane[1]), float(FirstStyle.SectionPlane[2]), float(FirstStyle.SectionPlane[3]),
+                                 float(FirstFrame.Eye[0]), float(FirstFrame.Eye[1]), float(FirstFrame.Eye[2]), FirstStyle.SectionEnabled ? 1.0f : 0.0f };
         std::memcpy(SectionBuffer.Mapped, Block, sizeof(Block));
     }
+
     const VkShaderStageFlags PushStages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     const VkDeviceSize       Origin     = 0;
-    const auto DrawSurfaceSpan = [&](VkPipeline Pipeline, uint32_t FirstCorner, uint32_t SpanCount, float OpacityOverride)
+
+    for (size_t PaneIdx = 0; PaneIdx < Panes.size(); ++PaneIdx)
     {
-        if (!Style.SurfacesEnabled || !SpanCount) return;
-        SolidArcProjectionBlock Block = Projection;
-        if (OpacityOverride >= 0.0f) Block.ViewForward[3] = OpacityOverride;
-        const VkDescriptorSet SurfaceSets[2] = { BufferSet, MatcapSet };
-        vkCmdBindPipeline(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
-        vkCmdBindDescriptorSets(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, PlaneLayout, 0, 2, SurfaceSets, 0, nullptr);
-        vkCmdPushConstants(Commands, PlaneLayout, PushStages, 0, sizeof(Block), &Block);
-        vkCmdBindVertexBuffers(Commands, 0, 1, &CornerBuffer.Buffer, &Origin);
-        vkCmdDraw(Commands, SpanCount, 1, FirstCorner, 0);
+        const SolidArcRasterPane&    Pane  = Panes[PaneIdx];
+        const OrbitCameraFrame&      Frame = Pane.Frame;
+        const SolidArcViewportStyle& Style = Pane.Style;
+
+        const int32_t  ClampedX = std::clamp<int32_t>(Pane.OffsetX, 0, int32_t(Colour.Width));
+        const int32_t  ClampedY = std::clamp<int32_t>(Pane.OffsetY, 0, int32_t(Colour.Height));
+        const uint32_t MaxW     = uint32_t(int32_t(Colour.Width) - ClampedX);
+        const uint32_t MaxH     = uint32_t(int32_t(Colour.Height) - ClampedY);
+        const uint32_t ClampedW = std::min<uint32_t>(Pane.Width, MaxW);
+        const uint32_t ClampedH = std::min<uint32_t>(Pane.Height, MaxH);
+        if (ClampedW < 2 || ClampedH < 2) continue;
+
+        const VkViewport Viewport{ float(ClampedX), float(ClampedY), float(ClampedW), float(ClampedH), 0.0f, 1.0f };
+        const VkRect2D   Scissor{ { ClampedX, ClampedY }, { ClampedW, ClampedH } };
+        vkCmdSetViewport(Commands, 0, 1, &Viewport);
+        vkCmdSetScissor(Commands, 0, 1, &Scissor);
         vkCmdBindDescriptorSets(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0, 1, &BufferSet, 0, nullptr);
-    };
-    const auto DrawSurfaces = [&](VkPipeline Pipeline) { DrawSurfaceSpan(Pipeline, 0, CornerCount, -1.0f); };
-    // 📝 Each stroke set is drawn twice: the soft colour fringe, then the pick codes of the cores (same quads and depth).
-    const auto DrawEdgeSpan = [&](VkPipeline Pipeline, VkPipeline CodesPipeline, float DepthMargin, uint32_t FirstSegment, uint32_t SpanSegments)
-    {
-        if (!Style.EdgesEnabled || !SpanSegments) return;
-        SolidArcProjectionBlock Stroke = Projection;
-        Stroke.DisplayStroke[3] = DepthMargin;
-        vkCmdPushConstants(Commands, PipelineLayout, PushStages, 0, sizeof(Stroke), &Stroke);
-        vkCmdBindVertexBuffers(Commands, 0, 1, &SegmentBuffer.Buffer, &Origin);
-        for (VkPipeline Each : { Pipeline, CodesPipeline })
+
+        // ② surfaces, the grid and image planes behind them, then the edges pulled toward the eye (x-ray: see below)
+        SolidArcProjectionBlock Projection;
+        Narrow(Frame.ClipFromWorld, Projection.ClipFromWorld);
+        Narrow(Frame.Right, Projection.ViewRight, Frame.OrthographicEnabled ? 1.0f : 0.0f);
+        Narrow(Frame.Up, Projection.ViewUp, Style.ZebraStripes);
+        Narrow(Frame.Forward, Projection.ViewForward, Style.XRayEnabled ? std::clamp(Style.XRayOpacity, 0.01f, 1.0f) : 0.0f);
+        Projection.DisplayStroke[0] = float(ClampedW);
+        Projection.DisplayStroke[1] = float(ClampedH);
+        Projection.DisplayStroke[2] = Style.EdgeStroke;
+        Projection.DisplayStroke[3] = Style.EdgeDepthMargin;
+
+        const auto DrawSurfaceSpan = [&](VkPipeline Pipeline, uint32_t FirstCorner, uint32_t SpanCount, float OpacityOverride)
         {
-            vkCmdBindPipeline(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, Each);
-            vkCmdDraw(Commands, 6, SpanSegments, 0, FirstSegment);
-        }
-    };
-    const auto DrawEdges = [&](VkPipeline Pipeline, VkPipeline CodesPipeline, float DepthMargin) { DrawEdgeSpan(Pipeline, CodesPipeline, DepthMargin, 0, SegmentCount); };
-    const auto DrawLiveCutters = [&]()
-    {
-        const uint32_t CutterCorners  = CornerCount > SolidCornerCount ? CornerCount - SolidCornerCount : 0u;
-        const uint32_t CutterSegments = SegmentCount > SolidSegmentCount ? SegmentCount - SolidSegmentCount : 0u;
-        if (CutterCorners > 0)
-        {
-            DrawSurfaceSpan(CutterDepthPipeline, SolidCornerCount, CutterCorners, 0.34f);
-            DrawSurfaceSpan(CutterGhostPipeline, SolidCornerCount, CutterCorners, 0.34f);
-        }
-        if (CutterSegments > 0)
-        {
-            DrawEdgeSpan(EdgeOccludedPipeline, EdgeOccludedIdentityPipeline, -float(OccludedMarginPixels * Frame.WorldPerPixel), SolidSegmentCount, CutterSegments);
-        }
-    };
-    const auto DrawPlanes = [&]()
-    {
-        if (Style.ImagePlanes.empty() || !PlanePipeline) return;
-        vkCmdBindPipeline(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, PlanePipeline);
-        vkCmdBindDescriptorSets(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, PlaneLayout, 0, 1, &BufferSet, 0, nullptr);
-        for (const SolidArcImagePlaneDraw& Draw : Style.ImagePlanes)
-        {
-            if (Draw.Picture >= Pictures.size()) continue;
-            SolidArcImagePlaneBlock Block;
-            Narrow(Frame.ClipFromWorld, Block.ClipFromWorld);
-            Narrow(Draw.Corner, Block.Corner, Draw.Opacity);
-            Narrow(Draw.Right, Block.Right, Draw.Mode);
-            Narrow(Draw.Down, Block.Down, 0.0f);
-            std::memcpy(Block.Crop, Draw.Crop.data(), sizeof(Block.Crop));
-            vkCmdBindDescriptorSets(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, PlaneLayout, 1, 1, &Pictures[Draw.Picture].Set, 0, nullptr);
+            if (!Style.SurfacesEnabled || !SpanCount) return;
+            SolidArcProjectionBlock Block = Projection;
+            if (OpacityOverride >= 0.0f) Block.ViewForward[3] = OpacityOverride;
+            const VkDescriptorSet SurfaceSets[2] = { BufferSet, MatcapSet };
+            vkCmdBindPipeline(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
+            vkCmdBindDescriptorSets(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, PlaneLayout, 0, 2, SurfaceSets, 0, nullptr);
             vkCmdPushConstants(Commands, PlaneLayout, PushStages, 0, sizeof(Block), &Block);
-            vkCmdDraw(Commands, 6, 1, 0, 0);
-        }
-        vkCmdBindDescriptorSets(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0, 1, &BufferSet, 0, nullptr);
-    };
-    const auto DrawGrid = [&]()
-    {
-        if (!Style.GridEnabled) return;
-        // 📝 Plane rows pick (u, v, n) from world (x, y, z): XY → (x, y, z), XZ → (x, z, y), YZ → (y, z, x); the world
-        //    axis colours follow (X red, Y green, Z blue) as in the SolidArc view-aligned grid table.
-        static constexpr int   PlaneAxes[3][3] = { { 0, 1, 2 }, { 0, 2, 1 }, { 1, 2, 0 } };
-        static constexpr float AxisColours[3][4] = { { 0.86f, 0.26f, 0.26f, 1.0f }, { 0.30f, 0.80f, 0.34f, 1.0f }, { 0.30f, 0.52f, 0.92f, 1.0f } };
-        const int  Plane = std::clamp(Style.GridPlane, 0, 2);
-        CameraMatrix PlaneFromClip{};
-        for (int Column = 0; Column < 4; ++Column)
+            vkCmdBindVertexBuffers(Commands, 0, 1, &CornerBuffer.Buffer, &Origin);
+            vkCmdDraw(Commands, SpanCount, 1, FirstCorner, 0);
+            vkCmdBindDescriptorSets(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0, 1, &BufferSet, 0, nullptr);
+        };
+        const auto DrawSurfaces = [&](VkPipeline Pipeline) { DrawSurfaceSpan(Pipeline, 0, CornerCount, -1.0f); };
+        const auto DrawEdgeSpan = [&](VkPipeline Pipeline, VkPipeline CodesPipeline, float DepthMargin, uint32_t FirstSegment, uint32_t SpanSegments)
         {
-            for (int Row = 0; Row < 3; ++Row) PlaneFromClip[Column * 4 + Row] = Frame.WorldFromClip[Column * 4 + PlaneAxes[Plane][Row]];
-            PlaneFromClip[Column * 4 + 3] = Frame.WorldFromClip[Column * 4 + 3];
-        }
-        SolidArcGridBlock Grid;
-        Narrow(PlaneFromClip, Grid.PlaneFromClip);
-        for (int Channel = 0; Channel < 4; ++Channel)
+            if (!Style.EdgesEnabled || !SpanSegments) return;
+            SolidArcProjectionBlock Stroke = Projection;
+            Stroke.DisplayStroke[3] = DepthMargin;
+            vkCmdPushConstants(Commands, PipelineLayout, PushStages, 0, sizeof(Stroke), &Stroke);
+            vkCmdBindVertexBuffers(Commands, 0, 1, &SegmentBuffer.Buffer, &Origin);
+            for (VkPipeline Each : { Pipeline, CodesPipeline })
+            {
+                vkCmdBindPipeline(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, Each);
+                vkCmdDraw(Commands, 6, SpanSegments, 0, FirstSegment);
+            }
+        };
+        const auto DrawEdges = [&](VkPipeline Pipeline, VkPipeline CodesPipeline, float DepthMargin) { DrawEdgeSpan(Pipeline, CodesPipeline, DepthMargin, 0, SegmentCount); };
+        const auto DrawLiveCutters = [&]()
         {
-            Grid.AlongU[Channel] = AxisColours[PlaneAxes[Plane][0]][Channel];
-            Grid.AlongV[Channel] = AxisColours[PlaneAxes[Plane][1]][Channel];
-        }
-        vkCmdBindPipeline(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, GridPipeline);
-        vkCmdPushConstants(Commands, PipelineLayout, PushStages, 0, sizeof(Grid), &Grid);
-        vkCmdDraw(Commands, 3, 1, 0, 0);
-    };
-    // 📝 X-ray: grid and image planes first (seen through the ghost faces), the surface depth + identity, the ghost faces,
-    //    then the occluded strokes and the visible strokes on top. Off: the unchanged opaque order.
-    if (Style.XRayEnabled)
-    {
-        DrawPlanes();
-        DrawGrid();
-        DrawSurfaces(SurfaceDepthPipeline);
-        DrawSurfaces(SurfaceGhostPipeline);
-        DrawEdges(EdgeOccludedPipeline, EdgeOccludedIdentityPipeline, -float(OccludedMarginPixels * Frame.WorldPerPixel));  // < 0: world margin [len]
-        DrawEdges(EdgePipeline, EdgeIdentityPipeline, Style.EdgeDepthMargin);
-    }
-    else if (Style.SectionEnabled)
-    {
-        // 📝 Section: grid and image planes first, so a cap (a back face at its own depth) is never crossed by them.
-        DrawPlanes();
-        DrawGrid();
-        DrawSurfaceSpan(SurfacePipeline, 0, SolidCornerCount, 0.0f);
-        DrawLiveCutters();
-        DrawEdges(EdgePipeline, EdgeIdentityPipeline, Style.EdgeDepthMargin);
-    }
-    else
-    {
-        // 📝 Grid and image planes before the strokes: the strokes write no depth, so their fringe beyond a silhouette
-        //    would otherwise be painted over by the grid drawn after them.
-        DrawSurfaceSpan(SurfacePipeline, 0, SolidCornerCount, 0.0f);
-        DrawPlanes();
-        DrawGrid();
-        DrawLiveCutters();
-        DrawEdges(EdgePipeline, EdgeIdentityPipeline, Style.EdgeDepthMargin);
-    }
-    // ②′ gizmo on a cleared depth (handles occlude each other, never the model them)
-    if (!Style.Gizmo.Vertices.empty() && GizmoPipeline)
-    {
-        const VkDeviceSize Needed = sizeof(SolidArcGizmoVertex) * Style.Gizmo.Vertices.size();
-        if (GizmoBuffer.Size < Needed)
+            const uint32_t CutterCorners  = CornerCount > SolidCornerCount ? CornerCount - SolidCornerCount : 0u;
+            const uint32_t CutterSegments = SegmentCount > SolidSegmentCount ? SegmentCount - SolidSegmentCount : 0u;
+            if (CutterCorners > 0)
+            {
+                DrawSurfaceSpan(CutterDepthPipeline, SolidCornerCount, CutterCorners, 0.34f);
+                DrawSurfaceSpan(CutterGhostPipeline, SolidCornerCount, CutterCorners, 0.34f);
+            }
+            if (CutterSegments > 0)
+            {
+                DrawEdgeSpan(EdgeOccludedPipeline, EdgeOccludedIdentityPipeline, -float(OccludedMarginPixels * Frame.WorldPerPixel), SolidSegmentCount, CutterSegments);
+            }
+        };
+        const auto DrawPlanes = [&]()
         {
-            vkDeviceWaitIdle(Device->Device);
-            Device->DestroyBuffer(GizmoBuffer);
-            GizmoBuffer = Device->CreateBuffer(std::max<VkDeviceSize>(Needed * 2, 64 * 1024), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, true);
+            if (Style.ImagePlanes.empty() || !PlanePipeline) return;
+            vkCmdBindPipeline(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, PlanePipeline);
+            vkCmdBindDescriptorSets(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, PlaneLayout, 0, 1, &BufferSet, 0, nullptr);
+            for (const SolidArcImagePlaneDraw& Draw : Style.ImagePlanes)
+            {
+                if (Draw.Picture >= Pictures.size()) continue;
+                SolidArcImagePlaneBlock Block;
+                Narrow(Frame.ClipFromWorld, Block.ClipFromWorld);
+                Narrow(Draw.Corner, Block.Corner, Draw.Opacity);
+                Narrow(Draw.Right, Block.Right, Draw.Mode);
+                Narrow(Draw.Down, Block.Down, 0.0f);
+                std::memcpy(Block.Crop, Draw.Crop.data(), sizeof(Block.Crop));
+                vkCmdBindDescriptorSets(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, PlaneLayout, 1, 1, &Pictures[Draw.Picture].Set, 0, nullptr);
+                vkCmdPushConstants(Commands, PlaneLayout, PushStages, 0, sizeof(Block), &Block);
+                vkCmdDraw(Commands, 6, 1, 0, 0);
+            }
+            vkCmdBindDescriptorSets(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0, 1, &BufferSet, 0, nullptr);
+        };
+        const auto DrawGrid = [&]()
+        {
+            if (!Style.GridEnabled) return;
+            static constexpr int   PlaneAxes[3][3] = { { 0, 1, 2 }, { 0, 2, 1 }, { 1, 2, 0 } };
+            static constexpr float AxisColours[3][4] = { { 0.86f, 0.26f, 0.26f, 1.0f }, { 0.30f, 0.80f, 0.34f, 1.0f }, { 0.30f, 0.52f, 0.92f, 1.0f } };
+            const int  Plane = std::clamp(Style.GridPlane, 0, 2);
+            CameraMatrix PlaneFromClip{};
+            for (int Column = 0; Column < 4; ++Column)
+            {
+                for (int Row = 0; Row < 3; ++Row) PlaneFromClip[Column * 4 + Row] = Frame.WorldFromClip[Column * 4 + PlaneAxes[Plane][Row]];
+                PlaneFromClip[Column * 4 + 3] = Frame.WorldFromClip[Column * 4 + 3];
+            }
+            SolidArcGridBlock Grid;
+            Narrow(PlaneFromClip, Grid.PlaneFromClip);
+            for (int Channel = 0; Channel < 4; ++Channel)
+            {
+                Grid.AlongU[Channel] = AxisColours[PlaneAxes[Plane][0]][Channel];
+                Grid.AlongV[Channel] = AxisColours[PlaneAxes[Plane][1]][Channel];
+            }
+            vkCmdBindPipeline(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, GridPipeline);
+            vkCmdPushConstants(Commands, PipelineLayout, PushStages, 0, sizeof(Grid), &Grid);
+            vkCmdDraw(Commands, 3, 1, 0, 0);
+        };
+
+        if (Style.XRayEnabled)
+        {
+            DrawPlanes();
+            DrawGrid();
+            DrawSurfaces(SurfaceDepthPipeline);
+            DrawSurfaces(SurfaceGhostPipeline);
+            DrawEdges(EdgeOccludedPipeline, EdgeOccludedIdentityPipeline, -float(OccludedMarginPixels * Frame.WorldPerPixel));
+            DrawEdges(EdgePipeline, EdgeIdentityPipeline, Style.EdgeDepthMargin);
         }
-        std::memcpy(GizmoBuffer.Mapped, Style.Gizmo.Vertices.data(), size_t(Needed));
-        VkClearAttachment DepthClear{};
-        DepthClear.aspectMask                      = VK_IMAGE_ASPECT_DEPTH_BIT;
-        DepthClear.clearValue.depthStencil         = { 1.0f, 0 };
-        const VkClearRect Whole{ { { 0, 0 }, { Colour.Width, Colour.Height } }, 0, 1 };
-        vkCmdClearAttachments(Commands, 1, &DepthClear, 1, &Whole);
-        vkCmdBindPipeline(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, GizmoPipeline);
-        vkCmdPushConstants(Commands, PipelineLayout, PushStages, 0, sizeof(Projection), &Projection);
-        vkCmdBindVertexBuffers(Commands, 0, 1, &GizmoBuffer.Buffer, &Origin);
-        vkCmdDraw(Commands, uint32_t(Style.Gizmo.Vertices.size()), 1, 0, 0);
+        else if (Style.SectionEnabled)
+        {
+            DrawPlanes();
+            DrawGrid();
+            DrawSurfaceSpan(SurfacePipeline, 0, SolidCornerCount, 0.0f);
+            DrawLiveCutters();
+            DrawEdges(EdgePipeline, EdgeIdentityPipeline, Style.EdgeDepthMargin);
+        }
+        else
+        {
+            DrawSurfaceSpan(SurfacePipeline, 0, SolidCornerCount, 0.0f);
+            DrawPlanes();
+            DrawGrid();
+            DrawLiveCutters();
+            DrawEdges(EdgePipeline, EdgeIdentityPipeline, Style.EdgeDepthMargin);
+        }
+
+        // ②′ gizmo on a cleared depth inside this pane's scissor (handles occlude each other, never the model)
+        if (GizmoCount[PaneIdx] > 0 && GizmoPipeline)
+        {
+            VkClearAttachment DepthClear{};
+            DepthClear.aspectMask              = VK_IMAGE_ASPECT_DEPTH_BIT;
+            DepthClear.clearValue.depthStencil = { 1.0f, 0 };
+            const VkClearRect PaneClear{ Scissor, 0, 1 };
+            vkCmdClearAttachments(Commands, 1, &DepthClear, 1, &PaneClear);
+            vkCmdBindPipeline(Commands, VK_PIPELINE_BIND_POINT_GRAPHICS, GizmoPipeline);
+            vkCmdPushConstants(Commands, PipelineLayout, PushStages, 0, sizeof(Projection), &Projection);
+            vkCmdBindVertexBuffers(Commands, 0, 1, &GizmoBuffer.Buffer, &Origin);
+            vkCmdDraw(Commands, GizmoCount[PaneIdx], 1, GizmoFirst[PaneIdx], 0);
+        }
     }
     vkCmdEndRendering(Commands);
 
