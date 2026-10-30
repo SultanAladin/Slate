@@ -253,6 +253,8 @@ struct SolidArcPoleDrag
     GeometryProcessing::Vector3 Facing          = {};                                                  // [-]   - Drag plane normal (view ray at the press)
     std::string       HoverLabel      = {};                                                  // [-]   - Pole under the pointer (mode 1)
     int               HoverPole       = -1;                                                  // [-]   - Its index
+    std::string       PickedLabel     = {};                                                  // [-]   - SpaceCurve step with picked pole handles
+    std::vector<int>  PickedPoles     = {};                                                  // [-]   - Picked pole indices for the gizmo
     int               Commits         = 0;                                                   // [-]   - Accepted drags (script evidence)
 };
 
@@ -673,9 +675,10 @@ enum class SolidArcGizmoTarget : uint8_t
     None     = 0,
     Faces    = 1,                                                                            // Offset / Tweak / Rotate / Scale face operations
     Bodies   = 2,                                                                            // TransformSolidArcBodies
-    Sketches = 3,                                                                            // PlaceSolidArcSketches (rigid only)
-    Points   = 4,                                                                            // Mode-1 sketch points (DragSolidArcSketchPoints)
+    Sketches = 3,                                                                            // PlaceSolidArcSketches (Sketch and SpaceCurve steps)
+    Points   = 4,                                                                            // Mode-1 / selected-curve sketch points (Drag / LiftSolidArcSketchPoints)
     Shape    = 5,                                                                            // Mode-1 body vertices / mode-2 edges (ReshapeSolidArcSelection)
+    Poles    = 6,                                                                            // SpaceCurve NURBS control poles (MoveSolidArcPoles)
 };
 
 // 📝 Mode 1 sketch points: every sketch shows its defining points (line ends, arc and circle centres, spline points;
@@ -735,6 +738,7 @@ struct SolidArcGizmoSession
     double                            QuietSince    = 0.0;                                   // [s]   - Last real pointer motion
     int                               Commits       = 0;                                     // [-]   - Committed drags (script evidence)
     bool                              VertexCondition = false;                               // [-]   - Shape target: Names are vertices (mode 1), else edges (mode 2)
+    GeometryProcessing::Vector3       FaceNormal    = { 0.0, 0.0, 1.0 };                     // [-]   - Mean outward normal for Faces target (Offset vs Tweak)
 };
 
 // 📝 Frame timing for the trace (SolidArcTrace.log / F12): each frame records named CPU phases; a frame slower than
@@ -928,5 +932,13 @@ bool ParseSolidArcLength(const std::string& Text, double& Value);
 
 // JSON summary of the workspace (document, selection, camera, bevel session) for capture exhibits.
 [[nodiscard]] std::string DescribeSolidArcWorkspace(const SolidArcWorkspaceState& State);
+
+// Evaluates the selection's gizmo target, fits its handles to State.Camera's view (2D in 90° views, 3D otherwise),
+// and builds State.Gizmo.Geometry on CPU without requiring a GPU / ImGui frame (used by document/gizmo validation).
+void EvaluateSolidArcGizmo(SolidArcWorkspaceState& State, const OrbitCameraFrame& Frame);
+
+// Executes a single gizmo command on State.Document for the currently resolved State.Gizmo target and refreshes Scene.
+[[nodiscard]] SolidArcCommandOutcome ApplySolidArcGizmo(SolidArcWorkspaceState& State, SolidArcGizmoHandle Handle,
+                                                        GeometryProcessing::Vector3 Shift, double Angle = 0.0, double Factor = 1.0);
 
 } // namespace Frontier::SolidArc

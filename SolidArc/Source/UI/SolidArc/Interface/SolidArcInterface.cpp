@@ -4231,6 +4231,8 @@ void DriveTransformSession(SolidArcWorkspaceState& State, const OrbitCameraFrame
         && !State.Box.ActiveCondition && !State.SketchPoints.DragCondition;
 }
 
+[[nodiscard]] const CurveFitOutcome* FindFittedCurve(const SolidArcDocument& Document, const std::string& Label);
+
 [[nodiscard]] const char* GizmoTargetLabel(SolidArcGizmoTarget Target) noexcept
 {
     switch (Target)
@@ -4240,6 +4242,7 @@ void DriveTransformSession(SolidArcWorkspaceState& State, const OrbitCameraFrame
     case SolidArcGizmoTarget::Sketches: return "Sketches";
     case SolidArcGizmoTarget::Points:   return "Sketch points";
     case SolidArcGizmoTarget::Shape:    return "Vertices / edges";
+    case SolidArcGizmoTarget::Poles:    return "Curve poles";
     case SolidArcGizmoTarget::None:     break;
     }
     return "Nothing";
@@ -4255,13 +4258,17 @@ void DriveTransformSession(SolidArcWorkspaceState& State, const OrbitCameraFrame
     return Text;
 }
 
-// The sketch steps among the selected curve labels (loft sections the gizmo can carry).
+// The sketch and 3D curve steps among the selected curve labels (loft sections and curves the gizmo can carry).
 [[nodiscard]] std::vector<std::string> PickedSketches(const SolidArcDocument& Document)
 {
     std::vector<std::string> Labels;
     for (const std::string& Label : Document.Selection.Curves)
         for (const FeatureStep& Step : Document.Tree.Steps)
-            if (Step.Label == Label && Step.Kind == FeatureStepKind::Sketch) { Labels.push_back(Label); break; }
+            if (Step.Label == Label && (Step.Kind == FeatureStepKind::Sketch || Step.Kind == FeatureStepKind::SpaceCurve))
+            {
+                Labels.push_back(Label);
+                break;
+            }
     return Labels;
 }
 
@@ -4329,6 +4336,40 @@ void ResolveGizmoTarget(SolidArcWorkspaceState& State)
         Gizmo.Pose.Hidden     = Hidden;
         return true;
     };
+    if (!State.PoleDrag.PickedLabel.empty() && !State.PoleDrag.PickedPoles.empty() && Document.Selection.Curves.size() <= 1
+        && (State.PickMode == SolidArcPickMode::ControlPoint || State.PickMode == SolidArcPickMode::Any))
+    {
+        const CurveFitOutcome* Fit = CurveReachableCondition(Document, State.PoleDrag.PickedLabel) ? FindFittedCurve(Document, State.PoleDrag.PickedLabel) : nullptr;
+        if (!Fit || !Fit->Curve.Definition)
+        {
+            State.PoleDrag.PickedPoles.clear();
+            State.PoleDrag.PickedLabel.clear();
+        }
+        else
+        {
+            const std::vector<Vector3>& Poles = Fit->Curve.Definition->Poles;
+            std::erase_if(State.PoleDrag.PickedPoles, [&](int Pole) { return Pole < 0 || Pole >= int(Poles.size()); });
+            if (State.PoleDrag.PickedPoles.empty()) State.PoleDrag.PickedLabel.clear();
+            else
+            {
+                Vector3 Sum;
+                for (int Pole : State.PoleDrag.PickedPoles) Sum = Sum + Poles[Pole];
+                constexpr auto Bit = [](SolidArcGizmoHandle Handle) { return 1u << uint32_t(Handle); };
+                uint32_t Hidden = (Gizmo.Modes & (GizmoTranslate | GizmoScale)) ? 0u : CentreBit;
+                if (State.PoleDrag.PickedPoles.size() == 1)
+                {
+                    Hidden = Bit(SolidArcGizmoHandle::RotateX) | Bit(SolidArcGizmoHandle::RotateY) | Bit(SolidArcGizmoHandle::RotateZ) | AxisScales;
+                    if (!(Gizmo.Modes & GizmoTranslate)) Hidden |= CentreBit;
+                }
+                Gizmo.Target      = SolidArcGizmoTarget::Poles;
+                Gizmo.Names       = { State.PoleDrag.PickedLabel };
+                Gizmo.Points      = State.PoleDrag.PickedPoles;
+                Gizmo.Pose.Origin = Sum * (1.0 / double(State.PoleDrag.PickedPoles.size()));
+                Gizmo.Pose.Hidden = Hidden;
+                return;
+            }
+        }
+    }
     if (State.PickMode == SolidArcPickMode::ControlPoint && State.SketchPoints.Points.empty() && !Document.Selection.Vertices.empty())
     {
         ResolveShape(Document.Selection.Vertices, true);
@@ -4339,33 +4380,44 @@ void ResolveGizmoTarget(SolidArcWorkspaceState& State)
         ResolveShape(Document.Selection.Edges, false);
         return;
     }
-    if (State.PickMode == SolidArcPickMode::ControlPoint)
+    if (!State.SketchPoints.Points.empty() && (State.PickMode == SolidArcPickMode::ControlPoint || State.PickMode == SolidArcPickMode::Any)
+        && Document.Selection.Curves.size() <= 1)
     {
-        // 📝 Mode 1: the picked sketch points, framed in their sketch plane: x / y cones, the xy square, the z arc (turn
+        // 📝 Picked sketch / curve handle points, framed in their sketch plane: x / y cones, the xy square, the z arc (turn
         //    in the plane) and x / y cylinders (scale about the points' centre; a single point only moves).
         SolidArcSketchPointSession& Points = State.SketchPoints;
         const FeatureStep*          Step   = FindSketchStepByLabel(Document, Points.Sketch);
-        if (!Step) { Points.Points.clear(); Points.Sketch.clear(); return; }
-        const SketchModel& Sketch = SolvedSketchOf(Document, *Step);
-        std::erase_if(Points.Points, [&](int Point) { return Point < 0 || Point >= int(Sketch.Points.size()); });
-        if (Points.Points.empty()) { Points.Sketch.clear(); return; }
-        const OrthonormalFrame Plane = ElevatedSketchPlane(Document, *Step);
-        Vector3 Sum;
-        for (int Point : Points.Points) Sum = Sum + PlacePlanePoint(Plane, Sketch.Points[Point].Position);
-        constexpr auto Bit = [](SolidArcGizmoHandle Handle) { return 1u << uint32_t(Handle); };
-        uint32_t Hidden = Bit(SolidArcGizmoHandle::TranslateZ) | Bit(SolidArcGizmoHandle::PlaneYZ) | Bit(SolidArcGizmoHandle::PlaneXZ) | Bit(SolidArcGizmoHandle::RotateX)
-                        | Bit(SolidArcGizmoHandle::RotateY) | Bit(SolidArcGizmoHandle::ScaleZ);
-        if (Points.Points.size() == 1) Hidden |= Bit(SolidArcGizmoHandle::RotateZ) | Bit(SolidArcGizmoHandle::ScaleX) | Bit(SolidArcGizmoHandle::ScaleY);
-        if (!(Gizmo.Modes & GizmoTranslate) && (Points.Points.size() == 1 || !(Gizmo.Modes & GizmoScale))) Hidden |= CentreBit;
-        Gizmo.Target       = SolidArcGizmoTarget::Points;
-        Gizmo.Names        = { Points.Sketch };
-        Gizmo.Points       = Points.Points;
-        Gizmo.Pose.Origin  = Sum * (1.0 / double(Points.Points.size()));
-        Gizmo.Pose.Axes[0] = Plane.XAxis;
-        Gizmo.Pose.Axes[1] = Plane.YAxis;
-        Gizmo.Pose.Axes[2] = Plane.ZAxis;
-        Gizmo.Pose.Hidden  = Hidden;
-        return;
+        if (!Step)
+        {
+            Points.Points.clear();
+            Points.Sketch.clear();
+        }
+        else
+        {
+            const SketchModel& Sketch = SolvedSketchOf(Document, *Step);
+            std::erase_if(Points.Points, [&](int Point) { return Point < 0 || Point >= int(Sketch.Points.size()); });
+            if (Points.Points.empty()) Points.Sketch.clear();
+            else
+            {
+                const OrthonormalFrame Plane = ElevatedSketchPlane(Document, *Step);
+                Vector3 Sum;
+                for (int Point : Points.Points) Sum = Sum + PlacePlanePoint(Plane, Sketch.Points[Point].Position);
+                constexpr auto Bit = [](SolidArcGizmoHandle Handle) { return 1u << uint32_t(Handle); };
+                uint32_t Hidden = Bit(SolidArcGizmoHandle::TranslateZ) | Bit(SolidArcGizmoHandle::PlaneYZ) | Bit(SolidArcGizmoHandle::PlaneXZ) | Bit(SolidArcGizmoHandle::RotateX)
+                                | Bit(SolidArcGizmoHandle::RotateY) | Bit(SolidArcGizmoHandle::ScaleZ);
+                if (Points.Points.size() == 1) Hidden |= Bit(SolidArcGizmoHandle::RotateZ) | Bit(SolidArcGizmoHandle::ScaleX) | Bit(SolidArcGizmoHandle::ScaleY);
+                if (!(Gizmo.Modes & GizmoTranslate) && (Points.Points.size() == 1 || !(Gizmo.Modes & GizmoScale))) Hidden |= CentreBit;
+                Gizmo.Target       = SolidArcGizmoTarget::Points;
+                Gizmo.Names        = { Points.Sketch };
+                Gizmo.Points       = Points.Points;
+                Gizmo.Pose.Origin  = Sum * (1.0 / double(Points.Points.size()));
+                Gizmo.Pose.Axes[0] = Plane.XAxis;
+                Gizmo.Pose.Axes[1] = Plane.YAxis;
+                Gizmo.Pose.Axes[2] = Plane.ZAxis;
+                Gizmo.Pose.Hidden  = Hidden;
+                return;
+            }
+        }
     }
     if (State.PickMode == SolidArcPickMode::Face && !Document.Selection.Faces.empty())
     {
@@ -4395,6 +4447,7 @@ void ResolveGizmoTarget(SolidArcWorkspaceState& State)
         const Vector3 Along = Normalize(Seed - Up * Dot(Seed, Up));
         Gizmo.Target       = SolidArcGizmoTarget::Faces;
         Gizmo.Names        = Document.Selection.Faces;
+        Gizmo.FaceNormal   = Up;
         Gizmo.Pose.Origin  = Centre * (1.0 / Area);
         Gizmo.Pose.Axes[0] = Along;
         Gizmo.Pose.Axes[1] = Cross(Up, Along);
@@ -4415,14 +4468,29 @@ void ResolveGizmoTarget(SolidArcWorkspaceState& State)
     const std::vector<std::string> Sketches = PickedSketches(Document);
     if (Sketches.empty()) return;
     Vector3 Sum;
-    int     Count = 0;
+    int     Count            = 0;
+    bool    AllPlanarSketch  = true;
     for (const std::string& Label : Sketches)
     {
         const auto Found = std::find_if(Document.Tree.Steps.begin(), Document.Tree.Steps.end(), [&](const FeatureStep& Step) { return Step.Label == Label; });
+        if (Found == Document.Tree.Steps.end()) continue;
+        if (Found->Kind == FeatureStepKind::SpaceCurve)
+        {
+            AllPlanarSketch = false;
+            if (const CurveFitOutcome* Fit = FindFittedCurve(Document, Label); Fit && Fit->Curve.Definition)
+            {
+                for (const Vector3& Pole : Fit->Curve.Definition->Poles) { Sum = Sum + Pole; ++Count; }
+            }
+            else
+            {
+                for (const Vector3& Point : Found->Points) { Sum = Sum + Point; ++Count; }
+            }
+            continue;
+        }
         const OrthonormalFrame Plane  = ElevatedSketchPlane(Document, *Found);
         const auto             Solved = Document.Regeneration.Sketches.find(Label);
         const SketchModel&     Sketch = Solved != Document.Regeneration.Sketches.end() ? Solved->second : Found->Sketch;
-        if (Count == 0)
+        if (Count == 0 && Sketches.size() == 1)
         {
             Gizmo.Pose.Axes[0] = Plane.XAxis;
             Gizmo.Pose.Axes[1] = Plane.YAxis;
@@ -4432,12 +4500,18 @@ void ResolveGizmoTarget(SolidArcWorkspaceState& State)
             for (const Vector2& Sample : SampleSketchCurve(Sketch, Curve)) { Sum = Sum + PlacePlanePoint(Plane, Sample); ++Count; }
     }
     if (Count == 0) return;
-    // Sketches scale too: x / y cylinders along the plane axes (straight curves only), the centre ring evenly; z (the
-    // plane normal) would change nothing.
+    const bool SinglePlanarSketch = AllPlanarSketch && Sketches.size() == 1;
+    if (!SinglePlanarSketch)
+    {
+        Gizmo.Pose.Axes[0] = { 1.0, 0.0, 0.0 };
+        Gizmo.Pose.Axes[1] = { 0.0, 1.0, 0.0 };
+        Gizmo.Pose.Axes[2] = { 0.0, 0.0, 1.0 };
+    }
     Gizmo.Target      = SolidArcGizmoTarget::Sketches;
     Gizmo.Names       = Sketches;
     Gizmo.Pose.Origin = Sum * (1.0 / Count);
-    Gizmo.Pose.Hidden = (1u << uint32_t(SolidArcGizmoHandle::ScaleZ)) | ((Gizmo.Modes & (GizmoTranslate | GizmoScale)) ? 0u : CentreBit);
+    Gizmo.Pose.Hidden = (SinglePlanarSketch ? (1u << uint32_t(SolidArcGizmoHandle::ScaleZ)) : 0u)
+                      | ((Gizmo.Modes & (GizmoTranslate | GizmoScale)) ? 0u : CentreBit);
 }
 
 // 💡 The axis a 90° view looks straight along (Top / Bottom → z, Front / Back → y, Right / Left → x; perspective or
@@ -4477,15 +4551,39 @@ void FitGizmoToView(SolidArcWorkspaceState& State)
     }
     const Vector3 Unit{ View == 0 ? 1.0 : 0.0, View == 1 ? 1.0 : 0.0, View == 2 ? 1.0 : 0.0 };
     int Facing = -1;
-    for (int Axis = 0; Axis < 3; ++Axis) if (std::abs(Dot(Gizmo.Pose.Axes[Axis], Unit)) > 1.0 - 1.0e-6) Facing = Axis;
-    if (Facing < 0 && (Gizmo.Target == SolidArcGizmoTarget::Bodies || Gizmo.Target == SolidArcGizmoTarget::Shape))
+    if (std::abs(Dot(Gizmo.Pose.Axes[2], Unit)) > 1.0 - 1.0e-6)
     {
+        Facing = 2;
+    }
+    else
+    {
+        // Any 90° cardinal view whose camera axis is not perpendicular to the local plane (bodies, 3D curves, vertices,
+        // edges, tilted faces, or XZ/YZ sketches & curve handles viewed from Top/Bottom/etc.) adopts World {X, Y, Z} so
+        // both screen-plane arrows and the screen-plane quad are always shown.
         Gizmo.Pose.Axes[0] = { 1.0, 0.0, 0.0 };
         Gizmo.Pose.Axes[1] = { 0.0, 1.0, 0.0 };
         Gizmo.Pose.Axes[2] = { 0.0, 0.0, 1.0 };
         Facing             = View;
+        const bool SinglePoint = (Gizmo.Target == SolidArcGizmoTarget::Points && Gizmo.Points.size() < 2)
+                              || (Gizmo.Target == SolidArcGizmoTarget::Poles  && Gizmo.Points.size() < 2)
+                              || (Gizmo.Target == SolidArcGizmoTarget::Shape  && Gizmo.VertexCondition && Gizmo.Names.size() < 2);
+        const bool NoScale     = SinglePoint || Gizmo.Target == SolidArcGizmoTarget::Faces;
+        constexpr uint32_t CentreBit = 1u << uint32_t(SolidArcGizmoHandle::Centre);
+        Gizmo.Pose.Hidden = 0u;
+        if (SinglePoint)
+        {
+            Gizmo.Pose.Hidden |= Bit(SolidArcGizmoHandle::RotateX) | Bit(SolidArcGizmoHandle::RotateY) | Bit(SolidArcGizmoHandle::RotateZ);
+            if (!(Gizmo.Modes & GizmoTranslate)) Gizmo.Pose.Hidden |= CentreBit;
+        }
+        else if (!(Gizmo.Modes & (GizmoTranslate | GizmoScale)))
+        {
+            Gizmo.Pose.Hidden |= CentreBit;
+        }
+        if (NoScale)
+        {
+            Gizmo.Pose.Hidden |= Bit(SolidArcGizmoHandle::ScaleX) | Bit(SolidArcGizmoHandle::ScaleY) | Bit(SolidArcGizmoHandle::ScaleZ);
+        }
     }
-    if (Facing < 0) return;                                                                  // A tilted sketch / face keeps its own plane
     for (int Axis = 0; Axis < 3; ++Axis)
     {
         if (Axis == Facing)
@@ -4580,11 +4678,33 @@ void FitGizmoToView(SolidArcWorkspaceState& State)
             return LiftSolidArcSketchPoints(Document, Gizmo.Names[0], Plane, Gizmo.Points, Lifted);
         return DragSolidArcSketchPoints(Document, Gizmo.Names[0], Gizmo.Points, Targets);
     }
+    case SolidArcGizmoTarget::Poles:
+    {
+        const CurveFitOutcome* Fit = Gizmo.Names.empty() ? nullptr : FindFittedCurve(Document, Gizmo.Names[0]);
+        if (!Fit || !Fit->Curve.Definition) break;
+        const AffineMap          Map = GizmoMap(Gizmo);
+        std::vector<Vector3>     Targets;
+        const std::vector<Vector3>& Poles = Fit->Curve.Definition->Poles;
+        for (int Pole : Gizmo.Points)
+        {
+            if (Pole < 0 || Pole >= int(Poles.size())) break;
+            const Vector3 Start = Poles[Pole];
+            Targets.push_back(Map.ColumnX * Start.X + Map.ColumnY * Start.Y + Map.ColumnZ * Start.Z + Map.Shift);
+        }
+        return MoveSolidArcPoles(Document, Gizmo.Names[0], Gizmo.Points, Targets);
+    }
     case SolidArcGizmoTarget::Faces:
+    {
         if (GizmoRotateHandle(Handle)) return ChangeSolidArcSelection(Document, FaceOperationKind::Rotate, Gizmo.Angle, Gizmo.Pose.Axes[Axis]);
         if (GizmoScaleHandle(Gizmo, Handle)) return ChangeSolidArcSelection(Document, FaceOperationKind::Scale, Gizmo.Factor);
-        if (Handle == SolidArcGizmoHandle::TranslateZ) return ChangeSolidArcSelection(Document, FaceOperationKind::Offset, Dot(Gizmo.Shift, Gizmo.Pose.Axes[2]));
-        return ChangeSolidArcSelection(Document, FaceOperationKind::Tweak, Length(Gizmo.Shift), Normalize(Gizmo.Shift));
+        const double  ShiftLength = Length(Gizmo.Shift);
+        const Vector3 Direction   = ShiftLength > 0.0 ? Gizmo.Shift * (1.0 / ShiftLength) : Gizmo.FaceNormal;
+        if (Handle == SolidArcGizmoHandle::TranslateZ && std::abs(Dot(Gizmo.Pose.Axes[2], Gizmo.FaceNormal)) > 1.0 - 1.0e-5)
+            return ChangeSolidArcSelection(Document, FaceOperationKind::Offset, Dot(Gizmo.Shift, Gizmo.FaceNormal));
+        if (std::abs(Dot(Direction, Gizmo.FaceNormal)) > 1.0 - 1.0e-5)
+            return ChangeSolidArcSelection(Document, FaceOperationKind::Offset, Dot(Gizmo.Shift, Gizmo.FaceNormal));
+        return ChangeSolidArcSelection(Document, FaceOperationKind::Tweak, ShiftLength, Direction);
+    }
     case SolidArcGizmoTarget::Shape:
     {
         // Mode 1 carries the picked vertices, mode 2 the picked edges; the other list is left as it was.
@@ -7585,8 +7705,10 @@ void DrawSketchOverlays(SolidArcWorkspaceState& State, ImDrawList* Canvas, const
             }
             Flush();
         }
-        if (State.PickMode != SolidArcPickMode::ControlPoint || Locked) continue;              // A locked sketch offers no points
-        // 📝 Mode 1: Bezier / NURBS control polygons (their points are poles off the curve), then every defining point.
+        const bool ShowPoints = !Locked && (State.PickMode == SolidArcPickMode::ControlPoint
+                             || (State.PickMode == SolidArcPickMode::Any && Focused && !Consumed));
+        if (!ShowPoints) continue;                                                           // A locked / unselected-in-mode-5 sketch offers no points
+        // 📝 Mode 1 (and selected free curves in mode 5): Bezier / NURBS control polygons, then every defining point.
         for (const SketchCurve& Curve : Sketch.Curves)
         {
             if (Curve.Kind != SketchCurveKind::Spline || (Curve.Form != SketchSplineForm::Bezier && Curve.Form != SketchSplineForm::Nurbs)) continue;
@@ -7613,7 +7735,7 @@ void DrawSketchOverlays(SolidArcWorkspaceState& State, ImDrawList* Canvas, const
     }
 }
 
-// Nearest shown sketch point within PoleReach of Pointer (mode 1); false when none.
+// Nearest shown sketch point within PoleReach of Pointer (mode 1, or selected free curves in mode 5); false when none.
 bool FindSketchPointNear(const SolidArcWorkspaceState& State, const OrbitCameraFrame& Frame, ImVec2 Pointer, std::string& Label, int& Point)
 {
     float Best = 8.0f;
@@ -7621,6 +7743,11 @@ bool FindSketchPointNear(const SolidArcWorkspaceState& State, const OrbitCameraF
     for (const FeatureStep& Step : State.Document.Tree.Steps)
     {
         if (Step.Kind != FeatureStepKind::Sketch || !CurveReachableCondition(State.Document, Step.Label)) continue;
+        if (State.PickMode != SolidArcPickMode::ControlPoint)
+        {
+            const bool Selected = std::find(State.Document.Selection.Curves.begin(), State.Document.Selection.Curves.end(), Step.Label) != State.Document.Selection.Curves.end();
+            if (State.PickMode != SolidArcPickMode::Any || !Selected || SolidArcSketchConsumedCondition(State.Document, Step.Label)) continue;
+        }
         const SketchModel&     Sketch = SolvedSketchOf(State.Document, Step);
         const OrthonormalFrame Plane  = ElevatedSketchPlane(State.Document, Step);
         for (int Index = 0; Index < int(Sketch.Points.size()); ++Index)
@@ -8106,10 +8233,12 @@ void DrawCurveOverlays(SolidArcWorkspaceState& State, ImDrawList* Canvas, const 
             ImVec2 Pixel;
             if (!ProjectWorldPoint(State, Frame, Shown.Poles[Index], Pixel)) continue;
             const bool  Grabbed = Moving && State.PoleDrag.Pole == Index;
+            const bool  Picked  = State.PoleDrag.PickedLabel == Step.Label
+                               && std::find(State.PoleDrag.PickedPoles.begin(), State.PoleDrag.PickedPoles.end(), Index) != State.PoleDrag.PickedPoles.end();
             const bool  Hover   = !State.PoleDrag.ActiveCondition && State.PoleDrag.HoverLabel == Step.Label && State.PoleDrag.HoverPole == Index;
-            const float Radius  = Grabbed || Hover ? 5.5f : 4.0f;                              // [px] - Round pole handle
+            const float Radius  = Grabbed || Hover || Picked ? 5.5f : 4.0f;                    // [px] - Round pole handle
             Canvas->AddCircleFilled(Pixel, Radius, Grabbed ? ActiveColour : Hover ? IM_COL32_WHITE : IM_COL32(0xff, 0xd2, 0x4d, 0xff), 20);
-            Canvas->AddCircle(Pixel, Radius, IM_COL32(0x10, 0x10, 0x10, 0xff), 20, 1.0f);
+            Canvas->AddCircle(Pixel, Radius, Picked ? IM_COL32_WHITE : IM_COL32(0x10, 0x10, 0x10, 0xff), 20, Picked ? 1.8f : 1.0f);
         }
     }
 }
@@ -9216,26 +9345,26 @@ void ImportFile(SolidArcWorkspaceState& State, const std::string& Path)
 // its two plane caps); open sections — or G1 / G2 to a neighbour — loft a panel; crossing curves make a Gordon network.
 void LoftSelectedCurves(SolidArcWorkspaceState& State)
 {
-    const std::vector<std::string> Curves = State.Document.Selection.Curves;
-    SolidArcCommandOutcome         Outcome;
-    bool                           SolidCondition = false;
-    if (State.LoftContinuity == 0 && Curves.size() >= 2)
+    const size_t           TotalCount = State.Document.Selection.Curves.size() + State.Document.Selection.Edges.size();
+    SolidArcCommandOutcome Outcome;
+    bool                   SolidCondition = false;
+    if (State.LoftContinuity == 0 && TotalCount >= 2)
     {
-        Outcome        = LoftSolidArcCurves(State.Document, Curves, 0, true);                // Refused (document untouched) when a section is open
+        Outcome        = LoftSolidArcSelection(State.Document, 0, true);                     // Refused (document untouched) when a section is open
         SolidCondition = Outcome.AcceptedCondition;
     }
-    if (!SolidCondition) Outcome = LoftSolidArcCurves(State.Document, Curves, State.LoftContinuity);
+    if (!SolidCondition) Outcome = LoftSolidArcSelection(State.Document, State.LoftContinuity);
     Conclude(State, Outcome);
     if (!Outcome.AcceptedCondition) return;
     if (SolidCondition)
     {
-        Announce(State, Compose("Lofted %d closed section(s) into a solid shell (2 plane caps) · %s · %.0f ms", int(Curves.size()),
+        Announce(State, Compose("Lofted %d closed section(s) into a solid shell (2 plane caps) · %s · %.0f ms", int(TotalCount),
                                 State.Document.Summary.SoundCondition ? "sound" : "audit findings", Outcome.Milliseconds));
         return;
     }
     const bool NetworkCondition = !State.Document.Tree.Steps.empty() && State.Document.Tree.Steps.back().Kind == FeatureStepKind::Network;
     const char* Order = State.LoftContinuity == 2 ? " · G2" : State.LoftContinuity == 1 ? " · G1" : "";
-    Announce(State, Compose("%s %d curve(s) into a panel%s (%s) · %d panel(s) · open sections stay a sheet · %.0f ms", NetworkCondition ? "Network of" : "Lofted", int(Curves.size()),
+    Announce(State, Compose("%s %d curve(s) into a panel%s (%s) · %d panel(s) · open sections stay a sheet · %.0f ms", NetworkCondition ? "Network of" : "Lofted", int(TotalCount),
                             NetworkCondition ? "" : Order, State.Document.Summary.SoundCondition ? "sound" : "audit findings", int(State.Document.Regeneration.Panels.size()),
                             Outcome.Milliseconds));
 }
@@ -9260,6 +9389,13 @@ void ClosePanels(SolidArcWorkspaceState& State)
 
 void PickCurve(SolidArcWorkspaceState& State, const std::string& Label, SolidArcPickIntent Intent)
 {
+    State.PoleDrag.PickedPoles.clear();
+    State.PoleDrag.PickedLabel.clear();
+    if (Intent != SolidArcPickIntent::Replace || State.SketchPoints.Sketch != Label)
+    {
+        State.SketchPoints.Points.clear();
+        State.SketchPoints.Sketch.clear();
+    }
     const bool        Member  = CurveOrder(State, Label) > 0;
     const std::string Caption = CaptionOf(State.Document, Label);
     switch (Intent)
@@ -11200,7 +11336,8 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
     //    plane with a live preview, a press-release without movement picks it for the gizmo.
     SolidArcSketchPointSession& SketchPoints = State.SketchPoints;
     bool PointGesture = false;
-    if (State.PickMode == SolidArcPickMode::ControlPoint && !State.Drawing.ActiveCondition && !State.Bevel.ActiveCondition && !State.Constrain.ActiveCondition
+    if ((State.PickMode == SolidArcPickMode::ControlPoint || State.PickMode == SolidArcPickMode::Any)
+        && !State.Drawing.ActiveCondition && !State.Bevel.ActiveCondition && !State.Constrain.ActiveCondition
         && !State.PoleDrag.ActiveCondition && !GizmoOwned)
     {
         if (!SketchPoints.DragCondition)
@@ -11209,15 +11346,21 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
             if (Hovered && !OverCube) FindSketchPointNear(State, Frame, Io.MousePos, SketchPoints.HoverSketch, SketchPoints.HoverPoint);
             if (SketchPoints.HoverPoint >= 0 && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
             {
-                const FeatureStep* Step = FindSketchStepByLabel(State.Document, SketchPoints.HoverSketch);
-                SketchPoints.DragCondition = Step != nullptr;
-                SketchPoints.DragSketch    = SketchPoints.HoverSketch;
-                SketchPoints.DragPoint     = SketchPoints.HoverPoint;
-                SketchPoints.Origin        = Step ? SolvedSketchOf(State.Document, *Step).Points[SketchPoints.HoverPoint].Position : Vector2{};
-                SketchPoints.Target        = SketchPoints.Origin;
-                SketchPoints.StagedKey.clear();
-                SketchPoints.Refusal.clear();
-                SketchPoints.Preview.reset();
+                const SolidArcPickIntent Intent = PickIntentOf(Io);
+                const bool MultiCurvePick = State.PickMode == SolidArcPickMode::Any && Intent != SolidArcPickIntent::Replace
+                                         && (SketchPoints.Sketch != SketchPoints.HoverSketch || State.Document.Selection.Curves.size() > 1);
+                if (!MultiCurvePick)
+                {
+                    const FeatureStep* Step = FindSketchStepByLabel(State.Document, SketchPoints.HoverSketch);
+                    SketchPoints.DragCondition = Step != nullptr;
+                    SketchPoints.DragSketch    = SketchPoints.HoverSketch;
+                    SketchPoints.DragPoint     = SketchPoints.HoverPoint;
+                    SketchPoints.Origin        = Step ? SolvedSketchOf(State.Document, *Step).Points[SketchPoints.HoverPoint].Position : Vector2{};
+                    SketchPoints.Target        = SketchPoints.Origin;
+                    SketchPoints.StagedKey.clear();
+                    SketchPoints.Refusal.clear();
+                    SketchPoints.Preview.reset();
+                }
             }
         }
         if (SketchPoints.DragCondition)
@@ -11231,7 +11374,7 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
         SketchPoints.HoverPoint = -1;
         if (SketchPoints.DragCondition) CancelSketchPointDrag(State);
     }
-    if (State.PickMode != SolidArcPickMode::ControlPoint && !SketchPoints.Points.empty())
+    if (State.PickMode != SolidArcPickMode::ControlPoint && State.PickMode != SolidArcPickMode::Any && !SketchPoints.Points.empty())
     {
         SketchPoints.Points.clear();
         SketchPoints.Sketch.clear();
@@ -11240,7 +11383,8 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
 
     SolidArcPoleDrag& Drag = State.PoleDrag;
     bool PoleGesture = false;
-    if (!PointGesture && !GizmoOwned && State.PickMode == SolidArcPickMode::ControlPoint && !State.Drawing.ActiveCondition && !State.Bevel.ActiveCondition && !State.Constrain.ActiveCondition)
+    if (!PointGesture && !GizmoOwned && (State.PickMode == SolidArcPickMode::ControlPoint || State.PickMode == SolidArcPickMode::Any)
+        && !State.Drawing.ActiveCondition && !State.Bevel.ActiveCondition && !State.Constrain.ActiveCondition)
     {
         if (!Drag.ActiveCondition)
         {
@@ -11288,7 +11432,46 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
                         Announce(State, Compose("Moved pole %d of %s by %.2f mm · %.0f ms", Drag.Pole, Caption.c_str(), Distance(Drag.Position, Drag.Origin) * 1000.0, Outcome.Milliseconds));
                     }
                 }
-                else PickCurve(State, Drag.Label, PickIntentOf(Io));                         // A click on a pole selects its curve
+                else
+                {
+                    const SolidArcPickIntent Intent = PickIntentOf(Io);
+                    if (Intent == SolidArcPickIntent::Replace)
+                    {
+                        SketchPoints.Points.clear();
+                        SketchPoints.Sketch.clear();
+                        PickCurve(State, Drag.Label, SolidArcPickIntent::Replace);
+                        Drag.PickedLabel = Drag.Label;
+                        Drag.PickedPoles = { Drag.Pole };
+                        Announce(State, Compose("%s · pole %d picked · the gizmo moves it (Shift+click adds poles on the same curve or adds curves for Loft)",
+                                                CaptionOf(State.Document, Drag.Label).c_str(), Drag.Pole));
+                    }
+                    else if (!Drag.PickedPoles.empty() && Drag.PickedLabel == Drag.Label
+                             && State.Document.Selection.Curves.size() == 1 && State.Document.Selection.Curves[0] == Drag.Label)
+                    {
+                        const auto Found = std::find(Drag.PickedPoles.begin(), Drag.PickedPoles.end(), Drag.Pole);
+                        if (Intent == SolidArcPickIntent::Remove)
+                        {
+                            if (Found != Drag.PickedPoles.end()) Drag.PickedPoles.erase(Found);
+                            if (Drag.PickedPoles.empty())
+                            {
+                                Drag.PickedLabel.clear();
+                                PickCurve(State, Drag.Label, Intent);
+                            }
+                        }
+                        else if (Found == Drag.PickedPoles.end())
+                        {
+                            Drag.PickedPoles.push_back(Drag.Pole);
+                            Announce(State, Compose("%s · %d poles picked · the gizmo moves, rotates and scales them",
+                                                    CaptionOf(State.Document, Drag.Label).c_str(), int(Drag.PickedPoles.size())));
+                        }
+                    }
+                    else
+                    {
+                        Drag.PickedPoles.clear();
+                        Drag.PickedLabel.clear();
+                        PickCurve(State, Drag.Label, Intent);
+                    }
+                }
             }
         }
     }
@@ -11997,7 +12180,9 @@ void DrawSelectionToolCards(SolidArcWorkspaceState& State)
         ImGui::PushStyleColor(ImGuiCol_Text, Tint(MutedColour));
         ImGui::TextWrapped("Loft runs through the curves in the order picked (badges 1, 2, …); curves that cross make a network. Mode 1 shows the poles: drag one to reshape.");
         ImGui::PopStyleColor();
-        if (PressButton(State, "Loft  (L)###CurveLoft", RowSpan(), Selection.Curves.size() >= 2)) LoftSelectedCurves(State);
+        const bool CanLoftSelection = Selection.Curves.size() + Selection.Edges.size() >= 2
+                                   || (Selection.Curves.size() == 1 && (!Selection.Bodies.empty() || !Selection.Faces.empty()));
+        if (PressButton(State, "Loft  (L)###CurveLoft", RowSpan(), CanLoftSelection)) LoftSelectedCurves(State);
         ImGui::SameLine();
         const size_t Sketches = SelectedSketchLabels(State.Document).size();
         if (PressButton(State, "Join  (J)###CurveJoin", RowSpan(), Sketches >= 2 && !State.Bevel.ActiveCondition)) JoinSketches(State);
@@ -13909,7 +14094,10 @@ void DrawOperationsCard(SolidArcWorkspaceState& State, SolidArcSheet& Sheet)
             Operations.push_back({ "FillSketch", IconSymbol::SolidArcFill, Filled ? "Unfill · F" : "Fill · F" });
         }
     }
-    if (Selection.Curves.size() >= 2) Operations.push_back({ "Loft", IconSymbol::SolidArcSurface, "Loft · L" });
+    const bool CanLoftOperation = Selection.Curves.size() >= 2
+                               || (!Selection.Curves.empty() && !Selection.Edges.empty())
+                               || (Selection.Curves.size() == 1 && (!Selection.Bodies.empty() || !Selection.Faces.empty()));
+    if (CanLoftOperation) Operations.push_back({ "Loft", IconSymbol::SolidArcSurface, "Loft · L" });
     if (SelectedSketchLabels(State.Document).size() >= 2) Operations.push_back({ "Join", IconSymbol::SolidArcLink, "Join · J" });
     if (SelectedSketchLabels(State.Document).size() >= 2) Operations.push_back({ "Flow", IconSymbol::SolidArcCurve, "Flow along curve" });
     if (!Selection.Bodies.empty())
@@ -14813,6 +15001,10 @@ void ApplyShortcuts(SolidArcWorkspaceState& State)
     if (Pressed(ImGuiKey_Escape))
     {
         ClearSolidArcSelection(State.Document);
+        State.SketchPoints.Points.clear();
+        State.SketchPoints.Sketch.clear();
+        State.PoleDrag.PickedPoles.clear();
+        State.PoleDrag.PickedLabel.clear();
         State.FocusedStep = {};
         Announce(State, "Selection cleared");
     }
@@ -15331,6 +15523,41 @@ std::string DescribeSolidArcWorkspace(const SolidArcWorkspaceState& State)
     AppendJsonText(Stream, State.Status);
     Stream << ",\n  \"Viewport\": [" << State.ViewportRect[0] << ", " << State.ViewportRect[1] << ", " << State.ViewportRect[2] << ", " << State.ViewportRect[3] << "]\n}\n";
     return Stream.str();
+}
+
+void EvaluateSolidArcGizmo(SolidArcWorkspaceState& State, const OrbitCameraFrame& Frame)
+{
+    SolidArcGizmoSession& Gizmo = State.Gizmo;
+    Gizmo.Geometry = {};
+    if (!GizmoAvailableCondition(State))
+    {
+        Gizmo.Hover  = SolidArcGizmoHandle::None;
+        Gizmo.Target = SolidArcGizmoTarget::None;
+        return;
+    }
+    ResolveGizmoTarget(State);
+    FitGizmoToView(State);
+    if (Gizmo.Target == SolidArcGizmoTarget::None) return;
+    Gizmo.Pose.Modes = Gizmo.Modes;
+    Gizmo.Pose.Size  = MeasureGizmoSize(Frame, Gizmo.Pose.Origin, GizmoPixels);
+    Gizmo.Geometry   = BuildSolidArcGizmo(Gizmo.Pose, Frame, SolidArcGizmoHandle::None, SolidArcGizmoHandle::None);
+}
+
+SolidArcCommandOutcome ApplySolidArcGizmo(SolidArcWorkspaceState& State, SolidArcGizmoHandle Handle, Vector3 Shift, double Angle, double Factor)
+{
+    SolidArcGizmoSession& Gizmo = State.Gizmo;
+    Gizmo.Grab   = Handle;
+    Gizmo.Shift  = Shift;
+    Gizmo.Angle  = Angle;
+    Gizmo.Factor = Factor;
+    const SolidArcCommandOutcome Outcome = ApplyGizmoCommand(State.Document, Gizmo);
+    if (Outcome.AcceptedCondition)
+    {
+        RefreshSolidArcScene(State, true);
+        ++Gizmo.Commits;
+    }
+    Gizmo.Grab = SolidArcGizmoHandle::None;
+    return Outcome;
 }
 
 } // namespace Frontier::SolidArc

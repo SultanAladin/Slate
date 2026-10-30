@@ -793,6 +793,11 @@ struct SolidArcStepReading;
 [[nodiscard]] SolidArcCommandOutcome LoftSolidArcCurves(SolidArcDocument& Document, const std::vector<std::string>& Labels, int Continuity = 0,
                                                        bool SolidCondition = false);
 
+// L on mixed curve + laminar/body edge picks: resolves any selected B-rep edges in Document.Selection.Edges to matching
+// curve steps (or promotes them as SpaceCurve steps inside the same undo entry) alongside Document.Selection.Curves,
+// then runs the section loft or crossing-curve network.
+[[nodiscard]] SolidArcCommandOutcome LoftSolidArcSelection(SolidArcDocument& Document, int Continuity = 0, bool SolidCondition = false);
+
 // 💡 V7 (Plasticity Alt+X, gizmo x / y / z): Mirror step through the world plane normal to Axis (0 x · 1 y · 2 z) at the
 //    origin; SpaceCurves ending on that plane are re-fitted to leave it along its normal, so lofted halves meet G1.
 [[nodiscard]] SolidArcCommandOutcome MirrorSolidArcPanels(SolidArcDocument& Document, int Axis = 0);
@@ -819,6 +824,8 @@ struct SolidArcStepReading;
 
 // 💡 V3 (Plasticity mode 1): pole Pole of a SpaceCurve moves to Position; kept as a pole edit re-applied after every re-fit.
 [[nodiscard]] SolidArcCommandOutcome MoveSolidArcPole(SolidArcDocument& Document, const std::string& Label, int Pole, GeometryProcessing::Vector3 Position);
+[[nodiscard]] SolidArcCommandOutcome MoveSolidArcPoles(SolidArcDocument& Document, const std::string& Label, const std::vector<int>& Poles,
+                                                       const std::vector<GeometryProcessing::Vector3>& Positions);
 
 // Toggles a SpaceCurve in the curve selection (AdditiveCondition false: it becomes the only selected curve).
 void SelectSolidArcCurve(SolidArcDocument& Document, const std::string& Label, bool AdditiveCondition);

@@ -1779,6 +1779,223 @@ SolidArcCommandOutcome LoftSolidArcCurves(SolidArcDocument& Document, const std:
     return Outcome;
 }
 
+SolidArcCommandOutcome LoftSolidArcSelection(SolidArcDocument& Document, int Continuity, bool SolidCondition)
+{
+    if (!Document.Partition) return LoftSolidArcCurves(Document, Document.Selection.Curves, Continuity, SolidCondition);
+    std::vector<std::string> SelectedEdges = Document.Selection.Edges;
+    if (SelectedEdges.empty() && Document.Selection.Curves.size() == 1
+        && (!Document.Selection.Bodies.empty() || !Document.Selection.Faces.empty() || !Document.Selection.PickedBody.empty()))
+    {
+        const std::string& TargetCurve = Document.Selection.Curves.front();
+        const auto         TargetFit   = Document.Regeneration.Curves.find(TargetCurve);
+        if (TargetFit != Document.Regeneration.Curves.end() && TargetFit->second.Curve.Definition && TargetFit->second.Curve.Definition->Poles.size() >= 2)
+        {
+            const Vector3 StartC = TargetFit->second.Curve.Definition->Poles.front();
+            const Vector3 EndC   = TargetFit->second.Curve.Definition->Poles.back();
+            std::string SheetKey = !Document.Selection.Bodies.empty() ? Document.Selection.Bodies.front() : Document.Selection.PickedBody;
+            if (SheetKey.empty() && !Document.Selection.Faces.empty())
+                SheetKey = SolidArcBodyOfName(Document, SolidArcSelectionKind::Face, Document.Selection.Faces.front());
+            const RegeneratedBody* Owner = FindRegeneratedBody(Document, SheetKey);
+            if (Owner && Document.Partition->Bodies.Authenticate(Owner->Body)
+                && Document.Partition->Bodies.Resolve(Owner->Body).Category == BodyCategory::Sheet)
+            {
+                // Prefer an existing Loft section curve that shares an endpoint (V-hinge) with the new curve.
+                std::string HingedSection;
+                double      BestHingeGap = 1.0e-3;
+                for (const FeatureStep& Step : Document.Tree.Steps)
+                {
+                    if (Step.Kind != FeatureStepKind::Loft) continue;
+                    for (const std::string& Section : Step.Sections)
+                    {
+                        if (Section == TargetCurve) continue;
+                        const auto Fit = Document.Regeneration.Curves.find(Section);
+                        if (Fit == Document.Regeneration.Curves.end() || !Fit->second.Curve.Definition || Fit->second.Curve.Definition->Poles.size() < 2) continue;
+                        const Vector3 SecStart = Fit->second.Curve.Definition->Poles.front();
+                        const Vector3 SecEnd   = Fit->second.Curve.Definition->Poles.back();
+                        const double  Gap      = std::fmin(std::fmin(Distance(StartC, SecStart), Distance(StartC, SecEnd)),
+                                                           std::fmin(Distance(EndC, SecStart),   Distance(EndC, SecEnd)));
+                        if (Gap <= BestHingeGap) { BestHingeGap = Gap; HingedSection = Section; }
+                    }
+                }
+                if (!HingedSection.empty())
+                {
+                    SolidArcCommandOutcome Outcome = LoftSolidArcCurves(Document, { HingedSection, TargetCurve }, Continuity, SolidCondition);
+                    if (Outcome.AcceptedCondition)
+                    {
+                        Document.Selection.Bodies.clear();
+                        Document.Selection.Faces.clear();
+                    }
+                    return Outcome;
+                }
+                // Otherwise pick the closest open laminar boundary edge of the selected sheet body.
+                const BodyInventory Inventory = Document.Partition->CollectInventory(Owner->Body);
+                std::string BestEdge;
+                double      BestDist = 1.0e30;
+                for (const EdgeToken Edge : Inventory.Edges)
+                {
+                    const EdgeProfile& Profile = Document.Partition->Edges.Resolve(Edge);
+                    if (!Document.Partition->Fins.Authenticate(Profile.RadialFin)
+                        || Document.Partition->RadialMate(Profile.RadialFin) != Profile.RadialFin)
+                    {
+                        continue;
+                    }
+                    const auto Named = Owner->Naming.Edges.find(Edge.Slot);
+                    if (Named == Owner->Naming.Edges.end()) continue;
+                    const CurveGeometry& Carrier = Document.Partition->Curves.Resolve(Profile.Curve);
+                    const Vector3 Mid = EvaluateCurve(Carrier, 0.5 * (Profile.IntervalLow + Profile.IntervalHigh)).Position;
+                    const double  Score = std::fmin(Distance(StartC, Mid), Distance(EndC, Mid));
+                    if (Score < BestDist) { BestDist = Score; BestEdge = Named->second; }
+                }
+                if (!BestEdge.empty()) SelectedEdges.push_back(BestEdge);
+            }
+        }
+    }
+    if (SelectedEdges.empty()) return LoftSolidArcCurves(Document, Document.Selection.Curves, Continuity, SolidCondition);
+
+    struct ExtractedEdge
+    {
+        std::string         ExistingLabel = {};
+        std::vector<Vector3> Points       = {};
+        std::vector<double>  CurveKnots   = {};
+        bool                 ClosedCondition = false;
+    };
+    std::vector<ExtractedEdge> Pending;
+    const ModelPartition& Partition = *Document.Partition;
+    for (const std::string& EdgeName : SelectedEdges)
+    {
+        uint32_t FoundSlot = UINT32_MAX;
+        for (const RegeneratedBody& Body : Document.Regeneration.Bodies)
+        {
+            for (const auto& [Slot, Candidate] : Body.Naming.Edges)
+            {
+                if (Candidate == EdgeName) { FoundSlot = Slot; break; }
+            }
+            if (FoundSlot != UINT32_MAX) break;
+        }
+        if (FoundSlot == UINT32_MAX) continue;
+        const EdgeToken Edge = Partition.Edges.TokenAt(FoundSlot);
+        if (!Partition.Edges.Authenticate(Edge)) continue;
+        const EdgeProfile&   Profile = Partition.Edges.Resolve(Edge);
+        const CurveGeometry& Carrier = Partition.Curves.Resolve(Profile.Curve);
+        constexpr int Samples = 16;
+        std::array<Vector3, Samples + 1> EdgePoints;
+        for (int Index = 0; Index <= Samples; ++Index)
+        {
+            const double Parameter = Profile.IntervalLow + (Profile.IntervalHigh - Profile.IntervalLow) * (static_cast<double>(Index) / Samples);
+            EdgePoints[Index] = EvaluateCurve(Carrier, Parameter).Position;
+        }
+        std::string MatchedLabel;
+        for (const FeatureStep& Step : Document.Tree.Steps)
+        {
+            if (Step.Kind != FeatureStepKind::Sketch && Step.Kind != FeatureStepKind::SpaceCurve) continue;
+            const auto Fitted = Document.Regeneration.Curves.find(Step.Label);
+            if (Fitted == Document.Regeneration.Curves.end() || !Fitted->second.Curve.Definition) continue;
+            const NurbsDomain Domain = MeasureNurbsCurveDomain(*Fitted->second.Curve.Definition);
+            double SameWorst = 0.0, SwapWorst = 0.0;
+            for (int Index = 0; Index <= Samples; ++Index)
+            {
+                const double Ratio = static_cast<double>(Index) / Samples;
+                const Vector3 Forward = EvaluateNurbsCurve(*Fitted->second.Curve.Definition, Domain.Low + (Domain.High - Domain.Low) * Ratio).Position;
+                const Vector3 Reverse = EvaluateNurbsCurve(*Fitted->second.Curve.Definition, Domain.High - (Domain.High - Domain.Low) * Ratio).Position;
+                SameWorst = std::fmax(SameWorst, Distance(EdgePoints[Index], Forward));
+                SwapWorst = std::fmax(SwapWorst, Distance(EdgePoints[Index], Reverse));
+            }
+            if (std::fmin(SameWorst, SwapWorst) <= 5.0e-5) { MatchedLabel = Step.Label; break; }
+        }
+        ExtractedEdge Item;
+        Item.ExistingLabel = MatchedLabel;
+        if (MatchedLabel.empty())
+        {
+            Item.ClosedCondition = Profile.Start == Profile.End && Distance(EdgePoints.front(), EdgePoints[Samples / 2]) > 5.0e-5;
+            if (std::holds_alternative<StraightLine>(Carrier) && !Item.ClosedCondition)
+            {
+                Item.Points     = { EdgePoints.front(), EdgePoints.back() };
+                Item.CurveKnots = { 0.0, 0.0, 1.0, 1.0 };
+            }
+            else if (const auto* Nurbs = std::get_if<NurbsCurve>(&Carrier); Nurbs && Nurbs->Definition)
+            {
+                const NurbsDomain Domain = MeasureNurbsCurveDomain(*Nurbs->Definition);
+                const bool UnitWeights = std::all_of(Nurbs->Definition->Weights.begin(), Nurbs->Definition->Weights.end(), [](double Weight) { return std::abs(Weight - 1.0) <= 1.0e-12; });
+                if (UnitWeights && std::abs(Profile.IntervalLow - Domain.Low) <= 1.0e-9 && std::abs(Profile.IntervalHigh - Domain.High) <= 1.0e-9)
+                {
+                    Item.Points     = Nurbs->Definition->Poles;
+                    Item.CurveKnots = Nurbs->Definition->Knots;
+                }
+            }
+            if (Item.Points.empty())
+            {
+                constexpr int Dense = 32;
+                Item.Points.reserve(Dense + 1);
+                for (int Index = 0; Index <= Dense; ++Index)
+                {
+                    const double Parameter = Profile.IntervalLow + (Profile.IntervalHigh - Profile.IntervalLow) * (static_cast<double>(Index) / Dense);
+                    Item.Points.push_back(EvaluateCurve(Carrier, Parameter).Position);
+                }
+            }
+        }
+        Pending.push_back(std::move(Item));
+    }
+
+    // When every picked edge matched an existing curve step, loft those curve labels directly without adding extra steps.
+    bool AllMatched = true;
+    for (const ExtractedEdge& Item : Pending) if (Item.ExistingLabel.empty()) AllMatched = false;
+    if (AllMatched)
+    {
+        std::vector<std::string> Labels = Document.Selection.Curves;
+        for (const ExtractedEdge& Item : Pending)
+            if (std::find(Labels.begin(), Labels.end(), Item.ExistingLabel) == Labels.end()) Labels.push_back(Item.ExistingLabel);
+        SolidArcCommandOutcome Outcome = LoftSolidArcCurves(Document, Labels, Continuity, SolidCondition);
+        if (Outcome.AcceptedCondition) Document.Selection.Edges.clear();
+        return Outcome;
+    }
+
+    const size_t TotalCount = Document.Selection.Curves.size() + Pending.size();
+    const std::string Caption = NextCaption(Document, "Loft");
+    const std::string Label   = Caption + " · " + std::to_string(TotalCount) + " sections"
+                              + (Continuity > 0 ? " · G" + std::to_string(Continuity) : std::string()) + (SolidCondition ? " · solid" : "");
+    SolidArcCommandOutcome Outcome = RunCommand(Document, Label, false, [&]() -> std::string
+    {
+        std::vector<std::string> Labels = Document.Selection.Curves;
+        for (const ExtractedEdge& Item : Pending)
+        {
+            if (!Item.ExistingLabel.empty())
+            {
+                if (std::find(Labels.begin(), Labels.end(), Item.ExistingLabel) == Labels.end()) Labels.push_back(Item.ExistingLabel);
+                continue;
+            }
+            FeatureStep CurveStep;
+            CurveStep.Kind            = FeatureStepKind::SpaceCurve;
+            CurveStep.Label           = "Curve#" + std::to_string(NextStepOrdinal(Document.Tree));
+            CurveStep.Points          = Item.Points;
+            CurveStep.CurveKnots      = Item.CurveKnots;
+            CurveStep.ClosedCondition = Item.ClosedCondition;
+            CurveStep.Tolerance       = { 1.0e-5 };
+            Document.Captions[CurveStep.Label] = NextCaption(Document, "Curve");
+            Document.Appearance.HiddenCurves.insert(CurveStep.Label);
+            Labels.push_back(CurveStep.Label);
+            Document.Tree.Steps.push_back(std::move(CurveStep));
+        }
+        if (Labels.size() < 2) return "loft needs at least 2 curves (select them in section order)";
+        if (Continuity < 0 || Continuity > 2) return "continuity must be G0, G1 or G2";
+        if (SolidCondition && Continuity > 0) return "a solid loft is G0 (G1 / G2 join a loft to neighbouring panels)";
+        FeatureStep Step;
+        Step.Kind            = FeatureStepKind::Loft;
+        Step.Label           = "Loft#" + std::to_string(NextStepOrdinal(Document.Tree));
+        Step.Sections        = std::move(Labels);
+        Step.Continuity      = Continuity;
+        Step.ClosedCondition = SolidCondition;
+        Document.Captions[Step.Label] = Caption;
+        Document.Tree.Steps.push_back(std::move(Step));
+        return {};
+    });
+    if (Outcome.AcceptedCondition)
+    {
+        Document.Selection.Curves.clear();
+        Document.Selection.Edges.clear();
+    }
+    return Outcome;
+}
+
 std::vector<Vector3> SampleThroughCurve(const std::vector<Vector3>& Points, bool ClosedCondition, SketchSplineForm Form, int PerSpan, const std::vector<double>& Knots)
 {
     // 📝 Every sketch form is linear in its defining points, C(τ) = Σ wⱼ(τ)·Qⱼ (WeighSketchSpline), so the 3D curve with
@@ -1984,19 +2201,33 @@ SolidArcCommandOutcome CloseSolidArcPanels(SolidArcDocument& Document)
 
 SolidArcCommandOutcome MoveSolidArcPole(SolidArcDocument& Document, const std::string& Label, int Pole, Vector3 Position)
 {
+    return MoveSolidArcPoles(Document, Label, { Pole }, { Position });
+}
+
+SolidArcCommandOutcome MoveSolidArcPoles(SolidArcDocument& Document, const std::string& Label, const std::vector<int>& Poles, const std::vector<Vector3>& Positions)
+{
     const auto        Caption = Document.Captions.find(Label);
-    const std::string Command = "Move pole " + std::to_string(Pole) + " of " + (Caption != Document.Captions.end() ? Caption->second : Label);
+    const std::string Name    = Caption != Document.Captions.end() ? Caption->second : Label;
+    const std::string Command = Poles.size() == 1 ? ("Move pole " + std::to_string(Poles[0]) + " of " + Name)
+                                                  : ("Move " + std::to_string(Poles.size()) + " poles of " + Name);
     return RunCommand(Document, Command, false, [&]() -> std::string
     {
+        if (Poles.empty() || Poles.size() != Positions.size()) return "pick at least one pole to move";
         const auto Found = std::find_if(Document.Tree.Steps.begin(), Document.Tree.Steps.end(), [&](const FeatureStep& Step) { return Step.Label == Label; });
         if (Found == Document.Tree.Steps.end() || Found->Kind != FeatureStepKind::SpaceCurve) return "no curve step labelled " + Label;
         const auto Fitted = Document.Regeneration.Curves.find(Label);
         if (Fitted == Document.Regeneration.Curves.end()) return "curve " + Label + " has no fitted poles (refused step)";
-        if (Pole < 0 || Pole >= static_cast<int>(Fitted->second.Curve.Definition->Poles.size())) return "pole " + std::to_string(Pole) + " does not exist";
-        if (!std::isfinite(Position.X) || !std::isfinite(Position.Y) || !std::isfinite(Position.Z)) return "pole position is not finite";
-        const auto Edit = std::find_if(Found->PoleEdits.begin(), Found->PoleEdits.end(), [&](const FeaturePoleEdit& Entry) { return Entry.Index == Pole; });
-        if (Edit != Found->PoleEdits.end()) Edit->Position = Position;
-        else Found->PoleEdits.push_back({ Pole, Position });
+        const int Total = static_cast<int>(Fitted->second.Curve.Definition->Poles.size());
+        for (size_t Index = 0; Index < Poles.size(); ++Index)
+        {
+            const int     Pole     = Poles[Index];
+            const Vector3 Position = Positions[Index];
+            if (Pole < 0 || Pole >= Total) return "pole " + std::to_string(Pole) + " does not exist";
+            if (!std::isfinite(Position.X) || !std::isfinite(Position.Y) || !std::isfinite(Position.Z)) return "pole position is not finite";
+            const auto Edit = std::find_if(Found->PoleEdits.begin(), Found->PoleEdits.end(), [&](const FeaturePoleEdit& Entry) { return Entry.Index == Pole; });
+            if (Edit != Found->PoleEdits.end()) Edit->Position = Position;
+            else Found->PoleEdits.push_back({ Pole, Position });
+        }
         return {};
     });
 }
@@ -3180,6 +3411,26 @@ SolidArcCommandOutcome TransformSolidArcBodies(SolidArcDocument& Document, const
 SolidArcCommandOutcome PlaceSolidArcSketches(SolidArcDocument& Document, const std::vector<std::string>& Labels, const AffineMap& Map, const std::string& Verb)
 {
     const std::vector<std::string> Unique = UniqueKeys(Labels);
+    const auto CarrySpaceCurve = [](FeatureStep& Step, const AffineMap& Transform) -> std::string
+    {
+        const double Det = Dot(Cross(Transform.ColumnX, Transform.ColumnY), Transform.ColumnZ);
+        if (!std::isfinite(Det) || std::abs(Det) <= 1.0e-12) return "a scale of 0 flattens the curve";
+        const auto Apply = [&](Vector3 Point)
+        {
+            return Transform.ColumnX * Point.X + Transform.ColumnY * Point.Y + Transform.ColumnZ * Point.Z + Transform.Shift;
+        };
+        for (Vector3& Point : Step.Points)
+        {
+            Point = Apply(Point);
+            if (!std::isfinite(Point.X + Point.Y + Point.Z)) return "transformed curve point is not finite";
+        }
+        for (FeaturePoleEdit& Edit : Step.PoleEdits)
+        {
+            Edit.Position = Apply(Edit.Position);
+            if (!std::isfinite(Edit.Position.X + Edit.Position.Y + Edit.Position.Z)) return "transformed curve pole is not finite";
+        }
+        return {};
+    };
     return RunCommand(Document, Verb + " (" + ListCaptions(Document, Unique) + ")", false, [&]() -> std::string
     {
         if (Unique.empty()) return "pick the sketches to " + Verb;
@@ -3187,8 +3438,10 @@ SolidArcCommandOutcome PlaceSolidArcSketches(SolidArcDocument& Document, const s
         for (const std::string& Label : Unique)
         {
             const auto Found = std::find_if(Document.Tree.Steps.begin(), Document.Tree.Steps.end(), [&](const FeatureStep& Step) { return Step.Label == Label; });
-            if (Found == Document.Tree.Steps.end() || Found->Kind != FeatureStepKind::Sketch) return "no sketch step labelled " + Label;
-            if (const std::string Refusal = CarrySketchStep(Document, *Found, Map, Dropped); !Refusal.empty()) return Refusal;
+            if (Found == Document.Tree.Steps.end() || (Found->Kind != FeatureStepKind::Sketch && Found->Kind != FeatureStepKind::SpaceCurve))
+                return "no sketch step labelled " + Label;
+            const std::string Refusal = Found->Kind == FeatureStepKind::SpaceCurve ? CarrySpaceCurve(*Found, Map) : CarrySketchStep(Document, *Found, Map, Dropped);
+            if (!Refusal.empty()) return Refusal;
         }
         return {};
     });
@@ -3211,15 +3464,28 @@ SolidArcCommandOutcome DuplicateSolidArcSketches(SolidArcDocument& Document, con
         for (const std::string& Label : Unique)
         {
             const auto Found = std::find_if(Document.Tree.Steps.begin(), Document.Tree.Steps.end(), [&](const FeatureStep& Step) { return Step.Label == Label; });
-            if (Found == Document.Tree.Steps.end() || Found->Kind != FeatureStepKind::Sketch) return "no sketch step labelled " + Label;
+            if (Found == Document.Tree.Steps.end() || (Found->Kind != FeatureStepKind::Sketch && Found->Kind != FeatureStepKind::SpaceCurve))
+                return "no sketch step labelled " + Label;
             FeatureStep Copy = *Found;
-            Copy.Label   = "Sketch#" + std::to_string(NextStepOrdinal(Document.Tree));
-            Copy.Sketch  = SolvedSketch(Document, *Found);                                   // As shown (solved positions); the copy's label is new
-            if (const std::string Refusal = CarrySketchStep(Document, Copy, Map, Dropped); !Refusal.empty()) return Refusal;
+            if (Found->Kind == FeatureStepKind::SpaceCurve)
+            {
+                const double Det = Dot(Cross(Map.ColumnX, Map.ColumnY), Map.ColumnZ);
+                if (!std::isfinite(Det) || std::abs(Det) <= 1.0e-12) return "a scale of 0 flattens the curve";
+                Copy.Label = "Curve#" + std::to_string(NextStepOrdinal(Document.Tree));
+                const auto Apply = [&](Vector3 Point) { return Map.ColumnX * Point.X + Map.ColumnY * Point.Y + Map.ColumnZ * Point.Z + Map.Shift; };
+                for (Vector3& Point : Copy.Points) Point = Apply(Point);
+                for (FeaturePoleEdit& Edit : Copy.PoleEdits) Edit.Position = Apply(Edit.Position);
+            }
+            else
+            {
+                Copy.Label  = "Sketch#" + std::to_string(NextStepOrdinal(Document.Tree));
+                Copy.Sketch = SolvedSketch(Document, *Found);                                // As shown (solved positions); the copy's label is new
+                if (const std::string Refusal = CarrySketchStep(Document, Copy, Map, Dropped); !Refusal.empty()) return Refusal;
+            }
             const auto  Caption = Document.Captions.find(Label);
-            std::string Stem    = Caption != Document.Captions.end() ? Caption->second : std::string("Sketch");
+            std::string Stem    = Caption != Document.Captions.end() ? Caption->second : (Found->Kind == FeatureStepKind::SpaceCurve ? std::string("Curve") : std::string("Sketch"));
             while (!Stem.empty() && std::isdigit(static_cast<unsigned char>(Stem.back()))) Stem.pop_back();
-            if (Stem.empty()) Stem = "Sketch";
+            if (Stem.empty()) Stem = Found->Kind == FeatureStepKind::SpaceCurve ? "Curve" : "Sketch";
             Document.Captions[Copy.Label] = NextCaption(Document, Stem);
             Copies.push_back(Copy.Label);
             Document.Tree.Steps.push_back(std::move(Copy));

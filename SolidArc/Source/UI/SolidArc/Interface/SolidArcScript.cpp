@@ -551,9 +551,10 @@ bool ObserveField(const SolidArcWorkspaceState& State, const std::string& Field,
     if (Field == "gizmo-target")
     {
         Text   = State.Gizmo.Target == SolidArcGizmoTarget::Faces ? "faces" : State.Gizmo.Target == SolidArcGizmoTarget::Bodies ? "bodies"
-               : State.Gizmo.Target == SolidArcGizmoTarget::Sketches ? "sketches" : State.Gizmo.Target == SolidArcGizmoTarget::Points ? "points"
+               : State.Gizmo.Target == SolidArcGizmoTarget::Sketches ? "sketches"
+               : (State.Gizmo.Target == SolidArcGizmoTarget::Points || State.Gizmo.Target == SolidArcGizmoTarget::Poles) ? "points"
                : State.Gizmo.Target == SolidArcGizmoTarget::Shape ? (State.Gizmo.VertexCondition ? "vertices" : "edges") : "";
-        Number = double(int(State.Gizmo.Target));                                          // 0 none · 1 faces · 2 bodies · 3 sketches · 4 points
+        Number = double(State.Gizmo.Target == SolidArcGizmoTarget::Poles ? int(SolidArcGizmoTarget::Points) : int(State.Gizmo.Target));
         return true;
     }
     if (Field == "measure")

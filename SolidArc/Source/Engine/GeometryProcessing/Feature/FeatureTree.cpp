@@ -1084,10 +1084,112 @@ RegenerationOutcome RegenerateFeatureTree(ModelPartition& Partition, FeatureTree
                 if (Before) Settings.Start = { Step.Continuity, Before->Panel.Surface };
                 if (After)  Settings.End   = { Step.Continuity, After->Panel.Surface };
             }
-            const LoftSurfaceOutcome Loft = LoftSectionSurface(Sections, Settings);
+            if (Sections.size() == 3 && Step.Continuity == 0 && !Step.ClosedCondition)
+            {
+                constexpr double HingeGap = 1.0e-4;
+                bool AllOpenCondition = true;
+                Vector3 Starts[3] = {}, Ends[3] = {};
+                for (int Index = 0; Index < 3; ++Index)
+                {
+                    if (!Sections[Index].Definition || Sections[Index].Definition->Poles.size() < 2) { AllOpenCondition = false; break; }
+                    Starts[Index] = Sections[Index].Definition->Poles.front();
+                    Ends[Index]   = Sections[Index].Definition->Poles.back();
+                    if (Length(Starts[Index] - Ends[Index]) <= HingeGap) { AllOpenCondition = false; break; }
+                }
+                if (AllOpenCondition)
+                {
+                    auto PairGap = [&](int First, int Second)
+                    {
+                        return std::fmin(std::fmin(Length(Starts[First] - Starts[Second]), Length(Starts[First] - Ends[Second])),
+                                         std::fmin(Length(Ends[First] - Starts[Second]),   Length(Ends[First] - Ends[Second])));
+                    };
+                    const bool Touch01 = PairGap(0, 1) <= HingeGap;
+                    const bool Touch12 = PairGap(1, 2) <= HingeGap;
+                    const bool Touch02 = PairGap(0, 2) <= HingeGap;
+                    const int  TouchCount = int(Touch01) + int(Touch12) + int(Touch02);
+                    if (TouchCount == 3)
+                    {
+                        const LoftSurfaceOutcome TriPatch = LoftTriangularLoop(Sections, HingeGap);
+                        if (TriPatch.Refusal.empty())
+                        {
+                            Panels.push_back({ SurfacePanel{ TriPatch.Surface }, Step.Label + ".Side(Surface)", Step.Sections, false });
+                            if (const std::string TriProblem = Reassemble("Sew", false); TriProblem.empty()) break;
+                            Panels.pop_back();
+                        }
+                    }
+                    else if (TouchCount == 1 || TouchCount == 2)
+                    {
+                        int FirstIdx = 0, MiddleIdx = 1, LastIdx = 2;
+                        if (TouchCount == 2)
+                        {
+                            MiddleIdx = (Touch01 && Touch02) ? 0 : (Touch01 && Touch12) ? 1 : 2;
+                            FirstIdx  = MiddleIdx == 0 ? 1 : 0;
+                            LastIdx   = MiddleIdx == 2 ? 1 : 2;
+                        }
+                        else
+                        {
+                            const int HingeA = Touch01 ? 0 : Touch02 ? 0 : 1;
+                            const int HingeB = Touch01 ? 1 : Touch02 ? 2 : 2;
+                            const int Third  = 3 - HingeA - HingeB;
+                            FirstIdx  = Third;
+                            MiddleIdx = PairGap(Third, HingeA) <= PairGap(Third, HingeB) ? HingeA : HingeB;
+                            LastIdx   = MiddleIdx == HingeA ? HingeB : HingeA;
+                        }
+                        const LoftSurfaceOutcome FirstSpan  = LoftSectionSurface({ Sections[FirstIdx], Sections[MiddleIdx] }, Settings);
+                        const LoftSurfaceOutcome SecondSpan = LoftSectionSurface({ Sections[MiddleIdx], Sections[LastIdx] }, Settings);
+                        if (FirstSpan.Refusal.empty() && SecondSpan.Refusal.empty())
+                        {
+                            Panels.push_back({ SurfacePanel{ FirstSpan.Surface },  Step.Label + ".Side(Surface.0)", { Step.Sections[FirstIdx], Step.Sections[MiddleIdx] }, false });
+                            Panels.push_back({ SurfacePanel{ SecondSpan.Surface }, Step.Label + ".Side(Surface.1)", { Step.Sections[MiddleIdx], Step.Sections[LastIdx] }, false });
+                            if (const std::string SpanProblem = Reassemble("Sew", false); SpanProblem.empty()) break;
+                            Panels.pop_back();
+                            Panels.pop_back();
+                        }
+                    }
+                }
+            }
+            LoftSurfaceOutcome Loft = LoftSectionSurface(Sections, Settings);
             if (!Loft.Refusal.empty()) { Refuse(Loft.Refusal); break; }
             Panels.push_back({ SurfacePanel{ Loft.Surface }, Step.Label + ".Side(Surface)", { Step.Sections.front(), Step.Sections.back() }, false });
-            if (const std::string Problem = Reassemble("Sew", false); !Problem.empty()) { Panels.pop_back(); Refuse(Problem); }
+            std::string Problem = Reassemble("Sew", false);
+            if (!Problem.empty() && Problem.find("one-sided") != std::string::npos && Sections.size() == 2 && Step.Continuity == 0 && !Loft.ClosedCondition)
+            {
+                // A 3rd panel closing a >90° 3-curve loop can be untwisted by reversing one section instead of chord-aligning.
+                LoftSettings Untwisted = Settings;
+                Untwisted.AlignCondition = false;
+                std::vector<NurbsCurve> Flipped = Sections;
+                Flipped[1] = ReverseNurbsCurve(*Sections[1].Definition);
+                const LoftSurfaceOutcome Alt = LoftSectionSurface(Flipped, Untwisted);
+                if (Alt.Refusal.empty())
+                {
+                    Panels.back().Panel = SurfacePanel{ Alt.Surface };
+                    if (const std::string Retry = Reassemble("Sew", false); Retry.empty())
+                    {
+                        Loft = Alt;
+                        Problem.clear();
+                    }
+                }
+            }
+            if (!Problem.empty())
+            {
+                Panels.pop_back();
+                if (!Panels.empty())
+                {
+                    // When the new panel is sound on its own (e.g. a 3rd panel branching from an already-sewn edge in a T/V fin),
+                    // emit it as an independent sheet body rather than refusing the loft step outright.
+                    const PanelAssemblyOutcome Standalone = AssemblePanels(Partition, { SurfacePanel{ Loft.Surface } }, PanelAssemblySettings{}, "Sew");
+                    if (Standalone.Refusal.empty())
+                    {
+                        Naming  = NamePanelBody(Partition, Standalone.Body, Standalone.Faces, { Step.Label + ".Side(Surface)" });
+                        Current = Standalone.Body;
+                        Create();
+                        Outcome.Panels[Step.Label + ".Side(Surface)"] = Loft.Surface;
+                        break;
+                    }
+                }
+                Refuse(Problem);
+                break;
+            }
             break;
         }
         case FeatureStepKind::Network:

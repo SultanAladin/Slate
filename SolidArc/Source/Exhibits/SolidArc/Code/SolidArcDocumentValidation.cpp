@@ -20,6 +20,7 @@
 #include "UI/SolidArc/Viewport/SolidArcCamera.h"
 #include "UI/SolidArc/Viewport/SolidArcGizmo.h"
 #include "UI/SolidArc/Viewport/SolidArcSnapping.h"
+#include "UI/SolidArc/Interface/SolidArcInterface.h"
 
 #include "Engine/GeometryProcessing/Audit/EnclosedVolume.h"
 #include "Engine/GeometryProcessing/Blend/BlendCatalogue.h"
@@ -145,6 +146,8 @@ namespace
     GateTally CurveBendStackGate = { "W78", "Bend along curve & Modifier Stack: 3D spatial B-rep bend of a solid bar along a 90° arc and 3D curve (T1–T6 & G1–G6 certified), stack reorder / mute / undo / redo / byte-equal TOML round-trip", "≤ 2·10⁻³ · sound" };
     GateTally CompoundCutterGate = { "W79", "Multi-stage Compound Cutters (Countersink, Counterbore, Stepped hole, Hex socket, Stepped slot, Stepped pocket): non-stretching stage-by-stage construction, exact analytic closed-form volumes, 0 NURBS promotion, 0 duplicate 1-stage shapes", "≤ 10⁻⁹ · exact" };
     GateTally LiveEditableGate   = { "W80", "Realtime-editable semitransparent Live Boolean cutters & standalone icon verification: Face Push/Pull & Edge Bevel directly on a semitransparent Live Compound Cutter update the carved solid target in real time; 65 SolidArc SVG icons verified", "≤ 10⁻⁹ · sound" };
+    GateTally GizmoAllViewsGate  = { "W81", "Transform gizmo across all 7 views (Top, Bottom, Front, Back, Right, Left, 3D Isometric) & all 2D/3D primitives, curves & handles: 2 screen-plane arrows + plane quad in every 90° view (including XZ/YZ sketches & curve handles in Top view), 3 arrows + 3 quads in 3D, SpaceCurve & pole handle gizmos, ray-pick and live apply", "exact · ≤ 10⁻⁹" };
+    GateTally ContinuedLoftGate  = { "W82", "Continued & shared-endpoint V-lofts: 2 curves lofted then 3rd V-curve at shared endpoint with different height sews into 3 curves & 3 surfaces (caps to solid), obtuse/acute V-lofts, 3-section hinged loft, SpaceCurve V-loft without Network misroute, >90° 3-panel loop untwist, T-fin fallback, and laminar edge-to-curve loft", "sound · ≤ 10⁻⁹" };
 
     std::vector<std::string> Journal;                                                        // [-] - Narrative rows for the exhibit
 
@@ -2896,6 +2899,571 @@ void ValidateStage3CadFeatures()
     }
 }
 
+void ValidateGizmoAndContinuedLofts()
+{
+    const auto Format = [](const char* Pattern, auto... Values) { char Text[1400]; std::snprintf(Text, sizeof(Text), Pattern, Values...); return std::string(Text); };
+
+    // ============================================================================================================
+    // W81 — Gizmo across ALL 7 views (Top, Bottom, Front, Back, Right, Left, Isometric 3D) × ALL 2D/3D primitives,
+    //       sub-elements, 2D curves & handles, and 3D SpaceCurves & pole handles.
+    // ============================================================================================================
+    {
+        struct ViewSpec
+        {
+            OrbitViewPreset Preset;
+            const char*     Name;
+            bool            FlatCondition;
+            bool            Orthographic;
+        };
+        const ViewSpec Views[] = {
+            { OrbitViewPreset::Top,       "Top(ortho)",    true,  true  },
+            { OrbitViewPreset::Top,       "Top(persp)",    true,  false },
+            { OrbitViewPreset::Bottom,    "Bottom",        true,  true  },
+            { OrbitViewPreset::Front,     "Front",         true,  true  },
+            { OrbitViewPreset::Back,      "Back",          true,  true  },
+            { OrbitViewPreset::Right,     "Right",         true,  true  },
+            { OrbitViewPreset::Left,      "Left",          true,  true  },
+            { OrbitViewPreset::Isometric, "Isometric(3D)", false, false }
+        };
+
+        const auto CountVisible = [](const SolidArcGizmoSession& Gizmo, SolidArcGizmoHandle First)
+        {
+            int Shown = 0;
+            for (int Axis = 0; Axis < 3; ++Axis)
+                if (!((Gizmo.Pose.Hidden >> (uint32_t(First) + uint32_t(Axis))) & 1u)) ++Shown;
+            return Shown;
+        };
+
+        const auto ProjectPoint = [](const OrbitCameraFrame& Frame, Vector3 Point, double& PixelX, double& PixelY)
+        {
+            double Clip[4] = {};
+            for (int Row = 0; Row < 4; ++Row)
+                Clip[Row] = Frame.ClipFromWorld[Row] * Point.X + Frame.ClipFromWorld[4 + Row] * Point.Y + Frame.ClipFromWorld[8 + Row] * Point.Z + Frame.ClipFromWorld[12 + Row];
+            if (std::abs(Clip[3]) <= 1.0e-12) return false;
+            PixelX = (Clip[0] / Clip[3] * 0.5 + 0.5) * Frame.Width;
+            PixelY = (Clip[1] / Clip[3] * 0.5 + 0.5) * Frame.Height;
+            return true;
+        };
+
+        const auto VerifyShownArrowsPickable = [&](const SolidArcGizmoSession& Gizmo, const OrbitCameraFrame& Frame)
+        {
+            for (int Axis = 0; Axis < 3; ++Axis)
+            {
+                const SolidArcGizmoHandle Handle = SolidArcGizmoHandle(uint32_t(SolidArcGizmoHandle::TranslateX) + uint32_t(Axis));
+                if ((Gizmo.Pose.Hidden >> uint32_t(Handle)) & 1u) continue;
+                // Cone spans [0.86, 1.04] · Size; 1.00 · Size probes the unoccluded cone tip half (clear of the 0.95 quad corner on isometric rays).
+                const Vector3 Tip = Gizmo.Pose.Origin + Gizmo.Pose.Axes[Axis] * (1.00 * Gizmo.Pose.Size);
+                double PixelX = 0.0, PixelY = 0.0;
+                if (!ProjectPoint(Frame, Tip, PixelX, PixelY)) return false;
+                if (PickSolidArcGizmo(Gizmo.Geometry, Frame, PixelX, PixelY, 6.0) != Handle) return false;
+            }
+            return !Gizmo.Geometry.Vertices.empty();
+        };
+
+        // ① All 8 3D construct primitives across all 8 view configurations (Top ortho/persp, Bottom, Front, Back, Right, Left, 3D).
+        {
+            const SolidArcConstructKind Kinds[] = {
+                SolidArcConstructKind::Block, SolidArcConstructKind::Cylinder, SolidArcConstructKind::Sphere, SolidArcConstructKind::Cone,
+                SolidArcConstructKind::Torus, SolidArcConstructKind::Wedge,    SolidArcConstructKind::Prism,  SolidArcConstructKind::Tube
+            };
+            int ChecksRun = 0, Failures = 0;
+            for (SolidArcConstructKind Kind : Kinds)
+            {
+                SolidArcWorkspaceState State;
+                State.WelcomeOpen = false;
+                State.PickMode    = SolidArcPickMode::Solid;
+                State.Gizmo.Modes = GizmoTranslate | GizmoRotate | GizmoScale;
+                SolidArcConstructRequest Req;
+                Req.Kind        = Kind;
+                Req.Combination = FeatureCombination::Separate;
+                Req.Width = 1.6; Req.Depth = 1.2; Req.Height = 1.0; Req.Radius = 0.8; Req.Major = 1.2; Req.Minor = 0.25; Req.Inner = 0.3; Req.Sides = 6;
+                Expect(ConstructSolidArcPrimitive(State.Document, Req));
+                const std::string BodyKey = State.Document.Regeneration.Bodies.back().Key;
+                SelectSolidArcName(State.Document, SolidArcSelectionKind::Body, BodyKey, false, BodyKey);
+                RefreshSolidArcScene(State, false);
+
+                for (const ViewSpec& View : Views)
+                {
+                    PresentOrbitView(State.Camera, View.Preset);
+                    State.Camera.OrthographicEnabled = View.Orthographic;
+                    State.Camera.Distance            = 6.0;
+                    const OrbitCameraFrame Frame = FrameOrbitCamera(State.Camera, 1280.0, 720.0);
+                    EvaluateSolidArcGizmo(State, Frame);
+                    const int Arrows = CountVisible(State.Gizmo, SolidArcGizmoHandle::TranslateX);
+                    const int Planes = CountVisible(State.Gizmo, SolidArcGizmoHandle::PlaneYZ);
+                    const int Rings  = CountVisible(State.Gizmo, SolidArcGizmoHandle::RotateX);
+                    const int Scales = CountVisible(State.Gizmo, SolidArcGizmoHandle::ScaleX);
+                    const bool ExpectedCounts = View.FlatCondition ? (Arrows == 2 && Planes == 1 && Rings == 1 && Scales == 2)
+                                                                   : (Arrows == 3 && Planes == 3 && Rings == 3 && Scales == 3);
+                    const bool PickOk = VerifyShownArrowsPickable(State.Gizmo, Frame);
+                    ++ChecksRun;
+                    if (!ExpectedCounts || !PickOk || State.Gizmo.FlatCondition != View.FlatCondition) ++Failures;
+                }
+                // Apply a Top-view X+Y move on the primitive and verify volume invariance!
+                const double VolumeBefore = State.Document.Summary.Volume;
+                PresentOrbitView(State.Camera, OrbitViewPreset::Top);
+                State.Camera.OrthographicEnabled = true;
+                EvaluateSolidArcGizmo(State, FrameOrbitCamera(State.Camera, 1280.0, 720.0));
+                const SolidArcCommandOutcome Moved = ApplySolidArcGizmo(State, SolidArcGizmoHandle::PlaneXY, { 0.35, -0.25, 0.0 });
+                if (!Moved.AcceptedCondition || !State.Document.Summary.SoundCondition
+                    || std::abs(State.Document.Summary.Volume - VolumeBefore) > 1.0e-9 * std::max(1.0, VolumeBefore))
+                {
+                    ++Failures;
+                }
+            }
+            Tally(GizmoAllViewsGate, double(Failures), Failures == 0 && ChecksRun == 64,
+                  Format("8 3D primitives × 8 views (Top ortho/persp, Bottom, Front, Back, Right, Left, 3D): %d/%d gizmo poses & ray-picks exact, PlaneXY move volume-exact",
+                         ChecksRun - Failures, ChecksRun));
+        }
+
+        // ② 3D Sub-elements (Face, Edge, single Vertex, 2 Vertices) across all views + Top-view Face Offset along +X.
+        {
+            SolidArcWorkspaceState State;
+            State.WelcomeOpen = false;
+            State.Gizmo.Modes = GizmoTranslate | GizmoRotate | GizmoScale;
+            SolidArcConstructRequest Box;
+            Box.Kind = SolidArcConstructKind::Block; Box.Width = 2.0; Box.Depth = 2.0; Box.Height = 1.0;
+            Box.Combination = FeatureCombination::Separate;
+            Expect(ConstructSolidArcPrimitive(State.Document, Box));
+            const std::string BodyKey = State.Document.Regeneration.Bodies.back().Key;
+            RefreshSolidArcScene(State, false);
+
+            int SubFailures = 0;
+            // Face (+X side face): in Top view, TranslateX pushes along FaceNormal (+X) -> volume grows from 4.0 to 4.5!
+            std::string PlusXFace;
+            for (const SolidArcSceneFace& Face : State.Scene.Faces)
+            {
+                if (Face.CornerCount == 0) continue;
+                const auto& Normal = State.Scene.Corners[Face.FirstCorner].Normal;
+                if (Normal[0] > 0.99) { PlusXFace = Face.Name; break; }
+            }
+            State.PickMode = SolidArcPickMode::Face;
+            SelectSolidArcName(State.Document, SolidArcSelectionKind::Face, PlusXFace, false, BodyKey);
+            for (const ViewSpec& View : Views)
+            {
+                PresentOrbitView(State.Camera, View.Preset);
+                State.Camera.OrthographicEnabled = View.Orthographic;
+                const OrbitCameraFrame Frame = FrameOrbitCamera(State.Camera, 1280.0, 720.0);
+                EvaluateSolidArcGizmo(State, Frame);
+                const int Arrows = CountVisible(State.Gizmo, SolidArcGizmoHandle::TranslateX);
+                const int Planes = CountVisible(State.Gizmo, SolidArcGizmoHandle::PlaneYZ);
+                if (Arrows != (View.FlatCondition ? 2 : 3) || Planes != (View.FlatCondition ? 1 : 3) || !VerifyShownArrowsPickable(State.Gizmo, Frame))
+                    ++SubFailures;
+            }
+            PresentOrbitView(State.Camera, OrbitViewPreset::Top);
+            State.Camera.OrthographicEnabled = true;
+            EvaluateSolidArcGizmo(State, FrameOrbitCamera(State.Camera, 1280.0, 720.0));
+            const SolidArcCommandOutcome Pushed = ApplySolidArcGizmo(State, SolidArcGizmoHandle::TranslateX, { 0.25, 0.0, 0.0 });
+            const double FaceVolErr = std::abs(State.Document.Summary.Volume - 4.5);
+            if (!Pushed.AcceptedCondition || FaceVolErr > 1.0e-9) ++SubFailures;
+            RefreshSolidArcScene(State, false);
+            const std::string ActiveBodyKey = State.Document.Regeneration.Bodies.back().Key;
+
+            // Edge (Mode 2) & Vertex (Mode 1: 1 vertex and 2 vertices) across all views.
+            State.PickMode = SolidArcPickMode::Edge;
+            SelectSolidArcName(State.Document, SolidArcSelectionKind::Edge, State.Scene.Edges.front().Name, false, ActiveBodyKey);
+            for (const ViewSpec& View : Views)
+            {
+                PresentOrbitView(State.Camera, View.Preset);
+                State.Camera.OrthographicEnabled = View.Orthographic;
+                const OrbitCameraFrame Frame = FrameOrbitCamera(State.Camera, 1280.0, 720.0);
+                EvaluateSolidArcGizmo(State, Frame);
+                if (CountVisible(State.Gizmo, SolidArcGizmoHandle::TranslateX) != (View.FlatCondition ? 2 : 3) || !VerifyShownArrowsPickable(State.Gizmo, Frame))
+                    ++SubFailures;
+            }
+            State.PickMode = SolidArcPickMode::ControlPoint;
+            SelectSolidArcName(State.Document, SolidArcSelectionKind::Vertex, State.Scene.Vertices[0].Name, false, ActiveBodyKey);
+            PresentOrbitView(State.Camera, OrbitViewPreset::Top);
+            EvaluateSolidArcGizmo(State, FrameOrbitCamera(State.Camera, 1280.0, 720.0));
+            if (CountVisible(State.Gizmo, SolidArcGizmoHandle::TranslateX) != 2 || CountVisible(State.Gizmo, SolidArcGizmoHandle::PlaneYZ) != 1)
+                ++SubFailures;
+            SelectSolidArcName(State.Document, SolidArcSelectionKind::Vertex, State.Scene.Vertices[1].Name, true, ActiveBodyKey);
+            EvaluateSolidArcGizmo(State, FrameOrbitCamera(State.Camera, 1280.0, 720.0));
+            if (CountVisible(State.Gizmo, SolidArcGizmoHandle::TranslateX) != 2 || CountVisible(State.Gizmo, SolidArcGizmoHandle::ScaleX) != 2)
+                ++SubFailures;
+
+            Tally(GizmoAllViewsGate, FaceVolErr, SubFailures == 0,
+                  Format("3D sub-elements (Face, Edge, 1-Vertex, 2-Vertex) across all views + Top-view +X face offset (V=%.4f, err %.2e)",
+                         State.Document.Summary.Volume, FaceVolErr));
+        }
+
+        // ③ All 2D primitives & curve forms (Line, Rectangle, Circle, Arc, Polygon, Slot, Hermite, CubicSpline, Bezier, NURBS)
+        //    drawn on XY (0), XZ (1), and YZ (2) planes — verified in Top View & all 6 cardinal views + 3D!
+        {
+            int SketchChecks = 0, SketchFailures = 0;
+            struct DrawingCase
+            {
+                SolidArcDrawingKind Kind;
+                SketchSplineForm    Form;
+                std::vector<Vector2> Points;
+            };
+            const DrawingCase Cases[] = {
+                { SolidArcDrawingKind::Line,      SketchSplineForm::Hermite,     { { 0.0, 0.0 }, { 1.2, 0.4 } } },
+                { SolidArcDrawingKind::Rectangle, SketchSplineForm::Hermite,     { { 0.0, 0.0 }, { 1.4, 0.8 } } },
+                { SolidArcDrawingKind::Circle,    SketchSplineForm::Hermite,     { { 0.0, 0.0 }, { 0.6, 0.0 } } },
+                { SolidArcDrawingKind::Arc,       SketchSplineForm::Hermite,     { { 0.0, 0.0 }, { 0.6, 0.5 }, { 1.2, 0.0 } } },
+                { SolidArcDrawingKind::Polygon,   SketchSplineForm::Hermite,     { { 0.0, 0.0 }, { 0.7, 0.0 } } },
+                { SolidArcDrawingKind::Slot,      SketchSplineForm::Hermite,     { { 0.0, 0.0 }, { 1.0, 0.0 }, { 1.0, 0.25 } } },
+                { SolidArcDrawingKind::Curve,     SketchSplineForm::Hermite,     { { 0.0, 0.0 }, { 0.4, 0.5 }, { 0.9, -0.2 }, { 1.4, 0.4 } } },
+                { SolidArcDrawingKind::Curve,     SketchSplineForm::CubicSpline, { { 0.0, 0.0 }, { 0.4, 0.5 }, { 0.9, -0.2 }, { 1.4, 0.4 } } },
+                { SolidArcDrawingKind::Curve,     SketchSplineForm::Bezier,      { { 0.0, 0.0 }, { 0.3, 0.7 }, { 1.0, -0.4 }, { 1.4, 0.3 } } },
+                { SolidArcDrawingKind::Curve,     SketchSplineForm::Nurbs,       { { 0.0, 0.0 }, { 0.3, 0.7 }, { 1.0, -0.4 }, { 1.4, 0.3 } } }
+            };
+
+            for (int GridPlane = 0; GridPlane < 3; ++GridPlane)
+            {
+                for (const DrawingCase& Spec : Cases)
+                {
+                    SolidArcWorkspaceState State;
+                    State.WelcomeOpen = false;
+                    State.Gizmo.Modes = GizmoTranslate | GizmoRotate | GizmoScale;
+                    SolidArcDrawingRequest Draw = DrawingOf(Spec.Kind, GridPlane, Spec.Points);
+                    Draw.Form  = Spec.Form;
+                    Draw.Sides = 6;
+                    Expect(DrawSolidArcSketch(State.Document, Draw));
+                    const std::string SketchLabel = State.Document.Tree.Steps.back().Label;
+                    State.Document.Selection.Curves = { SketchLabel };
+                    RefreshSolidArcScene(State, false);
+
+                    // Check Whole-Sketch Gizmo AND Curve-Handle (Points) Gizmo in BOTH Mode 5 (Any) and Mode 1 (ControlPoint) across all views!
+                    for (SolidArcPickMode Mode : { SolidArcPickMode::Any, SolidArcPickMode::ControlPoint })
+                    {
+                        State.PickMode = Mode;
+                        State.SketchPoints = {};
+                        for (const ViewSpec& View : Views)
+                        {
+                            PresentOrbitView(State.Camera, View.Preset);
+                            State.Camera.OrthographicEnabled = View.Orthographic;
+                            const OrbitCameraFrame Frame = FrameOrbitCamera(State.Camera, 1280.0, 720.0);
+                            EvaluateSolidArcGizmo(State, Frame);
+                            const int Arrows = CountVisible(State.Gizmo, SolidArcGizmoHandle::TranslateX);
+                            const int Planes = CountVisible(State.Gizmo, SolidArcGizmoHandle::PlaneYZ);
+                            ++SketchChecks;
+                            if (State.Gizmo.Target != SolidArcGizmoTarget::Sketches
+                                || Arrows != (View.FlatCondition ? 2 : 3)
+                                || Planes != (View.FlatCondition ? 1 : 3)
+                                || !VerifyShownArrowsPickable(State.Gizmo, Frame))
+                            {
+                                ++SketchFailures;
+                            }
+                        }
+
+                        // Now select a curve handle on this sketch (point 1 when multi-point, else centre point 0 for Circle)
+                        // and verify Top View (and all views) shows 2 controls (NEVER 1)!
+                        const int HandlePoint = State.Document.Regeneration.Sketches.at(SketchLabel).Points.size() > 1 ? 1 : 0;
+                        State.SketchPoints.Sketch = SketchLabel;
+                        State.SketchPoints.Points = { HandlePoint };
+                        for (const ViewSpec& View : Views)
+                        {
+                            PresentOrbitView(State.Camera, View.Preset);
+                            State.Camera.OrthographicEnabled = View.Orthographic;
+                            const OrbitCameraFrame Frame = FrameOrbitCamera(State.Camera, 1280.0, 720.0);
+                            EvaluateSolidArcGizmo(State, Frame);
+                            const int Arrows = CountVisible(State.Gizmo, SolidArcGizmoHandle::TranslateX);
+                            const int Planes = CountVisible(State.Gizmo, SolidArcGizmoHandle::PlaneYZ);
+                            ++SketchChecks;
+                            if (State.Gizmo.Target != SolidArcGizmoTarget::Points
+                                || Arrows != (View.FlatCondition ? 2 : 3)
+                                || Planes != (View.FlatCondition ? 1 : 3)
+                                || !VerifyShownArrowsPickable(State.Gizmo, Frame))
+                            {
+                                ++SketchFailures;
+                            }
+                        }
+                    }
+                }
+            }
+            Tally(GizmoAllViewsGate, double(SketchFailures), SketchFailures == 0 && SketchChecks == 960,
+                  Format("10 2D primitives/splines × 3 sketch planes (XY/XZ/YZ) × Mode 1 & 5 × curve & handle × 8 views: %d/%d exact (2 controls in Top & all 90° views)",
+                         SketchChecks - SketchFailures, SketchChecks));
+        }
+
+        // ④ 3D SpaceCurves & SpaceCurve Pole Handles (Mode 1 and Mode 5) across all 8 views + live gizmo pole move on a Loft!
+        {
+            SolidArcWorkspaceState State;
+            State.WelcomeOpen = false;
+            State.Gizmo.Modes = GizmoTranslate | GizmoRotate | GizmoScale;
+            Expect(DrawSolidArcSpaceCurve(State.Document, { { 0.0, 0.0, 0.0 }, { 0.6, 0.4, 0.5 }, { 1.4, -0.3, 0.8 }, { 2.0, 0.2, 0.3 } }, false, SketchSplineForm::Bezier));
+            const std::string CurveA = State.Document.Tree.Steps.back().Label;
+            Expect(DrawSolidArcSpaceCurve(State.Document, { { 0.0, 1.5, 0.0 }, { 0.6, 1.8, 0.4 }, { 1.4, 1.3, 0.6 }, { 2.0, 1.5, 0.2 } }, false, SketchSplineForm::Bezier));
+            const std::string CurveB = State.Document.Tree.Steps.back().Label;
+            Expect(LoftSolidArcCurves(State.Document, { CurveA, CurveB }));
+            RefreshSolidArcScene(State, false);
+
+            int SpaceChecks = 0, SpaceFailures = 0;
+            for (SolidArcPickMode Mode : { SolidArcPickMode::Any, SolidArcPickMode::ControlPoint })
+            {
+                State.PickMode = Mode;
+                // Whole SpaceCurve selected
+                State.Document.Selection.Curves = { CurveA };
+                State.PoleDrag.PickedLabel.clear();
+                State.PoleDrag.PickedPoles.clear();
+                for (const ViewSpec& View : Views)
+                {
+                    PresentOrbitView(State.Camera, View.Preset);
+                    State.Camera.OrthographicEnabled = View.Orthographic;
+                    const OrbitCameraFrame Frame = FrameOrbitCamera(State.Camera, 1280.0, 720.0);
+                    EvaluateSolidArcGizmo(State, Frame);
+                    ++SpaceChecks;
+                    if (State.Gizmo.Target != SolidArcGizmoTarget::Sketches
+                        || CountVisible(State.Gizmo, SolidArcGizmoHandle::TranslateX) != (View.FlatCondition ? 2 : 3)
+                        || CountVisible(State.Gizmo, SolidArcGizmoHandle::PlaneYZ) != (View.FlatCondition ? 1 : 3)
+                        || !VerifyShownArrowsPickable(State.Gizmo, Frame))
+                    {
+                        ++SpaceFailures;
+                    }
+                }
+
+                // Single pole handle selected on CurveA
+                State.PoleDrag.PickedLabel = CurveA;
+                State.PoleDrag.PickedPoles = { 1 };
+                for (const ViewSpec& View : Views)
+                {
+                    PresentOrbitView(State.Camera, View.Preset);
+                    State.Camera.OrthographicEnabled = View.Orthographic;
+                    const OrbitCameraFrame Frame = FrameOrbitCamera(State.Camera, 1280.0, 720.0);
+                    EvaluateSolidArcGizmo(State, Frame);
+                    ++SpaceChecks;
+                    if (State.Gizmo.Target != SolidArcGizmoTarget::Poles
+                        || CountVisible(State.Gizmo, SolidArcGizmoHandle::TranslateX) != (View.FlatCondition ? 2 : 3)
+                        || CountVisible(State.Gizmo, SolidArcGizmoHandle::PlaneYZ) != (View.FlatCondition ? 1 : 3)
+                        || !VerifyShownArrowsPickable(State.Gizmo, Frame))
+                    {
+                        ++SpaceFailures;
+                    }
+                }
+
+                // Two pole handles selected on CurveA -> Rotate & Scale handles also active!
+                State.PoleDrag.PickedPoles = { 1, 2 };
+                PresentOrbitView(State.Camera, OrbitViewPreset::Top);
+                State.Camera.OrthographicEnabled = true;
+                EvaluateSolidArcGizmo(State, FrameOrbitCamera(State.Camera, 1280.0, 720.0));
+                ++SpaceChecks;
+                if (State.Gizmo.Target != SolidArcGizmoTarget::Poles
+                    || CountVisible(State.Gizmo, SolidArcGizmoHandle::TranslateX) != 2
+                    || CountVisible(State.Gizmo, SolidArcGizmoHandle::ScaleX) != 2
+                    || CountVisible(State.Gizmo, SolidArcGizmoHandle::RotateX) != 1)
+                {
+                    ++SpaceFailures;
+                }
+            }
+
+            // Drag pole 1 of CurveA in Top View via Gizmo TranslateY and verify the curve pole AND loft sheet update soundly!
+            State.PickMode             = SolidArcPickMode::Any;
+            State.Document.Selection.Curves = { CurveA };
+            State.PoleDrag.PickedLabel = CurveA;
+            State.PoleDrag.PickedPoles = { 1 };
+            PresentOrbitView(State.Camera, OrbitViewPreset::Top);
+            EvaluateSolidArcGizmo(State, FrameOrbitCamera(State.Camera, 1280.0, 720.0));
+            const Vector3 PoleBefore = State.Document.Regeneration.Curves.at(CurveA).Curve.Definition->Poles[1];
+            const SolidArcCommandOutcome PoleMoved = ApplySolidArcGizmo(State, SolidArcGizmoHandle::TranslateY, { 0.0, 0.35, 0.0 });
+            const Vector3 PoleAfter  = State.Document.Regeneration.Curves.at(CurveA).Curve.Definition->Poles[1];
+            const double  PoleErr    = Distance(PoleAfter, PoleBefore + Vector3{ 0.0, 0.35, 0.0 });
+            if (!PoleMoved.AcceptedCondition || PoleErr > 1.0e-12 || !State.Document.Summary.SoundCondition) ++SpaceFailures;
+
+            // Also move the entire SpaceCurve CurveB via Gizmo TranslateX in Top View!
+            State.PoleDrag.PickedLabel.clear();
+            State.PoleDrag.PickedPoles.clear();
+            State.Document.Selection.Curves = { CurveB };
+            EvaluateSolidArcGizmo(State, FrameOrbitCamera(State.Camera, 1280.0, 720.0));
+            const Vector3 EndBefore  = State.Document.Regeneration.Curves.at(CurveB).Curve.Definition->Poles.back();
+            const SolidArcCommandOutcome CurveMoved = ApplySolidArcGizmo(State, SolidArcGizmoHandle::TranslateX, { 0.25, 0.0, 0.0 });
+            const Vector3 EndAfter   = State.Document.Regeneration.Curves.at(CurveB).Curve.Definition->Poles.back();
+            const double  CurveErr   = Distance(EndAfter, EndBefore + Vector3{ 0.25, 0.0, 0.0 });
+            if (!CurveMoved.AcceptedCondition || CurveErr > 1.0e-12 || !State.Document.Summary.SoundCondition) ++SpaceFailures;
+
+            Tally(GizmoAllViewsGate, std::max(PoleErr, CurveErr), SpaceFailures == 0,
+                  Format("SpaceCurve & pole-handle gizmos (Mode 1 & 5, 1-pole & 2-pole, 8 views): %d/%d exact, Top-view pole move Δ=%.2e, curve move Δ=%.2e, loft sound",
+                         SpaceChecks - SpaceFailures, SpaceChecks, PoleErr, CurveErr));
+        }
+    }
+
+    // ============================================================================================================
+    // W82 — Continuing Lofts & Shared-Endpoint V-Lofts (3 curves & 3 surfaces, different heights, SpaceCurves,
+    //       obtuse & acute V angles, 3-section hinged loft, >90° 3-panel loop untwist, T-fin, and Edge+Curve loft).
+    // ============================================================================================================
+    {
+        const auto ElevatedPlane = [](double HeightZ) -> OrthonormalFrame
+        {
+            return { { 0.0, 0.0, HeightZ }, { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
+        };
+
+        // ① Exact user scenario: 2 curves lofted into 1 shape; 3rd curve placed at endpoint of Curve 1 forming a V
+        //    (with a different height!) -> continues the loft into 3 curves & 3 sewn surfaces (and closes into a solid!).
+        //    Tested for BOTH acute (<90°) AND obtuse (>90°, where Dot >= 0 previously twisted/refused!) V-configurations!
+        for (int Case = 0; Case < 2; ++Case)
+        {
+            const bool ObtuseCondition = Case == 1;
+            SolidArcDocument Doc = CreateSolidArcDocument(ObtuseCondition ? "VLoftObtuse" : "VLoftAcute");
+            // Curve 1 on z = 0: (0, 0, 0) -> (2, 0, 0)
+            Expect(DrawSolidArcSpaceCurve(Doc, { { 0.0, 0.0, 0.0 }, { 1.0, 0.15, 0.0 }, { 2.0, 0.0, 0.0 } }, false, SketchSplineForm::Hermite));
+            const std::string C1 = Doc.Tree.Steps.back().Label;
+            // Curve 2 at y = 1.5, z = 0.4: (0.2, 1.5, 0.4) -> (2.0, 1.5, 0.4)
+            Expect(DrawSolidArcSpaceCurve(Doc, { { 0.2, 1.5, 0.4 }, { 1.1, 1.6, 0.4 }, { 2.0, 1.5, 0.4 } }, false, SketchSplineForm::Hermite));
+            const std::string C2 = Doc.Tree.Steps.back().Label;
+            // Loft #1: 2 curves -> 1 surface
+            const SolidArcCommandOutcome Loft1 = LoftSolidArcCurves(Doc, { C1, C2 });
+            // Curve 3 starts at endpoint (2, 0, 0) of Curve 1, forming an acute or obtuse V and rising to height z = 1.3!
+            const Vector3 FarEnd = ObtuseCondition ? Vector3{ 3.4, 0.9, 1.3 } : Vector3{ 0.6, 0.9, 1.3 };
+            const Vector3 MidPt  = ObtuseCondition ? Vector3{ 2.7, 0.5, 0.7 } : Vector3{ 1.3, 0.5, 0.7 };
+            Expect(DrawSolidArcSpaceCurve(Doc, { { 2.0, 0.0, 0.0 }, MidPt, FarEnd }, false, SketchSplineForm::Hermite));
+            const std::string C3 = Doc.Tree.Steps.back().Label;
+
+            // Loft #2: V-loft between C1 and C3 (shared endpoint at (2, 0, 0), singular rail transposed onto singular row!)
+            const SolidArcCommandOutcome Loft2 = LoftSolidArcCurves(Doc, { C1, C3 });
+            const bool TwoPanelSound = Loft1.AcceptedCondition && Loft2.AcceptedCondition && Doc.Summary.SoundCondition && Doc.Summary.Faces == 2;
+
+            // Loft #3: continue between C2 and C3 -> 3 curves & 3 sewn surfaces!
+            const SolidArcCommandOutcome Loft3 = LoftSolidArcCurves(Doc, { C2, C3 });
+            const bool ThreePanelSound = Loft3.AcceptedCondition && Doc.Summary.SheetCondition && Doc.Summary.SoundCondition
+                                      && Doc.Summary.Faces == 3 && Doc.Regeneration.Panels.size() == 3;
+
+            // Bonus: the 3 open rim edges at the non-shared ends ((0,0,0) - (0.2,1.5,0.4) - FarEnd) form a single triangle
+            // -> CloseSolidArcPanels caps that planar triangle into a watertight 4-face solid!
+            const SolidArcCommandOutcome Closed = CloseSolidArcPanels(Doc);
+            const bool SolidSound = Closed.AcceptedCondition && !Doc.Summary.SheetCondition && Doc.Summary.SoundCondition
+                                 && Doc.Summary.Faces == 4 && Doc.Summary.Volume > 0.05;
+            Tally(ContinuedLoftGate, 0.0, TwoPanelSound && ThreePanelSound && SolidSound,
+                  Format("%s V-loft continuation (3 curves, different height z=1.3): Loft1+Loft2=2 faces → +Loft3=3 sewn faces (sound) → Close=4-face solid (V=%.4f)",
+                         ObtuseCondition ? "Obtuse (>90°)" : "Acute (<90°)", Doc.Summary.Volume));
+        }
+
+        // ② Single 3-section loft Loft(C1, C2, C3) where C1 and C3 share endpoint (2, 0, 0) in a V with different heights
+        //    (rail u=1 travels (2,0,0) -> (2,1.5,0.4) -> (2,0,0), a valid 1-vertex closed edge rather than a collapsed side)
+        //    AND a 3-curve non-touching V-in-Top-view loft at 3 different heights (z = 0, 0.5, 1.2).
+        {
+            SolidArcDocument Hinged = CreateSolidArcDocument("Hinged3Section");
+            Expect(DrawSolidArcSketch(Hinged, DrawingOf(SolidArcDrawingKind::Line, 0, { { 0.0, 0.0 }, { 2.0, 0.0 } })));
+            const std::string C1 = Hinged.Tree.Steps.back().Label;
+            SolidArcDrawingRequest MidLine = DrawingOf(SolidArcDrawingKind::Line, 0, { { 0.2, 1.2 }, { 2.0, 1.2 } });
+            MidLine.PlaneCondition = true;
+            MidLine.Plane          = ElevatedPlane(0.5);
+            Expect(DrawSolidArcSketch(Hinged, MidLine));
+            const std::string C2 = Hinged.Tree.Steps.back().Label;
+            Expect(DrawSolidArcSpaceCurve(Hinged, { { 2.0, 0.0, 0.0 }, { 1.2, 0.8, 1.1 } }, false, SketchSplineForm::Hermite));
+            const std::string C3 = Hinged.Tree.Steps.back().Label;
+            const SolidArcCommandOutcome ThreeSec = LoftSolidArcCurves(Hinged, { C1, C2, C3 });
+
+            // Also test V-in-Top-view where C3 starts at (2, 0, 1.2) — directly above C1's endpoint at different height z=1.2!
+            SolidArcDocument ElevatedV = CreateSolidArcDocument("ElevatedV");
+            Expect(DrawSolidArcSketch(ElevatedV, DrawingOf(SolidArcDrawingKind::Line, 0, { { 0.0, 0.0 }, { 2.0, 0.0 } })));
+            const std::string E1 = ElevatedV.Tree.Steps.back().Label;
+            SolidArcDrawingRequest E2Req = DrawingOf(SolidArcDrawingKind::Line, 0, { { 0.0, 1.5 }, { 2.0, 1.5 } });
+            E2Req.PlaneCondition = true;
+            E2Req.Plane          = ElevatedPlane(0.4);
+            Expect(DrawSolidArcSketch(ElevatedV, E2Req));
+            const std::string E2 = ElevatedV.Tree.Steps.back().Label;
+            SolidArcDrawingRequest E3Req = DrawingOf(SolidArcDrawingKind::Line, 0, { { 2.0, 0.0 }, { 0.6, -1.2 } });
+            E3Req.PlaneCondition = true;
+            E3Req.Plane          = ElevatedPlane(1.2);
+            Expect(DrawSolidArcSketch(ElevatedV, E3Req));
+            const std::string E3 = ElevatedV.Tree.Steps.back().Label;
+            const SolidArcCommandOutcome Pair1 = LoftSolidArcCurves(ElevatedV, { E1, E2 });
+            const SolidArcCommandOutcome Pair2 = LoftSolidArcCurves(ElevatedV, { E1, E3 });
+            const SolidArcCommandOutcome Pair3 = LoftSolidArcCurves(ElevatedV, { E2, E3 });
+            Tally(ContinuedLoftGate, 0.0,
+                  ThreeSec.AcceptedCondition && Hinged.Summary.SoundCondition &&
+                  Pair1.AcceptedCondition && Pair2.AcceptedCondition && Pair3.AcceptedCondition &&
+                  ElevatedV.Summary.SoundCondition && ElevatedV.Summary.Faces == 3,
+                  Format("3-section hinged loft (%s, sound=%d) + Top-view V at different height z=1.2 pairwise 3-surface tube (faces=%d, sound=%d)",
+                         ThreeSec.Label.c_str(), Hinged.Summary.SoundCondition ? 1 : 0, ElevatedV.Summary.Faces, ElevatedV.Summary.SoundCondition ? 1 : 0));
+        }
+
+        // ③ Lens loft (both endpoints shared -> 2 singular rows, 2 edges) + >90° 3-curve loop untwist (0° / 70° / 140°) + T-fin fallback.
+        {
+            SolidArcDocument Lens = CreateSolidArcDocument("LensLoft");
+            Expect(DrawSolidArcSpaceCurve(Lens, { { 0.0, 0.0, 0.0 }, { 1.0, -0.6, 0.3 }, { 2.0, 0.0, 0.0 } }, false, SketchSplineForm::Hermite));
+            const std::string ArchA = Lens.Tree.Steps.back().Label;
+            Expect(DrawSolidArcSpaceCurve(Lens, { { 2.0, 0.0, 0.0 }, { 1.0, 0.6, 0.8 }, { 0.0, 0.0, 0.0 } }, false, SketchSplineForm::Hermite));
+            const std::string ArchB = Lens.Tree.Steps.back().Label;
+            const SolidArcCommandOutcome LensLoft = LoftSolidArcCurves(Lens, { ArchA, ArchB });
+
+            // 3 curves at 0°, 70°, 140° around a prism — previously refused on 3rd loft as "one-sided (Möbius band)"!
+            SolidArcDocument PrismLoop = CreateSolidArcDocument("PrismLoop");
+            Expect(DrawSolidArcSpaceCurve(PrismLoop, { { 0.0, 0.0, 0.0 }, { 2.0, 0.0, 0.0 } }, false, SketchSplineForm::Hermite));
+            const std::string P1 = PrismLoop.Tree.Steps.back().Label;
+            Expect(DrawSolidArcSpaceCurve(PrismLoop, { { 0.3, 1.0, 0.6 }, { 0.3 + 2.0 * std::cos(70.0 * std::numbers::pi / 180.0), 1.0 + 2.0 * std::sin(70.0 * std::numbers::pi / 180.0), 0.6 } }, false, SketchSplineForm::Hermite));
+            const std::string P2 = PrismLoop.Tree.Steps.back().Label;
+            Expect(DrawSolidArcSpaceCurve(PrismLoop, { { -0.4, 0.8, 1.2 }, { -0.4 + 2.0 * std::cos(140.0 * std::numbers::pi / 180.0), 0.8 + 2.0 * std::sin(140.0 * std::numbers::pi / 180.0), 1.2 } }, false, SketchSplineForm::Hermite));
+            const std::string P3 = PrismLoop.Tree.Steps.back().Label;
+            const SolidArcCommandOutcome L12 = LoftSolidArcCurves(PrismLoop, { P1, P2 });
+            const SolidArcCommandOutcome L23 = LoftSolidArcCurves(PrismLoop, { P2, P3 });
+            const SolidArcCommandOutcome L31 = LoftSolidArcCurves(PrismLoop, { P3, P1 });
+
+            // T-fin: 3 panels meeting along P1 -> 3rd panel gracefully emits as an independent sound sheet body!
+            Expect(DrawSolidArcSpaceCurve(PrismLoop, { { 0.0, -1.2, 0.9 }, { 2.0, -1.2, 0.9 } }, false, SketchSplineForm::Hermite));
+            const std::string P4 = PrismLoop.Tree.Steps.back().Label;
+            const SolidArcCommandOutcome TFin = LoftSolidArcCurves(PrismLoop, { P1, P4 });
+
+            Tally(ContinuedLoftGate, 0.0,
+                  LensLoft.AcceptedCondition && Lens.Summary.SoundCondition && Lens.Summary.Edges == 2 &&
+                  L12.AcceptedCondition && L23.AcceptedCondition && L31.AcceptedCondition &&
+                  TFin.AcceptedCondition && PrismLoop.Summary.SoundCondition && PrismLoop.Regeneration.Bodies.size() == 2,
+                  Format("2-corner lens loft (edges=%d, sound=%d) + >90° 3-panel loop untwist (%s) + 3-way T-fin standalone sheet (%zu bodies, sound=%d)",
+                         Lens.Summary.Edges, Lens.Summary.SoundCondition ? 1 : 0, L31.Label.c_str(),
+                         PrismLoop.Regeneration.Bodies.size(), PrismLoop.Summary.SoundCondition ? 1 : 0));
+        }
+
+        // ④ Continuing a loft by selecting a B-rep laminar edge of Loft #1 (both curve-backed edge and unbacked side-rail edge) + Curve 3!
+        {
+            SolidArcDocument EdgeCont = CreateSolidArcDocument("EdgeContinue");
+            Expect(DrawSolidArcSketch(EdgeCont, DrawingOf(SolidArcDrawingKind::Line, 0, { { 0.0, 0.0 }, { 2.0, 0.0 } })));
+            const std::string C1 = EdgeCont.Tree.Steps.back().Label;
+            Expect(DrawSolidArcSketch(EdgeCont, DrawingOf(SolidArcDrawingKind::Line, 0, { { 0.0, 1.5 }, { 2.0, 1.5 } })));
+            const std::string C2 = EdgeCont.Tree.Steps.back().Label;
+            Expect(LoftSolidArcCurves(EdgeCont, { C1, C2 }));
+
+            // Find the side-rail B-rep edge at x = 2.0 ((2, 0, 0) -> (2, 1.5, 0)), which has NO curve step of its own!
+            std::string SideRailEdge;
+            for (const auto& [Slot, Name] : EdgeCont.Regeneration.Bodies.front().Naming.Edges)
+            {
+                const EdgeToken Edge = EdgeCont.Partition->Edges.TokenAt(Slot);
+                const EdgeProfile& Profile = EdgeCont.Partition->Edges.Resolve(Edge);
+                const Vector3 Mid = EvaluateCurve(EdgeCont.Partition->Curves.Resolve(Profile.Curve), 0.5 * (Profile.IntervalLow + Profile.IntervalHigh)).Position;
+                if (Distance(Mid, { 2.0, 0.75, 0.0 }) <= 1.0e-4) { SideRailEdge = Name; break; }
+            }
+            Expect(DrawSolidArcSpaceCurve(EdgeCont, { { 2.0, 0.0, 0.0 }, { 3.2, 0.75, 0.9 } }, false, SketchSplineForm::Hermite));
+            const std::string C3 = EdgeCont.Tree.Steps.back().Label;
+
+            EdgeCont.Selection.Edges  = { SideRailEdge };
+            EdgeCont.Selection.Curves = { C3 };
+            const SolidArcCommandOutcome Continued = LoftSolidArcSelection(EdgeCont);
+            const std::string Encoded = EncodeSolidArcDocument(EdgeCont);
+            const SolidArcDocumentFile Decoded = DecodeSolidArcDocument(Encoded);
+
+            // Also verify sheet-body + 3rd V-curve selection AND 3-curve closed triangular Coons loop!
+            SolidArcDocument BodyCont = CreateSolidArcDocument("BodyContinue");
+            Expect(DrawSolidArcSpaceCurve(BodyCont, { { 0.0, 0.0, 0.0 }, { 1.0, 0.1, 0.0 }, { 2.0, 0.0, 0.0 } }, false, SketchSplineForm::Hermite));
+            const std::string BC1 = BodyCont.Tree.Steps.back().Label;
+            Expect(DrawSolidArcSpaceCurve(BodyCont, { { 0.0, 1.4, 0.4 }, { 1.0, 1.5, 0.4 }, { 2.0, 1.4, 0.4 } }, false, SketchSplineForm::Hermite));
+            const std::string BC2 = BodyCont.Tree.Steps.back().Label;
+            Expect(LoftSolidArcCurves(BodyCont, { BC1, BC2 }));
+            const std::string SheetKey = BodyCont.Regeneration.Bodies.front().Key;
+            Expect(DrawSolidArcSpaceCurve(BodyCont, { { 2.0, 0.0, 0.0 }, { 1.3, 0.6, 0.7 }, { 0.6, 0.9, 1.3 } }, false, SketchSplineForm::Hermite));
+            const std::string BC3 = BodyCont.Tree.Steps.back().Label;
+            BodyCont.Selection.Bodies = { SheetKey };
+            BodyCont.Selection.Curves = { BC3 };
+            const SolidArcCommandOutcome BodyContinued = LoftSolidArcSelection(BodyCont);
+
+            SolidArcDocument TriLoop = CreateSolidArcDocument("TriLoop");
+            Expect(DrawSolidArcSpaceCurve(TriLoop, { { 0.0, 0.0, 0.0 }, { 1.0, -0.2, 0.1 }, { 2.0, 0.0, 0.0 } }, false, SketchSplineForm::Hermite));
+            const std::string TC1 = TriLoop.Tree.Steps.back().Label;
+            Expect(DrawSolidArcSpaceCurve(TriLoop, { { 2.0, 0.0, 0.0 }, { 1.5, 0.7, 0.6 }, { 0.9, 1.4, 1.2 } }, false, SketchSplineForm::Hermite));
+            const std::string TC2 = TriLoop.Tree.Steps.back().Label;
+            Expect(DrawSolidArcSpaceCurve(TriLoop, { { 0.9, 1.4, 1.2 }, { 0.3, 0.8, 0.6 }, { 0.0, 0.0, 0.0 } }, false, SketchSplineForm::Hermite));
+            const std::string TC3 = TriLoop.Tree.Steps.back().Label;
+            const SolidArcCommandOutcome TriLofted = LoftSolidArcCurves(TriLoop, { TC1, TC2, TC3 });
+
+            Tally(ContinuedLoftGate, 0.0,
+                  !SideRailEdge.empty() && Continued.AcceptedCondition && EdgeCont.Summary.SoundCondition && EdgeCont.Summary.Faces == 2 && Decoded.Refusal.empty() &&
+                  BodyContinued.AcceptedCondition && BodyCont.Summary.SoundCondition && BodyCont.Summary.Faces == 2 &&
+                  TriLofted.AcceptedCondition && TriLoop.Summary.SoundCondition && TriLoop.Summary.Faces == 1 && TriLoop.Summary.Edges == 3,
+                  Format("Edge+Curve (%d faces), SheetBody+Curve (%d faces), & 3-curve triangular Coons loop (%d edges, sound=%d), TOML clean",
+                         EdgeCont.Summary.Faces, BodyCont.Summary.Faces, TriLoop.Summary.Edges, TriLoop.Summary.SoundCondition ? 1 : 0));
+        }
+    }
+}
+
 void ValidateDelete()
 {
     const auto Format = [](const char* Pattern, auto... Values) { char Text[1200]; std::snprintf(Text, sizeof(Text), Pattern, Values...); return std::string(Text); };
@@ -3143,6 +3711,12 @@ int main()
         ValidateCurveFlow();
         for (const std::string& Row : Journal) std::printf("%s\n", Row.c_str());
         return CurveFlowGate.Failures ? 1 : 0;
+    }
+    if (std::getenv("SOLIDARC_DOCVAL_GIZMOLOFT"))                                         // Quick rerun of W81 + W82 alone
+    {
+        ValidateGizmoAndContinuedLofts();
+        for (const std::string& Row : Journal) std::printf("%s\n", Row.c_str());
+        return (GizmoAllViewsGate.Failures + ContinuedLoftGate.Failures) ? 1 : 0;
     }
     if (std::getenv("SOLIDARC_DOCVAL_STAGE3"))                                            // Quick rerun of W72..W78
     {
@@ -8648,10 +9222,13 @@ int main()
     ValidateBevelReach();
     ValidateBevelMerge();
 
-    // ---- W72 … W78 Boolean library speed, Parametric Variables, Live Booleans, Edge Weights, and Modifier Stack
+    // ---- W72 … W80 Boolean library speed, Parametric Variables, Live Booleans, Edge Weights, Modifier Stack, Compound Cutters
     ValidateStage3CadFeatures();
 
-    for (const GateTally* Gate : { &ConstructGate, &PickGate, &BlendGate, &FaceGate, &ParameterGate, &AtomicGate, &HistoryGate, &FileGate, &VariableGate, &DrawingGate, &SurfacingGate, &PanelGate, &EvaluationGate, &BlueprintGate, &MatcapGate, &BodiesGate, &CutGate, &TrimGate, &MoveGate, &CopyGate, &HideGate, &CurveGate, &ConstrainGate, &ConflictGate, &DragGate, &ReferenceGate, &SplineGate, &LinkGate, &RevolveGate, &EvolutionGate, &ReplayGate, &XRayGate, &MeasureGate, &SectionGate, &SnapGate, &JointGate, &SheetGate, &ExchangeGate, &BoundGate, &PrimitiveGate, &InsetGate, &SectionLoftGate, &GizmoGate, &PointGate, &ShellGate, &DetachGate, &CornerGate, &FillGate, &FilletDragGate, &OrientGate, &TangentGate, &KnifeGate, &HandleGate, &SolidKnifeGate, &PocketBevelGate, &ReachGate, &SplitGate, &LoopGate, &PieceGate, &ManifoldGate, &ImprintGate, &PointCutGate, &CurveFlowGate, &EdgeNotchGate, &EdgePathGate, &WrapGate, &ReshapeGate, &DeleteGate, &CurveAskGate, &FullReachGate, &BevelMergeGate, &CutterSpeedGate, &ParametricVarGate, &LiveBooleanGate, &EdgeWeightGate, &LinearCircArrayGate, &CurveSurfArrayGate, &CurveBendStackGate, &CompoundCutterGate, &LiveEditableGate })
+    // ---- W81 … W82 Gizmo across all views / primitives / curve handles, and continued / V-lofts
+    ValidateGizmoAndContinuedLofts();
+
+    for (const GateTally* Gate : { &ConstructGate, &PickGate, &BlendGate, &FaceGate, &ParameterGate, &AtomicGate, &HistoryGate, &FileGate, &VariableGate, &DrawingGate, &SurfacingGate, &PanelGate, &EvaluationGate, &BlueprintGate, &MatcapGate, &BodiesGate, &CutGate, &TrimGate, &MoveGate, &CopyGate, &HideGate, &CurveGate, &ConstrainGate, &ConflictGate, &DragGate, &ReferenceGate, &SplineGate, &LinkGate, &RevolveGate, &EvolutionGate, &ReplayGate, &XRayGate, &MeasureGate, &SectionGate, &SnapGate, &JointGate, &SheetGate, &ExchangeGate, &BoundGate, &PrimitiveGate, &InsetGate, &SectionLoftGate, &GizmoGate, &PointGate, &ShellGate, &DetachGate, &CornerGate, &FillGate, &FilletDragGate, &OrientGate, &TangentGate, &KnifeGate, &HandleGate, &SolidKnifeGate, &PocketBevelGate, &ReachGate, &SplitGate, &LoopGate, &PieceGate, &ManifoldGate, &ImprintGate, &PointCutGate, &CurveFlowGate, &EdgeNotchGate, &EdgePathGate, &WrapGate, &ReshapeGate, &DeleteGate, &CurveAskGate, &FullReachGate, &BevelMergeGate, &CutterSpeedGate, &ParametricVarGate, &LiveBooleanGate, &EdgeWeightGate, &LinearCircArrayGate, &CurveSurfArrayGate, &CurveBendStackGate, &CompoundCutterGate, &LiveEditableGate, &GizmoAllViewsGate, &ContinuedLoftGate })
     {
         std::printf("| %s | %s | %s | %.3g | %ld | %s |\n", Gate->Code, Gate->Subject, Gate->Limit, Gate->Worst, Gate->Checks, Gate->Failures ? "🔴" : "🟢");
         Failures += Gate->Failures;
