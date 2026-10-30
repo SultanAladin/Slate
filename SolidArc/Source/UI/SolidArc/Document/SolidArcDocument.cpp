@@ -3393,6 +3393,49 @@ namespace
     }
 }
 
+namespace
+{
+
+void CarryDimensionsWithAffine(SolidArcDocument& Document, const std::vector<std::string>& Keys, const AffineMap& Map, bool SketchCondition)
+{
+    if (Document.Dimensions.empty() || Keys.empty()) return;
+    const auto ApplyLinear = [&](Vector3 Vec) -> Vector3
+    {
+        return Map.ColumnX * Vec.X + Map.ColumnY * Vec.Y + Map.ColumnZ * Vec.Z;
+    };
+    const double Det   = std::abs(Dot(Cross(Map.ColumnX, Map.ColumnY), Map.ColumnZ));
+    const double Scale = std::isfinite(Det) && Det > 1.0e-12 ? std::cbrt(Det) : 1.0;
+
+    const auto MatchesTarget = [&](SolidArcSelectionKind Kind, const std::string& Name) -> bool
+    {
+        if (Name.empty()) return false;
+        const size_t At = Name.find('@');
+        if (At != std::string::npos)
+        {
+            if (!SketchCondition) return false;
+            const std::string StepLabel = Name.substr(0, At);
+            return std::find(Keys.begin(), Keys.end(), StepLabel) != Keys.end();
+        }
+        if (SketchCondition) return false;
+        if (Kind == SolidArcSelectionKind::Body)
+            return std::find(Keys.begin(), Keys.end(), Name) != Keys.end();
+        const std::string Owner = SolidArcBodyOfName(Document, Kind, Name);
+        return !Owner.empty() && std::find(Keys.begin(), Keys.end(), Owner) != Keys.end();
+    };
+
+    for (SolidArcDimension& Dim : Document.Dimensions)
+    {
+        if (!MatchesTarget(Dim.FirstKind, Dim.FirstName) && !MatchesTarget(Dim.SecondKind, Dim.SecondName)) continue;
+        const Vector3 RotN = ApplyLinear(Dim.PlaneNormal);
+        if (Length(RotN) > 1.0e-9) Dim.PlaneNormal = Normalize(RotN);
+        const Vector3 RotD = ApplyLinear(Dim.Direction);
+        if (Length(RotD) > 1.0e-9) Dim.Direction = Normalize(RotD);
+        if (std::abs(Scale - 1.0) > 1.0e-6) Dim.Offset *= Scale;
+    }
+}
+
+} // namespace
+
 SolidArcCommandOutcome TransformSolidArcBodies(SolidArcDocument& Document, const std::vector<std::string>& Keys, const AffineMap& Map, const std::string& Verb)
 {
     const std::vector<std::string> Unique = UniqueKeys(Keys);
@@ -3400,6 +3443,7 @@ SolidArcCommandOutcome TransformSolidArcBodies(SolidArcDocument& Document, const
     {
         if (Unique.empty()) return "pick the bodies to " + Verb + " (mode 4)";
         for (const std::string& Key : Unique) if (!FindRegeneratedBody(Document, Key)) return "no body named " + Key;
+        CarryDimensionsWithAffine(Document, Unique, Map, false);
         const std::string Caption = NextCaption(Document, Verb);
         for (const std::string& Key : Unique)
         {
@@ -3450,6 +3494,7 @@ SolidArcCommandOutcome PlaceSolidArcSketches(SolidArcDocument& Document, const s
             const std::string Refusal = Found->Kind == FeatureStepKind::SpaceCurve ? CarrySpaceCurve(*Found, Map) : CarrySketchStep(Document, *Found, Map, Dropped);
             if (!Refusal.empty()) return Refusal;
         }
+        CarryDimensionsWithAffine(Document, Unique, Map, true);
         return {};
     });
 }
@@ -6429,10 +6474,183 @@ struct ResolvedDimensionOperand
     return Any;
 }
 
+[[nodiscard]] bool ParseTrailingDimensionIndex(const std::string& Text, int& OutIndex)
+{
+    if (Text.empty()) return false;
+    int  Sign = 1;
+    size_t Pos = 0;
+    if (Text[0] == '-') { Sign = -1; Pos = 1; }
+    if (Pos >= Text.size()) return false;
+    int Value = 0;
+    for (; Pos < Text.size(); ++Pos)
+    {
+        if (!std::isdigit(static_cast<unsigned char>(Text[Pos]))) return false;
+        Value = Value * 10 + (Text[Pos] - '0');
+    }
+    OutIndex = Sign * Value;
+    return true;
+}
+
 [[nodiscard]] ResolvedDimensionOperand ResolveDimensionOperand(const SolidArcDocument& Document, SolidArcSelectionKind Kind, const std::string& Name)
 {
     ResolvedDimensionOperand Out;
-    if (Name.empty() || !Document.Partition) return Out;
+    if (Name.empty()) return Out;
+
+    // 1. Associative Sketch / SpaceCurve entities ("Sketch#1@Point:0", "Sketch#1@Mid:3", "Sketch#1@Curve:3", "SpaceCurve#1@Pole:0", "SpaceCurve#1@Curve")
+    const size_t At = Name.find('@');
+    if (At != std::string::npos)
+    {
+        const std::string StepLabel = Name.substr(0, At);
+        const std::string Suffix    = Name.substr(At + 1);
+        for (const FeatureStep& Step : Document.Tree.Steps)
+        {
+            if (Step.Label != StepLabel) continue;
+            if (Step.Kind == FeatureStepKind::Sketch)
+            {
+                const auto         SolvedIt = Document.Regeneration.Sketches.find(StepLabel);
+                const SketchModel& Sketch   = SolvedIt != Document.Regeneration.Sketches.end() ? SolvedIt->second : Step.Sketch;
+                OrthonormalFrame   Plane    = Step.Plane;
+                const double       Lift     = EvaluateFeatureValue(Document.Tree, Step.Elevation);
+                if (std::isfinite(Lift)) Plane.Origin = Plane.Origin + Plane.ZAxis * Lift;
+                const auto ToWorld = [&](Vector2 Local) -> Vector3 { return Plane.Origin + Plane.XAxis * Local.X + Plane.YAxis * Local.Y; };
+
+                int ParsedIdx = -1;
+                if (Suffix.rfind("Point:", 0) == 0 && ParseTrailingDimensionIndex(Suffix.substr(6), ParsedIdx))
+                {
+                    if (ParsedIdx >= 0 && ParsedIdx < int(Sketch.Points.size()))
+                    {
+                        Out.FoundCondition = true;
+                        Out.Point          = ToWorld(Sketch.Points[ParsedIdx].Position);
+                        Out.PlaneNormal    = SafeUnitNormal(Plane.ZAxis);
+                    }
+                    return Out;
+                }
+                if (Suffix.rfind("Mid:", 0) == 0 && ParseTrailingDimensionIndex(Suffix.substr(4), ParsedIdx))
+                {
+                    for (const SketchCurve& Curve : Sketch.Curves)
+                    {
+                        if (Curve.Identifier != ParsedIdx) continue;
+                        const std::vector<Vector2> Samples = SampleSketchCurve(Sketch, Curve);
+                        if (!Samples.empty())
+                        {
+                            Out.FoundCondition = true;
+                            Out.Point          = ToWorld(Samples[Samples.size() / 2]);
+                            Out.PlaneNormal    = SafeUnitNormal(Plane.ZAxis);
+                        }
+                        return Out;
+                    }
+                    return Out;
+                }
+                if (Suffix.rfind("Curve:", 0) == 0 && ParseTrailingDimensionIndex(Suffix.substr(6), ParsedIdx))
+                {
+                    for (const SketchCurve& Curve : Sketch.Curves)
+                    {
+                        if (Curve.Identifier != ParsedIdx) continue;
+                        Out.PlaneNormal = SafeUnitNormal(Plane.ZAxis);
+                        if (Curve.Kind == SketchCurveKind::Line && Curve.Start >= 0 && Curve.Start < int(Sketch.Points.size())
+                            && Curve.End >= 0 && Curve.End < int(Sketch.Points.size()))
+                        {
+                            Out.FoundCondition   = true;
+                            Out.Point            = ToWorld(Sketch.Points[Curve.Start].Position);
+                            Out.SecondEndpoint   = ToWorld(Sketch.Points[Curve.End].Position);
+                            Out.EdgeSpan         = Distance(Out.Point, Out.SecondEndpoint);
+                            Out.SegmentCondition = Out.EdgeSpan > 1.0e-9;
+                            if (Out.SegmentCondition) Out.LineDir = SafeUnitNormal(Out.SecondEndpoint - Out.Point);
+                        }
+                        else if (Curve.Kind == SketchCurveKind::Circle && Curve.Centre >= 0 && Curve.Centre < int(Sketch.Points.size()))
+                        {
+                            Out.FoundCondition  = true;
+                            Out.RadialCondition = true;
+                            Out.Centre          = ToWorld(Sketch.Points[Curve.Centre].Position);
+                            Out.Radius          = Curve.Radius;
+                            Out.Point           = Out.Centre;
+                            Out.Rim             = Out.Centre + SafeUnitNormal(Plane.XAxis, { 1.0, 0.0, 0.0 }) * Curve.Radius;
+                        }
+                        else if (Curve.Kind == SketchCurveKind::Arc && Curve.Centre >= 0 && Curve.Centre < int(Sketch.Points.size())
+                                 && Curve.Start >= 0 && Curve.Start < int(Sketch.Points.size())
+                                 && Curve.End >= 0 && Curve.End < int(Sketch.Points.size()))
+                        {
+                            Out.FoundCondition   = true;
+                            Out.RadialCondition  = true;
+                            Out.Centre           = ToWorld(Sketch.Points[Curve.Centre].Position);
+                            Out.Point            = ToWorld(Sketch.Points[Curve.Start].Position);
+                            Out.SecondEndpoint   = ToWorld(Sketch.Points[Curve.End].Position);
+                            Out.Radius           = Distance(Out.Centre, Out.Point);
+                            Out.SegmentCondition = Distance(Out.Point, Out.SecondEndpoint) > 1.0e-9;
+                            const std::vector<Vector2> Samples = SampleSketchCurve(Sketch, Curve);
+                            Out.Rim = !Samples.empty()
+                                ? ToWorld(Samples[Samples.size() / 2])
+                                : (Out.Centre + SafeUnitNormal(Out.Point - Out.Centre, Plane.XAxis) * Out.Radius);
+                            Out.EdgeSpan = 0.0;
+                            for (size_t Idx = 1; Idx < Samples.size(); ++Idx)
+                                Out.EdgeSpan += Distance(ToWorld(Samples[Idx - 1]), ToWorld(Samples[Idx]));
+                        }
+                        else
+                        {
+                            const std::vector<Vector2> Samples = SampleSketchCurve(Sketch, Curve);
+                            if (Samples.size() >= 2)
+                            {
+                                Out.FoundCondition   = true;
+                                Out.Point            = ToWorld(Samples.front());
+                                Out.SecondEndpoint   = ToWorld(Samples.back());
+                                Out.SegmentCondition = Distance(Out.Point, Out.SecondEndpoint) > 1.0e-9;
+                                Out.EdgeSpan         = 0.0;
+                                for (size_t Idx = 1; Idx < Samples.size(); ++Idx)
+                                    Out.EdgeSpan += Distance(ToWorld(Samples[Idx - 1]), ToWorld(Samples[Idx]));
+                            }
+                        }
+                        return Out;
+                    }
+                    return Out;
+                }
+                return Out;
+            }
+            if (Step.Kind == FeatureStepKind::SpaceCurve)
+            {
+                const auto FitIt = Document.Regeneration.Curves.find(StepLabel);
+                int ParsedIdx = -1;
+                if (Suffix.rfind("Pole:", 0) == 0 && ParseTrailingDimensionIndex(Suffix.substr(5), ParsedIdx))
+                {
+                    if (FitIt != Document.Regeneration.Curves.end() && FitIt->second.Curve.Definition
+                        && ParsedIdx >= 0 && ParsedIdx < int(FitIt->second.Curve.Definition->Poles.size()))
+                    {
+                        Out.FoundCondition = true;
+                        Out.Point          = FitIt->second.Curve.Definition->Poles[ParsedIdx];
+                    }
+                    else if (ParsedIdx >= 0 && ParsedIdx < int(Step.Points.size()))
+                    {
+                        Out.FoundCondition = true;
+                        Out.Point          = Step.Points[ParsedIdx];
+                    }
+                    return Out;
+                }
+                if (Suffix == "Curve" && FitIt != Document.Regeneration.Curves.end() && FitIt->second.Curve.Definition)
+                {
+                    const NurbsCurveDefinition& Def = *FitIt->second.Curve.Definition;
+                    const NurbsDomain Domain = MeasureNurbsCurveDomain(Def);
+                    Out.FoundCondition   = true;
+                    Out.Point            = EvaluateNurbsCurve(Def, Domain.Low).Position;
+                    Out.SecondEndpoint   = EvaluateNurbsCurve(Def, Domain.High).Position;
+                    Out.SegmentCondition = Distance(Out.Point, Out.SecondEndpoint) > 1.0e-9;
+                    Out.EdgeSpan         = 0.0;
+                    Vector3 Prev         = Out.Point;
+                    for (int SampleIdx = 1; SampleIdx <= 64; ++SampleIdx)
+                    {
+                        const double Tau = Domain.Low + (Domain.High - Domain.Low) * (double(SampleIdx) / 64.0);
+                        const Vector3 Cur = EvaluateNurbsCurve(Def, Tau).Position;
+                        Out.EdgeSpan += Distance(Prev, Cur);
+                        Prev = Cur;
+                    }
+                    Out.PlaneNormal = DefaultPlaneNormalForSpan(Out.SecondEndpoint - Out.Point);
+                    return Out;
+                }
+                return Out;
+            }
+        }
+        return Out;
+    }
+
+    if (!Document.Partition) return Out;
     const ModelPartition& Partition = *Document.Partition;
     for (const RegeneratedBody& Body : Document.Regeneration.Bodies)
     {
@@ -6466,6 +6684,30 @@ struct ResolvedDimensionOperand
                 Out.SegmentCondition = Distance(Out.Point, Out.SecondEndpoint) > 1.0e-9;
                 Out.EdgeSpan         = MeasureEdgeLength(Partition, Edge);
                 Out.PlaneNormal      = DefaultPlaneNormalForSpan(Out.SecondEndpoint - Out.Point);
+                // Prefer an adjacent planar face normal so box/prism edge dimensions lie flat on the face plane.
+                for (const FaceToken Face : Inventory.Faces)
+                {
+                    const FaceProfile& FProf = Partition.Faces.Resolve(Face);
+                    if (!FProf.Surface.PresentCondition()) continue;
+                    const auto* PlaneSurf = std::get_if<PlaneSurface>(&Partition.Surfaces.Resolve(FProf.Surface));
+                    if (!PlaneSurf) continue;
+                    bool SharesEdge = false;
+                    for (const LoopToken Loop : FProf.Loops)
+                        Partition.EnumerateLoopFins(Loop, [&](FinToken Fin)
+                        {
+                            if (Partition.Fins.Resolve(Fin).Edge == Edge) SharesEdge = true;
+                        });
+                    if (SharesEdge)
+                    {
+                        const double Sense = FProf.Sense == Orientation::Forward ? 1.0 : -1.0;
+                        const Vector3 CandN = SafeUnitNormal(PlaneSurf->Frame.ZAxis * Sense);
+                        if (Out.SegmentCondition && std::abs(Dot(CandN, SafeUnitNormal(Out.SecondEndpoint - Out.Point))) < 0.92)
+                        {
+                            Out.PlaneNormal = CandN;
+                            break;
+                        }
+                    }
+                }
                 if (Profile.Curve.PresentCondition())
                 {
                     const CurveGeometry& Curve = Partition.Curves.Resolve(Profile.Curve);
@@ -6585,104 +6827,153 @@ void EvaluateLinearValue(SolidArcDimension& Dim)
     else Dim.Value = Length(Delta);
 }
 
+void EvaluateSingleDimension(const SolidArcDocument& Document, SolidArcDimension& Dim)
+{
+    if (!Dim.FirstName.empty() && Dim.FirstKind == SolidArcSelectionKind::Body && Dim.SecondName.empty() && Dim.AxisFilter >= 0 && Dim.AxisFilter < 3)
+    {
+        Vector3 Low{}, High{};
+        if (ComputeBodyBounds(Document, Dim.FirstName, Low, High))
+        {
+            if (Dim.AxisFilter == 0)
+            {
+                Dim.FirstPoint  = { Low.X, Low.Y, Low.Z };
+                Dim.SecondPoint = { High.X, Low.Y, Low.Z };
+                Dim.PlaneNormal = { 0.0, 0.0, 1.0 };
+            }
+            else if (Dim.AxisFilter == 1)
+            {
+                Dim.FirstPoint  = { High.X, Low.Y, Low.Z };
+                Dim.SecondPoint = { High.X, High.Y, Low.Z };
+                Dim.PlaneNormal = { 0.0, 0.0, 1.0 };
+            }
+            else
+            {
+                Dim.FirstPoint  = { High.X, High.Y, Low.Z };
+                Dim.SecondPoint = { High.X, High.Y, High.Z };
+                Dim.PlaneNormal = { 0.0, -1.0, 0.0 };
+            }
+            EvaluateLinearValue(Dim);
+        }
+        return;
+    }
+    if (Dim.FirstName.empty())
+    {
+        if (Dim.Kind == SolidArcDimensionKind::Linear) EvaluateLinearValue(Dim);
+        else if (Dim.Kind == SolidArcDimensionKind::Radius) Dim.Value = Distance(Dim.FirstPoint, Dim.SecondPoint);
+        else if (Dim.Kind == SolidArcDimensionKind::Diameter) Dim.Value = 2.0 * Distance(Dim.FirstPoint, Dim.SecondPoint);
+        return;
+    }
+    const ResolvedDimensionOperand First = ResolveDimensionOperand(Document, Dim.FirstKind, Dim.FirstName);
+    if (!First.FoundCondition) return;
+
+    if (Dim.SecondName.empty())
+    {
+        if ((Dim.Kind == SolidArcDimensionKind::Radius || Dim.Kind == SolidArcDimensionKind::Diameter) && First.RadialCondition)
+        {
+            Dim.FirstPoint  = First.Centre;
+            Dim.PlaneNormal = First.PlaneNormal;
+            Vector3 Radial  = Dim.Direction - First.PlaneNormal * Dot(Dim.Direction, First.PlaneNormal);
+            if (Length(Radial) > 1.0e-6)
+            {
+                Radial          = Normalize(Radial);
+                Dim.Direction   = Radial;
+                Dim.SecondPoint = First.Centre + Radial * First.Radius;
+            }
+            else
+            {
+                Dim.SecondPoint = First.Rim;
+                Dim.Direction   = SafeUnitNormal(First.Rim - First.Centre, { 1.0, 0.0, 0.0 });
+            }
+            Dim.Value = Dim.Kind == SolidArcDimensionKind::Diameter ? 2.0 * First.Radius : First.Radius;
+        }
+        else if (Dim.Kind == SolidArcDimensionKind::Linear && First.SegmentCondition)
+        {
+            Dim.FirstPoint  = First.Point;
+            Dim.SecondPoint = First.SecondEndpoint;
+            if (Dim.FirstName.find('@') != std::string::npos) Dim.PlaneNormal = First.PlaneNormal;
+            EvaluateLinearValue(Dim);
+            if (Dim.AxisFilter < 0 && First.EdgeSpan > 0.0 && !First.LineDir.has_value()) Dim.Value = First.EdgeSpan;
+        }
+        return;
+    }
+
+    const ResolvedDimensionOperand Second = ResolveDimensionOperand(Document, Dim.SecondKind, Dim.SecondName);
+    if (!Second.FoundCondition) return;
+
+    if (Dim.Kind == SolidArcDimensionKind::Angular)
+    {
+        constexpr double RadToDeg = 180.0 / std::numbers::pi;
+        Vector3 RayA = First.LineDir.value_or(First.FaceNormal.value_or(Vector3{ 1.0, 0.0, 0.0 }));
+        Vector3 RayB = Second.LineDir.value_or(Second.FaceNormal.value_or(Vector3{ 0.0, 1.0, 0.0 }));
+        RayA = SafeUnitNormal(RayA, { 1.0, 0.0, 0.0 });
+        RayB = SafeUnitNormal(RayB, { 0.0, 1.0, 0.0 });
+        Vector3 Corner = (First.Point + Second.Point) * 0.5;
+        if (First.LineDir && Second.LineDir)
+        {
+            const double AB    = Dot(RayA, RayB);
+            const double Denom = 1.0 - AB * AB;
+            if (Denom > 1.0e-8)
+            {
+                const Vector3 W0 = First.Point - Second.Point;
+                const double  B  = Dot(RayA, W0);
+                const double  C  = Dot(RayB, W0);
+                const double  S  = (AB * C - B) / Denom;
+                const double  T  = (C - AB * B) / Denom;
+                Corner = ((First.Point + RayA * S) + (Second.Point + RayB * T)) * 0.5;
+            }
+            const Vector3 MidA = First.SegmentCondition ? (First.Point + First.SecondEndpoint) * 0.5 : (First.Point + RayA);
+            const Vector3 MidB = Second.SegmentCondition ? (Second.Point + Second.SecondEndpoint) * 0.5 : (Second.Point + RayB);
+            if (Dot(MidA - Corner, RayA) < -1.0e-6) RayA = RayA * -1.0;
+            if (Dot(MidB - Corner, RayB) < -1.0e-6) RayB = RayB * -1.0;
+        }
+        const double Cosine = std::clamp(Dot(RayA, RayB), -1.0, 1.0);
+        Dim.Value       = std::acos(Cosine) * RadToDeg;
+        Dim.FirstPoint  = Corner;
+        Dim.SecondPoint = RayA;
+        Dim.Direction   = RayB;
+        Dim.PlaneNormal = SafeUnitNormal(Cross(RayA, RayB), { 0.0, 0.0, 1.0 });
+        return;
+    }
+
+    const bool BothExactPoints = (Dim.FirstKind == SolidArcSelectionKind::Vertex || Dim.FirstName.find("@Point:") != std::string::npos || Dim.FirstName.find("@Mid:") != std::string::npos || Dim.FirstName.find("@Pole:") != std::string::npos)
+                              && (Dim.SecondKind == SolidArcSelectionKind::Vertex || Dim.SecondName.find("@Point:") != std::string::npos || Dim.SecondName.find("@Mid:") != std::string::npos || Dim.SecondName.find("@Pole:") != std::string::npos);
+
+    if (!BothExactPoints && Document.Partition && First.TargetCondition && Second.TargetCondition)
+    {
+        const DistanceMeasure Pair = MeasureMinimumDistance(*Document.Partition, First.Target, Second.Target);
+        if (Pair.Refusal.empty())
+        {
+            Dim.FirstPoint  = Pair.First;
+            Dim.SecondPoint = Pair.Second;
+            if (Dim.AxisFilter < 0) Dim.Value = Pair.Distance;
+            else EvaluateLinearValue(Dim);
+            return;
+        }
+    }
+    Dim.FirstPoint  = First.Point;
+    Dim.SecondPoint = Second.Point;
+    const size_t AtA = Dim.FirstName.find('@');
+    const size_t AtB = Dim.SecondName.find('@');
+    if (AtA != std::string::npos && AtB != std::string::npos && Dim.FirstName.substr(0, AtA) == Dim.SecondName.substr(0, AtB)
+        && Dim.FirstName.rfind("Sketch#", 0) == 0)
+    {
+        Dim.PlaneNormal = First.PlaneNormal;
+    }
+    EvaluateLinearValue(Dim);
+}
+
 } // namespace
+
+std::vector<SolidArcDimension> EvaluateSolidArcDimensions(const SolidArcDocument& Document)
+{
+    std::vector<SolidArcDimension> Evaluated = Document.Dimensions;
+    for (SolidArcDimension& Dim : Evaluated) EvaluateSingleDimension(Document, Dim);
+    return Evaluated;
+}
 
 void RefreshSolidArcDimensions(SolidArcDocument& Document)
 {
-    for (SolidArcDimension& Dim : Document.Dimensions)
-    {
-        if (!Dim.FirstName.empty() && Dim.FirstKind == SolidArcSelectionKind::Body && Dim.SecondName.empty() && Dim.AxisFilter >= 0 && Dim.AxisFilter < 3)
-        {
-            Vector3 Low{}, High{};
-            if (ComputeBodyBounds(Document, Dim.FirstName, Low, High))
-            {
-                if (Dim.AxisFilter == 0)
-                {
-                    Dim.FirstPoint  = { Low.X, Low.Y, Low.Z };
-                    Dim.SecondPoint = { High.X, Low.Y, Low.Z };
-                    Dim.PlaneNormal = { 0.0, 0.0, 1.0 };
-                }
-                else if (Dim.AxisFilter == 1)
-                {
-                    Dim.FirstPoint  = { High.X, Low.Y, Low.Z };
-                    Dim.SecondPoint = { High.X, High.Y, Low.Z };
-                    Dim.PlaneNormal = { 0.0, 0.0, 1.0 };
-                }
-                else
-                {
-                    Dim.FirstPoint  = { High.X, High.Y, Low.Z };
-                    Dim.SecondPoint = { High.X, High.Y, High.Z };
-                    Dim.PlaneNormal = { 0.0, -1.0, 0.0 };
-                }
-                EvaluateLinearValue(Dim);
-            }
-            continue;
-        }
-        if (Dim.FirstName.empty())
-        {
-            if (Dim.Kind == SolidArcDimensionKind::Linear) EvaluateLinearValue(Dim);
-            else if (Dim.Kind == SolidArcDimensionKind::Radius) Dim.Value = Distance(Dim.FirstPoint, Dim.SecondPoint);
-            else if (Dim.Kind == SolidArcDimensionKind::Diameter) Dim.Value = 2.0 * Distance(Dim.FirstPoint, Dim.SecondPoint);
-            continue;
-        }
-        const ResolvedDimensionOperand First = ResolveDimensionOperand(Document, Dim.FirstKind, Dim.FirstName);
-        if (!First.FoundCondition) continue;
-
-        if (Dim.SecondName.empty())
-        {
-            if ((Dim.Kind == SolidArcDimensionKind::Radius || Dim.Kind == SolidArcDimensionKind::Diameter) && First.RadialCondition)
-            {
-                Dim.FirstPoint  = First.Centre;
-                Dim.SecondPoint = First.Rim;
-                Dim.PlaneNormal = First.PlaneNormal;
-                Dim.Value       = Dim.Kind == SolidArcDimensionKind::Diameter ? 2.0 * First.Radius : First.Radius;
-            }
-            else if (Dim.Kind == SolidArcDimensionKind::Linear && First.SegmentCondition)
-            {
-                Dim.FirstPoint  = First.Point;
-                Dim.SecondPoint = First.SecondEndpoint;
-                EvaluateLinearValue(Dim);
-                if (Dim.AxisFilter < 0 && First.EdgeSpan > 0.0 && !First.LineDir.has_value()) Dim.Value = First.EdgeSpan;
-            }
-            continue;
-        }
-
-        const ResolvedDimensionOperand Second = ResolveDimensionOperand(Document, Dim.SecondKind, Dim.SecondName);
-        if (!Second.FoundCondition) continue;
-
-        if (Dim.Kind == SolidArcDimensionKind::Angular)
-        {
-            constexpr double RadToDeg = 180.0 / std::numbers::pi;
-            Vector3 RayA = First.LineDir.value_or(First.FaceNormal.value_or(Vector3{ 1.0, 0.0, 0.0 }));
-            Vector3 RayB = Second.LineDir.value_or(Second.FaceNormal.value_or(Vector3{ 0.0, 1.0, 0.0 }));
-            RayA = SafeUnitNormal(RayA, { 1.0, 0.0, 0.0 });
-            RayB = SafeUnitNormal(RayB, { 0.0, 1.0, 0.0 });
-            if (First.LineDir && Second.LineDir && Dot(RayA, RayB) < 0.0) RayB = RayB * -1.0;
-            const double Cosine = std::clamp(Dot(RayA, RayB), -1.0, 1.0);
-            Dim.Value       = std::acos(Cosine) * RadToDeg;
-            Dim.FirstPoint  = (First.Point + Second.Point) * 0.5;
-            Dim.SecondPoint = RayA;
-            Dim.Direction   = RayB;
-            Dim.PlaneNormal = SafeUnitNormal(Cross(RayA, RayB), { 0.0, 0.0, 1.0 });
-            continue;
-        }
-
-        if (Document.Partition && First.TargetCondition && Second.TargetCondition)
-        {
-            const DistanceMeasure Pair = MeasureMinimumDistance(*Document.Partition, First.Target, Second.Target);
-            if (Pair.Refusal.empty())
-            {
-                Dim.FirstPoint  = Pair.First;
-                Dim.SecondPoint = Pair.Second;
-                if (Dim.AxisFilter < 0) Dim.Value = Pair.Distance;
-                else EvaluateLinearValue(Dim);
-                continue;
-            }
-        }
-        Dim.FirstPoint  = First.Point;
-        Dim.SecondPoint = Second.Point;
-        EvaluateLinearValue(Dim);
-    }
+    for (SolidArcDimension& Dim : Document.Dimensions) EvaluateSingleDimension(Document, Dim);
 }
 
 const char* SolidArcDimensionKindLabel(SolidArcDimensionKind Kind) noexcept
@@ -6867,28 +7158,47 @@ SolidArcCommandOutcome AddSolidArcDimensionFromSelection(SolidArcDocument& Docum
                                           : Distance(Centre2, Sketch.Points[Sketch.Curves[0].Start].Position);
                     SolidArcDimension Dim;
                     Dim.Id          = NextDimensionId(Document);
-                    Dim.Kind        = PreferredKind == SolidArcDimensionKind::Radius ? SolidArcDimensionKind::Radius : SolidArcDimensionKind::Diameter;
+                    Dim.Kind        = PreferredKind == SolidArcDimensionKind::Radius ? SolidArcDimensionKind::Radius
+                                    : (Sketch.Curves[0].Kind == SketchCurveKind::Arc ? SolidArcDimensionKind::Radius : SolidArcDimensionKind::Diameter);
+                    Dim.FirstKind   = SolidArcSelectionKind::Edge;
+                    Dim.FirstName   = Label + "@Curve:" + std::to_string(Sketch.Curves[0].Identifier);
                     Dim.FirstPoint  = ToWorld(Centre2);
                     Dim.SecondPoint = ToWorld({ Centre2.X + Radius, Centre2.Y });
+                    Dim.Direction   = SafeUnitNormal(Plane.XAxis, { 1.0, 0.0, 0.0 });
                     Dim.PlaneNormal = Plane.ZAxis;
                     Dim.Offset      = Offset;
                     Dim.Value       = Dim.Kind == SolidArcDimensionKind::Diameter ? 2.0 * Radius : Radius;
                     Document.Dimensions.push_back(std::move(Dim));
+                    RefreshSolidArcDimensions(Document);
                     return {};
                 }
                 if (Sketch.Points.size() >= 2)
                 {
+                    // Prefer associative line curves when available (e.g. rectangle / polygon edges).
+                    int HorizCurveId = -1, VertCurveId = -1;
+                    for (const SketchCurve& C : Sketch.Curves)
+                    {
+                        if (C.Kind != SketchCurveKind::Line || C.Start < 0 || C.End < 0) continue;
+                        const Vector2 Delta = Sketch.Points[C.End].Position - Sketch.Points[C.Start].Position;
+                        if (HorizCurveId < 0 && std::abs(Delta.X) > std::abs(Delta.Y) && std::abs(Delta.X) > 1.0e-6) HorizCurveId = C.Identifier;
+                        else if (VertCurveId < 0 && std::abs(Delta.Y) >= std::abs(Delta.X) && std::abs(Delta.Y) > 1.0e-6) VertCurveId = C.Identifier;
+                    }
                     Vector2 Low = Sketch.Points[0].Position, High = Low;
                     for (const SketchPoint& Pt : Sketch.Points)
                     {
                         Low  = { std::min(Low.X, Pt.Position.X), std::min(Low.Y, Pt.Position.Y) };
                         High = { std::max(High.X, Pt.Position.X), std::max(High.Y, Pt.Position.Y) };
                     }
-                    if (High.X - Low.X > 1.0e-6)
+                    if (HorizCurveId >= 0 || High.X - Low.X > 1.0e-6)
                     {
                         SolidArcDimension DimX;
                         DimX.Id          = NextDimensionId(Document);
                         DimX.Kind        = SolidArcDimensionKind::Linear;
+                        if (HorizCurveId >= 0)
+                        {
+                            DimX.FirstKind = SolidArcSelectionKind::Edge;
+                            DimX.FirstName = Label + "@Curve:" + std::to_string(HorizCurveId);
+                        }
                         DimX.FirstPoint  = ToWorld({ Low.X, Low.Y });
                         DimX.SecondPoint = ToWorld({ High.X, Low.Y });
                         DimX.PlaneNormal = Plane.ZAxis;
@@ -6896,11 +7206,16 @@ SolidArcCommandOutcome AddSolidArcDimensionFromSelection(SolidArcDocument& Docum
                         EvaluateLinearValue(DimX);
                         Document.Dimensions.push_back(std::move(DimX));
                     }
-                    if (High.Y - Low.Y > 1.0e-6)
+                    if (VertCurveId >= 0 || High.Y - Low.Y > 1.0e-6)
                     {
                         SolidArcDimension DimY;
                         DimY.Id          = NextDimensionId(Document);
                         DimY.Kind        = SolidArcDimensionKind::Linear;
+                        if (VertCurveId >= 0)
+                        {
+                            DimY.FirstKind = SolidArcSelectionKind::Edge;
+                            DimY.FirstName = Label + "@Curve:" + std::to_string(VertCurveId);
+                        }
                         DimY.FirstPoint  = ToWorld({ High.X, Low.Y });
                         DimY.SecondPoint = ToWorld({ High.X, High.Y });
                         DimY.PlaneNormal = Plane.ZAxis;
@@ -6908,6 +7223,7 @@ SolidArcCommandOutcome AddSolidArcDimensionFromSelection(SolidArcDocument& Docum
                         EvaluateLinearValue(DimY);
                         Document.Dimensions.push_back(std::move(DimY));
                     }
+                    RefreshSolidArcDimensions(Document);
                     if (!Document.Dimensions.empty()) return {};
                 }
             }
@@ -6983,32 +7299,44 @@ SolidArcCommandOutcome AddSolidArcDimensionFromSelection(SolidArcDocument& Docum
     });
 }
 
+SolidArcCommandOutcome AddSolidArcInteractiveDimension(SolidArcDocument& Document, const SolidArcDimension& Spec)
+{
+    return RunAppearanceCommand(Document, "Place dimension", [&]() -> std::string
+    {
+        SolidArcDimension Dim = Spec;
+        Dim.Id                = NextDimensionId(Document);
+        Dim.AxisFilter        = std::clamp(Dim.AxisFilter, -1, 2);
+        Dim.PlaneNormal       = SafeUnitNormal(Dim.PlaneNormal, DefaultPlaneNormalForSpan(Dim.SecondPoint - Dim.FirstPoint));
+        if (Length(Dim.Direction) > 1.0e-9) Dim.Direction = Normalize(Dim.Direction);
+        else Dim.Direction = { 1.0, 0.0, 0.0 };
+        EvaluateSingleDimension(Document, Dim);
+        if (Dim.Kind == SolidArcDimensionKind::Linear && Dim.Value < 1.0e-7)
+            return "Dimension: start and end points coincide or have zero projected span";
+        if ((Dim.Kind == SolidArcDimensionKind::Radius || Dim.Kind == SolidArcDimensionKind::Diameter) && Dim.Value < 1.0e-7)
+            return "Dimension: circle / arc radius is zero";
+        Document.Dimensions.push_back(std::move(Dim));
+        RefreshSolidArcDimensions(Document);
+        return {};
+    });
+}
+
 SolidArcCommandOutcome AddSolidArcPointDimension(SolidArcDocument& Document, Vector3 First, Vector3 Second, Vector3 PlaneNormal,
                                                  double Offset, int AxisFilter, const std::string& FirstEntity,
                                                  SolidArcSelectionKind FirstKind, const std::string& SecondEntity,
                                                  SolidArcSelectionKind SecondKind)
 {
-    return RunAppearanceCommand(Document, "Place dimension", [&]() -> std::string
-    {
-        if (Distance(First, Second) < 1.0e-7) return "Dimension: start and end points coincide";
-        SolidArcDimension Dim;
-        Dim.Id          = NextDimensionId(Document);
-        Dim.Kind        = SolidArcDimensionKind::Linear;
-        Dim.FirstKind   = FirstKind;
-        Dim.FirstName   = FirstEntity;
-        Dim.SecondKind  = SecondKind;
-        Dim.SecondName  = SecondEntity;
-        Dim.FirstPoint  = First;
-        Dim.SecondPoint = Second;
-        Dim.PlaneNormal = SafeUnitNormal(PlaneNormal, DefaultPlaneNormalForSpan(Second - First));
-        Dim.Offset      = Offset;
-        Dim.AxisFilter  = std::clamp(AxisFilter, -1, 2);
-        EvaluateLinearValue(Dim);
-        if (Dim.Value < 1.0e-7) return "Dimension: zero projected span along the chosen axis";
-        Document.Dimensions.push_back(std::move(Dim));
-        RefreshSolidArcDimensions(Document);
-        return {};
-    });
+    SolidArcDimension Spec;
+    Spec.Kind        = SolidArcDimensionKind::Linear;
+    Spec.FirstKind   = FirstKind;
+    Spec.FirstName   = FirstEntity;
+    Spec.SecondKind  = SecondKind;
+    Spec.SecondName  = SecondEntity;
+    Spec.FirstPoint  = First;
+    Spec.SecondPoint = Second;
+    Spec.PlaneNormal = PlaneNormal;
+    Spec.Offset      = Offset;
+    Spec.AxisFilter  = AxisFilter;
+    return AddSolidArcInteractiveDimension(Document, Spec);
 }
 
 SolidArcCommandOutcome UpdateSolidArcDimensionOffset(SolidArcDocument& Document, const std::string& Id, double Offset)
@@ -7020,6 +7348,26 @@ SolidArcCommandOutcome UpdateSolidArcDimensionOffset(SolidArcDocument& Document,
             if (Dim.Id != Id) continue;
             if (!std::isfinite(Offset)) return "Dimension: offset must be finite";
             Dim.Offset = Offset;
+            return {};
+        }
+        return "no dimension " + Id;
+    });
+}
+
+SolidArcCommandOutcome UpdateSolidArcDimensionPlacement(SolidArcDocument& Document, const std::string& Id, double Offset, Vector3 Direction)
+{
+    return RunAppearanceCommand(Document, "Move dimension", [&]() -> std::string
+    {
+        for (SolidArcDimension& Dim : Document.Dimensions)
+        {
+            if (Dim.Id != Id) continue;
+            if (!std::isfinite(Offset)) return "Dimension: offset must be finite";
+            Dim.Offset = Offset;
+            if (Length(Direction) > 1.0e-9)
+            {
+                Dim.Direction = Normalize(Direction);
+                EvaluateSingleDimension(Document, Dim);
+            }
             return {};
         }
         return "no dimension " + Id;

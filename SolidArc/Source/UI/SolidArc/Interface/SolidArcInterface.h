@@ -669,23 +669,39 @@ struct SolidArcIsolateState
     std::set<std::string> HiddenCurves    = {};                                              // [-] - Pre-isolate HiddenCurves snapshot
 };
 
-// 📝 Interactive 3D CAD Dimension Lines session (D / Dim toolbar button): snaps to vertices, midpoints, centres, curves,
-//    and grid points to place persistent linear, radial, diametral, angular, or bounding-box dimensions in the viewport.
+// 📝 Interactive 3D CAD Dimension Tool session (D / Dim toolbar button): click Point A then Point B (or click a circle,
+//    arc, or edge directly), drag/move to position the dimension offset parallel to the edge or radially around the circle,
+//    and place an associative dimension that follows the drawing or 3D shape across moves, rotations, scales, and edits.
 struct SolidArcDimensionSession
 {
-    bool                        ActiveCondition = false;                                     // [-]   - Interactive 2-point dimensioning active
-    int                         Stage           = 0;                                         // [-]   - 0 pick start · 1 pick end · 2 place offset
-    GeometryProcessing::Vector3 FirstPoint      = {};                                        // [len] - Snapped start anchor
-    GeometryProcessing::Vector3 SecondPoint     = {};                                        // [len] - Snapped end anchor
-    GeometryProcessing::Vector3 HoverPoint      = {};                                        // [len] - Live snapped hover point
-    bool                        HoverCondition  = false;                                     // [-]   - HoverPoint valid
-    std::string                 FirstEntity     = {};                                        // [-]   - Persistent vertex name if snapped
-    std::string                 SecondEntity    = {};                                        // [-]   - Persistent vertex name if snapped
-    GeometryProcessing::Vector3 PlaneNormal     = { 0.0, 0.0, 1.0 };                         // [-]   - Witness-line plane normal
-    double                      Offset          = 0.35;                                      // [len] - Witness-line offset
-    int                         AxisFilter      = -1;                                        // [-]   - -1 aligned, 0 ΔX, 1 ΔY, 2 ΔZ
-    std::string                 SelectedId      = {};                                        // [-]   - Clicked dimension line ID
-    std::string                 DraggingId      = {};                                        // [-]   - Dimension ID whose offset is being dragged
+    bool                                        ActiveCondition     = false;                 // [-]   - Interactive Dimension Tool active
+    int                                         Stage               = 0;                     // [-]   - 0 pick start/entity · 1 pick end · 2 position offset
+    SolidArcDimensionKind                       PreviewKind         = SolidArcDimensionKind::Linear; // [-] - Linear, Radius, Diameter, Angular
+    SolidArcSelectionKind                       FirstKind           = SolidArcSelectionKind::Vertex; // [-] - First associative entity kind
+    SolidArcSelectionKind                       SecondKind          = SolidArcSelectionKind::Vertex; // [-] - Second associative entity kind
+    GeometryProcessing::Vector3                 FirstPoint          = {};                    // [len] - Snapped start anchor (or circle/arc centre)
+    GeometryProcessing::Vector3                 SecondPoint         = {};                    // [len] - Snapped end anchor (or circle/arc rim)
+    GeometryProcessing::Vector3                 HoverPoint          = {};                    // [len] - Live snapped hover point
+    bool                                        HoverCondition      = false;                 // [-]   - HoverPoint valid
+    std::string                                 FirstEntity         = {};                    // [-]   - Persistent sketch/body entity name
+    std::string                                 SecondEntity        = {};                    // [-]   - Persistent sketch/body entity name
+    GeometryProcessing::Vector3                 FirstLineDir        = {};                    // [-]   - Direction when Stage 1/2 began on a line/edge
+    bool                                        FirstLineCondition  = false;                 // [-]   - Stage 2 can accept a 2nd line for Angular °
+    GeometryProcessing::Vector3                 PlaneNormal         = { 0.0, 0.0, 1.0 };     // [-]   - Witness-line / circle plane normal
+    GeometryProcessing::Vector3                 Direction           = { 1.0, 0.0, 0.0 };     // [-]   - Radial leader unit vector or 2nd angle ray
+    double                                      Radius              = 0.0;                   // [len] - Circle / arc radius during Stage 2 preview
+    double                                      Offset              = 0.35;                  // [len] - Parallel witness offset or radial leader extension
+    int                                         AxisFilter          = -1;                    // [-]   - -1 parallel/aligned, 0 dX, 1 dY, 2 dZ
+    std::vector<GeometryProcessing::Vector3>    HoverHighlight      = {};                    // [len] - Hovered circle / arc / edge preview polyline
+    std::string                                 HoverBadge          = {};                    // [-]   - Hover snap badge ("Corner", "Circle Ø", "Arc R", …)
+    float                                       Stage2PressX        = 0.0f;                  // [px]  - Screen X where Stage 2 began
+    float                                       Stage2PressY        = 0.0f;                  // [px]  - Screen Y where Stage 2 began
+    bool                                        Stage2HoldCondition = false;                 // [-]   - LMB held from Stage 2 entry (drag-release places)
+    std::string                                 SelectedId          = {};                    // [-]   - Selected dimension ID
+    std::string                                 DraggingId          = {};                    // [-]   - Dimension ID being dragged in viewport
+    double                                      DragLiveOffset      = 0.0;                   // [len] - Live dragged offset before release commit
+    GeometryProcessing::Vector3                 DragLiveDirection   = { 1.0, 0.0, 0.0 };     // [-]   - Live dragged radial direction before release commit
+    bool                                        DragMovedCondition  = false;                 // [-]   - Cursor moved during dimension drag
 };
 
 // 📝 STEP / STL exchange (priority 4 X4; Plasticity File → Import / Export, and Open / Save as by file type): Export…

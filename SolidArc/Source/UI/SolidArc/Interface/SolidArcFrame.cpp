@@ -208,13 +208,13 @@ void SolidArcWorkspaceFrame::Record(VkCommandBuffer Commands, const SolidArcWork
     int ProbeY = -1;
     if (State.SplitView.Layout == SolidArcViewportLayout::Single)
     {
-        const OrbitCameraFrame Frame = FrameOrbitCamera(State.Camera, Raster.Width(), Raster.Height());
         if (State.ViewportHovered && State.ViewportRect[2] > 0.0f && State.ViewportRect[3] > 0.0f)
         {
             ProbeX = int(std::floor((Pointer.x - State.ViewportRect[0]) * float(Raster.Width()) / State.ViewportRect[2]));
             ProbeY = int(std::floor((Pointer.y - State.ViewportRect[1]) * float(Raster.Height()) / State.ViewportRect[3]));
         }
-        Raster.Record(Commands, Frame, State.Style, ReadbackCondition, ProbeX, ProbeY);
+        const std::vector<SolidArcRasterPane> Panes = ComposeSolidArcRasterPanes(State, Raster.Width(), Raster.Height());
+        Raster.RecordPanes(Commands, Panes, State.Style.Background, ReadbackCondition, ProbeX, ProbeY);
     }
     else
     {

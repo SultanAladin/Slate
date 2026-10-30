@@ -306,6 +306,7 @@ bool ObserveField(const SolidArcWorkspaceState& State, const std::string& Field,
     if (Field == "isolate-active") return Numeric(State.Isolate.ActiveCondition ? 1 : 0);
     if (Field == "dimensions") return Numeric(double(Document.Dimensions.size()));
     if (Field == "dimension-active") return Numeric(State.DimensionTool.ActiveCondition ? 1 : 0);
+    if (Field == "dimension-stage") return Numeric(double(State.DimensionTool.Stage));
     if (Field == "dimension-text")
     {
         Text.clear();

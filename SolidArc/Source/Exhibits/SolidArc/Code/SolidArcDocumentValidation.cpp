@@ -160,6 +160,8 @@ namespace
     GateTally BlenderTransformGate = { "W87", "Blender-like G / R / S transforms: direct sequences (G Z 10, sign toggle '-', decimal, R Z 90, S Z 2, Shift+Axis plane), live modal gizmo with single-axis isolation + 3D axis constraint guide line, mouse drag & LMB handle drag, live G⇄R⇄S switching, and curve/point support", "≤ 10⁻⁹ · exact" };
     GateTally NumpadCameraGate     = { "W88", "Blender Numpad camera hotkeys: 1/Ctrl+1 Front/Back, 3/Ctrl+3 Right/Left, 7/Ctrl+7 Top/Bottom, 0 Isometric, 9 180° opposite flip, 5 Perspective⇄Ortho toggle, 2/4/6/8 15° orbit & Ctrl pan, +/- zoom, Numpad . Frame Selection, and modal numeric input guard", "≤ 10⁻⁹ · exact" };
     GateTally SplitViewportGate    = { "W89", "Multi-view docked Split Viewport (2, 3, or 4 simultaneous views): @ViewportSplit toolbar button & menu, Ctrl+Alt+Q Quad toggle, draggable internal X/Y/crosshair splitters (never undocking), per-pane cameras/grids/gizmos/Orientation Cubes, and cross-pane interaction", "exact" };
+    GateTally GizmoZoomGate        = { "W90", "Smooth jitter-free Gizmo scaling across Viewport zoom: zero 1-frame lag during perspective/ortho wheel zoom, Numpad +/- shortcut zoom, modal G/R/S zoom, per-pane integer raster frames, and perspective depth-compensated gizmo move drags", "≤ 0.1 px" };
+    GateTally InteractiveDimToolGate = { "W91", "Interactive CAD Dimension Tool (D / @SketchDimension / @DimensionTool): Ruler Point-A→Point-B, 1-click Circle/Cylinder Ø⇄R, Arc R, 3D Edge & 2-Edge Angle °, live drag-to-position parallel/radial offset, placed-pill drag repositioning, and live/committed associative shape tracking", "≤ 10⁻⁶ · exact" };
 
     std::vector<std::string> Journal;                                                        // [-] - Narrative rows for the exhibit
 
@@ -4058,7 +4060,7 @@ void ValidateBatch4InterfaceAndViewport()
               && Saved1.find("[[Dimensions]]") != std::string::npos && std::abs(Reloaded.Dimensions[0].Value - 6.25) <= 1.0e-9,
               Format(".solidarc [[Dimensions]] TOML round-trip byte-equal (%zu bytes, %zu dimensions preserved)", Saved1.size(), Reloaded.Dimensions.size()));
 
-        // ⑦ Interactive Viewport Dimension UI: 'D' on selected body creates W×D×H overall dimensions, records clickable @Dim:D1..D3 pills, and Delete removes selected pill.
+        // ⑦ Interactive Viewport Dimension UI: Inspector '+ Add from Selection' creates W×D×H overall dimensions, records clickable @Dim:Dim1..Dim3 pills, Delete removes selected pill, and 'D' / @DimensionTool / @SketchDimension toggle the interactive Dimension Tool.
         HeadlessUiHarness Ui;
         SolidArcConstructRequest Box;
         Box.Kind = SolidArcConstructKind::Block; Box.Width = 3.0; Box.Depth = 2.0; Box.Height = 1.2;
@@ -4066,28 +4068,31 @@ void ValidateBatch4InterfaceAndViewport()
         RefreshSolidArcScene(Ui.State, false);
         FitSolidArcCamera(Ui.State.Camera, Ui.State.Scene);
         SelectSolidArcName(Ui.State.Document, SolidArcSelectionKind::Body, Ui.State.Scene.Bodies[0].Key, false);
+        Expect(AddSolidArcDimensionFromSelection(Ui.State.Document));
         std::string Err;
         const bool DimUiOk = Ui.RunScript(
             "frames 2\n"
-            "key D\n"
-            "frames 2\n"
             "expect dimensions == 3\n"
-            "key Escape\n"
-            "frames 1\n"
             "click @Dim:Dim1\n"
             "frames 1\n"
             "key Delete\n"
             "frames 1\n"
             "expect dimensions == 2\n"
-            "click @DimensionTool\n"
+            "key D\n"
             "frames 1\n"
             "expect dimension-active == 1\n"
             "key Escape\n"
             "frames 1\n"
+            "expect dimension-active == 0\n"
+            "click @DimensionTool\n"
+            "frames 1\n"
+            "expect dimension-active == 1\n"
+            "click @SketchDimension\n"
+            "frames 1\n"
             "expect dimension-active == 0\n",
             Err);
         Tally(DimensionLinesGate, 0.0, DimUiOk && Ui.State.Widgets.Find("Dim:Dim2") != nullptr && Ui.State.Widgets.Find("Dim:Dim3") != nullptr,
-              DimUiOk ? "Viewport Dimension UI: 'D' creates W×D×H dimension lines, records @Dim:Dim1..Dim3 pills, click+Delete removes Dim1, toolbar 'Dim' toggles 2-point tool"
+              DimUiOk ? "Viewport Dimension UI: W×D×H dimension lines record @Dim:Dim1..Dim3 pills, click+Delete removes Dim1, and 'D' / @DimensionTool / @SketchDimension toggle interactive tool"
                       : ("Viewport Dimension UI failed: " + Err));
     }
 
@@ -4722,6 +4727,392 @@ void ValidateBatch5TransformsNumpadAndSplitViews()
     }
 }
 
+static void ValidateBatch6GizmoZoomAndInteractiveDimensions()
+{
+    const auto Format = [](const char* Pattern, auto... Values) { char Text[900]; std::snprintf(Text, sizeof(Text), Pattern, Values...); return std::string(Text); };
+    auto ProjectPanePixel = [](const OrbitCameraFrame& F, double X, double Y, double Z, double& OutPx, double& OutPy) -> bool
+    {
+        const auto& M = F.ClipFromWorld;
+        const double W = M[3] * X + M[7] * Y + M[11] * Z + M[15];
+        if (W <= 1.0e-6) return false;
+        const double NdcX = (M[0] * X + M[4] * Y + M[8] * Z + M[12]) / W;
+        const double NdcY = (M[1] * X + M[5] * Y + M[9] * Z + M[13]) / W;
+        OutPx = (NdcX * 0.5 + 0.5) * F.Width;
+        OutPy = (NdcY * 0.5 + 0.5) * F.Height;
+        return true;
+    };
+
+    // Measure max projected screen-pixel distance from Origin to any TranslateZ vertex on a gizmo in Frame.
+    auto GizmoHandlePixelSpan = [&](const SolidArcGizmoGeometry& Gizmo, const Vector3& Origin, const OrbitCameraFrame& F, SolidArcGizmoHandle Handle) -> double
+    {
+        double Ox = 0.0, Oy = 0.0;
+        if (!ProjectPanePixel(F, Origin.X, Origin.Y, Origin.Z, Ox, Oy)) return 0.0;
+        double Best = 0.0;
+        for (const SolidArcGizmoVertex& V : Gizmo.Vertices)
+        {
+            if (V.Handle != uint32_t(Handle)) continue;
+            double Vx = 0.0, Vy = 0.0;
+            if (ProjectPanePixel(F, V.Position[0], V.Position[1], V.Position[2], Vx, Vy))
+                Best = std::max(Best, std::hypot(Vx - Ox, Vy - Oy));
+        }
+        return Best;
+    };
+
+    // ============================================================================================================
+    // W90 — Smooth Jitter-Free Gizmo Scaling Across Viewport Zoom, Shortcuts, Modal G/R/S & Perspective Drags
+    // ============================================================================================================
+    {
+        HeadlessUiHarness Ui;
+        SolidArcConstructRequest Box;
+        Box.Kind     = SolidArcConstructKind::Block;
+        Box.Position = { 1.4, -0.8, 0.5 };
+        Box.Width    = 1.2;
+        Box.Depth    = 1.0;
+        Box.Height   = 0.8;
+        Expect(ConstructSolidArcPrimitive(Ui.State.Document, Box));
+        RefreshSolidArcScene(Ui.State, false);
+        PresentOrbitView(Ui.State.Camera, OrbitViewPreset::Isometric);
+        FitSolidArcCamera(Ui.State.Camera, Ui.State.Scene);
+        SelectSolidArcName(Ui.State.Document, SolidArcSelectionKind::Body, Ui.State.Scene.Bodies[0].Key, false);
+        Ui.StepFrame();
+        Ui.StepFrame();
+
+        const Vector3 GizmoOrigin = Ui.State.Gizmo.Pose.Origin;
+        const OrbitCameraFrame RefUiFrame = FrameOrbitCamera(Ui.State.Camera, Ui.State.ViewportRect[2], Ui.State.ViewportRect[3]);
+        const double RefUiSpan = GizmoHandlePixelSpan(Ui.State.Style.Gizmo, GizmoOrigin, RefUiFrame, SolidArcGizmoHandle::TranslateZ);
+        const std::vector<SolidArcRasterPane> RefPanes = ComposeSolidArcRasterPanes(Ui.State, 1280, 720);
+        const double RefGpuSpan = GizmoHandlePixelSpan(RefPanes[0].Style.Gizmo, GizmoOrigin, RefPanes[0].Frame, SolidArcGizmoHandle::TranslateZ);
+
+        // ① 24 consecutive single-frame wheel zoom ticks (12 in, 12 out, zero recovery frames) in Perspective + Ortho:
+        double WorstWheelUiJitter  = 0.0;
+        double WorstWheelGpuJitter = 0.0;
+        double WorstWidgetDrift    = 0.0;
+        for (int Pass = 0; Pass < 2; ++Pass)
+        {
+            Ui.State.Camera.OrthographicEnabled = (Pass == 1);
+            Ui.StepFrame();
+            const OrbitCameraFrame BaseUiF = FrameOrbitCamera(Ui.State.Camera, Ui.State.ViewportRect[2], Ui.State.ViewportRect[3]);
+            const double BaseUiSpan = GizmoHandlePixelSpan(Ui.State.Style.Gizmo, GizmoOrigin, BaseUiF, SolidArcGizmoHandle::TranslateZ);
+            const auto BasePanes = ComposeSolidArcRasterPanes(Ui.State, 1280, 720);
+            const double BaseGpuSpan = GizmoHandlePixelSpan(BasePanes[0].Style.Gizmo, GizmoOrigin, BasePanes[0].Frame, SolidArcGizmoHandle::TranslateZ);
+
+            for (int Tick = 0; Tick < 24; ++Tick)
+            {
+                const float Wheel = Tick < 12 ? 1.0f : -1.0f;
+                ImGuiIO& Io = ImGui::GetIO();
+                Io.MousePos   = ImVec2(Ui.State.ViewportRect[0] + 0.5f * Ui.State.ViewportRect[2], Ui.State.ViewportRect[1] + 0.5f * Ui.State.ViewportRect[3]);
+                Io.MouseWheel = Wheel;
+                Ui.StepFrame();   // Single frame: wheel zoom + DriveGizmo + ComposeSolidArcRasterPanes must agree immediately!
+                Io.MouseWheel = 0.0f;
+
+                const OrbitCameraFrame CurUiF = FrameOrbitCamera(Ui.State.Camera, Ui.State.ViewportRect[2], Ui.State.ViewportRect[3]);
+                const double CurUiSpan = GizmoHandlePixelSpan(Ui.State.Style.Gizmo, GizmoOrigin, CurUiF, SolidArcGizmoHandle::TranslateZ);
+                const auto CurPanes = ComposeSolidArcRasterPanes(Ui.State, 1280, 720);
+                const double CurGpuSpan = GizmoHandlePixelSpan(CurPanes[0].Style.Gizmo, GizmoOrigin, CurPanes[0].Frame, SolidArcGizmoHandle::TranslateZ);
+                // Measure Gizmo.Pose.Size vs exact analytical MeasureGizmoSize:
+                const double ExpectedSize = MeasureGizmoSize(CurUiF, GizmoOrigin, GizmoPixels);
+                const double SizeRelErr   = std::abs(Ui.State.Gizmo.Pose.Size - ExpectedSize) / std::max(1.0e-9, ExpectedSize);
+                WorstWheelUiJitter  = std::max(WorstWheelUiJitter, SizeRelErr * GizmoPixels);
+                WorstWheelGpuJitter = std::max(WorstWheelGpuJitter, std::abs(CurGpuSpan - BaseGpuSpan));
+                (void)CurUiSpan;
+                (void)BaseUiSpan;
+
+                if (const ImVec4* W = Ui.State.Widgets.Find("GizmoTranslateZ"))
+                {
+                    double TipPx = 0.0, TipPy = 0.0;
+                    const Vector3 TipWorld = GizmoOrigin + Vector3{ 0.0, 0.0, 0.95 * Ui.State.Gizmo.Pose.Size };
+                    if (ProjectPanePixel(CurUiF, TipWorld.X, TipWorld.Y, TipWorld.Z, TipPx, TipPy))
+                    {
+                        const double Wx = 0.5 * (W->x + W->z) - Ui.State.ViewportRect[0];
+                        const double Wy = 0.5 * (W->y + W->w) - Ui.State.ViewportRect[1];
+                        WorstWidgetDrift = std::max(WorstWidgetDrift, std::hypot(Wx - TipPx, Wy - TipPy));
+                    }
+                }
+            }
+        }
+        Ui.State.Camera.OrthographicEnabled = false;
+        Ui.StepFrame();
+        const double WorstZoomJitter = std::max({ WorstWheelUiJitter, WorstWheelGpuJitter, WorstWidgetDrift });
+        Tally(GizmoZoomGate, WorstZoomJitter,
+              RefUiSpan > 40.0 && RefGpuSpan > 40.0 && WorstZoomJitter <= 0.1,
+              Format("48 single-frame Perspective+Ortho wheel zoom steps: max UI/GPU gizmo scale jitter = %.4f px, @GizmoTranslateZ drift = %.4f px",
+                     std::max(WorstWheelUiJitter, WorstWheelGpuJitter), WorstWidgetDrift));
+
+        // ② Shortcut zoom (Numpad + / Numpad -) and Modal 'G' zoom maintain zero-lag gizmo scale on the exact shortcut frame:
+        std::string Err;
+        double WorstShortcutJitter = 0.0;
+        for (const char* KeyCmd : { "key KeypadAdd\n", "key KeypadAdd\n", "key KeypadSubtract\n", "key KeypadSubtract\n" })
+        {
+            const bool Ok = Ui.RunScript(KeyCmd, Err);
+            const OrbitCameraFrame F = FrameOrbitCamera(Ui.State.Camera, Ui.State.ViewportRect[2], Ui.State.ViewportRect[3]);
+            const double Expected = MeasureGizmoSize(F, GizmoOrigin, GizmoPixels);
+            const double JitterPx = (std::abs(Ui.State.Gizmo.Pose.Size - Expected) / std::max(1.0e-9, Expected)) * GizmoPixels;
+            WorstShortcutJitter = std::max(WorstShortcutJitter, Ok ? JitterPx : 999.0);
+        }
+        (void)Ui.RunScript("key G\nframes 1\n", Err);
+        const auto ModalPanesBefore = ComposeSolidArcRasterPanes(Ui.State, 1280, 720);
+        const double ModalSpanBefore = GizmoHandlePixelSpan(ModalPanesBefore[0].Style.Gizmo, GizmoOrigin, ModalPanesBefore[0].Frame, SolidArcGizmoHandle::TranslateZ);
+        ImGui::GetIO().MousePos   = ImVec2(Ui.State.ViewportRect[0] + 0.5f * Ui.State.ViewportRect[2], Ui.State.ViewportRect[1] + 0.5f * Ui.State.ViewportRect[3]);
+        ImGui::GetIO().MouseWheel = 2.0f;
+        Ui.StepFrame();
+        ImGui::GetIO().MouseWheel = 0.0f;
+        const auto ModalPanesAfter = ComposeSolidArcRasterPanes(Ui.State, 1280, 720);
+        const double ModalSpanAfter = GizmoHandlePixelSpan(ModalPanesAfter[0].Style.Gizmo, GizmoOrigin, ModalPanesAfter[0].Frame, SolidArcGizmoHandle::TranslateZ);
+        const double ModalZoomJitter = std::abs(ModalSpanAfter - ModalSpanBefore);
+        (void)Ui.RunScript("key Escape\nframes 1\n", Err);
+        Tally(GizmoZoomGate, std::max(WorstShortcutJitter, ModalZoomJitter),
+              WorstShortcutJitter <= 0.1 && ModalZoomJitter <= 0.1 && ModalSpanBefore > 40.0,
+              Format("Numpad +/- single-frame shortcut zoom jitter = %.4f px; active modal 'G' wheel-zoom GPU gizmo jitter = %.4f px",
+                     WorstShortcutJitter, ModalZoomJitter));
+
+        // ③ Perspective Gizmo Move-Drag toward/away from camera keeps Riding.Size depth-compensated:
+        const bool DragOk = Ui.RunScript("drag Left @GizmoTranslateX by 160 95 8 Ctrl\n", Err);
+        RefreshSolidArcScene(Ui.State, false);
+        const OrbitCameraFrame PostDragFrame = FrameOrbitCamera(Ui.State.Camera, Ui.State.ViewportRect[2], Ui.State.ViewportRect[3]);
+        const double ExpectedPostSize = MeasureGizmoSize(PostDragFrame, Ui.State.Gizmo.Pose.Origin, GizmoPixels);
+        const double PostDragJitterPx = (std::abs(Ui.State.Gizmo.Pose.Size - ExpectedPostSize) / std::max(1.0e-9, ExpectedPostSize)) * GizmoPixels;
+        Tally(GizmoZoomGate, PostDragJitterPx,
+              DragOk && Length(Ui.State.Gizmo.Pose.Origin - GizmoOrigin) > 0.3 && PostDragJitterPx <= 0.1,
+              Format("Perspective gizmo drag moved %.2f m along X with depth-compensated Riding.Size (post-drag scale error = %.4f px)",
+                     Length(Ui.State.Gizmo.Pose.Origin - GizmoOrigin), PostDragJitterPx));
+    }
+
+    // ============================================================================================================
+    // W91 — Interactive CAD Dimension Tool (Boxes, Circles, Arcs, 3D Solids, Drag-to-Position & Associative Tracking)
+    // ============================================================================================================
+    {
+        // ① Tool buttons (@SketchDimension on bottom ViewportTools, @DimensionTool on top-right, 'D' hotkey) & non-wrapped layout:
+        {
+            HeadlessUiHarness Ui;
+            Ui.StepFrame();
+            Ui.StepFrame();
+            const ImVec4* BottomDimBtn = Ui.State.Widgets.Find("SketchDimension");
+            const ImVec4* TopDimBtn    = Ui.State.Widgets.Find("DimensionTool");
+            const ImVec4* SelectBtn    = Ui.State.Widgets.Find("SketchSelect");
+            // Bottom ViewportTools bar sits beside the Orientation Cube (not pushed above CubeExtent+45+8 = 139 px):
+            const float ViewportBottom = Ui.State.ViewportRect[1] + Ui.State.ViewportRect[3];
+            const bool BarFitsBesideCube = BottomDimBtn != nullptr && (ViewportBottom - BottomDimBtn->w) < 120.0f;
+            std::string Err;
+            const bool ToggleOk = Ui.RunScript(
+                "click @SketchDimension\nframes 1\nexpect dimension-active == 1\nexpect dimension-stage == 0\n"
+                "click @SketchSelect\nframes 1\nexpect dimension-active == 0\n"
+                "click @DimensionTool\nframes 1\nexpect dimension-active == 1\n"
+                "key D\nframes 1\nexpect dimension-active == 0\n"
+                "key D\nframes 1\nexpect dimension-active == 1\n",
+                Err);
+            Tally(InteractiveDimToolGate, 0.0,
+                  BottomDimBtn != nullptr && TopDimBtn != nullptr && SelectBtn != nullptr && BarFitsBesideCube && ToggleOk,
+                  ToggleOk ? "@SketchDimension ('Dim' on bottom toolbar), @DimensionTool & 'D' hotkey toggle interactive tool cleanly without wrapping ViewportTools"
+                           : ("Dimension tool toggle failed: " + Err));
+        }
+
+        // ② 2D Sketch Box (Rectangle), 2D Circle (Ø ⇄ R) & 2D Arc (R) interactive Click-Click-Drag-Place + Associative Live/Committed Transform:
+        {
+            HeadlessUiHarness Ui;
+            // Sketch#1: 4.0 x 2.5 m rectangle from (0, 0) to (4, 2.5)
+            Expect(DrawSolidArcSketch(Ui.State.Document, DrawingOf(SolidArcDrawingKind::Rectangle, 0, { { 0.0, 0.0 }, { 4.0, 2.5 } })));
+            // Sketch#2: Circle centred at (7.0, 1.25) with radius 1.5 m (Ø 3.0 m)
+            Expect(DrawSolidArcSketch(Ui.State.Document, DrawingOf(SolidArcDrawingKind::Circle, 0, { { 7.0, 1.25 }, { 8.5, 1.25 } }, false, true)));
+            // Sketch#3: 3-point Arc centred at (-3.0, 1.0) with radius 1.0 m: (-2.0, 1.0) -> (-4.0, 1.0) via (-3.0, 2.0)
+            Expect(DrawSolidArcSketch(Ui.State.Document, DrawingOf(SolidArcDrawingKind::Arc, 0, { { -2.0, 1.0 }, { -4.0, 1.0 }, { -3.0, 2.0 } })));
+            RefreshSolidArcScene(Ui.State, false);
+            PresentOrbitView(Ui.State.Camera, OrbitViewPreset::Top);
+            Ui.State.Camera.OrthographicEnabled = true;
+            FitOrbitCamera(Ui.State.Camera, { -5.5, -2.5, -1.0 }, { 10.0, 5.0, 1.0 });
+            ClearSolidArcSelection(Ui.State.Document);
+            Ui.StepFrame();
+            Ui.StepFrame();
+
+            std::string Err;
+            // Activate Dimension tool ('D'), click Corner A (0,0,0) -> Stage 1, click Corner B (4,0,0) -> Stage 2, move to (2,-0.9,0) to position parallel offset, click to place!
+            const bool BoxDimOk = Ui.RunScript(
+                "key D\nframes 1\nexpect dimension-active == 1\nexpect dimension-stage == 0\n"
+                "click world 0 0 0\nframes 1\nexpect dimension-stage == 1\n"
+                "click world 4 0 0\nframes 1\nexpect dimension-stage == 2\n"
+                "move world 2 -0.9 0\nframes 2\n"
+                "click world 2 -0.9 0\nframes 1\n"
+                "expect dimensions == 1\nexpect dimension-stage == 0\n",
+                Err);
+            const bool BoxAssociative = Ui.State.Document.Dimensions.size() == 1
+                && std::abs(Ui.State.Document.Dimensions[0].Value - 4.0) <= 1.0e-6
+                && std::abs(std::abs(Ui.State.Document.Dimensions[0].Offset) - 0.9) <= 0.08
+                && Ui.State.Document.Dimensions[0].FirstName.find("Sketch#1@Point:") == 0
+                && Ui.State.Document.Dimensions[0].SecondName.find("Sketch#1@Point:") == 0;
+            const std::string BoxMsg = BoxDimOk && BoxAssociative
+                ? Format("2D Box Ruler workflow: Corner A -> Corner B -> drag parallel offset (%.2f m) -> click places associative %.2f m (%s -> %s)",
+                         Ui.State.Document.Dimensions[0].Offset, Ui.State.Document.Dimensions[0].Value,
+                         Ui.State.Document.Dimensions[0].FirstName.c_str(), Ui.State.Document.Dimensions[0].SecondName.c_str())
+                : ("2D Box dimension failed: " + Err);
+            Tally(InteractiveDimToolGate, BoxAssociative ? std::abs(Ui.State.Document.Dimensions[0].Value - 4.0) : 1.0,
+                  BoxDimOk && BoxAssociative, BoxMsg);
+
+            // Circle: 1 click on circle rim (8.5, 1.25, 0) -> Stage 2 (Ø 3.0 m), move radially outward to (9.3, 2.2, 0), click to place!
+            // Then click circle rim again -> Stage 2 -> press 'R' to toggle Radius (R 1.5 m) -> Enter places!
+            // Then click 2D Arc at (-3.0, 2.0, 0) -> Stage 2 (R 1.0 m) -> move outward to (-3.0, 2.8, 0) -> click places!
+            const bool CircleArcOk = Ui.RunScript(
+                "click world 8.5 1.25 0\nframes 1\nexpect dimension-stage == 2\n"
+                "move world 9.3 2.2 0\nframes 2\n"
+                "click world 9.3 2.2 0\nframes 1\nexpect dimensions == 2\nexpect dimension-stage == 0\n"
+                "click world 8.5 1.25 0\nframes 1\nexpect dimension-stage == 2\n"
+                "key R\nframes 1\n"
+                "move world 5.0 0.4 0\nframes 1\n"
+                "key Enter\nframes 1\nexpect dimensions == 3\nexpect dimension-stage == 0\n"
+                "click world -3.0 2.0 0\nframes 1\nexpect dimension-stage == 2\n"
+                "move world -3.0 2.8 0\nframes 2\n"
+                "click world -3.0 2.8 0\nframes 1\nexpect dimensions == 4\nexpect dimension-stage == 0\n"
+                "key Escape\nframes 1\nexpect dimension-active == 0\n",
+                Err);
+            const bool CircleArcExact = Ui.State.Document.Dimensions.size() == 4
+                && Ui.State.Document.Dimensions[1].Kind == SolidArcDimensionKind::Diameter
+                && std::abs(Ui.State.Document.Dimensions[1].Value - 3.0) <= 1.0e-6
+                && Ui.State.Document.Dimensions[1].FirstName.find("Sketch#2@Curve:") == 0
+                && Ui.State.Document.Dimensions[2].Kind == SolidArcDimensionKind::Radius
+                && std::abs(Ui.State.Document.Dimensions[2].Value - 1.5) <= 1.0e-6
+                && Ui.State.Document.Dimensions[3].Kind == SolidArcDimensionKind::Radius
+                && std::abs(Ui.State.Document.Dimensions[3].Value - 1.0) <= 1.0e-5
+                && Ui.State.Document.Dimensions[3].FirstName.find("Sketch#3@Curve:") == 0;
+            const std::string CircleArcMsg = CircleArcOk && CircleArcExact
+                ? Format("Circle & Arc workflow: 1-click Circle Ø=%.2f m + 'R' toggle R=%.2f m + 1-click Arc R=%.2f m with 360° radial leader positioning",
+                         Ui.State.Document.Dimensions[1].Value, Ui.State.Document.Dimensions[2].Value, Ui.State.Document.Dimensions[3].Value)
+                : ("Circle / Arc dimension failed: " + Err);
+            Tally(InteractiveDimToolGate, CircleArcExact ? std::abs(Ui.State.Document.Dimensions[3].Value - 1.0) : 1.0,
+                  CircleArcOk && CircleArcExact, CircleArcMsg);
+
+            // Reposition placed dimension Dim1 by dragging its viewport pill (@Dim:Dim1) + verify single-step Undo/Redo:
+            const double OffsetBeforeDrag = Ui.State.Document.Dimensions[0].Offset;
+            const bool PillDragOk = Ui.RunScript(
+                "drag Left @Dim:Dim1 by 0 42 6\nframes 1\n",
+                Err);
+            const double OffsetAfterDrag = Ui.State.Document.Dimensions[0].Offset;
+            const bool Undid = UndoSolidArcCommand(Ui.State.Document);
+            const double OffsetAfterUndo = Ui.State.Document.Dimensions[0].Offset;
+            const bool Redid = RedoSolidArcCommand(Ui.State.Document);
+            const double OffsetAfterRedo = Ui.State.Document.Dimensions[0].Offset;
+            Tally(InteractiveDimToolGate, std::abs(OffsetAfterUndo - OffsetBeforeDrag),
+                  PillDragOk && Undid && Redid && std::abs(OffsetAfterDrag - OffsetBeforeDrag) > 0.15
+                  && std::abs(OffsetAfterUndo - OffsetBeforeDrag) <= 1.0e-9
+                  && std::abs(OffsetAfterRedo - OffsetAfterDrag) <= 1.0e-9,
+                  Format("Viewport pill drag repositions Dim1 offset %.2f -> %.2f m, single Ctrl+Z restores %.2f m, Redo restores %.2f m",
+                         OffsetBeforeDrag, OffsetAfterDrag, OffsetAfterUndo, OffsetAfterRedo));
+
+            // Move Sketch#1 (Box) & Sketch#2 (Circle) via modal G X 5 Enter and verify dimensions associatively follow the shapes!
+            SelectSolidArcCurve(Ui.State.Document, "Sketch#1", false);
+            SelectSolidArcCurve(Ui.State.Document, "Sketch#2", true);
+            const ImVec4* Dim1BeforeLive = Ui.State.Widgets.Find("Dim:Dim1");
+            const float Dim1PixXBefore = Dim1BeforeLive ? 0.5f * (Dim1BeforeLive->x + Dim1BeforeLive->z) : 0.0f;
+            const bool MoveSketchOk = Ui.RunScript(
+                "frames 1\nkey G\nframes 1\nkey X\nframes 1\ntype 5\nframes 2\n",
+                Err);
+            // Check LIVE preview before Enter (both staged preview document AND live viewport @Dim:Dim1 pill position!):
+            const ImVec4* Dim1DuringLive = Ui.State.Widgets.Find("Dim:Dim1");
+            const float Dim1PixXDuring = Dim1DuringLive ? 0.5f * (Dim1DuringLive->x + Dim1DuringLive->z) : 0.0f;
+            const std::vector<SolidArcDimension> LiveDims = Ui.State.Transform.Preview
+                ? EvaluateSolidArcDimensions(*Ui.State.Transform.Preview)
+                : std::vector<SolidArcDimension>{};
+            const bool LiveFollows = LiveDims.size() >= 2
+                && (Dim1PixXDuring - Dim1PixXBefore) > 30.0f
+                && std::abs(std::min(LiveDims[0].FirstPoint.X, LiveDims[0].SecondPoint.X) - 5.0) <= 1.0e-6
+                && std::abs(LiveDims[1].FirstPoint.X - 12.0) <= 1.0e-6;
+            const bool CommitSketchMoveOk = Ui.RunScript("key Enter\nframes 2\nexpect transform == 0\n", Err);
+            const bool CommittedFollows = Ui.State.Document.Dimensions.size() >= 2
+                && std::abs(std::min(Ui.State.Document.Dimensions[0].FirstPoint.X, Ui.State.Document.Dimensions[0].SecondPoint.X) - 5.0) <= 1.0e-6
+                && std::abs(std::max(Ui.State.Document.Dimensions[0].FirstPoint.X, Ui.State.Document.Dimensions[0].SecondPoint.X) - 9.0) <= 1.0e-6
+                && std::abs(Ui.State.Document.Dimensions[0].Value - 4.0) <= 1.0e-6
+                && std::abs(Ui.State.Document.Dimensions[1].FirstPoint.X - 12.0) <= 1.0e-6
+                && std::abs(Ui.State.Document.Dimensions[1].Value - 3.0) <= 1.0e-6;
+            Tally(InteractiveDimToolGate, CommittedFollows ? std::abs(Ui.State.Document.Dimensions[1].FirstPoint.X - 12.0) : 1.0,
+                  MoveSketchOk && LiveFollows && CommitSketchMoveOk && CommittedFollows,
+                  Format("Associative 2D sketch tracking: live 'G X 5' preview & committed move carry Box Dim1 to X=[%.1f, %.1f] and Circle Dim2 centre to X=%.1f",
+                         std::min(Ui.State.Document.Dimensions[0].FirstPoint.X, Ui.State.Document.Dimensions[0].SecondPoint.X),
+                         std::max(Ui.State.Document.Dimensions[0].FirstPoint.X, Ui.State.Document.Dimensions[0].SecondPoint.X),
+                         Ui.State.Document.Dimensions[1].FirstPoint.X));
+        }
+
+        // ③ 3D Solid Block (1-Click Edge Linear + 2-Edge 90° Angular) & 3D Cylinder (Ø) + Live/Committed Body Transform Tracking:
+        {
+            HeadlessUiHarness Ui;
+            SolidArcConstructRequest Box;
+            Box.Kind     = SolidArcConstructKind::Block;
+            Box.Position = { 0.0, 0.0, 0.0 };
+            Box.Width    = 3.0;
+            Box.Depth    = 2.0;
+            Box.Height   = 1.2;
+            Expect(ConstructSolidArcPrimitive(Ui.State.Document, Box));
+
+            SolidArcConstructRequest Cyl;
+            Cyl.Kind        = SolidArcConstructKind::Cylinder;
+            Cyl.Combination = FeatureCombination::Separate;
+            Cyl.Position    = { 5.0, 1.0, 0.0 };
+            Cyl.Radius      = 0.8;
+            Cyl.Height      = 1.2;
+            Expect(ConstructSolidArcPrimitive(Ui.State.Document, Cyl));
+
+            RefreshSolidArcScene(Ui.State, false);
+            PresentOrbitView(Ui.State.Camera, OrbitViewPreset::Top);
+            Ui.State.Camera.OrthographicEnabled = true;
+            FitOrbitCamera(Ui.State.Camera, { -2.0, -3.5, -0.5 }, { 7.5, 4.0, 2.0 });
+            ClearSolidArcSelection(Ui.State.Document);
+            Ui.StepFrame();
+            Ui.StepFrame();
+
+            std::string Err;
+            // Click top front edge midpoint (1.5, 0.0, 1.2) -> Stage 2 (3.0 m edge), move to (1.5, -0.7, 1.2), click to place!
+            // Click edge 1 (1.5, 0.0, 1.2) -> Stage 2 -> click perpendicular edge 2 (0.0, 1.0, 1.2) -> upgrades to 90° Angular -> click (0.8, 0.8, 1.2) to place!
+            // Click Cylinder top rim (5.8, 1.0, 1.2) -> Stage 2 (Ø 1.6 m) -> move to (6.4, 1.6, 1.2) -> click to place!
+            const bool SolidDimOk = Ui.RunScript(
+                "key D\nframes 1\n"
+                "click world 1.5 0.0 1.2\nframes 1\nexpect dimension-stage == 2\n"
+                "move world 1.5 -0.7 1.2\nframes 2\n"
+                "click world 1.5 -0.7 1.2\nframes 1\nexpect dimensions == 1\nexpect dimension-stage == 0\n"
+                "click world 1.5 0.0 1.2\nframes 1\nexpect dimension-stage == 2\n"
+                "click world 0.0 1.0 1.2\nframes 1\nexpect dimension-stage == 2\n"
+                "move world 0.8 0.8 1.2\nframes 2\n"
+                "click world 0.8 0.8 1.2\nframes 1\nexpect dimensions == 2\nexpect dimension-stage == 0\n"
+                "click world 5.8 1.0 1.2\nframes 1\nexpect dimension-stage == 2\n"
+                "move world 6.4 1.6 1.2\nframes 2\n"
+                "click world 6.4 1.6 1.2\nframes 1\nexpect dimensions == 3\nexpect dimension-stage == 0\n"
+                "key Escape\nframes 1\nexpect dimension-active == 0\n",
+                Err);
+            const bool SolidDimsExact = Ui.State.Document.Dimensions.size() == 3
+                && Ui.State.Document.Dimensions[0].Kind == SolidArcDimensionKind::Linear
+                && std::abs(Ui.State.Document.Dimensions[0].Value - 3.0) <= 1.0e-6
+                && Ui.State.Document.Dimensions[1].Kind == SolidArcDimensionKind::Angular
+                && std::abs(Ui.State.Document.Dimensions[1].Value - 90.0) <= 1.0e-4
+                && Ui.State.Document.Dimensions[2].Kind == SolidArcDimensionKind::Diameter
+                && std::abs(Ui.State.Document.Dimensions[2].Value - 1.6) <= 1.0e-5;
+            Tally(InteractiveDimToolGate, SolidDimsExact ? std::abs(Ui.State.Document.Dimensions[1].Value - 90.0) : 1.0,
+                  SolidDimOk && SolidDimsExact,
+                  SolidDimOk && SolidDimsExact
+                      ? Format("3D Solid workflow: 1-click Block edge %.2f m + 2-edge %.1f° Angular + 1-click Cylinder Ø=%.2f m",
+                               Ui.State.Document.Dimensions[0].Value, Ui.State.Document.Dimensions[1].Value, Ui.State.Document.Dimensions[2].Value)
+                      : ("3D Solid dimension failed: " + Err));
+
+            // Translate both 3D bodies by G Y 4 Enter and verify all 3 3D dimensions follow both during live rigid preview and after commit!
+            SelectSolidArcName(Ui.State.Document, SolidArcSelectionKind::Body, Ui.State.Scene.Bodies[0].Key, false);
+            SelectSolidArcName(Ui.State.Document, SolidArcSelectionKind::Body, Ui.State.Scene.Bodies[1].Key, true);
+            const double CylCenterYBefore = Ui.State.Document.Dimensions[2].FirstPoint.Y;
+            const bool SolidMoveOk = Ui.RunScript(
+                "frames 1\nkey G\nframes 1\nkey Y\nframes 1\ntype 4\nframes 2\n"
+                "key Enter\nframes 2\nexpect transform == 0\n",
+                Err);
+            const double EdgeYAfter      = Ui.State.Document.Dimensions[0].FirstPoint.Y;
+            const double AngleVertYAfter = Ui.State.Document.Dimensions[1].FirstPoint.Y;
+            const double CylCenterYAfter = Ui.State.Document.Dimensions[2].FirstPoint.Y;
+            const bool SolidTracked = SolidMoveOk
+                && std::abs(EdgeYAfter - 4.0) <= 1.0e-5
+                && std::abs(AngleVertYAfter - 4.0) <= 1.0e-5
+                && std::abs((CylCenterYAfter - CylCenterYBefore) - 4.0) <= 1.0e-5
+                && std::abs(Ui.State.Document.Dimensions[0].Value - 3.0) <= 1.0e-6
+                && std::abs(Ui.State.Document.Dimensions[1].Value - 90.0) <= 1.0e-4
+                && std::abs(Ui.State.Document.Dimensions[2].Value - 1.6) <= 1.0e-5;
+            Tally(InteractiveDimToolGate, std::abs((CylCenterYAfter - CylCenterYBefore) - 4.0),
+                  SolidTracked,
+                  Format("Associative 3D solid tracking: 'G Y 4' moves Block edge Y=%.1f, 90° corner Y=%.1f, and Cylinder Ø1.6 centre Y=%.1f->%.1f",
+                         EdgeYAfter, AngleVertYAfter, CylCenterYBefore, CylCenterYAfter));
+        }
+    }
+}
+
 int main()
 {
     const auto Start = std::chrono::steady_clock::now();
@@ -4774,6 +5165,13 @@ int main()
         ValidateBatch5TransformsNumpadAndSplitViews();
         for (const std::string& Row : Journal) std::printf("%s\n", Row.c_str());
         const long TotalFail = BlenderTransformGate.Failures + NumpadCameraGate.Failures + SplitViewportGate.Failures;
+        return TotalFail ? 1 : 0;
+    }
+    if (std::getenv("SOLIDARC_DOCVAL_BATCH6"))                                            // Quick rerun of W90 .. W91 alone
+    {
+        ValidateBatch6GizmoZoomAndInteractiveDimensions();
+        for (const std::string& Row : Journal) std::printf("%s\n", Row.c_str());
+        const long TotalFail = GizmoZoomGate.Failures + InteractiveDimToolGate.Failures;
         return TotalFail ? 1 : 0;
     }
     if (std::getenv("SOLIDARC_DOCVAL_STAGE3"))                                            // Quick rerun of W72..W78
@@ -10292,7 +10690,10 @@ int main()
     // ---- W87 … W89 Blender-like G / R / S transforms, Numpad camera hotkeys, and Multi-view docked Split Viewport
     ValidateBatch5TransformsNumpadAndSplitViews();
 
-    for (const GateTally* Gate : { &ConstructGate, &PickGate, &BlendGate, &FaceGate, &ParameterGate, &AtomicGate, &HistoryGate, &FileGate, &VariableGate, &DrawingGate, &SurfacingGate, &PanelGate, &EvaluationGate, &BlueprintGate, &MatcapGate, &BodiesGate, &CutGate, &TrimGate, &MoveGate, &CopyGate, &HideGate, &CurveGate, &ConstrainGate, &ConflictGate, &DragGate, &ReferenceGate, &SplineGate, &LinkGate, &RevolveGate, &EvolutionGate, &ReplayGate, &XRayGate, &MeasureGate, &SectionGate, &SnapGate, &JointGate, &SheetGate, &ExchangeGate, &BoundGate, &PrimitiveGate, &InsetGate, &SectionLoftGate, &GizmoGate, &PointGate, &ShellGate, &DetachGate, &CornerGate, &FillGate, &FilletDragGate, &OrientGate, &TangentGate, &KnifeGate, &HandleGate, &SolidKnifeGate, &PocketBevelGate, &ReachGate, &SplitGate, &LoopGate, &PieceGate, &ManifoldGate, &ImprintGate, &PointCutGate, &CurveFlowGate, &EdgeNotchGate, &EdgePathGate, &WrapGate, &ReshapeGate, &DeleteGate, &CurveAskGate, &FullReachGate, &BevelMergeGate, &CutterSpeedGate, &ParametricVarGate, &LiveBooleanGate, &EdgeWeightGate, &LinearCircArrayGate, &CurveSurfArrayGate, &CurveBendStackGate, &CompoundCutterGate, &LiveEditableGate, &GizmoAllViewsGate, &ContinuedLoftGate, &HotkeysOutlinerGate, &DimensionLinesGate, &MultiSelectSyncGate, &GridCubeUvGate, &BlenderTransformGate, &NumpadCameraGate, &SplitViewportGate })
+    // ---- W90 … W91 Smooth Gizmo Zoom Scaling and Interactive CAD Dimension Tool
+    ValidateBatch6GizmoZoomAndInteractiveDimensions();
+
+    for (const GateTally* Gate : { &ConstructGate, &PickGate, &BlendGate, &FaceGate, &ParameterGate, &AtomicGate, &HistoryGate, &FileGate, &VariableGate, &DrawingGate, &SurfacingGate, &PanelGate, &EvaluationGate, &BlueprintGate, &MatcapGate, &BodiesGate, &CutGate, &TrimGate, &MoveGate, &CopyGate, &HideGate, &CurveGate, &ConstrainGate, &ConflictGate, &DragGate, &ReferenceGate, &SplineGate, &LinkGate, &RevolveGate, &EvolutionGate, &ReplayGate, &XRayGate, &MeasureGate, &SectionGate, &SnapGate, &JointGate, &SheetGate, &ExchangeGate, &BoundGate, &PrimitiveGate, &InsetGate, &SectionLoftGate, &GizmoGate, &PointGate, &ShellGate, &DetachGate, &CornerGate, &FillGate, &FilletDragGate, &OrientGate, &TangentGate, &KnifeGate, &HandleGate, &SolidKnifeGate, &PocketBevelGate, &ReachGate, &SplitGate, &LoopGate, &PieceGate, &ManifoldGate, &ImprintGate, &PointCutGate, &CurveFlowGate, &EdgeNotchGate, &EdgePathGate, &WrapGate, &ReshapeGate, &DeleteGate, &CurveAskGate, &FullReachGate, &BevelMergeGate, &CutterSpeedGate, &ParametricVarGate, &LiveBooleanGate, &EdgeWeightGate, &LinearCircArrayGate, &CurveSurfArrayGate, &CurveBendStackGate, &CompoundCutterGate, &LiveEditableGate, &GizmoAllViewsGate, &ContinuedLoftGate, &HotkeysOutlinerGate, &DimensionLinesGate, &MultiSelectSyncGate, &GridCubeUvGate, &BlenderTransformGate, &NumpadCameraGate, &SplitViewportGate, &GizmoZoomGate, &InteractiveDimToolGate })
     {
         std::printf("| %s | %s | %s | %.3g | %ld | %s |\n", Gate->Code, Gate->Subject, Gate->Limit, Gate->Worst, Gate->Checks, Gate->Failures ? "🔴" : "🟢");
         Failures += Gate->Failures;

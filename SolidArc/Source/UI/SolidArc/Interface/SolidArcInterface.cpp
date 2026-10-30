@@ -4171,10 +4171,12 @@ void OpenTransformSession(SolidArcWorkspaceState& State, SolidArcTransformVerb V
     Transform.SketchCondition    = (TargetKind == SolidArcTransformTarget::Sketches);
     Transform.Pivot              = Pivot;
     Transform.DisplayPivot       = Pivot;
-    State.Drawing.ActiveCondition   = false;
-    State.Trim.ActiveCondition      = false;
-    State.Fill.ActiveCondition      = false;
-    State.Constrain.ActiveCondition = false;
+    State.Drawing.ActiveCondition       = false;
+    State.Trim.ActiveCondition          = false;
+    State.Fill.ActiveCondition          = false;
+    State.Constrain.ActiveCondition     = false;
+    State.DimensionTool.ActiveCondition = false;
+    State.DimensionTool.Stage           = 0;
     const int ShownCount = !PointIndices.empty() ? int(PointIndices.size()) : int(Keys.size());
     Announce(State, Compose("%s%s %d %s · X / Y / Z axis%s · drag or type a value · click / Enter commits%s · Esc cancels",
                             DuplicateCondition ? "Duplicate + " : "", TransformVerbLabel(Verb), ShownCount, Noun,
@@ -5417,9 +5419,10 @@ bool DriveGizmo(SolidArcWorkspaceState& State, const OrbitCameraFrame& Frame, Im
         }
         else if (Length(Gizmo.Shift) > 0.0)
         {
-            // The gizmo rides with a move (axes stay fixed for the whole drag).
+            // The gizmo rides with a move (axes stay fixed for the whole drag) and stays GizmoPixels on screen.
             SolidArcGizmoPose Riding = Gizmo.Pose;
             Riding.Origin = Riding.Origin + Gizmo.Shift;
+            Riding.Size   = MeasureGizmoSize(Frame, Riding.Origin, GizmoPixels);
             Gizmo.Geometry = BuildSolidArcGizmo(Riding, Frame, SolidArcGizmoHandle::None, Gizmo.Grab);
         }
     }
@@ -9325,13 +9328,25 @@ void DrawMeasureCard(SolidArcWorkspaceState& State)
     EndCard();
 }
 
+void ResetDimensionToolStage(SolidArcDimensionSession& Tool)
+{
+    Tool.Stage               = 0;
+    Tool.PreviewKind         = SolidArcDimensionKind::Linear;
+    Tool.FirstKind           = SolidArcSelectionKind::Vertex;
+    Tool.SecondKind          = SolidArcSelectionKind::Vertex;
+    Tool.FirstEntity.clear();
+    Tool.SecondEntity.clear();
+    Tool.FirstLineCondition  = false;
+    Tool.HoverHighlight.clear();
+    Tool.HoverBadge.clear();
+    Tool.Stage2HoldCondition = false;
+}
+
 void CloseDimensionSession(SolidArcWorkspaceState& State, const std::string& Message = {})
 {
     State.DimensionTool.ActiveCondition = false;
-    State.DimensionTool.Stage           = 0;
     State.DimensionTool.HoverCondition  = false;
-    State.DimensionTool.FirstEntity.clear();
-    State.DimensionTool.SecondEntity.clear();
+    ResetDimensionToolStage(State.DimensionTool);
     State.Picker.Current = {};
     if (!Message.empty()) Announce(State, Message);
 }
@@ -9345,225 +9360,833 @@ void ToggleDimensionSession(SolidArcWorkspaceState& State)
     }
     if (State.Trim.ActiveCondition) CloseTrimSession(State);
     if (State.Fill.ActiveCondition) CloseFillSession(State);
+    if (State.Knife.ActiveCondition) CloseKnifeSession(State, {});
+    if (State.Drawing.ActiveCondition) CancelDrawingSession(State);
+    if (State.Constrain.ActiveCondition) CloseConstraintSession(State);
     State.DimensionTool.ActiveCondition = true;
-    State.DimensionTool.Stage           = 0;
     State.DimensionTool.AxisFilter      = -1;
     State.DimensionTool.Offset          = 0.35;
-    State.DimensionTool.FirstEntity.clear();
-    State.DimensionTool.SecondEntity.clear();
-    Announce(State, "Dimension tool (D): click Point 1 then Point 2 (snaps active) · X / Y / Z axis filter · Enter / click places · Esc ends");
+    ResetDimensionToolStage(State.DimensionTool);
+    Announce(State, "Dimension tool (D): click Point 1 -> Point 2 (or click circle / arc / edge), then drag to position offset · R toggles R/\xC3\x98 · X/Y/Z axis · Esc ends");
 }
 
 void TriggerDimensionShortcut(SolidArcWorkspaceState& State)
 {
-    if (State.DimensionTool.ActiveCondition)
+    ToggleDimensionSession(State);
+}
+
+struct DimensionProbeHit
+{
+    enum class TargetType : uint8_t { None = 0, Point = 1, Segment = 2, Radial = 3, FreePlane = 4 };
+    TargetType            Type                = TargetType::None;
+    SolidArcSelectionKind EntityKind          = SolidArcSelectionKind::Vertex;
+    std::string           EntityName          = {};
+    std::string           StartPointEntity    = {};
+    std::string           EndPointEntity      = {};
+    Vector3               Point               = {};
+    Vector3               SecondEndpoint      = {};
+    Vector3               Centre              = {};
+    Vector3               Rim                 = {};
+    double                Radius              = 0.0;
+    bool                  FullCircleCondition = true;
+    Vector3               LineDir             = { 1.0, 0.0, 0.0 };
+    bool                  HasLineDir          = false;
+    Vector3               PlaneNormal         = { 0.0, 0.0, 1.0 };
+    bool                  HasExplicitPlane    = false;
+    std::vector<Vector3>  Highlight           = {};
+    std::string           Badge               = {};
+};
+
+[[nodiscard]] Vector3 DimensionSafeNormal(Vector3 Candidate, Vector3 Fallback = { 0.0, 0.0, 1.0 })
+{
+    const double Len = Length(Candidate);
+    if (Len > 1.0e-9) return Candidate * (1.0 / Len);
+    const double FLen = Length(Fallback);
+    return FLen > 1.0e-9 ? Fallback * (1.0 / FLen) : Vector3{ 0.0, 0.0, 1.0 };
+}
+
+[[nodiscard]] Vector3 DefaultDimensionPlaneNormal(Vector3 Span)
+{
+    const Vector3 UnitSpan = DimensionSafeNormal(Span, { 1.0, 0.0, 0.0 });
+    return std::abs(UnitSpan.Z) < 0.92 ? Vector3{ 0.0, 0.0, 1.0 }
+         : (std::abs(UnitSpan.Y) < 0.92 ? Vector3{ 0.0, -1.0, 0.0 } : Vector3{ 1.0, 0.0, 0.0 });
+}
+
+[[nodiscard]] DimensionProbeHit ProbeDimensionTarget(SolidArcWorkspaceState& State, const OrbitCameraFrame& Frame, ImVec2 Local)
+{
+    DimensionProbeHit Out;
+    const ImVec2 ScreenMouse(State.ViewportRect[0] + Local.x, State.ViewportRect[1] + Local.y);
+    const SolidArcDocument& Doc = State.Document;
+
+    const Vector3 CamEye{ Frame.Eye[0], Frame.Eye[1], Frame.Eye[2] };
+    const Vector3 CamFwd{ Frame.Forward[0], Frame.Forward[1], Frame.Forward[2] };
+    auto CameraDepth = [&](const Vector3& Pt) { return Dot(Pt - CamEye, CamFwd); };
+
+    // 1. Exact Corners / Sketch Points / Midpoints / Poles / B-Rep Vertices / Centres within 11 px
+    float  BestPointScore = 11.5f;
+    double BestPointDepth = 1.0e300;
+    for (const FeatureStep& Step : Doc.Tree.Steps)
     {
-        CloseDimensionSession(State, "Dimension tool closed");
-        return;
-    }
-    const SolidArcSelection& Sel = State.Document.Selection;
-    const bool HasSelection = !Sel.Edges.empty() || !Sel.Faces.empty() || !Sel.Vertices.empty() || !Sel.Bodies.empty() || !Sel.Curves.empty();
-    if (HasSelection)
-    {
-        const size_t Before = State.Document.Dimensions.size();
-        const SolidArcCommandOutcome Out = AddSolidArcDimensionFromSelection(State.Document);
-        if (Out.AcceptedCondition && State.Document.Dimensions.size() > Before)
+        if (!CurveReachableCondition(Doc, Step.Label)) continue;
+        if (Step.Kind == FeatureStepKind::Sketch && State.PickMode != SolidArcPickMode::ControlPoint && SolidArcSketchConsumedCondition(Doc, Step.Label))
+            continue;   // Extruded / consumed sketches yield to their 3D B-Rep body
+        if (Step.Kind == FeatureStepKind::Sketch)
         {
-            MarkDirty(State);
-            State.DimensionTool.SelectedId = State.Document.Dimensions.back().Id;
-            const int Added = int(State.Document.Dimensions.size() - Before);
-            Announce(State, Added > 1
-                ? Compose("Added %d overall dimension lines (W \xC3\x97 D \xC3\x97 H) · click Dim for 2-point mode", Added)
-                : ("Added " + State.Document.Dimensions.back().Id + " · " + FormatSolidArcDimension(State.Document.Dimensions.back())));
-            return;
+            const OrthonormalFrame Plane  = ElevatedSketchPlane(Doc, Step);
+            const SketchModel&     Sketch = SolvedSketchOf(Doc, Step);
+            for (int PtIdx = 0; PtIdx < int(Sketch.Points.size()); ++PtIdx)
+            {
+                const Vector3 WorldPt = PlacePlanePoint(Plane, Sketch.Points[PtIdx].Position);
+                ImVec2 Pix{};
+                if (!ProjectWorldPoint(State, Frame, WorldPt, Pix)) continue;
+                const float Dist = std::hypot(Pix.x - ScreenMouse.x, Pix.y - ScreenMouse.y);
+                if (Dist < BestPointScore)
+                {
+                    BestPointScore       = Dist;
+                    Out                  = {};
+                    Out.Type             = DimensionProbeHit::TargetType::Point;
+                    Out.EntityKind       = SolidArcSelectionKind::Vertex;
+                    Out.EntityName       = Step.Label + "@Point:" + std::to_string(PtIdx);
+                    Out.Point            = WorldPt;
+                    Out.PlaneNormal      = DimensionSafeNormal(Plane.ZAxis);
+                    Out.HasExplicitPlane = true;
+                    Out.Badge            = "Point";
+                }
+            }
+            if (State.DimensionTool.Stage == 1)
+            {
+                for (const SketchCurve& Curve : Sketch.Curves)
+                {
+                    if (Curve.Construction || (Curve.Kind != SketchCurveKind::Line && Curve.Kind != SketchCurveKind::Arc)) continue;
+                    const std::vector<Vector2> Samples = SampleSketchCurve(Sketch, Curve);
+                    if (Samples.empty()) continue;
+                    const Vector3 MidWorld = PlacePlanePoint(Plane, Samples[Samples.size() / 2]);
+                    ImVec2 Pix{};
+                    if (!ProjectWorldPoint(State, Frame, MidWorld, Pix)) continue;
+                    const float Dist = std::hypot(Pix.x - ScreenMouse.x, Pix.y - ScreenMouse.y) + 2.2f;
+                    if (Dist < BestPointScore)
+                    {
+                        BestPointScore       = Dist;
+                        Out                  = {};
+                        Out.Type             = DimensionProbeHit::TargetType::Point;
+                        Out.EntityKind       = SolidArcSelectionKind::Vertex;
+                        Out.EntityName       = Step.Label + "@Mid:" + std::to_string(Curve.Identifier);
+                        Out.Point            = MidWorld;
+                        Out.PlaneNormal      = DimensionSafeNormal(Plane.ZAxis);
+                        Out.HasExplicitPlane = true;
+                        Out.Badge            = "Midpoint";
+                    }
+                }
+            }
+        }
+        else if (Step.Kind == FeatureStepKind::SpaceCurve)
+        {
+            const CurveFitOutcome* Fit = FindFittedCurve(Doc, Step.Label);
+            const std::vector<Vector3>& Pts = (Fit && Fit->Curve.Definition) ? Fit->Curve.Definition->Poles : Step.Points;
+            for (int PoleIdx = 0; PoleIdx < int(Pts.size()); ++PoleIdx)
+            {
+                ImVec2 Pix{};
+                if (!ProjectWorldPoint(State, Frame, Pts[PoleIdx], Pix)) continue;
+                const float Dist = std::hypot(Pix.x - ScreenMouse.x, Pix.y - ScreenMouse.y);
+                if (Dist < BestPointScore)
+                {
+                    BestPointScore = Dist;
+                    Out            = {};
+                    Out.Type       = DimensionProbeHit::TargetType::Point;
+                    Out.EntityKind = SolidArcSelectionKind::Vertex;
+                    Out.EntityName = Step.Label + "@Pole:" + std::to_string(PoleIdx);
+                    Out.Point      = Pts[PoleIdx];
+                    Out.Badge      = "Curve Point";
+                }
+            }
         }
     }
-    ToggleDimensionSession(State);
+
+    std::vector<Vector3> SeamVertices;
+    if (Doc.Partition)
+    {
+        for (const RegeneratedBody& Body : Doc.Regeneration.Bodies)
+        {
+            if (!Body.Body.PresentCondition() || Doc.Appearance.HiddenBodies.count(Body.Key) != 0 || SolidArcLockedCondition(Doc, Body.Key)) continue;
+            const BodyInventory Inv = Doc.Partition->CollectInventory(Body.Body);
+            std::set<uint32_t> PeriodicSeamVertexSlots;
+            if (State.DimensionTool.Stage != 1)
+            {
+                for (const EdgeToken Edge : Inv.Edges)
+                {
+                    const EdgeProfile& EProf = Doc.Partition->Edges.Resolve(Edge);
+                    if (EProf.Start.PresentCondition() && EProf.Start == EProf.End)
+                        PeriodicSeamVertexSlots.insert(EProf.Start.Slot);
+                }
+            }
+            for (const VertexToken Vertex : Inv.Vertices)
+            {
+                const Vector3 WorldPt = Doc.Partition->Vertices.Resolve(Vertex).Position;
+                if (PeriodicSeamVertexSlots.count(Vertex.Slot) != 0)
+                {
+                    SeamVertices.push_back(WorldPt);
+                    continue;
+                }
+                ImVec2 Pix{};
+                if (!ProjectWorldPoint(State, Frame, WorldPt, Pix)) continue;
+                const float Dist = std::hypot(Pix.x - ScreenMouse.x, Pix.y - ScreenMouse.y);
+                const double Depth = CameraDepth(WorldPt);
+                const bool Better = (Dist + 1.5f < BestPointScore) || (Dist < 11.5f && std::abs(Dist - BestPointScore) <= 1.5f && Depth < BestPointDepth - 1.0e-5);
+                if (Better)
+                {
+                    const auto It = Body.Naming.Vertices.find(Vertex.Slot);
+                    if (It == Body.Naming.Vertices.end()) continue;
+                    BestPointScore = std::min(BestPointScore, Dist);
+                    BestPointDepth = Depth;
+                    Out            = {};
+                    Out.Type       = DimensionProbeHit::TargetType::Point;
+                    Out.EntityKind = SolidArcSelectionKind::Vertex;
+                    Out.EntityName = It->second;
+                    Out.Point      = WorldPt;
+                    Out.Badge      = "Vertex";
+                }
+            }
+        }
+    }
+
+    const std::optional<Vector3> Ref = State.DimensionTool.Stage >= 1 ? std::optional<Vector3>(State.DimensionTool.FirstPoint) : std::nullopt;
+    const SolidArcSnap SnapHit = FindPointerSnap(State, Frame, Local, Ref, {}, {}, true);
+    if (Out.Type == DimensionProbeHit::TargetType::Point)
+    {
+        State.Picker.Current          = {};
+        State.Picker.Current.Kind     = SolidArcSnapKind::Endpoint;
+        State.Picker.Current.Position = Out.Point;
+        return Out;
+    }
+    const bool AllowMidSnap = State.DimensionTool.Stage == 1;
+    bool SnapIsPeriodicSeam = false;
+    if (SnapHit.Kind == SolidArcSnapKind::Endpoint)
+    {
+        for (const Vector3& SeamPt : SeamVertices)
+            if (Length(SnapHit.Position - SeamPt) <= 1.0e-5) { SnapIsPeriodicSeam = true; break; }
+    }
+    if (!SnapIsPeriodicSeam && (SnapHit.Kind == SolidArcSnapKind::Centre || SnapHit.Kind == SolidArcSnapKind::Endpoint
+        || (AllowMidSnap && SnapHit.Kind == SolidArcSnapKind::Midpoint)))
+    {
+        ImVec2 SnapPix{};
+        if (ProjectWorldPoint(State, Frame, SnapHit.Position, SnapPix) && std::hypot(SnapPix.x - ScreenMouse.x, SnapPix.y - ScreenMouse.y) < 10.5f)
+        {
+            State.Picker.Current = SnapHit;
+            Out.Type             = DimensionProbeHit::TargetType::Point;
+            Out.Point            = SnapHit.Position;
+            Out.Badge            = SnapHit.Kind == SolidArcSnapKind::Centre ? "Centre" : SnapHit.Kind == SolidArcSnapKind::Midpoint ? "Midpoint" : "Endpoint";
+            return Out;
+        }
+    }
+
+    // 2. Curves & Edges (2D Sketch Circles, Arcs, Lines + 3D B-Rep Circular/Straight Edges) within 10.5 px
+    float  BestCurveDist  = 10.5f;
+    double BestCurveDepth = 1.0e300;
+    for (const FeatureStep& Step : Doc.Tree.Steps)
+    {
+        if (Step.Kind != FeatureStepKind::Sketch || !CurveReachableCondition(Doc, Step.Label)) continue;
+        if (State.PickMode != SolidArcPickMode::ControlPoint && SolidArcSketchConsumedCondition(Doc, Step.Label)) continue;
+        const OrthonormalFrame Plane  = ElevatedSketchPlane(Doc, Step);
+        const SketchModel&     Sketch = SolvedSketchOf(Doc, Step);
+        for (const SketchCurve& Curve : Sketch.Curves)
+        {
+            if (Curve.Construction) continue;
+            const std::vector<Vector2> Samples2D = SampleSketchCurve(Sketch, Curve);
+            std::vector<ImVec2>  Pixels;
+            std::vector<Vector3> Samples3D;
+            Samples3D.reserve(Samples2D.size());
+            for (const Vector2& S : Samples2D)
+            {
+                const Vector3 W = PlacePlanePoint(Plane, S);
+                Samples3D.push_back(W);
+                ImVec2 P{};
+                if (ProjectWorldPoint(State, Frame, W, P)) Pixels.push_back(P);
+            }
+            const float Dist = DistanceToPolyline(Pixels, ScreenMouse);
+            if (Dist >= BestCurveDist) continue;
+            BestCurveDist  = Dist;
+            BestCurveDepth = Samples3D.empty() ? 1.0e300 : CameraDepth(Samples3D[Samples3D.size() / 2]);
+            Out            = {};
+            Out.EntityKind       = SolidArcSelectionKind::Edge;
+            Out.EntityName       = Step.Label + "@Curve:" + std::to_string(Curve.Identifier);
+            Out.PlaneNormal      = DimensionSafeNormal(Plane.ZAxis);
+            Out.HasExplicitPlane = true;
+            Out.Highlight        = std::move(Samples3D);
+            if (Curve.Kind == SketchCurveKind::Circle && Curve.Centre >= 0 && Curve.Centre < int(Sketch.Points.size()))
+            {
+                Out.Type                = DimensionProbeHit::TargetType::Radial;
+                Out.FullCircleCondition = true;
+                Out.Centre              = PlacePlanePoint(Plane, Sketch.Points[Curve.Centre].Position);
+                Out.Radius              = Curve.Radius;
+                Out.Rim                 = Out.Centre + DimensionSafeNormal(Plane.XAxis, { 1.0, 0.0, 0.0 }) * Curve.Radius;
+                Out.Point               = Out.Rim;
+                Out.Badge               = "Circle \xC3\x98";
+            }
+            else if (Curve.Kind == SketchCurveKind::Arc && Curve.Centre >= 0 && Curve.Centre < int(Sketch.Points.size())
+                     && Curve.Start >= 0 && Curve.Start < int(Sketch.Points.size()) && Curve.End >= 0 && Curve.End < int(Sketch.Points.size()))
+            {
+                Out.Type                = DimensionProbeHit::TargetType::Radial;
+                Out.FullCircleCondition = false;
+                Out.Centre              = PlacePlanePoint(Plane, Sketch.Points[Curve.Centre].Position);
+                Out.Point               = PlacePlanePoint(Plane, Sketch.Points[Curve.Start].Position);
+                Out.SecondEndpoint      = PlacePlanePoint(Plane, Sketch.Points[Curve.End].Position);
+                Out.Radius              = Distance(Out.Centre, Out.Point);
+                Out.Rim                 = !Out.Highlight.empty() ? Out.Highlight[Out.Highlight.size() / 2] : Out.Point;
+                Out.Badge               = "Arc R";
+            }
+            else if (Curve.Kind == SketchCurveKind::Line && Curve.Start >= 0 && Curve.Start < int(Sketch.Points.size())
+                     && Curve.End >= 0 && Curve.End < int(Sketch.Points.size()))
+            {
+                Out.Type             = DimensionProbeHit::TargetType::Segment;
+                Out.StartPointEntity = Step.Label + "@Point:" + std::to_string(Curve.Start);
+                Out.EndPointEntity   = Step.Label + "@Point:" + std::to_string(Curve.End);
+                Out.Point            = PlacePlanePoint(Plane, Sketch.Points[Curve.Start].Position);
+                Out.SecondEndpoint   = PlacePlanePoint(Plane, Sketch.Points[Curve.End].Position);
+                Out.LineDir          = DimensionSafeNormal(Out.SecondEndpoint - Out.Point, { 1.0, 0.0, 0.0 });
+                Out.HasLineDir       = Distance(Out.Point, Out.SecondEndpoint) > 1.0e-9;
+                Out.Badge            = "Sketch Edge";
+            }
+            else if (Out.Highlight.size() >= 2)
+            {
+                Out.Type           = DimensionProbeHit::TargetType::Segment;
+                Out.Point          = Out.Highlight.front();
+                Out.SecondEndpoint = Out.Highlight.back();
+                Out.Badge          = "Curve";
+            }
+        }
+    }
+
+    if (Doc.Partition)
+    {
+        for (const RegeneratedBody& Body : Doc.Regeneration.Bodies)
+        {
+            if (!Body.Body.PresentCondition() || Doc.Appearance.HiddenBodies.count(Body.Key) != 0 || SolidArcLockedCondition(Doc, Body.Key)) continue;
+            const BodyInventory Inv = Doc.Partition->CollectInventory(Body.Body);
+            for (const EdgeToken Edge : Inv.Edges)
+            {
+                const auto NameIt = Body.Naming.Edges.find(Edge.Slot);
+                if (NameIt == Body.Naming.Edges.end()) continue;
+                const EdgeProfile& Prof = Doc.Partition->Edges.Resolve(Edge);
+                // Skip internal periodic UV seam edges (both fins on the exact same single periodic face):
+                int DistinctIncidentFaces = 0;
+                int TotalIncidentFins     = 0;
+                for (const FaceToken Face : Inv.Faces)
+                {
+                    int FinsOnThisFace = 0;
+                    for (const LoopToken Loop : Doc.Partition->Faces.Resolve(Face).Loops)
+                        Doc.Partition->EnumerateLoopFins(Loop, [&](FinToken Fin)
+                        {
+                            if (Doc.Partition->Fins.Resolve(Fin).Edge == Edge) ++FinsOnThisFace;
+                        });
+                    if (FinsOnThisFace > 0) ++DistinctIncidentFaces;
+                    TotalIncidentFins += FinsOnThisFace;
+                }
+                if (DistinctIncidentFaces == 1 && TotalIncidentFins >= 2) continue;
+
+                std::vector<Vector3> Samples3D;
+                std::vector<ImVec2>  Pixels;
+                if (Prof.Curve.PresentCondition())
+                {
+                    const CurveGeometry& Curve = Doc.Partition->Curves.Resolve(Prof.Curve);
+                    for (int S = 0; S <= 24; ++S)
+                    {
+                        const double T = Prof.IntervalLow + (Prof.IntervalHigh - Prof.IntervalLow) * (double(S) / 24.0);
+                        const Vector3 W = EvaluateCurve(Curve, T).Position;
+                        Samples3D.push_back(W);
+                        ImVec2 P{};
+                        if (ProjectWorldPoint(State, Frame, W, P)) Pixels.push_back(P);
+                    }
+                }
+                float ScreenArcLen = 0.0f;
+                for (size_t K = 1; K < Pixels.size(); ++K)
+                    ScreenArcLen += std::hypot(Pixels[K].x - Pixels[K - 1].x, Pixels[K].y - Pixels[K - 1].y);
+                if (ScreenArcLen < 2.0f) continue;   // Skip end-on edges projecting to a single screen pixel
+                const float Dist = DistanceToPolyline(Pixels, ScreenMouse);
+                if (Dist >= 10.5f) continue;
+                const double MidDepth = Samples3D.empty() ? 1.0e300 : CameraDepth(Samples3D[Samples3D.size() / 2]);
+                const bool BetterEdge = (Dist + 1.5f < BestCurveDist) || (std::abs(Dist - BestCurveDist) <= 1.5f && MidDepth < BestCurveDepth - 1.0e-5);
+                if (!BetterEdge) continue;
+                BestCurveDist  = std::min(BestCurveDist, Dist);
+                BestCurveDepth = MidDepth;
+                Out            = {};
+                Out.EntityKind = SolidArcSelectionKind::Edge;
+                Out.EntityName = NameIt->second;
+                Out.Highlight  = std::move(Samples3D);
+
+                double BestFaceFacing = -1.0;
+                for (const FaceToken Face : Inv.Faces)
+                {
+                    const FaceProfile& FProf = Doc.Partition->Faces.Resolve(Face);
+                    if (!FProf.Surface.PresentCondition()) continue;
+                    const auto* PSurf = std::get_if<PlaneSurface>(&Doc.Partition->Surfaces.Resolve(FProf.Surface));
+                    if (!PSurf) continue;
+                    bool UsesEdge = false;
+                    for (const LoopToken Loop : FProf.Loops)
+                        Doc.Partition->EnumerateLoopFins(Loop, [&](FinToken Fin)
+                        {
+                            if (Doc.Partition->Fins.Resolve(Fin).Edge == Edge) UsesEdge = true;
+                        });
+                    if (UsesEdge)
+                    {
+                        const double Sense  = FProf.Sense == Orientation::Forward ? 1.0 : -1.0;
+                        const Vector3 CandN = DimensionSafeNormal(PSurf->Frame.ZAxis * Sense);
+                        const double Facing = std::abs(Dot(CandN, CamFwd));
+                        if (Facing > BestFaceFacing)
+                        {
+                            BestFaceFacing       = Facing;
+                            Out.PlaneNormal      = CandN;
+                            Out.HasExplicitPlane = true;
+                        }
+                    }
+                }
+
+                if (Prof.Curve.PresentCondition())
+                {
+                    const CurveGeometry& Curve = Doc.Partition->Curves.Resolve(Prof.Curve);
+                    if (const auto* Arc = std::get_if<CircularArc>(&Curve))
+                    {
+                        const double Sweep      = std::abs(Prof.IntervalHigh - Prof.IntervalLow);
+                        Out.Type                = DimensionProbeHit::TargetType::Radial;
+                        Out.FullCircleCondition = Sweep >= 2.0 * std::numbers::pi - 1.0e-2;
+                        Out.Centre              = Arc->Frame.Origin;
+                        Out.Radius              = Arc->Radius;
+                        Out.PlaneNormal         = DimensionSafeNormal(Arc->Frame.ZAxis);
+                        Out.HasExplicitPlane    = true;
+                        Out.Rim                 = EvaluateCurve(Curve, 0.5 * (Prof.IntervalLow + Prof.IntervalHigh)).Position;
+                        Out.Point               = Out.Rim;
+                        Out.Badge               = Out.FullCircleCondition ? "Circle Edge \xC3\x98" : "Arc Edge R";
+                        continue;
+                    }
+                    if (const auto* Line = std::get_if<StraightLine>(&Curve))
+                    {
+                        Out.LineDir    = DimensionSafeNormal(Line->Direction, { 1.0, 0.0, 0.0 });
+                        Out.HasLineDir = true;
+                    }
+                }
+                Out.Type           = DimensionProbeHit::TargetType::Segment;
+                Out.Point          = Doc.Partition->Vertices.Resolve(Prof.Start).Position;
+                Out.SecondEndpoint = Doc.Partition->Vertices.Resolve(Prof.End).Position;
+                if (const auto StartIt = Body.Naming.Vertices.find(Prof.Start.Slot); StartIt != Body.Naming.Vertices.end()) Out.StartPointEntity = StartIt->second;
+                if (const auto EndIt = Body.Naming.Vertices.find(Prof.End.Slot); EndIt != Body.Naming.Vertices.end()) Out.EndPointEntity = EndIt->second;
+                if (!Out.HasExplicitPlane) Out.PlaneNormal = DefaultDimensionPlaneNormal(Out.SecondEndpoint - Out.Point);
+                Out.Badge = "Edge";
+            }
+        }
+    }
+
+    if (Out.Type != DimensionProbeHit::TargetType::None)
+    {
+        State.Picker.Current = {};
+        return Out;
+    }
+
+    // 3. Cylindrical / Spherical B-Rep Face under cursor
+    if (Doc.Partition && State.HoverIdentity != 0u && SolidArcIdentityKind(State.HoverIdentity) == SolidArcSelectionKind::Face)
+    {
+        const std::string FaceName = NameSolidArcIdentity(State.Scene, State.HoverIdentity);
+        for (const RegeneratedBody& Body : Doc.Regeneration.Bodies)
+        {
+            if (!Body.Body.PresentCondition() || Doc.Appearance.HiddenBodies.count(Body.Key) != 0) continue;
+            for (const FaceToken Face : Doc.Partition->CollectInventory(Body.Body).Faces)
+            {
+                const auto It = Body.Naming.Faces.find(Face.Slot);
+                if (It == Body.Naming.Faces.end() || It->second != FaceName) continue;
+                const FaceProfile& FProf = Doc.Partition->Faces.Resolve(Face);
+                if (!FProf.Surface.PresentCondition()) break;
+                const SurfaceGeometry& Surf = Doc.Partition->Surfaces.Resolve(FProf.Surface);
+                if (const auto* Cyl = std::get_if<CylinderSurface>(&Surf))
+                {
+                    Out.Type                = DimensionProbeHit::TargetType::Radial;
+                    Out.FullCircleCondition = true;
+                    Out.EntityKind          = SolidArcSelectionKind::Face;
+                    Out.EntityName          = FaceName;
+                    Out.Radius              = Cyl->Radius;
+                    Out.PlaneNormal         = DimensionSafeNormal(Cyl->Frame.ZAxis);
+                    Out.HasExplicitPlane    = true;
+                    Out.Centre              = Cyl->Frame.Origin;
+                    Out.Rim                 = Cyl->Frame.Origin + DimensionSafeNormal(Cyl->Frame.XAxis, { 1.0, 0.0, 0.0 }) * Cyl->Radius;
+                    Out.Point               = Out.Rim;
+                    Out.Badge               = "Cylinder \xC3\x98";
+                    State.Picker.Current    = {};
+                    return Out;
+                }
+                if (const auto* Sph = std::get_if<SphereSurface>(&Surf))
+                {
+                    Out.Type                = DimensionProbeHit::TargetType::Radial;
+                    Out.FullCircleCondition = true;
+                    Out.EntityKind          = SolidArcSelectionKind::Face;
+                    Out.EntityName          = FaceName;
+                    Out.Radius              = Sph->Radius;
+                    Out.PlaneNormal         = { 0.0, 0.0, 1.0 };
+                    Out.HasExplicitPlane    = true;
+                    Out.Centre              = Sph->Frame.Origin;
+                    Out.Rim                 = Sph->Frame.Origin + Vector3{ Sph->Radius, 0.0, 0.0 };
+                    Out.Point               = Out.Rim;
+                    Out.Badge               = "Sphere \xC3\x98";
+                    State.Picker.Current    = {};
+                    return Out;
+                }
+            }
+        }
+    }
+
+    // 4. Curve/Face Snap or Free Grid Plane fallback
+    if (SnapHit.Kind != SolidArcSnapKind::None)
+    {
+        State.Picker.Current = SnapHit;
+        Out.Type             = DimensionProbeHit::TargetType::FreePlane;
+        Out.Point            = SnapHit.Position;
+        return Out;
+    }
+    State.Picker.Current = {};
+    const OrbitRay Ray   = CastOrbitRay(Frame, Local.x, Local.y);
+    const int PlaneIdx   = State.Style.GridPlane;
+    const int NormalAxis = PlaneIdx == 1 ? 1 : PlaneIdx == 2 ? 0 : 2;
+    const double Denom   = Ray.Direction[NormalAxis];
+    if (std::abs(Denom) > 1.0e-7)
+    {
+        const double Reach = -Ray.Origin[NormalAxis] / Denom;
+        if (Reach > 0.0)
+        {
+            Vector3 Pt{ Ray.Origin[0] + Ray.Direction[0] * Reach, Ray.Origin[1] + Ray.Direction[1] * Reach, Ray.Origin[2] + Ray.Direction[2] * Reach };
+            if (GridSnapCondition(State))
+            {
+                constexpr double Step = 0.1;
+                Pt.X = std::round(Pt.X / Step) * Step;
+                Pt.Y = std::round(Pt.Y / Step) * Step;
+                Pt.Z = std::round(Pt.Z / Step) * Step;
+            }
+            Out.Type        = DimensionProbeHit::TargetType::FreePlane;
+            Out.Point       = Pt;
+            Out.PlaneNormal = NormalAxis == 0 ? Vector3{ 1.0, 0.0, 0.0 } : NormalAxis == 1 ? Vector3{ 0.0, 1.0, 0.0 } : Vector3{ 0.0, 0.0, 1.0 };
+        }
+    }
+    return Out;
+}
+
+void ComputeDimensionDragPlacement(const SolidArcWorkspaceState& State, const OrbitCameraFrame& Frame, ImVec2 Local,
+                                   SolidArcDimensionKind Kind, Vector3 FirstPoint, Vector3 SecondPoint, Vector3 PlaneNormal,
+                                   int AxisFilter, double Radius, double& InOutOffset, Vector3& InOutDirection)
+{
+    const OrbitRay Ray = CastOrbitRay(Frame, Local.x, Local.y);
+    const Vector3  RayOrig{ Ray.Origin[0], Ray.Origin[1], Ray.Origin[2] };
+    const Vector3  RayDir{ Ray.Direction[0], Ray.Direction[1], Ray.Direction[2] };
+    const Vector3  CamFwd{ Frame.Forward[0], Frame.Forward[1], Frame.Forward[2] };
+
+    auto IntersectPlaneSafe = [&](Vector3 Anchor, Vector3 Normal, Vector3& HitOut) -> bool
+    {
+        Vector3 N = DimensionSafeNormal(Normal, CamFwd);
+        double  Denom = Dot(N, RayDir);
+        if (std::abs(Denom) < 0.08)
+        {
+            N     = CamFwd;
+            Denom = Dot(N, RayDir);
+        }
+        if (std::abs(Denom) < 1.0e-6) return false;
+        const double Reach = Dot(Anchor - RayOrig, N) / Denom;
+        if (Reach <= 0.0) return false;
+        HitOut = RayOrig + RayDir * Reach;
+        return true;
+    };
+
+    if (Kind == SolidArcDimensionKind::Radius || Kind == SolidArcDimensionKind::Diameter)
+    {
+        const double EffRadius = Radius > 1.0e-7 ? Radius : Distance(FirstPoint, SecondPoint);
+        Vector3 Hit{};
+        if (IntersectPlaneSafe(FirstPoint, PlaneNormal, Hit))
+        {
+            const Vector3 Vec     = Hit - FirstPoint;
+            const Vector3 InPlane = Vec - PlaneNormal * Dot(Vec, PlaneNormal);
+            const double  Dist    = Length(InPlane);
+            if (Dist > 1.0e-6)
+            {
+                InOutDirection = InPlane * (1.0 / Dist);
+                InOutOffset    = std::clamp(Dist - EffRadius, -0.85 * EffRadius, 50.0);
+            }
+        }
+        return;
+    }
+
+    if (Kind == SolidArcDimensionKind::Angular)
+    {
+        Vector3 Hit{};
+        if (IntersectPlaneSafe(FirstPoint, PlaneNormal, Hit))
+            InOutOffset = std::clamp(Distance(Hit, FirstPoint), 0.08, 50.0);
+        return;
+    }
+
+    Vector3 Span = SecondPoint - FirstPoint;
+    if (AxisFilter == 0) Span = { Span.X, 0.0, 0.0 };
+    else if (AxisFilter == 1) Span = { 0.0, Span.Y, 0.0 };
+    else if (AxisFilter == 2) Span = { 0.0, 0.0, Span.Z };
+    const double SpanLen = Length(Span);
+    if (SpanLen < 1.0e-7) return;
+    const Vector3 Along = Span * (1.0 / SpanLen);
+    Vector3 Perp = Cross(PlaneNormal, Along);
+    if (Length(Perp) < 1.0e-6) Perp = Cross(CamFwd, Along);
+    const double PerpLen = Length(Perp);
+    if (PerpLen < 1.0e-6) return;
+    Perp = Perp * (1.0 / PerpLen);
+    const Vector3 PlaneN = DimensionSafeNormal(Cross(Along, Perp), CamFwd);
+
+    if (AxisFilter >= 0 && AxisFilter < 3)
+    {
+        Vector3 Hit{};
+        if (IntersectPlaneSafe((FirstPoint + SecondPoint) * 0.5, PlaneN, Hit))
+        {
+            const double ProjA = Dot(FirstPoint, Perp);
+            const double ProjB = Dot(SecondPoint, Perp);
+            const double ProjH = Dot(Hit, Perp);
+            const double HighP = std::max(ProjA, ProjB);
+            const double LowP  = std::min(ProjA, ProjB);
+            const double MidP  = 0.5 * (ProjA + ProjB);
+            InOutOffset = ProjH >= MidP ? std::clamp(ProjH - HighP, 0.02, 50.0) : std::clamp(ProjH - LowP, -50.0, -0.02);
+        }
+        return;
+    }
+
+    const Vector3 Mid = (FirstPoint + SecondPoint) * 0.5;
+    Vector3 Hit{};
+    if (std::abs(Dot(PlaneN, RayDir)) >= 0.08 && IntersectPlaneSafe(Mid, PlaneN, Hit))
+    {
+        InOutOffset = std::clamp(Dot(Hit - Mid, Perp), -50.0, 50.0);
+    }
+    else
+    {
+        ImVec2 MidPix{}, PerpPix{};
+        if (ProjectWorldPoint(State, Frame, Mid, MidPix) && ProjectWorldPoint(State, Frame, Mid + Perp, PerpPix))
+        {
+            const ImVec2 ScreenMouse(State.ViewportRect[0] + Local.x, State.ViewportRect[1] + Local.y);
+            const ImVec2 DirPx(PerpPix.x - MidPix.x, PerpPix.y - MidPix.y);
+            const float  NormPx = std::hypot(DirPx.x, DirPx.y);
+            if (NormPx > 1.0e-3f)
+            {
+                const float SignedPx = ((ScreenMouse.x - MidPix.x) * DirPx.x + (ScreenMouse.y - MidPix.y) * DirPx.y) / NormPx;
+                InOutOffset = std::clamp(double(SignedPx) * Frame.WorldPerPixel, -50.0, 50.0);
+            }
+        }
+    }
+}
+
+void CommitInteractiveDimension(SolidArcWorkspaceState& State)
+{
+    SolidArcDimensionSession& Tool = State.DimensionTool;
+    SolidArcDimension Spec;
+    Spec.Kind        = Tool.PreviewKind;
+    Spec.FirstKind   = Tool.FirstKind;
+    Spec.FirstName   = Tool.FirstEntity;
+    Spec.SecondKind  = Tool.SecondKind;
+    Spec.SecondName  = Tool.SecondEntity;
+    Spec.FirstPoint  = Tool.FirstPoint;
+    Spec.SecondPoint = Tool.SecondPoint;
+    Spec.PlaneNormal = Tool.PlaneNormal;
+    Spec.Direction   = Tool.Direction;
+    Spec.Offset      = Tool.Offset;
+    Spec.AxisFilter  = Tool.PreviewKind == SolidArcDimensionKind::Linear ? Tool.AxisFilter : -1;
+
+    const SolidArcCommandOutcome Out = AddSolidArcInteractiveDimension(State.Document, Spec);
+    if (Out.AcceptedCondition)
+    {
+        MarkDirty(State);
+        Tool.SelectedId = State.Document.Dimensions.back().Id;
+        Announce(State, "Placed " + State.Document.Dimensions.back().Id + " · " + FormatSolidArcDimension(State.Document.Dimensions.back()) + " · click next shape/point or Esc");
+    }
+    else Announce(State, Out.Refusal);
+    ResetDimensionToolStage(Tool);
 }
 
 void DriveDimensionSession(SolidArcWorkspaceState& State, const OrbitCameraFrame& Frame, ImVec2 Local, bool Hovered, bool LeftClick, bool RightClick)
 {
     SolidArcDimensionSession& Tool = State.DimensionTool;
     if (!Tool.ActiveCondition) return;
+    if (!Tool.DraggingId.empty()) return;
+
     if (RightClick)
     {
         if (Tool.Stage == 2)
         {
-            const SolidArcCommandOutcome Out = AddSolidArcPointDimension(
-                State.Document, Tool.FirstPoint, Tool.SecondPoint, Tool.PlaneNormal, Tool.Offset, Tool.AxisFilter,
-                Tool.FirstEntity, SolidArcSelectionKind::Vertex, Tool.SecondEntity, SolidArcSelectionKind::Vertex);
-            if (Out.AcceptedCondition)
-            {
-                MarkDirty(State);
-                Tool.SelectedId = State.Document.Dimensions.back().Id;
-                Announce(State, "Placed " + State.Document.Dimensions.back().Id + " · " + FormatSolidArcDimension(State.Document.Dimensions.back()));
-            }
-            Tool.Stage = 0;
-            Tool.FirstEntity.clear();
-            Tool.SecondEntity.clear();
+            CommitInteractiveDimension(State);
+            return;
+        }
+        if (Tool.Stage > 0)
+        {
+            ResetDimensionToolStage(Tool);
+            Announce(State, "Dimension cancelled — click Point 1 / edge / circle, or right-click / Esc again to close");
             return;
         }
         CloseDimensionSession(State, "Dimension tool closed");
         return;
     }
+
     if (!Hovered)
     {
-        Tool.HoverCondition  = false;
+        Tool.HoverCondition = false;
+        Tool.HoverHighlight.clear();
+        Tool.HoverBadge.clear();
         State.Picker.Current = {};
         return;
     }
 
-    // Snap to 3D geometry (endpoints, midpoints, centres, curves, faces) or active drawing grid plane.
-    const std::optional<Vector3> Ref = Tool.Stage >= 1 ? std::optional<Vector3>(Tool.FirstPoint) : std::nullopt;
-    const SolidArcSnap Found = FindPointerSnap(State, Frame, Local, Ref, {}, {}, true);
-    Vector3 Point{};
-    bool    ValidPoint = false;
-    std::string SnapVertex;
-    if (Found.Kind != SolidArcSnapKind::None)
+    const ImGuiIO& Io = ImGui::GetIO();
+
+    if (Tool.Stage == 2)
     {
-        State.Picker.Current = Found;
-        Point                = Found.Position;
-        ValidPoint           = true;
-        // Associate with exact B-rep vertex when snapping to an endpoint if one matches within 1e-6.
-        if (Found.Kind == SolidArcSnapKind::Endpoint && State.Document.Partition)
-        {
-            for (const RegeneratedBody& Body : State.Document.Regeneration.Bodies)
-            {
-                if (!Body.Body.PresentCondition()) continue;
-                for (const VertexToken Vertex : State.Document.Partition->CollectInventory(Body.Body).Vertices)
-                {
-                    if (Distance(State.Document.Partition->Vertices.Resolve(Vertex).Position, Point) < 1.0e-6)
-                    {
-                        const auto It = Body.Naming.Vertices.find(Vertex.Slot);
-                        if (It != Body.Naming.Vertices.end()) { SnapVertex = It->second; break; }
-                    }
-                }
-                if (!SnapVertex.empty()) break;
-            }
-        }
-    }
-    else
-    {
+        Tool.HoverHighlight.clear();
+        Tool.HoverBadge.clear();
         State.Picker.Current = {};
-        const OrbitRay Ray = CastOrbitRay(Frame, Local.x, Local.y);
-        const int PlaneIdx = State.Style.GridPlane;
-        const int NormalAxis = PlaneIdx == 1 ? 1 : PlaneIdx == 2 ? 0 : 2;
-        const double Denom = Ray.Direction[NormalAxis];
-        if (std::abs(Denom) > 1.0e-7)
-        {
-            const double Orig = Ray.Origin[NormalAxis];
-            const double Reach = -Orig / Denom;
-            if (Reach > 0.0)
-            {
-                Point = Vector3{ Ray.Origin[0] + Ray.Direction[0] * Reach, Ray.Origin[1] + Ray.Direction[1] * Reach, Ray.Origin[2] + Ray.Direction[2] * Reach };
-                if (GridSnapCondition(State))
-                {
-                    constexpr double Step = 0.1;
-                    Point.X = std::round(Point.X / Step) * Step;
-                    Point.Y = std::round(Point.Y / Step) * Step;
-                    Point.Z = std::round(Point.Z / Step) * Step;
-                }
-                ValidPoint = true;
-            }
-        }
-    }
-    Tool.HoverCondition = ValidPoint;
-    if (ValidPoint) Tool.HoverPoint = Point;
+        ComputeDimensionDragPlacement(State, Frame, Local, Tool.PreviewKind, Tool.FirstPoint, Tool.SecondPoint,
+                                      Tool.PlaneNormal, Tool.AxisFilter, Tool.Radius, Tool.Offset, Tool.Direction);
+        if (Tool.PreviewKind == SolidArcDimensionKind::Radius || Tool.PreviewKind == SolidArcDimensionKind::Diameter)
+            Tool.SecondPoint = Tool.FirstPoint + Tool.Direction * Tool.Radius;
 
-    if (Tool.Stage == 2 && ValidPoint)
-    {
-        // Compute signed witness-line offset in the dimension plane from cursor ray intersection with the dimension plane.
-        Vector3 Span = Tool.SecondPoint - Tool.FirstPoint;
-        if (Tool.AxisFilter == 0) Span = { Span.X, 0.0, 0.0 };
-        else if (Tool.AxisFilter == 1) Span = { 0.0, Span.Y, 0.0 };
-        else if (Tool.AxisFilter == 2) Span = { 0.0, 0.0, Span.Z };
-        const double SpanLen = Length(Span);
-        if (SpanLen > 1.0e-7)
+        if (Tool.Stage2HoldCondition)
         {
-            const Vector3 Along = Span * (1.0 / SpanLen);
-            Vector3 Perp = Cross(Tool.PlaneNormal, Along);
-            if (Length(Perp) < 1.0e-6) Perp = Cross(Vector3{ Frame.Forward[0], Frame.Forward[1], Frame.Forward[2] }, Along);
-            const double PerpLen = Length(Perp);
-            if (PerpLen > 1.0e-6)
+            const float TravelSq = (Io.MousePos.x - Tool.Stage2PressX) * (Io.MousePos.x - Tool.Stage2PressX)
+                                 + (Io.MousePos.y - Tool.Stage2PressY) * (Io.MousePos.y - Tool.Stage2PressY);
+            if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
             {
-                Perp = Perp * (1.0 / PerpLen);
-                const OrbitRay Ray = CastOrbitRay(Frame, Local.x, Local.y);
-                const Vector3  Mid = (Tool.FirstPoint + Tool.SecondPoint) * 0.5;
-                const Vector3  PlaneN = Cross(Along, Perp);
-                const double   Denom = PlaneN.X * Ray.Direction[0] + PlaneN.Y * Ray.Direction[1] + PlaneN.Z * Ray.Direction[2];
-                if (std::abs(Denom) > 1.0e-6)
+                Tool.Stage2HoldCondition = false;
+                if (TravelSq > 36.0f)
                 {
-                    const Vector3 OriginVec{ Ray.Origin[0], Ray.Origin[1], Ray.Origin[2] };
-                    const Vector3 DirVec{ Ray.Direction[0], Ray.Direction[1], Ray.Direction[2] };
-                    const double Reach = Dot(Mid - OriginVec, PlaneN) / Denom;
-                    if (Reach > 0.0)
-                    {
-                        const Vector3 Hit = OriginVec + DirVec * Reach;
-                        Tool.Offset = std::clamp(Dot(Hit - Mid, Perp), -50.0, 50.0);
-                    }
+                    CommitInteractiveDimension(State);
+                    return;
+                }
+            }
+            return;
+        }
+
+        if (LeftClick && Tool.FirstLineCondition && Tool.PreviewKind == SolidArcDimensionKind::Linear)
+        {
+            const DimensionProbeHit SecondProbe = ProbeDimensionTarget(State, Frame, Local);
+            if (SecondProbe.Type == DimensionProbeHit::TargetType::Segment && SecondProbe.HasLineDir
+                && SecondProbe.EntityName != Tool.FirstEntity && !SecondProbe.EntityName.empty() && !Tool.FirstEntity.empty())
+            {
+                const double CosVal = std::abs(Dot(Tool.FirstLineDir, SecondProbe.LineDir));
+                if (CosVal < 0.999)
+                {
+                    Tool.PreviewKind        = SolidArcDimensionKind::Angular;
+                    Tool.SecondKind         = SolidArcSelectionKind::Edge;
+                    Tool.SecondEntity       = SecondProbe.EntityName;
+                    Tool.FirstLineCondition = false;
+                    Vector3 RayA            = Tool.FirstLineDir;
+                    Vector3 RayB            = SecondProbe.LineDir;
+                    if (Dot(RayA, RayB) < 0.0) RayB = RayB * -1.0;
+                    Tool.FirstPoint         = (Tool.FirstPoint + SecondProbe.Point) * 0.5;
+                    Tool.SecondPoint        = RayA;
+                    Tool.Direction          = RayB;
+                    Tool.PlaneNormal        = DimensionSafeNormal(Cross(RayA, RayB), Tool.PlaneNormal);
+                    Tool.Offset             = std::max(0.25, Tool.Offset);
+                    Announce(State, "Angle dimension: drag arc radius and click (or Enter) to place");
+                    return;
                 }
             }
         }
+
+        if (LeftClick) CommitInteractiveDimension(State);
+        return;
     }
 
-    if (!LeftClick || !ValidPoint) return;
+    const DimensionProbeHit Hit = ProbeDimensionTarget(State, Frame, Local);
+    Tool.HoverCondition = Hit.Type != DimensionProbeHit::TargetType::None;
+    Tool.HoverPoint     = Hit.Point;
+    Tool.HoverHighlight = Hit.Highlight;
+    Tool.HoverBadge     = Hit.Badge;
 
-    // 1-click shortcut inside Dimension mode: if Stage == 0 and no snap vertex was hovered, check if an edge/cylindrical face is directly under cursor!
-    if (Tool.Stage == 0 && Found.Kind == SolidArcSnapKind::None && State.HoverIdentity != 0u)
-    {
-        const std::string HoverName = NameSolidArcIdentity(State.Scene, State.HoverIdentity);
-        const SolidArcSelectionKind HoverKind = SolidArcIdentityKind(State.HoverIdentity);
-        if (!HoverName.empty() && HoverKind == SolidArcSelectionKind::Edge)
-        {
-            SelectSolidArcName(State.Document, HoverKind, HoverName, false);
-            const SolidArcCommandOutcome Out = AddSolidArcDimensionFromSelection(State.Document);
-            if (Out.AcceptedCondition)
-            {
-                MarkDirty(State);
-                Tool.SelectedId = State.Document.Dimensions.back().Id;
-                Announce(State, "Added " + State.Document.Dimensions.back().Id + " · " + FormatSolidArcDimension(State.Document.Dimensions.back()));
-                return;
-            }
-        }
-    }
+    if (!ImGui::IsMouseClicked(ImGuiMouseButton_Left) || !Tool.HoverCondition) return;
 
     if (Tool.Stage == 0)
     {
-        Tool.FirstPoint  = Point;
-        Tool.FirstEntity = SnapVertex;
-        Tool.Stage       = 1;
-        Announce(State, "Dimension: click Point 2 (X / Y / Z locks axis, A aligned)");
-    }
-    else if (Tool.Stage == 1)
-    {
-        if (Distance(Tool.FirstPoint, Point) < 1.0e-6)
+        if (Hit.Type == DimensionProbeHit::TargetType::Radial)
         {
-            Announce(State, "Dimension: pick a second point distinct from the first");
+            Tool.PreviewKind         = Hit.FullCircleCondition ? SolidArcDimensionKind::Diameter : SolidArcDimensionKind::Radius;
+            Tool.FirstKind           = Hit.EntityKind;
+            Tool.FirstEntity         = Hit.EntityName;
+            Tool.SecondEntity.clear();
+            Tool.FirstPoint          = Hit.Centre;
+            Tool.Radius              = Hit.Radius;
+            Tool.PlaneNormal         = Hit.PlaneNormal;
+            Tool.Direction           = DimensionSafeNormal(Hit.Rim - Hit.Centre, { 1.0, 0.0, 0.0 });
+            Tool.SecondPoint         = Hit.Centre + Tool.Direction * Hit.Radius;
+            Tool.Offset              = std::max(0.18, 0.35 * Hit.Radius);
+            Tool.FirstLineCondition  = false;
+            Tool.Stage               = 2;
+            Tool.Stage2HoldCondition = true;
+            Tool.Stage2PressX        = Io.MousePos.x;
+            Tool.Stage2PressY        = Io.MousePos.y;
+            ComputeDimensionDragPlacement(State, Frame, Local, Tool.PreviewKind, Tool.FirstPoint, Tool.SecondPoint,
+                                          Tool.PlaneNormal, -1, Tool.Radius, Tool.Offset, Tool.Direction);
+            Tool.SecondPoint = Tool.FirstPoint + Tool.Direction * Tool.Radius;
+            Announce(State, std::string(Tool.PreviewKind == SolidArcDimensionKind::Diameter ? "Circle \xC3\x98" : "Arc R")
+                            + ": drag around circle to position leader (R switches R/\xC3\x98) · click / release to place");
             return;
         }
-        Tool.SecondPoint  = Point;
-        Tool.SecondEntity = SnapVertex;
-        const Vector3 Span = Tool.SecondPoint - Tool.FirstPoint;
-        Tool.PlaneNormal  = std::abs(Span.Z) > 0.92 * Length(Span) ? Vector3{ 0.0, -1.0, 0.0 } : Vector3{ 0.0, 0.0, 1.0 };
-        Tool.Offset       = std::max(0.15, 0.25 * Length(Span));
-        Tool.Stage        = 2;
-        Announce(State, "Dimension: move cursor to set witness offset and click (or press Enter) to place");
-    }
-    else if (Tool.Stage == 2)
-    {
-        const SolidArcCommandOutcome Out = AddSolidArcPointDimension(
-            State.Document, Tool.FirstPoint, Tool.SecondPoint, Tool.PlaneNormal, Tool.Offset, Tool.AxisFilter,
-            Tool.FirstEntity, SolidArcSelectionKind::Vertex, Tool.SecondEntity, SolidArcSelectionKind::Vertex);
-        if (Out.AcceptedCondition)
+        if (Hit.Type == DimensionProbeHit::TargetType::Segment)
         {
-            MarkDirty(State);
-            Tool.SelectedId = State.Document.Dimensions.back().Id;
-            Announce(State, "Placed " + State.Document.Dimensions.back().Id + " · " + FormatSolidArcDimension(State.Document.Dimensions.back()) + " · click next Point 1 or Esc");
+            Tool.PreviewKind         = SolidArcDimensionKind::Linear;
+            Tool.FirstKind           = Hit.EntityKind;
+            Tool.FirstEntity         = Hit.EntityName;
+            Tool.SecondEntity.clear();
+            Tool.FirstPoint          = Hit.Point;
+            Tool.SecondPoint         = Hit.SecondEndpoint;
+            Tool.PlaneNormal         = Hit.PlaneNormal;
+            Tool.FirstLineDir        = Hit.LineDir;
+            Tool.FirstLineCondition  = Hit.HasLineDir;
+            Tool.Offset              = std::max(0.15, 0.22 * Distance(Hit.Point, Hit.SecondEndpoint));
+            Tool.Stage               = 2;
+            Tool.Stage2HoldCondition = true;
+            Tool.Stage2PressX        = Io.MousePos.x;
+            Tool.Stage2PressY        = Io.MousePos.y;
+            Announce(State, "Edge dimension: drag parallel to edge to position (or click 2nd edge for Angle \xC2\xB0 · X/Y/Z axis) · click / release places");
+            return;
         }
-        else Announce(State, Out.Refusal);
-        Tool.Stage = 0;
-        Tool.FirstEntity.clear();
-        Tool.SecondEntity.clear();
+
+        Tool.PreviewKind        = SolidArcDimensionKind::Linear;
+        Tool.FirstPoint         = Hit.Point;
+        Tool.FirstKind          = SolidArcSelectionKind::Vertex;
+        Tool.FirstEntity        = Hit.Type == DimensionProbeHit::TargetType::Point ? Hit.EntityName : std::string{};
+        Tool.PlaneNormal        = Hit.HasExplicitPlane ? Hit.PlaneNormal : Vector3{ 0.0, 0.0, 1.0 };
+        Tool.FirstLineCondition = false;
+        Tool.Stage              = 1;
+        Announce(State, "Dimension: click Point 2 (live ruler active · snaps to corners, midpoints, vertices)");
+        return;
+    }
+
+    if (Tool.Stage == 1)
+    {
+        Vector3 Pt2 = Hit.Point;
+        std::string Ent2 = Hit.Type == DimensionProbeHit::TargetType::Point ? Hit.EntityName : std::string{};
+        if (Hit.Type == DimensionProbeHit::TargetType::Segment)
+        {
+            ImVec2 PA{}, PB{};
+            const float DA = ProjectWorldPoint(State, Frame, Hit.Point, PA) ? std::hypot(PA.x - Io.MousePos.x, PA.y - Io.MousePos.y) : 1.0e9f;
+            const float DB = ProjectWorldPoint(State, Frame, Hit.SecondEndpoint, PB) ? std::hypot(PB.x - Io.MousePos.x, PB.y - Io.MousePos.y) : 1.0e9f;
+            if (DB < DA) { Pt2 = Hit.SecondEndpoint; Ent2 = Hit.EndPointEntity; }
+            else { Pt2 = Hit.Point; Ent2 = Hit.StartPointEntity; }
+        }
+        else if (Hit.Type == DimensionProbeHit::TargetType::Radial)
+        {
+            Pt2  = Hit.Centre;
+            Ent2 = {};
+        }
+        if (Distance(Tool.FirstPoint, Pt2) < 1.0e-6)
+        {
+            Announce(State, "Dimension: pick a second point distinct from Point 1");
+            return;
+        }
+        Tool.SecondPoint         = Pt2;
+        Tool.SecondKind          = SolidArcSelectionKind::Vertex;
+        Tool.SecondEntity        = Ent2;
+        const Vector3 Span       = Tool.SecondPoint - Tool.FirstPoint;
+        if (!Hit.HasExplicitPlane && std::abs(Dot(DimensionSafeNormal(Span), Tool.PlaneNormal)) > 0.92)
+            Tool.PlaneNormal = DefaultDimensionPlaneNormal(Span);
+        else if (Hit.HasExplicitPlane && std::abs(Dot(DimensionSafeNormal(Span), Hit.PlaneNormal)) < 0.92)
+            Tool.PlaneNormal = Hit.PlaneNormal;
+        Tool.Offset              = std::max(0.15, 0.24 * Length(Span));
+        Tool.Stage               = 2;
+        Tool.Stage2HoldCondition = true;
+        Tool.Stage2PressX        = Io.MousePos.x;
+        Tool.Stage2PressY        = Io.MousePos.y;
+        Announce(State, "Dimension: drag / move parallel to edge to position offset (X/Y/Z axis · A parallel) · click / release places");
     }
 }
 
@@ -9573,7 +10196,7 @@ void DrawDimensionsCard(SolidArcWorkspaceState& State)
     BeginCard("Dimensions", "CAD ANNOTATIONS");
     const float Full = ImGui::GetContentRegionAvail().x;
     const float Half = std::max(40.0f, 0.5f * (Full - ImGui::GetStyle().ItemSpacing.x));
-    if (ToggleButton(State, "2-Point Tool (D)###DimTwoPoint", State.DimensionTool.ActiveCondition, ImVec2(Half, 0)))
+    if (ToggleButton(State, "Dimension Tool (D)###DimTwoPoint", State.DimensionTool.ActiveCondition, ImVec2(Half, 0)))
         ToggleDimensionSession(State);
     ImGui::SameLine();
     if (PressButton(State, "+ From Selection###DimFromSel", ImVec2(Half, 0)))
@@ -9613,7 +10236,7 @@ void DrawDimensionsCard(SolidArcWorkspaceState& State)
     {
         ImGui::Spacing();
         const float Quarter = std::max(28.0f, 0.25f * (Full - 3.0f * ImGui::GetStyle().ItemSpacing.x));
-        if (ToggleButton(State, "Aligned###DimAxisFree", State.DimensionTool.AxisFilter == -1, ImVec2(Quarter, 0))) State.DimensionTool.AxisFilter = -1;
+        if (ToggleButton(State, "Parallel###DimAxisFree", State.DimensionTool.AxisFilter == -1, ImVec2(Quarter, 0))) State.DimensionTool.AxisFilter = -1;
         ImGui::SameLine();
         if (ToggleButton(State, "dX###DimAxisX", State.DimensionTool.AxisFilter == 0, ImVec2(Quarter, 0))) State.DimensionTool.AxisFilter = 0;
         ImGui::SameLine();
@@ -9646,7 +10269,7 @@ void DrawDimensionsCard(SolidArcWorkspaceState& State)
             ImGui::SameLine();
             if (PressButton(State, "\xC3\x97###Del", ImVec2(24.0f, 0)))
                 PendingDelete = Dim.Id;
-            if (Selected && Dim.Kind == SolidArcDimensionKind::Linear)
+            if (Selected)
             {
                 float OffsetVal = float(Dim.Offset);
                 ImGui::SetNextItemWidth(Full);
@@ -9735,6 +10358,285 @@ void DrawMeasureOverlay(SolidArcWorkspaceState& State, ImDrawList* Canvas, const
     }
 }
 
+[[nodiscard]] std::vector<SolidArcDimension> DisplayedWorkspaceDimensions(const SolidArcWorkspaceState& State)
+{
+    const SolidArcDocument& Doc = DisplayedSolidArcDocument(State);
+    std::vector<SolidArcDimension> Shown = EvaluateSolidArcDimensions(Doc);
+
+    // Live SpaceCurve pole drag follow
+    if (State.PoleDrag.ActiveCondition && !State.PoleDrag.Label.empty() && State.PoleDrag.Pole >= 0)
+    {
+        const std::string PoleKey = State.PoleDrag.Label + "@Pole:" + std::to_string(State.PoleDrag.Pole);
+        for (SolidArcDimension& Dim : Shown)
+        {
+            bool Touched = false;
+            if (Dim.FirstName == PoleKey) { Dim.FirstPoint = State.PoleDrag.Position; Touched = true; }
+            if (Dim.SecondName == PoleKey) { Dim.SecondPoint = State.PoleDrag.Position; Touched = true; }
+            if (Touched && Dim.Kind == SolidArcDimensionKind::Linear)
+            {
+                const Vector3 Delta = Dim.SecondPoint - Dim.FirstPoint;
+                Dim.Value = Dim.AxisFilter == 0 ? std::abs(Delta.X) : Dim.AxisFilter == 1 ? std::abs(Delta.Y)
+                          : Dim.AxisFilter == 2 ? std::abs(Delta.Z) : Length(Delta);
+            }
+        }
+    }
+
+    // Live fast-path body transform follow (G / R / S modal or Gizmo drag before B-rep commit)
+    const bool LiveModalBody = State.Transform.ActiveCondition && State.Transform.RigidCondition && !State.Transform.SketchCondition
+                            && !State.Transform.DuplicateCondition && State.Transform.Refusal.empty();
+    const bool LiveGizmoBody = State.Gizmo.DragCondition && State.Gizmo.RigidCondition && !State.Gizmo.Preview
+                            && State.Gizmo.Target == SolidArcGizmoTarget::Bodies && State.Gizmo.Refusal.empty();
+    if (LiveModalBody || LiveGizmoBody)
+    {
+        const AffineMap LiveMap = LiveModalBody ? State.Transform.StagedMap : GizmoMap(State.Gizmo);
+        const std::vector<std::string>& BodyKeys = LiveModalBody ? State.Transform.Keys : State.Gizmo.Names;
+        const auto ApplyPt = [&](Vector3 P) -> Vector3
+        {
+            return LiveMap.ColumnX * P.X + LiveMap.ColumnY * P.Y + LiveMap.ColumnZ * P.Z + LiveMap.Shift;
+        };
+        const auto ApplyLin = [&](Vector3 V) -> Vector3
+        {
+            return LiveMap.ColumnX * V.X + LiveMap.ColumnY * V.Y + LiveMap.ColumnZ * V.Z;
+        };
+        const double Det   = std::abs(Dot(Cross(LiveMap.ColumnX, LiveMap.ColumnY), LiveMap.ColumnZ));
+        const double Scale = std::isfinite(Det) && Det > 1.0e-12 ? std::cbrt(Det) : 1.0;
+
+        auto OwnedByMovedBody = [&](SolidArcSelectionKind K, const std::string& Name) -> bool
+        {
+            if (Name.empty() || Name.find('@') != std::string::npos) return false;
+            const std::string Owner = K == SolidArcSelectionKind::Body ? Name : SolidArcBodyOfName(Doc, K, Name);
+            return !Owner.empty() && std::find(BodyKeys.begin(), BodyKeys.end(), Owner) != BodyKeys.end();
+        };
+
+        for (SolidArcDimension& Dim : Shown)
+        {
+            const bool MoveFirst  = OwnedByMovedBody(Dim.FirstKind, Dim.FirstName);
+            const bool MoveSecond = OwnedByMovedBody(Dim.SecondKind, Dim.SecondName);
+            if (!MoveFirst && !MoveSecond) continue;
+            if (MoveFirst) Dim.FirstPoint = ApplyPt(Dim.FirstPoint);
+            if (MoveSecond || (Dim.SecondName.empty() && MoveFirst))
+            {
+                if (Dim.Kind == SolidArcDimensionKind::Angular) Dim.SecondPoint = DimensionSafeNormal(ApplyLin(Dim.SecondPoint), Dim.SecondPoint);
+                else Dim.SecondPoint = ApplyPt(Dim.SecondPoint);
+            }
+            const Vector3 RotN = ApplyLin(Dim.PlaneNormal);
+            if (Length(RotN) > 1.0e-9) Dim.PlaneNormal = Normalize(RotN);
+            const Vector3 RotD = ApplyLin(Dim.Direction);
+            if (Length(RotD) > 1.0e-9) Dim.Direction = Normalize(RotD);
+            if (MoveFirst && (MoveSecond || Dim.SecondName.empty()) && std::abs(Scale - 1.0) > 1.0e-6)
+                Dim.Offset *= Scale;
+            if (Dim.Kind == SolidArcDimensionKind::Linear)
+            {
+                const Vector3 Delta = Dim.SecondPoint - Dim.FirstPoint;
+                Dim.Value = Dim.AxisFilter == 0 ? std::abs(Delta.X) : Dim.AxisFilter == 1 ? std::abs(Delta.Y)
+                          : Dim.AxisFilter == 2 ? std::abs(Delta.Z) : Length(Delta);
+            }
+            else if (Dim.Kind == SolidArcDimensionKind::Radius)
+            {
+                Dim.Value = Distance(Dim.FirstPoint, Dim.SecondPoint);
+            }
+            else if (Dim.Kind == SolidArcDimensionKind::Diameter)
+            {
+                Dim.Value = 2.0 * Distance(Dim.FirstPoint, Dim.SecondPoint);
+            }
+        }
+    }
+
+    // Live viewport drag of a placed dimension's offset / radial leader angle
+    if (!State.DimensionTool.DraggingId.empty() && State.DimensionTool.DragMovedCondition)
+    {
+        for (SolidArcDimension& Dim : Shown)
+        {
+            if (Dim.Id != State.DimensionTool.DraggingId) continue;
+            Dim.Offset = State.DimensionTool.DragLiveOffset;
+            if ((Dim.Kind == SolidArcDimensionKind::Radius || Dim.Kind == SolidArcDimensionKind::Diameter) && Length(State.DimensionTool.DragLiveDirection) > 1.0e-6)
+            {
+                const double Rad = Distance(Dim.FirstPoint, Dim.SecondPoint);
+                Dim.Direction    = DimensionSafeNormal(State.DimensionTool.DragLiveDirection, Dim.Direction);
+                Dim.SecondPoint  = Dim.FirstPoint + Dim.Direction * Rad;
+            }
+        }
+    }
+    return Shown;
+}
+
+bool DrivePlacedDimensionDrag(SolidArcWorkspaceState& State, const OrbitCameraFrame& Frame, ImVec2 Local, bool HoveredCondition)
+{
+    SolidArcDimensionSession& Tool = State.DimensionTool;
+    if (!State.DimensionsEnabled && !Tool.ActiveCondition) return false;
+    if (Tool.ActiveCondition && Tool.Stage > 0) return false;
+
+    const ImGuiIO& Io = ImGui::GetIO();
+
+    if (!Tool.DraggingId.empty())
+    {
+        if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
+        {
+            const std::string FinishedId = Tool.DraggingId;
+            Tool.DraggingId.clear();
+            if (Tool.DragMovedCondition)
+            {
+                Tool.DragMovedCondition = false;
+                if (UpdateSolidArcDimensionPlacement(State.Document, FinishedId, Tool.DragLiveOffset, Tool.DragLiveDirection).AcceptedCondition)
+                    MarkDirty(State);
+            }
+            return true;
+        }
+        if (HoveredCondition && Io.MouseDragMaxDistanceSqr[ImGuiMouseButton_Left] > 9.0f)
+        {
+            for (const SolidArcDimension& Dim : State.Document.Dimensions)
+            {
+                if (Dim.Id != Tool.DraggingId) continue;
+                const double Rad = (Dim.Kind == SolidArcDimensionKind::Radius || Dim.Kind == SolidArcDimensionKind::Diameter)
+                                 ? Distance(Dim.FirstPoint, Dim.SecondPoint) : 0.0;
+                ComputeDimensionDragPlacement(State, Frame, Local, Dim.Kind, Dim.FirstPoint, Dim.SecondPoint,
+                                              Dim.PlaneNormal, Dim.AxisFilter, Rad, Tool.DragLiveOffset, Tool.DragLiveDirection);
+                Tool.DragMovedCondition = true;
+                break;
+            }
+        }
+        return true;
+    }
+
+    if (!HoveredCondition || !ImGui::IsMouseClicked(ImGuiMouseButton_Left)) return false;
+
+    for (const SolidArcDimension& Dim : DisplayedWorkspaceDimensions(State))
+    {
+        if (!Dim.VisibleCondition || Dim.Id.empty()) continue;
+        bool HitPillOrBar = false;
+        const std::string PillText = FormatSolidArcDimension(Dim);
+        const ImVec2      PillSize = ImGui::CalcTextSize(PillText.c_str());
+        auto TestPillAt = [&](const Vector3& WorldMid)
+        {
+            ImVec2 Pix{};
+            if (!ProjectWorldPoint(State, Frame, WorldMid, Pix)) return false;
+            const float HalfW = 0.5f * PillSize.x + 8.0f;
+            const float HalfH = 0.5f * PillSize.y + 4.0f;
+            return Io.MousePos.x >= Pix.x - HalfW && Io.MousePos.x <= Pix.x + HalfW
+                && Io.MousePos.y >= Pix.y - HalfH && Io.MousePos.y <= Pix.y + HalfH;
+        };
+        if (Dim.Kind == SolidArcDimensionKind::Linear)
+        {
+            Vector3 B0 = Dim.FirstPoint, B1 = Dim.SecondPoint;
+            bool    ValidBar = false;
+            if (Dim.AxisFilter >= 0 && Dim.AxisFilter <= 2)
+            {
+                Vector3 AxisDir{};
+                if (Dim.AxisFilter == 0) AxisDir.X = 1.0;
+                if (Dim.AxisFilter == 1) AxisDir.Y = 1.0;
+                if (Dim.AxisFilter == 2) AxisDir.Z = 1.0;
+                Vector3 Perp = Cross(Dim.PlaneNormal, AxisDir);
+                if (Length(Perp) < 1.0e-6) Perp = Cross(Vector3{ Frame.Forward[0], Frame.Forward[1], Frame.Forward[2] }, AxisDir);
+                if (Length(Perp) > 1.0e-6)
+                {
+                    Perp = Normalize(Perp);
+                    const double Proj0 = Dot(Dim.FirstPoint, AxisDir);
+                    const double Proj1 = Dot(Dim.SecondPoint, AxisDir);
+                    const double BaseP = 0.5 * (Dot(Dim.FirstPoint, Perp) + Dot(Dim.SecondPoint, Perp)) + Dim.Offset;
+                    const Vector3 PlaneBase = Dim.FirstPoint - AxisDir * Proj0 - Perp * Dot(Dim.FirstPoint, Perp);
+                    B0 = PlaneBase + AxisDir * Proj0 + Perp * BaseP;
+                    B1 = PlaneBase + AxisDir * Proj1 + Perp * BaseP;
+                    ValidBar = true;
+                }
+            }
+            else
+            {
+                const Vector3 Span = Dim.SecondPoint - Dim.FirstPoint;
+                const double  SpanLen = Length(Span);
+                if (SpanLen > 1.0e-7)
+                {
+                    const Vector3 Along = Span * (1.0 / SpanLen);
+                    Vector3 Perp = Cross(Dim.PlaneNormal, Along);
+                    if (Length(Perp) < 1.0e-6) Perp = Cross(Vector3{ Frame.Forward[0], Frame.Forward[1], Frame.Forward[2] }, Along);
+                    if (Length(Perp) > 1.0e-6)
+                    {
+                        Perp = Normalize(Perp);
+                        B0 = Dim.FirstPoint + Perp * Dim.Offset;
+                        B1 = Dim.SecondPoint + Perp * Dim.Offset;
+                        ValidBar = true;
+                    }
+                }
+            }
+            if (ValidBar)
+            {
+                if (TestPillAt((B0 + B1) * 0.5)) HitPillOrBar = true;
+                ImVec2 PA{}, PB{};
+                if (!HitPillOrBar && !Tool.ActiveCondition && ProjectWorldPoint(State, Frame, B0, PA) && ProjectWorldPoint(State, Frame, B1, PB))
+                {
+                    if (DistanceToPolyline({ PA, PB }, Io.MousePos) <= 6.0f) HitPillOrBar = true;
+                }
+            }
+        }
+        else if (Dim.Kind == SolidArcDimensionKind::Diameter || Dim.Kind == SolidArcDimensionKind::Radius)
+        {
+            const Vector3 Radial = Dim.SecondPoint - Dim.FirstPoint;
+            const double  RadLen = Length(Radial);
+            if (RadLen > 1.0e-7)
+            {
+                const Vector3 UnitRad = Radial * (1.0 / RadLen);
+                const Vector3 RimB    = Dim.FirstPoint + UnitRad * RadLen;
+                const Vector3 RimA    = Dim.Kind == SolidArcDimensionKind::Diameter ? (Dim.FirstPoint - UnitRad * RadLen) : Dim.FirstPoint;
+                const double  OutExt  = Dim.Offset >= 0.0 ? std::max(Dim.Offset, 18.0 * Frame.WorldPerPixel) : 0.0;
+                const Vector3 Leader  = RimB + UnitRad * OutExt;
+                ImVec2 PixCentre{}, PixA{}, PixLeader{};
+                if (ProjectWorldPoint(State, Frame, Dim.FirstPoint, PixCentre)
+                    && ProjectWorldPoint(State, Frame, RimA, PixA)
+                    && ProjectWorldPoint(State, Frame, Leader, PixLeader))
+                {
+                    if (DistanceToPolyline({ PixA, PixLeader }, Io.MousePos) <= 6.0f) HitPillOrBar = true;
+                    if (!HitPillOrBar)
+                    {
+                        ImVec2 PillCentre = PixLeader;
+                        if (Dim.Offset < 0.0)
+                        {
+                            const Vector3 InsidePt = RimB + UnitRad * std::clamp(Dim.Offset, -0.85 * RadLen, -0.1 * RadLen);
+                            ProjectWorldPoint(State, Frame, InsidePt, PillCentre);
+                        }
+                        else
+                        {
+                            const float ShoulderDir = PixLeader.x >= PixCentre.x ? 1.0f : -1.0f;
+                            PillCentre = ImVec2(PixLeader.x + ShoulderDir * (14.0f + 0.5f * PillSize.x + 12.0f), PixLeader.y);
+                        }
+                        const float HalfW = 0.5f * PillSize.x + 8.0f;
+                        const float HalfH = 0.5f * PillSize.y + 4.0f;
+                        if (Io.MousePos.x >= PillCentre.x - HalfW && Io.MousePos.x <= PillCentre.x + HalfW
+                            && Io.MousePos.y >= PillCentre.y - HalfH && Io.MousePos.y <= PillCentre.y + HalfH)
+                            HitPillOrBar = true;
+                    }
+                }
+            }
+        }
+        else if (Dim.Kind == SolidArcDimensionKind::Angular)
+        {
+            Vector3 RayA = Dim.SecondPoint, RayB = Dim.Direction;
+            const double LenA = Length(RayA), LenB = Length(RayB);
+            if (LenA > 1.0e-7 && LenB > 1.0e-7)
+            {
+                RayA = RayA * (1.0 / LenA);
+                RayB = RayB * (1.0 / LenB);
+                Vector3 MidDir = RayA + RayB;
+                if (Length(MidDir) > 1.0e-6)
+                {
+                    MidDir = Normalize(MidDir);
+                    const double ArcR = std::max(0.12, std::abs(Dim.Offset));
+                    if (TestPillAt(Dim.FirstPoint + MidDir * ArcR)) HitPillOrBar = true;
+                }
+            }
+        }
+        if (HitPillOrBar)
+        {
+            Tool.SelectedId         = Dim.Id;
+            Tool.DraggingId         = Dim.Id;
+            Tool.DragLiveOffset     = Dim.Offset;
+            Tool.DragLiveDirection  = Dim.Direction;
+            Tool.DragMovedCondition = false;
+            return true;
+        }
+    }
+    if (!Tool.ActiveCondition) Tool.SelectedId.clear();
+    return false;
+}
+
 void DrawSingleDimensionGraphic(SolidArcWorkspaceState& State, ImDrawList* Canvas, const OrbitCameraFrame& Frame,
                                 const SolidArcDimension& Dim, bool PreviewCondition, bool SelectedCondition, bool PrimaryPaneCondition = true)
 {
@@ -9762,16 +10664,7 @@ void DrawSingleDimensionGraphic(SolidArcWorkspaceState& State, ImDrawList* Canva
         if (Font) Canvas->AddText(Font, FontPx, ImVec2(Mid.x - 0.5f * TextExtent.x, Mid.y - 0.5f * TextExtent.y), StrokeColour, LabelText.c_str());
         else Canvas->AddText(ImVec2(Mid.x - 0.5f * TextExtent.x, Mid.y - 0.5f * TextExtent.y), StrokeColour, LabelText.c_str());
         if (PrimaryPaneCondition && !PreviewCondition && !Dim.Id.empty())
-        {
             State.Widgets.Record("Dim:" + Dim.Id, Low, High);
-            const ImVec2 Mouse = ImGui::GetIO().MousePos;
-            const bool OverPill = State.ViewportHovered && Mouse.x >= Low.x && Mouse.x <= High.x && Mouse.y >= Low.y && Mouse.y <= High.y;
-            if (OverPill && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !State.DimensionTool.ActiveCondition)
-            {
-                State.DimensionTool.SelectedId = Dim.Id;
-                State.DimensionTool.DraggingId = Dim.Id;
-            }
-        }
     };
 
     if (Dim.Kind == SolidArcDimensionKind::Radius || Dim.Kind == SolidArcDimensionKind::Diameter)
@@ -9782,12 +10675,12 @@ void DrawSingleDimensionGraphic(SolidArcWorkspaceState& State, ImDrawList* Canva
         const Vector3 UnitRad = Radial * (1.0 / RadLen);
         const Vector3 RimB    = Dim.FirstPoint + UnitRad * RadLen;
         const Vector3 RimA    = Dim.Kind == SolidArcDimensionKind::Diameter ? (Dim.FirstPoint - UnitRad * RadLen) : Dim.FirstPoint;
-        const Vector3 Leader  = RimB + UnitRad * std::max(std::abs(Dim.Offset), 18.0 * Frame.WorldPerPixel);
+        const double  OutExt  = Dim.Offset >= 0.0 ? std::max(Dim.Offset, 18.0 * Frame.WorldPerPixel) : 0.0;
+        const Vector3 Leader  = RimB + UnitRad * OutExt;
         ImVec2 PixCentre{}, PixA{}, PixB{}, PixLeader{};
         if (!ProjectWorldPoint(State, Frame, Dim.FirstPoint, PixCentre) || !ProjectWorldPoint(State, Frame, RimA, PixA)
             || !ProjectWorldPoint(State, Frame, RimB, PixB) || !ProjectWorldPoint(State, Frame, Leader, PixLeader))
             return;
-        // Centre mark (+)
         Canvas->AddLine(ImVec2(PixCentre.x - 5.0f, PixCentre.y), ImVec2(PixCentre.x + 5.0f, PixCentre.y), WitnessColour, 1.3f);
         Canvas->AddLine(ImVec2(PixCentre.x, PixCentre.y - 5.0f), ImVec2(PixCentre.x, PixCentre.y + 5.0f), WitnessColour, 1.3f);
         Canvas->AddLine(PixA, PixLeader, HaloColour, 3.4f);
@@ -9795,10 +10688,20 @@ void DrawSingleDimensionGraphic(SolidArcWorkspaceState& State, ImDrawList* Canva
         const ImVec2 DirScreen(PixB.x - PixA.x, PixB.y - PixA.y);
         DrawCadArrowhead(Canvas, PixB, DirScreen, StrokeColour);
         if (Dim.Kind == SolidArcDimensionKind::Diameter) DrawCadArrowhead(Canvas, PixA, ImVec2(-DirScreen.x, -DirScreen.y), StrokeColour);
-        const float ShoulderDir = PixLeader.x >= PixCentre.x ? 1.0f : -1.0f;
-        const ImVec2 ShoulderEnd(PixLeader.x + ShoulderDir * 14.0f, PixLeader.y);
-        Canvas->AddLine(PixLeader, ShoulderEnd, StrokeColour, 1.6f);
-        DrawPillAt(ImVec2(ShoulderEnd.x + ShoulderDir * (PillHalf.x + 4.0f), ShoulderEnd.y));
+        if (Dim.Offset < 0.0)
+        {
+            const Vector3 InsidePt = RimB + UnitRad * std::clamp(Dim.Offset, -0.85 * RadLen, -0.1 * RadLen);
+            ImVec2 PixInside{};
+            if (ProjectWorldPoint(State, Frame, InsidePt, PixInside)) DrawPillAt(PixInside);
+            else DrawPillAt(ImVec2(0.5f * (PixA.x + PixB.x), 0.5f * (PixA.y + PixB.y)));
+        }
+        else
+        {
+            const float ShoulderDir = PixLeader.x >= PixCentre.x ? 1.0f : -1.0f;
+            const ImVec2 ShoulderEnd(PixLeader.x + ShoulderDir * 14.0f, PixLeader.y);
+            Canvas->AddLine(PixLeader, ShoulderEnd, StrokeColour, 1.6f);
+            DrawPillAt(ImVec2(ShoulderEnd.x + ShoulderDir * (PillHalf.x + 4.0f), ShoulderEnd.y));
+        }
         return;
     }
 
@@ -9809,7 +10712,7 @@ void DrawSingleDimensionGraphic(SolidArcWorkspaceState& State, ImDrawList* Canva
         if (LenA < 1.0e-7 || LenB < 1.0e-7) return;
         RayA = RayA * (1.0 / LenA);
         RayB = RayB * (1.0 / LenB);
-        const double ArcRadius = std::max(0.15, std::abs(Dim.Offset));
+        const double ArcRadius = std::max(0.12, std::abs(Dim.Offset));
         const double TotalAngle = std::acos(std::clamp(Dot(RayA, RayB), -1.0, 1.0));
         Vector3 PlaneN = Cross(RayA, RayB);
         if (Length(PlaneN) < 1.0e-7) return;
@@ -9841,22 +10744,21 @@ void DrawSingleDimensionGraphic(SolidArcWorkspaceState& State, ImDrawList* Canva
         return;
     }
 
-    // Linear CAD dimension (aligned or ΔX / ΔY / ΔZ):
     Vector3 AnchorA = Dim.FirstPoint;
     Vector3 AnchorB = Dim.SecondPoint;
     if (Dim.AxisFilter >= 0 && Dim.AxisFilter < 3)
     {
-        // Project measurement axis cleanly while anchoring witness lines to the real 3D points!
         Vector3 AxisDir = Dim.AxisFilter == 0 ? Vector3{ 1, 0, 0 } : Dim.AxisFilter == 1 ? Vector3{ 0, 1, 0 } : Vector3{ 0, 0, 1 };
         const double SpanScalar = Dot(AnchorB - AnchorA, AxisDir);
         if (std::abs(SpanScalar) < 1.0e-7) return;
         const Vector3 PerpCandidate = Cross(Dim.PlaneNormal, AxisDir);
         Vector3 Perp = Length(PerpCandidate) > 1.0e-6 ? PerpCandidate * (1.0 / Length(PerpCandidate))
                      : (Dim.AxisFilter == 2 ? Vector3{ 1, 0, 0 } : Vector3{ 0, 1, 0 });
-        const double BaseProj = Dot(Dim.Offset >= 0.0 ? AnchorB : AnchorA, Perp);
-        const Vector3 BaseOrigin = AnchorA + Perp * (BaseProj - Dot(AnchorA, Perp) + Dim.Offset);
-        const Vector3 BarA = BaseOrigin;
-        const Vector3 BarB = BaseOrigin + AxisDir * SpanScalar;
+        const double ProjA = Dot(AnchorA, Perp);
+        const double ProjB = Dot(AnchorB, Perp);
+        const double BaseProj = Dim.Offset >= 0.0 ? std::max(ProjA, ProjB) : std::min(ProjA, ProjB);
+        const Vector3 BarA = AnchorA + Perp * (BaseProj - ProjA + Dim.Offset);
+        const Vector3 BarB = BarA + AxisDir * SpanScalar;
         ImVec2 PixA{}, PixB{}, PixBarA{}, PixBarB{};
         if (!ProjectWorldPoint(State, Frame, AnchorA, PixA) || !ProjectWorldPoint(State, Frame, AnchorB, PixB)
             || !ProjectWorldPoint(State, Frame, BarA, PixBarA) || !ProjectWorldPoint(State, Frame, BarB, PixBarB))
@@ -9879,12 +10781,10 @@ void DrawSingleDimensionGraphic(SolidArcWorkspaceState& State, ImDrawList* Canva
         if (BarLen > 2.0f * PillHalf.x + 24.0f)
         {
             const ImVec2 U(BarVec.x / BarLen, BarVec.y / BarLen);
-            const ImVec2 GapA(Mid.x - U.x * (PillHalf.x + 4.0f), Mid.y - U.y * (PillHalf.y + 4.0f) * std::abs(U.y) - U.x * 0.0f);
             Canvas->AddLine(PixBarA, ImVec2(Mid.x - U.x * (PillHalf.x + 3.0f), Mid.y - U.y * (PillHalf.x + 3.0f)), HaloColour, 3.2f);
             Canvas->AddLine(ImVec2(Mid.x + U.x * (PillHalf.x + 3.0f), Mid.y + U.y * (PillHalf.x + 3.0f)), PixBarB, HaloColour, 3.2f);
             Canvas->AddLine(PixBarA, ImVec2(Mid.x - U.x * (PillHalf.x + 3.0f), Mid.y - U.y * (PillHalf.x + 3.0f)), StrokeColour, 1.7f);
             Canvas->AddLine(ImVec2(Mid.x + U.x * (PillHalf.x + 3.0f), Mid.y + U.y * (PillHalf.x + 3.0f)), PixBarB, StrokeColour, 1.7f);
-            (void)GapA;
             DrawCadArrowhead(Canvas, PixBarA, ImVec2(-BarVec.x, -BarVec.y), StrokeColour);
             DrawCadArrowhead(Canvas, PixBarB, BarVec, StrokeColour);
         }
@@ -9955,76 +10855,108 @@ void DrawSingleDimensionGraphic(SolidArcWorkspaceState& State, ImDrawList* Canva
 void DrawDimensionsOverlay(SolidArcWorkspaceState& State, ImDrawList* Canvas, const OrbitCameraFrame& Frame, bool PrimaryPaneCondition = true)
 {
     if (!State.DimensionsEnabled && !State.DimensionTool.ActiveCondition) return;
-    // Handle live drag of an existing dimension's witness offset.
-    if (PrimaryPaneCondition && !State.DimensionTool.DraggingId.empty())
+
+    const std::vector<SolidArcDimension> Shown = DisplayedWorkspaceDimensions(State);
+    if (State.DimensionsEnabled)
     {
-        if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
+        for (const SolidArcDimension& Dim : Shown)
         {
-            State.DimensionTool.DraggingId.clear();
+            const bool Highlighted = State.DimensionTool.SelectedId == Dim.Id || State.DimensionTool.DraggingId == Dim.Id;
+            DrawSingleDimensionGraphic(State, Canvas, Frame, Dim, false, Highlighted, PrimaryPaneCondition);
         }
-        else if (State.ViewportHovered && ImGui::GetIO().MouseDragMaxDistanceSqr[ImGuiMouseButton_Left] > 9.0f)
+    }
+
+    const SolidArcDimensionSession& Tool = State.DimensionTool;
+    if (!Tool.ActiveCondition) return;
+
+    if (PrimaryPaneCondition && Tool.Stage < 2 && Tool.HoverHighlight.size() >= 2)
+    {
+        std::vector<ImVec2> HighlightPix;
+        HighlightPix.reserve(Tool.HoverHighlight.size());
+        for (const Vector3& W : Tool.HoverHighlight)
         {
-            for (const SolidArcDimension& Dim : State.Document.Dimensions)
+            ImVec2 P{};
+            if (ProjectWorldPoint(State, Frame, W, P)) HighlightPix.push_back(P);
+        }
+        if (HighlightPix.size() >= 2)
+        {
+            Canvas->AddPolyline(HighlightPix.data(), int(HighlightPix.size()), IM_COL32(0x0c, 0x0e, 0x12, 0xc8), 5.0f);
+            Canvas->AddPolyline(HighlightPix.data(), int(HighlightPix.size()), IM_COL32(0x52, 0xd6, 0xff, 0xff), 2.6f);
+        }
+    }
+    if (PrimaryPaneCondition && Tool.Stage < 2 && Tool.HoverCondition)
+    {
+        ImVec2 HoverPix{};
+        if (ProjectWorldPoint(State, Frame, Tool.HoverPoint, HoverPix))
+        {
+            Canvas->AddCircle(HoverPix, 6.5f, IM_COL32(0x0c, 0x0e, 0x12, 0xd8), 0, 3.0f);
+            Canvas->AddCircle(HoverPix, 6.5f, IM_COL32(0x52, 0xd6, 0xff, 0xff), 0, 1.8f);
+            if (!Tool.HoverBadge.empty())
             {
-                if (Dim.Id != State.DimensionTool.DraggingId || Dim.Kind != SolidArcDimensionKind::Linear) continue;
-                const Vector3 Span = Dim.SecondPoint - Dim.FirstPoint;
-                const double  SpanLen = Length(Span);
-                if (SpanLen < 1.0e-7) break;
-                const Vector3 Along = Span * (1.0 / SpanLen);
-                Vector3 Perp = Cross(Dim.PlaneNormal, Along);
-                if (Length(Perp) < 1.0e-6) Perp = Cross(Vector3{ Frame.Forward[0], Frame.Forward[1], Frame.Forward[2] }, Along);
-                const double PerpLen = Length(Perp);
-                if (PerpLen < 1.0e-6) break;
-                Perp = Perp * (1.0 / PerpLen);
-                const ImVec2 Local(ImGui::GetIO().MousePos.x - State.ViewportRect[0], ImGui::GetIO().MousePos.y - State.ViewportRect[1]);
-                const OrbitRay Ray = CastOrbitRay(Frame, Local.x, Local.y);
-                const Vector3 PlaneN = Cross(Along, Perp);
-                const double Denom = PlaneN.X * Ray.Direction[0] + PlaneN.Y * Ray.Direction[1] + PlaneN.Z * Ray.Direction[2];
-                if (std::abs(Denom) > 1.0e-6)
-                {
-                    const Vector3 Mid = (Dim.FirstPoint + Dim.SecondPoint) * 0.5;
-                    const Vector3 Orig{ Ray.Origin[0], Ray.Origin[1], Ray.Origin[2] };
-                    const Vector3 Dir{ Ray.Direction[0], Ray.Direction[1], Ray.Direction[2] };
-                    const double Reach = Dot(Mid - Orig, PlaneN) / Denom;
-                    if (Reach > 0.0)
-                    {
-                        const double NewOffset = std::clamp(Dot((Orig + Dir * Reach) - Mid, Perp), -50.0, 50.0);
-                        for (SolidArcDimension& Mutable : State.Document.Dimensions)
-                            if (Mutable.Id == Dim.Id) Mutable.Offset = NewOffset;
-                        MarkDirty(State);
-                    }
-                }
-                break;
+                ImVec2 BadgePos(HoverPix.x + 11.0f, HoverPix.y - 18.0f);
+                DrawStatusPill(Canvas, BadgePos, Tool.HoverBadge, IM_COL32(0x52, 0xd6, 0xff, 0xff));
             }
         }
     }
 
-    const SolidArcDocument& Shown = DisplayedSolidArcDocument(State);
-    for (const SolidArcDimension& Dim : Shown.Dimensions)
-        DrawSingleDimensionGraphic(State, Canvas, Frame, Dim, false, State.DimensionTool.SelectedId == Dim.Id, PrimaryPaneCondition);
-
-    const SolidArcDimensionSession& Tool = State.DimensionTool;
-    if (Tool.ActiveCondition && Tool.Stage >= 1)
+    if (Tool.Stage >= 1)
     {
-        const Vector3 EndPt = Tool.Stage == 1 ? (Tool.HoverCondition ? Tool.HoverPoint : Tool.FirstPoint) : Tool.SecondPoint;
-        if (Distance(Tool.FirstPoint, EndPt) > 1.0e-6)
+        SolidArcDimension Preview;
+        Preview.Kind             = Tool.PreviewKind;
+        Preview.PlaneNormal      = Tool.PlaneNormal;
+        Preview.Direction        = Tool.Direction;
+        Preview.AxisFilter       = Tool.PreviewKind == SolidArcDimensionKind::Linear ? Tool.AxisFilter : -1;
+        Preview.VisibleCondition = true;
+
+        if (Tool.Stage == 1)
         {
-            SolidArcDimension Preview;
-            Preview.Kind             = SolidArcDimensionKind::Linear;
-            Preview.FirstPoint       = Tool.FirstPoint;
-            Preview.SecondPoint      = EndPt;
-            Preview.PlaneNormal      = Tool.PlaneNormal;
-            Preview.Offset           = Tool.Stage == 1 ? std::max(0.15, 0.22 * Distance(Tool.FirstPoint, EndPt)) : Tool.Offset;
-            Preview.AxisFilter       = Tool.AxisFilter;
-            Preview.VisibleCondition = true;
-            const Vector3 Delta = Preview.SecondPoint - Preview.FirstPoint;
-            Preview.Value = Preview.AxisFilter == 0 ? std::abs(Delta.X) : Preview.AxisFilter == 1 ? std::abs(Delta.Y)
-                          : Preview.AxisFilter == 2 ? std::abs(Delta.Z) : Length(Delta);
-            DrawSingleDimensionGraphic(State, Canvas, Frame, Preview, true, false, PrimaryPaneCondition);
+            const Vector3 EndPt = Tool.HoverCondition ? Tool.HoverPoint : Tool.FirstPoint;
+            if (Distance(Tool.FirstPoint, EndPt) > 1.0e-6)
+            {
+                Preview.Kind        = SolidArcDimensionKind::Linear;
+                Preview.FirstPoint  = Tool.FirstPoint;
+                Preview.SecondPoint = EndPt;
+                Preview.Offset      = 0.0;
+                const Vector3 Delta = Preview.SecondPoint - Preview.FirstPoint;
+                Preview.Value = Preview.AxisFilter == 0 ? std::abs(Delta.X) : Preview.AxisFilter == 1 ? std::abs(Delta.Y)
+                              : Preview.AxisFilter == 2 ? std::abs(Delta.Z) : Length(Delta);
+                DrawSingleDimensionGraphic(State, Canvas, Frame, Preview, true, false, false);
+            }
         }
+        else if (Tool.Stage == 2)
+        {
+            Preview.FirstPoint  = Tool.FirstPoint;
+            Preview.SecondPoint = Tool.SecondPoint;
+            Preview.Offset      = Tool.Offset;
+            if (Preview.Kind == SolidArcDimensionKind::Radius)
+                Preview.Value = Tool.Radius > 0.0 ? Tool.Radius : Distance(Preview.FirstPoint, Preview.SecondPoint);
+            else if (Preview.Kind == SolidArcDimensionKind::Diameter)
+                Preview.Value = 2.0 * (Tool.Radius > 0.0 ? Tool.Radius : Distance(Preview.FirstPoint, Preview.SecondPoint));
+            else if (Preview.Kind == SolidArcDimensionKind::Angular)
+            {
+                constexpr double RadToDeg = 180.0 / std::numbers::pi;
+                const Vector3 RA = DimensionSafeNormal(Preview.SecondPoint, { 1.0, 0.0, 0.0 });
+                const Vector3 RB = DimensionSafeNormal(Preview.Direction, { 0.0, 1.0, 0.0 });
+                Preview.Value = std::acos(std::clamp(Dot(RA, RB), -1.0, 1.0)) * RadToDeg;
+            }
+            else
+            {
+                const Vector3 Delta = Preview.SecondPoint - Preview.FirstPoint;
+                Preview.Value = Preview.AxisFilter == 0 ? std::abs(Delta.X) : Preview.AxisFilter == 1 ? std::abs(Delta.Y)
+                              : Preview.AxisFilter == 2 ? std::abs(Delta.Z) : Length(Delta);
+            }
+            DrawSingleDimensionGraphic(State, Canvas, Frame, Preview, true, false, false);
+        }
+
         ImVec2 AnchorPix{};
         if (ProjectWorldPoint(State, Frame, Tool.FirstPoint, AnchorPix))
             Canvas->AddCircleFilled(AnchorPix, 4.5f, IM_COL32(0x52, 0xd6, 0xff, 0xff));
+        if (Tool.Stage == 2 && Tool.PreviewKind == SolidArcDimensionKind::Linear)
+        {
+            ImVec2 AnchorBPix{};
+            if (ProjectWorldPoint(State, Frame, Tool.SecondPoint, AnchorBPix))
+                Canvas->AddCircleFilled(AnchorBPix, 4.5f, IM_COL32(0x52, 0xd6, 0xff, 0xff));
+        }
     }
 }
 
@@ -12277,17 +13209,52 @@ void SetSolidArcViewportLayout(SolidArcWorkspaceState& State, SolidArcViewportLa
 
 std::vector<SolidArcRasterPane> ComposeSolidArcRasterPanes(const SolidArcWorkspaceState& State, uint32_t TargetWidth, uint32_t TargetHeight)
 {
+    auto BuildPaneGizmo = [&](const OrbitCamera& Cam, const OrbitCameraFrame& PaneFrame, bool ActivePaneCondition) -> SolidArcGizmoGeometry
+    {
+        if (State.Transform.ActiveCondition)
+        {
+            SolidArcGizmoHandle ActiveH = SolidArcGizmoHandle::None;
+            const SolidArcGizmoPose Pose = MakeTransformSessionGizmoPose(State.Transform, PaneFrame, ActiveH);
+            return BuildSolidArcGizmo(Pose, PaneFrame, SolidArcGizmoHandle::None, ActiveH);
+        }
+        if (!GizmoAvailableCondition(State) || State.Gizmo.Target == SolidArcGizmoTarget::None)
+            return {};
+        if (ActivePaneCondition && State.Gizmo.DragCondition)
+        {
+            SolidArcGizmoPose Riding = State.Gizmo.Pose;
+            Riding.Origin = Riding.Origin + State.Gizmo.Shift;
+            Riding.Modes  = State.Gizmo.Modes;
+            Riding.Size   = MeasureGizmoSize(PaneFrame, Riding.Origin, GizmoPixels);
+            return BuildSolidArcGizmo(Riding, PaneFrame, SolidArcGizmoHandle::None, State.Gizmo.Grab);
+        }
+        SolidArcWorkspaceState TempState;
+        TempState.Camera                = Cam;
+        TempState.Gizmo.Target          = State.Gizmo.Target;
+        TempState.Gizmo.Names           = State.Gizmo.Names;
+        TempState.Gizmo.Points          = State.Gizmo.Points;
+        TempState.Gizmo.Modes           = State.Gizmo.Modes;
+        TempState.Gizmo.VertexCondition = State.Gizmo.VertexCondition;
+        TempState.Gizmo.FaceNormal      = State.Gizmo.FaceNormal;
+        TempState.Gizmo.Pose            = State.Gizmo.Pose;
+        FitGizmoToView(TempState);
+        TempState.Gizmo.Pose.Modes = State.Gizmo.Modes;
+        TempState.Gizmo.Pose.Size  = MeasureGizmoSize(PaneFrame, TempState.Gizmo.Pose.Origin, GizmoPixels);
+        const SolidArcGizmoHandle HoverH = ActivePaneCondition ? State.Gizmo.Hover : SolidArcGizmoHandle::None;
+        return BuildSolidArcGizmo(TempState.Gizmo.Pose, PaneFrame, HoverH, State.Gizmo.Grab);
+    };
+
     std::vector<SolidArcRasterPane> Panes;
     const int Count = SolidArcViewportPaneCount(State.SplitView.Layout);
     if (Count <= 1 || TargetWidth == 0 || TargetHeight == 0)
     {
         SolidArcRasterPane Single{};
-        Single.OffsetX = 0;
-        Single.OffsetY = 0;
-        Single.Width   = std::max(1u, TargetWidth);
-        Single.Height  = std::max(1u, TargetHeight);
-        Single.Frame   = FrameOrbitCamera(State.Camera, Single.Width, Single.Height);
-        Single.Style   = State.Style;
+        Single.OffsetX     = 0;
+        Single.OffsetY     = 0;
+        Single.Width       = std::max(1u, TargetWidth);
+        Single.Height      = std::max(1u, TargetHeight);
+        Single.Frame       = FrameOrbitCamera(State.Camera, Single.Width, Single.Height);
+        Single.Style       = State.Style;
+        Single.Style.Gizmo = BuildPaneGizmo(State.Camera, Single.Frame, true);
         Panes.push_back(std::move(Single));
         return Panes;
     }
@@ -12321,35 +13288,7 @@ std::vector<SolidArcRasterPane> ComposeSolidArcRasterPanes(const SolidArcWorkspa
         Pane.Frame           = FrameOrbitCamera(SplitCopy.Cameras[Idx], PW, PH);
         Pane.Style           = State.Style;
         Pane.Style.GridPlane = ViewGridPlane(SplitCopy.Cameras[Idx]);
-        Pane.Style.Gizmo     = {};
-
-        if (State.Transform.ActiveCondition)
-        {
-            SolidArcGizmoHandle ActiveH = SolidArcGizmoHandle::None;
-            const SolidArcGizmoPose Pose = MakeTransformSessionGizmoPose(State.Transform, Pane.Frame, ActiveH);
-            Pane.Style.Gizmo = BuildSolidArcGizmo(Pose, Pane.Frame, SolidArcGizmoHandle::None, ActiveH);
-        }
-        else if (Idx == SplitCopy.ActivePane)
-        {
-            Pane.Style.Gizmo = State.Style.Gizmo;
-        }
-        else if (GizmoAvailableCondition(State) && State.Gizmo.Target != SolidArcGizmoTarget::None)
-        {
-            // Adapt the gizmo cleanly to each secondary pane's camera (e.g., 2D XY in Top, 2D XZ in Front, 3D in Isometric).
-            SolidArcWorkspaceState TempState;
-            TempState.Camera                = SplitCopy.Cameras[Idx];
-            TempState.Gizmo.Target          = State.Gizmo.Target;
-            TempState.Gizmo.Names           = State.Gizmo.Names;
-            TempState.Gizmo.Points          = State.Gizmo.Points;
-            TempState.Gizmo.Modes           = State.Gizmo.Modes;
-            TempState.Gizmo.VertexCondition = State.Gizmo.VertexCondition;
-            TempState.Gizmo.FaceNormal      = State.Gizmo.FaceNormal;
-            TempState.Gizmo.Pose            = State.Gizmo.Pose;
-            FitGizmoToView(TempState);
-            TempState.Gizmo.Pose.Modes = State.Gizmo.Modes;
-            TempState.Gizmo.Pose.Size  = MeasureGizmoSize(Pane.Frame, TempState.Gizmo.Pose.Origin, GizmoPixels);
-            Pane.Style.Gizmo = BuildSolidArcGizmo(TempState.Gizmo.Pose, Pane.Frame, SolidArcGizmoHandle::None, State.Gizmo.Grab);
-        }
+        Pane.Style.Gizmo     = BuildPaneGizmo(SplitCopy.Cameras[Idx], Pane.Frame, Idx == SplitCopy.ActivePane);
         Panes.push_back(std::move(Pane));
     }
     return Panes;
@@ -12927,15 +13866,19 @@ void DrawSketchToolbar(SolidArcWorkspaceState& State, ImVec2 Image, ImVec2 Exten
         bool        Active;
         bool        Enabled;
     };
-    const ToolButton Tools[] = { { "SketchSelect", IconSymbol::SolidArcSelect, "Select", !State.Trim.ActiveCondition && !State.Fill.ActiveCondition, true },
+    const bool IdleSelectActive = !State.Trim.ActiveCondition && !State.Fill.ActiveCondition
+                               && !State.DimensionTool.ActiveCondition && !State.Knife.ActiveCondition;
+    const ToolButton Tools[] = { { "SketchSelect", IconSymbol::SolidArcSelect, "Select", IdleSelectActive, true },
                                  { "SketchCut", IconSymbol::SolidArcCut, "Cut", SplitCondition, SketchCondition && !State.Bevel.ActiveCondition },
                                  { "SketchInsert", IconSymbol::SolidArcPoints, "Point", InsertCondition, SketchCondition && !State.Bevel.ActiveCondition },
                                  { "SketchTrim", IconSymbol::SolidArcTrim, "Trim", TrimCondition, SketchCondition },
                                  { "SketchFill", IconSymbol::SolidArcFill, "Fill", State.Fill.ActiveCondition, SketchCondition },
+                                 { "SketchDimension", IconSymbol::SolidArcSelect, "Dim", State.DimensionTool.ActiveCondition, !State.Bevel.ActiveCondition },
                                  { "SketchKnife", IconSymbol::SolidArcSubtract, "", State.Knife.ActiveCondition, State.Document.Summary.PresentCondition && !State.Bevel.ActiveCondition } };
     SolidArcSheet Probe;
     Probe.Begin();
-    constexpr int KnifeIndex = 5;                                                           // [-]  - The knife icon (last tool)
+    constexpr int DimIndex   = 5;
+    constexpr int KnifeIndex = 6;                                                           // [-]  - The knife icon (last tool)
     const std::string ToolCaption = KnifeToolLabel(State);
     // Room: the viewport's left edge to the orientation cube (the bar shares the cube's height band), 12 px clear.
     const float RoomLeft  = Image.x + 12.0f;
@@ -12947,7 +13890,7 @@ void DrawSketchToolbar(SolidArcWorkspaceState& State, ImVec2 Image, ImVec2 Exten
     {
         LabelsCondition  = Fit == 0;
         CaptionCondition = Fit < 2;
-        Padding          = Fit < 3 ? 12.0f : 8.0f;
+        Padding          = Fit == 0 ? 9.0f : (Fit < 3 ? 11.0f : 8.0f);
         Total = 2.0f + 10.0f + 4.0f * KnifeIndex + 1.0f + 6.0f + 4.0f;
         for (int Index = 0; Index <= KnifeIndex; ++Index)
             Total += Widths[Index] = 2.0f * Padding + 17.0f + (LabelsCondition && *Tools[Index].Label ? 7.0f + Probe.Measure(Tools[Index].Label, 13.0f) : 0.0f);
@@ -12982,21 +13925,42 @@ void DrawSketchToolbar(SolidArcWorkspaceState& State, ImVec2 Image, ImVec2 Exten
         const bool          Lit     = Tool.Active || Press.HoveredCondition;
         if (Lit) Sheet.Box(Box, SolidArcInk(0x303030), 8.0f);
         const ColorQuad Ink = ControlKit::Faded(SolidArcInk(Lit ? 0xffffff : 0xaaaaaa), Opacity);
-        Sheet.Icon(Tool.Glyph, Box.MinimumX + Padding, Centre - 8.5f, 17.0f, Ink);
+        if (Index == DimIndex)
+        {
+            // Crisp CAD caliper / dimension-line glyph (|<-->|)
+            const float GX = Box.MinimumX + Padding;
+            const float GY = Centre - 8.5f;
+            Sheet.Surface().FillRectangle(Spanning(GX + 1.0f, GY + 3.0f, 1.5f, 11.0f), Ink);
+            Sheet.Surface().FillRectangle(Spanning(GX + 14.5f, GY + 3.0f, 1.5f, 11.0f), Ink);
+            Sheet.Surface().FillRectangle(Spanning(GX + 2.5f, GY + 7.8f, 12.0f, 1.5f), Ink);
+            Sheet.Surface().FillRectangle(Spanning(GX + 4.0f, GY + 6.0f, 2.0f, 5.0f), Ink);
+            Sheet.Surface().FillRectangle(Spanning(GX + 11.0f, GY + 6.0f, 2.0f, 5.0f), Ink);
+        }
+        else
+        {
+            Sheet.Icon(Tool.Glyph, Box.MinimumX + Padding, Centre - 8.5f, 17.0f, Ink);
+        }
         if (LabelsCondition && *Tool.Label) Sheet.Text(Box.MinimumX + Padding + 17.0f + 7.0f, Centre, 13.0f, Ink, Tool.Label);
         if (!LabelsCondition && Press.HoveredCondition && (Index == 0 || Index == 3 || Index == 4))
             ImGui::SetTooltip("%s", Index == 0 ? "Select" : Index == 3 ? "Trim (T): click the piece of a curve to remove" : "Fill (F): click inside closed curves to fill a region");
         if (Index == 2 && Press.HoveredCondition) ImGui::SetTooltip("Point (V): click a curve to add a point without changing its shape, then drag it (or use the gizmo) to move it");
+        if (Index == DimIndex && Press.HoveredCondition) ImGui::SetTooltip("Dimension Tool (D): click Point A then Point B (or click a circle / arc / edge), then drag to position the dimension line");
         if (Index == KnifeIndex && Press.HoveredCondition) ImGui::SetTooltip("Knife (Shift+K): 2D cutters (imprint), sketch cutters, 3D cutters, boolean-library inserts, object cutters");
         if (Index == 1 && Press.HoveredCondition) ImGui::SetTooltip("Cut: click a line, arc or circle where it should break in two · C cuts a body by the focused sketch");
         if (Press.ClickedCondition)
         {
-            if (Index == 0 && State.Trim.ActiveCondition) CloseTrimSession(State);
-            if (Index == 0 && State.Fill.ActiveCondition) CloseFillSession(State);
+            if (Index == 0)
+            {
+                if (State.Trim.ActiveCondition) CloseTrimSession(State);
+                if (State.Fill.ActiveCondition) CloseFillSession(State);
+                if (State.DimensionTool.ActiveCondition) CloseDimensionSession(State, "Dimension tool closed");
+                if (State.Knife.ActiveCondition) CloseKnifeSession(State, "Knife closed");
+            }
             if (Index == 1) SplitCondition ? CloseTrimSession(State) : OpenTrimSession(State, true);
             if (Index == 2) InsertCondition ? CloseTrimSession(State) : OpenTrimSession(State, false, true);
             if (Index == 3) TrimCondition ? CloseTrimSession(State) : OpenTrimSession(State);
             if (Index == 4) State.Fill.ActiveCondition ? CloseFillSession(State) : OpenFillSession(State);
+            if (Index == DimIndex) ToggleDimensionSession(State);
             if (Index == KnifeIndex) State.Knife.ActiveCondition ? CloseKnifeSession(State, "Knife closed") : OpenKnifeSession(State);
         }
         Cursor = Box.MaximumX + 4.0f;
@@ -13305,7 +14269,7 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
     Canvas->PushClipRect(ActiveOrigin, ImVec2(ActiveOrigin.x + ActiveExtent.x, ActiveOrigin.y + ActiveExtent.y), true);
     const bool   OverCube   = DrawOrientationCube(State, Canvas, CubeCorner, LeftClick, true);
     Canvas->PopClipRect();
-    const OrbitCameraFrame Frame = ViewportFrame(State);
+    OrbitCameraFrame Frame = ViewportFrame(State);
     SolidArcNavigationPointer Navigation;
     Navigation.DeltaX              = Io.MouseDelta.x;
     Navigation.DeltaY              = Io.MouseDelta.y;
@@ -13324,12 +14288,15 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
     }
     NavigateSolidArcPointer(State.Camera, Frame, Navigation);
     if (MultiCondition) State.SplitView.Cameras[State.SplitView.ActivePane] = State.Camera;
+    Frame = ViewportFrame(State);   // Refresh Frame after pointer zoom/pan/orbit so gizmo & overlays have zero 1-frame zoom lag.
     // Transform gizmo (no command running): a held or hovered handle owns the left button this frame.
     bool GizmoOwned = false;
     {
         SolidArcPhaseClock Clock(State.Profile, "viewport · gizmo");
         GizmoOwned = DriveGizmo(State, Frame, Local, Hovered && !OverCube);
     }
+    // Placed dimension repositioning: press & drag any placed dimension label pill or bar to adjust its offset / radial leader.
+    const bool DimDragOwned = !GizmoOwned && DrivePlacedDimensionDrag(State, Frame, Local, Hovered && !OverCube);
 
     // 📝 Mode 1 (Plasticity control-point mode): press on a shown pole grabs it, the pole follows the pointer in the
     //    screen-parallel plane through its start, the release commits one MoveSolidArcPole; a press-release without
@@ -13340,7 +14307,8 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
     bool PointGesture = false;
     if ((State.PickMode == SolidArcPickMode::ControlPoint || State.PickMode == SolidArcPickMode::Any)
         && !State.Drawing.ActiveCondition && !State.Bevel.ActiveCondition && !State.Constrain.ActiveCondition
-        && !State.Transform.ActiveCondition && !State.PoleDrag.ActiveCondition && !GizmoOwned)
+        && !State.Transform.ActiveCondition && !State.DimensionTool.ActiveCondition && !DimDragOwned
+        && !State.PoleDrag.ActiveCondition && !GizmoOwned)
     {
         if (!SketchPoints.DragCondition)
         {
@@ -13385,7 +14353,8 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
 
     SolidArcPoleDrag& Drag = State.PoleDrag;
     bool PoleGesture = false;
-    if (!PointGesture && !GizmoOwned && (State.PickMode == SolidArcPickMode::ControlPoint || State.PickMode == SolidArcPickMode::Any)
+    if (!PointGesture && !GizmoOwned && !DimDragOwned && !State.DimensionTool.ActiveCondition
+        && (State.PickMode == SolidArcPickMode::ControlPoint || State.PickMode == SolidArcPickMode::Any)
         && !State.Drawing.ActiveCondition && !State.Bevel.ActiveCondition && !State.Constrain.ActiveCondition && !State.Transform.ActiveCondition)
     {
         if (!Drag.ActiveCondition)
@@ -13608,7 +14577,8 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
     }
     else if (State.DimensionTool.ActiveCondition)
     {
-        DriveDimensionSession(State, Frame, Local, Hovered && !OverCube, LeftClick && !OverCube, RightClick && !OverCube);
+        if (!DimDragOwned)
+            DriveDimensionSession(State, Frame, Local, Hovered && !OverCube, LeftClick && !OverCube, RightClick && !OverCube);
     }
     else if (State.Joint.ActiveCondition)
     {
@@ -13676,9 +14646,9 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
     {
         ApplyBooleanSession(State);                                                          // Right-click applies like Enter
     }
-    else if (GizmoOwned)
+    else if (GizmoOwned || DimDragOwned)
     {
-        // The gizmo took the press / hover: no selection click, no box.
+        // The gizmo or a placed dimension drag took the press / hover: no selection click, no box.
     }
     else
     {
@@ -13910,9 +14880,16 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
     if (State.DimensionTool.ActiveCondition)
     {
         ImVec2 Below(Image.x + 72, Image.y + 64);
-        const char* AxisTxt = State.DimensionTool.AxisFilter == 0 ? " · dX" : State.DimensionTool.AxisFilter == 1 ? " · dY" : State.DimensionTool.AxisFilter == 2 ? " · dZ" : " · Aligned";
-        const char* StepTxt = State.DimensionTool.Stage == 0 ? "pick Point 1 (or click edge)" : State.DimensionTool.Stage == 1 ? "pick Point 2" : "drag offset · Click / Enter places";
-        DrawStatusPill(Canvas, Below, std::string("Dimension") + AxisTxt + " · " + StepTxt + " · X/Y/Z/A axis · Esc ends", IM_COL32(0x52, 0xd6, 0xff, 0xff));
+        const char* AxisTxt = State.DimensionTool.AxisFilter == 0 ? " · dX" : State.DimensionTool.AxisFilter == 1 ? " · dY" : State.DimensionTool.AxisFilter == 2 ? " · dZ" : " · Parallel";
+        const char* StepTxt = State.DimensionTool.Stage == 0
+                            ? "click Point A, circle, arc, or edge"
+                            : (State.DimensionTool.Stage == 1
+                               ? "click Point B (or 2nd edge for angle)"
+                               : "drag to position dimension · Click / Enter places");
+        const char* ExtraTxt = (State.DimensionTool.Stage == 2 && (State.DimensionTool.PreviewKind == SolidArcDimensionKind::Diameter || State.DimensionTool.PreviewKind == SolidArcDimensionKind::Radius))
+                             ? " · R toggles Ø/R"
+                             : " · X/Y/Z/A axis";
+        DrawStatusPill(Canvas, Below, std::string("Dimension") + AxisTxt + " · " + StepTxt + ExtraTxt + " · Esc cancels", IM_COL32(0x52, 0xd6, 0xff, 0xff));
     }
     if (State.Isolate.ActiveCondition)
     {
@@ -17225,33 +18202,63 @@ void ApplyShortcuts(SolidArcWorkspaceState& State)
         if (State.Fill.ActiveCondition) CloseFillSession(State);
     }
 
-    // Dimension lines session (D): X / Y / Z locks measurement axis, A restores aligned, Enter commits stage 2, Esc / D closes.
+    // Interactive Dimension Tool session (D): X/Y/Z locks projection axis, A restores parallel, R toggles Ø/R on circles/arcs, Enter commits stage 2, Esc cancels stage or closes.
     if (State.DimensionTool.ActiveCondition && !Control && !Alternate && !Shift)
     {
-        if (Pressed(ImGuiKey_Escape) || Pressed(ImGuiKey_D)) { CloseDimensionSession(State, "Dimension tool closed"); return; }
-        if (Pressed(ImGuiKey_X)) { State.DimensionTool.AxisFilter = State.DimensionTool.AxisFilter == 0 ? -1 : 0; Announce(State, State.DimensionTool.AxisFilter == 0 ? "Dimension axis: dX" : "Dimension axis: Aligned"); return; }
-        if (Pressed(ImGuiKey_Y)) { State.DimensionTool.AxisFilter = State.DimensionTool.AxisFilter == 1 ? -1 : 1; Announce(State, State.DimensionTool.AxisFilter == 1 ? "Dimension axis: dY" : "Dimension axis: Aligned"); return; }
-        if (Pressed(ImGuiKey_Z)) { State.DimensionTool.AxisFilter = State.DimensionTool.AxisFilter == 2 ? -1 : 2; Announce(State, State.DimensionTool.AxisFilter == 2 ? "Dimension axis: dZ" : "Dimension axis: Aligned"); return; }
-        if (Pressed(ImGuiKey_A)) { State.DimensionTool.AxisFilter = -1; Announce(State, "Dimension axis: Aligned"); return; }
-        if ((Pressed(ImGuiKey_Enter) || Pressed(ImGuiKey_KeypadEnter)) && State.DimensionTool.Stage == 2)
+        if (Pressed(ImGuiKey_Escape))
         {
-            const SolidArcCommandOutcome Out = AddSolidArcPointDimension(
-                State.Document, State.DimensionTool.FirstPoint, State.DimensionTool.SecondPoint, State.DimensionTool.PlaneNormal,
-                State.DimensionTool.Offset, State.DimensionTool.AxisFilter,
-                State.DimensionTool.FirstEntity, SolidArcSelectionKind::Vertex, State.DimensionTool.SecondEntity, SolidArcSelectionKind::Vertex);
-            if (Out.AcceptedCondition)
+            if (State.DimensionTool.Stage > 0)
             {
-                MarkDirty(State);
-                State.DimensionTool.SelectedId = State.Document.Dimensions.back().Id;
-                Announce(State, "Placed " + State.Document.Dimensions.back().Id + " · " + FormatSolidArcDimension(State.Document.Dimensions.back()));
+                ResetDimensionToolStage(State.DimensionTool);
+                Announce(State, "Dimension cancelled · click Point A, circle, arc, or edge");
             }
-            State.DimensionTool.Stage = 0;
-            State.DimensionTool.FirstEntity.clear();
-            State.DimensionTool.SecondEntity.clear();
+            else
+            {
+                CloseDimensionSession(State, "Dimension tool closed");
+            }
             return;
         }
-        if (Pressed(ImGuiKey_Delete) || Pressed(ImGuiKey_Backspace)) { DeletePicked(State); return; }
-        if (!PassingKey) return;
+        if (Pressed(ImGuiKey_D)) { CloseDimensionSession(State, "Dimension tool closed"); return; }
+        if (Pressed(ImGuiKey_R) && State.DimensionTool.Stage == 2 &&
+            (State.DimensionTool.PreviewKind == SolidArcDimensionKind::Diameter || State.DimensionTool.PreviewKind == SolidArcDimensionKind::Radius))
+        {
+            State.DimensionTool.PreviewKind = (State.DimensionTool.PreviewKind == SolidArcDimensionKind::Diameter)
+                                            ? SolidArcDimensionKind::Radius
+                                            : SolidArcDimensionKind::Diameter;
+            Announce(State, State.DimensionTool.PreviewKind == SolidArcDimensionKind::Diameter ? "Circle/arc mode: Diameter (Ø)" : "Circle/arc mode: Radius (R)");
+            return;
+        }
+        if (Pressed(ImGuiKey_X)) { State.DimensionTool.AxisFilter = State.DimensionTool.AxisFilter == 0 ? -1 : 0; Announce(State, State.DimensionTool.AxisFilter == 0 ? "Dimension axis: dX" : "Dimension axis: Parallel"); return; }
+        if (Pressed(ImGuiKey_Y)) { State.DimensionTool.AxisFilter = State.DimensionTool.AxisFilter == 1 ? -1 : 1; Announce(State, State.DimensionTool.AxisFilter == 1 ? "Dimension axis: dY" : "Dimension axis: Parallel"); return; }
+        if (Pressed(ImGuiKey_Z)) { State.DimensionTool.AxisFilter = State.DimensionTool.AxisFilter == 2 ? -1 : 2; Announce(State, State.DimensionTool.AxisFilter == 2 ? "Dimension axis: dZ" : "Dimension axis: Parallel"); return; }
+        if (Pressed(ImGuiKey_A)) { State.DimensionTool.AxisFilter = -1; Announce(State, "Dimension axis: Parallel"); return; }
+        if ((Pressed(ImGuiKey_Enter) || Pressed(ImGuiKey_KeypadEnter)) && State.DimensionTool.Stage == 2)
+        {
+            CommitInteractiveDimension(State);
+            return;
+        }
+        if (Pressed(ImGuiKey_Delete) || Pressed(ImGuiKey_Backspace))
+        {
+            if (!State.DimensionTool.SelectedId.empty())
+            {
+                const std::string DelId = State.DimensionTool.SelectedId;
+                if (RemoveSolidArcDimension(State.Document, DelId).AcceptedCondition)
+                {
+                    State.DimensionTool.SelectedId.clear();
+                    MarkDirty(State);
+                    Announce(State, "Deleted " + DelId);
+                }
+            }
+            else
+            {
+                DeletePicked(State);
+            }
+            return;
+        }
+        const bool DimPassKey = PassingKey || Pressed(ImGuiKey_G) || Pressed(ImGuiKey_S) || Pressed(ImGuiKey_E) || Pressed(ImGuiKey_B)
+                             || (State.DimensionTool.Stage == 0 && Pressed(ImGuiKey_R))
+                             || Pressed(ImGuiKey_1) || Pressed(ImGuiKey_2) || Pressed(ImGuiKey_3) || Pressed(ImGuiKey_4) || Pressed(ImGuiKey_5);
+        if (!DimPassKey) return;
         CloseDimensionSession(State);
     }
 
@@ -17382,10 +18389,25 @@ void ApplyShortcuts(SolidArcWorkspaceState& State)
         State.SketchPoints.Sketch.clear();
         State.PoleDrag.PickedPoles.clear();
         State.PoleDrag.PickedLabel.clear();
+        State.DimensionTool.SelectedId.clear();
         State.FocusedStep = {};
         Announce(State, "Selection cleared");
     }
-    if (Pressed(ImGuiKey_X) || Pressed(ImGuiKey_Delete) || Pressed(ImGuiKey_Backspace)) DeletePicked(State);   // command:delete
+    if (Pressed(ImGuiKey_X) || Pressed(ImGuiKey_Delete) || Pressed(ImGuiKey_Backspace))
+    {
+        if (!State.DimensionTool.SelectedId.empty())
+        {
+            const std::string DelId = State.DimensionTool.SelectedId;
+            State.DimensionTool.SelectedId.clear();
+            if (RemoveSolidArcDimension(State.Document, DelId).AcceptedCondition)
+            {
+                MarkDirty(State);
+                Announce(State, "Deleted " + DelId);
+                return;
+            }
+        }
+        DeletePicked(State);   // command:delete
+    }
 }
 
 void DrawWelcome(SolidArcWorkspaceState& State)
@@ -17706,7 +18728,64 @@ void DrawSolidArcInterface(SolidArcWorkspaceState& State, ImTextureID ViewportTe
     DrawMatcapPicker(State);
     DrawWelcome(State);
     { SolidArcPhaseClock Clock(Profile, "trace panel"); DrawTracePanel(State); }
+    const OrbitCamera CamBeforeShortcuts  = State.Camera;
+    const bool        XformBefore         = State.Transform.ActiveCondition;
+    const int         XformAxisBefore     = State.Transform.Axis;
+    const bool        XformPlaneBefore    = State.Transform.PlaneCondition;
+    const auto        XformVerbBefore     = State.Transform.Verb;
     { SolidArcPhaseClock Clock(Profile, "shortcuts"); ApplyShortcuts(State); }
+    const bool CamShortcutChanged = State.Camera.Distance != CamBeforeShortcuts.Distance
+                                 || State.Camera.Azimuth != CamBeforeShortcuts.Azimuth
+                                 || State.Camera.Elevation != CamBeforeShortcuts.Elevation
+                                 || State.Camera.OrthographicEnabled != CamBeforeShortcuts.OrthographicEnabled
+                                 || State.Camera.Target != CamBeforeShortcuts.Target;
+    const bool XformShortcutChanged = State.Transform.ActiveCondition != XformBefore
+                                   || State.Transform.Axis != XformAxisBefore
+                                   || State.Transform.PlaneCondition != XformPlaneBefore
+                                   || State.Transform.Verb != XformVerbBefore;
+    if (CamShortcutChanged || XformShortcutChanged)
+    {
+        // Keep gizmo geometry & widget hit-boxes synchronized with any shortcut-driven camera zoom/view/transform change on this same frame.
+        const OrbitCameraFrame LatestFrame = ViewportFrame(State);
+        if (State.Transform.ActiveCondition)
+        {
+            SolidArcGizmoHandle ActiveH = SolidArcGizmoHandle::None;
+            const SolidArcGizmoPose ModalPose = MakeTransformSessionGizmoPose(State.Transform, LatestFrame, ActiveH);
+            const SolidArcGizmoGeometry ModalGeo = BuildSolidArcGizmo(ModalPose, LatestFrame, SolidArcGizmoHandle::None, ActiveH);
+            State.Style.Gizmo = ModalGeo;
+            uint32_t Drawn = 0;
+            for (const SolidArcGizmoVertex& Vertex : ModalGeo.Vertices) Drawn |= 1u << Vertex.Handle;
+            static const char* Keys[] = { "", "GizmoTranslateX", "GizmoTranslateY", "GizmoTranslateZ", "GizmoPlaneYZ", "GizmoPlaneXZ", "GizmoPlaneXY",
+                                          "GizmoRotateX", "GizmoRotateY", "GizmoRotateZ", "GizmoScaleX", "GizmoScaleY", "GizmoScaleZ", "GizmoCentre" };
+            for (int Code = 1; Code <= 13; ++Code)
+            {
+                if (!(Drawn & (1u << Code))) continue;
+                const int Axis = (Code - 1) % 3, U = (Axis + 1) % 3, V = (Axis + 2) % 3;
+                Vector3 LocalOff;
+                if (Code <= 3)       LocalOff = ModalPose.Axes[Axis] * 0.95;
+                else if (Code <= 6)  LocalOff = ModalPose.Axes[U] * 0.92 + ModalPose.Axes[V] * 0.82;
+                else if (Code <= 9)  LocalOff = (ModalPose.Axes[U] + ModalPose.Axes[V]) * (0.62 * 0.95 / std::numbers::sqrt2);
+                else if (Code <= 12) LocalOff = ModalPose.Axes[Axis] * 0.67;
+                else                 LocalOff = Vector3{ LatestFrame.Right[0], LatestFrame.Right[1], LatestFrame.Right[2] } * 0.16;
+                ImVec2 Pixel;
+                if (ProjectWorldPoint(State, LatestFrame, ModalPose.Origin + LocalOff * ModalPose.Size, Pixel))
+                    State.Widgets.Record(Keys[Code], ImVec2(Pixel.x - 2.0f, Pixel.y - 2.0f), ImVec2(Pixel.x + 2.0f, Pixel.y + 2.0f));
+            }
+        }
+        else if (GizmoAvailableCondition(State) && !State.Gizmo.DragCondition)
+        {
+            ResolveGizmoTarget(State);
+            FitGizmoToView(State);
+            if (State.Gizmo.Target != SolidArcGizmoTarget::None)
+            {
+                State.Gizmo.Pose.Modes = State.Gizmo.Modes;
+                State.Gizmo.Pose.Size  = MeasureGizmoSize(LatestFrame, State.Gizmo.Pose.Origin, GizmoPixels);
+                State.Gizmo.Geometry   = BuildSolidArcGizmo(State.Gizmo.Pose, LatestFrame, State.Gizmo.Hover, SolidArcGizmoHandle::None);
+                State.Style.Gizmo      = State.Gizmo.Geometry;
+                RecordGizmoWidgets(State, LatestFrame);
+            }
+        }
+    }
     { SolidArcPhaseClock Clock(Profile, "autosave"); AdvanceAutosave(State, DeltaSeconds); }
     { SolidArcPhaseClock Clock(Profile, "bevel preview"); StageBevelPreview(State); }
     State.FrameNumber += 1;

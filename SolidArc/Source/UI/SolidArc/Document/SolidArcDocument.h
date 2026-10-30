@@ -1015,24 +1015,28 @@ void                                 SelectSolidArcEdgeGroup(SolidArcDocument& D
                                                                const std::set<std::string>& HiddenCurves, const std::string& Label = "Exit isolate");
 
 // 💡 Persistent CAD Dimension Lines (D): associative 3D linear, radial, diametral, angular, and bounding-box dimensions.
-void                                 RefreshSolidArcDimensions(SolidArcDocument& Document);
-[[nodiscard]] const char*            SolidArcDimensionKindLabel(SolidArcDimensionKind Kind) noexcept;
-[[nodiscard]] std::string            FormatSolidArcDimension(const SolidArcDimension& Dimension);
-[[nodiscard]] SolidArcCommandOutcome AddSolidArcDimensionFromSelection(SolidArcDocument& Document,
-                                                                       std::optional<SolidArcDimensionKind> PreferredKind = std::nullopt,
-                                                                       double Offset = 0.35);
-[[nodiscard]] SolidArcCommandOutcome AddSolidArcPointDimension(SolidArcDocument& Document, GeometryProcessing::Vector3 First,
-                                                               GeometryProcessing::Vector3 Second,
-                                                               GeometryProcessing::Vector3 PlaneNormal = { 0.0, 0.0, 1.0 },
-                                                               double Offset = 0.35, int AxisFilter = -1,
-                                                               const std::string& FirstEntity = {},
-                                                               SolidArcSelectionKind FirstKind = SolidArcSelectionKind::Vertex,
-                                                               const std::string& SecondEntity = {},
-                                                               SolidArcSelectionKind SecondKind = SolidArcSelectionKind::Vertex);
-[[nodiscard]] SolidArcCommandOutcome UpdateSolidArcDimensionOffset(SolidArcDocument& Document, const std::string& Id, double Offset);
-[[nodiscard]] SolidArcCommandOutcome ToggleSolidArcDimensionVisibility(SolidArcDocument& Document, const std::string& Id);
-[[nodiscard]] SolidArcCommandOutcome ToggleSolidArcDimensionRadialKind(SolidArcDocument& Document, const std::string& Id);
-[[nodiscard]] SolidArcCommandOutcome RemoveSolidArcDimension(SolidArcDocument& Document, const std::string& Id);
-[[nodiscard]] SolidArcCommandOutcome ClearSolidArcDimensions(SolidArcDocument& Document);
+void                                                RefreshSolidArcDimensions(SolidArcDocument& Document);
+[[nodiscard]] std::vector<SolidArcDimension>        EvaluateSolidArcDimensions(const SolidArcDocument& Document);
+[[nodiscard]] const char*                           SolidArcDimensionKindLabel(SolidArcDimensionKind Kind) noexcept;
+[[nodiscard]] std::string                           FormatSolidArcDimension(const SolidArcDimension& Dimension);
+[[nodiscard]] SolidArcCommandOutcome                AddSolidArcDimensionFromSelection(SolidArcDocument& Document,
+                                                                                      std::optional<SolidArcDimensionKind> PreferredKind = std::nullopt,
+                                                                                      double Offset = 0.35);
+[[nodiscard]] SolidArcCommandOutcome                AddSolidArcInteractiveDimension(SolidArcDocument& Document, const SolidArcDimension& Spec);
+[[nodiscard]] SolidArcCommandOutcome                AddSolidArcPointDimension(SolidArcDocument& Document, GeometryProcessing::Vector3 First,
+                                                                              GeometryProcessing::Vector3 Second,
+                                                                              GeometryProcessing::Vector3 PlaneNormal = { 0.0, 0.0, 1.0 },
+                                                                              double Offset = 0.35, int AxisFilter = -1,
+                                                                              const std::string& FirstEntity = {},
+                                                                              SolidArcSelectionKind FirstKind = SolidArcSelectionKind::Vertex,
+                                                                              const std::string& SecondEntity = {},
+                                                                              SolidArcSelectionKind SecondKind = SolidArcSelectionKind::Vertex);
+[[nodiscard]] SolidArcCommandOutcome                UpdateSolidArcDimensionOffset(SolidArcDocument& Document, const std::string& Id, double Offset);
+[[nodiscard]] SolidArcCommandOutcome                UpdateSolidArcDimensionPlacement(SolidArcDocument& Document, const std::string& Id, double Offset,
+                                                                                     GeometryProcessing::Vector3 Direction);
+[[nodiscard]] SolidArcCommandOutcome                ToggleSolidArcDimensionVisibility(SolidArcDocument& Document, const std::string& Id);
+[[nodiscard]] SolidArcCommandOutcome                ToggleSolidArcDimensionRadialKind(SolidArcDocument& Document, const std::string& Id);
+[[nodiscard]] SolidArcCommandOutcome                RemoveSolidArcDimension(SolidArcDocument& Document, const std::string& Id);
+[[nodiscard]] SolidArcCommandOutcome                ClearSolidArcDimensions(SolidArcDocument& Document);
 
 } // namespace Frontier::SolidArc
