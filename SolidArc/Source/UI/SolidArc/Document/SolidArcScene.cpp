@@ -300,126 +300,135 @@ SolidArcScene BuildSolidArcScene(const SolidArcDocument& Document, double SagRat
     Settings.SagRatio = SagRatio;
     if (FineCondition) Settings.EdgeLengthRatio = FineEdgeRatio;
     bool BoundsCondition = false;
-    for (const RegeneratedBody& Regenerated : Document.Regeneration.Bodies)
+    for (int Pass = 0; Pass < 2; ++Pass)
     {
-        if (!Regenerated.Body.PresentCondition() || !Partition.Bodies.Authenticate(Regenerated.Body)) continue;
-        if (Document.Appearance.HiddenBodies.contains(Regenerated.Key)) continue;                // Plasticity H: out of view and picking
-        const bool LiveCutterCondition = Document.Appearance.LiveCutters.contains(Regenerated.Key);
-        const TessellationOutcome Outcome = TessellateBodyCached(Partition, Regenerated.Body, Settings);
-        Scene.Sag = std::max(Scene.Sag, Outcome.Sag);
-        if (!Outcome.Refusal.empty()) Scene.Refusal += (Scene.Refusal.empty() ? "" : "; ") + Outcome.Refusal;
-        const PolygonComplex&  Complex   = Outcome.Complex;
-        const BodyNaming&      Naming    = Regenerated.Naming;
-        const uint32_t         BodyIndex = static_cast<uint32_t>(Scene.Bodies.size());
-        SolidArcSceneBody      Listed;
-        Listed.Key       = Regenerated.Key;
-        Listed.Caption   = SolidArcBodyCaption(Document, Regenerated.Key);
-        Listed.FirstFace = static_cast<uint32_t>(Scene.Faces.size());
-        Listed.FirstEdge = static_cast<uint32_t>(Scene.Edges.size());
-
-        // ① faces: three corners per triangle (omitted for LiveCutters so cut pockets stay open and pickable while edges show)
-        for (const PolygonComplexFace& Patch : Complex.Faces)
+        for (const RegeneratedBody& Regenerated : Document.Regeneration.Bodies)
         {
-            SolidArcSceneFace Face;
-            const auto Named  = Naming.Faces.find(Patch.Face.Slot);
-            Face.Name         = Named != Naming.Faces.end() ? Named->second : "Face" + std::to_string(Patch.Face.Slot);
-            Face.Body         = BodyIndex;
-            Face.Slot         = Patch.Face.Slot;
-            Face.FirstCorner  = static_cast<uint32_t>(Scene.Corners.size());
-            const FaceProfile& Profile = Partition.Faces.Resolve(Patch.Face);
-            const bool CarrierCondition = Profile.Surface.PresentCondition();
-            const double Sense = Profile.Sense == Orientation::Forward ? 1.0 : -1.0;
-            if (CarrierCondition) Face.Surface = SurfaceCategoryLabel(Partition.Surfaces.Resolve(Profile.Surface));
-            const uint32_t FaceIndex = static_cast<uint32_t>(Scene.Faces.size());
-            for (int Triangle = Patch.FirstTriangle; !LiveCutterCondition && Triangle < Patch.FirstTriangle + Patch.TriangleCount; ++Triangle)
+            if (!Regenerated.Body.PresentCondition() || !Partition.Bodies.Authenticate(Regenerated.Body)) continue;
+            if (Document.Appearance.HiddenBodies.contains(Regenerated.Key)) continue;                // Plasticity H: out of view and picking
+            const bool LiveCutterCondition = Document.Appearance.LiveCutters.contains(Regenerated.Key);
+            if ((Pass == 1) != LiveCutterCondition) continue;                                        // Pass 0: opaque solids · Pass 1: semitransparent live cutters
+            const TessellationOutcome Outcome = TessellateBodyCached(Partition, Regenerated.Body, Settings);
+            Scene.Sag = std::max(Scene.Sag, Outcome.Sag);
+            if (!Outcome.Refusal.empty()) Scene.Refusal += (Scene.Refusal.empty() ? "" : "; ") + Outcome.Refusal;
+            const PolygonComplex&  Complex   = Outcome.Complex;
+            const BodyNaming&      Naming    = Regenerated.Naming;
+            const uint32_t         BodyIndex = static_cast<uint32_t>(Scene.Bodies.size());
+            SolidArcSceneBody      Listed;
+            Listed.Key       = Regenerated.Key;
+            Listed.Caption   = SolidArcBodyCaption(Document, Regenerated.Key);
+            Listed.FirstFace = static_cast<uint32_t>(Scene.Faces.size());
+            Listed.FirstEdge = static_cast<uint32_t>(Scene.Edges.size());
+
+            // ① faces: three corners per triangle (both opaque solids and semitransparent LiveCutters emit full faces for shading & picking)
+            for (const PolygonComplexFace& Patch : Complex.Faces)
             {
-                const std::array<int, 3>& Corner = Complex.Triangles[Triangle];
-                const Triple First  = Widen(Complex.Positions[Corner[0]]);
-                const Triple Second = Widen(Complex.Positions[Corner[1]]);
-                const Triple Third  = Widen(Complex.Positions[Corner[2]]);
-                const Triple Facet  = Cross(Difference(Second, First), Difference(Third, First));
-                Face.Area          += 0.5 * std::sqrt(Dot(Facet, Facet));
-                const Triple FacetNormal = Normalised(Facet);
-                for (int Index = 0; Index < 3; ++Index)
+                SolidArcSceneFace Face;
+                const auto Named  = Naming.Faces.find(Patch.Face.Slot);
+                Face.Name         = Named != Naming.Faces.end() ? Named->second : "Face" + std::to_string(Patch.Face.Slot);
+                Face.Body         = BodyIndex;
+                Face.Slot         = Patch.Face.Slot;
+                Face.FirstCorner  = static_cast<uint32_t>(Scene.Corners.size());
+                const FaceProfile& Profile = Partition.Faces.Resolve(Patch.Face);
+                const bool CarrierCondition = Profile.Surface.PresentCondition();
+                const double Sense = Profile.Sense == Orientation::Forward ? 1.0 : -1.0;
+                if (CarrierCondition) Face.Surface = SurfaceCategoryLabel(Partition.Surfaces.Resolve(Profile.Surface));
+                const uint32_t FaceIndex = static_cast<uint32_t>(Scene.Faces.size());
+                for (int Triangle = Patch.FirstTriangle; Triangle < Patch.FirstTriangle + Patch.TriangleCount; ++Triangle)
                 {
-                    Triple Normal = FacetNormal;
-                    if (CarrierCondition)
+                    const std::array<int, 3>& Corner = Complex.Triangles[Triangle];
+                    const Triple First  = Widen(Complex.Positions[Corner[0]]);
+                    const Triple Second = Widen(Complex.Positions[Corner[1]]);
+                    const Triple Third  = Widen(Complex.Positions[Corner[2]]);
+                    const Triple Facet  = Cross(Difference(Second, First), Difference(Third, First));
+                    Face.Area          += 0.5 * std::sqrt(Dot(Facet, Facet));
+                    const Triple FacetNormal = Normalised(Facet);
+                    for (int Index = 0; Index < 3; ++Index)
                     {
-                        const Vector2 Chart = Complex.TriangleCharts[Triangle][Index];
-                        Triple Exact = Widen(EvaluateSurfaceNormal(Partition.Surfaces.Resolve(Profile.Surface), Chart));
-                        Exact        = { Exact[0] * Sense, Exact[1] * Sense, Exact[2] * Sense };
-                        if (std::isfinite(Exact[0]) && Dot(Exact, FacetNormal) > 0.25) Normal = Normalised(Exact);
+                        Triple Normal = FacetNormal;
+                        if (CarrierCondition)
+                        {
+                            const Vector2 Chart = Complex.TriangleCharts[Triangle][Index];
+                            Triple Exact = Widen(EvaluateSurfaceNormal(Partition.Surfaces.Resolve(Profile.Surface), Chart));
+                            Exact        = { Exact[0] * Sense, Exact[1] * Sense, Exact[2] * Sense };
+                            if (std::isfinite(Exact[0]) && Dot(Exact, FacetNormal) > 0.25) Normal = Normalised(Exact);
+                        }
+                        SolidArcSceneCorner Packed;
+                        Narrow(Widen(Complex.Positions[Corner[Index]]), Packed.Position);
+                        Narrow(Normal, Packed.Normal);
+                        Packed.Face = FaceIndex;
+                        Scene.Corners.push_back(Packed);
                     }
-                    SolidArcSceneCorner Packed;
-                    Narrow(Widen(Complex.Positions[Corner[Index]]), Packed.Position);
-                    Narrow(Normal, Packed.Normal);
-                    Packed.Face = FaceIndex;
-                    Scene.Corners.push_back(Packed);
                 }
+                Face.CornerCount = static_cast<uint32_t>(Scene.Corners.size()) - Face.FirstCorner;
+                Scene.Faces.push_back(std::move(Face));
             }
-            Face.CornerCount = static_cast<uint32_t>(Scene.Corners.size()) - Face.FirstCorner;
-            Scene.Faces.push_back(std::move(Face));
-        }
 
-        // ② edges: the shared samplings, so edges sit exactly on the face boundaries
-        for (const PolygonComplexEdge& Sampled : Complex.Edges)
-        {
-            SolidArcSceneEdge Edge;
-            const auto Named   = Naming.Edges.find(Sampled.Edge.Slot);
-            Edge.Name          = Named != Naming.Edges.end() ? Named->second : "Edge" + std::to_string(Sampled.Edge.Slot);
-            Edge.Body          = BodyIndex;
-            Edge.Slot          = Sampled.Edge.Slot;
-            Edge.FirstSegment  = static_cast<uint32_t>(Scene.Segments.size());
-            const EdgeProfile& Profile = Partition.Edges.Resolve(Sampled.Edge);
-            if (Profile.Curve.PresentCondition()) Edge.Curve = CurveCategoryLabel(Partition.Curves.Resolve(Profile.Curve));
-            const uint32_t EdgeIndex = static_cast<uint32_t>(Scene.Edges.size());
-            for (size_t Index = 1; Index < Sampled.Vertices.size(); ++Index)
+            // ② edges: the shared samplings, so edges sit exactly on the face boundaries
+            for (const PolygonComplexEdge& Sampled : Complex.Edges)
             {
-                const Triple From = Widen(Complex.Positions[Sampled.Vertices[Index - 1]]);
-                const Triple To   = Widen(Complex.Positions[Sampled.Vertices[Index]]);
-                const Triple Span = Difference(To, From);
-                Edge.Length      += std::sqrt(Dot(Span, Span));
-                SolidArcSceneSegment Packed;
-                Narrow(From, Packed.Start);
-                Narrow(To, Packed.End);
-                Packed.Edge = EdgeIndex;
-                Scene.Segments.push_back(Packed);
-            }
-            Edge.SegmentCount = static_cast<uint32_t>(Scene.Segments.size()) - Edge.FirstSegment;
-            Scene.Edges.push_back(std::move(Edge));
-        }
-
-        // ②′ vertices: the named body vertices (mode 1 picks them for a direct reshape)
-        for (const VertexToken Vertex : Partition.CollectInventory(Regenerated.Body).Vertices)
-        {
-            const auto Named = Naming.Vertices.find(Vertex.Slot);
-            if (Named == Naming.Vertices.end()) continue;
-            const Vector3 Position = Partition.Vertices.Resolve(Vertex).Position;
-            Scene.Vertices.push_back({ Named->second, Vertex.Slot, BodyIndex, { Position.X, Position.Y, Position.Z } });
-        }
-
-        // ③ bounds: the union over every body
-        if (!Complex.Positions.empty())
-        {
-            if (!BoundsCondition)
-            {
-                Scene.BoundsLow  = { std::numeric_limits<double>::max(), std::numeric_limits<double>::max(), std::numeric_limits<double>::max() };
-                Scene.BoundsHigh = { std::numeric_limits<double>::lowest(), std::numeric_limits<double>::lowest(), std::numeric_limits<double>::lowest() };
-                BoundsCondition  = true;
-            }
-            for (const Vector3& Position : Complex.Positions)
-            {
-                const Triple Point = Widen(Position);
-                for (int Axis = 0; Axis < 3; ++Axis)
+                SolidArcSceneEdge Edge;
+                const auto Named   = Naming.Edges.find(Sampled.Edge.Slot);
+                Edge.Name          = Named != Naming.Edges.end() ? Named->second : "Edge" + std::to_string(Sampled.Edge.Slot);
+                Edge.Body          = BodyIndex;
+                Edge.Slot          = Sampled.Edge.Slot;
+                Edge.FirstSegment  = static_cast<uint32_t>(Scene.Segments.size());
+                const EdgeProfile& Profile = Partition.Edges.Resolve(Sampled.Edge);
+                if (Profile.Curve.PresentCondition()) Edge.Curve = CurveCategoryLabel(Partition.Curves.Resolve(Profile.Curve));
+                const uint32_t EdgeIndex = static_cast<uint32_t>(Scene.Edges.size());
+                for (size_t Index = 1; Index < Sampled.Vertices.size(); ++Index)
                 {
-                    Scene.BoundsLow[Axis]  = std::min(Scene.BoundsLow[Axis], Point[Axis]);
-                    Scene.BoundsHigh[Axis] = std::max(Scene.BoundsHigh[Axis], Point[Axis]);
+                    const Triple From = Widen(Complex.Positions[Sampled.Vertices[Index - 1]]);
+                    const Triple To   = Widen(Complex.Positions[Sampled.Vertices[Index]]);
+                    const Triple Span = Difference(To, From);
+                    Edge.Length      += std::sqrt(Dot(Span, Span));
+                    SolidArcSceneSegment Packed;
+                    Narrow(From, Packed.Start);
+                    Narrow(To, Packed.End);
+                    Packed.Edge = EdgeIndex;
+                    Scene.Segments.push_back(Packed);
+                }
+                Edge.SegmentCount = static_cast<uint32_t>(Scene.Segments.size()) - Edge.FirstSegment;
+                Scene.Edges.push_back(std::move(Edge));
+            }
+
+            // ②′ vertices: the named body vertices (mode 1 picks them for a direct reshape)
+            for (const VertexToken Vertex : Partition.CollectInventory(Regenerated.Body).Vertices)
+            {
+                const auto Named = Naming.Vertices.find(Vertex.Slot);
+                if (Named == Naming.Vertices.end()) continue;
+                const Vector3 Position = Partition.Vertices.Resolve(Vertex).Position;
+                Scene.Vertices.push_back({ Named->second, Vertex.Slot, BodyIndex, { Position.X, Position.Y, Position.Z } });
+            }
+
+            // ③ bounds: the union over every body
+            if (!Complex.Positions.empty())
+            {
+                if (!BoundsCondition)
+                {
+                    Scene.BoundsLow  = { std::numeric_limits<double>::max(), std::numeric_limits<double>::max(), std::numeric_limits<double>::max() };
+                    Scene.BoundsHigh = { std::numeric_limits<double>::lowest(), std::numeric_limits<double>::lowest(), std::numeric_limits<double>::lowest() };
+                    BoundsCondition  = true;
+                }
+                for (const Vector3& Position : Complex.Positions)
+                {
+                    const Triple Point = Widen(Position);
+                    for (int Axis = 0; Axis < 3; ++Axis)
+                    {
+                        Scene.BoundsLow[Axis]  = std::min(Scene.BoundsLow[Axis], Point[Axis]);
+                        Scene.BoundsHigh[Axis] = std::max(Scene.BoundsHigh[Axis], Point[Axis]);
+                    }
                 }
             }
+            Listed.FaceCount = static_cast<uint32_t>(Scene.Faces.size()) - Listed.FirstFace;
+            Listed.EdgeCount = static_cast<uint32_t>(Scene.Edges.size()) - Listed.FirstEdge;
+            Scene.Bodies.push_back(std::move(Listed));
         }
-        Listed.FaceCount = static_cast<uint32_t>(Scene.Faces.size()) - Listed.FirstFace;
-        Listed.EdgeCount = static_cast<uint32_t>(Scene.Edges.size()) - Listed.FirstEdge;
-        Scene.Bodies.push_back(std::move(Listed));
+        if (Pass == 0)
+        {
+            Scene.SolidCornerCount  = static_cast<uint32_t>(Scene.Corners.size());
+            Scene.SolidSegmentCount = static_cast<uint32_t>(Scene.Segments.size());
+        }
     }
     Scene.Milliseconds = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - Start).count();
     return Scene;
@@ -432,6 +441,8 @@ std::optional<SolidArcPick> PickSolidArcScene(const SolidArcScene& Scene, const 
     {
         return Section ? Section->Plane[0] * Point[0] + Section->Plane[1] * Point[1] + Section->Plane[2] * Point[2] + Section->Plane[3] : 0.0;
     };
+    const uint32_t SolidLimit  = Scene.SolidCornerCount > 0 && Scene.SolidCornerCount <= Scene.Corners.size() ? Scene.SolidCornerCount : static_cast<uint32_t>(Scene.Corners.size());
+    const uint32_t SolidSegs   = Scene.SolidSegmentCount > 0 && Scene.SolidSegmentCount <= Scene.Segments.size() ? Scene.SolidSegmentCount : static_cast<uint32_t>(Scene.Segments.size());
     std::optional<SolidArcPick> Face;
     for (size_t Corner = 0; Corner + 2 < Scene.Corners.size(); Corner += 3)
     {
@@ -439,7 +450,8 @@ std::optional<SolidArcPick> PickSolidArcScene(const SolidArcScene& Scene, const 
         const Triple Second = Widen(Scene.Corners[Corner + 1].Position);
         const Triple Third  = Widen(Scene.Corners[Corner + 2].Position);
         const std::optional<double> Hit = IntersectTriangle(Ray, First, Second, Third);
-        if (!Hit || (Face && *Hit >= Face->Distance)) continue;
+        const double Bias = Corner >= SolidLimit ? 1.0e-5 : 0.0;                             // Semitransparent cutter wins on coincident pocket walls
+        if (!Hit || (Face && *Hit - Bias >= Face->Distance)) continue;
         const uint32_t FaceIndex = Scene.Corners[Corner].Face;
         if (Section)
         {
@@ -454,11 +466,13 @@ std::optional<SolidArcPick> PickSolidArcScene(const SolidArcScene& Scene, const 
     }
     std::optional<SolidArcPick> Edge;
     double                      Closest = EdgeReach;                                         // [len] - Best separation so far
-    for (const SolidArcSceneSegment& Segment : Scene.Segments)
+    for (size_t SegIndex = 0; SegIndex < Scene.Segments.size(); ++SegIndex)
     {
+        const SolidArcSceneSegment& Segment = Scene.Segments[SegIndex];
         const auto [Reach, Separation] = ApproachSegment(Ray, Widen(Segment.Start), Widen(Segment.End));
         if (Separation > Closest || Reach <= 0.0) continue;
-        if (Face && !XRayEnabled && Reach > Face->Distance + EdgeReach) continue;
+        const bool CutterSeg = SegIndex >= SolidSegs;                                        // Submerged live-cutter edges stay pickable through solids
+        if (Face && !XRayEnabled && !CutterSeg && Reach > Face->Distance + EdgeReach) continue;
         if (Section && Side({ Ray.Origin[0] + Ray.Direction[0] * Reach, Ray.Origin[1] + Ray.Direction[1] * Reach, Ray.Origin[2] + Ray.Direction[2] * Reach }) < -EdgeReach) continue;
         Closest = Separation;
         Edge    = SolidArcPick{ IdentityEdgeBit | (Segment.Edge + 1u), Reach };
@@ -551,11 +565,14 @@ SolidArcSelectionKind SolidArcIdentityKind(uint32_t Identity) noexcept
 std::vector<uint32_t> ComposeSolidArcMatcapLayers(const SolidArcScene& Scene, const SolidArcAppearance& Appearance, const SolidArcMatcapLibrary& Library)
 {
     std::vector<uint32_t> Layers(Scene.Faces.size(), 0u);
+    const uint32_t CutterDefault = SolidArcMatcapLayer(Library, "Copper");
     for (size_t Index = 0; Index < Scene.Faces.size(); ++Index)
     {
         const SolidArcSceneFace& Face = Scene.Faces[Index];
         const std::string&       Key  = Face.Body < Scene.Bodies.size() ? Scene.Bodies[Face.Body].Key : std::string{};
-        Layers[Index] = SolidArcMatcapLayer(Library, SolidArcFaceMatcap(Appearance, Key, Face.Name)) << SolidArcMatcapLayerShift;
+        const bool CustomAssigned     = Appearance.FaceMatcaps.contains(Face.Name) || Appearance.BodyMatcaps.contains(Key);
+        if (!CustomAssigned && Appearance.LiveCutters.contains(Key)) Layers[Index] = CutterDefault << SolidArcMatcapLayerShift;
+        else Layers[Index] = SolidArcMatcapLayer(Library, SolidArcFaceMatcap(Appearance, Key, Face.Name)) << SolidArcMatcapLayerShift;
     }
     return Layers;
 }

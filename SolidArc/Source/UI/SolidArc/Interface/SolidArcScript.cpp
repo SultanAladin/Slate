@@ -411,7 +411,7 @@ bool ObserveField(const SolidArcWorkspaceState& State, const std::string& Field,
                             ExtractSketchProfile(Solved->second).Refusal.rfind("open profile", 0) == 0;
         return Numeric(Slice ? 1 : 0);
     }
-    if (Field == "knife-inserts") return Numeric(double(State.Knife.Library.Inserts.size()));
+    if (Field == "knife-inserts") return Numeric(double(SolidArcCompoundCutterCount + int(State.Knife.Library.Inserts.size())));
     if (Field == "knife-mode")
     {
         // "Sketch" / "Insert" / "Object", Number = 0 / 1 / 2
@@ -422,9 +422,15 @@ bool ObserveField(const SolidArcWorkspaceState& State, const std::string& Field,
     }
     if (Field == "knife-insert")
     {
-        // The picked library insert's name, Number = its index (−1: library not assembled)
-        const bool Present = State.Knife.Insert >= 0 && State.Knife.Insert < int(State.Knife.Library.Inserts.size());
-        Text   = Present ? State.Knife.Library.Inserts[State.Knife.Insert].Name : std::string{};
+        // The picked compound cutter or custom user insert's name, Number = its index
+        const int Total = SolidArcCompoundCutterCount + int(State.Knife.Library.Inserts.size());
+        const bool Present = State.Knife.Insert >= 0 && State.Knife.Insert < Total;
+        if (Present && State.Knife.Insert < SolidArcCompoundCutterCount)
+            Text = SolidArcCompoundCutterLabel(static_cast<SolidArcCompoundCutterKind>(State.Knife.Insert));
+        else if (Present)
+            Text = State.Knife.Library.Inserts[size_t(State.Knife.Insert - SolidArcCompoundCutterCount)].Name;
+        else
+            Text.clear();
         Number = Present ? double(State.Knife.Insert) : -1.0;
         return true;
     }

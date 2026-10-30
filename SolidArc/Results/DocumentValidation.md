@@ -1,6 +1,6 @@
 # SolidArcDocumentValidation
 
-Document layer of SolidArc over the GeometryProcessing feature tree (37.51 s).
+Document layer of SolidArc over the GeometryProcessing feature tree (37.47 s).
 
 | Gate | Subject | Limit | Worst | Checks | Verdict |
 |------|---------|-------|-------|--------|---------|
@@ -37,7 +37,7 @@ DV W59 polyline on a plain block: 74 tried, 0 refused, 0 smooth skipped
 | W28 | Cross-sketch links: a later sketch's line linked to an earlier plate's corner and top line (one undo entry, construction curve on linked points) follows the plate's width edit; backward links, linked drags, bad indices refused; codec; unlink frees | ≤ 10⁻¹² · exact | 2.22e-16 | 5 | 🟢 |
 | W29 | Revolve (Alt+R): annulus 3π about the proposed y-axis (New); a plate about its own edge line united → 4.625π, undo / redo; x-axis fallback quarter turn 3π/2; refusals (angle, crossing axis, no sketch, nothing to subtract); codec writes the point axis only without a line | ≤ 10⁻⁹ · exact | 3.77e-16 | 5 | 🟢 |
 | W30 | Evolution (Shift+P / Alt+E): rectangle along a proposed line sketch = prism 1; circle along a quarter arc = Pappus π²/16; a square swept through a block as Difference = 1.875; refusals; codec Kind 16 + Path | ≤ 10⁻⁹ planar · ≤ 10⁻⁶ NURBS skin | 5.28e-09 | 5 | 🟢 |
-| W31 | Incremental replay: on a 27-step studded plate and the vehicle bonnet every command / undo / redo / preview clone equals a full replay with the cache off (volumes, names, tokens, step reports, saved file); appends resume at the new step, a parameter edit at its first binding step, undo / redo / clone restore every step; only the 8 newest history entries keep checkpoints | identical · undo / redo / clone ≥ 10× · tail edit ≥ 2× | 91.2 | 10 | 🟢 |
+| W31 | Incremental replay: on a 27-step studded plate and the vehicle bonnet every command / undo / redo / preview clone equals a full replay with the cache off (volumes, names, tokens, step reports, saved file); appends resume at the new step, a parameter edit at its first binding step, undo / redo / clone restore every step; only the 8 newest history entries keep checkpoints | identical · undo / redo / clone ≥ 10× · tail edit ≥ 2× | 98.1 | 10 | 🟢 |
 | W32 | X-ray (Alt+Z) pick-through and box edges on a 4 × 2 × 1 block in the isometric view: the ray at the hidden back-bottom edge picks the top face opaque and that edge in x-ray, √(1.25² + 1) = 1.6008 farther along the ray; a visible edge still picks in x-ray; the full-viewport box takes the 9 edges off the far corner (0, 2, 0) opaque and all 12 in x-ray; an empty box takes none | all equal | 0 | 5 | 🟢 |
 | W33 | Measure (I) and Section (Alt+S) on a 4 × 2 × 1 block and a separate 2 × 2 × 1 body: body mass properties, face area / perimeter, edge length, minimum distances and angles between faces and edges, totals, X / Z / face-plane sections with second moments, two-body sections by the parallel-axis theorem, hidden bodies skipped, refusals | ≤ 1e-9 relative | 3.8e-12 | 15 | 🟢 |
 | W34 | Section clip (Alt+S) on a 4 × 2 × 1 block cut at x = 1 (kept x ≤ 1): rays wholly on the removed side miss; a ray through the opening meets the cap at the back face x = 0 (distance 5, not the plane's 4); a kept face in front of the plane crossing still wins; removed edges are skipped, kept edges pick; the cap has no name; sheet faces show their back instead of a cap; the box takes only edges reaching the kept side; ComposeSolidArcSectionClip marks sheet bodies | exact | 0 | 9 | 🟢 |
@@ -78,13 +78,15 @@ DV W59 polyline on a plain block: 74 tried, 0 refused, 0 smooth skipped
 | W69 | Curves and sheets (the request "lofting the yellow line with yellow line it refused … a button to swap the normals … H to hide curves … snap a curve along a curve … 3D gizmo in 3D"): L between picked sketches — two open curves side by side in one view, two concentric circles, an open curve to its wrapped copy, curves in two views — gives a solid or a sheet, never a refusal; flip of one picked face turns only its piece of a two-loft sheet (each face's sense reversed, the other piece kept), again removes the step, a solid's face refuses; H hides picked curves (HiddenCurves) and Alt+H brings them back; a 3D curve through off-plane points passes through each; sketch points lifted off their plane turn their curve into a 3D curve of the same form (on the plane: identical to the sketch curve) | 1e-9 · fit 10⁻⁶ | 9.04e-16 | 12 | 🟢 |
 | W70 | Bevel reach (the report "clamped whilst it can bevel more … the chamfer chamfers more distance for the same bevel … bevel 1 edge fully … till the next edge making it a triangle"): one cube edge at the full span uses up the face beside it (a chamfer leaves a triangle section, a fillet a quarter round — exact volumes); on a block the span is the shorter face; fillet and chamfer take the same largest size on the same edges; past the face width the blend runs on over the next face (exact overflow volumes); a fillet on a 135° edge takes a radius over twice the face width | 1e-9 · overflow 1e-6 | 1.02e-07 | 14 | 🟢 |
 | W71 | Bevel merge (the report "when we bevel and edges / vertices come close together they must merge or create new vertex"): blends that meet fuse instead of refusing — two parallel top fillets / chamfers at half the face width share one ridge edge (the top face is dropped), the top loop at half the width closes to one apex vertex, on a 2 × 1 block to a hip roof (ridge + two apexes); exact volumes, Euler counts, sound | 1e-9 | 2.8e-15 | 8 | 🟢 |
-| W72 | Boolean library cutters & speed: all built-in inserts + coaxial stretched cylinders/cones retain exact analytic carriers (0 NURBS promotion), STEP & scene tessellation caches hit, sub-50 ms per library cut, sound manifold | ≤ 10⁻⁹ · ≤ 50 ms | 14.9 | 2 | 🟢 |
+| W72 | Boolean library cutters & speed: all built-in inserts + coaxial stretched cylinders/cones retain exact analytic carriers (0 NURBS promotion), STEP & scene tessellation caches hit, sub-50 ms per library cut, sound manifold | ≤ 10⁻⁹ · ≤ 50 ms | 15.1 | 2 | 🟢 |
 | W73 | Modular parametric variables: Create / SaveStepValueAsVariable / BindSolidArcStepValue / Rename / Delete; bevel Size and bolt Combine.Offset driven by user variables update geometry modularly; byte-equal TOML round-trip | ≤ 10⁻⁹ · exact | 1.15e-16 | 2 | 🟢 |
-| W74 | Live Booleans: KnifeSolidArcLiveInsert & AddSolidArcLiveBoolean keep cutters movable with real-time boolean updates, wireframe cutter scene (0 triangles, pickable edges), export exclusion, codec round-trip, and Apply to native Combine | ≤ 10⁻⁹ · exact | 4.63e-14 | 3 | 🟢 |
+| W74 | Live Booleans: KnifeSolidArcLiveInsert & AddSolidArcLiveBoolean render solid target + semitransparent cutter (SolidCornerCount split, Copper matcap, face & submerged-edge picking), real-time move, export exclusion, codec round-trip, and Apply | ≤ 10⁻⁹ · exact | 4.63e-14 | 3 | 🟢 |
 | W75 | Edge weight paint & Bevel modifier: AssignSolidArcEdgeWeights (literal & variable-bound weights), EdgeGroup / Picked / Angle bevel modifiers, variable edit regenerates weighted bevels, codec round-trip | ≤ 10⁻⁹ · sound | 3.35e-16 | 1 | 🟢 |
 | W76 | Linear & Circular Array modifiers: 1D/2D grid array, variable-bound counts, overlapping MergeCondition union, radial & helical circular array, Genus 0 per region, Apply bakes per-solid STEP imports | ≤ 10⁻⁹ · sound | 4.44e-16 | 3 | 🟢 |
 | W77 | Curve & Surface Array modifiers: array along 2D Sketch chain & 3D SpaceCurve with RMF alignment, UV surface array across curved cylinder face with normal alignment, sound manifold | ≤ 10⁻⁹ · sound | 1.21e-14 | 2 | 🟢 |
 | W78 | Bend along curve & Modifier Stack: 3D spatial B-rep bend of a solid bar along a 90° arc and 3D curve (T1–T6 & G1–G6 certified), stack reorder / mute / undo / redo / byte-equal TOML round-trip | ≤ 2·10⁻³ · sound | 2.45e-07 | 2 | 🟢 |
+| W79 | Multi-stage Compound Cutters (Countersink, Counterbore, Stepped hole, Hex socket, Stepped slot, Stepped pocket): non-stretching stage-by-stage construction, exact analytic closed-form volumes, 0 NURBS promotion, 0 duplicate 1-stage shapes | ≤ 10⁻⁹ · exact | 1.5e-13 | 2 | 🟢 |
+| W80 | Realtime-editable semitransparent Live Boolean cutters & standalone icon verification: Face Push/Pull & Edge Bevel directly on a semitransparent Live Compound Cutter update the carved solid target in real time; 65 SolidArc SVG icons verified | ≤ 10⁻⁹ · sound | 1.03e-14 | 2 | 🟢 |
 
 ## Walkthrough
 
@@ -281,15 +283,15 @@ DV W59 polyline on a plain block: 74 tried, 0 refused, 0 smooth skipped
 | W30 | refused: the path must be another sketch than the profile · choose the path: click a one-curve sketch or select a curve · Evolution#5: Evolution: path sketch Sketch#1 has 4 curves (🚧 one line, arc or spline; J joins a chain into a spline first) · Evolution#5: Evolution: the path starts along the profile plane (it must leave the plane) · nothing to subtract from yet (no body); file untouched | 0 | 🟢 |
 | W30 | save → load → save byte-equal with the Evolution (16) steps and Path = 'Sketch#2' | 0 | 🟢 |
 | W31 | 14 commands → 27 steps: 14 identical to a full replay, 14 resumed at the new step | 0 | 🟢 |
-| W31 | tail edit Fillet1.Size 0.15 → 0.12: resumed at 26/27 · 6.2 ms vs full 60.3 ms · 9.7× · identical | 9.75 | 🟢 |
-| W31 | middle edit Cylinder6.Radius 0.30 → 0.32: resumed at 12/27 · 45.5 ms vs full 60.3 ms · 1.3× · identical | 1.33 | 🟢 |
-| W31 | undo (Cylinder6.Radius back): resumed at 27/27 · 1.1 ms vs full 60.3 ms · 56.0× · identical | 56 | 🟢 |
-| W31 | redo: resumed at 27/27 · 1.0 ms vs full 60.3 ms · 62.6× · identical | 62.6 | 🟢 |
-| W31 | undo again: resumed at 27/27 · 1.0 ms vs full 60.3 ms · 61.8× · identical | 61.8 | 🟢 |
-| W31 | preview clone (bevel / move / sweep staging): resumed at 27/27 · 0.7 ms · 91.2× | 91.2 | 🟢 |
+| W31 | tail edit Fillet1.Size 0.15 → 0.12: resumed at 26/27 · 5.9 ms vs full 60.9 ms · 10.3× · identical | 10.3 | 🟢 |
+| W31 | middle edit Cylinder6.Radius 0.30 → 0.32: resumed at 12/27 · 48.1 ms vs full 60.9 ms · 1.3× · identical | 1.27 | 🟢 |
+| W31 | undo (Cylinder6.Radius back): resumed at 27/27 · 1.0 ms vs full 60.9 ms · 61.0× · identical | 61 | 🟢 |
+| W31 | redo: resumed at 27/27 · 1.0 ms vs full 60.9 ms · 60.6× · identical | 60.6 | 🟢 |
+| W31 | undo again: resumed at 27/27 · 1.0 ms vs full 60.9 ms · 61.7× · identical | 61.7 | 🟢 |
+| W31 | preview clone (bevel / move / sweep staging): resumed at 27/27 · 0.6 ms · 98.1× | 98.1 | 🟢 |
 | W31 | preview fillets the back edge Edge(Extrude#2.Cap(End)\|Extrude#2.Side(Line3)): resumed at 27 (Fillet1 re-captured in place) · 7.0 ms · source untouched | 0 | 🟢 |
 | W31 | 25 undo entries, 8 with checkpoints; 10 undos identical, 8 restored every step (older ones resume at the edited step) | 0 | 🟢 |
-| W31 | bonnet (12 steps, full 3.0 ms): pole move resumed at 5 · 2.0 ms; undo restored all · 0.2 ms · identical | 19.5 | 🟢 |
+| W31 | bonnet (12 steps, full 3.0 ms): pole move resumed at 5 · 2.0 ms; undo restored all · 0.2 ms · identical | 19.6 | 🟢 |
 | W32 | ray at the hidden back-bottom edge: opaque → Extrude#2.Cap(End) · x-ray → Edge(Extrude#2.Cap(Start)\|Extrude#2.Side(Line3)) (1.600781 farther) | 0 | 🟢 |
 | W32 | ray at the visible front-top edge: opaque = x-ray → Edge(Extrude#2.Cap(End)\|Extrude#2.Side(Line1)) | 0 | 🟢 |
 | W32 | full box without x-ray → 9 edges, none at the far corner (closed form 9 of 12) | 0 | 🟢 |
@@ -365,7 +367,7 @@ DV W59 polyline on a plain block: 74 tried, 0 refused, 0 smooth skipped
 | W37 | Bracket.svg 113781 B + Bracket.dxf 346500 B byte-equal to the writers | 0 | 🟢 |
 | W37 | codec: no table at the defaults, A2 / third / 1:50 / section x flipped / title fields round trip (fixed point), DrawingSheet: unknown paper A5 (A4 … A0) · DrawingSheet: unknown projection angle Fifth (First / Third) | 0 | 🟢 |
 | W37 | refusals: Drawing sheet: no shown solid body · Drawing sheet: section A-A — Section: select a planar face first | 0 | 🟢 |
-| W38 | Export… Bracket.step: 2 bodies, 12 faces, 0 stand-in(s), 13002 B = WriteStep bytes, 5 ms | 0 | 🟢 |
+| W38 | Export… Bracket.step: 2 bodies, 12 faces, 0 stand-in(s), 13002 B = WriteStep bytes, 4 ms | 0 | 🟢 |
 | W38 | read back in mm: 2 solids, volumes = metres³ × 10⁹ (worst 3.7e-15) | 3.73e-15 | 🟢 |
 | W38 | Export… Bracket.stl: 7078 facets, watertight, 2 components, \|ΔV\| 4007959.498 mm³ ≤ sag 5.03 mm × A 39173973 mm² | 0.000373 | 🟢 |
 | W38 | selected sphere → 1 body; bracket hidden → 1 body; Sphere.stp names its PRODUCT 'Sphere' | 0 | 🟢 |
@@ -527,17 +529,17 @@ DV W59 polyline on a plain block: 74 tried, 0 refused, 0 smooth skipped
 | W54 | codec 18763 bytes byte-equal, V 7.980504422698 after reload | 0 | 🟢 |
 | W55 | the knife library holds the Hex pocket insert | 0 | 🟢 |
 | W55 | slot pocket 0.2 deep (Knife1 · Slot1 · Difference · depth 0.2), 4 opening edges (V = 25.515364) | 7.15e-12 | 🟢 |
-| W55 | slot opening fillet 0.02 (Fillet 0.02 on 4 edge(s), 1 undo entry, 637 ms) (V = 25.515133) | 1.87e-11 | 🟢 |
+| W55 | slot opening fillet 0.02 (Fillet 0.02 on 4 edge(s), 1 undo entry, 703 ms) (V = 25.515133) | 1.87e-11 | 🟢 |
 | W55 | fillet 0.02: one undo entry, volume below the pocket | 0 | 🟢 |
-| W55 | slot opening fillet 0.0519 (Fillet 0.0519 on 4 edge(s), 1 undo entry, 712 ms) (V = 25.513752) | 1.13e-11 | 🟢 |
+| W55 | slot opening fillet 0.0519 (Fillet 0.0519 on 4 edge(s), 1 undo entry, 774 ms) (V = 25.513752) | 1.13e-11 | 🟢 |
 | W55 | fillet 0.0519: one undo entry, volume below the pocket | 0 | 🟢 |
-| W55 | slot opening fillet 0.1 (Fillet 0.1 on 4 edge(s), 1 undo entry, 855 ms) (V = 25.509040) | 1.92e-11 | 🟢 |
+| W55 | slot opening fillet 0.1 (Fillet 0.1 on 4 edge(s), 1 undo entry, 876 ms) (V = 25.509040) | 1.92e-11 | 🟢 |
 | W55 | fillet 0.1: one undo entry, volume below the pocket | 0 | 🟢 |
 | W55 | undo after each fillet: the file returns byte-equal | 0 | 🟢 |
 | W55 | fillet 0.3 refused untouched: Blend#5: Blend: E19: size 0.3 is too large: the blend is wider than face F15 (its contact runs off that face) — try a smaller size | 0 | 🟢 |
 | W55 | fillet 0.8553 refused untouched: Blend#5: Blend: E19: size 0.8553 is too large: the blend is wider than face F9 (its contact runs off that face) — try a smaller size | 0 | 🟢 |
 | W55 | codec 4819 bytes byte-equal | 0 | 🟢 |
-| W55 | hex rim loop, 6 edges, fillet 0.05 (Fillet 0.05 on 6 edge(s), 896 ms) (V = 25.420575) | 1.41e-11 | 🟢 |
+| W55 | hex rim loop, 6 edges, fillet 0.05 (Fillet 0.05 on 6 edge(s), 901 ms) (V = 25.420575) | 1.41e-11 | 🟢 |
 | W55 | hex wall–wall edges together, 6 edges, fillet 0.05 (Fillet 0.05 on 6 edge(s)) (V = 25.462980) | 1.15e-12 | 🟢 |
 | W55 | box hex rim fillet 0.05 (Fillet 0.05 on 6 edge(s)): loss / straight-edge model = 1.0287 | 0.0213 | 🟢 |
 | W56 | grips: triangle 90.000° r 0.577350 · hex 0.000° r 0.500000 · square 45.000° r 0.707107 · countersink floor 0.242727 widths | 1.04e-06 | 🟢 |
@@ -791,11 +793,11 @@ DV W59 polyline on a plain block: 74 tried, 0 refused, 0 smooth skipped
 | W71 | 1 m cube, the top loop at ½ (four rails close to one apex), chamfer: 9 F / 16 E / 9 V, V 0.666666666667 (exact 0.666666666667) | 1.67e-16 | 🟢 |
 | W71 | 2 × 1 × 1 block, the top loop at ½ (hip roof: the long rails fuse into a ridge, the short ones close to two apexes), fillet: 9 F / 17 E / 10 V, V 1.726032415032 (exact 1.726032415032) | 1.93e-15 | 🟢 |
 | W71 | 2 × 1 × 1 block, the top loop at ½ (hip roof: the long rails fuse into a ridge, the short ones close to two apexes), chamfer: 9 F / 17 E / 10 V, V 1.416666666667 (exact 1.416666666667) | 0 | 🟢 |
-| W72 | All 7 library inserts cut + tessellated cleanly: worst 14.88 ms (sound = 1) | 14.9 | 🟢 |
+| W72 | All 7 library inserts cut + tessellated cleanly: worst 15.06 ms (sound = 1) | 15.1 | 🟢 |
 | W72 | Coaxial Z-stretched Round hole (Stretch 2.5): 0 NURBS faces (analytic cylinder/cone preserved) | 0 | 🟢 |
 | W73 | FilletR=0.2 & BoltShift=0.3 modularly updated V=7.756637182 (exact 7.756637182) | 1.15e-16 | 🟢 |
 | W73 | Rename BoltShift→AxialGap + TOML round-trip + DeleteVariable (bakes literal cleanly) | 1.15e-16 | 🟢 |
-| W74 | Live cutter Import#3: 0 shaded corners, 12 wireframe edges, excluded from export | 0 | 🟢 |
+| W74 | Live cutter Import#3: solid corners 408 + semitransparent cutter corners 456, 12 edges, both bodies pickable, excluded from export | 0 | 🟢 |
 | W74 | Real-time cutter move: inside ΔV=0.019200 → edge ΔV=0.009600 (half=0.009600), TOML round-trip ok | 4.63e-14 | 🟢 |
 | W74 | ApplySolidArcModifier baked Live Boolean into native Combine step with identical volume | 0 | 🟢 |
 | W75 | Weighted edge group (1.0 + HeavyWeight=2.0→3.0) bevel V=3.957079633 (exact 3.957079633), TOML round-trip ok | 3.35e-16 | 🟢 |
@@ -806,6 +808,10 @@ DV W59 polyline on a plain block: 74 tried, 0 refused, 0 smooth skipped
 | W77 | SurfaceArray 3×2 on cylinder surface + TOML round-trip: V=25.217564 (exact 25.217564) | 2.82e-16 | 🟢 |
 | W78 | CurveBend solid bar along 90° arc: T1–T6 & G1–G6 sound=1, V=0.188496 (Pappus 0.188496, rel 1.12e-08) | 1.12e-08 | 🟢 |
 | W78 | Stacked CurveBend → LinearArray + Mute/Undo/Redo + byte-equal TOML round-trip | 2.45e-07 | 🟢 |
+| W79 | AssembleSolidArcUserInserts(""): 0 duplicate 1-stage shapes (6 multi-stage compound cutters are native) | 0 | 🟢 |
+| W79 | All 6 multi-stage compound cutters: max ΔV rel err 1.50e-13, 0 NURBS spline faces (100% analytic), sound=1 | 1.5e-13 | 🟢 |
+| W80 | Realtime edit on semitransparent cutter Revolve#4: initial ΔV=0.052842 → push floor +0.10 ΔV=0.057365 (rel 1.03e-14) → fillet rim r=0.03 ΔV=0.057228, sound=1 | 1.03e-14 | 🟢 |
+| W80 | Standalone SolidArc icon artwork verified: 66 non-empty SVG icons | 0 | 🟢 |
 
 ## Saved document (TOML, first 40 lines)
 

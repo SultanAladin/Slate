@@ -7,16 +7,17 @@ on session branch `arena/4f335fa8-slate` so they appear directly in the Arena Wo
 
 ## 1. Pre-Built Release Binaries
 
-| Platform    | Package                                    | Contents                                                        |
-|-------------|--------------------------------------------|-----------------------------------------------------------------|
-| Windows x64 | `Package/SolidArc-Windows-x64.zip` (4.1M)  | `SolidArcWorkspace.exe`, `SolidArcWorkspace.toml`, fonts, icons |
-| Windows x64 | `Package/Frontier-Windows-x64.zip` (3.9M)  | `Frontier.exe` (with SolidArc browser link), fonts, icons       |
-| Linux x64   | `Package/SolidArc-Linux-x64.zip` (7.6M)    | `SolidArcWorkspace`, `SolidArcDocumentValidation`, fonts, icons |
+| Platform    | Package                                    | Contents                                                                              |
+|-------------|--------------------------------------------|---------------------------------------------------------------------------------------|
+| Windows x64 | `Package/SolidArc-Windows-x64.zip` (4.3M)  | Standalone `SolidArcWorkspace.exe`, `SolidArcWorkspace.toml`, 5 DM Sans fonts, 310 SVG icons (incl. all 66 `SolidArc/*.svg`) |
+| Windows x64 | `Package/Frontier-Windows-x64.zip` (8.0M)  | `Frontier.exe` + `SolidArcWorkspace.exe`, 5 DM Sans fonts, 310 SVG icons (incl. all 66 `SolidArc/*.svg`) |
+| Linux x64   | `Package/SolidArc-Linux-x64.zip` (4.9M)    | Standalone `SolidArcWorkspace`, `SolidArcWorkspace.toml`, 5 DM Sans fonts, 310 SVG icons (incl. all 66 `SolidArc/*.svg`) |
 
 Direct download URLs on GitHub (`arena/4f335fa8-slate`):
-- `https://github.com/SultanAladin/Slate/raw/arena/4f335fa8-slate/SolidArc/Package/SolidArc-Windows-x64.zip`
-- `https://github.com/SultanAladin/Slate/raw/arena/4f335fa8-slate/SolidArc/Package/Frontier-Windows-x64.zip`
-- `https://github.com/SultanAladin/Slate/raw/arena/4f335fa8-slate/SolidArc/Package/SolidArc-Linux-x64.zip`
+- `https://raw.githubusercontent.com/SultanAladin/Slate/arena/4f335fa8-slate/SolidArc/Package/SolidArc-Windows-x64.zip`
+- `https://raw.githubusercontent.com/SultanAladin/Slate/arena/4f335fa8-slate/SolidArc/Package/Frontier-Windows-x64.zip`
+- `https://raw.githubusercontent.com/SultanAladin/Slate/arena/4f335fa8-slate/SolidArc/Package/SolidArc-Linux-x64.zip`
+- `https://raw.githubusercontent.com/SultanAladin/Slate/arena/4f335fa8-slate/SolidArc/Patches/SolidArc-Booleans-Variables-Modifiers.patch`
 
 ---
 
@@ -34,13 +35,17 @@ Every modified and newly created C++ source file is also mirrored verbatim under
 `Frontier` repository path:
 - `Source/Engine/GeometryProcessing/` — Boolean acceleration, carrier preservation, `BodyModifiers.{h,cpp}`,
   parametric variables, edge groups, modifier stack, and `ModifierCheckpoint` replay cache.
-- `Source/UI/SolidArc/` — Live Boolean cutters, Variables card, Edge Weights card, Blender-style Modifiers stack UI,
-  32-entry scene mesh LRU cache, `StageGizmoPreview` throttle fix, and `.solidarc` TOML v1 serialization.
-- `Source/Exhibits/` — `SolidArcDocumentValidation.cpp` (`W72`–`W78`) and updated standalone kernel checks.
+- `Source/UI/SolidArc/` — Non-stretching multi-stage Compound Cutters (`Countersink`, `Counterbore`, `Stepped hole`,
+  `Hex socket`, `Stepped slot`, `Stepped pocket`), Solid + Semitransparent Realtime-Editable Live Booleans (`CutterDepthPipeline`
+  & `CutterGhostPipeline`), Variables card, Edge Weights card, Blender-style Modifiers stack UI, 32-entry scene mesh LRU
+  cache, standalone icon directory resolution, and `.solidarc` TOML v1 serialization.
+- `Source/Experimental/SolidArc/` — Standalone CMake icon dereferencing + `CrossBuildWindows.sh` compressed packaging &
+  icon-count verification.
+- `Source/Exhibits/` — `SolidArcDocumentValidation.cpp` (`W72`–`W80`) and updated standalone kernel checks.
 
 ---
 
 ## 3. Audit & Validation Reports
 
 - `ProductionAudit.md` — Full CAD completeness/correctness audit report with emoji matrix and root-cause analysis.
-- `Results/DocumentValidation.md` — Complete `W1`–`W78` run (**794 🟢 / 0 🔴**).
+- `Results/DocumentValidation.md` — Complete `W1`–`W80` run (**800 🟢 / 0 🔴**).

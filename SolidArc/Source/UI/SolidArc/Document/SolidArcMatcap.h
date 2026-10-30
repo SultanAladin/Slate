@@ -55,7 +55,7 @@ struct SolidArcAppearance
     std::set<std::string>              HiddenCurves  = {};                                   // [-] - Sketch / curve labels out of view, picking and snapping
     std::set<std::string>              RemovedCurves = {};                                   // [-] - Deleted (X) yet read by a later step: hidden and off the Outliner
     std::set<std::string>              LockedFigures = {};                                   // [-] - Body keys and curve labels shown but not pickable
-    std::set<std::string>              LiveCutters   = {};                                   // [-] - Live Boolean cutter body keys (wireframe display, pickable by edge)
+    std::set<std::string>              LiveCutters   = {};                                   // [-] - Live Boolean cutter body keys (semitransparent display, selectable & editable)
 };
 
 // One built-in matcap: its name, caption and the look it was composed for.

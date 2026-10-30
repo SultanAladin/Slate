@@ -532,11 +532,18 @@ struct SolidArcKnifeSession
     bool                                   PreferredSolidCondition = false;                  // [-]   - The cutter is a Construct primitive (3D)
     SolidArcConstructKind                  PreferredSolid       = SolidArcConstructKind::Block; // [-] - That primitive (box, cylinder, …)
     bool                                   PreferredPolylineCondition = false;               // [-]   - Line cutter: a polyline (Enter / right-click ends)
-    // 📝 Insert base as a Construct box draws its base: corner to corner on the face (x and y apart, Shift square), by a
-    //    press-drag or by a click then pointer motion (the next click sets it); then the depth.
-    GeometryProcessing::Vector3            Corner               = {};                        // [len] - Insert: first base corner (world)
-    double                                 Aspect               = 1.0;                       // [-]   - Insert: base y / x scale ratio
-    bool                                   SizeByMoveCondition  = false;                     // [-]   - Insert: clicked, the pointer sizes until the next click
+    // 📝 Insert / Compound Boolean Library: built-in 2-stage Compound Cutters (0..5: Countersink, Counterbore, Stepped hole,
+    //    Hex socket, Stepped slot, Stepped pocket) are drawn stage-by-stage on the face without non-uniform stretching:
+    //    Stage 0 place centre → Stage 1 outer radius → Stage 2 outer extrude → Stage 3 inner radius → Stage 4 inner extrude.
+    //    User-saved custom STEP files (≥ 6) size uniformly (Aspect = 1.0, centre → radius → depth).
+    int                                    CompoundStage        = 0;                         // [-]   - 0 place · 1 outer R · 2 outer D · 3 inner R · 4 inner D
+    double                                 OuterRadius          = 0.12;                      // [len] - Compound Stage 1 radius / half-width
+    double                                 OuterDepth           = 0.05;                      // [len] - Compound Stage 1 extrude depth
+    double                                 InnerRadius          = 0.06;                      // [len] - Compound Stage 2 radius / half-width
+    double                                 InnerDepth           = 0.12;                      // [len] - Compound Stage 2 extrude depth
+    GeometryProcessing::Vector3            Corner               = {};                        // [len] - Insert: centre anchor (world)
+    double                                 Aspect               = 1.0;                       // [-]   - Always 1.0 (uniform, non-stretching)
+    bool                                   SizeByMoveCondition  = false;                     // [-]   - Clicked: pointer drives stage until next click
     // 📝 Slice (polyline) knife: click edges on the staged pieces to fillet / chamfer each before the cut applies; D / C
     //    turn the focused one, digits type its size.
     std::vector<SolidArcKnifeBlend>        Blends               = {};                        // [-]   - Edge treatments, picked order

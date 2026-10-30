@@ -5810,22 +5810,41 @@ void BoundKnifeSolidLift(SolidArcWorkspaceState& State)
     return Outcome;
 }
 
-// The picked library insert (nullptr when the library has none at that index).
-[[nodiscard]] const SolidArcInsert* KnifeInsert(const SolidArcKnifeSession& Knife)
+[[nodiscard]] bool KnifeCompoundCondition(const SolidArcKnifeSession& Knife) noexcept
 {
-    return Knife.Insert >= 0 && Knife.Insert < int(Knife.Library.Inserts.size()) ? &Knife.Library.Inserts[size_t(Knife.Insert)] : nullptr;
+    return Knife.Insert >= 0 && Knife.Insert < SolidArcCompoundCutterCount;
 }
 
-// Insert depth [len] below the face (height above it for Q): the dragged / typed one, or with T straight through the
-// target — the farthest corner of its box behind the face, plus 2 % of its diagonal.
-[[nodiscard]] double KnifeInsertDepth(const SolidArcWorkspaceState& State)
+[[nodiscard]] int KnifeLibraryCount(const SolidArcKnifeSession& Knife) noexcept
+{
+    return SolidArcCompoundCutterCount + static_cast<int>(Knife.Library.Inserts.size());
+}
+
+[[nodiscard]] std::string KnifeLibraryEntryName(const SolidArcKnifeSession& Knife, int Index)
+{
+    if (Index >= 0 && Index < SolidArcCompoundCutterCount)
+        return SolidArcCompoundCutterLabel(static_cast<SolidArcCompoundCutterKind>(Index));
+    const int UserIndex = Index - SolidArcCompoundCutterCount;
+    if (UserIndex >= 0 && UserIndex < static_cast<int>(Knife.Library.Inserts.size()))
+        return Knife.Library.Inserts[static_cast<size_t>(UserIndex)].Name;
+    return "Compound cutter";
+}
+
+// The picked user STEP insert (nullptr when a built-in Compound Cutter is selected or index is out of range).
+[[nodiscard]] const SolidArcInsert* KnifeInsert(const SolidArcKnifeSession& Knife)
+{
+    const int UserIndex = Knife.Insert - SolidArcCompoundCutterCount;
+    return UserIndex >= 0 && UserIndex < int(Knife.Library.Inserts.size()) ? &Knife.Library.Inserts[size_t(UserIndex)] : nullptr;
+}
+
+[[nodiscard]] double KnifeThroughSpan(const SolidArcWorkspaceState& State)
 {
     const SolidArcKnifeSession& Knife = State.Knife;
     Vector3 Low, High;
-    if (Knife.InsertThroughCondition && Knife.Combination != FeatureCombination::Union && MeasureSceneBody(State.Scene, Knife.SpotBody, Low, High))
+    if (MeasureSceneBody(State.Scene, Knife.SpotBody, Low, High))
     {
         const Vector3 Normal = Normalize(Knife.Spot.ZAxis);
-        double        Far    = 0.0;                                                          // [len]
+        double        Far    = 0.0;
         for (int Corner = 0; Corner < 8; ++Corner)
         {
             const Vector3 Point = { (Corner & 1) ? High.X : Low.X, (Corner & 2) ? High.Y : Low.Y, (Corner & 4) ? High.Z : Low.Z };
@@ -5833,10 +5852,50 @@ void BoundKnifeSolidLift(SolidArcWorkspaceState& State)
         }
         return Far + 0.02 * Distance(Low, High) + 1.0e-3;
     }
+    return 0.0;
+}
+
+// Insert depth [len] below the face (height above it for Q): the dragged / typed one, or with T straight through the
+// target — the farthest corner of its box behind the face, plus 2 % of its diagonal.
+[[nodiscard]] double KnifeInsertDepth(const SolidArcWorkspaceState& State)
+{
+    const SolidArcKnifeSession& Knife = State.Knife;
+    if (KnifeCompoundCondition(Knife))
+    {
+        if (Knife.InsertThroughCondition && Knife.Combination != FeatureCombination::Union)
+        {
+            const double Span = KnifeThroughSpan(State);
+            if (Span > Knife.OuterDepth + 1.0e-3) return Span;
+        }
+        return Knife.OuterDepth + Knife.InnerDepth;
+    }
+    if (Knife.InsertThroughCondition && Knife.Combination != FeatureCombination::Union)
+    {
+        const double Span = KnifeThroughSpan(State);
+        if (Span > 0.0) return Span;
+    }
     return Knife.InsertDepth;
 }
 
-// Least insert depth [len] at the current width (a countersink keeps its cone and a sliver of bore).
+[[nodiscard]] SolidArcCompoundCutterSpec ComposeKnifeCompoundSpec(const SolidArcWorkspaceState& State)
+{
+    const SolidArcKnifeSession& Knife = State.Knife;
+    SolidArcCompoundCutterSpec Spec;
+    Spec.Kind          = static_cast<SolidArcCompoundCutterKind>(std::clamp(Knife.Insert, 0, SolidArcCompoundCutterCount - 1));
+    Spec.Spot          = Knife.Spot;
+    Spec.Turn          = Knife.Turn;
+    Spec.OuterRadius   = std::max(0.002, Knife.OuterRadius);
+    Spec.OuterDepth    = std::max(0.001, Knife.OuterDepth);
+    Spec.InnerRadius   = std::clamp(Knife.InnerRadius, 0.001, 0.94 * Spec.OuterRadius);
+    const double Total = KnifeInsertDepth(State);
+    Spec.InnerDepth    = std::max(0.002, Total - Spec.OuterDepth);
+    Spec.Combination   = Knife.Combination;
+    Spec.Target        = Knife.SpotBody;
+    Spec.LiveCondition = Knife.LiveCondition;
+    return Spec;
+}
+
+// Least insert depth [len] at the current width (for user STEP inserts).
 [[nodiscard]] double KnifeInsertShallow(const SolidArcKnifeSession& Knife)
 {
     const SolidArcInsert* Insert = KnifeInsert(Knife);
@@ -5887,15 +5946,17 @@ void BoundKnifeSolidLift(SolidArcWorkspaceState& State)
     }
     case SolidArcKnifeMode::Insert:
     {
-        if (Knife.Insert < 0 || Knife.Insert >= int(Knife.Library.Inserts.size())) return RefusedKnife("pick an insert from the library");
-        if (!Knife.PlacedCondition && !Knife.HoverCondition) return RefusedKnife("point at a body face to place the insert");
-        const SolidArcInsert&     Insert = Knife.Library.Inserts[Knife.Insert];
-        const SolidArcInsertReach Reach  = ReachSolidArcInsert(Insert, KnifeInsertDepth(State) / std::max(1.0e-9, Knife.Size));   // Depth in insert widths
+        if (Knife.Insert < 0 || Knife.Insert >= KnifeLibraryCount(Knife)) return RefusedKnife("pick a compound cutter from the library");
+        if (!Knife.PlacedCondition && !Knife.HoverCondition) return RefusedKnife("point at a body face to place the cutter");
+        if (KnifeCompoundCondition(Knife)) return KnifeSolidArcCompoundCutter(Document, ComposeKnifeCompoundSpec(State));
+        const SolidArcInsert* Insert = KnifeInsert(Knife);
+        if (!Insert) return RefusedKnife("pick a cutter from the library");
+        const SolidArcInsertReach Reach  = ReachSolidArcInsert(*Insert, KnifeInsertDepth(State) / std::max(1.0e-9, Knife.Size));
         if (!Reach.Refusal.empty()) return RefusedKnife(Reach.Refusal);
         SolidArcInsertPlacement Placement;
-        Placement.Name        = Insert.Name;
+        Placement.Name        = Insert->Name;
         Placement.Exchange    = Reach.Exchange;
-        Placement.Map         = PlaceSolidArcInsert(Knife.Spot, Knife.Size, Knife.Turn, Knife.Combination == FeatureCombination::Union, Reach.Stretch, Knife.Aspect);
+        Placement.Map         = PlaceSolidArcInsert(Knife.Spot, Knife.Size, Knife.Turn, Knife.Combination == FeatureCombination::Union, Reach.Stretch, 1.0);
         Placement.Combination = Knife.Combination;
         Placement.Target      = Knife.SpotBody;
         if (Knife.LiveCondition && Knife.Combination != FeatureCombination::Separate) return KnifeSolidArcLiveInsert(Document, Placement);
@@ -5938,9 +5999,10 @@ void EnsureKnifeLibrary(SolidArcWorkspaceState& State)
     SolidArcKnifeSession& Knife = State.Knife;
     if (Knife.LibraryCondition) return;
     FRONTIER_TRACE_SCOPE("Knife", "library");
-    Knife.Library          = AssembleSolidArcInserts(State.Options.InsertFolder);
+    Knife.Library          = AssembleSolidArcUserInserts(State.Options.InsertFolder);
     Knife.LibraryCondition = true;
-    Knife.Insert           = std::clamp(Knife.Insert, 0, std::max(0, int(Knife.Library.Inserts.size()) - 1));
+    Knife.Insert           = std::clamp(Knife.Insert, 0, std::max(0, KnifeLibraryCount(Knife) - 1));
+    Knife.Aspect           = 1.0;
     for (const std::string& Note : Knife.Library.Notes) FRONTIER_TRACE("Knife", "insert skipped: " + Note);
 }
 
@@ -5956,7 +6018,8 @@ void EnsureKnifeLibrary(SolidArcWorkspaceState& State)
                    Knife.Sketch.c_str(), Slice ? 0.0 : Knife.Depth, Knife.ThroughCondition && !Slice ? 1 : 0, Knife.Insert, Knife.HoverCondition ? 1 : 0, Knife.PlacedCondition ? 1 : 0,
                    Knife.Spot.Origin.X, Knife.Spot.Origin.Y, Knife.Spot.Origin.Z, Knife.Spot.ZAxis.X, Knife.Spot.ZAxis.Y, Knife.Spot.ZAxis.Z, Knife.Size, Knife.Turn,
                    Knife.KeepCondition ? 1 : 0, Knife.SpotBody.c_str(), Picked.c_str(), static_cast<unsigned long long>(State.Document.Revision), Slice ? 1 : 0) +
-           Compose("|%.17g|%d|%.17g|%d", Knife.Sink, Knife.AlignCondition ? 1 : 0, Knife.Aspect, Knife.LiveCondition ? 1 : 0) +
+           Compose("|%.17g|%d|%d|%.17g|%.17g|%.17g|%.17g", Knife.Sink, Knife.AlignCondition ? 1 : 0, Knife.LiveCondition ? 1 : 0,
+                   Knife.OuterRadius, Knife.OuterDepth, Knife.InnerRadius, Knife.InnerDepth) +
            (Knife.Mode == SolidArcKnifeMode::Insert ? Compose("|%.17g|%d", KnifeInsertDepth(State), Knife.InsertThroughCondition ? 1 : 0) : std::string{}) +
            [&]() { std::string Blends; for (const SolidArcKnifeBlend& Blend : Knife.Blends) Blends += Compose("|%s@%s:%d:%.17g", Blend.Edge.c_str(), Blend.Body.c_str(), int(Blend.Shape), Blend.Size); return Blends; }();
 }
@@ -5986,9 +6049,11 @@ void ChooseKnifeMode(SolidArcWorkspaceState& State, SolidArcKnifeMode Mode)
         Knife.PlacedCondition      = false;
         Knife.SizingCondition      = false;
         Knife.DepthChosenCondition = false;
+        Knife.CompoundStage        = 0;
+        Knife.Aspect               = 1.0;
         Knife.Typed.clear();
-        Announce(State, Compose("Knife · Insert %s · point at a face · press for the centre, drag out the size and turn, release, then move for the depth · %d insert(s) in %.0f ms",
-                                Knife.Library.Inserts.empty() ? "(none)" : Knife.Library.Inserts[Knife.Insert].Name.c_str(), int(Knife.Library.Inserts.size()), Knife.Library.Milliseconds));
+        Announce(State, Compose("Knife · %s · click face for centre → Stage 1 circle/size → Stage 1 extrude → Stage 2 circle/size → Stage 2 extrude (T through · L live boolean)",
+                                KnifeLibraryEntryName(Knife, Knife.Insert).c_str()));
         return;
     }
     if (Mode == SolidArcKnifeMode::Object)
@@ -6169,7 +6234,7 @@ void ChooseKnifeSolid(SolidArcWorkspaceState& State, SolidArcConstructKind Kind)
     const SolidArcKnifeMode Mode = Knife.ActiveCondition ? Knife.Mode : Knife.PreferredMode;
     if (Mode == SolidArcKnifeMode::Object) return "Objects";
     if (Mode == SolidArcKnifeMode::Insert)
-        return Knife.Insert >= 0 && Knife.Insert < int(Knife.Library.Inserts.size()) ? Knife.Library.Inserts[size_t(Knife.Insert)].Name : std::string("Insert");
+        return KnifeLibraryEntryName(Knife, Knife.Insert);
     if (KnifeSolidCondition(State)) return SolidArcConstructLabel(State.Drawing.Solid);
     if (!Knife.ActiveCondition && Knife.PreferredSolidCondition) return SolidArcConstructLabel(Knife.PreferredSolid);
     const bool                Drawing = Knife.ActiveCondition && Knife.DrawPendingCondition && State.Drawing.ActiveCondition;
@@ -6329,23 +6394,28 @@ void PlaceKnifeCutter(SolidArcWorkspaceState& State)
                             SolidArcBodyCaption(State.Document, State.Document.Selection.Bodies.front()).c_str(), SolidArcBodyCaption(State.Document, Knife.SpotBody).c_str()));
 }
 
-// 💡 Insert gesture, as the Construct box draws its base: ① the press puts one base corner down on the face under the
-//    pointer ② the drag carries the opposite corner on that face's plane — the insert's footprint fills the rectangle,
-//    x and y apart (Shift: square, the larger side), 0.01 steps (Ctrl free); a click without a drag lets the pointer
-//    carry the corner until the next click ③ the release (that click) hands the pointer to the depth along the normal
-//    (as a box's height; T through, digits type it) ④ click / right-click / Enter cuts. [ / ] turn the base 15°.
+// 💡 Multi-stage Compound Cutter & non-stretching user insert gesture:
+//    Compound Cutters (0..5): Stage 0 click face centre → Stage 1 radial circle/profile → Stage 2 normal extrude →
+//                             Stage 3 radial inner circle/profile → Stage 4 normal inner extrude (T through) → click applies.
+//    User STEP inserts (≥ 6): Stage 0 click face centre → Stage 1 uniform width (Aspect = 1.0) → Stage 2 normal depth → click applies.
 void PressKnifeInsert(SolidArcWorkspaceState& State)
 {
     SolidArcKnifeSession& Knife = State.Knife;
-    if (Knife.PlacedCondition) return;                                                       // Sizing by motion / depth: the release decides
-    if (!Knife.HoverCondition || !KnifeInsert(Knife)) { Announce(State, "Knife: point at a body face to place the insert"); return; }
+    if (Knife.PlacedCondition) return;
+    if (!Knife.HoverCondition || Knife.Insert < 0 || Knife.Insert >= KnifeLibraryCount(Knife))
+    {
+        Announce(State, "Knife: point at a body face to place the cutter");
+        return;
+    }
     Knife.PlacedCondition     = true;
+    Knife.CompoundStage       = 1;
     Knife.SizingCondition     = true;
     Knife.SizeByMoveCondition = false;
+    Knife.Aspect              = 1.0;
     Knife.Corner              = Knife.Spot.Origin;
     Knife.Typed.clear();
-    Announce(State, Compose("Knife · %s base corner on %s · drag to the opposite corner (Shift square, Ctrl free) · release for the depth",
-                            KnifeInsert(Knife)->Name.c_str(), SolidArcBodyCaption(State.Document, Knife.SpotBody).c_str()));
+    Announce(State, Compose("Knife · %s Stage 1 on %s · move radially from centre for outer Ø / width (uniform, Ctrl free) · click / release for Stage 1 extrude",
+                            KnifeLibraryEntryName(Knife, Knife.Insert).c_str(), SolidArcBodyCaption(State.Document, Knife.SpotBody).c_str()));
 }
 
 // Footprint of an insert in its own frame (x across, y along; inserts are normalized to unit width, centred).
@@ -6366,39 +6436,40 @@ void MeasureInsertFootprint(const SolidArcInsert& Insert, Vector2& Low, Vector2&
     if (!(High.Y - Low.Y > 1.0e-9)) { Low.Y = -0.5; High.Y = 0.5; }
 }
 
-void DragKnifeInsert(SolidArcWorkspaceState& State, const OrbitCameraFrame& Frame, ImVec2 Local)
+[[nodiscard]] std::optional<double> MeasurePlaneRadialDistance(const OrbitCameraFrame& Frame, ImVec2 Local, Vector3 PlaneOrigin, Vector3 PlaneNormal)
 {
-    SolidArcKnifeSession& Knife  = State.Knife;
-    const SolidArcInsert* Insert = KnifeInsert(Knife);
-    if (!Insert) return;
     const OrbitRay Ray       = CastOrbitRay(Frame, Local.x, Local.y);
     const Vector3  Origin    = { Ray.Origin[0], Ray.Origin[1], Ray.Origin[2] };
     const Vector3  Direction = { Ray.Direction[0], Ray.Direction[1], Ray.Direction[2] };
-    const Vector3  Normal    = Normalize(Knife.Spot.ZAxis);
+    const Vector3  Normal    = Normalize(PlaneNormal);
     const double   Facing    = Dot(Direction, Normal);
-    if (std::abs(Facing) < 1.0e-6) return;                                                   // Face edge-on: keep the last size
-    const double Travel = Dot(Knife.Corner - Origin, Normal) / Facing;                       // [len]
-    if (!(Travel > 0.0)) return;
-    const Vector3 Across = Knife.Spot.XAxis * std::cos(Knife.Turn) + Knife.Spot.YAxis * std::sin(Knife.Turn);
-    const Vector3 Along  = Knife.Spot.YAxis * std::cos(Knife.Turn) - Knife.Spot.XAxis * std::sin(Knife.Turn);
-    const Vector3 Offset = Origin + Direction * Travel - Knife.Corner;
-    const double  SpanX  = Dot(Offset, Across), SpanY = Dot(Offset, Along);                  // [len] - Corner → pointer
-    Vector2 Low, High;
-    MeasureInsertFootprint(*Insert, Low, High);
-    const double ExtentX = High.X - Low.X, ExtentY = High.Y - Low.Y;                         // [-] - Footprint (insert widths)
-    if (!(std::abs(SpanX) > 1.0e-6) && !(std::abs(SpanY) > 1.0e-6)) return;
-    // The base sides snap to 0.01 (Ctrl free); Shift (or a drag along one axis) keeps the footprint's own proportions.
-    const bool   Free   = ImGui::GetIO().KeyCtrl;
-    const auto   Snap   = [&](double Value) { return Free ? std::max(1.0e-3, Value) : std::max(0.01, std::round(Value / SweepSnap) * SweepSnap); };
-    double       ScaleX = std::abs(SpanX) / ExtentX, ScaleY = std::abs(SpanY) / ExtentY;     // [len] - Insert widths → length
-    if (ImGui::GetIO().KeyShift || !(ScaleX > 1.0e-6) || !(ScaleY > 1.0e-6)) ScaleX = ScaleY = std::max(ScaleX, ScaleY);   // Square
-    Knife.Size   = Snap(ScaleX * ExtentX) / ExtentX;
-    Knife.Aspect = std::abs(ScaleX - ScaleY) <= 1.0e-12 ? 1.0 : std::clamp(Snap(ScaleY * ExtentY) / ExtentY / Knife.Size, 0.02, 50.0);
-    // The footprint box spans the two corners: its centre (insert frame, y mirrored for a Q boss) lands on their middle.
-    const double  Mirror = Knife.Combination == FeatureCombination::Union ? -1.0 : 1.0;
-    const double  SideX  = Knife.Size * ExtentX * (SpanX < 0.0 ? -1.0 : 1.0), SideY = Knife.Size * Knife.Aspect * ExtentY * (SpanY < 0.0 ? -1.0 : 1.0);
-    const Vector3 Middle = Knife.Corner + Across * (0.5 * SideX) + Along * (0.5 * SideY);
-    Knife.Spot.Origin    = Middle - Across * (Knife.Size * 0.5 * (Low.X + High.X)) - Along * (Knife.Size * Knife.Aspect * Mirror * 0.5 * (Low.Y + High.Y));
+    if (std::abs(Facing) < 1.0e-6) return std::nullopt;
+    const double Travel = Dot(PlaneOrigin - Origin, Normal) / Facing;
+    if (!(Travel > 0.0)) return std::nullopt;
+    const Vector3 Hit    = Origin + Direction * Travel;
+    const Vector3 InPlane = Hit - PlaneOrigin - Normal * Dot(Hit - PlaneOrigin, Normal);
+    return Length(InPlane);
+}
+
+void DragKnifeInsert(SolidArcWorkspaceState& State, const OrbitCameraFrame& Frame, ImVec2 Local)
+{
+    SolidArcKnifeSession& Knife = State.Knife;
+    const std::optional<double> Radial = MeasurePlaneRadialDistance(Frame, Local, Knife.Spot.Origin, Knife.Spot.ZAxis);
+    if (!Radial || !(*Radial > 1.0e-5)) return;
+    const bool Free = ImGui::GetIO().KeyCtrl;
+    const auto Snap = [&](double Value) { return Free ? std::max(0.002, Value) : std::max(0.005, std::round(Value / (0.5 * SweepSnap)) * (0.5 * SweepSnap)); };
+    Knife.Aspect = 1.0;                                                                      // Strictly uniform: never stretch cutters
+    if (KnifeCompoundCondition(Knife))
+    {
+        const double Ratio  = Knife.OuterRadius > 1.0e-6 ? std::clamp(Knife.InnerRadius / Knife.OuterRadius, 0.25, 0.85) : 0.5;
+        Knife.OuterRadius   = Snap(*Radial);
+        Knife.InnerRadius   = std::clamp(Snap(Knife.OuterRadius * Ratio), 0.001, 0.90 * Knife.OuterRadius);
+        Knife.Size          = 2.0 * Knife.OuterRadius;
+    }
+    else
+    {
+        Knife.Size = std::max(0.01, 2.0 * Snap(*Radial));
+    }
     Knife.SizedCondition = true;
 }
 
@@ -6407,11 +6478,16 @@ void ReleaseKnifeInsert(SolidArcWorkspaceState& State)
     SolidArcKnifeSession& Knife = State.Knife;
     Knife.SizingCondition     = false;
     Knife.SizeByMoveCondition = false;
-    Knife.Drift           = Knife.InsertDepth;
+    Knife.Aspect              = 1.0;
+    Knife.CompoundStage       = 2;
+    Knife.Drift               = KnifeCompoundCondition(Knife) ? Knife.OuterDepth : Knife.InsertDepth;
     Knife.Typed.clear();
-    const SolidArcInsert* Insert = KnifeInsert(Knife);
-    Announce(State, Compose("Knife · %s base %s × %s m · %.0f° · move along the normal for the depth (Ctrl free), T through, or type it · click / right-click / Enter cuts · Esc lifts",
-                            Insert ? Insert->Name.c_str() : "insert", FormatLength(Knife.Size).c_str(), FormatLength(Knife.Size * Knife.Aspect).c_str(), Knife.Turn * 180.0 / std::numbers::pi));
+    if (KnifeCompoundCondition(Knife))
+        Announce(State, Compose("Knife · %s Stage 1 Ø %s m · pull along normal for Stage 1 extrude depth · click for Stage 2 inner circle",
+                                KnifeLibraryEntryName(Knife, Knife.Insert).c_str(), FormatLength(2.0 * Knife.OuterRadius).c_str()));
+    else
+        Announce(State, Compose("Knife · %s width %s m (uniform) · pull along normal for depth (T through) · click / Enter cuts",
+                                KnifeLibraryEntryName(Knife, Knife.Insert).c_str(), FormatLength(Knife.Size).c_str()));
 }
 
 // 📝 The knife's drawn cutter as the Construct primitives show theirs: the profile's plane and its sampled outline
@@ -6522,39 +6598,93 @@ void DriveKnifeSession(SolidArcWorkspaceState& State, const OrbitCameraFrame& Fr
     }
     else if (Knife.Mode == SolidArcKnifeMode::Insert)
     {
+        Knife.Aspect = 1.0;
+        const Vector3 Normal = Length(Knife.Spot.ZAxis) > 1.0e-9 ? Normalize(Knife.Spot.ZAxis) : Vector3{ 0.0, 0.0, 1.0 };
+        const Vector3 Plunge = Knife.Combination == FeatureCombination::Union ? Normal : (Normal * -1.0);
         if (!Knife.PlacedCondition)
         {
+            Knife.CompoundStage = 0;
             if (HoveredCondition) HoverKnifeSpot(State, Frame, Local);
-            if (Moving && Knife.Preview) DropKnifePreview(Knife);                            // The ghost leads; the cut follows at rest
-            if (TypedCondition) { Knife.Size = Typed; Knife.Aspect = 1.0; Knife.SizedCondition = true; }
+            if (Moving && Knife.Preview) DropKnifePreview(Knife);
+            if (TypedCondition)
+            {
+                if (KnifeCompoundCondition(Knife)) { Knife.OuterRadius = 0.5 * Typed; Knife.InnerRadius = std::min(Knife.InnerRadius, 0.90 * Knife.OuterRadius); }
+                else Knife.Size = Typed;
+                Knife.SizedCondition = true;
+            }
         }
-        else if (Knife.SizingCondition)
+        else if (Knife.SizingCondition || Knife.CompoundStage == 1)
         {
-            if (TypedCondition) { Knife.Size = Typed; Knife.Aspect = 1.0; Knife.SizedCondition = true; }
+            if (TypedCondition)
+            {
+                if (KnifeCompoundCondition(Knife)) { Knife.OuterRadius = 0.5 * Typed; Knife.InnerRadius = std::min(Knife.InnerRadius, 0.90 * Knife.OuterRadius); }
+                else Knife.Size = Typed;
+                Knife.SizedCondition = true;
+            }
             else if (ImGui::IsMouseDown(ImGuiMouseButton_Left) ? Io.MouseDragMaxDistanceSqr[ImGuiMouseButton_Left] > ClickTolerance * ClickTolerance
                                                                : Knife.SizeByMoveCondition && Moving && HoveredCondition)
                 DragKnifeInsert(State, Frame, Local);
         }
+        else if (KnifeCompoundCondition(Knife) && Knife.CompoundStage == 2)
+        {
+            if (TypedCondition) Knife.OuterDepth = std::max(0.001, Typed);
+            else if (Moving && HoveredCondition && !ImGui::IsAnyMouseDown())
+            {
+                const OrbitRay Ray    = CastOrbitRay(Frame, Local.x, Local.y);
+                const Vector3  Facing = { Ray.Direction[0], Ray.Direction[1], Ray.Direction[2] };
+                std::optional<double> Along;
+                if (std::abs(Dot(Facing, Normal)) < 0.97) Along = ApproachSolidArcLine(Ray, Knife.Spot.Origin, Plunge);
+                if (Along) Knife.Drift = *Along;
+                else Knife.Drift += Drift;
+                Knife.OuterDepth = std::max(0.002, Snapped(Knife.Drift));
+            }
+        }
+        else if (KnifeCompoundCondition(Knife) && Knife.CompoundStage == 3)
+        {
+            if (TypedCondition) Knife.InnerRadius = std::clamp(0.5 * Typed, 0.001, 0.94 * Knife.OuterRadius);
+            else if (Moving && HoveredCondition && !ImGui::IsAnyMouseDown())
+            {
+                const Vector3 Floor = Knife.Spot.Origin + Plunge * Knife.OuterDepth;
+                if (const std::optional<double> Radial = MeasurePlaneRadialDistance(Frame, Local, Floor, Normal); Radial && *Radial > 1.0e-5)
+                {
+                    const double SnapStep = Io.KeyCtrl ? 1.0e-4 : 0.5 * SweepSnap;
+                    const double Raw      = std::round(*Radial / SnapStep) * SnapStep;
+                    Knife.InnerRadius     = std::clamp(Raw, 0.001, 0.94 * Knife.OuterRadius);
+                }
+            }
+        }
+        else if (KnifeCompoundCondition(Knife))
+        {
+            if (TypedCondition) { Knife.InnerDepth = std::max(0.002, Typed); Knife.InsertThroughCondition = false; }
+            else if (Moving && HoveredCondition && !ImGui::IsAnyMouseDown())
+            {
+                const OrbitRay Ray    = CastOrbitRay(Frame, Local.x, Local.y);
+                const Vector3  Facing = { Ray.Direction[0], Ray.Direction[1], Ray.Direction[2] };
+                const Vector3  Floor  = Knife.Spot.Origin + Plunge * Knife.OuterDepth;
+                std::optional<double> Along;
+                if (std::abs(Dot(Facing, Normal)) < 0.97) Along = ApproachSolidArcLine(Ray, Floor, Plunge);
+                if (Along) Knife.Drift = *Along;
+                else Knife.Drift += Drift;
+                Knife.InnerDepth = std::max(0.002, Snapped(Knife.Drift));
+            }
+        }
         else
         {
-            // Depth: the pointer's closest point on the normal through the centre (a view down the normal: sideways motion).
             const double Shallow = KnifeInsertShallow(Knife);
             if (TypedCondition) { Knife.InsertDepth = std::max(Shallow, Typed); Knife.DepthChosenCondition = true; }
             else if (Moving && HoveredCondition && !ImGui::IsAnyMouseDown())
             {
                 const OrbitRay Ray    = CastOrbitRay(Frame, Local.x, Local.y);
                 const Vector3  Facing = { Ray.Direction[0], Ray.Direction[1], Ray.Direction[2] };
-                const Vector3  Normal = Normalize(Knife.Spot.ZAxis);
                 std::optional<double> Along;
-                if (std::abs(Dot(Facing, Normal)) < 0.97) Along = ApproachSolidArcLine(Ray, Knife.Spot.Origin, Normal);
-                if (Along) Knife.Drift = Knife.Combination == FeatureCombination::Union ? *Along : -*Along;   // [len] - Into the body (out of it for Q)
+                if (std::abs(Dot(Facing, Normal)) < 0.97) Along = ApproachSolidArcLine(Ray, Knife.Spot.Origin, Plunge);
+                if (Along) Knife.Drift = *Along;
                 else Knife.Drift += Drift;
                 Knife.InsertDepth          = std::max(Shallow, Snapped(Knife.Drift));
                 Knife.DepthChosenCondition = true;
             }
+            if (!Knife.DepthChosenCondition && KnifeInsert(Knife)) Knife.InsertDepth = KnifeInsert(Knife)->Depth * Knife.Size;
         }
-        // Until a depth is chosen it keeps the insert's own proportion (a 0.4 square pocket is 0.12 deep).
-        if (!Knife.DepthChosenCondition && KnifeInsert(Knife)) Knife.InsertDepth = KnifeInsert(Knife)->Depth * Knife.Size;
     }
     const SolidArcSelection& Selection = State.Document.Selection;
     const std::string        Key       = KnifeStageKey(State);
@@ -6719,12 +6849,45 @@ void ClickKnifeSession(SolidArcWorkspaceState& State, ImVec2 Local)
                                           : "Knife · the pieces are still staging · click an edge once they show · right-click / Enter applies");
         return;
     }
-    if (Knife.Mode == SolidArcKnifeMode::Insert && !Knife.PlacedCondition)
+    if (Knife.Mode == SolidArcKnifeMode::Insert)
     {
-        if (!Knife.HoverCondition) { Announce(State, "Knife: point at a body face to place the insert"); return; }
-        Knife.PlacedCondition = true;                                                        // A click whose press went elsewhere: straight to the depth
-        ReleaseKnifeInsert(State);
-        return;
+        if (!Knife.PlacedCondition)
+        {
+            if (!Knife.HoverCondition) { Announce(State, "Knife: point at a body face to place the cutter"); return; }
+            Knife.PlacedCondition = true;
+            ReleaseKnifeInsert(State);
+            return;
+        }
+        if (KnifeCompoundCondition(Knife))
+        {
+            if (Knife.CompoundStage <= 1)
+            {
+                ReleaseKnifeInsert(State);
+                return;
+            }
+            if (Knife.CompoundStage == 2)
+            {
+                Knife.CompoundStage = 3;
+                Knife.Typed.clear();
+                Announce(State, Compose("Knife · %s Stage 1 depth %s m · move radially for Stage 2 inner Ø / width (< %s m) · click for Stage 2 extrude",
+                                        KnifeLibraryEntryName(Knife, Knife.Insert).c_str(), FormatLength(Knife.OuterDepth).c_str(), FormatLength(2.0 * Knife.OuterRadius).c_str()));
+                return;
+            }
+            if (Knife.CompoundStage == 3)
+            {
+                Knife.CompoundStage = 4;
+                Knife.Drift         = Knife.InnerDepth;
+                Knife.Typed.clear();
+                Announce(State, Compose("Knife · %s Stage 2 Ø %s m · pull along normal for Stage 2 extrude depth (T through · L live boolean) · click / Enter cuts",
+                                        KnifeLibraryEntryName(Knife, Knife.Insert).c_str(), FormatLength(2.0 * Knife.InnerRadius).c_str()));
+                return;
+            }
+        }
+        else if (Knife.CompoundStage <= 1)
+        {
+            ReleaseKnifeInsert(State);
+            return;
+        }
     }
     ApplyKnifeSession(State);
 }
@@ -6804,20 +6967,64 @@ void DrawKnifeCutter(SolidArcWorkspaceState& State, ImDrawList* Canvas, const Or
     DrawDimensionLine(State, Frame, Canvas, World(Foot, 0.0), World(Foot, Far), Text, ImVec2(-18.0f, 0.0f));
 }
 
-// Insert ghost: the cutter's edges at the spot (amber; cyan once placed) at its depth, the width dimension across the
-// footprint, the drag line to its grip while sizing, and the depth dimension along the normal once sized.
+// Compound cutter / user STEP ghost: Stage 1 + Stage 2 wireframe at the spot (amber on hover; cyan once placed) plus
+// live radial Ø₁ / Ø₂ and axial D₁ / D₂ dimension lines for the multi-stage interactive workflow.
 void DrawKnifeGhost(SolidArcWorkspaceState& State, ImDrawList* Canvas, const OrbitCameraFrame& Frame)
 {
     const SolidArcKnifeSession& Knife = State.Knife;
     if (!Knife.ActiveCondition || Knife.Mode != SolidArcKnifeMode::Insert || !(Knife.HoverCondition || Knife.PlacedCondition)) return;
+    const bool    Raised = Knife.Combination == FeatureCombination::Union;
+    const ImU32   Colour = Knife.PlacedCondition ? IM_COL32(0x4d, 0xd2, 0xff, 0xff) : IM_COL32(0xff, 0xc8, 0x3d, 0xff);
+    const Vector3 Normal = Normalize(Knife.Spot.ZAxis);
+    const Vector3 Plunge = Raised ? Normal : (Normal * -1.0);
+    const Vector3 Across = Knife.Spot.XAxis * std::cos(Knife.Turn) + Knife.Spot.YAxis * std::sin(Knife.Turn);
+    const Vector3 Along  = Knife.Spot.YAxis * std::cos(Knife.Turn) - Knife.Spot.XAxis * std::sin(Knife.Turn);
+
+    if (KnifeCompoundCondition(Knife))
+    {
+        const SolidArcCompoundCutterSpec Spec = ComposeKnifeCompoundSpec(State);
+        for (const std::array<Vector3, 2>& Segment : BuildSolidArcCompoundCutterSegments(Spec))
+        {
+            ImVec2 Start, End;
+            if (ProjectWorldPoint(State, Frame, Segment[0], Start) && ProjectWorldPoint(State, Frame, Segment[1], End))
+                Canvas->AddLine(Start, End, Colour, 1.6f);
+        }
+        ImVec2 Centre;
+        if (ProjectWorldPoint(State, Frame, Knife.Spot.Origin, Centre)) Canvas->AddCircle(Centre, 4.0f, Colour, 16, 1.5f);
+        const double  R1    = Spec.OuterRadius;
+        const double  R2    = Spec.InnerRadius;
+        const double  D1    = Spec.OuterDepth;
+        const double  D2    = Spec.InnerDepth;
+        const Vector3 Below = Knife.Spot.Origin - Along * (R1 + 0.08 * (2.0 * R1) + 0.02);
+        DrawDimensionLine(State, Frame, Canvas, Below - Across * R1, Below + Across * R1, DimensionText("Ø1", 2.0 * R1));
+        if (Knife.PlacedCondition && Knife.CompoundStage >= 2)
+        {
+            const Vector3 Side1 = Knife.Spot.Origin + Across * (R1 + 0.08 * (2.0 * R1) + 0.02);
+            DrawDimensionLine(State, Frame, Canvas, Side1, Side1 + Plunge * D1, DimensionText("D1", D1));
+        }
+        if (Knife.PlacedCondition && Knife.CompoundStage >= 3)
+        {
+            const Vector3 Floor = Knife.Spot.Origin + Plunge * D1;
+            const Vector3 InnerRef = Floor + Along * (R2 + 0.05 * (2.0 * R1) + 0.015);
+            DrawDimensionLine(State, Frame, Canvas, InnerRef - Across * R2, InnerRef + Across * R2, DimensionText("Ø2", 2.0 * R2));
+        }
+        if (Knife.PlacedCondition && Knife.CompoundStage >= 4)
+        {
+            const Vector3 Side2   = Knife.Spot.Origin - Across * (R1 + 0.08 * (2.0 * R1) + 0.02) + Plunge * D1;
+            const bool    Through = Knife.InsertThroughCondition && !Raised;
+            DrawDimensionLine(State, Frame, Canvas, Side2, Side2 + Plunge * D2, Through ? std::string("through") : DimensionText("D2", D2));
+        }
+        if (std::abs(Knife.Turn) > 1.0e-9 && ProjectWorldPoint(State, Frame, Knife.Spot.Origin, Centre))
+            DrawDimensionPill(Canvas, ImVec2(Centre.x, Centre.y - 22.0f), Compose("%.1f°", Knife.Turn * 180.0 / std::numbers::pi), AngleInk);
+        return;
+    }
+
     const SolidArcInsert* Insert = KnifeInsert(Knife);
     if (!Insert) return;
-    const bool      Raised = Knife.Combination == FeatureCombination::Union;
-    const double    Depth  = KnifeInsertDepth(State);                                        // [len]
-    const double    Reach  = Depth / std::max(1.0e-9, Knife.Size);                           // [-] - Insert widths
-    const AffineMap Map    = PlaceSolidArcInsert(Knife.Spot, Knife.Size, Knife.Turn, Raised, 1.0, Knife.Aspect);
+    const double    Depth  = KnifeInsertDepth(State);
+    const double    Reach  = Depth / std::max(1.0e-9, Knife.Size);
+    const AffineMap Map    = PlaceSolidArcInsert(Knife.Spot, Knife.Size, Knife.Turn, Raised, 1.0, 1.0);
     const auto      Carry  = [&](Vector3 Point) { return Map.ColumnX * Point.X + Map.ColumnY * Point.Y + Map.ColumnZ * Point.Z + Map.Shift; };
-    const ImU32     Colour = Knife.PlacedCondition ? IM_COL32(0x4d, 0xd2, 0xff, 0xff) : IM_COL32(0xff, 0xc8, 0x3d, 0xff);
     for (const std::array<Vector3, 2>& Segment : Insert->Segments)
     {
         ImVec2 Start, End;
@@ -6827,35 +7034,16 @@ void DrawKnifeGhost(SolidArcWorkspaceState& State, ImDrawList* Canvas, const Orb
     }
     ImVec2 Centre;
     if (ProjectWorldPoint(State, Frame, Knife.Spot.Origin, Centre)) Canvas->AddCircle(Centre, 4.0f, Colour, 16, 1.5f);
-    // Base dimensions across and along the footprint (W, H), as the Construct box shows its base.
-    const Vector3 Across = Knife.Spot.XAxis * std::cos(Knife.Turn) + Knife.Spot.YAxis * std::sin(Knife.Turn);
-    const Vector3 Along  = Knife.Spot.YAxis * std::cos(Knife.Turn) - Knife.Spot.XAxis * std::sin(Knife.Turn);
     Vector2 Low, High;
     MeasureInsertFootprint(*Insert, Low, High);
-    const double  Width  = Knife.Size * (High.X - Low.X), Height = Knife.Size * Knife.Aspect * (High.Y - Low.Y);   // [len]
+    const double  Width  = Knife.Size * (High.X - Low.X), Height = Knife.Size * (High.Y - Low.Y);
     const Vector3 Below  = Knife.Spot.Origin - Along * (0.5 * Height + 0.08 * Knife.Size + 0.02);
     DrawDimensionLine(State, Frame, Canvas, Below - Across * (0.5 * Width), Below + Across * (0.5 * Width), DimensionText("W", Width));
-    if (std::abs(Knife.Aspect - 1.0) > 1.0e-9 || Knife.SizingCondition)
+    if (Knife.PlacedCondition && Knife.CompoundStage >= 2)
     {
-        const Vector3 Beside = Knife.Spot.Origin - Across * (0.5 * Width + 0.08 * Knife.Size + 0.02);
-        DrawDimensionLine(State, Frame, Canvas, Beside - Along * (0.5 * Height), Beside + Along * (0.5 * Height), DimensionText("H", Height));
-    }
-    if (Knife.PlacedCondition && Knife.SizingCondition)
-    {
-        // The drag: first corner → opposite corner (the diagonal of the base).
-        const Vector3 Opposite = Knife.Corner + (Knife.Spot.Origin - Knife.Corner) * 2.0;
-        ImVec2 Tip, Foot;
-        DrawConstructionLine(State, Frame, Canvas, Knife.Corner, Opposite);
-        if (ProjectWorldPoint(State, Frame, Knife.Corner, Foot)) Canvas->AddCircle(Foot, 4.0f, Colour, 16, 1.5f);
-        if (ProjectWorldPoint(State, Frame, Opposite, Tip)) Canvas->AddCircleFilled(Tip, 4.0f, Colour, 16);
-    }
-    if (Knife.PlacedCondition && !Knife.SizingCondition)
-    {
-        // Depth along the normal beside the footprint (up for a Q boss), as a Construct box's height.
-        const Vector3 Side   = Knife.Spot.Origin + Across * (0.5 * Width + 0.08 * Knife.Size + 0.02);
-        const Vector3 Normal = Normalize(Knife.Spot.ZAxis) * (Raised ? 1.0 : -1.0);
+        const Vector3 Side    = Knife.Spot.Origin + Across * (0.5 * Width + 0.08 * Knife.Size + 0.02);
         const bool    Through = Knife.InsertThroughCondition && !Raised;
-        DrawDimensionLine(State, Frame, Canvas, Side, Side + Normal * Depth, Through ? std::string("through") : DimensionText(Raised ? "H" : "D", Depth));
+        DrawDimensionLine(State, Frame, Canvas, Side, Side + Plunge * Depth, Through ? std::string("through") : DimensionText(Raised ? "H" : "D", Depth));
     }
     if (std::abs(Knife.Turn) > 1.0e-9 && ProjectWorldPoint(State, Frame, Knife.Spot.Origin, Centre))
         DrawDimensionPill(Canvas, ImVec2(Centre.x, Centre.y - 22.0f), Compose("%.1f°", Knife.Turn * 180.0 / std::numbers::pi), AngleInk);
@@ -7007,12 +7195,20 @@ void DrawBevelHandles(SolidArcWorkspaceState& State, ImDrawList* Canvas, const O
     }
     if (Knife.Mode == SolidArcKnifeMode::Insert)
     {
-        if (Knife.Library.Inserts.empty()) return "Knife · the insert library is empty";
+        if (KnifeLibraryCount(Knife) == 0) return "Knife · the boolean library is empty";
+        const std::string Name = KnifeLibraryEntryName(Knife, Knife.Insert);
+        if (KnifeCompoundCondition(Knife))
+        {
+            static const char* StageNames[] = { "place centre", "Stage 1 Ø", "Stage 1 extrude", "Stage 2 Ø", "Stage 2 extrude" };
+            const char* StageName = StageNames[std::clamp(Knife.CompoundStage, 0, 4)];
+            const std::string D2Text = Knife.InsertThroughCondition && Knife.Combination != FeatureCombination::Union ? std::string("through") : (FormatLength(Knife.InnerDepth) + " m");
+            return Compose("Knife %s · %s · Ø1 %s × D1 %s m → Ø2 %s × D2 %s · %s%s", Name.c_str(), KnifeCombinationLabel(Knife.Combination),
+                           FormatLength(2.0 * Knife.OuterRadius).c_str(), FormatLength(Knife.OuterDepth).c_str(),
+                           FormatLength(2.0 * Knife.InnerRadius).c_str(), D2Text.c_str(), StageName, Typed.c_str());
+        }
         const std::string Depth = Knife.InsertThroughCondition && Knife.Combination != FeatureCombination::Union ? std::string("through") : "depth " + FormatLength(KnifeInsertDepth(State)) + " m";
-        return Compose("Knife %s · %s · width %s m · %.0f° · %s%s%s", Knife.Library.Inserts[Knife.Insert].Name.c_str(), KnifeCombinationLabel(Knife.Combination), FormatLength(Knife.Size).c_str(),
-                       Knife.Turn * 180.0 / std::numbers::pi, Depth.c_str(),
-                       Knife.PlacedCondition ? (Knife.SizingCondition ? " · sizing" : " · placed") : Knife.HoverCondition ? (" · on " + SolidArcBodyCaption(State.Document, Knife.SpotBody)).c_str() : " · point at a face",
-                       Typed.c_str());
+        return Compose("Knife %s · %s · width %s m (uniform) · %.0f° · %s%s", Name.c_str(), KnifeCombinationLabel(Knife.Combination), FormatLength(Knife.Size).c_str(),
+                       Knife.Turn * 180.0 / std::numbers::pi, Depth.c_str(), Typed.c_str());
     }
     const std::vector<std::string>& Picked = State.Document.Selection.Bodies;
     if (KnifePlacementCondition(State))
@@ -7167,21 +7363,83 @@ void DrawKnifeCard(SolidArcWorkspaceState& State)
     }
     else if (Knife.Mode == SolidArcKnifeMode::Insert)
     {
-        for (int Index = 0; Index < int(Knife.Library.Inserts.size()); ++Index)
+        EnsureKnifeLibrary(State);
+        ImGui::TextDisabled("Multi-stage compound cutters (no stretching)");
+        for (int Index = 0; Index < SolidArcCompoundCutterCount; ++Index)
         {
             if (Index % 2 == 1) ImGui::SameLine();
-            const std::string Label = Knife.Library.Inserts[Index].Name + "###KnifeInsert" + std::to_string(Index);
+            const std::string Name  = SolidArcCompoundCutterLabel(static_cast<SolidArcCompoundCutterKind>(Index));
+            const std::string Label = Name + "###KnifeInsert" + std::to_string(Index);
             if (ToggleButton(State, Label.c_str(), Knife.Insert == Index, RowSpan(2)))
             {
-                Knife.Insert = Index;
-                Knife.Aspect = 1.0;
+                Knife.Insert        = Index;
+                Knife.Aspect        = 1.0;
+                Knife.CompoundStage = Knife.PlacedCondition ? 1 : 0;
                 DropKnifePreview(Knife);
-                Announce(State, "Knife insert: " + Knife.Library.Inserts[Index].Name + (Knife.Library.Inserts[Index].Path.empty() ? std::string(" (built in)") : " (" + Knife.Library.Inserts[Index].Path + ")"));
+                Announce(State, "Knife compound cutter: " + Name + " · click centre → Stage 1 Ø → Stage 1 extrude → Stage 2 Ø → Stage 2 extrude");
             }
         }
-        ImGui::Text("Base   %s × %s m · turn %.0f°%s", FormatLength(Knife.Size).c_str(), FormatLength(Knife.Size * Knife.Aspect).c_str(), Knife.Turn * 180.0 / std::numbers::pi, Knife.PlacedCondition ? " · placed" : "");
-        ImGui::Text("Depth  %s%s", Knife.InsertThroughCondition && Knife.Combination != FeatureCombination::Union ? "through" : (FormatLength(KnifeInsertDepth(State)) + " m").c_str(),
-                    Knife.DepthChosenCondition ? "" : " · its own shape");
+        if (!Knife.Library.Inserts.empty())
+        {
+            ImGui::TextDisabled("Saved STEP cutters (uniform scale)");
+            for (int UserIdx = 0; UserIdx < int(Knife.Library.Inserts.size()); ++UserIdx)
+            {
+                const int Index = SolidArcCompoundCutterCount + UserIdx;
+                if (UserIdx % 2 == 1) ImGui::SameLine();
+                const std::string Label = Knife.Library.Inserts[UserIdx].Name + "###KnifeInsert" + std::to_string(Index);
+                if (ToggleButton(State, Label.c_str(), Knife.Insert == Index, RowSpan(2)))
+                {
+                    Knife.Insert        = Index;
+                    Knife.Aspect        = 1.0;
+                    Knife.CompoundStage = Knife.PlacedCondition ? 1 : 0;
+                    DropKnifePreview(Knife);
+                    Announce(State, "Knife custom STEP cutter: " + Knife.Library.Inserts[UserIdx].Name + " (" + Knife.Library.Inserts[UserIdx].Path + ")");
+                }
+            }
+        }
+        if (KnifeCompoundCondition(Knife))
+        {
+            double Diam1 = 2.0 * Knife.OuterRadius, Depth1 = Knife.OuterDepth;
+            double Diam2 = 2.0 * Knife.InnerRadius, Depth2 = Knife.InnerDepth;
+            ImGui::SetNextItemWidth(RowSpan(2).x);
+            if (ImGui::DragScalar("###KnifeStage1Diam", ImGuiDataType_Double, &Diam1, 0.002f, nullptr, nullptr, "Ø1 %.4f m") && Diam1 > 0.004)
+            {
+                Knife.OuterRadius = 0.5 * Diam1;
+                Knife.InnerRadius = std::min(Knife.InnerRadius, 0.94 * Knife.OuterRadius);
+                Knife.StagedKey.clear();
+            }
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(RowSpan(2).x);
+            if (ImGui::DragScalar("###KnifeStage1Depth", ImGuiDataType_Double, &Depth1, 0.002f, nullptr, nullptr, "D1 %.4f m") && Depth1 > 0.001)
+            {
+                Knife.OuterDepth = Depth1;
+                Knife.StagedKey.clear();
+            }
+            ImGui::SetNextItemWidth(RowSpan(2).x);
+            if (ImGui::DragScalar("###KnifeStage2Diam", ImGuiDataType_Double, &Diam2, 0.002f, nullptr, nullptr, "Ø2 %.4f m") && Diam2 > 0.002)
+            {
+                Knife.InnerRadius = std::clamp(0.5 * Diam2, 0.001, 0.94 * Knife.OuterRadius);
+                Knife.StagedKey.clear();
+            }
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(RowSpan(2).x);
+            if (ImGui::DragScalar("###KnifeStage2Depth", ImGuiDataType_Double, &Depth2, 0.002f, nullptr, nullptr, "D2 %.4f m") && Depth2 > 0.001)
+            {
+                Knife.InnerDepth = Depth2;
+                Knife.InsertThroughCondition = false;
+                Knife.StagedKey.clear();
+            }
+            if (ToggleButton(State, "Through (T)###KnifeInsertThrough", Knife.InsertThroughCondition, RowSpan(1)))
+            {
+                Knife.InsertThroughCondition = !Knife.InsertThroughCondition;
+                Knife.StagedKey.clear();
+            }
+        }
+        else
+        {
+            ImGui::Text("Width  %s m (uniform) · turn %.0f°%s", FormatLength(Knife.Size).c_str(), Knife.Turn * 180.0 / std::numbers::pi, Knife.PlacedCondition ? " · placed" : "");
+            ImGui::Text("Depth  %s", Knife.InsertThroughCondition && Knife.Combination != FeatureCombination::Union ? "through" : (FormatLength(KnifeInsertDepth(State)) + " m").c_str());
+        }
         for (const std::string& Note : Knife.Library.Notes) ImGui::TextDisabled("%s", Note.c_str());
         const bool OneBody = State.Document.Selection.Bodies.size() == 1;
         if (PressButton(State, "Save picked body###KnifeSaveInsert", RowSpan(2), OneBody))
@@ -7194,7 +7452,7 @@ void DrawKnifeCard(SolidArcWorkspaceState& State)
             {
                 Knife.LibraryCondition = false;
                 EnsureKnifeLibrary(State);
-                Announce(State, "Insert saved: " + Path + Compose(" · library %d insert(s)", int(Knife.Library.Inserts.size())));
+                Announce(State, "Insert saved: " + Path + Compose(" · library %d cutter(s)", KnifeLibraryCount(Knife)));
             }
         }
         ImGui::SameLine();
@@ -7215,7 +7473,7 @@ void DrawKnifeCard(SolidArcWorkspaceState& State)
     }
     if (Knife.Mode == SolidArcKnifeMode::Insert || Knife.Mode == SolidArcKnifeMode::Object)
     {
-        if (ToggleButton(State, "Live Boolean (L) · movable cutter###KnifeLive", Knife.LiveCondition, RowSpan()))
+        if (ToggleButton(State, "Live Boolean (L) · semitransparent cutter###KnifeLive", Knife.LiveCondition, RowSpan()))
         {
             Knife.LiveCondition = !Knife.LiveCondition;
             Knife.StagedKey.clear();
@@ -10805,12 +11063,21 @@ void DrawSketchToolbar(SolidArcWorkspaceState& State, ImVec2 Image, ImVec2 Exten
                 if (SelectListEntry(State, Label, Mode == SolidArcKnifeMode::Sketch && Knife.PreferredSolidCondition && Knife.PreferredSolid == Solid)) ChooseKnifeSolid(State, Solid);
             }
             if (Columns) ImGui::TableNextColumn();
+            EnsureKnifeLibrary(State);
             ImGui::TextDisabled("Boolean library");
-            for (size_t Index = 0; Index < Knife.Library.Inserts.size(); ++Index)
+            for (int Index = 0; Index < SolidArcCompoundCutterCount; ++Index)
             {
-                const std::string Label = Knife.Library.Inserts[Index].Name + "###KnifeToolInsert" + std::to_string(Index);
-                if (SelectListEntry(State, Label, Mode == SolidArcKnifeMode::Insert && Knife.Insert == int(Index)))
-                    ChooseKnifeTool(State, SolidArcKnifeMode::Insert, Knife.PreferredShape, int(Index));
+                const std::string Name  = SolidArcCompoundCutterLabel(static_cast<SolidArcCompoundCutterKind>(Index));
+                const std::string Label = Name + "###KnifeToolInsert" + std::to_string(Index);
+                if (SelectListEntry(State, Label, Mode == SolidArcKnifeMode::Insert && Knife.Insert == Index))
+                    ChooseKnifeTool(State, SolidArcKnifeMode::Insert, Knife.PreferredShape, Index);
+            }
+            for (size_t UserIdx = 0; UserIdx < Knife.Library.Inserts.size(); ++UserIdx)
+            {
+                const int Index = SolidArcCompoundCutterCount + static_cast<int>(UserIdx);
+                const std::string Label = Knife.Library.Inserts[UserIdx].Name + "###KnifeToolInsert" + std::to_string(Index);
+                if (SelectListEntry(State, Label, Mode == SolidArcKnifeMode::Insert && Knife.Insert == Index))
+                    ChooseKnifeTool(State, SolidArcKnifeMode::Insert, Knife.PreferredShape, Index);
             }
             if (Columns) ImGui::EndTable();
             EndSelectList();
@@ -11107,16 +11374,15 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
     else if (State.Knife.ActiveCondition)
     {
         const bool InsertMode = State.Knife.Mode == SolidArcKnifeMode::Insert;
-        if (InsertMode && Hovered && !OverCube && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) PressKnifeInsert(State);   // ① centre
-        DriveKnifeSession(State, Frame, Local, Hovered && !OverCube);                        // ② size + turn · ③ depth
-        bool Released = false;                                                               // This release ended the drag (no apply)
+        if (InsertMode && Hovered && !OverCube && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !State.Knife.PlacedCondition) PressKnifeInsert(State);   // ① centre
+        DriveKnifeSession(State, Frame, Local, Hovered && !OverCube);                        // ② radial size · ③ extrude · ④ inner size · ⑤ inner extrude
+        bool Released = false;                                                               // This release ended the Stage 0→1 drag (no apply)
         if (InsertMode && State.Knife.SizingCondition && (ImGui::IsMouseReleased(ImGuiMouseButton_Left) || (!State.Knife.SizeByMoveCondition && !ImGui::IsMouseDown(ImGuiMouseButton_Left))))
         {
-            // A press without a drag: the pointer carries the opposite corner until the next click (as the drawn shapes).
             if (!State.Knife.SizeByMoveCondition && Io.MouseDragMaxDistanceSqr[ImGuiMouseButton_Left] <= ClickTolerance * ClickTolerance)
             {
                 State.Knife.SizeByMoveCondition = true;
-                Announce(State, "Knife · move to the opposite base corner (Shift square, Ctrl free) · click to set it, then the depth");
+                Announce(State, "Knife · move radially from centre for Stage 1 Ø / width (uniform, Ctrl free) · click to lock Stage 1 size");
             }
             else ReleaseKnifeInsert(State);
             Released = true;
@@ -11419,9 +11685,11 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
                               : State.Transform.Verb == SolidArcTransformVerb::Rotate ? "Rotate: sweep about the centre (5° steps, Ctrl free) · X / Y / Z axis · R screen · type degrees · click / right-click / Enter commit · Esc cancel"
                               : "Scale: distance to the centre (×0.1 steps, Ctrl free) · X / Y / Z one axis · S uniform · type a factor · click / right-click / Enter commit · Esc cancel")
                        : State.Knife.ActiveCondition && !State.Knife.DrawPendingCondition
-                           ? (State.Knife.Mode == SolidArcKnifeMode::Insert ? (!State.Knife.PlacedCondition ? "Knife insert: point at a face · press = base corner, drag (or click, move) = opposite corner, release / click = depth · Shift square · type a width · [ / ] turn 15° · Q add · W cut · E intersect · R separate · Tab mode · Esc cancel"
-                               : State.Knife.SizingCondition ? "Knife insert: the base runs corner to corner (x and y apart, Shift square, 0.01 steps, Ctrl free) · release / click for the depth"
-                               : "Knife insert: pointer along the normal sets the depth (Ctrl free) · type a depth · T through · [ / ] turn · Q / W / E / R · click / right-click / Enter cut · Esc lift")
+                           ? (State.Knife.Mode == SolidArcKnifeMode::Insert ? (!State.Knife.PlacedCondition ? "Knife boolean library: click a face for the centre → Stage 1 Ø → Stage 1 extrude → Stage 2 Ø → Stage 2 extrude (T through · L live boolean · [ / ] turn 15° · Esc cancel)"
+                               : State.Knife.CompoundStage <= 1 ? "Knife Stage 1: move radially from centre for outer Ø / width (uniform, never stretched, Ctrl free) · click for Stage 1 extrude"
+                               : State.Knife.CompoundStage == 2 && KnifeCompoundCondition(State.Knife) ? "Knife Stage 1 extrude: pull along normal for Stage 1 depth · click for Stage 2 inner circle · Backspace steps back"
+                               : State.Knife.CompoundStage == 3 && KnifeCompoundCondition(State.Knife) ? "Knife Stage 2: move radially for inner Ø / width · click for Stage 2 extrude · Backspace steps back"
+                               : "Knife extrude: pull along normal for bore depth · T through · L live boolean · click / right-click / Enter cut · Backspace steps back · Esc lift")
                               : KnifePlacementCondition(State) ? (State.Knife.PlacedCondition ? "Knife cutter: pointer along the normal pushes it in / pulls it out (Ctrl free) · type a depth · click / right-click / Enter cut · Esc lift"
                                                                                                : "Knife cutter: the picked body follows the pointer over faces · Ctrl along the face normal · [ / ] turn · click / right-click place · Q / W / E · K keep · Esc cancel")
                               : State.Knife.Mode == SolidArcKnifeMode::Object ? "Knife object: the first picked body is cut by the others (Shift-click adds cutters) · K keep cutters · Q add · W cut · E intersect · right-click / Enter apply · Tab mode · Esc cancel"
@@ -14306,15 +14574,36 @@ void ApplyShortcuts(SolidArcWorkspaceState& State)
             {
                 Knife.PlacedCondition      = false;
                 Knife.SizingCondition      = false;
+                Knife.SizeByMoveCondition  = false;
                 Knife.DepthChosenCondition = false;
+                Knife.CompoundStage        = 0;
                 Knife.Typed.clear();
-                Announce(State, "Knife: insert lifted (point at a face again)");
+                Announce(State, "Knife: cutter lifted (point at a face again)");
             }
             else if (KnifePlacementCondition(State) && Knife.PlacedCondition) { Knife.PlacedCondition = false; Knife.Typed.clear(); Knife.Sink = 0.0; Announce(State, "Knife: cutter lifted (point at a face again)"); }
             else CloseKnifeSession(State, "Knife cancelled (document untouched)");
         }
         else if (!Control && !Alternate)
         {
+            if (Pressed(ImGuiKey_Backspace) && Knife.Typed.empty() && Knife.Mode == SolidArcKnifeMode::Insert && Knife.PlacedCondition)
+            {
+                if (Knife.CompoundStage > 1)
+                {
+                    --Knife.CompoundStage;
+                    Knife.SizingCondition     = Knife.CompoundStage == 1;
+                    Knife.SizeByMoveCondition = Knife.CompoundStage == 1;
+                    Knife.StagedKey.clear();
+                    Announce(State, Compose("Knife: stepped back to stage %d", Knife.CompoundStage));
+                }
+                else
+                {
+                    Knife.PlacedCondition     = false;
+                    Knife.SizingCondition     = false;
+                    Knife.SizeByMoveCondition = false;
+                    Knife.CompoundStage       = 0;
+                    Announce(State, "Knife: cutter lifted (point at a face again)");
+                }
+            }
             if (Pressed(ImGuiKey_Q)) ChooseKnifeCombination(State, FeatureCombination::Union);          // keyboard:knife:add
             if (Pressed(ImGuiKey_W)) ChooseKnifeCombination(State, FeatureCombination::Difference);     // keyboard:knife:cut
             if (Pressed(ImGuiKey_E)) ChooseKnifeCombination(State, FeatureCombination::Intersection);   // keyboard:knife:intersect
@@ -14349,7 +14638,7 @@ void ApplyShortcuts(SolidArcWorkspaceState& State)
                     Knife.StagedKey.clear();
                     Announce(State, Compose("Knife · edge blend %d: %s %s m", Knife.BlendFocus + 1, Focused.Shape == BlendProfile::Fillet ? "fillet" : "chamfer", FormatLength(Focused.Size).c_str()));
                 }
-                if (Pressed(ImGuiKey_Delete) || Pressed(ImGuiKey_Backspace) && Knife.Typed.empty())
+                if (Pressed(ImGuiKey_Delete) || (Pressed(ImGuiKey_Backspace) && Knife.Typed.empty()))
                 {
                     Knife.Blends.erase(Knife.Blends.begin() + Knife.BlendFocus);
                     Knife.BlendFocus = int(Knife.Blends.size()) - 1;
@@ -14597,11 +14886,18 @@ void ConfigureSolidArcInterface(const SolidArcOptions& Options)
         return std::filesystem::exists(Candidate / "EngineContent/FontArchives/DMSans/DMSans-Regular.ttf", Failure)
             || std::filesystem::exists(Candidate / "EngineContent/FontArchives/DM Sans/DMSans-Regular.ttf", Failure);
     };
+    const auto HoldsSolidArcIcons = [](const std::filesystem::path& IconsDir)
+    {
+        std::error_code Failure;
+        return std::filesystem::exists(IconsDir / "SolidArc/body.svg", Failure);
+    };
     std::filesystem::path Root = ".";
-    if (const std::filesystem::path Packaged = ResolveContentDirectory("EngineContent").parent_path(); HoldsTypeface(Packaged)) Root = Packaged;
+    const std::filesystem::path Packaged = ResolveContentDirectory("EngineContent").parent_path();
 #ifdef SOLIDARC_CONTENT_ROOT
-    if (HoldsTypeface(SOLIDARC_CONTENT_ROOT)) Root = SOLIDARC_CONTENT_ROOT;                      // Development checkout wins
+    if (HoldsTypeface(SOLIDARC_CONTENT_ROOT)) Root = SOLIDARC_CONTENT_ROOT;
 #endif
+    if (HoldsTypeface(Packaged) && HoldsSolidArcIcons(Packaged / "EngineContent/Icons")) Root = Packaged; // Packaged standalone wins when complete
+    else if (Root == "." && HoldsTypeface(Packaged)) Root = Packaged;
     std::filesystem::path Family;
     for (const char* Candidate : { "EngineContent/FontArchives/DMSans", "EngineContent/FontArchives/DM Sans" })
         if (std::filesystem::exists(Root / Candidate / "DMSans-Regular.ttf")) { Family = Root / Candidate; break; }
@@ -14616,7 +14912,17 @@ void ConfigureSolidArcInterface(const SolidArcOptions& Options)
     }
     else Io.Fonts->AddFontDefault();
     ConfigureSolidArcTypefaces(Typefaces);
-    IconPresentation::Attach(Root / "EngineContent/Icons");
+    std::filesystem::path IconsRoot = ResolveContentDirectory("EngineContent/Icons");
+    if (!HoldsSolidArcIcons(IconsRoot))
+    {
+        if (HoldsSolidArcIcons(Packaged / "EngineContent/Icons")) IconsRoot = Packaged / "EngineContent/Icons";
+        else if (Root != "." && HoldsSolidArcIcons(Root / "EngineContent/Icons")) IconsRoot = Root / "EngineContent/Icons";
+#ifdef SOLIDARC_CONTENT_ROOT
+        else if (HoldsSolidArcIcons(std::filesystem::path(SOLIDARC_CONTENT_ROOT) / "EngineContent/Icons")) IconsRoot = std::filesystem::path(SOLIDARC_CONTENT_ROOT) / "EngineContent/Icons";
+#endif
+        else IconsRoot = "EngineContent/Icons";
+    }
+    IconPresentation::Attach(IconsRoot);
 
     ImGuiStyle& Style = ImGui::GetStyle();
     ImGui::StyleColorsDark(&Style);

@@ -138,11 +138,13 @@ namespace
     GateTally DrawingGate     = { "W10", "Drawn sketches (line, rectangle, circle, arc, slot, 4 curve forms) → extrude / Boolean: |V − closed form| / V; refusals; reload; delete", "≤ 10⁻⁹" };
     GateTally CutterSpeedGate = { "W72", "Boolean library cutters & speed: all built-in inserts + coaxial stretched cylinders/cones retain exact analytic carriers (0 NURBS promotion), STEP & scene tessellation caches hit, sub-50 ms per library cut, sound manifold", "≤ 10⁻⁹ · ≤ 50 ms" };
     GateTally ParametricVarGate = { "W73", "Modular parametric variables: Create / SaveStepValueAsVariable / BindSolidArcStepValue / Rename / Delete; bevel Size and bolt Combine.Offset driven by user variables update geometry modularly; byte-equal TOML round-trip", "≤ 10⁻⁹ · exact" };
-    GateTally LiveBooleanGate = { "W74", "Live Booleans: KnifeSolidArcLiveInsert & AddSolidArcLiveBoolean keep cutters movable with real-time boolean updates, wireframe cutter scene (0 triangles, pickable edges), export exclusion, codec round-trip, and Apply to native Combine", "≤ 10⁻⁹ · exact" };
+    GateTally LiveBooleanGate = { "W74", "Live Booleans: KnifeSolidArcLiveInsert & AddSolidArcLiveBoolean render solid target + semitransparent cutter (SolidCornerCount split, Copper matcap, face & submerged-edge picking), real-time move, export exclusion, codec round-trip, and Apply", "≤ 10⁻⁹ · exact" };
     GateTally EdgeWeightGate  = { "W75", "Edge weight paint & Bevel modifier: AssignSolidArcEdgeWeights (literal & variable-bound weights), EdgeGroup / Picked / Angle bevel modifiers, variable edit regenerates weighted bevels, codec round-trip", "≤ 10⁻⁹ · sound" };
     GateTally LinearCircArrayGate = { "W76", "Linear & Circular Array modifiers: 1D/2D grid array, variable-bound counts, overlapping MergeCondition union, radial & helical circular array, Genus 0 per region, Apply bakes per-solid STEP imports", "≤ 10⁻⁹ · sound" };
     GateTally CurveSurfArrayGate = { "W77", "Curve & Surface Array modifiers: array along 2D Sketch chain & 3D SpaceCurve with RMF alignment, UV surface array across curved cylinder face with normal alignment, sound manifold", "≤ 10⁻⁹ · sound" };
     GateTally CurveBendStackGate = { "W78", "Bend along curve & Modifier Stack: 3D spatial B-rep bend of a solid bar along a 90° arc and 3D curve (T1–T6 & G1–G6 certified), stack reorder / mute / undo / redo / byte-equal TOML round-trip", "≤ 2·10⁻³ · sound" };
+    GateTally CompoundCutterGate = { "W79", "Multi-stage Compound Cutters (Countersink, Counterbore, Stepped hole, Hex socket, Stepped slot, Stepped pocket): non-stretching stage-by-stage construction, exact analytic closed-form volumes, 0 NURBS promotion, 0 duplicate 1-stage shapes", "≤ 10⁻⁹ · exact" };
+    GateTally LiveEditableGate   = { "W80", "Realtime-editable semitransparent Live Boolean cutters & standalone icon verification: Face Push/Pull & Edge Bevel directly on a semitransparent Live Compound Cutter update the carved solid target in real time; 65 SolidArc SVG icons verified", "≤ 10⁻⁹ · sound" };
 
     std::vector<std::string> Journal;                                                        // [-] - Narrative rows for the exhibit
 
@@ -2496,16 +2498,26 @@ void ValidateStage3CadFeatures()
         const SolidArcCommandOutcome PlacedLive = KnifeSolidArcLiveInsert(LiveDoc, LivePlace);
         const std::string CutterKey = LiveDoc.Selection.Bodies.empty() ? std::string{} : LiveDoc.Selection.Bodies.front();
         const SolidArcScene LiveScene = BuildSolidArcScene(LiveDoc);
-        bool CutterWireframe = !CutterKey.empty() && LiveDoc.Appearance.LiveCutters.contains(CutterKey) &&
-                               SolidArcBodyReferencedByModifiersCondition(LiveDoc, CutterKey);
-        int CutterTriangles = 0, CutterEdges = 0;
-        for (const SolidArcSceneFace& Face : LiveScene.Faces) if (LiveScene.Bodies[Face.Body].Key == CutterKey) CutterTriangles += int(Face.CornerCount);
+        const bool CutterRegistered = !CutterKey.empty() && LiveDoc.Appearance.LiveCutters.contains(CutterKey) &&
+                                      SolidArcBodyReferencedByModifiersCondition(LiveDoc, CutterKey);
+        int CutterCorners = 0, CutterEdges = 0;
+        for (const SolidArcSceneFace& Face : LiveScene.Faces) if (LiveScene.Bodies[Face.Body].Key == CutterKey) CutterCorners += int(Face.CornerCount);
         for (const SolidArcSceneEdge& Edge : LiveScene.Edges) if (LiveScene.Bodies[Edge.Body].Key == CutterKey) ++CutterEdges;
+        const bool SplitValid = LiveScene.SolidCornerCount > 0 && LiveScene.SolidCornerCount + uint32_t(CutterCorners) == LiveScene.Corners.size() &&
+                                LiveScene.SolidSegmentCount > 0 && LiveScene.SolidSegmentCount < LiveScene.Segments.size();
+        // Ray straight down into the cutter centre hits the semitransparent cutter face; ray on solid block far from cutter hits solid block!
+        const std::optional<SolidArcPick> HitCutter = PickSolidArcScene(LiveScene, { { 1.0, 1.0, 3.0 }, { 0.0, 0.0, -1.0 } }, 0.0, false);
+        const std::optional<SolidArcPick> HitSolid  = PickSolidArcScene(LiveScene, { { 2.5, 1.0, 3.0 }, { 0.0, 0.0, -1.0 } }, 0.0, false);
+        const bool BothPickable = HitCutter && !(HitCutter->Identity & IdentityEdgeBit) &&
+                                  LiveScene.Bodies[LiveScene.Faces[HitCutter->Identity - 1u].Body].Key == CutterKey &&
+                                  HitSolid && !(HitSolid->Identity & IdentityEdgeBit) &&
+                                  LiveScene.Bodies[LiveScene.Faces[HitSolid->Identity - 1u].Body].Key == HostKey;
         LiveDoc.Selection = {};
         const std::vector<std::string> Exported = SolidArcExportBodies(LiveDoc);
         const bool ExcludedFromExport = Exported.size() == 1 && Exported.front() == HostKey;
-        Tally(LiveBooleanGate, double(CutterTriangles), PlacedLive.AcceptedCondition && CutterWireframe && CutterTriangles == 0 && CutterEdges > 0 && ExcludedFromExport,
-              Format("Live cutter %s: 0 shaded corners, %d wireframe edges, excluded from export", CutterKey.c_str(), CutterEdges));
+        Tally(LiveBooleanGate, 0.0, PlacedLive.AcceptedCondition && CutterRegistered && CutterCorners > 0 && CutterEdges > 0 && SplitValid && BothPickable && ExcludedFromExport,
+              Format("Live cutter %s: solid corners %u + semitransparent cutter corners %d, %d edges, both bodies pickable, excluded from export",
+                     CutterKey.c_str(), LiveScene.SolidCornerCount, CutterCorners, CutterEdges));
 
         // Move the Live Cutter in real time: first across the top face (same cut volume), then half-off the x=3 edge (half cut volume!).
         const double FullCutLoss = 6.0 - LiveDoc.Summary.Volume;
@@ -2736,6 +2748,151 @@ void ValidateStage3CadFeatures()
         Tally(CurveBendStackGate, StackErr,
               AddedSecond.AcceptedCondition && StackErr <= 2.0e-3 && BendDoc.Summary.SoundCondition && StackCodec && Muted.AcceptedCondition && MutedSingle && Undone && Redone,
               "Stacked CurveBend → LinearArray + Mute/Undo/Redo + byte-equal TOML round-trip");
+    }
+
+    // ---- W79: Multi-Stage Compound Cutters (No Stretching, No 1-Stage Duplicates, Exact Analytic Volumes) ----
+    {
+        const SolidArcInsertLibrary UserEmpty = AssembleSolidArcUserInserts("");
+        Tally(CompoundCutterGate, double(UserEmpty.Inserts.size()), UserEmpty.Inserts.empty(),
+              Format("AssembleSolidArcUserInserts(\"\"): %d duplicate 1-stage shapes (6 multi-stage compound cutters are native)", int(UserEmpty.Inserts.size())));
+
+        SolidArcDocument Slab = CreateSolidArcDocument("CompoundSlab");
+        SolidArcConstructRequest SlabReq;
+        SlabReq.Kind = SolidArcConstructKind::Block; SlabReq.Width = 6.0; SlabReq.Depth = 4.0; SlabReq.Height = 1.0;
+        Expect(ConstructSolidArcPrimitive(Slab, SlabReq));
+        const std::string SlabKey = Slab.Regeneration.Active;
+
+        constexpr double PiVal = std::numbers::pi;
+        const double R1 = 0.20, D1 = 0.15, R2 = 0.10, D2 = 0.25;
+        const double Tip = std::min(0.45 * D2, 0.58 * R2);
+        const double ExpectedLoss[SolidArcCompoundCutterCount] = {
+            (PiVal * D1 / 3.0) * (R1 * R1 + R1 * R2 + R2 * R2) + PiVal * R2 * R2 * D2,                  // Countersink
+            PiVal * R1 * R1 * D1 + PiVal * R2 * R2 * D2,                                                 // Counterbore
+            PiVal * R1 * R1 * D1 + PiVal * R2 * R2 * (D2 - Tip) + (PiVal * R2 * R2 * Tip) / 3.0,         // Stepped hole
+            1.5 * std::sqrt(3.0) * R1 * R1 * D1 + PiVal * R2 * R2 * D2,                                  // Hex socket
+            (PiVal * R1 * R1 + 4.0 * 1.15 * R1 * R1) * D1 + (PiVal * R2 * R2 + 4.0 * 1.15 * R1 * R2) * D2, // Stepped slot
+            4.0 * R1 * R1 * D1 + 4.0 * R2 * R2 * D2                                                      // Stepped pocket
+        };
+
+        double WorstCompoundErr = 0.0;
+        bool   AllAccepted      = true;
+        int    SplineFaces      = 0;
+        for (int Index = 0; Index < SolidArcCompoundCutterCount; ++Index)
+        {
+            const double BeforeVol = Slab.Summary.Volume;
+            SolidArcCompoundCutterSpec Spec;
+            Spec.Kind        = static_cast<SolidArcCompoundCutterKind>(Index);
+            Spec.Spot.Origin = { 0.8 + 0.85 * (Index % 3) * 2.0, Index < 3 ? 1.0 : 3.0, 1.0 };
+            Spec.Spot.XAxis  = { 1.0, 0.0, 0.0 };
+            Spec.Spot.YAxis  = { 0.0, 1.0, 0.0 };
+            Spec.Spot.ZAxis  = { 0.0, 0.0, 1.0 };
+            Spec.OuterRadius = R1;
+            Spec.OuterDepth  = D1;
+            Spec.InnerRadius = R2;
+            Spec.InnerDepth  = D2;
+            Spec.Combination = FeatureCombination::Difference;
+            Spec.Target      = SlabKey;
+            const auto Wire = BuildSolidArcCompoundCutterSegments(Spec);
+            const SolidArcCommandOutcome Cut = KnifeSolidArcCompoundCutter(Slab, Spec);
+            const double ActualLoss = BeforeVol - Slab.Summary.Volume;
+            const double Err        = RelErr(ActualLoss, ExpectedLoss[Index]);
+            WorstCompoundErr = std::max(WorstCompoundErr, Err);
+            AllAccepted      = AllAccepted && Cut.AcceptedCondition && Slab.Summary.SoundCondition && Wire.size() >= 12 && Err <= 1.0e-8;
+        }
+        const SolidArcScene CompoundScene = BuildSolidArcScene(Slab);
+        for (const SolidArcSceneFace& Face : CompoundScene.Faces)
+            if (Face.Surface == "Spline") ++SplineFaces;
+        Tally(CompoundCutterGate, WorstCompoundErr, AllAccepted && SplineFaces == 0 && RoundTripCheck(Slab),
+              Format("All 6 multi-stage compound cutters: max ΔV rel err %.2e, %d NURBS spline faces (100%% analytic), sound=%d",
+                     WorstCompoundErr, SplineFaces, Slab.Summary.SoundCondition ? 1 : 0));
+    }
+
+    // ---- W80: Realtime-Editable Semitransparent Live Compound Cutter + Standalone Icons Verification ----
+    {
+        SolidArcDocument EditLive = CreateSolidArcDocument("EditableLiveCompound");
+        SolidArcConstructRequest BlockReq;
+        BlockReq.Kind = SolidArcConstructKind::Block; BlockReq.Width = 2.0; BlockReq.Depth = 2.0; BlockReq.Height = 1.0;
+        Expect(ConstructSolidArcPrimitive(EditLive, BlockReq));
+        const std::string TargetKey = EditLive.Regeneration.Active;
+
+        SolidArcCompoundCutterSpec LiveSpec;
+        LiveSpec.Kind          = SolidArcCompoundCutterKind::Counterbore;
+        LiveSpec.Spot.Origin   = { 1.0, 1.0, 1.0 };
+        LiveSpec.Spot.XAxis    = { 1.0, 0.0, 0.0 };
+        LiveSpec.Spot.YAxis    = { 0.0, 1.0, 0.0 };
+        LiveSpec.Spot.ZAxis    = { 0.0, 0.0, 1.0 };
+        LiveSpec.OuterRadius   = 0.25;
+        LiveSpec.OuterDepth    = 0.20;
+        LiveSpec.InnerRadius   = 0.12;
+        LiveSpec.InnerDepth    = 0.30;
+        LiveSpec.Combination   = FeatureCombination::Difference;
+        LiveSpec.Target        = TargetKey;
+        LiveSpec.LiveCondition = true;
+
+        const SolidArcCommandOutcome CreatedLive = KnifeSolidArcCompoundCutter(EditLive, LiveSpec);
+        const std::string CutterKey = EditLive.Selection.Bodies.empty() ? std::string{} : EditLive.Selection.Bodies.front();
+        const double InitialLoss = 4.0 - EditLive.Summary.Volume;
+        const double ExpectedInitial = std::numbers::pi * (0.25 * 0.25 * 0.20 + 0.12 * 0.12 * 0.30);
+
+        // Find the semitransparent cutter's bottom planar floor face (normal = -Z at z = 0.50) and Push/Pull it 0.10 deeper in real time!
+        const SolidArcScene SceneBefore = BuildSolidArcScene(EditLive);
+        std::string CutterFloorFace;
+        for (const SolidArcSceneFace& Face : SceneBefore.Faces)
+        {
+            if (SceneBefore.Bodies[Face.Body].Key != CutterKey || Face.Surface != "Plane" || Face.CornerCount == 0) continue;
+            const auto& Corner = SceneBefore.Corners[Face.FirstCorner];
+            if (std::abs(Corner.Position[2] - 0.50f) < 1.0e-3f && Corner.Normal[2] < -0.9f) CutterFloorFace = Face.Name;
+        }
+        EditLive.Selection            = {};
+        EditLive.Selection.Faces      = { CutterFloorFace };
+        EditLive.Selection.PickedBody = CutterKey;
+        EditLive.Selection.LastKind   = SolidArcSelectionKind::Face;
+        const SolidArcCommandOutcome PushedFloor = ChangeSolidArcSelection(EditLive, FaceOperationKind::Offset, 0.10);
+        const double DeeperLoss     = 4.0 - EditLive.Summary.Volume;
+        const double ExpectedDeeper = std::numbers::pi * (0.25 * 0.25 * 0.20 + 0.12 * 0.12 * 0.40);
+        const double PushErr        = RelErr(DeeperLoss, ExpectedDeeper);
+
+        // Now select the semitransparent cutter's bottom circular rim edge (z = 0.40) and Fillet it by r = 0.03 in real time!
+        std::string CutterBottomRim;
+        const RegeneratedBody* CutterBody = nullptr;
+        for (const RegeneratedBody& Body : EditLive.Regeneration.Bodies) if (Body.Key == CutterKey) CutterBody = &Body;
+        if (CutterBody)
+        {
+            for (const auto& [Slot, EdgeName] : CutterBody->Naming.Edges)
+            {
+                const EdgeProfile& EdgeProf = EditLive.Partition->Edges.Resolve(EditLive.Partition->Edges.TokenAt(Slot));
+                const Vector3 Pos = EditLive.Partition->Vertices.Resolve(EdgeProf.Start).Position;
+                if (std::abs(Pos.Z - 0.40) < 1.0e-4) { CutterBottomRim = EdgeName; break; }
+            }
+        }
+        EditLive.Selection            = {};
+        EditLive.Selection.Edges      = { CutterBottomRim };
+        EditLive.Selection.PickedBody = CutterKey;
+        EditLive.Selection.LastKind   = SolidArcSelectionKind::Edge;
+        const SolidArcCommandOutcome BeveledCutter = BlendSolidArcSelection(EditLive, BlendProfile::Fillet, 0.03);
+        // Filleting the cutter's convex bottom edge reduces the cutter's volume slightly, so the carved solid target's volume INCREASES slightly!
+        const double FilletedLoss = 4.0 - EditLive.Summary.Volume;
+        const bool RealtimeEdited = CreatedLive.AcceptedCondition && RelErr(InitialLoss, ExpectedInitial) <= 1.0e-8 &&
+                                    PushedFloor.AcceptedCondition && PushErr <= 1.0e-8 &&
+                                    BeveledCutter.AcceptedCondition && FilletedLoss < DeeperLoss && FilletedLoss > InitialLoss &&
+                                    EditLive.Summary.SoundCondition && EditLive.Appearance.LiveCutters.contains(CutterKey);
+        Tally(LiveEditableGate, PushErr, RealtimeEdited,
+              Format("Realtime edit on semitransparent cutter %s: initial ΔV=%.6f → push floor +0.10 ΔV=%.6f (rel %.2e) → fillet rim r=0.03 ΔV=%.6f, sound=%d",
+                     CutterKey.c_str(), InitialLoss, DeeperLoss, PushErr, FilletedLoss, EditLive.Summary.SoundCondition ? 1 : 0));
+
+        // Verify standalone SolidArc SVG icon inventory in EngineContent/Icons/SolidArc!
+        int SvgCount = 0;
+        std::error_code FsErr;
+        for (const char* Candidate : { "EngineContent/Icons/SolidArc", "/tmp/_ClaudeScratch/FrontierRepo/EngineContent/Icons/SolidArc" })
+        {
+            if (!std::filesystem::is_directory(Candidate, FsErr)) continue;
+            SvgCount = 0;
+            for (const auto& Entry : std::filesystem::directory_iterator(Candidate, FsErr))
+                if (Entry.is_regular_file(FsErr) && Entry.path().extension() == ".svg" && Entry.file_size(FsErr) > 32) ++SvgCount;
+            if (SvgCount >= 60) break;
+        }
+        Tally(LiveEditableGate, 0.0, SvgCount >= 65,
+              Format("Standalone SolidArc icon artwork verified: %d non-empty SVG icons", SvgCount));
     }
 }
 
@@ -2992,7 +3149,8 @@ int main()
         ValidateStage3CadFeatures();
         for (const std::string& Row : Journal) std::printf("%s\n", Row.c_str());
         const long TotalFail = CutterSpeedGate.Failures + ParametricVarGate.Failures + LiveBooleanGate.Failures +
-                               EdgeWeightGate.Failures + LinearCircArrayGate.Failures + CurveSurfArrayGate.Failures + CurveBendStackGate.Failures;
+                               EdgeWeightGate.Failures + LinearCircArrayGate.Failures + CurveSurfArrayGate.Failures + CurveBendStackGate.Failures +
+                               CompoundCutterGate.Failures + LiveEditableGate.Failures;
         return TotalFail ? 1 : 0;
     }
     if (std::getenv("SOLIDARC_DOCVAL_RESHAPE"))                                          // Quick rerun of W67 alone
@@ -8493,7 +8651,7 @@ int main()
     // ---- W72 … W78 Boolean library speed, Parametric Variables, Live Booleans, Edge Weights, and Modifier Stack
     ValidateStage3CadFeatures();
 
-    for (const GateTally* Gate : { &ConstructGate, &PickGate, &BlendGate, &FaceGate, &ParameterGate, &AtomicGate, &HistoryGate, &FileGate, &VariableGate, &DrawingGate, &SurfacingGate, &PanelGate, &EvaluationGate, &BlueprintGate, &MatcapGate, &BodiesGate, &CutGate, &TrimGate, &MoveGate, &CopyGate, &HideGate, &CurveGate, &ConstrainGate, &ConflictGate, &DragGate, &ReferenceGate, &SplineGate, &LinkGate, &RevolveGate, &EvolutionGate, &ReplayGate, &XRayGate, &MeasureGate, &SectionGate, &SnapGate, &JointGate, &SheetGate, &ExchangeGate, &BoundGate, &PrimitiveGate, &InsetGate, &SectionLoftGate, &GizmoGate, &PointGate, &ShellGate, &DetachGate, &CornerGate, &FillGate, &FilletDragGate, &OrientGate, &TangentGate, &KnifeGate, &HandleGate, &SolidKnifeGate, &PocketBevelGate, &ReachGate, &SplitGate, &LoopGate, &PieceGate, &ManifoldGate, &ImprintGate, &PointCutGate, &CurveFlowGate, &EdgeNotchGate, &EdgePathGate, &WrapGate, &ReshapeGate, &DeleteGate, &CurveAskGate, &FullReachGate, &BevelMergeGate, &CutterSpeedGate, &ParametricVarGate, &LiveBooleanGate, &EdgeWeightGate, &LinearCircArrayGate, &CurveSurfArrayGate, &CurveBendStackGate })
+    for (const GateTally* Gate : { &ConstructGate, &PickGate, &BlendGate, &FaceGate, &ParameterGate, &AtomicGate, &HistoryGate, &FileGate, &VariableGate, &DrawingGate, &SurfacingGate, &PanelGate, &EvaluationGate, &BlueprintGate, &MatcapGate, &BodiesGate, &CutGate, &TrimGate, &MoveGate, &CopyGate, &HideGate, &CurveGate, &ConstrainGate, &ConflictGate, &DragGate, &ReferenceGate, &SplineGate, &LinkGate, &RevolveGate, &EvolutionGate, &ReplayGate, &XRayGate, &MeasureGate, &SectionGate, &SnapGate, &JointGate, &SheetGate, &ExchangeGate, &BoundGate, &PrimitiveGate, &InsetGate, &SectionLoftGate, &GizmoGate, &PointGate, &ShellGate, &DetachGate, &CornerGate, &FillGate, &FilletDragGate, &OrientGate, &TangentGate, &KnifeGate, &HandleGate, &SolidKnifeGate, &PocketBevelGate, &ReachGate, &SplitGate, &LoopGate, &PieceGate, &ManifoldGate, &ImprintGate, &PointCutGate, &CurveFlowGate, &EdgeNotchGate, &EdgePathGate, &WrapGate, &ReshapeGate, &DeleteGate, &CurveAskGate, &FullReachGate, &BevelMergeGate, &CutterSpeedGate, &ParametricVarGate, &LiveBooleanGate, &EdgeWeightGate, &LinearCircArrayGate, &CurveSurfArrayGate, &CurveBendStackGate, &CompoundCutterGate, &LiveEditableGate })
     {
         std::printf("| %s | %s | %s | %.3g | %ld | %s |\n", Gate->Code, Gate->Subject, Gate->Limit, Gate->Worst, Gate->Checks, Gate->Failures ? "🔴" : "🟢");
         Failures += Gate->Failures;

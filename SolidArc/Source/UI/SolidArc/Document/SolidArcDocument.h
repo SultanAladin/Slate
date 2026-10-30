@@ -914,14 +914,47 @@ struct SolidArcEdgePath
                                                              const std::string& VariableName);
 [[nodiscard]] SolidArcCommandOutcome SetSolidArcStepOffsetAxis(SolidArcDocument& Document, const std::string& StepLabel, GeometryProcessing::Vector3 Axis);
 
-// 💡 Live Booleans: non-destructive Boolean modifiers whose cutter bodies stay in the scene as pickable wireframe cutters
-//    (Appearance.LiveCutters) so G / R / S and gizmo moves update the Boolean in real time.
+// 💡 Live Booleans: non-destructive Boolean modifiers whose cutter bodies stay in the scene as semitransparent selectable &
+//    editable cutters (Appearance.LiveCutters) so G / R / S, face push/pull, and edge bevels update the Boolean in real time.
 [[nodiscard]] bool                   SolidArcBodyReferencedByModifiersCondition(const SolidArcDocument& Document, const std::string& BodyKey) noexcept;
 [[nodiscard]] SolidArcCommandOutcome AddSolidArcLiveBoolean(SolidArcDocument& Document, const std::string& Target, const std::string& Tool,
                                                             GeometryProcessing::FeatureCombination Combination = GeometryProcessing::FeatureCombination::Difference,
                                                             GeometryProcessing::Vector3 OffsetAxis = { 0.0, 0.0, 1.0 }, double Offset = 0.0);
 [[nodiscard]] SolidArcCommandOutcome KnifeSolidArcLiveInsert(SolidArcDocument& Document, const SolidArcInsertPlacement& Placement);
 [[nodiscard]] SolidArcCommandOutcome ToggleSolidArcLiveCutter(SolidArcDocument& Document, const std::string& BodyKey);
+
+// 💡 Multi-Stage Compound Cutters (Boolean Library): non-stretching, zero-duplicate multi-stage cutters drawn interactively
+//    stage-by-stage (Stage 1 profile → Stage 1 extrude → Stage 2 profile → Stage 2 extrude), preserving exact analytic
+//    PlaneSurface / CylinderSurface / ConeSurface carriers for both destructive cuts and semitransparent Live Booleans.
+enum class SolidArcCompoundCutterKind : uint8_t
+{
+    Countersink   = 0,                                                                       // Conical chamfer Ø₁ × D₁ + shaft Ø₂ × D₂
+    Counterbore   = 1,                                                                       // Cylindrical head bore Ø₁ × D₁ + shaft Ø₂ × D₂
+    SteppedHole   = 2,                                                                       // Cylindrical bore Ø₁ × D₁ + pilot bore & drill tip Ø₂ × D₂
+    HexSocket     = 3,                                                                       // Hex socket head Ø₁ × D₁ + bolt shaft Ø₂ × D₂
+    SteppedSlot   = 4,                                                                       // Counterbored rounded slot R₁ × D₁ + clearance slot R₂ × D₂
+    SteppedPocket = 5,                                                                       // Concentric square step W₁ × D₁ + inner pocket W₂ × D₂
+};
+
+inline constexpr int SolidArcCompoundCutterCount = 6;
+
+[[nodiscard]] const char* SolidArcCompoundCutterLabel(SolidArcCompoundCutterKind Kind) noexcept;
+
+struct SolidArcCompoundCutterSpec
+{
+    SolidArcCompoundCutterKind             Kind          = SolidArcCompoundCutterKind::Countersink; // [-]   - Compound profile family
+    GeometryProcessing::OrthonormalFrame   Spot          = {};                                      // [len] - Face contact origin + outward normal ZAxis
+    double                                 Turn          = 0.0;                                     // [rad] - In-plane rotation about Spot.ZAxis
+    double                                 OuterRadius   = 0.12;                                    // [len] - Stage 1 radius / half-width
+    double                                 OuterDepth    = 0.05;                                    // [len] - Stage 1 extrude depth
+    double                                 InnerRadius   = 0.06;                                    // [len] - Stage 2 radius / half-width (< OuterRadius)
+    double                                 InnerDepth    = 0.12;                                    // [len] - Stage 2 extrude depth below Stage 1 floor
+    GeometryProcessing::FeatureCombination Combination   = GeometryProcessing::FeatureCombination::Difference; // [-] - Q / W / E / R
+    std::string                            Target        = {};                                      // [-]   - Target body key
+    bool                                   LiveCondition = false;                                   // [-]   - True: semitransparent Live Boolean cutter
+};
+
+[[nodiscard]] SolidArcCommandOutcome KnifeSolidArcCompoundCutter(SolidArcDocument& Document, const SolidArcCompoundCutterSpec& Spec);
 
 // 💡 Edge Weight Groups ("vertex paint for edges"): assign literal or variable-bound weights to selected edges so Bevel
 //    modifiers reference them and interpolate smooth variable-radius rolling-ball fillets / chamfers across corners.

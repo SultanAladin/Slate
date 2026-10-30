@@ -5417,7 +5417,7 @@ SolidArcCommandOutcome KnifeSolidArcLiveInsert(SolidArcDocument& Document, const
 SolidArcCommandOutcome ToggleSolidArcLiveCutter(SolidArcDocument& Document, const std::string& BodyKey)
 {
     const bool WasCutter = Document.Appearance.LiveCutters.contains(BodyKey);
-    const std::string Label = (WasCutter ? "Shade cutter " : "Wireframe cutter ") + SolidArcBodyCaption(Document, BodyKey);
+    const std::string Label = (WasCutter ? "Solid cutter " : "Semitransparent cutter ") + SolidArcBodyCaption(Document, BodyKey);
     SolidArcHistoryEntry Before = Snapshot(Document, Label);
     Before.AppearanceCondition  = true;
     if (!FindRegeneratedBody(Document, BodyKey))
@@ -5436,6 +5436,290 @@ SolidArcCommandOutcome ToggleSolidArcLiveCutter(SolidArcDocument& Document, cons
     SolidArcCommandOutcome Outcome;
     Outcome.AcceptedCondition = true;
     Outcome.Label             = Label;
+    return Outcome;
+}
+
+const char* SolidArcCompoundCutterLabel(SolidArcCompoundCutterKind Kind) noexcept
+{
+    switch (Kind)
+    {
+    case SolidArcCompoundCutterKind::Countersink:   return "Countersink";
+    case SolidArcCompoundCutterKind::Counterbore:   return "Counterbore";
+    case SolidArcCompoundCutterKind::SteppedHole:   return "Stepped hole";
+    case SolidArcCompoundCutterKind::HexSocket:     return "Hex socket";
+    case SolidArcCompoundCutterKind::SteppedSlot:   return "Stepped slot";
+    case SolidArcCompoundCutterKind::SteppedPocket: return "Stepped pocket";
+    }
+    return "Compound cutter";
+}
+
+SolidArcCommandOutcome KnifeSolidArcCompoundCutter(SolidArcDocument& Document, const SolidArcCompoundCutterSpec& Spec)
+{
+    const char*       KindName  = SolidArcCompoundCutterLabel(Spec.Kind);
+    const bool        Live      = Spec.LiveCondition && Spec.Combination != FeatureCombination::Separate;
+    const std::string Stem      = Live ? "LiveKnife" : "Knife";
+    const std::string Caption   = NextCaption(Document, Stem);
+    const std::string Label     = Caption + " · " + KindName + " · " + (Live ? "Live " : "") + FeatureCombinationLabel(Spec.Combination);
+    SolidArcHistoryEntry Before = Snapshot(Document, Label);
+    const auto Start            = std::chrono::steady_clock::now();
+    SolidArcCommandOutcome Outcome;
+    Outcome.Label = Label;
+
+    if (!(Length(Spec.Spot.ZAxis) > 1.0e-9)) Outcome.Refusal = "the cutter face frame has zero normal";
+    else if (!(Spec.OuterRadius > 1.0e-4) || !(Spec.OuterDepth > 1.0e-4)) Outcome.Refusal = "Stage 1 radius and depth must be positive";
+    else if (!(Spec.InnerRadius > 1.0e-4) || !(Spec.InnerDepth > 1.0e-4)) Outcome.Refusal = "Stage 2 radius and depth must be positive";
+    else if (!(Spec.InnerRadius < Spec.OuterRadius - 1.0e-5)) Outcome.Refusal = "Stage 2 radius must sit inside Stage 1 radius";
+    else if (Spec.Combination != FeatureCombination::Separate)
+    {
+        if (Spec.Combination != FeatureCombination::Difference && Spec.Combination != FeatureCombination::Union &&
+            Spec.Combination != FeatureCombination::Intersection)
+            Outcome.Refusal = "choose Difference, Union, Intersection or Separate";
+        else if (Spec.Target.empty() || !FindRegeneratedBody(Document, Spec.Target))
+            Outcome.Refusal = Spec.Target.empty() ? "place the compound cutter on a body face" : ("no body named " + Spec.Target);
+    }
+    if (!Outcome.Refusal.empty()) { Outcome.Milliseconds = ElapsedMs(Start); return Outcome; }
+
+    const Vector3 Normal = Normalize(Spec.Spot.ZAxis);
+    Vector3       BaseX  = Spec.Spot.XAxis - Normal * Dot(Spec.Spot.XAxis, Normal);
+    if (!(Length(BaseX) > 1.0e-9))
+        BaseX = std::abs(Normal.Z) < 0.9 ? Cross(Vector3{ 0.0, 0.0, 1.0 }, Normal) : Cross(Vector3{ 1.0, 0.0, 0.0 }, Normal);
+    BaseX = Normalize(BaseX);
+    const Vector3 BaseY  = Normalize(Cross(Normal, BaseX));
+    const Vector3 Across = Normalize(BaseX * std::cos(Spec.Turn) + BaseY * std::sin(Spec.Turn));
+    const bool    Boss   = Spec.Combination == FeatureCombination::Union;
+    const Vector3 Dir    = Boss ? Normal : (Normal * -1.0);                                  // Axial plunge direction (Stage 1 -> Stage 2)
+    const double  R1     = Spec.OuterRadius;
+    const double  D1     = Spec.OuterDepth;
+    const double  R2     = std::min(Spec.InnerRadius, R1 - 1.0e-4);
+    const double  D2     = Spec.InnerDepth;
+    const double  Lift   = Boss ? std::min(0.008, 0.25 * D1) : std::max(0.008, 0.15 * R1);
+
+    std::string CutterStem;
+    for (const char Ch : std::string(KindName)) if (std::isalnum(static_cast<unsigned char>(Ch))) CutterStem.push_back(Ch);
+    const std::string CutterCaption = NextCaption(Document, CutterStem.empty() ? "Cutter" : CutterStem);
+    std::string       CutterKey;
+
+    const bool Revolved = Spec.Kind == SolidArcCompoundCutterKind::Countersink ||
+                          Spec.Kind == SolidArcCompoundCutterKind::Counterbore ||
+                          Spec.Kind == SolidArcCompoundCutterKind::SteppedHole;
+    if (Revolved)
+    {
+        FeatureStep Meridian;
+        Meridian.Kind          = FeatureStepKind::Sketch;
+        Meridian.Label         = "Sketch#" + std::to_string(NextStepOrdinal(Document.Tree));
+        Meridian.FillCondition = true;
+        Meridian.Plane.Origin  = Spec.Spot.Origin;
+        Meridian.Plane.XAxis   = Across;
+        Meridian.Plane.YAxis   = Dir;
+        Meridian.Plane.ZAxis   = Normalize(Cross(Meridian.Plane.XAxis, Meridian.Plane.YAxis));
+
+        SketchModel& Sketch = Meridian.Sketch;
+        const int P0 = AppendSketchPoint(Sketch, { 0.0, -Lift });
+        const int P1 = AppendSketchPoint(Sketch, { R1,  -Lift });
+        int P2 = -1, P3 = -1, P4 = -1, P5 = -1;
+        if (Spec.Kind == SolidArcCompoundCutterKind::Countersink)
+        {
+            P2 = AppendSketchPoint(Sketch, { R1, 0.0 });
+            P3 = AppendSketchPoint(Sketch, { R2, D1 });
+            P4 = AppendSketchPoint(Sketch, { R2, D1 + D2 });
+            P5 = AppendSketchPoint(Sketch, { 0.0, D1 + D2 });
+        }
+        else if (Spec.Kind == SolidArcCompoundCutterKind::Counterbore)
+        {
+            P2 = AppendSketchPoint(Sketch, { R1, D1 });
+            P3 = AppendSketchPoint(Sketch, { R2, D1 });
+            P4 = AppendSketchPoint(Sketch, { R2, D1 + D2 });
+            P5 = AppendSketchPoint(Sketch, { 0.0, D1 + D2 });
+        }
+        else
+        {
+            const double Tip = std::min(0.45 * D2, 0.58 * R2);
+            P2 = AppendSketchPoint(Sketch, { R1, D1 });
+            P3 = AppendSketchPoint(Sketch, { R2, D1 });
+            P4 = AppendSketchPoint(Sketch, { R2, Tip > 1.0e-4 ? (D1 + D2 - Tip) : (D1 + D2) });
+            P5 = AppendSketchPoint(Sketch, { 0.0, D1 + D2 });
+        }
+        AppendSketchLine(Sketch, P5, P0, 1);                                                 // Curve 1 = revolution axis u = 0
+        AppendSketchLine(Sketch, P0, P1, 2);
+        AppendSketchLine(Sketch, P1, P2, 3);
+        AppendSketchLine(Sketch, P2, P3, 4);
+        AppendSketchLine(Sketch, P3, P4, 5);
+        AppendSketchLine(Sketch, P4, P5, 6);
+
+        const std::string MeridianLabel = Meridian.Label;
+        Document.Captions[MeridianLabel] = CutterCaption + ".Meridian";
+        Document.Appearance.RemovedCurves.insert(MeridianLabel);
+        Document.Appearance.HiddenCurves.insert(MeridianLabel);
+        Document.Tree.Steps.push_back(std::move(Meridian));
+
+        FeatureStep Sweep;
+        Sweep.Kind           = FeatureStepKind::Revolve;
+        Sweep.Label          = "Revolve#" + std::to_string(NextStepOrdinal(Document.Tree));
+        Sweep.Profile        = MeridianLabel;
+        Sweep.AxisIdentifier = 1;
+        Sweep.Angle          = LiteralValue(2.0 * Pi);
+        Sweep.Combination    = !Document.Summary.PresentCondition && Spec.Combination == FeatureCombination::Separate ? FeatureCombination::New : FeatureCombination::Separate;
+        CutterKey            = Sweep.Label;
+        Document.Captions[CutterKey] = CutterCaption;
+        Document.Tree.Steps.push_back(std::move(Sweep));
+    }
+    else
+    {
+        const Vector3 FrameY = Normalize(Cross(Dir, Across));                                // Right-handed: Across × FrameY = Dir
+        const auto PopulateProfile = [&](SketchModel& Sketch, bool OuterStage)
+        {
+            const double Rad = OuterStage ? R1 : R2;
+            if (OuterStage && Spec.Kind == SolidArcCompoundCutterKind::HexSocket)
+            {
+                std::vector<int> Pts;
+                for (int Corner = 0; Corner < 6; ++Corner)
+                {
+                    const double Angle = Corner * Pi / 3.0;
+                    Pts.push_back(AppendSketchPoint(Sketch, { Rad * std::cos(Angle), Rad * std::sin(Angle) }));
+                }
+                for (int Corner = 0; Corner < 6; ++Corner)
+                    AppendSketchLine(Sketch, Pts[Corner], Pts[(Corner + 1) % 6], Corner + 1);
+            }
+            else if (!OuterStage && Spec.Kind == SolidArcCompoundCutterKind::HexSocket)
+            {
+                const int Centre = AppendSketchPoint(Sketch, { 0.0, 0.0 });
+                AppendSketchCircle(Sketch, Centre, Rad, 1);
+            }
+            else if (Spec.Kind == SolidArcCompoundCutterKind::SteppedSlot)
+            {
+                const double  HalfSpan = 1.15 * R1;                                          // Concentric cap centres across both stages
+                const Vector2 First{ -HalfSpan, 0.0 }, Second{ +HalfSpan, 0.0 }, Left{ 0.0, 1.0 };
+                const int FirstCentre  = AppendSketchPoint(Sketch, First);
+                const int SecondCentre = AppendSketchPoint(Sketch, Second);
+                const int TopFirst     = AppendSketchPoint(Sketch, First + Left * Rad);
+                const int TopSecond    = AppendSketchPoint(Sketch, Second + Left * Rad);
+                const int BotFirst     = AppendSketchPoint(Sketch, First - Left * Rad);
+                const int BotSecond    = AppendSketchPoint(Sketch, Second - Left * Rad);
+                AppendSketchLine(Sketch, BotFirst, BotSecond, 1);
+                AppendSketchArc(Sketch, SecondCentre, BotSecond, TopSecond, 2);
+                AppendSketchLine(Sketch, TopSecond, TopFirst, 3);
+                AppendSketchArc(Sketch, FirstCentre, TopFirst, BotFirst, 4);
+            }
+            else
+            {
+                const int C0 = AppendSketchPoint(Sketch, { -Rad, -Rad });
+                const int C1 = AppendSketchPoint(Sketch, { +Rad, -Rad });
+                const int C2 = AppendSketchPoint(Sketch, { +Rad, +Rad });
+                const int C3 = AppendSketchPoint(Sketch, { -Rad, +Rad });
+                AppendSketchLine(Sketch, C0, C1, 1);
+                AppendSketchLine(Sketch, C1, C2, 2);
+                AppendSketchLine(Sketch, C2, C3, 3);
+                AppendSketchLine(Sketch, C3, C0, 4);
+            }
+        };
+
+        FeatureStep OuterSketch;
+        OuterSketch.Kind          = FeatureStepKind::Sketch;
+        OuterSketch.Label         = "Sketch#" + std::to_string(NextStepOrdinal(Document.Tree));
+        OuterSketch.FillCondition = true;
+        OuterSketch.Plane         = { Spec.Spot.Origin - Dir * Lift, Across, FrameY, Dir };
+        PopulateProfile(OuterSketch.Sketch, true);
+        const std::string OuterSketchLabel = OuterSketch.Label;
+        Document.Captions[OuterSketchLabel] = CutterCaption + ".Stage1Profile";
+        Document.Appearance.RemovedCurves.insert(OuterSketchLabel);
+        Document.Appearance.HiddenCurves.insert(OuterSketchLabel);
+        Document.Tree.Steps.push_back(std::move(OuterSketch));
+
+        Document.Tree.Parameters.push_back({ CutterCaption + ".OuterDepth", Lift + D1, 0.001, std::max(10.0, 4.0 * (Lift + D1)), "Stage 1 depth (+collar)" });
+        FeatureStep OuterExtrude;
+        OuterExtrude.Kind        = FeatureStepKind::Extrude;
+        OuterExtrude.Label       = "Extrude#" + std::to_string(NextStepOrdinal(Document.Tree));
+        OuterExtrude.Profile     = OuterSketchLabel;
+        OuterExtrude.Extent      = ParameterValue(CutterCaption + ".OuterDepth");
+        OuterExtrude.Combination = !Document.Summary.PresentCondition && Spec.Combination == FeatureCombination::Separate ? FeatureCombination::New : FeatureCombination::Separate;
+        CutterKey                = OuterExtrude.Label;
+        Document.Captions[CutterKey] = CutterCaption;
+        Document.Tree.Steps.push_back(std::move(OuterExtrude));
+
+        const double Overlap = std::min(0.002, 0.25 * D1);
+        FeatureStep InnerSketch;
+        InnerSketch.Kind          = FeatureStepKind::Sketch;
+        InnerSketch.Label         = "Sketch#" + std::to_string(NextStepOrdinal(Document.Tree));
+        InnerSketch.FillCondition = true;
+        InnerSketch.Plane         = { Spec.Spot.Origin + Dir * (D1 - Overlap), Across, FrameY, Dir };
+        PopulateProfile(InnerSketch.Sketch, false);
+        const std::string InnerSketchLabel = InnerSketch.Label;
+        Document.Captions[InnerSketchLabel] = CutterCaption + ".Stage2Profile";
+        Document.Appearance.RemovedCurves.insert(InnerSketchLabel);
+        Document.Appearance.HiddenCurves.insert(InnerSketchLabel);
+        Document.Tree.Steps.push_back(std::move(InnerSketch));
+
+        Document.Tree.Parameters.push_back({ CutterCaption + ".InnerDepth", D2 + Overlap, 0.001, std::max(10.0, 4.0 * (D2 + Overlap)), "Stage 2 depth" });
+        FeatureStep InnerExtrude;
+        InnerExtrude.Kind        = FeatureStepKind::Extrude;
+        InnerExtrude.Label       = "Extrude#" + std::to_string(NextStepOrdinal(Document.Tree));
+        InnerExtrude.Profile     = InnerSketchLabel;
+        InnerExtrude.Extent      = ParameterValue(CutterCaption + ".InnerDepth");
+        InnerExtrude.Combination = FeatureCombination::Union;
+        InnerExtrude.Target      = CutterKey;
+        Document.Captions[InnerExtrude.Label] = CutterCaption + ".Stage2";
+        Document.Tree.Steps.push_back(std::move(InnerExtrude));
+    }
+
+    std::string ModLabel;
+    if (Spec.Combination == FeatureCombination::Separate)
+    {
+        Document.Selection          = {};
+        Document.Selection.Bodies   = { CutterKey };
+        Document.Selection.LastKind = SolidArcSelectionKind::Body;
+    }
+    else if (Live)
+    {
+        FeatureModifier Modifier;
+        Modifier.Kind              = ModifierKind::Boolean;
+        Modifier.Label             = "Boolean#" + std::to_string(NextStepOrdinal(Document.Tree));
+        Modifier.Target            = Spec.Target;
+        Modifier.Tool              = CutterKey;
+        Modifier.Combination       = Spec.Combination;
+        Modifier.OffsetAxis        = Normal;
+        Modifier.KeepToolCondition = true;
+        ModLabel                   = Modifier.Label;
+        Document.Captions[ModLabel] = Caption;
+        Document.Tree.Modifiers.push_back(std::move(Modifier));
+        Document.Appearance.LiveCutters.insert(CutterKey);
+        Document.Selection          = {};
+        Document.Selection.Bodies   = { CutterKey };
+        Document.Selection.LastKind = SolidArcSelectionKind::Body;
+    }
+    else
+    {
+        FeatureStep Combine;
+        Combine.Kind        = FeatureStepKind::Combine;
+        Combine.Label       = "Combine#" + std::to_string(NextStepOrdinal(Document.Tree));
+        Combine.Combination = Spec.Combination;
+        Combine.Target      = Spec.Target;
+        Combine.Tool        = CutterKey;
+        Combine.OffsetAxis  = Normal;
+        Document.Captions[Combine.Label] = Caption;
+        Document.Tree.Steps.push_back(std::move(Combine));
+        Document.Selection = {};
+    }
+
+    RegenerateSolidArcDocumentDeferred(Document, true);
+    if (!ModLabel.empty()) Outcome.Refusal = ModifierRefusalOf(Document, ModLabel);
+    if (Outcome.Refusal.empty())
+    {
+        for (size_t Index = Before.Tree.Steps.size(); Index < Document.Regeneration.Steps.size(); ++Index)
+            if (Document.Regeneration.Steps[Index].Status == FeatureStepStatus::Refused)
+                Outcome.Refusal = Document.Regeneration.Steps[Index].Label + ": " + Document.Regeneration.Steps[Index].Refusal;
+    }
+    if (!Outcome.Refusal.empty())
+    {
+        Restore(Document, std::move(Before));
+        Outcome.Milliseconds = ElapsedMs(Start);
+        return Outcome;
+    }
+    SummarizeSolidArcDocument(Document);
+    Document.UndoEntries.push_back(std::move(Before));
+    Document.RedoEntries.clear();
+    TrimHistoryReplay(Document);
+    Outcome.AcceptedCondition = true;
+    Outcome.Milliseconds      = ElapsedMs(Start);
     return Outcome;
 }
 
