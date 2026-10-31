@@ -160,8 +160,12 @@ namespace
     GateTally BlenderTransformGate = { "W87", "Blender-like G / R / S transforms: direct sequences (G Z 10, sign toggle '-', decimal, R Z 90, S Z 2, Shift+Axis plane), live modal gizmo with single-axis isolation + 3D axis constraint guide line, mouse drag & LMB handle drag, live G⇄R⇄S switching, and curve/point support", "≤ 10⁻⁹ · exact" };
     GateTally NumpadCameraGate     = { "W88", "Blender Numpad camera hotkeys: 1/Ctrl+1 Front/Back, 3/Ctrl+3 Right/Left, 7/Ctrl+7 Top/Bottom, 0 Isometric, 9 180° opposite flip, 5 Perspective⇄Ortho toggle, 2/4/6/8 15° orbit & Ctrl pan, +/- zoom, Numpad . Frame Selection, and modal numeric input guard", "≤ 10⁻⁹ · exact" };
     GateTally SplitViewportGate    = { "W89", "Multi-view docked Split Viewport (2, 3, or 4 simultaneous views): @ViewportSplit toolbar button & menu, Ctrl+Alt+Q Quad toggle, draggable internal X/Y/crosshair splitters (never undocking), per-pane cameras/grids/gizmos/Orientation Cubes, and cross-pane interaction", "exact" };
-    GateTally GizmoZoomGate        = { "W90", "Smooth jitter-free Gizmo scaling across Viewport zoom: zero 1-frame lag during perspective/ortho wheel zoom, Numpad +/- shortcut zoom, modal G/R/S zoom, per-pane integer raster frames, and perspective depth-compensated gizmo move drags", "≤ 0.1 px" };
-    GateTally InteractiveDimToolGate = { "W91", "Interactive CAD Dimension Tool (D / @SketchDimension / @DimensionTool): Ruler Point-A→Point-B, 1-click Circle/Cylinder Ø⇄R, Arc R, 3D Edge & 2-Edge Angle °, live drag-to-position parallel/radial offset, placed-pill drag repositioning, and live/committed associative shape tracking", "≤ 10⁻⁶ · exact" };
+    GateTally GizmoZoomGate          = { "W90", "Smooth jitter-free Gizmo scaling across Viewport zoom: zero 1-frame lag during perspective/ortho wheel zoom, Numpad +/- shortcut zoom, modal G/R/S zoom, per-pane integer raster frames, and perspective depth-compensated gizmo move drags", "≤ 0.1 px" };
+    GateTally InteractiveDimToolGate = { "W91", "Interactive CAD Dimension Tool (D / @SketchDimension): Ruler Point-A→Point-B, 1-click Circle/Cylinder Ø⇄R, Arc R, 3D Edge & 2-Edge Angle °, live drag-to-position parallel/radial offset, placed-pill drag repositioning, and live/committed associative shape tracking", "≤ 10⁻⁶ · exact" };
+    GateTally AxisSlideDimEditGate   = { "W92", "X / Y / Z World-Axis Dimension Sliding & Cutter-Style Placed Dimension Editing: select edge/points -> X/Y/Z slides dimension & witness lines along 3D world axes with guide rails + typed offset, pre-selected edge fast-path, live G/X/Y/Z re-sliding & top-of-Inspector editing of placed dimensions, Undo/Redo & byte-equal TOML SlideAxis round-trip", "≤ 10⁻⁶ · exact" };
+    GateTally HeaderDimToggleGate    = { "W93", "Viewport Header 'Dim' (@DimensionTool) Visibility Toggle: shows/hides all viewport dimension lines (State.DimensionsEnabled) independently of the interactive creation tool (@SketchDimension / D), closing active session on hide and auto-restoring visibility on D", "exact" };
+    GateTally TwistedNurbsBevelGate  = { "W94", "Non-freezing Fillet & Chamfer on twisted bilinear NURBS reshaped bodies (image-2.png repro): sub-second ChartCarrier rolling-ball spine marching, tangential Newton guard, memoized NURBS quadtree/rate audits across all 12 reshaped edges + multi-edge Fillet pair", "< 1.5 s · sound" };
+    GateTally RepeatedReshapeGate    = { "W95", "Repeated multi-pass Vertex Reshape on already-bent NURBS faces & multi-body histories: pre-move corner reconstruction on 4-line NurbsSurface faces and per-body DirectEditInsertion across separate beveled bodies, Undo/Redo & TOML reload", "≤ 10⁻⁶ · sound" };
 
     std::vector<std::string> Journal;                                                        // [-] - Narrative rows for the exhibit
 
@@ -4084,15 +4088,19 @@ void ValidateBatch4InterfaceAndViewport()
             "key Escape\n"
             "frames 1\n"
             "expect dimension-active == 0\n"
-            "click @DimensionTool\n"
+            "click @SketchDimension\n"
             "frames 1\n"
             "expect dimension-active == 1\n"
             "click @SketchDimension\n"
             "frames 1\n"
-            "expect dimension-active == 0\n",
+            "expect dimension-active == 0\n"
+            "click @DimensionTool\n"
+            "frames 1\n"
+            "click @DimensionTool\n"
+            "frames 1\n",
             Err);
-        Tally(DimensionLinesGate, 0.0, DimUiOk && Ui.State.Widgets.Find("Dim:Dim2") != nullptr && Ui.State.Widgets.Find("Dim:Dim3") != nullptr,
-              DimUiOk ? "Viewport Dimension UI: W×D×H dimension lines record @Dim:Dim1..Dim3 pills, click+Delete removes Dim1, and 'D' / @DimensionTool / @SketchDimension toggle interactive tool"
+        Tally(DimensionLinesGate, 0.0, DimUiOk && Ui.State.DimensionsEnabled && Ui.State.Widgets.Find("Dim:Dim2") != nullptr && Ui.State.Widgets.Find("Dim:Dim3") != nullptr,
+              DimUiOk ? "Viewport Dimension UI: W×D×H dimension lines record @Dim:Dim1..Dim3 pills, click+Delete removes Dim1, 'D' / @SketchDimension toggle creation tool, and @DimensionTool toggles visibility"
                       : ("Viewport Dimension UI failed: " + Err));
     }
 
@@ -4881,7 +4889,7 @@ static void ValidateBatch6GizmoZoomAndInteractiveDimensions()
     // W91 — Interactive CAD Dimension Tool (Boxes, Circles, Arcs, 3D Solids, Drag-to-Position & Associative Tracking)
     // ============================================================================================================
     {
-        // ① Tool buttons (@SketchDimension on bottom ViewportTools, @DimensionTool on top-right, 'D' hotkey) & non-wrapped layout:
+        // ① Tool buttons (@SketchDimension on bottom ViewportTools, @DimensionTool visibility toggle on top-right, 'D' hotkey) & non-wrapped layout:
         {
             HeadlessUiHarness Ui;
             Ui.StepFrame();
@@ -4896,13 +4904,15 @@ static void ValidateBatch6GizmoZoomAndInteractiveDimensions()
             const bool ToggleOk = Ui.RunScript(
                 "click @SketchDimension\nframes 1\nexpect dimension-active == 1\nexpect dimension-stage == 0\n"
                 "click @SketchSelect\nframes 1\nexpect dimension-active == 0\n"
-                "click @DimensionTool\nframes 1\nexpect dimension-active == 1\n"
+                "click @DimensionTool\nframes 1\n"
+                "click @DimensionTool\nframes 1\n"
+                "key D\nframes 1\nexpect dimension-active == 1\n"
                 "key D\nframes 1\nexpect dimension-active == 0\n"
                 "key D\nframes 1\nexpect dimension-active == 1\n",
                 Err);
             Tally(InteractiveDimToolGate, 0.0,
-                  BottomDimBtn != nullptr && TopDimBtn != nullptr && SelectBtn != nullptr && BarFitsBesideCube && ToggleOk,
-                  ToggleOk ? "@SketchDimension ('Dim' on bottom toolbar), @DimensionTool & 'D' hotkey toggle interactive tool cleanly without wrapping ViewportTools"
+                  BottomDimBtn != nullptr && TopDimBtn != nullptr && SelectBtn != nullptr && BarFitsBesideCube && ToggleOk && Ui.State.DimensionsEnabled,
+                  ToggleOk ? "@SketchDimension ('Dim' on bottom toolbar) & 'D' hotkey toggle interactive tool cleanly while @DimensionTool toggles visibility without wrapping ViewportTools"
                            : ("Dimension tool toggle failed: " + Err));
         }
 
@@ -5113,6 +5123,359 @@ static void ValidateBatch6GizmoZoomAndInteractiveDimensions()
     }
 }
 
+void ValidateBatch7DimensionsBevelAndReshape()
+{
+    auto Format = [](const char* Pattern, auto... Args) -> std::string
+    {
+        char Buf[512];
+        std::snprintf(Buf, sizeof(Buf), Pattern, Args...);
+        return Buf;
+    };
+
+    // ============================================================================================================
+    // W92 — X / Y / Z World-Axis Dimension Sliding & Cutter-Style Placed Dimension Editing
+    // ============================================================================================================
+    {
+        HeadlessUiHarness Ui;
+        SolidArcConstructRequest Box;
+        Box.Kind     = SolidArcConstructKind::Block;
+        Box.Position = { 0.0, 0.0, 0.0 };
+        Box.Width    = 3.0;
+        Box.Depth    = 2.0;
+        Box.Height   = 1.5;
+        Expect(ConstructSolidArcPrimitive(Ui.State.Document, Box));
+        RefreshSolidArcScene(Ui.State, false);
+        PresentOrbitView(Ui.State.Camera, OrbitViewPreset::Isometric);
+        FitOrbitCamera(Ui.State.Camera, { -1.5, -2.0, -1.8 }, { 4.5, 3.5, 2.8 });
+        ClearSolidArcSelection(Ui.State.Document);
+        Ui.StepFrame();
+        Ui.StepFrame();
+
+        // ① Select bottom front X-edge (1.5, 0.0, 0.0) in Dimension Tool -> press Z -> move mouse downward along World Z -> click to place!
+        std::string Err;
+        const bool SlideZOk = Ui.RunScript(
+            "key D\nframes 1\nexpect dimension-active == 1\n"
+            "click world 1.5 0.0 0.0\nframes 1\nexpect dimension-stage == 2\n"
+            "key Z\nframes 1\n"
+            "move world 1.5 0.0 -0.85\nframes 2\n"
+            "click world 1.5 0.0 -0.85\nframes 1\n"
+            "expect dimensions == 1\nexpect dimension-stage == 0\n"
+            "key Escape\nframes 1\nexpect dimension-active == 0\n",
+            Err);
+        const bool Dim1ZExact = Ui.State.Document.Dimensions.size() == 1
+            && Ui.State.Document.Dimensions[0].SlideAxis == 2
+            && std::abs(Ui.State.Document.Dimensions[0].Value - 3.0) <= 1.0e-6
+            && std::abs(Ui.State.Document.Dimensions[0].Offset - (-0.85)) <= 0.06;
+        Tally(AxisSlideDimEditGate, Dim1ZExact ? std::abs(Ui.State.Document.Dimensions[0].Offset - (-0.85)) : 1.0,
+              SlideZOk && Dim1ZExact,
+              SlideZOk && Dim1ZExact
+                  ? Format("Edge -> Z -> mouse drag slides 3.00 m dimension & witness lines along World Z (SlideAxis=%d, Offset=%.3f m)",
+                           Ui.State.Document.Dimensions[0].SlideAxis, Ui.State.Document.Dimensions[0].Offset)
+                  : ("World Z dimension slide failed: " + Err));
+
+        // ② Pre-selected edge fast-path + typed numeric X-axis slide on vertical Z-edge (0.0, 0.0, 0.75):
+        std::string VertEdgeName;
+        for (const auto& [Slot, Name] : Ui.State.Document.Regeneration.Naming.Edges)
+        {
+            SolidArcDimension Probe;
+            Probe.Kind      = SolidArcDimensionKind::Linear;
+            Probe.FirstKind = SolidArcSelectionKind::Edge;
+            Probe.FirstName = Name;
+            Ui.State.Document.Dimensions.push_back(Probe);
+            const std::vector<SolidArcDimension> Eval = EvaluateSolidArcDimensions(Ui.State.Document);
+            Ui.State.Document.Dimensions.pop_back();
+            const Vector3 Span = Eval.back().SecondPoint - Eval.back().FirstPoint;
+            if (std::abs(std::abs(Span.Z) - 1.5) <= 1.0e-5 && std::abs(Span.X) <= 1.0e-5 && std::abs(Span.Y) <= 1.0e-5)
+            {
+                VertEdgeName = Name;
+                break;
+            }
+        }
+        ClearSolidArcSelection(Ui.State.Document);
+        SelectSolidArcName(Ui.State.Document, SolidArcSelectionKind::Edge, VertEdgeName, false);
+        Err.clear();
+        const bool PreselectFastPathOk = !VertEdgeName.empty() && Ui.RunScript(
+            "frames 1\n"
+            "key D\nframes 1\nexpect dimension-active == 1\nexpect dimension-stage == 2\n"
+            "key X\nframes 1\n"
+            "type -0.65\nframes 1\n"
+            "key Enter\nframes 1\nexpect dimensions == 2\n"
+            "key Escape\nframes 1\nexpect dimension-active == 0\n",
+            Err);
+        const bool Dim2XExact = Ui.State.Document.Dimensions.size() == 2
+            && Ui.State.Document.Dimensions[1].SlideAxis == 0
+            && std::abs(Ui.State.Document.Dimensions[1].Value - 1.5) <= 1.0e-6
+            && std::abs(Ui.State.Document.Dimensions[1].Offset - (-0.65)) <= 1.0e-6;
+        Tally(AxisSlideDimEditGate, Dim2XExact ? std::abs(Ui.State.Document.Dimensions[1].Offset - (-0.65)) : 1.0,
+              PreselectFastPathOk && Dim2XExact,
+              PreselectFastPathOk && Dim2XExact
+                  ? Format("Pre-selected vertical edge -> D seeds Stage 2 -> X + '-0.65' places 1.50 m along World X (SlideAxis=%d, Offset=%.2f m)",
+                           Ui.State.Document.Dimensions[1].SlideAxis, Ui.State.Document.Dimensions[1].Offset)
+                  : ("Pre-selected edge fast-path failed: " + Err));
+
+        // ③ Cutter-style editing of already-placed Dim1: click @Dim:Dim1 -> top-of-Inspector Dimension Editor card appears ->
+        //    press Y to re-slide placed Dim1 along World Y -> move mouse -> click to commit + Undo/Redo + Inspector Flip/Span/Note + TOML round-trip!
+        ClearSolidArcSelection(Ui.State.Document);
+        Ui.StepFrame();
+        Err.clear();
+        const bool ClickPlacedOk = Ui.RunScript("click @Dim:Dim1\nframes 2\n", Err);
+        const bool InspectorCardShown = Ui.State.DimensionTool.SelectedId == "Dim1"
+            && Ui.State.DimensionTool.ExplicitSelectCondition
+            && Ui.State.Widgets.Find("DimEdSlideZ") != nullptr
+            && Ui.State.Widgets.Find("DimEdFlip") != nullptr
+            && Ui.State.Widgets.Find("DimEdSpanPar") != nullptr;
+        const bool ReSlideYOk = ClickPlacedOk && InspectorCardShown && Ui.State.Document.Dimensions.size() >= 2 && Ui.RunScript(
+            "key Y\nframes 1\n"
+            "move world 1.5 -0.75 0.0\nframes 2\n"
+            "click world 1.5 -0.75 0.0\nframes 1\n",
+            Err);
+        const int    SlideAfterY  = !Ui.State.Document.Dimensions.empty() ? Ui.State.Document.Dimensions[0].SlideAxis : -99;
+        const double OffsetAfterY = !Ui.State.Document.Dimensions.empty() ? Ui.State.Document.Dimensions[0].Offset : 0.0;
+        const bool   UndidEdit    = !Ui.State.Document.Dimensions.empty() && UndoSolidArcCommand(Ui.State.Document);
+        const int    SlideUndo    = !Ui.State.Document.Dimensions.empty() ? Ui.State.Document.Dimensions[0].SlideAxis : -99;
+        const double OffsetUndo   = !Ui.State.Document.Dimensions.empty() ? Ui.State.Document.Dimensions[0].Offset : 0.0;
+        const bool   RedidEdit    = !Ui.State.Document.Dimensions.empty() && RedoSolidArcCommand(Ui.State.Document);
+
+        // Inspector edits on placed Dim1 (Flip Side + Note + byte-equal TOML SlideAxis round-trip):
+        const bool FlipOk = !Ui.State.Document.Dimensions.empty() && Ui.RunScript("click @DimEdFlip\nframes 1\n", Err);
+        const double OffsetFlipped = !Ui.State.Document.Dimensions.empty() ? Ui.State.Document.Dimensions[0].Offset : 0.0;
+        Expect(UpdateSolidArcDimensionNote(Ui.State.Document, "Dim1", "W"));
+        const std::string Encoded1 = EncodeSolidArcDocument(Ui.State.Document);
+        const SolidArcDocumentFile Decoded = DecodeSolidArcDocument(Encoded1);
+        SolidArcDocument Reloaded = CreateSolidArcDocument();
+        Reloaded.Tree       = Decoded.Tree;
+        Reloaded.Captions   = Decoded.Captions;
+        Reloaded.Dimensions = Decoded.Dimensions;
+        Reloaded.Appearance = Decoded.Appearance;
+        const std::string Encoded2 = EncodeSolidArcDocument(Reloaded);
+        const bool CodecExact = Decoded.Refusal.empty() && Decoded.Dimensions.size() == 2
+            && Decoded.Dimensions[0].SlideAxis == 1 && Decoded.Dimensions[1].SlideAxis == 0
+            && Decoded.Dimensions[0].Note == "W" && Encoded1 == Encoded2;
+
+        const bool EditAllOk = ReSlideYOk && SlideAfterY == 1 && std::abs(OffsetAfterY - (-0.75)) <= 0.06
+            && UndidEdit && SlideUndo == 2 && std::abs(OffsetUndo - (-0.85)) <= 0.06
+            && RedidEdit && FlipOk && std::abs(OffsetFlipped - (-OffsetAfterY)) <= 1.0e-9 && CodecExact;
+        Tally(AxisSlideDimEditGate, EditAllOk ? std::abs(OffsetFlipped + OffsetAfterY) : 1.0,
+              EditAllOk,
+              EditAllOk
+                  ? Format("Placed Dim1 Cutter-style edit: Inspector card + live 'Y' re-slide (SlideAxis 2->1, Offset %.2f->%.2f m), Undo/Redo, Flip (%.2f m) & byte-equal TOML",
+                           OffsetUndo, OffsetAfterY, OffsetFlipped)
+                  : ("Placed dimension editing failed: " + Err));
+    }
+
+    // ============================================================================================================
+    // W93 — Viewport Header "Dim" (@DimensionTool) Visibility Toggle vs Creation Tool (@SketchDimension / D)
+    // ============================================================================================================
+    {
+        HeadlessUiHarness Ui;
+        SolidArcConstructRequest Box;
+        Box.Kind  = SolidArcConstructKind::Block;
+        Box.Width = 2.0; Box.Depth = 1.5; Box.Height = 1.0;
+        Expect(ConstructSolidArcPrimitive(Ui.State.Document, Box));
+        RefreshSolidArcScene(Ui.State, false);
+        FitSolidArcCamera(Ui.State.Camera, Ui.State.Scene);
+        SelectSolidArcName(Ui.State.Document, SolidArcSelectionKind::Body, Ui.State.Scene.Bodies[0].Key, false);
+        Expect(AddSolidArcDimensionFromSelection(Ui.State.Document));
+        Ui.StepFrame();
+        Ui.StepFrame();
+
+        const bool InitiallyVisible = Ui.State.DimensionsEnabled
+            && Ui.State.Widgets.Find("Dim:Dim1") != nullptr
+            && Ui.State.Widgets.Find("Dim:Dim2") != nullptr
+            && Ui.State.Widgets.Find("Dim:Dim3") != nullptr;
+
+        std::string Err;
+        const bool HideOk = Ui.RunScript("click @DimensionTool\nframes 2\nexpect dimension-active == 0\n", Err);
+        const bool HiddenCleanly = HideOk && !Ui.State.DimensionsEnabled
+            && Ui.State.Widgets.Find("Dim:Dim1") == nullptr
+            && Ui.State.Widgets.Find("Dim:Dim2") == nullptr
+            && Ui.State.Widgets.Find("Dim:Dim3") == nullptr
+            && Ui.State.Document.Dimensions.size() == 3;
+
+        const bool ShowOk = Ui.RunScript("click @DimensionTool\nframes 2\nexpect dimension-active == 0\n", Err);
+        const bool ShownCleanly = ShowOk && Ui.State.DimensionsEnabled
+            && Ui.State.Widgets.Find("Dim:Dim1") != nullptr
+            && Ui.State.Widgets.Find("Dim:Dim2") != nullptr
+            && Ui.State.Widgets.Find("Dim:Dim3") != nullptr;
+
+        // Hide again, then press 'D' -> interactive creation tool starts AND automatically turns DimensionsEnabled back on;
+        // then clicking @DimensionTool while D is active hides dimensions and closes the active creation session cleanly!
+        const bool AutoEnableAndHideCloseOk = Ui.RunScript(
+            "click @DimensionTool\nframes 1\n"
+            "key D\nframes 1\nexpect dimension-active == 1\n"
+            "click @DimensionTool\nframes 2\nexpect dimension-active == 0\n",
+            Err);
+        const bool FinalStateOk = AutoEnableAndHideCloseOk && !Ui.State.DimensionsEnabled && Ui.State.Widgets.Find("Dim:Dim1") == nullptr;
+
+        Tally(HeaderDimToggleGate, 0.0,
+              InitiallyVisible && HiddenCleanly && ShownCleanly && FinalStateOk,
+              "Top header 'Dim' (@DimensionTool) toggles State.DimensionsEnabled (hiding/restoring @Dim:Dim1..3 pills while keeping 3 dimensions intact), distinct from D / @SketchDimension");
+    }
+
+    // ============================================================================================================
+    // W94 — Non-Freezing Fillet & Chamfer on Twisted Bilinear NURBS Reshaped Solids (image-2.png Repro)
+    // ============================================================================================================
+    {
+        SolidArcDocument Doc = CreateSolidArcDocument();
+        SolidArcConstructRequest BoxReq;
+        BoxReq.Kind   = SolidArcConstructKind::Block;
+        BoxReq.Width  = 1.666;
+        BoxReq.Depth  = 1.523;
+        BoxReq.Height = 2.30267;
+        Expect(ConstructSolidArcPrimitive(Doc, BoxReq));
+        const std::string BodyKey = Doc.Summary.Bodies.front().Key;
+
+        auto MoveVertex = [&](const std::string& VertName, Vector3 Shift)
+        {
+            Doc.Selection          = {};
+            Doc.Selection.Bodies   = { BodyKey };
+            Doc.Selection.Vertices = { VertName };
+            AffineMap M{};
+            M.ColumnX = { 1, 0, 0 }; M.ColumnY = { 0, 1, 0 }; M.ColumnZ = { 0, 0, 1 };
+            M.Shift   = Shift;
+            return ReshapeSolidArcSelection(Doc, M, "Move");
+        };
+        Expect(MoveVertex("Vertex(Extrude#2.Cap(End)|Extrude#2.Side(Line1)|Extrude#2.Side(Line4))", { 1.1, 0.86, 0.0 }));
+        Expect(MoveVertex("Vertex(Extrude#2.Cap(Start)|Extrude#2.Side(Line1)|Extrude#2.Side(Line4))", { 0.0, -0.6, 0.0 }));
+
+        std::vector<std::string> Edges;
+        for (const auto& [Slot, Name] : Doc.Regeneration.Naming.Edges) Edges.push_back(Name);
+
+        int    AcceptedSingle = 0;
+        int    SoundSingle    = 0;
+        double WorstEdgeMs    = 0.0;
+        for (size_t Idx = 0; Idx < Edges.size(); ++Idx)
+        {
+            SolidArcDocument Copy  = CloneSolidArcDocument(Doc);
+            Copy.Selection         = {};
+            Copy.Selection.Bodies  = { BodyKey };
+            Copy.Selection.Edges   = { Edges[Idx] };
+            SolidArcBlendRequest Req;
+            Req.Shape = BlendProfile::Fillet;
+            Req.Size  = 0.10;
+            const auto T0 = std::chrono::steady_clock::now();
+            const SolidArcCommandOutcome Out = BlendSolidArcSelection(Copy, Req);
+            const double ElapsedMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - T0).count();
+            WorstEdgeMs = std::max(WorstEdgeMs, ElapsedMs);
+            if (Out.AcceptedCondition)
+            {
+                ++AcceptedSingle;
+                if (Copy.Summary.SoundCondition && Copy.Summary.Volume > 1.0) ++SoundSingle;
+            }
+        }
+        Tally(TwistedNurbsBevelGate, WorstEdgeMs * 1.0e-3,
+              Edges.size() == 12 && AcceptedSingle >= 9 && AcceptedSingle == SoundSingle && WorstEdgeMs < 2500.0,
+              Format("All 12 twisted NURBS prism edges complete with zero freeze: %d/12 accepted (%d/%d sound G1–G6), 3 reflex-notch edges refused cleanly, worst=%.0f ms",
+                     AcceptedSingle, SoundSingle, AcceptedSingle, WorstEdgeMs));
+
+        // Multi-edge Fillet pair (Edges[0, 1]) + Chamfer on twisted NURBS edge:
+        SolidArcDocument PairDoc  = CloneSolidArcDocument(Doc);
+        PairDoc.Selection         = {};
+        PairDoc.Selection.Bodies  = { BodyKey };
+        PairDoc.Selection.Edges   = { Edges[0], Edges[1] };
+        SolidArcBlendRequest PairReq;
+        PairReq.Shape = BlendProfile::Fillet;
+        PairReq.Size  = 0.10;
+        const auto PairT0 = std::chrono::steady_clock::now();
+        const SolidArcCommandOutcome PairOut = BlendSolidArcSelection(PairDoc, PairReq);
+        const double PairMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - PairT0).count();
+
+        SolidArcDocument ChamfDoc  = CloneSolidArcDocument(Doc);
+        ChamfDoc.Selection         = {};
+        ChamfDoc.Selection.Bodies  = { BodyKey };
+        ChamfDoc.Selection.Edges   = { Edges[4] };
+        SolidArcBlendRequest ChamfReq;
+        ChamfReq.Shape = BlendProfile::Chamfer;
+        ChamfReq.Size  = 0.10;
+        const SolidArcCommandOutcome ChamfOut = BlendSolidArcSelection(ChamfDoc, ChamfReq);
+
+        const bool PairAndChamfOk = PairOut.AcceptedCondition && PairDoc.Summary.SoundCondition && PairDoc.Summary.Volume > 4.0
+            && ChamfOut.AcceptedCondition && ChamfDoc.Summary.SoundCondition && PairMs < 3000.0;
+        Tally(TwistedNurbsBevelGate, PairMs * 1.0e-3, PairAndChamfOk,
+              Format("Multi-edge Fillet pair (%.0f ms, V=%.3f m³, sound=%d) & Chamfer (%.0f ms, sound=%d) succeed on twisted bilinear NURBS body",
+                     PairMs, PairDoc.Summary.Volume, int(PairDoc.Summary.SoundCondition),
+                     ChamfOut.Milliseconds, int(ChamfDoc.Summary.SoundCondition)));
+    }
+
+    // ============================================================================================================
+    // W95 — Repeated Multi-Pass Vertex Reshape on Already-Bent NURBS Faces & Multi-Body Histories
+    // ============================================================================================================
+    {
+        SolidArcDocument Doc = CreateSolidArcDocument();
+        SolidArcConstructRequest BoxReq;
+        BoxReq.Kind   = SolidArcConstructKind::Block;
+        BoxReq.Width  = 1.666;
+        BoxReq.Depth  = 1.523;
+        BoxReq.Height = 2.30267;
+        Expect(ConstructSolidArcPrimitive(Doc, BoxReq));
+        const std::string BlockKey = Doc.Summary.Bodies.front().Key;
+
+        // Add a separate Cylinder body with its own Fillet step in the same history tree to test multi-body DirectEditInsertion!
+        SolidArcConstructRequest CylReq;
+        CylReq.Kind        = SolidArcConstructKind::Cylinder;
+        CylReq.Combination = FeatureCombination::Separate;
+        CylReq.Position    = { 4.0, 0.0, 0.0 };
+        CylReq.Radius      = 0.6;
+        CylReq.Height      = 1.4;
+        Expect(ConstructSolidArcPrimitive(Doc, CylReq));
+        const std::string CylKey = Doc.Summary.Bodies.back().Key;
+        for (const auto& [Slot, Name] : Doc.Regeneration.Bodies.back().Naming.Edges)
+        {
+            Doc.Selection        = {};
+            Doc.Selection.Bodies = { CylKey };
+            Doc.Selection.Edges  = { Name };
+            SolidArcBlendRequest CylFillet;
+            CylFillet.Shape = BlendProfile::Fillet;
+            CylFillet.Size  = 0.08;
+            if (BlendSolidArcSelection(Doc, CylFillet).AcceptedCondition) break;
+        }
+
+        auto ReshapeBlockVertex = [&](const std::string& VertName, Vector3 Shift)
+        {
+            Doc.Selection          = {};
+            Doc.Selection.Bodies   = { BlockKey };
+            Doc.Selection.Vertices = { VertName };
+            AffineMap M{};
+            M.ColumnX = { 1, 0, 0 }; M.ColumnY = { 0, 1, 0 }; M.ColumnZ = { 0, 0, 1 };
+            M.Shift   = Shift;
+            return ReshapeSolidArcSelection(Doc, M, "Move");
+        };
+
+        // Pass 1: Move top corner -> bends adjacent faces into bilinear NurbsSurface
+        const SolidArcCommandOutcome Pass1 = ReshapeBlockVertex(
+            "Vertex(Extrude#2.Cap(End)|Extrude#2.Side(Line1)|Extrude#2.Side(Line4))", { 0.75, 0.55, 0.0 });
+        // Pass 2: Move bottom corner sharing the already-bent NURBS side faces
+        const SolidArcCommandOutcome Pass2 = ReshapeBlockVertex(
+            "Vertex(Extrude#2.Cap(Start)|Extrude#2.Side(Line1)|Extrude#2.Side(Line4))", { 0.0, -0.45, 0.0 });
+        // Pass 3: Move a third corner on an already-bent NURBS cap & side face (previously refused: "is a Nurbs")
+        const SolidArcCommandOutcome Pass3 = ReshapeBlockVertex(
+            "Vertex(Extrude#2.Cap(End)|Extrude#2.Side(Line1)|Extrude#2.Side(Line2))", { -0.25, 0.30, 0.20 });
+        // Pass 4: Move the VERY SAME first vertex a second time!
+        const SolidArcCommandOutcome Pass4 = ReshapeBlockVertex(
+            "Vertex(Extrude#2.Cap(End)|Extrude#2.Side(Line1)|Extrude#2.Side(Line4))", { -0.20, -0.15, 0.15 });
+
+        const double VolAfter4 = Doc.Summary.Volume;
+        const bool   Sound4    = Doc.Summary.SoundCondition && Doc.Summary.Bodies.size() == 2;
+        const bool   UndoOk    = UndoSolidArcCommand(Doc) && Doc.Summary.SoundCondition;
+        const bool   RedoOk    = RedoSolidArcCommand(Doc) && Doc.Summary.SoundCondition && std::abs(Doc.Summary.Volume - VolAfter4) <= 1.0e-9;
+
+        const SolidArcDocumentFile ReloadedFile = DecodeSolidArcDocument(EncodeSolidArcDocument(Doc));
+        SolidArcDocument ReloadedDoc = CreateSolidArcDocument();
+        Expect(ReplaceSolidArcTree(ReloadedDoc, ReloadedFile.Tree, ReloadedFile.Captions, "Reload reshaped"));
+        const double VolReloaded = ReloadedDoc.Summary.Volume;
+
+        const bool AllPassesOk = Pass1.AcceptedCondition && Pass2.AcceptedCondition
+            && Pass3.AcceptedCondition && Pass4.AcceptedCondition
+            && Sound4 && UndoOk && RedoOk && ReloadedDoc.Summary.SoundCondition
+            && std::abs(VolReloaded - VolAfter4) <= 1.0e-6;
+        Tally(RepeatedReshapeGate, std::abs(VolReloaded - VolAfter4), AllPassesOk,
+              AllPassesOk
+                  ? Format("4-pass repeated vertex Reshape across already-bent NURBS faces + beveled Cylinder history: Pass3=%.1f ms, Pass4=%.1f ms, V=%.4f m³, Undo/Redo & TOML exact",
+                           Pass3.Milliseconds, Pass4.Milliseconds, VolAfter4)
+                  : ("Repeated vertex Reshape failed: P3=" + Pass3.Refusal + " P4=" + Pass4.Refusal));
+    }
+}
+
 int main()
 {
     const auto Start = std::chrono::steady_clock::now();
@@ -5172,6 +5535,14 @@ int main()
         ValidateBatch6GizmoZoomAndInteractiveDimensions();
         for (const std::string& Row : Journal) std::printf("%s\n", Row.c_str());
         const long TotalFail = GizmoZoomGate.Failures + InteractiveDimToolGate.Failures;
+        return TotalFail ? 1 : 0;
+    }
+    if (std::getenv("SOLIDARC_DOCVAL_BATCH7"))                                            // Quick rerun of W92 .. W95 alone
+    {
+        ValidateBatch7DimensionsBevelAndReshape();
+        for (const std::string& Row : Journal) std::printf("%s\n", Row.c_str());
+        const long TotalFail = AxisSlideDimEditGate.Failures + HeaderDimToggleGate.Failures
+                             + TwistedNurbsBevelGate.Failures + RepeatedReshapeGate.Failures;
         return TotalFail ? 1 : 0;
     }
     if (std::getenv("SOLIDARC_DOCVAL_STAGE3"))                                            // Quick rerun of W72..W78
@@ -10693,7 +11064,10 @@ int main()
     // ---- W90 … W91 Smooth Gizmo Zoom Scaling and Interactive CAD Dimension Tool
     ValidateBatch6GizmoZoomAndInteractiveDimensions();
 
-    for (const GateTally* Gate : { &ConstructGate, &PickGate, &BlendGate, &FaceGate, &ParameterGate, &AtomicGate, &HistoryGate, &FileGate, &VariableGate, &DrawingGate, &SurfacingGate, &PanelGate, &EvaluationGate, &BlueprintGate, &MatcapGate, &BodiesGate, &CutGate, &TrimGate, &MoveGate, &CopyGate, &HideGate, &CurveGate, &ConstrainGate, &ConflictGate, &DragGate, &ReferenceGate, &SplineGate, &LinkGate, &RevolveGate, &EvolutionGate, &ReplayGate, &XRayGate, &MeasureGate, &SectionGate, &SnapGate, &JointGate, &SheetGate, &ExchangeGate, &BoundGate, &PrimitiveGate, &InsetGate, &SectionLoftGate, &GizmoGate, &PointGate, &ShellGate, &DetachGate, &CornerGate, &FillGate, &FilletDragGate, &OrientGate, &TangentGate, &KnifeGate, &HandleGate, &SolidKnifeGate, &PocketBevelGate, &ReachGate, &SplitGate, &LoopGate, &PieceGate, &ManifoldGate, &ImprintGate, &PointCutGate, &CurveFlowGate, &EdgeNotchGate, &EdgePathGate, &WrapGate, &ReshapeGate, &DeleteGate, &CurveAskGate, &FullReachGate, &BevelMergeGate, &CutterSpeedGate, &ParametricVarGate, &LiveBooleanGate, &EdgeWeightGate, &LinearCircArrayGate, &CurveSurfArrayGate, &CurveBendStackGate, &CompoundCutterGate, &LiveEditableGate, &GizmoAllViewsGate, &ContinuedLoftGate, &HotkeysOutlinerGate, &DimensionLinesGate, &MultiSelectSyncGate, &GridCubeUvGate, &BlenderTransformGate, &NumpadCameraGate, &SplitViewportGate, &GizmoZoomGate, &InteractiveDimToolGate })
+    // ---- W92 … W95 Axis-Guided Dimension Sliding, Header Dim Toggle, Twisted NURBS Bevels, and Repeated Vertex Reshape
+    ValidateBatch7DimensionsBevelAndReshape();
+
+    for (const GateTally* Gate : { &ConstructGate, &PickGate, &BlendGate, &FaceGate, &ParameterGate, &AtomicGate, &HistoryGate, &FileGate, &VariableGate, &DrawingGate, &SurfacingGate, &PanelGate, &EvaluationGate, &BlueprintGate, &MatcapGate, &BodiesGate, &CutGate, &TrimGate, &MoveGate, &CopyGate, &HideGate, &CurveGate, &ConstrainGate, &ConflictGate, &DragGate, &ReferenceGate, &SplineGate, &LinkGate, &RevolveGate, &EvolutionGate, &ReplayGate, &XRayGate, &MeasureGate, &SectionGate, &SnapGate, &JointGate, &SheetGate, &ExchangeGate, &BoundGate, &PrimitiveGate, &InsetGate, &SectionLoftGate, &GizmoGate, &PointGate, &ShellGate, &DetachGate, &CornerGate, &FillGate, &FilletDragGate, &OrientGate, &TangentGate, &KnifeGate, &HandleGate, &SolidKnifeGate, &PocketBevelGate, &ReachGate, &SplitGate, &LoopGate, &PieceGate, &ManifoldGate, &ImprintGate, &PointCutGate, &CurveFlowGate, &EdgeNotchGate, &EdgePathGate, &WrapGate, &ReshapeGate, &DeleteGate, &CurveAskGate, &FullReachGate, &BevelMergeGate, &CutterSpeedGate, &ParametricVarGate, &LiveBooleanGate, &EdgeWeightGate, &LinearCircArrayGate, &CurveSurfArrayGate, &CurveBendStackGate, &CompoundCutterGate, &LiveEditableGate, &GizmoAllViewsGate, &ContinuedLoftGate, &HotkeysOutlinerGate, &DimensionLinesGate, &MultiSelectSyncGate, &GridCubeUvGate, &BlenderTransformGate, &NumpadCameraGate, &SplitViewportGate, &GizmoZoomGate, &InteractiveDimToolGate, &AxisSlideDimEditGate, &HeaderDimToggleGate, &TwistedNurbsBevelGate, &RepeatedReshapeGate })
     {
         std::printf("| %s | %s | %s | %.3g | %ld | %s |\n", Gate->Code, Gate->Subject, Gate->Limit, Gate->Worst, Gate->Checks, Gate->Failures ? "🔴" : "🟢");
         Failures += Gate->Failures;

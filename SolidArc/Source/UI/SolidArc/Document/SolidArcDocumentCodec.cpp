@@ -730,6 +730,7 @@ std::string EncodeSolidArcDocument(const SolidArcDocument& Document)
                                { "Offset", Dim.Offset },
                                { "Value", Dim.Value },
                                { "AxisFilter", static_cast<int64_t>(Dim.AxisFilter) },
+                               { "SlideAxis", static_cast<int64_t>(Dim.SlideAxis) },
                                { "Visible", Dim.VisibleCondition },
                                { "Note", Dim.Note } };
             Dimensions.push_back(std::move(Table));
@@ -991,6 +992,7 @@ SolidArcDocumentFile DecodeSolidArcDocument(const std::string& Text)
             Dim.Offset           = View["Offset"].value_or(0.35);
             Dim.Value            = View["Value"].value_or(0.0);
             Dim.AxisFilter       = static_cast<int>(View["AxisFilter"].value_or(int64_t{ -1 }));
+            Dim.SlideAxis        = static_cast<int>(std::clamp<int64_t>(View["SlideAxis"].value_or(int64_t{ -1 }), -1, 2));
             Dim.VisibleCondition = View["Visible"].value_or(true);
             Dim.Note             = View["Note"].value_or(std::string{});
             File.Dimensions.push_back(std::move(Dim));

@@ -692,16 +692,23 @@ struct SolidArcDimensionSession
     double                                      Radius              = 0.0;                   // [len] - Circle / arc radius during Stage 2 preview
     double                                      Offset              = 0.35;                  // [len] - Parallel witness offset or radial leader extension
     int                                         AxisFilter          = -1;                    // [-]   - -1 parallel/aligned, 0 dX, 1 dY, 2 dZ
+    int                                         SlideAxis           = -1;                    // [-]   - -1 plane-perpendicular, 0 slide X, 1 slide Y, 2 slide Z
+    std::string                                 TypedOffset         = {};                    // [-]   - Optional typed numeric slide offset
+    float                                       TypedMouseX         = 0.0f;                  // [px]  - Cursor X when numeric typing locked offset
+    float                                       TypedMouseY         = 0.0f;                  // [px]  - Cursor Y when numeric typing locked offset
     std::vector<GeometryProcessing::Vector3>    HoverHighlight      = {};                    // [len] - Hovered circle / arc / edge preview polyline
     std::string                                 HoverBadge          = {};                    // [-]   - Hover snap badge ("Corner", "Circle Ø", "Arc R", …)
     float                                       Stage2PressX        = 0.0f;                  // [px]  - Screen X where Stage 2 began
     float                                       Stage2PressY        = 0.0f;                  // [px]  - Screen Y where Stage 2 began
     bool                                        Stage2HoldCondition = false;                 // [-]   - LMB held from Stage 2 entry (drag-release places)
     std::string                                 SelectedId          = {};                    // [-]   - Selected dimension ID
-    std::string                                 DraggingId          = {};                    // [-]   - Dimension ID being dragged in viewport
-    double                                      DragLiveOffset      = 0.0;                   // [len] - Live dragged offset before release commit
+    bool                                        ExplicitSelectCondition = false;             // [-]   - SelectedId chosen explicitly in viewport/Inspector
+    std::string                                 DraggingId          = {};                    // [-]   - Dimension ID being LMB-dragged in viewport
+    std::string                                 EditingId           = {};                    // [-]   - Placed dimension ID in modal Cutter/G/X/Y/Z slide mode
+    double                                      DragLiveOffset      = 0.0;                   // [len] - Live dragged offset before release/click commit
     GeometryProcessing::Vector3                 DragLiveDirection   = { 1.0, 0.0, 0.0 };     // [-]   - Live dragged radial direction before release commit
-    bool                                        DragMovedCondition  = false;                 // [-]   - Cursor moved during dimension drag
+    int                                         DragLiveSlideAxis   = -1;                    // [-]   - Live slide axis during placed-dimension edit/drag
+    bool                                        DragMovedCondition  = false;                 // [-]   - Cursor or axis changed during dimension drag/edit
 };
 
 // 📝 STEP / STL exchange (priority 4 X4; Plasticity File → Import / Export, and Open / Save as by file type): Export…

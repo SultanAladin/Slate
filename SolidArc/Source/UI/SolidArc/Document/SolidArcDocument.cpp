@@ -692,7 +692,9 @@ void SummarizeSolidArcDocument(SolidArcDocument& Document)
             if (!Body.PresentCondition() || !Document.Partition->Bodies.Authenticate(Body)) continue;
             const BodyInventory Inventory = Document.Partition->CollectInventory(Body);
             if (Inventory.Faces.empty()) continue;
-            const AuditReport   Audit     = AuditBody(*Document.Partition, Body);
+            const auto KnownAudit  = std::find_if(Document.Regeneration.Audits.rbegin(), Document.Regeneration.Audits.rend(),
+                                                  [&](const auto& Entry) { return Entry.first == Body; });
+            const AuditReport   Audit     = KnownAudit != Document.Regeneration.Audits.rend() ? KnownAudit->second : AuditBody(*Document.Partition, Body);
             SolidArcBodyFigures Figures;
             Figures.Key            = Regenerated.Key;
             Figures.Caption        = SolidArcBodyCaption(Document, Regenerated.Key);
@@ -1175,7 +1177,14 @@ SolidArcBlendFit MeasureSolidArcBlendFit(const SolidArcDocument& Document, const
     {
         const FeatureStep& Step = Steps[Index];
         if (Step.Kind == FeatureStepKind::Sketch || Step.Kind == FeatureStepKind::SpaceCurve) continue;
-        const bool TouchesCondition = Step.Target.empty() || Step.Target == Owner || Step.Tool == Owner || Step.Label == Owner || Step.Source == Owner;
+        const bool CreatesSeparateBody = ((Step.Kind == FeatureStepKind::Extrude || Step.Kind == FeatureStepKind::Revolve ||
+                                           Step.Kind == FeatureStepKind::Loft || Step.Kind == FeatureStepKind::Network ||
+                                           Step.Kind == FeatureStepKind::Pipe || Step.Kind == FeatureStepKind::Evolution) &&
+                                          (Step.Combination == FeatureCombination::New || Step.Combination == FeatureCombination::Separate)) ||
+                                         Step.Kind == FeatureStepKind::Import;
+        const bool TouchesCondition = CreatesSeparateBody
+                                    ? (Step.Label == Owner)
+                                    : (Step.Target.empty() || Step.Target == Owner || Step.Tool == Owner || Step.Label == Owner || Step.Source == Owner);
         if (!TouchesCondition) continue;
         if (Step.Kind != FeatureStepKind::Blend) break;
         const std::string Made = Step.Label + ".";
@@ -7306,6 +7315,7 @@ SolidArcCommandOutcome AddSolidArcInteractiveDimension(SolidArcDocument& Documen
         SolidArcDimension Dim = Spec;
         Dim.Id                = NextDimensionId(Document);
         Dim.AxisFilter        = std::clamp(Dim.AxisFilter, -1, 2);
+        Dim.SlideAxis         = std::clamp(Dim.SlideAxis, -1, 2);
         Dim.PlaneNormal       = SafeUnitNormal(Dim.PlaneNormal, DefaultPlaneNormalForSpan(Dim.SecondPoint - Dim.FirstPoint));
         if (Length(Dim.Direction) > 1.0e-9) Dim.Direction = Normalize(Dim.Direction);
         else Dim.Direction = { 1.0, 0.0, 0.0 };
@@ -7354,7 +7364,8 @@ SolidArcCommandOutcome UpdateSolidArcDimensionOffset(SolidArcDocument& Document,
     });
 }
 
-SolidArcCommandOutcome UpdateSolidArcDimensionPlacement(SolidArcDocument& Document, const std::string& Id, double Offset, Vector3 Direction)
+SolidArcCommandOutcome UpdateSolidArcDimensionPlacement(SolidArcDocument& Document, const std::string& Id, double Offset,
+                                                        Vector3 Direction, std::optional<int> SlideAxis)
 {
     return RunAppearanceCommand(Document, "Move dimension", [&]() -> std::string
     {
@@ -7363,11 +7374,64 @@ SolidArcCommandOutcome UpdateSolidArcDimensionPlacement(SolidArcDocument& Docume
             if (Dim.Id != Id) continue;
             if (!std::isfinite(Offset)) return "Dimension: offset must be finite";
             Dim.Offset = Offset;
+            if (SlideAxis.has_value()) Dim.SlideAxis = std::clamp(*SlideAxis, -1, 2);
             if (Length(Direction) > 1.0e-9)
             {
                 Dim.Direction = Normalize(Direction);
                 EvaluateSingleDimension(Document, Dim);
             }
+            return {};
+        }
+        return "no dimension " + Id;
+    });
+}
+
+SolidArcCommandOutcome UpdateSolidArcDimensionSlideAxis(SolidArcDocument& Document, const std::string& Id, int SlideAxis)
+{
+    return RunAppearanceCommand(Document, "Dimension slide axis", [&]() -> std::string
+    {
+        for (SolidArcDimension& Dim : Document.Dimensions)
+        {
+            if (Dim.Id != Id) continue;
+            Dim.SlideAxis = std::clamp(SlideAxis, -1, 2);
+            return {};
+        }
+        return "no dimension " + Id;
+    });
+}
+
+SolidArcCommandOutcome UpdateSolidArcDimensionAxisFilter(SolidArcDocument& Document, const std::string& Id, int AxisFilter)
+{
+    return RunAppearanceCommand(Document, "Dimension projection axis", [&]() -> std::string
+    {
+        for (SolidArcDimension& Dim : Document.Dimensions)
+        {
+            if (Dim.Id != Id) continue;
+            if (Dim.Kind != SolidArcDimensionKind::Linear) return Id + " is not a linear dimension";
+            const int Clamped = std::clamp(AxisFilter, -1, 2);
+            const int Prev    = Dim.AxisFilter;
+            Dim.AxisFilter    = Clamped;
+            EvaluateSingleDimension(Document, Dim);
+            if (Dim.Value < 1.0e-7)
+            {
+                Dim.AxisFilter = Prev;
+                EvaluateSingleDimension(Document, Dim);
+                return "Dimension: projected span along that axis is zero";
+            }
+            return {};
+        }
+        return "no dimension " + Id;
+    });
+}
+
+SolidArcCommandOutcome UpdateSolidArcDimensionNote(SolidArcDocument& Document, const std::string& Id, const std::string& Note)
+{
+    return RunAppearanceCommand(Document, "Edit dimension label", [&]() -> std::string
+    {
+        for (SolidArcDimension& Dim : Document.Dimensions)
+        {
+            if (Dim.Id != Id) continue;
+            Dim.Note = Note;
             return {};
         }
         return "no dimension " + Id;

@@ -832,6 +832,7 @@ RegenerationOutcome RegenerateFeatureTree(ModelPartition& Partition, FeatureTree
                 }
                 const BlendOutcome Blend = BlendEdges(Partition, Current, Edges, Settings);
                 if (!Blend.Refusal.empty()) { Refuse(Blend.Refusal); break; }
+                Outcome.Audits.emplace_back(Blend.Body, Blend.Audit);
                 Naming  = NameBlendedBody(Partition, Blend.Body, Blend, Naming, Step.Label);
                 Current = Blend.Body;
                 Store();
@@ -868,6 +869,7 @@ RegenerationOutcome RegenerateFeatureTree(ModelPartition& Partition, FeatureTree
                     const FaceOperationOutcome Change = ApplyFaceOperation(Partition, Current, Push);
                     if (Change.Refusal.empty())
                     {
+                        Outcome.Audits.emplace_back(Change.Body, Change.Audit);
                         Naming  = NameChangedBody(Partition, Change.Body, Change, Naming, Step.Label);
                         Current = Change.Body;
                         Store();
@@ -917,6 +919,7 @@ RegenerationOutcome RegenerateFeatureTree(ModelPartition& Partition, FeatureTree
                 }
                 const FaceOperationOutcome Change = ApplyFaceOperation(Partition, Current, Reshape);
                 if (!Change.Refusal.empty()) { Refuse(Change.Refusal); break; }
+                Outcome.Audits.emplace_back(Change.Body, Change.Audit);
                 Naming  = NameChangedBody(Partition, Change.Body, Change, Naming, Step.Label);
                 Current = Change.Body;
                 Store();
@@ -942,6 +945,7 @@ RegenerationOutcome RegenerateFeatureTree(ModelPartition& Partition, FeatureTree
             if (Step.Operation == FaceOperationKind::Inset) Settings.Depth = EvaluateFeatureValue(Tree, Step.Extent);
             const FaceOperationOutcome Change = ApplyFaceOperation(Partition, Current, Settings);
             if (!Change.Refusal.empty()) { Refuse(Change.Refusal); break; }
+            Outcome.Audits.emplace_back(Change.Body, Change.Audit);
             Naming  = NameChangedBody(Partition, Change.Body, Change, Naming, Step.Label);
             Current = Change.Body;
             Store();
@@ -1903,6 +1907,7 @@ RegenerationOutcome RegenerateFeatureTree(ModelPartition& Partition, FeatureTree
                     }
                     const BlendOutcome Blended = BlendEdges(Partition, Bodies[HostIndex].Body, Edges, Settings);
                     if (!Blended.Refusal.empty()) { ModRefuse(Blended.Refusal); break; }
+                    Outcome.Audits.emplace_back(Blended.Body, Blended.Audit);
                     Bodies[HostIndex].Naming = NameBlendedBody(Partition, Blended.Body, Blended, Bodies[HostIndex].Naming, Modifier.Label);
                     Bodies[HostIndex].Body   = Blended.Body;
                     break;

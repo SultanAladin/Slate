@@ -621,12 +621,12 @@ namespace
         return { Position, ProjectOntoSurface(Context.First, Position, FirstReference), ProjectOntoSurface(Context.Second, Position, SecondReference) };
     }
 
-    // 💡 NURBS feet are confined to the domain, so a point marched past a NURBS edge still projects inside the box (and
-    //    its signed distance there is ≈ 0, so the corrector accepts it): the point is on the face only when its foot
-    //    actually reaches it. Corrected points sit within 10⁻¹¹ of both surfaces; 10× the precision is the gate.
+    // 💡 NURBS and open rolling-ball feet are confined to their domains, so a point marched past a NURBS edge or open
+    //    spine end still projects inside the box (and its signed distance there can stay ≈ 0 on the clamped end-ball):
+    //    the point is on the carrier only when its evaluated foot actually reaches it (≤ 10·precision).
     [[nodiscard]] bool FootReaches(const IntersectionContext& Context, const SurfaceGeometry& Surface, Vector2 Foot, Vector3 Position)
     {
-        if (ResolveNurbsChart(Surface) == nullptr) return true;
+        if (ResolveNurbsChart(Surface) == nullptr && !std::holds_alternative<RollingBallSurface>(Surface)) return true;
         return Distance(EvaluateSurface(Surface, Foot).Position, Position) <= 10.0 * Context.Settings.Precision;
     }
 
@@ -920,16 +920,32 @@ namespace
         return Angle <= Limit || std::numbers::pi - Angle <= Limit;
     }
 
-    [[nodiscard]] std::vector<PatchCell> SplitCell(const SurfaceGeometry& Surface, const PatchCell& Cell)
+    struct PatchNode
     {
-        const Vector2 Middle = (Cell.Low + Cell.High) * 0.5;
-        return { DescribeCell(Surface, Cell.Low, Middle), DescribeCell(Surface, { Middle.X, Cell.Low.Y }, { Cell.High.X, Middle.Y }),
-                 DescribeCell(Surface, { Cell.Low.X, Middle.Y }, { Middle.X, Cell.High.Y }), DescribeCell(Surface, Middle, Cell.High) };
+        PatchCell                                  Cell     = {};
+        std::unique_ptr<std::array<PatchNode, 4>>  Children = nullptr;
+    };
+
+    std::array<PatchNode, 4>& EnsureChildren(const SurfaceGeometry& Surface, PatchNode& Node)
+    {
+        if (!Node.Children)
+        {
+            const Vector2 Middle = (Node.Cell.Low + Node.Cell.High) * 0.5;
+            Node.Children = std::make_unique<std::array<PatchNode, 4>>(std::array<PatchNode, 4>{
+                PatchNode{ DescribeCell(Surface, Node.Cell.Low, Middle), nullptr },
+                PatchNode{ DescribeCell(Surface, { Middle.X, Node.Cell.Low.Y }, { Node.Cell.High.X, Middle.Y }), nullptr },
+                PatchNode{ DescribeCell(Surface, { Node.Cell.Low.X, Middle.Y }, { Middle.X, Node.Cell.High.Y }), nullptr },
+                PatchNode{ DescribeCell(Surface, Middle, Node.Cell.High), nullptr }
+            });
+        }
+        return *Node.Children;
     }
 
-    void SearchLoops(const IntersectionContext& Context, const PatchCell& A, const PatchCell& B, int Depth, std::vector<Vector3>& Seeds, int& Budget)
+    void SearchLoops(const IntersectionContext& Context, PatchNode& NodeA, PatchNode& NodeB, int Depth, std::vector<Vector3>& Seeds, int& Budget)
     {
         if (Budget <= 0) return;
+        const PatchCell& A = NodeA.Cell;
+        const PatchCell& B = NodeB.Cell;
         const double Slack = Context.Settings.Precision;
         if (A.BoxHigh.X + Slack < B.BoxLow.X || B.BoxHigh.X + Slack < A.BoxLow.X ||
             A.BoxHigh.Y + Slack < B.BoxLow.Y || B.BoxHigh.Y + Slack < A.BoxLow.Y ||
@@ -940,16 +956,21 @@ namespace
         {
             Budget -= 1;
             Context.Outcome.Statistics.LoopCellPairs += 1;
-            // 📝 Alternating projection between the surfaces from A's centre, then the corrector (or the special-point
-            //    solver where the normals are parallel).
-            Vector3 Position = EvaluateSurface(Context.First, (A.Low + A.High) * 0.5).Position;
+            // 📝 Alternating projection between the surfaces from A's centre (seeded by both cell parameter centres so
+            //    NURBS / parallel / rolling-ball carriers use fast local Newton instead of global lattice scans), then the
+            //    corrector (or the special-point solver where the normals are parallel).
+            Vector2 HintA    = (A.Low + A.High) * 0.5;
+            Vector2 HintB    = (B.Low + B.High) * 0.5;
+            Vector3 Position = EvaluateSurface(Context.First, HintA).Position;
             for (int Iteration = 0; Iteration < 60; ++Iteration)
             {
-                const Vector3 OnSecond = MeasureSurfaceDistance(Context.Second, Position).Foot;
-                const Vector3 OnFirst  = MeasureSurfaceDistance(Context.First, OnSecond).Foot;
+                const Vector3 OnSecond = MeasureSurfaceDistanceNear(Context.Second, Position, HintB).Foot;
+                const Vector3 OnFirst  = MeasureSurfaceDistanceNear(Context.First, OnSecond, HintA).Foot;
                 const double  Moved    = Distance(OnFirst, Position);
                 Position = OnFirst;
                 if (Moved <= 1.0e-13 * (1.0 + Context.Scale)) break;
+                if (Iteration >= 3 && Distance(OnFirst, OnSecond) <= Context.Settings.ChordTolerance && OnKnownBranch(Context, Position)) return;
+                if (Iteration >= 8 && Distance(Position, A.Centre) > 4.0 * (A.Radius + B.Radius)) return;
             }
             const PairProbe Probe = ProbePair(Context, Position);
             if (std::fabs(Probe.Second.Distance) > 2.0 * (A.Radius + B.Radius)) return;
@@ -966,9 +987,11 @@ namespace
             }
             return;
         }
-        for (const PatchCell& SubA : SplitCell(Context.First, A))
+        auto& ChildrenA = EnsureChildren(Context.First, NodeA);
+        auto& ChildrenB = EnsureChildren(Context.Second, NodeB);
+        for (PatchNode& SubA : ChildrenA)
         {
-            for (const PatchCell& SubB : SplitCell(Context.Second, B)) SearchLoops(Context, SubA, SubB, Depth + 1, Seeds, Budget);
+            for (PatchNode& SubB : ChildrenB) SearchLoops(Context, SubA, SubB, Depth + 1, Seeds, Budget);
         }
     }
 
@@ -976,7 +999,7 @@ namespace
     {
         std::vector<Vector3> Seeds;
         const int Divisions = std::max(1, Context.Settings.LatticeDivisions);
-        std::vector<PatchCell> FirstCells, SecondCells;
+        std::vector<PatchNode> FirstCells, SecondCells;
         for (const auto& [Surface, Box, Cells] : { std::tuple{ &Context.First, &Context.FirstBox, &FirstCells }, std::tuple{ &Context.Second, &Context.SecondBox, &SecondCells } })
         {
             for (int Row = 0; Row < Divisions; ++Row)
@@ -985,14 +1008,14 @@ namespace
                 {
                     const Vector2 Low{ Box->Low.X + (Box->High.X - Box->Low.X) * Column / Divisions, Box->Low.Y + (Box->High.Y - Box->Low.Y) * Row / Divisions };
                     const Vector2 High{ Box->Low.X + (Box->High.X - Box->Low.X) * (Column + 1) / Divisions, Box->Low.Y + (Box->High.Y - Box->Low.Y) * (Row + 1) / Divisions };
-                    Cells->push_back(DescribeCell(*Surface, Low, High));
+                    Cells->push_back({ DescribeCell(*Surface, Low, High), nullptr });
                 }
             }
         }
         int Budget = 4096;                                                                   // [-] - Leaf pairs examined at most
-        for (const PatchCell& A : FirstCells)
+        for (PatchNode& A : FirstCells)
         {
-            for (const PatchCell& B : SecondCells) SearchLoops(Context, A, B, 0, Seeds, Budget);
+            for (PatchNode& B : SecondCells) SearchLoops(Context, A, B, 0, Seeds, Budget);
         }
         return Seeds;
     }

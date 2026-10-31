@@ -300,9 +300,10 @@ struct SolidArcDimension
     GeometryProcessing::Vector3 SecondPoint      = {};                                       // [len]   - End point (or rim point for R / ⌀)
     GeometryProcessing::Vector3 PlaneNormal      = { 0.0, 0.0, 1.0 };                        // [-]     - Dimension plane normal
     GeometryProcessing::Vector3 Direction        = { 1.0, 0.0, 0.0 };                        // [-]     - Secondary ray / reference axis
-    double                      Offset           = 0.35;                                     // [len]   - Witness-line offset in dimension plane
+    double                      Offset           = 0.35;                                     // [len]   - Witness-line offset in dimension plane / slide axis
     double                      Value            = 0.0;                                      // [m/deg] - Exact measured value
     int                         AxisFilter       = -1;                                       // [-]     - -1 aligned, 0 ΔX, 1 ΔY, 2 ΔZ
+    int                         SlideAxis        = -1;                                       // [-]     - -1 plane-perpendicular, 0 slide X, 1 slide Y, 2 slide Z
     bool                        VisibleCondition = true;                                     // [-]     - Drawn in the 3D viewport
     std::string                 Note             = {};                                       // [-]     - Optional prefix / tag ("W", "D", "H")
 };
@@ -416,8 +417,8 @@ struct VehicleCurveFile;
                                                              std::optional<GeometryProcessing::Vector3> Direction = std::nullopt);
 // Inset (Plasticity O on faces · I): border ring Distance wide; the inner face moves Depth along the outward normal (− pocket).
 // 💡 Direct edit of the picked vertices / edges (mode 1 / 2 gizmo): a FaceOperation Reshape step carrying them by Map; the
-//    faces at them are re-fitted (planes, or bilinear patches for four-sided faces that cannot stay flat). Like face changes,
-//    it goes before the body's trailing fillets so they re-solve on the new shape (appended when that refuses).
+//    faces at them are re-fitted (planes when still flat, or bilinear NURBS patches for four-sided faces across single or
+//    repeated vertex edits). Like face changes, it goes before the same body's trailing fillets so they re-solve on the new shape.
 [[nodiscard]] SolidArcCommandOutcome ReshapeSolidArcSelection(SolidArcDocument& Document, const GeometryProcessing::AffineMap& Map, const std::string& Verb);
 [[nodiscard]] SolidArcCommandOutcome InsetSolidArcSelection(SolidArcDocument& Document, double Distance, double Depth);
 [[nodiscard]] SolidArcCommandOutcome AssignSolidArcParameter(SolidArcDocument& Document, const std::string& Name, double Value);
@@ -1033,7 +1034,11 @@ void                                                RefreshSolidArcDimensions(So
                                                                               SolidArcSelectionKind SecondKind = SolidArcSelectionKind::Vertex);
 [[nodiscard]] SolidArcCommandOutcome                UpdateSolidArcDimensionOffset(SolidArcDocument& Document, const std::string& Id, double Offset);
 [[nodiscard]] SolidArcCommandOutcome                UpdateSolidArcDimensionPlacement(SolidArcDocument& Document, const std::string& Id, double Offset,
-                                                                                     GeometryProcessing::Vector3 Direction);
+                                                                                     GeometryProcessing::Vector3 Direction,
+                                                                                     std::optional<int> SlideAxis = std::nullopt);
+[[nodiscard]] SolidArcCommandOutcome                UpdateSolidArcDimensionSlideAxis(SolidArcDocument& Document, const std::string& Id, int SlideAxis);
+[[nodiscard]] SolidArcCommandOutcome                UpdateSolidArcDimensionAxisFilter(SolidArcDocument& Document, const std::string& Id, int AxisFilter);
+[[nodiscard]] SolidArcCommandOutcome                UpdateSolidArcDimensionNote(SolidArcDocument& Document, const std::string& Id, const std::string& Note);
 [[nodiscard]] SolidArcCommandOutcome                ToggleSolidArcDimensionVisibility(SolidArcDocument& Document, const std::string& Id);
 [[nodiscard]] SolidArcCommandOutcome                ToggleSolidArcDimensionRadialKind(SolidArcDocument& Document, const std::string& Id);
 [[nodiscard]] SolidArcCommandOutcome                RemoveSolidArcDimension(SolidArcDocument& Document, const std::string& Id);
