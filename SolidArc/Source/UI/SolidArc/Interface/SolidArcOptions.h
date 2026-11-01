@@ -29,6 +29,9 @@ struct SolidArcOptions
     double      FieldOfView         = 0.7;                                                   // [rad] - Vertical perspective angle
     std::string InitialView         = {};                                                    // [-]   - Optional startup preset (Top/Bottom/Front/Back/Right/Left/Isometric)
     std::string InitialLayout       = {};                                                    // [-]   - Optional Single/Quad startup layout
+    bool        SurfaceTraceEnabled = false;
+    bool        FullXYZEnabled      = false;
+    bool        SourceEdgesEnabled  = true;
     bool        FitImagesEnabled    = false;                                                 // [-]   - Frame visible reference planes at startup
     std::string FontPath            = {};                                                    // [-]   - UI font (empty: DM Sans from EngineContent)
     float       FontSize            = 15.0f;                                                 // [px]  - UI font size

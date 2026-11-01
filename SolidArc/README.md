@@ -1,5 +1,7 @@
 # SolidArc CAD Audit, Features & Binary Packages
 
+> **Latest — Liger surface tracing:** [dedicated protected NURBS workspace + rebuilt Windows/Linux apps](Vehicles/Liger/Tracing/README.md). Draw editable 3D curves directly on the reference, Ctrl-snap to model edges, and edit in XYZ. [Downloads](Vehicles/Liger/Tracing/Packages/) · [audit](Vehicles/Liger/Tracing/AUDIT.md). Earlier packages below are preserved.
+
 > **Liger reference-workflow correction (2026-11-01):** the newly rebuilt apps and aligned scratch project are in [Vehicles/Liger/Blueprints](Vehicles/Liger/Blueprints/README.md). These fix named views, side-view sketch planes and add faint/dashed guides plus a compact Offset pill. Original W95 packages below are preserved, not replaced.
 
 > **Latest Liger scratch-modelling setup:** [high-resolution schematics + `Liger.solidarc`](Vehicles/Liger/Blueprints/README.md), with **new Windows and Linux/X11 runtime bundles** under [`Vehicles/Liger/Blueprints/Packages/`](Vehicles/Liger/Blueprints/Packages/). These include the NURBS importer fixes and registered-reference view/filtering support. The historical W95 packages below are preserved unchanged.

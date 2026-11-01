@@ -8,3 +8,7 @@ if(CMAKE_PROJECT_NAME STREQUAL "FrontierUIFoundation" AND NOT TARGET LigerCadCer
     add_executable(LigerCadCertifier "${CMAKE_CURRENT_LIST_DIR}/Certifier.cpp")
     target_link_libraries(LigerCadCertifier PRIVATE FrontierSolidArcDocument)
 endif()
+if(CMAKE_PROJECT_NAME STREQUAL "FrontierUIFoundation" AND NOT TARGET LigerSurfaceTraceValidation)
+    add_executable(LigerSurfaceTraceValidation "${CMAKE_CURRENT_LIST_DIR}/SurfaceTraceValidation.cpp")
+    target_link_libraries(LigerSurfaceTraceValidation PRIVATE FrontierSolidArcUI)
+endif()

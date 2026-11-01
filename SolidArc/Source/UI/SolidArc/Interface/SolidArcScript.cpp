@@ -854,6 +854,11 @@ bool ObserveField(const SolidArcWorkspaceState& State, const std::string& Field,
         Number = State.Drawing.ActiveCondition ? 1.0 : 0.0;
         return true;
     }
+    if (Field == "surface-trace") return Numeric(State.SurfaceTraceEnabled ? 1 : 0);
+    if (Field == "full-xyz") return Numeric(State.FullXYZEnabled ? 1 : 0);
+    if (Field == "drawing-surface") return Numeric(State.Drawing.SurfaceCondition ? 1 : 0);
+    if (Field == "drawing-hit") return Numeric(State.Drawing.PointerCondition ? 1 : 0);
+    if (Field == "drawing-last-z") return Numeric(State.Drawing.Lifted.empty() || !State.Drawing.Lifted.back() ? std::nan("") : State.Drawing.Lifted.back()->Z);
     if (Field == "drawing-points") return Numeric(double(State.Drawing.Points.size()));
     if (Field == "drawing-solid") return Numeric(State.Drawing.ActiveCondition && State.Drawing.SolidCondition ? 1 : 0);
     if (Field == "drawing-solid-kind") { Text = SolidArcConstructLabel(State.Drawing.Solid); Number = double(int(State.Drawing.Solid)); return true; }

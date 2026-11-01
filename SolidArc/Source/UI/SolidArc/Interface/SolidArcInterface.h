@@ -190,6 +190,12 @@ struct SolidArcBevelSession
 struct SolidArcDrawingSession
 {
     bool                           ActiveCondition  = false;                                 // [-]   - Session open
+    bool                           SurfaceCondition = false;
+    std::vector<GeometryProcessing::Vector3> TracePreview = {};
+    std::vector<GeometryProcessing::Vector3> TraceControls = {};
+    uint64_t                       TraceRevision = 0;
+    OrbitCameraFrame               TraceFrame = {};
+    GeometryProcessing::SketchSplineForm TraceForm = GeometryProcessing::SketchSplineForm::Hermite;
     SolidArcDrawingKind            Kind             = SolidArcDrawingKind::Line;             // [-]   - Tool
     std::vector<GeometryProcessing::Vector2> Points           = {};                                    // [len] - Committed clicks (plane coordinates)
     GeometryProcessing::Vector2              Pointer          = {};                                    // [len] - Pointer on the plane (snapped)
@@ -873,6 +879,8 @@ private:
 
 struct SolidArcWorkspaceState
 {
+    bool SurfaceTraceEnabled = false;
+    bool FullXYZEnabled = false;
     SolidArcOptions                       Options        = {};                               // [-]   - Loaded options
     SolidArcDocument                      Document       = {};                               // [-]   - Authored document
     SolidArcScene                         Scene          = {};                               // [-]   - Display arrays of the document

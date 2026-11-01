@@ -2123,9 +2123,8 @@ void ValidateCurveAsk()
         SolidArcDrawingRequest Request;
         Request.Kind = SolidArcDrawingKind::Rectangle; Request.Points = { { 0.0, 0.0 }, { 1.0, 1.0 } };
         Expect(DrawSolidArcSketch(Boxed, Request));
-        const std::string Held = EncodeSolidArcDocument(Boxed);
         const SolidArcCommandOutcome Line = LiftSolidArcSketchPoints(Boxed, Boxed.Tree.Steps.back().Label, Ground, { 0 }, { Vector3{ 0.0, 0.0, 0.5 } });
-        Tally(CurveAskGate, 0.0, !Line.AcceptedCondition && EncodeSolidArcDocument(Boxed) == Held, Format("a rectangle corner lifted refuses untouched: %s", Line.Refusal.c_str()));
+        Tally(CurveAskGate, 0.0, Line.AcceptedCondition && Boxed.Regeneration.Curves.size() == 2 && Boxed.Regeneration.Refused == 0, Format("a rectangle corner lifts its two incident lines into 3D curves: %s", Line.Refusal.c_str()));
     }
 }
 

@@ -848,9 +848,12 @@ struct SolidArcStepReading;
 [[nodiscard]] SolidArcCommandOutcome DrawSolidArcSpaceCurve(SolidArcDocument& Document, const std::vector<GeometryProcessing::Vector3>& Points, bool ClosedCondition,
                                                             GeometryProcessing::SketchSplineForm Form = GeometryProcessing::SketchSplineForm::Hermite);
 
+// A surface-checked, non-rational B-spline: persist exact poles / knots, one undo entry.
+[[nodiscard]] SolidArcCommandOutcome DrawSolidArcProjectedCurve(SolidArcDocument& Document, const GeometryProcessing::NurbsCurve& Curve, bool Closed);
+
 // 💡 Sketch points moved off their plane (the 3D gizmo on mode-1 points in a 3D view): every curve through one becomes a
 //    3D curve of the same form through its points (Points of Sketch → Targets, in the world; Plane: the sketch's placed
-//    plane) and leaves the sketch (an emptied sketch goes). Refused when a line / arc / circle passes through a moved
+//    plane) and leaves the sketch (an emptied sketch goes). Refused when an arc / circle passes through a moved
 //    point, or when a later step uses the sketch. The new curves are picked; one undo entry.
 [[nodiscard]] SolidArcCommandOutcome LiftSolidArcSketchPoints(SolidArcDocument& Document, const std::string& Sketch, const GeometryProcessing::OrthonormalFrame& Plane,
                                                               const std::vector<int>& Points, const std::vector<GeometryProcessing::Vector3>& Targets);

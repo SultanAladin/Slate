@@ -1,0 +1,159 @@
+#include "UI/SolidArc/Viewport/SolidArcSurfaceTracing.h"
+#include "Engine/GeometryProcessing/Sketch/SketchProfile.h"
+#include <algorithm>
+#include <cmath>
+
+namespace Frontier::SolidArc
+{
+using namespace GeometryProcessing;
+
+SolidArcSnap SnapSolidArcTrace(SolidArcSnapCatalogue& Catalogue, const SolidArcDocument& Document,
+    const SolidArcScene& Scene, const OrbitCameraFrame& Frame, double X, double Y, bool CurveSnap)
+{
+    SolidArcSnapQuery Query;
+    Query.Frame = Frame;
+    Query.PixelX = X;
+    Query.PixelY = Y;
+    Query.CurveReach = 12.0;
+    Query.Filter = { false, false, false, false, false, false, false, CurveSnap, !CurveSnap };
+    Query.BodyCurvesOnly = true;
+    // No grid, construction-plane, point-ranking, x-ray or axis-lock fallback.
+    SolidArcSnap Snap = FindSolidArcSnap(Catalogue, Document, Scene, Query);
+    if (CurveSnap && Snap.Kind == SolidArcSnapKind::None)
+    {
+        Query.Filter.CurveEnabled = false;
+        Query.Filter.FaceEnabled = true;
+        Snap = FindSolidArcSnap(Catalogue, Document, Scene, Query);
+    }
+    if (Snap.Kind == SolidArcSnapKind::Face)
+    {
+        double PX, PY;
+        // Newton refinement at a silhouette can land on a different branch. Never
+        // accept an off-ray foot as though it were the surface under the cursor.
+        if (!ProjectSolidArcPoint(Frame, Snap.Position, PX, PY) || std::hypot(PX - X, PY - Y) > 0.75) return {};
+    }
+    return Snap;
+}
+
+SolidArcSurfaceTrace ProjectSolidArcTrace(SolidArcSnapCatalogue& Catalogue, const SolidArcDocument& Document,
+    const SolidArcScene& Scene, const OrbitCameraFrame& Frame, const std::vector<Vector3>& Controls,
+    SolidArcDrawingKind Kind, SketchSplineForm Form, bool Closed, bool Fit, double Tolerance)
+{
+    SolidArcSurfaceTrace Result;
+    if (Controls.size() < 2 || Controls.size() > 65 || !(Tolerance > 0.0) || !std::isfinite(Tolerance))
+    {
+        Result.Refusal = "Surface trace: use 2–65 distinct controls";
+        return Result;
+    }
+    if (Closed && Controls.size() < 3)
+    { Result.Refusal = "Surface trace: a closed spline needs at least three controls"; return Result; }
+    // Camera changes must never silently move a clicked control from the back
+    // of a sheet onto its newly visible front. All controls must still be on
+    // the visible source (body-edge controls may lie on its exact silhouette).
+    for (Vector3 Control : Controls)
+    {
+        double X, Y;
+        if (!ProjectSolidArcPoint(Frame, Control, X, Y))
+        { Result.Refusal = "Surface trace: a control left the view; restore the view or split the section"; return Result; }
+        SolidArcSnap Hit = SnapSolidArcTrace(Catalogue, Document, Scene, Frame, X, Y, false);
+        if (Hit.Kind == SolidArcSnapKind::None || Distance(Hit.Position, Control) > Tolerance)
+            Hit = SnapSolidArcTrace(Catalogue, Document, Scene, Frame, X, Y, true);
+        if (Hit.Kind == SolidArcSnapKind::None || Distance(Hit.Position, Control) > Tolerance)
+        { Result.Refusal = "Surface trace: a control is hidden / off the current surface; restore the view or split the section"; return Result; }
+    }
+    std::vector<Vector3> Seed;
+    if (Kind == SolidArcDrawingKind::Arc)
+    {
+        if (Controls.size() != 3) { Result.Refusal = "Surface arc: click start, end, then a point on the arc"; return Result; }
+        const Vector3 Along = Controls[1] - Controls[0];
+        const Vector3 Normal = Cross(Along, Controls[2] - Controls[0]);
+        if (Length(Along) < 1.0e-10 || Length(Normal) < 1.0e-12)
+        { Result.Refusal = "Surface arc: the three points are collinear"; return Result; }
+        OrthonormalFrame Plane;
+        Plane.Origin = Controls[0]; Plane.XAxis = Normalize(Along); Plane.ZAxis = Normalize(Normal);
+        Plane.YAxis = Cross(Plane.ZAxis, Plane.XAxis);
+        SolidArcDrawingRequest Request;
+        Request.Kind = Kind;
+        Request.FillCondition = false;
+        for (Vector3 Point : Controls)
+        {
+            const Vector3 Delta = Point - Plane.Origin;
+            Request.Points.push_back({ Dot(Delta, Plane.XAxis), Dot(Delta, Plane.YAxis) });
+        }
+        SketchModel Sketch;
+        Result.Refusal = ComposeSolidArcSketch(Request, Sketch);
+        if (!Result.Refusal.empty()) return Result;
+        const ProfileSegment Arc = ResolveSketchCurveSegment(Sketch, 0, 1.0e-10, Result.Refusal);
+        if (!Result.Refusal.empty()) return Result;
+        const int Steps = Fit ? 128 : 48;
+        for (int Index = 0; Index <= Steps; ++Index)
+        {
+            const Vector2 Point = EvaluateProfileSegment(Arc, double(Index) / double(Steps));
+            Seed.push_back(Plane.Origin + Plane.XAxis * Point.X + Plane.YAxis * Point.Y);
+        }
+    }
+    else if (Kind == SolidArcDrawingKind::Line)
+    {
+        for (size_t Span = 1; Span < Controls.size(); ++Span)
+            for (int Step = Span == 1 ? 0 : 1; Step <= 32; ++Step)
+                Seed.push_back(Controls[Span - 1] * (1.0 - double(Step) / 32.0) + Controls[Span] * (double(Step) / 32.0));
+        if (Closed) { Result.Refusal = "Surface polyline: finish open sections separately"; return Result; }
+    }
+    else if (Kind == SolidArcDrawingKind::Curve) Seed = SampleThroughCurve(Controls, Closed, Form, Fit ? 48 : 16);
+    else { Result.Refusal = "Surface trace supports Curve, Arc and Line; turn Surface off for planar shapes"; return Result; }
+    if (Seed.size() < 2) { Result.Refusal = "Surface trace: cannot form the seed curve"; return Result; }
+    // Bounded work even with a long clicked path. Each finished fit also receives
+    // an independent, denser surface check below; a sample-only fit is not enough.
+    const size_t Count = std::min<size_t>(Fit ? 513 : 129, Seed.size());
+    for (size_t Index = 0; Index < Count; ++Index)
+    {
+        const Vector3 Point = Seed[Index * (Seed.size() - 1) / (Count - 1)];
+        double X, Y;
+        if (!ProjectSolidArcPoint(Frame, Point, X, Y))
+        { Result.Refusal = "Surface trace leaves the view; draw a shorter section"; return Result; }
+        SolidArcSnap Hit = SnapSolidArcTrace(Catalogue, Document, Scene, Frame, X, Y, false);
+        if (Hit.Kind == SolidArcSnapKind::None && (Index == 0 || Index + 1 == Count))
+        {
+            // Exact boundary controls may project a fraction beyond the faceted
+            // silhouette. Only an exact BODY edge at the same 3D point is valid.
+            Hit = SnapSolidArcTrace(Catalogue, Document, Scene, Frame, X, Y, true);
+            if (Hit.Kind != SolidArcSnapKind::Curve || Distance(Hit.Position, Point) > Tolerance) Hit = {};
+        }
+        if (Hit.Kind == SolidArcSnapKind::None)
+        { Result.Refusal = "Surface trace crosses a gap / silhouette; add controls or split the curve"; return Result; }
+        if (Result.Samples.empty() || Distance(Result.Samples.back(), Hit.Position) > 1.0e-10) Result.Samples.push_back(Hit.Position);
+    }
+    if (Result.Samples.size() < 2) { Result.Refusal = "Surface trace: coincident points"; return Result; }
+    if (Closed) Result.Samples.back() = Result.Samples.front();
+    if (!Fit) return Result;
+    CurveFitSettings Settings;
+    Settings.Tolerance = Tolerance * 0.25;
+    Settings.Fairing = 1.0e-10;
+    Settings.SpanLimit = 64;
+    for (int Attempt = 0; Attempt < 3; ++Attempt)
+    {
+        Result.Fit = FitSpaceCurve(Result.Samples, Settings);
+        if (!Result.Fit.Refusal.empty()) { Result.Refusal = Result.Fit.Refusal; return Result; }
+        Result.WorstSurfaceDeviation = 0.0;
+        bool Miss = false;
+        for (int Step = 0; Step <= 256; ++Step)
+        {
+            const Vector3 Point = EvaluateNurbsCurve(*Result.Fit.Curve.Definition, double(Step) / 256.0).Position;
+            double X, Y;
+            if (!ProjectSolidArcPoint(Frame, Point, X, Y)) { Miss = true; break; }
+            SolidArcSnap Hit = SnapSolidArcTrace(Catalogue, Document, Scene, Frame, X, Y, false);
+            if (Hit.Kind == SolidArcSnapKind::None && (Step == 0 || Step == 256))
+            {
+                Hit = SnapSolidArcTrace(Catalogue, Document, Scene, Frame, X, Y, true);
+                if (Hit.Kind != SolidArcSnapKind::Curve || Distance(Hit.Position, Point) > Tolerance) Hit = {};
+            }
+            if (Hit.Kind == SolidArcSnapKind::None) { Miss = true; break; }
+            Result.WorstSurfaceDeviation = std::max(Result.WorstSurfaceDeviation, Distance(Point, Hit.Position));
+        }
+        if (!Miss && Result.WorstSurfaceDeviation <= Tolerance) return Result;
+        Settings.Tolerance *= 0.25;
+    }
+    Result.Refusal = "Surface trace cannot meet the 0.2 mm sampled surface check; add controls or draw a shorter section";
+    return Result;
+}
+}

@@ -2120,9 +2120,29 @@ SolidArcCommandOutcome DrawSolidArcSpaceCurve(SolidArcDocument& Document, const 
     return Outcome;
 }
 
-SolidArcCommandOutcome LiftSolidArcSketchPoints(SolidArcDocument& Document, const std::string& Sketch, const OrthonormalFrame& Plane, const std::vector<int>& Points,
+SolidArcCommandOutcome DrawSolidArcProjectedCurve(SolidArcDocument& Document, const NurbsCurve& Curve, bool Closed)
+{
+    std::string Label;
+    SolidArcCommandOutcome Outcome = RunCommand(Document, "Draw surface trace", false, [&]() -> std::string
+    {
+        if (!Curve.Definition || Curve.Definition->Poles.size() < 2) return "surface trace has no fitted curve";
+        const auto& Definition = *Curve.Definition;
+        if (std::any_of(Definition.Weights.begin(), Definition.Weights.end(), [](double Weight) { return std::abs(Weight - 1.0) > 1.0e-12; }))
+            return "surface trace must be a non-rational B-spline";
+        if (Closed && Distance(Definition.Poles.front(), Definition.Poles.back()) > 1.0e-8) return "surface trace is not closed";
+        ExactThrough Exact{ Definition.Poles, Definition.Knots };
+        Label = AppendSpaceCurveStep(Document, Definition.Poles, Closed, NextCaption(Document, "Surface trace"), Exact);
+        return {};
+    });
+    if (Outcome.AcceptedCondition) Document.Selection.Curves = { Label };
+    return Outcome;
+}
+
+SolidArcCommandOutcome LiftSolidArcSketchPoints(SolidArcDocument& Document, const std::string& SketchName, const OrthonormalFrame& Plane, const std::vector<int>& Points,
                                                 const std::vector<Vector3>& Targets)
 {
+    // The caller may pass a label owned by Tree.Steps; appending curves reallocates that vector.
+    const std::string Sketch = SketchName;
     std::vector<std::string> Made;
     SolidArcCommandOutcome Outcome = RunCommand(Document, "Lift " + CaptionOfStep(Document, Sketch) + " points off its plane", false, [&]() -> std::string
     {
@@ -2137,7 +2157,7 @@ SolidArcCommandOutcome LiftSolidArcSketchPoints(SolidArcDocument& Document, cons
             if (Points[Index] < 0 || Points[Index] >= int(Model.Points.size())) return "a moved point is not in " + Sketch;
             Moved[Points[Index]] = Targets[Index];
         }
-        // ① the curves through a moved point: freeform curves only (a line or arc lives on its plane)
+        // ① Freeform curves and lines can leave the sketch plane. Arcs / circles retain their analytic plane.
         std::vector<int> Curves;
         for (int Curve = 0; Curve < int(Model.Curves.size()); ++Curve)
         {
@@ -2145,7 +2165,7 @@ SolidArcCommandOutcome LiftSolidArcSketchPoints(SolidArcDocument& Document, cons
             const bool         Touch = Each.Kind == SketchCurveKind::Spline ? std::any_of(Each.Points.begin(), Each.Points.end(), [&](int Point) { return Moved.contains(Point); })
                                                                             : Moved.contains(Each.Start) || Moved.contains(Each.End) || Moved.contains(Each.Centre);
             if (!Touch) continue;
-            if (Each.Kind != SketchCurveKind::Spline) return "only curves (Shift+S) leave the sketch plane; lines, arcs and circles stay on it";
+            if (Each.Kind != SketchCurveKind::Spline && Each.Kind != SketchCurveKind::Line) return "move the whole arc / circle in XYZ; its individual points retain the analytic plane";
             Curves.push_back(Curve);
         }
         if (Curves.empty()) return "no curve passes through the moved points";
@@ -2156,11 +2176,12 @@ SolidArcCommandOutcome LiftSolidArcSketchPoints(SolidArcDocument& Document, cons
         for (int Curve : Curves)
         {
             const SketchCurve&   Each = Model.Curves[static_cast<size_t>(Curve)];
-            const bool           Closed = Each.Points.size() >= 3 && Each.Points.front() == Each.Points.back();
+            const std::vector<int> Indices = Each.Kind == SketchCurveKind::Line ? std::vector<int>{ Each.Start, Each.End } : Each.Points;
+            const bool           Closed = Indices.size() >= 3 && Indices.front() == Indices.back();
             std::vector<Vector3> Slots;
-            for (size_t Index = 0; Index + (Closed ? 1 : 0) < Each.Points.size(); ++Index)
+            for (size_t Index = 0; Index + (Closed ? 1 : 0) < Indices.size(); ++Index)
             {
-                const int Point = Each.Points[Index];
+                const int Point = Indices[Index];
                 Slots.push_back(Moved.contains(Point) ? Moved.at(Point) : Plane.Origin + Plane.XAxis * Model.Points[static_cast<size_t>(Point)].Position.X + Plane.YAxis * Model.Points[static_cast<size_t>(Point)].Position.Y);
             }
             std::vector<Vector3> Samples = SampleThroughCurve(Slots, Closed, Each.Form, 48, Each.Knots);

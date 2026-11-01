@@ -1,0 +1,74 @@
+{
+  "feature": "native surface tracing and explicit XYZ editing",
+  "source_base": "unassignedinbox/Frontier 82ed251267ed8457ca3530d8228b91555572c25d",
+  "desktop_host": "SultanAladin/Frontier 65cf0f131a6afe8bdcd722c006b10cfab0e1aafd",
+  "reference": "Refined/CAD/Liger_Refined_CAD.solidarc",
+  "source_reference_sha256": "b8918d83e7f59e33c8920b637ec4003495da036822ee7510e8eacaebc0a5bd88",
+  "source_reference_faces": 306,
+  "source_reference_sheets": 3,
+  "registration": "(x,y,z) \u2192 (y,-x,z); rigid, no scaling",
+  "fit_check": {
+    "tolerance_metres": 0.0002,
+    "validation_samples": 257,
+    "max_controls": 65,
+    "max_fit_spans": 64
+  },
+  "Windows_execution": "not available in Linux sandbox; PE/resources/launch path structurally validated",
+  "compilers": {
+    "Windows": "Zig 0.14.1 x86_64-windows-gnu / static C++ runtime",
+    "Linux": "GCC 12.2 / X11"
+  },
+  "runtimes": {
+    "Windows": {
+      "executable": "SolidArcWorkspace.exe",
+      "sha256": "b50692bba743bd44a4f7976020d799f91b132771550165d400470bb49873ca57",
+      "executable_bytes": 8959488,
+      "svg_icons": 310,
+      "solidarc_icons": 66,
+      "font_faces": 5,
+      "dependencies": [
+        "KERNEL32.dll",
+        "USER32.dll",
+        "SHELL32.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "api-ms-win-crt-private-l1-1-0.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-stdio-l1-1-0.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "api-ms-win-crt-math-l1-1-0.dll",
+        "api-ms-win-crt-convert-l1-1-0.dll",
+        "api-ms-win-crt-utility-l1-1-0.dll",
+        "GDI32.dll",
+        "api-ms-win-crt-environment-l1-1-0.dll",
+        "api-ms-win-crt-time-l1-1-0.dll",
+        "api-ms-win-crt-locale-l1-1-0.dll",
+        "api-ms-win-crt-multibyte-l1-1-0.dll",
+        "comdlg32.dll"
+      ]
+    },
+    "Linux": {
+      "executable": "SolidArcWorkspace",
+      "sha256": "3e95fa3faf15a83a6affaf61d81b4b3d8047bc2339f835ad25529ed0685887ce",
+      "executable_bytes": 10908952,
+      "svg_icons": 310,
+      "solidarc_icons": 66,
+      "font_faces": 5,
+      "dependencies": [
+        "linux-vdso.so.1",
+        "libstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6",
+        "libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6",
+        "libgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1",
+        "libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6",
+        "/lib64/ld-linux-x86-64.so.2"
+      ]
+    }
+  },
+  "native_tracing_checks": 42,
+  "cad_regression_gates": 95,
+  "python_tests": 40,
+  "surface_trace_patch_sha256": "64520f9f41ddece7f04435afc37994bd8923f26d5cc1115d9fc9e819738f9f24",
+  "initial_window": [
+    1280,
+    680
+  ]
+}

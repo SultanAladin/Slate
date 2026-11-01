@@ -127,6 +127,7 @@ add_library(FrontierSolidArcUI STATIC
     ${SOLIDARC_UI}/Viewport/SolidArcGizmo.cpp
     ${SOLIDARC_UI}/Viewport/SolidArcPortableImage.cpp
     ${SOLIDARC_UI}/Viewport/SolidArcSnapping.cpp
+    ${SOLIDARC_UI}/Viewport/SolidArcSurfaceTracing.cpp
     ${SOLIDARC_UI}/Interface/SolidArcInterface.cpp
     ${SOLIDARC_UI}/Interface/SolidArcNavigation.cpp
     ${SOLIDARC_UI}/Interface/SolidArcOutliner.cpp

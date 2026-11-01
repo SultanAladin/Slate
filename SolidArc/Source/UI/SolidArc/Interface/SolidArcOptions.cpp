@@ -44,6 +44,9 @@ SolidArcOptions LoadSolidArcOptions(const std::string& Path)
     Options.InitialView         = Root["Viewport"]["InitialView"].value_or(Options.InitialView);
     Options.InitialLayout       = Root["Viewport"]["InitialLayout"].value_or(Options.InitialLayout);
     Options.FitImagesEnabled    = Root["Viewport"]["FitImages"].value_or(Options.FitImagesEnabled);
+    Options.SurfaceTraceEnabled = Root["Tracing"]["Surface"].value_or(false);
+    Options.FullXYZEnabled = Root["Tracing"]["FullXYZ"].value_or(false);
+    Options.SourceEdgesEnabled = Root["Tracing"]["SourceEdges"].value_or(true);
     const std::string& View = Options.InitialView;
     if (!View.empty() && View != "Top" && View != "Bottom" && View != "Front" && View != "Back" && View != "Right" && View != "Left" && View != "Isometric")
         Options.Refusal = "Viewport.InitialView must be Top, Bottom, Front, Back, Right, Left or Isometric";
@@ -68,6 +71,7 @@ std::string EncodeSolidArcOptions(const SolidArcOptions& Options)
         { "Viewport", toml::table{ { "EdgeStroke", double(Options.EdgeStroke) }, { "Grid", Options.GridEnabled },
                                    { "Orthographic", Options.OrthographicEnabled }, { "FieldOfView", Options.FieldOfView },
                                    { "InitialView", Options.InitialView }, { "InitialLayout", Options.InitialLayout }, { "FitImages", Options.FitImagesEnabled } } },
+                      { "Tracing", toml::table{ { "Surface", Options.SurfaceTraceEnabled }, { "FullXYZ", Options.FullXYZEnabled }, { "SourceEdges", Options.SourceEdgesEnabled } } },
         { "Interface", toml::table{ { "FontPath", Options.FontPath }, { "FontSize", double(Options.FontSize) } } },
         { "Files", toml::table{ { "RecoveryPath", Options.RecoveryPath }, { "AutosaveDelay", Options.AutosaveDelay }, { "DocumentPath", Options.DocumentPath }, { "CurvesPath", Options.CurvesPath }, { "InsertFolder", Options.InsertFolder } } },
         { "Vulkan", toml::table{ { "DriverPath", Options.DriverPath }, { "Validation", Options.ValidationEnabled } } },

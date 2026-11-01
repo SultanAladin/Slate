@@ -1,0 +1,17 @@
+[Window]
+Width = 1280
+Height = 680
+[Viewport]
+Grid = false
+InitialView = "Isometric"
+InitialLayout = "Single"
+Orthographic = false
+[Tracing]
+Surface = true
+FullXYZ = true
+SourceEdges = false
+[Interface]
+FontSize = 15.0
+[Files]
+DocumentPath = "../Liger.solidarc"
+RecoveryPath = "Recovery/Liger.solidarc"

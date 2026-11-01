@@ -1,3 +1,5 @@
+> **Latest native workflow:** [Surface tracing workspace + rebuilt binaries](Tracing/README.md) — protected dense NURBS reference, automatic surface drawing, Ctrl model-edge snaps, editable XYZ curves. [Packages](Tracing/Packages/) · [Audit](Tracing/AUDIT.md).
+
 # Liger — simplified SubD-to-CAD review build
 
 **2026-11-01 · 312 native cubic NURBS faces · 93.11% fewer faces than the previous 4,528-face conversion.**

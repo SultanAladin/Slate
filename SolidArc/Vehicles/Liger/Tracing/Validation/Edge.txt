@@ -1,0 +1,26 @@
+capture Liger_Ctrl_Model_Edge_Snap   frame   29  b300c8f402115967
+# SolidArcCapture
+
+- Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
+- Frame: 1600 x 900 · 35 frames · 6.33235 s · slowest frame 536.464 ms
+- Script: /home/user/Slate/SolidArc/Vehicles/Liger/Tools/SurfaceTraceEdgeCheck.txt
+- Expectations: 6 / 6 passed
+
+| Line | Expectation | Observed | Result |
+|-----:|-------------|----------|--------|
+| 9 | `snap contains On curve` | On curve · Edge Edge(LigerPart1.Face(277)/LigerPart1.Face(3)) | 🟢 |
+| 10 | `drawing-hit == 1` | 1 | 🟢 |
+| 13 | `drawing-points == 1` | 1 | 🟢 |
+| 14 | `drawing-last-z > 0.8` | 0.8636497482 | 🟢 |
+| 18 | `steps == 3` | 3 | 🟢 |
+| 19 | `undo == 0` | 0 | 🟢 |
+
+| Capture | Frame | Digest |
+|---------|------:|--------|
+| Liger_Ctrl_Model_Edge_Snap | 29 | `b300c8f402115967` |
+
+## Journal
+
+- View Top (Numpad)
+- SURFACE TRACE · click on the model · Ctrl: nearest visible model edge (12 px) · Enter: finish · Esc: cancel · projected spans become editable 3D NURBS
+- Curve aborted (document untouched)
