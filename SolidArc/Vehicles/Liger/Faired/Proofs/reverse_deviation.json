@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Body_Main_Shell",
+    "cad_grid_points_full": 186992,
+    "cad_to_L3_triangle_rms_mm": 0.4044957160949707,
+    "cad_to_L3_triangle_p99_mm": 2.048180842399591,
+    "cad_to_L3_triangle_max_mm": 7.932800769805908
+  },
+  {
+    "name": "Body_Front_Cowl",
+    "cad_grid_points_full": 11120,
+    "cad_to_L3_triangle_rms_mm": 0.15024101734161377,
+    "cad_to_L3_triangle_p99_mm": 0.637023652195927,
+    "cad_to_L3_triangle_max_mm": 4.350938320159912
+  },
+  {
+    "name": "Body_Roof_Glass_Frame",
+    "cad_grid_points_full": 5632,
+    "cad_to_L3_triangle_rms_mm": 0.03559201583266258,
+    "cad_to_L3_triangle_p99_mm": 0.1458997279405594,
+    "cad_to_L3_triangle_max_mm": 0.47632619738578796
+  }
+]

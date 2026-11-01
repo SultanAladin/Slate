@@ -1,0 +1,26 @@
+test_bonnet_rebuild_is_reproducible (test_fairing.FairingTests.test_bonnet_rebuild_is_reproducible) ... ok
+test_brep_and_curve_entities_are_unchanged (test_fairing.FairingTests.test_brep_and_curve_entities_are_unchanged) ... ok
+test_combined_step_matches_individual_parts_and_mirrors (test_fairing.FairingTests.test_combined_step_matches_individual_parts_and_mirrors) ... ok
+test_every_delivered_rim_knot_and_unchanged_surface (test_fairing.FairingTests.test_every_delivered_rim_knot_and_unchanged_surface) ... ok
+test_fairing_thresholds_and_dense_screen (test_fairing.FairingTests.test_fairing_thresholds_and_dense_screen) ... ok
+test_interior_noise_changes_without_moving_boundary (test_fairing.FairingTests.test_interior_noise_changes_without_moving_boundary) ... ok
+test_native_document_embeds_exact_delivered_steps (test_fairing.FairingTests.test_native_document_embeds_exact_delivered_steps) ... ok
+test_plane_is_invariant (test_fairing.FairingTests.test_plane_is_invariant) ... ok
+test_restricted_step_reader_round_trip (test_fairing.FairingTests.test_restricted_step_reader_round_trip) ... ok
+test_crease_is_preserved (test_pipeline.PipelineTests.test_crease_is_preserved) ... layout: 12 L1 quads -> 2 charts -> 2 macro charts (0 merges)
+ok
+test_grid_merges (test_pipeline.PipelineTests.test_grid_merges) ... layout: 12 L1 quads -> 1 charts -> 1 macro charts (0 merges)
+ok
+test_knot_insertion_preserves_curve (test_pipeline.PipelineTests.test_knot_insertion_preserves_curve) ... ok
+test_planar_fit (test_pipeline.PipelineTests.test_planar_fit) ... layout: 12 L1 quads -> 1 charts -> 1 macro charts (0 merges)
+ fit 1/1: 4x4 poles, held RMS 0.000 mm max 0.000 mm
+ok
+test_shared_rail_export (test_pipeline.PipelineTests.test_shared_rail_export) ... layout: 12 L1 quads -> 2 charts -> 2 macro charts (0 merges)
+ fit 1/2: 4x4 poles, held RMS 0.000 mm max 0.000 mm
+ fit 2/2: 4x4 poles, held RMS 0.000 mm max 0.000 mm
+ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 13.122s
+
+OK

@@ -1,0 +1,7807 @@
+{
+  "faces": [
+    {
+      "name": "Body_Main_Shell",
+      "patch": 0,
+      "mirror": false,
+      "poles": [
+        4,
+        8
+      ],
+      "rms": 0.004840392619371414,
+      "max": 0.03779932111501694,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 0,
+      "mirror": true,
+      "poles": [
+        4,
+        8
+      ],
+      "rms": 0.004840392619371414,
+      "max": 0.03779932111501694,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 1,
+      "mirror": false,
+      "poles": [
+        37,
+        7
+      ],
+      "rms": 0.1246873065829277,
+      "max": 0.3471622169017792,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 1,
+      "mirror": true,
+      "poles": [
+        37,
+        7
+      ],
+      "rms": 0.1246873065829277,
+      "max": 0.3471622169017792,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 2,
+      "mirror": false,
+      "poles": [
+        63,
+        5
+      ],
+      "rms": 0.7309370636940002,
+      "max": 2.4313836097717285,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 2,
+      "mirror": true,
+      "poles": [
+        63,
+        5
+      ],
+      "rms": 0.7309370636940002,
+      "max": 2.4313836097717285,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 3,
+      "mirror": false,
+      "poles": [
+        11,
+        25
+      ],
+      "rms": 0.15545319020748138,
+      "max": 3.175771951675415,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 3,
+      "mirror": true,
+      "poles": [
+        11,
+        25
+      ],
+      "rms": 0.15545319020748138,
+      "max": 3.175771951675415,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 4,
+      "mirror": false,
+      "poles": [
+        7,
+        48
+      ],
+      "rms": 0.06088441610336304,
+      "max": 0.39703863859176636,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 4,
+      "mirror": true,
+      "poles": [
+        7,
+        48
+      ],
+      "rms": 0.06088441610336304,
+      "max": 0.39703863859176636,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 5,
+      "mirror": false,
+      "poles": [
+        8,
+        40
+      ],
+      "rms": 0.2203046977519989,
+      "max": 1.4669698476791382,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 5,
+      "mirror": true,
+      "poles": [
+        8,
+        40
+      ],
+      "rms": 0.2203046977519989,
+      "max": 1.4669698476791382,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 6,
+      "mirror": false,
+      "poles": [
+        18,
+        6
+      ],
+      "rms": 0.15707533061504364,
+      "max": 0.7036104202270508,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 6,
+      "mirror": true,
+      "poles": [
+        18,
+        6
+      ],
+      "rms": 0.15707533061504364,
+      "max": 0.7036104202270508,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 7,
+      "mirror": false,
+      "poles": [
+        4,
+        40
+      ],
+      "rms": 0.04939386621117592,
+      "max": 0.2635630667209625,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 7,
+      "mirror": true,
+      "poles": [
+        4,
+        40
+      ],
+      "rms": 0.04939386621117592,
+      "max": 0.2635630667209625,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 8,
+      "mirror": false,
+      "poles": [
+        11,
+        6
+      ],
+      "rms": 0.0530543215572834,
+      "max": 0.20524057745933533,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 8,
+      "mirror": true,
+      "poles": [
+        11,
+        6
+      ],
+      "rms": 0.0530543215572834,
+      "max": 0.20524057745933533,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 9,
+      "mirror": false,
+      "poles": [
+        58,
+        4
+      ],
+      "rms": 0.2964840233325958,
+      "max": 1.1193180084228516,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 9,
+      "mirror": true,
+      "poles": [
+        58,
+        4
+      ],
+      "rms": 0.2964840233325958,
+      "max": 1.1193180084228516,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 10,
+      "mirror": false,
+      "poles": [
+        44,
+        4
+      ],
+      "rms": 0.03436446934938431,
+      "max": 0.21715712547302246,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 10,
+      "mirror": true,
+      "poles": [
+        44,
+        4
+      ],
+      "rms": 0.03436446934938431,
+      "max": 0.21715712547302246,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 11,
+      "mirror": false,
+      "poles": [
+        38,
+        4
+      ],
+      "rms": 0.027602721005678177,
+      "max": 0.12182075530290604,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 11,
+      "mirror": true,
+      "poles": [
+        38,
+        4
+      ],
+      "rms": 0.027602721005678177,
+      "max": 0.12182075530290604,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 12,
+      "mirror": false,
+      "poles": [
+        10,
+        21
+      ],
+      "rms": 0.12562745809555054,
+      "max": 0.4962101876735687,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 12,
+      "mirror": true,
+      "poles": [
+        10,
+        21
+      ],
+      "rms": 0.12562745809555054,
+      "max": 0.4962101876735687,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 13,
+      "mirror": false,
+      "poles": [
+        11,
+        15
+      ],
+      "rms": 0.03468623384833336,
+      "max": 0.24037519097328186,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 13,
+      "mirror": true,
+      "poles": [
+        11,
+        15
+      ],
+      "rms": 0.03468623384833336,
+      "max": 0.24037519097328186,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 14,
+      "mirror": false,
+      "poles": [
+        14,
+        24
+      ],
+      "rms": 0.09441281855106354,
+      "max": 0.3647584021091461,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 14,
+      "mirror": true,
+      "poles": [
+        14,
+        24
+      ],
+      "rms": 0.09441281855106354,
+      "max": 0.3647584021091461,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 15,
+      "mirror": false,
+      "poles": [
+        17,
+        4
+      ],
+      "rms": 0.018064508214592934,
+      "max": 0.09386889636516571,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 15,
+      "mirror": true,
+      "poles": [
+        17,
+        4
+      ],
+      "rms": 0.018064508214592934,
+      "max": 0.09386889636516571,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 16,
+      "mirror": false,
+      "poles": [
+        14,
+        5
+      ],
+      "rms": 0.023394359275698662,
+      "max": 0.08179573714733124,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 16,
+      "mirror": true,
+      "poles": [
+        14,
+        5
+      ],
+      "rms": 0.023394359275698662,
+      "max": 0.08179573714733124,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 17,
+      "mirror": false,
+      "poles": [
+        12,
+        25
+      ],
+      "rms": 0.31237292289733887,
+      "max": 0.8953272700309753,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 17,
+      "mirror": true,
+      "poles": [
+        12,
+        25
+      ],
+      "rms": 0.31237292289733887,
+      "max": 0.8953272700309753,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 18,
+      "mirror": false,
+      "poles": [
+        66,
+        4
+      ],
+      "rms": 0.46799659729003906,
+      "max": 1.6816432476043701,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 18,
+      "mirror": true,
+      "poles": [
+        66,
+        4
+      ],
+      "rms": 0.46799659729003906,
+      "max": 1.6816432476043701,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 19,
+      "mirror": false,
+      "poles": [
+        12,
+        9
+      ],
+      "rms": 0.06768839806318283,
+      "max": 0.248744934797287,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 19,
+      "mirror": true,
+      "poles": [
+        12,
+        9
+      ],
+      "rms": 0.06768839806318283,
+      "max": 0.248744934797287,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 20,
+      "mirror": false,
+      "poles": [
+        8,
+        7
+      ],
+      "rms": 0.045322664082050323,
+      "max": 0.11394091695547104,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 20,
+      "mirror": true,
+      "poles": [
+        8,
+        7
+      ],
+      "rms": 0.045322664082050323,
+      "max": 0.11394091695547104,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 21,
+      "mirror": false,
+      "poles": [
+        17,
+        53
+      ],
+      "rms": 2.114495038986206,
+      "max": 7.932800769805908,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 21,
+      "mirror": true,
+      "poles": [
+        17,
+        53
+      ],
+      "rms": 2.114495038986206,
+      "max": 7.932800769805908,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 22,
+      "mirror": false,
+      "poles": [
+        4,
+        25
+      ],
+      "rms": 0.0459560751914978,
+      "max": 0.18673069775104523,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 22,
+      "mirror": true,
+      "poles": [
+        4,
+        25
+      ],
+      "rms": 0.0459560751914978,
+      "max": 0.18673069775104523,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 23,
+      "mirror": false,
+      "poles": [
+        19,
+        4
+      ],
+      "rms": 0.08989042788743973,
+      "max": 0.461854487657547,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 23,
+      "mirror": true,
+      "poles": [
+        19,
+        4
+      ],
+      "rms": 0.08989042788743973,
+      "max": 0.461854487657547,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 24,
+      "mirror": false,
+      "poles": [
+        30,
+        4
+      ],
+      "rms": 0.010135794058442116,
+      "max": 0.11497513204813004,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 24,
+      "mirror": true,
+      "poles": [
+        30,
+        4
+      ],
+      "rms": 0.010135794058442116,
+      "max": 0.11497513204813004,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 25,
+      "mirror": false,
+      "poles": [
+        5,
+        31
+      ],
+      "rms": 0.04679025337100029,
+      "max": 1.2375725507736206,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 25,
+      "mirror": true,
+      "poles": [
+        5,
+        31
+      ],
+      "rms": 0.04679025337100029,
+      "max": 1.2375725507736206,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 26,
+      "mirror": false,
+      "poles": [
+        16,
+        4
+      ],
+      "rms": 0.029954582452774048,
+      "max": 0.13078810274600983,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 26,
+      "mirror": true,
+      "poles": [
+        16,
+        4
+      ],
+      "rms": 0.029954582452774048,
+      "max": 0.13078810274600983,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 27,
+      "mirror": false,
+      "poles": [
+        5,
+        24
+      ],
+      "rms": 0.015482932329177856,
+      "max": 0.0730501115322113,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 27,
+      "mirror": true,
+      "poles": [
+        5,
+        24
+      ],
+      "rms": 0.015482932329177856,
+      "max": 0.0730501115322113,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 28,
+      "mirror": false,
+      "poles": [
+        4,
+        22
+      ],
+      "rms": 0.0253093671053648,
+      "max": 0.13455726206302643,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 28,
+      "mirror": true,
+      "poles": [
+        4,
+        22
+      ],
+      "rms": 0.0253093671053648,
+      "max": 0.13455726206302643,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 29,
+      "mirror": false,
+      "poles": [
+        7,
+        12
+      ],
+      "rms": 0.056722890585660934,
+      "max": 0.2643338441848755,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 29,
+      "mirror": true,
+      "poles": [
+        7,
+        12
+      ],
+      "rms": 0.056722890585660934,
+      "max": 0.2643338441848755,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 30,
+      "mirror": false,
+      "poles": [
+        13,
+        4
+      ],
+      "rms": 0.0019045346416532993,
+      "max": 0.010804071091115475,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 30,
+      "mirror": true,
+      "poles": [
+        13,
+        4
+      ],
+      "rms": 0.0019045346416532993,
+      "max": 0.010804071091115475,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 31,
+      "mirror": false,
+      "poles": [
+        18,
+        4
+      ],
+      "rms": 0.027913715690374374,
+      "max": 0.13611489534378052,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 31,
+      "mirror": true,
+      "poles": [
+        18,
+        4
+      ],
+      "rms": 0.027913715690374374,
+      "max": 0.13611489534378052,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 32,
+      "mirror": false,
+      "poles": [
+        30,
+        4
+      ],
+      "rms": 0.03173947334289551,
+      "max": 0.12141489237546921,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 32,
+      "mirror": true,
+      "poles": [
+        30,
+        4
+      ],
+      "rms": 0.03173947334289551,
+      "max": 0.12141489237546921,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 33,
+      "mirror": false,
+      "poles": [
+        16,
+        4
+      ],
+      "rms": 0.04876445606350899,
+      "max": 0.1450284868478775,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 33,
+      "mirror": true,
+      "poles": [
+        16,
+        4
+      ],
+      "rms": 0.04876445606350899,
+      "max": 0.1450284868478775,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 34,
+      "mirror": false,
+      "poles": [
+        10,
+        26
+      ],
+      "rms": 0.16516727209091187,
+      "max": 3.1780450344085693,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 34,
+      "mirror": true,
+      "poles": [
+        10,
+        26
+      ],
+      "rms": 0.16516727209091187,
+      "max": 3.1780450344085693,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 35,
+      "mirror": false,
+      "poles": [
+        15,
+        4
+      ],
+      "rms": 0.06691388040781021,
+      "max": 0.18295350670814514,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 35,
+      "mirror": true,
+      "poles": [
+        15,
+        4
+      ],
+      "rms": 0.06691388040781021,
+      "max": 0.18295350670814514,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 36,
+      "mirror": false,
+      "poles": [
+        10,
+        4
+      ],
+      "rms": 0.02488705888390541,
+      "max": 0.08688611537218094,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 36,
+      "mirror": true,
+      "poles": [
+        10,
+        4
+      ],
+      "rms": 0.02488705888390541,
+      "max": 0.08688611537218094,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 37,
+      "mirror": false,
+      "poles": [
+        4,
+        16
+      ],
+      "rms": 0.042219895869493484,
+      "max": 0.20586122572422028,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 37,
+      "mirror": true,
+      "poles": [
+        4,
+        16
+      ],
+      "rms": 0.042219895869493484,
+      "max": 0.20586122572422028,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 38,
+      "mirror": false,
+      "poles": [
+        4,
+        35
+      ],
+      "rms": 0.05124872922897339,
+      "max": 0.2221698760986328,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 38,
+      "mirror": true,
+      "poles": [
+        4,
+        35
+      ],
+      "rms": 0.05124872922897339,
+      "max": 0.2221698760986328,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 39,
+      "mirror": false,
+      "poles": [
+        15,
+        23
+      ],
+      "rms": 0.12329763174057007,
+      "max": 0.4305533468723297,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 39,
+      "mirror": true,
+      "poles": [
+        15,
+        23
+      ],
+      "rms": 0.12329763174057007,
+      "max": 0.4305533468723297,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 40,
+      "mirror": false,
+      "poles": [
+        51,
+        4
+      ],
+      "rms": 0.029394520446658134,
+      "max": 0.25240522623062134,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 40,
+      "mirror": true,
+      "poles": [
+        51,
+        4
+      ],
+      "rms": 0.029394520446658134,
+      "max": 0.25240522623062134,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 41,
+      "mirror": false,
+      "poles": [
+        5,
+        13
+      ],
+      "rms": 0.023439913988113403,
+      "max": 0.12159797549247742,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 41,
+      "mirror": true,
+      "poles": [
+        5,
+        13
+      ],
+      "rms": 0.023439913988113403,
+      "max": 0.12159797549247742,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 42,
+      "mirror": false,
+      "poles": [
+        8,
+        4
+      ],
+      "rms": 0.039770133793354034,
+      "max": 0.12399934232234955,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 42,
+      "mirror": true,
+      "poles": [
+        8,
+        4
+      ],
+      "rms": 0.039770133793354034,
+      "max": 0.12399934232234955,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 43,
+      "mirror": false,
+      "poles": [
+        8,
+        4
+      ],
+      "rms": 0.007527804467827082,
+      "max": 0.07053977251052856,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 43,
+      "mirror": true,
+      "poles": [
+        8,
+        4
+      ],
+      "rms": 0.007527804467827082,
+      "max": 0.07053977251052856,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 44,
+      "mirror": false,
+      "poles": [
+        5,
+        14
+      ],
+      "rms": 0.016239911317825317,
+      "max": 0.08350329846143723,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 44,
+      "mirror": true,
+      "poles": [
+        5,
+        14
+      ],
+      "rms": 0.016239911317825317,
+      "max": 0.08350329846143723,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 45,
+      "mirror": false,
+      "poles": [
+        4,
+        33
+      ],
+      "rms": 0.021665610373020172,
+      "max": 0.12230781465768814,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 45,
+      "mirror": true,
+      "poles": [
+        4,
+        33
+      ],
+      "rms": 0.021665610373020172,
+      "max": 0.12230781465768814,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 46,
+      "mirror": false,
+      "poles": [
+        6,
+        7
+      ],
+      "rms": 0.0631631538271904,
+      "max": 0.655872106552124,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 46,
+      "mirror": true,
+      "poles": [
+        6,
+        7
+      ],
+      "rms": 0.0631631538271904,
+      "max": 0.655872106552124,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 47,
+      "mirror": false,
+      "poles": [
+        4,
+        7
+      ],
+      "rms": 0.044725451618433,
+      "max": 0.12360452115535736,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 47,
+      "mirror": true,
+      "poles": [
+        4,
+        7
+      ],
+      "rms": 0.044725451618433,
+      "max": 0.12360452115535736,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 48,
+      "mirror": false,
+      "poles": [
+        5,
+        18
+      ],
+      "rms": 0.027161607518792152,
+      "max": 0.08938735723495483,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 48,
+      "mirror": true,
+      "poles": [
+        5,
+        18
+      ],
+      "rms": 0.027161607518792152,
+      "max": 0.08938735723495483,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 49,
+      "mirror": false,
+      "poles": [
+        4,
+        18
+      ],
+      "rms": 0.039117611944675446,
+      "max": 0.12903323769569397,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 49,
+      "mirror": true,
+      "poles": [
+        4,
+        18
+      ],
+      "rms": 0.039117611944675446,
+      "max": 0.12903323769569397,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 50,
+      "mirror": false,
+      "poles": [
+        4,
+        33
+      ],
+      "rms": 0.16767098009586334,
+      "max": 0.9109352827072144,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 50,
+      "mirror": true,
+      "poles": [
+        4,
+        33
+      ],
+      "rms": 0.16767098009586334,
+      "max": 0.9109352827072144,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 51,
+      "mirror": false,
+      "poles": [
+        5,
+        4
+      ],
+      "rms": 0.018642142415046692,
+      "max": 0.05300729721784592,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 51,
+      "mirror": true,
+      "poles": [
+        5,
+        4
+      ],
+      "rms": 0.018642142415046692,
+      "max": 0.05300729721784592,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 52,
+      "mirror": false,
+      "poles": [
+        4,
+        66
+      ],
+      "rms": 0.019592439755797386,
+      "max": 0.12142559140920639,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 52,
+      "mirror": true,
+      "poles": [
+        4,
+        66
+      ],
+      "rms": 0.019592439755797386,
+      "max": 0.12142559140920639,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 53,
+      "mirror": false,
+      "poles": [
+        4,
+        21
+      ],
+      "rms": 0.12927745282649994,
+      "max": 0.40266329050064087,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 53,
+      "mirror": true,
+      "poles": [
+        4,
+        21
+      ],
+      "rms": 0.12927745282649994,
+      "max": 0.40266329050064087,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 54,
+      "mirror": false,
+      "poles": [
+        31,
+        7
+      ],
+      "rms": 0.03018050454556942,
+      "max": 0.09156480431556702,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 54,
+      "mirror": true,
+      "poles": [
+        31,
+        7
+      ],
+      "rms": 0.03018050454556942,
+      "max": 0.09156480431556702,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 55,
+      "mirror": false,
+      "poles": [
+        4,
+        42
+      ],
+      "rms": 0.022247005254030228,
+      "max": 0.13843713700771332,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 55,
+      "mirror": true,
+      "poles": [
+        4,
+        42
+      ],
+      "rms": 0.022247005254030228,
+      "max": 0.13843713700771332,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 56,
+      "mirror": false,
+      "poles": [
+        20,
+        5
+      ],
+      "rms": 0.020404551178216934,
+      "max": 0.18144956231117249,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 56,
+      "mirror": true,
+      "poles": [
+        20,
+        5
+      ],
+      "rms": 0.020404551178216934,
+      "max": 0.18144956231117249,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 57,
+      "mirror": false,
+      "poles": [
+        5,
+        21
+      ],
+      "rms": 0.03352144733071327,
+      "max": 0.1265777051448822,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 57,
+      "mirror": true,
+      "poles": [
+        5,
+        21
+      ],
+      "rms": 0.03352144733071327,
+      "max": 0.1265777051448822,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 58,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0018866810714825988,
+      "max": 0.006547292694449425,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 58,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0018866810714825988,
+      "max": 0.006547292694449425,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 59,
+      "mirror": false,
+      "poles": [
+        10,
+        71
+      ],
+      "rms": 0.3872361183166504,
+      "max": 2.1300597190856934,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 59,
+      "mirror": true,
+      "poles": [
+        10,
+        71
+      ],
+      "rms": 0.3872361183166504,
+      "max": 2.1300597190856934,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 60,
+      "mirror": false,
+      "poles": [
+        6,
+        14
+      ],
+      "rms": 0.07310456782579422,
+      "max": 0.2810249328613281,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 60,
+      "mirror": true,
+      "poles": [
+        6,
+        14
+      ],
+      "rms": 0.07310456782579422,
+      "max": 0.2810249328613281,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 61,
+      "mirror": false,
+      "poles": [
+        12,
+        8
+      ],
+      "rms": 0.13635942339897156,
+      "max": 0.4633474349975586,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 61,
+      "mirror": true,
+      "poles": [
+        12,
+        8
+      ],
+      "rms": 0.13635942339897156,
+      "max": 0.4633474349975586,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 62,
+      "mirror": false,
+      "poles": [
+        16,
+        4
+      ],
+      "rms": 0.046391651034355164,
+      "max": 0.12770530581474304,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 62,
+      "mirror": true,
+      "poles": [
+        16,
+        4
+      ],
+      "rms": 0.046391651034355164,
+      "max": 0.12770530581474304,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 63,
+      "mirror": false,
+      "poles": [
+        13,
+        13
+      ],
+      "rms": 0.08134283125400543,
+      "max": 0.6049199104309082,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 63,
+      "mirror": true,
+      "poles": [
+        13,
+        13
+      ],
+      "rms": 0.08134283125400543,
+      "max": 0.6049199104309082,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 64,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0017329491674900055,
+      "max": 0.004213420208543539,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 64,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0017329491674900055,
+      "max": 0.004213420208543539,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 65,
+      "mirror": false,
+      "poles": [
+        6,
+        18
+      ],
+      "rms": 0.01764402724802494,
+      "max": 0.08978456258773804,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 65,
+      "mirror": true,
+      "poles": [
+        6,
+        18
+      ],
+      "rms": 0.01764402724802494,
+      "max": 0.08978456258773804,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 66,
+      "mirror": false,
+      "poles": [
+        6,
+        24
+      ],
+      "rms": 0.029981207102537155,
+      "max": 0.09958559274673462,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 66,
+      "mirror": true,
+      "poles": [
+        6,
+        24
+      ],
+      "rms": 0.029981207102537155,
+      "max": 0.09958559274673462,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 67,
+      "mirror": false,
+      "poles": [
+        27,
+        14
+      ],
+      "rms": 0.08203403651714325,
+      "max": 0.4123876690864563,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 67,
+      "mirror": true,
+      "poles": [
+        27,
+        14
+      ],
+      "rms": 0.08203403651714325,
+      "max": 0.4123876690864563,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 68,
+      "mirror": false,
+      "poles": [
+        6,
+        11
+      ],
+      "rms": 0.0174856036901474,
+      "max": 0.07547040283679962,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 68,
+      "mirror": true,
+      "poles": [
+        6,
+        11
+      ],
+      "rms": 0.0174856036901474,
+      "max": 0.07547040283679962,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 69,
+      "mirror": false,
+      "poles": [
+        31,
+        5
+      ],
+      "rms": 0.025955794379115105,
+      "max": 0.14618681371212006,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 69,
+      "mirror": true,
+      "poles": [
+        31,
+        5
+      ],
+      "rms": 0.025955794379115105,
+      "max": 0.14618681371212006,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 70,
+      "mirror": false,
+      "poles": [
+        26,
+        4
+      ],
+      "rms": 0.005366405006498098,
+      "max": 0.036119479686021805,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 70,
+      "mirror": true,
+      "poles": [
+        26,
+        4
+      ],
+      "rms": 0.005366405006498098,
+      "max": 0.036119479686021805,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 71,
+      "mirror": false,
+      "poles": [
+        4,
+        33
+      ],
+      "rms": 0.02217048779129982,
+      "max": 0.1266399472951889,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 71,
+      "mirror": true,
+      "poles": [
+        4,
+        33
+      ],
+      "rms": 0.02217048779129982,
+      "max": 0.1266399472951889,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 72,
+      "mirror": false,
+      "poles": [
+        4,
+        15
+      ],
+      "rms": 0.031000517308712006,
+      "max": 0.10908622294664383,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 72,
+      "mirror": true,
+      "poles": [
+        4,
+        15
+      ],
+      "rms": 0.031000517308712006,
+      "max": 0.10908622294664383,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 73,
+      "mirror": false,
+      "poles": [
+        4,
+        40
+      ],
+      "rms": 0.030877605080604553,
+      "max": 0.13991154730319977,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 73,
+      "mirror": true,
+      "poles": [
+        4,
+        40
+      ],
+      "rms": 0.030877605080604553,
+      "max": 0.13991154730319977,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 74,
+      "mirror": false,
+      "poles": [
+        14,
+        4
+      ],
+      "rms": 0.020245080813765526,
+      "max": 0.07309473305940628,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 74,
+      "mirror": true,
+      "poles": [
+        14,
+        4
+      ],
+      "rms": 0.020245080813765526,
+      "max": 0.07309473305940628,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 75,
+      "mirror": false,
+      "poles": [
+        29,
+        4
+      ],
+      "rms": 0.014932573772966862,
+      "max": 0.07408992201089859,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 75,
+      "mirror": true,
+      "poles": [
+        29,
+        4
+      ],
+      "rms": 0.014932573772966862,
+      "max": 0.07408992201089859,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 76,
+      "mirror": false,
+      "poles": [
+        10,
+        4
+      ],
+      "rms": 0.019681021571159363,
+      "max": 0.09381252527236938,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 76,
+      "mirror": true,
+      "poles": [
+        10,
+        4
+      ],
+      "rms": 0.019681021571159363,
+      "max": 0.09381252527236938,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 77,
+      "mirror": false,
+      "poles": [
+        12,
+        4
+      ],
+      "rms": 0.031967855989933014,
+      "max": 0.11060068756341934,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 77,
+      "mirror": true,
+      "poles": [
+        12,
+        4
+      ],
+      "rms": 0.031967855989933014,
+      "max": 0.11060068756341934,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 78,
+      "mirror": false,
+      "poles": [
+        4,
+        5
+      ],
+      "rms": 0.006947864778339863,
+      "max": 0.029288269579410553,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 78,
+      "mirror": true,
+      "poles": [
+        4,
+        5
+      ],
+      "rms": 0.006947864778339863,
+      "max": 0.029288269579410553,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 79,
+      "mirror": false,
+      "poles": [
+        6,
+        4
+      ],
+      "rms": 0.018799573183059692,
+      "max": 0.07127740979194641,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 79,
+      "mirror": true,
+      "poles": [
+        6,
+        4
+      ],
+      "rms": 0.018799573183059692,
+      "max": 0.07127740979194641,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 80,
+      "mirror": false,
+      "poles": [
+        4,
+        22
+      ],
+      "rms": 0.0033246346283704042,
+      "max": 0.017817800864577293,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 80,
+      "mirror": true,
+      "poles": [
+        4,
+        22
+      ],
+      "rms": 0.0033246346283704042,
+      "max": 0.017817800864577293,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 81,
+      "mirror": false,
+      "poles": [
+        22,
+        10
+      ],
+      "rms": 0.052806880325078964,
+      "max": 0.20242677628993988,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 81,
+      "mirror": true,
+      "poles": [
+        22,
+        10
+      ],
+      "rms": 0.052806880325078964,
+      "max": 0.20242677628993988,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 82,
+      "mirror": false,
+      "poles": [
+        31,
+        7
+      ],
+      "rms": 0.14896219968795776,
+      "max": 1.0534676313400269,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 82,
+      "mirror": true,
+      "poles": [
+        31,
+        7
+      ],
+      "rms": 0.14896219968795776,
+      "max": 1.0534676313400269,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 83,
+      "mirror": false,
+      "poles": [
+        4,
+        8
+      ],
+      "rms": 0.0011872167233377695,
+      "max": 0.011229109950363636,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 83,
+      "mirror": true,
+      "poles": [
+        4,
+        8
+      ],
+      "rms": 0.0011872167233377695,
+      "max": 0.011229109950363636,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 84,
+      "mirror": false,
+      "poles": [
+        40,
+        4
+      ],
+      "rms": 0.03172961249947548,
+      "max": 0.12062346190214157,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 84,
+      "mirror": true,
+      "poles": [
+        40,
+        4
+      ],
+      "rms": 0.03172961249947548,
+      "max": 0.12062346190214157,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 85,
+      "mirror": false,
+      "poles": [
+        10,
+        4
+      ],
+      "rms": 0.03729204460978508,
+      "max": 0.08688611537218094,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 85,
+      "mirror": true,
+      "poles": [
+        10,
+        4
+      ],
+      "rms": 0.03729204460978508,
+      "max": 0.08688611537218094,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 86,
+      "mirror": false,
+      "poles": [
+        22,
+        5
+      ],
+      "rms": 0.026017840951681137,
+      "max": 0.08810114860534668,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 86,
+      "mirror": true,
+      "poles": [
+        22,
+        5
+      ],
+      "rms": 0.026017840951681137,
+      "max": 0.08810114860534668,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 87,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0002717789902817458,
+      "max": 0.0007372687687166035,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 87,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0002717789902817458,
+      "max": 0.0007372687687166035,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 88,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.000585940491873771,
+      "max": 0.0015370603650808334,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 88,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.000585940491873771,
+      "max": 0.0015370603650808334,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 89,
+      "mirror": false,
+      "poles": [
+        34,
+        4
+      ],
+      "rms": 0.10802831500768661,
+      "max": 0.3904942274093628,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 89,
+      "mirror": true,
+      "poles": [
+        34,
+        4
+      ],
+      "rms": 0.10802831500768661,
+      "max": 0.3904942274093628,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 90,
+      "mirror": false,
+      "poles": [
+        4,
+        29
+      ],
+      "rms": 0.04168524220585823,
+      "max": 0.26302045583724976,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 90,
+      "mirror": true,
+      "poles": [
+        4,
+        29
+      ],
+      "rms": 0.04168524220585823,
+      "max": 0.26302045583724976,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 91,
+      "mirror": false,
+      "poles": [
+        13,
+        7
+      ],
+      "rms": 0.10765890032052994,
+      "max": 0.48590001463890076,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 91,
+      "mirror": true,
+      "poles": [
+        13,
+        7
+      ],
+      "rms": 0.10765890032052994,
+      "max": 0.48590001463890076,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 92,
+      "mirror": false,
+      "poles": [
+        4,
+        13
+      ],
+      "rms": 0.05634743347764015,
+      "max": 0.1445561647415161,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 92,
+      "mirror": true,
+      "poles": [
+        4,
+        13
+      ],
+      "rms": 0.05634743347764015,
+      "max": 0.1445561647415161,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 93,
+      "mirror": false,
+      "poles": [
+        4,
+        24
+      ],
+      "rms": 0.019365912303328514,
+      "max": 0.1161370724439621,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 93,
+      "mirror": true,
+      "poles": [
+        4,
+        24
+      ],
+      "rms": 0.019365912303328514,
+      "max": 0.1161370724439621,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 94,
+      "mirror": false,
+      "poles": [
+        14,
+        4
+      ],
+      "rms": 0.018023047596216202,
+      "max": 0.07734239846467972,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 94,
+      "mirror": true,
+      "poles": [
+        14,
+        4
+      ],
+      "rms": 0.018023047596216202,
+      "max": 0.07734239846467972,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 95,
+      "mirror": false,
+      "poles": [
+        4,
+        9
+      ],
+      "rms": 0.03571242094039917,
+      "max": 0.13873910903930664,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 95,
+      "mirror": true,
+      "poles": [
+        4,
+        9
+      ],
+      "rms": 0.03571242094039917,
+      "max": 0.13873910903930664,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 96,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.005153699312359095,
+      "max": 0.008755037561058998,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 96,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.005153699312359095,
+      "max": 0.008755037561058998,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 97,
+      "mirror": false,
+      "poles": [
+        27,
+        4
+      ],
+      "rms": 0.028300389647483826,
+      "max": 0.1326480656862259,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 97,
+      "mirror": true,
+      "poles": [
+        27,
+        4
+      ],
+      "rms": 0.028300389647483826,
+      "max": 0.1326480656862259,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 98,
+      "mirror": false,
+      "poles": [
+        19,
+        4
+      ],
+      "rms": 0.023516399785876274,
+      "max": 0.08875022083520889,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 98,
+      "mirror": true,
+      "poles": [
+        19,
+        4
+      ],
+      "rms": 0.023516399785876274,
+      "max": 0.08875022083520889,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 99,
+      "mirror": false,
+      "poles": [
+        13,
+        18
+      ],
+      "rms": 0.3182220757007599,
+      "max": 1.7941206693649292,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 99,
+      "mirror": true,
+      "poles": [
+        13,
+        18
+      ],
+      "rms": 0.3182220757007599,
+      "max": 1.7941206693649292,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 100,
+      "mirror": false,
+      "poles": [
+        4,
+        10
+      ],
+      "rms": 0.04028499871492386,
+      "max": 0.0924040675163269,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 100,
+      "mirror": true,
+      "poles": [
+        4,
+        10
+      ],
+      "rms": 0.04028499871492386,
+      "max": 0.0924040675163269,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 101,
+      "mirror": false,
+      "poles": [
+        5,
+        4
+      ],
+      "rms": 0.010395088233053684,
+      "max": 0.0368356816470623,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 101,
+      "mirror": true,
+      "poles": [
+        5,
+        4
+      ],
+      "rms": 0.010395088233053684,
+      "max": 0.0368356816470623,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 102,
+      "mirror": false,
+      "poles": [
+        32,
+        4
+      ],
+      "rms": 0.040810294449329376,
+      "max": 0.17631682753562927,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 102,
+      "mirror": true,
+      "poles": [
+        32,
+        4
+      ],
+      "rms": 0.040810294449329376,
+      "max": 0.17631682753562927,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 103,
+      "mirror": false,
+      "poles": [
+        28,
+        4
+      ],
+      "rms": 0.07195671647787094,
+      "max": 0.23457938432693481,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 103,
+      "mirror": true,
+      "poles": [
+        28,
+        4
+      ],
+      "rms": 0.07195671647787094,
+      "max": 0.23457938432693481,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 104,
+      "mirror": false,
+      "poles": [
+        8,
+        4
+      ],
+      "rms": 0.12780463695526123,
+      "max": 0.5667510628700256,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 104,
+      "mirror": true,
+      "poles": [
+        8,
+        4
+      ],
+      "rms": 0.12780463695526123,
+      "max": 0.5667510628700256,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 105,
+      "mirror": false,
+      "poles": [
+        13,
+        4
+      ],
+      "rms": 0.0034900037571787834,
+      "max": 0.014912243001163006,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 105,
+      "mirror": true,
+      "poles": [
+        13,
+        4
+      ],
+      "rms": 0.0034900037571787834,
+      "max": 0.014912243001163006,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 106,
+      "mirror": false,
+      "poles": [
+        13,
+        4
+      ],
+      "rms": 0.005509150214493275,
+      "max": 0.01994619332253933,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 106,
+      "mirror": true,
+      "poles": [
+        13,
+        4
+      ],
+      "rms": 0.005509150214493275,
+      "max": 0.01994619332253933,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 107,
+      "mirror": false,
+      "poles": [
+        4,
+        14
+      ],
+      "rms": 0.041679076850414276,
+      "max": 0.13225775957107544,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 107,
+      "mirror": true,
+      "poles": [
+        4,
+        14
+      ],
+      "rms": 0.041679076850414276,
+      "max": 0.13225775957107544,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 108,
+      "mirror": false,
+      "poles": [
+        38,
+        4
+      ],
+      "rms": 0.03213518485426903,
+      "max": 0.13289040327072144,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 108,
+      "mirror": true,
+      "poles": [
+        38,
+        4
+      ],
+      "rms": 0.03213518485426903,
+      "max": 0.13289040327072144,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 109,
+      "mirror": false,
+      "poles": [
+        8,
+        5
+      ],
+      "rms": 0.12942613661289215,
+      "max": 0.40387773513793945,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 109,
+      "mirror": true,
+      "poles": [
+        8,
+        5
+      ],
+      "rms": 0.12942613661289215,
+      "max": 0.40387773513793945,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 110,
+      "mirror": false,
+      "poles": [
+        7,
+        5
+      ],
+      "rms": 0.015911784023046494,
+      "max": 0.057481907308101654,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 110,
+      "mirror": true,
+      "poles": [
+        7,
+        5
+      ],
+      "rms": 0.015911784023046494,
+      "max": 0.057481907308101654,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 111,
+      "mirror": false,
+      "poles": [
+        7,
+        4
+      ],
+      "rms": 0.0003461931482888758,
+      "max": 0.0016900834161788225,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 111,
+      "mirror": true,
+      "poles": [
+        7,
+        4
+      ],
+      "rms": 0.0003461931482888758,
+      "max": 0.0016900834161788225,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 112,
+      "mirror": false,
+      "poles": [
+        10,
+        38
+      ],
+      "rms": 0.019601907581090927,
+      "max": 0.11990998685359955,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 112,
+      "mirror": true,
+      "poles": [
+        10,
+        38
+      ],
+      "rms": 0.019601907581090927,
+      "max": 0.11990998685359955,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 113,
+      "mirror": false,
+      "poles": [
+        39,
+        4
+      ],
+      "rms": 0.03597189858555794,
+      "max": 0.13085849583148956,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 113,
+      "mirror": true,
+      "poles": [
+        39,
+        4
+      ],
+      "rms": 0.03597189858555794,
+      "max": 0.13085849583148956,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 114,
+      "mirror": false,
+      "poles": [
+        4,
+        46
+      ],
+      "rms": 0.03411296010017395,
+      "max": 0.12761445343494415,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 114,
+      "mirror": true,
+      "poles": [
+        4,
+        46
+      ],
+      "rms": 0.03411296010017395,
+      "max": 0.12761445343494415,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 115,
+      "mirror": false,
+      "poles": [
+        37,
+        4
+      ],
+      "rms": 0.03115360252559185,
+      "max": 0.14069044589996338,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 115,
+      "mirror": true,
+      "poles": [
+        37,
+        4
+      ],
+      "rms": 0.03115360252559185,
+      "max": 0.14069044589996338,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 116,
+      "mirror": false,
+      "poles": [
+        44,
+        7
+      ],
+      "rms": 0.06559168547391891,
+      "max": 0.32388925552368164,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 116,
+      "mirror": true,
+      "poles": [
+        44,
+        7
+      ],
+      "rms": 0.06559168547391891,
+      "max": 0.32388925552368164,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 117,
+      "mirror": false,
+      "poles": [
+        4,
+        24
+      ],
+      "rms": 0.01988036185503006,
+      "max": 0.09398172795772552,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 117,
+      "mirror": true,
+      "poles": [
+        4,
+        24
+      ],
+      "rms": 0.01988036185503006,
+      "max": 0.09398172795772552,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 118,
+      "mirror": false,
+      "poles": [
+        4,
+        29
+      ],
+      "rms": 0.024330930784344673,
+      "max": 0.09898248314857483,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 118,
+      "mirror": true,
+      "poles": [
+        4,
+        29
+      ],
+      "rms": 0.024330930784344673,
+      "max": 0.09898248314857483,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 119,
+      "mirror": false,
+      "poles": [
+        21,
+        13
+      ],
+      "rms": 0.10638968646526337,
+      "max": 1.0313915014266968,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 119,
+      "mirror": true,
+      "poles": [
+        21,
+        13
+      ],
+      "rms": 0.10638968646526337,
+      "max": 1.0313915014266968,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 120,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0070470222271978855,
+      "max": 0.01950128749012947,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 120,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0070470222271978855,
+      "max": 0.01950128749012947,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 121,
+      "mirror": false,
+      "poles": [
+        48,
+        11
+      ],
+      "rms": 0.10340634733438492,
+      "max": 0.9968376159667969,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 121,
+      "mirror": true,
+      "poles": [
+        48,
+        11
+      ],
+      "rms": 0.10340634733438492,
+      "max": 0.9968376159667969,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 122,
+      "mirror": false,
+      "poles": [
+        5,
+        35
+      ],
+      "rms": 0.032905254513025284,
+      "max": 0.15752917528152466,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 122,
+      "mirror": true,
+      "poles": [
+        5,
+        35
+      ],
+      "rms": 0.032905254513025284,
+      "max": 0.15752917528152466,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 123,
+      "mirror": false,
+      "poles": [
+        4,
+        20
+      ],
+      "rms": 0.037895314395427704,
+      "max": 0.12563562393188477,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 123,
+      "mirror": true,
+      "poles": [
+        4,
+        20
+      ],
+      "rms": 0.037895314395427704,
+      "max": 0.12563562393188477,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 124,
+      "mirror": false,
+      "poles": [
+        34,
+        4
+      ],
+      "rms": 0.03843715786933899,
+      "max": 0.16297908127307892,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 124,
+      "mirror": true,
+      "poles": [
+        34,
+        4
+      ],
+      "rms": 0.03843715786933899,
+      "max": 0.16297908127307892,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 125,
+      "mirror": false,
+      "poles": [
+        20,
+        4
+      ],
+      "rms": 0.01069770846515894,
+      "max": 0.06265658885240555,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 125,
+      "mirror": true,
+      "poles": [
+        20,
+        4
+      ],
+      "rms": 0.01069770846515894,
+      "max": 0.06265658885240555,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 126,
+      "mirror": false,
+      "poles": [
+        4,
+        39
+      ],
+      "rms": 0.014697409234941006,
+      "max": 0.12994232773780823,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 126,
+      "mirror": true,
+      "poles": [
+        4,
+        39
+      ],
+      "rms": 0.014697409234941006,
+      "max": 0.12994232773780823,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 127,
+      "mirror": false,
+      "poles": [
+        6,
+        19
+      ],
+      "rms": 0.06921282410621643,
+      "max": 0.44701337814331055,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 127,
+      "mirror": true,
+      "poles": [
+        6,
+        19
+      ],
+      "rms": 0.06921282410621643,
+      "max": 0.44701337814331055,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 128,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0001453788863727823,
+      "max": 0.0007633119239471853,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 128,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0001453788863727823,
+      "max": 0.0007633119239471853,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 129,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0004412395355757326,
+      "max": 0.002877120627090335,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 129,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0004412395355757326,
+      "max": 0.002877120627090335,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 130,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 8.122743747662753e-05,
+      "max": 0.0002384185791015625,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 130,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 8.122743747662753e-05,
+      "max": 0.0002384185791015625,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 131,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 7.111384911695495e-05,
+      "max": 0.00013328004570212215,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 131,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 7.111384911695495e-05,
+      "max": 0.00013328004570212215,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 132,
+      "mirror": false,
+      "poles": [
+        7,
+        9
+      ],
+      "rms": 0.020813819020986557,
+      "max": 0.1790628880262375,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 132,
+      "mirror": true,
+      "poles": [
+        7,
+        9
+      ],
+      "rms": 0.020813819020986557,
+      "max": 0.1790628880262375,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 133,
+      "mirror": false,
+      "poles": [
+        4,
+        7
+      ],
+      "rms": 0.012918444350361824,
+      "max": 0.044852882623672485,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 133,
+      "mirror": true,
+      "poles": [
+        4,
+        7
+      ],
+      "rms": 0.012918444350361824,
+      "max": 0.044852882623672485,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 134,
+      "mirror": false,
+      "poles": [
+        4,
+        7
+      ],
+      "rms": 0.0016663807909935713,
+      "max": 0.008163224905729294,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 134,
+      "mirror": true,
+      "poles": [
+        4,
+        7
+      ],
+      "rms": 0.0016663807909935713,
+      "max": 0.008163224905729294,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 135,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.003868774976581335,
+      "max": 0.015287167392671108,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 135,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.003868774976581335,
+      "max": 0.015287167392671108,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 136,
+      "mirror": false,
+      "poles": [
+        4,
+        18
+      ],
+      "rms": 0.04444173350930214,
+      "max": 0.2824525535106659,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 136,
+      "mirror": true,
+      "poles": [
+        4,
+        18
+      ],
+      "rms": 0.04444173350930214,
+      "max": 0.2824525535106659,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 137,
+      "mirror": false,
+      "poles": [
+        11,
+        4
+      ],
+      "rms": 0.07215823233127594,
+      "max": 0.2856600284576416,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 137,
+      "mirror": true,
+      "poles": [
+        11,
+        4
+      ],
+      "rms": 0.07215823233127594,
+      "max": 0.2856600284576416,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": true
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 138,
+      "mirror": false,
+      "poles": [
+        4,
+        24
+      ],
+      "rms": 0.03374342620372772,
+      "max": 0.12889082729816437,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 138,
+      "mirror": true,
+      "poles": [
+        4,
+        24
+      ],
+      "rms": 0.03374342620372772,
+      "max": 0.12889082729816437,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 139,
+      "mirror": false,
+      "poles": [
+        4,
+        7
+      ],
+      "rms": 0.006679081823676825,
+      "max": 0.023424625396728516,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 139,
+      "mirror": true,
+      "poles": [
+        4,
+        7
+      ],
+      "rms": 0.006679081823676825,
+      "max": 0.023424625396728516,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 140,
+      "mirror": false,
+      "poles": [
+        4,
+        8
+      ],
+      "rms": 0.02931857667863369,
+      "max": 0.1561053842306137,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 140,
+      "mirror": true,
+      "poles": [
+        4,
+        8
+      ],
+      "rms": 0.02931857667863369,
+      "max": 0.1561053842306137,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 141,
+      "mirror": false,
+      "poles": [
+        4,
+        12
+      ],
+      "rms": 0.012646889314055443,
+      "max": 0.05860806629061699,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 141,
+      "mirror": true,
+      "poles": [
+        4,
+        12
+      ],
+      "rms": 0.012646889314055443,
+      "max": 0.05860806629061699,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 142,
+      "mirror": false,
+      "poles": [
+        8,
+        4
+      ],
+      "rms": 0.03426047042012215,
+      "max": 0.16534213721752167,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 142,
+      "mirror": true,
+      "poles": [
+        8,
+        4
+      ],
+      "rms": 0.03426047042012215,
+      "max": 0.16534213721752167,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 143,
+      "mirror": false,
+      "poles": [
+        4,
+        8
+      ],
+      "rms": 0.022958291694521904,
+      "max": 0.11696114391088486,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 143,
+      "mirror": true,
+      "poles": [
+        4,
+        8
+      ],
+      "rms": 0.022958291694521904,
+      "max": 0.11696114391088486,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 0,
+      "mirror": false,
+      "poles": [
+        4,
+        16
+      ],
+      "rms": 0.023251058533787727,
+      "max": 0.22743117809295654,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 0,
+      "mirror": true,
+      "poles": [
+        4,
+        16
+      ],
+      "rms": 0.023251058533787727,
+      "max": 0.22743117809295654,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 1,
+      "mirror": false,
+      "poles": [
+        4,
+        23
+      ],
+      "rms": 0.0927659273147583,
+      "max": 1.0343070030212402,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 1,
+      "mirror": true,
+      "poles": [
+        4,
+        23
+      ],
+      "rms": 0.0927659273147583,
+      "max": 1.0343070030212402,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 2,
+      "mirror": false,
+      "poles": [
+        42,
+        5
+      ],
+      "rms": 0.018605347722768784,
+      "max": 0.33389776945114136,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 2,
+      "mirror": true,
+      "poles": [
+        42,
+        5
+      ],
+      "rms": 0.018605347722768784,
+      "max": 0.33389776945114136,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 3,
+      "mirror": false,
+      "poles": [
+        19,
+        26
+      ],
+      "rms": 0.19744332134723663,
+      "max": 2.3039190769195557,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 3,
+      "mirror": true,
+      "poles": [
+        19,
+        26
+      ],
+      "rms": 0.19744332134723663,
+      "max": 2.3039190769195557,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 4,
+      "mirror": false,
+      "poles": [
+        16,
+        6
+      ],
+      "rms": 0.30490657687187195,
+      "max": 4.350938320159912,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 4,
+      "mirror": true,
+      "poles": [
+        16,
+        6
+      ],
+      "rms": 0.30490657687187195,
+      "max": 4.350938320159912,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 5,
+      "mirror": false,
+      "poles": [
+        7,
+        23
+      ],
+      "rms": 0.03125855326652527,
+      "max": 0.3377130925655365,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 5,
+      "mirror": true,
+      "poles": [
+        7,
+        23
+      ],
+      "rms": 0.03125855326652527,
+      "max": 0.3377130925655365,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 6,
+      "mirror": false,
+      "poles": [
+        8,
+        6
+      ],
+      "rms": 0.0005675783031620085,
+      "max": 0.004320437088608742,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 6,
+      "mirror": true,
+      "poles": [
+        8,
+        6
+      ],
+      "rms": 0.0005675783031620085,
+      "max": 0.004320437088608742,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "patch": 0,
+      "mirror": false,
+      "poles": [
+        63,
+        9
+      ],
+      "rms": 0.029187817126512527,
+      "max": 0.47632619738578796,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "patch": 0,
+      "mirror": true,
+      "poles": [
+        63,
+        9
+      ],
+      "rms": 0.029187817126512527,
+      "max": 0.47632619738578796,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "patch": 1,
+      "mirror": false,
+      "poles": [
+        9,
+        4
+      ],
+      "rms": 0.019967716187238693,
+      "max": 0.13881710171699524,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "patch": 1,
+      "mirror": true,
+      "poles": [
+        9,
+        4
+      ],
+      "rms": 0.019967716187238693,
+      "max": 0.13881710171699524,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "patch": 2,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.003333151340484619,
+      "max": 0.023317836225032806,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "patch": 2,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.003333151340484619,
+      "max": 0.023317836225032806,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "patch": 3,
+      "mirror": false,
+      "poles": [
+        5,
+        6
+      ],
+      "rms": 0.035562340170145035,
+      "max": 0.3154987394809723,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "patch": 3,
+      "mirror": true,
+      "poles": [
+        5,
+        6
+      ],
+      "rms": 0.035562340170145035,
+      "max": 0.3154987394809723,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "patch": 4,
+      "mirror": false,
+      "poles": [
+        21,
+        4
+      ],
+      "rms": 0.05635317042469978,
+      "max": 0.19740411639213562,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "patch": 4,
+      "mirror": true,
+      "poles": [
+        21,
+        4
+      ],
+      "rms": 0.05635317042469978,
+      "max": 0.19740411639213562,
+      "metric": "CAD grid to L3 reference triangle",
+      "faired": false
+    }
+  ],
+  "before_faces": [
+    {
+      "name": "Body_Main_Shell",
+      "patch": 0,
+      "mirror": false,
+      "poles": [
+        4,
+        8
+      ],
+      "rms": 0.004840392619371414,
+      "max": 0.03779932111501694,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 0,
+      "mirror": true,
+      "poles": [
+        4,
+        8
+      ],
+      "rms": 0.004840392619371414,
+      "max": 0.03779932111501694,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 1,
+      "mirror": false,
+      "poles": [
+        37,
+        7
+      ],
+      "rms": 0.030703585594892502,
+      "max": 0.40863022208213806,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 1,
+      "mirror": true,
+      "poles": [
+        37,
+        7
+      ],
+      "rms": 0.030703585594892502,
+      "max": 0.40863022208213806,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 2,
+      "mirror": false,
+      "poles": [
+        63,
+        5
+      ],
+      "rms": 0.11084926128387451,
+      "max": 0.6266452670097351,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 2,
+      "mirror": true,
+      "poles": [
+        63,
+        5
+      ],
+      "rms": 0.11084926128387451,
+      "max": 0.6266452670097351,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 3,
+      "mirror": false,
+      "poles": [
+        11,
+        25
+      ],
+      "rms": 0.15545319020748138,
+      "max": 3.175771951675415,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 3,
+      "mirror": true,
+      "poles": [
+        11,
+        25
+      ],
+      "rms": 0.15545319020748138,
+      "max": 3.175771951675415,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 4,
+      "mirror": false,
+      "poles": [
+        7,
+        48
+      ],
+      "rms": 0.06088441610336304,
+      "max": 0.39703863859176636,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 4,
+      "mirror": true,
+      "poles": [
+        7,
+        48
+      ],
+      "rms": 0.06088441610336304,
+      "max": 0.39703863859176636,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 5,
+      "mirror": false,
+      "poles": [
+        8,
+        40
+      ],
+      "rms": 0.09505777060985565,
+      "max": 0.5786498188972473,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 5,
+      "mirror": true,
+      "poles": [
+        8,
+        40
+      ],
+      "rms": 0.09505777060985565,
+      "max": 0.5786498188972473,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 6,
+      "mirror": false,
+      "poles": [
+        18,
+        6
+      ],
+      "rms": 0.14606556296348572,
+      "max": 0.6078129410743713,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 6,
+      "mirror": true,
+      "poles": [
+        18,
+        6
+      ],
+      "rms": 0.14606556296348572,
+      "max": 0.6078129410743713,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 7,
+      "mirror": false,
+      "poles": [
+        4,
+        40
+      ],
+      "rms": 0.027578093111515045,
+      "max": 0.13095350563526154,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 7,
+      "mirror": true,
+      "poles": [
+        4,
+        40
+      ],
+      "rms": 0.027578093111515045,
+      "max": 0.13095350563526154,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 8,
+      "mirror": false,
+      "poles": [
+        11,
+        6
+      ],
+      "rms": 0.0530543215572834,
+      "max": 0.20524057745933533,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 8,
+      "mirror": true,
+      "poles": [
+        11,
+        6
+      ],
+      "rms": 0.0530543215572834,
+      "max": 0.20524057745933533,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 9,
+      "mirror": false,
+      "poles": [
+        58,
+        4
+      ],
+      "rms": 0.04223652556538582,
+      "max": 0.2482682168483734,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 9,
+      "mirror": true,
+      "poles": [
+        58,
+        4
+      ],
+      "rms": 0.04223652556538582,
+      "max": 0.2482682168483734,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 10,
+      "mirror": false,
+      "poles": [
+        44,
+        4
+      ],
+      "rms": 0.03436446934938431,
+      "max": 0.21715712547302246,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 10,
+      "mirror": true,
+      "poles": [
+        44,
+        4
+      ],
+      "rms": 0.03436446934938431,
+      "max": 0.21715712547302246,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 11,
+      "mirror": false,
+      "poles": [
+        38,
+        4
+      ],
+      "rms": 0.027602721005678177,
+      "max": 0.12182075530290604,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 11,
+      "mirror": true,
+      "poles": [
+        38,
+        4
+      ],
+      "rms": 0.027602721005678177,
+      "max": 0.12182075530290604,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 12,
+      "mirror": false,
+      "poles": [
+        10,
+        21
+      ],
+      "rms": 0.03901871293783188,
+      "max": 0.1721034198999405,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 12,
+      "mirror": true,
+      "poles": [
+        10,
+        21
+      ],
+      "rms": 0.03901871293783188,
+      "max": 0.1721034198999405,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 13,
+      "mirror": false,
+      "poles": [
+        11,
+        15
+      ],
+      "rms": 0.03468623384833336,
+      "max": 0.24037519097328186,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 13,
+      "mirror": true,
+      "poles": [
+        11,
+        15
+      ],
+      "rms": 0.03468623384833336,
+      "max": 0.24037519097328186,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 14,
+      "mirror": false,
+      "poles": [
+        14,
+        24
+      ],
+      "rms": 0.02809351310133934,
+      "max": 0.4618326723575592,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 14,
+      "mirror": true,
+      "poles": [
+        14,
+        24
+      ],
+      "rms": 0.02809351310133934,
+      "max": 0.4618326723575592,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 15,
+      "mirror": false,
+      "poles": [
+        17,
+        4
+      ],
+      "rms": 0.018064508214592934,
+      "max": 0.09386889636516571,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 15,
+      "mirror": true,
+      "poles": [
+        17,
+        4
+      ],
+      "rms": 0.018064508214592934,
+      "max": 0.09386889636516571,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 16,
+      "mirror": false,
+      "poles": [
+        14,
+        5
+      ],
+      "rms": 0.023394359275698662,
+      "max": 0.08179573714733124,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 16,
+      "mirror": true,
+      "poles": [
+        14,
+        5
+      ],
+      "rms": 0.023394359275698662,
+      "max": 0.08179573714733124,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 17,
+      "mirror": false,
+      "poles": [
+        12,
+        25
+      ],
+      "rms": 0.28696250915527344,
+      "max": 1.4883973598480225,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 17,
+      "mirror": true,
+      "poles": [
+        12,
+        25
+      ],
+      "rms": 0.28696250915527344,
+      "max": 1.4883973598480225,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 18,
+      "mirror": false,
+      "poles": [
+        66,
+        4
+      ],
+      "rms": 0.028198879212141037,
+      "max": 0.13468532264232635,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 18,
+      "mirror": true,
+      "poles": [
+        66,
+        4
+      ],
+      "rms": 0.028198879212141037,
+      "max": 0.13468532264232635,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 19,
+      "mirror": false,
+      "poles": [
+        12,
+        9
+      ],
+      "rms": 0.024135559797286987,
+      "max": 0.1272689253091812,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 19,
+      "mirror": true,
+      "poles": [
+        12,
+        9
+      ],
+      "rms": 0.024135559797286987,
+      "max": 0.1272689253091812,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 20,
+      "mirror": false,
+      "poles": [
+        8,
+        7
+      ],
+      "rms": 0.04061003774404526,
+      "max": 0.10333778709173203,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 20,
+      "mirror": true,
+      "poles": [
+        8,
+        7
+      ],
+      "rms": 0.04061003774404526,
+      "max": 0.10333778709173203,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 21,
+      "mirror": false,
+      "poles": [
+        17,
+        53
+      ],
+      "rms": 0.05593319982290268,
+      "max": 0.8097689747810364,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 21,
+      "mirror": true,
+      "poles": [
+        17,
+        53
+      ],
+      "rms": 0.05593319982290268,
+      "max": 0.8097689747810364,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 22,
+      "mirror": false,
+      "poles": [
+        4,
+        25
+      ],
+      "rms": 0.0459560751914978,
+      "max": 0.18673069775104523,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 22,
+      "mirror": true,
+      "poles": [
+        4,
+        25
+      ],
+      "rms": 0.0459560751914978,
+      "max": 0.18673069775104523,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 23,
+      "mirror": false,
+      "poles": [
+        19,
+        4
+      ],
+      "rms": 0.08989042788743973,
+      "max": 0.461854487657547,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 23,
+      "mirror": true,
+      "poles": [
+        19,
+        4
+      ],
+      "rms": 0.08989042788743973,
+      "max": 0.461854487657547,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 24,
+      "mirror": false,
+      "poles": [
+        30,
+        4
+      ],
+      "rms": 0.010135794058442116,
+      "max": 0.11497513204813004,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 24,
+      "mirror": true,
+      "poles": [
+        30,
+        4
+      ],
+      "rms": 0.010135794058442116,
+      "max": 0.11497513204813004,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 25,
+      "mirror": false,
+      "poles": [
+        5,
+        31
+      ],
+      "rms": 0.04679025337100029,
+      "max": 1.2375725507736206,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 25,
+      "mirror": true,
+      "poles": [
+        5,
+        31
+      ],
+      "rms": 0.04679025337100029,
+      "max": 1.2375725507736206,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 26,
+      "mirror": false,
+      "poles": [
+        16,
+        4
+      ],
+      "rms": 0.029954582452774048,
+      "max": 0.13078810274600983,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 26,
+      "mirror": true,
+      "poles": [
+        16,
+        4
+      ],
+      "rms": 0.029954582452774048,
+      "max": 0.13078810274600983,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 27,
+      "mirror": false,
+      "poles": [
+        5,
+        24
+      ],
+      "rms": 0.015482932329177856,
+      "max": 0.0730501115322113,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 27,
+      "mirror": true,
+      "poles": [
+        5,
+        24
+      ],
+      "rms": 0.015482932329177856,
+      "max": 0.0730501115322113,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 28,
+      "mirror": false,
+      "poles": [
+        4,
+        22
+      ],
+      "rms": 0.0253093671053648,
+      "max": 0.13455726206302643,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 28,
+      "mirror": true,
+      "poles": [
+        4,
+        22
+      ],
+      "rms": 0.0253093671053648,
+      "max": 0.13455726206302643,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 29,
+      "mirror": false,
+      "poles": [
+        7,
+        12
+      ],
+      "rms": 0.03668728098273277,
+      "max": 0.14173008501529694,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 29,
+      "mirror": true,
+      "poles": [
+        7,
+        12
+      ],
+      "rms": 0.03668728098273277,
+      "max": 0.14173008501529694,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 30,
+      "mirror": false,
+      "poles": [
+        13,
+        4
+      ],
+      "rms": 0.0019045346416532993,
+      "max": 0.010804071091115475,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 30,
+      "mirror": true,
+      "poles": [
+        13,
+        4
+      ],
+      "rms": 0.0019045346416532993,
+      "max": 0.010804071091115475,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 31,
+      "mirror": false,
+      "poles": [
+        18,
+        4
+      ],
+      "rms": 0.027913715690374374,
+      "max": 0.13611489534378052,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 31,
+      "mirror": true,
+      "poles": [
+        18,
+        4
+      ],
+      "rms": 0.027913715690374374,
+      "max": 0.13611489534378052,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 32,
+      "mirror": false,
+      "poles": [
+        30,
+        4
+      ],
+      "rms": 0.03173947334289551,
+      "max": 0.12141489237546921,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 32,
+      "mirror": true,
+      "poles": [
+        30,
+        4
+      ],
+      "rms": 0.03173947334289551,
+      "max": 0.12141489237546921,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 33,
+      "mirror": false,
+      "poles": [
+        16,
+        4
+      ],
+      "rms": 0.04876445606350899,
+      "max": 0.1450284868478775,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 33,
+      "mirror": true,
+      "poles": [
+        16,
+        4
+      ],
+      "rms": 0.04876445606350899,
+      "max": 0.1450284868478775,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 34,
+      "mirror": false,
+      "poles": [
+        10,
+        26
+      ],
+      "rms": 0.16516727209091187,
+      "max": 3.1780450344085693,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 34,
+      "mirror": true,
+      "poles": [
+        10,
+        26
+      ],
+      "rms": 0.16516727209091187,
+      "max": 3.1780450344085693,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 35,
+      "mirror": false,
+      "poles": [
+        15,
+        4
+      ],
+      "rms": 0.02560948021709919,
+      "max": 0.13734902441501617,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 35,
+      "mirror": true,
+      "poles": [
+        15,
+        4
+      ],
+      "rms": 0.02560948021709919,
+      "max": 0.13734902441501617,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 36,
+      "mirror": false,
+      "poles": [
+        10,
+        4
+      ],
+      "rms": 0.02273736149072647,
+      "max": 0.08688611537218094,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 36,
+      "mirror": true,
+      "poles": [
+        10,
+        4
+      ],
+      "rms": 0.02273736149072647,
+      "max": 0.08688611537218094,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 37,
+      "mirror": false,
+      "poles": [
+        4,
+        16
+      ],
+      "rms": 0.042219895869493484,
+      "max": 0.20586122572422028,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 37,
+      "mirror": true,
+      "poles": [
+        4,
+        16
+      ],
+      "rms": 0.042219895869493484,
+      "max": 0.20586122572422028,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 38,
+      "mirror": false,
+      "poles": [
+        4,
+        35
+      ],
+      "rms": 0.05124872922897339,
+      "max": 0.2221698760986328,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 38,
+      "mirror": true,
+      "poles": [
+        4,
+        35
+      ],
+      "rms": 0.05124872922897339,
+      "max": 0.2221698760986328,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 39,
+      "mirror": false,
+      "poles": [
+        15,
+        23
+      ],
+      "rms": 0.05351314693689346,
+      "max": 0.32516467571258545,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 39,
+      "mirror": true,
+      "poles": [
+        15,
+        23
+      ],
+      "rms": 0.05351314693689346,
+      "max": 0.32516467571258545,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 40,
+      "mirror": false,
+      "poles": [
+        51,
+        4
+      ],
+      "rms": 0.029394520446658134,
+      "max": 0.25240522623062134,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 40,
+      "mirror": true,
+      "poles": [
+        51,
+        4
+      ],
+      "rms": 0.029394520446658134,
+      "max": 0.25240522623062134,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 41,
+      "mirror": false,
+      "poles": [
+        5,
+        13
+      ],
+      "rms": 0.023439913988113403,
+      "max": 0.12159797549247742,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 41,
+      "mirror": true,
+      "poles": [
+        5,
+        13
+      ],
+      "rms": 0.023439913988113403,
+      "max": 0.12159797549247742,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 42,
+      "mirror": false,
+      "poles": [
+        8,
+        4
+      ],
+      "rms": 0.039770133793354034,
+      "max": 0.12399934232234955,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 42,
+      "mirror": true,
+      "poles": [
+        8,
+        4
+      ],
+      "rms": 0.039770133793354034,
+      "max": 0.12399934232234955,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 43,
+      "mirror": false,
+      "poles": [
+        8,
+        4
+      ],
+      "rms": 0.007527804467827082,
+      "max": 0.07053977251052856,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 43,
+      "mirror": true,
+      "poles": [
+        8,
+        4
+      ],
+      "rms": 0.007527804467827082,
+      "max": 0.07053977251052856,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 44,
+      "mirror": false,
+      "poles": [
+        5,
+        14
+      ],
+      "rms": 0.016239911317825317,
+      "max": 0.08350329846143723,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 44,
+      "mirror": true,
+      "poles": [
+        5,
+        14
+      ],
+      "rms": 0.016239911317825317,
+      "max": 0.08350329846143723,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 45,
+      "mirror": false,
+      "poles": [
+        4,
+        33
+      ],
+      "rms": 0.021665610373020172,
+      "max": 0.12230781465768814,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 45,
+      "mirror": true,
+      "poles": [
+        4,
+        33
+      ],
+      "rms": 0.021665610373020172,
+      "max": 0.12230781465768814,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 46,
+      "mirror": false,
+      "poles": [
+        6,
+        7
+      ],
+      "rms": 0.0631631538271904,
+      "max": 0.655872106552124,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 46,
+      "mirror": true,
+      "poles": [
+        6,
+        7
+      ],
+      "rms": 0.0631631538271904,
+      "max": 0.655872106552124,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 47,
+      "mirror": false,
+      "poles": [
+        4,
+        7
+      ],
+      "rms": 0.044725451618433,
+      "max": 0.12360452115535736,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 47,
+      "mirror": true,
+      "poles": [
+        4,
+        7
+      ],
+      "rms": 0.044725451618433,
+      "max": 0.12360452115535736,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 48,
+      "mirror": false,
+      "poles": [
+        5,
+        18
+      ],
+      "rms": 0.027161607518792152,
+      "max": 0.08938735723495483,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 48,
+      "mirror": true,
+      "poles": [
+        5,
+        18
+      ],
+      "rms": 0.027161607518792152,
+      "max": 0.08938735723495483,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 49,
+      "mirror": false,
+      "poles": [
+        4,
+        18
+      ],
+      "rms": 0.039117611944675446,
+      "max": 0.12903323769569397,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 49,
+      "mirror": true,
+      "poles": [
+        4,
+        18
+      ],
+      "rms": 0.039117611944675446,
+      "max": 0.12903323769569397,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 50,
+      "mirror": false,
+      "poles": [
+        4,
+        33
+      ],
+      "rms": 0.05843089893460274,
+      "max": 0.24022886157035828,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 50,
+      "mirror": true,
+      "poles": [
+        4,
+        33
+      ],
+      "rms": 0.05843089893460274,
+      "max": 0.24022886157035828,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 51,
+      "mirror": false,
+      "poles": [
+        5,
+        4
+      ],
+      "rms": 0.018642142415046692,
+      "max": 0.05300729721784592,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 51,
+      "mirror": true,
+      "poles": [
+        5,
+        4
+      ],
+      "rms": 0.018642142415046692,
+      "max": 0.05300729721784592,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 52,
+      "mirror": false,
+      "poles": [
+        4,
+        66
+      ],
+      "rms": 0.019592439755797386,
+      "max": 0.12142559140920639,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 52,
+      "mirror": true,
+      "poles": [
+        4,
+        66
+      ],
+      "rms": 0.019592439755797386,
+      "max": 0.12142559140920639,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 53,
+      "mirror": false,
+      "poles": [
+        4,
+        21
+      ],
+      "rms": 0.06455487757921219,
+      "max": 0.2529624402523041,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 53,
+      "mirror": true,
+      "poles": [
+        4,
+        21
+      ],
+      "rms": 0.06455487757921219,
+      "max": 0.2529624402523041,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 54,
+      "mirror": false,
+      "poles": [
+        31,
+        7
+      ],
+      "rms": 0.03018050454556942,
+      "max": 0.09156480431556702,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 54,
+      "mirror": true,
+      "poles": [
+        31,
+        7
+      ],
+      "rms": 0.03018050454556942,
+      "max": 0.09156480431556702,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 55,
+      "mirror": false,
+      "poles": [
+        4,
+        42
+      ],
+      "rms": 0.022247005254030228,
+      "max": 0.13843713700771332,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 55,
+      "mirror": true,
+      "poles": [
+        4,
+        42
+      ],
+      "rms": 0.022247005254030228,
+      "max": 0.13843713700771332,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 56,
+      "mirror": false,
+      "poles": [
+        20,
+        5
+      ],
+      "rms": 0.020404551178216934,
+      "max": 0.18144956231117249,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 56,
+      "mirror": true,
+      "poles": [
+        20,
+        5
+      ],
+      "rms": 0.020404551178216934,
+      "max": 0.18144956231117249,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 57,
+      "mirror": false,
+      "poles": [
+        5,
+        21
+      ],
+      "rms": 0.03352144733071327,
+      "max": 0.1265777051448822,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 57,
+      "mirror": true,
+      "poles": [
+        5,
+        21
+      ],
+      "rms": 0.03352144733071327,
+      "max": 0.1265777051448822,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 58,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0018866810714825988,
+      "max": 0.006547292694449425,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 58,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0018866810714825988,
+      "max": 0.006547292694449425,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 59,
+      "mirror": false,
+      "poles": [
+        10,
+        71
+      ],
+      "rms": 0.02369138039648533,
+      "max": 0.44695159792900085,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 59,
+      "mirror": true,
+      "poles": [
+        10,
+        71
+      ],
+      "rms": 0.02369138039648533,
+      "max": 0.44695159792900085,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 60,
+      "mirror": false,
+      "poles": [
+        6,
+        14
+      ],
+      "rms": 0.07310456782579422,
+      "max": 0.2810249328613281,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 60,
+      "mirror": true,
+      "poles": [
+        6,
+        14
+      ],
+      "rms": 0.07310456782579422,
+      "max": 0.2810249328613281,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 61,
+      "mirror": false,
+      "poles": [
+        12,
+        8
+      ],
+      "rms": 0.14872027933597565,
+      "max": 0.7725719809532166,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 61,
+      "mirror": true,
+      "poles": [
+        12,
+        8
+      ],
+      "rms": 0.14872027933597565,
+      "max": 0.7725719809532166,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 62,
+      "mirror": false,
+      "poles": [
+        16,
+        4
+      ],
+      "rms": 0.046391651034355164,
+      "max": 0.12770530581474304,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 62,
+      "mirror": true,
+      "poles": [
+        16,
+        4
+      ],
+      "rms": 0.046391651034355164,
+      "max": 0.12770530581474304,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 63,
+      "mirror": false,
+      "poles": [
+        13,
+        13
+      ],
+      "rms": 0.08134283125400543,
+      "max": 0.6049199104309082,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 63,
+      "mirror": true,
+      "poles": [
+        13,
+        13
+      ],
+      "rms": 0.08134283125400543,
+      "max": 0.6049199104309082,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 64,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0017329491674900055,
+      "max": 0.004213420208543539,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 64,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0017329491674900055,
+      "max": 0.004213420208543539,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 65,
+      "mirror": false,
+      "poles": [
+        6,
+        18
+      ],
+      "rms": 0.01764402724802494,
+      "max": 0.08978456258773804,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 65,
+      "mirror": true,
+      "poles": [
+        6,
+        18
+      ],
+      "rms": 0.01764402724802494,
+      "max": 0.08978456258773804,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 66,
+      "mirror": false,
+      "poles": [
+        6,
+        24
+      ],
+      "rms": 0.029981207102537155,
+      "max": 0.09958559274673462,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 66,
+      "mirror": true,
+      "poles": [
+        6,
+        24
+      ],
+      "rms": 0.029981207102537155,
+      "max": 0.09958559274673462,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 67,
+      "mirror": false,
+      "poles": [
+        27,
+        14
+      ],
+      "rms": 0.03148134797811508,
+      "max": 0.15437725186347961,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 67,
+      "mirror": true,
+      "poles": [
+        27,
+        14
+      ],
+      "rms": 0.03148134797811508,
+      "max": 0.15437725186347961,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 68,
+      "mirror": false,
+      "poles": [
+        6,
+        11
+      ],
+      "rms": 0.0174856036901474,
+      "max": 0.07547040283679962,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 68,
+      "mirror": true,
+      "poles": [
+        6,
+        11
+      ],
+      "rms": 0.0174856036901474,
+      "max": 0.07547040283679962,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 69,
+      "mirror": false,
+      "poles": [
+        31,
+        5
+      ],
+      "rms": 0.025955794379115105,
+      "max": 0.14618681371212006,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 69,
+      "mirror": true,
+      "poles": [
+        31,
+        5
+      ],
+      "rms": 0.025955794379115105,
+      "max": 0.14618681371212006,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 70,
+      "mirror": false,
+      "poles": [
+        26,
+        4
+      ],
+      "rms": 0.005366405006498098,
+      "max": 0.036119479686021805,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 70,
+      "mirror": true,
+      "poles": [
+        26,
+        4
+      ],
+      "rms": 0.005366405006498098,
+      "max": 0.036119479686021805,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 71,
+      "mirror": false,
+      "poles": [
+        4,
+        33
+      ],
+      "rms": 0.02217048779129982,
+      "max": 0.1266399472951889,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 71,
+      "mirror": true,
+      "poles": [
+        4,
+        33
+      ],
+      "rms": 0.02217048779129982,
+      "max": 0.1266399472951889,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 72,
+      "mirror": false,
+      "poles": [
+        4,
+        15
+      ],
+      "rms": 0.031000517308712006,
+      "max": 0.10908622294664383,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 72,
+      "mirror": true,
+      "poles": [
+        4,
+        15
+      ],
+      "rms": 0.031000517308712006,
+      "max": 0.10908622294664383,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 73,
+      "mirror": false,
+      "poles": [
+        4,
+        40
+      ],
+      "rms": 0.030877605080604553,
+      "max": 0.13991154730319977,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 73,
+      "mirror": true,
+      "poles": [
+        4,
+        40
+      ],
+      "rms": 0.030877605080604553,
+      "max": 0.13991154730319977,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 74,
+      "mirror": false,
+      "poles": [
+        14,
+        4
+      ],
+      "rms": 0.020245080813765526,
+      "max": 0.07309473305940628,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 74,
+      "mirror": true,
+      "poles": [
+        14,
+        4
+      ],
+      "rms": 0.020245080813765526,
+      "max": 0.07309473305940628,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 75,
+      "mirror": false,
+      "poles": [
+        29,
+        4
+      ],
+      "rms": 0.014932573772966862,
+      "max": 0.07408992201089859,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 75,
+      "mirror": true,
+      "poles": [
+        29,
+        4
+      ],
+      "rms": 0.014932573772966862,
+      "max": 0.07408992201089859,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 76,
+      "mirror": false,
+      "poles": [
+        10,
+        4
+      ],
+      "rms": 0.019681021571159363,
+      "max": 0.09381252527236938,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 76,
+      "mirror": true,
+      "poles": [
+        10,
+        4
+      ],
+      "rms": 0.019681021571159363,
+      "max": 0.09381252527236938,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 77,
+      "mirror": false,
+      "poles": [
+        12,
+        4
+      ],
+      "rms": 0.031967855989933014,
+      "max": 0.11060068756341934,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 77,
+      "mirror": true,
+      "poles": [
+        12,
+        4
+      ],
+      "rms": 0.031967855989933014,
+      "max": 0.11060068756341934,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 78,
+      "mirror": false,
+      "poles": [
+        4,
+        5
+      ],
+      "rms": 0.006947864778339863,
+      "max": 0.029288269579410553,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 78,
+      "mirror": true,
+      "poles": [
+        4,
+        5
+      ],
+      "rms": 0.006947864778339863,
+      "max": 0.029288269579410553,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 79,
+      "mirror": false,
+      "poles": [
+        6,
+        4
+      ],
+      "rms": 0.018799573183059692,
+      "max": 0.07127740979194641,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 79,
+      "mirror": true,
+      "poles": [
+        6,
+        4
+      ],
+      "rms": 0.018799573183059692,
+      "max": 0.07127740979194641,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 80,
+      "mirror": false,
+      "poles": [
+        4,
+        22
+      ],
+      "rms": 0.0033246346283704042,
+      "max": 0.017817800864577293,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 80,
+      "mirror": true,
+      "poles": [
+        4,
+        22
+      ],
+      "rms": 0.0033246346283704042,
+      "max": 0.017817800864577293,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 81,
+      "mirror": false,
+      "poles": [
+        22,
+        10
+      ],
+      "rms": 0.03363315761089325,
+      "max": 0.27603766322135925,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 81,
+      "mirror": true,
+      "poles": [
+        22,
+        10
+      ],
+      "rms": 0.03363315761089325,
+      "max": 0.27603766322135925,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 82,
+      "mirror": false,
+      "poles": [
+        31,
+        7
+      ],
+      "rms": 0.14896219968795776,
+      "max": 1.0534676313400269,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 82,
+      "mirror": true,
+      "poles": [
+        31,
+        7
+      ],
+      "rms": 0.14896219968795776,
+      "max": 1.0534676313400269,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 83,
+      "mirror": false,
+      "poles": [
+        4,
+        8
+      ],
+      "rms": 0.0011872167233377695,
+      "max": 0.011229109950363636,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 83,
+      "mirror": true,
+      "poles": [
+        4,
+        8
+      ],
+      "rms": 0.0011872167233377695,
+      "max": 0.011229109950363636,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 84,
+      "mirror": false,
+      "poles": [
+        40,
+        4
+      ],
+      "rms": 0.03172961249947548,
+      "max": 0.12062346190214157,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 84,
+      "mirror": true,
+      "poles": [
+        40,
+        4
+      ],
+      "rms": 0.03172961249947548,
+      "max": 0.12062346190214157,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 85,
+      "mirror": false,
+      "poles": [
+        10,
+        4
+      ],
+      "rms": 0.03729204460978508,
+      "max": 0.08688611537218094,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 85,
+      "mirror": true,
+      "poles": [
+        10,
+        4
+      ],
+      "rms": 0.03729204460978508,
+      "max": 0.08688611537218094,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 86,
+      "mirror": false,
+      "poles": [
+        22,
+        5
+      ],
+      "rms": 0.026017840951681137,
+      "max": 0.08810114860534668,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 86,
+      "mirror": true,
+      "poles": [
+        22,
+        5
+      ],
+      "rms": 0.026017840951681137,
+      "max": 0.08810114860534668,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 87,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0002717789902817458,
+      "max": 0.0007372687687166035,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 87,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0002717789902817458,
+      "max": 0.0007372687687166035,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 88,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.000585940491873771,
+      "max": 0.0015370603650808334,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 88,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.000585940491873771,
+      "max": 0.0015370603650808334,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 89,
+      "mirror": false,
+      "poles": [
+        34,
+        4
+      ],
+      "rms": 0.03647526353597641,
+      "max": 0.22054901719093323,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 89,
+      "mirror": true,
+      "poles": [
+        34,
+        4
+      ],
+      "rms": 0.03647526353597641,
+      "max": 0.22054901719093323,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 90,
+      "mirror": false,
+      "poles": [
+        4,
+        29
+      ],
+      "rms": 0.04168524220585823,
+      "max": 0.26302045583724976,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 90,
+      "mirror": true,
+      "poles": [
+        4,
+        29
+      ],
+      "rms": 0.04168524220585823,
+      "max": 0.26302045583724976,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 91,
+      "mirror": false,
+      "poles": [
+        13,
+        7
+      ],
+      "rms": 0.08914195746183395,
+      "max": 0.348476767539978,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 91,
+      "mirror": true,
+      "poles": [
+        13,
+        7
+      ],
+      "rms": 0.08914195746183395,
+      "max": 0.348476767539978,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 92,
+      "mirror": false,
+      "poles": [
+        4,
+        13
+      ],
+      "rms": 0.05634743347764015,
+      "max": 0.1445561647415161,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 92,
+      "mirror": true,
+      "poles": [
+        4,
+        13
+      ],
+      "rms": 0.05634743347764015,
+      "max": 0.1445561647415161,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 93,
+      "mirror": false,
+      "poles": [
+        4,
+        24
+      ],
+      "rms": 0.019365912303328514,
+      "max": 0.1161370724439621,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 93,
+      "mirror": true,
+      "poles": [
+        4,
+        24
+      ],
+      "rms": 0.019365912303328514,
+      "max": 0.1161370724439621,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 94,
+      "mirror": false,
+      "poles": [
+        14,
+        4
+      ],
+      "rms": 0.018023047596216202,
+      "max": 0.07734239846467972,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 94,
+      "mirror": true,
+      "poles": [
+        14,
+        4
+      ],
+      "rms": 0.018023047596216202,
+      "max": 0.07734239846467972,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 95,
+      "mirror": false,
+      "poles": [
+        4,
+        9
+      ],
+      "rms": 0.03571242094039917,
+      "max": 0.13873910903930664,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 95,
+      "mirror": true,
+      "poles": [
+        4,
+        9
+      ],
+      "rms": 0.03571242094039917,
+      "max": 0.13873910903930664,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 96,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.005153699312359095,
+      "max": 0.008755037561058998,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 96,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.005153699312359095,
+      "max": 0.008755037561058998,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 97,
+      "mirror": false,
+      "poles": [
+        27,
+        4
+      ],
+      "rms": 0.028300389647483826,
+      "max": 0.1326480656862259,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 97,
+      "mirror": true,
+      "poles": [
+        27,
+        4
+      ],
+      "rms": 0.028300389647483826,
+      "max": 0.1326480656862259,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 98,
+      "mirror": false,
+      "poles": [
+        19,
+        4
+      ],
+      "rms": 0.023516399785876274,
+      "max": 0.08875022083520889,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 98,
+      "mirror": true,
+      "poles": [
+        19,
+        4
+      ],
+      "rms": 0.023516399785876274,
+      "max": 0.08875022083520889,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 99,
+      "mirror": false,
+      "poles": [
+        13,
+        18
+      ],
+      "rms": 0.11223293095827103,
+      "max": 0.7174472212791443,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 99,
+      "mirror": true,
+      "poles": [
+        13,
+        18
+      ],
+      "rms": 0.11223293095827103,
+      "max": 0.7174472212791443,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 100,
+      "mirror": false,
+      "poles": [
+        4,
+        10
+      ],
+      "rms": 0.04028499871492386,
+      "max": 0.0924040675163269,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 100,
+      "mirror": true,
+      "poles": [
+        4,
+        10
+      ],
+      "rms": 0.04028499871492386,
+      "max": 0.0924040675163269,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 101,
+      "mirror": false,
+      "poles": [
+        5,
+        4
+      ],
+      "rms": 0.010395088233053684,
+      "max": 0.0368356816470623,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 101,
+      "mirror": true,
+      "poles": [
+        5,
+        4
+      ],
+      "rms": 0.010395088233053684,
+      "max": 0.0368356816470623,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 102,
+      "mirror": false,
+      "poles": [
+        32,
+        4
+      ],
+      "rms": 0.040810294449329376,
+      "max": 0.17631682753562927,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 102,
+      "mirror": true,
+      "poles": [
+        32,
+        4
+      ],
+      "rms": 0.040810294449329376,
+      "max": 0.17631682753562927,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 103,
+      "mirror": false,
+      "poles": [
+        28,
+        4
+      ],
+      "rms": 0.07195671647787094,
+      "max": 0.23457938432693481,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 103,
+      "mirror": true,
+      "poles": [
+        28,
+        4
+      ],
+      "rms": 0.07195671647787094,
+      "max": 0.23457938432693481,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 104,
+      "mirror": false,
+      "poles": [
+        8,
+        4
+      ],
+      "rms": 0.12780463695526123,
+      "max": 0.5667510628700256,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 104,
+      "mirror": true,
+      "poles": [
+        8,
+        4
+      ],
+      "rms": 0.12780463695526123,
+      "max": 0.5667510628700256,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 105,
+      "mirror": false,
+      "poles": [
+        13,
+        4
+      ],
+      "rms": 0.0034900037571787834,
+      "max": 0.014912243001163006,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 105,
+      "mirror": true,
+      "poles": [
+        13,
+        4
+      ],
+      "rms": 0.0034900037571787834,
+      "max": 0.014912243001163006,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 106,
+      "mirror": false,
+      "poles": [
+        13,
+        4
+      ],
+      "rms": 0.005509150214493275,
+      "max": 0.01994619332253933,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 106,
+      "mirror": true,
+      "poles": [
+        13,
+        4
+      ],
+      "rms": 0.005509150214493275,
+      "max": 0.01994619332253933,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 107,
+      "mirror": false,
+      "poles": [
+        4,
+        14
+      ],
+      "rms": 0.041679076850414276,
+      "max": 0.13225775957107544,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 107,
+      "mirror": true,
+      "poles": [
+        4,
+        14
+      ],
+      "rms": 0.041679076850414276,
+      "max": 0.13225775957107544,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 108,
+      "mirror": false,
+      "poles": [
+        38,
+        4
+      ],
+      "rms": 0.03213518485426903,
+      "max": 0.13289040327072144,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 108,
+      "mirror": true,
+      "poles": [
+        38,
+        4
+      ],
+      "rms": 0.03213518485426903,
+      "max": 0.13289040327072144,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 109,
+      "mirror": false,
+      "poles": [
+        8,
+        5
+      ],
+      "rms": 0.12942613661289215,
+      "max": 0.40387773513793945,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 109,
+      "mirror": true,
+      "poles": [
+        8,
+        5
+      ],
+      "rms": 0.12942613661289215,
+      "max": 0.40387773513793945,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 110,
+      "mirror": false,
+      "poles": [
+        7,
+        5
+      ],
+      "rms": 0.015911784023046494,
+      "max": 0.057481907308101654,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 110,
+      "mirror": true,
+      "poles": [
+        7,
+        5
+      ],
+      "rms": 0.015911784023046494,
+      "max": 0.057481907308101654,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 111,
+      "mirror": false,
+      "poles": [
+        7,
+        4
+      ],
+      "rms": 0.0003461931482888758,
+      "max": 0.0016900834161788225,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 111,
+      "mirror": true,
+      "poles": [
+        7,
+        4
+      ],
+      "rms": 0.0003461931482888758,
+      "max": 0.0016900834161788225,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 112,
+      "mirror": false,
+      "poles": [
+        10,
+        38
+      ],
+      "rms": 0.019601907581090927,
+      "max": 0.11990998685359955,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 112,
+      "mirror": true,
+      "poles": [
+        10,
+        38
+      ],
+      "rms": 0.019601907581090927,
+      "max": 0.11990998685359955,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 113,
+      "mirror": false,
+      "poles": [
+        39,
+        4
+      ],
+      "rms": 0.03597189858555794,
+      "max": 0.13085849583148956,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 113,
+      "mirror": true,
+      "poles": [
+        39,
+        4
+      ],
+      "rms": 0.03597189858555794,
+      "max": 0.13085849583148956,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 114,
+      "mirror": false,
+      "poles": [
+        4,
+        46
+      ],
+      "rms": 0.03411296010017395,
+      "max": 0.12761445343494415,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 114,
+      "mirror": true,
+      "poles": [
+        4,
+        46
+      ],
+      "rms": 0.03411296010017395,
+      "max": 0.12761445343494415,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 115,
+      "mirror": false,
+      "poles": [
+        37,
+        4
+      ],
+      "rms": 0.03115360252559185,
+      "max": 0.14069044589996338,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 115,
+      "mirror": true,
+      "poles": [
+        37,
+        4
+      ],
+      "rms": 0.03115360252559185,
+      "max": 0.14069044589996338,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 116,
+      "mirror": false,
+      "poles": [
+        44,
+        7
+      ],
+      "rms": 0.02081754431128502,
+      "max": 0.20534701645374298,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 116,
+      "mirror": true,
+      "poles": [
+        44,
+        7
+      ],
+      "rms": 0.02081754431128502,
+      "max": 0.20534701645374298,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 117,
+      "mirror": false,
+      "poles": [
+        4,
+        24
+      ],
+      "rms": 0.01988036185503006,
+      "max": 0.09398172795772552,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 117,
+      "mirror": true,
+      "poles": [
+        4,
+        24
+      ],
+      "rms": 0.01988036185503006,
+      "max": 0.09398172795772552,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 118,
+      "mirror": false,
+      "poles": [
+        4,
+        29
+      ],
+      "rms": 0.024330930784344673,
+      "max": 0.09898248314857483,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 118,
+      "mirror": true,
+      "poles": [
+        4,
+        29
+      ],
+      "rms": 0.024330930784344673,
+      "max": 0.09898248314857483,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 119,
+      "mirror": false,
+      "poles": [
+        21,
+        13
+      ],
+      "rms": 0.10638968646526337,
+      "max": 1.0313915014266968,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 119,
+      "mirror": true,
+      "poles": [
+        21,
+        13
+      ],
+      "rms": 0.10638968646526337,
+      "max": 1.0313915014266968,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 120,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0070470222271978855,
+      "max": 0.01950128749012947,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 120,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0070470222271978855,
+      "max": 0.01950128749012947,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 121,
+      "mirror": false,
+      "poles": [
+        48,
+        11
+      ],
+      "rms": 0.10340634733438492,
+      "max": 0.9968376159667969,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 121,
+      "mirror": true,
+      "poles": [
+        48,
+        11
+      ],
+      "rms": 0.10340634733438492,
+      "max": 0.9968376159667969,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 122,
+      "mirror": false,
+      "poles": [
+        5,
+        35
+      ],
+      "rms": 0.032905254513025284,
+      "max": 0.15752917528152466,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 122,
+      "mirror": true,
+      "poles": [
+        5,
+        35
+      ],
+      "rms": 0.032905254513025284,
+      "max": 0.15752917528152466,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 123,
+      "mirror": false,
+      "poles": [
+        4,
+        20
+      ],
+      "rms": 0.037895314395427704,
+      "max": 0.12563562393188477,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 123,
+      "mirror": true,
+      "poles": [
+        4,
+        20
+      ],
+      "rms": 0.037895314395427704,
+      "max": 0.12563562393188477,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 124,
+      "mirror": false,
+      "poles": [
+        34,
+        4
+      ],
+      "rms": 0.03843715786933899,
+      "max": 0.16297908127307892,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 124,
+      "mirror": true,
+      "poles": [
+        34,
+        4
+      ],
+      "rms": 0.03843715786933899,
+      "max": 0.16297908127307892,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 125,
+      "mirror": false,
+      "poles": [
+        20,
+        4
+      ],
+      "rms": 0.01069770846515894,
+      "max": 0.06265658885240555,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 125,
+      "mirror": true,
+      "poles": [
+        20,
+        4
+      ],
+      "rms": 0.01069770846515894,
+      "max": 0.06265658885240555,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 126,
+      "mirror": false,
+      "poles": [
+        4,
+        39
+      ],
+      "rms": 0.014697409234941006,
+      "max": 0.12994232773780823,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 126,
+      "mirror": true,
+      "poles": [
+        4,
+        39
+      ],
+      "rms": 0.014697409234941006,
+      "max": 0.12994232773780823,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 127,
+      "mirror": false,
+      "poles": [
+        6,
+        19
+      ],
+      "rms": 0.06921282410621643,
+      "max": 0.44701337814331055,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 127,
+      "mirror": true,
+      "poles": [
+        6,
+        19
+      ],
+      "rms": 0.06921282410621643,
+      "max": 0.44701337814331055,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 128,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0001453788863727823,
+      "max": 0.0007633119239471853,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 128,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0001453788863727823,
+      "max": 0.0007633119239471853,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 129,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0004412395355757326,
+      "max": 0.002877120627090335,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 129,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.0004412395355757326,
+      "max": 0.002877120627090335,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 130,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 8.122743747662753e-05,
+      "max": 0.0002384185791015625,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 130,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 8.122743747662753e-05,
+      "max": 0.0002384185791015625,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 131,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 7.111384911695495e-05,
+      "max": 0.00013328004570212215,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 131,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 7.111384911695495e-05,
+      "max": 0.00013328004570212215,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 132,
+      "mirror": false,
+      "poles": [
+        7,
+        9
+      ],
+      "rms": 0.020813819020986557,
+      "max": 0.1790628880262375,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 132,
+      "mirror": true,
+      "poles": [
+        7,
+        9
+      ],
+      "rms": 0.020813819020986557,
+      "max": 0.1790628880262375,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 133,
+      "mirror": false,
+      "poles": [
+        4,
+        7
+      ],
+      "rms": 0.012918444350361824,
+      "max": 0.044852882623672485,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 133,
+      "mirror": true,
+      "poles": [
+        4,
+        7
+      ],
+      "rms": 0.012918444350361824,
+      "max": 0.044852882623672485,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 134,
+      "mirror": false,
+      "poles": [
+        4,
+        7
+      ],
+      "rms": 0.0016663807909935713,
+      "max": 0.008163224905729294,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 134,
+      "mirror": true,
+      "poles": [
+        4,
+        7
+      ],
+      "rms": 0.0016663807909935713,
+      "max": 0.008163224905729294,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 135,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.003868774976581335,
+      "max": 0.015287167392671108,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 135,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.003868774976581335,
+      "max": 0.015287167392671108,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 136,
+      "mirror": false,
+      "poles": [
+        4,
+        18
+      ],
+      "rms": 0.04444173350930214,
+      "max": 0.2824525535106659,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 136,
+      "mirror": true,
+      "poles": [
+        4,
+        18
+      ],
+      "rms": 0.04444173350930214,
+      "max": 0.2824525535106659,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 137,
+      "mirror": false,
+      "poles": [
+        11,
+        4
+      ],
+      "rms": 0.022248808294534683,
+      "max": 0.11498602479696274,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 137,
+      "mirror": true,
+      "poles": [
+        11,
+        4
+      ],
+      "rms": 0.022248808294534683,
+      "max": 0.11498602479696274,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 138,
+      "mirror": false,
+      "poles": [
+        4,
+        24
+      ],
+      "rms": 0.03374342620372772,
+      "max": 0.12889082729816437,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 138,
+      "mirror": true,
+      "poles": [
+        4,
+        24
+      ],
+      "rms": 0.03374342620372772,
+      "max": 0.12889082729816437,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 139,
+      "mirror": false,
+      "poles": [
+        4,
+        7
+      ],
+      "rms": 0.006679081823676825,
+      "max": 0.023424625396728516,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 139,
+      "mirror": true,
+      "poles": [
+        4,
+        7
+      ],
+      "rms": 0.006679081823676825,
+      "max": 0.023424625396728516,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 140,
+      "mirror": false,
+      "poles": [
+        4,
+        8
+      ],
+      "rms": 0.02931857667863369,
+      "max": 0.1561053842306137,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 140,
+      "mirror": true,
+      "poles": [
+        4,
+        8
+      ],
+      "rms": 0.02931857667863369,
+      "max": 0.1561053842306137,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 141,
+      "mirror": false,
+      "poles": [
+        4,
+        12
+      ],
+      "rms": 0.012646889314055443,
+      "max": 0.05860806629061699,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 141,
+      "mirror": true,
+      "poles": [
+        4,
+        12
+      ],
+      "rms": 0.012646889314055443,
+      "max": 0.05860806629061699,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 142,
+      "mirror": false,
+      "poles": [
+        8,
+        4
+      ],
+      "rms": 0.03426047042012215,
+      "max": 0.16534213721752167,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 142,
+      "mirror": true,
+      "poles": [
+        8,
+        4
+      ],
+      "rms": 0.03426047042012215,
+      "max": 0.16534213721752167,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 143,
+      "mirror": false,
+      "poles": [
+        4,
+        8
+      ],
+      "rms": 0.022958291694521904,
+      "max": 0.11696114391088486,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Main_Shell",
+      "patch": 143,
+      "mirror": true,
+      "poles": [
+        4,
+        8
+      ],
+      "rms": 0.022958291694521904,
+      "max": 0.11696114391088486,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 0,
+      "mirror": false,
+      "poles": [
+        4,
+        16
+      ],
+      "rms": 0.023251058533787727,
+      "max": 0.22743117809295654,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 0,
+      "mirror": true,
+      "poles": [
+        4,
+        16
+      ],
+      "rms": 0.023251058533787727,
+      "max": 0.22743117809295654,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 1,
+      "mirror": false,
+      "poles": [
+        4,
+        23
+      ],
+      "rms": 0.0927659273147583,
+      "max": 1.0343070030212402,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 1,
+      "mirror": true,
+      "poles": [
+        4,
+        23
+      ],
+      "rms": 0.0927659273147583,
+      "max": 1.0343070030212402,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 2,
+      "mirror": false,
+      "poles": [
+        42,
+        5
+      ],
+      "rms": 0.018605347722768784,
+      "max": 0.33389776945114136,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 2,
+      "mirror": true,
+      "poles": [
+        42,
+        5
+      ],
+      "rms": 0.018605347722768784,
+      "max": 0.33389776945114136,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 3,
+      "mirror": false,
+      "poles": [
+        19,
+        26
+      ],
+      "rms": 0.19744332134723663,
+      "max": 2.3039190769195557,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 3,
+      "mirror": true,
+      "poles": [
+        19,
+        26
+      ],
+      "rms": 0.19744332134723663,
+      "max": 2.3039190769195557,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 4,
+      "mirror": false,
+      "poles": [
+        16,
+        6
+      ],
+      "rms": 0.30490657687187195,
+      "max": 4.350938320159912,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 4,
+      "mirror": true,
+      "poles": [
+        16,
+        6
+      ],
+      "rms": 0.30490657687187195,
+      "max": 4.350938320159912,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 5,
+      "mirror": false,
+      "poles": [
+        7,
+        23
+      ],
+      "rms": 0.03125855326652527,
+      "max": 0.3377130925655365,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 5,
+      "mirror": true,
+      "poles": [
+        7,
+        23
+      ],
+      "rms": 0.03125855326652527,
+      "max": 0.3377130925655365,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 6,
+      "mirror": false,
+      "poles": [
+        8,
+        6
+      ],
+      "rms": 0.0005675783031620085,
+      "max": 0.004320437088608742,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "patch": 6,
+      "mirror": true,
+      "poles": [
+        8,
+        6
+      ],
+      "rms": 0.0005675783031620085,
+      "max": 0.004320437088608742,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "patch": 0,
+      "mirror": false,
+      "poles": [
+        63,
+        9
+      ],
+      "rms": 0.029187817126512527,
+      "max": 0.47632619738578796,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "patch": 0,
+      "mirror": true,
+      "poles": [
+        63,
+        9
+      ],
+      "rms": 0.029187817126512527,
+      "max": 0.47632619738578796,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "patch": 1,
+      "mirror": false,
+      "poles": [
+        9,
+        4
+      ],
+      "rms": 0.019967716187238693,
+      "max": 0.13881710171699524,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "patch": 1,
+      "mirror": true,
+      "poles": [
+        9,
+        4
+      ],
+      "rms": 0.019967716187238693,
+      "max": 0.13881710171699524,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "patch": 2,
+      "mirror": false,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.003333151340484619,
+      "max": 0.023317836225032806,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "patch": 2,
+      "mirror": true,
+      "poles": [
+        4,
+        4
+      ],
+      "rms": 0.003333151340484619,
+      "max": 0.023317836225032806,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "patch": 3,
+      "mirror": false,
+      "poles": [
+        5,
+        6
+      ],
+      "rms": 0.035562340170145035,
+      "max": 0.3154987394809723,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "patch": 3,
+      "mirror": true,
+      "poles": [
+        5,
+        6
+      ],
+      "rms": 0.035562340170145035,
+      "max": 0.3154987394809723,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "patch": 4,
+      "mirror": false,
+      "poles": [
+        21,
+        4
+      ],
+      "rms": 0.05635317042469978,
+      "max": 0.19740411639213562,
+      "metric": "CAD grid to L3 reference triangle"
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "patch": 4,
+      "mirror": true,
+      "poles": [
+        21,
+        4
+      ],
+      "rms": 0.05635317042469978,
+      "max": 0.19740411639213562,
+      "metric": "CAD grid to L3 reference triangle"
+    }
+  ],
+  "revision": "Faired NURBS review; before/after share fixed boundaries"
+}

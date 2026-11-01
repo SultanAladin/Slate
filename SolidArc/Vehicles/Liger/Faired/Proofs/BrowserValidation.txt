@@ -1,0 +1,19 @@
+
+> test
+> node test_viewer.mjs
+
+PASS initial CAD geometry + change map loaded
+PASS display mode 0
+PASS display mode 1
+PASS display mode 2
+PASS display mode 3
+PASS display mode 4
+PASS original CAD comparison and change-map guard
+PASS restore faired CAD
+PASS per-part visibility
+PASS fixed rims and source overlay
+PASS panel picking and current-revision distance labels
+PASS native download Liger_Macro_CAD.solidarc
+PASS mobile layout
+PASS all computed proofs load
+JavaScript / shader errors: 0; failed HTTP responses: 0

@@ -1,0 +1,41 @@
+{
+  "parts": [
+    {
+      "name": "Body_Main_Shell",
+      "faces": 288,
+      "control_poles": 35496,
+      "master_rails_half": 432,
+      "sewn_edges": 721,
+      "open_edges": 110,
+      "nonmanifold_edges": 0,
+      "open_shells": 2,
+      "source_nonmanifold_branches_detached": 2,
+      "boundary_max_mm": 1.831026719408895e-12
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "faces": 14,
+      "control_poles": 2330,
+      "master_rails_half": 25,
+      "sewn_edges": 17,
+      "open_edges": 28,
+      "nonmanifold_edges": 0,
+      "open_shells": 4,
+      "source_nonmanifold_branches_detached": 0,
+      "boundary_max_mm": 8.006232782905339e-13
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "faces": 10,
+      "control_poles": 1466,
+      "master_rails_half": 19,
+      "sewn_edges": 12,
+      "open_edges": 24,
+      "nonmanifold_edges": 0,
+      "open_shells": 2,
+      "source_nonmanifold_branches_detached": 0,
+      "boundary_max_mm": 6.377745716588144e-13
+    }
+  ],
+  "note": "Topology retained; boundary geometry unchanged. Current source distances: ../Proofs/reverse_deviation.json. Shape changes: ../fairing_report.json."
+}

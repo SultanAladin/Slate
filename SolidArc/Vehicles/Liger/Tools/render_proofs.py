@@ -34,10 +34,13 @@ def raster(screen,normal,tri,face,part,error,mode,W,H):
                 shade=0.22+0.65*light+0.22*max(0.,n[2])**20
                 if mode==1:
                     r=((f*71+53)%151+74)/255.;g=((f*97+61)%141+80)/255.;bcol=((f*43+91)%151+80)/255.
-                elif mode==2:
+                elif mode==2 or mode==4:
                     e=u*error[a]+v*error[b]+w*error[c];t=min(e/2.,1.)
                     if e>5:r=1.;g=0.1;bcol=0.65
                     else:r=min(1.,t*2);g=min(1.,(1-t)*2);bcol=max(0.,1-t*2)
+                    if mode==4:
+                        r=min(1.,max(0.,4*t-2));g=min(1.,max(0.,2-abs(4*t-2)));bcol=min(1.,max(0.,2-4*t))
+                        if e>5:r=1.;g=0.1;bcol=0.65
                     shade=0.7+0.25*light
                 elif mode==3:
                     phase=(n[0]*0.9+n[2]*0.3+n[1]*0.15)*32.

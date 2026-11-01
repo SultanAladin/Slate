@@ -1,0 +1,226 @@
+[
+  {
+    "half_patch": 1,
+    "axis": 1,
+    "samples": 32813,
+    "before_opposed": 944,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.015905806694526892
+  },
+  {
+    "half_patch": 2,
+    "axis": 1,
+    "samples": 38097,
+    "before_opposed": 209,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.03368748238631548
+  },
+  {
+    "half_patch": 5,
+    "axis": 2,
+    "samples": 33549,
+    "before_opposed": 111,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.0764853520739817
+  },
+  {
+    "half_patch": 6,
+    "axis": 1,
+    "samples": 27125,
+    "before_opposed": 130,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.06647289434267198
+  },
+  {
+    "half_patch": 7,
+    "axis": 1,
+    "samples": 33069,
+    "before_opposed": 0,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.00335504706887228
+  },
+  {
+    "half_patch": 9,
+    "axis": 1,
+    "samples": 38505,
+    "before_opposed": 2067,
+    "after_opposed": 8,
+    "minimum_signed_projected_jacobian": -0.0025150740277994077
+  },
+  {
+    "half_patch": 12,
+    "axis": 2,
+    "samples": 28143,
+    "before_opposed": 120,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.026196094427157958
+  },
+  {
+    "half_patch": 14,
+    "axis": 2,
+    "samples": 29829,
+    "before_opposed": 17,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.13003787653408505
+  },
+  {
+    "half_patch": 17,
+    "axis": 2,
+    "samples": 30895,
+    "before_opposed": 55,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.2635921063270742
+  },
+  {
+    "half_patch": 18,
+    "axis": 2,
+    "samples": 40317,
+    "before_opposed": 40,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.01749122792492344
+  },
+  {
+    "half_patch": 19,
+    "axis": 0,
+    "samples": 26219,
+    "before_opposed": 27,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.034727136681227525
+  },
+  {
+    "half_patch": 20,
+    "axis": 0,
+    "samples": 24335,
+    "before_opposed": 0,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.029182415226842912
+  },
+  {
+    "half_patch": 21,
+    "axis": 2,
+    "samples": 41949,
+    "before_opposed": 460,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.08443958086174869
+  },
+  {
+    "half_patch": 29,
+    "axis": 2,
+    "samples": 26219,
+    "before_opposed": 0,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.18178605326045974
+  },
+  {
+    "half_patch": 35,
+    "axis": 2,
+    "samples": 25519,
+    "before_opposed": 0,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.006333847020651125
+  },
+  {
+    "half_patch": 36,
+    "axis": 2,
+    "samples": 24009,
+    "before_opposed": 0,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.006534449301890866
+  },
+  {
+    "half_patch": 39,
+    "axis": 1,
+    "samples": 32005,
+    "before_opposed": 86,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.1243878168284857
+  },
+  {
+    "half_patch": 50,
+    "axis": 0,
+    "samples": 29747,
+    "before_opposed": 40,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.009532057681702852
+  },
+  {
+    "half_patch": 53,
+    "axis": 2,
+    "samples": 27331,
+    "before_opposed": 0,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.03676806997481621
+  },
+  {
+    "half_patch": 59,
+    "axis": 2,
+    "samples": 41695,
+    "before_opposed": 213,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.13749655511632392
+  },
+  {
+    "half_patch": 61,
+    "axis": 0,
+    "samples": 26553,
+    "before_opposed": 0,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.1816854177517065
+  },
+  {
+    "half_patch": 67,
+    "axis": 2,
+    "samples": 30895,
+    "before_opposed": 0,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.03447746909993071
+  },
+  {
+    "half_patch": 81,
+    "axis": 2,
+    "samples": 28461,
+    "before_opposed": 248,
+    "after_opposed": 51,
+    "minimum_signed_projected_jacobian": -0.012866595321496092
+  },
+  {
+    "half_patch": 89,
+    "axis": 0,
+    "samples": 31257,
+    "before_opposed": 194,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.010657270756982447
+  },
+  {
+    "half_patch": 91,
+    "axis": 2,
+    "samples": 26533,
+    "before_opposed": 17,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.21160848084496833
+  },
+  {
+    "half_patch": 99,
+    "axis": 2,
+    "samples": 29575,
+    "before_opposed": 1742,
+    "after_opposed": 136,
+    "minimum_signed_projected_jacobian": -0.050487215769129457
+  },
+  {
+    "half_patch": 116,
+    "axis": 2,
+    "samples": 33507,
+    "before_opposed": 217,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.0006275053949249259
+  },
+  {
+    "half_patch": 137,
+    "axis": 2,
+    "samples": 24915,
+    "before_opposed": 29,
+    "after_opposed": 0,
+    "minimum_signed_projected_jacobian": 0.0858807672881853
+  }
+]

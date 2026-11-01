@@ -1,0 +1,1137 @@
+{
+  "method": "Exact-boundary Coons graph + physical Hermite fairing",
+  "changed": [
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 1,
+      "axis": 1,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.06789511908658169,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 297.23236654053017,
+          "curvature_gradient_median_per_m2": 515.7676299487069,
+          "curvature_gradient_p95_per_m2": 101918.50127003672
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 7.415548056105823,
+          "curvature_gradient_median_per_m2": 24.31607643636419,
+          "curvature_gradient_p95_per_m2": 179.88032931980365
+        },
+        "matched_samples": 3239,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 25,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.12723639091997224,
+        "p95_mm": 0.2598060906166211,
+        "sampled_max_mm": 1.1000522645190358,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 99.8235057157648,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 32813,
+        "before_opposed": 944,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.015905806694526892
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 2,
+      "axis": 1,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.10564755994512515,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 88.11713697613132,
+          "curvature_gradient_median_per_m2": 376.04881128697775,
+          "curvature_gradient_p95_per_m2": 47479.06680871725
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 4.041909448286077,
+          "curvature_gradient_median_per_m2": 10.803405451173992,
+          "curvature_gradient_p95_per_m2": 37.469508934970094
+        },
+        "matched_samples": 3286,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 9,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.7054944073593293,
+        "p95_mm": 1.4806734106969088,
+        "sampled_max_mm": 2.5172552559524775,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 99.92108204424926,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 38097,
+        "before_opposed": 209,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.03368748238631548
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 5,
+      "axis": 2,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.3304416864492711,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 3.257881399869499,
+          "curvature_gradient_median_per_m2": 20.938646823645204,
+          "curvature_gradient_p95_per_m2": 393.93628586699185
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 1.5268199602924588,
+          "curvature_gradient_median_per_m2": 5.909008595611902,
+          "curvature_gradient_p95_per_m2": 43.487750271719605
+        },
+        "matched_samples": 3475,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 0,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.22113526638842165,
+        "p95_mm": 0.44472780427895503,
+        "sampled_max_mm": 1.3908291002735496,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 88.96071475720753,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 33549,
+        "before_opposed": 111,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.0764853520739817
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 6,
+      "axis": 1,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.19880546844117158,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 6.5951757433259495,
+          "curvature_gradient_median_per_m2": 46.122002733730675,
+          "curvature_gradient_p95_per_m2": 329.83754738883084
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 3.971792434027619,
+          "curvature_gradient_median_per_m2": 17.87323570487805,
+          "curvature_gradient_p95_per_m2": 84.1048636368876
+        },
+        "matched_samples": 3481,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 0,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.2286944106784021,
+        "p95_mm": 0.5023536621592941,
+        "sampled_max_mm": 0.8846413111314178,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 74.50112508333075,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 27125,
+        "before_opposed": 130,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.06647289434267198
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 7,
+      "axis": 1,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.04986208201149637,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 9.321505831775937,
+          "curvature_gradient_median_per_m2": 55.96691390340405,
+          "curvature_gradient_p95_per_m2": 843.424712695543
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 5.889799792031084,
+          "curvature_gradient_median_per_m2": 19.962099986897066,
+          "curvature_gradient_p95_per_m2": 232.78244745658694
+        },
+        "matched_samples": 3481,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 0,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.04691978796210539,
+        "p95_mm": 0.10386583817307839,
+        "sampled_max_mm": 0.3118319727946073,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 72.40032880793521,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 33069,
+        "before_opposed": 0,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.00335504706887228
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 9,
+      "axis": 1,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.09907504312926449,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 6.299444754534377,
+          "curvature_gradient_median_per_m2": 11.39110891434055,
+          "curvature_gradient_p95_per_m2": 3016.3111777386434
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 2.275574319107649,
+          "curvature_gradient_median_per_m2": 9.005001302309871,
+          "curvature_gradient_p95_per_m2": 28.024411385295426
+        },
+        "matched_samples": 2987,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 123,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.2830071159080628,
+        "p95_mm": 0.5960811889963226,
+        "sampled_max_mm": 1.0883421637117863,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 99.07090450109641,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 38505,
+        "before_opposed": 2067,
+        "after_opposed": 8,
+        "minimum_signed_projected_jacobian": -0.0025150740277994077
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 12,
+      "axis": 2,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.049557712942354046,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 7.000214329828689,
+          "curvature_gradient_median_per_m2": 175.13599668240155,
+          "curvature_gradient_p95_per_m2": 1548.6991891228413
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 5.6272952754408365,
+          "curvature_gradient_median_per_m2": 124.0737509602588,
+          "curvature_gradient_p95_per_m2": 649.4628477272981
+        },
+        "matched_samples": 3481,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 0,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.13095969476326388,
+        "p95_mm": 0.2959355668281205,
+        "sampled_max_mm": 0.6283562979660928,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 58.06397702738234,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 28143,
+        "before_opposed": 120,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.026196094427157958
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 14,
+      "axis": 2,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.15984305766581886,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 3.207714841419314,
+          "curvature_gradient_median_per_m2": 66.56884374354397,
+          "curvature_gradient_p95_per_m2": 772.381218979003
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 2.0972889457589527,
+          "curvature_gradient_median_per_m2": 37.52069426038377,
+          "curvature_gradient_p95_per_m2": 192.78735188444878
+        },
+        "matched_samples": 3473,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 2,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.0954774488324014,
+        "p95_mm": 0.2003504996537231,
+        "sampled_max_mm": 0.5699716275557876,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 75.03987057850902,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 29829,
+        "before_opposed": 17,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.13003787653408505
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 17,
+      "axis": 2,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.42827155814495943,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 2.9725370143919325,
+          "curvature_gradient_median_per_m2": 28.271166507976083,
+          "curvature_gradient_p95_per_m2": 261.4802673136966
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 1.5417007296678589,
+          "curvature_gradient_median_per_m2": 4.8803653206175515,
+          "curvature_gradient_p95_per_m2": 21.867965551109357
+        },
+        "matched_samples": 3441,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 0,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.2807126354336472,
+        "p95_mm": 0.5738838517572732,
+        "sampled_max_mm": 1.2665989343076944,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 91.63685819363398,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 30895,
+        "before_opposed": 55,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.2635921063270742
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 18,
+      "axis": 2,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.10622366596361811,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 7.7678897752260285,
+          "curvature_gradient_median_per_m2": 23.96507603810321,
+          "curvature_gradient_p95_per_m2": 875.1098964834856
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 5.773071106315407,
+          "curvature_gradient_median_per_m2": 20.15394228304952,
+          "curvature_gradient_p95_per_m2": 144.16718343074118
+        },
+        "matched_samples": 3481,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 0,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.47615493427049504,
+        "p95_mm": 1.0737360629718753,
+        "sampled_max_mm": 1.7140493728220463,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 83.52581955591428,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 40317,
+        "before_opposed": 40,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.01749122792492344
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 19,
+      "axis": 0,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.05147745425228219,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 2.2049514183997014,
+          "curvature_gradient_median_per_m2": 30.91446621054127,
+          "curvature_gradient_p95_per_m2": 417.04782603973257
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 1.6781643163929079,
+          "curvature_gradient_median_per_m2": 19.40480153643267,
+          "curvature_gradient_p95_per_m2": 103.00202083778039
+        },
+        "matched_samples": 3470,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 3,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.06984779205629602,
+        "p95_mm": 0.1440689273294993,
+        "sampled_max_mm": 0.25869120145216584,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 75.30210819802541,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 26219,
+        "before_opposed": 27,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.034727136681227525
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 20,
+      "axis": 0,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.06036302930312795,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 0.3315461563800941,
+          "curvature_gradient_median_per_m2": 3.9794981733579653,
+          "curvature_gradient_p95_per_m2": 39.944073546201714
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 0.29015644095383025,
+          "curvature_gradient_median_per_m2": 3.1859068420808034,
+          "curvature_gradient_p95_per_m2": 25.689689985019225
+        },
+        "matched_samples": 3481,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 0,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.044415867321811714,
+        "p95_mm": 0.09117851077462549,
+        "sampled_max_mm": 0.15693227760493755,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 35.68585348385916,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 24335,
+        "before_opposed": 0,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.029182415226842912
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 21,
+      "axis": 2,
+      "coarse_controls": 12,
+      "area_weighted": true,
+      "area_screen_m2": 0.16916489458118983,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 125.5448284191619,
+          "curvature_gradient_median_per_m2": 879.5397623239245,
+          "curvature_gradient_p95_per_m2": 76273.72107713645
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 17.217381846068943,
+          "curvature_gradient_median_per_m2": 173.96973435034863,
+          "curvature_gradient_p95_per_m2": 1168.4049868544173
+        },
+        "matched_samples": 3343,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 17,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 2.6343113630483947,
+        "p95_mm": 6.408450985327363,
+        "sampled_max_mm": 9.26998071372509,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 98.46814214600492,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 41949,
+        "before_opposed": 460,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.08443958086174869
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 29,
+      "axis": 2,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.21393520779966413,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 0.4241316722625731,
+          "curvature_gradient_median_per_m2": 2.749059539092566,
+          "curvature_gradient_p95_per_m2": 16.48960545874564
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 0.35574745593343565,
+          "curvature_gradient_median_per_m2": 1.187660856705959,
+          "curvature_gradient_p95_per_m2": 4.365910344022698
+        },
+        "matched_samples": 3481,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 0,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.05698520913241388,
+        "p95_mm": 0.1153734174295096,
+        "sampled_max_mm": 0.2939792175311595,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 73.5232576974294,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 26219,
+        "before_opposed": 0,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.18178605326045974
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 35,
+      "axis": 2,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.044035679800470365,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 1.0097512945024414,
+          "curvature_gradient_median_per_m2": 10.485682953692056,
+          "curvature_gradient_p95_per_m2": 34.54888523762132
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 0.9835792859938081,
+          "curvature_gradient_median_per_m2": 8.19122716888709,
+          "curvature_gradient_p95_per_m2": 16.963077168054532
+        },
+        "matched_samples": 3481,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 0,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.07340301396260158,
+        "p95_mm": 0.15515769191551956,
+        "sampled_max_mm": 0.20699725428130478,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 50.901231540799685,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 25519,
+        "before_opposed": 0,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.006333847020651125
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 36,
+      "axis": 2,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.04908731992832153,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 0.2727776976826404,
+          "curvature_gradient_median_per_m2": 2.131165808682673,
+          "curvature_gradient_p95_per_m2": 11.586774030816821
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 0.2701026449574821,
+          "curvature_gradient_median_per_m2": 1.5678722677006245,
+          "curvature_gradient_p95_per_m2": 3.0419175929821227
+        },
+        "matched_samples": 3481,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 0,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.015914473068642496,
+        "p95_mm": 0.03305727113911417,
+        "sampled_max_mm": 0.057232635299442336,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 73.74663918626814,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 24009,
+        "before_opposed": 0,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.006534449301890866
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 39,
+      "axis": 1,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.3184610977423188,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 8.380265463882667,
+          "curvature_gradient_median_per_m2": 37.61458828978764,
+          "curvature_gradient_p95_per_m2": 887.653520712709
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 6.582548185152666,
+          "curvature_gradient_median_per_m2": 17.96358091414211,
+          "curvature_gradient_p95_per_m2": 161.63787238442296
+        },
+        "matched_samples": 3465,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 6,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.13048461216722332,
+        "p95_mm": 0.3077086672419682,
+        "sampled_max_mm": 0.755782297346741,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 81.79043189569713,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 32005,
+        "before_opposed": 86,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.1243878168284857
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 50,
+      "axis": 0,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.0626265485210039,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 4.856753268210512,
+          "curvature_gradient_median_per_m2": 16.916776428270147,
+          "curvature_gradient_p95_per_m2": 199.07670083428127
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 3.760834880551621,
+          "curvature_gradient_median_per_m2": 17.217862210476593,
+          "curvature_gradient_p95_per_m2": 70.23758987550555
+        },
+        "matched_samples": 3481,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 0,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.1839379357907586,
+        "p95_mm": 0.39131299126893293,
+        "sampled_max_mm": 0.9844803716987371,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 64.71832736771448,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 29747,
+        "before_opposed": 40,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.009532057681702852
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 53,
+      "axis": 2,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.07542761938308312,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 2.5794160668908757,
+          "curvature_gradient_median_per_m2": 23.802406606305905,
+          "curvature_gradient_p95_per_m2": 107.46631882673098
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 1.9287346366747826,
+          "curvature_gradient_median_per_m2": 14.052816344655056,
+          "curvature_gradient_p95_per_m2": 40.023317238837514
+        },
+        "matched_samples": 3481,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 0,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.1408272113211816,
+        "p95_mm": 0.2959807214210742,
+        "sampled_max_mm": 0.43071608524769545,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 62.75733860078756,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 27331,
+        "before_opposed": 0,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.03676806997481621
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 59,
+      "axis": 2,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.21484404422022463,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 5.446125468767125,
+          "curvature_gradient_median_per_m2": 18.872341175336786,
+          "curvature_gradient_p95_per_m2": 1781.6917374866846
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 1.434409696209652,
+          "curvature_gradient_median_per_m2": 6.873978456946061,
+          "curvature_gradient_p95_per_m2": 44.039727636497254
+        },
+        "matched_samples": 3440,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 11,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.38247069037642745,
+        "p95_mm": 0.8439246681518859,
+        "sampled_max_mm": 2.136706141754985,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 97.52820722519479,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 41695,
+        "before_opposed": 213,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.13749655511632392
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 61,
+      "axis": 0,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.20802373488602482,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 5.984880462836581,
+          "curvature_gradient_median_per_m2": 27.120870960638285,
+          "curvature_gradient_p95_per_m2": 1056.8885207292683
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 4.980123900529686,
+          "curvature_gradient_median_per_m2": 15.58649204456289,
+          "curvature_gradient_p95_per_m2": 264.516561736343
+        },
+        "matched_samples": 3481,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 0,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.16890341307356152,
+        "p95_mm": 0.3429454794968479,
+        "sampled_max_mm": 0.6555085419677198,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 74.97214166411584,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 26553,
+        "before_opposed": 0,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.1816854177517065
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 67,
+      "axis": 2,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.11643370445227864,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 3.170183258543151,
+          "curvature_gradient_median_per_m2": 41.12366822041458,
+          "curvature_gradient_p95_per_m2": 567.7409170011167
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 1.9357246398954153,
+          "curvature_gradient_median_per_m2": 11.596059272559478,
+          "curvature_gradient_p95_per_m2": 84.81685968166735
+        },
+        "matched_samples": 3481,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 0,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.09161189080861643,
+        "p95_mm": 0.1920519884151873,
+        "sampled_max_mm": 0.44139259262010455,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 85.06063996062124,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 30895,
+        "before_opposed": 0,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.03447746909993071
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 81,
+      "axis": 2,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.056502829435243644,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 17.30985869017299,
+          "curvature_gradient_median_per_m2": 213.0332584057668,
+          "curvature_gradient_p95_per_m2": 6548.38074591623
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 2.6221538809783542,
+          "curvature_gradient_median_per_m2": 49.605304475979445,
+          "curvature_gradient_p95_per_m2": 218.98923898354354
+        },
+        "matched_samples": 3428,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 15,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.05534300125062194,
+        "p95_mm": 0.1101141508115689,
+        "sampled_max_mm": 0.8267875527963042,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 96.65582611212533,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 28461,
+        "before_opposed": 248,
+        "after_opposed": 51,
+        "minimum_signed_projected_jacobian": -0.012866595321496092
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 89,
+      "axis": 0,
+      "coarse_controls": 20,
+      "area_screen_m2": 0.041345714317404546,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 3.4058107848167043,
+          "curvature_gradient_median_per_m2": 85.005342444363,
+          "curvature_gradient_p95_per_m2": 431.7782268745907
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 3.615425877394885,
+          "curvature_gradient_median_per_m2": 55.529241323720804,
+          "curvature_gradient_p95_per_m2": 122.35292815848588
+        },
+        "matched_samples": 3481,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 0,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.10393920611871027,
+        "p95_mm": 0.24429697950836277,
+        "sampled_max_mm": 0.40864755283109844,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 71.66301574673355,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 31257,
+        "before_opposed": 194,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.010657270756982447
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 91,
+      "axis": 2,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.3600862544371523,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 1.4442476702755254,
+          "curvature_gradient_median_per_m2": 16.252341615784637,
+          "curvature_gradient_p95_per_m2": 258.45311209663504
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 1.1649712199334168,
+          "curvature_gradient_median_per_m2": 9.520247319689968,
+          "curvature_gradient_p95_per_m2": 22.258391026980554
+        },
+        "matched_samples": 3433,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 0,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.13068838921373224,
+        "p95_mm": 0.2697092553717084,
+        "sampled_max_mm": 0.872510252520442,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 91.38784174567873,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 26533,
+        "before_opposed": 17,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.21160848084496833
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 99,
+      "axis": 2,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.16348555980273805,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 33.78707915547883,
+          "curvature_gradient_median_per_m2": 90.22035246183634,
+          "curvature_gradient_p95_per_m2": 30012.625383784067
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 10.441232141723072,
+          "curvature_gradient_median_per_m2": 68.56371272566705,
+          "curvature_gradient_p95_per_m2": 903.5100896940838
+        },
+        "matched_samples": 3064,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 167,
+        "after_opposed_axis_normals": 14
+      },
+      "shape_change": {
+        "rms_mm": 0.35444485355733923,
+        "p95_mm": 0.6965237989788877,
+        "sampled_max_mm": 1.943162176758051,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 96.98956663024137,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 29575,
+        "before_opposed": 1742,
+        "after_opposed": 136,
+        "minimum_signed_projected_jacobian": -0.050487215769129457
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 116,
+      "axis": 2,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.05662501519056806,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 8.145393670887657,
+          "curvature_gradient_median_per_m2": 37.57210957441643,
+          "curvature_gradient_p95_per_m2": 6216.325298103501
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 4.027819761599113,
+          "curvature_gradient_median_per_m2": 8.107908201455851,
+          "curvature_gradient_p95_per_m2": 205.12468441980096
+        },
+        "matched_samples": 3467,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 5,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.06679068490546622,
+        "p95_mm": 0.1511970731371548,
+        "sampled_max_mm": 0.7634657085873187,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 96.70022602449102,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 33507,
+        "before_opposed": 217,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.0006275053949249259
+      }
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 137,
+      "axis": 2,
+      "coarse_controls": 12,
+      "area_screen_m2": 0.09586908323965249,
+      "curvature": {
+        "before": {
+          "mean_curvature_abs_p95_per_m": 0.32489382389537047,
+          "curvature_gradient_median_per_m2": 1.0783172912794652,
+          "curvature_gradient_p95_per_m2": 64.6609073045232
+        },
+        "after": {
+          "mean_curvature_abs_p95_per_m": 0.3747035419292595,
+          "curvature_gradient_median_per_m2": 0.9816279088694833,
+          "curvature_gradient_p95_per_m2": 8.482865408678649
+        },
+        "matched_samples": 3363,
+        "total_samples": 3721,
+        "before_opposed_axis_normals": 0,
+        "after_opposed_axis_normals": 0
+      },
+      "shape_change": {
+        "rms_mm": 0.06730691093633413,
+        "p95_mm": 0.17984519217861822,
+        "sampled_max_mm": 0.2581363951321691,
+        "samples": 22802,
+        "method": "bidirectional vertices to 151x151 triangulated patch; sampled, not Hausdorff bound"
+      },
+      "roughness_p95_reduction_percent": 86.88099848533173,
+      "boundary_poles_max_change_mm": 0.0,
+      "dense_normal_screen": {
+        "samples": 24915,
+        "before_opposed": 29,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.0858807672881853
+      }
+    }
+  ],
+  "unchanged": [
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 3,
+      "reason": "Coons graph projection folds or degenerates"
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 28,
+      "reason": "Less than 30% roughness reduction or worse median"
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 31,
+      "reason": "Less than 30% roughness reduction or worse median"
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 34,
+      "reason": "Coons graph projection folds or degenerates"
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 40,
+      "reason": "Coons graph projection folds or degenerates"
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 54,
+      "reason": "Less than 30% roughness reduction or worse median"
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 55,
+      "reason": "Coons graph projection folds or degenerates"
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 90,
+      "reason": "Less than 30% roughness reduction or worse median"
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 93,
+      "reason": "Less than 30% roughness reduction or worse median"
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 103,
+      "reason": "Less than 30% roughness reduction or worse median"
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 108,
+      "reason": "Less than 30% roughness reduction or worse median"
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 125,
+      "reason": "Less than 30% roughness reduction or worse median"
+    },
+    {
+      "part": "Body_Main_Shell",
+      "half_patch": 126,
+      "reason": "Less than 30% roughness reduction or worse median"
+    }
+  ]
+}
