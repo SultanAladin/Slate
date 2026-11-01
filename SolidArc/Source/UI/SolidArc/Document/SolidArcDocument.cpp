@@ -10,6 +10,8 @@
 #include "UI/SolidArc/Document/SolidArcDocument.h"
 
 #include "Engine/GeometryProcessing/Surfacing/CurveFitting.h"
+#include "Engine/GeometryProcessing/Surfacing/SurfaceAlgebra.h"
+#include "Engine/GeometryProcessing/Surfacing/SectionLoft.h"
 #include "Engine/GeometryProcessing/Diagnostics/OperationTrace.h"
 #include "UI/SolidArc/Document/SolidArcDrawingSheet.h"
 #include "UI/SolidArc/Document/SolidArcExchange.h"
@@ -25,6 +27,7 @@
 #include "Engine/GeometryProcessing/Sketch/SketchCatalogue.h"
 #include "Engine/GeometryProcessing/Sketch/SketchSolver.h"
 #include "Engine/GeometryProcessing/Sketch/SketchSpline.h"
+#include "Engine/GeometryProcessing/Sketch/SketchSection.h"
 #include "Engine/GeometryProcessing/Surfacing/CurveNetwork.h"
 
 #include <algorithm>
@@ -1764,6 +1767,21 @@ SolidArcCommandOutcome LoftSolidArcCurves(SolidArcDocument& Document, const std:
         const auto Found = Document.Regeneration.Curves.find(Name);
         if (Found != Document.Regeneration.Curves.end()) Fitted.push_back(Found->second.Curve);
     }
+    std::vector<NurbsCurve> NormalSections;
+    for(const auto& Name:Labels)
+    {
+        if(auto Curve=Document.Regeneration.Curves.find(Name);Curve!=Document.Regeneration.Curves.end()) NormalSections.push_back(Curve->second.Curve);
+        else if(auto Model=Document.Regeneration.Sketches.find(Name);Model!=Document.Regeneration.Sketches.end())
+        {
+            auto Step=std::find_if(Document.Tree.Steps.begin(),Document.Tree.Steps.end(),[&](const auto& S){return S.Label==Name;});
+            if(Step!=Document.Tree.Steps.end())
+            {
+                auto Plane=Step->Plane;Plane.Origin=Plane.Origin+Plane.ZAxis*EvaluateFeatureValue(Document.Tree,Step->Elevation);
+                const auto Section=ComposeSketchSection(Model->second,Plane);
+                if(Section.Curve) NormalSections.push_back(*Section.Curve);
+            }
+        }
+    }
     const bool        NetworkCondition = Fitted.size() == Labels.size() && Fitted.size() >= 4 && DetectCurveNetwork(Fitted, NetworkSettings{});
     const std::string Caption = NextCaption(Document, NetworkCondition ? "Network" : "Loft");
     const std::string Label   = Caption + " · " + std::to_string(Labels.size()) + (NetworkCondition ? " curves" : " sections")
@@ -1785,6 +1803,47 @@ SolidArcCommandOutcome LoftSolidArcCurves(SolidArcDocument& Document, const std:
         Step.Kind       = NetworkCondition ? FeatureStepKind::Network : FeatureStepKind::Loft;
         Step.Label      = (NetworkCondition ? "Network#" : "Loft#") + std::to_string(NextStepOrdinal(Document.Tree));
         Step.Sections   = Labels;
+        // An open sheet has no intrinsic outside. Match the locked tracing reference,
+        // otherwise use the positive dominant normal, independently of pick order.
+        if (!SolidCondition && NormalSections.size() == Labels.size())
+        {
+            std::optional<NurbsSurface> Preview;
+            if(NetworkCondition) {const auto N=ConstructNetworkSurface(NormalSections,NetworkSettings{},Labels);if(N.Refusal.empty()) Preview=N.Surface;}
+            else {const auto L=LoftSectionSurface(NormalSections,LoftSettings{});if(L.Refusal.empty()) Preview=L.Surface;}
+            if (Preview)
+            {
+                const auto Sample = EvaluateNurbsSurface(*Preview, {0.5,0.5});
+                const auto Normal = Cross(Sample.DerivativeU, Sample.DerivativeV);
+                Vector3 Expected{};
+                double Nearest = INFINITY;
+                const auto Scene = BuildSolidArcScene(Document);
+                for (const auto& Corner : Scene.Corners)
+                {
+                    const auto& Face = Scene.Faces[Corner.Face];
+                    if (!Document.Appearance.LockedFigures.contains(Scene.Bodies[Face.Body].Key)) continue;
+                    const Vector3 Position{Corner.Position[0],Corner.Position[1],Corner.Position[2]};
+                    const double Gap = Distance(Position, Sample.Position);
+                    if (Gap < Nearest) { Nearest = Gap; Expected = {Corner.Normal[0],Corner.Normal[1],Corner.Normal[2]}; }
+                }
+                if(Length(Expected)<1e-12 && !NetworkCondition)
+                {
+                    bool Closed=true;Vector3 Centre{};size_t Count=0;
+                    for(const auto& Curve:NormalSections)
+                    {
+                        const auto& P=Curve.Definition->Poles;
+                        Closed=Closed && P.size()>2 && Distance(P.front(),P.back())<1e-9;
+                        for(const auto& Point:P) {Centre=Centre+Point;++Count;}
+                    }
+                    if(Closed && Count) Expected=Sample.Position-Centre*(1.0/double(Count)); // Tube: radial outside, not an arbitrary hemisphere.
+                }
+                if (Length(Expected) < 1e-12)
+                {
+                    const double X=std::abs(Normal.X), Y=std::abs(Normal.Y), Z=std::abs(Normal.Z);
+                    Expected = Z>=X && Z>=Y ? Vector3{0,0,1} : Y>=X ? Vector3{0,1,0} : Vector3{1,0,0};
+                }
+                Step.ReverseNormals=Dot(Normal,Expected)<0;
+            }
+        }
         Step.Continuity = Continuity;
         Step.ClosedCondition = SolidCondition;
         Document.Captions[Step.Label] = Caption;
@@ -2136,6 +2195,121 @@ SolidArcCommandOutcome DrawSolidArcProjectedCurve(SolidArcDocument& Document, co
     });
     if (Outcome.AcceptedCondition) Document.Selection.Curves = { Label };
     return Outcome;
+}
+
+std::vector<double> SolidArcCurveControlParameters(const NurbsCurveDefinition& D)
+{
+    std::vector<double> Parameters;
+    for (size_t I=0; I<D.Poles.size(); ++I)
+    {
+        double T=0; for(int J=1; J<=D.Degree; ++J) T+=D.Knots[I+J];
+        Parameters.push_back(T/D.Degree);
+    }
+    return Parameters;
+}
+
+namespace {
+void StoreControlDefinition(FeatureStep& Step, const NurbsCurveDefinition& D)
+{
+    Step.Points=D.Poles; Step.CurveKnots=D.Knots; Step.PoleEdits.clear();
+    const double Low=D.Knots[D.Degree], High=D.Knots[D.Poles.size()];
+    for (auto& K:Step.CurveKnots) K=(K-Low)/(High-Low);
+}
+}
+
+SolidArcCommandOutcome DeleteSolidArcCurvePoles(SolidArcDocument& Document, const std::string& Owner, const std::vector<int>& Indices)
+{
+    const std::string Label=Owner; // May alias Tree.Steps storage.
+    return RunCommand(Document,"Delete selected spline controls",false,[&]() -> std::string
+    {
+        auto Step=std::find_if(Document.Tree.Steps.begin(),Document.Tree.Steps.end(),[&](const auto& S){return S.Label==Label && S.Kind==FeatureStepKind::SpaceCurve;});
+        const auto Fit=Document.Regeneration.Curves.find(Label);
+        if (Step==Document.Tree.Steps.end() || Fit==Document.Regeneration.Curves.end()) return "Select a spline control first";
+        if (SolidArcLockedCondition(Document,Label)) return "The spline is locked";
+        const auto& Before=*Fit->second.Curve.Definition;
+        std::set<int> Selected(Indices.begin(),Indices.end());
+        if (Selected.empty() || *Selected.begin()<0 || *Selected.rbegin()>=int(Before.Poles.size())) return "Invalid control selection";
+        std::vector<Vector3> Kept;
+        for(int I=0; I<int(Before.Poles.size()); ++I) if(!Selected.contains(I)) Kept.push_back(Before.Poles[I]);
+        if (Kept.size()<2) return "A spline needs at least two controls; no object was deleted. Use object mode to delete the whole spline";
+        const bool Closed=Step->ClosedCondition && !Selected.contains(0) && !Selected.contains(int(Before.Poles.size())-1);
+        if (Closed && Kept.size()<4) return "A closed spline needs three distinct controls; no object was deleted";
+        NurbsCurveDefinition D;
+        D.Poles=Kept; D.Degree=std::min(Before.Degree,int(Kept.size())-1);
+        D.Knots.assign(D.Degree+1,0.0);
+        const int Spans=int(Kept.size())-D.Degree;
+        for(int I=1; I<Spans; ++I) D.Knots.push_back(double(I)/Spans);
+        D.Knots.insert(D.Knots.end(),D.Degree+1,1.0);
+        StoreControlDefinition(*Step,D); Step->ClosedCondition=Closed;
+        return {};
+    },0);
+}
+
+SolidArcCommandOutcome SubdivideSolidArcCurve(SolidArcDocument& Document, const std::string& Owner, const std::vector<int>& Spans)
+{
+    const std::string Label=Owner;
+    return RunCommand(Document,"Subdivide spline (exact knot insertion)",false,[&]() -> std::string
+    {
+        const auto Fit=Document.Regeneration.Curves.find(Label);
+        auto Step=std::find_if(Document.Tree.Steps.begin(),Document.Tree.Steps.end(),[&](const auto& S){return S.Label==Label && S.Kind==FeatureStepKind::SpaceCurve;});
+        if (Step==Document.Tree.Steps.end() || Fit==Document.Regeneration.Curves.end()) return "Select a spline or control span first";
+        if (SolidArcLockedCondition(Document,Label)) return "The spline is locked";
+        const auto& Before=*Fit->second.Curve.Definition;
+        const auto T=SolidArcCurveControlParameters(Before);
+        std::set<int> Chosen(Spans.begin(),Spans.end());
+        if (Chosen.empty()) for(int I=0; I+1<int(T.size()); ++I) Chosen.insert(I);
+        if (*Chosen.begin()<0 || *Chosen.rbegin()+1>=int(T.size())) return "Invalid spline span selection";
+        std::vector<double> Inserted;
+        for(int I:Chosen) if(T[I+1]-T[I]>1e-12) Inserted.push_back((T[I]+T[I+1])*0.5);
+        const auto Refined=RefineNurbsCurveKnots(Before,Inserted);
+        if (Refined.Poles.size()==Before.Poles.size()) return "Selected spans cannot be subdivided further at this knot multiplicity";
+        StoreControlDefinition(*Step,Refined);
+        return {};
+    },0);
+}
+
+SolidArcCommandOutcome DeleteSolidArcCurveSpans(SolidArcDocument& Document, const std::string& Owner, const std::vector<int>& Spans)
+{
+    const std::string Label=Owner;
+    return RunCommand(Document,"Delete selected spline spans",false,[&]() -> std::string
+    {
+        const auto Fit=Document.Regeneration.Curves.find(Label);
+        auto Step=std::find_if(Document.Tree.Steps.begin(),Document.Tree.Steps.end(),[&](const auto& S){return S.Label==Label && S.Kind==FeatureStepKind::SpaceCurve;});
+        if (Step==Document.Tree.Steps.end() || Fit==Document.Regeneration.Curves.end()) return "Select a spline span first";
+        if (SolidArcLockedCondition(Document,Label)) return "The spline is locked";
+        const auto Before=*Fit->second.Curve.Definition;
+        const auto T=SolidArcCurveControlParameters(Before);
+        std::set<int> Selected(Spans.begin(),Spans.end());
+        if (Selected.empty() || *Selected.begin()<0 || *Selected.rbegin()+1>=int(T.size())) return "Invalid spline span selection";
+        std::vector<std::pair<double,double>> Kept;
+        for(int I=0; I+1<int(T.size());)
+        {
+            if(Selected.contains(I)) {++I;continue;}
+            int First=I; while(I+1<int(T.size()) && !Selected.contains(I)) ++I;
+            if(T[I]-T[First]>1e-12) Kept.push_back({T[First],T[I]});
+        }
+        if (SolidArcSketchReferencedCondition(Document,Label)) return "This spline is used by another feature; detach its dependents before deleting spans (nothing deleted)";
+        if (Kept.empty()) { Document.Tree.Steps.erase(Step); Document.Captions.erase(Label); return {}; }
+        const FeatureStep Original=*Step;
+        const size_t Index=size_t(Step-Document.Tree.Steps.begin());
+        for(size_t I=0; I<Kept.size(); ++I)
+        {
+            auto D=Before;
+            if(Kept[I].second<T.back()-1e-12)
+            {auto Cut=SplitNurbsCurve(D,Kept[I].second); if(!Cut)return "Cannot split the selected span boundary";D=Cut->first;}
+            if(Kept[I].first>T.front()+1e-12)
+            {auto Cut=SplitNurbsCurve(D,Kept[I].first); if(!Cut)return "Cannot split the selected span boundary";D=Cut->second;}
+            FeatureStep Piece=Original; Piece.ClosedCondition=false; StoreControlDefinition(Piece,D);
+            if(I==0) Document.Tree.Steps[Index]=std::move(Piece);
+            else
+            {
+                Piece.Label="Curve#"+std::to_string(NextStepOrdinal(Document.Tree));
+                Document.Captions[Piece.Label]=NextCaption(Document,"Curve");
+                Document.Tree.Steps.push_back(std::move(Piece));
+            }
+        }
+        return {};
+    },0);
 }
 
 SolidArcCommandOutcome LiftSolidArcSketchPoints(SolidArcDocument& Document, const std::string& SketchName, const OrthonormalFrame& Plane, const std::vector<int>& Points,
@@ -5373,7 +5547,19 @@ SolidArcCommandOutcome DeleteSolidArcSketchPoints(SolidArcDocument& Document, co
     {
         Edited = SolvedSketch(Document, *Step);
         for (int Point : Points) if (Point < 0 || Point >= static_cast<int>(Edited.Points.size())) Problem = "point " + std::to_string(Point) + " is not in " + Owner;
-        if (Problem.empty()) Erased = EraseSketchPoints(Edited, Points);
+        // Disconnect only the selected spline controls; do not erase the whole incident spline.
+        int Changed=0;
+        if(Problem.empty()) for(auto& Curve:Edited.Curves) if(Curve.Kind==SketchCurveKind::Spline)
+        {
+            const auto Old=Curve.Points;
+            std::erase_if(Curve.Points,[&](int I){return std::find(Points.begin(),Points.end(),I)!=Points.end();});
+            if(Curve.Points!=Old)
+            {
+                if(Curve.Points.size()<2) {Problem="A spline needs at least two controls; no object was deleted";break;}
+                Curve.Start=-1;Curve.End=-1;Curve.Centre=-1;Curve.Knots.clear();++Changed;
+            }
+        }
+        if (Problem.empty()) Erased = EraseSketchPoints(Edited, Points)+Changed;
         if (Problem.empty() && Erased == 0) Problem = "no curve runs through the picked point(s)";
     }
     const bool Referenced = SolidArcSketchReferencedCondition(Document, Sketch);

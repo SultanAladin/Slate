@@ -169,6 +169,7 @@ std::string DigestFeatureStep(const FeatureTree& Tree, const FeatureStep& Step)
     Writer.Flag(Step.ClosedCondition);
     if (!Step.FillCondition) Writer.Phrase("Unfilled");                                     // Absent when filled: older digests hold
     Writer.Flag(Step.PlanarCondition);
+    Writer.Flag(Step.ReverseNormals);
     Writer.Value(Step.Tolerance);
     if (!Step.CurveKnots.empty())                                                            // Absent for fitted curves: older digests hold
     {

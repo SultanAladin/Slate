@@ -1,5 +1,5 @@
 {
-  "feature": "surface-point-only snapping: one placed control per editable pole; no span projection or adaptive fitting",
+  "feature": "native spline point/span deletion, exact explicit subdivision, curve-first Ctrl snapping, default sheet orientation, component-safe deletion; point-only authoring preserved",
   "source_base": "unassignedinbox/Frontier 82ed251267ed8457ca3530d8228b91555572c25d",
   "desktop_host": "SultanAladin/Frontier 65cf0f131a6afe8bdcd722c006b10cfab0e1aafd",
   "reference": "Refined/CAD/Liger_Refined_CAD.solidarc",
@@ -15,8 +15,8 @@
   "runtimes": {
     "Windows": {
       "executable": "SolidArcWorkspace.exe",
-      "sha256": "0c61187688f33a485523debfc34abccb90a4386c3538258ba30a521802d4cbda",
-      "executable_bytes": 8965632,
+      "sha256": "91c73826b408e66b99c80f3df9d4be1a4721fe46f20b2c77b7cd820ed828a84b",
+      "executable_bytes": 8997376,
       "svg_icons": 310,
       "solidarc_icons": 66,
       "font_faces": 5,
@@ -42,8 +42,8 @@
     },
     "Linux": {
       "executable": "SolidArcWorkspace",
-      "sha256": "c476495618bb47ebde9fae5d5dee76a0f855b1880d0c45364d512eb259bf0a08",
-      "executable_bytes": 10917728,
+      "sha256": "482cfe5234ea9f83d767b4c4a86d1898846277d703e18b9e088e51841ad3acea",
+      "executable_bytes": 10958656,
       "svg_icons": 310,
       "solidarc_icons": 66,
       "font_faces": 5,
@@ -85,13 +85,32 @@
     ]
   },
   "ui_expectations": {
+    "Editing": 19,
+    "TopologyDelete": 18,
     "Startup": 11,
     "Drawing": 35,
     "Edge": 6,
     "Quad": 9,
     "Control": 17
   },
-  "ui_expectations_total": 78,
+  "ui_expectations_total": 115,
   "point_only_patch_sha256": "e4a7c0702184167eba6d64bde93f2b7aad6a7bcb24ef85461915b4378edb0ffb",
-  "source_parent": "a1d8eef"
+  "source_parent": "30a57de",
+  "date": "2026-11-02",
+  "editing_patch_sha256": "8cb240218343392aa5d465ff617f1bb37f7a392587ea1e650e0257a4ca30c2d5",
+  "native_editing_checks": 50,
+  "native_topology_fixture_checks": 1,
+  "editing": {
+    "automatic_extra_poles": false,
+    "subdivision": "explicit exact knot insertion",
+    "spans": "adjacent Greville intervals; cage or exact curve hit target",
+    "component_delete": "selected components before parent; invalid CAD dissolve refuses atomically",
+    "normals": "new sheets align locked reference; canonical open sections; radial closed-section tubes; old lofts unchanged",
+    "curve_snap": "authored overlay curves then visible CAD edges then surface; consumed profiles excluded from authored priority; section clipping retained"
+  },
+  "editing_patch_order": [
+    "SolidArc-Surface-Tracing.patch",
+    "SolidArc-Surface-Point-Only.patch",
+    "SolidArc-Spline-Editing.patch"
+  ]
 }

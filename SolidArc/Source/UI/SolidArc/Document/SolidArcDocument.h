@@ -525,7 +525,7 @@ struct SolidArcPointCut
 //    (Appearance.RemovedCurves) — while that step keeps it, so the body stays. One undo entry.
 [[nodiscard]] SolidArcCommandOutcome DeleteSolidArcCurves(SolidArcDocument& Document, const std::vector<std::string>& Labels);
 
-// 💡 X / Delete on mode 1 sketch points: the curves through them go (GeometryProcessing::EraseSketchPoints), in place so a
+// 💡 X / Delete on mode 1 sketch points: spline controls are removed locally; other incident curves are erased, in place so a
 //    step reading the sketch follows; when that step would refuse, the original stays for it (removed from the scene) and
 //    the remaining curves become a free sketch. A sketch left without curves is deleted (or removed when read).
 [[nodiscard]] SolidArcCommandOutcome DeleteSolidArcSketchPoints(SolidArcDocument& Document, const std::string& Sketch, const std::vector<int>& Points);
@@ -848,7 +848,13 @@ struct SolidArcStepReading;
 [[nodiscard]] SolidArcCommandOutcome DrawSolidArcSpaceCurve(SolidArcDocument& Document, const std::vector<GeometryProcessing::Vector3>& Points, bool ClosedCondition,
                                                             GeometryProcessing::SketchSplineForm Form = GeometryProcessing::SketchSplineForm::Hermite);
 
-// A surface-checked, non-rational B-spline: persist exact poles / knots, one undo entry.
+// Control editing is local and atomic: never falls back to whole-object deletion.
+[[nodiscard]] std::vector<double> SolidArcCurveControlParameters(const GeometryProcessing::NurbsCurveDefinition& Definition);
+[[nodiscard]] SolidArcCommandOutcome DeleteSolidArcCurvePoles(SolidArcDocument&, const std::string&, const std::vector<int>&);
+[[nodiscard]] SolidArcCommandOutcome SubdivideSolidArcCurve(SolidArcDocument&, const std::string&, const std::vector<int>& Spans = {});
+[[nodiscard]] SolidArcCommandOutcome DeleteSolidArcCurveSpans(SolidArcDocument&, const std::string&, const std::vector<int>&);
+
+// An exact non-rational B-spline: persist supplied poles / knots without fitting, one undo entry.
 [[nodiscard]] SolidArcCommandOutcome DrawSolidArcProjectedCurve(SolidArcDocument& Document, const GeometryProcessing::NurbsCurve& Curve, bool Closed);
 
 // 💡 Sketch points moved off their plane (the 3D gizmo on mode-1 points in a 3D view): every curve through one becomes a

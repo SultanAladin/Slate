@@ -1,0 +1,60 @@
+capture Liger_Delete_Only_Selected_Control frame   58  21f8a7f40af3c33b
+capture Liger_Selected_Control_Span  frame   80  00dc91c46a18ed95
+capture Liger_Delete_Only_Selected_Span frame  113  72def8f2848edf13
+capture Liger_Ctrl_Authored_Curve_Snap frame  135  df937842a4329e12
+# SolidArcCapture
+
+- Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
+- Frame: 1280 x 680 · 138 frames · 27.0447 s · slowest frame 598.564 ms
+- Script: /home/user/Slate/SolidArc/Vehicles/Liger/Tools/SurfaceTraceEditingCheck.txt
+- Expectations: 19 / 19 passed
+
+| Line | Expectation | Observed | Result |
+|-----:|-------------|----------|--------|
+| 12 | `last-control-count == 3` | 3 | 🟢 |
+| 17 | `selected-spline-poles == 1` | 1 | 🟢 |
+| 20 | `curves == 1` | Surface trace1 | 🟢 |
+| 21 | `last-control-count == 2` | 2 | 🟢 |
+| 22 | `steps == 4` | 4 | 🟢 |
+| 23 | `refused == 0` | 0 | 🟢 |
+| 27 | `last-control-count == 3` | 3 | 🟢 |
+| 33 | `selected-spline-spans == 1` | 1 | 🟢 |
+| 37 | `last-control-count == 4` | 4 | 🟢 |
+| 38 | `curves == 1` | Surface trace1 | 🟢 |
+| 39 | `refused == 0` | 0 | 🟢 |
+| 42 | `last-control-count == 3` | 3 | 🟢 |
+| 47 | `selected-spline-spans == 1` | 1 | 🟢 |
+| 50 | `curves == 1` | Surface trace1 | 🟢 |
+| 51 | `steps == 4` | 4 | 🟢 |
+| 52 | `refused == 0` | 0 | 🟢 |
+| 56 | `last-control-count == 3` | 3 | 🟢 |
+| 63 | `snap contains Surface trace` | On curve · Curve Surface trace1 | 🟢 |
+| 64 | `drawing-hit == 1` | 1 | 🟢 |
+
+| Capture | Frame | Digest |
+|---------|------:|--------|
+| Liger_Delete_Only_Selected_Control | 58 | `21f8a7f40af3c33b` |
+| Liger_Selected_Control_Span | 80 | `00dc91c46a18ed95` |
+| Liger_Delete_Only_Selected_Span | 113 | `72def8f2848edf13` |
+| Liger_Ctrl_Authored_Curve_Snap | 135 | `df937842a4329e12` |
+
+## Journal
+
+- View Top (Numpad)
+- SURFACE TRACE · click on the model · Ctrl: authored curve / model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
+- Draw surface trace · 48 ms
+- Surface-point trace · 3 placed controls · no automatic points or surface fitting
+- Selected curve Surface trace1 · 3 poles · fit 0.000 mm · 1 selected
+- Surface trace1 · pole 1 picked · the gizmo moves it (Shift+click adds poles on the same curve or adds curves for Loft)
+- Delete selected spline controls · 46 ms
+- Undo
+- Selected curve Surface trace1 · 3 poles · fit 0.000 mm · 1 selected
+- Spline span 1 selected · X deletes only spans · Ctrl+Shift+D subdivides
+- Subdivide spline (exact knot insertion) · 42 ms
+- Undo
+- Selected curve Surface trace1 · 3 poles · fit 0.000 mm · 1 selected
+- Spline span 1 selected · X deletes only spans · Ctrl+Shift+D subdivides
+- Delete selected spline spans · 52 ms
+- Undo
+- SURFACE TRACE · click on the model · Ctrl: authored curve / model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
+- Curve aborted (document untouched)

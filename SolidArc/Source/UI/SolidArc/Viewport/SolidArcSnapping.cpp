@@ -226,14 +226,14 @@ void CatalogueCurvePoints(SolidArcSnapCatalogue& Catalogue, const SolidArcSnapCu
 
 // 📝 Hidden when a face of the scene lies in front of it along its own pixel ray (tolerance: tessellation sag + 3 px), or
 //    when it sits on the removed side of the section. X-ray shows everything that is not cut away.
-[[nodiscard]] bool VisibleCondition(const SolidArcScene& Scene, const SolidArcSnapQuery& Query, Vector3 Point, double Scale)
+[[nodiscard]] bool VisibleCondition(const SolidArcScene& Scene, const SolidArcSnapQuery& Query, Vector3 Point, double Scale, bool Overlay = false)
 {
     if (Query.Section)
     {
         const std::array<double, 4>& Plane = Query.Section->Plane;
         if (Plane[0] * Point.X + Plane[1] * Point.Y + Plane[2] * Point.Z + Plane[3] < -1.0e-9 * (1.0 + Scale)) return false;
     }
-    if (Query.XRayEnabled || Scene.Corners.empty()) return true;
+    if (Query.XRayEnabled || Overlay || Scene.Corners.empty()) return true;
     double PixelX = 0.0, PixelY = 0.0;
     if (!ProjectSolidArcPoint(Query.Frame, Point, PixelX, PixelY)) return false;
     const OrbitRay Ray   = CastOrbitRay(Query.Frame, PixelX, PixelY);
@@ -536,6 +536,7 @@ SolidArcSnapCatalogue CatalogueSolidArcSnaps(const SolidArcDocument& Document, c
             SolidArcSnapCurve Curve;
             const std::string Name = Segment.Name.empty() ? "Curve" : Segment.Name;
             Curve.Source          = Name == Owner ? Name : Name + " · " + Owner;
+            Curve.OverlaySnap     = !SolidArcSketchConsumedCondition(Document, Step.Label);
             Curve.Segment         = Segment;
             Curve.Plane           = Plane;
             Curve.PlanarCondition = true;
@@ -586,6 +587,7 @@ SolidArcSnapCatalogue CatalogueSolidArcSnaps(const SolidArcDocument& Document, c
         if (!Fit.Curve.Definition || ExcludedCondition(Label) || Document.Appearance.HiddenCurves.contains(Label)) continue;
         SolidArcSnapCurve Curve;
         const auto Caption = Document.Captions.find(Label);
+        Curve.OverlaySnap = true;
         Curve.Source  = "Curve " + (Caption != Document.Captions.end() ? Caption->second : Label);
         Curve.Carrier = GeometryProcessing::CurveGeometry{ Fit.Curve };
         Curve.Low     = 0.0;
@@ -623,6 +625,7 @@ SolidArcSnap FindSolidArcSnap(SolidArcSnapCatalogue& Catalogue, const SolidArcDo
         for (size_t Index = 0; Index < Catalogue.Curves.size(); ++Index)
         {
             if (Query.BodyCurvesOnly && Catalogue.Curves[Index].Body.empty()) continue;
+            if (Query.FreeCurvesOnly && !Catalogue.Curves[Index].OverlaySnap) continue;
             if (const std::optional<NearCurve> Approach = ApproachCurve(Catalogue, Query, Index); Approach && Approach->Pixels <= Reach) Near.push_back(*Approach);
         }
     std::sort(Near.begin(), Near.end(), [](const NearCurve& First, const NearCurve& Second) { return First.Pixels < Second.Pixels; });
@@ -681,7 +684,7 @@ SolidArcSnap FindSolidArcSnap(SolidArcSnapCatalogue& Catalogue, const SolidArcDo
             const double             Parameter = ApproachRay(Curve, Each, Ray);
             const Vector3            Position  = EvaluateSnapCurve(Curve, Parameter).Position;
             const double             Pixels    = MeasurePixels(Query, Position);
-            if (Pixels > Query.CurveReach || Pixels >= BestPixels || !VisibleCondition(Scene, Query, Position, Scale)) continue;
+            if (Pixels > Query.CurveReach || Pixels >= BestPixels || !VisibleCondition(Scene, Query, Position, Scale, Query.OverlayCurvesVisible && Curve.OverlaySnap)) continue;
             Vector3 Tangent, Normal;
             DescribeCurvePoint(Curve, Parameter, Tangent, Normal);
             BestPixels = Pixels;

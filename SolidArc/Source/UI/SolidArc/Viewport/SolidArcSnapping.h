@@ -90,6 +90,8 @@ struct SolidArcSnap
 //    segment over the fraction [0, 1] placed in Plane. Samples hold parameters and their world points (screen search).
 struct SolidArcSnapCurve
 {
+    bool OverlaySnap = false; // Free authored curve, not a consumed construction profile
+
     std::string                               Source         = {};                           // [-]   - Shown name
     std::string                               Body           = {};                           // [-]   - Owning body key (edges; empty otherwise)
     std::optional<GeometryProcessing::CurveGeometry>    Carrier        = {};                           // [-]   - Kernel carrier (edges, SpaceCurves)
@@ -143,6 +145,8 @@ struct SolidArcSnapQuery
     std::vector<SolidArcSnapPoint>   Transient   = {};                                       // [-]   - Extra endpoints (drawing chain)
     bool                             XRayEnabled = false;                                    // [-]   - Hidden geometry snaps too
     const SolidArcSectionClip*       Section     = nullptr;                                  // [-]   - Removed side does not snap
+    bool                             FreeCurvesOnly = false;
+    bool                             OverlayCurvesVisible = false;
     bool                             BodyCurvesOnly = false;                                // Surface trace: model edges, not free curves
     SolidArcSnapFilter               Filter      = {};                                       // [-]   - Enabled kinds
 };

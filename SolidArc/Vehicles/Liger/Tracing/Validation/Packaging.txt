@@ -1,4 +1,4 @@
 PASS Windows: current tracing executable, protected project, one launcher, 310 SVGs, 5 fonts; all CRCs / bytes match
-18a407914e4ce7e6e7a486d1e8bfd44eac96fcf61e7cf37614afe2b5806ca47a  Project Liger Surface Tracing Windows.zip
+d27e9d9ed56e1c47a430221518a03c21689e4071bc7b363c65ba4066f6e6dd3c  Project Liger Surface Tracing Windows.zip
 PASS Linux: current tracing executable, protected project, one launcher, 310 SVGs, 5 fonts; all CRCs / bytes match
-4bac8d079c87ba2381396affc8032b33354437efcbdf2f90bb008a480f1b2f06  Project Liger Surface Tracing Linux.zip
+f9d10e532a863572900dbcf825cee41ec4437eaaad92cddcbf0a2ee73bdb6812  Project Liger Surface Tracing Linux.zip

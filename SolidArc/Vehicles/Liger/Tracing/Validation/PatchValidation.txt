@@ -1,0 +1,5 @@
+PASS incremental editing patch applies to 30a57de source mirrors
+PASS forward apply, reverse check, byte-identical result
+PASS all 12 changed native source files match compiled Host
+PASS ISO boundary importer and precision projection patches are present
+PASS factory project and options unchanged

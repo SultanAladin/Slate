@@ -132,6 +132,7 @@ constexpr int64_t FormatVersion = 1;                                            
     toml::table Table{ { "Kind", static_cast<int64_t>(Step.Kind) }, { "KindLabel", FeatureStepKindLabel(Step.Kind) }, { "Label", Step.Label } };
     const auto Found = Captions.find(Step.Label);
     if (Found != Captions.end()) Table.insert("Caption", Found->second);
+    if (Step.ReverseNormals) Table.insert("ReverseNormals", true);
     switch (Step.Kind)
     {
     case FeatureStepKind::Sketch:
@@ -875,6 +876,7 @@ SolidArcDocumentFile DecodeSolidArcDocument(const std::string& Text)
             }
             Step.ClosedCondition = View["Closed"].value_or(false);
             Step.PlanarCondition = View["Planar"].value_or(false);
+            Step.ReverseNormals = View["ReverseNormals"].value_or(false);
             Step.Continuity      = static_cast<int>(View["Continuity"].value_or(int64_t{ 0 }));
             Step.Tolerance       = DecodeValue(View["Tolerance"], Step.Tolerance);
             if (const toml::array* Knots = View["CurveKnots"].as_array())

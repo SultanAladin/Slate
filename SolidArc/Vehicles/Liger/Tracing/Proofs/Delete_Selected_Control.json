@@ -1,0 +1,22 @@
+{
+  "Frame": 58,
+  "Title": "Liger — surface tracing workspace",
+  "DocumentPath": "/home/user/liger-build/Editing Package Path With Spaces/Project Liger/Liger.solidarc",
+  "Dirty": true,
+  "Steps": [{"Label": "LigerPart1", "Caption": "Body_Main_Shell · Import", "Refused": false}, {"Label": "LigerPart2", "Caption": "Body_Front_Cowl · Import", "Refused": false}, {"Label": "LigerPart3", "Caption": "Body_Roof_Glass_Frame · Import", "Refused": false}, {"Label": "Curve#1", "Caption": "Surface trace1 · SpaceCurve", "Refused": false}],
+  "Body": {"Faces": 306, "Edges": 906, "Vertices": 595, "Genus": 6, "Volume": 0, "Sound": true},
+  "Selection": {"Faces": [], "Edges": [], "Curves": ["Surface trace1"]},
+  "Curves": [{"Caption": "Surface trace1", "Points": 2, "Poles": 2, "WorstDeviation": 0, "PoleEdits": 0}],
+  "Sheet": true,
+  "PoleDrags": 0,
+  "PickMode": 1,
+  "Hover": "LigerPart1.Face(61)",
+  "Camera": {"Azimuth": -1.570796327, "Elevation": 1.570796327, "Distance": 8.047437622, "Target": [0, -0.3817220464, 0.6595703708], "Orthographic": true},
+  "Bevel": {"Active": false, "Shape": "Fillet", "Size": 0.25, "Pinned": false, "Variable": false, "EndSize": 0, "Flipped": false, "PreviewFaces": 0, "Refusal": "", "Verb": 0, "Profile": "", "Combination": 1, "Depth": 0, "DepthPointer": false},
+  "Drawing": {"Active": false, "Kind": "Curve", "Plane": 0, "Form": "NURBS", "Centre": false, "Points": [[-1.03036958, 0.5049902363], [-0.9610177812, 0.4554532372], [-0.8916659825, 0.5049902363]], "Solid": false, "SolidKind": "Block", "Lift": 0, "Elevation": 0, "Sides": 6, "Combination": 4, "Refusal": ""},
+  "Undo": 2,
+  "Redo": 0,
+  "Welcome": false,
+  "Status": "Delete selected spline controls · 46 ms",
+  "Viewport": [322, 56, 606, 593]
+}

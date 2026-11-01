@@ -1,8 +1,8 @@
-capture Liger_Point_Only_Closed_Curve frame   94  4642fa2b266114be
+capture Liger_Point_Only_Closed_Curve frame   94  4f46bed4483f79b1
 # SolidArcCapture
 
 - Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
-- Frame: 1280 x 680 · 94 frames · 14.5804 s · slowest frame 542.097 ms
+- Frame: 1280 x 680 · 94 frames · 12.8228 s · slowest frame 551.449 ms
 - Script: /home/user/Slate/SolidArc/Vehicles/Liger/Tools/SurfaceTraceControlCheck.txt
 - Expectations: 17 / 17 passed
 
@@ -28,19 +28,19 @@ capture Liger_Point_Only_Closed_Curve frame   94  4642fa2b266114be
 
 | Capture | Frame | Digest |
 |---------|------:|--------|
-| Liger_Point_Only_Closed_Curve | 94 | `4642fa2b266114be` |
+| Liger_Point_Only_Closed_Curve | 94 | `4f46bed4483f79b1` |
 
 ## Journal
 
 - View Top (Numpad)
-- SURFACE TRACE · click on the model · Ctrl: nearest visible model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
+- SURFACE TRACE · click on the model · Ctrl: authored curve / model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
 - Point-only mode: use NURBS (3) or Bezier (2); no automatic tangent poles
 - Point-only mode: use NURBS (3) or Bezier (2); no automatic tangent poles
 - Curve form: Bezier
-- Draw surface trace · 46 ms
+- Draw surface trace · 57 ms
 - Surface-point trace · 3 placed controls · no automatic points or surface fitting
 - Undo
-- SURFACE TRACE · click on the model · Ctrl: nearest visible model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
-- Draw surface trace · 42 ms
+- SURFACE TRACE · click on the model · Ctrl: authored curve / model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
+- Draw surface trace · 43 ms
 - Surface-point trace · 4 placed controls · no automatic points or surface fitting
-- Saved /home/user/liger-build/Point Only Path With Spaces/Project Liger/Runtime/../Control.solidarc
+- Saved /home/user/liger-build/Editing Package Path With Spaces/Project Liger/Liger.solidarc

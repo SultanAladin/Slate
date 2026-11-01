@@ -1,9 +1,9 @@
-capture Liger_Trace_On_Surface_Preview frame   50  8490dbc6e2a9b322
-capture Liger_Trace_Editable_XYZ     frame   58  46328c2fb44885bb
+capture Liger_Trace_On_Surface_Preview frame   50  ad90404ebc8b9847
+capture Liger_Trace_Editable_XYZ     frame   58  9498261deb605724
 # SolidArcCapture
 
 - Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
-- Frame: 1280 x 680 · 174 frames · 26.4239 s · slowest frame 543.578 ms
+- Frame: 1280 x 680 · 174 frames · 27.9454 s · slowest frame 651.547 ms
 - Script: /home/user/Slate/SolidArc/Vehicles/Liger/Tools/SurfaceTraceDrawingCheck.txt
 - Expectations: 35 / 35 passed
 
@@ -47,31 +47,31 @@ capture Liger_Trace_Editable_XYZ     frame   58  46328c2fb44885bb
 
 | Capture | Frame | Digest |
 |---------|------:|--------|
-| Liger_Trace_On_Surface_Preview | 50 | `8490dbc6e2a9b322` |
-| Liger_Trace_Editable_XYZ | 58 | `46328c2fb44885bb` |
+| Liger_Trace_On_Surface_Preview | 50 | `ad90404ebc8b9847` |
+| Liger_Trace_Editable_XYZ | 58 | `9498261deb605724` |
 
 ## Journal
 
 - View Top (Numpad)
-- SURFACE TRACE · click on the model · Ctrl: nearest visible model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
+- SURFACE TRACE · click on the model · Ctrl: authored curve / model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
 - Curve form: NURBS
-- Draw surface trace · 45 ms
+- Draw surface trace · 46 ms
 - Surface-point trace · 3 placed controls · no automatic points or surface fitting
 - Undo
 - Redo
 - Selected curve Surface trace1 · 3 poles · fit 0.000 mm · 1 selected
 - Move 1 sketch(es) · X / Y / Z axis · Shift+X / Y / Z plane · drag or type a value · click / Enter commits · Esc cancels
-- Move (Surface trace1) · 45 ms
+- Move (Surface trace1) · 48 ms
 - Undo
-- Saved /home/user/liger-build/Point Only Path With Spaces/Project Liger/Runtime/../Drawing.solidarc
+- Saved /home/user/liger-build/Editing Package Path With Spaces/Project Liger/Liger.solidarc
 - Selection cleared
-- SURFACE TRACE · click on the model · Ctrl: nearest visible model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
+- SURFACE TRACE · click on the model · Ctrl: authored curve / model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
 - Curve aborted (document untouched)
-- SURFACE TRACE · click on the model · Ctrl: nearest visible model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
-- Autosaved /home/user/liger-build/PointOnlyFinalDrawing.recovery
-- Arc1 · 42 ms
+- SURFACE TRACE · click on the model · Ctrl: authored curve / model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
+- Autosaved /home/user/liger-build/Editing Package Path With Spaces/Project Liger/DrawingRecovery.solidarc
+- Arc1 · 51 ms
 - Surface-point trace · 3 placed controls · no automatic points or surface fitting
 - Undo
-- SURFACE TRACE · click on the model · Ctrl: nearest visible model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
-- Draw surface trace · 42 ms
+- SURFACE TRACE · click on the model · Ctrl: authored curve / model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
+- Draw surface trace · 43 ms
 - Surface-point trace · 2 placed controls · no automatic points or surface fitting

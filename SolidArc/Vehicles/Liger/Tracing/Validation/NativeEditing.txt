@@ -1,0 +1,52 @@
+PASS create exact authored-control curve
+PASS delete one control, not the spline
+PASS one curve and three controls survive
+PASS unselected controls retain XYZ
+PASS point delete undo
+PASS point delete redo
+PASS point delete save/load
+PASS minimum-control refusal leaves entire object unchanged
+PASS invalid point selection cannot delete parent
+PASS subdivide a selected control span
+PASS explicit subdivision adds one control
+PASS exact knot insertion preserves complete curve shape
+PASS subdivision undo
+PASS subdivision redo
+PASS subdivision poles/knots survive save/load
+PASS XYZ edit before subdivision
+PASS subdivide folds existing XYZ pole edits into exact controls
+PASS moved curve shape retained, stale pole indices cleared
+PASS ordinary sketch spline fixture
+PASS ordinary sketch spline point deletion is local too
+PASS sketch spline and unselected controls survive
+PASS create exact authored-control curve
+PASS delete only the middle spline span
+PASS two unselected curve pieces remain
+PASS span removal preserves both unselected intervals exactly
+PASS span deletion is one undo entry
+PASS span deletion redo
+PASS split pieces survive save/load
+PASS create exact authored-control curve
+PASS create exact authored-control curve
+PASS loft from reversed picking order
+PASS new loft defaults to positive dominant normal, not inverted
+PASS normal correction preserves user section order
+PASS loft orientation survives save/load
+PASS dependent loft is protected from spline-span deletion
+PASS create exact authored-control curve
+PASS create exact authored-control curve
+PASS loft near locked reference
+PASS new loft follows locked reference normals rather than arbitrary hemisphere
+PASS create exact authored-control curve
+PASS create exact authored-control curve
+PASS closed-section open tube from reversed pick order
+PASS tube normals point radially outside
+PASS sphere reference
+PASS create exact authored-control curve
+PASS curve snap fixture
+PASS Ctrl prefers authored curve visibly overlaid behind reference, not the surface
+PASS unmodified placement still snaps to exact surface
+PASS authored overlay remains snappable without face occlusion
+PASS overlay priority never bypasses section clipping
+PASS block topology-delete UI fixture
+PASS 51 curve editing checks

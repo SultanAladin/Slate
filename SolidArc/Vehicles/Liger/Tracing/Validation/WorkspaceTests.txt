@@ -6,7 +6,7 @@ test_surface_xyz_and_single_view_are_default (test_tracing.TracingTests.test_sur
 test_windows_launcher_explicit_open_and_quoted_paths (test_tracing.TracingTests.test_windows_launcher_explicit_open_and_quoted_paths) ... ok
 
 ----------------------------------------------------------------------
-Ran 6 tests in 1.458s
+Ran 6 tests in 1.521s
 
 OK
 PASS protected 3-sheet workspace, 47267 rigidly rotated point/direction entities; no new vehicle geometry

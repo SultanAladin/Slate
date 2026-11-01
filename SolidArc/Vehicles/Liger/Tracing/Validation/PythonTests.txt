@@ -1,13 +1,13 @@
-...................layout: 12 L1 quads -> 2 charts -> 2 macro charts (0 merges)
+..........................PASS protected 3-sheet workspace, 47267 rigidly rotated point/direction entities; no new vehicle geometry
+layout: 12 L1 quads -> 2 charts -> 2 macro charts (0 merges)
 .layout: 12 L1 quads -> 1 charts -> 1 macro charts (0 merges)
 ..layout: 12 L1 quads -> 1 charts -> 1 macro charts (0 merges)
  fit 1/1: 4x4 poles, held RMS 0.000 mm max 0.000 mm
 .layout: 12 L1 quads -> 2 charts -> 2 macro charts (0 merges)
  fit 1/2: 4x4 poles, held RMS 0.000 mm max 0.000 mm
  fit 2/2: 4x4 poles, held RMS 0.000 mm max 0.000 mm
-.................
+..........
 ----------------------------------------------------------------------
-Ran 40 tests in 26.675s
+Ran 40 tests in 19.701s
 
 OK
-PASS protected 3-sheet workspace, 47267 rigidly rotated point/direction entities; no new vehicle geometry

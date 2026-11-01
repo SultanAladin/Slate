@@ -3,11 +3,11 @@
 -- Up-to-date: /home/user/liger-build/Installed/Windows/SolidArcWorkspace.toml
 -- Up-to-date: /home/user/liger-build/Installed/Windows/README.md
 -- Up-to-date: /home/user/liger-build/Installed/Windows/EngineContent/FontArchives/DMSans
--- Up-to-date: /home/user/liger-build/Installed/Windows/EngineContent/FontArchives/DMSans/DMSans-Light.ttf
--- Up-to-date: /home/user/liger-build/Installed/Windows/EngineContent/FontArchives/DMSans/DMSans-Regular.ttf
--- Up-to-date: /home/user/liger-build/Installed/Windows/EngineContent/FontArchives/DMSans/DMSans-Medium.ttf
--- Up-to-date: /home/user/liger-build/Installed/Windows/EngineContent/FontArchives/DMSans/DMSans-SemiBold.ttf
 -- Up-to-date: /home/user/liger-build/Installed/Windows/EngineContent/FontArchives/DMSans/DMSans-Bold.ttf
+-- Up-to-date: /home/user/liger-build/Installed/Windows/EngineContent/FontArchives/DMSans/DMSans-Light.ttf
+-- Up-to-date: /home/user/liger-build/Installed/Windows/EngineContent/FontArchives/DMSans/DMSans-Medium.ttf
+-- Up-to-date: /home/user/liger-build/Installed/Windows/EngineContent/FontArchives/DMSans/DMSans-Regular.ttf
+-- Up-to-date: /home/user/liger-build/Installed/Windows/EngineContent/FontArchives/DMSans/DMSans-SemiBold.ttf
 -- Up-to-date: /home/user/liger-build/Installed/Windows/EngineContent/FontArchives/DMSans/OFL.txt
 -- Up-to-date: /home/user/liger-build/Installed/Windows/EngineContent/Icons
 -- Up-to-date: /home/user/liger-build/Installed/Windows/EngineContent/Icons/Editor

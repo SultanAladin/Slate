@@ -18,12 +18,18 @@ def package(folder,platform):
     native=(OUT/'Validation/NativeTracing.txt').read_text()
     match=re.search(r'PASS (\d+) surface tracing checks',native)
     assert match and int(match[1])>=92 and 'FAIL' not in native
-    for check in ('Startup','Drawing','Edge','Quad','Control'):
+    editing=(OUT/'Validation/NativeEditing.txt').read_text()
+    match=re.search(r'PASS (\d+) curve editing checks',editing)
+    assert match and int(match[1])>=50 and 'FAIL' not in editing
+    for check in ('Startup','Drawing','Edge','Quad','Control','Editing','TopologyDelete'):
         report=(OUT/f'Validation/{check}.txt').read_text()
         assert '🔴' not in report and 'Expectations:' in report and 'failed' not in report.lower()
     binary=(folder/metadata['executable']).read_bytes()
     assert b'Surface snap###SurfaceTrace' in binary and b'Surface trace supports Curve' in binary
     assert b'only clicked controls are saved' in binary
+    # GCC may synthesise std::string command labels from vector constants.
+    # This ImGui const-char label stays contiguous in both ELF and PE builds.
+    assert b'Subdivide (Ctrl+Shift+D)###CurveSubdivide' in binary
     payload={k:v for k,v in files.items() if k==f"Runtime/{metadata['executable']}" or k.startswith(('Runtime/EngineContent/','Runtime/Notices/'))}
     payload['Liger.solidarc']=(OUT/'Workspace/Liger.solidarc').read_bytes()
     payload['Runtime/SolidArcWorkspace.toml']=(OUT/'Workspace/SolidArcWorkspace.toml').read_bytes()

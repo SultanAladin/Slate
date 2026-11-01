@@ -1,4 +1,4 @@
-# Liger — surface-point tracing (no extra curve points)
+# Liger — surface tracing and spline editing
 
 The app now snaps **only the controls you place**. Enter saves exactly those
 controls and their snapped XYZ coordinates. It does **not** project whole spans,
@@ -24,8 +24,8 @@ not a repaired watertight vehicle. Nose −Y, right +X, up +Z.
    **Bezier** (`2`) is also available. Click on the reference to place each control.
    Interpolating Hermite/cubic modes are excluded in Surface mode because their
    conversion generates extra tangent poles. They remain available with Surface off.
-3. **Ctrl** snaps to the nearest visible body edge within 12 pixels; otherwise it
-   continues to snap to the surface. Hidden edge display does not disable snapping.
+3. **Ctrl** prioritises authored curves within 12 pixels, then visible CAD body
+   edges, then the surface. Hidden edge display does not disable edge snapping.
 4. **Enter / right-click** finishes the curve with just your placed controls.
    **Ctrl+Z** drops a point while drawing; **Esc** cancels. To close a loop, explicitly
    click the first control after placing at least three distinct controls. That
@@ -64,3 +64,39 @@ undo/redo/save, edge snapping and split views. See `AUDIT.md` for final results.
 Windows x64 is cross-built with Zig 0.14.1; native geometry and Vulkan interaction
 checks run on Linux/SwiftShader. **Windows execution itself is not verified in
 this sandbox**; PE architecture, resources, launcher and archive integrity are checked.
+
+## Spline and component editing update
+
+- **1** selects spline control points / body vertices. Select a control, then
+  **X** or **Delete** removes that control, not its parent spline. Ordinary sketch
+  spline controls also delete locally. At least two controls must remain; invalid
+  edits refuse without deleting the object.
+- **2** selects native 3D spline spans as well as CAD body edges. Click a control
+  polygon edge or the corresponding curve interval. Shift adds spans on the same
+  spline; Ctrl removes them. Selected spans highlight in blue.
+- **Ctrl+Shift+D**, or **Feature → Subdivide**, inserts exact NURBS knots in the
+  selected spans. Select the whole spline to subdivide all spans, or two adjacent
+  controls to target their interval. The curve shape is preserved; this is an
+  explicit editing command, not automatic extra points on Enter.
+- **X/Delete** on selected spans removes only those intervals and retains the
+  other exact curve pieces. Spans are defined by adjacent control parameters
+  (Greville intervals), since intermediate NURBS poles are not points on the curve.
+  A curve used by another feature refuses span deletion rather than destroying
+  its dependents; detach those dependents first.
+- **3** selects CAD faces; **4** selects whole bodies; **5** is general selection.
+  Component deletion takes precedence over parent selections and history focus.
+  CAD edge/vertex deletion uses local kernel dissolve; unsupported cases refuse
+  without removing the parent. Whole-object deletion remains available in object /
+  general selection mode.
+- **Ctrl snapping now prioritises authored free curves**, then visible CAD edges,
+  then the surface. Authored curves drawn as overlays remain snappable even when
+  their ordinary unconstrained span lies slightly inside the reference. Consumed
+  construction profiles do not take this priority.
+- New open lofts / curve networks align their normals with the nearest locked
+  reference. Without a reference, open sections use a consistent dominant-axis
+  direction and closed-section tubes use the radial outside. Closed solids keep
+  their existing outward orientation. The chosen sheet orientation persists in
+  the project without changing the section order. Existing lofts are not silently
+  changed; **Alt+N** remains available to flip an existing sheet.
+
+Apply `SolidArc-Spline-Editing.patch` **after** the two preceding tracing patches.

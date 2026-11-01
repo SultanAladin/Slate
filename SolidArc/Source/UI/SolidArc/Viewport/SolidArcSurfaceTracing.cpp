@@ -16,9 +16,16 @@ SolidArcSnap SnapSolidArcTrace(SolidArcSnapCatalogue& Catalogue, const SolidArcD
     Query.PixelY = Y;
     Query.CurveReach = 12.0;
     Query.Filter = { false, false, false, false, false, false, false, CurveSnap, !CurveSnap };
-    Query.BodyCurvesOnly = true;
-    // No grid, construction-plane, point-ranking, x-ray or axis-lock fallback.
+    Query.FreeCurvesOnly = CurveSnap;
+    Query.OverlayCurvesVisible = CurveSnap; // Authored curves are visibly drawn over the reference.
+    // Ctrl prioritises an authored curve, then a CAD edge, then the surface.
     SolidArcSnap Snap = FindSolidArcSnap(Catalogue, Document, Scene, Query);
+    if (CurveSnap && Snap.Kind == SolidArcSnapKind::None)
+    {
+        Query.FreeCurvesOnly = false;
+        Query.BodyCurvesOnly = true;
+        Snap = FindSolidArcSnap(Catalogue, Document, Scene, Query);
+    }
     if (CurveSnap && Snap.Kind == SolidArcSnapKind::None)
     {
         Query.Filter.CurveEnabled = false;

@@ -4,6 +4,7 @@
 // 🧩 Parametric feature tree: parameters, sketches, sweeps, Booleans, blends, face operations; regeneration by replay
 
 #include "Engine/GeometryProcessing/Feature/FeatureTree.h"
+#include "Engine/GeometryProcessing/Surfacing/SurfaceAlgebra.h"
 
 #include "Engine/GeometryProcessing/Construction/BodyModifiers.h"
 #include "Engine/GeometryProcessing/Diagnostics/OperationTrace.h"
@@ -61,6 +62,13 @@ namespace
     }
 
     // 📝 A surface panel of the tree: its face name and the SpaceCurve labels that lie on its boundary (continuity lookup).
+    [[nodiscard]] NurbsSurface OrientSheet(NurbsSurface Surface, bool Reverse)
+    {
+        if(Reverse && Surface.Definition)
+            if(auto Changed=FinishNurbsSurface(ReverseNurbsSurface(*Surface.Definition,true))) return *Changed;
+        return Surface;
+    }
+
     struct TreePanel
     {
         SurfacePanel             Panel      = {};                                            // [-] - Carrier on [0, 1]²
@@ -1143,8 +1151,8 @@ RegenerationOutcome RegenerateFeatureTree(ModelPartition& Partition, FeatureTree
                         const LoftSurfaceOutcome SecondSpan = LoftSectionSurface({ Sections[MiddleIdx], Sections[LastIdx] }, Settings);
                         if (FirstSpan.Refusal.empty() && SecondSpan.Refusal.empty())
                         {
-                            Panels.push_back({ SurfacePanel{ FirstSpan.Surface },  Step.Label + ".Side(Surface.0)", { Step.Sections[FirstIdx], Step.Sections[MiddleIdx] }, false });
-                            Panels.push_back({ SurfacePanel{ SecondSpan.Surface }, Step.Label + ".Side(Surface.1)", { Step.Sections[MiddleIdx], Step.Sections[LastIdx] }, false });
+                            Panels.push_back({ SurfacePanel{ OrientSheet(FirstSpan.Surface,Step.ReverseNormals) },  Step.Label + ".Side(Surface.0)", { Step.Sections[FirstIdx], Step.Sections[MiddleIdx] }, false });
+                            Panels.push_back({ SurfacePanel{ OrientSheet(SecondSpan.Surface,Step.ReverseNormals) }, Step.Label + ".Side(Surface.1)", { Step.Sections[MiddleIdx], Step.Sections[LastIdx] }, false });
                             if (const std::string SpanProblem = Reassemble("Sew", false); SpanProblem.empty()) break;
                             Panels.pop_back();
                             Panels.pop_back();
@@ -1154,7 +1162,7 @@ RegenerationOutcome RegenerateFeatureTree(ModelPartition& Partition, FeatureTree
             }
             LoftSurfaceOutcome Loft = LoftSectionSurface(Sections, Settings);
             if (!Loft.Refusal.empty()) { Refuse(Loft.Refusal); break; }
-            Panels.push_back({ SurfacePanel{ Loft.Surface }, Step.Label + ".Side(Surface)", { Step.Sections.front(), Step.Sections.back() }, false });
+            Panels.push_back({ SurfacePanel{ OrientSheet(Loft.Surface,Step.ReverseNormals) }, Step.Label + ".Side(Surface)", { Step.Sections.front(), Step.Sections.back() }, false });
             std::string Problem = Reassemble("Sew", false);
             if (!Problem.empty() && Problem.find("one-sided") != std::string::npos && Sections.size() == 2 && Step.Continuity == 0 && !Loft.ClosedCondition)
             {
@@ -1166,7 +1174,7 @@ RegenerationOutcome RegenerateFeatureTree(ModelPartition& Partition, FeatureTree
                 const LoftSurfaceOutcome Alt = LoftSectionSurface(Flipped, Untwisted);
                 if (Alt.Refusal.empty())
                 {
-                    Panels.back().Panel = SurfacePanel{ Alt.Surface };
+                    Panels.back().Panel = SurfacePanel{ OrientSheet(Alt.Surface,Step.ReverseNormals) };
                     if (const std::string Retry = Reassemble("Sew", false); Retry.empty())
                     {
                         Loft = Alt;
@@ -1181,13 +1189,13 @@ RegenerationOutcome RegenerateFeatureTree(ModelPartition& Partition, FeatureTree
                 {
                     // When the new panel is sound on its own (e.g. a 3rd panel branching from an already-sewn edge in a T/V fin),
                     // emit it as an independent sheet body rather than refusing the loft step outright.
-                    const PanelAssemblyOutcome Standalone = AssemblePanels(Partition, { SurfacePanel{ Loft.Surface } }, PanelAssemblySettings{}, "Sew");
+                    const PanelAssemblyOutcome Standalone = AssemblePanels(Partition, { SurfacePanel{ OrientSheet(Loft.Surface,Step.ReverseNormals) } }, PanelAssemblySettings{}, "Sew");
                     if (Standalone.Refusal.empty())
                     {
                         Naming  = NamePanelBody(Partition, Standalone.Body, Standalone.Faces, { Step.Label + ".Side(Surface)" });
                         Current = Standalone.Body;
                         Create();
-                        Outcome.Panels[Step.Label + ".Side(Surface)"] = Loft.Surface;
+                        Outcome.Panels[Step.Label + ".Side(Surface)"] = OrientSheet(Loft.Surface,Step.ReverseNormals);
                         break;
                     }
                 }
@@ -1218,7 +1226,7 @@ RegenerationOutcome RegenerateFeatureTree(ModelPartition& Partition, FeatureTree
                 Boundaries.push_back(Step.Sections[Order->front()]);
                 Boundaries.push_back(Step.Sections[Order->back()]);
             }
-            Panels.push_back({ SurfacePanel{ Network.Surface }, Step.Label + ".Side(Surface)", Boundaries, false });
+            Panels.push_back({ SurfacePanel{ OrientSheet(Network.Surface,Step.ReverseNormals) }, Step.Label + ".Side(Surface)", Boundaries, false });
             if (const std::string Problem = Reassemble("Sew", false); !Problem.empty()) { Panels.pop_back(); Refuse(Problem); }
             break;
         }

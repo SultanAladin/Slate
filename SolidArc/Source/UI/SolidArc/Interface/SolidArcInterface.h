@@ -264,6 +264,12 @@ struct SolidArcPoleDrag
     int               Commits         = 0;                                                   // [-]   - Accepted drags (script evidence)
 };
 
+struct SolidArcSplineSpans
+{
+    std::string Label;
+    std::vector<int> Indices;
+};
+
 // 📝 Pictures behind the document's image planes as the frame last decoded them (one entry per distinct path).
 struct SolidArcPictureShelf
 {
@@ -890,6 +896,7 @@ struct SolidArcWorkspaceState
     SolidArcPickMode                      PickMode       = SolidArcPickMode::Any;            // [-]   - 2 / 3 / 4 / 5 (Plasticity)
     SolidArcBevelSession                  Bevel          = {};                               // [-]   - B (blend) / E (extrude) session
     SolidArcDrawingSession                Drawing        = {};                               // [-]   - Line / rectangle / circle / arc / slot / curve
+    SolidArcSplineSpans                   SplineSpans = {};
     SolidArcPoleDrag                      PoleDrag       = {};                               // [-]   - Mode 1 pole drag
     SolidArcSketchPointSession            SketchPoints   = {};                               // [-]   - Mode 1 sketch points
     SolidArcPointPicker                   Picker         = {};                               // [-]   - Object snaps and direction locks

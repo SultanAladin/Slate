@@ -1,0 +1,9 @@
+| W81 | 8 3D primitives × 8 views (Top ortho/persp, Bottom, Front, Back, Right, Left, 3D): 64/64 gizmo poses & ray-picks exact, PlaneXY move volume-exact | 0 | 🟢 |
+| W81 | 3D sub-elements (Face, Edge, 1-Vertex, 2-Vertex) across all views + Top-view +X face offset (V=4.5000, err 8.88e-16) | 8.88e-16 | 🟢 |
+| W81 | 10 2D primitives/splines × 3 sketch planes (XY/XZ/YZ) × Mode 1 & 5 × curve & handle × 8 views: 960/960 exact (2 controls in Top & all 90° views) | 0 | 🟢 |
+| W81 | SpaceCurve & pole-handle gizmos (Mode 1 & 5, 1-pole & 2-pole, 8 views): 34/34 exact, Top-view pole move Δ=0.00e+00, curve move Δ=0.00e+00, loft sound | 0 | 🟢 |
+| W82 | Acute (<90°) V-loft continuation (3 curves, different height z=1.3): Loft1+Loft2=2 faces → +Loft3=3 sewn faces (sound) → Close=4-face solid (V=0.8049) | 0 | 🟢 |
+| W82 | Obtuse (>90°) V-loft continuation (3 curves, different height z=1.3): Loft1+Loft2=2 faces → +Loft3=3 sewn faces (sound) → Close=4-face solid (V=0.7866) | 0 | 🟢 |
+| W82 | 3-section hinged loft (Loft1 · 3 sections, sound=1) + Top-view V at different height z=1.2 pairwise 3-surface tube (faces=3, sound=1) | 0 | 🟢 |
+| W82 | 2-corner lens loft (edges=2, sound=1) + >90° 3-panel loop untwist (Loft3 · 2 sections) + 3-way T-fin standalone sheet (2 bodies, sound=1) | 0 | 🟢 |
+| W82 | Edge+Curve (2 faces), SheetBody+Curve (2 faces), & 3-curve triangular Coons loop (3 edges, sound=1), TOML clean | 0 | 🟢 |
