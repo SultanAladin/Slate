@@ -77,7 +77,10 @@ struct SolidArcImagePlaneDraw
     std::array<float, 4>  Crop    = { 0.0f, 0.0f, 1.0f, 1.0f };                              // [0-1] - Picture uv rectangle
     float                 Opacity = 0.6f;                                                    // [0-1] - Ink opacity
     float                 Mode    = 0.0f;                                                    // [-]   - 0 line art, 1 photograph
+    bool                  FrontOnlyCondition = false;                                      // [-]   - Optional one-sided reference; evaluated per viewport
 };
+
+[[nodiscard]] bool FacesSolidArcImagePlane(const SolidArcImagePlaneDraw& Draw, const OrbitCameraFrame& Frame) noexcept;
 
 struct SolidArcViewportStyle
 {

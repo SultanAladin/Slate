@@ -1,0 +1,278 @@
+{
+  "source_commit": "ea9cb133220aa171b6002703ff7bb88ced5673f2",
+  "source": "Refined/CAD/Liger_Refined_CAD.step",
+  "units": "metres",
+  "bounds": [
+    [
+      -1.838818907737732,
+      -1.1611425876617432,
+      0.15913806855678558
+    ],
+    [
+      2.6020023822784424,
+      1.1611425876617432,
+      1.1609145402908325
+    ]
+  ],
+  "crease_threshold_degrees": 8,
+  "visibility_depth_tolerance_mm": 0.2,
+  "rail_counts_half": {
+    "opening_rails": 121,
+    "crease_rails": 142,
+    "smooth_patch_rails": 208
+  },
+  "views": [
+    {
+      "name": "Top",
+      "image": "References/Top.png",
+      "pixels": [
+        7023,
+        3844
+      ],
+      "pixels_per_metre": 1500,
+      "eye": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "screen_right": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "screen_up": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "native_preset": "Top",
+      "corner": [
+        -1.9593333333333334,
+        1.2813333333333334,
+        -0.024999999999999994
+      ],
+      "right": [
+        4.682,
+        0.0,
+        0.0
+      ],
+      "down": [
+        -0.0,
+        -2.562666666666667,
+        -0.0
+      ],
+      "near_depth": 1.1609145402908325,
+      "plane_depth": -0.025
+    },
+    {
+      "name": "Bottom",
+      "image": "References/Bottom.png",
+      "pixels": [
+        7023,
+        3844
+      ],
+      "pixels_per_metre": 1500,
+      "eye": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "screen_right": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "screen_up": [
+        0.0,
+        -1.0,
+        0.0
+      ],
+      "native_preset": "Bottom",
+      "corner": [
+        -1.9593333333333334,
+        -1.2813333333333334,
+        1.1859145402908324
+      ],
+      "right": [
+        4.682,
+        0.0,
+        0.0
+      ],
+      "down": [
+        -0.0,
+        2.562666666666667,
+        -0.0
+      ],
+      "near_depth": -0.15913806855678558,
+      "plane_depth": -1.1859145402908324
+    },
+    {
+      "name": "Left",
+      "image": "References/Left.png",
+      "pixels": [
+        7023,
+        2102
+      ],
+      "pixels_per_metre": 1500,
+      "eye": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "screen_right": [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      "screen_up": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "native_preset": "Back",
+      "corner": [
+        2.7226666666666666,
+        -1.186142587661743,
+        1.2813333333333334
+      ],
+      "right": [
+        -4.682,
+        0.0,
+        0.0
+      ],
+      "down": [
+        -0.0,
+        -0.0,
+        -1.4013333333333333
+      ],
+      "near_depth": 1.1611425876617432,
+      "plane_depth": -1.186142587661743
+    },
+    {
+      "name": "Right",
+      "image": "References/Right.png",
+      "pixels": [
+        7023,
+        2102
+      ],
+      "pixels_per_metre": 1500,
+      "eye": [
+        0.0,
+        -1.0,
+        0.0
+      ],
+      "screen_right": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "screen_up": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "native_preset": "Front",
+      "corner": [
+        -1.9593333333333334,
+        1.186142587661743,
+        1.2813333333333334
+      ],
+      "right": [
+        4.682,
+        0.0,
+        0.0
+      ],
+      "down": [
+        -0.0,
+        -0.0,
+        -1.4013333333333333
+      ],
+      "near_depth": 1.1611425876617432,
+      "plane_depth": -1.186142587661743
+    },
+    {
+      "name": "Front",
+      "image": "References/Front.png",
+      "pixels": [
+        3844,
+        2102
+      ],
+      "pixels_per_metre": 1500,
+      "eye": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "screen_right": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "screen_up": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "native_preset": "Right",
+      "corner": [
+        -1.8638189077377318,
+        -1.2813333333333334,
+        1.2813333333333334
+      ],
+      "right": [
+        0.0,
+        2.562666666666667,
+        0.0
+      ],
+      "down": [
+        -0.0,
+        -0.0,
+        -1.4013333333333333
+      ],
+      "near_depth": 2.6020023822784424,
+      "plane_depth": -1.8638189077377318
+    },
+    {
+      "name": "Rear",
+      "image": "References/Rear.png",
+      "pixels": [
+        3844,
+        2102
+      ],
+      "pixels_per_metre": 1500,
+      "eye": [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      "screen_right": [
+        0.0,
+        -1.0,
+        0.0
+      ],
+      "screen_up": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "native_preset": "Left",
+      "corner": [
+        2.6270023822784423,
+        1.2813333333333334,
+        1.2813333333333334
+      ],
+      "right": [
+        0.0,
+        -2.562666666666667,
+        0.0
+      ],
+      "down": [
+        -0.0,
+        -0.0,
+        -1.4013333333333333
+      ],
+      "near_depth": 1.838818907737732,
+      "plane_depth": -2.6270023822784423
+    }
+  ]
+}

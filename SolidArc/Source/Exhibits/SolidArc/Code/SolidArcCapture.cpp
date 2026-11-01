@@ -200,6 +200,7 @@ int main(int Count, char** Arguments)
             State.DocumentPath = Settings.OpenPath;
         }
     }
+    ConfigureSolidArcStartupViews(State);
     std::filesystem::create_directories(Settings.Exhibits);
 
     // ③ one script step per frame

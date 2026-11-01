@@ -189,10 +189,15 @@ void SolidArcWorkspaceFrame::PrepareViewport(SolidArcWorkspaceState& State)
             if (Plane.FlipDownCondition) std::swap(Draw.Crop[1], Draw.Crop[3]);
             Draw.Opacity = float(Plane.Opacity);
             Draw.Mode    = Plane.PhotoCondition ? 1.0f : 0.0f;
+            Draw.FrontOnlyCondition = Plane.FrontOnlyCondition;
             State.Style.ImagePlanes.push_back(Draw);
         }
     }
-    State.Pictures.Drawn = int(State.Style.ImagePlanes.size());
+    // This diagnostic describes the active camera; quad panes independently
+    // apply the same facing predicate in the rasterizer.
+    const OrbitCameraFrame ActiveFrame = FrameOrbitCamera(State.Camera, 1.0, 1.0);
+    State.Pictures.Drawn = int(std::count_if(State.Style.ImagePlanes.begin(), State.Style.ImagePlanes.end(),
+        [&](const SolidArcImagePlaneDraw& Draw) { return FacesSolidArcImagePlane(Draw, ActiveFrame); }));
     UploadMatcaps(State);
     const SolidArcSceneStates States = DisplayedSolidArcStates(State);
     Raster.AssignStates(States.Faces, States.Edges);

@@ -1,0 +1,2 @@
+# Preserve verbatim native audit output, including its final separator line.
+Validation/** whitespace=-blank-at-eof

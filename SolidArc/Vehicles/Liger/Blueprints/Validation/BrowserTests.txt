@@ -1,0 +1,7 @@
+PASS all six References images load and fit
+PASS all six PatchLayouts images load and fit
+PASS all six Schematics images load and fit
+PASS all three packaged downloads
+PASS Liger.solidarc download
+PASS mobile layout
+JavaScript errors / failed HTTP responses: 0

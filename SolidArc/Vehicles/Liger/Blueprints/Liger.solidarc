@@ -1,0 +1,76 @@
+Format = "SolidArc"
+FormatVersion = 1
+Title = "Liger — scratch modelling reference"
+Description = "Reference images only; empty editable feature tree. Vehicle front +X, left +Y, up +Z. Metres internally."
+
+[[ImagePlanes]]
+Name = "Top — CAD tracing reference"
+Path = "References/Top.png"
+Corner = [-1.9593333333333334, 1.2813333333333334, -0.024999999999999994]
+Right = [4.682, 0.0, 0.0]
+Down = [-0.0, -2.562666666666667, -0.0]
+Opacity = 0.8
+Visible = true
+Photo = true
+Locked = true
+FrontOnly = true
+
+[[ImagePlanes]]
+Name = "Bottom — CAD tracing reference"
+Path = "References/Bottom.png"
+Corner = [-1.9593333333333334, -1.2813333333333334, 1.1859145402908324]
+Right = [4.682, 0.0, 0.0]
+Down = [-0.0, 2.562666666666667, -0.0]
+Opacity = 0.8
+Visible = true
+Photo = true
+Locked = true
+FrontOnly = true
+
+[[ImagePlanes]]
+Name = "Left — CAD tracing reference"
+Path = "References/Left.png"
+Corner = [2.7226666666666666, -1.186142587661743, 1.2813333333333334]
+Right = [-4.682, 0.0, 0.0]
+Down = [-0.0, -0.0, -1.4013333333333333]
+Opacity = 0.8
+Visible = true
+Photo = true
+Locked = true
+FrontOnly = true
+
+[[ImagePlanes]]
+Name = "Right — CAD tracing reference"
+Path = "References/Right.png"
+Corner = [-1.9593333333333334, 1.186142587661743, 1.2813333333333334]
+Right = [4.682, 0.0, 0.0]
+Down = [-0.0, -0.0, -1.4013333333333333]
+Opacity = 0.8
+Visible = true
+Photo = true
+Locked = true
+FrontOnly = true
+
+[[ImagePlanes]]
+Name = "Front — CAD tracing reference"
+Path = "References/Front.png"
+Corner = [-1.8638189077377318, -1.2813333333333334, 1.2813333333333334]
+Right = [0.0, 2.562666666666667, 0.0]
+Down = [-0.0, -0.0, -1.4013333333333333]
+Opacity = 0.8
+Visible = true
+Photo = true
+Locked = true
+FrontOnly = true
+
+[[ImagePlanes]]
+Name = "Rear — CAD tracing reference"
+Path = "References/Rear.png"
+Corner = [2.6270023822784423, 1.2813333333333334, 1.2813333333333334]
+Right = [0.0, -2.562666666666667, 0.0]
+Down = [-0.0, -0.0, -1.4013333333333333]
+Opacity = 0.8
+Visible = true
+Photo = true
+Locked = true
+FrontOnly = true

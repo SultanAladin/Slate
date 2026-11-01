@@ -18197,6 +18197,16 @@ void FrameSelection(SolidArcWorkspaceState& State)
             Include(High);
         }
         for (const auto& [Label, Fit] : State.Document.Regeneration.Curves) IncludeCurve(Label);
+        if (!Found) for (const SolidArcImagePlane& Plane : State.Document.ImagePlanes)
+        {
+            if (!Plane.VisibleCondition) continue;
+            for (double S : { 0.0, 1.0 }) for (double T : { 0.0, 1.0 })
+            {
+                const Vector3 P = LocateSolidArcImagePoint(Plane, S, T);
+                const float Point[3] = { float(P.X), float(P.Y), float(P.Z) };
+                Include(Point);
+            }
+        }
     }
     FitSolidArcCamera(State.Camera, Bounds);
     State.Camera.SceneRadius = std::max(State.Camera.SceneRadius, 1.0);
@@ -19219,6 +19229,48 @@ void ConfigureSolidArcInterface(const SolidArcOptions& Options)
     Style.Colors[ImGuiCol_Separator]        = Tint(RaisedColour);
     Style.Colors[ImGuiCol_CheckMark]        = Tint(SelectedColour);
     Style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.45f);
+}
+
+// Optional project launcher settings. Defaults leave existing workspaces unchanged.
+void ConfigureSolidArcStartupViews(SolidArcWorkspaceState& State)
+{
+    const SolidArcOptions& Options = State.Options;
+    if (!Options.Refusal.empty()) return;
+    if (Options.FitImagesEnabled)
+    {
+        std::array<double, 3> Low{}, High{};
+        bool Found = false;
+        const auto Include = [&](const Vector3& P)
+        {
+            const std::array<double, 3> Q{ P.X, P.Y, P.Z };
+            if (!Found) { Low = High = Q; Found = true; }
+            else for (int Axis = 0; Axis < 3; ++Axis) { Low[Axis] = std::min(Low[Axis], Q[Axis]); High[Axis] = std::max(High[Axis], Q[Axis]); }
+        };
+        for (const SolidArcImagePlane& Plane : State.Document.ImagePlanes)
+        {
+            if (!Plane.VisibleCondition) continue;
+            for (double S : { 0.0, 1.0 }) for (double T : { 0.0, 1.0 }) Include(LocateSolidArcImagePoint(Plane, S, T));
+        }
+        if (!State.Scene.Faces.empty())
+        {
+            Include(Vector3{ State.Scene.BoundsLow[0], State.Scene.BoundsLow[1], State.Scene.BoundsLow[2] });
+            Include(Vector3{ State.Scene.BoundsHigh[0], State.Scene.BoundsHigh[1], State.Scene.BoundsHigh[2] });
+        }
+        if (Found) FitOrbitCamera(State.Camera, Low, High);
+    }
+    if (!Options.InitialView.empty())
+    {
+        OrbitViewPreset Preset = OrbitViewPreset::Isometric;
+        if (Options.InitialView == "Top") Preset = OrbitViewPreset::Top;
+        else if (Options.InitialView == "Bottom") Preset = OrbitViewPreset::Bottom;
+        else if (Options.InitialView == "Front") Preset = OrbitViewPreset::Front;
+        else if (Options.InitialView == "Back") Preset = OrbitViewPreset::Back;
+        else if (Options.InitialView == "Right") Preset = OrbitViewPreset::Right;
+        else if (Options.InitialView == "Left") Preset = OrbitViewPreset::Left;
+        PresentOrbitView(State.Camera, Preset);
+    }
+    if (Options.InitialLayout == "Quad") SetSolidArcViewportLayout(State, SolidArcViewportLayout::Quad);
+    else if (Options.InitialLayout == "Single") SetSolidArcViewportLayout(State, SolidArcViewportLayout::Single);
 }
 
 void InitialiseSolidArcWorkspace(SolidArcWorkspaceState& State, const SolidArcOptions& Options)

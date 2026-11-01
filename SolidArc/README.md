@@ -1,5 +1,7 @@
 # SolidArc CAD Audit, Features & Binary Packages
 
+> **Latest Liger scratch-modelling setup:** [high-resolution schematics + `Liger.solidarc`](Vehicles/Liger/Blueprints/README.md), with **new Windows and Linux/X11 runtime bundles** under [`Vehicles/Liger/Blueprints/Packages/`](Vehicles/Liger/Blueprints/Packages/). These include the NURBS importer fixes and registered-reference view/filtering support. The historical W95 packages below are preserved unchanged.
+
 All deliverables for `unassignedinbox/Frontier` (`arena/d90f0539-frontier`, base `82ed2512`) are staged in this folder
 on session branch `arena/4f335fa8-slate` so they appear directly in the Arena Workspace viewer and on GitHub.
 

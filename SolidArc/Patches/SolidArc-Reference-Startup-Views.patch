@@ -1,0 +1,379 @@
+--- a/Exhibits/SolidArc/Code/SolidArcCapture.cpp
++++ b/Exhibits/SolidArc/Code/SolidArcCapture.cpp
+@@ -200,6 +200,7 @@
+             State.DocumentPath = Settings.OpenPath;
+         }
+     }
++    ConfigureSolidArcStartupViews(State);
+     std::filesystem::create_directories(Settings.Exhibits);
+ 
+     // ③ one script step per frame
+--- a/Experimental/SolidArc/Native/SolidArcApplication.cpp
++++ b/Experimental/SolidArc/Native/SolidArcApplication.cpp
+@@ -331,12 +331,15 @@
+             State.Document.ImagePlanes = File.ImagePlanes;
+             State.Document.Appearance  = File.Appearance;
+             State.Document.DrawingSheet = File.DrawingSheet;
++            State.Document.Dimensions   = File.Dimensions;
+             RegenerateSolidArcDocument(State.Document, true);
+             RefreshSolidArcScene(State, false);
+             FitSolidArcCamera(State.Camera, State.Scene);
+             State.DocumentPath = OpenPath;
+         }
+     }
++
++    ConfigureSolidArcStartupViews(State);
+ 
+     // ③ one frame in flight: fence → conclude previous → interface → acquire → record → submit → present
+     VkCommandBufferAllocateInfo Allocation{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+--- a/UI/SolidArc/Document/SolidArcImagePlane.h
++++ b/UI/SolidArc/Document/SolidArcImagePlane.h
+@@ -41,6 +41,7 @@
+     bool                       FlipAcrossCondition = false;                                  // [-]    - Mirrored left ↔ right on the plane
+     bool                       FlipDownCondition   = false;                                  // [-]    - Mirrored top ↔ bottom on the plane
+     bool                       LockCondition    = false;                                     // [-]    - Placement and crop refuse edits (Outliner lock)
++    bool                       FrontOnlyCondition = false;                                  // [-]    - Draw only from the image-facing half space (optional blueprint views)
+     double                     Turn             = 0.0;                                       // [rad]  - Turn about the plane normal (shown; Right / Down carry it)
+ };
+ 
+--- a/UI/SolidArc/Document/SolidArcImagePlaneToml.h
++++ b/UI/SolidArc/Document/SolidArcImagePlaneToml.h
+@@ -41,6 +41,7 @@
+         if (Plane.FlipAcrossCondition) Row.insert("FlipAcross", true);
+         if (Plane.FlipDownCondition) Row.insert("FlipDown", true);
+         if (Plane.LockCondition) Row.insert("Locked", true);
++        if (Plane.FrontOnlyCondition) Row.insert("FrontOnly", true);
+         if (Plane.Turn != 0.0) Row.insert("Turn", Plane.Turn);
+         Rows.push_back(std::move(Row));
+     }
+@@ -64,6 +65,7 @@
+         Plane.FlipAcrossCondition = View["FlipAcross"].value_or(false);
+         Plane.FlipDownCondition   = View["FlipDown"].value_or(false);
+         Plane.LockCondition       = View["Locked"].value_or(false);
++        Plane.FrontOnlyCondition  = View["FrontOnly"].value_or(false);
+         Plane.Turn                = View["Turn"].value_or(0.0);
+         if (const toml::array* Crop = View["Crop"].as_array(); Crop && Crop->size() == 4)
+             for (int Side = 0; Side < 4; ++Side) Plane.Crop[Side] = static_cast<int>((*Crop)[Side].value_or(int64_t{ -1 }));
+--- a/UI/SolidArc/Interface/SolidArcFrame.cpp
++++ b/UI/SolidArc/Interface/SolidArcFrame.cpp
+@@ -189,10 +189,15 @@
+             if (Plane.FlipDownCondition) std::swap(Draw.Crop[1], Draw.Crop[3]);
+             Draw.Opacity = float(Plane.Opacity);
+             Draw.Mode    = Plane.PhotoCondition ? 1.0f : 0.0f;
++            Draw.FrontOnlyCondition = Plane.FrontOnlyCondition;
+             State.Style.ImagePlanes.push_back(Draw);
+         }
+     }
+-    State.Pictures.Drawn = int(State.Style.ImagePlanes.size());
++    // This diagnostic describes the active camera; quad panes independently
++    // apply the same facing predicate in the rasterizer.
++    const OrbitCameraFrame ActiveFrame = FrameOrbitCamera(State.Camera, 1.0, 1.0);
++    State.Pictures.Drawn = int(std::count_if(State.Style.ImagePlanes.begin(), State.Style.ImagePlanes.end(),
++        [&](const SolidArcImagePlaneDraw& Draw) { return FacesSolidArcImagePlane(Draw, ActiveFrame); }));
+     UploadMatcaps(State);
+     const SolidArcSceneStates States = DisplayedSolidArcStates(State);
+     Raster.AssignStates(States.Faces, States.Edges);
+--- a/UI/SolidArc/Interface/SolidArcInterface.cpp
++++ b/UI/SolidArc/Interface/SolidArcInterface.cpp
+@@ -18197,6 +18197,16 @@
+             Include(High);
+         }
+         for (const auto& [Label, Fit] : State.Document.Regeneration.Curves) IncludeCurve(Label);
++        if (!Found) for (const SolidArcImagePlane& Plane : State.Document.ImagePlanes)
++        {
++            if (!Plane.VisibleCondition) continue;
++            for (double S : { 0.0, 1.0 }) for (double T : { 0.0, 1.0 })
++            {
++                const Vector3 P = LocateSolidArcImagePoint(Plane, S, T);
++                const float Point[3] = { float(P.X), float(P.Y), float(P.Z) };
++                Include(Point);
++            }
++        }
+     }
+     FitSolidArcCamera(State.Camera, Bounds);
+     State.Camera.SceneRadius = std::max(State.Camera.SceneRadius, 1.0);
+@@ -19219,6 +19229,48 @@
+     Style.Colors[ImGuiCol_Separator]        = Tint(RaisedColour);
+     Style.Colors[ImGuiCol_CheckMark]        = Tint(SelectedColour);
+     Style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.45f);
++}
++
++// Optional project launcher settings. Defaults leave existing workspaces unchanged.
++void ConfigureSolidArcStartupViews(SolidArcWorkspaceState& State)
++{
++    const SolidArcOptions& Options = State.Options;
++    if (!Options.Refusal.empty()) return;
++    if (Options.FitImagesEnabled)
++    {
++        std::array<double, 3> Low{}, High{};
++        bool Found = false;
++        const auto Include = [&](const Vector3& P)
++        {
++            const std::array<double, 3> Q{ P.X, P.Y, P.Z };
++            if (!Found) { Low = High = Q; Found = true; }
++            else for (int Axis = 0; Axis < 3; ++Axis) { Low[Axis] = std::min(Low[Axis], Q[Axis]); High[Axis] = std::max(High[Axis], Q[Axis]); }
++        };
++        for (const SolidArcImagePlane& Plane : State.Document.ImagePlanes)
++        {
++            if (!Plane.VisibleCondition) continue;
++            for (double S : { 0.0, 1.0 }) for (double T : { 0.0, 1.0 }) Include(LocateSolidArcImagePoint(Plane, S, T));
++        }
++        if (!State.Scene.Faces.empty())
++        {
++            Include(Vector3{ State.Scene.BoundsLow[0], State.Scene.BoundsLow[1], State.Scene.BoundsLow[2] });
++            Include(Vector3{ State.Scene.BoundsHigh[0], State.Scene.BoundsHigh[1], State.Scene.BoundsHigh[2] });
++        }
++        if (Found) FitOrbitCamera(State.Camera, Low, High);
++    }
++    if (!Options.InitialView.empty())
++    {
++        OrbitViewPreset Preset = OrbitViewPreset::Isometric;
++        if (Options.InitialView == "Top") Preset = OrbitViewPreset::Top;
++        else if (Options.InitialView == "Bottom") Preset = OrbitViewPreset::Bottom;
++        else if (Options.InitialView == "Front") Preset = OrbitViewPreset::Front;
++        else if (Options.InitialView == "Back") Preset = OrbitViewPreset::Back;
++        else if (Options.InitialView == "Right") Preset = OrbitViewPreset::Right;
++        else if (Options.InitialView == "Left") Preset = OrbitViewPreset::Left;
++        PresentOrbitView(State.Camera, Preset);
++    }
++    if (Options.InitialLayout == "Quad") SetSolidArcViewportLayout(State, SolidArcViewportLayout::Quad);
++    else if (Options.InitialLayout == "Single") SetSolidArcViewportLayout(State, SolidArcViewportLayout::Single);
+ }
+ 
+ void InitialiseSolidArcWorkspace(SolidArcWorkspaceState& State, const SolidArcOptions& Options)
+--- a/UI/SolidArc/Interface/SolidArcInterface.h
++++ b/UI/SolidArc/Interface/SolidArcInterface.h
+@@ -1015,6 +1015,7 @@
+ 
+ // Split-viewport pane count (1, 2, 3, or 4), layout switcher, and GPU raster pane descriptor list.
+ [[nodiscard]] int  SolidArcViewportPaneCount(SolidArcViewportLayout Layout) noexcept;
++void               ConfigureSolidArcStartupViews(SolidArcWorkspaceState& State);
+ void               SetSolidArcViewportLayout(SolidArcWorkspaceState& State, SolidArcViewportLayout Layout);
+ [[nodiscard]] std::vector<SolidArcRasterPane> ComposeSolidArcRasterPanes(const SolidArcWorkspaceState& State, uint32_t TargetWidth, uint32_t TargetHeight);
+ 
+--- a/UI/SolidArc/Interface/SolidArcOptions.cpp
++++ b/UI/SolidArc/Interface/SolidArcOptions.cpp
+@@ -41,6 +41,14 @@
+     Options.GridEnabled         = Root["Viewport"]["Grid"].value_or(Options.GridEnabled);
+     Options.OrthographicEnabled = Root["Viewport"]["Orthographic"].value_or(Options.OrthographicEnabled);
+     Options.FieldOfView         = Root["Viewport"]["FieldOfView"].value_or(Options.FieldOfView);
++    Options.InitialView         = Root["Viewport"]["InitialView"].value_or(Options.InitialView);
++    Options.InitialLayout       = Root["Viewport"]["InitialLayout"].value_or(Options.InitialLayout);
++    Options.FitImagesEnabled    = Root["Viewport"]["FitImages"].value_or(Options.FitImagesEnabled);
++    const std::string& View = Options.InitialView;
++    if (!View.empty() && View != "Top" && View != "Bottom" && View != "Front" && View != "Back" && View != "Right" && View != "Left" && View != "Isometric")
++        Options.Refusal = "Viewport.InitialView must be Top, Bottom, Front, Back, Right, Left or Isometric";
++    if (!Options.InitialLayout.empty() && Options.InitialLayout != "Single" && Options.InitialLayout != "Quad")
++        Options.Refusal = "Viewport.InitialLayout must be Single or Quad";
+     Options.FontPath            = Root["Interface"]["FontPath"].value_or(Options.FontPath);
+     Options.FontSize            = static_cast<float>(Root["Interface"]["FontSize"].value_or(double{ Options.FontSize }));
+     Options.RecoveryPath        = Root["Files"]["RecoveryPath"].value_or(Options.RecoveryPath);
+@@ -58,7 +66,8 @@
+     const toml::table Root{
+         { "Window", toml::table{ { "Width", Options.WindowWidth }, { "Height", Options.WindowHeight } } },
+         { "Viewport", toml::table{ { "EdgeStroke", double(Options.EdgeStroke) }, { "Grid", Options.GridEnabled },
+-                                   { "Orthographic", Options.OrthographicEnabled }, { "FieldOfView", Options.FieldOfView } } },
++                                   { "Orthographic", Options.OrthographicEnabled }, { "FieldOfView", Options.FieldOfView },
++                                   { "InitialView", Options.InitialView }, { "InitialLayout", Options.InitialLayout }, { "FitImages", Options.FitImagesEnabled } } },
+         { "Interface", toml::table{ { "FontPath", Options.FontPath }, { "FontSize", double(Options.FontSize) } } },
+         { "Files", toml::table{ { "RecoveryPath", Options.RecoveryPath }, { "AutosaveDelay", Options.AutosaveDelay }, { "DocumentPath", Options.DocumentPath }, { "CurvesPath", Options.CurvesPath }, { "InsertFolder", Options.InsertFolder } } },
+         { "Vulkan", toml::table{ { "DriverPath", Options.DriverPath }, { "Validation", Options.ValidationEnabled } } },
+--- a/UI/SolidArc/Interface/SolidArcOptions.h
++++ b/UI/SolidArc/Interface/SolidArcOptions.h
+@@ -27,6 +27,9 @@
+     bool        GridEnabled         = true;                                                  // [-]   - Ground grid
+     bool        OrthographicEnabled = false;                                                 // [-]   - Start in parallel projection
+     double      FieldOfView         = 0.7;                                                   // [rad] - Vertical perspective angle
++    std::string InitialView         = {};                                                    // [-]   - Optional startup preset (Top/Bottom/Front/Back/Right/Left/Isometric)
++    std::string InitialLayout       = {};                                                    // [-]   - Optional Single/Quad startup layout
++    bool        FitImagesEnabled    = false;                                                 // [-]   - Frame visible reference planes at startup
+     std::string FontPath            = {};                                                    // [-]   - UI font (empty: DM Sans from EngineContent)
+     float       FontSize            = 15.0f;                                                 // [px]  - UI font size
+     std::string RecoveryPath        = "_ClaudeScratch/autosave/SolidArcWorkspace.solidarc"; // [-] - Autosave target
+--- a/UI/SolidArc/Viewport/SolidArcDevice.cpp
++++ b/UI/SolidArc/Viewport/SolidArcDevice.cpp
+@@ -266,7 +266,7 @@
+ }
+ 
+ SolidArcImage SolidArcDevice::CreateImage(uint32_t Width, uint32_t Height, VkFormat Format, VkImageUsageFlags Usage, VkImageAspectFlags Aspect,
+-                                         uint32_t ArrayLayers, VkSampleCountFlagBits Samples) const
++                                         uint32_t ArrayLayers, VkSampleCountFlagBits Samples, uint32_t MipLevels) const
+ {
+     SolidArcImage Image;
+     Image.Format = Format;
+@@ -276,7 +276,7 @@
+     Request.imageType     = VK_IMAGE_TYPE_2D;
+     Request.format        = Format;
+     Request.extent        = { Width, Height, 1 };
+-    Request.mipLevels     = 1;
++    Request.mipLevels     = MipLevels;
+     Request.arrayLayers   = std::max<uint32_t>(ArrayLayers, 1);
+     Request.samples       = Samples;
+     Request.tiling        = VK_IMAGE_TILING_OPTIMAL;
+@@ -294,7 +294,7 @@
+     ViewRequest.image            = Image.Image;
+     ViewRequest.viewType         = ArrayLayers ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D;
+     ViewRequest.format           = Format;
+-    ViewRequest.subresourceRange = { Aspect, 0, 1, 0, std::max<uint32_t>(ArrayLayers, 1) };
++    ViewRequest.subresourceRange = { Aspect, 0, MipLevels, 0, std::max<uint32_t>(ArrayLayers, 1) };
+     Require(vkCreateImageView(Device, &ViewRequest, nullptr, &Image.View), "vkCreateImageView");
+     return Image;
+ }
+@@ -307,7 +307,7 @@
+     Image = {};
+ }
+ 
+-void TransitionSolidArcImage(VkCommandBuffer Commands, VkImage Image, VkImageAspectFlags Aspect, VkImageLayout From, VkImageLayout To)
++void TransitionSolidArcImage(VkCommandBuffer Commands, VkImage Image, VkImageAspectFlags Aspect, VkImageLayout From, VkImageLayout To, uint32_t MipLevels)
+ {
+     // 📝 Coarse but correct: all commands before → all commands after. The viewport issues a handful per frame.
+     VkImageMemoryBarrier2 Barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+@@ -320,7 +320,7 @@
+     Barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+     Barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+     Barrier.image               = Image;
+-    Barrier.subresourceRange    = { Aspect, 0, 1, 0, 1 };
++    Barrier.subresourceRange    = { Aspect, 0, MipLevels, 0, 1 };
+     VkDependencyInfo Dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+     Dependency.imageMemoryBarrierCount = 1;
+     Dependency.pImageMemoryBarriers    = &Barrier;
+--- a/UI/SolidArc/Viewport/SolidArcDevice.h
++++ b/UI/SolidArc/Viewport/SolidArcDevice.h
+@@ -77,7 +77,7 @@
+     // ArrayLayers 0: a plain 2D image; ≥ 1: a 2D array with a 2D_ARRAY view over every layer (matcap library).
+     // Samples > 1: a multisampled attachment (resolved into a single-sample image at the end of rendering).
+     [[nodiscard]] SolidArcImage  CreateImage(uint32_t Width, uint32_t Height, VkFormat Format, VkImageUsageFlags Usage, VkImageAspectFlags Aspect,
+-                                             uint32_t ArrayLayers = 0, VkSampleCountFlagBits Samples = VK_SAMPLE_COUNT_1_BIT) const;
++                                             uint32_t ArrayLayers = 0, VkSampleCountFlagBits Samples = VK_SAMPLE_COUNT_1_BIT, uint32_t MipLevels = 1) const;
+     void                         DestroyImage(SolidArcImage& Image) const;
+ 
+     VkInstance                       Instance       = VK_NULL_HANDLE;
+@@ -95,6 +95,6 @@
+ };
+ 
+ // Image layout transition (synchronization2, whole image, one aspect).
+-void TransitionSolidArcImage(VkCommandBuffer Commands, VkImage Image, VkImageAspectFlags Aspect, VkImageLayout From, VkImageLayout To);
++void TransitionSolidArcImage(VkCommandBuffer Commands, VkImage Image, VkImageAspectFlags Aspect, VkImageLayout From, VkImageLayout To, uint32_t MipLevels = 1);
+ 
+ } // namespace Frontier::SolidArc
+--- a/UI/SolidArc/Viewport/SolidArcRasterization.cpp
++++ b/UI/SolidArc/Viewport/SolidArcRasterization.cpp
+@@ -12,8 +12,12 @@
+ #include "UI/SolidArc/Viewport/Generated/SolidArcShaderArchive.h"
+ 
+ #include <algorithm>
++#include <cmath>
+ #include <cstring>
+ #include <stdexcept>
++
++#define STB_IMAGE_RESIZE_IMPLEMENTATION
++#include <stb_image_resize2.h>
+ 
+ namespace Frontier::SolidArc
+ {
+@@ -180,6 +184,18 @@
+ }
+ 
+ } // namespace
++
++bool FacesSolidArcImagePlane(const SolidArcImagePlaneDraw& Draw, const OrbitCameraFrame& Frame) noexcept
++{
++    if (!Draw.FrontOnlyCondition) return true; // Existing projects remain two-sided.
++    // Image top-left + Right + Down: Down × Right faces the intended viewer.
++    // Evaluated per raster pane, never only against the active pane's camera.
++    const auto& R = Draw.Right; const auto& D = Draw.Down;
++    const std::array<double, 3> N{ D[1]*R[2]-D[2]*R[1], D[2]*R[0]-D[0]*R[2], D[0]*R[1]-D[1]*R[0] };
++    const double Facing = N[0]*Frame.Forward[0]+N[1]*Frame.Forward[1]+N[2]*Frame.Forward[2];
++    return Facing < -1.0e-6*std::sqrt(N[0]*N[0]+N[1]*N[1]+N[2]*N[2]);
++}
++
+ 
+ //------------------------------------------------------------------------------------------------------------------------
+ //                                                    RASTERIZATION
+@@ -252,11 +268,11 @@
+         VkSamplerCreateInfo SamplerRequest{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+         SamplerRequest.magFilter    = VK_FILTER_LINEAR;
+         SamplerRequest.minFilter    = VK_FILTER_LINEAR;
+-        SamplerRequest.mipmapMode   = VK_SAMPLER_MIPMAP_MODE_NEAREST;
++        SamplerRequest.mipmapMode   = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+         SamplerRequest.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+         SamplerRequest.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+         SamplerRequest.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+-        SamplerRequest.maxLod       = 0.0f;
++        SamplerRequest.maxLod       = VK_LOD_CLAMP_NONE;
+         Require(vkCreateSampler(Device->Device, &SamplerRequest, nullptr, &PictureSampler), "vkCreateSampler");
+         const VkDescriptorSetLayout PlaneSets[2] = { BufferLayout, PictureLayout };
+         VkPipelineLayoutCreateInfo PlaneLayoutRequest{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+@@ -528,17 +544,41 @@
+         const uint32_t Height = ReadyCondition ? Source.Height : 1;
+         static const uint8_t Placeholder[4] = { 255, 255, 255, 255 };
+         PictureTexture Texture;
+-        Texture.Image = Device->CreateImage(Width, Height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+-        SolidArcBuffer Staging = Device->CreateBuffer(VkDeviceSize(Width) * Height * 4, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, true);
+-        std::memcpy(Staging.Mapped, ReadyCondition ? Source.Pixels.data() : Placeholder, size_t(Width) * Height * 4);
++        // Full alpha-aware mip chain: a 7K line drawing must remain continuous
++        // at ordinary/quad-view zoom, not alias into dots with a base-level sampler.
++        std::vector<VkBufferImageCopy> Copies;
++        VkDeviceSize Bytes = 0;
++        for (uint32_t W = Width, H = Height, Level = 0; ; ++Level)
++        {
++            VkBufferImageCopy Copy{};
++            Copy.bufferOffset = Bytes;
++            Copy.imageSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, Level, 0, 1 };
++            Copy.imageExtent = { W, H, 1 };
++            Copies.push_back(Copy);
++            Bytes += VkDeviceSize(W)*H*4;
++            if (W == 1 && H == 1) break;
++            W = std::max(1u, W/2); H = std::max(1u, H/2);
++        }
++        const uint32_t MipLevels = uint32_t(Copies.size());
++        Texture.Image = Device->CreateImage(Width, Height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
++                                           VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_SAMPLE_COUNT_1_BIT, MipLevels);
++        SolidArcBuffer Staging = Device->CreateBuffer(Bytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, true);
++        auto* Pixels = static_cast<unsigned char*>(Staging.Mapped);
++        std::memcpy(Pixels, ReadyCondition ? Source.Pixels.data() : Placeholder, size_t(Width)*Height*4);
++        for (size_t Level = 1; Level < Copies.size(); ++Level)
++        {
++            const auto& A = Copies[Level-1]; const auto& B = Copies[Level];
++            // STBIR_RGBA filters non-premultiplied RGBA with alpha weighting,
++            // avoiding dark halos from transparent black around blueprint ink.
++            if (!stbir_resize_uint8_linear(Pixels+A.bufferOffset, int(A.imageExtent.width), int(A.imageExtent.height), 0,
++                                           Pixels+B.bufferOffset, int(B.imageExtent.width), int(B.imageExtent.height), 0, STBIR_RGBA))
++                throw std::runtime_error("reference image mip filtering failed");
++        }
+         Device->SubmitImmediately([&](VkCommandBuffer Commands)
+         {
+-            TransitionSolidArcImage(Commands, Texture.Image.Image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+-            VkBufferImageCopy Copy{};
+-            Copy.imageSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+-            Copy.imageExtent      = { Width, Height, 1 };
+-            vkCmdCopyBufferToImage(Commands, Staging.Buffer, Texture.Image.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &Copy);
+-            TransitionSolidArcImage(Commands, Texture.Image.Image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
++            TransitionSolidArcImage(Commands, Texture.Image.Image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, MipLevels);
++            vkCmdCopyBufferToImage(Commands, Staging.Buffer, Texture.Image.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, MipLevels, Copies.data());
++            TransitionSolidArcImage(Commands, Texture.Image.Image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, MipLevels);
+         });
+         Device->DestroyBuffer(Staging);
+         VkDescriptorSetAllocateInfo Request{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+@@ -829,6 +869,7 @@
+             for (const SolidArcImagePlaneDraw& Draw : Style.ImagePlanes)
+             {
+                 if (Draw.Picture >= Pictures.size()) continue;
++                if (!FacesSolidArcImagePlane(Draw, Frame)) continue;
+                 SolidArcImagePlaneBlock Block;
+                 Narrow(Frame.ClipFromWorld, Block.ClipFromWorld);
+                 Narrow(Draw.Corner, Block.Corner, Draw.Opacity);
+--- a/UI/SolidArc/Viewport/SolidArcRasterization.h
++++ b/UI/SolidArc/Viewport/SolidArcRasterization.h
+@@ -77,7 +77,10 @@
+     std::array<float, 4>  Crop    = { 0.0f, 0.0f, 1.0f, 1.0f };                              // [0-1] - Picture uv rectangle
+     float                 Opacity = 0.6f;                                                    // [0-1] - Ink opacity
+     float                 Mode    = 0.0f;                                                    // [-]   - 0 line art, 1 photograph
+-};
++    bool                  FrontOnlyCondition = false;                                      // [-]   - Optional one-sided reference; evaluated per viewport
++};
++
++[[nodiscard]] bool FacesSolidArcImagePlane(const SolidArcImagePlaneDraw& Draw, const OrbitCameraFrame& Frame) noexcept;
+ 
+ struct SolidArcViewportStyle
+ {

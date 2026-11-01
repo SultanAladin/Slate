@@ -1,0 +1,17 @@
+{
+  "Liger-Reference-Project.zip": {
+    "bytes": 4580575,
+    "sha256": "4264a57d4c5dfc95d99fe67f272a36f93166fbc872e21f8649c6740170bccb52",
+    "payload_files": 68
+  },
+  "SolidArc-Liger-Windows-x64.zip": {
+    "bytes": 9061569,
+    "sha256": "a5da22db592daf7da290be2fe4fcd84837091ea1c2996cfe9cb3e0f2ddc2b3d2",
+    "payload_files": 399
+  },
+  "SolidArc-Liger-Linux-x64.zip": {
+    "bytes": 9829711,
+    "sha256": "1b455d3fa7ca1d99aabbd7958227f0f2aedeeb8d2c39d61a45843c0bdc4601e9",
+    "payload_files": 399
+  }
+}

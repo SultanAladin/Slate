@@ -12,8 +12,12 @@
 #include "UI/SolidArc/Viewport/Generated/SolidArcShaderArchive.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <stdexcept>
+
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include <stb_image_resize2.h>
 
 namespace Frontier::SolidArc
 {
@@ -181,6 +185,18 @@ void Narrow(const std::array<double, 3>& Source, float Target[4], float Fourth)
 
 } // namespace
 
+bool FacesSolidArcImagePlane(const SolidArcImagePlaneDraw& Draw, const OrbitCameraFrame& Frame) noexcept
+{
+    if (!Draw.FrontOnlyCondition) return true; // Existing projects remain two-sided.
+    // Image top-left + Right + Down: Down × Right faces the intended viewer.
+    // Evaluated per raster pane, never only against the active pane's camera.
+    const auto& R = Draw.Right; const auto& D = Draw.Down;
+    const std::array<double, 3> N{ D[1]*R[2]-D[2]*R[1], D[2]*R[0]-D[0]*R[2], D[0]*R[1]-D[1]*R[0] };
+    const double Facing = N[0]*Frame.Forward[0]+N[1]*Frame.Forward[1]+N[2]*Frame.Forward[2];
+    return Facing < -1.0e-6*std::sqrt(N[0]*N[0]+N[1]*N[1]+N[2]*N[2]);
+}
+
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    RASTERIZATION
 //------------------------------------------------------------------------------------------------------------------------
@@ -252,11 +268,11 @@ bool SolidArcRasterization::Create(const SolidArcDevice& Borrowed, std::string& 
         VkSamplerCreateInfo SamplerRequest{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
         SamplerRequest.magFilter    = VK_FILTER_LINEAR;
         SamplerRequest.minFilter    = VK_FILTER_LINEAR;
-        SamplerRequest.mipmapMode   = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+        SamplerRequest.mipmapMode   = VK_SAMPLER_MIPMAP_MODE_LINEAR;
         SamplerRequest.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
         SamplerRequest.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
         SamplerRequest.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        SamplerRequest.maxLod       = 0.0f;
+        SamplerRequest.maxLod       = VK_LOD_CLAMP_NONE;
         Require(vkCreateSampler(Device->Device, &SamplerRequest, nullptr, &PictureSampler), "vkCreateSampler");
         const VkDescriptorSetLayout PlaneSets[2] = { BufferLayout, PictureLayout };
         VkPipelineLayoutCreateInfo PlaneLayoutRequest{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
@@ -528,17 +544,41 @@ void SolidArcRasterization::UploadPictures(const std::vector<SolidArcPicture>& S
         const uint32_t Height = ReadyCondition ? Source.Height : 1;
         static const uint8_t Placeholder[4] = { 255, 255, 255, 255 };
         PictureTexture Texture;
-        Texture.Image = Device->CreateImage(Width, Height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
-        SolidArcBuffer Staging = Device->CreateBuffer(VkDeviceSize(Width) * Height * 4, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, true);
-        std::memcpy(Staging.Mapped, ReadyCondition ? Source.Pixels.data() : Placeholder, size_t(Width) * Height * 4);
+        // Full alpha-aware mip chain: a 7K line drawing must remain continuous
+        // at ordinary/quad-view zoom, not alias into dots with a base-level sampler.
+        std::vector<VkBufferImageCopy> Copies;
+        VkDeviceSize Bytes = 0;
+        for (uint32_t W = Width, H = Height, Level = 0; ; ++Level)
+        {
+            VkBufferImageCopy Copy{};
+            Copy.bufferOffset = Bytes;
+            Copy.imageSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, Level, 0, 1 };
+            Copy.imageExtent = { W, H, 1 };
+            Copies.push_back(Copy);
+            Bytes += VkDeviceSize(W)*H*4;
+            if (W == 1 && H == 1) break;
+            W = std::max(1u, W/2); H = std::max(1u, H/2);
+        }
+        const uint32_t MipLevels = uint32_t(Copies.size());
+        Texture.Image = Device->CreateImage(Width, Height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                                           VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_SAMPLE_COUNT_1_BIT, MipLevels);
+        SolidArcBuffer Staging = Device->CreateBuffer(Bytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, true);
+        auto* Pixels = static_cast<unsigned char*>(Staging.Mapped);
+        std::memcpy(Pixels, ReadyCondition ? Source.Pixels.data() : Placeholder, size_t(Width)*Height*4);
+        for (size_t Level = 1; Level < Copies.size(); ++Level)
+        {
+            const auto& A = Copies[Level-1]; const auto& B = Copies[Level];
+            // STBIR_RGBA filters non-premultiplied RGBA with alpha weighting,
+            // avoiding dark halos from transparent black around blueprint ink.
+            if (!stbir_resize_uint8_linear(Pixels+A.bufferOffset, int(A.imageExtent.width), int(A.imageExtent.height), 0,
+                                           Pixels+B.bufferOffset, int(B.imageExtent.width), int(B.imageExtent.height), 0, STBIR_RGBA))
+                throw std::runtime_error("reference image mip filtering failed");
+        }
         Device->SubmitImmediately([&](VkCommandBuffer Commands)
         {
-            TransitionSolidArcImage(Commands, Texture.Image.Image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-            VkBufferImageCopy Copy{};
-            Copy.imageSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-            Copy.imageExtent      = { Width, Height, 1 };
-            vkCmdCopyBufferToImage(Commands, Staging.Buffer, Texture.Image.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &Copy);
-            TransitionSolidArcImage(Commands, Texture.Image.Image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            TransitionSolidArcImage(Commands, Texture.Image.Image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, MipLevels);
+            vkCmdCopyBufferToImage(Commands, Staging.Buffer, Texture.Image.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, MipLevels, Copies.data());
+            TransitionSolidArcImage(Commands, Texture.Image.Image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, MipLevels);
         });
         Device->DestroyBuffer(Staging);
         VkDescriptorSetAllocateInfo Request{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
@@ -829,6 +869,7 @@ void SolidArcRasterization::RecordPanes(VkCommandBuffer Commands, const std::vec
             for (const SolidArcImagePlaneDraw& Draw : Style.ImagePlanes)
             {
                 if (Draw.Picture >= Pictures.size()) continue;
+                if (!FacesSolidArcImagePlane(Draw, Frame)) continue;
                 SolidArcImagePlaneBlock Block;
                 Narrow(Frame.ClipFromWorld, Block.ClipFromWorld);
                 Narrow(Draw.Corner, Block.Corner, Draw.Opacity);

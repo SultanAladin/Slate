@@ -1015,6 +1015,7 @@ void RefreshSolidArcMatcaps(SolidArcWorkspaceState& State);
 
 // Split-viewport pane count (1, 2, 3, or 4), layout switcher, and GPU raster pane descriptor list.
 [[nodiscard]] int  SolidArcViewportPaneCount(SolidArcViewportLayout Layout) noexcept;
+void               ConfigureSolidArcStartupViews(SolidArcWorkspaceState& State);
 void               SetSolidArcViewportLayout(SolidArcWorkspaceState& State, SolidArcViewportLayout Layout);
 [[nodiscard]] std::vector<SolidArcRasterPane> ComposeSolidArcRasterPanes(const SolidArcWorkspaceState& State, uint32_t TargetWidth, uint32_t TargetHeight);
 

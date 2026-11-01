@@ -1,0 +1,16 @@
+[Window]
+Width = 1800
+Height = 1100
+[Viewport]
+Orthographic = true
+Grid = false
+FieldOfView = 0.7
+InitialView = "Front"
+InitialLayout = "Single"
+FitImages = true
+[Files]
+DocumentPath = "Liger.solidarc"
+RecoveryPath = "Recovery/Liger-autosave.solidarc"
+AutosaveDelay = 1.0
+[Interface]
+FontSize = 15.0

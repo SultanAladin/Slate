@@ -1,0 +1,112 @@
+PASS native project decoder
+PASS no existing modelling steps
+PASS six reference planes
+PASS startup options decoder
+PASS quad layout and reference framing requested
+PASS four real viewport cameras initialised
+PASS reference bounds produce finite model-scale camera
+PASS native project codec round trip
+PASS Top — CAD tracing reference registered, locked and one-sided
+PASS Top — CAD tracing reference flags survive save
+PASS Top — CAD tracing reference native PNG decode
+PASS Bottom — CAD tracing reference registered, locked and one-sided
+PASS Bottom — CAD tracing reference flags survive save
+PASS Bottom — CAD tracing reference native PNG decode
+PASS Left — CAD tracing reference registered, locked and one-sided
+PASS Left — CAD tracing reference flags survive save
+PASS Left — CAD tracing reference native PNG decode
+PASS Right — CAD tracing reference registered, locked and one-sided
+PASS Right — CAD tracing reference flags survive save
+PASS Right — CAD tracing reference native PNG decode
+PASS Front — CAD tracing reference registered, locked and one-sided
+PASS Front — CAD tracing reference flags survive save
+PASS Front — CAD tracing reference native PNG decode
+PASS Rear — CAD tracing reference registered, locked and one-sided
+PASS Rear — CAD tracing reference flags survive save
+PASS Rear — CAD tracing reference native PNG decode
+PASS view 0 facing filter plane 0
+PASS legacy two-sided image behaviour
+PASS view 0 facing filter plane 1
+PASS legacy two-sided image behaviour
+PASS view 0 facing filter plane 2
+PASS legacy two-sided image behaviour
+PASS view 0 facing filter plane 3
+PASS legacy two-sided image behaviour
+PASS view 0 facing filter plane 4
+PASS legacy two-sided image behaviour
+PASS view 0 facing filter plane 5
+PASS legacy two-sided image behaviour
+PASS orthographic view draws only its own reference, never its opposite
+PASS view 1 facing filter plane 0
+PASS legacy two-sided image behaviour
+PASS view 1 facing filter plane 1
+PASS legacy two-sided image behaviour
+PASS view 1 facing filter plane 2
+PASS legacy two-sided image behaviour
+PASS view 1 facing filter plane 3
+PASS legacy two-sided image behaviour
+PASS view 1 facing filter plane 4
+PASS legacy two-sided image behaviour
+PASS view 1 facing filter plane 5
+PASS legacy two-sided image behaviour
+PASS orthographic view draws only its own reference, never its opposite
+PASS view 2 facing filter plane 0
+PASS legacy two-sided image behaviour
+PASS view 2 facing filter plane 1
+PASS legacy two-sided image behaviour
+PASS view 2 facing filter plane 2
+PASS legacy two-sided image behaviour
+PASS view 2 facing filter plane 3
+PASS legacy two-sided image behaviour
+PASS view 2 facing filter plane 4
+PASS legacy two-sided image behaviour
+PASS view 2 facing filter plane 5
+PASS legacy two-sided image behaviour
+PASS orthographic view draws only its own reference, never its opposite
+PASS view 3 facing filter plane 0
+PASS legacy two-sided image behaviour
+PASS view 3 facing filter plane 1
+PASS legacy two-sided image behaviour
+PASS view 3 facing filter plane 2
+PASS legacy two-sided image behaviour
+PASS view 3 facing filter plane 3
+PASS legacy two-sided image behaviour
+PASS view 3 facing filter plane 4
+PASS legacy two-sided image behaviour
+PASS view 3 facing filter plane 5
+PASS legacy two-sided image behaviour
+PASS orthographic view draws only its own reference, never its opposite
+PASS view 4 facing filter plane 0
+PASS legacy two-sided image behaviour
+PASS view 4 facing filter plane 1
+PASS legacy two-sided image behaviour
+PASS view 4 facing filter plane 2
+PASS legacy two-sided image behaviour
+PASS view 4 facing filter plane 3
+PASS legacy two-sided image behaviour
+PASS view 4 facing filter plane 4
+PASS legacy two-sided image behaviour
+PASS view 4 facing filter plane 5
+PASS legacy two-sided image behaviour
+PASS orthographic view draws only its own reference, never its opposite
+PASS view 5 facing filter plane 0
+PASS legacy two-sided image behaviour
+PASS view 5 facing filter plane 1
+PASS legacy two-sided image behaviour
+PASS view 5 facing filter plane 2
+PASS legacy two-sided image behaviour
+PASS view 5 facing filter plane 3
+PASS legacy two-sided image behaviour
+PASS view 5 facing filter plane 4
+PASS legacy two-sided image behaviour
+PASS view 5 facing filter plane 5
+PASS legacy two-sided image behaviour
+PASS orthographic view draws only its own reference, never its opposite
+PASS Top launcher options
+PASS Bottom launcher options
+PASS Left launcher options
+PASS Right launcher options
+PASS Front launcher options
+PASS Rear launcher options
+PASS invalid view is refused, not silently mislabelled
+Native blueprint checks: 111 passed; 0 failed
