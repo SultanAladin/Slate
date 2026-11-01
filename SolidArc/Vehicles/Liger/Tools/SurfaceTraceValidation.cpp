@@ -124,6 +124,36 @@ try {
         Check(Made && Liger.Regeneration.Curves.size()==1,"real dense Liger surface trace projects, fits, checks and commits");
         Check(Liger.Tree.Steps[0].Exchange==File.Tree.Steps[0].Exchange && Liger.Tree.Steps[1].Exchange==File.Tree.Steps[1].Exchange && Liger.Tree.Steps[2].Exchange==File.Tree.Steps[2].Exchange,"real reference STEP carriers unchanged by drawing");
     }
+    for (int Count : {2,3,4,8,16}) for (auto Form : {SketchSplineForm::Nurbs,SketchSplineForm::Bezier}) {
+        std::vector<Vector3> Points; for(int I=0;I<Count;++I) Points.push_back({double(I)*0.1,std::sin(I*0.3)*0.2,0.5+I*0.01});
+        auto Control=MakeSolidArcControlTrace(Points,SolidArcDrawingKind::Curve,Form,false);
+        Check(Control.Refusal.empty() && Control.Curve.Definition->Poles.size()==Points.size(),"point-only curve has exactly the clicked control count");
+        double Error=0; for(int I=0;I<Count;++I) Error=std::max(Error,Distance(Points[I],Control.Curve.Definition->Poles[I]));
+        Check(Error==0,"point-only curve preserves every snapped XYZ exactly");
+        SolidArcDocument CDoc; Check(DrawSolidArcProjectedCurve(CDoc,Control.Curve,false).AcceptedCondition,"point-only curve commits without fitting");
+        auto Round=Restore(DecodeSolidArcDocument(EncodeSolidArcDocument(CDoc)));
+        Check(Round.Tree.Steps.back().Points.size()==Points.size() && Round.Regeneration.Curves.begin()->second.Curve.Definition->Poles.size()==Points.size(),"save/load keeps the exact control count");
+    }
+    std::vector<Vector3> Loop={A.Position,B.Position,C.Position,A.Position};
+    auto LoopTrace=MakeSolidArcControlTrace(Loop,SolidArcDrawingKind::Curve,SketchSplineForm::Nurbs,true);
+    Check(LoopTrace.Refusal.empty() && LoopTrace.Curve.Definition->Poles.size()==4,"closed curve preserves exactly the four explicit clicks, including closing click");
+    SolidArcDocument LoopDoc;
+    Check(DrawSolidArcProjectedCurve(LoopDoc,LoopTrace.Curve,true).AcceptedCondition && LoopDoc.Tree.Steps.back().Points.size()==4,"closed commit inserts no extra closure controls");
+    auto SavedLoop=Restore(DecodeSolidArcDocument(EncodeSolidArcDocument(LoopDoc)));
+    Check(SavedLoop.Tree.Steps.back().Points.size()==4 && SavedLoop.Regeneration.Curves.begin()->second.Curve.Definition->Poles.size()==4,"closed save/load keeps only authored controls");
+    Loop.pop_back();
+    Check(!MakeSolidArcControlTrace(Loop,SolidArcDrawingKind::Curve,SketchSplineForm::Nurbs,true).Refusal.empty(),"closing does not silently append an unplaced point");
+    auto TooMany=Loop; while(TooMany.size()<17) TooMany.push_back(TooMany.back()+Vector3{0.1,0,0});
+    Check(!MakeSolidArcControlTrace(TooMany,SolidArcDrawingKind::Curve,SketchSplineForm::Bezier,false).Refusal.empty(),"over-degree Bezier refuses rather than adding or replacing controls");
+    Check(!MakeSolidArcControlTrace({A.Position,A.Position},SolidArcDrawingKind::Curve,SketchSplineForm::Nurbs,false).Refusal.empty(),"coincident adjacent controls refused");
+    auto Plain=MakeSolidArcControlTrace({A.Position,B.Position,C.Position},SolidArcDrawingKind::Curve,SketchSplineForm::Nurbs,false);
+    const auto Middle=EvaluateNurbsCurve(*Plain.Curve.Definition,0.5).Position;
+    Check(std::abs(Length(Middle)-1.0)>0.001,"spans are NOT projected or densified to follow the sphere");
+    Check(!MakeSolidArcControlTrace({A.Position,B.Position,C.Position},SolidArcDrawingKind::Curve,SketchSplineForm::Hermite,false).Refusal.empty(),"extra tangent-pole forms refused in strict point-only mode");
+    auto Poly=MakeSolidArcControlTrace({A.Position,B.Position,C.Position},SolidArcDrawingKind::Line,SketchSplineForm::Nurbs,false);
+    Check(Poly.Curve.Definition->Degree==1 && Poly.Curve.Definition->Poles.size()==3,"polyline preserves only its three placed vertices");
+    auto CircleArc=MakeSolidArcControlTrace({A.Position,C.Position,B.Position},SolidArcDrawingKind::Arc,SketchSplineForm::Nurbs,false);
+    Check(CircleArc.Refusal.empty() && CircleArc.Arc.has_value(),"three-point arc stays analytic instead of surface fitting");
     std::cout<<"PASS "<<Checks<<" surface tracing checks\n"; return 0;
 } catch(const std::exception& E) {std::cerr<<"FAIL "<<E.what()<<"\n";return 1;}
 }

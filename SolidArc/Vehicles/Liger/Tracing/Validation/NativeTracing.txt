@@ -42,4 +42,54 @@ PASS Ctrl snaps to an exact visible edge of the dense Liger reference
 LIGER_TRACE_CONTROLS -1.02814 0.499541 0.909355; -0.957639 0.45254 0.909149; -0.887138 0.499541 0.90562 deviation_mm=0.0433911
 PASS real dense Liger surface trace projects, fits, checks and commits
 PASS real reference STEP carriers unchanged by drawing
-PASS 42 surface tracing checks
+PASS point-only curve has exactly the clicked control count
+PASS point-only curve preserves every snapped XYZ exactly
+PASS point-only curve commits without fitting
+PASS save/load keeps the exact control count
+PASS point-only curve has exactly the clicked control count
+PASS point-only curve preserves every snapped XYZ exactly
+PASS point-only curve commits without fitting
+PASS save/load keeps the exact control count
+PASS point-only curve has exactly the clicked control count
+PASS point-only curve preserves every snapped XYZ exactly
+PASS point-only curve commits without fitting
+PASS save/load keeps the exact control count
+PASS point-only curve has exactly the clicked control count
+PASS point-only curve preserves every snapped XYZ exactly
+PASS point-only curve commits without fitting
+PASS save/load keeps the exact control count
+PASS point-only curve has exactly the clicked control count
+PASS point-only curve preserves every snapped XYZ exactly
+PASS point-only curve commits without fitting
+PASS save/load keeps the exact control count
+PASS point-only curve has exactly the clicked control count
+PASS point-only curve preserves every snapped XYZ exactly
+PASS point-only curve commits without fitting
+PASS save/load keeps the exact control count
+PASS point-only curve has exactly the clicked control count
+PASS point-only curve preserves every snapped XYZ exactly
+PASS point-only curve commits without fitting
+PASS save/load keeps the exact control count
+PASS point-only curve has exactly the clicked control count
+PASS point-only curve preserves every snapped XYZ exactly
+PASS point-only curve commits without fitting
+PASS save/load keeps the exact control count
+PASS point-only curve has exactly the clicked control count
+PASS point-only curve preserves every snapped XYZ exactly
+PASS point-only curve commits without fitting
+PASS save/load keeps the exact control count
+PASS point-only curve has exactly the clicked control count
+PASS point-only curve preserves every snapped XYZ exactly
+PASS point-only curve commits without fitting
+PASS save/load keeps the exact control count
+PASS closed curve preserves exactly the four explicit clicks, including closing click
+PASS closed commit inserts no extra closure controls
+PASS closed save/load keeps only authored controls
+PASS closing does not silently append an unplaced point
+PASS over-degree Bezier refuses rather than adding or replacing controls
+PASS coincident adjacent controls refused
+PASS spans are NOT projected or densified to follow the sphere
+PASS extra tangent-pole forms refused in strict point-only mode
+PASS polyline preserves only its three placed vertices
+PASS three-point arc stays analytic instead of surface fitting
+PASS 92 surface tracing checks

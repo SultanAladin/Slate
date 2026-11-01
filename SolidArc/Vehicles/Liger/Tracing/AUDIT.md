@@ -1,76 +1,66 @@
-# Surface-tracing delivery audit
+# Surface-point-only tracing correction — delivery audit
 
-## Delivered scope
+## Requested correction
 
-A native SolidArc tracing workspace over the previously delivered **dense patched
-NURBS Liger reference**. Three imported reference sheets are locked and kept separate
-from newly drawn curves. No new vehicle contours were authored in the shipped project.
-Reference registration is a proper rigid rotation only; topology, knots, weights,
-units and connectivity are unchanged. The prior blueprint-only packages are preserved.
+**Only user-placed controls snap to the reference and become editable points.**
+The earlier whole-span projection / adaptive fitting behavior is removed from
+both the Surface preview and commit paths. Enter does not add poles to follow
+the body. The reference, existing user geometry and historical packages are not
+rewritten. Previously fitted curves remain unchanged; this correction applies
+to newly drawn curves.
 
-| Area | Status | Evidence / behavior |
+| Area | Status | Verification / behavior |
 |---|---|---|
-| Dedicated workspace | 🟢 | Opens the 306-face / 906-edge reference with Surface and XYZ enabled, edges hidden, compact single-view layout. |
-| Surface drawing | 🟢 | Unmodified pointer hits exact CAD carriers; no construction-plane or grid fallback on misses. Curve, Arc and Line supported. |
-| Ctrl edge snapping | 🟢 | Nearest visible **body** curve / edge within 12 px; no endpoint/centre ranking or accidental snap to a free user spline. Otherwise stays on surface. Native and actual Liger UI tests. |
-| Whole-span conformance | 🟢 | Full seed projection, bounded NURBS fitting, independent 257-sample check at 0.2 mm. Holes, silhouettes, hidden controls and failed fits refuse atomically. |
-| Real editable geometry | 🟢 | Native SpaceCurve poles and knots, not raster marks, meshes or plane-only sketches. Undo/redo, deterministic native save/load and separate-sheet loft checked. |
-| XYZ editing | 🟢 | Explicit full-axis gizmo option, actual G → Z numeric movement tested; native pole edit changes all XYZ coordinates. Planar line endpoints can lift into 3D curves. |
-| Reference protection | 🟢 | All three source sheets locked; tracing does not edit embedded STEP carriers. All 47,267 point/direction entities checked against the exact rigid registration. |
-| Multi-view | 🟢 | Secondary panes render the active pane's cached **world** trace, not different re-projections of the seed. Ordinary split-view behavior retained. |
-| Source reproducibility | 🟢 | Incremental native patch forward/reverse checked; changed sources mirrored under `SolidArc/Source`. Build/runtime provenance in `Validation/BuildManifest.json`. |
-| Standalone resources | 🟢 | Each runtime includes 310 SVG icons, 66 SolidArc icons and five font faces; archive CRCs, bytes, architecture and executable hashes checked. |
-| Windows execution | ⚠️ | Windows x64 cross-build succeeded. No Windows / Wine is available here: **interactive Windows execution is not claimed**. |
+| No extra points on Enter | 🟢 | Actual three-click NURBS commits with **3 points / 3 poles**; actual two-click line and quad-view curve have **2**. Snapshot and script evidence included. |
+| Exact snapped controls | 🟢 | Native NURBS and Bezier tests for 2, 3, 4, 8 and 16 controls verify identical XYZ values and counts; commit and save/load retain the counts. No sampling/fitting creates saved controls. |
+| Span behavior | 🟢 | Ordinary control-point spans, deliberately **not surface-constrained**. A sphere test verifies that the span leaves the sphere while its placed controls remain unchanged. Preview tessellation is display-only. |
+| Spline forms | 🟢 | Surface mode defaults to NURBS (3), also supports Bezier (2). Hermite/cubic interpolation is excluded here to prevent extra tangent poles; ordinary non-Surface tools retain these forms. Actual keyboard refusal and Bezier creation tested. |
+| Explicit loop closure | 🟢 | Click the first point as the explicit final placement. Three distinct controls plus the closing click produce exactly **4** poles, not additional generated closure poles. Native persistence and actual UI tested. The automatic Close button is disabled in Surface mode. |
+| Line / Arc | 🟢 | Line is an exact degree-1 curve through only its placed vertices. Three-point Arc stays analytic on its three world points' plane, using normal centre/start/end editing handles, not an adaptively draped NURBS. Actual UI creation tested. |
+| Surface / Ctrl edge snapping | 🟢 | Existing exact CAD-carrier placement and Ctrl nearest-visible-body-edge snapping retained. Surface misses still do not fall back to the construction plane. Startup / edge scripts pass. |
+| XYZ / undo / redo / save | 🟢 | Actual G → Z numeric edit, all three gizmo axes, undo/redo and Ctrl+S pass. Native editable poles / knots and existing line-endpoint lifting retained. |
+| Split views | 🟢 | Four-pane preview shares cached world geometry; two clicks commit with exactly two poles. |
+| Reference and workspace | 🟢 | Clean factory project has only three locked imported sheets, 306 faces / 906 edges, no authored curves. Deterministic workspace and all 47,267 rigid point/direction transforms rechecked. |
+| Native and CAD regressions | 🟢 | **92 native tracing checks**, including 50 point-only checks and 42 retained snapping/geometry/persistence/loft/legacy-fitter regressions. **95 CAD gates** pass with complete runtime resources; Vulkan viewport regression passes. |
+| Actual UI checks | 🟢 | **78 / 78 expectations**: Startup 11, Drawing 35, Edge 6, Quad 9, Control 17. Final Linux build, 1280 × 680, Runtime cwd and project paths containing spaces. |
+| Python regression | 🟢 | **40 tests**, no skips, including rebuilt native certifier integration. |
+| Rebuilt distribution | 🟢 | Linux and Windows x64 rebuilt and installed; both ZIPs checked byte-for-byte, CRCs, runtime SHA, launcher paths, 310 SVGs / 66 SolidArc icons / five font faces. |
+| Source patch | 🟢 | `SolidArc-Surface-Point-Only.patch` applies after the previous tracing patch; forward and reverse applicability checked. Native source mirrors match the compiled Host. |
+| Windows execution | ⚠️ | Windows cross-build / PE / resources / launcher structurally checked. **No Windows/Wine runtime is available here; Windows interactive execution is not claimed.** |
 
-## Verification files
+## Evidence
 
-**Results:** 42 new native tracing checks; 57 Vulkan interaction expectations
-(11 startup + 32 drawing/XYZ/save + 6 Ctrl-edge + 8 quad); 95 existing CAD gates;
-40 Python tests without skips. All pass.
+- `Validation/NativeTracing.txt`: current 92 checks. Retained standalone projection
+  utility tests are compatibility regressions, **not the active authoring path**.
+  `SolidArcInterface.cpp` no longer calls `ProjectSolidArcTrace` for preview or commit.
+- `Validation/{Startup,Drawing,Edge,Quad,Control}.txt`: actual final-build Vulkan
+  interaction reports. Control includes form restriction, Bezier count and explicit
+  loop closure; Drawing includes NURBS count, XYZ, undo/redo/save, Arc and Line.
+- `Proofs/Curve_XYZ.png`: actual three-control curve; corresponding capture snapshot
+  records `Points: 3`, `Poles: 3`. `Proofs/Closed_Control_Curve.png` shows explicit closure.
+- `Validation/DocumentRegression.txt`, `ViewportRegression.txt`, `PythonTests.txt`:
+  current regressions. CAD tests run from the complete Runtime resource directory;
+  the icon gate verifies 66 non-empty SVGs.
+- `Validation/{LinuxBuild,WindowsBuild,LinuxInstall,WindowsInstall}.txt`,
+  `BuildManifest.json`, `Packaging.txt` and `SHA256SUMS`: build and delivery provenance.
 
-- `Validation/NativeTracing.txt`: analytic surface tests for all four spline forms,
-  projected arcs, negative cases, original-reference immutability, native commit,
-  save/load/undo/redo, XYZ editing, incident-line lifting, a real loft, and real dense
-  Liger surface / edge snaps. Sphere fits additionally checked at 4,097 independent
-  points, not just their clicked controls.
-- `Validation/Drawing.txt`: actual Vulkan pointer/key workflow at **1280 × 680**,
-  from a Runtime working directory and a project path containing spaces. Curve,
-  Arc, Line, three-axis gizmo, depth movement, undo/redo and Ctrl+S.
-- `Validation/Startup.txt`, `Edge.txt`, `Quad.txt`: startup defaults, off-surface
-  click rejection, real Ctrl edge snap, four-pane world-space trace preview/commit.
-- `Validation/DocumentRegression.txt`: all **95** existing CAD regression gates green.
-  The former line-endpoint refusal expectation is deliberately updated to the new
-  supported behavior. Its label is copied before appending steps, avoiding an
-  invalid reference when the step vector reallocates.
-- `Validation/ViewportRegression.txt`: Vulkan rendering regression green on SwiftShader.
-- `Validation/PythonTests.txt`: **40 tests, no skips**, including native gap/tolerance
-  checks via the rebuilt CAD certifier. `WorkspaceTests.txt` also rechecks the final
-  deterministic compact-window workspace configuration.
-- `Validation/Packaging.txt`, `BuildManifest.json`, `SHA256SUMS`: deliverable integrity
-  and runtime identity. `Proofs/` contains actual native viewport captures.
+## Limits and usage
 
-## Explicit limitations (not hidden behind a green check)
+NURBS / Bezier intermediate controls need not lie on the curve. Spans may leave
+the surface or bridge gaps; this is intentional, not a failed conformance check.
+There is no live shrinkwrap after edits. Analytic arc points retain their plane;
+move the whole arc in XYZ or use a control-point NURBS for spatial pole editing.
+The reference remains three open sheets with its original defects, not a completed
+watertight vehicle. Existing curves with extra poles are not silently simplified.
 
-- A draped arc is generally a **3D NURBS**, not an exact circular arc on a doubly
-  curved sheet. Ordinary analytic planar tools remain available with Surface off.
-- The 0.2 mm conformance check is **sampled**, not a continuum or trimmed p-curve
-  proof. There is no persistent live shrinkwrap constraint after free XYZ edits.
-- Use shorter visible sections at openings or silhouettes; no invented surface
-  bridges holes. Hidden controls after an orbit refuse rather than jumping onto
-  the newly visible front. A closed spline needs at least three controls.
-- Maximum 65 controls / 64 fitted spans. Source defects remain; the three sheets
-  are not represented as a repaired, watertight completed vehicle.
-- Individual analytic arc/circle points retain their plane. Move the entire shape
-  in XYZ, or use a traced NURBS for free spatial editing.
-- Linux needs an X11 desktop and Vulkan driver. Windows needs a working Vulkan
-  graphics driver. Launch with the supplied script so the project is explicitly
-  opened; running the EXE alone still opens a blank document.
+Extract into a **new folder** to avoid overwriting your work. Windows users open
+**Start Liger.bat**; running the EXE alone still opens a blank document. Vulkan
+is required; Linux additionally requires an X11 desktop.
 
 ## Build provenance
 
-Geometry source base: `unassignedinbox/Frontier` `82ed2512`, with the prior W95,
-NURBS-importer and reference-interaction overlays. Desktop host:
-`SultanAladin/Frontier` `65cf0f1`. Apply
-`SolidArc/Patches/SolidArc-Surface-Tracing.patch` after those overlays.
+Desktop host `SultanAladin/Frontier` `65cf0f1`; geometry base
+`unassignedinbox/Frontier` `82ed2512` with the previously documented overlays and
+`SolidArc-Surface-Tracing.patch`, then the incremental point-only correction.
 Windows: Zig 0.14.1, x86_64-windows-gnu, static C++ runtime.
-Linux: GCC 12.2, X11; native Vulkan captures use SwiftShader.
+Linux: GCC 12.2 / X11; Vulkan validation uses SwiftShader.

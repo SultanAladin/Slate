@@ -1,5 +1,5 @@
 {
-  "feature": "native surface tracing and explicit XYZ editing",
+  "feature": "surface-point-only snapping: one placed control per editable pole; no span projection or adaptive fitting",
   "source_base": "unassignedinbox/Frontier 82ed251267ed8457ca3530d8228b91555572c25d",
   "desktop_host": "SultanAladin/Frontier 65cf0f131a6afe8bdcd722c006b10cfab0e1aafd",
   "reference": "Refined/CAD/Liger_Refined_CAD.solidarc",
@@ -7,12 +7,6 @@
   "source_reference_faces": 306,
   "source_reference_sheets": 3,
   "registration": "(x,y,z) \u2192 (y,-x,z); rigid, no scaling",
-  "fit_check": {
-    "tolerance_metres": 0.0002,
-    "validation_samples": 257,
-    "max_controls": 65,
-    "max_fit_spans": 64
-  },
   "Windows_execution": "not available in Linux sandbox; PE/resources/launch path structurally validated",
   "compilers": {
     "Windows": "Zig 0.14.1 x86_64-windows-gnu / static C++ runtime",
@@ -21,8 +15,8 @@
   "runtimes": {
     "Windows": {
       "executable": "SolidArcWorkspace.exe",
-      "sha256": "b50692bba743bd44a4f7976020d799f91b132771550165d400470bb49873ca57",
-      "executable_bytes": 8959488,
+      "sha256": "0c61187688f33a485523debfc34abccb90a4386c3538258ba30a521802d4cbda",
+      "executable_bytes": 8965632,
       "svg_icons": 310,
       "solidarc_icons": 66,
       "font_faces": 5,
@@ -48,8 +42,8 @@
     },
     "Linux": {
       "executable": "SolidArcWorkspace",
-      "sha256": "3e95fa3faf15a83a6affaf61d81b4b3d8047bc2339f835ad25529ed0685887ce",
-      "executable_bytes": 10908952,
+      "sha256": "c476495618bb47ebde9fae5d5dee76a0f855b1880d0c45364d512eb259bf0a08",
+      "executable_bytes": 10917728,
       "svg_icons": 310,
       "solidarc_icons": 66,
       "font_faces": 5,
@@ -63,12 +57,41 @@
       ]
     }
   },
-  "native_tracing_checks": 42,
+  "native_tracing_checks": 92,
   "cad_regression_gates": 95,
   "python_tests": 40,
   "surface_trace_patch_sha256": "64520f9f41ddece7f04435afc37994bd8923f26d5cc1115d9fc9e819738f9f24",
   "initial_window": [
     1280,
     680
-  ]
+  ],
+  "point_only_authoring": {
+    "span_projection": false,
+    "automatic_poles": false,
+    "default_form": "NURBS",
+    "forms": [
+      "NURBS",
+      "Bezier"
+    ],
+    "closed": "explicit final click at first control, no implicit insertion",
+    "arc": "analytic three-point arc, standard centre/start/end handles",
+    "line": "degree 1, only placed vertices",
+    "controls_checked": [
+      2,
+      3,
+      4,
+      8,
+      16
+    ]
+  },
+  "ui_expectations": {
+    "Startup": 11,
+    "Drawing": 35,
+    "Edge": 6,
+    "Quad": 9,
+    "Control": 17
+  },
+  "ui_expectations_total": 78,
+  "point_only_patch_sha256": "e4a7c0702184167eba6d64bde93f2b7aad6a7bcb24ef85461915b4378edb0ffb",
+  "source_parent": "a1d8eef"
 }

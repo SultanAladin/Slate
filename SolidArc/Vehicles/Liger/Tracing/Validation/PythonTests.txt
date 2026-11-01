@@ -1,53 +1,13 @@
-test_buried_curve_is_not_shown_through_skin (test_blueprints.BlueprintTests.test_buried_curve_is_not_shown_through_skin) ... ok
-test_hidden_guide_is_dashed_and_separate (test_blueprints.BlueprintTests.test_hidden_guide_is_dashed_and_separate) ... ok
-test_high_resolution_transparent_registered_images (test_blueprints.BlueprintTests.test_high_resolution_transparent_registered_images) ... ok
-test_launchers_keep_all_views_in_the_same_project (test_blueprints.BlueprintTests.test_launchers_keep_all_views_in_the_same_project) ... ok
-test_no_perspective_or_mirrored_camera_frames (test_blueprints.BlueprintTests.test_no_perspective_or_mirrored_camera_frames) ... ok
-test_project_does_not_embed_old_cad (test_blueprints.BlueprintTests.test_project_does_not_embed_old_cad) ... ok
-test_reference_rotation_is_rigid_and_points_nose_to_front (test_blueprints.BlueprintTests.test_reference_rotation_is_rigid_and_points_nose_to_front) ... ok
-test_registered_pixel_to_world_scale (test_blueprints.BlueprintTests.test_registered_pixel_to_world_scale) ... ok
-test_six_views_and_empty_modelling_tree (test_blueprints.BlueprintTests.test_six_views_and_empty_modelling_tree) ... ok
-test_visibility_uses_interpolated_depth_on_sloped_skin (test_blueprints.BlueprintTests.test_visibility_uses_interpolated_depth_on_sloped_skin) ... ok
-test_bonnet_rebuild_is_reproducible (test_fairing.FairingTests.test_bonnet_rebuild_is_reproducible) ... ok
-test_brep_and_curve_entities_are_unchanged (test_fairing.FairingTests.test_brep_and_curve_entities_are_unchanged) ... ok
-test_combined_step_matches_individual_parts_and_mirrors (test_fairing.FairingTests.test_combined_step_matches_individual_parts_and_mirrors) ... ok
-test_every_delivered_rim_knot_and_unchanged_surface (test_fairing.FairingTests.test_every_delivered_rim_knot_and_unchanged_surface) ... ok
-test_fairing_thresholds_and_dense_screen (test_fairing.FairingTests.test_fairing_thresholds_and_dense_screen) ... ok
-test_interior_noise_changes_without_moving_boundary (test_fairing.FairingTests.test_interior_noise_changes_without_moving_boundary) ... ok
-test_native_document_embeds_exact_delivered_steps (test_fairing.FairingTests.test_native_document_embeds_exact_delivered_steps) ... ok
-test_plane_is_invariant (test_fairing.FairingTests.test_plane_is_invariant) ... ok
-test_restricted_step_reader_round_trip (test_fairing.FairingTests.test_restricted_step_reader_round_trip) ... ok
-test_crease_is_preserved (test_pipeline.PipelineTests.test_crease_is_preserved) ... layout: 12 L1 quads -> 2 charts -> 2 macro charts (0 merges)
-ok
-test_grid_merges (test_pipeline.PipelineTests.test_grid_merges) ... layout: 12 L1 quads -> 1 charts -> 1 macro charts (0 merges)
-ok
-test_knot_insertion_preserves_curve (test_pipeline.PipelineTests.test_knot_insertion_preserves_curve) ... ok
-test_planar_fit (test_pipeline.PipelineTests.test_planar_fit) ... layout: 12 L1 quads -> 1 charts -> 1 macro charts (0 merges)
+...................layout: 12 L1 quads -> 2 charts -> 2 macro charts (0 merges)
+.layout: 12 L1 quads -> 1 charts -> 1 macro charts (0 merges)
+..layout: 12 L1 quads -> 1 charts -> 1 macro charts (0 merges)
  fit 1/1: 4x4 poles, held RMS 0.000 mm max 0.000 mm
-ok
-test_shared_rail_export (test_pipeline.PipelineTests.test_shared_rail_export) ... layout: 12 L1 quads -> 2 charts -> 2 macro charts (0 merges)
+.layout: 12 L1 quads -> 2 charts -> 2 macro charts (0 merges)
  fit 1/2: 4x4 poles, held RMS 0.000 mm max 0.000 mm
  fit 2/2: 4x4 poles, held RMS 0.000 mm max 0.000 mm
-ok
-test_bad_rail_is_not_hidden_by_boundary_vertex_override (test_refined.RefinedTests.test_bad_rail_is_not_hidden_by_boundary_vertex_override) ... ok
-test_binary_round_trip_and_conformance_audit (test_refined.RefinedTests.test_binary_round_trip_and_conformance_audit) ... ok
-test_bounded_poles_and_rims_for_arch_fairing (test_refined.RefinedTests.test_bounded_poles_and_rims_for_arch_fairing) ... ok
-test_constrained_plane_mesh_and_analytic_normals (test_refined.RefinedTests.test_constrained_plane_mesh_and_analytic_normals) ... ok
-test_count_and_complete_source_provenance (test_refined.RefinedTests.test_count_and_complete_source_provenance) ... ok
-test_insert_is_rigid_one_mm_translation (test_refined.RefinedTests.test_insert_is_rigid_one_mm_translation) ... ok
-test_main_shell_exterior_rails_and_unchanged_surfaces (test_refined.RefinedTests.test_main_shell_exterior_rails_and_unchanged_surfaces) ... ok
-test_native_embeds_exact_step_and_combined_surface_count (test_refined.RefinedTests.test_native_embeds_exact_step_and_combined_surface_count) ... ok
-test_native_zero_tolerant_edges_and_real_gap_control (test_refined.RefinedTests.test_native_zero_tolerant_edges_and_real_gap_control) ... ok
-test_sampled_change_and_clearance_gates (test_refined.RefinedTests.test_sampled_change_and_clearance_gates) ... ok
-test_build_is_deterministic (test_tracing.TracingTests.test_build_is_deterministic) ... ok
-test_reference_only_no_authored_curves (test_tracing.TracingTests.test_reference_only_no_authored_curves) ... ok
-test_reference_protected_not_hidden (test_tracing.TracingTests.test_reference_protected_not_hidden) ... ok
-test_rigid_rotation_every_point_and_direction (test_tracing.TracingTests.test_rigid_rotation_every_point_and_direction) ... ok
-test_surface_xyz_and_single_view_are_default (test_tracing.TracingTests.test_surface_xyz_and_single_view_are_default) ... ok
-test_windows_launcher_explicit_open_and_quoted_paths (test_tracing.TracingTests.test_windows_launcher_explicit_open_and_quoted_paths) ... ok
-
+.................
 ----------------------------------------------------------------------
-Ran 40 tests in 14.080s
+Ran 40 tests in 26.675s
 
 OK
 PASS protected 3-sheet workspace, 47267 rigidly rotated point/direction entities; no new vehicle geometry

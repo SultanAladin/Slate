@@ -8,6 +8,17 @@ namespace Frontier::SolidArc
 [[nodiscard]] SolidArcSnap SnapSolidArcTrace(SolidArcSnapCatalogue& Catalogue, const SolidArcDocument& Document,
     const SolidArcScene& Scene, const OrbitCameraFrame& Frame, double X, double Y, bool CurveSnap);
 
+// Point-only authoring: exactly the supplied controls, never a surface fit.
+struct SolidArcControlTrace
+{
+    GeometryProcessing::NurbsCurve Curve;
+    std::optional<SolidArcDrawingRequest> Arc;
+    std::vector<GeometryProcessing::Vector3> Samples; // Display tessellation only, never saved as controls
+    std::string Refusal;
+};
+[[nodiscard]] SolidArcControlTrace MakeSolidArcControlTrace(const std::vector<GeometryProcessing::Vector3>& Controls,
+    SolidArcDrawingKind Kind, GeometryProcessing::SketchSplineForm Form, bool Closed);
+
 struct SolidArcSurfaceTrace
 {
     std::vector<GeometryProcessing::Vector3> Samples;

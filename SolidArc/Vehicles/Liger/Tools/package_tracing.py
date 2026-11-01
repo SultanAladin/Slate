@@ -17,13 +17,13 @@ def package(folder,platform):
     assert metadata['sha256']==manifest['runtimes'][platform]['sha256'], 'Runtime does not match newly validated tracing build'
     native=(OUT/'Validation/NativeTracing.txt').read_text()
     match=re.search(r'PASS (\d+) surface tracing checks',native)
-    assert match and int(match[1])>=35 and 'FAIL' not in native
-    for check in ('Startup','Drawing','Edge','Quad'):
+    assert match and int(match[1])>=92 and 'FAIL' not in native
+    for check in ('Startup','Drawing','Edge','Quad','Control'):
         report=(OUT/f'Validation/{check}.txt').read_text()
         assert '🔴' not in report and 'Expectations:' in report and 'failed' not in report.lower()
     binary=(folder/metadata['executable']).read_bytes()
     assert b'Surface snap###SurfaceTrace' in binary and b'Surface trace supports Curve' in binary
-    assert b'surface trace must be a non-rational B-spline' in binary
+    assert b'only clicked controls are saved' in binary
     payload={k:v for k,v in files.items() if k==f"Runtime/{metadata['executable']}" or k.startswith(('Runtime/EngineContent/','Runtime/Notices/'))}
     payload['Liger.solidarc']=(OUT/'Workspace/Liger.solidarc').read_bytes()
     payload['Runtime/SolidArcWorkspace.toml']=(OUT/'Workspace/SolidArcWorkspace.toml').read_bytes()

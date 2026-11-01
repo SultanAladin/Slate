@@ -35,6 +35,60 @@ SolidArcSnap SnapSolidArcTrace(SolidArcSnapCatalogue& Catalogue, const SolidArcD
     return Snap;
 }
 
+SolidArcControlTrace MakeSolidArcControlTrace(const std::vector<Vector3>& Controls,
+    SolidArcDrawingKind Kind, SketchSplineForm Form, bool Closed)
+{
+    SolidArcControlTrace Result;
+    if (Controls.size() < 2) { Result.Refusal = "Place at least two controls"; return Result; }
+    for (size_t I = 0; I < Controls.size(); ++I)
+    {
+        const auto P = Controls[I];
+        if (!std::isfinite(P.X) || !std::isfinite(P.Y) || !std::isfinite(P.Z))
+        { Result.Refusal = "A control is not finite"; return Result; }
+        if (I && Distance(P, Controls[I-1]) <= 1e-12)
+        { Result.Refusal = "The same control twice in a row"; return Result; }
+    }
+    if (Closed && (Controls.size() < 4 || Distance(Controls.front(), Controls.back()) > 1e-12))
+    { Result.Refusal = "Close by explicitly placing the last control on the first (at least three distinct controls)"; return Result; }
+    if (Kind == SolidArcDrawingKind::Arc)
+    {
+        if (Controls.size() != 3) { Result.Refusal = "Arc: place start, end, then a point on the arc"; return Result; }
+        const auto X = Controls[1] - Controls[0], N = Cross(X, Controls[2] - Controls[0]);
+        if (Length(N) < 1e-12) { Result.Refusal = "Arc points are collinear"; return Result; }
+        SolidArcDrawingRequest Request;
+        Request.Kind = Kind; Request.PlaneCondition = true;
+        Request.Plane.Origin = Controls[0]; Request.Plane.XAxis = Normalize(X);
+        Request.Plane.ZAxis = Normalize(N); Request.Plane.YAxis = Cross(Request.Plane.ZAxis, Request.Plane.XAxis);
+        for (auto P : Controls) { const auto D = P - Request.Plane.Origin; Request.Points.push_back({Dot(D,Request.Plane.XAxis),Dot(D,Request.Plane.YAxis)}); }
+        SketchModel Model;
+        Result.Refusal = ComposeSolidArcSketch(Request, Model);
+        if (!Result.Refusal.empty()) return Result;
+        for (auto P : SampleSketchCurve(Model, Model.Curves.front()))
+            Result.Samples.push_back(Request.Plane.Origin + Request.Plane.XAxis * P.X + Request.Plane.YAxis * P.Y);
+        Result.Arc = Request;
+        return Result;
+    }
+    if (Kind != SolidArcDrawingKind::Line && Kind != SolidArcDrawingKind::Curve)
+    { Result.Refusal = "Use Line, Curve or Arc"; return Result; }
+    if (Kind == SolidArcDrawingKind::Curve && Form != SketchSplineForm::Nurbs && Form != SketchSplineForm::Bezier)
+    { Result.Refusal = "Point-only tracing uses NURBS (3) or Bezier (2); interpolating forms need extra tangent poles"; return Result; }
+    const int Degree = Kind == SolidArcDrawingKind::Line ? 1 : Form == SketchSplineForm::Bezier ? int(Controls.size()) - 1 : std::min(3, int(Controls.size()) - 1);
+    if (Degree > 15) { Result.Refusal = "Bezier supports at most 16 controls; use NURBS"; return Result; }
+    NurbsCurveDefinition Definition;
+    Definition.Degree = Degree;
+    Definition.Poles = Controls; // Exact count, exact snapped XYZ values. No fitting or insertion.
+    Definition.Weights.assign(Controls.size(), 1.0);
+    Definition.Knots.assign(Degree + 1, 0.0);
+    const int Spans = int(Controls.size()) - Degree;
+    for (int I = 1; I < Spans; ++I) Definition.Knots.push_back(double(I) / Spans);
+    Definition.Knots.insert(Definition.Knots.end(), Degree + 1, 1.0);
+    Result.Curve.Definition = std::make_shared<NurbsCurveDefinition>(std::move(Definition));
+    const int Samples = std::max(32, int(Controls.size()) * 16);
+    for (int I = 0; I <= Samples; ++I)
+        Result.Samples.push_back(EvaluateNurbsCurve(*Result.Curve.Definition, double(I) / Samples).Position);
+    return Result;
+}
+
 SolidArcSurfaceTrace ProjectSolidArcTrace(SolidArcSnapCatalogue& Catalogue, const SolidArcDocument& Document,
     const SolidArcScene& Scene, const OrbitCameraFrame& Frame, const std::vector<Vector3>& Controls,
     SolidArcDrawingKind Kind, SketchSplineForm Form, bool Closed, bool Fit, double Tolerance)

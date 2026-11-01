@@ -1,6 +1,6 @@
 # SolidArcViewportValidation
 
-Viewport of SolidArc on SwiftShader Device (Subzero) · Vulkan 1.3.0 — specimen: 11 faces, 24 edges, 1332 triangles; 960 × 640; slowest frame 281.4 ms (67.7 s total).
+Viewport of SolidArc on SwiftShader Device (Subzero) · Vulkan 1.3.0 — specimen: 11 faces, 24 edges, 1332 triangles; 960 × 640; slowest frame 214.3 ms (55.4 s total).
 
 | Gate | Subject | Limit | Worst | Checks | Verdict |
 |------|---------|-------|-------|--------|---------|

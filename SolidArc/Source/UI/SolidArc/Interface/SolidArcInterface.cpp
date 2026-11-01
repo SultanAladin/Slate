@@ -1306,7 +1306,7 @@ bool IntersectSketchPlane(const OrbitCameraFrame& Frame, ImVec2 Local, const Ort
     if (Drawing.Kind == SolidArcDrawingKind::Curve) Caption += std::string(" · ") + SketchSplineFormLabel(Drawing.Form);
     if (Drawing.Kind == SolidArcDrawingKind::Rectangle) Caption += Drawing.CentreCondition ? " · centre" : " · corner";
     if (Drawing.Kind == SolidArcDrawingKind::Circle) Caption += Drawing.CentreCondition ? " · centre" : " · two-point";
-    if (Drawing.SurfaceCondition) Caption += " · SURFACE → editable 3D NURBS";
+    if (Drawing.SurfaceCondition) Caption += " · SURFACE POINTS → no added controls";
     else if (Drawing.FacePlaneCondition) Caption += Drawing.FaceName.empty() ? std::string(" · level with the snap") : " · on face " + Drawing.FaceName;
     return Caption;
 }
@@ -1327,10 +1327,10 @@ void OpenDrawingSession(SolidArcWorkspaceState& State, SolidArcDrawingKind Kind)
     State.Drawing.SurfaceCondition = State.SurfaceTraceEnabled;
     State.Drawing.GridPlane       = ViewGridPlane(State.Camera);
     State.Drawing.CentreCondition = Kind == SolidArcDrawingKind::Circle;                     // Plasticity center-circle; V → two-point
-    State.Drawing.Form            = Form;
+    State.Drawing.Form            = State.SurfaceTraceEnabled ? SketchSplineForm::Nurbs : Form;
     if (State.Drawing.SurfaceCondition)
     {
-        Announce(State, "SURFACE TRACE · click on the model · Ctrl: nearest visible model edge (12 px) · Enter: finish · Esc: cancel · projected spans become editable 3D NURBS");
+        Announce(State, "SURFACE TRACE · click on the model · Ctrl: nearest visible model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected");
         return;
     }
     static const char* Hints[] = { "click points · click the first point closes · Enter / right-click finishes open · Ctrl+Z drops a point",
@@ -1380,17 +1380,16 @@ void FinishDrawingSession(SolidArcWorkspaceState& State, bool ClosedCondition)
     const bool KnifeCondition = State.Knife.ActiveCondition && State.Knife.DrawPendingCondition;
     if (Drawing.SurfaceCondition)
     {
-        const auto Trace = ProjectSolidArcTrace(SnapCatalogue(State, {}), State.Document, State.Scene, ViewportFrame(State),
-            LiftedDrawingPoints(Drawing, false), Drawing.Kind, Drawing.Form, ClosedCondition, true);
+        const auto Trace = MakeSolidArcControlTrace(LiftedDrawingPoints(Drawing, false), Drawing.Kind, Drawing.Form, ClosedCondition);
         if (!Trace.Refusal.empty()) { Drawing.Refusal = Legible(Trace.Refusal); Announce(State, Drawing.Refusal); return; }
-        const SolidArcCommandOutcome Outcome = DrawSolidArcProjectedCurve(State.Document, Trace.Fit.Curve, ClosedCondition);
+        const SolidArcCommandOutcome Outcome = Trace.Arc ? DrawSolidArcSketch(State.Document, *Trace.Arc) : DrawSolidArcProjectedCurve(State.Document, Trace.Curve, ClosedCondition);
         if (Outcome.AcceptedCondition)
         {
             Drawing.ActiveCondition = false;
             State.FocusedStep = State.Document.Tree.Steps.back().Label;
         }
         Conclude(State, Outcome);
-        if (Outcome.AcceptedCondition) Announce(State, Compose("Surface trace · %zu poles · sampled surface deviation %.3f mm · editable in XYZ", Trace.Fit.Curve.Definition->Poles.size(), Trace.WorstSurfaceDeviation * 1000.0));
+        if (Outcome.AcceptedCondition) Announce(State, Compose("Surface-point trace · %zu placed controls · no automatic points or surface fitting", Drawing.Points.size()));
         return;
     }
     if (const std::vector<Vector3> Lifted = LiftedDrawingPoints(Drawing, false); !Lifted.empty() && !KnifeCondition)
@@ -1444,7 +1443,16 @@ void AppendDrawingPoint(SolidArcWorkspaceState& State, Vector2 Point, bool Closi
     //    click / right-click / Enter that confirms it.
     if (Drawing.Kind == SolidArcDrawingKind::Polygon && Drawing.Points.size() >= 2) { FinishDrawingSession(State, false); return; }
     const bool Chain = DrawingClicks(Drawing.Kind) == 0 && !Drawing.SegmentCondition;
-    if (Chain && ClosingCondition) { FinishDrawingSession(State, true); return; }
+    if (Chain && ClosingCondition)
+    {
+        if (Drawing.SurfaceCondition)
+        {
+            if (Drawing.Points.size() < 3) { Announce(State, "Place three distinct controls before clicking the first to close"); return; }
+            Drawing.Points.push_back(Drawing.Points.front());
+            Drawing.Lifted.push_back(Drawing.Lifted.front()); // The user's explicit closing click, not a generated pole.
+        }
+        FinishDrawingSession(State, true); return;
+    }
     if (!Drawing.Points.empty() && (Drawing.SurfaceCondition ?
         (Drawing.PointerLifted && !Drawing.Lifted.empty() && Drawing.Lifted.back() && Distance(*Drawing.Lifted.back(), *Drawing.PointerLifted) <= 1.0e-10) :
         Distance(Drawing.Points.back(), Point) <= 1.0e-12))
@@ -8684,13 +8692,14 @@ void DrawDrawingPreview(SolidArcWorkspaceState& State, ImDrawList* Canvas, const
     if (Drawing.SolidCondition) { DrawSolidPreview(State, Canvas, Frame); return; }
     if (Drawing.SurfaceCondition)
     {
-        const auto Controls = LiftedDrawingPoints(Drawing, true);
+        auto Controls = LiftedDrawingPoints(Drawing, true);
+        if (Controls.size() >= 2 && Distance(Controls.back(), Controls[Controls.size()-2]) <= 1e-12) Controls.pop_back();
         const bool Changed = Drawing.TraceFrame.ClipFromWorld != Frame.ClipFromWorld || Drawing.TraceFrame.Width != Frame.Width || Drawing.TraceFrame.Height != Frame.Height || Controls.size() != Drawing.TraceControls.size() || Drawing.TraceForm != Drawing.Form || Drawing.TraceRevision != State.Document.Revision ||
             !std::equal(Controls.begin(), Controls.end(), Drawing.TraceControls.begin(), Drawing.TraceControls.end(), [](Vector3 A, Vector3 B) { return Distance(A, B) < 1.0e-8; });
         if (ReprojectTrace && Changed)
         {
             Drawing.TraceFrame = Frame; Drawing.TraceControls = Controls; Drawing.TraceForm = Drawing.Form; Drawing.TraceRevision = State.Document.Revision;
-            const auto Trace = ProjectSolidArcTrace(SnapCatalogue(State, {}), State.Document, State.Scene, Frame, Controls, Drawing.Kind, Drawing.Form, false, false);
+            const auto Trace = MakeSolidArcControlTrace(Controls, Drawing.Kind, Drawing.Form, false);
             Drawing.TracePreview = Trace.Refusal.empty() ? Trace.Samples : std::vector<Vector3>{};
             Drawing.Refusal = Controls.size() >= 2 ? Legible(Trace.Refusal) : std::string{};
         }
@@ -13158,9 +13167,9 @@ void DrawConstructMenu(SolidArcWorkspaceState& State, ImVec2 Anchor)
                 OpenDrawingSession(State, Entry.Sketch);
                 State.Drawing.CentreCondition  = Entry.CentreCondition;
                 State.Drawing.SegmentCondition = Entry.SegmentCondition;
-                if (Entry.Sketch == SolidArcDrawingKind::Curve) State.Drawing.Form = Entry.Form;
+                if (Entry.Sketch == SolidArcDrawingKind::Curve) State.Drawing.Form = State.SurfaceTraceEnabled && Entry.Form != SketchSplineForm::Bezier ? SketchSplineForm::Nurbs : Entry.Form;
                 if (Entry.SegmentCondition) Announce(State, "Line: click the start, then the end · Esc aborts");
-                if (Entry.Sketch == SolidArcDrawingKind::Curve) Announce(State, std::string("Curve · ") + SketchSplineFormLabel(Entry.Form) + ": click points · 1-4 switch form · Enter / right-click finishes · Ctrl+Z drops a point · Esc aborts");
+                if (Entry.Sketch == SolidArcDrawingKind::Curve) Announce(State, std::string("Curve · ") + SketchSplineFormLabel(State.Drawing.Form) + (State.Drawing.SurfaceCondition ? ": click controls · 2 Bezier / 3 NURBS · no extra poles · Enter finishes · Esc aborts" : ": click points · 1-4 switch form · Enter / right-click finishes · Ctrl+Z drops a point · Esc aborts"));
             }
         }
     }
@@ -17289,7 +17298,7 @@ void DrawDrawingCard(SolidArcWorkspaceState& State)
     ImGui::Checkbox("Reference edges###TraceEdges", &State.Style.EdgesEnabled);
     RegisterWidget(State, "###TraceEdges");
     if (State.SurfaceTraceEnabled)
-        ImGui::TextWrapped("Curve / Arc / Line on the visible surface. Ctrl: nearest model edge within 12 px; otherwise surface. Enter finishes; Esc cancels. Spans are projected and fitted to editable 3D NURBS (0.2 mm sampled check). Split at holes / silhouettes. Finish before changing view.");
+        ImGui::TextWrapped("Only the points you click snap to the surface. Ctrl: nearest model edge within 12 px. Enter saves exactly your controls; no extra poles, no span projection or surface fitting. NURBS (3) / Bezier (2). Spans may leave the surface. Arc stays an analytic three-point arc.");
     if (State.FullXYZEnabled) ImGui::TextWrapped("Select curves or points: G, then X / Y / Z, type a distance, Enter. Orbit to drag the depth axis. Free XYZ edits do not stay surface-bound.");
     EndCard();
     if (!Drawing.ActiveCondition)
@@ -17369,7 +17378,8 @@ void DrawDrawingCard(SolidArcWorkspaceState& State)
             { "NURBS (3)###FormNurbs", SketchSplineForm::Nurbs }, { "Cubic spline (4)###FormCubic", SketchSplineForm::CubicSpline } };
         for (int Index = 0; Index < 4; ++Index)
         {
-            if (Index % 2 == 1) ImGui::SameLine();
+            if (Drawing.SurfaceCondition && Index != 1 && Index != 2) continue;
+            if (Index % 2 == 1 && !Drawing.SurfaceCondition) ImGui::SameLine();
             if (ToggleButton(State, Forms[Index].Label, Drawing.Form == Forms[Index].Form, RowSpan())) { Drawing.Form = Forms[Index].Form; Drawing.Refusal.clear(); }
         }
     }
@@ -17391,7 +17401,7 @@ void DrawDrawingCard(SolidArcWorkspaceState& State)
     {
         if (PressButton(State, "Finish open (Enter)###DrawFinish", RowSpan(), Drawing.Points.size() >= 2)) FinishDrawingSession(State, false);
         ImGui::SameLine();
-        if (PressButton(State, "Close###DrawClose", RowSpan(), Drawing.Points.size() >= 3)) FinishDrawingSession(State, true);
+        if (PressButton(State, "Close###DrawClose", RowSpan(), !Drawing.SurfaceCondition && Drawing.Points.size() >= 3)) FinishDrawingSession(State, true);
     }
     if (PressButton(State, "Drop point (Ctrl+Z)###DrawRetract", RowSpan(), !Drawing.Points.empty())) RetractDrawingPoint(State);
     ImGui::SameLine();
@@ -18533,6 +18543,8 @@ void ApplyShortcuts(SolidArcWorkspaceState& State)
             for (int Index = 0; Index < 4; ++Index)
                 if (Pressed(Keys[Index]))                                                     // gizmo:curve:hermite / bezier / nurbs / cubic-spline
                 {
+                    if (Drawing.SurfaceCondition && Index != 1 && Index != 2)
+                    { Announce(State, "Point-only mode: use NURBS (3) or Bezier (2); no automatic tangent poles"); continue; }
                     Drawing.Form = Forms[Index];
                     Drawing.Refusal.clear();
                     Announce(State, std::string("Curve form: ") + SketchSplineFormLabel(Drawing.Form));

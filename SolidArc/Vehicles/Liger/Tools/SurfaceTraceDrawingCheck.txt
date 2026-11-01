@@ -3,7 +3,7 @@ key Keypad7
 key Keypad5
 frames 2
 key S Shift
-key 4
+key 3
 frames 2
 move world -1.02814 0.499541 0.909355
 frames 2
@@ -25,6 +25,7 @@ key Enter
 frames 3
 expect drawing == 0
 expect steps == 4
+expect last-control-count == 3
 expect curves == 1
 expect refused == 0
 expect undo == 1
@@ -59,7 +60,7 @@ expect curves == 1
 key S Ctrl
 frames 3
 expect dirty == 0
-# Arc uses lifted XYZ controls too, not the sketch plane.
+# Arc uses the plane of the three picked world points, without draping.
 key Escape
 key S Shift
 key Escape
@@ -75,13 +76,14 @@ move world -0.957639 0.45254 0.909149
 click world -0.957639 0.45254 0.909149
 frames 3
 expect drawing == 0
-expect curves == 2
+expect curves == 1
+expect sketches contains Arc
 expect steps == 5
 expect refused == 0
 key Z Ctrl
 frames 2
 expect curves == 1
-# Surface Line drapes its whole span, producing another editable NURBS.
+# Surface Line is degree 1 and retains only its two placed endpoints.
 key A Shift
 frames 2
 move world -1.02814 0.499541 0.909355
@@ -93,3 +95,4 @@ frames 3
 expect drawing == 0
 expect curves == 2
 expect refused == 0
+expect last-control-count == 2

@@ -854,6 +854,7 @@ bool ObserveField(const SolidArcWorkspaceState& State, const std::string& Field,
         Number = State.Drawing.ActiveCondition ? 1.0 : 0.0;
         return true;
     }
+    if (Field == "last-control-count") return Numeric(State.Document.Tree.Steps.empty() ? 0 : double(State.Document.Tree.Steps.back().Points.size()));
     if (Field == "surface-trace") return Numeric(State.SurfaceTraceEnabled ? 1 : 0);
     if (Field == "full-xyz") return Numeric(State.FullXYZEnabled ? 1 : 0);
     if (Field == "drawing-surface") return Numeric(State.Drawing.SurfaceCondition ? 1 : 0);

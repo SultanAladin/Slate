@@ -1,82 +1,66 @@
-# Liger — dedicated surface-tracing workspace
+# Liger — surface-point tracing (no extra curve points)
 
-**New native SolidArc functionality**, not a mesh drawing or a pre-modelled replacement.
-The Windows / Linux packages contain one `Project Liger` folder: `Liger.solidarc`,
-a short guide, one platform launcher, and the self-contained app under `Runtime`.
+The app now snaps **only the controls you place**. Enter saves exactly those
+controls and their snapped XYZ coordinates. It does **not** project whole spans,
+fit the curve to the reference, or insert more control points. A three-click
+NURBS has three editable poles, including after save/load.
 
 ## Start
 
-Extract the **whole** ZIP. On Windows double-click **Start Liger.bat** (not the EXE).
-It passes the project and options explicitly, including from paths with spaces.
-On Linux run `bash "Start Liger.sh"` (X11 desktop and a working Vulkan driver required).
+Extract the entire ZIP into a **new folder**, preserving your previous work.
+On Windows open **Start Liger.bat**. On Linux run `bash "Start Liger.sh"`
+(X11 and Vulkan required). Each package has one `Project Liger` folder with
+the project, guide, launcher and complete `Runtime` resources.
 
-The three dense NURBS reference sheets open **locked**, in a single perspective
-viewport, with **Surface snap** and **XYZ editing** enabled. The source has 306
-faces / 906 edges, not a watertight repaired vehicle. Wheels, interior and underside
-have not been invented. Existing shape defects / holes are intentionally preserved.
-A proper rigid rotation matches the previous blueprints: nose −Y, right +X, up +Z.
+The three dense NURBS reference sheets open locked. Surface snap and XYZ editing
+are enabled. The reference is unchanged: 306 faces / 906 edges, three open sheets,
+not a repaired watertight vehicle. Nose −Y, right +X, up +Z.
 
-## Draw your spline network
+## Draw
 
-1. Choose a useful view (Numpad 1 front / 3 right / 7 top / 0 isometric).
-   Middle-drag orbits; right-drag pans; wheel zooms. Numpad 5 toggles projection.
-2. **Shift+S** starts a curve. Click **on the reference surface**. No modifier is
-   needed. `1` Hermite, `2` Bézier, `3` NURBS, `4` cubic spline select the seed form.
-3. **Hold Ctrl** to target the nearest **visible model edge / curve within 12 px**.
-   This is an exact body edge, not a faceted display-mesh edge or point/centre snap.
-   Away from an edge, Ctrl continues to snap to the surface.
-4. **Enter / right-click** finishes an open section. **Ctrl+Z** drops the last click
-   while drawing; **Esc** cancels without changing the document. Click the first
-   control to close a spline loop. Finish one section before changing the view. If an existing control becomes hidden,
-   the trace refuses instead of moving that control onto the newly visible front.
-5. Draw separate sparse sections / rails, then select them in loft order and **L**
-   for the existing native loft workflow. The reference sheets stay separate.
+1. Choose a view: Numpad 1 front, 3 right, 7 top, 0 isometric; 5 toggles projection.
+   Middle-drag orbits, right-drag pans, wheel zooms.
+2. **Shift+S** starts a control-point curve, default **NURBS** (`3`).
+   **Bezier** (`2`) is also available. Click on the reference to place each control.
+   Interpolating Hermite/cubic modes are excluded in Surface mode because their
+   conversion generates extra tangent poles. They remain available with Surface off.
+3. **Ctrl** snaps to the nearest visible body edge within 12 pixels; otherwise it
+   continues to snap to the surface. Hidden edge display does not disable snapping.
+4. **Enter / right-click** finishes the curve with just your placed controls.
+   **Ctrl+Z** drops a point while drawing; **Esc** cancels. To close a loop, explicitly
+   click the first control after placing at least three distinct controls. That
+   closing click is the last control; there is no automatic closure insertion.
+5. **Shift+A** draws a straight line / polyline with only the placed vertices.
+   **Arc** uses start, end, then a point on the arc; it remains an ordinary analytic
+   arc on the plane defined by those three world points, not a draped NURBS. Its
+   standard editing handles are centre/start/end, not fitted surface poles.
+6. Draw sections / rails, select in order and use **L** for the native loft workflow.
 
-**Arc (3 points)** uses start, end, then a point on the arc. **Shift+A** draws a
-surface-draped line / polyline. The complete seed is projected, then fitted to a
-native editable **3D NURBS**. A circular arc generally cannot remain an exact circle
-on a doubly curved sheet: its draped result is a NURBS, not a falsely labelled exact
-arc. Turn **Surface** off to use the ordinary analytic planar arc / circle tools.
+**Only controls snap. Spans may leave the reference or bridge gaps.** NURBS and
+Bezier are control-point curves: intermediate controls need not lie on the curve
+itself. Neither spans nor subsequent edits are constrained to the surface.
+Preview tessellation vertices are display-only and are never saved as controls.
+Previously created fitted curves are not automatically modified or simplified.
 
-### Surface check and limitations
+## XYZ editing and persistence
 
-Drawing points land on exact CAD carriers, refined from visible tessellation hits.
-Entire seed spans are projected, not merely the clicked controls. The finished fit
-gets an independent **257-sample** surface-distance check at **0.2 mm**; this is a
-sampled check, not a proof of a globally surface-bound p-curve. A hole, silhouette,
-invalid projection or fit failure refuses the commit, with the drawing still open.
-Add controls, change view **between sections**, or split the section rather than
-bridging empty space. Very long / complicated curves may need shorter sections
-(65 controls and 64 fit spans maximum).
+All three gizmo axes remain available, including in cardinal views. Orbit if an
+axis points straight at you, or use **G → X/Y/Z → type distance → Enter**. Esc
+cancels. Mode `1` exposes editable poles / sketch points. Native undo, redo and
+Ctrl+S preserve the controls and knots. Planar line endpoints can lift into 3D;
+individual analytic arc points retain their plane (move the whole arc instead).
 
-Toggle **Reference edges** to see the dense patch network. Edges remain available
-for Ctrl snaps when their display is off. **Surface** in the compact viewport pill
-switches this workflow on/off; the inspector has the same toggle and help.
+## Build and verification
 
-## Move curves in XYZ
+Apply the existing overlays and `SolidArc-Surface-Tracing.patch` described in the
+previous release, then **`SolidArc-Surface-Point-Only.patch`**. Both patches are in
+`SolidArc/Patches`; the latter is incremental to the former. Current native sources
+are mirrored in `SolidArc/Source`. Host `65cf0f1`, geometry `82ed2512`.
 
-**XYZ editing** keeps all three gizmo axes available, including in cardinal views.
-An axis pointing straight at you cannot be usefully dragged from that view: orbit,
-or select the curve / point and use **G → X/Y/Z → type a distance → Enter**.
-Escape cancels the transform. Mode `1` exposes curve poles / sketch points.
-Planar **line endpoints can now lift out of plane** into real 3D curves; spline
-points already could. Individual analytic arc/circle points retain their plane;
-move the whole analytic shape or use a traced NURBS for spatial editing.
+Native tests include exact control count/XYZ, commit and save/load for NURBS and
+Bezier with 2, 3, 4, 8 and 16 points. Actual Vulkan scripts cover drawing, XYZ,
+undo/redo/save, edge snapping and split views. See `AUDIT.md` for final results.
 
-Free XYZ edits are **not a live shrinkwrap constraint**: moving a pole can take the
-curve off the reference. Surface checking happens when a trace is created. Undo,
-redo, Ctrl+S and native save/load preserve the real poles and knots.
-
-## Source / build
-
-Use the existing Frontier `82ed2512` + W95 / importer / reference-startup /
-reference-interaction overlays documented in `../Blueprints/README.md`, then apply
-`../../../Patches/SolidArc-Surface-Tracing.patch`. Updated sources are mirrored
-under `SolidArc/Source`. Desktop host: SultanAladin/Frontier `65cf0f1`.
-`Tools/SurfaceTraceValidation.cpp` supplies native projection / persistence /
-editing tests; the four `SurfaceTrace*Check.txt` scripts exercise the actual UI.
-
-Windows x64 binaries are cross-built with Zig 0.14.1. Native geometry and Vulkan
-interaction checks run on Linux with SwiftShader. **Windows execution itself is
-not verified in this sandbox** (no Windows or Wine); PE architecture, resources,
-launch command, archive integrity and executable hashes are checked.
+Windows x64 is cross-built with Zig 0.14.1; native geometry and Vulkan interaction
+checks run on Linux/SwiftShader. **Windows execution itself is not verified in
+this sandbox**; PE architecture, resources, launcher and archive integrity are checked.

@@ -5,7 +5,7 @@ key Keypad7
 frames 2
 expect split-panes == 4
 key S Shift
-key 4
+key 3
 frames 2
 click world -1.02814 0.499541 0.909355
 frames 2
@@ -19,5 +19,6 @@ frames 3
 expect drawing == 0
 expect steps == 4
 expect curves == 1
+expect last-control-count == 2
 expect refused == 0
 expect split-panes == 4
