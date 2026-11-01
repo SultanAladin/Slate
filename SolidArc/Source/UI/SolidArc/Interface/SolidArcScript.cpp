@@ -886,13 +886,18 @@ bool ObserveField(const SolidArcWorkspaceState& State, const std::string& Field,
     if (Field == "ring-picks") return Numeric(State.RingPicks);
     if (Field == "path-picks") return Numeric(State.PathPicks);
     if (Field == "wrap-curves") return Numeric(State.WrapCurves);
-    if (Field == "curve-radius")                                                            // First circle / arc of the first picked sketch
+    if (Field == "curve-radius" || Field == "curve-center-u" || Field == "curve-center-v")                                                            // First circle / arc of the first picked sketch
     {
         if (Document.Selection.Curves.empty()) return Numeric(0);
         const auto Solved = Document.Regeneration.Sketches.find(Document.Selection.Curves.front());
         if (Solved == Document.Regeneration.Sketches.end()) return Numeric(0);
         for (const GeometryProcessing::SketchCurve& Curve : Solved->second.Curves)
         {
+            if (Field != "curve-radius" && (Curve.Kind == GeometryProcessing::SketchCurveKind::Circle || Curve.Kind == GeometryProcessing::SketchCurveKind::Arc))
+            {
+                const auto Centre = Solved->second.Points.at(size_t(Curve.Centre)).Position;
+                return Numeric(Field == "curve-center-u" ? Centre.X : Centre.Y);
+            }
             if (Curve.Kind == GeometryProcessing::SketchCurveKind::Circle) return Numeric(Curve.Radius);
             if (Curve.Kind == GeometryProcessing::SketchCurveKind::Arc)
                 return Numeric(GeometryProcessing::Distance(Solved->second.Points[size_t(Curve.Centre)].Position, Solved->second.Points[size_t(Curve.Start)].Position));

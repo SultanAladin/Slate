@@ -48,7 +48,7 @@ int main(int argc, char** argv)
             const auto Image = DecodeSolidArcPicture(P.Path);
             Check(Image.Refusal.empty() && Image.Width >= 3800 && Image.Height >= 2100, P.Name+" native PNG decode");
         }
-        const OrbitViewPreset Presets[] = {OrbitViewPreset::Top,OrbitViewPreset::Bottom,OrbitViewPreset::Back,OrbitViewPreset::Front,OrbitViewPreset::Right,OrbitViewPreset::Left};
+        const OrbitViewPreset Presets[] = {OrbitViewPreset::Top,OrbitViewPreset::Bottom,OrbitViewPreset::Left,OrbitViewPreset::Right,OrbitViewPreset::Front,OrbitViewPreset::Back};
         for (int v = 0; v < 6; ++v)
         {
             OrbitCamera Camera;
@@ -65,6 +65,11 @@ int main(int argc, char** argv)
                 D.FrontOnlyCondition = false;
                 Check(FacesSolidArcImagePlane(D, Frame), "legacy two-sided image behaviour");
             }
+            const auto& Own = File.ImagePlanes[v];
+            const double RightDot = Own.Right.X*Frame.Right[0]+Own.Right.Y*Frame.Right[1]+Own.Right.Z*Frame.Right[2];
+            const double DownDot = Own.Down.X*Frame.Up[0]+Own.Down.Y*Frame.Up[1]+Own.Down.Z*Frame.Up[2];
+            Check(RightDot > 0, "named reference screen right agrees with native camera");
+            Check(DownDot < 0, "named reference image is not upside down");
             Check(Drawn == 1, "orthographic view draws only its own reference, never its opposite");
         }
         for (const std::string Name : {"Top","Bottom","Left","Right","Front","Rear"})

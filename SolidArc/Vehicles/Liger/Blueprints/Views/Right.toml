@@ -5,7 +5,7 @@ Height = 1100
 Orthographic = true
 Grid = false
 FieldOfView = 0.7
-InitialView = "Front"
+InitialView = "Right"
 InitialLayout = "Single"
 FitImages = true
 [Files]

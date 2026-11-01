@@ -4,3 +4,7 @@ if(CMAKE_PROJECT_NAME STREQUAL "FrontierUIFoundation" AND NOT TARGET LigerBluepr
     add_executable(LigerBlueprintValidation "${CMAKE_CURRENT_LIST_DIR}/BlueprintValidation.cpp")
     target_link_libraries(LigerBlueprintValidation PRIVATE FrontierSolidArcUI)
 endif()
+if(CMAKE_PROJECT_NAME STREQUAL "FrontierUIFoundation" AND NOT TARGET LigerCadCertifier)
+    add_executable(LigerCadCertifier "${CMAKE_CURRENT_LIST_DIR}/Certifier.cpp")
+    target_link_libraries(LigerCadCertifier PRIVATE FrontierSolidArcDocument)
+endif()

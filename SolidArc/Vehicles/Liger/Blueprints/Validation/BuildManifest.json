@@ -1,4 +1,16 @@
 {
+  "python_environment": {
+    "python": "3.11.2",
+    "packages": {
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "pillow": "13.0.0",
+      "numba": "0.68.1",
+      "triangle": "20250106"
+    }
+  },
+  "delivery": "native-view-and-drawing-plane-correction-v2",
+  "reference_axes": "nose -Y / native right +X / up +Z",
   "vehicle_source": "ea9cb133220aa171b6002703ff7bb88ced5673f2",
   "source_base": "unassignedinbox/Frontier 82ed251267ed8457ca3530d8228b91555572c25d",
   "desktop_host": "SultanAladin/Frontier 65cf0f1",
@@ -8,16 +20,19 @@
   },
   "reference_filter": "Alpha-aware STB mip chain with trilinear minification; base resolution unchanged",
   "tests": {
-    "python": 32,
-    "native_reference_assertions": 111,
+    "python": 34,
+    "native_reference_assertions": 123,
     "document_regressions": 869,
-    "vulkan_assertions": 13,
+    "vulkan_assertions": 113,
     "reference_minification": {
-      "expected_ink_pixels": 18996,
-      "direct_native_ink_coverage": 0.9840492735312697,
-      "coverage_within_one_pixel": 1.0,
+      "visible_core_expected_pixels": 13556,
+      "visible_core_direct_coverage": 0.9910002950722927,
+      "visible_core_coverage_within_one_pixel": 1.0,
+      "expected_ink_pixels": 19908,
+      "direct_native_ink_coverage": 0.9251054852320675,
+      "coverage_within_one_pixel": 0.999146071930882,
       "source": "Actual Vulkan Liger_Top.png capture / registered Top reference",
-      "note": "Screen-space visibility guard, not a geometric tolerance certificate. Tested on Linux / SwiftShader."
+      "note": "Opaque cores: alpha>96 after minification, >98% direct coverage. All ink including faint guides: >99% within one pixel. Screen-space visibility guard, not a geometric tolerance certificate. Tested on Linux / SwiftShader."
     }
   },
   "windows_interactive_tested": false,
@@ -25,13 +40,14 @@
     "SolidArc-Booleans-Variables-Modifiers.patch": "3642ae15846b6443fd02112862dd5790c5d55e9273971f42bb15893515304e66",
     "NurbsIsoBoundaryImport.patch": "305cd95c0c9312fd692d97cfa070d093878cde1f86b756b457fe1cd39f789371",
     "NurbsBoundaryPrecisionProjection.patch": "7d97f40dd270a380601504687eb3c912bd2b195d641bde682a721bb868fc94c4",
-    "SolidArc-Reference-Startup-Views.patch": "c43ae2996e66bafa4949d548ef9c8fa588c91f399a5f73d3250040141c2c0a4b"
+    "SolidArc-Reference-Startup-Views.patch": "c43ae2996e66bafa4949d548ef9c8fa588c91f399a5f73d3250040141c2c0a4b",
+    "SolidArc-Reference-Interaction-Corrections.patch": "f59df12a9143617033e42164f718eabbd749ce03aa594dca20955f0dea21de25"
   },
   "runtimes": {
     "Windows": {
       "executable": "SolidArcWorkspace.exe",
-      "sha256": "0a96bb98e0ad929dd67f0448345c45c6dc7596dd6ee0b6932b711d57a49d3d53",
-      "executable_bytes": 8935936,
+      "sha256": "10d4831dbab0df019774524c14b8afc9d1289cd061d0c3dc726ba3cfb2261d55",
+      "executable_bytes": 8934400,
       "svg_icons": 310,
       "solidarc_icons": 66,
       "font_faces": 5,
@@ -57,7 +73,7 @@
     },
     "Linux": {
       "executable": "SolidArcWorkspace",
-      "sha256": "12b2786092c8bab18adb47d6aac77db3605d8491fc7b92a9311217fc3494971c",
+      "sha256": "38b52125ebc3c72137c051042163ce4562ad98ada9fdb388931b8528a1e1931e",
       "executable_bytes": 10870256,
       "svg_icons": 310,
       "solidarc_icons": 66,
@@ -71,5 +87,7 @@
         "/lib64/ld-linux-x86-64.so.2"
       ]
     }
-  }
+  },
+  "interface_source_sha256": "011ee68b3182da296c214b55f6cc61b1a46be5e929f27004a71e6e9f4ecc0d6d",
+  "script_source_sha256": "4729e5985369fcd7f460de8534a4e95e48db183af28e4cd5856b449da303a88d"
 }

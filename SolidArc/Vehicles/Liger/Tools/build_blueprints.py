@@ -18,10 +18,10 @@ PPM = 1500  # same physical sampling for every view: pixels/metre
 VIEWS = [
     ('Top', [0,0,1], [1,0,0], [0,1,0], 'Top'),
     ('Bottom', [0,0,-1], [1,0,0], [0,-1,0], 'Bottom'),
-    ('Left', [0,1,0], [-1,0,0], [0,0,1], 'Back'),
-    ('Right', [0,-1,0], [1,0,0], [0,0,1], 'Front'),
-    ('Front', [1,0,0], [0,1,0], [0,0,1], 'Right'),
-    ('Rear', [-1,0,0], [0,-1,0], [0,0,1], 'Left')]
+    ('Left', [-1,0,0], [0,-1,0], [0,0,1], 'Left'),
+    ('Right', [1,0,0], [0,1,0], [0,0,1], 'Right'),
+    ('Front', [0,-1,0], [1,0,0], [0,0,1], 'Front'),
+    ('Rear', [0,1,0], [-1,0,0], [0,0,1], 'Back')]
 
 
 @njit(cache=True)
@@ -45,7 +45,7 @@ def zbuffer(screen, tri, W, H):
 
 
 @njit(cache=True)
-def visible_lines(screen, segments, kinds, depth):
+def visible_lines(screen, segments, kinds, depth, hidden=False):
     H,W=depth.shape; result=np.zeros((H,W),np.uint8)
     for idx in range(len(segments)):
         a,b=screen[segments[idx,0]],screen[segments[idx,1]]
@@ -63,7 +63,10 @@ def visible_lines(screen, segments, kinds, depth):
                         if 0<=xx<W and 0<=yy<H and depth[yy,xx]>-1e19:
                             w=(1-abs(p[0]-xx))*(1-abs(p[1]-yy))
                             front+=w*depth[yy,xx];weight+=w
-                if weight>1e-6 and p[2]>=front/weight-.0002:
+                visible = weight>1e-6 and p[2]>=front/weight-.0002
+                # Hidden guides are deliberately separate from visible ink. Screen-space
+                # dashes keep the far-side rims readable without suggesting a solid edge.
+                if (not hidden and visible) or (hidden and weight>1e-6 and not visible and (x+y)//18%2==0):
                     result[y,x]=max(result[y,x],kinds[idx])
     return result
 
@@ -103,8 +106,12 @@ def curves():
 def main():
     out=ROOT/'Blueprints';out.mkdir(exist_ok=True)
     for folder in ['References','Schematics','PatchLayouts','Views','Validation']:(out/folder).mkdir(exist_ok=True)
-    D=load_binary(ROOT/'Refined/Proofs/after.bin.gz');P=D['pos'];lo=P.min(0).astype(float);hi=P.max(0).astype(float)
-    Q,segments,kinds,counts=curves();rows=[]
+    D=load_binary(ROOT/'Refined/Proofs/after.bin.gz')
+    # A rigid registration change ONLY, not a modification of the delivered CAD.
+    # Source nose +X / left +Y -> native Front -Y / right +X, up +Z.
+    rotation=np.array([[0.,-1.,0.],[1.,0.,0.],[0.,0.,1.]])
+    P=D['pos']@rotation;lo=P.min(0).astype(float);hi=P.max(0).astype(float)
+    Q,segments,kinds,counts=curves();Q=Q@rotation;rows=[]
     font='/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
     for name,eye,right,up,preset in VIEWS:
         E,R,U=map(lambda x:np.array(x,float),[eye,right,up]);basis=np.stack([R,U,E],axis=1)
@@ -120,14 +127,18 @@ def main():
         selected=kinds>=2
         lines=visible_lines(projected,segments[selected],kinds[selected],depth)
         lines=maximum_filter(lines,size=3)
+        hidden=maximum_filter(visible_lines(projected,segments[selected],kinds[selected],depth,True),size=3)
+        smooth=maximum_filter(visible_lines(projected,segments,kinds,depth),size=3)==1
         # Separate registered transparent image, paper sheet, and optional all-seam layout.
         rgba=np.zeros((H,W,4),np.uint8)
         # Bolder registered ink stays legible in a quad viewport. Printable
         # sheets below retain the original finer strokes and exact same mapping.
         bold_outline=maximum_filter(outline,size=5);bold_lines=maximum_filter(lines,size=5)
+        rgba[smooth]=[156,180,205,65];rgba[hidden>0]=[156,180,205,105]
         rgba[bold_outline]=[180,223,255,255];rgba[bold_lines==2]=[255,174,70,255];rgba[bold_lines==3]=[82,219,234,255]
         ref=Image.fromarray(rgba);ref.save(out/'References'/f'{name}.png',dpi=(300,300))
         paper=np.full((H,W,3),255,np.uint8);paper[fill]=[247,249,251]
+        paper[smooth]=[209,218,227];paper[hidden>0]=[173,187,201]
         paper[outline]=[27,42,59];paper[lines==2]=[198,96,18];paper[lines==3]=[15,118,151]
         im=Image.fromarray(paper);draw=ImageDraw.Draw(im)
         # Datum guides are on paper only, not interpreted as CAD feature curves.
@@ -139,10 +150,10 @@ def main():
                     draw.line([(v,j),(v,min(j+20,H-1))] if axis==0 else [(j,v),(min(j+20,W-1),v)],fill='#9cb4ca',width=2)
         sheet=Image.new('RGB',(W+160,H+350),'white');sheet.paste(im,(80,170));d=ImageDraw.Draw(sheet)
         d.text((80,25),f'LIGER / {name.upper()} / ORTHOGRAPHIC',font=ImageFont.truetype(font,54),fill='#172b42')
-        d.text((80,104),'CAD-derived exterior body reference • front +X / left +Y / up +Z • no perspective',font=ImageFont.truetype(font,28),fill='#4e6378')
-        d.text((80,H+197),'DARK: silhouette  /  CYAN: openings & free rims  /  ORANGE: crease rails  /  DASHED: world datums',font=ImageFont.truetype(font,27),fill='#385069')
+        d.text((80,104),'CAD-derived exterior body reference • front -Y / right +X / up +Z • no perspective',font=ImageFont.truetype(font,28),fill='#4e6378')
+        d.text((80,H+197),'DARK: silhouette  /  CYAN: openings & free rims  /  ORANGE: crease rails  /  PALE/DASHED: smooth/hidden guides',font=ImageFont.truetype(font,27),fill='#385069')
         d.text((80,H+242),f'1500 pixels/metre • body envelope {(hi[0]-lo[0])*1000:.1f} × {(hi[1]-lo[1])*1000:.1f} × {(hi[2]-lo[2])*1000:.1f} mm',font=ImageFont.truetype(font,27),fill='#385069')
-        d.text((80,H+285),'Reference only. No wheels/interior/underside invented. Smooth patch seams omitted; optional layout supplied.',font=ImageFont.truetype(font,25),fill='#6d7c8e')
+        d.text((80,H+285),'Reference only. No wheels/interior/underside invented. Faint guides are not sharp edges. Optional patch layout supplied.',font=ImageFont.truetype(font,25),fill='#6d7c8e')
         sheet.save(out/'Schematics'/f'Liger_{name}.png',dpi=(300,300))
         all_lines=visible_lines(projected,segments,kinds,depth);all_lines=maximum_filter(all_lines,size=2)
         layout=paper.copy();layout[all_lines==1]=[150,167,184]
@@ -155,11 +166,12 @@ def main():
                  corner=corner.tolist(),right=(R*W/PPM).tolist(),down=(-U*H/PPM).tolist(),
                  near_depth=float(np.max(P@E)),plane_depth=plane_depth)
         rows.append(row)
-        del rgba,paper,depth,fill,outline,lines,all_lines,layout,projected
+        del rgba,paper,depth,fill,outline,lines,all_lines,layout,projected,hidden,smooth
         print(name,W,H,flush=True)
     (out/'registration.json').write_text(json.dumps(dict(source_commit='ea9cb133220aa171b6002703ff7bb88ced5673f2',
         source='Refined/CAD/Liger_Refined_CAD.step',units='metres',bounds=[lo.tolist(),hi.tolist()],
-        crease_threshold_degrees=8,visibility_depth_tolerance_mm=.2,rail_counts_half=counts,views=rows),indent=2))
+        reference_rotation_from_source=rotation.tolist(),front_axis=[0,-1,0],
+        hidden_guides='dashed 105/255 alpha; smooth visible rails 65/255 alpha',crease_threshold_degrees=8,visibility_depth_tolerance_mm=.2,rail_counts_half=counts,views=rows),indent=2))
     setup_project(out, rows)
 
     thumbs=[]

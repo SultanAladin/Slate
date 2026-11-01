@@ -30,9 +30,12 @@ class BlueprintTests(unittest.TestCase):
             np.testing.assert_array_equal(M@M.T,np.eye(3))
             self.assertEqual(np.linalg.det(M),1)
         v={r['name']:r for r in self.meta['views']}
-        self.assertEqual(v['Left']['screen_right'][0],-1)
-        self.assertEqual(v['Right']['screen_right'][0],1)
-        self.assertEqual(v['Front']['eye'],[1,0,0])
+        self.assertEqual(v['Left']['eye'],[-1,0,0])
+        self.assertEqual(v['Right']['eye'],[1,0,0])
+        self.assertEqual(v['Front']['eye'],[0,-1,0])
+        self.assertEqual(v['Rear']['eye'],[0,1,0])
+        for name,row in v.items():
+            self.assertEqual(row['native_preset'], 'Back' if name=='Rear' else name)
 
     def test_registered_pixel_to_world_scale(self):
         for v,p in zip(self.meta['views'],self.project['ImagePlanes']):
@@ -54,6 +57,8 @@ class BlueprintTests(unittest.TestCase):
                 self.assertEqual(image.mode,'RGBA')
                 alpha=np.array(image.getchannel('A'))
                 self.assertGreater(np.count_nonzero(alpha),1000)
+                self.assertGreater(np.count_nonzero(alpha==65),100, 'visible smooth guides included')
+                self.assertGreater(np.count_nonzero(alpha==105),100, 'hidden dashed guides included')
                 self.assertLess(np.count_nonzero(alpha),alpha.size//8)
             with Image.open(self.root/'Schematics'/f"Liger_{v['name']}.png") as sheet:
                 self.assertEqual(sheet.size,(v['pixels'][0]+160,v['pixels'][1]+350))
@@ -74,6 +79,22 @@ class BlueprintTests(unittest.TestCase):
         for z,expected in [(0,True),(-.0005,False),(-.01,False)]:
             p=np.array([[2.,3.,z],[9.,3.,z]])
             self.assertEqual(bool(np.any(visible_lines(p,segments,kinds,depth))),expected)
+
+    def test_hidden_guide_is_dashed_and_separate(self):
+        depth=np.zeros((80,80),np.float32)
+        p=np.array([[2.,30.,-.01],[76.,30.,-.01]])
+        segments=np.array([[0,1]],np.int32);kinds=np.array([2],np.uint8)
+        self.assertFalse(np.any(visible_lines(p,segments,kinds,depth)))
+        guide=visible_lines(p,segments,kinds,depth,True)
+        self.assertGreater(np.count_nonzero(guide),20)
+        self.assertLess(np.count_nonzero(guide),60)
+        self.assertFalse(np.any(visible_lines(p+np.array([0.,0.,.01]),segments,kinds,depth,True)))
+
+    def test_reference_rotation_is_rigid_and_points_nose_to_front(self):
+        M=np.array(self.meta['reference_rotation_from_source'])
+        np.testing.assert_array_equal(M@M.T,np.eye(3))
+        self.assertEqual(np.linalg.det(M),1)
+        np.testing.assert_array_equal(np.array([1,0,0])@M,[0,-1,0])
 
     def test_visibility_uses_interpolated_depth_on_sloped_skin(self):
         y,x=np.mgrid[:12,:12];depth=(x*.003+y*.002).astype(np.float32)

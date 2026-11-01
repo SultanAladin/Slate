@@ -1,0 +1,22 @@
+{
+  "Frame": 129,
+  "Title": "Liger — scratch modelling reference",
+  "DocumentPath": "/home/user/Slate/SolidArc/Vehicles/Liger/Blueprints/Liger.solidarc",
+  "Dirty": true,
+  "Steps": [{"Label": "Sketch#1", "Caption": "Arc1 · Sketch", "Refused": false}, {"Label": "Sketch#2", "Caption": "Offset1 · Sketch", "Refused": false}],
+  "Body": {"Faces": 0, "Edges": 0, "Vertices": 0, "Genus": -1, "Volume": 0, "Sound": false},
+  "Selection": {"Faces": [], "Edges": [], "Curves": ["Arc1"]},
+  "Curves": [],
+  "Sheet": false,
+  "PoleDrags": 0,
+  "PickMode": 5,
+  "Hover": "",
+  "Camera": {"Azimuth": 0, "Elevation": 0, "Distance": 8.690360944, "Target": [0, -0.3816666667, 0.5806666667], "Orthographic": true},
+  "Bevel": {"Active": false, "Shape": "Fillet", "Size": 0.25, "Pinned": false, "Variable": false, "EndSize": 0, "Flipped": false, "PreviewFaces": 0, "Refusal": "", "Verb": 0, "Profile": "", "Combination": 1, "Depth": 0, "DepthPointer": false},
+  "Drawing": {"Active": false, "Kind": "Arc", "Plane": 2, "Form": "Hermite", "Centre": false, "Points": [[-1, 0], [1, 0], [-0, 1]], "Solid": false, "SolidKind": "Block", "Lift": 0, "Elevation": 0, "Sides": 6, "Combination": 4, "Refusal": ""},
+  "Undo": 2,
+  "Redo": 0,
+  "Welcome": false,
+  "Status": "Selected sketch Arc1 · 1 selected · L lofts the picks in order · the gizmo moves / turns them",
+  "Viewport": [887, 564, 561, 505]
+}

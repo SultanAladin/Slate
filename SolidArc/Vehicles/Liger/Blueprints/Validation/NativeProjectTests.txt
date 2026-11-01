@@ -36,6 +36,8 @@ PASS view 0 facing filter plane 4
 PASS legacy two-sided image behaviour
 PASS view 0 facing filter plane 5
 PASS legacy two-sided image behaviour
+PASS named reference screen right agrees with native camera
+PASS named reference image is not upside down
 PASS orthographic view draws only its own reference, never its opposite
 PASS view 1 facing filter plane 0
 PASS legacy two-sided image behaviour
@@ -49,6 +51,8 @@ PASS view 1 facing filter plane 4
 PASS legacy two-sided image behaviour
 PASS view 1 facing filter plane 5
 PASS legacy two-sided image behaviour
+PASS named reference screen right agrees with native camera
+PASS named reference image is not upside down
 PASS orthographic view draws only its own reference, never its opposite
 PASS view 2 facing filter plane 0
 PASS legacy two-sided image behaviour
@@ -62,6 +66,8 @@ PASS view 2 facing filter plane 4
 PASS legacy two-sided image behaviour
 PASS view 2 facing filter plane 5
 PASS legacy two-sided image behaviour
+PASS named reference screen right agrees with native camera
+PASS named reference image is not upside down
 PASS orthographic view draws only its own reference, never its opposite
 PASS view 3 facing filter plane 0
 PASS legacy two-sided image behaviour
@@ -75,6 +81,8 @@ PASS view 3 facing filter plane 4
 PASS legacy two-sided image behaviour
 PASS view 3 facing filter plane 5
 PASS legacy two-sided image behaviour
+PASS named reference screen right agrees with native camera
+PASS named reference image is not upside down
 PASS orthographic view draws only its own reference, never its opposite
 PASS view 4 facing filter plane 0
 PASS legacy two-sided image behaviour
@@ -88,6 +96,8 @@ PASS view 4 facing filter plane 4
 PASS legacy two-sided image behaviour
 PASS view 4 facing filter plane 5
 PASS legacy two-sided image behaviour
+PASS named reference screen right agrees with native camera
+PASS named reference image is not upside down
 PASS orthographic view draws only its own reference, never its opposite
 PASS view 5 facing filter plane 0
 PASS legacy two-sided image behaviour
@@ -101,6 +111,8 @@ PASS view 5 facing filter plane 4
 PASS legacy two-sided image behaviour
 PASS view 5 facing filter plane 5
 PASS legacy two-sided image behaviour
+PASS named reference screen right agrees with native camera
+PASS named reference image is not upside down
 PASS orthographic view draws only its own reference, never its opposite
 PASS Top launcher options
 PASS Bottom launcher options
@@ -109,4 +121,4 @@ PASS Right launcher options
 PASS Front launcher options
 PASS Rear launcher options
 PASS invalid view is refused, not silently mislabelled
-Native blueprint checks: 111 passed; 0 failed
+Native blueprint checks: 123 passed; 0 failed

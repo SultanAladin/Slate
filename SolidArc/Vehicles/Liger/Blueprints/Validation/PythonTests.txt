@@ -1,8 +1,10 @@
 test_buried_curve_is_not_shown_through_skin (test_blueprints.BlueprintTests.test_buried_curve_is_not_shown_through_skin) ... ok
+test_hidden_guide_is_dashed_and_separate (test_blueprints.BlueprintTests.test_hidden_guide_is_dashed_and_separate) ... ok
 test_high_resolution_transparent_registered_images (test_blueprints.BlueprintTests.test_high_resolution_transparent_registered_images) ... ok
 test_launchers_keep_all_views_in_the_same_project (test_blueprints.BlueprintTests.test_launchers_keep_all_views_in_the_same_project) ... ok
 test_no_perspective_or_mirrored_camera_frames (test_blueprints.BlueprintTests.test_no_perspective_or_mirrored_camera_frames) ... ok
 test_project_does_not_embed_old_cad (test_blueprints.BlueprintTests.test_project_does_not_embed_old_cad) ... ok
+test_reference_rotation_is_rigid_and_points_nose_to_front (test_blueprints.BlueprintTests.test_reference_rotation_is_rigid_and_points_nose_to_front) ... ok
 test_registered_pixel_to_world_scale (test_blueprints.BlueprintTests.test_registered_pixel_to_world_scale) ... ok
 test_six_views_and_empty_modelling_tree (test_blueprints.BlueprintTests.test_six_views_and_empty_modelling_tree) ... ok
 test_visibility_uses_interpolated_depth_on_sloped_skin (test_blueprints.BlueprintTests.test_visibility_uses_interpolated_depth_on_sloped_skin) ... ok
@@ -39,6 +41,6 @@ test_native_zero_tolerant_edges_and_real_gap_control (test_refined.RefinedTests.
 test_sampled_change_and_clearance_gates (test_refined.RefinedTests.test_sampled_change_and_clearance_gates) ... ok
 
 ----------------------------------------------------------------------
-Ran 32 tests in 9.179s
+Ran 34 tests in 12.754s
 
 OK

@@ -1,0 +1,60 @@
+# SolidArcCapture
+
+- Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
+- Frame: 1366 x 768 · 132 frames · 11.9101 s · slowest frame 2742.31 ms
+- Script: /home/user/Slate/SolidArc/Vehicles/Liger/Tools/BlueprintInteractionCheck.txt
+- Expectations: 35 / 35 passed
+
+| Line | Expectation | Observed | Result |
+|-----:|-------------|----------|--------|
+| 6 | `active-pane == 0` | 0 | 🟢 |
+| 9 | `drawing == Arc` | Arc | 🟢 |
+| 12 | `drawing-plane == 0` | 0 | 🟢 |
+| 15 | `active-pane == 3` | 3 | 🟢 |
+| 16 | `drawing-plane == 2` | 2 | 🟢 |
+| 17 | `drawing-normal-x ~ 1` | 1 | 🟢 |
+| 20 | `active-pane == 2` | 2 | 🟢 |
+| 21 | `drawing-plane == 1` | 1 | 🟢 |
+| 24 | `drawing-plane == 2` | 2 | 🟢 |
+| 27 | `drawing-points == 1` | 1 | 🟢 |
+| 30 | `active-pane == 0` | 0 | 🟢 |
+| 31 | `drawing-plane == 2` | 2 | 🟢 |
+| 38 | `drawing == 0` |  | 🟢 |
+| 39 | `steps == 1` | 1 | 🟢 |
+| 40 | `plane-normal-x ~ 1` | 1 | 🟢 |
+| 41 | `plane-normal-y ~ 0` | 0 | 🟢 |
+| 42 | `plane-normal-z ~ 0` | 0 | 🟢 |
+| 47 | `sweep == 1` | 1 | 🟢 |
+| 48 | `sweep-verb == Offset` | Offset | 🟢 |
+| 51 | `sweep-amount ~ 0.1` | 0.1 | 🟢 |
+| 52 | `sweep-refusal == 0` |  | 🟢 |
+| 53 | `sweep-outline == 1` | 1 | 🟢 |
+| 59 | `steps == 2` | 2 | 🟢 |
+| 60 | `sweep == 0` | 0 | 🟢 |
+| 61 | `refused == 0` | 0 | 🟢 |
+| 62 | `plane-normal-x ~ 1` | 1 | 🟢 |
+| 67 | `selected-curves == 1` | Offset1 | 🟢 |
+| 68 | `curve-radius ~ 0.9` | 0.9 | 🟢 |
+| 69 | `curve-center-u ~ 0` | -0 | 🟢 |
+| 70 | `curve-center-v ~ 0` | -0 | 🟢 |
+| 74 | `selected-curves == 0` |  | 🟢 |
+| 77 | `selected-curves == 1` | Arc1 | 🟢 |
+| 78 | `curve-radius ~ 1` | 1 | 🟢 |
+| 79 | `curve-center-u ~ 0` | -0 | 🟢 |
+| 80 | `curve-center-v ~ 0` | -0 | 🟢 |
+
+| Capture | Frame | Digest |
+|---------|------:|--------|
+| Liger_Side_Arc | 75 | `d86dd9670f86ac42` |
+| Liger_Concentric_Offset_Preview | 94 | `5d99bae051e233f9` |
+| Liger_Concentric_Arcs | 132 | `758025e38933107b` |
+
+## Journal
+
+- Arc on plane XY (or the body face under the first click): click start, end, then a point on the arc · hold Ctrl to snap to ends / midpoints / centres, Alt to slide along a curve · Esc aborts
+- Arc1 · 0 ms
+- Offset Arc1 · move sideways (Shift fine, Ctrl free) or type a value · click / Enter commits · Esc cancels
+- Offset Arc1 by 0.1 · 0 ms
+- Selected sketch Offset1 · 1 selected · L lofts the picks in order · the gizmo moves / turns them
+- Selection cleared
+- Selected sketch Arc1 · 1 selected · L lofts the picks in order · the gizmo moves / turns them

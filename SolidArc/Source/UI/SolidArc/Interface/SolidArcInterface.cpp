@@ -1309,6 +1309,8 @@ bool IntersectSketchPlane(const OrbitCameraFrame& Frame, ImVec2 Local, const Ort
     return Caption;
 }
 
+int ViewGridPlane(const OrbitCamera& Camera) noexcept;
+
 void OpenDrawingSession(SolidArcWorkspaceState& State, SolidArcDrawingKind Kind)
 {
     if (State.Bevel.ActiveCondition) return;
@@ -1318,7 +1320,7 @@ void OpenDrawingSession(SolidArcWorkspaceState& State, SolidArcDrawingKind Kind)
     State.Drawing.Sides           = Sides;
     State.Drawing.ActiveCondition = true;
     State.Drawing.Kind            = Kind;
-    State.Drawing.GridPlane       = std::clamp(State.Style.GridPlane, 0, 2);
+    State.Drawing.GridPlane       = ViewGridPlane(State.Camera);
     State.Drawing.CentreCondition = Kind == SolidArcDrawingKind::Circle;                     // Plasticity center-circle; V → two-point
     State.Drawing.Form            = Form;
     static const char* Hints[] = { "click points · click the first point closes · Enter / right-click finishes open · Ctrl+Z drops a point",
@@ -1950,6 +1952,16 @@ void FollowFacePlane(SolidArcWorkspaceState& State, const OrbitCameraFrame& Fram
 {
     SolidArcDrawingSession& Drawing = State.Drawing;
     if (Drawing.SolidCondition || !Drawing.Points.empty() || State.Picker.Lock != SolidArcSnapLockKind::None) return;
+    // An armed tool may have been opened in Top and then moved to a side pane.
+    // Re-resolve until the first point ONLY; a partially drawn arc never changes plane.
+    const int PlaneIndex = ViewGridPlane(State.Camera);
+    if (Drawing.GridPlane != PlaneIndex)
+    {
+        Drawing.GridPlane = PlaneIndex;
+        Drawing.FacePlaneCondition = false;
+        Drawing.FaceName.clear();
+        Drawing.PointerLifted.reset();
+    }
     std::string      Name;
     OrthonormalFrame Plane;
     if (State.Picker.FaceOrientEnabled && ResolveHoveredFacePlane(State, Frame, Local, Name, Plane))
@@ -14415,90 +14427,69 @@ void DrawSketchToolbar(SolidArcWorkspaceState& State, ImVec2 Image, ImVec2 Exten
         bool        Enabled;
     };
     const bool IdleSelectActive = !State.Trim.ActiveCondition && !State.Fill.ActiveCondition
-                               && !State.DimensionTool.ActiveCondition && !State.Knife.ActiveCondition;
+                               && !State.DimensionTool.ActiveCondition && !State.Knife.ActiveCondition
+                               && !State.Drawing.ActiveCondition && !State.Sweep.ActiveCondition;
     const ToolButton Tools[] = { { "SketchSelect", IconSymbol::SolidArcSelect, "Select", IdleSelectActive, true },
                                  { "SketchCut", IconSymbol::SolidArcCut, "Cut", SplitCondition, SketchCondition && !State.Bevel.ActiveCondition },
                                  { "SketchInsert", IconSymbol::SolidArcPoints, "Point", InsertCondition, SketchCondition && !State.Bevel.ActiveCondition },
                                  { "SketchTrim", IconSymbol::SolidArcTrim, "Trim", TrimCondition, SketchCondition },
                                  { "SketchFill", IconSymbol::SolidArcFill, "Fill", State.Fill.ActiveCondition, SketchCondition },
                                  { "SketchDimension", IconSymbol::SolidArcSelect, "Dim", State.DimensionTool.ActiveCondition, !State.Bevel.ActiveCondition },
-                                 { "SketchKnife", IconSymbol::SolidArcSubtract, "", State.Knife.ActiveCondition, State.Document.Summary.PresentCondition && !State.Bevel.ActiveCondition } };
-    SolidArcSheet Probe;
-    Probe.Begin();
-    constexpr int DimIndex   = 5;
-    constexpr int KnifeIndex = 6;                                                           // [-]  - The knife icon (last tool)
+                                 { "SketchKnife", IconSymbol::SolidArcSubtract, "Knife", State.Knife.ActiveCondition, State.Document.Summary.PresentCondition && !State.Bevel.ActiveCondition },
+                                 { "SketchOffset", IconSymbol::SolidArcSelect, "Offset", State.Sweep.ActiveCondition && State.Sweep.Verb == SolidArcSweepVerb::Offset, SketchCondition && !State.Bevel.ActiveCondition } };
+    constexpr int DimIndex = 5, KnifeIndex = 6, OffsetIndex = 7;
     const std::string ToolCaption = KnifeToolLabel(State);
-    // Room: the viewport's left edge to the orientation cube (the bar shares the cube's height band), 12 px clear.
-    const float RoomLeft  = Image.x + 12.0f;
-    float       RoomRight = Image.x + Extent.x - CubeExtent - 18.0f - 12.0f;
-    float Widths[KnifeIndex + 1] = {}, Total = 0.0f, Labelled = 0.0f, ToolWidth = 0.0f;   // [px]
-    float Padding = 12.0f;                                                                  // [px] - Button side padding
-    bool  LabelsCondition = true, CaptionCondition = true, FittedCondition = false;
-    for (int Fit = 0; Fit < 4 && !FittedCondition; ++Fit)                                   // Labels + caption → icons + caption → icons → tight icons
-    {
-        LabelsCondition  = Fit == 0;
-        CaptionCondition = Fit < 2;
-        Padding          = Fit == 0 ? 9.0f : (Fit < 3 ? 11.0f : 8.0f);
-        Total = 2.0f + 10.0f + 4.0f * KnifeIndex + 1.0f + 6.0f + 4.0f;
-        for (int Index = 0; Index <= KnifeIndex; ++Index)
-            Total += Widths[Index] = 2.0f * Padding + 17.0f + (LabelsCondition && *Tools[Index].Label ? 7.0f + Probe.Measure(Tools[Index].Label, 13.0f) : 0.0f);
-        ToolWidth = CaptionCondition ? 10.0f + std::max(Probe.Measure(ToolCaption.c_str(), 13.0f), 44.0f) + 22.0f : 30.0f;   // Knife tool menu
-        Labelled  = Total - Widths[KnifeIndex] - 4.0f;                                      // Labelled tools stay centred; the knife extends right
-        Total    += ToolWidth + 2.0f;
-        FittedCondition = Total <= RoomRight - RoomLeft;
-    }
-    const float  ButtonHeight = 18.0f + std::max(17.0f, 13.0f * SolidArcStyleTokens::FontScale);
-    const float  Height       = 2.0f + 10.0f + ButtonHeight;
-    float        Bottom       = std::min(Image.y + Extent.y - 52.0f, HintTop - 8.0f);        // [px] - Above the hint lines however many wrap
-    if (!FittedCondition)                                                                   // Too narrow beside the cube: rise above its band
-    {
-        Bottom    = std::min(Bottom, Image.y + Extent.y - CubeExtent - 45.0f - 8.0f);
-        RoomRight = Image.x + Extent.x - 12.0f;
-    }
-    const float  Centred      = std::floor(Image.x + 0.5f * (Extent.x - Labelled));
-    const ImVec2 Corner(std::max(RoomLeft, std::min(Centred, std::floor(RoomRight - Total))), Bottom - Height);
+    // Small text-icon pill: no SVG + caption pairs and no tall card margins.
+    // Tooltips retain the full descriptions and keyboard shortcuts.
+    const char* TextIcons[] = {"Sel", "Cut", "+Pt", "Trim", "Fill", "Dim", "Knife", "Offset"};
+    SolidArcSheet Probe; Probe.Begin();
+    constexpr float FontSize = 11.0f, ButtonHeight = 24.0f, Height = 30.0f, Padding = 7.0f;
+    float Widths[8], Total = 12.0f;
+    for (int i = 0; i < 8; ++i) Total += (Widths[i] = Probe.Measure(TextIcons[i], FontSize) + 2.0f * Padding) + 2.0f;
+    const float ToolWidth = 22.0f;
+    Total += ToolWidth;
+    // Keep the pill clear of the active view's orientation cube and hint text.
+    const float RoomLeft = Image.x + 8.0f;
+    const float RoomRight = Image.x + Extent.x - CubeExtent - 26.0f;
+    float Bottom = std::min(Image.y + Extent.y - 44.0f, HintTop - 4.0f);
+    const bool FitsBesideCube = Total <= RoomRight - RoomLeft;
+    if (!FitsBesideCube) Bottom = std::min(Bottom, Image.y + Extent.y - CubeExtent - 53.0f);
+    const float Right = FitsBesideCube ? RoomRight : Image.x + Extent.x - 8.0f;
+    const float X = std::max(RoomLeft, std::min(Image.x + .5f * (Extent.x - Total), Right - Total));
+    const ImVec2 Corner(X, Bottom - Height);
     BeginSheetWindow("ViewportTools", Corner, ImVec2(Total, Height), true);
-    SolidArcSheet Sheet;
-    Sheet.Begin();
-    const PlaneExtent Bar    = Spanning(Corner.x, Corner.y, Total, Height);
-    const float       Centre = 0.5f * (Bar.MinimumY + Bar.MaximumY);
-    Sheet.Box(Bar, SolidArcInk(0x171717, 0xf5 / 255.0f), 13.0f, SolidArcInk(0x343434));
-    float Cursor = Bar.MinimumX + 1.0f + 5.0f;
-    for (int Index = 0; Index <= KnifeIndex; ++Index)
+    SolidArcSheet Sheet; Sheet.Begin();
+    const PlaneExtent Bar = Spanning(Corner.x, Corner.y, Total, Height);
+    const float Centre = .5f * (Bar.MinimumY + Bar.MaximumY);
+    Sheet.Box(Bar, SolidArcInk(0x171717, .91f), 15.0f, SolidArcInk(0x343434));
+    float Cursor = Bar.MinimumX + 6.0f;
+    for (int Index = 0; Index <= OffsetIndex; ++Index)
     {
-        const ToolButton&   Tool    = Tools[Index];
-        const PlaneExtent   Box     = Spanning(Cursor, Centre - 0.5f * ButtonHeight, Widths[Index], ButtonHeight);
-        const SolidArcPress Press   = PressSolidArcRegion(State.Widgets, Tool.Key, Box, Tool.Enabled);
-        const float         Opacity = Tool.Enabled ? 1.0f : 0.32f;
-        const bool          Lit     = Tool.Active || Press.HoveredCondition;
-        if (Lit) Sheet.Box(Box, SolidArcInk(0x303030), 8.0f);
-        const ColorQuad Ink = ControlKit::Faded(SolidArcInk(Lit ? 0xffffff : 0xaaaaaa), Opacity);
-        if (Index == DimIndex)
+        const ToolButton& Tool = Tools[Index];
+        const PlaneExtent Box = Spanning(Cursor, Centre - .5f * ButtonHeight, Widths[Index], ButtonHeight);
+        const SolidArcPress Press = PressSolidArcRegion(State.Widgets, Tool.Key, Box, Tool.Enabled);
+        const bool Lit = Tool.Active || Press.HoveredCondition;
+        if (Lit) Sheet.Box(Box, SolidArcInk(0x303030), 12.0f);
+        const ColorQuad Ink = ControlKit::Faded(SolidArcInk(Lit ? 0xffffff : 0xbababa), Tool.Enabled ? 1.0f : .32f);
+        Sheet.Text(Box.MinimumX + Padding, Centre, FontSize, Ink, TextIcons[Index]);
+        if (Press.HoveredCondition)
         {
-            // Crisp CAD caliper / dimension-line glyph (|<-->|)
-            const float GX = Box.MinimumX + Padding;
-            const float GY = Centre - 8.5f;
-            Sheet.Surface().FillRectangle(Spanning(GX + 1.0f, GY + 3.0f, 1.5f, 11.0f), Ink);
-            Sheet.Surface().FillRectangle(Spanning(GX + 14.5f, GY + 3.0f, 1.5f, 11.0f), Ink);
-            Sheet.Surface().FillRectangle(Spanning(GX + 2.5f, GY + 7.8f, 12.0f, 1.5f), Ink);
-            Sheet.Surface().FillRectangle(Spanning(GX + 4.0f, GY + 6.0f, 2.0f, 5.0f), Ink);
-            Sheet.Surface().FillRectangle(Spanning(GX + 11.0f, GY + 6.0f, 2.0f, 5.0f), Ink);
+            const char* Tips[] = {"Select: close editing tools", "Cut: split a line, arc or circle", "Point (V): add a point to a curve",
+                "Trim (T): remove a curve segment", "Fill (F): fill a closed region", "Dimension (D): pick geometry, then place the dimension",
+                "Knife (Shift+K): cutter tools; arrow opens the cutter menu",
+                "Offset (O): select an arc/circle/sketch, then drag or type a distance in metres and Enter. Keeps the original; arcs/circles stay concentric. Use the opposite sign for the other side."};
+            ImGui::BeginTooltip();
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 28.0f);
+            ImGui::TextUnformatted(Tips[Index]);
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
         }
-        else
-        {
-            Sheet.Icon(Tool.Glyph, Box.MinimumX + Padding, Centre - 8.5f, 17.0f, Ink);
-        }
-        if (LabelsCondition && *Tool.Label) Sheet.Text(Box.MinimumX + Padding + 17.0f + 7.0f, Centre, 13.0f, Ink, Tool.Label);
-        if (!LabelsCondition && Press.HoveredCondition && (Index == 0 || Index == 3 || Index == 4))
-            ImGui::SetTooltip("%s", Index == 0 ? "Select" : Index == 3 ? "Trim (T): click the piece of a curve to remove" : "Fill (F): click inside closed curves to fill a region");
-        if (Index == 2 && Press.HoveredCondition) ImGui::SetTooltip("Point (V): click a curve to add a point without changing its shape, then drag it (or use the gizmo) to move it");
-        if (Index == DimIndex && Press.HoveredCondition) ImGui::SetTooltip("Dimension Tool (D): click Point A then Point B (or click a circle / arc / edge), then drag to position the dimension line");
-        if (Index == KnifeIndex && Press.HoveredCondition) ImGui::SetTooltip("Knife (Shift+K): 2D cutters (imprint), sketch cutters, 3D cutters, boolean-library inserts, object cutters");
-        if (Index == 1 && Press.HoveredCondition) ImGui::SetTooltip("Cut: click a line, arc or circle where it should break in two · C cuts a body by the focused sketch");
         if (Press.ClickedCondition)
         {
             if (Index == 0)
             {
+                if (State.Drawing.ActiveCondition) CancelDrawingSession(State);
+                if (State.Sweep.ActiveCondition) CancelSweepSession(State);
                 if (State.Trim.ActiveCondition) CloseTrimSession(State);
                 if (State.Fill.ActiveCondition) CloseFillSession(State);
                 if (State.DimensionTool.ActiveCondition) CloseDimensionSession(State, "Dimension tool closed");
@@ -14510,13 +14501,9 @@ void DrawSketchToolbar(SolidArcWorkspaceState& State, ImVec2 Image, ImVec2 Exten
             if (Index == 4) State.Fill.ActiveCondition ? CloseFillSession(State) : OpenFillSession(State);
             if (Index == DimIndex) ToggleDimensionSession(State);
             if (Index == KnifeIndex) State.Knife.ActiveCondition ? CloseKnifeSession(State, "Knife closed") : OpenKnifeSession(State);
+            if (Index == OffsetIndex) OpenSweepSession(State, SolidArcSweepVerb::Offset);
         }
-        Cursor = Box.MaximumX + 4.0f;
-        if (Index == 0)
-        {
-            Sheet.Surface().FillRectangle(Spanning(Cursor + 3.0f, Centre - 11.0f, 1.0f, 22.0f), SolidArcInk(0x3a3a3a));
-            Cursor += 3.0f + 1.0f + 3.0f + 4.0f;
-        }
+        Cursor = Box.MaximumX + 2.0f;
     }
 
     // Knife tool menu: the cutter the knife draws or places (sketch shapes, the boolean library, picked objects).
@@ -14526,7 +14513,7 @@ void DrawSketchToolbar(SolidArcWorkspaceState& State, ImVec2 Image, ImVec2 Exten
         const SolidArcPress Press   = PressSolidArcRegion(State.Widgets, "SketchKnifeTool", Box, Enabled);
         if (Press.HoveredCondition) Sheet.Box(Box, SolidArcInk(0x303030), 8.0f);
         const ColorQuad Ink = ControlKit::Faded(SolidArcInk(Press.HoveredCondition || State.Knife.ActiveCondition ? 0xffffff : 0xaaaaaa), Enabled ? 1.0f : 0.32f);
-        if (CaptionCondition) Sheet.Text(Box.MinimumX + 8.0f, Centre, 13.0f, Ink, ToolCaption.c_str());
+
         SelectChevron(Sheet, Box.MaximumX - 12.0f, Centre, Ink);
         if (Press.HoveredCondition) ImGui::SetTooltip("Knife cutter (now %s): 2D cutter (imprint into the face), sketch shape with depth, 3D primitive, boolean-library insert or picked objects",
                                                       ToolCaption.c_str());
@@ -14763,6 +14750,7 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
                     Split.Cameras[Split.ActivePane] = State.Camera;
                     Split.ActivePane = P;
                     State.Camera     = Split.Cameras[P];
+                    State.Style.GridPlane = ViewGridPlane(State.Camera);
                     Split.PopupPane  = P;
                     ImGui::OpenPopup("SplitPaneViewPopup");
                 }

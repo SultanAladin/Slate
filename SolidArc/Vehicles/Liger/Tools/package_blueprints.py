@@ -9,6 +9,8 @@ from pathlib import Path
 import struct
 import subprocess
 import zipfile
+import sys
+from importlib.metadata import version
 
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'Blueprints'
@@ -63,23 +65,33 @@ def main():
     ap.add_argument('--linux',type=Path,required=True,help='Installed rebuilt Linux/X11 runtime directory')
     args=ap.parse_args()
     # Refuse to label incomplete/failed native checks as a released package.
-    assert '111 passed; 0 failed' in (OUT/'Validation/NativeProjectTests.txt').read_text()
+    assert '123 passed; 0 failed' in (OUT/'Validation/NativeProjectTests.txt').read_text()
     regression=(OUT/'Validation/DocumentRegression.txt').read_text()
     assert regression.count('🟢')>=869 and '🔴' not in regression
     for name,count in [('QuadViewport',6),('TopViewport',7)]:
         assert f'Expectations: {count} / {count} passed' in (OUT/f'Validation/{name}.txt').read_text()
-    manifest=dict(vehicle_source='ea9cb133220aa171b6002703ff7bb88ced5673f2',
+    for log in ['InteractionTests.txt','Interaction1800Tests.txt']:
+        assert 'Expectations: 35 / 35 passed' in (OUT/'Validation'/log).read_text()
+    for view in ['Top','Bottom','Left','Right','Front','Rear']:
+        assert 'Expectations: 5 / 5 passed' in (OUT/'Validation'/f'NamedViews-{view}.txt').read_text()
+    python_log=(OUT/'Validation/PythonTests.txt').read_text()
+    assert 'Ran 34 tests' in python_log and '\nOK\n' in python_log and 'skipped' not in python_log
+    assert 'JavaScript errors / failed HTTP responses: 0' in (OUT/'Validation/BrowserTests.txt').read_text()
+    manifest=dict(python_environment=dict(python=sys.version.split()[0],packages={p:version(p) for p in ['numpy','scipy','pillow','numba','triangle']}),delivery='native-view-and-drawing-plane-correction-v2',reference_axes='nose -Y / native right +X / up +Z',vehicle_source='ea9cb133220aa171b6002703ff7bb88ced5673f2',
         source_base='unassignedinbox/Frontier 82ed251267ed8457ca3530d8228b91555572c25d',
         desktop_host='SultanAladin/Frontier 65cf0f1',
         compilers=dict(Windows='Zig 0.14.1 / x86_64-windows-gnu / static C++ runtime',Linux='GCC 12.2 / Debian 12 / GLFW X11'),
         reference_filter='Alpha-aware STB mip chain with trilinear minification; base resolution unchanged',
-        tests=dict(python=32,native_reference_assertions=111,document_regressions=regression.count('🟢'),vulkan_assertions=13,
+        tests=dict(python=34,native_reference_assertions=123,document_regressions=regression.count('🟢'),vulkan_assertions=113,
                    reference_minification=json.loads((OUT/'Validation/MinificationCheck.json').read_text())),
         windows_interactive_tested=False,patches={},runtimes={})
     patches=[ROOT.parents[1]/'Patches/SolidArc-Booleans-Variables-Modifiers.patch',
              ROOT/'Tools/Patches/NurbsIsoBoundaryImport.patch',ROOT/'Tools/Patches/NurbsBoundaryPrecisionProjection.patch',
-             ROOT.parents[1]/'Patches/SolidArc-Reference-Startup-Views.patch']
+             ROOT.parents[1]/'Patches/SolidArc-Reference-Startup-Views.patch',
+             ROOT.parents[1]/'Patches/SolidArc-Reference-Interaction-Corrections.patch']
     for p in patches:manifest['patches'][p.name]=digest(p.read_bytes())
+    manifest['interface_source_sha256']=digest((ROOT.parents[1]/'Source/UI/SolidArc/Interface/SolidArcInterface.cpp').read_bytes())
+    manifest['script_source_sha256']=digest((ROOT.parents[1]/'Source/UI/SolidArc/Interface/SolidArcScript.cpp').read_bytes())
     runtimes={}
     for platform,folder in [('Windows',args.windows),('Linux',args.linux)]:
         runtimes[platform],manifest['runtimes'][platform]=runtime(folder,platform)

@@ -1,0 +1,10 @@
+{
+  "visible_core_expected_pixels": 13556,
+  "visible_core_direct_coverage": 0.9910002950722927,
+  "visible_core_coverage_within_one_pixel": 1.0,
+  "expected_ink_pixels": 19908,
+  "direct_native_ink_coverage": 0.9251054852320675,
+  "coverage_within_one_pixel": 0.999146071930882,
+  "source": "Actual Vulkan Liger_Top.png capture / registered Top reference",
+  "note": "Opaque cores: alpha>96 after minification, >98% direct coverage. All ink including faint guides: >99% within one pixel. Screen-space visibility guard, not a geometric tolerance certificate. Tested on Linux / SwiftShader."
+}

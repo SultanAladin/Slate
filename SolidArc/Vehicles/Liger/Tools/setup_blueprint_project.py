@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 def project_doc(rows, visible, prefix=''):
-    text='Format = "SolidArc"\nFormatVersion = 1\nTitle = "Liger — scratch modelling reference"\nDescription = "Reference images only; empty editable feature tree. Vehicle front +X, left +Y, up +Z. Metres internally."\n\n'
+    text='Format = "SolidArc"\nFormatVersion = 1\nTitle = "Liger — scratch modelling reference"\nDescription = "Reference images only; empty editable feature tree. Native views: vehicle front -Y, right +X, up +Z. References rigidly rotated from source CAD. Metres internally."\n\n'
     for row in rows:
         text+='[[ImagePlanes]]\n'
         for key,value in dict(Name=f"{row['name']} — CAD tracing reference",Path=prefix+row['image'],
