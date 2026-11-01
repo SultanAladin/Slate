@@ -1,0 +1,17 @@
+test_crease_is_preserved (__main__.PipelineTests.test_crease_is_preserved) ... layout: 12 L1 quads -> 2 charts -> 2 macro charts (0 merges)
+ok
+test_grid_merges (__main__.PipelineTests.test_grid_merges) ... layout: 12 L1 quads -> 1 charts -> 1 macro charts (0 merges)
+ok
+test_knot_insertion_preserves_curve (__main__.PipelineTests.test_knot_insertion_preserves_curve) ... ok
+test_planar_fit (__main__.PipelineTests.test_planar_fit) ... layout: 12 L1 quads -> 1 charts -> 1 macro charts (0 merges)
+ fit 1/1: 4x4 poles, held RMS 0.000 mm max 0.000 mm
+ok
+test_shared_rail_export (__main__.PipelineTests.test_shared_rail_export) ... layout: 12 L1 quads -> 2 charts -> 2 macro charts (0 merges)
+ fit 1/2: 4x4 poles, held RMS 0.000 mm max 0.000 mm
+ fit 2/2: 4x4 poles, held RMS 0.000 mm max 0.000 mm
+ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.147s
+
+OK

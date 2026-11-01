@@ -1,0 +1,12 @@
+Headless Chromium via playwright-core and @sparticuz/chromium, software WebGL.
+2026-11-01
+PASS: viewer loads 312 faces, 372,536 display triangles; no JavaScript errors.
+PASS: shaded, coloured patches, deviation and zebra modes switch.
+PASS: boundary checkbox, cowl visibility off/on.
+PASS: side and perspective camera buttons.
+PASS: source reference binary fetched (HTTP 200), overlay toggled off/on.
+Screenshot: 08_Interactive_Inspector.png.
+Geometry is generated from the fitted NURBS pole nets, not an AI rendering.
+PASS: click-to-inspect identifies Main Shell / Left macro 5 (7x48 poles; 0.057 mm RMS).
+PASS: native CAD download yields Liger_Macro_CAD.solidarc.
+PASS: mobile 390x844 layout smoke test; no JavaScript errors.

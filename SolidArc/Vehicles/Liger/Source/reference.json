@@ -1,0 +1,80 @@
+{
+  "source_sha256": "4e53db6436f8136823ce8f79a9a8318bde74b92debe160915b9efa54e86058b6",
+  "bpy": "5.0.1",
+  "units": "m",
+  "parts": [
+    {
+      "name": "Body_Main_Shell",
+      "original_faces_half": 2183,
+      "original_modifiers": [
+        [
+          "Mirror",
+          "MIRROR",
+          true
+        ],
+        [
+          "Subdivision",
+          "SUBSURF",
+          true
+        ],
+        [
+          "Shrinkwrap",
+          "SHRINKWRAP",
+          false
+        ]
+      ],
+      "l1_quads_half": 8737,
+      "mirror_plane_source_cm": -47.85898971557617,
+      "limit_samples_half": 218425
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "original_faces_half": 38,
+      "original_modifiers": [
+        [
+          "Mirror",
+          "MIRROR",
+          true
+        ],
+        [
+          "Subdivision",
+          "SUBSURF",
+          true
+        ]
+      ],
+      "l1_quads_half": 154,
+      "mirror_plane_source_cm": -47.85898971557617,
+      "limit_samples_half": 3850
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "original_faces_half": 43,
+      "original_modifiers": [
+        [
+          "Mirror",
+          "MIRROR",
+          true
+        ],
+        [
+          "Subdivision",
+          "SUBSURF",
+          false
+        ],
+        [
+          "Mask",
+          "MASK",
+          false
+        ],
+        [
+          "Solidify",
+          "SOLIDIFY",
+          false
+        ]
+      ],
+      "l1_quads_half": 171,
+      "mirror_plane_source_cm": -47.85898971557617,
+      "limit_samples_half": 4275
+    }
+  ],
+  "reference": "Mirror before Catmull-Clark, level 3 limit-position samples; no shrinkwrap, mask or thickness"
+}

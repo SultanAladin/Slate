@@ -1,0 +1,1621 @@
+{
+  "parts": [
+    {
+      "name": "Body_Main_Shell",
+      "faces": 288,
+      "control_poles": 35496,
+      "master_rails_half": 432,
+      "sewn_edges": 721,
+      "open_edges": 110,
+      "nonmanifold_edges": 0,
+      "open_shells": 2,
+      "source_nonmanifold_branches_detached": 2,
+      "boundary_max_mm": 1.831026719408895e-12,
+      "heldout_samples_half": 104844,
+      "heldout_rms_mm": 0.10241567700555786,
+      "heldout_p99_mm": 0.46030191788723174,
+      "heldout_max_mm": 4.976149156763327,
+      "patches_over_0_5mm_rms": 0,
+      "patches": [
+        {
+          "id": 0,
+          "poles": [
+            4,
+            8
+          ],
+          "min_chart_jacobian": 0.011417826064894757,
+          "heldout_rms_mm": 0.013830560615486077,
+          "heldout_max_mm": 0.13097253252774743
+        },
+        {
+          "id": 1,
+          "poles": [
+            37,
+            7
+          ],
+          "min_chart_jacobian": 2.0571604735842806e-05,
+          "heldout_rms_mm": 0.1537200646171979,
+          "heldout_max_mm": 2.74996652351252
+        },
+        {
+          "id": 2,
+          "poles": [
+            63,
+            5
+          ],
+          "min_chart_jacobian": 0.00010688622827249382,
+          "heldout_rms_mm": 0.11440678703560532,
+          "heldout_max_mm": 1.175028703798619
+        },
+        {
+          "id": 3,
+          "poles": [
+            11,
+            25
+          ],
+          "min_chart_jacobian": 9.407960407095858e-05,
+          "heldout_rms_mm": 0.1817579222177653,
+          "heldout_max_mm": 3.6706503122803564
+        },
+        {
+          "id": 4,
+          "poles": [
+            7,
+            48
+          ],
+          "min_chart_jacobian": 0.001874970749693939,
+          "heldout_rms_mm": 0.056634503748810905,
+          "heldout_max_mm": 0.3592502137937937
+        },
+        {
+          "id": 5,
+          "poles": [
+            8,
+            40
+          ],
+          "min_chart_jacobian": 0.0003773940792328594,
+          "heldout_rms_mm": 0.12005127946244303,
+          "heldout_max_mm": 2.253768508435016
+        },
+        {
+          "id": 6,
+          "poles": [
+            18,
+            6
+          ],
+          "min_chart_jacobian": 0.0021648200871178134,
+          "heldout_rms_mm": 0.13653223811038373,
+          "heldout_max_mm": 0.632219198218482
+        },
+        {
+          "id": 7,
+          "poles": [
+            4,
+            40
+          ],
+          "min_chart_jacobian": 0.017318956302561195,
+          "heldout_rms_mm": 0.05081708303336637,
+          "heldout_max_mm": 0.5347242816883429
+        },
+        {
+          "id": 8,
+          "poles": [
+            11,
+            6
+          ],
+          "min_chart_jacobian": 0.0012093002394070412,
+          "heldout_rms_mm": 0.052757812660803094,
+          "heldout_max_mm": 0.266516513585782
+        },
+        {
+          "id": 9,
+          "poles": [
+            58,
+            4
+          ],
+          "min_chart_jacobian": 2.437589546635433e-05,
+          "heldout_rms_mm": 0.18427098951411336,
+          "heldout_max_mm": 1.8619045312809823
+        },
+        {
+          "id": 10,
+          "poles": [
+            44,
+            4
+          ],
+          "min_chart_jacobian": 0.00013019740384281414,
+          "heldout_rms_mm": 0.06678354014335443,
+          "heldout_max_mm": 0.6788261908569755
+        },
+        {
+          "id": 11,
+          "poles": [
+            38,
+            4
+          ],
+          "min_chart_jacobian": 0.0008197190851026992,
+          "heldout_rms_mm": 0.032288131070311,
+          "heldout_max_mm": 0.14039272354801327
+        },
+        {
+          "id": 12,
+          "poles": [
+            10,
+            21
+          ],
+          "min_chart_jacobian": 0.0029957039025717393,
+          "heldout_rms_mm": 0.038859419202157935,
+          "heldout_max_mm": 0.32237220551228224
+        },
+        {
+          "id": 13,
+          "poles": [
+            11,
+            15
+          ],
+          "min_chart_jacobian": 0.0055271106990939355,
+          "heldout_rms_mm": 0.030840668203037845,
+          "heldout_max_mm": 0.22523934453060843
+        },
+        {
+          "id": 14,
+          "poles": [
+            14,
+            24
+          ],
+          "min_chart_jacobian": 0.00389204616177471,
+          "heldout_rms_mm": 0.03657709921761829,
+          "heldout_max_mm": 0.5127950011548944
+        },
+        {
+          "id": 15,
+          "poles": [
+            17,
+            4
+          ],
+          "min_chart_jacobian": 0.0002161951957335131,
+          "heldout_rms_mm": 0.024631322755493047,
+          "heldout_max_mm": 0.14149908263393238
+        },
+        {
+          "id": 16,
+          "poles": [
+            14,
+            5
+          ],
+          "min_chart_jacobian": 0.001728040274312433,
+          "heldout_rms_mm": 0.02573407436524418,
+          "heldout_max_mm": 0.10294162687442189
+        },
+        {
+          "id": 17,
+          "poles": [
+            12,
+            25
+          ],
+          "min_chart_jacobian": 9.034940761411174e-06,
+          "heldout_rms_mm": 0.27171678397333754,
+          "heldout_max_mm": 1.4447733728551813
+        },
+        {
+          "id": 18,
+          "poles": [
+            66,
+            4
+          ],
+          "min_chart_jacobian": 0.005911383456424236,
+          "heldout_rms_mm": 0.03417647718069658,
+          "heldout_max_mm": 0.4999773993864668
+        },
+        {
+          "id": 19,
+          "poles": [
+            12,
+            9
+          ],
+          "min_chart_jacobian": 0.0033702259446662048,
+          "heldout_rms_mm": 0.025268184870669938,
+          "heldout_max_mm": 0.13234660603148793
+        },
+        {
+          "id": 20,
+          "poles": [
+            8,
+            7
+          ],
+          "min_chart_jacobian": 0.009762366885142239,
+          "heldout_rms_mm": 0.0470766324139859,
+          "heldout_max_mm": 0.1577130527552711
+        },
+        {
+          "id": 21,
+          "poles": [
+            17,
+            53
+          ],
+          "min_chart_jacobian": 0.0002406359823996421,
+          "heldout_rms_mm": 0.05685976514435954,
+          "heldout_max_mm": 1.666313081337506
+        },
+        {
+          "id": 22,
+          "poles": [
+            4,
+            25
+          ],
+          "min_chart_jacobian": 0.0008833353196474289,
+          "heldout_rms_mm": 0.04765762006545036,
+          "heldout_max_mm": 0.4844163584391345
+        },
+        {
+          "id": 23,
+          "poles": [
+            19,
+            4
+          ],
+          "min_chart_jacobian": 0.0008611780166549452,
+          "heldout_rms_mm": 0.12023540083082572,
+          "heldout_max_mm": 1.406342867589291
+        },
+        {
+          "id": 24,
+          "poles": [
+            30,
+            4
+          ],
+          "min_chart_jacobian": 0.00042485984596642525,
+          "heldout_rms_mm": 0.021095105157985156,
+          "heldout_max_mm": 0.1823809132593112
+        },
+        {
+          "id": 25,
+          "poles": [
+            5,
+            31
+          ],
+          "min_chart_jacobian": 0.0020999215613822595,
+          "heldout_rms_mm": 0.014988652538241687,
+          "heldout_max_mm": 0.10691948181348121
+        },
+        {
+          "id": 26,
+          "poles": [
+            16,
+            4
+          ],
+          "min_chart_jacobian": 0.07131063856451025,
+          "heldout_rms_mm": 0.03559032172228113,
+          "heldout_max_mm": 0.13096878885973487
+        },
+        {
+          "id": 27,
+          "poles": [
+            5,
+            24
+          ],
+          "min_chart_jacobian": 0.012756049167104053,
+          "heldout_rms_mm": 0.02152184096642844,
+          "heldout_max_mm": 0.12760396016915848
+        },
+        {
+          "id": 28,
+          "poles": [
+            4,
+            22
+          ],
+          "min_chart_jacobian": 0.0031938714825241656,
+          "heldout_rms_mm": 0.02203768098416979,
+          "heldout_max_mm": 0.1498303329251245
+        },
+        {
+          "id": 29,
+          "poles": [
+            7,
+            12
+          ],
+          "min_chart_jacobian": 0.0004464579738534964,
+          "heldout_rms_mm": 0.03164851514912844,
+          "heldout_max_mm": 0.14757815564709328
+        },
+        {
+          "id": 30,
+          "poles": [
+            13,
+            4
+          ],
+          "min_chart_jacobian": 0.01240144082241224,
+          "heldout_rms_mm": 0.00554178601153542,
+          "heldout_max_mm": 0.04885403079956376
+        },
+        {
+          "id": 31,
+          "poles": [
+            18,
+            4
+          ],
+          "min_chart_jacobian": 0.004460788136805682,
+          "heldout_rms_mm": 0.024207129450069385,
+          "heldout_max_mm": 0.1284822947255548
+        },
+        {
+          "id": 32,
+          "poles": [
+            30,
+            4
+          ],
+          "min_chart_jacobian": 0.01636637546325037,
+          "heldout_rms_mm": 0.04108333476288744,
+          "heldout_max_mm": 0.176567984892723
+        },
+        {
+          "id": 33,
+          "poles": [
+            16,
+            4
+          ],
+          "min_chart_jacobian": 0.02759862115966616,
+          "heldout_rms_mm": 0.04958177878821337,
+          "heldout_max_mm": 0.14069085384247568
+        },
+        {
+          "id": 34,
+          "poles": [
+            10,
+            26
+          ],
+          "min_chart_jacobian": 0.005076859741800488,
+          "heldout_rms_mm": 0.13738422123988553,
+          "heldout_max_mm": 2.277143644855448
+        },
+        {
+          "id": 35,
+          "poles": [
+            15,
+            4
+          ],
+          "min_chart_jacobian": 0.009284580548665204,
+          "heldout_rms_mm": 0.02309618643554803,
+          "heldout_max_mm": 0.13659427990024778
+        },
+        {
+          "id": 36,
+          "poles": [
+            10,
+            4
+          ],
+          "min_chart_jacobian": 0.03055139688837767,
+          "heldout_rms_mm": 0.02178429795915534,
+          "heldout_max_mm": 0.08622048594765573
+        },
+        {
+          "id": 37,
+          "poles": [
+            4,
+            16
+          ],
+          "min_chart_jacobian": 0.002759945191309377,
+          "heldout_rms_mm": 0.03784704792693032,
+          "heldout_max_mm": 0.23856200468647298
+        },
+        {
+          "id": 38,
+          "poles": [
+            4,
+            35
+          ],
+          "min_chart_jacobian": 0.004841692080001438,
+          "heldout_rms_mm": 0.048975785259064895,
+          "heldout_max_mm": 0.21612994985841982
+        },
+        {
+          "id": 39,
+          "poles": [
+            15,
+            23
+          ],
+          "min_chart_jacobian": 0.0016244420583799754,
+          "heldout_rms_mm": 0.05946655318362019,
+          "heldout_max_mm": 0.9740036887318428
+        },
+        {
+          "id": 40,
+          "poles": [
+            51,
+            4
+          ],
+          "min_chart_jacobian": 0.012757961702624221,
+          "heldout_rms_mm": 0.033574389959165674,
+          "heldout_max_mm": 0.21184230026343495
+        },
+        {
+          "id": 41,
+          "poles": [
+            5,
+            13
+          ],
+          "min_chart_jacobian": 0.011987785617633437,
+          "heldout_rms_mm": 0.03622694523434276,
+          "heldout_max_mm": 0.5188928480011632
+        },
+        {
+          "id": 42,
+          "poles": [
+            8,
+            4
+          ],
+          "min_chart_jacobian": 0.0054066707603895505,
+          "heldout_rms_mm": 0.037204414891375735,
+          "heldout_max_mm": 0.12146158176534227
+        },
+        {
+          "id": 43,
+          "poles": [
+            8,
+            4
+          ],
+          "min_chart_jacobian": 0.05933822016998065,
+          "heldout_rms_mm": 0.23310073948355647,
+          "heldout_max_mm": 2.274667307745219
+        },
+        {
+          "id": 44,
+          "poles": [
+            5,
+            14
+          ],
+          "min_chart_jacobian": 0.019419353336211257,
+          "heldout_rms_mm": 0.023073271108358943,
+          "heldout_max_mm": 0.13674538562248562
+        },
+        {
+          "id": 45,
+          "poles": [
+            4,
+            33
+          ],
+          "min_chart_jacobian": 0.007279293909369514,
+          "heldout_rms_mm": 0.023032821299282965,
+          "heldout_max_mm": 0.1275207133440992
+        },
+        {
+          "id": 46,
+          "poles": [
+            6,
+            7
+          ],
+          "min_chart_jacobian": 0.0946823163478495,
+          "heldout_rms_mm": 0.019892868238079967,
+          "heldout_max_mm": 0.13799232713422496
+        },
+        {
+          "id": 47,
+          "poles": [
+            4,
+            7
+          ],
+          "min_chart_jacobian": 0.014532318122044174,
+          "heldout_rms_mm": 0.05147300982393705,
+          "heldout_max_mm": 0.32271966254766343
+        },
+        {
+          "id": 48,
+          "poles": [
+            5,
+            18
+          ],
+          "min_chart_jacobian": 0.007223018132331853,
+          "heldout_rms_mm": 0.031052358384524838,
+          "heldout_max_mm": 0.12248069675603564
+        },
+        {
+          "id": 49,
+          "poles": [
+            4,
+            18
+          ],
+          "min_chart_jacobian": 0.007376884181014948,
+          "heldout_rms_mm": 0.041860892721648356,
+          "heldout_max_mm": 0.13223828829881729
+        },
+        {
+          "id": 50,
+          "poles": [
+            4,
+            33
+          ],
+          "min_chart_jacobian": 0.002956551797622536,
+          "heldout_rms_mm": 0.046714004893131274,
+          "heldout_max_mm": 0.26443783703816304
+        },
+        {
+          "id": 51,
+          "poles": [
+            5,
+            4
+          ],
+          "min_chart_jacobian": 0.012996484506208418,
+          "heldout_rms_mm": 0.016472690416100992,
+          "heldout_max_mm": 0.04044383004736679
+        },
+        {
+          "id": 52,
+          "poles": [
+            4,
+            66
+          ],
+          "min_chart_jacobian": 0.003983606113726417,
+          "heldout_rms_mm": 0.024507963984908728,
+          "heldout_max_mm": 0.1864689482469289
+        },
+        {
+          "id": 53,
+          "poles": [
+            4,
+            21
+          ],
+          "min_chart_jacobian": 0.0021895907830716318,
+          "heldout_rms_mm": 0.06495932824056122,
+          "heldout_max_mm": 0.22298281787173102
+        },
+        {
+          "id": 54,
+          "poles": [
+            31,
+            7
+          ],
+          "min_chart_jacobian": 0.010523462455278295,
+          "heldout_rms_mm": 0.018737642376849162,
+          "heldout_max_mm": 0.08069129709125114
+        },
+        {
+          "id": 55,
+          "poles": [
+            4,
+            42
+          ],
+          "min_chart_jacobian": 0.007159757364951114,
+          "heldout_rms_mm": 0.02957336491047179,
+          "heldout_max_mm": 0.1611668526578908
+        },
+        {
+          "id": 56,
+          "poles": [
+            20,
+            5
+          ],
+          "min_chart_jacobian": 0.015047146306713019,
+          "heldout_rms_mm": 0.021724835369205216,
+          "heldout_max_mm": 0.2793445459067521
+        },
+        {
+          "id": 57,
+          "poles": [
+            5,
+            21
+          ],
+          "min_chart_jacobian": 0.010143493832888826,
+          "heldout_rms_mm": 0.030377251006834576,
+          "heldout_max_mm": 0.13808738906238102
+        },
+        {
+          "id": 58,
+          "poles": [
+            4,
+            4
+          ],
+          "min_chart_jacobian": 0.24999891960627363,
+          "heldout_rms_mm": 1.3321841024671743e-05,
+          "heldout_max_mm": 5.343239444299151e-05
+        },
+        {
+          "id": 59,
+          "poles": [
+            10,
+            71
+          ],
+          "min_chart_jacobian": 0.0007052976391945233,
+          "heldout_rms_mm": 0.027030473086673765,
+          "heldout_max_mm": 0.4478217013256289
+        },
+        {
+          "id": 60,
+          "poles": [
+            6,
+            14
+          ],
+          "min_chart_jacobian": 0.012783734570619829,
+          "heldout_rms_mm": 0.07471666245262551,
+          "heldout_max_mm": 0.25808855077916903
+        },
+        {
+          "id": 61,
+          "poles": [
+            12,
+            8
+          ],
+          "min_chart_jacobian": 0.0030357697502418836,
+          "heldout_rms_mm": 0.1636099364918076,
+          "heldout_max_mm": 0.8609296784404763
+        },
+        {
+          "id": 62,
+          "poles": [
+            16,
+            4
+          ],
+          "min_chart_jacobian": 0.07178770254327427,
+          "heldout_rms_mm": 0.04789683032928601,
+          "heldout_max_mm": 0.14649842817085823
+        },
+        {
+          "id": 63,
+          "poles": [
+            13,
+            13
+          ],
+          "min_chart_jacobian": 0.012903828522493827,
+          "heldout_rms_mm": 0.0988973697957816,
+          "heldout_max_mm": 0.7902147079800896
+        },
+        {
+          "id": 64,
+          "poles": [
+            4,
+            4
+          ],
+          "min_chart_jacobian": 0.07601654730522717,
+          "heldout_rms_mm": 0.001845065732663101,
+          "heldout_max_mm": 0.0044315763216111245
+        },
+        {
+          "id": 65,
+          "poles": [
+            6,
+            18
+          ],
+          "min_chart_jacobian": 0.0014568248331745953,
+          "heldout_rms_mm": 0.024044273664175327,
+          "heldout_max_mm": 0.19290617540640337
+        },
+        {
+          "id": 66,
+          "poles": [
+            6,
+            24
+          ],
+          "min_chart_jacobian": 0.0013887312629152896,
+          "heldout_rms_mm": 0.02061205696413617,
+          "heldout_max_mm": 0.1141477107256041
+        },
+        {
+          "id": 67,
+          "poles": [
+            27,
+            14
+          ],
+          "min_chart_jacobian": 0.0005450470628733457,
+          "heldout_rms_mm": 0.025698142846058876,
+          "heldout_max_mm": 0.2875836309406121
+        },
+        {
+          "id": 68,
+          "poles": [
+            6,
+            11
+          ],
+          "min_chart_jacobian": 0.004566906678842859,
+          "heldout_rms_mm": 0.02297405469503613,
+          "heldout_max_mm": 0.124698426868028
+        },
+        {
+          "id": 69,
+          "poles": [
+            31,
+            5
+          ],
+          "min_chart_jacobian": 0.002816391857558246,
+          "heldout_rms_mm": 0.032342830649428125,
+          "heldout_max_mm": 0.235815729278611
+        },
+        {
+          "id": 70,
+          "poles": [
+            26,
+            4
+          ],
+          "min_chart_jacobian": 0.013541538349066838,
+          "heldout_rms_mm": 0.01187252874180274,
+          "heldout_max_mm": 0.08062676840087123
+        },
+        {
+          "id": 71,
+          "poles": [
+            4,
+            33
+          ],
+          "min_chart_jacobian": 0.013301490411564587,
+          "heldout_rms_mm": 0.03758819014528042,
+          "heldout_max_mm": 0.16990866417358788
+        },
+        {
+          "id": 72,
+          "poles": [
+            4,
+            15
+          ],
+          "min_chart_jacobian": 0.012191452632659416,
+          "heldout_rms_mm": 0.03801773844878819,
+          "heldout_max_mm": 0.13473541997610922
+        },
+        {
+          "id": 73,
+          "poles": [
+            4,
+            40
+          ],
+          "min_chart_jacobian": 0.0030566358675654915,
+          "heldout_rms_mm": 0.030041193714019247,
+          "heldout_max_mm": 0.3987727510347034
+        },
+        {
+          "id": 74,
+          "poles": [
+            14,
+            4
+          ],
+          "min_chart_jacobian": 0.0021125399224591174,
+          "heldout_rms_mm": 0.05156991950580436,
+          "heldout_max_mm": 0.7002830544367505
+        },
+        {
+          "id": 75,
+          "poles": [
+            29,
+            4
+          ],
+          "min_chart_jacobian": 0.0035251283174343546,
+          "heldout_rms_mm": 0.02751368880034623,
+          "heldout_max_mm": 0.3407397927451293
+        },
+        {
+          "id": 76,
+          "poles": [
+            10,
+            4
+          ],
+          "min_chart_jacobian": 0.004577454458643839,
+          "heldout_rms_mm": 0.02308485173977585,
+          "heldout_max_mm": 0.12350001844191945
+        },
+        {
+          "id": 77,
+          "poles": [
+            12,
+            4
+          ],
+          "min_chart_jacobian": 0.005139448643592555,
+          "heldout_rms_mm": 0.03675702769240738,
+          "heldout_max_mm": 0.1358488161518241
+        },
+        {
+          "id": 78,
+          "poles": [
+            4,
+            5
+          ],
+          "min_chart_jacobian": 0.028313907770532463,
+          "heldout_rms_mm": 0.01619171818352488,
+          "heldout_max_mm": 0.08856890025677125
+        },
+        {
+          "id": 79,
+          "poles": [
+            6,
+            4
+          ],
+          "min_chart_jacobian": 0.010930935718534481,
+          "heldout_rms_mm": 0.039827678787020926,
+          "heldout_max_mm": 0.25997950765205735
+        },
+        {
+          "id": 80,
+          "poles": [
+            4,
+            22
+          ],
+          "min_chart_jacobian": 0.0174276266234857,
+          "heldout_rms_mm": 0.015853808925619096,
+          "heldout_max_mm": 0.12877470150560774
+        },
+        {
+          "id": 81,
+          "poles": [
+            22,
+            10
+          ],
+          "min_chart_jacobian": 0.006326989964561313,
+          "heldout_rms_mm": 0.04017579987314573,
+          "heldout_max_mm": 0.369247389680488
+        },
+        {
+          "id": 82,
+          "poles": [
+            31,
+            7
+          ],
+          "min_chart_jacobian": 0.0016466676939260296,
+          "heldout_rms_mm": 0.16033354005767605,
+          "heldout_max_mm": 0.9626343548691662
+        },
+        {
+          "id": 83,
+          "poles": [
+            4,
+            8
+          ],
+          "min_chart_jacobian": 0.013013052174413843,
+          "heldout_rms_mm": 0.028825860338655255,
+          "heldout_max_mm": 0.20963781511660462
+        },
+        {
+          "id": 84,
+          "poles": [
+            40,
+            4
+          ],
+          "min_chart_jacobian": 0.0039205136505668335,
+          "heldout_rms_mm": 0.03310727313965751,
+          "heldout_max_mm": 0.12496574467571919
+        },
+        {
+          "id": 85,
+          "poles": [
+            10,
+            4
+          ],
+          "min_chart_jacobian": 0.036594828491032454,
+          "heldout_rms_mm": 0.03770950797762702,
+          "heldout_max_mm": 0.08682250706365689
+        },
+        {
+          "id": 86,
+          "poles": [
+            22,
+            5
+          ],
+          "min_chart_jacobian": 0.015205091513690646,
+          "heldout_rms_mm": 0.02836843365183729,
+          "heldout_max_mm": 0.13827065544344486
+        },
+        {
+          "id": 87,
+          "poles": [
+            4,
+            4
+          ],
+          "min_chart_jacobian": 0.24999792050536684,
+          "heldout_rms_mm": 5.140174585233361e-05,
+          "heldout_max_mm": 0.00013151412184666638
+        },
+        {
+          "id": 88,
+          "poles": [
+            4,
+            4
+          ],
+          "min_chart_jacobian": 0.24999942798095456,
+          "heldout_rms_mm": 6.312305316903891e-05,
+          "heldout_max_mm": 0.00014593406323474165
+        },
+        {
+          "id": 89,
+          "poles": [
+            34,
+            4
+          ],
+          "min_chart_jacobian": 0.006625582281427789,
+          "heldout_rms_mm": 0.030683636360046375,
+          "heldout_max_mm": 0.1339875220454233
+        },
+        {
+          "id": 90,
+          "poles": [
+            4,
+            29
+          ],
+          "min_chart_jacobian": 0.000715196765191034,
+          "heldout_rms_mm": 0.042890699102441275,
+          "heldout_max_mm": 0.2477973161044772
+        },
+        {
+          "id": 91,
+          "poles": [
+            13,
+            7
+          ],
+          "min_chart_jacobian": 0.00015488519232861723,
+          "heldout_rms_mm": 0.10094929211935653,
+          "heldout_max_mm": 0.5367816702156019
+        },
+        {
+          "id": 92,
+          "poles": [
+            4,
+            13
+          ],
+          "min_chart_jacobian": 0.00230841489635509,
+          "heldout_rms_mm": 0.062451457199304186,
+          "heldout_max_mm": 0.1731769401528599
+        },
+        {
+          "id": 93,
+          "poles": [
+            4,
+            24
+          ],
+          "min_chart_jacobian": 0.010609216116535203,
+          "heldout_rms_mm": 0.02799520421994026,
+          "heldout_max_mm": 0.11588691395206262
+        },
+        {
+          "id": 94,
+          "poles": [
+            14,
+            4
+          ],
+          "min_chart_jacobian": 0.06104848662046758,
+          "heldout_rms_mm": 0.04149062546006912,
+          "heldout_max_mm": 0.29957235990282194
+        },
+        {
+          "id": 95,
+          "poles": [
+            4,
+            9
+          ],
+          "min_chart_jacobian": 0.011582407886814933,
+          "heldout_rms_mm": 0.035119062966441,
+          "heldout_max_mm": 0.1450751214448158
+        },
+        {
+          "id": 96,
+          "poles": [
+            4,
+            4
+          ],
+          "min_chart_jacobian": 0.11143226457451222,
+          "heldout_rms_mm": 0.005279187617613278,
+          "heldout_max_mm": 0.008735828656518476
+        },
+        {
+          "id": 97,
+          "poles": [
+            27,
+            4
+          ],
+          "min_chart_jacobian": 0.011214123358647465,
+          "heldout_rms_mm": 0.04463527849139735,
+          "heldout_max_mm": 0.2892706388126646
+        },
+        {
+          "id": 98,
+          "poles": [
+            19,
+            4
+          ],
+          "min_chart_jacobian": 0.011798705431121355,
+          "heldout_rms_mm": 0.024541212823719304,
+          "heldout_max_mm": 0.09343810328791868
+        },
+        {
+          "id": 99,
+          "poles": [
+            13,
+            18
+          ],
+          "min_chart_jacobian": 0.002317151094164916,
+          "heldout_rms_mm": 0.12241263431438877,
+          "heldout_max_mm": 1.6629538924337213
+        },
+        {
+          "id": 100,
+          "poles": [
+            4,
+            10
+          ],
+          "min_chart_jacobian": 0.019742660521935237,
+          "heldout_rms_mm": 0.04714423018674379,
+          "heldout_max_mm": 0.2145766857842936
+        },
+        {
+          "id": 101,
+          "poles": [
+            5,
+            4
+          ],
+          "min_chart_jacobian": 0.07029512805718918,
+          "heldout_rms_mm": 0.020176998700562946,
+          "heldout_max_mm": 0.127099880626904
+        },
+        {
+          "id": 102,
+          "poles": [
+            32,
+            4
+          ],
+          "min_chart_jacobian": 0.007544137885005269,
+          "heldout_rms_mm": 0.041350979210817214,
+          "heldout_max_mm": 0.18301870094970488
+        },
+        {
+          "id": 103,
+          "poles": [
+            28,
+            4
+          ],
+          "min_chart_jacobian": 0.006575148443035142,
+          "heldout_rms_mm": 0.06967772335866389,
+          "heldout_max_mm": 0.22809772275531498
+        },
+        {
+          "id": 104,
+          "poles": [
+            8,
+            4
+          ],
+          "min_chart_jacobian": 0.016259771765867004,
+          "heldout_rms_mm": 0.15419872765517215,
+          "heldout_max_mm": 0.5758783945771746
+        },
+        {
+          "id": 105,
+          "poles": [
+            13,
+            4
+          ],
+          "min_chart_jacobian": 0.032415517077298145,
+          "heldout_rms_mm": 0.044974394050237884,
+          "heldout_max_mm": 0.39089820931526365
+        },
+        {
+          "id": 106,
+          "poles": [
+            13,
+            4
+          ],
+          "min_chart_jacobian": 0.04059840562438098,
+          "heldout_rms_mm": 0.012304060698869202,
+          "heldout_max_mm": 0.13798685595567065
+        },
+        {
+          "id": 107,
+          "poles": [
+            4,
+            14
+          ],
+          "min_chart_jacobian": 0.002911701102440065,
+          "heldout_rms_mm": 0.049665638412273165,
+          "heldout_max_mm": 0.2819748951077302
+        },
+        {
+          "id": 108,
+          "poles": [
+            38,
+            4
+          ],
+          "min_chart_jacobian": 0.0075544034694436935,
+          "heldout_rms_mm": 0.027164111585248323,
+          "heldout_max_mm": 0.1364887248104526
+        },
+        {
+          "id": 109,
+          "poles": [
+            8,
+            5
+          ],
+          "min_chart_jacobian": 0.022255001558136,
+          "heldout_rms_mm": 0.12620364258256347,
+          "heldout_max_mm": 0.39961911106956105
+        },
+        {
+          "id": 110,
+          "poles": [
+            7,
+            5
+          ],
+          "min_chart_jacobian": 0.10354699663289195,
+          "heldout_rms_mm": 0.02134968768839325,
+          "heldout_max_mm": 0.1262163311948067
+        },
+        {
+          "id": 111,
+          "poles": [
+            7,
+            4
+          ],
+          "min_chart_jacobian": 0.4052558631045037,
+          "heldout_rms_mm": 0.00015195040372825588,
+          "heldout_max_mm": 0.00041422880745826637
+        },
+        {
+          "id": 112,
+          "poles": [
+            10,
+            38
+          ],
+          "min_chart_jacobian": 0.00023947724430564406,
+          "heldout_rms_mm": 0.02217676668280931,
+          "heldout_max_mm": 0.29286563742993765
+        },
+        {
+          "id": 113,
+          "poles": [
+            39,
+            4
+          ],
+          "min_chart_jacobian": 0.0008817105320630958,
+          "heldout_rms_mm": 0.0353534187057561,
+          "heldout_max_mm": 0.2080282429245099
+        },
+        {
+          "id": 114,
+          "poles": [
+            4,
+            46
+          ],
+          "min_chart_jacobian": 0.0007137432241310915,
+          "heldout_rms_mm": 0.03132498456163522,
+          "heldout_max_mm": 0.19804103211626534
+        },
+        {
+          "id": 115,
+          "poles": [
+            37,
+            4
+          ],
+          "min_chart_jacobian": 0.010705038103192083,
+          "heldout_rms_mm": 0.03287938669364842,
+          "heldout_max_mm": 0.24254863102549
+        },
+        {
+          "id": 116,
+          "poles": [
+            44,
+            7
+          ],
+          "min_chart_jacobian": 0.0008024132742807668,
+          "heldout_rms_mm": 0.037105523643256276,
+          "heldout_max_mm": 0.4604288958731919
+        },
+        {
+          "id": 117,
+          "poles": [
+            4,
+            24
+          ],
+          "min_chart_jacobian": 0.012308422422822879,
+          "heldout_rms_mm": 0.029321476263915836,
+          "heldout_max_mm": 0.27407613477645815
+        },
+        {
+          "id": 118,
+          "poles": [
+            4,
+            29
+          ],
+          "min_chart_jacobian": 0.0013510368534490967,
+          "heldout_rms_mm": 0.03124462795396661,
+          "heldout_max_mm": 0.37544337892504204
+        },
+        {
+          "id": 119,
+          "poles": [
+            21,
+            13
+          ],
+          "min_chart_jacobian": 0.0007309972443728959,
+          "heldout_rms_mm": 0.20038921446994473,
+          "heldout_max_mm": 4.976149156763327
+        },
+        {
+          "id": 120,
+          "poles": [
+            4,
+            4
+          ],
+          "min_chart_jacobian": 0.2419527976834077,
+          "heldout_rms_mm": 0.009959569615197483,
+          "heldout_max_mm": 0.05831261124735322
+        },
+        {
+          "id": 121,
+          "poles": [
+            48,
+            11
+          ],
+          "min_chart_jacobian": 0.0005074532212097065,
+          "heldout_rms_mm": 0.09407473723752878,
+          "heldout_max_mm": 0.849363325778806
+        },
+        {
+          "id": 122,
+          "poles": [
+            5,
+            35
+          ],
+          "min_chart_jacobian": 0.020737627425477856,
+          "heldout_rms_mm": 0.035252367152480736,
+          "heldout_max_mm": 0.13641179022473293
+        },
+        {
+          "id": 123,
+          "poles": [
+            4,
+            20
+          ],
+          "min_chart_jacobian": 0.027473480419887508,
+          "heldout_rms_mm": 0.036977525553606436,
+          "heldout_max_mm": 0.12383724594400056
+        },
+        {
+          "id": 124,
+          "poles": [
+            34,
+            4
+          ],
+          "min_chart_jacobian": 0.014320330758967617,
+          "heldout_rms_mm": 0.03222373898620401,
+          "heldout_max_mm": 0.13397927556219008
+        },
+        {
+          "id": 125,
+          "poles": [
+            20,
+            4
+          ],
+          "min_chart_jacobian": 0.025853478531207563,
+          "heldout_rms_mm": 0.03146410604996068,
+          "heldout_max_mm": 0.14252934155314223
+        },
+        {
+          "id": 126,
+          "poles": [
+            4,
+            39
+          ],
+          "min_chart_jacobian": 0.014590248890235191,
+          "heldout_rms_mm": 0.025198546522498002,
+          "heldout_max_mm": 0.1353561780437151
+        },
+        {
+          "id": 127,
+          "poles": [
+            6,
+            19
+          ],
+          "min_chart_jacobian": 0.00116663226007415,
+          "heldout_rms_mm": 0.06556944553086613,
+          "heldout_max_mm": 0.532523032695056
+        },
+        {
+          "id": 128,
+          "poles": [
+            4,
+            4
+          ],
+          "min_chart_jacobian": 1.0,
+          "heldout_rms_mm": 0.0005534737880497359,
+          "heldout_max_mm": 0.0014457172804567741
+        },
+        {
+          "id": 129,
+          "poles": [
+            4,
+            4
+          ],
+          "min_chart_jacobian": 0.008315710576554381,
+          "heldout_rms_mm": 0.027585145938341923,
+          "heldout_max_mm": 0.22070317670722797
+        },
+        {
+          "id": 130,
+          "poles": [
+            4,
+            4
+          ],
+          "min_chart_jacobian": 0.2499954723953464,
+          "heldout_rms_mm": 5.9322801856788304e-05,
+          "heldout_max_mm": 0.00012992689342988657
+        },
+        {
+          "id": 131,
+          "poles": [
+            4,
+            4
+          ],
+          "min_chart_jacobian": 0.24999610821629706,
+          "heldout_rms_mm": 4.9497704793225785e-05,
+          "heldout_max_mm": 0.00011947642994143877
+        },
+        {
+          "id": 132,
+          "poles": [
+            7,
+            9
+          ],
+          "min_chart_jacobian": 0.024018582424471645,
+          "heldout_rms_mm": 0.016479107907860183,
+          "heldout_max_mm": 0.13530479592655653
+        },
+        {
+          "id": 133,
+          "poles": [
+            4,
+            7
+          ],
+          "min_chart_jacobian": 0.18056569037154602,
+          "heldout_rms_mm": 0.0218688036095967,
+          "heldout_max_mm": 0.0962893765604024
+        },
+        {
+          "id": 134,
+          "poles": [
+            4,
+            7
+          ],
+          "min_chart_jacobian": 0.10112383108750445,
+          "heldout_rms_mm": 0.02051670438319113,
+          "heldout_max_mm": 0.1540293569778672
+        },
+        {
+          "id": 135,
+          "poles": [
+            4,
+            4
+          ],
+          "min_chart_jacobian": 0.14571457934203313,
+          "heldout_rms_mm": 0.02465559892412066,
+          "heldout_max_mm": 0.10283283844427739
+        },
+        {
+          "id": 136,
+          "poles": [
+            4,
+            18
+          ],
+          "min_chart_jacobian": 0.03362430651157957,
+          "heldout_rms_mm": 0.052353494476501596,
+          "heldout_max_mm": 0.2860872954100603
+        },
+        {
+          "id": 137,
+          "poles": [
+            11,
+            4
+          ],
+          "min_chart_jacobian": 0.007915748206811095,
+          "heldout_rms_mm": 0.028325435228173667,
+          "heldout_max_mm": 0.30108177639300326
+        },
+        {
+          "id": 138,
+          "poles": [
+            4,
+            24
+          ],
+          "min_chart_jacobian": 0.06811125189019906,
+          "heldout_rms_mm": 0.04759647874723836,
+          "heldout_max_mm": 0.17654526746595894
+        },
+        {
+          "id": 139,
+          "poles": [
+            4,
+            7
+          ],
+          "min_chart_jacobian": 0.14571457934203313,
+          "heldout_rms_mm": 0.013004407213842191,
+          "heldout_max_mm": 0.055336951284591734
+        },
+        {
+          "id": 140,
+          "poles": [
+            4,
+            8
+          ],
+          "min_chart_jacobian": 0.4267549396838046,
+          "heldout_rms_mm": 0.035028186667076126,
+          "heldout_max_mm": 0.10839147582155347
+        },
+        {
+          "id": 141,
+          "poles": [
+            4,
+            12
+          ],
+          "min_chart_jacobian": 0.3596283183956167,
+          "heldout_rms_mm": 0.015603054814265957,
+          "heldout_max_mm": 0.039399133222196146
+        },
+        {
+          "id": 142,
+          "poles": [
+            8,
+            4
+          ],
+          "min_chart_jacobian": 0.39984318405007313,
+          "heldout_rms_mm": 0.016481779778010432,
+          "heldout_max_mm": 0.031025790373186844
+        },
+        {
+          "id": 143,
+          "poles": [
+            4,
+            8
+          ],
+          "min_chart_jacobian": 0.3122249416088476,
+          "heldout_rms_mm": 0.013243294176403133,
+          "heldout_max_mm": 0.05258727139841471
+        }
+      ]
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "faces": 14,
+      "control_poles": 2330,
+      "master_rails_half": 25,
+      "sewn_edges": 17,
+      "open_edges": 28,
+      "nonmanifold_edges": 0,
+      "open_shells": 4,
+      "source_nonmanifold_branches_detached": 0,
+      "boundary_max_mm": 8.006232782905339e-13,
+      "heldout_samples_half": 1848,
+      "heldout_rms_mm": 0.24506872440145228,
+      "heldout_p99_mm": 0.4967154172013852,
+      "heldout_max_mm": 9.254524057994692,
+      "patches_over_0_5mm_rms": 1,
+      "patches": [
+        {
+          "id": 0,
+          "poles": [
+            4,
+            16
+          ],
+          "min_chart_jacobian": 0.0032667326990573004,
+          "heldout_rms_mm": 0.07434918404383076,
+          "heldout_max_mm": 0.8174688477738145
+        },
+        {
+          "id": 1,
+          "poles": [
+            4,
+            23
+          ],
+          "min_chart_jacobian": 0.010106713443095883,
+          "heldout_rms_mm": 0.07884206737419724,
+          "heldout_max_mm": 0.48988890198103346
+        },
+        {
+          "id": 2,
+          "poles": [
+            42,
+            5
+          ],
+          "min_chart_jacobian": 0.019124435201059303,
+          "heldout_rms_mm": 0.09997729359315131,
+          "heldout_max_mm": 0.7738537369465986
+        },
+        {
+          "id": 3,
+          "poles": [
+            19,
+            26
+          ],
+          "min_chart_jacobian": 0.01464967948205298,
+          "heldout_rms_mm": 0.9534608813463559,
+          "heldout_max_mm": 9.254524057994692
+        },
+        {
+          "id": 4,
+          "poles": [
+            16,
+            6
+          ],
+          "min_chart_jacobian": 0.0006991805676292377,
+          "heldout_rms_mm": 0.1515219940627757,
+          "heldout_max_mm": 1.4412830335862272
+        },
+        {
+          "id": 5,
+          "poles": [
+            7,
+            23
+          ],
+          "min_chart_jacobian": 0.003267372593689646,
+          "heldout_rms_mm": 0.02393735248710161,
+          "heldout_max_mm": 0.11971142130243916
+        },
+        {
+          "id": 6,
+          "poles": [
+            8,
+            6
+          ],
+          "min_chart_jacobian": 0.17768485405355636,
+          "heldout_rms_mm": 0.024119450820005453,
+          "heldout_max_mm": 0.10448775053009791
+        }
+      ]
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "faces": 10,
+      "control_poles": 1466,
+      "master_rails_half": 19,
+      "sewn_edges": 12,
+      "open_edges": 24,
+      "nonmanifold_edges": 0,
+      "open_shells": 2,
+      "source_nonmanifold_branches_detached": 0,
+      "boundary_max_mm": 6.377745716588144e-13,
+      "heldout_samples_half": 2052,
+      "heldout_rms_mm": 0.03182019766027469,
+      "heldout_p99_mm": 0.15212405971741416,
+      "heldout_max_mm": 0.21013504225598884,
+      "patches_over_0_5mm_rms": 0,
+      "patches": [
+        {
+          "id": 0,
+          "poles": [
+            63,
+            9
+          ],
+          "min_chart_jacobian": 0.0031450036740785273,
+          "heldout_rms_mm": 0.019001125038127793,
+          "heldout_max_mm": 0.21013504225598884
+        },
+        {
+          "id": 1,
+          "poles": [
+            9,
+            4
+          ],
+          "min_chart_jacobian": 0.3552740905819252,
+          "heldout_rms_mm": 0.02830814178866558,
+          "heldout_max_mm": 0.10377175366812232
+        },
+        {
+          "id": 2,
+          "poles": [
+            4,
+            4
+          ],
+          "min_chart_jacobian": 1.0,
+          "heldout_rms_mm": 0.0013098451254224552,
+          "heldout_max_mm": 0.003059421203837056
+        },
+        {
+          "id": 3,
+          "poles": [
+            5,
+            6
+          ],
+          "min_chart_jacobian": 0.17235266526166898,
+          "heldout_rms_mm": 0.029372187926590305,
+          "heldout_max_mm": 0.155478475465294
+        },
+        {
+          "id": 4,
+          "poles": [
+            21,
+            4
+          ],
+          "min_chart_jacobian": 0.003931793013122582,
+          "heldout_rms_mm": 0.04429618692932361,
+          "heldout_max_mm": 0.18821217259701095
+        }
+      ]
+    }
+  ]
+}

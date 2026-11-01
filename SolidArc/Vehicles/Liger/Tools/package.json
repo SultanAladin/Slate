@@ -1,0 +1,13 @@
+{
+  "private": true,
+  "description": "Liger inspection viewer bundle",
+  "scripts": {
+    "build": "esbuild viewer.js --bundle --minify --outfile=../Proofs/viewer.bundle.js"
+  },
+  "dependencies": {
+    "three": "0.187.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

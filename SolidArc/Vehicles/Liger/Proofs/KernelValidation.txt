@@ -1,0 +1,11 @@
+Validation with W95 overlay + NurbsIsoBoundaryImport.patch.
+
+Curved T-junction fixture:
+SOLIDARC_OK bodies=1 refused=0
+  Body[Import#1] caption='Body_Main_Shell' cat=Sheet faces=3 edges=10 (sewn=3, laminar=7, nonManifold=0) verts=8 sound=YES
+
+Liger_Macro_CAD.solidarc:
+SOLIDARC_OK bodies=3 refused=0
+  Body[LigerPart1] caption='Body_Main_Shell' cat=Sheet faces=288 edges=831 (sewn=721, laminar=110, nonManifold=0) verts=538 sound=YES
+  Body[LigerPart2] caption='Body_Front_Cowl' cat=Sheet faces=14 edges=45 (sewn=17, laminar=28, nonManifold=0) verts=30 sound=YES
+  Body[LigerPart3] caption='Body_Roof_Glass_Frame' cat=Sheet faces=10 edges=36 (sewn=12, laminar=24, nonManifold=0) verts=27 sound=YES

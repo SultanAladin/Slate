@@ -1,0 +1,72 @@
+diff --git a/Engine/GeometryProcessing/Construction/BodyAssembly.cpp b/Engine/GeometryProcessing/Construction/BodyAssembly.cpp
+index 89780cb..fa13e39 100644
+--- a/Engine/GeometryProcessing/Construction/BodyAssembly.cpp
++++ b/Engine/GeometryProcessing/Construction/BodyAssembly.cpp
+@@ -8,6 +8,7 @@
+ #include "Engine/GeometryProcessing/Audit/EnclosedVolume.h"
+ #include "Engine/GeometryProcessing/Containment/WindingNumber.h"
+ #include "Engine/GeometryProcessing/Geometry/ProjectedCurve.h"
++#include "Engine/GeometryProcessing/Geometry/NurbsCarrier.h"
+ 
+ #include <algorithm>
+ #include <cmath>
+@@ -218,6 +219,7 @@ void FitFaceSurfaceCurves(const BodyBlueprint& Blueprint, BlueprintFace& Face)
+     {
+         std::vector<Vector2> Samples   = {};                                                 // [-] - Chart images along the use
+         Vector2              Anchor    = {};                                                 // [-] - Middle image
++        std::optional<ParameterLine> ExactIso = {};
+         Vector2              Direction = {};                                                 // [-] - Chart tangent at the middle
+     };
+     std::vector<std::vector<UseTrack>> Tracks(Face.Loops.size());
+@@ -231,9 +233,40 @@ void FitFaceSurfaceCurves(const BodyBlueprint& Blueprint, BlueprintFace& Face)
+             const double         From  = Use.Sense == Orientation::Forward ? Edge.Low : Edge.High;
+             const double         Until = Use.Sense == Orientation::Forward ? Edge.High : Edge.Low;
+             UseTrack             Track;
++            // Recognise an exact (possibly split) NURBS iso-boundary before
++            // attempting 2D inversion. Thin imported macro charts can have
++            // nearly singular Jacobians: an unconstrained projection may jump
++            // off the rim even though the edge is exactly on it.
++            if (const auto* Spline = std::get_if<NurbsSurface>(&Face.Surface); Spline && Spline->Definition && Edge.High > Edge.Low)
++            {
++                const NurbsDomain U = MeasureNurbsSurfaceDomain(*Spline->Definition, true);
++                const NurbsDomain V = MeasureNurbsSurfaceDomain(*Spline->Definition, false);
++                for (int Side = 0; Side < 4 && !Track.ExactIso; ++Side)
++                {
++                    const bool FixedU = Side < 2;
++                    const double Fixed = FixedU ? (Side == 0 ? U.Low : U.High) : (Side == 2 ? V.Low : V.High);
++                    const NurbsCurve Iso = ExtractNurbsIsoCurve(*Spline, FixedU, Fixed);
++                    const double Low = ProjectOntoNurbsCurve(*Iso.Definition, EvaluateCurve(Edge.Curve, Edge.Low).Position, 0.0);
++                    const double High = ProjectOntoNurbsCurve(*Iso.Definition, EvaluateCurve(Edge.Curve, Edge.High).Position, 0.0);
++                    const Vector2 A = FixedU ? Vector2{ Fixed, Low } : Vector2{ Low, Fixed };
++                    const Vector2 B = FixedU ? Vector2{ Fixed, High } : Vector2{ High, Fixed };
++                    const Vector2 Direction = (B - A) * (1.0 / (Edge.High - Edge.Low));
++                    const ParameterLine Candidate{ A - Direction * Edge.Low, Direction };
++                    double Worst = 0.0;
++                    for (int Sample = 0; Sample <= 32; ++Sample)
++                    {
++                        const double T = Edge.Low + (Edge.High - Edge.Low) * Sample / 32.0;
++                        Worst = std::max(Worst, Distance(EvaluateSurface(Face.Surface, Candidate.Origin + Candidate.Direction * T).Position,
++                                                         EvaluateCurve(Edge.Curve, T).Position));
++                    }
++                    if (Worst <= 1.0e-9) Track.ExactIso = Candidate;
++                }
++            }
+             for (int Step = 0; Step <= Steps; ++Step)
+             {
+-                Cursor  = ProjectOntoSurface(Face.Surface, EvaluateCurve(Edge.Curve, From + (Until - From) * Step / Steps).Position, Started ? Cursor : Vector2{});
++                const double T = From + (Until - From) * Step / Steps;
++                Cursor = Track.ExactIso ? Track.ExactIso->Origin + Track.ExactIso->Direction * T
++                                        : ProjectOntoSurface(Face.Surface, EvaluateCurve(Edge.Curve, T).Position, Started ? Cursor : Vector2{});
+                 Started = true;
+                 Track.Samples.push_back(Cursor);
+             }
+@@ -327,7 +360,8 @@ void FitFaceSurfaceCurves(const BodyBlueprint& Blueprint, BlueprintFace& Face)
+             BlueprintUse&        Use    = Face.Loops[Loop][Index];
+             const BlueprintEdge& Edge   = Blueprint.Edges[Use.Edge];
+             const Vector2        Anchor = Tracks[Loop][Index].Anchor + Shift;
+-            Use.SurfaceCurve = FitSurfaceCurve(Face.Surface, Edge.Curve, Edge.Low, Edge.High, { Anchor - Vector2{ 1.0, 1.0 }, Anchor + Vector2{ 1.0, 1.0 } }, Anchor);
++            if (Tracks[Loop][Index].ExactIso) Use.SurfaceCurve = *Tracks[Loop][Index].ExactIso;
++            else Use.SurfaceCurve = FitSurfaceCurve(Face.Surface, Edge.Curve, Edge.Low, Edge.High, { Anchor - Vector2{ 1.0, 1.0 }, Anchor + Vector2{ 1.0, 1.0 } }, Anchor);
+         }
+     }
+ }

@@ -1,0 +1,32 @@
+{
+  "parts": [
+    {
+      "name": "Body_Main_Shell",
+      "cad_grid_points_half": 93496,
+      "cad_to_L3_triangle_rms_mm": 0.06354398062171521,
+      "cad_to_L3_triangle_p99_mm": 0.23463628458557664,
+      "cad_to_L3_triangle_max_mm": 3.1780449207872152,
+      "normal_disagreement_samples": 558,
+      "normal_samples": 93496
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "cad_grid_points_half": 5560,
+      "cad_to_L3_triangle_rms_mm": 0.15024101376579838,
+      "cad_to_L3_triangle_p99_mm": 0.6343685981119042,
+      "cad_to_L3_triangle_max_mm": 4.350938368588686,
+      "normal_disagreement_samples": 64,
+      "normal_samples": 5560
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "cad_grid_points_half": 2816,
+      "cad_to_L3_triangle_rms_mm": 0.03559201329545914,
+      "cad_to_L3_triangle_p99_mm": 0.1452338823582973,
+      "cad_to_L3_triangle_max_mm": 0.4763262113556266,
+      "normal_disagreement_samples": 29,
+      "normal_samples": 2816
+    }
+  ],
+  "note": "CAD grid to nearest L3 sampled-reference triangle; finite sampled check, not a certified global bound."
+}

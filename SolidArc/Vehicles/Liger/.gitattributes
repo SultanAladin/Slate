@@ -1,0 +1,3 @@
+# Generated vendor GLSL strings and unified-diff context contain intentional whitespace.
+Proofs/viewer.bundle.js -whitespace
+Tools/Patches/*.patch -whitespace
