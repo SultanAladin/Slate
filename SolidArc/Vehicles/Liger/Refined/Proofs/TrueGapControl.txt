@@ -1,0 +1,1 @@
+STEP_OK solids=0 sheets=1 faces=2 edges=7 verts=6 tolerantEdges=1 tolerantVerts=2 reorientedFaces=0 largestGap_mm=0.443115

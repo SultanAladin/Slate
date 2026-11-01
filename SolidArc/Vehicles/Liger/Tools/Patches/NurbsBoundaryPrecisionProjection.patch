@@ -1,0 +1,47 @@
+--- a/Engine/GeometryProcessing/Exchange/StepReading.cpp
++++ b/Engine/GeometryProcessing/Exchange/StepReading.cpp
+@@ -1300,12 +1300,43 @@
+             for (const int FaceIndex : Body.EdgeFaces[Index])
+             {
+                 const SurfaceGeometry& Carrier = Blueprint.Faces[FaceIndex].Surface;
++                // Boundary candidates are actual points on the carrier, not a
++                // tolerance exemption. Near-singular macro charts can fool the
++                // unconstrained inversion into reporting millimetre "gaps" on
++                // exact iso rims. Retain the smallest measured spatial residual.
++                std::vector<ParameterLine> BoundaryCandidates;
++                if (const auto* Spline = std::get_if<NurbsSurface>(&Carrier); Spline && Spline->Definition && Made.High > Made.Low)
++                {
++                    const NurbsDomain U = MeasureNurbsSurfaceDomain(*Spline->Definition, true);
++                    const NurbsDomain V = MeasureNurbsSurfaceDomain(*Spline->Definition, false);
++                    for (int Side = 0; Side < 4; ++Side)
++                    {
++                        const bool FixedU = Side < 2;
++                        const double Fixed = FixedU ? (Side == 0 ? U.Low : U.High) : (Side == 2 ? V.Low : V.High);
++                        const NurbsCurve Iso = ExtractNurbsIsoCurve(*Spline, FixedU, Fixed);
++                        const NurbsDomain Domain = MeasureNurbsCurveDomain(*Iso.Definition);
++                        const double Low = ProjectOntoNurbsCurve(*Iso.Definition, EvaluateCurve(Made.Curve, Made.Low).Position, Domain.Low);
++                        const double High = ProjectOntoNurbsCurve(*Iso.Definition, EvaluateCurve(Made.Curve, Made.High).Position, Domain.Low);
++                        const Vector2 A = FixedU ? Vector2{ Fixed, Low } : Vector2{ Low, Fixed };
++                        const Vector2 B = FixedU ? Vector2{ Fixed, High } : Vector2{ High, Fixed };
++                        const Vector2 Direction = (B - A) * (1.0 / (Made.High - Made.Low));
++                        BoundaryCandidates.push_back({ A - Direction * Made.Low, Direction });
++                    }
++                }
+                 Vector2 Reference = {};
+                 for (int Step = 0; Step <= 16; ++Step)
+                 {
+                     const Vector3 Position = EvaluateCurve(Made.Curve, Made.Low + (Made.High - Made.Low) * Step / 16.0).Position;
+                     Reference = ProjectOntoSurface(Carrier, Position, Reference);
+-                    Gap = std::max(Gap, Length(EvaluateSurface(Carrier, Reference).Position - Position));
++                    double Residual = Length(EvaluateSurface(Carrier, Reference).Position - Position);
++                    const double T = Made.Low + (Made.High - Made.Low) * Step / 16.0;
++                    for (const ParameterLine& Candidate : BoundaryCandidates)
++                    {
++                        const Vector2 UV = Candidate.Origin + Candidate.Direction * T;
++                        const double Measured = Length(EvaluateSurface(Carrier, UV).Position - Position);
++                        if (Measured < Residual) { Residual = Measured; Reference = UV; }
++                    }
++                    Gap = std::max(Gap, Residual);
+                 }
+             }
+             const double StartGap = Length(EvaluateCurve(Made.Curve, Made.Low).Position - Blueprint.Vertices[Made.Start].Position);

@@ -1,0 +1,175 @@
+{
+  "baseline": "Faired / 5ba6188",
+  "merged": [
+    {
+      "source_ids": [
+        59,
+        84
+      ],
+      "result_id": 59,
+      "method": "Area-weighted 8x8 physical graph + Hermite projection",
+      "new_poles": [
+        66,
+        16
+      ],
+      "diagnostic_curvature": {
+        "curvature_gradient_median_per_m2": 5.721909435128463,
+        "curvature_gradient_p95_per_m2": 44.98336554611964,
+        "mean_curvature_abs_p95_per_m": 1.437762421613285
+      },
+      "shape_change": {
+        "rms_mm": 0.24361047469948524,
+        "p95_mm": 0.5780868028523399,
+        "sampled_max_mm": 0.8686272194609046,
+        "samples": 34202,
+        "method": "bidirectional sample vertices to 151x151 triangulated regions; not a Hausdorff bound"
+      }
+    },
+    {
+      "source_ids": [
+        1,
+        10
+      ],
+      "result_id": 1,
+      "method": "Area-weighted 8x8 physical graph + Hermite projection",
+      "new_poles": [
+        43,
+        10
+      ],
+      "diagnostic_curvature": {
+        "curvature_gradient_median_per_m2": 686.0497149726143,
+        "curvature_gradient_p95_per_m2": 1533.916485044249,
+        "mean_curvature_abs_p95_per_m": 12.570129947515587
+      },
+      "shape_change": {
+        "rms_mm": 0.21632821408009198,
+        "p95_mm": 0.4443050042027607,
+        "sampled_max_mm": 0.8839717484079301,
+        "samples": 34202,
+        "method": "bidirectional sample vertices to 151x151 triangulated regions; not a Hausdorff bound"
+      }
+    },
+    {
+      "source_ids": [
+        3,
+        8
+      ],
+      "result_id": 3,
+      "method": "3D Coons fairing",
+      "new_poles": [
+        27,
+        22
+      ],
+      "diagnostic_curvature": {
+        "curvature_gradient_median_per_m2": 14.956849584719457,
+        "curvature_gradient_p95_per_m2": 1522.075211471602,
+        "mean_curvature_abs_p95_per_m": 11.986367930954335
+      },
+      "shape_change": {
+        "rms_mm": 1.1522270058990003,
+        "p95_mm": 2.7020855573937297,
+        "sampled_max_mm": 4.467286169528961,
+        "samples": 34202,
+        "method": "bidirectional sample vertices to 151x151 triangulated regions; not a Hausdorff bound"
+      }
+    }
+  ],
+  "faired": [
+    {
+      "id": 27,
+      "method": "Bounded physical curvature fairing with rim jet penalty",
+      "before": {
+        "curvature_gradient_median_per_m2": 54.62204211933348,
+        "curvature_gradient_p95_per_m2": 1149.137597740267,
+        "mean_curvature_abs_p95_per_m": 3.990848017394421
+      },
+      "after": {
+        "curvature_gradient_median_per_m2": 45.143401804652065,
+        "curvature_gradient_p95_per_m2": 519.0790339427399,
+        "mean_curvature_abs_p95_per_m": 2.2491846904047033
+      },
+      "solver_status": 2,
+      "optimality": 4.955337400921938e-06,
+      "max_pole_change_mm": 3.376351969438994,
+      "position_component_bound_mm": 2.0,
+      "curvature_length_mm": 20.0,
+      "rim_jet_weight": 2.0,
+      "shape_change": {
+        "rms_mm": 0.05737770749130394,
+        "p95_mm": 0.13785495175397958,
+        "sampled_max_mm": 0.19649832393042743,
+        "samples": 22802,
+        "method": "bidirectional sample vertices to 151x151 triangulated regions; not a Hausdorff bound"
+      },
+      "dense_orientation_screen": {
+        "samples": 27387,
+        "before_opposed": 0,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.0003863493804549527
+      }
+    },
+    {
+      "id": 42,
+      "method": "Bounded physical curvature fairing with rim jet penalty",
+      "before": {
+        "curvature_gradient_median_per_m2": 438.35559174793065,
+        "curvature_gradient_p95_per_m2": 17583.65647196625,
+        "mean_curvature_abs_p95_per_m": 22.862580355758535
+      },
+      "after": {
+        "curvature_gradient_median_per_m2": 477.869140790409,
+        "curvature_gradient_p95_per_m2": 6942.277622672195,
+        "mean_curvature_abs_p95_per_m": 17.94415318963197
+      },
+      "solver_status": 1,
+      "optimality": 1.5549602847147758e-11,
+      "max_pole_change_mm": 3.2086222173624854,
+      "position_component_bound_mm": 2.0,
+      "curvature_length_mm": 20.0,
+      "rim_jet_weight": 2.0,
+      "shape_change": {
+        "rms_mm": 0.1420009859108587,
+        "p95_mm": 0.3030295541975648,
+        "sampled_max_mm": 0.38923442480154335,
+        "samples": 22802,
+        "method": "bidirectional sample vertices to 151x151 triangulated regions; not a Hausdorff bound"
+      },
+      "dense_orientation_screen": {
+        "samples": 23405,
+        "before_opposed": 0,
+        "after_opposed": 0,
+        "minimum_signed_projected_jacobian": 0.0002966914613524632
+      }
+    }
+  ],
+  "retained_complex_regions": [
+    34,
+    46
+  ],
+  "frame_translation_mm": [
+    0.0,
+    0.0,
+    -1.0
+  ],
+  "note": "Main-shell exterior rail curves retained. Three selected internal crease/strip rails removed. Display tessellation is a separate repair.",
+  "clearance": {
+    "before": {
+      "frame_patch_id": 0,
+      "half_model": true,
+      "samples": 10201,
+      "total_samples": 10201,
+      "maximum_insert_above_skin_mm": 0.48647057168760277,
+      "minimum_vertical_clearance_mm": -0.48647057168760277,
+      "method": "101x101 insert samples, vertical rays to display triangulation of main skin; not global collision certification"
+    },
+    "after": {
+      "frame_patch_id": 0,
+      "half_model": true,
+      "samples": 10201,
+      "total_samples": 10201,
+      "maximum_insert_above_skin_mm": -0.5135294283127312,
+      "minimum_vertical_clearance_mm": 0.5135294283127312,
+      "method": "101x101 insert samples, vertical rays to display triangulation of main skin; not global collision certification"
+    }
+  }
+}

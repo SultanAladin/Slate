@@ -1,0 +1,58 @@
+{
+  "before": {
+    "parts": [
+      {
+        "name": "Body_Main_Shell",
+        "half_vertices": 135916,
+        "rms_source_mm": 0.4776326388122691,
+        "p99_source_mm": 2.6783893350511794,
+        "max_source_mm": 7.896834053099155
+      },
+      {
+        "name": "Body_Front_Cowl",
+        "half_vertices": 9824,
+        "rms_source_mm": 0.189103996894262,
+        "p99_source_mm": 0.8154650829965254,
+        "max_source_mm": 5.1987990736961365
+      },
+      {
+        "name": "Body_Roof_Glass_Frame",
+        "half_vertices": 4522,
+        "rms_source_mm": 0.043832823473133435,
+        "p99_source_mm": 0.17279436317039634,
+        "max_source_mm": 0.5036859656684101
+      }
+    ],
+    "seam_owner_comparisons": 353,
+    "maximum_shared_vertex_gap_mm": 0.0,
+    "maximum_surface_rail_gap_mm": 4.89867507669431e-07
+  },
+  "after": {
+    "parts": [
+      {
+        "name": "Body_Main_Shell",
+        "half_vertices": 136598,
+        "rms_source_mm": 0.5410456597595884,
+        "p99_source_mm": 2.867117447312919,
+        "max_source_mm": 7.896834053099155
+      },
+      {
+        "name": "Body_Front_Cowl",
+        "half_vertices": 9824,
+        "rms_source_mm": 0.189103996894262,
+        "p99_source_mm": 0.8154650829965254,
+        "max_source_mm": 5.1987990736961365
+      },
+      {
+        "name": "Body_Roof_Glass_Frame",
+        "half_vertices": 4522,
+        "rms_source_mm": 0.9084178094985743,
+        "p99_source_mm": 1.0396228602621704,
+        "max_source_mm": 1.2627925025299191
+      }
+    ],
+    "seam_owner_comparisons": 350,
+    "maximum_shared_vertex_gap_mm": 0.0,
+    "maximum_surface_rail_gap_mm": 4.89867507669431e-07
+  }
+}

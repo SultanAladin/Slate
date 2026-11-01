@@ -1,0 +1,40 @@
+{
+  "parts": [
+    {
+      "name": "Body_Main_Shell",
+      "faces": 282,
+      "control_poles": 36364,
+      "master_rails_half": 429,
+      "sewn_edges": 715,
+      "open_edges": 110,
+      "nonmanifold_edges": 0,
+      "open_shells": 2,
+      "source_nonmanifold_branches_detached": 2,
+      "boundary_max_mm": 1.6391277313233023e-06
+    },
+    {
+      "name": "Body_Front_Cowl",
+      "faces": 14,
+      "control_poles": 2330,
+      "master_rails_half": 25,
+      "sewn_edges": 17,
+      "open_edges": 28,
+      "nonmanifold_edges": 0,
+      "open_shells": 4,
+      "source_nonmanifold_branches_detached": 0,
+      "boundary_max_mm": 7.637680284815632e-07
+    },
+    {
+      "name": "Body_Roof_Glass_Frame",
+      "faces": 10,
+      "control_poles": 1466,
+      "master_rails_half": 19,
+      "sewn_edges": 12,
+      "open_edges": 24,
+      "nonmanifold_edges": 0,
+      "open_shells": 2,
+      "source_nonmanifold_branches_detached": 0,
+      "boundary_max_mm": 1.7099277132032805e-07
+    }
+  ]
+}

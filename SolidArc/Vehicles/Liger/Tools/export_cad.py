@@ -54,7 +54,7 @@ class Writer:
         unc=self.add(f"UNCERTAINTY_MEASURE_WITH_UNIT(LENGTH_MEASURE(0.00001),{lu},'distance_accuracy_value','confusion accuracy')")
         ctx=self.add(f"( GEOMETRIC_REPRESENTATION_CONTEXT(3) GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT(({unc})) GLOBAL_UNIT_ASSIGNED_CONTEXT(({lu},{au},{su})) REPRESENTATION_CONTEXT('Context3D','3D Context with UNIT and UNCERTAINTY') )")
         return shape,ctx
-    def part(self,name,F):
+    def part(self,name,F,fit_statistics=True):
         faces=[];edgeuses=Counter();face_edges=[];gaps=[]
         owners_half=defaultdict(list)
         for p,ss in zip(F.patches,F.sideinfo):
@@ -109,6 +109,13 @@ class Writer:
                         if nb in unseen:unseen.remove(nb);todo.append(nb)
             shells.append(self.add("OPEN_SHELL('',("+','.join(comp)+'))'))
         model=self.add(f"SHELL_BASED_SURFACE_MODEL('{name}',({','.join(shells)}))")
+        if not fit_statistics:
+            return model, {'name':name,'faces':len(faces),
+                'control_poles':sum(p['P'].shape[0]*p['P'].shape[1]*2 for p in F.patches),
+                'master_rails_half':len(F.rails),'sewn_edges':sum(v==2 for v in edgeuses.values()),
+                'open_edges':sum(v==1 for v in edgeuses.values()),
+                'nonmanifold_edges':sum(v>2 for v in edgeuses.values()),'open_shells':len(shells),
+                'source_nonmanifold_branches_detached':len(detached)*2,'boundary_max_mm':max(gaps)}
         held=np.concatenate([p['error'][~p['train']] for p in F.patches])*1000
         poles=sum(p['P'].shape[0]*p['P'].shape[1]*2 for p in F.patches)
         stats={'name':name,'faces':len(faces),'control_poles':poles,'master_rails_half':len(F.rails),

@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "description": "Liger targeted refinement comparison viewer and browser regression checks",
+  "scripts": {
+    "build": "esbuild viewer.js --bundle --minify --outfile=../Proofs/viewer.bundle.js",
+    "test": "node test_viewer.mjs"
+  },
+  "dependencies": {"three": "0.187.0"},
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "playwright-core": "1.64.1",
+    "@sparticuz/chromium": "153.0.0"
+  }
+}
