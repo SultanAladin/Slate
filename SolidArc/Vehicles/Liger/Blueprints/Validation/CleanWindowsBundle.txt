@@ -1,0 +1,39 @@
+capture Liger_Quad                   frame    7  2ddfa813d999e74e
+capture Liger_Quad_Framed            frame   14  9a74a0b2918b742b
+# SolidArcCapture
+
+- Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
+- Frame: 1280 x 680 · 14 frames · 3.60366 s · slowest frame 2824.46 ms
+- Script: /home/user/Slate/SolidArc/Vehicles/Liger/Tools/BlueprintQuadCheck.txt
+- Expectations: 6 / 6 passed
+
+| Line | Expectation | Observed | Result |
+|-----:|-------------|----------|--------|
+| 2 | `steps == 0` | 0 | 🟢 |
+| 3 | `refused == 0` | 0 | 🟢 |
+| 4 | `image-planes == 6` | 6 | 🟢 |
+| 5 | `image-planes-drawn == 3` | 3 | 🟢 |
+| 6 | `split-panes == 4` | 4 | 🟢 |
+| 10 | `camera-distance > 1` | 8.690360944 | 🟢 |
+
+| Capture | Frame | Digest |
+|---------|------:|--------|
+| Liger_Quad | 7 | `2ddfa813d999e74e` |
+| Liger_Quad_Framed | 14 | `9a74a0b2918b742b` |
+
+## Journal
+
+
+## Portable Windows bundle validation
+
+PASS: one Project Liger folder, exactly 7 files; all six images unchanged
+PASS: relative paths, calibration, empty feature tree and ZIP CRCs verified
+bcd3901daef7fc20e4281dc453f9b68b35f3c80ba97f21851e08b3664f6a6f0f  Project Liger.zip
+PASS: project + six images + one batch file + Runtime; no samples or reports
+PASS: Windows x64 executable, 310 SVG icons, 5 fonts, all payload bytes and CRCs
+aa19c4b844e900a336cf79d92e9593509b1bab2b69ea4c5ed5ccfb1c169b24be  Project Liger Windows.zip
+
+- Exactly one batch launcher; CRLF line endings, quoted absolute project/options/executable paths, explicit --open, and Runtime working directory checked.
+- Packaged executable SHA256 matches the previously built and tested corrected Windows runtime.
+- Native Linux Vulkan check above uses the extracted bundle, its options, and a folder path containing spaces.
+- Windows batch/desktop execution is not tested on this Linux host.
