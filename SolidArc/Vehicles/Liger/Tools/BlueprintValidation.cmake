@@ -29,3 +29,8 @@ if(CMAKE_PROJECT_NAME STREQUAL "FrontierUIFoundation" AND NOT TARGET LigerCutter
     add_executable(LigerCutterPlacementValidation "${CMAKE_CURRENT_LIST_DIR}/CutterPlacementValidation.cpp")
     target_link_libraries(LigerCutterPlacementValidation PRIVATE FrontierSolidArcUI)
 endif()
+
+if(CMAKE_PROJECT_NAME STREQUAL "FrontierUIFoundation" AND NOT TARGET LigerShiftDrawingValidation)
+    add_executable(LigerShiftDrawingValidation "${CMAKE_CURRENT_LIST_DIR}/ShiftDrawingValidation.cpp")
+    target_link_libraries(LigerShiftDrawingValidation PRIVATE FrontierSolidArcUI)
+endif()

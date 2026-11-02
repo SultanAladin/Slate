@@ -1,0 +1,22 @@
+{
+  "Frame": 47,
+  "Title": "Shift drawing validation fixture",
+  "DocumentPath": "/home/user/cutter-build/Shift Package With Spaces/Project Liger/Test.solidarc",
+  "Dirty": false,
+  "Steps": [],
+  "Body": {"Faces": 0, "Edges": 0, "Vertices": 0, "Genus": -1, "Volume": 0, "Sound": false},
+  "Selection": {"Faces": [], "Edges": [], "Curves": []},
+  "Curves": [],
+  "Sheet": false,
+  "PoleDrags": 0,
+  "PickMode": 5,
+  "Hover": "",
+  "Camera": {"Azimuth": -1.570796327, "Elevation": 1.570796327, "Distance": 5.455313016, "Target": [0, 0, 0], "Orthographic": true},
+  "Bevel": {"Active": false, "Shape": "Fillet", "Size": 0.25, "Pinned": false, "Variable": false, "EndSize": 0, "Flipped": false, "PreviewFaces": 0, "Refusal": "", "Verb": 0, "Profile": "", "Combination": 1, "Depth": 0, "DepthPointer": false},
+  "Drawing": {"Active": true, "Kind": "Arc", "Plane": 0, "Form": "NURBS", "Centre": false, "Points": [[-0.7051979541, -0.5943811328], [0.3962540885, -0.5943811328]], "Solid": false, "SolidKind": "Block", "Lift": 0, "Elevation": 0, "Sides": 6, "Combination": 4, "Refusal": ""},
+  "Undo": 0,
+  "Redo": 0,
+  "Welcome": false,
+  "Status": "Arc on plane XY (planar, no surface snap): click start, end, then a point on the arc · hold Ctrl to snap to ends / midpoints / centres, Alt to slide along a curve · Esc aborts",
+  "Viewport": [322, 56, 606, 593]
+}

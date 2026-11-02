@@ -1,0 +1,64 @@
+capture Shift_Arc_Aligned_Endpoints  frame   34  97fb56aa45061d40
+capture Shift_Arc_Free_Bulge         frame   47  d0ebfe6e8c914416
+capture Shift_Polyline_Per_Segment_Axes frame  116  ba3612c9c79c9ee0
+capture Shift_Leaves_Freeform_Curves_Free frame  143  0f05b8166ee572d0
+# SolidArcCapture
+
+- Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
+- Frame: 1280 x 680 · 149 frames · 7.61542 s · slowest frame 391.441 ms
+- Script: /home/user/Slate/SolidArc/Vehicles/Liger/Tools/ShiftDrawingCheck.txt
+- Expectations: 31 / 31 passed
+
+| Line | Expectation | Observed | Result |
+|-----:|-------------|----------|--------|
+| 2 | `steps == 0` | 0 | 🟢 |
+| 6 | `orthographic == 1` | 1 | 🟢 |
+| 9 | `drawing == Arc` | Arc | 🟢 |
+| 10 | `drawing-surface == 0` | 0 | 🟢 |
+| 15 | `snap contains Shift straight` | Axis · Shift straight · world X | 🟢 |
+| 16 | `drawing-pointer-y > -0.62` | -0.5943811328 | 🟢 |
+| 17 | `drawing-pointer-y < -0.58` | -0.5943811328 | 🟢 |
+| 18 | `snap-lock == none` | none | 🟢 |
+| 22 | `drawing-points == 2` | 2 | 🟢 |
+| 25 | `drawing-pointer-y < -0.8` | -0.8966088274 | 🟢 |
+| 29 | `drawing == 0` |  | 🟢 |
+| 30 | `sketches contains Arc` | Arc1 | 🟢 |
+| 31 | `steps == 1` | 1 | 🟢 |
+| 32 | `refused == 0` | 0 | 🟢 |
+| 35 | `steps == 0` | 0 | 🟢 |
+| 38 | `surface-trace == 0` | 0 | 🟢 |
+| 48 | `drawing == Line` | Line | 🟢 |
+| 49 | `drawing-segment == 0` | 0 | 🟢 |
+| 53 | `drawing-points == 2` | 2 | 🟢 |
+| 56 | `snap contains Shift straight` | Axis · Shift straight · world Y | 🟢 |
+| 57 | `drawing-pointer-x > 0.47` | 0.4969966534 | 🟢 |
+| 58 | `drawing-pointer-x < 0.53` | 0.4969966534 | 🟢 |
+| 63 | `drawing == 0` |  | 🟢 |
+| 64 | `steps == 1` | 1 | 🟢 |
+| 65 | `refused == 0` | 0 | 🟢 |
+| 68 | `drawing == Curve` | Curve | 🟢 |
+| 72 | `snap == none` | none | 🟢 |
+| 73 | `drawing-pointer-y > 0.9` | 1.004067563 | 🟢 |
+| 74 | `snap-lock == none` | none | 🟢 |
+| 78 | `steps == 1` | 1 | 🟢 |
+| 79 | `refused == 0` | 0 | 🟢 |
+
+| Capture | Frame | Digest |
+|---------|------:|--------|
+| Shift_Arc_Aligned_Endpoints | 34 | `97fb56aa45061d40` |
+| Shift_Arc_Free_Bulge | 47 | `d0ebfe6e8c914416` |
+| Shift_Polyline_Per_Segment_Axes | 116 | `ba3612c9c79c9ee0` |
+| Shift_Leaves_Freeform_Curves_Free | 143 | `0f05b8166ee572d0` |
+
+## Journal
+
+- View Top (Numpad)
+- Arc on plane XY (planar, no surface snap): click start, end, then a point on the arc · hold Ctrl to snap to ends / midpoints / centres, Alt to slide along a curve · Esc aborts
+- Arc1 · 0 ms
+- Undo
+- Surface tracing OFF · ordinary planar sketch tools
+- Line on plane XY (or the body face under the first click): click points · click the first point closes · Enter / right-click finishes open · Ctrl+Z drops a point · hold Ctrl to snap to ends / midpoints / centres, Alt to slide along a curve · Esc aborts
+- Autosaved /home/user/cutter-build/Shift Package With Spaces/Project Liger/ShiftDrawingRecovery.solidarc
+- Line1 · 0 ms
+- Curve on plane XY (or the body face under the first click): click points · 1 Hermite · 2 Bezier · 3 NURBS · 4 cubic spline · Enter / right-click finishes · Ctrl+Z drops a point · hold Ctrl to snap to ends / midpoints / centres, Alt to slide along a curve · Esc aborts
+- Curve aborted (document untouched)

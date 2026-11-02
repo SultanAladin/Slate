@@ -1741,6 +1741,53 @@ void PlaceDrawingPointer(SolidArcWorkspaceState& State, const OrbitCameraFrame& 
     }
 }
 
+// A temporary Shift chord, not a persistent picker lock: lines use the last
+// click; arc endpoints / slot centres use their first click. The arc bulge and
+// slot width remain free, and freeform curves / primitive sizing are untouched.
+bool ApplyDrawingShiftConstraint(SolidArcWorkspaceState& State, Vector2& Point)
+{
+    auto& Drawing = State.Drawing;
+    if (!ImGui::GetIO().KeyShift || Drawing.SolidCondition || Drawing.Points.empty() ||
+        State.Picker.Lock != SolidArcSnapLockKind::None) return false;
+    const bool Baseline = Drawing.Kind == SolidArcDrawingKind::Line ||
+        ((Drawing.Kind == SolidArcDrawingKind::Arc || Drawing.Kind == SolidArcDrawingKind::Slot) && Drawing.Points.size() == 1);
+    if (!Baseline) return false;
+    const OrthonormalFrame Plane = DrawingPlane(Drawing);
+    Vector3 World, Direction;
+    std::string Label;
+    if (Drawing.SurfaceCondition)
+    {
+        if (!Drawing.PointerLifted || Drawing.Lifted.empty() || !Drawing.Lifted.back()) return false;
+        const Vector3 Origin = *Drawing.Lifted.back(), Delta = *Drawing.PointerLifted - Origin;
+        const double Values[] = { Delta.X, Delta.Y, Delta.Z };
+        int Axis = 0;
+        for (int I = 1; I < 3; ++I) if (std::abs(Values[I]) > std::abs(Values[Axis])) Axis = I;
+        Direction = Axis == 0 ? Vector3{1,0,0} : Axis == 1 ? Vector3{0,1,0} : Vector3{0,0,1};
+        World = Origin + Direction * Values[Axis];
+        Drawing.PointerLifted = World; // Explicit user axis snap: never silently project off-axis back onto a curved face.
+        const Vector3 DeltaPlane = World - Plane.Origin;
+        Point = { Dot(DeltaPlane, Plane.XAxis), Dot(DeltaPlane, Plane.YAxis) };
+        Label = std::string("world ") + "XYZ"[Axis] + " (may leave surface)";
+    }
+    else
+    {
+        const Vector2 Origin = Drawing.Points.back(), Delta = Point - Origin;
+        const bool AlongX = std::abs(Delta.X) >= std::abs(Delta.Y);
+        if (AlongX) Point.Y = Origin.Y; else Point.X = Origin.X;
+        World = PlacePlanePoint(Plane, Point);
+        Direction = AlongX ? Plane.XAxis : Plane.YAxis;
+        Drawing.PointerLifted.reset();
+        Label = AlongX ? "plane U" : "plane V";
+        for (int I = 0; I < 3; ++I)
+        {
+            const double Value = I == 0 ? Direction.X : I == 1 ? Direction.Y : Direction.Z;
+            if (std::abs(Value) > 1.0 - 1.0e-9) Label = std::string("world ") + "XYZ"[I];
+        }
+    }
+    State.Picker.Current = { SolidArcSnapKind::Axis, World, Direction, Plane.ZAxis, "Shift straight · " + Label, 0.0 };
+    return true;
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    CONSTRUCT SOLIDS (DRAWN)
 //------------------------------------------------------------------------------------------------------------------------
@@ -9135,6 +9182,23 @@ void DrawSnapOverlay(SolidArcWorkspaceState& State, ImDrawList* Canvas, const Or
         if (Pixels.size() >= 2) DrawDashedPolyline(Canvas, Pixels, LockColours[int(Picker.Lock)], 1.5f);
     }
     const SolidArcSnap& Snap = Picker.Current;
+    const bool ShiftAxis = Drawing && Picker.Lock == SolidArcSnapLockKind::None && Snap.Kind == SolidArcSnapKind::Axis && Snap.Source.rfind("Shift straight", 0) == 0;
+    ImU32 AxisInk = LockColours[int(Picker.Lock)];
+    if (ShiftAxis)
+    {
+        int Axis = 0;
+        const double Values[] = { std::abs(Snap.Tangent.X), std::abs(Snap.Tangent.Y), std::abs(Snap.Tangent.Z) };
+        for (int I = 1; I < 3; ++I) if (Values[I] > Values[Axis]) Axis = I;
+        AxisInk = AxisColours[Axis];
+        std::vector<ImVec2> Pixels;
+        const double Span = 4000.0 * Frame.WorldPerPixel;
+        for (int I = -40; I <= 40; ++I)
+        {
+            ImVec2 Pixel;
+            if (ProjectWorldPoint(State, Frame, Snap.Position + Snap.Tangent * (Span * I / 40.0), Pixel)) Pixels.push_back(Pixel);
+        }
+        if (Pixels.size() >= 2) DrawDashedPolyline(Canvas, Pixels, AxisInk, 1.5f);
+    }
     if (Snap.Kind == SolidArcSnapKind::None || Snap.Kind == SolidArcSnapKind::Grid) return;
     ImVec2 At;
     if (!ProjectWorldPoint(State, Frame, Snap.Position, At)) return;
@@ -9177,7 +9241,7 @@ void DrawSnapOverlay(SolidArcWorkspaceState& State, ImDrawList* Canvas, const Or
         }
     };
     Glyph(OutlineColour, 4.0f);
-    Glyph(Snap.Kind == SolidArcSnapKind::Axis ? LockColours[int(Picker.Lock)] : SnapColour, 2.0f);
+    Glyph(Snap.Kind == SolidArcSnapKind::Axis ? AxisInk : SnapColour, 2.0f);
     const ImVec2 Pointer = ImGui::GetIO().MousePos;
     std::string Text = Snap.Kind == SolidArcSnapKind::Axis ? Snap.Source : std::string(SolidArcSnapLabel(Snap.Kind)) + " · " + Snap.Source;
     if (Text.size() > 72) Text = Text.substr(0, 69) + "...";
@@ -9188,7 +9252,7 @@ void DrawSnapOverlay(SolidArcWorkspaceState& State, ImDrawList* Canvas, const Or
     ImVec2 Caption(Pointer.x + 14.0f, Pointer.y + 14.0f);
     if (Caption.x + Width > Right - 8.0f) Caption.x = Pointer.x - 14.0f - Width;
     if (Caption.y + 26.0f > Bottom - 40.0f) Caption.y = Pointer.y - 14.0f - 26.0f;
-    DrawStatusPill(Canvas, Caption, Text, Snap.Kind == SolidArcSnapKind::Axis ? LockColours[int(Picker.Lock)] : SnapColour);
+    DrawStatusPill(Canvas, Caption, Text, Snap.Kind == SolidArcSnapKind::Axis ? AxisInk : SnapColour);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -13308,7 +13372,7 @@ void DrawConstructMenu(SolidArcWorkspaceState& State, ImVec2 Anchor)
                 State.Drawing.CentreCondition  = Entry.CentreCondition;
                 State.Drawing.SegmentCondition = Entry.SegmentCondition;
                 if (Entry.Sketch == SolidArcDrawingKind::Curve) State.Drawing.Form = State.SurfaceTraceEnabled && Entry.Form != SketchSplineForm::Bezier ? SketchSplineForm::Nurbs : Entry.Form;
-                if (Entry.SegmentCondition) Announce(State, "Line: click the start, then the end · Esc aborts");
+                if (Entry.SegmentCondition) Announce(State, "Line: click the start, then the end · hold Shift for a straight axis · Esc aborts");
                 if (Entry.Sketch == SolidArcDrawingKind::Curve) Announce(State, std::string("Curve · ") + SketchSplineFormLabel(State.Drawing.Form) + (State.Drawing.SurfaceCondition ? ": click controls · 2 Bezier / 3 NURBS · no extra poles · Enter finishes · Esc aborts" : ": click points · 1-4 switch form · Enter / right-click finishes · Ctrl+Z drops a point · Esc aborts"));
             }
         }
@@ -15282,13 +15346,23 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
         if (Drawing.PointerCondition && !LiftStage && !(Drawing.SolidCondition && Drawing.Points.empty() && State.Picker.Current.Kind != SolidArcSnapKind::None))
         {
             if (!Drawing.SurfaceCondition) PlaceDrawingPointer(State, Frame, Local, Point);
+            const bool ShiftAligned = ApplyDrawingShiftConstraint(State, Point);
             ImVec2 First;
             const OrthonormalFrame Plane = DrawingPlane(Drawing);
+            bool ClosingOnAxis = true;
+            if (ShiftAligned && Drawing.Points.size() >= 2)
+            {
+                const Vector3 Start = Drawing.SurfaceCondition && !Drawing.Lifted.empty() && Drawing.Lifted.front() ? *Drawing.Lifted.front() : PlacePlanePoint(Plane, Drawing.Points.front());
+                const Vector3 Last = Drawing.SurfaceCondition && !Drawing.Lifted.empty() && Drawing.Lifted.back() ? *Drawing.Lifted.back() : PlacePlanePoint(Plane, Drawing.Points.back());
+                const Vector3 Delta = Start - Last;
+                ClosingOnAxis = Length(Cross(Delta, State.Picker.Current.Tangent)) <= 1.0e-9 * (1.0 + Length(Delta));
+            }
             if (DrawingClicks(Drawing.Kind) == 0 && Drawing.Points.size() >= 2 && ProjectWorldPoint(State, Frame, Drawing.SurfaceCondition && !Drawing.Lifted.empty() && Drawing.Lifted.front() ? *Drawing.Lifted.front() : PlacePlanePoint(Plane, Drawing.Points.front()), First) &&
-                std::hypot(Io.MousePos.x - First.x, Io.MousePos.y - First.y) <= ClosingTolerance)
+                std::hypot(Io.MousePos.x - First.x, Io.MousePos.y - First.y) <= ClosingTolerance && ClosingOnAxis)
             {
                 Point   = Drawing.Points.front();
                 if (Drawing.SurfaceCondition && !Drawing.Lifted.empty()) Drawing.PointerLifted = Drawing.Lifted.front();
+                if (ShiftAligned) State.Picker.Current.Position = Drawing.SurfaceCondition && Drawing.PointerLifted ? *Drawing.PointerLifted : PlacePlanePoint(Plane, Point);
                 Closing = true;
             }
             Drawing.Pointer = Point;
@@ -15817,11 +15891,11 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
                            : State.Drawing.SolidCondition ? "Draw on the ground or any body face (oriented to it; snaps, Ctrl free) · move out for the height (0.1 steps) · R new body · Q union · W difference · E intersect · Tab exact size · Ctrl+Z drop · Esc abort"
                               : State.Drawing.Kind == SolidArcDrawingKind::Polygon ? (State.Drawing.Points.size() >= 2 ? "Polygon drawn: wheel (or + / −) changes the sides · click / right-click / Enter confirms · Ctrl+Z drop · Esc abort" : "Click (or press-drag) the centre, then a vertex (snaps, Ctrl free) · wheel or + / − sides · x y z t n b lock · Ctrl+Z drop · Esc abort")
                               : State.Drawing.Kind == SolidArcDrawingKind::Curve ? "Click points (free; Ctrl ends / midpoints / quarters / centres / edges, Alt slides along a curve; a body face under the first click carries the sketch) · x y z t n b lock · 1 Hermite · 2 Bezier · 3 NURBS · 4 cubic · click first point closes · Enter / right-click finish · Ctrl+Z drop · Esc abort"
-                              : State.Drawing.Kind == SolidArcDrawingKind::Line ? "Click points (free; Ctrl ends / midpoints / quarters / centres / edges, Alt slides along a curve; a body face under the first click carries the sketch) · x y z t n b lock · click first point closes · Enter / right-click finish · Ctrl+Z drop · Esc abort"
+                              : State.Drawing.Kind == SolidArcDrawingKind::Line ? "Click points (hold Shift for straight axes; Ctrl ends / midpoints / quarters / centres / edges, Alt slides along a curve; a body face under the first click carries the sketch) · x y z t n b lock · click first point closes · Enter / right-click finish · Ctrl+Z drop · Esc abort"
                               : State.Drawing.Kind == SolidArcDrawingKind::Rectangle ? "Click two corners (free; Ctrl ends / midpoints / quarters / centres / edges, Alt slides along a curve; a body face under the first click carries the sketch) · x y z t n b lock · s square · Alt centre / corner · Ctrl+Z drop · Esc abort"
                               : State.Drawing.Kind == SolidArcDrawingKind::Circle ? "Click centre then rim (free; Ctrl ends / midpoints / quarters / centres / edges, Alt slides along a curve; a body face under the first click carries the sketch) · x y z t n b lock · V two-point / centre · Ctrl+Z drop · Esc abort"
-                              : State.Drawing.Kind == SolidArcDrawingKind::Arc ? "Click start, end, then a point on the arc (free; Ctrl ends / midpoints / quarters / centres / edges, Alt slides along a curve; a body face under the first click carries the sketch) · x y z t n b lock · Ctrl+Z drop · Esc abort"
-                              : "Click both cap centres, then the rim (free; Ctrl ends / midpoints / quarters / centres / edges, Alt slides along a curve; a body face under the first click carries the sketch) · x y z t n b lock · Ctrl+Z drop · Esc abort")
+                              : State.Drawing.Kind == SolidArcDrawingKind::Arc ? "Click start, Shift-align end, then free bulge point (planar; Ctrl ends / midpoints / quarters / centres / edges, Alt slides along a curve; a body face under the first click carries the sketch) · x y z t n b lock · Ctrl+Z drop · Esc abort"
+                              : "Click cap centres (Shift aligns), then free rim (Ctrl ends / midpoints / quarters / centres / edges, Alt slides along a curve; a body face under the first click carries the sketch) · x y z t n b lock · Ctrl+Z drop · Esc abort")
                        : State.Constrain.ActiveCondition
                            ? "Constrain: click points / curves · D dimension · N angle · H / V · O on · Q equal · M midpoint · Y symmetric · L parallel / tangent · [ perpendicular · ] lock · drag a point · click a glyph: Delete removes, digits + Enter edit · Esc / K end"
                        : State.Trim.ActiveCondition && State.Trim.InsertCondition
@@ -17501,6 +17575,9 @@ void DrawDrawingOptions(SolidArcWorkspaceState& State)
             ImGui::SetNextItemWidth(110);ImGui::InputDouble("Depth (m)###ToolPlaneDepth",&D.Elevation,0,0,"%.4f");RegisterWidget(State,"###ToolPlaneDepth");
             ImGui::EndDisabled();
         }
+        if (D.Kind == SolidArcDrawingKind::Line) ImGui::TextDisabled("Shift: straight axis from last click");
+        else if (Arc) ImGui::TextDisabled("Shift: align endpoints; bulge stays free");
+        else if (D.Kind == SolidArcDrawingKind::Slot) ImGui::TextDisabled("Shift: align centres; width stays free");
         ImGui::TextDisabled("Enter: finish | Esc: cancel");
         ImGui::PopStyleVar(2);
     }

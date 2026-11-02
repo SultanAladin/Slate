@@ -1,6 +1,8 @@
 # SolidArc CAD Audit, Features & Binary Packages
 
-> **Latest — surface-attached cutters:** [Cutter placement fix and rebuilt apps](Vehicles/Liger/CutterFix/README.md). Knife profiles attach to the first-clicked surface in orthographic and perspective views; one standard outline + depth workflow replaces duplicate basic cutter entries. The global curve-selection/Delete fixes are included. [Audit](Vehicles/Liger/CutterFix/AUDIT.md) · [Downloads](Vehicles/Liger/CutterFix/Packages/).
+> **Latest — hold Shift for straight drawing:** [Rebuilt Windows/Linux apps and usage](Vehicles/Liger/ShiftDrawing/README.md). Lines and polylines align from the previous click; arc endpoints align while the bulge stays free. All sketch planes, face planes, Knife/Imprint and both projections share the placement. Freeform curves stay free. Includes the previous cutter and selection fixes; supplied cage unchanged. [Audit](Vehicles/Liger/ShiftDrawing/AUDIT.md) · [Downloads](Vehicles/Liger/ShiftDrawing/Packages/).
+
+> **Previous — surface-attached cutters:** [Cutter placement fix and rebuilt apps](Vehicles/Liger/CutterFix/README.md). Knife profiles attach to the first-clicked surface in orthographic and perspective views; one standard outline + depth workflow replaces duplicate basic cutter entries. The global curve-selection/Delete fixes are included. [Audit](Vehicles/Liger/CutterFix/AUDIT.md) · [Downloads](Vehicles/Liger/CutterFix/Packages/).
 
 > **Latest — Liger surface tracing:** [dedicated protected NURBS workspace + rebuilt Windows/Linux apps](Vehicles/Liger/Tracing/README.md). Draw editable 3D curves directly on the reference, Ctrl-snap to model edges, and edit in XYZ. [Downloads](Vehicles/Liger/Tracing/Packages/) · [audit](Vehicles/Liger/Tracing/AUDIT.md). Earlier packages below are preserved.
 

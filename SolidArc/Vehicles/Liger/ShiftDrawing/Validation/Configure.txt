@@ -1,0 +1,25 @@
+-- Found Python3: /home/user/cutter-build/env/bin/python3.11 (found suitable version "3.11.2", minimum required is "3.9") found components: Interpreter
+[ImGui]    PatchA-TrapezoidalTabs.patch is applied
+[ImGui]    PatchB-TabOverlapZOrder.patch is applied
+[ImGui]    PatchC-RoundTabButtons.patch is applied
+[ImGui]    PatchD-TabAddButton.patch is applied
+[ImGui]    PatchE-NoTabScrollButtons.patch is applied
+[ImGui]    PatchF-TabContentInsets.patch is applied
+[ImGui]    PatchG-AdjacentTabAddButton.patch is applied
+Pinned dependency present: imgui
+Pinned dependency present: thorvg
+Pinned dependency present: tomlpp
+Pinned dependency present: glfw
+Pinned dependency present: vulkan-headers
+Pinned dependency present: stb
+Pinned dependency present: volk
+Catalogue: 35 faces, 5 families, 0 rejected files
+-- Found Python3: /home/user/cutter-build/env/bin/python3.11 (found version "3.11.2") found components: Interpreter
+-- Including X11 support
+fatal: ambiguous argument 'HEAD': unknown revision or path not in the working tree.
+Use '--' to separate paths from revisions, like this:
+'git <command> [<revision>...] -- [<file>...]'
+-- Surface C++ unit builds; supply slangc or FRONTIER_SLANG_WASM for shader/readback validation
+-- Configuring done (0.7s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/user/cutter-build/Linux

@@ -1,0 +1,78 @@
+[0/2] Re-checking globbed directories...
+[1/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgColor.cpp.o
+[2/49] Building CXX object CMakeFiles/thorvg_static.dir/thorvg_icon_art/tvgInitializer.cpp.o
+[3/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgCompressor.cpp.o
+[4/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgMath.cpp.o
+[5/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgStr.cpp.o
+[6/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgAccessor.cpp.o
+[7/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgAnimation.cpp.o
+[8/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgFill.cpp.o
+[9/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgCanvas.cpp.o
+[10/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgLoader.cpp.o
+[11/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgPaint.cpp.o
+[12/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgPicture.cpp.o
+[13/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgRender.cpp.o
+[14/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgSaver.cpp.o
+[15/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgScene.cpp.o
+[16/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgShape.cpp.o
+[17/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgTaskScheduler.cpp.o
+[18/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgText.cpp.o
+[19/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwImage.cpp.o
+[20/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwFill.cpp.o
+[21/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwMath.cpp.o
+[22/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwMemPool.cpp.o
+[23/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwPostEffect.cpp.o
+[24/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwRaster.cpp.o
+[25/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwRenderer.cpp.o
+[26/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwRle.cpp.o
+[27/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwShape.cpp.o
+[28/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgCssStyle.cpp.o
+[29/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwStroke.cpp.o
+[30/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgPath.cpp.o
+[31/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp.o
+In function ‘void _recalcBox(const SvgLoaderData*, Box*, bool (&)[4])’,
+    inlined from ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’ at /home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1527:43:
+/home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1311:51: warning: writing 4 bytes into a region of size 0 [-Wstringop-overflow=]
+ 1311 |         else *(float*)(array + boxTags[i].offset) *= loader->svgParse->global.h;
+      |              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgXmlParser.h:26,
+                 from /home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:28:
+/home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h: In function ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’:
+/home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h:37:11: note: at offset 4 into destination object ‘Box::x’ of size 4
+   37 |     float x, y, w, h;
+      |           ^
+In function ‘void _recalcBox(const SvgLoaderData*, Box*, bool (&)[4])’,
+    inlined from ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’ at /home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1527:43:
+/home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1310:102: warning: writing 4 bytes into a region of size 0 [-Wstringop-overflow=]
+ 1310 |         if (boxTags[i].type == SvgParserLengthType::Horizontal) *(float*)(array + boxTags[i].offset) *= loader->svgParse->global.w;
+      |                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h: In function ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’:
+/home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h:37:11: note: at offset 8 into destination object ‘Box::x’ of size 4
+   37 |     float x, y, w, h;
+      |           ^
+In function ‘void _recalcBox(const SvgLoaderData*, Box*, bool (&)[4])’,
+    inlined from ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’ at /home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1527:43:
+/home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1311:51: warning: writing 4 bytes into a region of size 0 [-Wstringop-overflow=]
+ 1311 |         else *(float*)(array + boxTags[i].offset) *= loader->svgParse->global.h;
+      |              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h: In function ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’:
+/home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h:37:11: note: at offset 12 into destination object ‘Box::x’ of size 4
+   37 |     float x, y, w, h;
+      |           ^
+[32/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgSceneBuilder.cpp.o
+[33/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgUtil.cpp.o
+[34/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgXmlParser.cpp.o
+[35/49] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/raw/tvgRawLoader.cpp.o
+[36/49] Linking CXX static library libthorvg_static.a
+[37/49] Building CXX object CMakeFiles/LigerShiftDrawingValidation.dir/home/user/Slate/SolidArc/Vehicles/Liger/Tools/ShiftDrawingValidation.cpp.o
+[38/49] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcInterface.cpp.o
+[39/49] Linking CXX static library libFrontierSolidArcUI.a
+[40/49] Linking CXX executable LigerSurfaceTraceValidation
+[41/49] Linking CXX executable LigerCurveEditingValidation
+[42/49] Linking CXX executable LigerSelectionValidation
+[43/49] Linking CXX executable LigerCageToolsValidation
+[44/49] Linking CXX executable LigerShiftDrawingValidation
+[45/49] Linking CXX executable LigerCutterPlacementValidation
+[46/49] Linking CXX executable SolidArcWorkspace
+[47/49] Linking CXX executable SolidArcCapture
+[48/49] Linking CXX executable SolidArcDocumentValidation

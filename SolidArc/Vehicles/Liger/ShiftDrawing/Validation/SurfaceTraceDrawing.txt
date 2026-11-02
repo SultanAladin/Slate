@@ -1,0 +1,76 @@
+capture Liger_Trace_On_Surface_Preview frame   50  2b3e6f1be2bed934
+capture Liger_Trace_Editable_XYZ     frame   58  9d472de04968fc6e
+# SolidArcCapture
+
+- Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
+- Frame: 1280 x 680 · 184 frames · 23.9615 s · slowest frame 516.109 ms
+- Script: /home/user/Slate/SolidArc/Vehicles/Liger/Tools/SurfaceTraceDrawingCheck.txt
+- Expectations: 35 / 35 passed
+
+| Line | Expectation | Observed | Result |
+|-----:|-------------|----------|--------|
+| 10 | `drawing-hit == 1` | 1 | 🟢 |
+| 11 | `snap contains On face` | On face · Face LigerPart1.Face(228) | 🟢 |
+| 14 | `drawing-points == 1` | 1 | 🟢 |
+| 18 | `drawing-points == 2` | 2 | 🟢 |
+| 22 | `drawing-points == 3` | 3 | 🟢 |
+| 26 | `drawing == 0` |  | 🟢 |
+| 27 | `steps == 4` | 4 | 🟢 |
+| 28 | `last-control-count == 3` | 3 | 🟢 |
+| 29 | `curves == 1` | Surface trace1 | 🟢 |
+| 30 | `refused == 0` | 0 | 🟢 |
+| 31 | `undo == 1` | 1 | 🟢 |
+| 32 | `gizmo-arrows == 3` | 3 | 🟢 |
+| 33 | `gizmo-flat == 0` | 0 | 🟢 |
+| 37 | `curves == 0` |  | 🟢 |
+| 38 | `steps == 3` | 3 | 🟢 |
+| 41 | `curves == 1` | Surface trace1 | 🟢 |
+| 42 | `steps == 4` | 4 | 🟢 |
+| 46 | `selected-curves == 1` | Surface trace1 | 🟢 |
+| 51 | `transform-shift-z > 0.009` | 0.01 | 🟢 |
+| 52 | `transform-shift-z < 0.011` | 0.01 | 🟢 |
+| 55 | `transform-commits == 1` | 1 | 🟢 |
+| 56 | `refused == 0` | 0 | 🟢 |
+| 59 | `curves == 1` | Surface trace1 | 🟢 |
+| 62 | `dirty == 0` | 0 | 🟢 |
+| 70 | `drawing-surface == 0` | 0 | 🟢 |
+| 81 | `drawing == 0` |  | 🟢 |
+| 82 | `curves == 1` | Surface trace1 | 🟢 |
+| 83 | `sketches contains Arc` | Arc1 | 🟢 |
+| 84 | `steps == 5` | 5 | 🟢 |
+| 85 | `refused == 0` | 0 | 🟢 |
+| 88 | `curves == 1` | Surface trace1 | 🟢 |
+| 98 | `drawing == 0` |  | 🟢 |
+| 99 | `curves == 2` | Surface trace1,Surface trace2 | 🟢 |
+| 100 | `refused == 0` | 0 | 🟢 |
+| 101 | `last-control-count == 2` | 2 | 🟢 |
+
+| Capture | Frame | Digest |
+|---------|------:|--------|
+| Liger_Trace_On_Surface_Preview | 50 | `2b3e6f1be2bed934` |
+| Liger_Trace_Editable_XYZ | 58 | `9d472de04968fc6e` |
+
+## Journal
+
+- View Top (Numpad)
+- SURFACE TRACE · click on the model · Ctrl: authored curve / model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
+- Curve form: NURBS
+- Draw surface trace · 45 ms
+- Surface-point trace · 3 placed controls · no automatic points or surface fitting
+- Undo
+- Redo
+- Selected curve Surface trace1 · 3 poles · fit 0.000 mm · 1 selected
+- Move 1 sketch(es) · X / Y / Z axis · Shift+X / Y / Z plane · drag or type a value · click / Enter commits · Esc cancels
+- Move (Surface trace1) · 48 ms
+- Undo
+- Saved /home/user/cutter-build/Shift Package With Spaces/Project Liger/Test.solidarc
+- Selection cleared
+- SURFACE TRACE · click on the model · Ctrl: authored curve / model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
+- Curve aborted (document untouched)
+- Arc on plane XY (planar, no surface snap): click start, end, then a point on the arc · hold Ctrl to snap to ends / midpoints / centres, Alt to slide along a curve · Esc aborts
+- Autosaved /home/user/cutter-build/Shift Package With Spaces/Project Liger/SurfaceTraceDrawingRecovery.solidarc
+- Arc1 · 41 ms
+- Undo
+- SURFACE TRACE · click on the model · Ctrl: authored curve / model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
+- Draw surface trace · 42 ms
+- Surface-point trace · 2 placed controls · no automatic points or surface fitting

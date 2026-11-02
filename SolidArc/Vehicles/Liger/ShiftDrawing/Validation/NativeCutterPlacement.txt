@@ -1,0 +1,113 @@
+PASS ortho 1 rectangle starts despite tracing preference
+PASS ortho 1 hovered surface replaces origin grid plane with face plane
+PASS ortho 1 first click freezes cutter plane
+PASS ortho 1 outline stays on first face plane
+PASS ortho 1 completed profile retains face target
+PASS ortho 1 depth cuts inward from actual face, exact pocket volume
+PASS ortho 1 no user preference was changed
+PASS ortho 1 undo restores uncut body
+PASS ortho 2 rectangle starts despite tracing preference
+PASS ortho 2 hovered surface replaces origin grid plane with face plane
+PASS ortho 2 first click freezes cutter plane
+PASS ortho 2 outline stays on first face plane
+PASS ortho 2 completed profile retains face target
+PASS ortho 2 depth cuts inward from actual face, exact pocket volume
+PASS ortho 2 no user preference was changed
+PASS ortho 2 undo restores uncut body
+PASS ortho 5 rectangle starts despite tracing preference
+PASS ortho 5 hovered surface replaces origin grid plane with face plane
+PASS ortho 5 first click freezes cutter plane
+PASS ortho 5 outline stays on first face plane
+PASS ortho 5 completed profile retains face target
+PASS ortho 5 depth cuts inward from actual face, exact pocket volume
+PASS ortho 5 no user preference was changed
+PASS ortho 5 undo restores uncut body
+PASS ortho 6 rectangle starts despite tracing preference
+PASS ortho 6 hovered surface replaces origin grid plane with face plane
+PASS ortho 6 first click freezes cutter plane
+PASS ortho 6 outline stays on first face plane
+PASS ortho 6 completed profile retains face target
+PASS ortho 6 depth cuts inward from actual face, exact pocket volume
+PASS ortho 6 no user preference was changed
+PASS ortho 6 undo restores uncut body
+PASS ortho 3 rectangle starts despite tracing preference
+PASS ortho 3 hovered surface replaces origin grid plane with face plane
+PASS ortho 3 first click freezes cutter plane
+PASS ortho 3 outline stays on first face plane
+PASS ortho 3 completed profile retains face target
+PASS ortho 3 depth cuts inward from actual face, exact pocket volume
+PASS ortho 3 no user preference was changed
+PASS ortho 3 undo restores uncut body
+PASS ortho 4 rectangle starts despite tracing preference
+PASS ortho 4 hovered surface replaces origin grid plane with face plane
+PASS ortho 4 first click freezes cutter plane
+PASS ortho 4 outline stays on first face plane
+PASS ortho 4 completed profile retains face target
+PASS ortho 4 depth cuts inward from actual face, exact pocket volume
+PASS ortho 4 no user preference was changed
+PASS ortho 4 undo restores uncut body
+PASS perspective 1 rectangle starts despite tracing preference
+PASS perspective 1 hovered surface replaces origin grid plane with face plane
+PASS perspective 1 first click freezes cutter plane
+PASS perspective 1 outline stays on first face plane
+PASS perspective 1 completed profile retains face target
+PASS perspective 1 depth cuts inward from actual face, exact pocket volume
+PASS perspective 1 no user preference was changed
+PASS perspective 1 undo restores uncut body
+PASS perspective 2 rectangle starts despite tracing preference
+PASS perspective 2 hovered surface replaces origin grid plane with face plane
+PASS perspective 2 first click freezes cutter plane
+PASS perspective 2 outline stays on first face plane
+PASS perspective 2 completed profile retains face target
+PASS perspective 2 depth cuts inward from actual face, exact pocket volume
+PASS perspective 2 no user preference was changed
+PASS perspective 2 undo restores uncut body
+PASS perspective 5 rectangle starts despite tracing preference
+PASS perspective 5 hovered surface replaces origin grid plane with face plane
+PASS perspective 5 first click freezes cutter plane
+PASS perspective 5 outline stays on first face plane
+PASS perspective 5 completed profile retains face target
+PASS perspective 5 depth cuts inward from actual face, exact pocket volume
+PASS perspective 5 no user preference was changed
+PASS perspective 5 undo restores uncut body
+PASS perspective 6 rectangle starts despite tracing preference
+PASS perspective 6 hovered surface replaces origin grid plane with face plane
+PASS perspective 6 first click freezes cutter plane
+PASS perspective 6 outline stays on first face plane
+PASS perspective 6 completed profile retains face target
+PASS perspective 6 depth cuts inward from actual face, exact pocket volume
+PASS perspective 6 no user preference was changed
+PASS perspective 6 undo restores uncut body
+PASS perspective 3 rectangle starts despite tracing preference
+PASS perspective 3 hovered surface replaces origin grid plane with face plane
+PASS perspective 3 first click freezes cutter plane
+PASS perspective 3 outline stays on first face plane
+PASS perspective 3 completed profile retains face target
+PASS perspective 3 depth cuts inward from actual face, exact pocket volume
+PASS perspective 3 no user preference was changed
+PASS perspective 3 undo restores uncut body
+PASS perspective 4 rectangle starts despite tracing preference
+PASS perspective 4 hovered surface replaces origin grid plane with face plane
+PASS perspective 4 first click freezes cutter plane
+PASS perspective 4 outline stays on first face plane
+PASS perspective 4 completed profile retains face target
+PASS perspective 4 depth cuts inward from actual face, exact pocket volume
+PASS perspective 4 no user preference was changed
+PASS perspective 4 undo restores uncut body
+PASS shaped cutter auto-orients on side face with preference off
+PASS shaped cutter uses outward side normal, not XY grid
+PASS Ctrl-snapped shaped cutter keeps surface frame and target
+PASS shaped cutter uses outward side normal, not XY grid
+PASS Ctrl-snapped shaped cutter keeps surface frame and target
+PASS shaped cutter uses outward side normal, not XY grid
+PASS curved surface supplies tangent plane with face preference off
+PASS curved cutter normal points out; negative depth goes into body
+PASS one canonical outline choice for box, cylinder and prism cuts
+PASS duplicate basic solid entries removed from cutter menu
+PASS distinct shaped cutters retained
+PASS imprint, object and compound-library capabilities retained
+PASS canonical menu starts profile plus depth workflow
+PASS inspector also removes duplicate basic solids
+PASS retopology popup cannot override cutter placement
+PASS ordinary drawing still respects disabled face orientation and its chosen grid
+PASS 112 surface cutter checks

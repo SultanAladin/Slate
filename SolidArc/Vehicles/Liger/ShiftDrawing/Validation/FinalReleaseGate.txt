@@ -1,0 +1,4 @@
+PASS Windows: final ZIP SHA, CRC, exact installed executable, supplied cage, every payload hash, single folder and embedded README
+PASS Linux: final ZIP SHA, CRC, exact installed executable, supplied cage, every payload hash, single folder and embedded README
+PASS 79/79 current production overlay hashes match final compiled Host; all recorded test-tool hashes match
+PASS incremental patch reverse-check against delivered working tree

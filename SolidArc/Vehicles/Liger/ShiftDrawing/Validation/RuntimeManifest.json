@@ -1,0 +1,55 @@
+{
+  "Windows": {
+    "executable": "SolidArcWorkspace.exe",
+    "sha256": "f15a11ecf10d6b1cffac7b2cd5bd4b2c6bd52e03740eb801b6d3eae984b1b7ed",
+    "executable_bytes": 9080832,
+    "svg_icons": 310,
+    "solidarc_icons": 66,
+    "font_faces": 5,
+    "dependencies": [
+      "KERNEL32.dll",
+      "USER32.dll",
+      "SHELL32.dll",
+      "api-ms-win-crt-heap-l1-1-0.dll",
+      "api-ms-win-crt-private-l1-1-0.dll",
+      "api-ms-win-crt-runtime-l1-1-0.dll",
+      "api-ms-win-crt-stdio-l1-1-0.dll",
+      "api-ms-win-crt-string-l1-1-0.dll",
+      "api-ms-win-crt-math-l1-1-0.dll",
+      "api-ms-win-crt-convert-l1-1-0.dll",
+      "api-ms-win-crt-utility-l1-1-0.dll",
+      "GDI32.dll",
+      "api-ms-win-crt-environment-l1-1-0.dll",
+      "api-ms-win-crt-time-l1-1-0.dll",
+      "api-ms-win-crt-locale-l1-1-0.dll",
+      "api-ms-win-crt-multibyte-l1-1-0.dll",
+      "comdlg32.dll"
+    ],
+    "package": "Project Liger Shift Drawing Windows.zip",
+    "package_sha256": "919b2cdacb636087c65db5f0c19149cd0045953143af1c32cb13ddce9412162b",
+    "package_bytes": 6158739,
+    "project_sha256": "90344c326b32e467b8298851eb8b1df2a2dba1ce879becd3c7a12303b252ec70",
+    "payload_files": 333
+  },
+  "Linux": {
+    "executable": "SolidArcWorkspace",
+    "sha256": "4482bc9a8b01e2fa8e16664c3f77ecba2aea52f61b5a0562c41e220d7dc5b6fb",
+    "executable_bytes": 11059896,
+    "svg_icons": 310,
+    "solidarc_icons": 66,
+    "font_faces": 5,
+    "dependencies": [
+      "linux-vdso.so.1",
+      "libstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6",
+      "libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6",
+      "libgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1",
+      "libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6",
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "package": "Project Liger Shift Drawing Linux.zip",
+    "package_sha256": "3bfbe3c3bad48120bf6b47207e0df4d3a2c93c6596cd2e6372dc0682318bf22f",
+    "package_bytes": 6942070,
+    "project_sha256": "90344c326b32e467b8298851eb8b1df2a2dba1ce879becd3c7a12303b252ec70",
+    "payload_files": 333
+  }
+}
