@@ -16,3 +16,7 @@ if(CMAKE_PROJECT_NAME STREQUAL "FrontierUIFoundation" AND NOT TARGET LigerCurveE
     add_executable(LigerCurveEditingValidation "${CMAKE_CURRENT_LIST_DIR}/CurveEditingValidation.cpp")
     target_link_libraries(LigerCurveEditingValidation PRIVATE FrontierSolidArcUI)
 endif()
+if(CMAKE_PROJECT_NAME STREQUAL "FrontierUIFoundation" AND NOT TARGET LigerCageToolsValidation)
+    add_executable(LigerCageToolsValidation "${CMAKE_CURRENT_LIST_DIR}/CageToolsValidation.cpp")
+    target_link_libraries(LigerCageToolsValidation PRIVATE FrontierSolidArcUI)
+endif()

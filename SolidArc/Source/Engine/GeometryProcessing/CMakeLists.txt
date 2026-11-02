@@ -69,6 +69,7 @@ add_library(FrontierGeometryProcessing STATIC
     Feature/FeatureTree.cpp
     Feature/FeatureCatalogue.cpp
     Surfacing/LinearSystem.cpp
+    Surfacing/SurfaceDistanceCurve.cpp
     Surfacing/CurveFitting.cpp
     Surfacing/SectionLoft.cpp
     Surfacing/SurfaceAlgebra.cpp

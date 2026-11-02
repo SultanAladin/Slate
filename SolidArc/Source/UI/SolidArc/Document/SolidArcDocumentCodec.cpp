@@ -213,6 +213,10 @@ constexpr int64_t FormatVersion = 1;                                            
             for (double Knot : Step.CurveKnots) Knots.push_back(Knot);
             Table.insert("CurveKnots", std::move(Knots));
         }
+        if (!Step.CurveOffsetGuide.empty()) {
+            Table.insert("CurveOffsetGuide",Step.CurveOffsetGuide); Table.insert("CurveOffsetBody",Step.CurveOffsetBody); Table.insert("CurveOffsetOrigin",EncodeVector(Step.CurveOffsetOrigin));
+            Table.insert("CurveOffsetDistance",Step.CurveOffsetDistance); Table.insert("CurveOffsetTolerance",Step.CurveOffsetTolerance);
+        }
         if (!Step.PoleEdits.empty())
         {
             toml::array Edits;
@@ -877,6 +881,11 @@ SolidArcDocumentFile DecodeSolidArcDocument(const std::string& Text)
             Step.ClosedCondition = View["Closed"].value_or(false);
             Step.PlanarCondition = View["Planar"].value_or(false);
             Step.ReverseNormals = View["ReverseNormals"].value_or(false);
+            Step.CurveOffsetGuide=View["CurveOffsetGuide"].value_or(std::string{});
+            Step.CurveOffsetBody=View["CurveOffsetBody"].value_or(std::string{});
+            Step.CurveOffsetOrigin=DecodeVector(View["CurveOffsetOrigin"],Vector3{});
+            Step.CurveOffsetDistance=View["CurveOffsetDistance"].value_or(0.05);
+            Step.CurveOffsetTolerance=View["CurveOffsetTolerance"].value_or(0.002);
             Step.Continuity      = static_cast<int>(View["Continuity"].value_or(int64_t{ 0 }));
             Step.Tolerance       = DecodeValue(View["Tolerance"], Step.Tolerance);
             if (const toml::array* Knots = View["CurveKnots"].as_array())

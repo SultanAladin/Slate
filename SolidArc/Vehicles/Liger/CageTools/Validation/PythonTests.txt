@@ -1,0 +1,6 @@
+......
+----------------------------------------------------------------------
+Ran 6 tests in 2.505s
+
+OK
+PASS protected 3-sheet workspace, 47267 rigidly rotated point/direction entities; no new vehicle geometry

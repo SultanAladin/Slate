@@ -190,6 +190,12 @@ bool ObserveField(const SolidArcWorkspaceState& State, const std::string& Field,
     if (Field == "genus") return Numeric(Document.Summary.Genus);
     if (Field == "volume") return Numeric(Document.Summary.Volume);
     if (Field == "sound") return Numeric(Document.Summary.SoundCondition ? 1 : 0);
+    if (Field == "offset-linked-count") return Numeric(std::count_if(Document.Tree.Steps.begin(),Document.Tree.Steps.end(),[](const auto& S){return !S.CurveOffsetGuide.empty();}));
+    if (Field == "last-curve-mid-x") {
+        for(auto It=Document.Tree.Steps.rbegin();It!=Document.Tree.Steps.rend();++It)
+            if(auto C=Document.Regeneration.Curves.find(It->Label);C!=Document.Regeneration.Curves.end()) return Numeric(GeometryProcessing::EvaluateNurbsCurve(*C->second.Curve.Definition,.5).Position.X);
+        return Numeric(0);
+    }
     if (Field == "steps") return Numeric(double(Document.Tree.Steps.size()));
     if (Field == "refused") return Numeric(Document.Regeneration.Refused);
     if (Field == "replay-resumed") return Numeric(Document.Regeneration.Resumed);

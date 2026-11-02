@@ -8,25 +8,33 @@ namespace Frontier::SolidArc
 using namespace GeometryProcessing;
 
 SolidArcSnap SnapSolidArcTrace(SolidArcSnapCatalogue& Catalogue, const SolidArcDocument& Document,
-    const SolidArcScene& Scene, const OrbitCameraFrame& Frame, double X, double Y, bool CurveSnap)
+    const SolidArcScene& Scene, const OrbitCameraFrame& Frame, double X, double Y, bool CurveSnap, bool AutoCurves)
 {
     SolidArcSnapQuery Query;
     Query.Frame = Frame;
     Query.PixelX = X;
     Query.PixelY = Y;
     Query.CurveReach = 12.0;
-    Query.Filter = { false, false, false, false, false, false, false, CurveSnap, !CurveSnap };
-    Query.FreeCurvesOnly = CurveSnap;
-    Query.OverlayCurvesVisible = CurveSnap; // Authored curves are visibly drawn over the reference.
+    const bool Curves = CurveSnap || AutoCurves;
+    Query.Filter = { false, false, false, false, false, false, false, Curves, !Curves };
+    Query.FreeCurvesOnly = Curves;
+    Query.OverlayCurvesVisible = Curves; // Authored curves are visibly drawn over the reference.
     // Ctrl prioritises an authored curve, then a CAD edge, then the surface.
-    SolidArcSnap Snap = FindSolidArcSnap(Catalogue, Document, Scene, Query);
+    SolidArcSnap Snap;
+    if (Curves) {
+        // Exact endpoints beat a nearby interior foot; consumed profiles are excluded.
+        Query.Filter.EndpointEnabled = true; Query.Filter.CurveEnabled = false; Query.PointReach=8;
+        Snap=FindSolidArcSnap(Catalogue,Document,Scene,Query);
+        Query.Filter.EndpointEnabled = false; Query.Filter.CurveEnabled = true;
+    }
+    if(Snap.Kind==SolidArcSnapKind::None) Snap = FindSolidArcSnap(Catalogue, Document, Scene, Query);
     if (CurveSnap && Snap.Kind == SolidArcSnapKind::None)
     {
         Query.FreeCurvesOnly = false;
         Query.BodyCurvesOnly = true;
         Snap = FindSolidArcSnap(Catalogue, Document, Scene, Query);
     }
-    if (CurveSnap && Snap.Kind == SolidArcSnapKind::None)
+    if (Curves && Snap.Kind == SolidArcSnapKind::None)
     {
         Query.Filter.CurveEnabled = false;
         Query.Filter.FaceEnabled = true;

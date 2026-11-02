@@ -5,6 +5,7 @@
 
 #include "Engine/GeometryProcessing/Feature/FeatureTree.h"
 #include "Engine/GeometryProcessing/Surfacing/SurfaceAlgebra.h"
+#include "Engine/GeometryProcessing/Surfacing/SurfaceDistanceCurve.h"
 
 #include "Engine/GeometryProcessing/Construction/BodyModifiers.h"
 #include "Engine/GeometryProcessing/Diagnostics/OperationTrace.h"
@@ -1004,6 +1005,23 @@ RegenerationOutcome RegenerateFeatureTree(ModelPartition& Partition, FeatureTree
             }
             else Fit = FitSpaceCurve(Points, Settings);
             if (!Fit.Refusal.empty()) { Refuse("SpaceCurve: " + Fit.Refusal); break; }
+            if (!Step.CurveOffsetGuide.empty())
+            {
+                NurbsCurve Guide;
+                if (auto It=Outcome.Curves.find(Step.CurveOffsetGuide);It!=Outcome.Curves.end()) Guide=It->second.Curve;
+                else if (auto It=Sketches.find(Step.CurveOffsetGuide);It!=Sketches.end() && It->second.UsableCondition) {
+                    const auto Section=ComposeSketchSection(It->second.Model,It->second.Plane);
+                    if (Section.Curve) Guide=*Section.Curve;
+                }
+                const auto Body=std::find_if(Bodies.begin(),Bodies.end(),[&](const auto& B){return B.Key==Step.CurveOffsetBody;});
+                if (!Guide.Definition || Body==Bodies.end()) {Refuse("Surface offset guide/reference is unavailable (must precede target)");break;}
+                auto Extent=*Fit.Curve.Definition;
+                const auto Travel=EvaluateNurbsCurve(*Guide.Definition,.5).Position-Step.CurveOffsetOrigin;
+                for(auto& P:Extent.Poles) P=P+Travel;
+                auto Offset=OffsetCurveOnBody(Partition,Body->Body,Guide,NurbsCurve{std::make_shared<NurbsCurveDefinition>(std::move(Extent))},Step.CurveOffsetDistance,Step.CurveOffsetTolerance);
+                if (!Offset.Refusal.empty()) {Refuse(Offset.Refusal);break;}
+                Fit.Curve=Offset.Curve;Fit.Spans=int(Offset.Curve.Definition->Poles.size())-1;
+            }
             if (!Step.PoleEdits.empty())
             {
                 NurbsCurveDefinition Edited = *Fit.Curve.Definition;

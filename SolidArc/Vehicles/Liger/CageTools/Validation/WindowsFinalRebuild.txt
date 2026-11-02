@@ -1,0 +1,10 @@
+[0/2] Re-checking globbed directories...
+[1/10] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Surfacing/SurfaceDistanceCurve.cpp.obj
+[2/10] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Feature/FeatureTree.cpp.obj
+[3/10] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcDocument.cpp.obj
+[4/10] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcInterface.cpp.obj
+[5/10] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcScript.cpp.obj
+[6/10] Linking CXX static library GeometryProcessing/libFrontierGeometryProcessing.a
+[7/10] Linking CXX static library libFrontierSolidArcDocument.a
+[8/10] Linking CXX static library libFrontierSolidArcUI.a
+[9/10] Linking CXX executable SolidArcWorkspace.exe

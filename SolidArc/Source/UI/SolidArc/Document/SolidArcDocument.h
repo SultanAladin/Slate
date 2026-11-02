@@ -849,13 +849,19 @@ struct SolidArcStepReading;
                                                             GeometryProcessing::SketchSplineForm Form = GeometryProcessing::SketchSplineForm::Hermite);
 
 // Control editing is local and atomic: never falls back to whole-object deletion.
+// First curve is the guide; the existing target keeps its label and selects side/extent.
+[[nodiscard]] SolidArcCommandOutcome LinkSolidArcSurfaceOffset(SolidArcDocument&, const std::string& Guide,
+    const std::string& Target, const std::string& Body, double Distance, double Tolerance);
+[[nodiscard]] SolidArcCommandOutcome DetachSolidArcSurfaceOffset(SolidArcDocument&, const std::string& Target);
+[[nodiscard]] SolidArcCommandOutcome SplitSolidArcCurveCrossings(SolidArcDocument&, double Tolerance = 0.001);
+
 [[nodiscard]] std::vector<double> SolidArcCurveControlParameters(const GeometryProcessing::NurbsCurveDefinition& Definition);
 [[nodiscard]] SolidArcCommandOutcome DeleteSolidArcCurvePoles(SolidArcDocument&, const std::string&, const std::vector<int>&);
 [[nodiscard]] SolidArcCommandOutcome SubdivideSolidArcCurve(SolidArcDocument&, const std::string&, const std::vector<int>& Spans = {});
 [[nodiscard]] SolidArcCommandOutcome DeleteSolidArcCurveSpans(SolidArcDocument&, const std::string&, const std::vector<int>&);
 
 // An exact non-rational B-spline: persist supplied poles / knots without fitting, one undo entry.
-[[nodiscard]] SolidArcCommandOutcome DrawSolidArcProjectedCurve(SolidArcDocument& Document, const GeometryProcessing::NurbsCurve& Curve, bool Closed);
+[[nodiscard]] SolidArcCommandOutcome DrawSolidArcProjectedCurve(SolidArcDocument& Document, const GeometryProcessing::NurbsCurve& Curve, bool Closed, bool AutoSplit = false, double IntersectionTolerance = 0.001);
 
 // 💡 Sketch points moved off their plane (the 3D gizmo on mode-1 points in a 3D view): every curve through one becomes a
 //    3D curve of the same form through its points (Points of Sketch → Targets, in the world; Plane: the sketch's placed

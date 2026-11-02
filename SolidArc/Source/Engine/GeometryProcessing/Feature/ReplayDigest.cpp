@@ -177,6 +177,10 @@ std::string DigestFeatureStep(const FeatureTree& Tree, const FeatureStep& Step)
         Writer.Word(Step.CurveKnots.size());
         for (double Knot : Step.CurveKnots) Writer.Number(Knot);
     }
+    if (!Step.CurveOffsetGuide.empty()) {
+        Writer.Phrase("SurfaceDistanceOffset"); Writer.Phrase(Step.CurveOffsetGuide); Writer.Phrase(Step.CurveOffsetBody); Writer.Point(Step.CurveOffsetOrigin);
+        Writer.Number(Step.CurveOffsetDistance); Writer.Number(Step.CurveOffsetTolerance);
+    }
     Writer.Word(Step.PoleEdits.size());
     for (const FeaturePoleEdit& Edit : Step.PoleEdits) { Writer.Integer(Edit.Index); Writer.Point(Edit.Position); }
     Writer.Word(Step.Sections.size());

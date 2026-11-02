@@ -6,7 +6,7 @@ namespace Frontier::SolidArc
 {
 // Surface hits are exact carrier evaluations, seeded by the visible tessellation.
 [[nodiscard]] SolidArcSnap SnapSolidArcTrace(SolidArcSnapCatalogue& Catalogue, const SolidArcDocument& Document,
-    const SolidArcScene& Scene, const OrbitCameraFrame& Frame, double X, double Y, bool CurveSnap);
+    const SolidArcScene& Scene, const OrbitCameraFrame& Frame, double X, double Y, bool CurveSnap, bool AutoCurves = false);
 
 // Point-only authoring: exactly the supplied controls, never a surface fit.
 struct SolidArcControlTrace

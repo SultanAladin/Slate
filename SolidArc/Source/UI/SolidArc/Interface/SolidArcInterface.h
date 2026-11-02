@@ -46,6 +46,7 @@ enum class SolidArcPickMode : uint8_t
     Edge  = 2,                                                                               // Plasticity 2
     Face  = 3,                                                                               // Plasticity 3
     Solid = 4,                                                                               // Plasticity 4: a click selects the whole body
+    Curve = 6,                                                                              // Whole curves only; never spline spans or body edges
     Any   = 5,                                                                               // Plasticity 5 / Tab: edges and faces
 };
 
@@ -886,6 +887,14 @@ private:
 struct SolidArcWorkspaceState
 {
     bool SurfaceTraceEnabled = false;
+    bool DrawingCurveSnap = true;
+    bool DrawingAutoSplit = false;
+    bool DrawingOptionsVisible = true;
+    double DrawingIntersectionTolerance = 0.001;
+    double SurfaceOffsetDistance = 0.05;
+    double SurfaceOffsetTolerance = 0.002;
+    std::string SurfaceOffsetBody;
+
     bool FullXYZEnabled = false;
     SolidArcOptions                       Options        = {};                               // [-]   - Loaded options
     SolidArcDocument                      Document       = {};                               // [-]   - Authored document

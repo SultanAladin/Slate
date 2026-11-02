@@ -154,6 +154,11 @@ struct FeatureStep
     FeatureValue                   Tolerance      = { 2.0e-4 };                              // [len] - SpaceCurve: fit tolerance (0.2 mm)
     std::vector<double>            CurveKnots     = {};                                      // [-]   - SpaceCurve: exact clamped knots — Points are then the
                                                                                              //         poles (degree = knots − poles − 1), no fit (drawn 3D curves)
+    std::string                    CurveOffsetGuide = {};                                  // Live intrinsic surface-distance relationship (empty: independent)
+    std::string                    CurveOffsetBody = {};                                   // Explicit reference, never another coincident sheet
+    Vector3                        CurveOffsetOrigin = {};                                 // Guide midpoint at linking; carries target extent through translations
+    double                         CurveOffsetDistance = 0.05;                             // metres along the reference surface
+    double                         CurveOffsetTolerance = 0.002;                           // contour convergence tolerance in metres
     std::vector<FeaturePoleEdit>   PoleEdits      = {};                                      // [-]   - SpaceCurve: dragged poles, applied after the fit
     std::vector<std::string>       Sections       = {};                                      // [-]   - Loft: SpaceCurve labels in order · Network: its curves · Cut: the cutting curve
     int                            Continuity     = 0;                                       // [-]   - Loft: 0 G0 · 1 G1 · 2 G2 to panels sharing an end section

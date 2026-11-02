@@ -1324,7 +1324,7 @@ void OpenDrawingSession(SolidArcWorkspaceState& State, SolidArcDrawingKind Kind)
     State.Drawing.Sides           = Sides;
     State.Drawing.ActiveCondition = true;
     State.Drawing.Kind            = Kind;
-    State.Drawing.SurfaceCondition = State.SurfaceTraceEnabled;
+    State.Drawing.SurfaceCondition = State.SurfaceTraceEnabled && Kind != SolidArcDrawingKind::Arc;
     State.Drawing.GridPlane       = ViewGridPlane(State.Camera);
     State.Drawing.CentreCondition = Kind == SolidArcDrawingKind::Circle;                     // Plasticity center-circle; V → two-point
     State.Drawing.Form            = State.SurfaceTraceEnabled ? SketchSplineForm::Nurbs : Form;
@@ -1338,7 +1338,7 @@ void OpenDrawingSession(SolidArcWorkspaceState& State, SolidArcDrawingKind Kind)
                                    "click both cap centres, then the rim", "click points · 1 Hermite · 2 Bezier · 3 NURBS · 4 cubic spline · Enter / right-click finishes · Ctrl+Z drops a point",
                                    "click the centre, then a vertex · + / − sides" };
     static const char* Planes[] = { "XY", "XZ", "YZ" };
-    Announce(State, std::string(SolidArcDrawingLabel(Kind)) + " on plane " + Planes[State.Drawing.GridPlane] + " (or the body face under the first click): " + Hints[int(Kind)]
+    Announce(State, std::string(SolidArcDrawingLabel(Kind)) + " on plane " + Planes[State.Drawing.GridPlane] + (Kind==SolidArcDrawingKind::Arc?" (planar, no surface snap): ":" (or the body face under the first click): ") + Hints[int(Kind)]
                         + " · hold Ctrl to snap to ends / midpoints / centres, Alt to slide along a curve · Esc aborts");
 }
 
@@ -1378,11 +1378,14 @@ void FinishDrawingSession(SolidArcWorkspaceState& State, bool ClosedCondition)
     if (!Drawing.ActiveCondition) return;
     if (Drawing.SolidCondition) { FinishSolidSession(State); return; }
     const bool KnifeCondition = State.Knife.ActiveCondition && State.Knife.DrawPendingCondition;
-    if (Drawing.SurfaceCondition)
+    if (Drawing.SurfaceCondition || (State.DrawingAutoSplit && Drawing.Kind==SolidArcDrawingKind::Curve &&
+        (Drawing.Form==SketchSplineForm::Nurbs || Drawing.Form==SketchSplineForm::Bezier)))
     {
-        const auto Trace = MakeSolidArcControlTrace(LiftedDrawingPoints(Drawing, false), Drawing.Kind, Drawing.Form, ClosedCondition);
+        auto Controls=LiftedDrawingPoints(Drawing,false);
+        if(Controls.empty()) for(auto P:Drawing.Points) Controls.push_back(PlacePlanePoint(DrawingPlane(Drawing),P));
+        const auto Trace = MakeSolidArcControlTrace(Controls, Drawing.Kind, Drawing.Form, ClosedCondition);
         if (!Trace.Refusal.empty()) { Drawing.Refusal = Legible(Trace.Refusal); Announce(State, Drawing.Refusal); return; }
-        const SolidArcCommandOutcome Outcome = Trace.Arc ? DrawSolidArcSketch(State.Document, *Trace.Arc) : DrawSolidArcProjectedCurve(State.Document, Trace.Curve, ClosedCondition);
+        const SolidArcCommandOutcome Outcome = Trace.Arc ? DrawSolidArcSketch(State.Document, *Trace.Arc) : DrawSolidArcProjectedCurve(State.Document, Trace.Curve, ClosedCondition, State.DrawingAutoSplit, State.DrawingIntersectionTolerance);
         if (Outcome.AcceptedCondition)
         {
             Drawing.ActiveCondition = false;
@@ -1674,6 +1677,20 @@ void PlaceDrawingPointer(SolidArcWorkspaceState& State, const OrbitCameraFrame& 
     if (!Drawing.Points.empty()) Reference = PlacePlanePoint(Plane, Drawing.Points.back());
     Picker.Current = {};
     Drawing.PointerLifted.reset();
+    if(State.DrawingCurveSnap && !Drawing.SolidCondition && !Drawing.SurfaceCondition &&
+       (Drawing.Kind==SolidArcDrawingKind::Curve || Drawing.Kind==SolidArcDrawingKind::Arc || Drawing.Kind==SolidArcDrawingKind::Line)) {
+        SolidArcSnapQuery Q;Q.Frame=Frame;Q.PixelX=Local.x;Q.PixelY=Local.y;Q.PointReach=8;Q.CurveReach=12;
+        Q.Filter={true,false,false,false,false,false,false,true,false};Q.FreeCurvesOnly=true;Q.OverlayCurvesVisible=true;
+        auto Hit=FindSolidArcSnap(SnapCatalogue(State,{}),State.Document,State.Scene,Q);
+        if(Hit.Kind!=SolidArcSnapKind::None) {
+            if(Drawing.Kind==SolidArcDrawingKind::Arc && Drawing.Points.empty())Drawing.Elevation=Dot(Hit.Position,SolidArcSketchPlane(Drawing.GridPlane).ZAxis);
+            const auto ActivePlane=DrawingPlane(Drawing);auto Delta=Hit.Position-ActivePlane.Origin;
+            Point={Dot(Delta,ActivePlane.XAxis),Dot(Delta,ActivePlane.YAxis)};
+            if(Drawing.Kind==SolidArcDrawingKind::Curve)Drawing.PointerLifted=Hit.Position;
+            else {Hit.Position=PlacePlanePoint(ActivePlane,Point);if(std::abs(Dot(Delta,ActivePlane.ZAxis))>1e-6)Hit.Source+=" (projected to drawing plane)";}
+            Picker.Current=Hit;return;
+        }
+    }
     if (Drawing.Kind == SolidArcDrawingKind::Curve && !Drawing.SolidCondition && Picker.Lock == SolidArcSnapLockKind::None && ImGui::GetIO().KeyAlt)
     {
         // A curve point on a curve off the plane keeps its 3D place (the finished curve becomes a 3D curve).
@@ -6258,11 +6275,12 @@ void SelectAll(SolidArcWorkspaceState& State)
 
     // Solid (4) and Any (5): select all visible, unlocked bodies/surfaces and all visible, unlocked sketches & curves.
     ClearSolidArcSelection(Document);
+    State.SplineSpans={};
     State.SketchPoints.Points.clear();
     State.SketchPoints.Sketch.clear();
     State.PoleDrag.PickedPoles.clear();
     State.PoleDrag.PickedLabel.clear();
-    for (const SolidArcBodyFigures& Body : Document.Summary.Bodies)
+    if(State.PickMode!=SolidArcPickMode::Curve) for (const SolidArcBodyFigures& Body : Document.Summary.Bodies)
     {
         if (Document.Appearance.HiddenBodies.contains(Body.Key) || SolidArcLockedCondition(Document, Body.Key)) continue;
         Document.Selection.Bodies.push_back(Body.Key);
@@ -12504,13 +12522,17 @@ void PickAtPointer(SolidArcWorkspaceState& State, ImVec2 Local, SolidArcPickInte
     const OrbitCameraFrame Frame = ViewportFrame(State);
     const OrbitRay         Ray   = CastOrbitRay(Frame, Local.x, Local.y);
     uint32_t                  Identity = State.HoverIdentity;
-    if (State.PickMode == SolidArcPickMode::ControlPoint || State.PickMode == SolidArcPickMode::Edge || State.PickMode == SolidArcPickMode::Any)
+    if (State.PickMode == SolidArcPickMode::ControlPoint || State.PickMode == SolidArcPickMode::Edge || State.PickMode == SolidArcPickMode::Any || State.PickMode==SolidArcPickMode::Curve)
     {
         // Curves are overlays: within CurveReach they win over the face / edge underneath.
         const std::string Curve = FindCurveNear(State, Frame, ImVec2(State.ViewportRect[0] + Local.x, State.ViewportRect[1] + Local.y));
         if (!Curve.empty())
         {
             PickCurve(State, Curve, Intent);
+            return;
+        }
+        if(State.PickMode==SolidArcPickMode::Curve) {
+            if(Intent==SolidArcPickIntent::Replace) ClearSolidArcSelection(State.Document);
             return;
         }
         if (State.PickMode == SolidArcPickMode::ControlPoint)
@@ -12681,7 +12703,7 @@ void SelectInBox(SolidArcWorkspaceState& State, const OrbitCameraFrame& Frame, I
     }
     // B-rep edges (modes 2 / 5): wholly inside the box; hidden ones only in x-ray.
     State.Box.Edges = 0;
-    if (State.PickMode != SolidArcPickMode::ControlPoint)
+    if (State.PickMode != SolidArcPickMode::ControlPoint && State.PickMode!=SolidArcPickMode::Curve)
     {
         const std::array<double, 2> LocalLow{ Low.x - State.ViewportRect[0], Low.y - State.ViewportRect[1] };
         const std::array<double, 2> LocalHigh{ High.x - State.ViewportRect[0], High.y - State.ViewportRect[1] };
@@ -14466,7 +14488,7 @@ void DrawSelectionRail(SolidArcWorkspaceState& State, ImVec2 Image)
         SolidArcPickMode Mode;
     };
     static const RailButton Buttons[] = { { "Mode4", IconSymbol::SolidArcBody, SolidArcPickMode::Solid }, { "Mode3", IconSymbol::SolidArcSurface, SolidArcPickMode::Face },
-                                          { "Mode2", IconSymbol::SolidArcEdge, SolidArcPickMode::Edge },  { "Mode1", IconSymbol::SolidArcPoints, SolidArcPickMode::ControlPoint } };   // 5 (any) stays on the keyboard, as in the HTML rail
+                                          { "Mode6", IconSymbol::SolidArcCurve, SolidArcPickMode::Curve }, { "Mode2", IconSymbol::SolidArcEdge, SolidArcPickMode::Edge },  { "Mode1", IconSymbol::SolidArcPoints, SolidArcPickMode::ControlPoint } };   // 5 (any) stays on the keyboard, as in the HTML rail
     constexpr float Button = 30.0f, Gap = 5.0f, Rule = 9.0f;
     const float Height = 2.0f + 14.0f + float(std::size(Buttons) + 1) * Button + float(std::size(Buttons) + 1) * Gap + Rule;
     const ImVec2 Corner(Image.x + 17.0f, Image.y + 98.0f);
@@ -14487,9 +14509,12 @@ void DrawSelectionRail(SolidArcWorkspaceState& State, ImVec2 Image)
         Y += Button + Gap;
         return Press.ClickedCondition;
     };
-    static const char* const Tips[] = { "Solid mode (4): pick bodies", "Face mode (3): pick faces", "Edge mode (2): pick edges", "Point mode (1): curves, poles and sketch points" };
+    static const char* const Tips[] = { "Solid mode (4): pick bodies", "Face mode (3): pick faces", "Whole curves (6): click entire curve, Shift adds; never selects spans", "Edge mode (2): pick edges / spline spans", "Point mode (1): curves, poles and sketch points" };
     for (size_t Index = 0; Index < std::size(Buttons); ++Index)
-        if (Round(Buttons[Index].Key, Buttons[Index].Glyph, State.PickMode == Buttons[Index].Mode, Tips[Index])) State.PickMode = Buttons[Index].Mode;
+        if (Round(Buttons[Index].Key, Buttons[Index].Glyph, State.PickMode == Buttons[Index].Mode, Tips[Index])) {
+            State.PickMode = Buttons[Index].Mode;
+            State.SplineSpans={};State.PoleDrag.PickedPoles.clear();State.PoleDrag.PickedLabel.clear();
+        }
     Sheet.Line(Middle - 9.0f, Y + 0.5f * Rule - 0.5f * Gap, Middle + 9.0f, Y + 0.5f * Rule - 0.5f * Gap, SolidArcWash(0x14));
     Y += Rule;
     if (Round("XRayToggle", IconSymbol::SolidArcLayers, State.Style.XRayEnabled, State.Style.XRayEnabled ? "X-ray on (Alt+Z): bodies are see-through · click for solid shading"
@@ -15161,7 +15186,7 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
         if (Drawing.SurfaceCondition)
         {
             Drawing.PointerLifted.reset();
-            State.Picker.Current = Hovered ? SnapSolidArcTrace(SnapCatalogue(State, {}), State.Document, State.Scene, Frame, Local.x, Local.y, Io.KeyCtrl) : SolidArcSnap{};
+            State.Picker.Current = Hovered ? SnapSolidArcTrace(SnapCatalogue(State, {}), State.Document, State.Scene, Frame, Local.x, Local.y, Io.KeyCtrl, State.DrawingCurveSnap) : SolidArcSnap{};
             Drawing.PointerCondition = State.Picker.Current.Kind != SolidArcSnapKind::None;
             if (Drawing.PointerCondition)
             {
@@ -15172,7 +15197,7 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
                 Drawing.Pointer = Point;
             }
         }
-        else if (Hovered) FollowFacePlane(State, Frame, Local);                                   // Sketch: plane of the face under the first click
+        else if (Hovered && Drawing.Kind!=SolidArcDrawingKind::Arc) FollowFacePlane(State, Frame, Local);                                   // Sketch: plane of the face under the first click
         if (!Drawing.SurfaceCondition) Drawing.PointerCondition = Hovered && IntersectSketchPlane(Frame, Local, DrawingPlane(Drawing), Point);
         if (LiftStage)
         {
@@ -15364,7 +15389,7 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
     else
     {
         SolidArcBoxSelection& Box = State.Box;
-        const bool BoxModeCondition = State.PickMode == SolidArcPickMode::ControlPoint || State.PickMode == SolidArcPickMode::Edge || State.PickMode == SolidArcPickMode::Any;
+        const bool BoxModeCondition = State.PickMode==SolidArcPickMode::Curve || State.PickMode == SolidArcPickMode::ControlPoint || State.PickMode == SolidArcPickMode::Edge || State.PickMode == SolidArcPickMode::Any;
         if (BoxModeCondition && Hovered && !OverCube && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
         {
             Box.ActiveCondition = true;
@@ -17380,10 +17405,87 @@ void DrawHistoryCard(SolidArcWorkspaceState& State)
 }
 
 // 📝 Drawing tools on the construction plane (the viewport bar's plane at open). Plasticity keys where it has them.
+// Non-modal, compact tool menu: closing it never cancels or confirms a curve.
+void DrawDrawingOptions(SolidArcWorkspaceState& State)
+{
+    auto& D=State.Drawing;
+    if(!D.ActiveCondition || D.SolidCondition || !State.DrawingOptionsVisible) return;
+    ImGui::SetNextWindowPos(ImVec2(State.ViewportRect[0]+State.ViewportRect[2]-244,State.ViewportRect[1]+106),ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize(ImVec2(228,0),ImGuiCond_Always);
+    if(ImGui::Begin("Drawing options###CurveToolOptions",&State.DrawingOptionsVisible,ImGuiWindowFlags_AlwaysAutoResize|ImGuiWindowFlags_NoSavedSettings|ImGuiWindowFlags_NoCollapse)) {
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2(4,2));
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,ImVec2(4,4));
+        const bool Arc=D.Kind==SolidArcDrawingKind::Arc;
+        ImGui::TextUnformatted(Arc?"Arc: planar only":"Curve placement");
+        bool Surface=D.SurfaceCondition;
+        ImGui::BeginDisabled(Arc || !D.Points.empty());
+        if(ImGui::Checkbox("Surface snap###ToolSurface",&Surface)) {
+            D.SurfaceCondition=Surface;State.SurfaceTraceEnabled=Surface;D.FacePlaneCondition=false;D.PointerLifted.reset();
+            if(Surface && D.Form!=SketchSplineForm::Bezier)D.Form=SketchSplineForm::Nurbs;
+        }
+        RegisterWidget(State,"###ToolSurface");ImGui::EndDisabled();
+        ImGui::Checkbox("Snap to curves###ToolCurveSnap",&State.DrawingCurveSnap);RegisterWidget(State,"###ToolCurveSnap");
+        ImGui::BeginDisabled(Arc);ImGui::Checkbox("Auto-split 3D crossings###ToolAutoSplit",&State.DrawingAutoSplit);RegisterWidget(State,"###ToolAutoSplit");ImGui::EndDisabled();
+        if(State.DrawingAutoSplit) {
+            ImGui::SetNextItemWidth(110);ImGui::InputDouble("Joint tolerance (m)###ToolJointTolerance",&State.DrawingIntersectionTolerance,0,0,"%.4f");
+        }
+        if(!D.SurfaceCondition) {
+            ImGui::BeginDisabled(!D.Points.empty());
+            const char* Planes[]={"XY (top)","XZ (front)","YZ (side)"};
+            ImGui::SetNextItemWidth(145);ImGui::Combo("Plane###ToolPlane",&D.GridPlane,Planes,3);RegisterWidget(State,"###ToolPlane");
+            ImGui::SetNextItemWidth(110);ImGui::InputDouble("Depth (m)###ToolPlaneDepth",&D.Elevation,0,0,"%.4f");RegisterWidget(State,"###ToolPlaneDepth");
+            ImGui::EndDisabled();
+        }
+        ImGui::TextDisabled("Enter: finish | Esc: cancel");
+        ImGui::PopStyleVar(2);
+    }
+    ImGui::End();
+}
+
+void DrawSurfaceOffsetCard(SolidArcWorkspaceState& State)
+{
+    const auto& Selected=State.Document.Selection.Curves;
+    if(Selected.size()!=2 && Selected.size()!=1)return;
+    auto Step=Selected.empty()?State.Document.Tree.Steps.end():std::find_if(State.Document.Tree.Steps.begin(),State.Document.Tree.Steps.end(),[&](const auto& S){return S.Label==Selected.back();});
+    const bool Linked=Step!=State.Document.Tree.Steps.end() && !Step->CurveOffsetGuide.empty();
+    if(Selected.size()!=2 && !Linked)return;
+    BeginCard("Live surface distance");
+    if(Selected.size()==2) {
+        ImGui::TextWrapped("Guide (first): %s\nTarget (second): %s",CaptionOf(State.Document,Selected[0]).c_str(),CaptionOf(State.Document,Selected[1]).c_str());
+        if(PressButton(State,"Swap guide / target###OffsetSwap",ImVec2(-1,0))) {std::swap(State.Document.Selection.Curves[0],State.Document.Selection.Curves[1]);EndCard();return;}
+        if(State.SurfaceOffsetBody.empty()) {
+            for(const auto& B:State.Document.Regeneration.Bodies)if(State.Document.Appearance.LockedFigures.contains(B.Key)){State.SurfaceOffsetBody=B.Key;break;}
+        }
+        if(ImGui::BeginCombo("Reference###OffsetReference",State.SurfaceOffsetBody.c_str())) {
+            for(const auto& B:State.Document.Regeneration.Bodies)if(ImGui::Selectable(B.Key.c_str(),State.SurfaceOffsetBody==B.Key))State.SurfaceOffsetBody=B.Key;
+            ImGui::EndCombo();
+        }
+        ImGui::SetNextItemWidth(120);ImGui::InputDouble("Along surface (m)###OffsetDistance",&State.SurfaceOffsetDistance,0,0,"%.4f");RegisterWidget(State,"###OffsetDistance");
+        ImGui::SetNextItemWidth(120);ImGui::InputDouble("Tolerance (m)###OffsetTolerance",&State.SurfaceOffsetTolerance,0,0,"%.4f");RegisterWidget(State,"###OffsetTolerance");
+        ImGui::TextWrapped("Intrinsic mesh geodesic, linked to guide. Target picks side/extent. Refines to contour convergence; gaps/resource limits refuse. Guide must lie on this reference within 4x tolerance.");
+        if(PressButton(State,"Link / update distance###LinkSurfaceOffset",ImVec2(-1,0),!State.Drawing.ActiveCondition)) {
+            const auto Guide=Selected[0],Target=Selected[1];
+            Conclude(State,LinkSolidArcSurfaceOffset(State.Document,Guide,Target,State.SurfaceOffsetBody,State.SurfaceOffsetDistance,State.SurfaceOffsetTolerance));
+            EndCard();return;
+        }
+    }
+    if(Linked) {
+        ImGui::TextWrapped("Linked to %s at %.4f m. Edit guide to regenerate; detach before editing result controls.",Step->CurveOffsetGuide.c_str(),Step->CurveOffsetDistance);
+        if(PressButton(State,"Detach (keep curve)###DetachSurfaceOffset",ImVec2(-1,0))) {
+            const auto Label=Step->Label;Conclude(State,DetachSolidArcSurfaceOffset(State.Document,Label));
+        }
+    }
+    EndCard();
+}
+
 void DrawDrawingCard(SolidArcWorkspaceState& State)
 {
     SolidArcDrawingSession& Drawing = State.Drawing;
+    DrawSurfaceOffsetCard(State);
     BeginCard("Surface tracing");
+    ImGui::TextWrapped("6: whole curves · 2: spans · 1: points. Arc: planar, not surface.");
+    ImGui::Checkbox("Drawing options###DrawingOptions",&State.DrawingOptionsVisible);RegisterWidget(State,"###DrawingOptions");
+    if(PressButton(State,"Split existing cage crossings###SplitCage",ImVec2(-1,0),!Drawing.ActiveCondition)) Conclude(State,SplitSolidArcCurveCrossings(State.Document,State.DrawingIntersectionTolerance));
     ImGui::BeginDisabled(Drawing.ActiveCondition || State.Knife.ActiveCondition);
     if (ImGui::Checkbox("Surface snap###SurfaceTrace", &State.SurfaceTraceEnabled))
         Announce(State, State.SurfaceTraceEnabled ? "Surface tracing ON · Curve / Arc / Line · Ctrl: model edges · no planar fallback" : "Surface tracing OFF · ordinary sketch tools");
@@ -17394,8 +17496,8 @@ void DrawDrawingCard(SolidArcWorkspaceState& State)
     ImGui::Checkbox("Reference edges###TraceEdges", &State.Style.EdgesEnabled);
     RegisterWidget(State, "###TraceEdges");
     if (State.SurfaceTraceEnabled)
-        ImGui::TextWrapped("Only the points you click snap to the surface. Ctrl: authored curve first, then model edge within 12 px. Enter saves exactly your controls; no extra poles, no span projection or surface fitting. NURBS (3) / Bezier (2). Spans may leave the surface. Arc stays an analytic three-point arc.");
-    if (State.FullXYZEnabled) ImGui::TextWrapped("Select curves or points: G, then X / Y / Z, type a distance, Enter. Orbit to drag the depth axis. Free XYZ edits do not stay surface-bound.");
+        ImGui::TextWrapped("Only clicked controls snap. Enter adds no points. Ctrl: curve, then CAD edge. Spans may leave the surface. Arc stays planar.");
+    if (State.FullXYZEnabled) ImGui::TextWrapped("G → X/Y/Z → distance → Enter. Free XYZ edits are not surface-bound.");
     EndCard();
     if (!Drawing.ActiveCondition)
     {
@@ -18452,6 +18554,11 @@ void DeleteImageFigure(SolidArcWorkspaceState& State, const std::string& Name)
 void DeletePicked(SolidArcWorkspaceState& State)
 {
     SolidArcDocument& Document = State.Document;
+    if(State.PickMode==SolidArcPickMode::Curve) {
+        if(Document.Selection.Curves.empty())Announce(State,"Select a whole curve first (6)");
+        else Conclude(State,DeleteSolidArcCurves(Document,Document.Selection.Curves));
+        return;
+    }
     const bool PointsMode=State.PickMode==SolidArcPickMode::ControlPoint || State.PickMode==SolidArcPickMode::Any;
     if(PointsMode && !State.PoleDrag.PickedPoles.empty() && std::find(Document.Selection.Curves.begin(),Document.Selection.Curves.end(),State.PoleDrag.PickedLabel)!=Document.Selection.Curves.end())
     {
@@ -19224,6 +19331,7 @@ void ApplyShortcuts(SolidArcWorkspaceState& State)
         State.Matcaps.PickerOpen = State.Document.Summary.PresentCondition;
         if (!State.Matcaps.PickerOpen) Announce(State, "Set material needs a body");
     }
+    if (Pressed(ImGuiKey_6)) {State.PickMode=SolidArcPickMode::Curve;State.SplineSpans={};State.PoleDrag.PickedPoles.clear();State.PoleDrag.PickedLabel.clear();Announce(State,"Whole curves (6): click curve, Shift adds, Ctrl removes; 2 selects spans");}
     if (Pressed(ImGuiKey_1)) State.PickMode = SolidArcPickMode::ControlPoint;
     if (Pressed(ImGuiKey_L)) LoftSelectedCurves(State);                                     // loft
     if (Pressed(ImGuiKey_2)) State.PickMode = SolidArcPickMode::Edge;
@@ -19645,6 +19753,7 @@ void DrawSolidArcInterface(SolidArcWorkspaceState& State, ImTextureID ViewportTe
         { SolidArcPhaseClock Clock(Profile, "inspector"); DrawInspector(State, ImVec2(FrameMargin + OutlinerWidth + ColumnGap + Middle + ColumnGap, Top), ImVec2(InspectorWidth, Height)); }
     }
     { SolidArcPhaseClock Clock(Profile, "status bar"); DrawStatusBar(State, Frame); }
+    DrawDrawingOptions(State);
     DrawWorkspacePopups(State);
     DrawMatcapPicker(State);
     DrawWelcome(State);

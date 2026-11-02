@@ -60,14 +60,17 @@ expect curves == 1
 key S Ctrl
 frames 3
 expect dirty == 0
-# Arc uses the plane of the three picked world points, without draping.
+# Arc stays analytic in the active plane, without surface draping.
 key Escape
 key S Shift
 key Escape
 frames 2
 click @DrawArc
 frames 2
-expect drawing-surface == 1
+expect drawing-surface == 0
+# Independent small arc: do not attract its points to the nearby authored spline.
+click @ToolCurveSnap
+frames 2
 move world -1.02814 0.499541 0.909355
 click world -1.02814 0.499541 0.909355
 move world -0.887138 0.499541 0.90562

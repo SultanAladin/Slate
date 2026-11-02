@@ -1689,7 +1689,7 @@ bool SolidArcSketchReferencedCondition(const SolidArcDocument& Document, const s
 {
     const bool ByStep = std::any_of(Document.Tree.Steps.begin(), Document.Tree.Steps.end(), [&](const FeatureStep& Step)
     {
-        return Step.Label != SketchLabel && (Step.Profile == SketchLabel || Step.Path == SketchLabel ||
+        return Step.Label != SketchLabel && (Step.CurveOffsetGuide == SketchLabel || Step.Profile == SketchLabel || Step.Path == SketchLabel ||
                std::find(Step.Sections.begin(), Step.Sections.end(), SketchLabel) != Step.Sections.end());
     });
     if (ByStep) return true;
@@ -2179,7 +2179,8 @@ SolidArcCommandOutcome DrawSolidArcSpaceCurve(SolidArcDocument& Document, const 
     return Outcome;
 }
 
-SolidArcCommandOutcome DrawSolidArcProjectedCurve(SolidArcDocument& Document, const NurbsCurve& Curve, bool Closed)
+namespace { std::string SplitCrossingsInPlace(SolidArcDocument&,double,const std::string& Only = {}); }
+SolidArcCommandOutcome DrawSolidArcProjectedCurve(SolidArcDocument& Document, const NurbsCurve& Curve, bool Closed, bool AutoSplit, double IntersectionTolerance)
 {
     std::string Label;
     SolidArcCommandOutcome Outcome = RunCommand(Document, "Draw surface trace", false, [&]() -> std::string
@@ -2191,7 +2192,7 @@ SolidArcCommandOutcome DrawSolidArcProjectedCurve(SolidArcDocument& Document, co
         if (Closed && Distance(Definition.Poles.front(), Definition.Poles.back()) > 1.0e-8) return "surface trace is not closed";
         ExactThrough Exact{ Definition.Poles, Definition.Knots };
         Label = AppendSpaceCurveStep(Document, Definition.Poles, Closed, NextCaption(Document, "Surface trace"), Exact);
-        return {};
+        return AutoSplit ? SplitCrossingsInPlace(Document,IntersectionTolerance,Label) : std::string{};
     });
     if (Outcome.AcceptedCondition) Document.Selection.Curves = { Label };
     return Outcome;
@@ -2217,6 +2218,134 @@ void StoreControlDefinition(FeatureStep& Step, const NurbsCurveDefinition& D)
 }
 }
 
+namespace {
+// Exact curve splitting after a genuine 3D proximity root, never a screen-space
+// intersection. The tolerance is explicit: near joints share the same endpoint.
+std::string SplitCrossingsInPlace(SolidArcDocument& D,double Tolerance,const std::string& Only)
+{
+    if(!(Tolerance>0) || !std::isfinite(Tolerance)) return "Intersection tolerance must be finite and positive";
+    struct Curve {std::string Label;NurbsCurveDefinition Definition;std::vector<Vector3> Samples;};
+    std::vector<Curve> Curves;
+    constexpr int Samples=96;
+    for(const auto& S:D.Tree.Steps) {
+        if(S.Kind!=FeatureStepKind::SpaceCurve || SolidArcLockedCondition(D,S.Label)) continue;
+        NurbsCurveDefinition Def;
+        if(auto It=D.Regeneration.Curves.find(S.Label);It!=D.Regeneration.Curves.end())Def=*It->second.Curve.Definition;
+        else {
+            Def.Poles=S.Points;Def.Knots=S.CurveKnots;Def.Degree=int(Def.Knots.size())-int(Def.Poles.size())-1;Def.Weights.assign(Def.Poles.size(),1);
+            if(Def.Degree<1 || Def.Poles.size()<2) continue;
+        }
+        Curve C{S.Label,Def,{}};
+        for(int I=0;I<=Samples;++I) C.Samples.push_back(EvaluateNurbsCurve(Def,I/double(Samples)).Position);
+        Curves.push_back(std::move(C));
+    }
+    struct Joint {double T;Vector3 P;};std::map<std::string,std::vector<Joint>> Cuts;
+    for(size_t A=0;A<Curves.size();++A)for(size_t B=A;B<Curves.size();++B) {
+        const auto& CA=Curves[A];const auto& CB=Curves[B];
+        if(!Only.empty() && CA.Label!=Only && CB.Label!=Only)continue;
+        for(int I=0;I<Samples;++I)for(int J=0;J<Samples;++J) {
+            if(A==B && (J<=I+2 || (I==0 && J==Samples-1)))continue;
+            auto PA=CA.Samples[I],QA=CA.Samples[I+1],PB=CB.Samples[J],QB=CB.Samples[J+1];
+            auto U=QA-PA,V=QB-PB,W=PA-PB;
+            const double UU=Dot(U,U),VV=Dot(V,V),UV=Dot(U,V),UW=Dot(U,W),VW=Dot(V,W),Den=UU*VV-UV*UV;
+            if(Den<1e-14*UU*VV || UU<1e-24 || VV<1e-24)continue; // overlaps/tangencies are not transverse cuts
+            double S=std::clamp((UV*VW-VV*UW)/Den,0.0,1.0),T=std::clamp((UU*VW-UV*UW)/Den,0.0,1.0);
+            if(Distance(PA+U*S,PB+V*T)>Tolerance+Length(QA-PA)*.02+Length(QB-PB)*.02)continue;
+            double X=(I+S)/Samples,Y=(J+T)/Samples;
+            for(int Iter=0;Iter<24;++Iter) {
+                auto E=EvaluateNurbsCurveDerivatives(CA.Definition,X),F=EvaluateNurbsCurveDerivatives(CB.Definition,Y);
+                auto R=E.Position-F.Position;double XX=Dot(E.First,E.First),YY=Dot(F.First,F.First),XY=Dot(E.First,F.First);
+                double Det=XX*YY-XY*XY;if(Det<1e-16*XX*YY)break;
+                double RX=Dot(E.First,R),RY=Dot(F.First,R);
+                double DX=(-YY*RX+XY*RY)/Det,DY=(-XY*RX+XX*RY)/Det;
+                X=std::clamp(X+DX,0.0,1.0);Y=std::clamp(Y+DY,0.0,1.0);
+                if(std::abs(DX)+std::abs(DY)<1e-12)break;
+            }
+            auto P=EvaluateNurbsCurve(CA.Definition,X).Position,Q=EvaluateNurbsCurve(CB.Definition,Y).Position;
+            if(Distance(P,Q)>Tolerance || (A==B && std::abs(X-Y)<1e-5))continue;
+            auto JointPoint=(P+Q)*.5;
+            for(auto Entry:{std::pair<std::string,double>{CA.Label,X},{CB.Label,Y}}) {
+                auto& List=Cuts[Entry.first];if(std::none_of(List.begin(),List.end(),[&](const auto& C){return std::abs(C.T-Entry.second)<1e-6;}))List.push_back({Entry.second,JointPoint});
+            }
+        }
+    }
+    for(const auto& C:Curves) {
+        auto It=Cuts.find(C.Label);if(It==Cuts.end())continue;
+        auto& J=It->second;std::sort(J.begin(),J.end(),[](auto A,auto B){return A.T<B.T;});
+        const bool Interior=std::any_of(J.begin(),J.end(),[](auto P){return P.T>1e-7 && P.T<1-1e-7;});
+        auto Step=std::find_if(D.Tree.Steps.begin(),D.Tree.Steps.end(),[&](const auto& S){return S.Label==C.Label;});
+        if(!Step->CurveOffsetGuide.empty() || (Interior && SolidArcSketchReferencedCondition(D,C.Label)))
+            return "A crossing curve has live dependents; detach those dependencies before auto-splitting (nothing changed)";
+        FeatureStep Original=*Step;size_t Index=Step-D.Tree.Steps.begin();auto Remaining=C.Definition;
+        std::vector<NurbsCurveDefinition> Pieces;
+        for(auto Joint:J) if(Joint.T>1e-7 && Joint.T<1-1e-7) {
+            auto Split=SplitNurbsCurve(Remaining,Joint.T);if(!Split)return "Intersection boundary cannot be split exactly";
+            Split->first.Poles.back()=Joint.P;Split->second.Poles.front()=Joint.P;
+            Pieces.push_back(Split->first);Remaining=Split->second;
+        }
+        Pieces.push_back(Remaining);
+        if(J.front().T<=1e-7)Pieces.front().Poles.front()=J.front().P;
+        if(J.back().T>=1-1e-7)Pieces.back().Poles.back()=J.back().P;
+        for(size_t I=0;I<Pieces.size();++I) {
+            auto Piece=Original;StoreControlDefinition(Piece,Pieces[I]);if(Pieces.size()>1)Piece.ClosedCondition=false;
+            if(I==0)D.Tree.Steps[Index]=std::move(Piece);
+            else {Piece.Label="Curve#"+std::to_string(NextStepOrdinal(D.Tree));D.Captions[Piece.Label]=NextCaption(D,"Curve piece");D.Tree.Steps.push_back(std::move(Piece));}
+        }
+    }
+    return {};
+}
+}
+SolidArcCommandOutcome SplitSolidArcCurveCrossings(SolidArcDocument& D,double Tolerance)
+{
+    return RunCommand(D,"Split 3D curve crossings",false,[&](){return SplitCrossingsInPlace(D,Tolerance);},0);
+}
+
+SolidArcCommandOutcome LinkSolidArcSurfaceOffset(SolidArcDocument& D,const std::string& GuideInput,const std::string& TargetInput,
+    const std::string& BodyInput,double Distance,double Tolerance)
+{
+    const std::string Guide=GuideInput,Target=TargetInput,Body=BodyInput;
+    return RunCommand(D,"Live surface-distance offset",false,[&]() -> std::string {
+        if(Guide==Target || !(Distance>0) || !(Tolerance>0) || !std::isfinite(Distance+Tolerance)) return "Select two different curves and finite positive distance/tolerance";
+        auto G=std::find_if(D.Tree.Steps.begin(),D.Tree.Steps.end(),[&](const auto& S){return S.Label==Guide;});
+        auto T=std::find_if(D.Tree.Steps.begin(),D.Tree.Steps.end(),[&](const auto& S){return S.Label==Target;});
+        if(G==D.Tree.Steps.end() || T==D.Tree.Steps.end() || T->Kind!=FeatureStepKind::SpaceCurve) return "Target must be an existing native 3D spline";
+        if(G>T) {
+            for(auto It=T+1;It<=G;++It)
+                if(It->CurveOffsetGuide==Target || It->Profile==Target || It->Path==Target || std::find(It->Sections.begin(),It->Sections.end(),Target)!=It->Sections.end())
+                    return "Cannot link: guide/history would depend on its own target (cycle)";
+            auto Moved=*T;D.Tree.Steps.erase(T);
+            G=std::find_if(D.Tree.Steps.begin(),D.Tree.Steps.end(),[&](const auto& S){return S.Label==Guide;});
+            T=D.Tree.Steps.insert(G+1,std::move(Moved));
+        }
+        if(SolidArcLockedCondition(D,Target)) return "Target is locked";
+        if(!FindRegeneratedBody(D,Body)) return "Choose a valid reference body";
+        auto Fit=D.Regeneration.Curves.find(Target);
+        if(Fit==D.Regeneration.Curves.end())return "Target does not regenerate";
+        StoreControlDefinition(*T,*Fit->second.Curve.Definition); // current target chooses side and extent
+        G=std::find_if(D.Tree.Steps.begin(),D.Tree.Steps.end(),[&](const auto& S){return S.Label==Guide;});
+        NurbsCurve GuideCurve;
+        if(auto C=D.Regeneration.Curves.find(Guide);C!=D.Regeneration.Curves.end())GuideCurve=C->second.Curve;
+        else if(auto C=D.Regeneration.Sketches.find(Guide);C!=D.Regeneration.Sketches.end()) {
+            auto Plane=G->Plane;Plane.Origin=Plane.Origin+Plane.ZAxis*EvaluateFeatureValue(D.Tree,G->Elevation);
+            auto Section=ComposeSketchSection(C->second,Plane);if(Section.Curve)GuideCurve=*Section.Curve;
+        }
+        if(!GuideCurve.Definition)return "Guide must be a single curve";
+        T->CurveOffsetOrigin=EvaluateNurbsCurve(*GuideCurve.Definition,.5).Position;
+        T->CurveOffsetGuide=Guide;T->CurveOffsetBody=Body;T->CurveOffsetDistance=Distance;T->CurveOffsetTolerance=Tolerance;
+        return {};
+    },0);
+}
+SolidArcCommandOutcome DetachSolidArcSurfaceOffset(SolidArcDocument& D,const std::string& Target)
+{
+    return RunCommand(D,"Detach surface offset (keep current curve)",false,[&]() -> std::string {
+        auto T=std::find_if(D.Tree.Steps.begin(),D.Tree.Steps.end(),[&](const auto& S){return S.Label==Target;});
+        auto Fit=D.Regeneration.Curves.find(Target);
+        if(T==D.Tree.Steps.end() || Fit==D.Regeneration.Curves.end() || T->CurveOffsetGuide.empty()) return "Select a live offset curve";
+        if(SolidArcLockedCondition(D,Target))return "Target is locked";
+        StoreControlDefinition(*T,*Fit->second.Curve.Definition);T->CurveOffsetGuide.clear();T->CurveOffsetBody.clear();return {};
+    },0);
+}
+
 SolidArcCommandOutcome DeleteSolidArcCurvePoles(SolidArcDocument& Document, const std::string& Owner, const std::vector<int>& Indices)
 {
     const std::string Label=Owner; // May alias Tree.Steps storage.
@@ -2226,6 +2355,7 @@ SolidArcCommandOutcome DeleteSolidArcCurvePoles(SolidArcDocument& Document, cons
         const auto Fit=Document.Regeneration.Curves.find(Label);
         if (Step==Document.Tree.Steps.end() || Fit==Document.Regeneration.Curves.end()) return "Select a spline control first";
         if (SolidArcLockedCondition(Document,Label)) return "The spline is locked";
+        if (!Step->CurveOffsetGuide.empty()) return "Detach the live surface offset before editing its controls or spans";
         const auto& Before=*Fit->second.Curve.Definition;
         std::set<int> Selected(Indices.begin(),Indices.end());
         if (Selected.empty() || *Selected.begin()<0 || *Selected.rbegin()>=int(Before.Poles.size())) return "Invalid control selection";
@@ -2254,6 +2384,7 @@ SolidArcCommandOutcome SubdivideSolidArcCurve(SolidArcDocument& Document, const 
         auto Step=std::find_if(Document.Tree.Steps.begin(),Document.Tree.Steps.end(),[&](const auto& S){return S.Label==Label && S.Kind==FeatureStepKind::SpaceCurve;});
         if (Step==Document.Tree.Steps.end() || Fit==Document.Regeneration.Curves.end()) return "Select a spline or control span first";
         if (SolidArcLockedCondition(Document,Label)) return "The spline is locked";
+        if (!Step->CurveOffsetGuide.empty()) return "Detach the live surface offset before editing its controls or spans";
         const auto& Before=*Fit->second.Curve.Definition;
         const auto T=SolidArcCurveControlParameters(Before);
         std::set<int> Chosen(Spans.begin(),Spans.end());
@@ -2277,6 +2408,7 @@ SolidArcCommandOutcome DeleteSolidArcCurveSpans(SolidArcDocument& Document, cons
         auto Step=std::find_if(Document.Tree.Steps.begin(),Document.Tree.Steps.end(),[&](const auto& S){return S.Label==Label && S.Kind==FeatureStepKind::SpaceCurve;});
         if (Step==Document.Tree.Steps.end() || Fit==Document.Regeneration.Curves.end()) return "Select a spline span first";
         if (SolidArcLockedCondition(Document,Label)) return "The spline is locked";
+        if (!Step->CurveOffsetGuide.empty()) return "Detach the live surface offset before editing its controls or spans";
         const auto Before=*Fit->second.Curve.Definition;
         const auto T=SolidArcCurveControlParameters(Before);
         std::set<int> Selected(Spans.begin(),Spans.end());
@@ -2428,6 +2560,7 @@ SolidArcCommandOutcome MoveSolidArcPoles(SolidArcDocument& Document, const std::
         if (Found == Document.Tree.Steps.end() || Found->Kind != FeatureStepKind::SpaceCurve) return "no curve step labelled " + Label;
         const auto Fitted = Document.Regeneration.Curves.find(Label);
         if (Fitted == Document.Regeneration.Curves.end()) return "curve " + Label + " has no fitted poles (refused step)";
+        if (!Found->CurveOffsetGuide.empty()) return "Detach the live surface offset before moving its controls";
         const int Total = static_cast<int>(Fitted->second.Curve.Definition->Poles.size());
         for (size_t Index = 0; Index < Poles.size(); ++Index)
         {
@@ -2440,7 +2573,7 @@ SolidArcCommandOutcome MoveSolidArcPoles(SolidArcDocument& Document, const std::
             else Found->PoleEdits.push_back({ Pole, Position });
         }
         return {};
-    });
+    },0);
 }
 
 void SelectSolidArcCurve(SolidArcDocument& Document, const std::string& Label, bool AdditiveCondition)
@@ -3668,6 +3801,7 @@ SolidArcCommandOutcome PlaceSolidArcSketches(SolidArcDocument& Document, const s
     const std::vector<std::string> Unique = UniqueKeys(Labels);
     const auto CarrySpaceCurve = [](FeatureStep& Step, const AffineMap& Transform) -> std::string
     {
+        if (!Step.CurveOffsetGuide.empty()) return "Detach the live surface offset before transforming its result";
         const double Det = Dot(Cross(Transform.ColumnX, Transform.ColumnY), Transform.ColumnZ);
         if (!std::isfinite(Det) || std::abs(Det) <= 1.0e-12) return "a scale of 0 flattens the curve";
         const auto Apply = [&](Vector3 Point)
@@ -3700,7 +3834,7 @@ SolidArcCommandOutcome PlaceSolidArcSketches(SolidArcDocument& Document, const s
         }
         CarryDimensionsWithAffine(Document, Unique, Map, true);
         return {};
-    });
+    },0);
 }
 
 SolidArcCommandOutcome DuplicateSolidArcSketches(SolidArcDocument& Document, const std::vector<std::string>& Labels, const AffineMap& Map)

@@ -611,8 +611,10 @@ SolidArcSnap FindSolidArcSnap(SolidArcSnapCatalogue& Catalogue, const SolidArcDo
     for (const SolidArcSnapPoint& Point : Catalogue.Points)
     {
         if (!EnabledCondition(Query.Filter, Point.Kind)) continue;
+        const bool Overlay = std::any_of(Catalogue.Curves.begin(),Catalogue.Curves.end(),[&](const auto& C){return C.OverlaySnap && C.Source==Point.Source;});
+        if(Query.FreeCurvesOnly && !Overlay) continue;
         const double Pixels = MeasurePixels(Query, Point.Position);
-        if (Pixels > Query.PointReach || !VisibleCondition(Scene, Query, Point.Position, Scale)) continue;
+        if (Pixels > Query.PointReach || !VisibleCondition(Scene, Query, Point.Position, Scale, Query.OverlayCurvesVisible && Overlay)) continue;
         Contest.Offer(Query, Point.Kind, Point.Position, Point.Tangent, Point.Normal, Point.Source, Pixels);
     }
     for (const SolidArcSnapPoint& Point : Query.Transient)

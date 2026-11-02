@@ -1,0 +1,3 @@
+PASS NativeCageTools.patch: git apply --reverse --check against the final build host
+PASS full Source overlay byte-matches build host
+PASS final Linux and Windows Ninja invocations: no work to do

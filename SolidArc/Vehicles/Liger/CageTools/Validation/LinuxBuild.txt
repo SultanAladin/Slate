@@ -1,0 +1,6 @@
+[0/2] Re-checking globbed directories...
+[1/6] Linking CXX executable LigerSurfaceTraceValidation
+[2/6] Linking CXX executable LigerCurveEditingValidation
+[3/6] Linking CXX executable SolidArcCapture
+[4/6] Linking CXX executable SolidArcDocumentValidation
+[5/6] Linking CXX executable SolidArcWorkspace

@@ -1,0 +1,2 @@
+PASS Linux: package binary byte-matches final build; ZIP CRC / every payload byte verified; 310 SVGs, 66 SolidArc SVGs, 5 packaged font files; project SHA unchanged; archive SHA 1356d3ec7ddbf57bc8ae744beb04e259d03ed85b77ca372f99935ffed491f09a
+PASS Windows: package binary byte-matches final build; ZIP CRC / every payload byte verified; 310 SVGs, 66 SolidArc SVGs, 5 packaged font files; project SHA unchanged; archive SHA 0b7e2a8a3289220907700892a7498e2bc1351a387a81f4dabc253f7958e8ded3

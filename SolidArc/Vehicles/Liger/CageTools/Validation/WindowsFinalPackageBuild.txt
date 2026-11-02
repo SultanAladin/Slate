@@ -1,0 +1,4 @@
+[0/2] Re-checking globbed directories...
+[1/4] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Surfacing/SurfaceDistanceCurve.cpp.obj
+[2/4] Linking CXX static library GeometryProcessing/libFrontierGeometryProcessing.a
+[3/4] Linking CXX executable SolidArcWorkspace.exe

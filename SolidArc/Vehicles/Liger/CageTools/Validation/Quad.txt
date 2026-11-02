@@ -1,0 +1,31 @@
+# SolidArcCapture
+
+- Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
+- Frame: 1280 x 590 · 45 frames · 14.3046 s · slowest frame 769.959 ms
+- Script: /home/user/Slate/SolidArc/Vehicles/Liger/Tools/SurfaceTraceQuadCheck.txt
+- Expectations: 9 / 9 passed
+
+| Line | Expectation | Observed | Result |
+|-----:|-------------|----------|--------|
+| 6 | `split-panes == 4` | 4 | 🟢 |
+| 14 | `drawing-points == 2` | 2 | 🟢 |
+| 15 | `drawing-refusal == 0` |  | 🟢 |
+| 19 | `drawing == 0` |  | 🟢 |
+| 20 | `steps == 4` | 4 | 🟢 |
+| 21 | `curves == 1` | Surface trace1 | 🟢 |
+| 22 | `last-control-count == 2` | 2 | 🟢 |
+| 23 | `refused == 0` | 0 | 🟢 |
+| 24 | `split-panes == 4` | 4 | 🟢 |
+
+| Capture | Frame | Digest |
+|---------|------:|--------|
+| Liger_Trace_Quad_Preview | 38 | `1466d5f240c08ee1` |
+
+## Journal
+
+- Viewport layout: 4 Quad (Ctrl+Alt+Q)
+- View Top (Numpad)
+- SURFACE TRACE · click on the model · Ctrl: authored curve / model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
+- Curve form: NURBS
+- Draw surface trace · 47 ms
+- Surface-point trace · 2 placed controls · no automatic points or surface fitting
