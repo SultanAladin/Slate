@@ -1,0 +1,18 @@
+PASS batch delete accepts the live selection vector in arbitrary click order
+PASS all selected curves removed, not only the active curve
+PASS one undo restores the complete curve batch exactly
+PASS one redo removes the complete curve batch
+PASS locked member refuses the entire batch atomically
+PASS downstream loft fixture
+PASS selected source curves remain valid inputs to unselected downstream features
+PASS retiring sources never deletes the unselected loft
+PASS linked-curve reference fixture
+PASS live guide and derived target fixture
+PASS guide plus target delete without detaching first
+PASS batch retires dependents first; no phantom guide or removed reference body
+PASS supplied progress project decodes
+PASS supplied cage contains 23 curves and three reference bodies
+PASS delete all 23 selected supplied-cage curves
+PASS reference imports survive complete cage deletion with no refused steps
+PASS one undo restores all 23 curves, controls, pole edits and references exactly
+PASS 17 selection and batch deletion checks

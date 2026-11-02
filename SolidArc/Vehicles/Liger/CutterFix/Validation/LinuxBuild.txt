@@ -1,0 +1,421 @@
+[0/2] Re-checking globbed directories...
+[1/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgColor.cpp.o
+[2/231] Building CXX object CMakeFiles/thorvg_static.dir/thorvg_icon_art/tvgInitializer.cpp.o
+[3/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgCompressor.cpp.o
+[4/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgStr.cpp.o
+[5/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgMath.cpp.o
+[6/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgAccessor.cpp.o
+[7/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgAnimation.cpp.o
+[8/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgFill.cpp.o
+[9/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgCanvas.cpp.o
+[10/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgLoader.cpp.o
+[11/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgPaint.cpp.o
+[12/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgPicture.cpp.o
+[13/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgRender.cpp.o
+[14/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgSaver.cpp.o
+[15/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgScene.cpp.o
+[16/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgShape.cpp.o
+[17/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgTaskScheduler.cpp.o
+[18/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgText.cpp.o
+[19/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwImage.cpp.o
+[20/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwFill.cpp.o
+[21/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwMemPool.cpp.o
+[22/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwMath.cpp.o
+[23/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwPostEffect.cpp.o
+[24/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwRaster.cpp.o
+[25/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwRenderer.cpp.o
+[26/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwRle.cpp.o
+[27/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwShape.cpp.o
+[28/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgCssStyle.cpp.o
+[29/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwStroke.cpp.o
+[30/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgPath.cpp.o
+[31/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp.o
+In function ‘void _recalcBox(const SvgLoaderData*, Box*, bool (&)[4])’,
+    inlined from ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’ at /home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1527:43:
+/home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1311:51: warning: writing 4 bytes into a region of size 0 [-Wstringop-overflow=]
+ 1311 |         else *(float*)(array + boxTags[i].offset) *= loader->svgParse->global.h;
+      |              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgXmlParser.h:26,
+                 from /home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:28:
+/home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h: In function ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’:
+/home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h:37:11: note: at offset 4 into destination object ‘Box::x’ of size 4
+   37 |     float x, y, w, h;
+      |           ^
+In function ‘void _recalcBox(const SvgLoaderData*, Box*, bool (&)[4])’,
+    inlined from ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’ at /home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1527:43:
+/home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1310:102: warning: writing 4 bytes into a region of size 0 [-Wstringop-overflow=]
+ 1310 |         if (boxTags[i].type == SvgParserLengthType::Horizontal) *(float*)(array + boxTags[i].offset) *= loader->svgParse->global.w;
+      |                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h: In function ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’:
+/home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h:37:11: note: at offset 8 into destination object ‘Box::x’ of size 4
+   37 |     float x, y, w, h;
+      |           ^
+In function ‘void _recalcBox(const SvgLoaderData*, Box*, bool (&)[4])’,
+    inlined from ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’ at /home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1527:43:
+/home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1311:51: warning: writing 4 bytes into a region of size 0 [-Wstringop-overflow=]
+ 1311 |         else *(float*)(array + boxTags[i].offset) *= loader->svgParse->global.h;
+      |              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h: In function ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’:
+/home/user/cutter-build/Host/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h:37:11: note: at offset 12 into destination object ‘Box::x’ of size 4
+   37 |     float x, y, w, h;
+      |           ^
+[32/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgSceneBuilder.cpp.o
+[33/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgUtil.cpp.o
+[34/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgXmlParser.cpp.o
+[35/231] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/raw/tvgRawLoader.cpp.o
+[36/231] Building CXX object CMakeFiles/FrontierImGui.dir/ExternalPackages/imgui/imgui_draw.cpp.o
+[37/231] Building CXX object CMakeFiles/FrontierImGui.dir/ExternalPackages/imgui/imgui_tables.cpp.o
+[38/231] Building CXX object CMakeFiles/FrontierImGui.dir/ExternalPackages/imgui/imgui.cpp.o
+[39/231] Building CXX object CMakeFiles/FrontierTextFiles.dir/Engine/Interface/TextFileReplacement.cpp.o
+[40/231] Building CXX object CMakeFiles/FrontierOrbitCamera.dir/Engine/Render/OrbitCamera.cpp.o
+[41/231] Building CXX object CMakeFiles/FrontierImGui.dir/ExternalPackages/imgui/imgui_widgets.cpp.o
+[42/231] Building C object CMakeFiles/SolidArcVolk.dir/ExternalPackages/volk/volk.c.o
+[43/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Precision/ExactPredicates.cpp.o
+[44/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Diagnostics/OperationTrace.cpp.o
+[45/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Geometry/CurveGeometry.cpp.o
+[46/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Geometry/SurfaceGeometry.cpp.o
+[47/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Geometry/RollingBallCarrier.cpp.o
+[48/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Geometry/ParallelCarrier.cpp.o
+[49/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Geometry/NurbsCarrier.cpp.o
+[50/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Geometry/ProjectedCurve.cpp.o
+[51/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Containment/WindingNumber.cpp.o
+[52/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Containment/FaceDomain.cpp.o
+[53/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Tessellation/ChartTriangulation.cpp.o
+[54/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Tessellation/BodyTessellation.cpp.o
+[55/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Boolean/BooleanCatalogue.cpp.o
+[56/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Boolean/GeneralFuse.cpp.o
+[57/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Intersection/BernsteinPolynomial.cpp.o
+[58/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Intersection/ImplicitSurface.cpp.o
+[59/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Intersection/CurveSurfaceIntersection.cpp.o
+[60/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Intersection/IsoParameterCurve.cpp.o
+[61/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Intersection/IntersectionCurve.cpp.o
+[62/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Intersection/SurfaceIntersection.cpp.o
+[63/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Topology/ModelPartition.cpp.o
+[64/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Topology/EulerEdits.cpp.o
+[65/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Construction/PrimitiveConstruction.cpp.o
+[66/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Construction/BodyAssembly.cpp.o
+[67/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Construction/BodyModifiers.cpp.o
+[68/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Construction/BodyTransform.cpp.o
+[69/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Blend/RollingBallGeometry.cpp.o
+[70/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Blend/FairPatch.cpp.o
+[71/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Blend/BlendCatalogue.cpp.o
+[72/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Blend/EdgeBlend.cpp.o
+[73/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Local/FaceChange.cpp.o
+[74/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Local/FaceOperations.cpp.o
+[75/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Local/RedundantTopology.cpp.o
+[76/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Local/FaceOperationCatalogue.cpp.o
+[77/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Local/TopologyRebuild.cpp.o
+[78/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchProfile.cpp.o
+[79/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchSection.cpp.o
+[80/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchSolver.cpp.o
+[81/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchCatalogue.cpp.o
+[82/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchSpline.cpp.o
+[83/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchCorner.cpp.o
+[84/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchRegion.cpp.o
+[85/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchTrim.cpp.o
+[86/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchFlow.cpp.o
+[87/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchEditing.cpp.o
+[88/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchConstraining.cpp.o
+In file included from /usr/include/c++/12/string:40,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Sketch/SketchSolver.h:15,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Sketch/SketchConstraining.h:12,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Sketch/SketchConstraining.cpp:10:
+In static member function ‘static constexpr std::char_traits<char>::char_type* std::char_traits<char>::copy(char_type*, const char_type*, std::size_t)’,
+    inlined from ‘static constexpr void std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_S_copy(_CharT*, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:423:21,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_M_replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.tcc:532:22,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:2171:19,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::insert(size_type, const _CharT*) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:1928:22,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(const _CharT*, __cxx11::basic_string<_CharT, _Traits, _Allocator>&&) [with _CharT = char; _Traits = char_traits<char>; _Alloc = allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:3541:36,
+    inlined from ‘std::string Frontier::GeometryProcessing::DescribeSketchConstraint(const SketchModel&, const SketchConstraint&)’ at /home/user/cutter-build/Host/Engine/GeometryProcessing/Sketch/SketchConstraining.cpp:465:53:
+/usr/include/c++/12/bits/char_traits.h:431:56: warning: ‘void* __builtin_memcpy(void*, const void*, long unsigned int)’ accessing 9223372036854775810 or more bytes at offsets [2, 9223372036854775807] and 1 may overlap up to 9223372036854775813 bytes at offset -3 [-Wrestrict]
+  431 |         return static_cast<char_type*>(__builtin_memcpy(__s1, __s2, __n));
+      |                                        ~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+In static member function ‘static constexpr std::char_traits<char>::char_type* std::char_traits<char>::copy(char_type*, const char_type*, std::size_t)’,
+    inlined from ‘static constexpr void std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_S_copy(_CharT*, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:423:21,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_M_replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.tcc:532:22,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:2171:19,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::insert(size_type, const _CharT*) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:1928:22,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(const _CharT*, __cxx11::basic_string<_CharT, _Traits, _Allocator>&&) [with _CharT = char; _Traits = char_traits<char>; _Alloc = allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:3541:36,
+    inlined from ‘std::string Frontier::GeometryProcessing::DescribeSketchConstraint(const SketchModel&, const SketchConstraint&)’ at /home/user/cutter-build/Host/Engine/GeometryProcessing/Sketch/SketchConstraining.cpp:466:69:
+/usr/include/c++/12/bits/char_traits.h:431:56: warning: ‘void* __builtin_memcpy(void*, const void*, long unsigned int)’ accessing 9223372036854775810 or more bytes at offsets [2, 9223372036854775807] and 1 may overlap up to 9223372036854775813 bytes at offset -3 [-Wrestrict]
+  431 |         return static_cast<char_type*>(__builtin_memcpy(__s1, __s2, __n));
+      |                                        ~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+[89/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Feature/BodyCut.cpp.o
+[90/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Feature/ProfileSweep.cpp.o
+[91/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Feature/ReplayDigest.cpp.o
+[92/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Feature/PathSweep.cpp.o
+[93/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Feature/TopologicalNaming.cpp.o
+[94/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Feature/FeatureCatalogue.cpp.o
+[95/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Surfacing/LinearSystem.cpp.o
+[96/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Surfacing/SurfaceDistanceCurve.cpp.o
+[97/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Surfacing/CurveFitting.cpp.o
+[98/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Surfacing/SectionLoft.cpp.o
+[99/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Surfacing/SurfaceAlgebra.cpp.o
+[100/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Feature/FeatureTree.cpp.o
+[101/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Surfacing/PanelAssembly.cpp.o
+[102/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Surfacing/CurveNetwork.cpp.o
+[103/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Surfacing/CarrierApproximation.cpp.o
+[104/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Inspection/BlendEncoding.cpp.o
+In file included from /usr/include/c++/12/ios:40,
+                 from /usr/include/c++/12/ostream:38,
+                 from /usr/include/c++/12/bits/unique_ptr.h:41,
+                 from /usr/include/c++/12/memory:76,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Geometry/CurveGeometry.h:15,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Topology/ModelPartition.h:12,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Audit/ModelAudit.h:12,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Inspection/BlendEncoding.h:12,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Inspection/BlendEncoding.cpp:6:
+In static member function ‘static constexpr std::char_traits<char>::char_type* std::char_traits<char>::copy(char_type*, const char_type*, std::size_t)’,
+    inlined from ‘static constexpr void std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_S_copy(_CharT*, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:423:21,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_M_replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.tcc:532:22,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:2171:19,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::insert(size_type, const std::__cxx11::basic_string<_CharT, _Traits, _Alloc>&) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:1858:29,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(__cxx11::basic_string<_CharT, _Traits, _Allocator>&&, __cxx11::basic_string<_CharT, _Traits, _Allocator>&&) [with _CharT = char; _Traits = char_traits<char>; _Alloc = allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:3531:35,
+    inlined from ‘std::string Frontier::GeometryProcessing::LabelToken(const char*, RecordToken<Tag>) [with Tag = EdgeTag]’ at /home/user/cutter-build/Host/Engine/GeometryProcessing/Audit/ModelAudit.h:69:17:
+/usr/include/c++/12/bits/char_traits.h:431:56: warning: ‘void* __builtin_memcpy(void*, const void*, long unsigned int)’ accessing 9223372036854775810 or more bytes at offsets [2, 9223372036854775807] and 1 may overlap up to 9223372036854775813 bytes at offset -3 [-Wrestrict]
+  431 |         return static_cast<char_type*>(__builtin_memcpy(__s1, __s2, __n));
+      |                                        ~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+[105/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Assembly/AssemblyAnalysis.cpp.o
+[106/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Audit/EnclosedVolume.cpp.o
+[107/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Assembly/JointSolver.cpp.o
+[108/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Measurement/MassProperties.cpp.o
+[109/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Measurement/MinimumDistance.cpp.o
+[110/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Measurement/PlaneSection.cpp.o
+[111/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Drawing/DrawingSheet.cpp.o
+[112/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Drawing/DrawingProjection.cpp.o
+[113/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Drawing/DrawingExport.cpp.o
+[114/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Exchange/StepExchange.cpp.o
+[115/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Exchange/StlExchange.cpp.o
+[116/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Exchange/StepReading.cpp.o
+[117/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Audit/IntersectionAudit.cpp.o
+In file included from /usr/include/c++/12/ios:40,
+                 from /usr/include/c++/12/ostream:38,
+                 from /usr/include/c++/12/bits/unique_ptr.h:41,
+                 from /usr/include/c++/12/memory:76,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Geometry/CurveGeometry.h:15,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Topology/ModelPartition.h:12,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Audit/ModelAudit.h:12,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Audit/IntersectionAudit.h:12,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Audit/IntersectionAudit.cpp:6:
+In static member function ‘static constexpr std::char_traits<char>::char_type* std::char_traits<char>::copy(char_type*, const char_type*, std::size_t)’,
+    inlined from ‘static constexpr void std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_S_copy(_CharT*, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:423:21,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_M_replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.tcc:532:22,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:2171:19,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::insert(size_type, const _CharT*) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:1928:22,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(const _CharT*, __cxx11::basic_string<_CharT, _Traits, _Allocator>&&) [with _CharT = char; _Traits = char_traits<char>; _Alloc = allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:3541:36,
+    inlined from ‘std::string Frontier::GeometryProcessing::{anonymous}::BranchLabel(size_t)’ at /home/user/cutter-build/Host/Engine/GeometryProcessing/Audit/IntersectionAudit.cpp:29:92:
+/usr/include/c++/12/bits/char_traits.h:431:56: warning: ‘void* __builtin_memcpy(void*, const void*, long unsigned int)’ accessing 9223372036854775810 or more bytes at offsets [2, 9223372036854775807] and 1 may overlap up to 9223372036854775813 bytes at offset -3 [-Wrestrict]
+  431 |         return static_cast<char_type*>(__builtin_memcpy(__s1, __s2, __n));
+      |                                        ~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+[118/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Audit/ModelAudit.cpp.o
+[119/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Audit/TessellationAudit.cpp.o
+[120/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Inspection/SpecimenCatalogue.cpp.o
+[121/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Inspection/InspectionEncoding.cpp.o
+[122/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Inspection/BooleanEncoding.cpp.o
+[123/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Inspection/FaceOperationEncoding.cpp.o
+In file included from /usr/include/c++/12/ios:40,
+                 from /usr/include/c++/12/ostream:38,
+                 from /usr/include/c++/12/bits/unique_ptr.h:41,
+                 from /usr/include/c++/12/memory:76,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Geometry/CurveGeometry.h:15,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Topology/ModelPartition.h:12,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Audit/ModelAudit.h:12,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Inspection/FaceOperationEncoding.h:12,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Inspection/FaceOperationEncoding.cpp:6:
+In static member function ‘static constexpr std::char_traits<char>::char_type* std::char_traits<char>::copy(char_type*, const char_type*, std::size_t)’,
+    inlined from ‘static constexpr void std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_S_copy(_CharT*, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:423:21,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_M_replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.tcc:532:22,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:2171:19,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::insert(size_type, const std::__cxx11::basic_string<_CharT, _Traits, _Alloc>&) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:1858:29,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(__cxx11::basic_string<_CharT, _Traits, _Allocator>&&, __cxx11::basic_string<_CharT, _Traits, _Allocator>&&) [with _CharT = char; _Traits = char_traits<char>; _Alloc = allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:3531:35,
+    inlined from ‘std::string Frontier::GeometryProcessing::LabelToken(const char*, RecordToken<Tag>) [with Tag = FaceTag]’ at /home/user/cutter-build/Host/Engine/GeometryProcessing/Audit/ModelAudit.h:69:17:
+/usr/include/c++/12/bits/char_traits.h:431:56: warning: ‘void* __builtin_memcpy(void*, const void*, long unsigned int)’ accessing 9223372036854775810 or more bytes at offsets [2, 9223372036854775807] and 1 may overlap up to 9223372036854775813 bytes at offset -3 [-Wrestrict]
+  431 |         return static_cast<char_type*>(__builtin_memcpy(__s1, __s2, __n));
+      |                                        ~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+In static member function ‘static constexpr std::char_traits<char>::char_type* std::char_traits<char>::copy(char_type*, const char_type*, std::size_t)’,
+    inlined from ‘static constexpr void std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_S_copy(_CharT*, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:423:21,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_M_replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.tcc:532:22,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:2171:19,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::insert(size_type, const _CharT*) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:1928:22,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(const _CharT*, __cxx11::basic_string<_CharT, _Traits, _Allocator>&&) [with _CharT = char; _Traits = char_traits<char>; _Alloc = allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:3541:36,
+    inlined from ‘std::string Frontier::GeometryProcessing::{anonymous}::DescribeStep(const Frontier::GeometryProcessing::FaceOperationSettings&)’ at /home/user/cutter-build/Host/Engine/GeometryProcessing/Inspection/FaceOperationEncoding.cpp:64:61,
+    inlined from ‘std::string Frontier::GeometryProcessing::EncodeFaceOperation(const ModelPartition&, const FaceOperationSpecimen&, const FaceOperationOutcome&, BodyToken, const AuditReport&, const FaceOperationInspection&)’ at /home/user/cutter-build/Host/Engine/GeometryProcessing/Inspection/FaceOperationEncoding.cpp:134:101:
+/usr/include/c++/12/bits/char_traits.h:431:56: warning: ‘void* __builtin_memcpy(void*, const void*, long unsigned int)’ accessing 9223372036854775810 or more bytes at offsets [2, 9223372036854775807] and 1 may overlap up to 9223372036854775813 bytes at offset -3 [-Wrestrict]
+  431 |         return static_cast<char_type*>(__builtin_memcpy(__s1, __s2, __n));
+      |                                        ~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+[124/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Inspection/FeatureEncoding.cpp.o
+In file included from /usr/include/c++/12/ios:40,
+                 from /usr/include/c++/12/ostream:38,
+                 from /usr/include/c++/12/bits/unique_ptr.h:41,
+                 from /usr/include/c++/12/memory:76,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Geometry/CurveGeometry.h:15,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Topology/ModelPartition.h:12,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Audit/ModelAudit.h:12,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Inspection/FeatureEncoding.h:12,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Inspection/FeatureEncoding.cpp:6:
+In static member function ‘static constexpr std::char_traits<char>::char_type* std::char_traits<char>::copy(char_type*, const char_type*, std::size_t)’,
+    inlined from ‘static constexpr void std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_S_copy(_CharT*, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:423:21,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_M_replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.tcc:532:22,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:2171:19,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::insert(size_type, const _CharT*) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:1928:22,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(const _CharT*, __cxx11::basic_string<_CharT, _Traits, _Allocator>&&) [with _CharT = char; _Traits = char_traits<char>; _Alloc = allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:3541:36,
+    inlined from ‘std::string Frontier::GeometryProcessing::EncodeSketch(const SketchSpecimen&, const SketchModel&, const SketchSolveOutcome&, const SketchProfile&, bool)’ at /home/user/cutter-build/Host/Engine/GeometryProcessing/Inspection/FeatureEncoding.cpp:333:36:
+/usr/include/c++/12/bits/char_traits.h:431:56: warning: ‘void* __builtin_memcpy(void*, const void*, long unsigned int)’ accessing 9223372036854775810 or more bytes at offsets [2, 9223372036854775807] and 1 may overlap up to 9223372036854775813 bytes at offset -3 [-Wrestrict]
+  431 |         return static_cast<char_type*>(__builtin_memcpy(__s1, __s2, __n));
+      |                                        ~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+[125/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Inspection/IntersectionCatalogue.cpp.o
+[126/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Inspection/IntersectionEncoding.cpp.o
+In file included from /usr/include/c++/12/ios:40,
+                 from /usr/include/c++/12/ostream:38,
+                 from /usr/include/c++/12/bits/unique_ptr.h:41,
+                 from /usr/include/c++/12/memory:76,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Geometry/CurveGeometry.h:15,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Topology/ModelPartition.h:12,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Audit/ModelAudit.h:12,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Audit/IntersectionAudit.h:12,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Inspection/IntersectionEncoding.h:12,
+                 from /home/user/cutter-build/Host/Engine/GeometryProcessing/Inspection/IntersectionEncoding.cpp:6:
+In static member function ‘static constexpr std::char_traits<char>::char_type* std::char_traits<char>::copy(char_type*, const char_type*, std::size_t)’,
+    inlined from ‘static constexpr void std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_S_copy(_CharT*, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:423:21,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_M_replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.tcc:532:22,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:2171:19,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::insert(size_type, const _CharT*) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:1928:22,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(const _CharT*, __cxx11::basic_string<_CharT, _Traits, _Allocator>&&) [with _CharT = char; _Traits = char_traits<char>; _Alloc = allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:3541:36,
+    inlined from ‘std::string Frontier::GeometryProcessing::EncodeIntersection(const std::string&, const IntersectionScene&, const SurfaceIntersectionOutcome&, const IntersectionAuditReport&, double, double)’ at /home/user/cutter-build/Host/Engine/GeometryProcessing/Inspection/IntersectionEncoding.cpp:256:36:
+/usr/include/c++/12/bits/char_traits.h:431:56: warning: ‘void* __builtin_memcpy(void*, const void*, long unsigned int)’ accessing 9223372036854775810 or more bytes at offsets [2, 9223372036854775807] and 1 may overlap up to 9223372036854775813 bytes at offset -3 [-Wrestrict]
+  431 |         return static_cast<char_type*>(__builtin_memcpy(__s1, __s2, __n));
+      |                                        ~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+In static member function ‘static constexpr std::char_traits<char>::char_type* std::char_traits<char>::copy(char_type*, const char_type*, std::size_t)’,
+    inlined from ‘static constexpr void std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_S_copy(_CharT*, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:423:21,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_M_replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.tcc:532:22,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:2171:19,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::insert(size_type, const _CharT*) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:1928:22,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(const _CharT*, __cxx11::basic_string<_CharT, _Traits, _Allocator>&&) [with _CharT = char; _Traits = char_traits<char>; _Alloc = allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:3541:36,
+    inlined from ‘std::string Frontier::GeometryProcessing::EncodeIntersection(const std::string&, const IntersectionScene&, const SurfaceIntersectionOutcome&, const IntersectionAuditReport&, double, double)’ at /home/user/cutter-build/Host/Engine/GeometryProcessing/Inspection/IntersectionEncoding.cpp:267:36:
+/usr/include/c++/12/bits/char_traits.h:431:56: warning: ‘void* __builtin_memcpy(void*, const void*, long unsigned int)’ accessing 9223372036854775810 or more bytes at offsets [2, 9223372036854775807] and 1 may overlap up to 9223372036854775813 bytes at offset -3 [-Wrestrict]
+  431 |         return static_cast<char_type*>(__builtin_memcpy(__s1, __s2, __n));
+      |                                        ~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+In static member function ‘static constexpr std::char_traits<char>::char_type* std::char_traits<char>::copy(char_type*, const char_type*, std::size_t)’,
+    inlined from ‘static constexpr void std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_S_copy(_CharT*, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:423:21,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_M_replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.tcc:532:22,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:2171:19,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::insert(size_type, const _CharT*) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:1928:22,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(const _CharT*, __cxx11::basic_string<_CharT, _Traits, _Allocator>&&) [with _CharT = char; _Traits = char_traits<char>; _Alloc = allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:3541:36,
+    inlined from ‘std::string Frontier::GeometryProcessing::EncodeIntersection(const std::string&, const IntersectionScene&, const SurfaceIntersectionOutcome&, const IntersectionAuditReport&, double, double)’ at /home/user/cutter-build/Host/Engine/GeometryProcessing/Inspection/IntersectionEncoding.cpp:287:36:
+/usr/include/c++/12/bits/char_traits.h:431:56: warning: ‘void* __builtin_memcpy(void*, const void*, long unsigned int)’ accessing 9223372036854775810 or more bytes at offsets [2, 9223372036854775807] and 1 may overlap up to 9223372036854775813 bytes at offset -3 [-Wrestrict]
+  431 |         return static_cast<char_type*>(__builtin_memcpy(__s1, __s2, __n));
+      |                                        ~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+In static member function ‘static constexpr std::char_traits<char>::char_type* std::char_traits<char>::copy(char_type*, const char_type*, std::size_t)’,
+    inlined from ‘static constexpr void std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_S_copy(_CharT*, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:423:21,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_M_replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.tcc:532:22,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::replace(size_type, size_type, const _CharT*, size_type) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:2171:19,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::insert(size_type, const _CharT*) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:1928:22,
+    inlined from ‘constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(const _CharT*, __cxx11::basic_string<_CharT, _Traits, _Allocator>&&) [with _CharT = char; _Traits = char_traits<char>; _Alloc = allocator<char>]’ at /usr/include/c++/12/bits/basic_string.h:3541:36,
+    inlined from ‘std::string Frontier::GeometryProcessing::EncodeIntersection(const std::string&, const IntersectionScene&, const SurfaceIntersectionOutcome&, const IntersectionAuditReport&, double, double)’ at /home/user/cutter-build/Host/Engine/GeometryProcessing/Inspection/IntersectionEncoding.cpp:300:36:
+/usr/include/c++/12/bits/char_traits.h:431:56: warning: ‘void* __builtin_memcpy(void*, const void*, long unsigned int)’ accessing 9223372036854775810 or more bytes at offsets [2, 9223372036854775807] and 1 may overlap up to 9223372036854775813 bytes at offset -3 [-Wrestrict]
+  431 |         return static_cast<char_type*>(__builtin_memcpy(__s1, __s2, __n));
+      |                                        ~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+[127/231] Linking CXX static library libthorvg_static.a
+[128/231] Linking CXX static library libFrontierImGui.a
+[129/231] Linking CXX static library libFrontierTextFiles.a
+[130/231] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Inspection/TessellationEncoding.cpp.o
+[131/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/IconPresentation.cpp.o
+[132/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/IconArt.cpp.o
+[133/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/PixelSpace.cpp.o
+[134/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/GlyphSpace.cpp.o
+[135/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/ControlKit.cpp.o
+[136/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/TextEntryState.cpp.o
+[137/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/VectorCodec.cpp.o
+[138/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/ThemeStructure.cpp.o
+[139/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/ContentDirectory.cpp.o
+[140/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/TypefaceRegistry.cpp.o
+[141/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/FontCodec.cpp.o
+[142/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/AppearanceInspector.cpp.o
+[143/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/MotionIntegrator.cpp.o
+[144/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/PanelExpansionTab.cpp.o
+[145/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/ConfigurationInspector.cpp.o
+[146/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/ConfigurationStructure.cpp.o
+[147/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/AppearanceCodec.cpp.o
+[148/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/MonitorPlacement.cpp.o
+[149/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/InputPreferencesCodec.cpp.o
+[150/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/PanelDockspaceMonitor.cpp.o
+[151/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/PanelDockspace.cpp.o
+[152/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/NotificationSequence.cpp.o
+[153/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/ConfirmationDialogue.cpp.o
+[154/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/PanelDockspaceLayout.cpp.o
+[155/231] Linking CXX static library libFrontierOrbitCamera.a
+[156/231] Linking C static library libSolidArcVolk.a
+[157/231] Building CXX object CMakeFiles/SolidArcImGuiVulkan.dir/ExternalPackages/imgui/backends/imgui_impl_vulkan.cpp.o
+[158/231] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/ContentInterchange/ProjectSpaceCodec.cpp.o
+[159/231] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcDocumentCodec.cpp.o
+[160/231] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/VehicleCurveImport.cpp.o
+[161/231] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcImagePlane.cpp.o
+[162/231] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcMatcap.cpp.o
+[163/231] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcMeasurement.cpp.o
+[164/231] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcDocument.cpp.o
+[165/231] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcDrawingSheet.cpp.o
+[166/231] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcExchange.cpp.o
+[167/231] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcKnife.cpp.o
+[168/231] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcScene.cpp.o
+[169/231] Linking CXX static library GeometryProcessing/libFrontierGeometryProcessing.a
+[170/231] Linking CXX static library libFrontierInterface.a
+[171/231] Linking CXX static library libSolidArcImGuiVulkan.a
+[172/231] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcSpecimen.cpp.o
+[173/231] Linking CXX static library libFrontierSolidArcDocument.a
+[174/231] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Viewport/SolidArcCamera.cpp.o
+[175/231] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Viewport/SolidArcDevice.cpp.o
+[176/231] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Viewport/SolidArcGizmo.cpp.o
+[177/231] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Viewport/SolidArcPortableImage.cpp.o
+[178/231] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Viewport/SolidArcSnapping.cpp.o
+[179/231] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Viewport/SolidArcRasterization.cpp.o
+[180/231] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Viewport/SolidArcSurfaceTracing.cpp.o
+[181/231] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcNavigation.cpp.o
+[182/231] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcOutliner.cpp.o
+[183/231] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcStyleSheet.cpp.o
+[184/231] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcFrame.cpp.o
+[185/231] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcOptions.cpp.o
+[186/231] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcScript.cpp.o
+[187/231] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcFileDialog.cpp.o
+[188/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/context.c.o
+[189/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/init.c.o
+[190/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/input.c.o
+[191/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/monitor.c.o
+[192/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/platform.c.o
+[193/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/vulkan.c.o
+[194/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/window.c.o
+[195/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/egl_context.c.o
+[196/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/osmesa_context.c.o
+[197/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/null_init.c.o
+[198/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/null_monitor.c.o
+[199/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/null_window.c.o
+[200/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/null_joystick.c.o
+[201/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/posix_module.c.o
+[202/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/posix_time.c.o
+[203/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/posix_thread.c.o
+[204/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/x11_init.c.o
+[205/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/x11_monitor.c.o
+[206/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/x11_window.c.o
+[207/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/xkb_unicode.c.o
+[208/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/glx_context.c.o
+[209/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/linux_joystick.c.o
+[210/231] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/posix_poll.c.o
+[211/231] Building CXX object CMakeFiles/LigerSurfaceTraceValidation.dir/home/user/Slate/SolidArc/Vehicles/Liger/Tools/SurfaceTraceValidation.cpp.o
+[212/231] Building CXX object CMakeFiles/LigerCurveEditingValidation.dir/home/user/Slate/SolidArc/Vehicles/Liger/Tools/CurveEditingValidation.cpp.o
+[213/231] Building CXX object CMakeFiles/LigerCageToolsValidation.dir/home/user/Slate/SolidArc/Vehicles/Liger/Tools/CageToolsValidation.cpp.o
+[214/231] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcInterface.cpp.o
+[215/231] Building CXX object CMakeFiles/LigerSelectionValidation.dir/home/user/Slate/SolidArc/Vehicles/Liger/Tools/SelectionValidation.cpp.o
+[216/231] Linking CXX static library libFrontierSolidArcUI.a
+[217/231] Building CXX object CMakeFiles/LigerCutterPlacementValidation.dir/home/user/Slate/SolidArc/Vehicles/Liger/Tools/CutterPlacementValidation.cpp.o
+[218/231] Building CXX object CMakeFiles/SolidArcCapture.dir/Exhibits/SolidArc/Code/SolidArcCapture.cpp.o
+[219/231] Building CXX object CMakeFiles/SolidArc.dir/ExternalPackages/imgui/backends/imgui_impl_glfw.cpp.o
+[220/231] Building CXX object CMakeFiles/SolidArc.dir/Experimental/SolidArc/Native/SolidArcApplication.cpp.o
+[221/231] Linking C static library ExternalPackages/glfw/src/libglfw3.a
+[222/231] Linking CXX executable LigerSurfaceTraceValidation
+[223/231] Linking CXX executable LigerCurveEditingValidation
+[224/231] Linking CXX executable LigerCageToolsValidation
+[225/231] Linking CXX executable LigerSelectionValidation
+[226/231] Linking CXX executable LigerCutterPlacementValidation
+[227/231] Linking CXX executable SolidArcCapture
+[228/231] Linking CXX executable SolidArcWorkspace
+[229/231] Building CXX object CMakeFiles/SolidArcDocumentValidation.dir/Exhibits/SolidArc/Code/SolidArcDocumentValidation.cpp.o
+[230/231] Linking CXX executable SolidArcDocumentValidation

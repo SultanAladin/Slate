@@ -1,0 +1,571 @@
+diff --git a/SolidArc/Source/UI/SolidArc/Interface/SolidArcInterface.cpp b/SolidArc/Source/UI/SolidArc/Interface/SolidArcInterface.cpp
+index c769ef3..0b778dd 100644
+--- a/SolidArc/Source/UI/SolidArc/Interface/SolidArcInterface.cpp
++++ b/SolidArc/Source/UI/SolidArc/Interface/SolidArcInterface.cpp
+@@ -1316,7 +1316,10 @@ int ViewGridPlane(const OrbitCamera& Camera) noexcept;
+ void OpenDrawingSession(SolidArcWorkspaceState& State, SolidArcDrawingKind Kind)
+ {
+     if (State.Bevel.ActiveCondition) return;
+-    if (State.SurfaceTraceEnabled && Kind != SolidArcDrawingKind::Curve && Kind != SolidArcDrawingKind::Arc && Kind != SolidArcDrawingKind::Line)
++    // Knife profiles are planar sections on the first-clicked face, not retopology
++    // traces. Keep the user's tracing preference unchanged for the next normal tool.
++    const bool SurfaceTrace = State.SurfaceTraceEnabled && !State.Knife.ActiveCondition;
++    if (SurfaceTrace && Kind != SolidArcDrawingKind::Curve && Kind != SolidArcDrawingKind::Arc && Kind != SolidArcDrawingKind::Line)
+     { Announce(State, "Surface trace supports Curve, Arc and Line; turn Surface off for planar shapes"); return; }
+     const SketchSplineForm Form  = State.Drawing.Form;
+     const int              Sides = State.Drawing.Sides;
+@@ -1324,10 +1327,10 @@ void OpenDrawingSession(SolidArcWorkspaceState& State, SolidArcDrawingKind Kind)
+     State.Drawing.Sides           = Sides;
+     State.Drawing.ActiveCondition = true;
+     State.Drawing.Kind            = Kind;
+-    State.Drawing.SurfaceCondition = State.SurfaceTraceEnabled && Kind != SolidArcDrawingKind::Arc;
++    State.Drawing.SurfaceCondition = SurfaceTrace && Kind != SolidArcDrawingKind::Arc;
+     State.Drawing.GridPlane       = ViewGridPlane(State.Camera);
+     State.Drawing.CentreCondition = Kind == SolidArcDrawingKind::Circle;                     // Plasticity center-circle; V → two-point
+-    State.Drawing.Form            = State.SurfaceTraceEnabled ? SketchSplineForm::Nurbs : Form;
++    State.Drawing.Form            = SurfaceTrace ? SketchSplineForm::Nurbs : Form;
+     if (State.Drawing.SurfaceCondition)
+     {
+         Announce(State, "SURFACE TRACE · click on the model · Ctrl: authored curve / model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected");
+@@ -1953,14 +1956,29 @@ void PlaceSolidLift(SolidArcWorkspaceState& State, const OrbitCameraFrame& Frame
+ //    document revision); a curved face gives the tangent plane at the point under the pointer (Orient to faces).
+ bool ResolveHoveredFacePlane(SolidArcWorkspaceState& State, const OrbitCameraFrame& Frame, ImVec2 Local, std::string& Name, OrthonormalFrame& Plane)
+ {
+-    const OrbitRay                    Ray  = CastOrbitRay(Frame, Local.x, Local.y);
+-    const std::optional<SolidArcPick> Pick = PickSolidArcScene(State.Scene, Ray, 0.0, false, ActiveSectionClip(State));
++    OrbitRay                          Ray  = CastOrbitRay(Frame, Local.x, Local.y);
++    // A placement frame needs a face, even at an exactly snapped edge. A negative
++    // edge reach disables edge candidates without disturbing the face ray test.
++    std::optional<SolidArcPick>       Pick = PickSolidArcScene(State.Scene, Ray, -1.0, false, ActiveSectionClip(State));
++    if (!Pick && State.Knife.ActiveCondition)
++    {
++        // A Ctrl-snapped boundary can be a fraction of a pixel outside the
++        // tessellation. Resolve the adjacent visible surface, not the XY floor.
++        for (const ImVec2 Offset : { ImVec2(1,0), ImVec2(-1,0), ImVec2(0,1), ImVec2(0,-1),
++                                     ImVec2(1,1), ImVec2(-1,1), ImVec2(1,-1), ImVec2(-1,-1) })
++        {
++            const OrbitRay Adjacent = CastOrbitRay(Frame, Local.x + Offset.x, Local.y + Offset.y);
++            const auto Hit = PickSolidArcScene(State.Scene, Adjacent, -1.0, false, ActiveSectionClip(State));
++            if (Hit && Hit->Identity != 0 && Hit->Identity != IdentitySectionCap && !(Hit->Identity & IdentityEdgeBit))
++            { Ray = Adjacent; Pick = Hit; break; }
++        }
++    }
+     if (!Pick || Pick->Identity == 0 || Pick->Identity == IdentitySectionCap || (Pick->Identity & IdentityEdgeBit)) return false;
+     const uint32_t Index = Pick->Identity - 1u;
+     if (Index >= State.Scene.Faces.size()) return false;
+     SolidArcDrawingSession& Drawing = State.Drawing;
+     const bool Flat = State.Scene.Faces[Index].Surface == "Plane";
+-    if (!Flat && !State.Picker.FaceOrientEnabled) return false;
++    if (!Flat && !State.Picker.FaceOrientEnabled && !State.Knife.ActiveCondition) return false;
+     Name = State.Scene.Faces[Index].Name;
+     if (Flat && Name == Drawing.FaceName && Drawing.FaceRevision == State.Document.Revision) { Plane = Drawing.FacePlane; return true; }
+     Vector3 Normal, Anchor;
+@@ -2018,7 +2036,7 @@ void FollowFacePlane(SolidArcWorkspaceState& State, const OrbitCameraFrame& Fram
+     }
+     std::string      Name;
+     OrthonormalFrame Plane;
+-    if (State.Picker.FaceOrientEnabled && ResolveHoveredFacePlane(State, Frame, Local, Name, Plane))
++    if ((State.Picker.FaceOrientEnabled || State.Knife.ActiveCondition) && ResolveHoveredFacePlane(State, Frame, Local, Name, Plane))
+     {
+         Drawing.FacePlaneCondition = true;
+         Drawing.FacePlane          = Plane;
+@@ -2049,20 +2067,26 @@ bool PlaceSolidStart(SolidArcWorkspaceState& State, const OrbitCameraFrame& Fram
+     State.Picker.Current       = {};
+     Drawing.FacePlaneCondition = false;
+     Drawing.StartFace.clear();
+-    if (PointSnapCondition(Object.Kind))
++    std::string      Name;
++    OrthonormalFrame Plane;
++    const bool CutterFace = State.Knife.ActiveCondition && ResolveHoveredFacePlane(State, Frame, Local, Name, Plane);
++    if (PointSnapCondition(Object.Kind) && !CutterFace)
+     {
+         State.Picker.Current     = Object;
+         Point                    = { Object.Position.X, Object.Position.Y };
+         Drawing.PointerElevation = Object.Position.Z;
+         return true;
+     }
+-    std::string      Name;
+-    OrthonormalFrame Plane;
+-    if (!ResolveHoveredFacePlane(State, Frame, Local, Name, Plane)) return false;
++    if (!CutterFace && !ResolveHoveredFacePlane(State, Frame, Local, Name, Plane)) return false;
+     const bool Floor = Plane.ZAxis.Z > 0.999;                                                // An upward flat face: the floor rises there
+-    if (!Floor && !State.Picker.FaceOrientEnabled) return false;
++    if (!Floor && !State.Picker.FaceOrientEnabled && !State.Knife.ActiveCondition) return false;
+     Vector2 Flat;
+     if (!IntersectSketchPlane(Frame, Local, Plane, Flat)) return false;
++    if (CutterFace && PointSnapCondition(Object.Kind))
++    {
++        const Vector3 Delta = Object.Position - Plane.Origin;
++        Flat = { Dot(Delta, Plane.XAxis), Dot(Delta, Plane.YAxis) };
++    }
+     Drawing.StartFace = Name;
+     if (!Floor)
+     {
+@@ -6936,6 +6960,7 @@ void DrawKnifeShape(SolidArcWorkspaceState& State, SolidArcDrawingKind Kind, boo
+     Knife.Face.clear();
+     Knife.Typed.clear();
+     DropKnifePreview(Knife);
++    State.Picker.Lock = SolidArcSnapLockKind::None; // A previous drawing's axis lock must not pin a new cutter to its grid.
+     OpenDrawingSession(State, Kind);
+     // A knife line is one cut across the face: it finishes on its second click (edge to edge), no Enter needed. A knife
+     // polyline takes clicks until Enter / right-click (the open chain slices along every segment; clicking the first
+@@ -6953,6 +6978,7 @@ void DrawKnifeSolid(SolidArcWorkspaceState& State, SolidArcConstructKind Kind)
+     Knife.Face.clear();
+     Knife.Typed.clear();
+     DropKnifePreview(Knife);
++    State.Picker.Lock = SolidArcSnapLockKind::None;
+     OpenSolidSession(State, Kind);
+     State.Drawing.Combination  = Knife.Combination;
+     Knife.DrawPendingCondition = State.Drawing.ActiveCondition;
+@@ -8107,7 +8133,7 @@ void DrawKnifeCard(SolidArcWorkspaceState& State)
+     SolidArcKnifeSession& Knife = State.Knife;
+     BeginCard("Knife", KnifeModeLabel(Knife.Mode));
+     static const struct { const char* Label; SolidArcKnifeMode Mode; } Modes[] = {
+-        { "Sketch###KnifeModeSketch", SolidArcKnifeMode::Sketch }, { "Insert###KnifeModeInsert", SolidArcKnifeMode::Insert }, { "Object###KnifeModeObject", SolidArcKnifeMode::Object } };
++        { "Surface###KnifeModeSketch", SolidArcKnifeMode::Sketch }, { "Insert###KnifeModeInsert", SolidArcKnifeMode::Insert }, { "Object###KnifeModeObject", SolidArcKnifeMode::Object } };
+     for (int Index = 0; Index < 3; ++Index)
+     {
+         if (Index > 0) ImGui::SameLine();
+@@ -8155,16 +8181,15 @@ void DrawKnifeCard(SolidArcWorkspaceState& State)
+                 if (State.Knife.PreferredImprintCondition) AnnounceImprintShape(State);
+                 else Announce(State, "Knife: sketch shapes cut to a depth again (3D)");
+             }
+-            // 3D cutters, drawn as the Construct menu draws them (base, then the height into the body).
++            ImGui::TextDisabled("Shaped cutters · same surface placement");
+             static const struct { const char* Label; SolidArcConstructKind Kind; } Solids[] = {
+-                { "Block###KnifeDrawBlock", SolidArcConstructKind::Block }, { "Cylinder###KnifeDrawCylinder", SolidArcConstructKind::Cylinder },
+-                { "Cone###KnifeDrawCone", SolidArcConstructKind::Cone }, { "Prism###KnifeDrawPrism", SolidArcConstructKind::Prism },
++                { "Cone###KnifeDrawCone", SolidArcConstructKind::Cone },
+                 { "Sphere###KnifeDrawSphere", SolidArcConstructKind::Sphere }, { "Torus###KnifeDrawTorus", SolidArcConstructKind::Torus },
+                 { "Wedge###KnifeDrawWedge", SolidArcConstructKind::Wedge }, { "Tube###KnifeDrawTube", SolidArcConstructKind::Tube } };
+-            for (int Index = 0; Index < 8; ++Index)
++            for (int Index = 0; Index < int(std::size(Solids)); ++Index)
+             {
+-                if (Index % 4 != 0) ImGui::SameLine();
+-                if (ToggleButton(State, Solids[Index].Label, KnifeSolidCondition(State) && State.Drawing.Solid == Solids[Index].Kind, RowSpan(4)))
++                if (Index % 3 != 0) ImGui::SameLine();
++                if (ToggleButton(State, Solids[Index].Label, KnifeSolidCondition(State) && State.Drawing.Solid == Solids[Index].Kind, RowSpan(3)))
+                 {
+                     State.Knife.PreferredSolidCondition   = true;
+                     State.Knife.PreferredSolid            = Solids[Index].Kind;
+@@ -14719,7 +14744,7 @@ void DrawSketchToolbar(SolidArcWorkspaceState& State, ImVec2 Image, ImVec2 Exten
+         const ColorQuad Ink = ControlKit::Faded(SolidArcInk(Press.HoveredCondition || State.Knife.ActiveCondition ? 0xffffff : 0xaaaaaa), Enabled ? 1.0f : 0.32f);
+
+         SelectChevron(Sheet, Box.MaximumX - 12.0f, Centre, Ink);
+-        if (Press.HoveredCondition) ImGui::SetTooltip("Knife cutter (now %s): 2D cutter (imprint into the face), sketch shape with depth, 3D primitive, boolean-library insert or picked objects",
++        if (Press.HoveredCondition) ImGui::SetTooltip("Knife cutter (now %s): surface outline + depth, shaped cutter, imprint only, library insert or picked objects",
+                                                       ToolCaption.c_str());
+         if (Press.ClickedCondition)
+         {
+@@ -14730,11 +14755,11 @@ void DrawSketchToolbar(SolidArcWorkspaceState& State, ImVec2 Image, ImVec2 Exten
+         {
+             const SolidArcKnifeSession& Knife = State.Knife;
+             const SolidArcKnifeMode     Mode  = Knife.ActiveCondition ? Knife.Mode : Knife.PreferredMode;
+-            // Four columns (the list would outgrow the space above the toolbar): 2D cutters (imprint only) · sketch cutters
+-            // with depth and objects · 3D primitives · library.
+-            const bool Columns = ImGui::BeginTable("KnifeToolColumns", 4, ImGuiTableFlags_SizingFixedFit);
++            // One surface-cutter workflow: profiles + depth, plus non-extrudable
++            // shaped cutters. No duplicate Rectangle/Block, Circle/Cylinder or Polygon/Prism entries.
++            const bool Columns = ImGui::BeginTable("KnifeToolColumns", 3, ImGuiTableFlags_SizingFixedFit);
+             if (Columns) ImGui::TableNextColumn();
+-            ImGui::TextDisabled("2D cutter");
++            ImGui::TextDisabled("Imprint only");
+             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Imprints the shape into the face: splits it, cuts nothing · then E on the new face pushes / pulls it");
+             static const struct { const char* Label; SolidArcDrawingKind Kind; bool PolylineCondition; } Flats[] = {
+                 { "Rectangle###KnifeFlatRectangle", SolidArcDrawingKind::Rectangle, false }, { "Circle###KnifeFlatCircle", SolidArcDrawingKind::Circle, false },
+@@ -14747,7 +14772,8 @@ void DrawSketchToolbar(SolidArcWorkspaceState& State, ImVec2 Image, ImVec2 Exten
+                 if (SelectListEntry(State, Flat.Label, Chosen)) ChooseKnifeTool(State, SolidArcKnifeMode::Sketch, Flat.Kind, -1, Flat.PolylineCondition, true);
+             }
+             if (Columns) ImGui::TableNextColumn();
+-            ImGui::TextDisabled("Sketch cutter");
++            ImGui::TextDisabled("Surface cutters");
++            if (ImGui::IsItemHovered()) ImGui::SetTooltip("First click attaches to the surface, including in orthographic views. Draw the outline, then set depth inward; Q adds outward, T cuts through.");
+             static const SolidArcDrawingKind Shapes[] = { SolidArcDrawingKind::Circle, SolidArcDrawingKind::Rectangle, SolidArcDrawingKind::Polygon, SolidArcDrawingKind::Slot,
+                                                           SolidArcDrawingKind::Line };
+             for (SolidArcDrawingKind Shape : Shapes)
+@@ -14760,12 +14786,9 @@ void DrawSketchToolbar(SolidArcWorkspaceState& State, ImVec2 Image, ImVec2 Exten
+             const bool PolylineChosen = Mode == SolidArcKnifeMode::Sketch && !Knife.PreferredSolidCondition && !Knife.PreferredImprintCondition && Knife.PreferredShape == SolidArcDrawingKind::Line
+                                      && Knife.PreferredPolylineCondition;
+             if (SelectListEntry(State, "Polyline###KnifeToolPolyline", PolylineChosen)) ChooseKnifeTool(State, SolidArcKnifeMode::Sketch, SolidArcDrawingKind::Line, -1, true);
+-            ImGui::TextDisabled("Objects");
+-            if (SelectListEntry(State, "Picked bodies###KnifeToolObject", Mode == SolidArcKnifeMode::Object)) ChooseKnifeTool(State, SolidArcKnifeMode::Object, Knife.PreferredShape, -1);
+-            if (Columns) ImGui::TableNextColumn();
+-            ImGui::TextDisabled("3D cutter");
+-            static const SolidArcConstructKind Solids[] = { SolidArcConstructKind::Block, SolidArcConstructKind::Cylinder, SolidArcConstructKind::Cone,
+-                                                            SolidArcConstructKind::Prism, SolidArcConstructKind::Sphere, SolidArcConstructKind::Torus,
++            ImGui::Separator();
++            ImGui::TextDisabled("Shaped cutters");
++            static const SolidArcConstructKind Solids[] = { SolidArcConstructKind::Cone, SolidArcConstructKind::Sphere, SolidArcConstructKind::Torus,
+                                                             SolidArcConstructKind::Wedge, SolidArcConstructKind::Tube };
+             for (SolidArcConstructKind Solid : Solids)
+             {
+@@ -14773,6 +14796,8 @@ void DrawSketchToolbar(SolidArcWorkspaceState& State, ImVec2 Image, ImVec2 Exten
+                 if (SelectListEntry(State, Label, Mode == SolidArcKnifeMode::Sketch && Knife.PreferredSolidCondition && Knife.PreferredSolid == Solid)) ChooseKnifeSolid(State, Solid);
+             }
+             if (Columns) ImGui::TableNextColumn();
++            ImGui::TextDisabled("Objects");
++            if (SelectListEntry(State, "Picked bodies###KnifeToolObject", Mode == SolidArcKnifeMode::Object)) ChooseKnifeTool(State, SolidArcKnifeMode::Object, Knife.PreferredShape, -1);
+             EnsureKnifeLibrary(State);
+             ImGui::TextDisabled("Boolean library");
+             for (int Index = 0; Index < SolidArcCompoundCutterCount; ++Index)
+@@ -15237,7 +15262,7 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
+                 Drawing.Pointer = Point;
+             }
+         }
+-        else if (Hovered && Drawing.Kind!=SolidArcDrawingKind::Arc) FollowFacePlane(State, Frame, Local);                                   // Sketch: plane of the face under the first click
++        else if (Hovered && (Drawing.Kind!=SolidArcDrawingKind::Arc || State.Knife.ActiveCondition)) FollowFacePlane(State, Frame, Local);                                   // Sketch: plane of the face under the first click
+         if (!Drawing.SurfaceCondition) Drawing.PointerCondition = Hovered && IntersectSketchPlane(Frame, Local, DrawingPlane(Drawing), Point);
+         if (LiftStage)
+         {
+@@ -17449,7 +17474,7 @@ void DrawHistoryCard(SolidArcWorkspaceState& State)
+ void DrawDrawingOptions(SolidArcWorkspaceState& State)
+ {
+     auto& D=State.Drawing;
+-    if(!D.ActiveCondition || D.SolidCondition || !State.DrawingOptionsVisible) return;
++    if(!D.ActiveCondition || D.SolidCondition || State.Knife.ActiveCondition || !State.DrawingOptionsVisible) return;
+     ImGui::SetNextWindowPos(ImVec2(State.ViewportRect[0]+State.ViewportRect[2]-244,State.ViewportRect[1]+106),ImGuiCond_Appearing);
+     ImGui::SetNextWindowSize(ImVec2(228,0),ImGuiCond_Always);
+     if(ImGui::Begin("Drawing options###CurveToolOptions",&State.DrawingOptionsVisible,ImGuiWindowFlags_AlwaysAutoResize|ImGuiWindowFlags_NoSavedSettings|ImGuiWindowFlags_NoCollapse)) {
+@@ -17675,7 +17700,9 @@ void DrawSnapCard(SolidArcWorkspaceState& State)
+     if (State.Drawing.ActiveCondition)
+     {
+         // Sketches and Construct solids drawn on a body face take its orientation (curved faces: the tangent plane there).
+-        if (ToggleButton(State, "Orient to faces###FaceOrient", Picker.FaceOrientEnabled, RowSpan())) Picker.FaceOrientEnabled = !Picker.FaceOrientEnabled;
++        ImGui::BeginDisabled(State.Knife.ActiveCondition);
++        if (ToggleButton(State, "Orient to faces###FaceOrient", Picker.FaceOrientEnabled || State.Knife.ActiveCondition, RowSpan())) Picker.FaceOrientEnabled = !Picker.FaceOrientEnabled;
++        ImGui::EndDisabled();
+         ImGui::SameLine();
+         ImGui::Text("%s", State.Drawing.FacePlaneCondition ? "on a face" : "grid plane");
+     }
+diff --git a/SolidArc/Vehicles/Liger/Tools/BlueprintValidation.cmake b/SolidArc/Vehicles/Liger/Tools/BlueprintValidation.cmake
+index 3a74afb..9874b12 100644
+--- a/SolidArc/Vehicles/Liger/Tools/BlueprintValidation.cmake
++++ b/SolidArc/Vehicles/Liger/Tools/BlueprintValidation.cmake
+@@ -24,3 +24,8 @@ if(CMAKE_PROJECT_NAME STREQUAL "FrontierUIFoundation" AND NOT TARGET LigerSelect
+     add_executable(LigerSelectionValidation "${CMAKE_CURRENT_LIST_DIR}/SelectionValidation.cpp")
+     target_link_libraries(LigerSelectionValidation PRIVATE FrontierSolidArcUI)
+ endif()
++
++if(CMAKE_PROJECT_NAME STREQUAL "FrontierUIFoundation" AND NOT TARGET LigerCutterPlacementValidation)
++    add_executable(LigerCutterPlacementValidation "${CMAKE_CURRENT_LIST_DIR}/CutterPlacementValidation.cpp")
++    target_link_libraries(LigerCutterPlacementValidation PRIVATE FrontierSolidArcUI)
++endif()
+diff --git a/SolidArc/Vehicles/Liger/Tools/CutterPlacementValidation.cpp b/SolidArc/Vehicles/Liger/Tools/CutterPlacementValidation.cpp
+new file mode 100644
+index 0000000..3df77ed
+--- /dev/null
++++ b/SolidArc/Vehicles/Liger/Tools/CutterPlacementValidation.cpp
+@@ -0,0 +1,211 @@
++#include "UI/SolidArc/Interface/SolidArcInterface.h"
++#include "UI/SolidArc/Interface/SolidArcScript.h"
++#include "UI/SolidArc/Document/SolidArcDocumentCodec.h"
++#include "UI/SolidArc/Viewport/SolidArcCamera.h"
++#include "imgui.h"
++#include <filesystem>
++#include <fstream>
++#include <iostream>
++#include <stdexcept>
++#include <cmath>
++#include <sstream>
++#include <iomanip>
++using namespace Frontier;
++using namespace Frontier::SolidArc;
++using namespace Frontier::GeometryProcessing;
++namespace {
++int Checks=0;
++void Check(bool Ok,const std::string& Label) { if(!Ok)throw std::runtime_error(Label);++Checks;std::cout<<"PASS "<<Label<<std::endl; }
++struct HeadlessUiHarness
++{
++    ImGuiContext*                        Ctx = nullptr;
++    Frontier::SolidArc::SolidArcOptions  Options{};
++    Frontier::SolidArc::SolidArcWorkspaceState State{};
++    ImTextureID                          NextTexId = ImTextureID(100);
++
++    HeadlessUiHarness()
++    {
++        IMGUI_CHECKVERSION();
++        Ctx = ImGui::CreateContext();
++        ImGui::SetCurrentContext(Ctx);
++        ImGuiIO& Io = ImGui::GetIO();
++        Io.DisplaySize = ImVec2(1366.0f, 768.0f);
++        Io.DeltaTime   = 1.0f / 60.0f;
++        Io.IniFilename = nullptr;
++        Io.ConfigInputTrickleEventQueue = true;
++        Io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
++        Options.WindowWidth  = 1366;
++        Options.WindowHeight = 768;
++        Options.RecoveryPath = (std::filesystem::temp_directory_path() / "SolidArcBatchRecovery.solidarc").string();
++        std::error_code Ignore;
++        std::filesystem::remove(Options.RecoveryPath, Ignore);
++        Frontier::SolidArc::ConfigureSolidArcInterface(Options);
++        Frontier::SolidArc::InitialiseSolidArcWorkspace(State, Options);
++        State.WelcomeOpen = false;
++    }
++
++    ~HeadlessUiHarness()
++    {
++        if (Ctx) ImGui::DestroyContext(Ctx);
++        std::error_code Ignore;
++        std::filesystem::remove(Options.RecoveryPath, Ignore);
++    }
++
++    void SyncTextures()
++    {
++        if (ImDrawData* DrawData = ImGui::GetDrawData(); DrawData && DrawData->Textures)
++        {
++            for (ImTextureData* Tex : *DrawData->Textures)
++            {
++                if (Tex->Status == ImTextureStatus_WantCreate || Tex->Status == ImTextureStatus_WantUpdates)
++                {
++                    if (Tex->TexID == ImTextureID_Invalid) Tex->SetTexID(NextTexId++);
++                    Tex->SetStatus(ImTextureStatus_OK);
++                }
++                else if (Tex->Status == ImTextureStatus_WantDestroy)
++                {
++                    Tex->SetTexID(ImTextureID_Invalid);
++                    Tex->SetStatus(ImTextureStatus_Destroyed);
++                }
++            }
++        }
++    }
++
++    void StepFrame()
++    {
++        ImGui::GetIO().DisplaySize = ImVec2(1366.0f, 768.0f);
++        ImGui::GetIO().DeltaTime   = 1.0f / 60.0f;
++        // Populate CPU HoverIdentity when pointer is inside the viewport so viewport clicks match GPU ID readback.
++        const ImVec2 Mouse = ImGui::GetIO().MousePos;
++        if (Mouse.x >= State.ViewportRect[0] && Mouse.x <= State.ViewportRect[0] + State.ViewportRect[2]
++            && Mouse.y >= State.ViewportRect[1] && Mouse.y <= State.ViewportRect[1] + State.ViewportRect[3]
++            && !State.Scene.Faces.empty())
++        {
++            const Frontier::OrbitCameraFrame CamFrame = Frontier::FrameOrbitCamera(State.Camera, std::max(1.0f, State.ViewportRect[2]), std::max(1.0f, State.ViewportRect[3]));
++            const Frontier::OrbitRay Ray = Frontier::CastOrbitRay(CamFrame, Mouse.x - State.ViewportRect[0], Mouse.y - State.ViewportRect[1]);
++            const auto Hit = Frontier::SolidArc::PickSolidArcScene(State.Scene, Ray, 8.0 * CamFrame.WorldPerPixel, State.Style.XRayEnabled);
++            State.HoverIdentity = Hit ? Hit->Identity : 0u;
++        }
++        ImGui::NewFrame();
++        Frontier::SolidArc::DrawSolidArcInterface(State, ImTextureID(1), 1.0 / 60.0);
++        ImGui::Render();
++        SyncTextures();
++    }
++
++    bool RunScript(const std::string& ScriptText, std::string& FailureOut)
++    {
++        Frontier::SolidArc::SolidArcScript Script = Frontier::SolidArc::ParseSolidArcScript(ScriptText);
++        if (!Script.Refusal.empty()) { FailureOut = Script.Refusal; return false; }
++        while (!Frontier::SolidArc::FinishedSolidArcScript(Script))
++        {
++            (void)Frontier::SolidArc::AdvanceSolidArcScript(Script, State);
++            StepFrame();
++        }
++        for (const Frontier::SolidArc::SolidArcExpectation& Exp : Script.Expectations)
++        {
++            if (!Exp.Passed)
++            {
++                char Msg[768];
++                std::snprintf(Msg, sizeof(Msg), "line %d: %s (observed '%s', status='%s')", Exp.Line, Exp.Text.c_str(), Exp.Observed.c_str(), State.Status.c_str());
++                FailureOut = Msg;
++                return false;
++            }
++        }
++        return true;
++    }
++};
++
++std::string World(const char* Verb,Vector3 P,const char* Mod="") {
++    std::ostringstream S;S<<std::setprecision(17)<<Verb<<" world "<<P.X<<" "<<P.Y<<" "<<P.Z<<" "<<Mod<<"\nframes 2\n";return S.str();
++}
++void Script(HeadlessUiHarness& U,const std::string& Text) {std::string Err;if(!U.RunScript(Text,Err))throw std::runtime_error(Err);}
++void Box(HeadlessUiHarness& U,OrbitViewPreset View,bool Ortho) {
++    SolidArcConstructRequest B;B.Kind=SolidArcConstructKind::Block;B.Position={3,4,5};B.Width=2;B.Depth=2;B.Height=2;
++    if(!ConstructSolidArcPrimitive(U.State.Document,B).AcceptedCondition)throw std::runtime_error("box fixture");
++    RefreshSolidArcScene(U.State,false);FitSolidArcCamera(U.State.Camera,U.State.Scene);PresentOrbitView(U.State.Camera,View);U.State.Camera.OrthographicEnabled=Ortho;
++    U.State.Picker.FaceOrientEnabled=false;U.State.Picker.GridEnabled=false;U.State.SurfaceTraceEnabled=true;U.State.DrawingCurveSnap=false;U.State.DrawingOptionsVisible=true;
++    U.State.Picker.Lock=SolidArcSnapLockKind::X; // Stale lock from the previous sketch.
++    U.State.Knife.PreferredShape=SolidArcDrawingKind::Rectangle;
++    U.StepFrame();U.StepFrame();
++}
++void Profile(OrbitViewPreset View,Vector3 P,bool Ortho) {
++    HeadlessUiHarness U;Box(U,View,Ortho);
++    const double Volume=U.State.Document.Summary.Volume;
++    Script(U,"key K Shift\nframes 2\n"+World("move",P));
++    const auto Plane=U.State.Drawing.FacePlane;
++    const std::string Tag=std::string(Ortho?"ortho ":"perspective ")+std::to_string(int(View));
++    Check(U.State.Drawing.ActiveCondition && !U.State.Drawing.SurfaceCondition && U.State.Knife.DrawPendingCondition,Tag+" rectangle starts despite tracing preference");
++    Check(U.State.Drawing.FacePlaneCondition && !U.State.Drawing.FaceName.empty() && std::abs(Dot(P-Plane.Origin,Plane.ZAxis))<1e-8,Tag+" hovered surface replaces origin grid plane with face plane");
++    Script(U,World("click",P));
++    Check(U.State.Drawing.Points.size()==1,Tag+" first click freezes cutter plane");
++    const Vector3 Q=P+Plane.XAxis*.35+Plane.YAxis*.25;
++    Script(U,World("move",Q));
++    Check(Length(U.State.Drawing.FacePlane.Origin-Plane.Origin)<1e-10 && Dot(U.State.Drawing.FacePlane.ZAxis,Plane.ZAxis)>1-1e-10,Tag+" outline stays on first face plane");
++    Script(U,World("click",Q));
++    Check(!U.State.Knife.Sketch.empty() && !U.State.Knife.Face.empty(),Tag+" completed profile retains face target");
++    // World-script pointers are quantized to screen pixels. Compare the Boolean
++    // against the actually clicked outline, not an unachievable subpixel rectangle.
++    const auto Points=U.State.Drawing.Points;
++    if(Points.size()!=2) throw std::runtime_error("rectangle fixture points");
++    const double Area=std::abs((Points[1].X-Points[0].X)*(Points[1].Y-Points[0].Y));
++    if(Area<.08 || Area>.095) throw std::runtime_error("rectangle click size outside two-pixel bounds");
++    const double ExpectedRemoved=Area*.25;
++    Script(U,"key 0\nkey Period\nkey 2\nkey 5\nframes 2\nkey Enter\nframes 2\n");
++    const double Removed=Volume-U.State.Document.Summary.Volume;
++    if(U.State.Knife.Commits!=1 || std::abs(Removed-ExpectedRemoved)>=1e-6)
++        std::cerr<<std::setprecision(17)<<"DETAIL removed="<<Removed<<" expected="<<ExpectedRemoved<<" commits="<<U.State.Knife.Commits<<" depth="<<U.State.Knife.Depth<<" status="<<U.State.Status<<" refusal="<<U.State.Knife.Refusal<<"\n";
++    Check(U.State.Knife.Commits==1 && U.State.Document.Regeneration.Refused==0 && std::abs(Removed-ExpectedRemoved)<1e-6,Tag+" depth cuts inward from actual face, exact pocket volume");
++    Check(U.State.SurfaceTraceEnabled && !U.State.Picker.FaceOrientEnabled,Tag+" no user preference was changed");
++    Script(U,"key Escape\nkey Z Ctrl\nframes 2\n");
++    Check(std::abs(U.State.Document.Summary.Volume-Volume)<1e-9,Tag+" undo restores uncut body");
++}
++void Shaped(bool Snap,bool Edge=false) {
++    HeadlessUiHarness U;Box(U,OrbitViewPreset::Right,true);
++    U.State.Knife.PreferredSolidCondition=true;U.State.Knife.PreferredSolid=SolidArcConstructKind::Cone;
++    Script(U,"key K Shift\nframes 2\n"+World("click",{5,Edge?4.0:5.0,6},Snap?"Ctrl":""));
++    Check(U.State.Drawing.SolidCondition && U.State.Drawing.FacePlaneCondition && !U.State.Drawing.StartFace.empty(),Snap?"Ctrl-snapped shaped cutter keeps surface frame and target":"shaped cutter auto-orients on side face with preference off");
++    Check(std::abs(U.State.Drawing.FacePlane.Origin.X-5)<1e-8 && U.State.Drawing.FacePlane.ZAxis.X>.99,"shaped cutter uses outward side normal, not XY grid");
++}
++void OrdinaryDrawing() {
++    HeadlessUiHarness U;Box(U,OrbitViewPreset::Top,true);
++    U.State.SurfaceTraceEnabled=false;U.State.Picker.Lock=SolidArcSnapLockKind::None;
++    U.State.Drawing={};U.State.Drawing.ActiveCondition=true;U.State.Drawing.Kind=SolidArcDrawingKind::Rectangle;U.State.Drawing.GridPlane=0;
++    Script(U,World("move",{4,5,7}));
++    Check(!U.State.Drawing.FacePlaneCondition && !U.State.Knife.ActiveCondition && !U.State.Picker.FaceOrientEnabled,"ordinary drawing still respects disabled face orientation and its chosen grid");
++}
++void Menu() {
++    HeadlessUiHarness U;Box(U,OrbitViewPreset::Right,true);
++    Script(U,"click @SketchKnifeTool\nframes 2\n");
++    Check(U.State.Widgets.Find("KnifeToolRectangle") && U.State.Widgets.Find("KnifeToolCircle") && U.State.Widgets.Find("KnifeToolPolygon"),"one canonical outline choice for box, cylinder and prism cuts");
++    Check(!U.State.Widgets.Find("KnifeToolBlock") && !U.State.Widgets.Find("KnifeToolCylinder") && !U.State.Widgets.Find("KnifeToolPrism"),"duplicate basic solid entries removed from cutter menu");
++    Check(U.State.Widgets.Find("KnifeToolCone") && U.State.Widgets.Find("KnifeToolSphere") && U.State.Widgets.Find("KnifeToolTorus") && U.State.Widgets.Find("KnifeToolWedge") && U.State.Widgets.Find("KnifeToolTube"),"distinct shaped cutters retained");
++    Check(U.State.Widgets.Find("KnifeFlatRectangle") && U.State.Widgets.Find("KnifeToolObject") && U.State.Widgets.Find("KnifeToolInsert0"),"imprint, object and compound-library capabilities retained");
++    Script(U,"click @KnifeToolRectangle\nframes 2\n");
++    Check(U.State.Drawing.ActiveCondition && !U.State.Drawing.SolidCondition && U.State.Drawing.Kind==SolidArcDrawingKind::Rectangle,"canonical menu starts profile plus depth workflow");
++    Check(!U.State.Widgets.Find("KnifeDrawBlock") && !U.State.Widgets.Find("KnifeDrawCylinder") && !U.State.Widgets.Find("KnifeDrawPrism"),"inspector also removes duplicate basic solids");
++    Check(!U.State.Widgets.Find("ToolSurface"),"retopology popup cannot override cutter placement");
++}
++void Curved() {
++    HeadlessUiHarness U;
++    SolidArcConstructRequest B;B.Kind=SolidArcConstructKind::Sphere;B.Position={3,4,5};B.Radius=1;
++    if(!ConstructSolidArcPrimitive(U.State.Document,B).AcceptedCondition)throw std::runtime_error("sphere fixture");
++    RefreshSolidArcScene(U.State,false);FitSolidArcCamera(U.State.Camera,U.State.Scene);PresentOrbitView(U.State.Camera,OrbitViewPreset::Right);U.State.Camera.OrthographicEnabled=true;
++    U.State.Picker.FaceOrientEnabled=false;U.State.SurfaceTraceEnabled=true;U.State.Knife.PreferredShape=SolidArcDrawingKind::Circle;
++    U.StepFrame();U.StepFrame();Script(U,"key K Shift\nframes 2\n"+World("click",{4,4,5}));
++    const auto P=U.State.Drawing.FacePlane;
++    Check(U.State.Drawing.FacePlaneCondition && !U.State.Drawing.FaceName.empty() && std::abs(Dot(Vector3{4,4,5}-P.Origin,P.ZAxis))<.01,"curved surface supplies tangent plane with face preference off");
++    Check(P.ZAxis.X>.99,"curved cutter normal points out; negative depth goes into body");
++}
++}
++int main(int argc,char** argv) {
++ try {
++    for(bool Ortho:{true,false}) {
++      Profile(OrbitViewPreset::Top,{4,5,7},Ortho);Profile(OrbitViewPreset::Bottom,{4,5,5},Ortho);
++      Profile(OrbitViewPreset::Right,{5,5,6},Ortho);Profile(OrbitViewPreset::Left,{3,5,6},Ortho);
++      Profile(OrbitViewPreset::Front,{4,4,6},Ortho);Profile(OrbitViewPreset::Back,{4,6,6},Ortho);
++    }
++    Shaped(false);Shaped(true);Shaped(true,true);Curved();Menu();OrdinaryDrawing();
++    if(argc>1) { HeadlessUiHarness U;Box(U,OrbitViewPreset::Right,true);std::ofstream(argv[1])<<EncodeSolidArcDocument(U.State.Document); }
++    std::cout<<"PASS "<<Checks<<" surface cutter checks\n";return 0;
++ }catch(const std::exception& E){std::cerr<<"FAIL "<<E.what()<<"\n";return 1;}
++}
+diff --git a/SolidArc/Vehicles/Liger/Tools/CutterSurfaceCheck.txt b/SolidArc/Vehicles/Liger/Tools/CutterSurfaceCheck.txt
+new file mode 100644
+index 0000000..781bdab
+--- /dev/null
++++ b/SolidArc/Vehicles/Liger/Tools/CutterSurfaceCheck.txt
+@@ -0,0 +1,54 @@
++frames 3
++expect surface-trace == 1
++expect volume ~ 8
++key Keypad3
++key Keypad5
++frames 3
++expect orthographic == 1
++click @SketchKnifeTool
++frames 2
++capture Unified_Surface_Cutter_Menu
++click @KnifeToolRectangle
++frames 2
++expect drawing == Rectangle
++expect drawing-surface == 0
++expect surface-trace == 1
++move world 5 5 6
++frames 3
++expect drawing-on-face == 1
++expect drawing-normal-x ~ 1
++click world 5 5 6
++frames 2
++expect drawing-points == 1
++move world 5 5.35 6.25
++frames 2
++expect drawing-on-face == 1
++expect drawing-normal-x ~ 1
++click world 5 5.35 6.25
++frames 3
++expect knife-pending == 0
++expect plane-normal-x ~ 1
++expect plane-offset ~ 5
++key 0
++key Period
++key 2
++key 5
++frames 3
++expect knife-depth ~ 0.25
++capture Ortho_Surface_Inward_Pocket_Preview
++key Enter
++frames 3
++expect knife-commits == 1
++# Physical clicks land on integer pixels, not the ideal subpixel world coordinates.
++# Native validation compares exact removed volume to the actual clicked rectangle.
++expect volume > 7.976
++expect volume < 7.980
++expect refused == 0
++expect surface-trace == 1
++capture Ortho_Surface_Inward_Pocket
++key Escape
++key Z Ctrl
++frames 3
++expect volume ~ 8
++expect refused == 0
++capture Ortho_Surface_Cut_Undo
+diff --git a/SolidArc/Vehicles/Liger/Tools/package_cutter.py b/SolidArc/Vehicles/Liger/Tools/package_cutter.py
+new file mode 100644
+index 0000000..29c61e8
+--- /dev/null
++++ b/SolidArc/Vehicles/Liger/Tools/package_cutter.py
+@@ -0,0 +1,36 @@
++"""Release current cutter fix only after selection, cage, tracing and cutter regressions pass."""
++import argparse
++import json
++import re
++from pathlib import Path
++import package_selection as base
++
++base.OUT = base.ROOT / 'CutterFix'
++
++def validate():
++    base.validate()
++    text = (base.OUT / 'Validation/NativeCutterPlacement.txt').read_text()
++    match = re.search(r'PASS (\d+) surface cutter checks', text)
++    assert match and int(match[1]) >= 112 and 'FAIL' not in text
++    text = (base.OUT / 'Validation/CutterSurface.txt').read_text()
++    match = re.search(r'Expectations: (\d+) / (\d+) passed', text)
++    assert match and match[1] == match[2] and '🔴' not in text
++
++if __name__ == '__main__':
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--windows', type=Path, required=True)
++    parser.add_argument('--linux', type=Path, required=True)
++    args = parser.parse_args()
++    validate()
++    manifest = {}
++    for platform, folder in [('Windows', args.windows), ('Linux', args.linux)]:
++        executable = folder / ('SolidArcWorkspace.exe' if platform == 'Windows' else 'SolidArcWorkspace')
++        assert b'Surface cutters' in executable.read_bytes(), 'Stale pre-cutter-fix executable'
++        metadata = base.package(folder, platform)
++        old = base.OUT / 'Packages' / metadata['package']
++        target = old.with_name(f'Project Liger Cutter Fix {platform}.zip')
++        old.replace(target)
++        metadata['package'] = target.name
++        assert base.sha(target.read_bytes()) == metadata['package_sha256']
++        manifest[platform] = metadata
++    (base.OUT / 'Validation/RuntimeManifest.json').write_text(json.dumps(manifest, indent=2) + '\n')

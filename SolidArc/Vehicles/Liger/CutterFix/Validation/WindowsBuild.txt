@@ -1,0 +1,247 @@
+[0/2] Re-checking globbed directories...
+[1/2] Re-running CMake...
+-- Found Python3: /home/user/cutter-build/env/bin/python3.11 (found suitable version "3.11.2", minimum required is "3.9") found components: Interpreter
+[ImGui]    PatchA-TrapezoidalTabs.patch is applied
+[ImGui]    PatchB-TabOverlapZOrder.patch is applied
+[ImGui]    PatchC-RoundTabButtons.patch is applied
+[ImGui]    PatchD-TabAddButton.patch is applied
+[ImGui]    PatchE-NoTabScrollButtons.patch is applied
+[ImGui]    PatchF-TabContentInsets.patch is applied
+[ImGui]    PatchG-AdjacentTabAddButton.patch is applied
+Pinned dependency present: imgui
+Pinned dependency present: thorvg
+Pinned dependency present: tomlpp
+Pinned dependency present: glfw
+Pinned dependency present: vulkan-headers
+Pinned dependency present: stb
+Pinned dependency present: volk
+Catalogue: 35 faces, 5 families, 0 rejected files
+-- Found Python3: /home/user/cutter-build/env/bin/python3.11 (found version "3.11.2") found components: Interpreter
+-- Including Win32 support
+fatal: ambiguous argument 'HEAD': unknown revision or path not in the working tree.
+Use '--' to separate paths from revisions, like this:
+'git <command> [<revision>...] -- [<file>...]'
+-- Surface C++ unit builds; supply slangc or FRONTIER_SLANG_WASM for shader/readback validation
+-- Configuring done (0.4s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/user/cutter-build/Windows
+[0/4] Re-checking globbed directories...
+[1/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgColor.cpp.obj
+[2/218] Building CXX object CMakeFiles/thorvg_static.dir/thorvg_icon_art/tvgInitializer.cpp.obj
+[3/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgCompressor.cpp.obj
+[4/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgMath.cpp.obj
+[5/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgStr.cpp.obj
+[6/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgAccessor.cpp.obj
+[7/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgAnimation.cpp.obj
+[8/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgCanvas.cpp.obj
+[9/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgFill.cpp.obj
+[10/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgLoader.cpp.obj
+[11/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgPaint.cpp.obj
+[12/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgPicture.cpp.obj
+[13/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgRender.cpp.obj
+[14/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgSaver.cpp.obj
+[15/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgScene.cpp.obj
+[16/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgShape.cpp.obj
+[17/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgTaskScheduler.cpp.obj
+[18/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgText.cpp.obj
+[19/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwFill.cpp.obj
+[20/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwImage.cpp.obj
+[21/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwMath.cpp.obj
+[22/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwMemPool.cpp.obj
+[23/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwPostEffect.cpp.obj
+[24/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwRaster.cpp.obj
+[25/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwRenderer.cpp.obj
+[26/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwRle.cpp.obj
+[27/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwShape.cpp.obj
+[28/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwStroke.cpp.obj
+[29/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgCssStyle.cpp.obj
+[30/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgPath.cpp.obj
+[31/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp.obj
+[32/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgUtil.cpp.obj
+[33/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgSceneBuilder.cpp.obj
+[34/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgXmlParser.cpp.obj
+[35/218] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/raw/tvgRawLoader.cpp.obj
+[36/218] Building CXX object CMakeFiles/FrontierImGui.dir/ExternalPackages/imgui/imgui_draw.cpp.obj
+[37/218] Building CXX object CMakeFiles/FrontierImGui.dir/ExternalPackages/imgui/imgui_tables.cpp.obj
+[38/218] Building CXX object CMakeFiles/FrontierImGui.dir/ExternalPackages/imgui/imgui.cpp.obj
+[39/218] Building CXX object CMakeFiles/FrontierImGui.dir/ExternalPackages/imgui/imgui_widgets.cpp.obj
+[40/218] Building CXX object CMakeFiles/FrontierOrbitCamera.dir/Engine/Render/OrbitCamera.cpp.obj
+[41/218] Building C object CMakeFiles/SolidArcVolk.dir/ExternalPackages/volk/volk.c.obj
+[42/218] Building CXX object CMakeFiles/FrontierTextFiles.dir/Engine/Interface/TextFileReplacement.cpp.obj
+[43/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Precision/ExactPredicates.cpp.obj
+[44/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Geometry/CurveGeometry.cpp.obj
+[45/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Diagnostics/OperationTrace.cpp.obj
+[46/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Geometry/SurfaceGeometry.cpp.obj
+[47/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Geometry/RollingBallCarrier.cpp.obj
+[48/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Geometry/ParallelCarrier.cpp.obj
+[49/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Geometry/NurbsCarrier.cpp.obj
+[50/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Geometry/ProjectedCurve.cpp.obj
+[51/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Containment/FaceDomain.cpp.obj
+[52/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Containment/WindingNumber.cpp.obj
+[53/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Tessellation/ChartTriangulation.cpp.obj
+[54/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Tessellation/BodyTessellation.cpp.obj
+[55/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Boolean/BooleanCatalogue.cpp.obj
+[56/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Boolean/GeneralFuse.cpp.obj
+[57/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Intersection/BernsteinPolynomial.cpp.obj
+[58/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Intersection/ImplicitSurface.cpp.obj
+[59/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Intersection/CurveSurfaceIntersection.cpp.obj
+[60/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Intersection/IsoParameterCurve.cpp.obj
+[61/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Intersection/IntersectionCurve.cpp.obj
+[62/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Intersection/SurfaceIntersection.cpp.obj
+[63/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Topology/ModelPartition.cpp.obj
+[64/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Topology/EulerEdits.cpp.obj
+[65/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Construction/PrimitiveConstruction.cpp.obj
+[66/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Construction/BodyAssembly.cpp.obj
+[67/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Construction/BodyModifiers.cpp.obj
+[68/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Construction/BodyTransform.cpp.obj
+[69/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Blend/RollingBallGeometry.cpp.obj
+[70/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Blend/FairPatch.cpp.obj
+[71/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Blend/EdgeBlend.cpp.obj
+[72/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Blend/BlendCatalogue.cpp.obj
+[73/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Local/FaceChange.cpp.obj
+[74/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Local/FaceOperations.cpp.obj
+[75/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Local/RedundantTopology.cpp.obj
+[76/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Local/FaceOperationCatalogue.cpp.obj
+[77/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Local/TopologyRebuild.cpp.obj
+[78/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchProfile.cpp.obj
+[79/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchSolver.cpp.obj
+[80/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchSection.cpp.obj
+[81/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchSpline.cpp.obj
+[82/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchCatalogue.cpp.obj
+[83/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchCorner.cpp.obj
+[84/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchRegion.cpp.obj
+[85/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchTrim.cpp.obj
+[86/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchFlow.cpp.obj
+[87/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchEditing.cpp.obj
+[88/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Sketch/SketchConstraining.cpp.obj
+[89/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Feature/BodyCut.cpp.obj
+[90/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Feature/ProfileSweep.cpp.obj
+[91/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Feature/ReplayDigest.cpp.obj
+[92/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Feature/PathSweep.cpp.obj
+[93/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Feature/TopologicalNaming.cpp.obj
+[94/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Feature/FeatureCatalogue.cpp.obj
+[95/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Surfacing/LinearSystem.cpp.obj
+[96/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Surfacing/SurfaceDistanceCurve.cpp.obj
+[97/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Surfacing/CurveFitting.cpp.obj
+[98/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Surfacing/SectionLoft.cpp.obj
+[99/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Feature/FeatureTree.cpp.obj
+[100/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Surfacing/SurfaceAlgebra.cpp.obj
+[101/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Surfacing/PanelAssembly.cpp.obj
+[102/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Surfacing/CurveNetwork.cpp.obj
+[103/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Inspection/BlendEncoding.cpp.obj
+[104/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Surfacing/CarrierApproximation.cpp.obj
+[105/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Assembly/AssemblyAnalysis.cpp.obj
+[106/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Assembly/JointSolver.cpp.obj
+[107/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Audit/EnclosedVolume.cpp.obj
+[108/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Measurement/MassProperties.cpp.obj
+[109/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Measurement/MinimumDistance.cpp.obj
+[110/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Measurement/PlaneSection.cpp.obj
+[111/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Drawing/DrawingSheet.cpp.obj
+[112/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Drawing/DrawingProjection.cpp.obj
+[113/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Drawing/DrawingExport.cpp.obj
+[114/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Exchange/StepExchange.cpp.obj
+[115/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Exchange/StlExchange.cpp.obj
+[116/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Exchange/StepReading.cpp.obj
+[117/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Audit/IntersectionAudit.cpp.obj
+[118/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Audit/ModelAudit.cpp.obj
+[119/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Audit/TessellationAudit.cpp.obj
+[120/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Inspection/SpecimenCatalogue.cpp.obj
+[121/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Inspection/InspectionEncoding.cpp.obj
+[122/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Inspection/BooleanEncoding.cpp.obj
+[123/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Inspection/FaceOperationEncoding.cpp.obj
+[124/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Inspection/FeatureEncoding.cpp.obj
+[125/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Inspection/IntersectionCatalogue.cpp.obj
+[126/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Inspection/IntersectionEncoding.cpp.obj
+[127/218] Linking CXX static library libthorvg_static.a
+[128/218] Linking CXX static library libFrontierImGui.a
+[129/218] Linking CXX static library libFrontierTextFiles.a
+[130/218] Building CXX object GeometryProcessing/CMakeFiles/FrontierGeometryProcessing.dir/Inspection/TessellationEncoding.cpp.obj
+[131/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/IconPresentation.cpp.obj
+[132/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/IconArt.cpp.obj
+[133/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/PixelSpace.cpp.obj
+[134/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/GlyphSpace.cpp.obj
+[135/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/ControlKit.cpp.obj
+[136/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/TextEntryState.cpp.obj
+[137/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/ThemeStructure.cpp.obj
+[138/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/VectorCodec.cpp.obj
+[139/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/ContentDirectory.cpp.obj
+[140/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/TypefaceRegistry.cpp.obj
+[141/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/FontCodec.cpp.obj
+[142/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/AppearanceInspector.cpp.obj
+[143/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/MotionIntegrator.cpp.obj
+[144/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/PanelExpansionTab.cpp.obj
+[145/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/ConfigurationInspector.cpp.obj
+[146/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/ConfigurationStructure.cpp.obj
+[147/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/AppearanceCodec.cpp.obj
+[148/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/MonitorPlacement.cpp.obj
+[149/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/PanelDockspaceMonitor.cpp.obj
+[150/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/InputPreferencesCodec.cpp.obj
+[151/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/PanelDockspace.cpp.obj
+[152/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/NotificationSequence.cpp.obj
+[153/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/ConfirmationDialogue.cpp.obj
+[154/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/Interface/PanelDockspaceLayout.cpp.obj
+[155/218] Linking CXX static library libFrontierOrbitCamera.a
+[156/218] Linking C static library libSolidArcVolk.a
+[157/218] Building CXX object CMakeFiles/SolidArcImGuiVulkan.dir/ExternalPackages/imgui/backends/imgui_impl_vulkan.cpp.obj
+[158/218] Building CXX object CMakeFiles/FrontierInterface.dir/Engine/ContentInterchange/ProjectSpaceCodec.cpp.obj
+[159/218] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcDocumentCodec.cpp.obj
+[160/218] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/VehicleCurveImport.cpp.obj
+[161/218] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcImagePlane.cpp.obj
+[162/218] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcMatcap.cpp.obj
+[163/218] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcDocument.cpp.obj
+[164/218] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcDrawingSheet.cpp.obj
+[165/218] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcMeasurement.cpp.obj
+[166/218] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcExchange.cpp.obj
+[167/218] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcKnife.cpp.obj
+[168/218] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcScene.cpp.obj
+[169/218] Building CXX object CMakeFiles/FrontierSolidArcDocument.dir/UI/SolidArc/Document/SolidArcSpecimen.cpp.obj
+[170/218] Linking CXX static library libFrontierInterface.a
+[171/218] Linking CXX static library libSolidArcImGuiVulkan.a
+[172/218] Linking CXX static library GeometryProcessing/libFrontierGeometryProcessing.a
+[173/218] Linking CXX static library libFrontierSolidArcDocument.a
+[174/218] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Viewport/SolidArcCamera.cpp.obj
+[175/218] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Viewport/SolidArcDevice.cpp.obj
+[176/218] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Viewport/SolidArcGizmo.cpp.obj
+[177/218] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Viewport/SolidArcPortableImage.cpp.obj
+[178/218] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Viewport/SolidArcRasterization.cpp.obj
+[179/218] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Viewport/SolidArcSnapping.cpp.obj
+[180/218] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Viewport/SolidArcSurfaceTracing.cpp.obj
+[181/218] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcNavigation.cpp.obj
+[182/218] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcOutliner.cpp.obj
+[183/218] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcStyleSheet.cpp.obj
+[184/218] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcFrame.cpp.obj
+[185/218] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcOptions.cpp.obj
+[186/218] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcScript.cpp.obj
+[187/218] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcFileDialog.cpp.obj
+[188/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/context.c.obj
+[189/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/init.c.obj
+[190/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/input.c.obj
+[191/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/monitor.c.obj
+[192/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/platform.c.obj
+[193/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/vulkan.c.obj
+[194/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/window.c.obj
+[195/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/egl_context.c.obj
+[196/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/osmesa_context.c.obj
+[197/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/null_init.c.obj
+[198/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/null_monitor.c.obj
+[199/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/null_window.c.obj
+[200/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/null_joystick.c.obj
+[201/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/win32_module.c.obj
+[202/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/win32_time.c.obj
+[203/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/win32_thread.c.obj
+[204/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/win32_init.c.obj
+[205/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/win32_joystick.c.obj
+[206/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/win32_monitor.c.obj
+[207/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/win32_window.c.obj
+[208/218] Building C object ExternalPackages/glfw/src/CMakeFiles/glfw.dir/wgl_context.c.obj
+[209/218] Building CXX object CMakeFiles/SolidArc.dir/Experimental/SolidArc/Native/SolidArcApplication.cpp.obj
+[210/218] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcInterface.cpp.obj
+[211/218] Building CXX object CMakeFiles/SolidArc.dir/ExternalPackages/imgui/backends/imgui_impl_glfw.cpp.obj
+[212/218] Linking CXX static library libFrontierSolidArcUI.a
+[213/218] Linking C static library ExternalPackages/glfw/src/libglfw3.a
+[214/218] Building RC object CMakeFiles/SolidArc.dir/Experimental/SolidArc/Native/Package/SolidArcWorkspace.rc.res
+<cli>: note: this argument was inferred to be a filepath, so argument parsing was terminated
+ ... /home/user/cutter-build/Host/Experimental/SolidArc/Native/Package/SolidArcWorkspace.rc
+     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[215/218] Linking CXX executable SolidArcWorkspace.exe

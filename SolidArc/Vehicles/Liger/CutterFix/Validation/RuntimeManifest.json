@@ -1,0 +1,55 @@
+{
+  "Windows": {
+    "executable": "SolidArcWorkspace.exe",
+    "sha256": "7734a40ffe544358520bedc141a5f93bbd7899ab784ab888a01ded535d3ebbd4",
+    "executable_bytes": 9075712,
+    "svg_icons": 310,
+    "solidarc_icons": 66,
+    "font_faces": 5,
+    "dependencies": [
+      "KERNEL32.dll",
+      "USER32.dll",
+      "SHELL32.dll",
+      "api-ms-win-crt-heap-l1-1-0.dll",
+      "api-ms-win-crt-private-l1-1-0.dll",
+      "api-ms-win-crt-runtime-l1-1-0.dll",
+      "api-ms-win-crt-stdio-l1-1-0.dll",
+      "api-ms-win-crt-string-l1-1-0.dll",
+      "api-ms-win-crt-math-l1-1-0.dll",
+      "api-ms-win-crt-convert-l1-1-0.dll",
+      "api-ms-win-crt-utility-l1-1-0.dll",
+      "GDI32.dll",
+      "api-ms-win-crt-environment-l1-1-0.dll",
+      "api-ms-win-crt-time-l1-1-0.dll",
+      "api-ms-win-crt-locale-l1-1-0.dll",
+      "api-ms-win-crt-multibyte-l1-1-0.dll",
+      "comdlg32.dll"
+    ],
+    "package": "Project Liger Cutter Fix Windows.zip",
+    "package_sha256": "fcd6c19ffd2bcdf03bd3f5c7807163beb07092a93272d7190ce308c15b771c47",
+    "package_bytes": 6156824,
+    "project_sha256": "90344c326b32e467b8298851eb8b1df2a2dba1ce879becd3c7a12303b252ec70",
+    "payload_files": 333
+  },
+  "Linux": {
+    "executable": "SolidArcWorkspace",
+    "sha256": "86679f3fc2fab9d7ee8c1dc9dc51db2abc44f493f914fb27cbc879adaa72eabd",
+    "executable_bytes": 11055600,
+    "svg_icons": 310,
+    "solidarc_icons": 66,
+    "font_faces": 5,
+    "dependencies": [
+      "linux-vdso.so.1",
+      "libstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6",
+      "libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6",
+      "libgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1",
+      "libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6",
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "package": "Project Liger Cutter Fix Linux.zip",
+    "package_sha256": "24802b06c1a5215c3f2adbe187544d5bae7af59c0ac9867366c838a2860ee4c6",
+    "package_bytes": 6939885,
+    "project_sha256": "90344c326b32e467b8298851eb8b1df2a2dba1ce879becd3c7a12303b252ec70",
+    "payload_files": 333
+  }
+}

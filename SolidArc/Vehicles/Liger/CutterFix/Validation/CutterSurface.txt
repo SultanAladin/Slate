@@ -1,0 +1,54 @@
+capture Unified_Surface_Cutter_Menu  frame   21  068cd0ebfc491ede
+capture Ortho_Surface_Inward_Pocket_Preview frame   69  38bc9d77b7fbd653
+capture Ortho_Surface_Inward_Pocket  frame   77  1d5ecbf9599f8aab
+capture Ortho_Surface_Cut_Undo       frame   88  9e5897acd741c7ed
+# SolidArcCapture
+
+- Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
+- Frame: 1280 x 680 · 88 frames · 10.5136 s · slowest frame 454.277 ms
+- Script: /home/user/Slate/SolidArc/Vehicles/Liger/Tools/CutterSurfaceCheck.txt
+- Expectations: 22 / 22 passed
+
+| Line | Expectation | Observed | Result |
+|-----:|-------------|----------|--------|
+| 2 | `surface-trace == 1` | 1 | 🟢 |
+| 3 | `volume ~ 8` | 8 | 🟢 |
+| 7 | `orthographic == 1` | 1 | 🟢 |
+| 13 | `drawing == Rectangle` | Rectangle | 🟢 |
+| 14 | `drawing-surface == 0` | 0 | 🟢 |
+| 15 | `surface-trace == 1` | 1 | 🟢 |
+| 18 | `drawing-on-face == 1` | 1 | 🟢 |
+| 19 | `drawing-normal-x ~ 1` | 1 | 🟢 |
+| 22 | `drawing-points == 1` | 1 | 🟢 |
+| 25 | `drawing-on-face == 1` | 1 | 🟢 |
+| 26 | `drawing-normal-x ~ 1` | 1 | 🟢 |
+| 29 | `knife-pending == 0` | 0 | 🟢 |
+| 30 | `plane-normal-x ~ 1` | 1 | 🟢 |
+| 31 | `plane-offset ~ 5` | 5 | 🟢 |
+| 37 | `knife-depth ~ 0.25` | 0.25 | 🟢 |
+| 41 | `knife-commits == 1` | 1 | 🟢 |
+| 44 | `volume > 7.976` | 7.978303556 | 🟢 |
+| 45 | `volume < 7.980` | 7.978303556 | 🟢 |
+| 46 | `refused == 0` | 0 | 🟢 |
+| 47 | `surface-trace == 1` | 1 | 🟢 |
+| 52 | `volume ~ 8` | 8 | 🟢 |
+| 53 | `refused == 0` | 0 | 🟢 |
+
+| Capture | Frame | Digest |
+|---------|------:|--------|
+| Unified_Surface_Cutter_Menu | 21 | `068cd0ebfc491ede` |
+| Ortho_Surface_Inward_Pocket_Preview | 69 | `38bc9d77b7fbd653` |
+| Ortho_Surface_Inward_Pocket | 77 | `1d5ecbf9599f8aab` |
+| Ortho_Surface_Cut_Undo | 88 | `9e5897acd741c7ed` |
+
+## Journal
+
+- View Right (Numpad)
+- Rectangle on plane YZ (or the body face under the first click): click two corners · Alt centre mode · hold Ctrl to snap to ends / midpoints / centres, Alt to slide along a curve · Esc aborts
+- Knife · draw a Rectangle on a face (toolbar menu or card: Circle / Rectangle / Polygon / Slot / Line / Polyline) · then pull along the normal for the depth · Tab: Insert library · Esc cancels
+- Knife · Rectangle · draw it on a face (live W / H / R dimensions), then pull along the normal for the depth (T through)
+- Rectangle1 · 0 ms
+- Knife · Rectangle1 into Block1 · pull along the face normal for the depth (Ctrl free) or type it · T through · Q add · W cut · E intersect · R separate · click / right-click / Enter applies
+- Knife1 · Rectangle1 · Difference · depth 0.25 · 1 ms
+- Selection cleared
+- Undo

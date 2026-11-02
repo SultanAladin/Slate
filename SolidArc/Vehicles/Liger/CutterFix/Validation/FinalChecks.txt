@@ -1,0 +1,5 @@
+PASS Windows: ZIP CRC / every payload hash / current linked executable / exact supplied project / README
+PASS Linux: ZIP CRC / every payload hash / current linked executable / exact supplied project / README
+PASS all native / Vulkan / CAD / Python release gates
+PASS 79 source overlay files and test-tool hashes match manifest
+PASS supplied project unchanged

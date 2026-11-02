@@ -1,0 +1,11 @@
+[0/2] Re-checking globbed directories...
+[1/11] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcInterface.cpp.o
+[2/11] Linking CXX static library libFrontierSolidArcUI.a
+[3/11] Linking CXX executable LigerCurveEditingValidation
+[4/11] Linking CXX executable LigerSurfaceTraceValidation
+[5/11] Linking CXX executable LigerCageToolsValidation
+[6/11] Linking CXX executable LigerSelectionValidation
+[7/11] Linking CXX executable LigerCutterPlacementValidation
+[8/11] Linking CXX executable SolidArcCapture
+[9/11] Linking CXX executable SolidArcWorkspace
+[10/11] Linking CXX executable SolidArcDocumentValidation

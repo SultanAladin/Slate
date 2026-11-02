@@ -1,0 +1,46 @@
+capture Delete_Selected_Box_Face_Only frame   31  0fad812d0713ea0a
+capture SubElement_Delete_Never_Deletes_Parent frame   77  75f9d4e4ceb36fa7
+# SolidArcCapture
+
+- Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
+- Frame: 1280 x 680 · 77 frames · 5.44256 s · slowest frame 424.563 ms
+- Script: /home/user/Slate/SolidArc/Vehicles/Liger/Tools/SurfaceTraceTopologyDeleteCheck.txt
+- Expectations: 18 / 18 passed
+
+| Line | Expectation | Observed | Result |
+|-----:|-------------|----------|--------|
+| 5 | `bodies == 1` | 1 | 🟢 |
+| 6 | `faces == 6` | 6 | 🟢 |
+| 11 | `selected-faces == 1` | Extrude#2.Cap(End) | 🟢 |
+| 14 | `bodies == 1` | 1 | 🟢 |
+| 15 | `faces == 5` | 5 | 🟢 |
+| 16 | `sheet == 1` | 1 | 🟢 |
+| 17 | `refused == 0` | 0 | 🟢 |
+| 21 | `faces == 6` | 6 | 🟢 |
+| 26 | `selected-vertices == 1` | Vertex(Extrude#2.Cap(End)/Extrude#2.Side(Line2)/Extrude#2.Side(Line3)) | 🟢 |
+| 29 | `bodies == 1` | 1 | 🟢 |
+| 30 | `faces == 6` | 6 | 🟢 |
+| 31 | `refused == 0` | 0 | 🟢 |
+| 32 | `status contains vertex is a corner` | Refused: the vertex is a corner: only a point that splits one straight or circular edge... | 🟢 |
+| 37 | `selected-edges == 1` | Edge(Extrude#2.Cap(End)/Extrude#2.Side(Line3)) | 🟢 |
+| 40 | `bodies == 1` | 1 | 🟢 |
+| 41 | `faces == 6` | 6 | 🟢 |
+| 42 | `refused == 0` | 0 | 🟢 |
+| 43 | `status contains edge joins two different surfaces` | Refused: the edge joins two different surfaces: removing it cannot leave a closed solid... | 🟢 |
+
+| Capture | Frame | Digest |
+|---------|------:|--------|
+| Delete_Selected_Box_Face_Only | 31 | `0fad812d0713ea0a` |
+| SubElement_Delete_Never_Deletes_Parent | 77 | `75f9d4e4ceb36fa7` |
+
+## Journal
+
+- View Top (Numpad)
+- Selected Extrude#2.Cap(End)
+- DeleteFaces 0 on 1 face(s) · 0 ms
+- Undo
+- Vertex Vertex(Extrude#2.Cap(End)|Extrude#2.Side(Line2)|Extrude#2.Side(Line3)) · 1 picked (gizmo moves them; the faces at them follow)
+- Refused: the vertex is a corner: only a point that splits one straight or circular edge dissolves
+- Selected Edge(Extrude#2.Cap(End)|Extrude#2.Side(Line3))
+- Autosaved /home/user/cutter-build/Cutter Package With Spaces/Project Liger/SurfaceTraceTopologyDeleteRecovery.solidarc
+- Refused: the edge joins two different surfaces: removing it cannot leave a closed solid (only an edge between faces on one surface dissolves)

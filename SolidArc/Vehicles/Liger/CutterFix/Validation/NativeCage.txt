@@ -1,0 +1,50 @@
+PASS draw exact curve
+PASS draw exact curve
+PASS auto split defaults off; clicked controls unchanged
+PASS explicit split existing cage
+PASS two crossing curves become four retained pieces
+PASS crossing has four identical shared endpoints
+PASS first piece retains original label
+PASS entire cage split is one undo
+PASS cage split redo
+PASS split curves save/load
+PASS draw exact curve
+PASS draw exact curve
+PASS auto split on new curve commit
+PASS draw plus auto cut is one undo
+PASS draw exact curve
+PASS draw exact curve
+PASS screen-space crossing at different depths is NOT cut
+PASS intrinsic contour on plane
+PASS plane distance equals requested 0.2 metres
+PASS intrinsic contour wraps around cylinder
+PASS cylinder arc-length distance is one metre, not ambient XYZ offset
+PASS surface distance is distinct from straight-line chord
+PASS off-reference guide refuses instead of silently projecting far away
+PASS live offset reference fixture
+PASS draw exact curve
+PASS draw exact curve
+PASS existing target becomes a live geodesic offset
+PASS live offset retains target side/extent
+PASS move guide regenerates linked target
+PASS linked target follows guide change
+PASS large guide translation stays linked
+PASS target does not jump to opposite side when guide passes old anchor
+PASS invalid distance is atomic
+PASS live relation survives codec and regeneration
+PASS derived controls protected until detach
+PASS explicit detach keeps generated curve
+PASS detached curve is independent
+PASS history reorder reference fixture
+PASS draw exact curve
+PASS draw exact curve
+PASS existing earlier target is safely reordered after its guide
+PASS live offset UI fixture
+PASS draw exact curve
+PASS draw exact curve
+PASS uploaded cage decodes
+PASS uploaded cage: 23 curves and 3 reference sheets, no lofts
+PASS supplied cage optional cut is undoable and leaves source intact
+PASS draw exact curve
+PASS draw exact curve
+PASS 49 cage tool checks

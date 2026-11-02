@@ -1,5 +1,7 @@
 # SolidArc CAD Audit, Features & Binary Packages
 
+> **Latest — surface-attached cutters:** [Cutter placement fix and rebuilt apps](Vehicles/Liger/CutterFix/README.md). Knife profiles attach to the first-clicked surface in orthographic and perspective views; one standard outline + depth workflow replaces duplicate basic cutter entries. The global curve-selection/Delete fixes are included. [Audit](Vehicles/Liger/CutterFix/AUDIT.md) · [Downloads](Vehicles/Liger/CutterFix/Packages/).
+
 > **Latest — Liger surface tracing:** [dedicated protected NURBS workspace + rebuilt Windows/Linux apps](Vehicles/Liger/Tracing/README.md). Draw editable 3D curves directly on the reference, Ctrl-snap to model edges, and edit in XYZ. [Downloads](Vehicles/Liger/Tracing/Packages/) · [audit](Vehicles/Liger/Tracing/AUDIT.md). Earlier packages below are preserved.
 
 > **Liger reference-workflow correction (2026-11-01):** the newly rebuilt apps and aligned scratch project are in [Vehicles/Liger/Blueprints](Vehicles/Liger/Blueprints/README.md). These fix named views, side-view sketch planes and add faint/dashed guides plus a compact Offset pill. Original W95 packages below are preserved, not replaced.

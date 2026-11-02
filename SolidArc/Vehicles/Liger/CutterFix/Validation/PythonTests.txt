@@ -1,0 +1,12 @@
+test_build_is_deterministic (test_tracing.TracingTests.test_build_is_deterministic) ... ok
+test_reference_only_no_authored_curves (test_tracing.TracingTests.test_reference_only_no_authored_curves) ... ok
+test_reference_protected_not_hidden (test_tracing.TracingTests.test_reference_protected_not_hidden) ... ok
+test_rigid_rotation_every_point_and_direction (test_tracing.TracingTests.test_rigid_rotation_every_point_and_direction) ... ok
+test_surface_xyz_and_single_view_are_default (test_tracing.TracingTests.test_surface_xyz_and_single_view_are_default) ... ok
+test_windows_launcher_explicit_open_and_quoted_paths (test_tracing.TracingTests.test_windows_launcher_explicit_open_and_quoted_paths) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 4.072s
+
+OK
+PASS protected 3-sheet workspace, 47267 rigidly rotated point/direction entities; no new vehicle geometry

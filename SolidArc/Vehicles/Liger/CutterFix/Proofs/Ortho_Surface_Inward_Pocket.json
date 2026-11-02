@@ -1,0 +1,22 @@
+{
+  "Frame": 77,
+  "Title": "Untitled",
+  "DocumentPath": "/home/user/cutter-build/Cutter Package With Spaces/Project Liger/Test.solidarc",
+  "Dirty": true,
+  "Steps": [{"Label": "Sketch#1", "Caption": "Block1 · Sketch", "Refused": false}, {"Label": "Extrude#2", "Caption": "Block1 · Extrude", "Refused": false}, {"Label": "Sketch#3", "Caption": "Rectangle1 · Sketch", "Refused": false}, {"Label": "Extrude#4", "Caption": "Knife1 · Extrude", "Refused": false}],
+  "Body": {"Faces": 11, "Edges": 24, "Vertices": 16, "Genus": 0, "Volume": 7.978303556, "Sound": true},
+  "Selection": {"Faces": [], "Edges": [], "Curves": []},
+  "Curves": [],
+  "Sheet": false,
+  "PoleDrags": 0,
+  "PickMode": 4,
+  "Hover": "Extrude#2.Side(Line2)",
+  "Camera": {"Azimuth": 0, "Elevation": 0, "Distance": 5.455313016, "Target": [4, 5, 6], "Orthographic": true},
+  "Bevel": {"Active": false, "Shape": "Fillet", "Size": 0.25, "Pinned": false, "Variable": false, "EndSize": 0, "Flipped": false, "PreviewFaces": 0, "Refusal": "", "Verb": 0, "Profile": "", "Combination": 1, "Depth": 0, "DepthPointer": false},
+  "Drawing": {"Active": false, "Kind": "Rectangle", "Plane": 2, "Form": "Hermite", "Centre": false, "Points": [[5, 6.003358085], [5.349240892, 6.251856412]], "Solid": false, "SolidKind": "Block", "Lift": 0, "Elevation": 0, "Sides": 6, "Combination": 4, "Refusal": ""},
+  "Undo": 2,
+  "Redo": 0,
+  "Welcome": false,
+  "Status": "Knife1 · Rectangle1 · Difference · depth 0.25 · 1 ms",
+  "Viewport": [322, 56, 606, 593]
+}

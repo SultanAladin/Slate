@@ -1,0 +1,4 @@
+[0/2] Re-checking globbed directories...
+[1/4] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcInterface.cpp.obj
+[2/4] Linking CXX static library libFrontierSolidArcUI.a
+[3/4] Linking CXX executable SolidArcWorkspace.exe
