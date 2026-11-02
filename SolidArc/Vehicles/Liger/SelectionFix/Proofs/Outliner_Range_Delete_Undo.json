@@ -1,0 +1,22 @@
+{
+  "Frame": 112,
+  "Title": "Untitled",
+  "DocumentPath": "/home/user/selection-build/Selection Package With Spaces/Project Liger/Test.solidarc",
+  "Dirty": true,
+  "Steps": [{"Label": "Curve#1", "Caption": "Surface trace1 · SpaceCurve", "Refused": false}, {"Label": "Curve#2", "Caption": "Surface trace2 · SpaceCurve", "Refused": false}, {"Label": "Curve#3", "Caption": "Surface trace3 · SpaceCurve", "Refused": false}],
+  "Body": {"Faces": 0, "Edges": 0, "Vertices": 0, "Genus": -1, "Volume": 0, "Sound": false},
+  "Selection": {"Faces": [], "Edges": [], "Curves": []},
+  "Curves": [{"Caption": "Surface trace1", "Points": 3, "Poles": 3, "WorstDeviation": 0, "PoleEdits": 0}, {"Caption": "Surface trace2", "Points": 3, "Poles": 3, "WorstDeviation": 0, "PoleEdits": 0}, {"Caption": "Surface trace3", "Points": 3, "Poles": 3, "WorstDeviation": 0, "PoleEdits": 0}],
+  "Sheet": false,
+  "PoleDrags": 0,
+  "PickMode": 6,
+  "Hover": "",
+  "Camera": {"Azimuth": -1.570796327, "Elevation": 1.570796327, "Distance": 5.455313016, "Target": [0, 0, 0], "Orthographic": true},
+  "Bevel": {"Active": false, "Shape": "Fillet", "Size": 0.25, "Pinned": false, "Variable": false, "EndSize": 0, "Flipped": false, "PreviewFaces": 0, "Refusal": "", "Verb": 0, "Profile": "", "Combination": 1, "Depth": 0, "DepthPointer": false},
+  "Drawing": {"Active": false, "Kind": "Line", "Plane": 0, "Form": "Hermite", "Centre": false, "Points": [], "Solid": false, "SolidKind": "Block", "Lift": 0, "Elevation": 0, "Sides": 6, "Combination": 4, "Refusal": ""},
+  "Undo": 0,
+  "Redo": 1,
+  "Welcome": false,
+  "Status": "Undo",
+  "Viewport": [322, 56, 606, 593]
+}

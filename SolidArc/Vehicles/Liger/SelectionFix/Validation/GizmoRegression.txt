@@ -1,0 +1,10 @@
+| W90 | 48 single-frame Perspective+Ortho wheel zoom steps: max UI/GPU gizmo scale jitter = 0.0001 px, @GizmoTranslateZ drift = 0.0000 px | 8.36e-05 | 🟢 |
+| W90 | Numpad +/- single-frame shortcut zoom jitter = 0.0000 px; active modal 'G' wheel-zoom GPU gizmo jitter = 0.0000 px | 9.19e-06 | 🟢 |
+| W90 | Perspective gizmo drag moved 0.39 m along X with depth-compensated Riding.Size (post-drag scale error = 0.0000 px) | 0 | 🟢 |
+| W91 | @SketchDimension ('Dim' on bottom toolbar) & 'D' hotkey toggle interactive tool cleanly while @DimensionTool toggles visibility without wrapping ViewportTools | 0 | 🟢 |
+| W91 | 2D Box Ruler workflow: Corner A -> Corner B -> drag parallel offset (-0.87 m) -> click places associative 4.00 m (Sketch#1@Point:0 -> Sketch#1@Point:1) | 0 | 🟢 |
+| W91 | Circle & Arc workflow: 1-click Circle Ø=3.00 m + 'R' toggle R=1.50 m + 1-click Arc R=1.00 m with 360° radial leader positioning | 0 | 🟢 |
+| W91 | Viewport pill drag repositions Dim1 offset -0.87 -> -2.10 m, single Ctrl+Z restores -0.87 m, Redo restores -2.10 m | 0 | 🟢 |
+| W91 | Associative 2D sketch tracking: live 'G X 5' preview & committed move carry Box Dim1 to X=[5.0, 9.0] and Circle Dim2 centre to X=12.0 | 0 | 🟢 |
+| W91 | 3D Solid workflow: 1-click Block edge 3.00 m + 2-edge 90.0° Angular + 1-click Cylinder Ø=1.60 m | 0 | 🟢 |
+| W91 | Associative 3D solid tracking: 'G Y 4' moves Block edge Y=4.0, 90° corner Y=4.0, and Cylinder Ø1.6 centre Y=1.0->5.0 | 0 | 🟢 |

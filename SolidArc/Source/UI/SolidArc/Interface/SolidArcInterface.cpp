@@ -8585,10 +8585,19 @@ void DrawBodyVertices(SolidArcWorkspaceState& State, ImDrawList* Canvas, const O
 
 SolidArcPickIntent PickIntentOf(const ImGuiIO& Io);
 
+void PickCurve(SolidArcWorkspaceState&, const std::string&, SolidArcPickIntent);
+
 // A click on a sketch point: replace / add / remove in the picked set (one sketch at a time).
 void PickSketchPoint(SolidArcWorkspaceState& State, const std::string& Label, int Point, SolidArcPickIntent Intent)
 {
     SolidArcSketchPointSession& Points = State.SketchPoints;
+    if ((Intent == SolidArcPickIntent::Add || Intent == SolidArcPickIntent::Remove) && Points.Sketch != Label)
+    {
+        const std::string Previous = Points.Sketch;
+        if (Intent == SolidArcPickIntent::Add && !Previous.empty()) PickCurve(State, Previous, SolidArcPickIntent::Add);
+        PickCurve(State, Label, Intent);
+        return;
+    }
     const auto Found = std::find(Points.Points.begin(), Points.Points.end(), Point);
     const bool Member = Points.Sketch == Label && Found != Points.Points.end();
     if (Intent == SolidArcPickIntent::Remove) { if (Member) Points.Points.erase(Found); }
@@ -8975,7 +8984,15 @@ bool PickSplineSpan(SolidArcWorkspaceState& State, const OrbitCameraFrame& Frame
     {
         auto& Pick=State.SplineSpans;
         const auto Intent=PickIntentOf(ImGui::GetIO());
-        if(Intent==SolidArcPickIntent::Replace || Pick.Label!=Label)
+        const bool OtherOwner = Pick.Label != Label;
+        if (OtherOwner && (Intent == SolidArcPickIntent::Add || Intent == SolidArcPickIntent::Remove))
+        {
+            // Component sets belong to one owner. Adding another curve must not
+            // replace the existing selection or silently select its first span.
+            PickCurve(State, Label, Intent);
+            return true;
+        }
+        if(Intent==SolidArcPickIntent::Replace || OtherOwner)
         {PickCurve(State,Label,SolidArcPickIntent::Replace);Pick.Label=Label;Pick.Indices.clear();}
         const auto At=std::find(Pick.Indices.begin(),Pick.Indices.end(),Span);
         if(Intent==SolidArcPickIntent::Remove) {if(At!=Pick.Indices.end()) Pick.Indices.erase(At);}
@@ -12324,6 +12341,7 @@ void ClosePanels(SolidArcWorkspaceState& State)
 
 void PickCurve(SolidArcWorkspaceState& State, const std::string& Label, SolidArcPickIntent Intent)
 {
+    if (Intent == SolidArcPickIntent::Remove && CurveOrder(State, Label) == 0) return;
     State.SplineSpans = {};
     State.PoleDrag.PickedPoles.clear();
     State.PoleDrag.PickedLabel.clear();
@@ -12351,8 +12369,7 @@ void PickCurve(SolidArcWorkspaceState& State, const std::string& Label, SolidArc
         if (State.Outliner.AnchorKey.empty()) State.Outliner.AnchorKey = Label;
         break;
     case SolidArcPickIntent::Remove:
-        SelectSolidArcCurve(State.Document, Label, true);
-        if (!Member && State.Outliner.AnchorKey.empty()) State.Outliner.AnchorKey = Label;
+        if (Member) SelectSolidArcCurve(State.Document, Label, true);
         break;
     }
     const CurveFitOutcome* Fit = FindFittedCurve(State.Document, Label);
@@ -13399,6 +13416,18 @@ void DrawOutliner(SolidArcWorkspaceState& State, ImVec2 Position, ImVec2 Size)
             Announce(State, Intent.Figure.Name + " is hidden · its eye shows it");
             break;
         }
+        // Outliner rows always select whole figures, independently of the
+        // viewport's previous control/span/face mode (including range and Ctrl picks).
+        PromoteSubShapeBodies();
+        State.FocusedImage.clear();
+        State.SplineSpans = {};
+        State.PoleDrag.PickedPoles.clear();
+        State.PoleDrag.PickedLabel.clear();
+        State.SketchPoints.Points.clear();
+        State.SketchPoints.Sketch.clear();
+        State.Document.Selection.Faces.clear();
+        State.Document.Selection.Edges.clear();
+        State.Document.Selection.Vertices.clear();
         // Windows Explorer Shift+Click range selection [AnchorKey .. Clicked] across visible Outliner items:
         if (Intent.ShiftCondition && Intent.RangeFigures.size() > 1)
         {
@@ -13506,6 +13535,12 @@ void DrawOutliner(SolidArcWorkspaceState& State, ImVec2 Position, ImVec2 Size)
         break;
     case SolidArcOutlinerVerb::None:
         break;
+    }
+    if (Intent.Verb == SolidArcOutlinerVerb::Pick && !Intent.Figure.LockedCondition &&
+        !Intent.Figure.HiddenCondition && Intent.Figure.Source != SolidArcFigureSource::Image)
+    {
+        State.PickMode = State.Document.Selection.Bodies.empty() ? SolidArcPickMode::Curve
+                       : State.Document.Selection.Curves.empty() ? SolidArcPickMode::Solid : SolidArcPickMode::Any;
     }
     if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_F, false) && !ImGui::GetIO().WantTextInput) State.Outliner.SearchFocusRequest = true;
     DrawConstructDialog(State);
@@ -14995,6 +15030,9 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
     if (MultiCondition) State.SplitView.Cameras[State.SplitView.ActivePane] = State.Camera;
     Frame = ViewportFrame(State);   // Refresh Frame after pointer zoom/pan/orbit so gizmo & overlays have zero 1-frame zoom lag.
     // Transform gizmo (no command running): a held or hovered handle owns the left button this frame.
+    const bool ModifierCurveHit = !State.Gizmo.DragCondition && Hovered && !OverCube
+                               && (Io.KeyShift || Io.KeyCtrl || Io.KeyAlt)
+                               && !FindCurveNear(State, Frame, Io.MousePos).empty();
     bool GizmoOwned = false;
     {
         SolidArcPhaseClock Clock(State.Profile, "viewport · gizmo");
@@ -15010,10 +15048,12 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
             else if (State.PickMode == SolidArcPickMode::Edge)
                 ComponentHit = PickSplineSpan(State, Frame, Io.MousePos, false);
         }
-        GizmoOwned = DriveGizmo(State, Frame, Local, Hovered && !OverCube && !ComponentHit);
+        // Only a real curve hit competes with a handle. Ctrl/Shift drags on
+        // unobstructed handles must retain snapping / precision behaviour.
+        GizmoOwned = DriveGizmo(State, Frame, Local, Hovered && !OverCube && !ComponentHit && !ModifierCurveHit);
     }
     // Placed dimension repositioning: press & drag any placed dimension label pill or bar to adjust its offset / radial leader.
-    const bool DimDragOwned = !GizmoOwned && DrivePlacedDimensionDrag(State, Frame, Local, Hovered && !OverCube);
+    const bool DimDragOwned = !GizmoOwned && DrivePlacedDimensionDrag(State, Frame, Local, Hovered && !OverCube && !ModifierCurveHit);
 
     // 📝 Mode 1 (Plasticity control-point mode): press on a shown pole grabs it, the pole follows the pointer in the
     //    screen-parallel plane through its start, the release commits one MoveSolidArcPole; a press-release without
@@ -18554,11 +18594,6 @@ void DeleteImageFigure(SolidArcWorkspaceState& State, const std::string& Name)
 void DeletePicked(SolidArcWorkspaceState& State)
 {
     SolidArcDocument& Document = State.Document;
-    if(State.PickMode==SolidArcPickMode::Curve) {
-        if(Document.Selection.Curves.empty())Announce(State,"Select a whole curve first (6)");
-        else Conclude(State,DeleteSolidArcCurves(Document,Document.Selection.Curves));
-        return;
-    }
     const bool PointsMode=State.PickMode==SolidArcPickMode::ControlPoint || State.PickMode==SolidArcPickMode::Any;
     if(PointsMode && !State.PoleDrag.PickedPoles.empty() && std::find(Document.Selection.Curves.begin(),Document.Selection.Curves.end(),State.PoleDrag.PickedLabel)!=Document.Selection.Curves.end())
     {
@@ -18590,9 +18625,24 @@ void DeletePicked(SolidArcWorkspaceState& State)
         Conclude(State, Outcome);
         return;
     }
-    if(State.PickMode==SolidArcPickMode::ControlPoint || State.PickMode==SolidArcPickMode::Edge || State.PickMode==SolidArcPickMode::Face)
-    {Announce(State,"Delete: select a component in this mode; no parent object was deleted. Use object mode (4) for whole objects");return;}
-    if (!State.FocusedImage.empty())
+    if (!Document.Selection.Curves.empty() && Document.Selection.Bodies.empty())
+    {
+        const auto Outcome = DeleteSolidArcCurves(Document, Document.Selection.Curves);
+        if (Outcome.AcceptedCondition)
+        {
+            State.FocusedStep.clear();
+            State.SplineSpans = {};
+            State.PoleDrag.PickedPoles.clear();
+            State.PoleDrag.PickedLabel.clear();
+            State.SketchPoints.Points.clear();
+            State.SketchPoints.Sketch.clear();
+        }
+        Conclude(State, Outcome);
+        return;
+    }
+    if(Document.Selection.Bodies.empty() && (State.PickMode==SolidArcPickMode::ControlPoint || State.PickMode==SolidArcPickMode::Edge || State.PickMode==SolidArcPickMode::Face))
+    {Announce(State,"Delete: select a component or a whole figure first; no unselected parent object was deleted");return;}
+    if (!State.FocusedImage.empty() && Document.Selection.Bodies.empty())
     {
         DeleteImageFigure(State, State.FocusedImage);
         return;

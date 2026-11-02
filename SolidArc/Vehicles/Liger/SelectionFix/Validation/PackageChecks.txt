@@ -1,0 +1,2 @@
+PASS Windows: exact supplied cage, rebuilt binary, archive CRCs/payload hashes, 310 SVGs / 5 fonts
+PASS Linux: exact supplied cage, rebuilt binary, archive CRCs/payload hashes, 310 SVGs / 5 fonts

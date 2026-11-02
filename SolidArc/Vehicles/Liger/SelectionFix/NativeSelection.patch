@@ -1,0 +1,608 @@
+diff --git a/SolidArc/Source/UI/SolidArc/Document/SolidArcDocument.cpp b/SolidArc/Source/UI/SolidArc/Document/SolidArcDocument.cpp
+index f7ed572..c39c5f9 100644
+--- a/SolidArc/Source/UI/SolidArc/Document/SolidArcDocument.cpp
++++ b/SolidArc/Source/UI/SolidArc/Document/SolidArcDocument.cpp
+@@ -5646,9 +5646,10 @@ SolidArcCommandOutcome DeleteSolidArcVertices(SolidArcDocument& Document)
+
+ SolidArcCommandOutcome DeleteSolidArcCurves(SolidArcDocument& Document, const std::vector<std::string>& Labels)
+ {
++    const std::vector<std::string> Selected = UniqueKeys(Labels); // May alias Document.Selection.Curves.
+     std::string Captions;
+     bool Kept = false;
+-    for (const std::string& Label : Labels)
++    for (const std::string& Label : Selected)
+     {
+         const bool Read = SolidArcSketchReferencedCondition(Document, Label);
+         Captions += (Captions.empty() ? "" : ", ") + CaptionOrLabel(Document, Label) + (Read ? " sketch" : "");
+@@ -5656,14 +5657,18 @@ SolidArcCommandOutcome DeleteSolidArcCurves(SolidArcDocument& Document, const st
+     }
+     return RunCommand(Document, "Delete " + Captions + (Kept ? " (kept for the steps that read it)" : ""), false, [&]() -> std::string
+     {
+-        if (Labels.empty()) return "pick sketches or curves first";
+-        for (const std::string& Label : Labels)
++        if (Selected.empty()) return "pick sketches or curves first";
++        for (const std::string& Label : Selected)
+         {
+             const FeatureStep* Step = FindStep(Document, Label);
+             if (!Step || (Step->Kind != FeatureStepKind::Sketch && Step->Kind != FeatureStepKind::SpaceCurve)) return "no sketch or curve labelled " + Label;
++            if (SolidArcLockedCondition(Document, Label)) return CaptionOrLabel(Document, Label) + " is locked";
+             if (Document.Appearance.RemovedCurves.contains(Label)) return CaptionOrLabel(Document, Label) + " is already deleted";
+         }
+-        for (const std::string& Label : UniqueKeys(Labels)) RetireSolidArcCurve(Document, Label);
++        std::vector<std::string> Ordered;
++        for (auto It = Document.Tree.Steps.rbegin(); It != Document.Tree.Steps.rend(); ++It)
++            if (std::find(Selected.begin(), Selected.end(), It->Label) != Selected.end()) Ordered.push_back(It->Label);
++        for (const std::string& Label : Ordered) RetireSolidArcCurve(Document, Label);
+         return {};
+     }, 0);
+ }
+diff --git a/SolidArc/Source/UI/SolidArc/Interface/SolidArcInterface.cpp b/SolidArc/Source/UI/SolidArc/Interface/SolidArcInterface.cpp
+index 99c01d5..c769ef3 100644
+--- a/SolidArc/Source/UI/SolidArc/Interface/SolidArcInterface.cpp
++++ b/SolidArc/Source/UI/SolidArc/Interface/SolidArcInterface.cpp
+@@ -8585,10 +8585,19 @@ void DrawBodyVertices(SolidArcWorkspaceState& State, ImDrawList* Canvas, const O
+
+ SolidArcPickIntent PickIntentOf(const ImGuiIO& Io);
+
++void PickCurve(SolidArcWorkspaceState&, const std::string&, SolidArcPickIntent);
++
+ // A click on a sketch point: replace / add / remove in the picked set (one sketch at a time).
+ void PickSketchPoint(SolidArcWorkspaceState& State, const std::string& Label, int Point, SolidArcPickIntent Intent)
+ {
+     SolidArcSketchPointSession& Points = State.SketchPoints;
++    if ((Intent == SolidArcPickIntent::Add || Intent == SolidArcPickIntent::Remove) && Points.Sketch != Label)
++    {
++        const std::string Previous = Points.Sketch;
++        if (Intent == SolidArcPickIntent::Add && !Previous.empty()) PickCurve(State, Previous, SolidArcPickIntent::Add);
++        PickCurve(State, Label, Intent);
++        return;
++    }
+     const auto Found = std::find(Points.Points.begin(), Points.Points.end(), Point);
+     const bool Member = Points.Sketch == Label && Found != Points.Points.end();
+     if (Intent == SolidArcPickIntent::Remove) { if (Member) Points.Points.erase(Found); }
+@@ -8975,7 +8984,15 @@ bool PickSplineSpan(SolidArcWorkspaceState& State, const OrbitCameraFrame& Frame
+     {
+         auto& Pick=State.SplineSpans;
+         const auto Intent=PickIntentOf(ImGui::GetIO());
+-        if(Intent==SolidArcPickIntent::Replace || Pick.Label!=Label)
++        const bool OtherOwner = Pick.Label != Label;
++        if (OtherOwner && (Intent == SolidArcPickIntent::Add || Intent == SolidArcPickIntent::Remove))
++        {
++            // Component sets belong to one owner. Adding another curve must not
++            // replace the existing selection or silently select its first span.
++            PickCurve(State, Label, Intent);
++            return true;
++        }
++        if(Intent==SolidArcPickIntent::Replace || OtherOwner)
+         {PickCurve(State,Label,SolidArcPickIntent::Replace);Pick.Label=Label;Pick.Indices.clear();}
+         const auto At=std::find(Pick.Indices.begin(),Pick.Indices.end(),Span);
+         if(Intent==SolidArcPickIntent::Remove) {if(At!=Pick.Indices.end()) Pick.Indices.erase(At);}
+@@ -12324,6 +12341,7 @@ void ClosePanels(SolidArcWorkspaceState& State)
+
+ void PickCurve(SolidArcWorkspaceState& State, const std::string& Label, SolidArcPickIntent Intent)
+ {
++    if (Intent == SolidArcPickIntent::Remove && CurveOrder(State, Label) == 0) return;
+     State.SplineSpans = {};
+     State.PoleDrag.PickedPoles.clear();
+     State.PoleDrag.PickedLabel.clear();
+@@ -12351,8 +12369,7 @@ void PickCurve(SolidArcWorkspaceState& State, const std::string& Label, SolidArc
+         if (State.Outliner.AnchorKey.empty()) State.Outliner.AnchorKey = Label;
+         break;
+     case SolidArcPickIntent::Remove:
+-        SelectSolidArcCurve(State.Document, Label, true);
+-        if (!Member && State.Outliner.AnchorKey.empty()) State.Outliner.AnchorKey = Label;
++        if (Member) SelectSolidArcCurve(State.Document, Label, true);
+         break;
+     }
+     const CurveFitOutcome* Fit = FindFittedCurve(State.Document, Label);
+@@ -13399,6 +13416,18 @@ void DrawOutliner(SolidArcWorkspaceState& State, ImVec2 Position, ImVec2 Size)
+             Announce(State, Intent.Figure.Name + " is hidden · its eye shows it");
+             break;
+         }
++        // Outliner rows always select whole figures, independently of the
++        // viewport's previous control/span/face mode (including range and Ctrl picks).
++        PromoteSubShapeBodies();
++        State.FocusedImage.clear();
++        State.SplineSpans = {};
++        State.PoleDrag.PickedPoles.clear();
++        State.PoleDrag.PickedLabel.clear();
++        State.SketchPoints.Points.clear();
++        State.SketchPoints.Sketch.clear();
++        State.Document.Selection.Faces.clear();
++        State.Document.Selection.Edges.clear();
++        State.Document.Selection.Vertices.clear();
+         // Windows Explorer Shift+Click range selection [AnchorKey .. Clicked] across visible Outliner items:
+         if (Intent.ShiftCondition && Intent.RangeFigures.size() > 1)
+         {
+@@ -13507,6 +13536,12 @@ void DrawOutliner(SolidArcWorkspaceState& State, ImVec2 Position, ImVec2 Size)
+     case SolidArcOutlinerVerb::None:
+         break;
+     }
++    if (Intent.Verb == SolidArcOutlinerVerb::Pick && !Intent.Figure.LockedCondition &&
++        !Intent.Figure.HiddenCondition && Intent.Figure.Source != SolidArcFigureSource::Image)
++    {
++        State.PickMode = State.Document.Selection.Bodies.empty() ? SolidArcPickMode::Curve
++                       : State.Document.Selection.Curves.empty() ? SolidArcPickMode::Solid : SolidArcPickMode::Any;
++    }
+     if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_F, false) && !ImGui::GetIO().WantTextInput) State.Outliner.SearchFocusRequest = true;
+     DrawConstructDialog(State);
+     EndSheetWindow();
+@@ -14995,6 +15030,9 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
+     if (MultiCondition) State.SplitView.Cameras[State.SplitView.ActivePane] = State.Camera;
+     Frame = ViewportFrame(State);   // Refresh Frame after pointer zoom/pan/orbit so gizmo & overlays have zero 1-frame zoom lag.
+     // Transform gizmo (no command running): a held or hovered handle owns the left button this frame.
++    const bool ModifierCurveHit = !State.Gizmo.DragCondition && Hovered && !OverCube
++                               && (Io.KeyShift || Io.KeyCtrl || Io.KeyAlt)
++                               && !FindCurveNear(State, Frame, Io.MousePos).empty();
+     bool GizmoOwned = false;
+     {
+         SolidArcPhaseClock Clock(State.Profile, "viewport · gizmo");
+@@ -15010,10 +15048,12 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
+             else if (State.PickMode == SolidArcPickMode::Edge)
+                 ComponentHit = PickSplineSpan(State, Frame, Io.MousePos, false);
+         }
+-        GizmoOwned = DriveGizmo(State, Frame, Local, Hovered && !OverCube && !ComponentHit);
++        // Only a real curve hit competes with a handle. Ctrl/Shift drags on
++        // unobstructed handles must retain snapping / precision behaviour.
++        GizmoOwned = DriveGizmo(State, Frame, Local, Hovered && !OverCube && !ComponentHit && !ModifierCurveHit);
+     }
+     // Placed dimension repositioning: press & drag any placed dimension label pill or bar to adjust its offset / radial leader.
+-    const bool DimDragOwned = !GizmoOwned && DrivePlacedDimensionDrag(State, Frame, Local, Hovered && !OverCube);
++    const bool DimDragOwned = !GizmoOwned && DrivePlacedDimensionDrag(State, Frame, Local, Hovered && !OverCube && !ModifierCurveHit);
+
+     // 📝 Mode 1 (Plasticity control-point mode): press on a shown pole grabs it, the pole follows the pointer in the
+     //    screen-parallel plane through its start, the release commits one MoveSolidArcPole; a press-release without
+@@ -18554,11 +18594,6 @@ void DeleteImageFigure(SolidArcWorkspaceState& State, const std::string& Name)
+ void DeletePicked(SolidArcWorkspaceState& State)
+ {
+     SolidArcDocument& Document = State.Document;
+-    if(State.PickMode==SolidArcPickMode::Curve) {
+-        if(Document.Selection.Curves.empty())Announce(State,"Select a whole curve first (6)");
+-        else Conclude(State,DeleteSolidArcCurves(Document,Document.Selection.Curves));
+-        return;
+-    }
+     const bool PointsMode=State.PickMode==SolidArcPickMode::ControlPoint || State.PickMode==SolidArcPickMode::Any;
+     if(PointsMode && !State.PoleDrag.PickedPoles.empty() && std::find(Document.Selection.Curves.begin(),Document.Selection.Curves.end(),State.PoleDrag.PickedLabel)!=Document.Selection.Curves.end())
+     {
+@@ -18590,9 +18625,24 @@ void DeletePicked(SolidArcWorkspaceState& State)
+         Conclude(State, Outcome);
+         return;
+     }
+-    if(State.PickMode==SolidArcPickMode::ControlPoint || State.PickMode==SolidArcPickMode::Edge || State.PickMode==SolidArcPickMode::Face)
+-    {Announce(State,"Delete: select a component in this mode; no parent object was deleted. Use object mode (4) for whole objects");return;}
+-    if (!State.FocusedImage.empty())
++    if (!Document.Selection.Curves.empty() && Document.Selection.Bodies.empty())
++    {
++        const auto Outcome = DeleteSolidArcCurves(Document, Document.Selection.Curves);
++        if (Outcome.AcceptedCondition)
++        {
++            State.FocusedStep.clear();
++            State.SplineSpans = {};
++            State.PoleDrag.PickedPoles.clear();
++            State.PoleDrag.PickedLabel.clear();
++            State.SketchPoints.Points.clear();
++            State.SketchPoints.Sketch.clear();
++        }
++        Conclude(State, Outcome);
++        return;
++    }
++    if(Document.Selection.Bodies.empty() && (State.PickMode==SolidArcPickMode::ControlPoint || State.PickMode==SolidArcPickMode::Edge || State.PickMode==SolidArcPickMode::Face))
++    {Announce(State,"Delete: select a component or a whole figure first; no unselected parent object was deleted");return;}
++    if (!State.FocusedImage.empty() && Document.Selection.Bodies.empty())
+     {
+         DeleteImageFigure(State, State.FocusedImage);
+         return;
+diff --git a/SolidArc/Vehicles/Liger/Tools/BlueprintValidation.cmake b/SolidArc/Vehicles/Liger/Tools/BlueprintValidation.cmake
+index 8bcd494..3a74afb 100644
+--- a/SolidArc/Vehicles/Liger/Tools/BlueprintValidation.cmake
++++ b/SolidArc/Vehicles/Liger/Tools/BlueprintValidation.cmake
+@@ -20,3 +20,7 @@ if(CMAKE_PROJECT_NAME STREQUAL "FrontierUIFoundation" AND NOT TARGET LigerCageTo
+     add_executable(LigerCageToolsValidation "${CMAKE_CURRENT_LIST_DIR}/CageToolsValidation.cpp")
+     target_link_libraries(LigerCageToolsValidation PRIVATE FrontierSolidArcUI)
+ endif()
++if(CMAKE_PROJECT_NAME STREQUAL "FrontierUIFoundation" AND NOT TARGET LigerSelectionValidation)
++    add_executable(LigerSelectionValidation "${CMAKE_CURRENT_LIST_DIR}/SelectionValidation.cpp")
++    target_link_libraries(LigerSelectionValidation PRIVATE FrontierSolidArcUI)
++endif()
+diff --git a/SolidArc/Vehicles/Liger/Tools/SelectionCageCheck.txt b/SolidArc/Vehicles/Liger/Tools/SelectionCageCheck.txt
+new file mode 100644
+index 0000000..7e3769a
+--- /dev/null
++++ b/SolidArc/Vehicles/Liger/Tools/SelectionCageCheck.txt
+@@ -0,0 +1,26 @@
++frames 3
++expect curves == 23
++expect bodies == 3
++key 2
++click @Figure:Curve#1
++frames 3
++key A Ctrl
++frames 3
++expect selected-curves == 23
++expect selected-bodies == 0
++expect selected-spline-spans == 0
++expect selected-spline-poles == 0
++key Delete
++frames 3
++expect curves == 0
++expect steps == 3
++expect bodies == 3
++expect refused == 0
++capture Delete_All_Cage_Curves_Not_References
++key Z Ctrl
++frames 3
++expect curves == 23
++expect steps == 26
++expect bodies == 3
++expect refused == 0
++capture Undo_All_Cage_Curves
+diff --git a/SolidArc/Vehicles/Liger/Tools/SelectionOutlinerCheck.txt b/SolidArc/Vehicles/Liger/Tools/SelectionOutlinerCheck.txt
+new file mode 100644
+index 0000000..67969cf
+--- /dev/null
++++ b/SolidArc/Vehicles/Liger/Tools/SelectionOutlinerCheck.txt
+@@ -0,0 +1,54 @@
++frames 3
++key Keypad7
++key Keypad5
++frames 3
++key 1
++click world -0.8 -0.5 0
++frames 3
++expect selected-spline-poles == 1
++click @Figure:Curve#2
++frames 3
++expect selected-curves == 1
++expect selected-spline-poles == 0
++expect selected-spline-spans == 0
++click @Figure:Curve#3 Shift
++frames 3
++expect selected-curves == 2
++key Delete
++frames 3
++expect curves == 1
++expect steps == 1
++expect refused == 0
++key Z Ctrl
++frames 3
++expect curves == 3
++key 2
++click world -0.4 -0.4625 0
++frames 3
++expect selected-spline-spans == 1
++click @Figure:Curve#2 Ctrl
++frames 3
++expect selected-curves == 2
++expect selected-spline-spans == 0
++expect selected-spline-poles == 0
++key X
++frames 3
++expect curves == 1
++expect refused == 0
++key Z Ctrl
++frames 3
++expect curves == 3
++key 3
++click @Figure:Curve#1
++click @Figure:Curve#3 Shift
++frames 3
++expect selected-curves == 3
++key Delete
++frames 3
++expect curves == 0
++expect steps == 0
++expect refused == 0
++key Z Ctrl
++frames 3
++expect curves == 3
++capture Outliner_Range_Delete_Undo
+diff --git a/SolidArc/Vehicles/Liger/Tools/SelectionSketchCheck.txt b/SolidArc/Vehicles/Liger/Tools/SelectionSketchCheck.txt
+new file mode 100644
+index 0000000..7d4cff9
+--- /dev/null
++++ b/SolidArc/Vehicles/Liger/Tools/SelectionSketchCheck.txt
+@@ -0,0 +1,35 @@
++frames 3
++key Keypad7
++key Keypad5
++frames 3
++expect steps == 2
++key 1
++click world -1 0 0
++frames 3
++expect picked-points == 1
++click world 0 1 0 Shift
++frames 3
++expect selected-curves == 2
++expect picked-points == 0
++key Delete
++frames 3
++expect steps == 0
++expect refused == 0
++key Z Ctrl
++frames 3
++expect steps == 2
++key 2
++click @Figure:Sketch#1
++frames 2
++click @Figure:Sketch#2 Shift
++frames 3
++expect selected-curves == 2
++expect picked-points == 0
++key X
++frames 3
++expect steps == 0
++expect refused == 0
++key Z Ctrl
++frames 3
++expect steps == 2
++capture Planar_Sketch_Global_Selection_Delete
+diff --git a/SolidArc/Vehicles/Liger/Tools/SelectionValidation.cpp b/SolidArc/Vehicles/Liger/Tools/SelectionValidation.cpp
+new file mode 100644
+index 0000000..2a17f35
+--- /dev/null
++++ b/SolidArc/Vehicles/Liger/Tools/SelectionValidation.cpp
+@@ -0,0 +1,90 @@
++#include "UI/SolidArc/Viewport/SolidArcSurfaceTracing.h"
++#include "UI/SolidArc/Document/SolidArcDocumentCodec.h"
++#include <fstream>
++#include <iostream>
++#include <stdexcept>
++using namespace Frontier::SolidArc;
++using namespace Frontier::GeometryProcessing;
++namespace {
++int Checks = 0;
++void Check(bool Passed, const char* Message)
++{
++    if (!Passed) throw std::runtime_error(Message);
++    ++Checks; std::cout << "PASS " << Message << std::endl;
++}
++std::string Add(SolidArcDocument& D, double Y)
++{
++    const auto C = MakeSolidArcControlTrace({{-.8,Y,0},{0,Y+.1,0},{.8,Y,0}}, SolidArcDrawingKind::Curve, SketchSplineForm::Nurbs, false);
++    if (!DrawSolidArcProjectedCurve(D, C.Curve, false).AcceptedCondition) throw std::runtime_error("curve fixture");
++    return D.Tree.Steps.back().Label;
++}
++}
++int main(int argc, char** argv)
++{
++    try
++    {
++        SolidArcDocument D;
++        const auto A=Add(D,-.5), B=Add(D,.5), C=Add(D,1);
++        if (argc>2) std::ofstream(argv[2]) << EncodeSolidArcDocument(D);
++        if (argc>3)
++        {
++            SolidArcDocument Cross;
++            for (const auto& Points : std::vector<std::vector<Vector3>>{{{-1,0,0},{1,0,0}},{{0,-1,0},{0,1,0}}})
++            {
++                const auto Fit=MakeSolidArcControlTrace(Points,SolidArcDrawingKind::Curve,SketchSplineForm::Nurbs,false);
++                if (!DrawSolidArcProjectedCurve(Cross,Fit.Curve,false).AcceptedCondition) throw std::runtime_error("crossing selection fixture");
++            }
++            std::ofstream(argv[3]) << EncodeSolidArcDocument(Cross);
++        }
++        if (argc>4)
++        {
++            SolidArcDocument Sketches;
++            SolidArcDrawingRequest Request;Request.Kind=SolidArcDrawingKind::Curve;Request.Form=SketchSplineForm::Nurbs;
++            for (const auto& Points : std::vector<std::vector<Vector2>>{{{-1,0},{1,0}},{{0,-1},{0,1}}})
++            {
++                Request.Points=Points;
++                if (!DrawSolidArcSketch(Sketches,Request).AcceptedCondition) throw std::runtime_error("sketch selection fixture");
++            }
++            std::ofstream(argv[4]) << EncodeSolidArcDocument(Sketches);
++        }
++        D.Selection.Curves={C,A,B};
++        const auto Before=EncodeSolidArcDocument(D);
++        Check(DeleteSolidArcCurves(D,D.Selection.Curves).AcceptedCondition,"batch delete accepts the live selection vector in arbitrary click order");
++        Check(D.Tree.Steps.empty() && D.Regeneration.Curves.empty() && D.Selection.Curves.empty(),"all selected curves removed, not only the active curve");
++        Check(UndoSolidArcCommand(D) && EncodeSolidArcDocument(D)==Before,"one undo restores the complete curve batch exactly");
++        Check(RedoSolidArcCommand(D) && D.Tree.Steps.empty(),"one redo removes the complete curve batch");
++        UndoSolidArcCommand(D);
++        D.Appearance.LockedFigures.insert(B);
++        const auto Locked=EncodeSolidArcDocument(D);
++        Check(!DeleteSolidArcCurves(D,{A,B,C}).AcceptedCondition && EncodeSolidArcDocument(D)==Locked,"locked member refuses the entire batch atomically");
++        D.Appearance.LockedFigures.clear();
++        Check(LoftSolidArcCurves(D,{A,B},0,false).AcceptedCondition,"downstream loft fixture");
++        const auto Bodies=D.Regeneration.Bodies.size();
++        Check(DeleteSolidArcCurves(D,{A,B}).AcceptedCondition && D.Regeneration.Refused==0,"selected source curves remain valid inputs to unselected downstream features");
++        Check(D.Regeneration.Bodies.size()==Bodies && D.Appearance.RemovedCurves.contains(A) && D.Appearance.RemovedCurves.contains(B),"retiring sources never deletes the unselected loft");
++        SolidArcDocument Link;
++        SolidArcConstructRequest Block; Block.Width=2;Block.Depth=2;Block.Height=1;
++        Check(ConstructSolidArcPrimitive(Link,Block).AcceptedCondition,"linked-curve reference fixture");
++        auto Put=[&](double X){auto Fit=MakeSolidArcControlTrace({{X,.2,1},{X,1.8,1}},SolidArcDrawingKind::Curve,SketchSplineForm::Nurbs,false);if(!DrawSolidArcProjectedCurve(Link,Fit.Curve,false).AcceptedCondition)throw std::runtime_error("link curve fixture");return Link.Tree.Steps.back().Label;};
++        const auto Guide=Put(.3), Target=Put(.7);
++        Check(LinkSolidArcSurfaceOffset(Link,Guide,Target,Link.Regeneration.Bodies.front().Key,.2,.01).AcceptedCondition,"live guide and derived target fixture");
++        Check(DeleteSolidArcCurves(Link,{Guide,Target}).AcceptedCondition,"guide plus target delete without detaching first");
++        Check(Link.Regeneration.Curves.empty() && Link.Tree.Steps.size()==2 && Link.Regeneration.Bodies.size()==1,"batch retires dependents first; no phantom guide or removed reference body");
++        if (argc>1)
++        {
++            auto File=LoadSolidArcDocumentFile(argv[1]);
++            Check(File.Refusal.empty(),"supplied progress project decodes");
++            SolidArcDocument Cage;Cage.Title=File.Title;Cage.Tree=File.Tree;Cage.Captions=File.Captions;Cage.Appearance=File.Appearance;
++            RegenerateSolidArcDocument(Cage);
++            Check(Cage.Regeneration.Curves.size()==23 && Cage.Regeneration.Bodies.size()==3,"supplied cage contains 23 curves and three reference bodies");
++            for (const auto& [Name,Fit]:Cage.Regeneration.Curves) Cage.Selection.Curves.push_back(Name);
++            const auto Source=EncodeSolidArcDocument(Cage);
++            Check(DeleteSolidArcCurves(Cage,Cage.Selection.Curves).AcceptedCondition,"delete all 23 selected supplied-cage curves");
++            Check(Cage.Tree.Steps.size()==3 && Cage.Regeneration.Curves.empty() && Cage.Regeneration.Bodies.size()==3 && Cage.Regeneration.Refused==0,"reference imports survive complete cage deletion with no refused steps");
++            Check(UndoSolidArcCommand(Cage) && EncodeSolidArcDocument(Cage)==Source,"one undo restores all 23 curves, controls, pole edits and references exactly");
++        }
++        std::cout << "PASS " << Checks << " selection and batch deletion checks\n";
++        return 0;
++    }
++    catch (const std::exception& E) { std::cerr << "FAIL " << E.what() << '\n'; return 1; }
++}
+diff --git a/SolidArc/Vehicles/Liger/Tools/SelectionViewportCheck.txt b/SolidArc/Vehicles/Liger/Tools/SelectionViewportCheck.txt
+new file mode 100644
+index 0000000..710c5e9
+--- /dev/null
++++ b/SolidArc/Vehicles/Liger/Tools/SelectionViewportCheck.txt
+@@ -0,0 +1,72 @@
++frames 3
++key Keypad7
++key Keypad5
++frames 3
++key 6
++click world -0.8 0 0
++frames 3
++expect selected-curves == 1
++# The other curve lies directly underneath the first curve's Y gizmo.
++click @GizmoTranslateY Shift
++frames 3
++expect selected-curves == 2
++expect transform-commits == 0
++expect selected-spline-poles == 0
++click world 0 0.8 0 Shift
++frames 2
++expect selected-curves == 2
++click world -0.8 0 0 Ctrl
++frames 2
++expect selected-curves == 1
++click world -0.8 0 0 Ctrl
++frames 2
++expect selected-curves == 1
++key A Alt
++key 2
++click world -0.8 0 0
++frames 3
++expect selected-spline-spans == 1
++click world 0 0.8 0 Shift
++frames 3
++expect selected-curves == 2
++expect selected-spline-spans == 0
++expect selected-spline-poles == 0
++key Delete
++frames 3
++expect curves == 0
++expect steps == 0
++expect refused == 0
++key Z Ctrl
++frames 3
++expect curves == 2
++key A Alt
++key 1
++click world -1 0 0
++frames 3
++expect selected-spline-poles == 1
++click world 0 1 0 Shift
++frames 3
++expect selected-curves == 2
++expect selected-spline-poles == 0
++key X
++frames 3
++expect curves == 0
++expect steps == 0
++key Z Ctrl
++frames 3
++expect curves == 2
++key A Alt
++key 5
++click world -0.8 0 0
++frames 2
++click world 0 0.8 0 Shift
++frames 3
++expect selected-curves == 2
++key Delete
++frames 3
++expect curves == 0
++expect refused == 0
++key Z Ctrl
++frames 3
++expect curves == 2
++capture Global_Shift_Selection_And_Delete
+diff --git a/SolidArc/Vehicles/Liger/Tools/package_selection.py b/SolidArc/Vehicles/Liger/Tools/package_selection.py
+new file mode 100644
+index 0000000..727ee8f
+--- /dev/null
++++ b/SolidArc/Vehicles/Liger/Tools/package_selection.py
+@@ -0,0 +1,89 @@
++"""Package rebuilt global-selection runtimes only after the current regressions pass."""
++from pathlib import Path
++import argparse
++import hashlib
++import json
++import re
++import zipfile
++from package_blueprints import runtime
++from package_clean_project import LAUNCHER
++
++ROOT = Path(__file__).resolve().parents[1]
++OUT = ROOT / 'SelectionFix'
++SOURCE = ROOT.parents[2] / 'Liger(progress).solidarc'
++SOURCE_SHA = '90344c326b32e467b8298851eb8b1df2a2dba1ce879becd3c7a12303b252ec70'
++SCRIPTS = ('SelectionSketch', 'SelectionViewport', 'SelectionOutliner', 'SelectionCage',
++           'CageWorkflow', 'SurfaceOffsetWorkflow', 'CageProject', 'SurfaceTraceStartup',
++           'SurfaceTraceDrawing', 'SurfaceTraceEdge', 'SurfaceTraceQuad', 'SurfaceTraceControl',
++           'SurfaceTraceEditing', 'SurfaceTraceTopologyDelete')
++
++def sha(data):
++    return hashlib.sha256(data).hexdigest()
++
++def validate():
++    v = OUT / 'Validation'
++    for name, marker in [('NativeSelection', 'PASS 17 selection and batch deletion checks'),
++                         ('NativeCage', 'PASS 49 cage tool checks'),
++                         ('NativeEditing', 'PASS 51'), ('NativeTracing', 'PASS 92')]:
++        text = (v / f'{name}.txt').read_text()
++        assert marker in text and 'FAIL' not in text, name
++    for name in SCRIPTS:
++        text = (v / f'{name}.txt').read_text()
++        match = re.search(r'Expectations: (\d+) / (\d+) passed', text)
++        assert match and match[1] == match[2] and '🔴' not in text, name
++    document = (v / 'DocumentRegression.txt').read_text()
++    assert document.count('🟢') >= 869 and '🔴' not in document
++    gizmo = (v / 'GizmoRegression.txt').read_text()
++    assert 'Perspective gizmo drag moved' in gizmo and '🔴' not in gizmo
++    python = (v / 'PythonTests.txt').read_text()
++    assert 'Ran 6 tests' in python and '\nOK\n' in python
++
++def package(folder, platform):
++    files, metadata = runtime(Path(folder), platform)
++    project = SOURCE.read_bytes()
++    assert sha(project) == SOURCE_SHA, 'Never rewrite the supplied cage'
++    binary = files[f"Runtime/{metadata['executable']}"]
++    for marker in (b'CurveOffsetGuide', b'Live surface distance', b'Auto-split 3D crossings###ToolAutoSplit',
++                   b'Delete: select a component or a whole figure first'):
++        assert marker in binary, f'Stale executable: {marker!r}'
++    payload = {k: v for k, v in files.items() if k == f"Runtime/{metadata['executable']}" or k.startswith(('Runtime/EngineContent/', 'Runtime/Notices/'))}
++    payload['Liger.solidarc'] = project
++    payload['Runtime/SolidArcWorkspace.toml'] = (ROOT / 'Tracing/Workspace/SolidArcWorkspace.toml').read_bytes()
++    payload['Read me.md'] = (OUT / 'README.md').read_bytes()
++    if platform == 'Windows':
++        payload['Start Liger.bat'] = LAUNCHER.replace('\n', '\r\n').encode('ascii')
++    else:
++        payload['Start Liger.sh'] = b'''#!/bin/sh
++set -eu
++ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
++cd "$ROOT/Runtime"
++exec "$ROOT/Runtime/SolidArcWorkspace" --options "$ROOT/Runtime/SolidArcWorkspace.toml" --open "$ROOT/Liger.solidarc" "$@"
++'''
++    payload['SHA256SUMS'] = ''.join(f'{sha(data)}  {name}\n' for name, data in sorted(payload.items())).encode()
++    target = OUT / 'Packages' / f'Project Liger Selection Fix {platform}.zip'
++    target.parent.mkdir(parents=True, exist_ok=True)
++    with zipfile.ZipFile(target, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
++        for name, data in sorted(payload.items()):
++            entry = zipfile.ZipInfo('Project Liger/' + name)
++            entry.compress_type = zipfile.ZIP_DEFLATED
++            entry.external_attr = (0o100755 if name.endswith('.sh') or name == 'Runtime/SolidArcWorkspace' else 0o100644) << 16
++            archive.writestr(entry, data, compresslevel=9)
++    with zipfile.ZipFile(target) as archive:
++        assert archive.testzip() is None
++        for name, data in payload.items():
++            assert archive.read('Project Liger/' + name) == data
++        assert all(n.startswith('Project Liger/') for n in archive.namelist())
++        assert sha(archive.read('Project Liger/Liger.solidarc')) == SOURCE_SHA
++    metadata.update(package=target.name, package_sha256=sha(target.read_bytes()), package_bytes=target.stat().st_size,
++                    project_sha256=SOURCE_SHA, payload_files=len(payload))
++    print(f'PASS {platform}: exact supplied cage, rebuilt binary, archive CRCs/payload hashes, {metadata["svg_icons"]} SVGs / {metadata["font_faces"]} fonts')
++    return metadata
++
++if __name__ == '__main__':
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--windows', type=Path, required=True)
++    parser.add_argument('--linux', type=Path, required=True)
++    args = parser.parse_args()
++    validate()
++    manifest = {p: package(f, p) for p, f in [('Windows', args.windows), ('Linux', args.linux)]}
++    (OUT / 'Validation/RuntimeManifest.json').write_text(json.dumps(manifest, indent=2) + '\n')

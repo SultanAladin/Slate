@@ -5646,9 +5646,10 @@ SolidArcCommandOutcome DeleteSolidArcVertices(SolidArcDocument& Document)
 
 SolidArcCommandOutcome DeleteSolidArcCurves(SolidArcDocument& Document, const std::vector<std::string>& Labels)
 {
+    const std::vector<std::string> Selected = UniqueKeys(Labels); // May alias Document.Selection.Curves.
     std::string Captions;
     bool Kept = false;
-    for (const std::string& Label : Labels)
+    for (const std::string& Label : Selected)
     {
         const bool Read = SolidArcSketchReferencedCondition(Document, Label);
         Captions += (Captions.empty() ? "" : ", ") + CaptionOrLabel(Document, Label) + (Read ? " sketch" : "");
@@ -5656,14 +5657,18 @@ SolidArcCommandOutcome DeleteSolidArcCurves(SolidArcDocument& Document, const st
     }
     return RunCommand(Document, "Delete " + Captions + (Kept ? " (kept for the steps that read it)" : ""), false, [&]() -> std::string
     {
-        if (Labels.empty()) return "pick sketches or curves first";
-        for (const std::string& Label : Labels)
+        if (Selected.empty()) return "pick sketches or curves first";
+        for (const std::string& Label : Selected)
         {
             const FeatureStep* Step = FindStep(Document, Label);
             if (!Step || (Step->Kind != FeatureStepKind::Sketch && Step->Kind != FeatureStepKind::SpaceCurve)) return "no sketch or curve labelled " + Label;
+            if (SolidArcLockedCondition(Document, Label)) return CaptionOrLabel(Document, Label) + " is locked";
             if (Document.Appearance.RemovedCurves.contains(Label)) return CaptionOrLabel(Document, Label) + " is already deleted";
         }
-        for (const std::string& Label : UniqueKeys(Labels)) RetireSolidArcCurve(Document, Label);
+        std::vector<std::string> Ordered;
+        for (auto It = Document.Tree.Steps.rbegin(); It != Document.Tree.Steps.rend(); ++It)
+            if (std::find(Selected.begin(), Selected.end(), It->Label) != Selected.end()) Ordered.push_back(It->Label);
+        for (const std::string& Label : Ordered) RetireSolidArcCurve(Document, Label);
         return {};
     }, 0);
 }

@@ -1,0 +1,95 @@
+PASS spherical reference constructed
+PASS locked body still offers surface snaps without modifiers
+PASS snap refined onto exact sphere, not faceted triangle
+PASS surface miss has no grid or sketch-plane fallback
+PASS Ctrl falls back to surface when no edge is within reach
+PASS project / fit Hermite:
+PASS independent 4097-point sphere conformance < 0.2 mm
+PASS project / fit Bezier:
+PASS independent 4097-point sphere conformance < 0.2 mm
+PASS project / fit NURBS:
+PASS independent 4097-point sphere conformance < 0.2 mm
+PASS project / fit Cubic spline:
+PASS independent 4097-point sphere conformance < 0.2 mm
+PASS 3D three-point arc seed projects to editable surface NURBS:
+PASS two-control degenerate closed curve refused
+PASS degenerate arc refused
+PASS curve crossing silhouette refused rather than bridging empty space
+PASS orbiting to the opposite side refuses hidden controls instead of moving them onto the front
+PASS projection / refusals never mutate reference geometry
+PASS commit exact fitted poles and knots
+PASS one native SpaceCurve and one undo entry
+PASS native save decoder accepts surface curve
+PASS save / load / regenerate exact byte roundtrip
+PASS surface trace undo removes only the new curve
+PASS surface trace redo restores native curve
+PASS curve pole editable in all XYZ coordinates
+PASS XYZ pole target persisted exactly
+PASS undo free pole move before loft
+PASS second traced section remains an editable native curve
+PASS two surface-traced curves loft into a separate native sheet
+PASS planar line fixture
+PASS line endpoint lifts off-plane into a native 3D curve
+PASS lifted line regenerates without planar constraint
+PASS edge reference fixture
+PASS edge fixture projection
+PASS Ctrl selects exact nearest visible body edge, not endpoints or centres
+PASS Liger workspace native decoder
+PASS Liger three reference sheets regenerate
+PASS all three reference bodies are locked
+LIGER_EDGE 1.138 -1.64733 0.84828
+PASS Ctrl snaps to an exact visible edge of the dense Liger reference
+LIGER_TRACE_CONTROLS -1.02814 0.499541 0.909355; -0.957639 0.45254 0.909149; -0.887138 0.499541 0.90562 deviation_mm=0.0433911
+PASS real dense Liger surface trace projects, fits, checks and commits
+PASS real reference STEP carriers unchanged by drawing
+PASS point-only curve has exactly the clicked control count
+PASS point-only curve preserves every snapped XYZ exactly
+PASS point-only curve commits without fitting
+PASS save/load keeps the exact control count
+PASS point-only curve has exactly the clicked control count
+PASS point-only curve preserves every snapped XYZ exactly
+PASS point-only curve commits without fitting
+PASS save/load keeps the exact control count
+PASS point-only curve has exactly the clicked control count
+PASS point-only curve preserves every snapped XYZ exactly
+PASS point-only curve commits without fitting
+PASS save/load keeps the exact control count
+PASS point-only curve has exactly the clicked control count
+PASS point-only curve preserves every snapped XYZ exactly
+PASS point-only curve commits without fitting
+PASS save/load keeps the exact control count
+PASS point-only curve has exactly the clicked control count
+PASS point-only curve preserves every snapped XYZ exactly
+PASS point-only curve commits without fitting
+PASS save/load keeps the exact control count
+PASS point-only curve has exactly the clicked control count
+PASS point-only curve preserves every snapped XYZ exactly
+PASS point-only curve commits without fitting
+PASS save/load keeps the exact control count
+PASS point-only curve has exactly the clicked control count
+PASS point-only curve preserves every snapped XYZ exactly
+PASS point-only curve commits without fitting
+PASS save/load keeps the exact control count
+PASS point-only curve has exactly the clicked control count
+PASS point-only curve preserves every snapped XYZ exactly
+PASS point-only curve commits without fitting
+PASS save/load keeps the exact control count
+PASS point-only curve has exactly the clicked control count
+PASS point-only curve preserves every snapped XYZ exactly
+PASS point-only curve commits without fitting
+PASS save/load keeps the exact control count
+PASS point-only curve has exactly the clicked control count
+PASS point-only curve preserves every snapped XYZ exactly
+PASS point-only curve commits without fitting
+PASS save/load keeps the exact control count
+PASS closed curve preserves exactly the four explicit clicks, including closing click
+PASS closed commit inserts no extra closure controls
+PASS closed save/load keeps only authored controls
+PASS closing does not silently append an unplaced point
+PASS over-degree Bezier refuses rather than adding or replacing controls
+PASS coincident adjacent controls refused
+PASS spans are NOT projected or densified to follow the sphere
+PASS extra tangent-pole forms refused in strict point-only mode
+PASS polyline preserves only its three placed vertices
+PASS three-point arc stays analytic instead of surface fitting
+PASS 92 surface tracing checks

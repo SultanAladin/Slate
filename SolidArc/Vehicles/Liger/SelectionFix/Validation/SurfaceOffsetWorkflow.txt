@@ -1,0 +1,45 @@
+capture Live_Surface_Distance        frame   69  fa437d9583e17917
+capture Guide_Edit_Updates_Target    frame   99  0532a9b84ef6e95a
+# SolidArcCapture
+
+- Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
+- Frame: 1280 x 680 · 112 frames · 22.6389 s · slowest frame 1503.78 ms
+- Script: /home/user/Slate/SolidArc/Vehicles/Liger/Tools/SurfaceOffsetWorkflowCheck.txt
+- Expectations: 16 / 16 passed
+
+| Line | Expectation | Observed | Result |
+|-----:|-------------|----------|--------|
+| 9 | `selected-curves == 2` | Surface trace1,Surface trace2 | 🟢 |
+| 22 | `offset-linked-count == 1` | 1 | 🟢 |
+| 23 | `last-curve-mid-x > 0.48` | 0.4982274103 | 🟢 |
+| 24 | `last-curve-mid-x < 0.52` | 0.4982274103 | 🟢 |
+| 25 | `refused == 0` | 0 | 🟢 |
+| 32 | `selected-curves == 1` | Surface trace1 | 🟢 |
+| 38 | `offset-linked-count == 1` | 1 | 🟢 |
+| 39 | `last-curve-mid-x > 0.58` | 0.5992586667 | 🟢 |
+| 40 | `last-curve-mid-x < 0.62` | 0.5992586667 | 🟢 |
+| 41 | `faces == 6` | 6 | 🟢 |
+| 42 | `curves == 2` | Surface trace1,Surface trace2 | 🟢 |
+| 46 | `last-curve-mid-x > 0.48` | 0.4982274103 | 🟢 |
+| 47 | `last-curve-mid-x < 0.52` | 0.4982274103 | 🟢 |
+| 50 | `offset-linked-count == 0` | 0 | 🟢 |
+| 51 | `last-curve-mid-x > 0.68` | 0.7 | 🟢 |
+| 52 | `last-curve-mid-x < 0.72` | 0.7 | 🟢 |
+
+| Capture | Frame | Digest |
+|---------|------:|--------|
+| Live_Surface_Distance | 69 | `fa437d9583e17917` |
+| Guide_Edit_Updates_Target | 99 | `0532a9b84ef6e95a` |
+
+## Journal
+
+- View Top (Numpad)
+- Whole curves (6): click curve, Shift adds, Ctrl removes; 2 selects spans
+- Selected curve Surface trace1 · 2 poles · fit 0.000 mm · 1 selected
+- Selected curve Surface trace2 · 2 poles · fit 0.000 mm · 2 selected
+- Live surface-distance offset · 591 ms
+- Selected curve Surface trace1 · 2 poles · fit 0.000 mm · 1 selected
+- Move 1 sketch(es) · X / Y / Z axis · Shift+X / Y / Z plane · drag or type a value · click / Enter commits · Esc cancels
+- Move (Surface trace1) · 542 ms
+- Undo
+- Undo

@@ -1,0 +1,22 @@
+{
+  "Frame": 28,
+  "Title": "Liger — surface tracing workspace",
+  "DocumentPath": "/home/user/selection-build/Selection Package With Spaces/Project Liger/Test.solidarc",
+  "Dirty": true,
+  "Steps": [{"Label": "LigerPart1", "Caption": "Body_Main_Shell · Import", "Refused": false}, {"Label": "LigerPart2", "Caption": "Body_Front_Cowl · Import", "Refused": false}, {"Label": "LigerPart3", "Caption": "Body_Roof_Glass_Frame · Import", "Refused": false}],
+  "Body": {"Faces": 306, "Edges": 906, "Vertices": 595, "Genus": 6, "Volume": 0, "Sound": true},
+  "Selection": {"Faces": [], "Edges": [], "Curves": []},
+  "Curves": [],
+  "Sheet": true,
+  "PoleDrags": 0,
+  "PickMode": 6,
+  "Hover": "",
+  "Camera": {"Azimuth": -0.7853981634, "Elevation": 0.6154797087, "Distance": 8.047437622, "Target": [0, -0.3817220464, 0.6595703708], "Orthographic": false},
+  "Bevel": {"Active": false, "Shape": "Fillet", "Size": 0.25, "Pinned": false, "Variable": false, "EndSize": 0, "Flipped": false, "PreviewFaces": 0, "Refusal": "", "Verb": 0, "Profile": "", "Combination": 1, "Depth": 0, "DepthPointer": false},
+  "Drawing": {"Active": false, "Kind": "Line", "Plane": 0, "Form": "Hermite", "Centre": false, "Points": [], "Solid": false, "SolidKind": "Block", "Lift": 0, "Elevation": 0, "Sides": 6, "Combination": 4, "Refusal": ""},
+  "Undo": 1,
+  "Redo": 0,
+  "Welcome": false,
+  "Status": "Delete Surface trace1, Surface trace2, Surface trace3, Surface trace4, Surface trace5, Surface trace6, Surface trace7, Surface trace8, Surface trace9, Surface trace10, Surface trace11, Surface trace12, Surface trace13, Surface trace14, Surface trace15, Surface trace16, Surface trace17, Surface trace18, Surface trace19, Surface trace20, Surface trace21, Surface trace22, Surface trace23 · 94 ms",
+  "Viewport": [322, 56, 606, 593]
+}

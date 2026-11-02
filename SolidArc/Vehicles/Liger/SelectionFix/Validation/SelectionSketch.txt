@@ -1,0 +1,39 @@
+capture Planar_Sketch_Global_Selection_Delete frame   75  b120322bdc1186d5
+# SolidArcCapture
+
+- Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
+- Frame: 1280 x 680 · 75 frames · 6.45809 s · slowest frame 416.208 ms
+- Script: /home/user/Slate/SolidArc/Vehicles/Liger/Tools/SelectionSketchCheck.txt
+- Expectations: 12 / 12 passed
+
+| Line | Expectation | Observed | Result |
+|-----:|-------------|----------|--------|
+| 5 | `steps == 2` | 2 | 🟢 |
+| 9 | `picked-points == 1` | 1 | 🟢 |
+| 12 | `selected-curves == 2` | Curve1,Curve2 | 🟢 |
+| 13 | `picked-points == 0` | 0 | 🟢 |
+| 16 | `steps == 0` | 0 | 🟢 |
+| 17 | `refused == 0` | 0 | 🟢 |
+| 20 | `steps == 2` | 2 | 🟢 |
+| 26 | `selected-curves == 2` | Curve1,Curve2 | 🟢 |
+| 27 | `picked-points == 0` | 0 | 🟢 |
+| 30 | `steps == 0` | 0 | 🟢 |
+| 31 | `refused == 0` | 0 | 🟢 |
+| 34 | `steps == 2` | 2 | 🟢 |
+
+| Capture | Frame | Digest |
+|---------|------:|--------|
+| Planar_Sketch_Global_Selection_Delete | 75 | `b120322bdc1186d5` |
+
+## Journal
+
+- View Top (Numpad)
+- Curve1 · point 0 · 1 picked · the gizmo moves them in the sketch plane (drag a point to move it directly)
+- Selected sketch Curve1 · 1 selected · L lofts the picks in order · the gizmo moves / turns them
+- Selected sketch Curve2 · 2 selected · L lofts the picks in order · the gizmo moves / turns them
+- Delete Curve1, Curve2 · 0 ms
+- Undo
+- Selected sketch Curve1 · 1 selected · L lofts the picks in order · the gizmo moves / turns them
+- Selected range · 2 items (0 bodies, 2 curves)
+- Delete Curve1, Curve2 · 0 ms
+- Undo

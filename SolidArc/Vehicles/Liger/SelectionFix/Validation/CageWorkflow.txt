@@ -1,0 +1,64 @@
+capture Whole_Curves_Not_Spans       frame   35  71d089c6685a36b2
+capture Drawing_Options_Planar       frame   59  4b0f286ff4363152
+capture Arc_Planar_Not_Retopology    frame   87  bd039d416abec694
+capture Analytic_Wheel_Arc           frame  114  120c6c0613357be7
+capture Auto_Split_Crossings         frame  156  ccf6360c38ad0131
+# SolidArcCapture
+
+- Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
+- Frame: 1280 x 680 · 163 frames · 23.373 s · slowest frame 705.485 ms
+- Script: /home/user/Slate/SolidArc/Vehicles/Liger/Tools/CageWorkflowCheck.txt
+- Expectations: 25 / 25 passed
+
+| Line | Expectation | Observed | Result |
+|-----:|-------------|----------|--------|
+| 9 | `selected-curves == 1` | Surface trace1 | 🟢 |
+| 10 | `selected-spline-spans == 0` | 0 | 🟢 |
+| 11 | `selected-spline-poles == 0` | 0 | 🟢 |
+| 14 | `selected-curves == 2` | Surface trace1,Surface trace2 | 🟢 |
+| 15 | `selected-spline-spans == 0` | 0 | 🟢 |
+| 20 | `selected-curves == 0` |  | 🟢 |
+| 23 | `drawing-surface == 1` | 1 | 🟢 |
+| 26 | `drawing-surface == 0` | 0 | 🟢 |
+| 27 | `surface-trace == 0` | 0 | 🟢 |
+| 33 | `surface-trace == 1` | 1 | 🟢 |
+| 36 | `drawing == Arc` | Arc | 🟢 |
+| 37 | `drawing-surface == 0` | 0 | 🟢 |
+| 46 | `drawing == 0` |  | 🟢 |
+| 47 | `sketches contains Arc` | Arc1 | 🟢 |
+| 48 | `curves == 2` | Surface trace1,Surface trace2 | 🟢 |
+| 49 | `refused == 0` | 0 | 🟢 |
+| 53 | `curves == 2` | Surface trace1,Surface trace2 | 🟢 |
+| 54 | `steps == 2` | 2 | 🟢 |
+| 65 | `curves > 5` | Surface trace1,Surface trace2,Surface trace3,Curve piece1,Curve piece2,Curve piece3,Cur... | 🟢 |
+| 66 | `curves < 8` | Surface trace1,Surface trace2,Surface trace3,Curve piece1,Curve piece2,Curve piece3,Cur... | 🟢 |
+| 67 | `steps > 5` | 7 | 🟢 |
+| 68 | `steps < 8` | 7 | 🟢 |
+| 69 | `refused == 0` | 0 | 🟢 |
+| 73 | `curves == 2` | Surface trace1,Surface trace2 | 🟢 |
+| 74 | `steps == 2` | 2 | 🟢 |
+
+| Capture | Frame | Digest |
+|---------|------:|--------|
+| Whole_Curves_Not_Spans | 35 | `71d089c6685a36b2` |
+| Drawing_Options_Planar | 59 | `4b0f286ff4363152` |
+| Arc_Planar_Not_Retopology | 87 | `bd039d416abec694` |
+| Analytic_Wheel_Arc | 114 | `120c6c0613357be7` |
+| Auto_Split_Crossings | 156 | `ccf6360c38ad0131` |
+
+## Journal
+
+- View Top (Numpad)
+- Whole curves (6): click curve, Shift adds, Ctrl removes; 2 selects spans
+- Selected curve Surface trace1 · 2 poles · fit 0.000 mm · 1 selected
+- Selected curve Surface trace2 · 2 poles · fit 0.000 mm · 2 selected
+- SURFACE TRACE · click on the model · Ctrl: authored curve / model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
+- Curve aborted (document untouched)
+- Surface tracing ON · Curve / Arc / Line · Ctrl: model edges · no planar fallback
+- Arc on plane XY (planar, no surface snap): click start, end, then a point on the arc · hold Ctrl to snap to ends / midpoints / centres, Alt to slide along a curve · Esc aborts
+- Arc1 · 0 ms
+- Undo
+- SURFACE TRACE · click on the model · Ctrl: authored curve / model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
+- Draw surface trace · 1 ms
+- Surface-point trace · 2 placed controls · no automatic points or surface fitting
+- Undo

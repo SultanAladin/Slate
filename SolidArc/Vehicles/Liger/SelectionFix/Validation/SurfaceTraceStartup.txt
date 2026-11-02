@@ -1,0 +1,33 @@
+capture Liger_Surface_Tracing        frame    5  54d90159d46f1099
+capture Liger_Surface_Tracing_Top    frame   12  fbfea684932295ca
+# SolidArcCapture
+
+- Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
+- Frame: 1280 x 680 · 34 frames · 9.67143 s · slowest frame 746.578 ms
+- Script: /home/user/Slate/SolidArc/Vehicles/Liger/Tools/SurfaceTraceStartupCheck.txt
+- Expectations: 11 / 11 passed
+
+| Line | Expectation | Observed | Result |
+|-----:|-------------|----------|--------|
+| 2 | `surface-trace == 1` | 1 | 🟢 |
+| 3 | `full-xyz == 1` | 1 | 🟢 |
+| 4 | `steps == 3` | 3 | 🟢 |
+| 5 | `bodies == 3` | 3 | 🟢 |
+| 6 | `refused == 0` | 0 | 🟢 |
+| 13 | `drawing-surface == 1` | 1 | 🟢 |
+| 14 | `drawing == Curve` | Curve | 🟢 |
+| 17 | `drawing-hit == 0` | 0 | 🟢 |
+| 20 | `drawing-points == 0` | 0 | 🟢 |
+| 23 | `steps == 3` | 3 | 🟢 |
+| 24 | `undo == 0` | 0 | 🟢 |
+
+| Capture | Frame | Digest |
+|---------|------:|--------|
+| Liger_Surface_Tracing | 5 | `54d90159d46f1099` |
+| Liger_Surface_Tracing_Top | 12 | `fbfea684932295ca` |
+
+## Journal
+
+- View Top (Numpad)
+- SURFACE TRACE · click on the model · Ctrl: authored curve / model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
+- Curve aborted (document untouched)
