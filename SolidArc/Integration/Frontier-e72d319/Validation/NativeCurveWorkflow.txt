@@ -1,0 +1,46 @@
+PASS draw exact control trace
+PASS split inside a curved 3D NURBS
+PASS both exact pieces retained and selected
+PASS 202-sample split comparison preserves the NURBS shape below 1e-10 metres
+PASS pieces share the exact split endpoint
+PASS split is one undo operation
+PASS undo restores byte-identical original document
+PASS redo restores both pieces
+PASS both split definitions survive document serialization
+PASS endpoint split refuses
+PASS nonfinite split refuses
+PASS refusals leave geometry and undo history intact
+PASS locked curve split refuses
+PASS draw exact control trace
+PASS interaction script parses
+PASS trim-hover > 0
+PASS trim-breaks == 1
+PASS curves == 2
+PASS trim-commits == 1
+PASS split clears stale component indices instead of leaving a misleading pole selection
+PASS viewport click splits at the mouse, not an existing pole or midpoint
+PASS three primary panels registered in Frontier docking
+PASS live SolidArc dock layout uses the existing validated archive format
+PASS interaction script parses
+PASS dragging a real tab floats its panel through Frontier docking
+PASS interaction script parses
+PASS workflow guide opens from the always-visible status bar
+PASS interaction script parses
+PASS reset reopens hidden panels and reconstructs the reusable dockspace
+PASS panel extent registration never exposes ImGui implicit Debug window
+PASS reference fixture constructs
+PASS draw exact control trace
+PASS draw exact control trace
+PASS live target fixture links
+PASS interaction script parses
+PASS offset-linked-count == 1
+PASS last-curve-mid-x > 0.63
+PASS last-curve-mid-x < 0.67
+PASS refused == 0
+PASS target-only distance edit shows persistent success feedback
+PASS interaction script parses
+PASS invalid target-only distance reports visible refusal
+PASS invalid distance keeps the previously applied curve
+PASS live target cannot be destructively split
+PASS guide with a live dependent cannot be destructively split
+PASS 45 curve workflow checks

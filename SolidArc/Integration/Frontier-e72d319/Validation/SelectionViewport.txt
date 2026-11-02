@@ -1,8 +1,8 @@
-capture Global_Shift_Selection_And_Delete frame  155  3aa6035f20151196
+capture Global_Shift_Selection_And_Delete frame  155  4c4aea544b911e7e
 # SolidArcCapture
 
 - Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
-- Frame: 1280 x 680 · 155 frames · 5.82922 s · slowest frame 266.016 ms
+- Frame: 1280 x 680 · 155 frames · 8.99001 s · slowest frame 298.192 ms
 - Script: /home/user/frontier-solidarc-integration/Exhibits/SolidArc/Code/Integration/SelectionViewportCheck.txt
 - Expectations: 25 / 25 passed
 
@@ -36,7 +36,7 @@ capture Global_Shift_Selection_And_Delete frame  155  3aa6035f20151196
 
 | Capture | Frame | Digest |
 |---------|------:|--------|
-| Global_Shift_Selection_And_Delete | 155 | `3aa6035f20151196` |
+| Global_Shift_Selection_And_Delete | 155 | `4c4aea544b911e7e` |
 
 ## Journal
 

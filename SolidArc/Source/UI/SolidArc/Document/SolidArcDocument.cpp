@@ -2295,6 +2295,48 @@ std::string SplitCrossingsInPlace(SolidArcDocument& D,double Tolerance,const std
     return {};
 }
 }
+// 📝 Knot insertion divides the evaluated curve, without fitting, resampling or moving its controls.
+SolidArcCommandOutcome SplitSolidArcSpaceCurveAt(SolidArcDocument& Document, const std::string& Label, double Parameter)
+{
+    const std::string OriginalLabel = Label; // Selection may itself supply Label.
+    std::string SecondLabel;
+    SolidArcCommandOutcome Outcome = RunCommand(Document, "Split curve at pointer", false, [&]() -> std::string
+    {
+        auto Step = std::find_if(Document.Tree.Steps.begin(), Document.Tree.Steps.end(),
+                                 [&](const FeatureStep& Candidate) { return Candidate.Label == OriginalLabel; });
+        if (Step == Document.Tree.Steps.end() || Step->Kind != FeatureStepKind::SpaceCurve)
+            return "Choose an authored 3D curve";
+        if (SolidArcLockedCondition(Document, OriginalLabel)) return "Unlock this curve before splitting";
+        if (!Step->CurveOffsetGuide.empty()) return "Detach the live distance target before splitting it";
+        if (SolidArcSketchReferencedCondition(Document, OriginalLabel))
+            return "This curve has live dependents; detach them before splitting (nothing changed)";
+        const auto Found = Document.Regeneration.Curves.find(OriginalLabel);
+        if (Found == Document.Regeneration.Curves.end() || !Found->second.Curve.Definition)
+            return "The curve has no regenerated definition";
+        const auto& Definition = *Found->second.Curve.Definition;
+        if (std::any_of(Definition.Weights.begin(), Definition.Weights.end(),
+                        [](double Weight) { return std::abs(Weight - 1.0) > 1.0e-12; }))
+            return "This curve stores rational weights; its editable split format is not supported";
+        const double Low = Definition.Knots[Definition.Degree], High = Definition.Knots[Definition.Poles.size()];
+        if (!std::isfinite(Parameter) || Parameter <= Low + (High - Low) * 1.0e-7 || Parameter >= High - (High - Low) * 1.0e-7)
+            return "Split inside the curve, not at an existing endpoint";
+        const auto Pieces = SplitNurbsCurve(Definition, Parameter);
+        if (!Pieces) return "The curve cannot be divided at this parameter";
+        FeatureStep Second = *Step;
+        StoreControlDefinition(*Step, Pieces->first);
+        Step->ClosedCondition = false;
+        StoreControlDefinition(Second, Pieces->second);
+        Second.ClosedCondition = false;
+        Second.Label = "Curve#" + std::to_string(NextStepOrdinal(Document.Tree));
+        SecondLabel = Second.Label;
+        Document.Captions[SecondLabel] = NextCaption(Document, "Curve piece");
+        Document.Tree.Steps.push_back(std::move(Second));
+        return {};
+    });
+    if (Outcome.AcceptedCondition) Document.Selection.Curves = { OriginalLabel, SecondLabel };
+    return Outcome;
+}
+
 SolidArcCommandOutcome SplitSolidArcCurveCrossings(SolidArcDocument& D,double Tolerance)
 {
     return RunCommand(D,"Split 3D curve crossings",false,[&](){return SplitCrossingsInPlace(D,Tolerance);},0);

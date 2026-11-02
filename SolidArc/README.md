@@ -77,3 +77,7 @@ Every modified and newly created C++ source file is also mirrored verbatim under
 
 - `ProductionAudit.md` — Full CAD completeness/correctness audit report with emoji matrix and root-cause analysis.
 - `Results/DocumentValidation.md` — Complete `W1`–`W95` run (**869 🟢 / 0 🔴**).
+
+## Curve workflow update
+
+See [Curve rebuilding guide](CurveRebuildingGuide.md) for mouse-position splitting, editable live surface-distance links, three dock panels and opening projects from Frontier. The integration bundle remains a source handoff, not a new Windows installation.

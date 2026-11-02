@@ -4267,6 +4267,9 @@ void ValidateBatch4InterfaceAndViewport()
         Expect(ConstructSolidArcPrimitive(Ui.State.Document, Box));
         RefreshSolidArcScene(Ui.State, false);
         PresentOrbitView(Ui.State.Camera, OrbitViewPreset::Isometric);
+        // Dock tabs and authoring cards request their fonts before measuring retained atlas UVs.
+        Ui.StepFrame();
+        Ui.StepFrame();
 
         auto MeasureCubeTopCenterYAndUvQuads = [&](double FovRad, bool Ortho, int& UvFontQuadVertsOut, int& SkewedUvVertsOut)
         {

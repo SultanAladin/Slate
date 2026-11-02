@@ -10,7 +10,7 @@ This session remains on Slate `arena/4f335fa8-slate`. It has not pushed to the d
 | Status | Requirement | Evidence / implementation |
 |---|---|---|
 | ✔️ | Use the explicitly requested revision, not main | Baseline object fetched and archived at e72d319; patch and per-file preconditions recorded in SourceManifest. |
-| ✔️ | Bring only SolidArc and necessary dependencies | 494 source/artwork/fixture/document paths: 480 additions, 14 selectively changed existing files. No unrelated Slate framework, applications, web prototypes, downloaded dependencies or product ZIPs in the patch. |
+| ✔️ | Bring only SolidArc and necessary dependencies | 498 source/artwork/fixture/document paths: 484 additions, 14 selectively changed existing files. No unrelated Slate framework, applications, web prototypes, downloaded dependencies or product ZIPs in the patch. |
 | ✔️ | Reuse existing Frontier functionality | Existing FrontierImGui, FrontierInterface, FrontierEditorUI, content directory, fonts and dependency recovery retained. Existing third-party pins unchanged; only volk appended. |
 | ✔️ | Resolve the split CAD source | CAD B-rep/document/interface/viewport and current Slate fixes seated in the destination's Engine/UI/Experimental/Exhibits layout. No duplicate general-purpose interface framework imported. |
 | ✔️ | Integrate with the existing browser | Native CAD decoding, actual tessellated previews, damaged-file refusal, Open in SolidArc, workspace discovery and process launch. Existing ordinary-project flow preserved. |
@@ -27,8 +27,9 @@ This session remains on Slate `arena/4f335fa8-slate`. It has not pushed to the d
 | Status | Check | Result | Evidence |
 |---|---|---|---|
 | ✔️ | Native CAD / UI features | **506**: Shift 185; cutters 112; selection 17; cage 49; editing 51; tracing 92 | Native* logs in Validation |
+| ✔️ | Curve workflow revision | **45 passed**: exact pointer split, shape preservation, atomic refusal, stale component cleanup, target-only distance editing, real tab drag, reopen/reset and implicit-window safety | [NativeCurveWorkflow](Validation/NativeCurveWorkflow.txt) |
 | ✔️ | New browser CPU checks | **17 passed**: real decoding/geometry, mixed-case extension, spaced paths, exact launch callback, refusals, ordinary-project access, source preservation | [Browser](Validation/Browser.txt) |
-| ✔️ | Existing rendered CAD workflows | **300 / 300** expectations in 16 scripts | [RenderedSummary](Validation/RenderedSummary.json) and corresponding logs |
+| ✔️ | Existing rendered CAD workflows | **313 / 313** expectations in 18 scripts | [RenderedSummary](Validation/RenderedSummary.json) and corresponding logs |
 | ✔️ | Browser rendered integration | **15 / 15** checks; actual CAD thumbnails/live reader, damaged-file refusal, ordinary sample flow and child-process workspace hand-off | [BrowserVulkan](Validation/BrowserVulkan.txt), [report](Validation/BrowserVulkanReport.md) |
 | ✔️ | Full CAD suite | **869 green rows, zero red**, exit 0 | [DocumentRegression](Validation/DocumentRegression.txt) |
 | ✔️ | Conditional Windows packaging logic | **9 unit tests**, using synthetic PE headers; missing/stale/wrong-architecture companions refused | [WindowsPackaging](Validation/WindowsPackaging.txt) |
@@ -36,13 +37,34 @@ This session remains on Slate `arena/4f335fa8-slate`. It has not pushed to the d
 | ✔️ | Dependency closure | Every retained non-vendor compile input belongs to the pinned baseline or delivered source patch | [FinalChecks](Validation/FinalChecks.txt) |
 | ✔️ | Patch integrity | Dry-run, actual application in a clean source test directory, and every resulting source SHA matched | [SourceManifest](SourceManifest.json), [ScopeIntegrity](Validation/ScopeIntegrity.json) |
 
-Totals: **523 native CAD/browser checks and 315 rendered expectations**.
+Totals: **568 native CAD/browser checks and 328 rendered expectations**.
 The 869 CAD table rows and 9 synthetic-PE unit tests are reported separately, not relabelled as native feature checks.
 Linux headless ImGui + Vulkan/SwiftShader was exercised. The null-window GLFW build is compile coverage,
 not proof of a usable Linux desktop package or Windows startup.
 
+## Curve workflow changes
+
+| Status | Request | Implemented result |
+|---|---|---|
+| ✔️ | Adjustable live surface/geodesic distance | Top-of-Geometry card; select one linked target to edit; apply on field release or explicitly; persistent success/refusal feedback; ambiguous multi-body references require a choice |
+| ✔️ | Split at the mouse | Visible Split tool; exact NURBS knot division at refined projected parameter; both pieces kept; one undo; dependency and endpoint refusals; stale pole/span selections cleared |
+| ✔️ | Three dockable primary panels | Outliner, Viewport and Inspector delegate to existing PanelDockspace; actual tab dragging, validated layout and reopen/reset exercised |
+| ✔️ | Reuse Texture Workspace controls | Existing VectorAuthoringControlSurface and PanelChrome compiled once as FrontierAuthoringControls and linked by both workspaces; no copied control implementation |
+| ✔️ | Guides | Native Curve guide plus [usage guide](CurveRebuildingGuide.md) |
+| ✔️ | Frontier project browser | Existing browser previews, reader and exact-document companion launch retested; an integrated installation does not need BAT |
+| 🚧 | Windows product / destination merge | Still not performed; this delivery is source plus Linux verification, not an installed Frontier update |
+
+Separate OS panel windows and restart layout persistence are not claimed. Geodesic distance is tolerance-controlled,
+not analytically exact. The original vehicle cage and the reference-only tracing project remain byte-identical.
+
 ## Actual application images
 
+- [Mouse-position split preview](Images/Split_Pointer_Preview.png)
+- [Exact retained split pieces](Images/Split_Exact_Pieces.png)
+- [Target-only live distance edit](Images/Linked_Target_Only_Distance_Edit.png)
+- [Visible refusal keeps previous geometry](Images/Distance_Refusal_Keeps_Geometry.png)
+- [Floating Outliner through the existing dockspace](Images/Workspace_Floating_Outliner.png)
+- [Native usage guide](Images/Curve_Workflow_Guide.png)
 - [Frontier CAD library](Images/BrowserLibrary.png)
 - [Frontier reader displaying decoded CAD geometry](Images/BrowserReader.png)
 - [Open in SolidArc hand-off](Images/BrowserHandOff.png)

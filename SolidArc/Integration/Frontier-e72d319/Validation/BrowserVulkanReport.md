@@ -1,7 +1,7 @@
 | Expectation | Observed | Result |
 |-------------|----------|--------|
-| Bracket.solidarc saved | /home/user/integration-browser-captures/Documents/Bracket.solidarc | 🟢 |
-| Assembly study.solidarc saved | /home/user/integration-browser-captures/Documents/Assembly study.solidarc | 🟢 |
+| Bracket.solidarc saved | /home/user/Slate/_AgentScratch/tmp/curve-reverification/BrowserVulkan/Documents/Bracket.solidarc | 🟢 |
+| Assembly study.solidarc saved | /home/user/Slate/_AgentScratch/tmp/curve-reverification/BrowserVulkan/Documents/Assembly study.solidarc | 🟢 |
 | Upstream appearance activates (fonts + theme) | active | 🟢 |
 | Three .solidarc files attach as CAD entries | 3 attached | 🟢 |
 | Entries carry the CAD category and the SolidArc workspace label | SolidArc / CAD · SolidArc workspace | 🟢 |
@@ -13,5 +13,5 @@
 | Reader live view rendered from the document | live view ready | 🟢 |
 | Sample entries keep the preview-only launch dialog | no hand-off | 🟢 |
 | Open in SolidArc starts the workspace process | SolidArc workspace started with this document. | 🟢 |
-| The started workspace opened Bracket.solidarc | /home/user/integration-browser-captures/HandOff/Workspace.png | 🟢 |
+| The started workspace opened Bracket.solidarc | /home/user/Slate/_AgentScratch/tmp/curve-reverification/BrowserVulkan/HandOff/Workspace.png | 🟢 |
 | Preview renderer accepted every configuration | no refusals | 🟢 |

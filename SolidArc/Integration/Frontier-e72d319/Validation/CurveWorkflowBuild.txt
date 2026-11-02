@@ -1,0 +1,9 @@
+[0/2] Re-checking globbed directories...
+[1/9] Building CXX object CMakeFiles/SolidArcCurveWorkflowValidation.dir/Exhibits/SolidArc/Code/SolidArcCurveWorkflowValidation.cpp.o
+[2/9] Building CXX object CMakeFiles/FrontierSolidArcUI.dir/UI/SolidArc/Interface/SolidArcInterface.cpp.o
+[3/9] Linking CXX static library libFrontierSolidArcUI.a
+[4/9] Linking CXX executable SolidArcCapture
+[5/9] Linking CXX executable SolidArcDocumentValidation
+[6/9] Linking CXX executable SolidArcWorkspace
+[7/9] Linking CXX executable SolidArcBrowserValidation
+[8/9] Linking CXX executable SolidArcCurveWorkflowValidation

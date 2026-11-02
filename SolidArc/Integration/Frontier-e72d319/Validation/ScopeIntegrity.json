@@ -2,7 +2,7 @@
   "baseline_files": 4576,
   "existing_modified": 14,
   "baseline_files_byte_identical": 4562,
-  "new_files": 480,
+  "new_files": 484,
   "protected_renderer_measurement_project_files": 399,
   "protected_files": {
     "Exhibits/RayTracedLighting/Code/RayTracedLightingCapture.cpp": "f8583c27ad87b2a3787541d17ef341e4b2c5061cafd9201420108a339733d5ae",

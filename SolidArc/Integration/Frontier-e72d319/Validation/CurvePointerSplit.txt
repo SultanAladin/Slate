@@ -1,0 +1,34 @@
+capture Split_Pointer_Preview        frame   22  ecbeccb648e4ee23
+capture Split_Exact_Pieces           frame   32  bb854b83679120fc
+capture Curve_Workflow_Guide         frame   49  829d8f7887a2ae58
+capture Workspace_Floating_Outliner  frame   79  4bab2df6e8198ed8
+capture Workspace_Reset_Docks        frame   94  f305a52dc6e610cd
+# SolidArcCapture
+
+- Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
+- Frame: 1440 x 900 · 94 frames · 15.0241 s · slowest frame 359.656 ms
+- Script: /home/user/frontier-solidarc-integration/Exhibits/SolidArc/Code/Scripts/CurvePointerSplitCheck.txt
+- Expectations: 4 / 4 passed
+
+| Line | Expectation | Observed | Result |
+|-----:|-------------|----------|--------|
+| 7 | `trim-hover > 0` | Surface trace1 | 🟢 |
+| 8 | `trim-breaks == 1` | 1 | 🟢 |
+| 12 | `curves == 3` | Surface trace1,Surface trace2,Curve piece1 | 🟢 |
+| 13 | `trim-commits == 1` | 1 | 🟢 |
+
+| Capture | Frame | Digest |
+|---------|------:|--------|
+| Split_Pointer_Preview | 22 | `ecbeccb648e4ee23` |
+| Split_Exact_Pieces | 32 | `bb854b83679120fc` |
+| Curve_Workflow_Guide | 49 | `829d8f7887a2ae58` |
+| Workspace_Floating_Outliner | 79 | `4bab2df6e8198ed8` |
+| Workspace_Reset_Docks | 94 | `f305a52dc6e610cd` |
+
+## Journal
+
+- View Top (Numpad)
+- Split: click a 3D spline, line, arc or circle at the preview ring (shape preserved) · hold Ctrl to snap onto a crossing / end / midpoint: every curve through it breaks there (overlapping circles: both, at both crossings) · Esc ends
+- Split curve at pointer · 0 ms
+- Split ended
+- Autosaved /home/user/Slate/_AgentScratch/tmp/curve-reverification/CurvePointerSplitRecovery.solidarc

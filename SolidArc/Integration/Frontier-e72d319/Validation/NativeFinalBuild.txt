@@ -1,0 +1,7 @@
+[0/2] Re-checking globbed directories...
+[1/7] Linking CXX executable LigerCageToolsValidation
+[2/7] Linking CXX executable LigerSelectionValidation
+[3/7] Linking CXX executable LigerShiftDrawingValidation
+[4/7] Linking CXX executable LigerCurveEditingValidation
+[5/7] Linking CXX executable LigerSurfaceTraceValidation
+[6/7] Linking CXX executable LigerCutterPlacementValidation

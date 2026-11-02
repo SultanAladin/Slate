@@ -21,6 +21,8 @@
 #include "Engine/Interface/ControlKit.h"
 #include "Engine/Interface/IconPresentation.h"
 
+#include "Engine/Interface/VectorAuthoringControls.h"
+#include "UI/TextureStudio/PanelChrome.h"
 #include <imgui_internal.h>
 
 #include "UI/SolidArc/Document/SolidArcDocumentCodec.h"
@@ -108,6 +110,42 @@ void RegisterWidget(SolidArcWorkspaceState& State, const char* Label)
     const ImVec2 Low  = ImGui::GetItemRectMin();
     const ImVec2 High = ImGui::GetItemRectMax();
     State.Widgets.Record(Key, Low, High);
+}
+
+// 📝 The same authoring controls used by Texture Workspace; retain SolidArc's automation identities.
+VectorAuthoringControlSurface SolidArcAuthoringControls(SolidArcWorkspaceState& State)
+{
+    VectorAuthoringControlSurface Controls;
+    Controls.RegisterExtent = [&State](std::string_view Caption, PlaneExtent Extent)
+    {
+        const std::string Text(Caption);
+        const auto Marker = Text.find("###");
+        State.Widgets.Record(Marker == std::string::npos ? Text : Text.substr(Marker + 3),
+                             ImVec2(Extent.MinimumX, Extent.MinimumY), ImVec2(Extent.MaximumX, Extent.MaximumY));
+    };
+    return Controls;
+}
+
+bool SolidArcAuthoringToggle(SolidArcWorkspaceState& State, const char* Caption, bool* Enabled)
+{
+    return SolidArcAuthoringControls(State).Toggle(Caption, *Enabled);
+}
+
+bool SolidArcAuthoringSlider(SolidArcWorkspaceState& State, const char* Caption, float* Quantity, float Minimum, float Maximum)
+{
+    auto Controls = SolidArcAuthoringControls(State);
+    const char* Marker = std::strstr(Caption, "###");
+    const std::string Key = Marker ? std::string(Marker + 3) : std::string(Caption);
+    const std::string Visible(Caption, ImGui::FindRenderedTextEnd(Caption));
+    Controls.RegisterExtent = [&State, &Key](std::string_view Text, PlaneExtent Extent)
+    {
+        State.Widgets.Record(Key + (Text.ends_with(" slider") ? "Slider" : ""),
+            ImVec2(Extent.MinimumX, Extent.MinimumY), ImVec2(Extent.MaximumX, Extent.MaximumY));
+    };
+    ImGui::PushID(Caption);
+    const bool Changed = Controls.Slider(Visible.empty() ? "Amount" : Visible.c_str(), *Quantity, Minimum, Maximum);
+    ImGui::PopID();
+    return Changed;
 }
 
 bool PressButton(SolidArcWorkspaceState& State, const char* Label, ImVec2 Size = ImVec2(0, 0), bool EnabledCondition = true)
@@ -2677,8 +2715,8 @@ void CloseFillSession(SolidArcWorkspaceState& State);
 // InsertCondition: the Point tool (a point is added on the curve at the click, the shape stays; mode 1 so it can move).
 void OpenTrimSession(SolidArcWorkspaceState& State, bool SplitCondition = false, bool InsertCondition = false)
 {
-    const char* Tool = InsertCondition ? "Point" : SplitCondition ? "Cut" : "Trim";
-    const bool SketchCondition = std::any_of(State.Document.Tree.Steps.begin(), State.Document.Tree.Steps.end(), [](const FeatureStep& Step) { return Step.Kind == FeatureStepKind::Sketch; });
+    const char* Tool = InsertCondition ? "Point" : SplitCondition ? "Split" : "Trim";
+    const bool SketchCondition = std::any_of(State.Document.Tree.Steps.begin(), State.Document.Tree.Steps.end(), [&](const FeatureStep& Step) { return Step.Kind == FeatureStepKind::Sketch || (SplitCondition && Step.Kind == FeatureStepKind::SpaceCurve); });
     if (!SketchCondition) { Announce(State, std::string(Tool) + " needs sketch curves: draw some first (Shift+A line, Shift+S curve, Shift+W circle …)"); return; }
     State.Trim = { true, false, {}, -1, {}, {}, {}, State.Trim.Commits };
     State.Trim.SplitCondition  = SplitCondition && !InsertCondition;
@@ -2692,7 +2730,7 @@ void OpenTrimSession(SolidArcWorkspaceState& State, bool SplitCondition = false,
         Announce(State, "Point: click a curve to add a point there (the shape stays) · Ctrl snaps onto its midpoint / quarter points / crossings · drag a point to move it · Esc ends");
         return;
     }
-    Announce(State, SplitCondition ? "Cut: click a line, arc or circle where it should break in two (a circle becomes two half arcs) · hold Ctrl to snap onto a crossing / end / midpoint: every curve through it breaks there (overlapping circles: both, at both crossings) · Esc ends"
+    Announce(State, SplitCondition ? "Split: click a 3D spline, line, arc or circle at the preview ring (shape preserved) · hold Ctrl to snap onto a crossing / end / midpoint: every curve through it breaks there (overlapping circles: both, at both crossings) · Esc ends"
                                    : "Trim: click the piece of a curve to remove (between its crossings) · Esc ends");
 }
 
@@ -2702,7 +2740,7 @@ void CloseTrimSession(SolidArcWorkspaceState& State)
     State.Trim.HoverCondition  = false;
     State.Trim.Preview.clear();
     State.Trim.Breaks.clear();
-    Announce(State, State.Trim.InsertCondition ? "Point ended" : State.Trim.SplitCondition ? "Cut ended" : "Trim ended");
+    Announce(State, State.Trim.InsertCondition ? "Point ended" : State.Trim.SplitCondition ? "Split ended" : "Trim ended");
 }
 
 // 📝 The sketch curve nearest the pointer in pixels (≤ 8 px; later steps win ties), the pointer on its plane, and the
@@ -2717,6 +2755,7 @@ void HoverTrimPiece(SolidArcWorkspaceState& State, const OrbitCameraFrame& Frame
     Trim.PointCondition = false;
     Trim.PointCurves.clear();
     Trim.InsertedPoint = -1;
+    Trim.SpaceCurveCondition = false;
     if (!PointerCondition) return;
     if (Trim.InsertCondition && State.SketchPoints.HoverPoint >= 0) return;               // Point tool over a point: it drags instead
     if (Trim.SplitCondition && ImGui::GetIO().KeyCtrl)
@@ -2775,6 +2814,60 @@ void HoverTrimPiece(SolidArcWorkspaceState& State, const OrbitCameraFrame& Frame
             }
         }
     }
+    // 📝 Refine the closest projected NURBS parameter, rather than dividing a display tessellation.
+    if (Trim.SplitCondition)
+    {
+        const FeatureStep* SpaceChosen = nullptr;
+        double SpaceParameter = 0.0;
+        for (const FeatureStep& Step : State.Document.Tree.Steps)
+        {
+            if (Step.Kind != FeatureStepKind::SpaceCurve || !CurveReachableCondition(State.Document, Step.Label)) continue;
+            const auto Found = State.Document.Regeneration.Curves.find(Step.Label);
+            if (Found == State.Document.Regeneration.Curves.end() || !Found->second.Curve.Definition) continue;
+            const auto& Definition = *Found->second.Curve.Definition;
+            const double Low = Definition.Knots[Definition.Degree], High = Definition.Knots[Definition.Poles.size()];
+            auto GapSquared = [&](double Parameter)
+            {
+                ImVec2 Pixel;
+                if (!ProjectWorldPoint(State, Frame, EvaluateNurbsCurve(Definition, Parameter).Position, Pixel)) return 1.0e30;
+                return double(Pixel.x - Mouse.x) * (Pixel.x - Mouse.x) + double(Pixel.y - Mouse.y) * (Pixel.y - Mouse.y);
+            };
+            constexpr int Samples = 128;
+            int Closest = 0;
+            double Square = 1.0e30;
+            for (int Index = 0; Index <= Samples; ++Index)
+            {
+                const double Candidate = GapSquared(Low + (High - Low) * Index / Samples);
+                if (Candidate < Square) { Square = Candidate; Closest = Index; }
+            }
+            double Left = Low + (High - Low) * std::max(0, Closest - 1) / Samples;
+            double Right = Low + (High - Low) * std::min(Samples, Closest + 1) / Samples;
+            for (int Iteration = 0; Iteration < 32; ++Iteration)
+            {
+                const double First = Left + (Right - Left) / 3.0, Second = Right - (Right - Left) / 3.0;
+                if (GapSquared(First) < GapSquared(Second)) Right = Second;
+                else Left = First;
+            }
+            const double Parameter = (Left + Right) * 0.5;
+            const double Gap = std::sqrt(GapSquared(Parameter));
+            if (Gap <= Nearest) { Nearest = Gap; SpaceChosen = &Step; SpaceParameter = Parameter; }
+        }
+        if (SpaceChosen)
+        {
+            const auto& Definition = *State.Document.Regeneration.Curves.at(SpaceChosen->Label).Curve.Definition;
+            Trim.Sketch = SpaceChosen->Label;
+            Trim.SpaceCurveCondition = true;
+            Trim.SpaceParameter = SpaceParameter;
+            Trim.HoverCondition = true;
+            Trim.Breaks = { EvaluateNurbsCurve(Definition, SpaceParameter).Position };
+            for (int Index = 0; Index <= 128; ++Index)
+                Trim.Preview.push_back(EvaluateNurbsCurve(Definition, Definition.Knots[Definition.Degree] +
+                    (Definition.Knots[Definition.Poles.size()] - Definition.Knots[Definition.Degree]) * Index / 128.0).Position);
+            if (!SpaceChosen->CurveOffsetGuide.empty()) Trim.Refusal = "Detach the live distance target before splitting";
+            else if (SolidArcSketchReferencedCondition(State.Document, SpaceChosen->Label)) Trim.Refusal = "Detach this curve's live dependents before splitting";
+            return;
+        }
+    }
     if (!Chosen) return;
     const OrthonormalFrame Plane = ElevatedSketchPlane(State.Document, *Chosen);
     Vector2 Pick;
@@ -2812,10 +2905,19 @@ void ApplyTrim(SolidArcWorkspaceState& State)
     SolidArcTrimSession& Trim = State.Trim;
     if (!Trim.HoverCondition) { Announce(State, Trim.InsertCondition ? "Point: no curve under the pointer" : Trim.SplitCondition ? "Cut: no curve under the pointer" : "Trim: no curve under the pointer"); return; }
     const int                    Inserted = Trim.InsertedPoint;
-    const SolidArcCommandOutcome Outcome  = Trim.SplitCondition && Trim.PointCondition ? CutSolidArcSketchesAt(State.Document, Trim.Point)
+    const SolidArcCommandOutcome Outcome  = Trim.SpaceCurveCondition ? SplitSolidArcSpaceCurveAt(State.Document, Trim.Sketch, Trim.SpaceParameter)
+                                           : Trim.SplitCondition && Trim.PointCondition ? CutSolidArcSketchesAt(State.Document, Trim.Point)
                                                                                        : TrimSolidArcSketch(State.Document, { Trim.Sketch, Trim.Curve, Trim.Pick, Trim.SplitCondition, Trim.InsertCondition });
     if (Outcome.AcceptedCondition)
     {
+        if (Trim.SpaceCurveCondition)
+        {
+            // A new knot partition invalidates the previous pole/span indices. Keep only the two whole curves.
+            State.PoleDrag.PickedLabel.clear();
+            State.PoleDrag.PickedPoles.clear();
+            State.SplineSpans = {};
+            State.SketchPoints = {};
+        }
         // Detached trim (a later step reads the sketch): the original is hidden, the trimmed copy is the last step.
         if (SolidArcCurveHiddenCondition(State.Document, Trim.Sketch) && State.FocusedStep == Trim.Sketch && !State.Document.Tree.Steps.empty())
             State.FocusedStep = State.Document.Tree.Steps.back().Label;
@@ -9462,7 +9564,7 @@ void DrawJointCard(SolidArcWorkspaceState& State)
             Field(Kind == JointKind::Planar ? "Slide x###JointSlide" : "Slide###JointSlide", Request.Slide, 0.005f, "%.4f m");
         if (Kind == JointKind::Planar) Field("Slide y###JointSecondSlide", Request.SecondSlide, 0.005f, "%.4f m");
         Field("Offset###JointOffset", Request.Offset, 0.005f, "%.4f m");
-        Changed |= ImGui::Checkbox("Flip (F)###JointFlip", &Request.Flipped);
+        Changed |= SolidArcAuthoringToggle(State, "Flip (F)###JointFlip", &Request.Flipped);
         RegisterWidget(State, "Flip (F)###JointFlip");
         if (Changed) StageJointPreview(State);
         ImGui::TextDisabled("%s · %d degree(s) of freedom", JointKindLabel(Kind), JointFreedom(Kind));
@@ -13051,7 +13153,7 @@ void BeginSheetWindow(const char* Name, ImVec2 Position, ImVec2 Size, bool Overl
     ImGui::SetNextWindowSize(Size);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-    ImGui::Begin(Name, nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground |
+    ImGui::Begin(Name, nullptr, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground |
                                 (OverlayCondition ? 0 : ImGuiWindowFlags_NoBringToFrontOnFocus) | ImGuiWindowFlags_NoScrollWithMouse);
 }
 
@@ -13093,6 +13195,31 @@ void DrawStatusBar(SolidArcWorkspaceState& State, const ImVec2 Frame)
     if (SheetTextButton(State, Sheet, "StatusLog", Right, Centre, LogLabel.c_str(), IconSymbol::Count, &LogWidth)) State.TraceShown = !State.TraceShown;
     Right -= LogWidth + 10.0f;
 #endif
+    float GuideWidth = 0;
+    if (SheetTextButton(State, Sheet, "CurveGuide", Right, Centre, "Curve guide", IconSymbol::Count, &GuideWidth)) State.CurveGuideVisible = !State.CurveGuideVisible;
+    Right -= GuideWidth + 10;
+    float LayoutWidth = 0;
+    if (SheetTextButton(State, Sheet, "ResetPanels", Right, Centre, "Reset panels", IconSymbol::Count, &LayoutWidth))
+    {
+        for (const char* Key : {"solidarc-outliner", "solidarc-viewport", "solidarc-inspector"}) State.WorkspacePanels.ConfigureOpen(Key, true);
+        State.WorkspacePanels.ResetLayout();
+    }
+    Right -= LayoutWidth + 10;
+    // Tab extents are screen coordinates, not scrollable card content. Record inside a real window;
+    // Record() consults its draw-list clip and must never activate ImGui's implicit Debug window.
+    ImGui::GetWindowDrawList()->PushClipRectFullScreen();
+        for (const auto& Panel : {std::pair{"Outliner###FrontierPanel-solidarc-outliner", "PanelTabOutliner"},
+                                  std::pair{"Viewport###FrontierPanel-solidarc-viewport", "PanelTabViewport"},
+                                  std::pair{"Inspector###FrontierPanel-solidarc-inspector", "PanelTabInspector"}})
+        {
+            const auto* Window = ImGui::FindWindowByName(Panel.first);
+            if (!Window || !Window->DockNode || !Window->DockNode->TabBar) continue;
+            auto* Tabs = Window->DockNode->TabBar;
+            if (const auto* Tab = ImGui::TabBarFindTabByID(Tabs, Window->TabId))
+                State.Widgets.Record(Panel.second, ImVec2(Tabs->BarRect.Min.x + Tab->Offset, Tabs->BarRect.Min.y),
+                    ImVec2(Tabs->BarRect.Min.x + Tab->Offset + Tab->Width, Tabs->BarRect.Max.y));
+        }
+    ImGui::GetWindowDrawList()->PopClipRect();
     const std::string Message = Legible(State.Status);
     Sheet.TextClipped(Cursor, Centre, std::max(0.0f, Right - Cursor), 9.0f, SolidArcInk(0xb0b0b0), Message.c_str());
     EndSheetWindow();
@@ -13433,9 +13560,9 @@ void ToggleImageFigure(SolidArcWorkspaceState& State, const std::string& Name, b
 }
 
 // The Outliner panel (SolidArcOutliner) and what its rows ask for.
-void DrawOutliner(SolidArcWorkspaceState& State, ImVec2 Position, ImVec2 Size)
+void DrawOutliner(SolidArcWorkspaceState& State, ImVec2 Position, ImVec2 Size, bool Hosted = false)
 {
-    BeginSheetWindow("Outliner", Position, Size);
+    if (!Hosted) BeginSheetWindow("Outliner", Position, Size);
     const SolidArcOutlinerIntent Intent = ConstructSolidArcOutliner(State, Spanning(Position.x, Position.y, Size.x, Position.y + Size.y - Position.y));
     auto PromoteSubShapeBodies = [&]()
     {
@@ -13633,7 +13760,7 @@ void DrawOutliner(SolidArcWorkspaceState& State, ImVec2 Position, ImVec2 Size)
     }
     if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_F, false) && !ImGui::GetIO().WantTextInput) State.Outliner.SearchFocusRequest = true;
     DrawConstructDialog(State);
-    EndSheetWindow();
+    if (!Hosted) EndSheetWindow();
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -14715,7 +14842,7 @@ void DrawSketchToolbar(SolidArcWorkspaceState& State, ImVec2 Image, ImVec2 Exten
                                && !State.DimensionTool.ActiveCondition && !State.Knife.ActiveCondition
                                && !State.Drawing.ActiveCondition && !State.Sweep.ActiveCondition;
     const ToolButton Tools[] = { { "SketchSelect", IconSymbol::SolidArcSelect, "Select", IdleSelectActive, true },
-                                 { "SketchCut", IconSymbol::SolidArcCut, "Cut", SplitCondition, SketchCondition && !State.Bevel.ActiveCondition },
+                                 { "SketchCut", IconSymbol::SolidArcCut, "Split", SplitCondition, (SketchCondition || !State.Document.Regeneration.Curves.empty()) && !State.Bevel.ActiveCondition },
                                  { "SketchInsert", IconSymbol::SolidArcPoints, "Point", InsertCondition, SketchCondition && !State.Bevel.ActiveCondition },
                                  { "SketchTrim", IconSymbol::SolidArcTrim, "Trim", TrimCondition, SketchCondition },
                                  { "SketchFill", IconSymbol::SolidArcFill, "Fill", State.Fill.ActiveCondition, SketchCondition },
@@ -14727,7 +14854,7 @@ void DrawSketchToolbar(SolidArcWorkspaceState& State, ImVec2 Image, ImVec2 Exten
     const std::string ToolCaption = KnifeToolLabel(State);
     // Small text-icon pill: no SVG + caption pairs and no tall card margins.
     // Tooltips retain the full descriptions and keyboard shortcuts.
-    const char* TextIcons[] = {"Sel", "Cut", "+Pt", "Trim", "Fill", "Dim", "Knife", "Offset", "Surface"};
+    const char* TextIcons[] = {"Sel", "Split", "+Pt", "Trim", "Fill", "Dim", "Knife", "Offset", "Surface"};
     SolidArcSheet Probe; Probe.Begin();
     constexpr float FontSize = 11.0f, ButtonHeight = 24.0f, Height = 30.0f, Padding = 7.0f;
     float Widths[9], Total = 12.0f;
@@ -14760,7 +14887,7 @@ void DrawSketchToolbar(SolidArcWorkspaceState& State, ImVec2 Image, ImVec2 Exten
         Sheet.Text(Box.MinimumX + Padding, Centre, FontSize, Ink, TextIcons[Index]);
         if (Press.HoveredCondition)
         {
-            const char* Tips[] = {"Select: close editing tools", "Cut: split a line, arc or circle", "Point (V): add a point to a curve",
+            const char* Tips[] = {"Select: close editing tools", "Split curve at mouse: click the preview ring on a 3D spline or planar curve. Shape preserved; Esc exits.", "Point (V): add a point to a curve",
                 "Trim (T): remove a curve segment", "Fill (F): fill a closed region", "Dimension (D): pick geometry, then place the dimension",
                 "Knife (Shift+K): cutter tools; arrow opens the cutter menu",
                 "Offset (O): select an arc/circle/sketch, then drag or type a distance in metres and Enter. Keeps the original; arcs/circles stay concentric. Use the opposite sign for the other side.",
@@ -14918,14 +15045,13 @@ std::pair<IconSymbol, const char*> StepGlyph(const FeatureStep& Step)
     return { IconSymbol::SolidArcBody, "step" };
 }
 
-void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, ImVec2 Position, ImVec2 Size)
+void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, ImVec2 Position, ImVec2 Size, bool Hosted = false)
 {
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
-    ImGui::SetNextWindowPos(Position);
-    ImGui::SetNextWindowSize(Size);
+    if (!Hosted) { ImGui::SetNextWindowPos(Position); ImGui::SetNextWindowSize(Size); }
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, PanelRounding);
-    ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
+    if (!Hosted) ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
                                       ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoScrollbar |
                                       ImGuiWindowFlags_NoScrollWithMouse);
     ImDrawList* Canvas = ImGui::GetWindowDrawList();
@@ -15901,7 +16027,7 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
                        : State.Trim.ActiveCondition && State.Trim.InsertCondition
                            ? "Point: hover a curve (blue, a ring where the point goes) · click adds the point, the shape stays · Ctrl snaps the ring onto a midpoint / quarter / crossing · drag a point (or the gizmo) to move it · Esc / V / right-click end"
                        : State.Trim.ActiveCondition && State.Trim.SplitCondition
-                           ? "Cut: hover a line, arc or circle (amber, a ring where it breaks) · click splits it in two there (a circle: two half arcs) · Esc / right-click end"
+                           ? "Split: hover a 3D spline or planar curve; the ring marks the mouse position · click preserves both pieces · Esc / right-click ends"
                        : State.Trim.ActiveCondition
                            ? "Trim: hover a curve (the red piece comes off between its crossings) · click removes it · Esc / T / right-click end"
                        : State.Fill.ActiveCondition
@@ -15929,7 +16055,7 @@ void DrawViewport(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, Im
     DrawSelectionRail(State, Image);
     DrawGizmoChips(State, Image, Extent.x);
     DrawSketchToolbar(State, Image, Extent, HintTop);
-    ImGui::End();
+    if (!Hosted) ImGui::End();
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor();
 }
@@ -16609,7 +16735,7 @@ void DrawStepCard(SolidArcWorkspaceState& State)
         bool       Filled = Current->FillCondition;
         if (Closed)
         {
-            const bool Toggled = ImGui::Checkbox("Filled  (F)###StepFill", &Filled);
+            const bool Toggled = SolidArcAuthoringToggle(State, "Filled  (F)###StepFill", &Filled);
             RegisterWidget(State, "StepFill");
             ImGui::SameLine();
             ImGui::TextDisabled("%s", Filled ? "E extrudes a solid" : "E extrudes walls (an open sheet)");
@@ -17004,7 +17130,7 @@ void DrawModifierStackCard(SolidArcWorkspaceState& State)
         const std::string ModLabel = Copy.Label;
         ImGui::Separator();
         bool Enabled = Copy.EnabledCondition;
-        if (ImGui::Checkbox((CaptionOf(State.Document, ModLabel) + " (" + ModifierKindLabel(Copy.Kind) + ")###ModEnable:" + ModLabel).c_str(), &Enabled))
+        if (SolidArcAuthoringToggle(State, (CaptionOf(State.Document, ModLabel) + " (" + ModifierKindLabel(Copy.Kind) + ")###ModEnable:" + ModLabel).c_str(), &Enabled))
         {
             Conclude(State, ToggleSolidArcModifier(State.Document, ModLabel));
             break;
@@ -17055,7 +17181,7 @@ void DrawModifierStackCard(SolidArcWorkspaceState& State)
             Edited |= DrawModifierValueRow(State, "Count Y", ModLabel + ":Count2", Copy.SecondaryCount, true);
             Edited |= DrawModifierValueRow(State, "Step Y (m)", ModLabel + ":Dist2", Copy.SecondaryDistance);
             bool Merge = Copy.MergeCondition;
-            if (ImGui::Checkbox(("Merge overlapping###ModMerge:" + ModLabel).c_str(), &Merge)) { Copy.MergeCondition = Merge; Edited = true; }
+            if (SolidArcAuthoringToggle(State, ("Merge overlapping###ModMerge:" + ModLabel).c_str(), &Merge)) { Copy.MergeCondition = Merge; Edited = true; }
         }
         else if (Copy.Kind == ModifierKind::CircularArray)
         {
@@ -17074,7 +17200,7 @@ void DrawModifierStackCard(SolidArcWorkspaceState& State)
                 }
             }
             bool Merge = Copy.MergeCondition;
-            if (ImGui::Checkbox(("Merge overlapping###ModMerge:" + ModLabel).c_str(), &Merge)) { Copy.MergeCondition = Merge; Edited = true; }
+            if (SolidArcAuthoringToggle(State, ("Merge overlapping###ModMerge:" + ModLabel).c_str(), &Merge)) { Copy.MergeCondition = Merge; Edited = true; }
         }
         else if (Copy.Kind == ModifierKind::CurveArray)
         {
@@ -17091,7 +17217,7 @@ void DrawModifierStackCard(SolidArcWorkspaceState& State)
             Edited |= DrawModifierValueRow(State, "Count", ModLabel + ":Count", Copy.Count, true);
             Edited |= DrawModifierValueRow(State, "Spacing (0=fit)", ModLabel + ":Dist", Copy.Distance);
             bool Orient = Copy.AlignCondition;
-            if (ImGui::Checkbox(("Follow curve frame###ModOrient:" + ModLabel).c_str(), &Orient)) { Copy.AlignCondition = Orient; Edited = true; }
+            if (SolidArcAuthoringToggle(State, ("Follow curve frame###ModOrient:" + ModLabel).c_str(), &Orient)) { Copy.AlignCondition = Orient; Edited = true; }
         }
         else if (Copy.Kind == ModifierKind::SurfaceArray)
         {
@@ -17135,7 +17261,7 @@ void DrawModifierStackCard(SolidArcWorkspaceState& State)
                 }
             }
             bool Stretch = Copy.StretchCondition;
-            if (ImGui::Checkbox(("Stretch along curve###ModStretch:" + ModLabel).c_str(), &Stretch)) { Copy.StretchCondition = Stretch; Edited = true; }
+            if (SolidArcAuthoringToggle(State, ("Stretch along curve###ModStretch:" + ModLabel).c_str(), &Stretch)) { Copy.StretchCondition = Stretch; Edited = true; }
         }
         else if (Copy.Kind == ModifierKind::Bevel)
         {
@@ -17342,7 +17468,7 @@ void DrawImagePlaneCard(SolidArcWorkspaceState& State)
         SolidArcImagePlane& Plane = Planes[Index];
         ImGui::PushID(int(Index));
         const std::string VisibleLabel = "###PlaneVisible" + std::to_string(Index);
-        if (ImGui::Checkbox(VisibleLabel.c_str(), &Plane.VisibleCondition)) EditedCondition = true;
+        if (SolidArcAuthoringToggle(State, VisibleLabel.c_str(), &Plane.VisibleCondition)) EditedCondition = true;
         RegisterWidget(State, VisibleLabel.c_str());
         ImGui::SameLine();
         const bool        Focused   = Plane.Name == State.FocusedImage;
@@ -17362,13 +17488,12 @@ void DrawImagePlaneCard(SolidArcWorkspaceState& State)
             // Look: opacity, ink or photograph, mirror.
             ImGui::SetNextItemWidth(RowSpan().x);
             float Opacity = float(Plane.Opacity);
-            if (ImGui::SliderFloat("###ImageOpacity", &Opacity, 0.05f, 1.0f, "opacity %.2f"))
+            if (SolidArcAuthoringSlider(State, "Opacity###ImageOpacity", &Opacity, 0.05f, 1.0f))
             {
                 Plane.Opacity   = double(Opacity);
                 EditedCondition = true;
             }
-            RegisterWidget(State, "###ImageOpacity");
-            ImGui::SameLine();
+
             ImGui::TextDisabled("transparency %d %%", int(std::lround((1.0 - Plane.Opacity) * 100.0)));
             if (ToggleButton(State, "Line art###ImageInk", !Plane.PhotoCondition, RowSpan(4))) { Plane.PhotoCondition = false; EditedCondition = true; }
             ImGui::SameLine();
@@ -17393,13 +17518,11 @@ void DrawImagePlaneCard(SolidArcWorkspaceState& State)
                 const std::array<int, 4> Crop = EffectiveImageCrop(Plane, Width, Height);
                 float Margins[4] = { 100.0f * float(Crop[0]) / float(Width), 100.0f * float(Crop[1]) / float(Height), 100.0f * float(int(Width) - Crop[2]) / float(Width),
                                      100.0f * float(int(Height) - Crop[3]) / float(Height) };
-                static const char* const Sides[4] = { "###ImageCropLeft", "###ImageCropTop", "###ImageCropRight", "###ImageCropBottom" };
-                static const char* const Formats[4] = { "crop left %.1f %%", "crop top %.1f %%", "crop right %.1f %%", "crop bottom %.1f %%" };
+                static const char* const Sides[4] = { "Crop left (%)###ImageCropLeft", "Crop top (%)###ImageCropTop", "Crop right (%)###ImageCropRight", "Crop bottom (%)###ImageCropBottom" };
                 for (int Side = 0; Side < 4; ++Side)
                 {
-                    if (Side % 2 == 1) ImGui::SameLine();
                     ImGui::SetNextItemWidth(RowSpan().x);
-                    if (ImGui::SliderFloat(Sides[Side], &Margins[Side], 0.0f, 95.0f, Formats[Side]))
+                    if (SolidArcAuthoringSlider(State, Sides[Side], &Margins[Side], 0.0f, 95.0f))
                     {
                         std::array<int, 4> Next = Crop;
                         if (Side == 0) Next[0] = int(std::lround(Margins[0] * 0.01f * float(Width)));
@@ -17558,13 +17681,13 @@ void DrawDrawingOptions(SolidArcWorkspaceState& State)
         ImGui::TextUnformatted(Arc?"Arc: planar only":"Curve placement");
         bool Surface=D.SurfaceCondition;
         ImGui::BeginDisabled(Arc || !D.Points.empty());
-        if(ImGui::Checkbox("Surface snap###ToolSurface",&Surface)) {
+        if(SolidArcAuthoringToggle(State, "Surface snap###ToolSurface",&Surface)) {
             D.SurfaceCondition=Surface;State.SurfaceTraceEnabled=Surface;D.FacePlaneCondition=false;D.PointerLifted.reset();
             if(Surface && D.Form!=SketchSplineForm::Bezier)D.Form=SketchSplineForm::Nurbs;
         }
-        RegisterWidget(State,"###ToolSurface");ImGui::EndDisabled();
-        ImGui::Checkbox("Snap to curves###ToolCurveSnap",&State.DrawingCurveSnap);RegisterWidget(State,"###ToolCurveSnap");
-        ImGui::BeginDisabled(Arc);ImGui::Checkbox("Auto-split 3D crossings###ToolAutoSplit",&State.DrawingAutoSplit);RegisterWidget(State,"###ToolAutoSplit");ImGui::EndDisabled();
+        ImGui::EndDisabled();
+        SolidArcAuthoringToggle(State, "Snap to curves###ToolCurveSnap",&State.DrawingCurveSnap);
+        ImGui::BeginDisabled(Arc);SolidArcAuthoringToggle(State, "Auto-split 3D crossings###ToolAutoSplit",&State.DrawingAutoSplit);ImGui::EndDisabled();
         if(State.DrawingAutoSplit) {
             ImGui::SetNextItemWidth(110);ImGui::InputDouble("Joint tolerance (m)###ToolJointTolerance",&State.DrawingIntersectionTolerance,0,0,"%.4f");
         }
@@ -17586,36 +17709,111 @@ void DrawDrawingOptions(SolidArcWorkspaceState& State)
 
 void DrawSurfaceOffsetCard(SolidArcWorkspaceState& State)
 {
-    const auto& Selected=State.Document.Selection.Curves;
-    if(Selected.size()!=2 && Selected.size()!=1)return;
-    auto Step=Selected.empty()?State.Document.Tree.Steps.end():std::find_if(State.Document.Tree.Steps.begin(),State.Document.Tree.Steps.end(),[&](const auto& S){return S.Label==Selected.back();});
-    const bool Linked=Step!=State.Document.Tree.Steps.end() && !Step->CurveOffsetGuide.empty();
-    if(Selected.size()!=2 && !Linked)return;
+    const auto Selected = State.Document.Selection.Curves;
+    auto Step = Selected.empty() ? State.Document.Tree.Steps.end() : std::find_if(
+        State.Document.Tree.Steps.begin(), State.Document.Tree.Steps.end(), [&](const auto& Candidate) { return Candidate.Label == Selected.back(); });
+    const bool Linked = Step != State.Document.Tree.Steps.end() && !Step->CurveOffsetGuide.empty();
     BeginCard("Live surface distance");
-    if(Selected.size()==2) {
-        ImGui::TextWrapped("Guide (first): %s\nTarget (second): %s",CaptionOf(State.Document,Selected[0]).c_str(),CaptionOf(State.Document,Selected[1]).c_str());
-        if(PressButton(State,"Swap guide / target###OffsetSwap",ImVec2(-1,0))) {std::swap(State.Document.Selection.Curves[0],State.Document.Selection.Curves[1]);EndCard();return;}
-        if(State.SurfaceOffsetBody.empty()) {
-            for(const auto& B:State.Document.Regeneration.Bodies)if(State.Document.Appearance.LockedFigures.contains(B.Key)){State.SurfaceOffsetBody=B.Key;break;}
-        }
-        if(ImGui::BeginCombo("Reference###OffsetReference",State.SurfaceOffsetBody.c_str())) {
-            for(const auto& B:State.Document.Regeneration.Bodies)if(ImGui::Selectable(B.Key.c_str(),State.SurfaceOffsetBody==B.Key))State.SurfaceOffsetBody=B.Key;
-            ImGui::EndCombo();
-        }
-        ImGui::SetNextItemWidth(120);ImGui::InputDouble("Along surface (m)###OffsetDistance",&State.SurfaceOffsetDistance,0,0,"%.4f");RegisterWidget(State,"###OffsetDistance");
-        ImGui::SetNextItemWidth(120);ImGui::InputDouble("Tolerance (m)###OffsetTolerance",&State.SurfaceOffsetTolerance,0,0,"%.4f");RegisterWidget(State,"###OffsetTolerance");
-        ImGui::TextWrapped("Intrinsic mesh geodesic, linked to guide. Target picks side/extent. Refines to contour convergence; gaps/resource limits refuse. Guide must lie on this reference within 4x tolerance.");
-        if(PressButton(State,"Link / update distance###LinkSurfaceOffset",ImVec2(-1,0),!State.Drawing.ActiveCondition)) {
-            const auto Guide=Selected[0],Target=Selected[1];
-            Conclude(State,LinkSolidArcSurfaceOffset(State.Document,Guide,Target,State.SurfaceOffsetBody,State.SurfaceOffsetDistance,State.SurfaceOffsetTolerance));
-            EndCard();return;
-        }
+    if (Selected.size() != 2 && !(Selected.size() == 1 && Linked))
+    {
+        ImGui::TextWrapped("Select the guide, then Shift-select the target curve. Or select one already-linked target to edit its distance.");
+        if (PressButton(State, "Curve workflow guide###OffsetGuide", ImVec2(-1, 0))) State.CurveGuideVisible = true;
+        EndCard();
+        return;
     }
-    if(Linked) {
-        ImGui::TextWrapped("Linked to %s at %.4f m. Edit guide to regenerate; detach before editing result controls.",Step->CurveOffsetGuide.c_str(),Step->CurveOffsetDistance);
-        if(PressButton(State,"Detach (keep curve)###DetachSurfaceOffset",ImVec2(-1,0))) {
-            const auto Label=Step->Label;Conclude(State,DetachSolidArcSurfaceOffset(State.Document,Label));
+    const std::string Guide = Selected.size() == 2 ? Selected.front() : Step->CurveOffsetGuide;
+    const std::string Target = Selected.back();
+    const std::string Pair = Guide + "\n" + Target;
+    const std::string Signature = Pair + (Linked ? Compose("\n%s %.17g %.17g", Step->CurveOffsetBody.c_str(), Step->CurveOffsetDistance, Step->CurveOffsetTolerance) : "\nunlinked");
+    if (Signature != State.SurfaceOffsetReadback)
+    {
+        if (Pair != State.SurfaceOffsetPair) State.SurfaceOffsetFeedback.clear();
+        if (Linked)
+        {
+            State.SurfaceOffsetDistance = Step->CurveOffsetDistance;
+            State.SurfaceOffsetTolerance = Step->CurveOffsetTolerance;
+            State.SurfaceOffsetBody = Step->CurveOffsetBody;
         }
+        else if (Pair != State.SurfaceOffsetPair)
+        {
+            State.SurfaceOffsetBody.clear();
+            for (const auto& Body : State.Document.Regeneration.Bodies)
+                if (SolidArcLockedCondition(State.Document, Body.Key))
+                {
+                    if (!State.SurfaceOffsetBody.empty()) { State.SurfaceOffsetBody.clear(); break; }
+                    State.SurfaceOffsetBody = Body.Key;
+                }
+        }
+        State.SurfaceOffsetPair = Pair;
+        State.SurfaceOffsetReadback = Signature;
+        State.SurfaceOffsetPending = false;
+    }
+    ImGui::TextWrapped("Guide: %s\nTarget: %s", CaptionOf(State.Document, Guide).c_str(), CaptionOf(State.Document, Target).c_str());
+    if (Selected.size() == 2 && PressButton(State, "Swap guide / target###OffsetSwap", ImVec2(-1, 0)))
+    {
+        std::swap(State.Document.Selection.Curves[0], State.Document.Selection.Curves[1]);
+        EndCard();
+        return;
+    }
+    bool Finished = false;
+    const std::string Reference = State.SurfaceOffsetBody.empty() ? "Choose locked reference..." : CaptionOf(State.Document, State.SurfaceOffsetBody);
+    ImGui::TextDisabled("Reference (locked)");
+    ImGui::SetNextItemWidth(-1);
+    if (ImGui::BeginCombo("###OffsetReference", Reference.c_str()))
+    {
+        for (const auto& Body : State.Document.Regeneration.Bodies)
+        {
+            const bool Locked = SolidArcLockedCondition(State.Document, Body.Key);
+            ImGui::BeginDisabled(!Locked);
+            if (ImGui::Selectable((CaptionOf(State.Document, Body.Key) + (Locked ? "" : " (lock in Outliner first)")).c_str(), State.SurfaceOffsetBody == Body.Key))
+            {
+                State.SurfaceOffsetBody = Body.Key;
+                State.SurfaceOffsetPending = true;
+                Finished = true;
+            }
+            ImGui::EndDisabled();
+        }
+        ImGui::EndCombo();
+    }
+    RegisterWidget(State, "###OffsetReference");
+    ImGui::SetNextItemWidth(110);
+    State.SurfaceOffsetPending |= ImGui::InputDouble("Along surface (m)###OffsetDistance", &State.SurfaceOffsetDistance, 0, 0, "%.6f");
+    Finished |= ImGui::IsItemDeactivatedAfterEdit();
+    RegisterWidget(State, "###OffsetDistance");
+    ImGui::SetNextItemWidth(110);
+    State.SurfaceOffsetPending |= ImGui::InputDouble("Tolerance (m)###OffsetTolerance", &State.SurfaceOffsetTolerance, 0, 0, "%.6f");
+    Finished |= ImGui::IsItemDeactivatedAfterEdit();
+    RegisterWidget(State, "###OffsetTolerance");
+    SolidArcAuthoringToggle(State, "Apply linked edits on release###OffsetAutoApply", &State.SurfaceOffsetAutoApply);
+    if (Linked) ImGui::TextWrapped("Active link: %.6f m. Guide edits regenerate the target. Target chooses side and extent.", Step->CurveOffsetDistance);
+    else ImGui::TextWrapped("Not linked yet. Set the distance, then press Link / update below.");
+    ImGui::TextWrapped("Distance is along the reference surface, within solver tolerance; not a straight 3D gap. Choose the sheet containing the guide.");
+    const bool Editable = !State.Drawing.ActiveCondition && !State.Bevel.ActiveCondition && !State.Transform.ActiveCondition;
+    const bool Apply = PressButton(State, "Link / update distance###LinkSurfaceOffset", ImVec2(-1, 0), Editable);
+    if (Apply || (Editable && Linked && State.SurfaceOffsetAutoApply && State.SurfaceOffsetPending && Finished))
+    {
+        const auto Outcome = LinkSolidArcSurfaceOffset(State.Document, Guide, Target, State.SurfaceOffsetBody, State.SurfaceOffsetDistance, State.SurfaceOffsetTolerance);
+        State.SurfaceOffsetFailed = !Outcome.AcceptedCondition;
+        State.SurfaceOffsetFeedback = Outcome.AcceptedCondition
+            ? Compose("Applied %.6f m along surface. Move the guide to regenerate. Undo restores the previous distance.", State.SurfaceOffsetDistance)
+            : "Not applied; previous geometry kept. " + Outcome.Refusal;
+        State.SurfaceOffsetPending = false;
+        Conclude(State, Outcome);
+        // Regeneration invalidates Step. The next frame reads the stored link again.
+        EndCard();
+        return;
+    }
+    if (State.SurfaceOffsetPending) ImGui::TextWrapped("Unapplied edits. Press Enter / leave the field, or Link / update.");
+    if (!State.SurfaceOffsetFeedback.empty())
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text, State.SurfaceOffsetFailed ? ImVec4(1, .64f, .43f, 1) : ImVec4(.64f, .85f, .64f, 1));
+        ImGui::TextWrapped("%s", State.SurfaceOffsetFeedback.c_str());
+        ImGui::PopStyleColor();
+    }
+    if (Linked && PressButton(State, "Detach (keep curve)###DetachSurfaceOffset", ImVec2(-1, 0), Editable))
+    {
+        Conclude(State, DetachSolidArcSurfaceOffset(State.Document, Target));
+        State.SurfaceOffsetReadback.clear();
     }
     EndCard();
 }
@@ -17623,19 +17821,18 @@ void DrawSurfaceOffsetCard(SolidArcWorkspaceState& State)
 void DrawDrawingCard(SolidArcWorkspaceState& State)
 {
     SolidArcDrawingSession& Drawing = State.Drawing;
-    DrawSurfaceOffsetCard(State);
     BeginCard("Surface tracing");
     ImGui::TextWrapped("6: whole curves · 2: spans · 1: points. Arc: planar, not surface.");
-    ImGui::Checkbox("Drawing options###DrawingOptions",&State.DrawingOptionsVisible);RegisterWidget(State,"###DrawingOptions");
+    SolidArcAuthoringToggle(State, "Drawing options###DrawingOptions",&State.DrawingOptionsVisible);
     if(PressButton(State,"Split existing cage crossings###SplitCage",ImVec2(-1,0),!Drawing.ActiveCondition)) Conclude(State,SplitSolidArcCurveCrossings(State.Document,State.DrawingIntersectionTolerance));
     ImGui::BeginDisabled(Drawing.ActiveCondition || State.Knife.ActiveCondition);
-    if (ImGui::Checkbox("Surface snap###SurfaceTrace", &State.SurfaceTraceEnabled))
+    if (SolidArcAuthoringToggle(State, "Surface snap###SurfaceTrace", &State.SurfaceTraceEnabled))
         Announce(State, State.SurfaceTraceEnabled ? "Surface tracing ON · Curve / Arc / Line · Ctrl: model edges · no planar fallback" : "Surface tracing OFF · ordinary sketch tools");
     RegisterWidget(State, "###SurfaceTrace");
     ImGui::EndDisabled();
-    ImGui::Checkbox("XYZ editing###FullXYZ", &State.FullXYZEnabled);
+    SolidArcAuthoringToggle(State, "XYZ editing###FullXYZ", &State.FullXYZEnabled);
     RegisterWidget(State, "###FullXYZ");
-    ImGui::Checkbox("Reference edges###TraceEdges", &State.Style.EdgesEnabled);
+    SolidArcAuthoringToggle(State, "Reference edges###TraceEdges", &State.Style.EdgesEnabled);
     RegisterWidget(State, "###TraceEdges");
     if (State.SurfaceTraceEnabled)
         ImGui::TextWrapped("Only clicked controls snap. Enter adds no points. Ctrl: curve, then CAD edge. Spans may leave the surface. Arc stays planar.");
@@ -18470,9 +18667,9 @@ void PopInspectorStyle()
 // 📝 HTML .panel.inspector: heading (Inspector 18 px, inspect button → Topology), the scrolling #inspector-body (padding
 //    0 10 10) and the footer. Sessions (Boolean, Joint, Bevel) take the top; otherwise the selection summary, the ordered
 //    selection, Bevel history, the tabs and the tab's cards.
-void DrawInspector(SolidArcWorkspaceState& State, ImVec2 Position, ImVec2 Size)
+void DrawInspector(SolidArcWorkspaceState& State, ImVec2 Position, ImVec2 Size, bool Hosted = false)
 {
-    BeginSheetWindow("Inspector", Position, Size);
+    if (!Hosted) BeginSheetWindow("Inspector", Position, Size);
     SolidArcSheet Sheet;
     Sheet.Begin();
     const PlaneExtent Panel = Spanning(Position.x, Position.y, Size.x, Size.y);
@@ -18504,6 +18701,7 @@ void DrawInspector(SolidArcWorkspaceState& State, ImVec2 Position, ImVec2 Size)
     SolidArcSheet Body;
     Body.Begin();
     const SolidArcSelection& Selection = State.Document.Selection;
+    if (State.InspectorTab == SolidArcInspectorTab::Geometry) DrawSurfaceOffsetCard(State);
     const bool Picked = !Selection.Faces.empty() || !Selection.Edges.empty() || !Selection.Bodies.empty() || !Selection.Curves.empty();
     if (State.Knife.ActiveCondition) DrawKnifeCard(State);
     else if (State.Boolean.ActiveCondition) DrawBooleanCard(State);
@@ -18574,7 +18772,7 @@ void DrawInspector(SolidArcWorkspaceState& State, ImVec2 Position, ImVec2 Size)
     ImGui::PopFont();
     ImGui::EndChild();
     PopInspectorStyle();
-    EndSheetWindow();
+    if (!Hosted) EndSheetWindow();
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -19605,6 +19803,8 @@ void ConfigureSolidArcInterface(const SolidArcOptions& Options)
 {
     ImGuiIO& Io = ImGui::GetIO();
     Io.IniFilename = nullptr;
+    Io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    Io.ConfigWindowsMoveFromTitleBarOnly = true;
     Io.LogFilename = nullptr;
     // 📝 Content root, first one holding DM Sans: the Frontier checkout the build came from (development), the folder whose
     //    EngineContent sits beside or above the executable (installed package, upstream ResolveContentDirectory), the
@@ -19878,11 +20078,53 @@ double RigidPreviewVolume(const SolidArcDocument& Document, const std::vector<st
     return Volume;
 }
 
+void DrawCurveGuide(SolidArcWorkspaceState& State)
+{
+    if (!State.CurveGuideVisible) return;
+    ImGui::SetNextWindowSize(ImVec2(520, 440), ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Curve rebuilding guide###CurveWorkflowGuide", &State.CurveGuideVisible, ImGuiWindowFlags_NoDocking))
+    {
+        if (ImGui::BeginTabBar("Workflow sections"))
+        {
+            if (ImGui::BeginTabItem("Split"))
+            {
+                ImGui::TextWrapped("1. Press Split in the compact viewport toolbar.\n2. Hover the actual curve: the highlighted curve and ring show exactly where the split will land.\n3. Click once. Both pieces stay selected, and retain the original NURBS shape.\n4. Esc or Sel exits. Ctrl+Z undoes the split.");
+                ImGui::Separator();
+                ImGui::TextWrapped("Works on authored 3D splines, including surface traces, and planar curves. A click selects the nearest projected point, not the nearest pole. Locked curves do not pick. Live targets and curves used by later features refuse until their dependencies are detached. Ctrl crossing cuts currently apply to planar sketches.");
+                if (PressButton(State, "Start split at pointer###GuideStartSplit", ImVec2(-1, 0))) { OpenTrimSession(State, true); State.CurveGuideVisible = false; }
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Distance"))
+            {
+                ImGui::TextWrapped("1. Lock the reference body in the Outliner.\n2. Select the guide first, then Shift-select the 3D target. Target placement chooses the side and extent.\n3. Geometry > Live surface distance is at the top of Inspector. Choose the correct locked reference sheet, distance and tolerance in metres.\n4. Press Link / update. Green feedback confirms application; orange explains refusal, with previous geometry kept.\n5. Select the linked target alone to edit its distance. Enter or leaving a field applies linked edits when Apply on release is enabled. Guide edits regenerate the target automatically.\n6. Detach keeps the evaluated curve and enables direct control editing.");
+                ImGui::Separator();
+                ImGui::TextWrapped("Geodesic distance follows the surface, not a straight 3D chord. The solver refines to its stated tolerance, not analytical exactness. The guide must lie on the chosen reference within four times tolerance; an open gap, an unrelated sheet or excessive refinement refuses instead of silently creating a wrong result.");
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Workspace"))
+            {
+                ImGui::TextWrapped("Drag the Outliner, Viewport or Inspector tab to rearrange. Drop onto a docking indicator to split; drop on another tab bar to group. Drag free to float inside the application. Resize separators normally. Reset panels in the status bar restores all three columns. The four Inspector sections are still Geometry / Transform / Topology / History.\n\nCurve switches and opacity sliders use Texture Workspace's existing authoring controls; docking and tab chrome use its PanelDockspace and PanelChrome implementations.");
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Open projects"))
+            {
+                ImGui::TextWrapped("Use the integrated Frontier project browser: browse to the project directory, select a .solidarc project, inspect its CAD preview, then choose Open in SolidArc. Frontier launches the CAD workspace with that exact project. A BAT file is not needed.\n\nThis requires the Frontier build containing the SolidArc integration and its packaged CAD companion; an older standalone executable cannot acquire the browser through a project file. The current source handoff does not establish an updated Windows installation.");
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
+        }
+    }
+    ImGui::End();
+}
+
 void DrawSolidArcInterface(SolidArcWorkspaceState& State, ImTextureID ViewportTexture, double DeltaSeconds)
 {
     const double Entered = SteadySeconds();
+    const auto SavedPalette = ControlKit::Palette();
+    ControlKit::ConfigurePalette(PanelChrome::StudioPalette(SavedPalette, {.20f, .19f, .15f, 1}, {.85f, .70f, .51f, 1}));
     SolidArcFrameProfile& Profile = State.Profile;
     State.Widgets.Clear();
+    State.ViewportHovered = false;
     State.Style.GridPlane = ViewGridPlane(State.Camera);                                     // Orbiting off a 90° view: the ground again
     { SolidArcPhaseClock Clock(Profile, "matcaps"); RefreshSolidArcMatcaps(State); }
     const ImVec2 Frame = ImGui::GetIO().DisplaySize;
@@ -19893,7 +20135,6 @@ void DrawSolidArcInterface(SolidArcWorkspaceState& State, ImTextureID ViewportTe
     //    document bar are gone (less chrome): their file actions are the Outliner ☰ menu and Ctrl+N / O / S / Shift+S / I / E.
     const float Top    = FrameMargin;
     const float Height = std::max(100.0f, Frame.y - Top - StatusHeight);
-    const float Middle = std::max(100.0f, Frame.x - 2 * FrameMargin - 2 * ColumnGap - OutlinerWidth - InspectorWidth);
     if (State.ViewportMaximizedEnabled)
     {
         // HTML maximize: the scene panel takes the whole row (Outliner and Inspector step aside).
@@ -19902,12 +20143,28 @@ void DrawSolidArcInterface(SolidArcWorkspaceState& State, ImTextureID ViewportTe
     }
     else
     {
-        { SolidArcPhaseClock Clock(Profile, "outliner"); DrawOutliner(State, ImVec2(FrameMargin, Top), ImVec2(OutlinerWidth, Height)); }
-        { SolidArcPhaseClock Clock(Profile, "viewport"); DrawViewport(State, ViewportTexture, ImVec2(FrameMargin + OutlinerWidth + ColumnGap, Top), ImVec2(Middle, Height)); }
-        { SolidArcPhaseClock Clock(Profile, "inspector"); DrawInspector(State, ImVec2(FrameMargin + OutlinerWidth + ColumnGap + Middle + ColumnGap, Top), ImVec2(InspectorWidth, Height)); }
+        if (!State.WorkspacePanelsRegistered)
+        {
+            State.WorkspacePanels.ConfigureDockspaceKey("SolidArcWorkspace");
+            State.WorkspacePanels.ConfigureWorkspaceInsets(0, StatusHeight);
+            State.WorkspacePanels.Register({ "solidarc-outliner", "Outliner", [&State]()
+                { DrawOutliner(State, ImGui::GetCursorScreenPos(), ImGui::GetContentRegionAvail(), true); } });
+            State.WorkspacePanels.Register({ "solidarc-viewport", "Viewport", [&State]()
+                { DrawViewport(State, State.WorkspaceViewportTexture, ImGui::GetCursorScreenPos(), ImGui::GetContentRegionAvail(), true); } });
+            State.WorkspacePanels.Register({ "solidarc-inspector", "Inspector", [&State]()
+                { DrawInspector(State, ImGui::GetCursorScreenPos(), ImGui::GetContentRegionAvail(), true); } });
+            State.WorkspacePanels.ConfigureColumns({ {"solidarc-outliner", .20f}, {"solidarc-viewport", .57f}, {"solidarc-inspector", .23f} });
+            State.WorkspacePanelsRegistered = true;
+        }
+        State.WorkspaceViewportTexture = ViewportTexture;
+        const auto DockChrome = PanelChrome::PushDockChrome(ImVec4(.07f, .07f, .07f, 1), ImVec4(.09f, .09f, .09f, 1), true, true, 1);
+        State.WorkspacePanels.ConstructInterface(1);
+        PanelChrome::PopDockChrome(DockChrome);
+
     }
     { SolidArcPhaseClock Clock(Profile, "status bar"); DrawStatusBar(State, Frame); }
     DrawDrawingOptions(State);
+    DrawCurveGuide(State);
     DrawWorkspacePopups(State);
     DrawMatcapPicker(State);
     DrawWelcome(State);
@@ -19974,6 +20231,7 @@ void DrawSolidArcInterface(SolidArcWorkspaceState& State, ImTextureID ViewportTe
     { SolidArcPhaseClock Clock(Profile, "bevel preview"); StageBevelPreview(State); }
     State.FrameNumber += 1;
     Profile.InterfaceMs = (SteadySeconds() - Entered) * 1.0e3;
+    ControlKit::ConfigurePalette(SavedPalette);
 }
 
 const SolidArcScene& DisplayedSolidArcScene(const SolidArcWorkspaceState& State)

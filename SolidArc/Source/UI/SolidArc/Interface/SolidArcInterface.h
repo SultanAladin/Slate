@@ -23,6 +23,7 @@
 #include "UI/SolidArc/Viewport/SolidArcSnapping.h"
 
 #include <imgui.h>
+#include "Engine/Interface/PanelDockspace.h"
 
 #include <array>
 #include <cstdint>
@@ -324,6 +325,8 @@ struct SolidArcTrimSession
     std::vector<std::vector<GeometryProcessing::Vector3>> PointCurves = {};                  // [len] - Curves that break there (world)
     // 💡 Point tool (V): a click adds a point on the curve where it is, the shape unchanged; the point is then picked.
     bool                                              InsertCondition = false;               // [-]   - Point tool instead of Cut / Trim
+    bool                                              SpaceCurveCondition = false;
+    double                                            SpaceParameter = 0.0;
     int                                               InsertedPoint   = -1;                  // [-]   - The point the hovered insert would add
 };
 
@@ -894,6 +897,16 @@ struct SolidArcWorkspaceState
     double SurfaceOffsetDistance = 0.05;
     double SurfaceOffsetTolerance = 0.002;
     std::string SurfaceOffsetBody;
+    std::string SurfaceOffsetPair;
+    std::string SurfaceOffsetReadback;
+    bool SurfaceOffsetPending = false;
+    std::string SurfaceOffsetFeedback;
+    bool SurfaceOffsetFailed = false;
+    bool SurfaceOffsetAutoApply = true;
+    bool CurveGuideVisible = false;
+    PanelDockspace WorkspacePanels;
+    ImTextureID WorkspaceViewportTexture = {};
+    bool WorkspacePanelsRegistered = false;
 
     bool FullXYZEnabled = false;
     SolidArcOptions                       Options        = {};                               // [-]   - Loaded options

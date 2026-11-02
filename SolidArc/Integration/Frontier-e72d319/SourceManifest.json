@@ -2,10 +2,10 @@
   "target_repository": "streamlinkinbox/Frontier",
   "target_branch": "arena/88b72faa-frontier",
   "target_commit": "e72d319239dffdb961629150b9de6f1e7dc618c6",
-  "solidarc_source": "SultanAladin/Slate c3a187909483aa8182ba96cf4916e3542a09395e",
+  "solidarc_source": "SultanAladin/Slate arena/4f335fa8-slate curve-workflow revision 2026-11-02 (over c3a187909483aa8182ba96cf4916e3542a09395e)",
   "geometry_source": "unassignedinbox/Frontier 82ed251267ed8457ca3530d8228b91555572c25d",
   "patch": "SolidArcOnly.patch",
-  "patch_sha256": "8f84f1eb38e896661af7a72a1dde30d87882c0a38602035cdb54fde737a8c080",
+  "patch_sha256": "ce12997ea1b586f9364d00b9cba9e9ee0458c3671ef86ba724718d2e0b2ecfec",
   "files": {
     "Automation/PackageEditorPreviewWindows.py": {
       "before_sha256": "e4714841a9930bd20b3041aa25656733cabbd2f7f58e40d4e60f87af0a954886",
@@ -19,8 +19,8 @@
     },
     "CMakeLists.txt": {
       "before_sha256": "03a83b42c403d22585594130412037e001846b500e5168eeabf33eca6a45c90c",
-      "after_sha256": "2ab6042834ebebf6b05f9d36fbfdc779a2cc27034da99d6cc55354712379280f",
-      "bytes": 50279
+      "after_sha256": "30a7e0fe72d419247493697c6864afc3d4748f138b5e9c75622db8c4a1b8920b",
+      "bytes": 50607
     },
     "Documentation/FolderStructure.md": {
       "before_sha256": "e24420a4268471ad4fcf5bf1b34e78db92fa9321e25aa2b291d4a2de2aa05f26",
@@ -34,8 +34,8 @@
     },
     "Documentation/Tracker.md": {
       "before_sha256": "e1e0041471af3616df6d7744f88494d19e86f4cb6df872ed689c861676b4db03",
-      "after_sha256": "2cca7d9ee5fe4ebd23a990d4c25ab02b60b0f3b037309ae9ff136a2f0f392930",
-      "bytes": 104236
+      "after_sha256": "a4fe6cb15eb5907a398efbf9d59d7d35da0ad8ebdd99dc318f3f9c5c623cc7e4",
+      "bytes": 105035
     },
     "Engine/ContentInterchange/ProjectBrowserCatalogue.h": {
       "before_sha256": "73d473183eae0f40b64fb600001bac2f2680988522a40341cb712ef03a4f2acb",
@@ -1812,6 +1812,16 @@
       "after_sha256": "efefd96facd4a84de9762e9319121dcea88cfbeae7fb1142ff5a974f4ac521df",
       "bytes": 3953
     },
+    "Exhibits/SolidArc/Code/Scripts/CurveLinkedDistanceEditCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "5dd6c70fd8e7a9db8d4ee83dee4527480d6fd8976718e7fba6e13725e52d1437",
+      "bytes": 823
+    },
+    "Exhibits/SolidArc/Code/Scripts/CurvePointerSplitCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "c824e1c50281ea0faec751315e84570843ad90ddc466552a402d358fff26e312",
+      "bytes": 491
+    },
     "Exhibits/SolidArc/Code/Scripts/CurveRequestWalkthrough.txt": {
       "before_sha256": null,
       "after_sha256": "b4fea29335fadd582a8d2b53b941e1aebd544dd6e6e9e7baecb87fd4bcf73b51",
@@ -2057,10 +2067,15 @@
       "after_sha256": "4fc730d33916db59ed245bd9a53466052f0b96ba13b88b6c5b3065ba180aca67",
       "bytes": 16389
     },
+    "Exhibits/SolidArc/Code/SolidArcCurveWorkflowValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "56b9cc87eaeef37f6b55b3a38704adc91a54023b486bc7634e227db213ea1ec5",
+      "bytes": 10831
+    },
     "Exhibits/SolidArc/Code/SolidArcDocumentValidation.cpp": {
       "before_sha256": null,
-      "after_sha256": "45e9d448f1d28a8898be8094d33cf255683bdb0771dd863fcc9999873e290cf5",
-      "bytes": 892323
+      "after_sha256": "8d9584c532c631090e03c2185ef5ab96b359e00b8cf3ec16b5c909a3860f4fd8",
+      "bytes": 892469
     },
     "Exhibits/SolidArc/Code/SolidArcViewportValidation.cpp": {
       "before_sha256": null,
@@ -2072,10 +2087,15 @@
       "after_sha256": "435ee6dd468c49cbddc2597510ad6052de07efe575de5b03379415858bd8e242",
       "bytes": 4753
     },
+    "Exhibits/SolidArc/CurveRebuildingGuide.md": {
+      "before_sha256": null,
+      "after_sha256": "e758d18b57d85d5524e0d89adb4aa6af8b19d874e75609287a6f2a0b5342f7c4",
+      "bytes": 5179
+    },
     "Exhibits/SolidArc/README.md": {
       "before_sha256": null,
-      "after_sha256": "e7cb9d33346d9eedb9af216bebc9303ea9d9d796b3434a8cbdf413b6fb59c05e",
-      "bytes": 3599
+      "after_sha256": "4f7c5c510ec704089570ec8a323595e72f14371bd91db409a4740721c058adbf",
+      "bytes": 5191
     },
     "Experimental/Frontier/Native/WindowsFrontier.cpp": {
       "before_sha256": "5c30fb2e952bb546e3873b4ccccb9b7432dcb43e8c1fa46b9840fbef38c7544b",
@@ -2099,8 +2119,8 @@
     },
     "Experimental/SolidArc/Native/SolidArc.cmake": {
       "before_sha256": null,
-      "after_sha256": "17503753347211e6f1c1916fdc5b049fa231c478d87e685eb2ce34e9cd6f0a0f",
-      "bytes": 44852
+      "after_sha256": "f0860782d113edad5dd9018aa5e7c5523abddf50dd6c93fac5740936f600d55b",
+      "bytes": 45154
     },
     "Experimental/SolidArc/Native/SolidArcApplication.cpp": {
       "before_sha256": null,
@@ -2174,13 +2194,13 @@
     },
     "UI/SolidArc/Document/SolidArcDocument.cpp": {
       "before_sha256": null,
-      "after_sha256": "12ee991f8fc93569058ac75a557800893378c2d0c4a5a1b4ae4633b7b3df1ddd",
-      "bytes": 450358
+      "after_sha256": "9ecf7045a1385672bd9448c4628741c5d71bfda96439cfc4234ef3a71472c1b0",
+      "bytes": 453198
     },
     "UI/SolidArc/Document/SolidArcDocument.h": {
       "before_sha256": null,
-      "after_sha256": "f17c1e9f364fa526824d32588811fd235dbc7af5f8385d787d7ef5269eafa641",
-      "bytes": 97736
+      "after_sha256": "27cffb7d9ee40c8c910fbb8a0ce3c2a5fd7f6e02b11ee46578f53115199feafb",
+      "bytes": 97872
     },
     "UI/SolidArc/Document/SolidArcDocumentCodec.cpp": {
       "before_sha256": null,
@@ -2309,13 +2329,13 @@
     },
     "UI/SolidArc/Interface/SolidArcInterface.cpp": {
       "before_sha256": null,
-      "after_sha256": "98ece10695261d307eb919457e3035420680bb49f40ff376ca08784f908aba00",
-      "bytes": 1207885
+      "after_sha256": "742a4b296f590bbe0dd508d7a82b6872b0c9d8c3aa7aeec7d6462f5bb2379b5d",
+      "bytes": 1224142
     },
     "UI/SolidArc/Interface/SolidArcInterface.h": {
       "before_sha256": null,
-      "after_sha256": "e266706d643881d73fc110c0dc5c1e03d58f5779a9622ec64f6bb2382cedc371",
-      "bytes": 109329
+      "after_sha256": "d1607c9db8170114b325eede5cc210fa5f32153f84d73f5711b00c6d03bb4fa7",
+      "bytes": 109926
     },
     "UI/SolidArc/Interface/SolidArcNavigation.cpp": {
       "before_sha256": null,
@@ -2359,8 +2379,8 @@
     },
     "UI/SolidArc/Interface/SolidArcStyleSheet.cpp": {
       "before_sha256": null,
-      "after_sha256": "7d3c1d7b47f81766a1f93d946d07ab3a8e8dc3f2a65045a0226dd1649d66e3eb",
-      "bytes": 11588
+      "after_sha256": "e1449c69a2b36c53038e2bc32e000c85c44a97c234301a90159ecfb16e6c5fc6",
+      "bytes": 11811
     },
     "UI/SolidArc/Interface/SolidArcStyleSheet.h": {
       "before_sha256": null,
@@ -2479,7 +2499,7 @@
     }
   },
   "existing_files_modified": 14,
-  "new_files": 480,
+  "new_files": 484,
   "windows_host_compiled": false,
   "windows_runtime_tested": false,
   "remote_frontier_merged": false

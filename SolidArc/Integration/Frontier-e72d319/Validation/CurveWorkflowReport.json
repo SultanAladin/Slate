@@ -1,0 +1,48 @@
+{
+  "revision": "curve-workflow-2026-11-02",
+  "native_existing": {
+    "NativeShiftDrawing": 185,
+    "NativeCutterPlacement": 112,
+    "NativeSelection": 17,
+    "NativeCage": 49,
+    "NativeEditing": 51,
+    "NativeTracing": 92
+  },
+  "native_existing_total": 506,
+  "native_browser": 17,
+  "native_curve_workflow": 45,
+  "native_total": 568,
+  "cad_green_rows": 869,
+  "cad_red_rows": 0,
+  "rendered": {
+    "cad_workflows": {
+      "CurvePointerSplit": 4,
+      "CurveLinkedDistanceEdit": 9,
+      "ShiftDrawing": 31,
+      "CutterSurface": 22,
+      "SelectionSketch": 12,
+      "SelectionViewport": 25,
+      "SelectionOutliner": 21,
+      "SelectionCage": 14,
+      "CageWorkflow": 25,
+      "SurfaceOffsetWorkflow": 16,
+      "CageProject": 19,
+      "SurfaceTraceStartup": 11,
+      "SurfaceTraceDrawing": 35,
+      "SurfaceTraceEdge": 6,
+      "SurfaceTraceQuad": 9,
+      "SurfaceTraceControl": 17,
+      "SurfaceTraceEditing": 19,
+      "SurfaceTraceTopologyDelete": 18
+    },
+    "cad_passed": 313,
+    "browser_passed": 15,
+    "total_rendered": 328
+  },
+  "packaging_unit_tests": 9,
+  "windows_compiled": false,
+  "windows_runtime_tested": false,
+  "frontier_remote_merged": false,
+  "original_cage_sha256": "90344c326b32e467b8298851eb8b1df2a2dba1ce879becd3c7a12303b252ec70",
+  "platform": "Linux, GCC 12.2, Release; CPU ImGui and Vulkan/SwiftShader; GLFW null platform is compile coverage only"
+}

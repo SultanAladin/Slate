@@ -33,6 +33,6 @@ Catalogue: 35 faces, 5 families, 0 rejected files
 -- Found Threads: TRUE
 fatal: not a git repository (or any of the parent directories): .git
 -- Surface shaders: no slangc or FRONTIER_SLANG_WASM; the editor uses the stored EngineContent/ShaderArchives/Surface
--- Configuring done (0.7s)
--- Generating done (0.0s)
--- Build files have been written to: /home/user/build/solidarc-disabled
+-- Configuring done (1.4s)
+-- Generating done (0.3s)
+-- Build files have been written to: /home/user/Slate/_AgentScratch/build/curve-cad-off

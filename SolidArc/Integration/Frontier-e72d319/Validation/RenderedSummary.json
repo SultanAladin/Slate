@@ -1,5 +1,7 @@
 {
   "cad_workflows": {
+    "CurvePointerSplit": 4,
+    "CurveLinkedDistanceEdit": 9,
     "ShiftDrawing": 31,
     "CutterSurface": 22,
     "SelectionSketch": 12,
@@ -17,7 +19,7 @@
     "SurfaceTraceEditing": 19,
     "SurfaceTraceTopologyDelete": 18
   },
-  "cad_passed": 300,
+  "cad_passed": 313,
   "browser_passed": 15,
-  "total_rendered": 315
+  "total_rendered": 328
 }

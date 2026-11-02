@@ -1,8 +1,8 @@
-capture Liger_Point_Only_Closed_Curve frame   94  db294b1050f8e997
+capture Liger_Point_Only_Closed_Curve frame   94  7c088709810e49f5
 # SolidArcCapture
 
 - Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
-- Frame: 1280 x 680 · 94 frames · 10.356 s · slowest frame 399.025 ms
+- Frame: 1280 x 680 · 94 frames · 20.2623 s · slowest frame 831.557 ms
 - Script: /home/user/frontier-solidarc-integration/Exhibits/SolidArc/Code/Integration/SurfaceTraceControlCheck.txt
 - Expectations: 17 / 17 passed
 
@@ -28,7 +28,7 @@ capture Liger_Point_Only_Closed_Curve frame   94  db294b1050f8e997
 
 | Capture | Frame | Digest |
 |---------|------:|--------|
-| Liger_Point_Only_Closed_Curve | 94 | `db294b1050f8e997` |
+| Liger_Point_Only_Closed_Curve | 94 | `7c088709810e49f5` |
 
 ## Journal
 
@@ -37,10 +37,10 @@ capture Liger_Point_Only_Closed_Curve frame   94  db294b1050f8e997
 - Point-only mode: use NURBS (3) or Bezier (2); no automatic tangent poles
 - Point-only mode: use NURBS (3) or Bezier (2); no automatic tangent poles
 - Curve form: Bezier
-- Draw surface trace · 40 ms
+- Draw surface trace · 60 ms
 - Surface-point trace · 3 placed controls · no automatic points or surface fitting
 - Undo
 - SURFACE TRACE · click on the model · Ctrl: authored curve / model edge (12 px) · Enter: finish · Esc: cancel · only clicked controls are saved; spans are NOT surface-projected
-- Draw surface trace · 38 ms
+- Draw surface trace · 56 ms
 - Surface-point trace · 4 placed controls · no automatic points or surface fitting
-- Saved /home/user/integration-fixtures/Test.solidarc
+- Saved /home/user/Slate/_AgentScratch/tmp/curve-reverification/Inputs/SurfaceTraceControl.solidarc

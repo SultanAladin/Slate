@@ -142,7 +142,7 @@ if(WIN32)
     target_link_libraries(FrontierSolidArcUI PUBLIC comdlg32)                                # GetOpenFileNameW (Image plane › Browse)
 endif()
 target_include_directories(FrontierSolidArcUI PUBLIC "${FRONTIER_ROOT}")
-target_link_libraries(FrontierSolidArcUI PUBLIC FrontierSolidArcDocument FrontierInterface SolidArcVolk SolidArcImGuiVulkan SolidArcTomlPlusPlus SolidArcStb)
+target_link_libraries(FrontierSolidArcUI PUBLIC FrontierSolidArcDocument FrontierInterface FrontierAuthoringControls SolidArcVolk SolidArcImGuiVulkan SolidArcTomlPlusPlus SolidArcStb)
 target_compile_definitions(FrontierSolidArcUI PRIVATE SOLIDARC_FONT_PATH="${SOLIDARC_FONT_FILE}" SOLIDARC_CONTENT_ROOT="${FRONTIER_ROOT}")
 if(NOT MSVC)
     target_compile_options(FrontierSolidArcUI PRIVATE -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers)
@@ -670,3 +670,7 @@ set_tests_properties(SolidArcWorkspaceWalkthrough PROPERTIES SKIP_RETURN_CODE 77
 set_tests_properties(SolidArcRecoveryWalkthrough PROPERTIES SKIP_RETURN_CODE 77 FIXTURES_REQUIRED SolidArcAutosave)
 
 include("${SOLIDARC_EXHIBIT}/Integration/Validation.cmake")
+
+add_executable(SolidArcCurveWorkflowValidation "${SOLIDARC_EXHIBIT}/SolidArcCurveWorkflowValidation.cpp")
+target_link_libraries(SolidArcCurveWorkflowValidation PRIVATE FrontierSolidArcUI)
+add_test(NAME SolidArcCurveWorkflowValidation COMMAND SolidArcCurveWorkflowValidation)

@@ -9,7 +9,7 @@ attached to the destination Frontier repository to complete its commit/PR/merge.
 | Repository | `streamlinkinbox/Frontier` |
 | Branch | `arena/88b72faa-frontier` — **not main** |
 | Baseline | `e72d319239dffdb961629150b9de6f1e7dc618c6` |
-| SolidArc fixes | Slate `c3a187909483aa8182ba96cf4916e3542a09395e` |
+| SolidArc fixes | Slate `c3a1879` plus the curve-workflow revision of 2026-11-02; exact installed source hashes in SourceManifest.json |
 
 ## Apply safely
 
@@ -52,3 +52,16 @@ Fresh checks: **506 native CAD + 17 browser CPU; 300 CAD + 15 browser Vulkan exp
 9 conditional packaging unit tests**. Linux tests use headless Vulkan/SwiftShader. The compiled GLFW null-window host
 is not a Linux desktop product. Windows host compilation, Windows runtime and signed distribution were not tested.
 The existing two-application signature/antivirus distribution policy is unchanged, not bypassed.
+
+## Curve-workflow revision
+
+- **Split** in the viewport toolbar now divides authored 3D NURBS curves at the pointer ring, preserving shape.
+- **Live surface distance** is at the top of Geometry; a linked target alone exposes editable settings and persistent applied/refusal feedback.
+- **Outliner / Viewport / Inspector** use the existing Frontier dockspace, tab chrome and Texture Workspace authoring controls.
+- **Curve guide** and **Reset panels** are visible in the status bar. Reset also reopens hidden primary panels.
+- [Usage guide](CurveRebuildingGuide.md); [fresh verification](Validation/CurveWorkflowReport.json).
+
+Fresh verification: **568 native checks**, **869 green CAD rows**, **328 rendered expectations**, **9 packaging unit tests**.
+These are Linux headless checks, not a Windows runtime verification. The Frontier browser starts the exact selected
+CAD project in the companion workspace; no BAT is needed in an integrated installation. The destination branch still
+needs this source change applied/reviewed there. This ZIP contains **source, not a Windows executable**.

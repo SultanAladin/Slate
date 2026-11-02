@@ -853,6 +853,7 @@ struct SolidArcStepReading;
 [[nodiscard]] SolidArcCommandOutcome LinkSolidArcSurfaceOffset(SolidArcDocument&, const std::string& Guide,
     const std::string& Target, const std::string& Body, double Distance, double Tolerance);
 [[nodiscard]] SolidArcCommandOutcome DetachSolidArcSurfaceOffset(SolidArcDocument&, const std::string& Target);
+[[nodiscard]] SolidArcCommandOutcome SplitSolidArcSpaceCurveAt(SolidArcDocument& Document, const std::string& Label, double Parameter);
 [[nodiscard]] SolidArcCommandOutcome SplitSolidArcCurveCrossings(SolidArcDocument&, double Tolerance = 0.001);
 
 [[nodiscard]] std::vector<double> SolidArcCurveControlParameters(const GeometryProcessing::NurbsCurveDefinition& Definition);

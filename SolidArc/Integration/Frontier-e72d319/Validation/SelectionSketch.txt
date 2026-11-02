@@ -1,8 +1,8 @@
-capture Planar_Sketch_Global_Selection_Delete frame   75  97e49d3f3301fe0e
+capture Planar_Sketch_Global_Selection_Delete frame   75  461d23448128a286
 # SolidArcCapture
 
 - Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
-- Frame: 1280 x 680 · 75 frames · 2.9066 s · slowest frame 269.654 ms
+- Frame: 1280 x 680 · 75 frames · 4.32143 s · slowest frame 259.224 ms
 - Script: /home/user/frontier-solidarc-integration/Exhibits/SolidArc/Code/Integration/SelectionSketchCheck.txt
 - Expectations: 12 / 12 passed
 
@@ -23,7 +23,7 @@ capture Planar_Sketch_Global_Selection_Delete frame   75  97e49d3f3301fe0e
 
 | Capture | Frame | Digest |
 |---------|------:|--------|
-| Planar_Sketch_Global_Selection_Delete | 75 | `97e49d3f3301fe0e` |
+| Planar_Sketch_Global_Selection_Delete | 75 | `461d23448128a286` |
 
 ## Journal
 
