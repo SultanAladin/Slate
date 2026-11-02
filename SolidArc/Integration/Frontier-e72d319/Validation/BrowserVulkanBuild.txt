@@ -1,0 +1,29 @@
+[0/2] Re-checking globbed directories...
+[1/29] Building CXX object CMakeFiles/FrontierVectorAuthoring.dir/Engine/ContentInterchange/VectorAuthoringEditing.cpp.o
+[2/29] Building CXX object CMakeFiles/FrontierVectorAuthoring.dir/Engine/ContentInterchange/VectorAuthoringArrayPlacement.cpp.o
+[3/29] Building CXX object CMakeFiles/FrontierVectorAuthoring.dir/Engine/ContentInterchange/VectorAuthoringProperties.cpp.o
+[4/29] Building CXX object CMakeFiles/FrontierVectorAuthoring.dir/Engine/ContentInterchange/VectorAuthoringDocument.cpp.o
+[5/29] Building CXX object CMakeFiles/FrontierVectorAuthoring.dir/Engine/ContentInterchange/VectorAuthoringSelectionEditing.cpp.o
+[6/29] Building CXX object CMakeFiles/FrontierVectorAuthoring.dir/Engine/ContentInterchange/StampTextOutline.cpp.o
+[7/29] Building CXX object CMakeFiles/FrontierVectorAuthoring.dir/Engine/ContentInterchange/CubicPathEditing.cpp.o
+[8/29] Building CXX object CMakeFiles/FrontierVectorAuthoring.dir/Engine/Render/VectorSurfaceCompilation.cpp.o
+[9/29] Building CXX object CMakeFiles/FrontierVectorAuthoring.dir/Engine/ContentInterchange/StampVectorImport.cpp.o
+[10/29] Building CXX object CMakeFiles/FrontierVectorAuthoring.dir/Engine/ContentInterchange/SurfaceMapEncoding.cpp.o
+[11/29] Linking CXX static library libFrontierVectorAuthoring.a
+[12/29] Building CXX object CMakeFiles/FrontierSurfaceRasterization.dir/Engine/Render/SurfaceRasterization.cpp.o
+[13/29] Building CXX object CMakeFiles/FrontierSurfaceRasterization.dir/Engine/ContentInterchange/MaterialAuthoring.cpp.o
+[14/29] Building CXX object CMakeFiles/FrontierSurfaceRasterization.dir/Engine/Render/MaterialThumbnailAtlas.cpp.o
+[15/29] Building CXX object CMakeFiles/FrontierSurfaceRasterization.dir/Engine/Render/SurfaceMaterial.cpp.o
+[16/29] Building CXX object CMakeFiles/FrontierSurfaceRasterization.dir/Engine/Render/MaterialProceduralBaking.cpp.o
+[17/29] Building CXX object CMakeFiles/FrontierSurfaceRasterization.dir/Engine/Render/MaterialLibraryRendering.cpp.o
+[18/29] Building CXX object CMakeFiles/FrontierSurfaceRasterization.dir/Engine/Render/BrowserPreviewRendering.cpp.o
+[19/29] Building CXX object CMakeFiles/FrontierSurfaceRasterization.dir/Engine/Render/StbImageImplementation.cpp.o
+[20/29] Building CXX object CMakeFiles/FrontierSurfaceRasterization.dir/Engine/Render/StbImageWriteImplementation.cpp.o
+[21/29] Building CXX object CMakeFiles/FrontierSurfaceRasterization.dir/Engine/Render/VectorAuthoringCoverageRendering.cpp.o
+[22/29] Building CXX object CMakeFiles/FrontierSurfaceRasterization.dir/Engine/Render/VectorCoverageRasterization.cpp.o
+[23/29] Building CXX object CMakeFiles/FrontierSurfaceRasterization.dir/Engine/Render/VectorCoverageTileBinning.cpp.o
+[24/29] Building CXX object CMakeFiles/FrontierSurfaceRasterization.dir/Engine/Render/VectorSelectionEvaluation.cpp.o
+[25/29] Building CXX object CMakeFiles/FrontierSurfaceRasterization.dir/Engine/Render/BakeRasterization.cpp.o
+[26/29] Linking CXX static library libFrontierSurfaceRasterization.a
+[27/29] Building CXX object CMakeFiles/SolidArcBrowserValidation.dir/Exhibits/SolidArc/Code/SolidArcBrowserValidation.cpp.o
+[28/29] Linking CXX executable SolidArcBrowserValidation

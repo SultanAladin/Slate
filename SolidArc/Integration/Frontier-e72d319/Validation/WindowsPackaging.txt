@@ -1,0 +1,14 @@
+test_ascii_cad_launch_requires_companion (__main__.CompanionSelectionValidation.test_ascii_cad_launch_requires_companion) ... ok
+test_current_companion_selected (__main__.CompanionSelectionValidation.test_current_companion_selected) ... ok
+test_explicit_spaced_path (__main__.CompanionSelectionValidation.test_explicit_spaced_path) ... ok
+test_non_cad_editor_stays_unchanged (__main__.CompanionSelectionValidation.test_non_cad_editor_stays_unchanged) ... ok
+test_pre_cutter_companion_refused (__main__.CompanionSelectionValidation.test_pre_cutter_companion_refused) ... ok
+test_pre_shift_companion_refused (__main__.CompanionSelectionValidation.test_pre_shift_companion_refused) ... ok
+test_selection_preserves_source (__main__.CompanionSelectionValidation.test_selection_preserves_source) ... ok
+test_wide_cad_launch_requires_companion (__main__.CompanionSelectionValidation.test_wide_cad_launch_requires_companion) ... ok
+test_wrong_architecture_refused (__main__.CompanionSelectionValidation.test_wrong_architecture_refused) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.007s
+
+OK

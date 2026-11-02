@@ -1,0 +1,18 @@
+PASS real CAD fixture constructs
+PASS current Frontier browser decodes the CAD document
+PASS preview contains real tessellated CAD geometry
+PASS browser summary comes from actual CAD regeneration
+PASS preview supplies a residence key
+PASS existing browser receives CAD hooks
+PASS non-CAD documents bypass the CAD decoder
+PASS missing CAD documents give an explicit refusal
+PASS existing browser attaches the CAD file
+PASS attached document is a CAD entry with native geometry
+PASS launch callback receives the exact spaced document path
+PASS Open in SolidArc launches CAD exactly once
+PASS launch status remains visible in the browser
+PASS missing workspace reports failure rather than false success
+PASS existing Frontier project sample remains accessible
+PASS opening an ordinary project does not launch SolidArc
+PASS preview and browser launch leave the CAD source byte-identical
+PASS 17 Frontier SolidArc browser checks

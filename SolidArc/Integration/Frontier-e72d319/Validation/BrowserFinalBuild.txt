@@ -1,0 +1,93 @@
+[0/2] Re-checking globbed directories...
+[1/2] Re-running CMake...
+-- Found Python3: /home/user/solidarc-integration-env/bin/python3.11 (found suitable version "3.11.2", minimum required is "3.9") found components: Interpreter
+[ImGui]    PatchA-TrapezoidalTabs.patch is applied
+[ImGui]    PatchB-TabOverlapZOrder.patch is applied
+[ImGui]    PatchC-RoundTabButtons.patch is applied
+[ImGui]    PatchD-TabAddButton.patch is applied
+[ImGui]    PatchE-NoTabScrollButtons.patch is applied
+[ImGui]    PatchF-TabContentInsets.patch is applied
+[ImGui]    PatchG-AdjacentTabAddButton.patch is applied
+[ImGui]    PatchH-SmoothOverscroll.patch is applied
+Pinned dependency present: imgui
+Pinned dependency present: thorvg
+Pinned dependency present: tomlpp
+Pinned dependency present: glfw
+Pinned dependency present: vulkan-headers
+Pinned dependency present: stb
+Pinned dependency present: volk
+Catalogue: 35 faces, 5 families, 0 rejected files
+-- Found Python3: /home/user/solidarc-integration-env/bin/python3.11 (found version "3.11.2") found components: Interpreter
+fatal: not a git repository (or any of the parent directories): .git
+-- Surface shaders: no slangc or FRONTIER_SLANG_WASM; the editor uses the stored EngineContent/ShaderArchives/Surface
+-- Configuring done (0.4s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/user/solidarc-integration-build
+[0/4] Re-checking globbed directories...
+[1/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgColor.cpp.o
+[2/41] Building CXX object CMakeFiles/thorvg_static.dir/thorvg_icon_art/tvgInitializer.cpp.o
+[3/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgCompressor.cpp.o
+[4/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgMath.cpp.o
+[5/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgStr.cpp.o
+[6/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgAccessor.cpp.o
+[7/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgAnimation.cpp.o
+[8/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgCanvas.cpp.o
+[9/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgFill.cpp.o
+[10/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgLoader.cpp.o
+[11/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgPaint.cpp.o
+[12/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgPicture.cpp.o
+[13/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgRender.cpp.o
+[14/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgSaver.cpp.o
+[15/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgScene.cpp.o
+[16/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgShape.cpp.o
+[17/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgTaskScheduler.cpp.o
+[18/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgText.cpp.o
+[19/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwImage.cpp.o
+[20/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwFill.cpp.o
+[21/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwMath.cpp.o
+[22/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwMemPool.cpp.o
+[23/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwPostEffect.cpp.o
+[24/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwRaster.cpp.o
+[25/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwRenderer.cpp.o
+[26/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwRle.cpp.o
+[27/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwShape.cpp.o
+[28/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgCssStyle.cpp.o
+[29/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwStroke.cpp.o
+[30/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgPath.cpp.o
+[31/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp.o
+In function ‘void _recalcBox(const SvgLoaderData*, Box*, bool (&)[4])’,
+    inlined from ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’ at /home/user/frontier-solidarc-integration/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1527:43:
+/home/user/frontier-solidarc-integration/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1311:51: warning: writing 4 bytes into a region of size 0 [-Wstringop-overflow=]
+ 1311 |         else *(float*)(array + boxTags[i].offset) *= loader->svgParse->global.h;
+      |              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /home/user/frontier-solidarc-integration/ExternalPackages/thorvg/src/loaders/svg/tvgXmlParser.h:26,
+                 from /home/user/frontier-solidarc-integration/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:28:
+/home/user/frontier-solidarc-integration/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h: In function ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’:
+/home/user/frontier-solidarc-integration/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h:37:11: note: at offset 4 into destination object ‘Box::x’ of size 4
+   37 |     float x, y, w, h;
+      |           ^
+In function ‘void _recalcBox(const SvgLoaderData*, Box*, bool (&)[4])’,
+    inlined from ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’ at /home/user/frontier-solidarc-integration/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1527:43:
+/home/user/frontier-solidarc-integration/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1310:102: warning: writing 4 bytes into a region of size 0 [-Wstringop-overflow=]
+ 1310 |         if (boxTags[i].type == SvgParserLengthType::Horizontal) *(float*)(array + boxTags[i].offset) *= loader->svgParse->global.w;
+      |                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/user/frontier-solidarc-integration/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h: In function ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’:
+/home/user/frontier-solidarc-integration/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h:37:11: note: at offset 8 into destination object ‘Box::x’ of size 4
+   37 |     float x, y, w, h;
+      |           ^
+In function ‘void _recalcBox(const SvgLoaderData*, Box*, bool (&)[4])’,
+    inlined from ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’ at /home/user/frontier-solidarc-integration/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1527:43:
+/home/user/frontier-solidarc-integration/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1311:51: warning: writing 4 bytes into a region of size 0 [-Wstringop-overflow=]
+ 1311 |         else *(float*)(array + boxTags[i].offset) *= loader->svgParse->global.h;
+      |              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/user/frontier-solidarc-integration/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h: In function ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’:
+/home/user/frontier-solidarc-integration/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h:37:11: note: at offset 12 into destination object ‘Box::x’ of size 4
+   37 |     float x, y, w, h;
+      |           ^
+[32/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgSceneBuilder.cpp.o
+[33/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgUtil.cpp.o
+[34/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgXmlParser.cpp.o
+[35/41] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/raw/tvgRawLoader.cpp.o
+[36/41] Linking CXX static library libthorvg_static.a
+[37/41] Building CXX object CMakeFiles/FrontierSolidArcBrowserIntegrationValidation.dir/Exhibits/SolidArc/Code/Integration/FrontierBrowserValidation.cpp.o
+[38/41] Linking CXX executable FrontierSolidArcBrowserIntegrationValidation

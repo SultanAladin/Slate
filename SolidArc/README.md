@@ -1,5 +1,7 @@
 # SolidArc CAD Audit, Features & Binary Packages
 
+> **Frontier integration — source prepared, remote merge pending:** [SolidArc-only integration against `e72d319` on `streamlinkinbox/Frontier` `arena/88b72faa-frontier`](Integration/Frontier-e72d319/README.md). Reuses the existing Frontier UI/dependencies/browser; renderer and game project preserved. [Audit](Integration/Frontier-e72d319/AUDIT.md). This is not a new Windows binary release.
+
 > **Latest — hold Shift for straight drawing:** [Rebuilt Windows/Linux apps and usage](Vehicles/Liger/ShiftDrawing/README.md). Lines and polylines align from the previous click; arc endpoints align while the bulge stays free. All sketch planes, face planes, Knife/Imprint and both projections share the placement. Freeform curves stay free. Includes the previous cutter and selection fixes; supplied cage unchanged. [Audit](Vehicles/Liger/ShiftDrawing/AUDIT.md) · [Downloads](Vehicles/Liger/ShiftDrawing/Packages/).
 
 > **Previous — surface-attached cutters:** [Cutter placement fix and rebuilt apps](Vehicles/Liger/CutterFix/README.md). Knife profiles attach to the first-clicked surface in orthographic and perspective views; one standard outline + depth workflow replaces duplicate basic cutter entries. The global curve-selection/Delete fixes are included. [Audit](Vehicles/Liger/CutterFix/AUDIT.md) · [Downloads](Vehicles/Liger/CutterFix/Packages/).

@@ -1,0 +1,65 @@
+capture Global_Shift_Selection_And_Delete frame  155  3aa6035f20151196
+# SolidArcCapture
+
+- Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
+- Frame: 1280 x 680 · 155 frames · 5.82922 s · slowest frame 266.016 ms
+- Script: /home/user/frontier-solidarc-integration/Exhibits/SolidArc/Code/Integration/SelectionViewportCheck.txt
+- Expectations: 25 / 25 passed
+
+| Line | Expectation | Observed | Result |
+|-----:|-------------|----------|--------|
+| 8 | `selected-curves == 1` | Surface trace1 | 🟢 |
+| 12 | `selected-curves == 2` | Surface trace1,Surface trace2 | 🟢 |
+| 13 | `transform-commits == 0` | 0 | 🟢 |
+| 14 | `selected-spline-poles == 0` | 0 | 🟢 |
+| 17 | `selected-curves == 2` | Surface trace1,Surface trace2 | 🟢 |
+| 20 | `selected-curves == 1` | Surface trace2 | 🟢 |
+| 23 | `selected-curves == 1` | Surface trace2 | 🟢 |
+| 28 | `selected-spline-spans == 1` | 1 | 🟢 |
+| 31 | `selected-curves == 2` | Surface trace1,Surface trace2 | 🟢 |
+| 32 | `selected-spline-spans == 0` | 0 | 🟢 |
+| 33 | `selected-spline-poles == 0` | 0 | 🟢 |
+| 36 | `curves == 0` |  | 🟢 |
+| 37 | `steps == 0` | 0 | 🟢 |
+| 38 | `refused == 0` | 0 | 🟢 |
+| 41 | `curves == 2` | Surface trace1,Surface trace2 | 🟢 |
+| 46 | `selected-spline-poles == 1` | 1 | 🟢 |
+| 49 | `selected-curves == 2` | Surface trace1,Surface trace2 | 🟢 |
+| 50 | `selected-spline-poles == 0` | 0 | 🟢 |
+| 53 | `curves == 0` |  | 🟢 |
+| 54 | `steps == 0` | 0 | 🟢 |
+| 57 | `curves == 2` | Surface trace1,Surface trace2 | 🟢 |
+| 64 | `selected-curves == 2` | Surface trace1,Surface trace2 | 🟢 |
+| 67 | `curves == 0` |  | 🟢 |
+| 68 | `refused == 0` | 0 | 🟢 |
+| 71 | `curves == 2` | Surface trace1,Surface trace2 | 🟢 |
+
+| Capture | Frame | Digest |
+|---------|------:|--------|
+| Global_Shift_Selection_And_Delete | 155 | `3aa6035f20151196` |
+
+## Journal
+
+- View Top (Numpad)
+- Whole curves (6): click curve, Shift adds, Ctrl removes; 2 selects spans
+- Selected curve Surface trace1 · 2 poles · fit 0.000 mm · 1 selected
+- Selected curve Surface trace2 · 2 poles · fit 0.000 mm · 2 selected
+- Selected curve Surface trace2 · 2 poles · fit 0.000 mm · 2 selected
+- Removed curve Surface trace1 · 2 poles · fit 0.000 mm · 1 selected
+- Selection cleared
+- Selected curve Surface trace1 · 2 poles · fit 0.000 mm · 1 selected
+- Spline span 1 selected · X deletes only spans · Ctrl+Shift+D subdivides
+- Selected curve Surface trace2 · 2 poles · fit 0.000 mm · 2 selected
+- Delete Surface trace1, Surface trace2 · 0 ms
+- Undo
+- Selection cleared
+- Selected curve Surface trace1 · 2 poles · fit 0.000 mm · 1 selected
+- Surface trace1 · pole 0 picked · the gizmo moves it (Shift+click adds poles on the same curve or adds curves for Loft)
+- Selected curve Surface trace2 · 2 poles · fit 0.000 mm · 2 selected
+- Delete Surface trace1, Surface trace2 · 0 ms
+- Undo
+- Selection cleared
+- Selected curve Surface trace1 · 2 poles · fit 0.000 mm · 1 selected
+- Selected curve Surface trace2 · 2 poles · fit 0.000 mm · 2 selected
+- Delete Surface trace1, Surface trace2 · 0 ms
+- Undo

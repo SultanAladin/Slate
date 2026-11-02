@@ -1,0 +1,33 @@
+curve_a	curve_b	top_x_m	top_y_m	separation_m	classification
+Curve#1	Curve#5	-0.00412776802	-1.22513243	0	within 1 mm
+Curve#1	Curve#7	0.678060236	-0.00921670882	1.11022302e-16	within 1 mm
+Curve#1	Curve#9	-0.00402661886	-1.22513392	0.000470115458	within 1 mm
+Curve#10	Curve#13	0.638062686	-2.10119432	0.000725860592	within 1 mm
+Curve#10	Curve#17	0.54495565	-2.50378759	4.96506831e-16	within 1 mm
+Curve#10	Curve#22	0.552530824	-2.47638275	0.107428749	3D separation: do not auto-cut
+Curve#11	Curve#13	0.762948085	-2.02011475	0.00266374288	3D separation: do not auto-cut
+Curve#11	Curve#18	0.701322637	-2.41207383	1.11022302e-16	within 1 mm
+Curve#12	Curve#13	0.557033944	-2.14375525	0.00379681671	3D separation: do not auto-cut
+Curve#12	Curve#22	0.494637686	-2.49592118	0.10187609	3D separation: do not auto-cut
+Curve#12	Curve#23	0.49629728	-2.48724491	0.122542599	3D separation: do not auto-cut
+Curve#13	Curve#9	1.12104927e-19	-2.27955333	1.11022302e-16	within 1 mm
+Curve#14	Curve#19	0.732998725	-2.40122385	1.11022302e-16	within 1 mm
+Curve#14	Curve#19	0.732998725	-2.40122385	4.5775668e-16	within 1 mm
+Curve#14	Curve#22	0.73302052	-2.40112339	0.115279218	3D separation: do not auto-cut
+Curve#14	Curve#22	0.73445258	-2.40047355	0.115232263	3D separation: do not auto-cut
+Curve#15	Curve#17	0.535602439	-2.52037912	7.46527959e-06	within 1 mm
+Curve#15	Curve#18	0.686964671	-2.45238271	0.00190564045	3D separation: do not auto-cut
+Curve#15	Curve#19	0.729041766	-2.4311717	8.95090418e-16	within 1 mm
+Curve#15	Curve#20	1.00637088	-2.23253786	4.48508117e-15	within 1 mm
+Curve#15	Curve#22	0.927451972	-2.30971089	0.0992477307	3D separation: do not auto-cut
+Curve#16	Curve#18	0.679617399	-2.47453574	5.55111512e-16	within 1 mm
+Curve#16	Curve#9	0	-2.60200233	0	within 1 mm
+Curve#18	Curve#22	0.699891691	-2.41599955	0.115566047	3D separation: do not auto-cut
+Curve#2	Curve#8	0.767107999	-1.4537261	0	within 1 mm
+Curve#21	Curve#23	0.339520709	-2.48073901	0	within 1 mm
+Curve#22	Curve#23	0.536309186	-2.48216566	4.19430739e-15	within 1 mm
+Curve#22	Curve#9	0	-2.5492311	0.118857179	3D separation: do not auto-cut
+Curve#3	Curve#9	0.00126706308	-1.90564352	0.000987489769	within 1 mm
+Curve#4	Curve#9	9.4104074e-08	-2.00670466	0.00455101757	3D separation: do not auto-cut
+Curve#6	Curve#7	0.547636731	-0.00609280924	0.0186591425	3D separation: do not auto-cut
+# Dry-run cut: 1; curves=43; refusal=

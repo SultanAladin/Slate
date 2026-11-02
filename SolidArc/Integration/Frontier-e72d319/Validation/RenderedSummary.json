@@ -1,0 +1,23 @@
+{
+  "cad_workflows": {
+    "ShiftDrawing": 31,
+    "CutterSurface": 22,
+    "SelectionSketch": 12,
+    "SelectionViewport": 25,
+    "SelectionOutliner": 21,
+    "SelectionCage": 14,
+    "CageWorkflow": 25,
+    "SurfaceOffsetWorkflow": 16,
+    "CageProject": 19,
+    "SurfaceTraceStartup": 11,
+    "SurfaceTraceDrawing": 35,
+    "SurfaceTraceEdge": 6,
+    "SurfaceTraceQuad": 9,
+    "SurfaceTraceControl": 17,
+    "SurfaceTraceEditing": 19,
+    "SurfaceTraceTopologyDelete": 18
+  },
+  "cad_passed": 300,
+  "browser_passed": 15,
+  "total_rendered": 315
+}

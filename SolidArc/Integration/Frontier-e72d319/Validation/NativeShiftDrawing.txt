@@ -1,0 +1,186 @@
+PASS Shift straight preview in plane 0 ortho
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 0 ortho
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 0 ortho
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 0 ortho
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 0 perspective
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 0 perspective
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 0 perspective
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 0 perspective
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 1 ortho
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 1 ortho
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 1 ortho
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 1 ortho
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 1 perspective
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 1 perspective
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 1 perspective
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 1 perspective
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 2 ortho
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 2 ortho
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 2 ortho
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 2 ortho
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 2 perspective
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 2 perspective
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 2 perspective
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS Shift straight preview in plane 2 perspective
+PASS nearest axis keeps transverse coordinate exactly equal to clicked reference
+PASS committed line equals constrained preview
+PASS straight line saves valid geometry
+PASS temporary Shift does not leave a sticky direction lock
+PASS arc endpoints align in plane 0
+PASS bulge / width stage stays free even with Shift held
+PASS aligned arc / slot finishes without collinear collapse
+PASS slot centres align in plane 0
+PASS bulge / width stage stays free even with Shift held
+PASS aligned arc / slot finishes without collinear collapse
+PASS arc endpoints align in plane 0
+PASS bulge / width stage stays free even with Shift held
+PASS aligned arc / slot finishes without collinear collapse
+PASS slot centres align in plane 0
+PASS bulge / width stage stays free even with Shift held
+PASS aligned arc / slot finishes without collinear collapse
+PASS arc endpoints align in plane 1
+PASS bulge / width stage stays free even with Shift held
+PASS aligned arc / slot finishes without collinear collapse
+PASS slot centres align in plane 1
+PASS bulge / width stage stays free even with Shift held
+PASS aligned arc / slot finishes without collinear collapse
+PASS arc endpoints align in plane 1
+PASS bulge / width stage stays free even with Shift held
+PASS aligned arc / slot finishes without collinear collapse
+PASS slot centres align in plane 1
+PASS bulge / width stage stays free even with Shift held
+PASS aligned arc / slot finishes without collinear collapse
+PASS arc endpoints align in plane 2
+PASS bulge / width stage stays free even with Shift held
+PASS aligned arc / slot finishes without collinear collapse
+PASS slot centres align in plane 2
+PASS bulge / width stage stays free even with Shift held
+PASS aligned arc / slot finishes without collinear collapse
+PASS arc endpoints align in plane 2
+PASS bulge / width stage stays free even with Shift held
+PASS aligned arc / slot finishes without collinear collapse
+PASS slot centres align in plane 2
+PASS bulge / width stage stays free even with Shift held
+PASS aligned arc / slot finishes without collinear collapse
+PASS polyline horizontal leg snaps from previous click
+PASS polyline next leg uses new reference, not first point
+PASS releasing Shift immediately returns to free drawing
+PASS near-first-point closure cannot override an incompatible Shift axis
+PASS freeform curves remain unconstrained
+PASS rectangle / circle sizing is not collapsed by Shift
+PASS rectangle / circle sizing is not collapsed by Shift
+PASS Shift alignment wins over an off-axis Ctrl point snap
+PASS explicit X direction lock retains precedence over temporary Shift
+PASS arbitrary face plane constrains in its own U/V axes without leaving that plane
+PASS Knife polyline uses the same Shift alignment
+PASS cutter Shift stays in clicked surface frame despite tracing preference
+PASS imprint polyline uses the same Shift alignment
+PASS cutter Shift stays in clicked surface frame despite tracing preference
+PASS Shift click-drag commits a straight segment in plane 0
+PASS click-drag and click-click share preview/commit constraint
+PASS Shift click-drag commits a straight segment in plane 1
+PASS click-drag and click-click share preview/commit constraint
+PASS Shift click-drag commits a straight segment in plane 2
+PASS click-drag and click-click share preview/commit constraint
+PASS surface line saves exactly two clicked XYZ controls
+PASS surface Shift keeps two world coordinates exact on dominant axis 0
+PASS surface-aligned line completes without fitted or inserted points
+PASS surface line saves exactly two clicked XYZ controls
+PASS surface Shift keeps two world coordinates exact on dominant axis 1
+PASS surface-aligned line completes without fitted or inserted points
+PASS surface line saves exactly two clicked XYZ controls
+PASS surface Shift keeps two world coordinates exact on dominant axis 2
+PASS surface-aligned line completes without fitted or inserted points
+PASS 185 Shift drawing checks

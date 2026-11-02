@@ -1,0 +1,37 @@
+capture Delete_All_Cage_Curves_Not_References frame   28  9ee0bda27f872df5
+capture Undo_All_Cage_Curves         frame   36  54f5cf11d6e35d11
+# SolidArcCapture
+
+- Device: SwiftShader Device (Subzero) · Vulkan 1.3.0 · 4× MSAA
+- Frame: 1280 x 680 · 36 frames · 4.2915 s · slowest frame 349.753 ms
+- Script: /home/user/frontier-solidarc-integration/Exhibits/SolidArc/Code/Integration/SelectionCageCheck.txt
+- Expectations: 14 / 14 passed
+
+| Line | Expectation | Observed | Result |
+|-----:|-------------|----------|--------|
+| 2 | `curves == 23` | Surface trace1,Surface trace10,Surface trace11,Surface trace12,Surface trace13,Surface ... | 🟢 |
+| 3 | `bodies == 3` | 3 | 🟢 |
+| 9 | `selected-curves == 23` | Surface trace1,Surface trace2,Surface trace3,Surface trace4,Surface trace5,Surface trac... | 🟢 |
+| 10 | `selected-bodies == 0` |  | 🟢 |
+| 11 | `selected-spline-spans == 0` | 0 | 🟢 |
+| 12 | `selected-spline-poles == 0` | 0 | 🟢 |
+| 15 | `curves == 0` |  | 🟢 |
+| 16 | `steps == 3` | 3 | 🟢 |
+| 17 | `bodies == 3` | 3 | 🟢 |
+| 18 | `refused == 0` | 0 | 🟢 |
+| 22 | `curves == 23` | Surface trace1,Surface trace10,Surface trace11,Surface trace12,Surface trace13,Surface ... | 🟢 |
+| 23 | `steps == 26` | 26 | 🟢 |
+| 24 | `bodies == 3` | 3 | 🟢 |
+| 25 | `refused == 0` | 0 | 🟢 |
+
+| Capture | Frame | Digest |
+|---------|------:|--------|
+| Delete_All_Cage_Curves_Not_References | 28 | `9ee0bda27f872df5` |
+| Undo_All_Cage_Curves | 36 | `54f5cf11d6e35d11` |
+
+## Journal
+
+- Selected curve Surface trace1 · 17 poles · fit 0.000 mm · 1 selected
+- Selected all · 0 body(ies), 23 curve(s)
+- Delete Surface trace1, Surface trace2, Surface trace3, Surface trace4, Surface trace5, Surface trace6, Surface trace7, Surface trace8, Surface trace9, Surface trace10, Surface trace11, Surface trace12, Surface trace13, Surface trace14, Surface trace15, Surface trace16, Surface trace17, Surface trace18, Surface trace19, Surface trace20, Surface trace21, Surface trace22, Surface trace23 · 41 ms
+- Undo

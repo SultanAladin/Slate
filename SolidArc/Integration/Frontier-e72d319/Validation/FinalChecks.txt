@@ -1,0 +1,12 @@
+PASS 378 non-vendor compile dependencies exist in the pinned baseline or selective patch
+PASS native feature checks: {'NativeShiftDrawing': 185, 'NativeCutterPlacement': 112, 'NativeSelection': 17, 'NativeCage': 49, 'NativeEditing': 51, 'NativeTracing': 92}; total=506
+PASS 17 browser CPU checks
+PASS 15 browser Vulkan checks including a real child workspace process
+PASS 300/300 CAD Vulkan expectations in 16 workflows
+PASS 869 CAD rows / zero red
+PASS 9 conditional Windows companion-selection unit tests (synthetic PE headers only)
+PASS optional CAD disabled configuration; no SolidArc application target
+PASS original supplied cage SHA256 90344c326b32e467b8298851eb8b1df2a2dba1ce879becd3c7a12303b252ec70
+PASS patch check, patch apply and all resulting source hashes
+NOT RUN Windows host build, Windows runtime/GPU, signed product distribution
+NOT DONE remote Frontier branch merge

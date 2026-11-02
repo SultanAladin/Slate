@@ -1,0 +1,2486 @@
+{
+  "target_repository": "streamlinkinbox/Frontier",
+  "target_branch": "arena/88b72faa-frontier",
+  "target_commit": "e72d319239dffdb961629150b9de6f1e7dc618c6",
+  "solidarc_source": "SultanAladin/Slate c3a187909483aa8182ba96cf4916e3542a09395e",
+  "geometry_source": "unassignedinbox/Frontier 82ed251267ed8457ca3530d8228b91555572c25d",
+  "patch": "SolidArcOnly.patch",
+  "patch_sha256": "8f84f1eb38e896661af7a72a1dde30d87882c0a38602035cdb54fde737a8c080",
+  "files": {
+    "Automation/PackageEditorPreviewWindows.py": {
+      "before_sha256": "e4714841a9930bd20b3041aa25656733cabbd2f7f58e40d4e60f87af0a954886",
+      "after_sha256": "9aff69c9200645295da75d1a143a686e50f0ec33e671d87e36552ca48a53781d",
+      "bytes": 12021
+    },
+    "Automation/UIDependencies.json": {
+      "before_sha256": "580181e886d296b335c96ce02e43c5d5d129e611fcd03ff27183b20f9d2ca074",
+      "after_sha256": "15e5658fd732a77bd8bb3566361c84ab6507cbd9a4ea92de48b128cdc8afe9d0",
+      "bytes": 3070
+    },
+    "CMakeLists.txt": {
+      "before_sha256": "03a83b42c403d22585594130412037e001846b500e5168eeabf33eca6a45c90c",
+      "after_sha256": "2ab6042834ebebf6b05f9d36fbfdc779a2cc27034da99d6cc55354712379280f",
+      "bytes": 50279
+    },
+    "Documentation/FolderStructure.md": {
+      "before_sha256": "e24420a4268471ad4fcf5bf1b34e78db92fa9321e25aa2b291d4a2de2aa05f26",
+      "after_sha256": "2562585aab32d6cf9c103bd4d596911a056def11620896b3735aaa49dd244616",
+      "bytes": 9680
+    },
+    "Documentation/Notices/SolidArcProvenance.md": {
+      "before_sha256": null,
+      "after_sha256": "37707103344b4f58b30382d5ed172d9328cee40c6e35163df62a56069a132c43",
+      "bytes": 1039
+    },
+    "Documentation/Tracker.md": {
+      "before_sha256": "e1e0041471af3616df6d7744f88494d19e86f4cb6df872ed689c861676b4db03",
+      "after_sha256": "2cca7d9ee5fe4ebd23a990d4c25ab02b60b0f3b037309ae9ff136a2f0f392930",
+      "bytes": 104236
+    },
+    "Engine/ContentInterchange/ProjectBrowserCatalogue.h": {
+      "before_sha256": "73d473183eae0f40b64fb600001bac2f2680988522a40341cb712ef03a4f2acb",
+      "after_sha256": "e36b209404b713dda92d185663c7a7a37497bd222699e83ec20fb5d4c7614d68",
+      "bytes": 22960
+    },
+    "Engine/GeometryProcessing/Assembly/AssemblyAnalysis.cpp": {
+      "before_sha256": null,
+      "after_sha256": "c1983d49f6c1ad25fa46590ea7e4d2cd8b495356768ac9e33f4bc4d0da01c070",
+      "bytes": 8020
+    },
+    "Engine/GeometryProcessing/Assembly/AssemblyAnalysis.h": {
+      "before_sha256": null,
+      "after_sha256": "1165a6f24605e227fdc899e03573be3db6094dd4528a8900d887a7763e5d5ed5",
+      "bytes": 6701
+    },
+    "Engine/GeometryProcessing/Assembly/JointSolver.cpp": {
+      "before_sha256": null,
+      "after_sha256": "9cf851aeaa5ebce4addb12b1ff8166f7b1c2007e6d8cd343872f0ecf460a191c",
+      "bytes": 15118
+    },
+    "Engine/GeometryProcessing/Assembly/JointSolver.h": {
+      "before_sha256": null,
+      "after_sha256": "c6ccb761c1530ae60ced56d8a3cdf7ede5b5d00ddaaa6eb7631a82d9b646c048",
+      "bytes": 7612
+    },
+    "Engine/GeometryProcessing/Audit/EnclosedVolume.cpp": {
+      "before_sha256": null,
+      "after_sha256": "93d497a2d0fdcfddd846c481107a13e384705b00f47b054eb5b859a874c3f674",
+      "bytes": 36475
+    },
+    "Engine/GeometryProcessing/Audit/EnclosedVolume.h": {
+      "before_sha256": null,
+      "after_sha256": "4ad5f34f686176d9fd7091f9fdffaec62d71791eba90a9f6da21f228be7116ee",
+      "bytes": 3955
+    },
+    "Engine/GeometryProcessing/Audit/IntersectionAudit.cpp": {
+      "before_sha256": null,
+      "after_sha256": "8a1b39ad18773702cd381549fce268fdf5d91089f164f4894cde8b90971877d8",
+      "bytes": 11812
+    },
+    "Engine/GeometryProcessing/Audit/IntersectionAudit.h": {
+      "before_sha256": null,
+      "after_sha256": "001445c40e8980296320abb16d00416c065534a8181204ec9b5b3d99b4e4e497",
+      "bytes": 3561
+    },
+    "Engine/GeometryProcessing/Audit/ModelAudit.cpp": {
+      "before_sha256": null,
+      "after_sha256": "d14e54efae01567d2d16d8708e52abcd6160235a5b31f0f7e2c354865f96a974",
+      "bytes": 23544
+    },
+    "Engine/GeometryProcessing/Audit/ModelAudit.h": {
+      "before_sha256": null,
+      "after_sha256": "9be80a68fb27f90343f7bb27129fab12d5e3433f98a24fc4efb6422678f58647",
+      "bytes": 4394
+    },
+    "Engine/GeometryProcessing/Audit/TessellationAudit.cpp": {
+      "before_sha256": null,
+      "after_sha256": "1dd6482ca3308da505d0ef6e78583c987cfb30f95498078537dbb819347634cf",
+      "bytes": 11128
+    },
+    "Engine/GeometryProcessing/Audit/TessellationAudit.h": {
+      "before_sha256": null,
+      "after_sha256": "7f10a2527b7a03db8501f8c7482150cc8e8e9ef6c014efcbb7b04f0b2672e74b",
+      "bytes": 4805
+    },
+    "Engine/GeometryProcessing/Blend/BlendCatalogue.cpp": {
+      "before_sha256": null,
+      "after_sha256": "8f28dd649544513291a86139a6e7893bdc77df763d3f907dd79429195a0aaecb",
+      "bytes": 80120
+    },
+    "Engine/GeometryProcessing/Blend/BlendCatalogue.h": {
+      "before_sha256": null,
+      "after_sha256": "2b320401d4f277dc4e2ab0d39e9c8d714cfcf9aeffd9d409f3b77fbaea1ccdb6",
+      "bytes": 4357
+    },
+    "Engine/GeometryProcessing/Blend/EdgeBlend.cpp": {
+      "before_sha256": null,
+      "after_sha256": "130de7ac7fb38cdd4ced3c7a681e992f4f3c4c03037d39cfed5d0e7914ad4201",
+      "bytes": 159364
+    },
+    "Engine/GeometryProcessing/Blend/EdgeBlend.h": {
+      "before_sha256": null,
+      "after_sha256": "032c4bb3756dc510410f90eb73aac02a99497c6e0bc2fa51cd03a7ddb11d616d",
+      "bytes": 9596
+    },
+    "Engine/GeometryProcessing/Blend/FairPatch.cpp": {
+      "before_sha256": null,
+      "after_sha256": "811edf9df8bc2d65a96ad04c11a9906c7102711f4d14781b942007adbd529a6b",
+      "bytes": 24596
+    },
+    "Engine/GeometryProcessing/Blend/FairPatch.h": {
+      "before_sha256": null,
+      "after_sha256": "0bae58c9d9f7622c0ce51c4fb9f585c36afd37f22af3de5cc5f0d8ca7267b2a6",
+      "bytes": 4921
+    },
+    "Engine/GeometryProcessing/Blend/RollingBallGeometry.cpp": {
+      "before_sha256": null,
+      "after_sha256": "a296f65bd68f81d2c5323853e44ffc76855eb7e794e7e2c717304e5aaaad0b7d",
+      "bytes": 55760
+    },
+    "Engine/GeometryProcessing/Blend/RollingBallGeometry.h": {
+      "before_sha256": null,
+      "after_sha256": "6866a15697131715d637b91008f6a41bc2a69bef037ebc939e5aa690e7166614",
+      "bytes": 10902
+    },
+    "Engine/GeometryProcessing/Boolean/BooleanCatalogue.cpp": {
+      "before_sha256": null,
+      "after_sha256": "3fb08f60736919724ff32e25bc253d84240ade1bffdabb4c9676a99d8f346fe4",
+      "bytes": 20436
+    },
+    "Engine/GeometryProcessing/Boolean/BooleanCatalogue.h": {
+      "before_sha256": null,
+      "after_sha256": "542c3f1186683733a8e3ca6b83eb820b6cbf20ae50ff81c6112db8303626489d",
+      "bytes": 3374
+    },
+    "Engine/GeometryProcessing/Boolean/GeneralFuse.cpp": {
+      "before_sha256": null,
+      "after_sha256": "5edbb842b1965378dee64bc3621279dd2356313809c9b27900179f679acc7949",
+      "bytes": 85976
+    },
+    "Engine/GeometryProcessing/Boolean/GeneralFuse.h": {
+      "before_sha256": null,
+      "after_sha256": "9fb94464ef24beb516f15f6f1904097f648d7cd1b3a43939a8d02ea35be7433a",
+      "bytes": 15463
+    },
+    "Engine/GeometryProcessing/CMakeLists.txt": {
+      "before_sha256": null,
+      "after_sha256": "ccd1d57fdc8c6c92daae3159ae2bc53304fd54e5e84006f69ad3de15eeeb0833",
+      "bytes": 5053
+    },
+    "Engine/GeometryProcessing/Construction/BodyAssembly.cpp": {
+      "before_sha256": null,
+      "after_sha256": "d8d4fccfd90cf3a3916415ec2bbfbdb5ba7f93234665ec6e029143ad95786b68",
+      "bytes": 20631
+    },
+    "Engine/GeometryProcessing/Construction/BodyAssembly.h": {
+      "before_sha256": null,
+      "after_sha256": "fb93cafa9d0b423b362938ded4a272b03addeeae5358b22416d610cf4a985961",
+      "bytes": 7247
+    },
+    "Engine/GeometryProcessing/Construction/BodyModifiers.cpp": {
+      "before_sha256": null,
+      "after_sha256": "ba4e27c86e5840c4ab830b6ef90425ff2b99bca5f0fa2fdf4563d52b7e97b165",
+      "bytes": 44065
+    },
+    "Engine/GeometryProcessing/Construction/BodyModifiers.h": {
+      "before_sha256": null,
+      "after_sha256": "8b5e3f44602d3ee447db4c3a4335eb9a04e25eefad3fe5d7448eb8a9f22f8db0",
+      "bytes": 5891
+    },
+    "Engine/GeometryProcessing/Construction/BodyTransform.cpp": {
+      "before_sha256": null,
+      "after_sha256": "b4341cf3f9fe001f39d8b3cf304f3675f963a7138c7cac3f969e20c129ac00eb",
+      "bytes": 41147
+    },
+    "Engine/GeometryProcessing/Construction/BodyTransform.h": {
+      "before_sha256": null,
+      "after_sha256": "f4a9ff85496868606bdb59a5190b3c9384e5762c811c32259276046ea31593e3",
+      "bytes": 8559
+    },
+    "Engine/GeometryProcessing/Construction/PrimitiveConstruction.cpp": {
+      "before_sha256": null,
+      "after_sha256": "6ca969ac684239b6a2a3215fcb6861177ab94e4063aca2d7a7e6e28116f40175",
+      "bytes": 25107
+    },
+    "Engine/GeometryProcessing/Construction/PrimitiveConstruction.h": {
+      "before_sha256": null,
+      "after_sha256": "715baef508597c0b0b8a070a13502ca91dbac27b43f54244a80293907ceacd14",
+      "bytes": 4186
+    },
+    "Engine/GeometryProcessing/Containment/FaceDomain.cpp": {
+      "before_sha256": null,
+      "after_sha256": "144c98155a8f28d38a8b86168e02aed1f2df74bfbdbdb5ec63968b970112d7de",
+      "bytes": 17442
+    },
+    "Engine/GeometryProcessing/Containment/FaceDomain.h": {
+      "before_sha256": null,
+      "after_sha256": "1358d66239b4fe4fd981bc6b845e7d34fbfd6ae7abb92366b90a5e6d87a81a0d",
+      "bytes": 6628
+    },
+    "Engine/GeometryProcessing/Containment/WindingNumber.cpp": {
+      "before_sha256": null,
+      "after_sha256": "74b23804ced22736cbead6e95d3a924d80fc736a5b0441a454305bd34cd3b040",
+      "bytes": 21716
+    },
+    "Engine/GeometryProcessing/Containment/WindingNumber.h": {
+      "before_sha256": null,
+      "after_sha256": "0b40616403f68395fb419660d692667e742e38c565832cbfd664a7c8fb0f2bd5",
+      "bytes": 6802
+    },
+    "Engine/GeometryProcessing/Diagnostics/OperationTrace.cpp": {
+      "before_sha256": null,
+      "after_sha256": "4a4b1f91eba4ba872e01eff2684cef69ccad6fd8f1cdd2077fb881b1f7564375",
+      "bytes": 8006
+    },
+    "Engine/GeometryProcessing/Diagnostics/OperationTrace.h": {
+      "before_sha256": null,
+      "after_sha256": "28ea148025d396a1fdd16144811265446128d0dbd8fa5b7b963d464a95f0546c",
+      "bytes": 5012
+    },
+    "Engine/GeometryProcessing/Drawing/DrawingExport.cpp": {
+      "before_sha256": null,
+      "after_sha256": "f53c8f541e255a32388ba64483e4fbe186fcaf1483ca3d6a337f2d9e3d8bde7d",
+      "bytes": 13956
+    },
+    "Engine/GeometryProcessing/Drawing/DrawingExport.h": {
+      "before_sha256": null,
+      "after_sha256": "5bf609a6d829afe66411e07d02f08ef89b2c15a790fa88b6d769ecbf45aa8763",
+      "bytes": 2309
+    },
+    "Engine/GeometryProcessing/Drawing/DrawingProjection.cpp": {
+      "before_sha256": null,
+      "after_sha256": "3f923757b29b0772436aeb8f179d5f89ca717be0807c2a1fa3c72ad0e8dbb89e",
+      "bytes": 44131
+    },
+    "Engine/GeometryProcessing/Drawing/DrawingProjection.h": {
+      "before_sha256": null,
+      "after_sha256": "e813884934b17e194c1ac7e0fa79b5b1e6677cdb3aca7b40a1a18cee4e75e198",
+      "bytes": 8861
+    },
+    "Engine/GeometryProcessing/Drawing/DrawingSheet.cpp": {
+      "before_sha256": null,
+      "after_sha256": "cc6d83f0632fc1247bd01ed06288a85a0f53ee10422459ad0dbeacd763c7f631",
+      "bytes": 43637
+    },
+    "Engine/GeometryProcessing/Drawing/DrawingSheet.h": {
+      "before_sha256": null,
+      "after_sha256": "7028dd5453cb26c41dcbb33869f25fb11f09e2235e3cc49f0ecdcecd7eeb3e1f",
+      "bytes": 15674
+    },
+    "Engine/GeometryProcessing/Exchange/ExchangePath.h": {
+      "before_sha256": null,
+      "after_sha256": "9811d2f4bf2686eefc11e1536ee98dd0aa6f5ccfc6a086d2e36253e03b637296",
+      "bytes": 2065
+    },
+    "Engine/GeometryProcessing/Exchange/StepExchange.cpp": {
+      "before_sha256": null,
+      "after_sha256": "4be86da925ba8b38fa70bf0ef29342ad1bab81424632bbbd83c707587ecbf424",
+      "bytes": 34310
+    },
+    "Engine/GeometryProcessing/Exchange/StepExchange.h": {
+      "before_sha256": null,
+      "after_sha256": "2b4bd8bc9b951a6964bf9a5972dd0e897b1eb5385deadb711d52e36e964ba19e",
+      "bytes": 9171
+    },
+    "Engine/GeometryProcessing/Exchange/StepReading.cpp": {
+      "before_sha256": null,
+      "after_sha256": "59b6e54c831fc2c62a83653154fff2f09faa7433fb8d2913110e123b3e32bfff",
+      "bytes": 83543
+    },
+    "Engine/GeometryProcessing/Exchange/StlExchange.cpp": {
+      "before_sha256": null,
+      "after_sha256": "615fc62fcb5c61c7fd3d4c7df28de49da1c1e8bdb76e41631bbf1cc4cf420b64",
+      "bytes": 14341
+    },
+    "Engine/GeometryProcessing/Exchange/StlExchange.h": {
+      "before_sha256": null,
+      "after_sha256": "661085d944c1f47cb9bc7541cc74171349b36096facfa4271c358f64e31d44cf",
+      "bytes": 6728
+    },
+    "Engine/GeometryProcessing/Feature/BodyCut.cpp": {
+      "before_sha256": null,
+      "after_sha256": "ac90741402e026d8026e574d569625f855dcfd153074bb065be4ff153e64a7e0",
+      "bytes": 11375
+    },
+    "Engine/GeometryProcessing/Feature/BodyCut.h": {
+      "before_sha256": null,
+      "after_sha256": "be3daa221de71f0ca0dbb3d6791bc5d6c18226a4386a34b51734c34204aaf188",
+      "bytes": 4495
+    },
+    "Engine/GeometryProcessing/Feature/FeatureCatalogue.cpp": {
+      "before_sha256": null,
+      "after_sha256": "02b2f06cbef24ca5632a2d80e6a9e81616aba4144984bcf221b543992755b621",
+      "bytes": 39634
+    },
+    "Engine/GeometryProcessing/Feature/FeatureCatalogue.h": {
+      "before_sha256": null,
+      "after_sha256": "eed26f043913f1c35f3ecd3fb8614ade3bcfe84413d76d60e7460ef44763d030",
+      "bytes": 3142
+    },
+    "Engine/GeometryProcessing/Feature/FeatureTree.cpp": {
+      "before_sha256": null,
+      "after_sha256": "32086d5283b8b8b6b7252c30dd31503901f9c8d1033afec0608372b25e530ae0",
+      "bytes": 135690
+    },
+    "Engine/GeometryProcessing/Feature/FeatureTree.h": {
+      "before_sha256": null,
+      "after_sha256": "4a2f21a413729f2026cec9a54d6b2c7a2c15f87966e2aa5ce9108968b00e59ae",
+      "bytes": 38194
+    },
+    "Engine/GeometryProcessing/Feature/PathSweep.cpp": {
+      "before_sha256": null,
+      "after_sha256": "3bbab41e2fe3da014b848e10f3ea9087f91e1fadfb9ae6094f58adc7651a1c0e",
+      "bytes": 29302
+    },
+    "Engine/GeometryProcessing/Feature/PathSweep.h": {
+      "before_sha256": null,
+      "after_sha256": "6fb1c59b830df91363e02a35b2d4d941e0a44ed5355711c832e7ad07ab3b0ff1",
+      "bytes": 7745
+    },
+    "Engine/GeometryProcessing/Feature/ProfileSweep.cpp": {
+      "before_sha256": null,
+      "after_sha256": "dde71f88a0cda3b6cb889f7cd82f6aad31fbc84fd775a58deeace974bd4e7173",
+      "bytes": 31129
+    },
+    "Engine/GeometryProcessing/Feature/ProfileSweep.h": {
+      "before_sha256": null,
+      "after_sha256": "f96d62a53f8ba4742d05384454dbba0e10ff9b6bb6fc08d0f81ed0ea65f97e18",
+      "bytes": 4823
+    },
+    "Engine/GeometryProcessing/Feature/ReplayDigest.cpp": {
+      "before_sha256": null,
+      "after_sha256": "181d2dcf8f8266159f7d61799ab940da8454db64cdf1dccad5129532cab321b2",
+      "bytes": 11994
+    },
+    "Engine/GeometryProcessing/Feature/ReplayDigest.h": {
+      "before_sha256": null,
+      "after_sha256": "84ae7343b74c8b55f46651a06ac4a719735d44718172c1f7655bd608684048e0",
+      "bytes": 1896
+    },
+    "Engine/GeometryProcessing/Feature/SweepBlueprint.h": {
+      "before_sha256": null,
+      "after_sha256": "b3306a36fea7eb6e30bdd46084fb14d7daa521a877560b5d4dd98a6e9182dc38",
+      "bytes": 8151
+    },
+    "Engine/GeometryProcessing/Feature/TopologicalNaming.cpp": {
+      "before_sha256": null,
+      "after_sha256": "e51eb4d423e501244f034eed84e014ebe9af25caebe89142233ff6aaefc21382",
+      "bytes": 17483
+    },
+    "Engine/GeometryProcessing/Feature/TopologicalNaming.h": {
+      "before_sha256": null,
+      "after_sha256": "db1e8730e227fbef429025b6686f8743175322a92af6afad6c75ac400097033c",
+      "bytes": 8463
+    },
+    "Engine/GeometryProcessing/Geometry/CurveGeometry.cpp": {
+      "before_sha256": null,
+      "after_sha256": "e891d390128545493737de0a68f724d07401d8725959d1fbe7811fde2c6d648e",
+      "bytes": 10152
+    },
+    "Engine/GeometryProcessing/Geometry/CurveGeometry.h": {
+      "before_sha256": null,
+      "after_sha256": "b11243fa453d70e22ea5d9ca3accd008a6fdf6cb4f2ce327791c12bb2c90181a",
+      "bytes": 10387
+    },
+    "Engine/GeometryProcessing/Geometry/NurbsCarrier.cpp": {
+      "before_sha256": null,
+      "after_sha256": "dc08c9da1d8fc014d35d76dd4edcb7598d750b87e05b17450d1cc5d70fe8d5ba",
+      "bytes": 62221
+    },
+    "Engine/GeometryProcessing/Geometry/NurbsCarrier.h": {
+      "before_sha256": null,
+      "after_sha256": "0ad6ecf8410c50b294267dd27f2d383a0f1314179723ef58daccfbaee50069e4",
+      "bytes": 15718
+    },
+    "Engine/GeometryProcessing/Geometry/ParallelCarrier.cpp": {
+      "before_sha256": null,
+      "after_sha256": "e11eda0c3ea0a96ebdb9fbe620cd07297f46189e4ebe5bb732180690110bff57",
+      "bytes": 8898
+    },
+    "Engine/GeometryProcessing/Geometry/ParallelCarrier.h": {
+      "before_sha256": null,
+      "after_sha256": "e26155ccbc96773572addfc768197807b8715bf2e418085c503746a822c1a9c7",
+      "bytes": 5083
+    },
+    "Engine/GeometryProcessing/Geometry/ProjectedCurve.cpp": {
+      "before_sha256": null,
+      "after_sha256": "6d78e3615c5bf3675be1aa98dd6bb30dd78c41d2e56eff0cf2a24419f0d140cb",
+      "bytes": 7808
+    },
+    "Engine/GeometryProcessing/Geometry/ProjectedCurve.h": {
+      "before_sha256": null,
+      "after_sha256": "874f53a9f5de4261549ca5463f0eb55fec56d062bd8b163ea4d6f903889b49a0",
+      "bytes": 4544
+    },
+    "Engine/GeometryProcessing/Geometry/RollingBallCarrier.cpp": {
+      "before_sha256": null,
+      "after_sha256": "c6c484ffdbf47de877e1973230a507bdd7659d6ac6f3715d226bdbfb9206dcb1",
+      "bytes": 49886
+    },
+    "Engine/GeometryProcessing/Geometry/RollingBallCarrier.h": {
+      "before_sha256": null,
+      "after_sha256": "a3e34415a3fe08e09ec7da4cb4eb96078100fc9c24cac0d22766511017632d49",
+      "bytes": 10263
+    },
+    "Engine/GeometryProcessing/Geometry/SurfaceGeometry.cpp": {
+      "before_sha256": null,
+      "after_sha256": "1d61da327688f3b75e9b5bf610362b40fde889630d3fb4eb968c13b2e1a73a26",
+      "bytes": 15764
+    },
+    "Engine/GeometryProcessing/Geometry/SurfaceGeometry.h": {
+      "before_sha256": null,
+      "after_sha256": "17c516c824c272277b58a7c4e5d977b2fe3f85182d6f41bbde4451f1bedd5118",
+      "bytes": 9832
+    },
+    "Engine/GeometryProcessing/Geometry/VectorAlgebra.h": {
+      "before_sha256": null,
+      "after_sha256": "442d360e8e485afc34e42528cdf2a4ee32876924afbe1e7d8a0fd17a0dfe3f49",
+      "bytes": 6019
+    },
+    "Engine/GeometryProcessing/Inspection/BlendEncoding.cpp": {
+      "before_sha256": null,
+      "after_sha256": "8e7f8c04cc22b2b2ba36acd04a2909fe679bd469db6f5a51b9fa2ff37d44e096",
+      "bytes": 12500
+    },
+    "Engine/GeometryProcessing/Inspection/BlendEncoding.h": {
+      "before_sha256": null,
+      "after_sha256": "d600e97cc6d4ec982eb13a2ace135aab717235dd7fac4124e9ffb81dd6caa9a1",
+      "bytes": 2979
+    },
+    "Engine/GeometryProcessing/Inspection/BooleanEncoding.cpp": {
+      "before_sha256": null,
+      "after_sha256": "2cab49f097cc73ceb9a8dbf751acca5a3d0b568dca486cf95a2118f49a0c1e7c",
+      "bytes": 9699
+    },
+    "Engine/GeometryProcessing/Inspection/BooleanEncoding.h": {
+      "before_sha256": null,
+      "after_sha256": "9ee7f365c4b84b27bef1791f20f917e329c1f8ef3f3f4a7c2032dcd4beff8bad",
+      "bytes": 2992
+    },
+    "Engine/GeometryProcessing/Inspection/FaceOperationEncoding.cpp": {
+      "before_sha256": null,
+      "after_sha256": "17e33b2c9fad389d3954156b10e17833809ab153f55d5467d5af2921e8e71301",
+      "bytes": 9780
+    },
+    "Engine/GeometryProcessing/Inspection/FaceOperationEncoding.h": {
+      "before_sha256": null,
+      "after_sha256": "667abb44268afffda185a3077e2556f992aca0dfa285e914793c93c28b9cec4d",
+      "bytes": 3472
+    },
+    "Engine/GeometryProcessing/Inspection/FeatureEncoding.cpp": {
+      "before_sha256": null,
+      "after_sha256": "e852448731e4e156d84e536050ce65df7849bf75cbc0a91c6347da85bf745f85",
+      "bytes": 20631
+    },
+    "Engine/GeometryProcessing/Inspection/FeatureEncoding.h": {
+      "before_sha256": null,
+      "after_sha256": "228954c6c7c75482f0877cf980d13f02286729f62256280d41087de49785cd6b",
+      "bytes": 3615
+    },
+    "Engine/GeometryProcessing/Inspection/InspectionEncoding.cpp": {
+      "before_sha256": null,
+      "after_sha256": "467d0753e106933939d43b8cffaf6d4dd5138dd3e3aea146fb357accb3727b77",
+      "bytes": 21249
+    },
+    "Engine/GeometryProcessing/Inspection/InspectionEncoding.h": {
+      "before_sha256": null,
+      "after_sha256": "1762682a91b13465699a45a5e4e032c20792d5ca8b6cd0c3bcc24934f552e01d",
+      "bytes": 3221
+    },
+    "Engine/GeometryProcessing/Inspection/IntersectionCatalogue.cpp": {
+      "before_sha256": null,
+      "after_sha256": "62628a5d49d49fe19f134c4f50b8b6775a9f331da7e955ef0a4580374a508bb1",
+      "bytes": 14387
+    },
+    "Engine/GeometryProcessing/Inspection/IntersectionCatalogue.h": {
+      "before_sha256": null,
+      "after_sha256": "2bdc44feacd5d44c61e912381722cdb84a9fade1247dffadd57a0af0d24b251f",
+      "bytes": 5105
+    },
+    "Engine/GeometryProcessing/Inspection/IntersectionEncoding.cpp": {
+      "before_sha256": null,
+      "after_sha256": "8bc44c044f2cf6007a95ca31747b71b6dfb85bbaada149bde69f27fe9a56d7a7",
+      "bytes": 18651
+    },
+    "Engine/GeometryProcessing/Inspection/IntersectionEncoding.h": {
+      "before_sha256": null,
+      "after_sha256": "7563e11f53c4736f8bcb1df7c5d01a977ef0da06eb264a12e8ddb3607563cafe",
+      "bytes": 2121
+    },
+    "Engine/GeometryProcessing/Inspection/JsonWriter.h": {
+      "before_sha256": null,
+      "after_sha256": "6cfc0dd90b4e7377a5e550166e2d8e668bd94436a3d264c5489d68ab0f7520b3",
+      "bytes": 3374
+    },
+    "Engine/GeometryProcessing/Inspection/SpecimenCatalogue.cpp": {
+      "before_sha256": null,
+      "after_sha256": "626136874547cf6a5c6b654653d1fc1f05ab6b31c7b0f6ef3b901d08dc19ffdb",
+      "bytes": 17578
+    },
+    "Engine/GeometryProcessing/Inspection/SpecimenCatalogue.h": {
+      "before_sha256": null,
+      "after_sha256": "36a4e699d831b4acc7ed5277315ec32d60ca1cde8797ed086286bba85ecd677b",
+      "bytes": 3756
+    },
+    "Engine/GeometryProcessing/Inspection/TessellationEncoding.cpp": {
+      "before_sha256": null,
+      "after_sha256": "c7c7401be8b371f30d5bb58bc29ffaf4922f54279463c255e5f75a3328ae2413",
+      "bytes": 7621
+    },
+    "Engine/GeometryProcessing/Inspection/TessellationEncoding.h": {
+      "before_sha256": null,
+      "after_sha256": "d503fc24e4fdde69ce2ffa9076a6834b07d6f6b2b61e115737a40f2d2caea362",
+      "bytes": 1937
+    },
+    "Engine/GeometryProcessing/Intersection/BernsteinPolynomial.cpp": {
+      "before_sha256": null,
+      "after_sha256": "8e34c4edc790078bd46a33abeb1b90197556faa123e3323d98365b4478c72efe",
+      "bytes": 11511
+    },
+    "Engine/GeometryProcessing/Intersection/BernsteinPolynomial.h": {
+      "before_sha256": null,
+      "after_sha256": "1645d3232e0d446beb2181a8bd1d06196f7123cbc07d66c79387982d7b4a58fb",
+      "bytes": 4367
+    },
+    "Engine/GeometryProcessing/Intersection/CurveSurfaceIntersection.cpp": {
+      "before_sha256": null,
+      "after_sha256": "c88160dc598074354b511dd2f84b6b4bf29ac59bc7ff1cfc25fcad9f22fa6a69",
+      "bytes": 18450
+    },
+    "Engine/GeometryProcessing/Intersection/CurveSurfaceIntersection.h": {
+      "before_sha256": null,
+      "after_sha256": "b38b7c77f09611738e1f19165162a8aa122bc7cac31fc41ed9100477f7dfff7b",
+      "bytes": 5275
+    },
+    "Engine/GeometryProcessing/Intersection/ImplicitSurface.cpp": {
+      "before_sha256": null,
+      "after_sha256": "966e3c58232f0bd52fe92b3637dbfc26e9f461117b3beeedb9e776740d4a9a48",
+      "bytes": 16814
+    },
+    "Engine/GeometryProcessing/Intersection/ImplicitSurface.h": {
+      "before_sha256": null,
+      "after_sha256": "455565cffe4f7e848572766faf2f562f4664a6db2bbb36de34860dc6089fdc2c",
+      "bytes": 4585
+    },
+    "Engine/GeometryProcessing/Intersection/IntersectionCurve.cpp": {
+      "before_sha256": null,
+      "after_sha256": "bafd9f75f82d5c74ff29244c50dd3617cc95144f0928f4c4a3870534d1a47f90",
+      "bytes": 40904
+    },
+    "Engine/GeometryProcessing/Intersection/IntersectionCurve.h": {
+      "before_sha256": null,
+      "after_sha256": "46b9db48b5a0aaeaa8f1b9f4a1487de74f8e0fa12c56ac1fa41175f8f84be521",
+      "bytes": 8081
+    },
+    "Engine/GeometryProcessing/Intersection/IsoParameterCurve.cpp": {
+      "before_sha256": null,
+      "after_sha256": "b86d7a9f80f868f10b28814415014e79279babb15be90606dd59153cbfefc96a",
+      "bytes": 7442
+    },
+    "Engine/GeometryProcessing/Intersection/IsoParameterCurve.h": {
+      "before_sha256": null,
+      "after_sha256": "13281e4a35fa24cf48439d18b1277e7f8ce5271f895b1ed0f4ab0857ee2ea3c9",
+      "bytes": 3126
+    },
+    "Engine/GeometryProcessing/Intersection/SurfaceIntersection.cpp": {
+      "before_sha256": null,
+      "after_sha256": "c9d7de7c4b0c49da12d044fc7b5a9ed187b974e8e5c9fc9a481ecb4684edd4eb",
+      "bytes": 72831
+    },
+    "Engine/GeometryProcessing/Intersection/SurfaceIntersection.h": {
+      "before_sha256": null,
+      "after_sha256": "49d768ffd2d298ee2f524248af05a9a5d98818ad07b64b0e546f2ff0028293a4",
+      "bytes": 10067
+    },
+    "Engine/GeometryProcessing/Local/FaceChange.cpp": {
+      "before_sha256": null,
+      "after_sha256": "2a3dd6cab1c44780ec192e77c1b9ddd3c36c9b508b4667b8bc773157cbcbe72e",
+      "bytes": 57252
+    },
+    "Engine/GeometryProcessing/Local/FaceChange.h": {
+      "before_sha256": null,
+      "after_sha256": "20bd081326ec1b69ac1b1469ad68c78fab22ef31d7f7f047d837589b5060b1b7",
+      "bytes": 9980
+    },
+    "Engine/GeometryProcessing/Local/FaceOperationCatalogue.cpp": {
+      "before_sha256": null,
+      "after_sha256": "048acd37e7dcd0cefa395a17d517889b5358d252e11cae40759d0cf146ce10af",
+      "bytes": 32857
+    },
+    "Engine/GeometryProcessing/Local/FaceOperationCatalogue.h": {
+      "before_sha256": null,
+      "after_sha256": "eee342690c005918eae063c4f5848b6570901cbac3a0b82edfe1271551a52f2f",
+      "bytes": 4331
+    },
+    "Engine/GeometryProcessing/Local/FaceOperations.cpp": {
+      "before_sha256": null,
+      "after_sha256": "a3888ff36b73eff0c08613c7bfa2ad926bc38f4c99aedef5401e40921f3382ef",
+      "bytes": 36035
+    },
+    "Engine/GeometryProcessing/Local/FaceOperations.h": {
+      "before_sha256": null,
+      "after_sha256": "bd4552c6fe102865bd42d571533026adc3c31dff3c19276f41da4136ec80a3fd",
+      "bytes": 7889
+    },
+    "Engine/GeometryProcessing/Local/RedundantTopology.cpp": {
+      "before_sha256": null,
+      "after_sha256": "31bc8725563fde539ea17440595a5f241e280c48b94f229b7c9e924fae09334e",
+      "bytes": 21016
+    },
+    "Engine/GeometryProcessing/Local/RedundantTopology.h": {
+      "before_sha256": null,
+      "after_sha256": "eb6c22a3135279a0050cdf378d60319e6480e2d5dae34aecd2421e36257d8ea8",
+      "bytes": 3751
+    },
+    "Engine/GeometryProcessing/Local/TopologyRebuild.cpp": {
+      "before_sha256": null,
+      "after_sha256": "b633c530a6f22eaa4195b1aebbe3acc6388d5dec255bee8fdd2a86e395ea2362",
+      "bytes": 92836
+    },
+    "Engine/GeometryProcessing/Local/TopologyRebuild.h": {
+      "before_sha256": null,
+      "after_sha256": "3b0526aacbc9b596e7ca180dae76f0af65e1364984212f7f90b1e0b893d175e9",
+      "bytes": 6357
+    },
+    "Engine/GeometryProcessing/Measurement/MassProperties.cpp": {
+      "before_sha256": null,
+      "after_sha256": "ce907414c2a197fdd6b654a69a3d457904774ed70e203f6ca3a3c0c4fd1db8fb",
+      "bytes": 8745
+    },
+    "Engine/GeometryProcessing/Measurement/MassProperties.h": {
+      "before_sha256": null,
+      "after_sha256": "09c5042cb1cd8250fe924531f9d3ea3b465b27ca2c0dfad76e3ce2aedefdc39f",
+      "bytes": 3543
+    },
+    "Engine/GeometryProcessing/Measurement/MinimumDistance.cpp": {
+      "before_sha256": null,
+      "after_sha256": "66636a594a824eba625c52bf38505b489f5c1ec804ffd72529632d4a83344a42",
+      "bytes": 13296
+    },
+    "Engine/GeometryProcessing/Measurement/MinimumDistance.h": {
+      "before_sha256": null,
+      "after_sha256": "ca9a41fed373ffabaa9d488f8cd762d70203e637968143dc00a35ca6d4f22758",
+      "bytes": 3511
+    },
+    "Engine/GeometryProcessing/Measurement/PlaneSection.cpp": {
+      "before_sha256": null,
+      "after_sha256": "049e39c0481951a23a29d27d5dfa0bb8830c0638777d0252f7c339b429f4fcbf",
+      "bytes": 7998
+    },
+    "Engine/GeometryProcessing/Measurement/PlaneSection.h": {
+      "before_sha256": null,
+      "after_sha256": "0159cede934e4f8ab1db9d51a9976747aae908264556a3c90cc37695e184ab3e",
+      "bytes": 4879
+    },
+    "Engine/GeometryProcessing/Precision/ExactPredicates.cpp": {
+      "before_sha256": null,
+      "after_sha256": "a307b59dceccea14ff87d4f61304845bd2aabdb8419f7687f0a3b453a5a5872c",
+      "bytes": 14188
+    },
+    "Engine/GeometryProcessing/Precision/ExactPredicates.h": {
+      "before_sha256": null,
+      "after_sha256": "298b6c8684d5a0b222de1a144e36443c7a6b64e4123edd9e67c3aa85344118e1",
+      "bytes": 3214
+    },
+    "Engine/GeometryProcessing/Precision/PrecisionSpecification.h": {
+      "before_sha256": null,
+      "after_sha256": "930e840f0c0c8f2d431c60129086585e4ccb4595eb067c7062eecd75fb03eab9",
+      "bytes": 2971
+    },
+    "Engine/GeometryProcessing/README.md": {
+      "before_sha256": null,
+      "after_sha256": "4c18fbd0c3a22428bc25ba9894a83f2fe04f464d69270129f3cbd9571929c511",
+      "bytes": 47925
+    },
+    "Engine/GeometryProcessing/Sketch/SketchCatalogue.cpp": {
+      "before_sha256": null,
+      "after_sha256": "b6b50fa85d87e1c4eaf9ef833575e42267fc7f22d76200c67af12660556eaed7",
+      "bytes": 22724
+    },
+    "Engine/GeometryProcessing/Sketch/SketchCatalogue.h": {
+      "before_sha256": null,
+      "after_sha256": "875db0a3dce8f6ab8147b776704b2b7ed6d2838758164e7e9107c6b043e098f5",
+      "bytes": 4169
+    },
+    "Engine/GeometryProcessing/Sketch/SketchConstraining.cpp": {
+      "before_sha256": null,
+      "after_sha256": "ca6a3bd1ce1b3e18cf0d5a8967abceb630593d4fa75c1caf6134c26a013bc331",
+      "bytes": 31279
+    },
+    "Engine/GeometryProcessing/Sketch/SketchConstraining.h": {
+      "before_sha256": null,
+      "after_sha256": "a7931ebca6331f2db1b26250189b6e8c29c2fd641c6124f3c7cdc09b92b767aa",
+      "bytes": 8773
+    },
+    "Engine/GeometryProcessing/Sketch/SketchCorner.cpp": {
+      "before_sha256": null,
+      "after_sha256": "501ec321f27e5d4a1c7d1a8ba26fcfd25ecdd9a90b632404b343cd029d889860",
+      "bytes": 13370
+    },
+    "Engine/GeometryProcessing/Sketch/SketchCorner.h": {
+      "before_sha256": null,
+      "after_sha256": "b479b84cd05df424ce470b682e072708e0235000f71ad34ca27fc24f6e49e664",
+      "bytes": 4321
+    },
+    "Engine/GeometryProcessing/Sketch/SketchEditing.cpp": {
+      "before_sha256": null,
+      "after_sha256": "d5c39948199179b59d18c7262234217a54bbb2d3b4f129b64bfbb9b4ade74df8",
+      "bytes": 27854
+    },
+    "Engine/GeometryProcessing/Sketch/SketchEditing.h": {
+      "before_sha256": null,
+      "after_sha256": "4a19bb3fc8faf436f9ce0c51d601816ea9e56ebfbf3b617341ae2d4d2acd0a10",
+      "bytes": 5998
+    },
+    "Engine/GeometryProcessing/Sketch/SketchFlow.cpp": {
+      "before_sha256": null,
+      "after_sha256": "607d6fffa9b9047b359993a04f85f543d6b15a3b4ac94da0fc5e6b8ced6c207c",
+      "bytes": 25972
+    },
+    "Engine/GeometryProcessing/Sketch/SketchFlow.h": {
+      "before_sha256": null,
+      "after_sha256": "ad5731450f22b11b6371c1efe37b58ad31b064a81b730b2cafd42c48c75f6670",
+      "bytes": 8523
+    },
+    "Engine/GeometryProcessing/Sketch/SketchProfile.cpp": {
+      "before_sha256": null,
+      "after_sha256": "a713b7568a642ff2ffc4dd167cc55444ba2f0d9f2fed11eab10331e5adb9cfeb",
+      "bytes": 19594
+    },
+    "Engine/GeometryProcessing/Sketch/SketchProfile.h": {
+      "before_sha256": null,
+      "after_sha256": "a336b4c3caf2a7c83fe321d916fb0d6c543f0b7cd8acf523f7e6295d9de6f35a",
+      "bytes": 6697
+    },
+    "Engine/GeometryProcessing/Sketch/SketchRegion.cpp": {
+      "before_sha256": null,
+      "after_sha256": "2b317fb45bcafa3b9ce436129d5e71cdfbc75783b6006ade0e0380056d43b50f",
+      "bytes": 25744
+    },
+    "Engine/GeometryProcessing/Sketch/SketchRegion.h": {
+      "before_sha256": null,
+      "after_sha256": "2493e2cd564f2249d6d7b75500c5a3ad4dceda3eb7d31148637cf2b5c4d5608e",
+      "bytes": 4788
+    },
+    "Engine/GeometryProcessing/Sketch/SketchSection.cpp": {
+      "before_sha256": null,
+      "after_sha256": "0b136c56e3eb6cebce4c242a41c172a6c11c335e4b6a9a0c1317160968b3a907",
+      "bytes": 13566
+    },
+    "Engine/GeometryProcessing/Sketch/SketchSection.h": {
+      "before_sha256": null,
+      "after_sha256": "71720df2edfd7ac7011ad3638a939dd3c379597ba3f92f0bdd435d75a9899523",
+      "bytes": 3070
+    },
+    "Engine/GeometryProcessing/Sketch/SketchSolver.cpp": {
+      "before_sha256": null,
+      "after_sha256": "3492a7b9e6ff7ac7147252465108e797a86f3ca7f4be8f4404485a40480f4f08",
+      "bytes": 80656
+    },
+    "Engine/GeometryProcessing/Sketch/SketchSolver.h": {
+      "before_sha256": null,
+      "after_sha256": "046677b0812094cfa0165987b910a4a5c2d224b693bf9b9d66a4a3ffb10ba4b8",
+      "bytes": 18872
+    },
+    "Engine/GeometryProcessing/Sketch/SketchSpline.cpp": {
+      "before_sha256": null,
+      "after_sha256": "4e62e8bac99f1ec84d0ae65a643f24e2c2d3c0884a98827363071d20bf9cdaa9",
+      "bytes": 28672
+    },
+    "Engine/GeometryProcessing/Sketch/SketchSpline.h": {
+      "before_sha256": null,
+      "after_sha256": "f3458612f64bdb1251e1cac35ff627d0933a5c937437b220aaeb3749b6882136",
+      "bytes": 6532
+    },
+    "Engine/GeometryProcessing/Sketch/SketchTrim.cpp": {
+      "before_sha256": null,
+      "after_sha256": "eb064cdd43a7fcd6a7cc805f5bab3ad4b077e60c74374b1cfd9a9c1d6b835db6",
+      "bytes": 52696
+    },
+    "Engine/GeometryProcessing/Sketch/SketchTrim.h": {
+      "before_sha256": null,
+      "after_sha256": "4a79b5b7ecefb6f0f3ae91a6cc3c7dae4aa22fa0cf74e7a7859d027b90dd279e",
+      "bytes": 8483
+    },
+    "Engine/GeometryProcessing/Surfacing/CarrierApproximation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "b62bd667a020fe368828cb9f1ae6e457acbde5b23c52a7a271cabf3db5e87ed0",
+      "bytes": 24761
+    },
+    "Engine/GeometryProcessing/Surfacing/CarrierApproximation.h": {
+      "before_sha256": null,
+      "after_sha256": "79970c09d58f791880543437b8dda44f086c15c2631c9c80891054cc792b0686",
+      "bytes": 6122
+    },
+    "Engine/GeometryProcessing/Surfacing/CurveFitting.cpp": {
+      "before_sha256": null,
+      "after_sha256": "70d5fbded571bcb473901faa3d90862b184d7145b3e88f9f619afeca772a6898",
+      "bytes": 33353
+    },
+    "Engine/GeometryProcessing/Surfacing/CurveFitting.h": {
+      "before_sha256": null,
+      "after_sha256": "754640d02dbd97523ffccadda2d5b639b3e3647e385b24c2d998c0ac03b4c4a4",
+      "bytes": 7021
+    },
+    "Engine/GeometryProcessing/Surfacing/CurveNetwork.cpp": {
+      "before_sha256": null,
+      "after_sha256": "394c1dc21beaa4768ae48acc12545a355d291273f6eb272bebdc6e1bce97562b",
+      "bytes": 42175
+    },
+    "Engine/GeometryProcessing/Surfacing/CurveNetwork.h": {
+      "before_sha256": null,
+      "after_sha256": "300813c47db281b5678a7698e3197b67f94619ebd435cec7952ad90818a71c91",
+      "bytes": 7377
+    },
+    "Engine/GeometryProcessing/Surfacing/LinearSystem.cpp": {
+      "before_sha256": null,
+      "after_sha256": "94b4e5ffe13a57949b18736cce5262bca613d296cfc7e123760df4dfbd20c179",
+      "bytes": 3338
+    },
+    "Engine/GeometryProcessing/Surfacing/LinearSystem.h": {
+      "before_sha256": null,
+      "after_sha256": "6ba4311bc4e89e854539652c8acce3779cd59e91eb3d8c65efd2007e01b16104",
+      "bytes": 2731
+    },
+    "Engine/GeometryProcessing/Surfacing/PanelAssembly.cpp": {
+      "before_sha256": null,
+      "after_sha256": "c11608f5746c151f3baecc6799b775323fe1cae4542451bb996f66482a4d8750",
+      "bytes": 29686
+    },
+    "Engine/GeometryProcessing/Surfacing/PanelAssembly.h": {
+      "before_sha256": null,
+      "after_sha256": "67ffff1c6f0a4345a805a9a4086fd78b8c9e62901d0da22f699ceba654fc0f67",
+      "bytes": 4938
+    },
+    "Engine/GeometryProcessing/Surfacing/SectionLoft.cpp": {
+      "before_sha256": null,
+      "after_sha256": "d8ebbc395de0f8252a5728bb5b024e39d524a54b3f2a81c6c927e9301b9137c8",
+      "bytes": 28948
+    },
+    "Engine/GeometryProcessing/Surfacing/SectionLoft.h": {
+      "before_sha256": null,
+      "after_sha256": "7f5adc1f6238a3132b6d8a24c65099f62b049f1a40570111b9075d4689981303",
+      "bytes": 6590
+    },
+    "Engine/GeometryProcessing/Surfacing/SurfaceAlgebra.cpp": {
+      "before_sha256": null,
+      "after_sha256": "00b9c045b4b117a140c1e4936f63f4514173380068d806392ecc50eb67830ed7",
+      "bytes": 26116
+    },
+    "Engine/GeometryProcessing/Surfacing/SurfaceAlgebra.h": {
+      "before_sha256": null,
+      "after_sha256": "d221d91f75cbb05480ad4b0743a67d69d1705cb1dd6cedb5071d811234f6796c",
+      "bytes": 7681
+    },
+    "Engine/GeometryProcessing/Surfacing/SurfaceDistanceCurve.cpp": {
+      "before_sha256": null,
+      "after_sha256": "c742687dbe32dc895913d76979cea3598daf9823e421f1982f70a0a78c738a63",
+      "bytes": 11152
+    },
+    "Engine/GeometryProcessing/Surfacing/SurfaceDistanceCurve.h": {
+      "before_sha256": null,
+      "after_sha256": "cbe69cb233b20ad04fecbfbfeda7f9fa8c8649f791962b872ef002b3f422a893",
+      "bytes": 1026
+    },
+    "Engine/GeometryProcessing/Tessellation/BodyTessellation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "79f040ea3a0572e66c68f91b31fe2857430634bf8cf4619bf0565fb09e510a70",
+      "bytes": 62795
+    },
+    "Engine/GeometryProcessing/Tessellation/BodyTessellation.h": {
+      "before_sha256": null,
+      "after_sha256": "1456e93b2581233b93de9932f81bb8ea2b52d4190a32322f9c7f4fac7d919e8e",
+      "bytes": 7343
+    },
+    "Engine/GeometryProcessing/Tessellation/ChartTriangulation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "129b9f69560013a8d1edb736cc39aac9dd4f80b874554b154d444a0cebbc37bc",
+      "bytes": 26046
+    },
+    "Engine/GeometryProcessing/Tessellation/ChartTriangulation.h": {
+      "before_sha256": null,
+      "after_sha256": "fd511b5005b78762f42aa0fe20e0d3312ce590b3fd09c217e47504a5466f2ab4",
+      "bytes": 6763
+    },
+    "Engine/GeometryProcessing/Topology/EulerEdits.cpp": {
+      "before_sha256": null,
+      "after_sha256": "bc64198e646af1aa13ead3f93f6a91e75ca8b7df4d08342b63e703425cfcba49",
+      "bytes": 31557
+    },
+    "Engine/GeometryProcessing/Topology/EulerEdits.h": {
+      "before_sha256": null,
+      "after_sha256": "0a59f5e0af8a6e35a55011da11d45940005b84c681d1d15b06afa9532e4ef78d",
+      "bytes": 9057
+    },
+    "Engine/GeometryProcessing/Topology/ModelPartition.cpp": {
+      "before_sha256": null,
+      "after_sha256": "2a44380acafb316a0e658442ad5a06518891915ff284e209936ac0ee22c5f23b",
+      "bytes": 7104
+    },
+    "Engine/GeometryProcessing/Topology/ModelPartition.h": {
+      "before_sha256": null,
+      "after_sha256": "e12957b44fa162479ef0d89253532c5e8f7619d14bb5161fcbb38e04035a0ced",
+      "bytes": 11719
+    },
+    "Engine/GeometryProcessing/Topology/RecordStore.h": {
+      "before_sha256": null,
+      "after_sha256": "8ab54e04d554fe4b7730feb108508e9476430f222cdd4500e819db677d052ad0",
+      "bytes": 5473
+    },
+    "Engine/Interface/IconArt.cpp": {
+      "before_sha256": "f4da9d0a9ed4bc5d754ed2ad9d9ec96b261db494379ed17f86004503f1021556",
+      "after_sha256": "085ae561898d496295a5120016ff7ae838a8fe7393279862920bf8d89db3ef12",
+      "bytes": 12135
+    },
+    "Engine/Interface/IconArt.h": {
+      "before_sha256": "1b300c8d7d9d177d32a7fa46f5bc29fc37d61118d9a0aed3b70de51b63ddeb44",
+      "after_sha256": "125ab958ef2d71a5f244f910d7cda02186002ca1f6aec515c083d6626addce3a",
+      "bytes": 2696
+    },
+    "Engine/Interface/IconSymbols.inc": {
+      "before_sha256": "db19e21b58aedce205ec90557a8f838d7acf857ef0f9b7d32d83ce3d2d42fcf3",
+      "after_sha256": "68025f74782836f98b92b92616af4423519f68ffc4f96b605756cbda4c89810b",
+      "bytes": 213
+    },
+    "Engine/Interface/Icons/SolidArcSymbols.inc": {
+      "before_sha256": null,
+      "after_sha256": "180aee430cec2c04f928676be27f85c1d0d8037bbde028ecff53c654c4f2a1b1",
+      "bytes": 3746
+    },
+    "Engine/Render/BrowserPreviewRendering.cpp": {
+      "before_sha256": "a453d23dd7f44a031076cdfee0dbd862df3cf0a52eee5f8582b64c6377767ae6",
+      "after_sha256": "969b8b914368d4930aff55e8763d80229d04c1e428ae693ed37371a13c50110e",
+      "bytes": 62026
+    },
+    "Engine/Render/OrbitCamera.cpp": {
+      "before_sha256": null,
+      "after_sha256": "c7301525ae159806e0ba403ac967c2dd3cf3a3d98a1ca5b137746bdd0aa88d45",
+      "bytes": 10334
+    },
+    "Engine/Render/OrbitCamera.h": {
+      "before_sha256": null,
+      "after_sha256": "602639deb52a9d6d6fbe121370b44f005ad311c083322ae7857983c30785d652",
+      "bytes": 6133
+    },
+    "Engine/Render/Shader/CadStroke.slang": {
+      "before_sha256": null,
+      "after_sha256": "87f7a3e6554e15dda455b2c5c6d748e51b4c1eaa9e08135122f6d19a076bef40",
+      "bytes": 4040
+    },
+    "Engine/Render/Shader/MatCapLookup.slang": {
+      "before_sha256": null,
+      "after_sha256": "83405c55dceafa1fe7abc621f50bc474fad5136db5198de12834413e2f92595a",
+      "bytes": 1324
+    },
+    "EngineContent/Icons/SolidArc/arc.svg": {
+      "before_sha256": null,
+      "after_sha256": "6eebfd2a5c757bfca84c8118dfbeee6da36f70b08cd221a23fd4c6f3e66e558d",
+      "bytes": 218
+    },
+    "EngineContent/Icons/SolidArc/bezier.svg": {
+      "before_sha256": null,
+      "after_sha256": "84621769d07e9c6ef867d4fb2b4f9f36680e72cb04e8479e37c60c32eeca5e13",
+      "bytes": 323
+    },
+    "EngineContent/Icons/SolidArc/body.svg": {
+      "before_sha256": null,
+      "after_sha256": "b0197faff9179f14fa03c7b7c23fb815a74b946803bab088e2d13d1e1db239c7",
+      "bytes": 260
+    },
+    "EngineContent/Icons/SolidArc/cage.svg": {
+      "before_sha256": null,
+      "after_sha256": "1a53b61c00941ee912ec92c474af947b05ce3b3d7a51bca2791b7c3ff7a7ecb3",
+      "bytes": 259
+    },
+    "EngineContent/Icons/SolidArc/centre.svg": {
+      "before_sha256": null,
+      "after_sha256": "874678d1d4340ac83514a4fba62e23c2885b7e61399b774c4baf127fa9436430",
+      "bytes": 261
+    },
+    "EngineContent/Icons/SolidArc/centrerect.svg": {
+      "before_sha256": null,
+      "after_sha256": "067f0896612db4254904f44ba66a3a1f7fdd45bbba480883e9e2390969b118d6",
+      "bytes": 262
+    },
+    "EngineContent/Icons/SolidArc/chamfer.svg": {
+      "before_sha256": null,
+      "after_sha256": "8e0b679e0901d758ecc4deb1bd455dd8f5311b09a33224b600579f494b46d783",
+      "bytes": 224
+    },
+    "EngineContent/Icons/SolidArc/circle.svg": {
+      "before_sha256": null,
+      "after_sha256": "70e9051dc5ad5ee75d6bb19f0105a64ff1bc2ca2762b8965a90ee2598d9c8171",
+      "bytes": 217
+    },
+    "EngineContent/Icons/SolidArc/close.svg": {
+      "before_sha256": null,
+      "after_sha256": "19e2e6f2ffcd964a4bbaf74453adc792e8a9e3ce54e9e8f3919d031bb349cb2f",
+      "bytes": 218
+    },
+    "EngineContent/Icons/SolidArc/cone.svg": {
+      "before_sha256": null,
+      "after_sha256": "143e75068cbba56f397e20a7e3d64a97510bebc4fe9af3d837223628330a63dc",
+      "bytes": 255
+    },
+    "EngineContent/Icons/SolidArc/construct.svg": {
+      "before_sha256": null,
+      "after_sha256": "8443892288258fbfc3d8389e59854e111a41c62acc3cd46425944ceaaa75b1d8",
+      "bytes": 245
+    },
+    "EngineContent/Icons/SolidArc/controlcurve.svg": {
+      "before_sha256": null,
+      "after_sha256": "c27a43a1d47ef05a0f968610625f462ba4d1196bf4e033ecb3f7d28685d77aaf",
+      "bytes": 240
+    },
+    "EngineContent/Icons/SolidArc/curve.svg": {
+      "before_sha256": null,
+      "after_sha256": "2c8a5375393bea38d60283aa6f0d21ce1fbb1402cea5da8cb0dc62ff1cdf8540",
+      "bytes": 278
+    },
+    "EngineContent/Icons/SolidArc/cut.svg": {
+      "before_sha256": null,
+      "after_sha256": "737e58c1a6cbbcb412054e8b2cae94878caf7eb004e4e569f84953cbb51058f6",
+      "bytes": 277
+    },
+    "EngineContent/Icons/SolidArc/cylinder.svg": {
+      "before_sha256": null,
+      "after_sha256": "833c9045772575359fad4808285dfa54a7e4e5a8acdb51d619e02b00266402c5",
+      "bytes": 260
+    },
+    "EngineContent/Icons/SolidArc/edge.svg": {
+      "before_sha256": null,
+      "after_sha256": "ef5752e17fa1ceb0acf0a2749e27e780ce75bd6e96b6b82089de166114399c18",
+      "bytes": 269
+    },
+    "EngineContent/Icons/SolidArc/ellipse.svg": {
+      "before_sha256": null,
+      "after_sha256": "c93a977abb28843b9d0f2ec970e1a4367826420da43d69bb54a378d5fff8398c",
+      "bytes": 227
+    },
+    "EngineContent/Icons/SolidArc/extrude.svg": {
+      "before_sha256": null,
+      "after_sha256": "834b7710ecab1f2a05337d5ecbe04b15c03996aae6eae28ac6a1f3ceb670896d",
+      "bytes": 247
+    },
+    "EngineContent/Icons/SolidArc/eye.svg": {
+      "before_sha256": null,
+      "after_sha256": "b932298612738c43556c831b98d2ddead4dc57c17031db10ca7f8934c2556270",
+      "bytes": 263
+    },
+    "EngineContent/Icons/SolidArc/file.svg": {
+      "before_sha256": null,
+      "after_sha256": "7193a0276bfa7872c1840a497e90d83e832247b17aa58c2dad341e77adfaa59a",
+      "bytes": 236
+    },
+    "EngineContent/Icons/SolidArc/fill.svg": {
+      "before_sha256": null,
+      "after_sha256": "4685afbfa8a080a06c1bcb948553839b4acca91281355dfeedff45435cfe6ebc",
+      "bytes": 290
+    },
+    "EngineContent/Icons/SolidArc/fillet.svg": {
+      "before_sha256": null,
+      "after_sha256": "f96f16fc667ad9d4f541b05bea88b54d9342189e32333e6284f937c733fe9d24",
+      "bytes": 234
+    },
+    "EngineContent/Icons/SolidArc/flip.svg": {
+      "before_sha256": null,
+      "after_sha256": "a3ddfa563fe79c1a54ef847d837428713bf854e74101fafc3b0d6e387f424578",
+      "bytes": 247
+    },
+    "EngineContent/Icons/SolidArc/focus.svg": {
+      "before_sha256": null,
+      "after_sha256": "723592b98b46ae0a11ace0a594fcde31714fecc3bd96e7f7d2cbc2fb0e050f2f",
+      "bytes": 264
+    },
+    "EngineContent/Icons/SolidArc/folder.svg": {
+      "before_sha256": null,
+      "after_sha256": "35ebaad4b44a0e2a0360e10da3669d0d24d43a0a97bb8840b50c1efa62d1f8af",
+      "bytes": 228
+    },
+    "EngineContent/Icons/SolidArc/help.svg": {
+      "before_sha256": null,
+      "after_sha256": "a39b2f3bff68454dda7a40e7ca6f96d192c4f227a9d1d3e5b53673b4dcc44141",
+      "bytes": 282
+    },
+    "EngineContent/Icons/SolidArc/hermite.svg": {
+      "before_sha256": null,
+      "after_sha256": "4e1adb2ce91944fae87641f09d36634c1dba9965520a9f2dcbc7c33b84b21572",
+      "bytes": 300
+    },
+    "EngineContent/Icons/SolidArc/hidden.svg": {
+      "before_sha256": null,
+      "after_sha256": "09b7e99434c3d10dabbf088052c52bf0b533536cb1c9ca5b24f565e367f99b9f",
+      "bytes": 253
+    },
+    "EngineContent/Icons/SolidArc/image.svg": {
+      "before_sha256": null,
+      "after_sha256": "6c5a7f6e507b38314e5aa4e65970b95f41b481cb5eadef68a9425fa93abeaada",
+      "bytes": 296
+    },
+    "EngineContent/Icons/SolidArc/inset.svg": {
+      "before_sha256": null,
+      "after_sha256": "0e3d0bd6204d12ff4881a03f0233776975308187d3930229566d2d9609f1459f",
+      "bytes": 257
+    },
+    "EngineContent/Icons/SolidArc/inspect.svg": {
+      "before_sha256": null,
+      "after_sha256": "d429622dabed17b1924aabf1d8872bb9fec214534e5507a42c86108dfcaa837f",
+      "bytes": 253
+    },
+    "EngineContent/Icons/SolidArc/intersect.svg": {
+      "before_sha256": null,
+      "after_sha256": "cd0c0d70e79a4c123047988abf404a32f29b0bab743ddff6ecdcd19799a04d3d",
+      "bytes": 272
+    },
+    "EngineContent/Icons/SolidArc/layers.svg": {
+      "before_sha256": null,
+      "after_sha256": "4f0e54f6c59c3238799064e446cca2e3f978ff56d1c6414d4968a27bb3b5572f",
+      "bytes": 245
+    },
+    "EngineContent/Icons/SolidArc/link.svg": {
+      "before_sha256": null,
+      "after_sha256": "01c2ed66bbde1888d00eb93c29586aabe03b72bff917639b1d10384a8db380aa",
+      "bytes": 272
+    },
+    "EngineContent/Icons/SolidArc/maximize.svg": {
+      "before_sha256": null,
+      "after_sha256": "a2d93586981dbe6eff453cb5943cb608d28ab8b1d7238bcc72844668b69dbcde",
+      "bytes": 232
+    },
+    "EngineContent/Icons/SolidArc/move.svg": {
+      "before_sha256": null,
+      "after_sha256": "34ffd7ee1d6a6eda40757f560184357047c2941ada871e45e3d1a0c10b821af3",
+      "bytes": 265
+    },
+    "EngineContent/Icons/SolidArc/nurbs.svg": {
+      "before_sha256": null,
+      "after_sha256": "f8f0f913cee41065a90cfd6b67c0b94a54f2d886c6f99876a4c063e282035b50",
+      "bytes": 302
+    },
+    "EngineContent/Icons/SolidArc/plus.svg": {
+      "before_sha256": null,
+      "after_sha256": "d752e19afe3dc4f42e1b2f1cb47e64bf4f62ee2353787900017aa3cc1048ab48",
+      "bytes": 214
+    },
+    "EngineContent/Icons/SolidArc/point.svg": {
+      "before_sha256": null,
+      "after_sha256": "e55bc5baac7db0f805e113358b6c45d83b620a7e14d5709dd44d762269ff5c43",
+      "bytes": 257
+    },
+    "EngineContent/Icons/SolidArc/points.svg": {
+      "before_sha256": null,
+      "after_sha256": "a98b571fd445d7280b99bfa0c3cc92274e9647facb9a40fa2da49dd2e69b1310",
+      "bytes": 306
+    },
+    "EngineContent/Icons/SolidArc/polygon.svg": {
+      "before_sha256": null,
+      "after_sha256": "8b6b9894e02b6ffe5ef7ad8f0ed3876bf73758cac93bee773047b149ac64efe8",
+      "bytes": 223
+    },
+    "EngineContent/Icons/SolidArc/polyline.svg": {
+      "before_sha256": null,
+      "after_sha256": "d8bf47296d7b1c35ebb20e9a694453f7de24539e798e120240bb92243e926f5d",
+      "bytes": 218
+    },
+    "EngineContent/Icons/SolidArc/prism.svg": {
+      "before_sha256": null,
+      "after_sha256": "3c53e57341ba34d49b387f523b44faf4c7bf4184bf6b828da773f23d90794143",
+      "bytes": 253
+    },
+    "EngineContent/Icons/SolidArc/pslot.svg": {
+      "before_sha256": null,
+      "after_sha256": "fb6f765308893c8ddc1b16d856daa08b3940dd1c175158e61f40d555c99ac178",
+      "bytes": 240
+    },
+    "EngineContent/Icons/SolidArc/rectangle.svg": {
+      "before_sha256": null,
+      "after_sha256": "1d909adbf2f3f4d517c417d09aeecdb0f323785f4fb4e093c83a0b7038c408b5",
+      "bytes": 235
+    },
+    "EngineContent/Icons/SolidArc/redo.svg": {
+      "before_sha256": null,
+      "after_sha256": "6525920da986378aeefc22707b3fbb41becd77eb6962c64c23797417fbf97436",
+      "bytes": 232
+    },
+    "EngineContent/Icons/SolidArc/ring.svg": {
+      "before_sha256": null,
+      "after_sha256": "9fcafe62ba4797cbf1a867debc3f8864d7b9c0f58c5e85faca6f0575a0c40cdf",
+      "bytes": 267
+    },
+    "EngineContent/Icons/SolidArc/rotate.svg": {
+      "before_sha256": null,
+      "after_sha256": "e1fc44256a942ccadf860b78322a294eb1ccd52d065668b355da43631d0a12f8",
+      "bytes": 225
+    },
+    "EngineContent/Icons/SolidArc/rows.svg": {
+      "before_sha256": null,
+      "after_sha256": "f76da0cb185144039406327fc8d531889e0bc523dbc69d1404acff129a04f3f5",
+      "bytes": 221
+    },
+    "EngineContent/Icons/SolidArc/save.svg": {
+      "before_sha256": null,
+      "after_sha256": "cb42189681bc41339b1006991ca053f70d0226ea59150f59e996199e1f8f4ef9",
+      "bytes": 232
+    },
+    "EngineContent/Icons/SolidArc/scale.svg": {
+      "before_sha256": null,
+      "after_sha256": "47f2b8a356fa9aba83aa24ce1a260a7155629a19ddb33320255b6e626084baa8",
+      "bytes": 257
+    },
+    "EngineContent/Icons/SolidArc/search.svg": {
+      "before_sha256": null,
+      "after_sha256": "e352b5b0b4cf38ada5ee2ccbfa2a0d58660caf2325f12b063faff495c5baf5d1",
+      "bytes": 239
+    },
+    "EngineContent/Icons/SolidArc/select.svg": {
+      "before_sha256": null,
+      "after_sha256": "206ec23375292a5794cd899c2acbd6ccc5c9067308a59bc76c8c7c4c78e3875f",
+      "bytes": 217
+    },
+    "EngineContent/Icons/SolidArc/shield.svg": {
+      "before_sha256": null,
+      "after_sha256": "a03d06d8398063670025743330bd9cf87b37b30b35ce22a386458a207757d3c6",
+      "bytes": 248
+    },
+    "EngineContent/Icons/SolidArc/slot.svg": {
+      "before_sha256": null,
+      "after_sha256": "6723723e7de774794f28f5bdebac507d40dc1be82e1b251e1af3c18e86fd6db8",
+      "bytes": 235
+    },
+    "EngineContent/Icons/SolidArc/sphere.svg": {
+      "before_sha256": null,
+      "after_sha256": "1f07803aca68b74db243c6f5c5acf576e0da5a2396527932c638d6870d26aedb",
+      "bytes": 277
+    },
+    "EngineContent/Icons/SolidArc/subtract.svg": {
+      "before_sha256": null,
+      "after_sha256": "40ae036e6410a5cbb3b8894f95068f060b1bc7eaad0d690ea58793e6830659fb",
+      "bytes": 267
+    },
+    "EngineContent/Icons/SolidArc/surface.svg": {
+      "before_sha256": null,
+      "after_sha256": "037170c622d925d7d5260c847623767841d3bf4e0796ae00a432ba3a592f8e9d",
+      "bytes": 261
+    },
+    "EngineContent/Icons/SolidArc/terminal.svg": {
+      "before_sha256": null,
+      "after_sha256": "8057e2765cb0ac44f16d3aeb181aa9ce8da5f0820c7a35ae382964005839b561",
+      "bytes": 216
+    },
+    "EngineContent/Icons/SolidArc/trash.svg": {
+      "before_sha256": null,
+      "after_sha256": "777c961d9701ce44df19ee48d4e267dd214e610a5936c43afee23c6808fad864",
+      "bytes": 246
+    },
+    "EngineContent/Icons/SolidArc/trim.svg": {
+      "before_sha256": null,
+      "after_sha256": "72b8e97bfe88075aebe579759f8db258b0564ce8b6e54784f42fc676447d7c6a",
+      "bytes": 229
+    },
+    "EngineContent/Icons/SolidArc/tube.svg": {
+      "before_sha256": null,
+      "after_sha256": "582f25b30349d31e5906a57467893c56fcbc305415860a32c97802a52a0e6d28",
+      "bytes": 301
+    },
+    "EngineContent/Icons/SolidArc/undo.svg": {
+      "before_sha256": null,
+      "after_sha256": "d14d17c2f792d3517e8e2b09879dcc346e68e92b410cb1c07d6a4cbe6ced0c3c",
+      "bytes": 228
+    },
+    "EngineContent/Icons/SolidArc/union.svg": {
+      "before_sha256": null,
+      "after_sha256": "81be33d54c9cf057d7b5bda9976d4e9bac7d4ac6ba1b555d57321946dde49d13",
+      "bytes": 221
+    },
+    "EngineContent/Icons/SolidArc/viewport.svg": {
+      "before_sha256": null,
+      "after_sha256": "a9ff8a065a5caf50b71b60f6adad05f22f00981fab9059b3e290240d1b201c7a",
+      "bytes": 235
+    },
+    "EngineContent/Icons/SolidArc/wedge.svg": {
+      "before_sha256": null,
+      "after_sha256": "f8c9500d545755b73e12e72040428c341994cede209de844a6524c219e91b256",
+      "bytes": 247
+    },
+    "Exhibits/GeometryProcessing/Code/AlgorithmStressValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "92cf6b5f280ab194d775bff10c2eb83fc5c37ff080b047914850e048ae1a8bff",
+      "bytes": 30349
+    },
+    "Exhibits/GeometryProcessing/Code/AssemblyValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "615239e485b9fab7c639ca32872181b1ba3f0cf559f34df4def2165f2039deae",
+      "bytes": 54420
+    },
+    "Exhibits/GeometryProcessing/Code/BlendValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "e43e79d2739068caa9c69db607a9de95d3c3038424b437d78bb06adbe27771a5",
+      "bytes": 35646
+    },
+    "Exhibits/GeometryProcessing/Code/BodyCutValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "0ca1820e55691d7c5cd29abd0c396edff683ae59ff2165ec13eb1f8c7c547733",
+      "bytes": 42471
+    },
+    "Exhibits/GeometryProcessing/Code/BodyEditingValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "8a6a691060df22e7efd312fc41a8ca848801ff1f78f893ea308a9b7d3b172ac4",
+      "bytes": 31186
+    },
+    "Exhibits/GeometryProcessing/Code/BooleanValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "1bb0848d43dd688e104363d30a3ba601bc3993b4c536e900a98a261bc44db630",
+      "bytes": 29970
+    },
+    "Exhibits/GeometryProcessing/Code/CMakeLists.txt": {
+      "before_sha256": null,
+      "after_sha256": "97480cf764303012795ed42be4ef15e54bf4b1f1d8a178d3615d513a66d102ee",
+      "bytes": 8082
+    },
+    "Exhibits/GeometryProcessing/Code/ContainmentValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "86265ddd12b60ea258f8d0c0ed7eb5ec59e4b9d900d96b66c53d826c01f19b2e",
+      "bytes": 26510
+    },
+    "Exhibits/GeometryProcessing/Code/CorpusValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "f6ce6ec08ae8176ad333ffa52495fb131c9305bbe0696138bd23214f8678e348",
+      "bytes": 40940
+    },
+    "Exhibits/GeometryProcessing/Code/DrawingValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "7e1e3e082a45ee6a074de7be681e92e1d0e157a170d3510bcf6ad312c62b1073",
+      "bytes": 89468
+    },
+    "Exhibits/GeometryProcessing/Code/ExchangeValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "97a653d09fc8d0469bd8cd7f6bedcf64a132e2b8d8e563e5eee7ecbabebfd5a8",
+      "bytes": 58319
+    },
+    "Exhibits/GeometryProcessing/Code/FaceOperationValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "042c9bcd003cafdd8f82b26633c6a7181279a2acae2fe51a4311970921df4310",
+      "bytes": 25488
+    },
+    "Exhibits/GeometryProcessing/Code/FeatureValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "ce1dee2b84956c287169ac4ee0f18cf74c294331d7e5dc92365a36de2358aae6",
+      "bytes": 26001
+    },
+    "Exhibits/GeometryProcessing/Code/FreeformBlendValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "0ffb051884aa0eaecfd507bbeda619bec0ba314d94c954fd1019a4fd25f87159",
+      "bytes": 85225
+    },
+    "Exhibits/GeometryProcessing/Code/GeometryInspection.cpp": {
+      "before_sha256": null,
+      "after_sha256": "6f9a600add93360b51f91bc8f8bdd83bceae6a2ede0eae64e10aef0ea6748a06",
+      "bytes": 26721
+    },
+    "Exhibits/GeometryProcessing/Code/IntersectionValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "dfbd0eeba02e025d399dedd4352563655f3a6b22f0f77be863a379b70fec6931",
+      "bytes": 43601
+    },
+    "Exhibits/GeometryProcessing/Code/MeasureValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "26a3389d3720c56ae2418946141912035700c9f42da6058a91376256a75bb2fb",
+      "bytes": 39219
+    },
+    "Exhibits/GeometryProcessing/Code/NurbsValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "3c926ab4caf2f846197763e5045d087addcf6a2e132e707496dc8438945e3d9c",
+      "bytes": 49258
+    },
+    "Exhibits/GeometryProcessing/Code/PanelSurfacingValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "2db48a4336d658260245f142038260eb19de1693cc42c8c1f2a68116cbe8b4d4",
+      "bytes": 74461
+    },
+    "Exhibits/GeometryProcessing/Code/PatternStressValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "a2067d73f2f4ce99f8fcdc088390d0ad153c1ce3b5c951853f42d08c427d5fc6",
+      "bytes": 92435
+    },
+    "Exhibits/GeometryProcessing/Code/PredicateValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "ade5ada12d371ca3b2d36f9b07813334d0b7608d4bb026985670dbd65774ba97",
+      "bytes": 15413
+    },
+    "Exhibits/GeometryProcessing/Code/ReplayValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "803f531805d2d53fb3d0f0c5bb620772a580648cfdc39f777d9f537793680334",
+      "bytes": 30008
+    },
+    "Exhibits/GeometryProcessing/Code/RollingBallValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "66d8470341ab4e897f5571406f8cd855fadd4522cc8e226898a7f5a68b488747",
+      "bytes": 36864
+    },
+    "Exhibits/GeometryProcessing/Code/SetbackValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "2c670db1f9f262008139c974469fa8408c8b8f82ac46b864e82d68ba01f4c562",
+      "bytes": 19509
+    },
+    "Exhibits/GeometryProcessing/Code/SketchConstrainingValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "2ce1b9756331e1b8c3349f96ec282d6a6497a00160180c417a46145601818d45",
+      "bytes": 67754
+    },
+    "Exhibits/GeometryProcessing/Code/SketchEditingValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "42b31e6620c609416c8b13df7c64321dd188fd3a4c4ef7ec23a07fb23e7cf796",
+      "bytes": 26738
+    },
+    "Exhibits/GeometryProcessing/Code/SketchTrimValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "c1fd88ed7f21cb45b940401f6a7b6f7326b323d1377224c89be7413076cdc842",
+      "bytes": 27908
+    },
+    "Exhibits/GeometryProcessing/Code/SketchValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "4a73117c8ff4b2f7d92ac60c0120257f4d2e40dd2d94d6bf5cd89a0d1887c7ec",
+      "bytes": 23470
+    },
+    "Exhibits/GeometryProcessing/Code/SplineValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "d1a96cfeecaf7b3efa5a872b130c324e77ae33f3f8c54e59a9b77671652921c6",
+      "bytes": 40856
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/ApexCone.points.txt": {
+      "before_sha256": null,
+      "after_sha256": "dcbe77ac6ab58279ba5ce675fb5994c47a8903b52697b19489395e373117de55",
+      "bytes": 890
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/ApexCone.step": {
+      "before_sha256": null,
+      "after_sha256": "3caed88b9d7446fdf809a471927f1776482dbfcfb3ff96d03076a18d2b380a84",
+      "bytes": 4425
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/ChamferedBore.points.txt": {
+      "before_sha256": null,
+      "after_sha256": "40e4ca26a81fa258da4bbc12d7e695d8d22a4e32854ef3659c18ad22f84f930b",
+      "bytes": 2225
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/ChamferedBore.step": {
+      "before_sha256": null,
+      "after_sha256": "e0186b03cff8d58f1bb6bd123cf929c32e85dd4fde043550a87e2333371f8cfb",
+      "bytes": 24269
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/Expectations.txt": {
+      "before_sha256": null,
+      "after_sha256": "5ec82d4732cd422ad35f918567e9d8945a694ad02c9e7743c48c0503893b3aba",
+      "bytes": 942
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/ExtrudedSpline.points.txt": {
+      "before_sha256": null,
+      "after_sha256": "eb228f13a9a8e7c6b60570c2e4d29df7345fdaeab89e5270cd0d7418868c94f7",
+      "bytes": 1060
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/ExtrudedSpline.step": {
+      "before_sha256": null,
+      "after_sha256": "78764b0cba016963451143e6e28e90f6ce307544865e3bb2794e068222f73b6d",
+      "bytes": 17311
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/FilletedBoss.points.txt": {
+      "before_sha256": null,
+      "after_sha256": "e8606dffeab495dc453b2cb71fc7b595b92da9537627e5180a71be2bbcc925ee",
+      "bytes": 1925
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/FilletedBoss.step": {
+      "before_sha256": null,
+      "after_sha256": "124f634b64f0cbd8349d3dba50916a6a75e7b71a7ae43daace50913e5f3044fb",
+      "bytes": 22038
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/FilletedBox.points.txt": {
+      "before_sha256": null,
+      "after_sha256": "bfcf4b469181dddabe43c155d5128173eb6a0d1e0f0c8face65240b95b28b281",
+      "bytes": 7995
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/FilletedBox.step": {
+      "before_sha256": null,
+      "after_sha256": "9f3767985a0e6d3ac9d157f0dfc15e945ee268d4d436f4055a1a34c93240e2d1",
+      "bytes": 63563
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/HollowBlock.points.txt": {
+      "before_sha256": null,
+      "after_sha256": "7b722038fc11078eba4f0ca2025af8f0a642415ced7d7e86361c8e62d99e72de",
+      "bytes": 611
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/HollowBlock.step": {
+      "before_sha256": null,
+      "after_sha256": "e3051671b39b120b682942ca5abd1079e8fdb09920d265f0fef67ca7f93545b3",
+      "bytes": 15862
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/InchBlock.points.txt": {
+      "before_sha256": null,
+      "after_sha256": "602462e805c814b6c8d18d966fb81ac85d0a82fbf6e92541e5872a2525ee9d44",
+      "bytes": 348
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/InchBlock.step": {
+      "before_sha256": null,
+      "after_sha256": "dbfadaeb8aaa0748f4c216731237f5db56261425bcf07c1d7f391b43a5c797c9",
+      "bytes": 15876
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/OffsetSphere.points.txt": {
+      "before_sha256": null,
+      "after_sha256": "998a25213d79e5e3dc6ddeec012f29a2122ee2c055765649c7df3ee6abe66d1c",
+      "bytes": 453
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/OffsetSphere.step": {
+      "before_sha256": null,
+      "after_sha256": "6f79c48639ee0471756fde031156ea26ab9db6a6c6f5439d718f1d15caf29ca6",
+      "bytes": 2091
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/RevolvedSpline.points.txt": {
+      "before_sha256": null,
+      "after_sha256": "c6de8ec94acc51ce6d383a5072dea8f06cf3e29dca3b1caf70944c19e62084ae",
+      "bytes": 1305
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/RevolvedSpline.step": {
+      "before_sha256": null,
+      "after_sha256": "80b9779017b6409378752debd03334d84c480f554809ce22cb1c6e53a221f66d",
+      "bytes": 6253
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/SplineLoft.points.txt": {
+      "before_sha256": null,
+      "after_sha256": "007217d704edd3c76ec0efd6f0efafe1220d1b44b85de5f07e156b05c0ea08c9",
+      "bytes": 2078
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/SplineLoft.step": {
+      "before_sha256": null,
+      "after_sha256": "cb7ffcd2773334e9edb225718f437f3c11d9c25e93ffd212ae495dc04ca3a11d",
+      "bytes": 22667
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/TiltedTorus.points.txt": {
+      "before_sha256": null,
+      "after_sha256": "c236dccefa7c505d8085cb0f725939ed49e2122f445177a38b60392b8108ae45",
+      "bytes": 520
+    },
+    "Exhibits/GeometryProcessing/Code/StepFixtures/TiltedTorus.step": {
+      "before_sha256": null,
+      "after_sha256": "ac381127e8505710121b2321c952ef842cebe85c817d4e74fd82d7c473938f75",
+      "bytes": 4108
+    },
+    "Exhibits/GeometryProcessing/Code/SurfacingValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "c7c721fa6724803c7c1d37d6188574ea406ce30a1274e80d5a9999efd79295a4",
+      "bytes": 45401
+    },
+    "Exhibits/GeometryProcessing/Code/SweepValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "e84fd188d2eed10eb58c09ecdbc655ee1dd2967c35d2bd83ba4cbc6d947af3b3",
+      "bytes": 37390
+    },
+    "Exhibits/GeometryProcessing/Code/TessellationExport.h": {
+      "before_sha256": null,
+      "after_sha256": "d92b4ec6ed79dcc3204dca8312d70a5004ca9653d5320d8beb2fb86efd2fe1c3",
+      "bytes": 3546
+    },
+    "Exhibits/GeometryProcessing/Code/TessellationValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "f2ca095b891becda92f4571b068e7ac1562c33a636b1b45f48e0e63d592babcf",
+      "bytes": 35018
+    },
+    "Exhibits/GeometryProcessing/Code/Tooling/ExchangeCrossCheck.py": {
+      "before_sha256": null,
+      "after_sha256": "0fedc3425554fcf9634b3f7b45ab0ca565beca748cc2c02ad5b4d5d6f6528cf7",
+      "bytes": 25010
+    },
+    "Exhibits/GeometryProcessing/Code/Tooling/GalleryRasterizer.py": {
+      "before_sha256": null,
+      "after_sha256": "997d92340990ad5dbaaeda330b237ed74c3c95e766055b9f6366df42f0a40cec",
+      "bytes": 30822
+    },
+    "Exhibits/GeometryProcessing/Code/Tooling/InspectionHost.py": {
+      "before_sha256": null,
+      "after_sha256": "09aef2cd625464580474b48ba5abb143cbdbe93e1da2706f251554cfbf94f785",
+      "bytes": 17021
+    },
+    "Exhibits/GeometryProcessing/Code/Tooling/RenderDrawingSvg.py": {
+      "before_sha256": null,
+      "after_sha256": "7a224e7dfc6077eadedd50c1eeb8cac38bb5871ae34de0c6e4aabe3ab99c22ae",
+      "bytes": 4820
+    },
+    "Exhibits/GeometryProcessing/Code/Tooling/ShowcaseComposer.py": {
+      "before_sha256": null,
+      "after_sha256": "5ad3f5673994ae44f2c128f09c0bb5db9a5665a7ffe2134afce5f1b20704d002",
+      "bytes": 21628
+    },
+    "Exhibits/GeometryProcessing/Code/Tooling/StepFixtures.py": {
+      "before_sha256": null,
+      "after_sha256": "55b84c62820166210eb4defe97448700e5af7bfbc2ea37862947bf3126df1b76",
+      "bytes": 14657
+    },
+    "Exhibits/GeometryProcessing/Code/TopologyValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "260c7eb97c99533326813bbaa2cdcc465f00bd79d7ff72613da8fd252bfe25c5",
+      "bytes": 20506
+    },
+    "Exhibits/SolidArc/Code/Integration/BlueprintInteractionCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "eb16fa611abb7ce31590b8d326def8e6e2e34417a57369eb9254e9873556140a",
+      "bytes": 1829
+    },
+    "Exhibits/SolidArc/Code/Integration/BlueprintNamedViewCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "a60977dc28af725c64ce2880a29735d47a58117a5234d86d99b7720ac9bf8bd7",
+      "bytes": 151
+    },
+    "Exhibits/SolidArc/Code/Integration/BlueprintQuadCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "5d50d59dc0e3cc3c3936216c6a000517ea2f29f105987f6dbf2b2304b9115e18",
+      "bytes": 218
+    },
+    "Exhibits/SolidArc/Code/Integration/BlueprintTopCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "6a5a6680fb199efad64b9ce7a4bd064e5a5ccb4d112609b719f4f5e125ce2396",
+      "bytes": 241
+    },
+    "Exhibits/SolidArc/Code/Integration/CageProjectCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "9de0d91643df7cc6c58546c9a453a818a9cf8f4d121147397e249b3cce8d08c5",
+      "bytes": 926
+    },
+    "Exhibits/SolidArc/Code/Integration/CageToolsValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "28ed5fdc359c238b1ea10581d556d74ad921a2ced3fd8e6a1148203fea74923b",
+      "bytes": 9984
+    },
+    "Exhibits/SolidArc/Code/Integration/CageWorkflowCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "2a6d9a0f1d13c9f52e91bed2113a4e1d5441c6dfee649d1ffb66966d7dcf31f5",
+      "bytes": 1486
+    },
+    "Exhibits/SolidArc/Code/Integration/CurveEditingValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "293795820071c555771f2c5b0de577260aae06b976f5c31976ccef9a18811c70",
+      "bytes": 10226
+    },
+    "Exhibits/SolidArc/Code/Integration/CutterPlacementValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "6761d3caf0fd01ca2976883c0590a61167fa9bbc20edc34c3c26b05f10f816f2",
+      "bytes": 13275
+    },
+    "Exhibits/SolidArc/Code/Integration/CutterSurfaceCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "e937fc06afadb930b7abbeefa8806faccb282e7a65e8834c47ae3e831e644af3",
+      "bytes": 1175
+    },
+    "Exhibits/SolidArc/Code/Integration/FrontierBrowserValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "6e90aa39cec3b80f723315601a7a1d58b33d000f95718f95b19e2aba8e8722b8",
+      "bytes": 5542
+    },
+    "Exhibits/SolidArc/Code/Integration/SelectionCageCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "75284709222e00772871723a7606fe5fafdae7c34eab5e52e46585d6f28bfc12",
+      "bytes": 499
+    },
+    "Exhibits/SolidArc/Code/Integration/SelectionOutlinerCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "57f5a93c6038b8e50424eb987e4a997fde7dc1745ed6f0cdb7f70aac2a34a8fa",
+      "bytes": 968
+    },
+    "Exhibits/SolidArc/Code/Integration/SelectionSketchCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "0f0afcac39965ae6011113f5caa2412af74598e93191ab8d461e84282da3bbec",
+      "bytes": 570
+    },
+    "Exhibits/SolidArc/Code/Integration/SelectionValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "8e120c6def17d6d15c1292501617372ed12af713fa0f94a2e7adb94c1f7e8ca2",
+      "bytes": 6060
+    },
+    "Exhibits/SolidArc/Code/Integration/SelectionViewportCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "746fee91a7ee6e3e3b6b19aa1541ce536a1bbb05d10539e598c16a8e5f84bff2",
+      "bytes": 1335
+    },
+    "Exhibits/SolidArc/Code/Integration/ShiftDrawingCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "afecdeaf1f302b0c293a6ebce41c4fd7715b02084d53c962c43d9758b9f254e8",
+      "bytes": 1693
+    },
+    "Exhibits/SolidArc/Code/Integration/ShiftDrawingValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "2930d229bc5c6c2ad3126259085a4d350f8e6f40cca8b1cde0b6449124fccbe0",
+      "bytes": 15151
+    },
+    "Exhibits/SolidArc/Code/Integration/ShiftEmpty.solidarc": {
+      "before_sha256": null,
+      "after_sha256": "5c0a274ebc15c5c0b73a4b419e5c682821ab6bfcd854492fb39dd31fe0d953cf",
+      "bytes": 125
+    },
+    "Exhibits/SolidArc/Code/Integration/SurfaceOffsetWorkflowCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "9db45b6410c8d4c44faaa088591ec51a38212da608644206f8b3aad9a139abb1",
+      "bytes": 996
+    },
+    "Exhibits/SolidArc/Code/Integration/SurfaceTraceControlCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "558a066c8cbae6bf2622b63be90152e3abba5f7352c2044a0078e187cbe72656",
+      "bytes": 943
+    },
+    "Exhibits/SolidArc/Code/Integration/SurfaceTraceDrawingCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "95db9e7ec8a0c521b118bfd18ed037fd2d76c6427227bdc966a7a5e6364f5805",
+      "bytes": 2242
+    },
+    "Exhibits/SolidArc/Code/Integration/SurfaceTraceEdgeCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "372bfcc0c5a4c94cce3ef89035b9f4f883b2e15151a55688a34f00c34e7fb3fb",
+      "bytes": 359
+    },
+    "Exhibits/SolidArc/Code/Integration/SurfaceTraceEditingCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "3e48ae385b282ad83e464ccbc8454799ee964b38f0c93a09c84a04e79403c9ac",
+      "bytes": 1332
+    },
+    "Exhibits/SolidArc/Code/Integration/SurfaceTraceQuadCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "cb90f638cc5b45b6e4540424ba0e73ac83b89aa084023f4c62c11ec95d3f447b",
+      "bytes": 440
+    },
+    "Exhibits/SolidArc/Code/Integration/SurfaceTraceStartupCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "4453741bca064078cebf2af8d50a70dc18f867da61bd8db4454b0cdf755df260",
+      "bytes": 444
+    },
+    "Exhibits/SolidArc/Code/Integration/SurfaceTraceTopologyDeleteCheck.txt": {
+      "before_sha256": null,
+      "after_sha256": "e4a33ae8aa43967de19c7d2dbc806348a36c5b6d548d110a0737411286085c54",
+      "bytes": 755
+    },
+    "Exhibits/SolidArc/Code/Integration/SurfaceTraceValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "d31cab2b102dfd24fc2f80cbc324fc70d09146a9afcc17767047be1db9b4da22",
+      "bytes": 15011
+    },
+    "Exhibits/SolidArc/Code/Integration/Validation.cmake": {
+      "before_sha256": null,
+      "after_sha256": "2df57e2492648cf45bce1f43c6ddae7016ff56c785b45d445d502391b8db9606",
+      "bytes": 1386
+    },
+    "Exhibits/SolidArc/Code/Integration/WindowsPackageValidation.py": {
+      "before_sha256": null,
+      "after_sha256": "fedd64e6fba379fa9b76550af577e5093bb1bb3197a391acf730b53a49ab62fa",
+      "bytes": 3577
+    },
+    "Exhibits/SolidArc/Code/Scripts/AltSlideWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "8626536a103bb4cbe25716d7c1fecbbc94472896fac789045e7f2398ad534136",
+      "bytes": 2944
+    },
+    "Exhibits/SolidArc/Code/Scripts/AssemblyWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "a506aa2e765b6778e3562f891968122a3d71cd65ad78c31b024367f477490f38",
+      "bytes": 7025
+    },
+    "Exhibits/SolidArc/Code/Scripts/BevelHandlesWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "a15ba5568f60dc17c39812e6f4fde7b4bc6225ed79e5fd001faad7d9f50cc56e",
+      "bytes": 5661
+    },
+    "Exhibits/SolidArc/Code/Scripts/BevelMergeWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "5ad9b268a66cb1f3e356599a3a2e3f64cf468e7dc566d828b4517049506cbb6e",
+      "bytes": 3484
+    },
+    "Exhibits/SolidArc/Code/Scripts/BevelReachWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "ff09fa29255b363ba0fe1f5cd5022549ef287937054a2e62a8d36e7c5e58bfce",
+      "bytes": 5231
+    },
+    "Exhibits/SolidArc/Code/Scripts/BlueprintModellingWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "a6366631666a69ea212ea563d96fa2cec15c5498212a66882f713de7cc571008",
+      "bytes": 6069
+    },
+    "Exhibits/SolidArc/Code/Scripts/ConstraintsWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "ef75873a1342f1525199dca53dcc0ba15157ddd705cdbc9fd9e895e8f335db9c",
+      "bytes": 6928
+    },
+    "Exhibits/SolidArc/Code/Scripts/ConstructDrawingWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "737b253e43264934ef19be1c8d76f55bd1b21cea5cf31717186c408d5765c4b5",
+      "bytes": 5603
+    },
+    "Exhibits/SolidArc/Code/Scripts/CurveFlowWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "efefd96facd4a84de9762e9319121dcea88cfbeae7fb1142ff5a974f4ac521df",
+      "bytes": 3953
+    },
+    "Exhibits/SolidArc/Code/Scripts/CurveRequestWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "b4fea29335fadd582a8d2b53b941e1aebd544dd6e6e9e7baecb87fd4bcf73b51",
+      "bytes": 6223
+    },
+    "Exhibits/SolidArc/Code/Scripts/DeleteWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "88b12f74cdbc861f4060f48c4d799d765d28cfc41f09ef0c24d81590ecf942f2",
+      "bytes": 3212
+    },
+    "Exhibits/SolidArc/Code/Scripts/DrawingSheetWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "17af5ede367b3e1a5617cd95f18d93a03b30522d08f9ec89a018c239d67e47a2",
+      "bytes": 3914
+    },
+    "Exhibits/SolidArc/Code/Scripts/EdgePathWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "498c77f27168154f5a386cbc512b5a6d67bf35065616b3f7c6d15d7c4ee69478",
+      "bytes": 3379
+    },
+    "Exhibits/SolidArc/Code/Scripts/EdgeStrokeWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "f20826fdcf6a82fa0a0e11c9ad1ad1eebda7aa9248a9a11070becd17a48b1f14",
+      "bytes": 2866
+    },
+    "Exhibits/SolidArc/Code/Scripts/EditingWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "5eaa1d8f219846f44d682a8401c8ffdd3b1380abe0807af561a84c51799f891b",
+      "bytes": 5931
+    },
+    "Exhibits/SolidArc/Code/Scripts/ExchangeWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "76641ecea004fe15171be631b50207dc9d2b0a7fcf86ff8e450c120d2388978e",
+      "bytes": 4129
+    },
+    "Exhibits/SolidArc/Code/Scripts/ExtrudeAxisWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "ecad8cb095995fe95cccdd972e235fcf0f262640246902cf41ee97aa6fb17516",
+      "bytes": 4373
+    },
+    "Exhibits/SolidArc/Code/Scripts/ExtrudeManifoldWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "f0e0221bebc7a3b7afbffbb7b377a3424362ae466f4961669a6fde0fce4e9b1d",
+      "bytes": 3419
+    },
+    "Exhibits/SolidArc/Code/Scripts/FillWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "6a8d7b567467ff7b4b3a420b283ca8e57f2f0ddabf53f3b22e35d38d530fc765",
+      "bytes": 5639
+    },
+    "Exhibits/SolidArc/Code/Scripts/FilletDragWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "4c698d5b0e7515930bcd93aee64acc7f7e14669861ab7fad7c795265c18704d2",
+      "bytes": 2526
+    },
+    "Exhibits/SolidArc/Code/Scripts/GizmoWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "7ca27fb5570b7045fdc8bae4f22abfe08ed50eb4fc38930c9745a4b0e1446c40",
+      "bytes": 3914
+    },
+    "Exhibits/SolidArc/Code/Scripts/ImprintWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "85617f9693877710639e1e8cbe60caa276729f5940199b6fee61ea3c3faf04f0",
+      "bytes": 2807
+    },
+    "Exhibits/SolidArc/Code/Scripts/IncrementalReplayWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "305c621e77e63917abf403bcfeeec6313df27124fce64b7638a0a855e28c0d10",
+      "bytes": 3280
+    },
+    "Exhibits/SolidArc/Code/Scripts/InsetWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "acb4eba8049e69b09195a459385f6193d078fed8c480045f7c0bde2210d07949",
+      "bytes": 2998
+    },
+    "Exhibits/SolidArc/Code/Scripts/InspectorLook.txt": {
+      "before_sha256": null,
+      "after_sha256": "f0c767e6997cb4f3b93e9b99fea344245ee6160ca2d3fb7cd171978ac8e32bcc",
+      "bytes": 273
+    },
+    "Exhibits/SolidArc/Code/Scripts/KnifeWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "4e219b6225ef92cd6ef50fb3d1696aa95b84f2b52251864fb0b55ba0f855c3e3",
+      "bytes": 20174
+    },
+    "Exhibits/SolidArc/Code/Scripts/LinkedConstraintsWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "d65e0fa67ccc0d7b3d2dbf4df281ad8f028b66fd13baeda7bd33c43c541dac3a",
+      "bytes": 7011
+    },
+    "Exhibits/SolidArc/Code/Scripts/MatcapWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "2011d0a64458012c9835815ccd318291e04b21315d5bf00ecf9700696fb9efad",
+      "bytes": 3193
+    },
+    "Exhibits/SolidArc/Code/Scripts/MeasureSectionWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "d88ebfcda2504623bd244441da797bde74f82d7aca562cc0b106c53d1846cab7",
+      "bytes": 3681
+    },
+    "Exhibits/SolidArc/Code/Scripts/MultiBodyWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "dfe23d149dc7e899c2a4af5be2b8a09c9d20a2095d0f565b531fea66e7b6aa87",
+      "bytes": 3739
+    },
+    "Exhibits/SolidArc/Code/Scripts/NurbsBlendWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "dbde114b0fadd3b75ffdd0d76d158cf1708636b6be10eda0a899b8a842d891f0",
+      "bytes": 4408
+    },
+    "Exhibits/SolidArc/Code/Scripts/OrientWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "593f4c5dab6ac0c318f332d35d4596eb3264770aaac89e7038504d19a88010b6",
+      "bytes": 4563
+    },
+    "Exhibits/SolidArc/Code/Scripts/PanelAssemblyWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "7b2befcda9d8bf9717c5083f7225424667412e6ab998db66b32a58bef7a88c7e",
+      "bytes": 5130
+    },
+    "Exhibits/SolidArc/Code/Scripts/PointCutWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "b4c1a71cf012154ce0a112fcfbe4ec8c08dd6a970ec5960ac1620c8e320218c4",
+      "bytes": 2392
+    },
+    "Exhibits/SolidArc/Code/Scripts/RecoveryOptions.toml": {
+      "before_sha256": null,
+      "after_sha256": "d14735e510b0a1d625296fe590baea377506d87790130189d64ec4a09c1a5507",
+      "bytes": 371
+    },
+    "Exhibits/SolidArc/Code/Scripts/RecoveryWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "2f70125422c6d31e29c452f0cf6636fe68014f78335845bbcbf2126a01d2d344",
+      "bytes": 1130
+    },
+    "Exhibits/SolidArc/Code/Scripts/ReshapeWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "078c400f3b7a31240177ae1d7acc335e0bfa914408d31ad01e8cafbb1df4cb0f",
+      "bytes": 2203
+    },
+    "Exhibits/SolidArc/Code/Scripts/ResponsivenessWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "e2824e93630c2a8ee21a4c16d0eb3a4022d8bc3c3f35c8bd31487efc7a54e092",
+      "bytes": 5690
+    },
+    "Exhibits/SolidArc/Code/Scripts/RevolveSweepWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "43fbb52a65af65ba313468c086298b8067a319dfec9e89efb3331990bf89b03d",
+      "bytes": 5439
+    },
+    "Exhibits/SolidArc/Code/Scripts/ShellLook.txt": {
+      "before_sha256": null,
+      "after_sha256": "fb90578a4923e6c647294048be5d41633e4e9292320912993a8daa64c273878e",
+      "bytes": 134
+    },
+    "Exhibits/SolidArc/Code/Scripts/ShellsWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "004544fd37dbc03f35b7532c13a630e923cdc88fddf3162571160e7841422d82",
+      "bytes": 3465
+    },
+    "Exhibits/SolidArc/Code/Scripts/ShortcutWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "45fbd6f83639082ab5b1e1e0c378e19c622164367df9afdab5b480b7284f95bb",
+      "bytes": 5582
+    },
+    "Exhibits/SolidArc/Code/Scripts/SketchCornersWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "b91d48f32755910b8dc43a85871d68e3b35138433a238314cb36b298d2197485",
+      "bytes": 2951
+    },
+    "Exhibits/SolidArc/Code/Scripts/SketchDrawingWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "9707c29ee5a610c3849ffc44f879a3429ccab5c9920a510e20435e01b150937f",
+      "bytes": 5265
+    },
+    "Exhibits/SolidArc/Code/Scripts/SketchPointsWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "487b9c295fac77e71e3aaca1d7d4eb2e9e60349ef7fe4342897bfa4cf59c8ae5",
+      "bytes": 4615
+    },
+    "Exhibits/SolidArc/Code/Scripts/SnappingWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "af5e32d2120b5b50202da35a6352b58b52101fb98bfa05bcc1cbfa0d45e09814",
+      "bytes": 8356
+    },
+    "Exhibits/SolidArc/Code/Scripts/SurfaceEvaluationWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "c14cc17606f62a1ba522b0f3c3bb9e568deefff997450d23f0875d20bd1d6b9c",
+      "bytes": 4261
+    },
+    "Exhibits/SolidArc/Code/Scripts/TrimJoinWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "05e5a4596ca2d88c251892c6ec3d365a462f1a927947b4dc2f0647d3dd4319ef",
+      "bytes": 2638
+    },
+    "Exhibits/SolidArc/Code/Scripts/TrimSplitWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "f8bfa885310ea867106001fb9cd2374d08f3e6470744096007ac9c13035c394d",
+      "bytes": 8033
+    },
+    "Exhibits/SolidArc/Code/Scripts/VariableBlendWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "9a57845d1eac3dff89d1171a4aafb8c30278966071d8eddc5bf5901e131766dc",
+      "bytes": 2658
+    },
+    "Exhibits/SolidArc/Code/Scripts/VehicleSurfacingWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "dbed1c3b4f7c0ab961e0151df1608c3a2dbf794e15b6a29197f41b447f033145",
+      "bytes": 4971
+    },
+    "Exhibits/SolidArc/Code/Scripts/ViewportLook.txt": {
+      "before_sha256": null,
+      "after_sha256": "18ed9294275deb98e464143be0e28c56aa8cbc4627619a3f8fc575384f4616f5",
+      "bytes": 403
+    },
+    "Exhibits/SolidArc/Code/Scripts/WorkspaceWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "48f15b857ba2d26b26b271c90304cc6d1ad3e45d9fb8b84dbbb4fd072f59f5d0",
+      "bytes": 6188
+    },
+    "Exhibits/SolidArc/Code/Scripts/WrapPrecisionWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "885cf0722a9ffad8062a7533c2322b2fd63bf47117018026edc2021ac071e471",
+      "bytes": 2725
+    },
+    "Exhibits/SolidArc/Code/Scripts/WrapWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "24d7563e5db3c7c441b2432f9e6dbc120ee1417fe36a1f3eb5ea85bff318ad7f",
+      "bytes": 5738
+    },
+    "Exhibits/SolidArc/Code/Scripts/XRayWalkthrough.txt": {
+      "before_sha256": null,
+      "after_sha256": "8fa7d98e80202ce25972e5b7d5aa7f64fa72002514a3629c6b88b333713c5d9f",
+      "bytes": 3723
+    },
+    "Exhibits/SolidArc/Code/SolidArcBrowserValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "6a453722b3dce71fd32c77479b835f98e1486010bfad307dc38d9f4da6ff6a59",
+      "bytes": 23374
+    },
+    "Exhibits/SolidArc/Code/SolidArcCapture.cpp": {
+      "before_sha256": null,
+      "after_sha256": "4fc730d33916db59ed245bd9a53466052f0b96ba13b88b6c5b3065ba180aca67",
+      "bytes": 16389
+    },
+    "Exhibits/SolidArc/Code/SolidArcDocumentValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "45e9d448f1d28a8898be8094d33cf255683bdb0771dd863fcc9999873e290cf5",
+      "bytes": 892323
+    },
+    "Exhibits/SolidArc/Code/SolidArcViewportValidation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "1502e195bcc759588ca84f9ff82a85a494adbfd92d272e65fb6f144b1bf59831",
+      "bytes": 51603
+    },
+    "Exhibits/SolidArc/Code/Tooling/ExchangeExportCheck.py": {
+      "before_sha256": null,
+      "after_sha256": "435ee6dd468c49cbddc2597510ad6052de07efe575de5b03379415858bd8e242",
+      "bytes": 4753
+    },
+    "Exhibits/SolidArc/README.md": {
+      "before_sha256": null,
+      "after_sha256": "e7cb9d33346d9eedb9af216bebc9303ea9d9d796b3434a8cbdf413b6fb59c05e",
+      "bytes": 3599
+    },
+    "Experimental/Frontier/Native/WindowsFrontier.cpp": {
+      "before_sha256": "5c30fb2e952bb546e3873b4ccccb9b7432dcb43e8c1fa46b9840fbef38c7544b",
+      "after_sha256": "5196d1f8553908bee733f0bc657dbdc7b8034a1270a040fb9a520cdfc9a5bf0a",
+      "bytes": 26035
+    },
+    "Experimental/SolidArc/Native/Package/README.md": {
+      "before_sha256": null,
+      "after_sha256": "2aaa5075200c013a5fb9392c5a0a9849c849bc8996dfd57d1cae4b0e67fa3853",
+      "bytes": 4784
+    },
+    "Experimental/SolidArc/Native/Package/SolidArcWorkspace.rc": {
+      "before_sha256": null,
+      "after_sha256": "443f9590dad8bef12ba1b195a6ae15187138ef95e53adae9bcf73c7480daa0d8",
+      "bytes": 2257
+    },
+    "Experimental/SolidArc/Native/Package/SolidArcWorkspace.toml": {
+      "before_sha256": null,
+      "after_sha256": "ccd964b5156d558c589210fa7725278c4613f90a05c43af4ee612dfee8aba47b",
+      "bytes": 1052
+    },
+    "Experimental/SolidArc/Native/SolidArc.cmake": {
+      "before_sha256": null,
+      "after_sha256": "17503753347211e6f1c1916fdc5b049fa231c478d87e685eb2ce34e9cd6f0a0f",
+      "bytes": 44852
+    },
+    "Experimental/SolidArc/Native/SolidArcApplication.cpp": {
+      "before_sha256": null,
+      "after_sha256": "0144b475c30c47183448531416ca826c84ce95a1e4c87d2e83d50cebba9c1af5",
+      "bytes": 22592
+    },
+    "Experimental/SolidArc/Native/Tooling/CompileSolidArcShaders.mjs": {
+      "before_sha256": null,
+      "after_sha256": "a7220b2c6347556d7ee5aa41c2b1e675e41825b71baac8eb89205193ea74778b",
+      "bytes": 10570
+    },
+    "Experimental/VehicleSurfacing/Samples/BmwM3E90Calibration.toml": {
+      "before_sha256": null,
+      "after_sha256": "4448b37709018fbc7b358572654753c8267db2dba1257e00d5f23df2dae3e7c5",
+      "bytes": 4443
+    },
+    "Experimental/VehicleSurfacing/Samples/BmwM3E90Sections.toml": {
+      "before_sha256": null,
+      "after_sha256": "366f9d06c1583e582bc478c0bd66b56feef4b836a30ae94ced77335d477edd1d",
+      "bytes": 44266
+    },
+    "Experimental/VehicleSurfacing/Samples/SyntheticBonnet.toml": {
+      "before_sha256": null,
+      "after_sha256": "e98ded290c77952fc2a83f7c87f34bacedfb3b22f3be97b42ba8c9d4cb906897",
+      "bytes": 19820
+    },
+    "Experimental/VehicleSurfacing/Samples/SyntheticBonnetNetwork.toml": {
+      "before_sha256": null,
+      "after_sha256": "7970e7d1dde9efa0f18538ee7d7200c90a6d64e2bc512aba3240a688da2b19d1",
+      "bytes": 18693
+    },
+    "Experimental/VehicleSurfacing/Samples/SyntheticPod.toml": {
+      "before_sha256": null,
+      "after_sha256": "7bd2a0e2aedae8a7e14158bbe03921a80519dc95f643eef689a3524cc308545e",
+      "bytes": 10037
+    },
+    "README.md": {
+      "before_sha256": "9f88546654ef21a26ae0a2d20b4e728155dc80793e369a4d0267dbab0da4adc0",
+      "after_sha256": "15f0cc25dae9625843df2e3d30d276310b0433fb7f2a7c48e213cc632585f554",
+      "bytes": 2952
+    },
+    "UI/Editor/ProjectBrowserPanel.cpp": {
+      "before_sha256": "491ca20590d6e0127d763518c2bab4067ba6599a76036e241539ae3a5952bcd7",
+      "after_sha256": "1ec5d52dcd8dd0e86ff086b2ce1268d021b2714238f340600ff474058ec3736d",
+      "bytes": 155637
+    },
+    "UI/Editor/ProjectBrowserPanel.h": {
+      "before_sha256": "36098e13ca77b6ac74a4380a1088e8d18a3a1879440046dd336bbaa8a112d0ac",
+      "after_sha256": "0cfc811d31a12e3b1fff7256e14412530a47df94eb829714cb6e2420876de693",
+      "bytes": 9781
+    },
+    "UI/SolidArc/Browser/SolidArcBrowserLink.cpp": {
+      "before_sha256": null,
+      "after_sha256": "0a8a6d5d3c55fe41cd092c49a4b2f774258274f1e75ea18883bf425534c324e8",
+      "bytes": 8852
+    },
+    "UI/SolidArc/Browser/SolidArcBrowserLink.h": {
+      "before_sha256": null,
+      "after_sha256": "5c021b56a4a4e8a9a258c4c29515302236084f492ce1c14b0e395cf576669022",
+      "bytes": 3367
+    },
+    "UI/SolidArc/Browser/SolidArcBrowserPreview.cpp": {
+      "before_sha256": null,
+      "after_sha256": "eca60a5643a213d048c99a5e2b51cd9387b21f6a3accef7118d13550f9121301",
+      "bytes": 7297
+    },
+    "UI/SolidArc/Browser/SolidArcBrowserPreview.h": {
+      "before_sha256": null,
+      "after_sha256": "78945ea204a5da4f552c8febad903005a6f3bb967481fb0118e0d732fae6d936",
+      "bytes": 3587
+    },
+    "UI/SolidArc/Document/SolidArcDocument.cpp": {
+      "before_sha256": null,
+      "after_sha256": "12ee991f8fc93569058ac75a557800893378c2d0c4a5a1b4ae4633b7b3df1ddd",
+      "bytes": 450358
+    },
+    "UI/SolidArc/Document/SolidArcDocument.h": {
+      "before_sha256": null,
+      "after_sha256": "f17c1e9f364fa526824d32588811fd235dbc7af5f8385d787d7ef5269eafa641",
+      "bytes": 97736
+    },
+    "UI/SolidArc/Document/SolidArcDocumentCodec.cpp": {
+      "before_sha256": null,
+      "after_sha256": "d02adfdef7049edd288b29abb7e06df916ce96e9cfe6bf12cfc36cf12927f22a",
+      "bytes": 59668
+    },
+    "UI/SolidArc/Document/SolidArcDocumentCodec.h": {
+      "before_sha256": null,
+      "after_sha256": "267f50ca37d81df53feb2085bfe351c0b0a90c57e1f1b0bf92a58165727272ff",
+      "bytes": 3199
+    },
+    "UI/SolidArc/Document/SolidArcDrawingSheet.cpp": {
+      "before_sha256": null,
+      "after_sha256": "a1e1b991160f889789893a70f0d58034c64e1984bece73a849e420e6f5681599",
+      "bytes": 7863
+    },
+    "UI/SolidArc/Document/SolidArcDrawingSheet.h": {
+      "before_sha256": null,
+      "after_sha256": "6cf4b278efe5696dca53f0baca41fbfd7182561c492d5cec351dc5d754e24f0b",
+      "bytes": 5420
+    },
+    "UI/SolidArc/Document/SolidArcExchange.cpp": {
+      "before_sha256": null,
+      "after_sha256": "e71c26a0a4fd6dc80ae150fd76cf0c9ff6470e0a5544774cec1d54daed20ac4c",
+      "bytes": 9594
+    },
+    "UI/SolidArc/Document/SolidArcExchange.h": {
+      "before_sha256": null,
+      "after_sha256": "f9359ec214417f7e2f39499a09ade200abaee2825aeb99991d4b2c73ffc7f9a9",
+      "bytes": 6544
+    },
+    "UI/SolidArc/Document/SolidArcImagePlane.cpp": {
+      "before_sha256": null,
+      "after_sha256": "d6bf8c03cee39912b315d010b61f226d3197dc150917cb83c1d8937ca732135d",
+      "bytes": 4066
+    },
+    "UI/SolidArc/Document/SolidArcImagePlane.h": {
+      "before_sha256": null,
+      "after_sha256": "2d6b520c5882160e698e7acc9468e059376ac6999378cf6910976224c3aae825",
+      "bytes": 5600
+    },
+    "UI/SolidArc/Document/SolidArcImagePlaneToml.h": {
+      "before_sha256": null,
+      "after_sha256": "e1f92a1d7a9713cd3af94b6ee2005f3b56e35924b8027be4be28267d179023fa",
+      "bytes": 5251
+    },
+    "UI/SolidArc/Document/SolidArcKnife.cpp": {
+      "before_sha256": null,
+      "after_sha256": "be29b5696708ff2d6cc49f21db9476d558b85c5796183ca1c690a36abaceef5b",
+      "bytes": 26139
+    },
+    "UI/SolidArc/Document/SolidArcKnife.h": {
+      "before_sha256": null,
+      "after_sha256": "205ee70a385a88497c5164c22bc596264d585376f78045120c7f679dcb513f13",
+      "bytes": 8673
+    },
+    "UI/SolidArc/Document/SolidArcMatcap.cpp": {
+      "before_sha256": null,
+      "after_sha256": "904854efd456c79860f48a5fd5b869654cc51bec809bc08c7473cd7b9ae387f9",
+      "bytes": 26945
+    },
+    "UI/SolidArc/Document/SolidArcMatcap.h": {
+      "before_sha256": null,
+      "after_sha256": "87c22f84a16df6ce4691f9f30868855fd1dc2a11b3757bf481e4abf63ac8f846",
+      "bytes": 8624
+    },
+    "UI/SolidArc/Document/SolidArcMeasurement.cpp": {
+      "before_sha256": null,
+      "after_sha256": "7af1c29df5a21e694ed07396a25826f9beae45576439c2be72a3f9ed5efb0fe6",
+      "bytes": 30406
+    },
+    "UI/SolidArc/Document/SolidArcMeasurement.h": {
+      "before_sha256": null,
+      "after_sha256": "719e934ebf41a0d610b9a001fa20418b2b077a042b1ad6eb27ef189e2a55e8d5",
+      "bytes": 9322
+    },
+    "UI/SolidArc/Document/SolidArcScene.cpp": {
+      "before_sha256": null,
+      "after_sha256": "5ab3058122082945bae4fd4158d8ca6f5156be23a1d818a1a7be72adccfadf7d",
+      "bytes": 39099
+    },
+    "UI/SolidArc/Document/SolidArcScene.h": {
+      "before_sha256": null,
+      "after_sha256": "30127af46188c83e864dcfcf4974df9017640916b0c7c84b643cb97cad7da1cf",
+      "bytes": 16772
+    },
+    "UI/SolidArc/Document/SolidArcSpecimen.cpp": {
+      "before_sha256": null,
+      "after_sha256": "2d453e4e310cfb88c44a570598c2035dffefb5c3b15b5e4f91ce9f3d13b66539",
+      "bytes": 3935
+    },
+    "UI/SolidArc/Document/SolidArcSpecimen.h": {
+      "before_sha256": null,
+      "after_sha256": "44be99978590abf774f30aeb280223d331a5f04431d50b9a1358ee10436e73fe",
+      "bytes": 1617
+    },
+    "UI/SolidArc/Document/VehicleCurveImport.cpp": {
+      "before_sha256": null,
+      "after_sha256": "ccb20357edbc839bf0e0bc4b14fea036126d487e599e47929613dd057549e0b9",
+      "bytes": 5635
+    },
+    "UI/SolidArc/Document/VehicleCurveImport.h": {
+      "before_sha256": null,
+      "after_sha256": "116180946c5e992f82fa6e81e8a85672041ad5a374ca2ad93e1602c441aeb6ee",
+      "bytes": 3680
+    },
+    "UI/SolidArc/Interface/SolidArcFileDialog.cpp": {
+      "before_sha256": null,
+      "after_sha256": "7a166865499e635d7cd2fd50f02360e58b1e65b6e3158ec535ab462928cf6d2a",
+      "bytes": 2532
+    },
+    "UI/SolidArc/Interface/SolidArcFileDialog.h": {
+      "before_sha256": null,
+      "after_sha256": "07a86587152574c60db9839c7f2e27e4e479771caa7bb862760d6224351bef13",
+      "bytes": 1480
+    },
+    "UI/SolidArc/Interface/SolidArcFrame.cpp": {
+      "before_sha256": null,
+      "after_sha256": "62773fa74f093ac1d6856cea576c092363aef8be6a9303946631eac192aff9c5",
+      "bytes": 14330
+    },
+    "UI/SolidArc/Interface/SolidArcFrame.h": {
+      "before_sha256": null,
+      "after_sha256": "5d0712f39a7c70a66e906d3ea301926ede2799b7e557f38b18cd7be34794cd3b",
+      "bytes": 4904
+    },
+    "UI/SolidArc/Interface/SolidArcInterface.cpp": {
+      "before_sha256": null,
+      "after_sha256": "98ece10695261d307eb919457e3035420680bb49f40ff376ca08784f908aba00",
+      "bytes": 1207885
+    },
+    "UI/SolidArc/Interface/SolidArcInterface.h": {
+      "before_sha256": null,
+      "after_sha256": "e266706d643881d73fc110c0dc5c1e03d58f5779a9622ec64f6bb2382cedc371",
+      "bytes": 109329
+    },
+    "UI/SolidArc/Interface/SolidArcNavigation.cpp": {
+      "before_sha256": null,
+      "after_sha256": "07246efb62391435a53b720d857e77e9da71a8e2a7a39ea4dfab12e77ca62e67",
+      "bytes": 5242
+    },
+    "UI/SolidArc/Interface/SolidArcNavigation.h": {
+      "before_sha256": null,
+      "after_sha256": "e536855ef86e2c2447b6e0eebef4912da8d19b14deba31fe30f112ae4bb96225",
+      "bytes": 5375
+    },
+    "UI/SolidArc/Interface/SolidArcOptions.cpp": {
+      "before_sha256": null,
+      "after_sha256": "337a67d9bd464ea5143b95ac6ff6f126f25d4f21915d83971f1d1fa57abb588d",
+      "bytes": 5679
+    },
+    "UI/SolidArc/Interface/SolidArcOptions.h": {
+      "before_sha256": null,
+      "after_sha256": "9e9a5fb131f913e93c01b53c79ead9957cd1dd77dd729870ac29e3bb3214321f",
+      "bytes": 4491
+    },
+    "UI/SolidArc/Interface/SolidArcOutliner.cpp": {
+      "before_sha256": null,
+      "after_sha256": "7c734c1bd90bf31693859b3c73f8facf4377a4448d773d36906273e0f5508b19",
+      "bytes": 31448
+    },
+    "UI/SolidArc/Interface/SolidArcOutliner.h": {
+      "before_sha256": null,
+      "after_sha256": "8aa5b07d149c13b9b6e60aa5609d355ffc7470b65823ba4580d4f414674a7326",
+      "bytes": 7973
+    },
+    "UI/SolidArc/Interface/SolidArcScript.cpp": {
+      "before_sha256": null,
+      "after_sha256": "b29adf9c1c0723d7dfa0cdc3a06d1278735a7c818e0520b08baa203bc66b689b",
+      "bytes": 83478
+    },
+    "UI/SolidArc/Interface/SolidArcScript.h": {
+      "before_sha256": null,
+      "after_sha256": "a31a19247a5de5c2ffa695d19f23267f82c8e223e77b6b5b9579345fbfa1ec31",
+      "bytes": 7466
+    },
+    "UI/SolidArc/Interface/SolidArcStyleSheet.cpp": {
+      "before_sha256": null,
+      "after_sha256": "7d3c1d7b47f81766a1f93d946d07ab3a8e8dc3f2a65045a0226dd1649d66e3eb",
+      "bytes": 11588
+    },
+    "UI/SolidArc/Interface/SolidArcStyleSheet.h": {
+      "before_sha256": null,
+      "after_sha256": "f49e6cd7c6ff659926f664db52cfd876ef4f9b31b50fa5479d7a78f75b87eee9",
+      "bytes": 8978
+    },
+    "UI/SolidArc/Shaders/SolidArcEdge.slang": {
+      "before_sha256": null,
+      "after_sha256": "beff1502fe9cc39bbcc9d4b8b3138f32b21ea317232d35dd54ccfa8c12849aed",
+      "bytes": 10801
+    },
+    "UI/SolidArc/Shaders/SolidArcGizmo.slang": {
+      "before_sha256": null,
+      "after_sha256": "0cc0841e31bf861e1884a2d0b6a09b52999ae1d2e9d2d0d4f45bdd8ccb39ce0b",
+      "bytes": 3194
+    },
+    "UI/SolidArc/Shaders/SolidArcGrid.slang": {
+      "before_sha256": null,
+      "after_sha256": "c479527835ab65429c5d98efa6fc6482bb0524dcf93f7d40aa22b2e999d6f7b7",
+      "bytes": 5728
+    },
+    "UI/SolidArc/Shaders/SolidArcImagePlane.slang": {
+      "before_sha256": null,
+      "after_sha256": "b1c974245ce427f85a85477585fb5a3fcd331a792fc8d08cec696bfa9dc3d4b4",
+      "bytes": 3038
+    },
+    "UI/SolidArc/Shaders/SolidArcProjection.slang": {
+      "before_sha256": null,
+      "after_sha256": "132e8476d3256db62465a758a23f2870490b8d8d61c5fcd329f4ed2e004612f7",
+      "bytes": 5188
+    },
+    "UI/SolidArc/Shaders/SolidArcSurface.slang": {
+      "before_sha256": null,
+      "after_sha256": "a9f166b70f3d816b5dbc76b5cd4b57af65d6f840130011b4d5267e30912f909c",
+      "bytes": 8910
+    },
+    "UI/SolidArc/Viewport/Generated/SolidArcShaderArchive.h": {
+      "before_sha256": null,
+      "after_sha256": "ac028d3ec6b0a93b2e109d0262a68d297aa3e9aa3f991a366ce894e9754d80c9",
+      "bytes": 184785
+    },
+    "UI/SolidArc/Viewport/Generated/SolidArcShaderReflection.json": {
+      "before_sha256": null,
+      "after_sha256": "061d11cc4c7416002576d3632008aa919c47e0563ab1f38942872bd554d911d3",
+      "bytes": 247012
+    },
+    "UI/SolidArc/Viewport/SolidArcCamera.cpp": {
+      "before_sha256": null,
+      "after_sha256": "3296b2c5a1afd0dd673b4dd319c9eae1d5dbee61268b452aabaeca42949563a7",
+      "bytes": 5412
+    },
+    "UI/SolidArc/Viewport/SolidArcCamera.h": {
+      "before_sha256": null,
+      "after_sha256": "3e49ae1648170ea813acfa328afe576a72e8803fb7a2972dcb7621ad49d9ef38",
+      "bytes": 2384
+    },
+    "UI/SolidArc/Viewport/SolidArcDevice.cpp": {
+      "before_sha256": null,
+      "after_sha256": "29636eb3efd15f9465cce986d7ee620ed90ec34da1ec2119a54ef9a1f3945c6c",
+      "bytes": 16251
+    },
+    "UI/SolidArc/Viewport/SolidArcDevice.h": {
+      "before_sha256": null,
+      "after_sha256": "c87be5cf6b7de4fa922e6c4d2504d0e90fc66578a077ab27ea68b24e7cb21d26",
+      "bytes": 6051
+    },
+    "UI/SolidArc/Viewport/SolidArcGizmo.cpp": {
+      "before_sha256": null,
+      "after_sha256": "e3f6bc2f8c647a88a6a773a5f5f9471ec0132e4c421e37c928a78f16bf46950d",
+      "bytes": 23538
+    },
+    "UI/SolidArc/Viewport/SolidArcGizmo.h": {
+      "before_sha256": null,
+      "after_sha256": "3c8d4fa46a7c010a8c9d7c84b952e85c72857dcacfa34123e7eda8f7a4dd6157",
+      "bytes": 7550
+    },
+    "UI/SolidArc/Viewport/SolidArcPortableImage.cpp": {
+      "before_sha256": null,
+      "after_sha256": "60c73d0d86338993c8160729a4d16516d75137abbfe5dd6730543f66fd85ff56",
+      "bytes": 3962
+    },
+    "UI/SolidArc/Viewport/SolidArcPortableImage.h": {
+      "before_sha256": null,
+      "after_sha256": "9eea5b1e403c613f72510d0287b7a9caecdc812417de60bea183875d5b582455",
+      "bytes": 1798
+    },
+    "UI/SolidArc/Viewport/SolidArcRasterization.cpp": {
+      "before_sha256": null,
+      "after_sha256": "4d3e9c1787a857e75c84bc093a3df400cbc245c7a1e3a5d3f606f25192b10f58",
+      "bytes": 59133
+    },
+    "UI/SolidArc/Viewport/SolidArcRasterization.h": {
+      "before_sha256": null,
+      "after_sha256": "9bd061b34e1f9a531bfd1967eb529904d93cccedc4738eeb071a656d0e610d66",
+      "bytes": 17011
+    },
+    "UI/SolidArc/Viewport/SolidArcSnapping.cpp": {
+      "before_sha256": null,
+      "after_sha256": "94ba4531ad2672457d12b0085852c9c2adaae557136c998d8cb26fe958d2dd76",
+      "bytes": 46805
+    },
+    "UI/SolidArc/Viewport/SolidArcSnapping.h": {
+      "before_sha256": null,
+      "after_sha256": "217930d14f5a905aed72d3407dd976325f145eefb4d8e2fd1a28aa9c5027bda3",
+      "bytes": 15262
+    },
+    "UI/SolidArc/Viewport/SolidArcSurfaceTracing.cpp": {
+      "before_sha256": null,
+      "after_sha256": "4d080e2328fdca5677e768d07c87f41753808d42d4e2fdf3e72c01d89aedc093",
+      "bytes": 13025
+    },
+    "UI/SolidArc/Viewport/SolidArcSurfaceTracing.h": {
+      "before_sha256": null,
+      "after_sha256": "3229d6afb98ccc2ec8dab8139a4871138bf1f7aa2cbd24027951cd34a7ccfee7",
+      "bytes": 1845
+    }
+  },
+  "existing_files_modified": 14,
+  "new_files": 480,
+  "windows_host_compiled": false,
+  "windows_runtime_tested": false,
+  "remote_frontier_merged": false
+}
