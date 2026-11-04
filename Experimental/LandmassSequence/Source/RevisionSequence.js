@@ -3,7 +3,7 @@
 //============================================================================================================================================
 // 🧩 Byte-bounded reversible recipe snapshots with transactional import and deterministic undo/redo.
 
-import { ValidateProject } from './ElevationProjection.js';
+import { ValidateProject } from './PlanetProjection.js';
 
 export class RevisionSequence
 {

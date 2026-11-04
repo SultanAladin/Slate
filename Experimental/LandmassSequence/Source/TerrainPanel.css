@@ -117,3 +117,23 @@ dialog p { font-size: 12px; line-height: 1.9; }
 @media (max-width: 1150px) { .Workspace { grid-template-columns: 195px minmax(260px, 1fr) 255px; } .Brand .Badge { display: none; } .SculptToolbar button { min-width: 34px; } .SculptToolbar { gap: 0; } .StageLabel { display: none; } .SummaryCards { padding: 0 10px; } .SummaryCards > div { padding: 11px; } .DatumRow .SmallTag { display: none; } }
 @media (max-width: 850px) { .Workspace { grid-template-columns: minmax(250px, 1fr) 245px; } .Outliner { display: none; } .Topbar { padding: 0 12px; } .Brand strong { display: none; } .HeaderActions span { display: none; } .Statusbar > div { display: none; } .ViewportHeading { left: 7px; right: 7px; } }
 @media (max-width: 550px) { .Workspace { grid-template-columns: 1fr; overflow-y: auto; } .Viewport { min-height: 65vh; } .Inspector { min-height: 65vh; } .InspectorScroll { max-height: 65vh; } .ProjectTitle { display: none; } }
+/* Texture Workspace / ControlKit figures; browser counterpart, no native ImGui linkage. */
+:root { color: #d2d2d5; background: #101012; }
+.Panel { background: #141416; }
+.InspectorCard { background: #1b1b1e; }
+.ControlRow { margin: 14px 0 17px; }
+.ControlHeading { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 8px; }
+.ControlHeading label { margin: 0; font-size: 10px; color: #aaaab1; }
+.ValuePill { display: flex; height: 28px; border: 1px solid #ffffff14; border-radius: 999px; overflow: hidden; width: 109px; flex-shrink: 0; }
+.ValuePill input[type=number] { width: 73px; flex: 1; min-width: 0; border: 0; border-radius: 0; padding: 4px 5px 4px 10px; background: #0a0a0b; font-size: 10px; color: #e0e0e4; }
+.ValuePill > span { width: 29px; display: grid; place-items: center; background: #33333a; border-left: 1px solid #ffffff10; font-size: 9px; color: #b9b9c0; }
+input[type=range].SliderPill { display: block; height: 28px; border: none; border-radius: 999px; padding: 0; margin: 0; background: linear-gradient(to right, #8a8a8e var(--fraction, 50%), #303036 var(--fraction, 50%)); appearance: none; }
+input[type=range].SliderPill::-webkit-slider-thumb { appearance: none; width: 26px; height: 26px; border-radius: 50%; background: #ececf0; border: none; box-shadow: 0 1px 2px #0008; transition: transform 100ms; }
+input[type=range].SliderPill::-moz-range-thumb { width: 26px; height: 26px; border: none; border-radius: 50%; background: #ececf0; box-shadow: 0 1px 2px #0008; }
+input[type=range].SliderPill:active::-webkit-slider-thumb { transform: scale(1.12); }
+input[type=range].SliderPill:active::-moz-range-thumb { transform: scale(1.12); }
+.SculptureSummary { padding: 12px 20px; color: #777780; font-size: 9px; }
+.SummaryCards > div { background: #212124; }
+input, select { background: #101012; }
+.CardCaption, .Muted { color: #85858e; }
+.ControlRow input[type=range] { cursor: ew-resize; }

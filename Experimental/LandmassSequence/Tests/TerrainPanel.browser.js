@@ -1,12 +1,11 @@
 //============================================================================================================================================
 //                                                          TERRAINPANEL.BROWSER.JS
 //============================================================================================================================================
-// 🧩 Real WebGL viewport, authoring, recipe download/import and worker preview integration checks.
+// 🧩 Real WebGL planet, volumetric sculpture, buried cavities and Texture Workspace slider interactions.
 
 import Assert from 'node:assert/strict';
 import { readFile, mkdir } from 'node:fs/promises';
 import { chromium as Chromium } from 'playwright';
-
 const Browser = await Chromium.launch({
     executablePath: process.env.LANDMASS_BROWSER_EXECUTABLE || undefined,
     headless: true,
@@ -15,95 +14,88 @@ const Browser = await Chromium.launch({
 const Page = await Browser.newPage({ viewport: { width: 1440, height: 960 }, acceptDownloads: true });
 const Failures = [];
 Page.on('pageerror', (Failure) => Failures.push(Failure.message));
+Page.on('console', (Message) => { if (Message.type() === 'error') Failures.push(Message.text()); });
 Page.on('dialog', (Dialog) => Dialog.accept());
 const Destination = process.env.LANDMASS_CAPTURE_PATH;
 if (Destination) await mkdir(Destination, { recursive: true });
 let Checks = 0;
-function Verify(Description, Predicate)
-{
-    Assert(Predicate, Description);
-    Checks++;
-    console.log(`PASS ${Description}`);
-}
+function Verify(Description, Predicate) { Assert(Predicate, Description); Checks++; console.log(`PASS ${Description}`); }
 async function Ready()
 {
     await Page.waitForFunction(() => document.querySelector('#Viewport')?.getAttribute('aria-busy') === 'false' && document.querySelector('#BuildDuration')?.textContent.includes('ms'), null, { timeout: 30000 });
+    Assert(!(await Page.locator('#Status').textContent()).includes('Extraction refused'), await Page.locator('#Status').textContent());
 }
 async function SaveRecipe()
 {
-    const Downloaded = Page.waitForEvent('download');
-    await Page.locator('#SaveProject').click();
+    const Downloaded = Page.waitForEvent('download'); await Page.locator('#SaveProject').click();
     return JSON.parse(await readFile(await (await Downloaded).path(), 'utf8'));
 }
 async function Change(Identity, Quantity)
 {
-    await Page.locator(`#${Identity}`).fill(String(Quantity));
-    await Page.locator(`#${Identity}`).press('Tab');
-    await Ready();
+    await Page.locator(`#${Identity}`).fill(String(Quantity)); await Page.locator(`#${Identity}`).press('Tab'); await Ready();
+}
+async function Import(Document)
+{
+    await Page.locator('#ProjectFile').setInputFiles({ name: 'planet.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(Document)) });
 }
 try
 {
-    await Page.goto(process.env.LANDMASS_URL || 'http://127.0.0.1:5173');
-    await Ready();
-    Verify('WebGL surface and worker start without a page error', Failures.length === 0 && !(await Page.locator('#RendererFailure').isVisible()));
-    Verify('four procedural landforms are present', await Page.locator('.LandformRow').count() === 4);
-    if (Destination) await Page.screenshot({ path: `${Destination}/World.png` });
+    await Page.goto(process.env.LANDMASS_URL || 'http://127.0.0.1:5173'); await Ready();
+    Verify('actual planet and worker start without a JavaScript error', Failures.length === 0 && !(await Page.locator('#RendererFailure').isVisible()));
+    Verify('default world is 6,780 km across, not a 512 km square', (await Page.locator('#ExtentLabel').textContent()).includes('6,780 km diameter'));
+    if (Destination) await Page.screenshot({ path: `${Destination}/PlanetOverview.png` });
     const Original = await SaveRecipe();
-    await Change('Height', 6000);
-    const Edited = await SaveRecipe();
-    Verify('Inspector changes the saved authoring recipe', Edited.Landforms[0].Height === 6000);
+    Verify('saved document is a version-2 3D planet recipe', Original.Format === 'frontier-sdf-planet' && Original.Revision === 2 && Original.Span === undefined);
+    await Change('Height', 30);
+    Verify('typed slider readout changes the solid in metres', (await SaveRecipe()).Landforms[0].Height === 30000);
     await Page.locator('#Undo').click(); await Ready();
-    Verify('undo restores exact original parameters', JSON.stringify(await SaveRecipe()) === JSON.stringify(Original));
+    Verify('one undo restores the original solid recipe', JSON.stringify(await SaveRecipe()) === JSON.stringify(Original));
     await Page.locator('#Redo').click(); await Ready();
-    Verify('redo restores edited parameters', JSON.stringify(await SaveRecipe()) === JSON.stringify(Edited));
+    Verify('redo restores the typed solid edit', (await SaveRecipe()).Landforms[0].Height === 30000);
+    const Dimensions = await Page.locator('#HeightRange').evaluate((Rail) => ({ Height: getComputedStyle(Rail).height, Thumb: Array.from(document.styleSheets).flatMap((Sheet) => Array.from(Sheet.cssRules)).find((Rule) => Rule.selectorText === 'input[type="range"].SliderPill::-webkit-slider-thumb')?.style.width }));
+    Verify('C++ Texture Workspace rail and thumb figures are 28/26 px', Dimensions.Height === '28px' && Dimensions.Thumb === '26px');
+    const Rail = await Page.locator('#HeightRange').boundingBox();
+    const BeforeDrag = await SaveRecipe();
+    await Page.mouse.move(Rail.x + Rail.width * 0.35, Rail.y + Rail.height / 2); await Page.mouse.down();
+    await Page.mouse.move(Rail.x + Rail.width * 0.55, Rail.y + Rail.height / 2, { steps: 8 }); await Page.mouse.up(); await Ready();
+    const AfterDrag = await SaveRecipe();
+    Verify('pill slider dragging changes the authored solid', AfterDrag.Landforms[0].Height !== BeforeDrag.Landforms[0].Height);
+    await Page.locator('#Undo').click(); await Ready();
+    Verify('slider drag creates one undo, not one per mouse sample', JSON.stringify(await SaveRecipe()) === JSON.stringify(BeforeDrag));
     const Facets = await Page.locator('#FacetCount').textContent();
-    await Change('WorldSpan', 2000);
-    Verify('2,000 km world keeps the same preview triangle count', await Page.locator('#FacetCount').textContent() === Facets);
-    await Change('WorldSpan', 512);
-    await Page.locator('#AddLandform').click(); await Ready();
-    Verify('adding an island updates the Outliner and recipe', await Page.locator('.LandformRow').count() === 5 && (await SaveRecipe()).Landforms.length === 5);
-    await Page.locator('#DeleteLandform').click(); await Ready();
-    Verify('selected landform can be removed without deleting other landforms', await Page.locator('.LandformRow').count() === 4);
-    await Page.locator('#DetailPreview').click(); await Ready();
-    Verify('local detail samples a smaller extent', (await Page.locator('#ExtentLabel').textContent()).includes('32 × 32'));
-    if (Destination) await Page.screenshot({ path: `${Destination}/LocalDetail.png` });
-    await Page.locator('#WorldPreview').click(); await Ready();
-    await Page.locator('[data-tool="Raise"]').click();
+    await Change('PlanetRadius', 6371);
+    Verify('Earth-size radius retains the same overview triangle count', (await Page.locator('#FacetCount').textContent()) === Facets);
+    Verify('radius change does not stretch existing landform dimensions', (await SaveRecipe()).Landforms[0].Along === Original.Landforms[0].Along);
+    await Page.locator('#MarsPreset').click(); await Ready();
+    await Page.locator('#FocusLandform').click(); await Ready();
+    Verify('local extraction is a cubic 3D volume', (await Page.locator('#ExtentLabel').textContent()).includes('120 × 120 × 120') && (await Page.locator('#SpacingLabel').textContent()).includes('48³ cells'));
+    if (Destination) await Page.screenshot({ path: `${Destination}/LocalVolume.png` });
+    await Page.locator('[data-tool="Cave"]').click();
     const Canvas = await Page.locator('#TerrainCanvas').boundingBox();
-    const CentreEast = Canvas.x + Canvas.width * 0.43;
-    const CentreNorth = Canvas.y + Canvas.height * 0.49;
-    await Page.mouse.move(CentreEast, CentreNorth);
-    await Page.mouse.down();
-    await Page.mouse.move(CentreEast + 25, CentreNorth + 6, { steps: 8 });
-    await Page.mouse.up();
-    await Ready();
-    const Sculpted = await SaveRecipe();
-    Verify('viewport drag produces real bounded sculpture impressions', Sculpted.Impressions.length > 0 && Sculpted.Impressions.every((Impression) => Impression.Operation === 'Raise'));
+    await Page.mouse.click(Canvas.x + Canvas.width * 0.5, Canvas.y + Canvas.height * 0.53); await Ready();
+    const Caved = await SaveRecipe();
+    Verify('Cave tool adds a real subtractive 3D sphere', Caved.Impressions.length === 1 && Caved.Impressions[0].Operation === 'Difference' && Caved.Impressions[0].Radius > 0);
+    await Page.locator('#Cutaway').click();
+    Verify('Section is available in the local 3D view', (await Page.locator('#Cutaway').getAttribute('class')) === 'Selected');
+    if (Destination) await Page.screenshot({ path: `${Destination}/AuthoredCavity.png` });
     await Page.locator('#Undo').click(); await Ready();
-    Verify('one undo removes the whole pointer stroke', (await SaveRecipe()).Impressions.length === 0);
+    Verify('cavity subtraction undoes atomically', (await SaveRecipe()).Impressions.length === 0);
     await Page.locator('#Redo').click(); await Ready();
-    Verify('redo restores the entire pointer stroke', (await SaveRecipe()).Impressions.length === Sculpted.Impressions.length);
-    await Page.keyboard.press('Escape');
-    Verify('Escape returns to selection', await Page.locator('[data-tool="Navigate"]').getAttribute('class') === 'Selected');
-    const Invalid = { ...Sculpted, Revision: 99 };
-    await Page.locator('#ProjectFile').setInputFiles({ name: 'invalid.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(Invalid)) });
+    Verify('redo restores the cavity operation exactly', JSON.stringify((await SaveRecipe()).Impressions) === JSON.stringify(Caved.Impressions));
+    const BeforeInvalid = await SaveRecipe();
+    await Import({ Format: 'frontier-landmass', Revision: 1 });
     await Page.waitForFunction(() => document.querySelector('#Status').textContent.includes('Open refused'));
-    Verify('invalid imported project preserves the entire live recipe', JSON.stringify(await SaveRecipe()) === JSON.stringify(Sculpted));
-    await Page.locator('#ProjectFile').setInputFiles({ name: 'restored.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(Original)) });
-    await Page.waitForFunction(() => document.querySelector('#Status').textContent.includes('Project opened'));
-    await Ready();
-    Verify('downloaded recipe reopens exactly', JSON.stringify(await SaveRecipe()) === JSON.stringify(Original));
-    await Page.locator('#NewProject').click(); await Ready();
-    Verify('blank project starts without landforms and selects Island', await Page.locator('.LandformRow').count() === 0 && await Page.locator('[data-tool="Island"]').getAttribute('class') === 'Selected');
-    await Page.mouse.click(Canvas.x + Canvas.width * 0.5, Canvas.y + Canvas.height * 0.55); await Ready();
-    Verify('Island tool places a new procedural landform on blank seabed', await Page.locator('.LandformRow').count() === 1);
+    Verify('old height-graph format refuses without changing the live planet', JSON.stringify(await SaveRecipe()) === JSON.stringify(BeforeInvalid));
+    await Import(Original); await Page.waitForFunction(() => document.querySelector('#Status').textContent.includes('planet opened')); await Ready();
+    Verify('saved volumetric planet reloads exactly', JSON.stringify(await SaveRecipe()) === JSON.stringify(Original));
+    await Page.locator('#AddLandform').click(); await Ready();
+    Verify('new landmass is a real versioned solid', (await SaveRecipe()).Landforms.length === 5);
+    await Page.locator('#DeleteLandform').click(); await Ready();
+    Verify('selected landmass removes independently', (await SaveRecipe()).Landforms.length === 4);
     await Page.locator('#HelpButton').click();
-    Verify('in-app guide explicitly states SDF and ocean limitations', (await Page.locator('#HelpDialog').textContent()).includes('not a reinitialised volumetric SDF'));
+    Verify('guide distinguishes volumetric authoring from coarse overview', (await Page.locator('#HelpDialog').textContent()).includes('including interior surfaces'));
     await Page.locator('#CloseHelp').click();
-    Verify('all browser interactions completed without JavaScript exceptions', Failures.length === 0);
+    Verify('no page or WebGL exceptions during the complete workflow', Failures.length === 0);
     console.log(`PASS ${Checks} browser checks`);
 }
-finally
-{
-    await Browser.close();
-}
+finally { await Browser.close(); }
